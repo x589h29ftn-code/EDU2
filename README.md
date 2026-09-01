@@ -39,6 +39,8 @@ Er is geen installatie nodig en het spel werkt volledig offline
 - Het **Fries Scheepvaart Museum** aan het Kleinzand
 - **Schaapmarktplein** en **Oud Kerkhof** met terrasjes, parasols en gasten
 - **Sint-Martinuskerk** (RK) aan de oostkant en **Theater Sneek** + parkeerterrein **P-zuid Waterpoort** buiten de gracht
+- Voor de echte Snekers: de gouden **Fortuna-fontein** (11fountains) die in het water bij de Waterpoort draait, het skûtsje **De Sneker Pan** (met de gele pan in het zeil) en zeilboten in de Kolk, **Weduwe Joustra Beerenburg** aan het Kleinzand, **Grand Café De Walrus** aan de Leeuwenburg, **Osinga's drabbelkoeken**, de **Poiesz**, het **VVV**, de weekmarkt op het Schaapmarktplein, het **Wilhelminapark** met muziekkoepel, dierenweide en speeltuin, en het voetbalveld van **LSC 1890**
+- Friese en Sneker vlaggen (drie gouden kronen!), blauwe straatnaambordjes, rondfietsende Snekers, eenden, zwanen en krijsende meeuwen boven de gracht, en af en toe de kerkklok
 - Winkelstraten met trap-, klok- en tuitgevels, dakpannen, dakkapellen, vlaggetjes, fietsen, wandelende en zittende mensen (met echte loopanimatie),
   geparkeerde auto's met gele kentekens (instappen met E!) en verkeer dat over de Singel-route en de uitvalswegen rijdt
 

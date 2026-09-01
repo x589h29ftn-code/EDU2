@@ -148,6 +148,12 @@ const stratenBuiten = [
   {naam:"Oppenhuizerweg",  w:10, pts:[[268,-150],[350,-115]],   asfalt:true},
   {naam:"Leeuwarderweg",   w:10, pts:[[88,-347],[122,-430]],    asfalt:true},
   {naam:"Bolswarderweg",   w:10, pts:[[-88,-287],[-175,-325]],  asfalt:true},
+  // woonstraten rond het centrum, zodat de rand net zo vol is als op de luchtfoto
+  {naam:"Prinsengracht",       w:8, pts:[[70,80],[150,105]],      asfalt:true},
+  {naam:"Julianastraat",       w:8, pts:[[-60,-330],[-135,-388]], asfalt:true},
+  {naam:"Worp Tjaardastraat",  w:8, pts:[[-120,-120],[-190,-172]],asfalt:true},
+  {naam:"1e Oosterkade",       w:8, pts:[[268,-212],[330,-272]],  asfalt:true},
+  {naam:"Willemstraat",        w:8, pts:[[60,140],[140,165]],     asfalt:true},
 ];
 
 // Pleinen
@@ -430,7 +436,7 @@ function puntInVerbod(x,z){
 // ---------------------------------------------------------------------
 (function bouwLand(){
   const water=new THREE.Mesh(new THREE.PlaneGeometry(3200,3200),
-    new THREE.MeshLambertMaterial({color:0x33606e}));
+    new THREE.MeshLambertMaterial({color:0x2b5560}));
   water.rotation.x=-Math.PI/2; water.position.set(85,-0.55,-150);
   scene.add(water);
 
@@ -901,6 +907,52 @@ const parkeerAuto=[]; // vulling volgt zodra de automaker bestaat
   paal.position.set(px+5,1.2,pz-12.9); scene.add(paal);
 })();
 
+// --- Zaken die elke Sneker kent ---
+function maakZaak(x,z,rot,w,h,d,kleur,bordTekst,bordBg,bordFg){
+  const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=rot;
+  const romp=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshLambertMaterial({color:kleur}));
+  romp.position.set(0,h/2,-d/2); g.add(romp);
+  const puiT=canvasTex(512,256,(gg)=>{
+    gg.fillStyle="#"+new THREE.Color(kleur).getHexString(); gg.fillRect(0,0,512,256);
+    gg.fillStyle="#b8d2e4";
+    gg.fillRect(30,130,140,100); gg.fillRect(342,130,140,100);
+    gg.strokeStyle="#f0ead8"; gg.lineWidth=8;
+    gg.strokeRect(30,130,140,100); gg.strokeRect(342,130,140,100);
+    gg.fillStyle="#241a12"; gg.fillRect(216,120,80,136);
+    gg.strokeStyle="#f0ead8"; gg.strokeRect(216,120,80,136);
+    gg.fillStyle="#28323f";
+    [44,152,260,368].forEach(rx=>{
+      gg.fillRect(rx,24,58,62);
+      gg.strokeStyle="#f0ead8"; gg.lineWidth=5; gg.strokeRect(rx,24,58,62);
+    });
+  });
+  const pui=new THREE.Mesh(new THREE.PlaneGeometry(w-0.2,h-0.2),
+    new THREE.MeshLambertMaterial({map:puiT}));
+  pui.position.set(0,h/2,0.06); g.add(pui);
+  const dak=new THREE.Mesh(new THREE.CylinderGeometry(0.4,Math.min(w,d)/2+0.6,2.2,4,1),dakMateriaal());
+  dak.rotation.y=Math.PI/4;
+  dak.scale.set(w/Math.min(w,d)*0.9,1,d/Math.min(w,d)*0.75);
+  dak.position.set(0,h+1.1,-d/2); g.add(dak);
+  const bord=tekstBord(bordTekst,bordBg,bordFg,Math.min(w-0.4,12),1.1,64);
+  bord.position.set(0,h+0.62,0.1); g.add(bord);
+  scene.add(g);
+  const cx2=x-Math.sin(rot)*d/2, cz2=z-Math.cos(rot)*d/2;
+  addCollider(cx2,cz2,w/2,d/2+0.2,-rot);
+  addVerbod(cx2,cz2,w/2+1.5,d/2+2,-rot);
+  return g;
+}
+// Weduwe Joustra (beerenburg sinds 1864) aan het Kleinzand
+maakZaak(166,-216,0,11,6.5,9,0x6e3a2c,"WED. S. JOUSTRA · BEERENBURG 1864","#241a10","#f0d060");
+// Grand Café De Walrus aan de Leeuwenburg
+maakZaak(27,-150,Math.PI/2,14,7,10,0x8a4534,"GRAND CAFÉ DE WALRUS","#1c3040","#f0ead8");
+// drabbelkoeken op het Grootzand
+maakZaak(93,-66,-2.04,10,6.5,9,0xddd6c0,"OSINGA'S DRABBELKOEKEN","#8a3a2a","#ffe9a0");
+// de supermarkt aan de Oude Koemarkt
+maakZaak(-4,-130,Math.PI/2,16,6,12,0xe8e2d2,"POIESZ SUPERMARKT","#e02020","#ffd820");
+// het VVV naast het Stadhuis
+maakZaak(52,-232,0,8,6,8,0x4f6a8a,"VVV SNEEK","#1a4a8a","#ffffff");
+
 // ---------------------------------------------------------------------
 // Gevelrijen: pandjes langs de straten
 // ---------------------------------------------------------------------
@@ -1138,6 +1190,40 @@ for(let i=0;i<180;i++){
   scene.add(paal); scene.add(bol);
 })();
 
+// blauwe straatnaambordjes op de hoeken
+(function naamborden(){
+  const cache={};
+  function bordTex(nm){
+    if(cache[nm]) return cache[nm];
+    const t=canvasTex(256,48,(g)=>{
+      g.fillStyle="#1a4a8a"; g.fillRect(0,0,256,48);
+      g.strokeStyle="#ffffff"; g.lineWidth=4; g.strokeRect(3,3,250,42);
+      g.fillStyle="#ffffff"; g.font="bold 24px Arial";
+      g.textAlign="center"; g.textBaseline="middle";
+      g.fillText(nm.toUpperCase(),128,26,240);
+    });
+    cache[nm]=t; return t;
+  }
+  const paalMat=new THREE.MeshLambertMaterial({color:0x4a4a52});
+  straten.forEach(st=>{
+    [[st.pts[0],st.pts[1]],[st.pts[st.pts.length-1],st.pts[st.pts.length-2]]].forEach(pp=>{
+      const a=pp[0],b=pp[1];
+      const len=dist2d(a[0],a[1],b[0],b[1]);
+      const dirX=(b[0]-a[0])/len,dirZ=(b[1]-a[1])/len;
+      const x=a[0]+dirX*4-dirZ*(st.w/2+0.9), z=a[1]+dirZ*4+dirX*(st.w/2+0.9);
+      if(!opLand(x,z)||puntInVerbod(x,z)) return;
+      const y=heightAt(x,z);
+      const paal=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,2.6),paalMat);
+      paal.position.set(x,y+1.3,z); scene.add(paal);
+      const bord=new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.36),
+        new THREE.MeshBasicMaterial({map:bordTex(st.naam),side:THREE.DoubleSide}));
+      bord.position.set(x,y+2.5,z);
+      bord.rotation.y=Math.atan2(dirX,dirZ)+Math.PI/2;
+      scene.add(bord);
+    });
+  });
+})();
+
 // zittende mensen worden hieronder bij de NPC-code gemaakt;
 // eerst de terrassen zelf (Marktstraat + Schaapmarktplein, zoals op de webcam)
 const zitplekken=[];
@@ -1149,6 +1235,8 @@ const zitplekken=[];
     [102,-156],[112,-164],[108,-152],
     // Oud Kerkhof en Grootzand
     [6,-249],[78,-62],[86,-80],
+    // het terras van De Walrus
+    [31,-146],[31,-154],
   ];
   spots.forEach(sp=>{
     if(!opLand(sp[0],sp[1])) return;
@@ -1175,8 +1263,37 @@ const zitplekken=[];
   });
 })();
 
+// weekmarkt op het Schaapmarktplein
+(function maakMarkt(){
+  const kramen=[[101,-164,0.3],[106,-154,1.8],[113,-165,0.1],[116,-156,1.6]];
+  kramen.forEach(k=>{
+    const g=new THREE.Group(); g.position.set(k[0],0,k[1]); g.rotation.y=k[2];
+    const tafel=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.9,1.4),
+      new THREE.MeshLambertMaterial({color:0x6a5a48}));
+    tafel.position.y=0.45; g.add(tafel);
+    [-1.4,1.4].forEach(px2=>{[-0.6,0.6].forEach(pz2=>{
+      const paal=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.4),witMat);
+      paal.position.set(px2,1.2,pz2); g.add(paal);
+    });});
+    const zeilT=canvasTex(128,64,(gg)=>{
+      const kl=pick(["#c9402a","#2a5ac9","#2a8a4a"]);
+      for(let i=0;i<8;i++){gg.fillStyle=i%2?"#f0ead8":kl;gg.fillRect(i*16,0,16,64);}
+    });
+    const zeil=new THREE.Mesh(new THREE.BoxGeometry(3.7,0.06,2.1),
+      new THREE.MeshLambertMaterial({map:zeilT}));
+    zeil.position.set(0,2.5,0); zeil.rotation.x=0.12; g.add(zeil);
+    for(let i=0;i<4;i++){
+      const waar=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.25,0.5),
+        new THREE.MeshLambertMaterial({color:pick([0xd9a520,0x8a2a2a,0x4a8a2a,0xd97a20,0xe8e2d0])}));
+      waar.position.set(-1.1+i*0.75,1.05,rnd(-0.3,0.3)); g.add(waar);
+    }
+    scene.add(g);
+    addCollider(k[0],k[1],1.8,0.9,-k[2]);
+  });
+})();
+
 // fietsen (het is tenslotte Nederland)
-function maakFiets(x,z,rot){
+function maakFietsMesh(){
   const gr=new THREE.Group();
   const frameMat=new THREE.MeshLambertMaterial({color:pick([0x1a1a1a,0x333a44,0x5a2a2a,0x2a4a3a])});
   const wielGeo=new THREE.TorusGeometry(0.32,0.03,6,14);
@@ -1191,13 +1308,35 @@ function maakFiets(x,z,rot){
   stuur.rotation.z=Math.PI/2; stuur.position.set(0,0.95,0.5); gr.add(stuur);
   const zadel=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.06,0.26),donkerLei);
   zadel.position.set(0,0.92,-0.35); gr.add(zadel);
+  return gr;
+}
+function maakFiets(x,z,rot){
+  const gr=maakFietsMesh();
   gr.position.set(x,heightAt(x,z),z); gr.rotation.y=rot;
   scene.add(gr);
 }
 [[66,-40],[68,-42],[70,-44],[110,-152],[112,-154],[0,-220],[2,-222],
- [150,-197],[152,-198],[124,-206],[24,-247],[26,-248],[-40,-210],[90,-292]].forEach((f,i)=>{
+ [150,-197],[152,-198],[124,-206],[24,-247],[26,-248],[-40,-210],[90,-292]].forEach((f)=>{
   maakFiets(f[0],f[1],rnd(0,6.28));
 });
+
+function updateFietsers(dt,t){
+  fietsers.forEach(f=>{
+    f.afst=(f.afst+f.snelheid*dt)%f.totaal;
+    let rest=f.afst, i=0;
+    while(rest>f.lengtes[i]){rest-=f.lengtes[i];i=(i+1)%verkeersLus.length;}
+    const p=verkeersLus[i], q=verkeersLus[(i+1)%verkeersLus.length];
+    const tt=rest/f.lengtes[i];
+    const dirX=(q[0]-p[0])/f.lengtes[i], dirZ=(q[1]-p[1])/f.lengtes[i];
+    const x=p[0]+(q[0]-p[0])*tt - dirZ*3.6;
+    const z=p[1]+(q[1]-p[1])*tt + dirX*3.6;
+    f.mesh.position.set(x,heightAt(x,z),z);
+    f.mesh.rotation.y=Math.atan2(dirX,dirZ);
+    // trappende benen
+    const zwaai=Math.sin(t*7+f.fase)*0.3;
+    f.mens.b1.rotation.x=-0.75+zwaai; f.mens.b2.rotation.x=-0.75-zwaai;
+  });
+}
 
 // bootjes: langs de gracht, in de Kolk, in het Kleinzand
 const boten=[];
@@ -1232,10 +1371,11 @@ for(let i=0;i<eiland.length;i+=2){
   const dx=p[0]-CZ.x, dz=p[1]-CZ.z, len=Math.hypot(dx,dz)||1;
   const kolk=(p[0]<60&&p[1]>-40);
   const off=kolk?24:10;
-  maakBoot(p[0]+dx/len*off, p[1]+dz/len*off, rnd(0,6.28), false);
+  const bx=p[0]+dx/len*off, bz=p[1]+dz/len*off;
+  if(!opLand(bx,bz)) maakBoot(bx, bz, rnd(0,6.28), false);
 }
 // zeilboten in de Kolk (Sneekweek!)
-maakBoot(-30,60,0.6,true); maakBoot(-42,44,-0.9,true); maakBoot(-16,74,2.2,true);
+maakBoot(40,22,0.6,true); maakBoot(24,36,-0.9,true); maakBoot(48,32,2.2,true);
 // Kleinzand
 maakBoot(160,-199,Math.PI/2,false); maakBoot(172,-199,Math.PI/2,false);
 maakBoot(206,-199,Math.PI/2,false); maakBoot(218,-199,Math.PI/2,false);
@@ -1275,6 +1415,174 @@ function updateVaarboten(dt){
   });
 }
 
+// --- De Kolk: de Fortuna-fontein (11fountains), skûtsje De Sneker Pan
+//     en Sneekweek-vlaggenmasten ---
+let fortuna=null;
+(function maakFortuna(){
+  const fx=-14, fz=42;   // in het water van de Kolk, bij de Waterpoort
+  const goud=new THREE.MeshLambertMaterial({color:0xd9a520,emissive:0x8a6a10,emissiveIntensity:0.35});
+  fortuna=new THREE.Group(); fortuna.position.set(fx,-0.15,fz);
+  const bol=new THREE.Mesh(new THREE.SphereGeometry(1.5,16,12),goud);
+  bol.position.y=1.0; fortuna.add(bol);
+  const benen=new THREE.Mesh(new THREE.BoxGeometry(0.48,1.1,0.3),goud);
+  benen.position.y=3.0; fortuna.add(benen);
+  const lijf=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.8,0.35),goud);
+  lijf.position.y=3.9; fortuna.add(lijf);
+  const hoofd=new THREE.Mesh(new THREE.SphereGeometry(0.22,10,8),goud);
+  hoofd.position.y=4.55; fortuna.add(hoofd);
+  const hoorn=new THREE.Mesh(new THREE.ConeGeometry(0.3,1.2,8),goud);
+  hoorn.rotation.z=1.15; hoorn.position.set(0.6,4.25,0); fortuna.add(hoorn);
+  scene.add(fortuna);
+})();
+
+(function maakSnekerPan(){
+  const g=new THREE.Group(); g.position.set(30,-0.25,26); g.rotation.y=1.35;
+  const romp=new THREE.Mesh(new THREE.CylinderGeometry(1.7,1.2,12,8,1),
+    new THREE.MeshLambertMaterial({color:0x2a2622}));
+  romp.rotation.set(Math.PI/2,0,Math.PI/2); romp.scale.set(1,1,0.35);
+  g.add(romp);
+  const dek=new THREE.Mesh(new THREE.BoxGeometry(2.6,0.3,11),
+    new THREE.MeshLambertMaterial({color:0x8a6a45}));
+  dek.position.y=0.45; g.add(dek);
+  const mast=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.12,11),
+    new THREE.MeshLambertMaterial({color:0x6a4a2e}));
+  mast.position.set(0,5.8,1.5); g.add(mast);
+  // bruin grootzeil met de gele pan — het teken van De Sneker Pan
+  const zeilT=canvasTex(256,256,(gg)=>{
+    gg.fillStyle="#6a4a2e"; gg.fillRect(0,0,256,256);
+    gg.strokeStyle="rgba(0,0,0,0.2)"; gg.lineWidth=2;
+    for(let x2=0;x2<256;x2+=22){gg.beginPath();gg.moveTo(x2,0);gg.lineTo(x2,256);gg.stroke();}
+    gg.fillStyle="#f0c020";
+    gg.beginPath(); gg.arc(120,120,46,0,7); gg.fill();
+    gg.fillRect(160,110,60,20);   // steel van de pan
+  });
+  const zeil=new THREE.Mesh(new THREE.PlaneGeometry(5.4,8.2),
+    new THREE.MeshLambertMaterial({map:zeilT,side:THREE.DoubleSide}));
+  zeil.position.set(0,5.4,-1.6); g.add(zeil);
+  const fok=new THREE.Mesh(new THREE.ShapeGeometry(
+    new THREE.Shape([new THREE.Vector2(0,0),new THREE.Vector2(2.6,0),new THREE.Vector2(0,6)])),
+    new THREE.MeshLambertMaterial({color:0x7a5a3a,side:THREE.DoubleSide}));
+  fok.position.set(0,0.7,2.0); fok.rotation.y=0.15; g.add(fok);
+  const naam=tekstBord("DE SNEKER PAN","#14120e","#f0d060",4.5,0.6,110);
+  naam.position.set(0,1.1,5.6); g.add(naam);
+  scene.add(g); boten.push(g);
+})();
+
+// vlaggenmasten op de kade bij de Kolk: Fryslân, Sneek en oranje wimpels
+function frieseVlagTex(){
+  return canvasTex(160,110,(g)=>{
+    g.fillStyle="#ffffff"; g.fillRect(0,0,160,110);
+    g.save(); g.translate(80,55); g.rotate(-0.28); g.translate(-110,-80);
+    g.fillStyle="#1a56a0";
+    for(let i=0;i<4;i++) g.fillRect(0,i*45,260,22);
+    g.fillStyle="#c9202a";
+    for(let r=0;r<3;r++)for(let k=0;k<3-r%2;k++){
+      const px2=40+k*70+(r%2)*35, py2=32+r*45;
+      g.beginPath();
+      g.ellipse(px2,py2,10,7,0.6,0,7);
+      g.fill();
+    }
+    g.restore();
+  });
+}
+function snekerVlagTex(){
+  return canvasTex(160,110,(g)=>{
+    g.fillStyle="#14120e"; g.fillRect(0,0,160,110);   // het wapen: drie gouden kronen op zwart
+    g.fillStyle="#f0c020";
+    [[50,30],[110,30],[80,76]].forEach(p=>{
+      g.fillRect(p[0]-16,p[1]-2,32,12);
+      g.beginPath();
+      g.moveTo(p[0]-16,p[1]-2); g.lineTo(p[0]-12,p[1]-16); g.lineTo(p[0]-6,p[1]-2);
+      g.lineTo(p[0],p[1]-18); g.lineTo(p[0]+6,p[1]-2);
+      g.lineTo(p[0]+12,p[1]-16); g.lineTo(p[0]+16,p[1]-2);
+      g.closePath(); g.fill();
+    });
+  });
+}
+(function vlaggenmasten(){
+  const masten=[
+    [2,57,"fries"],[9,59,"sneek"],[16,61,"oranje"],[23,63,"fries"],[-24,52,"sneek"],
+  ];
+  masten.forEach(mp=>{
+    if(!opLand(mp[0],mp[1])) return;
+    const mast=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.09,7.5),witMat);
+    mast.position.set(mp[0],3.75,mp[1]); scene.add(mast);
+    let doek;
+    if(mp[2]==="oranje"){
+      doek=new THREE.Mesh(new THREE.ShapeGeometry(
+        new THREE.Shape([new THREE.Vector2(0,0),new THREE.Vector2(2.6,0.35),new THREE.Vector2(0,0.7)])),
+        new THREE.MeshBasicMaterial({color:0xf07820,side:THREE.DoubleSide}));
+      doek.position.set(mp[0]+0.05,6.9,mp[1]);
+    }else{
+      const tex=mp[2]==="fries"?frieseVlagTex():snekerVlagTex();
+      doek=new THREE.Mesh(new THREE.PlaneGeometry(1.7,1.15),
+        new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}));
+      doek.position.set(mp[0]+0.9,6.7,mp[1]);
+    }
+    doek.rotation.y=rnd(-0.5,0.5);
+    scene.add(doek);
+  });
+})();
+
+// eenden en zwanen in het water
+(function waterVogels(){
+  const spots=[[10,25],[45,16],[105,22],[172,-2],[240,-90],[252,-200],[192,-282],
+    [60,-326],[-42,-292],[-82,-182],[160,-199],[204,-198],[-58,-62]];
+  spots.forEach(s=>{
+    if(opLand(s[0],s[1])) return;
+    const e=new THREE.Group();
+    const lijf=new THREE.Mesh(new THREE.SphereGeometry(0.22,8,6),
+      new THREE.MeshLambertMaterial({color:pick([0x5a4632,0x4a5a3a,0xe8e2d0])}));
+    lijf.scale.set(1,0.7,1.4); e.add(lijf);
+    const kop=new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6),
+      new THREE.MeshLambertMaterial({color:0x2a4a2a}));
+    kop.position.set(0,0.22,0.24); e.add(kop);
+    const snavel=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.04,0.1),
+      new THREE.MeshLambertMaterial({color:0xe08a20}));
+    snavel.position.set(0,0.2,0.36); e.add(snavel);
+    e.position.set(s[0],-0.42,s[1]); e.rotation.y=rnd(0,6.28);
+    scene.add(e); boten.push(e);
+  });
+  [[-10,30],[6,40]].forEach(s=>{
+    if(opLand(s[0],s[1])) return;
+    const zw=new THREE.Group();
+    const lijf=new THREE.Mesh(new THREE.SphereGeometry(0.38,10,8),witMat);
+    lijf.scale.set(1,0.75,1.5); zw.add(lijf);
+    const nek=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.09,0.7),witMat);
+    nek.rotation.x=0.35; nek.position.set(0,0.55,0.42); zw.add(nek);
+    const kop=new THREE.Mesh(new THREE.SphereGeometry(0.1,8,6),witMat);
+    kop.position.set(0,0.9,0.56); zw.add(kop);
+    zw.position.set(s[0],-0.42,s[1]); zw.rotation.y=rnd(0,6.28);
+    scene.add(zw); boten.push(zw);
+  });
+})();
+
+// meeuwen boven de stad
+const meeuwen=[];
+(function maakMeeuwen(){
+  for(let i=0;i<7;i++){
+    const m=new THREE.Group();
+    [-1,1].forEach(s=>{
+      const vleugel=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.03,0.16),
+        new THREE.MeshLambertMaterial({color:0xf0f0f0}));
+      vleugel.position.x=s*0.26; vleugel.rotation.z=s*0.25;
+      m.add(vleugel);
+    });
+    scene.add(m);
+    meeuwen.push({mesh:m,cx:pick([[-10,50],[85,-150],[40,10],[190,-200],[110,-250]]),
+      r:rnd(12,35),hoek:rnd(0,6.28),sp:rnd(0.35,0.7),h:rnd(10,24)});
+  }
+})();
+function updateMeeuwen(dt,t){
+  meeuwen.forEach(v=>{
+    v.hoek+=v.sp*dt;
+    const x=v.cx[0]+Math.cos(v.hoek)*v.r, z=v.cx[1]+Math.sin(v.hoek)*v.r;
+    v.mesh.position.set(x,v.h+Math.sin(t*2+v.r)*0.8,z);
+    v.mesh.rotation.y=Math.atan2(-Math.sin(v.hoek),Math.cos(v.hoek));
+    v.mesh.rotation.z=Math.sin(t*7+v.r)*0.25;
+  });
+}
+
 // spandoek over het Grootzand (naam van de jarige komt er bij de start op)
 const spandoekMats=[];
 (function maakSpandoek(){
@@ -1302,6 +1610,116 @@ const spandoekMats=[];
   scene.add(bord);
   const paal=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,2.4),witMat);
   paal.position.set(10,1.1,62.1); scene.add(paal);
+})();
+
+// --- Het Wilhelminapark: muziekkoepel, dierenweide en speeltuin ---
+(function maakWilhelminapark(){
+  const cxP=-115, czP=100;
+  const veld=new THREE.Mesh(new THREE.PlaneGeometry(66,48),
+    new THREE.MeshLambertMaterial({color:0x477239}));
+  veld.rotation.x=-Math.PI/2; veld.position.set(cxP,0.03,czP); scene.add(veld);
+  const padMat=new THREE.MeshLambertMaterial({color:0x8f846e});
+  [[-22,0,0.5],[0,0,0],[22,4,-0.6]].forEach(p=>{
+    const pad=new THREE.Mesh(new THREE.PlaneGeometry(2.4,30),padMat);
+    pad.rotation.set(0,p[2],0); pad.rotateX(-Math.PI/2);
+    pad.position.set(cxP+p[0],0.045,czP+p[1]); scene.add(pad);
+  });
+  // muziekkoepel
+  const voet=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.7,0.7,10),witMat);
+  voet.position.set(cxP,0.35,czP); scene.add(voet);
+  for(let i=0;i<6;i++){
+    const hoek=i/6*Math.PI*2;
+    const paal=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,2.7),witMat);
+    paal.position.set(cxP+Math.cos(hoek)*2.9,2.05,czP+Math.sin(hoek)*2.9);
+    scene.add(paal);
+  }
+  const koepelDak=new THREE.Mesh(new THREE.ConeGeometry(3.9,1.8,10),
+    new THREE.MeshLambertMaterial({color:0x3f7a72}));
+  koepelDak.position.set(cxP,4.25,czP); scene.add(koepelDak);
+  addCollider(cxP,czP,3.7,3.7,0);
+  // dierenweide met hekjes, hertjes en een geit
+  const weide={x:cxP-20,z:czP+13,hx:10,hz:7};
+  const hekMat=new THREE.MeshLambertMaterial({color:0x4a3a28});
+  [[0,-weide.hz,weide.hx,0],[0,weide.hz,weide.hx,0],[-weide.hx,0,0,weide.hz],[weide.hx,0,0,weide.hz]].forEach(hk=>{
+    const lang=hk[2]?hk[2]*2:0.1, diep=hk[3]?hk[3]*2:0.1;
+    const rail=new THREE.Mesh(new THREE.BoxGeometry(Math.max(lang,0.1),0.08,Math.max(diep,0.1)),hekMat);
+    rail.position.set(weide.x+hk[0],0.85,weide.z+hk[1]); scene.add(rail);
+  });
+  for(let i=0;i<8;i++){
+    const hp=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.95,0.1),hekMat);
+    hp.position.set(weide.x-weide.hx+i*(weide.hx*2/7),0.48,weide.z-weide.hz); scene.add(hp);
+  }
+  function maakHert(hx2,hz2,kleur,schaal){
+    const h=new THREE.Group();
+    const lijfMat=new THREE.MeshLambertMaterial({color:kleur});
+    const lijf=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.45,0.35),lijfMat);
+    lijf.position.y=0.62; h.add(lijf);
+    [[-0.3,-0.12],[0.3,-0.12],[-0.3,0.12],[0.3,0.12]].forEach(pp=>{
+      const poot=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.45),lijfMat);
+      poot.position.set(pp[0],0.22,pp[1]); h.add(poot);
+    });
+    const nek=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.4,0.14),lijfMat);
+    nek.rotation.z=-0.5; nek.position.set(0.45,0.95,0); h.add(nek);
+    const kop=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.16,0.14),lijfMat);
+    kop.position.set(0.62,1.12,0); h.add(kop);
+    h.position.set(hx2,0,hz2); h.rotation.y=rnd(0,6.28); h.scale.setScalar(schaal);
+    scene.add(h);
+  }
+  maakHert(weide.x-4,weide.z-2,0x6a4a2e,1);
+  maakHert(weide.x+3,weide.z+2,0x7a5a3a,0.9);
+  maakHert(weide.x+5,weide.z-3,0x6a4a2e,0.75);
+  maakHert(weide.x-1,weide.z+4,0xe8e2d0,0.7);  // de geit
+  // speeltuintje
+  const glijMat=new THREE.MeshLambertMaterial({color:0xc94f4f});
+  const glijbaan=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.1,3.4),glijMat);
+  glijbaan.rotation.x=0.5; glijbaan.position.set(cxP+18,1.0,czP-12); scene.add(glijbaan);
+  const trapje=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.8,0.2),glijMat);
+  trapje.position.set(cxP+18,0.9,czP-10.3); scene.add(trapje);
+  [[-1.2],[1.2]].forEach(sp=>{
+    const sPaal=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,2.2),
+      new THREE.MeshLambertMaterial({color:0x2a5ac9}));
+    sPaal.position.set(cxP+13+sp[0],1.1,czP-12); scene.add(sPaal);
+  });
+  const schommelLat=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,2.4),
+    new THREE.MeshLambertMaterial({color:0x2a5ac9}));
+  schommelLat.rotation.z=Math.PI/2; schommelLat.position.set(cxP+13,2.15,czP-12); scene.add(schommelLat);
+  const zitje=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.06,0.24),donkerLei);
+  zitje.position.set(cxP+13,0.6,czP-12); scene.add(zitje);
+  const bord=tekstBord("WILHELMINAPARK","#1a4a2a","#ffffff",7,1.15,100);
+  bord.position.set(cxP+30,2.1,czP-6); bord.rotation.y=Math.PI/2; scene.add(bord);
+  const bordPaal=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,2.1),witMat);
+  bordPaal.position.set(cxP+30,1.05,czP-6); scene.add(bordPaal);
+})();
+
+// --- Voetbalveld van LSC 1890 aan de Leeuwarderweg ---
+(function maakSportveld(){
+  const sx=150, sz=-400;
+  const veld=new THREE.Mesh(new THREE.PlaneGeometry(42,26),
+    new THREE.MeshLambertMaterial({color:0x3a6e2f}));
+  veld.rotation.x=-Math.PI/2; veld.position.set(sx,0.03,sz); scene.add(veld);
+  const lijnMat=new THREE.MeshBasicMaterial({color:0xe8e8e8});
+  [[0,-12,40,0.3],[0,12,40,0.3],[-20,0,0.3,24],[20,0,0.3,24],[0,0,0.3,24]].forEach(l=>{
+    const lijn=new THREE.Mesh(new THREE.PlaneGeometry(l[2],l[3]),lijnMat);
+    lijn.rotation.x=-Math.PI/2; lijn.position.set(sx+l[0],0.045,sz+l[1]);
+    scene.add(lijn);
+  });
+  [-20,20].forEach(gx=>{
+    [-3,3].forEach(gz=>{
+      const paal=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,2),witMat);
+      paal.position.set(sx+gx,1,sz+gz); scene.add(paal);
+    });
+    const lat=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,6),witMat);
+    lat.rotation.x=Math.PI/2; lat.position.set(sx+gx,2,sz); scene.add(lat);
+  });
+  const bal=new THREE.Mesh(new THREE.SphereGeometry(0.18,8,8),witMat);
+  bal.position.set(sx+4,0.2,sz-2); scene.add(bal);
+  const bord=tekstBord("v.v. LSC 1890 — SINDS 1890","#1a3a8a","#ffffff",10,1.4,84);
+  bord.position.set(sx-22,2,sz-14); bord.rotation.y=0.8; scene.add(bord);
+  // kantine
+  const kantine=new THREE.Mesh(new THREE.BoxGeometry(8,3,4),
+    new THREE.MeshLambertMaterial({color:0x4a5242}));
+  kantine.position.set(sx-26,1.5,sz+8); scene.add(kantine);
+  addCollider(sx-26,sz+8,4.2,2.2,0);
 })();
 
 // onzichtbare wereldranden
@@ -1548,6 +1966,30 @@ function updateNpcs(dt,t){
     l.a1.rotation.x=-zwaai*0.7; l.a2.rotation.x=zwaai*0.7;
   });
 }
+
+// rondfietsende Snekers op de Singel-route
+const fietsers=[];
+(function maakFietsers(){
+  let totaal=0; const lengtes=[];
+  for(let i=0;i<verkeersLus.length;i++){
+    const q=verkeersLus[(i+1)%verkeersLus.length];
+    const l=dist2d(verkeersLus[i][0],verkeersLus[i][1],q[0],q[1]);
+    lengtes.push(l); totaal+=l;
+  }
+  for(let k=0;k<5;k++){
+    const g=new THREE.Group();
+    g.add(maakFietsMesh());
+    const mens=maakMensMesh();
+    mens.position.set(0,0.32,-0.1);
+    const l=mens.userData.ledematen;
+    l.b1.rotation.x=-0.95; l.b2.rotation.x=-0.55;
+    l.a1.rotation.x=-0.7; l.a2.rotation.x=-0.7;
+    g.add(mens);
+    scene.add(g);
+    fietsers.push({mesh:g,mens:l,afst:k/5*totaal+rnd(0,30),snelheid:rnd(3.5,5.2),
+      lengtes:lengtes,totaal:totaal,fase:rnd(0,6.28)});
+  }
+})();
 
 // ---------------------------------------------------------------------
 // Speler
@@ -1805,6 +2247,17 @@ function audioSirene(aan){
 }
 function claxon(){ if(speler.inAuto){ toon(392,0.28,"square",0.09); toon(494,0.28,"square",0.07);} }
 function audioBots(){ toon(90,0.2,"sawtooth",0.12); }
+function audioMeeuw(){ toon(1350,0.18,"sine",0.022); toon(1100,0.22,"sine",0.018,0.14); toon(1300,0.16,"sine",0.014,0.34); }
+function audioKlok(n){ for(let i=0;i<n;i++){ toon(392,1.5,"sine",0.05,i*1.7); toon(784,0.5,"sine",0.018,i*1.7); } }
+let ambientT=6;
+function updateAmbient(dt){
+  ambientT-=dt;
+  if(ambientT<=0){
+    ambientT=7+Math.random()*10;
+    if(Math.random()<0.75) audioMeeuw();
+    else audioKlok(1+Math.floor(Math.random()*3));
+  }
+}
 
 // ---------------------------------------------------------------------
 // HUD
@@ -1986,13 +2439,17 @@ function lus(nu){
     boten[i].rotation.z=0.03*Math.sin(t*0.9+i);
   }
   updateVaarboten(dt);
+  updateMeeuwen(dt,t);
+  if(fortuna) fortuna.rotation.y+=dt*0.4;   // de gouden bol draait, net als het echte kunstwerk
 
   if(gestart&&!pauze){
     if(speler.inAuto) updateSpelerAuto(dt); else updateSpelerTeVoet(dt);
     updateLusAutos(dt);
     updatePendel(dt);
+    updateFietsers(dt,t);
     updateNpcs(dt,t);
     updatePolitie(dt,t);
+    updateAmbient(dt);
     audioMotorUpdate();
     updateHud(dt);
     tekenMinimap();
