@@ -15,102 +15,102 @@ export function toWorld(px, py) {
 // Elke weg: naam, type, breedte (m), punten (px), optioneel: parkeren (zijde 'L'/'R'/'LR')
 export const ROADS = [
   // ---- Molenkrite ----
-  { name: 'Molenkrite', type: 'asfalt', w: 6.0, sidewalk: 1.8, parking: 'L',
+  { name: 'Molenkrite', type: 'klinker', w: 5.6, verge: 2.6, walk: 'LR',
     pts: [[370,1245],[450,1190],[500,1140],[550,1090]] },
-  { name: 'Molenkrite', type: 'klinker', w: 5.5, sidewalk: 1.8, parking: 'LR',
+  { name: 'Molenkrite', type: 'klinker', w: 5.6, verge: 2.8, walk: 'LR', bays: 'LR',
     pts: [[550,1090],[600,1045],[650,1005],[688,980],[788,972],[888,972],[988,975],[1088,990],[1183,1000]] },
-  { name: 'Molenkrite', type: 'asfalt', w: 6.0, sidewalk: 1.8,
+  { name: 'Molenkrite', type: 'klinker', w: 5.6, verge: 2.6, walk: 'LR',
     pts: [[370,1245],[355,1290],[340,1350],[322,1400],[310,1440],[305,1460]] },
-  { name: 'Molenkrite', type: 'klinker', w: 5.5, sidewalk: 1.8, parking: 'R',
+  { name: 'Molenkrite', type: 'klinker', w: 5.4, verge: 2.6, walk: 'LR', bays: 'R',
     pts: [[305,1460],[302,1520],[300,1600],[300,1650],[300,1690],[310,1730],[340,1780],[380,1830],[430,1880],[480,1915],[505,1935]] },
-  { name: 'Molenkrite', type: 'klinker', w: 5.5, sidewalk: 1.5,
+  { name: 'Molenkrite', type: 'klinker', w: 5.2, verge: 3.0, walk: 'LR',
     pts: [[505,1935],[560,1980],[620,2010],[700,2060],[740,2100],[790,2150],[830,2200]] },
 
   // ---- Monnikmolen ----
-  { name: 'Monnikmolen', type: 'klinker', w: 5.5, sidewalk: 1.8, parking: 'R',
+  { name: 'Monnikmolen', type: 'klinker', w: 5.2, verge: 2.6, walk: 'LR', bays: 'R',
     pts: [[370,1245],[345,1210],[320,1160],[300,1110],[285,1060],[265,1000],[250,955],[243,935]] },
-  { name: 'Monnikmolen', type: 'klinker', w: 5.5, sidewalk: 1.8, parking: 'LR',
+  { name: 'Monnikmolen', type: 'klinker', w: 5.2, verge: 2.6, walk: 'LR', bays: 'LR',
     pts: [[243,935],[300,898],[350,865],[400,832],[450,800],[500,768],[560,725],[612,695]] },
-  { name: 'Monnikmolen', type: 'klinker', w: 5.5, sidewalk: 1.8,
+  { name: 'Monnikmolen', type: 'klinker', w: 5.2, verge: 2.6, walk: 'LR',
     pts: [[612,695],[700,735],[800,795],[888,840]] },
-  { name: 'Monnikmolen', type: 'klinker', w: 5.0, sidewalk: 1.5, parking: 'LR',
+  { name: 'Monnikmolen', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR', bays: 'LR',
     pts: [[888,840],[1000,845],[1068,850]] },
   // binnenweg Monnikmolen (parkeerhof) + Binnenroede
-  { name: 'Monnikmolen', type: 'klinker', w: 4.5, sidewalk: 1.2, parking: 'LR',
+  { name: 'Monnikmolen', type: 'klinker', w: 4.4, verge: 2.0, walk: 'LR', bays: 'LR',
     pts: [[500,768],[560,830],[600,880],[630,960],[665,1000]] },
-  { name: 'Binnenroede', type: 'klinker', w: 4.5, sidewalk: 1.2,
+  { name: 'Binnenroede', type: 'klinker', w: 4.4, verge: 2.2, walk: 'LR',
     pts: [[307,1075],[440,990],[600,880]] },
 
   // ---- Verbindingen noord ----
-  { name: 'Monnikmolen', type: 'klinker', w: 5.5, sidewalk: 1.5,
+  { name: 'Monnikmolen', type: 'klinker', w: 5.0, verge: 2.4, walk: 'LR',
     pts: [[612,695],[618,600],[628,500],[645,445],[660,395]] },
-  { name: 'Buitenroede', type: 'asfalt', w: 6.5, sidewalk: 1.8,
+  { name: 'Buitenroede', type: 'asfalt', w: 6.0, verge: 3.2, walk: 'LR',
     pts: [[-200,510],[-50,470],[100,440],[250,410],[350,395],[430,370],[508,357],[600,360],[660,395],[720,435],[790,470],[880,505],[1000,565],[1100,640],[1150,680],[1178,710]] },
-  { name: 'Buitenroede', type: 'asfalt', w: 6.5, sidewalk: 1.8,
+  { name: 'Buitenroede', type: 'asfalt', w: 6.0, verge: 3.2, walk: 'LR',
     pts: [[1178,710],[1183,760],[1183,850],[1183,930],[1183,1000],[1183,1100],[1183,1250],[1178,1270],[1163,1370],[1163,1435],[1160,1548]] },
-  { name: 'Afrit 21', type: 'asfalt', w: 6.0, sidewalk: 0,
+  { name: 'Afrit 21', type: 'asfalt', w: 6.0, verge: 0, walk: '',
     pts: [[508,357],[540,300],[590,240],[650,200]] },
 
   // ---- Kruirad ----
-  { name: 'Kruirad', type: 'klinker', w: 5.0, sidewalk: 1.5, parking: 'R',
+  { name: 'Kruirad', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR', bays: 'R',
     pts: [[243,935],[160,978],[75,1020]] },
-  { name: 'Kruirad', type: 'klinker', w: 5.0, sidewalk: 1.5, parking: 'L',
+  { name: 'Kruirad', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR', bays: 'L',
     pts: [[75,1020],[85,1080],[100,1130],[115,1170],[140,1198]] },
-  { name: 'Kruirad', type: 'klinker', w: 5.0, sidewalk: 1.5, parking: 'L',
+  { name: 'Kruirad', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR', bays: 'L',
     pts: [[140,1198],[200,1205],[260,1188],[320,1165]] },
-  { name: 'Fietspad', type: 'fietspad', w: 2.5, sidewalk: 0,
+  { name: 'Fietspad', type: 'fietspad', w: 2.4, verge: 0, walk: '',
     pts: [[75,1020],[0,930],[-60,860],[-120,790],[-160,700],[-180,620]] },
 
   // ---- Molenpaal + verbinding Monnikmolen -> Jasker ----
-  { name: 'Molenpaal', type: 'klinker', w: 5.0, sidewalk: 1.5,
+  { name: 'Molenpaal', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR',
     pts: [[888,840],[886,972],[883,1135]] },
-  { name: 'Molenpaal', type: 'klinker', w: 5.0, sidewalk: 1.5, parking: 'L',
+  { name: 'Molenpaal', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR', bays: 'L',
     pts: [[883,1135],[838,1160],[773,1215],[700,1285],[628,1350],[575,1400]] },
-  { name: 'Spinnekop', type: 'klinker', w: 4.5, sidewalk: 1.2,
+  { name: 'Spinnekop', type: 'klinker', w: 4.4, verge: 2.0, walk: 'LR',
     pts: [[883,1135],[886,1240],[888,1335],[888,1487]] },
 
   // ---- Jasker ----
-  { name: 'Jasker', type: 'klinker', w: 5.5, sidewalk: 1.8, parking: 'R',
+  { name: 'Jasker', type: 'klinker', w: 5.0, verge: 2.6, walk: 'LR', bays: 'R',
     pts: [[370,1245],[400,1275],[450,1320],[500,1370],[560,1420],[600,1470],[625,1492]] },
-  { name: 'Jasker', type: 'klinker', w: 5.5, sidewalk: 1.8, parking: 'LR',
+  { name: 'Jasker', type: 'klinker', w: 5.0, verge: 2.6, walk: 'LR', bays: 'LR',
     pts: [[625,1492],[750,1487],[888,1487],[988,1497],[1088,1525],[1160,1548],[1206,1565],[1260,1590]] },
-  { name: 'Jasker', type: 'klinker', w: 4.5, sidewalk: 1.2, parking: 'R',
+  { name: 'Jasker', type: 'klinker', w: 4.4, verge: 2.0, walk: 'LR', bays: 'R',
     pts: [[712,1490],[715,1580],[718,1673]] },
-  { name: 'Jasker', type: 'klinker', w: 4.5, sidewalk: 1.2, parking: 'L',
+  { name: 'Jasker', type: 'klinker', w: 4.4, verge: 2.0, walk: 'LR', bays: 'L',
     pts: [[943,1490],[946,1600],[948,1728]] },
-  { name: 'Spinnekop', type: 'klinker', w: 4.5, sidewalk: 1.2,
+  { name: 'Spinnekop', type: 'klinker', w: 4.4, verge: 2.0, walk: 'LR',
     pts: [[700,1492],[720,1440],[745,1380],[765,1340],[800,1335],[888,1335],[1000,1340],[1038,1345],[1060,1380]] },
-  { name: 'Omloop', type: 'klinker', w: 5.0, sidewalk: 1.5,
+  { name: 'Omloop', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR',
     pts: [[1160,1548],[1180,1580],[1176,1640],[1160,1700],[1178,1763],[1170,1830],[1188,1890],[1183,2000],[1183,2140]] },
 
   // ---- De Wieken / Bovenas / Windbord / Voorzoom ----
-  { name: 'De Wieken', type: 'rood', w: 5.0, sidewalk: 1.5, parking: 'L',
+  { name: 'De Wieken', type: 'rood', w: 4.8, verge: 2.4, walk: 'LR', bays: 'L',
     pts: [[-215,880],[-210,950],[-204,1000],[-195,1060],[-175,1130],[-145,1185]] },
-  { name: 'De Wieken', type: 'klinker', w: 5.0, sidewalk: 1.5, parking: 'R',
+  { name: 'De Wieken', type: 'klinker', w: 4.8, verge: 2.4, walk: 'LR', bays: 'R',
     pts: [[-145,1185],[-105,1240],[-60,1290],[-10,1345],[20,1355],[50,1380],[100,1420],[150,1440],[230,1450],[305,1460]] },
-  { name: 'De Wieken', type: 'klinker', w: 5.0, sidewalk: 1.5,
+  { name: 'De Wieken', type: 'klinker', w: 4.8, verge: 2.4, walk: 'LR',
     pts: [[305,1460],[380,1465],[480,1462],[560,1465],[595,1470]] },
-  { name: 'Bovenas', type: 'klinker', w: 5.0, sidewalk: 1.5, parking: 'R',
+  { name: 'Bovenas', type: 'klinker', w: 4.8, verge: 2.4, walk: 'LR', bays: 'R',
     pts: [[105,1450],[112,1500],[110,1550],[100,1600],[85,1650],[60,1700],[30,1740],[0,1770],[-40,1800]] },
-  { name: 'Windbord', type: 'klinker', w: 4.5, sidewalk: 1.2,
+  { name: 'Windbord', type: 'klinker', w: 4.2, verge: 2.0, walk: 'LR',
     pts: [[-10,1345],[-18,1380],[-25,1430],[-35,1480],[-45,1530]] },
-  { name: 'Voorzoom', type: 'klinker', w: 4.5, sidewalk: 1.2,
+  { name: 'Voorzoom', type: 'klinker', w: 4.2, verge: 2.0, walk: 'LR',
     pts: [[-175,1130],[-240,1120],[-310,1112],[-380,1108]] },
 
   // ---- Bonkelaar ----
-  { name: 'Bonkelaar', type: 'rood', w: 5.0, sidewalk: 1.5,
+  { name: 'Bonkelaar', type: 'rood', w: 4.8, verge: 3.2, walk: 'LR',
     pts: [[500,1480],[500,1560],[500,1640],[540,1690],[600,1750]] },
-  { name: 'Bonkelaar', type: 'rood', w: 5.0, sidewalk: 1.5, parking: 'R',
+  { name: 'Bonkelaar', type: 'rood', w: 4.8, verge: 3.2, walk: 'LR', bays: 'R',
     pts: [[600,1750],[650,1785],[700,1800],[800,1810],[890,1810],[950,1812],[990,1830],[1010,1880],[1010,1950],[990,2000],[950,2050],[900,2100],[860,2150]] },
-  { name: 'Bonkelaar', type: 'klinker', w: 5.0, sidewalk: 1.5,
+  { name: 'Bonkelaar', type: 'klinker', w: 4.8, verge: 3.0, walk: 'LR',
     pts: [[600,1750],[560,1810],[530,1860],[505,1935],[470,1975],[440,2030],[400,2100],[380,2150]] },
 
   // ---- Paden / park ----
-  { name: 'Tinga Parkje', type: 'pad', w: 2.5, sidewalk: 0,
+  { name: 'Tinga Parkje', type: 'pad', w: 2.2, verge: 0, walk: '',
     pts: [[508,357],[430,420],[350,490],[270,570],[200,650],[120,730],[40,770],[-40,800],[-120,830],[-180,860]] },
-  { name: 'Fietspad', type: 'fietspad', w: 2.5, sidewalk: 0,
+  { name: 'Fietspad', type: 'fietspad', w: 2.4, verge: 0, walk: '',
     pts: [[330,1330],[400,1380],[470,1425],[560,1462]] },
-  { name: 'Voetpad', type: 'pad', w: 1.8, sidewalk: 0,
+  { name: 'Voetpad', type: 'pad', w: 1.6, verge: 0, walk: '',
     pts: [[345,1300],[420,1440]] },
 ];
 
@@ -179,14 +179,20 @@ R(480,781, 596,706, -13, 9, 'molenkrite');
 R(307,1075, 600,880, -13, 9, 'molenkrite');               // zuidoostzijde Binnenroede
 
 // ===== Molenkrite noord (P -> 688,980), links (+) = noordwest =====
-R(400,1220, 640,1020,  13, 9, 'molenkrite');               // NW-zijde
-R(400,1220, 640,1020, -13, 9, 'molenkrite');               // ZO-zijde (rij met dakkapellen)
-R(430,1195, 650,1012, -62, 9, 'molenpaal', { flip: true }); // rij aan Molenpaal (gele steen)
+R(400,1220, 645,1015,  12, 9, 'molenkrite');               // NW-zijde
+R(400,1220, 645,1015, -12, 9, 'molenkrite');               // ZO-zijde (rij met dakkapellen)
+R(418,1206, 660,1002, -38, 9, 'molenkrite', { flip: true }); // achterliggende rij, gevel naar het hofpad
+R(838,1160, 628,1350, -13, 9, 'molenpaal');                 // Molenpaal noordwestzijde (gele steen)
 // Molenkrite oost-west (688,980 -> 1183,1000), links (+) = noord
-R(700,975, 870,972, -13, 9, 'jasker_gable');
-R(900,973, 1060,980, -13, 9, 'jasker_gable');
-R(900,973, 1060,980,  12, 9, 'monnik');
-R(900,973, 1060,980,  30, 8, 'monnik', { flip: true });    // gevel naar de doodlopende Monnikmolen
+// Molenkrite oost-west: zuidzijde (rechterkant) doorlopende rijen
+R(700,975, 862,972, -12, 9, 'molenkrite');
+R(878,972, 1040,978, -12, 9, 'molenkrite');
+R(1056,982, 1170,996, -12, 9, 'jasker_gable');
+// Molenkrite oost-west: noordzijde
+R(700,975, 862,972,  12, 9, 'monnik');
+R(878,972, 1040,978,  10, 8, 'monnik');
+// tweede rij aan de noordkant, gevel naar de doodlopende Monnikmolen
+R(900,842, 1050,850, -10, 8, 'monnik');
 R(950,655, 1000,800,  12, 9, 'monnik');                    // rijen noord van de stub
 R(950,655, 1000,800, -12, 9, 'monnik');
 R(1183,930, 1183,850, 14, 14, 'spil', { label: 'Stichting Jeugdhulp Friesland', storeys: 2 });

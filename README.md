@@ -39,9 +39,12 @@ N7 met afrit 21 aan de noordkant.
   (3.26 px per meter, oorsprong op het kruispunt Molenkrite/Monnikmolen/Jasker)
 - `js/textures.js` – procedureel gegenereerde textures: baksteen, dakpannen, klinkers (grijs en rood
   keperverband), stoeptegels, asfalt, gras, water, heggen en complete gevels met ramen en deuren
-- `js/world.js` – bouwt wegen met stoepen en parkeerstroken, huizenrijen met daken, dakkapellen,
+- `js/world.js` – bouwt het straatprofiel (smalle rijbaan, trottoirband, grasberm met bomen en
+  parkeerhavens, tegeltrottoir tegen de voortuinen), huizenrijen met daken, dakkapellen,
   schoorstenen en zonnepanelen, voortuinen met heggen, achtertuinen met schuttingen en schuurtjes,
-  bomen, lantaarnpalen, straatnaamborden, kliko's en de speeltuin
+  lantaarnpalen, straatnaamborden, kliko's en de speeltuin. Elke woning wordt vóór plaatsing
+  getoetst op overlap met wegen, water en andere woningen; tuinen krijgen alleen de diepte die
+  werkelijk beschikbaar is
 - `js/player.js` – first-person besturing, botsingen en het pistool
 - `js/vehicles.js`, `js/carmodel.js` – geparkeerde en bestuurbare auto's, verkeer op de N7 en in de wijk
 - `js/npc.js` – voetgangers
@@ -57,9 +60,9 @@ Molenpaal, Bonkelaar).
 
 ## Screenshots
 
-| Monnikmolen | Bonkelaar | Jasker |
-|---|---|---|
-| ![Monnikmolen](docs/screenshots/monnikmolen.png) | ![Bonkelaar](docs/screenshots/bonkelaar.png) | ![Jasker](docs/screenshots/jasker.png) |
+| Monnikmolen | Bonkelaar | Jasker | Kruirad |
+|---|---|---|---|
+| ![Monnikmolen](docs/screenshots/monnikmolen.png) | ![Bonkelaar](docs/screenshots/bonkelaar.png) | ![Jasker](docs/screenshots/jasker.png) | ![Kruirad](docs/screenshots/kruirad.png) |
 
 | Overzicht vanaf Molenpaal | Kaart (toets M) |
 |---|---|
