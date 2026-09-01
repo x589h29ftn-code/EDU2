@@ -176,8 +176,7 @@ R(480,781, 596,706,  56, 9, 'monnik', { flip: true });
 R(280,912, 560,729,  71, 9, 'monnik');                     // derde rij, gevel naar het hof
 R(262,923, 455,798, -13, 9, 'molenkrite');                 // zuidzijde aan de straat
 R(480,781, 596,706, -13, 9, 'molenkrite');
-R(300,898, 470,787, -47, 9, 'molenkrite', { flip: true }); // gevel naar de binnenweg
-R(330,879, 560,729, -63, 9, 'monnik');                     // andere kant van de binnenweg
+R(307,1075, 600,880, -13, 9, 'molenkrite');               // zuidoostzijde Binnenroede
 
 // ===== Molenkrite noord (P -> 688,980), links (+) = noordwest =====
 R(400,1220, 640,1020,  13, 9, 'molenkrite');               // NW-zijde
@@ -199,8 +198,7 @@ R(255,985, 300,1110, 13, 9, 'monnik');
 R(243,935, 75,1020, -13, 9, 'kruirad');    // noordwestzijde Kruirad-noord
 R(243,935, 75,1020,  13, 9, 'kruirad');    // binnenzijde
 R(75,1020, 140,1198, -13, 9, 'kruirad');   // westzijde Kruirad-west
-R(95,1090, 128,1160,  30, 9, 'kruirad');   // rij aan het parkeerhof
-R(170,1192, 320,1165, 13, 9, 'kruirad');   // binnenzijde Kruirad-zuid
+R(170,1192, 290,1170, 13, 9, 'kruirad');   // binnenzijde Kruirad-zuid
 R(140,1198, 320,1165, -13, 9, 'kruirad');  // zuidzijde Kruirad-zuid
 
 // ===== Jasker oost-west, links (+) = noord =====
@@ -216,11 +214,11 @@ R(712,1520, 718,1665,  11, 9, 'jasker_flat');
 R(943,1525, 948,1715, -11, 9, 'jasker_gable');
 R(943,1525, 948,1715,  11, 9, 'jasker_gable');
 // Spinnekop
-R(800,1335, 1030,1345,  12, 9, 'jasker_flat');
+R(830,1336, 1030,1345,  12, 9, 'jasker_flat');
 R(900,1338, 1030,1345, -12, 9, 'jasker_flat');
 R(725,1440, 765,1340,  12, 9, 'jasker_gable');
 // Molenpaal zuidoostzijde: vrijstaande woningen (incl. hoekwoning Jasker)
-R(838,1160, 640,1340, 14, 11, 'detached');
+R(770,1218, 710,1272, 13, 11, 'detached');   // hoekwoning Molenpaal/Jasker
 
 // ===== Wijkvereniging De Spil =====
 R(1010,1240, 1090,1240, 8, 18, 'spil', { label: 'Wijkvereniging De Spil', storeys: 1 });
@@ -234,7 +232,7 @@ R(-200,1127, -370,1109,  12, 9, 'wieken_white');
 R(-300,1116, -370,1109, -12, 9, 'wieken_yellow');
 // Windbord
 R(-12,1360, -45,1530, -11, 9, 'wieken_white');
-R(-12,1360, -45,1530,  11, 9, 'wieken_yellow');
+R(-25,1430, -45,1530,  11, 9, 'wieken_yellow');
 
 // ===== Bovenas =====
 R(104,1545, 60,1700, -12, 14, 'appart', { storeys: 3 });

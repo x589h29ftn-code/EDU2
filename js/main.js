@@ -144,4 +144,4 @@ function loop() {
 loop();
 
 // Testhaak voor automatische screenshots
-window.__game = { scene, camera, player, vehicles, npcs, renderer };
+window.__game = { scene, camera, player, vehicles, npcs, renderer, hud };
