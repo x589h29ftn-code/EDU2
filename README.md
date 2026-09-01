@@ -30,16 +30,17 @@ Er is geen installatie nodig en het spel werkt volledig offline
 ## Wat is er nagebouwd?
 
 - **De Waterpoort** over de stadsgracht bij de Kolk (met zeilbootjes — Sneekweek!)
-- De **stadsgracht** rondom de hartvormige binnenstad, met bruggen
+- De **stadsgracht** rondom de binnenstad (met de brede **Kolk** bij de Waterpoort), zes bruggen en rondvarende bootjes
 - **Grootzand** (met een spandoek voor de jarige!), **Kleinzand** mét kanaal
-  en bootjes, **Marktstraat**, **Oosterdijk**, **Wijde/Nauwe Burgstraat**,
-  **Kruizebroederstraat**, **Leeuwenburg**, **Singel**, **Oude Koemarkt**
+  en bootjes, **Marktstraat** met terrasjes, **Oosterdijk**, **Wijde/Nauwe Burgstraat**,
+  **Kruizebroederstraat**, **Gedempte Pol**, **Leeuwenburg**, **Singel**, **Suupmarkt**, **Oude Koemarkt**, **Zuidend**, **Kerkgracht**, **Prins Hendrikkade**, **Harinxmakade** en **Bothniakade** — de plattegrond volgt de echte kaart van het centrum
 - Het **Stadhuis** (rococo-gevel) aan de Marktstraat
 - De **Martinikerk** op de terp
 - Het **Fries Scheepvaart Museum** aan het Kleinzand
-- **Schaapmarktplein** en **Martiniplein** met terrasjes
-- Winkelstraten met Hollandse trap-, klok- en tuitgevels, voetgangers,
-  geparkeerde auto's (instappen met E!) en rondrijdend verkeer op de rondweg
+- **Schaapmarktplein** en **Oud Kerkhof** met terrasjes, parasols en gasten
+- **Sint-Martinuskerk** (RK) aan de oostkant en **Theater Sneek** + parkeerterrein **P-zuid Waterpoort** buiten de gracht
+- Winkelstraten met trap-, klok- en tuitgevels, dakpannen, dakkapellen, vlaggetjes, fietsen, wandelende en zittende mensen (met echte loopanimatie),
+  geparkeerde auto's met gele kentekens (instappen met E!) en verkeer dat over de Singel-route en de uitvalswegen rijdt
 
 Onder in beeld zie je steeds de naam van de straat waar je bent; linksonder
 staat de plattegrond van Sneek.
