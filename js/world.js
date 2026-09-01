@@ -9,14 +9,14 @@ export const roadSegments = []; // voor straatnaam-detectie en NPC-paden: {name,
 export const parkSpots = [];   // parkeerplaatsen voor auto's: {x,z,yaw}
 export const treePositions = [];
 
-const ROAD_Y = 0.10, WALK_Y = 0.085, WATER_Y = -0.15;
+const ROAD_Y = 0.10, WATER_Y = -0.15;
 
 function vec(p) { const [x, z] = toWorld(p[0], p[1]); return new THREE.Vector2(x, z); }
 
 // ---------- Hulpfuncties geometrie ----------
 // Bouwt een lint (ribbon) langs een polyline met breedte w; offset verschuift het lint zijwaarts.
 function ribbon(points2, w, y, offset = 0, uvScale = 1) {
-  const pts = points2;
+  const pts = points2.filter((p, i) => i === 0 || p.distanceTo(points2[i - 1]) > 1e-3);
   const n = pts.length;
   const left = [], right = [];
   let acc = 0; const dists = [0];
@@ -57,7 +57,10 @@ function ribbon(points2, w, y, offset = 0, uvScale = 1) {
 }
 
 function polygonGeom(pts2, y, uvScale = 0.5) {
-  const shape = new THREE.Shape(pts2.map(p => new THREE.Vector2(p.x, -p.y)));
+  let area = 0;
+  for (let i = 0; i < pts2.length; i++) { const a = pts2[i], b = pts2[(i + 1) % pts2.length]; area += a.x * b.y - b.x * a.y; }
+  const ordered = area > 0 ? pts2.slice().reverse() : pts2;
+  const shape = new THREE.Shape(ordered.map(p => new THREE.Vector2(p.x, -p.y)));
   const g = new THREE.ShapeGeometry(shape);
   // ShapeGeometry ligt in XY; roteren naar XZ
   g.rotateX(-Math.PI / 2);
@@ -95,7 +98,7 @@ function materials() {
   MAT.snelweg = std(T.asphalt());
   MAT.tiles = std(T.tiles());
   MAT.grass = std(T.grass());
-  MAT.water = new THREE.MeshStandardMaterial({ map: T.water(), color: 0x7fb0c0, roughness: 0.3, metalness: 0.0, transparent: true, opacity: 0.9 });
+  MAT.water = new THREE.MeshStandardMaterial({ map: T.water(), color: 0x7fb0c0, roughness: 0.3, metalness: 0.0, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
   MAT.hedge = std(T.hedge());
   MAT.curb = new THREE.MeshStandardMaterial({ color: 0x9a9890, roughness: 0.9 });
   MAT.trunk = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 });
@@ -116,44 +119,116 @@ function materials() {
 }
 
 // ---------- Wegen ----------
+// Lengte van een polyline en slice op booglengte
+function polyLength(pts) { let L = 0; for (let i = 1; i < pts.length; i++) L += pts[i].distanceTo(pts[i - 1]); return L; }
+function sliceByLength(pts, s0, s1) {
+  const out = []; let acc = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1]; const len = a.distanceTo(b); if (len < 1e-6) continue;
+    const segStart = acc, segEnd = acc + len;
+    if (segEnd < s0 || segStart > s1) { acc = segEnd; continue; }
+    const t0 = Math.max(0, (s0 - segStart) / len), t1 = Math.min(1, (s1 - segStart) / len);
+    if (t1 - t0 > 1e-6) {
+      const p0 = a.clone().lerp(b, t0), p1 = a.clone().lerp(b, t1);
+      if (out.length === 0) out.push(p0);
+      if (out[out.length - 1].distanceTo(p1) > 1e-3) out.push(p1);
+    }
+    acc = segEnd;
+  }
+  return out.length >= 2 && polyLength(out) > 0.5 ? out : null;
+}
+function projectOnPolyline(p, pts) {
+  let best = { d: 1e9 }; let acc = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1]; const ab = b.clone().sub(a); const len = ab.length(); if (len < 1e-6) continue;
+    let t = p.clone().sub(a).dot(ab) / (len * len); t = Math.max(0, Math.min(1, t));
+    const q = a.clone().add(ab.multiplyScalar(t)); const d = q.distanceTo(p);
+    if (d < best.d) best = { d, q, s: acc + t * len, dir: b.clone().sub(a).normalize(), i };
+    acc += len;
+  }
+  return best;
+}
+
 function buildRoads(scene) {
-  let i = 0;
   const walkGeoms = [];
   const curbGeoms = [];
-  for (const road of ROADS) {
-    const pts = road.pts.map(vec);
+  // brede wegen bovenop: sorteer op breedte (paden onderaan)
+  const order = ROADS.map((r, i) => ({ r, i })).sort((x, y) => x.r.w - y.r.w || x.i - y.i);
+  const roads = order.map(({ r }) => ({ ...r, pts: r.pts.map(vec), gaps: { L: [], R: [] }, trimStart: 0, trimEnd: 0 }));
+  // Wegeinden aansluiten: eindpunt dat binnen 13 m van een andere weg ligt wordt op die wegas gezet
+  for (const road of roads) {
+    for (const endIdx of [0, road.pts.length - 1]) {
+      const p = road.pts[endIdx];
+      let best = null, connected = false;
+      for (const other of roads) {
+        if (other === road) continue;
+        if (other.type === 'pad' || other.type === 'fietspad') { if (road.type !== 'pad' && road.type !== 'fietspad') continue; }
+        const pr = projectOnPolyline(p, other.pts);
+        if (pr.d <= 0.05) connected = true; // ligt al precies op een andere weg
+        if (pr.d > 0.05 && pr.d < 13 && (!best || pr.d < best.pr.d)) best = { other, pr };
+      }
+      if (!best || connected) continue;
+      const { other, pr } = best;
+      road.pts[endIdx] = pr.q.clone();
+      // trimafstand voor eigen parkeerstroken/stoepen bij dit eind
+      const trim = other.w / 2 + (other.parking ? 2.2 : 0) + other.sidewalk + 0.6;
+      if (endIdx === 0) road.trimStart = trim; else road.trimEnd = trim;
+      // parkeerstrook van de andere weg onderbreken ter hoogte van deze aansluiting
+      const prev = road.pts[endIdx === 0 ? 1 : road.pts.length - 2];
+      const left = new THREE.Vector2(pr.dir.y, -pr.dir.x);
+      const sideKey = prev.clone().sub(pr.q).dot(left) > 0 ? 'L' : 'R';
+      const half = road.w / 2 + road.sidewalk + 1.5;
+      other.gaps[sideKey].push([pr.s - half, pr.s + half]);
+    }
+  }
+  let i = 0;
+  for (const road of roads) {
+    const pts = road.pts;
     const mat = MAT[road.type] || MAT.klinker;
     const g = ribbon(pts, road.w, ROAD_Y + i * 0.0007, 0, 0.5);
     const m = new THREE.Mesh(g, mat);
     m.receiveShadow = true;
     scene.add(m);
+    const isPath = road.type === 'pad' || road.type === 'fietspad';
+    const pk = road.parking || '';
+    const corr = road.w / 2 + (pk ? 2.2 : 0) + (road.sidewalk || 0) + (isPath ? 0.5 : 0);
     for (let k = 0; k < pts.length - 1; k++) {
-      roadSegments.push({ name: road.name, a: [pts[k].x, pts[k].y], b: [pts[k + 1].x, pts[k + 1].y], w: road.w, drive: road.type !== 'pad' && road.type !== 'fietspad' });
+      roadSegments.push({ name: road.name, a: [pts[k].x, pts[k].y], b: [pts[k + 1].x, pts[k + 1].y], w: road.w, corr, drive: !isPath });
     }
     if (road.sidewalk > 0) {
       const sw = road.sidewalk;
-      const pk = road.parking || '';
-      // parkeerstrook 2.2m breed direct naast de weg (grijze klinkers), stoep daarbuiten
       const leftPark = pk.includes('L') ? 2.2 : 0;
       const rightPark = pk.includes('R') ? 2.2 : 0;
-      if (leftPark) scene.add(new THREE.Mesh(ribbon(pts, leftPark, ROAD_Y + 0.001 + i * 0.0007, road.w / 2 + leftPark / 2, 0.5), MAT.klinker));
-      if (rightPark) scene.add(new THREE.Mesh(ribbon(pts, rightPark, ROAD_Y + 0.001 + i * 0.0007, -(road.w / 2 + rightPark / 2), 0.5), MAT.klinker));
-      walkGeoms.push(ribbon(pts, sw, WALK_Y, road.w / 2 + leftPark + sw / 2, 0.8));
-      walkGeoms.push(ribbon(pts, sw, WALK_Y, -(road.w / 2 + rightPark + sw / 2), 0.8));
-      curbGeoms.push(ribbon(pts, 0.15, WALK_Y + 0.002, road.w / 2 + leftPark + 0.07, 1));
-      curbGeoms.push(ribbon(pts, 0.15, WALK_Y + 0.002, -(road.w / 2 + rightPark + 0.07), 1));
-      // parkeerplekken registreren (om de 6 m, met 60% bezetting)
-      const r = rng(i * 13 + 5);
-      for (let k = 0; k < pts.length - 1; k++) {
-        const a = pts[k], b = pts[k + 1];
-        const d = b.clone().sub(a); const len = d.length(); d.normalize();
-        const nrm = new THREE.Vector2(d.y, -d.x);
-        for (let s = 4; s < len - 4; s += 6.2) {
-          const base = a.clone().add(d.clone().multiplyScalar(s));
-          if (leftPark) { const p = base.clone().add(nrm.clone().multiplyScalar(road.w / 2 + 1.1)); if (r() < 0.6) parkSpots.push({ x: p.x, z: p.y, yaw: Math.atan2(d.x, d.y), driveable: r() < 0.25 }); }
-          if (rightPark) { const p = base.clone().add(nrm.clone().multiplyScalar(-(road.w / 2 + 1.1))); if (r() < 0.6) parkSpots.push({ x: p.x, z: p.y, yaw: Math.atan2(d.x, d.y) + Math.PI, driveable: r() < 0.25 }); }
+      const total = polyLength(pts);
+      const inner = sliceByLength(pts, road.trimStart, total - road.trimEnd) || pts;
+      const walkY = 0.05 + i * 0.0006;
+      // parkeerstroken in stukken tussen de aansluitingen
+      const parkPieces = (sideKey, offset, width) => {
+        const gaps = road.gaps[sideKey].slice().sort((a, b) => a[0] - b[0]);
+        let cursor = road.trimStart; const pieces = [];
+        for (const [g0, g1] of gaps) { if (g0 > cursor) pieces.push([cursor, g0]); cursor = Math.max(cursor, g1); }
+        if (total - road.trimEnd > cursor) pieces.push([cursor, total - road.trimEnd]);
+        for (const [s0, s1] of pieces) {
+          const sub = sliceByLength(pts, s0, s1); if (!sub || polyLength(sub) < 5) continue;
+          scene.add(new THREE.Mesh(ribbon(sub, width, ROAD_Y + 0.001 + i * 0.0007, offset, 0.5), MAT.klinker));
+          // parkeerplekken
+          const r = rng(i * 13 + Math.round(s0));
+          for (let k = 0; k < sub.length - 1; k++) {
+            const a = sub[k], b = sub[k + 1]; const d = b.clone().sub(a); const len = d.length(); d.normalize();
+            const nrm = new THREE.Vector2(d.y, -d.x);
+            for (let s = 3.5; s < len - 3; s += 6.2) {
+              const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(offset));
+              if (r() < 0.6) parkSpots.push({ x: p.x, z: p.y, yaw: Math.atan2(d.x, d.y) + (offset < 0 ? Math.PI : 0), driveable: true });
+            }
+          }
         }
-      }
+      };
+      if (leftPark) parkPieces('L', road.w / 2 + leftPark / 2, leftPark);
+      if (rightPark) parkPieces('R', -(road.w / 2 + rightPark / 2), rightPark);
+      walkGeoms.push(ribbon(inner, sw, walkY, road.w / 2 + leftPark + sw / 2, 0.8));
+      walkGeoms.push(ribbon(inner, sw, walkY, -(road.w / 2 + rightPark + sw / 2), 0.8));
+      curbGeoms.push(ribbon(inner, 0.15, walkY + 0.002, road.w / 2 + leftPark + 0.07, 1));
+      curbGeoms.push(ribbon(inner, 0.15, walkY + 0.002, -(road.w / 2 + rightPark + 0.07), 1));
     }
     i++;
   }
@@ -256,9 +331,10 @@ export function nearRoad(p, margin) {
   return false;
 }
 function nearBuilding(p, margin) {
+  for (const u of units) { if (pointInUnit(p.x, p.y, u, margin + 6)) return true; }
   for (const c of colliders) {
     const dx = p.x - c.cx, dz = p.y - c.cz;
-    const lx = dx * c.cos + dz * c.sin, lz = -dx * c.sin + dz * c.cos;
+    const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
     if (Math.abs(lx) < c.hx + margin && Math.abs(lz) < c.hz + margin) return true;
   }
   return false;
@@ -299,38 +375,106 @@ function gableRoof(w, d, h, mat, overhang = 0.35) {
   return roof;
 }
 
+// Geplaatste woonblokken (georiënteerde rechthoeken) voor onderlinge controle
+const units = [];
+function pointInUnit(px, pz, u, margin) {
+  const dx = px - u.cx, dz = pz - u.cz;
+  // inverse van een rotatie om Y met hoek rotY: x_l = x cos - z sin ; z_l = x sin + z cos
+  const lx = dx * u.cos - dz * u.sin, lz = dx * u.sin + dz * u.cos;
+  return Math.abs(lx) < u.hx + margin && Math.abs(lz) < u.hz + margin;
+}
+function roadClearance(px, pz) {
+  let best = 1e9;
+  for (const sgm of roadSegments) {
+    if (sgm.w === 0) continue;
+    const d = distToSeg(px, pz, sgm.a[0], sgm.a[1], sgm.b[0], sgm.b[1]) - sgm.corr;
+    if (d < best) best = d;
+  }
+  return best;
+}
+function blocked(px, pz, margin, skipUnit = null) {
+  if (roadClearance(px, pz) < margin) return true;
+  if (inWater(new THREE.Vector2(px, pz))) return true;
+  for (const u of units) { if (u !== skipUnit && pointInUnit(px, pz, u, margin)) return true; }
+  return false;
+}
+
+const rowBuilds = [];
+
+// Fase 1: bepaal per rij welke woningen passen en bouw de gebouwen
 function buildRow(scene, row, idx) {
   const st = T.HOUSE_STYLES[row.type];
   const a = vec(row.a), b = vec(row.b);
   const d = b.clone().sub(a); const len0 = d.length(); d.normalize();
-  // links van a->b in kaartcoördinaten = (dy,-dx); in wereld XZ identiek
   const left = new THREE.Vector2(d.y, -d.x);
-  const side = row.off < 0 ? -1 : 1;           // +1: rij links van de weg, -1: rechts
-  const nrm = left.clone().multiplyScalar(side); // wijst van de weg af, naar de rij toe
-  const flip = !!row.flip;                       // true: gevel kijkt van de weg af
+  const side = row.off < 0 ? -1 : 1;
+  const nrm = left.clone().multiplyScalar(side);
+  const flip = !!row.flip;
   const storeys = row.storeys || st.storeys;
-  let n = Math.max(1, Math.round(len0 * 0.86 / st.w));
-  if (st.detached) n = Math.max(1, Math.round(len0 / 18));
-  const w = st.w;
-  const totalLen = (st.detached || st.semi) ? len0 : n * w;
   const depth = row.depth;
   const front = a.clone().add(b).multiplyScalar(0.5).add(nrm.clone().multiplyScalar(Math.abs(row.off)));
   const center = front.clone().add(nrm.clone().multiplyScalar(flip ? -depth / 2 : depth / 2));
-  // lokale +z moet naar de voorgevelzijde wijzen: naar de weg (-nrm) of, bij flip, van de weg af (+nrm)
-  const faceDir = flip ? nrm : nrm.clone().multiplyScalar(-1);
-  const yaw = Math.atan2(faceDir.y, faceDir.x); // hoek van lokale +z in XZ
-  const rotY = Math.PI / 2 - yaw;                // rotatie zodat lokale +z = faceDir
-  const dLocal = new THREE.Vector2(Math.cos(rotY), -Math.sin(rotY)); // wereldrichting van lokale +x
-
+  const faceDir = flip ? nrm.clone() : nrm.clone().multiplyScalar(-1);
+  const yaw = Math.atan2(faceDir.y, faceDir.x);
+  const rotY = Math.PI / 2 - yaw;
+  const dLocal = new THREE.Vector2(Math.cos(rotY), -Math.sin(rotY));
   const facadeH = storeys * 2.9;
   const roofH = st.roofType === 'gable' ? Math.min(4.5, depth * 0.55) : (st.roofType === 'low' ? 1.6 : 0);
+
+  // kandidaat-woningen langs de rij
+  let cand = [];
+  if (st.detached) {
+    const n = Math.max(1, Math.round(len0 / 18)); const gap = len0 / n;
+    for (let i = 0; i < n; i++) cand.push({ cx: -len0 / 2 + gap * (i + 0.5), w: st.w, n: 1 });
+  } else if (st.semi) {
+    const pairs = Math.max(1, Math.round(len0 / 17)); const gap = len0 / pairs;
+    for (let i = 0; i < pairs; i++) cand.push({ cx: -len0 / 2 + gap * (i + 0.5), w: st.w * 2, n: 2 });
+  } else {
+    const n = Math.max(1, Math.round(len0 * 0.86 / st.w));
+    for (let i = 0; i < n; i++) cand.push({ cx: -n * st.w / 2 + st.w * (i + 0.5), w: st.w, n: 1 });
+  }
+  const toWorldLocal = (lx, lz) => new THREE.Vector2(center.x + dLocal.x * lx + faceDir.x * lz, center.y + dLocal.y * lx + faceDir.y * lz);
+  const why = (px, pz, margin) => {
+    let best = null, bd = 1e9;
+    for (const sgm of roadSegments) { if (sgm.w === 0) continue; const d = distToSeg(px, pz, sgm.a[0], sgm.a[1], sgm.b[0], sgm.b[1]) - sgm.corr; if (d < bd) { bd = d; best = sgm.name; } }
+    if (bd < margin) return `weg ${best} (${bd.toFixed(1)} m)`;
+    if (inWater(new THREE.Vector2(px, pz))) return 'water';
+    const u = units.find(u => pointInUnit(px, pz, u, margin)); if (u) return `woning rij ${u.rowIdx}`;
+    return 'stoep';
+  };
+  const fits = (c) => {
+    for (const fx of [-1, 0, 1]) for (const fz of [-1, 0, 1]) {
+      const p = toWorldLocal(c.cx + fx * (c.w / 2 - 0.3), fz * (depth / 2 - 0.3));
+      if (blocked(p.x, p.y, 0.5)) { if (row.debug) console.warn(`  rij ${idx} unit ${c.cx.toFixed(1)}: ${why(p.x, p.y, 0.5)}`); return false; }
+    }
+    const step = toWorldLocal(c.cx, depth / 2 + 1.2); // stoep voor de deur mag niet in de weg liggen
+    if (roadClearance(step.x, step.y) < -0.5) { if (row.debug) console.warn(`  rij ${idx} unit ${c.cx.toFixed(1)}: stoep in weg`); return false; }
+    return true;
+  };
+  cand = cand.map(c => ({ ...c, ok: fits(c) }));
+  // opeenvolgende passende woningen bundelen tot bouwblokken
+  const runs = [];
+  let cur = null;
+  for (const c of cand) {
+    if (!c.ok) { cur = null; continue; }
+    if (cur && Math.abs((cur.cx + cur.len / 2) - (c.cx - c.w / 2)) < 0.05) { cur.len += c.w; cur.cx = cur.x0 + cur.len / 2; cur.n += c.n; }
+    else { cur = { x0: c.cx - c.w / 2, cx: c.cx, len: c.w, n: c.n }; runs.push(cur); }
+  }
+  const dropped = cand.filter(c => !c.ok).length;
+  if (dropped > 0) console.warn(`rij ${idx} ${row.type} [${row.a}]-[${row.b}] off ${row.off}: ${dropped}/${cand.length} woningen weggelaten (botsing)`);
+  if (runs.length === 0) return;
+  // registreer de blokken (voor latere controles)
+  for (const run of runs) {
+    const wc = toWorldLocal(run.cx, 0);
+    run.unit = { cx: wc.x, cz: wc.y, hx: run.len / 2, hz: depth / 2, cos: Math.cos(rotY), sin: Math.sin(rotY), rowIdx: idx };
+    units.push(run.unit);
+  }
 
   const group = new THREE.Group();
   group.position.set(center.x, 0, center.y);
   group.rotation.y = rotY;
 
   const placeUnit = (cx, unitLen, unitN, seed) => {
-    // lichaam
     const frontTex = T.facade(row.type, unitN, storeys, false, seed);
     const backTex = T.facade(row.type, unitN, storeys, true, seed);
     const brickTex = st.plaster ? T.plaster(st.brick[0]) : T.brick(st.brick[0], st.brick[1], seed);
@@ -339,7 +483,6 @@ function buildRow(scene, row, idx) {
     const fm = new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.9 });
     const bm = new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.9 });
     const top = new THREE.MeshStandardMaterial({ map: T.bitumen(), roughness: 1 });
-    // BoxGeometry materialen: +x, -x, +y, -y, +z, -z ; voorgevel is -z (richting weg = -nrm)
     const body = new THREE.Mesh(new THREE.BoxGeometry(unitLen, facadeH, depth), [sideMat, sideMat, top, sideMat, fm, bm]);
     body.position.set(cx, facadeH / 2, 0);
     body.castShadow = true; body.receiveShadow = true;
@@ -351,7 +494,6 @@ function buildRow(scene, row, idx) {
       const roof = gableRoof(unitLen, depth, rh, roofMat);
       roof.position.set(cx, facadeH, 0); roof.castShadow = true;
       group.add(roof);
-      // topgevels als dunne driehoekige wanden (baksteen) aan de uiteinden
       const triShape = new THREE.Shape(); triShape.moveTo(-depth / 2, 0); triShape.lineTo(depth / 2, 0); triShape.lineTo(0, rh); triShape.closePath();
       const tri = new THREE.ShapeGeometry(triShape);
       for (const sgn of [-1, 1]) {
@@ -359,15 +501,14 @@ function buildRow(scene, row, idx) {
         tm.rotation.y = sgn * Math.PI / 2; tm.position.set(cx + sgn * (unitLen / 2 - 0.01), facadeH, 0);
         group.add(tm);
       }
-      // dakkapellen aan de straatzijde
       if (st.dormer) {
         const perHouse = unitLen / unitN;
         for (let i = 0; i < unitN; i++) {
           const hx = cx - unitLen / 2 + perHouse * (i + 0.5);
-          if (!st.dormerBand && (i + seed) % 3 === 1) continue; // niet elk huis heeft een dakkapel
+          if (!st.dormerBand && (i + seed) % 3 === 1) continue;
           const dw = st.dormerBand ? perHouse * 0.9 : Math.min(2.6, perHouse * 0.55);
           const dh = 1.35, dd = 1.6;
-          const z = depth / 2 + 0.35 - dd / 2 - 0.9; // op het dakvlak
+          const z = depth / 2 + 0.35 - dd / 2 - 0.9;
           const yBase = facadeH + (rh / (depth / 2 + 0.35)) * (depth / 2 + 0.35 - (z + dd / 2));
           const frontMat = new THREE.MeshStandardMaterial({ map: T.dormerFront(st.frame2), roughness: 0.6 });
           const dm = new THREE.Mesh(new THREE.BoxGeometry(dw, dh, dd), [MAT.white, MAT.white, MAT.dark, MAT.white, frontMat, MAT.white]);
@@ -375,22 +516,18 @@ function buildRow(scene, row, idx) {
           group.add(dm);
         }
       }
-      // zonnepanelen
       if (st.solar) {
         const perHouse = unitLen / unitN;
         for (let i = 0; i < unitN; i++) {
           if ((i + seed) % 2) continue;
           const hx = cx - unitLen / 2 + perHouse * (i + 0.5);
-          const pw = perHouse * 0.7, pd = 1.9;
-          const p = new THREE.Mesh(new THREE.PlaneGeometry(pw, pd), MAT.solar);
+          const p = new THREE.Mesh(new THREE.PlaneGeometry(perHouse * 0.7, 1.9), MAT.solar);
           const ang = Math.atan2(rh, depth / 2 + 0.35);
           p.rotation.x = -Math.PI / 2 + ang;
-          const z = -(depth / 2 + 0.35) * 0.5;
-          p.position.set(hx, facadeH + rh * 0.5 + 0.06, z);
+          p.position.set(hx, facadeH + rh * 0.5 + 0.06, -(depth / 2 + 0.35) * 0.5);
           group.add(p);
         }
       }
-      // schoorstenen
       if (st.chimney) {
         const perHouse = unitLen / unitN; const chims = [];
         for (let i = 0; i < unitN; i++) {
@@ -400,7 +537,6 @@ function buildRow(scene, row, idx) {
         group.add(new THREE.Mesh(mergeGeoms(chims), sideMat));
       }
     } else {
-      // plat dak: dakrand
       const edge = new THREE.Mesh(new THREE.BoxGeometry(unitLen + 0.2, 0.3, depth + 0.2), MAT.dark);
       edge.position.set(cx, facadeH + 0.1, 0); group.add(edge);
       if (st.balcony) {
@@ -412,58 +548,72 @@ function buildRow(scene, row, idx) {
         }
       }
     }
-    // collider
-    const wx = center.x + dLocal.x * cx, wz = center.y + dLocal.y * cx;
-    addCollider(wx, wz, unitLen / 2, depth / 2, rotY, facadeH + roofH);
+    const wc = toWorldLocal(cx, 0);
+    addCollider(wc.x, wc.y, unitLen / 2, depth / 2, rotY, facadeH + roofH);
   };
 
-  if (st.detached) {
-    const gap = len0 / n;
-    for (let i = 0; i < n; i++) placeUnit(-len0 / 2 + gap * (i + 0.5), st.w, 1, idx * 3 + i);
-  } else if (st.semi) {
-    const pairs = Math.max(1, Math.round(len0 / 17));
-    const gap = len0 / pairs;
-    for (let i = 0; i < pairs; i++) placeUnit(-len0 / 2 + gap * (i + 0.5), st.w * 2, 2, idx * 3 + i);
-  } else {
-    placeUnit(0, totalLen, n, idx);
-  }
-
-  // voortuinen: heg langs de straatkant, tegelpaadjes en struiken (samengevoegd per rij)
-  const hedgeLen = (st.detached || st.semi) ? len0 : totalLen;
-  const hedgeZ = depth / 2 + 5.2;
-  const unitCount = st.detached ? n : (st.semi ? Math.max(1, Math.round(len0 / 17)) * 2 : n);
-  if (row.type !== 'spil' && row.type !== 'appart') {
-    const hedgeMat = new THREE.MeshStandardMaterial({ map: T.hedge().clone(), roughness: 1 });
-    hedgeMat.map.needsUpdate = true; hedgeMat.map.repeat.set(hedgeLen / 1.2, 1);
-    const hedge = new THREE.Mesh(new THREE.BoxGeometry(hedgeLen, 0.9, 0.5), hedgeMat);
-    hedge.position.set(0, 0.45, hedgeZ); hedge.castShadow = true;
-    group.add(hedge);
-    const paths = [], bushes = [];
-    for (let i = 0; i < unitCount; i++) {
-      const hx = -hedgeLen / 2 + (hedgeLen / unitCount) * (i + 0.5) + ((i % 2) ? 1.4 : -1.4);
-      const pg = new THREE.BoxGeometry(1.0, 0.03, 5.0); pg.translate(hx, 0.02, depth / 2 + 2.6); paths.push(pg);
-      const bg = new THREE.SphereGeometry(0.6, 6, 5); bg.translate(hx + ((i % 2) ? -1.6 : 1.6), 0.5, depth / 2 + 3.0); bushes.push(bg);
-    }
-    group.add(new THREE.Mesh(mergeGeoms(paths), MAT.tiles));
-    const bushMesh = new THREE.Mesh(mergeGeoms(bushes), MAT.leaf2); bushMesh.castShadow = true; group.add(bushMesh);
-  }
-  // achtertuinen: schuttingen en schuurtjes (één mesh per rij)
-  {
-    const parts = [];
-    const f = new THREE.BoxGeometry(hedgeLen, 1.8, 0.08); f.translate(0, 0.9, -depth / 2 - 9.5); parts.push(f);
-    for (const sgn of [-1, 1]) { const f2 = new THREE.BoxGeometry(0.08, 1.8, 9.5); f2.translate(sgn * hedgeLen / 2, 0.9, -depth / 2 - 4.75); parts.push(f2); }
-    const shedCount = Math.max(1, Math.round(hedgeLen / 6));
-    for (let i = 0; i < shedCount; i++) {
-      const hx = -hedgeLen / 2 + (hedgeLen / shedCount) * (i + 0.5);
-      const sg = new THREE.BoxGeometry(2.4, 2.2, 2.4); sg.translate(hx, 1.1, -depth / 2 - 8.0); parts.push(sg);
-    }
-    const back = new THREE.Mesh(mergeGeoms(parts), MAT.fence); back.castShadow = true; group.add(back);
-  }
+  runs.forEach((run, k) => placeUnit(run.cx, run.len, run.n, idx * 5 + k));
   if (row.label) {
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.1), new THREE.MeshBasicMaterial({ map: T.streetSign(row.label) }));
-    sign.position.set(0, facadeH - 0.9, depth / 2 + 0.02); group.add(sign);
+    sign.position.set(runs[0].cx, facadeH - 0.9, depth / 2 + 0.02); group.add(sign);
   }
   scene.add(group);
+  rowBuilds.push({ row, st, runs, group, depth, toWorldLocal, facadeH });
+}
+
+// Fase 2: tuinen – alleen waar ruimte is (geen wegen, water of andere woningen)
+function buildGardens() {
+  for (const rb of rowBuilds) {
+    const { row, st, runs, group, depth, toWorldLocal } = rb;
+    for (const run of runs) {
+      // beschikbare diepte achter het blok
+      let backAvail = 9.5;
+      for (let x = run.cx - run.len / 2 + 1; x <= run.cx + run.len / 2 - 1; x += 2.5) {
+        for (let k = 0.8; k <= 9.5; k += 0.5) {
+          const p = toWorldLocal(x, -depth / 2 - k);
+          if (blocked(p.x, p.y, 0.3, run.unit)) { backAvail = Math.min(backAvail, k - 0.6); break; }
+        }
+      }
+      // beschikbare diepte vóór het blok (tot de stoep)
+      let frontAvail = 5.2;
+      for (let x = run.cx - run.len / 2 + 1; x <= run.cx + run.len / 2 - 1; x += 2.5) {
+        for (let k = 0.6; k <= 5.4; k += 0.4) {
+          const p = toWorldLocal(x, depth / 2 + k);
+          if (blocked(p.x, p.y, 0.2, run.unit)) { frontAvail = Math.min(frontAvail, k - 0.6); break; }
+        }
+      }
+      const unitCount = run.n;
+      if (row.type !== 'spil' && row.type !== 'appart' && frontAvail >= 1.4) {
+        const hedgeZ = depth / 2 + frontAvail;
+        const hedgeMat = new THREE.MeshStandardMaterial({ map: T.hedge().clone(), roughness: 1 });
+        hedgeMat.map.needsUpdate = true; hedgeMat.map.repeat.set(run.len / 1.2, 1);
+        const hedge = new THREE.Mesh(new THREE.BoxGeometry(run.len, 0.8, 0.45), hedgeMat);
+        hedge.position.set(run.cx, 0.4, hedgeZ); hedge.castShadow = true;
+        group.add(hedge);
+        const paths = [], bushes = [];
+        for (let i = 0; i < unitCount; i++) {
+          const hx = run.cx - run.len / 2 + (run.len / unitCount) * (i + 0.5) + ((i % 2) ? 1.2 : -1.2);
+          const pg = new THREE.BoxGeometry(0.9, 0.03, frontAvail); pg.translate(hx, 0.02, depth / 2 + frontAvail / 2); paths.push(pg);
+          if (frontAvail > 2.2) { const bg = new THREE.SphereGeometry(0.5, 6, 5); bg.translate(hx + ((i % 2) ? -1.5 : 1.5), 0.4, depth / 2 + frontAvail * 0.5); bushes.push(bg); }
+        }
+        group.add(new THREE.Mesh(mergeGeoms(paths), MAT.tiles));
+        if (bushes.length) { const bushMesh = new THREE.Mesh(mergeGeoms(bushes), MAT.leaf2); bushMesh.castShadow = true; group.add(bushMesh); }
+      }
+      if (backAvail >= 2.5 && row.type !== 'spil') {
+        const parts = [];
+        const f = new THREE.BoxGeometry(run.len, 1.8, 0.08); f.translate(run.cx, 0.9, -depth / 2 - backAvail); parts.push(f);
+        for (const sgn of [-1, 1]) { const f2 = new THREE.BoxGeometry(0.08, 1.8, backAvail); f2.translate(run.cx + sgn * run.len / 2, 0.9, -depth / 2 - backAvail / 2); parts.push(f2); }
+        if (backAvail >= 5) {
+          const shedCount = Math.max(1, Math.round(run.len / 6));
+          for (let i = 0; i < shedCount; i++) {
+            const hx = run.cx - run.len / 2 + (run.len / shedCount) * (i + 0.5);
+            const sg = new THREE.BoxGeometry(2.2, 2.2, 2.2); sg.translate(hx, 1.1, -depth / 2 - backAvail + 1.3); parts.push(sg);
+          }
+        }
+        const back = new THREE.Mesh(mergeGeoms(parts), MAT.fence); back.castShadow = true; group.add(back);
+      }
+    }
+  }
 }
 
 // ---------- Bomen (instanced) ----------
@@ -513,10 +663,14 @@ function buildFurniture(scene) {
         lamps.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), side });
       }
       // straatnaambord + 30-bord aan het begin van elke weg
-      if (!sPlaced && road.name !== 'N7') {
-        const p = a.clone().add(d.clone().multiplyScalar(4)).add(nrm.clone().multiplyScalar(road.w / 2 + (pk.includes('L') ? 2.2 : 0) + 0.6));
+      if (!sPlaced) {
+        const p = a.clone().add(d.clone().multiplyScalar(9)).add(nrm.clone().multiplyScalar(road.w / 2 + (pk.includes('L') ? 2.2 : 0) + 0.6));
         signs.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), name: road.name });
         sPlaced = true;
+      }
+      if (k === pts.length - 2) {
+        const p = b.clone().sub(d.clone().multiplyScalar(9)).add(nrm.clone().multiplyScalar(-(road.w / 2 + (pk.includes('R') ? 2.2 : 0) + 0.6)));
+        signs.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), name: road.name });
       }
       // kliko's bij de stoeprand
       for (let s = 9; s < len; s += 23) {
@@ -602,6 +756,7 @@ export function buildWorld(scene) {
   for (const poly of WATER) waterPolys.push(poly.map(vec));
   buildRoads(scene);
   ROWS.forEach((row, i) => buildRow(scene, row, i));
+  buildGardens();
   buildNature(scene);
   buildTrees(scene);
   buildFurniture(scene);
@@ -613,16 +768,16 @@ export function resolveCollisions(x, z, radius, ignoreLowH = 0) {
   for (const c of colliders) {
     if (c.h < ignoreLowH) continue;
     const dx = x - c.cx, dz = z - c.cz;
-    const lx = dx * c.cos + dz * c.sin, lz = -dx * c.sin + dz * c.cos;
+    const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
     const px = Math.abs(lx) - c.hx, pz = Math.abs(lz) - c.hz;
     if (px < radius && pz < radius) {
       // dichtstbijzijnde as naar buiten duwen
       let nx = 0, nz = 0;
-      if (px > pz) { nx = Math.sign(lx) * (radius - px); }
-      else { nz = Math.sign(lz) * (radius - pz); }
-      // terug naar wereld
-      x += nx * c.cos - nz * c.sin;
-      z += nx * c.sin + nz * c.cos;
+      if (px > pz) { nx = Math.sign(lx || 1) * (radius - px); }
+      else { nz = Math.sign(lz || 1) * (radius - pz); }
+      // terug naar wereld (rotatie om Y met rotY)
+      x += nx * c.cos + nz * c.sin;
+      z += -nx * c.sin + nz * c.cos;
     }
   }
   return [x, z];

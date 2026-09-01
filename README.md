@@ -23,6 +23,7 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | muis | rondkijken · linkermuisknop = schieten · R = herladen |
 | E | in- en uitstappen bij een auto |
 | in de auto: W/S, A/D, spatie | gas/rem, sturen, handrem |
+| M | grote kaart van de wijk met straatnamen |
 | Esc | muis vrijgeven |
 
 ## Straten in het spel
@@ -56,9 +57,13 @@ Molenpaal, Bonkelaar).
 
 ## Screenshots
 
-| Monnikmolen | Bonkelaar | Overzicht De Wieken |
+| Monnikmolen | Bonkelaar | Jasker |
 |---|---|---|
-| ![Monnikmolen](docs/screenshots/monnikmolen.png) | ![Bonkelaar](docs/screenshots/bonkelaar.png) | ![Overzicht](docs/screenshots/overzicht2.png) |
+| ![Monnikmolen](docs/screenshots/monnikmolen.png) | ![Bonkelaar](docs/screenshots/bonkelaar.png) | ![Jasker](docs/screenshots/jasker.png) |
+
+| Overzicht vanaf Molenpaal | Kaart (toets M) |
+|---|---|
+| ![Overzicht](docs/screenshots/overzicht3.png) | ![Kaart](docs/screenshots/kaart.png) |
 
 Testscreenshots maken (vereist Playwright en de meegeleverde Chromium):
 

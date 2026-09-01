@@ -18,6 +18,7 @@
   #hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); font-size: 14px; opacity: .85; white-space: nowrap; }
   #msg { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); font-size: 26px; font-weight: 700; opacity: 0; transition: opacity .3s; }
   #minimap { position: absolute; right: 20px; top: 20px; width: 220px; height: 220px; border-radius: 50%; box-shadow: 0 2px 12px rgba(0,0,0,.5); background: #3f6a2b; }
+  #bigmap { display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
   #title { position: absolute; left: 24px; top: 20px; font-size: 13px; opacity: .8; }
   #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(8,14,24,.78); color: #fff; }
   .panel { max-width: 560px; padding: 32px 36px; background: rgba(15,25,40,.92); border: 1px solid rgba(255,255,255,.15); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
@@ -45,6 +46,7 @@
   <div id="ammo"></div>
   <div id="hint"></div>
   <div id="msg"></div>
+  <canvas id="bigmap" width="1100" height="760"></canvas>
 </div>
 <div id="overlay">
   <div class="panel">
@@ -55,6 +57,7 @@
       <tr><td>Muis</td><td>rondkijken · linkermuisknop = schieten · R = herladen</td></tr>
       <tr><td>E</td><td>in- en uitstappen bij een auto</td></tr>
       <tr><td>In de auto</td><td>W/S gas en rem · A/D sturen · spatie handrem</td></tr>
+      <tr><td>M</td><td>grote kaart van de wijk</td></tr>
       <tr><td>Esc</td><td>muis vrijgeven / pauze</td></tr>
     </table>
     <button id="start">Klik om te spelen</button>
