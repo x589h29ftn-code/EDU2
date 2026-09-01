@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grand Party Auto — Sneek</title>
+<style>
+  :root{
+    --roze:#ff4fa3; --paars:#7b2ff7; --geel:#ffd944; --cyaan:#37e6ff;
+  }
+  *{box-sizing:border-box; user-select:none;}
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#120a1e;
+    font-family:"Segoe UI",Verdana,Arial,sans-serif;color:#fff;}
+  canvas#game{display:block;width:100%;height:100%;}
+
+  .titelfont{font-family:Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif;
+    letter-spacing:2px; text-transform:uppercase;}
+
+  /* ---------- Startscherm ---------- */
+  #start{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(160deg,#2b0a4e 0%,#7b2ff7 45%,#ff4fa3 80%,#ff9a4f 100%);}
+  #start .kaart{background:rgba(10,5,25,.82);border:2px solid var(--roze);border-radius:18px;
+    padding:36px 44px;max-width:640px;width:92%;box-shadow:0 0 60px rgba(255,79,163,.55);
+    backdrop-filter:blur(6px);}
+  #start h1{margin:0 0 2px;font-size:52px;line-height:1;
+    background:linear-gradient(90deg,var(--geel),var(--roze),var(--cyaan));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  #start h2{margin:0 0 18px;font-size:20px;color:var(--cyaan);font-weight:400;}
+  #start label{display:block;margin:14px 0 6px;font-size:15px;color:#ffd944;}
+  #start input{width:100%;padding:12px 14px;font-size:20px;border-radius:10px;border:2px solid var(--paars);
+    background:#1a0f30;color:#fff;outline:none;}
+  #start input:focus{border-color:var(--roze);}
+  #startknop{margin-top:22px;width:100%;padding:16px;font-size:24px;border:none;border-radius:12px;
+    cursor:pointer;color:#2b0a4e;font-weight:800;
+    background:linear-gradient(90deg,var(--geel),var(--roze));transition:transform .1s;}
+  #startknop:hover{transform:scale(1.03);}
+  .uitleg{margin-top:20px;font-size:14px;color:#d9c9ff;columns:2;column-gap:28px;}
+  .uitleg div{margin-bottom:5px;break-inside:avoid;}
+  .uitleg b{color:#fff;display:inline-block;min-width:64px;background:#31215a;border-radius:5px;
+    padding:1px 7px;margin-right:6px;text-align:center;font-family:Consolas,monospace;font-size:13px;}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:none;}
+  #crosshair{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;
+    border-radius:50%;background:rgba(255,255,255,.8);box-shadow:0 0 4px #000;}
+  #missie{position:absolute;left:18px;top:16px;max-width:420px;background:rgba(10,5,25,.7);
+    border-left:5px solid var(--geel);border-radius:8px;padding:10px 16px;}
+  #missieTitel{font-size:20px;color:var(--geel);}
+  #missieTekst{font-size:15px;color:#fff;margin-top:3px;}
+  #timer{font-size:26px;color:var(--cyaan);margin-top:4px;display:none;}
+  #punten{position:absolute;right:18px;top:16px;text-align:right;background:rgba(10,5,25,.7);
+    border-radius:8px;padding:8px 16px;font-size:24px;color:#7dff8a;}
+  #sterren{position:absolute;right:18px;top:70px;text-align:right;font-size:26px;color:#4fb6ff;
+    text-shadow:0 0 6px #000;letter-spacing:4px;}
+  #snelheid{position:absolute;right:18px;bottom:18px;font-size:40px;color:#fff;display:none;
+    background:rgba(10,5,25,.7);border-radius:10px;padding:6px 18px;}
+  #snelheid span{font-size:16px;color:var(--roze);}
+  #minimap{position:absolute;left:18px;bottom:18px;border:3px solid rgba(255,79,163,.8);
+    border-radius:10px;background:rgba(10,5,25,.75);}
+  #straat{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);
+    font-size:22px;color:#fff;text-shadow:0 2px 8px #000;letter-spacing:1px;
+    background:rgba(10,5,25,.55);border-radius:8px;padding:4px 18px;display:none;}
+  #hint{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);font-size:19px;
+    background:rgba(10,5,25,.8);border:1px solid var(--cyaan);border-radius:8px;padding:8px 20px;
+    color:var(--cyaan);display:none;}
+  #toast{position:absolute;left:50%;top:26%;transform:translateX(-50%);text-align:center;
+    font-size:42px;color:var(--geel);text-shadow:0 3px 12px #000;opacity:0;transition:opacity .4s;}
+  #subtoast{font-size:20px;color:#fff;margin-top:6px;}
+
+  /* ---------- Pauze ---------- */
+  #pauze{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+    background:rgba(10,5,25,.75);}
+  #pauze .kaart{text-align:center;background:rgba(20,10,45,.95);border:2px solid var(--cyaan);
+    border-radius:16px;padding:40px 60px;}
+  #pauze h1{font-size:40px;margin:0 0 12px;color:var(--cyaan);}
+  #verderknop{margin-top:14px;padding:14px 34px;font-size:20px;border:none;border-radius:10px;
+    cursor:pointer;font-weight:700;color:#2b0a4e;background:linear-gradient(90deg,var(--cyaan),var(--geel));}
+
+  /* ---------- Finale ---------- */
+  #finale{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;
+    pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 30%,rgba(20,5,40,.55) 100%);}
+  #finale .kaart{text-align:center;animation:pulse 1.6s infinite;}
+  #finale h1{font-size:76px;margin:0;
+    background:linear-gradient(90deg,var(--geel),var(--roze),var(--cyaan),var(--geel));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-shadow:none;}
+  #finale h2{font-size:30px;color:#fff;text-shadow:0 2px 10px #000;margin:10px 0 0;}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+
+  .confetti{position:fixed;top:-20px;z-index:35;pointer-events:none;
+    animation:val linear forwards;}
+  @keyframes val{to{transform:translateY(110vh) rotate(720deg);}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="start">
+  <div class="kaart">
+    <h1 class="titelfont">Grand Party Auto</h1>
+    <h2>Welkom in Sneek — de stad is van jou vandaag 🎉</h2>
+    <label for="naam">Wie is de jarige?</label>
+    <input id="naam" maxlength="20" placeholder="Vul je naam in..." autocomplete="off">
+    <button id="startknop" class="titelfont">🎂 Start het feest!</button>
+    <div class="uitleg">
+      <div><b>W A S D</b> lopen / rijden</div>
+      <div><b>Muis</b> rondkijken</div>
+      <div><b>Shift</b> sprinten</div>
+      <div><b>Spatie</b> springen / handrem</div>
+      <div><b>E</b> auto in- / uitstappen</div>
+      <div><b>R</b> claxon</div>
+      <div><b>Esc</b> pauze</div>
+      <div><b>Kaart</b> linksonder zie je Sneek</div>
+    </div>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="crosshair"></div>
+  <div id="missie">
+    <div id="missieTitel" class="titelfont">Missie</div>
+    <div id="missieTekst"></div>
+    <div id="timer" class="titelfont"></div>
+  </div>
+  <div id="punten" class="titelfont">€ 0</div>
+  <div id="sterren"></div>
+  <div id="snelheid" class="titelfont">0 <span>km/u</span></div>
+  <canvas id="minimap" width="220" height="220"></canvas>
+  <div id="straat" class="titelfont"></div>
+  <div id="hint"></div>
+  <div id="toast" class="titelfont"><div id="toastTekst"></div><div id="subtoast"></div></div>
+</div>
+
+<div id="pauze">
+  <div class="kaart">
+    <h1 class="titelfont">Pauze</h1>
+    <div>Even bijkomen van het feesten?</div>
+    <button id="verderknop">▶ Verder spelen</button>
+  </div>
+</div>
+
+<div id="finale">
+  <div class="kaart">
+    <h1 class="titelfont" id="finaleTitel">Gefeliciteerd!</h1>
+    <h2 id="finaleTekst">Je hebt alle missies gehaald!</h2>
+  </div>
+</div>
+
+<script src="lib/three.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
