@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tinga Sneek – open wereld</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #ui { position: fixed; inset: 0; pointer-events: none; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; }
+  #crosshair::before, #crosshair::after { content: ""; position: absolute; background: rgba(255,255,255,.9); }
+  #crosshair::before { left: 6px; top: 0; width: 2px; height: 14px; }
+  #crosshair::after { top: 6px; left: 0; width: 14px; height: 2px; }
+  #street { position: absolute; left: 24px; bottom: 24px; font-size: 22px; font-weight: 700; letter-spacing: .5px; background: #0b3d91; border: 3px solid #fff; border-radius: 6px; padding: 6px 14px; text-shadow: none; }
+  #speed { position: absolute; right: 24px; bottom: 170px; font-size: 26px; font-weight: 700; display: none; }
+  #ammo { position: absolute; right: 24px; bottom: 170px; font-size: 22px; font-weight: 700; }
+  #hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); font-size: 14px; opacity: .85; white-space: nowrap; }
+  #msg { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); font-size: 26px; font-weight: 700; opacity: 0; transition: opacity .3s; }
+  #minimap { position: absolute; right: 20px; top: 20px; width: 220px; height: 220px; border-radius: 50%; box-shadow: 0 2px 12px rgba(0,0,0,.5); background: #3f6a2b; }
+  #title { position: absolute; left: 24px; top: 20px; font-size: 13px; opacity: .8; }
+  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(8,14,24,.78); color: #fff; }
+  .panel { max-width: 560px; padding: 32px 36px; background: rgba(15,25,40,.92); border: 1px solid rgba(255,255,255,.15); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .panel h1 { margin: 0 0 4px; font-size: 30px; }
+  .panel h2 { margin: 0 0 18px; font-size: 15px; font-weight: 400; opacity: .8; }
+  .panel table { width: 100%; font-size: 14px; border-collapse: collapse; margin-bottom: 20px; }
+  .panel td { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .panel td:first-child { font-weight: 700; width: 130px; color: #ffd400; }
+  #start { font-size: 18px; font-weight: 700; padding: 12px 26px; border: 0; border-radius: 8px; background: #ffd400; color: #1a1a1a; cursor: pointer; }
+  #start:hover { background: #ffe25a; }
+  .streets { font-size: 12px; opacity: .7; margin-top: 14px; line-height: 1.5; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="ui">
+  <div id="title">TINGA · SNEEK</div>
+  <div id="crosshair"></div>
+  <canvas id="minimap" width="220" height="220"></canvas>
+  <div id="street">Molenkrite</div>
+  <div id="speed"></div>
+  <div id="ammo"></div>
+  <div id="hint"></div>
+  <div id="msg"></div>
+</div>
+<div id="overlay">
+  <div class="panel">
+    <h1>Tinga, Sneek</h1>
+    <h2>Open wereld op ware grootte · start op de Molenkrite bij de Monnikmolen</h2>
+    <table>
+      <tr><td>W A S D</td><td>lopen (shift = sprinten, spatie = springen)</td></tr>
+      <tr><td>Muis</td><td>rondkijken · linkermuisknop = schieten · R = herladen</td></tr>
+      <tr><td>E</td><td>in- en uitstappen bij een auto</td></tr>
+      <tr><td>In de auto</td><td>W/S gas en rem · A/D sturen · spatie handrem</td></tr>
+      <tr><td>Esc</td><td>muis vrijgeven / pauze</td></tr>
+    </table>
+    <button id="start">Klik om te spelen</button>
+    <div class="streets">Straten: Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal · Spinnekop · Omloop · De Wieken · Windbord · Voorzoom · Bovenas · Bonkelaar · N7 afrit 21</div>
+  </div>
+</div>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
