@@ -24,24 +24,25 @@ export class Player {
 
   buildGun() {
     const g = new THREE.Group();
-    const dark = new THREE.MeshStandardMaterial({ color: 0x1c1d20, roughness: 0.5, metalness: 0.6 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x23262b, roughness: 0.45, metalness: 0.65 });
     const grip = new THREE.MeshStandardMaterial({ color: 0x2b2420, roughness: 0.9 });
-    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.045, 0.2), dark); slide.position.set(0, 0.02, -0.05);
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.06, 8), dark); barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.025, -0.17);
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.09, 0.04), grip); handle.position.set(0, -0.045, 0.02); handle.rotation.x = 0.25;
-    const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.02, 0.006), dark); trigger.position.set(0, -0.015, -0.02);
-    const flash = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
-    flash.position.set(0, 0.025, -0.21);
-    g.add(slide, barrel, handle, trigger, flash);
+    const S = 0.5; // schaal: het pistool is ~17 cm lang
+    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.030 * S, 0.042 * S, 0.185 * S), dark); slide.position.set(0, 0.018 * S, -0.045 * S);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.005 * S, 0.005 * S, 0.05 * S, 8), dark); barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.022 * S, -0.15 * S);
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.028 * S, 0.085 * S, 0.038 * S), grip); handle.position.set(0, -0.042 * S, 0.018 * S); handle.rotation.x = 0.22;
+    const sight = new THREE.Mesh(new THREE.BoxGeometry(0.004 * S, 0.006 * S, 0.006 * S), dark); sight.position.set(0, 0.042 * S, -0.13 * S);
+    const flash = new THREE.Mesh(new THREE.SphereGeometry(0.022 * S, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
+    flash.position.set(0, 0.022 * S, -0.185 * S);
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.052 * S, 0.062 * S, 0.075 * S), new THREE.MeshStandardMaterial({ color: 0xd0a480, roughness: 0.95 }));
+    hand.position.set(0, -0.052 * S, 0.020 * S);
+    const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.060 * S, 0.068 * S, 0.11 * S), new THREE.MeshStandardMaterial({ color: 0x2f3a56, roughness: 0.95 }));
+    sleeve.position.set(0.004 * S, -0.078 * S, 0.10 * S);
+    g.add(slide, barrel, handle, sight, flash, hand, sleeve);
     this.flash = flash;
-    g.position.set(0.18, -0.16, -0.32);
+    g.position.set(0.19, -0.185, -0.45);
+    g.rotation.y = -0.06;
     this.gun = g;
     this.camera.add(g);
-    // arm/hand suggestie
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.07, 0.09), new THREE.MeshStandardMaterial({ color: 0xd9b48f, roughness: 0.9 }));
-    hand.position.set(0, -0.06, 0.03); g.add(hand);
-    const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.08, 0.16), new THREE.MeshStandardMaterial({ color: 0x2f3a56, roughness: 0.9 }));
-    sleeve.position.set(0.01, -0.09, 0.14); g.add(sleeve);
   }
 
   bindInput() {
@@ -114,9 +115,9 @@ export class Player {
 
     // wapenanimatie
     this.recoil = Math.max(0, this.recoil - dt * 6);
-    this.gun.position.z = -0.32 + this.recoil * 0.06;
+    this.gun.position.z = -0.45 + this.recoil * 0.05;
     this.gun.rotation.x = this.recoil * 0.25 + (this.reloading > 0 ? 0.6 : 0);
-    this.gun.position.y = -0.16 + Math.sin(this.bob) * 0.006;
+    this.gun.position.y = -0.185 + Math.sin(this.bob) * 0.005;
     this.flashT -= dt; this.flash.material.opacity = this.flashT > 0 ? 0.9 : 0;
     this.gun.visible = true;
   }

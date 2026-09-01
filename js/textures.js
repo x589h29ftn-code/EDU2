@@ -243,7 +243,7 @@ export function leaves(tint = '#4a7a2a') {
 // Levert een canvas texture met `n` huizen naast elkaar, `storeys` verdiepingen.
 // Elke huis-eenheid = 256 px breed; hoogte = storeys*3m -> 96px per meter... we gebruiken 128px per meter.
 export const HOUSE_STYLES = {
-  molenkrite: { brick: ['#8c6b52', '#b7ae9e'], frame: '#ffffff', frame2: '#1f3a6e', door: ['#1f3a6e', '#2a2a2a', '#7a1f1f', '#1f3a6e'], roof: '#43332c', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: false, band: '#f2f2f2' },
+  molenkrite: { brick: ['#8c6b52', '#b7ae9e'], frame: '#ffffff', frame2: '#1f3a6e', door: ['#1f3a6e', '#2a2a2a', '#7a1f1f', '#1f3a6e'], roof: '#43332c', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: false, solar: true, band: '#f2f2f2' },
   monnik:     { brick: ['#8a5a45', '#bfb5a6'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#5a2d1a', '#1f3a6e'], roof: '#3b3330', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, chimney: true, band: '#f2f2f2' },
   kruirad:    { brick: ['#9a4a3a', '#c9c0b0'], frame: '#ffffff', frame2: '#ffffff', door: ['#1f3a6e', '#2a2a2a', '#3a6e2a'], roof: '#3d322d', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: true, band: '#f2f2f2' },
   molenpaal:  { brick: ['#d3bd8e', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#4a4a4a'], roof: '#3a3230', roofType: 'gable', storeys: 2, w: 5.6, dormer: true, dormerBand: true, chimney: false, solar: true, band: '#f2f2f2' },

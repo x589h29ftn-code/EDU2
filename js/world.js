@@ -152,86 +152,84 @@ function projectOnPolyline(p, pts) {
 function buildRoads(scene) {
   const walkGeoms = [];
   const curbGeoms = [];
-  // brede wegen bovenop: sorteer op breedte (paden onderaan)
+  const bayGeoms = [];
+  // smalle straten bovenop bredere paden: teken op volgorde van breedte
   const order = ROADS.map((r, i) => ({ r, i })).sort((x, y) => x.r.w - y.r.w || x.i - y.i);
-  const roads = order.map(({ r }) => ({ ...r, pts: r.pts.map(vec), gaps: { L: [], R: [] }, trimStart: 0, trimEnd: 0 }));
-  // Wegeinden aansluiten: eindpunt dat binnen 13 m van een andere weg ligt wordt op die wegas gezet
+  const roads = order.map(({ r }) => ({ ...r, pts: r.pts.map(vec), trimStart: 0, trimEnd: 0 }));
+  // wegeinden op de kruisende wegas leggen
   for (const road of roads) {
     for (const endIdx of [0, road.pts.length - 1]) {
       const p = road.pts[endIdx];
       let best = null, connected = false;
       for (const other of roads) {
         if (other === road) continue;
-        if (other.type === 'pad' || other.type === 'fietspad') { if (road.type !== 'pad' && road.type !== 'fietspad') continue; }
+        const bothPath = (t) => t === 'pad' || t === 'fietspad';
+        if (bothPath(other.type) && !bothPath(road.type)) continue;
         const pr = projectOnPolyline(p, other.pts);
-        if (pr.d <= 0.05) connected = true; // ligt al precies op een andere weg
+        if (pr.d <= 0.05) connected = true;
         if (pr.d > 0.05 && pr.d < 13 && (!best || pr.d < best.pr.d)) best = { other, pr };
       }
       if (!best || connected) continue;
-      const { other, pr } = best;
-      road.pts[endIdx] = pr.q.clone();
-      // trimafstand voor eigen parkeerstroken/stoepen bij dit eind
-      const trim = other.w / 2 + (other.parking ? 2.2 : 0) + other.sidewalk + 0.6;
+      road.pts[endIdx] = best.pr.q.clone();
+      const trim = best.other.w / 2 + (best.other.verge || 0) + 1.6;
       if (endIdx === 0) road.trimStart = trim; else road.trimEnd = trim;
-      // parkeerstrook van de andere weg onderbreken ter hoogte van deze aansluiting
-      const prev = road.pts[endIdx === 0 ? 1 : road.pts.length - 2];
-      const left = new THREE.Vector2(pr.dir.y, -pr.dir.x);
-      const sideKey = prev.clone().sub(pr.q).dot(left) > 0 ? 'L' : 'R';
-      const half = road.w / 2 + road.sidewalk + 1.5;
-      other.gaps[sideKey].push([pr.s - half, pr.s + half]);
     }
   }
   let i = 0;
   for (const road of roads) {
     const pts = road.pts;
     const mat = MAT[road.type] || MAT.klinker;
-    const g = ribbon(pts, road.w, ROAD_Y + i * 0.0007, 0, 0.5);
-    const m = new THREE.Mesh(g, mat);
-    m.receiveShadow = true;
-    scene.add(m);
+    scene.add(Object.assign(new THREE.Mesh(ribbon(pts, road.w, ROAD_Y + i * 0.0007, 0, 0.5), mat), { receiveShadow: true }));
     const isPath = road.type === 'pad' || road.type === 'fietspad';
-    const pk = road.parking || '';
-    const corr = road.w / 2 + (pk ? 2.2 : 0) + (road.sidewalk || 0) + (isPath ? 0.5 : 0);
+    const verge = road.verge || 0;
+    const walkSides = road.walk || '';
+    const walkOff = road.w / 2 + verge + 0.6;   // hart van het trottoir
+    const corr = road.w / 2 + (isPath ? 0.4 : verge + 1.4);
     for (let k = 0; k < pts.length - 1; k++) {
-      roadSegments.push({ name: road.name, a: [pts[k].x, pts[k].y], b: [pts[k + 1].x, pts[k + 1].y], w: road.w, corr, drive: !isPath });
+      roadSegments.push({ name: road.name, a: [pts[k].x, pts[k].y], b: [pts[k + 1].x, pts[k + 1].y], w: road.w, corr, walkOff, drive: !isPath });
     }
-    if (road.sidewalk > 0) {
-      const sw = road.sidewalk;
-      const leftPark = pk.includes('L') ? 2.2 : 0;
-      const rightPark = pk.includes('R') ? 2.2 : 0;
+    if (!isPath) {
       const total = polyLength(pts);
       const inner = sliceByLength(pts, road.trimStart, total - road.trimEnd) || pts;
-      const walkY = 0.05 + i * 0.0006;
-      // parkeerstroken in stukken tussen de aansluitingen
-      const parkPieces = (sideKey, offset, width) => {
-        const gaps = road.gaps[sideKey].slice().sort((a, b) => a[0] - b[0]);
-        let cursor = road.trimStart; const pieces = [];
-        for (const [g0, g1] of gaps) { if (g0 > cursor) pieces.push([cursor, g0]); cursor = Math.max(cursor, g1); }
-        if (total - road.trimEnd > cursor) pieces.push([cursor, total - road.trimEnd]);
-        for (const [s0, s1] of pieces) {
-          const sub = sliceByLength(pts, s0, s1); if (!sub || polyLength(sub) < 5) continue;
-          scene.add(new THREE.Mesh(ribbon(sub, width, ROAD_Y + 0.001 + i * 0.0007, offset, 0.5), MAT.klinker));
-          // parkeerplekken
-          const r = rng(i * 13 + Math.round(s0));
-          for (let k = 0; k < sub.length - 1; k++) {
-            const a = sub[k], b = sub[k + 1]; const d = b.clone().sub(a); const len = d.length(); d.normalize();
-            const nrm = new THREE.Vector2(d.y, -d.x);
-            for (let s = 3.5; s < len - 3; s += 6.2) {
-              const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(offset));
-              if (r() < 0.6) parkSpots.push({ x: p.x, z: p.y, yaw: Math.atan2(d.x, d.y) + (offset < 0 ? Math.PI : 0), driveable: true });
+      const y = 0.05 + i * 0.0006;
+      // trottoir tegen de voortuinen, met een grasberm ertussen
+      if (walkSides.includes('L')) { walkGeoms.push(ribbon(inner, 1.2, y, walkOff, 0.8)); }
+      if (walkSides.includes('R')) { walkGeoms.push(ribbon(inner, 1.2, y, -walkOff, 0.8)); }
+      // trottoirband langs de rijbaan
+      curbGeoms.push(ribbon(pts, 0.16, ROAD_Y + 0.004 + i * 0.0007, road.w / 2 + 0.08, 1));
+      curbGeoms.push(ribbon(pts, 0.16, ROAD_Y + 0.004 + i * 0.0007, -(road.w / 2 + 0.08), 1));
+      // parkeerhavens in de berm, direct naast de rijbaan
+      const bays = road.bays || '';
+      if (bays) {
+        const r = rng(i * 17 + 3);
+        for (let k = 0; k < pts.length - 1; k++) {
+          const a = pts[k], b = pts[k + 1]; const d = b.clone().sub(a); const len = d.length(); d.normalize();
+          const nrm = new THREE.Vector2(d.y, -d.x);
+          const yaw = -Math.atan2(d.y, d.x);
+          for (let sPos = 4; sPos < len - 9; sPos += 13.5) {
+            for (const sgn of [1, -1]) {
+              if (sgn > 0 && !bays.includes('L')) continue;
+              if (sgn < 0 && !bays.includes('R')) continue;
+              const bayLen = 10.8, bayW = 2.2;
+              const c = a.clone().add(d.clone().multiplyScalar(sPos + bayLen / 2))
+                .add(nrm.clone().multiplyScalar(sgn * (road.w / 2 + bayW / 2)));
+              if (c.clone().sub(pts[0]).length() < road.trimStart || b.distanceTo(c) < road.trimEnd) continue;
+              const g = new THREE.PlaneGeometry(bayLen, bayW);
+              g.rotateX(-Math.PI / 2); g.rotateY(yaw); g.translate(c.x, ROAD_Y + 0.006, c.y);
+              bayGeoms.push(g);
+              for (const t of [-2.75, 2.75]) {
+                if (r() < 0.32) continue;
+                const p = c.clone().add(d.clone().multiplyScalar(t));
+                parkSpots.push({ x: p.x, z: p.y, yaw: Math.atan2(d.x, d.y) + (sgn < 0 ? Math.PI : 0) });
+              }
             }
           }
         }
-      };
-      if (leftPark) parkPieces('L', road.w / 2 + leftPark / 2, leftPark);
-      if (rightPark) parkPieces('R', -(road.w / 2 + rightPark / 2), rightPark);
-      walkGeoms.push(ribbon(inner, sw, walkY, road.w / 2 + leftPark + sw / 2, 0.8));
-      walkGeoms.push(ribbon(inner, sw, walkY, -(road.w / 2 + rightPark + sw / 2), 0.8));
-      curbGeoms.push(ribbon(inner, 0.15, walkY + 0.002, road.w / 2 + leftPark + 0.07, 1));
-      curbGeoms.push(ribbon(inner, 0.15, walkY + 0.002, -(road.w / 2 + rightPark + 0.07), 1));
+      }
     }
     i++;
   }
+  if (bayGeoms.length) scene.add(new THREE.Mesh(mergeGeoms(bayGeoms), MAT.klinker));
   const walk = new THREE.Mesh(mergeGeoms(walkGeoms), MAT.tiles); walk.receiveShadow = true; scene.add(walk);
   scene.add(new THREE.Mesh(mergeGeoms(curbGeoms), MAT.curb));
 
@@ -241,9 +239,9 @@ function buildRoads(scene) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(s, s), MAT.rood);
     m.rotation.x = -Math.PI / 2; m.position.set(x, ROAD_Y + 0.06, z); scene.add(m);
   };
-  plateau(370, 1245, 13); plateau(243, 935, 11); plateau(305, 1460, 11); plateau(600, 1750, 11);
+  plateau(375, 1252, 11); plateau(243, 935, 9); plateau(305, 1460, 9); plateau(600, 1750, 9);
   const zebraMat = new THREE.MeshBasicMaterial({ map: T.zebra(), transparent: true });
-  const zb = new THREE.Mesh(new THREE.PlaneGeometry(6, 3), zebraMat);
+  const zb = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 2.6), zebraMat);
   const [zx, zz] = toWorld(410, 1215); zb.rotation.x = -Math.PI / 2; zb.rotation.z = -0.7; zb.position.set(zx, ROAD_Y + 0.07, zz); scene.add(zb);
 
   // N7 snelweg met berm en geluidsscherm
@@ -301,12 +299,14 @@ function buildNature(scene) {
     for (let k = 0; k < pts.length - 1; k++) {
       const a = pts[k], b = pts[k + 1]; const d = b.clone().sub(a); const len = d.length(); d.normalize();
       const nrm = new THREE.Vector2(d.y, -d.x);
-      for (let s = 7; s < len - 4; s += 14) {
-        const side = ((Math.floor(s / 14) + k) % 2 === 0) ? 1 : -1;
-        const pk = (road.parking || '');
-        const extra = (side > 0 && pk.includes('L')) || (side < 0 && pk.includes('R')) ? 2.2 : 0;
-        const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + extra + road.sidewalk + 1.6)));
-        if (!nearRoad(p, 2.5) && !nearBuilding(p, 3) && !inWater(p)) treePositions.push({ x: p.x, z: p.y, s: 0.7 + r() * 0.5 });
+      const vg = road.verge || 0;
+      if (vg < 1.6) continue;
+      for (let s = 6; s < len - 4; s += 13.5) {
+        for (const side of [1, -1]) {
+          if (r() < 0.42) continue;
+          const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + vg * 0.55)));
+          if (!nearBuilding(p, 2.5) && !inWater(p) && !nearParkBay(p, 2.0)) treePositions.push({ x: p.x, z: p.y, s: 0.95 + r() * 0.5 });
+        }
       }
     }
   }
@@ -328,6 +328,10 @@ export function nearRoad(p, margin) {
     const d = distToSeg(p.x, p.y, s.a[0], s.a[1], s.b[0], s.b[1]);
     if (d < s.w / 2 + margin) return true;
   }
+  return false;
+}
+function nearParkBay(p, margin) {
+  for (const s of parkSpots) { if (Math.hypot(p.x - s.x, p.y - s.z) < margin + 2.6) return true; }
   return false;
 }
 function nearBuilding(p, margin) {
@@ -387,6 +391,16 @@ function roadClearance(px, pz) {
   let best = 1e9;
   for (const sgm of roadSegments) {
     if (sgm.w === 0) continue;
+    const d = distToSeg(px, pz, sgm.a[0], sgm.a[1], sgm.b[0], sgm.b[1]) - sgm.corr;
+    if (d < best) best = d;
+  }
+  return best;
+}
+// Ruimte tot aan de rijbaan-as van de dichtstbijzijnde weg (voor de diepte van de voortuin)
+function distToNearestRoadEdge(px, pz) {
+  let best = 1e9;
+  for (const sgm of roadSegments) {
+    if (sgm.w === 0 || !sgm.drive) continue;
     const d = distToSeg(px, pz, sgm.a[0], sgm.a[1], sgm.b[0], sgm.b[1]) - sgm.corr;
     if (d < best) best = d;
   }
@@ -655,29 +669,27 @@ function buildFurniture(scene) {
     for (let k = 0; k < pts.length - 1; k++) {
       const a = pts[k], b = pts[k + 1]; const d = b.clone().sub(a); const len = d.length(); d.normalize();
       const nrm = new THREE.Vector2(d.y, -d.x);
-      const pk = road.parking || '';
-      for (let s = 3; s < len; s += 28) {
-        const side = ((Math.floor(s / 28) + k) % 2 === 0) ? 1 : -1;
-        const extra = (side > 0 && pk.includes('L')) || (side < 0 && pk.includes('R')) ? 2.2 : 0;
-        const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + extra + 0.45)));
+      const vg = road.verge || 0;
+      for (let s = 3; s < len; s += 30) {
+        const side = ((Math.floor(s / 30) + k) % 2 === 0) ? 1 : -1;
+        const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + Math.min(1.0, vg * 0.45))));
         lamps.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), side });
       }
       // straatnaambord + 30-bord aan het begin van elke weg
       if (!sPlaced) {
-        const p = a.clone().add(d.clone().multiplyScalar(9)).add(nrm.clone().multiplyScalar(road.w / 2 + (pk.includes('L') ? 2.2 : 0) + 0.6));
+        const p = a.clone().add(d.clone().multiplyScalar(9)).add(nrm.clone().multiplyScalar(road.w / 2 + 0.8));
         signs.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), name: road.name });
         sPlaced = true;
       }
       if (k === pts.length - 2) {
-        const p = b.clone().sub(d.clone().multiplyScalar(9)).add(nrm.clone().multiplyScalar(-(road.w / 2 + (pk.includes('R') ? 2.2 : 0) + 0.6)));
+        const p = b.clone().sub(d.clone().multiplyScalar(9)).add(nrm.clone().multiplyScalar(-(road.w / 2 + 0.8)));
         signs.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), name: road.name });
       }
       // kliko's bij de stoeprand
       for (let s = 9; s < len; s += 23) {
-        if (r() < 0.5) continue;
+        if (r() < 0.55) continue;
         const side = r() < 0.5 ? 1 : -1;
-        const extra = (side > 0 && pk.includes('L')) || (side < 0 && pk.includes('R')) ? 2.2 : 0;
-        const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + extra + 1.0)));
+        const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + 0.9)));
         klikos.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x) + (r() - 0.5) * 0.6 });
       }
     }
