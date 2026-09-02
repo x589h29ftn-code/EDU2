@@ -46,8 +46,8 @@ const skyMat = new THREE.ShaderMaterial({
       c = mix(c, bot, pow(1.0 - abs(h), 12.0) * 0.7);
       // zonneschijf met halo
       float d = max(dot(dir, normalize(sunDir)), 0.0);
-      c += vec3(1.0, 0.93, 0.78) * pow(d, 900.0) * 3.0;
-      c += vec3(1.0, 0.90, 0.72) * pow(d, 12.0) * 0.22;
+      c += vec3(1.0, 0.95, 0.84) * pow(d, 7000.0) * 2.6;
+      c += vec3(1.0, 0.92, 0.76) * pow(d, 22.0) * 0.16;
       gl_FragColor = vec4(c, 1.0);
     }`,
 });
