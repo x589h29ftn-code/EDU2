@@ -475,7 +475,7 @@ function buildRow(scene, row, idx) {
     else { cur = { x0: c.cx - c.w / 2, cx: c.cx, len: c.w, n: c.n }; runs.push(cur); }
   }
   const dropped = cand.filter(c => !c.ok).length;
-  if (dropped > 0) console.warn(`rij ${idx} ${row.type} [${row.a}]-[${row.b}] off ${row.off}: ${dropped}/${cand.length} woningen weggelaten (botsing)`);
+  if (dropped > 0 && !row.generated) console.warn(`rij ${idx} ${row.type} [${row.a}]-[${row.b}] off ${row.off}: ${dropped}/${cand.length} woningen weggelaten (botsing)`);
   if (runs.length === 0) return;
   // registreer de blokken (voor latere controles)
   for (const run of runs) {
@@ -774,6 +774,26 @@ export function buildWorld(scene) {
   for (const poly of WATER) waterPolys.push(poly.map(vec));
   buildRoads(scene);
   ROWS.forEach((row, i) => buildRow(scene, row, i));
+  // Verdichting: in Tinga liggen de rijen vrijwel overal rug aan rug met de
+  // achtertuinen tegen elkaar. Achter elke rij komt daarom een tweede rij, die
+  // alleen wordt gebouwd waar hij niet tegen een weg, water of andere woning botst.
+  const GARDENS = 17;                       // twee achtertuinen van 8,5 m
+  const skip = new Set(['spil', 'appart']);
+  const generated = [];
+  for (const row of ROWS) {
+    if (row.flip || skip.has(row.type)) continue;
+    const sign = row.off < 0 ? -1 : 1;
+    generated.push({ ...row, off: sign * (Math.abs(row.off) + 2 * row.depth + GARDENS), flip: true, generated: true });
+  }
+  // en nog een derde rij voor de diepe blokken
+  for (const row of ROWS) {
+    if (row.flip || skip.has(row.type) || row.type === 'detached' || row.type === 'bonkelaar') continue;
+    const sign = row.off < 0 ? -1 : 1;
+    generated.push({ ...row, off: sign * (Math.abs(row.off) + 2 * row.depth + GARDENS + row.depth + 14), flip: false, generated: true });
+  }
+  const before = units.length;
+  generated.forEach((row, i) => buildRow(scene, row, 1000 + i));
+  console.log(`verdichting: ${units.length - before} extra bouwblokken geplaatst`);
   buildGardens();
   buildNature(scene);
   buildTrees(scene);
