@@ -483,6 +483,7 @@ function expandStagger(row) {
       b: [ax + (bx - ax) * t1, ay + (by - ay) * t1],
       off: sign * (Math.abs(row.off) + (i % 2 ? (row.stagger.step || 2.2) : 0)),
       stagger: null,
+      contiguous: true,   // vult het hele stuk, dus geen gat tussen de blokken
     });
   }
   return out;
@@ -519,6 +520,12 @@ function buildRow(scene, row, idx) {
   } else if (st.semi) {
     const pairs = Math.max(1, Math.round(len0 / 17)); const gap = len0 / pairs;
     for (let i = 0; i < pairs; i++) cand.push({ cx: -len0 / 2 + gap * (i + 0.5), w: st.w * 2, n: 2 });
+  } else if (row.contiguous) {
+    // Een blok van een verspringende rooilijn loopt door tot de blokgrens; de
+    // woningbreedte wordt iets bijgesteld zodat het stuk precies volloopt.
+    const n = Math.max(1, Math.round(len0 / st.w));
+    const w2 = len0 / n;
+    for (let i = 0; i < n; i++) cand.push({ cx: -len0 / 2 + w2 * (i + 0.5), w: w2, n: 1 });
   } else {
     const n = Math.max(1, Math.round(len0 * 0.86 / st.w));
     for (let i = 0; i < n; i++) cand.push({ cx: -n * st.w / 2 + st.w * (i + 0.5), w: st.w, n: 1 });
