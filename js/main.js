@@ -6,8 +6,8 @@ import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
 import { HUD } from './hud.js';
 import { isTouchDevice, initTouchControls } from './touch.js';
-import { START, toWorld, ROWS } from './data.js';
-import { initEditor, opgeslagenRijen, pasRijenToe } from './editor.js';
+import { START, toWorld, ROWS, PROPS } from './data.js';
+import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -181,11 +181,12 @@ scene.add(fill);
 // data.js; staat dat bestand er niet, dan tellen de wijzigingen in de browser.
 try {
   const eigen = await import('./rows.user.js');
-  if (Array.isArray(eigen.ROWS) && eigen.ROWS.length) { pasRijenToe(eigen.ROWS); console.log(`rows.user.js geladen: ${ROWS.length} rijen`); }
+  pasWijkToe({ rows: eigen.ROWS, props: eigen.PROPS });
+  console.log(`rows.user.js geladen: ${ROWS.length} rijen, ${PROPS.length} objecten`);
 } catch { /* geen eigen bestand, dat is prima */ }
 {
-  const lokaal = opgeslagenRijen();
-  if (lokaal) { pasRijenToe(lokaal); console.log(`rijen uit de browser-opslag: ${ROWS.length}`); }
+  const lokaal = opgeslagenWijk();
+  if (lokaal) { pasWijkToe(lokaal); console.log(`uit de browser-opslag: ${ROWS.length} rijen, ${PROPS.length} objecten`); }
 }
 
 // Wereld

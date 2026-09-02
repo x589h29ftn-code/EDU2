@@ -200,6 +200,47 @@ export const PARKS = [
 export const PLAYGROUND = { at: [825,1418] };
 
 /*
+ Losse objecten uit js/props.js. P(type, px, py, yawGraden, schaal).
+ yaw 0 = kijkt naar het noorden. De wijkeditor (F2, objectstand met O) zet ze
+ neer en schrijft ze mee naar js/rows.user.js.
+*/
+export const PROPS = [];
+function P(type, px, py, yaw = 0, scale = 1) {
+  PROPS.push({ src: PROPS.length, type, at: [px, py], yaw, scale });
+}
+
+// De plekken hieronder zijn nagelopen: geen enkel object staat in een gebouw
+// of op de rijbaan. tools/propcheck.mjs controleert dat opnieuw.
+
+// informatiebord en bank aan het groen bij 52 Molenkrite
+P('infobord', 316, 1286, 118);
+P('bank', 306, 1306, 118);
+P('prullenbak', 300, 1316, 0);
+// ondergrondse containers bij de aansluiting De Wieken
+P('container', 289, 1444, 0);
+P('container', 289, 1438, 0);
+// speelplek aan de Spinnekop
+P('speeltoestel', 821, 1405, 20);
+P('wipkip', 830, 1410, 0);
+P('zandbak', 808, 1452, 0);
+P('voetbaldoel', 785, 1376, 0);
+P('voetbaldoel', 843, 1452, 180);
+P('basket', 870, 1400, 250);
+P('picknicktafel', 828, 1392, 30);
+// bushalte en fietsenrek aan de Buitenroede
+P('bushalte', 1152, 1294, 90);
+P('fietsenrek', 1149, 1313, 90);
+// nutskast aan de Bovenas
+P('nutskast', 128, 1502, 12);
+// carports aan het Kruirad
+P('carport', 226, 1267, 100);
+P('carport', 258, 1262, 100);
+// wat groen langs de Molenkrite
+P('conifeer', 404, 1252, 0);
+P('conifeer', 392, 1292, 0);
+P('plantenbak', 404, 1250, 0);
+
+/*
  Huizenrijen. R(ax,ay,bx,by, off, depth, type, opts)
  - a→b is de richting van de weg waar de rij aan ligt (px).
  - off (m): afstand van de wegas tot de voorgevel, positief = linkerzijde van a→b

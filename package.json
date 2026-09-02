@@ -17,6 +17,8 @@
     "editortest": "node tools/editortest.mjs",
     "dist:linux": "node tools/pack.mjs linux x64",
     "assets": "node tools/assets.mjs",
-    "editorshots": "node tools/editorshots.mjs"
+    "editorshots": "node tools/editorshots.mjs",
+    "propshots": "node tools/propshots.mjs",
+    "propcheck": "node tools/propcheck.mjs"
   }
 }

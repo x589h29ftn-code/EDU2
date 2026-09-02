@@ -1,6 +1,7 @@
 // Wereldopbouw: wegen, stoepen, parkeervakken, water, groen, huizen, straatmeubilair.
 import * as THREE from 'three';
-import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PARKS, PARKING_LOTS, PLAYGROUND, START, PX_PER_M, toWorld } from './data.js';
+import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PROPS, PARKS, PARKING_LOTS, PLAYGROUND, START, PX_PER_M, toWorld } from './data.js';
+import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
 
@@ -460,6 +461,19 @@ function distToNearestRoadEdge(px, pz) {
 // woods = false laat bomenstroken toe; een voortuin mag wel in een bosschage
 // steken, want die polygonen zijn met de hand getekend en lopen soms een paar
 // meter over de stoep heen.
+function pointInUnitAny(px, pz, margin) {
+  for (const u of units) if (pointInUnit(px, pz, u, margin)) return true;
+  return false;
+}
+
+// Mag hier een object staan? Niet in een gebouw, niet op de rijbaan, niet in
+// het water. De editor en tools/propcheck.mjs gebruiken dezelfde test.
+export function vrijeObjectPlek(x, z, marge = 0.5) {
+  if (pointInUnitAny(x, z, marge)) return 'gebouw';
+  if (roadClearance(x, z) < -1.0) return 'rijbaan';
+  if (inWater(new THREE.Vector2(x, z))) return 'water';
+  return null;
+}
 function blocked(px, pz, margin, skipUnit = null, woods = true) {
   if (roadClearance(px, pz) < margin) return true;
   const v = new THREE.Vector2(px, pz);
@@ -952,6 +966,29 @@ function buildGardens() {
   }
 }
 
+// ---------- Losse objecten (carports, borden, speeltoestellen, ...) ----------
+function buildProps(scene) {
+  for (const p of PROPS) {
+    const def = PROP_TYPES[p.type];
+    const obj = maakProp(p.type);
+    if (!obj || !def) { console.warn(`onbekend object: ${p.type}`); continue; }
+    const [x, z] = toWorld(p.at[0], p.at[1]);
+    const s = p.scale || 1;
+    obj.position.set(x, 0, z);
+    obj.rotation.y = (p.yaw || 0) * Math.PI / 180;
+    obj.scale.setScalar(s);
+    obj.userData.prop = p.src;
+    obj.traverse(o => { o.castShadow = true; o.receiveShadow = true; });
+    scene.add(obj);
+    const bezwaar = vrijeObjectPlek(x, z);
+    if (bezwaar) console.warn(`object ${p.src} ${p.type} op [${p.at}] staat in ${bezwaar === 'rijbaan' ? 'de rijbaan' : bezwaar === 'water' ? 'het water' : 'een gebouw'}`);
+    // botsingsdoos, behalve voor dingen waar je onderdoor of overheen loopt
+    if (!['haag', 'struik', 'vijverrand', 'zandbak', 'pergola', 'carport', 'veranda'].includes(p.type)) {
+      addCollider(x, z, def.maat[0] * s / 2, def.maat[1] * s / 2, -obj.rotation.y, def.h * s);
+    }
+  }
+}
+
 // ---------- Parkjes: gras, slingerend tegelpad, bomen, struiken, bankjes ----------
 function buildParks(scene) {
   for (const park of PARKS) {
@@ -1302,6 +1339,7 @@ export function buildWorld(scene) {
   }
   buildTrees(scene);
   buildFurniture(scene);
+  buildProps(scene);
   for (const c of scene.children) if (!bekend.has(c)) worldObjects.push(c);
   return { colliders, roadSegments, parkSpots, waterPolys };
 }
