@@ -6,7 +6,8 @@ import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
 import { HUD } from './hud.js';
 import { isTouchDevice, initTouchControls } from './touch.js';
-import { START, toWorld } from './data.js';
+import { START, toWorld, ROWS } from './data.js';
+import { initEditor, opgeslagenRijen, pasRijenToe } from './editor.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -176,6 +177,17 @@ const fill = new THREE.DirectionalLight(0xcfe0f2, 0.8);
 fill.position.set(-SUN_DIR.x * 150, 90, -SUN_DIR.z * 150);
 scene.add(fill);
 
+// Eigen huizenrijen: js/rows.user.js (uit de editor, Ctrl+S) gaat voor op
+// data.js; staat dat bestand er niet, dan tellen de wijzigingen in de browser.
+try {
+  const eigen = await import('./rows.user.js');
+  if (Array.isArray(eigen.ROWS) && eigen.ROWS.length) { pasRijenToe(eigen.ROWS); console.log(`rows.user.js geladen: ${ROWS.length} rijen`); }
+} catch { /* geen eigen bestand, dat is prima */ }
+{
+  const lokaal = opgeslagenRijen();
+  if (lokaal) { pasRijenToe(lokaal); console.log(`rijen uit de browser-opslag: ${ROWS.length}`); }
+}
+
 // Wereld
 const t0 = performance.now();
 const world = buildWorld(scene);
@@ -304,11 +316,18 @@ window.addEventListener('resize', resize);
 // draaien van de telefoon meldt zich soms pas na de resize
 window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 
+// Wijkeditor (F2)
+const editor = initEditor({
+  scene, camera, player, hud, npcs, vehicles,
+  onRebuild: () => { applyEnvIntensity(scene); },
+});
+
 // Hoofdlus
 let last = performance.now(); let time = 0;
 function loop() {
   requestAnimationFrame(loop);
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
+  if (editor && editor.actief) editor.update();
   if (player.active || window.__autoplay) {
     player.update(dt);
     if (player.inCar) {
@@ -348,4 +367,4 @@ function loop() {
 loop();
 
 // Testhaak voor automatische screenshots
-window.__game = { scene, camera, player, vehicles, npcs, renderer, hud };
+window.__game = { scene, camera, player, vehicles, npcs, renderer, hud, editor };

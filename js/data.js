@@ -11,6 +11,11 @@ export function toWorld(px, py) {
   return [(px - OX) / PX_PER_M, (py - OY) / PX_PER_M];
 }
 
+// Terug van wereldmeters naar kaartpixels (voor de editor).
+export function toPx(x, z) {
+  return [x * PX_PER_M + OX, z * PX_PER_M + OY];
+}
+
 // Wegtypen: 'asfalt', 'klinker' (grijs), 'rood' (rode klinkers), 'fietspad', 'snelweg', 'pad'
 // Elke weg: naam, type, breedte (m), punten (px), optioneel: parkeren (zijde 'L'/'R'/'LR')
 export const ROADS = [
@@ -206,7 +211,7 @@ export const PLAYGROUND = { at: [825,1418] };
 */
 export const ROWS = [];
 function R(ax, ay, bx, by, off, depth, type, opts = {}) {
-  ROWS.push({ a: [ax, ay], b: [bx, by], off, depth, type, ...opts });
+  ROWS.push({ src: ROWS.length, a: [ax, ay], b: [bx, by], off, depth, type, ...opts });
 }
 
 // ===== Monnikmolen (rijenweg N1 -> MJ), links (+) = noordwest =====

@@ -1,5 +1,19 @@
 {
   "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^33.4.11",
     "playwright": "^1.62.1"
+  },
+  "name": "tinga-sneek",
+  "version": "1.0.0",
+  "description": "Open-wereld Tinga (Sneek) met wijkeditor",
+  "private": true,
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "python3 -m http.server 8123",
+    "desktop": "electron .",
+    "dist:win": "electron-packager . Tinga --platform=win32 --arch=x64 --out dist --overwrite --no-asar --ignore=\"^/(dist|shots|node_modules/(?!electron$))\" ",
+    "shots": "node tools/screenshot.mjs",
+    "editortest": "node tools/editortest.mjs"
   }
 }

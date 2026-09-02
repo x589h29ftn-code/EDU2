@@ -88,6 +88,31 @@ export class Player {
     });
   }
 
+  // Vrije camera voor de editor: geen zwaartekracht, geen botsingen, en je
+  // kunt met Q en E omhoog en omlaag.
+  updateFly(dt) {
+    const speed = (this.keys.ShiftLeft || this.keys.ShiftRight) ? 46 : 14;
+    const f = new THREE.Vector3(); this.camera.getWorldDirection(f);
+    const r = new THREE.Vector3(f.z, 0, -f.x).normalize();
+    const move = new THREE.Vector3();
+    if (this.keys.KeyW || this.keys.ArrowUp) move.add(f);
+    if (this.keys.KeyS || this.keys.ArrowDown) move.sub(f);
+    if (this.keys.KeyD || this.keys.ArrowRight) move.sub(r);
+    if (this.keys.KeyA || this.keys.ArrowLeft) move.add(r);
+    if (this.keys.KeyE) move.y += 1;
+    if (this.keys.KeyQ) move.y -= 1;
+    if (this.moveAxis.y) move.addScaledVector(f, this.moveAxis.y);
+    if (this.moveAxis.x) move.addScaledVector(r, -this.moveAxis.x);
+    if (move.lengthSq() > 0) move.normalize().multiplyScalar(speed * dt);
+    this.pos.add(move);
+    this.pos.y = Math.max(1.5, this.pos.y);
+    this.vy = 0; this.onGround = true;
+    this.camera.position.copy(this.pos);
+    this.camera.rotation.set(0, 0, 0, 'YXZ');
+    this.camera.rotation.y = this.yaw; this.camera.rotation.x = this.pitch;
+    this.gun.visible = false;
+  }
+
   jump() {
     if (this.inCar || !this.onGround) return;
     this.vy = 4.6; this.onGround = false;
@@ -142,6 +167,8 @@ export class Player {
       if (this.reloading <= 0) { const need = 12 - this.ammo; const take = Math.min(need, this.reserve); this.ammo += take; this.reserve -= take; this.reloading = 0; }
     }
     if (this.inCar) return; // camera wordt door de auto bestuurd
+
+    if (this.fly) { this.updateFly(dt); return; }
 
 
     const running = this.keys.ShiftLeft || this.keys.ShiftRight || this.sprint;
