@@ -457,10 +457,13 @@ function distToNearestRoadEdge(px, pz) {
   }
   return best;
 }
-function blocked(px, pz, margin, skipUnit = null) {
+// woods = false laat bomenstroken toe; een voortuin mag wel in een bosschage
+// steken, want die polygonen zijn met de hand getekend en lopen soms een paar
+// meter over de stoep heen.
+function blocked(px, pz, margin, skipUnit = null, woods = true) {
   if (roadClearance(px, pz) < margin) return true;
   const v = new THREE.Vector2(px, pz);
-  if (inWater(v) || inPark(v) || inWoods(v)) return true;
+  if (inWater(v) || inPark(v) || (woods && inWoods(v))) return true;
   for (const u of units) { if (u !== skipUnit && pointInUnit(px, pz, u, margin)) return true; }
   return false;
 }
@@ -544,6 +547,7 @@ function buildRow(scene, row, idx) {
     const vv = new THREE.Vector2(px, pz);
     if (inWater(vv)) return 'water';
     if (inPark(vv)) return 'parkje';
+    if (inWoods(vv)) return 'bosschage';
     const u = units.find(u => pointInUnit(px, pz, u, margin)); if (u) return `woning rij ${u.rowIdx}`;
     return 'stoep';
   };
@@ -721,12 +725,36 @@ function buildRow(scene, row, idx) {
   };
 
   runs.forEach((run, k) => placeUnit(run.cx, run.len, run.n, idx * 5 + k));
+
+  // Kopgevels: de blinde zijmuur van een eindwoning krijgt een paar ramen, zoals
+  // in de wijk. Zonder die ramen staat er een kale bakstenen vlakte langs de weg.
+  if (!st.detached && st.roofType !== 'flat') {
+    const glass = new THREE.MeshStandardMaterial({ color: 0x1d2733, roughness: 0.25, metalness: 0.1 });
+    const frameMat = new THREE.MeshStandardMaterial({ color: st.frame || '#ffffff', roughness: 0.85 });
+    const panes = [], frames = [];
+    for (const run of runs) {
+      for (const sgn of [-1, 1]) {
+        const wx = run.cx + sgn * (run.len / 2);
+        for (let laag = 0; laag < storeys; laag++) {
+          const wy = laag * 2.9 + 1.55;
+          const wz = (laag === 0 ? -1 : 1) * depth * 0.20;   // beneden achterin, boven vooraan
+          const w2 = 0.95, h2 = 1.15;
+          const g = new THREE.BoxGeometry(0.06, h2, w2); g.translate(wx + sgn * 0.03, wy, wz); panes.push(g);
+          const f = new THREE.BoxGeometry(0.05, h2 + 0.16, w2 + 0.16); f.translate(wx + sgn * 0.02, wy, wz); frames.push(f);
+        }
+      }
+    }
+    if (panes.length) {
+      const pm = new THREE.Mesh(mergeGeoms(frames), frameMat); pm.castShadow = true; group.add(pm);
+      group.add(new THREE.Mesh(mergeGeoms(panes), glass));
+    }
+  }
   if (row.label) {
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.1), new THREE.MeshBasicMaterial({ map: T.streetSign(row.label) }));
     sign.position.set(runs[0].cx, facadeH - 0.9, depth / 2 + 0.02); group.add(sign);
   }
   scene.add(group);
-  rowBuilds.push({ row, st, runs, group, depth, toWorldLocal, facadeH });
+  rowBuilds.push({ row, st, runs, group, depth, toWorldLocal, facadeH, why });
 }
 
 // Fase 2: tuinen. Elke woning krijgt een eigen voortuintje: het ene met een lage
@@ -734,7 +762,7 @@ function buildRow(scene, row, idx) {
 // wat struiken. De diepte volgt de werkelijk beschikbare ruimte tot het trottoir.
 function buildGardens() {
   for (const rb of rowBuilds) {
-    const { row, st, runs, group, depth, toWorldLocal } = rb;
+    const { row, st, runs, group, depth, toWorldLocal, why } = rb;
     for (const run of runs) {
       let backAvail = 9.5;
       for (let x = run.cx - run.len / 2 + 1; x <= run.cx + run.len / 2 - 1; x += 2.5) {
@@ -747,10 +775,24 @@ function buildGardens() {
       for (let x = run.cx - run.len / 2 + 1; x <= run.cx + run.len / 2 - 1; x += 2.5) {
         for (let k = 0.6; k <= 5.6; k += 0.4) {
           const p = toWorldLocal(x, depth / 2 + k);
-          if (blocked(p.x, p.y, 0.2, run.unit)) { frontAvail = Math.min(frontAvail, k - 0.6); break; }
+          if (blocked(p.x, p.y, 0.2, run.unit, false)) { frontAvail = Math.min(frontAvail, k - 0.6); break; }
         }
       }
 
+      if (globalThis.__gprobe && !row.generated) {
+        let reden = '';
+        if (frontAvail < 3) {
+          let worst = 99, wp = null;
+          for (let x = run.cx - run.len / 2 + 1; x <= run.cx + run.len / 2 - 1; x += 2.5) {
+            for (let k = 0.6; k <= 5.6; k += 0.4) {
+              const p = toWorldLocal(x, depth / 2 + k);
+              if (blocked(p.x, p.y, 0.2, run.unit, false)) { if (k < worst) { worst = k; wp = p; } break; }
+            }
+          }
+          if (wp) reden = ` <- ${why(wp.x, wp.y, 0.2)} op ${worst.toFixed(1)} m`;
+        }
+        console.warn(`TUIN ${row.type} [${row.a}]-[${row.b}] off ${row.off}: voor ${frontAvail.toFixed(1)} m, achter ${backAvail.toFixed(1)} m${reden}`);
+      }
       // ---------- voortuinen, per woning een eigen inrichting ----------
       if (row.type !== 'spil' && row.type !== 'appart' && frontAvail >= 1.3) {
         const r = rng(Math.round(Math.abs(run.unit.cx) * 31 + Math.abs(run.unit.cz) * 17) + 1);
@@ -999,7 +1041,9 @@ function buildTrees(scene) {
 
   // gewone straat- en parkbomen: brede bolkroon
   if (normal.length) {
-    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 2.6, 6);
+    // De kroon begint pas op ruim twee meter: anders loop je op het trottoir
+    // met je hoofd door de bladeren en zie je in een screenshot alleen groen.
+    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 5.0, 6);
     const leafGeo = new THREE.IcosahedronGeometry(2.2, 1);
     const n = normal.length;
     const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunk, n);
@@ -1007,11 +1051,11 @@ function buildTrees(scene) {
     const leavesB = new THREE.InstancedMesh(leafGeo, MAT.leaf2, n);
     normal.forEach((t, i) => {
       const s2 = t.s; q.identity();
-      m.compose(new THREE.Vector3(t.x, 1.3 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
+      m.compose(new THREE.Vector3(t.x, 2.5 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
       q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-      m.compose(new THREE.Vector3(t.x, 3.6 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
+      m.compose(new THREE.Vector3(t.x, 5.2 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
       q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-      m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, 5.0 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
+      m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, 6.7 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
       addCollider(t.x, t.z, 0.3, 0.3, 0, 3);
     });
     trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;

@@ -273,7 +273,13 @@ R(1010,1240, 1090,1240, 8, 18, 'spil', { label: 'Wijkvereniging De Spil', storey
 // ===== De Wieken =====
 R(-215,900, -180,1100, -9.5, 9, 'wieken_white'); // noord-zuid deel, westzijde
 R(-145,1185, -10,1345, -9.5, 9, 'wieken_white'); // zuidwestzijde: tuin, voetpad, weg
-R(40,1370, 250,1455,   -10, 9, 'wieken_yellow');  // zuidzijde oost-westdeel
+// Zuidzijde van het oost-westdeel. De rij volgt de bocht van de weg; een
+// rechte koorde van begin tot eind zou de woningen halverwege op de rijbaan
+// zetten, want de straat buigt daar naar het zuiden weg.
+R(48,1378,  98,1418, -10, 9, 'wieken_yellow', { contiguous: true });
+R(102,1422, 148,1439, -10, 9, 'wieken_yellow', { contiguous: true });
+R(152,1441, 228,1450, -10, 9, 'wieken_yellow', { contiguous: true });
+R(232,1450, 296,1458, -10, 9, 'wieken_yellow', { contiguous: true });
 // Voorzoom
 R(-200,1127, -370,1109,  12, 9, 'wieken_white');
 R(-300,1116, -370,1109, -12, 9, 'wieken_yellow');
