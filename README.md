@@ -29,8 +29,8 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 ## Straten in het spel
 
 Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal · Spinnekop ·
-Omloop · De Wieken · Windbord · Voorzoom · Bovenas · Bonkelaar · het Tinga Parkje met vijver en de
-N7 met afrit 21 aan de noordkant.
+Omloop · De Wieken · Windbord · Voorzoom · Bovenas · Grootwiel · Bonkelaar · het Tinga Parkje met
+vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 
 ## Opbouw
 
