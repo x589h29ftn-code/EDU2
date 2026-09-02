@@ -210,8 +210,8 @@ R(480,781, 596,706, -13, 9, 'molenkrite');
 R(307,1075, 600,880, -13, 9, 'molenkrite');               // zuidoostzijde Binnenroede
 
 // ===== Molenkrite noord (P -> 688,980), links (+) = noordwest =====
-R(400,1220, 645,1015,  12, 9, 'molenkrite', { stagger: { houses: 7, step: 2.4 } });  // NW-zijde, verspringende rooilijn
-R(400,1220, 645,1015, -12, 9, 'molenkrite_bung', { stagger: { houses: 6, step: 2.0 } });  // ZO-zijde: bungalows met vol zonnedak
+R(400,1220, 645,1015,  12, 9, 'molenkrite_bung', { stagger: { houses: 6, step: 2.0 } });  // NW-zijde: bungalows met vol zonnedak
+R(400,1220, 645,1015, -12, 9, 'molenkrite', { stagger: { houses: 7, step: 2.4 } });      // ZO-zijde: twee lagen met dakkapel
 R(418,1206, 660,1002, -38, 9, 'molenkrite', { flip: true }); // achterliggende rij, gevel naar het hofpad
 R(838,1160, 628,1350, -13, 9, 'molenpaal');                 // Molenpaal noordwestzijde (gele steen)
 // Molenkrite oost-west (688,980 -> 1183,1000), links (+) = noord
