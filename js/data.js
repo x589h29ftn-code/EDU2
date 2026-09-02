@@ -211,7 +211,7 @@ R(307,1075, 600,880, -13, 9, 'molenkrite');               // zuidoostzijde Binne
 
 // ===== Molenkrite noord (P -> 688,980), links (+) = noordwest =====
 R(400,1220, 645,1015,  12, 9, 'molenkrite');               // NW-zijde
-R(400,1220, 645,1015, -12, 9, 'molenkrite');               // ZO-zijde (rij met dakkapellen)
+R(400,1220, 645,1015, -12, 9, 'molenkrite_bung');          // ZO-zijde: bungalows met vol zonnedak en rode deuren
 R(418,1206, 660,1002, -38, 9, 'molenkrite', { flip: true }); // achterliggende rij, gevel naar het hofpad
 R(838,1160, 628,1350, -13, 9, 'molenpaal');                 // Molenpaal noordwestzijde (gele steen)
 // Molenkrite oost-west (688,980 -> 1183,1000), links (+) = noord

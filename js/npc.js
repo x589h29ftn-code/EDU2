@@ -12,10 +12,11 @@ const HAIR = [0x2a1d12, 0x141414, 0x8a6a3a, 0xd8c39a, 0x6b3a1f, 0x9a9a9a];
 // lichaamsmaten in meters (volwassene van ~1,75 m)
 const PARTS = {
   torso: { geo: () => new THREE.BoxGeometry(0.40, 0.60, 0.23), y: 1.16 },
-  head: { geo: () => new THREE.SphereGeometry(0.115, 10, 8), y: 1.60 },
-  hair: { geo: () => new THREE.SphereGeometry(0.122, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), y: 1.615 },
-  legL: { geo: () => { const g = new THREE.BoxGeometry(0.15, 0.84, 0.19); g.translate(0, -0.42, 0); return g; }, y: 0.86, x: -0.105 },
-  legR: { geo: () => { const g = new THREE.BoxGeometry(0.15, 0.84, 0.19); g.translate(0, -0.42, 0); return g; }, y: 0.86, x: 0.105 },
+  neck: { geo: () => new THREE.CylinderGeometry(0.062, 0.075, 0.10, 8), y: 1.50 },
+  head: { geo: () => new THREE.SphereGeometry(0.115, 10, 8), y: 1.575 },
+  hair: { geo: () => new THREE.SphereGeometry(0.122, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), y: 1.59 },
+  legL: { geo: () => { const g = new THREE.BoxGeometry(0.135, 0.84, 0.19); g.translate(0, -0.42, 0); return g; }, y: 0.88, x: -0.115 },
+  legR: { geo: () => { const g = new THREE.BoxGeometry(0.135, 0.84, 0.19); g.translate(0, -0.42, 0); return g; }, y: 0.88, x: 0.115 },
   armL: { geo: () => { const g = new THREE.BoxGeometry(0.10, 0.58, 0.10); g.translate(0, -0.29, 0); return g; }, y: 1.44, x: -0.26 },
   armR: { geo: () => { const g = new THREE.BoxGeometry(0.10, 0.58, 0.10); g.translate(0, -0.29, 0); return g; }, y: 1.44, x: 0.26 },
 };
@@ -62,6 +63,7 @@ export class NPCs {
       this.meshes.legL.setColorAt(i, col.setHex(pants));
       this.meshes.legR.setColorAt(i, col.setHex(pants));
       this.meshes.head.setColorAt(i, col.setHex(skin));
+      this.meshes.neck.setColorAt(i, col.setHex(skin));
       this.meshes.hair.setColorAt(i, col.setHex(hair));
 
       const height = 0.88 + r() * 0.22;   // kinderen tot volwassenen

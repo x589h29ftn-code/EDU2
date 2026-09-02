@@ -244,6 +244,7 @@ export function leaves(tint = '#4a7a2a') {
 // Elke huis-eenheid = 256 px breed; hoogte = storeys*3m -> 96px per meter... we gebruiken 128px per meter.
 export const HOUSE_STYLES = {
   molenkrite: { brick: ['#96755b', '#c0b7a6'], frame: '#ffffff', frame2: '#1f3a6e', door: ['#1f3a6e', '#2a2a2a', '#7a1f1f', '#1f3a6e'], roof: '#4e3d34', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: false, solar: true, band: '#f2f2f2' },
+  molenkrite_bung:{ brick: ['#a98d70', '#cbc2b0'], frame: '#ffffff', frame2: '#ffffff', door: ['#a5232c', '#8f1f27'], roof: '#4a3b32', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, solar: true, solarFull: true, chimney: true, band: '#f4f4f4' },
   monnik:     { brick: ['#8a5a45', '#bfb5a6'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#5a2d1a', '#1f3a6e'], roof: '#463c37', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, chimney: true, band: '#f2f2f2' },
   kruirad:    { brick: ['#9a4a3a', '#c9c0b0'], frame: '#ffffff', frame2: '#ffffff', door: ['#1f3a6e', '#2a2a2a', '#3a6e2a'], roof: '#483c35', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: true, band: '#f2f2f2' },
   molenpaal:  { brick: ['#d3bd8e', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#4a4a4a'], roof: '#453b37', roofType: 'gable', storeys: 2, w: 5.6, dormer: true, dormerBand: true, chimney: false, solar: true, band: '#f2f2f2' },

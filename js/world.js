@@ -591,47 +591,58 @@ function buildRow(scene, row, idx) {
       }
       if (st.dormer) {
         const perHouse = unitLen / unitN;
+        const bodies = [], fronts = [];
         for (let i = 0; i < unitN; i++) {
           const hx = cx - unitLen / 2 + perHouse * (i + 0.5);
-          if (!st.dormerBand && (i + seed) % 3 === 1) continue;
           const dw = st.dormerBand ? perHouse * 0.9 : Math.min(2.6, perHouse * 0.55);
           const dh = 1.35, dd = 1.6;
           const z = depth / 2 + 0.35 - dd / 2 - 0.9;
           const yBase = facadeH - eaveDrop + (rh / (depth / 2 + 0.35)) * (depth / 2 + 0.35 - (z + dd / 2));
-          const frontMat = new THREE.MeshStandardMaterial({ map: T.dormerFront(st.frame2), roughness: 0.6 });
-          const dm = new THREE.Mesh(new THREE.BoxGeometry(dw, dh, dd), [MAT.white, MAT.white, MAT.dark, MAT.white, frontMat, MAT.white]);
-          dm.position.set(hx, yBase + dh / 2 + 0.2, z + 0.5);
-          group.add(dm);
+          const bg = new THREE.BoxGeometry(dw, dh, dd);
+          bg.translate(hx, yBase + dh / 2 + 0.2, z + 0.5);
+          bodies.push(bg);
+          const fg = new THREE.PlaneGeometry(dw * 0.98, dh * 0.98);
+          fg.translate(hx, yBase + dh / 2 + 0.2, z + 0.5 + dd / 2 + 0.01);
+          fronts.push(fg);
         }
+        group.add(new THREE.Mesh(mergeGeoms(bodies), MAT.white));
+        group.add(new THREE.Mesh(mergeGeoms(fronts), new THREE.MeshStandardMaterial({ map: T.dormerFront(st.frame2), roughness: 0.6 })));
       }
       if (st.skylight) {
         const perHouse = unitLen / unitN;
         const ang = Math.atan2(rh, depth / 2 + OV);
+        const frames = [], glasses = [];
         for (let i = 0; i < unitN; i++) {
           const hx = cx - unitLen / 2 + perHouse * (i + 0.5);
-          const zRel = (depth / 2 + OV) * 0.45;
+          const zRel = (depth / 2 + OV) * (st.solarFull ? 0.24 : 0.45);
           const y = facadeH - eaveDrop + rh * (1 - zRel / (depth / 2 + OV));
-          const frame = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.15), MAT.white);
-          frame.rotation.x = -Math.PI / 2 + ang;
-          frame.position.set(hx, y + 0.05, zRel);
-          group.add(frame);
-          const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.82, 0.95), MAT.glassDark);
-          glass.rotation.x = -Math.PI / 2 + ang;
-          glass.position.set(hx, y + 0.09, zRel);
-          group.add(glass);
+          const fg = new THREE.PlaneGeometry(1.0, 1.15);
+          fg.rotateX(-Math.PI / 2 + ang); fg.translate(hx, y + 0.05, zRel); frames.push(fg);
+          const gg = new THREE.PlaneGeometry(0.82, 0.95);
+          gg.rotateX(-Math.PI / 2 + ang); gg.translate(hx, y + 0.09, zRel); glasses.push(gg);
         }
+        group.add(new THREE.Mesh(mergeGeoms(frames), MAT.white));
+        group.add(new THREE.Mesh(mergeGeoms(glasses), MAT.glassDark));
       }
       if (st.solar) {
         const perHouse = unitLen / unitN;
+        const ang = Math.atan2(rh, depth / 2 + OV);
+        const panels = [];
         for (let i = 0; i < unitN; i++) {
-          if ((i + seed) % 2) continue;
+          if (!st.solarFull && (i + seed) % 2) continue;
           const hx = cx - unitLen / 2 + perHouse * (i + 0.5);
-          const p = new THREE.Mesh(new THREE.PlaneGeometry(perHouse * 0.7, 1.9), MAT.solar);
-          const ang = Math.atan2(rh, depth / 2 + 0.35);
-          p.rotation.x = -Math.PI / 2 + ang;
-          p.position.set(hx, facadeH - eaveDrop + rh * 0.5 + 0.06, -(depth / 2 + 0.35) * 0.5);
-          group.add(p);
+          // Bij een vol zonnedak liggen de panelen op het voorste dakvlak, naast
+          // de dakramen; anders een kleiner veld op het achterdakvlak.
+          const pw = st.solarFull ? perHouse * 0.92 : perHouse * 0.7;
+          const pd = st.solarFull ? (depth / 2 + OV) * 0.62 : 1.9;
+          const zRel = st.solarFull ? (depth / 2 + OV) * 0.60 : -(depth / 2 + OV) * 0.5;
+          const y = facadeH - eaveDrop + rh * (1 - Math.abs(zRel) / (depth / 2 + OV));
+          const pg = new THREE.PlaneGeometry(pw, pd);
+          pg.rotateX(-Math.PI / 2 + (zRel > 0 ? ang : -ang));
+          pg.translate(hx, y + 0.07, zRel);
+          panels.push(pg);
         }
+        if (panels.length) group.add(new THREE.Mesh(mergeGeoms(panels), MAT.solar));
       }
       if (st.chimney) {
         const perHouse = unitLen / unitN; const chims = [];
