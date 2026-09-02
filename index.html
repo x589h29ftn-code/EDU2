@@ -6,7 +6,8 @@
 <title>Tinga Sneek – open wereld</title>
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  #game { display: block; width: 100vw; height: 100vh; }
+  body.touch { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+  #game { display: block; width: 100vw; height: 100vh; touch-action: none; }
   #ui { position: fixed; inset: 0; pointer-events: none; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
   #crosshair { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; }
   #crosshair::before, #crosshair::after { content: ""; position: absolute; background: rgba(255,255,255,.9); }
@@ -30,6 +31,54 @@
   #start { font-size: 18px; font-weight: 700; padding: 12px 26px; border: 0; border-radius: 8px; background: #ffd400; color: #1a1a1a; cursor: pointer; }
   #start:hover { background: #ffe25a; }
   .streets { font-size: 12px; opacity: .7; margin-top: 14px; line-height: 1.5; }
+
+  /* ---------- touchbesturing ---------- */
+  #touch { position: fixed; inset: 0; display: none; z-index: 5; touch-action: none; }
+  #tmove, #tlook { position: absolute; top: 0; bottom: 0; touch-action: none; }
+  #tmove { left: 0; width: 45%; }
+  #tlook { right: 0; width: 55%; }
+  #tstick { position: absolute; width: 132px; height: 132px; margin: 0; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.35); background: rgba(255,255,255,.10);
+            transform: translate(-50%,-50%); opacity: 0; transition: opacity .12s; pointer-events: none; }
+  #tstick.on { opacity: 1; }
+  #tknob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; border-radius: 50%;
+           background: rgba(255,255,255,.55); border: 2px solid rgba(255,255,255,.85);
+           transform: translate(-50%,-50%); }
+  .tbtn { position: absolute; display: flex; align-items: center; justify-content: center;
+          border-radius: 50%; background: rgba(12,20,34,.45); border: 2px solid rgba(255,255,255,.55);
+          color: #fff; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,.8);
+          touch-action: none; -webkit-user-select: none; user-select: none; }
+  .tbtn.down { background: rgba(255,212,0,.55); border-color: #ffd400; color: #1a1a1a; text-shadow: none; }
+  #tfire { right: 22px; bottom: 22px; width: 92px; height: 92px; font-size: 13px; letter-spacing: .5px;
+           background: rgba(150,26,26,.45); border-color: rgba(255,150,150,.7); }
+  #tjump { right: 128px; bottom: 40px; width: 66px; height: 66px; font-size: 12px; }
+  #treload { right: 34px; bottom: 128px; width: 58px; height: 58px; font-size: 18px; }
+  #tcar { right: 136px; bottom: 122px; width: 58px; height: 58px; font-size: 18px; }
+  #tmap { right: 22px; top: 168px; width: 52px; height: 52px; font-size: 18px; }
+  #tpause { left: 16px; top: 46px; width: 46px; height: 46px; font-size: 16px; }
+  /* munitie en snelheid naast de pauzeknop: rechtsonder zitten de knoppen */
+  body.touch #ammo, body.touch #speed { left: 74px; top: 54px; right: auto; bottom: auto; font-size: 17px; }
+
+  /* op een telefoon is de ronde minikaart en de tekst een stuk te groot */
+  @media (max-width: 900px), (max-height: 560px) {
+    #minimap { width: 128px; height: 128px; right: 14px; top: 14px; }
+    #tmap { top: 152px; }
+    #street { left: 14px; bottom: 14px; font-size: 15px; padding: 4px 10px; border-width: 2px; }
+    #ammo, #speed { right: 20px; bottom: 196px; font-size: 17px; }
+    #hint { display: none; }
+    #title { font-size: 11px; left: 70px; top: 18px; }
+    #msg { font-size: 19px; top: 12%; }
+    #bigmap { width: auto; height: auto; max-width: 94vw; max-height: 86vh; }
+    .panel { max-width: 94vw; max-height: 88vh; overflow: auto; padding: 18px 20px; }
+    .panel h1 { font-size: 22px; }
+    .panel h2 { font-size: 12px; margin-bottom: 12px; }
+    .panel table { font-size: 12px; margin-bottom: 14px; }
+    .panel td:first-child { width: 108px; }
+    .streets { display: none; }
+  }
+  .touchonly { display: none; }
+  body.touch .touchonly { display: table-row; }
+  body.touch .mouseonly { display: none; }
 </style>
 <script type="importmap">
 { "imports": { "three": "./lib/three.module.js" } }
@@ -48,18 +97,32 @@
   <div id="msg"></div>
   <canvas id="bigmap" width="1100" height="760"></canvas>
 </div>
+<div id="touch">
+  <div id="tmove"><div id="tstick"><div id="tknob"></div></div></div>
+  <div id="tlook"></div>
+  <div class="tbtn" id="tfire">VUUR</div>
+  <div class="tbtn" id="tjump">SPRING</div>
+  <div class="tbtn" id="treload">⟳</div>
+  <div class="tbtn" id="tcar">🚗</div>
+  <div class="tbtn" id="tmap">🗺</div>
+  <div class="tbtn" id="tpause">❚❚</div>
+</div>
 <div id="overlay">
   <div class="panel">
     <h1>Tinga, Sneek</h1>
     <h2>Open wereld op ware grootte · start op de Molenkrite bij de Monnikmolen</h2>
     <table>
-      <tr><td>W A S D</td><td>lopen (shift = sprinten, spatie = springen)</td></tr>
-      <tr><td>Muis</td><td>rondkijken · linkermuisknop = schieten · R = herladen</td></tr>
-      <tr><td>Geen muisvergrendeling?</td><td>sleep met de linkerknop om rond te kijken, korte klik = schot</td></tr>
-      <tr><td>E</td><td>in- en uitstappen bij een auto</td></tr>
-      <tr><td>In de auto</td><td>W/S gas en rem · A/D sturen · spatie handrem</td></tr>
-      <tr><td>M</td><td>grote kaart van de wijk</td></tr>
-      <tr><td>Esc</td><td>muis vrijgeven / pauze</td></tr>
+      <tr class="touchonly"><td>Linkerhelft</td><td>joystick om te lopen · helemaal uitslaan = rennen</td></tr>
+      <tr class="touchonly"><td>Rechterhelft</td><td>veeg om rond te kijken · korte tik = schot</td></tr>
+      <tr class="touchonly"><td>Knoppen</td><td>VUUR · SPRING · ⟳ herladen · 🚗 in-/uitstappen · 🗺 kaart · ❚❚ pauze</td></tr>
+      <tr class="touchonly"><td>Tip</td><td>draai de telefoon dwars voor het beste beeld</td></tr>
+      <tr class="mouseonly"><td>W A S D</td><td>lopen (shift = sprinten, spatie = springen)</td></tr>
+      <tr class="mouseonly"><td>Muis</td><td>rondkijken · linkermuisknop = schieten · R = herladen</td></tr>
+      <tr class="mouseonly"><td>Geen muisvergrendeling?</td><td>sleep met de linkerknop om rond te kijken, korte klik = schot</td></tr>
+      <tr class="mouseonly"><td>E</td><td>in- en uitstappen bij een auto</td></tr>
+      <tr class="mouseonly"><td>In de auto</td><td>W/S gas en rem · A/D sturen · spatie handrem</td></tr>
+      <tr class="mouseonly"><td>M</td><td>grote kaart van de wijk</td></tr>
+      <tr class="mouseonly"><td>Esc</td><td>muis vrijgeven / pauze</td></tr>
     </table>
     <button id="start">Klik om te spelen</button>
     <div class="streets">Straten: Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal · Spinnekop · Omloop · De Wieken · Windbord · Voorzoom · Bovenas · Grootwiel · Bonkelaar · N7 afrit 21</div>

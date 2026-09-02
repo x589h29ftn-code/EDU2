@@ -14,7 +14,7 @@ export class HUD {
     this.msgT = 0;
     this.big = document.getElementById('bigmap');
     this.bigOpen = false;
-    window.addEventListener('keydown', e => { if (e.code === 'KeyM') { this.bigOpen = !this.bigOpen; this.big.style.display = this.bigOpen ? 'block' : 'none'; } });
+    window.addEventListener('keydown', e => { if (e.code === 'KeyM') this.toggleBig(); });
     // labelposities: per straatnaam het langste stuk
     this.labels = [];
     const seen = new Map();
@@ -53,6 +53,7 @@ export class HUD {
     }
   }
   show(text, t = 2.5) { this.msg.textContent = text; this.msg.style.opacity = 1; this.msgT = t; }
+  toggleBig() { this.bigOpen = !this.bigOpen; this.big.style.display = this.bigOpen ? 'block' : 'none'; }
   update(dt, player, vehicles, npcs, streetName) {
     this.street.textContent = streetName;
     if (player.inCar) {
@@ -137,5 +138,6 @@ HUD.prototype.drawBig = function (player, vehicles) {
   c.save(); c.translate(W / 2, H / 2); c.translate(-(minX + maxX) / 2 * scale, -(minZ + maxZ) / 2 * scale);
   this.drawLabels(c, scale, 0, 0);
   c.restore();
-  c.fillStyle = '#fff'; c.font = 'bold 16px sans-serif'; c.textAlign = 'left'; c.fillText('TINGA · SNEEK — kaart (M om te sluiten, noorden boven)', 16, 26);
+  const sluit = document.body.classList.contains('touch') ? 'tik weer op de kaartknop' : 'M om te sluiten';
+  c.fillStyle = '#fff'; c.font = 'bold 16px sans-serif'; c.textAlign = 'left'; c.fillText(`TINGA · SNEEK — kaart (${sluit}, noorden boven)`, 16, 26);
 };

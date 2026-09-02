@@ -5,11 +5,14 @@ import { Player } from './player.js';
 import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
 import { HUD } from './hud.js';
+import { isTouchDevice, initTouchControls } from './touch.js';
 import { START, toWorld } from './data.js';
 
 const canvas = document.getElementById('game');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+const IS_TOUCH = isTouchDevice();
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !IS_TOUCH, powerPreference: 'high-performance' });
+// telefoons hebben een hoge pixeldichtheid maar weinig vulkracht
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_TOUCH ? 1 : 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -219,8 +222,8 @@ player.shootCb = (origin, dir) => {
 };
 
 // In- en uitstappen
-window.addEventListener('keydown', e => {
-  if (e.code !== 'KeyE' || !player.active) return;
+function toggleCar() {
+  if (!player.active) return;
   if (player.inCar) {
     const car = player.inCar; player.inCar = null;
     const side = new THREE.Vector3(Math.cos(car.yaw), 0, -Math.sin(car.yaw)).multiplyScalar(-1.6);
@@ -230,7 +233,8 @@ window.addEventListener('keydown', e => {
     const car = vehicles.nearestDriveable(player.pos.x, player.pos.z);
     if (car) { player.inCar = car; player.carLook = 0; hud.show('Ingestapt – W om te rijden'); }
   }
-});
+}
+window.addEventListener('keydown', e => { if (e.code === 'KeyE') toggleCar(); });
 
 // ---------- Starten, pauzeren en muisbesturing ----------
 // Het spel hangt niet af van muisvergrendeling. Lukt die niet, bijvoorbeeld
@@ -239,9 +243,26 @@ window.addEventListener('keydown', e => {
 const overlay = document.getElementById('overlay');
 let dragHint = false;
 
+// Op een aanraakscherm is er geen muis om vast te zetten: dan verschijnt er een
+// joystick links en veeg je rechts om rond te kijken.
+const touch = IS_TOUCH ? initTouchControls(player, {
+  onCar: toggleCar,
+  onMap: () => hud.toggleBig(),
+  onPause: () => pauseGame(),
+}) : null;
+
 function startGame() {
   overlay.style.display = 'none';
   player.active = true;
+  if (touch) {
+    touch.setVisible(true);
+    // volledig scherm en dwars: op een telefoon scheelt dat de halve browserbalk
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+    if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+    hud.show('Links lopen · rechts kijken', 4);
+    return;
+  }
   const req = canvas.requestPointerLock({ unadjustedMovement: true });
   const fallback = () => {
     const again = canvas.requestPointerLock();
@@ -260,6 +281,7 @@ function useDragMode() {
 
 function pauseGame() {
   player.active = false;
+  if (touch) touch.setVisible(false);
   overlay.style.display = 'flex';
 }
 
@@ -274,10 +296,13 @@ document.addEventListener('pointerlockchange', () => {
   if (!document.pointerLockElement && player.active && !dragHint) pauseGame();
 });
 
-window.addEventListener('resize', () => {
+function resize() {
   camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-});
+}
+window.addEventListener('resize', resize);
+// draaien van de telefoon meldt zich soms pas na de resize
+window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 
 // Hoofdlus
 let last = performance.now(); let time = 0;
@@ -288,7 +313,7 @@ function loop() {
     player.update(dt);
     if (player.inCar) {
       const car = player.inCar;
-      vehicles.drive(car, player.keys, dt);
+      vehicles.drive(car, player.driveInput(), dt);
       // camera op de bestuurdersstoel (links), meekijken met muis
       const seat = new THREE.Vector3(-0.38, 1.25, -0.25);
       seat.applyAxisAngle(new THREE.Vector3(0, 1, 0), car.yaw);
