@@ -20,13 +20,13 @@
   #minimap { position: absolute; right: 20px; top: 20px; width: 220px; height: 220px; border-radius: 50%; box-shadow: 0 2px 12px rgba(0,0,0,.5); background: #3f6a2b; }
   #bigmap { display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
   #title { position: absolute; left: 24px; top: 20px; font-size: 13px; opacity: .8; }
-  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(8,14,24,.78); color: #fff; }
-  .panel { max-width: 560px; padding: 32px 36px; background: rgba(15,25,40,.92); border: 1px solid rgba(255,255,255,.15); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(rgba(8,14,24,.30), rgba(8,14,24,.55)); color: #fff; }
+  .panel { max-width: 620px; padding: 32px 36px; background: rgba(15,25,40,.92); border: 1px solid rgba(255,255,255,.15); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
   .panel h1 { margin: 0 0 4px; font-size: 30px; }
   .panel h2 { margin: 0 0 18px; font-size: 15px; font-weight: 400; opacity: .8; }
   .panel table { width: 100%; font-size: 14px; border-collapse: collapse; margin-bottom: 20px; }
   .panel td { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
-  .panel td:first-child { font-weight: 700; width: 130px; color: #ffd400; }
+  .panel td:first-child { font-weight: 700; width: 178px; color: #ffd400; }
   #start { font-size: 18px; font-weight: 700; padding: 12px 26px; border: 0; border-radius: 8px; background: #ffd400; color: #1a1a1a; cursor: pointer; }
   #start:hover { background: #ffe25a; }
   .streets { font-size: 12px; opacity: .7; margin-top: 14px; line-height: 1.5; }
@@ -55,6 +55,7 @@
     <table>
       <tr><td>W A S D</td><td>lopen (shift = sprinten, spatie = springen)</td></tr>
       <tr><td>Muis</td><td>rondkijken · linkermuisknop = schieten · R = herladen</td></tr>
+      <tr><td>Geen muisvergrendeling?</td><td>sleep met de linkerknop om rond te kijken, korte klik = schot</td></tr>
       <tr><td>E</td><td>in- en uitstappen bij een auto</td></tr>
       <tr><td>In de auto</td><td>W/S gas en rem · A/D sturen · spatie handrem</td></tr>
       <tr><td>M</td><td>grote kaart van de wijk</td></tr>
