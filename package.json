@@ -15,6 +15,8 @@
     "dist:win": "node tools/pack.mjs win32 x64",
     "shots": "node tools/screenshot.mjs",
     "editortest": "node tools/editortest.mjs",
-    "dist:linux": "node tools/pack.mjs linux x64"
+    "dist:linux": "node tools/pack.mjs linux x64",
+    "assets": "node tools/assets.mjs",
+    "editorshots": "node tools/editorshots.mjs"
   }
 }

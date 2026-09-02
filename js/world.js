@@ -1275,13 +1275,13 @@ export function buildWorld(scene) {
   const skip = new Set(['spil', 'appart']);
   const generated = [];
   for (const row of allRows) {
-    if (row.flip || skip.has(row.type)) continue;
+    if (row.flip || row.showroom || skip.has(row.type)) continue;
     const sign = row.off < 0 ? -1 : 1;
     generated.push({ ...row, off: sign * (Math.abs(row.off) + 2 * row.depth + GARDENS), flip: true, generated: true });
   }
   // en nog een derde rij voor de diepe blokken
   for (const row of allRows) {
-    if (row.flip || skip.has(row.type) || row.type === 'detached' || row.type === 'bonkelaar') continue;
+    if (row.flip || row.showroom || skip.has(row.type) || row.type === 'detached' || row.type === 'bonkelaar') continue;
     const sign = row.off < 0 ? -1 : 1;
     generated.push({ ...row, off: sign * (Math.abs(row.off) + 2 * row.depth + GARDENS + row.depth + 14), flip: false, generated: true });
   }

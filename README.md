@@ -49,6 +49,12 @@ De GitHub-workflow **Windows-app** bouwt bij elke push een kant-en-klare zip; di
 De editor werkt ook in de browser (F2), alleen kan die het bestand niet zelf wegschrijven en krijg je
 `rows.user.js` als download. Alle toetsen en de werkwijze staan in **[docs/EDITOR.md](docs/EDITOR.md)**.
 
+![De editor in acht stappen](docs/screenshots/editor-doorloop.png)
+
+Met **T** wissel je tussen vijftien woningtypen:
+
+![Alle woningtypen](docs/screenshots/woningtypen.png)
+
 ## Straten in het spel
 
 Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal · Spinnekop ·
