@@ -115,6 +115,14 @@ function materials() {
   MAT.klikoLid = new THREE.MeshStandardMaterial({ color: 0x1f5fd0, roughness: 0.6 });
   MAT.white = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.8 });
   MAT.gutter = new THREE.MeshStandardMaterial({ color: 0xb9bcc0, roughness: 0.55, metalness: 0.4 });
+  MAT.glassDark = new THREE.MeshStandardMaterial({ color: 0x28323a, roughness: 0.12, metalness: 0.35 });
+  MAT.railing = new THREE.MeshStandardMaterial({ color: 0xc6cace, roughness: 0.45, metalness: 0.55 });
+  MAT.bikeFrame = new THREE.MeshStandardMaterial({ color: 0x1c2733, roughness: 0.5, metalness: 0.5 });
+  MAT.tyre = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.95 });
+  MAT.pot = new THREE.MeshStandardMaterial({ color: 0x9a5b3f, roughness: 0.9 });
+  MAT.tarp = new THREE.MeshStandardMaterial({ color: 0x27406b, roughness: 0.85 });
+  MAT.dish = new THREE.MeshStandardMaterial({ color: 0xdedad2, roughness: 0.6 });
+  MAT.drain = new THREE.MeshStandardMaterial({ color: 0x4a4a4c, roughness: 0.8, metalness: 0.3 });
   MAT.dark = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.8 });
   MAT.solar = std(T.solarPanel(), { roughness: 0.3, metalness: 0.5 });
   MAT.barrier = new THREE.MeshStandardMaterial({ color: 0x6b7a5a, roughness: 0.9 });
@@ -500,9 +508,9 @@ function buildRow(scene, row, idx) {
     return 'stoep';
   };
   const fits = (c) => {
-    for (const fx of [-1, 0, 1]) for (const fz of [-1, 0, 1]) {
-      const p = toWorldLocal(c.cx + fx * (c.w / 2 - 0.3), fz * (depth / 2 - 0.3));
-      if (blocked(p.x, p.y, 0.5)) { if (row.debug) console.warn(`  rij ${idx} unit ${c.cx.toFixed(1)}: ${why(p.x, p.y, 0.5)}`); return false; }
+    for (const [fx, fz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]]) {
+      const p = toWorldLocal(c.cx + fx * (c.w / 2 - 0.35), fz * (depth / 2 - 0.35));
+      if (blocked(p.x, p.y, 0.25)) { if (row.debug) console.warn(`  rij ${idx} unit ${c.cx.toFixed(1)}: ${why(p.x, p.y, 0.25)}`); return false; }
     }
     const step = toWorldLocal(c.cx, depth / 2 + 1.2); // stoep voor de deur mag niet in de weg liggen
     if (roadClearance(step.x, step.y) < -0.5) { if (row.debug) console.warn(`  rij ${idx} unit ${c.cx.toFixed(1)}: stoep in weg`); return false; }
@@ -596,6 +604,23 @@ function buildRow(scene, row, idx) {
           group.add(dm);
         }
       }
+      if (st.skylight) {
+        const perHouse = unitLen / unitN;
+        const ang = Math.atan2(rh, depth / 2 + OV);
+        for (let i = 0; i < unitN; i++) {
+          const hx = cx - unitLen / 2 + perHouse * (i + 0.5);
+          const zRel = (depth / 2 + OV) * 0.45;
+          const y = facadeH - eaveDrop + rh * (1 - zRel / (depth / 2 + OV));
+          const frame = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.15), MAT.white);
+          frame.rotation.x = -Math.PI / 2 + ang;
+          frame.position.set(hx, y + 0.05, zRel);
+          group.add(frame);
+          const glass = new THREE.Mesh(new THREE.PlaneGeometry(0.82, 0.95), MAT.glassDark);
+          glass.rotation.x = -Math.PI / 2 + ang;
+          glass.position.set(hx, y + 0.09, zRel);
+          group.add(glass);
+        }
+      }
       if (st.solar) {
         const perHouse = unitLen / unitN;
         for (let i = 0; i < unitN; i++) {
@@ -615,6 +640,18 @@ function buildRow(scene, row, idx) {
           const cg = new THREE.BoxGeometry(0.5, 1.1, 0.5); cg.translate(hx, facadeH - eaveDrop + rh + 0.25, 0.3); chims.push(cg);
         }
         group.add(new THREE.Mesh(mergeGeoms(chims), sideMat));
+      }
+      if (st.gallery) {
+        const floor = new THREE.Mesh(new THREE.BoxGeometry(unitLen, 0.14, 1.35), MAT.white);
+        floor.position.set(cx, 2.9, depth / 2 + 0.68); group.add(floor);
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(unitLen, 0.95, 0.05), MAT.railing);
+        rail.position.set(cx, 3.45, depth / 2 + 1.33); group.add(rail);
+        const posts = [];
+        for (let i = 0; i <= unitN; i++) {
+          const hx = cx - unitLen / 2 + (unitLen / unitN) * i;
+          const pg = new THREE.CylinderGeometry(0.05, 0.05, 2.9, 6); pg.translate(hx, 1.45, depth / 2 + 1.3); posts.push(pg);
+        }
+        group.add(new THREE.Mesh(mergeGeoms(posts), MAT.railing));
       }
     } else {
       const edge = new THREE.Mesh(new THREE.BoxGeometry(unitLen + 0.2, 0.3, depth + 0.2), MAT.dark);
@@ -736,7 +773,46 @@ function buildGardens() {
             gv.translate(hx - side * w * 0.2, 0.025, z0 + frontAvail * 0.5); buckets.gravel.push(gv);
           }
         }
-        const matOf = { tiles: MAT.tiles, picket: MAT.picket, hedge: MAT.hedge, hedgeRed: MAT.hedgeRed, conifer: MAT.conifer, shrubA: MAT.shrubA, shrubB: MAT.shrubB, shrubC: MAT.shrubC, gravel: MAT.gravel, bench: MAT.bench, trunk: MAT.trunk, leaf: MAT.leaf };
+        // fietsen tegen de gevel, plantenbakken, tuinornamenten en af en toe een
+        // afgedekte boot op een trailer, zoals in de wijk voor de deur staat
+        buckets.bike = []; buckets.tyre = []; buckets.pot = []; buckets.tarp = []; buckets.stone = [];
+        for (let i = 0; i < run.n; i++) {
+          const hx = run.cx - run.len / 2 + w * (i + 0.5);
+          if (r() < 0.22 && frontAvail > 1.6) {          // fiets tegen de gevel
+            const bx = hx + (r() - 0.5) * (w - 1.6), bz = z0 + 0.55;
+            const ang = (r() - 0.5) * 0.5;
+            for (const dz of [-0.52, 0.52]) {
+              const wh = new THREE.TorusGeometry(0.34, 0.035, 6, 14);
+              wh.rotateY(Math.PI / 2 + ang); wh.translate(bx + Math.sin(ang) * dz, 0.36, bz + Math.cos(ang) * dz);
+              buckets.tyre.push(wh);
+            }
+            const bar = new THREE.BoxGeometry(0.05, 0.05, 1.0); bar.rotateY(ang); bar.translate(bx, 0.62, bz); buckets.bike.push(bar);
+            const seat = new THREE.BoxGeometry(0.12, 0.06, 0.26); seat.rotateY(ang); seat.translate(bx - Math.sin(ang) * 0.3, 0.86, bz - Math.cos(ang) * 0.3); buckets.bike.push(seat);
+            const stem = new THREE.BoxGeometry(0.05, 0.42, 0.05); stem.translate(bx + Math.sin(ang) * 0.38, 0.72, bz + Math.cos(ang) * 0.38); buckets.bike.push(stem);
+            const hb = new THREE.BoxGeometry(0.48, 0.04, 0.04); hb.rotateY(ang); hb.translate(bx + Math.sin(ang) * 0.38, 0.94, bz + Math.cos(ang) * 0.38); buckets.bike.push(hb);
+          }
+          if (r() < 0.3 && frontAvail > 1.2) {           // plantenbakken naast de deur
+            const px2 = hx + (r() < 0.5 ? -1 : 1) * (0.9 + r() * 0.6);
+            const pg = new THREE.CylinderGeometry(0.19, 0.15, 0.32, 8); pg.translate(px2, 0.16, z0 + 0.5); buckets.pot.push(pg);
+            const pl = new THREE.SphereGeometry(0.22, 6, 5); pl.scale(1, 0.8, 1); pl.translate(px2, 0.42, z0 + 0.5); buckets.shrubB.push(pl);
+          }
+          if (r() < 0.14 && frontAvail > 2.2) {          // tuinornament of siersteen
+            const ox = hx + (r() - 0.5) * (w - 1.2), oz = z0 + 1.0 + r() * (frontAvail - 1.6);
+            const og = new THREE.SphereGeometry(0.16 + r() * 0.1, 6, 5); og.scale(1, 1.4, 1); og.translate(ox, 0.18, oz); buckets.stone.push(og);
+          }
+        }
+        if (r() < 0.10 && frontAvail > 3.2 && run.len > 10) {   // boot onder dekzeil op de oprit
+          const bx = run.cx + (r() - 0.5) * (run.len - 6);
+          const hull = new THREE.BoxGeometry(1.7, 0.55, 4.4); hull.translate(bx, 0.72, z0 + frontAvail * 0.55);
+          buckets.tarp.push(hull);
+          const cover = new THREE.BoxGeometry(1.5, 0.34, 4.0); cover.translate(bx, 1.14, z0 + frontAvail * 0.55);
+          buckets.tarp.push(cover);
+          for (const dz2 of [-1.3, 1.3]) {
+            const wh = new THREE.CylinderGeometry(0.22, 0.22, 0.16, 8); wh.rotateZ(Math.PI / 2); wh.translate(bx + 0.85, 0.22, z0 + frontAvail * 0.55 + dz2); buckets.tyre.push(wh);
+            const wh2 = new THREE.CylinderGeometry(0.22, 0.22, 0.16, 8); wh2.rotateZ(Math.PI / 2); wh2.translate(bx - 0.85, 0.22, z0 + frontAvail * 0.55 + dz2); buckets.tyre.push(wh2);
+          }
+        }
+        const matOf = { tiles: MAT.tiles, picket: MAT.picket, hedge: MAT.hedge, hedgeRed: MAT.hedgeRed, conifer: MAT.conifer, shrubA: MAT.shrubA, shrubB: MAT.shrubB, shrubC: MAT.shrubC, gravel: MAT.gravel, bench: MAT.bench, trunk: MAT.trunk, leaf: MAT.leaf, bike: MAT.bikeFrame, tyre: MAT.tyre, pot: MAT.pot, tarp: MAT.tarp, stone: MAT.gravel };
         for (const key of Object.keys(buckets)) {
           if (!buckets[key].length) continue;
           const m = new THREE.Mesh(mergeGeoms(buckets[key]), matOf[key]);
@@ -746,10 +822,25 @@ function buildGardens() {
 
       // ---------- achtertuinen ----------
       if (backAvail >= 1.8 && row.type !== 'spil') {
+        // Staat de achterkant vlak langs een straat, dan hoort daar geen hoge
+        // schutting maar een lage haag; anders kijk je vanaf de weg tegen een
+        // blinde houten wand aan.
+        let openToStreet = false;
+        for (let x = run.cx - run.len / 2 + 1; x <= run.cx + run.len / 2 - 1; x += 3) {
+          const p = toWorldLocal(x, -depth / 2 - backAvail - 1.2);
+          if (roadClearance(p.x, p.y) < 1.2) { openToStreet = true; break; }
+        }
+        if (openToStreet) {
+          const hm = new THREE.MeshStandardMaterial({ map: T.hedge().clone(), roughness: 1 });
+          hm.map.needsUpdate = true; hm.map.repeat.set(run.len / 1.2, 1);
+          const h = new THREE.Mesh(new THREE.BoxGeometry(run.len, 0.85, 0.5), hm);
+          h.position.set(run.cx, 0.42, -depth / 2 - backAvail); h.castShadow = true;
+          group.add(h);
+        }
         const parts = [];
-        const f = new THREE.BoxGeometry(run.len, 1.8, 0.08); f.translate(run.cx, 0.9, -depth / 2 - backAvail); parts.push(f);
+        if (!openToStreet) { const f = new THREE.BoxGeometry(run.len, 1.8, 0.08); f.translate(run.cx, 0.9, -depth / 2 - backAvail); parts.push(f); }
         for (const sgn of [-1, 1]) { const f2 = new THREE.BoxGeometry(0.08, 1.8, backAvail); f2.translate(run.cx + sgn * run.len / 2, 0.9, -depth / 2 - backAvail / 2); parts.push(f2); }
-        if (backAvail >= 4.5) {
+        if (backAvail >= 4.5 && !openToStreet) {
           const shedCount = Math.max(1, Math.round(run.len / 6));
           for (let i = 0; i < shedCount; i++) {
             const hx = run.cx - run.len / 2 + (run.len / shedCount) * (i + 0.5);
@@ -983,6 +1074,28 @@ function buildFurniture(scene) {
     m.compose(new THREE.Vector3(k.x, 1.09, k.z), q, new THREE.Vector3(1, 1, 1)); lMesh.setMatrixAt(i, m);
   });
   scene.add(kMesh, lMesh);
+
+  // Kolkdeksels langs de trottoirband
+  {
+    const drains = [];
+    const rr = rng(881);
+    for (const sgm of roadSegments) {
+      if (!sgm.drive || sgm.w < 4) continue;
+      const ax = sgm.a[0], az = sgm.a[1], bx = sgm.b[0], bz = sgm.b[1];
+      const len = Math.hypot(bx - ax, bz - az); if (len < 8) continue;
+      const dx = (bx - ax) / len, dz = (bz - az) / len;
+      for (let t = 6; t < len - 4; t += 22) {
+        if (rr() < 0.35) continue;
+        const side = rr() < 0.5 ? 1 : -1;
+        const px = ax + dx * t + dz * side * (sgm.w / 2 - 0.25);
+        const pz = az + dz * t - dx * side * (sgm.w / 2 - 0.25);
+        const g = new THREE.BoxGeometry(0.42, 0.03, 0.32);
+        g.rotateY(-Math.atan2(dz, dx)); g.translate(px, ROAD_Y + 0.02, pz);
+        drains.push(g);
+      }
+    }
+    if (drains.length) scene.add(new THREE.Mesh(mergeGeoms(drains), MAT.drain));
+  }
 
   // Parkeerhoven
   for (const lot of PARKING_LOTS) {

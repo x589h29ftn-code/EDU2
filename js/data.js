@@ -272,7 +272,7 @@ R(-12,1360, -45,1530, -11, 9, 'wieken_white');
 R(-14,1372, -45,1528,  11, 9, 'wieken_yellow');
 
 // ===== Bovenas =====
-R(104,1500, 66,1660, -13, 10, 'jasker_flat');    // westzijde: twee lagen met balkons
+R(104,1500, 66,1660, -13, 10, 'bovenas_gal');    // westzijde: twee lagen met galerij
 R(60,1700, 20,1770, -13, 14, 'appart', { storeys: 3 });  // flats aan het zuideind
 // blok tussen Bovenas en Molenkrite-zuid: oost-west rijen
 R(150,1447, 255,1455, -13, 9, 'molenkrite');
@@ -315,8 +315,8 @@ R(30,1362, 245,1452,    10, 9, 'wieken_white');    // noordzijde oost-westdeel
 // Voorzoom en Windbord over de volle lengte
 R(-190,1128, -372,1110, -12, 9, 'wieken_yellow');
 // Bovenas oostzijde
-R(108,1500, 55,1712,    11, 9, 'wieken_white');   // oostzijde: bungalows met dakkapellen
-R(30,1740, -38,1798,    12, 9, 'wieken_white');
+R(108,1500, 55,1712,    11, 9, 'bovenas_bung');   // oostzijde: bungalows met dakramen en rode kozijnen
+R(30,1740, -38,1798,    12, 9, 'bovenas_bung');
 
 // Molenkrite zuid: rijen aan weerszijden
 R(303,1500, 300,1660,  -13, 9, 'molenkrite');
