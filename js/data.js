@@ -140,8 +140,12 @@ export const WATER = [
 // Watergangen: smalle sloten en vijverstroken, opgegeven als middellijn met breedte.
 // In Tinga zijn dit smalle watergangen van zes tot negen meter, geen brede plassen.
 export const WATERWAYS = [
-  // Watergang langs De Wieken, van het Tinga Parkje tot voorbij het parkje bij Kruirad
+  // Watergang langs De Wieken: van het Tinga Parkje langs de vijver naar het
+  // zuidoosten en dan mee met het oost-westdeel tot aan de Molenkrite. Hij ligt
+  // ongeveer veertien meter uit de wegas, met gras ervoor en erachter.
   { w: 8.5, pts: [[-168,884],[-158,950],[-148,1020],[-132,1090],[-108,1150],[-72,1200],[-30,1240],[14,1276],[44,1300]] },
+  // langs het oost-westdeel is het een smalle sloot van zes meter
+  { w: 6.0, pts: [[14,1276],[44,1300],[81,1342],[118,1375],[156,1391],[236,1401],[300,1412]] },
   // Zijtak achter het parkje, richting de achtertuinen van Kruirad
   { w: 6.5, pts: [[-30,1240],[10,1225],[46,1230],[70,1252]] },
 ];
@@ -151,6 +155,8 @@ export const WOODS = [
   [[-140,860],[-40,870],[-30,1000],[-40,1100],[-60,1200],[-90,1260],[-140,1240],[-180,1180],[-185,1000],[-170,900]],  // rond de vijver De Wieken
   [[-190,600],[520,340],[560,400],[100,720],[-40,780],[-180,820]], // Tinga Parkje noord
   [[335,1295],[560,1455],[330,1450]], // groene driehoek Jasker
+  // bomen en struiken achter de watergang aan de noordzijde van De Wieken
+  [[90,1300],[150,1325],[240,1338],[320,1348],[330,1300],[240,1290],[150,1280],[95,1258]],
   [[520,1700],[960,1770],[960,1790],[520,1735]], // bomen langs Bonkelaar-sloot
   [[1080,1000],[1230,1000],[1230,1400],[1090,1420]], // groen oostzijde
 ];
@@ -309,9 +315,9 @@ R(75,1020, 140,1198,  13, 9, 'kruirad');
 R(830,1168, 668,1315,  13, 9, 'jasker_gable');
 // Molenkrite noordwesttak: vierde rij richting Binnenroede
 
-// De Wieken: beide zijden over de volle lengte
-
-R(30,1362, 245,1452,    10, 9, 'wieken_white');    // noordzijde oost-westdeel
+// De Wieken: aan de noordzijde van het oost-westdeel staan GEEN huizen.
+// Daar ligt een brede berm met de watergang en daarachter bomen en struiken,
+// door tot de groene driehoek bij de Jasker.
 // Voorzoom en Windbord over de volle lengte
 R(-190,1128, -372,1110, -12, 9, 'wieken_yellow');
 // Bovenas oostzijde
