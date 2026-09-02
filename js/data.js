@@ -94,7 +94,7 @@ export const ROADS = [
     pts: [[-10,1345],[20,1355],[50,1380],[100,1420],[150,1440],[230,1450],[305,1460]] },
   { name: 'De Wieken', type: 'rood', w: 4.8, verge: 2.4, walk: 'LR',
     pts: [[305,1460],[380,1465],[480,1462],[560,1465],[595,1470]] },
-  { name: 'Bovenas', type: 'klinker', w: 4.8, verge: 2.4, walk: 'LR', bays: 'R',
+  { name: 'Bovenas', type: 'klinker', w: 5.6, vergeL: 1.0, vergeR: 2.6, walk: 'LR', bays: 'R',
     pts: [[105,1450],[112,1500],[110,1550],[100,1600],[85,1650],[60,1700],[30,1740],[0,1770],[-40,1800]] },
   { name: 'Windbord', type: 'klinker', w: 4.2, vergeL: 2.2, vergeR: 0.4, walk: 'LR',
     pts: [[-10,1345],[-18,1380],[-25,1430],[-35,1480],[-45,1530]] },
@@ -272,7 +272,8 @@ R(-12,1360, -45,1530, -11, 9, 'wieken_white');
 R(-14,1372, -45,1528,  11, 9, 'wieken_yellow');
 
 // ===== Bovenas =====
-R(104,1545, 60,1700, -12, 14, 'appart', { storeys: 3 });
+R(104,1500, 66,1660, -13, 10, 'jasker_flat');    // westzijde: twee lagen met balkons
+R(60,1700, 20,1770, -13, 14, 'appart', { storeys: 3 });  // flats aan het zuideind
 // blok tussen Bovenas en Molenkrite-zuid: oost-west rijen
 R(150,1447, 255,1455, -13, 9, 'molenkrite');
 R(150,1447, 255,1455, -53, 9, 'molenkrite', { flip: true });
@@ -314,7 +315,7 @@ R(30,1362, 245,1452,    10, 9, 'wieken_white');    // noordzijde oost-westdeel
 // Voorzoom en Windbord over de volle lengte
 R(-190,1128, -372,1110, -12, 9, 'wieken_yellow');
 // Bovenas oostzijde
-R(108,1500, 55,1712,    12, 9, 'wieken_yellow');
+R(108,1500, 55,1712,    11, 9, 'wieken_white');   // oostzijde: bungalows met dakkapellen
 R(30,1740, -38,1798,    12, 9, 'wieken_white');
 
 // Molenkrite zuid: rijen aan weerszijden
