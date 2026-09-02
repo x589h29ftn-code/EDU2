@@ -490,7 +490,7 @@ const rowBuilds = [];
 // hier opgeknipt in blokken met om en om een grotere afstand tot de weg.
 function expandStagger(row) {
   if (!row.stagger) return [row];
-  const st = T.HOUSE_STYLES[row.type];
+  const st = stijlVan(row);
   const [ax, ay] = row.a, [bx, by] = row.b;
   const lenM = Math.hypot(bx - ax, by - ay) / PX_PER_M;
   const per = (row.stagger.houses || 7) * st.w;
@@ -513,8 +513,16 @@ function expandStagger(row) {
 }
 
 // Fase 1: bepaal per rij welke woningen passen en bouw de gebouwen
+// De rij mag eigenschappen van het woningtype overschrijven: dakkapel,
+// dakraam, zonnepanelen, schoorsteen en het aantal lagen. Zo maak je in de
+// editor variatie zonder een nieuw type te hoeven schrijven.
+function stijlVan(row) {
+  const basis = T.HOUSE_STYLES[row.type] || T.HOUSE_STYLES.molenkrite;
+  return row.stijl ? { ...basis, ...row.stijl } : basis;
+}
+
 function buildRow(scene, row, idx) {
-  const st = T.HOUSE_STYLES[row.type];
+  const st = stijlVan(row);
   const a = vec(row.a), b = vec(row.b);
   const d = b.clone().sub(a); const len0 = d.length(); d.normalize();
   const left = new THREE.Vector2(d.y, -d.x);

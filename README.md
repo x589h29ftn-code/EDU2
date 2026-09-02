@@ -55,8 +55,8 @@ Met **T** wissel je tussen vijftien woningtypen:
 
 ![Alle woningtypen](docs/screenshots/woningtypen.png)
 
-En met **O** ga je naar de objecten: carports, bergingen, schuttingen, hagen, verkeersborden,
-containers, speeltoestellen en groen — allemaal nagebouwd naar de street-viewfoto's van de wijk:
+En met **O** ga je naar de objecten: carports, bergingen, aanbouwen, hagen en hekken, verkeersborden,
+containers, speeltoestellen en bomen — 54 stuks, nagebouwd naar de street-viewfoto's van de wijk:
 
 ![Alle objecten](docs/screenshots/objecten.png)
 

@@ -38,6 +38,8 @@ worden die opnieuw uitgerekend.
 | `-` `=` | korter / langer (2 m · shift = 10 m) |
 | `9` `0` | diepte kleiner / groter |
 | **T** | volgend woningtype · shift+T vorige |
+| **K L Z H** | dakkapel · dakraam · zonnepanelen · schoorsteen aan/uit |
+| **V B** | een bouwlaag minder / meer |
 | **F** | gevel omdraaien |
 | **N** | nieuwe rij van 30 m op het vizier |
 | Delete | rij weghalen |
@@ -84,7 +86,27 @@ Met **T** loop je door alle vijftien typen. Zo zien ze eruit:
 | `appart` | 3 | 7,0 m | portiekflat met galerij, plat dak |
 | `bovenas_bung` | 1 | 5,4 m | bungalow, dakramen, rode kozijnen |
 | `bovenas_gal` | 2 | 5,4 m | twee lagen met galerij, rode kozijnen |
+| `tinga_groen` | 2 | 5,6 m | bruine steen, donkergroene kozijnen |
+| `tinga_blauw` | 2 | 5,6 m | gele steen, felblauwe kozijnen, brede raamband |
 | `spil` | 1 | 8,0 m | laag bedrijfs-/verenigingsgebouw, plat dak |
+
+### Dakkapel, dakraam, zonnepanelen en schoorsteen per rij
+
+Je hoeft voor een variant geen nieuw type te maken. Met **K**, **L**, **Z** en
+**H** zet je dakkapel, dakraam, zonnepanelen en schoorsteen los van het type
+aan of uit, en met **V** en **B** verander je het aantal bouwlagen. Het paneel
+toont ze groen als ze aanstaan en doorgestreept als ze uit zijn.
+
+Zo'n uitzondering komt als `stijl` bij de rij te staan:
+
+```js
+R(400,1220, 645,1015, 12, 9, 'molenkrite_bung', { stijl: { dormer: true, solar: false } })
+```
+
+Zet je een waarde terug op wat het type zelf zegt, dan verdwijnt de
+uitzondering vanzelf weer.
+
+### De typen zelf
 
 Ze staan in `js/textures.js` in `HOUSE_STYLES`; daar pas je steenkleur,
 kozijnkleur, deurkleuren, dakpannen, aantal lagen, dakkapel, dakraam,
@@ -117,16 +139,20 @@ Staat een object in een gebouw, in het water of midden op de rijbaan, dan zegt
 het paneel dat in oranje. `node tools/propcheck.mjs` loopt in één keer alle
 objecten na.
 
-De vier groepen:
+De vijf groepen (54 objecten):
 
 - **erf** – carport, veranda met glasdak, stenen berging, blok garageboxen,
   houten tuinhuisje, schutting, ligusterhaag, bakstenen muurtje, laag
-  tuinhekje, pergola, trampoline
+  tuinhekje, pergola, trampoline, aanbouw met plat dak, luifel boven de deur,
+  meterkastje, grindvak
+- **hek** – hoge beukenhaag, lage haag, kastanjehouten hek, paalhek met
+  liggers, bruin tuinhekje, donkere schutting, tuinpoortje, betonnen paaltje
 - **straat** – lantaarnpaal, antiparkeerpaaltje, bord 30 km, straatnaambord,
   voorrangsbord, verkeersspiegel, informatiebord, nutskast, ondergrondse
   container, kliko, prullenbak, fietsenrek, bushalte, bankje, picknicktafel,
   vlaggenmast
-- **groen** – losse boom, conifeer, struik, plantenbak, rietpol
+- **groen** – losse boom, conifeer, struik, plantenbak, rietpol, verhoogde
+  plantenbak, treurwilg, rode esdoorn, jonge boom met boompaal, kale boom
 - **spelen** – voetbaldoel, basketbalpaal, klimtoestel, wipkip, zandbak
 
 Zelf een object toevoegen doe je in `js/props.js`: één `def(...)`-regel met
