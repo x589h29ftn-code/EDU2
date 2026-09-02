@@ -93,7 +93,7 @@ export class HUD {
     c.fillStyle = '#2255dd';
     for (const car of vehicles.cars) { c.fillRect(car.x * scale - 2, car.z * scale - 2, 4, 4); }
     c.fillStyle = '#ffffff';
-    for (const p of npcs.people) if (p.alive) { c.fillRect(p.mesh.position.x * scale - 1.5, p.mesh.position.z * scale - 1.5, 3, 3); }
+    for (const p of npcs.people) if (p.alive) { c.fillRect(p.x * scale - 1.5, p.z * scale - 1.5, 3, 3); }
     this.drawLabels(c, scale, -yaw + Math.PI, 40);
     c.restore();
     // speler

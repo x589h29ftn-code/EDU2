@@ -14,69 +14,203 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMappingExposure = 1.02;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x9fc4e8);
-scene.fog = new THREE.Fog(0xb9d3ea, 120, 650);
+scene.background = null;
+scene.fog = new THREE.Fog(0xc3d9ec, 180, 900);
 
 const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.05, 1200);
 scene.add(camera);
 
-// Lucht: grote koepel met verloop
-{
-  const skyGeo = new THREE.SphereGeometry(1000, 24, 12);
-  const skyMat = new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: new THREE.Color(0x3f7fcf) }, mid: { value: new THREE.Color(0x9fc4e8) }, bot: { value: new THREE.Color(0xd9e6f2) } },
-    vertexShader: `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-    fragmentShader: `uniform vec3 top,mid,bot; varying vec3 vP; void main(){ float h = normalize(vP).y; vec3 c = h>0.0 ? mix(mid, top, pow(h,0.6)) : mix(mid, bot, clamp(-h*4.0,0.0,1.0)); gl_FragColor = vec4(c,1.0); }`,
+// ---------- Lucht met zonneschijf en horizonwaas ----------
+const SUN_DIR = new THREE.Vector3(0.42, 0.62, 0.66).normalize();
+const skyUniforms = {
+  top: { value: new THREE.Color(0x2f6fc4) },
+  mid: { value: new THREE.Color(0x8fbde6) },
+  bot: { value: new THREE.Color(0xdae8f2) },
+  sunDir: { value: SUN_DIR },
+};
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyUniforms,
+  vertexShader: `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader: `
+    uniform vec3 top, mid, bot, sunDir;
+    varying vec3 vP;
+    void main(){
+      vec3 dir = normalize(vP);
+      float h = dir.y;
+      vec3 c = h > 0.0 ? mix(mid, top, pow(h, 0.55)) : mix(mid, bot, clamp(-h * 5.0, 0.0, 1.0));
+      // waas rond de horizon
+      c = mix(c, bot, pow(1.0 - abs(h), 12.0) * 0.7);
+      // zonneschijf met halo
+      float d = max(dot(dir, normalize(sunDir)), 0.0);
+      c += vec3(1.0, 0.93, 0.78) * pow(d, 900.0) * 3.0;
+      c += vec3(1.0, 0.90, 0.72) * pow(d, 12.0) * 0.22;
+      gl_FragColor = vec4(c, 1.0);
+    }`,
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 32, 16), skyMat);
+sky.frustumCulled = false;
+scene.add(sky);
+
+// ---------- Wolkendek ----------
+// Zachte cumulusvlekken op twee hoogtes. Ze liggen horizontaal, want vanaf de
+// grond zie je de onderkant; dat scheelt billboarden en houdt het op twee calls.
+function cloudTexture(seed, wisps) {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  let s2 = seed >>> 0 || 1;
+  const rnd = () => { s2 = (s2 * 1664525 + 1013904223) >>> 0; return s2 / 4294967296; };
+  g.clearRect(0, 0, 256, 256);
+  const puffs = wisps ? 14 : 26;
+  for (let i = 0; i < puffs; i++) {
+    const x = 128 + (rnd() - 0.5) * (wisps ? 210 : 150);
+    const y = 128 + (rnd() - 0.5) * (wisps ? 70 : 120);
+    const r = (wisps ? 16 : 30) + rnd() * (wisps ? 26 : 46);
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    const a = wisps ? 0.16 : 0.5;
+    grad.addColorStop(0, `rgba(255,255,255,${a})`);
+    grad.addColorStop(0.55, `rgba(252,253,255,${a * 0.55})`);
+    grad.addColorStop(1, 'rgba(250,252,255,0)');
+    g.fillStyle = grad; g.beginPath(); g.arc(x, y, r, 0, 6.3); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+const clouds = [];
+function buildCloudLayer(count, tex, yMin, yMax, sizeMin, sizeMax, opacity, drift) {
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex, transparent: true, opacity, depthWrite: false, fog: false,
+    side: THREE.DoubleSide, blending: THREE.NormalBlending,
   });
-  const sky = new THREE.Mesh(skyGeo, skyMat); scene.add(sky);
-  // wolken (platte sprites)
-  const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, fog: false });
-  for (let i = 0; i < 40; i++) {
-    const w = 60 + Math.random() * 120;
-    const c = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.35), cloudMat);
-    c.position.set((Math.random() - 0.5) * 1600, 180 + Math.random() * 120, (Math.random() - 0.5) * 1600);
-    c.rotation.x = -Math.PI / 2; scene.add(c);
+  const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), mat, count);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = -1;
+  const items = [];
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+  for (let i = 0; i < count; i++) {
+    const it = {
+      x: (Math.random() - 0.5) * 3000,
+      z: (Math.random() - 0.5) * 3000,
+      y: yMin + Math.random() * (yMax - yMin),
+      s: sizeMin + Math.random() * (sizeMax - sizeMin),
+      rot: Math.random() * Math.PI,
+      ar: 0.55 + Math.random() * 0.5,
+    };
+    items.push(it);
+    e.set(-Math.PI / 2, 0, it.rot);
+    q.setFromEuler(e);
+    m.compose(new THREE.Vector3(it.x, it.y, it.z), q, new THREE.Vector3(it.s, it.s * it.ar, 1));
+    mesh.setMatrixAt(i, m);
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  scene.add(mesh);
+  clouds.push({ mesh, items, drift, m, q, e });
+  return mesh;
+}
+buildCloudLayer(46, cloudTexture(7, false), 240, 340, 160, 420, 0.95, 3.2);
+buildCloudLayer(26, cloudTexture(23, true), 460, 620, 380, 900, 0.5, 1.5);
+
+function updateClouds(dt, camX, camZ) {
+  for (const layer of clouds) {
+    const { mesh, items, drift, m, q, e } = layer;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      it.x += drift * dt;
+      // laat de wolken meelopen met de speler, zodat de lucht nooit leegloopt
+      if (it.x - camX > 1600) it.x -= 3200;
+      if (it.x - camX < -1600) it.x += 3200;
+      if (it.z - camZ > 1600) it.z -= 3200;
+      if (it.z - camZ < -1600) it.z += 3200;
+      e.set(-Math.PI / 2, 0, it.rot);
+      q.setFromEuler(e);
+      m.compose(new THREE.Vector3(it.x, it.y, it.z), q, new THREE.Vector3(it.s, it.s * it.ar, 1));
+      mesh.setMatrixAt(i, m);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
   }
 }
 
-// Licht
-const hemi = new THREE.HemisphereLight(0xd6e8ff, 0x6a7a52, 1.15);
+// ---------- Verlichting ----------
+// Omgevingslicht komt uit een environment map die uit de lucht zelf wordt
+// gerenderd; dat geeft baksteen, glas en lak veel natuurlijker aanzetten dan
+// een vlakke hemisphere light.
+const pmrem = new THREE.PMREMGenerator(renderer);
+pmrem.compileEquirectangularShader();
+{
+  const envScene = new THREE.Scene();
+  const envSky = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), skyMat.clone());
+  envScene.add(envSky);
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(400, 400),
+    new THREE.MeshBasicMaterial({ color: 0x5d7a46, side: THREE.DoubleSide }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -6;
+  envScene.add(ground);
+  const rt = pmrem.fromScene(envScene, 0, 0.1, 200);
+  scene.environment = rt.texture;
+  envSky.geometry.dispose();
+}
+pmrem.dispose();
+
+const hemi = new THREE.HemisphereLight(0xd2e2f6, 0x6e8154, 0.75);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff1dc, 1.9);
-sun.position.set(70, 150, 110);
+const sun = new THREE.DirectionalLight(0xfff3e0, 2.2);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.near = 20; sun.shadow.camera.far = 500;
-sun.shadow.camera.left = -110; sun.shadow.camera.right = 110; sun.shadow.camera.top = 110; sun.shadow.camera.bottom = -110;
-sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.03;
+sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.camera.near = 10; sun.shadow.camera.far = 340;
+const SHADOW_R = 78;
+sun.shadow.camera.left = -SHADOW_R; sun.shadow.camera.right = SHADOW_R;
+sun.shadow.camera.top = SHADOW_R; sun.shadow.camera.bottom = -SHADOW_R;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.035;
+sun.shadow.radius = 2.2;
 scene.add(sun); scene.add(sun.target);
+// zwak tegenlicht zodat schaduwzijden niet dichtlopen
+const fill = new THREE.DirectionalLight(0xcfe0f2, 0.8);
+fill.position.set(-SUN_DIR.x * 150, 90, -SUN_DIR.z * 150);
+scene.add(fill);
 
 // Wereld
 const t0 = performance.now();
 const world = buildWorld(scene);
 console.log(`Wereld gebouwd in ${Math.round(performance.now() - t0)} ms, ${colliders.length} colliders, ${world.parkSpots.length} auto's`);
 
+// Omgevingslicht sterker laten meewegen. three r160 heeft nog geen
+// scene.environmentIntensity, dus het gaat per materiaal.
+function applyEnvIntensity(root, v = 1.7) {
+  const seen = new Set();
+  root.traverse(o => {
+    const mats = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []);
+    for (const m of mats) {
+      if (!m || seen.has(m) || !m.isMeshStandardMaterial) continue;
+      seen.add(m);
+      m.envMapIntensity = m.metalness > 0.4 ? v * 0.8 : v;
+      m.needsUpdate = true;
+    }
+  });
+}
+applyEnvIntensity(scene);
+
 const [sx, sz] = toWorld(START.at[0], START.at[1]);
 const player = new Player(camera, scene, sx, sz, START.yaw);
 const vehicles = new Vehicles(scene, world.parkSpots);
-const npcs = new NPCs(scene, world.roadSegments, 18);
+const npcs = new NPCs(scene, world.roadSegments, 130);
 const hud = new HUD();
+applyEnvIntensity(scene);
 
 // Schieten: raycast op auto's en voetgangers
 const raycaster = new THREE.Raycaster();
 const impactMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
 player.shootCb = (origin, dir) => {
   raycaster.set(origin, dir); raycaster.far = 120;
-  const targets = [...vehicles.cars.map(c => c.mesh), ...npcs.people.map(p => p.mesh)];
+  const targets = [...vehicles.cars.map(c => c.mesh), ...npcs.targets];
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
     const h = hits[0];
-    if (npcs.hit(h.object)) hud.show('Raak!', 0.8);
+    if (npcs.hit(h.object, h.instanceId)) hud.show('Raak!', 0.8);
     else { const car = vehicles.hit(h.object); if (car) hud.show('Auto geraakt', 0.6); }
     const mark = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), impactMat); mark.position.copy(h.point); scene.add(mark);
     setTimeout(() => scene.remove(mark), 8000);
@@ -135,7 +269,9 @@ function loop() {
     npcs.update(dt, time);
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
-    sun.position.set(cx + 70, 150, cz + 110); sun.target.position.set(cx, 0, cz); sun.target.updateMatrixWorld();
+    sun.position.set(cx + SUN_DIR.x * 150, SUN_DIR.y * 150, cz + SUN_DIR.z * 150);
+    sun.target.position.set(cx, 0, cz); sun.target.updateMatrixWorld();
+    updateClouds(dt, cx, cz);
     // water laten bewegen
     hud.update(dt, player, vehicles, npcs, nearestRoadName(cx, cz));
   }

@@ -49,7 +49,7 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
   water, parken en andere woningen; tuinen krijgen alleen de diepte die werkelijk beschikbaar is
 - `js/player.js` – first-person besturing, botsingen en het pistool
 - `js/vehicles.js`, `js/carmodel.js` – geparkeerde en bestuurbare auto's, verkeer op de N7 en in de wijk
-- `js/npc.js` – voetgangers
+- `js/npc.js` – voetgangers als instanced meshes (honderddertig mensen kosten samen zeven draw calls)
 - `js/hud.js` – straatnaambord, minimap, snelheid en munitie
 - `lib/three.module.js` – Three.js r160 (lokaal meegeleverd)
 - `tools/screenshot.mjs` – maakt testscreenshots met headless Chromium (Playwright)
@@ -66,9 +66,9 @@ Molenpaal, Bonkelaar).
 |---|---|---|---|
 | ![Monnikmolen](docs/screenshots/monnikmolen.png) | ![Bonkelaar](docs/screenshots/bonkelaar.png) | ![Jasker](docs/screenshots/jasker.png) | ![Kruirad](docs/screenshots/kruirad.png) |
 
-| Parkje De Wieken | De Wieken | Voortuinen Molenkrite |
+| Parkje De Wieken | De Wieken | Molenkrite |
 |---|---|---|
-| ![Parkje](docs/screenshots/parkje.png) | ![De Wieken](docs/screenshots/dewieken.png) | ![Voortuin](docs/screenshots/voortuin.png) |
+| ![Parkje](docs/screenshots/parkje.png) | ![De Wieken](docs/screenshots/dewieken.png) | ![Molenkrite](docs/screenshots/molenkrite.png) |
 
 | Overzicht vanaf Molenpaal | Kaart (toets M) |
 |---|---|
