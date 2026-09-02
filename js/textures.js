@@ -254,6 +254,8 @@ export const HOUSE_STYLES = {
   bonkelaar:  { brick: ['#8e4a3a', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#3a6e2a'], roof: '#4a3327', roofType: 'gable', storeys: 2, w: 6.4, dormer: false, chimney: true, band: '#f2f2f2', semi: true },
   detached:   { brick: ['#7e5a48', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#5a2d1a'], roof: '#3b3432', roofType: 'gable', storeys: 2, w: 10.0, dormer: false, chimney: true, band: '#f2f2f2', solar: true, detached: true },
   appart:     { brick: ['#d6c08c', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2b2b2b'], roof: '#555', roofType: 'flat', storeys: 3, w: 7.0, dormer: false, chimney: false, band: '#f2f2f2', balcony: true },
+  bovenas_bung:{ brick: ['#d3c39a', '#e4dcc8'], frame: '#ffffff', frame2: '#8c1f2a', door: ['#8c1f2a', '#7a1a24'], roof: '#453833', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, chimney: true, band: '#f4f4f4' },
+  bovenas_gal: { brick: ['#d6c69e', '#e6dfcb'], frame: '#ffffff', frame2: '#8c1f2a', door: ['#8c1f2a', '#7a1a24'], roof: '#453833', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, skylight: true, chimney: true, gallery: true, band: '#f4f4f4' },
   spil:       { brick: ['#b57a5a', '#d0c6b8'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b'], roof: '#555', roofType: 'flat', storeys: 1, w: 8.0, dormer: false, chimney: false, band: '#2b2b2b' },
 };
 
