@@ -84,17 +84,21 @@ export const ROADS = [
     pts: [[1160,1548],[1180,1580],[1176,1640],[1160,1700],[1178,1763],[1170,1830],[1188,1890],[1183,2000],[1183,2140]] },
 
   // ---- De Wieken / Bovenas / Windbord / Voorzoom ----
-  { name: 'De Wieken', type: 'rood', w: 4.8, verge: 2.4, walk: 'LR', bays: 'L',
+  { name: 'De Wieken', type: 'rood', w: 4.8, vergeL: 2.6, vergeR: 0.4, walk: 'LR', bays: 'L',
     pts: [[-215,880],[-210,950],[-204,1000],[-195,1060],[-175,1130],[-145,1185]] },
-  { name: 'De Wieken', type: 'rood', w: 4.8, verge: 2.4, walk: 'LR', bays: 'R',
-    pts: [[-145,1185],[-105,1240],[-60,1290],[-10,1345],[20,1355],[50,1380],[100,1420],[150,1440],[230,1450],[305,1460]] },
+  // schuine deel: parkje aan de noordoostkant, huizen aan de zuidwestkant
+  { name: 'De Wieken', type: 'rood', w: 4.8, vergeL: 2.8, vergeR: 0.4, walk: 'LR',
+    pts: [[-145,1185],[-105,1240],[-60,1290],[-10,1345]] },
+  // oost-westdeel: huizen aan weerszijden, dus tuin, voetpad, weg aan beide kanten
+  { name: 'De Wieken', type: 'rood', w: 4.8, vergeL: 0.5, vergeR: 0.5, walk: 'LR',
+    pts: [[-10,1345],[20,1355],[50,1380],[100,1420],[150,1440],[230,1450],[305,1460]] },
   { name: 'De Wieken', type: 'rood', w: 4.8, verge: 2.4, walk: 'LR',
     pts: [[305,1460],[380,1465],[480,1462],[560,1465],[595,1470]] },
   { name: 'Bovenas', type: 'klinker', w: 4.8, verge: 2.4, walk: 'LR', bays: 'R',
     pts: [[105,1450],[112,1500],[110,1550],[100,1600],[85,1650],[60,1700],[30,1740],[0,1770],[-40,1800]] },
-  { name: 'Windbord', type: 'klinker', w: 4.2, verge: 2.0, walk: 'LR',
+  { name: 'Windbord', type: 'klinker', w: 4.2, vergeL: 2.2, vergeR: 0.4, walk: 'LR',
     pts: [[-10,1345],[-18,1380],[-25,1430],[-35,1480],[-45,1530]] },
-  { name: 'Voorzoom', type: 'klinker', w: 4.2, verge: 2.0, walk: 'LR',
+  { name: 'Voorzoom', type: 'klinker', w: 4.2, vergeL: 2.2, vergeR: 0.4, walk: 'LR',
     pts: [[-175,1130],[-240,1120],[-310,1112],[-380,1108]] },
 
   // ---- Bonkelaar ----
@@ -257,9 +261,9 @@ R(770,1218, 710,1272, 13, 11, 'detached');   // hoekwoning Molenpaal/Jasker
 R(1010,1240, 1090,1240, 8, 18, 'spil', { label: 'Wijkvereniging De Spil', storeys: 1 });
 
 // ===== De Wieken =====
-R(-215,900, -180,1100, -13, 9, 'wieken_white');   // noord-zuid deel, westzijde
-R(-145,1185, -10,1345, -13, 9, 'wieken_white');   // zuidoost lopend deel, zuidwestzijde
-R(50,1380, 100,1420,   -13, 9, 'wieken_yellow');  // bungalows
+R(-215,900, -180,1100, -9.5, 9, 'wieken_white'); // noord-zuid deel, westzijde
+R(-145,1185, -10,1345, -9.5, 9, 'wieken_white'); // zuidwestzijde: tuin, voetpad, weg
+R(40,1370, 250,1455,   -10, 9, 'wieken_yellow');  // zuidzijde oost-westdeel
 // Voorzoom
 R(-200,1127, -370,1109,  12, 9, 'wieken_white');
 R(-300,1116, -370,1109, -12, 9, 'wieken_yellow');
@@ -305,8 +309,8 @@ R(830,1168, 668,1315,  13, 9, 'jasker_gable');
 // Molenkrite noordwesttak: vierde rij richting Binnenroede
 
 // De Wieken: beide zijden over de volle lengte
-R(-145,1185, -18,1338,  13, 9, 'wieken_yellow');   // noordoostzijde schuine deel
-R(30,1362, 245,1452,    13, 9, 'wieken_white');    // noordzijde oost-westdeel
+
+R(30,1362, 245,1452,    10, 9, 'wieken_white');    // noordzijde oost-westdeel
 // Voorzoom en Windbord over de volle lengte
 R(-190,1128, -372,1110, -12, 9, 'wieken_yellow');
 // Bovenas oostzijde
