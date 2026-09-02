@@ -471,7 +471,10 @@ function buildRow(scene, row, idx) {
   const rotY = Math.PI / 2 - yaw;
   const dLocal = new THREE.Vector2(Math.cos(rotY), -Math.sin(rotY));
   const facadeH = storeys * 2.9;
-  const roofH = st.roofType === 'gable' ? Math.min(4.2, depth * 0.5) : (st.roofType === 'low' ? 1.6 : 0);
+  // Bij bungalows zit de woonruimte in de kap: een lage gevel krijgt een hoger dak.
+  const roofH = st.roofType === 'gable'
+    ? (storeys === 1 ? Math.min(4.6, depth * 0.55) : Math.min(4.2, depth * 0.5))
+    : (st.roofType === 'low' ? 1.6 : 0);
 
   // kandidaat-woningen langs de rij
   let cand = [];

@@ -27,6 +27,9 @@ const VIEWS = [
   { name: 'maat_auto',  at: [468, 1176], yaw: -2.45, pitch: -0.06 },
   { name: 'maat_deur',  at: [455, 1196], yaw: 0.72, pitch: 0.10 },
   // --- overzicht ---
+  { name: 'b1_bovenas', at: [110, 1490], yaw: -3.05, pitch: -0.02 },
+  { name: 'b2_kruising', at: [118, 1452], yaw: -1.9, pitch: -0.02 },
+  { name: 'w7_gevel', at: [40, 1392], yaw: 1.15, pitch: 0.06 },
   { name: 'overzicht3', at: [700, 1300], yaw: Math.PI * 0.2, pitch: -0.8, h: 160 },
   { name: 'kaart', at: [405, 1222], yaw: -0.88, pitch: 0, map: true },
 ];
