@@ -1,6 +1,6 @@
 // Wereldopbouw: wegen, stoepen, parkeervakken, water, groen, huizen, straatmeubilair.
 import * as THREE from 'three';
-import { ROADS, HIGHWAY, WATER, WOODS, GRASS, ROWS, PARKS, PARKING_LOTS, PLAYGROUND, toWorld } from './data.js';
+import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PARKS, PARKING_LOTS, PLAYGROUND, toWorld } from './data.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
 
@@ -105,6 +105,8 @@ function materials() {
   MAT.hedge = std(T.hedge());
   MAT.curb = new THREE.MeshStandardMaterial({ color: 0x9a9890, roughness: 0.9 });
   MAT.trunk = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 });
+  MAT.trunkPale = new THREE.MeshStandardMaterial({ color: 0x8f8a78, roughness: 1 });
+  MAT.bank = new THREE.MeshStandardMaterial({ color: 0x4b5c33, roughness: 1 });
   MAT.leaf = new THREE.MeshStandardMaterial({ color: 0x4d7d2c, roughness: 1 });
   MAT.leaf2 = new THREE.MeshStandardMaterial({ color: 0x3f6b25, roughness: 1 });
   MAT.pole = new THREE.MeshStandardMaterial({ color: 0x7a7f86, roughness: 0.6, metalness: 0.6 });
@@ -290,6 +292,14 @@ function buildNature(scene) {
   for (const poly of WATER) {
     const pts = poly.map(vec);
     const w = new THREE.Mesh(polygonGeom(pts, 0.04, 0.3), MAT.water); scene.add(w);
+  }
+  for (const ww of WATERWAYS) {
+    const pts = ww._pts || ww.pts.map(vec);
+    scene.add(new THREE.Mesh(ribbon(pts, ww.w, 0.04, 0, 0.25), MAT.water));
+    // smalle, donkere oeverrand langs beide zijden
+    for (const off of [ww.w / 2 + 0.35, -(ww.w / 2 + 0.35)]) {
+      scene.add(new THREE.Mesh(ribbon(pts, 0.7, 0.045, off, 0.5), MAT.bank));
+    }
   }
   for (const poly of GRASS) { /* gras is standaard */ }
 
@@ -740,6 +750,19 @@ function buildParks(scene) {
       for (const dx of [-0.7, 0.7]) { const lg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.45, 0.1), MAT.bench); lg.position.set(bx + dx, 0.22, bz); scene.add(lg); }
       addCollider(bx, bz, 0.9, 0.3, 0, 1);
     }
+    // rij grote bomen langs het pad (populieren aan het eind van De Wieken)
+    if (park.treeLine) {
+      const lp = park.treeLine.pts.map(vec);
+      let acc = 0;
+      for (let k = 0; k < lp.length - 1; k++) {
+        const a = lp[k], b = lp[k + 1]; const len = a.distanceTo(b); const d = b.clone().sub(a).normalize();
+        for (let sPos = acc; sPos < len; sPos += park.treeLine.spacing) {
+          const p = a.clone().add(d.clone().multiplyScalar(sPos));
+          treePositions.push({ x: p.x, z: p.y, s: park.treeLine.scale, tall: true });
+        }
+        acc = (acc - len) % park.treeLine.spacing; if (acc < 0) acc += park.treeLine.spacing;
+      }
+    }
     // bomen en struiken verspreid over het gras, niet op het pad of in het water
     const r = rng(park.name.length * 991 + poly.length * 7);
     const bb = new THREE.Box2().setFromPoints(poly);
@@ -772,11 +795,11 @@ function buildReeds(scene) {
       const len = a.distanceTo(b); if (len < 2) continue;
       const d = b.clone().sub(a).normalize();
       const nrm = new THREE.Vector2(d.y, -d.x);
-      for (let sPos = 0.4; sPos < len; sPos += 0.8) {
-        if (r() < 0.35) continue;
+      for (let sPos = 0.4; sPos < len; sPos += 1.6) {
+        if (r() < 0.55) continue;
         const p = a.clone().add(d.clone().multiplyScalar(sPos)).add(nrm.clone().multiplyScalar((r() - 0.5) * 1.0));
         if (nearBuilding(p, 1.0)) continue;
-        const h = 0.45 + r() * 0.4, rad = 0.30 + r() * 0.25;
+        const h = 0.4 + r() * 0.35, rad = 0.22 + r() * 0.18;
         const g = new THREE.SphereGeometry(rad, 6, 4);
         g.scale(1.0 + r() * 0.5, h / rad * 0.75, 1.0 + r() * 0.5);
         g.rotateY(r() * 3.14);
@@ -790,25 +813,57 @@ function buildReeds(scene) {
 
 // ---------- Bomen (instanced) ----------
 function buildTrees(scene) {
-  const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 2.6, 6);
-  const leafGeo = new THREE.IcosahedronGeometry(2.2, 1);
-  const n = treePositions.length;
-  const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunk, n);
-  const leavesA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n);
-  const leavesB = new THREE.InstancedMesh(leafGeo, MAT.leaf2, n);
+  const normal = treePositions.filter(t => !t.tall);
+  const tall = treePositions.filter(t => t.tall);
   const m = new THREE.Matrix4(); const q = new THREE.Quaternion(); const r = rng(99);
-  treePositions.forEach((t, i) => {
-    const s = t.s;
-    q.identity();
-    m.compose(new THREE.Vector3(t.x, 1.3 * s, t.z), q, new THREE.Vector3(1, s, 1)); trunks.setMatrixAt(i, m);
-    q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-    m.compose(new THREE.Vector3(t.x, 3.6 * s, t.z), q, new THREE.Vector3(s * (0.95 + r() * 0.45), s * (0.85 + r() * 0.4), s * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
-    q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-    m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s, 5.0 * s, t.z + (r() - 0.5) * 1.4 * s), q, new THREE.Vector3(s * 0.85, s * 0.7, s * 0.85)); leavesB.setMatrixAt(i, m);
-    addCollider(t.x, t.z, 0.3, 0.3, 0, 3);
-  });
-  trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;
-  scene.add(trunks, leavesA, leavesB);
+
+  // gewone straat- en parkbomen: brede bolkroon
+  if (normal.length) {
+    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 2.6, 6);
+    const leafGeo = new THREE.IcosahedronGeometry(2.2, 1);
+    const n = normal.length;
+    const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunk, n);
+    const leavesA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n);
+    const leavesB = new THREE.InstancedMesh(leafGeo, MAT.leaf2, n);
+    normal.forEach((t, i) => {
+      const s2 = t.s; q.identity();
+      m.compose(new THREE.Vector3(t.x, 1.3 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
+      q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
+      m.compose(new THREE.Vector3(t.x, 3.6 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
+      q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
+      m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, 5.0 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
+      addCollider(t.x, t.z, 0.3, 0.3, 0, 3);
+    });
+    trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;
+    scene.add(trunks, leavesA, leavesB);
+  }
+
+  // populieren langs de parkpaden: hoge, rechte stam met smalle kroon
+  if (tall.length) {
+    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.30, 5.4, 7);
+    const leafGeo = new THREE.IcosahedronGeometry(2.0, 1);
+    const n = tall.length;
+    const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunkPale, n);
+    const crownA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n * 2);
+    const crownB = new THREE.InstancedMesh(leafGeo, MAT.leaf2, n * 2);
+    tall.forEach((t, i) => {
+      const s2 = t.s; q.identity();
+      m.compose(new THREE.Vector3(t.x, 2.7 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
+      for (let k = 0; k < 2; k++) {
+        q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
+        const y = (6.0 + k * 2.2) * s2;
+        const w = (1.30 - k * 0.30) * s2;
+        m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.2 * s2, y, t.z + (r() - 0.5) * 1.2 * s2), q, new THREE.Vector3(w, w * 1.25, w));
+        (k === 0 ? crownA : crownB).setMatrixAt(i * 2 + k, m);
+        q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
+        m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 2.2 * s2, y + 1.2 * s2, t.z + (r() - 0.5) * 2.2 * s2), q, new THREE.Vector3(w * 0.8, w, w * 0.8));
+        (k === 0 ? crownB : crownA).setMatrixAt(i * 2 + k, m);
+      }
+      addCollider(t.x, t.z, 0.45, 0.45, 0, 3);
+    });
+    trunks.castShadow = true; crownA.castShadow = true; crownB.castShadow = true;
+    scene.add(trunks, crownA, crownB);
+  }
 }
 
 // ---------- Straatmeubilair ----------
@@ -924,6 +979,20 @@ function buildFurniture(scene) {
 export function buildWorld(scene) {
   materials();
   for (const poly of WATER) waterPolys.push(poly.map(vec));
+  // watergangen omzetten naar een omtrekpolygoon van middellijn + breedte
+  for (const ww of WATERWAYS) {
+    const pts = ww.pts.map(vec);
+    const left = [], right = [];
+    for (let i = 0; i < pts.length; i++) {
+      const dPrev = i > 0 ? pts[i].clone().sub(pts[i - 1]).normalize() : null;
+      const dNext = i < pts.length - 1 ? pts[i + 1].clone().sub(pts[i]).normalize() : null;
+      const d = (dPrev && dNext) ? dPrev.clone().add(dNext).normalize() : (dPrev || dNext);
+      const n = new THREE.Vector2(d.y, -d.x).multiplyScalar(ww.w / 2);
+      left.push(pts[i].clone().add(n)); right.push(pts[i].clone().sub(n));
+    }
+    waterPolys.push(left.concat(right.reverse()));
+    ww._pts = pts;
+  }
   for (const park of PARKS) parkPolys.push(park.poly.map(vec));
   buildRoads(scene);
   ROWS.forEach((row, i) => buildRow(scene, row, i));
