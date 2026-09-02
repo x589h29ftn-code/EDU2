@@ -484,6 +484,16 @@ function blocked(px, pz, margin, skipUnit = null, woods = true) {
 
 const rowBuilds = [];
 
+// Gedeelde gevelmaterialen. Zonder deze cache kreeg elke woning een eigen
+// materiaal met een eigen kloon van de baksteentexture; dat kostte honderden
+// megabytes videogeheugen en duizenden statuswisselingen per beeld.
+const gevelMats = new Map();
+function gedeeldMat(sleutel, maak) {
+  let m = gevelMats.get(sleutel);
+  if (!m) { m = maak(); gevelMats.set(sleutel, m); }
+  return m;
+}
+
 // Verspringende rooilijn. In Tinga loopt een lange rij niet in één rechte
 // lijn: na zes à zeven woningen springt het blok een paar meter naar achteren
 // en daarna weer naar voren. Een rij met { stagger: { houses, step } } wordt
@@ -608,14 +618,20 @@ function buildRow(scene, row, idx) {
   group.userData.generated = !!row.generated; // automatische verdichting
 
   const placeUnit = (cx, unitLen, unitN, seed) => {
-    const frontTex = T.facade(row.type, unitN, storeys, false, seed);
-    const backTex = T.facade(row.type, unitN, storeys, true, seed);
-    const brickTex = st.plaster ? T.plaster(st.brick[0]) : T.brick(st.brick[0], st.brick[1], seed);
-    const sideMat = new THREE.MeshStandardMaterial({ map: brickTex.clone(), roughness: 0.95 });
-    sideMat.map.needsUpdate = true; sideMat.map.repeat.set(depth / 2.6, facadeH / 2.6);
-    const fm = new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.9 });
-    const bm = new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.9 });
-    const top = new THREE.MeshStandardMaterial({ map: T.bitumen(), roughness: 1 });
+    const sleutel = `${row.type}|${unitN}|${storeys}|${seed % 6}`;
+    const fm = gedeeldMat('f' + sleutel, () =>
+      new THREE.MeshStandardMaterial({ map: T.facade(row.type, unitN, storeys, false, seed), roughness: 0.9 }));
+    const bm = gedeeldMat('b' + sleutel, () =>
+      new THREE.MeshStandardMaterial({ map: T.facade(row.type, unitN, storeys, true, seed), roughness: 0.9 }));
+    // De zijmuur herhaalt de baksteen naar diepte en hoogte, dus die hangt aan
+    // de maten van het blok in plaats van aan de woning.
+    const sideMat = gedeeldMat(`z|${row.type}|${seed % 4}|${depth.toFixed(2)}|${facadeH.toFixed(2)}`, () => {
+      const brickTex = (st.plaster ? T.plaster(st.brick[0]) : T.brick(st.brick[0], st.brick[1], seed)).clone();
+      brickTex.needsUpdate = true;
+      brickTex.repeat.set(depth / 2.6, facadeH / 2.6);
+      return new THREE.MeshStandardMaterial({ map: brickTex, roughness: 0.95 });
+    });
+    const top = gedeeldMat('dak_plat', () => new THREE.MeshStandardMaterial({ map: T.bitumen(), roughness: 1 }));
     const body = new THREE.Mesh(new THREE.BoxGeometry(unitLen, facadeH, depth), [sideMat, sideMat, top, sideMat, fm, bm]);
     body.position.set(cx, facadeH / 2, 0);
     body.castShadow = true; body.receiveShadow = true;
@@ -623,7 +639,7 @@ function buildRow(scene, row, idx) {
 
     if (st.roofType === 'gable' || st.roofType === 'low') {
       const rh = st.roofType === 'low' ? 1.6 : roofH;
-      const roofMat = new THREE.MeshStandardMaterial({ map: T.roofTiles(st.roof), roughness: 0.9 });
+      const roofMat = gedeeldMat('dak|' + st.roof, () => new THREE.MeshStandardMaterial({ map: T.roofTiles(st.roof), roughness: 0.9 }));
       const roof = gableRoof(unitLen, depth, rh, roofMat);
       // het dakvlak loopt door over het overstek; laat het zakken zodat de dakrand
       // precies op de muur landt in plaats van er 30 cm boven te zweven
@@ -948,8 +964,10 @@ function buildGardens() {
           if (roadClearance(p.x, p.y) < 1.2) { openToStreet = true; break; }
         }
         if (openToStreet) {
-          const hm = new THREE.MeshStandardMaterial({ map: T.hedge().clone(), roughness: 1 });
-          hm.map.needsUpdate = true; hm.map.repeat.set(run.len / 1.2, 1);
+          const hm = gedeeldMat('heg|' + run.len.toFixed(2), () => {
+            const t = T.hedge().clone(); t.needsUpdate = true; t.repeat.set(run.len / 1.2, 1);
+            return new THREE.MeshStandardMaterial({ map: t, roughness: 1 });
+          });
           const h = new THREE.Mesh(new THREE.BoxGeometry(run.len, 0.85, 0.5), hm);
           h.position.set(run.cx, 0.42, -depth / 2 - backAvail); h.castShadow = true;
           group.add(h);
@@ -1285,6 +1303,7 @@ export function resetWorld(scene) {
     });
   }
   worldObjects.length = 0;
+  gevelMats.clear();
   colliders.length = 0; roadSegments.length = 0; parkSpots.length = 0; treePositions.length = 0;
   units.length = 0; rowBuilds.length = 0;
   waterPolys.length = 0; parkPolys.length = 0; woodPolys.length = 0;

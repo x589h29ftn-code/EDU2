@@ -34,16 +34,24 @@ function shade(hex, f) {
 }
 
 // ---------- Baksteen ----------
+// Het zaad bepaalt alleen de willekeurige schakering van de stenen. Vier
+// varianten is ruim genoeg; een eigen texture per woning kostte honderden
+// megabytes videogeheugen.
+const BRICK_VARIANTEN = 2;
 export function brick(base = '#8a6752', mortar = '#b9b2a6', seed = 1) {
+  seed = ((seed % BRICK_VARIANTEN) + BRICK_VARIANTEN) % BRICK_VARIANTEN;
   const key = `brick${base}${mortar}${seed}`;
   if (cache.has(key)) return cache.get(key);
-  const c = canvas(512, 512); const g = c.getContext('2d');
+  // 320 px voor 2,6 m is 123 px/m: ruim genoeg voor een muur die je van een
+  // paar meter afstand ziet, en vier keer zo zuinig als 512.
+  const S = 320;
+  const c = canvas(S, S); const g = c.getContext('2d');
   const r = rng(seed);
-  g.fillStyle = mortar; g.fillRect(0, 0, 512, 512);
-  const bw = 64, bh = 24; // 4 stenen breed per 512 = ~ 21cm steen als 512px = 3.4m? we use 512px = 2.6m
-  for (let y = 0, row = 0; y < 512; y += bh + 3, row++) {
+  g.fillStyle = mortar; g.fillRect(0, 0, S, S);
+  const bw = 40, bh = 15;
+  for (let y = 0, row = 0; y < S; y += bh + 2, row++) {
     const offs = (row % 2) * (bw / 2);
-    for (let x = -bw; x < 512 + bw; x += bw + 3) {
+    for (let x = -bw; x < S + bw; x += bw + 2) {
       const f = 0.82 + r() * 0.36;
       g.fillStyle = shade(base, f);
       g.fillRect(x + offs, y, bw, bh);
@@ -269,11 +277,15 @@ export const HOUSE_STYLES = {
   spil:       { brick: ['#b57a5a', '#d0c6b8'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b'], roof: '#555', roofType: 'flat', storeys: 1, w: 8.0, dormer: false, chimney: false, band: '#2b2b2b' },
 };
 
+// Idem voor de gevels: zes varianten per type geeft genoeg afwisseling in
+// gordijnen, deurkleuren en raamindeling zonder het geheugen op te blazen.
+const GEVEL_VARIANTEN = 6;
 export function facade(type, n, storeys, back = false, seed = 1) {
+  seed = ((seed % GEVEL_VARIANTEN) + GEVEL_VARIANTEN) % GEVEL_VARIANTEN;
   const key = `fac_${type}_${n}_${storeys}_${back}_${seed}`;
   if (cache.has(key)) return cache.get(key);
   const st = HOUSE_STYLES[type];
-  const HW = 128; // px per huis
+  const HW = 88; // px per huis; 16 px/m is genoeg voor kozijnen en deuren
   const PM = HW / st.w; // px per meter
   const H = Math.round(storeys * 2.9 * PM);
   const c = canvas(HW * n, H); const g = c.getContext('2d');
