@@ -613,16 +613,22 @@ function buildGardens() {
         group.add(new THREE.Mesh(mergeGeoms(paths), MAT.tiles));
         if (bushes.length) { const bushMesh = new THREE.Mesh(mergeGeoms(bushes), MAT.leaf2); bushMesh.castShadow = true; group.add(bushMesh); }
       }
-      if (backAvail >= 2.5 && row.type !== 'spil') {
+      if (backAvail >= 1.8 && row.type !== 'spil') {
         const parts = [];
         const f = new THREE.BoxGeometry(run.len, 1.8, 0.08); f.translate(run.cx, 0.9, -depth / 2 - backAvail); parts.push(f);
         for (const sgn of [-1, 1]) { const f2 = new THREE.BoxGeometry(0.08, 1.8, backAvail); f2.translate(run.cx + sgn * run.len / 2, 0.9, -depth / 2 - backAvail / 2); parts.push(f2); }
-        if (backAvail >= 5) {
+        if (backAvail >= 4.5) {
           const shedCount = Math.max(1, Math.round(run.len / 6));
           for (let i = 0; i < shedCount; i++) {
             const hx = run.cx - run.len / 2 + (run.len / shedCount) * (i + 0.5);
             const sg = new THREE.BoxGeometry(2.2, 2.2, 2.2); sg.translate(hx, 1.1, -depth / 2 - backAvail + 1.3); parts.push(sg);
           }
+        }
+        // tussenschotten tussen de percelen, zoals de schuttingen in de wijk
+        const per = Math.max(1, Math.round(run.len / (run.len / run.n)));
+        for (let i = 1; i < run.n; i++) {
+          const hx = run.cx - run.len / 2 + (run.len / run.n) * i;
+          const fp = new THREE.BoxGeometry(0.07, 1.8, backAvail); fp.translate(hx, 0.9, -depth / 2 - backAvail / 2); parts.push(fp);
         }
         const back = new THREE.Mesh(mergeGeoms(parts), MAT.fence); back.castShadow = true; group.add(back);
       }

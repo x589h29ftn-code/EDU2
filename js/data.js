@@ -98,7 +98,7 @@ export const ROADS = [
     pts: [[-175,1130],[-240,1120],[-310,1112],[-380,1108]] },
 
   // ---- Bonkelaar ----
-  { name: 'Bonkelaar', type: 'rood', w: 4.8, verge: 3.2, walk: 'LR',
+  { name: 'Grootwiel', type: 'klinker', w: 4.6, verge: 2.4, walk: 'LR', bays: 'L',
     pts: [[500,1480],[500,1560],[500,1640],[540,1690],[600,1750]] },
   { name: 'Bonkelaar', type: 'rood', w: 4.8, verge: 3.2, walk: 'LR', bays: 'R',
     pts: [[600,1750],[650,1785],[700,1800],[800,1810],[890,1810],[950,1812],[990,1830],[1010,1880],[1010,1950],[990,2000],[950,2050],[900,2100],[860,2150]] },
@@ -238,7 +238,7 @@ R(-200,1127, -370,1109,  12, 9, 'wieken_white');
 R(-300,1116, -370,1109, -12, 9, 'wieken_yellow');
 // Windbord
 R(-12,1360, -45,1530, -11, 9, 'wieken_white');
-R(-25,1430, -45,1530,  11, 9, 'wieken_yellow');
+R(-14,1372, -45,1528,  11, 9, 'wieken_yellow');
 
 // ===== Bovenas =====
 R(104,1545, 60,1700, -12, 14, 'appart', { storeys: 3 });
@@ -264,6 +264,54 @@ R(600,2000, 730,2095,  14, 11, 'detached');
 
 // ===== Omloop =====
 R(1175,1720, 1178,1590, 12, 9, 'jasker_gable');
+
+
+// ===== Ontbrekende straatzijden: in Tinga staan vrijwel overal huizen aan beide kanten =====
+// Binnenroede noordwestzijde
+R(307,1075, 600,880,  13, 9, 'monnik');
+// Monnikmolen noord-zuid, westzijde (naar het Kruirad-hof)
+R(255,985, 300,1110, -13, 9, 'kruirad');
+// Kruirad west, binnenzijde van de lus
+R(75,1020, 140,1198,  13, 9, 'kruirad');
+// Molenpaal zuidoostzijde
+R(830,1168, 668,1315,  13, 9, 'jasker_gable');
+// Molenkrite noordwesttak: vierde rij richting Binnenroede
+
+// De Wieken: beide zijden over de volle lengte
+R(-145,1185, -18,1338,  13, 9, 'wieken_yellow');   // noordoostzijde schuine deel
+R(30,1362, 245,1452,    13, 9, 'wieken_white');    // noordzijde oost-westdeel
+// Voorzoom en Windbord over de volle lengte
+R(-190,1128, -372,1110, -12, 9, 'wieken_yellow');
+// Bovenas oostzijde
+R(108,1500, 55,1712,    12, 9, 'wieken_yellow');
+R(30,1740, -38,1798,    12, 9, 'wieken_white');
+
+// Molenkrite zuid: rijen aan weerszijden
+R(303,1500, 300,1660,  -13, 9, 'molenkrite');
+R(310,1700, 372,1822,   13, 9, 'kruirad');
+R(310,1700, 372,1822,  -13, 9, 'kruirad');
+// Grootwiel: extra rij aan de oostkant
+R(514,1660, 560,1728,   13, 9, 'jasker_flat');
+
+// Jasker: ontbrekende zijden
+R(1080,1522, 1160,1545, 13, 9, 'jasker_flat');
+R(1080,1522, 1160,1545, -13, 9, 'jasker_gable');
+// Jasker diagonaal (kruispunt -> oost), zuidwestzijde
+R(600,1470, 470,1340,  -14, 9, 'molenkrite');
+// Spinnekop zuidzijde bij de noordtak
+R(725,1440, 765,1340,  -12, 9, 'jasker_gable');
+
+// Omloop westzijde
+R(1175,1720, 1178,1590, -12, 9, 'jasker_flat');
+R(1183,1900, 1183,2060,  12, 9, 'jasker_gable');
+R(1183,1900, 1183,2060, -12, 9, 'jasker_gable');
+
+// Bonkelaar zuidzijde over de volle lengte (noordzijde is sloot met bomen)
+R(660,1790, 700,1798,  -14, 10, 'bonkelaar');
+
+// ===== Alliade Tinga State: zorgcomplex ten oosten van Molenkrite =====
+R(1285,1130, 1285,1060, -10, 22, 'spil', { label: 'Tinga State', storeys: 3 });
+R(1285,1250, 1285,1180, -10, 22, 'spil', { storeys: 3 });
 
 // Parkeerhoven (px rechthoeken: center, breedte m, lengte m, hoek rad) worden afgeleid uit wegen met parking.
 // Extra losse parkeerhoven:
