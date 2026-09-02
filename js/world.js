@@ -323,11 +323,12 @@ function buildNature(scene) {
 
   // bomen in bosschages
   const r = rng(77);
-  for (const poly of WOODS) {
-    const pts = poly.map(vec);
+  for (const entry of WOODS) {
+    // een bosschage is een lijst punten, of { poly, dens } voor dichter bos
+    const pts = woodPoly(entry).map(vec);
     const bb = new THREE.Box2().setFromPoints(pts);
     const area = (bb.max.x - bb.min.x) * (bb.max.y - bb.min.y);
-    const count = Math.floor(area / 140);
+    const count = Math.floor(area / (entry.dens || 140));
     for (let i = 0; i < count; i++) {
       const p = new THREE.Vector2(bb.min.x + r() * (bb.max.x - bb.min.x), bb.min.y + r() * (bb.max.y - bb.min.y));
       if (pointInPoly(p, pts) && !nearRoad(p, 4) && !inWater(p)) treePositions.push({ x: p.x, z: p.y, s: 0.8 + r() * 0.7 });
@@ -370,6 +371,7 @@ function inPark(p) { return parkPolys.some(poly => pointInPoly(p, poly)); }
 // In een bosschage staan bomen, geen huizen. Dat houdt ook de automatische
 // verdichting uit stroken groen zoals de berm langs De Wieken.
 function inWoods(p) { return woodPolys.some(poly => pointInPoly(p, poly)); }
+const woodPoly = entry => (Array.isArray(entry) ? entry : entry.poly);
 function inWater(p) { return waterPolys.some(poly => pointInPoly(p, poly)); }
 export function nearRoad(p, margin) {
   for (const s of roadSegments) {
@@ -1196,7 +1198,7 @@ export function buildWorld(scene) {
     ww._pts = pts;
   }
   for (const park of PARKS) parkPolys.push(park.poly.map(vec));
-  for (const poly of WOODS) woodPolys.push(poly.map(vec));
+  for (const entry of WOODS) woodPolys.push(woodPoly(entry).map(vec));
   buildRoads(scene);
   const allRows = ROWS.flatMap(expandStagger);
   allRows.forEach((row, i) => buildRow(scene, row, i));

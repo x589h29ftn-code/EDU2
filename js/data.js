@@ -92,7 +92,9 @@ export const ROADS = [
   // oost-westdeel: huizen aan weerszijden, dus tuin, voetpad, weg aan beide kanten
   { name: 'De Wieken', type: 'rood', w: 4.8, vergeL: 0.5, vergeR: 0.5, walk: 'LR',
     pts: [[-10,1345],[20,1355],[50,1380],[100,1420],[150,1440],[230,1450],[305,1460]] },
-  { name: 'De Wieken', type: 'rood', w: 4.8, verge: 2.4, walk: 'LR',
+  // Van de Molenkrite naar de Jasker loopt geen straat maar een tegelpad langs
+  // de zuidkant van de vijver, dwars door het bosje.
+  { name: 'Voetpad', type: 'pad', w: 2.0, verge: 0, walk: '',
     pts: [[305,1460],[380,1465],[480,1462],[560,1465],[595,1470]] },
   { name: 'Bovenas', type: 'klinker', w: 5.6, vergeL: 1.0, vergeR: 2.6, walk: 'LR', bays: 'R',
     pts: [[105,1450],[112,1500],[110,1550],[100,1600],[85,1650],[60,1700],[30,1740],[0,1770],[-40,1800]] },
@@ -112,10 +114,10 @@ export const ROADS = [
   // ---- Paden / park ----
   { name: 'Tinga Parkje', type: 'pad', w: 2.2, verge: 0, walk: '',
     pts: [[508,357],[430,420],[350,490],[270,570],[200,650],[120,730],[40,770],[-40,800],[-120,830],[-180,860]] },
+  // Van de Molenkrite naar de Jasker langs de noordoever van de vijver; de
+  // zuidkant heeft zijn eigen tegelpad (zie hierboven bij De Wieken).
   { name: 'Fietspad', type: 'fietspad', w: 2.4, verge: 0, walk: '',
-    pts: [[330,1330],[400,1380],[470,1425],[560,1462]] },
-  { name: 'Voetpad', type: 'pad', w: 1.6, verge: 0, walk: '',
-    pts: [[345,1300],[420,1440]] },
+    pts: [[303,1312],[350,1319],[410,1327],[465,1342],[505,1372],[540,1420],[562,1464]] },
 ];
 
 // De N7 (rijksweg) ten noorden van de wijk, met afrit 21 Sneek.
@@ -129,8 +131,9 @@ export const WATER = [
   [[-190,880],[0,845],[150,750],[320,625],[450,548],[520,490],[532,505],[462,562],[332,640],[162,765],[8,862],[-188,896]],
   // Sloot langs Bonkelaar (noordzijde)
   [[520,1725],[700,1758],[900,1770],[965,1790],[963,1802],[898,1783],[698,1772],[518,1739]],
-  // Vijvertje in de groene driehoek bij Jasker
-  [[430,1395],[470,1390],[490,1420],[470,1445],[435,1440],[420,1418]],
+  // Vijver in het bosje tussen Molenkrite, Jasker en De Wieken. Op de satelliet
+  // is dit een flinke plas van veertig bij dertig meter, rondom dichte bomen.
+  [[358,1342],[398,1333],[438,1345],[466,1375],[464,1410],[426,1432],[384,1436],[360,1414],[350,1378]],
   // Sloot oostzijde (bij De Spil)
   [[1120,1050],[1150,1080],[1160,1180],[1150,1300],[1140,1300],[1150,1180],[1138,1085],[1110,1058]],
   // De Geau (kanaal) ver westelijk
@@ -144,8 +147,9 @@ export const WATERWAYS = [
   // zuidoosten en dan mee met het oost-westdeel tot aan de Molenkrite. Hij ligt
   // ongeveer veertien meter uit de wegas, met gras ervoor en erachter.
   { w: 8.5, pts: [[-168,884],[-158,950],[-148,1020],[-132,1090],[-108,1150],[-72,1200],[-30,1240],[14,1276],[44,1300]] },
-  // langs het oost-westdeel is het een smalle sloot van zes meter
-  { w: 6.0, pts: [[14,1276],[44,1300],[81,1342],[118,1375],[156,1391],[236,1401],[300,1412]] },
+  // langs het oost-westdeel verbreedt hij tot een langgerekte plas en houdt
+  // hij op ruim voor de Molenkrite; daarachter begint het bosje met de vijver
+  { w: 9.0, pts: [[14,1276],[44,1300],[81,1342],[125,1385],[170,1394],[215,1400],[252,1408]] },
   // Zijtak achter het parkje, richting de achtertuinen van Kruirad
   { w: 6.5, pts: [[-30,1240],[10,1225],[46,1230],[70,1252]] },
 ];
@@ -154,9 +158,10 @@ export const WATERWAYS = [
 export const WOODS = [
   [[-140,860],[-40,870],[-30,1000],[-40,1100],[-60,1200],[-90,1260],[-140,1240],[-180,1180],[-185,1000],[-170,900]],  // rond de vijver De Wieken
   [[-190,600],[520,340],[560,400],[100,720],[-40,780],[-180,820]], // Tinga Parkje noord
-  [[335,1295],[560,1455],[330,1450]], // groene driehoek Jasker
-  // bomen en struiken achter de watergang aan de noordzijde van De Wieken
-  [[90,1300],[150,1325],[240,1338],[320,1348],[330,1300],[240,1290],[150,1280],[95,1258]],
+  // bosje met vijver tussen Molenkrite, Jasker en De Wieken: dicht bos
+  { dens: 45, poly: [[335,1295],[470,1330],[560,1455],[330,1450]] },
+  // dichte bomenstrook tussen de achtertuinen van het Kruirad en De Wieken
+  { dens: 55, poly: [[90,1300],[150,1325],[240,1345],[318,1352],[330,1290],[240,1275],[150,1268],[95,1252]] },
   [[520,1700],[960,1770],[960,1790],[520,1735]], // bomen langs Bonkelaar-sloot
   [[1080,1000],[1230,1000],[1230,1400],[1090,1420]], // groen oostzijde
 ];
@@ -177,13 +182,6 @@ export const PARKS = [
     treeLine: { pts: [[-112,1166],[-82,1198],[-50,1230],[-16,1260],[16,1290]], spacing: 11, scale: 1.9 },
     benches: [[-92,1200],[-18,1262]],
     trees: 14, shrubs: 18,
-  },
-  {
-    name: 'Groene driehoek Jasker',
-    poly: [[338,1300],[540,1452],[336,1450]],
-    path: [[344,1318],[400,1372],[452,1420],[510,1446]],
-    benches: [[398,1400]],
-    trees: 16, shrubs: 14,
   },
 ];
 
