@@ -39,6 +39,14 @@ export function propMaterials() {
   M.grijsPlastic = mat(0x6d7278, 0.85);
   M.kunstgras = mat(0x4f7c3a, 1);
   M.zand = mat(0xd9c9a0, 1);
+  M.grind = mat(0xb9b3a8, 1);
+  M.houtGrijs = mat(0x9a927f, 1);
+  M.bladLicht = mat(0x6f9c42, 1);
+  M.bladRood = mat(0x8c5a3a, 1);
+  M.bladWijn = mat(0x6b2b33, 1);
+  M.bladPaars = mat(0x8a3a3f, 1);
+  M.haagWarm = mat(0x5b7434, 1);
+  M.groenDonker = mat(0x2b3a30, 0.92);
   M.klaar = true;
   return M;
 }
@@ -390,9 +398,179 @@ def('vijverrand', 'Rietpol', 'groen', [1.0, 1.0], 1.4, () => {
   return bouw(d);
 });
 
+
+// ===== hagen en hekken (naar de foto's uit de wijk) =====
+def('haag_hoog', 'Hoge beukenhaag (3 m)', 'hek', [3.0, 0.95], 1.9, () => bouw([
+  doos(3.0, 1.78, 0.9, M.haagWarm, 0, 0.89, 0),        // dichte, rossig-groene haag
+  doos(2.94, 0.16, 0.84, M.bladDonker, 0, 1.80, 0),    // donkerder geschoren bovenkant
+  doos(3.1, 0.14, 0.26, M.blad, 0, 0.07, 0.5),         // pol gras aan de voet
+]));
+
+def('haag_laag', 'Lage haag (3 m)', 'hek', [3.0, 0.5], 0.55, () => bouw([
+  doos(3.0, 0.5, 0.45, M.blad, 0, 0.25, 0),
+  doos(2.9, 0.08, 0.38, M.bladDonker, 0, 0.51, 0),
+]));
+
+def('kastanjehek', 'Kastanjehouten hek (3 m)', 'hek', [3.0, 0.12], 1.25, () => {
+  const d = [];
+  const r = rng(31);
+  for (const x of [-1.45, 0, 1.45]) d.push(doos(0.09, 1.25, 0.09, M.houtGrijs, x, 0.62, 0));
+  // ruwe, ongelijke palen met wat speling, zoals op de foto
+  for (let i = 0; i <= 22; i++) {
+    const x = -1.5 + i * 0.136;
+    const h = 0.95 + r() * 0.3;
+    const kant = (r() - 0.5) * 0.07;
+    d.push(doos(0.045 + r() * 0.02, h, 0.045, M.houtGrijs, x, h / 2, kant, (r() - 0.5) * 0.06));
+  }
+  for (const y of [0.35, 0.95]) d.push(doos(2.98, 0.035, 0.03, M.staalDonker, 0, y, 0.045));
+  return bouw(d);
+});
+
+def('paalhek', 'Paalhek met liggers (3 m)', 'hek', [3.0, 0.1], 0.8, () => {
+  const d = [];
+  for (const x of [-1.5, 0, 1.5]) d.push(doos(0.08, 0.8, 0.08, M.houtDonker, x, 0.4, 0));
+  for (const y of [0.42, 0.7]) d.push(doos(3.0, 0.10, 0.045, M.houtLicht, 0, y, 0));
+  return bouw(d);
+});
+
+def('hekje_bruin', 'Bruin tuinhekje (3 m)', 'hek', [3.0, 0.08], 0.75, () => {
+  const d = [];
+  for (const y of [0.66, 0.36]) d.push(doos(3.0, 0.055, 0.04, M.houtDonker, 0, y, 0));
+  for (let i = 0; i <= 11; i++) d.push(doos(0.055, 0.72, 0.04, M.houtDonker, -1.5 + i * 0.273, 0.38, 0));
+  return bouw(d);
+});
+
+def('schutting_donker', 'Donkere schutting (3 m)', 'hek', [3.0, 0.16], 1.9, () => {
+  const d = [doos(0.10, 1.9, 0.12, M.zwart, -1.5, 0.95, 0), doos(0.10, 1.9, 0.12, M.zwart, 1.5, 0.95, 0)];
+  for (let i = 0; i < 10; i++) d.push(doos(2.92, 0.18, 0.045, M.groenDonker, 0, 0.12 + i * 0.19, 0));
+  return bouw(d);
+});
+
+def('poortje', 'Tuinpoortje', 'hek', [1.1, 0.14], 1.85, () => {
+  const d = [doos(0.11, 1.85, 0.11, M.houtDonker, -0.55, 0.92, 0), doos(0.11, 1.85, 0.11, M.houtDonker, 0.55, 0.92, 0)];
+  for (let i = 0; i < 8; i++) d.push(doos(0.98, 0.17, 0.04, M.plank, 0, 0.16 + i * 0.195, 0.02));
+  d.push(doos(0.06, 0.06, 0.05, M.staal, 0.42, 1.0, -0.05));
+  return bouw(d);
+});
+
+def('betonpaaltje', 'Betonnen paaltje', 'hek', [0.34, 0.34], 0.45, () => bouw([
+  cil(0.15, 0.17, 0.42, M.beton, 0, 0.21, 0, 12),
+  cil(0.15, 0.13, 0.06, M.betonDonker, 0, 0.44, 0, 12),
+]));
+
+// ===== bij de woning =====
+def('aanbouw', 'Aanbouw met plat dak', 'erf', [3.4, 2.6], 2.6, () => bouw([
+  doos(3.4, 2.35, 2.6, M.baksteenGeel, 0, 1.17, 0),
+  doos(3.6, 0.14, 2.8, M.beton, 0, 2.42, 0),
+  doos(0.95, 2.05, 0.06, M.blauw, 0.95, 1.02, -1.32),      // blauwe deur
+  doos(0.75, 0.6, 0.05, M.glas, -0.75, 1.55, -1.32),
+  doos(0.85, 0.7, 0.03, M.wit, -0.75, 1.55, -1.35),        // wit kozijn
+  doos(3.5, 0.28, 0.06, M.baksteen, 0, 0.14, -1.31),       // donkere plint
+]));
+
+def('luifel', 'Luifel boven de deur', 'erf', [2.2, 0.9], 2.5, () => bouw([
+  doos(2.2, 0.16, 0.9, M.wit, 0, 2.4, -0.35),
+  doos(2.2, 0.10, 0.10, M.wit, 0, 2.3, -0.78),
+  doos(0.09, 2.4, 0.09, M.wit, -1.0, 1.2, -0.72),
+  doos(0.09, 2.4, 0.09, M.wit, 1.0, 1.2, -0.72),
+]));
+
+def('meterkast', 'Meterkastje aan de gevel', 'erf', [0.4, 0.2], 0.75, () => bouw([
+  doos(0.38, 0.5, 0.18, M.wit, 0, 0.95, 0),
+  doos(0.34, 0.44, 0.02, M.grijsPlastic, 0, 0.95, -0.10),
+]));
+
+def('verhoogde_bak', 'Verhoogde plantenbak', 'groen', [2.6, 0.8], 0.6, () => {
+  const d = [];
+  for (let i = 0; i < 3; i++) d.push(doos(2.6, 0.16, 0.09, M.houtLicht, 0, 0.09 + i * 0.17, -0.36));
+  for (let i = 0; i < 3; i++) d.push(doos(2.6, 0.16, 0.09, M.houtLicht, 0, 0.09 + i * 0.17, 0.36));
+  for (const x of [-1.3, 1.3]) d.push(doos(0.09, 0.52, 0.8, M.houtDonker, x, 0.26, 0));
+  d.push(doos(2.5, 0.06, 0.7, M.zand, 0, 0.5, 0));
+  d.push(bol(0.35, M.blad, -0.7, 0.62, 0, 1.3, 0.6, 1.1));
+  d.push(bol(0.35, M.blad, 0.6, 0.62, 0.05, 1.3, 0.6, 1.1));
+  return bouw(d);
+});
+
+def('grindtuin', 'Grindvak', 'erf', [2.4, 1.6], 0.1, () => bouw([
+  doos(2.4, 0.08, 1.6, M.grind, 0, 0.04, 0),
+  doos(2.5, 0.12, 0.08, M.beton, 0, 0.06, -0.82),
+  doos(2.5, 0.12, 0.08, M.beton, 0, 0.06, 0.82),
+]));
+
+// ===== bomen uit de foto's van het groen =====
+def('treurwilg', 'Treurwilg', 'groen', [1.2, 1.2], 8.0, () => {
+  const d = [cil(0.20, 0.34, 4.0, M.houtGrijs, 0, 2.0, 0, 7)];
+  const r = rng(77);
+  // brede, platte kruin met daaronder afhangende twijgen
+  d.push(bol(2.3, M.bladLicht, 0, 4.9, 0, 1.15, 0.55, 1.15));
+  d.push(bol(1.6, M.blad, 0.4, 5.5, -0.3, 1.0, 0.5, 1.0));
+  // slierten die tot vlak boven het gras hangen
+  for (let i = 0; i < 40; i++) {
+    const a = r() * 6.283;
+    const rad = 0.7 + r() * 1.9;
+    const len = 2.4 + r() * 1.9;
+    const top = 4.8 - (rad / 2.6) * 0.9;
+    const g = new THREE.CylinderGeometry(0.09, 0.02, len, 5);
+    g.translate(0, -len / 2, 0);                       // hangt vanaf de kruinrand
+    g.translate(Math.cos(a) * rad, top, Math.sin(a) * rad);
+    d.push({ g, m: r() < 0.5 ? M.bladLicht : M.blad });
+  }
+  return bouw(d);
+});
+
+def('esdoorn_rood', 'Rode esdoorn', 'groen', [0.6, 0.6], 7.5, () => bouw([
+  cil(0.10, 0.19, 4.6, M.houtDonker, 0, 2.3, 0, 7),
+  cil(0.05, 0.08, 1.5, M.houtDonker, 0.35, 4.9, 0.15, 5, 0, 0.5),
+  cil(0.05, 0.08, 1.5, M.houtDonker, -0.35, 4.9, -0.15, 5, 0, -0.5),
+  bol(1.30, M.bladWijn, 0, 5.7, 0, 1.05, 0.95, 1.05),
+  bol(0.95, M.bladWijn, 0.6, 6.4, -0.25),
+  bol(0.85, M.bladPaars, -0.55, 6.1, 0.45),
+  bol(0.75, M.bladPaars, 0.15, 5.2, 0.8),
+]));
+
+def('jonge_boom', 'Jonge boom met boompaal', 'groen', [0.5, 0.5], 5.0, () => bouw([
+  cil(0.06, 0.09, 3.4, M.houtDonker, 0, 1.7, 0, 6),
+  bol(0.95, M.bladLicht, 0, 3.8, 0, 0.85, 1.2, 0.85),
+  cil(0.045, 0.045, 1.9, M.houtLicht, -0.28, 0.95, 0, 6),
+  cil(0.045, 0.045, 1.9, M.houtLicht, 0.28, 0.95, 0, 6),
+  doos(0.62, 0.05, 0.04, M.houtLicht, 0, 1.8, 0),
+  doos(0.58, 0.03, 0.03, M.zwart, 0, 1.55, 0),
+]));
+
+def('kale_boom', 'Kale boom (winter)', 'groen', [0.7, 0.7], 9.0, () => {
+  const d = [cil(0.16, 0.30, 4.8, M.houtGrijs, 0, 2.4, 0, 7)];
+  const r = rng(53);
+  // takken schuin omhoog vanaf verschillende hoogtes, elk met twee zijtakken
+  for (let i = 0; i < 7; i++) {
+    const a = i / 7 * 6.283 + r() * 0.5;
+    const hel = 0.45 + r() * 0.35;
+    const len = 2.4 + r() * 1.5;
+    const y0 = 3.4 + r() * 1.4;
+    // voet in de oorsprong, dan pas kantelen en draaien: zo groeien de takken
+    // echt vanaf de stam omhoog naar buiten
+    const tak = (r1, r2, l, kant, hoek, hy) => {
+      const g = new THREE.CylinderGeometry(r1, r2, l, 5);
+      g.translate(0, l / 2, 0);
+      g.rotateZ(kant); g.rotateY(hoek); g.translate(0, hy, 0);
+      return { g, m: M.houtGrijs };
+    };
+    d.push(tak(0.035, 0.09, len, hel, a, y0));
+    const tx = Math.sin(hel) * len, ty = y0 + Math.cos(hel) * len;
+    for (const k of [-1, 1]) {
+      const len2 = 1.0 + r() * 1.0;
+      const g2 = new THREE.CylinderGeometry(0.015, 0.035, len2, 4);
+      g2.translate(0, len2 / 2, 0);
+      g2.rotateZ(hel + k * 0.4); g2.rotateY(a + k * 0.35);
+      g2.translate(Math.sin(a) * tx * 0.85, ty * 0.98, Math.cos(a) * tx * 0.85);
+      d.push({ g: g2, m: M.houtGrijs });
+    }
+  }
+  return bouw(d);
+});
+
 // ---------- publiek ----------
 export const PROP_TYPES = LIB;
-export const PROP_GROEPEN = ['erf', 'straat', 'groen', 'spelen'];
+export const PROP_GROEPEN = ['erf', 'hek', 'straat', 'groen', 'spelen'];
 
 // Elke keer opnieuw opbouwen: een gedeelde geometrie zou bij het opruimen van
 // de wereld weggegooid worden terwijl een ander exemplaar hem nog gebruikt.

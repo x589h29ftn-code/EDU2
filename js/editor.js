@@ -254,6 +254,32 @@ export function initEditor(ctx) {
     herbouw(true);
   }
 
+  // ---------- stijl per rij ----------
+  function basisStijl(r) { return HOUSE_STYLES[r.type] || {}; }
+
+  function schakel(r, veld) {
+    const nu = r.stijl && veld in r.stijl ? r.stijl[veld] : !!basisStijl(r)[veld];
+    r.stijl = { ...(r.stijl || {}), [veld]: !nu };
+    // valt de waarde samen met het type, dan mag de uitzondering weer weg
+    if (r.stijl[veld] === !!basisStijl(r)[veld]) delete r.stijl[veld];
+    if (r.stijl && !Object.keys(r.stijl).length) delete r.stijl;
+  }
+
+  function zetLagen(r, d) {
+    const nu = (r.stijl && r.stijl.storeys) || basisStijl(r).storeys || 2;
+    const nieuw = Math.max(1, Math.min(4, nu + d));
+    r.stijl = { ...(r.stijl || {}), storeys: nieuw };
+    if (nieuw === basisStijl(r).storeys) { delete r.stijl.storeys; if (!Object.keys(r.stijl).length) delete r.stijl; }
+  }
+
+  function stijlTekst(r) {
+    const b = basisStijl(r);
+    const aan = (veld) => (r.stijl && veld in r.stijl ? r.stijl[veld] : !!b[veld]);
+    const merk = (veld, tekst) => `<span class="${aan(veld) ? 'aanv' : 'uitv'}">${tekst}</span>`;
+    const lagen = (r.stijl && r.stijl.storeys) || b.storeys || 2;
+    return `${merk('dormer', 'dakkapel')} ${merk('skylight', 'dakraam')} ${merk('solar', 'zonnepanelen')} ${merk('chimney', 'schoorsteen')} · ${lagen} ${lagen === 1 ? 'laag' : 'lagen'}`;
+  }
+
   // ---------- objecten ----------
   function nieuwObject() {
     const p = vizierOpGrond(); if (!p) return;
@@ -375,7 +401,7 @@ export function initEditor(ctx) {
          a ${Math.round(r.a[0])},${Math.round(r.a[1])} &nbsp; b ${Math.round(r.b[0])},${Math.round(r.b[1])}<br>
          afstand tot wegas ${r.off.toFixed(1)} m &nbsp; diepte ${r.depth.toFixed(1)} m
          &nbsp; lengte ${(Math.hypot(r.b[0] - r.a[0], r.b[1] - r.a[1]) / PX_PER_M).toFixed(1)} m
-         ${r.flip ? '&nbsp; <i>omgedraaid</i>' : ''}`
+         ${r.flip ? '&nbsp; <i>omgedraaid</i>' : ''}<br>${stijlTekst(r)}`
       : '<i>niets geselecteerd – richt het vizier op een huis en klik</i>';
     paneel.innerHTML = `
       <div class="kop">WIJKEDITOR · HUIZENRIJEN ${grijpen ? '· <span class="g">verplaatsen</span>' : ''}</div>
@@ -386,6 +412,7 @@ export function initEditor(ctx) {
         <tr><td>pijltjes</td><td>1 px verschuiven (shift = 5)</td><td>[ ]</td><td>draaien</td></tr>
         <tr><td>, .</td><td>dichter bij / verder van de weg</td><td>- =</td><td>korter / langer</td></tr>
         <tr><td>9 0</td><td>diepte</td><td>T / shift+T</td><td>woningtype</td></tr>
+        <tr><td>K L Z H</td><td>dakkapel · dakraam · zonnepanelen · schoorsteen</td><td>V B</td><td>minder / meer lagen</td></tr>
         <tr><td>F</td><td>gevel omdraaien</td><td>N</td><td>nieuwe rij op het vizier</td></tr>
         <tr><td>Del</td><td>rij weghalen</td><td>Ctrl+D</td><td>rij aan de overkant</td></tr>
         <tr><td>Ctrl+Z</td><td>ongedaan maken</td><td>Ctrl+S</td><td>opslaan naar rows.user.js</td></tr>
@@ -516,6 +543,14 @@ export function initEditor(ctx) {
         laatsteType = r.type; break;
       }
       case 'KeyF': r.flip = !r.flip; break;
+      // dakkapel, dakraam, zonnepanelen, schoorsteen en het aantal lagen
+      // los van het woningtype aan- of uitzetten
+      case 'KeyK': schakel(r, 'dormer'); break;
+      case 'KeyL': schakel(r, 'skylight'); break;
+      case 'KeyZ': schakel(r, 'solar'); break;
+      case 'KeyH': schakel(r, 'chimney'); break;
+      case 'KeyV': zetLagen(r, -1); break;
+      case 'KeyB': zetLagen(r, 1); break;
       case 'Delete': case 'Backspace': verwijder(); return;
       default: veranderd = false;
     }

@@ -260,6 +260,12 @@ export const HOUSE_STYLES = {
   appart:     { brick: ['#d6c08c', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2b2b2b'], roof: '#555', roofType: 'flat', storeys: 3, w: 7.0, dormer: false, chimney: false, band: '#f2f2f2', balcony: true },
   bovenas_bung:{ brick: ['#d3c39a', '#e4dcc8'], frame: '#ffffff', frame2: '#8c1f2a', door: ['#8c1f2a', '#7a1a24'], roof: '#453833', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, chimney: true, band: '#f4f4f4' },
   bovenas_gal: { brick: ['#d6c69e', '#e6dfcb'], frame: '#ffffff', frame2: '#8c1f2a', door: ['#8c1f2a', '#7a1a24'], roof: '#453833', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, skylight: true, chimney: true, gallery: true, band: '#f4f4f4' },
+  // Uit de street-viewfoto's: bruine steen met donkergroene kozijnen en een
+  // witte luifelband boven deur en raam (hoekwoning met parkeerkoffer).
+  tinga_groen:{ brick: ['#9a6a53', '#c9beac'], frame: '#1f4230', frame2: '#1f4230', door: ['#1f4230', '#17351f'], roof: '#4a3f37', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#f4f4f4' },
+  // Gele steen met felblauwe kozijnen en een brede raamband, zoals aan het pad
+  // achter het Kruirad.
+  tinga_blauw:{ brick: ['#c9bb96', '#ded6c2'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#4a3b30', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#ffffff' },
   spil:       { brick: ['#b57a5a', '#d0c6b8'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b'], roof: '#555', roofType: 'flat', storeys: 1, w: 8.0, dormer: false, chimney: false, band: '#2b2b2b' },
 };
 
