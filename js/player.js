@@ -14,6 +14,9 @@ export class Player {
     this.vy = 0; this.onGround = true;
     this.eye = 1.7;
     this.keys = {};
+    // analoge loopinvoer van de touch-joystick: x = zijwaarts, y = vooruit
+    this.moveAxis = { x: 0, y: 0 };
+    this.sprint = false;
     this.inCar = null;
     this.health = 100;
     this.ammo = 12; this.reserve = 60; this.reloading = 0;
@@ -54,6 +57,8 @@ export class Player {
     window.addEventListener('keydown', e => {
       this.keys[e.code] = true;
       if (e.code === 'KeyR') this.reload();
+      // meteen springen, zodat een korte tik nooit tussen twee beelden valt
+      if (e.code === 'Space' && this.active) this.jump();
       // scrollen met de spatiebalk voorkomen zodra het spel loopt
       if (this.active && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
     });
@@ -64,10 +69,7 @@ export class Player {
     document.addEventListener('mousemove', e => {
       if (!this.active) return;
       if (!this.pointerLocked && !this.dragging) return;
-      const k = this.pointerLocked ? 0.0022 : 0.0032;
-      this.yaw -= e.movementX * k;
-      this.pitch -= e.movementY * k;
-      this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch));
+      this.lookBy(e.movementX, e.movementY, this.pointerLocked ? 0.0022 : 0.0032);
       if (this.dragging) this.dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
     });
     document.addEventListener('mousedown', e => {
@@ -84,6 +86,29 @@ export class Player {
     document.addEventListener('pointerlockchange', () => {
       this.pointerLocked = document.pointerLockElement != null;
     });
+  }
+
+  jump() {
+    if (this.inCar || !this.onGround) return;
+    this.vy = 4.6; this.onGround = false;
+  }
+
+  // Rondkijken vanuit muis of touch: dx/dy in schermpixels.
+  lookBy(dx, dy, k = 0.0032) {
+    this.yaw -= dx * k;
+    this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch - dy * k));
+  }
+
+  // Stuurinvoer voor de auto: toetsen plus de touch-joystick.
+  driveInput() {
+    const a = this.moveAxis;
+    if (!a.x && !a.y) return this.keys;
+    const k = Object.assign({}, this.keys);
+    if (a.y > 0.30) k.KeyW = true;
+    if (a.y < -0.30) k.KeyS = true;
+    if (a.x > 0.35) k.KeyD = true;
+    if (a.x < -0.35) k.KeyA = true;
+    return k;
   }
 
   reload() {
@@ -119,7 +144,8 @@ export class Player {
     if (this.inCar) return; // camera wordt door de auto bestuurd
 
 
-    const speed = (this.keys.ShiftLeft || this.keys.ShiftRight) ? 7.5 : 4.2;
+    const running = this.keys.ShiftLeft || this.keys.ShiftRight || this.sprint;
+    const speed = running ? 7.5 : 4.2;
     const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const r = new THREE.Vector3(-f.z, 0, f.x);
     const move = new THREE.Vector3();
@@ -127,7 +153,11 @@ export class Player {
     if (this.keys.KeyS || this.keys.ArrowDown) move.sub(f);
     if (this.keys.KeyD || this.keys.ArrowRight) move.add(r);
     if (this.keys.KeyA || this.keys.ArrowLeft) move.sub(r);
-    if (move.lengthSq() > 0) move.normalize().multiplyScalar(speed * dt);
+    // touch-joystick: analoog, dus een halve uitslag loopt ook half zo snel
+    if (this.moveAxis.y) move.addScaledVector(f, this.moveAxis.y);
+    if (this.moveAxis.x) move.addScaledVector(r, this.moveAxis.x);
+    if (move.lengthSq() > 1) move.normalize();
+    move.multiplyScalar(speed * dt);
 
     let nx = this.pos.x + move.x, nz = this.pos.z + move.z;
     [nx, nz] = resolveCollisions(nx, nz, 0.35);
@@ -137,7 +167,7 @@ export class Player {
     this.pos.x = nx; this.pos.z = nz;
 
     // springen / zwaartekracht
-    if ((this.keys.Space) && this.onGround) { this.vy = 4.6; this.onGround = false; }
+    if (this.keys.Space) this.jump();
     this.vy -= 12 * dt; this.pos.y += this.vy * dt;
     if (this.pos.y <= 0) { this.pos.y = 0; this.vy = 0; this.onGround = true; }
 
