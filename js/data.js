@@ -127,6 +127,8 @@ export const WATER = [
   [[-190,880],[0,845],[150,750],[320,625],[450,548],[520,490],[532,505],[462,562],[332,640],[162,765],[8,862],[-188,896]],
   // Sloot langs Bonkelaar (noordzijde)
   [[520,1725],[700,1758],[900,1770],[965,1790],[963,1802],[898,1783],[698,1772],[518,1739]],
+  // Vijver in het parkje tegenover De Wieken, met de achtertuinen van Kruirad erachter
+  [[-32,1178],[10,1210],[38,1252],[44,1288],[6,1298],[-22,1262],[-44,1218],[-46,1192]],
   // Vijvertje in de groene driehoek bij Jasker
   [[430,1395],[470,1390],[490,1420],[470,1445],[435,1440],[420,1418]],
   // Sloot oostzijde (bij De Spil)
@@ -148,6 +150,24 @@ export const WOODS = [
 export const GRASS = [
   [[760,1365],[880,1365],[880,1470],[760,1470]], // speelveld Spinnekop
   [[1030,1000],[1170,1005],[1170,1150],[1040,1140]], // braakliggend / De Spil
+];
+
+// Parkjes met gemaaid gras, een slingerend tegelpad, bomen, struiken en bankjes.
+export const PARKS = [
+  {
+    name: 'Parkje De Wieken',
+    poly: [[-122,1160],[-58,1112],[18,1188],[62,1262],[70,1300],[14,1330],[-40,1288]],
+    path: [[-116,1186],[-88,1214],[-56,1244],[-22,1272],[8,1300],[26,1318]],
+    benches: [[-92,1206],[-18,1266]],
+    trees: 26, shrubs: 22,
+  },
+  {
+    name: 'Groene driehoek Jasker',
+    poly: [[338,1300],[540,1452],[336,1450]],
+    path: [[344,1318],[400,1372],[452,1420],[510,1446]],
+    benches: [[398,1400]],
+    trees: 18, shrubs: 14,
+  },
 ];
 
 // Speeltuin

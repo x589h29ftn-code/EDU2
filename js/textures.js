@@ -200,9 +200,9 @@ export function water() {
   if (cache.has('water')) return cache.get('water');
   const c = canvas(256, 256); const g = c.getContext('2d');
   const r = rng(51);
-  g.fillStyle = '#3d5e4a'; g.fillRect(0, 0, 256, 256);
+  g.fillStyle = '#6d8f92'; g.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 400; i++) {
-    g.strokeStyle = `rgba(200,220,230,${0.05 + r() * 0.12})`;
+    g.strokeStyle = `rgba(225,240,248,${0.10 + r() * 0.22})`;
     g.lineWidth = 1 + r() * 2;
     const x = r() * 256, y = r() * 256;
     g.beginPath(); g.moveTo(x, y); g.lineTo(x + 10 + r() * 30, y + (r() - 0.5) * 4); g.stroke();

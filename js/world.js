@@ -1,6 +1,6 @@
 // Wereldopbouw: wegen, stoepen, parkeervakken, water, groen, huizen, straatmeubilair.
 import * as THREE from 'three';
-import { ROADS, HIGHWAY, WATER, WOODS, GRASS, ROWS, PARKING_LOTS, PLAYGROUND, toWorld } from './data.js';
+import { ROADS, HIGHWAY, WATER, WOODS, GRASS, ROWS, PARKS, PARKING_LOTS, PLAYGROUND, toWorld } from './data.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
 
@@ -67,6 +67,9 @@ function polygonGeom(pts2, y, uvScale = 0.5) {
   g.translate(0, y, 0);
   const uv = g.attributes.uv; const p = g.attributes.position;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, p.getX(i) * uvScale, p.getZ(i) * uvScale);
+  const nor = g.attributes.normal;
+  for (let i = 0; i < nor.count; i++) nor.setXYZ(i, 0, 1, 0);   // vlak op de grond: altijd omhoog
+  nor.needsUpdate = true;
   return g;
 }
 
@@ -98,7 +101,7 @@ function materials() {
   MAT.snelweg = std(T.asphalt());
   MAT.tiles = std(T.tiles());
   MAT.grass = std(T.grass());
-  MAT.water = new THREE.MeshStandardMaterial({ map: T.water(), color: 0x7fb0c0, roughness: 0.3, metalness: 0.0, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+  MAT.water = new THREE.MeshStandardMaterial({ map: T.water(), color: 0xa8cfd6, roughness: 0.25, metalness: 0.05, transparent: true, opacity: 0.94, side: THREE.DoubleSide });
   MAT.hedge = std(T.hedge());
   MAT.curb = new THREE.MeshStandardMaterial({ color: 0x9a9890, roughness: 0.9 });
   MAT.trunk = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 });
@@ -116,6 +119,16 @@ function materials() {
   MAT.play = new THREE.MeshStandardMaterial({ color: 0xd8342a, roughness: 0.6 });
   MAT.play2 = new THREE.MeshStandardMaterial({ color: 0x2a6bd8, roughness: 0.6 });
   MAT.fence = new THREE.MeshStandardMaterial({ color: 0x6b5236, roughness: 1 });
+  MAT.picket = new THREE.MeshStandardMaterial({ color: 0x9a8562, roughness: 1 });
+  MAT.hedgeRed = new THREE.MeshStandardMaterial({ map: T.hedge(), color: 0xa4563f, roughness: 1 });
+  MAT.conifer = new THREE.MeshStandardMaterial({ color: 0x2c4a24, roughness: 1 });
+  MAT.shrubA = new THREE.MeshStandardMaterial({ color: 0x5c8a34, roughness: 1 });
+  MAT.shrubB = new THREE.MeshStandardMaterial({ color: 0x86963a, roughness: 1 });
+  MAT.shrubC = new THREE.MeshStandardMaterial({ color: 0x8e5a48, roughness: 1 });
+  MAT.gravel = new THREE.MeshStandardMaterial({ color: 0x9c968a, roughness: 1 });
+  MAT.reed = new THREE.MeshStandardMaterial({ color: 0x6f8a3e, roughness: 1 });
+  MAT.bench = new THREE.MeshStandardMaterial({ color: 0x7a5f3c, roughness: 0.9 });
+  MAT.parkGrass = new THREE.MeshStandardMaterial({ map: T.grass(), color: 0xc8e6a0, roughness: 1, side: THREE.DoubleSide });
 }
 
 // ---------- Wegen ----------
@@ -321,6 +334,8 @@ function pointInPoly(p, poly) {
   return inside;
 }
 const waterPolys = [];
+const parkPolys = [];
+function inPark(p) { return parkPolys.some(poly => pointInPoly(p, poly)); }
 function inWater(p) { return waterPolys.some(poly => pointInPoly(p, poly)); }
 export function nearRoad(p, margin) {
   for (const s of roadSegments) {
@@ -408,7 +423,8 @@ function distToNearestRoadEdge(px, pz) {
 }
 function blocked(px, pz, margin, skipUnit = null) {
   if (roadClearance(px, pz) < margin) return true;
-  if (inWater(new THREE.Vector2(px, pz))) return true;
+  const v = new THREE.Vector2(px, pz);
+  if (inWater(v) || inPark(v)) return true;
   for (const u of units) { if (u !== skipUnit && pointInUnit(px, pz, u, margin)) return true; }
   return false;
 }
@@ -452,7 +468,9 @@ function buildRow(scene, row, idx) {
     let best = null, bd = 1e9;
     for (const sgm of roadSegments) { if (sgm.w === 0) continue; const d = distToSeg(px, pz, sgm.a[0], sgm.a[1], sgm.b[0], sgm.b[1]) - sgm.corr; if (d < bd) { bd = d; best = sgm.name; } }
     if (bd < margin) return `weg ${best} (${bd.toFixed(1)} m)`;
-    if (inWater(new THREE.Vector2(px, pz))) return 'water';
+    const vv = new THREE.Vector2(px, pz);
+    if (inWater(vv)) return 'water';
+    if (inPark(vv)) return 'parkje';
     const u = units.find(u => pointInUnit(px, pz, u, margin)); if (u) return `woning rij ${u.rowIdx}`;
     return 'stoep';
   };
@@ -575,12 +593,13 @@ function buildRow(scene, row, idx) {
   rowBuilds.push({ row, st, runs, group, depth, toWorldLocal, facadeH });
 }
 
-// Fase 2: tuinen – alleen waar ruimte is (geen wegen, water of andere woningen)
+// Fase 2: tuinen. Elke woning krijgt een eigen voortuintje: het ene met een lage
+// heg, het andere met een houten kruishekje, een conifeer of gewoon gras met
+// wat struiken. De diepte volgt de werkelijk beschikbare ruimte tot het trottoir.
 function buildGardens() {
   for (const rb of rowBuilds) {
     const { row, st, runs, group, depth, toWorldLocal } = rb;
     for (const run of runs) {
-      // beschikbare diepte achter het blok
       let backAvail = 9.5;
       for (let x = run.cx - run.len / 2 + 1; x <= run.cx + run.len / 2 - 1; x += 2.5) {
         for (let k = 0.8; k <= 9.5; k += 0.5) {
@@ -588,31 +607,96 @@ function buildGardens() {
           if (blocked(p.x, p.y, 0.3, run.unit)) { backAvail = Math.min(backAvail, k - 0.6); break; }
         }
       }
-      // beschikbare diepte vóór het blok (tot de stoep)
-      let frontAvail = 5.2;
+      let frontAvail = 5.4;
       for (let x = run.cx - run.len / 2 + 1; x <= run.cx + run.len / 2 - 1; x += 2.5) {
-        for (let k = 0.6; k <= 5.4; k += 0.4) {
+        for (let k = 0.6; k <= 5.6; k += 0.4) {
           const p = toWorldLocal(x, depth / 2 + k);
           if (blocked(p.x, p.y, 0.2, run.unit)) { frontAvail = Math.min(frontAvail, k - 0.6); break; }
         }
       }
-      const unitCount = run.n;
-      if (row.type !== 'spil' && row.type !== 'appart' && frontAvail >= 1.4) {
-        const hedgeZ = depth / 2 + frontAvail;
-        const hedgeMat = new THREE.MeshStandardMaterial({ map: T.hedge().clone(), roughness: 1 });
-        hedgeMat.map.needsUpdate = true; hedgeMat.map.repeat.set(run.len / 1.2, 1);
-        const hedge = new THREE.Mesh(new THREE.BoxGeometry(run.len, 0.8, 0.45), hedgeMat);
-        hedge.position.set(run.cx, 0.4, hedgeZ); hedge.castShadow = true;
-        group.add(hedge);
-        const paths = [], bushes = [];
-        for (let i = 0; i < unitCount; i++) {
-          const hx = run.cx - run.len / 2 + (run.len / unitCount) * (i + 0.5) + ((i % 2) ? 1.2 : -1.2);
-          const pg = new THREE.BoxGeometry(0.9, 0.03, frontAvail); pg.translate(hx, 0.02, depth / 2 + frontAvail / 2); paths.push(pg);
-          if (frontAvail > 2.2) { const bg = new THREE.SphereGeometry(0.5, 6, 5); bg.translate(hx + ((i % 2) ? -1.5 : 1.5), 0.4, depth / 2 + frontAvail * 0.5); bushes.push(bg); }
+
+      // ---------- voortuinen, per woning een eigen inrichting ----------
+      if (row.type !== 'spil' && row.type !== 'appart' && frontAvail >= 1.3) {
+        const r = rng(Math.round(Math.abs(run.unit.cx) * 31 + Math.abs(run.unit.cz) * 17) + 1);
+        const buckets = { tiles: [], picket: [], hedge: [], hedgeRed: [], conifer: [], shrubA: [], shrubB: [], shrubC: [], gravel: [], bench: [], trunk: [], leaf: [] };
+        const w = run.len / run.n;
+        const z0 = depth / 2;                     // gevellijn
+        const zEdge = z0 + frontAvail;            // erfgrens tegen het trottoir
+        for (let i = 0; i < run.n; i++) {
+          const hx = run.cx - run.len / 2 + w * (i + 0.5);
+          const style = Math.floor(r() * 5);
+          const doorLeft = (i % 2) === 0;
+          const doorX = hx + (doorLeft ? -w * 0.28 : w * 0.28);
+          // tegelpad van het trottoir naar de voordeur
+          const pathW = 1.0;
+          const pg = new THREE.BoxGeometry(pathW, 0.04, frontAvail);
+          pg.translate(doorX, 0.03, z0 + frontAvail / 2); buckets.tiles.push(pg);
+          // stoepje bij de deur
+          const st2 = new THREE.BoxGeometry(1.5, 0.10, 0.7); st2.translate(doorX, 0.05, z0 + 0.4); buckets.tiles.push(st2);
+
+          // erfafscheiding langs het trottoir, met een opening bij het pad
+          const gapA = doorX - pathW / 2 - hx, gapB = doorX + pathW / 2 - hx;
+          const segs = [[-w / 2 + 0.05, gapA], [gapB, w / 2 - 0.05]];
+          for (const [a, b] of segs) {
+            const segLen = b - a; if (segLen < 0.4) continue;
+            const cx2 = hx + (a + b) / 2;
+            if (style === 1) {           // houten kruishekje
+              const rail = new THREE.BoxGeometry(segLen, 0.06, 0.05);
+              rail.translate(cx2, 0.42, zEdge); buckets.picket.push(rail);
+              for (let t = a + 0.2; t < b; t += 0.42) {
+                const sl = new THREE.BoxGeometry(0.05, 0.5, 0.05); sl.translate(hx + t, 0.25, zEdge); buckets.picket.push(sl);
+              }
+            } else if (style === 2) {    // rode berberishaag
+              const h = new THREE.BoxGeometry(segLen, 0.55, 0.45); h.translate(cx2, 0.28, zEdge); buckets.hedgeRed.push(h);
+            } else if (style === 3) {    // open gazon, alleen een lage rand
+              const h = new THREE.BoxGeometry(segLen, 0.12, 0.25); h.translate(cx2, 0.06, zEdge); buckets.picket.push(h);
+            } else {                     // groene ligusterhaag
+              const h = new THREE.BoxGeometry(segLen, 0.72 + r() * 0.18, 0.5); h.translate(cx2, 0.36, zEdge); buckets.hedge.push(h);
+            }
+          }
+          if (frontAvail < 2.0) continue;
+          // beplanting in de voortuin
+          const side = doorLeft ? 1 : -1;
+          if (style === 4) {             // conifeer naast de deur
+            const c = new THREE.ConeGeometry(0.42, 2.1, 7);
+            c.translate(doorX + side * 1.1, 1.05, z0 + Math.min(1.2, frontAvail - 0.6)); buckets.conifer.push(c);
+          }
+          const nShrub = 1 + Math.floor(r() * 3);
+          for (let k = 0; k < nShrub; k++) {
+            const sx = hx + (r() - 0.5) * (w - 1.4);
+            const sz = z0 + 0.8 + r() * Math.max(0.4, frontAvail - 1.6);
+            if (Math.abs(sx - doorX) < 0.8) continue;
+            const rad = 0.32 + r() * 0.32;
+            const g = new THREE.SphereGeometry(rad, 6, 5);
+            g.scale(1, 0.75 + r() * 0.4, 1);
+            g.translate(sx, rad * 0.8, sz);
+            const b = r();
+            (b < 0.45 ? buckets.shrubA : b < 0.8 ? buckets.shrubB : buckets.shrubC).push(g);
+          }
+          if (r() < 0.16 && frontAvail > 3.0) {   // sierboompje
+            const tx = hx + (r() - 0.5) * (w - 2.0);
+            const tz = z0 + frontAvail * 0.55;
+            const tr = new THREE.CylinderGeometry(0.07, 0.09, 2.2, 5); tr.translate(tx, 1.1, tz); buckets.trunk.push(tr);
+            const lf = new THREE.SphereGeometry(0.85, 7, 6); lf.scale(1, 0.85, 1); lf.translate(tx, 2.5, tz); buckets.leaf.push(lf);
+          }
+          if (r() < 0.12 && frontAvail > 2.6) {   // bankje tegen de gevel
+            const bb = new THREE.BoxGeometry(1.4, 0.09, 0.42); bb.translate(hx + side * 1.2, 0.45, z0 + 0.75); buckets.bench.push(bb);
+            for (const dx2 of [-0.55, 0.55]) { const lg = new THREE.BoxGeometry(0.09, 0.42, 0.09); lg.translate(hx + side * 1.2 + dx2, 0.21, z0 + 0.75); buckets.bench.push(lg); }
+          }
+          if (r() < 0.18 && frontAvail > 2.2) {   // grindvak
+            const gv = new THREE.BoxGeometry(w * 0.5, 0.03, frontAvail * 0.5);
+            gv.translate(hx - side * w * 0.2, 0.025, z0 + frontAvail * 0.5); buckets.gravel.push(gv);
+          }
         }
-        group.add(new THREE.Mesh(mergeGeoms(paths), MAT.tiles));
-        if (bushes.length) { const bushMesh = new THREE.Mesh(mergeGeoms(bushes), MAT.leaf2); bushMesh.castShadow = true; group.add(bushMesh); }
+        const matOf = { tiles: MAT.tiles, picket: MAT.picket, hedge: MAT.hedge, hedgeRed: MAT.hedgeRed, conifer: MAT.conifer, shrubA: MAT.shrubA, shrubB: MAT.shrubB, shrubC: MAT.shrubC, gravel: MAT.gravel, bench: MAT.bench, trunk: MAT.trunk, leaf: MAT.leaf };
+        for (const key of Object.keys(buckets)) {
+          if (!buckets[key].length) continue;
+          const m = new THREE.Mesh(mergeGeoms(buckets[key]), matOf[key]);
+          m.castShadow = true; m.receiveShadow = true; group.add(m);
+        }
       }
+
+      // ---------- achtertuinen ----------
       if (backAvail >= 1.8 && row.type !== 'spil') {
         const parts = [];
         const f = new THREE.BoxGeometry(run.len, 1.8, 0.08); f.translate(run.cx, 0.9, -depth / 2 - backAvail); parts.push(f);
@@ -624,8 +708,6 @@ function buildGardens() {
             const sg = new THREE.BoxGeometry(2.2, 2.2, 2.2); sg.translate(hx, 1.1, -depth / 2 - backAvail + 1.3); parts.push(sg);
           }
         }
-        // tussenschotten tussen de percelen, zoals de schuttingen in de wijk
-        const per = Math.max(1, Math.round(run.len / (run.len / run.n)));
         for (let i = 1; i < run.n; i++) {
           const hx = run.cx - run.len / 2 + (run.len / run.n) * i;
           const fp = new THREE.BoxGeometry(0.07, 1.8, backAvail); fp.translate(hx, 0.9, -depth / 2 - backAvail / 2); parts.push(fp);
@@ -636,9 +718,79 @@ function buildGardens() {
   }
 }
 
+// ---------- Parkjes: gras, slingerend tegelpad, bomen, struiken, bankjes ----------
+function buildParks(scene) {
+  for (const park of PARKS) {
+    const poly = park.poly.map(vec);
+    const lawn = new THREE.Mesh(polygonGeom(poly, 0.025, 0.35), MAT.parkGrass);
+    lawn.receiveShadow = true; scene.add(lawn);
+    // wandelpad
+    const path = park.path.map(vec);
+    const pw = 1.6;
+    const pm = new THREE.Mesh(ribbon(path, pw, 0.05, 0, 0.8), MAT.tiles);
+    pm.receiveShadow = true; scene.add(pm);
+    for (let k = 0; k < path.length - 1; k++) {
+      roadSegments.push({ name: park.name, a: [path[k].x, path[k].y], b: [path[k + 1].x, path[k + 1].y], w: pw, corr: pw / 2 + 0.4, walkOff: 0, drive: false });
+    }
+    // bankjes langs het pad
+    for (const b of park.benches || []) {
+      const [bx, bz] = toWorld(b[0], b[1]);
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.09, 0.45), MAT.bench); seat.position.set(bx, 0.45, bz); seat.castShadow = true; scene.add(seat);
+      const rest = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.5, 0.08), MAT.bench); rest.position.set(bx, 0.72, bz - 0.2); scene.add(rest);
+      for (const dx of [-0.7, 0.7]) { const lg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.45, 0.1), MAT.bench); lg.position.set(bx + dx, 0.22, bz); scene.add(lg); }
+      addCollider(bx, bz, 0.9, 0.3, 0, 1);
+    }
+    // bomen en struiken verspreid over het gras, niet op het pad of in het water
+    const r = rng(park.name.length * 991 + poly.length * 7);
+    const bb = new THREE.Box2().setFromPoints(poly);
+    const onPath = (p) => { for (let k = 0; k < path.length - 1; k++) if (distToSeg(p.x, p.y, path[k].x, path[k].y, path[k + 1].x, path[k + 1].y) < 2.6) return true; return false; };
+    let placedT = 0, placedS = 0, guard = 0;
+    const shrubs = [];
+    while ((placedT < (park.trees || 0) || placedS < (park.shrubs || 0)) && guard++ < 4000) {
+      const p = new THREE.Vector2(bb.min.x + r() * (bb.max.x - bb.min.x), bb.min.y + r() * (bb.max.y - bb.min.y));
+      if (!pointInPoly(p, poly) || inWater(p) || onPath(p) || nearBuilding(p, 3)) continue;
+      if (placedT < (park.trees || 0) && r() < 0.55) {
+        if (nearRoad(p, 2.0)) continue;
+        treePositions.push({ x: p.x, z: p.y, s: 1.0 + r() * 0.7 }); placedT++;
+      } else if (placedS < (park.shrubs || 0)) {
+        const rad = 0.6 + r() * 0.9;
+        const g = new THREE.SphereGeometry(rad, 7, 5); g.scale(1.2, 0.7, 1.2); g.translate(p.x, rad * 0.62, p.y);
+        shrubs.push(g); placedS++;
+      }
+    }
+    if (shrubs.length) { const m = new THREE.Mesh(mergeGeoms(shrubs), MAT.shrubA); m.castShadow = true; scene.add(m); }
+  }
+}
+
+// ---------- Riet en oeverbegroeiing langs het water ----------
+function buildReeds(scene) {
+  const tufts = [];
+  const r = rng(4242);
+  for (const poly of waterPolys) {
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const len = a.distanceTo(b); if (len < 2) continue;
+      const d = b.clone().sub(a).normalize();
+      const nrm = new THREE.Vector2(d.y, -d.x);
+      for (let sPos = 0.4; sPos < len; sPos += 0.8) {
+        if (r() < 0.35) continue;
+        const p = a.clone().add(d.clone().multiplyScalar(sPos)).add(nrm.clone().multiplyScalar((r() - 0.5) * 1.0));
+        if (nearBuilding(p, 1.0)) continue;
+        const h = 0.45 + r() * 0.4, rad = 0.30 + r() * 0.25;
+        const g = new THREE.SphereGeometry(rad, 6, 4);
+        g.scale(1.0 + r() * 0.5, h / rad * 0.75, 1.0 + r() * 0.5);
+        g.rotateY(r() * 3.14);
+        g.translate(p.x, h * 0.42, p.y);
+        tufts.push(g);
+      }
+    }
+  }
+  if (tufts.length) { const m = new THREE.Mesh(mergeGeoms(tufts), MAT.reed); m.castShadow = true; scene.add(m); }
+}
+
 // ---------- Bomen (instanced) ----------
 function buildTrees(scene) {
-  const trunkGeo = new THREE.CylinderGeometry(0.15, 0.25, 3.2, 6);
+  const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 2.6, 6);
   const leafGeo = new THREE.IcosahedronGeometry(2.2, 1);
   const n = treePositions.length;
   const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunk, n);
@@ -648,11 +800,11 @@ function buildTrees(scene) {
   treePositions.forEach((t, i) => {
     const s = t.s;
     q.identity();
-    m.compose(new THREE.Vector3(t.x, 1.6 * s, t.z), q, new THREE.Vector3(1, s, 1)); trunks.setMatrixAt(i, m);
+    m.compose(new THREE.Vector3(t.x, 1.3 * s, t.z), q, new THREE.Vector3(1, s, 1)); trunks.setMatrixAt(i, m);
     q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-    m.compose(new THREE.Vector3(t.x, 3.2 * s + 1.6 * s, t.z), q, new THREE.Vector3(s * (0.8 + r() * 0.4), s * (0.9 + r() * 0.5), s * (0.8 + r() * 0.4))); leavesA.setMatrixAt(i, m);
+    m.compose(new THREE.Vector3(t.x, 3.6 * s, t.z), q, new THREE.Vector3(s * (0.95 + r() * 0.45), s * (0.85 + r() * 0.4), s * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
     q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-    m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.2 * s, 3.2 * s + 2.6 * s, t.z + (r() - 0.5) * 1.2 * s), q, new THREE.Vector3(s * 0.8, s * 0.7, s * 0.8)); leavesB.setMatrixAt(i, m);
+    m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s, 5.0 * s, t.z + (r() - 0.5) * 1.4 * s), q, new THREE.Vector3(s * 0.85, s * 0.7, s * 0.85)); leavesB.setMatrixAt(i, m);
     addCollider(t.x, t.z, 0.3, 0.3, 0, 3);
   });
   trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;
@@ -772,6 +924,7 @@ function buildFurniture(scene) {
 export function buildWorld(scene) {
   materials();
   for (const poly of WATER) waterPolys.push(poly.map(vec));
+  for (const park of PARKS) parkPolys.push(park.poly.map(vec));
   buildRoads(scene);
   ROWS.forEach((row, i) => buildRow(scene, row, i));
   // Verdichting: in Tinga liggen de rijen vrijwel overal rug aan rug met de
@@ -794,8 +947,10 @@ export function buildWorld(scene) {
   const before = units.length;
   generated.forEach((row, i) => buildRow(scene, row, 1000 + i));
   console.log(`verdichting: ${units.length - before} extra bouwblokken geplaatst`);
+  buildParks(scene);
   buildGardens();
   buildNature(scene);
+  buildReeds(scene);
   buildTrees(scene);
   buildFurniture(scene);
   return { colliders, roadSegments, parkSpots, waterPolys };
