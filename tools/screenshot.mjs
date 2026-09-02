@@ -7,27 +7,73 @@ const port = process.argv[2] || '8123';
 const out = process.argv[3] || 'shots';
 mkdirSync(out, { recursive: true });
 
-// Kijkpunten: [px, py] in kaartcoördinaten (zie js/data.js), yaw (rad), pitch, hoogte
+// Kijkpunten: [px, py] in kaartcoordinaten (zie js/data.js), yaw (rad), pitch, hoogte
 // yaw 0 = naar het noorden, +pi/2 = naar het westen, -pi/2 = naar het oosten
-const VIEWS = [
-  { name: 'dw_in',     at: [290, 1458], yaw: 1.44, pitch: 0.02 },   // De Wieken in, naar het westen
-  { name: 'dw_mid',    at: [180, 1443], yaw: 1.44, pitch: 0.02 },
-  { name: 'dw_noord',  at: [180, 1443], yaw: 0.35, pitch: 0.06 },   // noordzijde: hoort groen te zijn
-  { name: 'dw_west',   at: [60, 1392],  yaw: 1.30, pitch: 0.02 },
-  { name: 'dw_terug',  at: [60, 1392],  yaw: -1.45, pitch: 0.02 },  // terug naar het oosten
-  // 52 Molenkrite: het stuk tussen de Jasker-knoop en de aansluiting De Wieken
-  { name: 'm52_zw',    at: [332, 1296], yaw: 2.84, pitch: 0.02 },   // langs de Molenkrite naar De Wieken
-  { name: 'm52_nw',    at: [332, 1296], yaw: 0.79, pitch: 0.04 },   // over het groen naar het noordwesten
-  { name: 'm52_zo',    at: [332, 1296], yaw: -2.4, pitch: 0.02 },   // naar de vijver in het bosje
-  { name: 'm52_z',     at: [330, 1370], yaw: 3.05, pitch: 0.02 },   // bij de aansluiting De Wieken
-  { name: 'kr_achter', at: [268, 1340], yaw: 0.55, pitch: 0.07 },   // vanaf het gras naar de achtertuinen van het Kruirad
-  { name: 'kr_achter2',at: [190, 1332], yaw: 0.15, pitch: 0.07 },
-  // luchtfoto's om rechtstreeks met de satellietkaart te vergelijken
-  // recht van boven, precies hetzelfde kader als de satellietuitsnede
-  // (kaart-px -147..564 in x, 1169..1683 in y)
+
+// Vaste controlepunten
+const FIXED = [
   { name: 'plan_wieken', at: [209, 1426], yaw: 0, pitch: -1.5708, h: 106, fov: 60 },
-  { name: 'mk_start',    at: [405, 1222], yaw: -0.88, pitch: 0.0 },
 ];
+
+// ---- willekeurige steekproef langs De Wieken en de Molenkrite ----
+// De camera gaat een paar meter naast de as staan, anders sta je in een auto.
+const LIJNEN = {
+  wieken: [
+    [[-215,880],[-210,950],[-204,1000],[-195,1060],[-175,1130],[-145,1185]],
+    [[-145,1185],[-105,1240],[-60,1290],[-10,1345]],
+    [[-10,1345],[20,1355],[50,1380],[100,1420],[150,1440],[230,1450],[305,1460]],
+  ],
+  molenkrite: [
+    [[370,1245],[450,1190],[500,1140],[550,1090]],
+    [[550,1090],[600,1045],[650,1005],[688,980],[788,972],[888,972],[988,975],[1088,990]],
+    [[370,1245],[355,1290],[340,1350],[322,1400],[310,1440],[305,1460]],
+    [[305,1460],[302,1520],[300,1600],[300,1650],[300,1690],[310,1730],[340,1780],[380,1830],[430,1880]],
+  ],
+};
+
+// deterministische ruis, zodat een herhaalde run dezelfde plekken pakt
+let seed = Number(process.argv[4] || 20260902);
+const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+
+function langsLijn(pts, t) {
+  const lens = [];
+  let tot = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const l = Math.hypot(pts[i+1][0] - pts[i][0], pts[i+1][1] - pts[i][1]);
+    lens.push(l); tot += l;
+  }
+  let d = t * tot;
+  for (let i = 0; i < lens.length; i++) {
+    if (d <= lens[i] || i === lens.length - 1) {
+      const u = Math.min(1, d / lens[i]);
+      const a = pts[i], b = pts[i+1];
+      return { x: a[0] + (b[0]-a[0])*u, y: a[1] + (b[1]-a[1])*u, dx: (b[0]-a[0])/lens[i], dy: (b[1]-a[1])/lens[i] };
+    }
+    d -= lens[i];
+  }
+}
+
+const steekproef = [];
+for (const [naam, lijnen] of Object.entries(LIJNEN)) {
+  for (let k = 0; k < 6; k++) {
+    const lijn = lijnen[Math.floor(rnd() * lijnen.length)];
+    const p = langsLijn(lijn, 0.08 + rnd() * 0.84);
+    // 4 m naast de as, willekeurige kant
+    const kant = rnd() < 0.5 ? 1 : -1;
+    const off = 13 * kant;
+    const at = [p.x + p.dy * off, p.y - p.dx * off];
+    // kijkrichting: langs de straat, of dwars naar de overkant
+    const dwars = rnd() < 0.4;
+    let dx = p.dx, dy = p.dy;
+    if (rnd() < 0.5) { dx = -dx; dy = -dy; }
+    if (dwars) { const t2 = dx; dx = -dy * kant * -1; dy = t2 * kant * -1; }
+    const yaw = Math.atan2(-dx, -dy) + (rnd() - 0.5) * 0.35;
+    steekproef.push({ name: `${naam}_${k + 1}`, at: [Math.round(at[0]), Math.round(at[1])], yaw: +yaw.toFixed(3), pitch: 0.03 });
+  }
+}
+
+const VIEWS = [...steekproef, ...FIXED];
+console.log('steekproef:', steekproef.map(v => `${v.name} [${v.at}] yaw ${v.yaw}`).join('\n           '));
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
