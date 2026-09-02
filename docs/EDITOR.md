@@ -21,6 +21,8 @@ De rest — voortuinen, achtertuinen met schuttingen, schuurtjes, stoepen,
 parkeerhavens, straatbomen — komt er automatisch bij. Verzet je een rij, dan
 worden die opnieuw uitgerekend.
 
+![De editor in acht stappen](screenshots/editor-doorloop.png)
+
 ## Besturing
 
 | toets | wat het doet |
@@ -62,14 +64,33 @@ In de **Windows-app** schrijft Ctrl+S het bestand meteen naar schijf (met een
 
 ## Woningtypen
 
-`molenkrite`, `molenkrite_bung`, `monnik`, `kruirad`, `molenpaal`,
-`jasker_flat`, `jasker_gable`, `wieken_white`, `wieken_yellow`, `bonkelaar`
-(twee onder één kap), `detached` (vrijstaand), `appart` (drie lagen),
-`bovenas_bung`, `bovenas_gal`, `spil`.
+Met **T** loop je door alle vijftien typen. Zo zien ze eruit:
+
+![Alle woningtypen](screenshots/woningtypen.png)
+
+| type | lagen | breedte | kenmerken |
+|---|---|---|---|
+| `molenkrite` | 2 | 5,4 m | bruine steen, blauwe kozijnen, dakkapel |
+| `molenkrite_bung` | 1 | 5,4 m | bungalow, vol zonnedak, rode deuren, dakraam |
+| `monnik` | 2 | 5,6 m | rode steen, witte kozijnen, dakkapel |
+| `kruirad` | 2 | 5,4 m | lichtgele steen, felblauwe kozijnen, dakramen |
+| `molenpaal` | 2 | 5,6 m | zandsteen, dakkapel met band, zonnepanelen |
+| `jasker_flat` | 2 | 5,6 m | plat dak, donkere kozijnen |
+| `jasker_gable` | 2 | 5,6 m | zandsteen met kap, geen dakkapel |
+| `wieken_white` | 1 | 5,5 m | bungalow, dakkapel, felblauwe kozijnen |
+| `wieken_yellow` | 1 | 5,5 m | idem met zonnepanelen |
+| `bonkelaar` | 2 | 6,4 m | twee onder één kap, rode steen |
+| `detached` | 2 | 10,0 m | vrijstaand, zonnepanelen |
+| `appart` | 3 | 7,0 m | portiekflat met galerij, plat dak |
+| `bovenas_bung` | 1 | 5,4 m | bungalow, dakramen, rode kozijnen |
+| `bovenas_gal` | 2 | 5,4 m | twee lagen met galerij, rode kozijnen |
+| `spil` | 1 | 8,0 m | laag bedrijfs-/verenigingsgebouw, plat dak |
 
 Ze staan in `js/textures.js` in `HOUSE_STYLES`; daar pas je steenkleur,
 kozijnkleur, deurkleuren, dakpannen, aantal lagen, dakkapel, dakraam,
-zonnepanelen en schoorsteen aan.
+zonnepanelen en schoorsteen aan. Wil je de plaatjes opnieuw maken na zo'n
+wijziging: `node tools/assets.mjs` fotografeert elk type op een leeg veld,
+en `node tools/editorshots.mjs` maakt de doorloop hierboven.
 
 ## Waarom verdwijnt er soms een woning?
 
