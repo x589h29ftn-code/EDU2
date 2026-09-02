@@ -114,6 +114,7 @@ function materials() {
   MAT.kliko = new THREE.MeshStandardMaterial({ color: 0x3a3f44, roughness: 0.7 });
   MAT.klikoLid = new THREE.MeshStandardMaterial({ color: 0x1f5fd0, roughness: 0.6 });
   MAT.white = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.8 });
+  MAT.gutter = new THREE.MeshStandardMaterial({ color: 0xb9bcc0, roughness: 0.55, metalness: 0.4 });
   MAT.dark = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.8 });
   MAT.solar = std(T.solarPanel(), { roughness: 0.3, metalness: 0.5 });
   MAT.barrier = new THREE.MeshStandardMaterial({ color: 0x6b7a5a, roughness: 0.9 });
@@ -459,7 +460,7 @@ function buildRow(scene, row, idx) {
   const rotY = Math.PI / 2 - yaw;
   const dLocal = new THREE.Vector2(Math.cos(rotY), -Math.sin(rotY));
   const facadeH = storeys * 2.9;
-  const roofH = st.roofType === 'gable' ? Math.min(4.5, depth * 0.55) : (st.roofType === 'low' ? 1.6 : 0);
+  const roofH = st.roofType === 'gable' ? Math.min(4.2, depth * 0.5) : (st.roofType === 'low' ? 1.6 : 0);
 
   // kandidaat-woningen langs de rij
   let cand = [];
@@ -534,13 +535,36 @@ function buildRow(scene, row, idx) {
       const rh = st.roofType === 'low' ? 1.6 : roofH;
       const roofMat = new THREE.MeshStandardMaterial({ map: T.roofTiles(st.roof), roughness: 0.9 });
       const roof = gableRoof(unitLen, depth, rh, roofMat);
-      roof.position.set(cx, facadeH, 0); roof.castShadow = true;
+      // het dakvlak loopt door over het overstek; laat het zakken zodat de dakrand
+      // precies op de muur landt in plaats van er 30 cm boven te zweven
+      const OV = 0.35;
+      const eaveDrop = rh * OV / (depth / 2 + OV);
+      roof.position.set(cx, facadeH - eaveDrop, 0); roof.castShadow = true;
       group.add(roof);
+      // boeiboord met goot langs beide dakranden
+      for (const sgn of [1, -1]) {
+        const fascia = new THREE.Mesh(new THREE.BoxGeometry(unitLen + OV * 2, 0.22, 0.10), MAT.white);
+        fascia.position.set(cx, facadeH - eaveDrop - 0.06, sgn * (depth / 2 + OV));
+        group.add(fascia);
+        const gutter = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, unitLen + OV * 2, 6), MAT.gutter);
+        gutter.rotation.z = Math.PI / 2;
+        gutter.position.set(cx, facadeH - eaveDrop - 0.20, sgn * (depth / 2 + OV + 0.04));
+        group.add(gutter);
+      }
+      // regenpijpen op de scheiding tussen de woningen
+      const pipes = [];
+      for (let i = 0; i <= unitN; i++) {
+        const hx = cx - unitLen / 2 + (unitLen / unitN) * i;
+        const pg = new THREE.CylinderGeometry(0.045, 0.045, facadeH - eaveDrop - 0.2, 6);
+        pg.translate(hx, (facadeH - eaveDrop - 0.2) / 2, depth / 2 + 0.06);
+        pipes.push(pg);
+      }
+      group.add(new THREE.Mesh(mergeGeoms(pipes), MAT.gutter));
       const triShape = new THREE.Shape(); triShape.moveTo(-depth / 2, 0); triShape.lineTo(depth / 2, 0); triShape.lineTo(0, rh); triShape.closePath();
       const tri = new THREE.ShapeGeometry(triShape);
       for (const sgn of [-1, 1]) {
         const tm = new THREE.Mesh(tri, sideMat);
-        tm.rotation.y = sgn * Math.PI / 2; tm.position.set(cx + sgn * (unitLen / 2 - 0.01), facadeH, 0);
+        tm.rotation.y = sgn * Math.PI / 2; tm.position.set(cx + sgn * (unitLen / 2 - 0.01), facadeH - eaveDrop, 0);
         group.add(tm);
       }
       if (st.dormer) {
@@ -551,7 +575,7 @@ function buildRow(scene, row, idx) {
           const dw = st.dormerBand ? perHouse * 0.9 : Math.min(2.6, perHouse * 0.55);
           const dh = 1.35, dd = 1.6;
           const z = depth / 2 + 0.35 - dd / 2 - 0.9;
-          const yBase = facadeH + (rh / (depth / 2 + 0.35)) * (depth / 2 + 0.35 - (z + dd / 2));
+          const yBase = facadeH - eaveDrop + (rh / (depth / 2 + 0.35)) * (depth / 2 + 0.35 - (z + dd / 2));
           const frontMat = new THREE.MeshStandardMaterial({ map: T.dormerFront(st.frame2), roughness: 0.6 });
           const dm = new THREE.Mesh(new THREE.BoxGeometry(dw, dh, dd), [MAT.white, MAT.white, MAT.dark, MAT.white, frontMat, MAT.white]);
           dm.position.set(hx, yBase + dh / 2 + 0.2, z + 0.5);
@@ -566,7 +590,7 @@ function buildRow(scene, row, idx) {
           const p = new THREE.Mesh(new THREE.PlaneGeometry(perHouse * 0.7, 1.9), MAT.solar);
           const ang = Math.atan2(rh, depth / 2 + 0.35);
           p.rotation.x = -Math.PI / 2 + ang;
-          p.position.set(hx, facadeH + rh * 0.5 + 0.06, -(depth / 2 + 0.35) * 0.5);
+          p.position.set(hx, facadeH - eaveDrop + rh * 0.5 + 0.06, -(depth / 2 + 0.35) * 0.5);
           group.add(p);
         }
       }
@@ -574,7 +598,7 @@ function buildRow(scene, row, idx) {
         const perHouse = unitLen / unitN; const chims = [];
         for (let i = 0; i < unitN; i++) {
           const hx = cx - unitLen / 2 + perHouse * (i + 0.5) + perHouse * 0.45;
-          const cg = new THREE.BoxGeometry(0.5, 1.0, 0.5); cg.translate(hx, facadeH + rh + 0.2, 0.3); chims.push(cg);
+          const cg = new THREE.BoxGeometry(0.5, 1.1, 0.5); cg.translate(hx, facadeH - eaveDrop + rh + 0.25, 0.3); chims.push(cg);
         }
         group.add(new THREE.Mesh(mergeGeoms(chims), sideMat));
       }
