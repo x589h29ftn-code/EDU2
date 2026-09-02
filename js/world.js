@@ -197,20 +197,29 @@ function buildRoads(scene) {
     const mat = MAT[road.type] || MAT.klinker;
     scene.add(Object.assign(new THREE.Mesh(ribbon(pts, road.w, ROAD_Y + i * 0.0007, 0, 0.5), mat), { receiveShadow: true }));
     const isPath = road.type === 'pad' || road.type === 'fietspad';
-    const verge = road.verge || 0;
+    // De berm kan per zijde verschillen: aan de kant van de huizen ligt het
+    // trottoir vaak direct tegen de rijbaan (tuin, voetpad, weg), terwijl aan
+    // de overkant een brede grasberm met bomen ligt.
+    const vergeL = road.vergeL != null ? road.vergeL : (road.verge || 0);
+    const vergeR = road.vergeR != null ? road.vergeR : (road.verge || 0);
     const walkSides = road.walk || '';
-    const walkOff = road.w / 2 + verge + 0.6;   // hart van het trottoir
-    const corr = road.w / 2 + (isPath ? 0.4 : verge + 1.4);
+    const walkOffL = road.w / 2 + vergeL + 0.6;
+    const walkOffR = road.w / 2 + vergeR + 0.6;
+    const verge = Math.max(vergeL, vergeR);
+    const corr = road.w / 2 + (isPath ? 0.4 : Math.min(vergeL, vergeR) + 1.4);
     for (let k = 0; k < pts.length - 1; k++) {
-      roadSegments.push({ name: road.name, a: [pts[k].x, pts[k].y], b: [pts[k + 1].x, pts[k + 1].y], w: road.w, corr, walkOff, drive: !isPath });
+      roadSegments.push({
+        name: road.name, a: [pts[k].x, pts[k].y], b: [pts[k + 1].x, pts[k + 1].y],
+        w: road.w, corr, walkOff: walkOffL, walkOffL, walkOffR, drive: !isPath,
+      });
     }
     if (!isPath) {
       const total = polyLength(pts);
       const inner = sliceByLength(pts, road.trimStart, total - road.trimEnd) || pts;
       const y = 0.05 + i * 0.0006;
       // trottoir tegen de voortuinen, met een grasberm ertussen
-      if (walkSides.includes('L')) { walkGeoms.push(ribbon(inner, 1.2, y, walkOff, 0.8)); }
-      if (walkSides.includes('R')) { walkGeoms.push(ribbon(inner, 1.2, y, -walkOff, 0.8)); }
+      if (walkSides.includes('L')) { walkGeoms.push(ribbon(inner, 1.3, y, walkOffL, 0.8)); }
+      if (walkSides.includes('R')) { walkGeoms.push(ribbon(inner, 1.3, y, -walkOffR, 0.8)); }
       // trottoirband langs de rijbaan
       curbGeoms.push(ribbon(pts, 0.16, ROAD_Y + 0.004 + i * 0.0007, road.w / 2 + 0.08, 1));
       curbGeoms.push(ribbon(pts, 0.16, ROAD_Y + 0.004 + i * 0.0007, -(road.w / 2 + 0.08), 1));
@@ -224,8 +233,8 @@ function buildRoads(scene) {
           const yaw = -Math.atan2(d.y, d.x);
           for (let sPos = 4; sPos < len - 9; sPos += 13.5) {
             for (const sgn of [1, -1]) {
-              if (sgn > 0 && !bays.includes('L')) continue;
-              if (sgn < 0 && !bays.includes('R')) continue;
+              if (sgn > 0 && (!bays.includes('L') || vergeL < 2.0)) continue;
+              if (sgn < 0 && (!bays.includes('R') || vergeR < 2.0)) continue;
               const bayLen = 10.8, bayW = 2.2;
               const c = a.clone().add(d.clone().multiplyScalar(sPos + bayLen / 2))
                 .add(nrm.clone().multiplyScalar(sgn * (road.w / 2 + bayW / 2)));
@@ -323,11 +332,13 @@ function buildNature(scene) {
     for (let k = 0; k < pts.length - 1; k++) {
       const a = pts[k], b = pts[k + 1]; const d = b.clone().sub(a); const len = d.length(); d.normalize();
       const nrm = new THREE.Vector2(d.y, -d.x);
-      const vg = road.verge || 0;
-      if (vg < 1.6) continue;
+      const vgL = road.vergeL != null ? road.vergeL : (road.verge || 0);
+      const vgR = road.vergeR != null ? road.vergeR : (road.verge || 0);
+      if (Math.max(vgL, vgR) < 1.6) continue;
       for (let s = 6; s < len - 4; s += 13.5) {
         for (const side of [1, -1]) {
-          if (r() < 0.42) continue;
+          const vg = side > 0 ? vgL : vgR;
+          if (vg < 1.6 || r() < 0.42) continue;
           const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + vg * 0.55)));
           if (!nearBuilding(p, 2.5) && !inWater(p) && !nearParkBay(p, 2.0)) treePositions.push({ x: p.x, z: p.y, s: 0.95 + r() * 0.5 });
         }
@@ -906,10 +917,12 @@ function buildFurniture(scene) {
     for (let k = 0; k < pts.length - 1; k++) {
       const a = pts[k], b = pts[k + 1]; const d = b.clone().sub(a); const len = d.length(); d.normalize();
       const nrm = new THREE.Vector2(d.y, -d.x);
-      const vg = road.verge || 0;
+      const vgL2 = road.vergeL != null ? road.vergeL : (road.verge || 0);
+      const vgR2 = road.vergeR != null ? road.vergeR : (road.verge || 0);
       for (let s = 3; s < len; s += 30) {
         const side = ((Math.floor(s / 30) + k) % 2 === 0) ? 1 : -1;
-        const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + Math.min(1.0, vg * 0.45))));
+        const vg = side > 0 ? vgL2 : vgR2;
+        const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + Math.max(0.45, Math.min(1.0, vg * 0.45)))));
         lamps.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), side });
       }
       // straatnaambord + 30-bord aan het begin van elke weg
