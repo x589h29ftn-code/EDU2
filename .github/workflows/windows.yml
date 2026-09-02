@@ -23,9 +23,11 @@ jobs:
       - name: Afhankelijkheden
         run: npm ci
       - name: Inpakken
-        run: npx electron-packager . Tinga --platform=win32 --arch=x64 --out dist --overwrite --no-asar --ignore="(^/dist)|(^/shots)|(^/\.git)"
-      - name: Versie tonen
-        run: dir dist\Tinga-win32-x64
+        shell: bash
+        run: npm run dist:win
+      - name: Inhoud tonen
+        shell: bash
+        run: ls -la dist/Tinga-win32-x64 | head -20
       - uses: actions/upload-artifact@v4
         with:
           name: Tinga-windows
