@@ -1,6 +1,6 @@
 // Wereldopbouw: wegen, stoepen, parkeervakken, water, groen, huizen, straatmeubilair.
 import * as THREE from 'three';
-import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PARKS, PARKING_LOTS, PLAYGROUND, START, toWorld } from './data.js';
+import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PARKS, PARKING_LOTS, PLAYGROUND, START, PX_PER_M, toWorld } from './data.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
 
@@ -460,6 +460,33 @@ function blocked(px, pz, margin, skipUnit = null) {
 }
 
 const rowBuilds = [];
+
+// Verspringende rooilijn. In Tinga loopt een lange rij niet in één rechte
+// lijn: na zes à zeven woningen springt het blok een paar meter naar achteren
+// en daarna weer naar voren. Een rij met { stagger: { houses, step } } wordt
+// hier opgeknipt in blokken met om en om een grotere afstand tot de weg.
+function expandStagger(row) {
+  if (!row.stagger) return [row];
+  const st = T.HOUSE_STYLES[row.type];
+  const [ax, ay] = row.a, [bx, by] = row.b;
+  const lenM = Math.hypot(bx - ax, by - ay) / PX_PER_M;
+  const per = (row.stagger.houses || 7) * st.w;
+  const n = Math.max(1, Math.round(lenM / per));
+  if (n < 2) return [row];
+  const sign = row.off < 0 ? -1 : 1;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t0 = i / n, t1 = (i + 1) / n;
+    out.push({
+      ...row,
+      a: [ax + (bx - ax) * t0, ay + (by - ay) * t0],
+      b: [ax + (bx - ax) * t1, ay + (by - ay) * t1],
+      off: sign * (Math.abs(row.off) + (i % 2 ? (row.stagger.step || 2.2) : 0)),
+      stagger: null,
+    });
+  }
+  return out;
+}
 
 // Fase 1: bepaal per rij welke woningen passen en bouw de gebouwen
 function buildRow(scene, row, idx) {
@@ -1159,20 +1186,21 @@ export function buildWorld(scene) {
   }
   for (const park of PARKS) parkPolys.push(park.poly.map(vec));
   buildRoads(scene);
-  ROWS.forEach((row, i) => buildRow(scene, row, i));
+  const allRows = ROWS.flatMap(expandStagger);
+  allRows.forEach((row, i) => buildRow(scene, row, i));
   // Verdichting: in Tinga liggen de rijen vrijwel overal rug aan rug met de
   // achtertuinen tegen elkaar. Achter elke rij komt daarom een tweede rij, die
   // alleen wordt gebouwd waar hij niet tegen een weg, water of andere woning botst.
   const GARDENS = 17;                       // twee achtertuinen van 8,5 m
   const skip = new Set(['spil', 'appart']);
   const generated = [];
-  for (const row of ROWS) {
+  for (const row of allRows) {
     if (row.flip || skip.has(row.type)) continue;
     const sign = row.off < 0 ? -1 : 1;
     generated.push({ ...row, off: sign * (Math.abs(row.off) + 2 * row.depth + GARDENS), flip: true, generated: true });
   }
   // en nog een derde rij voor de diepe blokken
-  for (const row of ROWS) {
+  for (const row of allRows) {
     if (row.flip || skip.has(row.type) || row.type === 'detached' || row.type === 'bonkelaar') continue;
     const sign = row.off < 0 ? -1 : 1;
     generated.push({ ...row, off: sign * (Math.abs(row.off) + 2 * row.depth + GARDENS + row.depth + 14), flip: false, generated: true });
