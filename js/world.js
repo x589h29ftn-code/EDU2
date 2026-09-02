@@ -365,7 +365,11 @@ function pointInPoly(p, poly) {
 }
 const waterPolys = [];
 const parkPolys = [];
+const woodPolys = [];
 function inPark(p) { return parkPolys.some(poly => pointInPoly(p, poly)); }
+// In een bosschage staan bomen, geen huizen. Dat houdt ook de automatische
+// verdichting uit stroken groen zoals de berm langs De Wieken.
+function inWoods(p) { return woodPolys.some(poly => pointInPoly(p, poly)); }
 function inWater(p) { return waterPolys.some(poly => pointInPoly(p, poly)); }
 export function nearRoad(p, margin) {
   for (const s of roadSegments) {
@@ -454,7 +458,7 @@ function distToNearestRoadEdge(px, pz) {
 function blocked(px, pz, margin, skipUnit = null) {
   if (roadClearance(px, pz) < margin) return true;
   const v = new THREE.Vector2(px, pz);
-  if (inWater(v) || inPark(v)) return true;
+  if (inWater(v) || inPark(v) || inWoods(v)) return true;
   for (const u of units) { if (u !== skipUnit && pointInUnit(px, pz, u, margin)) return true; }
   return false;
 }
@@ -1192,6 +1196,7 @@ export function buildWorld(scene) {
     ww._pts = pts;
   }
   for (const park of PARKS) parkPolys.push(park.poly.map(vec));
+  for (const poly of WOODS) woodPolys.push(poly.map(vec));
   buildRoads(scene);
   const allRows = ROWS.flatMap(expandStagger);
   allRows.forEach((row, i) => buildRow(scene, row, i));

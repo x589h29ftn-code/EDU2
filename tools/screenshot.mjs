@@ -8,12 +8,15 @@ const out = process.argv[3] || 'shots';
 mkdirSync(out, { recursive: true });
 
 // Kijkpunten: [px, py] in kaartcoördinaten (zie js/data.js), yaw (rad), pitch, hoogte
+// yaw 0 = naar het noorden, +pi/2 = naar het westen, -pi/2 = naar het oosten
 const VIEWS = [
+  { name: 'dw_in',     at: [290, 1458], yaw: 1.44, pitch: 0.02 },   // De Wieken in, naar het westen
+  { name: 'dw_mid',    at: [180, 1443], yaw: 1.44, pitch: 0.02 },
+  { name: 'dw_noord',  at: [180, 1443], yaw: 0.35, pitch: 0.06 },   // noordzijde: hoort groen te zijn
+  { name: 'dw_west',   at: [60, 1392],  yaw: 1.30, pitch: 0.02 },
+  { name: 'dw_terug',  at: [60, 1392],  yaw: -1.45, pitch: 0.02 },  // terug naar het oosten
   { name: 'mk_start',  at: [405, 1222], yaw: -0.88, pitch: 0.0 },
   { name: 'mk_mid',    at: [480, 1160], yaw: -0.88, pitch: 0.02 },
-  { name: 'mk_rechts', at: [470, 1178], yaw: 0.70, pitch: 0.06 },
-  { name: 'mk_links',  at: [500, 1150], yaw: -2.45, pitch: 0.06 },
-  { name: 'mk_terug',  at: [620, 1040], yaw: 2.26, pitch: 0.0 },
 ];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
