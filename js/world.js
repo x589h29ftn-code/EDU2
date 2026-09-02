@@ -582,6 +582,8 @@ function buildRow(scene, row, idx) {
   const group = new THREE.Group();
   group.position.set(center.x, 0, center.y);
   group.rotation.y = rotY;
+  group.userData.src = row.src;               // index in ROWS, of undefined
+  group.userData.generated = !!row.generated; // automatische verdichting
 
   const placeUnit = (cx, unitLen, unitN, seed) => {
     const frontTex = T.facade(row.type, unitN, storeys, false, seed);
@@ -1224,7 +1226,27 @@ function buildFurniture(scene) {
 }
 
 // ---------- Hoofdfunctie ----------
+// Alles wat buildWorld aan de scene hangt, zodat de editor de wereld opnieuw
+// kan opbouwen zonder de pagina te herladen.
+const worldObjects = [];
+
+export function resetWorld(scene) {
+  for (const o of worldObjects) {
+    scene.remove(o);
+    o.traverse && o.traverse(c => {
+      if (c.geometry) c.geometry.dispose();
+      const mats = Array.isArray(c.material) ? c.material : (c.material ? [c.material] : []);
+      for (const m of mats) { if (m.map) m.map.dispose(); m.dispose(); }
+    });
+  }
+  worldObjects.length = 0;
+  colliders.length = 0; roadSegments.length = 0; parkSpots.length = 0; treePositions.length = 0;
+  units.length = 0; rowBuilds.length = 0;
+  waterPolys.length = 0; parkPolys.length = 0; woodPolys.length = 0;
+}
+
 export function buildWorld(scene) {
+  const bekend = new Set(scene.children);
   materials();
   for (const poly of WATER) waterPolys.push(poly.map(vec));
   // watergangen omzetten naar een omtrekpolygoon van middellijn + breedte
@@ -1280,6 +1302,7 @@ export function buildWorld(scene) {
   }
   buildTrees(scene);
   buildFurniture(scene);
+  for (const c of scene.children) if (!bekend.has(c)) worldObjects.push(c);
   return { colliders, roadSegments, parkSpots, waterPolys };
 }
 

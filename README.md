@@ -26,7 +26,28 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | E | in- en uitstappen bij een auto |
 | in de auto: W/S, A/D, spatie | gas/rem, sturen, handrem |
 | M | grote kaart van de wijk met straatnamen |
+| **F2** | wijkeditor: huizen verplaatsen en toevoegen |
 | Esc | muis vrijgeven |
+
+Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
+vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstappen, de kaart en pauze.
+
+## Windows-app en wijkeditor
+
+Naast de webversie is er een Windows-app met dezelfde wereld, waarin je **zelf huizenrijen kunt
+verplaatsen, draaien, toevoegen en verwijderen** en die wijzigingen naar schijf kunt opslaan.
+
+```bash
+npm install
+npm run desktop      # meteen draaien (Windows, macOS of Linux)
+npm run dist:win     # bouwt dist/Tinga-win32-x64/Tinga.exe
+```
+
+De GitHub-workflow **Windows-app** bouwt bij elke push een kant-en-klare zip; die staat onder
+*Actions → de run → Artifacts*.
+
+De editor werkt ook in de browser (F2), alleen kan die het bestand niet zelf wegschrijven en krijg je
+`rows.user.js` als download. Alle toetsen en de werkwijze staan in **[docs/EDITOR.md](docs/EDITOR.md)**.
 
 ## Straten in het spel
 
@@ -38,6 +59,10 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 
 - `index.html` – pagina, HUD en startscherm
 - `js/data.js` – de kaart: wegen, water, groen en huizenrijen in pixelcoördinaten van de bronkaart
+- `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
+- `js/editor.js` – de wijkeditor (F2)
+- `js/touch.js` – touchbesturing voor telefoon en tablet
+- `desktop/` – de Electron-schil voor de Windows-app
   (3.26 px per meter, oorsprong op het kruispunt Molenkrite/Monnikmolen/Jasker)
 - `js/textures.js` – procedureel gegenereerde textures: baksteen, dakpannen, klinkers (grijs en rood
   keperverband), stoeptegels, asfalt, gras, water, heggen en complete gevels met ramen en deuren

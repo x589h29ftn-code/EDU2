@@ -76,6 +76,20 @@
     .panel td:first-child { width: 108px; }
     .streets { display: none; }
   }
+  /* ---------- wijkeditor ---------- */
+  #editor { display: none; position: fixed; left: 14px; top: 44px; z-index: 6; max-width: 560px;
+            background: rgba(10,16,26,.86); border: 1px solid rgba(255,255,255,.18); border-radius: 10px;
+            padding: 10px 12px; color: #e8eef6; font-size: 12px; line-height: 1.45;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  #editor .kop { font-weight: 700; letter-spacing: 1px; color: #ffd400; margin-bottom: 6px; }
+  #editor .kop .g { color: #4ade80; }
+  #editor .sel { background: rgba(255,255,255,.06); border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; }
+  #editor .sel .t { color: #7dd3fc; }
+  #editor table { border-collapse: collapse; width: 100%; }
+  #editor td { padding: 1px 6px 1px 0; vertical-align: top; }
+  #editor td:nth-child(1), #editor td:nth-child(3) { color: #ffd400; white-space: nowrap; }
+  #editor .voet { margin-top: 7px; opacity: .65; }
+
   .touchonly { display: none; }
   body.touch .touchonly { display: table-row; }
   body.touch .mouseonly { display: none; }
@@ -97,6 +111,7 @@
   <div id="msg"></div>
   <canvas id="bigmap" width="1100" height="760"></canvas>
 </div>
+<div id="editor"></div>
 <div id="touch">
   <div id="tmove"><div id="tstick"><div id="tknob"></div></div></div>
   <div id="tlook"></div>
