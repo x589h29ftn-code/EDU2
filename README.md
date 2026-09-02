@@ -55,6 +55,11 @@ Met **T** wissel je tussen vijftien woningtypen:
 
 ![Alle woningtypen](docs/screenshots/woningtypen.png)
 
+En met **O** ga je naar de objecten: carports, bergingen, schuttingen, hagen, verkeersborden,
+containers, speeltoestellen en groen — allemaal nagebouwd naar de street-viewfoto's van de wijk:
+
+![Alle objecten](docs/screenshots/objecten.png)
+
 ## Straten in het spel
 
 Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal · Spinnekop ·
@@ -66,7 +71,8 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `index.html` – pagina, HUD en startscherm
 - `js/data.js` – de kaart: wegen, water, groen en huizenrijen in pixelcoördinaten van de bronkaart
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
-- `js/editor.js` – de wijkeditor (F2)
+- `js/editor.js` – de wijkeditor (F2): huizenrijen en objecten
+- `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, ...)
 - `js/touch.js` – touchbesturing voor telefoon en tablet
 - `desktop/` – de Electron-schil voor de Windows-app
   (3.26 px per meter, oorsprong op het kruispunt Molenkrite/Monnikmolen/Jasker)

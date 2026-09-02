@@ -92,6 +92,48 @@ zonnepanelen en schoorsteen aan. Wil je de plaatjes opnieuw maken na zo'n
 wijziging: `node tools/assets.mjs` fotografeert elk type op een leeg veld,
 en `node tools/editorshots.mjs` maakt de doorloop hierboven.
 
+## Objecten neerzetten
+
+Met **O** schakel je tussen huizenrijen en objecten: carports, bergingen,
+schuttingen, hagen, verkeersborden, containers, speeltoestellen, bomen. Alles
+is nagebouwd naar wat er op de street-viewfoto's van Tinga staat.
+
+![Alle objecten](screenshots/objecten.png)
+
+| toets | wat het doet |
+|---|---|
+| **O** | wisselen tussen huizenrijen en objecten |
+| Pg&uarr; Pg&darr; | vorig / volgend object in het palet |
+| 1 2 3 4 | naar de groep erf, straat, groen of spelen |
+| **Enter** | het gekozen object neerzetten waar je vizier staat |
+| linkermuisknop | een geplaatst object kiezen · Tab loopt ze langs |
+| **G** | verplaatsen met het vizier, klik om neer te zetten |
+| pijltjes | 1 pixel verschuiven (shift = 5) |
+| `,` `.` | draaien 5° (shift = 45°) |
+| `-` `=` | kleiner / groter (0,05 · shift = 0,25) |
+| Delete | weghalen · Ctrl+D zet een kopie ernaast |
+
+Staat een object in een gebouw, in het water of midden op de rijbaan, dan zegt
+het paneel dat in oranje. `node tools/propcheck.mjs` loopt in één keer alle
+objecten na.
+
+De vier groepen:
+
+- **erf** – carport, veranda met glasdak, stenen berging, blok garageboxen,
+  houten tuinhuisje, schutting, ligusterhaag, bakstenen muurtje, laag
+  tuinhekje, pergola, trampoline
+- **straat** – lantaarnpaal, antiparkeerpaaltje, bord 30 km, straatnaambord,
+  voorrangsbord, verkeersspiegel, informatiebord, nutskast, ondergrondse
+  container, kliko, prullenbak, fietsenrek, bushalte, bankje, picknicktafel,
+  vlaggenmast
+- **groen** – losse boom, conifeer, struik, plantenbak, rietpol
+- **spelen** – voetbaldoel, basketbalpaal, klimtoestel, wipkip, zandbak
+
+Zelf een object toevoegen doe je in `js/props.js`: één `def(...)`-regel met
+een naam, label, groep, botsingsmaat, hoogte en een functie die het uit doosjes
+en cilinders opbouwt. Hij staat daarna vanzelf in het palet.
+`node tools/propshots.mjs` maakt er dan nieuwe plaatjes van.
+
 ## Waarom verdwijnt er soms een woning?
 
 Een rij wordt per woning geplaatst. Botst een woning met een weg, met water,
