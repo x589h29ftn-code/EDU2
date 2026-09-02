@@ -7,8 +7,10 @@ stijl van de betreffende straat.
 
 ## Spelen
 
-Het spel draait volledig in de browser en heeft geen build-stap. Omdat het ES-modules gebruikt, moet
-het via een webserver geladen worden (niet via `file://`):
+Het spel staat online op GitHub Pages: **https://x589h29ftn-code.github.io/EDU2/**
+
+Lokaal draaien kan ook. Het spel heeft geen build-stap, maar omdat het ES-modules gebruikt moet het
+via een webserver geladen worden (niet via `file://`):
 
 ```bash
 python3 -m http.server 8000
@@ -53,6 +55,7 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/hud.js` – straatnaambord, minimap, snelheid en munitie
 - `lib/three.module.js` – Three.js r160 (lokaal meegeleverd)
 - `tools/screenshot.mjs` – maakt testscreenshots met headless Chromium (Playwright)
+- `.github/workflows/pages.yml` – publiceert `index.html`, `js/` en `lib/` naar GitHub Pages
 
 ## Bronnen
 
