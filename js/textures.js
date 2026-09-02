@@ -246,7 +246,10 @@ export const HOUSE_STYLES = {
   molenkrite: { brick: ['#96755b', '#c0b7a6'], frame: '#ffffff', frame2: '#1f3a6e', door: ['#1f3a6e', '#2a2a2a', '#7a1f1f', '#1f3a6e'], roof: '#4e3d34', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: false, solar: true, band: '#f2f2f2' },
   molenkrite_bung:{ brick: ['#a98d70', '#cbc2b0'], frame: '#ffffff', frame2: '#ffffff', door: ['#a5232c', '#8f1f27'], roof: '#4a3b32', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, solar: true, solarFull: true, chimney: true, band: '#f4f4f4' },
   monnik:     { brick: ['#8a5a45', '#bfb5a6'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#5a2d1a', '#1f3a6e'], roof: '#463c37', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, chimney: true, band: '#f2f2f2' },
-  kruirad:    { brick: ['#9a4a3a', '#c9c0b0'], frame: '#ffffff', frame2: '#ffffff', door: ['#1f3a6e', '#2a2a2a', '#3a6e2a'], roof: '#483c35', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: true, band: '#f2f2f2' },
+  // Kruirad: lichte gele baksteen met felblauwe kozijnen en deuren, twee lagen,
+  // pannendak met dakramen (geen dakkapellen) – zie de street view vanaf het
+  // groen aan de achterkant.
+  kruirad:    { brick: ['#d5c49e', '#e4dccb'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#453b35', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, skylight: true, chimney: true, band: '#f2f2f2' },
   molenpaal:  { brick: ['#d3bd8e', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#4a4a4a'], roof: '#453b37', roofType: 'gable', storeys: 2, w: 5.6, dormer: true, dormerBand: true, chimney: false, solar: true, band: '#f2f2f2' },
   jasker_flat:{ brick: ['#e0d0a6', '#e8e0cd'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b', '#3a3a3a'], roof: '#555', roofType: 'flat', storeys: 2, w: 5.6, dormer: false, chimney: false, band: '#2b2b2b' },
   jasker_gable:{ brick: ['#dcc89a', '#e5ddcb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#6a1a1a'], roof: '#453b37', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#f2f2f2' },
