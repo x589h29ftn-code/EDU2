@@ -20,10 +20,13 @@ const VIEWS = [
   { name: 'm52_nw',    at: [332, 1296], yaw: 0.79, pitch: 0.04 },   // over het groen naar het noordwesten
   { name: 'm52_zo',    at: [332, 1296], yaw: -2.4, pitch: 0.02 },   // naar de vijver in het bosje
   { name: 'm52_z',     at: [330, 1370], yaw: 3.05, pitch: 0.02 },   // bij de aansluiting De Wieken
+  { name: 'kr_achter', at: [268, 1340], yaw: 0.55, pitch: 0.07 },   // vanaf het gras naar de achtertuinen van het Kruirad
+  { name: 'kr_achter2',at: [190, 1332], yaw: 0.15, pitch: 0.07 },
   // luchtfoto's om rechtstreeks met de satellietkaart te vergelijken
   // recht van boven, precies hetzelfde kader als de satellietuitsnede
   // (kaart-px -147..564 in x, 1169..1683 in y)
   { name: 'plan_wieken', at: [209, 1426], yaw: 0, pitch: -1.5708, h: 106, fov: 60 },
+  { name: 'mk_start',    at: [405, 1222], yaw: -0.88, pitch: 0.0 },
 ];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });

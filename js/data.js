@@ -114,6 +114,10 @@ export const ROADS = [
   // ---- Paden / park ----
   { name: 'Tinga Parkje', type: 'pad', w: 2.2, verge: 0, walk: '',
     pts: [[508,357],[430,420],[350,490],[270,570],[200,650],[120,730],[40,770],[-40,800],[-120,830],[-180,860]] },
+  // Tegelpad langs de achtertuinen van het Kruirad, tussen de schuttingen en
+  // het gras van het bosje.
+  { name: 'Voetpad', type: 'pad', w: 1.4, verge: 0, walk: '',
+    pts: [[100,1288],[170,1296],[250,1304],[322,1312]] },
   // Van de Molenkrite naar de Jasker langs de noordoever van de vijver; de
   // zuidkant heeft zijn eigen tegelpad (zie hierboven bij De Wieken).
   { name: 'Fietspad', type: 'fietspad', w: 2.4, verge: 0, walk: '',
@@ -160,8 +164,10 @@ export const WOODS = [
   [[-190,600],[520,340],[560,400],[100,720],[-40,780],[-180,820]], // Tinga Parkje noord
   // bosje met vijver tussen Molenkrite, Jasker en De Wieken: dicht bos
   { dens: 45, poly: [[335,1295],[470,1330],[560,1455],[330,1450]] },
-  // dichte bomenstrook tussen de achtertuinen van het Kruirad en De Wieken
-  { dens: 55, poly: [[90,1300],[150,1325],[240,1345],[318,1352],[330,1290],[240,1275],[150,1268],[95,1252]] },
+  // dichte bomenstrook tussen de achtertuinen van het Kruirad en De Wieken.
+  // De noordrand blijft op afstand van de schuttingen, want daar liggen eerst
+  // de achtertuinen en een voetpad langs het gras.
+  { dens: 55, poly: [[90,1322],[150,1340],[240,1352],[318,1358],[330,1312],[240,1302],[150,1294],[95,1280]] },
   [[520,1700],[960,1770],[960,1790],[520,1735]], // bomen langs Bonkelaar-sloot
   [[1080,1000],[1230,1000],[1230,1400],[1090,1420]], // groen oostzijde
 ];
