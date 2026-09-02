@@ -66,9 +66,9 @@ Molenpaal, Bonkelaar).
 |---|---|---|---|
 | ![Monnikmolen](docs/screenshots/monnikmolen.png) | ![Bonkelaar](docs/screenshots/bonkelaar.png) | ![Jasker](docs/screenshots/jasker.png) | ![Kruirad](docs/screenshots/kruirad.png) |
 
-| Parkje De Wieken | Voortuinen Molenkrite |
-|---|---|
-| ![Parkje](docs/screenshots/parkje.png) | ![Voortuin](docs/screenshots/voortuin.png) |
+| Parkje De Wieken | De Wieken | Voortuinen Molenkrite |
+|---|---|---|
+| ![Parkje](docs/screenshots/parkje.png) | ![De Wieken](docs/screenshots/dewieken.png) | ![Voortuin](docs/screenshots/voortuin.png) |
 
 | Overzicht vanaf Molenpaal | Kaart (toets M) |
 |---|---|

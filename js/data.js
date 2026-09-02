@@ -86,9 +86,9 @@ export const ROADS = [
   // ---- De Wieken / Bovenas / Windbord / Voorzoom ----
   { name: 'De Wieken', type: 'rood', w: 4.8, verge: 2.4, walk: 'LR', bays: 'L',
     pts: [[-215,880],[-210,950],[-204,1000],[-195,1060],[-175,1130],[-145,1185]] },
-  { name: 'De Wieken', type: 'klinker', w: 4.8, verge: 2.4, walk: 'LR', bays: 'R',
+  { name: 'De Wieken', type: 'rood', w: 4.8, verge: 2.4, walk: 'LR', bays: 'R',
     pts: [[-145,1185],[-105,1240],[-60,1290],[-10,1345],[20,1355],[50,1380],[100,1420],[150,1440],[230,1450],[305,1460]] },
-  { name: 'De Wieken', type: 'klinker', w: 4.8, verge: 2.4, walk: 'LR',
+  { name: 'De Wieken', type: 'rood', w: 4.8, verge: 2.4, walk: 'LR',
     pts: [[305,1460],[380,1465],[480,1462],[560,1465],[595,1470]] },
   { name: 'Bovenas', type: 'klinker', w: 4.8, verge: 2.4, walk: 'LR', bays: 'R',
     pts: [[105,1450],[112,1500],[110,1550],[100,1600],[85,1650],[60,1700],[30,1740],[0,1770],[-40,1800]] },
@@ -121,20 +121,25 @@ export const HIGHWAY = {
 
 // Water: polygonen (px). Vijvers en sloten.
 export const WATER = [
-  // Vijver langs De Wieken (Tinga Parkje-zuid)
-  [[-150,870],[-90,880],[-55,930],[-45,1000],[-50,1080],[-70,1160],[-110,1220],[-150,1215],[-170,1150],[-175,1040],[-170,950]],
   // Sloot noord langs het park
   [[-190,880],[0,845],[150,750],[320,625],[450,548],[520,490],[532,505],[462,562],[332,640],[162,765],[8,862],[-188,896]],
   // Sloot langs Bonkelaar (noordzijde)
   [[520,1725],[700,1758],[900,1770],[965,1790],[963,1802],[898,1783],[698,1772],[518,1739]],
-  // Vijver in het parkje tegenover De Wieken, met de achtertuinen van Kruirad erachter
-  [[-32,1178],[10,1210],[38,1252],[44,1288],[6,1298],[-22,1262],[-44,1218],[-46,1192]],
   // Vijvertje in de groene driehoek bij Jasker
   [[430,1395],[470,1390],[490,1420],[470,1445],[435,1440],[420,1418]],
   // Sloot oostzijde (bij De Spil)
   [[1120,1050],[1150,1080],[1160,1180],[1150,1300],[1140,1300],[1150,1180],[1138,1085],[1110,1058]],
   // De Geau (kanaal) ver westelijk
   [[-700,300],[-600,300],[-560,2200],[-660,2200]],
+];
+
+// Watergangen: smalle sloten en vijverstroken, opgegeven als middellijn met breedte.
+// In Tinga zijn dit smalle watergangen van zes tot negen meter, geen brede plassen.
+export const WATERWAYS = [
+  // Watergang langs De Wieken, van het Tinga Parkje tot voorbij het parkje bij Kruirad
+  { w: 8.5, pts: [[-168,884],[-158,950],[-148,1020],[-132,1090],[-108,1150],[-72,1200],[-30,1240],[14,1276],[44,1300]] },
+  // Zijtak achter het parkje, richting de achtertuinen van Kruirad
+  { w: 6.5, pts: [[-30,1240],[10,1225],[46,1230],[70,1252]] },
 ];
 
 // Bosschages / bomenrijen (px polygons) – dichte bomen
@@ -156,17 +161,19 @@ export const GRASS = [
 export const PARKS = [
   {
     name: 'Parkje De Wieken',
-    poly: [[-122,1160],[-58,1112],[18,1188],[62,1262],[70,1300],[14,1330],[-40,1288]],
-    path: [[-116,1186],[-88,1214],[-56,1244],[-22,1272],[8,1300],[26,1318]],
-    benches: [[-92,1206],[-18,1266]],
-    trees: 26, shrubs: 22,
+    poly: [[-128,1150],[-62,1104],[24,1180],[74,1258],[84,1306],[18,1338],[-46,1292]],
+    path: [[-120,1178],[-92,1208],[-60,1240],[-26,1270],[6,1300],[28,1322]],
+    // rij grote populieren langs het pad, zoals aan het eind van De Wieken
+    treeLine: { pts: [[-112,1166],[-82,1198],[-50,1230],[-16,1260],[16,1290]], spacing: 11, scale: 1.9 },
+    benches: [[-92,1200],[-18,1262]],
+    trees: 14, shrubs: 18,
   },
   {
     name: 'Groene driehoek Jasker',
     poly: [[338,1300],[540,1452],[336,1450]],
     path: [[344,1318],[400,1372],[452,1420],[510,1446]],
     benches: [[398,1400]],
-    trees: 18, shrubs: 14,
+    trees: 16, shrubs: 14,
   },
 ];
 
