@@ -3,6 +3,9 @@ import * as THREE from 'three';
 import { resolveCollisions, pointInWater } from './world.js';
 
 export class Player {
+  get locked() { return this.active; }
+  set locked(v) { this.active = v; }
+
   constructor(camera, scene, startX, startZ, yaw) {
     this.camera = camera;
     this.scene = scene;
@@ -15,7 +18,9 @@ export class Player {
     this.health = 100;
     this.ammo = 12; this.reserve = 60; this.reloading = 0;
     this.recoil = 0; this.flashT = 0;
-    this.locked = false;
+    this.active = false;        // spel gestart
+    this.pointerLocked = false; // muis vastgezet door de browser
+    this.dragging = false; this.dragDist = 0;
     this.shootCb = null;
 
     this.buildGun();
@@ -46,19 +51,39 @@ export class Player {
   }
 
   bindInput() {
-    window.addEventListener('keydown', e => { this.keys[e.code] = true; if (e.code === 'KeyR') this.reload(); });
+    window.addEventListener('keydown', e => {
+      this.keys[e.code] = true;
+      if (e.code === 'KeyR') this.reload();
+      // scrollen met de spatiebalk voorkomen zodra het spel loopt
+      if (this.active && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+    });
     window.addEventListener('keyup', e => { this.keys[e.code] = false; });
+
+    // Rondkijken. Met muisvergrendeling gaat dat vanzelf; lukt die niet, dan
+    // kijk je rond door met de linkerknop ingedrukt te slepen.
     document.addEventListener('mousemove', e => {
-      if (!this.locked) return;
-      this.yaw -= e.movementX * 0.0022;
-      this.pitch -= e.movementY * 0.0022;
+      if (!this.active) return;
+      if (!this.pointerLocked && !this.dragging) return;
+      const k = this.pointerLocked ? 0.0022 : 0.0032;
+      this.yaw -= e.movementX * k;
+      this.pitch -= e.movementY * k;
       this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch));
+      if (this.dragging) this.dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
     });
     document.addEventListener('mousedown', e => {
-      if (!this.locked) return;
-      if (e.button === 0) this.shoot();
+      if (!this.active || e.button !== 0) return;
+      if (this.pointerLocked) { this.shoot(); return; }
+      this.dragging = true; this.dragDist = 0;
     });
-    document.addEventListener('pointerlockchange', () => { this.locked = document.pointerLockElement != null; });
+    document.addEventListener('mouseup', e => {
+      if (!this.active || e.button !== 0 || this.pointerLocked) return;
+      // een korte klik zonder slepen is een schot
+      if (this.dragDist < 8) this.shoot();
+      this.dragging = false;
+    });
+    document.addEventListener('pointerlockchange', () => {
+      this.pointerLocked = document.pointerLockElement != null;
+    });
   }
 
   reload() {
@@ -76,12 +101,23 @@ export class Player {
     if (this.shootCb) this.shootCb(origin, dir);
   }
 
+  // Zet de camera op de speler zonder te bewegen. Nodig op het startscherm,
+  // want anders staat de camera nog op het nulpunt en kijk je tegen de
+  // onderkant van de luchtkoepel aan.
+  applyCamera() {
+    this.camera.position.set(this.pos.x, this.pos.y + this.eye, this.pos.z);
+    this.camera.rotation.set(0, 0, 0, 'YXZ');
+    this.camera.rotation.y = this.yaw;
+    this.camera.rotation.x = this.pitch;
+  }
+
   update(dt) {
     if (this.reloading > 0) {
       this.reloading -= dt;
       if (this.reloading <= 0) { const need = 12 - this.ammo; const take = Math.min(need, this.reserve); this.ammo += take; this.reserve -= take; this.reloading = 0; }
     }
     if (this.inCar) return; // camera wordt door de auto bestuurd
+
 
     const speed = (this.keys.ShiftLeft || this.keys.ShiftRight) ? 7.5 : 4.2;
     const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));

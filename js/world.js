@@ -1,6 +1,6 @@
 // Wereldopbouw: wegen, stoepen, parkeervakken, water, groen, huizen, straatmeubilair.
 import * as THREE from 'three';
-import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PARKS, PARKING_LOTS, PLAYGROUND, toWorld } from './data.js';
+import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PARKS, PARKING_LOTS, PLAYGROUND, START, toWorld } from './data.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
 
@@ -1173,6 +1173,14 @@ export function buildWorld(scene) {
   buildGardens();
   buildNature(scene);
   buildReeds(scene);
+  // rondom het startpunt geen bomen, zodat je niet in een kruin begint
+  {
+    const [sx0, sz0] = toWorld(START.at[0], START.at[1]);
+    for (let i = treePositions.length - 1; i >= 0; i--) {
+      const t = treePositions[i];
+      if (Math.hypot(t.x - sx0, t.z - sz0) < 9) treePositions.splice(i, 1);
+    }
+  }
   buildTrees(scene);
   buildFurniture(scene);
   return { colliders, roadSegments, parkSpots, waterPolys };

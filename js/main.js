@@ -198,6 +198,7 @@ const [sx, sz] = toWorld(START.at[0], START.at[1]);
 const player = new Player(camera, scene, sx, sz, START.yaw);
 const vehicles = new Vehicles(scene, world.parkSpots);
 const npcs = new NPCs(scene, world.roadSegments, 130);
+player.applyCamera();   // meteen op ooghoogte op de Molenkrite, ook voor het startscherm
 const hud = new HUD();
 applyEnvIntensity(scene);
 
@@ -219,7 +220,7 @@ player.shootCb = (origin, dir) => {
 
 // In- en uitstappen
 window.addEventListener('keydown', e => {
-  if (e.code !== 'KeyE' || !player.locked) return;
+  if (e.code !== 'KeyE' || !player.active) return;
   if (player.inCar) {
     const car = player.inCar; player.inCar = null;
     const side = new THREE.Vector3(Math.cos(car.yaw), 0, -Math.sin(car.yaw)).multiplyScalar(-1.6);
@@ -231,13 +232,47 @@ window.addEventListener('keydown', e => {
   }
 });
 
-// Pointer lock / startscherm
+// ---------- Starten, pauzeren en muisbesturing ----------
+// Het spel hangt niet af van muisvergrendeling. Lukt die niet, bijvoorbeeld
+// omdat de browser hem blokkeert of de pagina in een frame staat, dan kijk je
+// rond door te slepen met de linkerknop en is een korte klik een schot.
 const overlay = document.getElementById('overlay');
-document.getElementById('start').addEventListener('click', () => { canvas.requestPointerLock(); });
-document.addEventListener('pointerlockchange', () => {
-  overlay.style.display = document.pointerLockElement ? 'none' : 'flex';
+let dragHint = false;
+
+function startGame() {
+  overlay.style.display = 'none';
+  player.active = true;
+  const req = canvas.requestPointerLock({ unadjustedMovement: true });
+  const fallback = () => {
+    const again = canvas.requestPointerLock();
+    if (again && again.catch) again.catch(() => useDragMode());
+  };
+  if (req && req.catch) req.catch(fallback);
+  // Lukt de vergrendeling binnen een halve seconde niet, dan slepen we.
+  setTimeout(() => { if (!document.pointerLockElement) useDragMode(); }, 500);
+}
+
+function useDragMode() {
+  if (dragHint) return;
+  dragHint = true;
+  hud.show('Sleep met de linkermuisknop om rond te kijken', 5);
+}
+
+function pauseGame() {
+  player.active = false;
+  overlay.style.display = 'flex';
+}
+
+document.getElementById('start').addEventListener('click', startGame);
+canvas.addEventListener('click', () => { if (!player.active) startGame(); });
+window.addEventListener('keydown', e => {
+  if (e.code !== 'Escape') return;
+  if (player.active && !document.pointerLockElement) pauseGame();
 });
-canvas.addEventListener('click', () => { if (!document.pointerLockElement) canvas.requestPointerLock(); });
+document.addEventListener('pointerlockchange', () => {
+  // Esc geeft de muis vrij; dan pauzeren we ook echt.
+  if (!document.pointerLockElement && player.active && !dragHint) pauseGame();
+});
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
@@ -249,7 +284,7 @@ let last = performance.now(); let time = 0;
 function loop() {
   requestAnimationFrame(loop);
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
-  if (player.locked || window.__autoplay) {
+  if (player.active || window.__autoplay) {
     player.update(dt);
     if (player.inCar) {
       const car = player.inCar;
@@ -274,6 +309,14 @@ function loop() {
     updateClouds(dt, cx, cz);
     // water laten bewegen
     hud.update(dt, player, vehicles, npcs, nearestRoadName(cx, cz));
+  }
+  if (!player.active && !window.__autoplay) {
+    // op het startscherm draaien de wolken en de minikaart gewoon door
+    player.applyCamera();
+    updateClouds(dt, camera.position.x, camera.position.z);
+    npcs.update(dt, time);
+    vehicles.updateTraffic(dt);
+    hud.update(dt, player, vehicles, npcs, nearestRoadName(camera.position.x, camera.position.z));
   }
   renderer.render(scene, camera);
 }
