@@ -42,9 +42,11 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/world.js` – bouwt het straatprofiel (smalle rijbaan, trottoirband, grasberm met bomen en
   parkeerhavens, tegeltrottoir tegen de voortuinen), huizenrijen met daken, dakkapellen,
   schoorstenen en zonnepanelen, voortuinen met heggen, achtertuinen met schuttingen en schuurtjes,
-  lantaarnpalen, straatnaamborden, kliko's en de speeltuin. Elke woning wordt vóór plaatsing
-  getoetst op overlap met wegen, water en andere woningen; tuinen krijgen alleen de diepte die
-  werkelijk beschikbaar is
+  lantaarnpalen, straatnaamborden, kliko's, de speeltuin en de parkjes met slingerpad, bomen,
+  struiken en bankjes. Elke woning krijgt een eigen voortuintje: de een met een ligusterhaag, de
+  ander met een houten kruishekje, een rode berberishaag, een conifeer of gewoon gras met struiken,
+  een grindvak of een sierboompje. Elke woning wordt vóór plaatsing getoetst op overlap met wegen,
+  water, parken en andere woningen; tuinen krijgen alleen de diepte die werkelijk beschikbaar is
 - `js/player.js` – first-person besturing, botsingen en het pistool
 - `js/vehicles.js`, `js/carmodel.js` – geparkeerde en bestuurbare auto's, verkeer op de N7 en in de wijk
 - `js/npc.js` – voetgangers
@@ -63,6 +65,10 @@ Molenpaal, Bonkelaar).
 | Monnikmolen | Bonkelaar | Jasker | Kruirad |
 |---|---|---|---|
 | ![Monnikmolen](docs/screenshots/monnikmolen.png) | ![Bonkelaar](docs/screenshots/bonkelaar.png) | ![Jasker](docs/screenshots/jasker.png) | ![Kruirad](docs/screenshots/kruirad.png) |
+
+| Parkje De Wieken | Voortuinen Molenkrite |
+|---|---|
+| ![Parkje](docs/screenshots/parkje.png) | ![Voortuin](docs/screenshots/voortuin.png) |
 
 | Overzicht vanaf Molenpaal | Kaart (toets M) |
 |---|---|

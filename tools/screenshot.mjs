@@ -19,6 +19,10 @@ const VIEWS = [
   { name: 'overzicht', at: [500, 1200], yaw: Math.PI * 0.85, pitch: -0.9, h: 180 },
   { name: 'overzicht2', at: [200, 1500], yaw: Math.PI * 1.3, pitch: -0.75, h: 140 },
   { name: 'overzicht3', at: [700, 1300], yaw: Math.PI * 0.2, pitch: -0.8, h: 160 },
+  { name: 'parkje', at: [-108, 1218], yaw: -0.87, pitch: -0.02 },
+  { name: 'parkje2', at: [-60, 1180], yaw: -1.5, pitch: -0.02 },
+  { name: 'wieken_tuin', at: [-196, 1010], yaw: 0.06, pitch: -0.05 },
+  { name: 'voortuin', at: [452, 1188], yaw: -2.5, pitch: -0.08 },
   { name: 'kaart', at: [405, 1222], yaw: -0.88, pitch: 0, map: true },
 ];
 
