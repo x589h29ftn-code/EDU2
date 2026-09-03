@@ -263,13 +263,20 @@ export function leaves(tint = '#4a7a2a') {
 export const HOUSE_STYLES = {
   molenkrite: { brick: ['#96755b', '#c0b7a6'], frame: '#ffffff', frame2: '#1f3a6e', door: ['#1f3a6e', '#2a2a2a', '#7a1f1f', '#1f3a6e'], roof: '#4e3d34', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: false, solar: true, band: '#f2f2f2' },
   molenkrite_bung:{ brick: ['#a98d70', '#cbc2b0'], frame: '#ffffff', frame2: '#ffffff', door: ['#a5232c', '#8f1f27'], roof: '#4a3b32', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, solar: true, solarFull: true, chimney: true, band: '#f4f4f4' },
-  monnik:     { brick: ['#8a5a45', '#bfb5a6'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#5a2d1a', '#1f3a6e'], roof: '#463c37', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, chimney: true, band: '#f2f2f2' },
+  // Monnikmolen en Binnenroede hebben dezelfde opbouw als het Kruirad: een
+  // doorlopende laagbouw met plat dak voor het tweelaagse hoofdvolume.
+  monnik:     { brick: ['#9d978d', '#b3ada3'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#5a2d1a', '#1f3a6e'], roof: '#7d4a38', roofType: 'gable', storeys: 2, storeyH: 2.75, w: 5.4, dormer: false, chimney: true, voorbouw: true, band: '#f2f2f2' },
   // Kruirad: lichte gele baksteen met felblauwe kozijnen en deuren, twee lagen,
   // pannendak met dakramen (geen dakkapellen) – zie de street view vanaf het
   // groen aan de achterkant.
-  // Kruirad: lage gootlijn en een gemetseld bergingetje met plat dak voor de
-  // voordeur, zie de street view vanaf 50 Kruirad en 174 Monnikmolen.
-  kruirad:    { brick: ['#d5c49e', '#e4dccb'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#453b35', roofType: 'gable', storeys: 2, storeyH: 2.55, w: 5.4, dormer: false, skylight: true, chimney: true, porch: true, band: '#f2f2f2' },
+  /* Kruirad. Van dichtbij (Kruirad 62) blijkt de opbouw anders dan ik eerst
+     dacht: het is geen bergingetje naast de voordeur, maar een doorlopende
+     laagbouw met plat dak over de volle breedte van het hele blok. Daarin
+     zitten de blauwe voordeuren en een klein raam; het tweelaagse hoofdvolume
+     met het pannendak staat erachter. De steen is grijsbeige, niet geel, en de
+     kozijnen zijn wit met alleen de deuren in blauw. Het dak is roodbruine
+     pan. */
+  kruirad:    { brick: ['#a49d92', '#b6b0a6'], frame: '#ffffff', frame2: '#ffffff', door: ['#1746a0', '#12388a'], roof: '#7d4a38', roofType: 'gable', storeys: 2, storeyH: 2.75, w: 5.4, dormer: false, skylight: true, chimney: true, voorbouw: true, band: '#f2f2f2' },
   // Kruirad, de rijtjes aan de parkeerhoven: roodbruine baksteen, witte
   // kozijnen, een brede raamband op de verdieping met donkergroene panelen
   // eronder en een wit balkonhekje ervoor. Zie 48 Kruirad op street view.

@@ -966,31 +966,39 @@ function buildRow(scene, row, idx) {
         }
         group.add(new THREE.Mesh(mergeGeoms(chims), sideMat));
       }
-      // Bergingetje met plat dak voor de voordeur. Aan het Kruirad heeft elke
-      // woning er een: een gemetseld hokje van ruim twee meter dat precies voor
-      // de deur staat, met een eigen deur in de kopse kant.
-      if (st.porch) {
+      /* Doorlopende laagbouw met plat dak voor de gevel. Aan het Kruirad, de
+         Monnikmolen en de Binnenroede staat die over de volle breedte van het
+         hele blok: een gemetselde strook van ruim twee meter diep en 2,65 hoog
+         met daarin de voordeuren en een klein raam, met het tweelaagse
+         hoofdvolume erachter. Zie Kruirad 62 op street view. */
+      if (st.voorbouw) {
         const perHouse2 = unitLen / unitN;
-        const pw = Math.min(2.35, perHouse2 - 0.5), pd = 1.9, ph = 2.4;
-        const dozen = [], randen = [], deuren = [];
+        const vd = 2.4, vh = 2.65;
+        const zc = depth / 2 + vd / 2;
+        const romp = new THREE.BoxGeometry(unitLen, vh, vd); romp.translate(cx, vh / 2, zc);
+        const m1 = new THREE.Mesh(romp, sideMat); m1.castShadow = true; m1.receiveShadow = true;
+        // dakrand: een witte band rondom, iets uitkragend
+        const rand = new THREE.BoxGeometry(unitLen + 0.14, 0.18, vd + 0.14); rand.translate(cx, vh + 0.07, zc);
+        const deuren = [], ramen = [], kozijnen = [];
         for (let i = 0; i < unitN; i++) {
           const links = cx - unitLen / 2 + perHouse2 * i;
           // De voordeur zit een halve meter uit de zijgevel; bij oneven woningen
           // is de gevel gespiegeld, dus dan zit hij aan de andere kant.
           const gespiegeld = (i % 2 === 1) && !st.detached;
-          const hx = links + (gespiegeld ? perHouse2 - pw / 2 - 0.2 : pw / 2 + 0.2);
-          const zc = depth / 2 + pd / 2;
-          const b = new THREE.BoxGeometry(pw, ph, pd); b.translate(hx, ph / 2, zc); dozen.push(b);
-          const r2 = new THREE.BoxGeometry(pw + 0.16, 0.16, pd + 0.16); r2.translate(hx, ph + 0.06, zc); randen.push(r2);
-          const dz = new THREE.BoxGeometry(0.9, 2.05, 0.06);
-          dz.translate(hx + (gespiegeld ? 0.5 : -0.5), 1.03, depth / 2 + pd + 0.03); deuren.push(dz);
-          const p2 = toWorldLocal(hx, zc);
-          addCollider(p2.x, p2.y, pw / 2, pd / 2, rotY, ph);
+          const dx = links + (gespiegeld ? perHouse2 - 0.5 - 0.48 : 0.5 + 0.48);
+          const zf = depth / 2 + vd + 0.03;
+          const dz = new THREE.BoxGeometry(0.96, 2.15, 0.07); dz.translate(dx, 1.08, zf); deuren.push(dz);
+          // raampje naast de deur
+          const rx = links + (gespiegeld ? perHouse2 * 0.33 : perHouse2 * 0.67);
+          const kg = new THREE.BoxGeometry(1.5, 1.15, 0.06); kg.translate(rx, 1.55, zf); kozijnen.push(kg);
+          const rg = new THREE.BoxGeometry(1.32, 0.97, 0.05); rg.translate(rx, 1.55, zf + 0.02); ramen.push(rg);
         }
-        const m1 = new THREE.Mesh(mergeGeoms(dozen), sideMat); m1.castShadow = true; m1.receiveShadow = true;
-        const m2 = new THREE.Mesh(mergeGeoms(randen), MAT.white);
-        const dm = gedeeldMat('porchdeur|' + st.door[0], () => new THREE.MeshStandardMaterial({ color: st.door[0], roughness: 0.7 }));
-        group.add(m1, m2, new THREE.Mesh(mergeGeoms(deuren), dm));
+        const dm = gedeeldMat('vbdeur|' + st.door[0], () => new THREE.MeshStandardMaterial({ color: st.door[0], roughness: 0.7 }));
+        const km = gedeeldMat('vbkozijn|' + st.frame, () => new THREE.MeshStandardMaterial({ color: st.frame, roughness: 0.8 }));
+        group.add(m1, new THREE.Mesh(rand, MAT.white), new THREE.Mesh(mergeGeoms(deuren), dm),
+                  new THREE.Mesh(mergeGeoms(kozijnen), km), new THREE.Mesh(mergeGeoms(ramen), MAT.glassDark));
+        const p2 = toWorldLocal(cx, zc);
+        addCollider(p2.x, p2.y, unitLen / 2, vd / 2, rotY, vh);
       }
       // Frans balkonhekje voor de raamband op de verdieping.
       if (st.balkon && storeys > 1) {
@@ -1172,7 +1180,7 @@ function buildGardens() {
             const sx = hx + (r() - 0.5) * (w - 1.4);
             const sz = z0 + 0.8 + r() * Math.max(0.4, frontAvail - 1.6);
             if (Math.abs(sx - doorX) < 0.8) continue;
-            if (st.porch && sz < z0 + 2.4) continue;   // daar staat het bergingetje
+            if (st.voorbouw && sz < z0 + 3.0) continue;   // daar staat de laagbouw
             const sw = toWorldLocal(sx, sz);
             if (propNabij(sw.x, sw.y, 1.2)) continue;
             const rad = 0.32 + r() * 0.32;
