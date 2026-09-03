@@ -159,6 +159,22 @@ De zes groepen (60 objecten):
   vanzelf: af en toe neemt iemand een slok. Zet je een `radiotafel` neer, dan
   speelt die ook echt muziek, harder naarmate je dichterbij komt.
 
+## Velden in data.js die de editor niet zelf zet
+
+Sommige dingen staan alleen in `js/data.js`, maar ze werken wel meteen door in
+de editor omdat de wereld na elke wijziging opnieuw wordt opgebouwd.
+
+| veld | waar | wat het doet |
+|---|---|---|
+| `haaks: 'L'` / `'R'` | een weg | doorlopende haakse parkeerstrook van 5 m langs die zijde, met vakken en belijning, en de stoep erachter (Kruirad) |
+| `bays: 'L'` / `'R'` | een weg | losse langsparkeerhavens in de berm |
+| `vergeL` / `vergeR` | een weg | bermbreedte per zijde, in plaats van `verge` voor beide |
+| `nodens: true` | een huizenrij | geen automatische rug-aan-rug rij erachter, bijvoorbeeld waar een parkeerhof hoort te liggen |
+| `stagger: {houses, step}` | een huizenrij | verspringende rooilijn: om de zoveel woningen een sprong naar achteren |
+| `rijen: 2` / `0` | een parkeerhof | twee rijen haakse vakken met een rijloper ertussen, of alleen bestrating zonder vakken |
+| `storeyH` | een woningtype | verdiepinghoogte, standaard 2,90 m; het Kruirad heeft een lage gootlijn |
+| `porch: true` | een woningtype | gemetseld bergingetje met plat dak voor de voordeur |
+
 Zelf een object toevoegen doe je in `js/props.js`: één `def(...)`-regel met
 een naam, label, groep, botsingsmaat, hoogte en een functie die het uit doosjes
 en cilinders opbouwt. Hij staat daarna vanzelf in het palet.

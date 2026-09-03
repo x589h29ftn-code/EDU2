@@ -124,6 +124,7 @@ function materials() {
   MAT.goot = new THREE.MeshStandardMaterial({ color: 0x3c3a37, roughness: 0.95 });
   MAT.paal = new THREE.MeshStandardMaterial({ color: 0x232629, roughness: 0.6, metalness: 0.3 });
   MAT.paalBand = new THREE.MeshStandardMaterial({ color: 0xd8d4c8, roughness: 0.5 });
+  MAT.streep = new THREE.MeshStandardMaterial({ color: 0xe6e4dc, roughness: 0.9 });
   MAT.trunk = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 });
   MAT.trunkPale = new THREE.MeshStandardMaterial({ color: 0x8f8a78, roughness: 1 });
   MAT.bank = new THREE.MeshStandardMaterial({ color: 0x4b5c33, roughness: 1 });
@@ -345,6 +346,7 @@ function buildRoads(scene) {
   const walkGeoms = [];
   const curbGeoms = [];
   const bayGeoms = [];
+  const streepGeoms = [];
   // smalle straten bovenop bredere paden: teken op volgorde van breedte
   const order = ROADS.map((r, i) => ({ r, i })).sort((x, y) => x.r.w - y.r.w || x.i - y.i);
   const roads = order.map(({ r }) => ({ ...r, pts: r.pts.map(vec), trimStart: 0, trimEnd: 0 }));
@@ -382,11 +384,19 @@ function buildRoads(scene) {
     const walkOffL = road.w / 2 + vergeL + 0.6;
     const walkOffR = road.w / 2 + vergeR + 0.6;
     const verge = Math.max(vergeL, vergeR);
-    const corr = road.w / 2 + (isPath ? 0.4 : Math.min(vergeL, vergeR) + 1.4);
+    // Een haakse parkeerstrook hoort bij de weg: voortuinen en hagen moeten
+    // erachter blijven in plaats van er bovenop te liggen. Dat geldt alleen
+    // voor de zijde waar hij ligt, dus de correctie is per kant.
+    const haaks = road.haaks || '';
+    const corrVan = (vg, metHaaks) => road.w / 2 + (isPath ? 0.4
+      : metHaaks ? vg - 0.1 : Math.min(vergeL, vergeR) + 1.4);
+    const corrL = corrVan(vergeL, haaks.includes('L'));
+    const corrR = corrVan(vergeR, haaks.includes('R'));
+    const corr = Math.min(corrL, corrR);
     for (let k = 0; k < pts.length - 1; k++) {
       roadSegments.push({
         name: road.name, a: [pts[k].x, pts[k].y], b: [pts[k + 1].x, pts[k + 1].y],
-        w: road.w, corr, walkOff: walkOffL, walkOffL, walkOffR, drive: !isPath,
+        w: road.w, corr, corrL, corrR, walkOff: walkOffL, walkOffL, walkOffR, drive: !isPath,
       });
     }
     if (!isPath) {
@@ -399,6 +409,35 @@ function buildRoads(scene) {
       // trottoirband langs de rijbaan
       curbGeoms.push(ribbon(pts, 0.16, ROAD_Y + 0.004 + i * 0.0007, road.w / 2 + 0.08, 1));
       curbGeoms.push(ribbon(pts, 0.16, ROAD_Y + 0.004 + i * 0.0007, -(road.w / 2 + 0.08), 1));
+      // Haakse parkeerstrook: een doorlopend klinkervak met vakken dwars op de
+      // rijbaan, met de stoep erachter. Zo ligt het aan het Kruirad: je stapt
+      // uit de auto zo de tuin in. Zie 50 Kruirad en 174 Monnikmolen.
+      if (haaks) {
+        const rh2 = rng(i * 31 + 7);
+        const DIEP = 5.0, VAK = 2.6;
+        for (const sgn of [1, -1]) {
+          if (sgn > 0 && !haaks.includes('L')) continue;
+          if (sgn < 0 && !haaks.includes('R')) continue;
+          const strook = ribbon(inner, DIEP, ROAD_Y + 0.008 + i * 0.0007, sgn * (road.w / 2 + DIEP / 2), 0.5);
+          bayGeoms.push(strook);
+          // vakken aftekenen en er auto's in zetten
+          for (let k = 0; k < inner.length - 1; k++) {
+            const a2 = inner[k], b2 = inner[k + 1];
+            const d2 = b2.clone().sub(a2); const len2 = d2.length(); if (len2 < 1) continue;
+            d2.normalize();
+            const n2 = new THREE.Vector2(d2.y, -d2.x).multiplyScalar(sgn);
+            for (let sp = VAK / 2; sp < len2 - VAK / 2; sp += VAK) {
+              const c2 = a2.clone().add(d2.clone().multiplyScalar(sp)).add(n2.clone().multiplyScalar(road.w / 2 + DIEP / 2));
+              if (rh2() < 0.42) parkSpots.push({ x: c2.x, z: c2.y, yaw: Math.atan2(-n2.x, -n2.y) });
+              const lijn = a2.clone().add(d2.clone().multiplyScalar(sp - VAK / 2)).add(n2.clone().multiplyScalar(road.w / 2 + DIEP / 2));
+              const lg = new THREE.PlaneGeometry(0.1, DIEP - 0.4);
+              lg.rotateX(-Math.PI / 2); lg.rotateY(Math.atan2(d2.x, d2.y) + Math.PI / 2);
+              lg.translate(lijn.x, ROAD_Y + 0.014 + i * 0.0007, lijn.y);
+              streepGeoms.push(lg);
+            }
+          }
+        }
+      }
       // parkeerhavens in de berm, direct naast de rijbaan
       const bays = road.bays || '';
       if (bays) {
@@ -430,7 +469,10 @@ function buildRoads(scene) {
     }
     i++;
   }
-  if (bayGeoms.length) scene.add(new THREE.Mesh(mergeGeoms(bayGeoms), MAT.klinker));
+  if (bayGeoms.length) {
+    const m = new THREE.Mesh(mergeGeoms(bayGeoms), MAT.klinker); m.receiveShadow = true; scene.add(m);
+  }
+  if (streepGeoms.length) scene.add(new THREE.Mesh(mergeGeoms(streepGeoms), MAT.streep));
   const walk = new THREE.Mesh(mergeGeoms(walkGeoms), MAT.tiles); walk.receiveShadow = true; scene.add(walk);
   scene.add(new THREE.Mesh(mergeGeoms(curbGeoms), MAT.curb));
 
@@ -609,11 +651,19 @@ function pointInUnit(px, pz, u, margin) {
   const lx = dx * u.cos - dz * u.sin, lz = dx * u.sin + dz * u.cos;
   return Math.abs(lx) < u.hx + margin && Math.abs(lz) < u.hz + margin;
 }
+// Breedte van de wegkoker aan de kant waar het punt ligt: een haakse
+// parkeerstrook maakt die kant breder dan de overkant.
+function corrVoor(sgm, px, pz) {
+  if (sgm.corrL == null) return sgm.corr;
+  const dx = sgm.b[0] - sgm.a[0], dz = sgm.b[1] - sgm.a[1];
+  const links = (px - sgm.a[0]) * dz - (pz - sgm.a[1]) * dx > 0;
+  return links ? sgm.corrL : sgm.corrR;
+}
 function roadClearance(px, pz) {
   let best = 1e9;
   for (const sgm of roadSegments) {
     if (sgm.w === 0) continue;
-    const d = distToSeg(px, pz, sgm.a[0], sgm.a[1], sgm.b[0], sgm.b[1]) - sgm.corr;
+    const d = distToSeg(px, pz, sgm.a[0], sgm.a[1], sgm.b[0], sgm.b[1]) - corrVoor(sgm, px, pz);
     if (d < best) best = d;
   }
   return best;
@@ -623,7 +673,7 @@ function distToNearestRoadEdge(px, pz) {
   let best = 1e9;
   for (const sgm of roadSegments) {
     if (sgm.w === 0 || !sgm.drive) continue;
-    const d = distToSeg(px, pz, sgm.a[0], sgm.a[1], sgm.b[0], sgm.b[1]) - sgm.corr;
+    const d = distToSeg(px, pz, sgm.a[0], sgm.a[1], sgm.b[0], sgm.b[1]) - corrVoor(sgm, px, pz);
     if (d < best) best = d;
   }
   return best;
@@ -717,7 +767,7 @@ function buildRow(scene, row, idx) {
   const yaw = Math.atan2(faceDir.y, faceDir.x);
   const rotY = Math.PI / 2 - yaw;
   const dLocal = new THREE.Vector2(Math.cos(rotY), -Math.sin(rotY));
-  const facadeH = storeys * 2.9;
+  const facadeH = storeys * (st.storeyH || 2.9);
   // Bij bungalows zit de woonruimte in de kap: een lage gevel krijgt een hoger dak.
   const roofH = st.roofType === 'gable'
     ? (storeys === 1 ? Math.min(4.6, depth * 0.55) : Math.min(4.2, depth * 0.5))
@@ -916,6 +966,32 @@ function buildRow(scene, row, idx) {
         }
         group.add(new THREE.Mesh(mergeGeoms(chims), sideMat));
       }
+      // Bergingetje met plat dak voor de voordeur. Aan het Kruirad heeft elke
+      // woning er een: een gemetseld hokje van ruim twee meter dat precies voor
+      // de deur staat, met een eigen deur in de kopse kant.
+      if (st.porch) {
+        const perHouse2 = unitLen / unitN;
+        const pw = Math.min(2.35, perHouse2 - 0.5), pd = 1.9, ph = 2.4;
+        const dozen = [], randen = [], deuren = [];
+        for (let i = 0; i < unitN; i++) {
+          const links = cx - unitLen / 2 + perHouse2 * i;
+          // De voordeur zit een halve meter uit de zijgevel; bij oneven woningen
+          // is de gevel gespiegeld, dus dan zit hij aan de andere kant.
+          const gespiegeld = (i % 2 === 1) && !st.detached;
+          const hx = links + (gespiegeld ? perHouse2 - pw / 2 - 0.2 : pw / 2 + 0.2);
+          const zc = depth / 2 + pd / 2;
+          const b = new THREE.BoxGeometry(pw, ph, pd); b.translate(hx, ph / 2, zc); dozen.push(b);
+          const r2 = new THREE.BoxGeometry(pw + 0.16, 0.16, pd + 0.16); r2.translate(hx, ph + 0.06, zc); randen.push(r2);
+          const dz = new THREE.BoxGeometry(0.9, 2.05, 0.06);
+          dz.translate(hx + (gespiegeld ? 0.5 : -0.5), 1.03, depth / 2 + pd + 0.03); deuren.push(dz);
+          const p2 = toWorldLocal(hx, zc);
+          addCollider(p2.x, p2.y, pw / 2, pd / 2, rotY, ph);
+        }
+        const m1 = new THREE.Mesh(mergeGeoms(dozen), sideMat); m1.castShadow = true; m1.receiveShadow = true;
+        const m2 = new THREE.Mesh(mergeGeoms(randen), MAT.white);
+        const dm = gedeeldMat('porchdeur|' + st.door[0], () => new THREE.MeshStandardMaterial({ color: st.door[0], roughness: 0.7 }));
+        group.add(m1, m2, new THREE.Mesh(mergeGeoms(deuren), dm));
+      }
       if (st.gallery) {
         const floor = new THREE.Mesh(new THREE.BoxGeometry(unitLen, 0.14, 1.35), MAT.white);
         floor.position.set(cx, 2.9, depth / 2 + 0.68); group.add(floor);
@@ -1077,6 +1153,7 @@ function buildGardens() {
             const sx = hx + (r() - 0.5) * (w - 1.4);
             const sz = z0 + 0.8 + r() * Math.max(0.4, frontAvail - 1.6);
             if (Math.abs(sx - doorX) < 0.8) continue;
+            if (st.porch && sz < z0 + 2.4) continue;   // daar staat het bergingetje
             const sw = toWorldLocal(sx, sz);
             if (propNabij(sw.x, sw.y, 1.2)) continue;
             const rad = 0.32 + r() * 0.32;
@@ -1487,16 +1564,42 @@ function buildFurniture(scene) {
   }
 
   // Parkeerhoven
+  // Parkeerhof. Met rijen: 2 komen er aan weerszijden haakse vakken met een
+  // rijloper ertussen, zoals het hof binnen de lus van het Kruirad.
+  const hofStreepGeoms = [];
   for (const lot of PARKING_LOTS) {
     const [x, z] = toWorld(lot.at[0], lot.at[1]);
     const g = new THREE.PlaneGeometry(lot.l, lot.w);
     const mesh = new THREE.Mesh(g, MAT.klinker);
-    mesh.rotation.x = -Math.PI / 2; mesh.rotation.z = lot.angle; mesh.position.set(x, ROAD_Y + 0.02, z); scene.add(mesh);
-    for (let s = -lot.l / 2 + 3; s < lot.l / 2 - 2; s += 5.5) {
-      const px = x + Math.cos(lot.angle) * s, pz = z - Math.sin(lot.angle) * s;
-      if (r() < 0.65) parkSpots.push({ x: px, z: pz, yaw: -lot.angle + Math.PI / 2, driveable: r() < 0.3 });
+    mesh.rotation.x = -Math.PI / 2; mesh.rotation.z = lot.angle; mesh.position.set(x, ROAD_Y + 0.02, z);
+    mesh.receiveShadow = true; scene.add(mesh);
+    // richting van de lengte en van de breedte in de wereld
+    const ux = Math.cos(lot.angle), uz = -Math.sin(lot.angle);
+    const nx = -Math.sin(lot.angle), nz = -Math.cos(lot.angle);
+    if (lot.rijen === 0) continue;              // alleen bestrating, geen vakken
+    if ((lot.rijen || 1) < 2) {
+      for (let s = -lot.l / 2 + 3; s < lot.l / 2 - 2; s += 5.5) {
+        const px = x + ux * s, pz = z + uz * s;
+        if (r() < 0.65) parkSpots.push({ x: px, z: pz, yaw: -lot.angle + Math.PI / 2, driveable: r() < 0.3 });
+      }
+      continue;
+    }
+    const vakDiep = 5.0, vakBreed = 2.5;
+    for (const kant of [-1, 1]) {
+      const d = kant * (lot.w / 2 - vakDiep / 2);
+      for (let s = -lot.l / 2 + vakBreed / 2; s <= lot.l / 2 - vakBreed / 2; s += vakBreed) {
+        const px = x + ux * s + nx * d, pz = z + uz * s + nz * d;
+        if (r() < 0.62) parkSpots.push({ x: px, z: pz, yaw: lot.angle + (kant > 0 ? Math.PI : 0), driveable: r() < 0.2 });
+        // belijning tussen de vakken
+        const sl = new THREE.PlaneGeometry(0.1, vakDiep - 0.3);
+        sl.rotateX(-Math.PI / 2); sl.rotateY(-lot.angle);
+        const lx = x + ux * (s - vakBreed / 2) + nx * d, lz2 = z + uz * (s - vakBreed / 2) + nz * d;
+        sl.translate(lx, ROAD_Y + 0.03, lz2);
+        hofStreepGeoms.push(sl);
+      }
     }
   }
+  if (hofStreepGeoms.length) scene.add(new THREE.Mesh(mergeGeoms(hofStreepGeoms), MAT.streep));
 
   // Speeltuin
   {
@@ -1570,13 +1673,13 @@ export function buildWorld(scene) {
   const skip = new Set(['spil', 'appart']);
   const generated = [];
   for (const row of allRows) {
-    if (row.flip || row.showroom || skip.has(row.type)) continue;
+    if (row.flip || row.showroom || row.nodens || skip.has(row.type)) continue;
     const sign = row.off < 0 ? -1 : 1;
     generated.push({ ...row, off: sign * (Math.abs(row.off) + 2 * row.depth + GARDENS), flip: true, generated: true });
   }
   // en nog een derde rij voor de diepe blokken
   for (const row of allRows) {
-    if (row.flip || row.showroom || skip.has(row.type) || row.type === 'detached' || row.type === 'bonkelaar') continue;
+    if (row.flip || row.showroom || row.nodens || skip.has(row.type) || row.type === 'detached' || row.type === 'bonkelaar') continue;
     const sign = row.off < 0 ? -1 : 1;
     generated.push({ ...row, off: sign * (Math.abs(row.off) + 2 * row.depth + GARDENS + row.depth + 14), flip: false, generated: true });
   }
