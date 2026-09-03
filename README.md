@@ -26,6 +26,9 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | E | in- en uitstappen bij een auto |
 | in de auto: W/S, A/D, spatie | gas/rem, sturen, handrem |
 | M | grote kaart van de wijk met straatnamen |
+| [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
+| Y | weer: helder, bewolkt, regen |
+| U | geluid uit en aan |
 | **F2** | wijkeditor: huizen verplaatsen en toevoegen |
 | Esc | muis vrijgeven |
 
@@ -60,6 +63,18 @@ containers, speeltoestellen en bomen — 54 stuks, nagebouwd naar de street-view
 
 ![Alle objecten](docs/screenshots/objecten.png)
 
+## Dag, nacht en weer
+
+De zon draait van oost naar west, met bijpassende kleuren voor licht, lucht en mist. Wordt het donker,
+dan springen de straatlantaarns aan. Bij regen zakt het zicht van 900 naar 320 meter, wordt het water
+dof en hoor je het op je jas.
+
+![Dag, nacht en weer](docs/screenshots/sfeer.png)
+
+Alle geluid is gesynthetiseerd met de Web Audio API, er zijn geen geluidsbestanden: wind, vogels
+overdag en krekels 's avonds, regen, voetstappen die verschillen op klinkers, tegels en gras, een
+motor waarvan de toonhoogte met de snelheid meeloopt, schoten, herladen en portieren.
+
 ## Straten in het spel
 
 Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal · Spinnekop ·
@@ -73,6 +88,9 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
 - `js/editor.js` – de wijkeditor (F2): huizenrijen en objecten
 - `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, ...)
+- `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
+- `js/audio.js` – alle geluid, volledig gesynthetiseerd
+- `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `js/touch.js` – touchbesturing voor telefoon en tablet
 - `desktop/` – de Electron-schil voor de Windows-app
   (3.26 px per meter, oorsprong op het kruispunt Molenkrite/Monnikmolen/Jasker)

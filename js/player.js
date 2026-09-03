@@ -1,6 +1,7 @@
 // Speler: first-person besturing, botsingen, pistool.
 import * as THREE from 'three';
-import { resolveCollisions, pointInWater } from './world.js';
+import { resolveCollisions, pointInWater, ondergrondOp } from './world.js';
+import { geluid } from './audio.js';
 
 export class Player {
   get locked() { return this.active; }
@@ -116,6 +117,7 @@ export class Player {
   jump() {
     if (this.inCar || !this.onGround) return;
     this.vy = 4.6; this.onGround = false;
+    geluid.sprong();
   }
 
   // Rondkijken vanuit muis of touch: dx/dy in schermpixels.
@@ -139,6 +141,7 @@ export class Player {
   reload() {
     if (this.reloading > 0 || this.ammo === 12 || this.reserve <= 0) return;
     this.reloading = 1.4;
+    geluid.herladen();
   }
 
   shoot() {
@@ -146,6 +149,7 @@ export class Player {
     if (this.ammo <= 0) { this.reload(); return; }
     this.ammo--;
     this.recoil = 1; this.flashT = 0.06;
+    geluid.schot();
     const dir = new THREE.Vector3(); this.camera.getWorldDirection(dir);
     const origin = this.camera.getWorldPosition(new THREE.Vector3());
     if (this.shootCb) this.shootCb(origin, dir);
@@ -198,8 +202,16 @@ export class Player {
     this.vy -= 12 * dt; this.pos.y += this.vy * dt;
     if (this.pos.y <= 0) { this.pos.y = 0; this.vy = 0; this.onGround = true; }
 
+    // Voetstappen volgen de kop-beweging: elke halve slag zet je een voet neer,
+    // en de klank hangt af van waar je op loopt.
+    const vorigeBob = this.bob || 0;
     // hoofdbeweging bij lopen
     this.bob = (this.bob || 0) + (move.lengthSq() > 0 ? dt * (speed > 5 ? 13 : 9) : 0);
+    if (this.onGround && Math.floor(vorigeBob / Math.PI) !== Math.floor(this.bob / Math.PI)) {
+      geluid.voetstap(ondergrondOp(this.pos.x, this.pos.z), running);
+    }
+    if (!this.wasInLucht && !this.onGround) this.wasInLucht = true;
+    else if (this.wasInLucht && this.onGround) { this.wasInLucht = false; geluid.landing(); }
     const bobY = move.lengthSq() > 0 ? Math.sin(this.bob) * 0.035 : 0;
 
     this.camera.position.set(this.pos.x, this.pos.y + this.eye + bobY, this.pos.z);

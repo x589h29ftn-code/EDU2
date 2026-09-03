@@ -9,6 +9,7 @@ import { isTouchDevice, initTouchControls } from './touch.js';
 import { START, toWorld, ROWS, PROPS } from './data.js';
 import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
 import { initSfeer } from './sfeer.js';
+import { geluid } from './audio.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -231,8 +232,8 @@ player.shootCb = (origin, dir) => {
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
     const h = hits[0];
-    if (npcs.hit(h.object, h.instanceId)) hud.show('Raak!', 0.8);
-    else { const car = vehicles.hit(h.object); if (car) hud.show('Auto geraakt', 0.6); }
+    if (npcs.hit(h.object, h.instanceId)) { geluid.raak(); hud.show('Raak!', 0.8); }
+    else { const car = vehicles.hit(h.object); if (car) { geluid.klap(); hud.show('Auto geraakt', 0.6); } }
     const mark = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), impactMat); mark.position.copy(h.point); scene.add(mark);
     setTimeout(() => scene.remove(mark), 8000);
   }
@@ -245,13 +246,22 @@ function toggleCar() {
     const car = player.inCar; player.inCar = null;
     const side = new THREE.Vector3(Math.cos(car.yaw), 0, -Math.sin(car.yaw)).multiplyScalar(-1.6);
     player.pos.set(car.x + side.x, 0, car.z + side.z); player.yaw = car.yaw; player.pitch = 0;
+    geluid.portier(); geluid.motorUit();
     hud.show('Uitgestapt');
   } else {
     const car = vehicles.nearestDriveable(player.pos.x, player.pos.z);
-    if (car) { player.inCar = car; player.carLook = 0; hud.show('Ingestapt – W om te rijden'); }
+    if (car) { player.inCar = car; player.carLook = 0; geluid.portier(); geluid.motorAan(); hud.show('Ingestapt – W om te rijden'); }
   }
 }
 window.addEventListener('keydown', e => { if (e.code === 'KeyE') toggleCar(); });
+
+// Geluid uit en aan
+let stil = false;
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyU' || e.ctrlKey || e.metaKey) return;
+  stil = !stil; geluid.demp(stil);
+  hud.show(stil ? 'Geluid uit' : 'Geluid aan', 1.8);
+});
 
 // ---------- Starten, pauzeren en muisbesturing ----------
 // Het spel hangt niet af van muisvergrendeling. Lukt die niet, bijvoorbeeld
@@ -271,6 +281,7 @@ const touch = IS_TOUCH ? initTouchControls(player, {
 function startGame() {
   overlay.style.display = 'none';
   player.active = true;
+  geluid.start();
   if (touch) {
     touch.setVisible(true);
     // volledig scherm en dwars: op een telefoon scheelt dat de halve browserbalk
@@ -344,6 +355,7 @@ function loop() {
     if (player.inCar) {
       const car = player.inCar;
       vehicles.drive(car, player.driveInput(), dt);
+      geluid.motorToeren(car.speed);
       // camera op de bestuurdersstoel (links), meekijken met muis
       const seat = new THREE.Vector3(-0.38, 1.25, -0.25);
       seat.applyAxisAngle(new THREE.Vector3(0, 1, 0), car.yaw);
@@ -355,7 +367,7 @@ function loop() {
       player.lastCarYaw = car.yaw;
       player.gun.visible = false;
     } else player.lastCarYaw = undefined;
-    vehicles.updateTraffic(dt);
+    vehicles.updateTraffic(dt, player, npcs.people);
     npcs.update(dt, time);
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
@@ -363,6 +375,7 @@ function loop() {
     sun.target.position.set(cx, 0, cz); sun.target.updateMatrixWorld();
     updateClouds(dt, cx, cz);
     sfeer.update(dt, cx, cz);
+    geluid.omgeving(dt, { weer: sfeer.weer, nacht: sfeer.nacht, binnen: !!player.inCar });
     lodKlok += dt;
     if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); }
     hud.update(dt, player, vehicles, npcs, nearestRoadName(cx, cz));
@@ -373,7 +386,7 @@ function loop() {
     updateClouds(dt, camera.position.x, camera.position.z);
     sfeer.update(dt, camera.position.x, camera.position.z);
     npcs.update(dt, time);
-    vehicles.updateTraffic(dt);
+    vehicles.updateTraffic(dt, player, npcs.people);
     hud.update(dt, player, vehicles, npcs, nearestRoadName(camera.position.x, camera.position.z));
   }
   renderer.render(scene, camera);

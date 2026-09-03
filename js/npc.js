@@ -21,6 +21,32 @@ const PARTS = {
   armR: { geo: () => { const g = new THREE.BoxGeometry(0.10, 0.58, 0.10); g.translate(0, -0.29, 0); return g; }, y: 1.44, x: 0.26 },
 };
 
+// Een fiets: frame, twee wielen en een stuur. Wie fietst krijgt hem onder zich,
+// wie loopt krijgt hem op schaal nul en is dus onzichtbaar.
+function fietsGeo() {
+  const delen = [];
+  const voeg = (g) => delen.push(g.index ? g.toNonIndexed() : g);
+  for (const dz of [-0.52, 0.52]) {
+    const w = new THREE.TorusGeometry(0.34, 0.028, 5, 12);
+    w.rotateY(Math.PI / 2); w.translate(0, 0.34, dz); voeg(w);
+  }
+  const frame = new THREE.BoxGeometry(0.05, 0.05, 0.95); frame.translate(0, 0.62, 0); voeg(frame);
+  const zadelbuis = new THREE.BoxGeometry(0.05, 0.34, 0.05); zadelbuis.translate(0, 0.72, 0.28); voeg(zadelbuis);
+  const zadel = new THREE.BoxGeometry(0.10, 0.05, 0.24); zadel.translate(0, 0.90, 0.30); voeg(zadel);
+  const balhoofd = new THREE.BoxGeometry(0.05, 0.46, 0.05); balhoofd.translate(0, 0.78, -0.42); voeg(balhoofd);
+  const stuur = new THREE.BoxGeometry(0.46, 0.04, 0.04); stuur.translate(0, 1.00, -0.44); voeg(stuur);
+  const pos = [], nor = [];
+  for (const g of delen) {
+    pos.push(...g.attributes.position.array);
+    nor.push(...g.attributes.normal.array);
+    g.dispose();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return geo;
+}
+
 export class NPCs {
   constructor(scene, roadSegments, count = 42) {
     this.scene = scene;
@@ -67,15 +93,26 @@ export class NPCs {
       this.meshes.hair.setColorAt(i, col.setHex(hair));
 
       const height = 0.88 + r() * 0.22;   // kinderen tot volwassenen
+      // een op de vijf is een fietser: hoger, sneller en met een fiets eronder
+      const fietst = r() < 0.20 && height > 0.95;
       const p = {
         seg: null, t: 0, dir: 1, side: r() < 0.5 ? 1 : -1,
-        speed: (1.0 + r() * 0.55) * (0.85 + height * 0.2),
+        speed: fietst ? 4.2 + r() * 1.8 : (1.0 + r() * 0.55) * (0.85 + height * 0.2),
         height, phase: r() * 6.28, alive: true, fall: 0, respawn: 0,
-        pause: r() * 12, x: 0, z: 0, yaw: 0,
+        pause: fietst ? 0 : r() * 12, x: 0, z: 0, yaw: 0,
+        fietst,
+        // oversteken: opWeg is waar het verkeer voor moet remmen
+        steek: 0, steekVan: 0, steekNaar: 0, opWeg: false, steekWacht: 4 + r() * 25,
       };
       this.pickSegment(p, true);
       this.people.push(p);
     }
+    // fietsen als aparte instanced mesh; wie loopt krijgt schaal nul
+    this.fiets = new THREE.InstancedMesh(fietsGeo(), new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 0.55, metalness: 0.4 }), count);
+    this.fiets.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.fiets.castShadow = true; this.fiets.frustumCulled = false;
+    scene.add(this.fiets);
+
     for (const key of Object.keys(PARTS)) this.meshes[key].instanceColor.needsUpdate = true;
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion();
     this._e = new THREE.Euler(); this._v = new THREE.Vector3(); this._s = new THREE.Vector3();
@@ -109,6 +146,11 @@ export class NPCs {
         p.fall = Math.min(1, p.fall + dt * 3);
         p.respawn -= dt;
         if (p.respawn <= 0) { p.alive = true; p.fall = 0; this.pickSegment(p, true); }
+      } else if (p.steek > 0) {
+        // midden in het oversteken: van de ene stoep naar de andere
+        p.steek = Math.max(0, p.steek - dt * (p.fietst ? 1.6 : 0.9));
+        if (p.steek === 0) { p.side = p.steekNaar; p.opWeg = false; }
+        swing = Math.sin(time * 6.2 / p.height + p.phase) * 0.5;
       } else if (p.pause > 0) {
         p.pause -= dt;                       // even stilstaan
       } else {
@@ -116,20 +158,39 @@ export class NPCs {
         const len = Math.max(0.1, Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));
         p.t += p.dir * p.speed * dt / len;
         if (p.t > 1 || p.t < 0) { p.t = Math.max(0, Math.min(1, p.t)); this.pickSegment(p); }
-        if (this.r() < dt * 0.03) p.pause = 2 + this.r() * 8;
-        swing = Math.sin(time * 5.4 / p.height + p.phase) * 0.55;
+        if (!p.fietst && this.r() < dt * 0.03) p.pause = 2 + this.r() * 8;
+        // af en toe oversteken naar de overkant, dwars over de rijbaan
+        p.steekWacht -= dt;
+        if (p.steekWacht <= 0 && s.drive) {
+          p.steekWacht = 18 + this.r() * 40;
+          p.steekVan = p.side; p.steekNaar = -p.side;
+          p.steek = 1; p.opWeg = true;
+        }
+        swing = Math.sin(time * (p.fietst ? 3.0 : 5.4) / p.height + p.phase) * (p.fietst ? 0.3 : 0.55);
       }
       const s = p.seg;
       const len = Math.max(0.1, Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));
       const dx = (s.b[0] - s.a[0]) / len, dz = (s.b[1] - s.a[1]) / len;
-      const off = (s.walkOff || s.w / 2 + 0.8) * p.side;
+      const basis = s.walkOff || s.w / 2 + 0.8;
+      // tijdens het oversteken schuift de zijde van de ene naar de andere kant
+      const zijde = p.steek > 0 ? p.steekVan * p.steek + p.steekNaar * (1 - p.steek) : p.side;
+      const off = basis * zijde;
       p.x = s.a[0] + (s.b[0] - s.a[0]) * p.t - dz * off;
       p.z = s.a[1] + (s.b[1] - s.a[1]) * p.t + dx * off;
       p.yaw = Math.atan2(-dx * p.dir, -dz * p.dir) + Math.PI;
 
       const h = p.height;
       const tilt = p.alive ? 0 : -p.fall * Math.PI / 2;
-      const yLift = p.alive ? 0 : p.fall * 0.3;
+      // op de fiets zit je hoger en trappen je benen kleine rondjes
+      const yLift = (p.alive ? 0 : p.fall * 0.3) + (p.fietst && p.alive ? 0.42 : 0);
+      if (p.fietst) {
+        const fq = new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt, p.yaw, 0, 'YXZ'));
+        m.compose(new THREE.Vector3(p.x, p.alive ? 0 : 0.1, p.z), fq, new THREE.Vector3(h, h, h));
+        this.fiets.setMatrixAt(i, m);
+      } else {
+        m.makeScale(0, 0, 0);
+        this.fiets.setMatrixAt(i, m);
+      }
       for (const [key, def] of Object.entries(PARTS)) {
         const isLeg = key === 'legL' || key === 'legR';
         const isArm = key === 'armL' || key === 'armR';
@@ -151,6 +212,7 @@ export class NPCs {
       }
     }
     for (const key of Object.keys(PARTS)) this.meshes[key].instanceMatrix.needsUpdate = true;
+    this.fiets.instanceMatrix.needsUpdate = true;
   }
 
   // raycast-doelen: de instanced meshes zelf

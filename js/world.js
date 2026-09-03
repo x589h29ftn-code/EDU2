@@ -1417,6 +1417,20 @@ export function pointInWater(x, z) {
   return inWater(new THREE.Vector2(x, z));
 }
 
+// Waar loop je op? Bepaalt de klank van de voetstappen.
+export function ondergrondOp(x, z) {
+  let best = 1e9, beste = null;
+  for (const s of roadSegments) {
+    if (s.w === 0) continue;
+    const d = distToSeg(x, z, s.a[0], s.a[1], s.b[0], s.b[1]);
+    if (d < best) { best = d; beste = s; }
+  }
+  if (!beste) return 'gras';
+  if (beste.drive && best < beste.w / 2 + 0.3) return 'klinker';   // rijbaan
+  if (best < beste.corr + 0.6) return 'tegel';                     // stoep of pad
+  return 'gras';
+}
+
 // De sfeermodule heeft deze materialen nodig om water te laten stromen, de
 // bladeren te laten waaien en de lantaarns 's avonds aan te doen.
 export function sfeerMaterialen() {
