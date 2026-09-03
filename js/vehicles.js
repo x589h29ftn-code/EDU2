@@ -84,22 +84,62 @@ export class Vehicles {
     car.mesh.position.set(car.x, 0, car.z); car.mesh.rotation.y = car.yaw;
   }
 
-  updateTraffic(dt) {
+  // Verkeer. Auto's kijken een stukje vooruit en remmen voor elkaar, voor de
+  // speler en voor overstekende voetgangers; daarna trekken ze weer op.
+  updateTraffic(dt, speler = null, voetgangers = null) {
+    // eerst iedereen op zijn plek zetten, dan pas vooruitkijken
     for (const t of this.traffic) {
       const n = t.path.length;
-      const i0 = Math.floor(t.t), i1 = Math.min(n - 1, i0 + 1);
-      const a = t.path[i0], b = t.path[i1];
-      const segLen = Math.max(0.01, a.distanceTo(b));
-      t.t += t.dir * (t.speed * dt) / segLen;
-      if (t.t >= n - 1) { if (t.bounce) { t.dir = -1; t.t = n - 1.001; } else t.t = 0; }
-      if (t.t <= 0) { if (t.bounce) { t.dir = 1; t.t = 0.001; } else t.t = n - 1.001; }
       const j0 = Math.floor(t.t), j1 = Math.min(n - 1, j0 + 1);
       const p = t.path[j0].clone().lerp(t.path[j1], t.t - j0);
       const d = t.path[j1].clone().sub(t.path[j0]).normalize().multiplyScalar(t.dir);
       const nrm = new THREE.Vector2(-d.y, d.x);
-      const off = nrm.clone().multiplyScalar(t.lane); // rechts rijden
-      t.mesh.position.set(p.x + off.x, t.y, p.y + off.y);
-      t.mesh.rotation.y = Math.atan2(-d.x, -d.y);
+      t._pos = new THREE.Vector2(p.x + nrm.x * t.lane, p.y + nrm.y * t.lane);
+      t._dir = d;
+      if (t.snelheid === undefined) { t.snelheid = t.speed; t.doel = t.speed; }
+    }
+
+    const KIJK = 11;          // meter vooruitkijken
+    const BREED = 2.2;        // hoe ver naast de as iets nog in de weg staat
+
+    for (const t of this.traffic) {
+      let vrij = KIJK;
+
+      const inDeWeg = (x, z, marge) => {
+        const dx = x - t._pos.x, dz = z - t._pos.y;
+        const langs = dx * t._dir.x + dz * t._dir.y;         // afstand recht vooruit
+        if (langs <= 0.5 || langs > KIJK) return;
+        const opzij = Math.abs(dx * -t._dir.y + dz * t._dir.x);
+        if (opzij > BREED + marge) return;
+        if (langs < vrij) vrij = langs;
+      };
+
+      for (const a of this.traffic) { if (a !== t) inDeWeg(a._pos.x, a._pos.y, 0.4); }
+      for (const c of this.cars) { if (c.mesh.visible) inDeWeg(c.x, c.z, 0.4); }
+      if (speler && !speler.inCar) inDeWeg(speler.pos.x, speler.pos.z, 0.1);
+      if (voetgangers) {
+        for (const v of voetgangers) { if (v.alive && v.opWeg) inDeWeg(v.x, v.z, 0.1); }
+      }
+
+      // remmen naar nul op vier meter, weer optrekken zodra het vrij is
+      t.doel = vrij >= KIJK ? t.speed : Math.max(0, t.speed * (vrij - 4) / (KIJK - 4));
+      const versnelling = t.doel < t.snelheid ? 14 : 3.5;    // remmen gaat harder dan optrekken
+      t.snelheid += Math.max(-versnelling * dt, Math.min(versnelling * dt, t.doel - t.snelheid));
+
+      const n = t.path.length;
+      const j0 = Math.floor(t.t), j1 = Math.min(n - 1, j0 + 1);
+      const segLen = Math.max(0.01, t.path[j0].distanceTo(t.path[j1]));
+      t.t += t.dir * (t.snelheid * dt) / segLen;
+      if (t.t >= n - 1) { if (t.bounce) { t.dir = -1; t.t = n - 1.001; } else t.t = 0; }
+      if (t.t <= 0) { if (t.bounce) { t.dir = 1; t.t = 0.001; } else t.t = n - 1.001; }
+
+      const k0 = Math.floor(t.t), k1 = Math.min(n - 1, k0 + 1);
+      const p2 = t.path[k0].clone().lerp(t.path[k1], t.t - k0);
+      const d2 = t.path[k1].clone().sub(t.path[k0]).normalize().multiplyScalar(t.dir);
+      const nrm2 = new THREE.Vector2(-d2.y, d2.x).multiplyScalar(t.lane);
+      t.mesh.position.set(p2.x + nrm2.x, t.y, p2.y + nrm2.y);
+      t.mesh.rotation.y = Math.atan2(-d2.x, -d2.y);
+      if (t.remlicht) t.remlicht.visible = t.doel < t.speed * 0.6;
     }
   }
 
