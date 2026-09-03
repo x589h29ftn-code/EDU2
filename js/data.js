@@ -135,21 +135,22 @@ export const ROADS = [
 
 /*
  Kruispuntplateaus. In Tinga is het kruispunt zelf een verhoogd vlak van rode
- klinkers dat in elke straatmond uitwaaiert; de rijbaan zelf is grijs. Langs de
- randen tussen de klinkers en het gras staat een rij zwarte antiparkeerpaaltjes.
+ klinkers dat in elke straatmond uitwaaiert; de rijbaan zelf is grijs.
  - at      : middelpunt (px)
  - straal  : straal van de ronde kern (m)
  - arm     : hoe ver het vlak elke straat in loopt, gemeten vanaf het midden (m)
  - extra   : hoeveel breder dan de rijbaan de straatmond wordt (m per zijde)
- - paaltjes: paaltjes langs de bogen tussen de straatmonden
  - naad    : donkere goot dwars over het plateau, van..naar in px
+ - paaltjes: antiparkeerpaaltjes langs de randen. Staat overal uit: de randen
+   liggen op een kruispunt zo dicht op de rijlijnen dat de paaltjes op de weg
+   uitkwamen. Ze staan wel in de objectenbibliotheek, om met de hand te zetten.
 */
 export const PLATEAUS = [
   // Molenkrite / Monnikmolen / Jasker: het grote plateau uit de foto's
-  { at: [370,1245], straal: 5.8, arm: 12.5, extra: 2.2, paaltjes: true,
+  { at: [370,1245], straal: 5.8, arm: 12.5, extra: 2.2,
     naad: [[346,1211],[370,1245],[396,1271]] },
-  { at: [243,935],  straal: 4.6, arm: 9.0, extra: 1.6, paaltjes: true },
-  { at: [305,1460], straal: 4.6, arm: 9.0, extra: 1.6, paaltjes: true },
+  { at: [243,935],  straal: 4.6, arm: 9.0, extra: 1.6 },
+  { at: [305,1460], straal: 4.6, arm: 9.0, extra: 1.6 },
   { at: [600,1750], straal: 4.6, arm: 9.0, extra: 1.6 },
 ];
 
@@ -295,12 +296,15 @@ R(480,781, 596,706,  56, 9, 'monnik', { flip: true });
 R(280,912, 560,729,  71, 9, 'monnik');                     // derde rij, gevel naar het hof
 R(262,923, 455,798, -13, 9, 'molenkrite');                 // zuidzijde aan de straat
 R(480,781, 596,706, -13, 9, 'molenkrite');
-R(307,1075, 600,880, -13, 9, 'molenkrite');               // zuidoostzijde Binnenroede
+// De Binnenroede en de Molenkrite lopen naar elkaar toe: aan het noordoostelijke
+// eind is er nog maar veertig meter tussen de twee wegassen, te weinig voor twee
+// rijen van 22 meter met achtertuinen ertussen. De rij houdt daar op.
+R(307,1075, 520,935, -13, 9, 'molenkrite');                // zuidoostzijde Binnenroede
 
 // ===== Molenkrite noord (P -> 688,980), links (+) = noordwest =====
 // De eerste woningen beginnen pas een eind de straat in: op de hoek van het
 // kruispunt ligt een open grasveld met een paar volgroeide bomen (foto 1).
-R(424,1200, 645,1015,  13.5, 9, 'molenkrite_bung', { stagger: { houses: 6, step: 2.0 } });  // NW-zijde: bungalows met vol zonnedak
+R(424,1200, 645,1015,  12.5, 9, 'molenkrite_bung', { stagger: { houses: 6, step: 2.0 } });  // NW-zijde: bungalows met vol zonnedak
 R(400,1220, 645,1015, -12, 9, 'molenkrite', { stagger: { houses: 7, step: 2.4 } });      // ZO-zijde: twee lagen met dakkapel
 R(418,1206, 660,1002, -38, 9, 'molenkrite', { flip: true }); // achterliggende rij, gevel naar het hofpad
 R(838,1160, 628,1350, -13, 9, 'molenpaal');                 // Molenpaal noordwestzijde (gele steen)

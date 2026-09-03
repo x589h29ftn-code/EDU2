@@ -773,6 +773,13 @@ function buildRow(scene, row, idx) {
   }
   const dropped = cand.filter(c => !c.ok).length;
   if (dropped > 0 && !row.generated) console.warn(`rij ${idx} ${row.type} [${row.a}]-[${row.b}] off ${row.off}: ${dropped}/${cand.length} woningen weggelaten (botsing)`);
+  // De automatische verdichting mag geen losse woningen achterlaten. Waar van
+  // een rug-aan-rug rij maar één woning past, hoort er helemaal niets te staan:
+  // dat levert een huis midden in een weiland op, zoals bij de ingang van De
+  // Wieken gebeurde. Twee of meer aaneengesloten woningen leest als een blok.
+  if (row.generated) {
+    for (let i = runs.length - 1; i >= 0; i--) if (runs[i].n < 2) runs.splice(i, 1);
+  }
   if (runs.length === 0) return;
   // registreer de blokken (voor latere controles)
   for (const run of runs) {
