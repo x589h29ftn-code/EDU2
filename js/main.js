@@ -1,6 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, nearestRoadName, colliders } from './world.js';
+import { buildWorld, nearestRoadName, colliders, updateLOD } from './world.js';
 import { Player } from './player.js';
 import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
@@ -8,6 +8,7 @@ import { HUD } from './hud.js';
 import { isTouchDevice, initTouchControls } from './touch.js';
 import { START, toWorld, ROWS, PROPS } from './data.js';
 import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
+import { initSfeer } from './sfeer.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -29,6 +30,7 @@ const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerH
 scene.add(camera);
 
 // ---------- Lucht met zonneschijf en horizonwaas ----------
+// De sfeermodule draait deze vector met de tijd van de dag mee.
 const SUN_DIR = new THREE.Vector3(0.42, 0.62, 0.66).normalize();
 const skyUniforms = {
   top: { value: new THREE.Color(0x2f6fc4) },
@@ -164,9 +166,11 @@ const hemi = new THREE.HemisphereLight(0xd2e2f6, 0x6e8154, 0.75);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff3e0, 2.2);
 sun.castShadow = true;
-sun.shadow.mapSize.set(4096, 4096);
-sun.shadow.camera.near = 10; sun.shadow.camera.far = 340;
-const SHADOW_R = 78;
+// 2048 over een strakkere doos is vier keer goedkoper dan 4096 over 156 m en
+// nauwelijks van elkaar te onderscheiden; op een telefoon scheelt dat het meest.
+sun.shadow.mapSize.set(IS_TOUCH ? 1024 : 2048, IS_TOUCH ? 1024 : 2048);
+sun.shadow.camera.near = 8; sun.shadow.camera.far = 230;
+const SHADOW_R = 52;
 sun.shadow.camera.left = -SHADOW_R; sun.shadow.camera.right = SHADOW_R;
 sun.shadow.camera.top = SHADOW_R; sun.shadow.camera.bottom = -SHADOW_R;
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.035;
@@ -317,6 +321,12 @@ window.addEventListener('resize', resize);
 // draaien van de telefoon meldt zich soms pas na de resize
 window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 
+// Sfeer: tijd van de dag, weer, wind, stromend water en straatverlichting
+const sfeer = initSfeer({
+  scene, camera, renderer, sun, hemi, fill, skyUniforms, hud,
+  zonRichting: SUN_DIR,
+});
+
 // Wijkeditor (F2)
 const editor = initEditor({
   scene, camera, player, hud, npcs, vehicles,
@@ -324,7 +334,7 @@ const editor = initEditor({
 });
 
 // Hoofdlus
-let last = performance.now(); let time = 0;
+let last = performance.now(); let time = 0; let lodKlok = 0;
 function loop() {
   requestAnimationFrame(loop);
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
@@ -352,13 +362,16 @@ function loop() {
     sun.position.set(cx + SUN_DIR.x * 150, SUN_DIR.y * 150, cz + SUN_DIR.z * 150);
     sun.target.position.set(cx, 0, cz); sun.target.updateMatrixWorld();
     updateClouds(dt, cx, cz);
-    // water laten bewegen
+    sfeer.update(dt, cx, cz);
+    lodKlok += dt;
+    if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); }
     hud.update(dt, player, vehicles, npcs, nearestRoadName(cx, cz));
   }
   if (!player.active && !window.__autoplay) {
     // op het startscherm draaien de wolken en de minikaart gewoon door
     player.applyCamera();
     updateClouds(dt, camera.position.x, camera.position.z);
+    sfeer.update(dt, camera.position.x, camera.position.z);
     npcs.update(dt, time);
     vehicles.updateTraffic(dt);
     hud.update(dt, player, vehicles, npcs, nearestRoadName(camera.position.x, camera.position.z));
@@ -368,4 +381,4 @@ function loop() {
 loop();
 
 // Testhaak voor automatische screenshots
-window.__game = { scene, camera, player, vehicles, npcs, renderer, hud, editor };
+window.__game = { scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer };
