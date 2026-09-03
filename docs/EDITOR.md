@@ -66,7 +66,7 @@ In de **Windows-app** schrijft Ctrl+S het bestand meteen naar schijf (met een
 
 ## Woningtypen
 
-Met **T** loop je door alle vijftien typen. Zo zien ze eruit:
+Met **T** loop je door alle achttien typen. Zo zien ze eruit:
 
 ![Alle woningtypen](screenshots/woningtypen.png)
 

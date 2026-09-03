@@ -73,7 +73,7 @@ await page.evaluate(async () => {
   window.__game.camera.fov = 72; window.__game.camera.updateProjectionMatrix();
   w.resetWorld(window.__game.scene); w.buildWorld(window.__game.scene);
 });
-// lijstje meeschrijven, zodat tools/propsheet.py het overzicht kan plakken
+// lijstje meeschrijven, zodat tools/contactblad.py het overzicht kan plakken
 writeFileSync(`${uit}/lijst.json`, JSON.stringify(lijst.map(l => [l.groep, l.naam, l.label]), null, 1));
 console.log(JSON.stringify(lijst.map(l => [l.groep, l.naam, l.label])));
 await browser.close();

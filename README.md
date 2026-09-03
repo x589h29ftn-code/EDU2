@@ -54,7 +54,7 @@ De editor werkt ook in de browser (F2), alleen kan die het bestand niet zelf weg
 
 ![De editor in acht stappen](docs/screenshots/editor-doorloop.png)
 
-Met **T** wissel je tussen vijftien woningtypen:
+Met **T** wissel je tussen achttien woningtypen:
 
 ![Alle woningtypen](docs/screenshots/woningtypen.png)
 
@@ -94,6 +94,8 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
+- `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
+  overzichtsbladen met alle objecten en woningtypen
 - `tools/meetstrook.mjs` – meet een dwarsdoorsnede: hoeveel meter gras, tegels, water en rijbaan er
   achter elkaar liggen, om straatprofielen en groenstroken aan de foto's te toetsen
 - `js/touch.js` – touchbesturing voor telefoon en tablet
