@@ -1,6 +1,6 @@
 // Wereldopbouw: wegen, stoepen, parkeervakken, water, groen, huizen, straatmeubilair.
 import * as THREE from 'three';
-import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PROPS, PARKS, PARKING_LOTS, PLAYGROUND, START, PX_PER_M, toWorld } from './data.js';
+import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PROPS, PARKS, PARKING_LOTS, PLATEAUS, PLAYGROUND, START, PX_PER_M, toWorld } from './data.js';
 import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
@@ -121,6 +121,9 @@ function materials() {
   MAT.water = new THREE.MeshStandardMaterial({ map: T.water(), color: 0xa8cfd6, roughness: 0.25, metalness: 0.05, transparent: true, opacity: 0.94, side: THREE.DoubleSide });
   MAT.hedge = std(T.hedge());
   MAT.curb = new THREE.MeshStandardMaterial({ color: 0x9a9890, roughness: 0.9 });
+  MAT.goot = new THREE.MeshStandardMaterial({ color: 0x3c3a37, roughness: 0.95 });
+  MAT.paal = new THREE.MeshStandardMaterial({ color: 0x232629, roughness: 0.6, metalness: 0.3 });
+  MAT.paalBand = new THREE.MeshStandardMaterial({ color: 0xd8d4c8, roughness: 0.5 });
   MAT.trunk = new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 });
   MAT.trunkPale = new THREE.MeshStandardMaterial({ color: 0x8f8a78, roughness: 1 });
   MAT.bank = new THREE.MeshStandardMaterial({ color: 0x4b5c33, roughness: 1 });
@@ -148,7 +151,7 @@ function materials() {
   MAT.play2 = new THREE.MeshStandardMaterial({ color: 0x2a6bd8, roughness: 0.6 });
   MAT.fence = new THREE.MeshStandardMaterial({ color: 0x6b5236, roughness: 1 });
   MAT.picket = new THREE.MeshStandardMaterial({ color: 0x9a8562, roughness: 1 });
-  MAT.hedgeRed = new THREE.MeshStandardMaterial({ map: T.hedge(), color: 0xa4563f, roughness: 1 });
+  MAT.hedgeRed = new THREE.MeshStandardMaterial({ map: T.hedge('rood'), roughness: 1 });
   MAT.conifer = new THREE.MeshStandardMaterial({ color: 0x2c4a24, roughness: 1 });
   MAT.shrubA = new THREE.MeshStandardMaterial({ color: 0x5c8a34, roughness: 1 });
   MAT.shrubB = new THREE.MeshStandardMaterial({ color: 0x86963a, roughness: 1 });
@@ -188,6 +191,154 @@ function projectOnPolyline(p, pts) {
     acc += len;
   }
   return best;
+}
+
+// De plateaus, zodat lantaarns, borden, kliko's en bomen er niet middenop komen.
+const plateauVlakken = [];   // {x, z, bereik}
+export function opPlateau(x, z, marge = 0) {
+  for (const p of plateauVlakken) { if (Math.hypot(x - p.x, z - p.z) < p.bereik + marge) return true; }
+  return false;
+}
+
+// Punt op arclengte s langs een polylijn (geclampt op de uiteinden).
+function puntOpLengte(pts, s) {
+  if (s <= 0) return pts[0].clone();
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const l = pts[i].distanceTo(pts[i - 1]);
+    if (acc + l >= s) return pts[i - 1].clone().lerp(pts[i], (s - acc) / l);
+    acc += l;
+  }
+  return pts[pts.length - 1].clone();
+}
+
+/*
+ Kruispuntplateau: een vlak van rode klinkers dat vanuit een ronde kern in
+ elke straatmond uitwaaiert. De armen worden uit de wegen zelf afgeleid, dus
+ het plateau volgt automatisch mee als een straat verlegd wordt.
+
+ De omtrek is stervormig ten opzichte van het midden: per straatmond twee
+ hoekpunten, en tussen twee monden een boogje over de kern. Zo kan hij als
+ waaier vanuit het midden getrianguleerd worden zonder overlappende vlakken,
+ wat z-fighting zou geven.
+*/
+function buildPlateaus(scene, roads) {
+  const vlakGeoms = [], gootGeoms = [], paalGeoms = [], bandGeoms = [];
+  for (const pl of PLATEAUS) {
+    const [cx, cz] = toWorld(pl.at[0], pl.at[1]);
+    const c = new THREE.Vector2(cx, cz);
+    plateauVlakken.push({ x: cx, z: cz, bereik: pl.arm });
+
+    // straatmonden zoeken: elke weg die vlak langs het midden loopt
+    const armen = [];
+    for (const road of roads) {
+      if (road.type === 'pad' || road.type === 'fietspad') continue;
+      const pr = projectOnPolyline(c, road.pts);
+      if (pr.d > pl.straal) continue;
+      const totaal = polyLength(road.pts);
+      const halfBreed = road.w / 2 + pl.extra;
+      for (const richting of [1, -1]) {
+        const s = pr.s + richting * pl.arm;
+        if (s < 1 || s > totaal - 1) continue;          // weg houdt hier op
+        const eind = puntOpLengte(road.pts, s);
+        // Halverwege is de mond op zijn breedst; bij de oprit versmalt hij weer
+        // tot net iets breder dan de rijbaan. Dat geeft de typische trechter.
+        const mid = puntOpLengte(road.pts, pr.s + richting * pl.arm * 0.55);
+        const d = eind.clone().sub(c);
+        if (d.length() < pl.straal) continue;
+        armen.push({ hoek: Math.atan2(d.y, d.x), eind, mid, halfBreed, tipBreed: road.w / 2 + 0.3 });
+      }
+    }
+    armen.sort((a, b) => a.hoek - b.hoek);
+
+    // Omtrek opbouwen. Per straatmond vier hoekpunten (versmallende trechter),
+    // ertussen een boog over de kern. `open` markeert de rand die dwars over de
+    // rijbaan loopt: daar komen natuurlijk geen paaltjes te staan.
+    const rand = [];
+    for (let i = 0; i < armen.length; i++) {
+      const a = armen[i];
+      const d = a.eind.clone().sub(c).normalize();
+      const n = new THREE.Vector2(-d.y, d.x);
+      const nb = n.clone().multiplyScalar(a.halfBreed);
+      const nt = n.clone().multiplyScalar(a.tipBreed);
+      rand.push({ p: a.mid.clone().sub(nb) });
+      rand.push({ p: a.eind.clone().sub(nt), open: true });
+      rand.push({ p: a.eind.clone().add(nt) });
+      rand.push({ p: a.mid.clone().add(nb) });
+      const volgende = armen[(i + 1) % armen.length];
+      let h0 = a.hoek + Math.asin(Math.min(1, a.halfBreed / a.mid.distanceTo(c)));
+      let h1 = volgende.hoek - Math.asin(Math.min(1, volgende.halfBreed / volgende.mid.distanceTo(c)));
+      while (h1 < h0) h1 += Math.PI * 2;
+      const stappen = Math.max(2, Math.round((h1 - h0) / 0.22));
+      for (let k = 0; k <= stappen; k++) {
+        const h = h0 + (h1 - h0) * (k / stappen);
+        rand.push({ p: new THREE.Vector2(cx + Math.cos(h) * pl.straal, cz + Math.sin(h) * pl.straal) });
+      }
+    }
+    if (!rand.length) continue;
+
+    // Antiparkeerpaaltjes: om de anderhalve meter langs de rand, een halve meter
+    // in het gras, behalve waar de rijbaan het plateau in of uit loopt.
+    if (pl.paaltjes) {
+      for (let i = 0; i < rand.length; i++) {
+        if (rand[i].open) continue;
+        const a = rand[i].p, b = rand[(i + 1) % rand.length].p;
+        const d = b.clone().sub(a); const len = d.length();
+        if (len < 0.4) continue;
+        d.divideScalar(len);
+        let uit = new THREE.Vector2(-d.y, d.x);
+        if (uit.dot(a.clone().add(b).multiplyScalar(0.5).sub(c)) < 0) uit.negate();
+        uit.multiplyScalar(0.5);
+        for (let s = 1.1; s < len; s += 2.2) {
+          const q = a.clone().add(d.clone().multiplyScalar(s)).add(uit);
+          paalGeoms.push(paaltje(q.x, q.y));
+          bandGeoms.push(paalBand(q.x, q.y));
+        }
+      }
+    }
+
+    // waaier vanuit het midden
+    const pos = [], uv = [], idx = [];
+    pos.push(cx, 0, cz); uv.push(cx * 0.5, cz * 0.5);
+    for (const { p } of rand) { pos.push(p.x, 0, p.y); uv.push(p.x * 0.5, p.y * 0.5); }
+    // De rand loopt met oplopende hoek rond het midden; van boven gezien is dat
+    // met de klok mee, dus de driehoeken moeten omgekeerd om naar boven te kijken.
+    for (let i = 1; i <= rand.length; i++) idx.push(0, i === rand.length ? 1 : i + 1, i);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx); g.computeVertexNormals();
+    g.translate(0, ROAD_Y + 0.06, 0);
+    vlakGeoms.push(g);
+
+    // donkere goot dwars over het plateau
+    if (pl.naad) {
+      const n = pl.naad.map(vec);
+      gootGeoms.push(ribbon(n, 0.18, ROAD_Y + 0.068, 0, 0.5));
+    }
+  }
+  if (vlakGeoms.length) {
+    const m = new THREE.Mesh(mergeGeoms(vlakGeoms), MAT.rood);
+    m.receiveShadow = true; scene.add(m);
+  }
+  if (gootGeoms.length) scene.add(new THREE.Mesh(mergeGeoms(gootGeoms), MAT.goot));
+  if (paalGeoms.length) {
+    const m = new THREE.Mesh(mergeGeoms(paalGeoms), MAT.paal);
+    m.castShadow = true; scene.add(m);
+    scene.add(new THREE.Mesh(mergeGeoms(bandGeoms), MAT.paalBand));
+  }
+}
+
+// Zwart antiparkeerpaaltje van 90 cm met een reflecterende band bovenin.
+function paaltje(x, z) {
+  const g = new THREE.CylinderGeometry(0.045, 0.055, 0.88, 6);
+  g.translate(x, 0.45, z);
+  return g;
+}
+function paalBand(x, z) {
+  const g = new THREE.CylinderGeometry(0.048, 0.048, 0.07, 6);
+  g.translate(x, 0.76, z);
+  return g;
 }
 
 function buildRoads(scene) {
@@ -283,13 +434,7 @@ function buildRoads(scene) {
   const walk = new THREE.Mesh(mergeGeoms(walkGeoms), MAT.tiles); walk.receiveShadow = true; scene.add(walk);
   scene.add(new THREE.Mesh(mergeGeoms(curbGeoms), MAT.curb));
 
-  // Rode-klinkerplateaus op de hoofdkruispunten en zebra bij Molenkrite
-  const plateau = (px, py, s) => {
-    const [x, z] = toWorld(px, py);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(s, s), MAT.rood);
-    m.rotation.x = -Math.PI / 2; m.position.set(x, ROAD_Y + 0.06, z); scene.add(m);
-  };
-  plateau(375, 1252, 11); plateau(243, 935, 9); plateau(305, 1460, 9); plateau(600, 1750, 9);
+  buildPlateaus(scene, roads);
   const zebraMat = new THREE.MeshBasicMaterial({ map: T.zebra(), transparent: true });
   const zb = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 2.6), zebraMat);
   const [zx, zz] = toWorld(410, 1215); zb.rotation.x = -Math.PI / 2; zb.rotation.z = -0.7; zb.position.set(zx, ROAD_Y + 0.07, zz); scene.add(zb);
@@ -361,12 +506,21 @@ function buildNature(scene) {
       const vgL = road.vergeL != null ? road.vergeL : (road.verge || 0);
       const vgR = road.vergeR != null ? road.vergeR : (road.verge || 0);
       if (Math.max(vgL, vgR) < 1.6) continue;
-      for (let s = 6; s < len - 4; s += 13.5) {
+      for (let s = 6; s < len - 4; s += 11.0) {
         for (const side of [1, -1]) {
           const vg = side > 0 ? vgL : vgR;
-          if (vg < 1.6 || r() < 0.42) continue;
-          const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + vg * 0.55)));
-          if (!nearBuilding(p, 2.5) && !inWater(p) && !nearParkBay(p, 2.0)) treePositions.push({ x: p.x, z: p.y, s: 0.95 + r() * 0.5 });
+          if (vg < 1.6) continue;
+          // In een brede grasberm staat een echte laan: grote bomen op vaste
+          // afstand, zoals langs de noordwestzijde van de Molenkrite. In een
+          // smalle berm blijft het losse aanplant.
+          const laan = vg >= 3.6;
+          if (!laan && r() < 0.42) continue;
+          // De laanbomen staan achter de parkeerstrook, tussen de auto's en het
+          // trottoir; losse bomen mogen dichter bij de rijbaan blijven.
+          const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + vg * (laan ? 0.80 : 0.55))));
+          if (opPlateau(p.x, p.y, 2.0)) continue;
+          if (nearBuilding(p, 2.5) || inWater(p) || nearParkBay(p, laan ? 0.4 : 2.0)) continue;
+          treePositions.push({ x: p.x, z: p.y, s: laan ? 1.55 + r() * 0.25 : 0.95 + r() * 0.5 });
         }
       }
     }
@@ -988,8 +1142,11 @@ function buildGardens() {
             const t = T.hedge().clone(); t.needsUpdate = true; t.repeat.set(run.len / 1.2, 1);
             return new THREE.MeshStandardMaterial({ map: t, roughness: 1 });
           });
-          const h = new THREE.Mesh(new THREE.BoxGeometry(run.len, 0.85, 0.5), hm);
-          h.position.set(run.cx, 0.42, -depth / 2 - backAvail); h.castShadow = true;
+          // Op de foto's van het Kruirad staan die achtertuinhagen op
+          // ooghoogte: hoog genoeg om de tuin af te schermen, laag genoeg om
+          // over de daken heen te blijven kijken.
+          const h = new THREE.Mesh(new THREE.BoxGeometry(run.len, 1.45, 0.62), hm);
+          h.position.set(run.cx, 0.72, -depth / 2 - backAvail); h.castShadow = true;
           group.add(h);
         }
         const parts = [];
@@ -1136,12 +1293,15 @@ function buildTrees(scene) {
     const leavesB = new THREE.InstancedMesh(leafGeo, MAT.leaf2, n);
     normal.forEach((t, i) => {
       const s2 = t.s; q.identity();
-      m.compose(new THREE.Vector3(t.x, 2.5 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
+      // Een grote laanboom heeft ook een dikkere stam, anders staat er een
+      // enorme kroon op een stokje.
+      const dik = 0.6 + s2 * 0.4;
+      m.compose(new THREE.Vector3(t.x, 2.5 * s2, t.z), q, new THREE.Vector3(dik, s2, dik)); trunks.setMatrixAt(i, m);
       q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
       m.compose(new THREE.Vector3(t.x, 5.2 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
       q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
       m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, 6.7 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
-      addCollider(t.x, t.z, 0.3, 0.3, 0, 3);
+      addCollider(t.x, t.z, 0.3 * dik, 0.3 * dik, 0, 3);
     });
     trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;
     scene.add(trunks, leavesA, leavesB);
@@ -1197,23 +1357,27 @@ function buildFurniture(scene) {
         const side = ((Math.floor(s / 30) + k) % 2 === 0) ? 1 : -1;
         const vg = side > 0 ? vgL2 : vgR2;
         const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + Math.max(0.45, Math.min(1.0, vg * 0.45)))));
+        if (opPlateau(p.x, p.y, 1.5)) continue;   // niet middenop een kruispunt
         lamps.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), side });
       }
-      // straatnaambord + 30-bord aan het begin van elke weg
+      // straatnaambord + 30-bord aan het begin van elke weg, net buiten het plateau
       if (!sPlaced) {
         const p = a.clone().add(d.clone().multiplyScalar(9)).add(nrm.clone().multiplyScalar(road.w / 2 + 0.8));
-        signs.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), name: road.name });
-        sPlaced = true;
+        if (!opPlateau(p.x, p.y, 1.0)) {
+          signs.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), name: road.name });
+          sPlaced = true;
+        }
       }
       if (k === pts.length - 2) {
         const p = b.clone().sub(d.clone().multiplyScalar(9)).add(nrm.clone().multiplyScalar(-(road.w / 2 + 0.8)));
-        signs.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), name: road.name });
+        if (!opPlateau(p.x, p.y, 1.0)) signs.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x), name: road.name });
       }
       // kliko's bij de stoeprand
       for (let s = 9; s < len; s += 23) {
         if (r() < 0.55) continue;
         const side = r() < 0.5 ? 1 : -1;
         const p = a.clone().add(d.clone().multiplyScalar(s)).add(nrm.clone().multiplyScalar(side * (road.w / 2 + 0.9)));
+        if (opPlateau(p.x, p.y, 1.0)) continue;
         klikos.push({ x: p.x, z: p.y, yaw: -Math.atan2(d.y, d.x) + (r() - 0.5) * 0.6 });
       }
     }
@@ -1327,7 +1491,7 @@ export function resetWorld(scene) {
   gevelMats.clear();
   colliders.length = 0; roadSegments.length = 0; parkSpots.length = 0; treePositions.length = 0;
   units.length = 0; rowBuilds.length = 0;
-  lodGroepen.length = 0; lampPosities.length = 0;
+  lodGroepen.length = 0; lampPosities.length = 0; plateauVlakken.length = 0;
   waterPolys.length = 0; parkPolys.length = 0; woodPolys.length = 0;
 }
 

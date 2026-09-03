@@ -84,7 +84,7 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 ## Opbouw
 
 - `index.html` – pagina, HUD en startscherm
-- `js/data.js` – de kaart: wegen, water, groen en huizenrijen in pixelcoördinaten van de bronkaart
+- `js/data.js` – de kaart: wegen, kruispuntplateaus, water, groen en huizenrijen in pixelcoördinaten van de bronkaart
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
 - `js/editor.js` – de wijkeditor (F2): huizenrijen en objecten
 - `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, ...)
