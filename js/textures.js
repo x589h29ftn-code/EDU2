@@ -267,7 +267,9 @@ export const HOUSE_STYLES = {
   // Kruirad: lichte gele baksteen met felblauwe kozijnen en deuren, twee lagen,
   // pannendak met dakramen (geen dakkapellen) – zie de street view vanaf het
   // groen aan de achterkant.
-  kruirad:    { brick: ['#d5c49e', '#e4dccb'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#453b35', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, skylight: true, chimney: true, band: '#f2f2f2' },
+  // Kruirad: lage gootlijn en een gemetseld bergingetje met plat dak voor de
+  // voordeur, zie de street view vanaf 50 Kruirad en 174 Monnikmolen.
+  kruirad:    { brick: ['#d5c49e', '#e4dccb'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#453b35', roofType: 'gable', storeys: 2, storeyH: 2.55, w: 5.4, dormer: false, skylight: true, chimney: true, porch: true, band: '#f2f2f2' },
   molenpaal:  { brick: ['#d3bd8e', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#4a4a4a'], roof: '#453b37', roofType: 'gable', storeys: 2, w: 5.6, dormer: true, dormerBand: true, chimney: false, solar: true, band: '#f2f2f2' },
   jasker_flat:{ brick: ['#e0d0a6', '#e8e0cd'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b', '#3a3a3a'], roof: '#555', roofType: 'flat', storeys: 2, w: 5.6, dormer: false, chimney: false, band: '#2b2b2b' },
   jasker_gable:{ brick: ['#dcc89a', '#e5ddcb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#6a1a1a'], roof: '#453b37', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#f2f2f2' },
@@ -297,7 +299,10 @@ export function facade(type, n, storeys, back = false, seed = 1) {
   const st = HOUSE_STYLES[type];
   const HW = 88; // px per huis; 16 px/m is genoeg voor kozijnen en deuren
   const PM = HW / st.w; // px per meter
-  const H = Math.round(storeys * 2.9 * PM);
+  // Niet elk rijtje is even hoog: de woningen aan het Kruirad hebben een lage
+  // gootlijn, dus die krijgen een lagere verdieping dan de standaard 2,90 m.
+  const SH = st.storeyH || 2.9;
+  const H = Math.round(storeys * SH * PM);
   const c = canvas(HW * n, H); const g = c.getContext('2d');
   const r = rng(seed * 7 + n);
 
@@ -314,7 +319,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
     const mirror = (i % 2 === 1) && !st.detached;
     const doorColor = st.door[(i + seed) % st.door.length];
     // begane grond
-    const gy = H - 2.9 * PM; // top begane grond
+    const gy = H - SH * PM; // top begane grond
     const win = (x, y, w, h, frame, glassDark = true) => {
       g.fillStyle = frame; g.fillRect(x, y, w, h);
       g.fillStyle = glassDark ? '#28323a' : '#7d95a8';
@@ -357,7 +362,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       } else if (type === 'appart') {
         // appartement: per verdieping 2 ramen + balkon
         for (let s = 0; s < storeys; s++) {
-          const fy = H - (s + 1) * 2.9 * PM;
+          const fy = H - (s + 1) * SH * PM;
           win(x0 + 0.5 * PM, fy + 0.7 * PM, 2.2 * PM, 1.5 * PM, st.frame);
           win(x0 + 4.2 * PM, fy + 0.7 * PM, 2.2 * PM, 1.5 * PM, st.frame);
           if (s === 0 && i % 3 === 0) door(x0 + 3.0 * PM, H - 2.1 * PM, 1.0 * PM, 2.1 * PM, '#2b2b2b');
@@ -370,7 +375,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       // verdieping(en) ramen
       for (let s = 1; s < storeys; s++) {
         if (type === 'appart') break;
-        const fy = H - (s + 1) * 2.9 * PM;
+        const fy = H - (s + 1) * SH * PM;
         win(x0 + 0.5 * PM, fy + 0.8 * PM, 2.0 * PM, 1.4 * PM, st.frame);
         win(x0 + (st.w - 2.5) * PM, fy + 0.8 * PM, 2.0 * PM, 1.4 * PM, st.frame);
         if (st.w > 8) win(x0 + (st.w / 2 - 1.0) * PM, fy + 0.8 * PM, 2.0 * PM, 1.4 * PM, st.frame);
@@ -378,7 +383,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
     } else {
       // achtergevel: ramen + tuindeur
       for (let s = 0; s < storeys; s++) {
-        const fy = H - (s + 1) * 2.9 * PM;
+        const fy = H - (s + 1) * SH * PM;
         if (s === 0) {
           g.fillStyle = st.frame; g.fillRect(x0 + 0.6 * PM, H - 2.2 * PM, 2.4 * PM, 2.2 * PM);
           g.fillStyle = '#28323a'; g.fillRect(x0 + 0.65 * PM, H - 2.15 * PM, 2.3 * PM, 2.05 * PM);

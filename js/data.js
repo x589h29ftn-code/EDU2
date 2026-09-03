@@ -61,11 +61,14 @@ export const ROADS = [
     pts: [[508,357],[540,300],[590,240],[650,200]] },
 
   // ---- Kruirad ----
-  { name: 'Kruirad', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR', bays: 'R',
+  // Aan de binnenzijde van de lus ligt geen gewone berm maar een doorlopende
+  // haakse parkeerstrook, met de stoep en de voortuintjes erachter. Zie de
+  // street view vanaf 50 Kruirad en 174 Monnikmolen.
+  { name: 'Kruirad', type: 'klinker', w: 4.6, vergeL: 6.5, vergeR: 2.2, walk: 'LR', haaks: 'L',
     pts: [[243,935],[160,978],[75,1020]] },
-  { name: 'Kruirad', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR', bays: 'L',
+  { name: 'Kruirad', type: 'klinker', w: 4.6, vergeL: 6.5, vergeR: 2.2, walk: 'LR', haaks: 'L',
     pts: [[75,1020],[85,1080],[100,1130],[115,1170],[140,1198]] },
-  { name: 'Kruirad', type: 'klinker', w: 4.6, verge: 2.2, walk: 'LR', bays: 'L',
+  { name: 'Kruirad', type: 'klinker', w: 4.6, vergeL: 6.5, vergeR: 2.2, walk: 'LR', haaks: 'L',
     pts: [[140,1198],[200,1205],[260,1188],[320,1165]] },
   { name: 'Fietspad', type: 'fietspad', w: 2.4, verge: 0, walk: '',
     pts: [[75,1020],[0,930],[-60,860],[-120,790],[-160,700],[-180,620]] },
@@ -358,10 +361,17 @@ R(1183,930, 1183,850, 14, 14, 'spil', { label: 'Stichting Jeugdhulp Friesland', 
 R(255,985, 300,1110, 13, 9, 'monnik');
 
 // ===== Kruirad =====
+// Binnen de lus ligt geen tweede bouwblok maar een groot klinkerhof met
+// parkeervakken; de rijtjes eromheen kijken erop uit (zie 50 Kruirad en
+// 174 Monnikmolen op street view). Vandaar nodens op de binnenzijden: daar mag
+// de automatische verdichting geen rug-aan-rug rij achter zetten.
 R(243,935, 75,1020, -13, 9, 'kruirad');    // noordwestzijde Kruirad-noord
-R(243,935, 75,1020,  13, 9, 'kruirad');    // binnenzijde
+R(243,935, 75,1020,  13, 9, 'kruirad', { nodens: true });   // binnenzijde
 R(75,1020, 140,1198, -13, 9, 'kruirad');   // westzijde Kruirad-west
-R(170,1192, 290,1170, 13, 9, 'kruirad');   // binnenzijde Kruirad-zuid
+// De binnenzijde van de zuidtak is in tweeen geknipt: daartussen loopt de
+// inrit naar het parkeerhof, zoals op de foto vanaf 50 Kruirad.
+R(150,1199, 222,1199, 13, 9, 'kruirad', { nodens: true });  // binnenzijde Kruirad-zuid, west
+R(248,1191, 310,1169, 13, 9, 'kruirad', { nodens: true });  // binnenzijde Kruirad-zuid, oost
 R(140,1198, 320,1165, -13, 9, 'kruirad');  // zuidzijde Kruirad-zuid
 
 // ===== Jasker oost-west, links (+) = noord =====
@@ -436,7 +446,7 @@ R(307,1075, 600,880,  13, 9, 'monnik');
 // Monnikmolen noord-zuid, westzijde (naar het Kruirad-hof)
 R(255,985, 300,1110, -13, 9, 'kruirad');
 // Kruirad west, binnenzijde van de lus
-R(75,1020, 140,1198,  13, 9, 'kruirad');
+R(75,1020, 140,1198,  13, 9, 'kruirad', { nodens: true });
 // Molenpaal zuidoostzijde
 R(830,1168, 668,1315,  13, 9, 'jasker_gable');
 // Molenkrite noordwesttak: vierde rij richting Binnenroede
@@ -480,7 +490,10 @@ R(1285,1250, 1285,1180, -10, 22, 'spil', { storeys: 3 });
 // Parkeerhoven (px rechthoeken: center, breedte m, lengte m, hoek rad) worden afgeleid uit wegen met parking.
 // Extra losse parkeerhoven:
 export const PARKING_LOTS = [
-  { at: [190,1105], w: 12, l: 40, angle: -0.55 },  // binnenhof Kruirad
+  // Binnenhof Kruirad: klinkerhof met haakse vakken aan weerszijden van een
+  // rijloper, plus de inrit vanaf de zuidtak.
+  { at: [204,1064], w: 16, l: 24, angle: 0.464, rijen: 2 },
+  { at: [235,1130], w: 6.5, l: 31, angle: 1.5708, rijen: 0 },
   { at: [520,830],  w: 10, l: 28, angle: 0.55 },   // hof Monnikmolen
   { at: [1050,1220], w: 12, l: 24, angle: 0 },     // De Spil
 ];
