@@ -20,9 +20,13 @@ export function toPx(x, z) {
 // Elke weg: naam, type, breedte (m), punten (px), optioneel: parkeren (zijde 'L'/'R'/'LR')
 export const ROADS = [
   // ---- Molenkrite ----
-  { name: 'Molenkrite', type: 'klinker', w: 5.6, verge: 2.6, walk: 'LR',
+  // Noordwestzijde (de bungalows met zonnepanelen): tuin, voetpad en dan een
+  // brede grasberm met een rij grote bomen tussen het trottoir en de rijbaan.
+  // Op de Street View-foto's is die grasstrook bijna twee keer zo breed als de
+  // berm aan de overkant, met de auto's langs de rijbaan geparkeerd.
+  { name: 'Molenkrite', type: 'klinker', w: 5.6, vergeL: 4.6, vergeR: 2.8, walk: 'LR',
     pts: [[370,1245],[450,1190],[500,1140],[550,1090]] },
-  { name: 'Molenkrite', type: 'klinker', w: 5.6, verge: 2.8, walk: 'LR', bays: 'LR',
+  { name: 'Molenkrite', type: 'klinker', w: 5.6, vergeL: 4.6, vergeR: 2.8, walk: 'LR', bays: 'LR',
     pts: [[550,1090],[600,1045],[650,1005],[688,980],[788,972],[888,972],[988,975],[1088,990],[1183,1000]] },
   { name: 'Molenkrite', type: 'klinker', w: 5.6, verge: 2.6, walk: 'LR',
     pts: [[370,1245],[355,1290],[340,1350],[322,1400],[310,1440],[305,1460]] },
@@ -127,6 +131,26 @@ export const ROADS = [
   // zuidkant heeft zijn eigen tegelpad (zie hierboven bij De Wieken).
   { name: 'Fietspad', type: 'fietspad', w: 2.4, verge: 0, walk: '',
     pts: [[303,1312],[350,1319],[410,1327],[465,1342],[505,1372],[540,1420],[562,1464]] },
+];
+
+/*
+ Kruispuntplateaus. In Tinga is het kruispunt zelf een verhoogd vlak van rode
+ klinkers dat in elke straatmond uitwaaiert; de rijbaan zelf is grijs. Langs de
+ randen tussen de klinkers en het gras staat een rij zwarte antiparkeerpaaltjes.
+ - at      : middelpunt (px)
+ - straal  : straal van de ronde kern (m)
+ - arm     : hoe ver het vlak elke straat in loopt, gemeten vanaf het midden (m)
+ - extra   : hoeveel breder dan de rijbaan de straatmond wordt (m per zijde)
+ - paaltjes: paaltjes langs de bogen tussen de straatmonden
+ - naad    : donkere goot dwars over het plateau, van..naar in px
+*/
+export const PLATEAUS = [
+  // Molenkrite / Monnikmolen / Jasker: het grote plateau uit de foto's
+  { at: [370,1245], straal: 5.8, arm: 12.5, extra: 2.2, paaltjes: true,
+    naad: [[346,1211],[370,1245],[396,1271]] },
+  { at: [243,935],  straal: 4.6, arm: 9.0, extra: 1.6, paaltjes: true },
+  { at: [305,1460], straal: 4.6, arm: 9.0, extra: 1.6, paaltjes: true },
+  { at: [600,1750], straal: 4.6, arm: 9.0, extra: 1.6 },
 ];
 
 // De N7 (rijksweg) ten noorden van de wijk, met afrit 21 Sneek.
@@ -239,6 +263,14 @@ P('carport', 258, 1262, 100);
 P('conifeer', 404, 1252, 0);
 P('conifeer', 392, 1292, 0);
 P('plantenbak', 404, 1250, 0);
+// Volgroeide bomen op het grasveld in de hoek Monnikmolen / Molenkrite, en op
+// de hoek aan de overkant. Op de Street View-foto's staan hier flinke essen
+// van een meter of vijftien.
+P('boom', 398, 1196, 0, 1.8);
+P('boom', 415, 1178, 0, 1.6);
+P('boom', 380, 1178, 0, 1.7);
+P('struik', 392, 1190, 0, 1.4);
+P('struik', 386, 1186, 0, 1.2);
 
 /*
  Huizenrijen. R(ax,ay,bx,by, off, depth, type, opts)
@@ -266,7 +298,9 @@ R(480,781, 596,706, -13, 9, 'molenkrite');
 R(307,1075, 600,880, -13, 9, 'molenkrite');               // zuidoostzijde Binnenroede
 
 // ===== Molenkrite noord (P -> 688,980), links (+) = noordwest =====
-R(400,1220, 645,1015,  12, 9, 'molenkrite_bung', { stagger: { houses: 6, step: 2.0 } });  // NW-zijde: bungalows met vol zonnedak
+// De eerste woningen beginnen pas een eind de straat in: op de hoek van het
+// kruispunt ligt een open grasveld met een paar volgroeide bomen (foto 1).
+R(424,1200, 645,1015,  13.5, 9, 'molenkrite_bung', { stagger: { houses: 6, step: 2.0 } });  // NW-zijde: bungalows met vol zonnedak
 R(400,1220, 645,1015, -12, 9, 'molenkrite', { stagger: { houses: 7, step: 2.4 } });      // ZO-zijde: twee lagen met dakkapel
 R(418,1206, 660,1002, -38, 9, 'molenkrite', { flip: true }); // achterliggende rij, gevel naar het hofpad
 R(838,1160, 628,1350, -13, 9, 'molenpaal');                 // Molenpaal noordwestzijde (gele steen)

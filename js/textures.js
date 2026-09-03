@@ -129,7 +129,7 @@ export function klinkers(kind = 'grijs') {
   if (cache.has(key)) return cache.get(key);
   const c = canvas(512, 512); const g = c.getContext('2d');
   const r = rng(kind === 'grijs' ? 11 : 12);
-  const base = kind === 'grijs' ? '#7d7c78' : '#8d4a3c';
+  const base = kind === 'grijs' ? '#7d7c78' : '#7d4034';
   const joint = kind === 'grijs' ? '#5c5b57' : '#5a3a33';
   g.fillStyle = joint; g.fillRect(0, 0, 512, 512);
   // 512 px = 2.0 m ; steen 21 x 10.5 cm -> 54 x 27 px
@@ -219,16 +219,26 @@ export function water() {
 }
 
 // ---------- Heg (blad) ----------
-export function hedge() {
-  if (cache.has('hedge')) return cache.get('hedge');
+// Ligusterhagen in Tinga zijn fris groen, niet bijna zwart. Een berberis of
+// rode beuk krijgt zijn eigen bladkleur in de texture; die met een rood
+// materiaal over het groen heen tinten leverde vieze zwarte blokken op.
+const HAAG_KLEUREN = {
+  groen: { basis: '#3a6329', blad: [62, 70, 112, 95, 40, 38] },
+  rood:  { basis: '#5c2a26', blad: [125, 75, 48, 40, 40, 34] },
+};
+export function hedge(soort = 'groen') {
+  const key = 'hedge' + soort;
+  if (cache.has(key)) return cache.get(key);
   const c = canvas(256, 256); const g = c.getContext('2d');
-  const r = rng(61);
-  g.fillStyle = '#284a1c'; g.fillRect(0, 0, 256, 256);
+  const r = rng(soort === 'groen' ? 61 : 62);
+  const k = HAAG_KLEUREN[soort] || HAAG_KLEUREN.groen;
+  const [r0, rd, g0, gd, b0, bd] = k.blad;
+  g.fillStyle = k.basis; g.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 4000; i++) {
-    g.fillStyle = `rgba(${40 + r() * 60},${90 + r() * 90},${30 + r() * 30},0.85)`;
+    g.fillStyle = `rgba(${r0 + r() * rd},${g0 + r() * gd},${b0 + r() * bd},0.85)`;
     g.beginPath(); g.ellipse(r() * 256, r() * 256, 3 + r() * 4, 2 + r() * 3, r() * 3, 0, 6.3); g.fill();
   }
-  const t = tex(c); cache.set('hedge', t); return t;
+  const t = tex(c); cache.set(key, t); return t;
 }
 
 // ---------- Boomblad (alpha) ----------
