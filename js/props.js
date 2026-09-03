@@ -506,12 +506,14 @@ def('treurwilg', 'Treurwilg', 'groen', [1.2, 1.2], 8.0, () => {
   d.push(bol(2.3, M.bladLicht, 0, 4.9, 0, 1.15, 0.55, 1.15));
   d.push(bol(1.6, M.blad, 0.4, 5.5, -0.3, 1.0, 0.5, 1.0));
   // slierten die tot vlak boven het gras hangen
-  for (let i = 0; i < 40; i++) {
+  // Twijgen van achttien centimeter dik lazen als groene linten; een wilg heeft
+  // er veel meer en veel dunnere.
+  for (let i = 0; i < 64; i++) {
     const a = r() * 6.283;
     const rad = 0.7 + r() * 1.9;
     const len = 2.4 + r() * 1.9;
     const top = 4.8 - (rad / 2.6) * 0.9;
-    const g = new THREE.CylinderGeometry(0.09, 0.02, len, 5);
+    const g = new THREE.CylinderGeometry(0.045, 0.012, len, 4);
     g.translate(0, -len / 2, 0);                       // hangt vanaf de kruinrand
     g.translate(Math.cos(a) * rad, top, Math.sin(a) * rad);
     d.push({ g, m: r() < 0.5 ? M.bladLicht : M.blad });
