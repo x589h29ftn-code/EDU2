@@ -9,6 +9,22 @@ export const colliders = [];   // {cx,cz,hx,hz,cos,sin,h} georiënteerde rechtho
 export const roadSegments = []; // voor straatnaam-detectie en NPC-paden: {name,a:[x,z],b:[x,z],w}
 export const parkSpots = [];   // parkeerplaatsen voor auto's: {x,z,yaw}
 export const treePositions = [];
+export const lodGroepen = [];   // {obj,x,z} – fijn detail dat op afstand uit gaat
+export const lampPosities = []; // {x,z} – koppen van de lantaarnpalen
+
+// Binnen deze afstand tekent het spel boeiboorden, goten en regenpijpen.
+const LOD_AFSTAND = 85;
+
+// Zet het fijne werk aan of uit naar gelang de afstand tot de camera. Hoeft
+// niet elk beeld: een paar keer per seconde is ruim genoeg.
+export function updateLOD(camX, camZ) {
+  const d2 = LOD_AFSTAND * LOD_AFSTAND;
+  for (const g of lodGroepen) {
+    const dx = g.x - camX, dz = g.z - camZ;
+    const zichtbaar = dx * dx + dz * dz < d2;
+    if (g.obj.visible !== zichtbaar) g.obj.visible = zichtbaar;
+  }
+}
 
 const ROAD_Y = 0.10, WATER_Y = -0.15;
 
@@ -612,6 +628,8 @@ function buildRow(scene, row, idx) {
   }
 
   const group = new THREE.Group();
+  const detail = new THREE.Group();           // fijn werk, alleen dichtbij zichtbaar
+  group.add(detail);
   group.position.set(center.x, 0, center.y);
   group.rotation.y = rotY;
   group.userData.src = row.src;               // index in ROWS, of undefined
@@ -647,15 +665,16 @@ function buildRow(scene, row, idx) {
       const eaveDrop = rh * OV / (depth / 2 + OV);
       roof.position.set(cx, facadeH - eaveDrop, 0); roof.castShadow = true;
       group.add(roof);
-      // boeiboord met goot langs beide dakranden
+      // Boeiboord, goot en regenpijpen zijn fijn werk dat je op afstand toch
+      // niet ziet. Ze gaan in de detailgroep, die pas binnen LOD_AFSTAND meedoet.
       for (const sgn of [1, -1]) {
         const fascia = new THREE.Mesh(new THREE.BoxGeometry(unitLen + OV * 2, 0.22, 0.10), MAT.white);
         fascia.position.set(cx, facadeH - eaveDrop - 0.06, sgn * (depth / 2 + OV));
-        group.add(fascia);
+        detail.add(fascia);
         const gutter = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, unitLen + OV * 2, 6), MAT.gutter);
         gutter.rotation.z = Math.PI / 2;
         gutter.position.set(cx, facadeH - eaveDrop - 0.20, sgn * (depth / 2 + OV + 0.04));
-        group.add(gutter);
+        detail.add(gutter);
       }
       // regenpijpen op de scheiding tussen de woningen
       const pipes = [];
@@ -665,7 +684,7 @@ function buildRow(scene, row, idx) {
         pg.translate(hx, (facadeH - eaveDrop - 0.2) / 2, depth / 2 + 0.06);
         pipes.push(pg);
       }
-      group.add(new THREE.Mesh(mergeGeoms(pipes), MAT.gutter));
+      detail.add(new THREE.Mesh(mergeGeoms(pipes), MAT.gutter));
       const triShape = new THREE.Shape(); triShape.moveTo(-depth / 2, 0); triShape.lineTo(depth / 2, 0); triShape.lineTo(0, rh); triShape.closePath();
       const tri = new THREE.ShapeGeometry(triShape);
       for (const sgn of [-1, 1]) {
@@ -794,6 +813,7 @@ function buildRow(scene, row, idx) {
     sign.position.set(runs[0].cx, facadeH - 0.9, depth / 2 + 0.02); group.add(sign);
   }
   scene.add(group);
+  if (detail.children.length) lodGroepen.push({ obj: detail, x: center.x, z: center.y });
   rowBuilds.push({ row, st, runs, group, depth, toWorldLocal, facadeH, why });
 }
 
@@ -1211,6 +1231,7 @@ function buildFurniture(scene) {
     const off2 = new THREE.Vector3(0, 0, -l.side * 0.85).applyQuaternion(q);
     m.compose(new THREE.Vector3(l.x + off2.x, 5.4, l.z + off2.z), q, new THREE.Vector3(1, 1, 1)); headMesh.setMatrixAt(i, m);
     addCollider(l.x, l.z, 0.12, 0.12, 0, 5);
+    lampPosities.push({ x: l.x + off2.x, y: 5.2, z: l.z + off2.z });
   });
   scene.add(lampMesh, armMesh, headMesh);
 
@@ -1306,6 +1327,7 @@ export function resetWorld(scene) {
   gevelMats.clear();
   colliders.length = 0; roadSegments.length = 0; parkSpots.length = 0; treePositions.length = 0;
   units.length = 0; rowBuilds.length = 0;
+  lodGroepen.length = 0; lampPosities.length = 0;
   waterPolys.length = 0; parkPolys.length = 0; woodPolys.length = 0;
 }
 
@@ -1393,6 +1415,12 @@ export function resolveCollisions(x, z, radius, ignoreLowH = 0) {
 
 export function pointInWater(x, z) {
   return inWater(new THREE.Vector2(x, z));
+}
+
+// De sfeermodule heeft deze materialen nodig om water te laten stromen, de
+// bladeren te laten waaien en de lantaarns 's avonds aan te doen.
+export function sfeerMaterialen() {
+  return { water: MAT.water, blad: [MAT.leaf, MAT.leaf2], lamp: MAT.lamp, hedge: MAT.hedge };
 }
 
 export function nearestRoadName(x, z) {
