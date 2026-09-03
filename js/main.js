@@ -1,6 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, nearestRoadName, colliders, updateLOD } from './world.js';
+import { buildWorld, nearestRoadName, colliders, updateLOD, updateProps, radioPlekken } from './world.js';
 import { Player } from './player.js';
 import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
@@ -346,6 +346,17 @@ const editor = initEditor({
 
 // Hoofdlus
 let last = performance.now(); let time = 0; let lodKlok = 0;
+// Afstand tot de dichtstbijzijnde radio in de wijk; audio.js bepaalt daarmee
+// het volume. Null als er geen radio staat.
+function afstandTotRadio(x, z) {
+  let best = null;
+  for (const r of radioPlekken) {
+    const d = Math.hypot(x - r.x, z - r.z);
+    if (best == null || d < best) best = d;
+  }
+  return best;
+}
+
 function loop() {
   requestAnimationFrame(loop);
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
@@ -375,7 +386,9 @@ function loop() {
     sun.target.position.set(cx, 0, cz); sun.target.updateMatrixWorld();
     updateClouds(dt, cx, cz);
     sfeer.update(dt, cx, cz);
+    updateProps(dt);
     geluid.omgeving(dt, { weer: sfeer.weer, nacht: sfeer.nacht, binnen: !!player.inCar });
+    geluid.radio(afstandTotRadio(cx, cz));
     lodKlok += dt;
     if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); }
     hud.update(dt, player, vehicles, npcs, nearestRoadName(cx, cz));

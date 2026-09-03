@@ -173,6 +173,58 @@ export const geluid = {
     m.gain.gain.setTargetAtTime(0.06 + s * 0.06, nu(), 0.2);
   },
 
+  // ---------- radio in de voortuin ----------
+  // Een klein deuntje uit een draagbare radio: bas, akkoord en een tikje, alles
+  // door een smalle band gehaald zodat het klinkt als een transistorradio en
+  // niet als een geluidsinstallatie. Het volume hangt aan de afstand, dus je
+  // hoort hem pas als je de Molenkrite in loopt.
+  radio(afstand) {
+    if (!aan) return;
+    if (!bronnen.radio) {
+      const g = ctx.createGain(); g.gain.value = 0;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1100; f.Q.value = 0.7;
+      f.connect(g); g.connect(hoofd);
+      bronnen.radio = { gain: g, bus: f, volgende: 0, maat: 0 };
+    }
+    const rd = bronnen.radio;
+    // hoorbaar tot een meter of 35, daarbinnen vloeiend luider
+    const v = afstand == null ? 0 : Math.max(0, 1 - afstand / 35) ** 2;
+    rd.gain.gain.setTargetAtTime(v * 0.5, nu(), 0.3);
+    if (v <= 0.001) return;
+
+    // noten vooruit plannen; een maat duurt 1,6 s
+    const AKKOORDEN = [[220, 277.2, 329.6], [174.6, 220, 261.6], [196, 246.9, 293.7], [164.8, 207.7, 246.9]];
+    const t = nu();
+    if (rd.volgende < t) rd.volgende = t + 0.05;
+    while (rd.volgende < t + 1.2) {
+      const start = rd.volgende;
+      const akk = AKKOORDEN[rd.maat % AKKOORDEN.length];
+      const stem = (freq, duur, volume, golf) => {
+        const o = ctx.createOscillator(); const g2 = ctx.createGain();
+        o.type = golf; o.frequency.value = freq;
+        g2.gain.setValueAtTime(0.0001, start);
+        g2.gain.exponentialRampToValueAtTime(volume, start + 0.03);
+        g2.gain.exponentialRampToValueAtTime(0.0001, start + duur);
+        o.connect(g2); g2.connect(rd.bus);
+        o.start(start); o.stop(start + duur + 0.02);
+      };
+      stem(akk[0] / 2, 0.55, 0.09, 'triangle');                       // bas
+      for (const f of akk) stem(f, 0.34, 0.028, 'sawtooth');          // akkoord
+      stem(akk[(rd.maat * 3 + 1) % 3] * 2, 0.22, 0.03, 'square');     // melodietje
+      // hi-hat op de tussenmaat
+      for (const off of [0.4, 0.8, 1.2]) {
+        const src = ctx.createBufferSource(); src.buffer = ruisBuffer(0.1);
+        const hf = ctx.createBiquadFilter(); hf.type = 'highpass'; hf.frequency.value = 6000;
+        const hg = ctx.createGain();
+        hg.gain.setValueAtTime(0.05, start + off);
+        hg.gain.exponentialRampToValueAtTime(0.0001, start + off + 0.05);
+        src.connect(hf); hf.connect(hg); hg.connect(rd.bus);
+        src.start(start + off); src.stop(start + off + 0.07);
+      }
+      rd.volgende += 1.6; rd.maat++;
+    }
+  },
+
   // ---------- omgeving per beeld ----------
   omgeving(dt, { weer = 'helder', nacht = false, wind = 0.2, binnen = false } = {}) {
     if (!aan) return;

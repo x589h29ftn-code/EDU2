@@ -981,6 +981,18 @@ function buildRow(scene, row, idx) {
 // Fase 2: tuinen. Elke woning krijgt een eigen voortuintje: het ene met een lage
 // heg, het andere met een houten kruishekje, een conifeer of gewoon gras met
 // wat struiken. De diepte volgt de werkelijk beschikbare ruimte tot het trottoir.
+// Staat er met de hand een object neergezet (zie PROPS), dan houdt de
+// automatische tuinaankleding daar afstand van: anders groeit er een boompje
+// dwars door het gezelschap in de voortuin van 19 Molenkrite heen.
+let propPlekken = null;
+function propNabij(x, z, r = 1.8) {
+  if (!propPlekken) {
+    propPlekken = PROPS.map(p => { const [px, pz] = toWorld(p.at[0], p.at[1]); return { x: px, z: pz, s: p.scale || 1 }; });
+  }
+  for (const p of propPlekken) if (Math.hypot(x - p.x, z - p.z) < r * p.s) return true;
+  return false;
+}
+
 function buildGardens() {
   for (const rb of rowBuilds) {
     const { row, st, runs, group, depth, toWorldLocal, why } = rb;
@@ -1065,6 +1077,8 @@ function buildGardens() {
             const sx = hx + (r() - 0.5) * (w - 1.4);
             const sz = z0 + 0.8 + r() * Math.max(0.4, frontAvail - 1.6);
             if (Math.abs(sx - doorX) < 0.8) continue;
+            const sw = toWorldLocal(sx, sz);
+            if (propNabij(sw.x, sw.y, 1.2)) continue;
             const rad = 0.32 + r() * 0.32;
             const g = new THREE.SphereGeometry(rad, 6, 5);
             g.scale(1, 0.75 + r() * 0.4, 1);
@@ -1075,8 +1089,11 @@ function buildGardens() {
           if (r() < 0.16 && frontAvail > 3.0) {   // sierboompje
             const tx = hx + (r() - 0.5) * (w - 2.0);
             const tz = z0 + frontAvail * 0.55;
-            const tr = new THREE.CylinderGeometry(0.07, 0.09, 2.2, 5); tr.translate(tx, 1.1, tz); buckets.trunk.push(tr);
-            const lf = new THREE.SphereGeometry(0.85, 7, 6); lf.scale(1, 0.85, 1); lf.translate(tx, 2.5, tz); buckets.leaf.push(lf);
+            const tw2 = toWorldLocal(tx, tz);
+            if (!propNabij(tw2.x, tw2.y, 2.4)) {
+              const tr = new THREE.CylinderGeometry(0.07, 0.09, 2.2, 5); tr.translate(tx, 1.1, tz); buckets.trunk.push(tr);
+              const lf = new THREE.SphereGeometry(0.85, 7, 6); lf.scale(1, 0.85, 1); lf.translate(tx, 2.5, tz); buckets.leaf.push(lf);
+            }
           }
           if (r() < 0.12 && frontAvail > 2.6) {   // bankje tegen de gevel
             const bb = new THREE.BoxGeometry(1.4, 0.09, 0.42); bb.translate(hx + side * 1.2, 0.45, z0 + 0.75); buckets.bench.push(bb);
@@ -1177,6 +1194,23 @@ function buildGardens() {
 }
 
 // ---------- Losse objecten (carports, borden, speeltoestellen, ...) ----------
+// Bewegende onderdelen van objecten: de arm met het bierflesje, en de plek van
+// elke radio zodat het geluid meeloopt met hoe dicht je erbij staat.
+export const drinkArmen = [];
+export const radioPlekken = [];
+
+// Af en toe gaat het flesje naar de mond en weer omlaag. Elk poppetje heeft
+// zijn eigen tempo, anders drinken ze als een peloton.
+export function updateProps(dt) {
+  for (const a of drinkArmen) {
+    a.fase += dt / a.duur;
+    if (a.fase >= 1) a.fase -= 1;
+    // een slok duurt kort; de rest van de tijd ligt de arm op de leuning
+    const f = a.fase < 0.25 ? Math.sin(a.fase / 0.25 * Math.PI) : 0;
+    a.obj.rotation.x = f * 1.35;
+  }
+}
+
 function buildProps(scene) {
   for (const p of PROPS) {
     const def = PROP_TYPES[p.type];
@@ -1190,6 +1224,9 @@ function buildProps(scene) {
     obj.userData.prop = p.src;
     obj.traverse(o => { o.castShadow = true; o.receiveShadow = true; });
     scene.add(obj);
+    const arm = obj.getObjectByName('drinkarm');
+    if (arm) drinkArmen.push({ obj: arm, fase: arm.userData.drinkfase || 0, duur: 7 + (p.src % 5) * 1.7 });
+    if (p.type === 'radiotafel') radioPlekken.push({ x, z });
     const bezwaar = vrijeObjectPlek(x, z);
     if (bezwaar) console.warn(`object ${p.src} ${p.type} op [${p.at}] staat in ${bezwaar === 'rijbaan' ? 'de rijbaan' : bezwaar === 'water' ? 'het water' : 'een gebouw'}`);
     // botsingsdoos, behalve voor dingen waar je onderdoor of overheen loopt
@@ -1499,6 +1536,7 @@ export function resetWorld(scene) {
   colliders.length = 0; roadSegments.length = 0; parkSpots.length = 0; treePositions.length = 0;
   units.length = 0; rowBuilds.length = 0;
   lodGroepen.length = 0; lampPosities.length = 0; plateauVlakken.length = 0;
+  drinkArmen.length = 0; radioPlekken.length = 0; propPlekken = null;
   waterPolys.length = 0; parkPolys.length = 0; woodPolys.length = 0;
 }
 

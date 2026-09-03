@@ -22,6 +22,7 @@
     "propcheck": "node tools/propcheck.mjs",
     "audit": "node tools/audit.mjs",
     "sfeershots": "node tools/sfeershots.mjs",
-    "levendtest": "node tools/levendtest.mjs"
+    "levendtest": "node tools/levendtest.mjs",
+    "tuintest": "node tools/tuintest.mjs"
   }
 }

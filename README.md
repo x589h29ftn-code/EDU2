@@ -59,7 +59,8 @@ Met **T** wissel je tussen vijftien woningtypen:
 ![Alle woningtypen](docs/screenshots/woningtypen.png)
 
 En met **O** ga je naar de objecten: carports, bergingen, aanbouwen, hagen en hekken, verkeersborden,
-containers, speeltoestellen en bomen — 54 stuks, nagebouwd naar de street-viewfoto's van de wijk:
+containers, speeltoestellen, bomen en zittende buren met een biertje — 60 stuks, nagebouwd naar
+de street-viewfoto's van de wijk:
 
 ![Alle objecten](docs/screenshots/objecten.png)
 
@@ -73,7 +74,9 @@ dof en hoor je het op je jas.
 
 Alle geluid is gesynthetiseerd met de Web Audio API, er zijn geen geluidsbestanden: wind, vogels
 overdag en krekels 's avonds, regen, voetstappen die verschillen op klinkers, tegels en gras, een
-motor waarvan de toonhoogte met de snelheid meeloopt, schoten, herladen en portieren.
+motor waarvan de toonhoogte met de snelheid meeloopt, schoten, herladen en portieren. In de
+voortuin van 19 Molenkrite staat een radio op een tafeltje die echt speelt: hoe dichter je erbij
+staat, hoe harder je hem hoort.
 
 ## Straten in het spel
 
@@ -87,7 +90,7 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/data.js` – de kaart: wegen, kruispuntplateaus, water, groen en huizenrijen in pixelcoördinaten van de bronkaart
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
 - `js/editor.js` – de wijkeditor (F2): huizenrijen en objecten
-- `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, ...)
+- `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, zittende buren met een biertje, ...)
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
