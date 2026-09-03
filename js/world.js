@@ -992,6 +992,22 @@ function buildRow(scene, row, idx) {
         const dm = gedeeldMat('porchdeur|' + st.door[0], () => new THREE.MeshStandardMaterial({ color: st.door[0], roughness: 0.7 }));
         group.add(m1, m2, new THREE.Mesh(mergeGeoms(deuren), dm));
       }
+      // Frans balkonhekje voor de raamband op de verdieping.
+      if (st.balkon && storeys > 1) {
+        const yb = facadeH / storeys + 0.12;
+        for (const dy of [0.42, 0.92]) {
+          const rail = new THREE.Mesh(new THREE.BoxGeometry(unitLen - 0.3, 0.055, 0.05), MAT.railing);
+          rail.position.set(cx, yb + dy, depth / 2 + 0.2); group.add(rail);
+        }
+        const spijlen = [];
+        const n2 = Math.max(2, Math.round(unitLen / 0.28));
+        for (let k = 0; k <= n2; k++) {
+          const hx = cx - (unitLen - 0.3) / 2 + ((unitLen - 0.3) / n2) * k;
+          const pg = new THREE.CylinderGeometry(0.022, 0.022, 0.95, 4);
+          pg.translate(hx, yb + 0.5, depth / 2 + 0.2); spijlen.push(pg);
+        }
+        detail.add(new THREE.Mesh(mergeGeoms(spijlen), MAT.railing));
+      }
       if (st.gallery) {
         const floor = new THREE.Mesh(new THREE.BoxGeometry(unitLen, 0.14, 1.35), MAT.white);
         floor.position.set(cx, 2.9, depth / 2 + 0.68); group.add(floor);
@@ -1105,7 +1121,7 @@ function buildGardens() {
       // ---------- voortuinen, per woning een eigen inrichting ----------
       if (row.type !== 'spil' && row.type !== 'appart' && frontAvail >= 1.3) {
         const r = rng(Math.round(Math.abs(run.unit.cx) * 31 + Math.abs(run.unit.cz) * 17) + 1);
-        const buckets = { tiles: [], picket: [], hedge: [], hedgeRed: [], conifer: [], shrubA: [], shrubB: [], shrubC: [], gravel: [], bench: [], trunk: [], leaf: [] };
+        const buckets = { tiles: [], picket: [], plank: [], hedge: [], hedgeRed: [], conifer: [], shrubA: [], shrubB: [], shrubC: [], gravel: [], bench: [], trunk: [], leaf: [] };
         const w = run.len / run.n;
         const z0 = depth / 2;                     // gevellijn
         const zEdge = z0 + frontAvail;            // erfgrens tegen het trottoir
@@ -1127,7 +1143,10 @@ function buildGardens() {
           for (const [a, b] of segs) {
             const segLen = b - a; if (segLen < 0.4) continue;
             const cx2 = hx + (a + b) / 2;
-            if (style === 1) {           // houten kruishekje
+            if (st.voorschutting) {      // houten schutting rond de voortuin
+              const f2 = new THREE.BoxGeometry(segLen, 1.7, 0.09);
+              f2.translate(cx2, 0.85, zEdge); buckets.plank.push(f2);
+            } else if (style === 1) {    // houten kruishekje
               const rail = new THREE.BoxGeometry(segLen, 0.06, 0.05);
               rail.translate(cx2, 0.42, zEdge); buckets.picket.push(rail);
               for (let t = a + 0.2; t < b; t += 0.42) {
@@ -1220,7 +1239,7 @@ function buildGardens() {
             const wh2 = new THREE.CylinderGeometry(0.22, 0.22, 0.16, 8); wh2.rotateZ(Math.PI / 2); wh2.translate(bx - 0.85, 0.22, z0 + frontAvail * 0.55 + dz2); buckets.tyre.push(wh2);
           }
         }
-        const matOf = { tiles: MAT.tiles, picket: MAT.picket, hedge: MAT.hedge, hedgeRed: MAT.hedgeRed, conifer: MAT.conifer, shrubA: MAT.shrubA, shrubB: MAT.shrubB, shrubC: MAT.shrubC, gravel: MAT.gravel, bench: MAT.bench, trunk: MAT.trunk, leaf: MAT.leaf, bike: MAT.bikeFrame, tyre: MAT.tyre, pot: MAT.pot, tarp: MAT.tarp, stone: MAT.gravel };
+        const matOf = { tiles: MAT.tiles, picket: MAT.picket, plank: MAT.fence, hedge: MAT.hedge, hedgeRed: MAT.hedgeRed, conifer: MAT.conifer, shrubA: MAT.shrubA, shrubB: MAT.shrubB, shrubC: MAT.shrubC, gravel: MAT.gravel, bench: MAT.bench, trunk: MAT.trunk, leaf: MAT.leaf, bike: MAT.bikeFrame, tyre: MAT.tyre, pot: MAT.pot, tarp: MAT.tarp, stone: MAT.gravel };
         for (const key of Object.keys(buckets)) {
           if (!buckets[key].length) continue;
           const m = new THREE.Mesh(mergeGeoms(buckets[key]), matOf[key]);

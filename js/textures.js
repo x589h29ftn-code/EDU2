@@ -270,6 +270,10 @@ export const HOUSE_STYLES = {
   // Kruirad: lage gootlijn en een gemetseld bergingetje met plat dak voor de
   // voordeur, zie de street view vanaf 50 Kruirad en 174 Monnikmolen.
   kruirad:    { brick: ['#d5c49e', '#e4dccb'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#453b35', roofType: 'gable', storeys: 2, storeyH: 2.55, w: 5.4, dormer: false, skylight: true, chimney: true, porch: true, band: '#f2f2f2' },
+  // Kruirad, de rijtjes aan de parkeerhoven: roodbruine baksteen, witte
+  // kozijnen, een brede raamband op de verdieping met donkergroene panelen
+  // eronder en een wit balkonhekje ervoor. Zie 48 Kruirad op street view.
+  kruirad_rood: { brick: ['#9c6247', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#2f4a35', '#28402d'], roof: '#4a403a', roofType: 'gable', storeys: 2, storeyH: 2.7, w: 5.4, dormer: false, chimney: true, paneel: '#2c4a34', balkon: true, voorschutting: true, band: '#f2f2f2' },
   molenpaal:  { brick: ['#d3bd8e', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#4a4a4a'], roof: '#453b37', roofType: 'gable', storeys: 2, w: 5.6, dormer: true, dormerBand: true, chimney: false, solar: true, band: '#f2f2f2' },
   jasker_flat:{ brick: ['#e0d0a6', '#e8e0cd'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b', '#3a3a3a'], roof: '#555', roofType: 'flat', storeys: 2, w: 5.6, dormer: false, chimney: false, band: '#2b2b2b' },
   jasker_gable:{ brick: ['#dcc89a', '#e5ddcb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#6a1a1a'], roof: '#453b37', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#f2f2f2' },
@@ -376,6 +380,15 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       for (let s = 1; s < storeys; s++) {
         if (type === 'appart') break;
         const fy = H - (s + 1) * SH * PM;
+        if (st.paneel) {
+          // brede raamband over de hele breedte met een gekleurd paneel eronder,
+          // zoals de donkergroene panelen aan het Kruirad
+          const bx = x0 + 0.35 * PM, bw2 = (st.w - 0.7) * PM;
+          win(bx, fy + 0.5 * PM, bw2, 1.25 * PM, st.frame);
+          g.fillStyle = st.paneel; g.fillRect(bx, fy + 1.75 * PM, bw2, 0.62 * PM);
+          g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(bx, fy + 2.31 * PM, bw2, 0.06 * PM);
+          continue;
+        }
         win(x0 + 0.5 * PM, fy + 0.8 * PM, 2.0 * PM, 1.4 * PM, st.frame);
         win(x0 + (st.w - 2.5) * PM, fy + 0.8 * PM, 2.0 * PM, 1.4 * PM, st.frame);
         if (st.w > 8) win(x0 + (st.w / 2 - 1.0) * PM, fy + 0.8 * PM, 2.0 * PM, 1.4 * PM, st.frame);

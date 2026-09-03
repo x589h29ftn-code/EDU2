@@ -68,7 +68,9 @@ export const ROADS = [
     pts: [[243,935],[160,978],[75,1020]] },
   { name: 'Kruirad', type: 'klinker', w: 4.6, vergeL: 6.5, vergeR: 2.2, walk: 'LR', haaks: 'L',
     pts: [[75,1020],[85,1080],[100,1130],[115,1170],[140,1198]] },
-  { name: 'Kruirad', type: 'klinker', w: 4.6, vergeL: 6.5, vergeR: 2.2, walk: 'LR', haaks: 'L',
+  // De zuidtak heeft aan beide kanten een parkeerhof: aan de binnenkant voor de
+  // gele rijtjes, aan de zuidkant voor de roodbruine rij met de groene panelen.
+  { name: 'Kruirad', type: 'klinker', w: 4.6, vergeL: 6.5, vergeR: 6.5, walk: 'LR', haaks: 'LR',
     pts: [[140,1198],[200,1205],[260,1188],[320,1165]] },
   { name: 'Fietspad', type: 'fietspad', w: 2.4, verge: 0, walk: '',
     pts: [[75,1020],[0,930],[-60,860],[-120,790],[-160,700],[-180,620]] },
@@ -267,9 +269,8 @@ P('bushalte', 1152, 1294, 90);
 P('fietsenrek', 1149, 1313, 90);
 // nutskast aan de Bovenas
 P('nutskast', 128, 1502, 12);
-// carports aan het Kruirad
-P('carport', 226, 1267, 100);
-P('carport', 258, 1262, 100);
+// De carports die hier stonden zijn weg: op die plek staat nu de roodbruine rij
+// aan de zuidkant van het Kruirad, met een parkeerhof ervoor.
 // wat groen langs de Molenkrite
 P('conifeer', 404, 1252, 0);
 P('conifeer', 392, 1292, 0);
@@ -294,6 +295,14 @@ P('struik', 386, 1186, 0, 1.2);
  bij een ander huis hebben, pak dan in de editor (F2, O voor objectstand) de zes
  objecten op en zet ze verderop in de straat neer.
 */
+// Antiparkeerpaaltjes langs de rand van het parkeerhof bij de bocht van het
+// Kruirad, zoals op de street view vanaf 48 Kruirad.
+P('paaltje', 172, 1229, 0);
+P('paaltje', 178, 1230, 0);
+P('paaltje', 184, 1230, 0);
+P('paaltje', 190, 1231, 0);
+P('paaltje', 196, 1231, 0);
+
 // Wilgen aan de noordoever van de watergang achter het Kruirad, zoals op de
 // street view vanaf 52 Molenkrite.
 P('treurwilg', 128, 1316, 0, 1.2);
@@ -372,7 +381,11 @@ R(75,1020, 140,1198, -13, 9, 'kruirad');   // westzijde Kruirad-west
 // inrit naar het parkeerhof, zoals op de foto vanaf 50 Kruirad.
 R(150,1199, 222,1199, 13, 9, 'kruirad', { nodens: true });  // binnenzijde Kruirad-zuid, west
 R(248,1191, 310,1169, 13, 9, 'kruirad', { nodens: true });  // binnenzijde Kruirad-zuid, oost
-R(140,1198, 320,1165, -13, 9, 'kruirad');  // zuidzijde Kruirad-zuid
+// Zuidzijde van de zuidtak: de roodbruine rij met de groene panelen. In twee
+// stukken, want de weg maakt daar een flauwe S en een rechte koorde van 180
+// pixels zou de woningen halverwege binnen de wegkoker zetten.
+R(142,1198, 232,1197, -13, 9, 'kruirad_rood', { contiguous: true });
+R(232,1197, 316,1167, -13, 9, 'kruirad_rood', { contiguous: true });
 
 // ===== Jasker oost-west, links (+) = noord =====
 R(640,1487, 680,1487,  13, 9, 'jasker_flat');
@@ -446,7 +459,7 @@ R(307,1075, 600,880,  13, 9, 'monnik');
 // Monnikmolen noord-zuid, westzijde (naar het Kruirad-hof)
 R(255,985, 300,1110, -13, 9, 'kruirad');
 // Kruirad west, binnenzijde van de lus
-R(75,1020, 140,1198,  13, 9, 'kruirad', { nodens: true });
+R(75,1020, 140,1198,  13, 9, 'kruirad_rood', { nodens: true });
 // Molenpaal zuidoostzijde
 R(830,1168, 668,1315,  13, 9, 'jasker_gable');
 // Molenkrite noordwesttak: vierde rij richting Binnenroede
