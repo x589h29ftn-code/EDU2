@@ -180,10 +180,14 @@ export const WATERWAYS = [
   // Watergang langs De Wieken: van het Tinga Parkje langs de vijver naar het
   // zuidoosten en dan mee met het oost-westdeel tot aan de Molenkrite. Hij ligt
   // ongeveer veertien meter uit de wegas, met gras ervoor en erachter.
-  { w: 8.5, pts: [[-168,884],[-158,950],[-148,1020],[-132,1090],[-108,1150],[-72,1200],[-30,1240],[14,1276],[44,1300]] },
+  { w: 8.5, pts: [[-168,884],[-158,950],[-148,1020],[-132,1090],[-108,1150],[-72,1200],[-30,1240],[14,1276],[44,1292]] },
   // langs het oost-westdeel verbreedt hij tot een langgerekte plas en houdt
   // hij op ruim voor de Molenkrite; daarachter begint het bosje met de vijver
-  { w: 9.0, pts: [[14,1276],[44,1300],[81,1342],[125,1385],[170,1394],[215,1400],[252,1408]] },
+  // De strook gras tussen de achtertuinen van het Kruirad en het water was
+  // vijfentwintig meter breed; op de foto's vanaf 52 Molenkrite is dat er
+  // hooguit twaalf, met daarachter meteen de walkant met wilgen. De watergang
+  // ligt daarom twaalf meter noordelijker en is iets breder.
+  { w: 11.0, pts: [[14,1276],[44,1292],[81,1318],[125,1348],[170,1356],[215,1362],[252,1368]] },
   // Zijtak achter het parkje, richting de achtertuinen van Kruirad
   { w: 6.5, pts: [[-30,1240],[10,1225],[46,1230],[70,1252]] },
 ];
@@ -197,7 +201,10 @@ export const WOODS = [
   // dichte bomenstrook tussen de achtertuinen van het Kruirad en De Wieken.
   // De noordrand blijft op afstand van de schuttingen, want daar liggen eerst
   // de achtertuinen en een voetpad langs het gras.
-  { dens: 55, poly: [[90,1322],[150,1340],[240,1352],[318,1358],[330,1312],[240,1302],[150,1294],[95,1280]] },
+  { dens: 55, poly: [[90,1318],[150,1332],[240,1342],[318,1348],[330,1306],[240,1298],[150,1292],[95,1288]] },
+  // Zuidoever van diezelfde watergang: op de foto vanaf 52 Molenkrite staat daar
+  // een rij wilgen en dicht struweel, geen gemaaid gazon tot aan De Wieken.
+  { dens: 40, poly: [[95,1352],[150,1378],[210,1390],[262,1398],[268,1426],[208,1418],[148,1406],[92,1380]] },
   [[520,1700],[960,1770],[960,1790],[520,1735]], // bomen langs Bonkelaar-sloot
   [[1080,1000],[1230,1000],[1230,1400],[1090,1420]], // groen oostzijde
 ];
@@ -284,6 +291,14 @@ P('struik', 386, 1186, 0, 1.2);
  bij een ander huis hebben, pak dan in de editor (F2, O voor objectstand) de zes
  objecten op en zet ze verderop in de straat neer.
 */
+// Wilgen aan de noordoever van de watergang achter het Kruirad, zoals op de
+// street view vanaf 52 Molenkrite.
+P('treurwilg', 128, 1316, 0, 1.2);
+P('treurwilg', 196, 1328, 0, 1.0);
+P('treurwilg', 246, 1336, 0, 1.15);
+P('struik', 165, 1324, 0, 1.5);
+P('struik', 222, 1332, 0, 1.3);
+
 P('radiotafel', 530, 1066, 40);
 P('zit_rood',  533, 1064, 130);
 P('zit_blauw', 527, 1069, 310);

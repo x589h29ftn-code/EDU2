@@ -94,6 +94,8 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
+- `tools/meetstrook.mjs` – meet een dwarsdoorsnede: hoeveel meter gras, tegels, water en rijbaan er
+  achter elkaar liggen, om straatprofielen en groenstroken aan de foto's te toetsen
 - `js/touch.js` – touchbesturing voor telefoon en tablet
 - `desktop/` – de Electron-schil voor de Windows-app
   (3.26 px per meter, oorsprong op het kruispunt Molenkrite/Monnikmolen/Jasker)

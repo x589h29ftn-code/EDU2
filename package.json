@@ -23,6 +23,7 @@
     "audit": "node tools/audit.mjs",
     "sfeershots": "node tools/sfeershots.mjs",
     "levendtest": "node tools/levendtest.mjs",
-    "tuintest": "node tools/tuintest.mjs"
+    "tuintest": "node tools/tuintest.mjs",
+    "meetstrook": "node tools/meetstrook.mjs"
   }
 }
