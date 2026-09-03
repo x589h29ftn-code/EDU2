@@ -384,7 +384,7 @@ export function initEditor(ctx) {
         <table>
           <tr><td>O</td><td>terug naar huizenrijen</td><td>klik</td><td>object kiezen</td></tr>
           <tr><td>Enter</td><td>gekozen object neerzetten</td><td>Tab</td><td>volgend object in de wijk</td></tr>
-          <tr><td>Pg&uarr; Pg&darr;</td><td>vorig / volgend uit het palet</td><td>1 2 3 4</td><td>naar groep erf/straat/groen/spelen</td></tr>
+          <tr><td>Pg&uarr; Pg&darr;</td><td>vorig / volgend uit het palet</td><td>1 &hellip; 6</td><td>naar groep erf/hek/straat/groen/spelen/mensen</td></tr>
           <tr><td>G</td><td>verplaatsen, klik = neerzetten</td><td>pijltjes</td><td>1 px (shift = 5)</td></tr>
           <tr><td>, .</td><td>draaien 5° (shift = 45°)</td><td>- =</td><td>kleiner / groter</td></tr>
           <tr><td>Del</td><td>weghalen</td><td>Ctrl+D</td><td>kopie ernaast</td></tr>

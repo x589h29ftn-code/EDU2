@@ -47,6 +47,7 @@ export function propMaterials() {
   M.bladPaars = mat(0x8a3a3f, 1);
   M.haagWarm = mat(0x5b7434, 1);
   M.groenDonker = mat(0x2b3a30, 0.92);
+  M.bierglas = new THREE.MeshStandardMaterial({ color: 0x6b3a12, roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.85 });
   M.klaar = true;
   return M;
 }
@@ -568,9 +569,101 @@ def('kale_boom', 'Kale boom (winter)', 'groen', [0.7, 0.7], 9.0, () => {
   return bouw(d);
 });
 
+// ===== mensen in de tuin =====
+// Een tuinstoel met iemand erin, biertje in de hand. De arm met het flesje zit
+// in een aparte groep 'drinkarm' met zijn draaipunt op de schouder, zodat de
+// wereld hem kan laten bewegen: af en toe gaat het flesje naar de mond.
+function stoelDelen(m = M.staalDonker, doek = M.groenDonker) {
+  const d = [];
+  for (const [x, z] of [[-0.24, -0.22], [0.24, -0.22], [-0.24, 0.24], [0.24, 0.24]]) {
+    d.push(cil(0.022, 0.022, 0.44, m, x, 0.22, z, 6));
+  }
+  d.push(doos(0.56, 0.05, 0.5, doek, 0, 0.46, 0));            // zitting
+  d.push(doos(0.56, 0.5, 0.05, doek, 0, 0.72, 0.24));         // rugleuning
+  for (const x of [-0.28, 0.28]) {
+    d.push(cil(0.02, 0.02, 0.5, m, x, 0.72, 0.24, 6));        // stijlen rugleuning
+    d.push(cil(0.02, 0.02, 0.46, m, x, 0.62, 0.02, 6, Math.PI / 2)); // armleuning
+  }
+  return d;
+}
+
+// bierflesje: bruin glas met een geel etiket, staand in de oorsprong
+function flesjeDelen(x, y, z) {
+  return [
+    cil(0.032, 0.032, 0.17, M.bierglas, x, y + 0.085, z, 7),
+    cil(0.013, 0.026, 0.07, M.bierglas, x, y + 0.20, z, 7),
+    cil(0.033, 0.033, 0.05, M.geel, x, y + 0.09, z, 7),
+  ];
+}
+
+const ZITTERS = [
+  ['zit_rood', 'Zittende buur (rood shirt)', 0xb03a2e, 0x2f3a52, 0xe8c9a8, true],
+  ['zit_blauw', 'Zittende buur (blauw shirt)', 0x2a5d9e, 0x33383f, 0xd9b493, false],
+  ['zit_groen', 'Zittende buur (groen shirt)', 0x3f7a45, 0x50412f, 0xc99b78, true],
+  ['zit_geel', 'Zittende buur (geel shirt)', 0xd2a52c, 0x2c3138, 0xeed3b4, false],
+];
+for (const [naam, label, shirt, broek, huid, drinkt] of ZITTERS) {
+  def(naam, label, 'mensen', [0.6, 0.9], 1.35, () => {
+    const mShirt = mat(shirt, 0.9), mBroek = mat(broek, 0.9), mHuid = mat(huid, 0.85);
+    const d = stoelDelen();
+    // bovenbenen vooruit, onderbenen omlaag, voeten op de grond
+    for (const x of [-0.13, 0.13]) {
+      d.push(doos(0.17, 0.16, 0.42, mBroek, x, 0.53, -0.18));
+      d.push(doos(0.15, 0.44, 0.15, mBroek, x, 0.24, -0.36));
+      d.push(doos(0.15, 0.07, 0.26, M.zwart, x, 0.035, -0.44));
+    }
+    d.push(doos(0.42, 0.5, 0.26, mShirt, 0, 0.74, 0.06));      // romp
+    d.push(cil(0.07, 0.07, 0.08, mHuid, 0, 1.02, 0.06, 7));    // nek
+    d.push(bol(0.115, mHuid, 0, 1.14, 0.05));                  // hoofd
+    d.push(bol(0.118, M.houtDonker, 0, 1.19, 0.07, 1, 0.7, 1)); // haar
+    // vrije arm hangt over de armleuning
+    d.push(doos(0.11, 0.36, 0.11, mShirt, -0.26, 0.8, 0.04));
+    d.push(cil(0.05, 0.05, 0.16, mHuid, -0.26, 0.58, 0.0, 6));
+    // bovenarm van de drinkarm hangt vast langs het lichaam
+    d.push(doos(0.11, 0.3, 0.11, mShirt, 0.26, 0.79, 0.06));
+    const romp = bouw(d);
+
+    // Onderarm met het flesje draait om de elleboog. In rust ligt hij
+    // horizontaal op de armleuning met het flesje rechtop in de hand; bij een
+    // slok komt hij omhoog naar de mond.
+    const arm = new THREE.Group();
+    arm.name = 'drinkarm';
+    arm.position.set(0.26, 0.64, 0.06);
+    arm.add(bouw([
+      doos(0.1, 0.1, 0.3, mShirt, 0, 0, -0.15),
+      bol(0.055, mHuid, 0, 0, -0.3),
+      ...flesjeDelen(0, -0.02, -0.3),
+    ]));
+    // wie net een slok neemt begint met de arm al half omhoog
+    arm.rotation.x = drinkt ? 1.0 : 0;
+    arm.userData.drinkfase = drinkt ? 0.12 : 0.6;
+
+    const g = new THREE.Group();
+    g.add(romp, arm);
+    return g;
+  });
+}
+
+def('tuinstoel', 'Lege tuinstoel', 'mensen', [0.6, 0.6], 1.0, () => bouw(stoelDelen()));
+
+def('radiotafel', 'Tafeltje met radio', 'mensen', [0.7, 0.7], 0.95, () => bouw([
+  cil(0.31, 0.31, 0.04, M.wit, 0, 0.72, 0, 12),              // rond tafelblad
+  cil(0.035, 0.035, 0.7, M.wit, 0, 0.35, 0, 8),              // poot
+  cil(0.16, 0.16, 0.03, M.wit, 0, 0.02, 0, 10),              // voet
+  // draagbare radio: kastje met luidsprekerrooster, twee knoppen en een antenne
+  doos(0.34, 0.19, 0.13, M.zwart, 0, 0.84, 0),
+  doos(0.15, 0.13, 0.01, M.grijsPlastic, -0.08, 0.84, -0.068),
+  cil(0.028, 0.028, 0.012, M.staal, 0.06, 0.84, -0.068, 8, Math.PI / 2),
+  cil(0.028, 0.028, 0.012, M.staal, 0.13, 0.84, -0.068, 8, Math.PI / 2),
+  cil(0.007, 0.004, 0.42, M.staal, 0.14, 1.12, 0.04, 6, 0, 0.25),
+  // twee lege flesjes op tafel
+  ...flesjeDelen(-0.16, 0.74, 0.1),
+  ...flesjeDelen(-0.06, 0.74, 0.17),
+]));
+
 // ---------- publiek ----------
 export const PROP_TYPES = LIB;
-export const PROP_GROEPEN = ['erf', 'hek', 'straat', 'groen', 'spelen'];
+export const PROP_GROEPEN = ['erf', 'hek', 'straat', 'groen', 'spelen', 'mensen'];
 
 // Elke keer opnieuw opbouwen: een gedeelde geometrie zou bij het opruimen van
 // de wereld weggegooid worden terwijl een ander exemplaar hem nog gebruikt.

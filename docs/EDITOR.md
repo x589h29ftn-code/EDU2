@@ -126,7 +126,7 @@ is nagebouwd naar wat er op de street-viewfoto's van Tinga staat.
 |---|---|
 | **O** | wisselen tussen huizenrijen en objecten |
 | Pg&uarr; Pg&darr; | vorig / volgend object in het palet |
-| 1 2 3 4 | naar de groep erf, straat, groen of spelen |
+| 1 … 6 | naar de groep erf, hek, straat, groen, spelen of mensen |
 | **Enter** | het gekozen object neerzetten waar je vizier staat |
 | linkermuisknop | een geplaatst object kiezen · Tab loopt ze langs |
 | **G** | verplaatsen met het vizier, klik om neer te zetten |
@@ -139,7 +139,7 @@ Staat een object in een gebouw, in het water of midden op de rijbaan, dan zegt
 het paneel dat in oranje. `node tools/propcheck.mjs` loopt in één keer alle
 objecten na.
 
-De vijf groepen (54 objecten):
+De zes groepen (60 objecten):
 
 - **erf** – carport, veranda met glasdak, stenen berging, blok garageboxen,
   houten tuinhuisje, schutting, ligusterhaag, bakstenen muurtje, laag
@@ -154,6 +154,10 @@ De vijf groepen (54 objecten):
 - **groen** – losse boom, conifeer, struik, plantenbak, rietpol, verhoogde
   plantenbak, treurwilg, rode esdoorn, jonge boom met boompaal, kale boom
 - **spelen** – voetbaldoel, basketbalpaal, klimtoestel, wipkip, zandbak
+- **mensen** – vier zittende buren met een biertje (rood, blauw, groen, geel
+  shirt), lege tuinstoel, tafeltje met radio. De arm met het flesje beweegt
+  vanzelf: af en toe neemt iemand een slok. Zet je een `radiotafel` neer, dan
+  speelt die ook echt muziek, harder naarmate je dichterbij komt.
 
 Zelf een object toevoegen doe je in `js/props.js`: één `def(...)`-regel met
 een naam, label, groep, botsingsmaat, hoogte en een functie die het uit doosjes

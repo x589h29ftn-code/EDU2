@@ -274,6 +274,23 @@ P('struik', 392, 1190, 0, 1.4);
 P('struik', 386, 1186, 0, 1.2);
 
 /*
+ 19 Molenkrite: vier buren in de voortuin rond een tafeltje met een radio, elk
+ met een flesje bier. De arm met het flesje beweegt (zie updateProps in
+ world.js) en de radio speelt echt, harder naarmate je dichterbij komt (zie
+ geluid.radio in audio.js).
+
+ De opstelling ligt rond [530,1066]: het tafeltje in het midden en de vier
+ stoelen op 1,15 m eromheen, allemaal naar binnen gedraaid. Wil je het gezelschap
+ bij een ander huis hebben, pak dan in de editor (F2, O voor objectstand) de zes
+ objecten op en zet ze verderop in de straat neer.
+*/
+P('radiotafel', 530, 1066, 40);
+P('zit_rood',  533, 1064, 130);
+P('zit_blauw', 527, 1069, 310);
+P('zit_groen', 528, 1064, 220);
+P('zit_geel',  533, 1069, 40);
+
+/*
  Huizenrijen. R(ax,ay,bx,by, off, depth, type, opts)
  - a→b is de richting van de weg waar de rij aan ligt (px).
  - off (m): afstand van de wegas tot de voorgevel, positief = linkerzijde van a→b
