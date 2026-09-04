@@ -3,7 +3,8 @@
  met Mark, de opdracht bij de bierdrinkers, de route op de kaart, de bewaking op
  het RWZI-terrein, de afgeleverde lading bij de boerderij, en dan missie 5: het
  telefoontje van Johan, zijn briefing op de oprit van Kruirad 62, de dief van De
- Wieken 27, de achtervolging en de beloning.
+ Wieken 27, de achtervolging en de beloning. Tot slot de woning achter de
+ voordeur van Molenkrite 15: de gang, de woonkamer, de tv en het keukenblok.
 
  Gebruik: python3 -m http.server 8123 &  node tools/verhaalshots.mjs 8123 [map]
 */
@@ -231,5 +232,59 @@ await page.evaluate(() => {
   window.__stap(8);
 });
 await foto('johan_beloning');
+
+// ---------- achter de voordeur van Molenkrite 15 ----------
+// De meldingen van de vorige missie staan er in een trage browser nog: die
+// faden op beeldsnelheid en niet op de klok. Even wegzetten.
+const schoonHud = () => page.evaluate(() => {
+  const h = window.__game.hud;
+  h.msgT = 0; h.msg.style.opacity = 0;
+  h.missieT = 0; h.missieEl.style.opacity = 0;
+});
+
+// 13. buiten voor de deur, met de hint in beeld
+await page.evaluate(() => {
+  const g = window.__game, p = g.interieur.plekken;
+  g.player.inCar = null;
+  window.__kijk(p.stoep.x, p.stoep.z, p.deurBuiten.x, p.deurBuiten.z, -0.02);
+  g.interieur.update(0.05, false);
+});
+await schoonHud();
+await foto('molenkrite15_voordeur');
+
+// 14. binnen: de gang met de blokjes en de voordeur
+await page.evaluate(() => {
+  const g = window.__game, n = g.interieur.plekken.nul;
+  g.praat();                                     // E: naar binnen
+  window.__kijk(n.x + 0.98, n.z + 3.3, n.x + 0.98, n.z + 0.2, -0.02);
+  g.hud.kaartVanaf = g.interieur.kaart(g.player.pos.x, g.player.pos.z).punt;
+  g.interieur.update(0.05, false);
+});
+await schoonHud();
+await foto('binnen_gang');
+
+// 15. de woonkamer met de bank en de tuindeur
+await page.evaluate(() => {
+  const g = window.__game, n = g.interieur.plekken.nul;
+  window.__kijk(n.x + 1.7, n.z + 4.2, n.x + 4.7, n.z + 6.8, -0.06);
+});
+await schoonHud();
+await foto('binnen_woonkamer');
+
+// 16. de tv aan de andere kant, met de keuken achterin
+await page.evaluate(() => {
+  const g = window.__game, n = g.interieur.plekken.nul;
+  window.__kijk(n.x + 4.6, n.z + 6.4, n.x + 0.4, n.z + 6.4, -0.02);
+});
+await schoonHud();
+await foto('binnen_tv');
+
+// 17. het keukenblok in de aanbouw
+await page.evaluate(() => {
+  const g = window.__game, n = g.interieur.plekken.nul;
+  window.__kijk(n.x + 1.4, n.z + 8.7, n.x + 0.9, n.z + 13.0, -0.03);
+});
+await schoonHud();
+await foto('binnen_keuken');
 
 await browser.close();

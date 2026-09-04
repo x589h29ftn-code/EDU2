@@ -24,6 +24,10 @@ export class HUD {
     this.flitsT = 0;
     // navigatie: {route:[[x,z],...], doel:[x,z], naam}
     this.nav = null;
+    // Ben je binnen (js/interieur.js), dan staat de speler ergens buiten het
+    // kaartgebied. De kaart gebruikt dan deze plek — de voordeur van het huis
+    // waar je in staat — in plaats van de plek van de kamer.
+    this.kaartVanaf = null;
     this.canvas = document.getElementById('minimap');
     this.ctx = this.canvas.getContext('2d');
     this.msgT = 0;
@@ -174,7 +178,8 @@ export class HUD {
   drawMap(player, vehicles, npcs) {
     const c = this.ctx, W = this.canvas.width, H = this.canvas.height;
     const scale = 1.35; // px per meter
-    const px = player.inCar ? player.inCar.x : player.pos.x, pz = player.inCar ? player.inCar.z : player.pos.z;
+    const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);
+    const pz = this.kaartVanaf ? this.kaartVanaf.z : (player.inCar ? player.inCar.z : player.pos.z);
     const yaw = player.inCar ? player.inCar.yaw : player.yaw;
     c.clearRect(0, 0, W, H);
     c.save();
@@ -235,7 +240,8 @@ HUD.prototype.drawBig = function (player, vehicles) {
   this.tekenRoute(c, 1, 2.5 / scale);
   c.fillStyle = '#2255dd';
   for (const car of vehicles.cars) c.fillRect(car.x - 1.2, car.z - 1.2, 2.4, 2.4);
-  const px = player.inCar ? player.inCar.x : player.pos.x, pz = player.inCar ? player.inCar.z : player.pos.z;
+  const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);
+  const pz = this.kaartVanaf ? this.kaartVanaf.z : (player.inCar ? player.inCar.z : player.pos.z);
   const yaw = player.inCar ? player.inCar.yaw : player.yaw;
   c.save(); c.translate(px, pz); c.rotate(-yaw + Math.PI);
   c.fillStyle = '#ffd400'; c.beginPath(); c.moveTo(0, -7); c.lineTo(5, 6); c.lineTo(-5, 6); c.closePath(); c.fill(); c.restore();
