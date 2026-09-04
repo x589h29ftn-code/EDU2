@@ -25,6 +25,7 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | muis | rondkijken · linkermuisknop = schieten · R = herladen |
 | E | praten (en het gesprek doorklikken) · anders in- en uitstappen bij een auto |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
+| levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
 | in de auto: W/S, A/D, spatie | gas/rem, sturen, handrem |
 | M | grote kaart van de wijk met straatnamen |
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
@@ -36,11 +37,14 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
 vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstappen, de kaart en pauze.
 
-## Het verhaal: Molenkrite 15
+## Het verhaal
 
-Je heet **Erik** en staat bij het eerste opstarten op de berm voor **Molenkrite 15** — het vierde huis
-na de knik in de straat, aan de kant met de dakkapellen. Op de stoep voor dat huis staat een buurman
-die je aankijkt en naar je zwaait.
+Je heet **Erik**. Je broer **Mark** heeft vier missies voor je, achter elkaar.
+
+### 1 · Molenkrite 15
+
+Bij het eerste opstarten sta je op de berm voor **Molenkrite 15** — het vierde huis na de knik in de
+straat, aan de kant met de dakkapellen. Op de stoep ervoor staat Mark; hij kijkt je aan en zwaait.
 
 ![Voor Molenkrite 15](docs/screenshots/molenkrite15.png)
 
@@ -50,22 +54,59 @@ telefoon: tik op de 🚗-knop om te praten en op de tekstbalk om door te klikken
 ![Het gesprek](docs/screenshots/molenkrite15_gesprek.png)
 
 Daarna loopt hij de Molenkrite over naar het gezelschap dat schuin tegenover, in de voortuin van
-**Molenkrite 20**, met een radio en een flesje bier in de tuin zit. Daar draait hij zich naar je om.
+**Molenkrite 20**, met een radio en een flesje bier in de tuin zit. Daar draait hij zich naar je om:
+*"Schiet ze neer!"*
 
 ![De opdracht](docs/screenshots/molenkrite15_bevel.png)
 
-Alle plekken in de scène komen uit de kaartdata: het pand met huisnummer 15 aan de Molenkrite en het
-pand schuin tegenover. In `js/verhaal.js` staat geen enkele coördinaat, alleen de twee adressen en de
-afstanden vanaf de voorgevel — verhuist een pand in de brondata, dan verhuist de scène mee.
+### 2 · Naar de waterzuivering
 
-`npm run verhaaltest` loopt het hele verhaal na (startpunt, zwaaien, gesprek, wandeling, opdracht,
-schieten, opslaan en laden) en `npm run verhaalshots` maakt de drie foto's hierboven.
+Als alle vier neer zijn vertelt Mark wat hij van De Veteraan gehoord heeft: bij de waterzuivering is
+een grote lading afgeleverd. Er staat een auto in de straat, **jij rijdt**. De minikaart en de grote
+kaart (**M**) wijzen de route naar de rioolwaterzuivering aan de Buitenroede: een blauwe lijn over de
+straten en een gele vlag op de bestemming.
+
+![De route op de kaart](docs/screenshots/kaart_route.png)
+
+### 3 · De bewaking
+
+Bij het terrein stap je automatisch uit. Achter het hek lopen **vijf bewakers** hun rondje, met de
+vrachtwagen met de lading op het erf.
+
+![De bewaking bij de waterzuivering](docs/screenshots/rwzi_bewaking.png)
+
+Binnen het hek vallen ze je aan zodra ze je zien of je horen schieten, en dan loopt je **levensbalk**
+(linksonder) leeg. Ga je neer, dan begin je bij je laatst opgeslagen spel; is er niets opgeslagen,
+dan begint de missie opnieuw. Na elke missie is je leven weer vol.
+
+![Vuurgevecht op het terrein](docs/screenshots/rwzi_vuurgevecht.png)
+
+### 4 · Afleveren bij de boerderij
+
+Liggen alle vijf neer, dan schuift de poort open en kun je de vrachtwagen pakken en het terrein
+afrijden. De kaart navigeert dan naar de boerderij in de zuidwesthoek van het gebied. Zet de wagen
+bij de schuur en de klus is klaar:
+
+![Mission completed](docs/screenshots/boerderij_afgeleverd.png)
+
+### Waar het vandaan komt
+
+Alle plekken in het verhaal komen uit de kaartdata: het pand met huisnummer 15 aan de Molenkrite, het
+pand schuin tegenover, het hek en de schuifpoort van het RWZI-terrein, de schuur van de boerderij, en
+het wegennet voor de routes. In `js/verhaal.js` staat geen enkele coördinaat, alleen adressen, namen
+en afstanden vanaf de voorgevel — verhuist een pand in de brondata, dan verhuist de scène mee.
+
+`npm run verhaaltest` loopt het hele verhaal na (startpunt, zwaaien, gesprek, wandeling, schieten,
+rijden, de bewaking, de levensbalk, doodgaan, de poort, afleveren, opslaan en laden) en
+`npm run verhaalshots` maakt de foto's hierboven.
 
 ## Opslaan en laden
 
 Er is één opslagplek, in de browser (de Windows-app draait dezelfde pagina en gebruikt dezelfde).
 **F5** bewaart je spel, **F9** zet het terug. Bewaard worden: waar je staat en waar je naar kijkt, je
-munitie, de auto waar je in zat, de tijd van de dag, het weer en hoe ver het verhaal is.
+munitie en je leven, de auto waar je in zat, de tijd van de dag, het weer, en de stand van het
+verhaal: welke missie, welke bierdrinkers en bewakers al neer liggen, of de poort open staat en waar
+de auto en de vrachtwagen staan. Ga je in een vuurgevecht neer, dan begint het spel bij deze opslag.
 
 Staat er een opgeslagen spel, dan biedt het startscherm **Verder spelen** aan naast **Nieuw spel**, met
 de datum van de opslag erbij; na **Esc** is datzelfde scherm het pauzescherm met **Doorgaan**. De wijk
@@ -135,11 +176,13 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
 - `js/editor.js` – de wijkeditor (F2): huizenrijen en objecten
 - `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, zittende buren met een biertje, ...)
-- `js/verhaal.js` – het verhaal in de Molenkrite: de buurman voor nummer 15, het gesprek onderin het
-  scherm, zijn wandeling naar de bierdrinkers schuin tegenover en de opdracht. Alle plekken komen uit
-  de kaartdata via de huisnummers
-- `js/persoon.js` – één los poppetje dat kan staan, zwaaien, lopen en je aankijken (de voetgangers in
-  `npc.js` zijn instanced meshes en kunnen dat niet)
+- `js/verhaal.js` – de vier missies: Mark voor Molenkrite 15, het gesprek onderin het scherm, de
+  bierdrinkers schuin tegenover, de rit naar de waterzuivering, de bewaking op het terrein en het
+  afleveren bij de boerderij. Alle plekken komen uit de kaartdata via adressen en huisnummers
+- `js/bewaking.js` – de vijf bewakers: patrouille, zien en horen, aanvallen en vuren
+- `js/navigatie.js` – het wegennet van de kaart als graaf, met de kortste route voor de kaartnavigatie
+- `js/persoon.js` – één los poppetje dat kan staan, zwaaien, lopen, mikken, vuren en omvallen (de
+  voetgangers in `npc.js` zijn instanced meshes en kunnen dat niet)
 - `js/opslag.js` – opslaan en laden van het spel (F5 en F9)
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd

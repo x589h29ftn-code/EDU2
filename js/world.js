@@ -4,7 +4,7 @@ import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PROPS, PARKS, PAR
 import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
-import { KAART, bouwKaartWereld, ondergrondKaart, kaartStand } from './kaartwereld.js';
+import { KAART, bouwKaartWereld, ondergrondKaart, kaartStand, vlakOp } from './kaartwereld.js';
 
 export const colliders = [];   // {cx,cz,hx,hz,cos,sin,h} georiënteerde rechthoeken
 export const roadSegments = []; // voor straatnaam-detectie en NPC-paden: {name,a:[x,z],b:[x,z],w}
@@ -616,7 +616,9 @@ export function distToSeg(px, pz, ax, az, bx, bz) {
 }
 
 export function addCollider(cx, cz, hx, hz, yaw, h = 8) {
-  colliders.push({ cx, cz, hx, hz, cos: Math.cos(yaw), sin: Math.sin(yaw), h });
+  const c = { cx, cz, hx, hz, cos: Math.cos(yaw), sin: Math.sin(yaw), h };
+  colliders.push(c);
+  return c;      // de aanroeper kan de doos later verplaatsen of weghalen (zie de poort in verhaal.js)
 }
 
 // ---------- Huizen ----------
@@ -1743,6 +1745,30 @@ export function buildWorld(scene) {
   return { colliders, roadSegments, parkSpots, waterPolys };
 }
 
+/*
+ Vrij zicht van (x1,z1) naar (x2,z2)? Loopt de lijn in stappen langs en kijkt of
+ er een botsingsdoos in de weg staat die hoger is dan `hoogte`. De bewaking op
+ het RWZI-terrein gebruikt dit (js/bewaking.js): achter een gebouw of achter de
+ vrachtwagen zien ze je niet en schieten ze niet.
+*/
+export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2) {
+  const dx = x2 - x1, dz = z2 - z1;
+  const L = Math.hypot(dx, dz);
+  if (L < 1) return true;
+  const stappen = Math.min(30, Math.max(2, Math.round(L / 2)));
+  for (let i = 1; i < stappen; i++) {
+    const t = i / stappen;
+    const x = x1 + dx * t, z = z1 + dz * t;
+    for (const c of colliders) {
+      if (c.h < hoogte) continue;
+      const ax = x - c.cx, az = z - c.cz;
+      const lx = ax * c.cos - az * c.sin, lz = ax * c.sin + az * c.cos;
+      if (Math.abs(lx) < c.hx && Math.abs(lz) < c.hz) return false;
+    }
+  }
+  return true;
+}
+
 // Botsingsafhandeling: cirkel (x,z,radius) tegen alle colliders -> gecorrigeerde positie
 export function resolveCollisions(x, z, radius, ignoreLowH = 0) {
   for (const c of colliders) {
@@ -1763,7 +1789,18 @@ export function resolveCollisions(x, z, radius, ignoreLowH = 0) {
   return [x, z];
 }
 
+/*
+ Sta je in het water? Op een brug, een duiker of een steiger niet: die liggen in
+ de BGT boven het waterdeel, dus het waterpolygoon loopt eronderdoor. Zonder
+ deze uitzondering kwam je op geen enkele brug (en dus ook niet over de dam naar
+ de boerderij en de waterzuivering).
+*/
+const BOVEN_WATER = new Set(['brug', 'steiger', 'duiker', 'overbrugging']);
 export function pointInWater(x, z) {
+  if (KAART) {
+    const v = vlakOp(x, z);
+    if (v && BOVEN_WATER.has(v.k)) return false;
+  }
   return inWater(new THREE.Vector2(x, z));
 }
 

@@ -15,6 +15,14 @@ export class HUD {
     this.ammo = document.getElementById('ammo');
     this.hint = document.getElementById('hint');
     this.msg = document.getElementById('msg');
+    this.levenbalk = document.getElementById('levenbalk');
+    this.levenlabel = document.getElementById('levenlabel');
+    this.missieEl = document.getElementById('missie');
+    this.flitsEl = document.getElementById('raakflits');
+    this.missieT = 0;
+    this.flitsT = 0;
+    // navigatie: {route:[[x,z],...], doel:[x,z], naam}
+    this.nav = null;
     this.canvas = document.getElementById('minimap');
     this.ctx = this.canvas.getContext('2d');
     this.msgT = 0;
@@ -66,6 +74,59 @@ export class HUD {
     }
   }
   show(text, t = 2.5) { this.msg.textContent = text; this.msg.style.opacity = 1; this.msgT = t; }
+
+  // Levensbalk: groen, oranje onder de helft, rood onder een kwart.
+  zetLeven(hp) {
+    const v = Math.max(0, Math.min(100, Math.round(hp)));
+    this.levenbalk.style.width = `${v}%`;
+    this.levenbalk.style.background = v > 50 ? '#4ade80' : v > 25 ? '#f0a92c' : '#e0452c';
+    this.levenlabel.textContent = String(v);
+  }
+
+  // Grote melding in het midden: MISSION COMPLETED, of dat je neergegaan bent.
+  melding(kop, onder = '', t = 4) {
+    this.missieEl.innerHTML = `${kop}${onder ? `<span class="onder">${onder}</span>` : ''}`;
+    // meteen in beeld (de overgang in de stijl is voor het uitfaden); anders
+    // hangt het van de beeldsnelheid af of je hem ziet
+    this.missieEl.style.transition = 'none';
+    this.missieEl.style.opacity = 1;
+    requestAnimationFrame(() => { this.missieEl.style.transition = ''; });
+    this.missieT = t;
+  }
+
+  // rode flits als je geraakt wordt
+  flits() { this.flitsEl.style.opacity = 0.75; this.flitsT = 0.25; }
+
+  /*
+   Navigatie op de kaart. route = punten in wereldmeters (uit js/navigatie.js),
+   doel = de bestemming, naam = wat er bij de vlag staat. null zet hem uit.
+  */
+  zetNavigatie(nav) { this.nav = nav || null; }
+
+  tekenRoute(c, scale, dikte) {
+    if (!this.nav) return;
+    const { route, doel } = this.nav;
+    if (route && route.length > 1) {
+      c.save();
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = dikte * 1.9;
+      c.beginPath();
+      route.forEach((p, i) => { const x = p[0] * scale, z = p[1] * scale; i ? c.lineTo(x, z) : c.moveTo(x, z); });
+      c.stroke();
+      c.strokeStyle = '#39c1ff'; c.lineWidth = dikte;
+      c.stroke();
+      c.restore();
+    }
+    if (doel) {
+      const x = doel[0] * scale, z = doel[1] * scale;
+      c.save();
+      c.fillStyle = '#ffd400'; c.strokeStyle = '#1a1a1a'; c.lineWidth = 1.5;
+      c.beginPath();
+      c.moveTo(x, z - dikte * 3.2); c.lineTo(x + dikte * 2.4, z); c.lineTo(x, z + dikte * 3.2); c.lineTo(x - dikte * 2.4, z);
+      c.closePath(); c.fill(); c.stroke();
+      c.restore();
+    }
+  }
   toggleBig() { this.bigOpen = !this.bigOpen; this.big.style.display = this.bigOpen ? 'block' : 'none'; }
   // praten = er staat iemand naast je of er loopt een gesprek; dan gaat E over
   // praten en niet over instappen (zie praatOfAuto in main.js)
@@ -82,6 +143,8 @@ export class HUD {
       this.hint.textContent = (car && !praten) ? 'Druk E om in te stappen' : 'WASD lopen · shift sprinten · spatie springen · muis kijken · LMB schieten · R herladen · M kaart';
     }
     if (this.msgT > 0) { this.msgT -= dt; if (this.msgT <= 0) this.msg.style.opacity = 0; }
+    if (this.missieT > 0) { this.missieT -= dt; if (this.missieT <= 0) this.missieEl.style.opacity = 0; }
+    if (this.flitsT > 0) { this.flitsT -= dt; if (this.flitsT <= 0) this.flitsEl.style.opacity = 0; }
     this.drawMap(player, vehicles, npcs);
     if (this.bigOpen) this.drawBig(player, vehicles);
   }
@@ -105,6 +168,7 @@ export class HUD {
       c.strokeStyle = s.drive ? '#d9d6cf' : '#b9a58a'; c.lineWidth = Math.max(2, s.w * scale);
       c.beginPath(); c.moveTo(s.a[0] * scale, s.a[1] * scale); c.lineTo(s.b[0] * scale, s.b[1] * scale); c.stroke();
     }
+    this.tekenRoute(c, scale, 3);
     // auto's
     c.fillStyle = '#2255dd';
     for (const car of vehicles.cars) { c.fillRect(car.x * scale - 2, car.z * scale - 2, 4, 4); }
@@ -143,6 +207,7 @@ HUD.prototype.drawBig = function (player, vehicles) {
     c.strokeStyle = s.drive ? '#d9d6cf' : '#b9a58a'; c.lineWidth = Math.max(1.5, s.w);
     c.beginPath(); c.moveTo(s.a[0], s.a[1]); c.lineTo(s.b[0], s.b[1]); c.stroke();
   }
+  this.tekenRoute(c, 1, 2.5 / scale);
   c.fillStyle = '#2255dd';
   for (const car of vehicles.cars) c.fillRect(car.x - 1.2, car.z - 1.2, 2.4, 2.4);
   const px = player.inCar ? player.inCar.x : player.pos.x, pz = player.inCar ? player.inCar.z : player.pos.z;

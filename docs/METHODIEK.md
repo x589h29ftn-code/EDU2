@@ -234,7 +234,7 @@ naar `main` om een build te krijgen.
 | Niets staat in de weg | `tools/propcheck.mjs`, `tools/tuintest.mjs` | geen meldingen |
 | Straatprofielen | `tools/meetstrook.mjs`, nu getoetst aan BGT-breedtes in plaats van foto's | afwijking < 0,5 m |
 | Stijl | tien vaste steekproefpunten naast Street View | per adres akkoord in de catalogus |
-| Het verhaal (stap 8) | `npm run verhaaltest` | eindigt op "Alles goed" |
+| Het verhaal, alle vier de missies (stap 8) | `npm run verhaaltest` | eindigt op "Alles goed" |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
 betrouwbaar kan beoordelen, omdat het een pixel-voor-pixel vergelijking is op
@@ -282,7 +282,7 @@ de besturing een gewone spelfeature zonder onzekerheid over de kaart.
 ## 9. Stand van zaken
 
 Stap 1, 2, 3 en 4 zijn af; stap 6 (de stijlcatalogus) is ingericht en wacht op foto's, en van stap 8
-staat de eerste missie in de wijk (zie *Het verhaal en de opslag* onderaan).
+staan de eerste vier missies in de wijk (zie *Het verhaal en de opslag* onderaan).
 
 **Data (stap 1 en 2).**
 `data/geo/gebied.geojson` is het werkgebied: RD X 171870–172600, Y 558920–559790
@@ -456,7 +456,7 @@ dan één woning liet de texture alleen de laatste pixelkolom zien (strepen). Da
 raakte alle brede panden (school, RWZI) en is verholpen.
 
 **Het verhaal en de opslag (stap 8, GTA-besturing).**
-De eerste missie staat in `js/verhaal.js` en gebruikt de kaartdata als bron: het
+Het verhaal staat in `js/verhaal.js` en gebruikt de kaartdata als bron: het
 pand met huisnummer **15** aan de Molenkrite (steile kap met dakkapel, het
 vierde huis na de knik) en het pand **20** schuin tegenover. Uit die twee panden
 komen het beginpunt van de speler (op de berm voor 15, met de buurman recht
@@ -479,11 +479,47 @@ en F9 zet terug (positie, kijkrichting, munitie, de auto waar je in zat, tijd,
 weer en de stand van het verhaal). De wijk uit de editor heeft zijn eigen
 opslag, zodat een gewone opslag geen werk aan de wijk overschrijft.
 
-Controle: `npm run verhaaltest` loopt het hele verhaal na (het startpunt hoort
-bij het pand met huisnummer 15, de buurman zwaait en kijkt je aan, het gesprek
-opent en klikt door met E, hij komt bij het gezelschap aan, roept de opdracht,
-een schot met het pistool legt een drinker om, en opslaan/laden zet alles terug).
-`npm run geo:boven` blijft op 1,31 %.
+**De vier missies.** Het verhaal is uitgegroeid tot vier missies, allemaal op
+plekken uit de data:
+
+1. *Molenkrite 15* — Mark (de broer van de speler) voor het pand met huisnummer
+   15, en het gezelschap in de voortuin van nummer 20.
+2. *Naar de waterzuivering* — er staat een auto op de rijbaanas naast het
+   gezelschap; `js/navigatie.js` maakt van de 751 wegassen uit `kaart.js` één
+   graaf (3278 knopen) en zoekt met Dijkstra de kortste route naar de
+   schuifpoort van de RWZI aan de Buitenroede (657 m). De HUD tekent die route
+   op de minikaart en op de grote kaart. Bij de poort stapt de speler
+   automatisch uit.
+3. *De bewaking* — vijf bewakers (`js/bewaking.js`) patrouilleren over posten
+   die uit het poortstelsel van het terrein volgen (vooruit/rechts vanaf het
+   midden van de poort). Binnen het hek (het hekwerk uit `kaart.js` als
+   polygoon) zien ze de speler binnen 34 m in hun gezichtsveld, mits er vrij
+   zicht is (`zichtVrij` in `world.js`), en een schot horen ze tot 90 m. Dan
+   slaat het alarm, komen ze op je af en vuren ze; de levensbalk in de HUD loopt
+   leeg en bij nul begin je bij je laatste opgeslagen spel. Eén treffer legt een
+   bewaker neer. Liggen alle vijf, dan schuift het hekblad van de poort open
+   (daarvoor is de poort in `kaartwereld.js` een eigen groep met een eigen
+   botsingsdoos geworden, zie `poortBladen`) en wordt de vrachtwagen
+   bestuurbaar.
+4. *Afleveren* — de bakwagen (nieuw model in `carmodel.js`, 7,2 m, met eigen
+   botsingscirkels en stoelhoogte in `vehicles.js`) naar de grote schuur van de
+   boerderij in de zuidwesthoek (BAG-pand 0683100000288962, 621 m²), 1283 m over
+   het wegennet. Binnen 20 m van de schuur staat *MISSION COMPLETED* in beeld.
+
+Bij die vierde missie kwam een oude fout boven: bruggen en duikers liggen in de
+BGT boven het waterdeel, dus het waterpolygoon loopt eronderdoor. `pointInWater`
+zei daardoor "water" midden op een brug en je kwam nergens overheen — niet naar
+de boerderij en niet over de dam naar de RWZI. Nu tellen de klassen brug,
+duiker, steiger en overbrugging niet als water.
+
+Controle: `npm run verhaaltest` loopt alle vier de missies na (het startpunt
+hoort bij het pand met huisnummer 15, Mark zwaait en kijkt je aan, het gesprek
+opent en klikt door met E, hij komt bij het gezelschap aan, een schot met het
+pistool legt een drinker om, de briefing volgt, er staat een auto, de kaart
+navigeert naar de poort, je stapt automatisch uit, de vijf bewakers zien je en
+schieten, je gaat neer en begint bij de opslag, na vijf treffers gaat de poort
+open, de vrachtwagen rijdt het terrein af en levert af, en opslaan/laden zet
+alles terug). `npm run geo:boven` blijft op 1,31 %.
 
 **Wat nog niet af is (in volgorde).**
 
