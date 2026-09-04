@@ -23,6 +23,36 @@
     ],
     "struiken": 2.8
   },
+  "terreinen": [
+    {
+      "naam": "Rioolwaterzuivering (RWZI) Buitenroede 1",
+      "kort": "rwzi",
+      "bron": "Street View 1 Buitenroede (foto in de chat, 4 sep 2026): grijs stalen spijlenhek van circa 2 m met een schuifpoort op de dam, lage bedrijfsgebouwen in lichtbeige/grijze steen met plat dak, een blok met blauwe stalen gevelbeplating en blauw dak, een gebouw met een grijze buitentrap, ronde bezinkbakken, lantaarns en bomen langs het hek. De sloot rondom komt uit de BGT en klopte al.",
+      "_uitleg": "x0..z1 = zoekvak. zetel = een punt op het terrein; het terrein is alles wat daarvandaan bereikbaar is zonder water/oever te kruisen en zonder de poort te passeren. poort a/b = de twee uiteinden van de erfrand op de dam (BGT-punten 419 en 0 van het erfvlak, elk 0,9 m verlengd), open = hoeveel meter de schuifpoort openstaat. typen = bedrijfstype per BAG-pand (zie HOUSE_STYLES in js/textures.js), type = standaard voor de rest.",
+      "x0": -330, "x1": -8, "z0": -428, "z1": -130,
+      "zetel": [-160, -240],
+      "straat": "Buitenroede",
+      "poort": { "_uitleg": "dwars over de toegangsweg (BGT-rijbaan van 5 m) op de erfrand; de weg loopt van het erf naar het zuidoosten over de dam naar de Buitenroede", "a": [-104.2, -260.9], "b": [-98.6, -266.1], "open": 1.4 },
+      "versperringen": [
+        { "_uitleg": "dicht hek van de poort naar de punt van de zuidoostelijke sloot", "a": [-104.2, -260.9], "b": [-101.8, -254.6], "dikte": 3 },
+        { "_uitleg": "dicht hek van de poort over de betonnen leidingbrug naar de punt van de oostelijke sloot", "a": [-98.6, -266.1], "b": [-92.0, -263.4], "dikte": 3 },
+        { "_uitleg": "dam in de sloot aan de N7-kant bij het grindpad (BGT: het waterdeel is hier 3 m onderbroken); het hek loopt hier gewoon door. dikte = breedte van de versperring voor de vulling, hier de hele slootbreedte", "a": [-222.1, -313.6], "b": [-214.0, -323.7], "dikte": 10 }
+      ],
+      "hekwerk": { "hoogte": 2.0, "afstand": 0.7 },
+      "type": "rwzi",
+      "typen": {
+        "0091100000004234": "rwzi_blauw",
+        "0091100000004226": "rwzi_kantoor",
+        "0091100000003842": "rwzi_kantoor",
+        "0091100000006407": "schuur"
+      },
+      "objecten": [
+        { "type": "buitentrap", "pand": "0091100000003842" }
+      ],
+      "bomen": { "afstand": 9, "binnen": 2.8 },
+      "lantaarns": { "afstand": 28 }
+    }
+  ],
   "voortuinen": {
     "_uitleg": "Kansverdeling per woning (som 100). haag = lage heg 0,6-0,9 m; hekje = laag houten hekje; open = geen afscheiding, wel beplanting; grind = grindvak met een lage heg en een sierboom; tegels = betegeld met plantenbakken.",
     "haag": 35,

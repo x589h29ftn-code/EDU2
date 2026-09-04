@@ -356,7 +356,55 @@ export const HOUSE_STYLES = {
   // Eekmolen 21 (foto): twee lagen met kap, roodbruine steen, witte kozijnen,
   // witte houten topgevel, garages ervoor, zonnepanelen.
   eekmolen:   { brick: ['#9a5a44', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#f2f2ee', '#1e1f22'], roof: '#35302d', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, skylight: true, solar: true, chimney: false, band: '#f2f2f2', topgevel: '#f2f2ee' },
+  // RWZI Buitenroede 1 (foto Street View, 4 sep 2026): lage bedrijfsgebouwen in
+  // lichtbeige tot grijze steen met plat dak en grijze dakrand, hoge smalle
+  // ramen met antracietgrijze kozijnen, stalen deuren en een overheaddeur.
+  // `industrieel` zet in facade() en kaartwereld.js de bedrijfsgevel aan alle
+  // kanten aan (geen voor/achter, geen dakkapellen, lagen passen op de muurhoogte).
+  rwzi:        { brick: ['#c8bfad', '#dad5cb'], frame: '#4a4f55', frame2: '#4a4f55', door: ['#5d636b', '#3f444a'], roof: '#4a4d50', roofType: 'flat', storeys: 1, storeyH: 3.6, w: 6.0, dormer: false, chimney: false, band: '#8d9297', plint: '#6b6862', industrieel: true },
+  // het blok met blauwe stalen gevelbeplating (damwandprofiel) en blauw dak
+  rwzi_blauw:  { brick: ['#2f5da8', '#2f5da8'], frame: '#c9ccd0', frame2: '#c9ccd0', door: ['#3f444a'], roof: '#2b4f8e', roofType: 'flat', storeys: 1, storeyH: 3.6, w: 6.0, dormer: false, chimney: false, band: '#1f3d70', plint: '#1f3d70', industrieel: true, damwand: true },
+  // bedieningsgebouw/kantoor: lichtbruine steen, witte kozijnen met gewone
+  // ramen, grijze deuren; de grijze buitentrap is een los object (props.js)
+  rwzi_kantoor:{ brick: ['#c4ad86', '#d8d0bd'], frame: '#f2f2f0', frame2: '#4a4f55', door: ['#4a4f55'], roof: '#4a4d50', roofType: 'gable', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#8d9297', plint: '#6b6862', industrieel: true, kantoor: true },
 };
+
+// ---------- Stalen damwandprofiel (blauwe gevelbeplating RWZI) ----------
+// 512 px = 2,6 m, net als de baksteen, zodat facade() dezelfde schaal kan gebruiken.
+export function damwand(kleur = '#2f5da8') {
+  const key = 'damwand' + kleur;
+  if (cache.has(key)) return cache.get(key);
+  const S = 512, PM = S / 2.6;
+  const c = canvas(S, S); const g = c.getContext('2d');
+  g.fillStyle = kleur; g.fillRect(0, 0, S, S);
+  const rib = 0.2 * PM;                              // profiel om de 20 cm
+  for (let x = 0; x < S; x += rib) {
+    g.fillStyle = shade(kleur, 1.14); g.fillRect(x, 0, rib * 0.35, S);           // lichte flank
+    g.fillStyle = shade(kleur, 0.72); g.fillRect(x + rib * 0.35, 0, rib * 0.12, S); // schaduwkant
+    g.fillStyle = shade(kleur, 0.9); g.fillRect(x + rib * 0.85, 0, rib * 0.15, S);
+  }
+  const t = tex(c); cache.set(key, t); return t;
+}
+
+// ---------- Spijlenhek (grijs stalen hek van 2 m, RWZI) ----------
+// Eén paneel van 2,5 m breed = 512 px, hoogte 2 m; doorzichtig tussen de spijlen.
+// De paal zit aan de linkerkant van het paneel, zodat om de 2,5 m een paal staat.
+export function spijlenhek(kleur = '#7b8085') {
+  const key = 'spijlen' + kleur;
+  if (cache.has(key)) return cache.get(key);
+  const W = 512, H = 410, PM = W / 2.5;
+  const c = canvas(W, H); const g = c.getContext('2d');
+  g.clearRect(0, 0, W, H);
+  const staaf = (x, y, w, h, f = 1) => {
+    g.fillStyle = shade(kleur, f); g.fillRect(x, y, w, h);
+    g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(x, y, Math.max(1, w * 0.3), h);
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x + w * 0.7, y, Math.max(1, w * 0.3), h);
+  };
+  for (let x = 0.10 * PM; x < W; x += 0.125 * PM) staaf(x, 0.04 * PM, 0.025 * PM, H - 0.08 * PM);   // spijlen 2,5 cm om de 12,5 cm
+  g.fillStyle = shade(kleur, 0.9); g.fillRect(0, 0.10 * PM, W, 0.06 * PM); g.fillRect(0, H - 0.20 * PM, W, 0.06 * PM);   // twee liggers
+  staaf(0, 0, 0.08 * PM, H, 0.85);                                                                     // paal
+  const t = tex(c); t.wrapT = THREE.ClampToEdgeWrapping; cache.set(key, t); return t;
+}
 
 // ---------- Laag houten hekje: latten met tussenruimte ----------
 export function hekje(kleur = '#8a7352') {
@@ -410,7 +458,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
   const m = (v) => v * PM;   // meters -> pixels
 
   // achtergrond baksteen / pleister (320 px baksteen = 2,6 m)
-  const bimg = st.plaster ? plaster(st.brick[0]).image : brick(st.brick[0], st.brick[1], seed).image;
+  const bimg = st.damwand ? damwand(st.brick[0]).image : st.plaster ? plaster(st.brick[0]).image : brick(st.brick[0], st.brick[1], seed).image;
   const pat = g.createPattern(bimg, 'repeat');
   const sc = PM * 2.6 / bimg.width;
   g.save(); g.scale(sc, sc); g.fillStyle = pat; g.fillRect(0, 0, HW * n / sc, H / sc); g.restore();
@@ -436,9 +484,11 @@ export function facade(type, n, storeys, back = false, seed = 1) {
     // stijlen: middenstijl en eventueel een draaiend deel in de accentkleur
     g.fillStyle = frame; g.fillRect(x + w / 2 - m(0.04), y, m(0.08), h);
     if (opties.draai) { g.fillStyle = opties.draai; g.fillRect(x + w * 0.62, y + k, w * 0.38 - k, h - 2 * k); g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x + w * 0.62 + k, y + 2 * k, w * 0.38 - 3 * k, h - 4 * k); g.fillStyle = gl; g.fillRect(x + w * 0.62 + k + 2, y + 2 * k + 2, w * 0.38 - 3 * k - 4, h - 4 * k - 4); }
-    // vitrage / gordijn onderin
-    g.fillStyle = 'rgba(238,236,228,0.6)'; g.fillRect(x + k + 2, y + h * 0.62, w - 2 * k - 4, h * 0.38 - k - 2);
-    if (r() < 0.5) { g.fillStyle = 'rgba(120,90,70,0.55)'; g.fillRect(x + k + 2, y + k + 2, w * 0.12, h - 2 * k - 4); g.fillRect(x + w - k - 2 - w * 0.12, y + k + 2, w * 0.12, h - 2 * k - 4); }
+    // vitrage / gordijn onderin (niet bij bedrijfsramen)
+    if (!opties.kaal) {
+      g.fillStyle = 'rgba(238,236,228,0.6)'; g.fillRect(x + k + 2, y + h * 0.62, w - 2 * k - 4, h * 0.38 - k - 2);
+      if (r() < 0.5) { g.fillStyle = 'rgba(120,90,70,0.55)'; g.fillRect(x + k + 2, y + k + 2, w * 0.12, h - 2 * k - 4); g.fillRect(x + w - k - 2 - w * 0.12, y + k + 2, w * 0.12, h - 2 * k - 4); }
+    }
     // vensterbank met schaduw
     g.fillStyle = '#d9d6cf'; g.fillRect(x - m(0.04), y + h, w + m(0.08), m(0.06));
     g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - m(0.04), y + h + m(0.06), w + m(0.08), m(0.05));
@@ -462,13 +512,46 @@ export function facade(type, n, storeys, back = false, seed = 1) {
     g.fillStyle = '#e8e8e8'; g.fillRect(x + w + m(0.14), y + h * 0.18, m(0.16), m(0.11));
     g.fillStyle = '#6a6a68'; g.fillRect(x - m(0.06), y + h - m(0.04), w + m(0.12), m(0.04));
   };
+  // stalen deur en overheaddeur voor de bedrijfsgevels
+  const staalDeur = (x, y, w, h, col) => {
+    g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x - m(0.05), y - m(0.08), w + m(0.1), m(0.08));
+    g.fillStyle = st.frame; g.fillRect(x - m(0.05), y, w + m(0.1), h);
+    g.fillStyle = col; g.fillRect(x, y, w, h - m(0.02));
+    g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x, y, w, m(0.03));
+    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x + w - m(0.03), y, m(0.03), h);
+    g.fillStyle = '#d8d8d8'; g.fillRect(x + w * 0.15, y + h * 0.48, m(0.14), m(0.03));
+  };
+  const overheadDeur = (x, y, w, h) => {
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - m(0.06), y - m(0.1), w + m(0.12), m(0.1));
+    g.fillStyle = '#4a4f55'; g.fillRect(x - m(0.06), y, w + m(0.12), h);
+    g.fillStyle = '#b9bcc0'; g.fillRect(x, y, w, h);
+    for (let yy = y; yy < y + h - 1; yy += m(0.5)) {          // panelen van 50 cm
+      g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x, yy, w, m(0.04));
+      g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(x, yy + m(0.04), w, m(0.03));
+    }
+    g.fillStyle = '#28323a'; g.fillRect(x + m(0.3), y + m(1.0), w - m(0.6), m(0.35));   // raamstrook
+  };
   const plintKleur = st.plint || '#5a4a42';
+  const plintH = st.industrieel ? 0.5 : 0.3, bandH = st.industrieel ? 0.45 : 0.28;
 
   for (let i = 0; i < n; i++) {
     const x0 = i * HW;
     const mirror = (i % 2 === 1) && !st.detached;
     const doorColor = st.door[(i + seed) % st.door.length];
-    if (!back) {
+    if (st.industrieel) {
+      // bedrijfsgevel (RWZI): hoge smalle ramen, per twee traveeën een stalen
+      // deur, in elke derde travee een overheaddeur; het kantoortype krijgt
+      // gewone ramen met witte kozijnen en geen overheaddeur
+      const kantoor = !!st.kantoor;
+      for (let s = 0; s < storeys; s++) {
+        const fy = H - (s + 1) * SH * PM;
+        if (s === 0 && !kantoor && i % 3 === 1) { overheadDeur(x0 + m(1.4), H - m(3.0), m(3.2), m(3.0)); continue; }
+        const ry = kantoor ? fy + m(SH - 2.5) : fy + m(SH - 3.05), rh = kantoor ? m(1.5) : m(1.1);
+        const eerste = (s === 0 && i % 2 === 0) ? 1 : 0;           // travee met een deur: het eerste raam vervalt
+        for (let k = eerste; k < 3; k++) win(x0 + m(0.5 + k * 1.9), ry, m(1.2), rh, st.frame, { kaal: !kantoor });
+        if (eerste) staalDeur(x0 + m(0.5), H - m(2.2), m(1.0), m(2.2), doorColor);
+      }
+    } else if (!back) {
       if (st.storeys >= 1 && type !== 'appart' && type !== 'spil') {
         // grote woonkamerpui + deur
         const dw = m(0.95), dh = m(2.15);
@@ -532,13 +615,13 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       }
     }
     // plint
-    g.fillStyle = plintKleur; g.fillRect(x0, H - m(0.3), HW, m(0.3));
-    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x0, H - m(0.3), HW, m(0.03));
+    g.fillStyle = plintKleur; g.fillRect(x0, H - m(plintH), HW, m(plintH));
+    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x0, H - m(plintH), HW, m(0.03));
     // dakrand (boeiboord) bovenaan, met schaduw eronder
-    g.fillStyle = st.band; g.fillRect(x0, 0, HW, m(0.28));
-    g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x0, m(0.28), HW, m(0.06));
+    g.fillStyle = st.band; g.fillRect(x0, 0, HW, m(bandH));
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x0, m(bandH), HW, m(0.06));
     // regenpijp op de woningscheiding
-    if (!st.plaster && !st.detached) {
+    if (!st.plaster && !st.detached && !st.damwand) {
       g.fillStyle = '#8f9296'; g.fillRect(x0 + m(0.06), m(0.28), m(0.08), H - m(0.28));
       g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x0 + m(0.12), m(0.28), m(0.03), H - m(0.28));
       g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x0, 0, m(0.04), H);

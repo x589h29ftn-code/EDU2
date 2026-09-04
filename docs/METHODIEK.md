@@ -410,11 +410,40 @@ als maat (`data/stijl/fotos/`), en met `data/stijl/omgeving.json` als knop:
 - witte belijning op parkeervakken, markering op drempels, riet langs het water,
   doelen op het speelveld, banken bij de vijvers.
 
+**Omheinde terreinen: de RWZI aan de Buitenroede 1 (stap 5, foto 4 sep 2026).**
+De waterzuivering ligt in een sloot die de BGT wél heeft; het hek eromheen
+niet. Het terrein wordt daarom uit de data afgeleid, met `terreinen` in
+`omgeving.json` als regel:
+
+- het terrein is alles wat vanaf een zetelpunt bereikbaar is zonder water of
+  oever te kruisen (vulling op het klasseraster van 0,5 m); de poort en de dammen
+  zonder poort staan in de regel als korte lijnen die de vulling tegenhouden, en
+  de generator waarschuwt als het terrein tegen de rand van het zoekvak loopt
+  (dan lekt de sloot ergens). `TERREIN_DEBUG=3 node tools/geo/genereer.mjs`
+  drukt het masker af en volgt een lek terug naar de bron;
+- het hek volgt de landkant van de oeverrand uit de BGT, 0,7 m het gras op:
+  789 m spijlenhek van 2 m in panelen van 2,5 m, met de schuifpoort op de
+  toegangsweg (BGT-rijbaan) en botsingsdozen zodat je er niet doorheen loopt;
+  de poort staat 1,4 m open;
+- de bezinkbakken en opslagtanks komen uit `bgt_overigbouwwerk` (`bgt_type`):
+  een bezinkbak wordt een ronde betonnen bak van 1,6 m met water en een
+  ruimerbrug, een opslagtank een stalen silo van 6 m;
+- de gebouwen op het terrein krijgen bedrijfstypen (`rwzi`, `rwzi_blauw` met
+  damwandprofiel, `rwzi_kantoor`) met de bedrijfsgevel aan alle kanten; lage
+  muren onder 2,6 m blijven kale steen; de grijze buitentrap is een los object
+  aan het bedieningsgebouw; bomen om de 9 m langs het hek, lantaarns langs het
+  erf; de bos- en parkregels slaan het terrein over.
+
+Bij deze stap kwam een oude fout in de gevelprojectie boven: bij muren breder
+dan één woning liet de texture alleen de laatste pixelkolom zien (strepen). Dat
+raakte alle brede panden (school, RWZI) en is verholpen.
+
 **Wat nog niet af is (in volgorde).**
 
 1. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
    zonnepanelen en schoorstenen als losse elementen op de 3D BAG-daken.
-2. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede, Zeskanter, Omloop.
+2. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede (de woningen 40–74;
+   de RWZI op nr 1 is wel gedaan), Zeskanter, Omloop.
 3. De editor (F2) en de oude objecten uit `data.js` werken nog in pixels van de oude
    kaart; enkele objecten staan daardoor een paar meter verkeerd. Omrekenen kan met
    drie ijkpunten in `oorsprong.json` (`rd.mjs px`).

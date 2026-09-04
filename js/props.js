@@ -201,6 +201,30 @@ def('trampoline', 'Trampoline', 'erf', [3.2, 3.2], 0.9, () => {
   return bouw(d);
 });
 
+// ===== bedrijf =====
+// Stalen buitentrap met bordes (RWZI Buitenroede 1). De rug staat tegen de
+// gevel aan de -z-kant, de trap loopt evenwijdig aan de gevel omhoog naar +x
+// en komt uit op een bordes met een deur in de gevel.
+def('buitentrap', 'Stalen buitentrap', 'erf', [4.6, 1.5], 4.2, () => {
+  const d = [];
+  const treden = 12, stijg = 0.27, gang = 0.27;
+  for (let i = 0; i < treden; i++) d.push(doos(gang, 0.05, 1.0, M.staal, -2.0 + gang * (i + 0.5), stijg * (i + 1), 0.6));
+  // trapbomen links en rechts, en de leuning: schuine buizen
+  const L = Math.hypot(treden * gang, treden * stijg), hoek = Math.atan2(treden * stijg, treden * gang), rz = -(Math.PI / 2 - hoek);
+  const mx = -2.0 + treden * gang / 2, my = treden * stijg / 2;
+  for (const z of [0.08, 1.12]) d.push(cil(0.05, 0.05, L, M.staalDonker, mx, my + 0.1, z, 6, 0, rz));
+  d.push(cil(0.025, 0.025, L, M.staal, mx, my + 1.0, 1.15, 6, 0, rz));
+  for (let i = 0; i <= treden; i += 3) d.push(doos(0.04, 0.95, 0.04, M.staal, -2.0 + gang * i, stijg * i + 0.5, 1.15));
+  // bordes op kolommen, met leuning en de deur in de gevel
+  const by = stijg * treden + 0.03;
+  d.push(doos(1.3, 0.08, 1.2, M.staal, 1.9, by, 0.6));
+  d.push(doos(1.3, 0.04, 0.04, M.staal, 1.9, by + 1.0, 1.18), doos(0.04, 0.04, 1.2, M.staal, 2.53, by + 1.0, 0.6));
+  for (const x of [1.3, 2.5]) for (const z of [0.1, 1.1]) d.push(doos(0.08, by, 0.08, M.staalDonker, x, by / 2, z));
+  for (let x = 1.3; x <= 2.5; x += 0.3) d.push(doos(0.03, 0.95, 0.03, M.staal, x, by + 0.5, 1.18));
+  d.push(doos(0.9, 2.05, 0.06, M.staalDonker, 1.9, by + 1.05, -0.03));
+  return bouw(d);
+});
+
 // ===== straat =====
 def('lantaarn', 'Lantaarnpaal', 'straat', [0.3, 0.3], 5.4, () => bouw([
   cil(0.09, 0.13, 5.0, M.staal, 0, 2.5, 0, 8),

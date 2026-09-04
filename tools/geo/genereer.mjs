@@ -21,6 +21,8 @@ const lees = (n) => JSON.parse(readFileSync(join(GEO, 'bron', n + '.geojson'), '
 const leesOpt = (n) => existsSync(join(GEO, 'bron', n + '.geojson')) ? lees(n) : [];
 const oorsprong = JSON.parse(readFileSync(join(GEO, 'oorsprong.json'), 'utf8'));
 const [X0, Y0] = oorsprong.rd;
+// Omgevingsregels bovenop de BGT: bosgebieden, voortuinen, omheinde terreinen.
+const OMGEVING = JSON.parse(readFileSync(join(ROOT, 'data', 'stijl', 'omgeving.json'), 'utf8'));
 const gebiedRd = (() => {
   const g = JSON.parse(readFileSync(join(GEO, 'gebied.geojson'), 'utf8'));
   const b = [Infinity, Infinity, -Infinity, -Infinity];
@@ -179,7 +181,9 @@ for (const f of lees('bgt_waterdeel')) voegVlak('water', 'water', -0.35, f.geome
 for (const f of leesOpt('bgt_ondersteunendwaterdeel')) voegVlak('oever', 'oever', 0.0, f.geometry);
 for (const f of leesOpt('bgt_overbruggingsdeel')) voegVlak('brug', 'asfalt', 0.15, f.geometry);
 for (const f of leesOpt('bgt_kunstwerkdeel')) if (f.geometry.type !== 'LineString') voegVlak('steiger', 'hout', 0.3, f.geometry);
-for (const f of leesOpt('bgt_overigbouwwerk')) if (f.geometry.type !== 'LineString') voegVlak('bouwwerk', 'beton', 0.5, f.geometry);
+// bezinkbakken en opslagtanks van de RWZI, trafohuisjes: het type gaat mee zodat
+// kaartwereld.js er een echte tank of bak van kan maken
+for (const f of leesOpt('bgt_overigbouwwerk')) if (f.geometry.type !== 'LineString') voegVlak('bouwwerk', 'beton', 0.5, f.geometry, { sub: f.properties.bgt_type || undefined });
 
 // ---------------------------------------------------------------- panden
 const cityjson = JSON.parse(readFileSync(join(GEO, 'bron', '9-632-1008.city.json'), 'utf8'));
@@ -492,7 +496,6 @@ function strooi(vlak, afstand, uit, schaal) {
     if (inPolygoon([px, pz], vlak.r)) uit.push({ x: r2(px), z: r2(pz), s: r2(schaal[0] + rg() * (schaal[1] - schaal[0])) });
   }
 }
-const OMGEVING = JSON.parse(readFileSync(join(ROOT, 'data', 'stijl', 'omgeving.json'), 'utf8'));
 const inBosgebied = (x, z) => (OMGEVING.bosgebieden || []).find(g => x >= g.x0 && x <= g.x1 && z >= g.z0 && z <= g.z1);
 for (const v of VLAKKEN) {
   if (v.k === 'bos') { const n0 = BOMEN.length; strooi(v, OMGEVING.bos.afstand, BOMEN, OMGEVING.bos.schaal); for (let i = n0; i < BOMEN.length; i++) if (BOMEN[i].s > 1.7) BOMEN[i].tall = true; }
@@ -510,6 +513,71 @@ const KLASSE = { rijbaan: 1, autoweg: 1, woonerf: 1, parkeervlak: 1, inrit: 1, f
 for (const [k, code] of Object.entries(KLASSE)) vulRaster(klasseRaster.g, klasseRaster.W, klasseRaster.H, VLAKKEN.filter(v => v.k === k).map(v => v.r), 0.5, klasseRaster.x0, klasseRaster.z0, code);
 for (const p of PANDEN) vulRaster(klasseRaster.g, klasseRaster.W, klasseRaster.H, [[p.voet]], 0.5, klasseRaster.x0, klasseRaster.z0, 6);
 const klasseOp = (x, z) => { const i = Math.floor((x - klasseRaster.x0) / 0.5), j = Math.floor((z - klasseRaster.z0) / 0.5); return (i < 0 || j < 0 || i >= klasseRaster.W || j >= klasseRaster.H) ? 0 : klasseRaster.g[j * klasseRaster.W + i]; };
+
+// ---------------------------------------------------------------- terreinmaskers
+// Omheinde terreinen uit data/stijl/omgeving.json (de RWZI aan de Buitenroede).
+// Het terrein zelf komt uit de BGT: alles wat vanaf het zetelpunt te bereiken is
+// zonder water of oever te kruisen en zonder door de poort of een dicht
+// hekstuk te gaan. Het masker wordt hier al gemaakt, zodat de bos- en
+// parkregels het terrein kunnen overslaan; het hek zelf volgt verderop.
+function terreinMasker(t) {
+  const cel = 0.5;
+  const TW = Math.ceil((t.x1 - t.x0) / cel), TH = Math.ceil((t.z1 - t.z0) / cel);
+  const mask = new Uint8Array(TW * TH), versperd = new Uint8Array(TW * TH);
+  const celIdx = (x, z) => { const i = Math.floor((x - t.x0) / cel), j = Math.floor((z - t.z0) / cel); return (i < 0 || j < 0 || i >= TW || j >= TH) ? -1 : j * TW + i; };
+  // de poort en de dichte hekstukken (dammen zonder poort) als versperring,
+  // zodat de vulling niet over een dam wegloopt
+  const pa = t.poort.a, pb = t.poort.b;
+  const versperringen = [[pa, pb, t.poort.dikte || 2.5], ...(t.versperringen || []).map(v => [v.a, v.b, v.dikte || 2.5])];
+  for (const [a, b, dikte] of versperringen) {
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]), ux = (b[0] - a[0]) / L, uz = (b[1] - a[1]) / L;
+    for (let s = -1.5; s <= L + 1.5; s += cel / 2) for (let d = -dikte / 2; d <= dikte / 2; d += cel / 2) { const k = celIdx(a[0] + ux * s - uz * d, a[1] + uz * s + ux * d); if (k >= 0) versperd[k] = 1; }
+  }
+  const zetel = celIdx(t.zetel[0], t.zetel[1]);
+  const stapel = [zetel]; mask[zetel] = 1; let cellen = 0;
+  const ouder = process.env.TERREIN_DEBUG ? new Int32Array(TW * TH).fill(-1) : null;
+  while (stapel.length) {
+    const k = stapel.pop(); cellen++;
+    const i = k % TW, j = (k - i) / TW;
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= TW || jj >= TH) continue;
+      const kk = jj * TW + ii; if (mask[kk] || versperd[kk]) continue;
+      const kl = klasseOp(t.x0 + (ii + 0.5) * cel, t.z0 + (jj + 0.5) * cel);
+      if (kl === 2 || kl === 8) continue;
+      mask[kk] = 1; if (ouder) ouder[kk] = k; stapel.push(kk);
+    }
+  }
+  const opTerrein = (x, z) => { const k = celIdx(x, z); return k >= 0 && mask[k] === 1; };
+  const oppTerrein = cellen * cel * cel;
+  telling[`terrein_${t.kort}_m2`] = Math.round(oppTerrein);
+  if (oppTerrein > (t.maxOpp || 80000)) console.warn(`LET OP: terrein ${t.naam} is ${Math.round(oppTerrein)} m² — de vulling is waarschijnlijk weggelopen (sloot niet dicht?)`);
+  // raakt het masker de rand van het zoekvak, dan is de vulling weggelopen
+  const randcellen = [];
+  for (let i = 0; i < TW; i++) for (const j of [0, TH - 1]) if (mask[j * TW + i]) randcellen.push([t.x0 + i * cel, t.z0 + j * cel]);
+  for (let j = 0; j < TH; j++) for (const i of [0, TW - 1]) if (mask[j * TW + i]) randcellen.push([t.x0 + i * cel, t.z0 + j * cel]);
+  if (randcellen.length) console.warn(`LET OP: terrein ${t.naam} raakt de rand van het zoekvak op ${randcellen.length} plekken, bv. ${randcellen.slice(0, 3).map(p => p.join(',')).join(' ')}`);
+  if (ouder && randcellen.length) {
+    // het lek opsporen: de vulweg van de randcel terug naar de zetel, met de klasse onderweg
+    let k = celIdx(randcellen[0][0], randcellen[0][1]); const weg = [];
+    while (k >= 0 && k !== zetel) { const i = k % TW, j = (k - i) / TW; weg.push([t.x0 + (i + 0.5) * cel, t.z0 + (j + 0.5) * cel]); k = ouder[k]; }
+    weg.reverse();
+    console.log('vulweg zetel -> rand (elke 8 m, klasse):', weg.filter((p, i) => i % 16 === 0).map(p => `${p[0].toFixed(0)},${p[1].toFixed(0)}:${klasseOp(p[0], p[1])}`).join(' '));
+  }
+  if (process.env.TERREIN_DEBUG) {
+    // grove kaart van het masker: # terrein, ~ water/oever, = versperring, . overig
+    const stap = Number(process.env.TERREIN_DEBUG) || 4;
+    for (let z = t.z0; z < t.z1; z += stap) {
+      let s = String(Math.round(z)).padStart(5) + ' ';
+      for (let x = t.x0; x < t.x1; x += stap) { const k = celIdx(x, z), kl = klasseOp(x, z); s += k >= 0 && mask[k] ? '#' : k >= 0 && versperd[k] ? '=' : (kl === 2 || kl === 8) ? '~' : kl === 0 ? ' ' : '.'; }
+      console.log(s);
+    }
+  }
+  // ook de versperde cellen (de poort en de dichte hekstukken) horen bij het terrein
+  const opTerreinOfHek = (x, z) => { const k = celIdx(x, z); return k >= 0 && (mask[k] === 1 || versperd[k] === 1); };
+  return { t, opTerrein, opTerreinOfHek, versperringen, pa, pb };
+}
+const TERREINEN = (OMGEVING.terreinen || []).map(terreinMasker);
+const opEenTerrein = (x, z) => TERREINEN.some(m => m.opTerreinOfHek(x, z));
 
 const LANTAARNS = [];
 for (const k of rijKetens) {
@@ -542,6 +610,7 @@ for (const g of OMGEVING.bosgebieden || []) {
     const px = x + (rb() - 0.5) * g.afstand * 0.8, pz = z + (rb() - 0.5) * g.afstand * 0.8;
     const kl = klasseOp(px, pz);
     if (![3, 4, 8].includes(kl)) continue;
+    if (opEenTerrein(px, pz)) continue;                 // niet op de RWZI: daar staan alleen bomen langs het hek
     if (BOMEN.some(b => Math.hypot(b.x - px, b.z - pz) < 2.2)) continue;
     const sch = g.schaal[0] + rb() * (g.schaal[1] - g.schaal[0]);
     BOSGEBIED_BOMEN.push({ x: r2(px), z: r2(pz), s: r2(sch), tall: sch > 1.75 });
@@ -590,7 +659,7 @@ for (const v of VLAKKEN) {
   const b = bboxRing(v.r[0]);
   for (let z = b[1] + 8; z < b[3]; z += 15) for (let x = b[0] + 8; x < b[2]; x += 15) {
     const px = x + (ro() - 0.5) * 9, pz = z + (ro() - 0.5) * 9;
-    if (ro() < 0.45) continue;
+    if (ro() < 0.45 || opEenTerrein(px, pz)) continue;
     if (inPolygoon([px, pz], v.r) && vrijRond(px, pz, 2.5, [3])) PARKBOMEN.push({ x: r2(px), z: r2(pz), s: r2(1.6 + ro() * 0.5), tall: true });
   }
 }
@@ -741,6 +810,154 @@ for (const w of VLAKKEN.filter(v => v.k === 'water' && Math.abs(oppervlak(v.r[0]
 }
 tel('objecten', OBJECTEN.length);
 
+// ---------------------------------------------------------------- terreinen
+// Het hek volgt de landkant van de oeverrand (het masker komt van hierboven),
+// iets het gras op; de poort staat op de dam waar het erf de sloot kruist. De
+// gebouwen op het terrein krijgen het bedrijfstype uit de regel, met bomen
+// langs het hek en lantaarns langs het erf.
+const HEKWERKEN = [], POORTEN = [];
+for (const M of TERREINEN) {
+  const { t, opTerrein, versperringen, pa, pb } = M;
+  // hek: randen van de oeverringen waarvan de landkant op het terrein ligt
+  const hek = t.hekwerk || { hoogte: 2.0, afstand: 0.7 };
+  const kettingen = [];
+  for (const v of VLAKKEN) {
+    if (v.k !== 'oever') continue;
+    const bb = bboxRing(v.r[0]); if (bb[2] < t.x0 || bb[0] > t.x1 || bb[3] < t.z0 || bb[1] > t.z1) continue;
+    const ring = v.r[0], n = ring.length;
+    const gekozen = ring.map((a, i) => {
+      const b = ring[(i + 1) % n]; const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 1e-3) return null;
+      let nx = dz / L, nz = -dx / L; const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+      if (inPolygoon([mx + nx * 0.25, mz + nz * 0.25], v.r)) { nx = -nx; nz = -nz; }   // n wijst van de oever af
+      const px = mx + nx * 0.8, pz = mz + nz * 0.8;
+      if (!opTerrein(px, pz)) return null;
+      const kl = klasseOp(px, pz); if (kl === 2 || kl === 8) return null;
+      return { a, b, nx, nz };
+    });
+    let start = gekozen.findIndex(g => !g); if (start < 0) start = 0;
+    let ketting = null;
+    for (let s = 0; s < n; s++) {
+      const g = gekozen[(start + s) % n];
+      if (!g) { if (ketting) kettingen.push(ketting); ketting = null; continue; }
+      if (!ketting) ketting = [];
+      ketting.push(g);
+    }
+    if (ketting) kettingen.push(ketting);
+  }
+  // van randen naar een lijn, `afstand` meter de landkant op (verstek in de hoeken)
+  const lijnen = [];
+  for (const R of kettingen) {
+    const pts = [];
+    for (let i = 0; i <= R.length; i++) {
+      const p = i < R.length ? R[i].a : R[R.length - 1].b;
+      const n1 = R[Math.max(0, i - 1)], n2 = R[Math.min(R.length - 1, i)];
+      let nx = n1.nx + n2.nx, nz = n1.nz + n2.nz; const L = Math.hypot(nx, nz) || 1; nx /= L; nz /= L;
+      const cosH = Math.max(0.5, n1.nx * nx + n1.nz * nz);
+      pts.push([p[0] + nx * hek.afstand / cosH, p[1] + nz * hek.afstand / cosH]);
+    }
+    lijnen.push(pts);
+  }
+  // uiteinden aan de poort en aan de dichte hekstukken hechten, de dichte
+  // hekstukken zelf toevoegen, en losse stukken aan elkaar (kleine onderbrekingen)
+  const afst = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+  const aansluitpunten = versperringen.flatMap(v => [v[0], v[1]]);
+  for (const pts of lijnen) {
+    for (const eind of [0, pts.length - 1]) {
+      const p = pts[eind];
+      const dichtst = aansluitpunten.slice().sort((u, w) => afst(p, u) - afst(p, w))[0];
+      const d = afst(p, dichtst);
+      if (d < 1.5) pts[eind] = dichtst;                                        // vlakbij: het uiteinde erop leggen
+      else if (d < 8) { if (eind === 0) pts.unshift(dichtst); else pts.push(dichtst); }   // verder weg: een stuk hek ernaartoe
+    }
+  }
+  for (const [a, b] of versperringen.slice(1)) lijnen.push([a, b]);
+  let samengevoegd = true;
+  while (samengevoegd) {
+    samengevoegd = false;
+    buiten: for (let i = 0; i < lijnen.length; i++) for (let j = 0; j < lijnen.length; j++) {
+      if (i === j) continue;
+      const A = lijnen[i], B = lijnen[j];
+      if (afst(A[A.length - 1], B[0]) < 2.0) { lijnen[i] = A.concat(B.slice(1)); lijnen.splice(j, 1); samengevoegd = true; break buiten; }
+      if (afst(A[A.length - 1], B[B.length - 1]) < 2.0) { lijnen[i] = A.concat(B.slice().reverse().slice(1)); lijnen.splice(j, 1); samengevoegd = true; break buiten; }
+    }
+  }
+  for (const pts of lijnen) {
+    let lengte = 0; for (let i = 1; i < pts.length; i++) lengte += afst(pts[i - 1], pts[i]);
+    if (lengte < 3) continue;
+    HEKWERKEN.push({ pts: pts.map(q => [r2(q[0]), r2(q[1])]), h: hek.hoogte, lengte: r2(lengte), terrein: t.kort });
+  }
+  POORTEN.push({ a: pa, b: pb, h: hek.hoogte, open: t.poort.open ?? 1.4, terrein: t.kort });
+  telling[`hekwerk_${t.kort}_m`] = Math.round(HEKWERKEN.filter(h => h.terrein === t.kort).reduce((s, h) => s + h.lengte, 0));
+
+  // gebouwen op het terrein: bedrijfstype in plaats van woningtype
+  let nPand = 0;
+  for (const p of PANDEN) {
+    const [cx, cz] = zwaartepunt(p.voet);
+    if (!opTerrein(cx, cz)) continue;
+    p.type = (t.typen || {})[p.id] || t.type || p.type;
+    if (!p.straat && t.straat) p.straat = t.straat;
+    p.terrein = t.kort; nPand++;
+  }
+  telling[`panden_${t.kort}`] = nPand;
+
+  // bomen langs het hek, aan de binnenkant op het gras
+  const rt = rng(31);
+  if (t.bomen) for (const hw of HEKWERKEN.filter(h => h.terrein === t.kort)) {
+    let s = 4 + rt() * 4;
+    for (let i = 1; i < hw.pts.length; i++) {
+      const a = hw.pts[i - 1], b = hw.pts[i]; const L = afst(a, b); if (L < 1e-3) continue;
+      const ux = (b[0] - a[0]) / L, uz = (b[1] - a[1]) / L;
+      while (s <= L) {
+        const x = a[0] + ux * s, z = a[1] + uz * s;
+        let nx = -uz, nz = ux; if (!opTerrein(x + nx * 2, z + nz * 2)) { nx = -nx; nz = -nz; }
+        const tx = x + nx * t.bomen.binnen, tz = z + nz * t.bomen.binnen;
+        if (opTerrein(tx, tz) && vrijRond(tx, tz, 1.4, [3]) && rt() < 0.85) BOMEN.push({ x: r2(tx), z: r2(tz), s: r2(1.2 + rt() * 0.6), tall: true });
+        s += t.bomen.afstand * (0.8 + rt() * 0.4);
+      }
+      s -= L;
+    }
+  }
+  // lantaarns langs de erfranden op het terrein
+  if (t.lantaarns) {
+    let nLamp = 0;
+    for (const v of VLAKKEN) {
+      if (v.k !== 'erf') continue;
+      const ring = v.r[0]; if (!ring.some(p => opTerrein(p[0], p[1]))) continue;
+      let s = 10;
+      for (let i = 0; i < ring.length; i++) {
+        const a = ring[i], b = ring[(i + 1) % ring.length]; const L = afst(a, b); if (L < 1e-3) continue;
+        const ux = (b[0] - a[0]) / L, uz = (b[1] - a[1]) / L;
+        while (s <= L) {
+          const x = a[0] + ux * s, z = a[1] + uz * s;
+          let nx = uz, nz = -ux; if (klasseOp(x + nx * 0.7, z + nz * 0.7) === 5) { nx = -nx; nz = -nz; }
+          const lx = x + nx * 0.7, lz = z + nz * 0.7;
+          if (opTerrein(lx, lz) && klasseOp(lx, lz) === 3 && !LANTAARNS.some(l => Math.hypot(l.x - lx, l.z - lz) < 14)) { LANTAARNS.push({ x: r2(lx), z: r2(lz) }); nLamp++; }
+          s += t.lantaarns.afstand;
+        }
+        s -= L;
+      }
+    }
+    telling[`lantaarns_${t.kort}`] = nLamp;
+  }
+  // losse objecten aan een gebouw (buitentrap): aan de langste muur met erf ervoor
+  for (const o of t.objecten || []) {
+    const p = PANDEN.find(q => q.id === o.pand); if (!p) continue;
+    const ring = p.voet, [cx, cz] = zwaartepunt(ring);
+    let best = null;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length]; const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 4) continue;
+      let nx = dz / L, nz = -dx / L; const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+      if ((mx - cx) * nx + (mz - cz) * nz < 0) { nx = -nx; nz = -nz; }
+      if (klasseOp(mx + nx * 1.6, mz + nz * 1.6) !== 5) continue;
+      if (!best || L > best.L) best = { L, x: mx + nx * 0.25, z: mz + nz * 0.25, nx, nz };
+    }
+    if (best) OBJECTEN.push({ type: o.type, x: r2(best.x), z: r2(best.z), yaw: Math.round(Math.atan2(best.nx, best.nz) * 180 / Math.PI * 10) / 10 });
+  }
+}
+// woningtypen opnieuw tellen na de terreinen
+telling.woningtypen = {}; for (const p of PANDEN) telling.woningtypen[p.type] = (telling.woningtypen[p.type] || 0) + 1;
+tel('hekwerken', HEKWERKEN.length); tel('poorten', POORTEN.length);
+
 // ---------------------------------------------------------------- labels, start
 const LABELS = labels.filter(l => l.p[0] >= G.x0 && l.p[0] <= G.x1 && l.p[1] >= G.z0 && l.p[1] <= G.z1).map(l => ({ t: l.t, x: l.p[0], z: l.p[1], hoek: l.hoek }));
 const HUISNUMMERS = [];
@@ -763,6 +980,7 @@ const KAART = {
   vlakken: VLAKKEN, wegassen: WEGASSEN, parkeerplekken: PARKEER, panden: PANDEN,
   hagen: HAGEN, bomen: BOMEN.concat(STRAATBOMEN, PARKBOMEN), struiken: STRUIKEN, lantaarns: LANTAARNS,
   heggen: HEGGEN, schuttingen: SCHUTTINGEN, paden: PADEN, tuinvlakken: TUINVLAKKEN, strepen: STREPEN, objecten: OBJECTEN,
+  hekwerken: HEKWERKEN, poorten: POORTEN,
   labels: LABELS, huisnummers: HUISNUMMERS,
   telling,
 };
