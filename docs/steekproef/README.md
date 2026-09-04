@@ -12,11 +12,11 @@ beoordeeld.
 
 | adres | type | 3D BAG | bouwjaar | spel | foto |
 |---|---|---|---|---|---|
-| Molenkrite 19 | molenkrite_bung | goot 3.17 m, nok 8.95 m, slanted | 1976 | ![](Molenkrite-19.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.021453,5.644901&heading=136&pitch=5&fov=80) |
-| Molenkrite 43 | molenkrite_bung | goot 3.33 m, nok 8.94 m, slanted | 1976 | ![](Molenkrite-43.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.021036,5.644159&heading=136&pitch=5&fov=80) |
+| Molenkrite 19 | molenkrite_kap | goot 3.17 m, nok 8.95 m, slanted | 1976 | ![](Molenkrite-19.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.021453,5.644901&heading=136&pitch=5&fov=80) |
+| Molenkrite 43 | molenkrite_kap | goot 3.33 m, nok 8.94 m, slanted | 1976 | ![](Molenkrite-43.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.021036,5.644159&heading=136&pitch=5&fov=80) |
 | Molenkrite 70 | molenkrite_bung | goot 3.35 m, nok 6.73 m, slanted | 1977 | ![](Molenkrite-70.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.019584,5.643250&heading=265&pitch=5&fov=80) |
 | Kruirad 50 | kruirad | goot 5.8 m, nok 8.93 m, slanted | 1974 | ![](Kruirad-50.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.020988,5.642703&heading=193&pitch=5&fov=80) |
-| Kruirad 12 | kruirad | goot 5.75 m, nok 8.84 m, slanted | 1974 | ![](Kruirad-12.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.021692,5.642645&heading=319&pitch=5&fov=80) |
+| Kruirad 12 | kruirad_rood | goot 5.75 m, nok 8.84 m, slanted | 1974 | ![](Kruirad-12.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.021692,5.642645&heading=319&pitch=5&fov=80) |
 | Monnikmolen 148 | monnik | goot 5.08 m, nok 8.88 m, slanted | 1974 | ![](Monnikmolen-148.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.021979,5.643409&heading=319&pitch=5&fov=80) |
 | Binnenroede 15 | monnik | goot 3.05 m, nok 8.93 m, slanted | 1974 | ![](Binnenroede-15.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.022025,5.644848&heading=298&pitch=5&fov=80) |
 | Jasker 7 | jasker_gable | goot 2.76 m, nok 9.9 m, slanted | 1979 | ![](Jasker-7.png) | [Street View](https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=53.021469,5.645984&heading=92&pitch=5&fov=80) |
