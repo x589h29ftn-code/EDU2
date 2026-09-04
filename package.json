@@ -35,6 +35,7 @@
     "geo:boven": "node tools/geo/bovenaanzicht.mjs 8123 4",
     "geo:steekproef": "node tools/geo/steekproef.mjs 8123",
     "verhaaltest": "node tools/verhaaltest.mjs",
-    "verhaalshots": "node tools/verhaalshots.mjs"
+    "verhaalshots": "node tools/verhaalshots.mjs",
+    "adresshots": "node tools/adresshots.mjs"
   }
 }

@@ -20,6 +20,24 @@
     "Eekmolen":     { "type": "eekmolen", "bron": "foto: Eekmolen 21" },
     "Zeskanter":    { "type": "eekmolen", "bron": "aanname, zelfde buurt als Eekmolen" }
   },
+  "panden": {
+    "_uitleg": "Panden die geen woning zijn en dus niet van hun straat af te leiden zijn. Sleutel is het BAG-pandnummer uit js/kaart.js. `type` is het type uit HOUSE_STYLES in js/textures.js en gaat voor op alle regels hierboven. `voorkantNaar` is een punt in spelmeters waar de voorgevel naartoe moet kijken (bij een winkel ligt de ingang aan het plein en niet aan de dichtstbijzijnde rijbaan, en dan raadt de generator hem verkeerd); de generator kiest de zijde van de omsluitende rechthoek die daar het meest naartoe wijst. `objecten` zet losse objecten uit js/props.js voor het pand: `voor` is de afstand vanaf de voorgevel naar de straat, `langs` de afstand langs de gevel naar rechts gezien van buiten. `foto` is de uitsnede voor tools/adresshots.mjs (dezelfde `voor` en `langs`, plus een kijkhoek); zonder die regel zoekt dat gereedschap zelf een standpunt met vrij zicht.",
+    "0091100000015898": {
+      "type": "jumbo",
+      "voorkantNaar": [250, -59],
+      "foto": { "voor": 26, "langs": 2, "pitch": 0.06 },
+      "objecten": [
+        { "type": "jumbovlag", "voor": 4.5, "langs": -3.6 },
+        { "type": "jumbovlag", "voor": 4.5, "langs": -1.2 },
+        { "type": "jumbovlag", "voor": 4.5, "langs": 1.2 }
+      ],
+      "bron": "foto Look Around Molenkrite 1 (4 sep 2026): supermarkt Jumbo — een rij puntdaken (staan in het 3D BAG-model, goot 2,6 m, nok 7,1 m), een luifel over de volle breedte, glazen pui met witte stijlen, gele huisstijlband met het woordmerk, en drie gele vlaggenmasten voor de ingang. `voorkantNaar` is het parkeerterrein aan de noordkant (1239 m², het grootste van de wijk)"
+    },
+    "0091100000006680": {
+      "type": "tinga_state",
+      "bron": "foto Tinga State, Molenkrite 115 (4 sep 2026): stelpboerderij met een steile piramidekap van rode pannen van de nok op 13,3 m tot een goot op 1,9 m, rijen dakramen, lage bakstenen gevel met witte kozijnen, zwarte schuurdeur en een terras onder het overstek"
+    }
+  },
   "standaard": {
     "_uitleg": "Volgorde: eerst 'groot' (grondvlak boven 300 m2), dan 'plat' met een goot boven 7 m (portiekflat), dan 'plat', dan 'kap', dan 'laag', anders 'type'.",
     "type": "molenkrite",
