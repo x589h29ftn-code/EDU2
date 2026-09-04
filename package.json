@@ -33,6 +33,8 @@
     "geo:plaat": "node tools/geo/plaat.mjs",
     "geo:genereer": "node tools/geo/genereer.mjs",
     "geo:boven": "node tools/geo/bovenaanzicht.mjs 8123 4",
-    "geo:steekproef": "node tools/geo/steekproef.mjs 8123"
+    "geo:steekproef": "node tools/geo/steekproef.mjs 8123",
+    "verhaaltest": "node tools/verhaaltest.mjs",
+    "verhaalshots": "node tools/verhaalshots.mjs"
   }
 }

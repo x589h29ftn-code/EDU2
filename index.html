@@ -18,6 +18,18 @@
   #ammo { position: absolute; right: 24px; bottom: 170px; font-size: 22px; font-weight: 700; }
   #hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); font-size: 14px; opacity: .85; white-space: nowrap; }
   #msg { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); font-size: 26px; font-weight: 700; opacity: 0; transition: opacity .3s; }
+  /* gesprekken: een tekstbalk onderin het scherm, door te klikken met E */
+  #dialoog { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%);
+             width: min(760px, 88vw); box-sizing: border-box; padding: 10px 16px;
+             background: rgba(8,14,24,.80); border-left: 4px solid #ffd400; border-radius: 8px;
+             text-shadow: none; pointer-events: auto; cursor: pointer; }
+  #dialoogNaam { color: #ffd400; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  #dialoogTekst { font-size: 18px; line-height: 1.4; margin-top: 3px; }
+  #dialoogVerder { font-size: 12px; opacity: .6; margin-top: 7px; }
+  #praat { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%);
+           font-size: 15px; font-weight: 700; background: rgba(8,14,24,.62);
+           padding: 6px 14px; border-radius: 6px; }
+  #opdracht { position: absolute; left: 24px; top: 42px; font-size: 14px; font-weight: 700; color: #ffd400; }
   #minimap { position: absolute; right: 20px; top: 20px; width: 220px; height: 220px; border-radius: 50%; box-shadow: 0 2px 12px rgba(0,0,0,.5); background: #3f6a2b; }
   #bigmap { display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
   #title { position: absolute; left: 24px; top: 20px; font-size: 13px; opacity: .8; }
@@ -28,8 +40,14 @@
   .panel table { width: 100%; font-size: 14px; border-collapse: collapse; margin-bottom: 20px; }
   .panel td { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
   .panel td:first-child { font-weight: 700; width: 178px; color: #ffd400; }
-  #start { font-size: 18px; font-weight: 700; padding: 12px 26px; border: 0; border-radius: 8px; background: #ffd400; color: #1a1a1a; cursor: pointer; }
-  #start:hover { background: #ffe25a; }
+  #start, #verder { font-size: 18px; font-weight: 700; padding: 12px 26px; border: 0; border-radius: 8px; background: #ffd400; color: #1a1a1a; cursor: pointer; }
+  #start:hover, #verder:hover { background: #ffe25a; }
+  /* staat er een opgeslagen spel, dan is 'verder spelen' de gewone keuze en
+     wordt 'nieuw spel' de rustige tweede knop */
+  body.heeftopslag #start { background: rgba(255,255,255,.12); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
+  body.heeftopslag #start:hover { background: rgba(255,255,255,.2); }
+  .knoppen { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .opslaginfo { font-size: 12px; opacity: .7; margin-top: 10px; }
   .streets { font-size: 12px; opacity: .7; margin-top: 14px; line-height: 1.5; }
 
   /* ---------- touchbesturing ---------- */
@@ -69,6 +87,13 @@
     #title { font-size: 11px; left: 70px; top: 18px; }
     #msg { font-size: 19px; top: 12%; }
     #bigmap { width: auto; height: auto; max-width: 94vw; max-height: 86vh; }
+    /* rechtsonder zitten op een telefoon de knoppen, dus schuift de tekstbalk
+       naar links en wordt hij smaller */
+    #dialoog { left: 10px; bottom: 58px; transform: none; width: 60vw; padding: 8px 12px; border-left-width: 3px; }
+    #dialoogTekst { font-size: 14px; }
+    #dialoogVerder { font-size: 11px; margin-top: 4px; }
+    #praat { left: 10px; bottom: 62px; transform: none; font-size: 13px; }
+    #opdracht { left: 70px; top: 34px; font-size: 12px; }
     .panel { max-width: 94vw; max-height: 88vh; overflow: auto; padding: 18px 20px; }
     .panel h1 { font-size: 22px; }
     .panel h2 { font-size: 12px; margin-bottom: 12px; }
@@ -117,6 +142,13 @@
   <div id="ammo"></div>
   <div id="hint"></div>
   <div id="msg"></div>
+  <div id="opdracht" hidden></div>
+  <div id="praat" hidden>E — praten</div>
+  <div id="dialoog" hidden>
+    <div id="dialoogNaam"></div>
+    <div id="dialoogTekst"></div>
+    <div id="dialoogVerder"></div>
+  </div>
   <canvas id="bigmap" width="1100" height="760"></canvas>
 </div>
 <div id="editor"></div>
@@ -133,7 +165,7 @@
 <div id="overlay">
   <div class="panel">
     <h1>Tinga, Sneek</h1>
-    <h2>Open wereld op ware grootte · start op de Molenkrite bij de Monnikmolen</h2>
+    <h2>Open wereld op ware grootte · je heet Erik en staat voor Molenkrite 15</h2>
     <table>
       <tr class="touchonly"><td>Linkerhelft</td><td>joystick om te lopen · helemaal uitslaan = rennen</td></tr>
       <tr class="touchonly"><td>Rechterhelft</td><td>veeg om rond te kijken · korte tik = schot</td></tr>
@@ -143,7 +175,9 @@
       <tr class="mouseonly"><td>W A S D</td><td>lopen (shift = sprinten, spatie = springen)</td></tr>
       <tr class="mouseonly"><td>Muis</td><td>rondkijken · linkermuisknop = schieten · R = herladen</td></tr>
       <tr class="mouseonly"><td>Geen muisvergrendeling?</td><td>sleep met de linkerknop om rond te kijken, korte klik = schot</td></tr>
-      <tr class="mouseonly"><td>E</td><td>in- en uitstappen bij een auto</td></tr>
+      <tr class="mouseonly"><td>E</td><td>praten (en het gesprek doorklikken) · anders in- en uitstappen bij een auto</td></tr>
+      <tr class="mouseonly"><td>F5 / F9</td><td>spel opslaan / opgeslagen spel laden</td></tr>
+      <tr class="touchonly"><td>Praten</td><td>tik op 🚗 als er iemand naast je staat · tik op de tekstbalk om door te klikken</td></tr>
       <tr class="mouseonly"><td>In de auto</td><td>W/S gas en rem · A/D sturen · spatie handrem</td></tr>
       <tr class="mouseonly"><td>M</td><td>grote kaart van de wijk</td></tr>
       <tr class="mouseonly"><td>[ ]</td><td>klok een uur terug / vooruit &nbsp;·&nbsp; \ laat de klok lopen</td></tr>
@@ -151,7 +185,11 @@
       <tr class="mouseonly"><td>F2</td><td>wijkeditor: huizen en objecten verzetten</td></tr>
       <tr class="mouseonly"><td>Esc</td><td>muis vrijgeven / pauze</td></tr>
     </table>
-    <button id="start">Klik om te spelen</button>
+    <div class="knoppen">
+      <button id="verder" hidden>Verder spelen</button>
+      <button id="start">Klik om te spelen</button>
+    </div>
+    <div class="opslaginfo" id="opslaginfo" hidden></div>
     <div class="streets">Straten: Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal · Spinnekop · Omloop · De Wieken · Windbord · Voorzoom · Bovenas · Grootwiel · Bonkelaar · N7 afrit 21</div>
   </div>
 </div>

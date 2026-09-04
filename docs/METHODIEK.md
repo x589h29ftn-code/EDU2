@@ -234,6 +234,7 @@ naar `main` om een build te krijgen.
 | Niets staat in de weg | `tools/propcheck.mjs`, `tools/tuintest.mjs` | geen meldingen |
 | Straatprofielen | `tools/meetstrook.mjs`, nu getoetst aan BGT-breedtes in plaats van foto's | afwijking < 0,5 m |
 | Stijl | tien vaste steekproefpunten naast Street View | per adres akkoord in de catalogus |
+| Het verhaal (stap 8) | `npm run verhaaltest` | eindigt op "Alles goed" |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
 betrouwbaar kan beoordelen, omdat het een pixel-voor-pixel vergelijking is op
@@ -280,7 +281,8 @@ de besturing een gewone spelfeature zonder onzekerheid over de kaart.
 
 ## 9. Stand van zaken
 
-Stap 1, 2, 3 en 4 zijn af; stap 6 (de stijlcatalogus) is ingericht en wacht op foto's.
+Stap 1, 2, 3 en 4 zijn af; stap 6 (de stijlcatalogus) is ingericht en wacht op foto's, en van stap 8
+staat de eerste missie in de wijk (zie *Het verhaal en de opslag* onderaan).
 
 **Data (stap 1 en 2).**
 `data/geo/gebied.geojson` is het werkgebied: RD X 171870–172600, Y 558920–559790
@@ -453,15 +455,46 @@ Bij deze stap kwam een oude fout in de gevelprojectie boven: bij muren breder
 dan één woning liet de texture alleen de laatste pixelkolom zien (strepen). Dat
 raakte alle brede panden (school, RWZI) en is verholpen.
 
+**Het verhaal en de opslag (stap 8, GTA-besturing).**
+De eerste missie staat in `js/verhaal.js` en gebruikt de kaartdata als bron: het
+pand met huisnummer **15** aan de Molenkrite (steile kap met dakkapel, het
+vierde huis na de knik) en het pand **20** schuin tegenover. Uit die twee panden
+komen het beginpunt van de speler (op de berm voor 15, met de buurman recht
+vooruit), de plek van de buurman (op de stoep, 10,4 m voor de voorgevel), het
+tafeltje met de radio en de vier stoelen in de voortuin van 20, en de plek waar
+de buurman blijft staan. In het bestand staat geen enkele coördinaat, alleen de
+twee adressen en de afstanden vanaf de voorgevel; verhuist een pand in de
+brondata, dan verhuist de scène mee. `js/persoon.js` is één los poppetje dat kan
+staan, zwaaien, lopen en de speler aankijken — de voetgangers uit `npc.js` zijn
+instanced meshes en kunnen dat niet.
+
+Het gezelschap met de bierflesjes stond tot nu toe als vijf objecten in
+`data.js`, in pixels van de oude kaart, bij wat daar 19 Molenkrite was; in de
+BGT-kaart ligt dat pand veertig meter verderop, dus stonden ze op het gras van
+niemand. Ze horen bij het verhaal en worden nu door `verhaal.js` op het adres
+geplaatst. Daarmee is het eerste stuk van openstaand punt 3 hieronder opgelost.
+
+Opslaan en laden zit in `js/opslag.js`: één plek in de localStorage, F5 bewaart
+en F9 zet terug (positie, kijkrichting, munitie, de auto waar je in zat, tijd,
+weer en de stand van het verhaal). De wijk uit de editor heeft zijn eigen
+opslag, zodat een gewone opslag geen werk aan de wijk overschrijft.
+
+Controle: `npm run verhaaltest` loopt het hele verhaal na (het startpunt hoort
+bij het pand met huisnummer 15, de buurman zwaait en kijkt je aan, het gesprek
+opent en klikt door met E, hij komt bij het gezelschap aan, roept de opdracht,
+een schot met het pistool legt een drinker om, en opslaan/laden zet alles terug).
+`npm run geo:boven` blijft op 1,31 %.
+
 **Wat nog niet af is (in volgorde).**
 
 1. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
    zonnepanelen en schoorstenen als losse elementen op de 3D BAG-daken.
 2. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede (de woningen 40–74;
    de RWZI op nr 1 is wel gedaan), Zeskanter, Omloop.
-3. De editor (F2) en de oude objecten uit `data.js` werken nog in pixels van de oude
-   kaart; enkele objecten staan daardoor een paar meter verkeerd. Omrekenen kan met
-   drie ijkpunten in `oorsprong.json` (`rd.mjs px`).
+3. De editor (F2) en de overige oude objecten uit `data.js` werken nog in pixels van de
+   oude kaart; enkele objecten staan daardoor een paar meter verkeerd. Omrekenen kan met
+   drie ijkpunten in `oorsprong.json` (`rd.mjs px`). Het tuinfeest is al verhuisd: dat
+   komt nu uit `js/verhaal.js`, op het adres uit de kaartdata.
 4. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
    zonder 3D-model.
 5. Tweede 3D BAG-tegel voor het zuidoosten van de wijk.

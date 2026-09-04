@@ -9,6 +9,8 @@ import { isTouchDevice, initTouchControls } from './touch.js';
 import { START, toWorld, ROWS, PROPS } from './data.js';
 import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
 import { initSfeer } from './sfeer.js';
+import { initVerhaal, verhaalStart } from './verhaal.js';
+import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
@@ -231,12 +233,27 @@ function applyEnvIntensity(root, v = 1.7) {
 }
 applyEnvIntensity(scene);
 
-const [sx, sz] = KAART ? [startKaart().x, startKaart().z] : toWorld(START.at[0], START.at[1]);
-const player = new Player(camera, scene, sx, sz, KAART ? startKaart().yaw : START.yaw);
+// Beginpunt: op de berm voor Molenkrite 15, met de buurman recht vooruit (zie
+// js/verhaal.js). Zonder kaartdata valt het terug op het punt uit de kaart of
+// op START uit de oude data.js.
+const [ox, oz] = toWorld(START.at[0], START.at[1]);
+const beginpunt = verhaalStart() || (KAART ? startKaart() : { x: ox, z: oz, yaw: START.yaw });
+const player = new Player(camera, scene, beginpunt.x, beginpunt.z, beginpunt.yaw);
 const vehicles = new Vehicles(scene, world.parkSpots);
 const npcs = new NPCs(scene, world.roadSegments, 130);
 player.applyCamera();   // meteen op ooghoogte op de Molenkrite, ook voor het startscherm
 const hud = new HUD();
+// Het verhaal: de buurman voor Molenkrite 15 en het gezelschap schuin
+// tegenover. Zonder kaartdata (?kaart=oud) speelt het niet en doet alles niets.
+const verhaal = initVerhaal({ scene, player }) || {
+  update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
+  bewaar() { return null; }, herstel() {}, meldAan() {},
+  hinder: { alive: false, opWeg: false, x: 0, z: 0 },
+  fase: 'geen', aanspreekbaar: false,
+};
+// Het verkeer moet ook voor de buurman remmen als hij oversteekt. De lijst met
+// voetgangers heeft een vaste lengte, dus die zetten we één keer klaar.
+const opDeWeg = npcs.people.concat([verhaal.hinder]);
 applyEnvIntensity(scene);
 
 // Schieten: raycast op auto's en voetgangers
@@ -244,11 +261,12 @@ const raycaster = new THREE.Raycaster();
 const impactMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
 player.shootCb = (origin, dir) => {
   raycaster.set(origin, dir); raycaster.far = 120;
-  const targets = [...vehicles.cars.map(c => c.mesh), ...npcs.targets];
+  const targets = [...vehicles.cars.map(c => c.mesh), ...npcs.targets, ...verhaal.doelen()];
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
     const h = hits[0];
     if (npcs.hit(h.object, h.instanceId)) { geluid.raak(); hud.show('Raak!', 0.8); }
+    else if (verhaal.raak(h.object)) { geluid.raak(); hud.show('Raak!', 0.8); }
     else { const car = vehicles.hit(h.object); if (car) { geluid.klap(); hud.show('Auto geraakt', 0.6); } }
     const mark = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), impactMat); mark.position.copy(h.point); scene.add(mark);
     setTimeout(() => scene.remove(mark), 8000);
@@ -269,7 +287,18 @@ function toggleCar() {
     if (car) { player.inCar = car; player.carLook = 0; geluid.portier(); geluid.motorAan(); hud.show('Ingestapt – W om te rijden'); }
   }
 }
-window.addEventListener('keydown', e => { if (e.code === 'KeyE') toggleCar(); });
+// E doet drie dingen, in deze volgorde: een gesprek doorklikken, iemand
+// aanspreken die naast je staat, en anders in- of uitstappen bij een auto.
+// In de editor is E omhoog vliegen, dus daar blijft hij van af.
+function praatOfAuto() {
+  if (!player.active && !window.__autoplay) return;   // op het startscherm niet
+  if (editor && editor.actief) return;
+  if (verhaal.toets()) return;
+  toggleCar();
+}
+window.addEventListener('keydown', e => {
+  if (e.code === 'KeyE' && !e.ctrlKey && !e.metaKey) praatOfAuto();
+});
 
 // Geluid uit en aan
 let stil = false;
@@ -289,12 +318,14 @@ let dragHint = false;
 // Op een aanraakscherm is er geen muis om vast te zetten: dan verschijnt er een
 // joystick links en veeg je rechts om rond te kijken.
 const touch = IS_TOUCH ? initTouchControls(player, {
-  onCar: toggleCar,
+  onCar: praatOfAuto,
   onMap: () => hud.toggleBig(),
   onPause: () => pauseGame(),
 }) : null;
 
-function startGame() {
+function startGame(vervolg = false) {
+  if (vervolg) laadSpelNu();
+  gepauzeerd = false;
   overlay.style.display = 'none';
   player.active = true;
   geluid.start();
@@ -326,15 +357,67 @@ function useDragMode() {
 function pauseGame() {
   player.active = false;
   if (touch) touch.setVisible(false);
+  gepauzeerd = true;
+  toonOpslagKeuze();
   overlay.style.display = 'flex';
 }
 
-document.getElementById('start').addEventListener('click', startGame);
-canvas.addEventListener('click', () => { if (!player.active) startGame(); });
+// ---------- Opslaan en laden ----------
+// Eén opslagplek: F5 bewaart, F9 zet terug. Staat er iets, dan biedt het
+// startscherm 'verder spelen' aan; anders begin je als Erik voor Molenkrite 15.
+const startKnop = document.getElementById('start');
+const verderKnop = document.getElementById('verder');
+const opslagRegel = document.getElementById('opslaginfo');
+
+function tweeCijfers(v) { return String(Math.floor(v)).padStart(2, '0'); }
+
+// Het startscherm doet dubbel werk: bij het opstarten kies je tussen een nieuw
+// en een opgeslagen spel, en na Esc is het een pauzescherm waar je doorgaat.
+let gepauzeerd = false;
+function toonOpslagKeuze() {
+  const info = opslagInfo();
+  document.body.classList.toggle('heeftopslag', !!info && !gepauzeerd);
+  verderKnop.hidden = !info;
+  opslagRegel.hidden = !info;
+  startKnop.textContent = gepauzeerd ? 'Doorgaan' : info ? 'Nieuw spel' : 'Klik om te spelen';
+  verderKnop.textContent = gepauzeerd ? 'Opgeslagen spel laden' : 'Verder spelen';
+  if (!info) return;
+  const wanneer = new Date(info.tijd).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' });
+  const klok = info.uur != null ? ` · ${tweeCijfers(info.uur)}:${tweeCijfers(info.uur % 1 * 60)} uur in het spel` : '';
+  opslagRegel.textContent = `Opgeslagen ${wanneer}${info.straat ? ` op de ${info.straat}` : ''}${klok}. In het spel: F5 opslaan, F9 laden.`;
+}
+
+function bewaarSpelNu() {
+  const gelukt = bewaarSpel({
+    player, sfeer, vehicles, verhaal,
+    straat: nearestRoadName(camera.position.x, camera.position.z),
+  });
+  hud.show(gelukt ? 'Spel opgeslagen' : 'Opslaan lukte niet', 2);
+  toonOpslagKeuze();
+}
+
+function laadSpelNu() {
+  const gelukt = laadSpel({ player, sfeer, vehicles, verhaal });
+  hud.show(gelukt ? 'Spel geladen' : 'Er is nog geen opgeslagen spel', 2.5);
+  return gelukt;
+}
+
+window.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (editor && editor.actief) return;      // in de editor bewaart Ctrl+S de wijk
+  if (e.code === 'F5') { e.preventDefault(); bewaarSpelNu(); }
+  else if (e.code === 'F9') { e.preventDefault(); laadSpelNu(); }
+});
+
+startKnop.addEventListener('click', () => startGame(false));
+verderKnop.addEventListener('click', () => startGame(true));
+// een klik op het beeld doet hetzelfde als de eerste knop
+canvas.addEventListener('click', () => { if (!player.active) startGame(!verderKnop.hidden); });
 window.addEventListener('keydown', e => {
   if (e.code !== 'Escape') return;
   if (player.active && !document.pointerLockElement) pauseGame();
 });
+toonOpslagKeuze();
 document.addEventListener('pointerlockchange', () => {
   // Esc geeft de muis vrij; dan pauzeren we ook echt.
   if (!document.pointerLockElement && player.active && !dragHint) pauseGame();
@@ -357,7 +440,7 @@ const sfeer = initSfeer({
 // Wijkeditor (F2)
 const editor = initEditor({
   scene, camera, player, hud, npcs, vehicles,
-  onRebuild: () => { applyEnvIntensity(scene); },
+  onRebuild: () => { applyEnvIntensity(scene); verhaal.meldAan(); },
 });
 
 // Hoofdlus
@@ -394,8 +477,9 @@ function loop() {
       player.lastCarYaw = car.yaw;
       player.gun.visible = false;
     } else player.lastCarYaw = undefined;
-    vehicles.updateTraffic(dt, player, npcs.people);
+    vehicles.updateTraffic(dt, player, opDeWeg);
     npcs.update(dt, time);
+    verhaal.update(dt);
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
     sun.position.set(cx + SUN_DIR.x * 150, SUN_DIR.y * 150, cz + SUN_DIR.z * 150);
@@ -407,7 +491,7 @@ function loop() {
     geluid.radio(afstandTotRadio(cx, cz));
     lodKlok += dt;
     if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); }
-    hud.update(dt, player, vehicles, npcs, nearestRoadName(cx, cz));
+    hud.update(dt, player, vehicles, npcs, nearestRoadName(cx, cz), verhaal.aanspreekbaar);
   }
   if (!player.active && !window.__autoplay) {
     // op het startscherm draaien de wolken en de minikaart gewoon door
@@ -415,15 +499,19 @@ function loop() {
     updateClouds(dt, camera.position.x, camera.position.z);
     sfeer.update(dt, camera.position.x, camera.position.z);
     npcs.update(dt, time);
-    vehicles.updateTraffic(dt, player, npcs.people);
-    hud.update(dt, player, vehicles, npcs, nearestRoadName(camera.position.x, camera.position.z));
+    vehicles.updateTraffic(dt, player, opDeWeg);
+    verhaal.update(dt);
+    hud.update(dt, player, vehicles, npcs, nearestRoadName(camera.position.x, camera.position.z), verhaal.aanspreekbaar);
   }
   renderer.render(scene, window.__bovenCam || camera);
 }
 loop();
 
 // Testhaak voor automatische screenshots
-window.__game = { scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer };
+window.__game = {
+  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal,
+  opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto,
+};
 
 // Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,
 // op exact `schaal` pixels per meter, met dezelfde omhullende als de kaartplaat
@@ -449,6 +537,7 @@ if (BOVEN && KAART) {
     for (const m of Object.values(npcs.meshes)) m.visible = false;
     npcs.fiets.visible = false;
     player.gun.visible = false;
+    if (verhaal.buurman) verhaal.buurman.groep.visible = false;   // hij hoort bij de mensen
     for (const l of clouds) l.mesh.visible = false;
     if (!plat) { sun.position.set(ortho.position.x + 60, 300, ortho.position.z + 40); sun.target.position.set(ortho.position.x, 0, ortho.position.z); sun.target.updateMatrixWorld(); }
     window.__bovenCam = ortho;

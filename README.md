@@ -23,7 +23,8 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 |---|---|
 | W A S D | lopen (shift = sprinten, spatie = springen) |
 | muis | rondkijken · linkermuisknop = schieten · R = herladen |
-| E | in- en uitstappen bij een auto |
+| E | praten (en het gesprek doorklikken) · anders in- en uitstappen bij een auto |
+| F5 / F9 | spel opslaan / opgeslagen spel laden |
 | in de auto: W/S, A/D, spatie | gas/rem, sturen, handrem |
 | M | grote kaart van de wijk met straatnamen |
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
@@ -34,6 +35,42 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
 vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstappen, de kaart en pauze.
+
+## Het verhaal: Molenkrite 15
+
+Je heet **Erik** en staat bij het eerste opstarten op de berm voor **Molenkrite 15** — het vierde huis
+na de knik in de straat, aan de kant met de dakkapellen. Op de stoep voor dat huis staat een buurman
+die je aankijkt en naar je zwaait.
+
+![Voor Molenkrite 15](docs/screenshots/molenkrite15.png)
+
+Met **E** spreek je hem aan. Het gesprek staat onderin het scherm en klik je met **E** door (op een
+telefoon: tik op de 🚗-knop om te praten en op de tekstbalk om door te klikken).
+
+![Het gesprek](docs/screenshots/molenkrite15_gesprek.png)
+
+Daarna loopt hij de Molenkrite over naar het gezelschap dat schuin tegenover, in de voortuin van
+**Molenkrite 20**, met een radio en een flesje bier in de tuin zit. Daar draait hij zich naar je om.
+
+![De opdracht](docs/screenshots/molenkrite15_bevel.png)
+
+Alle plekken in de scène komen uit de kaartdata: het pand met huisnummer 15 aan de Molenkrite en het
+pand schuin tegenover. In `js/verhaal.js` staat geen enkele coördinaat, alleen de twee adressen en de
+afstanden vanaf de voorgevel — verhuist een pand in de brondata, dan verhuist de scène mee.
+
+`npm run verhaaltest` loopt het hele verhaal na (startpunt, zwaaien, gesprek, wandeling, opdracht,
+schieten, opslaan en laden) en `npm run verhaalshots` maakt de drie foto's hierboven.
+
+## Opslaan en laden
+
+Er is één opslagplek, in de browser (de Windows-app draait dezelfde pagina en gebruikt dezelfde).
+**F5** bewaart je spel, **F9** zet het terug. Bewaard worden: waar je staat en waar je naar kijkt, je
+munitie, de auto waar je in zat, de tijd van de dag, het weer en hoe ver het verhaal is.
+
+Staat er een opgeslagen spel, dan biedt het startscherm **Verder spelen** aan naast **Nieuw spel**, met
+de datum van de opslag erbij; na **Esc** is datzelfde scherm het pauzescherm met **Doorgaan**. De wijk
+zelf zit niet in de opslag: huizenrijen en objecten uit de wijkeditor hebben hun eigen opslag, zodat
+een gewone opslag nooit werk aan de wijk overschrijft.
 
 ## Windows-app en wijkeditor
 
@@ -75,7 +112,7 @@ dof en hoor je het op je jas.
 Alle geluid is gesynthetiseerd met de Web Audio API, er zijn geen geluidsbestanden: wind, vogels
 overdag en krekels 's avonds, regen, voetstappen die verschillen op klinkers, tegels en gras, een
 motor waarvan de toonhoogte met de snelheid meeloopt, schoten, herladen en portieren. In de
-voortuin van 19 Molenkrite staat een radio op een tafeltje die echt speelt: hoe dichter je erbij
+voortuin van Molenkrite 20 staat een radio op een tafeltje die echt speelt: hoe dichter je erbij
 staat, hoe harder je hem hoort.
 
 ## Straten in het spel
@@ -98,12 +135,20 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
 - `js/editor.js` – de wijkeditor (F2): huizenrijen en objecten
 - `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, zittende buren met een biertje, ...)
+- `js/verhaal.js` – het verhaal in de Molenkrite: de buurman voor nummer 15, het gesprek onderin het
+  scherm, zijn wandeling naar de bierdrinkers schuin tegenover en de opdracht. Alle plekken komen uit
+  de kaartdata via de huisnummers
+- `js/persoon.js` – één los poppetje dat kan staan, zwaaien, lopen en je aankijken (de voetgangers in
+  `npc.js` zijn instanced meshes en kunnen dat niet)
+- `js/opslag.js` – opslaan en laden van het spel (F5 en F9)
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd
 - `tools/geo/` – de geodata-keten: `bgt2geojson.mjs` en `bag3d2geojson.mjs` (ruwe downloads → GeoJSON),
   `genereer.mjs` (→ `js/kaart.js`), `plaat.mjs` (kaartplaat van de brondata), `bovenaanzicht.mjs`
   (bovenaanzicht van het spel en pixelvergelijking met de plaat), `controle.mjs` (keurt de brondata),
   `rd.mjs` (RD ↔ Google Maps ↔ spel), `skelet.mjs` (wegassen uit rijbaanvlakken)
+- `tools/verhaaltest.mjs` – loopt het verhaal na en toetst opslaan en laden
+- `tools/verhaalshots.mjs` – maakt de foto's van het verhaal
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen
