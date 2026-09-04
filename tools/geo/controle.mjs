@@ -23,7 +23,7 @@ const BRONNEN = [
   { naam: 'bgt_wegdeel.geojson',              omschrijving: 'BGT wegdeel (rijbaan, voetpad, fietspad, parkeervlak, inrit)', klasse: ['functie', 'bgt_functie', 'function'], extra: ['fysiekVoorkomen', 'bgt_fysiekvoorkomen', 'surfaceMaterial'], verplicht: true },
   { naam: 'bgt_ondersteunendwegdeel.geojson', omschrijving: 'BGT ondersteunend wegdeel (berm, verkeerseiland)', klasse: ['functie', 'bgt_functie', 'function'], extra: ['fysiekVoorkomen', 'bgt_fysiekvoorkomen', 'surfaceMaterial'], verplicht: true },
   { naam: 'bgt_begroeidterreindeel.geojson',  omschrijving: 'BGT begroeid terreindeel (gras, groenvoorziening, bosplantsoen)', klasse: ['fysiekVoorkomen', 'bgt_fysiekvoorkomen', 'class'], extra: ['plus_fysiekVoorkomen', 'plus_fysiekvoorkomen'], verplicht: true },
-  { naam: 'bgt_onbegroeidterreindeel.geojson', omschrijving: 'BGT onbegroeid terreindeel (erf, open verharding, zand)', klasse: ['fysiekVoorkomen', 'bgt_fysiekvoorkomen', 'class'], verplicht: true },
+  { naam: 'bgt_onbegroeidterreindeel.geojson', omschrijving: 'BGT onbegroeid terreindeel (erf, open verharding, zand)', klasse: ['fysiekVoorkomen', 'bgt_fysiekVoorkomen', 'bgt_fysiekvoorkomen', 'class'], extra: ['plus_fysiekVoorkomen'], verplicht: true },
   { naam: 'bgt_waterdeel.geojson',            omschrijving: 'BGT waterdeel (sloot, vijver, kanaal)', klasse: ['type', 'bgt_type', 'class'], verplicht: true },
   { naam: 'bgt_ondersteunendwaterdeel.geojson', omschrijving: 'BGT ondersteunend waterdeel (oever, slootkant)', klasse: ['type', 'bgt_type', 'class'], verplicht: false },
   { naam: 'bgt_pand.geojson',                 omschrijving: 'BGT pand (grondvlak van elk gebouw)', klasse: ['bgt_status', 'status'], verplicht: true },
@@ -36,9 +36,14 @@ const BRONNEN = [
   { naam: 'bgt_kunstwerkdeel.geojson',        omschrijving: 'BGT kunstwerkdeel (brug, duiker)', klasse: ['type', 'bgt_type', 'class'], verplicht: false },
   { naam: 'bgt_weginrichtingselement.geojson', omschrijving: 'BGT weginrichtingselement (drempel, wegmarkering)', klasse: ['type', 'bgt_type', 'class'], verplicht: false },
   { naam: 'bgt_openbareruimtelabel.geojson',  omschrijving: 'BGT openbareruimtelabel (straatnaam op de kaart)', klasse: ['openbareRuimteType', 'openbareruimtetype', 'type'], extra: ['tekst', 'text', 'label'], verplicht: true },
-  { naam: 'bag_pand.geojson',                 omschrijving: 'BAG pand (identificatie, bouwjaar, status)', klasse: ['status'], extra: ['bouwjaar', 'oorspronkelijkBouwjaar', 'oorspronkelijkbouwjaar'], verplicht: true },
-  { naam: 'bag_verblijfsobject.geojson',      omschrijving: 'BAG verblijfsobject (huisnummer, straat, gebruiksdoel)', klasse: ['gebruiksdoel'], extra: ['openbare_ruimte', 'openbareRuimteNaam', 'openbareruimtenaam', 'straatnaam'], verplicht: true },
-  { naam: 'bag3d_pand.geojson',               omschrijving: '3D BAG (daktype, goot- en nokhoogte per pand)', klasse: ['b3_dak_type'], extra: ['b3_h_dak_50p', 'b3_h_maaiveld', 'b3_h_dak_max', 'b3_h_dak_min', 'identificatie'], verplicht: true },
+  { naam: 'bgt_functioneelgebied.geojson',    omschrijving: 'BGT functioneel gebied (speeltuin, park, begraafplaats)', klasse: ['bgt_type', 'type'], extra: ['naam'], verplicht: false },
+  { naam: 'bgt_overbruggingsdeel.geojson',    omschrijving: 'BGT overbruggingsdeel (brugdek, viaduct)', klasse: ['bgt_type', 'type', 'class'], verplicht: false },
+  { naam: 'bgt_spoor.geojson',                omschrijving: 'BGT spoor', klasse: ['function', 'functie'], verplicht: false },
+  // BAG-adressen zijn welkom maar niet nodig: 3D BAG levert identificatie, bouwjaar en status,
+  // en de BGT zet de huisnummers al op het pand (nummeraanduidingreeks).
+  { naam: 'bag_pand.geojson',                 omschrijving: 'BAG pand (identificatie, bouwjaar, status)', klasse: ['status'], extra: ['bouwjaar', 'oorspronkelijkBouwjaar', 'oorspronkelijkbouwjaar'], verplicht: false },
+  { naam: 'bag_verblijfsobject.geojson',      omschrijving: 'BAG verblijfsobject (huisnummer, straat, gebruiksdoel)', klasse: ['gebruiksdoel'], extra: ['openbare_ruimte', 'openbareRuimteNaam', 'openbareruimtenaam', 'straatnaam'], verplicht: false },
+  { naam: 'bag3d_pand.geojson',               omschrijving: '3D BAG (daktype, goot- en nokhoogte, bouwjaar per pand)', klasse: ['b3_dak_type'], extra: ['goothoogte', 'nokhoogte', 'b3_h_maaiveld', 'oorspronkelijkbouwjaar', 'status', 'identificatie'], verplicht: true },
 ];
 
 const problemen = [], waarschuwingen = [];
@@ -157,8 +162,9 @@ for (const b of BRONNEN) {
   else if (gebiedBbox) {
     const bb = bbox(fs);
     if (!overlapt(bb, gebiedBbox)) { status = '**buiten gebied**'; problemen.push(`${b.naam} ligt volledig buiten het gebied`); }
-    else if (bb[2] - bb[0] > (gebiedBbox[2] - gebiedBbox[0]) * 1.5 || bb[3] - bb[1] > (gebiedBbox[3] - gebiedBbox[1]) * 1.5) {
-      status = 'ok, niet geknipt'; waarschuwingen.push(`${b.naam} is veel groter dan het gebied; knip op gebied.geojson om het spel klein te houden`);
+    else if (bb[2] - bb[0] > (gebiedBbox[2] - gebiedBbox[0]) * 3 || bb[3] - bb[1] > (gebiedBbox[3] - gebiedBbox[1]) * 3) {
+      // Lange wegen, sloten en de N7 lopen door tot ver buiten het gebied; de generator knipt ze.
+      status = 'ok, loopt door buiten gebied';
     }
   }
   const k = kolom(fs, b.klasse);
@@ -194,6 +200,18 @@ if (bagPanden && bag3dPanden) {
   } else regel('- kon BAG en 3D BAG niet koppelen: geen kolom identificatie');
 }
 if (bagPanden && bgtPanden) regel(`- BGT-panden: ${bgtPanden.length} tegenover BAG-panden: ${bagPanden.length} (hoort ongeveer gelijk te zijn)`);
+if (bgtPanden && bag3dPanden) {
+  const idBgt = kolom(bgtPanden, ['identificatieBAGPND', 'identificatiebagpnd']);
+  const id3d = kolom(bag3dPanden, ['identificatie', 'pand_id', 'id']);
+  if (idBgt && id3d) {
+    const norm = (v) => String(v).replace(/^NL\.IMBAG\.Pand\./, '');
+    const set3d = new Set(bag3dPanden.map(f => norm(f.properties[id3d])));
+    const zonder = bgtPanden.filter(f => !set3d.has(norm(f.properties[idBgt])));
+    const metNummer = zonder.filter(f => f.properties.huisnummers?.length).length;
+    regel(`- BGT-panden: ${bgtPanden.length}; met 3D BAG-model: ${bgtPanden.length - zonder.length}; zonder: ${zonder.length}, waarvan ${metNummer} met huisnummer (de rest zijn meestal schuurtjes en garages, die krijgen een standaardhoogte)`);
+    if (metNummer > 0) waarschuwingen.push(`${metNummer} BGT-panden met huisnummer hebben geen 3D BAG-model (nieuwbouw na de 3D BAG-versie?)`);
+  }
+}
 regel();
 
 // ------------------------------------------------------------------ uitkomst

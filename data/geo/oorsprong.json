@@ -1,0 +1,9 @@
+{
+  "naam": "kruispunt Molenkrite / Monnikmolen / Jasker",
+  "bron": "Google Maps, rechtsklik op het midden van het plateau: 53.020904, 5.643757 (omgerekend met tools/geo/rd.mjs)",
+  "wgs84": [53.020904, 5.643757],
+  "rd": [172214.98, 559360.95],
+  "ijkpunten": [
+    { "omschrijving": "plateau Molenkrite / Monnikmolen / Jasker", "px": [370, 1245], "rd": [172214.98, 559360.95] }
+  ]
+}
