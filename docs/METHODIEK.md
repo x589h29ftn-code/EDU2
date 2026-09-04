@@ -278,14 +278,51 @@ Stap 8 staat hier los, bewust: de besturing en de wereld zijn twee verschillende
 problemen. De methodiek hierboven lost het wereldprobleem definitief op; daarna is
 de besturing een gewone spelfeature zonder onzekerheid over de kaart.
 
-## 9. Wat er nu al in de repo staat
+## 9. Stand van zaken
 
-- `tools/geo/rd.mjs` — RD ↔ WGS84 ↔ spelwereld, affiene fit voor de oude
-  pixelkaart, zelftest (`node tools/geo/rd.mjs test`).
-- `tools/geo/controle.mjs` — controleverslag van de brondata (stap 2).
-- `data/geo/README.md` — welk bestand waar, met welke kolommen.
-- `data/geo/oorsprong.voorbeeld.json` — voorbeeld van het oorsprongbestand.
+Stap 1 en 2 zijn af. In de repo staat:
 
-`genereer.mjs` en `bovenaanzicht.mjs` worden bewust pas geschreven als de echte
-brondata in de repo staat, tegen de echte kolomnamen en aantallen. Code schrijven
-tegen een voorstelling van de data is precies de fout die deze methodiek wegneemt.
+- `data/geo/gebied.geojson` — het werkgebied: RD X 171870–172600, Y 558920–559790
+  (730 × 870 m), de kern van Tinga met de N7 aan de noordkant, binnen 3D BAG-tegel
+  9-632-1008. Het zuidoostelijke deel van de wijk (Kaar, Koningsspil, Zomermeter)
+  valt buiten deze tegel; daarvoor is later een tweede tegel nodig.
+- `data/geo/oorsprong.json` — het kruispunt Molenkrite / Monnikmolen / Jasker op
+  RD 172214.98, 559360.95 (uit Google Maps 53.020904, 5.643757). Nog zonder
+  ijkpunten voor de oude pixelkaart.
+- `data/geo/bron/bgt_tinga.zip.zip` — de ruwe BGT-download (CityGML, heel zuidelijk
+  Sneek) en `9-632-1008.gpkg` + `9-632-1008.city.json` — de 3D BAG-tegel.
+- `data/geo/bron/bgt_*.geojson` — de BGT per objecttype, alleen actuele objecten in
+  het gebied, gemaakt door `tools/geo/bgt2geojson.mjs`. Onder meer 670 wegdelen,
+  831 begroeide terreindelen, 48 waterdelen, 1327 panden met 901 huisnummerlabels
+  en 65 straatnaamlabels.
+- `data/geo/bron/bag3d_pand.geojson` — 1032 panden uit 3D BAG met daktype,
+  maaiveld-, goot- en nokhoogte, bouwjaar en status, gemaakt door
+  `tools/geo/bag3d2geojson.mjs`.
+- `data/geo/bgt-plaat.png` + `.pgw` — de kaartplaat van al die data op 4 px/m, met
+  world-bestand, gemaakt door `tools/geo/plaat.mjs`. Dit is de referentie waar het
+  bovenaanzicht van het spel straks pixel voor pixel tegen wordt gelegd.
+- `tools/geo/rd.mjs` — RD ↔ WGS84 ↔ spelwereld, affiene fit, zelftest.
+- `tools/geo/controle.mjs` — het controleverslag; staat op "Geen problemen".
+
+Wat de data over Tinga zegt, en wat dat voor de volgende stappen betekent:
+
+- **Rijbanen zijn klinkers.** Van de 670 wegdelen zijn er 603 open verharding;
+  `plus_fysiekVoorkomenWegdeel` maakt onderscheid tussen betonstraatstenen (grijs)
+  en gebakken klinkers (rood). De N7 en de Buitenroede zijn asfalt. De kleur van de
+  straat hoeft dus niet meer uit een foto.
+- **Verkeersdrempels staan erin** (27 stuks, `plus_functieWegdeel`).
+- **Huisnummers staan op het pand** (901 panden). Een adres opzoeken is daarmee een
+  tabelvraag, geen zoektocht op Street View.
+- **Bomen en lantaarnpalen staan er niet in.** Súdwest-Fryslân vult de optionele
+  BGT-objecten paal, bak en straatmeubilair niet; van vegetatieobjecten zijn alleen
+  18 hagen aanwezig. Bosplantsoen en heesters staan wél als vlakken in het begroeide
+  terreindeel. Losse bomen en lichtmasten komen dus uit een andere bron (luchtfoto,
+  OpenStreetMap of een vaste plaatsingsregel langs de berm) en horen daarom in stap 5
+  als aparte, controleerbare laag.
+- **295 BGT-panden hebben geen 3D BAG-model**; 220 daarvan zijn kleine bijgebouwen
+  (mediaan 8 m²), 75 zijn woningen met huisnummer ten noorden van de Buitenroede,
+  vermoedelijk nieuwbouw. Die krijgen een standaardhoogte tot een nieuwere 3D BAG er
+  is.
+
+Volgende stap is stap 3: `tools/geo/genereer.mjs` voor de ondergrond, en het
+bovenaanzicht van het spel met dezelfde omhullende en schaal als `bgt-plaat.png`.
