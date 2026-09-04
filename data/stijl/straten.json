@@ -16,7 +16,7 @@
     "de Hekken":    { "type": "hekken", "bron": "foto: de Hekken 5" },
     "Grootwiel":    { "type": "grootwiel", "plat": "jasker_flat", "bron": "foto: Grootwiel 7" },
     "Omloop":       { "type": "grootwiel", "plat": "jasker_flat", "bron": "aanname; Omloop 45 heeft een plat dak en krijgt het Jasker-type" },
-    "Buitenroede":  { "type": "tinga_blauw", "bron": "oude kaart" },
+    "Buitenroede":  { "type": "tinga_blauw", "bron": "oude kaart (woningen); de RWZI op nr 1 krijgt zijn typen via terreinen in omgeving.json" },
     "Eekmolen":     { "type": "eekmolen", "bron": "foto: Eekmolen 21" },
     "Zeskanter":    { "type": "eekmolen", "bron": "aanname, zelfde buurt als Eekmolen" }
   },

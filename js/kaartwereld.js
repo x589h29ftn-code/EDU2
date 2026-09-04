@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import * as T from './textures.js';
 import { KLEUR } from './kaartkleuren.js';
+import { PROP_TYPES } from './props.js';
 
 export let KAART = null;
 export function zetKaart(k) { KAART = k; }
@@ -148,6 +149,12 @@ function materialen(MAT) {
   KM.hekje = new THREE.MeshStandardMaterial({ map: T.hekje(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9 });
   KM.streep = MAT.streep;
   KM.drempel = new THREE.MeshStandardMaterial({ map: T.zebra(), roughness: 0.9 });
+  // omheinde terreinen (RWZI): spijlenhek, staal, betonnen bakken met water, silo's
+  KM.spijlen = new THREE.MeshStandardMaterial({ map: T.spijlenhek(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.55, metalness: 0.35 });
+  KM.staal = new THREE.MeshStandardMaterial({ color: 0x6b7178, roughness: 0.5, metalness: 0.5 });
+  KM.betonwand = new THREE.MeshStandardMaterial({ color: 0xa9a59b, roughness: 0.95, side: THREE.DoubleSide });
+  KM.tankwater = new THREE.MeshStandardMaterial({ color: 0x3d5457, roughness: 0.25, metalness: 0.1 });
+  KM.silo = new THREE.MeshStandardMaterial({ color: 0x8b9197, roughness: 0.4, metalness: 0.55 });
   KM.gevel = new Map();     // gedeelde gevel- en steenmaterialen per sleutel
   // platte controlekleuren
   KM.plat = {};
@@ -245,7 +252,12 @@ export function bouwKaartWereld(scene, W) {
       obj.position.set(o.x, KERB_Y, o.z); obj.rotation.y = (o.yaw || 0) * Math.PI / 180;
       obj.traverse(c => { c.castShadow = true; c.receiveShadow = true; });
       scene.add(obj);
+      const def = PROP_TYPES[o.type];
+      if (def && def.maat) W.addCollider(o.x, o.z, def.maat[0] / 2, def.maat[1] / 2, -obj.rotation.y, def.h || 2);
     }
+    // omheinde terreinen: hekwerk, poort, bezinkbakken en tanks
+    bouwTerreinen(scene, W);
+    bouwBouwwerken(scene, W);
     if (K.struiken.length) {
       const geo = new THREE.SphereGeometry(0.7, 7, 5);
       const im = new THREE.InstancedMesh(geo, KM.struik, K.struiken.length);
@@ -311,11 +323,14 @@ function bouwPanden(scene, W, plat) {
     for (const p of punten) { const u = p[0] * r[0] + p[2] * r[2]; if (u < u0) u0 = u; if (u > u1) u1 = u; if (p[1] > top) top = p[1]; }
     const breed = u1 - u0;
     const kant = pand.front ? n[0] * pand.front[0] + n[2] * pand.front[1] : 0;
-    const gevel = !pand.boven && st && pand.type !== 'schuur' && breed >= 2.4 && Math.abs(n[1]) < 0.3 && (kant > 0.6 || kant < -0.6);
+    // bedrijfsgebouw (RWZI): de bedrijfsgevel aan alle kanten, geen dakkapellen
+    const ind = !!(st && st.industrieel);
+    // (lage bedrijfsmuren onder 2,6 m, zoals de randen van de bakken, blijven kale steen)
+    const gevel = !pand.boven && st && pand.type !== 'schuur' && breed >= 2.4 && Math.abs(n[1]) < 0.3 && (ind ? top >= 2.6 : (kant > 0.6 || kant < -0.6));
     // Dakkapel: een muurvlak dat helemaal boven de goot begint. Witte wangen,
     // en aan de voorkant het kozijn van de dakkapel.
     let laagste = Infinity; for (const p of punten) laagste = Math.min(laagste, p[1]);
-    if (st && pand.goot && laagste > pand.goot - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven) {
+    if (st && !ind && pand.goot && laagste > pand.goot - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven) {
       if (Math.abs(kant) > 0.6 && breed >= 1.2) {
         const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel');
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
@@ -342,17 +357,22 @@ function bouwPanden(scene, W, plat) {
       // baksteen: 2,6 m per texture
       return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 2.6, p[1] / 2.6] };
     }
-    const achter = kant < 0;
+    const achter = !ind && kant < 0;
     const SH = st.storeyH || 2.9;
-    const lagen = Math.max(1, Math.min(4, Math.round(top / SH)));
+    // bedrijfsgevel: het aantal lagen past op de echte muurhoogte en de
+    // texture wordt over de hele muur uitgerekt, zodat de dakrand bovenaan zit
+    const lagen = ind ? Math.max(1, Math.min(4, Math.floor(top / SH + 0.35))) : Math.max(1, Math.min(4, Math.round(top / SH)));
     const huizen = Math.max(1, Math.round(breed / st.w));
     const sleutel = `gevel|${pand.type}|${huizen}|${lagen}|${achter}|${seed % 6}`;
     const g = groep(sleutel, () => std(T.facade(pand.type, huizen, lagen, achter, seed % 6)), achter ? 'achtergevel' : 'voorgevel');
-    const hoogte = lagen * SH;
-    return { g, uvf: (p) => [((p[0] * r[0] + p[2] * r[2]) - u0) / breed * huizen, Math.min(1, p[1] / hoogte)] };
+    const hoogte = ind ? Math.max(top, 2.5) : lagen * SH;
+    // de texture bevat alle `huizen` naast elkaar, dus u loopt over de hele muur
+    // van 0 tot 1 (met ×huizen zag een brede muur alleen de laatste pixelkolom)
+    return { g, uvf: (p) => [((p[0] * r[0] + p[2] * r[2]) - u0) / breed, Math.min(1, p[1] / hoogte)] };
   };
   const dakGroep = (pand, hellend) => {
     const st = T.HOUSE_STYLES[pand.type];
+    if (!hellend && st && st.industrieel) return groep(`dak|plat|${st.roof}`, () => new THREE.MeshStandardMaterial({ color: st.roof, roughness: 0.6, metalness: 0.3 }), 'platdak');
     if (!hellend) return groep('dak|plat', () => std(T.bitumen()), 'platdak');
     const kleur = st ? st.roof : '#4a3a33';
     return groep(`dak|${kleur}`, () => std(T.roofTiles(kleur, 5)), 'dak');
@@ -390,7 +410,7 @@ function bouwPanden(scene, W, plat) {
   const vlak3d = (pand, ringen, soort) => {
     const buiten = ringen[0];
     const n = normaal(buiten);
-    if (soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1 && !pand.boven) {
+    if (soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1 && !pand.boven && !(T.HOUSE_STYLES[pand.type] || {}).industrieel) {
       // Muren boven de goot doorknippen: eronder de gevel, erboven een kopgevel
       // (tot de nok) of de wang van een dakkapel (lager dan de nok). 3D BAG trekt
       // de wanden van een dakkapel door tot de grond, dus zonder knip zou de
@@ -462,6 +482,96 @@ function bouwPanden(scene, W, plat) {
     if (m) { if (plat) m.material.side = THREE.DoubleSide; scene.add(m); }
   }
   console.log(`kaart: ${met3d} panden met 3D BAG-dak, ${geschat} geschat, ${groepen.size} materialen, ${K.vlakken.length} vlakken, ${K.wegassen.length} wegassen`);
+}
+
+// Hekwerken en poorten van de omheinde terreinen (RWZI, data/stijl/omgeving.json):
+// een spijlenhek van 2 m op panelen van 2,5 m als één doorzichtig vlak per
+// hekstuk (twee kanten zichtbaar door DoubleSide), met een botsingsdoos per
+// segment. De schuifpoort: twee zware palen en een hekblad in een stalen kader
+// dat een stukje openstaat, zodat je te voet het terrein op kunt.
+function bouwTerreinen(scene, W) {
+  const K = KAART;
+  const sp = { pos: [], uv: [], nor: [] };
+  const paneel = (a, b, y0, h, offset = 0) => {
+    const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 0.2) return;
+    const nx = dz / L, nz = -dx / L;
+    const q = [[a[0], y0 + h, a[1]], [b[0], y0 + h, b[1]], [b[0], y0, b[1]], [a[0], y0, a[1]]];
+    for (const [i0, i1, i2] of [[0, 1, 2], [0, 2, 3]]) for (const k of [i0, i1, i2]) {
+      const v = q[k]; sp.pos.push(v[0], v[1], v[2]); sp.uv.push((offset + (k === 1 || k === 2 ? L : 0)) / 2.5, (v[1] - y0) / h); sp.nor.push(nx, 0, nz);
+    }
+  };
+  for (const hw of K.hekwerken || []) {
+    let s = 0;
+    for (let i = 1; i < hw.pts.length; i++) {
+      const a = hw.pts[i - 1], b = hw.pts[i]; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 0.2) continue;
+      paneel(a, b, KERB_Y, hw.h, s); s += L;
+      W.addCollider((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, L / 2, 0.08, -Math.atan2(b[1] - a[1], b[0] - a[0]), hw.h);
+    }
+  }
+  for (const p of K.poorten || []) {
+    const dx = p.b[0] - p.a[0], dz = p.b[1] - p.a[1], L = Math.hypot(dx, dz); if (L < 1) continue;
+    const ux = dx / L, uz = dz / L, open = Math.min(p.open || 0, L - 0.5), draai = -Math.atan2(uz, ux);
+    const paal = new THREE.BoxGeometry(0.18, p.h + 0.4, 0.18);
+    for (const q of [p.a, p.b]) {
+      const m = new THREE.Mesh(paal, KM.staal); m.position.set(q[0], KERB_Y + (p.h + 0.4) / 2, q[1]); m.castShadow = true; scene.add(m);
+      W.addCollider(q[0], q[1], 0.12, 0.12, 0, p.h);
+    }
+    // het hekblad, vanaf paal a `open` meter opzij geschoven (het steekt dan voorbij paal b)
+    const blad = [p.a[0] + ux * open, p.a[1] + uz * open], eind = [p.a[0] + ux * (open + L), p.a[1] + uz * (open + L)];
+    paneel(blad, eind, KERB_Y + 0.1, p.h - 0.2, 0);
+    const kader = new THREE.Group();
+    for (const y of [KERB_Y + 0.12, KERB_Y + p.h - 0.12]) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(L, 0.07, 0.07), KM.staal);
+      b.position.set((blad[0] + eind[0]) / 2, y, (blad[1] + eind[1]) / 2); b.rotation.y = draai; kader.add(b);
+    }
+    for (const q of [blad, eind]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.08, p.h - 0.2, 0.08), KM.staal); b.position.set(q[0], KERB_Y + p.h / 2, q[1]); kader.add(b); }
+    kader.traverse(c => { c.castShadow = true; }); scene.add(kader);
+    W.addCollider((blad[0] + eind[0]) / 2, (blad[1] + eind[1]) / 2, L / 2, 0.08, draai, p.h);
+  }
+  const m = maakMesh(sp.pos, sp.uv, sp.nor, KM.spijlen, { klasse: 'hekwerk', schaduw: true }); if (m) scene.add(m);
+}
+
+// Bezinkbakken en tanks (BGT overig bouwwerk, op de RWZI): een ronde betonnen
+// bak van 1,6 m met donker water erin en een ruimerbrug op een middenkolom, een
+// opslagtank als stalen silo van 6 m, overige bouwwerken als laag betonblok.
+// In de kaartplaat blijven ze de platte 'bouwwerk'-vlakken die ze al waren.
+function bouwBouwwerken(scene, W) {
+  const K = KAART;
+  const beton = { pos: [], uv: [], nor: [] }, water = { pos: [], uv: [], nor: [] }, silo = { pos: [], uv: [], nor: [] };
+  for (const v of K.vlakken) {
+    if (v.k !== 'bouwwerk') continue;
+    const ring = v.r[0];
+    let cx = 0, cz = 0; for (const p of ring) { cx += p[0]; cz += p[1]; } cx /= ring.length; cz /= ring.length;
+    let rMax = 0; for (const p of ring) rMax = Math.max(rMax, Math.hypot(p[0] - cx, p[1] - cz));
+    const rond = ring.length >= 40;
+    if (v.sub === 'bezinkbak' && rond) {
+      const h = 1.6;
+      const binnen = ring.map(p => [cx + (p[0] - cx) * (1 - 0.35 / rMax), cz + (p[1] - cz) * (1 - 0.35 / rMax)]);
+      randGeometrie([ring], h, -0.02, beton.pos, beton.uv, beton.nor);          // buitenwand
+      vlakGeometrie([ring, binnen], h, 0.5, beton.pos, beton.uv, beton.nor);    // rand bovenop
+      randGeometrie([binnen], h, h - 0.35, beton.pos, beton.uv, beton.nor);     // binnenwand
+      vlakGeometrie([binnen], h - 0.3, 0.05, water.pos, water.uv, water.nor);   // water
+      if (rMax < 30) {
+        // ruimerbrug van het midden naar de rand, met een middenkolom
+        const brug = new THREE.Group();
+        const dek = new THREE.Mesh(new THREE.BoxGeometry(rMax + 0.6, 0.12, 1.0), KM.staal); dek.position.set((rMax + 0.6) / 2 - 0.3, h + 0.35, 0); brug.add(dek);
+        for (const z of [-0.5, 0.5]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(rMax + 0.6, 0.04, 0.04), KM.staal); rail.position.set((rMax + 0.6) / 2 - 0.3, h + 1.35, z); brug.add(rail); }
+        const kolom = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, h + 0.8, 12), KM.betonwand); kolom.position.set(0, (h + 0.8) / 2, 0); brug.add(kolom);
+        brug.position.set(cx, 0, cz); brug.rotation.y = (cx * 7 + cz * 3) % 6.28; brug.traverse(c => { c.castShadow = true; }); scene.add(brug);
+        W.addCollider(cx, cz, rMax * 0.72, rMax * 0.72, 0, h);
+      }
+    } else if (v.sub === 'opslagtank' && rond) {
+      const h = 6.0;
+      randGeometrie([ring], h, -0.02, silo.pos, silo.uv, silo.nor);
+      vlakGeometrie([ring], h, 0.5, silo.pos, silo.uv, silo.nor);
+      W.addCollider(cx, cz, rMax * 0.72, rMax * 0.72, 0, h);
+    } else {
+      randGeometrie([ring], v.y, -0.02, beton.pos, beton.uv, beton.nor);
+    }
+  }
+  for (const [g, mat, k] of [[beton, KM.betonwand, 'bezinkbak'], [water, KM.tankwater, 'tankwater'], [silo, KM.silo, 'opslagtank']]) {
+    const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse: k, schaduw: k !== 'tankwater' }); if (m) scene.add(m);
+  }
 }
 
 function bouwLantaarns(scene, W) {
