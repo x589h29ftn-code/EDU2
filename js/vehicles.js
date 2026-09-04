@@ -4,6 +4,7 @@ import { resolveCollisions, pointInWater } from './world.js';
 import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
 import { makeCar } from './carmodel.js';
+import { KAART } from './kaartwereld.js';
 
 const COLORS = [0x1c1e24, 0xd8d9dc, 0x8a8d93, 0x2a3f8f, 0x9c1f1f, 0xffffff, 0x3e3a36, 0x2f6b3a, 0x5b6470, 0xc9c1a8];
 
@@ -20,20 +21,28 @@ export class Vehicles {
       mesh.position.set(s.x, 0, s.z); mesh.rotation.y = s.yaw;
       scene.add(mesh); this.cars.push(car);
     }
-    // verkeer N7 (beide richtingen)
-    const hp = HIGHWAY.pts.map(p => { const [x, z] = toWorld(p[0], p[1]); return new THREE.Vector2(x, z); });
+    // verkeer N7 (beide richtingen). Met de kaart uit de BGT zijn de twee
+    // rijbanen van de N7 losse assen; elke as krijgt verkeer in één richting.
+    const n7 = KAART ? KAART.wegassen.filter(w => w.naam === 'N7' && w.w > 6 && w.lengte > 150).map(w => w.pts.map(p => new THREE.Vector2(p[0], p[1]))) : [];
+    const hp = n7.length ? null : HIGHWAY.pts.map(p => { const [x, z] = toWorld(p[0], p[1]); return new THREE.Vector2(x, z); });
     for (let i = 0; i < 14; i++) {
       const dir = i % 2 ? 1 : -1;
       const lane = (i % 4 < 2) ? 2.1 : 6.2;
       const mesh = makeCar(COLORS[Math.floor(r() * COLORS.length)], r() < 0.3 ? 'van' : 'hatch');
       scene.add(mesh);
-      this.traffic.push({ mesh, path: hp, t: r() * (hp.length - 1), dir, lane, speed: 22 + r() * 8, y: 0.6 });
+      if (n7.length) {
+        const path = n7[i % n7.length];
+        this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: (i % n7.length) ? -1 : 1, lane: (i % 4 < 2) ? 1.6 : -1.6, speed: 22 + r() * 8, y: 0.1 });
+      } else this.traffic.push({ mesh, path: hp, t: r() * (hp.length - 1), dir, lane, speed: 22 + r() * 8, y: 0.6 });
     }
     // wijkverkeer: langzame auto's op Molenkrite, Jasker, Monnikmolen, De Wieken
-    const local = ROADS.filter(rd => ['Molenkrite', 'Jasker', 'Monnikmolen', 'De Wieken', 'Buitenroede', 'Bonkelaar'].includes(rd.name) && rd.pts.length > 3);
-    for (let i = 0; i < 6; i++) {
+    const namen = ['Molenkrite', 'Jasker', 'Monnikmolen', 'De Wieken', 'de Wieken', 'Buitenroede', 'Bonkelaar'];
+    const local = KAART
+      ? KAART.wegassen.filter(w => w.drive && namen.includes(w.naam) && w.lengte > 80).sort((a, b) => b.lengte - a.lengte).slice(0, 8).map(w => ({ pts: w.pts.map(p => new THREE.Vector2(p[0], p[1])) }))
+      : ROADS.filter(rd => namen.includes(rd.name) && rd.pts.length > 3).map(rd => ({ pts: rd.pts.map(p => { const [x, z] = toWorld(p[0], p[1]); return new THREE.Vector2(x, z); }) }));
+    for (let i = 0; i < 6 && local.length; i++) {
       const rd = local[i % local.length];
-      const path = rd.pts.map(p => { const [x, z] = toWorld(p[0], p[1]); return new THREE.Vector2(x, z); });
+      const path = rd.pts;
       const mesh = makeCar(COLORS[Math.floor(r() * COLORS.length)]);
       scene.add(mesh);
       this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: 1, lane: 1.4, speed: 6 + r() * 2, y: 0.1, bounce: true });

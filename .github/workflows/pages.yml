@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - claude/gta-game-tinga-sneek-st3yxi
+      - claude/gta-tinga-game-setup-lcm1jy
       - main
   workflow_dispatch:
 

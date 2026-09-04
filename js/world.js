@@ -4,6 +4,7 @@ import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PROPS, PARKS, PAR
 import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
+import { KAART, bouwKaartWereld, ondergrondKaart, kaartStand } from './kaartwereld.js';
 
 export const colliders = [];   // {cx,cz,hx,hz,cos,sin,h} georiënteerde rechthoeken
 export const roadSegments = []; // voor straatnaam-detectie en NPC-paden: {name,a:[x,z],b:[x,z],w}
@@ -1673,6 +1674,15 @@ export function resetWorld(scene) {
 export function buildWorld(scene) {
   const bekend = new Set(scene.children);
   materials();
+  // Kaart uit BGT en 3D BAG (js/kaart.js): dan komt alles daaruit en blijven
+  // alleen de losse objecten uit de editor (PROPS) over.
+  if (KAART) {
+    bouwKaartWereld(scene, { MAT, colliders, roadSegments, parkSpots, treePositions, lampPosities, waterPolys, addCollider });
+    buildTrees(scene);
+    if (kaartStand() !== 'plat') buildProps(scene);
+    for (const c of scene.children) if (!bekend.has(c)) worldObjects.push(c);
+    return { colliders, roadSegments, parkSpots, waterPolys };
+  }
   for (const poly of WATER) waterPolys.push(poly.map(vec));
   // watergangen omzetten naar een omtrekpolygoon van middellijn + breedte
   for (const ww of WATERWAYS) {
@@ -1758,6 +1768,7 @@ export function pointInWater(x, z) {
 
 // Waar loop je op? Bepaalt de klank van de voetstappen.
 export function ondergrondOp(x, z) {
+  if (KAART) return ondergrondKaart(x, z);
   let best = 1e9, beste = null;
   for (const s of roadSegments) {
     if (s.w === 0) continue;

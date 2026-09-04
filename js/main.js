@@ -10,6 +10,8 @@ import { START, toWorld, ROWS, PROPS } from './data.js';
 import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
 import { initSfeer } from './sfeer.js';
 import { geluid } from './audio.js';
+import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
+import { KLEUR } from './kaartkleuren.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -194,6 +196,20 @@ try {
   if (lokaal) { pasWijkToe(lokaal); console.log(`uit de browser-opslag: ${ROWS.length} rijen, ${PROPS.length} objecten`); }
 }
 
+// Kaart uit BGT en 3D BAG (js/kaart.js). Met ?kaart=oud draait de oude,
+// handgetekende kaart uit data.js; met ?boven=1 komt er een orthografisch
+// bovenaanzicht van het hele gebied (en met &plat=1 in egale controlekleuren).
+const URLP = new URLSearchParams(location.search);
+const BOVEN = URLP.has('boven');
+if (URLP.get('kaart') !== 'oud') {
+  try {
+    const k = await import('./kaart.js');
+    zetKaart(k.KAART);
+    if (BOVEN && URLP.has('plat')) zetStand('plat');
+    console.log(`kaart.js van ${k.KAART.gemaakt}: ${k.KAART.panden.length} panden, ${k.KAART.vlakken.length} vlakken`);
+  } catch (e) { console.warn('geen js/kaart.js, de oude kaart uit data.js wordt gebruikt', e); }
+}
+
 // Wereld
 const t0 = performance.now();
 const world = buildWorld(scene);
@@ -215,8 +231,8 @@ function applyEnvIntensity(root, v = 1.7) {
 }
 applyEnvIntensity(scene);
 
-const [sx, sz] = toWorld(START.at[0], START.at[1]);
-const player = new Player(camera, scene, sx, sz, START.yaw);
+const [sx, sz] = KAART ? [startKaart().x, startKaart().z] : toWorld(START.at[0], START.at[1]);
+const player = new Player(camera, scene, sx, sz, KAART ? startKaart().yaw : START.yaw);
 const vehicles = new Vehicles(scene, world.parkSpots);
 const npcs = new NPCs(scene, world.roadSegments, 130);
 player.applyCamera();   // meteen op ooghoogte op de Molenkrite, ook voor het startscherm
@@ -402,9 +418,42 @@ function loop() {
     vehicles.updateTraffic(dt, player, npcs.people);
     hud.update(dt, player, vehicles, npcs, nearestRoadName(camera.position.x, camera.position.z));
   }
-  renderer.render(scene, camera);
+  renderer.render(scene, window.__bovenCam || camera);
 }
 loop();
 
 // Testhaak voor automatische screenshots
 window.__game = { scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer };
+
+// Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,
+// op exact `schaal` pixels per meter, met dezelfde omhullende als de kaartplaat
+// uit tools/geo/plaat.mjs. tools/geo/bovenaanzicht.mjs maakt er een PNG van.
+if (BOVEN && KAART) {
+  const G = KAART.gebied, S = Number(URLP.get('schaal') || 4);
+  const W = Math.round((G.x1 - G.x0) * S), H = Math.round((G.z1 - G.z0) * S);
+  const ortho = new THREE.OrthographicCamera(-(G.x1 - G.x0) / 2, (G.x1 - G.x0) / 2, (G.z1 - G.z0) / 2, -(G.z1 - G.z0) / 2, 1, 600);
+  ortho.position.set((G.x0 + G.x1) / 2, 300, (G.z0 + G.z1) / 2);
+  ortho.up.set(0, 0, -1);            // noorden boven
+  ortho.lookAt((G.x0 + G.x1) / 2, 0, (G.z0 + G.z1) / 2);
+  scene.fog = null;
+  const plat = URLP.has('plat');
+  if (plat) { renderer.toneMapping = THREE.NoToneMapping; scene.background = new THREE.Color(KLEUR.achtergrond); }
+  else { scene.background = new THREE.Color(0xdfe6ee); }
+  renderer.shadowMap.enabled = !plat;
+  window.__boven = () => {
+    renderer.setPixelRatio(1);
+    renderer.setSize(W, H, false);
+    // verkeer en voetgangers uit beeld
+    for (const c of vehicles.cars) c.mesh.visible = false;
+    for (const t of vehicles.traffic) t.mesh.visible = false;
+    for (const m of Object.values(npcs.meshes)) m.visible = false;
+    npcs.fiets.visible = false;
+    player.gun.visible = false;
+    for (const l of clouds) l.mesh.visible = false;
+    if (!plat) { sun.position.set(ortho.position.x + 60, 300, ortho.position.z + 40); sun.target.position.set(ortho.position.x, 0, ortho.position.z); sun.target.updateMatrixWorld(); }
+    window.__bovenCam = ortho;
+    renderer.render(scene, ortho);
+    // meteen uitlezen, in dezelfde tik als het tekenen
+    return { W, H, png: renderer.domElement.toDataURL('image/png') };
+  };
+}

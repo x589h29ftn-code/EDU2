@@ -1,6 +1,12 @@
 // HUD: straatnaam, snelheid, munitie, minimap.
 import { roadSegments } from './world.js';
 import { WATER, ROADS, toWorld } from './data.js';
+import { KAART, waterRingen, kaartLabels } from './kaartwereld.js';
+
+// Waterpolygonen in meters, uit de kaart of uit data.js.
+function waterVlakken() {
+  return KAART ? waterRingen : WATER.map(poly => poly.map(p => toWorld(p[0], p[1])));
+}
 
 export class HUD {
   constructor() {
@@ -18,7 +24,14 @@ export class HUD {
     // labelposities: per straatnaam het langste stuk
     this.labels = [];
     const seen = new Map();
-    for (const r of ROADS) {
+    if (KAART) {
+      // straatnaamlabels uit de BGT: positie en hoek zoals op de kaart
+      for (const l of kaartLabels) {
+        const h = l.hoek * Math.PI / 180, dx = Math.cos(h) * 15, dz = -Math.sin(h) * 15;
+        this.labels.push({ name: l.t, L: 30, a: [l.x - dx, l.z - dz], b: [l.x + dx, l.z + dz] });
+      }
+    }
+    for (const r of KAART ? [] : ROADS) {
       if (['Fietspad', 'Voetpad'].includes(r.name)) continue;
       const p = r.pts.map(q => toWorld(q[0], q[1]));
       let best = null;
@@ -82,7 +95,7 @@ export class HUD {
     c.translate(W / 2, H / 2); c.rotate(-yaw + Math.PI); c.translate(-px * scale, -pz * scale);
     // water
     c.fillStyle = '#6a97a8';
-    for (const poly of WATER) { c.beginPath(); poly.forEach((p, i) => { const [x, z] = toWorld(p[0], p[1]); if (i) c.lineTo(x * scale, z * scale); else c.moveTo(x * scale, z * scale); }); c.closePath(); c.fill(); }
+    for (const poly of waterVlakken()) { c.beginPath(); poly.forEach(([x, z], i) => { if (i) c.lineTo(x * scale, z * scale); else c.moveTo(x * scale, z * scale); }); c.closePath(); c.fill(); }
     // wegen
     c.lineCap = 'round'; c.lineJoin = 'round';
     for (const s of roadSegments) {
@@ -115,12 +128,13 @@ HUD.prototype.drawBig = function (player, vehicles) {
   c.clearRect(0, 0, W, H);
   c.fillStyle = 'rgba(8,14,24,0.92)'; c.fillRect(0, 0, W, H);
   // wereldgrenzen (m)
-  const minX = -140, maxX = 280, minZ = -290, maxZ = 300;
+  const g = KAART ? KAART.gebied : { x0: -140, x1: 280, z0: -290, z1: 300 };
+  const minX = g.x0, maxX = g.x1, minZ = g.z0, maxZ = g.z1;
   const scale = Math.min(W / (maxX - minX), H / (maxZ - minZ));
   c.save(); c.translate(W / 2, H / 2); c.scale(scale, scale); c.translate(-(minX + maxX) / 2, -(minZ + maxZ) / 2);
   c.fillStyle = '#3f6a2b'; c.fillRect(minX, minZ, maxX - minX, maxZ - minZ);
   c.fillStyle = '#6a97a8';
-  for (const poly of WATER) { c.beginPath(); poly.forEach((p, i) => { const [x, z] = toWorld(p[0], p[1]); if (i) c.lineTo(x, z); else c.moveTo(x, z); }); c.closePath(); c.fill(); }
+  for (const poly of waterVlakken()) { c.beginPath(); poly.forEach(([x, z], i) => { if (i) c.lineTo(x, z); else c.moveTo(x, z); }); c.closePath(); c.fill(); }
   c.lineCap = 'round'; c.lineJoin = 'round';
   for (const s of roadSegments) {
     if (s.w === 0) continue;
