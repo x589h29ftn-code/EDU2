@@ -15,7 +15,7 @@ function mat(hex, ruw = 0.92) {
 export class Persoon {
   // kleding en postuur; hoogte 1.0 is een volwassene van 1,75 m
   // wapen: true geeft hem een geweer in de handen (de bewaking op de RWZI)
-  constructor({ shirt = 0x2a6b3a, broek = 0x24303f, huid = 0xd9b48f, haar = 0x2a1d12, hoogte = 1.0, wapen = false, pet = false } = {}) {
+  constructor({ shirt = 0x2a6b3a, broek = 0x24303f, huid = 0xd9b48f, haar = 0x2a1d12, hoogte = 1.0, wapen = false, pet = false, petKleur = 0x1d2634 } = {}) {
     const mShirt = mat(shirt), mBroek = mat(broek), mHuid = mat(huid, 0.85), mHaar = mat(haar);
     this.groep = new THREE.Group();
     this.groep.scale.setScalar(hoogte);
@@ -63,11 +63,11 @@ export class Persoon {
     // pet in plaats van haar (bewaking)
     if (pet) {
       kuif.visible = false;
-      const rand = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.135, 0.035, 12), mat(0x1d2634));
+      const rand = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.135, 0.035, 12), mat(petKleur));
       rand.position.y = 1.665;
-      const bol = new THREE.Mesh(new THREE.SphereGeometry(0.125, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(0x1d2634));
+      const bol = new THREE.Mesh(new THREE.SphereGeometry(0.125, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(petKleur));
       bol.position.y = 1.66;
-      const klep = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.02, 0.11), mat(0x1d2634));
+      const klep = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.02, 0.11), mat(petKleur));
       klep.position.set(0, 1.655, -0.16);
       for (const o of [rand, bol, klep]) o.castShadow = true;
       this.groep.add(rand, bol, klep);

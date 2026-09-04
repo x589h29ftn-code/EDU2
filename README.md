@@ -26,6 +26,7 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | E | praten (en het gesprek doorklikken) · anders in- en uitstappen bij een auto |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
+| portemonnee | rechtsonder; wat je met missies verdient |
 | in de auto: W/S, A/D, spatie | gas/rem, sturen, handrem |
 | M | grote kaart van de wijk met straatnamen |
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
@@ -39,7 +40,7 @@ vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstapp
 
 ## Het verhaal
 
-Je heet **Erik**. Je broer **Mark** heeft vier missies voor je, achter elkaar.
+Je heet **Erik**. Je broer **Mark** heeft vier missies voor je, en daarna belt Johan.
 
 ### 1 · Molenkrite 15
 
@@ -89,24 +90,56 @@ bij de schuur en de klus is klaar:
 
 ![Mission completed](docs/screenshots/boerderij_afgeleverd.png)
 
+### 5 · Het telefoontje van Johan
+
+Zodra de lading staat gaat de telefoon: **Johan** van Kruirad 62 is in zijn eigen huis bestolen. Zijn
+kop komt in beeld, hij scheldt door de lijn en hangt op — en op de kaart staat een gele **J** bij zijn
+oprit.
+
+![Het telefoontje van Johan](docs/screenshots/johan_telefoon.png)
+
+Op zijn oprit krijg je de briefing: duizend euro cash van de keukentafel, en de dader is *"die kneus
+van De Wieken 27"* — felrood shirt, kanariegele broek, wit petje. En vooral: **niet schieten**, want
+dan staat de halve Sneker politie op de stoep.
+
+![Johan op zijn oprit](docs/screenshots/johan_briefing.png)
+
+In De Wieken slentert hij over het trottoir. Kom je binnen vijftien meter en ziet hij je, dan is het
+rennen:
+
+![De dief van De Wieken 27](docs/screenshots/dief_wieken.png)
+
+Hij rent net iets langzamer dan je sprint (shift), dus je loopt hem langzaam in — en na anderhalve
+minuut is hij op en wankelt hij verder. Schiet je hem neer, dan vaagt het beeld naar grijs met
+**MISSIE MISLUKT** en begin je bij je laatste opgeslagen spel.
+
+![De achtervolging](docs/screenshots/dief_achtervolging.png)
+
+Kom je binnen armlengte (of ram je hem met de auto), dan smijt hij de envelop met €1.000 op de tegels.
+Breng die terug naar Johan en je houdt er vijfhonderd euro aan over:
+
+![De beloning](docs/screenshots/johan_beloning.png)
+
 ### Waar het vandaan komt
 
 Alle plekken in het verhaal komen uit de kaartdata: het pand met huisnummer 15 aan de Molenkrite, het
-pand schuin tegenover, het hek en de schuifpoort van het RWZI-terrein, de schuur van de boerderij, en
-het wegennet voor de routes. In `js/verhaal.js` staat geen enkele coördinaat, alleen adressen, namen
+pand schuin tegenover, het hek en de schuifpoort van het RWZI-terrein, de schuur van de boerderij, de
+oprit van Kruirad 62, het trottoir voor De Wieken 27, en het wegennet voor de routes en de
+vluchtroutes van de dief. In `js/verhaal.js` staat geen enkele coördinaat, alleen adressen, namen
 en afstanden vanaf de voorgevel — verhuist een pand in de brondata, dan verhuist de scène mee.
 
-`npm run verhaaltest` loopt het hele verhaal na (startpunt, zwaaien, gesprek, wandeling, schieten,
-rijden, de bewaking, de levensbalk, doodgaan, de poort, afleveren, opslaan en laden) en
-`npm run verhaalshots` maakt de foto's hierboven.
+`npm run verhaaltest` loopt het hele verhaal na — 88 controles: startpunt, zwaaien, gesprek,
+wandeling, schieten, rijden, de bewaking, de levensbalk, doodgaan, de poort, afleveren, het
+telefoontje, de briefing, de dief die schrikt en wegrent, de mislukking bij een schot, het uitgeput
+raken, het pakken, de beloning, en opslaan en laden. `npm run verhaalshots` maakt de foto's hierboven.
 
 ## Opslaan en laden
 
 Er is één opslagplek, in de browser (de Windows-app draait dezelfde pagina en gebruikt dezelfde).
 **F5** bewaart je spel, **F9** zet het terug. Bewaard worden: waar je staat en waar je naar kijkt, je
 munitie en je leven, de auto waar je in zat, de tijd van de dag, het weer, en de stand van het
-verhaal: welke missie, welke bierdrinkers en bewakers al neer liggen, of de poort open staat en waar
-de auto en de vrachtwagen staan. Ga je in een vuurgevecht neer, dan begint het spel bij deze opslag.
+verhaal: welke missie, welke bierdrinkers en bewakers al neer liggen, of de poort open staat, waar de
+auto en de vrachtwagen staan, hoe het met de dief staat en hoeveel geld je hebt. Ga je in een vuurgevecht neer, dan begint het spel bij deze opslag.
 
 Staat er een opgeslagen spel, dan biedt het startscherm **Verder spelen** aan naast **Nieuw spel**, met
 de datum van de opslag erbij; na **Esc** is datzelfde scherm het pauzescherm met **Doorgaan**. De wijk
@@ -176,10 +209,13 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
 - `js/editor.js` – de wijkeditor (F2): huizenrijen en objecten
 - `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, zittende buren met een biertje, ...)
-- `js/verhaal.js` – de vier missies: Mark voor Molenkrite 15, het gesprek onderin het scherm, de
+- `js/verhaal.js` – de vijf missies: Mark voor Molenkrite 15, het gesprek onderin het scherm, de
   bierdrinkers schuin tegenover, de rit naar de waterzuivering, de bewaking op het terrein en het
-  afleveren bij de boerderij. Alle plekken komen uit de kaartdata via adressen en huisnummers
+  afleveren bij de boerderij, en het telefoontje van Johan met de achtervolging in De Wieken. Alle
+  plekken komen uit de kaartdata via adressen en huisnummers
 - `js/bewaking.js` – de vijf bewakers: patrouille, zien en horen, aanvallen en vuren
+- `js/dief.js` – de dief van De Wieken 27: slenteren, schrikken, vluchten over het wegennet,
+  uitgeput raken en gepakt worden
 - `js/navigatie.js` – het wegennet van de kaart als graaf, met de kortste route voor de kaartnavigatie
 - `js/persoon.js` – één los poppetje dat kan staan, zwaaien, lopen, mikken, vuren en omvallen (de
   voetgangers in `npc.js` zijn instanced meshes en kunnen dat niet)

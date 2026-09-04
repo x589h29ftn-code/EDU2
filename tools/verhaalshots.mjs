@@ -1,7 +1,9 @@
 /*
  Maakt de foto's van het verhaal: het startpunt voor Molenkrite 15, het gesprek
  met Mark, de opdracht bij de bierdrinkers, de route op de kaart, de bewaking op
- het RWZI-terrein en de afgeleverde lading bij de boerderij.
+ het RWZI-terrein, de afgeleverde lading bij de boerderij, en dan missie 5: het
+ telefoontje van Johan, zijn briefing op de oprit van Kruirad 62, de dief van De
+ Wieken 27, de achtervolging en de beloning.
 
  Gebruik: python3 -m http.server 8123 &  node tools/verhaalshots.mjs 8123 [map]
 */
@@ -150,5 +152,84 @@ await page.evaluate(() => {
   window.__stap(10);
 });
 await foto('boerderij_afgeleverd');
+
+// ---------- missie 5: Johan en de dief ----------
+// 8. het telefoontje
+await page.evaluate(() => { window.__stap(230); });     // vijf seconden pauze, dan de telefoon
+await foto('johan_telefoon');
+
+// 9. de briefing op de oprit van Kruirad 62
+await page.keyboard.press('KeyE');
+await page.evaluate(() => {
+  const g = window.__game;
+  const j = g.verhaal.plekken.johan, f = g.verhaal.plekken.johanFront;
+  g.player.inCar = null;
+  g.player.pos.set(j.x + f[0] * 5, 0, j.z + f[1] * 5);   // op de stoep, kijkend naar zijn oprit
+  window.__stap(20);
+  const p = g.verhaal.johan.groep.position;
+  window.__kijk(g.player.pos.x, g.player.pos.z, p.x, p.z, -0.02);
+  window.__stap(10);
+});
+await foto('johan_briefing');
+
+// 10. de dief op het trottoir van De Wieken
+for (let i = 0; i < 4; i++) await page.keyboard.press('KeyE');
+await page.evaluate(() => {
+  const g = window.__game;
+  const d = g.verhaal.dief.positie;
+  window.__kijk(d.x + 8, d.z + 8, d.x, d.z, -0.04);
+  window.__stap(6);
+});
+await foto('dief_wieken');
+
+// 11. de achtervolging: rood knipperende opdracht en de dief op de vlucht
+await page.evaluate(() => {
+  const g = window.__game;
+  const d = g.verhaal.dief;
+  window.__stap(80);                                    // schrikken en wegklikken
+  // een paar seconden meerennen
+  for (let i = 0; i < 90; i++) {
+    g.verhaal.update(1 / 30);
+    const p = d.positie;
+    let dx = p.x - g.player.pos.x, dz = p.z - g.player.pos.z;
+    const a = Math.hypot(dx, dz);
+    if (a > 6) {
+      const stap = Math.min(a - 6, 7.5 / 30);
+      g.player.pos.set(g.player.pos.x + dx / a * stap, 0, g.player.pos.z + dz / a * stap);
+    }
+    window.__kijk(g.player.pos.x, g.player.pos.z, p.x, p.z, -0.04);
+  }
+});
+await foto('dief_achtervolging');
+
+// 12. gepakt, en de beloning bij Johan
+await page.evaluate(() => {
+  const g = window.__game;
+  const d = g.verhaal.dief;
+  d.vluchtT = 95;
+  for (let i = 0; i < 60; i++) g.verhaal.update(0.05);
+  g.player.pos.set(d.positie.x + 1.2, 0, d.positie.z + 0.6);
+  window.__stap(10);
+  window.__kijk(g.player.pos.x + 1.5, g.player.pos.z + 1.5, d.positie.x, d.positie.z, -0.18);
+  window.__stap(5);
+});
+await foto('dief_gepakt');
+
+await page.keyboard.press('KeyE');
+await page.evaluate(() => {
+  const g = window.__game;
+  window.__stap(60);
+  const j = g.verhaal.plekken.johan, f = g.verhaal.plekken.johanFront;
+  g.player.pos.set(j.x + f[0] * 5, 0, j.z + f[1] * 5);
+  window.__stap(15);
+});
+for (let i = 0; i < 3; i++) await page.keyboard.press('KeyE');
+await page.evaluate(() => {
+  const g = window.__game;
+  const p = g.verhaal.johan.groep.position;
+  window.__kijk(g.player.pos.x, g.player.pos.z, p.x, p.z, -0.02);
+  window.__stap(8);
+});
+await foto('johan_beloning');
 
 await browser.close();

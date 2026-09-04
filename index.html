@@ -22,14 +22,31 @@
   #dialoog { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%);
              width: min(760px, 88vw); box-sizing: border-box; padding: 10px 16px;
              background: rgba(8,14,24,.80); border-left: 4px solid #ffd400; border-radius: 8px;
-             text-shadow: none; pointer-events: auto; cursor: pointer; }
+             text-shadow: none; pointer-events: auto; cursor: pointer;
+             display: flex; gap: 12px; align-items: flex-start; }
+  /* let op: een eigen display-regel verslaat de standaard van het hidden-attribuut */
+  #dialoog[hidden] { display: none; }
+  #dialoogKop { flex: 0 0 auto; width: 64px; height: 64px; border-radius: 6px; background: rgba(0,0,0,.35); }
   #dialoogNaam { color: #ffd400; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  /* telefoongesprek: groene rand en een hoorntje voor de naam */
+  #dialoog.telefoon { border-left-color: #4ade80; }
+  #dialoog.telefoon #dialoogNaam { color: #4ade80; }
+  #dialoog.telefoon #dialoogNaam::before { content: "☎ "; }
   #dialoogTekst { font-size: 18px; line-height: 1.4; margin-top: 3px; }
   #dialoogVerder { font-size: 12px; opacity: .6; margin-top: 7px; }
   #praat { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%);
            font-size: 15px; font-weight: 700; background: rgba(8,14,24,.62);
            padding: 6px 14px; border-radius: 6px; }
   #opdracht { position: absolute; left: 24px; top: 42px; font-size: 14px; font-weight: 700; color: #ffd400; }
+  /* rood knipperend doel, bijvoorbeeld "schiet hem NIET neer" */
+  #opdracht.rood { color: #ff5a44; animation: knipper 1s steps(1, end) infinite; }
+  @keyframes knipper { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .25; } }
+  /* portemonnee */
+  #geld { position: absolute; right: 24px; bottom: 205px; font-size: 20px; font-weight: 700; color: #ffd400; }
+  #geld .buit { display: block; font-size: 13px; color: #fff; opacity: .85; }
+  /* mislukte missie: het beeld vaagt naar grijs */
+  #game { transition: filter .8s; }
+  body.mislukt #game { filter: grayscale(1) brightness(.55); }
   /* levensbalk, links onderin boven het straatnaambord */
   #leven { position: absolute; left: 24px; bottom: 74px; width: 200px; height: 15px;
            border: 2px solid rgba(255,255,255,.75); border-radius: 4px; background: rgba(8,14,24,.55);
@@ -109,6 +126,9 @@
     #praat { left: 10px; bottom: 62px; transform: none; font-size: 13px; }
     #opdracht { left: 70px; top: 34px; font-size: 12px; }
     #leven { left: 14px; bottom: 44px; width: 128px; height: 12px; }
+    #geld { right: 20px; bottom: 232px; font-size: 15px; }
+    #geld .buit { font-size: 11px; }
+    #dialoogKop { width: 44px; height: 44px; }
     #levenlabel { left: 148px; bottom: 44px; font-size: 10px; }
     #missie { font-size: 26px; }
     #missie .onder { font-size: 13px; }
@@ -164,12 +184,16 @@
   <div id="opdracht" hidden></div>
   <div id="leven"><div id="levenbalk"></div></div>
   <div id="levenlabel">100</div>
+  <div id="geld" hidden></div>
   <div id="missie"></div>
   <div id="praat" hidden>E — praten</div>
   <div id="dialoog" hidden>
-    <div id="dialoogNaam"></div>
-    <div id="dialoogTekst"></div>
-    <div id="dialoogVerder"></div>
+    <canvas id="dialoogKop" width="72" height="72" hidden></canvas>
+    <div>
+      <div id="dialoogNaam"></div>
+      <div id="dialoogTekst"></div>
+      <div id="dialoogVerder"></div>
+    </div>
   </div>
   <canvas id="bigmap" width="1100" height="760"></canvas>
 </div>
