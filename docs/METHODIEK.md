@@ -460,7 +460,7 @@ Het verhaal staat in `js/verhaal.js` en gebruikt de kaartdata als bron: het
 pand met huisnummer **15** aan de Molenkrite (steile kap met dakkapel, het
 vierde huis na de knik) en het pand **20** schuin tegenover. Uit die twee panden
 komen het beginpunt van de speler (op de berm voor 15, met de buurman recht
-vooruit), de plek van de buurman (op de stoep, 10,4 m voor de voorgevel), het
+vooruit), de plek van de buurman (op de stoep, 6,1 m voor de voorgevel), het
 tafeltje met de radio en de vier stoelen in de voortuin van 20, en de plek waar
 de buurman blijft staan. In het bestand staat geen enkele coördinaat, alleen de
 twee adressen en de afstanden vanaf de voorgevel; verhuist een pand in de
@@ -508,21 +508,78 @@ plekken uit de data:
 
 5. *Het telefoontje van Johan* — meteen na de boerderij belt Johan van
    **Kruirad 62** (BAG-huisnummer 62 aan het Kruirad): zijn kop komt in beeld,
-   met een ringtone uit `audio.js` en een portretje dat `hud.js` tekent. Op zijn
-   oprit (vijf meter voor de voorgevel, waar hij heen en weer ijsbeert) volgt de
-   briefing, met Erik als tweede spreker in de tekstbalk. De dief woont op **De
-   Wieken 27** en slentert over het trottoir voor dat pand (negen en een halve
-   meter voor de voorgevel, gemeten: daar liggen de tegels). Ziet hij je binnen
+   met een ringtone uit `audio.js` en een portretje dat `hud.js` tekent. Op het
+   tegelpad voor zijn deur (zeven en een halve meter voor de voorgevel, waar hij
+   heen en weer ijsbeert) volgt de briefing, met Erik als tweede spreker in de
+   tekstbalk. De dief woont op **De
+   Wieken 27** en slentert over het trottoir voor dat pand (vijf meter voor de
+   voorgevel, gemeten: daar liggen de tegels). Ziet hij je binnen
    vijftien meter, dan vlucht hij over de wegassen van `navigatie.js` — steeds
    een knoop van zestig tot honderdzeventig meter ver, van jou af, dus hij duikt
    vanzelf de brandgangen in. Hij rent 7,3 m/s tegen jouw sprint van 7,5 m/s;
    een simulatie van een rechte achtervolging pakt hem in 23 seconden, in het
    echt duurt het langer, en na negentig seconden is hij op en wankelt hij
-   verder op 1,75 m/s. Schiet je hem neer, dan vaagt het beeld naar grijs
+   verder op 1,75 m/s. Onder de achtervolging loopt een gesynthetiseerd deuntje
+   (`geluid.jacht` in `audio.js`, één beeld per aanroep vooruit gepland zoals de
+   radio): een achtstenbas in d-klein met een halve toon erboven en een
+   trommeltje, dat aanzwelt bij de vlucht en uitdooft zodra de achtervolging
+   voorbij is. Schiet je hem neer, dan vaagt het beeld naar grijs
    (MISSIE MISLUKT) en begin je bij je laatste opgeslagen spel — precies wat
    Johan gevraagd had. De duizend euro uit de envelop staat als buit in de HUD
    en levert na aflevering vijfhonderd euro in de portemonnee op; dat geld gaat
    mee in de opslag.
+
+**Een fout in de voorgevel.** Johan stond eerst tegen zijn eigen muur geplakt,
+tussen de heg en de berging van de buren, en was vanaf de straat niet te zien.
+De oorzaak zat in `voorgevel()` in `verhaal.js`: die nam altijd `rect.hz` als
+halve maat langs `front`, maar `front` loopt langs één van de twee assen van de
+omsluitende rechthoek (zie `genereer.mjs`) en bij een rijtjeswoning is dat juist
+de lange as. Bij Molenkrite 15 zat het "gevelmidden" daardoor 4,3 m binnen het
+pand, bij Kruirad 62 2,1 m. Alle afstanden waren daar met de hand op ingemeten,
+dus de scènes stonden goed; alleen sloten ze niet aan op de echte gevel.
+`voorgevel()` kijkt nu welke as het is en neemt `hx` of `hz`, en de afstanden
+zijn omgerekend naar echte meters vanaf de gevel: Mark 6,1 m, de speler 9,3 m,
+het tafeltje 2,0 m, Mark bij de bende 4,6 m, de dief 5,2 m. Johan staat nu op
+7,5 m, waar het tegelpad over de volle breedte vrij ligt; `verhaaltest` toetst
+dat hij ruim voor de gevel op de tegels staat en vanaf de rijbaan te zien is.
+
+**Achter de voordeur (`js/interieur.js`).** Bij de voordeur van Molenkrite 15
+zet E je binnen. De 3D BAG-huls van het pand is hol en heeft geen vloeren, dus
+de woning staat als losse, dichte ruimte ruim buiten het kaartgebied
+(`gebied.x1 + 520`, `gebied.z1 + 520`); naar binnen en naar buiten gaan is een
+teleport. Zo staat hij ook niet op het bovenaanzicht en blijft `geo:boven` op
+1,31 %.
+
+De maten komen uit de data. Het grondvlak `voet` van het pand wordt omgerekend
+naar kamercoördinaten (x langs de gevel, z de diepte in), per as op elkaar
+geklikt binnen 12 cm zodat de plattegrond haaks is, en dan met een
+scanlijn-ontleding in banden geknipt: bij nummer 15 een voorhuis van 5,42 ×
+9,48 m en een aanbouw van 2,42 × 4,58 m. De buitenmuren (24 cm) staan binnen
+die contour, met de deur- en raamgaten erin; de goot van 3,38 m laat één
+woonlaag toe, binnen 2,60 m plafond. De voordeur staat op dezelfde plek als in
+de geveltexture (50 cm uit de zijkant, 95 cm breed, uitgerekt naar de echte
+gevelbreedte), zodat de deur binnen en de deur buiten dezelfde deur zijn.
+
+De indeling volgt de foto's van de verbouwing: een gang van 1,30 m met
+zwart-witte blokjes langs de zijmuur, met achterin de (dichte) deur naar de
+trap; een L-vormige woonkamer met bruin laminaat, een bank van 2,10 × 0,90 m
+met de zitting op 44 cm tegen de zijmuur en daartegenover een 55-inch tv op een
+dressoir, beeldmidden op 86 cm; en in de aanbouw een keukenblok in één rij —
+onderkasten van 60 cm diep, werkblad op 90 cm met spoelbak en kookplaat, witte
+wandtegels tot 1,45 m, bovenkasten tot 2,15 m en een wasemkap boven de plaat.
+Alleen de begane grond is ingericht.
+
+Er komt geen enkele lamp in de scene: een paar puntlichten laat three.js alle
+materialen van de wijk opnieuw compileren en kost buiten rekenkracht. In plaats
+daarvan krijgt elk vlak zijn helderheid in de hoekpunten mee, uit de richting
+waar het naar kijkt (fel door de pui, zachter door de tuindeur en het
+keukenraam, wat daglicht van boven). Daardoor lopen de hoeken zichtbaar uit
+elkaar en ziet de kamer er altijd hetzelfde uit — ook 's nachts.
+
+Terwijl je binnen bent zegt de HUD *Molenkrite 15* en tekent de minikaart de
+Molenkrite: `hud.kaartVanaf` neemt dan de plek van de voordeur als middelpunt
+in plaats van die van de kamer. Of je binnen bent volgt uit je positie, dus
+opslaan en laden werkt binnen zonder extra vlag.
 
 Bij de vierde missie kwam een oude fout boven: bruggen en duikers liggen in de
 BGT boven het waterdeel, dus het waterpolygoon loopt eronderdoor. `pointInWater`
@@ -537,7 +594,10 @@ pistool legt een drinker om, de briefing volgt, er staat een auto, de kaart
 navigeert naar de poort, je stapt automatisch uit, de vijf bewakers zien je en
 schieten, je gaat neer en begint bij de opslag, na vijf treffers gaat de poort
 open, de vrachtwagen rijdt het terrein af en levert af, en opslaan/laden zet
-alles terug, en dat schieten op de dief de missie laat mislukken). Bij het
+alles terug, en dat schieten op de dief de missie laat mislukken), plus het
+deuntje bij de achtervolging en de woning achter de voordeur (de maten tegen de
+kaartdata, de teleport heen en terug, de wanden die je binnenhouden, en de
+hoogtes van deur, aanrecht, bank en tv) — 123 controles. Bij het
 maken van de foto's kwam nog een fout boven die het spelen raakte: de tekstbalk
 kreeg `display: flex` voor het portretje, en dat verslaat de standaardstijl van
 het `hidden`-attribuut — de balk ging daardoor nooit meer uit beeld.

@@ -10,6 +10,7 @@ import { START, toWorld, ROWS, PROPS } from './data.js';
 import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
 import { initSfeer } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
+import { initInterieur } from './interieur.js';
 import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
@@ -257,6 +258,18 @@ const verhaal = initVerhaal({
   hinder: { alive: false, opWeg: false, x: 0, z: 0 },
   missie: 'geen', fase: 'geen', aanspreekbaar: false,
 };
+// De woning achter de voordeur van Molenkrite 15: een losse kamer ruim buiten
+// het kaartgebied, met de maten van het echte pand. Bij de deur zet E je naar
+// binnen en weer naar buiten (js/interieur.js).
+const interieur = initInterieur({ scene, player }) || {
+  update() {}, toets() { return false; }, binnen() { return false; }, meldAan() {}, kaart() { return null; },
+};
+// Binnen wijst de HUD nog steeds de Molenkrite aan (zie hud.kaartVanaf).
+function straatOf(x, z) {
+  const k = interieur.kaart(x, z);
+  hud.kaartVanaf = k ? k.punt : null;
+  return k ? k.naam : nearestRoadName(x, z);
+}
 // Het verkeer moet ook voor de buurman remmen als hij oversteekt. De lijst met
 // voetgangers heeft een vaste lengte, dus die zetten we één keer klaar.
 const opDeWeg = npcs.people.concat([verhaal.hinder]);
@@ -294,13 +307,15 @@ function toggleCar() {
     if (car) { player.inCar = car; player.carLook = 0; geluid.portier(); geluid.motorAan(); hud.show('Ingestapt – W om te rijden'); }
   }
 }
-// E doet drie dingen, in deze volgorde: een gesprek doorklikken, iemand
-// aanspreken die naast je staat, en anders in- of uitstappen bij een auto.
+// E doet vier dingen, in deze volgorde: een gesprek doorklikken, iemand
+// aanspreken die naast je staat, door de voordeur van Molenkrite 15 gaan, en
+// anders in- of uitstappen bij een auto.
 // In de editor is E omhoog vliegen, dus daar blijft hij van af.
 function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
   if (editor && editor.actief) return;
   if (verhaal.toets()) return;
+  if (interieur.toets()) return;
   toggleCar();
 }
 window.addEventListener('keydown', e => {
@@ -447,7 +462,7 @@ const sfeer = initSfeer({
 // Wijkeditor (F2)
 const editor = initEditor({
   scene, camera, player, hud, npcs, vehicles,
-  onRebuild: () => { applyEnvIntensity(scene); verhaal.meldAan(); },
+  onRebuild: () => { applyEnvIntensity(scene); verhaal.meldAan(); interieur.meldAan(); },
 });
 
 // Hoofdlus
@@ -489,6 +504,7 @@ function loop() {
     vehicles.updateTraffic(dt, player, opDeWeg);
     npcs.update(dt, time);
     verhaal.update(dt);
+    interieur.update(dt, verhaal.aanspreekbaar);
     if (player.health <= 0) verhaal.dood();
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
@@ -501,7 +517,7 @@ function loop() {
     geluid.radio(afstandTotRadio(cx, cz));
     lodKlok += dt;
     if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); }
-    hud.update(dt, player, vehicles, npcs, nearestRoadName(cx, cz), verhaal.aanspreekbaar);
+    hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);
   }
   if (!player.active && !window.__autoplay) {
     // op het startscherm draaien de wolken en de minikaart gewoon door
@@ -511,7 +527,7 @@ function loop() {
     npcs.update(dt, time);
     vehicles.updateTraffic(dt, player, opDeWeg);
     verhaal.update(dt);
-    hud.update(dt, player, vehicles, npcs, nearestRoadName(camera.position.x, camera.position.z), verhaal.aanspreekbaar);
+    hud.update(dt, player, vehicles, npcs, straatOf(camera.position.x, camera.position.z), verhaal.aanspreekbaar);
   }
   renderer.render(scene, window.__bovenCam || camera);
 }
@@ -519,7 +535,7 @@ loop();
 
 // Testhaak voor automatische screenshots
 window.__game = {
-  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal,
+  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar,
 };
 

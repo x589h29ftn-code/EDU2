@@ -439,14 +439,31 @@ const briefing2 = await page.evaluate(async () => {
     const d = Math.hypot(q.rect.cx - p.x, q.rect.cz - p.z);
     if (!dichtst || d < dichtst.d) dichtst = { d, nr: q.nr.join('/'), straat: q.straat };
   }
+  // staat hij vrij op het pad, of tegen de gevel geplakt tussen de bergingen?
+  const W = await import('./js/world.js');
+  const N = await import('./js/navigatie.js');
+  const pand = KAART.panden.find(q => q.straat === 'Kruirad' && (q.nr || []).includes('62'));
+  const u = [Math.cos(pand.rect.hoek), Math.sin(pand.rect.hoek)];
+  const f = pand.front, diep = Math.abs(f[0] * u[0] + f[1] * u[1]) > 0.7 ? pand.rect.hx : pand.rect.hz;
+  const gevel = { x: pand.rect.cx + f[0] * diep, z: pand.rect.cz + f[1] * diep };
+  const nav = new N.Navigatie(KAART.wegassen);
+  const k = nav.naaste(p.x, p.z, 400, true);
+  const weg = k >= 0 ? nav.punten[k] : null;
   return {
     fase: g.verhaal.fase, dichtst,
+    voorGevel: (p.x - gevel.x) * f[0] + (p.z - gevel.z) * f[1],
+    grond: W.ondergrondOp(p.x, p.z),
+    zichtVanafStraat: weg ? W.zichtVrij(weg[0], weg[1], p.x, p.z, 1.4) : false,
     naam: document.getElementById('dialoogNaam').textContent,
     tekst: document.getElementById('dialoogTekst').textContent,
   };
 });
 ok(briefing2.dichtst && briefing2.dichtst.nr === '62' && briefing2.dichtst.straat === 'Kruirad',
   'Johan staat voor Kruirad 62', briefing2.dichtst ? `${briefing2.dichtst.straat} ${briefing2.dichtst.nr}` : '-');
+ok(briefing2.voorGevel > 6 && briefing2.grond === 'tegel',
+  'hij staat ruim vóór de gevel op het tegelpad, niet in het gebouw',
+  `${briefing2.voorGevel.toFixed(1)} m voor de gevel, op ${briefing2.grond}`);
+ok(briefing2.zichtVanafStraat, 'en je ziet hem vanaf de straat staan');
 ok(briefing2.fase === 'briefing' && /in m'n eigen huis genaaid/.test(briefing2.tekst),
   'bij de marker begint de briefing', briefing2.tekst.slice(0, 40));
 
@@ -510,6 +527,20 @@ ok(rennen.fase === 'achtervolging', `fase 'achtervolging'`, rennen.fase);
 ok(rennen.opdrachtRood && /NIET neer/.test(rennen.opdracht), 'de opdracht knippert rood', rennen.opdracht);
 ok(rennen.staat === 'vlucht' && rennen.gerend > 15, `hij rent weg (${rennen.gerend.toFixed(0)} m in vijf seconden)`);
 ok(rennen.marker === '!', 'hij staat als marker op de kaart', String(rennen.marker));
+
+// het spannende deuntje loopt tijdens de achtervolging mee
+const deuntje = await page.evaluate(async () => {
+  const A = await import('./js/audio.js');
+  const echt = A.geluid.jacht;
+  let aan = 0, uit = 0;
+  A.geluid.jacht = (v) => { v ? aan++ : uit++; echt.call(A.geluid, v); };
+  window.__stap(10);
+  A.geluid.jacht = echt;
+  return { aan, uit, bestaat: typeof echt === 'function' };
+});
+ok(deuntje.bestaat, 'audio.js heeft een spannend deuntje voor de achtervolging');
+ok(deuntje.aan === 10 && deuntje.uit === 0,
+  'het loopt elk beeld van de achtervolging', `${deuntje.aan} keer aan, ${deuntje.uit} keer uit`);
 
 // schieten mag niet: dat laat de missie mislukken
 const misgeschoten = await page.evaluate(() => {
@@ -620,7 +651,87 @@ ok(eind.missie === 'klaar' && eind.geld === 500 && eind.buit === 0,
 ok(/MISSIE VOLTOOID/.test(eind.melding) && /500/.test(eind.melding), '"MISSIE VOLTOOID" met de beloning', eind.melding.slice(0, 50));
 ok(/500/.test(eind.geldEl), 'de portemonnee staat in beeld', eind.geldEl);
 
-// ---------- 9. opslaan en laden midden in het verhaal ----------
+// ---------- 9. achter de voordeur van Molenkrite 15 ----------
+kop('binnen bij Molenkrite 15');
+const stil = await page.evaluate(async () => {
+  // de missie is klaar: het deuntje van de achtervolging hoort uit te staan
+  const A = await import('./js/audio.js');
+  const echt = A.geluid.jacht;
+  let aan = 0, uit = 0;
+  A.geluid.jacht = (v) => { v ? aan++ : uit++; echt.call(A.geluid, v); };
+  window.__stap(5);
+  A.geluid.jacht = echt;
+  return { aan, uit };
+});
+ok(stil.aan === 0 && stil.uit === 5, 'buiten de achtervolging staat het deuntje uit', `${stil.uit} keer uit`);
+
+const huis = await page.evaluate(async () => {
+  const g = window.__game, I = g.interieur, p = I.plekken, m = I.maten;
+  const { KAART } = await import('./js/kaartwereld.js');
+  const pand = KAART.panden.find(q => q.straat === 'Molenkrite' && (q.nr || []).includes('15'));
+  // buiten voor de deur gaan staan en op E drukken
+  g.player.inCar = null;
+  g.player.pos.set(p.stoep.x, 0, p.stoep.z);
+  const buitenOp = { x: g.player.pos.x, z: g.player.pos.z };
+  const heen = g.praat();
+  const binnenOp = { x: g.player.pos.x, z: g.player.pos.z };
+  const straatBinnen = I.kaart(binnenOp.x, binnenOp.z);
+  // door de wanden heen lopen lukt niet
+  const W = await import('./js/world.js');
+  // vier stappen vanaf de deurmat: door de voordeur, door de zijmuur, door de
+  // gangwand en door de trapdeur — die horen alle vier tegen te houden
+  const vast = [];
+  for (const [dx, dz] of [[0, -1.02], [-0.88, 0], [0.61, 0], [0, 3.21]]) {
+    const [kx, kz] = W.resolveCollisions(binnenOp.x + dx, binnenOp.z + dz, 0.35);
+    vast.push(Math.hypot(kx - (binnenOp.x + dx), kz - (binnenOp.z + dz)) > 0.01);
+  }
+  // en weer naar buiten
+  const terug = g.praat();
+  const weerBuiten = { x: g.player.pos.x, z: g.player.pos.z };
+  // niets mag door het plafond of buiten de plattegrond steken
+  const THREE = await import('three');
+  const doos = new THREE.Box3().setFromObject(I.groep);
+  return {
+    maten: m, banden: m.banden.length, heen, terug,
+    binnen: I.binnen(binnenOp.x, binnenOp.z), buiten: !I.binnen(weerBuiten.x, weerBuiten.z),
+    straatBinnen: straatBinnen ? straatBinnen.naam : null,
+    weerBij: Math.hypot(weerBuiten.x - buitenOp.x, weerBuiten.z - buitenOp.z),
+    voorDeGevel: Math.hypot(weerBuiten.x - p.deurBuiten.x, weerBuiten.z - p.deurBuiten.z),
+    vast,
+    bovenkant: doos.max.y, onderkant: doos.min.y,
+    pandBreed: pand.rect.hz * 2, pandDiep: pand.rect.hx * 2, goot: pand.goot,
+  };
+});
+const M = huis.maten;
+ok(Math.abs(M.breed - huis.pandBreed) < 0.15 && Math.abs(M.diep - huis.pandDiep) < 0.15,
+  'de kamer heeft de maten van het pand uit de kaartdata',
+  `${M.breed.toFixed(2)} × ${M.diep.toFixed(2)} m (pand ${huis.pandBreed.toFixed(2)} × ${huis.pandDiep.toFixed(2)})`);
+ok(huis.banden === 2, 'met het voorhuis en de aanbouw als aparte banden', `${huis.banden} banden`);
+ok(M.hoogte > 2.4 && M.hoogte < huis.goot, `plafond op ${M.hoogte.toFixed(2)} m onder een goot van ${huis.goot} m`);
+ok(huis.binnen, 'met E bij de voordeur sta je binnen');
+ok(huis.straatBinnen === 'Molenkrite 15', 'en zegt de HUD Molenkrite 15', String(huis.straatBinnen));
+ok(huis.vast.every(v => v), 'de wanden houden je binnen', `${huis.vast.filter(v => v).length} van 4 richtingen dicht`);
+ok(huis.buiten && huis.voorDeGevel < 3, 'met E bij de deur sta je weer voor het huis',
+  `${huis.voorDeGevel.toFixed(1)} m van de deur`);
+ok(huis.weerBij < 1.5, 'op de plek waar je naar binnen ging', `${huis.weerBij.toFixed(2)} m ernaast`);
+ok(huis.bovenkant <= M.hoogte + 0.02 && huis.onderkant > -0.02,
+  'niets steekt door het plafond of de vloer',
+  `van ${huis.onderkant.toFixed(2)} tot ${huis.bovenkant.toFixed(2)} m`);
+// de maten waar de opdracht om vroeg: juiste hoogtes en breedtes
+ok(Math.abs(M.voordeur.hoog - 2.15) < 0.01 && Math.abs(M.voordeur.breed - 0.95) < 0.05,
+  'de voordeur is 0,95 bij 2,15 m', `${M.voordeur.breed.toFixed(2)} × ${M.voordeur.hoog.toFixed(2)}`);
+ok(M.aanrecht === 0.90 && M.bovenkast[0] === 1.45 && M.bovenkast[1] === 2.15,
+  'het aanrecht ligt op 90 cm, de bovenkasten van 1,45 tot 2,15 m');
+ok(M.bank.breed === 2.10 && M.bank.diep === 0.90 && Math.abs(M.bank.zitting - 0.44) < 0.02,
+  'de bank is 2,10 bij 0,90 m met een zitting op 44 cm');
+ok(Math.abs(M.tv.breed - 1.20) < 0.05 && Math.abs(M.tv.midden - 0.86) < 0.05,
+  'de tv is een 55-inch met het beeld op ooghoogte vanaf de bank',
+  `${M.tv.breed.toFixed(2)} × ${M.tv.hoog.toFixed(2)} m, midden op ${M.tv.midden.toFixed(2)}`);
+ok(M.gang >= 1.1 && M.gang <= 1.4 && M.keuken.breed > 1.7 && M.keuken.diep > 4,
+  'de gang is 1,30 m breed en de keuken is een rijtje in de aanbouw',
+  `gang ${M.gang} m, keuken ${M.keuken.breed.toFixed(2)} × ${M.keuken.diep.toFixed(2)} m`);
+
+// ---------- 10. opslaan en laden midden in het verhaal ----------
 kop('opslaan en laden');
 const opslag = await page.evaluate(() => {
   const g = window.__game;

@@ -48,11 +48,11 @@ const OVERKANT = { straat: 'Molenkrite', nr: '20' };  // schuin tegenover: de bi
 const TERREIN = 'rwzi';                               // het omheinde terrein uit omgeving.json
 const BOERDERIJ = '0683100000288962';                 // de grote schuur in de zuidwesthoek
 
-// afstanden vanaf het voorgevelmidden (m)
-const MARK_VOOR = 10.4;      // op de stoep voor zijn eigen voortuin
-const SPELER_VOOR = 13.6;    // in de berm, met Mark recht vooruit
-const TAFEL_VOOR = 5.0;      // het tafeltje met de radio in de voortuin
-const STOP_VOOR = 7.6;       // waar Mark blijft staan, naast het gezelschap
+// afstanden vanaf de voorgevel (m)
+const MARK_VOOR = 6.1;       // op de stoep voor zijn eigen voortuin
+const SPELER_VOOR = 9.3;     // in de berm, met Mark recht vooruit
+const TAFEL_VOOR = 2.0;      // het tafeltje met de radio in de voortuin
+const STOP_VOOR = 4.6;       // waar Mark blijft staan, naast het gezelschap
 const STOEL_RING = 1.15;     // de vier stoelen rond het tafeltje
 
 // het RWZI-terrein, gemeten vanaf het midden van de poort: vooruit = het
@@ -72,9 +72,13 @@ const AFLEVER_AFSTAND = 20;          // zo dicht bij de schuur is de lading afge
 // missie 5: Johan en de dief
 const JOHAN_HUIS = { straat: 'Kruirad', nr: '62' };     // de oprit van Johan
 const DIEF_HUIS = { straat: 'de Wieken', nr: '27' };    // waar de dief woont
-const JOHAN_VOOR = 5.5;        // waar Johan staat te ijsberen, vanaf zijn voorgevel
-const JOHAN_IJSBEER = 3.2;     // de lengte van zijn rondje op de oprit
-const DIEF_VOOR = 9.5;         // de dief slentert op de stoep voor zijn huis
+// Johan ijsbeert op het tegelpad voor zijn deur. Dichter bij de gevel staat hij
+// in het gangetje tussen de heg en de berging van de buren en zie je hem vanaf
+// de straat niet; op zeven en een halve meter ligt het pad over de volle
+// breedte vrij.
+const JOHAN_VOOR = 7.5;        // waar Johan staat te ijsberen, vanaf zijn voorgevel
+const JOHAN_IJSBEER = 3.2;     // de lengte van zijn rondje op het pad
+const DIEF_VOOR = 5.2;         // de dief slentert op de stoep voor zijn huis
 const DIEF_STOEP = 9;          // de lengte van zijn stukje trottoir
 const MARKER_AFSTAND = 8;      // zo dicht bij de marker begint een gesprek
 const BUIT = 1000;             // wat de dief gejat heeft
@@ -129,8 +133,22 @@ function pandVan({ straat, nr }) {
   if (!KAART || !KAART.panden) return null;
   return KAART.panden.find(p => p.straat === straat && (p.nr || []).includes(nr)) || null;
 }
+/*
+ Het midden van de voorgevel, met de richting naar de straat erbij.
+
+ `front` van een pand loopt langs één as van de omsluitende rechthoek (zie
+ tools/geo/genereer.mjs), en dat is net zo goed de hx- als de hz-as: bij een
+ rijtjeswoning wijst de voorkant over de lange as naar de straat. De halve maat
+ langs `front` is dus hx of hz — welke van de twee volgt uit de hoek van de
+ rechthoek. `front` is op twee cijfers afgerond en daardoor niet precies een
+ meter lang, dus hij gaat er genormaliseerd in.
+*/
 function voorgevel(p) {
-  return { x: p.rect.cx + p.front[0] * p.rect.hz, z: p.rect.cz + p.front[1] * p.rect.hz, fx: p.front[0], fz: p.front[1] };
+  const L = Math.hypot(p.front[0], p.front[1]) || 1;
+  const fx = p.front[0] / L, fz = p.front[1] / L;
+  const u = [Math.cos(p.rect.hoek), Math.sin(p.rect.hoek)];
+  const diep = Math.abs(fx * u[0] + fz * u[1]) > 0.7 ? p.rect.hx : p.rect.hz;
+  return { x: p.rect.cx + fx * diep, z: p.rect.cz + fz * diep, fx, fz };
 }
 function voorPunt(p, meter) {
   const v = voorgevel(p);
@@ -823,6 +841,9 @@ export function initVerhaal(ctx) {
 
   // ---------- per beeld ----------
   function update(dt) {
+    // Het spannende deuntje loopt precies zolang de achtervolging duurt: het
+    // stopt als je hem pakt, als je hem neerschiet en als je neergaat.
+    geluid.jacht(missie === 'johan' && fase === 'achtervolging' && doodT <= 0 && misluktT <= 0);
     if (doodT > 0) {
       doodT -= dt;
       if (doodT <= 0) naDeDood();
@@ -858,6 +879,9 @@ export function initVerhaal(ctx) {
         if (dMark < ZWAAI_AFSTAND) mark.kijkNaar(sp.x, sp.z, dt);
         mark.update(dt, { zwaait: fase === 'wacht' && dMark < ZWAAI_AFSTAND });
         const bezig = player.active || window.__autoplay;
+        // de hint is ook van de voordeur van Molenkrite 15 (js/interieur.js),
+        // dus de tekst gaat er elke keer opnieuw in
+        praatEl.textContent = 'E — praten';
         praatEl.hidden = !(bezig && fase === 'wacht' && dMark < PRAAT_AFSTAND && balk.hidden);
       } else if (fase === 'loopt') {
         const erIs = loopNaar(stopBijBende, dt);

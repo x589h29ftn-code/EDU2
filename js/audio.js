@@ -46,19 +46,22 @@ function ruisLaag(type, freq, q, volume) {
   return { src, filter: f, gain: g };
 }
 
-// korte klap uit ruis: voetstap, schot, portier
-function tik({ freq = 900, q = 1, duur = 0.12, volume = 0.3, type = 'bandpass', val = 0.9 }) {
+// korte klap uit ruis: voetstap, schot, portier. `vertraag` zet hem verder in
+// de toekomst (voor een roffel die vooruit gepland wordt), `bus` stuurt hem
+// door een eigen volumeregelaar in plaats van rechtstreeks naar het eindvolume.
+function tik({ freq = 900, q = 1, duur = 0.12, volume = 0.3, type = 'bandpass', val = 0.9, vertraag = 0, bus = null }) {
   if (!aan) return;
   const src = ctx.createBufferSource();
   src.buffer = ruisBuffer(0.3);
   const f = ctx.createBiquadFilter();
   f.type = type; f.frequency.value = freq; f.Q.value = q;
   const g = ctx.createGain();
-  const t = nu();
+  const t = nu() + vertraag;
   g.gain.setValueAtTime(volume, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  f.frequency.setValueAtTime(freq, t);
   f.frequency.exponentialRampToValueAtTime(Math.max(60, freq * val), t + duur);
-  src.connect(f); f.connect(g); g.connect(hoofd);
+  src.connect(f); f.connect(g); g.connect(bus || hoofd);
   src.start(t); src.stop(t + duur + 0.02);
 }
 
@@ -146,6 +149,62 @@ export const geluid = {
       for (let i = 0; i < 8; i++) {
         toon({ freq: i % 2 ? 1560 : 1180, duur: 0.055, volume: 0.13, golf: 'square', vertraag: t0 + i * 0.06 });
       }
+    }
+  },
+
+  /*
+   Spannend deuntje bij de achtervolging van de dief (js/verhaal.js). Een
+   jachtende achtstenbas in d-klein, een dreigende halve toon erboven en een
+   trommeltje op de tussenmaat — alles door één lowpass, zodat het onder de
+   voetstappen en het geschreeuw blijft.
+
+   Wordt elk beeld aangeroepen met een vlag: `true` laat het deuntje aanzwellen
+   en de maten vooruit plannen, `false` laat het in een halve seconde uitdoven.
+   Zolang het niet gespeeld heeft, wordt er ook niets gebouwd.
+  */
+  jacht(actief) {
+    if (!aan) return;
+    if (!bronnen.jacht) {
+      if (!actief) return;
+      const g = ctx.createGain(); g.gain.value = 0;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2400; f.Q.value = 0.8;
+      f.connect(g); g.connect(hoofd);
+      bronnen.jacht = { gain: g, bus: f, volgende: 0, maat: 0 };
+    }
+    const j = bronnen.jacht;
+    j.gain.gain.setTargetAtTime(actief ? 0.5 : 0, nu(), actief ? 0.7 : 0.3);
+    if (!actief) { j.maat = 0; return; }
+
+    // vier maten van 1,2 s (acht achtsten van 0,15 s), grondtoon per maat
+    const GRONDEN = [73.42, 73.42, 61.74, 65.41];      // D2 D2 B1 C2
+    const BAS = [0, 0, 7, 0, 0, 10, 7, 5];             // halve tonen boven de grondtoon
+    const halve = (f, n) => f * Math.pow(2, n / 12);
+    const t = nu();
+    if (j.volgende < t) j.volgende = t + 0.05;
+    while (j.volgende < t + 1.4) {
+      const start = j.volgende;
+      const grond = GRONDEN[j.maat % GRONDEN.length];
+      const stem = (freq, van, duur, volume, golf) => {
+        const o = ctx.createOscillator(); const g2 = ctx.createGain();
+        o.type = golf; o.frequency.value = freq;
+        g2.gain.setValueAtTime(0.0001, start + van);
+        g2.gain.exponentialRampToValueAtTime(volume, start + van + 0.012);
+        g2.gain.exponentialRampToValueAtTime(0.0001, start + van + duur);
+        o.connect(g2); g2.connect(j.bus);
+        o.start(start + van); o.stop(start + van + duur + 0.02);
+      };
+      // de bas: acht achtsten, kort en hard
+      BAS.forEach((n, i) => stem(halve(grond, n), i * 0.15, 0.13, 0.075, 'sawtooth'));
+      // erboven twee tonen een halve toon van elkaar: het "hij ontsnapt"-motief
+      const hoog = j.maat % 2 ? [880, 830.6] : [830.6, 880];
+      stem(hoog[0], 0.0, 0.26, 0.022, 'square');
+      stem(hoog[1], 0.6, 0.26, 0.022, 'square');
+      // laatste maat van de lus: een oplopend loopje dat de spanning opdrijft
+      if (j.maat % 4 === 3) [0, 3, 7, 10].forEach((n, i) => stem(halve(440, n), 0.9 + i * 0.075, 0.09, 0.03, 'triangle'));
+      // trommel: een dreun op één en drie, een hoedje op elke tussenmaat
+      for (const off of [0, 0.6]) tik({ freq: 150, q: 1.0, duur: 0.16, volume: 0.28, type: 'lowpass', val: 0.35, vertraag: start - t + off, bus: j.bus });
+      for (const off of [0.3, 0.75, 1.05]) tik({ freq: 7000, q: 0.8, duur: 0.045, volume: 0.14, type: 'highpass', vertraag: start - t + off, bus: j.bus });
+      j.volgende += 1.2; j.maat++;
     }
   },
 

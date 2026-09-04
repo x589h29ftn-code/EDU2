@@ -23,7 +23,7 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 |---|---|
 | W A S D | lopen (shift = sprinten, spatie = springen) |
 | muis | rondkijken · linkermuisknop = schieten · R = herladen |
-| E | praten (en het gesprek doorklikken) · anders in- en uitstappen bij een auto |
+| E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15 naar binnen en naar buiten · anders in- en uitstappen bij een auto |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
 | portemonnee | rechtsonder; wat je met missies verdient |
@@ -110,8 +110,10 @@ rennen:
 ![De dief van De Wieken 27](docs/screenshots/dief_wieken.png)
 
 Hij rent net iets langzamer dan je sprint (shift), dus je loopt hem langzaam in — en na anderhalve
-minuut is hij op en wankelt hij verder. Schiet je hem neer, dan vaagt het beeld naar grijs met
-**MISSIE MISLUKT** en begin je bij je laatste opgeslagen spel.
+minuut is hij op en wankelt hij verder. Onder de achtervolging loopt een **spannend deuntje**: een
+jachtende achtstenbas in d-klein met een dreigende halve toon erboven, die aanzwelt zodra hij het op
+een lopen zet en uitdooft als je hem hebt (of als je hem neerschiet). Schiet je hem neer, dan vaagt
+het beeld naar grijs met **MISSIE MISLUKT** en begin je bij je laatste opgeslagen spel.
 
 ![De achtervolging](docs/screenshots/dief_achtervolging.png)
 
@@ -119,6 +121,35 @@ Kom je binnen armlengte (of ram je hem met de auto), dan smijt hij de envelop me
 Breng die terug naar Johan en je houdt er vijfhonderd euro aan over:
 
 ![De beloning](docs/screenshots/johan_beloning.png)
+
+## Naar binnen bij Molenkrite 15
+
+Loop je naar de **voordeur van Molenkrite 15** en druk je op **E**, dan ga je naar binnen:
+
+![De voordeur van Molenkrite 15](docs/screenshots/molenkrite15_voordeur.png)
+
+Achter die deur zit een gang met zwart-witte blokjes. Achterin zit de deur naar de trap; die blijft
+dicht, want alleen de begane grond is ingericht.
+
+![De gang](docs/screenshots/binnen_gang.png)
+
+Rechts komt de gang uit in de woonkamer: bruin laminaat, een bank van 2,10 m tegen de zijmuur en een
+tuindeur op de achtergevel.
+
+![De woonkamer](docs/screenshots/binnen_woonkamer.png)
+
+Aan de andere kant staat de tv op het dressoir, met achterin de doorgang naar de keuken.
+
+![De tv](docs/screenshots/binnen_tv.png)
+
+In de aanbouw staat het keukenblok in één rij: onderkasten met een licht houten front, een werkblad
+op 90 cm met spoelbak en kookplaat, witte wandtegels tot 1,45 m en bovenkasten tot 2,15 m met een
+wasemkap boven de plaat.
+
+![Het keukenblok](docs/screenshots/binnen_keuken.png)
+
+Met **E** bij de deur sta je weer buiten, op de plek waar je naar binnen ging. Zolang je binnen bent
+zegt de HUD *Molenkrite 15* en blijft de minikaart de Molenkrite tonen.
 
 ### Waar het vandaan komt
 
@@ -128,10 +159,18 @@ oprit van Kruirad 62, het trottoir voor De Wieken 27, en het wegennet voor de ro
 vluchtroutes van de dief. In `js/verhaal.js` staat geen enkele coördinaat, alleen adressen, namen
 en afstanden vanaf de voorgevel — verhuist een pand in de brondata, dan verhuist de scène mee.
 
-`npm run verhaaltest` loopt het hele verhaal na — 88 controles: startpunt, zwaaien, gesprek,
+Dat geldt ook voor de woning binnen: het grondvlak `voet` van Molenkrite 15 uit de 3D BAG levert de
+plattegrond (een voorhuis van 5,42 × 9,48 m met een aanbouw van 2,42 × 4,58 m), de goothoogte van
+3,38 m laat één woonlaag met een plafond op 2,60 m toe, en de voordeur staat op dezelfde plek als in
+de geveltexture. De kamer zelf staat ruim buiten het kaartgebied, zodat je er nooit langs loopt en hij
+ook niet op het bovenaanzicht staat; naar binnen en naar buiten gaan is een teleport (`js/interieur.js`).
+
+`npm run verhaaltest` loopt het hele verhaal na — 123 controles: startpunt, zwaaien, gesprek,
 wandeling, schieten, rijden, de bewaking, de levensbalk, doodgaan, de poort, afleveren, het
-telefoontje, de briefing, de dief die schrikt en wegrent, de mislukking bij een schot, het uitgeput
-raken, het pakken, de beloning, en opslaan en laden. `npm run verhaalshots` maakt de foto's hierboven.
+telefoontje, de briefing, de dief die schrikt en wegrent, het deuntje bij de achtervolging, de
+mislukking bij een schot, het uitgeput raken, het pakken, de beloning, de woning achter de voordeur
+(maten, wanden, teleport, hoogtes van aanrecht, bank en tv) en opslaan en laden.
+`npm run verhaalshots` maakt de foto's hierboven.
 
 ## Opslaan en laden
 
@@ -216,6 +255,9 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `js/bewaking.js` – de vijf bewakers: patrouille, zien en horen, aanvallen en vuren
 - `js/dief.js` – de dief van De Wieken 27: slenteren, schrikken, vluchten over het wegennet,
   uitgeput raken en gepakt worden
+- `js/interieur.js` – de woning achter de voordeur van Molenkrite 15: de plattegrond uit het
+  grondvlak van het pand, gang met blokjes, woonkamer met laminaat, bank en tv, keukenblok in de
+  aanbouw, en de teleport naar binnen en naar buiten met E
 - `js/navigatie.js` – het wegennet van de kaart als graaf, met de kortste route voor de kaartnavigatie
 - `js/persoon.js` – één los poppetje dat kan staan, zwaaien, lopen, mikken, vuren en omvallen (de
   voetgangers in `npc.js` zijn instanced meshes en kunnen dat niet)
