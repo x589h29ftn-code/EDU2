@@ -267,7 +267,31 @@ function bouwPanden(scene, W, plat) {
     for (const p of punten) { const u = p[0] * r[0] + p[2] * r[2]; if (u < u0) u0 = u; if (u > u1) u1 = u; if (p[1] > top) top = p[1]; }
     const breed = u1 - u0;
     const kant = pand.front ? n[0] * pand.front[0] + n[2] * pand.front[1] : 0;
-    const gevel = st && pand.type !== 'schuur' && breed >= 2.4 && Math.abs(n[1]) < 0.3 && (kant > 0.6 || kant < -0.6);
+    const gevel = !pand.boven && st && pand.type !== 'schuur' && breed >= 2.4 && Math.abs(n[1]) < 0.3 && (kant > 0.6 || kant < -0.6);
+    // Dakkapel: een muurvlak dat helemaal boven de goot begint. Witte wangen,
+    // en aan de voorkant het kozijn van de dakkapel.
+    let laagste = Infinity; for (const p of punten) laagste = Math.min(laagste, p[1]);
+    if (st && pand.goot && laagste > pand.goot - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven) {
+      if (Math.abs(kant) > 0.6 && breed >= 1.2) {
+        const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel');
+        return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
+      }
+      const g = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel');
+      return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 1.2, p[1] / 1.2] };
+    }
+    if (pand.boven && st) {
+      const totNok = !pand.nok || (pand.bovenTop ?? top) >= pand.nok - 0.6;
+      if (!totNok && st.dormer) {
+        // wang van een dakkapel: wit
+        const g = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel');
+        return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 1.2, p[1] / 1.2] };
+      }
+      if (totNok && st.topgevel) {
+        // houten topgevel boven de goot (Bonkelaar, Jasker): delen van 15 cm
+        const g = groep(`planken|${st.topgevel}`, () => std(T.planks(st.topgevel)), 'topgevel');
+        return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 1.2, p[1] / 1.2] };
+      }
+    }
     if (!gevel) {
       const sleutel = `steen|${pand.type}|${seed % 3}`;
       const g = groep(sleutel, () => std(T.brick(steen[0], steen[1], seed % 3 + 1)), 'muur');
@@ -322,11 +346,17 @@ function bouwPanden(scene, W, plat) {
   const vlak3d = (pand, ringen, soort) => {
     const buiten = ringen[0];
     const n = normaal(buiten);
-    if (soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1) {
-      const { goot, top } = gootVan(buiten, n);
-      if (top - goot > 1.2) {
-        const { onder, boven } = knipOpHoogte(buiten, goot + 0.02);
-        if (onder && boven) { vlak3d(pand, [onder], 1); vlak3d({ ...pand, type: 'schuur' }, [boven], 1); return; }
+    if (soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1 && !pand.boven) {
+      // Muren boven de goot doorknippen: eronder de gevel, erboven een kopgevel
+      // (tot de nok) of de wang van een dakkapel (lager dan de nok). 3D BAG trekt
+      // de wanden van een dakkapel door tot de grond, dus zonder knip zou de
+      // wang als baksteen uit het dak steken.
+      let laag = Infinity, top = 0;
+      for (const p of buiten) { laag = Math.min(laag, p[1]); top = Math.max(top, p[1]); }
+      const gootH = pand.goot || gootVan(buiten, n).goot;
+      if (laag < gootH - 0.3 && top > gootH + 0.6) {
+        const { onder, boven } = knipOpHoogte(buiten, gootH + 0.02);
+        if (onder && boven) { vlak3d(pand, [onder], 1); vlak3d({ ...pand, boven: true, bovenTop: top }, [boven], 1); return; }
       }
     }
     const up = Math.abs(n[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0];
@@ -340,7 +370,7 @@ function bouwPanden(scene, W, plat) {
     const punten = ringen.flat();
     let g, uvf;
     if (soort === 1 && Math.abs(n[1]) < 0.5) ({ g, uvf } = muurKeuze(pand, n, punten));
-    else { g = dakGroep(pand, Math.abs(n[1]) < 0.97 && pand.dak !== 'horizontal'); uvf = (p) => [p[0] * 0.5, p[2] * 0.5]; }
+    else { const hellend = Math.abs(n[1]) < 0.97 && pand.dak !== 'horizontal'; g = dakGroep(pand, hellend); const s = hellend ? 0.25 : 0.5; uvf = (p) => [p[0] * s, (p[2] + p[1] * 0.6) * s]; }
     for (const [a, b, c] of tris) {
       const A = punten[a], B = punten[b], C = punten[c];
       const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], e2 = [C[0] - A[0], C[1] - A[1], C[2] - A[2]];

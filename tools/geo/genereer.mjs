@@ -420,14 +420,22 @@ function kiesType(p, straat) {
   const opp = Math.abs(oppervlak(p.voet));
   if (opp > 300) return STIJL.standaard.groot;
   if (opp < 35 && !p.nr.length) return 'schuur';           // bijgebouw: kale steen, geen gevel
+  const kap = laag && (p.nok ?? 0) > 8;                     // woonruimte in een steile kap
   if (s) {
     if (plat && s.plat) return s.plat;
+    if (kap && s.kap) return s.kap;
     if (laag && s.laag) return s.laag;
+    // type per huisnummerbereik (tot en met)
+    if (s.nummers && p.nr.length) {
+      const nr = Math.min(...p.nr.map(n => parseInt(n, 10)).filter(n => !isNaN(n)));
+      for (const b of s.nummers) if (nr <= b.tot && (b.van === undefined || nr >= b.van)) return b.type;
+    }
     if (s.afwisselend && Number(String(p.id).slice(-1)) % 2 === 1) return s.afwisselend;
     return s.type;
   }
   if (plat && (p.goot ?? 0) > 7) return STIJL.standaard.plat_hoog;
   if (plat) return STIJL.standaard.plat;
+  if (kap) return STIJL.standaard.kap;
   if (laag) return STIJL.standaard.laag;
   return STIJL.standaard.type;
 }

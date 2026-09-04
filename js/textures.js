@@ -42,22 +42,31 @@ export function brick(base = '#8a6752', mortar = '#b9b2a6', seed = 1) {
   seed = ((seed % BRICK_VARIANTEN) + BRICK_VARIANTEN) % BRICK_VARIANTEN;
   const key = `brick${base}${mortar}${seed}`;
   if (cache.has(key)) return cache.get(key);
-  // 320 px voor 2,6 m is 123 px/m: ruim genoeg voor een muur die je van een
-  // paar meter afstand ziet, en vier keer zo zuinig als 512.
-  const S = 320;
+  // 512 px voor 2,6 m is 197 px/m. Waalformaat: 21 x 5 cm steen met een voeg
+  // van ruim een centimeter, in halfsteensverband.
+  const S = 512, PM = S / 2.6;
   const c = canvas(S, S); const g = c.getContext('2d');
-  const r = rng(seed);
-  g.fillStyle = mortar; g.fillRect(0, 0, S, S);
-  const bw = 40, bh = 15;
-  for (let y = 0, row = 0; y < S; y += bh + 2, row++) {
-    const offs = (row % 2) * (bw / 2);
-    for (let x = -bw; x < S + bw; x += bw + 2) {
-      const f = 0.82 + r() * 0.36;
+  const r = rng(seed + 3);
+  // voeg: iets donkerder en grijzer dan opgegeven, met korrel
+  g.fillStyle = shade(mortar, 0.9); g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(0,0,0,${r() * 0.08})`; g.fillRect(r() * S, r() * S, 2, 2); }
+  const bw = 0.21 * PM, bh = 0.052 * PM, voeg = 0.012 * PM;
+  const rijen = Math.ceil(S / (bh + voeg)) + 1;
+  for (let row = 0; row < rijen; row++) {
+    const y = row * (bh + voeg);
+    const offs = (row % 2) * ((bw + voeg) / 2);
+    for (let x = -bw - voeg; x < S + bw; x += bw + voeg) {
+      // kleurschakering per steen: een deel van de stenen is duidelijk
+      // donkerder of lichter, de rest wijkt maar weinig af
+      const uitschieter = r() < 0.12;
+      const f = uitschieter ? 0.7 + r() * 0.6 : 0.9 + r() * 0.2;
       g.fillStyle = shade(base, f);
       g.fillRect(x + offs, y, bw, bh);
-      // lichte kleurvariatie in de steen
-      g.fillStyle = 'rgba(0,0,0,' + (r() * 0.12) + ')';
-      g.fillRect(x + offs + r() * bw * 0.6, y, bw * 0.3, bh);
+      // korrel en een licht bovenrandje geven de steen reliëf
+      g.fillStyle = `rgba(0,0,0,${0.05 + r() * 0.12})`;
+      g.fillRect(x + offs + r() * bw * 0.7, y + r() * bh * 0.5, bw * 0.3, bh * 0.5);
+      g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x + offs, y, bw, 1.5);
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x + offs, y + bh - 1.5, bw, 1.5);
     }
   }
   const t = tex(c, 1, 1); cache.set(key, t); return t;
@@ -261,44 +270,76 @@ export function leaves(tint = '#4a7a2a') {
 // Levert een canvas texture met `n` huizen naast elkaar, `storeys` verdiepingen.
 // Elke huis-eenheid = 256 px breed; hoogte = storeys*3m -> 96px per meter... we gebruiken 128px per meter.
 export const HOUSE_STYLES = {
-  molenkrite: { brick: ['#96755b', '#c0b7a6'], frame: '#ffffff', frame2: '#1f3a6e', door: ['#1f3a6e', '#2a2a2a', '#7a1f1f', '#1f3a6e'], roof: '#4e3d34', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: false, solar: true, band: '#f2f2f2' },
-  molenkrite_bung:{ brick: ['#a98d70', '#cbc2b0'], frame: '#ffffff', frame2: '#ffffff', door: ['#a5232c', '#8f1f27'], roof: '#4a3b32', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, solar: true, solarFull: true, chimney: true, band: '#f4f4f4' },
-  // Monnikmolen en Binnenroede hebben dezelfde opbouw als het Kruirad: een
-  // doorlopende laagbouw met plat dak voor het tweelaagse hoofdvolume.
-  monnik:     { brick: ['#9d978d', '#b3ada3'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#5a2d1a', '#1f3a6e'], roof: '#7d4a38', roofType: 'gable', storeys: 2, storeyH: 2.75, w: 5.4, dormer: false, chimney: true, voorbouw: true, band: '#f2f2f2' },
-  // Kruirad: lichte gele baksteen met felblauwe kozijnen en deuren, twee lagen,
-  // pannendak met dakramen (geen dakkapellen) – zie de street view vanaf het
-  // groen aan de achterkant.
-  /* Kruirad. Van dichtbij (Kruirad 62) blijkt de opbouw anders dan ik eerst
-     dacht: het is geen bergingetje naast de voordeur, maar een doorlopende
-     laagbouw met plat dak over de volle breedte van het hele blok. Daarin
-     zitten de blauwe voordeuren en een klein raam; het tweelaagse hoofdvolume
-     met het pannendak staat erachter. De steen is grijsbeige, niet geel, en de
-     kozijnen zijn wit met alleen de deuren in blauw. Het dak is roodbruine
-     pan. */
-  kruirad:    { brick: ['#a49d92', '#b6b0a6'], frame: '#ffffff', frame2: '#ffffff', door: ['#1746a0', '#12388a'], roof: '#7d4a38', roofType: 'gable', storeys: 2, storeyH: 2.75, w: 5.4, dormer: false, skylight: true, chimney: true, voorbouw: true, band: '#f2f2f2' },
-  // Kruirad, de rijtjes aan de parkeerhoven: roodbruine baksteen, witte
-  // kozijnen, een brede raamband op de verdieping met donkergroene panelen
-  // eronder en een wit balkonhekje ervoor. Zie 48 Kruirad op street view.
-  kruirad_rood: { brick: ['#9c6247', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#2f4a35', '#28402d'], roof: '#4a403a', roofType: 'gable', storeys: 2, storeyH: 2.7, w: 5.4, dormer: false, chimney: true, paneel: '#2c4a34', balkon: true, voorschutting: true, band: '#f2f2f2' },
-  molenpaal:  { brick: ['#d3bd8e', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#4a4a4a'], roof: '#453b37', roofType: 'gable', storeys: 2, w: 5.6, dormer: true, dormerBand: true, chimney: false, solar: true, band: '#f2f2f2' },
-  jasker_flat:{ brick: ['#e0d0a6', '#e8e0cd'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b', '#3a3a3a'], roof: '#555', roofType: 'flat', storeys: 2, w: 5.6, dormer: false, chimney: false, band: '#2b2b2b' },
-  jasker_gable:{ brick: ['#dcc89a', '#e5ddcb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#6a1a1a'], roof: '#453b37', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#f2f2f2' },
-  wieken_white:{ brick: ['#d9c9a0', '#e6dfcd'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#1746a0', '#12388a'], roof: '#453b37', roofType: 'gable', storeys: 1, w: 5.5, dormer: true, chimney: true, band: '#f4f4f4' },
-  wieken_yellow:{ brick: ['#cfbf94', '#e2dac6'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#433934', roofType: 'gable', storeys: 1, w: 5.5, dormer: true, chimney: true, solar: true, band: '#f4f4f4' },
-  bonkelaar:  { brick: ['#8e4a3a', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#3a6e2a'], roof: '#4a3327', roofType: 'gable', storeys: 2, w: 6.4, dormer: false, chimney: true, band: '#f2f2f2', semi: true },
+  // Kleuren en details per woningtype. Bron: de Street View-foto's in
+  // data/stijl/fotos/ (zie docs/steekproef/README.md). Heel Tinga is gebouwd
+  // in lichtgele tot beige baksteen met donkerbruine pannen en witte
+  // boeiboorden; het verschil zit in de kleur van deuren en kozijnaccenten,
+  // de dakvorm en de details (dakkapel, dakraam, zonnepanelen, luifel).
+  //
+  // Molenkrite, tweelaags deel (nog niet met een foto bevestigd)
+  molenkrite: { brick: ['#b39a75', '#d2c9b6'], frame: '#ffffff', frame2: '#1f2f4f', door: ['#1f3a2a', '#1f2f5f', '#2a2a2a'], roof: '#3d3430', roofType: 'gable', storeys: 2, w: 5.4, dormer: true, chimney: false, solar: true, band: '#f2f2f2' },
+  // Molenkrite 19 en 43 (foto): bungalow met de woonruimte in een steile kap
+  // (goot 3,2 m, nok 9 m), grote dakkapel per woning met witte wangen, bruinbeige
+  // steen, witte kozijnen met donkere accenten, donkergroene of donkerblauwe
+  // voordeur, witte boeiboord boven de pui, roodbruine plint.
+  molenkrite_kap: { brick: ['#a9906c', '#cfc6b4'], frame: '#ffffff', frame2: '#1f2f4f', door: ['#1f3a2a', '#1f2f5f', '#2a2a2a'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.4, dormer: true, dormerGroot: true, chimney: false, band: '#f2f2f2', plint: '#6a3a2e' },
+  // Molenkrite 70 (foto): lage bungalow (nok 6,7 m) met een vol zonnedak, witte
+  // kozijnen, rode deur en rode accenten, schoorstenen, dakramen.
+  molenkrite_bung:{ brick: ['#b09772', '#d0c7b5'], frame: '#ffffff', frame2: '#c8322b', door: ['#c8322b', '#b52a24'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, solar: true, solarFull: true, chimney: true, band: '#f4f4f4' },
+  // Monnikmolen 148 (foto): twee lagen, geelbeige steen, witte kozijnen met
+  // rode ramen en rode deuren, witte luifel over de hele breedte boven de pui,
+  // schoorsteen per woning, donker pannendak.
+  monnik:     { brick: ['#c2b184', '#d9d2c0'], frame: '#ffffff', frame2: '#b8231f', door: ['#b8231f', '#a01e1b', '#8c1f2a'], roof: '#3a3330', roofType: 'gable', storeys: 2, storeyH: 2.75, w: 5.4, dormer: false, chimney: true, luifel: true, band: '#f2f2f2' },
+  // Kruirad 12 (foto): twee lagen, lichtgele steen, witte kozijnen met felrode
+  // draaidelen en felrode voordeur, roodbruine plint, schoorsteen per woning.
+  kruirad_rood: { brick: ['#bfae83', '#d6cfbd'], frame: '#ffffff', frame2: '#c81e1e', door: ['#c81e1e', '#b51a1a'], roof: '#35302d', roofType: 'gable', storeys: 2, storeyH: 2.75, w: 5.4, dormer: false, chimney: true, band: '#f2f2f2', plint: '#5a3a30' },
+  // Kruirad 50 (foto): dezelfde rij aan de hofkant, met felblauwe deur en blauwe
+  // draaidelen; ervoor staan bergingen in donkerbruine steen met plat dak (die
+  // zijn aparte panden in de BGT).
+  kruirad:    { brick: ['#bba97f', '#d4ccb9'], frame: '#ffffff', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#3a3330', roofType: 'gable', storeys: 2, storeyH: 2.75, w: 5.4, dormer: false, chimney: true, band: '#f2f2f2' },
+  // Molenpaal 6 (foto, achterkant): twee lagen met kap, lichtgele steen, witte
+  // kozijnen, zonnepanelen en dakramen, houten schuurtjes en schuttingen.
+  molenpaal:  { brick: ['#c9bd97', '#dcd6c5'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#4a4a4a'], roof: '#3a3330', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, skylight: true, chimney: false, solar: true, band: '#f2f2f2' },
+  jasker_flat:{ brick: ['#c9b98f', '#dcd4c1'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b', '#3a3a3a'], roof: '#555', roofType: 'flat', storeys: 2, w: 5.6, dormer: false, chimney: false, band: '#2b2b2b' },
+  // Jasker 7 (foto, zijkant): lichtgele steen, witte kozijnen, witte houten
+  // topgevel boven de goot, lage aanbouw met plat dak en witte boeiboord.
+  jasker_gable:{ brick: ['#c9b98f', '#dcd4c1'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#6a1a1a'], roof: '#3a3330', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#f2f2f2', topgevel: '#f0efe9' },
+  // de Wieken 34 (foto): bungalow met de woonruimte in de kap, grote dakkapel
+  // met rode kozijnen, rode deuren en rode ramen, lichtgele steen, witte
+  // boeiboord, zonnepanelen op een deel van de daken.
+  wieken_white:{ brick: ['#c9b98f', '#dcd4c1'], frame: '#ffffff', frame2: '#c8322b', door: ['#c8322b', '#c8322b', '#1746a0'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.5, dormer: true, dormerGroot: true, dormerFrame: '#c8322b', chimney: false, band: '#f4f4f4' },
+  wieken_yellow:{ brick: ['#c9b98f', '#dcd4c1'], frame: '#ffffff', frame2: '#c8322b', door: ['#c8322b', '#b52a24'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.5, dormer: true, dormerGroot: true, dormerFrame: '#c8322b', chimney: false, solar: true, band: '#f4f4f4' },
+  // Bonkelaar 11 (foto): twee-onder-een-kap in donkere roodbruine steen, witte
+  // kozijnen, witte houten topgevel, donkergrijze pannen, garage of carport
+  // tussen de woningen, grindtuin met klinkerpad.
+  bonkelaar:  { brick: ['#7a4a3c', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#f2f2f2', '#2a2a2a', '#1f3a6e'], roof: '#37322f', roofType: 'gable', storeys: 2, w: 6.4, dormer: false, chimney: true, band: '#f2f2f2', semi: true, topgevel: '#f2f2ee' },
   detached:   { brick: ['#7e5a48', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#5a2d1a'], roof: '#3b3432', roofType: 'gable', storeys: 2, w: 10.0, dormer: false, chimney: true, band: '#f2f2f2', solar: true, detached: true },
   appart:     { brick: ['#d6c08c', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2b2b2b'], roof: '#555', roofType: 'flat', storeys: 3, w: 7.0, dormer: false, chimney: false, band: '#f2f2f2', balcony: true },
-  bovenas_bung:{ brick: ['#d3c39a', '#e4dcc8'], frame: '#ffffff', frame2: '#8c1f2a', door: ['#8c1f2a', '#7a1a24'], roof: '#453833', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, chimney: true, band: '#f4f4f4' },
-  bovenas_gal: { brick: ['#d6c69e', '#e6dfcb'], frame: '#ffffff', frame2: '#8c1f2a', door: ['#8c1f2a', '#7a1a24'], roof: '#453833', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, skylight: true, chimney: true, gallery: true, band: '#f4f4f4' },
-  // Uit de street-viewfoto's: bruine steen met donkergroene kozijnen en een
-  // witte luifelband boven deur en raam (hoekwoning met parkeerkoffer).
+  // Bovenas 5 (foto): één laag met de slaapkamers in de kap, lichtgele steen,
+  // witte kozijnen met bordeauxrode deuren en draaidelen, dakramen,
+  // schoorstenen, witte boeiboord.
+  bovenas_bung:{ brick: ['#cdbf95', '#dfd8c6'], frame: '#ffffff', frame2: '#8c1f2a', door: ['#8c1f2a', '#7a1a24'], roof: '#3d3530', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, chimney: true, band: '#f4f4f4' },
+  bovenas_gal: { brick: ['#cdbf95', '#dfd8c6'], frame: '#ffffff', frame2: '#8c1f2a', door: ['#8c1f2a', '#7a1a24'], roof: '#3d3530', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, skylight: true, chimney: true, gallery: true, band: '#f4f4f4' },
   tinga_groen:{ brick: ['#9a6a53', '#c9beac'], frame: '#1f4230', frame2: '#1f4230', door: ['#1f4230', '#17351f'], roof: '#4a3f37', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#f4f4f4' },
-  // Gele steen met felblauwe kozijnen en een brede raamband, zoals aan het pad
-  // achter het Kruirad.
   tinga_blauw:{ brick: ['#c9bb96', '#ded6c2'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#4a3b30', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#ffffff' },
   spil:       { brick: ['#b57a5a', '#d0c6b8'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b'], roof: '#555', roofType: 'flat', storeys: 1, w: 8.0, dormer: false, chimney: false, band: '#2b2b2b' },
 };
+
+// ---------- Houten delen (witte topgevels, schuttingen) ----------
+export function planks(kleur = '#f0efe9') {
+  const key = 'planks' + kleur;
+  if (cache.has(key)) return cache.get(key);
+  // 256 px = 1,2 m: acht delen van 15 cm
+  const c = canvas(256, 256); const g = c.getContext('2d');
+  const r = rng(21);
+  g.fillStyle = kleur; g.fillRect(0, 0, 256, 256);
+  for (let y = 0; y < 256; y += 32) {
+    g.fillStyle = `rgba(0,0,0,${0.10 + r() * 0.06})`; g.fillRect(0, y, 256, 3);          // schaduw onder elk deel
+    g.fillStyle = `rgba(255,255,255,${0.15 + r() * 0.1})`; g.fillRect(0, y + 3, 256, 2);   // lichtrandje
+    g.fillStyle = `rgba(0,0,0,${r() * 0.04})`; g.fillRect(0, y + 8, 256, 20);
+  }
+  const t = tex(c); cache.set(key, t); return t;
+}
 
 // Idem voor de gevels: zes varianten per type geeft genoeg afwisseling in
 // gordijnen, deurkleuren en raamindeling zonder het geheugen op te blazen.
@@ -308,116 +349,150 @@ export function facade(type, n, storeys, back = false, seed = 1) {
   const key = `fac_${type}_${n}_${storeys}_${back}_${seed}`;
   if (cache.has(key)) return cache.get(key);
   const st = HOUSE_STYLES[type];
-  const HW = 88; // px per huis; 16 px/m is genoeg voor kozijnen en deuren
-  const PM = HW / st.w; // px per meter
-  // Niet elk rijtje is even hoog: de woningen aan het Kruirad hebben een lage
-  // gootlijn, dus die krijgen een lagere verdieping dan de standaard 2,90 m.
+  // 40 px per meter: een kozijn van 8 cm is dan drie pixels breed en een
+  // deurklink is nog te zien. Dat is vier keer zo scherp als de eerste versie.
+  const PM = 40;
+  const HW = Math.round(st.w * PM);
   const SH = st.storeyH || 2.9;
   const H = Math.round(storeys * SH * PM);
   const c = canvas(HW * n, H); const g = c.getContext('2d');
   const r = rng(seed * 7 + n);
+  const m = (v) => v * PM;   // meters -> pixels
 
-  // achtergrond baksteen / pleister
+  // achtergrond baksteen / pleister (320 px baksteen = 2,6 m)
   const bimg = st.plaster ? plaster(st.brick[0]).image : brick(st.brick[0], st.brick[1], seed).image;
   const pat = g.createPattern(bimg, 'repeat');
-  g.save();
-  g.scale(PM * 2.6 / 512, PM * 2.6 / 512); // 512 px baksteen = 2.6 m
-  g.fillStyle = pat; g.fillRect(0, 0, HW * n / (PM * 2.6 / 512), H / (PM * 2.6 / 512));
-  g.restore();
+  const sc = PM * 2.6 / bimg.width;
+  g.save(); g.scale(sc, sc); g.fillStyle = pat; g.fillRect(0, 0, HW * n / sc, H / sc); g.restore();
+  // lichte vervuiling onder de dakrand en boven de plint
+  const vuil = g.createLinearGradient(0, 0, 0, H);
+  vuil.addColorStop(0, 'rgba(0,0,0,0.10)'); vuil.addColorStop(0.12, 'rgba(0,0,0,0)'); vuil.addColorStop(0.9, 'rgba(0,0,0,0)'); vuil.addColorStop(1, 'rgba(0,0,0,0.12)');
+  g.fillStyle = vuil; g.fillRect(0, 0, HW * n, H);
+
+  const win = (x, y, w, h, frame, opties = {}) => {
+    // latei-schaduw boven het kozijn
+    g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x - m(0.03), y - m(0.08), w + m(0.06), m(0.08));
+    // kozijn (buitenrand) en een donkere sponning erbinnen
+    g.fillStyle = frame; g.fillRect(x, y, w, h);
+    const k = m(0.08);
+    g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x + k, y + k, w - 2 * k, h - 2 * k);
+    // glas: lucht bovenin, donker onderin
+    const gl = g.createLinearGradient(0, y, 0, y + h);
+    gl.addColorStop(0, '#9fb6c8'); gl.addColorStop(0.45, '#3d4d5a'); gl.addColorStop(1, '#232c33');
+    g.fillStyle = gl; g.fillRect(x + k + 2, y + k + 2, w - 2 * k - 4, h - 2 * k - 4);
+    // schuine reflectie
+    g.fillStyle = 'rgba(210,225,240,0.22)';
+    g.beginPath(); g.moveTo(x + k + 2, y + k + 2); g.lineTo(x + k + 2 + (w - 2 * k) * 0.45, y + k + 2); g.lineTo(x + k + 2 + (w - 2 * k) * 0.15, y + h - k - 2); g.lineTo(x + k + 2, y + h - k - 2); g.closePath(); g.fill();
+    // stijlen: middenstijl en eventueel een draaiend deel in de accentkleur
+    g.fillStyle = frame; g.fillRect(x + w / 2 - m(0.04), y, m(0.08), h);
+    if (opties.draai) { g.fillStyle = opties.draai; g.fillRect(x + w * 0.62, y + k, w * 0.38 - k, h - 2 * k); g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x + w * 0.62 + k, y + 2 * k, w * 0.38 - 3 * k, h - 4 * k); g.fillStyle = gl; g.fillRect(x + w * 0.62 + k + 2, y + 2 * k + 2, w * 0.38 - 3 * k - 4, h - 4 * k - 4); }
+    // vitrage / gordijn onderin
+    g.fillStyle = 'rgba(238,236,228,0.6)'; g.fillRect(x + k + 2, y + h * 0.62, w - 2 * k - 4, h * 0.38 - k - 2);
+    if (r() < 0.5) { g.fillStyle = 'rgba(120,90,70,0.55)'; g.fillRect(x + k + 2, y + k + 2, w * 0.12, h - 2 * k - 4); g.fillRect(x + w - k - 2 - w * 0.12, y + k + 2, w * 0.12, h - 2 * k - 4); }
+    // vensterbank met schaduw
+    g.fillStyle = '#d9d6cf'; g.fillRect(x - m(0.04), y + h, w + m(0.08), m(0.06));
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - m(0.04), y + h + m(0.06), w + m(0.08), m(0.05));
+  };
+  const door = (x, y, w, h, col) => {
+    g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x - m(0.08), y - m(0.62), w + m(0.16), m(0.08));
+    g.fillStyle = st.frame; g.fillRect(x - m(0.06), y - m(0.55), w + m(0.12), h + m(0.55));
+    // bovenlicht
+    g.fillStyle = '#28323a'; g.fillRect(x, y - m(0.5), w, m(0.42));
+    g.fillStyle = 'rgba(200,220,240,0.35)'; g.fillRect(x + m(0.05), y - m(0.47), w * 0.35, m(0.36));
+    // deurblad met een lichte rand en een glasstrook
+    g.fillStyle = col; g.fillRect(x, y, w, h);
+    g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(x, y, w, m(0.03)); g.fillRect(x, y, m(0.03), h);
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x + w - m(0.03), y, m(0.03), h); g.fillRect(x, y + h - m(0.03), w, m(0.03));
+    g.fillStyle = '#28323a'; g.fillRect(x + w * 0.6, y + h * 0.1, w * 0.25, h * 0.5);
+    g.fillStyle = 'rgba(200,220,240,0.4)'; g.fillRect(x + w * 0.62, y + h * 0.12, w * 0.07, h * 0.46);
+    // klink en brievenbus
+    g.fillStyle = '#d8d8d8'; g.fillRect(x + w * 0.12, y + h * 0.48, m(0.14), m(0.03));
+    g.fillStyle = '#c9c9c9'; g.fillRect(x + w * 0.3, y + h * 0.58, m(0.28), m(0.05));
+    // huisnummerbordje en drempel
+    g.fillStyle = '#e8e8e8'; g.fillRect(x + w + m(0.14), y + h * 0.18, m(0.16), m(0.11));
+    g.fillStyle = '#6a6a68'; g.fillRect(x - m(0.06), y + h - m(0.04), w + m(0.12), m(0.04));
+  };
+  const plintKleur = st.plint || '#5a4a42';
 
   for (let i = 0; i < n; i++) {
     const x0 = i * HW;
     const mirror = (i % 2 === 1) && !st.detached;
     const doorColor = st.door[(i + seed) % st.door.length];
-    // begane grond
-    const gy = H - SH * PM; // top begane grond
-    const win = (x, y, w, h, frame, glassDark = true) => {
-      g.fillStyle = frame; g.fillRect(x, y, w, h);
-      g.fillStyle = glassDark ? '#28323a' : '#7d95a8';
-      g.fillRect(x + 4, y + 4, w - 8, h - 8);
-      // reflectie
-      g.fillStyle = 'rgba(180,200,220,0.35)';
-      g.fillRect(x + 6, y + 6, (w - 12) * 0.35, h - 12);
-      // stijl in het midden
-      g.fillStyle = frame; g.fillRect(x + w / 2 - 2, y, 4, h);
-      // gordijn/vitrage onderaan
-      g.fillStyle = 'rgba(235,235,230,0.55)';
-      g.fillRect(x + 4, y + h * 0.65, w - 8, h * 0.35 - 4);
-    };
-    const door = (x, y, w, h, col) => {
-      g.fillStyle = st.frame; g.fillRect(x - 3, y - 3, w + 6, h + 3);
-      g.fillStyle = col; g.fillRect(x, y, w, h);
-      // glasstrook
-      g.fillStyle = '#28323a'; g.fillRect(x + w * 0.62, y + h * 0.08, w * 0.22, h * 0.55);
-      g.fillStyle = 'rgba(200,220,240,0.4)'; g.fillRect(x + w * 0.64, y + h * 0.1, w * 0.06, h * 0.5);
-      // klink
-      g.fillStyle = '#cfcfcf'; g.fillRect(x + w * 0.15, y + h * 0.5, 6, 3);
-      // bovenlicht
-      g.fillStyle = st.frame; g.fillRect(x - 3, y - 0.5 * PM, w + 6, 0.5 * PM);
-      g.fillStyle = '#28323a'; g.fillRect(x, y - 0.5 * PM + 3, w, 0.5 * PM - 6);
-      // huisnummer
-      g.fillStyle = '#ddd'; g.fillRect(x - 3 + w + 10, y + h * 0.2, 12, 8);
-    };
-
     if (!back) {
       if (st.storeys >= 1 && type !== 'appart' && type !== 'spil') {
         // grote woonkamerpui + deur
-        const dw = 0.95 * PM, dh = 2.15 * PM;
-        const ww = (st.w - 0.95 - 1.3) * PM, wh = 1.7 * PM;
-        const dx = mirror ? x0 + st.w * PM - 0.5 * PM - dw : x0 + 0.5 * PM;
-        const wx = mirror ? x0 + 0.4 * PM : x0 + 0.5 * PM + dw + 0.4 * PM;
+        const dw = m(0.95), dh = m(2.15);
+        const ww = m(st.w - 0.95 - 1.3), wh = m(1.75);
+        const dx = mirror ? x0 + HW - m(0.5) - dw : x0 + m(0.5);
+        const wx = mirror ? x0 + m(0.4) : x0 + m(0.5) + dw + m(0.4);
         door(dx, H - dh, dw, dh, doorColor);
-        win(wx, H - 0.85 * PM - wh, ww, wh, st.frame2);
-        // dorpel / plint
-        g.fillStyle = '#4a4a4a'; g.fillRect(x0, H - 0.25 * PM, HW, 0.25 * PM);
+        win(wx, H - m(0.85) - wh, ww, wh, st.frame, { draai: st.frame2 !== st.frame ? st.frame2 : null });
+        // luifel: witte band over de volle breedte boven pui en deur, met slagschaduw
+        if (st.luifel) {
+          const ly = H - m(2.75);
+          g.fillStyle = '#f2f2f0'; g.fillRect(x0, ly, HW, m(0.28));
+          g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(x0, ly, HW, m(0.04));
+          const sg = g.createLinearGradient(0, ly + m(0.28), 0, ly + m(0.7));
+          sg.addColorStop(0, 'rgba(0,0,0,0.35)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = sg; g.fillRect(x0, ly + m(0.28), HW, m(0.42));
+        }
       } else if (type === 'appart') {
-        // appartement: per verdieping 2 ramen + balkon
         for (let s = 0; s < storeys; s++) {
           const fy = H - (s + 1) * SH * PM;
-          win(x0 + 0.5 * PM, fy + 0.7 * PM, 2.2 * PM, 1.5 * PM, st.frame);
-          win(x0 + 4.2 * PM, fy + 0.7 * PM, 2.2 * PM, 1.5 * PM, st.frame);
-          if (s === 0 && i % 3 === 0) door(x0 + 3.0 * PM, H - 2.1 * PM, 1.0 * PM, 2.1 * PM, '#2b2b2b');
-          if (s > 0) { g.fillStyle = '#9aa0a8'; g.fillRect(x0 + 0.3 * PM, fy + 1.9 * PM, 2.6 * PM, 0.9 * PM); }
+          win(x0 + m(0.5), fy + m(0.7), m(2.2), m(1.5), st.frame);
+          win(x0 + m(4.2), fy + m(0.7), m(2.2), m(1.5), st.frame);
+          if (s === 0 && i % 3 === 0) door(x0 + m(3.0), H - m(2.1), m(1.0), m(2.1), '#2b2b2b');
+          if (s > 0) { g.fillStyle = '#9aa0a8'; g.fillRect(x0 + m(0.3), fy + m(1.9), m(2.6), m(0.9)); }
         }
       } else if (type === 'spil') {
-        for (let k = 0; k < 3; k++) win(x0 + (0.4 + k * 2.5) * PM, H - 2.5 * PM, 2.0 * PM, 1.6 * PM, st.frame);
-        if (i === 0) door(x0 + 3.0 * PM, H - 2.2 * PM, 1.6 * PM, 2.2 * PM, '#2b2b2b');
+        for (let k = 0; k < 3; k++) win(x0 + m(0.4 + k * 2.5), H - m(2.5), m(2.0), m(1.6), st.frame);
+        if (i === 0) door(x0 + m(3.0), H - m(2.2), m(1.6), m(2.2), '#2b2b2b');
       }
-      // verdieping(en) ramen
+      // verdieping(en)
       for (let s = 1; s < storeys; s++) {
         if (type === 'appart') break;
         const fy = H - (s + 1) * SH * PM;
         if (st.paneel) {
-          // brede raamband over de hele breedte met een gekleurd paneel eronder,
-          // zoals de donkergroene panelen aan het Kruirad
-          const bx = x0 + 0.35 * PM, bw2 = (st.w - 0.7) * PM;
-          win(bx, fy + 0.5 * PM, bw2, 1.25 * PM, st.frame);
-          g.fillStyle = st.paneel; g.fillRect(bx, fy + 1.75 * PM, bw2, 0.62 * PM);
-          g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(bx, fy + 2.31 * PM, bw2, 0.06 * PM);
+          const bx = x0 + m(0.35), bw2 = m(st.w - 0.7);
+          win(bx, fy + m(0.5), bw2, m(1.25), st.frame);
+          g.fillStyle = st.paneel; g.fillRect(bx, fy + m(1.75), bw2, m(0.62));
+          g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(bx, fy + m(2.31), bw2, m(0.06));
           continue;
         }
-        win(x0 + 0.5 * PM, fy + 0.8 * PM, 2.0 * PM, 1.4 * PM, st.frame);
-        win(x0 + (st.w - 2.5) * PM, fy + 0.8 * PM, 2.0 * PM, 1.4 * PM, st.frame);
-        if (st.w > 8) win(x0 + (st.w / 2 - 1.0) * PM, fy + 0.8 * PM, 2.0 * PM, 1.4 * PM, st.frame);
+        const accent = st.frame2 !== st.frame ? st.frame2 : null;
+        win(x0 + m(0.5), fy + m(0.8), m(2.0), m(1.4), st.frame, { draai: accent });
+        win(x0 + m(st.w - 2.5), fy + m(0.8), m(2.0), m(1.4), st.frame, { draai: accent });
+        if (st.w > 8) win(x0 + m(st.w / 2 - 1.0), fy + m(0.8), m(2.0), m(1.4), st.frame);
       }
     } else {
       // achtergevel: ramen + tuindeur
       for (let s = 0; s < storeys; s++) {
         const fy = H - (s + 1) * SH * PM;
         if (s === 0) {
-          g.fillStyle = st.frame; g.fillRect(x0 + 0.6 * PM, H - 2.2 * PM, 2.4 * PM, 2.2 * PM);
-          g.fillStyle = '#28323a'; g.fillRect(x0 + 0.65 * PM, H - 2.15 * PM, 2.3 * PM, 2.05 * PM);
-          win(x0 + (st.w - 2.6) * PM, fy + 1.0 * PM, 2.0 * PM, 1.3 * PM, st.frame);
+          g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x0 + m(0.55), H - m(2.28), m(2.5), m(0.08));
+          g.fillStyle = st.frame; g.fillRect(x0 + m(0.6), H - m(2.2), m(2.4), m(2.2));
+          g.fillStyle = '#28323a'; g.fillRect(x0 + m(0.68), H - m(2.12), m(2.24), m(2.05));
+          g.fillStyle = 'rgba(200,220,240,0.3)'; g.fillRect(x0 + m(0.7), H - m(2.1), m(0.8), m(2.0));
+          g.fillStyle = st.frame; g.fillRect(x0 + m(1.76), H - m(2.2), m(0.08), m(2.2));
+          win(x0 + m(st.w - 2.6), fy + m(1.0), m(2.0), m(1.3), st.frame);
         } else {
-          win(x0 + 0.6 * PM, fy + 0.8 * PM, 1.6 * PM, 1.3 * PM, st.frame);
-          win(x0 + (st.w - 2.4) * PM, fy + 0.8 * PM, 1.6 * PM, 1.3 * PM, st.frame);
+          win(x0 + m(0.6), fy + m(0.8), m(1.6), m(1.3), st.frame);
+          win(x0 + m(st.w - 2.4), fy + m(0.8), m(1.6), m(1.3), st.frame);
         }
       }
     }
-    // dakrand (witte boeiboord) bovenaan
-    g.fillStyle = st.band; g.fillRect(x0, 0, HW, 0.28 * PM);
-    // scheidingsvoeg tussen huizen
-    if (!st.plaster) { g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x0, 0, 2, H); }
+    // plint
+    g.fillStyle = plintKleur; g.fillRect(x0, H - m(0.3), HW, m(0.3));
+    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x0, H - m(0.3), HW, m(0.03));
+    // dakrand (boeiboord) bovenaan, met schaduw eronder
+    g.fillStyle = st.band; g.fillRect(x0, 0, HW, m(0.28));
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x0, m(0.28), HW, m(0.06));
+    // regenpijp op de woningscheiding
+    if (!st.plaster && !st.detached) {
+      g.fillStyle = '#8f9296'; g.fillRect(x0 + m(0.06), m(0.28), m(0.08), H - m(0.28));
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x0 + m(0.12), m(0.28), m(0.03), H - m(0.28));
+      g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x0, 0, m(0.04), H);
+    }
   }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;

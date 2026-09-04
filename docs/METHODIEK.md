@@ -355,9 +355,22 @@ In het spel legt `kaartwereld.js` de bestaande gevel met ramen en deuren op elk
 muurvlak dat naar de straat kijkt, en de achtergevel op de tegenoverliggende
 muren. Het aantal lagen volgt uit de hoogte van het muurvlak zelf; een kopgevel
 wordt op de goot doorgeknipt, met de gevel eronder en kale steen tot de nok. De
-dakkleur komt uit het woningtype. Alle regels in de catalogus staan nu op
-"oude kaart" of "aanname": ze zijn overgenomen uit de handgetekende versie en
-wachten op bevestiging met foto's.
+dakkleur komt uit het woningtype.
+
+De catalogus is gevuld met de Street View-foto's van de twaalf steekproefadressen
+(`data/stijl/fotos/`). Wat die foto's leerden: heel Tinga is lichtgele tot beige
+baksteen met donkerbruine pannen en witte boeiboorden; het verschil per straat zit
+in de accentkleur (rood op Kruirad 12, Monnikmolen, de Wieken en Bovenas; blauw op
+Kruirad 50; donkergroen en donkerblauw op de Molenkrite), in de dakvorm (steile kap
+met grote dakkapel op Molenkrite 19 en 43 en de Wieken, laag zonnedak op Molenkrite
+70) en in details als de witte luifel van de Monnikmolen en de witte houten
+topgevels van Bonkelaar en Jasker. De regels met bron "foto" zijn bevestigd; de
+overige straten staan nog op "aanname". De gevelgenerator tekent sindsdien op 40
+pixels per meter met kozijnsponning, vensterbanken, lateischaduw, plint,
+regenpijp en luifel, en de baksteen is waalformaat op 197 pixels per meter.
+Dakkapellen komen uit het 3D BAG-model: wanden die boven de goot beginnen of
+doorlopen tot onder de nok krijgen witte wangen en aan de straatkant het
+dakkapelkozijn in de accentkleur.
 
 **Steekproef.** `npm run geo:steekproef` rendert de twaalf adressen uit
 `data/stijl/steekproef.json` vanaf de straat, negen meter voor de voorgevel, en
@@ -368,10 +381,11 @@ wordt alleen kleur en detail beoordeeld, nooit positie of maat.
 
 **Wat nog niet af is (in volgorde).**
 
-1. De stijlcatalogus vullen met foto's: per adres uit de steekproef de steen-,
-   kozijn- en deurkleur, dakpannen, dakkapel of dakraam, zonnepanelen en voortuin
-   bevestigen of aanpassen, en de bron op "foto" zetten.
-2. Dakdetails: dakkapellen, dakramen en zonnepanelen op de 3D BAG-daken.
+1. Straten zonder foto (Binnenroede, Spinnekop, Windbord, Voorzoom, de Hekken,
+   Grootwiel, Omloop, Buitenroede, Eekmolen, Zeskanter) op dezelfde manier
+   bevestigen; de grens tussen rood en blauw op het Kruirad (nu bij nummer 30).
+2. Dakramen, zonnepanelen en schoorstenen als losse elementen op de 3D BAG-daken
+   waar het type dat zegt.
 3. Voortuinen: erf is nu egaal gras; hekjes, hagen en paden per perceel komen uit de
    stijlcatalogus.
 4. De editor (F2) en de oude objecten uit `data.js` werken nog in pixels van de oude
