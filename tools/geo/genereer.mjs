@@ -165,7 +165,7 @@ for (const f of lees('bgt_ondersteunendwegdeel')) voegVlak('berm', 'gras', KERB,
 for (const f of lees('bgt_begroeidterreindeel')) {
   const plus = f.properties.plus_fysiekVoorkomen;
   const k = plus === 'bosplantsoen' ? 'bos' : plus === 'heesters' ? 'heesters' : (plus === 'bodembedekkers' || plus === 'planten') ? 'bodembedekker' : 'gras';
-  voegVlak(k, k === 'bos' ? 'bosgrond' : k === 'gras' ? 'gras' : 'bodembedekker', KERB, f.geometry);
+  voegVlak(k, k === 'bos' ? 'bosgrond' : k === 'gras' ? 'gras' : 'bodembedekker', KERB, f.geometry, { sub: plus || f.properties.class });
 }
 for (const f of lees('bgt_onbegroeidterreindeel')) {
   const p = f.properties, fy = p.bgt_fysiekVoorkomen;
@@ -503,7 +503,7 @@ tel('bomen_bos', BOMEN.length); tel('struiken', STRUIKEN.length); tel('hagen', H
 // dertig meter langs een rijbaanas, een meter buiten de rijbaan, alleen waar
 // dat op stoep, berm of gras uitkomt.
 const klasseRaster = raster([], 0.5, gebiedBbox);
-const KLASSE = { rijbaan: 1, autoweg: 1, woonerf: 1, parkeervlak: 1, inrit: 1, fietspad: 1, water: 2, oever: 2, voetpad: 3, berm: 3, gras: 3, bodembedekker: 3, heesters: 4, bos: 4, erf: 5, verharding: 3 };
+const KLASSE = { rijbaan: 1, autoweg: 1, woonerf: 1, parkeervlak: 1, inrit: 1, fietspad: 1, water: 2, oever: 2, voetpad: 7, berm: 3, gras: 3, bodembedekker: 3, heesters: 4, bos: 4, erf: 5, verharding: 7 };
 for (const [k, code] of Object.entries(KLASSE)) vulRaster(klasseRaster.g, klasseRaster.W, klasseRaster.H, VLAKKEN.filter(v => v.k === k).map(v => v.r), 0.5, klasseRaster.x0, klasseRaster.z0, code);
 for (const p of PANDEN) vulRaster(klasseRaster.g, klasseRaster.W, klasseRaster.H, [[p.voet]], 0.5, klasseRaster.x0, klasseRaster.z0, 6);
 const klasseOp = (x, z) => { const i = Math.floor((x - klasseRaster.x0) / 0.5), j = Math.floor((z - klasseRaster.z0) / 0.5); return (i < 0 || j < 0 || i >= klasseRaster.W || j >= klasseRaster.H) ? 0 : klasseRaster.g[j * klasseRaster.W + i]; };
@@ -520,7 +520,7 @@ for (const k of rijKetens) {
       const t = s / L, x = a.x + ux * s, z = a.z + uz * s, w = a.w + (b.w - a.w) * t;
       for (const zij of [zijde, -zijde]) {
         const lx = x + (-uz) * zij * (w / 2 + 1.0), lz = z + ux * zij * (w / 2 + 1.0);
-        if (klasseOp(lx, lz) === 3) { LANTAARNS.push({ x: r2(lx), z: r2(lz) }); break; }
+        const kl = klasseOp(lx, lz); if (kl === 3 || kl === 7) { LANTAARNS.push({ x: r2(lx), z: r2(lz) }); break; }
       }
       zijde = -zijde; s += 30;
     }
@@ -528,6 +528,164 @@ for (const k of rijKetens) {
   }
 }
 tel('lantaarns_regel', LANTAARNS.length);
+
+// ---------------------------------------------------------------- omgeving
+// Wat de foto's van de steekproef laten zien en de BGT niet levert, komt uit
+// plaatsingsregels op de BGT-vlakken: straatbomen in de grasbermen, losse grote
+// bomen in de parkjes, hagen en schuttingen per perceel met een tegelpad naar
+// de voordeur, belijning op de parkeervakken, doelen op het speelveld.
+const ro = rng(23);
+const vrijRond = (x, z, straal, toegestaan) => {
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; if (!toegestaan.includes(klasseOp(x + Math.cos(a) * straal, z + Math.sin(a) * straal))) return false; }
+  return toegestaan.includes(klasseOp(x, z));
+};
+
+// Straatbomen: om de 11 à 15 m langs een rijbaanas, twee tot vier meter buiten
+// de rijbaan, alleen in gras of berm (niet op de stoep) en vrij van gebouwen.
+const STRAATBOMEN = [];
+for (const k of rijKetens) {
+  if (k.w > 9 || k.lengte < 25 || k.naam === 'N7') continue;
+  let s = 6 + ro() * 6;
+  for (let i = 1; i < k.pts.length; i++) {
+    const a = k.pts[i - 1], b = k.pts[i];
+    const L = Math.hypot(b.x - a.x, b.z - a.z); if (L < 1e-3) continue;
+    const ux = (b.x - a.x) / L, uz = (b.z - a.z) / L;
+    while (s <= L) {
+      const t = s / L, x = a.x + ux * s, z = a.z + uz * s, w = a.w + (b.w - a.w) * t;
+      buiten: for (const zij of [1, -1]) for (const off of [w / 2 + 2.2, w / 2 + 3.6]) {
+        const tx = x + (-uz) * zij * off, tz = z + ux * zij * off;
+        if (vrijRond(tx, tz, 1.6, [3]) && ro() < 0.8) { STRAATBOMEN.push({ x: r2(tx), z: r2(tz), s: r2(1.5 + ro() * 0.5), tall: true }); break buiten; }
+      }
+      s += 11 + ro() * 4;
+    }
+    s -= L;
+  }
+}
+// Parkbomen: losse grote bomen in de grote gazons van de groenvoorziening.
+const PARKBOMEN = [];
+for (const v of VLAKKEN) {
+  if (v.k !== 'gras' || v.sub !== 'gras- en kruidachtigen') continue;
+  if (Math.abs(oppervlak(v.r[0])) < 600) continue;
+  const b = bboxRing(v.r[0]);
+  for (let z = b[1] + 8; z < b[3]; z += 15) for (let x = b[0] + 8; x < b[2]; x += 15) {
+    const px = x + (ro() - 0.5) * 9, pz = z + (ro() - 0.5) * 9;
+    if (ro() < 0.45) continue;
+    if (inPolygoon([px, pz], v.r) && vrijRond(px, pz, 2.5, [3])) PARKBOMEN.push({ x: r2(px), z: r2(pz), s: r2(1.6 + ro() * 0.5), tall: true });
+  }
+}
+// Ondergroei aan de rand van de bosjes
+for (const v of VLAKKEN) if (v.k === 'bos') strooi(v, 4.0, STRUIKEN, [0.6, 1.1]);
+tel('straatbomen', STRAATBOMEN.length); tel('parkbomen', PARKBOMEN.length);
+
+// Percelen: per woning een lage haag aan de straatkant met een opening bij de
+// voordeur, een tegelpad naar de deur, lage hagen tussen de voortuinen en
+// schuttingen van 1,8 m tussen en achter de achtertuinen. De maten volgen uit
+// het erf-vlak van de BGT (hoe ver loopt de tuin door).
+const HEGGEN = [], SCHUTTINGEN = [], PADEN = [];
+const lijnSleutel = (a, b) => { const k1 = `${Math.round(a[0] * 2)}:${Math.round(a[1] * 2)}`, k2 = `${Math.round(b[0] * 2)}:${Math.round(b[1] * 2)}`; return k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1; };
+const gezienLijn = new Set();
+const voegLijn = (lijst, a, b, h) => { const k = lijnSleutel(a, b); if (gezienLijn.has(k)) return; gezienLijn.add(k); lijst.push({ a: [r2(a[0]), r2(a[1])], b: [r2(b[0]), r2(b[1])], h }); };
+// hoe ver kun je vanaf p in richting d door erf lopen (max m)?
+const erfDiepte = (p, d, max) => { let s = 0.3; while (s < max && klasseOp(p[0] + d[0] * s, p[1] + d[1] * s) === 5) s += 0.25; return s - 0.3; };
+for (const p of PANDEN) {
+  if (!p.front || p.type === 'schuur' || !p.nr.length) continue;
+  const f = p.front, r = [-f[1], f[0]];       // r: langs de gevel
+  const ring = p.voet;
+  // randen indelen naar richting
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i], b = ring[(i + 1) % ring.length];
+    const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 1.5) continue;
+    // buitennormaal: ring is in xz met de klok mee of tegen; kies de kant weg van het zwaartepunt
+    const [cx, cz] = zwaartepunt(ring);
+    let nx = dz / L, nz = -dx / L;
+    const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+    if ((mx - cx) * nx + (mz - cz) * nz < 0) { nx = -nx; nz = -nz; }
+    const kant = nx * f[0] + nz * f[1];
+    if (kant > 0.7) {
+      // voorgevel: voortuin tot aan de stoep
+      const d = erfDiepte([mx, mz], [nx, nz], 15);
+      if (d < 1.2) continue;
+      const hx = mx + nx * (d - 0.35), hz = mz + nz * (d - 0.35);
+      // opening bij de voordeur: op de plek van het huisnummerlabel, anders op een meter van de kant
+      let tDeur = 0.2;
+      if (p.nrpos) { const t = ((p.nrpos[0] - a[0]) * dx + (p.nrpos[1] - a[1]) * dz) / (L * L); if (t > 0.05 && t < 0.95) tDeur = t; }
+      const ex = dx / L, ez = dz / L;
+      const deur = [hx + ex * (tDeur * L - L / 2), hz + ez * (tDeur * L - L / 2)];
+      const A = [hx - ex * L / 2, hz - ez * L / 2], B = [hx + ex * L / 2, hz + ez * L / 2];
+      const g0 = [deur[0] - ex * 0.65, deur[1] - ez * 0.65], g1 = [deur[0] + ex * 0.65, deur[1] + ez * 0.65];
+      if (Math.hypot(g0[0] - A[0], g0[1] - A[1]) > 0.8) voegLijn(HEGGEN, A, g0, 0.7);
+      if (Math.hypot(B[0] - g1[0], B[1] - g1[1]) > 0.8) voegLijn(HEGGEN, g1, B, 0.7);
+      // tegelpad van de deur naar de stoep, 1,2 m breed
+      const q0 = [deur[0] - nx * (d - 0.3), deur[1] - nz * (d - 0.3)];
+      PADEN.push([[q0[0] - ex * 0.6, q0[1] - ez * 0.6], [q0[0] + ex * 0.6, q0[1] + ez * 0.6], [deur[0] + ex * 0.6 + nx * 0.4, deur[1] + ez * 0.6 + nz * 0.4], [deur[0] - ex * 0.6 + nx * 0.4, deur[1] - ez * 0.6 + nz * 0.4]].map(q => [r2(q[0]), r2(q[1])]));
+    } else if (kant < -0.7) {
+      // achtergevel: schutting achter de achtertuin
+      const d = erfDiepte([mx, mz], [nx, nz], 14);
+      if (d < 2) continue;
+      const ex = dx / L, ez = dz / L;
+      const hx = mx + nx * (d - 0.25), hz = mz + nz * (d - 0.25);
+      voegLijn(SCHUTTINGEN, [hx - ex * L / 2, hz - ez * L / 2], [hx + ex * L / 2, hz + ez * L / 2], 1.8);
+    } else if (Math.abs(kant) < 0.35 && L > 4) {
+      // zijgevel (bouwmuur): schutting naar achteren, lage haag naar voren, in het verlengde van de muur
+      for (const [punt, richting] of [[a, [a[0] - b[0], a[1] - b[1]]], [b, [b[0] - a[0], b[1] - a[1]]]]) {
+        const Lr = Math.hypot(richting[0], richting[1]) || 1; const dr = [richting[0] / Lr, richting[1] / Lr];
+        const naarVoren = dr[0] * f[0] + dr[1] * f[1] > 0;
+        const d = erfDiepte(punt, dr, naarVoren ? 15 : 14);
+        if (d < 1.5) continue;
+        const eind = [punt[0] + dr[0] * (d - 0.3), punt[1] + dr[1] * (d - 0.3)];
+        if (naarVoren) voegLijn(HEGGEN, [punt[0] + dr[0] * 0.3, punt[1] + dr[1] * 0.3], eind, 0.6);
+        else voegLijn(SCHUTTINGEN, [punt[0] + dr[0] * 0.3, punt[1] + dr[1] * 0.3], eind, 1.8);
+      }
+    }
+  }
+}
+tel('heggen', HEGGEN.length); tel('schuttingen', SCHUTTINGEN.length); tel('tegelpaden', PADEN.length);
+
+// Belijning op de parkeervakken: witte strepen tussen de vakken.
+const STREPEN = [];
+for (const v of VLAKKEN.filter(v => v.k === 'parkeervlak')) {
+  const rect = kleinsteRechthoek(v.r[0]);
+  if (!rect || rect.L < 4.5) continue;
+  const u = [Math.cos(rect.hoek), Math.sin(rect.hoek)], n = [-u[1], u[0]];
+  const langs = rect.B < 3.6;
+  const stap = langs ? 5.8 : 2.5, diep = langs ? Math.min(rect.B, 2.2) : Math.min(rect.B, 5.0);
+  const aantal = Math.floor(rect.L / stap);
+  for (let i = 0; i <= aantal; i++) {
+    const t = i * stap - (aantal * stap) / 2;
+    const cx = rect.cx + u[0] * t, cz = rect.cz + u[1] * t;
+    const a = [cx - n[0] * diep / 2, cz - n[1] * diep / 2], b = [cx + n[0] * diep / 2, cz + n[1] * diep / 2];
+    if (inPolygoon(a, v.r) && inPolygoon(b, v.r)) STREPEN.push({ a: [r2(a[0]), r2(a[1])], b: [r2(b[0]), r2(b[1])] });
+  }
+}
+tel('parkeerstrepen', STREPEN.length);
+
+// Speelveld en banken: doelen op het grote gazon bij de Wieken, bankjes langs
+// de paden bij de vijvers (foto's: Bosje bij de Wieken, Parkje de Wieken).
+const OBJECTEN = [];
+const grasVelden = VLAKKEN.filter(v => v.k === 'gras' && Math.abs(oppervlak(v.r[0])) > 1500).map(v => ({ v, c: zwaartepunt(v.r[0]), opp: Math.abs(oppervlak(v.r[0])) }));
+const veld = grasVelden.filter(g => g.c[0] > -260 && g.c[0] < 300 && g.c[1] > -240 && g.c[1] < 150).sort((a, b) => b.opp - a.opp)[0];
+if (veld) {
+  const rect = kleinsteRechthoek(veld.v.r[0]);
+  const u = [Math.cos(rect.hoek), Math.sin(rect.hoek)];
+  const afst = Math.min(22, rect.L / 2 - 6);
+  for (const sgn of [1, -1]) {
+    const x = rect.cx + u[0] * afst * sgn, z = rect.cz + u[1] * afst * sgn;
+    if (inPolygoon([x, z], veld.v.r)) OBJECTEN.push({ type: 'voetbaldoel', x: r2(x), z: r2(z), yaw: Math.round((Math.atan2(-u[0] * sgn, -u[1] * sgn) * 180 / Math.PI) * 10) / 10 });
+  }
+}
+for (const w of VLAKKEN.filter(v => v.k === 'water' && Math.abs(oppervlak(v.r[0])) > 1500)) {
+  const c = zwaartepunt(w.r[0]);
+  if (c[0] < -260 || c[0] > 300 || c[1] < -240 || c[1] > 200) continue;
+  // dichtstbijzijnde padpunt op minstens 4 m van het water
+  let best = null;
+  for (const k of loopKetens) for (const q of k.pts) { const d = Math.hypot(q.x - c[0], q.z - c[1]); if (d > 6 && d < 60 && (!best || d < best.d)) best = { d, q, k }; }
+  if (!best) continue;
+  // bank 1,5 m naast het pad, met de rug naar het pad gericht op het water
+  const dx = c[0] - best.q.x, dz = c[1] - best.q.z, L = Math.hypot(dx, dz) || 1;
+  const bx = best.q.x + dx / L * 2.0, bz = best.q.z + dz / L * 2.0;
+  if (klasseOp(bx, bz) === 3) OBJECTEN.push({ type: 'bank', x: r2(bx), z: r2(bz), yaw: Math.round(Math.atan2(-dx, -dz) * 180 / Math.PI * 10) / 10 + 180 });
+}
+tel('objecten', OBJECTEN.length);
 
 // ---------------------------------------------------------------- labels, start
 const LABELS = labels.filter(l => l.p[0] >= G.x0 && l.p[0] <= G.x1 && l.p[1] >= G.z0 && l.p[1] <= G.z1).map(l => ({ t: l.t, x: l.p[0], z: l.p[1], hoek: l.hoek }));
@@ -549,7 +707,8 @@ const KAART = {
   gebied: { x0: r2(G.x0), x1: r2(G.x1), z0: r2(G.z0), z1: r2(G.z1) },
   start: START,
   vlakken: VLAKKEN, wegassen: WEGASSEN, parkeerplekken: PARKEER, panden: PANDEN,
-  hagen: HAGEN, bomen: BOMEN, struiken: STRUIKEN, lantaarns: LANTAARNS,
+  hagen: HAGEN, bomen: BOMEN.concat(STRAATBOMEN, PARKBOMEN), struiken: STRUIKEN, lantaarns: LANTAARNS,
+  heggen: HEGGEN, schuttingen: SCHUTTINGEN, paden: PADEN, strepen: STREPEN, objecten: OBJECTEN,
   labels: LABELS, huisnummers: HUISNUMMERS,
   telling,
 };

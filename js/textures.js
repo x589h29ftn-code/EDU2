@@ -173,13 +173,19 @@ export function klinkers(kind = 'grijs') {
 // ---------- Stoeptegels 30x30 ----------
 export function tiles() {
   if (cache.has('tiles')) return cache.get('tiles');
-  const c = canvas(256, 256); const g = c.getContext('2d');
+  // 512 px = 1,2 m: vier tegels van 30 cm met een voeg van een centimeter
+  const S = 512, s = 128;
+  const c = canvas(S, S); const g = c.getContext('2d');
   const r = rng(21);
-  g.fillStyle = '#6c6b66'; g.fillRect(0, 0, 256, 256);
-  const s = 64; // 256px = 1.2m -> 4 tegels van 30cm
-  for (let y = 0; y < 256; y += s) for (let x = 0; x < 256; x += s) {
-    g.fillStyle = shade('#a8a6a0', 0.85 + r() * 0.3);
-    g.fillRect(x + 1, y + 1, s - 2, s - 2);
+  g.fillStyle = '#5e5d58'; g.fillRect(0, 0, S, S);
+  for (let y = 0; y < S; y += s) for (let x = 0; x < S; x += s) {
+    g.fillStyle = shade('#a9a7a1', 0.86 + r() * 0.26);
+    g.fillRect(x + 3, y + 3, s - 6, s - 6);
+    // korrel en een lichte bovenrand (licht van boven)
+    for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(0,0,0,${r() * 0.12})`; g.fillRect(x + 3 + r() * (s - 6), y + 3 + r() * (s - 6), 2, 2); }
+    g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x + 3, y + 3, s - 6, 3);
+    g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x + 3, y + s - 6, s - 6, 3);
+    if (r() < 0.15) { g.fillStyle = 'rgba(60,80,30,0.35)'; g.fillRect(x + 3, y + 3, s - 6, 3); }   // mos in de voeg
   }
   const t = tex(c); cache.set('tiles', t); return t;
 }
@@ -201,14 +207,27 @@ export function asphalt() {
 // ---------- Gras ----------
 export function grass() {
   if (cache.has('grass')) return cache.get('grass');
-  const c = canvas(512, 512); const g = c.getContext('2d');
+  // 512 px = 4 m: fijne sprieten, met kleurvlekken (klaver, dor gras) zodat
+  // de herhaling niet opvalt.
+  const S = 512;
+  const c = canvas(S, S); const g = c.getContext('2d');
   const r = rng(41);
-  g.fillStyle = '#4f7a2e'; g.fillRect(0, 0, 512, 512);
-  for (let i = 0; i < 60000; i++) {
-    const gr = 90 + r() * 80, rd = 50 + r() * 50;
-    g.fillStyle = `rgba(${rd},${gr},${30 + r() * 30},0.7)`;
-    g.fillRect(r() * 512, r() * 512, 2, 3);
+  g.fillStyle = '#4c7a2c'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 40; i++) {
+    const x = r() * S, y = r() * S, rad = 30 + r() * 90;
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+    const tint = r() < 0.5 ? `rgba(120,150,60,${0.25 + r() * 0.3})` : `rgba(50,95,35,${0.25 + r() * 0.3})`;
+    gr.addColorStop(0, tint); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
   }
+  for (let i = 0; i < 90000; i++) {
+    const gr = 95 + r() * 90, rd = 45 + r() * 60;
+    g.fillStyle = `rgba(${rd},${gr},${25 + r() * 35},${0.55 + r() * 0.35})`;
+    const x = r() * S, y = r() * S;
+    g.fillRect(x, y, 1.5, 2 + r() * 3);
+  }
+  // paar bruine blaadjes en madeliefjes
+  for (let i = 0; i < 260; i++) { g.fillStyle = r() < 0.6 ? `rgba(${120 + r() * 60},${80 + r() * 40},30,0.7)` : 'rgba(240,240,230,0.8)'; g.fillRect(r() * S, r() * S, 2 + r() * 2, 2); }
   const t = tex(c); cache.set('grass', t); return t;
 }
 
@@ -300,7 +319,9 @@ export const HOUSE_STYLES = {
   // Molenpaal 6 (foto, achterkant): twee lagen met kap, lichtgele steen, witte
   // kozijnen, zonnepanelen en dakramen, houten schuurtjes en schuttingen.
   molenpaal:  { brick: ['#c9bd97', '#dcd6c5'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#4a4a4a'], roof: '#3a3330', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, skylight: true, chimney: false, solar: true, band: '#f2f2f2' },
-  jasker_flat:{ brick: ['#c9b98f', '#dcd4c1'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b', '#3a3a3a'], roof: '#555', roofType: 'flat', storeys: 2, w: 5.6, dormer: false, chimney: false, band: '#2b2b2b' },
+  // Jasker 101 (foto): platte daken, lichtgele steen, witte kozijnen en witte
+  // dakrand, bergingen in steen ervoor met roodbruine plint.
+  jasker_flat:{ brick: ['#c9bb90', '#dcd4c1'], frame: '#ffffff', frame2: '#ffffff', door: ['#1e1f22', '#f2f2ee'], roof: '#555', roofType: 'flat', storeys: 2, w: 5.6, dormer: false, chimney: false, band: '#f2f2f2' },
   // Jasker 7 (foto, zijkant): lichtgele steen, witte kozijnen, witte houten
   // topgevel boven de goot, lage aanbouw met plat dak en witte boeiboord.
   jasker_gable:{ brick: ['#c9b98f', '#dcd4c1'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#1f3a6e', '#6a1a1a'], roof: '#3a3330', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#f2f2f2', topgevel: '#f0efe9' },
@@ -323,6 +344,18 @@ export const HOUSE_STYLES = {
   tinga_groen:{ brick: ['#9a6a53', '#c9beac'], frame: '#1f4230', frame2: '#1f4230', door: ['#1f4230', '#17351f'], roof: '#4a3f37', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#f4f4f4' },
   tinga_blauw:{ brick: ['#c9bb96', '#ded6c2'], frame: '#1746a0', frame2: '#1746a0', door: ['#1746a0', '#12388a'], roof: '#4a3b30', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, chimney: true, band: '#ffffff' },
   spil:       { brick: ['#b57a5a', '#d0c6b8'], frame: '#2b2b2b', frame2: '#2b2b2b', door: ['#2b2b2b'], roof: '#555', roofType: 'flat', storeys: 1, w: 8.0, dormer: false, chimney: false, band: '#2b2b2b' },
+  // Spinnekop 9 (foto): twee lagen, geelbeige steen, antracietgrijze kozijnen en
+  // zwarte deur, bergingen met dakterras ervoor, zonnepanelen en dakramen.
+  spinnekop:  { brick: ['#c2ae82', '#d8d1c0'], frame: '#3a3d42', frame2: '#3a3d42', door: ['#1e1f22', '#2a2d31'], roof: '#35302d', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, skylight: true, solar: true, chimney: false, band: '#f2f2f2' },
+  // Grootwiel 7 (foto): twee lagen met kap, grijsbruine steen, witte kozijnen,
+  // zwarte deur, donkere dakkapellen, rode klinkers in de straat.
+  grootwiel:  { brick: ['#8f7d68', '#c9c2b4'], frame: '#ffffff', frame2: '#ffffff', door: ['#1e1f22', '#2a2d31'], roof: '#35302d', roofType: 'gable', storeys: 2, w: 5.6, dormer: true, dormerFrame: '#3a3d42', chimney: false, band: '#f2f2f2' },
+  // de Hekken 5 (foto): één laag met kap, grote dakkapel met antracietgrijze
+  // kozijnen, lichte steen, zwarte deur, donkere houten topgevels bij de buren.
+  hekken:     { brick: ['#b9a58a', '#d6cfc2'], frame: '#ffffff', frame2: '#3a3d42', door: ['#1e1f22'], roof: '#3a3330', roofType: 'gable', storeys: 1, w: 6.0, dormer: true, dormerGroot: true, dormerFrame: '#3a3d42', chimney: true, band: '#f2f2f2', topgevel: '#3a3530' },
+  // Eekmolen 21 (foto): twee lagen met kap, roodbruine steen, witte kozijnen,
+  // witte houten topgevel, garages ervoor, zonnepanelen.
+  eekmolen:   { brick: ['#9a5a44', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#f2f2ee', '#1e1f22'], roof: '#35302d', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, skylight: true, solar: true, chimney: false, band: '#f2f2f2', topgevel: '#f2f2ee' },
 };
 
 // ---------- Houten delen (witte topgevels, schuttingen) ----------
