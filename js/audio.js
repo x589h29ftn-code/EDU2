@@ -138,6 +138,17 @@ export const geluid = {
 
   raak() { toon({ freq: 1400, naar: 900, duur: 0.09, volume: 0.14, golf: 'square' }); },
 
+  // Schelle ringtone: twee tonen die een paar keer heen en weer gaan, zoals een
+  // goedkope telefoon. Wordt door het verhaal aangeroepen (js/verhaal.js).
+  telefoon(keren = 3) {
+    for (let k = 0; k < keren; k++) {
+      const t0 = k * 1.1;
+      for (let i = 0; i < 8; i++) {
+        toon({ freq: i % 2 ? 1560 : 1180, duur: 0.055, volume: 0.13, golf: 'square', vertraag: t0 + i * 0.06 });
+      }
+    }
+  },
+
   klap() {   // blik: auto geraakt
     tik({ freq: 1200, q: 1.1, duur: 0.16, volume: 0.3, val: 0.2 });
     toon({ freq: 320, naar: 180, duur: 0.2, volume: 0.12, golf: 'triangle' });

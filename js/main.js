@@ -253,7 +253,7 @@ const verhaal = initVerhaal({
   opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal }),
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
-  bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {},
+  bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {}, mislukt() {},
   hinder: { alive: false, opWeg: false, x: 0, z: 0 },
   missie: 'geen', fase: 'geen', aanspreekbaar: false,
 };

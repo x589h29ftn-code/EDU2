@@ -234,7 +234,7 @@ naar `main` om een build te krijgen.
 | Niets staat in de weg | `tools/propcheck.mjs`, `tools/tuintest.mjs` | geen meldingen |
 | Straatprofielen | `tools/meetstrook.mjs`, nu getoetst aan BGT-breedtes in plaats van foto's | afwijking < 0,5 m |
 | Stijl | tien vaste steekproefpunten naast Street View | per adres akkoord in de catalogus |
-| Het verhaal, alle vier de missies (stap 8) | `npm run verhaaltest` | eindigt op "Alles goed" |
+| Het verhaal, alle vijf de missies (stap 8) | `npm run verhaaltest` | eindigt op "Alles goed" |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
 betrouwbaar kan beoordelen, omdat het een pixel-voor-pixel vergelijking is op
@@ -282,7 +282,7 @@ de besturing een gewone spelfeature zonder onzekerheid over de kaart.
 ## 9. Stand van zaken
 
 Stap 1, 2, 3 en 4 zijn af; stap 6 (de stijlcatalogus) is ingericht en wacht op foto's, en van stap 8
-staan de eerste vier missies in de wijk (zie *Het verhaal en de opslag* onderaan).
+staan de eerste vijf missies in de wijk (zie *Het verhaal en de opslag* onderaan).
 
 **Data (stap 1 en 2).**
 `data/geo/gebied.geojson` is het werkgebied: RD X 171870–172600, Y 558920–559790
@@ -479,7 +479,7 @@ en F9 zet terug (positie, kijkrichting, munitie, de auto waar je in zat, tijd,
 weer en de stand van het verhaal). De wijk uit de editor heeft zijn eigen
 opslag, zodat een gewone opslag geen werk aan de wijk overschrijft.
 
-**De vier missies.** Het verhaal is uitgegroeid tot vier missies, allemaal op
+**De missies.** Het verhaal is uitgegroeid tot vijf missies, allemaal op
 plekken uit de data:
 
 1. *Molenkrite 15* — Mark (de broer van de speler) voor het pand met huisnummer
@@ -506,20 +506,42 @@ plekken uit de data:
    boerderij in de zuidwesthoek (BAG-pand 0683100000288962, 621 m²), 1283 m over
    het wegennet. Binnen 20 m van de schuur staat *MISSION COMPLETED* in beeld.
 
-Bij die vierde missie kwam een oude fout boven: bruggen en duikers liggen in de
+5. *Het telefoontje van Johan* — meteen na de boerderij belt Johan van
+   **Kruirad 62** (BAG-huisnummer 62 aan het Kruirad): zijn kop komt in beeld,
+   met een ringtone uit `audio.js` en een portretje dat `hud.js` tekent. Op zijn
+   oprit (vijf meter voor de voorgevel, waar hij heen en weer ijsbeert) volgt de
+   briefing, met Erik als tweede spreker in de tekstbalk. De dief woont op **De
+   Wieken 27** en slentert over het trottoir voor dat pand (negen en een halve
+   meter voor de voorgevel, gemeten: daar liggen de tegels). Ziet hij je binnen
+   vijftien meter, dan vlucht hij over de wegassen van `navigatie.js` — steeds
+   een knoop van zestig tot honderdzeventig meter ver, van jou af, dus hij duikt
+   vanzelf de brandgangen in. Hij rent 7,3 m/s tegen jouw sprint van 7,5 m/s;
+   een simulatie van een rechte achtervolging pakt hem in 23 seconden, in het
+   echt duurt het langer, en na negentig seconden is hij op en wankelt hij
+   verder op 1,75 m/s. Schiet je hem neer, dan vaagt het beeld naar grijs
+   (MISSIE MISLUKT) en begin je bij je laatste opgeslagen spel — precies wat
+   Johan gevraagd had. De duizend euro uit de envelop staat als buit in de HUD
+   en levert na aflevering vijfhonderd euro in de portemonnee op; dat geld gaat
+   mee in de opslag.
+
+Bij de vierde missie kwam een oude fout boven: bruggen en duikers liggen in de
 BGT boven het waterdeel, dus het waterpolygoon loopt eronderdoor. `pointInWater`
 zei daardoor "water" midden op een brug en je kwam nergens overheen — niet naar
 de boerderij en niet over de dam naar de RWZI. Nu tellen de klassen brug,
 duiker, steiger en overbrugging niet als water.
 
-Controle: `npm run verhaaltest` loopt alle vier de missies na (het startpunt
+Controle: `npm run verhaaltest` loopt alle vijf de missies na (het startpunt
 hoort bij het pand met huisnummer 15, Mark zwaait en kijkt je aan, het gesprek
 opent en klikt door met E, hij komt bij het gezelschap aan, een schot met het
 pistool legt een drinker om, de briefing volgt, er staat een auto, de kaart
 navigeert naar de poort, je stapt automatisch uit, de vijf bewakers zien je en
 schieten, je gaat neer en begint bij de opslag, na vijf treffers gaat de poort
 open, de vrachtwagen rijdt het terrein af en levert af, en opslaan/laden zet
-alles terug). `npm run geo:boven` blijft op 1,31 %.
+alles terug, en dat schieten op de dief de missie laat mislukken). Bij het
+maken van de foto's kwam nog een fout boven die het spelen raakte: de tekstbalk
+kreeg `display: flex` voor het portretje, en dat verslaat de standaardstijl van
+het `hidden`-attribuut — de balk ging daardoor nooit meer uit beeld.
+`npm run geo:boven` blijft op 1,31 %.
 
 **Wat nog niet af is (in volgorde).**
 

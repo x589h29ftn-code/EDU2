@@ -10,6 +10,9 @@
  3. Bewaking: vijf bewakers, ze vallen je binnen het hek aan (levensbalk loopt
     leeg), na vijf treffers gaat de poort open en mag je de vrachtwagen pakken.
  4. Afleveren: met de vrachtwagen naar de boerderij, dan MISSION COMPLETED.
+ 5. Johan: de telefoon gaat, briefing op de oprit van Kruirad 62, de dief van De
+    Wieken 27 opsporen, achtervolgen (niet neerschieten!), pakken en de duizend
+    euro terugbrengen voor vijfhonderd euro beloning.
 
  Gebruik: python3 -m http.server 8123 &  node tools/verhaaltest.mjs 8123
 */
@@ -101,8 +104,10 @@ ok(regel1.tekst.startsWith('Erik, kom met mij mee'), 'de eerste regel klopt', re
 await page.keyboard.press('KeyE');
 const naGesprek = await page.evaluate(() => ({
   fase: window.__game.verhaal.fase, opdracht: document.getElementById('opdracht').textContent,
+  zichtbaar: getComputedStyle(document.getElementById('dialoog')).display !== 'none',
 }));
 ok(naGesprek.fase === 'loopt', 'daarna gaat Mark lopen', naGesprek.fase);
+ok(!naGesprek.zichtbaar, 'de tekstbalk is echt uit beeld');
 ok(/Mark/.test(naGesprek.opdracht), 'de opdracht staat in beeld', naGesprek.opdracht);
 
 const wandeling = await page.evaluate(() => {
@@ -369,17 +374,253 @@ const afgeleverd = await page.evaluate(() => {
   g.player.pos.set(truck.x, 0, truck.z);
   window.__stap(20);
   return {
-    missie: g.verhaal.missie, melding: document.getElementById('missie').textContent,
+    missie: g.verhaal.missie, fase: g.verhaal.fase,
+    melding: document.getElementById('missie').textContent,
     opdracht: document.getElementById('opdracht').textContent, leven: g.player.health,
     nav: g.hud.nav,
   };
 });
-ok(afgeleverd.missie === 'klaar', 'de missie is afgerond', afgeleverd.missie);
+ok(afgeleverd.fase === 'klaar', 'de missie is afgerond', `${afgeleverd.missie}/${afgeleverd.fase}`);
 ok(/MISSION COMPLETED/.test(afgeleverd.melding), '"MISSION COMPLETED" staat in beeld', afgeleverd.melding.slice(0, 40));
 ok(afgeleverd.opdracht === '' && !afgeleverd.nav, 'de opdracht en de route zijn van het scherm');
 ok(afgeleverd.leven === 100, 'je leven is weer vol', String(afgeleverd.leven));
 
-// ---------- 5. opslaan en laden midden in het verhaal ----------
+// ---------- 5. het telefoontje van Johan ----------
+kop('missie 5: het telefoontje van Johan');
+const telefoon = await page.evaluate(() => {
+  const g = window.__game;
+  window.__stap(220);      // vijf seconden pauze en dan de telefoon opnemen
+  return {
+    missie: g.verhaal.missie, fase: g.verhaal.fase,
+    naam: document.getElementById('dialoogNaam').textContent,
+    tekst: document.getElementById('dialoogTekst').textContent,
+    telefoonstijl: document.getElementById('dialoog').classList.contains('telefoon'),
+    kop: !document.getElementById('dialoogKop').hidden,
+  };
+});
+ok(telefoon.missie === 'johan', `daarna begint missie 'johan'`, `${telefoon.missie}/${telefoon.fase}`);
+ok(telefoon.naam === 'Johan' && /Yo, met Johan/.test(telefoon.tekst), 'Johan belt', telefoon.tekst.slice(0, 45));
+ok(/Kruirad 62/.test(telefoon.tekst), 'hij zegt dat je naar Kruirad 62 moet komen');
+ok(telefoon.telefoonstijl && telefoon.kop, 'de balk staat in telefoonstand met zijn kop erbij');
+
+await page.keyboard.press('KeyE');
+const naTelefoon = await page.evaluate(() => {
+  const g = window.__game;
+  window.__stap(10);
+  return {
+    fase: g.verhaal.fase, opdracht: document.getElementById('opdracht').textContent,
+    melding: document.getElementById('missie').textContent,
+    letter: g.hud.nav ? g.hud.nav.letter : null,
+    doel: g.hud.nav ? g.hud.nav.doel : null,
+    johan: g.verhaal.plekken.johan,
+  };
+});
+ok(naTelefoon.fase === 'naar_kruirad', `fase 'naar_kruirad'`, naTelefoon.fase);
+ok(/Kruirad 62/.test(naTelefoon.opdracht), 'de opdracht wijst naar Kruirad 62', naTelefoon.opdracht);
+ok(/NIEUWE MISSIE/.test(naTelefoon.melding), 'er staat "Nieuwe missie" in beeld', naTelefoon.melding.slice(0, 40));
+ok(naTelefoon.letter === 'J' && naTelefoon.doel
+  && Math.hypot(naTelefoon.doel[0] - naTelefoon.johan.x, naTelefoon.doel[1] - naTelefoon.johan.z) < 1,
+  'met een gele J op de kaart bij de oprit van Johan');
+
+// ---------- 6. de briefing op de oprit ----------
+kop('missie 5: de briefing bij Kruirad 62');
+const briefing2 = await page.evaluate(async () => {
+  const { KAART } = await import('./js/kaartwereld.js');
+  const g = window.__game;
+  const j = g.verhaal.plekken.johan;
+  g.player.inCar = null;
+  g.player.pos.set(j.x + 3, 0, j.z + 3);
+  window.__stap(20);
+  // staat Johan voor Kruirad 62?
+  let dichtst = null;
+  const p = g.verhaal.johan.groep.position;
+  for (const q of KAART.panden) {
+    if (!q.nr || !q.nr.length) continue;
+    const d = Math.hypot(q.rect.cx - p.x, q.rect.cz - p.z);
+    if (!dichtst || d < dichtst.d) dichtst = { d, nr: q.nr.join('/'), straat: q.straat };
+  }
+  return {
+    fase: g.verhaal.fase, dichtst,
+    naam: document.getElementById('dialoogNaam').textContent,
+    tekst: document.getElementById('dialoogTekst').textContent,
+  };
+});
+ok(briefing2.dichtst && briefing2.dichtst.nr === '62' && briefing2.dichtst.straat === 'Kruirad',
+  'Johan staat voor Kruirad 62', briefing2.dichtst ? `${briefing2.dichtst.straat} ${briefing2.dichtst.nr}` : '-');
+ok(briefing2.fase === 'briefing' && /in m'n eigen huis genaaid/.test(briefing2.tekst),
+  'bij de marker begint de briefing', briefing2.tekst.slice(0, 40));
+
+const regels = [];
+for (let i = 0; i < 4; i++) {
+  await page.keyboard.press('KeyE');
+  regels.push(await page.evaluate(() => ({
+    naam: document.getElementById('dialoogNaam').textContent,
+    tekst: document.getElementById('dialoogTekst').textContent,
+    fase: window.__game.verhaal.fase,
+    opdracht: document.getElementById('opdracht').textContent,
+    letter: window.__game.hud.nav ? window.__game.hud.nav.letter : null,
+  })));
+}
+ok(regels[0].naam === 'Erik' && /Wie was het/.test(regels[0].tekst), 'Erik vraagt wie het was', regels[0].tekst);
+ok(/De Wieken 27/.test(regels[1].tekst) && /felrood shirt/.test(regels[1].tekst),
+  'Johan noemt De Wieken 27 en de kleren van de dief');
+ok(/geen lood/i.test(regels[2].tekst) || /gé{0,1}én lood/.test(regels[2].tekst),
+  'en dat je niet mag schieten', regels[2].tekst.slice(0, 40));
+ok(regels[3].fase === 'naar_dewieken' && /De Wieken/.test(regels[3].opdracht),
+  'daarna moet je naar De Wieken', `${regels[3].fase} · ${regels[3].opdracht}`);
+
+// ---------- 7. de dief en de achtervolging ----------
+kop('missie 5: de dief van De Wieken 27');
+const ontmoeting = await page.evaluate(() => {
+  const g = window.__game;
+  const d = g.verhaal.dief;
+  const p = d.positie;
+  // op tien meter op de stoep gaan staan, in het zicht
+  g.player.pos.set(p.x + 7, 0, p.z + 7);
+  const staatVoor = d.staat;
+  window.__stap(10);
+  return {
+    staatVoor, staat: d.staat, fase: g.verhaal.fase,
+    naam: document.getElementById('dialoogNaam').textContent,
+    tekst: document.getElementById('dialoogTekst').textContent,
+  };
+});
+ok(ontmoeting.staatVoor === 'slentert', 'hij slentert over het trottoir', ontmoeting.staatVoor);
+ok(ontmoeting.naam === 'Dief' && /Een maatje van Johan/.test(ontmoeting.tekst), 'hij schrikt van je', ontmoeting.tekst.slice(0, 40));
+
+const rennen = await page.evaluate(() => {
+  const g = window.__game;
+  const d = g.verhaal.dief;
+  window.__stap(80);                    // de regel klikt zichzelf weg
+  const fase = g.verhaal.fase;
+  const opdrachtRood = document.getElementById('opdracht').classList.contains('rood');
+  const voor = { x: d.positie.x, z: d.positie.z };
+  // de speler blijft staan: dan moet de dief er vandoor gaan
+  for (let i = 0; i < 100; i++) g.verhaal.update(0.05);
+  const na = { x: d.positie.x, z: d.positie.z };
+  return {
+    fase, opdrachtRood, staat: d.staat,
+    gerend: Math.hypot(na.x - voor.x, na.z - voor.z),
+    weg: Math.hypot(na.x - g.player.pos.x, na.z - g.player.pos.z),
+    opdracht: document.getElementById('opdracht').textContent,
+    marker: g.hud.nav ? g.hud.nav.letter : null,
+  };
+});
+ok(rennen.fase === 'achtervolging', `fase 'achtervolging'`, rennen.fase);
+ok(rennen.opdrachtRood && /NIET neer/.test(rennen.opdracht), 'de opdracht knippert rood', rennen.opdracht);
+ok(rennen.staat === 'vlucht' && rennen.gerend > 15, `hij rent weg (${rennen.gerend.toFixed(0)} m in vijf seconden)`);
+ok(rennen.marker === '!', 'hij staat als marker op de kaart', String(rennen.marker));
+
+// schieten mag niet: dat laat de missie mislukken
+const misgeschoten = await page.evaluate(() => {
+  const g = window.__game;
+  // eerst een veilige opslag maken, zodat we terugkomen waar we waren
+  g.player.pos.set(g.verhaal.dief.positie.x + 6, 0, g.verhaal.dief.positie.z + 6);
+  g.opslaan();
+  const opgeslagen = { x: g.player.pos.x, z: g.player.pos.z, fase: g.verhaal.fase };
+  g.verhaal.raak(g.verhaal.dief.persoon.groep);          // een treffer op de dief
+  const melding = document.getElementById('missie').textContent;
+  const grijs = document.body.classList.contains('mislukt');
+  window.__stap(100);                                    // aftellen en opnieuw beginnen
+  return {
+    opgeslagen, melding, grijs, grijsNa: document.body.classList.contains('mislukt'),
+    missie: g.verhaal.missie, fase: g.verhaal.fase,
+    x: g.player.pos.x, z: g.player.pos.z,
+  };
+});
+ok(/MISSIE MISLUKT/.test(misgeschoten.melding) && /geen wouten/.test(misgeschoten.melding),
+  'schiet je hem neer, dan mislukt de missie', misgeschoten.melding.slice(0, 60));
+ok(misgeschoten.grijs && !misgeschoten.grijsNa, 'het beeld vaagt naar grijs en komt daarna terug');
+ok(misgeschoten.missie === 'johan', 'daarna staat de missie weer aan', `${misgeschoten.missie}/${misgeschoten.fase}`);
+ok(Math.hypot(misgeschoten.x - misgeschoten.opgeslagen.x, misgeschoten.z - misgeschoten.opgeslagen.z) < 0.5,
+  'en begin je bij je laatste opgeslagen spel');
+
+// na negentig seconden is hij op
+const uitgeput = await page.evaluate(() => {
+  const g = window.__game;
+  const d = g.verhaal.dief;
+  if (g.verhaal.fase !== 'achtervolging') {              // na het laden weer op de vlucht zetten
+    d.schrik();
+    for (let i = 0; i < 40; i++) g.verhaal.update(0.05);
+  }
+  d.vluchtT = 88;
+  let tekst = '';
+  for (let i = 0; i < 120 && d.staat === 'vlucht'; i++) {
+    g.verhaal.update(0.05);
+    if (/longen/.test(document.getElementById('dialoogTekst').textContent)) tekst = document.getElementById('dialoogTekst').textContent;
+  }
+  // nu hij op is: hoeveel meter haalt hij nog in vier seconden?
+  const voor = { x: d.positie.x, z: d.positie.z };
+  for (let i = 0; i < 80; i++) g.verhaal.update(0.05);
+  const na = { x: d.positie.x, z: d.positie.z };
+  return { staat: d.staat, tekst, afgelegd: Math.hypot(na.x - voor.x, na.z - voor.z) };
+});
+ok(uitgeput.staat === 'uitgeput', 'na negentig seconden is hij op', uitgeput.staat);
+ok(/longen knallen uit elkaar/.test(uitgeput.tekst), 'en dat roept hij ook', uitgeput.tekst.slice(0, 40));
+ok(uitgeput.afgelegd < 12, `hij wankelt nog maar ${uitgeput.afgelegd.toFixed(1)} m in vier seconden`);
+
+// ---------- 8. pakken en afleveren ----------
+kop('missie 5: pakken en afleveren');
+const gepakt = await page.evaluate(() => {
+  const g = window.__game;
+  const d = g.verhaal.dief;
+  g.player.pos.set(d.positie.x + 1.2, 0, d.positie.z + 0.6);   // tegen hem aan
+  window.__stap(10);
+  return {
+    staat: d.staat, fase: g.verhaal.fase,
+    naam: document.getElementById('dialoogNaam').textContent,
+    tekst: document.getElementById('dialoogTekst').textContent,
+  };
+});
+ok(gepakt.staat === 'gepakt' && gepakt.fase === 'gepakt', 'je hebt hem', `${gepakt.staat}/${gepakt.fase}`);
+ok(/hier heb je die grafcenten/.test(gepakt.tekst), 'hij smijt het geld op de grond', gepakt.tekst.slice(0, 40));
+
+await page.keyboard.press('KeyE');
+const metBuit = await page.evaluate(() => {
+  const g = window.__game;
+  window.__stap(60);        // de envelop landt en zit in je zak
+  return {
+    fase: g.verhaal.fase, buit: g.verhaal.buit, geld: g.verhaal.geld,
+    opdracht: document.getElementById('opdracht').textContent,
+    geldEl: document.getElementById('geld').textContent,
+    letter: g.hud.nav ? g.hud.nav.letter : null,
+  };
+});
+ok(metBuit.fase === 'terug' && metBuit.buit === 1000, 'je hebt duizend euro buit', `${metBuit.buit}`);
+ok(/terug naar Johan/.test(metBuit.opdracht), 'en moet het terugbrengen naar Johan', metBuit.opdracht);
+ok(/1\.000/.test(metBuit.geldEl), 'de buit staat rechtsonder in beeld', metBuit.geldEl);
+ok(metBuit.letter === 'J', 'de J-marker staat weer bij Kruirad 62');
+
+const afronding = await page.evaluate(() => {
+  const g = window.__game;
+  const j = g.verhaal.plekken.johan;
+  g.player.pos.set(j.x + 3, 0, j.z + 3);
+  window.__stap(15);
+  return { fase: g.verhaal.fase, tekst: document.getElementById('dialoogTekst').textContent, naam: document.getElementById('dialoogNaam').textContent };
+});
+ok(afronding.fase === 'afronding' && afronding.naam === 'Erik' && /Duizend piek/.test(afronding.tekst),
+  'bij Johan geef je het geld terug', afronding.tekst.slice(0, 40));
+
+const beloning = [];
+for (let i = 0; i < 3; i++) {
+  await page.keyboard.press('KeyE');
+  beloning.push(await page.evaluate(() => ({
+    tekst: document.getElementById('dialoogTekst').textContent,
+    missie: window.__game.verhaal.missie, geld: window.__game.verhaal.geld,
+    buit: window.__game.verhaal.buit,
+    melding: document.getElementById('missie').textContent,
+    geldEl: document.getElementById('geld').textContent,
+  })));
+}
+ok(/lekker werk/.test(beloning[0].tekst), 'Johan is blij', beloning[0].tekst.slice(0, 40));
+ok(/vijfhonderd voor jou/.test(beloning[1].tekst), 'en geeft je vijfhonderd euro', beloning[1].tekst.slice(0, 40));
+const eind = beloning[2];
+ok(eind.missie === 'klaar' && eind.geld === 500 && eind.buit === 0,
+  'de missie is voltooid en het geld staat in je portemonnee', `${eind.missie}, € ${eind.geld}`);
+ok(/MISSIE VOLTOOID/.test(eind.melding) && /500/.test(eind.melding), '"MISSIE VOLTOOID" met de beloning', eind.melding.slice(0, 50));
+ok(/500/.test(eind.geldEl), 'de portemonnee staat in beeld', eind.geldEl);
+
+// ---------- 9. opslaan en laden midden in het verhaal ----------
 kop('opslaan en laden');
 const opslag = await page.evaluate(() => {
   const g = window.__game;
@@ -390,13 +631,17 @@ const opslag = await page.evaluate(() => {
   g.laden();
   return {
     inOpslag: bewaard && bewaard.verhaal ? bewaard.verhaal.missie : null,
+    geldInOpslag: bewaard && bewaard.verhaal ? bewaard.verhaal.geld : null,
     naLaden: g.verhaal.missie, leven: g.player.health,
     ammo: g.player.ammo, bewakingNeer: g.verhaal.bewaking.neer, poortOpen: g.verhaal.poortOpen,
+    geld: g.verhaal.geld, diefStaat: g.verhaal.dief.staat,
   };
 });
-ok(opslag.inOpslag === 'klaar', 'de stand van het verhaal zit in de opslag', String(opslag.inOpslag));
-ok(opslag.naLaden === 'klaar' && opslag.bewakingNeer === 5 && opslag.poortOpen,
-  'na laden staat alles er weer: missie, bewaking en poort');
+ok(opslag.inOpslag === 'klaar' && opslag.geldInOpslag === 500, 'de stand van het verhaal en het geld zitten in de opslag',
+  `${opslag.inOpslag}, € ${opslag.geldInOpslag}`);
+ok(opslag.naLaden === 'klaar' && opslag.bewakingNeer === 5 && opslag.poortOpen && opslag.diefStaat === 'gepakt',
+  'na laden staat alles er weer: missie, bewaking, poort en de dief');
+ok(opslag.geld === 500, 'en je geld ook', `€ ${opslag.geld}`);
 ok(opslag.leven === 100 && opslag.ammo !== 2, 'leven en munitie komen terug', `${opslag.leven} leven`);
 
 await browser.close();

@@ -18,6 +18,7 @@ export class HUD {
     this.levenbalk = document.getElementById('levenbalk');
     this.levenlabel = document.getElementById('levenlabel');
     this.missieEl = document.getElementById('missie');
+    this.geldEl = document.getElementById('geld');
     this.flitsEl = document.getElementById('raakflits');
     this.missieT = 0;
     this.flitsT = 0;
@@ -98,6 +99,19 @@ export class HUD {
   flits() { this.flitsEl.style.opacity = 0.75; this.flitsT = 0.25; }
 
   /*
+   Portemonnee, rechtsonder. `buit` is los geld dat je nog moet afleveren; dat
+   staat er kleiner onder.
+  */
+  zetGeld(bedrag, buit = 0) {
+    if (!bedrag && !buit) { this.geldEl.hidden = true; return; }
+    this.geldEl.hidden = false;
+    this.geldEl.innerHTML = `${euro(bedrag)}${buit ? `<span class="buit">buit ${euro(buit)}</span>` : ''}`;
+  }
+
+  // Mislukte missie: het beeld vaagt naar grijs.
+  zetGrijs(aan) { document.body.classList.toggle('mislukt', !!aan); }
+
+  /*
    Navigatie op de kaart. route = punten in wereldmeters (uit js/navigatie.js),
    doel = de bestemming, naam = wat er bij de vlag staat. null zet hem uit.
   */
@@ -124,6 +138,15 @@ export class HUD {
       c.beginPath();
       c.moveTo(x, z - dikte * 3.2); c.lineTo(x + dikte * 2.4, z); c.lineTo(x, z + dikte * 3.2); c.lineTo(x - dikte * 2.4, z);
       c.closePath(); c.fill(); c.stroke();
+      // een letter in de vlag (de 'J' van Johan), rechtop tegen de gedraaide kaart
+      if (this.nav.letter) {
+        c.translate(x, z);
+        c.rotate(-(this._kaartRot || 0));
+        c.fillStyle = '#1a1a1a';
+        c.font = `bold ${Math.round(dikte * 3)}px sans-serif`;
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(this.nav.letter, 0, 0);
+      }
       c.restore();
     }
   }
@@ -157,7 +180,8 @@ export class HUD {
     c.save();
     c.beginPath(); c.arc(W / 2, H / 2, W / 2 - 2, 0, Math.PI * 2); c.clip();
     c.fillStyle = '#3f6a2b'; c.fillRect(0, 0, W, H);
-    c.translate(W / 2, H / 2); c.rotate(-yaw + Math.PI); c.translate(-px * scale, -pz * scale);
+    this._kaartRot = -yaw + Math.PI;
+    c.translate(W / 2, H / 2); c.rotate(this._kaartRot); c.translate(-px * scale, -pz * scale);
     // water
     c.fillStyle = '#6a97a8';
     for (const poly of waterVlakken()) { c.beginPath(); poly.forEach(([x, z], i) => { if (i) c.lineTo(x * scale, z * scale); else c.moveTo(x * scale, z * scale); }); c.closePath(); c.fill(); }
@@ -207,6 +231,7 @@ HUD.prototype.drawBig = function (player, vehicles) {
     c.strokeStyle = s.drive ? '#d9d6cf' : '#b9a58a'; c.lineWidth = Math.max(1.5, s.w);
     c.beginPath(); c.moveTo(s.a[0], s.a[1]); c.lineTo(s.b[0], s.b[1]); c.stroke();
   }
+  this._kaartRot = 0;
   this.tekenRoute(c, 1, 2.5 / scale);
   c.fillStyle = '#2255dd';
   for (const car of vehicles.cars) c.fillRect(car.x - 1.2, car.z - 1.2, 2.4, 2.4);
@@ -222,3 +247,55 @@ HUD.prototype.drawBig = function (player, vehicles) {
   const sluit = document.body.classList.contains('touch') ? 'tik weer op de kaartknop' : 'M om te sluiten';
   c.fillStyle = '#fff'; c.font = 'bold 16px sans-serif'; c.textAlign = 'left'; c.fillText(`TINGA · SNEEK — kaart (${sluit}, noorden boven)`, 16, 26);
 };
+
+
+// Bedrag in euro's, met een punt als duizendscheiding: € 1.000
+export function euro(bedrag) {
+  return `€ ${Math.round(bedrag).toLocaleString('nl-NL')}`;
+}
+
+/*
+ Portretje voor de tekstbalk: een kop in dezelfde vlakke stijl als de poppetjes
+ in het spel. Wordt gebruikt bij het telefoontje van Johan (js/verhaal.js).
+*/
+export function tekenKop(canvas, { huid = '#d9b48f', haar = '#2a1d12', shirt = '#2f5d8a', stoppels = false, pet = null } = {}) {
+  const g = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = 'rgba(10,16,26,.9)'; g.fillRect(0, 0, W, H);
+  const s = W / 72;
+  // schouders en shirt
+  g.fillStyle = shirt; g.fillRect(8 * s, 56 * s, 56 * s, 16 * s);
+  g.fillStyle = huid; g.fillRect(30 * s, 48 * s, 12 * s, 10 * s);        // nek
+  // hoofd
+  g.fillStyle = huid;
+  g.beginPath();
+  const rx = 17 * s, ry = 20 * s;
+  g.ellipse(W / 2, 30 * s, rx, ry, 0, 0, Math.PI * 2);
+  g.fill();
+  // oren
+  g.fillRect(W / 2 - rx - 2 * s, 28 * s, 3 * s, 7 * s);
+  g.fillRect(W / 2 + rx - 1 * s, 28 * s, 3 * s, 7 * s);
+  // haar of pet
+  if (pet) {
+    g.fillStyle = pet;
+    g.beginPath(); g.ellipse(W / 2, 18 * s, rx + 1 * s, 11 * s, 0, Math.PI, 0); g.fill();
+    g.fillRect(W / 2 - rx - 3 * s, 17 * s, (rx + 3 * s) * 2, 3.5 * s);
+  } else {
+    g.fillStyle = haar;
+    g.beginPath(); g.ellipse(W / 2, 17 * s, rx + 0.5 * s, 10 * s, 0, Math.PI, 0); g.fill();
+    g.fillRect(W / 2 - rx, 14 * s, rx * 2, 5 * s);
+  }
+  // ogen, wenkbrauwen en mond
+  g.fillStyle = '#1b1f26';
+  g.fillRect(W / 2 - 10 * s, 28 * s, 5 * s, 3 * s);
+  g.fillRect(W / 2 + 5 * s, 28 * s, 5 * s, 3 * s);
+  g.fillRect(W / 2 - 11 * s, 24 * s, 7 * s, 2 * s);
+  g.fillRect(W / 2 + 4 * s, 24 * s, 7 * s, 2 * s);
+  g.fillStyle = '#8a4a44';
+  g.fillRect(W / 2 - 6 * s, 40 * s, 12 * s, 2.5 * s);
+  if (stoppels) {
+    g.fillStyle = 'rgba(30,26,22,.35)';
+    g.fillRect(W / 2 - 12 * s, 36 * s, 24 * s, 12 * s);
+  }
+}
