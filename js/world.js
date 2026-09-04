@@ -1450,7 +1450,7 @@ function buildTrees(scene) {
       m.compose(new THREE.Vector3(t.x, 5.2 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
       q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
       m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, 6.7 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
-      addCollider(t.x, t.z, 0.3 * dik, 0.3 * dik, 0, 3);
+      if (!t.vrij) addCollider(t.x, t.z, 0.3 * dik, 0.3 * dik, 0, 3);
     });
     trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;
     scene.add(trunks, leavesA, leavesB);
@@ -1477,7 +1477,7 @@ function buildTrees(scene) {
         m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 2.2 * s2, y + 1.2 * s2, t.z + (r() - 0.5) * 2.2 * s2), q, new THREE.Vector3(w * 0.8, w, w * 0.8));
         (k === 0 ? crownB : crownA).setMatrixAt(i * 2 + k, m);
       }
-      addCollider(t.x, t.z, 0.45, 0.45, 0, 3);
+      if (!t.vrij) addCollider(t.x, t.z, 0.45, 0.45, 0, 3);
     });
     trunks.castShadow = true; crownA.castShadow = true; crownB.castShadow = true;
     scene.add(trunks, crownA, crownB);

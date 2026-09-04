@@ -808,6 +808,43 @@ for (const w of VLAKKEN.filter(v => v.k === 'water' && Math.abs(oppervlak(v.r[0]
   const bx = best.q.x + dx / L * 2.0, bz = best.q.z + dz / L * 2.0;
   if (klasseOp(bx, bz) === 3) OBJECTEN.push({ type: 'bank', x: r2(bx), z: r2(bz), yaw: Math.round(Math.atan2(-dx, -dz) * 180 / Math.PI * 10) / 10 + 180 });
 }
+// Plantsoenen met een eigen karakter (data/stijl/omgeving.json): dicht
+// struikgewas over het hele groenvak, een bankje aan de kant van het voetpad,
+// en de bomen zonder botsing zodat je erdoorheen kunt lopen (foto 9 Molenkrite).
+for (const pl of OMGEVING.plantsoenen || []) {
+  const vlak = VLAKKEN.find(v => ['bos', 'gras', 'heesters', 'bodembedekker'].includes(v.k) && inPolygoon(pl.punt, v.r));
+  if (!vlak) { console.warn(`LET OP: plantsoen ${pl.naam}: geen groenvak op ${pl.punt}`); continue; }
+  const n0 = STRUIKEN.length;
+  strooi(vlak, pl.struiken || 1.5, STRUIKEN, pl.schaal || [0.8, 1.5]);
+  if (pl.doorloopbaar) for (const b of BOMEN) if (inPolygoon([b.x, b.z], vlak.r)) b.vrij = true;
+  if (pl.bank) {
+    // de rand met het dichtstbijzijnde voetpad ervoor (over gras, niet over
+    // water, tot 14 m); het bankje staat 0,9 m voor het pad met het gezicht
+    // naar het pad, en de strook gras tussen het groenvak en het bankje groeit
+    // vol struiken, zoals op de foto (in de BGT stopt het bosvak eerder)
+    const ring = vlak.r[0], [cx, cz] = zwaartepunt(ring);
+    let best = null;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length]; const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 3) continue;
+      let nx = dz / L, nz = -dx / L; const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+      if ((mx - cx) * nx + (mz - cz) * nz < 0) { nx = -nx; nz = -nz; }
+      let pad = 0; for (let d = 0.7; d <= 14; d += 0.5) { const kl = klasseOp(mx + nx * d, mz + nz * d); if (kl === 2 || kl === 8) break; if (kl === 7) { pad = d; break; } }
+      if (!pad) continue;
+      if (!best || pad < best.pad - 0.5 || (Math.abs(pad - best.pad) <= 0.5 && L > best.L)) best = { L, pad, mx, mz, nx, nz, ex: dx / L, ez: dz / L };
+    }
+    if (best) {
+      const { mx, mz, nx, nz, ex, ez, pad, L } = best;
+      const bx = mx + nx * (pad - 0.9), bz = mz + nz * (pad - 0.9);
+      OBJECTEN.push({ type: 'bank', x: r2(bx), z: r2(bz), yaw: Math.round((Math.atan2(-nx, -nz) * 180 / Math.PI + 180) * 10) / 10 });
+      const rs = rng(53);
+      for (let s = 0.9; s < pad - 1.6; s += 1.3) for (let t = -L / 2 + 0.6; t <= L / 2 - 0.6; t += 1.3) {
+        const sx = mx + nx * s + ex * t + (rs() - 0.5) * 0.8, sz = mz + nz * s + ez * t + (rs() - 0.5) * 0.8;
+        if (klasseOp(sx, sz) === 3 && Math.hypot(sx - bx, sz - bz) > 1.5) STRUIKEN.push({ x: r2(sx), z: r2(sz), s: r2(0.8 + rs() * 0.7) });
+      }
+    } else console.warn(`LET OP: plantsoen ${pl.naam}: geen rand aan een voetpad gevonden voor het bankje`);
+  }
+  telling[`plantsoen_${pl.naam.replace(/\W+/g, '_')}_struiken`] = STRUIKEN.length - n0;
+}
 tel('objecten', OBJECTEN.length);
 
 // ---------------------------------------------------------------- terreinen
