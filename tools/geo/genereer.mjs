@@ -579,6 +579,77 @@ function terreinMasker(t) {
 const TERREINEN = (OMGEVING.terreinen || []).map(terreinMasker);
 const opEenTerrein = (x, z) => TERREINEN.some(m => m.opTerreinOfHek(x, z));
 
+// ---------------------------------------------------------------- voorkant en dakkapellen
+// De voorkant van een woning loopt langs een as van de omsluitende rechthoek,
+// nooit door een bouwmuur naar een buurpand, en wijst naar de kant waar de
+// rijbaan het dichtst bij ligt, gewogen met de richting naar de straat van het
+// huisnummer. Een hoekwoning krijgt zo geen voorgevel op de kopse kant en een
+// woning aan een voetpad geen kale voorkant. De huisnummerlabels van de BGT
+// liggen bijna altijd midden in het pand en zeggen dus niets over de voorkant.
+const pandIndex = new Map();
+const sleutel10 = (x, z) => `${Math.floor(x / 10)}:${Math.floor(z / 10)}`;
+for (const p of PANDEN) { const b = bboxRing(p.voet); for (let x = b[0]; x <= b[2] + 10; x += 10) for (let z = b[1]; z <= b[3] + 10; z += 10) { const k = sleutel10(x, z); if (!pandIndex.has(k)) pandIndex.set(k, []); pandIndex.get(k).push(p); } }
+const pandOp = (x, z, nietDit) => (pandIndex.get(sleutel10(x, z)) || []).find(q => q !== nietDit && inRing([x, z], q.voet)) || null;
+let voorkantGedraaid = 0;
+for (const p of PANDEN) {
+  if (!p.rect || !p.nr.length || p.type === 'schuur') continue;
+  const r = p.rect, c = [r.cx, r.cz];
+  const u = [Math.cos(r.hoek), Math.sin(r.hoek)], v = [-u[1], u[0]];
+  const kand = [{ as: 'u', d: u, h: r.hx, b: r.hz }, { as: 'u', d: [-u[0], -u[1]], h: r.hx, b: r.hz }, { as: 'v', d: v, h: r.hz, b: r.hx }, { as: 'v', d: [-v[0], -v[1]], h: r.hz, b: r.hx }];
+  p.buren = [];
+  for (const k of kand) {
+    // een buurpand tegen deze zijde (op drie plekken langs de zijde gemeten)
+    const z = k.as === 'u' ? v : u;
+    for (const t of [-0.6, 0, 0.6]) {
+      const q = pandOp(c[0] + k.d[0] * (k.h + 0.5) + z[0] * t * k.b, c[1] + k.d[1] * (k.h + 0.5) + z[1] * t * k.b, p);
+      if (q) { k.buur = q; if (q.nr.length && !p.buren.includes(q)) p.buren.push(q); }
+    }
+  }
+  const langsU = kand[0].buur || kand[1].buur, langsV = kand[2].buur || kand[3].buur;
+  let opties = kand.filter(k => !k.buur);
+  if (langsU && !langsV) opties = opties.filter(k => k.as === 'v');
+  else if (langsV && !langsU) opties = opties.filter(k => k.as === 'u');
+  if (!opties.length) continue;
+  // afstand tot de rijbaan in deze richting; een gebouw ervoor telt als ver weg
+  const weg = (k) => { for (let s = 1; s <= 35; s += 0.5) { const kl = klasseOp(c[0] + k.d[0] * (k.h + s), c[1] + k.d[1] * (k.h + s)); if (kl === 1) return s; if (kl === 6 && s > 3) return 60; } return 99; };
+  let best = null;
+  for (const k of opties) { const score = -weg(k) + 4 * (p.front ? k.d[0] * p.front[0] + k.d[1] * p.front[1] : 0); if (!best || score > best.score) best = { k, score }; }
+  const nieuw = [r2(best.k.d[0]), r2(best.k.d[1])];
+  if (!p.front || nieuw[0] * p.front[0] + nieuw[1] * p.front[1] < 0.9) voorkantGedraaid++;
+  p.front = nieuw;
+}
+tel('voorkant_gedraaid', voorkantGedraaid);
+
+// Dakkapellen: het 3D BAG-model heeft ze bij een deel van de woningen; in een
+// rij waar één woning er een heeft, hebben ze in werkelijkheid allemaal een
+// (foto Molenkrite). De woningen zonder dakkapel in het model krijgen `kapel`,
+// waarop kaartwereld.js er een bouwt.
+for (const p of PANDEN) {
+  if (!p.v || !p.goot) continue;
+  const V = p.v;
+  p.f.forEach((ringen, fi) => {
+    if (p.s[fi] !== 1 || p.dakkapel) return;
+    // een muurvlak boven de goot, minstens 1,2 m breed (geen trapje tussen twee
+    // daken), aan de voorkant van het pand (een dakkapel achter telt niet)
+    let lo = Infinity, hi = -Infinity; const xs = [], zs = [];
+    for (const i of ringen[0]) { lo = Math.min(lo, V[i * 3 + 1]); hi = Math.max(hi, V[i * 3 + 1]); xs.push(V[i * 3]); zs.push(V[i * 3 + 2]); }
+    const breed = Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs));
+    const mx = xs.reduce((s, v) => s + v, 0) / xs.length, mz = zs.reduce((s, v) => s + v, 0) / zs.length;
+    const voor = !p.front || !p.rect || (mx - p.rect.cx) * p.front[0] + (mz - p.rect.cz) * p.front[1] > 0.3;
+    if (voor && lo > p.goot - 0.35 && hi < (p.nok || 99) - 0.6 && hi - lo > 0.8 && breed >= 1.2) p.dakkapel = true;
+  });
+}
+const rijGezien = new Set(); let kapels = 0;
+for (const p of PANDEN) {
+  if (rijGezien.has(p) || !p.buren) continue;
+  const rij = [p]; rijGezien.add(p);
+  for (let i = 0; i < rij.length; i++) for (const q of rij[i].buren || []) if (!rijGezien.has(q) && q.buren) { rijGezien.add(q); rij.push(q); }
+  if (!rij.some(q => q.dakkapel)) continue;
+  for (const q of rij) if (!q.dakkapel && q.dak === 'slanted' && (q.nok || 0) - (q.goot || 0) > 2.5 && q.v) { q.kapel = true; kapels++; }
+}
+tel('dakkapellen_3d', PANDEN.filter(p => p.dakkapel).length); tel('dakkapellen_aangevuld', kapels);
+for (const p of PANDEN) delete p.buren;
+
 const LANTAARNS = [];
 for (const k of rijKetens) {
   if (k.w > 12 || k.lengte < 20) continue;      // niet langs de N7
