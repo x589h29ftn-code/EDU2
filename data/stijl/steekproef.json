@@ -1,0 +1,17 @@
+{
+  "_uitleg": "Vaste steekproef voor de stijlcontrole (docs/METHODIEK.md stap 6). tools/geo/steekproef.mjs rendert per adres het spel vanaf de straat, recht voor de voorgevel, en geeft de Street View-link van precies dat camerapunt, zodat foto en spel naast elkaar gelegd kunnen worden. Dezelfde adressen elke keer, zodat een wijziging die iets anders stukmaakt meteen opvalt.",
+  "adressen": [
+    { "straat": "Molenkrite", "nr": "19" },
+    { "straat": "Molenkrite", "nr": "43" },
+    { "straat": "Molenkrite", "nr": "70" },
+    { "straat": "Kruirad", "nr": "50" },
+    { "straat": "Kruirad", "nr": "12" },
+    { "straat": "Monnikmolen", "nr": "148" },
+    { "straat": "Binnenroede", "nr": "15" },
+    { "straat": "Jasker", "nr": "7" },
+    { "straat": "de Wieken", "nr": "34" },
+    { "straat": "Bovenas", "nr": "5" },
+    { "straat": "Molenpaal", "nr": "6" },
+    { "straat": "Bonkelaar", "nr": "11" }
+  ]
+}

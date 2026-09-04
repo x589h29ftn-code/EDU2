@@ -32,6 +32,7 @@
     "geo:bag3d": "node --no-warnings tools/geo/bag3d2geojson.mjs data/geo/bron/9-632-1008.gpkg",
     "geo:plaat": "node tools/geo/plaat.mjs",
     "geo:genereer": "node tools/geo/genereer.mjs",
-    "geo:boven": "node tools/geo/bovenaanzicht.mjs 8123 4"
+    "geo:boven": "node tools/geo/bovenaanzicht.mjs 8123 4",
+    "geo:steekproef": "node tools/geo/steekproef.mjs 8123"
   }
 }

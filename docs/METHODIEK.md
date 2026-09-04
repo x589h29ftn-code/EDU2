@@ -280,7 +280,7 @@ de besturing een gewone spelfeature zonder onzekerheid over de kaart.
 
 ## 9. Stand van zaken
 
-Stap 1, 2 en 3 zijn af; van stap 4 staat de geometrie.
+Stap 1, 2, 3 en 4 zijn af; stap 6 (de stijlcatalogus) is ingericht en wacht op foto's.
 
 **Data (stap 1 en 2).**
 `data/geo/gebied.geojson` is het werkgebied: RD X 171870–172600, Y 558920–559790
@@ -341,16 +341,43 @@ bij een draaiende webserver (`npm start`).
 - 295 BGT-panden hebben geen 3D BAG-model: 220 kleine bijgebouwen en 75 woningen
   ten noorden van de Buitenroede, vermoedelijk nieuwbouw na de 3D BAG-versie.
 
+**Gevels en stijl (stap 4 en 6).**
+Elk pand krijgt zijn straat en voorgevelrichting uit de data: de straat is de naam
+van de rijbaanas die het dichtst bij het huisnummerlabel ligt (dat label staat bij
+de voordeur), de voorgevel kijkt naar die as. `data/stijl/straten.json` koppelt per
+straat een woningtype uit `HOUSE_STYLES`; binnen een straat maakt de generator
+onderscheid op goothoogte (onder 4 m is een bungalow) en daktype (plat) uit 3D BAG.
+De goothoogte is de laagste rand van de grote dakvlakken, zodat een afdakje of
+erker niet als goot telt. Panden onder 35 m² zonder huisnummer zijn schuurtjes en
+krijgen kale steen.
+
+In het spel legt `kaartwereld.js` de bestaande gevel met ramen en deuren op elk
+muurvlak dat naar de straat kijkt, en de achtergevel op de tegenoverliggende
+muren. Het aantal lagen volgt uit de hoogte van het muurvlak zelf; een kopgevel
+wordt op de goot doorgeknipt, met de gevel eronder en kale steen tot de nok. De
+dakkleur komt uit het woningtype. Alle regels in de catalogus staan nu op
+"oude kaart" of "aanname": ze zijn overgenomen uit de handgetekende versie en
+wachten op bevestiging met foto's.
+
+**Steekproef.** `npm run geo:steekproef` rendert de twaalf adressen uit
+`data/stijl/steekproef.json` vanaf de straat, negen meter voor de voorgevel, en
+schrijft `docs/steekproef/README.md` met per adres de meetwaarden, het gekozen
+type, het beeld en de Street View-link van precies dat camerapunt (zelfde plek,
+zelfde kijkrichting). Dat is de plek waar foto's het spel ontmoeten: per adres
+wordt alleen kleur en detail beoordeeld, nooit positie of maat.
+
 **Wat nog niet af is (in volgorde).**
 
-1. Gevels: de panden zijn nu baksteen zonder ramen en deuren. De gevelgenerator uit
-   `textures.js` moet per muurvlak geprojecteerd worden, met het woningtype uit de
-   stijlcatalogus (stap 6). Dakkapellen, dakramen en zonnepanelen horen daarbij.
-2. Voortuinen: erf is nu egaal gras; hekjes, hagen en paden per perceel komen uit de
+1. De stijlcatalogus vullen met foto's: per adres uit de steekproef de steen-,
+   kozijn- en deurkleur, dakpannen, dakkapel of dakraam, zonnepanelen en voortuin
+   bevestigen of aanpassen, en de bron op "foto" zetten.
+2. Dakdetails: dakkapellen, dakramen en zonnepanelen op de 3D BAG-daken.
+3. Voortuinen: erf is nu egaal gras; hekjes, hagen en paden per perceel komen uit de
    stijlcatalogus.
-3. De editor (F2) en de oude objecten uit `data.js` werken nog in pixels van de oude
+4. De editor (F2) en de oude objecten uit `data.js` werken nog in pixels van de oude
    kaart; enkele objecten staan daardoor een paar meter verkeerd. Omrekenen kan met
    drie ijkpunten in `oorsprong.json` (`rd.mjs px`).
-4. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
-   zonder 3D-model.
-5. Tweede 3D BAG-tegel voor het zuidoosten van de wijk.
+5. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
+   zonder 3D-model; straten zonder BGT-label aan een rijbaan (Windbord, Voorzoom,
+   Omloop) krijgen nu de naam van de buurstraat.
+6. Tweede 3D BAG-tegel voor het zuidoosten van de wijk.

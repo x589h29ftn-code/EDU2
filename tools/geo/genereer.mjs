@@ -189,6 +189,8 @@ const rdVertex = (i) => { const v = VERT[i]; return [v[0] * TR.scale[0] + TR.tra
 const bgtPanden = lees('bgt_pand');
 const nummersPerPand = new Map();
 for (const f of bgtPanden) { const id = String(f.properties.identificatieBAGPND); if (f.properties.huisnummers) nummersPerPand.set(id, f.properties.huisnummers); }
+// positie van het huisnummerlabel (staat bij de voordeur) in spelmeters
+const nrPositie = (id) => { const h = nummersPerPand.get(id); return h && h.length ? naarSpel(h[0].pos) : null; };
 
 const PANDEN = [];
 const gezien = new Set();
@@ -207,6 +209,7 @@ for (const f of lees('bag3d_pand')) {
     id, voet, jaar: p.oorspronkelijkbouwjaar, dak: p.b3_dak_type, goot: p.goothoogte, nok: p.nokhoogte,
     nr: (nummersPerPand.get(id) || []).map(h => h.tekst),
   };
+  const np = nrPositie(id); if (np) pand.nrpos = np;
   // 3D-model uit CityJSON (LoD 2.2): gedeelde hoekpunten + vlakken met soort
   const gebouw = CJ[p.identificatie];
   if (gebouw) {
@@ -252,7 +255,8 @@ for (const f of bgtPanden) {
   const nrs = (f.properties.huisnummers || []).map(h => h.tekst);
   const opp = Math.abs(oppervlak(voet));
   const woning = nrs.length > 0 || opp > 45;
-  PANDEN.push({ id, voet, nr: nrs, schat: true, dak: woning ? 'slanted' : 'horizontal', goot: woning ? 5.8 : 2.5, nok: woning ? 8.8 : 2.5 });
+  const np = nrPositie(id);
+  PANDEN.push({ id, voet, nr: nrs, schat: true, dak: woning ? 'slanted' : 'horizontal', goot: woning ? 5.8 : 2.5, nok: woning ? 8.8 : 2.5, ...(np ? { nrpos: np } : {}) });
 }
 for (const p of PANDEN) {
   const r = kleinsteRechthoek(p.voet);
@@ -281,9 +285,75 @@ for (const l of labels) {
   if (vlak) naamVanVlak.set(vlak, l.t);
 }
 function vlakOp(p, lijst) { return lijst.find(v => { const b = bboxRing(v.r[0]); return p[0] >= b[0] && p[0] <= b[2] && p[1] >= b[1] && p[1] <= b[3] && inPolygoon(p, v.r); }); }
+function afstandTotKeten(p, k) {
+  let best = Infinity;
+  for (let i = 1; i < k.pts.length; i++) {
+    const a = k.pts[i - 1], b = k.pts[i];
+    const dx = b.x - a.x, dz = b.z - a.z, L2 = dx * dx + dz * dz || 1e-9;
+    const t = Math.max(0, Math.min(1, ((p[0] - a.x) * dx + (p[1] - a.z) * dz) / L2));
+    best = Math.min(best, Math.hypot(a.x + dx * t - p[0], a.z + dz * t - p[1]));
+  }
+  return best;
+}
+// Positie (booglengte) van het dichtstbijzijnde punt op een keten.
+function positieOpKeten(p, k) {
+  let best = { d: Infinity, s: 0 }, acc = 0;
+  for (let i = 1; i < k.pts.length; i++) {
+    const a = k.pts[i - 1], b = k.pts[i];
+    const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz), L2 = L * L || 1e-9;
+    const t = Math.max(0, Math.min(1, ((p[0] - a.x) * dx + (p[1] - a.z) * dz) / L2));
+    const d = Math.hypot(a.x + dx * t - p[0], a.z + dz * t - p[1]);
+    if (d < best.d) best = { d, s: acc + t * L };
+    acc += L;
+  }
+  return best;
+}
+// Deel van een keten tussen booglengte s0 en s1.
+function deelKeten(k, s0, s1) {
+  const pts = []; let acc = 0;
+  const tussen = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, w: a.w + (b.w - a.w) * t });
+  for (let i = 1; i < k.pts.length; i++) {
+    const a = k.pts[i - 1], b = k.pts[i], L = Math.hypot(b.x - a.x, b.z - a.z);
+    const sa = acc, sb = acc + L;
+    if (sb < s0 || sa > s1) { acc = sb; continue; }
+    if (!pts.length) pts.push(sa >= s0 ? a : tussen(a, b, (s0 - sa) / (L || 1)));
+    if (sb <= s1) pts.push(b); else { pts.push(tussen(a, b, (s1 - sa) / (L || 1))); break; }
+    acc = sb;
+  }
+  if (pts.length < 2) return null;
+  let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z);
+  if (L < 1) return null;
+  const ws = pts.map(q => q.w).sort((a, b) => a - b);
+  return { pts: pts.map(q => ({ x: r2(q.x), z: r2(q.z), w: Math.round(q.w * 10) / 10 })), w: ws[Math.floor(ws.length / 2)], lengte: Math.round(L * 10) / 10 };
+}
+// Labels aan ketens hangen. Een keten die door meer dan één straat loopt
+// (Kruirad gaat zonder knik over in de Monnikmolen) wordt geknipt halverwege
+// tussen twee labels met een verschillende naam.
+function splitsOpLabels(ketens) {
+  const uit = [];
+  for (const k of ketens) {
+    const hits = [];
+    for (const l of labels) { const { d, s } = positieOpKeten(l.p, k); if (d < 12) hits.push({ naam: l.t, s }); }
+    const namen = new Set(hits.map(h => h.naam));
+    if (namen.size < 2) { if (hits.length) k.naam = hits[0].naam; uit.push(k); continue; }
+    hits.sort((a, b) => a.s - b.s);
+    const grenzen = [];
+    for (let i = 1; i < hits.length; i++) if (hits[i].naam !== hits[i - 1].naam) grenzen.push((hits[i].s + hits[i - 1].s) / 2);
+    grenzen.push(Infinity);
+    let start = 0;
+    for (const g of grenzen) {
+      const stuk = deelKeten(k, start, g);
+      const naam = hits.find(h => h.s >= start && h.s < g)?.naam;
+      if (stuk) { stuk.naam = naam; uit.push(stuk); }
+      start = g;
+    }
+  }
+  return uit;
+}
 function benoem(ketens, polys) {
   const autoweg = polys.filter(v => v.k === 'autoweg');
   for (const k of ketens) {
+    if (k.naam) continue;
     const mid = k.pts[Math.floor(k.pts.length / 2)];
     // de rijksweg heeft geen BGT-label; alles wat door een autowegvlak loopt heet N7
     if (vlakOp([mid.x, mid.z], autoweg)) { k.naam = 'N7'; continue; }
@@ -306,6 +376,7 @@ function benoem(ketens, polys) {
     if (!nieuw) break;
   }
 }
+const rijKetens2 = splitsOpLabels(rijKetens); rijKetens.length = 0; rijKetens.push(...rijKetens2);
 benoem(rijKetens, rijPolys);
 // paden krijgen de naam van de dichtstbijzijnde rijbaanketen
 for (const k of loopKetens) {
@@ -321,6 +392,61 @@ const WEGASSEN = [
 tel('wegassen_rijbaan', rijKetens.length); tel('wegassen_pad', loopKetens.length);
 tel('wegassen_rijbaan_m', Math.round(rijKetens.reduce((t, k) => t + k.lengte, 0)));
 tel('wegassen_zonder_naam', rijKetens.filter(k => !k.naam).length);
+
+// ---------------------------------------------------------------- panden: straat, voorgevel, type
+// De straat van een pand is de naam van de dichtstbijzijnde rijbaanas; de
+// voorgevel kijkt naar het dichtstbijzijnde punt op die as. Het woningtype komt
+// uit data/stijl/straten.json, met de goothoogte en het daktype uit 3D BAG als
+// onderscheid binnen de straat.
+const STIJL = JSON.parse(readFileSync(join(ROOT, 'data', 'stijl', 'straten.json'), 'utf8'));
+function dichtstbijOpAs(x, z) {
+  let best = null;
+  for (const k of rijKetens) {
+    if (!k.naam || k.naam === 'N7') continue;
+    for (let i = 1; i < k.pts.length; i++) {
+      const a = k.pts[i - 1], b = k.pts[i];
+      const dx = b.x - a.x, dz = b.z - a.z, L2 = dx * dx + dz * dz || 1e-9;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / L2));
+      const px = a.x + dx * t, pz = a.z + dz * t;
+      const d = Math.hypot(px - x, pz - z);
+      if (!best || d < best.d) best = { d, px, pz, naam: k.naam };
+    }
+  }
+  return best;
+}
+function kiesType(p, straat) {
+  const s = STIJL.straten[straat];
+  const laag = (p.goot ?? 6) < 4, plat = p.dak === 'horizontal' || p.dak === 'multiple horizontal';
+  const opp = Math.abs(oppervlak(p.voet));
+  if (opp > 300) return STIJL.standaard.groot;
+  if (opp < 35 && !p.nr.length) return 'schuur';           // bijgebouw: kale steen, geen gevel
+  if (s) {
+    if (plat && s.plat) return s.plat;
+    if (laag && s.laag) return s.laag;
+    if (s.afwisselend && Number(String(p.id).slice(-1)) % 2 === 1) return s.afwisselend;
+    return s.type;
+  }
+  if (plat && (p.goot ?? 0) > 7) return STIJL.standaard.plat_hoog;
+  if (plat) return STIJL.standaard.plat;
+  if (laag) return STIJL.standaard.laag;
+  return STIJL.standaard.type;
+}
+let zonderStraat = 0;
+for (const p of PANDEN) {
+  const [cx, cz] = zwaartepunt(p.voet);
+  // het huisnummerlabel staat aan de voordeurkant: daarvandaan de straat zoeken
+  const [qx, qz] = p.nrpos || [cx, cz];
+  const b = dichtstbijOpAs(qx, qz);
+  if (b && b.d < 60) {
+    p.straat = b.naam;
+    const L = Math.hypot(b.px - cx, b.pz - cz) || 1;
+    p.front = [r2((b.px - cx) / L), r2((b.pz - cz) / L)];
+  } else zonderStraat++;
+  p.type = kiesType(p, p.straat);
+}
+tel('panden_zonder_straat', zonderStraat);
+const perType = {}; for (const p of PANDEN) perType[p.type] = (perType[p.type] || 0) + 1;
+telling.woningtypen = perType;
 
 // ---------------------------------------------------------------- parkeerplekken
 const PARKEER = [];

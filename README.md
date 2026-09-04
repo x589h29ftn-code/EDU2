@@ -144,6 +144,11 @@ voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,3 % afwijking)
 
 ![Het spel van boven](data/geo/spel-boven.png)
 
+Elk pand krijgt zijn gevel met ramen en deuren uit het woningtype in de stijlcatalogus
+`data/stijl/straten.json` (per straat), met het aantal lagen uit de echte goothoogte. `npm run
+geo:steekproef` rendert twaalf vaste adressen vanaf de straat en zet er de Street View-link van
+hetzelfde camerapunt naast, zie **[docs/steekproef/README.md](docs/steekproef/README.md)**.
+
 De oude, handgetekende kaart in `js/data.js` (overgetypt uit schermafbeeldingen, bijgesteld met
 Street View) draait nog met `?kaart=oud`. Street View-foto's dienen voortaan alleen nog voor de
 stijl per straat: steenkleur, kozijnen, dakkapellen, voortuinen.

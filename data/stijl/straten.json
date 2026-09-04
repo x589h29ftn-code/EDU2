@@ -1,0 +1,29 @@
+{
+  "_uitleg": "Stijlcatalogus: welk woningtype uit js/textures.js (HOUSE_STYLES) krijgt een pand? De generator kiest per pand eerst op straatnaam (uit de BGT-labels, via de dichtstbijzijnde rijbaanas), en gebruikt daarbinnen de meetwaarden uit 3D BAG: 'laag' geldt als de goothoogte onder 4 m ligt (bungalow), 'plat' als het daktype horizontal is. Staat een straat er niet in, dan geldt 'standaard'. Bron per regel: 'oude kaart' = overgenomen uit de handgetekende versie (nog te bevestigen met foto's), 'foto' = bevestigd met een Street View-beeld van het genoemde adres.",
+  "straten": {
+    "Molenkrite":   { "type": "molenkrite", "laag": "molenkrite_bung", "bron": "oude kaart" },
+    "Monnikmolen":  { "type": "monnik", "bron": "oude kaart" },
+    "Binnenroede":  { "type": "monnik", "bron": "oude kaart" },
+    "Kruirad":      { "type": "kruirad", "bron": "oude kaart" },
+    "Molenpaal":    { "type": "molenpaal", "bron": "oude kaart" },
+    "Spinnekop":    { "type": "molenpaal", "bron": "aanname" },
+    "Jasker":       { "type": "jasker_gable", "plat": "jasker_flat", "bron": "oude kaart" },
+    "de Wieken":    { "type": "wieken_white", "afwisselend": "wieken_yellow", "bron": "oude kaart" },
+    "Windbord":     { "type": "wieken_white", "bron": "aanname" },
+    "Voorzoom":     { "type": "wieken_white", "bron": "aanname" },
+    "Bovenas":      { "type": "bovenas_gal", "laag": "bovenas_bung", "bron": "oude kaart" },
+    "Bonkelaar":    { "type": "bonkelaar", "bron": "oude kaart" },
+    "de Hekken":    { "type": "bonkelaar", "bron": "aanname" },
+    "Grootwiel":    { "type": "tinga_groen", "bron": "oude kaart" },
+    "Omloop":       { "type": "tinga_groen", "bron": "aanname" },
+    "Buitenroede":  { "type": "tinga_blauw", "bron": "oude kaart" }
+  },
+  "standaard": {
+    "_uitleg": "Volgorde: eerst 'groot' (grondvlak boven 300 m2), dan 'plat' met een goot boven 7 m (portiekflat), dan 'plat', dan 'laag', anders 'type'.",
+    "type": "molenkrite",
+    "laag": "molenkrite_bung",
+    "plat": "jasker_flat",
+    "plat_hoog": "appart",
+    "groot": "spil"
+  }
+}
