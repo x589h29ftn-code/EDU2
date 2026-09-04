@@ -463,12 +463,60 @@ function bouwPanden(scene, W, plat) {
     }
   };
 
+  // Twee driehoeken voor een vierhoek P-Q-R-S, gedraaid zodat de normaal n naar buiten wijst.
+  const vierhoek = (P, Q, R, S, g, n, uvf) => {
+    const e1 = [Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]], e2 = [R[0] - P[0], R[1] - P[1], R[2] - P[2]];
+    const cr = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+    const goed = cr[0] * n[0] + cr[1] * n[1] + cr[2] * n[2] >= 0;
+    if (goed) { drie(P, Q, R, g, n, uvf); drie(P, R, S, g, n, uvf); } else { drie(P, R, Q, g, n, uvf); drie(P, S, R, g, n, uvf); }
+  };
+  // Een dakkapel bouwen op het voorste dakvlak van een woning waarvan het 3D
+  // BAG-model er geen heeft, terwijl de rij er wel een heeft (pand.kapel uit de
+  // generator): 1,1 m achter de goot, zo breed als het dak toelaat (max 3,2 m),
+  // met het kozijn van het woningtype, witte wangen en een plat dakje.
+  const dakkapel = (pand) => {
+    const st = T.HOUSE_STYLES[pand.type]; if (!st || !st.dormer || !pand.front || !pand.rect || !pand.v) return;
+    const f = [pand.front[0], 0, pand.front[1]], rr = [f[2], 0, -f[0]];
+    const V = pand.v, pt = (i) => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]];
+    let dak = null;
+    pand.f.forEach((ringen, fi) => {
+      if (pand.s[fi] !== 2) return;
+      const pts = ringen[0].map(pt), n = normaal(pts);
+      if (n[1] < 0.2 || n[1] > 0.97 || n[0] * f[0] + n[2] * f[2] < 0.4) return;
+      let ax = 0, ay = 0, az = 0;   // oppervlak (Newell, ongenormaliseerd)
+      for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; ax += (a[1] - b[1]) * (a[2] + b[2]); ay += (a[2] - b[2]) * (a[0] + b[0]); az += (a[0] - b[0]) * (a[1] + b[1]); }
+      const opp = Math.hypot(ax, ay, az) / 2;
+      if (!dak || opp > dak.opp) dak = { pts, n, opp };
+    });
+    if (!dak || dak.opp < 8) return;
+    const c = [pand.rect.cx, 0, pand.rect.cz];
+    let a1 = -Infinity, b0 = Infinity, b1 = -Infinity;
+    for (const q of dak.pts) { const a = (q[0] - c[0]) * f[0] + (q[2] - c[2]) * f[2], b = (q[0] - c[0]) * rr[0] + (q[2] - c[2]) * rr[2]; a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
+    const w = Math.min(3.2, (b1 - b0) - 1.4); if (w < 1.2) return;
+    const bm = (b0 + b1) / 2, aVoor = a1 - 1.1, aAchter = aVoor - 2.0;
+    const P = (a, b, y) => [c[0] + f[0] * a + rr[0] * b, y, c[2] + f[2] * a + rr[2] * b];
+    const q0 = dak.pts[0], n = dak.n;
+    const dakY = (x, z) => q0[1] - (n[0] * (x - q0[0]) + n[2] * (z - q0[2])) / n[1];
+    const pv = P(aVoor, bm, 0), pa = P(aAchter, bm, 0);
+    const y0 = dakY(pv[0], pv[2]) - 0.15, yDakAchter = dakY(pa[0], pa[2]);
+    const y1 = Math.min(y0 + 1.55, yDakAchter - 0.05);
+    if (y1 - y0 < 1.1 || y0 < (pand.goot || 0) - 0.5) return;
+    const gVoor = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel');
+    const gWang = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel');
+    const gTop = groep('dak|plat', () => std(T.bitumen()), 'platdak');
+    const bl = bm - w / 2, br = bm + w / 2;
+    vierhoek(P(aVoor, bl, y0), P(aVoor, br, y0), P(aVoor, br, y1), P(aVoor, bl, y1), gVoor, f, (p) => [((p[0] - c[0]) * rr[0] + (p[2] - c[2]) * rr[2] - bl) / w, Math.min(1, (p[1] - y0) / (y1 - y0))]);
+    for (const [b, nz] of [[bl, [-rr[0], 0, -rr[2]]], [br, rr]]) vierhoek(P(aAchter, b, y0), P(aVoor, b, y0), P(aVoor, b, y1), P(aAchter, b, y1), gWang, nz, (p) => [((p[0] - c[0]) * f[0] + (p[2] - c[2]) * f[2]) / 1.2, p[1] / 1.2]);
+    vierhoek(P(aAchter, bl, y1), P(aAchter, br, y1), P(aVoor, br, y1), P(aVoor, bl, y1), gTop, [0, 1, 0], (p) => [p[0] * 0.5, p[2] * 0.5]);
+  };
+
   let met3d = 0, geschat = 0;
   for (const p of K.panden) {
     if (p.v && p.f) {
       const V = p.v;
       const pt = (i) => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]];
       p.f.forEach((ringen, fi) => vlak3d(p, ringen.map(r => r.map(pt)), p.s[fi]));
+      if (p.kapel) dakkapel(p);
       met3d++;
     } else {
       // muren naar buiten: ring met de klok mee (in xz)

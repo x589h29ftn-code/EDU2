@@ -437,6 +437,18 @@ niet. Het terrein wordt daarom uit de data afgeleid, met `terreinen` in
   aan het bedieningsgebouw; bomen om de 9 m langs het hek, lantaarns langs het
   erf; de bos- en parkregels slaan het terrein over.
 
+**Voorkant en dakkapellen (stap 4, foto's Molenkrite 47 en de kap-rij).**
+De voorkant van een woning was de richting naar de dichtstbijzijnde weg; bij
+hoekwoningen en woningen aan een voetpad wees die naar de kopse kant of de
+zijkant, met een kale voorgevel of een voorgevel op de bouwmuur als gevolg.
+Nu loopt de voorkant langs een as van de omsluitende rechthoek, nooit door een
+bouwmuur naar een buurpand (dat staat in de BGT), en naar de kant met de
+dichtstbijzijnde rijbaan, gewogen met de straat van het huisnummer. De
+huisnummerlabels zelf liggen bijna altijd midden in het pand en helpen niet.
+Dakkapellen zitten in 3D BAG maar bij een deel van de woningen; in een rij
+waar één woning er een heeft aan de voorkant, bouwt het spel er nu een op
+elke woning van die rij (`kapel` in kaart.js), met het kozijn van het type.
+
 Bij deze stap kwam een oude fout in de gevelprojectie boven: bij muren breder
 dan één woning liet de texture alleen de laatste pixelkolom zien (strepen). Dat
 raakte alle brede panden (school, RWZI) en is verholpen.
