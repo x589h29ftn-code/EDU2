@@ -62,11 +62,24 @@ const KOLOMMEN = ['identificatie', 'oorspronkelijkbouwjaar', 'status', 'b3_dak_t
   'b3_opp_grond', 'b3_opp_dak_plat', 'b3_opp_dak_schuin', 'b3_volume_lod22', 'b3_kwaliteitsindicator', 'b3_pw_bron'];
 const rijen = db.prepare(`select geom, ${KOLOMMEN.join(', ')} from pand`).all();
 
-// De goothoogte staat niet in de laag pand, maar in lod22_2d per dakvlak; de
-// laagste b3_h_min van de dakvlakken van een pand is de goot, de hoogste
-// b3_h_max de nok (boven NAP).
+// De goothoogte staat niet in de laag pand, maar in lod22_2d per dakvlak. De
+// goot is de laagste rand van de grote dakvlakken (minstens 40 % van het
+// grootste vlak); kleine afdakjes en erkers tellen niet mee. De nok is de
+// hoogste rand van alle vlakken (boven NAP).
+const oppRing = (r) => { let a = 0; for (let i = 0; i < r.length - 1; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; return Math.abs(a) / 2; };
+const dakdelen = new Map();
+for (const r of db.prepare('select identificatie, geom, b3_h_min, b3_h_max from lod22_2d').all()) {
+  const g = gpkgNaarGeoJSON(r.geom);
+  const opp = g.type === 'Polygon' ? oppRing(g.coordinates[0]) : g.coordinates.reduce((t, p) => t + oppRing(p[0]), 0);
+  if (!dakdelen.has(r.identificatie)) dakdelen.set(r.identificatie, []);
+  dakdelen.get(r.identificatie).push({ opp, min: r.b3_h_min, max: r.b3_h_max });
+}
 const dak = new Map();
-for (const r of db.prepare('select identificatie, min(b3_h_min) goot, max(b3_h_max) nok, avg(b3_hellingshoek) helling from lod22_2d group by identificatie').all()) dak.set(r.identificatie, r);
+for (const [id, delen] of dakdelen) {
+  const grootste = Math.max(...delen.map(d => d.opp));
+  const hoofd = delen.filter(d => d.opp >= 0.4 * grootste);
+  dak.set(id, { goot: Math.min(...hoofd.map(d => d.min)), nok: Math.max(...delen.map(d => d.max)) });
+}
 
 const features = [];
 let buiten = 0;

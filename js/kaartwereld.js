@@ -143,6 +143,7 @@ function materialen(MAT) {
   KM.bitumen = std(T.bitumen());
   KM.paal = MAT.pole; KM.lamp = MAT.lamp;
   KM.struik = MAT.shrubA;
+  KM.gevel = new Map();     // gedeelde gevel- en steenmaterialen per sleutel
   // platte controlekleuren
   KM.plat = {};
   for (const [k, kleur] of Object.entries(KLEUR)) KM.plat[k] = new THREE.MeshBasicMaterial({ color: kleur, side: THREE.DoubleSide });
@@ -232,22 +233,102 @@ export function bouwKaartWereld(scene, W) {
   for (const l of K.labels) kaartLabels.push(l);
 }
 
-// Panden: LoD 2.2-vlakken uit 3D BAG waar die er zijn, anders een opgetrokken grondvlak.
+// Panden: LoD 2.2-vlakken uit 3D BAG waar die er zijn, anders een opgetrokken
+// grondvlak. Muren die naar de straat kijken krijgen de gevel met ramen en
+// deuren van het woningtype (textures.js), de achtergevel de achterkant, de
+// rest kale steen. Het aantal lagen volgt uit de echte goothoogte.
 function bouwPanden(scene, W, plat) {
   const K = KAART;
-  const muur = { pos: [], uv: [], nor: [] }, dak = { pos: [], uv: [], nor: [] }, platdak = { pos: [], uv: [], nor: [] };
-  const drie = (P, Q, R, doel, n, uvf) => {
-    for (const p of [P, Q, R]) { doel.pos.push(p[0], p[1], p[2]); doel.nor.push(n[0], n[1], n[2]); const [u, v] = uvf(p); doel.uv.push(u, v); }
+  const groepen = new Map();   // materiaalsleutel -> { pos, uv, nor, mat, klasse }
+  const groep = (sleutel, maak, klasse) => {
+    let g = groepen.get(sleutel);
+    if (!g) { g = { pos: [], uv: [], nor: [], mat: plat ? KM.plat.pand : maak(), klasse }; groepen.set(sleutel, g); }
+    return g;
+  };
+  const std = (map) => new THREE.MeshStandardMaterial({ map, roughness: 0.9 });
+  const drie = (P, Q, R, g, n, uvf) => {
+    for (const p of [P, Q, R]) { g.pos.push(p[0], p[1], p[2]); g.nor.push(n[0], n[1], n[2]); const [u, v] = uvf(p); g.uv.push(u, v); }
   };
   const normaal = (pts) => {           // Newell
     let nx = 0, ny = 0, nz = 0;
     for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; nx += (a[1] - b[1]) * (a[2] + b[2]); ny += (a[2] - b[2]) * (a[0] + b[0]); nz += (a[0] - b[0]) * (a[1] + b[1]); }
     const L = Math.hypot(nx, ny, nz) || 1; return [nx / L, ny / L, nz / L];
   };
-  const vlak3d = (ringen, soort, dakType) => {
+  const opp = (ring) => { let a = 0; for (let i = 0; i < ring.length; i++) { const p = ring[i], q = ring[(i + 1) % ring.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; };
+
+  // Welke groep en welke uv krijgt een muurvlak? Levert { g, uvf }.
+  const muurKeuze = (pand, n, punten) => {
+    const st = T.HOUSE_STYLES[pand.type];
+    const seed = Number(String(pand.id).slice(-1)) || 0;
+    const steen = st ? st.brick : ['#8a6752', '#b9b2a6'];
+    // rechts-vector voor wie buiten voor de muur staat: (n.z, 0, -n.x)
+    const r = [n[2], 0, -n[0]];
+    let u0 = Infinity, u1 = -Infinity, top = 0;
+    for (const p of punten) { const u = p[0] * r[0] + p[2] * r[2]; if (u < u0) u0 = u; if (u > u1) u1 = u; if (p[1] > top) top = p[1]; }
+    const breed = u1 - u0;
+    const kant = pand.front ? n[0] * pand.front[0] + n[2] * pand.front[1] : 0;
+    const gevel = st && pand.type !== 'schuur' && breed >= 2.4 && Math.abs(n[1]) < 0.3 && (kant > 0.6 || kant < -0.6);
+    if (!gevel) {
+      const sleutel = `steen|${pand.type}|${seed % 3}`;
+      const g = groep(sleutel, () => std(T.brick(steen[0], steen[1], seed % 3 + 1)), 'muur');
+      // baksteen: 2,6 m per texture
+      return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 2.6, p[1] / 2.6] };
+    }
+    const achter = kant < 0;
+    const SH = st.storeyH || 2.9;
+    const lagen = Math.max(1, Math.min(4, Math.round(top / SH)));
+    const huizen = Math.max(1, Math.round(breed / st.w));
+    const sleutel = `gevel|${pand.type}|${huizen}|${lagen}|${achter}|${seed % 6}`;
+    const g = groep(sleutel, () => std(T.facade(pand.type, huizen, lagen, achter, seed % 6)), achter ? 'achtergevel' : 'voorgevel');
+    const hoogte = lagen * SH;
+    return { g, uvf: (p) => [((p[0] * r[0] + p[2] * r[2]) - u0) / breed * huizen, Math.min(1, p[1] / hoogte)] };
+  };
+  const dakGroep = (pand, hellend) => {
+    const st = T.HOUSE_STYLES[pand.type];
+    if (!hellend) return groep('dak|plat', () => std(T.bitumen()), 'platdak');
+    const kleur = st ? st.roof : '#4a3a33';
+    return groep(`dak|${kleur}`, () => std(T.roofTiles(kleur, 5)), 'dak');
+  };
+
+  // Een muurvlak in een deel onder en een deel boven hoogte h knippen (voor
+  // kopgevels: gevel tot de goot, daarboven kale steen tot de nok).
+  const knipOpHoogte = (ring, h) => {
+    const onder = [], boven = [];
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length];
+      (a[1] <= h ? onder : boven).push(a);
+      if ((a[1] <= h) !== (b[1] <= h)) {
+        const t = (h - a[1]) / (b[1] - a[1]);
+        const s = [a[0] + (b[0] - a[0]) * t, h, a[2] + (b[2] - a[2]) * t];
+        onder.push(s); boven.push(s);
+      }
+    }
+    return { onder: onder.length >= 3 ? onder : null, boven: boven.length >= 3 ? boven : null };
+  };
+  // Goothoogte van een muurvlak: de laagste bovenhoek aan de zijkanten.
+  const gootVan = (ring, n) => {
+    const r = [n[2], 0, -n[0]];
+    let u0 = Infinity, u1 = -Infinity;
+    for (const p of ring) { const u = p[0] * r[0] + p[2] * r[2]; if (u < u0) u0 = u; if (u > u1) u1 = u; }
+    let goot = Infinity, top = 0;
+    for (const p of ring) {
+      const u = p[0] * r[0] + p[2] * r[2];
+      if (p[1] > top) top = p[1];
+      if (p[1] > 0.5 && (Math.abs(u - u0) < 0.15 || Math.abs(u - u1) < 0.15)) goot = Math.min(goot, p[1]);
+    }
+    return { goot: goot === Infinity ? top : goot, top };
+  };
+
+  const vlak3d = (pand, ringen, soort) => {
     const buiten = ringen[0];
     const n = normaal(buiten);
-    // 2D-basis in het vlak
+    if (soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1) {
+      const { goot, top } = gootVan(buiten, n);
+      if (top - goot > 1.2) {
+        const { onder, boven } = knipOpHoogte(buiten, goot + 0.02);
+        if (onder && boven) { vlak3d(pand, [onder], 1); vlak3d({ ...pand, type: 'schuur' }, [boven], 1); return; }
+      }
+    }
     const up = Math.abs(n[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0];
     const ux = [n[1] * up[2] - n[2] * up[1], n[2] * up[0] - n[0] * up[2], n[0] * up[1] - n[1] * up[0]];
     const Lu = Math.hypot(...ux) || 1; ux[0] /= Lu; ux[1] /= Lu; ux[2] /= Lu;
@@ -257,60 +338,56 @@ function bouwPanden(scene, W, plat) {
     let tris;
     try { tris = THREE.ShapeUtils.triangulateShape(contour, gaten); } catch { return; }
     const punten = ringen.flat();
-    const doel = soort === 1 ? muur : (dakType === 'horizontal' || Math.abs(n[1]) > 0.97) ? platdak : dak;
-    const uvf = soort === 1 ? (p) => [p[0] * ux[0] + p[2] * ux[2], p[1]] : (p) => [p[0] * 0.5, p[2] * 0.5];
+    let g, uvf;
+    if (soort === 1 && Math.abs(n[1]) < 0.5) ({ g, uvf } = muurKeuze(pand, n, punten));
+    else { g = dakGroep(pand, Math.abs(n[1]) < 0.97 && pand.dak !== 'horizontal'); uvf = (p) => [p[0] * 0.5, p[2] * 0.5]; }
     for (const [a, b, c] of tris) {
       const A = punten[a], B = punten[b], C = punten[c];
-      // driehoek in de richting van de vlaknormaal
       const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], e2 = [C[0] - A[0], C[1] - A[1], C[2] - A[2]];
       const cr = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
       const zelfdeKant = cr[0] * n[0] + cr[1] * n[1] + cr[2] * n[2] >= 0;
-      drie(A, zelfdeKant ? B : C, zelfdeKant ? C : B, doel, n, uvf);
+      drie(A, zelfdeKant ? B : C, zelfdeKant ? C : B, g, n, uvf);
     }
   };
-  const extrudeer = (voet, h, dakType) => {
-    // muren
+  const extrudeer = (pand, voet, h, hellend) => {
     for (let i = 0; i < voet.length; i++) {
       const a = voet[i], b = voet[(i + 1) % voet.length];
       const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 1e-4) continue;
-      // voet uit de generator is in xz; buitenkant bepalen via oppervlakteteken
       const q = [[a[0], 0, a[1]], [b[0], 0, b[1]], [b[0], h, b[1]], [a[0], h, a[1]]];
       const n = [dz / L, 0, -dx / L];
-      const uvf = (p) => [((p[0] - a[0]) * dx + (p[2] - a[1]) * dz) / L, p[1]];
-      drie(q[0], q[1], q[2], muur, n, uvf); drie(q[0], q[2], q[3], muur, n, uvf);
+      const { g, uvf } = muurKeuze(pand, n, q);
+      drie(q[0], q[1], q[2], g, n, uvf); drie(q[0], q[2], q[3], g, n, uvf);
     }
     const { tris, punten } = trianguleer([voet]);
+    const g = dakGroep(pand, hellend);
     for (const [a, b, c] of tris) {
       const A = punten[a], B = punten[b], C = punten[c];
       const kruis = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
       const [P, Q, R] = kruis > 0 ? [A, C, B] : [A, B, C];
-      drie([P[0], h, P[1]], [Q[0], h, Q[1]], [R[0], h, R[1]], dakType === 'slanted' ? dak : platdak, [0, 1, 0], (p) => [p[0] * 0.5, p[2] * 0.5]);
+      drie([P[0], h, P[1]], [Q[0], h, Q[1]], [R[0], h, R[1]], g, [0, 1, 0], (p) => [p[0] * 0.5, p[2] * 0.5]);
     }
   };
-  // Muren van een geëxtrudeerd grondvlak moeten naar buiten kijken: als de
-  // ring met de klok mee loopt (in xz) klopt de normaal hierboven, anders keren we hem.
-  const opp = (ring) => { let a = 0; for (let i = 0; i < ring.length; i++) { const p = ring[i], q = ring[(i + 1) % ring.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; };
 
   let met3d = 0, geschat = 0;
   for (const p of K.panden) {
     if (p.v && p.f) {
       const V = p.v;
       const pt = (i) => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]];
-      p.f.forEach((ringen, fi) => vlak3d(ringen.map(r => r.map(pt)), p.s[fi], p.dak));
+      p.f.forEach((ringen, fi) => vlak3d(p, ringen.map(r => r.map(pt)), p.s[fi]));
       met3d++;
     } else {
+      // muren naar buiten: ring met de klok mee (in xz)
       const voet = opp(p.voet) > 0 ? p.voet.slice().reverse() : p.voet;
-      extrudeer(voet, p.goot || 3, p.dak);
+      extrudeer(p, voet, p.goot || 3, p.dak === 'slanted');
       geschat++;
     }
     if (p.rect) W.addCollider(p.rect.cx, p.rect.cz, p.rect.hx, p.rect.hz, -p.rect.hoek, Math.max(3, p.nok || p.goot || 3));
   }
-  const muurMat = plat ? KM.plat.pand : KM.muur, dakMat = plat ? KM.plat.pand : KM.dakpan, platMat = plat ? KM.plat.pand : KM.bitumen;
-  for (const [g, mat, k] of [[muur, muurMat, 'muur'], [dak, dakMat, 'dak'], [platdak, platMat, 'platdak']]) {
-    const m = maakMesh(g.pos, g.uv, g.nor, mat, { schaduw: true, klasse: k });
+  for (const g of groepen.values()) {
+    const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { schaduw: true, klasse: g.klasse });
     if (m) { if (plat) m.material.side = THREE.DoubleSide; scene.add(m); }
   }
-  console.log(`kaart: ${met3d} panden met 3D BAG-dak, ${geschat} geschat, ${K.vlakken.length} vlakken, ${K.wegassen.length} wegassen`);
+  console.log(`kaart: ${met3d} panden met 3D BAG-dak, ${geschat} geschat, ${groepen.size} materialen, ${K.vlakken.length} vlakken, ${K.wegassen.length} wegassen`);
 }
 
 function bouwLantaarns(scene, W) {
