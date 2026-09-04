@@ -358,6 +358,23 @@ export const HOUSE_STYLES = {
   eekmolen:   { brick: ['#9a5a44', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#f2f2ee', '#1e1f22'], roof: '#35302d', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, skylight: true, solar: true, chimney: false, band: '#f2f2f2', topgevel: '#f2f2ee' },
 };
 
+// ---------- Laag houten hekje: latten met tussenruimte ----------
+export function hekje(kleur = '#8a7352') {
+  const key = 'hekje' + kleur;
+  if (cache.has(key)) return cache.get(key);
+  // 256 px = 1 m breed, 128 px = 0,5 m hoog; doorzichtig tussen de latten
+  const c = canvas(256, 128); const g = c.getContext('2d');
+  const r = rng(77);
+  g.clearRect(0, 0, 256, 128);
+  for (let x = 4; x < 256; x += 23) {                 // latten van 5 cm om de 9 cm
+    g.fillStyle = shade(kleur, 0.85 + r() * 0.3); g.fillRect(x, 6, 13, 122);
+    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x + 10, 6, 3, 122);
+    g.fillStyle = shade(kleur, 1.1); g.beginPath(); g.moveTo(x, 8); g.lineTo(x + 6.5, 0); g.lineTo(x + 13, 8); g.closePath(); g.fill();
+  }
+  g.fillStyle = shade(kleur, 0.75); g.fillRect(0, 30, 256, 9); g.fillRect(0, 96, 256, 9);   // twee liggers
+  const t = tex(c); t.wrapT = THREE.ClampToEdgeWrapping; cache.set(key, t); return t;
+}
+
 // ---------- Houten delen (witte topgevels, schuttingen) ----------
 export function planks(kleur = '#f0efe9') {
   const key = 'planks' + kleur;

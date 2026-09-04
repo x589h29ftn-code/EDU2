@@ -392,19 +392,32 @@ tuin is volgt uit het erf-vlak. Parkeervakken krijgen witte belijning, drempels
 een markering, het grote gazon bij de Wieken twee doelen. Alles staat als lijst in
 `kaart.js` en wordt bij het genereren opnieuw berekend.
 
+**Omgeving uit plaatsingsregels (stap 5).**
+De BGT van Súdwest-Fryslân heeft geen bomen, lantaarns of tuininrichting. Die
+komen uit regels op de BGT-vlakken, met de foto's van de omgevingssteekproef
+als maat (`data/stijl/fotos/`), en met `data/stijl/omgeving.json` als knop:
+
+- straatbomen om de 11 à 15 m in gras en berm langs elke woonstraat, niet op de
+  stoep en niet tegen een gebouw; losse grote bomen in de gazons van de parkjes;
+- bosplantsoen dicht en hoog met ondergroei; `bosgebieden` in omgeving.json maken
+  ook het gras en de oever tot bos waar dat in werkelijkheid zo is (het bos tussen
+  Monnikmolen en Buitenroede);
+- per woning een voortuin uit vijf varianten (heg, hekje, open, grind, tegels),
+  gekozen op het pand-nummer zodat het bij elke generatie hetzelfde blijft, met
+  tegelpad naar de deur, struiken en soms een sierboom; lage hagen tussen de
+  voortuinen, schuttingen van 1,8 m tussen en achter de achtertuinen; de
+  tuindiepte volgt uit het erf-vlak;
+- witte belijning op parkeervakken, markering op drempels, riet langs het water,
+  doelen op het speelveld, banken bij de vijvers.
+
 **Wat nog niet af is (in volgorde).**
 
-1. Straten zonder foto (Binnenroede, Spinnekop, Windbord, Voorzoom, de Hekken,
-   Grootwiel, Omloop, Buitenroede, Eekmolen, Zeskanter) op dezelfde manier
-   bevestigen; de grens tussen rood en blauw op het Kruirad (nu bij nummer 30).
-2. Dakramen, zonnepanelen en schoorstenen als losse elementen op de 3D BAG-daken
-   waar het type dat zegt.
-3. Voortuinen: erf is nu egaal gras; hekjes, hagen en paden per perceel komen uit de
-   stijlcatalogus.
-4. De editor (F2) en de oude objecten uit `data.js` werken nog in pixels van de oude
+1. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
+   zonnepanelen en schoorstenen als losse elementen op de 3D BAG-daken.
+2. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede, Zeskanter, Omloop.
+3. De editor (F2) en de oude objecten uit `data.js` werken nog in pixels van de oude
    kaart; enkele objecten staan daardoor een paar meter verkeerd. Omrekenen kan met
    drie ijkpunten in `oorsprong.json` (`rd.mjs px`).
-5. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
-   zonder 3D-model; straten zonder BGT-label aan een rijbaan (Windbord, Voorzoom,
-   Omloop) krijgen nu de naam van de buurstraat.
-6. Tweede 3D BAG-tegel voor het zuidoosten van de wijk.
+4. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
+   zonder 3D-model.
+5. Tweede 3D BAG-tegel voor het zuidoosten van de wijk.

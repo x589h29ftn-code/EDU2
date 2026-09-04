@@ -145,6 +145,7 @@ function materialen(MAT) {
   KM.paal = MAT.pole; KM.lamp = MAT.lamp;
   KM.struik = MAT.shrubA;
   KM.schutting = std(T.planks('#7a5f42'));
+  KM.hekje = new THREE.MeshStandardMaterial({ map: T.hekje(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9 });
   KM.streep = MAT.streep;
   KM.drempel = new THREE.MeshStandardMaterial({ map: T.zebra(), roughness: 0.9 });
   KM.gevel = new Map();     // gedeelde gevel- en steenmaterialen per sleutel
@@ -219,11 +220,23 @@ export function bouwKaartWereld(scene, W) {
       vlakGeometrie([ring], y0 + h, 0.5, doel.pos, doel.uv, doel.nor);
       randGeometrie([ring], y0 + h, y0, doel.pos, doel.uv, doel.nor);
     };
-    for (const h of K.heggen || []) balk(h.a, h.b, 0.5, h.h, hg2, KERB_Y);
+    const hek = { pos: [], uv: [], nor: [] }, tv = { pos: [], uv: [], nor: [] }, tvt = { pos: [], uv: [], nor: [] };
+    for (const h of K.heggen || []) {
+      if (h.soort === 'hekje') {
+        // één plat vlak (twee kanten zichtbaar door DoubleSide), latten via de texture
+        const dx = h.b[0] - h.a[0], dz = h.b[1] - h.a[1], L = Math.hypot(dx, dz); if (L < 0.3) continue;
+        const nx = dz / L, nz = -dx / L;
+        const q = [[h.a[0], KERB_Y + h.h, h.a[1]], [h.b[0], KERB_Y + h.h, h.b[1]], [h.b[0], KERB_Y, h.b[1]], [h.a[0], KERB_Y, h.a[1]]];
+        for (const [i0, i1, i2] of [[0, 1, 2], [0, 2, 3]]) for (const k of [i0, i1, i2]) { const v = q[k]; hek.pos.push(v[0], v[1], v[2]); hek.uv.push(k === 1 || k === 2 ? L : 0, (v[1] - KERB_Y) / h.h); hek.nor.push(nx, 0, nz); }
+        continue;
+      }
+      balk(h.a, h.b, 0.5, h.h, hg2, KERB_Y);
+    }
+    for (const t of K.tuinvlakken || []) vlakGeometrie([t.r], KERB_Y + 0.01, t.m === 'grind' ? 0.5 : 1 / 1.2, (t.m === 'grind' ? tv : tvt).pos, (t.m === 'grind' ? tv : tvt).uv, (t.m === 'grind' ? tv : tvt).nor);
     for (const f of K.schuttingen || []) balk(f.a, f.b, 0.06, f.h, sch, KERB_Y);
     for (const ring of K.paden || []) vlakGeometrie([ring], KERB_Y + 0.015, 1 / 1.2, pd.pos, pd.uv, pd.nor);
     for (const l of K.strepen || []) balk(l.a, l.b, 0.1, 0.008, st, 0.0);
-    for (const [g, mat, k, schaduw] of [[hg2, KM.hedge, 'heg', true], [sch, KM.schutting, 'schutting', true], [pd, KM.tegels, 'tegelpad', false], [st, KM.streep, 'belijning', false]]) {
+    for (const [g, mat, k, schaduw] of [[hg2, KM.hedge, 'heg', true], [hek, KM.hekje, 'hekje', true], [sch, KM.schutting, 'schutting', true], [pd, KM.tegels, 'tegelpad', false], [tv, KM.grind, 'grindtuin', false], [tvt, KM.tegels, 'tegeltuin', false], [st, KM.streep, 'belijning', false]]) {
       const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse: k, schaduw }); if (m) scene.add(m);
     }
     // losse objecten uit de objectenbibliotheek (doelen, banken)
