@@ -24,6 +24,8 @@
     "sfeershots": "node tools/sfeershots.mjs",
     "levendtest": "node tools/levendtest.mjs",
     "tuintest": "node tools/tuintest.mjs",
-    "meetstrook": "node tools/meetstrook.mjs"
+    "meetstrook": "node tools/meetstrook.mjs",
+    "geo:test": "node tools/geo/rd.mjs test",
+    "geo:controle": "node tools/geo/controle.mjs"
   }
 }

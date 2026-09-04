@@ -1,0 +1,10 @@
+{
+  "_uitleg": "Kopieer dit bestand naar oorsprong.json en vul de echte RD-coördinaten in (EPSG:28992, meters). De getallen hieronder zijn voorbeeldwaarden en NIET de echte plek. 'rd' is de oorsprong van de spelwereld: x_spel = X - rd[0], z_spel = rd[1] - Y. 'ijkpunten' zijn drie of meer kruispunten die je zowel in de oude pixelkaart (js/data.js) als in RD kent; daarmee rekent tools/geo/rd.mjs de oude kaart om.",
+  "naam": "kruispunt Molenkrite / Monnikmolen / Jasker",
+  "rd": [171500.0, 559500.0],
+  "ijkpunten": [
+    { "omschrijving": "plateau Molenkrite / Monnikmolen / Jasker", "px": [370, 1245], "rd": [171500.0, 559500.0] },
+    { "omschrijving": "kruispunt Monnikmolen / Kruirad", "px": [243, 935], "rd": [171461.0, 559595.0] },
+    { "omschrijving": "aansluiting Molenkrite / De Wieken", "px": [305, 1460], "rd": [171480.0, 559434.0] }
+  ]
+}
