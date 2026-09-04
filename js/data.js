@@ -285,15 +285,12 @@ P('struik', 392, 1190, 0, 1.4);
 P('struik', 386, 1186, 0, 1.2);
 
 /*
- 19 Molenkrite: vier buren in de voortuin rond een tafeltje met een radio, elk
- met een flesje bier. De arm met het flesje beweegt (zie updateProps in
- world.js) en de radio speelt echt, harder naarmate je dichterbij komt (zie
- geluid.radio in audio.js).
-
- De opstelling ligt rond [530,1066]: het tafeltje in het midden en de vier
- stoelen op 1,15 m eromheen, allemaal naar binnen gedraaid. Wil je het gezelschap
- bij een ander huis hebben, pak dan in de editor (F2, O voor objectstand) de zes
- objecten op en zet ze verderop in de straat neer.
+ Het gezelschap met de bierflesjes stond hier als vijf objecten in oude
+ kaartpixels, bij wat op de handgetekende kaart 19 Molenkrite was. In de kaart
+ uit BGT en 3D BAG ligt dat pand veertig meter verderop, dus stonden ze op het
+ gras van niemand. Ze horen bij het verhaal en worden nu door js/verhaal.js
+ geplaatst, in de voortuin van Molenkrite 20 — het adres uit de kaartdata,
+ schuin tegenover nummer 15.
 */
 // Antiparkeerpaaltjes langs de rand van het parkeerhof bij de bocht van het
 // Kruirad, zoals op de street view vanaf 48 Kruirad.
@@ -310,12 +307,6 @@ P('treurwilg', 196, 1328, 0, 1.0);
 P('treurwilg', 246, 1336, 0, 1.15);
 P('struik', 165, 1324, 0, 1.5);
 P('struik', 222, 1332, 0, 1.3);
-
-P('radiotafel', 530, 1066, 40);
-P('zit_rood',  533, 1064, 130);
-P('zit_blauw', 527, 1069, 310);
-P('zit_groen', 528, 1064, 220);
-P('zit_geel',  533, 1069, 40);
 
 /*
  Huizenrijen. R(ax,ay,bx,by, off, depth, type, opts)

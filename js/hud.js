@@ -67,7 +67,9 @@ export class HUD {
   }
   show(text, t = 2.5) { this.msg.textContent = text; this.msg.style.opacity = 1; this.msgT = t; }
   toggleBig() { this.bigOpen = !this.bigOpen; this.big.style.display = this.bigOpen ? 'block' : 'none'; }
-  update(dt, player, vehicles, npcs, streetName) {
+  // praten = er staat iemand naast je of er loopt een gesprek; dan gaat E over
+  // praten en niet over instappen (zie praatOfAuto in main.js)
+  update(dt, player, vehicles, npcs, streetName, praten = false) {
     this.street.textContent = streetName;
     if (player.inCar) {
       this.speed.textContent = Math.round(Math.abs(player.inCar.speed) * 3.6) + ' km/u';
@@ -77,7 +79,7 @@ export class HUD {
       this.speed.style.display = 'none'; this.ammo.style.display = 'block';
       this.ammo.textContent = player.reloading > 0 ? 'herladen…' : `${player.ammo} / ${player.reserve}`;
       const car = vehicles.nearestDriveable(player.pos.x, player.pos.z);
-      this.hint.textContent = car ? 'Druk E om in te stappen' : 'WASD lopen · shift sprinten · spatie springen · muis kijken · LMB schieten · R herladen · M kaart';
+      this.hint.textContent = (car && !praten) ? 'Druk E om in te stappen' : 'WASD lopen · shift sprinten · spatie springen · muis kijken · LMB schieten · R herladen · M kaart';
     }
     if (this.msgT > 0) { this.msgT -= dt; if (this.msgT <= 0) this.msg.style.opacity = 0; }
     this.drawMap(player, vehicles, npcs);
