@@ -26,6 +26,9 @@
     "tuintest": "node tools/tuintest.mjs",
     "meetstrook": "node tools/meetstrook.mjs",
     "geo:test": "node tools/geo/rd.mjs test",
-    "geo:controle": "node tools/geo/controle.mjs"
+    "geo:controle": "node tools/geo/controle.mjs",
+    "geo:bgt": "node tools/geo/bgt2geojson.mjs data/geo/bron/bgt_tinga.zip.zip",
+    "geo:bag3d": "node --no-warnings tools/geo/bag3d2geojson.mjs data/geo/bron/9-632-1008.gpkg",
+    "geo:plaat": "node tools/geo/plaat.mjs"
   }
 }

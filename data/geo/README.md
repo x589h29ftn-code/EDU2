@@ -16,13 +16,29 @@ node tools/geo/controle.mjs
 | `oorsprong.json` | RD-coördinaat van de oorsprong van de spelwereld (kruispunt Molenkrite / Monnikmolen / Jasker) en drie of meer ijkpunten voor de oude pixelkaart; zie `oorsprong.voorbeeld.json` |
 | `bron/` | de gedownloade lagen, zie hieronder |
 
+## Ruwe downloads en omzetting
+
+De ruwe downloads staan ook in `bron/`, zodat alles opnieuw te maken is:
+
+| bestand | wat | omzetten met |
+|---|---|---|
+| `bgt_tinga.zip.zip` | BGT als CityGML uit de PDOK-downloadviewer (getekend gebied rond Tinga) | `node tools/geo/bgt2geojson.mjs data/geo/bron/bgt_tinga.zip.zip` |
+| `9-632-1008.gpkg` | 3D BAG-tegel als GeoPackage (attributen en 2D-vlakken) | `node tools/geo/bag3d2geojson.mjs data/geo/bron/9-632-1008.gpkg` |
+| `9-632-1008.city.json` | dezelfde tegel als CityJSON (3D-dakmodellen, LoD 2.2) | wordt in stap 4 direct gelezen |
+
+De omzetters knippen op `gebied.geojson`, laten historische objecten weg en
+schrijven de GeoJSON-bestanden hieronder. Daarna: `node tools/geo/plaat.mjs` voor
+de kaartplaat (`bgt-plaat.png` + `.pgw`) en `node tools/geo/controle.mjs`.
+
 ## Bestanden in `bron/`
 
 Alle vectorbestanden zijn **GeoJSON in EPSG:28992** (RD New), geknipt op
-`gebied.geojson`. In QGIS: rechtsklik op de laag → Exporteren → Objecten opslaan
-als… → formaat GeoJSON, CRS EPSG:28992, alleen geselecteerde objecten (na
-selectie op locatie binnen het gebied). Kolomnamen mogen afwijken; `controle.mjs`
-zoekt de gangbare varianten en zegt het als hij ze niet vindt.
+`gebied.geojson`. Wie ze met QGIS maakt in plaats van met de omzetters: rechtsklik
+op de laag → Exporteren → Objecten opslaan als… → formaat GeoJSON, CRS EPSG:28992.
+Kolomnamen mogen afwijken; `controle.mjs` zoekt de gangbare varianten en zegt het
+als hij ze niet vindt. De omzetter uit CityGML houdt de IMGeo-namen aan: `function`,
+`surfaceMaterial`, `class`, `plus_fysiekVoorkomen`, `bgt_type`, `bgt_status`,
+`identificatieBAGPND`, en op panden een lijst `huisnummers`.
 
 | bestand | bron | nodig | belangrijkste kolommen |
 |---|---|---|---|
@@ -42,11 +58,11 @@ zoekt de gangbare varianten en zegt het als hij ze niet vindt.
 | `bgt_kunstwerkdeel.geojson` | BGT | nee | `type` (duiker, brug, stuw) |
 | `bgt_weginrichtingselement.geojson` | BGT | nee | `type` (verkeersdrempel, wegmarkering) |
 | `bgt_openbareruimtelabel.geojson` | BGT | ja | `tekst` (de straatnaam), `openbareRuimteType` (Weg, Water) — punt met hoek, op de plek waar de naam op de kaart staat |
-| `bag_pand.geojson` | BAG | ja | `identificatie`, `bouwjaar`, `status` |
-| `bag_verblijfsobject.geojson` | BAG | ja | `openbare_ruimte` (straat), `huisnummer`, `huisletter`, `toevoeging`, `postcode`, `gebruiksdoel`, `pandidentificatie` |
-| `bag3d_pand.geojson` | 3D BAG (GeoPackage-laag `pand`, LoD 2.2) | ja | `identificatie`, `b3_dak_type`, `b3_h_maaiveld`, `b3_h_dak_min`, `b3_h_dak_50p`, `b3_h_dak_70p`, `b3_h_dak_max`, `b3_bouwlagen` |
-| `bag3d_tegel.city.json` | 3D BAG (CityJSON, dezelfde tegel) | later | het 3D-model van elk dak; hoeft niet geknipt |
-| `luchtfoto.tif` | PDOK luchtfoto 8 cm, uitsnede van het gebied als GeoTIFF in EPSG:28992 | ja | alleen voor het bovenaanzicht-overlay en kleurreferentie |
+| `bag_pand.geojson` | BAG | nee | `identificatie`, `bouwjaar`, `status` — 3D BAG levert dit al |
+| `bag_verblijfsobject.geojson` | BAG | nee | `openbare_ruimte` (straat), `huisnummer`, `gebruiksdoel` — de BGT zet de huisnummers al op het pand |
+| `bag3d_pand.geojson` | 3D BAG (GeoPackage-laag `pand` plus de dakvlakken uit `lod22_2d`) | ja | `identificatie`, `oorspronkelijkbouwjaar`, `status`, `b3_dak_type`, `b3_h_maaiveld`, `goothoogte` en `nokhoogte` (meters boven maaiveld), `b3_h_goot_nap`, `b3_h_nok_nap` |
+| `9-632-1008.city.json` | 3D BAG (CityJSON, dezelfde tegel) | later | het 3D-model van elk dak; hoeft niet geknipt |
+| `luchtfoto.tif` | PDOK luchtfoto 8 cm, uitsnede van het gebied als GeoTIFF in EPSG:28992 | later | alleen voor het bovenaanzicht-overlay en kleurreferentie |
 
 Optionele bestanden zijn niet minder waar, ze zijn alleen niet altijd door de
 gemeente gevuld. Wat er is, wordt gebruikt.

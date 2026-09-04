@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "name": "gebied",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "naam": "Tinga, Sneek",
+        "toelichting": "Werkgebied van het spel: de wijk Tinga met de N7 aan de noordkant, binnen 3D BAG-tegel 9-632-1008 (X 171858-172601, Y 558912-559899)."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[171870, 558920], [172600, 558920], [172600, 559790], [171870, 559790], [171870, 558920]]]
+      }
+    }
+  ]
+}
