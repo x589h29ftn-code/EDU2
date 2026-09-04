@@ -1,9 +1,9 @@
 # Tinga Sneek – open-wereld FPS
 
-Een GTA-achtig first-person spel dat zich afspeelt in de wijk **Tinga in Sneek**. De plattegrond is
-overgenomen van de echte wijk: alle straten liggen op ware grootte en op de juiste plek ten opzichte
-van elkaar, met de echte straatnamen, het groen, de vijvers, de parkeerhavens en de huizenrijen in de
-stijl van de betreffende straat.
+Een GTA-achtig first-person spel dat zich afspeelt in de wijk **Tinga in Sneek**. De plattegrond komt
+uit de officiële geodata van de wijk (BGT en 3D BAG): elke straat, stoep, parkeerhaven, sloot en elk
+huis staat op ware grootte en op de juiste plek, met de echte straatnamen en huisnummers en de echte
+dakvormen en hoogtes.
 
 ## Spelen
 
@@ -87,12 +87,23 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 ## Opbouw
 
 - `index.html` – pagina, HUD en startscherm
-- `js/data.js` – de kaart: wegen, kruispuntplateaus, water, groen en huizenrijen in pixelcoördinaten van de bronkaart
+- `js/kaart.js` – **de kaart van de wijk, gegenereerd uit BGT en 3D BAG** (`npm run geo:genereer`): alle
+  vlakken van de openbare ruimte, wegassen met gemeten breedte, 1327 panden met hun echte grondvlak en
+  3D-dak, parkeerplekken, straatnaamlabels en huisnummers, in meters vanaf het kruispunt
+  Molenkrite/Monnikmolen/Jasker. Niet met de hand bewerken; zie [docs/METHODIEK.md](docs/METHODIEK.md)
+- `js/kaartwereld.js` – bouwt de wereld uit `kaart.js`: ondergrond per materiaal, trottoirbanden, oevers,
+  panden, hagen, struiken, bomen, lantaarns, en de aansluitingen voor verkeer, voetgangers en HUD
+- `js/kaartkleuren.js` – één kleur per klasse, gedeeld door kaartplaat, bovenaanzicht en minimap
+- `js/data.js` – de oude, handgetekende kaart in pixelcoördinaten; draait nog met `?kaart=oud`
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
 - `js/editor.js` – de wijkeditor (F2): huizenrijen en objecten
 - `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, zittende buren met een biertje, ...)
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd
+- `tools/geo/` – de geodata-keten: `bgt2geojson.mjs` en `bag3d2geojson.mjs` (ruwe downloads → GeoJSON),
+  `genereer.mjs` (→ `js/kaart.js`), `plaat.mjs` (kaartplaat van de brondata), `bovenaanzicht.mjs`
+  (bovenaanzicht van het spel en pixelvergelijking met de plaat), `controle.mjs` (keurt de brondata),
+  `rd.mjs` (RD ↔ Google Maps ↔ spel), `skelet.mjs` (wegassen uit rijbaanvlakken)
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen
@@ -121,15 +132,21 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 
 ## Bronnen
 
-De huidige geometrie is handmatig overgenomen van satelliet- en kaartschermafbeeldingen van de wijk en
-de huisstijlen van streetview-foto's per straat (Molenkrite, Monnikmolen, Kruirad, De Wieken, Jasker,
-Molenpaal, Bonkelaar). Dat is de zwakke plek van het spel.
+De kaart komt uit open overheidsdata: de **BGT** (Basisregistratie Grootschalige Topografie) voor elke
+rijbaan, stoep, parkeervak, berm, sloot en tuin, en **3D BAG** voor elk pand met zijn echte grondvlak,
+daktype, goot- en nokhoogte en bouwjaar. De brondata staat in `data/geo/` (zie
+[data/geo/README.md](data/geo/README.md)), de keten die er `js/kaart.js` van maakt in `tools/geo/`.
 
-**[docs/METHODIEK.md](docs/METHODIEK.md)** beschrijft hoe de kaart voortaan wordt opgebouwd uit
-open overheidsdata (BGT, BAG, 3D BAG, luchtfoto) in plaats van uit foto's: welke bronnen, welk
-coördinatenstelsel, welke stappen en welke controles. De brondata hoort in `data/geo/` (zie
-[data/geo/README.md](data/geo/README.md)); `tools/geo/rd.mjs` rekent tussen RD, Google Maps en de
-spelwereld, en `tools/geo/controle.mjs` keurt de brondata voordat er iets mee gegenereerd wordt.
+**[docs/METHODIEK.md](docs/METHODIEK.md)** beschrijft de aanpak: waarom foto's geen bron voor
+geometrie zijn, welke bronnen en welk coördinatenstelsel (RD New) gebruikt worden, de stappen, en de
+controles. De belangrijkste controle is `npm run geo:boven`: een bovenaanzicht van het spel dat pixel
+voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,3 % afwijking).
+
+![Het spel van boven](data/geo/spel-boven.png)
+
+De oude, handgetekende kaart in `js/data.js` (overgetypt uit schermafbeeldingen, bijgesteld met
+Street View) draait nog met `?kaart=oud`. Street View-foto's dienen voortaan alleen nog voor de
+stijl per straat: steenkleur, kozijnen, dakkapellen, voortuinen.
 
 ## Screenshots
 

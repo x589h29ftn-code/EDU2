@@ -5,3 +5,8 @@ dist/
 js/rows.user.js
 js/rows.user.js.bak
 data/geo/bgt-plaat.svg
+data/geo/bgt-plaat-kaal.svg
+data/geo/bgt-plaat-kaal.png
+data/geo/bgt-plaat-kaal.pgw
+data/geo/spel-plaat.png
+tools/tmp/

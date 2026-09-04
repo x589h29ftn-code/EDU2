@@ -280,49 +280,77 @@ de besturing een gewone spelfeature zonder onzekerheid over de kaart.
 
 ## 9. Stand van zaken
 
-Stap 1 en 2 zijn af. In de repo staat:
+Stap 1, 2 en 3 zijn af; van stap 4 staat de geometrie.
 
-- `data/geo/gebied.geojson` — het werkgebied: RD X 171870–172600, Y 558920–559790
-  (730 × 870 m), de kern van Tinga met de N7 aan de noordkant, binnen 3D BAG-tegel
-  9-632-1008. Het zuidoostelijke deel van de wijk (Kaar, Koningsspil, Zomermeter)
-  valt buiten deze tegel; daarvoor is later een tweede tegel nodig.
-- `data/geo/oorsprong.json` — het kruispunt Molenkrite / Monnikmolen / Jasker op
-  RD 172214.98, 559360.95 (uit Google Maps 53.020904, 5.643757). Nog zonder
-  ijkpunten voor de oude pixelkaart.
-- `data/geo/bron/bgt_tinga.zip.zip` — de ruwe BGT-download (CityGML, heel zuidelijk
-  Sneek) en `9-632-1008.gpkg` + `9-632-1008.city.json` — de 3D BAG-tegel.
-- `data/geo/bron/bgt_*.geojson` — de BGT per objecttype, alleen actuele objecten in
-  het gebied, gemaakt door `tools/geo/bgt2geojson.mjs`. Onder meer 670 wegdelen,
-  831 begroeide terreindelen, 48 waterdelen, 1327 panden met 901 huisnummerlabels
-  en 65 straatnaamlabels.
-- `data/geo/bron/bag3d_pand.geojson` — 1032 panden uit 3D BAG met daktype,
-  maaiveld-, goot- en nokhoogte, bouwjaar en status, gemaakt door
-  `tools/geo/bag3d2geojson.mjs`.
-- `data/geo/bgt-plaat.png` + `.pgw` — de kaartplaat van al die data op 4 px/m, met
-  world-bestand, gemaakt door `tools/geo/plaat.mjs`. Dit is de referentie waar het
-  bovenaanzicht van het spel straks pixel voor pixel tegen wordt gelegd.
-- `tools/geo/rd.mjs` — RD ↔ WGS84 ↔ spelwereld, affiene fit, zelftest.
-- `tools/geo/controle.mjs` — het controleverslag; staat op "Geen problemen".
+**Data (stap 1 en 2).**
+`data/geo/gebied.geojson` is het werkgebied: RD X 171870–172600, Y 558920–559790
+(730 × 870 m), de kern van Tinga met de N7, binnen 3D BAG-tegel 9-632-1008. Het
+zuidoosten van de wijk (Kaar, Koningsspil, Zomermeter) valt buiten die tegel en
+vraagt later een tweede tegel. `data/geo/oorsprong.json` legt het kruispunt
+Molenkrite / Monnikmolen / Jasker op RD 172214.98, 559360.95. De ruwe downloads
+(BGT-CityGML, 3D BAG GeoPackage en CityJSON) staan in `data/geo/bron/`, de
+omzetters `bgt2geojson.mjs` en `bag3d2geojson.mjs` maken er GeoJSON van, en
+`controle.mjs` keurt het geheel ("Geen problemen").
 
-Wat de data over Tinga zegt, en wat dat voor de volgende stappen betekent:
+**Generator (stap 3 en 4).**
+`tools/geo/genereer.mjs` schrijft `js/kaart.js` (2,3 MB) met:
 
-- **Rijbanen zijn klinkers.** Van de 670 wegdelen zijn er 603 open verharding;
-  `plus_fysiekVoorkomenWegdeel` maakt onderscheid tussen betonstraatstenen (grijs)
-  en gebakken klinkers (rood). De N7 en de Buitenroede zijn asfalt. De kleur van de
-  straat hoeft dus niet meer uit een foto.
-- **Verkeersdrempels staan erin** (27 stuks, `plus_functieWegdeel`).
-- **Huisnummers staan op het pand** (901 panden). Een adres opzoeken is daarmee een
-  tabelvraag, geen zoektocht op Street View.
-- **Bomen en lantaarnpalen staan er niet in.** Súdwest-Fryslân vult de optionele
-  BGT-objecten paal, bak en straatmeubilair niet; van vegetatieobjecten zijn alleen
-  18 hagen aanwezig. Bosplantsoen en heesters staan wél als vlakken in het begroeide
-  terreindeel. Losse bomen en lichtmasten komen dus uit een andere bron (luchtfoto,
-  OpenStreetMap of een vaste plaatsingsregel langs de berm) en horen daarom in stap 5
-  als aparte, controleerbare laag.
-- **295 BGT-panden hebben geen 3D BAG-model**; 220 daarvan zijn kleine bijgebouwen
-  (mediaan 8 m²), 75 zijn woningen met huisnummer ten noorden van de Buitenroede,
-  vermoedelijk nieuwbouw. Die krijgen een standaardhoogte tot een nieuwere 3D BAG er
-  is.
+- 1885 vlakken ondergrond met klasse, materiaal en hoogte (rijbaan en parkeervlak op
+  0, stoep, berm, gras en erf op +12 cm zodat de trottoirband vanzelf ontstaat, water
+  op −35 cm met een oeverwand);
+- 130 rijbaanassen (8,1 km) en 608 padassen, afgeleid uit de vlakken met een
+  skelet-algoritme (`skelet.mjs`), met per punt de gemeten breedte en de straatnaam
+  uit de BGT-labels; de N7 is met de hand benoemd omdat rijkswegen geen label hebben;
+- 1327 panden: 1032 met het LoD 2.2-dakmodel uit 3D BAG (hoekpunten en vlakken per
+  pand, gedeelde punten), 295 zonder model als opgetrokken grondvlak (schuurtjes 2,5 m,
+  woningen met huisnummer 5,8 m goot);
+- parkeerplekken uit de parkeervlakken (langs- of haaks naar de breedte van het vak),
+  bomen gestrooid in bosplantsoen, struiken in heestervakken, 18 hagen, en lantaarns
+  volgens een plaatsingsregel (om de 30 m langs een rijbaanas, alleen op stoep of berm);
+- 65 straatnaamlabels en 901 huisnummers.
 
-Volgende stap is stap 3: `tools/geo/genereer.mjs` voor de ondergrond, en het
-bovenaanzicht van het spel met dezelfde omhullende en schaal als `bgt-plaat.png`.
+`js/kaartwereld.js` bouwt daar de wereld van; `main.js` laadt `kaart.js` en valt
+met `?kaart=oud` terug op de oude kaart.
+
+**Controle.**
+`tools/geo/bovenaanzicht.mjs` rendert het spel orthografisch van boven op 4 px/m,
+op dezelfde omhullende als de kaartplaat, eenmaal in egale klassekleuren en eenmaal
+zoals het er echt uitziet, en vergelijkt het eerste pixel voor pixel met
+`bgt-plaat-kaal.png`, die rechtstreeks uit de brondata komt.
+
+| meting | uitkomst |
+|---|---|
+| afwijkende pixels kaartplaat ↔ spel | **1,31 %** (doel < 2 %) |
+| waarvan | randpixels door anti-aliasing; één pand met koepeldak; enkele dakvlakken |
+
+De uitkomst staat in `data/geo/spel-boven.png` (het spel van boven) en
+`data/geo/verschil.png` (rood = afwijking). Beide ontstaan met `npm run geo:boven`
+bij een draaiende webserver (`npm start`).
+
+**Wat de data over Tinga zegt.**
+
+- Rijbanen zijn klinkers: 603 van de 670 wegdelen zijn open verharding, met
+  onderscheid tussen betonstraatstenen (grijs) en gebakken klinkers (rood). De N7 en
+  de Buitenroede zijn asfalt. De straatkleur komt dus uit de data, niet uit een foto.
+- Verkeersdrempels staan erin (27 stuks).
+- Huisnummers staan op het pand (901 panden); een adres opzoeken is een tabelvraag.
+- Bomen en lantaarnpalen staan er niet in: Súdwest-Fryslân vult de optionele
+  BGT-objecten paal, bak en straatmeubilair niet, en van vegetatieobjecten zijn er
+  alleen 18 hagen. Bosplantsoen en heesters staan wél als vlakken. Losse bomen en
+  lichtmasten komen daarom uit een plaatsingsregel (nu) of uit luchtfoto/OSM (later).
+- 295 BGT-panden hebben geen 3D BAG-model: 220 kleine bijgebouwen en 75 woningen
+  ten noorden van de Buitenroede, vermoedelijk nieuwbouw na de 3D BAG-versie.
+
+**Wat nog niet af is (in volgorde).**
+
+1. Gevels: de panden zijn nu baksteen zonder ramen en deuren. De gevelgenerator uit
+   `textures.js` moet per muurvlak geprojecteerd worden, met het woningtype uit de
+   stijlcatalogus (stap 6). Dakkapellen, dakramen en zonnepanelen horen daarbij.
+2. Voortuinen: erf is nu egaal gras; hekjes, hagen en paden per perceel komen uit de
+   stijlcatalogus.
+3. De editor (F2) en de oude objecten uit `data.js` werken nog in pixels van de oude
+   kaart; enkele objecten staan daardoor een paar meter verkeerd. Omrekenen kan met
+   drie ijkpunten in `oorsprong.json` (`rd.mjs px`).
+4. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
+   zonder 3D-model.
+5. Tweede 3D BAG-tegel voor het zuidoosten van de wijk.

@@ -8,6 +8,7 @@
   "version": "1.0.0",
   "description": "Open-wereld Tinga (Sneek) met wijkeditor",
   "private": true,
+  "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {
     "start": "python3 -m http.server 8123",
@@ -29,6 +30,8 @@
     "geo:controle": "node tools/geo/controle.mjs",
     "geo:bgt": "node tools/geo/bgt2geojson.mjs data/geo/bron/bgt_tinga.zip.zip",
     "geo:bag3d": "node --no-warnings tools/geo/bag3d2geojson.mjs data/geo/bron/9-632-1008.gpkg",
-    "geo:plaat": "node tools/geo/plaat.mjs"
+    "geo:plaat": "node tools/geo/plaat.mjs",
+    "geo:genereer": "node tools/geo/genereer.mjs",
+    "geo:boven": "node tools/geo/bovenaanzicht.mjs 8123 4"
   }
 }
