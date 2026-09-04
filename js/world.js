@@ -1677,8 +1677,9 @@ export function buildWorld(scene) {
   // Kaart uit BGT en 3D BAG (js/kaart.js): dan komt alles daaruit en blijven
   // alleen de losse objecten uit de editor (PROPS) over.
   if (KAART) {
-    bouwKaartWereld(scene, { MAT, colliders, roadSegments, parkSpots, treePositions, lampPosities, waterPolys, addCollider });
+    bouwKaartWereld(scene, { MAT, colliders, roadSegments, parkSpots, treePositions, lampPosities, waterPolys, addCollider, maakProp });
     buildTrees(scene);
+    if (kaartStand() !== 'plat') buildReeds(scene);
     if (kaartStand() !== 'plat') buildProps(scene);
     for (const c of scene.children) if (!bekend.has(c)) worldObjects.push(c);
     return { colliders, roadSegments, parkSpots, waterPolys };

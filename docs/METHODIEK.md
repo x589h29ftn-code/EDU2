@@ -379,6 +379,19 @@ type, het beeld en de Street View-link van precies dat camerapunt (zelfde plek,
 zelfde kijkrichting). Dat is de plek waar foto's het spel ontmoeten: per adres
 wordt alleen kleur en detail beoordeeld, nooit positie of maat.
 
+**Omgeving (stap 5, uit de foto's van de tweede ronde).**
+De BGT van deze gemeente heeft geen bomen, hagen of straatmeubilair, dus die
+komen uit plaatsingsregels op de BGT-vlakken, met de foto's als maat: straatbomen
+om de 11 tot 15 m in de grasbermen langs de rijbaanassen (niet op de stoep, niet
+tegen een gebouw), losse grote bomen in de gazons van de groenvoorziening, riet
+langs de oevers, ondergroei aan de rand van de bosjes. Per woning met huisnummer:
+een lage haag aan de straatkant met een opening bij de voordeur (op de plek van het
+huisnummerlabel), een tegelpad van de deur naar de stoep, lage hagen tussen de
+voortuinen en schuttingen van 1,8 m tussen en achter de achtertuinen; hoe diep de
+tuin is volgt uit het erf-vlak. Parkeervakken krijgen witte belijning, drempels
+een markering, het grote gazon bij de Wieken twee doelen. Alles staat als lijst in
+`kaart.js` en wordt bij het genereren opnieuw berekend.
+
 **Wat nog niet af is (in volgorde).**
 
 1. Straten zonder foto (Binnenroede, Spinnekop, Windbord, Voorzoom, de Hekken,

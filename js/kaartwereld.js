@@ -21,6 +21,7 @@ export function kaartStand() { return STAND; }
 
 const vlakIndex = new Map();   // bucket "i:j" -> vlakken, voor ondergrondKaart
 const BUCKET = 25;
+const KERB_Y = 0.12;   // hoogte van stoep, tuin en gras boven de rijbaan
 export const waterRingen = [];
 export const kaartLabels = [];
 
@@ -143,6 +144,9 @@ function materialen(MAT) {
   KM.bitumen = std(T.bitumen());
   KM.paal = MAT.pole; KM.lamp = MAT.lamp;
   KM.struik = MAT.shrubA;
+  KM.schutting = std(T.planks('#7a5f42'));
+  KM.streep = MAT.streep;
+  KM.drempel = new THREE.MeshStandardMaterial({ map: T.zebra(), roughness: 0.9 });
   KM.gevel = new Map();     // gedeelde gevel- en steenmaterialen per sleutel
   // platte controlekleuren
   KM.plat = {};
@@ -201,7 +205,34 @@ export function bouwKaartWereld(scene, W) {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) { vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor); randGeometrie([ring], 1.1, 0.0, hg.pos, hg.uv, hg.nor); }
     const hm = maakMesh(hg.pos, hg.uv, hg.nor, KM.hedge, { schaduw: true, klasse: 'haag' }); if (hm) scene.add(hm);
-    for (const b of K.bomen) W.treePositions.push({ x: b.x, z: b.z, s: b.s });
+    for (const b of K.bomen) W.treePositions.push({ x: b.x, z: b.z, s: b.s, tall: !!b.tall });
+    // drempels: witte markering op de rijbaan
+    const dr = { pos: [], uv: [], nor: [] };
+    for (const v of K.vlakken) if (v.drempel) vlakGeometrie(v.r, 0.012, 0.5, dr.pos, dr.uv, dr.nor);
+    const drm = maakMesh(dr.pos, dr.uv, dr.nor, KM.drempel, { klasse: 'drempel' }); if (drm) scene.add(drm);
+    // percelen: lage hagen, schuttingen en tegelpaden uit de plaatsingsregels
+    const hg2 = { pos: [], uv: [], nor: [] }, sch = { pos: [], uv: [], nor: [] }, pd = { pos: [], uv: [], nor: [] }, st = { pos: [], uv: [], nor: [] };
+    const balk = (a, b, dikte, h, doel, y0 = 0) => {
+      const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 0.2) return;
+      const nx = -dz / L * dikte / 2, nz = dx / L * dikte / 2;
+      const ring = [[a[0] + nx, a[1] + nz], [b[0] + nx, b[1] + nz], [b[0] - nx, b[1] - nz], [a[0] - nx, a[1] - nz]];
+      vlakGeometrie([ring], y0 + h, 0.5, doel.pos, doel.uv, doel.nor);
+      randGeometrie([ring], y0 + h, y0, doel.pos, doel.uv, doel.nor);
+    };
+    for (const h of K.heggen || []) balk(h.a, h.b, 0.5, h.h, hg2, KERB_Y);
+    for (const f of K.schuttingen || []) balk(f.a, f.b, 0.06, f.h, sch, KERB_Y);
+    for (const ring of K.paden || []) vlakGeometrie([ring], KERB_Y + 0.015, 1 / 1.2, pd.pos, pd.uv, pd.nor);
+    for (const l of K.strepen || []) balk(l.a, l.b, 0.1, 0.008, st, 0.0);
+    for (const [g, mat, k, schaduw] of [[hg2, KM.hedge, 'heg', true], [sch, KM.schutting, 'schutting', true], [pd, KM.tegels, 'tegelpad', false], [st, KM.streep, 'belijning', false]]) {
+      const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse: k, schaduw }); if (m) scene.add(m);
+    }
+    // losse objecten uit de objectenbibliotheek (doelen, banken)
+    for (const o of K.objecten || []) {
+      const obj = W.maakProp ? W.maakProp(o.type) : null; if (!obj) continue;
+      obj.position.set(o.x, KERB_Y, o.z); obj.rotation.y = (o.yaw || 0) * Math.PI / 180;
+      obj.traverse(c => { c.castShadow = true; c.receiveShadow = true; });
+      scene.add(obj);
+    }
     if (K.struiken.length) {
       const geo = new THREE.SphereGeometry(0.7, 7, 5);
       const im = new THREE.InstancedMesh(geo, KM.struik, K.struiken.length);
