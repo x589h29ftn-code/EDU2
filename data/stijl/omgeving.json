@@ -23,6 +23,18 @@
     ],
     "struiken": 2.8
   },
+  "plantsoenen": [
+    {
+      "naam": "Bosje aan de Molenkrite-lus bij Kruirad 64/66",
+      "bron": "Street View '9 Molenkrite' (foto in de chat, 4 sep 2026): het bosplantsoen tussen de Molenkrite-lus, de vijver en de achtertuinen van Kruirad 64/66. Dichtbegroeid met struiken en jonge bomen, een houten bankje aan het tegelpad langs de weg",
+      "_uitleg": "punt = een punt in het BGT-groenvak (bos, gras of heesters) dat dit betreft. struiken = afstand tussen de struiken in m, schaal = grootte. doorloopbaar = bomen zonder botsing, zodat je door het groen kunt lopen. bank = een bankje op de rand aan de kant van het voetpad (dat mag tot 6 m verderop liggen).",
+      "punt": [-53, 35],
+      "struiken": 1.3,
+      "schaal": [0.8, 1.6],
+      "doorloopbaar": true,
+      "bank": true
+    }
+  ],
   "terreinen": [
     {
       "naam": "Rioolwaterzuivering (RWZI) Buitenroede 1",

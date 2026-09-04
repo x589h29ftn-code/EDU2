@@ -213,7 +213,8 @@ export function bouwKaartWereld(scene, W) {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) { vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor); randGeometrie([ring], 1.1, 0.0, hg.pos, hg.uv, hg.nor); }
     const hm = maakMesh(hg.pos, hg.uv, hg.nor, KM.hedge, { schaduw: true, klasse: 'haag' }); if (hm) scene.add(hm);
-    for (const b of K.bomen) W.treePositions.push({ x: b.x, z: b.z, s: b.s, tall: !!b.tall });
+    // vrij: boom zonder botsing (doorloopbaar plantsoen)
+    for (const b of K.bomen) W.treePositions.push({ x: b.x, z: b.z, s: b.s, tall: !!b.tall, vrij: !!b.vrij });
     // drempels: witte markering op de rijbaan
     const dr = { pos: [], uv: [], nor: [] };
     for (const v of K.vlakken) if (v.drempel) vlakGeometrie(v.r, 0.012, 0.5, dr.pos, dr.uv, dr.nor);

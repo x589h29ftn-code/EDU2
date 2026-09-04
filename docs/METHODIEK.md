@@ -408,7 +408,10 @@ als maat (`data/stijl/fotos/`), en met `data/stijl/omgeving.json` als knop:
   voortuinen, schuttingen van 1,8 m tussen en achter de achtertuinen; de
   tuindiepte volgt uit het erf-vlak;
 - witte belijning op parkeervakken, markering op drempels, riet langs het water,
-  doelen op het speelveld, banken bij de vijvers.
+  doelen op het speelveld, banken bij de vijvers;
+- `plantsoenen` in omgeving.json voor groenvakken met een eigen karakter: het
+  bosje bij Molenkrite 9 (foto) staat vol struiken, heeft een bankje aan het
+  tegelpad en bomen zonder botsing, zodat je er doorheen kunt lopen.
 
 **Omheinde terreinen: de RWZI aan de Buitenroede 1 (stap 5, foto 4 sep 2026).**
 De waterzuivering ligt in een sloot die de BGT wél heeft; het hek eromheen
