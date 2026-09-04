@@ -25,6 +25,9 @@ const BUCKET = 25;
 const KERB_Y = 0.12;   // hoogte van stoep, tuin en gras boven de rijbaan
 export const waterRingen = [];
 export const kaartLabels = [];
+// Schuifpoorten van de omheinde terreinen: {terrein, groep, doos, richting,
+// lengte, open, midden}. Een missie kan er een openschuiven (zie verhaal.js).
+export const poortBladen = [];
 
 // ---------------------------------------------------------------- hulpjes
 function inRing(x, z, ring) {
@@ -169,7 +172,7 @@ function materialen(MAT) {
 export function bouwKaartWereld(scene, W) {
   const K = KAART;
   materialen(W.MAT);
-  vlakIndex.clear(); waterRingen.length = 0; kaartLabels.length = 0;
+  vlakIndex.clear(); waterRingen.length = 0; kaartLabels.length = 0; poortBladen.length = 0;
   const plat = STAND === 'plat';
   const matVoor = (v) => plat ? (KM.plat[v.k] || KM.plat.verharding) : (KM[v.m] || KM.klinker);
   const uvVoor = (m) => (m === 'gras' || m === 'erf' || m === 'bosgrond' || m === 'bodembedekker' || m === 'grasklinker') ? 0.12 : m === 'water' ? 0.05 : 0.5;
@@ -557,6 +560,12 @@ function bouwTerreinen(scene, W) {
       W.addCollider((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, L / 2, 0.08, -Math.atan2(b[1] - a[1], b[0] - a[0]), hw.h);
     }
   }
+  /*
+   De schuifpoort. Het hekblad zit in zijn eigen groep, niet in het grote
+   spijlenvlak, zodat een missie hem open kan schuiven (zie verhaal.js: als de
+   bewaking uitgeschakeld is, rijdt de vrachtwagen naar buiten). De groep en de
+   botsingsdoos van het blad staan daarom in `poortBladen`.
+  */
   for (const p of K.poorten || []) {
     const dx = p.b[0] - p.a[0], dz = p.b[1] - p.a[1], L = Math.hypot(dx, dz); if (L < 1) continue;
     const ux = dx / L, uz = dz / L, open = Math.min(p.open || 0, L - 0.5), draai = -Math.atan2(uz, ux);
@@ -567,15 +576,24 @@ function bouwTerreinen(scene, W) {
     }
     // het hekblad, vanaf paal a `open` meter opzij geschoven (het steekt dan voorbij paal b)
     const blad = [p.a[0] + ux * open, p.a[1] + uz * open], eind = [p.a[0] + ux * (open + L), p.a[1] + uz * (open + L)];
+    const groep = new THREE.Group();
+    const bp = { pos: [], uv: [], nor: [] };
+    const bewaar = [sp.pos.length, sp.uv.length, sp.nor.length];
     paneel(blad, eind, KERB_Y + 0.1, p.h - 0.2, 0);
-    const kader = new THREE.Group();
+    bp.pos = sp.pos.splice(bewaar[0]); bp.uv = sp.uv.splice(bewaar[1]); bp.nor = sp.nor.splice(bewaar[2]);
+    const bladMesh = maakMesh(bp.pos, bp.uv, bp.nor, KM.spijlen, { klasse: 'hekwerk', schaduw: true });
+    if (bladMesh) groep.add(bladMesh);
     for (const y of [KERB_Y + 0.12, KERB_Y + p.h - 0.12]) {
       const b = new THREE.Mesh(new THREE.BoxGeometry(L, 0.07, 0.07), KM.staal);
-      b.position.set((blad[0] + eind[0]) / 2, y, (blad[1] + eind[1]) / 2); b.rotation.y = draai; kader.add(b);
+      b.position.set((blad[0] + eind[0]) / 2, y, (blad[1] + eind[1]) / 2); b.rotation.y = draai; groep.add(b);
     }
-    for (const q of [blad, eind]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.08, p.h - 0.2, 0.08), KM.staal); b.position.set(q[0], KERB_Y + p.h / 2, q[1]); kader.add(b); }
-    kader.traverse(c => { c.castShadow = true; }); scene.add(kader);
-    W.addCollider((blad[0] + eind[0]) / 2, (blad[1] + eind[1]) / 2, L / 2, 0.08, draai, p.h);
+    for (const q of [blad, eind]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.08, p.h - 0.2, 0.08), KM.staal); b.position.set(q[0], KERB_Y + p.h / 2, q[1]); groep.add(b); }
+    groep.traverse(c => { c.castShadow = true; }); scene.add(groep);
+    const doos = W.addCollider((blad[0] + eind[0]) / 2, (blad[1] + eind[1]) / 2, L / 2, 0.08, draai, p.h);
+    poortBladen.push({
+      terrein: p.terrein, groep, doos, richting: [ux, uz], lengte: L, open,
+      midden: [(p.a[0] + p.b[0]) / 2, (p.a[1] + p.b[1]) / 2],
+    });
   }
   const m = maakMesh(sp.pos, sp.uv, sp.nor, KM.spijlen, { klasse: 'hekwerk', schaduw: true }); if (m) scene.add(m);
 }

@@ -243,13 +243,19 @@ const vehicles = new Vehicles(scene, world.parkSpots);
 const npcs = new NPCs(scene, world.roadSegments, 130);
 player.applyCamera();   // meteen op ooghoogte op de Molenkrite, ook voor het startscherm
 const hud = new HUD();
-// Het verhaal: de buurman voor Molenkrite 15 en het gezelschap schuin
-// tegenover. Zonder kaartdata (?kaart=oud) speelt het niet en doet alles niets.
-const verhaal = initVerhaal({ scene, player }) || {
+// Het verhaal: broer Mark voor Molenkrite 15, het gezelschap schuin tegenover,
+// de rit naar de waterzuivering, de bewaking en het afleveren bij de boerderij.
+// Zonder kaartdata (?kaart=oud) speelt het niet en doet alles niets.
+const verhaal = initVerhaal({
+  scene, player, hud, vehicles,
+  // Ga je neer, dan begint het verhaal bij het laatst opgeslagen spel; is er
+  // niets opgeslagen, dan zegt laadSpel false en begint de missie opnieuw.
+  opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal }),
+}) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
-  bewaar() { return null; }, herstel() {}, meldAan() {},
+  bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {},
   hinder: { alive: false, opWeg: false, x: 0, z: 0 },
-  fase: 'geen', aanspreekbaar: false,
+  missie: 'geen', fase: 'geen', aanspreekbaar: false,
 };
 // Het verkeer moet ook voor de buurman remmen als hij oversteekt. De lijst met
 // voetgangers heeft een vaste lengte, dus die zetten we één keer klaar.
@@ -260,6 +266,7 @@ applyEnvIntensity(scene);
 const raycaster = new THREE.Raycaster();
 const impactMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
 player.shootCb = (origin, dir) => {
+  verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
   raycaster.set(origin, dir); raycaster.far = 120;
   const targets = [...vehicles.cars.map(c => c.mesh), ...npcs.targets, ...verhaal.doelen()];
   const hits = raycaster.intersectObjects(targets, true);
@@ -466,10 +473,12 @@ function loop() {
       const car = player.inCar;
       vehicles.drive(car, player.driveInput(), dt);
       geluid.motorToeren(car.speed);
-      // camera op de bestuurdersstoel (links), meekijken met muis
-      const seat = new THREE.Vector3(-0.38, 1.25, -0.25);
+      // camera op de bestuurdersstoel (links), meekijken met muis; een
+      // bakwagen heeft zijn eigen, hogere stoel (zie vehicles.voegToe)
+      const st = car.stoel || { x: -0.38, y: 1.25, z: -0.25 };
+      const seat = new THREE.Vector3(st.x, st.y, st.z);
       seat.applyAxisAngle(new THREE.Vector3(0, 1, 0), car.yaw);
-      camera.position.set(car.x + seat.x, seat.y, car.z + seat.z);
+      camera.position.set(car.x + seat.x, st.y, car.z + seat.z);
       camera.rotation.set(0, 0, 0, 'YXZ');
       camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
       // yaw van speler volgt de auto (relatief kijken)
@@ -480,6 +489,7 @@ function loop() {
     vehicles.updateTraffic(dt, player, opDeWeg);
     npcs.update(dt, time);
     verhaal.update(dt);
+    if (player.health <= 0) verhaal.dood();
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
     sun.position.set(cx + SUN_DIR.x * 150, SUN_DIR.y * 150, cz + SUN_DIR.z * 150);
@@ -510,7 +520,7 @@ loop();
 // Testhaak voor automatische screenshots
 window.__game = {
   scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal,
-  opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto,
+  opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar,
 };
 
 // Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,

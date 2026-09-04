@@ -52,10 +52,34 @@ export class Vehicles {
   nearestDriveable(x, z, maxD = 3.0) {
     let best = null, bd = maxD;
     for (const c of this.cars) {
-      const d = Math.hypot(c.x - x, c.z - z) - 1.2;
+      if (!c.driveable) continue;
+      const d = Math.hypot(c.x - x, c.z - z) - (c.instap || 1.2);
       if (d < bd) { bd = d; best = c; }
     }
     return best;
+  }
+
+  /*
+   Een voertuig neerzetten dat niet uit de kaart komt, bijvoorbeeld de
+   vrachtwagen op het RWZI-terrein (zie js/verhaal.js).
+   soort: 'hatch', 'van' of 'truck'. Een bakwagen is zeven meter lang, dus hij
+   krijgt bredere botsingscirkels, een hogere stoel en een instapafstand die bij
+   zijn maat past.
+  */
+  voegToe({ x, z, yaw = 0, soort = 'hatch', kleur = 0xd8d9dc, driveable = true }) {
+    const mesh = makeCar(kleur, soort);
+    mesh.position.set(x, 0, z); mesh.rotation.y = yaw;
+    this.scene.add(mesh);
+    const truck = soort === 'truck';
+    const car = {
+      mesh, x, z, yaw, speed: 0, steer: 0, driveable, hp: 100, soort,
+      as: truck ? 2.6 : 1.4, botsRadius: truck ? 1.15 : 0.95,
+      instap: truck ? 2.4 : 1.2,
+      stoel: truck ? { x: -0.55, y: 2.15, z: -2.3 } : null,
+      topSnelheid: truck ? 16 : 24,
+    };
+    this.cars.push(car);
+    return car;
   }
 
   // Auto rijden: eenvoudig arcade-model
@@ -72,19 +96,20 @@ export class Vehicles {
     if (hand) car.speed *= Math.max(0, 1 - dt * 3);
     // rolweerstand
     car.speed *= Math.max(0, 1 - dt * 0.4);
-    car.speed = Math.max(-6, Math.min(24, car.speed));
+    car.speed = Math.max(-6, Math.min(car.topSnelheid || 24, car.speed));
     if (Math.abs(car.speed) < 0.02 && !accel && !brake) car.speed = 0;
-    const turn = car.steer * car.speed * dt / 2.6;
+    const turn = car.steer * car.speed * dt / (car.as ? car.as * 1.9 : 2.6);
     car.yaw += turn;
     const nx = car.x - Math.sin(car.yaw) * car.speed * dt;
     const nz = car.z - Math.cos(car.yaw) * car.speed * dt;
-    // botsingen: 3 cirkels langs de auto
+    // botsingen: 3 cirkels langs de auto (een bakwagen is langer en breder)
     let ok = true;
     const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw);
+    const as = car.as || 1.4, radius = car.botsRadius || 0.95;
     let cx = nx, cz = nz;
-    for (const off of [-1.4, 0, 1.4]) {
+    for (const off of [-as, 0, as]) {
       const px = cx + fx * off, pz = cz + fz * off;
-      const [rx, rz] = resolveCollisions(px, pz, 0.95, 3.5);
+      const [rx, rz] = resolveCollisions(px, pz, radius, 3.5);
       if (rx !== px || rz !== pz) { cx += rx - px; cz += rz - pz; ok = false; }
     }
     if (pointInWater(cx, cz)) { cx = car.x; cz = car.z; ok = false; }

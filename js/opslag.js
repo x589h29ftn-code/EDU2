@@ -76,6 +76,16 @@ export function laadSpel({ player, sfeer, vehicles, verhaal }) {
   player.reloading = 0;
 
   player.inCar = null;
+
+  if (sfeer && d.sfeer) {
+    if (typeof d.sfeer.uur === 'number') sfeer.uur = d.sfeer.uur;
+    if (d.sfeer.weer) sfeer.weer = d.sfeer.weer;
+    sfeer.loopt = !!d.sfeer.loopt;
+  }
+  // Eerst het verhaal: dat zet de auto en de vrachtwagen van de missies terug
+  // (en maakt ze desnoods opnieuw), zodat de stoel hieronder bestaat.
+  if (verhaal) verhaal.herstel(d.verhaal);
+
   if (d.auto && vehicles) {
     const auto = vehicles.cars[d.auto.index];
     if (auto) {
@@ -85,13 +95,6 @@ export function laadSpel({ player, sfeer, vehicles, verhaal }) {
       player.lastCarYaw = undefined;
     }
   }
-
-  if (sfeer && d.sfeer) {
-    if (typeof d.sfeer.uur === 'number') sfeer.uur = d.sfeer.uur;
-    if (d.sfeer.weer) sfeer.weer = d.sfeer.weer;
-    sfeer.loopt = !!d.sfeer.loopt;
-  }
-  if (verhaal) verhaal.herstel(d.verhaal);
   player.applyCamera();
   return true;
 }

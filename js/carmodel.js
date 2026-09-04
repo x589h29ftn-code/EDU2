@@ -20,8 +20,52 @@ function merge(parts) {
 }
 
 const GEO = {};
+
+// Bakwagen: chassis met cabine voorop en een gesloten laadbak erachter. Zeven
+// meter lang, dus hij rijdt en botst anders dan een auto (zie vehicles.js).
+function truckGeoms() {
+  const L = 7.2, W = 2.35, R = 0.45;      // lengte, breedte, wielradius
+  const cabZ = -L / 2 + 1.15, bakZ = 1.0;
+  const paint = merge([
+    { geo: new THREE.BoxGeometry(W - 0.1, 0.35, L), y: 0.62 },                     // chassis
+    { geo: new THREE.BoxGeometry(W, 1.45, 2.1), y: 1.52, z: cabZ },                // cabine
+    { geo: new THREE.BoxGeometry(W, 2.3, 4.8), y: 2.15, z: bakZ },                 // laadbak
+    { geo: new THREE.BoxGeometry(W + 0.06, 0.12, 4.8), y: 3.32, z: bakZ },         // dakrand
+    { geo: new THREE.BoxGeometry(0.2, 0.1, 0.14), x: -W / 2 - 0.12, y: 1.9, z: cabZ - 0.9 },
+    { geo: new THREE.BoxGeometry(0.2, 0.1, 0.14), x: W / 2 + 0.12, y: 1.9, z: cabZ - 0.9 },
+  ]);
+  const glass = merge([
+    { geo: new THREE.BoxGeometry(W - 0.22, 0.8, 0.06), y: 1.95, z: cabZ - 1.03 },  // voorruit
+    { geo: new THREE.BoxGeometry(0.06, 0.65, 1.1), x: -W / 2 + 0.02, y: 1.9, z: cabZ + 0.2 },
+    { geo: new THREE.BoxGeometry(0.06, 0.65, 1.1), x: W / 2 - 0.02, y: 1.9, z: cabZ + 0.2 },
+  ]);
+  const wheelGeo = new THREE.CylinderGeometry(R, R, 0.3, 12); wheelGeo.rotateZ(Math.PI / 2);
+  const hubGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.31, 8); hubGeo.rotateZ(Math.PI / 2);
+  const wielen = [[-W / 2 + 0.18, cabZ + 0.1], [W / 2 - 0.18, cabZ + 0.1],
+                  [-W / 2 + 0.18, 1.5], [W / 2 - 0.18, 1.5],
+                  [-W / 2 + 0.18, 2.6], [W / 2 - 0.18, 2.6]];
+  const black = merge([
+    ...wielen.map(([x, z]) => ({ geo: wheelGeo, x, y: R, z })),
+    { geo: new THREE.BoxGeometry(W + 0.04, 0.24, 0.22), y: 0.5, z: -L / 2 + 0.05 },
+    { geo: new THREE.BoxGeometry(W + 0.04, 0.24, 0.22), y: 0.62, z: L / 2 - 0.05 },
+    { geo: new THREE.BoxGeometry(1.2, 0.5, 0.06), y: 1.0, z: -L / 2 - 0.01 },      // grille
+  ]);
+  const chrome = merge(wielen.map(([x, z]) => ({ geo: hubGeo, x, y: R, z })));
+  const head = merge([
+    { geo: new THREE.BoxGeometry(0.4, 0.2, 0.05), x: -0.75, y: 0.78, z: -L / 2 - 0.02 },
+    { geo: new THREE.BoxGeometry(0.4, 0.2, 0.05), x: 0.75, y: 0.78, z: -L / 2 - 0.02 },
+  ]);
+  const tail = merge([
+    { geo: new THREE.BoxGeometry(0.34, 0.18, 0.05), x: -0.85, y: 0.9, z: L / 2 + 0.02 },
+    { geo: new THREE.BoxGeometry(0.34, 0.18, 0.05), x: 0.85, y: 0.9, z: L / 2 + 0.02 },
+  ]);
+  const plate = merge([{ geo: new THREE.BoxGeometry(0.5, 0.11, 0.02), y: 0.72, z: L / 2 + 0.04 }]);
+  return { paint, glass, black, chrome, head, tail, plate, L };
+}
+
 function geoms(kind) {
   if (GEO[kind]) return GEO[kind];
+  if (kind === 'truck') { GEO[kind] = truckGeoms(); return GEO[kind]; }
   const isVan = kind === 'van';
   const L = isVan ? 5.2 : 4.3, W = 1.8, H = isVan ? 1.15 : 0.60;
   const cabL = isVan ? 3.3 : 2.1, cabH = isVan ? 0.70 : 0.50;
