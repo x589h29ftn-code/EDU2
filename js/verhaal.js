@@ -296,7 +296,9 @@ export function initVerhaal({ scene, player }) {
     if (fase === 'wacht' || fase === 'gesprek') {
       if (d < ZWAAI_AFSTAND) buurman.kijkNaar(p.x, p.z, dt);
       buurman.update(dt, { zwaait: fase === 'wacht' && d < ZWAAI_AFSTAND });
-      praatEl.hidden = !(fase === 'wacht' && d < PRAAT_AFSTAND && balk.hidden);
+      // niet op het startscherm: daar kun je nog niet praten
+      const bezig = player.active || window.__autoplay;
+      praatEl.hidden = !(bezig && fase === 'wacht' && d < PRAAT_AFSTAND && balk.hidden);
     } else if (fase === 'loopt') {
       const erIs = loopNaar(stop, dt);
       buurman.update(dt, { loopt: !erIs, snelheid: LOOPSNELHEID });
