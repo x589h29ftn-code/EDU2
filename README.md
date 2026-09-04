@@ -209,10 +209,36 @@ Met **T** wissel je tussen achttien woningtypen:
 ![Alle woningtypen](docs/screenshots/woningtypen.png)
 
 En met **O** ga je naar de objecten: carports, bergingen, aanbouwen, hagen en hekken, verkeersborden,
-containers, speeltoestellen, bomen en zittende buren met een biertje — 60 stuks, nagebouwd naar
-de street-viewfoto's van de wijk:
+containers, speeltoestellen, bomen, de vlaggenmasten van de supermarkt en zittende buren met een
+biertje — 58 stuks, nagebouwd naar de street-viewfoto's van de wijk (het blad hieronder is nog van
+vóór de vlaggenmasten):
 
 ![Alle objecten](docs/screenshots/objecten.png)
+
+## Twee gebouwen die geen woning zijn
+
+Bijna heel Tinga bestaat uit woningen, en die krijgen hun aanzien van hun straat. Twee panden vielen
+daarbuiten en stonden er tot nu toe als een naamloos blok bij. Ze staan nu met hun BAG-pandnummer in
+**[data/stijl/straten.json](data/stijl/straten.json)** en hebben hun eigen aanzien gekregen.
+
+### De Jumbo aan de Molenkrite
+
+De supermarkt: de rij puntdaken komt uit het 3D BAG-model (goot 2,6 m, nok 7,1 m), en daaronder zit
+nu een luifel over de volle breedte met een glazen pui met witte stijlen op een donkere plint, en de
+gele huisstijlband met het woordmerk. Voor de ingang staan drie gele vlaggenmasten van ruim acht
+meter, en het parkeerterrein ernaast is met 1239 m² het grootste van de wijk.
+
+![De Jumbo aan de Molenkrite](docs/screenshots/jumbo.png)
+
+### Tinga State
+
+De stelpboerderij aan de Molenkrite: één steile piramidekap van rode pannen die van de nok op 13,3 m
+tot een dakvoet van twee tot vier meter doorloopt, met rijen dakramen erin. Daaronder een lage
+bakstenen wand rondom, met witte kozijnen, een zwarte schuurdeur en een groene staldeur.
+
+![Tinga State](docs/screenshots/tinga_state.png)
+
+`npm run adresshots` maakt deze twee foto's; de uitsnede staat bij het pand in de catalogus.
 
 ## Dag, nacht en weer
 
@@ -270,6 +296,7 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
   `rd.mjs` (RD ↔ Google Maps ↔ spel), `skelet.mjs` (wegassen uit rijbaanvlakken)
 - `tools/verhaaltest.mjs` – loopt het verhaal na en toetst opslaan en laden
 - `tools/verhaalshots.mjs` – maakt de foto's van het verhaal
+- `tools/adresshots.mjs` – maakt de foto's van de panden die met naam in `data/stijl/straten.json` staan
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

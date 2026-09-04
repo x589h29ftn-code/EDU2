@@ -234,6 +234,7 @@ naar `main` om een build te krijgen.
 | Niets staat in de weg | `tools/propcheck.mjs`, `tools/tuintest.mjs` | geen meldingen |
 | Straatprofielen | `tools/meetstrook.mjs`, nu getoetst aan BGT-breedtes in plaats van foto's | afwijking < 0,5 m |
 | Stijl | tien vaste steekproefpunten naast Street View | per adres akkoord in de catalogus |
+| Panden met een eigen aanzien (winkel, boerderij) | `npm run adresshots` | foto per pand naast de bronfoto |
 | Het verhaal, alle vijf de missies (stap 8) | `npm run verhaaltest` | eindigt op "Alles goed" |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -581,6 +582,45 @@ Molenkrite: `hud.kaartVanaf` neemt dan de plek van de voordeur als middelpunt
 in plaats van die van de kamer. Of je binnen bent volgt uit je positie, dus
 opslaan en laden werkt binnen zonder extra vlag.
 
+**Twee panden die geen woning zijn.**
+De stijlcatalogus koos tot nu toe alleen op straatnaam en op de meetwaarden uit
+3D BAG, en alles boven 300 m² grondvlak kreeg het naamloze `spil`-type. Daardoor
+stonden de twee gebouwen die geen woning zijn er als een blok bij. `straten.json`
+heeft nu een blok **`panden`**: per BAG-pandnummer een type, en als de generator
+de voorkant niet goed kan raden ook een punt waar de voorgevel naartoe moet
+kijken (`voorkantNaar`) en losse objecten die voor het pand horen te staan
+(`objecten`, uitgezet vanaf het midden van de voorgevel). `kiesType` in
+`genereer.mjs` kijkt daar eerst.
+
+- **De supermarkt (Jumbo, Molenkrite 1 in de adressering, BAG-pand
+  0091100000015898 met huisnummerlabel 171).** Het 3D BAG-model heeft de rij
+  puntdaken al: een goot op 2,64 m en een nok op 7,06 m over een grondvlak van
+  37 bij 31 m, met een hoger glazen blok bij de ingang. Het nieuwe type `jumbo`
+  zet daar de winkelpui onder: donkere plint, glas met witte stijlen, een witte
+  luifelband en de gele huisstijlband met het woordmerk. Omdat een bedrijfsgevel
+  in `kaartwereld.js` over de hele muurhoogte uitgerekt wordt, staan die banden
+  in verhoudingen van de muurhoogte en niet in vaste meters; zo werkt dezelfde
+  texture op de lage gevel onder de luifel én op het hoge blok. `metaaldak`
+  geeft de puntdaken dakplaten in plaats van pannen. De voorgevel wees eerst
+  naar de dichtstbijzijnde rijbaan; `voorkantNaar` zet hem naar het
+  parkeerterrein aan de noordkant, met 1239 m² het grootste van de wijk en
+  daarmee het bewijs dat dit de winkel is. Voor de ingang staan drie
+  vlaggenmasten van 8,4 m (`jumbovlag` in `props.js`, met het doek als texture).
+- **De boerderij (Tinga State, Molenkrite 115, BAG-pand 0091100000006680).** Een
+  stelp: 517 m² grondvlak, een nok op 13,32 m en wanden die maar 2,1 tot 3,9 m
+  hoog zijn — één steile piramidekap over het hele huis. Het type `tinga_state`
+  geeft die kap rode pannen met dakramen erin (`pannenMetDakramen`: het dakvlak
+  loopt op 0,25 texture per meter, dus één dakraam per canvas van 4 bij 4 m geeft
+  de rijen van de foto) en daaronder een lage bakstenen wand met witte kozijnen,
+  een zwarte schuurdeur en een groene staldeur. De wand wordt niet op de goot
+  afgeknipt (`industrieel`), want de gemeten goot van 1,94 m ligt lager dan elke
+  echte dakvoet; en hij loopt rondom, want een boerderij heeft geen achtergevel.
+
+Controle: `npm run adresshots` maakt van elk pand uit dat blok een foto, met de
+uitsnede uit de catalogus of anders vanaf een standpunt dat het gereedschap zelf
+zoekt (rondom het pand, zo ver mogelijk van de bomen). `npm run propcheck` geeft
+nog dezelfde vijf oude meldingen en `npm run geo:boven` blijft op 1,31 %.
+
 Bij de vierde missie kwam een oude fout boven: bruggen en duikers liggen in de
 BGT boven het waterdeel, dus het waterpolygoon loopt eronderdoor. `pointInWater`
 zei daardoor "water" midden op een brug en je kwam nergens overheen — niet naar
@@ -616,3 +656,14 @@ het `hidden`-attribuut — de balk ging daardoor nooit meer uit beeld.
 4. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
    zonder 3D-model.
 5. Tweede 3D BAG-tegel voor het zuidoosten van de wijk.
+6. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
+   nog van vóór de supermarkt en de boerderij: de vlaggenmast en de twee nieuwe
+   woningtypen staan er nog niet op. Bijwerken kan met `npm run propshots` en
+   `npm run assets` plus `python3 tools/contactblad.py objecten|woningen`, maar
+   dat zijn 78 losse renders en dat duurt op software-rendering een uur.
+7. De overige panden die geen woning zijn en nog het naamloze `spil`-type
+   dragen: de school aan de Molenkrite (BAG-pand 0091100000007732, 1462 m² met
+   een golvende plattegrond), de rij aan de Ligger/de Loper (0091100000014651,
+   3485 m²) en het blok aan de Krans. Ze kunnen op dezelfde manier als de
+   supermarkt en de boerderij een eigen type krijgen in het blok `panden` van
+   `data/stijl/straten.json`, zodra er een foto van is.

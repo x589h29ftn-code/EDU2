@@ -119,6 +119,66 @@ export function roofTiles(base = '#4a3a33', seed = 5) {
   const t = tex(c); cache.set(key, t); return t;
 }
 
+/*
+ Pannendak met dakramen erin (Tinga State, Molenkrite 115). De kap van een
+ stelpboerderij is één groot vlak van de nok tot bijna de grond, met rijen
+ dakramen erin. Het dakvlak wordt in kaartwereld.js op 0,25 texture per meter
+ gelegd, dus dit canvas van 512 px staat voor 4 bij 4 m: één dakraam van 0,8 bij
+ 1,2 m per vier meter dak geeft ongeveer de rijen van de foto.
+*/
+export function pannenMetDakramen(base = '#a8512c') {
+  const key = `roofram${base}`;
+  if (cache.has(key)) return cache.get(key);
+  const c = canvas(512, 512); const g = c.getContext('2d');
+  const bron = roofTiles(base, 5).image;
+  g.drawImage(bron, 0, 0);
+  // dakraam: grijs kader, donker glas met een schuine weerspiegeling
+  const bw = Math.round(512 * 0.8 / 4), bh = Math.round(512 * 1.2 / 4);
+  const bx = Math.round(512 * 0.42), by = Math.round(512 * 0.34);
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(bx - 4, by - 4, bw + 8, bh + 8);
+  g.fillStyle = '#9aa0a6'; g.fillRect(bx, by, bw, bh);
+  g.fillStyle = '#2a3238'; g.fillRect(bx + 7, by + 7, bw - 14, bh - 14);
+  g.fillStyle = 'rgba(190,215,238,0.45)';
+  g.beginPath();
+  g.moveTo(bx + 8, by + 8); g.lineTo(bx + bw * 0.62, by + 8);
+  g.lineTo(bx + bw * 0.22, by + bh - 8); g.lineTo(bx + 8, by + bh - 8);
+  g.closePath(); g.fill();
+  g.fillStyle = '#c9ccd0'; g.fillRect(bx + bw * 0.3, by + 2, bw * 0.4, 5);   // greep bovenaan
+  const t = tex(c); cache.set(key, t); return t;
+}
+
+/*
+ De gele Jumbo-vlag aan de masten voor de ingang (js/props.js). Portret, met
+ het woordmerk twee keer op zijn kant, zoals op de foto.
+*/
+export function jumboVlag() {
+  if (cache.has('jumbovlag')) return cache.get('jumbovlag');
+  const c = canvas(128, 512); const g = c.getContext('2d');
+  // De voorkant van het doek is het -Z-vlak van de doos in props.js, en dat
+  // vlak leest de texture gespiegeld; het canvas gaat er dus omgekeerd in. De
+  // achterkant staat daardoor in spiegelschrift, net als bij een echte vlag.
+  g.translate(128, 0); g.scale(-1, 1);
+  g.fillStyle = '#ffd200'; g.fillRect(0, 0, 128, 512);
+  // vouwen in het doek
+  for (let x = 0; x < 128; x += 16) {
+    g.fillStyle = `rgba(0,0,0,${0.04 + (x / 128) * 0.08})`;
+    g.fillRect(x, 0, 8, 512);
+  }
+  g.save();
+  g.translate(64, 256);
+  g.rotate(-Math.PI / 2);
+  g.fillStyle = '#2b2b28';
+  g.font = 'bold 74px sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('JUMBO', 0, 0);
+  g.restore();
+  // zoom langs de mastkant
+  g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillRect(0, 0, 6, 512);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 8; t.colorSpace = THREE.SRGBColorSpace;
+  cache.set('jumbovlag', t); return t;
+}
+
 // ---------- Bitumen plat dak ----------
 export function bitumen() {
   if (cache.has('bit')) return cache.get('bit');
@@ -367,6 +427,23 @@ export const HOUSE_STYLES = {
   // bedieningsgebouw/kantoor: lichtbruine steen, witte kozijnen met gewone
   // ramen, grijze deuren; de grijze buitentrap is een los object (props.js)
   rwzi_kantoor:{ brick: ['#c4ad86', '#d8d0bd'], frame: '#f2f2f0', frame2: '#4a4f55', door: ['#4a4f55'], roof: '#4a4d50', roofType: 'gable', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#8d9297', plint: '#6b6862', industrieel: true, kantoor: true },
+  // Supermarkt Jumbo, Molenkrite 1 (foto Look Around, 4 sep 2026): een rij
+  // puntdaken van donker metaal (die staan in het 3D BAG-model), een luifel op
+  // slanke kolommen over de volle breedte, daaronder een glazen pui met witte
+  // stijlen op een donkere plint, en boven de luifel de gele huisstijlband met
+  // het woordmerk. `industrieel` zet de gevel aan alle kanten aan (een
+  // vrijstaande winkel heeft geen achterkant) en houdt de dakkapellen uit;
+  // `winkel` kiest in facade() de winkelpui, `metaaldak` de dakplaten.
+  jumbo:       { brick: ['#8a7f74', '#c4bdb2'], frame: '#f4f4f2', frame2: '#f4f4f2', door: ['#3f4247'], roof: '#4b4e52', roofType: 'gable', storeys: 1, storeyH: 2.7, w: 6.0, dormer: false, chimney: false, band: '#f2f2f0', plint: '#3f4247', industrieel: true, winkel: true, metaaldak: true, geel: '#ffd200' },
+  // Tinga State, Molenkrite 115 (foto, 4 sep 2026): een stelpboerderij — een
+  // enorme steile piramidekap van rode pannen die van de nok op 13,3 m tot een
+  // goot op 1,9 m doorloopt, met rijen dakramen erin. Daaronder een lage
+  // bakstenen gevel met witte kozijnen, een zwarte schuurdeur en een terras.
+  // `boerderij` kiest in facade() die lage wand, `dakramen` het pannendak met
+  // dakramen erin (js/kaartwereld.js). `industrieel` houdt de wand in één stuk
+  // (niet afgeknipt op de goot, want de dakvoet loopt hier van 2 tot 4 m) en
+  // zet de wand aan alle kanten aan; een boerderij heeft geen achtergevel.
+  tinga_state: { brick: ['#9b6a4e', '#c9bfae'], frame: '#f6f6f2', frame2: '#1f4230', door: ['#1e1f22', '#1f4230'], roof: '#a8512c', roofType: 'gable', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#f2f2ee', plint: '#5a3a2e', industrieel: true, boerderij: true, dakramen: true },
 };
 
 // ---------- Stalen damwandprofiel (blauwe gevelbeplating RWZI) ----------
@@ -538,7 +615,100 @@ export function facade(type, n, storeys, back = false, seed = 1) {
     const x0 = i * HW;
     const mirror = (i % 2 === 1) && !st.detached;
     const doorColor = st.door[(i + seed) % st.door.length];
-    if (st.industrieel) {
+    if (st.winkel) {
+      /*
+       Winkelpui (Jumbo): donkere plint, glazen pui met witte stijlen, een witte
+       luifelband en bovenaan de gele huisstijlband met het woordmerk. Bij een
+       bedrijfsgevel rekt kaartwereld.js de texture over de hele muurhoogte uit,
+       dus de banden staan in verhoudingen en niet in vaste meters: op de lage
+       gevel onder de luifel geeft dat een pui van ruim twee meter, op het hoge
+       glazen blok bij de ingang dezelfde opbouw maar groter.
+      */
+      const geel = st.geel || '#ffd200';
+      const bandH2 = H * 0.13, luifelH = H * 0.05;
+      const plintH2 = Math.max(m(0.22), H * 0.06);
+      const puiBoven = bandH2 + luifelH, puiOnder = H - plintH2;
+      // plint
+      g.fillStyle = st.plint || '#3f4247'; g.fillRect(x0, puiOnder, HW, plintH2);
+      g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x0, puiOnder, HW, m(0.03));
+      // glas met lucht bovenin en de donkere winkel erachter
+      const pg = g.createLinearGradient(0, puiBoven, 0, puiOnder);
+      pg.addColorStop(0, '#93aabd'); pg.addColorStop(0.4, '#3d4d5a'); pg.addColorStop(1, '#242d34');
+      g.fillStyle = pg; g.fillRect(x0, puiBoven, HW, puiOnder - puiBoven);
+      // schuine weerspiegeling in de ruiten
+      g.fillStyle = 'rgba(215,230,244,0.18)';
+      g.beginPath(); g.moveTo(x0, puiBoven); g.lineTo(x0 + HW * 0.42, puiBoven); g.lineTo(x0 + HW * 0.14, puiOnder); g.lineTo(x0, puiOnder); g.closePath(); g.fill();
+      // witte stijlen elke 1,2 m, met een dorpel bovenaan
+      g.fillStyle = st.frame;
+      for (let k = 0; k * 1.2 <= st.w; k++) g.fillRect(x0 + m(k * 1.2) - m(0.05), puiBoven, m(0.10), puiOnder - puiBoven);
+      g.fillRect(x0, puiBoven, HW, m(0.10));
+      // schuifdeuren met een mat ervoor, in elke derde travee van de lage gevel
+      if (i % 3 === 1 && H < m(3.6)) {
+        const dw = m(1.9), dx = x0 + (HW - dw) / 2;
+        g.fillStyle = st.frame; g.fillRect(dx - m(0.08), puiBoven, dw + m(0.16), H - puiBoven);
+        g.fillStyle = '#2b353d'; g.fillRect(dx, puiBoven + m(0.10), dw, H - m(0.04) - puiBoven - m(0.10));
+        g.fillStyle = 'rgba(200,220,240,0.30)'; g.fillRect(dx + m(0.06), puiBoven + m(0.16), dw * 0.3, H - m(0.2) - puiBoven);
+        g.fillStyle = st.frame; g.fillRect(dx + dw / 2 - m(0.04), puiBoven, m(0.08), H - puiBoven);
+        g.fillStyle = '#3f4247'; g.fillRect(dx - m(0.3), H - m(0.05), dw + m(0.6), m(0.05));
+      }
+      // luifelband met slagschaduw op de pui
+      g.fillStyle = '#f6f6f4'; g.fillRect(x0, bandH2, HW, luifelH);
+      g.fillStyle = 'rgba(255,255,255,0.4)'; g.fillRect(x0, bandH2, HW, luifelH * 0.2);
+      const sg2 = g.createLinearGradient(0, puiBoven, 0, puiBoven + luifelH * 3);
+      sg2.addColorStop(0, 'rgba(0,0,0,0.4)'); sg2.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = sg2; g.fillRect(x0, puiBoven, HW, luifelH * 3);
+      // de gele band bovenaan met het woordmerk erin. Het staat in de eerste
+      // travee, want een smalle muur (het hoge blok bij de ingang) krijgt er
+      // maar één.
+      g.fillStyle = geel; g.fillRect(x0, 0, HW, bandH2);
+      g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(x0, bandH2 - m(0.05), HW, m(0.05));
+      if (i % 3 === 0) {
+        g.save();
+        g.fillStyle = '#2b2b28';
+        g.font = `bold ${Math.round(bandH2 * 0.62)}px sans-serif`;
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('JUMBO', x0 + HW / 2, bandH2 * 0.54);
+        g.restore();
+      }
+    } else if (st.boerderij) {
+      /*
+       Stelpboerderij (Tinga State): de kap komt over de gevel heen tot een
+       dakvoet van twee tot vier meter, dus onder het dak zit alleen een lage
+       bakstenen wand — rondom, want een boerderij heeft geen voor- en
+       achterkant. Per travee wisselen twee ramen, een zwarte schuurdeur met een
+       klein raam ernaast, en een groene staldeur met bovenlicht elkaar af.
+       Bovenaan het overstek van de kap, dat de wand in de schaduw zet.
+      */
+      const soort = (i + seed) % 3;
+      g.fillStyle = st.plint || '#5a3a2e'; g.fillRect(x0, H - m(0.3), HW, m(0.3));
+      g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x0, H - m(0.3), HW, m(0.04));
+      if (soort === 0) {
+        win(x0 + m(0.8), H - m(2.1), m(1.4), m(1.15), st.frame);
+        win(x0 + m(3.2), H - m(2.1), m(2.0), m(1.15), st.frame);
+      } else if (soort === 1) {
+        // zwarte schuurdeur met houten planken en een lichte lijst
+        const dh = m(2.3), dw = m(2.5), dx = x0 + m(1.5), dy = H - dh;
+        g.fillStyle = st.frame; g.fillRect(dx - m(0.10), dy - m(0.10), dw + m(0.20), dh + m(0.10));
+        g.fillStyle = '#1e1f22'; g.fillRect(dx, dy, dw, dh - m(0.02));
+        for (let k = 1; k < 9; k++) { g.fillStyle = 'rgba(255,255,255,0.07)'; g.fillRect(dx + k * dw / 9, dy, m(0.03), dh - m(0.02)); }
+        g.fillStyle = 'rgba(0,0,0,0.4)'; g.fillRect(dx, dy + dh * 0.5, dw, m(0.05));
+        win(x0 + m(4.5), H - m(1.95), m(1.0), m(0.9), st.frame);
+      } else {
+        const dh = m(2.15), dw = m(1.0), dx = x0 + m(0.8), dy = H - dh;
+        g.fillStyle = st.frame; g.fillRect(dx - m(0.09), dy - m(0.09), dw + m(0.18), dh + m(0.09));
+        g.fillStyle = st.frame2; g.fillRect(dx, dy, dw, dh - m(0.02));
+        g.fillStyle = '#28323a'; g.fillRect(dx + m(0.14), dy + m(0.18), dw - m(0.28), m(0.55));
+        g.fillStyle = 'rgba(200,220,240,0.4)'; g.fillRect(dx + m(0.18), dy + m(0.22), (dw - m(0.28)) * 0.4, m(0.47));
+        g.fillStyle = '#d8d8d8'; g.fillRect(dx + dw - m(0.22), dy + m(1.05), m(0.14), m(0.03));
+        win(x0 + m(2.4), H - m(2.1), m(1.6), m(1.15), st.frame);
+        win(x0 + m(4.5), H - m(2.1), m(1.1), m(1.15), st.frame);
+      }
+      // overstek van de kap: donkere band met een verloop naar beneden
+      g.fillStyle = '#3a2f28'; g.fillRect(x0, 0, HW, m(0.14));
+      const og = g.createLinearGradient(0, m(0.14), 0, m(1.0));
+      og.addColorStop(0, 'rgba(0,0,0,0.5)'); og.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = og; g.fillRect(x0, m(0.14), HW, m(0.86));
+    } else if (st.industrieel) {
       // bedrijfsgevel (RWZI): hoge smalle ramen, per twee traveeën een stalen
       // deur, in elke derde travee een overheaddeur; het kantoortype krijgt
       // gewone ramen met witte kozijnen en geen overheaddeur
@@ -614,17 +784,21 @@ export function facade(type, n, storeys, back = false, seed = 1) {
         }
       }
     }
-    // plint
-    g.fillStyle = plintKleur; g.fillRect(x0, H - m(plintH), HW, m(plintH));
-    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x0, H - m(plintH), HW, m(0.03));
-    // dakrand (boeiboord) bovenaan, met schaduw eronder
-    g.fillStyle = st.band; g.fillRect(x0, 0, HW, m(bandH));
-    g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x0, m(bandH), HW, m(0.06));
-    // regenpijp op de woningscheiding
-    if (!st.plaster && !st.detached && !st.damwand) {
-      g.fillStyle = '#8f9296'; g.fillRect(x0 + m(0.06), m(0.28), m(0.08), H - m(0.28));
-      g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x0 + m(0.12), m(0.28), m(0.03), H - m(0.28));
-      g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x0, 0, m(0.04), H);
+    // De winkel en de boerderij hebben hun eigen plint en dakrand hierboven
+    // afgemaakt; die zouden hier overschreven worden.
+    if (!st.winkel && !st.boerderij) {
+      // plint
+      g.fillStyle = plintKleur; g.fillRect(x0, H - m(plintH), HW, m(plintH));
+      g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x0, H - m(plintH), HW, m(0.03));
+      // dakrand (boeiboord) bovenaan, met schaduw eronder
+      g.fillStyle = st.band; g.fillRect(x0, 0, HW, m(bandH));
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x0, m(bandH), HW, m(0.06));
+      // regenpijp op de woningscheiding
+      if (!st.plaster && !st.detached && !st.damwand) {
+        g.fillStyle = '#8f9296'; g.fillRect(x0 + m(0.06), m(0.28), m(0.08), H - m(0.28));
+        g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x0 + m(0.12), m(0.28), m(0.03), H - m(0.28));
+        g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x0, 0, m(0.04), H);
+      }
     }
   }
   const t = new THREE.CanvasTexture(c);

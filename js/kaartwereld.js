@@ -379,6 +379,10 @@ function bouwPanden(scene, W, plat) {
     if (!hellend && st && st.industrieel) return groep(`dak|plat|${st.roof}`, () => new THREE.MeshStandardMaterial({ color: st.roof, roughness: 0.6, metalness: 0.3 }), 'platdak');
     if (!hellend) return groep('dak|plat', () => std(T.bitumen()), 'platdak');
     const kleur = st ? st.roof : '#4a3a33';
+    // dakplaten in plaats van pannen (de puntdaken van de supermarkt)
+    if (st && st.metaaldak) return groep(`dak|plaat|${kleur}`, () => new THREE.MeshStandardMaterial({ color: kleur, roughness: 0.5, metalness: 0.35 }), 'dak');
+    // pannen met dakramen erin (de kap van de stelpboerderij)
+    if (st && st.dakramen) return groep(`dak|ramen|${kleur}`, () => std(T.pannenMetDakramen(kleur)), 'dak');
     return groep(`dak|${kleur}`, () => std(T.roofTiles(kleur, 5)), 'dak');
   };
 

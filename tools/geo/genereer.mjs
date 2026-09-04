@@ -419,6 +419,10 @@ function dichtstbijOpAs(x, z) {
   return best;
 }
 function kiesType(p, straat) {
+  // een pand dat met naam en al in de catalogus staat (de supermarkt, de
+  // boerderij) gaat voor op alles wat uit de straat en de meetwaarden volgt
+  const vast = (STIJL.panden || {})[p.id];
+  if (vast && vast.type) return vast.type;
   const s = STIJL.straten[straat];
   const laag = (p.goot ?? 6) < 4, plat = p.dak === 'horizontal' || p.dak === 'multiple horizontal';
   const opp = Math.abs(oppervlak(p.voet));
@@ -619,6 +623,24 @@ for (const p of PANDEN) {
   p.front = nieuw;
 }
 tel('voorkant_gedraaid', voorkantGedraaid);
+
+// Voorkant met de hand aangewezen (data/stijl/straten.json, `voorkantNaar`): bij
+// een winkel ligt de ingang aan het plein en niet aan de dichtstbijzijnde
+// rijbaan. De zijde van de omsluitende rechthoek die het meest naar het
+// opgegeven punt wijst wordt de voorkant.
+for (const p of PANDEN) {
+  const vast = (STIJL.panden || {})[p.id];
+  if (!vast || !vast.voorkantNaar || !p.rect) continue;
+  const r = p.rect, u = [Math.cos(r.hoek), Math.sin(r.hoek)], v = [-u[1], u[0]];
+  let dx = vast.voorkantNaar[0] - r.cx, dz = vast.voorkantNaar[1] - r.cz;
+  const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
+  let best = null;
+  for (const d of [u, [-u[0], -u[1]], v, [-v[0], -v[1]]]) {
+    const s = d[0] * dx + d[1] * dz;
+    if (!best || s > best.s) best = { s, d };
+  }
+  p.front = [r2(best.d[0]), r2(best.d[1])];
+}
 
 // Dakkapellen: het 3D BAG-model heeft ze bij een deel van de woningen; in een
 // rij waar één woning er een heeft, hebben ze in werkelijkheid allemaal een
@@ -915,6 +937,27 @@ for (const pl of OMGEVING.plantsoenen || []) {
     } else console.warn(`LET OP: plantsoen ${pl.naam}: geen rand aan een voetpad gevonden voor het bankje`);
   }
   telling[`plantsoen_${pl.naam.replace(/\W+/g, '_')}_struiken`] = STRUIKEN.length - n0;
+}
+/*
+ Objecten die bij een pand horen (data/stijl/straten.json, `objecten`): de gele
+ vlaggenmasten voor de ingang van de supermarkt. Ze worden vanaf het midden van
+ de voorgevel uitgezet — `voor` meter naar de straat, `langs` meter langs de
+ gevel naar rechts gezien van buiten — en kijken met de gevel mee. Zo staan ze
+ nog steeds goed als het grondvlak in de brondata verschuift.
+*/
+for (const p of PANDEN) {
+  const vast = (STIJL.panden || {})[p.id];
+  if (!vast || !vast.objecten || !p.rect || !p.front) continue;
+  const r = p.rect, u = [Math.cos(r.hoek), Math.sin(r.hoek)];
+  const diep = Math.abs(p.front[0] * u[0] + p.front[1] * u[1]) > 0.7 ? r.hx : r.hz;
+  const gx = r.cx + p.front[0] * diep, gz = r.cz + p.front[1] * diep;
+  const langs = [p.front[1], -p.front[0]];
+  const yaw = Math.round(Math.atan2(-p.front[0], -p.front[1]) * 180 / Math.PI * 10) / 10;
+  for (const o of vast.objecten) {
+    const x = gx + p.front[0] * (o.voor || 0) + langs[0] * (o.langs || 0);
+    const z = gz + p.front[1] * (o.voor || 0) + langs[1] * (o.langs || 0);
+    OBJECTEN.push({ type: o.type, x: r2(x), z: r2(z), yaw });
+  }
 }
 tel('objecten', OBJECTEN.length);
 

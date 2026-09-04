@@ -6,7 +6,7 @@
 // Elk object wordt opgebouwd rond de oorsprong met zijn voet op y = 0 en kijkt
 // naar -Z. De editor draait en schaalt het daarna.
 import * as THREE from 'three';
-import { rng } from './textures.js';
+import { rng, jumboVlag } from './textures.js';
 
 // ---------- materialen ----------
 const M = {};
@@ -48,6 +48,8 @@ export function propMaterials() {
   M.haagWarm = mat(0x5b7434, 1);
   M.groenDonker = mat(0x2b3a30, 0.92);
   M.bierglas = new THREE.MeshStandardMaterial({ color: 0x6b3a12, roughness: 0.2, metalness: 0.1, transparent: true, opacity: 0.85 });
+  // het doek van de vlaggen voor de supermarkt: van beide kanten te zien
+  M.vlagJumbo = new THREE.MeshStandardMaterial({ map: jumboVlag(), roughness: 0.85, side: THREE.DoubleSide });
   M.klaar = true;
   return M;
 }
@@ -270,6 +272,19 @@ def('infobord', 'Informatiebord', 'straat', [1.6, 0.5], 1.7, () => bouw([
   doos(0.12, 1.2, 0.12, M.staalDonker, 0.62, 1.05, 0),
   doos(1.7, 0.95, 0.08, M.wit, 0, 1.2, 0),
   doos(1.6, 0.28, 0.02, M.groen, 0, 1.52, -0.05),
+]));
+
+/*
+ De gele vlaggenmasten voor de ingang van de Jumbo aan de Molenkrite (foto): een
+ slanke stalen mast van ruim zes meter op een betonvoet, met bovenaan een
+ dwarsstok waar het gele doek met het woordmerk aan hangt. Het doek kijkt naar
+ -Z, net als elk object hier, dus de generator draait ze met de gevel mee.
+*/
+def('jumbovlag', 'Vlaggenmast supermarkt', 'straat', [0.5, 0.5], 8.4, () => bouw([
+  doos(0.44, 0.07, 0.44, M.betonDonker, 0, 0.035, 0),
+  cil(0.045, 0.075, 8.3, M.staal, 0, 4.18, 0, 8),
+  cil(0.028, 0.028, 0.82, M.staal, 0.41, 8.16, 0, 6, 0, Math.PI / 2),
+  doos(0.78, 4.2, 0.04, M.vlagJumbo, 0.41, 6.0, 0),
 ]));
 
 def('nutskast', 'Nutskast', 'straat', [1.1, 0.5], 1.5, () => bouw([
