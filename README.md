@@ -121,9 +121,15 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 
 ## Bronnen
 
-De geometrie is handmatig overgenomen van satelliet- en kaartschermafbeeldingen van de wijk en de
-huisstijlen van streetview-foto's per straat (Molenkrite, Monnikmolen, Kruirad, De Wieken, Jasker,
-Molenpaal, Bonkelaar).
+De huidige geometrie is handmatig overgenomen van satelliet- en kaartschermafbeeldingen van de wijk en
+de huisstijlen van streetview-foto's per straat (Molenkrite, Monnikmolen, Kruirad, De Wieken, Jasker,
+Molenpaal, Bonkelaar). Dat is de zwakke plek van het spel.
+
+**[docs/METHODIEK.md](docs/METHODIEK.md)** beschrijft hoe de kaart voortaan wordt opgebouwd uit
+open overheidsdata (BGT, BAG, 3D BAG, luchtfoto) in plaats van uit foto's: welke bronnen, welk
+coördinatenstelsel, welke stappen en welke controles. De brondata hoort in `data/geo/` (zie
+[data/geo/README.md](data/geo/README.md)); `tools/geo/rd.mjs` rekent tussen RD, Google Maps en de
+spelwereld, en `tools/geo/controle.mjs` keurt de brondata voordat er iets mee gegenereerd wordt.
 
 ## Screenshots
 
