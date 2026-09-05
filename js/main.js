@@ -10,7 +10,7 @@ import { START, toWorld, ROWS, PROPS } from './data.js';
 import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
 import { initSfeer } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
-import { initInterieur } from './interieur.js';
+import { initInterieur, WONINGEN } from './interieur.js';
 import { initBoerderij } from './boerderij.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
@@ -295,12 +295,19 @@ const LEEG = {
   update() {}, toets() { return false; }, binnen() { return false; }, meldAan() {}, kaart() { return null; },
   winkels: [],
 };
-const interieur = initInterieur({ scene, player }) || LEEG;
+/*
+ Achter de voordeuren van Molenkrite 15 en de Wieken 29 (js/interieur.js). De
+ sfeermodule wordt verderop pas gemaakt, dus hij gaat als kijkvenster mee: de
+ kamers vragen alleen of het buiten donker is, en dat pas als de lus draait.
+*/
+const dagKlok = { get nacht() { return sfeer ? sfeer.nacht : false; } };
+const woningen = WONINGEN.map(h => initInterieur({ scene, player, sfeer: dagKlok, huis: h })).filter(Boolean);
+const interieur = woningen[0] || LEEG;
 // En achter de schuurdeur van Tinga State: de deel met de toonbank waar je
 // munitie koopt (js/boerderij.js).
 const boerderij = initBoerderij({ scene, player, hud, verhaal }) || LEEG;
 // Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
-const binnenruimtes = [interieur, boerderij];
+const binnenruimtes = [...woningen, boerderij];
 const ergensBinnen = (x, z) => binnenruimtes.some(r => r.binnen(x, z));
 // winkeltjes op de minikaart en op de grote kaart
 hud.zetWinkels(binnenruimtes.flatMap(r => r.winkels || []));
@@ -420,8 +427,7 @@ function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
   if (editor && editor.actief) return;
   if (verhaal.toets()) return;
-  if (interieur.toets()) return;
-  if (boerderij.toets()) return;
+  for (const r of binnenruimtes) if (r.toets()) return;
   toggleCar();
 }
 window.addEventListener('keydown', e => {
@@ -681,7 +687,7 @@ loop();
 
 // Testhaak voor automatische screenshots
 window.__game = {
-  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, boerderij, derde, politie,
+  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, woningen, boerderij, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
 };
 

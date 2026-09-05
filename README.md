@@ -23,7 +23,7 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 |---|---|
 | W A S D | lopen (shift = sprinten, spatie = springen) |
 | muis | rondkijken · linkermuisknop = schieten · R = herladen · H = pistool weg en weer tevoorschijn |
-| E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15 en de schuurdeur van Tinga State naar binnen en naar buiten · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto |
+| E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
 | portemonnee | rechtsonder; je begint met € 50 en verdient de rest met missies |
@@ -379,6 +379,54 @@ mislukking bij een schot, het uitgeput raken, het pakken, de beloning, de woning
 (maten, wanden, teleport, hoogtes van aanrecht, bank en tv) en opslaan en laden.
 `npm run verhaalshots` maakt de foto's hierboven.
 
+## Naar binnen bij de Wieken 29
+
+Ook achter de blauwe voordeur van **de Wieken 29** kun je naar binnen. Het is dezelfde bouwer als bij
+Molenkrite 15 — een voorhuis met een aanbouw erachter — maar met de maten van dít pand uit de kaart:
+5,38 bij 14,07 m, met de keuken in de aanbouw en de gang aan de andere kant, want het grondvlak ligt
+gespiegeld.
+
+![De voordeur van de Wieken 29](docs/screenshots/wieken29_voordeur.png)
+
+![De woonkamer](docs/screenshots/wieken29_woonkamer.png)
+
+Drie dingen die er voor allebei de woningen bij zijn gekomen:
+
+**Je kunt naar buiten kijken.** Het glas is doorzichtig geworden. De kamer staat ver buiten het
+kaartgebied, dus daar was niets te zien; nu staat de buurt er weer omheen. De panden binnen vijftig
+meter van het huis zijn op hun echte plek, maat en goothoogte uit de kaart als eenvoudige blokken
+neergezet, met de straat en de stoep aan de voorkant, gras eromheen en een paar bomen. Van dichtbij is
+het een blokkendoos, maar door een raam is het precies de buurt zoals hij hoort te liggen.
+
+![De buren door de tuindeur](docs/screenshots/binnen_uitzicht.png)
+
+**Je kunt op de bank zitten.** Sta je bij de bank, dan zegt de hint `E — op de bank zitten`. Je zakt
+naar zithoogte, kijkt naar de tv aan de overkant en kunt rondkijken; lopen doe je pas weer als je met
+E opstaat.
+
+![Vanaf de bank](docs/screenshots/wieken29_bank.png)
+
+**En als het buiten donker wordt gaat de lamp aan.** Er staan geen lampen in de scene — de helderheid
+zit in de materialen — dus 's avonds gaat er een andere tint over alle vlakken: binnen warm en iets
+gedempt, buiten donkerblauw. De plafondlamp is dan het felste vlak in de kamer. Met `[` en `]` zet je
+de klok vooruit, met `\` laat je hem lopen.
+
+![Dezelfde kamer 's avonds](docs/screenshots/wieken29_avond.png)
+
+`npm run woningtest` toetst het geheel: de tweede woning en zijn maten, de deur heen en terug, het
+zitten (lager oog, niet meer kunnen lopen, weer opstaan), de lamp die met de klok mee aan en uit gaat,
+het doorzichtige glas met een buurt erachter, en het speeltuintje hieronder.
+`npm run woningshots` maakt de foto's.
+
+## Het speeltuintje achter de Wieken 144
+
+Op het grasveld achter **de Wieken 144** — tussen de huizen en de vaart — staat een speeltuintje: een
+schommel, een houten speelhuisje met een zadeldakje, een wipwap en een glijbaan, met een zandbak en
+een bankje erbij. Ze staan uitgezet vanaf de voorgevel van 144, dus ze schuiven mee als het grondvlak
+in de brondata verandert.
+
+![Het speeltuintje](docs/screenshots/speeltuin_wieken.png)
+
 ## Naar binnen bij Tinga State: munitie kopen
 
 De stelpboerderij aan de Molenkrite is de tweede plek waar je naar binnen kunt. Ga voor de zwarte
@@ -588,6 +636,9 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `tools/winkeltest.mjs` – toetst de boerderijwinkel: beginkapitaal, de schuurdeur, de deel en het
   kopen van munitie
 - `tools/winkelshots.mjs` – maakt de foto's van Tinga State van buiten en van binnen
+- `tools/woningtest.mjs` – toetst de Wieken 29, het zitten op de bank, de plafondlamp, het uitzicht
+  door het glas en het speeltuintje
+- `tools/woningshots.mjs` – maakt de foto's van de Wieken 29, binnen en buiten
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

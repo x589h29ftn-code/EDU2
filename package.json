@@ -44,6 +44,8 @@
     "politieshots": "node tools/politieshots.mjs",
     "winkeltest": "node tools/winkeltest.mjs",
     "winkelshots": "node tools/winkelshots.mjs",
+    "woningtest": "node tools/woningtest.mjs",
+    "woningshots": "node tools/woningshots.mjs",
     "adresshots": "node tools/adresshots.mjs"
   }
 }

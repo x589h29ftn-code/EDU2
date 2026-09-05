@@ -419,6 +419,101 @@ def('speeltoestel', 'Klimtoestel', 'spelen', [3.4, 2.6], 2.6, () => {
   return bouw(d);
 });
 
+/*
+ De speeltuin op het grasveld achter de Wieken 144. Vier toestellen zoals ze in
+ een Nederlandse wijk staan: een dubbele schommel in een A-frame, een houten
+ speelhuisje op poten met een zadeldakje, een wipwap op een schoor, en een
+ losse glijbaan met een laddertje en een platform.
+*/
+def('schommel', 'Schommel', 'spelen', [3.4, 1.8], 2.5, () => {
+  const d = [];
+  const H = 2.3, B = 1.55;                      // hoogte en halve breedte van de balk
+  d.push(doos(3.3, 0.12, 0.12, M.staalDonker, 0, H, 0));       // bovenbalk
+  // twee A-frames: per kant twee schuine palen
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const g = new THREE.CylinderGeometry(0.055, 0.055, H + 0.14, 8);
+      g.rotateX(sz * 0.28);
+      g.translate(sx * B, (H + 0.14) / 2 - 0.05, sz * 0.62);
+      d.push({ g, m: M.staal });
+    }
+  }
+  // twee zitjes aan kettingen
+  for (const sx of [-0.62, 0.62]) {
+    for (const sz of [-0.16, 0.16]) d.push(cil(0.012, 0.012, 1.72, M.staalDonker, sx, H - 0.86, sz, 5));
+    d.push(doos(0.46, 0.05, 0.20, M.zwart, sx, 0.60, 0));
+  }
+  return bouw(d);
+});
+
+def('speelhuisje', 'Speelhuisje', 'spelen', [1.9, 1.7], 2.2, () => {
+  const d = [];
+  const B = 1.5, D = 1.3, VLOER = 0.55, WAND = 1.05;
+  for (const [x, z] of [[-B / 2 + 0.08, -D / 2 + 0.08], [B / 2 - 0.08, -D / 2 + 0.08],
+                        [-B / 2 + 0.08, D / 2 - 0.08], [B / 2 - 0.08, D / 2 - 0.08]])
+    d.push(doos(0.10, VLOER, 0.10, M.houtDonker, x, VLOER / 2, z));
+  d.push(doos(B, 0.08, D, M.plank, 0, VLOER, 0));                       // vloertje
+  // wanden, met een deurgat aan de voorkant en een raampje opzij
+  d.push(doos(B, WAND, 0.07, M.hout, 0, VLOER + WAND / 2, D / 2));      // achter
+  for (const sx of [-1, 1]) d.push(doos(0.07, WAND, D, M.hout, sx * B / 2, VLOER + WAND / 2, 0));
+  for (const sx of [-1, 1]) d.push(doos(B / 2 - 0.22, WAND, 0.07, M.hout, sx * (B / 4 + 0.11), VLOER + WAND / 2, -D / 2));
+  d.push(doos(0.44, 0.30, 0.07, M.hout, 0, VLOER + WAND - 0.15, -D / 2));   // bovenlicht boven de deur
+  // zadeldakje: twee schuine platen
+  for (const sx of [-1, 1]) {
+    const g = new THREE.BoxGeometry(B / 2 + 0.16, 0.07, D + 0.24);
+    g.rotateZ(sx * 0.62);
+    g.translate(sx * (B / 4 + 0.02), VLOER + WAND + 0.22, 0);
+    d.push({ g, m: M.rood });
+  }
+  // trapje naar de deur
+  for (let i = 0; i < 2; i++) d.push(doos(0.6, 0.06, 0.24, M.plank, 0, 0.18 + i * 0.19, -D / 2 - 0.16 - i * 0.22));
+  return bouw(d);
+});
+
+def('wipwap', 'Wipwap', 'spelen', [3.2, 0.7], 1.0, () => {
+  const d = [];
+  d.push(doos(0.34, 0.55, 0.34, M.staalDonker, 0, 0.28, 0));            // voet
+  d.push(cil(0.06, 0.06, 0.62, M.staal, 0, 0.55, 0, 8, 0, Math.PI / 2));// draaias
+  // de plank staat schuin: één kant op de grond, de andere omhoog
+  const plank = new THREE.BoxGeometry(3.0, 0.09, 0.28);
+  plank.rotateZ(0.19);
+  plank.translate(0, 0.60, 0);
+  d.push({ g: plank, m: M.geel });
+  for (const [sx, sy] of [[-1, -0.285], [1, 0.285]]) {
+    d.push(doos(0.34, 0.06, 0.30, M.rood, sx * 1.25, 0.60 + sy, 0));    // zitje
+    d.push(cil(0.03, 0.03, 0.26, M.staalDonker, sx * 1.05, 0.74 + sy, 0, 6)); // handvat
+    d.push(cil(0.028, 0.028, 0.24, M.staalDonker, sx * 1.05, 0.86 + sy, 0, 6, Math.PI / 2));
+  }
+  return bouw(d);
+});
+
+def('glijbaan', 'Glijbaan', 'spelen', [1.3, 3.8], 2.4, () => {
+  const d = [];
+  const H = 1.55;                                    // hoogte van het platform
+  for (const [x, z] of [[-0.5, 1.25], [0.5, 1.25], [-0.5, 0.55], [0.5, 0.55]])
+    d.push(cil(0.055, 0.055, H, M.staal, x, H / 2, z, 8));
+  d.push(doos(1.15, 0.08, 0.85, M.plank, 0, H, 0.9));                   // platform
+  for (const sx of [-1, 1]) d.push(doos(0.06, 0.75, 0.85, M.staalDonker, sx * 0.54, H + 0.4, 0.9));
+  // laddertje aan de achterkant
+  for (const sx of [-1, 1]) {
+    const g = new THREE.CylinderGeometry(0.04, 0.04, H + 0.5, 7);
+    g.rotateX(0.42);
+    g.translate(sx * 0.42, (H + 0.5) / 2 - 0.06, 1.55);
+    d.push({ g, m: M.staal });
+  }
+  for (let i = 0; i < 4; i++) d.push(cil(0.028, 0.028, 0.9, M.staalDonker, 0, 0.28 + i * 0.36, 1.4 - i * 0.16, 6, 0, Math.PI / 2));
+  // de baan zelf, met opstaande randen
+  const baan = new THREE.BoxGeometry(0.62, 0.06, 2.55);
+  baan.rotateX(-0.52); baan.translate(0, H - 0.52, -0.65);
+  d.push({ g: baan, m: M.blauw });
+  for (const sx of [-1, 1]) {
+    const rand = new THREE.BoxGeometry(0.06, 0.20, 2.55);
+    rand.rotateX(-0.52); rand.translate(sx * 0.34, H - 0.44, -0.65);
+    d.push({ g: rand, m: M.blauw });
+  }
+  return bouw(d);
+});
+
 def('wipkip', 'Wipkip', 'spelen', [0.8, 1.2], 0.9, () => bouw([
   cil(0.05, 0.05, 0.55, M.staal, 0, 0.27, 0, 8),
   doos(0.30, 0.35, 1.0, M.rood, 0, 0.72, 0),
