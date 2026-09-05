@@ -575,11 +575,11 @@ export function initEditor(ctx) {
     if (aan) {
       player.pos.y = Math.max(player.pos.y, 6);
       for (const m of npcs.targets) m.visible = false;
-      for (const c of vehicles.cars) c.mesh.visible = false;
+      vehicles.zichtbaarheid(false);
       hud.show('Wijkeditor aan – F2 om te sluiten', 3);
     } else {
       for (const m of npcs.targets) m.visible = true;
-      for (const c of vehicles.cars) c.mesh.visible = true;
+      vehicles.zichtbaarheid(true);
       player.pos.y = 0;
       hulp.visible = false;
     }

@@ -120,6 +120,37 @@ iedereen weer verder. Wie er ver vandaan loopt merkt er niets van.
 lichten, de camera achter je, het aanrijden, het wegrennen en de botsingen tussen auto's onderling.
 `npm run rijshots` maakt de foto's hierboven.
 
+## Snelheid
+
+Het spel draait op een telefoon en straks op een pc, dus de motor is gemeten en
+niet op gevoel bijgesteld (`npm run audit`):
+
+| | eerst | nu |
+|---|---|---|
+| draw calls in de wijk | 1649 | **595** |
+| driehoeken per beeld | 1,69 M | **1,28 M** |
+| texturegeheugen | 187 MB | **82 MB** |
+| meshes in de scene | 3254 | **1256** |
+
+Wat daarvoor veranderd is:
+
+- **De 329 geparkeerde auto's zijn instanced.** Ze stonden er als losse groepjes
+  van zeven meshes — op straat waren er zeshonderd van in beeld, meer dan de
+  helft van alle draw calls. Nu zijn het zeven instanced meshes per soort voor
+  de hele wijk, met de lakkleur per auto. Stap je in, dan gaat die ene op schaal
+  nul en komt zijn eigen model met wielen ervoor in de plaats.
+- **Auto's verder dan 170 m gaan uit.** Een instanced mesh valt nooit buiten
+  beeld, dus zonder dat gingen alle 329 elk beeld naar de GPU.
+- **De wereld ligt in tegels van 240 m.** De kaart werd per materiaal in één
+  mesh samengevoegd — één mesh met alle trottoirbanden van de wijk — en die valt
+  nooit buiten beeld. Hetzelfde gold voor de 3177 bomen. Nu gooit frustum
+  culling het meeste weg.
+- **De gevelplaten zijn kleiner.** Ze werden op 40 beeldpunten per meter
+  getekend; dat is nu 26, met een bovengrens van 2048 px voor een lang rijtje.
+  De steen- en dakpandoeken (tientallen kleurvarianten van 512×512) gaan naar
+  288. Samen scheelt dat honderd megabyte — op een telefoon het verschil tussen
+  soepel en haperen.
+
 ## Het verhaal
 
 Je heet **Erik**. Je broer **Mark** heeft vier missies voor je, en daarna belt Johan.

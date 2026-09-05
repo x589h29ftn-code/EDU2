@@ -90,6 +90,7 @@ export function laadSpel({ player, sfeer, vehicles, verhaal }) {
     const auto = vehicles.cars[d.auto.index];
     if (auto) {
       auto.x = d.auto.x; auto.z = d.auto.z; auto.yaw = d.auto.yaw; auto.speed = 0;
+      vehicles.maakBestuurbaar(auto);
       auto.mesh.position.set(auto.x, 0, auto.z); auto.mesh.rotation.y = auto.yaw;
       player.inCar = auto;
       player.lastCarYaw = undefined;

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { resolveCollisions, pointInWater } from './world.js';
 import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
-import { makeCar } from './carmodel.js';
+import { makeCar, maakAutoStapel } from './carmodel.js';
 import { KAART } from './kaartwereld.js';
 
 const COLORS = [0x1c1e24, 0xd8d9dc, 0x8a8d93, 0x2a3f8f, 0x9c1f1f, 0xffffff, 0x3e3a36, 0x2f6b3a, 0x5b6470, 0xc9c1a8];
@@ -11,18 +11,42 @@ const COLORS = [0x1c1e24, 0xd8d9dc, 0x8a8d93, 0x2a3f8f, 0x9c1f1f, 0xffffff, 0x3e
 export class Vehicles {
   constructor(scene, parkSpots) {
     this.scene = scene;
-    this.cars = [];   // {mesh,x,z,yaw,speed,driveable}
+    this.cars = [];   // {mesh|inst,x,z,yaw,speed,driveable}
     this.traffic = [];
     this.duwen = [];  // geparkeerde auto's die een klap kregen en uitrollen
     const r = rng(2024);
-    for (const s of parkSpots) {
-      const kind = r() < 0.15 ? 'van' : 'hatch';
-      const kleur = COLORS[Math.floor(r() * COLORS.length)];
-      const mesh = makeCar(kleur, kind);
-      const car = { mesh, x: s.x, z: s.z, yaw: s.yaw, speed: 0, steer: 0, driveable: true, hp: 100, soort: kind, kleur, breedte: kind === 'van' ? 1.90 : 1.78 };
-      mesh.position.set(s.x, 0, s.z); mesh.rotation.y = s.yaw;
-      scene.add(mesh); this.cars.push(car);
+    /*
+     De geparkeerde auto's staan als instanced meshes in de wereld: zeven per
+     soort in plaats van zeven per auto. Ze hebben dus geen eigen `mesh`, maar
+     een `inst` met de stapel en hun plek erin; `zetInstantie` schrijft hun
+     matrix. Stap je in, dan wordt die instantie op schaal nul gezet en komt het
+     losse model met wielen ervoor in de plaats (zie `maakBestuurbaar`).
+    */
+    const soorten = parkSpots.map(() => (r() < 0.15 ? 'van' : 'hatch'));
+    this.stapels = {};
+    for (const soort of ['hatch', 'van']) {
+      const n = soorten.filter(k => k === soort).length;
+      if (!n) continue;
+      const stapel = maakAutoStapel(soort, n);
+      for (const m of stapel.meshes) scene.add(m);
+      this.stapels[soort] = { stapel, n: 0, autos: [] };
     }
+    parkSpots.forEach((s, i) => {
+      const kind = soorten[i];
+      const kleur = COLORS[Math.floor(r() * COLORS.length)];
+      const stap = this.stapels[kind];
+      const idx = stap.n++;
+      const car = {
+        mesh: null, inst: { soort: kind, i: idx }, zichtbaar: true,
+        x: s.x, z: s.z, yaw: s.yaw, speed: 0, steer: 0, driveable: true, hp: 100,
+        soort: kind, kleur, breedte: kind === 'van' ? 1.90 : 1.78,
+      };
+      stap.autos[idx] = car;
+      stap.stapel.zet(idx, s.x, s.z, s.yaw, true);
+      stap.stapel.kleur(idx, kleur);
+      this.cars.push(car);
+    });
+    for (const k of Object.keys(this.stapels)) this.stapels[k].stapel.klaar();
     // verkeer N7 (beide richtingen). Met de kaart uit de BGT zijn de twee
     // rijbanen van de N7 losse assen; elke as krijgt verkeer in één richting.
     const n7 = KAART ? KAART.wegassen.filter(w => w.naam === 'N7' && w.w > 6 && w.lengte > 150).map(w => w.pts.map(p => new THREE.Vector2(p[0], p[1]))) : [];
@@ -49,6 +73,65 @@ export class Vehicles {
       scene.add(mesh);
       this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: 1, lane: 1.4, speed: 6 + r() * 2, y: 0.1, bounce: true });
     }
+  }
+
+  // De matrix van een geparkeerde auto in zijn stapel bijwerken.
+  zetInstantie(car) {
+    if (!car.inst) return;
+    const stap = this.stapels[car.inst.soort];
+    const zichtbaar = car.zichtbaar !== false && car.getekend !== false;
+    stap.stapel.zet(car.inst.i, car.x, car.z, car.yaw, zichtbaar);
+    stap.stapel.klaar();
+  }
+
+  // Staat deze auto in beeld? Een geparkeerde auto heeft geen eigen mesh meer.
+  isZichtbaar(car) { return car.mesh ? car.mesh.visible : car.zichtbaar !== false; }
+
+  /*
+   Geparkeerde auto's op afstand uitzetten.
+
+   De stapels worden nooit weggecullld — één instanced mesh met de hele wijk
+   erin ligt altijd in beeld — dus alle 329 auto's gingen elk beeld naar de GPU:
+   ruim 380.000 driehoeken, ook die achter je. Op `ZICHT` meter is een auto nog
+   een blokje van een paar beeldpunten; verder weg zetten we ze op schaal nul.
+   Dit loopt mee met de LOD-klok in js/main.js (vier keer per seconde), niet elk
+   beeld.
+  */
+  lod(camX, camZ, zicht = 170) {
+    const q = zicht * zicht;
+    for (const k of Object.keys(this.stapels)) {
+      const stap = this.stapels[k];
+      let veranderd = false;
+      for (const car of stap.autos) {
+        if (!car || car.mesh) continue;                    // deze rijdt, die heeft zijn eigen model
+        const dx = car.x - camX, dz = car.z - camZ;
+        const dichtbij = dx * dx + dz * dz < q;
+        const wil = dichtbij && car.zichtbaar !== false;
+        if (car.getekend === wil) continue;
+        car.getekend = wil;
+        stap.stapel.zet(car.inst.i, car.x, car.z, car.yaw, wil);
+        veranderd = true;
+      }
+      if (veranderd) stap.stapel.klaar();
+    }
+  }
+
+  // Alle auto's aan of uit: binnen in een huis en in het bovenaanzicht hoort de
+  // wijk leeg te zijn (zie js/main.js en js/editor.js).
+  zichtbaarheid(aan) {
+    for (const c of this.cars) {
+      if (c.mesh) c.mesh.visible = aan;
+      else if (c.zichtbaar !== aan) { c.zichtbaar = aan; c.getekend = aan; this.zetInstantie(c); }
+    }
+    for (const t of this.traffic) t.mesh.visible = aan;
+  }
+
+  // De instanced meshes zelf, om op te schieten (raycast) — zie js/main.js.
+  doelen() {
+    const uit = [];
+    for (const k of Object.keys(this.stapels)) uit.push(...this.stapels[k].stapel.meshes);
+    for (const c of this.cars) if (c.mesh) uit.push(c.mesh);
+    return uit;
   }
 
   nearestDriveable(x, z, maxD = 3.0) {
@@ -93,12 +176,14 @@ export class Vehicles {
    opzichte van iedereen die uitvoering geven.
   */
   maakBestuurbaar(car) {
-    if (!car || car.mesh.userData.wielen) return car;
-    const nieuw = makeCar(car.kleur ?? car.mesh.children[0].material.color.getHex(), car.soort || 'hatch', true);
+    if (!car || (car.mesh && car.mesh.userData.wielen)) return car;
+    const zichtbaar = this.isZichtbaar(car);
+    const nieuw = makeCar(car.kleur ?? 0x8a8d93, car.soort || 'hatch', true);
     nieuw.position.set(car.x, 0, car.z);
     nieuw.rotation.y = car.yaw;
-    nieuw.visible = car.mesh.visible;
-    this.scene.remove(car.mesh);
+    nieuw.visible = zichtbaar;
+    if (car.inst) { car.zichtbaar = false; this.zetInstantie(car); }   // de instantie op schaal nul
+    else if (car.mesh) this.scene.remove(car.mesh);
     this.scene.add(nieuw);
     car.mesh = nieuw;
     return car;
@@ -213,7 +298,7 @@ export class Vehicles {
     const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw);
     const buurt = [];
     for (const c of this.cars) {
-      if (c === car || !c.mesh.visible) continue;
+      if (c === car || !this.isZichtbaar(c)) continue;
       if (Math.abs(c.x - cx) > 12 || Math.abs(c.z - cz) > 12) continue;
       buurt.push({ x: c.x, z: c.z, yaw: c.yaw, as: c.as || 1.4, r: c.botsRadius || 0.95, auto: c });
     }
@@ -261,7 +346,8 @@ export class Vehicles {
       if (!v) { this.duwen.splice(i, 1); continue; }
       const [rx, rz] = resolveCollisions(c.x + v.x * dt, c.z + v.z * dt, c.botsRadius || 0.95, 3.5);
       c.x = rx; c.z = rz;
-      c.mesh.position.set(rx, c.mesh.position.y, rz);
+      if (c.mesh) c.mesh.position.set(rx, c.mesh.position.y, rz);
+      else this.zetInstantie(c);
       const rem = Math.max(0, 1 - 3.5 * dt);
       v.x *= rem; v.z *= rem;
       if (Math.hypot(v.x, v.z) < 0.15) { c.duwV = null; this.duwen.splice(i, 1); }
@@ -338,7 +424,7 @@ export class Vehicles {
       };
 
       for (const a of this.traffic) { if (a !== t) inDeWeg(a._pos.x, a._pos.y, 0.4); }
-      for (const c of this.cars) { if (c.mesh.visible) inDeWeg(c.x, c.z, 0.4); }
+      for (const c of this.cars) { if (this.isZichtbaar(c)) inDeWeg(c.x, c.z, 0.4); }
       if (speler && !speler.inCar) inDeWeg(speler.pos.x, speler.pos.z, 0.1);
       if (voetgangers) {
         for (const v of voetgangers) { if (v.alive && v.opWeg) inDeWeg(v.x, v.z, 0.1); }
@@ -368,7 +454,14 @@ export class Vehicles {
 
   // Een treffer van het pistool. Het model is genest (carrosserie en wielen in
   // eigen groepen), dus zoek van de geraakte mesh omhoog naar de auto.
-  hit(mesh) {
+  hit(mesh, instanceId) {
+    // een geparkeerde auto zit in een stapel: het instantienummer wijst hem aan
+    const soort = mesh && mesh.userData && mesh.userData.autoStapel;
+    if (soort && instanceId != null) {
+      const car = this.stapels[soort].autos[instanceId];
+      if (car) { car.hp -= 25; return car; }
+      return null;
+    }
     for (let p = mesh; p; p = p.parent) {
       for (const c of this.cars) if (c.mesh === p) { c.hp -= 25; return c; }
     }
