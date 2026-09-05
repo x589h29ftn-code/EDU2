@@ -237,6 +237,7 @@ naar `main` om een build te krijgen.
 | Panden met een eigen aanzien (winkel, boerderij) | `npm run adresshots` | foto per pand naast de bronfoto |
 | Het verhaal, alle vijf de missies (stap 8) | `npm run verhaaltest` | eindigt op "Alles goed" |
 | Rijden, de camera achter je, aanrijden (stap 8) | `npm run rijtest` | eindigt op "Alles goed" |
+| Nergens vastlopen op een binnenterrein (stap 8) | `npm run looptest` | eindigt op "Alles goed" |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
 betrouwbaar kan beoordelen, omdat het een pixel-voor-pixel vergelijking is op
@@ -736,6 +737,56 @@ en `npm run verhaaltest` op "Alles goed" — met één aangepaste toets: de
 vrachtwagen die de poort uit rijdt loopt buiten tegen de auto aan waarmee je zelf
 naar de waterzuivering bent gereden, dus daar wordt nu de hoogste snelheid
 onderweg gemeten in plaats van die bij het laatste beeld.
+
+**Vastlopen bij de school, en de gevels van De Spil en Jeugdhulp Friesland
+(stap 8).** Op het plein van de school aan de Molenkrite kwam je klem te staan,
+te voet en met de auto, en soms drukte de botsingsafhandeling je het gebouw in.
+De oorzaak zat in `bouwPanden`: elk pand kreeg één botsingsdoos, de omhullende
+rechthoek `p.rect`. Voor een rijtjeshuis is dat precies goed, maar de school is
+een U om een plein heen en die rechthoek is 6600 m² — het plein, de
+fietsenstalling en de paden ertussen telden dus mee als muur.
+
+`pandDozen` in `js/kaartwereld.js` legt de dozen nu op de echte voetafdruk. Het
+is een trapeziumontleding: in het assenstelsel van de **langste gevel** (niet
+dat van de omhullende rechthoek, want die staat bij een hoekig complex scheef op
+de muren) is elke hoekpunt-x een snijlijn, en per strook geeft een verticale
+scanlijn de stukken die binnen de voetafdruk vallen. Stroken met hetzelfde stuk
+worden aan elkaar geplakt, en een strook waarin de gevel schuin wegloopt wordt
+in stukjes van een halve meter gehakt zodat er geen gat in de muur valt. Vult de
+voetafdruk de rechthoek voor meer dan 97 % (vrijwel elk rijtjeshuis), dan blijft
+het bij die ene doos — anders waren het er duizenden meer. Zo staat het op 8966
+dozen tegen 4832 eerst, en dat is te meten: `resolveCollisions` is een rechte
+lijst, en `player.update` staat in `npm run audit` nog steeds op 0,01 ms.
+
+Nieuw gereedschap: `npm run looptest` toetst het van twee kanten. Eerst elk punt
+binnen de omhullende rechthoek van de grotere panden dat buiten élke voetafdruk
+ligt (met anderhalve meter marge voor de gevel) — dat moet vrij zijn. Daarna een
+echte wandeling: vanaf een open plek op het binnenterrein van de vier grootste
+panden acht kanten op lopen, in stapjes van tien centimeter langs dezelfde
+botsingsafhandeling als de speler; je mag nergens klem komen en nooit binnen een
+voetafdruk eindigen. Van de 4235 open punten zijn er nog 69 dicht (bomen en
+struiken op het plein, geen muren).
+
+Bij dezelfde plek horen twee gevels die er als een naamloos blok bij stonden.
+**De Spil** (Molenkrite 169) krijgt in `facade()` een schoolgevel: een
+doorlopende raamstrook met felblauwe kozijnen en gele gordijnen, een gele
+plaatband onder een lichte dakrand, om de drie traveeën de ingang met een geel
+bord erboven, en een donkere plint. **Jeugdhulp Friesland** (Molenkrite 234)
+wordt een laag gebouw met plat dak in donkerbruine steen. Daar hoort een hek en
+een speeltuin bij, en dat botste op de bronregel: de BGT-laag `scheiding` bevat
+in Tinga alleen kademuren, dus dit hek staat nergens in de data. Het staat nu in
+`data/stijl/omgeving.json` onder `hekken`, met de foto als bron — maar niet als
+een lijst met de hand ingetypte punten: de generator legt de lijn om de
+omhullende rechthoek van het pand heen (`omPand`, `marge`) en laat alles
+vervallen wat op een rijbaan, inrit, fietspad, voetpad of water zou komen.
+Daardoor ontstaat de opening bij de inrit vanzelf en staat er nooit een hek
+dwars over de weg. De speeltuin zijn gewone objecten uit `js/props.js` bij het
+pand in `straten.json`.
+
+Controle: `npm run looptest` eindigt op "Alles goed", `npm run geo:boven` blijft
+op 1,31 %, `npm run propcheck` geeft nog dezelfde vijf oude meldingen en
+`npm run verhaaltest` en `npm run rijtest` blijven groen. `npm run adresshots`
+maakt de foto's van de vier panden met een eigen aanzien.
 
 **Wat nog niet af is (in volgorde).**
 

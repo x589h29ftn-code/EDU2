@@ -120,6 +120,29 @@ ok(model.remlicht && model.achteruit && model.bak, 'met remlichten, achteruitrij
 ok(model.erbij <= 12, 'en dat kost maar een handvol meshes extra', `${model.erbij} erbij`);
 ok(model.driehoeken > 120, `de carrosserie is meer dan een doos (${model.driehoeken} driehoeken lak)`);
 
+// ---------- 1b. het uitzicht vanachter het stuur ----------
+const uitzicht = await page.evaluate(async () => {
+  const THREE = await import('three');
+  const g = window.__game;
+  const c = g.vehicles.cars.find(q => q.mesh.userData.glas);
+  const oog = c.mesh.userData.oog;
+  c.mesh.updateMatrixWorld(true);
+  const oorsprong = new THREE.Vector3(oog.x, oog.y, oog.z).applyMatrix4(c.mesh.matrixWorld);
+  const vooruit = new THREE.Vector3(-Math.sin(c.yaw), 0, -Math.cos(c.yaw));
+  const omlaag = new THREE.Vector3(-Math.sin(c.yaw), -0.45, -Math.cos(c.yaw)).normalize();
+  g.vehicles.ruiten(c, false);
+  const uit = !c.mesh.userData.glas.visible;
+  const kijk = (richting) => new THREE.Raycaster(oorsprong, richting, 0.02, 6).intersectObject(c.mesh, true).length;
+  const recht = kijk(vooruit), schuin = kijk(omlaag);
+  g.vehicles.ruiten(c, true);
+  return { oogY: +oog.y.toFixed(2), soort: c.soort, uit, recht, schuin, weerAan: c.mesh.userData.glas.visible };
+});
+ok(uitzicht.recht === 0, 'vanachter het stuur kijk je vrij naar buiten', `${uitzicht.recht} stukken auto in beeld`);
+ok(uitzicht.schuin > 0, 'en zie je onder je nog wel de motorkap', `${uitzicht.schuin} treffers omlaag`);
+ok(uitzicht.oogY > 1.1 && uitzicht.oogY < (uitzicht.soort === 'van' ? 2.0 : 1.4),
+  'het oogpunt zit op ooghoogte onder de dakrand', `${uitzicht.oogY} m in een ${uitzicht.soort}`);
+ok(uitzicht.uit && uitzicht.weerAan, 'de ruiten gaan uit als je zelf achter het stuur zit en weer aan als je uitstapt');
+
 // ---------- 2. rijden ----------
 kop('rijgedrag');
 await page.evaluate(async () => { window.__auto = await window.__verseAuto(); });

@@ -1,41 +1,173 @@
 {
   "_uitleg": "Stijlcatalogus: welk woningtype uit js/textures.js (HOUSE_STYLES) krijgt een pand? De generator kiest per pand eerst op straatnaam (uit de BGT-labels, via de rijbaanas die het dichtst bij het huisnummerlabel ligt), en gebruikt daarbinnen de meetwaarden uit 3D BAG: 'laag' geldt als de goothoogte onder 4 m ligt, 'kap' als de goot onder 4 m ligt maar de nok boven 8 m (woonruimte in de kap), 'plat' als het daktype horizontal is. 'nummers' geeft een type per huisnummerbereik (tot en met). Staat een straat er niet in, dan geldt 'standaard'. Bron per regel: 'foto' = bevestigd met de Street View-foto van het genoemde adres in data/stijl/fotos/, 'oude kaart' = overgenomen uit de handgetekende versie, 'aanname' = nog niets van gezien.",
   "straten": {
-    "Molenkrite":   { "type": "molenkrite", "kap": "molenkrite_kap", "laag": "molenkrite_bung", "bron": "foto: Molenkrite 19, 43 (kap) en 70 (laag met zonnedak)" },
-    "Monnikmolen":  { "type": "monnik", "bron": "foto: Monnikmolen 148" },
-    "Binnenroede":  { "type": "monnik", "laag": "bovenas_bung", "bron": "foto: Binnenroede 24 (achterkant): één laag met kap, bordeauxrode deuren en ramen, dakramen, schoorstenen" },
-    "Kruirad":      { "type": "kruirad", "nummers": [{ "tot": 20, "type": "kruirad_rood" }], "bron": "foto: Kruirad 12 (rood), Kruirad 30 en 50 (blauw); de grens bij 20 is een aanname" },
-    "Molenpaal":    { "type": "molenpaal", "bron": "foto: Molenpaal 6 (achterkant)" },
-    "Spinnekop":    { "type": "spinnekop", "bron": "foto: Spinnekop 9" },
-    "Jasker":       { "type": "jasker_gable", "plat": "jasker_flat", "bron": "foto: Jasker 7 (zijkant)" },
-    "de Wieken":    { "type": "wieken_white", "afwisselend": "wieken_yellow", "bron": "foto: de Wieken 34 (rode kozijnen, dakkapel, deels zonnepanelen)" },
-    "Windbord":     { "type": "wieken_white", "bron": "aanname" },
-    "Voorzoom":     { "type": "wieken_white", "bron": "aanname" },
-    "Bovenas":      { "type": "bovenas_gal", "laag": "bovenas_bung", "bron": "foto: Bovenas 5" },
-    "Bonkelaar":    { "type": "bonkelaar", "bron": "foto: Bonkelaar 11" },
-    "de Hekken":    { "type": "hekken", "bron": "foto: de Hekken 5" },
-    "Grootwiel":    { "type": "grootwiel", "plat": "jasker_flat", "bron": "foto: Grootwiel 7" },
-    "Omloop":       { "type": "grootwiel", "plat": "jasker_flat", "bron": "aanname; Omloop 45 heeft een plat dak en krijgt het Jasker-type" },
-    "Buitenroede":  { "type": "tinga_blauw", "bron": "oude kaart (woningen); de RWZI op nr 1 krijgt zijn typen via terreinen in omgeving.json" },
-    "Eekmolen":     { "type": "eekmolen", "bron": "foto: Eekmolen 21" },
-    "Zeskanter":    { "type": "eekmolen", "bron": "aanname, zelfde buurt als Eekmolen" }
+    "Molenkrite": {
+      "type": "molenkrite",
+      "kap": "molenkrite_kap",
+      "laag": "molenkrite_bung",
+      "bron": "foto: Molenkrite 19, 43 (kap) en 70 (laag met zonnedak)"
+    },
+    "Monnikmolen": {
+      "type": "monnik",
+      "bron": "foto: Monnikmolen 148"
+    },
+    "Binnenroede": {
+      "type": "monnik",
+      "laag": "bovenas_bung",
+      "bron": "foto: Binnenroede 24 (achterkant): één laag met kap, bordeauxrode deuren en ramen, dakramen, schoorstenen"
+    },
+    "Kruirad": {
+      "type": "kruirad",
+      "nummers": [
+        {
+          "tot": 20,
+          "type": "kruirad_rood"
+        }
+      ],
+      "bron": "foto: Kruirad 12 (rood), Kruirad 30 en 50 (blauw); de grens bij 20 is een aanname"
+    },
+    "Molenpaal": {
+      "type": "molenpaal",
+      "bron": "foto: Molenpaal 6 (achterkant)"
+    },
+    "Spinnekop": {
+      "type": "spinnekop",
+      "bron": "foto: Spinnekop 9"
+    },
+    "Jasker": {
+      "type": "jasker_gable",
+      "plat": "jasker_flat",
+      "bron": "foto: Jasker 7 (zijkant)"
+    },
+    "de Wieken": {
+      "type": "wieken_white",
+      "afwisselend": "wieken_yellow",
+      "bron": "foto: de Wieken 34 (rode kozijnen, dakkapel, deels zonnepanelen)"
+    },
+    "Windbord": {
+      "type": "wieken_white",
+      "bron": "aanname"
+    },
+    "Voorzoom": {
+      "type": "wieken_white",
+      "bron": "aanname"
+    },
+    "Bovenas": {
+      "type": "bovenas_gal",
+      "laag": "bovenas_bung",
+      "bron": "foto: Bovenas 5"
+    },
+    "Bonkelaar": {
+      "type": "bonkelaar",
+      "bron": "foto: Bonkelaar 11"
+    },
+    "de Hekken": {
+      "type": "hekken",
+      "bron": "foto: de Hekken 5"
+    },
+    "Grootwiel": {
+      "type": "grootwiel",
+      "plat": "jasker_flat",
+      "bron": "foto: Grootwiel 7"
+    },
+    "Omloop": {
+      "type": "grootwiel",
+      "plat": "jasker_flat",
+      "bron": "aanname; Omloop 45 heeft een plat dak en krijgt het Jasker-type"
+    },
+    "Buitenroede": {
+      "type": "tinga_blauw",
+      "bron": "oude kaart (woningen); de RWZI op nr 1 krijgt zijn typen via terreinen in omgeving.json"
+    },
+    "Eekmolen": {
+      "type": "eekmolen",
+      "bron": "foto: Eekmolen 21"
+    },
+    "Zeskanter": {
+      "type": "eekmolen",
+      "bron": "aanname, zelfde buurt als Eekmolen"
+    }
   },
   "panden": {
     "_uitleg": "Panden die geen woning zijn en dus niet van hun straat af te leiden zijn. Sleutel is het BAG-pandnummer uit js/kaart.js. `type` is het type uit HOUSE_STYLES in js/textures.js en gaat voor op alle regels hierboven. `voorkantNaar` is een punt in spelmeters waar de voorgevel naartoe moet kijken (bij een winkel ligt de ingang aan het plein en niet aan de dichtstbijzijnde rijbaan, en dan raadt de generator hem verkeerd); de generator kiest de zijde van de omsluitende rechthoek die daar het meest naartoe wijst. `objecten` zet losse objecten uit js/props.js voor het pand: `voor` is de afstand vanaf de voorgevel naar de straat, `langs` de afstand langs de gevel naar rechts gezien van buiten. `foto` is de uitsnede voor tools/adresshots.mjs (dezelfde `voor` en `langs`, plus een kijkhoek); zonder die regel zoekt dat gereedschap zelf een standpunt met vrij zicht.",
     "0091100000015898": {
       "type": "jumbo",
-      "voorkantNaar": [250, -59],
-      "foto": { "voor": 26, "langs": 2, "pitch": 0.06 },
+      "voorkantNaar": [
+        250,
+        -59
+      ],
+      "foto": {
+        "voor": 26,
+        "langs": 2,
+        "pitch": 0.06
+      },
       "objecten": [
-        { "type": "jumbovlag", "voor": 4.5, "langs": -3.6 },
-        { "type": "jumbovlag", "voor": 4.5, "langs": -1.2 },
-        { "type": "jumbovlag", "voor": 4.5, "langs": 1.2 }
+        {
+          "type": "jumbovlag",
+          "voor": 4.5,
+          "langs": -3.6
+        },
+        {
+          "type": "jumbovlag",
+          "voor": 4.5,
+          "langs": -1.2
+        },
+        {
+          "type": "jumbovlag",
+          "voor": 4.5,
+          "langs": 1.2
+        }
       ],
       "bron": "foto Look Around Molenkrite 1 (4 sep 2026): supermarkt Jumbo — een rij puntdaken (staan in het 3D BAG-model, goot 2,6 m, nok 7,1 m), een luifel over de volle breedte, glazen pui met witte stijlen, gele huisstijlband met het woordmerk, en drie gele vlaggenmasten voor de ingang. `voorkantNaar` is het parkeerterrein aan de noordkant (1239 m², het grootste van de wijk)"
     },
     "0091100000006680": {
       "type": "tinga_state",
       "bron": "foto Tinga State, Molenkrite 115 (4 sep 2026): stelpboerderij met een steile piramidekap van rode pannen van de nok op 13,3 m tot een goot op 1,9 m, rijen dakramen, lage bakstenen gevel met witte kozijnen, zwarte schuurdeur en een terras onder het overstek"
+    },
+    "0091100000014651": {
+      "type": "school",
+      "bron": "Street View '169 Molenkrite' (foto in de chat, 5 sep 2026): basisschool De Spil — een laag gebouw van roodbruine baksteen rond een plein, met over de hele lengte een doorlopende raamstrook met felblauwe kozijnen en gele gordijnen, een gele plaatband eronder de lichte dakrand, een geel bord INGANG boven de deuren, en achterin een rij puntdaken (die staan in het 3D BAG-model). De fietsenrekken en het plein liggen aan de kant van de parkeerplaats",
+      "foto": {
+        "voor": 24,
+        "langs": 4,
+        "pitch": 0.05
+      }
+    },
+    "0091100000007732": {
+      "type": "zorg",
+      "bron": "Street View Molenkrite 234 (foto in de chat, 5 sep 2026): Jeugdhulp Friesland, behandel- en expertisecentrum jonge kind — een lang gebouw van één laag met plat dak in donkerbruine steen met lichte kozijnen, een parkeerterrein ervoor en een speeltuin in het groen ernaast (band, groen speelhuisje, klimtoestel), het geheel omheind met een donkergroen spijlenhek van ongeveer 1,5 m",
+      "foto": {
+        "voor": 22,
+        "langs": 6,
+        "pitch": 0.04
+      },
+      "objecten": [
+        {
+          "type": "speeltoestel",
+          "voor": 6,
+          "langs": 22
+        },
+        {
+          "type": "zandbak",
+          "voor": 4,
+          "langs": 26
+        },
+        {
+          "type": "wipkip",
+          "voor": 7,
+          "langs": 18
+        },
+        {
+          "type": "bank",
+          "voor": 3,
+          "langs": 15
+        },
+        {
+          "type": "fietsenrek",
+          "voor": 4,
+          "langs": -12
+        }
+      ]
     }
   },
   "standaard": {

@@ -312,6 +312,7 @@ function toggleCar() {
   if (!player.active) return;
   if (player.inCar) {
     const car = player.inCar; player.inCar = null;
+    vehicles.ruiten(car, true);          // buiten hoort het glas er weer in
     const side = new THREE.Vector3(Math.cos(car.yaw), 0, -Math.sin(car.yaw)).multiplyScalar(-1.6);
     player.pos.set(car.x + side.x, 0, car.z + side.z); player.yaw = car.yaw; player.pitch = 0;
     geluid.portier(); geluid.motorUit();
@@ -539,14 +540,18 @@ function loop() {
       player.lastCarYaw = car.yaw;
       if (!derde.update(dt, car)) {
         // camera op de bestuurdersstoel (links), meekijken met muis; een
-        // bakwagen heeft zijn eigen, hogere stoel (zie vehicles.voegToe)
-        const st = car.stoel || { x: -0.38, y: 1.25, z: -0.25 };
+        // bakwagen heeft zijn eigen, hogere stoel (zie vehicles.voegToe).
+        // De ruiten gaan uit zolang je erachter zit: het glas is van buiten
+        // donker getint, en van binnen keek je door twee van die vlakken naar
+        // buiten — de hele voorruit werd een grauwe plaat.
+        vehicles.ruiten(car, false);
+        const st = car.stoel || car.mesh.userData.oog || { x: -0.34, y: 1.32, z: -0.87 };
         const seat = new THREE.Vector3(st.x, st.y, st.z);
         seat.applyAxisAngle(new THREE.Vector3(0, 1, 0), car.yaw);
         camera.position.set(car.x + seat.x, st.y, car.z + seat.z);
         camera.rotation.set(0, 0, 0, 'YXZ');
         camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
-      }
+      } else vehicles.ruiten(car, true);       // van buiten hoort het glas er wel te zitten
       player.gun.visible = false;
     } else {
       player.lastCarYaw = undefined;
