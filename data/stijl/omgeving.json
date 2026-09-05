@@ -1,5 +1,5 @@
 {
-  "_uitleg": "Omgevingsregels bovenop de BGT. Coördinaten in spelmeters (x oost, z zuid vanaf het kruispunt Molenkrite/Monnikmolen/Jasker). 'bosgebieden' zijn rechthoeken waar ook gras en oevers dicht beplant worden met hoge bomen en struiken, omdat het gebied in werkelijkheid één bos is (foto Bosje aan de Buitenroede, opmerking bij de eerste testbuild). Water en paden blijven open. 'hekken' zijn erfafscheidingen die niet in de BGT staan maar wel op een foto: ze worden om de omsluitende rechthoek van een pand gelegd (`omPand`, `marge` in meters) en overal weggelaten waar ze op de openbare ruimte zouden komen. 'lageErfscheidingen' zijn vakken waar een achtertuin een lage haag krijgt in plaats van een schutting van 1,8 m.",
+  "_uitleg": "Omgevingsregels bovenop de BGT. Coördinaten in spelmeters (x oost, z zuid vanaf het kruispunt Molenkrite/Monnikmolen/Jasker). 'bosgebieden' zijn rechthoeken waar ook gras en oevers dicht beplant worden met hoge bomen en struiken, omdat het gebied in werkelijkheid één bos is (foto Bosje aan de Buitenroede, opmerking bij de eerste testbuild). Water en paden blijven open. 'hekken' zijn erfafscheidingen die niet in de BGT staan maar wel op een foto: ze worden om de omsluitende rechthoek van een pand gelegd (`omPand`, `marge` in meters) en overal weggelaten waar ze op de openbare ruimte zouden komen. 'lageErfscheidingen' zijn vakken waar een achtertuin een lage haag krijgt in plaats van een schutting van 1,8 m. 'viaducten' beschrijft de plekken waar de wereld niet plat is: de BGT levert het brugdek (relatieveHoogteligging 1), hier staat hoe hoog het ligt, waar de opritten beginnen en hoe de brug erbovenop eruitziet (zie js/viaduct.js).",
   "bosgebieden": [
     {
       "naam": "Bos tussen Monnikmolen en Buitenroede",
@@ -129,6 +129,33 @@
       },
       "lantaarns": {
         "afstand": 28
+      }
+    }
+  ],
+  "viaducten": [
+    {
+      "naam": "Viaduct Tinga",
+      "bron": "Vier foto's in de chat (5 sep 2026): (1) de houten boogbrug over de N7, gezien vanaf de rijksweg eronder, met het bordje 'Molenkrite'; (2) het dek zelf, met twee rijen gelamineerde houten bogen over de rijbaan, rode fietsstroken aan weerskanten en een houten leuning; (3) de oprit vanaf Molenkrite 171 (de Jumbo), klinkerbestrating, een bord 30 km/u en een grastalud; (4) een schermafdruk uit het spel waar dezelfde weg nog vlak lag.",
+      "_uitleg": "De BGT weet zelf welke wegvakken over de rondweg heen liggen: die hebben relatieveHoogteligging 1. 'dekvak' is het zoekvak waarin die vakken samen het brugdek vormen (het fietsbruggetje even verderop valt er buiten). 'voetZuid' en 'voetNoord' zijn de punten waar de oprit weer op maaiveld ligt; ze liggen op een wegas, de generator zoekt de route ertussen zelf op. Hoogte van het wegdek = doorrijhoogte + dekdikte. 'taludHelling' is de horizontale afstand per meter hoogte van het grastalud langs de oprit; de generator kapt hem af op de breedte die de BGT-grasstroken daar werkelijk hebben.",
+      "dekvak": { "x0": 266, "x1": 296, "z0": -246, "z1": -184 },
+      "voetZuid": [265.64, -80.43],
+      "voetNoord": [299.39, -333.68],
+      "doorrijhoogte": 4.7,
+      "dekdikte": 0.9,
+      "taludHelling": 1.4,
+      "boog": {
+        "_uitleg": "De twee houten bogen staan op de dekranden en overspannen het stuk boven de rijksweg. 'overspanning' is de lengte van de boog in meters, 'pijl' hoe hoog hij boven het dek uitkomt, 'hangers' het aantal verticale trekstangen per boog, 'portalen' het aantal dwarsverbanden tussen de twee bogen.",
+        "overspanning": 44,
+        "pijl": 5.6,
+        "hangers": 7,
+        "portalen": 5,
+        "balk": 0.55,
+        "kleur": "#8d6f4c"
+      },
+      "leuning": { "_uitleg": "houten leuning langs het dek en het bovenste stuk van beide opritten; dezelfde tint als de bogen", "hoogte": 1.3 },
+      "fietsstrook": {
+        "_uitleg": "De BGT kent voor het dek alleen 'gesloten verharding'; de foto laat rood asfalt zien. Waar de stroken liggen en hoe breed ze zijn komt uit de BGT-fietspadvakken zelf, alleen de kleur staat hier.",
+        "rood": true
       }
     }
   ],

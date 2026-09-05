@@ -1175,6 +1175,82 @@ katten) en `npm run wereldtest` (drie nieuwe over de voordeur aan de Wieken).
 Verhaaltest, rijtest, looptest, winkeltest en politietest blijven groen en
 `geo:boven` staat nog op 1,31 %.
 
+**Het viaduct over de rondweg (stap 16).**
+
+De weg tegenover de Jumbo (Molenkrite 171) gaat in werkelijkheid over de N7 heen,
+met een dijklichaam en een houten boogbrug erbovenop. In het spel lag hij plat.
+Dit is de eerste plek waar de wereld hoogte krijgt, en dat raakt meer dan alleen
+de meetkunde: de ondergrond, de auto's, de voetgangers, de politie en de speler
+moeten het allemaal met hetzelfde antwoord doen.
+
+*Waar het viaduct staat, weet de BGT zelf.* Wegvakken die over iets heen liggen
+hebben `relatieveHoogteligging 1`. Rond de Molenkrite zijn dat zes vakken —
+rijbaan, twee fietspaden, trottoir en het overbruggingsdeel — plus een `pijler`
+in de middenberm. Die eigenschap werd tot nu toe weggegooid; hij gaat nu mee als
+`hl` op het vlak. Wat de BGT níét weet is de hoogte: het is een tweedimensionale
+kaart. In `data/stijl/omgeving.json` staat daarom alleen wat je van de foto's
+afleest — de doorrijhoogte (4,7 m), de dikte van het dek (0,9 m), de twee punten
+waar de oprit weer op maaiveld ligt, de helling van het grastalud en de maten van
+de houten boog.
+
+*De rest rekent de generator uit.* Tussen de twee voetpunten zoekt hij met
+Dijkstra de route over de wegassen — die loopt vanzelf over het dek, want elke
+andere weg is honderden meters om. Om de meter komt er een station op met de
+hoogte uit een profiel dat recht omhoog loopt met afgeronde uiteinden (de
+steilste helling is daardoor een derde meer dan de gemiddelde: 8 %). Per station
+tast hij dwars op de as af hoe breed de verharding is en hoe ver het gras
+daarnaast doorloopt; dat worden de halve breedte van de kruin en van de teen van
+het talud, links en rechts apart. Op het dek telt alleen het dek zelf mee —
+zijwaarts ligt daar de rijksweg, en die hoort bij het maaiveld. De middellijn uit
+het skelet slingert bij elke aansluiting een halve meter heen en weer; over het
+dek wordt hij daarom met kleinste kwadraten rechtgetrokken en gaan de breedtes
+door een mediaanfilter, anders staat er een slingerende brug.
+
+*Eén vraag voor de rest van het spel.* `js/viaduct.js` leest dat hoogteveld en
+beantwoordt `grondHoogte(x, z, y)`: hoe hoog ligt de grond hier? Buiten het
+viaduct is dat nul, en één omhullende-rechthoektest is genoeg om dat vast te
+stellen — het kost dus niets in de rest van de wijk. Het derde argument is waar
+je nu bent: onder de brug is de grond de rondweg, erboven het dek. Daarmee lopen
+de speler (zwaartekracht), de auto's (hoogte en de neus omhoog op de helling),
+de voetgangers, de losse poppetjes en de politie allemaal op hetzelfde antwoord.
+
+*De ondergrond gaat mee omhoog.* De BGT-vlakken langs de route worden niet
+platgelegd maar per hoekpunt op hoogte gebracht, en driehoeken die langer zijn
+dan 2,5 m worden eerst opgedeeld — anders loopt één driehoek van de voet tot de
+top van de dijk. Omdat de grasstroken naast de oprit gewoon BGT-vlakken zijn,
+ontstaat het talud vanzelf. Twee dingen moesten apart: het dek ligt vlak (een
+hoekpunt dat net buiten de gemeten kruin valt zou anders naar het maaiveld
+zakken, en dan hangt er een scherf rood fietspad van de brug af), en de vlakken
+die eronderdoor lopen vragen de hoogte op y = 0 op, zodat de rijksweg blijft
+liggen. Het overbruggingsdeel is één vlak over het hele dek en lag hoger dan de
+rijbaan erop; in de wereld zakt het onder het wegdek en dient het als sluitlaag,
+op de controleplaat telt het gewoon mee, zodat `geo:boven` niet verschuift.
+
+*Wat erbovenop staat.* Twee houten bogen op de dekranden, elk een parabool van
+26 rechte stukken, met zeven trekstangen naar de dekligger en vijf dwarsportalen
+tussen de bogen. Daaronder de dekligger met zijn randen dicht, twee landhoofden
+tot op de grond en de pijler op het grondvlak dat de BGT tekent. Langs de rand
+een houten leuning met palen om de twee meter. De rode fietsstroken komen uit de
+BGT-fietspadvakken zelf; alleen de kleur staat in de stijl, want de BGT kent daar
+alleen "gesloten verharding".
+
+*Botsen in twee lagen.* De botsingsdozen van het spel zijn plat: ze weten van x
+en z, niet van hoogte. De leuning van de brug zou daarmee een onzichtbare muur op
+de rondweg zijn, en de pijler eronder zou de auto's op het dek tegenhouden. Een
+botsingsdoos kan daarom een `y0` krijgen, en wie eronder of erboven zit loopt er
+gewoon langs. Auto's onderling kregen dezelfde test: staat er meer dan 2,5 m
+hoogteverschil tussen, dan raken ze elkaar niet.
+
+Kosten: 598 → 599 draw calls in de wijk, 1,28 → 1,36 miljoen driehoeken,
+9069 botsingsdozen (103 erbij).
+
+Controle: `npm run viaducttest` (negenendertig controles over de plek uit de
+BGT, het hoogteveld, lopen, de leuning, rijden, de houten boog en de wereld
+eromheen) en `npm run viaductshots` voor de foto's. Rijtest, verhaaltest,
+wereldtest, looptest, politietest, winkeltest en woningtest blijven groen, en
+`geo:boven` staat nog op 1,31 %.
+
+
 **Wat nog niet af is (in volgorde).**
 
 1. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als

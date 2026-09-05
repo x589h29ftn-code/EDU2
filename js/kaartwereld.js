@@ -10,9 +10,10 @@ import * as THREE from 'three';
 import * as T from './textures.js';
 import { KLEUR } from './kaartkleuren.js';
 import { PROP_TYPES } from './props.js';
+import { zetViaducten, bouwViaducten, grondHoogte } from './viaduct.js';
 
 export let KAART = null;
-export function zetKaart(k) { KAART = k; }
+export function zetKaart(k) { KAART = k; zetViaducten(k && k.viaducten); }
 
 // Weergavestand: 'normaal' of 'plat' (egale kleuren per klasse, voor de
 // vergelijking met de kaartplaat).
@@ -50,6 +51,12 @@ function inRing(x, z, ring) {
   return binnen;
 }
 const inVlak = (x, z, v) => inRing(x, z, v.r[0]) && !v.r.slice(1).some(h => inRing(x, z, h));
+
+function bboxRing(ring) {
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  for (const [x, z] of ring) { if (x < x0) x0 = x; if (z < z0) z0 = z; if (x > x1) x1 = x; if (z > z1) z1 = z; }
+  return [x0, z0, x1, z1];
+}
 
 function bucketsVan(ringen) {
   let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
@@ -92,6 +99,35 @@ function trianguleer(ringen) {
   return { tris, punten };
 }
 
+/*
+ Ondergrond volgt normaal de vlakke wereld, behalve op het viaduct. `HF` is daar
+ de hoogte van de grond (js/viaduct.js); staat hij aan, dan worden driehoeken
+ eerst opgedeeld tot ze klein genoeg zijn om de helling te volgen — anders loopt
+ één driehoek van de voet tot de top van de dijk en zie je de bult niet.
+*/
+let HF = null;
+const HF_ZIJ = 2.5;      // maximale zijde van een driehoek op de helling
+
+function driehoek(A, B, C, y, uvSchaal, pos, uv, nor, diep = 0) {
+  const zij = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+  const lang = Math.max(zij(A, B), zij(B, C), zij(C, A));
+  if (diep < 6 && lang > HF_ZIJ) {
+    // langste zijde halveren en beide helften opnieuw
+    const m = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+    if (zij(A, B) === lang) { const M = m(A, B); driehoek(A, M, C, y, uvSchaal, pos, uv, nor, diep + 1); driehoek(M, B, C, y, uvSchaal, pos, uv, nor, diep + 1); }
+    else if (zij(B, C) === lang) { const M = m(B, C); driehoek(A, M, C, y, uvSchaal, pos, uv, nor, diep + 1); driehoek(A, B, M, y, uvSchaal, pos, uv, nor, diep + 1); }
+    else { const M = m(C, A); driehoek(A, B, M, y, uvSchaal, pos, uv, nor, diep + 1); driehoek(M, B, C, y, uvSchaal, pos, uv, nor, diep + 1); }
+    return;
+  }
+  const P = [A[0], y + HF(A[0], A[1]), A[1]], Q = [B[0], y + HF(B[0], B[1]), B[1]], R = [C[0], y + HF(C[0], C[1]), C[1]];
+  let nx = (Q[1] - P[1]) * (R[2] - P[2]) - (Q[2] - P[2]) * (R[1] - P[1]);
+  let ny = (Q[2] - P[2]) * (R[0] - P[0]) - (Q[0] - P[0]) * (R[2] - P[2]);
+  let nz = (Q[0] - P[0]) * (R[1] - P[1]) - (Q[1] - P[1]) * (R[0] - P[0]);
+  const L = Math.hypot(nx, ny, nz) || 1; nx /= L; ny /= L; nz /= L;
+  if (ny < 0) { nx = -nx; ny = -ny; nz = -nz; }
+  for (const [p, q] of [[P, A], [Q, B], [R, C]]) { pos.push(p[0], p[1], p[2]); uv.push(q[0] * uvSchaal, q[1] * uvSchaal); nor.push(nx, ny, nz); }
+}
+
 // Vlak plat op hoogte y, normaal omhoog, uv in wereldmeters.
 function vlakGeometrie(ringen, y, uvSchaal, pos, uv, nor) {
   const { tris, punten } = trianguleer(ringen);
@@ -100,6 +136,7 @@ function vlakGeometrie(ringen, y, uvSchaal, pos, uv, nor) {
     // volgorde zodat de normaal naar +Y wijst
     const kruis = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
     const [P, Q, R] = kruis > 0 ? [A, C, B] : [A, B, C];
+    if (HF) { driehoek(P, Q, R, y, uvSchaal, pos, uv, nor); continue; }
     for (const p of [P, Q, R]) { pos.push(p[0], y, p[1]); uv.push(p[0] * uvSchaal, p[1] * uvSchaal); nor.push(0, 1, 0); }
   }
 }
@@ -112,9 +149,17 @@ function randGeometrie(ringen, yBoven, yOnder, pos, uv, nor) {
       const dx = b[0] - a[0], dz = b[1] - a[1];
       const L = Math.hypot(dx, dz); if (L < 1e-4) continue;
       const nx = dz / L, nz = -dx / L;
-      const quad = [[a[0], yBoven, a[1]], [b[0], yBoven, b[1]], [b[0], yOnder, b[1]], [a[0], yOnder, a[1]]];
-      for (const [p, q, r] of [[0, 1, 2], [0, 2, 3]]) {
-        for (const k of [p, q, r]) { const v = quad[k]; pos.push(v[0], v[1], v[2]); uv.push(k === 1 || k === 2 ? L : 0, v[1]); nor.push(nx, 0, nz); }
+      // op de helling in stukken, zodat de rand de dijk volgt
+      const stukken = HF ? Math.max(1, Math.ceil(L / HF_ZIJ)) : 1;
+      for (let s = 0; s < stukken; s++) {
+        const p0 = [a[0] + dx * s / stukken, a[1] + dz * s / stukken];
+        const p1 = [a[0] + dx * (s + 1) / stukken, a[1] + dz * (s + 1) / stukken];
+        const h0 = HF ? HF(p0[0], p0[1]) : 0, h1 = HF ? HF(p1[0], p1[1]) : 0;
+        const Ls = L / stukken;
+        const quad = [[p0[0], h0 + yBoven, p0[1]], [p1[0], h1 + yBoven, p1[1]], [p1[0], h1 + yOnder, p1[1]], [p0[0], h0 + yOnder, p0[1]]];
+        for (const [p, q, r] of [[0, 1, 2], [0, 2, 3]]) {
+          for (const k of [p, q, r]) { const v = quad[k]; pos.push(v[0], v[1], v[2]); uv.push(k === 1 || k === 2 ? Ls : 0, v[1]); nor.push(nx, 0, nz); }
+        }
       }
     }
   }
@@ -197,14 +242,30 @@ export function bouwKaartWereld(scene, W) {
     return g;
   };
   const matNr = new Map();        // materiaal -> kort nummer voor de sleutel
+  // Vakken die op of tegen een viaduct liggen krijgen de hoogte van het
+  // dijklichaam mee; de rest blijft plat en dus net zo goedkoop als eerst.
+  const viaVakken = (K.viaducten || []).map(v => v.bbox);
+  const maaiveld = (x, z) => grondHoogte(x, z, 0);
+  const opHelling = (r) => {
+    const b = bboxRing(r[0]);
+    return viaVakken.some(q => b[2] >= q[0] && b[0] <= q[2] && b[3] >= q[1] && b[1] <= q[3]);
+  };
   for (const v of K.vlakken) {
     for (const b of bucketsVan(v.r)) { if (!vlakIndex.has(b)) vlakIndex.set(b, []); vlakIndex.get(b).push(v); }
+    /*
+     Een vlak op het brugdek ligt vlak op de dekhoogte. De rest volgt de dijk op
+     maaiveldniveau: de rondweg loopt onder de brug door en moet daar blijven
+     liggen, dus vragen we de hoogte op y = 0 en niet die van het dek erboven.
+    */
+    HF = plat ? null : v.dekh ? () => v.dekh : opHelling(v.r) ? maaiveld : null;
     const mat = matVoor(v);
     if (!matNr.has(mat)) matNr.set(mat, matNr.size);
     const ring = v.r[0];
     const t = tegelVan(ring[0][0], ring[0][1]);
     const g = stuk(perMat, `${matNr.get(mat)}|${t}`, mat, v.k);
-    vlakGeometrie(v.r, v.y, uvVoor(v.m), g.pos, g.uv, g.nor);
+    // dekY: het brugdek van het viaduct ligt in de wereld onder de wegvakken,
+    // op de controleplaat op zijn eigen hoogte (zie tools/geo/genereer.mjs)
+    vlakGeometrie(v.r, (!plat && v.dekY != null) ? v.dekY : v.y, uvVoor(v.m), g.pos, g.uv, g.nor);
     if (v.k === 'water') {
       waterRingen.push(v.r[0]);
       W.waterPolys.push(v.r[0].map(([x, z]) => new THREE.Vector2(x, z)));
@@ -214,8 +275,11 @@ export function bouwKaartWereld(scene, W) {
       randGeometrie(v.r, v.y, -0.02, rnd.pos, rnd.uv, rnd.nor);
     }
   }
+  HF = null;
   for (const g of perMat.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: g.klasse }); if (m) scene.add(m); }
   if (!plat) {
+    // dijklichaam, brugdek en de houten bogen van het viaduct
+    bouwViaducten(scene, W, KM);
     for (const g of randen.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'rand' }); if (m) scene.add(m); }
     for (const g of oevers.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'oeverwand' }); if (m) scene.add(m); }
     // grondvlak onder alles, voor buiten het gebied en voor gaatjes
@@ -236,7 +300,7 @@ export function bouwKaartWereld(scene, W) {
     for (const ring of K.hagen) { vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor); randGeometrie([ring], 1.1, 0.0, hg.pos, hg.uv, hg.nor); }
     const hm = maakMesh(hg.pos, hg.uv, hg.nor, KM.hedge, { schaduw: true, klasse: 'haag' }); if (hm) scene.add(hm);
     // vrij: boom zonder botsing (doorloopbaar plantsoen)
-    for (const b of K.bomen) W.treePositions.push({ x: b.x, z: b.z, s: b.s, tall: !!b.tall, vrij: !!b.vrij });
+    for (const b of K.bomen) W.treePositions.push({ x: b.x, z: b.z, y: grondHoogte(b.x, b.z, 0), s: b.s, tall: !!b.tall, vrij: !!b.vrij });
     // drempels: witte markering op de rijbaan
     const dr = { pos: [], uv: [], nor: [] };
     for (const v of K.vlakken) if (v.drempel) vlakGeometrie(v.r, 0.012, 0.5, dr.pos, dr.uv, dr.nor);
@@ -280,7 +344,7 @@ export function bouwKaartWereld(scene, W) {
     // losse objecten uit de objectenbibliotheek (doelen, banken)
     for (const o of K.objecten || []) {
       const obj = W.maakProp ? W.maakProp(o.type) : null; if (!obj) continue;
-      obj.position.set(o.x, KERB_Y, o.z); obj.rotation.y = (o.yaw || 0) * Math.PI / 180;
+      obj.position.set(o.x, KERB_Y + grondHoogte(o.x, o.z, 0), o.z); obj.rotation.y = (o.yaw || 0) * Math.PI / 180;
       obj.traverse(c => { c.castShadow = true; c.receiveShadow = true; });
       scene.add(obj);
       const def = PROP_TYPES[o.type];
@@ -293,7 +357,7 @@ export function bouwKaartWereld(scene, W) {
       const geo = new THREE.SphereGeometry(0.7, 7, 5);
       const im = new THREE.InstancedMesh(geo, KM.struik, K.struiken.length);
       const m = new THREE.Matrix4();
-      K.struiken.forEach((s, i) => { m.makeScale(s.s, s.s * 0.8, s.s); m.setPosition(s.x, 0.45 * s.s, s.z); im.setMatrixAt(i, m); });
+      K.struiken.forEach((s, i) => { m.makeScale(s.s, s.s * 0.8, s.s); m.setPosition(s.x, grondHoogte(s.x, s.z, 0) + 0.45 * s.s, s.z); im.setMatrixAt(i, m); });
       im.castShadow = true; scene.add(im);
     }
     bouwLantaarns(scene, W);
@@ -812,9 +876,10 @@ function bouwLantaarns(scene, W) {
     let best = null, bd = 1e9;
     for (const s of W.roadSegments) { if (!s.drive) continue; const d = Math.hypot(s.a[0] - l.x, s.a[1] - l.z); if (d < bd) { bd = d; best = s; } }
     const hoek = best ? Math.atan2(-(best.a[1] - l.z), best.a[0] - l.x) : 0;
-    m.makeRotationY(hoek); m.setPosition(l.x, 0, l.z);
+    const y = grondHoogte(l.x, l.z, 0);        // staat hij op de dijk van het viaduct?
+    m.makeRotationY(hoek); m.setPosition(l.x, y, l.z);
     palen.setMatrixAt(i, m); armen.setMatrixAt(i, m); koppen.setMatrixAt(i, m);
-    W.lampPosities.push({ x: l.x + Math.cos(hoek) * 0.7, y: 5.1, z: l.z - Math.sin(hoek) * 0.7 });
+    W.lampPosities.push({ x: l.x + Math.cos(hoek) * 0.7, y: y + 5.1, z: l.z - Math.sin(hoek) * 0.7 });
     W.addCollider(l.x, l.z, 0.1, 0.1, 0, 5);
   });
   palen.castShadow = true;

@@ -3,6 +3,7 @@
 // zwaaien en je aankijken. De voetgangers in npc.js zijn instanced meshes en
 // kunnen dat niet; voor de mensen die in het verhaal meespelen is dat wel nodig.
 import * as THREE from 'three';
+import { grondHoogte } from './viaduct.js';
 
 // maten van een volwassene van ongeveer 1,75 m (zie PARTS in npc.js)
 const ROMP = { b: 0.40, h: 0.60, d: 0.23, y: 1.16 };
@@ -101,12 +102,14 @@ export class Persoon {
     this.stap = 0;
     this.yaw = 0;
     this.omT = 0;      // hoe ver hij omgevallen is (0..1)
+    this.grond = 0;    // hoogte van de grond onder hem (het viaduct)
   }
 
   get positie() { return this.groep.position; }
 
   zetNeer(x, z, yaw = 0) {
-    this.groep.position.set(x, 0, z);
+    this.grond = grondHoogte(x, z);
+    this.groep.position.set(x, this.grond, z);
     this.yaw = yaw;
     this.groep.rotation.y = yaw;
   }
@@ -132,7 +135,7 @@ export class Persoon {
   legNeer(t) {
     this.omT = t;
     this.groep.rotation.x = -t * 1.45;
-    this.groep.position.y = -t * 0.35;
+    this.groep.position.y = this.grond - t * 0.35;
   }
 
   vuur() {
@@ -144,6 +147,8 @@ export class Persoon {
   // mikt: geweer vooruit, dus de rechterarm horizontaal
   update(dt, { loopt = false, zwaait = false, mikt = false, snelheid = 1.3 } = {}) {
     this.klok += dt;
+    // hij loopt zelf rond, dus elk beeld opnieuw kijken waar de grond ligt
+    this.grond = grondHoogte(this.groep.position.x, this.groep.position.z, this.groep.position.y + 0.9);
     if (this.vlamT > 0) {
       this.vlamT -= dt;
       if (this.vlamT <= 0 && this.vlam) this.vlam.material.opacity = 0;
@@ -160,7 +165,7 @@ export class Persoon {
       // een kruispose. De linkerarm draait er met z naartoe, aan het wapen.
       this.armR.rotation.x = 1.5; this.armR.rotation.z = 0;
       this.armL.rotation.x = 1.42; this.armL.rotation.z = 0.5;
-      this.groep.position.y = loopt ? Math.abs(Math.sin(this.stap)) * 0.03 : 0;
+      this.groep.position.y = this.grond + (loopt ? Math.abs(Math.sin(this.stap)) * 0.03 : 0);
       return;
     }
     if (zwaait && !loopt) {
@@ -176,6 +181,6 @@ export class Persoon {
       this.armL.rotation.z = 0;
     }
     // wie loopt, wiegt een beetje op en neer
-    this.groep.position.y = loopt ? Math.abs(Math.sin(this.stap)) * 0.035 : 0;
+    this.groep.position.y = this.grond + (loopt ? Math.abs(Math.sin(this.stap)) * 0.035 : 0);
   }
 }

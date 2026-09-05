@@ -3,6 +3,7 @@
 // tientallen mensen samen maar zeven draw calls kosten.
 import * as THREE from 'three';
 import { rng } from './textures.js';
+import { grondHoogte } from './viaduct.js';
 
 const SHIRTS = [0x2f3a56, 0x8a1f1f, 0xe8e2d0, 0x2a6b3a, 0x2b2b2b, 0xd8b04a, 0x6a4c93, 0xc85a2a, 0x3f7fb0];
 const PANTS = [0x1f2a44, 0x333333, 0x5a4632, 0x6f7480, 0x24303f];
@@ -325,12 +326,14 @@ export class NPCs {
       }
 
       const h = p.height;
+      // bijna overal nul; op het viaduct loopt de stoep meters omhoog
+      const gy = grondHoogte(p.x, p.z);
       const tilt = p.alive ? 0 : -p.fall * Math.PI / 2;
       // op de fiets zit je hoger en trappen je benen kleine rondjes
       const yLift = (p.alive ? 0 : p.fall * 0.3) + (p.fietst && p.alive ? 0.42 : 0);
       if (p.fietst) {
         const fq = new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt, p.yaw, 0, 'YXZ'));
-        m.compose(new THREE.Vector3(p.x, p.alive ? 0 : 0.1, p.z), fq, new THREE.Vector3(h, h, h));
+        m.compose(new THREE.Vector3(p.x, gy + (p.alive ? 0 : 0.1), p.z), fq, new THREE.Vector3(h, h, h));
         this.fiets.setMatrixAt(i, m);
       } else {
         m.makeScale(0, 0, 0);
@@ -352,7 +355,7 @@ export class NPCs {
         v.set((def.x || 0) * h, def.y * h + yLift, 0).applyQuaternion(
           new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt, p.yaw, 0, 'YXZ')));
         sc.set(h, h, h);
-        m.compose(v.add(new THREE.Vector3(p.x, 0, p.z)), q, sc);
+        m.compose(v.add(new THREE.Vector3(p.x, gy, p.z)), q, sc);
         this.meshes[key].setMatrixAt(i, m);
       }
     }

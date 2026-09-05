@@ -159,9 +159,9 @@ for (const f of wegdelen) {
   else if (fn === 'parkeervlak') voegVlak('parkeervlak', mat, 0, f.geometry);
   else if (fn === 'inrit') voegVlak('inrit', mat, 0.04, f.geometry);
   else if (fn === 'fietspad') voegVlak('fietspad', mat === 'klinker' ? 'fietspad' : mat, 0.02, f.geometry, { hl: p.relatieveHoogteligging || undefined });
-  else if (fn === 'voetpad') voegVlak('voetpad', mat, KERB, f.geometry);
+  else if (fn === 'voetpad') voegVlak('voetpad', mat, KERB, f.geometry, { hl: p.relatieveHoogteligging || undefined });
   else if (fn === 'spoorbaan') voegVlak('spoorbaan', 'grind', 0.02, f.geometry);
-  else voegVlak('verharding', mat, KERB, f.geometry);
+  else voegVlak('verharding', mat, KERB, f.geometry, { hl: p.relatieveHoogteligging || undefined });
 }
 for (const f of lees('bgt_ondersteunendwegdeel')) voegVlak('berm', 'gras', KERB, f.geometry);
 for (const f of lees('bgt_begroeidterreindeel')) {
@@ -179,7 +179,7 @@ for (const f of lees('bgt_onbegroeidterreindeel')) {
 }
 for (const f of lees('bgt_waterdeel')) voegVlak('water', 'water', -0.35, f.geometry);
 for (const f of leesOpt('bgt_ondersteunendwaterdeel')) voegVlak('oever', 'oever', 0.0, f.geometry);
-for (const f of leesOpt('bgt_overbruggingsdeel')) voegVlak('brug', 'asfalt', 0.15, f.geometry);
+for (const f of leesOpt('bgt_overbruggingsdeel')) voegVlak('brug', f.properties.class === 'pijler' ? 'beton' : 'asfalt', 0.15, f.geometry, { hl: f.properties.relatieveHoogteligging || undefined, sub: f.properties.class || undefined });
 for (const f of leesOpt('bgt_kunstwerkdeel')) if (f.geometry.type !== 'LineString') voegVlak('steiger', 'hout', 0.3, f.geometry);
 // bezinkbakken en opslagtanks van de RWZI, trafohuisjes: het type gaat mee zodat
 // kaartwereld.js er een echte tank of bak van kan maken
@@ -1166,6 +1166,206 @@ for (const h of OMGEVING.hekken || []) {
 
 tel('hekwerken', HEKWERKEN.length); tel('poorten', POORTEN.length);
 
+// ---------------------------------------------------------------- viaducten
+/*
+ Het viaduct over de rondweg. De BGT markeert de wegvakken die erover heen
+ liggen met relatieveHoogteligging 1; die vormen samen het brugdek. De opritten
+ staan er als gewone wegvakken in, want de BGT kent geen hoogte — daarom staan
+ in data/stijl/omgeving.json alleen de twee punten waar de oprit weer op
+ maaiveld ligt. De rest rekent de generator uit: de route tussen die punten over
+ de wegassen, de hoogte per meter langs die route, en hoe breed het weglichaam
+ en het grastalud er zijn.
+
+ Wat eruit komt is een hoogteveld: een lijn met per station de hoogte en de
+ halve breedte van de kruin en van de teen van het talud, links en rechts. Het
+ spel (js/viaduct.js) leest daar de hoogte van elk punt uit, zodat de
+ ondergrond, de auto's en de speler allemaal dezelfde helling voelen.
+*/
+const VIADUCTEN = [];
+for (const V of OMGEVING.viaducten || []) {
+  const D = V.dekvak;
+  const inVak = (p) => p[0] >= D.x0 && p[0] <= D.x1 && p[1] >= D.z0 && p[1] <= D.z1;
+  const inDekvak = (v) => inVak(zwaartepunt(v.r[0]));
+  const dekVlakken = VLAKKEN.filter(v => (v.hl === 1 || v.k === 'brug') && v.sub !== 'pijler' && inDekvak(v));
+  // de BGT tekent de pijler als eigen vlak; die staat straks onder het dek
+  const PIJLERS = VLAKKEN.filter(v => v.sub === 'pijler' && inDekvak(v)).map(v => v.r[0]);
+  if (!dekVlakken.length) { console.warn(`viaduct ${V.naam}: geen dekvlakken in het dekvak`); continue; }
+  const opDek = (x, z) => dekVlakken.some(v => inPolygoon([x, z], v.r));
+
+  // -- route van voet tot voet over de wegassen (Dijkstra op de knikpunten)
+  const knopen = [], index = new Map();
+  const sleutel = (p) => `${Math.round(p[0] * 2)}:${Math.round(p[1] * 2)}`;
+  const knoop = (p) => { const s = sleutel(p); if (!index.has(s)) { index.set(s, knopen.length); knopen.push({ p, buren: [] }); } return index.get(s); };
+  for (const k of rijKetens) for (let i = 1; i < k.pts.length; i++) {
+    const a = knoop([k.pts[i - 1].x, k.pts[i - 1].z]), b = knoop([k.pts[i].x, k.pts[i].z]);
+    if (a === b) continue;
+    const L = Math.hypot(knopen[a].p[0] - knopen[b].p[0], knopen[a].p[1] - knopen[b].p[1]);
+    knopen[a].buren.push([b, L, k.w]); knopen[b].buren.push([a, L, k.w]);
+  }
+  const dichtst = (q) => { let bi = -1, bd = 1e9; knopen.forEach((n, i) => { const d = Math.hypot(n.p[0] - q[0], n.p[1] - q[1]); if (d < bd) { bd = d; bi = i; } }); return bi; };
+  const start = dichtst(V.voetZuid), doel = dichtst(V.voetNoord);
+  const afst = knopen.map(() => Infinity), via = knopen.map(() => -1), gedaan = knopen.map(() => false);
+  afst[start] = 0;
+  for (;;) {
+    let u = -1, bd = Infinity;
+    for (let i = 0; i < knopen.length; i++) if (!gedaan[i] && afst[i] < bd) { bd = afst[i]; u = i; }
+    if (u < 0 || u === doel) break;
+    gedaan[u] = true;
+    for (const [b, L] of knopen[u].buren) if (afst[u] + L < afst[b]) { afst[b] = afst[u] + L; via[b] = u; }
+  }
+  if (afst[doel] === Infinity) { console.warn(`viaduct ${V.naam}: geen route tussen de twee voetpunten`); continue; }
+  const route = []; for (let i = doel; i >= 0; i = via[i]) route.unshift(knopen[i].p);
+
+  // -- om de meter een station, met de hoogte uit het profiel
+  const HOOG = V.doorrijhoogte + V.dekdikte;
+  const STAP = 1.0;
+  const stations = [];
+  let rest = 0;
+  for (let i = 1; i < route.length; i++) {
+    const a = route[i - 1], b = route[i];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    for (let t = rest; t < L; t += STAP) stations.push([a[0] + (b[0] - a[0]) * t / L, a[1] + (b[1] - a[1]) * t / L]);
+    rest = (rest < L ? STAP - ((L - rest) % STAP) : rest - L);
+  }
+  stations.push(route[route.length - 1]);
+  const dek = stations.map(p => opDek(p[0], p[1]));
+  let d0 = dek.indexOf(true), d1 = dek.lastIndexOf(true);
+  if (d0 < 0) { console.warn(`viaduct ${V.naam}: de route raakt het dek niet`); continue; }
+  // gaatjes in het dek (een naad tussen twee BGT-vakken) tellen als dek
+  for (let i = d0; i <= d1; i++) dek[i] = true;
+  /*
+   Hoogteprofiel: recht omhoog met afgeronde uiteinden, zoals een echte
+   verticale boog. `a` is het deel van de oprit dat de ronding kost; daardoor is
+   de steilste helling 1/(1-a) keer de gemiddelde, hier een derde meer.
+  */
+  const a = 0.25;
+  const oprit = (t) => t <= 0 ? 0 : t >= 1 ? 1
+    : t < a ? (t * t) / (2 * a * (1 - a))
+      : t > 1 - a ? 1 - ((1 - t) * (1 - t)) / (2 * a * (1 - a))
+        : (t - a / 2) / (1 - a);
+  const hoogteVan = (i) => i <= d0 ? HOOG * oprit(d0 ? i / d0 : 1)
+    : i >= d1 ? HOOG * oprit((stations.length - 1 - i) / Math.max(1, stations.length - 1 - d1))
+      : HOOG;
+
+  // -- breedte van de kruin en van de teen van het talud, per station en per kant
+  const HARD = new Set(['rijbaan', 'autoweg', 'fietspad', 'voetpad', 'inrit', 'parkeervlak', 'woonerf', 'verharding', 'asfaltvlak', 'brug']);
+  const ZACHT = new Set(['gras', 'berm', 'bodembedekker', 'heesters', 'bos', 'zand', 'halfverhard']);
+  // alleen de vlakken langs de route: anders wordt het aftasten hieronder traag
+  const rb = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const p of stations) { rb[0] = Math.min(rb[0], p[0] - 30); rb[1] = Math.min(rb[1], p[1] - 30); rb[2] = Math.max(rb[2], p[0] + 30); rb[3] = Math.max(rb[3], p[1] + 30); }
+  const langs = VLAKKEN.filter(v => { const b = bboxRing(v.r[0]); return b[2] >= rb[0] && b[0] <= rb[2] && b[3] >= rb[1] && b[1] <= rb[3]; })
+    .map(v => ({ k: v.k, r: v.r, b: bboxRing(v.r[0]) }));
+  const klasseVan = (x, z) => {
+    for (const w of langs) if (x >= w.b[0] && x <= w.b[2] && z >= w.b[1] && z <= w.b[3] && inPolygoon([x, z], w.r)) return w.k;
+    return null;
+  };
+  const AS = [];
+  for (let i = 0; i < stations.length; i++) {
+    const p = stations[i];
+    const q = stations[Math.min(stations.length - 1, i + 1)], r = stations[Math.max(0, i - 1)];
+    const dx = q[0] - r[0], dz = q[1] - r[1], L = Math.hypot(dx, dz) || 1;
+    const nx = -dz / L, nz = dx / L;                       // links van de rijrichting
+    const h = hoogteVan(i);
+    /*
+     Aftasten hoe breed het weglichaam hier is. Op het dek telt alleen het
+     brugdek zelf mee — zijwaarts ligt daar de rijksweg, en die hoort bij het
+     maaiveld. Op de oprit loopt de kruin tot waar de verharding ophoudt en
+     zakt het talud daarna af tot in het gras. KRUIN_MAX houdt kruispunten en
+     parkeerstroken buiten het weglichaam.
+    */
+    const KRUIN_MAX = 9;
+    const kanten = [];
+    for (const zij of [1, -1]) {
+      let kruin = 1.5, teen = 1.5;
+      for (let d = 1.5; d <= KRUIN_MAX; d += 0.25) {
+        const x = p[0] + nx * zij * d, z = p[1] + nz * zij * d;
+        if (dek[i] ? opDek(x, z) : HARD.has(klasseVan(x, z))) { kruin = d; teen = d; continue; }
+        break;
+      }
+      if (!dek[i]) for (let d = kruin + 0.25; d <= kruin + h * V.taludHelling + 1; d += 0.25) {
+        const k = klasseVan(p[0] + nx * zij * d, p[1] + nz * zij * d);
+        if (k && ZACHT.has(k)) { teen = d; continue; }
+        break;
+      }
+      kanten.push([r2(kruin), r2(dek[i] ? kruin : Math.max(teen, kruin + h * 0.5))]);
+    }
+    AS.push([r2(p[0]), r2(p[1]), r2(h), kanten[0][0], kanten[0][1], kanten[1][0], kanten[1][1], dek[i] ? 1 : 0]);
+  }
+  /*
+   De middellijn komt uit het skelet van de wegvakken en slingert bij elke
+   aansluiting een halve meter heen en weer; op het dek zie je dat terug als een
+   slingerende brug. Daarom: de as over het dek wordt rechtgetrokken (kleinste
+   kwadraten door de dekstations, met een overgang van 12 stations naar de
+   oprit), en de breedtes gaan door een mediaanfilter — op het dek zelfs naar
+   één waarde per kant, want een brugdek is overal even breed.
+  */
+  {
+    const dekI = AS.map((_, i) => i).filter(i => AS[i][7]);
+    let sx = 0, sz = 0; for (const i of dekI) { sx += AS[i][0]; sz += AS[i][1]; }
+    const mx = sx / dekI.length, mz = sz / dekI.length;
+    let sxx = 0, sxz = 0, szz = 0;
+    for (const i of dekI) { const dx = AS[i][0] - mx, dz = AS[i][1] - mz; sxx += dx * dx; sxz += dx * dz; szz += dz * dz; }
+    const hoek = 0.5 * Math.atan2(2 * sxz, sxx - szz);      // hoofdrichting van de puntenwolk
+    const ux = Math.cos(hoek), uz = Math.sin(hoek);
+    const OVER = 12;
+    for (let i = Math.max(0, d0 - OVER); i <= Math.min(AS.length - 1, d1 + OVER); i++) {
+      const t = (AS[i][0] - mx) * ux + (AS[i][1] - mz) * uz;
+      const px = mx + ux * t, pz = mz + uz * t;
+      const w = i < d0 ? (i - (d0 - OVER)) / OVER : i > d1 ? (d1 + OVER - i) / OVER : 1;
+      AS[i][0] = r2(AS[i][0] + (px - AS[i][0]) * w);
+      AS[i][1] = r2(AS[i][1] + (pz - AS[i][1]) * w);
+    }
+    const mediaan = (a) => a.slice().sort((p, q) => p - q)[Math.floor(a.length / 2)];
+    for (const kol of [3, 4, 5, 6]) {
+      const oud = AS.map(s => s[kol]);
+      for (let i = 0; i < AS.length; i++) AS[i][kol] = mediaan(oud.slice(Math.max(0, i - 4), i + 5));
+    }
+    for (const kol of [3, 5]) {
+      const w = mediaan(dekI.map(i => AS[i][kol]));
+      for (const i of dekI) { AS[i][kol] = w; AS[i][kol + 1] = w; }
+    }
+    // Het talud eindigt bij de landhoofden: laat de teen daar met hoogstens
+    // 0,9 m per meter uitwaaieren, anders staat er een klif naast de brug.
+    for (const kol of [4, 6]) {
+      for (let i = d0 - 1, n = 1; i >= 0 && n <= 14; i--, n++) AS[i][kol] = Math.min(AS[i][kol], AS[d0][kol] + n * 0.9);
+      for (let i = d1 + 1, n = 1; i < AS.length && n <= 14; i++, n++) AS[i][kol] = Math.min(AS[i][kol], AS[d1][kol] + n * 0.9);
+    }
+  }
+
+  const bb = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const s of AS) { const m = Math.max(s[4], s[6]) + 2; bb[0] = Math.min(bb[0], s[0] - m); bb[1] = Math.min(bb[1], s[1] - m); bb[2] = Math.max(bb[2], s[0] + m); bb[3] = Math.max(bb[3], s[1] + m); }
+  VIADUCTEN.push({
+    naam: V.naam, hoogte: r2(HOOG), dekdikte: V.dekdikte,
+    as: AS, dekVan: d0, dekTot: d1, bbox: bb.map(r2), dek: dekVlakken.map(v => v.r[0]), pijlers: PIJLERS,
+    boog: V.boog, leuning: V.leuning, fietsstrook: V.fietsstrook,
+  });
+  // Rode fietsstroken: de BGT kent alleen 'gesloten verharding', de foto laat
+  // rood asfalt zien. Alleen op het dek, want de oprit is geklinkerd.
+  if (V.fietsstrook && V.fietsstrook.rood) for (const v of dekVlakken) if (v.k === 'fietspad') v.m = 'fietspad';
+  /*
+   Het overbruggingsdeel is één vlak over het hele dek. Op 0,15 ligt het hoger
+   dan de rijbaan, het fietspad en het trottoir die erop liggen, en dan zie je
+   in het spel alleen nog asfalt. `dekY` laat het in de wereld onder het wegdek
+   zakken, waar het als sluitlaag dient: alle naden tussen de BGT-wegvakken
+   zitten ermee dicht. Op de platte controleplaat (tools/geo/bovenaanzicht.mjs)
+   telt `y` gewoon, zodat de vergelijking met de BGT-kaart niet verschuift.
+  */
+  for (const v of dekVlakken) if (v.k === 'brug') v.dekY = -0.05;
+  /*
+   Het dek ligt vlak. De vakken erop krijgen daarom een vaste hoogte mee
+   (`dekh`) in plaats van het hoogteveld: een hoekpunt dat net buiten de
+   gemeten kruin valt zou anders naar het maaiveld zakken, en dan hangt er een
+   scherf rood fietspad van de brug af.
+  */
+  for (const v of dekVlakken) v.dekh = r2(HOOG);
+  const lengte = (AS.length - 1) * STAP;
+  telling[`viaduct_${V.naam.replace(/\W+/g, '_').toLowerCase()}_m`] = Math.round(lengte);
+  telling[`viaduct_${V.naam.replace(/\W+/g, '_').toLowerCase()}_dek_m`] = Math.round((d1 - d0) * STAP);
+  const steil = Math.max(...AS.slice(1).map((s, i) => Math.abs(s[2] - AS[i][2]) / STAP));
+  telling[`viaduct_${V.naam.replace(/\W+/g, '_').toLowerCase()}_helling_pct`] = Math.round(steil * 1000) / 10;
+}
+tel('viaducten', VIADUCTEN.length);
+
 // ---------------------------------------------------------------- labels, start
 const LABELS = labels.filter(l => l.p[0] >= G.x0 && l.p[0] <= G.x1 && l.p[1] >= G.z0 && l.p[1] <= G.z1).map(l => ({ t: l.t, x: l.p[0], z: l.p[1], hoek: l.hoek }));
 const HUISNUMMERS = [];
@@ -1188,7 +1388,7 @@ const KAART = {
   vlakken: VLAKKEN, wegassen: WEGASSEN, parkeerplekken: PARKEER, panden: PANDEN,
   hagen: HAGEN, bomen: BOMEN.concat(STRAATBOMEN, PARKBOMEN), struiken: STRUIKEN, lantaarns: LANTAARNS,
   heggen: HEGGEN, schuttingen: SCHUTTINGEN, paden: PADEN, tuinvlakken: TUINVLAKKEN, strepen: STREPEN, objecten: OBJECTEN,
-  hekwerken: HEKWERKEN, poorten: POORTEN,
+  hekwerken: HEKWERKEN, poorten: POORTEN, viaducten: VIADUCTEN,
   labels: LABELS, huisnummers: HUISNUMMERS,
   telling,
 };

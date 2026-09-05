@@ -447,6 +447,61 @@ verandert; in de code staat geen enkele coördinaat.
 
 ![Het speeltuintje](docs/screenshots/speeltuin_wieken.png)
 
+## Het viaduct over de rondweg
+
+Tegenover de Jumbo aan de **Molenkrite 171** loopt de weg naar het noorden de wijk uit en gaat daar
+over de **N7** heen. In het spel lag die weg tot nu toe plat: je reed dwars door de rondweg heen alsof
+er een gewoon kruispunt lag. In werkelijkheid klimt hij over een dijklichaam omhoog en ligt er boven
+op het dek een houten boogbrug — het **Viaduct Tinga**.
+
+Dat is nu de enige plek in de wijk waar de wereld niet plat is:
+
+- de oprit klimt vanaf de Jumbo in ruim honderd meter naar **5,6 m** boven het maaiveld — het wegdek
+  ligt daarmee 4,7 m boven de rijksweg, genoeg om er met een vrachtwagen onderdoor te kunnen;
+- het steilste stuk is **8 %**; het profiel loopt recht omhoog met afgeronde uiteinden, zoals een
+  echte verticale boog;
+- naast de weg ligt een **grastalud** dat van de kruin af naar beneden loopt tot in het gras;
+- het **dek** is 57 m lang en 10,5 m breed, met de rijbaan in het midden en **rode fietsstroken** aan
+  weerskanten;
+- op de dekranden staan twee **houten bogen** die 5,6 m boven de weg uitkomen, met trekstangen naar de
+  dekligger en dwarsportalen tussen de bogen door;
+- langs de rand loopt een **houten leuning**; die houdt je op het dek, ook als je met de auto tegen de
+  rand aan komt;
+- de rondweg eronder blijft gewoon op maaiveld liggen. Je kunt er onderdoor rijden en lopen, en het
+  verkeer op de N7 en het verkeer op de brug hebben niets met elkaar te maken.
+
+Te voet loop je de helling op en af, en spring je van de brug dan val je. In de auto wijst de neus
+omhoog op de klim en omlaag op de afdaling.
+
+![Het viaduct vanaf de rondweg](docs/screenshots/viaduct_onder.png)
+
+![Op het dek tussen de houten bogen](docs/screenshots/viaduct_dek.png)
+
+![Het viaduct van opzij](docs/screenshots/viaduct_zij.png)
+
+![Met de auto over het viaduct](docs/screenshots/viaduct_rijden.png)
+
+### Waar het vandaan komt
+
+De BGT weet zelf welke wegvakken over de rondweg heen liggen: die hebben `relatieveHoogteligging 1`.
+Daar staat het brugdek, met de rijbaan, de fietspaden, het trottoir en het overbruggingsdeel, en ook
+de pijler in de middenberm. Wat de BGT niet weet is hóé hoog het ligt — die kent geen derde dimensie.
+
+In [`data/stijl/omgeving.json`](data/stijl/omgeving.json) staat daarom alleen wat je van de foto's
+afleest: de doorrijhoogte, de dikte van het dek, de twee punten waar de oprit weer op maaiveld ligt,
+de helling van het talud en de maten van de houten boog. `tools/geo/genereer.mjs` zoekt de route
+tussen die twee punten zelf op over de wegassen, legt er om de meter een station op met de hoogte uit
+het profiel, en meet ter plekke hoe breed de verharding en het grastalud daar zijn. Er staat geen
+enkele coördinaat van het viaduct in de code.
+
+`js/viaduct.js` leest dat hoogteveld en beantwoordt de enige vraag die de rest van het spel stelt:
+*hoe hoog ligt de grond hier?* De ondergrond, de auto's, de voetgangers, de politie en de speler
+gebruiken allemaal hetzelfde antwoord. Sta je onder de brug, dan is de grond de rondweg; sta je
+erboven, dan is het het dek.
+
+`npm run viaducttest` loopt het na (39 controles): de plek, het hoogteveld, lopen, de leuning,
+rijden, de houten boog en de wereld eromheen. `npm run viaductshots` maakt de foto's hierboven.
+
 ## Naar binnen bij Tinga State: munitie kopen
 
 De stelpboerderij aan de Molenkrite is de tweede plek waar je naar binnen kunt. Ga voor de zwarte
@@ -603,8 +658,9 @@ staat, hoe harder je hem hoort.
 ## Straten in het spel
 
 Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal · Spinnekop ·
-Omloop · De Wieken · Windbord · Voorzoom · Bovenas · Grootwiel · Bonkelaar · het Tinga Parkje met
-vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
+Omloop · De Wieken · Windbord · Voorzoom · Bovenas · Grootwiel · Bonkelaar · Westhemstraat · het
+Tinga Parkje met vijver, zorgcomplex Tinga State, het Viaduct Tinga over de rondweg, en de N7 met
+afrit 21 aan de noordkant.
 
 ## Opbouw
 
@@ -631,6 +687,9 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
   grondvlak van het pand, gang met blokjes, woonkamer met laminaat, bank en tv, keukenblok in de
   aanbouw, en de teleport naar binnen en naar buiten met E
 - `js/navigatie.js` – het wegennet van de kaart als graaf, met de kortste route voor de kaartnavigatie
+- `js/viaduct.js` – het viaduct over de rondweg: het hoogteveld (`grondHoogte`) dat de rest van het
+  spel gebruikt, het dijklichaam van de opritten, het brugdek met landhoofden en pijler, en de houten
+  boogbrug met trekstangen, dwarsportalen en leuning
 - `js/persoon.js` – één los poppetje dat kan staan, zwaaien, lopen, mikken, vuren en omvallen (de
   voetgangers in `npc.js` zijn instanced meshes en kunnen dat niet)
 - `js/opslag.js` – opslaan en laden van het spel (F5 en F9)
@@ -659,6 +718,9 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `tools/woningtest.mjs` – toetst de Wieken 29, het zitten op de bank, de plafondlamp, het uitzicht
   door het glas en het speeltuintje
 - `tools/woningshots.mjs` – maakt de foto's van de Wieken 29, binnen en buiten
+- `tools/viaducttest.mjs` – toetst het viaduct: de plek uit de BGT, het hoogteveld, lopen en rijden
+  over de brug, de leuning, de houten boog en de rondweg die eronder blijft liggen
+- `tools/viaductshots.mjs` – maakt de foto's van het viaduct
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen
@@ -721,6 +783,10 @@ stijl per straat: steenkleur, kozijnen, dakkapellen, voortuinen.
 | Overzicht vanaf Molenpaal | Kaart (toets M) |
 |---|---|
 | ![Overzicht](docs/screenshots/overzicht3.png) | ![Kaart](docs/screenshots/kaart.png) |
+
+| Viaduct Tinga van onderaf | De oprit vanaf de Jumbo |
+|---|---|
+| ![Viaduct van onderaf](docs/screenshots/viaduct_onder.png) | ![De oprit](docs/screenshots/viaduct_oprit.png) |
 
 Testscreenshots maken (vereist Playwright en de meegeleverde Chromium):
 

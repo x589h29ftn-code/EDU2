@@ -1,10 +1,31 @@
 // Auto's: geparkeerd, bestuurbaar en verkeer op de N7 en in de wijk.
 import * as THREE from 'three';
-import { resolveCollisions, pointInWater } from './world.js';
+import { resolveCollisions, pointInWater, grondHoogte } from './world.js';
 import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
 import { makeCar, maakAutoStapel } from './carmodel.js';
 import { KAART } from './kaartwereld.js';
+
+/*
+ Hoe steil ligt de weg hier? Peil twee meter voor en achter de auto; op vlak
+ terrein levert dat nul op en verandert er niets.
+*/
+function helling(x, z, yaw, y) {
+  const dx = -Math.sin(yaw) * 2, dz = -Math.cos(yaw) * 2;
+  const voor = grondHoogte(x + dx, z + dz, y + 0.9), achter = grondHoogte(x - dx, z - dz, y + 0.9);
+  return Math.atan2(voor - achter, 4);
+}
+
+/*
+ Rijden twee auto's op dezelfde hoogte? Op het viaduct rijdt de een over de
+ rondweg heen terwijl de ander eronder doorrijdt: zonder deze test botsen ze op
+ elkaar terwijl er vijf meter lucht tussen zit. `null` = onbekend, dan telt hij
+ mee zoals vroeger.
+*/
+function zelfdeLaag(a, b) {
+  if (a == null || b == null) return true;
+  return Math.abs(a - b) < 2.5;
+}
 
 const COLORS = [0x1c1e24, 0xd8d9dc, 0x8a8d93, 0x2a3f8f, 0x9c1f1f, 0xffffff, 0x3e3a36, 0x2f6b3a, 0x5b6470, 0xc9c1a8];
 
@@ -144,17 +165,19 @@ export class Vehicles {
 
    `negeer` is de auto waar je zelf in zit. Levert [x, z] terug.
   */
-  duwUit(x, z, radius = 0.35, negeer = null) {
+  duwUit(x, z, radius = 0.35, negeer = null, y = null) {
     let px = x, pz = z;
     const raak = [];
     for (const c of this.cars) {
       if (c === negeer || !this.isZichtbaar(c)) continue;
       if (Math.abs(c.x - px) > 8 || Math.abs(c.z - pz) > 8) continue;
+      if (!zelfdeLaag(y, c.mesh ? c.mesh.position.y : 0)) continue;
       raak.push({ x: c.x, z: c.z, yaw: c.yaw, as: c.as || 1.4, r: c.botsRadius || 0.95 });
     }
     for (const t of this.traffic) {
       const p = t.mesh.position;
       if (Math.abs(p.x - px) > 8 || Math.abs(p.z - pz) > 8) continue;
+      if (!zelfdeLaag(y, p.y)) continue;
       raak.push({ x: p.x, z: p.z, yaw: t.mesh.rotation.y, as: 1.4, r: 0.95 });
     }
     if (!raak.length) return [px, pz];
@@ -296,13 +319,16 @@ export class Vehicles {
     let ok = true;
     const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw);
     const as = car.as || 1.4, radius = car.botsRadius || 0.95;
+    // hoogte van de auto: de pijler onder het viaduct houdt alleen tegen wie
+    // eronder rijdt, de leuning alleen wie erover rijdt
+    const cy = car.mesh ? car.mesh.position.y : 0;
     let cx = nx, cz = nz;
     for (const off of [-as, 0, as]) {
       const px = cx + fx * off, pz = cz + fz * off;
-      const [rx, rz] = resolveCollisions(px, pz, radius, 3.5);
+      const [rx, rz] = resolveCollisions(px, pz, radius, 3.5, cy);
       if (rx !== px || rz !== pz) { cx += rx - px; cz += rz - pz; ok = false; }
     }
-    if (pointInWater(cx, cz)) { cx = car.x; cz = car.z; ok = false; }
+    if (cy < 1.5 && pointInWater(cx, cz)) { cx = car.x; cz = car.z; ok = false; }
 
     // ---- en tegen andere auto's, die net zo goed in de weg staan ----
     const blik = this.botsAutos(car, cx, cz);
@@ -339,14 +365,17 @@ export class Vehicles {
     const as = car.as || 1.4, radius = car.botsRadius || 0.95;
     const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw);
     const buurt = [];
+    const y = car.mesh ? car.mesh.position.y : 0;
     for (const c of this.cars) {
       if (c === car || !this.isZichtbaar(c)) continue;
       if (Math.abs(c.x - cx) > 12 || Math.abs(c.z - cz) > 12) continue;
+      if (!zelfdeLaag(y, c.mesh ? c.mesh.position.y : 0)) continue;
       buurt.push({ x: c.x, z: c.z, yaw: c.yaw, as: c.as || 1.4, r: c.botsRadius || 0.95, auto: c });
     }
     for (const t of this.traffic) {
       const p = t.mesh.position;
       if (Math.abs(p.x - cx) > 12 || Math.abs(p.z - cz) > 12) continue;
+      if (!zelfdeLaag(y, p.y)) continue;
       buurt.push({ x: p.x, z: p.z, yaw: t.mesh.rotation.y, as: 1.4, r: 0.95 });
     }
     let raak = 0;
@@ -386,7 +415,7 @@ export class Vehicles {
     for (let i = this.duwen.length - 1; i >= 0; i--) {
       const c = this.duwen[i], v = c.duwV;
       if (!v) { this.duwen.splice(i, 1); continue; }
-      const [rx, rz] = resolveCollisions(c.x + v.x * dt, c.z + v.z * dt, c.botsRadius || 0.95, 3.5);
+      const [rx, rz] = resolveCollisions(c.x + v.x * dt, c.z + v.z * dt, c.botsRadius || 0.95, 3.5, c.mesh ? c.mesh.position.y : 0);
       c.x = rx; c.z = rz;
       if (c.mesh) c.mesh.position.set(rx, c.mesh.position.y, rz);
       else this.zetInstantie(c);
@@ -411,8 +440,17 @@ export class Vehicles {
   // De auto op zijn plek zetten en het model laten meebewegen.
   zetNeer(car, dt, vorigeYaw, invoer = {}) {
     const m = car.mesh;
-    m.position.set(car.x, 0, car.z);
+    /*
+     Bijna overal is de grond nul, behalve op het viaduct. Daar tilt
+     grondHoogte de auto op; de neus wijst omhoog door twee meter vooruit en
+     achteruit te peilen. rotation.order YXZ, anders kantelt hij om de wereldas
+     in plaats van om zijn eigen as.
+    */
+    const y = grondHoogte(car.x, car.z, m.position.y + 0.9);
+    m.position.set(car.x, y, car.z);
+    m.rotation.order = 'YXZ';
     m.rotation.y = car.yaw;
+    m.rotation.x = helling(car.x, car.z, car.yaw, y);
     const u = m.userData;
     if (!u || !u.wielen) return;
     // wielen: de voorste sturen, alle vier rollen mee met de afgelegde weg
@@ -488,8 +526,12 @@ export class Vehicles {
       const p2 = t.path[k0].clone().lerp(t.path[k1], t.t - k0);
       const d2 = t.path[k1].clone().sub(t.path[k0]).normalize().multiplyScalar(t.dir);
       const nrm2 = new THREE.Vector2(-d2.y, d2.x).multiplyScalar(t.lane);
-      t.mesh.position.set(p2.x + nrm2.x, t.y, p2.y + nrm2.y);
+      const tx = p2.x + nrm2.x, tz = p2.y + nrm2.y;
+      const ty = t.y + grondHoogte(tx, tz, t.mesh.position.y + 0.9);
+      t.mesh.position.set(tx, ty, tz);
+      t.mesh.rotation.order = 'YXZ';
       t.mesh.rotation.y = Math.atan2(-d2.x, -d2.y);
+      t.mesh.rotation.x = helling(tx, tz, t.mesh.rotation.y, ty - t.y);
       if (t.remlicht) t.remlicht.visible = t.doel < t.speed * 0.6;
     }
   }

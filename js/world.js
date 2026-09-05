@@ -5,6 +5,7 @@ import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
 import { KAART, bouwKaartWereld, ondergrondKaart, kaartStand, vlakOp } from './kaartwereld.js';
+export { grondHoogte, opViaduct, onderBrug } from './viaduct.js';
 
 export const colliders = [];   // {cx,cz,hx,hz,cos,sin,h} georiënteerde rechthoeken
 export const roadSegments = []; // voor straatnaam-detectie en NPC-paden: {name,a:[x,z],b:[x,z],w}
@@ -1473,11 +1474,12 @@ function buildTrees(scene) {
         // Een grote laanboom heeft ook een dikkere stam, anders staat er een
         // enorme kroon op een stokje.
         const dik = 0.6 + s2 * 0.4;
-        m.compose(new THREE.Vector3(t.x, 2.5 * s2, t.z), q, new THREE.Vector3(dik, s2, dik)); trunks.setMatrixAt(i, m);
+        const ty = t.y || 0;      // op de dijk van het viaduct staat een boom hoger
+        m.compose(new THREE.Vector3(t.x, ty + 2.5 * s2, t.z), q, new THREE.Vector3(dik, s2, dik)); trunks.setMatrixAt(i, m);
         q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-        m.compose(new THREE.Vector3(t.x, 5.2 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
+        m.compose(new THREE.Vector3(t.x, ty + 5.2 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
         q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-        m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, 6.7 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
+        m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, ty + 6.7 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
         if (!t.vrij) addCollider(t.x, t.z, 0.3 * dik, 0.3 * dik, 0, 3);
       });
       trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;
@@ -1498,10 +1500,11 @@ function buildTrees(scene) {
       const crownB = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf2, n * 2);
       groep.forEach((t, i) => {
         const s2 = t.s; q.identity();
-        m.compose(new THREE.Vector3(t.x, 2.7 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
+        const ty = t.y || 0;
+        m.compose(new THREE.Vector3(t.x, ty + 2.7 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
         for (let k = 0; k < 2; k++) {
           q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-          const y = (6.0 + k * 2.2) * s2;
+          const y = ty + (6.0 + k * 2.2) * s2;
           const w = (1.30 - k * 0.30) * s2;
           m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.2 * s2, y, t.z + (r() - 0.5) * 1.2 * s2), q, new THREE.Vector3(w, w * 1.25, w));
           (k === 0 ? crownA : crownB).setMatrixAt(i * 2 + k, m);
@@ -1837,9 +1840,15 @@ export function vrijeCamera(px, py, pz, dx, dy, dz, maxD, marge = 0.35) {
 }
 
 // Botsingsafhandeling: cirkel (x,z,radius) tegen alle colliders -> gecorrigeerde positie
-export function resolveCollisions(x, z, radius, ignoreLowH = 0) {
+/*
+ `y` is de hoogte waar je bent. Botsdozen met een `y0` (de leuning van het
+ viaduct bijvoorbeeld) staan boven de grond: sta je eronder, dan loop je er
+ gewoon onderdoor. Zonder dat argument doen ze mee zoals altijd.
+*/
+export function resolveCollisions(x, z, radius, ignoreLowH = 0, y = null) {
   for (const c of colliders) {
     if (c.h < ignoreLowH) continue;
+    if (c.y0 != null && y != null && (y + 1.8 < c.y0 || y > c.y0 + c.h)) continue;
     const dx = x - c.cx, dz = z - c.cz;
     const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
     const px = Math.abs(lx) - c.hx, pz = Math.abs(lz) - c.hz;
