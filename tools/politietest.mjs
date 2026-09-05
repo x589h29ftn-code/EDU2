@@ -225,6 +225,91 @@ ok(weg.na100.eenheden.wagens === 0 && weg.na100.eenheden.voet === 0,
   'en daarna is de wijk weer leeg',
   `${weg.na100.eenheden.wagens} wagens, ${weg.na100.eenheden.voet} agenten`);
 
+// ---------- 7b. de lege surveillanceauto ----------
+/*
+ Stappen de twee agenten uit, dan hoort de wagen te blijven staan in plaats van
+ verder te rijden, leeg te zijn en in te stappen. En hij hoort weer te
+ verdwijnen, anders staat de wijk na een lange achtervolging vol met lege
+ politieauto's.
+*/
+kop('een lege surveillanceauto');
+const leeg = await page.evaluate(() => {
+  const g = window.__game;
+  const pd = window.__pd;
+  g.politie.reset();
+  window.__zetSpeler(pd.x, pd.z);
+  g.politie.zetHeat(400);
+  g.politie.misdaad('neergeschoten', pd.x, pd.z);
+  // wachten tot er een wagen naast je staat en de agenten uitstappen
+  let stap = 0;
+  while (stap < 120 * 30 && g.politie.eenheden.verlaten === 0) { window.__stap(5); stap += 5; }
+  const v = g.politie.intern.verlaten[0];
+  if (!v) return { er: false, seconden: stap / 30 };
+  const plek = { x: v.car.x, z: v.car.z };
+  const vaart0 = v.car.speed;
+  window.__stap(90);                                  // drie seconden later
+  const verschoven = Math.hypot(v.car.x - plek.x, v.car.z - plek.z);
+  const bereikbaar = g.vehicles.nearestDriveable(v.car.x + 1.2, v.car.z, 3.5) === v.car;
+  const inLijst = g.vehicles.cars.includes(v.car);
+  return {
+    er: true, seconden: stap / 30, vaart0, verschoven, bereikbaar, inLijst,
+    driveable: v.car.driveable, wagens: g.politie.eenheden.wagens,
+  };
+});
+ok(leeg.er, 'de agenten stappen uit en laten hun wagen staan', `na ${Math.round(leeg.seconden)} s`);
+ok(leeg.er && leeg.verschoven < 0.5, 'en die rijdt niet verder',
+  `${(leeg.verschoven || 0).toFixed(2)} m in drie seconden`);
+ok(leeg.driveable && leeg.bereikbaar, 'je kunt erin stappen');
+
+const opruimen = await page.evaluate(() => {
+  const g = window.__game;
+  // ver weg gaan staan en de verdenking laten wegzakken: dan hoort hij op te ruimen
+  const v = g.politie.intern.verlaten[0];
+  const plek = v ? { x: v.car.x, z: v.car.z } : null;
+  window.__zetSpeler(plek.x + 220, plek.z + 220);
+  g.politie.zetHeat(0);
+  window.__stap(60 * 30);
+  return {
+    verlaten: g.politie.eenheden.verlaten, wagens: g.politie.eenheden.wagens,
+    inLijst: g.vehicles.cars.includes(v.car),
+  };
+});
+ok(opruimen.verlaten === 0 && !opruimen.inLijst,
+  'en als ze je kwijt zijn ruimt hij zichzelf op', `${opruimen.verlaten} lege wagens over`);
+ok(opruimen.wagens === 0, 'de rijdende wagens gaan ook weg', `${opruimen.wagens} wagens over`);
+
+// stap er zelf in: dan is hij van jou en houdt hij zijn lichtbalk
+const stelen = await page.evaluate(() => {
+  const g = window.__game;
+  const pd = window.__pd;
+  g.politie.reset();
+  window.__zetSpeler(pd.x, pd.z);
+  g.politie.zetHeat(400);
+  g.politie.misdaad('neergeschoten', pd.x, pd.z);
+  let stap = 0;
+  while (stap < 120 * 30 && g.politie.eenheden.verlaten === 0) { window.__stap(5); stap += 5; }
+  const v = g.politie.intern.verlaten[0];
+  if (!v) return { er: false };
+  g.vehicles.maakBestuurbaar(v.car);
+  g.player.inCar = v.car;
+  window.__stap(2);
+  const uit = {
+    er: true, uitLijst: g.politie.eenheden.verlaten === 0,
+    balkAan: v.balk.parent === v.car.mesh,
+    lampUit: v.links.material.emissiveIntensity < 0.5,
+  };
+  // en hij blijft staan, ook als de politie daarna alles opruimt
+  g.player.inCar = null;
+  g.politie.zetHeat(0);
+  window.__stap(90 * 30);
+  uit.blijftStaan = g.vehicles.cars.includes(v.car);
+  return uit;
+});
+ok(stelen.er && stelen.uitLijst, 'stap je er zelf in, dan is hij van jou');
+ok(stelen.balkAan, 'en houdt hij zijn lichtbalk');
+ok(stelen.lampUit, 'met het zwaailicht uit');
+ok(stelen.blijftStaan, 'een gestolen politieauto wordt niet meer opgeruimd');
+
 // ---------- 8. draait de politie ook echt mee in het spel? ----------
 /*
  Alle proeven hierboven roepen politie.update zelf aan. Dat verhulde een fout in
@@ -255,6 +340,30 @@ const lus = await page.evaluate(async () => {
 });
 ok(lus.buiten >= 3, 'buiten werkt de politie elk beeld bij', `${lus.buiten} keer in 4 beelden`);
 ok(lus.binnen === 0, 'en binnenshuis staat hij stil', `${lus.binnen} keer in 4 beelden`);
+
+// en komt de schade van de politie ook echt in de levensbalk terecht?
+const raak = await page.evaluate(async () => {
+  const g = window.__game;
+  const echt = g.politie.update.bind(g.politie);
+  g.politie.update = () => 7;                     // net alsof er op je geschoten wordt
+  window.__zetSpeler(window.__pd.x, window.__pd.z);
+  g.player.health = 100;
+  const beeld = () => new Promise(r => requestAnimationFrame(() => r()));
+  await beeld(); await beeld();
+  const uit = {
+    leven: g.player.health,
+    balk: parseFloat(document.getElementById('levenbalk').style.width) || 100,
+    label: document.getElementById('levenlabel').textContent,
+    flits: parseFloat(document.getElementById('raakflits').style.opacity) || 0,
+  };
+  g.politie.update = echt;
+  g.player.health = 100; g.hud.zetLeven(100);
+  return uit;
+});
+ok(raak.leven < 100, 'een treffer kost je leven', `${raak.leven} over`);
+ok(raak.balk < 100 && raak.label !== '100', 'en dat zie je aan de levensbalk',
+  `${raak.balk} % breed, label ${raak.label}`);
+ok(raak.flits > 0, 'met een rode flits erbij', `flits ${raak.flits}`);
 
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);

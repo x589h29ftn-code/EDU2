@@ -587,7 +587,13 @@ function loop() {
     verhaal.update(dt);
     for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
     // de politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte
-    if (!ergensBinnen(player.pos.x, player.pos.z)) player.health -= politie.update(dt);
+    if (!ergensBinnen(player.pos.x, player.pos.z)) {
+      const schade = politie.update(dt);
+      // Zonder deze twee regels merk je er niets van dat er op je geschoten
+      // wordt: de levensbalk wordt alleen bijgewerkt als iemand hem bijwerkt,
+      // en de rode flits komt uit js/hud.js — net als bij de bewaking op de RWZI.
+      if (schade > 0) { player.health -= schade; hud.zetLeven(player.health); hud.flits(); }
+    }
     hud.zetSterren(politie.ster, politie.gezocht);
     hud.zetPolitie(politie.gezocht ? politie.plekken : null);
     if (player.health <= 0) { politie.reset(); verhaal.dood(); }

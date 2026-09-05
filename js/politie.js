@@ -60,6 +60,16 @@ const VUURDERS = 3;                        // zoveel agenten schieten er tegelij
 const VUURBEREIK = 34;
 const SCHADE = 4;
 const SPAWN_MIN = 55, SPAWN_MAX = 150;     // afstand waarop ze opduiken (m)
+/*
+ Een surveillanceauto waar de agenten uit gestapt zijn blijft staan en is te
+ stelen. Hij verdwijnt weer, anders staat de wijk na een lange achtervolging vol
+ met lege politieauto's: na LEEG_WEG seconden (of meteen zodra ze je kwijt zijn),
+ en alleen als je er niet vlakbij staat — een auto die voor je neus oplost is
+ erger dan een auto te veel.
+*/
+const LEEG_WEG = 45;
+const LEEG_KWIJT = 8;                      // zodra de sterren weg zijn gaat het sneller
+const LEEG_AFSTAND = 45;
 const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c };
 
 export function initPolitie({ scene, player, npcs, vehicles, hud }) {
@@ -68,6 +78,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   let laatstBekend = null;     // { x, z } waar ze jou het laatst wisten
   const agenten = [];          // { persoon, staat, ... }
   const wagens = [];           // { car, licht, agenten, staat }
+  const verlaten = [];         // lege surveillanceauto's: { car, balk, links, rechts, t, knipper }
   let meldT = 0;               // korte pauze tussen twee meldingen in beeld
   let stille = 0;              // misdaden die (nog) niemand meldde
   const rijbanen = (KAART && KAART.wegassen ? KAART.wegassen.filter(w => w.drive && w.lengte > 40) : []);
@@ -298,6 +309,29 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     const j = wagens.indexOf(w); if (j >= 0) wagens.splice(j, 1);
   }
 
+  /*
+   De agenten zijn eruit. Een auto die daarna vrolijk verder rijdt is raar, dus
+   hij blijft staan waar hij staat, met zijn zwaailicht aan — en hij is te
+   stelen: `driveable` gaat aan en hij verhuist naar de lijst `verlaten`, waar
+   alleen zijn licht nog knippert en de klok voor het opruimen loopt.
+  */
+  function verlaatWagen(w) {
+    const car = w.car;
+    car.driveable = true;
+    car.speed = 0; car.steer = 0;
+    for (const a of w.agenten) a.wagen = null;   // ze tellen nu mee als agent te voet
+    w.agenten.length = 0;
+    const j = wagens.indexOf(w); if (j >= 0) wagens.splice(j, 1);
+    verlaten.push({ car, balk: w.balk, links: w.links, rechts: w.rechts, t: 0, knipper: w.knipper });
+    return car;
+  }
+
+  function ruimVerlaten(v) {
+    scene.remove(v.car.mesh);
+    const i = vehicles.cars.indexOf(v.car); if (i >= 0) vehicles.cars.splice(i, 1);
+    const j = verlaten.indexOf(v); if (j >= 0) verlaten.splice(j, 1);
+  }
+
   // Hoeveel eenheden horen er bij deze ster? Aanvullen gaat één per keer, zodat
   // ze binnendruppelen in plaats van allemaal tegelijk te verschijnen.
   let vulT = 0;
@@ -315,9 +349,25 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       const ver = wagens.slice().sort((a, b) => Math.hypot(b.car.x - sp.x, b.car.z - sp.z) - Math.hypot(a.car.x - sp.x, a.car.z - sp.z))[0];
       if (ver && Math.hypot(ver.car.x - sp.x, ver.car.z - sp.z) > 60) { ruimWagen(ver); vulT = 1; }
     } else if (nuVoet > wilVoet) {
+      /*
+       Te veel agenten te voet. Dat kan hard oplopen: elke wagen zet er twee af
+       en verdwijnt daarna uit de lijst, waarna er een verse wagen komt. Zonder
+       bovengrens loopt de wijk in een lange achtervolging vol met agenten.
+       Normaal gaat de verste weg zolang hij ver van het zoekgebied staat; zit je
+       er ruim boven, dan gaat de verste van jóu weg — maar nooit iemand die je
+       vlak voor je neus ziet staan.
+      */
       const los = agenten.filter(a => !a.wagen);
-      const ver = los.sort((a, b) => Math.hypot(b.persoon.groep.position.x - sp.x, b.persoon.groep.position.z - sp.z) - Math.hypot(a.persoon.groep.position.x - sp.x, a.persoon.groep.position.z - sp.z))[0];
+      const pl = spelerPlek();
+      const verstVan = (p) => los.slice().sort((a, b) =>
+        Math.hypot(b.persoon.groep.position.x - p.x, b.persoon.groep.position.z - p.z)
+        - Math.hypot(a.persoon.groep.position.x - p.x, a.persoon.groep.position.z - p.z))[0];
+      const ver = verstVan(sp);
       if (ver && Math.hypot(ver.persoon.groep.position.x - sp.x, ver.persoon.groep.position.z - sp.z) > 60) { ruimAgent(ver); vulT = 1; }
+      else if (nuVoet > wilVoet + 4) {
+        const weg = verstVan(pl);
+        if (weg && Math.hypot(weg.persoon.groep.position.x - pl.x, weg.persoon.groep.position.z - pl.z) > 25) { ruimAgent(weg); vulT = 1; }
+      }
     }
   }
 
@@ -557,6 +607,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     // ---- surveillanceauto's ----
     for (const w of [...wagens]) {
       const car = w.car;
+      // iedereen eruit: deze wagen rijdt niet meer, hij blijft leeg staan
+      if (w.agenten.length && w.agenten.every(a => a.persoon.groep.visible)) { verlaatWagen(w); continue; }
       const dSp = Math.hypot(sp.x - car.x, sp.z - car.z);
       // zwaailicht: de twee lampen om beurten, twee keer per seconde
       w.knipper += dt;
@@ -580,7 +632,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
         const afst = rijNaar(w, weg, dt, 16);
         w.wegT = (w.wegT || 0) + dt;
         // hij is vertrokken zodra hij er is, ver genoeg weg is, of het te lang duurt
-        if (afst < 12 || (dSp > 130 && w.wegT > 6) || w.wegT > 25) ruimWagen(w);
+        if (afst < 12 || (dSp > 80 && w.wegT > 4) || w.wegT > 18) ruimWagen(w);
         continue;
       }
 
@@ -615,6 +667,33 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       }
     }
 
+    /*
+     ---- lege surveillanceauto's ----
+     Ze rijden niet meer, het zwaailicht knippert door en je kunt erin stappen.
+     Doe je dat, dan is hij van jou: hij gaat uit de lijst, de lampen gaan uit en
+     de politie bemoeit zich er niet meer mee. Doe je het niet, dan verdwijnt hij
+     vanzelf — snel zodra ze je kwijt zijn, en anders na drie kwartier minuut.
+    */
+    for (let i = verlaten.length - 1; i >= 0; i--) {
+      const v = verlaten[i];
+      const gestolen = player.inCar === v.car;
+      /*
+       Instappen bouwt de carrosserie opnieuw op (vehicles.maakBestuurbaar), en
+       de lichtbalk hing aan het oude model. Hem opnieuw aanhaken kost niets en
+       is meteen de reden dat een gestolen politieauto zijn balk houdt.
+      */
+      if (v.car.mesh && v.balk.parent !== v.car.mesh) v.car.mesh.add(v.balk);
+      v.knipper += dt;
+      const links = Math.floor(v.knipper * 4) % 2 === 0;
+      v.links.material.emissiveIntensity = gestolen ? 0.12 : (links ? 3.2 : 0.15);
+      v.rechts.material.emissiveIntensity = gestolen ? 0.12 : (links ? 0.15 : 3.2);
+      if (gestolen) { verlaten.splice(i, 1); continue; }
+      v.t += dt;
+      const dLeeg = Math.hypot(sp.x - v.car.x, sp.z - v.car.z);
+      const opTijd = v.t > (ster() === 0 ? LEEG_KWIJT : LEEG_WEG);
+      if (opTijd && dLeeg > LEEG_AFSTAND) ruimVerlaten(v);
+    }
+
     // ---- verdenking bijwerken ----
     if (iemandZiet) {
       // let op: `laatstBekend` wordt alleen bijgewerkt op het moment dat iemand
@@ -645,6 +724,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
 
   function reset() {
     for (const w of [...wagens]) ruimWagen(w);
+    // een lege wagen waar de speler in zit is van hem; die laten we staan
+    for (const v of [...verlaten]) { if (player.inCar !== v.car) ruimVerlaten(v); }
     for (const a of [...agenten]) ruimAgent(a);
     heat = 0; gezienT = 0; laatstBekend = null; stille = 0;
     geluid.sirene(null);
@@ -655,7 +736,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     get ster() { return ster(); },
     get heat() { return heat; },
     get gezocht() { return ster() > 0; },
-    get eenheden() { return { voet: agenten.filter(a => !a.wagen).length, inWagen: agenten.filter(a => a.wagen).length, wagens: wagens.length }; },
+    get eenheden() { return { voet: agenten.filter(a => !a.wagen).length, inWagen: agenten.filter(a => a.wagen).length, wagens: wagens.length, verlaten: verlaten.length }; },
     get stille() { return stille; },
     get plekken() {
       // voor de minikaart: waar staan de eenheden?
@@ -666,6 +747,6 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     },
     // voor de proef: dwing een bepaalde verdenking af en kijk binnen
     zetHeat(v) { heat = Math.max(0, Math.min(MAX_HEAT, v)); },
-    get intern() { return { wagens, agenten, laatstBekend, gezienT, stille }; },
+    get intern() { return { wagens, agenten, verlaten, laatstBekend, gezienT, stille }; },
   };
 }

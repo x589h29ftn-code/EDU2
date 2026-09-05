@@ -531,6 +531,6 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     get verkoper() { return verkoper; },
     get plekken() { return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, toonbank: bankVoor }; },
     // voor het winkelicoontje op de kaart (js/hud.js): waar de schuurdeur zit
-    get winkels() { return [{ x: deurBuiten.x, z: deurBuiten.z, naam: 'Tinga State' }]; },
+    get winkels() { return [{ x: deurBuiten.x, z: deurBuiten.z, naam: 'Tinga State', wat: 'munitie' }]; },
   };
 }

@@ -325,10 +325,15 @@ HUD.prototype.drawBig = function (player, vehicles) {
     c.translate(w.x, w.z);
     c.scale(1 / scale, 1 / scale);              // vaste maat in beeldpunten
     HUD.tekenWinkel(c, 9);
+    c.textAlign = 'center';
+    c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
     if (w.naam) {
-      c.font = 'bold 12px sans-serif'; c.textAlign = 'center';
-      c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
+      c.font = 'bold 12px sans-serif';
       c.strokeText(w.naam, 0, -16); c.fillStyle = '#f5e6c0'; c.fillText(w.naam, 0, -16);
+    }
+    if (w.wat) {
+      c.font = 'bold 11px sans-serif';
+      c.strokeText(w.wat, 0, 24); c.fillStyle = '#f2b632'; c.fillText(w.wat, 0, 24);
     }
     c.restore();
   }
