@@ -225,6 +225,37 @@ ok(weg.na100.eenheden.wagens === 0 && weg.na100.eenheden.voet === 0,
   'en daarna is de wijk weer leeg',
   `${weg.na100.eenheden.wagens} wagens, ${weg.na100.eenheden.voet} agenten`);
 
+// ---------- 8. draait de politie ook echt mee in het spel? ----------
+/*
+ Alle proeven hierboven roepen politie.update zelf aan. Dat verhulde een fout in
+ de hoofdlus: daar stond `if (!interieur.binnen)`, en `binnen` is een functie —
+ altijd waar, dus de politie werd tijdens het spelen nooit bijgewerkt. Sterren
+ verschenen wel, maar er kwam nooit iemand. Deze proef kijkt daarom naar de lus
+ zelf, en niet naar de module.
+*/
+kop('de hoofdlus');
+const lus = await page.evaluate(async () => {
+  const g = window.__game;
+  const echt = g.politie.update.bind(g.politie);
+  let n = 0;
+  g.politie.update = (dt) => { n++; return echt(dt); };
+  const beeld = () => new Promise(r => requestAnimationFrame(() => r()));
+  g.politie.reset();
+  window.__zetSpeler(window.__pd.x, window.__pd.z);
+  for (let i = 0; i < 4; i++) await beeld();
+  const buiten = n;
+  // en binnen bij Molenkrite 15 hoort hij juist stil te staan
+  n = 0;
+  const p = g.interieur.plekken;
+  g.player.pos.set(p.deurBinnen.x, 0, p.deurBinnen.z); g.player.applyCamera();
+  for (let i = 0; i < 4; i++) await beeld();
+  const binnen = n;
+  g.politie.update = echt;
+  return { buiten, binnen };
+});
+ok(lus.buiten >= 3, 'buiten werkt de politie elk beeld bij', `${lus.buiten} keer in 4 beelden`);
+ok(lus.binnen === 0, 'en binnenshuis staat hij stil', `${lus.binnen} keer in 4 beelden`);
+
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);
 process.exit(fouten === 0 ? 0 : 1);

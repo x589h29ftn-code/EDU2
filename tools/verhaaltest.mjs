@@ -653,10 +653,11 @@ for (let i = 0; i < 3; i++) {
 ok(/lekker werk/.test(beloning[0].tekst), 'Johan is blij', beloning[0].tekst.slice(0, 40));
 ok(/vijfhonderd voor jou/.test(beloning[1].tekst), 'en geeft je vijfhonderd euro', beloning[1].tekst.slice(0, 40));
 const eind = beloning[2];
-ok(eind.missie === 'klaar' && eind.geld === 500 && eind.buit === 0,
+// je begint met € 50 op zak (js/verhaal.js), dus na de beloning staat er € 550
+ok(eind.missie === 'klaar' && eind.geld === 550 && eind.buit === 0,
   'de missie is voltooid en het geld staat in je portemonnee', `${eind.missie}, € ${eind.geld}`);
 ok(/MISSIE VOLTOOID/.test(eind.melding) && /500/.test(eind.melding), '"MISSIE VOLTOOID" met de beloning', eind.melding.slice(0, 50));
-ok(/500/.test(eind.geldEl), 'de portemonnee staat in beeld', eind.geldEl);
+ok(/550/.test(eind.geldEl), 'de portemonnee staat in beeld', eind.geldEl);
 
 // ---------- 9. achter de voordeur van Molenkrite 15 ----------
 kop('binnen bij Molenkrite 15');
@@ -755,11 +756,11 @@ const opslag = await page.evaluate(() => {
     geld: g.verhaal.geld, diefStaat: g.verhaal.dief.staat,
   };
 });
-ok(opslag.inOpslag === 'klaar' && opslag.geldInOpslag === 500, 'de stand van het verhaal en het geld zitten in de opslag',
+ok(opslag.inOpslag === 'klaar' && opslag.geldInOpslag === 550, 'de stand van het verhaal en het geld zitten in de opslag',
   `${opslag.inOpslag}, € ${opslag.geldInOpslag}`);
 ok(opslag.naLaden === 'klaar' && opslag.bewakingNeer === 5 && opslag.poortOpen && opslag.diefStaat === 'gepakt',
   'na laden staat alles er weer: missie, bewaking, poort en de dief');
-ok(opslag.geld === 500, 'en je geld ook', `€ ${opslag.geld}`);
+ok(opslag.geld === 550, 'en je geld ook', `€ ${opslag.geld}`);
 ok(opslag.leven === 100 && opslag.ammo !== 2, 'leven en munitie komen terug', `${opslag.leven} leven`);
 
 await browser.close();

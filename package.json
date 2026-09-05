@@ -42,6 +42,8 @@
     "wereldtest": "node tools/wereldtest.mjs",
     "politietest": "node tools/politietest.mjs",
     "politieshots": "node tools/politieshots.mjs",
+    "winkeltest": "node tools/winkeltest.mjs",
+    "winkelshots": "node tools/winkelshots.mjs",
     "adresshots": "node tools/adresshots.mjs"
   }
 }

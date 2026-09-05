@@ -83,6 +83,7 @@ const DIEF_STOEP = 9;          // de lengte van zijn stukje trottoir
 const MARKER_AFSTAND = 8;      // zo dicht bij de marker begint een gesprek
 const BUIT = 1000;             // wat de dief gejat heeft
 const BELONING = 500;          // wat Johan je ervoor geeft
+const START_GELD = 50;         // waar je het spel mee begint — genoeg voor één doos munitie
 
 const PRAAT_AFSTAND = 5.5;
 const ZWAAI_AFSTAND = 26;
@@ -326,7 +327,7 @@ export function initVerhaal(ctx) {
   let naMissieT = 0;             // pauze tussen twee missies
   let misluktT = 0;              // aftellen na een mislukte missie
   let envelop = null;            // {obj, t} – de envelop die de dief weggooit
-  let geld = 0;                  // portemonnee
+  let geld = START_GELD;         // portemonnee; je begint met een doos munitie op zak
   let buit = 0;                  // geld dat nog afgeleverd moet worden
   let johanNaarB = true, johanWacht = 0;
   const hinder = { alive: true, opWeg: false, x: thuis.x, z: thuis.z };
@@ -545,6 +546,17 @@ export function initVerhaal(ctx) {
   }
 
   function zetGeldInBeeld() { hud.zetGeld(geld, buit); }
+
+  /*
+   Afrekenen. Levert false als je het niet hebt, en dan gebeurt er niets — de
+   verkoper bij Tinga State (js/boerderij.js) gebruikt dit.
+  */
+  function betaal(bedrag) {
+    if (bedrag <= 0 || geld < bedrag) return false;
+    geld -= bedrag;
+    zetGeldInBeeld();
+    return true;
+  }
 
   // ---------- missie mislukt ----------
   // Het beeld vaagt naar grijs, de reden komt in beeld en daarna begint het
@@ -1055,7 +1067,7 @@ export function initVerhaal(ctx) {
     if (s.poortOpen) schuifPoortOpen();
 
     // missie 5: Johan, de dief en het geld
-    geld = s.geld || 0;
+    geld = typeof s.geld === 'number' ? s.geld : START_GELD;
     buit = s.buit || 0;
     zetGeldInBeeld();
     if (envelop) { scene.remove(envelop.obj); envelop = null; }
@@ -1132,6 +1144,7 @@ export function initVerhaal(ctx) {
     get bewaking() { return bewaking; },
     get dief() { return dief; },
     get johan() { return johan; },
+    betaal,
     get geld() { return geld; },
     get buit() { return buit; },
     get truck() { return truck; },
