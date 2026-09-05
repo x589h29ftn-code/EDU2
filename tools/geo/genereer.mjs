@@ -765,6 +765,15 @@ tel('straatbomen', STRAATBOMEN.length); tel('parkbomen', PARKBOMEN.length);
 // schuttingen van 1,8 m tussen en achter de achtertuinen. De maten volgen uit
 // het erf-vlak van de BGT (hoe ver loopt de tuin door).
 const HEGGEN = [], SCHUTTINGEN = [], PADEN = [], TUINVLAKKEN = [];
+/*
+ Vakken waar een achtertuin geen schutting van 1,8 m krijgt maar een lage haag
+ of een hekje (data/stijl/omgeving.json → `lageErfscheidingen`). Nodig waar een
+ rij met de achterkant naar een straat staat en er in het echt geen schutting
+ langs de stoep staat; zonder die uitzondering staat er een houten muur van
+ achttien meter tegenover de voordeur van de buren.
+*/
+const LAGE_ERF = OMGEVING.lageErfscheidingen || [];
+const lagErf = (x, z) => LAGE_ERF.some(v => x >= v.x0 && x <= v.x1 && z >= v.z0 && z <= v.z1);
 const TUINKANS = OMGEVING.voortuinen;
 const tuinVariant = (id) => {
   let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -840,7 +849,9 @@ for (const p of PANDEN) {
       if (d < 2) continue;
       const ex = dx / L, ez = dz / L;
       const hx = mx + nx * (d - 0.25), hz = mz + nz * (d - 0.25);
-      voegLijn(SCHUTTINGEN, [hx - ex * L / 2, hz - ez * L / 2], [hx + ex * L / 2, hz + ez * L / 2], 1.8);
+      const A2 = [hx - ex * L / 2, hz - ez * L / 2], B2 = [hx + ex * L / 2, hz + ez * L / 2];
+      if (lagErf(hx, hz)) voegLijn(HEGGEN, A2, B2, 0.6 + ((tuinVariant(p.id).hash >> 7) & 3) * 0.12, 'haag');
+      else voegLijn(SCHUTTINGEN, A2, B2, 1.8);
     } else if (Math.abs(kant) < 0.35 && L > 4) {
       // zijgevel (bouwmuur): schutting naar achteren, lage haag naar voren, in het verlengde van de muur
       for (const [punt, richting] of [[a, [a[0] - b[0], a[1] - b[1]]], [b, [b[0] - a[0], b[1] - a[1]]]]) {
@@ -849,8 +860,10 @@ for (const p of PANDEN) {
         const d = erfDiepte(punt, dr, naarVoren ? 15 : 14);
         if (d < 1.5) continue;
         const eind = [punt[0] + dr[0] * (d - 0.3), punt[1] + dr[1] * (d - 0.3)];
-        if (naarVoren) voegLijn(HEGGEN, [punt[0] + dr[0] * 0.3, punt[1] + dr[1] * 0.3], eind, 0.45 + ((tuinVariant(p.id).hash >> 5) & 3) * 0.15);
-        else voegLijn(SCHUTTINGEN, [punt[0] + dr[0] * 0.3, punt[1] + dr[1] * 0.3], eind, 1.8);
+        const start = [punt[0] + dr[0] * 0.3, punt[1] + dr[1] * 0.3];
+        if (naarVoren) voegLijn(HEGGEN, start, eind, 0.45 + ((tuinVariant(p.id).hash >> 5) & 3) * 0.15);
+        else if (lagErf(eind[0], eind[1])) voegLijn(HEGGEN, start, eind, 0.6 + ((tuinVariant(p.id).hash >> 7) & 3) * 0.12, 'haag');
+        else voegLijn(SCHUTTINGEN, start, eind, 1.8);
       }
     }
   }

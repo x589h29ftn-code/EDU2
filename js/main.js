@@ -586,7 +586,14 @@ function loop() {
     verhaal.update(dt);
     hud.update(dt, player, vehicles, npcs, straatOf(camera.position.x, camera.position.z), verhaal.aanspreekbaar);
   }
-  renderer.render(scene, window.__bovenCam || camera);
+  // De luchtbol meeschuiven met de camera. Hij heeft een straal van 1000 m en
+  // stond op de oorsprong: aan de oostkant van de wijk viel zijn achterkant
+  // buiten het achtervlak van de camera (1200 m), en door dat gat keek je tegen
+  // de zwarte achtergrond aan — een zwarte koepel in de lucht die met je
+  // meedraaide. Meeschuiven houdt hem altijd op 1000 m.
+  const kijker = window.__bovenCam || camera;
+  sky.position.copy(kijker.position);
+  renderer.render(scene, kijker);
 }
 loop();
 

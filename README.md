@@ -22,7 +22,7 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | Toets | Actie |
 |---|---|
 | W A S D | lopen (shift = sprinten, spatie = springen) |
-| muis | rondkijken · linkermuisknop = schieten · R = herladen |
+| muis | rondkijken · linkermuisknop = schieten · R = herladen · H = pistool weg en weer tevoorschijn |
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15 naar binnen en naar buiten · anders in- en uitstappen bij een auto |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
@@ -76,6 +76,10 @@ balk erboven. De ruiten gaan daarom uit zolang jij erachter zit, en komen terug
 zodra je uitstapt of naar de camera achter de auto gaat.
 
 ![Rijden vanuit de auto](docs/screenshots/auto_eerstepersoon.png)
+
+Het pistool zit in je rechterhand met een onderarm die naar de rechteronderhoek uit beeld loopt. Met
+**H** stop je hem weg: dan verdwijnt ook het kruisje en schiet je niet meer, tot je hem met dezelfde
+toets weer trekt.
 
 ## Camera over je schouder
 
@@ -316,6 +320,16 @@ bakstenen wand rondom, met witte kozijnen, een zwarte schuurdeur en een groene s
 
 ![Tinga State](docs/screenshots/tinga_state.png)
 
+### De tuinen tegenover Molenkrite 15
+
+De achtertuinen van de Binnenroede grenzen hier met hun achterkant aan de Molenkrite. De generator zet
+daar normaal een schutting van 1,8 m neer, en dat werd een houten muur van achttien meter recht
+tegenover de voordeur van nummer 15. In het echt staan er lage hagen, net als in de rest van de wijk.
+Zulke uitzonderingen staan als vak in **[data/stijl/omgeving.json](data/stijl/omgeving.json)** onder
+`lageErfscheidingen`.
+
+![De overkant van de Molenkrite bij nummer 15](docs/screenshots/molenkrite15_overkant.png)
+
 ### Basisschool De Spil, Molenkrite 169
 
 Het grootste pand van de wijk: een U van 6600 m² om een plein heen. Roodbruine baksteen met over de
@@ -404,6 +418,8 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `tools/looptest.mjs` – toetst of je nergens vastloopt: het open terrein binnen de panden en een
   wandeling in acht richtingen vanaf de binnenpleinen
 - `tools/plek.mjs` – één foto van een willekeurige plek in de wijk, in spelmeters
+- `tools/wereldtest.mjs` – toetst wat je in beeld ziet: geen gat in de lucht, het pistool met zijn arm
+  en de H-toets, de lage erfscheidingen en het dubbelzijdige vlaggendoek
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

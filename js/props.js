@@ -284,7 +284,12 @@ def('jumbovlag', 'Vlaggenmast supermarkt', 'straat', [0.5, 0.5], 8.4, () => bouw
   doos(0.44, 0.07, 0.44, M.betonDonker, 0, 0.035, 0),
   cil(0.045, 0.075, 8.3, M.staal, 0, 4.18, 0, 8),
   cil(0.028, 0.028, 0.82, M.staal, 0.41, 8.16, 0, 6, 0, Math.PI / 2),
-  doos(0.78, 4.2, 0.04, M.vlagJumbo, 0.41, 6.0, 0),
+  // Het doek is twee dunne panelen rug aan rug, elk met de goede kant naar
+  // buiten: één texture op één doos leest aan de achterkant altijd in
+  // spiegelschrift, en zo staat het woordmerk van beide kanten goed — net als
+  // op een echte, aan twee zijden bedrukte banier.
+  doos(0.78, 4.2, 0.02, M.vlagJumbo, 0.41, 6.0, -0.012),
+  doos(0.78, 4.2, 0.02, M.vlagJumbo, 0.41, 6.0, 0.012, Math.PI),
 ]));
 
 def('nutskast', 'Nutskast', 'straat', [1.1, 0.5], 1.5, () => bouw([

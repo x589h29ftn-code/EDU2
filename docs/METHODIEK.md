@@ -238,6 +238,7 @@ naar `main` om een build te krijgen.
 | Het verhaal, alle vijf de missies (stap 8) | `npm run verhaaltest` | eindigt op "Alles goed" |
 | Rijden, de camera achter je, aanrijden (stap 8) | `npm run rijtest` | eindigt op "Alles goed" |
 | Nergens vastlopen op een binnenterrein (stap 8) | `npm run looptest` | eindigt op "Alles goed" |
+| Lucht, wapen, erfscheidingen, vlaggen (stap 8) | `npm run wereldtest` | eindigt op "Alles goed" |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
 betrouwbaar kan beoordelen, omdat het een pixel-voor-pixel vergelijking is op
@@ -787,6 +788,33 @@ Controle: `npm run looptest` eindigt op "Alles goed", `npm run geo:boven` blijft
 op 1,31 %, `npm run propcheck` geeft nog dezelfde vijf oude meldingen en
 `npm run verhaaltest` en `npm run rijtest` blijven groen. `npm run adresshots`
 maakt de foto's van de vier panden met een eigen aanzien.
+
+**Een zwarte koepel in de lucht, en vier dingen die in beeld niet klopten
+(stap 8).** Aan de rand van de wijk hing er een zwarte koepel in de lucht die
+met de camera meedraaide. Het bleek geen object te zijn: de luchtbol heeft een
+straal van 1000 m en stond op de oorsprong, terwijl het achtervlak van de camera
+op 1200 m ligt. Sta je 300 m ten oosten van de oorsprong en kijk je naar het
+oosten, dan ligt de achterkant van die bol op 1300 m — buiten het achtervlak —
+en kijk je door het gat tegen de zwarte achtergrond aan. De bol schuift nu elk
+beeld met de camera mee, dus hij staat altijd op 1000 m. De diagnose kwam van
+een pixeltelling: tel de zwarte beeldpunten in de bovenste helft van het beeld,
+schuif de bol mee, tel opnieuw — 1417 werd 0.
+
+Verder in dezelfde ronde: het **pistool** was klein en de hand hing er los bij;
+het model is nu op ware grootte (19 cm) met een vuist om de kolf en een
+onderarm die naar de rechteronderhoek uit beeld loopt, en met H stop je het weg
+(dan gaat het kruisje uit en schiet je niet). De **vlaggen** bij de supermarkt
+lazen aan één kant in spiegelschrift, want één texture op één doos leest aan de
+achterkant altijd omgekeerd; het doek bestaat nu uit twee panelen rug aan rug,
+net als een echte dubbelzijdig bedrukte banier. En de **achtertuinen tegenover
+Molenkrite 15** kregen een schutting van 1,8 m omdat ze met hun achterkant aan
+de straat staan; `lageErfscheidingen` in `omgeving.json` maakt daar een lage haag
+van, zoals in de rest van de wijk.
+
+Controle: `npm run wereldtest` toetst deze vier dingen (zwarte beeldpunten in de
+lucht vanaf de vier hoeken van de wijk, de maten en de H-toets van het pistool,
+geen schutting in de vakken met lage erfscheidingen, en het dubbele vlaggendoek)
+en eindigt op "Alles goed".
 
 **Wat nog niet af is (in volgorde).**
 
