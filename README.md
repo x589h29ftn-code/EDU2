@@ -154,16 +154,24 @@ ze al zijn — gewone auto's staan daar grijs op, zodat blauw echt politie betek
 
 ![Ze zoeken de hele wijk af](docs/screenshots/politie_zoekt.png)
 
+Komen ze met de auto bij je in de buurt, dan stappen de twee inzittenden uit. Die **wagen blijft dan
+staan** met zijn zwaailicht aan — hij rijdt niet leeg verder — en je kunt er zelf in stappen. Doe je
+dat, dan is hij van jou, lichtbalk en al. Laat je hem staan, dan verdwijnt hij vanzelf: snel zodra ze
+je kwijt zijn, en anders na drie kwartier minuut, maar nooit terwijl je ernaast staat.
+
+![Een lege surveillanceauto](docs/screenshots/politie_leeg.png)
+
 Zien ze je (kijkhoek plus vrij zicht) of horen ze je schieten, dan zetten ze de achtervolging in en
-schieten ze op je. Een auto die je kwijtraakt blijft nog een paar seconden zoeken en gaat dan terug
+schieten ze op je. Elke treffer kost leven: de balk linksonder loopt terug en het beeld flitst rood. Een auto die je kwijtraakt blijft nog een paar seconden zoeken en gaat dan terug
 naar de laatst bekende plek — één hoek omgaan is dus niet genoeg. Blijf je uit het zicht, dan zakt de
 verdenking na een aftelling van achttien seconden plus zes per ster, en zijn ze je kwijt. Een agent
 neerschieten kost je meteen een paar sterren extra.
 
-`npm run politietest` loopt het allemaal na — eenentwintig controles: de meldkans met en zonder
+`npm run politietest` loopt het allemaal na — drieëndertig controles: de meldkans met en zonder
 getuigen, de sterdrempels, het uitrukken en aankomen, het aantal eenheden en hun spreiding per
-sterniveau, het schieten, het neerschieten van een agent, het ontsnappen, en of de hoofdlus de
-politie buiten wél en binnenshuis niet bijwerkt. `npm run politieshots` maakt de twee foto's hierboven.
+sterniveau, het schieten, het neerschieten van een agent, het ontsnappen, de lege surveillanceauto
+die blijft staan en te stelen is, en of de hoofdlus de politie buiten wél en binnenshuis niet
+bijwerkt en de schade in de levensbalk terechtkomt. `npm run politieshots` maakt de twee foto's hierboven.
 
 ## Hondjes
 

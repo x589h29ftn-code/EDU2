@@ -970,6 +970,35 @@ texturegeheugen loopt met de binnenruimte mee van 82 naar 83 MB, de draw calls
 in de wijk veranderen niet — de deel staat buiten het kaartgebied en valt dus
 altijd buiten beeld.
 
+
+**Lege surveillanceauto's, en schade die je ook ziet (stap 12).** Drie dingen
+uit het spelen zelf.
+
+1. *Een wagen waar de agenten uit gestapt zijn reed vrolijk verder.* Dat kwam
+   doordat het uitstappen aan het eind van de wagenlus stond en de wagen daarna
+   gewoon zijn ronde bleef rijden. Zodra iedereen eruit is gaat hij nu uit de
+   lijst `wagens` en over naar `verlaten`: hij staat stil, `driveable` gaat aan
+   en het zwaailicht knippert door. Stap je in, dan is hij van jou — de lichtbalk
+   wordt opnieuw aan de carrosserie gehangen, want `vehicles.maakBestuurbaar`
+   bouwt het model opnieuw op, en de lampen gaan uit.
+2. *Ze moeten ook weer weg.* Een lege wagen ruimt zichzelf op na 45 seconden, of
+   na 8 zodra de sterren weg zijn — maar alleen als je er niet binnen 45 meter
+   staat, want een auto die voor je neus oplost is erger dan een auto te veel.
+   Wegrijdende wagens geven het ook eerder op (18 s in plaats van 25). En omdat
+   elke wagen twee agenten afzet en daarna uit de lijst verdwijnt, waarna er een
+   verse komt, kon het aantal agenten te voet in een lange achtervolging blijven
+   oplopen: bij meer dan vier boven het gewenste aantal gaat nu de verste van de
+   speler weg, mits hij minstens 25 meter van je vandaan staat.
+3. *De politie deed geen schade.* Of beter: je zag er niets van. `politie.update`
+   levert de schade terug en `main.js` trok die van `player.health` af, maar
+   niemand werkte de levensbalk bij — `hud.update` doet dat niet uit zichzelf.
+   Nu gaan `hud.zetLeven` en `hud.flits` mee, net als bij de bewaking op de RWZI.
+
+Controle: `npm run politietest` telt nu drieëndertig controles. De twaalf nieuwe kijken
+of de wagen echt blijft staan als de agenten eruit zijn, of je erin kunt stappen,
+of hij zichzelf opruimt, of een gestolen wagen blijft staan met zijn lichtbalk,
+en of een treffer in de levensbalk en de rode flits terechtkomt.
+
 **Wat nog niet af is (in volgorde).**
 
 1. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als

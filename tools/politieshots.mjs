@@ -6,6 +6,8 @@
                       sterren rechtsboven en de blauwe stipjes op de minikaart
    politie_zoekt.png  de grote kaart: de eenheden zoeken niet op één kluitje
                       maar in een ring rond de laatst bekende plek
+   politie_leeg.png   een surveillanceauto waar de agenten uit gestapt zijn:
+                      hij blijft staan met zijn zwaailicht aan en is te stelen
 
  Gebruik: python3 -m http.server 8123 &  node tools/politieshots.mjs 8123 [map]
 */
@@ -86,5 +88,34 @@ await page.waitForTimeout(2500);
 await page.screenshot({ path: `${map}/politie_zoekt.png` });
 console.log(`${map}/politie_zoekt.png`);
 console.log(`${spreiding.n} eenheden op de kaart, van ${Math.round(spreiding.dichtst)} tot ${Math.round(spreiding.verst)} m van de plaats delict`);
+
+// ---------- 3. een lege surveillanceauto ----------
+const leeg = await page.evaluate(() => {
+  const g = window.__game;
+  // doorspoelen tot er eentje leeg staat
+  let stap = 0;
+  while (stap < 150 * 30 && g.politie.eenheden.verlaten === 0) { window.__spoel(2); stap += 60; }
+  const v = g.politie.intern.verlaten[0];
+  if (!v) return { er: false };
+  if (g.hud.bigOpen) g.hud.toggleBig();
+  // schuin voor de auto gaan staan, op instapafstand
+  const zij = { x: Math.cos(v.car.yaw), z: -Math.sin(v.car.yaw) };
+  const vooruit = { x: -Math.sin(v.car.yaw), z: -Math.cos(v.car.yaw) };
+  const van = { x: v.car.x + zij.x * 1.9 + vooruit.x * 1.9, z: v.car.z + zij.z * 1.9 + vooruit.z * 1.9 };
+  g.player.inCar = null;
+  g.player.pos.set(van.x, 0, van.z);
+  g.player.yaw = Math.atan2(-(v.car.x - van.x), -(v.car.z - van.z));
+  g.player.pitch = -0.04;
+  g.player.applyCamera();
+  g.hud.update(0.05, g.player, g.vehicles, g.npcs, 'Molenkrite', false);
+  return { er: true, hint: document.getElementById('hint').textContent };
+});
+if (leeg.er) {
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: `${map}/politie_leeg.png`, timeout: 180000 });
+  console.log(`${map}/politie_leeg.png — ${leeg.hint}`);
+} else {
+  console.log('geen lege surveillanceauto gevonden');
+}
 
 await browser.close();
