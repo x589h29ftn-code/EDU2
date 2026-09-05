@@ -297,6 +297,100 @@ export function bouwKaartWereld(scene, W) {
 // grondvlak. Muren die naar de straat kijken krijgen de gevel met ramen en
 // deuren van het woningtype (textures.js), de achtergevel de achterkant, de
 // rest kale steen. Het aantal lagen volgt uit de echte goothoogte.
+/*
+ Botsingsdozen van een pand.
+
+ Lang stond hier één doos: de omhullende rechthoek `p.rect`. Voor een rijtjeshuis
+ is dat precies goed, maar de school aan de Molenkrite is een U om een plein
+ heen. De omhullende rechthoek is daar 6600 m², dus het plein, de fietsenstalling
+ en de paden ertussen telden mee als muur — je liep er vast, te voet en met de
+ auto.
+
+ Daarom wordt de echte voetafdruk in verticale stroken gesneden (een
+ trapeziumontleding): in het assenstelsel van de rechthoek is elke hoekpunt-x een
+ snijlijn, en per strook geeft een verticale scanlijn door het midden de stukken
+ die bínnen de voetafdruk vallen. Voor een gewone rechthoekige plattegrond is dat
+ precies één doos, dus het kost alleen iets bij de panden waar het nodig is.
+*/
+function pandDozen(p) {
+  const r = p.rect;
+  const heel = [{ x: r.cx, z: r.cz, hx: r.hx, hz: r.hz, hoek: r.hoek }];
+  if (!p.voet || p.voet.length < 4) return heel;
+  // Vult de voetafdruk de rechthoek zo goed als op, dan is één doos genoeg —
+  // dat geldt voor vrijwel elk rijtjeshuis en scheelt duizenden dozen.
+  let opp = 0;
+  for (let i = 0; i < p.voet.length; i++) {
+    const a = p.voet[i], b = p.voet[(i + 1) % p.voet.length];
+    opp += a[0] * b[1] - b[0] * a[1];
+  }
+  if (Math.abs(opp / 2) > r.hx * r.hz * 4 * 0.97) return heel;
+
+  // Het assenstelsel is dat van de langste gevel, niet dat van `p.rect`: de
+  // omhullende rechthoek staat bij een hoekig complex scheef op de muren, en
+  // dan wordt elke strook een trapje in plaats van een muur.
+  let hoek = r.hoek, langste = 0;
+  for (let i = 0; i < p.voet.length; i++) {
+    const a = p.voet[i], b = p.voet[(i + 1) % p.voet.length];
+    const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz);
+    if (L > langste) { langste = L; hoek = Math.atan2(dz, dx); }
+  }
+  const c = Math.cos(hoek), s = Math.sin(hoek);
+  const lokaal = p.voet.map(([x, z]) => {
+    const dx = x - r.cx, dz = z - r.cz;
+    return [dx * c + dz * s, -dx * s + dz * c];
+  });
+  // de stukken van de voetafdruk op een verticale lijn u
+  const snij = (u) => {
+    const sn = [];
+    for (let j = 0; j < lokaal.length; j++) {
+      const a = lokaal[j], b = lokaal[(j + 1) % lokaal.length];
+      if ((a[0] <= u) === (b[0] <= u)) continue;
+      sn.push(a[1] + (u - a[0]) / (b[0] - a[0]) * (b[1] - a[1]));
+    }
+    return sn.sort((x, y) => x - y);
+  };
+
+  const grenzen = [...new Set(lokaal.map(q => Math.round(q[0] * 100) / 100))].sort((a, b) => a - b);
+  let open = [], klaar = [];
+  const strook = (u0, u1) => {
+    // begin, midden en eind van de strook; bij een schuine gevel verschillen ze
+    const sn = [snij(u0 + 1e-4), snij((u0 + u1) / 2), snij(u1 - 1e-4)].filter(q => q.length);
+    const n = Math.min(...sn.map(q => q.length));
+    const nieuw = [];
+    for (let k = 0; k + 1 < n; k += 2) {
+      // de doos dekt het hele stuk van de strook, dus nooit een gat in de muur
+      const v0 = Math.min(...sn.map(q => q[k])), v1 = Math.max(...sn.map(q => q[k + 1]));
+      if (v1 - v0 < 0.05) continue;
+      const zelfde = open.find(o => o.u1 === u0 && Math.abs(o.v0 - v0) < 0.03 && Math.abs(o.v1 - v1) < 0.03);
+      if (zelfde) { zelfde.u1 = u1; nieuw.push(zelfde); }
+      else nieuw.push({ u0, u1, v0, v1 });
+    }
+    for (const o of open) if (!nieuw.includes(o)) klaar.push(o);
+    open = nieuw;
+  };
+
+  for (let i = 0; i + 1 < grenzen.length; i++) {
+    const u0 = grenzen[i], u1 = grenzen[i + 1];
+    if (u1 - u0 < 0.05) continue;
+    // hoeveel schuift de rand op over deze strook? bij meer dan een halve meter
+    // wordt hij in stukjes gehakt, anders steekt de doos te ver de tuin in
+    const a = snij(u0 + 1e-4), b = snij(u1 - 1e-4);
+    let scheef = 0;
+    for (let k = 0; k < Math.min(a.length, b.length); k++) scheef = Math.max(scheef, Math.abs(a[k] - b[k]));
+    const stukken = Math.max(1, Math.min(12, Math.ceil(scheef / 0.5)));
+    for (let q = 0; q < stukken; q++) strook(u0 + (u1 - u0) * q / stukken, u0 + (u1 - u0) * (q + 1) / stukken);
+  }
+  klaar = klaar.concat(open);
+  if (!klaar.length) return heel;
+  return klaar.map(o => {
+    const u = (o.u0 + o.u1) / 2, v = (o.v0 + o.v1) / 2;
+    return {
+      x: r.cx + u * c - v * s, z: r.cz + u * s + v * c,
+      hx: (o.u1 - o.u0) / 2, hz: (o.v1 - o.v0) / 2, hoek,
+    };
+  });
+}
+
 function bouwPanden(scene, W, plat) {
   const K = KAART;
   const groepen = new Map();   // materiaalsleutel -> { pos, uv, nor, mat, klasse }
@@ -531,7 +625,10 @@ function bouwPanden(scene, W, plat) {
       extrudeer(p, voet, p.goot || 3, p.dak === 'slanted');
       geschat++;
     }
-    if (p.rect) W.addCollider(p.rect.cx, p.rect.cz, p.rect.hx, p.rect.hz, -p.rect.hoek, Math.max(3, p.nok || p.goot || 3));
+    if (p.rect) {
+      const h = Math.max(3, p.nok || p.goot || 3);
+      for (const d of pandDozen(p)) W.addCollider(d.x, d.z, d.hx, d.hz, -d.hoek, h);
+    }
   }
   for (const g of groepen.values()) {
     const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { schaduw: true, klasse: g.klasse });
@@ -556,13 +653,31 @@ function bouwTerreinen(scene, W) {
       const v = q[k]; sp.pos.push(v[0], v[1], v[2]); sp.uv.push((offset + (k === 1 || k === 2 ? L : 0)) / 2.5, (v[1] - y0) / h); sp.nor.push(nx, 0, nz);
     }
   };
+  // Een hek kan een eigen kleur hebben (het spijlenhek bij Jeugdhulp Friesland
+  // is donkergroen, dat van de waterzuivering staalgrijs), dus de vlakken
+  // worden per kleur verzameld; elke kleur wordt één mesh.
+  const perKleur = new Map();
   for (const hw of K.hekwerken || []) {
+    const kleur = hw.kleur || null;
+    if (kleur && !perKleur.has(kleur)) perKleur.set(kleur, { pos: [], uv: [], nor: [] });
+    const doel = kleur ? perKleur.get(kleur) : sp;
+    const bewaar = [sp.pos.length, sp.uv.length, sp.nor.length];
     let s = 0;
     for (let i = 1; i < hw.pts.length; i++) {
       const a = hw.pts[i - 1], b = hw.pts[i]; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 0.2) continue;
       paneel(a, b, KERB_Y, hw.h, s); s += L;
       W.addCollider((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, L / 2, 0.08, -Math.atan2(b[1] - a[1], b[0] - a[0]), hw.h);
     }
+    if (kleur) {
+      doel.pos.push(...sp.pos.splice(bewaar[0]));
+      doel.uv.push(...sp.uv.splice(bewaar[1]));
+      doel.nor.push(...sp.nor.splice(bewaar[2]));
+    }
+  }
+  for (const [kleur, g] of perKleur) {
+    const mat = new THREE.MeshStandardMaterial({ map: T.spijlenhek(kleur), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.6, metalness: 0.3 });
+    const mk = maakMesh(g.pos, g.uv, g.nor, mat, { klasse: 'hekwerk', schaduw: true });
+    if (mk) scene.add(mk);
   }
   /*
    De schuifpoort. Het hekblad zit in zijn eigen groep, niet in het grote

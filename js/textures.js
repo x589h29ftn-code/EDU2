@@ -444,6 +444,17 @@ export const HOUSE_STYLES = {
   // (niet afgeknipt op de goot, want de dakvoet loopt hier van 2 tot 4 m) en
   // zet de wand aan alle kanten aan; een boerderij heeft geen achtergevel.
   tinga_state: { brick: ['#9b6a4e', '#c9bfae'], frame: '#f6f6f2', frame2: '#1f4230', door: ['#1e1f22', '#1f4230'], roof: '#a8512c', roofType: 'gable', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#f2f2ee', plint: '#5a3a2e', industrieel: true, boerderij: true, dakramen: true },
+  // Basisschool De Spil, Molenkrite 169 (Street View, foto in de chat 5 sep
+  // 2026): een laag gebouw in roodbruine baksteen rond een plein, met over de
+  // hele lengte een doorlopende raamstrook met felblauwe kozijnen en gele
+  // gordijnen erachter, daarboven een gele plaatband onder een lichte dakrand,
+  // en bij de ingang een geel bord. `school` kiest die gevel in facade().
+  school:      { brick: ['#8c5340', '#c9bfae'], frame: '#1f6fc4', frame2: '#1f6fc4', door: ['#1f6fc4'], roof: '#54514c', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#d8d5cc', plint: '#6b4436', industrieel: true, school: true, geel: '#f2c012' },
+  // Jeugdhulp Friesland, Molenkrite 234 (Street View, foto in de chat 5 sep
+  // 2026): een lang gebouw van één laag met plat dak, donkerbruine steen,
+  // lichte kozijnen en een blauwe deur, met een parkeerterrein en een
+  // omheinde speeltuin ervoor.
+  zorg:        { brick: ['#6f5a4c', '#c2bbb0'], frame: '#eceae4', frame2: '#eceae4', door: ['#1f6fc4', '#3a3d42'], roof: '#4a4d50', roofType: 'flat', storeys: 1, storeyH: 3.0, w: 6.0, dormer: false, chimney: false, band: '#c9c6bd', plint: '#4f4137', industrieel: true, kantoor: true },
 };
 
 // ---------- Stalen damwandprofiel (blauwe gevelbeplating RWZI) ----------
@@ -708,6 +719,48 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       const og = g.createLinearGradient(0, m(0.14), 0, m(1.0));
       og.addColorStop(0, 'rgba(0,0,0,0.5)'); og.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = og; g.fillRect(x0, m(0.14), HW, m(0.86));
+    } else if (st.school) {
+      /*
+       Schoolgevel (De Spil): een doorlopende raamstrook met felblauwe kozijnen
+       en gele gordijnen erachter, daarboven een gele plaatband onder een lichte
+       dakrand, daaronder metselwerk met een donkere plint. Net als bij de
+       winkel rekt kaartwereld.js de texture over de hele muurhoogte uit, dus
+       alles staat in verhoudingen van H en niet in vaste meters.
+      */
+      const geel = st.geel || '#f2c012';
+      const randH = H * 0.07, bandH2 = H * 0.13;
+      const ramenY = randH + bandH2 + H * 0.05, ramenH = H * 0.40;
+      // lichte dakrand en gele plaatband eronder
+      g.fillStyle = '#d8d5cc'; g.fillRect(x0, 0, HW, randH);
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x0, randH, HW, H * 0.012);
+      g.fillStyle = geel; g.fillRect(x0, randH, HW, bandH2);
+      g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x0, randH + bandH2 - H * 0.012, HW, H * 0.012);
+      // raamstrook: kozijnen van 1,3 m naast elkaar, met gele gordijnen
+      const lat = m(1.3);
+      for (let k = 0; m(0.45) + (k + 1) * lat < HW - m(0.2); k++) {
+        win(x0 + m(0.45) + k * lat, ramenY, lat - m(0.14), ramenH, st.frame);
+        g.fillStyle = 'rgba(242,192,18,0.35)';
+        g.fillRect(x0 + m(0.55) + k * lat, ramenY + ramenH * 0.12, lat - m(0.34), ramenH * 0.5);
+      }
+      // om de drie traveeën de ingang, met een geel bord erboven
+      if (i % 3 === 1) {
+        const dw = m(1.7), dx = x0 + (HW - dw) / 2, dh = H - ramenY - H * 0.06;
+        g.fillStyle = st.frame; g.fillRect(dx - m(0.1), ramenY, dw + m(0.2), dh);
+        g.fillStyle = '#28323a'; g.fillRect(dx, ramenY + m(0.1), dw, dh - m(0.2));
+        g.fillStyle = 'rgba(200,220,240,0.3)'; g.fillRect(dx + m(0.08), ramenY + m(0.16), dw * 0.3, dh - m(0.4));
+        g.fillStyle = st.frame; g.fillRect(dx + dw / 2 - m(0.05), ramenY, m(0.10), dh);
+        g.fillStyle = geel; g.fillRect(dx - m(0.1), ramenY - H * 0.10, dw + m(0.2), H * 0.085);
+        g.save();
+        g.fillStyle = '#2b2b28';
+        g.font = `bold ${Math.round(H * 0.055)}px sans-serif`;
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('INGANG', dx + dw / 2, ramenY - H * 0.057);
+        g.restore();
+      }
+      // plint onder het metselwerk
+      const plintH2 = Math.max(m(0.2), H * 0.05);
+      g.fillStyle = plintKleur; g.fillRect(x0, H - plintH2, HW, plintH2);
+      g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x0, H - plintH2, HW, m(0.03));
     } else if (st.industrieel) {
       // bedrijfsgevel (RWZI): hoge smalle ramen, per twee traveeën een stalen
       // deur, in elke derde travee een overheaddeur; het kantoortype krijgt
@@ -786,7 +839,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
     }
     // De winkel en de boerderij hebben hun eigen plint en dakrand hierboven
     // afgemaakt; die zouden hier overschreven worden.
-    if (!st.winkel && !st.boerderij) {
+    if (!st.winkel && !st.boerderij && !st.school) {
       // plint
       g.fillStyle = plintKleur; g.fillRect(x0, H - m(plintH), HW, m(plintH));
       g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x0, H - m(plintH), HW, m(0.03));

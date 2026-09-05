@@ -1107,6 +1107,50 @@ for (const M of TERREINEN) {
 }
 // woningtypen opnieuw tellen na de terreinen
 telling.woningtypen = {}; for (const p of PANDEN) telling.woningtypen[p.type] = (telling.woningtypen[p.type] || 0) + 1;
+/*
+ Losse hekken om een pand heen (data/stijl/omgeving.json → `hekken`).
+
+ De BGT-laag `scheiding` bevat in Tinga alleen kademuren, dus een erfafscheiding
+ die wél op de foto staat komt hiervandaan. De lijn wordt niet met de hand
+ uitgetypt maar om de omsluitende rechthoek van het pand gelegd, `marge` meter
+ uit de gevel, in stukjes van twee meter. Stukjes die op een rijbaan, inrit,
+ fietspad, voetpad of water zouden komen vervallen — daardoor ontstaat het gat
+ bij de inrit vanzelf en staat er nooit een hek dwars over de weg.
+*/
+const OPENBAAR = ['rijbaan', 'autoweg', 'woonerf', 'fietspad', 'voetpad', 'inrit', 'water', 'oever'];
+for (const h of OMGEVING.hekken || []) {
+  const p = PANDEN.find(q => q.id === h.omPand);
+  if (!p || !p.rect) { console.warn(`LET OP: hek ${h.naam}: pand ${h.omPand} niet gevonden`); continue; }
+  const r = p.rect, c = Math.cos(r.hoek), s = Math.sin(r.hoek);
+  const hx = r.hx + (h.marge ?? 8), hz = r.hz + (h.marge ?? 8);
+  const hoeken = [[-hx, -hz], [hx, -hz], [hx, hz], [-hx, hz]].map(([u, v]) => [r.cx + u * c - v * s, r.cz + u * s + v * c]);
+  const punten = [];
+  for (let i = 0; i < 4; i++) {
+    const a = hoeken[i], b = hoeken[(i + 1) % 4];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(L / 2));
+    for (let k = 0; k < n; k++) punten.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]);
+  }
+  punten.push(hoeken[0]);
+  const mijden = h.mijd || OPENBAAR;
+  const bezet = VLAKKEN.filter(v => mijden.includes(v.k));
+  const vrij = (q) => !bezet.some(v => inPolygoon(q, v.r)) && !PANDEN.some(w => inRing(q, w.voet));
+  const lijnen = []; let ketting = null;
+  for (const q of punten) {
+    if (!vrij(q)) { ketting = null; continue; }
+    if (!ketting) { ketting = []; lijnen.push(ketting); }
+    ketting.push(q);
+  }
+  let totaal = 0;
+  for (const pts of lijnen) {
+    let lengte = 0;
+    for (let i = 1; i < pts.length; i++) lengte += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (lengte < 3) continue;
+    totaal += lengte;
+    HEKWERKEN.push({ pts: pts.map(q => [r2(q[0]), r2(q[1])]), h: h.hoogte || 1.5, lengte: r2(lengte), terrein: h.kort, ...(h.kleur ? { kleur: h.kleur } : {}) });
+  }
+  telling[`hekwerk_${h.kort}_m`] = Math.round(totaal);
+}
+
 tel('hekwerken', HEKWERKEN.length); tel('poorten', POORTEN.length);
 
 // ---------------------------------------------------------------- labels, start

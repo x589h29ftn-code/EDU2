@@ -92,8 +92,13 @@ function truckGeoms() {
     { geo: doos(0.2, 0.14, 0.05), x: -0.45, y: 0.9, z: L / 2 + 0.03 },
     { geo: doos(0.2, 0.14, 0.05), x: 0.45, y: 0.9, z: L / 2 + 0.03 },
   ]);
+  // oogpunt van de bestuurder: net vóór de voorruit, zodat je niet door twee
+  // getinte glasplaten naar buiten kijkt (zie js/main.js)
+  // in de cabine, vlak achter de voorruit: de cabine is één doos, dus vanbinnen
+  // zie je er niets van en heb je vrij zicht over de weg
+  const oog = { x: -(W / 2 - 0.6), y: 1.98, z: cabZ - 0.85 };
   return { paint, glass, zwartVast, chroomVast: [], head, tail: merge(achter), rem, achteruit, plate,
-    wielGeo, hubGeo, wielen, R, L, W };
+    wielGeo, hubGeo, wielen, R, L, W, oog };
 }
 
 /*
@@ -204,8 +209,13 @@ function autoGeoms(kind) {
     { geo: doos(0.5, 0.11, 0.02), y: dorpelY + 0.14, z: -L / 2 - 0.06 },
   ]);
 
+  // oogpunt van de bestuurder: net vóór de voorruit en vlak onder de dakrand.
+  // Zat de camera op de stoel, dan vulde de voorruit het halve beeld met een
+  // grauwe tint en hing de dakrand als een donkere balk in beeld.
+  const zVoorruit = cabZ - cabL / 2 + 0.30 - Math.sin(aHoek) * stijlH / 2;
+  const oog = { x: -(W / 2 - 0.55), y: dakY - 0.08, z: zVoorruit - 0.15 };
   return { paint: merge(lak), glass: merge(glas), zwartVast, chroomVast,
-    head, tail: merge(achter), rem, achteruit, plate, wielGeo, hubGeo, wielen, R, L, W };
+    head, tail: merge(achter), rem, achteruit, plate, wielGeo, hubGeo, wielen, R, L, W, oog };
 }
 
 function geoms(kind) {
@@ -247,8 +257,8 @@ export function makeCar(color, kind = 'hatch', animatie = false) {
 
   const bak = animatie ? new THREE.Group() : g;    // carrosserie, kan overhellen
   const body = new THREE.Mesh(G.paint, paintCache.get(color)); body.castShadow = true;
-  bak.add(body,
-    new THREE.Mesh(G.glass, SHARED.glass),
+  const glas = new THREE.Mesh(G.glass, SHARED.glass);
+  bak.add(body, glas,
     new THREE.Mesh(animatie ? G.blackLos : G.black, SHARED.black),
     new THREE.Mesh(G.head, SHARED.head),
     new THREE.Mesh(G.tail, SHARED.tail),
@@ -256,7 +266,7 @@ export function makeCar(color, kind = 'hatch', animatie = false) {
   const chroom = animatie ? G.chroomLos : G.chrome;
   if (chroom) bak.add(new THREE.Mesh(chroom, SHARED.chrome));
 
-  if (!animatie) { g.userData.length = G.L; return g; }
+  if (!animatie) { g.userData.length = G.L; g.userData.oog = G.oog; return g; }
 
   g.add(bak);
   const rem = new THREE.Mesh(G.rem, SHARED.rem); rem.visible = false; bak.add(rem);
@@ -270,6 +280,6 @@ export function makeCar(color, kind = 'hatch', animatie = false) {
     g.add(groep);
     return { groep, band, stuur: !!w.stuur };
   });
-  g.userData = { length: G.L, bak, wielen, rem, achteruit, R: G.R };
+  g.userData = { length: G.L, oog: G.oog, bak, glas, wielen, rem, achteruit, R: G.R };
   return g;
 }

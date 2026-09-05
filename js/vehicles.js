@@ -77,7 +77,7 @@ export class Vehicles {
       mesh, x, z, yaw, speed: 0, steer: 0, driveable, hp: 100, soort, kleur,
       as: truck ? 2.6 : 1.4, botsRadius: truck ? 1.15 : 0.95,
       instap: truck ? 2.4 : 1.2,
-      stoel: truck ? { x: -0.55, y: 2.15, z: -2.3 } : null,
+      stoel: null,          // het oogpunt komt uit het model (userData.oog)
       topSnelheid: truck ? 16 : 24,
       breedte: truck ? 2.35 : 1.78,
     };
@@ -266,6 +266,18 @@ export class Vehicles {
       v.x *= rem; v.z *= rem;
       if (Math.hypot(v.x, v.z) < 0.15) { c.duwV = null; this.duwen.splice(i, 1); }
     }
+  }
+
+  /*
+   De ruiten aan- of uitzetten. Het glas is één doos per ruit met een donkere,
+   bijna dekkende tint: van buiten precies goed, maar vanaf de bestuurdersstoel
+   kijk je er dwars doorheen naar buiten en wordt het hele beeld grauw. Zit je
+   zelf achter het stuur, dan gaan ze uit; stap je uit of ga je naar de camera
+   achter de auto, dan komen ze terug.
+  */
+  ruiten(car, aan) {
+    const g = car && car.mesh && car.mesh.userData.glas;
+    if (g && g.visible !== aan) g.visible = aan;
   }
 
   // De auto op zijn plek zetten en het model laten meebewegen.

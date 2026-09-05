@@ -69,6 +69,14 @@ alsof je de hele wijk in zijn één doorkomt. Achteruit is één laag verzet dat
 je achter het stuur zit speelt de **autoradio** een rockdeuntje: zacht genoeg om de motor eronder te
 blijven horen, en tijdens de achtervolging in het verhaal zakt hij nog verder weg.
 
+Vanachter het stuur kijk je vanaf een oogpunt vlak vóór de voorruit over de
+motorkap. Dat is geen luxe: het glas is van buiten donker getint, en vanaf de
+stoel keek je door twee van die vlakken naar buiten met de dakrand als donkere
+balk erboven. De ruiten gaan daarom uit zolang jij erachter zit, en komen terug
+zodra je uitstapt of naar de camera achter de auto gaat.
+
+![Rijden vanuit de auto](docs/screenshots/auto_eerstepersoon.png)
+
 ## Camera over je schouder
 
 **V** zet de camera achter je. Met de auto is dat een stuk handiger sturen: je ziet de neus, je
@@ -287,7 +295,7 @@ vóór de vlaggenmasten):
 
 ## Twee gebouwen die geen woning zijn
 
-Bijna heel Tinga bestaat uit woningen, en die krijgen hun aanzien van hun straat. Twee panden vielen
+Bijna heel Tinga bestaat uit woningen, en die krijgen hun aanzien van hun straat. Vier panden vielen
 daarbuiten en stonden er tot nu toe als een naamloos blok bij. Ze staan nu met hun BAG-pandnummer in
 **[data/stijl/straten.json](data/stijl/straten.json)** en hebben hun eigen aanzien gekregen.
 
@@ -308,7 +316,31 @@ bakstenen wand rondom, met witte kozijnen, een zwarte schuurdeur en een groene s
 
 ![Tinga State](docs/screenshots/tinga_state.png)
 
-`npm run adresshots` maakt deze twee foto's; de uitsnede staat bij het pand in de catalogus.
+### Basisschool De Spil, Molenkrite 169
+
+Het grootste pand van de wijk: een U van 6600 m² om een plein heen. Roodbruine baksteen met over de
+hele lengte een doorlopende raamstrook met felblauwe kozijnen en gele gordijnen, een gele plaatband
+onder een lichte dakrand, en om de drie traveeën de ingang met een geel bord erboven. Achterin staat
+de rij puntdaken die ook in het 3D BAG-model zit.
+
+![Basisschool De Spil](docs/screenshots/school.png)
+
+### Jeugdhulp Friesland, Molenkrite 234
+
+Een lang gebouw van één laag met plat dak in donkerbruine steen, lichte kozijnen en blauwe deuren.
+Het terrein is omheind met een donkergroen spijlenhek van anderhalve meter, en naast het gebouw ligt
+een speeltuin met een klimtoestel met glijbaan, een zandbak, een wipkip en een bankje.
+
+![De speeltuin bij Jeugdhulp Friesland](docs/screenshots/speeltuin.png)
+
+Dat hek staat niet in de BGT — de laag `scheiding` bevat in Tinga alleen kademuren — dus het komt uit
+**[data/stijl/omgeving.json](data/stijl/omgeving.json)**: een lijn op acht meter uit de gevel, die
+overal vervalt waar hij op de weg, de inrit of het voetpad zou komen. Daardoor ontstaat de opening bij
+de inrit vanzelf.
+
+`npm run adresshots` maakt de foto's van deze panden; de uitsnede staat bij het pand in de catalogus.
+`node tools/plek.mjs <x> <z> <kijkNaarX> <kijkNaarZ> [naam]` maakt een foto van een willekeurige plek
+in de wijk, handig als er ergens iets niet klopt.
 
 ## Dag, nacht en weer
 
@@ -369,6 +401,9 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `tools/adresshots.mjs` – maakt de foto's van de panden die met naam in `data/stijl/straten.json` staan
 - `tools/rijtest.mjs` – toetst het automodel, de besturing, de camera achter de auto en het aanrijden
 - `tools/rijshots.mjs` – maakt de foto's van het rijden en de derdepersoonscamera
+- `tools/looptest.mjs` – toetst of je nergens vastloopt: het open terrein binnen de panden en een
+  wandeling in acht richtingen vanaf de binnenpleinen
+- `tools/plek.mjs` – één foto van een willekeurige plek in de wijk, in spelmeters
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen
