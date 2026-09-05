@@ -420,10 +420,14 @@ het doorzichtige glas met een buurt erachter, en het speeltuintje hieronder.
 
 ## Het speeltuintje achter de Wieken 144
 
-Op het grasveld achter **de Wieken 144** — tussen de huizen en de vaart — staat een speeltuintje: een
-schommel, een houten speelhuisje met een zadeldakje, een wipwap en een glijbaan, met een zandbak en
-een bankje erbij. Ze staan uitgezet vanaf de voorgevel van 144, dus ze schuiven mee als het grondvlak
-in de brondata verandert.
+Op het open grasveld achter **de Wieken 144** — tussen de achtertuinen en de vaart, aan het pad —
+staat een speeltuintje: een schommel, een houten speelhuisje met een zadeldakje, een wipwap en een
+glijbaan, met een zandbak en een bankje erbij.
+
+Het staat op het veld zelf en niet in iemands tuin: het middelpunt ligt zo'n 37 meter achter het huis,
+op ruim 25 meter van het dichtstbijzijnde pand en 18 meter van de dichtstbijzijnde tuin. De plekken
+zijn uitgezet vanaf de voorgevel van 144, dus ze schuiven mee als het grondvlak in de brondata
+verandert; in de code staat geen enkele coördinaat.
 
 ![Het speeltuintje](docs/screenshots/speeltuin_wieken.png)
 

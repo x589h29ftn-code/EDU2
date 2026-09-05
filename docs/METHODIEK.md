@@ -1107,11 +1107,21 @@ de voorgevel van 144, met een negatieve `voor` (dus achter het huis) en een
 mee als het grondvlak in de brondata verandert, en staat er geen enkele
 coördinaat in de code.
 
+De eerste plaatsing kwam op twintig meter achter het huis uit, en dat is daar nog
+de zone van de achtertuinen met de schuttingen en de bomenrand — niet het veld.
+De plek is daarom uitgerekend in plaats van geschat: over een raster van een meter
+achter het huis is gezocht naar het punt op gras dat zo ver mogelijk van het
+dichtstbijzijnde pand, van de rand van het dichtstbijzijnde `erf`-vlak (de tuinen)
+en van de bomen af ligt, binnen een redelijke loopafstand. Dat wordt 37 m achter
+de gevel: 25 m van het dichtstbijzijnde pand en 18 m van de dichtstbijzijnde tuin.
+De proef toetst nu op die twee afstanden, zodat "in het veld en niet in de tuin"
+een getal is en geen indruk.
+
 Kosten: 597 → 598 draw calls in de wijk, texturegeheugen 83 → 85 MB, meshes
 1256 → 1516. De tweede kamer en de twee kijkdozen staan buiten het kaartgebied en
 vallen dus altijd buiten beeld.
 
-Controle: `npm run woningtest` (vijfentwintig controles over de tweede woning,
+Controle: `npm run woningtest` (zevenentwintig controles over de tweede woning,
 de deur, het zitten, de lamp, het glas en het speeltuintje). `npm run
 verhaaltest` loopt de woning aan de Molenkrite nog steeds helemaal na en blijft
 groen, net als rijtest, wereldtest, looptest, winkeltest en politietest;
