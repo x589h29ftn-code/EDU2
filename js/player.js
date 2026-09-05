@@ -23,6 +23,9 @@ export class Player {
     this.ammo = 12; this.reserve = 60; this.reloading = 0;
     // wordt door main.js gevuld: duwt je te voet uit de auto's (js/vehicles.js)
     this.blokkade = null;
+    // zit je ergens op? dan staat de ooghoogte lager en loop je niet
+    this.zit = false;
+    this.eyeStaand = this.eye;
     this.recoil = 0; this.flashT = 0;
     this.active = false;        // spel gestart
     this.pointerLocked = false; // muis vastgezet door de browser
@@ -208,6 +211,13 @@ export class Player {
       if (this.reloading <= 0) { const need = 12 - this.ammo; const take = Math.min(need, this.reserve); this.ammo += take; this.reserve -= take; this.reloading = 0; }
     }
     if (this.inCar) return; // camera wordt door de auto bestuurd
+
+    /*
+     Zitten (op de bank, zie js/interieur.js). Je blijft waar je bent en kijkt
+     alleen rond; de ooghoogte staat lager, want je zit. Lopen doe je pas weer
+     als je opstaat.
+    */
+    if (this.zit) { this.applyCamera(); return; }
 
     if (this.fly) { this.updateFly(dt); return; }
 

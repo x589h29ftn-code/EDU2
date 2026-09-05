@@ -168,6 +168,41 @@
           "langs": -12
         }
       ]
+    },
+    "0091100000012934": {
+      "bron": "Luchtfoto (foto in de chat, 5 sep 2026): achter de Wieken 144 ligt een groot grasveld met bomen en een pad naar de vaart. Daar staat nu een speeltuintje: een schommel, een speelhuisje, een wipwap en een glijbaan, met een bankje en een zandbak erbij. De plekken zijn uitgezet vanaf het midden van de voorgevel van 144 - negatieve `voor` is achter het huis - zodat ze meeschuiven als het grondvlak in de brondata verandert.",
+      "objecten": [
+        {
+          "type": "schommel",
+          "voor": -33,
+          "langs": 3
+        },
+        {
+          "type": "speelhuisje",
+          "voor": -38,
+          "langs": 9
+        },
+        {
+          "type": "wipwap",
+          "voor": -31,
+          "langs": 11
+        },
+        {
+          "type": "glijbaan",
+          "voor": -37,
+          "langs": 0
+        },
+        {
+          "type": "zandbak",
+          "voor": -33,
+          "langs": -6
+        },
+        {
+          "type": "bank",
+          "voor": -28,
+          "langs": 6
+        }
+      ]
     }
   },
   "standaard": {

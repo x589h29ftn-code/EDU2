@@ -35,7 +35,17 @@ import { KAART } from './kaartwereld.js';
 import { HOUSE_STYLES } from './textures.js';
 import { addCollider, resolveCollisions } from './world.js';
 
-const HUIS = { straat: 'Molenkrite', nr: '15' };
+/*
+ De woningen waar je naar binnen kunt. Ze hebben allebei dezelfde opzet — een
+ voorhuis met een aanbouw erachter — dus dezelfde bouwer maakt ze allebei; de
+ maten komen per adres uit de kaart. `plek` houdt de losse kamers ruim uit
+ elkaars buurt, ver buiten het kaartgebied.
+*/
+export const WONINGEN = [
+  { straat: 'Molenkrite', nr: '15', plek: 0 },
+  { straat: 'de Wieken', nr: '29', plek: 1 },
+];
+const HUIS = WONINGEN[0];
 
 // ---------- maten (m) ----------
 const HOOGTE = 2.60;      // plafondhoogte begane grond
@@ -197,7 +207,15 @@ export function plattegrond(p) {
     x: gevel.x + r[0] * (x0 + x) - f[0] * (z0 + z),
     z: gevel.z + r[1] * (x0 + x) - f[1] * (z0 + z),
   });
-  return { punten, gevel, f, r, naarWereld };
+  // en andersom: een punt uit de wereld naar de kamermaten. Daarmee wordt het
+  // uitzicht door de ramen opgebouwd (zie `bouwBuiten`).
+  const naarKamer = (X, Z) => {
+    const dx = X - gevel.x, dz = Z - gevel.z;
+    return { x: dx * r[0] + dz * r[1] - x0, z: -(dx * f[0] + dz * f[1]) - z0 };
+  };
+  // een richting uit de wereld naar de kamer (zonder verschuiving)
+  const richting = (vx, vz) => ({ x: vx * r[0] + vz * r[1], z: -(vx * f[0] + vz * f[1]) });
+  return { punten, gevel, f, r, naarWereld, naarKamer, richting };
 }
 
 /*
@@ -225,12 +243,13 @@ export function banden(punten) {
 }
 
 /*
- ctx = { scene, player }
- Levert null als er geen kaartdata is of het huisnummer er niet in staat; dan
- doet de voordeur gewoon niets.
+ ctx = { scene, player, sfeer, huis }
+ `huis` is een regel uit WONINGEN hierboven. Levert null als er geen kaartdata
+ is of het huisnummer er niet in staat; dan doet de voordeur gewoon niets.
 */
-export function initInterieur({ scene, player }) {
+export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
   if (!KAART || !KAART.panden) return null;
+  const HUIS = huis;
   const pand = KAART.panden.find(p => p.straat === HUIS.straat && (p.nr || []).includes(HUIS.nr));
   if (!pand || !pand.voet || !pand.rect || !pand.front) return null;
 
@@ -257,7 +276,7 @@ export function initInterieur({ scene, player }) {
 
   // De kamer staat ruim buiten het kaartgebied, dus je komt er nooit langs en
   // hij staat ook niet op het bovenaanzicht (tools/geo/bovenaanzicht.mjs).
-  const NUL = { x: (KAART.gebied ? KAART.gebied.x1 : 400) + 520, z: (KAART.gebied ? KAART.gebied.z1 : 460) + 520 };
+  const NUL = { x: (KAART.gebied ? KAART.gebied.x1 : 400) + 520, z: (KAART.gebied ? KAART.gebied.z1 : 460) + 520 + (HUIS.plek || 0) * 140 };
 
   const groep = new THREE.Group();
   groep.position.set(NUL.x, 0, NUL.z);
@@ -298,8 +317,14 @@ export function initInterieur({ scene, player }) {
     plafond: plat(0xfdfcfa),
     plint: plat(0xf8f7f3),
     kozijn: plat(0xfafaf7),
-    // de ruit is dicht: hij krijgt geen hoekpuntlicht, maar staat gewoon aan
-    ruit: new THREE.MeshBasicMaterial({ color: 0xe6f2fb, fog: false }),
+    /*
+     Het glas is doorzichtig: door de pui en de tuindeur kijk je naar buiten.
+     Wat je daar ziet staat in `bouwBuiten()` hieronder — de kamer ligt ver
+     buiten het kaartgebied, dus de buren zijn daar in vereenvoudigde vorm
+     opnieuw neergezet, op hun echte plek en hoogte uit de kaart. Een vleugje
+     wit erover is de weerspiegeling die elk raam heeft.
+    */
+    ruit: new THREE.MeshBasicMaterial({ color: 0xdfeaf4, fog: false, transparent: true, opacity: 0.18 }),
     voordeur: plat(0x24422f),
     binnendeur: plat(0xf4f3ee),
     klink: plat(0xa8aeb4),
@@ -585,6 +610,125 @@ export function initInterieur({ scene, player }) {
   kap(BREED / 2 + 0.2, bankZ);
   if (KEUKEN.z1 - KEUKEN.z0 > 2) kap((KEUKEN.x0 + KEUKEN.x1) / 2 + 0.15, (KEUKEN.z0 + KEUKEN.z1) / 2);
 
+  /*
+   ---------- het uitzicht ----------
+   De kamer staat ver buiten het kaartgebied, dus achter de ramen was niets te
+   zien. Hier komt de buurt terug: de panden binnen vijftig meter van dit huis
+   worden op hun echte plek, maat en goothoogte als eenvoudige blokken opnieuw
+   neergezet — omgerekend naar kamermaten met `plan.naarKamer` — met de straat
+   en de stoep aan de voorkant, gras eromheen en een paar bomen. Het is een
+   kijkdoos: van dichtbij is het een blokkendoos, maar door een raam van tweeën-
+   half bij anderhalve meter is het precies de buurt zoals hij hoort te liggen.
+
+   Het staat in een eigen groep, los van de kamer, zodat de proefgereedschappen
+   die de omhullende doos van de kamer meten er geen last van hebben.
+  */
+  const buiten = new THREE.Group();
+  buiten.position.set(NUL.x, 0, NUL.z);
+  scene.add(buiten);
+  const buitenMat = {
+    gras: new THREE.MeshBasicMaterial({ color: 0x5f8a3f, vertexColors: true, fog: false }),
+    weg: new THREE.MeshBasicMaterial({ color: 0x8d8f92, vertexColors: true, fog: false }),
+    stoep: new THREE.MeshBasicMaterial({ color: 0xb4b3ad, vertexColors: true, fog: false }),
+    steen: new THREE.MeshBasicMaterial({ color: 0xb9a894, vertexColors: true, fog: false }),
+    dak: new THREE.MeshBasicMaterial({ color: 0x6d4b3c, vertexColors: true, fog: false }),
+    stam: new THREE.MeshBasicMaterial({ color: 0x6b5334, vertexColors: true, fog: false }),
+    kruin: new THREE.MeshBasicMaterial({ color: 0x3f6b33, vertexColors: true, fog: false }),
+    heg: new THREE.MeshBasicMaterial({ color: 0x46702f, vertexColors: true, fog: false }),
+  };
+  function bouwBuiten() {
+    const plaat = (b, d, y, mat, x, z) => {
+      const geo = new THREE.PlaneGeometry(b, d);
+      geo.rotateX(-Math.PI / 2);
+      const m = new THREE.Mesh(schaduw(geo), mat);
+      m.position.set(x, y, z);
+      buiten.add(m);
+    };
+    // gras onder alles door, dan de weg en de stoep voor de deur
+    plaat(220, 220, -0.02, buitenMat.gras, BREED / 2, DIEP / 2);
+    plaat(220, 6.5, -0.012, buitenMat.weg, BREED / 2, -6.6);
+    plaat(220, 1.9, -0.008, buitenMat.stoep, BREED / 2, -2.4);
+    // de buren, uit de kaart
+    const hier = pand.rect;
+    for (const q of KAART.panden) {
+      if (q === pand || !q.rect) continue;
+      const d = Math.hypot(q.rect.cx - hier.cx, q.rect.cz - hier.cz);
+      if (d > 52) continue;
+      const mid = plan.naarKamer(q.rect.cx, q.rect.cz);
+      const as = plan.richting(Math.cos(q.rect.hoek), Math.sin(q.rect.hoek));
+      const h = Math.max(2.6, q.goot || 3);
+      const nok = Math.max(h + 0.6, q.nok || h + 2);
+      /*
+       Iedere buur zijn eigen tint. Eén materiaal voor alle buren gaf één bruine
+       muur aan de overkant; een beetje verschil per pand maakt er weer een rij
+       huizen van. De tint hangt aan het pand-id, dus hij blijft hetzelfde.
+      */
+      const zaad = (parseInt(q.id.slice(-4), 10) || 7) % 97;
+      const kleurMat = buitenMat.steen.clone();
+      kleurMat.color.offsetHSL(((zaad % 11) - 5) * 0.006, 0, ((zaad % 7) - 3) * 0.035);
+      const muur = new THREE.Mesh(schaduw(new THREE.BoxGeometry(q.rect.hx * 2, h, q.rect.hz * 2)), kleurMat);
+      muur.position.set(mid.x, h / 2, mid.z);
+      muur.rotation.y = Math.atan2(-as.z, as.x);
+      buiten.add(muur);
+      // een simpel zadeldakje erop, zodat het geen doos blijft
+      const kap2 = new THREE.Mesh(schaduw(new THREE.BoxGeometry(q.rect.hx * 2 + 0.4, nok - h, q.rect.hz * 1.35)), buitenMat.dak);
+      kap2.position.set(mid.x, h + (nok - h) / 2, mid.z);
+      kap2.rotation.y = muur.rotation.y;
+      buiten.add(kap2);
+    }
+    // heg achter in de tuin en een paar bomen, zodat het niet kaal is
+    for (const [x, z, b] of [[BREED / 2, DIEP + 7.5, BREED + 9]]) {
+      const m = new THREE.Mesh(schaduw(new THREE.BoxGeometry(b, 1.7, 0.6)), buitenMat.heg);
+      m.position.set(x, 0.85, z); buiten.add(m);
+    }
+    for (const [x, z, h] of [[-7.5, 6, 7], [BREED + 8, 4.5, 6], [-6, -12, 8], [BREED + 9, DIEP + 3, 7]]) {
+      const stam = new THREE.Mesh(schaduw(new THREE.CylinderGeometry(0.18, 0.24, h * 0.45, 6)), buitenMat.stam);
+      stam.position.set(x, h * 0.22, z); buiten.add(stam);
+      const kruin = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(h * 0.34, 0)), buitenMat.kruin);
+      kruin.position.set(x, h * 0.62, z); buiten.add(kruin);
+    }
+  }
+  bouwBuiten();
+
+  /*
+   ---------- dag en nacht ----------
+   Er staan geen lampen in de scene: de helderheid zit in de materialen (zie
+   bovenin). Wordt het buiten donker, dan gaat hier de plafondlamp aan — dat is
+   dus geen licht dat schijnt, maar een andere tint over alle vlakken: binnen
+   warm en iets gedempt, buiten blauw en veel donkerder. Precies wat je ziet als
+   je 's avonds vanuit een verlichte kamer naar buiten kijkt.
+  */
+  const DAG_BINNEN = new THREE.Color(1, 1, 1);
+  const NACHT_BINNEN = new THREE.Color(0.74, 0.63, 0.47);
+  const DAG_BUITEN = new THREE.Color(1, 1, 1);
+  const NACHT_BUITEN = new THREE.Color(0.17, 0.21, 0.32);
+  const tinten = [];
+  for (const [g, dag, nacht] of [[groep, DAG_BINNEN, NACHT_BINNEN], [buiten, DAG_BUITEN, NACHT_BUITEN]]) {
+    const gezien = new Set();
+    g.traverse(o => {
+      const m = o.material;
+      if (!m || !m.color || gezien.has(m)) return;
+      gezien.add(m);
+      tinten.push({ m, basis: m.color.clone(), dag, nacht });
+    });
+  }
+  let nachtNu = null;
+  function zetLicht(nacht) {
+    if (nacht === nachtNu) return;
+    nachtNu = nacht;
+    for (const t of tinten) {
+      // de lampenkap doet niet mee: die is 's avonds juist het felst
+      /*
+       De lampenkap doet niet mee met de tint: overdag is hij gewoon een kap van
+       gebroken wit, 's avonds brandt hij. Dat verschil moet je kunnen zien —
+       hij is dan het felste vlak in de kamer.
+      */
+      if (t.m === MAT.lamp) { t.m.color.setHex(nacht ? 0xfff6d2 : 0xd7d4cb); continue; }
+      t.m.color.copy(t.basis).multiply(nacht ? t.nacht : t.dag);
+    }
+  }
+  zetLicht(false);
+
   // ---------- botsingsdozen ----------
   // resetWorld() in de editor gooit alle colliders weg, dus main.js meldt ze na
   // een herbouw opnieuw aan (net als het gezelschap in js/verhaal.js).
@@ -616,6 +760,7 @@ export function initInterieur({ scene, player }) {
   }
   function naarBuitenGaan() {
     player.inCar = null;
+    if (player.zit) { player.zit = false; player.eye = player.eyeStaand; }
     const [ux, uz] = resolveCollisions(stoep.x, stoep.z, 0.4);
     player.pos.set(ux, 0, uz);
     player.yaw = Math.atan2(-plan.f[0], -plan.f[1]);    // de straat in kijken
@@ -623,10 +768,40 @@ export function initInterieur({ scene, player }) {
     player.applyCamera();
   }
 
-  // E bij de deur. Geeft true als de toets gebruikt is, zodat main.js hem niet
-  // ook nog als in- of uitstappen leest.
+  /*
+   ---------- op de bank ----------
+   De bank staat tegen de rechterwand, de tv aan de overkant. Ga je zitten, dan
+   zak je naar zithoogte, kijk je naar de tv en blijf je zitten tot je weer op
+   E drukt; rondkijken kan gewoon (zie `player.zit` in js/player.js).
+  */
+  const ZITHOOGTE = 1.05;
+  const zitPlek = wereld(BREED - MUUR - 0.46, bankZ);
+  const ZIT_BEREIK = 1.6;
+  function bijBank(x, z) {
+    return binnen(x, z) && Math.hypot(x - zitPlek.x, z - zitPlek.z) < ZIT_BEREIK;
+  }
+  function gaZitten() {
+    player.pos.set(zitPlek.x, 0, zitPlek.z);
+    player.eye = ZITHOOGTE;
+    player.yaw = Math.PI / 2;               // naar de tv aan de overkant
+    player.pitch = 0;
+    player.zit = true;
+    player.applyCamera();
+  }
+  function staOp() {
+    player.zit = false;
+    player.eye = player.eyeStaand;
+    // een stap de kamer in, zodat je niet in de bank blijft staan
+    player.pos.set(zitPlek.x - 1.0, 0, zitPlek.z);
+    player.applyCamera();
+  }
+
+  // E bij de deur of bij de bank. Geeft true als de toets gebruikt is, zodat
+  // main.js hem niet ook nog als in- of uitstappen leest.
   function toets() {
     if (!player.active && !window.__autoplay) return false;
+    if (player.zit) { staOp(); return true; }
+    if (bijBank(player.pos.x, player.pos.z)) { gaZitten(); return true; }
     const w = bijDeur(player.pos.x, player.pos.z);
     if (w === 'in' && !player.inCar) { naarBinnenGaan(); return true; }
     if (w === 'uit') { naarBuitenGaan(); return true; }
@@ -642,10 +817,20 @@ export function initInterieur({ scene, player }) {
   let hintAan = false;
   function update(dt, bezet = false) {
     const bezig = player.active || window.__autoplay;
+    // de lamp gaat aan zodra het buiten donker wordt
+    if (sfeer) zetLicht(!!sfeer.nacht);
     if (bezet) { hintAan = false; return; }
-    const w = (bezig && !player.inCar) ? bijDeur(player.pos.x, player.pos.z) : null;
-    if (w) {
-      praatEl.textContent = w === 'in' ? 'E — naar binnen' : 'E — naar buiten';
+    let tekst = null;
+    if (bezig && !player.inCar) {
+      if (player.zit && binnen(player.pos.x, player.pos.z)) tekst = 'E — opstaan';
+      else if (bijBank(player.pos.x, player.pos.z)) tekst = 'E — op de bank zitten';
+      else {
+        const w = bijDeur(player.pos.x, player.pos.z);
+        if (w) tekst = w === 'in' ? 'E — naar binnen' : 'E — naar buiten';
+      }
+    }
+    if (tekst) {
+      praatEl.textContent = tekst;
       praatEl.hidden = false;
       hintAan = true;
     } else if (hintAan) {
@@ -666,7 +851,9 @@ export function initInterieur({ scene, player }) {
   }
 
   return {
-    update, toets, binnen, meldAan, kaart,
+    update, toets, binnen, meldAan, kaart, zetLicht, gaZitten, staOp,
+    get naam() { return `${HUIS.straat} ${HUIS.nr}`; },
+    get nacht() { return nachtNu; },
     // de maten waar het om gaat, voor tools/verhaaltest.mjs
     get maten() {
       return {
@@ -679,6 +866,6 @@ export function initInterieur({ scene, player }) {
       };
     },
     get groep() { return groep; },
-    get plekken() { return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, keuken: KEUKEN }; },
+    get plekken() { return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, keuken: KEUKEN, bank: zitPlek }; },
   };
 }

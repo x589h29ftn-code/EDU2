@@ -242,6 +242,7 @@ naar `main` om een build te krijgen.
 | Politie, gezocht-sterren en de inzet per ster (stap 9–10) | `npm run politietest` | eindigt op "Alles goed" |
 | De boerderijwinkel en het geld (stap 11) | `npm run winkeltest` | eindigt op "Alles goed" |
 | Scherpte, heggen en schuttingen (stap 13) | `npm run wereldtest` | eindigt op "Alles goed" |
+| De Wieken 29, zitten, licht en het speeltuintje (stap 14) | `npm run woningtest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` | < 700 calls, < 1,4 M driehoeken, < 100 MB |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -1065,6 +1066,56 @@ nieuwe over te voet langs de auto's), `npm run wereldtest` (vier over de
 zijvlakken van heggen en schuttingen, vijf over de scherpte). Verhaaltest,
 looptest en winkeltest blijven groen, `geo:boven` staat nog op 1,31 % en de draw
 calls in de wijk veranderen niet.
+
+
+**Een tweede woning, licht en uitzicht, en een speeltuintje (stap 14).**
+
+*De Wieken 29.* De woning achter de voordeur van Molenkrite 15 was aan één
+adres vastgeschroefd, terwijl de bouwer zelf niets adresspecifieks doet: hij
+leest het grondvlak, deelt het met `banden()` in een voorhuis en een aanbouw, en
+zet daar de indeling in. De Wieken 29 heeft precies dezelfde vorm (5,38 × 9,58 m
+met een aanbouw van 2,37 × 4,49 m, tegen 5,42 × 9,48 en 2,44 × 4,59 aan de
+Molenkrite), alleen gespiegeld — de aanbouw zit aan de andere kant. `initInterieur`
+krijgt daarom een adres mee en `WONINGEN` somt ze op; `main.js` maakt er één per
+regel. De kamers staan 140 m uit elkaar, ver buiten het kaartgebied.
+
+*Uitzicht door het glas.* De ruit was een dicht, licht vlak — logisch, want
+achter de kamer was niets. Nu is het glas doorzichtig en staat de buurt eromheen:
+de panden binnen vijftig meter worden op hun echte plek, maat en goothoogte uit
+de kaart als blokken opnieuw neergezet, omgerekend met een nieuwe
+`plan.naarKamer()`, met de straat, de stoep, gras en een paar bomen erbij. Elke
+buur krijgt een eigen tint uit zijn pand-id, anders is het één bruine muur aan de
+overkant. Het staat in een eigen groep, los van de kamer, zodat de proef die de
+omhullende doos van de kamer meet er geen last van heeft.
+
+*Zitten.* `player.zit` slaat het lopen over en zet de ooghoogte op 1,05 m; E bij
+de bank zet je erop, met je gezicht naar de tv, en E zet je er weer af.
+
+*Licht.* Er staan geen lampen in de scene — de helderheid zit in de hoekpunten
+en in de materiaalkleur — dus 's avonds gaat er een tint over alle vlakken:
+binnen warm en iets gedempt (×0,74 / 0,63 / 0,47), buiten donkerblauw
+(×0,17 / 0,21 / 0,32). De lampenkap doet niet mee: die springt van gebroken wit
+naar vol warm wit en is dan het felste vlak in de kamer. Dat is geen licht dat
+schijnt, maar het leest wel zo, en het kost niets: een paar materiaalkleuren per
+keer dat de dag omslaat.
+
+*Het speeltuintje achter de Wieken 144.* Vier nieuwe objecten in
+`js/props.js` — schommel, speelhuisje, wipwap en glijbaan — plus de zandbak en
+het bankje die er al waren. Ze staan in `data/stijl/straten.json` uitgezet vanaf
+de voorgevel van 144, met een negatieve `voor` (dus achter het huis) en een
+`langs` erlangs; de generator rekent dat om naar wereldcoördinaten. Zo schuiven ze
+mee als het grondvlak in de brondata verandert, en staat er geen enkele
+coördinaat in de code.
+
+Kosten: 597 → 598 draw calls in de wijk, texturegeheugen 83 → 85 MB, meshes
+1256 → 1516. De tweede kamer en de twee kijkdozen staan buiten het kaartgebied en
+vallen dus altijd buiten beeld.
+
+Controle: `npm run woningtest` (vijfentwintig controles over de tweede woning,
+de deur, het zitten, de lamp, het glas en het speeltuintje). `npm run
+verhaaltest` loopt de woning aan de Molenkrite nog steeds helemaal na en blijft
+groen, net als rijtest, wereldtest, looptest, winkeltest en politietest;
+`geo:boven` staat nog op 1,31 %.
 
 **Wat nog niet af is (in volgorde).**
 
