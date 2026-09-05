@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { rng } from './textures.js';
 import { grondHoogte } from './viaduct.js';
+import { MAAT, DEEL, loopHouding, fietsHouding } from './lichaam.js';
 
 const SHIRTS = [0x2f3a56, 0x8a1f1f, 0xe8e2d0, 0x2a6b3a, 0x2b2b2b, 0xd8b04a, 0x6a4c93, 0xc85a2a, 0x3f7fb0];
 const PANTS = [0x1f2a44, 0x333333, 0x5a4632, 0x6f7480, 0x24303f];
@@ -13,17 +14,33 @@ const HAIR = [0x2a1d12, 0x141414, 0x8a6a3a, 0xd8c39a, 0x6b3a1f, 0x9a9a9a];
 // grijs, zwart en een lichtgrijze
 const VACHT = [0xe8e2d6, 0xd9c39a, 0xc39a63, 0x9a5a30, 0x5a3a24, 0x8d8d8d, 0x2b2b2b, 0xbfb9ae];
 
-// lichaamsmaten in meters (volwassene van ~1,75 m)
-const PARTS = {
-  torso: { geo: () => new THREE.BoxGeometry(0.40, 0.60, 0.23), y: 1.16 },
-  neck: { geo: () => new THREE.CylinderGeometry(0.062, 0.075, 0.10, 8), y: 1.50 },
-  head: { geo: () => new THREE.SphereGeometry(0.115, 10, 8), y: 1.575 },
-  hair: { geo: () => new THREE.SphereGeometry(0.122, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), y: 1.59 },
-  legL: { geo: () => { const g = new THREE.BoxGeometry(0.135, 0.84, 0.19); g.translate(0, -0.42, 0); return g; }, y: 0.88, x: -0.115 },
-  legR: { geo: () => { const g = new THREE.BoxGeometry(0.135, 0.84, 0.19); g.translate(0, -0.42, 0); return g; }, y: 0.88, x: 0.115 },
-  armL: { geo: () => { const g = new THREE.BoxGeometry(0.10, 0.58, 0.10); g.translate(0, -0.29, 0); return g; }, y: 1.44, x: -0.26 },
-  armR: { geo: () => { const g = new THREE.BoxGeometry(0.10, 0.58, 0.10); g.translate(0, -0.29, 0); return g; }, y: 1.44, x: 0.26 },
-};
+const SCHOEN = [0x2b2b2b, 0x3a2c22, 0x4a4a52, 0x1c1c22, 0x6b5540];
+
+/*
+ De lichaamsdelen. De maten en de vormen komen uit js/lichaam.js, zodat een
+ wandelaar, een agent en een bewaker precies dezelfde bouw hebben.
+
+ Delen met `paar: true` zitten links én rechts aan het lichaam. Die krijgen niet
+ twee instanced meshes maar één met twee instanties per persoon (2*i is links,
+ 2*i+1 is rechts): elf meshes voor honderddertig mensen in plaats van zeventien.
+
+ `y` is de hoogte van het draaipunt; voor een ledemaat rekent `houding()` die
+ zelf uit, want die hangt aan het gewricht erboven.
+*/
+const DELEN = [
+  { naam: 'romp', geo: DEEL.romp, kleur: 'shirt', y: MAAT.romp },
+  { naam: 'bekken', geo: DEEL.bekken, kleur: 'broek', y: MAAT.bekken },
+  { naam: 'nek', geo: DEEL.nek, kleur: 'huid', y: MAAT.nek },
+  { naam: 'hoofd', geo: DEEL.hoofd, kleur: 'huid', y: MAAT.hoofd },
+  { naam: 'haar', geo: DEEL.haar, kleur: 'haar', y: MAAT.hoofd + 0.020 },
+  { naam: 'bovenarm', geo: DEEL.bovenarm, kleur: 'shirt', paar: true },
+  { naam: 'onderarm', geo: DEEL.onderarm, kleur: 'shirt', paar: true },
+  { naam: 'hand', geo: DEEL.hand, kleur: 'huid', paar: true },
+  { naam: 'bovenbeen', geo: DEEL.bovenbeen, kleur: 'broek', paar: true },
+  { naam: 'onderbeen', geo: DEEL.onderbeen, kleur: 'broek', paar: true },
+  { naam: 'schoen', geo: DEEL.schoen, kleur: 'schoen', paar: true },
+];
+const SCHOUDER_X = 0.235;      // iets buiten de romp, anders steken de armen erin
 
 // Een fiets: frame, twee wielen en een stuur. Wie fietst krijgt hem onder zich,
 // wie loopt krijgt hem op schaal nul en is dus onzichtbaar.
@@ -108,12 +125,14 @@ export class NPCs {
     this.people = [];
 
     this.meshes = {};
-    for (const [key, def] of Object.entries(PARTS)) {
-      const m = new THREE.InstancedMesh(def.geo(), new THREE.MeshStandardMaterial({ roughness: 0.92 }), count);
+    for (const def of DELEN) {
+      const n = def.paar ? count * 2 : count;
+      const m = new THREE.InstancedMesh(def.geo(), new THREE.MeshStandardMaterial({ roughness: 0.92 }), n);
       m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       m.castShadow = true;
       m.frustumCulled = false;
-      this.meshes[key] = m;
+      m.userData.paar = !!def.paar;
+      this.meshes[def.naam] = m;
       scene.add(m);
     }
     // kleur per persoon
@@ -123,14 +142,13 @@ export class NPCs {
       const pants = PANTS[Math.floor(r() * PANTS.length)];
       const skin = SKIN[Math.floor(r() * SKIN.length)];
       const hair = HAIR[Math.floor(r() * HAIR.length)];
-      this.meshes.torso.setColorAt(i, col.setHex(shirt));
-      this.meshes.armL.setColorAt(i, col.setHex(shirt));
-      this.meshes.armR.setColorAt(i, col.setHex(shirt));
-      this.meshes.legL.setColorAt(i, col.setHex(pants));
-      this.meshes.legR.setColorAt(i, col.setHex(pants));
-      this.meshes.head.setColorAt(i, col.setHex(skin));
-      this.meshes.neck.setColorAt(i, col.setHex(skin));
-      this.meshes.hair.setColorAt(i, col.setHex(hair));
+      const schoen = SCHOEN[Math.floor(r() * SCHOEN.length)];
+      const kleuren = { shirt, broek: pants, huid: skin, haar: hair, schoen };
+      for (const def of DELEN) {
+        const mesh = this.meshes[def.naam], hex = kleuren[def.kleur];
+        if (def.paar) { mesh.setColorAt(i * 2, col.setHex(hex)); mesh.setColorAt(i * 2 + 1, col.setHex(hex)); }
+        else mesh.setColorAt(i, col.setHex(hex));
+      }
 
       const height = 0.88 + r() * 0.22;   // kinderen tot volwassenen
       // een op de vijf is een fietser: hoger, sneller en met een fiets eronder
@@ -148,7 +166,7 @@ export class NPCs {
         ren: fietst ? 6.4 + r() * 1.6 : 1.9 + height * 2.6,
         vNu: 0,                       // snelheid van dit moment, loopt op en af
         paniek: 0, schrik: 0, bron: null,
-        height, phase: r() * 6.28, alive: true, fall: 0, respawn: 0,
+        height, phase: r() * 6.28, fase: r() * 6.28, alive: true, fall: 0, respawn: 0,
         pause: fietst ? 0 : r() * 12, x: 0, z: 0, yaw: 0,
         fietst, hond,
         // oversteken: opWeg is waar het verkeer voor moet remmen
@@ -177,9 +195,11 @@ export class NPCs {
     if (this.hond.instanceColor) this.hond.instanceColor.needsUpdate = true;
     scene.add(this.hond, this.riem);
 
-    for (const key of Object.keys(PARTS)) this.meshes[key].instanceColor.needsUpdate = true;
+    for (const def of DELEN) this.meshes[def.naam].instanceColor.needsUpdate = true;
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion();
     this._e = new THREE.Euler(); this._v = new THREE.Vector3(); this._s = new THREE.Vector3();
+    this._w = new THREE.Quaternion();
+    this._h = {};       // gewrichtshoeken van dit beeld (zie js/lichaam.js)
   }
 
   pickSegment(p, random = false) {
@@ -254,11 +274,53 @@ export class NPCs {
     return n;
   }
 
+  /*
+   Eén lichaam op zijn plek zetten. Elk ledemaat hangt aan het gewricht erboven:
+   de onderarm aan de elleboog, de hand aan de pols, de schoen aan de enkel. Alle
+   gewrichten draaien om dezelfde as (de x-as van het lichaam), dus de stand van
+   een ledemaat is gewoon de som van de hoeken erboven — en dat scheelt een hoop
+   quaternionen vermenigvuldigen bij honderddertig mensen per beeld.
+  */
+  zetLichaam(i, x, y, z, yaw, tilt, h, H) {
+    const m = this._m, q = this._q, e = this._e, v = this._v, sc = this._s, w = this._w;
+    sc.set(h, h, h);
+    const zet = (mesh, nr, ox, oy, oz, hoek) => {
+      e.set(tilt + hoek, yaw, 0, 'YXZ'); q.setFromEuler(e);
+      e.set(tilt, yaw, 0, 'YXZ'); w.setFromEuler(e);
+      v.set(ox * h, oy * h, oz * h).applyQuaternion(w);
+      m.compose(v.set(x + v.x, y + v.y, z + v.z), q, sc);
+      mesh.setMatrixAt(nr, m);
+    };
+    // romp, bekken, nek, hoofd en haar draaien alleen met het lichaam mee
+    zet(this.meshes.romp, i, 0, MAAT.romp, 0, 0);
+    zet(this.meshes.bekken, i, 0, MAAT.bekken, 0, 0);
+    zet(this.meshes.nek, i, 0, MAAT.nek, 0, 0);
+    zet(this.meshes.hoofd, i, 0, MAAT.hoofd, 0, 0);
+    zet(this.meshes.haar, i, 0, MAAT.hoofd + 0.020, 0, 0);
+    // armen en benen, links (2i) en rechts (2i+1)
+    for (const [nr, kant] of [[i * 2, 'L'], [i * 2 + 1, 'R']]) {
+      const sx = kant === 'L' ? -1 : 1;
+      const a1 = H['schouder' + kant], a2 = a1 + H['elleboog' + kant];
+      const sxa = sx * SCHOUDER_X, sy = MAAT.schouder;
+      zet(this.meshes.bovenarm, nr, sxa, sy, 0, a1);
+      const ex = sxa, ey = sy - MAAT.bovenarm * Math.cos(a1), ez = -MAAT.bovenarm * Math.sin(a1);
+      zet(this.meshes.onderarm, nr, ex, ey, ez, a2);
+      zet(this.meshes.hand, nr, ex - 0, ey - MAAT.onderarm * Math.cos(a2), ez - MAAT.onderarm * Math.sin(a2), a2);
+      const b1 = H['heup' + kant], b2 = b1 - H['knie' + kant], b3 = b2 + H['enkel' + kant];
+      const hx = sx * MAAT.heupX, hy = MAAT.heup;
+      zet(this.meshes.bovenbeen, nr, hx, hy, 0, b1);
+      const kx = hx, ky = hy - MAAT.bovenbeen * Math.cos(b1), kz = -MAAT.bovenbeen * Math.sin(b1);
+      zet(this.meshes.onderbeen, nr, kx, ky, kz, b2);
+      zet(this.meshes.schoen, nr, kx, ky - MAAT.onderbeen * Math.cos(b2), kz - MAAT.onderbeen * Math.sin(b2), b3);
+    }
+  }
+
   update(dt, time) {
     const m = this._m, q = this._q, e = this._e, v = this._v, sc = this._s;
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
-      let swing = 0;
+      // loopt hij, en hoe hard? de pas hangt daaraan
+      let loopt = false, renDeel = 0;
       // paniek loopt af; de eerste tienden van een seconde staat hij nog stil
       if (p.paniek > 0) {
         p.paniek = Math.max(0, p.paniek - dt);
@@ -284,7 +346,7 @@ export class NPCs {
         // maakt er haast mee
         p.steek = Math.max(0, p.steek - dt * (p.fietst ? 1.6 : 0.9) * (rent ? 2.2 : 1));
         if (p.steek === 0) { p.side = p.steekNaar; p.opWeg = false; }
-        swing = Math.sin(time * (rent ? 11 : 6.2) / p.height + p.phase) * (rent ? 0.9 : 0.5);
+        loopt = true; renDeel = rent ? 1 : 0.25;
       } else if (p.pause > 0 && !rent) {
         p.pause -= dt;                       // even stilstaan
       } else {
@@ -302,11 +364,15 @@ export class NPCs {
             p.steek = 1; p.opWeg = true;
           }
         }
-        // de pas loopt mee met de snelheid: slenteren, doorstappen of hollen
-        const cadans = p.fietst ? 3.0 + p.vNu * 0.35 : 3.0 + p.vNu * 2.0;
-        const uitslag = p.fietst ? 0.3 : 0.45 + Math.min(0.5, p.vNu * 0.12);
-        swing = Math.sin(time * cadans / p.height + p.phase) * uitslag;
+        loopt = true;
+        renDeel = Math.max(0, Math.min(1, (p.vNu - 1.6) / 3.2));
       }
+      /*
+       De pas telt door met de tijd in plaats van hem uit `time` te berekenen:
+       verandert het tempo, dan versnelt de pas mee zonder te verspringen.
+      */
+      const cadans = p.fietst ? 2.4 + p.vNu * 0.42 : 2.6 + p.vNu * 1.9;
+      if (loopt) p.fase += dt * cadans / p.height;
       const s = p.seg;
       const len = Math.max(0.1, Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));
       const dx = (s.b[0] - s.a[0]) / len, dz = (s.b[1] - s.a[1]) / len;
@@ -328,36 +394,26 @@ export class NPCs {
       const h = p.height;
       // bijna overal nul; op het viaduct loopt de stoep meters omhoog
       const gy = grondHoogte(p.x, p.z);
-      const tilt = p.alive ? 0 : -p.fall * Math.PI / 2;
-      // op de fiets zit je hoger en trappen je benen kleine rondjes
-      const yLift = (p.alive ? 0 : p.fall * 0.3) + (p.fietst && p.alive ? 0.42 : 0);
+      const dood = !p.alive;
+      // omvallen: naar achteren kantelen en wegzakken
+      const tilt = (dood ? -p.fall * Math.PI / 2 : 0) + (p.fietst && !dood ? 0.30 : 0);
+      // op de fiets zit je hoger
+      const yLift = (dood ? p.fall * 0.3 : 0) + (p.fietst && !dood ? 0.42 : 0);
       if (p.fietst) {
-        const fq = new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt, p.yaw, 0, 'YXZ'));
-        m.compose(new THREE.Vector3(p.x, gy + (p.alive ? 0 : 0.1), p.z), fq, new THREE.Vector3(h, h, h));
+        e.set(dood ? tilt : 0, p.yaw, 0, 'YXZ'); q.setFromEuler(e);
+        m.compose(v.set(p.x, gy + (dood ? 0.1 : 0), p.z), q, sc.set(h, h, h));
         this.fiets.setMatrixAt(i, m);
       } else {
         m.makeScale(0, 0, 0);
         this.fiets.setMatrixAt(i, m);
       }
-      for (const [key, def] of Object.entries(PARTS)) {
-        const isLeg = key === 'legL' || key === 'legR';
-        const isArm = key === 'armL' || key === 'armR';
-        let rot = 0;
-        if (isLeg) rot = key === 'legL' ? swing : -swing;
-        if (isArm) rot = key === 'armL' ? -swing * 0.75 : swing * 0.75;
-        e.set(tilt, p.yaw, 0, 'YXZ');
-        q.setFromEuler(e);
-        // ledemaat zwaait om zijn ophangpunt, daarna pas de romprotatie
-        if (rot) {
-          const swingQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), rot);
-          q.multiply(swingQ);
-        }
-        v.set((def.x || 0) * h, def.y * h + yLift, 0).applyQuaternion(
-          new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt, p.yaw, 0, 'YXZ')));
-        sc.set(h, h, h);
-        m.compose(v.add(new THREE.Vector3(p.x, gy, p.z)), q, sc);
-        this.meshes[key].setMatrixAt(i, m);
-      }
+      // de stand van alle gewrichten
+      const H = this._h;
+      if (dood) loopHouding(0, false, 0, H);
+      else if (p.fietst) fietsHouding(p.fase, H);
+      else loopHouding(p.fase, loopt, renDeel, H);
+      this.zetLichaam(i, p.x, gy + yLift + (dood ? 0 : H.wip * h), p.z, p.yaw, tilt, h, H);
+      p.wip = H.wip;
     }
     // ---- de hondjes ----
     /*
@@ -406,7 +462,7 @@ export class NPCs {
     }
     if (this.hondBazen.length) { this.hond.instanceMatrix.needsUpdate = true; this.riem.instanceMatrix.needsUpdate = true; }
 
-    for (const key of Object.keys(PARTS)) this.meshes[key].instanceMatrix.needsUpdate = true;
+    for (const def of DELEN) this.meshes[def.naam].instanceMatrix.needsUpdate = true;
     this.fiets.instanceMatrix.needsUpdate = true;
   }
 
@@ -415,7 +471,10 @@ export class NPCs {
 
   hit(obj, instanceId) {
     if (instanceId == null) return false;
-    const p = this.people[instanceId];
+    // armen, benen en schoenen zitten met twee instanties per persoon in één
+    // mesh (links en rechts), dus dan is het instantienummer het dubbele
+    const nr = obj && obj.userData && obj.userData.paar ? instanceId >> 1 : instanceId;
+    const p = this.people[nr];
     if (!p || !p.alive) return false;
     p.alive = false; p.respawn = 25; p.fall = 0;
     return true;

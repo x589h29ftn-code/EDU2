@@ -41,7 +41,7 @@ export class Bewaking {
     this.alarm = false;
     this.wachters = posten.map((post, i) => {
       const kleur = KLEUREN[i % KLEUREN.length];
-      const persoon = new Persoon({ ...kleur, huid: i % 2 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + (i % 3) * 0.02, wapen: true, pet: true });
+      const persoon = new Persoon({ ...kleur, huid: i % 2 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + (i % 3) * 0.02, wapen: true, pet: true, vest: 0xd8801f });
       scene.add(persoon.groep);
       const start = post.a;
       persoon.zetNeer(start[0], start[1], Math.atan2(-(post.b[0] - post.a[0]), -(post.b[1] - post.a[1])));

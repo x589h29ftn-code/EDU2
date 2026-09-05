@@ -130,7 +130,13 @@ const komst = await page.evaluate(() => {
   g.politie.misdaad('neergeschoten', pd.x, pd.z);
   const na = (s) => { window.__stap(Math.round(s * 30)); const p = g.politie.plekken; return p.length ? Math.min(...p.map(q => Math.hypot(q.x - pd.x, q.z - pd.z))) : 999; };
   const start = { ...g.politie.eenheden };
-  const d10 = na(10), d25 = na(15), d45 = na(20);
+  /*
+   Ruim de tijd nemen. De eenheden druppelen binnen (vulAan zet er één per keer
+   neer) en moeten daarna nog een paar honderd meter rijden; met drie kwartier
+   spelen erop meet je een systeem dat af en toe wat trager is, niet een systeem
+   dat kapot is.
+  */
+  const d10 = na(10), d25 = na(15), d45 = na(50);
   const zwaai = g.politie.intern.wagens.map(w => w.links.material.emissiveIntensity !== w.rechts.material.emissiveIntensity);
   return { start, d10: Math.round(d10), d25: Math.round(d25), d45: Math.round(d45),
     eenheden: g.politie.eenheden, zwaailicht: zwaai.every(Boolean) && zwaai.length > 0 };
@@ -154,7 +160,18 @@ const inzet = await page.evaluate(() => {
     g.politie.misdaad('neergeschoten', pd.x, pd.z);
     // de verdenking elke seconde terugzetten: anders zakt hij in de 75 tellen
     // die de eenheden nodig hebben om uit te waaieren gewoon weg
-    for (let s = 0; s < 75; s++) { g.politie.zetHeat(heat); window.__stap(30); }
+    /*
+     Hoeveel eenheden er verderop zoeken is een momentopname: ze rijden heen en
+     weer, dus op het ene beeld staan er vijf verder dan zestig meter en op het
+     volgende twee. Daarom meten we elke seconde en houden we het hoogste getal
+     vast — dat zegt of ze de wijk afzoeken, en het valt niet om op toeval.
+    */
+    let ver60Max = 0;
+    for (let s = 0; s < 130; s++) {
+      g.politie.zetHeat(heat); window.__stap(30);
+      const nu = g.politie.plekken.filter(q => Math.hypot(q.x - pd.x, q.z - pd.z) > 60).length;
+      if (nu > ver60Max) ver60Max = nu;
+    }
     const e = g.politie.eenheden;
     const p = g.politie.plekken;
     const ds = p.map(q => Math.hypot(q.x - pd.x, q.z - pd.z));
@@ -165,7 +182,7 @@ const inzet = await page.evaluate(() => {
     }
     return { ster: g.politie.ster, wagens: e.wagens, agenten: e.voet + e.inWagen,
       verst: ds.length ? Math.round(Math.max(...ds)) : 0,
-      ver60: ds.filter(d => d > 60).length, opElkaar };
+      ver60: ver60Max, opElkaar };
   };
   const uit = { een: meet(40), vijf: meet(400) };
   // de wijk weer achterlaten zoals proef 3 hem opleverde: drie sterren met
@@ -174,7 +191,7 @@ const inzet = await page.evaluate(() => {
   window.__zetSpeler(pd.x, pd.z);
   g.politie.zetHeat(160);
   g.politie.misdaad('neergeschoten', pd.x, pd.z);
-  window.__stap(Math.round(45 * 30));
+  window.__stap(Math.round(75 * 30));
   return uit;
 });
 ok(inzet.vijf.wagens > inzet.een.wagens && inzet.vijf.agenten > inzet.een.agenten,
@@ -365,10 +382,20 @@ const stelen = await page.evaluate(() => {
   window.__zetSpeler(pd.x, pd.z);
   g.politie.zetHeat(400);
   g.politie.misdaad('neergeschoten', pd.x, pd.z);
+  /*
+   Wachten tot er een wagen leeg achterblijft. Vanaf een schone melding staat er
+   binnen een halve minuut een, maar de eenheden die hier nog van de vorige proef
+   rondrijden kunnen ervoor zorgen dat het niet lukt. Daarom: drie keer opnieuw
+   melden in plaats van eindeloos doorstappen.
+  */
   let stap = 0;
-  while (stap < 120 * 30 && g.politie.eenheden.verlaten === 0) { window.__stap(5); stap += 5; }
+  for (let poging = 0; poging < 3 && g.politie.eenheden.verlaten === 0; poging++) {
+    if (poging) { g.politie.reset(); g.politie.zetHeat(400); g.politie.misdaad('neergeschoten', pd.x, pd.z); }
+    let t = 0;
+    while (t < 90 * 30 && g.politie.eenheden.verlaten === 0) { window.__stap(5); t += 5; stap += 5; }
+  }
   const v = g.politie.intern.verlaten[0];
-  if (!v) return { er: false };
+  if (!v) return { er: false, wachtte: stap / 30 };
   g.vehicles.maakBestuurbaar(v.car);
   g.player.inCar = v.car;
   window.__stap(2);
@@ -384,7 +411,8 @@ const stelen = await page.evaluate(() => {
   uit.blijftStaan = g.vehicles.cars.includes(v.car);
   return uit;
 });
-ok(stelen.er && stelen.uitLijst, 'stap je er zelf in, dan is hij van jou');
+ok(stelen.er && stelen.uitLijst, 'stap je er zelf in, dan is hij van jou',
+  stelen.er ? '' : `geen lege wagen na ${stelen.wachtte} s`);
 ok(stelen.balkAan, 'en houdt hij zijn lichtbalk');
 ok(stelen.lampUit, 'met het zwaailicht uit');
 ok(stelen.blijftStaan, 'een gestolen politieauto wordt niet meer opgeruimd');

@@ -79,9 +79,68 @@ zodra je uitstapt of naar de camera achter de auto gaat.
 
 ![Rijden vanuit de auto](docs/screenshots/auto_eerstepersoon.png)
 
+## Het pistool
+
 Het pistool zit in je rechterhand met een onderarm die naar de rechteronderhoek uit beeld loopt. Met
 **H** stop je hem weg: dan verdwijnt ook het kruisje en schiet je niet meer, tot je hem met dezelfde
 toets weer trekt.
+
+Het is een 9 mm van 19 cm met de onderdelen die een pistool werkelijk heeft: een slede met grepen
+aan de achterkant, een uitwerpopening, een loop die er vooraan net uitsteekt, een onderstel met
+stofkap, een trekkerbeugel met de trekker erin, korrel en keep, een greep met ribbels en een magazijn
+dat er los in zit. De hand is geen vuist: een handpalm achter de greep, vier vingers die eromheen
+vouwen, een duim langs de kast en een wijsvinger aan de trekker.
+
+![Het pistool in de aanslag](docs/screenshots/wapen_rust.png)
+
+**Schieten.** Bij elk schot springt de slede naar achteren, brandt er mondingsvuur (een kegel met een
+dwarskruis, elk schot een slag gedraaid en een maat anders) en tikt even later de huls op de stoep.
+De knal is elke keer nét iets anders van toon, zodat een serie schoten niet klinkt als een
+kopieermachine.
+
+![Het moment van het schot](docs/screenshots/wapen_schot.png)
+
+**Terugslag.** Het beeld schokt bij elk schot een graad of anderhalf omhoog en een tikje opzij, en
+zakt in een halve seconde weer terug. Het is alleen beeld: je kijkrichting blijft staan waar jij hem
+hebt gezet, dus het tweede schot komt op dezelfde plek aan en je hoeft niet na te corrigeren.
+
+**Herladen (R).** Dat is een beweging van anderhalve seconde in vijf stappen: het wapen kantelt naar
+je toe zodat je in het magazijnhuis kijkt, de magazijnknop gaat in, het lege magazijn valt eruit, een
+vol magazijn komt van onderen omhoog en klikt vast, de slede gaat naar achteren en weer naar voren,
+en dan ligt hij weer in de aanslag. De klik, de klap van het magazijn en het overhalen van de slede
+klinken precies op het moment dat je ze ziet gebeuren. Schiet je met een leeg magazijn, dan hoor je
+alleen de klik van de slagpin.
+
+| Het magazijn valt eruit | De slede gaat naar achteren |
+|---|---|
+| ![Magazijn eruit](docs/screenshots/wapen_magazijn.png) | ![Slede naar achteren](docs/screenshots/wapen_slede.png) |
+
+## De mensen
+
+Iedereen in de wijk is van hetzelfde lichaam gemaakt — de honderddertig voetgangers, de agenten, de
+bewakers, de dief en de mensen uit het verhaal. Een volwassene is 1,75 m, en de bouw klopt met die
+maat: borstkas en taille, een bekken, een nek, een hoofd met een neus en oren, haar of een pet,
+handen en schoenen.
+
+Armen en benen hebben een **elleboog en een knie**. Dat is het verschil tussen een pop en een mens:
+een been dat van heup tot voet één plank is zwaait als een klok, een been met een knie zet een stap.
+De knie buigt alleen de kant op waar een knie heen kan, de enkel volgt het onderbeen, en het lichaam
+zakt bij elke pas een centimeter of vijf — sla je dat over, dan zweven de voeten boven de stoep. Wie
+rent zwaait verder en buigt dieper; wie fietst trapt rondjes met de armen op het stuur.
+
+| Op straat | Een agent |
+|---|---|
+| ![Een voetganger](docs/screenshots/mensen_straat.png) | ![Een agent](docs/screenshots/mensen_agent.png) |
+
+De politie draagt een donkerblauw uniform met een **fluorescerend vest** eroverheen en een pet. Dat
+is niet alleen echter — een agent in het donkerblauw was tussen de voetgangers nauwelijks te
+onderscheiden, en nu zie je van ver of het blauw op je afkomt. De bewaking op de waterzuivering
+draagt een oranje vest. Hun geweer hangt aan de onderarm en niet aan de schouder, zodat de loop
+meewijst met de elleboog.
+
+`npm run wapentest` loopt dit allemaal na (veertig controles over het model, het schieten, de
+terugslag, het herladen, de bouw van een mens, de looppas en een agent). `npm run wapenshots` maakt
+de foto's hierboven.
 
 ## Camera over je schouder
 
@@ -690,8 +749,15 @@ afrit 21 aan de noordkant.
 - `js/viaduct.js` – het viaduct over de rondweg: het hoogteveld (`grondHoogte`) dat de rest van het
   spel gebruikt, het dijklichaam van de opritten, het brugdek met landhoofden en pijler, en de houten
   boogbrug met trekstangen, dwarsportalen en leuning
-- `js/persoon.js` – één los poppetje dat kan staan, zwaaien, lopen, mikken, vuren en omvallen (de
-  voetgangers in `npc.js` zijn instanced meshes en kunnen dat niet)
+- `js/lichaam.js` – de maten en de lichaamsdelen van een mens van 1,75 m, gedeeld door de voetgangers
+  en de losse poppetjes: romp, bekken, nek, hoofd met neus en oren, haar of pet, veiligheidsvest,
+  boven- en onderarm met hand, boven- en onderbeen met schoen, plus de standen van alle gewrichten
+  bij lopen, rennen, fietsen en mikken
+- `js/persoon.js` – één los poppetje met een echt skelet: elleboog, knie en enkel, en het kan staan,
+  zwaaien, lopen, mikken, vuren en omvallen (de voetgangers in `npc.js` zijn instanced meshes en
+  kunnen dat niet)
+- `js/wapen.js` – het pistool in beeld: het model met slede, loop, trekkerbeugel, greep en een los
+  magazijn, de hand eromheen, het mondingsvuur en de hele herlaadbeweging met de klikken erbij
 - `js/opslag.js` – opslaan en laden van het spel (F5 en F9)
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd
@@ -721,6 +787,9 @@ afrit 21 aan de noordkant.
 - `tools/viaducttest.mjs` – toetst het viaduct: de plek uit de BGT, het hoogteveld, lopen en rijden
   over de brug, de leuning, de houten boog en de rondweg die eronder blijft liggen
 - `tools/viaductshots.mjs` – maakt de foto's van het viaduct
+- `tools/wapentest.mjs` – toetst het pistool, de terugslag, het herladen met zijn geluiden, en de
+  bouw en de looppas van de mensen
+- `tools/wapenshots.mjs` – maakt de foto's van het wapen en de poppetjes
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

@@ -80,15 +80,23 @@ const wapen = await page.evaluate(async () => {
   g.player.pos.set(96, 0, -58); g.player.yaw = 0; g.player.pitch = 0;
   g.player.update(1 / 60);
   // maten in cameraruimte: het wapen hangt aan de camera, dus een gewone
-  // wereld-Box3 zou de plek van de speler teruggeven
+  // wereld-Box3 zou de plek van de speler teruggeven. Het model is genest
+  // (wapen, hand en arm in eigen groepen), dus alles omrekenen via de
+  // wereldmatrix en dan terug naar de camera.
+  g.camera.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(g.camera.matrixWorld).invert();
   const doos = new THREE.Box3();
-  for (const o of g.player.gun.children) {
-    if (!o.isMesh) continue;
-    o.updateMatrix();
+  const v = new THREE.Vector3();
+  g.player.gun.traverse(o => {
+    if (!o.isMesh || !o.visible) return;
     o.geometry.computeBoundingBox();
-    doos.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrix));
-  }
-  doos.translate(g.player.gun.position);
+    const bb = o.geometry.boundingBox;
+    for (let i = 0; i < 8; i++) {
+      v.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z);
+      v.applyMatrix4(o.matrixWorld).applyMatrix4(inv);
+      doos.expandByPoint(v);
+    }
+  });
   const grootte = doos.getSize(new THREE.Vector3());
   const zichtbaar = g.player.gun.visible;
   // de arm moet naar rechtsonder uit beeld lopen

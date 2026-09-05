@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { resolveCollisions, pointInWater, ondergrondOp, grondHoogte } from './world.js';
 import { geluid } from './audio.js';
+import { maakPistool, HERLAADTIJD } from './wapen.js';
 
 export class Player {
   get locked() { return this.active; }
@@ -27,6 +28,13 @@ export class Player {
     this.zit = false;
     this.eyeStaand = this.eye;
     this.recoil = 0; this.flashT = 0;
+    /*
+     Camera-terugslag. Een schot tilt het beeld even op en zet het een tikje
+     opzij; het zakt daarna vanzelf terug. Het is alleen beeld: `pitch` en `yaw`
+     blijven staan waar jij ze hebt gezet, zodat je richten er niet door
+     verschuift en een tweede schot op dezelfde plek aankomt.
+    */
+    this.kickPitch = 0; this.kickYaw = 0;
     this.active = false;        // spel gestart
     this.pointerLocked = false; // muis vastgezet door de browser
     this.dragging = false; this.dragDist = 0;
@@ -38,47 +46,14 @@ export class Player {
   }
 
   /*
-   Het pistool in beeld. Het hing er klein en los bij: een blokje hand met een
-   mouwtje erachter dat nergens naartoe liep. Nu is het model groter (schaal 1,
-   dus een pistool van 19 cm) en zit er een hele onderarm aan die vanuit de
-   rechteronderhoek van het beeld naar de vuist loopt — zoals het in een
-   first-personspel hoort. Met H stop je het weg (`wapenUit`).
+   Het pistool in beeld. Het model, de hand en de hele herlaadbeweging staan in
+   js/wapen.js; hier hangt alleen de aansturing.
   */
   buildGun() {
-    const g = new THREE.Group();
-    const dark = new THREE.MeshStandardMaterial({ color: 0x23262b, roughness: 0.45, metalness: 0.65 });
-    const grip = new THREE.MeshStandardMaterial({ color: 0x2b2420, roughness: 0.9 });
-    const huid = new THREE.MeshStandardMaterial({ color: 0xd0a480, roughness: 0.95 });
-    const stof = new THREE.MeshStandardMaterial({ color: 0x2f3a56, roughness: 0.95 });
-    const S = 1.0; // schaal: het pistool is ~19 cm lang
-    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.032 * S, 0.044 * S, 0.190 * S), dark); slide.position.set(0, 0.018 * S, -0.045 * S);
-    const kast = new THREE.Mesh(new THREE.BoxGeometry(0.030 * S, 0.030 * S, 0.120 * S), dark); kast.position.set(0, -0.012 * S, -0.010 * S);
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.006 * S, 0.006 * S, 0.05 * S, 8), dark); barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.022 * S, -0.15 * S);
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.030 * S, 0.090 * S, 0.040 * S), grip); handle.position.set(0, -0.058 * S, 0.020 * S); handle.rotation.x = 0.22;
-    const beugel = new THREE.Mesh(new THREE.BoxGeometry(0.014 * S, 0.026 * S, 0.008 * S), dark); beugel.position.set(0, -0.030 * S, -0.028 * S);
-    const sight = new THREE.Mesh(new THREE.BoxGeometry(0.005 * S, 0.007 * S, 0.007 * S), dark); sight.position.set(0, 0.043 * S, -0.132 * S);
-    const korrel = new THREE.Mesh(new THREE.BoxGeometry(0.010 * S, 0.007 * S, 0.006 * S), dark); korrel.position.set(0, 0.043 * S, 0.038 * S);
-    const flash = new THREE.Mesh(new THREE.SphereGeometry(0.024 * S, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
-    flash.position.set(0, 0.022 * S, -0.190 * S);
-    // de vuist om de kolf, met een duim langs de kast
-    const vuist = new THREE.Mesh(new THREE.BoxGeometry(0.055 * S, 0.075 * S, 0.070 * S), huid);
-    vuist.position.set(0.002 * S, -0.062 * S, 0.024 * S); vuist.rotation.x = 0.18;
-    const duim = new THREE.Mesh(new THREE.BoxGeometry(0.020 * S, 0.026 * S, 0.060 * S), huid);
-    duim.position.set(-0.026 * S, -0.030 * S, 0.006 * S); duim.rotation.x = -0.25;
-    // pols en onderarm: lopen schuin naar de rechteronderhoek uit beeld
-    const pols = new THREE.Mesh(new THREE.BoxGeometry(0.052 * S, 0.058 * S, 0.070 * S), huid);
-    pols.position.set(0.016 * S, -0.088 * S, 0.082 * S); pols.rotation.set(-0.26, 0.22, 0);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.076 * S, 0.082 * S, 0.44 * S), stof);
-    arm.position.set(0.086 * S, -0.150 * S, 0.300 * S); arm.rotation.set(-0.26, 0.34, 0.06);
-    const manchet = new THREE.Mesh(new THREE.BoxGeometry(0.084 * S, 0.090 * S, 0.034 * S), new THREE.MeshStandardMaterial({ color: 0x27314a, roughness: 0.95 }));
-    manchet.position.set(0.030 * S, -0.104 * S, 0.112 * S); manchet.rotation.set(-0.26, 0.34, 0.06);
-    g.add(slide, kast, barrel, handle, beugel, sight, korrel, flash, vuist, duim, pols, arm, manchet);
-    this.flash = flash;
-    g.position.set(0.15, -0.13, -0.42);
-    g.rotation.set(0, 0.10, 0.06);
-    this.gun = g;
+    this.wapen = maakPistool(geluid);
+    this.gun = this.wapen.groep;
     this.wapenUit = false;      // pistool weggestopt (toets H)
-    this.camera.add(g);
+    this.camera.add(this.gun);
   }
 
   // Pistool trekken of wegstoppen. Weggestopt schiet je niet en staat het
@@ -180,15 +155,19 @@ export class Player {
 
   reload() {
     if (this.reloading > 0 || this.ammo === 12 || this.reserve <= 0) return;
-    this.reloading = 1.4;
-    geluid.herladen();
+    // de klikken horen bij de beweging en komen uit js/wapen.js
+    this.reloading = HERLAADTIJD;
   }
 
   shoot() {
     if (this.inCar || this.reloading > 0 || this.wapenUit) return;
-    if (this.ammo <= 0) { this.reload(); return; }
+    if (this.ammo <= 0) { geluid.leegKlik(); this.reload(); return; }
     this.ammo--;
     this.recoil = 1; this.flashT = 0.06;
+    // beeld omhoog en een willekeurig tikje opzij
+    this.kickPitch += 0.026 + Math.random() * 0.010;
+    this.kickYaw += (Math.random() - 0.5) * 0.014;
+    if (this.wapen) this.wapen.vuur();
     geluid.schot();
     const dir = new THREE.Vector3(); this.camera.getWorldDirection(dir);
     const origin = this.camera.getWorldPosition(new THREE.Vector3());
@@ -201,11 +180,20 @@ export class Player {
   applyCamera() {
     this.camera.position.set(this.pos.x, this.pos.y + this.eye, this.pos.z);
     this.camera.rotation.set(0, 0, 0, 'YXZ');
-    this.camera.rotation.y = this.yaw;
-    this.camera.rotation.x = this.pitch;
+    this.camera.rotation.y = this.yaw + this.kickYaw;
+    this.camera.rotation.x = this.pitch + this.kickPitch;
+  }
+
+  // De terugslag zakt terug naar nul; hoe verder hij nog uitstaat, hoe sneller.
+  demptTerugslag(dt) {
+    const f = Math.exp(-dt * 9);
+    this.kickPitch *= f; this.kickYaw *= f;
+    if (Math.abs(this.kickPitch) < 1e-4) this.kickPitch = 0;
+    if (Math.abs(this.kickYaw) < 1e-4) this.kickYaw = 0;
   }
 
   update(dt) {
+    this.demptTerugslag(dt);
     if (this.reloading > 0) {
       this.reloading -= dt;
       if (this.reloading <= 0) { const need = 12 - this.ammo; const take = Math.min(need, this.reserve); this.ammo += take; this.reserve -= take; this.reloading = 0; }
@@ -279,14 +267,13 @@ export class Player {
 
     this.camera.position.set(this.pos.x, this.pos.y + this.eye + bobY, this.pos.z);
     this.camera.rotation.set(0, 0, 0, 'YXZ');
-    this.camera.rotation.y = this.yaw; this.camera.rotation.x = this.pitch;
+    this.camera.rotation.y = this.yaw + this.kickYaw;
+    this.camera.rotation.x = this.pitch + this.kickPitch;
 
-    // wapenanimatie
+    // wapenanimatie: schot, terugslag en de vijf stappen van het herladen
     this.recoil = Math.max(0, this.recoil - dt * 6);
-    this.gun.position.z = -0.42 + this.recoil * 0.05;
-    this.gun.rotation.x = this.recoil * 0.25 + (this.reloading > 0 ? 0.6 : 0);
-    this.gun.position.y = -0.13 + Math.sin(this.bob) * 0.006;
-    this.flashT -= dt; this.flash.material.opacity = this.flashT > 0 ? 0.9 : 0;
+    this.flashT -= dt;
+    this.wapen.update(dt, { herlaad: this.reloading, bob: this.bob });
     this.gun.visible = !this.wapenUit;
   }
 }

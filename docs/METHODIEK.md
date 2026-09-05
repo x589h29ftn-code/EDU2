@@ -1251,6 +1251,89 @@ wereldtest, looptest, politietest, winkeltest en woningtest blijven groen, en
 `geo:boven` staat nog op 1,31 %.
 
 
+**Het wapen en de mensen (stap 17).**
+
+*De boog van het viaduct klopte niet.* Op de foto vanaf het dek zie je twee
+brede houten wangen die naar elkaar toe hellen en boven het midden van de
+rijbaan bijna samenkomen — een spitsboog. Wat er stond waren twee rechte bogen
+op de dekranden met dwarsbalken ertussen, en die balken hingen op ooghoogte:
+je reed er bovenop de brug tegen een pergola aan. De wangen hellen nu naar
+binnen (bij de voet op de dekrand, bij de top vlak naast de hartlijn), elke wang
+is twee evenwijdige gebogen liggers met latten ertussen, en de enige dwarsdelen
+zijn twee trekstangen helemaal bovenin. De boogpunten worden tussen de stations
+van de as geïnterpoleerd in plaats van op een heel station afgerond, anders zit
+er om de meter een knik in.
+
+*En er groeide een boom door de brug heen.* De bomen komen uit de BGT-groenvakken
+en die lopen onder het viaduct door; een kroon is ruim vier meter breed en het
+dek ligt op 5,6 m. Bomen in de strook onder het dek (plus drie meter marge)
+vervallen nu.
+
+*Het pistool.* Het was een slede, een kolf, een vuistje en een mouw — vijf dozen
+waar je in de eerste persoon de hele tijd tegenaan kijkt. Nu heeft het de
+onderdelen die een pistool werkelijk heeft (slede met grepen en uitwerpopening,
+loop, onderstel met stofkap, trekkerbeugel met trekker, korrel en keep, greep met
+ribbels, los magazijn) en zit er een hand omheen met vier vingers, een duim en
+een wijsvinger aan de trekker. Dat zijn 530 driehoeken tegen 200, maar niet 43
+draw calls: alle blokjes van hetzelfde materiaal binnen één onderdeel gaan samen
+in één geometrie, dus het blijft bij vijftien meshes.
+
+*Herladen is een beweging geworden.* Vijf stappen in anderhalve seconde — het
+wapen kantelt naar je toe, de magazijnknop gaat in, het lege magazijn valt eruit,
+een vol magazijn komt van onderen omhoog, de slede gaat naar achteren en weer
+naar voren. De stappen staan als fracties in één tabel boven in `js/wapen.js`, en
+de geluiden hangen aan diezelfde tabel: zo kunnen beeld en klank niet uit elkaar
+lopen. De knal zelf is opnieuw opgebouwd (kraak, gasklap, naijl en een huls die
+tikt) met een beetje toonhoogteverschil per schot.
+
+*Terugslag.* Bij elk schot komt er een schok op de camera: ruim anderhalve graad
+omhoog en een willekeurig tikje opzij, in een halve seconde terug naar nul. Het
+is bewust alleen beeld — `pitch` en `yaw` van de speler blijven staan. Zou de
+terugslag je kijkrichting echt verschuiven, dan moet je na elk schot
+nacorrigeren, en dan verschuiven ook alle proeven die op een vast punt mikken.
+
+*De mensen.* De voetgangers en de losse poppetjes hadden allebei hun eigen
+stapeltje dozen, met andere maten, en armen en benen uit één stuk. Een been dat
+van heup tot voet één plank is zwaait als een klok. `js/lichaam.js` is nu de
+enige maatvoering: een volwassene van 1,75 m met borstkas en taille, een bekken,
+een hoofd met neus en oren, handen, schoenen, en ledematen met een elleboog, een
+knie en een enkel. `loopHouding()` geeft de stand van alle gewrichten bij een
+gegeven pas; npc.js en persoon.js gebruiken allebei die uitkomst, dus een
+wandelaar en een agent lopen precies gelijk.
+
+Twee dingen die je meteen ziet als je ze niet doet. De knie mag maar één kant op
+— anders knikt hij bij de helft van de pas achterstevoren. En het lichaam moet
+bij elke pas een centimeter of vijf zakken: met gespreide benen sta je lager dan
+rechtop, en zonder die zak zweven de voeten boven de stoep. De proef rekent dat
+na en laat er hoogstens een centimeter van over.
+
+*Kosten.* Bij de voetgangers zijn het nu elf soorten onderdelen in plaats van
+acht. Delen die links én rechts zitten kregen niet twee instanced meshes maar één
+met twee instanties per persoon, anders waren het er zeventien geworden. En de
+oude tekenlus maakte per lichaamsdeel per persoon twee nieuwe quaternionen —
+tweeduizend allocaties per beeld; die zijn eruit. Netto is `npcs.update`
+sneller geworden (1,31 → 0,90 ms) terwijl er meer te tekenen valt.
+
+Draw calls in de wijk: 599 → 606, driehoeken 1,36 → 1,39 miljoen.
+
+*Twee wankele proeven eruit.* `npm run politietest` viel na deze ronde één op
+de drie keer om, op twee plekken: hoeveel eenheden er verderop zoeken, en of er
+een lege surveillanceauto achterblijft. Dat leek een regressie, maar was het
+niet: de proef doet dezelfde twee metingen aan een systeem dat op `Math.random()`
+draait, en de terugslag en het mondingsvuur trekken elk schot een paar getallen
+extra uit die reeks. Met de oude code op een verse werkkopie viel dezelfde proef
+net zo goed om zodra je hem vaak genoeg draaide (2 van de 6 metingen onder de
+drempel). Het aantal eenheden verder dan zestig meter is nu het hoogste getal
+over de hele meting in plaats van een momentopname, en de proef met de lege
+wagen meldt tot drie keer opnieuw in plaats van eindeloos door te stappen.
+
+Controle: `npm run wapentest` (veertig controles over het model, het schieten,
+de terugslag, het herladen met zijn geluidsvolgorde, de bouw van een mens, de
+looppas en een agent) en `npm run viaducttest` (nu ook: geen boom door het dek).
+Rijtest, verhaaltest, wereldtest, looptest, politietest, winkeltest en
+woningtest blijven groen en `geo:boven` staat nog op 1,31 %.
+
+
 **Wat nog niet af is (in volgorde).**
 
 1. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als

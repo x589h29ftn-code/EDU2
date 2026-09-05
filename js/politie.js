@@ -80,7 +80,12 @@ const SPAWN_ZICHT = 130;
 const LEEG_WEG = 45;
 const LEEG_KWIJT = 8;                      // zodra de sterren weg zijn gaat het sneller
 const LEEG_AFSTAND = 45;
-const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c };
+/*
+ Het uniform: donkerblauw met een fluorescerend vest eroverheen. Dat vest is niet
+ alleen echter, het helpt ook spelen — een agent in het donkerblauw was tussen de
+ voetgangers nauwelijks te onderscheiden.
+*/
+const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c, vest: 0xd6dc46, schoen: 0x14161c };
 
 export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   let heat = 0;

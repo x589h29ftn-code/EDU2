@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import * as T from './textures.js';
 import { KLEUR } from './kaartkleuren.js';
 import { PROP_TYPES } from './props.js';
-import { zetViaducten, bouwViaducten, grondHoogte } from './viaduct.js';
+import { zetViaducten, bouwViaducten, grondHoogte, onderBrug } from './viaduct.js';
 
 export let KAART = null;
 export function zetKaart(k) { KAART = k; zetViaducten(k && k.viaducten); }
@@ -36,6 +36,9 @@ let tegelNu = '0:0';
 const tegelVan = (x, z) => `${Math.floor(x / TEGEL)}:${Math.floor(z / TEGEL)}`;
 const KERB_Y = 0.12;   // hoogte van stoep, tuin en gras boven de rijbaan
 export const waterRingen = [];
+// losse tellingen die de proeven uitlezen (bijvoorbeeld hoeveel bomen er onder
+// het brugdek weggelaten zijn)
+export const kaartTelling = {};
 export const kaartLabels = [];
 // Schuifpoorten van de omheinde terreinen: {terrein, groep, doos, richting,
 // lengte, open, midden}. Een missie kan er een openschuiven (zie verhaal.js).
@@ -300,7 +303,17 @@ export function bouwKaartWereld(scene, W) {
     for (const ring of K.hagen) { vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor); randGeometrie([ring], 1.1, 0.0, hg.pos, hg.uv, hg.nor); }
     const hm = maakMesh(hg.pos, hg.uv, hg.nor, KM.hedge, { schaduw: true, klasse: 'haag' }); if (hm) scene.add(hm);
     // vrij: boom zonder botsing (doorloopbaar plantsoen)
-    for (const b of K.bomen) W.treePositions.push({ x: b.x, z: b.z, y: grondHoogte(b.x, b.z, 0), s: b.s, tall: !!b.tall, vrij: !!b.vrij });
+    /*
+     Bomen. Wie onder het brugdek staat groeit er dwars doorheen (een kroon is
+     ruim vier meter breed en het dek ligt op 5,6 m), dus die vervalt — met een
+     marge van drie meter naast het dek erbij.
+    */
+    let bomenWeg = 0;
+    for (const b of K.bomen) {
+      if (onderBrug(b.x, b.z, 3.0)) { bomenWeg++; continue; }
+      W.treePositions.push({ x: b.x, z: b.z, y: grondHoogte(b.x, b.z, 0), s: b.s, tall: !!b.tall, vrij: !!b.vrij });
+    }
+    kaartTelling.bomenOnderBrug = bomenWeg;
     // drempels: witte markering op de rijbaan
     const dr = { pos: [], uv: [], nor: [] };
     for (const v of K.vlakken) if (v.drempel) vlakGeometrie(v.r, 0.012, 0.5, dr.pos, dr.uv, dr.nor);

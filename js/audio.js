@@ -112,17 +112,51 @@ export const geluid = {
     if (hoofd) hoofd.gain.setTargetAtTime(v ? 0 : 0.55, nu(), 0.15);
   },
 
+  /*
+   Een schot bestaat uit drie dingen tegelijk: de knal zelf (heel kort en hard),
+   de klap van het gas (laag, iets langer) en de naijl in de straat. Elk schot
+   krijgt een beetje toonhoogteverschil mee, anders klinkt een serie als een
+   kopieermachine. Vlak erna tikt de huls op de stoep.
+  */
   schot() {
-    tik({ freq: 1800, q: 0.6, duur: 0.09, volume: 0.55, val: 0.08 });
-    tik({ freq: 260, q: 1.2, duur: 0.28, volume: 0.35, val: 0.25 });
-    toon({ freq: 140, naar: 50, duur: 0.22, volume: 0.18, golf: 'square' });
+    const v = 0.92 + Math.random() * 0.16;
+    tik({ freq: 2600 * v, q: 0.5, duur: 0.035, volume: 0.5, val: 0.1 });
+    tik({ freq: 900 * v, q: 0.7, duur: 0.10, volume: 0.5, val: 0.08 });
+    tik({ freq: 240 * v, q: 1.1, duur: 0.34, volume: 0.34, val: 0.22 });
+    toon({ freq: 150 * v, naar: 48, duur: 0.24, volume: 0.16, golf: 'square' });
+    tik({ freq: 700, q: 0.8, duur: 0.45, volume: 0.10, val: 0.3, vertraag: 0.05 });  // naijl
+    // de huls: een klein metalig tikje op de grond
+    setTimeout(() => { toon({ freq: 3200, naar: 2100, duur: 0.07, volume: 0.05 }); }, 260);
   },
 
+  // klik op een leeg magazijn
+  leegKlik() {
+    tik({ freq: 3000, q: 6, duur: 0.035, volume: 0.14 });
+    tik({ freq: 1200, q: 8, duur: 0.04, volume: 0.08, vertraag: 0.03 });
+  },
+
+  // de losse stappen van het herladen; js/wapen.js roept ze aan op het moment
+  // dat je de beweging ziet gebeuren
+  magazijnKnop() { tik({ freq: 2800, q: 6, duur: 0.035, volume: 0.13 }); },
+  magazijnUit() {
+    tik({ freq: 1700, q: 3, duur: 0.06, volume: 0.11 });
+    setTimeout(() => tik({ freq: 900, q: 2, duur: 0.10, volume: 0.10, val: 0.4 }), 150);  // op de grond
+  },
+  magazijnIn() {
+    tik({ freq: 700, q: 2.5, duur: 0.09, volume: 0.20, val: 0.45 });
+    toon({ freq: 220, naar: 120, duur: 0.07, volume: 0.07, golf: 'square' });
+  },
+  slede() {
+    tik({ freq: 2400, q: 4, duur: 0.05, volume: 0.17 });
+    tik({ freq: 1500, q: 5, duur: 0.06, volume: 0.20, vertraag: 0.10 });
+  },
+
+  // blijft bestaan voor wie hem al aanriep: de hele reeks achter elkaar
   herladen() {
-    tik({ freq: 2600, q: 3, duur: 0.05, volume: 0.16 });
-    tik({ freq: 1500, q: 4, duur: 0.06, volume: 0.14, vertraag: 0.18 });
-    setTimeout(() => tik({ freq: 900, q: 5, duur: 0.07, volume: 0.18 }), 380);
-    setTimeout(() => tik({ freq: 2200, q: 4, duur: 0.05, volume: 0.14 }), 900);
+    this.magazijnKnop();
+    setTimeout(() => this.magazijnUit(), 250);
+    setTimeout(() => this.magazijnIn(), 700);
+    setTimeout(() => this.slede(), 1150);
   },
 
   // ondergrond bepaalt de klank: klinkers klinken hard, gras zacht
