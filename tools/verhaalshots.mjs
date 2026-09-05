@@ -42,7 +42,9 @@ await page.waitForTimeout(2000);
 
 const foto = async (naam) => {
   await page.waitForTimeout(800);
-  await page.screenshot({ path: `${map}/${naam}.png` });
+  // met de grote kaart open duurt één beeld in swiftshader soms een minuut;
+  // de standaard van dertig seconden is dan te kort
+  await page.screenshot({ path: `${map}/${naam}.png`, timeout: 180000 });
   console.log(`${map}/${naam}.png`);
 };
 

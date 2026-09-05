@@ -83,7 +83,9 @@ export class Persoon {
       const magazijn = doos(0.05, 0.16, 0.08, zwart, 0, -0.11, -0.02);
       g.add(loop, kolf, magazijn);
       g.position.set(0, -0.5, -0.14);          // in de hand, onder de schouder
-      g.rotation.x = Math.PI / 2;
+      // De loop wijst langs de arm naar buiten: met de arm omlaag hangt het
+      // wapen langs het been, met de arm vooruit (mikt) wijst hij vooruit.
+      g.rotation.x = -Math.PI / 2;
       this.armR.add(g);
       this.wapen = g;
       // vuurmond: bolletje dat kort oplicht als hij schiet
@@ -151,9 +153,13 @@ export class Persoon {
     this.beenL.rotation.x = zwaai;
     this.beenR.rotation.x = -zwaai;
     if (mikt) {
-      // geweer vooruit in twee handen
-      this.armR.rotation.x = -1.5; this.armR.rotation.z = 0;
-      this.armL.rotation.x = -1.35; this.armL.rotation.z = -0.35;
+      // Geweer vooruit in twee handen. Let op het teken: de arm hangt naar
+      // beneden (-y), dus een positieve draai om x brengt hem naar voren (-z),
+      // de kant waar het gezicht en de klep van de pet ook heen wijzen. Met een
+      // negatieve draai staken ze hun armen naar achteren en las je van de zijkant
+      // een kruispose. De linkerarm draait er met z naartoe, aan het wapen.
+      this.armR.rotation.x = 1.5; this.armR.rotation.z = 0;
+      this.armL.rotation.x = 1.42; this.armL.rotation.z = 0.5;
       this.groep.position.y = loopt ? Math.abs(Math.sin(this.stap)) * 0.03 : 0;
       return;
     }

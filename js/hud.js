@@ -218,8 +218,8 @@ export class HUD {
       c.beginPath(); c.moveTo(s.a[0] * scale, s.a[1] * scale); c.lineTo(s.b[0] * scale, s.b[1] * scale); c.stroke();
     }
     this.tekenRoute(c, scale, 3);
-    // auto's
-    c.fillStyle = '#2255dd';
+    // auto's — grijs, want blauw is voortaan van de politie alleen
+    c.fillStyle = '#4c525c';
     for (const car of vehicles.cars) { c.fillRect(car.x * scale - 2, car.z * scale - 2, 4, 4); }
     c.fillStyle = '#ffffff';
     for (const p of npcs.people) if (p.alive) { c.fillRect(p.x * scale - 1.5, p.z * scale - 1.5, 3, 3); }
@@ -267,8 +267,20 @@ HUD.prototype.drawBig = function (player, vehicles) {
   }
   this._kaartRot = 0;
   this.tekenRoute(c, 1, 2.5 / scale);
-  c.fillStyle = '#2255dd';
-  for (const car of vehicles.cars) c.fillRect(car.x - 1.2, car.z - 1.2, 2.4, 2.4);
+  c.fillStyle = '#4c525c';
+  const cr = 1.7 / scale;
+  for (const car of vehicles.cars) c.fillRect(car.x - cr, car.z - cr, cr * 2, cr * 2);
+  // politie: ook op de grote kaart zie je waar ze zoeken (js/politie.js). De
+  // stippen krijgen een vaste maat in beeldpunten — de hele wijk past hier op
+  // ruim één pixel per meter, dus op ware grootte zie je ze niet liggen.
+  if (this.politiePlekken && this.politiePlekken.length) {
+    const aan = Math.floor(performance.now() / 350) % 2 === 0;
+    c.fillStyle = aan ? '#3d8bff' : '#c9dcff';
+    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.2 / scale;
+    for (const p of this.politiePlekken) {
+      c.beginPath(); c.arc(p.x, p.z, (p.wagen ? 5.5 : 4) / scale, 0, Math.PI * 2); c.fill(); c.stroke();
+    }
+  }
   const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);
   const pz = this.kaartVanaf ? this.kaartVanaf.z : (player.inCar ? player.inCar.z : player.pos.z);
   const yaw = player.inCar ? player.inCar.yaw : player.yaw;

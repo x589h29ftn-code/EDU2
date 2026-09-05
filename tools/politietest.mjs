@@ -121,6 +121,54 @@ ok(komst.zwaailicht, 'de zwaailichten knipperen om beurten');
 ok(komst.d45 < komst.d10, 'ze komen dichterbij', `${komst.d10} m → ${komst.d25} m → ${komst.d45} m`);
 ok(komst.d45 < 60, 'en bereiken de plaats delict', `dichtstbij ${komst.d45} m`);
 
+// ---------- 3b. hoe meer sterren, hoe meer eenheden en hoe wijder ze zoeken ----------
+kop('meer sterren, meer blauw op straat');
+const inzet = await page.evaluate(() => {
+  const g = window.__game;
+  const pd = window.__pd;
+  const meet = (heat) => {
+    g.politie.reset();
+    window.__zetSpeler(pd.x, pd.z);
+    g.politie.zetHeat(heat);
+    g.politie.misdaad('neergeschoten', pd.x, pd.z);
+    // de verdenking elke seconde terugzetten: anders zakt hij in de 75 tellen
+    // die de eenheden nodig hebben om uit te waaieren gewoon weg
+    for (let s = 0; s < 75; s++) { g.politie.zetHeat(heat); window.__stap(30); }
+    const e = g.politie.eenheden;
+    const p = g.politie.plekken;
+    const ds = p.map(q => Math.hypot(q.x - pd.x, q.z - pd.z));
+    // staan er twee op precies dezelfde plek?
+    let opElkaar = 0;
+    for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++) {
+      if (Math.hypot(p[i].x - p[j].x, p[i].z - p[j].z) < 0.9 && !p[i].wagen && !p[j].wagen) opElkaar++;
+    }
+    return { ster: g.politie.ster, wagens: e.wagens, agenten: e.voet + e.inWagen,
+      verst: ds.length ? Math.round(Math.max(...ds)) : 0,
+      ver60: ds.filter(d => d > 60).length, opElkaar };
+  };
+  const uit = { een: meet(40), vijf: meet(400) };
+  // de wijk weer achterlaten zoals proef 3 hem opleverde: drie sterren met
+  // eenheden op straat, want daar bouwen de volgende proeven op door
+  g.politie.reset();
+  window.__zetSpeler(pd.x, pd.z);
+  g.politie.zetHeat(160);
+  g.politie.misdaad('neergeschoten', pd.x, pd.z);
+  window.__stap(Math.round(45 * 30));
+  return uit;
+});
+ok(inzet.vijf.wagens > inzet.een.wagens && inzet.vijf.agenten > inzet.een.agenten,
+  'bij vijf sterren rijden en lopen er meer dan bij één',
+  `1★ ${inzet.een.wagens} wagens/${inzet.een.agenten} agenten · 5★ ${inzet.vijf.wagens} wagens/${inzet.vijf.agenten} agenten`);
+ok(inzet.vijf.verst > 80, 'ze blijven niet op de plaats delict hangen maar zoeken de wijk af',
+  `verste eenheid ${inzet.vijf.verst} m van de melding`);
+// De verste eenheid is een grillig getal — één auto die net een lange straat
+// inrijdt haalt hem omhoog. Hoeveel er verderop zoeken is een rustiger maat.
+ok(inzet.vijf.ver60 > inzet.een.ver60 && inzet.vijf.ver60 >= 3,
+  'en hoe meer sterren, hoe meer eenheden er elders in de wijk rondrijden',
+  `1★ ${inzet.een.ver60} eenheden verder dan 60 m · 5★ ${inzet.vijf.ver60}`);
+ok(inzet.vijf.opElkaar === 0, 'geen twee agenten die in elkaar staan',
+  `${inzet.vijf.opElkaar} paren binnen 90 cm`);
+
 // ---------- 4. zien en schieten ----------
 kop('zien en schieten');
 const vuur = await page.evaluate(() => {

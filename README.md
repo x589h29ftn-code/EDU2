@@ -132,11 +132,27 @@ misdaad wordt gemeld — dat hangt af van wie het ziet:
   stapelen zich op tot iemand alsnog de telefoon pakt.
 
 De verdenking staat in **sterren**, rechtsboven onder de minikaart: één ster na een melding, en verder
-oplopend tot vijf. Bij één ster komen er agenten te voet, daarboven ook surveillanceauto's met
-zwaailicht en sirene. Ze rijden over de straten naar de **plaats delict** — de laatste plek waar ze
-jou wisten — en gaan daar zoeken.
+oplopend tot vijf. Hoe meer sterren, hoe meer blauw er op straat staat:
+
+| sterren | surveillanceauto's | agenten | ze zoeken tot |
+| --- | --- | --- | --- |
+| ★ | 1 | 3 | 55 m rond de melding |
+| ★★ | 2 | 4 | 85 m |
+| ★★★ | 3 | 5 | 120 m |
+| ★★★★ | 4 | 6 | 155 m |
+| ★★★★★ | 5 | 8 | 195 m |
+
+Bij elke auto zitten er nog twee agenten die uitstappen zodra je in de buurt komt, dus bij vijf
+sterren lopen en rijden er zo'n twintig eenheden rond. Ze rijden over de straten naar de **plaats
+delict** — de laatste plek waar ze jou wisten — en gaan van daaruit zoeken. Niet allemaal op dezelfde
+hoek: iedere eenheid krijgt zijn eigen richting en een eigen afstand binnen die zoekring, dus ze
+waaieren over de omliggende straten uit en verleggen hun zoekpunt om de vijftien à vijfentwintig
+seconden. Op de minikaart én op de grote kaart (M) knipperen ze als blauwe stipjes, zodat je ziet waar
+ze al zijn — gewone auto's staan daar grijs op, zodat blauw echt politie betekent.
 
 ![De politie komt eraan](docs/screenshots/politie.png)
+
+![Ze zoeken de hele wijk af](docs/screenshots/politie_zoekt.png)
 
 Zien ze je (kijkhoek plus vrij zicht) of horen ze je schieten, dan zetten ze de achtervolging in en
 schieten ze op je. Een auto die je kwijtraakt blijft nog een paar seconden zoeken en gaat dan terug
@@ -145,7 +161,8 @@ verdenking na een aftelling van achttien seconden plus zes per ster, en zijn ze 
 neerschieten kost je meteen een paar sterren extra.
 
 `npm run politietest` loopt het allemaal na: de meldkans met en zonder getuigen, de sterdrempels, het
-uitrukken en aankomen, het schieten, het neerschieten van een agent en het ontsnappen.
+uitrukken en aankomen, het aantal eenheden en hun spreiding per sterniveau, het schieten, het
+neerschieten van een agent en het ontsnappen. `npm run politieshots` maakt de twee foto's hierboven.
 
 ## Hondjes
 
@@ -484,7 +501,9 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `tools/plek.mjs` – één foto van een willekeurige plek in de wijk, in spelmeters
 - `tools/wereldtest.mjs` – toetst wat je in beeld ziet: geen gat in de lucht, het pistool met zijn arm
   en de H-toets, de lage erfscheidingen en het dubbelzijdige vlaggendoek
-- `tools/politietest.mjs` – toetst de politie: meldkans, sterren, uitrukken, schieten en ontsnappen
+- `tools/politietest.mjs` – toetst de politie: meldkans, sterren, uitrukken, de inzet en spreiding per
+  sterniveau, schieten en ontsnappen
+- `tools/politieshots.mjs` – maakt de twee foto's van de politie-inzet bij vijf sterren
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

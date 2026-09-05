@@ -239,7 +239,7 @@ naar `main` om een build te krijgen.
 | Rijden, de camera achter je, aanrijden (stap 8) | `npm run rijtest` | eindigt op "Alles goed" |
 | Nergens vastlopen op een binnenterrein (stap 8) | `npm run looptest` | eindigt op "Alles goed" |
 | Lucht, wapen, erfscheidingen, vlaggen (stap 8) | `npm run wereldtest` | eindigt op "Alles goed" |
-| Politie en gezocht-sterren (stap 9) | `npm run politietest` | eindigt op "Alles goed" |
+| Politie, gezocht-sterren en de inzet per ster (stap 9–10) | `npm run politietest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` | < 700 calls, < 1,4 M driehoeken, < 100 MB |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -875,6 +875,50 @@ Controle: `npm run politietest` (zestien controles over meldkans, sterren,
 uitrukken, aankomen, schieten, een agent neerschieten en ontsnappen).
 `npm run rijtest`, `npm run verhaaltest`, `npm run wereldtest` en
 `npm run looptest` blijven groen; `npm run geo:boven` staat nog op 1,31 %.
+
+**Meer blauw op straat, en zoeken in plaats van wachten (stap 10).** Op de
+telefoon was de politie nauwelijks te zien met sterren in beeld: er reed één
+wagen rond en de agenten stonden op een kluitje bij de melding. Vier dingen
+zijn aangepakt.
+
+1. *Meer eenheden, oplopend met de sterren.* Van 3 agenten en 1 wagen bij één
+   ster naar 8 agenten en 5 wagens bij vijf — met twee inzittenden per wagen
+   zijn dat een stuk of twintig eenheden. De agenten in een wagen stappen uit
+   zodra je binnen veertig meter komt.
+2. *Ze waaieren uit.* Alle eenheden naar hetzelfde punt sturen gaf een kluitje
+   politie op één hoek terwijl de rest van de wijk leeg bleef. Iedere eenheid
+   krijgt nu een eigen sector rond de laatst bekende plek (verdeeld met de
+   gulden snede, zodat opeenvolgende eenheden nooit naast elkaar uitkomen) en
+   een eigen afstand binnen een zoekring die met de sterren meegroeit: 55 m bij
+   één ster tot 195 m bij vijf. Dat punt wordt op het dichtstbijzijnde
+   wegknooppunt gelegd — anders lopen ze een tuin in — en om de 14 à 26 seconden
+   verlegd, zodat ze de straten aflopen in plaats van stil te staan.
+3. *Niet in elkaar staan.* Twee eenheden die hetzelfde wegknooppunt kozen kwamen
+   op precies dezelfde coördinaat terecht: één poppetje met vier armen. Er komt
+   nu een eigen plekje van drie tot acht meter rond dat knooppunt bij (afgeleid
+   van de sector, dus vast per eenheid), plus een zacht duwtje uit elkaar als ze
+   binnen 1,1 m van elkaar komen — dezelfde truc als bij de voetgangers.
+4. *Op de kaart te vinden.* Gewone auto's stonden met hetzelfde blauw op de
+   minikaart als de politie. Verkeer is nu grijs en blauw betekent politie; de
+   stipjes staan bovendien ook op de grote kaart (M), op een vaste maat in
+   beeldpunten, want de hele wijk past daar op nog geen anderhalve pixel per
+   meter.
+
+Onderweg viel nog een oude fout op die met twintig agenten in beeld niet meer te
+missen was: bij het richten (`mikt` in `js/persoon.js`) draaiden de armen om de
+verkeerde kant om de schouder, dus ze staken hun armen naar achteren en van
+opzij las je een kruispose. Het teken van die draai is omgedraaid en het wapen
+draait mee — dat scheelt ook voor de bewaking op het RWZI-terrein en voor de
+dief, die dezelfde poppetjes gebruiken.
+
+Kosten: een volle jacht met vijf sterren kost ongeveer 1,5 ms rekentijd per
+beeld en verandert niets aan de 595 draw calls van de wijk zelf.
+
+Controle: `npm run politietest` telt nu twintig controles; de vier nieuwe meten
+het aantal eenheden bij één tegen vijf sterren, hoe ver ze van de melding
+zoeken, hoeveel er verder dan zestig meter van de melding rondgaan, en dat er
+geen twee agenten binnen negentig centimeter van elkaar staan. `npm run
+politieshots` maakt de twee foto's. De andere proeven blijven groen.
 
 **Wat nog niet af is (in volgorde).**
 
