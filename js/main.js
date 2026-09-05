@@ -12,6 +12,7 @@ import { initSfeer } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur } from './interieur.js';
 import { initDerdePersoon } from './derdepersoon.js';
+import { initPolitie } from './politie.js';
 import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
@@ -275,6 +276,10 @@ function straatOf(x, z) {
 // lopen. De hengel wordt ingekort zodra er een muur achter je staat.
 const derde = initDerdePersoon({ scene, camera, player });
 
+// Politie en het gezocht-systeem: schieten en aanrijden leveren verdenking op,
+// en boven een drempel komen er eenheden op je af (zie js/politie.js).
+const politie = initPolitie({ scene, player, npcs, vehicles, hud });
+
 // Het verkeer moet ook voor de buurman remmen als hij oversteekt. De lijst met
 // voetgangers heeft een vaste lengte, dus die zetten we één keer klaar.
 const opDeWeg = npcs.people.concat([verhaal.hinder]);
@@ -293,13 +298,18 @@ player.shootCb = (camOrigin, camDir) => {
   // uit de camera, anders schiet je langs jezelf heen
   const { origin, dir } = derde.mikpunt(camOrigin, camDir);
   verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
+  politie.hoorSchot(origin.x, origin.z);         // en de politie ook
   npcs.paniek(origin.x, origin.z, PANIEK_SCHOT); // en de buurt rent weg
+  politie.misdaad('schot', origin.x, origin.z);
   raycaster.set(origin, dir); raycaster.far = 120;
-  const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen()];
+  const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen()];
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
     const h = hits[0];
-    if (npcs.hit(h.object, h.instanceId)) { geluid.raak(); hud.show('Raak!', 0.8); }
+    if (npcs.hit(h.object, h.instanceId)) {
+      geluid.raak(); hud.show('Raak!', 0.8);
+      politie.misdaad('neergeschoten', h.point.x, h.point.z);
+    } else if (politie.raak(h.object)) { geluid.raak(); hud.show('Agent neer!', 1.2); }
     else if (verhaal.raak(h.object)) { geluid.raak(); hud.show('Raak!', 0.8); }
     else { const car = vehicles.hit(h.object, h.instanceId); if (car) { geluid.klap(); hud.show('Auto geraakt', 0.6); } }
     const mark = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), impactMat); mark.position.copy(h.point); scene.add(mark);
@@ -336,6 +346,7 @@ function aanrijden(x, z, straal, snelheid) {
   if (n) {
     geluid.klap();
     npcs.paniek(x, z, PANIEK_KLAP);   // wie het ziet gebeuren rent weg
+    politie.misdaad('aangereden', x, z);
     hud.show(n > 1 ? `${n} voetgangers aangereden` : 'Voetganger aangereden', 1.4);
   }
   return n;
@@ -465,6 +476,7 @@ function bewaarSpelNu() {
 }
 
 function laadSpelNu() {
+  politie.reset();          // een opgeslagen spel begint zonder achtervolging
   const gelukt = laadSpel({ player, sfeer, vehicles, verhaal });
   hud.show(gelukt ? 'Spel geladen' : 'Er is nog geen opgeslagen spel', 2.5);
   return gelukt;
@@ -561,7 +573,11 @@ function loop() {
     npcs.update(dt, time);
     verhaal.update(dt);
     interieur.update(dt, verhaal.aanspreekbaar);
-    if (player.health <= 0) verhaal.dood();
+    // de politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte
+    if (!interieur.binnen) player.health -= politie.update(dt);
+    hud.zetSterren(politie.ster, politie.gezocht);
+    hud.zetPolitie(politie.gezocht ? politie.plekken : null);
+    if (player.health <= 0) { politie.reset(); verhaal.dood(); }
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
     sun.position.set(cx + SUN_DIR.x * 150, SUN_DIR.y * 150, cz + SUN_DIR.z * 150);
@@ -599,7 +615,7 @@ loop();
 
 // Testhaak voor automatische screenshots
 window.__game = {
-  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, derde,
+  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
 };
 

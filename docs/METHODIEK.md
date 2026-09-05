@@ -239,6 +239,8 @@ naar `main` om een build te krijgen.
 | Rijden, de camera achter je, aanrijden (stap 8) | `npm run rijtest` | eindigt op "Alles goed" |
 | Nergens vastlopen op een binnenterrein (stap 8) | `npm run looptest` | eindigt op "Alles goed" |
 | Lucht, wapen, erfscheidingen, vlaggen (stap 8) | `npm run wereldtest` | eindigt op "Alles goed" |
+| Politie en gezocht-sterren (stap 9) | `npm run politietest` | eindigt op "Alles goed" |
+| Snelheid: draw calls, driehoeken, geheugen | `npm run audit` | < 700 calls, < 1,4 M driehoeken, < 100 MB |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
 betrouwbaar kan beoordelen, omdat het een pixel-voor-pixel vergelijking is op
@@ -815,6 +817,64 @@ Controle: `npm run wereldtest` toetst deze vier dingen (zwarte beeldpunten in de
 lucht vanaf de vier hoeken van de wijk, de maten en de H-toets van het pistool,
 geen schutting in de vakken met lage erfscheidingen, en het dubbele vlaggendoek)
 en eindigt op "Alles goed".
+
+**Sneller maken, en een politie die je kunt afschudden (stap 9).** Het spel
+wordt op een telefoon getest en straks op een pc gespeeld, dus eerst is er
+gemeten in plaats van gegokt (`npm run audit`, in de wijk bij Molenkrite 15):
+1649 draw calls, 1,69 M driehoeken per beeld, 187 MB texturegeheugen. Een
+uitsplitsing per herkomst wees drie dingen aan.
+
+*De 329 geparkeerde auto's* stonden er als losse groepjes van zeven meshes — op
+straat waren er zeshonderd van in beeld, meer dan de helft van alle draw calls.
+Ze zijn nu instanced: zeven meshes per soort voor de hele wijk, met de lakkleur
+per instantie (`maakAutoStapel` in `js/carmodel.js`). De auto waar je in stapt
+krijgt zijn eigen model met wielen en die instantie gaat op schaal nul.
+
+*De wereldgeometrie* werd per materiaal in één mesh samengevoegd. Dat is zuinig
+in draw calls, maar zo'n mesh ligt over de hele wijk en valt dus nooit buiten
+beeld: de GPU kreeg elk beeld de complete wijk, ook wat achter je lag. Ondergrond,
+trottoirbanden en de 3177 bomen liggen nu in tegels van 240 m. Gevels bleven per
+materiaal samengevoegd — die meshes zijn al klein, en tegels erbovenop leverden
+alleen draw calls op. Instanced meshes hebben hetzelfde probleem, dus ook de
+bomen gingen per tegel en de auto's verdwijnen voorbij 170 m (met de LOD-klok
+mee, vier keer per seconde).
+
+*Het texturegeheugen* zat op 187 MB — rond of over wat Safari op een telefoon
+aankan, en precies waar haperingen en een herladende pagina vandaan komen. De
+gevelplaten gingen van 40 naar 26 beeldpunten per meter met een bovengrens van
+2048 px (een blok van vijftien woningen was in zijn eentje 6 MB), en de steen- en
+dakpandoeken — tientallen kleurvarianten van 512×512 — worden na het tekenen
+verkleind naar 288. Resultaat: **595 draw calls, 1,28 M driehoeken, 82 MB**.
+
+**De politie** (`js/politie.js`) is erbij gekomen, met het gezocht-systeem uit
+GTA als voorbeeld. Drie ontwerpkeuzes zijn de moeite waard.
+
+1. *Melden is een kans, geen zekerheid.* Elke misdaad heeft een straal en een
+   ernst; de kans dat er gebeld wordt loopt met het aantal getuigen (levende
+   mensen binnen die straal met vrij zicht) en met het aantal eerdere misdaden
+   die onopgemerkt bleven. Eén slachtoffer in een lege straat komt er vaak mee
+   weg, de tweede bijna nooit.
+2. *Ze zoeken waar ze je het laatst zagen, niet waar je bent.* Nieuwe eenheden
+   duiken op rond dat punt. Hier zat de belangrijkste fout van deze ronde: aan
+   het eind van elke beeldstap werd de laatst bekende plek bijgewerkt zolang
+   iemand je "zag", en die zichtvlag werd maar vier keer per seconde ververst.
+   Eén verouderde vlag gaf dus jouw actuele plek door, en dan kun je nooit
+   ontsnappen — de proef liet zien dat vier sterren na honderd seconden nog
+   steeds vier sterren waren. Nu wordt die plek alleen geschreven op het moment
+   dat iemand je écht ziet.
+3. *Rijden doen ze over de weg.* Recht op de speler af rijden loopt na dertig
+   meter dood tegen een woonblok. De wagens gebruiken de wegengraaf uit
+   `js/navigatie.js` (die er al was voor de routelijn op de kaart) en volgen die
+   met een vooruitblik van zes meter — dat geeft een vloeiende lijn in plaats van
+   geslinger. Komt een wagen toch klem te staan, dan probeert hij het eerst
+   achteruit; lukt dat drie keer niet, dan verdwijnt hij uit beeld en komt er
+   verderop een verse aanrijden. Dat is precies wat GTA doet, en beter dan een
+   politieauto die eeuwig tegen een schutting staat te duwen.
+
+Controle: `npm run politietest` (zestien controles over meldkans, sterren,
+uitrukken, aankomen, schieten, een agent neerschieten en ontsnappen).
+`npm run rijtest`, `npm run verhaaltest`, `npm run wereldtest` en
+`npm run looptest` blijven groen; `npm run geo:boven` staat nog op 1,31 %.
 
 **Wat nog niet af is (in volgorde).**
 

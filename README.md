@@ -120,6 +120,39 @@ iedereen weer verder. Wie er ver vandaan loopt merkt er niets van.
 lichten, de camera achter je, het aanrijden, het wegrennen en de botsingen tussen auto's onderling.
 `npm run rijshots` maakt de foto's hierboven.
 
+## Politie en sterren
+
+Sinds kort merkt de wijk wat je uitspookt. Elke misdaad levert **verdenking** op, maar niet elke
+misdaad wordt gemeld — dat hangt af van wie het ziet:
+
+- iemand neerschieten waar niemand bij is gaat vaak ongemerkt voorbij (ongeveer één op de tien wordt
+  toch gebeld: iemand achter een raam);
+- met omstanders erbij loopt die kans hard op, en met drie getuigen is het zo goed als zeker;
+- en wie er al eentje op zijn geweten heeft valt bij de tweede veel eerder op — *stille* misdaden
+  stapelen zich op tot iemand alsnog de telefoon pakt.
+
+De verdenking staat in **sterren**, rechtsboven onder de minikaart: één ster na een melding, en verder
+oplopend tot vijf. Bij één ster komen er agenten te voet, daarboven ook surveillanceauto's met
+zwaailicht en sirene. Ze rijden over de straten naar de **plaats delict** — de laatste plek waar ze
+jou wisten — en gaan daar zoeken.
+
+![De politie komt eraan](docs/screenshots/politie.png)
+
+Zien ze je (kijkhoek plus vrij zicht) of horen ze je schieten, dan zetten ze de achtervolging in en
+schieten ze op je. Een auto die je kwijtraakt blijft nog een paar seconden zoeken en gaat dan terug
+naar de laatst bekende plek — één hoek omgaan is dus niet genoeg. Blijf je uit het zicht, dan zakt de
+verdenking na een aftelling van achttien seconden plus zes per ster, en zijn ze je kwijt. Een agent
+neerschieten kost je meteen een paar sterren extra.
+
+`npm run politietest` loopt het allemaal na: de meldkans met en zonder getuigen, de sterdrempels, het
+uitrukken en aankomen, het schieten, het neerschieten van een agent en het ontsnappen.
+
+## Hondjes
+
+Eén op de acht wandelaars laat een hondje uit: een klein beestje aan een lijn dat schuin achter zijn
+baas aan dribbelt, met een slinger erin. Ze verschillen in kleur (wit, crème, zandbruin, roodbruin,
+donkerbruin, grijs, zwart) en in maat. Alle hondjes samen kosten twee draw calls.
+
 ## Snelheid
 
 Het spel draait op een telefoon en straks op een pc, dus de motor is gemeten en
@@ -451,6 +484,7 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `tools/plek.mjs` – één foto van een willekeurige plek in de wijk, in spelmeters
 - `tools/wereldtest.mjs` – toetst wat je in beeld ziet: geen gat in de lucht, het pistool met zijn arm
   en de H-toets, de lage erfscheidingen en het dubbelzijdige vlaggendoek
+- `tools/politietest.mjs` – toetst de politie: meldkans, sterren, uitrukken, schieten en ontsnappen
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

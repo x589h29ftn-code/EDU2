@@ -19,6 +19,7 @@ export class HUD {
     this.levenlabel = document.getElementById('levenlabel');
     this.missieEl = document.getElementById('missie');
     this.geldEl = document.getElementById('geld');
+    this.sterEl = document.getElementById('ster');
     this.flitsEl = document.getElementById('raakflits');
     this.missieT = 0;
     this.flitsT = 0;
@@ -112,6 +113,25 @@ export class HUD {
     this.geldEl.innerHTML = `${euro(bedrag)}${buit ? `<span class="buit">buit ${euro(buit)}</span>` : ''}`;
   }
 
+  /*
+   Gezocht-sterren, rechtsboven onder de minikaart. Vijf sterren, waarvan er
+   `n` oplichten; zolang de politie je nog niet kwijt is knippert de rij, net
+   als de laatste ster in GTA. Nul sterren = weg ermee.
+  */
+  // Waar staat de politie? De minikaart tekent er blauwe stippen van.
+  zetPolitie(plekken) { this.politiePlekken = plekken; }
+
+  zetSterren(n, knippert = false) {
+    if (!this.sterEl) return;
+    if (!n) { this.sterEl.hidden = true; this.sterEl.classList.remove('knippert'); return; }
+    if (this.sterN !== n) {
+      this.sterN = n;
+      this.sterEl.innerHTML = '★'.repeat(n) + `<span class="leeg">${'★'.repeat(5 - n)}</span>`;
+    }
+    this.sterEl.hidden = false;
+    this.sterEl.classList.toggle('knippert', !!knippert);
+  }
+
   // Mislukte missie: het beeld vaagt naar grijs.
   zetGrijs(aan) { document.body.classList.toggle('mislukt', !!aan); }
 
@@ -203,6 +223,15 @@ export class HUD {
     for (const car of vehicles.cars) { c.fillRect(car.x * scale - 2, car.z * scale - 2, 4, 4); }
     c.fillStyle = '#ffffff';
     for (const p of npcs.people) if (p.alive) { c.fillRect(p.x * scale - 1.5, p.z * scale - 1.5, 3, 3); }
+    // politie: blauwe stippen die knipperen, wagens wat groter (js/politie.js)
+    if (this.politiePlekken && this.politiePlekken.length) {
+      const aan = Math.floor(performance.now() / 350) % 2 === 0;
+      c.fillStyle = aan ? '#3d8bff' : '#c9dcff';
+      for (const p of this.politiePlekken) {
+        const r = p.wagen ? 3 : 2.2;
+        c.beginPath(); c.arc(p.x * scale, p.z * scale, r, 0, Math.PI * 2); c.fill();
+      }
+    }
     this.drawLabels(c, scale, -yaw + Math.PI, 40);
     c.restore();
     // speler
