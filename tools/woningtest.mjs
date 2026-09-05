@@ -191,17 +191,42 @@ const speel = await page.evaluate(async () => {
     return c;
   };
   const opGras = staan.filter(o => KAART.vlakken.some(v => v.k === 'gras' && v.r && v.r[0] && inRing([o.x, o.z], v.r[0]))).length;
+  /*
+   Het moet op het veld staan en niet in de achtertuinen. Dat toetsen we aan de
+   afstand tot het dichtstbijzijnde pand én tot de rand van het dichtstbijzijnde
+   erf — de tuinen liggen in de kaart als vlakken van de klasse `erf`.
+  */
+  const randAfstand = (x, z, klassen) => {
+    let best = 1e9;
+    for (const v of KAART.vlakken) {
+      if (!klassen.includes(v.k) || !v.r || !v.r[0]) continue;
+      for (const ring of v.r) for (let i = 0; i < ring.length; i++) {
+        const a = ring[i], b = ring[(i + 1) % ring.length];
+        const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz || 1;
+        const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / L2));
+        best = Math.min(best, Math.hypot(x - (a[0] + dx * t), z - (a[1] + dz * t)));
+      }
+    }
+    return best;
+  };
+  const totPand = staan.map(o => Math.min(...KAART.panden.map(p => Math.hypot(p.rect.cx - o.x, p.rect.cz - o.z))));
+  const totTuin = staan.map(o => randAfstand(o.x, o.z, ['erf']));
   return {
     soorten: [...new Set(staan.map(o => o.type))],
     aantal: staan.length, opGras,
     dichtst: bij.length ? Math.min(...bij) : 0, verst: bij.length ? Math.max(...bij) : 0,
+    dichtstePand: Math.min(...totPand), dichtsteTuin: Math.min(...totTuin),
   };
 });
 ok(speel.soorten.length === 4, 'er staan een schommel, een speelhuisje, een wipwap en een glijbaan',
   speel.soorten.join(', '));
 ok(speel.opGras === speel.aantal, 'allemaal op het grasveld', `${speel.opGras} van ${speel.aantal}`);
-ok(speel.verst < 60 && speel.dichtst > 12, 'achter de Wieken 144, niet in de tuin',
+ok(speel.verst < 60 && speel.dichtst > 25, 'achter de Wieken 144',
   `${speel.dichtst.toFixed(0)} tot ${speel.verst.toFixed(0)} m van het huis`);
+ok(speel.dichtstePand > 15, 'op het veld, ruim bij de huizen vandaan',
+  `${speel.dichtstePand.toFixed(0)} m tot het dichtstbijzijnde pand`);
+ok(speel.dichtsteTuin > 12, 'en niet in iemands achtertuin',
+  `${speel.dichtsteTuin.toFixed(0)} m tot de dichtstbijzijnde tuin`);
 
 console.log(fouten ? `\n${fouten} fout(en).` : '\nAlles goed.');
 await browser.close();
