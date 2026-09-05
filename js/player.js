@@ -25,6 +25,7 @@ export class Player {
     this.active = false;        // spel gestart
     this.pointerLocked = false; // muis vastgezet door de browser
     this.dragging = false; this.dragDist = 0;
+    this.kijkT = 0;             // tijd sinds je voor het laatst rondkeek
     this.shootCb = null;
 
     this.buildGun();
@@ -120,10 +121,13 @@ export class Player {
     geluid.sprong();
   }
 
-  // Rondkijken vanuit muis of touch: dx/dy in schermpixels.
+  // Rondkijken vanuit muis of touch: dx/dy in schermpixels. `kijkT` telt af na
+  // de laatste beweging; de camera achter de auto gebruikt dat om te weten of
+  // je zelf aan het rondkijken bent (zie js/derdepersoon.js).
   lookBy(dx, dy, k = 0.0032) {
     this.yaw -= dx * k;
     this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch - dy * k));
+    if (dx || dy) this.kijkT = 1.6;
   }
 
   // Stuurinvoer voor de auto: toetsen plus de touch-joystick.

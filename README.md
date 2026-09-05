@@ -27,7 +27,8 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
 | portemonnee | rechtsonder; wat je met missies verdient |
-| in de auto: W/S, A/D, spatie | gas/rem, sturen, handrem |
+| **V** | camera: vanuit je ogen of over je schouder (handig met de auto) |
+| in de auto: W/S, A/D, spatie | gas/rem (en achteruit), sturen, handrem |
 | M | grote kaart van de wijk met straatnamen |
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
 | Y | weer: helder, bewolkt, regen |
@@ -36,7 +37,57 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | Esc | muis vrijgeven |
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
-vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstappen, de kaart en pauze.
+vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstappen, de camera, de
+kaart en pauze.
+
+## Rijden
+
+De 329 auto's in de wijk staan er niet alleen voor de sier: in elke auto waar je bij kunt kun je
+stappen. Ze zijn opgebouwd uit een dorpel, een flank met een taille, een schouderlijn, een motorkap
+en een kofferklep, met schuine A- en C-stijlen, wielkasten, spiegels, portiernaden en een uitlaat.
+
+![Een auto van dichtbij](docs/screenshots/auto_model.png)
+
+Zodra je instapt krijgt die ene auto het model met **losse wielen**: de voorwielen sturen mee en alle
+vier rollen ze met de afgelegde weg. De carrosserie helt over in de bocht en duikt als je remt, de
+remlichten branden als je op de rem staat en de achteruitrijlichten als je achteruit gaat. De rest van
+de wijk houdt de zuinige uitvoering, want 329 auto's met losse wielen zou tweeduizend draw calls extra
+kosten.
+
+Het rijden zelf: gas geven trekt af naarmate je sneller gaat, los gas is motorrem plus
+luchtweerstand, en de stuuruitslag wordt kleiner naarmate je harder rijdt — anders is een auto op
+snelheid onbestuurbaar. De auto rijdt bovendien niet precies waar zijn neus wijst: de rijrichting
+loopt er iets achteraan, en met de **handrem** (spatie) loopt hij er zóver achteraan dat de kont
+uitbreekt en je de bocht uit glijdt.
+
+## Camera over je schouder
+
+**V** zet de camera achter je. Met de auto is dat een stuk handiger sturen: je ziet de neus, je
+achterwielen en het stuk weg eromheen. Kijk je zelf niet rond, dan draait de camera vanzelf terug tot
+recht achter de auto.
+
+![Rijden met de camera achter de auto](docs/screenshots/auto_derdepersoon.png)
+
+De camera zakt nooit door een gebouw: de hengel wordt elk beeld ingekort tot het eerste obstakel dat
+hoger is dan de camera zelf, en schuift weer uit zodra het vrij is. Kan hij niet ver genoeg naar
+achteren — je staat met je rug tegen een muur — dan klimt hij omhoog in plaats van naar binnen.
+
+Te voet zie je jezelf lopen: Erik is hetzelfde poppetje als de mensen uit het verhaal. Schieten blijft
+kloppen, want de kogel komt uit zijn schouder en gaat naar het punt onder het kruisje, niet uit de
+camera achter je.
+
+![Te voet met de camera over de schouder](docs/screenshots/lopen_derdepersoon.png)
+
+## Voetgangers aanrijden
+
+Rij je harder dan zes kilometer per uur tegen een voetganger aan, dan gaat hij tegen de vlakte,
+schuift hij een paar meter door in de richting van de klap en staat hij een halve minuut later
+ergens anders in de wijk weer op. Stapvoets langs iemand manoeuvreren kan gewoon.
+
+![Een aangereden voetganger](docs/screenshots/aangereden.png)
+
+`npm run rijtest` loopt dit allemaal na — 32 controles over het model, het rijgedrag, de wielen en de
+lichten, de camera achter je en het aanrijden. `npm run rijshots` maakt de foto's hierboven.
 
 ## Het verhaal
 
@@ -297,6 +348,8 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `tools/verhaaltest.mjs` – loopt het verhaal na en toetst opslaan en laden
 - `tools/verhaalshots.mjs` – maakt de foto's van het verhaal
 - `tools/adresshots.mjs` – maakt de foto's van de panden die met naam in `data/stijl/straten.json` staan
+- `tools/rijtest.mjs` – toetst het automodel, de besturing, de camera achter de auto en het aanrijden
+- `tools/rijshots.mjs` – maakt de foto's van het rijden en de derdepersoonscamera
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

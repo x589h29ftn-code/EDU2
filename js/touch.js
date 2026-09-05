@@ -2,7 +2,7 @@
 //
 //   linkerhelft  virtuele joystick om te lopen (helemaal uitslaan = sprinten)
 //   rechterhelft vegen om rond te kijken, korte tik = schot
-//   knoppen      schieten, springen, herladen, in-/uitstappen, kaart, pauze
+//   knoppen      schieten, springen, herladen, in-/uitstappen, camera, kaart, pauze
 //
 // De knoppen en de twee veeggebieden luisteren zelf naar touch-events, zodat
 // meerdere vingers tegelijk werken: een touch die op een element begint stuurt
@@ -153,6 +153,7 @@ export function initTouchControls(player, opts = {}) {
   button('treload', () => player.reload());
   button('tcar', () => opts.onCar && opts.onCar());
   button('tmap', () => opts.onMap && opts.onMap());
+  button('tcam', () => opts.onCamera && opts.onCamera());
   button('tpause', () => opts.onPause && opts.onPause());
 
   function reset() { stickEnd(); lookId = null; player.keys.Space = false; }

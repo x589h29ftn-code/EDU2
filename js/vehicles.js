@@ -16,8 +16,9 @@ export class Vehicles {
     const r = rng(2024);
     for (const s of parkSpots) {
       const kind = r() < 0.15 ? 'van' : 'hatch';
-      const mesh = makeCar(COLORS[Math.floor(r() * COLORS.length)], kind);
-      const car = { mesh, x: s.x, z: s.z, yaw: s.yaw, speed: 0, steer: 0, driveable: true, hp: 100 };
+      const kleur = COLORS[Math.floor(r() * COLORS.length)];
+      const mesh = makeCar(kleur, kind);
+      const car = { mesh, x: s.x, z: s.z, yaw: s.yaw, speed: 0, steer: 0, driveable: true, hp: 100, soort: kind, kleur, breedte: kind === 'van' ? 1.90 : 1.78 };
       mesh.position.set(s.x, 0, s.z); mesh.rotation.y = s.yaw;
       scene.add(mesh); this.cars.push(car);
     }
@@ -67,42 +68,103 @@ export class Vehicles {
    zijn maat past.
   */
   voegToe({ x, z, yaw = 0, soort = 'hatch', kleur = 0xd8d9dc, driveable = true }) {
-    const mesh = makeCar(kleur, soort);
+    const mesh = makeCar(kleur, soort, true);
     mesh.position.set(x, 0, z); mesh.rotation.y = yaw;
     this.scene.add(mesh);
     const truck = soort === 'truck';
     const car = {
-      mesh, x, z, yaw, speed: 0, steer: 0, driveable, hp: 100, soort,
+      mesh, x, z, yaw, speed: 0, steer: 0, driveable, hp: 100, soort, kleur,
       as: truck ? 2.6 : 1.4, botsRadius: truck ? 1.15 : 0.95,
       instap: truck ? 2.4 : 1.2,
       stoel: truck ? { x: -0.55, y: 2.15, z: -2.3 } : null,
       topSnelheid: truck ? 16 : 24,
+      breedte: truck ? 2.35 : 1.78,
     };
     this.cars.push(car);
     return car;
   }
 
-  // Auto rijden: eenvoudig arcade-model
-  drive(car, keys, dt) {
-    const accel = (keys.KeyW || keys.ArrowUp) ? 7 : 0;
-    const brake = (keys.KeyS || keys.ArrowDown) ? 1 : 0;
-    const hand = keys.Space ? 1 : 0;
-    let target = 0;
-    if (keys.KeyA || keys.ArrowLeft) target = 1;
-    if (keys.KeyD || keys.ArrowRight) target = -1;
-    car.steer += (target * 0.55 - car.steer) * Math.min(1, dt * 6);
-    if (accel) car.speed += accel * dt;
-    if (brake) car.speed -= (car.speed > 0 ? 12 : 4) * dt;
-    if (hand) car.speed *= Math.max(0, 1 - dt * 3);
-    // rolweerstand
-    car.speed *= Math.max(0, 1 - dt * 0.4);
-    car.speed = Math.max(-6, Math.min(car.topSnelheid || 24, car.speed));
-    if (Math.abs(car.speed) < 0.02 && !accel && !brake) car.speed = 0;
-    const turn = car.steer * car.speed * dt / (car.as ? car.as * 1.9 : 2.6);
-    car.yaw += turn;
-    const nx = car.x - Math.sin(car.yaw) * car.speed * dt;
-    const nz = car.z - Math.cos(car.yaw) * car.speed * dt;
-    // botsingen: 3 cirkels langs de auto (een bakwagen is langer en breder)
+  /*
+   Een geparkeerde auto klaarmaken om in te rijden. De 329 auto's in de wijk
+   staan er in de zuinige uitvoering (zeven meshes); de auto waar je in stapt
+   krijgt hier eenmalig het model met losse wielen, remlichten en een
+   carrosserie die kan overhellen. Dat scheelt zo'n tweeduizend draw calls ten
+   opzichte van iedereen die uitvoering geven.
+  */
+  maakBestuurbaar(car) {
+    if (!car || car.mesh.userData.wielen) return car;
+    const nieuw = makeCar(car.kleur ?? car.mesh.children[0].material.color.getHex(), car.soort || 'hatch', true);
+    nieuw.position.set(car.x, 0, car.z);
+    nieuw.rotation.y = car.yaw;
+    nieuw.visible = car.mesh.visible;
+    this.scene.remove(car.mesh);
+    this.scene.add(nieuw);
+    car.mesh = nieuw;
+    return car;
+  }
+
+  /*
+   Auto rijden. Nog steeds een arcade-model, maar met de dingen die je bij het
+   rijden voelt:
+
+     - gas geven trekt af naarmate je sneller gaat, en op de rem gaat het harder
+       dan uitrollen; los gas is motorrem plus luchtweerstand;
+     - de stuuruitslag wordt kleiner naarmate je harder rijdt, anders is een auto
+       op snelheid onbestuurbaar;
+     - de auto rijdt niet precies waar zijn neus wijst: de rijrichting loopt er
+       iets achteraan. Met de handrem loopt hij veel verder achter en glijdt de
+       auto de bocht uit;
+     - de carrosserie helt over in de bocht, duikt bij het remmen en gaat achter
+       zitten bij het optrekken; de voorwielen sturen mee en alle wielen rollen;
+     - de remlichten branden als je remt of de handrem trekt, de
+       achteruitrijlichten als je achteruit gaat.
+
+   `raak` is een terugroep om voetgangers aan te rijden (zie js/main.js): hij
+   krijgt de plek, de straal en de snelheid en geeft terug hoeveel mensen er
+   geraakt zijn.
+  */
+  drive(car, keys, dt, raak = null) {
+    const gas = !!(keys.KeyW || keys.ArrowUp);
+    const rem = !!(keys.KeyS || keys.ArrowDown);
+    const hand = !!keys.Space;
+    const top = car.topSnelheid || 24, achteruitTop = -(top * 0.28);
+    const wielbasis = (car.as || 1.4) * 2;
+
+    // ---- sturen: bij stilstand vol, op snelheid nog een kwart ----
+    let doel = 0;
+    if (keys.KeyA || keys.ArrowLeft) doel = 1;
+    if (keys.KeyD || keys.ArrowRight) doel = -1;
+    const maxStuur = 0.60 * (0.26 + 0.74 / (1 + Math.abs(car.speed) / 8));
+    car.steer += (doel * maxStuur - car.steer) * Math.min(1, dt * 8);
+
+    // ---- motor, rem en rolweerstand ----
+    const v = car.speed;
+    if (gas && v < -0.4) car.speed += 18 * dt;                       // eerst afremmen
+    else if (gas) car.speed += 9.5 * (1 - Math.max(0, v) / top) * dt;
+    else if (rem && v > 0.4) car.speed -= 15 * dt;                   // remmen
+    else if (rem) car.speed -= 6 * dt;                               // achteruit
+    else car.speed -= Math.sign(v) * Math.min(Math.abs(v), 2.4 * dt); // motorrem
+    if (hand) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), 9 * dt);
+    car.speed -= v * Math.abs(v) * 0.0012 * dt;                      // luchtweerstand
+    car.speed = Math.max(achteruitTop, Math.min(top, car.speed));
+    if (Math.abs(car.speed) < 0.03 && !gas && !rem) car.speed = 0;
+
+    // ---- koers ----
+    const vorigeYaw = car.yaw;
+    if (Math.abs(car.speed) > 0.02) car.yaw += Math.tan(car.steer) * car.speed * dt / wielbasis;
+    // de rijrichting loopt achter op de neus; met de handrem breekt de kont uit
+    if (car.rij === undefined) car.rij = car.yaw;
+    let verschil = car.yaw - car.rij;
+    while (verschil > Math.PI) verschil -= Math.PI * 2;
+    while (verschil < -Math.PI) verschil += Math.PI * 2;
+    const grip = hand ? 1.5 : 9;
+    car.rij += verschil * Math.min(1, dt * grip);
+    car.slip = verschil;
+
+    const nx = car.x - Math.sin(car.rij) * car.speed * dt;
+    const nz = car.z - Math.cos(car.rij) * car.speed * dt;
+
+    // ---- botsingen: drie cirkels langs de auto ----
     let ok = true;
     const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw);
     const as = car.as || 1.4, radius = car.botsRadius || 0.95;
@@ -113,9 +175,43 @@ export class Vehicles {
       if (rx !== px || rz !== pz) { cx += rx - px; cz += rz - pz; ok = false; }
     }
     if (pointInWater(cx, cz)) { cx = car.x; cz = car.z; ok = false; }
-    if (!ok) car.speed *= 0.3;
+    if (!ok) { car.speed *= 0.25; car.rij = car.yaw; }
     car.x = cx; car.z = cz;
-    car.mesh.position.set(car.x, 0, car.z); car.mesh.rotation.y = car.yaw;
+
+    // ---- iemand aanrijden ----
+    if (raak && Math.abs(car.speed) > 1.6) {
+      let n = 0;
+      for (const off of [-as * 0.9, 0, as * 0.9]) n += raak(cx + fx * off, cz + fz * off, radius + 0.2, car.speed) || 0;
+      if (n) car.speed *= 0.88;
+    }
+
+    this.zetNeer(car, dt, vorigeYaw, { gas, rem, hand });
+  }
+
+  // De auto op zijn plek zetten en het model laten meebewegen.
+  zetNeer(car, dt, vorigeYaw, invoer = {}) {
+    const m = car.mesh;
+    m.position.set(car.x, 0, car.z);
+    m.rotation.y = car.yaw;
+    const u = m.userData;
+    if (!u || !u.wielen) return;
+    // wielen: de voorste sturen, alle vier rollen mee met de afgelegde weg
+    const rol = car.speed * dt / u.R;
+    for (const w of u.wielen) {
+      if (w.stuur) w.groep.rotation.y += (car.steer - w.groep.rotation.y) * Math.min(1, dt * 12);
+      w.band.rotation.x -= rol;
+    }
+    // carrosserie: overhellen in de bocht, duiken bij het remmen
+    const draai = dt > 0 ? (car.yaw - vorigeYaw) / dt : 0;
+    const zijwaarts = draai * car.speed;                       // dwarsversnelling
+    const langs = (car.speed - (car.vorigeSnelheid ?? car.speed)) / Math.max(dt, 1e-3);
+    car.vorigeSnelheid = car.speed;
+    const rolDoel = Math.max(-0.075, Math.min(0.075, zijwaarts * 0.011));
+    const duikDoel = Math.max(-0.05, Math.min(0.05, -langs * 0.004));
+    u.bak.rotation.z += (rolDoel - u.bak.rotation.z) * Math.min(1, dt * 6);
+    u.bak.rotation.x += (duikDoel - u.bak.rotation.x) * Math.min(1, dt * 6);
+    if (u.rem) u.rem.visible = !!(invoer.hand || (invoer.rem && car.speed > 0.2));
+    if (u.achteruit) u.achteruit.visible = car.speed < -0.2;
   }
 
   // Verkeer. Auto's kijken een stukje vooruit en remmen voor elkaar, voor de
@@ -177,9 +273,11 @@ export class Vehicles {
     }
   }
 
+  // Een treffer van het pistool. Het model is genest (carrosserie en wielen in
+  // eigen groepen), dus zoek van de geraakte mesh omhoog naar de auto.
   hit(mesh) {
-    for (const c of this.cars) {
-      if (c.mesh === mesh || mesh.parent === c.mesh) { c.hp -= 25; return c; }
+    for (let p = mesh; p; p = p.parent) {
+      for (const c of this.cars) if (c.mesh === p) { c.hp -= 25; return c; }
     }
     return null;
   }
