@@ -134,6 +134,48 @@ export class Vehicles {
     return uit;
   }
 
+  /*
+   Een punt uit de auto's duwen. De speler te voet zat alleen in
+   `resolveCollisions` uit js/world.js, en daar staan alleen de vaste dingen in
+   — dus je liep dwars door elke geparkeerde auto heen. Een auto is hier
+   dezelfde rij van drie cirkels langs zijn as als in `botsAutos`: dat past
+   beter om een auto heen dan één grote cirkel, en het is precies wat de auto's
+   onderling al gebruiken.
+
+   `negeer` is de auto waar je zelf in zit. Levert [x, z] terug.
+  */
+  duwUit(x, z, radius = 0.35, negeer = null) {
+    let px = x, pz = z;
+    const raak = [];
+    for (const c of this.cars) {
+      if (c === negeer || !this.isZichtbaar(c)) continue;
+      if (Math.abs(c.x - px) > 8 || Math.abs(c.z - pz) > 8) continue;
+      raak.push({ x: c.x, z: c.z, yaw: c.yaw, as: c.as || 1.4, r: c.botsRadius || 0.95 });
+    }
+    for (const t of this.traffic) {
+      const p = t.mesh.position;
+      if (Math.abs(p.x - px) > 8 || Math.abs(p.z - pz) > 8) continue;
+      raak.push({ x: p.x, z: p.z, yaw: t.mesh.rotation.y, as: 1.4, r: 0.95 });
+    }
+    if (!raak.length) return [px, pz];
+    // twee rondjes, zodat je ook tussen twee auto's in weer vrijkomt
+    for (let ronde = 0; ronde < 2; ronde++) {
+      for (const o of raak) {
+        const ox = -Math.sin(o.yaw), oz = -Math.cos(o.yaw);
+        const minAf = radius + o.r;
+        for (const b of [-o.as, 0, o.as]) {
+          let dx = px - (o.x + ox * b), dz = pz - (o.z + oz * b);
+          let d = Math.hypot(dx, dz);
+          if (d >= minAf) continue;
+          if (d < 1e-4) { dx = 1; dz = 0; d = 1; }
+          const duw = minAf - d;
+          px += (dx / d) * duw; pz += (dz / d) * duw;
+        }
+      }
+    }
+    return [px, pz];
+  }
+
   nearestDriveable(x, z, maxD = 3.0) {
     let best = null, bd = maxD;
     for (const c of this.cars) {

@@ -36,15 +36,36 @@ await page.waitForFunction(() => window.__game, null, { timeout: 120000 });
 await page.evaluate(async () => {
   const { KAART } = await import('./js/kaart.js');
   localStorage.removeItem('tinga.spel.v1');
-  window.__autoplay = true;
   document.getElementById('overlay').style.display = 'none';
   const g = window.__game;
-  g.player.active = true;
+  /*
+   De hoofdlus staat hier uit: deze proef stapt politie.update zelf, en met de
+   lus erbij schiet de politie de proefspeler halverwege neer — waarna main.js
+   het opgeslagen spel laadt, politie.reset() aanroept en er nooit meer een
+   eenheid komt. De proef die juist wél naar de lus kijkt (de laatste) zet hem
+   voor een paar beelden zelf aan.
+  */
+  g.player.active = false;
+  window.__autoplay = false;
   // een recht stuk Molenkrite als plaats delict
   const as = KAART.wegassen.filter(w => w.drive && w.naam === 'Molenkrite' && w.lengte > 60)[0];
   const a = as.pts[Math.floor(as.pts.length / 2)];
+  const b = as.pts[Math.min(as.pts.length - 1, Math.floor(as.pts.length / 2) + 3)];
+  const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
   window.__pd = { x: a[0], z: a[1] };
-  window.__zetSpeler = (x, z) => { g.player.pos.set(x, 0, z); g.player.applyCamera(); };
+  // de richting van de rijbaan, om langs te rennen zonder door tuinen te gaan
+  window.__langs = { x: (b[0] - a[0]) / L, z: (b[1] - a[1]) / L };
+  /*
+   Neerzetten én oplappen. De hoofdlus draait tijdens de proef gewoon door
+   (window.__autoplay), en die trekt de schade van de politie nu ook echt van je
+   leven af. Zonder deze regel gaat de proefspeler halverwege neer, waarna
+   main.js elk beeld politie.reset() aanroept en er nooit meer een eenheid komt.
+  */
+  window.__zetSpeler = (x, z) => {
+    g.player.pos.set(x, 0, z);
+    g.player.health = 100; g.hud.zetLeven(100);
+    g.player.applyCamera();
+  };
   window.__stap = (n, dt = 1 / 30) => { let schade = 0; for (let i = 0; i < n; i++) schade += g.politie.update(dt); return schade; };
 });
 await page.waitForTimeout(600);
@@ -225,6 +246,64 @@ ok(weg.na100.eenheden.wagens === 0 && weg.na100.eenheden.voet === 0,
   'en daarna is de wijk weer leeg',
   `${weg.na100.eenheden.wagens} wagens, ${weg.na100.eenheden.voet} agenten`);
 
+// ---------- 7a. waar duiken ze op? ----------
+/*
+ De plaats delict is niet waar jij bent. Schiet je iemand neer en rijd je weg,
+ dan bleef het zoekgebied achter en kon een punt dat keurig zestig meter van de
+ melding lag vlak achter je rug uitkomen — precies wat er in het spel gebeurde.
+ Nieuwe eenheden horen op een rijbaan te beginnen, ruim bij je vandaan, en niet
+ in je zicht.
+*/
+kop('waar ze vandaan komen');
+const opduiken = await page.evaluate(async () => {
+  const { KAART } = await import('./js/kaart.js');
+  const W = await import('./js/world.js');
+  const g = window.__game;
+  const pd = window.__pd;
+  const rijbanen = KAART.wegassen.filter(w => w.drive && w.lengte > 40);
+  const opWeg = (x, z) => {
+    let bd = 99;
+    for (const as of rijbanen) for (const p of as.pts) bd = Math.min(bd, Math.hypot(p[0] - x, p[1] - z));
+    return bd;
+  };
+  /*
+   De speler staat zestig meter van de melding, in wisselende richtingen. Waar
+   begint de eerste wagen? We stappen één beeld tegelijk tot hij er is, zodat we
+   zijn startpunt meten en niet waar hij ondertussen naartoe gereden is.
+  */
+  const starts = [];
+  for (let i = 0; i < 60; i++) {
+    g.politie.reset();
+    const hoek = i / 60 * Math.PI * 2;
+    const speler = { x: pd.x + Math.cos(hoek) * 60, z: pd.z + Math.sin(hoek) * 60 };
+    window.__zetSpeler(speler.x, speler.z);
+    g.politie.zetHeat(400);
+    g.politie.misdaad('neergeschoten', pd.x, pd.z);
+    for (let k = 0; k < 120 && !g.politie.intern.wagens[0]; k++) window.__stap(1);
+    const w = g.politie.intern.wagens[0];
+    if (!w) continue;
+    starts.push({
+      afstand: Math.hypot(w.car.x - speler.x, w.car.z - speler.z),
+      opWeg: opWeg(w.car.x, w.car.z),
+      inZicht: W.zichtVrij(speler.x, speler.z, w.car.x, w.car.z, 1.6),
+    });
+  }
+  g.politie.reset();
+  return {
+    aantal: starts.length,
+    dichtst: starts.length ? Math.min(...starts.map(q => q.afstand)) : 0,
+    verstVanWeg: starts.length ? Math.max(...starts.map(q => q.opWeg)) : 99,
+    zichtDichtbij: starts.filter(q => q.inZicht && q.afstand < 130).length,
+  };
+});
+ok(opduiken.aantal > 20, 'er duiken wagens op om te toetsen', `${opduiken.aantal} van 60 rondes`);
+ok(opduiken.dichtst > 55, 'geen enkele begint vlak bij je',
+  `dichtstbij ${opduiken.dichtst.toFixed(0)} m`);
+ok(opduiken.verstVanWeg < 6, 'ze beginnen allemaal op een rijbaan',
+  `verst van de weg ${opduiken.verstVanWeg.toFixed(1)} m`);
+ok(opduiken.zichtDichtbij === 0, 'en niet in je zicht, tenzij heel ver weg',
+  `${opduiken.zichtDichtbij} in beeld binnen 130 m`);
+
 // ---------- 7b. de lege surveillanceauto ----------
 /*
  Stappen de twee agenten uit, dan hoort de wagen te blijven staan in plaats van
@@ -310,6 +389,130 @@ ok(stelen.balkAan, 'en houdt hij zijn lichtbalk');
 ok(stelen.lampUit, 'met het zwaailicht uit');
 ok(stelen.blijftStaan, 'een gestolen politieauto wordt niet meer opgeruimd');
 
+// ---------- 7c. een agent aanrijden ----------
+kop('een agent aanrijden');
+const omver = await page.evaluate(() => {
+  const g = window.__game;
+  const pd = window.__pd;
+  g.politie.reset();
+  window.__zetSpeler(pd.x, pd.z);
+  g.politie.zetHeat(160);
+  g.politie.misdaad('neergeschoten', pd.x, pd.z);
+  for (let k = 0; k < 300 && !g.politie.intern.agenten.length; k++) window.__stap(1);
+  const a = g.politie.intern.agenten[0];
+  if (!a) return { er: false };
+  a.persoon.groep.visible = true;
+  a.persoon.zetNeer(pd.x + 20, pd.z, 0);
+  a.wagen = null;
+  const pos = a.persoon.groep.position;
+  const voorHeat = g.politie.heat;
+  const stapvoets = g.politie.aanrijden(pos.x, pos.z, 1.2, 1.0);   // te langzaam
+  const staatNa = a.staat;
+  const raak = g.politie.aanrijden(pos.x, pos.z, 1.2, 9);          // met vaart
+  return {
+    er: true, stapvoets, staatNa, raak, staat: a.staat,
+    voorHeat: Math.round(voorHeat), naHeat: Math.round(g.politie.heat),
+    teltNietMee: !g.politie.doelen().includes(a.persoon.groep),
+  };
+});
+ok(omver.er && omver.stapvoets === 0 && omver.staatNa !== 'neer',
+  'stapvoets rijd je een agent niet omver');
+ok(omver.raak === 1 && omver.staat === 'neer', 'met vaart gaat hij tegen de vlakte');
+ok(omver.naHeat > omver.voorHeat, 'en dat kost je net zoveel verdenking als hem neerschieten',
+  `${omver.voorHeat} → ${omver.naHeat}`);
+ok(omver.teltNietMee, 'een agent die neerligt doet niet meer mee');
+
+// ---------- 7d. je verstoppen ----------
+/*
+ Achter een gebouw hoort niemand je te zien, en ze horen je dan ook niet meer
+ rechtstreeks te volgen: ze gaan naar de plek waar ze je het laatst zagen, een
+ stukje doorgetrokken in de richting waarin je wegliep, en kammen dat uit.
+*/
+kop('je verstoppen');
+const verstop = await page.evaluate(async () => {
+  const { KAART } = await import('./js/kaart.js');
+  const W = await import('./js/world.js');
+  const g = window.__game;
+  const pd = window.__pd;
+  // een pand met genoeg body, en twee punten aan weerszijden ervan
+  const pand = KAART.panden
+    .filter(p => p.rect && p.rect.hx > 4 && p.rect.hz > 4 && Math.hypot(p.rect.cx - pd.x, p.rect.cz - pd.z) < 260)
+    .sort((a, b) => Math.hypot(a.rect.cx - pd.x, a.rect.cz - pd.z) - Math.hypot(b.rect.cx - pd.x, b.rect.cz - pd.z))[0];
+  const c = pand.rect;
+  const r = Math.max(c.hx, c.hz) + 4;
+  const kant = { x: c.cx + r, z: c.cz };
+  const overkant = { x: c.cx - r, z: c.cz };
+  g.politie.reset();
+  g.politie.zetHeat(160);
+  // een agent aan de ene kant, de speler aan de andere
+  window.__zetSpeler(overkant.x, overkant.z);
+  g.politie.misdaad('neergeschoten', overkant.x, overkant.z);
+  for (let k = 0; k < 400 && !g.politie.intern.agenten.length; k++) window.__stap(1);
+  const a = g.politie.intern.agenten[0];
+  if (!a) return { er: false };
+  a.wagen = null;
+  a.persoon.groep.visible = true;
+  a.persoon.zetNeer(kant.x, kant.z, 0);
+  a.staat = 'zoekt';
+  a.persoon.kijkNaar(overkant.x, overkant.z, 1, 100);
+  a.kijkT = 0;
+  window.__stap(1);
+  const doorHetPand = a.zicht;
+  const muurTussen = !W.zichtVrij(kant.x, kant.z, overkant.x, overkant.z, 1.3);
+  // en nu zonder gebouw ertussen — verder van het pand af, niet erin
+  a.persoon.zetNeer(overkant.x - 8, overkant.z, 0);
+  a.persoon.kijkNaar(overkant.x, overkant.z, 1, 100);
+  a.kijkT = 0;
+  window.__stap(1);
+  const vrijVeld = a.zicht;
+  window.__proefAgent = a;                       // de volgende proef hergebruikt hem
+  return { er: true, doorHetPand, muurTussen, vrijVeld };
+});
+ok(verstop.er && verstop.muurTussen, 'er staat echt een gebouw tussen');
+ok(verstop.er && !verstop.doorHetPand, 'achter een gebouw zien ze je niet');
+ok(verstop.er && verstop.vrijVeld, 'in het vrije veld wel');
+
+// het zoekgebied schuift mee met de kant die je op ging
+const vermoeden = await page.evaluate(() => {
+  const g = window.__game;
+  const pd = window.__pd;
+  const L = window.__langs;
+  const a = window.__proefAgent;
+  if (!a) return { er: false };
+  a.wagen = null; a.persoon.groep.visible = true; a.staat = 'jacht';
+  /*
+   De speler rent langs de rijbaan, met een agent die negen meter achter hem aan
+   kijkt. Zolang die hem ziet loopt `laatstBekend` met hem mee.
+  */
+  for (let i = 0; i < 60; i++) {
+    const px = pd.x + L.x * i * 0.15, pz = pd.z + L.z * i * 0.15;
+    window.__zetSpeler(px, pz);
+    a.persoon.zetNeer(px - L.x * 9, pz - L.z * 9, 0);
+    a.persoon.kijkNaar(px, pz, 1, 100);
+    a.kijkT = 0;
+    window.__stap(1);
+  }
+  const lb = g.politie.intern.laatstBekend;
+  if (!lb) return { er: true, gezien: false };
+  const gezienOp = { ...lb };
+  // en nu uit het zicht: de agent ver weg zetten, dan ziet niemand je meer
+  a.persoon.zetNeer(pd.x + 300, pd.z + 300, 0);
+  a.kijkT = 0;
+  window.__stap(2);
+  const na = { ...g.politie.intern.laatstBekend };
+  return {
+    er: true, gezien: true,
+    verschoven: Math.hypot(na.x - gezienOp.x, na.z - gezienOp.z),
+    // schuift het mee met de looprichting?
+    zelfdeKant: (na.x - gezienOp.x) * L.x + (na.z - gezienOp.z) * L.z > 0,
+  };
+});
+ok(vermoeden.er && vermoeden.gezien, 'de agent heeft je gezien');
+ok(vermoeden.er && vermoeden.verschoven > 1.5,
+  'raken ze je kwijt, dan schuift het zoekgebied mee met waar je heen ging',
+  `${(vermoeden.verschoven || 0).toFixed(1)} m opgeschoven`);
+ok(vermoeden.er && vermoeden.zelfdeKant, 'en wel de kant op waar je heen liep');
+
 // ---------- 8. draait de politie ook echt mee in het spel? ----------
 /*
  Alle proeven hierboven roepen politie.update zelf aan. Dat verhulde een fout in
@@ -324,6 +527,7 @@ const lus = await page.evaluate(async () => {
   const echt = g.politie.update.bind(g.politie);
   let n = 0;
   g.politie.update = (dt) => { n++; return echt(dt); };
+  window.__autoplay = true;                      // nu draait de lus wél
   const beeld = () => new Promise(r => requestAnimationFrame(() => r()));
   g.politie.reset();
   window.__zetSpeler(window.__pd.x, window.__pd.z);
@@ -336,6 +540,7 @@ const lus = await page.evaluate(async () => {
   for (let i = 0; i < 4; i++) await beeld();
   const binnen = n;
   g.politie.update = echt;
+  window.__autoplay = false;
   return { buiten, binnen };
 });
 ok(lus.buiten >= 3, 'buiten werkt de politie elk beeld bij', `${lus.buiten} keer in 4 beelden`);
@@ -348,6 +553,7 @@ const raak = await page.evaluate(async () => {
   g.politie.update = () => 7;                     // net alsof er op je geschoten wordt
   window.__zetSpeler(window.__pd.x, window.__pd.z);
   g.player.health = 100;
+  window.__autoplay = true;
   const beeld = () => new Promise(r => requestAnimationFrame(() => r()));
   await beeld(); await beeld();
   const uit = {
@@ -357,6 +563,7 @@ const raak = await page.evaluate(async () => {
     flits: parseFloat(document.getElementById('raakflits').style.opacity) || 0,
   };
   g.politie.update = echt;
+  window.__autoplay = false;
   g.player.health = 100; g.hud.zetLeven(100);
   return uit;
 });
