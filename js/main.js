@@ -280,6 +280,11 @@ const derde = initDerdePersoon({ scene, camera, player });
 const opDeWeg = npcs.people.concat([verhaal.hinder]);
 applyEnvIntensity(scene);
 
+// Hoe ver de schrik reikt. Een schot hoor je door de hele straat, een klap van
+// een aanrijding wat minder ver; wie binnen die straal loopt, gaat ervandoor.
+const PANIEK_SCHOT = 28;
+const PANIEK_KLAP = 20;
+
 // Schieten: raycast op auto's en voetgangers
 const raycaster = new THREE.Raycaster();
 const impactMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
@@ -288,6 +293,7 @@ player.shootCb = (camOrigin, camDir) => {
   // uit de camera, anders schiet je langs jezelf heen
   const { origin, dir } = derde.mikpunt(camOrigin, camDir);
   verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
+  npcs.paniek(origin.x, origin.z, PANIEK_SCHOT); // en de buurt rent weg
   raycaster.set(origin, dir); raycaster.far = 120;
   const targets = [...vehicles.cars.map(c => c.mesh), ...npcs.targets, ...verhaal.doelen()];
   const hits = raycaster.intersectObjects(targets, true);
@@ -328,6 +334,7 @@ function aanrijden(x, z, straal, snelheid) {
   const n = npcs.aanrijden(x, z, straal, snelheid);
   if (n) {
     geluid.klap();
+    npcs.paniek(x, z, PANIEK_KLAP);   // wie het ziet gebeuren rent weg
     hud.show(n > 1 ? `${n} voetgangers aangereden` : 'Voetganger aangereden', 1.4);
   }
   return n;
@@ -525,7 +532,7 @@ function loop() {
     if (player.inCar) {
       const car = player.inCar;
       vehicles.drive(car, player.driveInput(), dt, aanrijden);
-      geluid.motorToeren(car.speed);
+      geluid.motorToeren(car.speed, car.topSnelheid || 24);
       // yaw van speler volgt de auto (relatief kijken), zodat de camera vanzelf
       // achter de auto blijft hangen
       if (player.lastCarYaw !== undefined) player.yaw += car.yaw - player.lastCarYaw;
@@ -559,6 +566,7 @@ function loop() {
     updateProps(dt);
     geluid.omgeving(dt, { weer: sfeer.weer, nacht: sfeer.nacht, binnen: !!player.inCar });
     geluid.radio(afstandTotRadio(cx, cz));
+    geluid.autoradio(!!player.inCar);        // rockje uit de speakers in het portier
     lodKlok += dt;
     if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); }
     hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);

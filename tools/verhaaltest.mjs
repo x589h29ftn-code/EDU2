@@ -347,7 +347,7 @@ ok(/boerderij/.test(poortOpen.opdracht), 'de opdracht wijst naar de boerderij', 
 ok(poortOpen.nav === 'boerderij' && poortOpen.routePunten > 10, `de kaart navigeert naar de boerderij (${poortOpen.routePunten} punten)`);
 
 // echt met de vrachtwagen door de poort rijden
-const doorDePoort = await page.evaluate(() => {
+const doorDePoort = await page.evaluate(async () => {
   const g = window.__game;
   const truck = g.verhaal.truck;
   const poort = g.verhaal.plekken.poort;
@@ -358,12 +358,19 @@ const doorDePoort = await page.evaluate(() => {
   const v = g.verhaal.plekken.poortVooruit;
   const langs = () => (truck.x - poort.x) * v[0] + (truck.z - poort.z) * v[1];
   const voor = langs();
-  for (let i = 0; i < 120; i++) g.vehicles.drive(truck, { KeyW: true }, 1 / 30);   // vier seconden gas
-  return { in1, voor, na: langs(), snelheid: truck.speed };
+  const spoor = [];
+  for (let i = 0; i < 120; i++) {
+    g.vehicles.drive(truck, { KeyW: true }, 1 / 30);   // vier seconden gas
+    spoor.push(truck.speed);
+  }
+  return { in1, voor, na: langs(), top: Math.max(...spoor) };
 });
 ok(doorDePoort.in1, 'je kunt in de vrachtwagen stappen');
-ok(doorDePoort.na < 0 && doorDePoort.snelheid > 2,
-  `hij rijdt door de poort naar buiten (${doorDePoort.voor.toFixed(1)} m binnen → ${(-doorDePoort.na).toFixed(1)} m buiten de poort)`);
+// gemeten wordt de hoogste snelheid onderweg en niet die aan het eind: buiten de
+// poort staat de auto waarmee je zelf naar de waterzuivering bent gereden, en
+// sinds auto's elkaar raken (js/vehicles.js) loopt hij daar tegenaan
+ok(doorDePoort.na < 0 && doorDePoort.top > 8,
+  `hij rijdt door de poort naar buiten (${doorDePoort.voor.toFixed(1)} m binnen → ${(-doorDePoort.na).toFixed(1)} m buiten de poort, ${doorDePoort.top.toFixed(1)} m/s)`);
 
 const afgeleverd = await page.evaluate(() => {
   const g = window.__game;

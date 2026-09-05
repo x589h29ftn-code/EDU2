@@ -691,13 +691,51 @@ iemand kunt manoeuvreren. Wie geraakt wordt schuift nog een paar meter door in d
 richting van de klap en staat een halve minuut later ergens anders in de wijk weer
 op — dezelfde respawn als na een schot.
 
-Controle: `npm run rijtest` (32 controles: het model in beide uitvoeringen, de
+**De buurt schrikt** (`NPCs.paniek`). Een schot (28 m) of een aanrijding (20 m)
+zet iedereen in de buurt in beweging. Het gedrag hangt aan de segmenten waarover
+de mensen toch al lopen, dus er komt geen padzoeker aan te pas: bij de schrik
+wordt de looprichting omgekeerd als die naar de knal toe wijst, en op elke hoek
+kiest `pickSegment` de aftakking waarvan het uiteinde het verst van de knal ligt.
+Drie dingen maken dat het er echt uitziet: een reactietijd van 0,15 tot 0,5
+seconde voordat iemand zich omdraait, een snelheid die niet springt maar in een
+seconde oploopt (`vNu` schuift naar de gewenste snelheid toe, remmen gaat harder
+dan optrekken), en een pas die met die snelheid meeloopt — de armen en benen
+zwaaien sneller en verder naarmate er harder gerend wordt. Hollen is 4,2 à 4,8
+m/s voor een volwassene tegen 1,0 à 1,6 wandelend; fietsers trappen naar 7 à 8.
+Wie rent slaat pauzes en oversteken over. Na negen seconden (korter naarmate je
+verder van de knal stond) is het over.
+
+**Auto's raakten elkaar niet.** Botsingen liepen alleen langs `resolveCollisions`,
+en daar zitten gebouwen, hekken en bomen in — geen auto's. Je reed dus dwars door
+de geparkeerde rij. `Vehicles.botsAutos` toetst nu dezelfde drie cirkels langs je
+eigen auto aan drie cirkels langs elke andere auto binnen twaalf meter (verder
+kijken heeft geen zin en kost bij 329 auto's te veel), en duwt wat overlapt uit
+elkaar. Een geparkeerde auto die je hard raakt krijgt een snelheid mee en rolt in
+`rolUit` een halve meter uit — langs `resolveCollisions`, zodat hij niet een
+gevel in schuift.
+
+**Geluid** (`js/audio.js`). De motor liep met één rechte lijn van stationair naar
+topsnelheid mee: dat klinkt als één eindeloze eerste versnelling. Er zit nu een
+bak van vijf verzetten in, met grenzen als deel van de topsnelheid van dít
+voertuig. Binnen een verzet lopen de toeren van een derde naar vol, bij het
+schakelen valt het gas 0,16 s weg, klikt de pook en beginnen de toeren onderaan
+het volgende verzet. Nieuw is ook de autoradio: een vervormde powerchord-riff in
+e-klein (`WaveShaper` met een tanh-kromme), bas en drumstel, alles door een
+hoogdoorlaat en een laagdoorlaat zodat het uit een portierspeaker lijkt te komen.
+Hij staat op 0,20 en zakt naar 0,07 zolang het jachtdeuntje van het verhaal
+speelt.
+
+Controle: `npm run rijtest` (42 controles: het model in beide uitvoeringen, de
 meshtelling, optrekken, topsnelheid, motorrem, remmen, achteruit, stuuruitslag,
 drift met de handrem, rollende en sturende wielen, overhellen en duiken, de rem-
 en achteruitrijlichten, de camera achter speler en auto, het inkorten bij een
-muur, het richten vanaf de schouder, en het aanrijden met en zonder vaart).
-`npm run rijshots` maakt de foto's. `npm run geo:boven` blijft op 1,31 % en
-`npm run verhaaltest` op "Alles goed".
+muur, het richten vanaf de schouder, het aanrijden met en zonder vaart, de
+reactietijd en het looptempo bij paniek, de vluchtrichting, en het blik-op-blik
+rijden). `npm run rijshots` maakt de foto's. `npm run geo:boven` blijft op 1,31 %
+en `npm run verhaaltest` op "Alles goed" — met één aangepaste toets: de
+vrachtwagen die de poort uit rijdt loopt buiten tegen de auto aan waarmee je zelf
+naar de waterzuivering bent gereden, dus daar wordt nu de hoogste snelheid
+onderweg gemeten in plaats van die bij het laatste beeld.
 
 **Wat nog niet af is (in volgorde).**
 
