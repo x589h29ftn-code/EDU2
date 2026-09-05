@@ -2,9 +2,10 @@
  Toetst het rijden: het automodel, het rijgedrag, de camera achter je en het
  aanrijden van voetgangers.
 
- 1. Model: een geparkeerde auto is de zuinige uitvoering (zeven meshes, 329 keer
-    in de wijk); de auto waar je in stapt krijgt losse wielen, remlichten en een
-    carrosserie die kan overhellen.
+ 1. Model: alle geparkeerde auto's samen staan er als instanced meshes (zeven
+    per soort voor de hele wijk); de auto waar je in stapt krijgt zijn eigen
+    model met losse wielen, remlichten en een kantelende carrosserie, en zijn
+    plek in de stapel gaat uit.
  2. Rijden: optrekken, topsnelheid, motorrem, remmen, achteruit, stuuruitslag
     die met de snelheid afneemt, en de handrem die de auto laat glijden.
  3. Meebewegen: voorwielen sturen, alle wielen rollen, de carrosserie helt over
@@ -97,34 +98,37 @@ await page.waitForTimeout(800);
 kop('het automodel');
 const model = await page.evaluate(() => {
   const g = window.__game;
-  const stil = g.vehicles.cars.find(c => c.driveable && !c.mesh.userData.wielen);
+  const stil = g.vehicles.cars.find(c => c.driveable && c.inst && !c.mesh);
   const tel = (o) => { let n = 0; o.traverse(q => { if (q.isMesh) n++; }); return n; };
-  const voor = tel(stil.mesh);
+  const stapelMeshes = Object.values(g.vehicles.stapels).reduce((n, s) => n + s.stapel.meshes.length, 0);
   const voorTotaal = (() => { let n = 0; g.scene.traverse(q => { if (q.isMesh) n++; }); return n; })();
   g.vehicles.maakBestuurbaar(stil);
   const naTotaal = (() => { let n = 0; g.scene.traverse(q => { if (q.isMesh) n++; }); return n; })();
   const u = stil.mesh.userData;
   return {
-    stilMeshes: voor, rijdendMeshes: tel(stil.mesh), erbij: naTotaal - voorTotaal,
+    stapelMeshes, rijdendMeshes: tel(stil.mesh), erbij: naTotaal - voorTotaal,
+    instantieUit: !stil.zichtbaar,
     wielen: u.wielen ? u.wielen.length : 0,
     stuurwielen: u.wielen ? u.wielen.filter(w => w.stuur).length : 0,
     remlicht: !!u.rem, achteruit: !!u.achteruit, bak: !!u.bak,
     lengte: u.length, autos: g.vehicles.cars.length,
-    driehoeken: stil.mesh.userData.bak.children[0].geometry.attributes.position.count / 3,
+    driehoeken: u.bak.children[0].geometry.attributes.position.count / 3,
   };
 });
-ok(model.stilMeshes === 7, `een geparkeerde auto is zeven meshes (${model.autos} stuks in de wijk)`, `${model.stilMeshes}`);
+ok(model.stapelMeshes <= 14, `alle ${model.autos} geparkeerde auto's samen kosten ${model.stapelMeshes} meshes (instanced)`);
 ok(model.wielen === 4 && model.stuurwielen === 2, 'de auto waar je in stapt heeft vier losse wielen, waarvan twee sturen',
   `${model.wielen} wielen, ${model.stuurwielen} gestuurd`);
 ok(model.remlicht && model.achteruit && model.bak, 'met remlichten, achteruitrijlichten en een kantelende carrosserie');
-ok(model.erbij <= 12, 'en dat kost maar een handvol meshes extra', `${model.erbij} erbij`);
+ok(model.instantieUit, 'en zijn plek in de stapel gaat uit, zodat hij er niet dubbel staat');
+ok(model.erbij <= 18 && model.rijdendMeshes === model.erbij,
+  'dat rijdende model kost meshes voor die ene auto en verder niets', `${model.erbij} erbij`);
 ok(model.driehoeken > 120, `de carrosserie is meer dan een doos (${model.driehoeken} driehoeken lak)`);
 
 // ---------- 1b. het uitzicht vanachter het stuur ----------
 const uitzicht = await page.evaluate(async () => {
   const THREE = await import('three');
   const g = window.__game;
-  const c = g.vehicles.cars.find(q => q.mesh.userData.glas);
+  const c = g.vehicles.cars.find(q => q.mesh && q.mesh.userData.glas);
   const oog = c.mesh.userData.oog;
   c.mesh.updateMatrixWorld(true);
   const oorsprong = new THREE.Vector3(oog.x, oog.y, oog.z).applyMatrix4(c.mesh.matrixWorld);

@@ -22,6 +22,17 @@ export function kaartStand() { return STAND; }
 
 const vlakIndex = new Map();   // bucket "i:j" -> vlakken, voor ondergrondKaart
 const BUCKET = 25;
+/*
+ Tegels voor de wereldgeometrie. De kaart werd per materiaal in één mesh
+ samengevoegd — één mesh met alle trottoirbanden van de hele wijk, één met alle
+ schuttingen — en zo'n mesh valt nooit buiten beeld. De GPU kreeg daardoor elk
+ beeld de complete wijk voorgeschoteld, ook wat achter je lag. Nu gaat elk stuk
+ in de tegel waar het ligt, dus laat frustum culling het meeste vallen. Groter
+ dan dit levert te weinig op, kleiner kost te veel draw calls.
+*/
+const TEGEL = 240;
+let tegelNu = '0:0';
+const tegelVan = (x, z) => `${Math.floor(x / TEGEL)}:${Math.floor(z / TEGEL)}`;
 const KERB_Y = 0.12;   // hoogte van stoep, tuin en gras boven de rijbaan
 export const waterRingen = [];
 export const kaartLabels = [];
@@ -178,27 +189,35 @@ export function bouwKaartWereld(scene, W) {
   const uvVoor = (m) => (m === 'gras' || m === 'erf' || m === 'bosgrond' || m === 'bodembedekker' || m === 'grasklinker') ? 0.12 : m === 'water' ? 0.05 : 0.5;
 
   // -- ondergrond, één mesh per materiaal
-  const perMat = new Map();
-  const rand = { pos: [], uv: [], nor: [] };
-  const oever = { pos: [], uv: [], nor: [] };
+  const perMat = new Map();       // "materiaal|tegel" -> stuk
+  const randen = new Map(), oevers = new Map();
+  const stuk = (kaart, sleutel, mat, klasse) => {
+    let g = kaart.get(sleutel);
+    if (!g) { g = { pos: [], uv: [], nor: [], mat, klasse }; kaart.set(sleutel, g); }
+    return g;
+  };
+  const matNr = new Map();        // materiaal -> kort nummer voor de sleutel
   for (const v of K.vlakken) {
     for (const b of bucketsVan(v.r)) { if (!vlakIndex.has(b)) vlakIndex.set(b, []); vlakIndex.get(b).push(v); }
     const mat = matVoor(v);
-    if (!perMat.has(mat)) perMat.set(mat, { pos: [], uv: [], nor: [], klasse: v.k });
-    const g = perMat.get(mat);
+    if (!matNr.has(mat)) matNr.set(mat, matNr.size);
+    const ring = v.r[0];
+    const t = tegelVan(ring[0][0], ring[0][1]);
+    const g = stuk(perMat, `${matNr.get(mat)}|${t}`, mat, v.k);
     vlakGeometrie(v.r, v.y, uvVoor(v.m), g.pos, g.uv, g.nor);
     if (v.k === 'water') {
       waterRingen.push(v.r[0]);
       W.waterPolys.push(v.r[0].map(([x, z]) => new THREE.Vector2(x, z)));
-      if (!plat) randGeometrie(v.r, 0.13, -0.6, oever.pos, oever.uv, oever.nor);
+      if (!plat) { const o = stuk(oevers, t, KM.oeverwand, 'oeverwand'); randGeometrie(v.r, 0.13, -0.6, o.pos, o.uv, o.nor); }
     } else if (!plat && v.y > 0.03 && v.k !== 'brug' && v.k !== 'steiger' && v.k !== 'bouwwerk') {
-      randGeometrie(v.r, v.y, -0.02, rand.pos, rand.uv, rand.nor);
+      const rnd = stuk(randen, t, KM.curb, 'rand');
+      randGeometrie(v.r, v.y, -0.02, rnd.pos, rnd.uv, rnd.nor);
     }
   }
-  for (const [mat, g] of perMat) { const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse: g.klasse }); if (m) scene.add(m); }
+  for (const g of perMat.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: g.klasse }); if (m) scene.add(m); }
   if (!plat) {
-    const r = maakMesh(rand.pos, rand.uv, rand.nor, KM.curb, { klasse: 'rand' }); if (r) scene.add(r);
-    const o = maakMesh(oever.pos, oever.uv, oever.nor, KM.oeverwand, { klasse: 'oeverwand' }); if (o) scene.add(o);
+    for (const g of randen.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'rand' }); if (m) scene.add(m); }
+    for (const g of oevers.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'oeverwand' }); if (m) scene.add(m); }
     // grondvlak onder alles, voor buiten het gebied en voor gaatjes
     const groundTex = T.grass().clone(); groundTex.needsUpdate = true; groundTex.repeat.set(300, 300);
     const grond = new THREE.Mesh(new THREE.PlaneGeometry(2600, 2600), new THREE.MeshStandardMaterial({ map: groundTex, roughness: 1 }));
@@ -393,10 +412,20 @@ function pandDozen(p) {
 
 function bouwPanden(scene, W, plat) {
   const K = KAART;
-  const groepen = new Map();   // materiaalsleutel -> { pos, uv, nor, mat, klasse }
+  // Gevels blijven per materiaal samengevoegd en gaan niet in tegels: elke
+  // gevelsoort komt maar bij een handvol panden voor, dus die meshes zijn al
+  // klein. Tegels erbovenop leverden vooral extra draw calls op.
+  const groepen = new Map();
+  const matCache = new Map();
   const groep = (sleutel, maak, klasse) => {
-    let g = groepen.get(sleutel);
-    if (!g) { g = { pos: [], uv: [], nor: [], mat: plat ? KM.plat.pand : maak(), klasse }; groepen.set(sleutel, g); }
+    const k = sleutel;
+    let g = groepen.get(k);
+    if (!g) {
+      let mat = matCache.get(sleutel);
+      if (!mat) { mat = plat ? KM.plat.pand : maak(); matCache.set(sleutel, mat); }
+      g = { pos: [], uv: [], nor: [], mat, klasse };
+      groepen.set(k, g);
+    }
     return g;
   };
   const std = (map) => new THREE.MeshStandardMaterial({ map, roughness: 0.9 });
@@ -613,6 +642,7 @@ function bouwPanden(scene, W, plat) {
 
   let met3d = 0, geschat = 0;
   for (const p of K.panden) {
+    tegelNu = tegelVan(p.rect ? p.rect.cx : p.voet[0][0], p.rect ? p.rect.cz : p.voet[0][1]);
     if (p.v && p.f) {
       const V = p.v;
       const pt = (i) => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]];
@@ -634,7 +664,7 @@ function bouwPanden(scene, W, plat) {
     const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { schaduw: true, klasse: g.klasse });
     if (m) { if (plat) m.material.side = THREE.DoubleSide; scene.add(m); }
   }
-  console.log(`kaart: ${met3d} panden met 3D BAG-dak, ${geschat} geschat, ${groepen.size} materialen, ${K.vlakken.length} vlakken, ${K.wegassen.length} wegassen`);
+  console.log(`kaart: ${met3d} panden met 3D BAG-dak, ${geschat} geschat, ${matCache.size} materialen in ${groepen.size} stukken, ${K.vlakken.length} vlakken, ${K.wegassen.length} wegassen`);
 }
 
 // Hekwerken en poorten van de omheinde terreinen (RWZI, data/stijl/omgeving.json):

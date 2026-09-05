@@ -245,6 +245,61 @@ const SHARED = {
 const paintCache = new Map();
 
 /*
+ Een stapel geparkeerde auto's van één soort als instanced meshes.
+
+ De 329 auto's in de wijk stonden er als losse groepjes van zeven meshes: ruim
+ tweeduizend objecten, en op straat waren er zeshonderd van in beeld — meer dan
+ de helft van alle draw calls. Ze delen allemaal dezelfde geometrie en op de lak
+ na ook dezelfde materialen, dus ze kunnen in één keer getekend worden: zeven
+ InstancedMeshes per soort, met de lakkleur per instantie.
+
+ Levert { meshes, zet(i, x, z, yaw, zichtbaar), kleur(i, hex), klaar() }.
+ Een auto verbergen is hem op schaal nul zetten; dat gebeurt als je erin stapt
+ (dan komt het losse model met wielen ervoor in de plaats) of als de hele wijk
+ uit beeld moet (binnen, of het bovenaanzicht).
+*/
+export function maakAutoStapel(kind, aantal) {
+  const G = geoms(kind);
+  const lak = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.5 });
+  const delen = [
+    { geo: G.paint, mat: lak, kleurbaar: true, schaduw: true },
+    { geo: G.glass, mat: SHARED.glass },
+    { geo: G.black, mat: SHARED.black, schaduw: true },
+    { geo: G.head, mat: SHARED.head },
+    { geo: G.tail, mat: SHARED.tail },
+    { geo: G.plate, mat: SHARED.plate },
+  ];
+  if (G.chrome) delen.push({ geo: G.chrome, mat: SHARED.chrome });
+  const meshes = delen.map(d => {
+    const m = new THREE.InstancedMesh(d.geo, d.mat, aantal);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    m.castShadow = !!d.schaduw;
+    m.receiveShadow = true;
+    m.frustumCulled = false;      // ze staan over de hele wijk verspreid
+    m.userData.autoStapel = kind;
+    return m;
+  });
+  const lakMesh = meshes[0];
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3();
+  const kleurHulp = new THREE.Color();
+  return {
+    meshes, lengte: G.L,
+    zet(i, x, z, yaw, zichtbaar = true) {
+      P.set(x, 0, z);
+      Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+      S.setScalar(zichtbaar ? 1 : 0);
+      M.compose(P, Q, S);
+      for (const m of meshes) m.setMatrixAt(i, M);
+    },
+    kleur(i, hex) { lakMesh.setColorAt(i, kleurHulp.setHex(hex)); },
+    klaar() {
+      for (const m of meshes) m.instanceMatrix.needsUpdate = true;
+      if (lakMesh.instanceColor) lakMesh.instanceColor.needsUpdate = true;
+    },
+  };
+}
+
+/*
  color    lakkleur
  kind     'hatch', 'van' of 'truck'
  animatie losse wielen, een kantelende carrosserie en rem- en

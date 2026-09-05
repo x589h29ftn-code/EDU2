@@ -1426,7 +1426,29 @@ function buildReeds(scene) {
   if (tufts.length) { const m = new THREE.Mesh(mergeGeoms(tufts), MAT.reed); m.castShadow = true; scene.add(m); }
 }
 
-// ---------- Bomen (instanced) ----------
+// ---------- Bomen (instanced, per tegel) ----------
+/*
+ De 3177 bomen stonden in drie instanced meshes voor de hele wijk. Dat is zuinig
+ in draw calls, maar three.js kan zo'n mesh alleen in zijn geheel wegcullen — en
+ een mesh die over de hele wijk ligt valt nooit buiten beeld. De GPU kreeg dus
+ elk beeld alle bomen, ook die achter je: ruim een half miljoen driehoeken.
+
+ Nu gaan ze per vak van 160 m in een eigen stel meshes. Je ziet er meestal een
+ stuk of acht, dus er blijft een kwart van over, tegen een handvol draw calls
+ meer.
+*/
+const BOOMTEGEL = 240;
+
+function boomTegels(lijst) {
+  const per = new Map();
+  for (const t of lijst) {
+    const k = `${Math.floor(t.x / BOOMTEGEL)}:${Math.floor(t.z / BOOMTEGEL)}`;
+    if (!per.has(k)) per.set(k, []);
+    per.get(k).push(t);
+  }
+  return [...per.values()];
+}
+
 function buildTrees(scene) {
   const normal = treePositions.filter(t => !t.tall);
   const tall = treePositions.filter(t => t.tall);
@@ -1438,51 +1460,61 @@ function buildTrees(scene) {
     // met je hoofd door de bladeren en zie je in een screenshot alleen groen.
     const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 5.0, 6);
     const leafGeo = new THREE.IcosahedronGeometry(2.2, 1);
-    const n = normal.length;
-    const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunk, n);
-    const leavesA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n);
-    const leavesB = new THREE.InstancedMesh(leafGeo, MAT.leaf2, n);
-    normal.forEach((t, i) => {
-      const s2 = t.s; q.identity();
-      // Een grote laanboom heeft ook een dikkere stam, anders staat er een
-      // enorme kroon op een stokje.
-      const dik = 0.6 + s2 * 0.4;
-      m.compose(new THREE.Vector3(t.x, 2.5 * s2, t.z), q, new THREE.Vector3(dik, s2, dik)); trunks.setMatrixAt(i, m);
-      q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-      m.compose(new THREE.Vector3(t.x, 5.2 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
-      q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-      m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, 6.7 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
-      if (!t.vrij) addCollider(t.x, t.z, 0.3 * dik, 0.3 * dik, 0, 3);
-    });
-    trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;
-    scene.add(trunks, leavesA, leavesB);
+    // de tweede, kleinere kroon zit boven op de eerste en is alleen een bobbel
+    // in het silhouet: die mag met twintig vlakken toe in plaats van tachtig
+    const leafGeoGrof = new THREE.IcosahedronGeometry(2.2, 0);
+    for (const groep of boomTegels(normal)) {
+      const n = groep.length;
+      const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunk, n);
+      const leavesA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n);
+      const leavesB = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf2, n);
+      groep.forEach((t, i) => {
+        const s2 = t.s; q.identity();
+        // Een grote laanboom heeft ook een dikkere stam, anders staat er een
+        // enorme kroon op een stokje.
+        const dik = 0.6 + s2 * 0.4;
+        m.compose(new THREE.Vector3(t.x, 2.5 * s2, t.z), q, new THREE.Vector3(dik, s2, dik)); trunks.setMatrixAt(i, m);
+        q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
+        m.compose(new THREE.Vector3(t.x, 5.2 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
+        q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
+        m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, 6.7 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
+        if (!t.vrij) addCollider(t.x, t.z, 0.3 * dik, 0.3 * dik, 0, 3);
+      });
+      trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;
+      trunks.computeBoundingSphere(); leavesA.computeBoundingSphere(); leavesB.computeBoundingSphere();
+      scene.add(trunks, leavesA, leavesB);
+    }
   }
 
   // populieren langs de parkpaden: hoge, rechte stam met smalle kroon
   if (tall.length) {
     const trunkGeo = new THREE.CylinderGeometry(0.16, 0.30, 5.4, 7);
     const leafGeo = new THREE.IcosahedronGeometry(2.0, 1);
-    const n = tall.length;
-    const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunkPale, n);
-    const crownA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n * 2);
-    const crownB = new THREE.InstancedMesh(leafGeo, MAT.leaf2, n * 2);
-    tall.forEach((t, i) => {
-      const s2 = t.s; q.identity();
-      m.compose(new THREE.Vector3(t.x, 2.7 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
-      for (let k = 0; k < 2; k++) {
-        q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-        const y = (6.0 + k * 2.2) * s2;
-        const w = (1.30 - k * 0.30) * s2;
-        m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.2 * s2, y, t.z + (r() - 0.5) * 1.2 * s2), q, new THREE.Vector3(w, w * 1.25, w));
-        (k === 0 ? crownA : crownB).setMatrixAt(i * 2 + k, m);
-        q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-        m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 2.2 * s2, y + 1.2 * s2, t.z + (r() - 0.5) * 2.2 * s2), q, new THREE.Vector3(w * 0.8, w, w * 0.8));
-        (k === 0 ? crownB : crownA).setMatrixAt(i * 2 + k, m);
-      }
-      if (!t.vrij) addCollider(t.x, t.z, 0.45, 0.45, 0, 3);
-    });
-    trunks.castShadow = true; crownA.castShadow = true; crownB.castShadow = true;
-    scene.add(trunks, crownA, crownB);
+    const leafGeoGrof = new THREE.IcosahedronGeometry(2.0, 0);
+    for (const groep of boomTegels(tall)) {
+      const n = groep.length;
+      const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunkPale, n);
+      const crownA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n * 2);
+      const crownB = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf2, n * 2);
+      groep.forEach((t, i) => {
+        const s2 = t.s; q.identity();
+        m.compose(new THREE.Vector3(t.x, 2.7 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
+        for (let k = 0; k < 2; k++) {
+          q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
+          const y = (6.0 + k * 2.2) * s2;
+          const w = (1.30 - k * 0.30) * s2;
+          m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.2 * s2, y, t.z + (r() - 0.5) * 1.2 * s2), q, new THREE.Vector3(w, w * 1.25, w));
+          (k === 0 ? crownA : crownB).setMatrixAt(i * 2 + k, m);
+          q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
+          m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 2.2 * s2, y + 1.2 * s2, t.z + (r() - 0.5) * 2.2 * s2), q, new THREE.Vector3(w * 0.8, w, w * 0.8));
+          (k === 0 ? crownB : crownA).setMatrixAt(i * 2 + k, m);
+        }
+        if (!t.vrij) addCollider(t.x, t.z, 0.45, 0.45, 0, 3);
+      });
+      trunks.castShadow = true; crownA.castShadow = true; crownB.castShadow = true;
+      trunks.computeBoundingSphere(); crownA.computeBoundingSphere(); crownB.computeBoundingSphere();
+      scene.add(trunks, crownA, crownB);
+    }
   }
 }
 

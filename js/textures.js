@@ -9,6 +9,26 @@ function canvas(w, h) {
   return c;
 }
 
+/*
+ Een getekend doek verkleinen voordat het een texture wordt.
+
+ De steen- en dakpandoeken worden per huisstijl in een eigen kleur gemaakt, dus
+ er zijn er tientallen; op 512x512 kost dat elk een megabyte en samen bijna
+ zestig. Ze liggen bovendien getegeld op de muur (een herhaling per 2,6 m), dus
+ 288 px is nog altijd honderd beeldpunten per meter — ruim vier keer zo scherp
+ als de gevelplaten zelf. De tekencode blijft op ware grootte werken en het
+ resultaat wordt hier verkleind.
+*/
+function kleiner(c, max) {
+  if (c.width <= max && c.height <= max) return c;
+  const f = max / Math.max(c.width, c.height);
+  const k = canvas(Math.round(c.width * f), Math.round(c.height * f));
+  const g = k.getContext('2d');
+  g.imageSmoothingQuality = 'high';
+  g.drawImage(c, 0, 0, k.width, k.height);
+  return k;
+}
+
 // Deterministische pseudo-random
 export function rng(seed) {
   let s = seed >>> 0 || 1;
@@ -69,7 +89,7 @@ export function brick(base = '#8a6752', mortar = '#b9b2a6', seed = 1) {
       g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x + offs, y + bh - 1.5, bw, 1.5);
     }
   }
-  const t = tex(c, 1, 1); cache.set(key, t); return t;
+  const t = tex(kleiner(c, 288), 1, 1); cache.set(key, t); return t;
 }
 
 // ---------- Pleisterwerk ----------
@@ -83,7 +103,7 @@ export function plaster(base = '#ece9e2', seed = 3) {
     g.fillStyle = `rgba(0,0,0,${r() * 0.07})`;
     g.fillRect(r() * 256, r() * 256, 2, 2);
   }
-  const t = tex(c); cache.set(key, t); return t;
+  const t = tex(kleiner(c, 288)); cache.set(key, t); return t;
 }
 
 // ---------- Dakpannen ----------
@@ -116,7 +136,7 @@ export function roofTiles(base = '#4a3a33', seed = 5) {
       }
     }
   }
-  const t = tex(c); cache.set(key, t); return t;
+  const t = tex(kleiner(c, 288)); cache.set(key, t); return t;
 }
 
 /*
@@ -535,9 +555,15 @@ export function facade(type, n, storeys, back = false, seed = 1) {
   const key = `fac_${type}_${n}_${storeys}_${back}_${seed}`;
   if (cache.has(key)) return cache.get(key);
   const st = HOUSE_STYLES[type];
-  // 40 px per meter: een kozijn van 8 cm is dan drie pixels breed en een
-  // deurklink is nog te zien. Dat is vier keer zo scherp als de eerste versie.
-  const PM = 40;
+  /*
+   Beeldpunten per meter. Dit stond op 40 — een kozijn van 8 cm is dan drie
+   pixels breed — maar de gevels zijn samen goed voor het leeuwendeel van het
+   texturegeheugen, en dat liep op tot 187 MB. Op een telefoon is dat rond of
+   over het budget van de browser. Op 26 px/m is een kozijn nog twee pixels en
+   scheelt het ruim de helft. Een lang rijtje wordt bovendien afgekapt op 2048
+   px, want een blok van vijftien woningen werd anders in zijn eentje 6 MB.
+  */
+  const PM = Math.min(26, 2048 / Math.max(1, st.w * n));
   const HW = Math.round(st.w * PM);
   const SH = st.storeyH || 2.9;
   const H = Math.round(storeys * SH * PM);

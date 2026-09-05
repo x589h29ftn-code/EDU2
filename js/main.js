@@ -295,13 +295,13 @@ player.shootCb = (camOrigin, camDir) => {
   verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
   npcs.paniek(origin.x, origin.z, PANIEK_SCHOT); // en de buurt rent weg
   raycaster.set(origin, dir); raycaster.far = 120;
-  const targets = [...vehicles.cars.map(c => c.mesh), ...npcs.targets, ...verhaal.doelen()];
+  const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen()];
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
     const h = hits[0];
     if (npcs.hit(h.object, h.instanceId)) { geluid.raak(); hud.show('Raak!', 0.8); }
     else if (verhaal.raak(h.object)) { geluid.raak(); hud.show('Raak!', 0.8); }
-    else { const car = vehicles.hit(h.object); if (car) { geluid.klap(); hud.show('Auto geraakt', 0.6); } }
+    else { const car = vehicles.hit(h.object, h.instanceId); if (car) { geluid.klap(); hud.show('Auto geraakt', 0.6); } }
     const mark = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), impactMat); mark.position.copy(h.point); scene.add(mark);
     setTimeout(() => scene.remove(mark), 8000);
   }
@@ -573,7 +573,7 @@ function loop() {
     geluid.radio(afstandTotRadio(cx, cz));
     geluid.autoradio(!!player.inCar);        // rockje uit de speakers in het portier
     lodKlok += dt;
-    if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); }
+    if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); vehicles.lod(cx, cz); }
     hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);
   }
   if (!player.active && !window.__autoplay) {
@@ -622,8 +622,7 @@ if (BOVEN && KAART) {
     renderer.setPixelRatio(1);
     renderer.setSize(W, H, false);
     // verkeer en voetgangers uit beeld
-    for (const c of vehicles.cars) c.mesh.visible = false;
-    for (const t of vehicles.traffic) t.mesh.visible = false;
+    vehicles.zichtbaarheid(false);
     for (const m of Object.values(npcs.meshes)) m.visible = false;
     npcs.fiets.visible = false;
     player.gun.visible = false;
