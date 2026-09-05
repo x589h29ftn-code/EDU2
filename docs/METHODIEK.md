@@ -1127,6 +1127,54 @@ verhaaltest` loopt de woning aan de Molenkrite nog steeds helemaal na en blijft
 groen, net als rijtest, wereldtest, looptest, winkeltest en politietest;
 `geo:boven` staat nog op 1,31 %.
 
+
+**Het uitzicht echt maken, de gevel rechtzetten en katten (stap 15).**
+
+*Door het raam zag je geen huizen.* De buren stonden er als effen dozen: van
+binnen las dat als een lange bruine muur. Ze krijgen nu de échte geveltexture
+van hun eigen woningtype mee — dezelfde die de wijk buiten gebruikt en dus uit
+dezelfde cache, wat geen geheugen kost. Een doos van three.js legt zijn uv per
+zijde van 0 tot 1 en zo'n geveltexture bevat alle woningen van het rijtje naast
+elkaar, dus hij past precies over de gevel, net als bij de echte muren.
+
+Twee dingen zaten daarbij in de weg. Ten eerste: welke kant is de gevel? Bij een
+rijtje is dat de lange kant van de rechthoek, maar een losse woning in een rij
+staat met zijn diepte langs die as, en dan ligt de gevel op de korte kant. Zonder
+die toets keek de halve straat je met een blinde zijmuur aan en stonden de nokken
+dwars op de weg. `pand.front` weet welke kant het is; komt die overeen met de as
+van de rechthoek, dan draait de doos een kwartslag mee. Ten tweede stond het dak
+er als een platte doos van soms vijf meter hoog — dat leest als een muur. Het is
+nu een echt zadeldak: twee schuine vlakken naar een nok, met de pannentexture en
+de uv in meters, en twee gemetselde topgevels op de kop.
+
+*De voordeur aan de Wieken zat aan de verkeerde kant.* In de geveltexture
+spiegelen twee woningen om hun bouwmuur heen, zoals in de meeste rijtjes — de een
+met de deur links, de buurman met de deur rechts. Aan de Wieken zit hij bij álle
+woningen rechts. De stijl zet daarom `deurRechts` en dan vervalt dat om en om.
+De proef kijkt naar de texture zelf: waar liggen de beeldpunten met de deurkleur
+binnen elke woningbreedte? Aan de Wieken moet dat overal voorbij de helft zijn,
+en bij een gewoon rijtje juist om en om.
+
+*Katten.* Eén aan de Molenkrite, twee aan de Wieken (`js/kat.js`). Zwart-wit, 45
+cm lang met een schofthoogte van 25 cm — precies de maat van een echte kat, want
+naast een bank van 2,10 m valt tien centimeter te groot meteen op. Zitten is geen
+tweede model: de achterpoten klappen in, het achterlijf zakt en de staart krult
+naar voren. Ze lopen naar een punt dat in de vloervakken van de plattegrond wordt
+geprikt en daarna langs `resolveCollisions` gaat: staat er een bank of een
+keukenblok, dan komt het punt niet vrij en wordt er een nieuw geprikt. Zo hoeft er
+nergens een looproute ingetekend te worden. Eén op de vier keer springen ze op de
+bank. Hun materialen zijn dezelfde soort als de kamer (`MeshBasicMaterial` met
+licht in de hoekpunten), zodat ze meegaan in de dag- en nachttint — met een
+standaardmateriaal zouden ze 's avonds zwart worden in een verlichte kamer.
+
+Kosten: draw calls in de wijk onveranderd (598), texturegeheugen 85 MB, meshes
+1516 → 1615.
+
+Controle: `npm run woningtest` (drieëndertig controles; zes nieuwe over de
+katten) en `npm run wereldtest` (drie nieuwe over de voordeur aan de Wieken).
+Verhaaltest, rijtest, looptest, winkeltest en politietest blijven groen en
+`geo:boven` staat nog op 1,31 %.
+
 **Wat nog niet af is (in volgorde).**
 
 1. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als

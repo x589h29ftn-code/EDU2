@@ -6,6 +6,8 @@
    wieken29_keuken.png    het keukenblok in de aanbouw
    wieken29_bank.png      vanaf de bank, met de tv voor je
    wieken29_avond.png     dezelfde kamer als het buiten donker is
+   wieken29_uitzicht.png  van binnen door de pui: de overkant van de straat
+   wieken29_katten.png    de twee katten in de kamer
    binnen_uitzicht.png    Molenkrite 15: de buren door de tuindeur
 
  Gebruik: python3 -m http.server 8123 &  node tools/woningshots.mjs 8123 [map]
@@ -80,6 +82,13 @@ const maten = await page.evaluate(() => {
 });
 await foto('wieken29_woonkamer');
 
+// 2b. vlak voor de pui: wat zie je door het glas?
+await page.evaluate(() => {
+  const g = window.__game, m = g.woningen[1].maten;
+  window.__inKamer(1, [m.breed * 0.66, 2.4], [m.breed * 0.66, -8], 0.02);
+});
+await foto('wieken29_uitzicht');
+
 // 3. de keuken in de aanbouw
 await page.evaluate(() => {
   const g = window.__game, k = g.woningen[1].plekken.keuken;
@@ -111,6 +120,27 @@ const avond = await page.evaluate(() => {
 });
 console.log(`  nacht: ${avond.nacht}, lamp aan: ${avond.lampAan}`);
 await foto('wieken29_avond');
+
+// 5b. de katten. Ze lopen rond, dus we draaien de kamer even door en gaan
+// daarna bij de dichtstbijzijnde kijken.
+const kat = await page.evaluate(() => {
+  const g = window.__game, h = g.woningen[1];
+  g.sfeer.uur = 13;
+  for (let i = 0; i < 900; i++) h.update(1 / 30, false);
+  const lijst = h.katten;
+  if (!lijst.length) return { er: false };
+  const nul = h.plekken.nul;
+  const m = h.maten;
+  const k = lijst[0];
+  // vanaf het midden van de kamer naar de kat toe, op twee meter afstand
+  const mx = m.breed / 2, mz = m.diep * 0.4;
+  const dx = mx - k.x, dz = mz - k.z, d = Math.hypot(dx, dz) || 1;
+  const van = { x: k.x + dx / d * 2.1, z: k.z + dz / d * 2.1 };
+  window.__inKamer(1, [van.x, van.z], [k.x, k.z], -0.22);
+  return { er: true, aantal: lijst.length, staat: lijst.map(q => `${q.staat}${q.opBank ? '/bank' : ''}`).join(', ') };
+});
+console.log(`  katten: ${kat.aantal} — ${kat.staat}`);
+await foto('wieken29_katten');
 
 // 6. Molenkrite 15: door de tuindeur naar de buren
 await page.evaluate(() => {
