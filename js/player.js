@@ -32,33 +32,64 @@ export class Player {
     this.bindInput();
   }
 
+  /*
+   Het pistool in beeld. Het hing er klein en los bij: een blokje hand met een
+   mouwtje erachter dat nergens naartoe liep. Nu is het model groter (schaal 1,
+   dus een pistool van 19 cm) en zit er een hele onderarm aan die vanuit de
+   rechteronderhoek van het beeld naar de vuist loopt — zoals het in een
+   first-personspel hoort. Met H stop je het weg (`wapenUit`).
+  */
   buildGun() {
     const g = new THREE.Group();
     const dark = new THREE.MeshStandardMaterial({ color: 0x23262b, roughness: 0.45, metalness: 0.65 });
     const grip = new THREE.MeshStandardMaterial({ color: 0x2b2420, roughness: 0.9 });
-    const S = 0.5; // schaal: het pistool is ~17 cm lang
-    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.030 * S, 0.042 * S, 0.185 * S), dark); slide.position.set(0, 0.018 * S, -0.045 * S);
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.005 * S, 0.005 * S, 0.05 * S, 8), dark); barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.022 * S, -0.15 * S);
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.028 * S, 0.085 * S, 0.038 * S), grip); handle.position.set(0, -0.042 * S, 0.018 * S); handle.rotation.x = 0.22;
-    const sight = new THREE.Mesh(new THREE.BoxGeometry(0.004 * S, 0.006 * S, 0.006 * S), dark); sight.position.set(0, 0.042 * S, -0.13 * S);
-    const flash = new THREE.Mesh(new THREE.SphereGeometry(0.022 * S, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
-    flash.position.set(0, 0.022 * S, -0.185 * S);
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.052 * S, 0.062 * S, 0.075 * S), new THREE.MeshStandardMaterial({ color: 0xd0a480, roughness: 0.95 }));
-    hand.position.set(0, -0.052 * S, 0.020 * S);
-    const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.060 * S, 0.068 * S, 0.11 * S), new THREE.MeshStandardMaterial({ color: 0x2f3a56, roughness: 0.95 }));
-    sleeve.position.set(0.004 * S, -0.078 * S, 0.10 * S);
-    g.add(slide, barrel, handle, sight, flash, hand, sleeve);
+    const huid = new THREE.MeshStandardMaterial({ color: 0xd0a480, roughness: 0.95 });
+    const stof = new THREE.MeshStandardMaterial({ color: 0x2f3a56, roughness: 0.95 });
+    const S = 1.0; // schaal: het pistool is ~19 cm lang
+    const slide = new THREE.Mesh(new THREE.BoxGeometry(0.032 * S, 0.044 * S, 0.190 * S), dark); slide.position.set(0, 0.018 * S, -0.045 * S);
+    const kast = new THREE.Mesh(new THREE.BoxGeometry(0.030 * S, 0.030 * S, 0.120 * S), dark); kast.position.set(0, -0.012 * S, -0.010 * S);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.006 * S, 0.006 * S, 0.05 * S, 8), dark); barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.022 * S, -0.15 * S);
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.030 * S, 0.090 * S, 0.040 * S), grip); handle.position.set(0, -0.058 * S, 0.020 * S); handle.rotation.x = 0.22;
+    const beugel = new THREE.Mesh(new THREE.BoxGeometry(0.014 * S, 0.026 * S, 0.008 * S), dark); beugel.position.set(0, -0.030 * S, -0.028 * S);
+    const sight = new THREE.Mesh(new THREE.BoxGeometry(0.005 * S, 0.007 * S, 0.007 * S), dark); sight.position.set(0, 0.043 * S, -0.132 * S);
+    const korrel = new THREE.Mesh(new THREE.BoxGeometry(0.010 * S, 0.007 * S, 0.006 * S), dark); korrel.position.set(0, 0.043 * S, 0.038 * S);
+    const flash = new THREE.Mesh(new THREE.SphereGeometry(0.024 * S, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
+    flash.position.set(0, 0.022 * S, -0.190 * S);
+    // de vuist om de kolf, met een duim langs de kast
+    const vuist = new THREE.Mesh(new THREE.BoxGeometry(0.055 * S, 0.075 * S, 0.070 * S), huid);
+    vuist.position.set(0.002 * S, -0.062 * S, 0.024 * S); vuist.rotation.x = 0.18;
+    const duim = new THREE.Mesh(new THREE.BoxGeometry(0.020 * S, 0.026 * S, 0.060 * S), huid);
+    duim.position.set(-0.026 * S, -0.030 * S, 0.006 * S); duim.rotation.x = -0.25;
+    // pols en onderarm: lopen schuin naar de rechteronderhoek uit beeld
+    const pols = new THREE.Mesh(new THREE.BoxGeometry(0.052 * S, 0.058 * S, 0.070 * S), huid);
+    pols.position.set(0.016 * S, -0.088 * S, 0.082 * S); pols.rotation.set(-0.26, 0.22, 0);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.076 * S, 0.082 * S, 0.44 * S), stof);
+    arm.position.set(0.086 * S, -0.150 * S, 0.300 * S); arm.rotation.set(-0.26, 0.34, 0.06);
+    const manchet = new THREE.Mesh(new THREE.BoxGeometry(0.084 * S, 0.090 * S, 0.034 * S), new THREE.MeshStandardMaterial({ color: 0x27314a, roughness: 0.95 }));
+    manchet.position.set(0.030 * S, -0.104 * S, 0.112 * S); manchet.rotation.set(-0.26, 0.34, 0.06);
+    g.add(slide, kast, barrel, handle, beugel, sight, korrel, flash, vuist, duim, pols, arm, manchet);
     this.flash = flash;
-    g.position.set(0.19, -0.185, -0.45);
-    g.rotation.y = -0.06;
+    g.position.set(0.15, -0.13, -0.42);
+    g.rotation.set(0, 0.10, 0.06);
     this.gun = g;
+    this.wapenUit = false;      // pistool weggestopt (toets H)
     this.camera.add(g);
+  }
+
+  // Pistool trekken of wegstoppen. Weggestopt schiet je niet en staat het
+  // kruisje uit; in de auto blijft het hoe dan ook uit beeld (zie main.js).
+  wisselWapen() {
+    this.wapenUit = !this.wapenUit;
+    const kruis = document.getElementById('crosshair');
+    if (kruis) kruis.style.display = this.wapenUit ? 'none' : '';
+    return !this.wapenUit;
   }
 
   bindInput() {
     window.addEventListener('keydown', e => {
       this.keys[e.code] = true;
       if (e.code === 'KeyR') this.reload();
+      if (e.code === 'KeyH' && this.active) this.wisselWapen();
       // meteen springen, zodat een korte tik nooit tussen twee beelden valt
       if (e.code === 'Space' && this.active) this.jump();
       // scrollen met de spatiebalk voorkomen zodra het spel loopt
@@ -149,7 +180,7 @@ export class Player {
   }
 
   shoot() {
-    if (this.inCar || this.reloading > 0) return;
+    if (this.inCar || this.reloading > 0 || this.wapenUit) return;
     if (this.ammo <= 0) { this.reload(); return; }
     this.ammo--;
     this.recoil = 1; this.flashT = 0.06;
@@ -224,10 +255,10 @@ export class Player {
 
     // wapenanimatie
     this.recoil = Math.max(0, this.recoil - dt * 6);
-    this.gun.position.z = -0.45 + this.recoil * 0.05;
+    this.gun.position.z = -0.42 + this.recoil * 0.05;
     this.gun.rotation.x = this.recoil * 0.25 + (this.reloading > 0 ? 0.6 : 0);
-    this.gun.position.y = -0.185 + Math.sin(this.bob) * 0.005;
+    this.gun.position.y = -0.13 + Math.sin(this.bob) * 0.006;
     this.flashT -= dt; this.flash.material.opacity = this.flashT > 0 ? 0.9 : 0;
-    this.gun.visible = true;
+    this.gun.visible = !this.wapenUit;
   }
 }

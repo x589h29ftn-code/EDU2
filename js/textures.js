@@ -154,10 +154,10 @@ export function pannenMetDakramen(base = '#a8512c') {
 export function jumboVlag() {
   if (cache.has('jumbovlag')) return cache.get('jumbovlag');
   const c = canvas(128, 512); const g = c.getContext('2d');
-  // De voorkant van het doek is het -Z-vlak van de doos in props.js, en dat
-  // vlak leest de texture gespiegeld; het canvas gaat er dus omgekeerd in. De
-  // achterkant staat daardoor in spiegelschrift, net als bij een echte vlag.
-  g.translate(128, 0); g.scale(-1, 1);
+  // Het doek bestaat uit twee panelen rug aan rug (zie js/props.js), die elk
+  // hun eigen -Z-vlak naar buiten keren. Dat vlak leest de texture gewoon van
+  // links naar rechts, dus het canvas gaat er recht in en het woordmerk staat
+  // aan beide kanten goed.
   g.fillStyle = '#ffd200'; g.fillRect(0, 0, 128, 512);
   // vouwen in het doek
   for (let x = 0; x < 128; x += 16) {

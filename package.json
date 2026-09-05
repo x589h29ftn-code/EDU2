@@ -39,6 +39,7 @@
     "rijtest": "node tools/rijtest.mjs",
     "rijshots": "node tools/rijshots.mjs",
     "looptest": "node tools/looptest.mjs",
+    "wereldtest": "node tools/wereldtest.mjs",
     "adresshots": "node tools/adresshots.mjs"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "_uitleg": "Omgevingsregels bovenop de BGT. Coördinaten in spelmeters (x oost, z zuid vanaf het kruispunt Molenkrite/Monnikmolen/Jasker). 'bosgebieden' zijn rechthoeken waar ook gras en oevers dicht beplant worden met hoge bomen en struiken, omdat het gebied in werkelijkheid één bos is (foto Bosje aan de Buitenroede, opmerking bij de eerste testbuild). Water en paden blijven open. 'hekken' zijn erfafscheidingen die niet in de BGT staan maar wel op een foto: ze worden om de omsluitende rechthoek van een pand gelegd (`omPand`, `marge` in meters) en overal weggelaten waar ze op de openbare ruimte zouden komen.",
+  "_uitleg": "Omgevingsregels bovenop de BGT. Coördinaten in spelmeters (x oost, z zuid vanaf het kruispunt Molenkrite/Monnikmolen/Jasker). 'bosgebieden' zijn rechthoeken waar ook gras en oevers dicht beplant worden met hoge bomen en struiken, omdat het gebied in werkelijkheid één bos is (foto Bosje aan de Buitenroede, opmerking bij de eerste testbuild). Water en paden blijven open. 'hekken' zijn erfafscheidingen die niet in de BGT staan maar wel op een foto: ze worden om de omsluitende rechthoek van een pand gelegd (`omPand`, `marge` in meters) en overal weggelaten waar ze op de openbare ruimte zouden komen. 'lageErfscheidingen' zijn vakken waar een achtertuin een lage haag krijgt in plaats van een schutting van 1,8 m.",
   "bosgebieden": [
     {
       "naam": "Bos tussen Monnikmolen en Buitenroede",
@@ -149,6 +149,16 @@
       "marge": 8.0,
       "hoogte": 1.5,
       "kleur": "#2f4a34"
+    }
+  ],
+  "lageErfscheidingen": [
+    {
+      "naam": "Achtertuinen aan de Molenkrite tegenover nummer 15",
+      "bron": "foto in de chat (5 sep 2026): vanaf de Molenkrite tegenover nummer 15 stond er een houten schutting van 1,8 m langs de hele stoep. In het echt hebben die tuinen net als de rest van de wijk een lage haag of een hekje.",
+      "x0": 46,
+      "x1": 74,
+      "z0": -88,
+      "z1": -60
     }
   ]
 }
