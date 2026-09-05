@@ -28,6 +28,7 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
 | portemonnee | rechtsonder; je begint met € 50 en verdient de rest met missies |
 | **V** | camera: vanuit je ogen of over je schouder (handig met de auto) |
+| **G** | scherpte: scherp, normaal of zuinig (blijft bewaard) |
 | in de auto: W/S, A/D, spatie | gas/rem (en achteruit), sturen, handrem |
 | M | grote kaart van de wijk met straatnamen |
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
@@ -60,8 +61,9 @@ snelheid onbestuurbaar. De auto rijdt bovendien niet precies waar zijn neus wijs
 loopt er iets achteraan, en met de **handrem** (spatie) loopt hij er zóver achteraan dat de kont
 uitbreekt en je de bocht uit glijdt.
 
-Auto's zijn massief: je rijdt niet meer dwars door de geparkeerde rij of door het verkeer heen. Raak
-je er eentje met vaart, dan rolt die een halve meter opzij en is jouw vaart eruit.
+Auto's zijn massief: je rijdt niet meer dwars door de geparkeerde rij of door het verkeer heen, en te
+voet loop je er ook niet doorheen — je loopt eromheen zoals om alles wat er staat. Raak je er eentje
+met vaart, dan rolt die een halve meter opzij en is jouw vaart eruit.
 
 De motor heeft een **versnellingsbak** van vijf verzetten. Binnen een verzet lopen de toeren op, bij
 het schakelen valt het gas even weg en beginnen ze weer onderaan — daardoor klinkt het niet meer
@@ -116,8 +118,9 @@ knal af ligt. Rennen gaat met zo'n 4,5 meter per seconde tegen 1,3 wandelend, fi
 7 m/s, en de pas loopt mee met de snelheid. Na een seconde of negen is de schrik voorbij en wandelt
 iedereen weer verder. Wie er ver vandaan loopt merkt er niets van.
 
-`npm run rijtest` loopt dit allemaal na — 42 controles over het model, het rijgedrag, de wielen en de
-lichten, de camera achter je, het aanrijden, het wegrennen en de botsingen tussen auto's onderling.
+`npm run rijtest` loopt dit allemaal na — 55 controles over het model, het rijgedrag, de wielen en de
+lichten, de camera achter je, het aanrijden, het wegrennen, de botsingen tussen auto's onderling en
+het omheen lopen te voet.
 `npm run rijshots` maakt de foto's hierboven.
 
 ## Politie en sterren
@@ -161,17 +164,29 @@ je kwijt zijn, en anders na drie kwartier minuut, maar nooit terwijl je ernaast 
 
 ![Een lege surveillanceauto](docs/screenshots/politie_leeg.png)
 
-Zien ze je (kijkhoek plus vrij zicht) of horen ze je schieten, dan zetten ze de achtervolging in en
-schieten ze op je. Elke treffer kost leven: de balk linksonder loopt terug en het beeld flitst rood. Een auto die je kwijtraakt blijft nog een paar seconden zoeken en gaat dan terug
+Nieuwe eenheden komen **ergens vandaan rijden**: altijd op een rijbaan, minstens ruim zestig meter bij
+je vandaan en het liefst buiten je gezichtsveld. Ze verschijnen dus niet naast of achter je.
+
+Zien ze je — kijkhoek plus vrij zicht — of horen ze je schieten, dan zetten ze de achtervolging in en
+schieten ze op je. Elke treffer kost leven: de balk linksonder loopt terug en het beeld flitst rood.
+Een agent aanrijden kan ook, en kost je net zoveel verdenking als hem neerschieten.
+
+**Verstoppen werkt.** Staat er een gebouw of een schutting tussen, dan zien ze je niet, en dan volgen
+ze je ook niet: ze lopen naar de plek waar ze je het láátst zagen. Horen ze alleen een schot, dan gaan
+ze op dat gelúid af, niet op jou. Wel denken ze mee: op het moment dat de laatste je uit het oog
+verliest schuift het zoekgebied een paar seconden mee in de richting waarin je wegliep, tot het
+dichtstbijzijnde punt op een straat — en van daaruit waaieren ze met hun eigen sectoren de omliggende
+straten in. Hoe langer je uit beeld blijft, hoe schever hun beeld wordt. Een auto die je kwijtraakt blijft nog een paar seconden zoeken en gaat dan terug
 naar de laatst bekende plek — één hoek omgaan is dus niet genoeg. Blijf je uit het zicht, dan zakt de
 verdenking na een aftelling van achttien seconden plus zes per ster, en zijn ze je kwijt. Een agent
 neerschieten kost je meteen een paar sterren extra.
 
-`npm run politietest` loopt het allemaal na — drieëndertig controles: de meldkans met en zonder
+`npm run politietest` loopt het allemaal na — zevenveertig controles: de meldkans met en zonder
 getuigen, de sterdrempels, het uitrukken en aankomen, het aantal eenheden en hun spreiding per
-sterniveau, het schieten, het neerschieten van een agent, het ontsnappen, de lege surveillanceauto
-die blijft staan en te stelen is, en of de hoofdlus de politie buiten wél en binnenshuis niet
-bijwerkt en de schade in de levensbalk terechtkomt. `npm run politieshots` maakt de twee foto's hierboven.
+sterniveau, waar ze vandaan komen rijden, het schieten, het neerschieten én aanrijden van een agent,
+het verstoppen achter een gebouw, het meeschuivende zoekgebied, het ontsnappen, de lege
+surveillanceauto die blijft staan en te stelen is, en of de hoofdlus de politie buiten wél en
+binnenshuis niet bijwerkt en de schade in de levensbalk terechtkomt. `npm run politieshots` maakt de twee foto's hierboven.
 
 ## Hondjes
 
@@ -209,6 +224,26 @@ Wat daarvoor veranderd is:
   De steen- en dakpandoeken (tientallen kleurvarianten van 512×512) gaan naar
   288. Samen scheelt dat honderd megabyte — op een telefoon het verschil tussen
   soepel en haperen.
+
+### Scherpte (G)
+
+Op de pc laat de kaart de randen zelf gladmaken (MSAA), maar dat helpt alleen tegen gekartelde randen
+van driehoeken. Wat in deze wijk vooral flikkert zijn de dunne dingen op afstand: hekspijlen,
+dakranden, belijning. Daar is één middel tegen — op meer beeldpunten renderen dan het scherm heeft en
+de browser het laten verkleinen. Op een gewoon 1×-scherm stond die teller op precies 1,00 en gebeurde
+er dus niets.
+
+**G** loopt door drie standen; hij blijft bewaard, dus je hoeft hem maar één keer te zetten:
+
+| stand | wat hij doet |
+|---|---|
+| **scherp** | anderhalf keer zoveel beeldpunten (standaard op de pc) |
+| normaal | precies je scherm (standaard op telefoon en tablet) |
+| zuinig | driekwart, voor een trage machine |
+
+De texturen staan bovendien op het maximale anisotrope filter dat de kaart aankan — meestal 16 in
+plaats van 8. Dat houdt asfalt en stoeptegels die schuin weglopen scherp in plaats van een grijze brij
+in de verte, en het kost geen geheugen.
 
 ## Het verhaal
 

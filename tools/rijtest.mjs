@@ -433,6 +433,44 @@ ok(blik.dichtst > 2.5 && blik.dichtst < 5, 'de bumpers houden elkaar op afstand'
 ok(blik.snelheid < 6, 'en de klap haalt de vaart eruit', `${blik.snelheid} m/s`);
 ok(blik.geduwd > 0.02, 'een geparkeerde auto krijgt een zetje', `${blik.geduwd} m opgeschoven`);
 
+// ---------- te voet tegen een auto aan ----------
+kop('te voet langs de auto\'s');
+const tevoet = await page.evaluate(async () => {
+  const g = window.__game;
+  const W = await import('./js/world.js');
+  g.player.inCar = null;
+  // een geparkeerde auto op een rustige plek zoeken en er recht op af lopen
+  const auto = g.vehicles.cars.filter(c => !c.duwV && g.vehicles.isZichtbaar(c))
+    .sort((a, b) => Math.hypot(a.x - g.player.pos.x, a.z - g.player.pos.z)
+                  - Math.hypot(b.x - g.player.pos.x, b.z - g.player.pos.z))[0];
+  if (!auto) return { er: false };
+  const zij = { x: Math.cos(auto.yaw), z: -Math.sin(auto.yaw) };
+  const van = { x: auto.x + zij.x * 6, z: auto.z + zij.z * 6 };
+  const richting = { x: (auto.x - van.x) / 6, z: (auto.z - van.z) / 6 };
+  // met en zonder het duwtje uit js/vehicles.js: het verschil is de fout
+  // hoe dicht kom je onderweg bij het midden van de auto?
+  const loop = (metDuw) => {
+    let x = van.x, z = van.z, dichtst = 99;
+    for (let i = 0; i < 120; i++) {
+      let nx = x + richting.x * 0.12, nz = z + richting.z * 0.12;
+      [nx, nz] = W.resolveCollisions(nx, nz, 0.35);
+      if (metDuw) {
+        const [bx, bz] = g.vehicles.duwUit(nx, nz, 0.35, null);
+        if (bx !== nx || bz !== nz) [nx, nz] = W.resolveCollisions(bx, bz, 0.35);
+      }
+      x = nx; z = nz;
+      dichtst = Math.min(dichtst, Math.hypot(x - auto.x, z - auto.z));
+    }
+    return dichtst;
+  };
+  return { er: true, metDuw: loop(true), zonder: loop(false), aan: !!g.player.blokkade };
+});
+ok(tevoet.er && tevoet.aan, 'de speler kent de auto\'s');
+ok(tevoet.er && tevoet.metDuw > 1.1, 'je loopt niet meer dwars door een geparkeerde auto heen',
+  `je komt tot ${(tevoet.metDuw || 0).toFixed(2)} m van het midden`);
+ok(tevoet.er && tevoet.zonder < 0.4, 'zonder dat duwtje loop je er zo doorheen',
+  `tot ${(tevoet.zonder || 0).toFixed(2)} m van het midden`);
+
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);
 process.exit(fouten === 0 ? 0 : 1);

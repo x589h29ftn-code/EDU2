@@ -18,18 +18,45 @@ import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
+import { zetAnisotropie } from './textures.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: !IS_TOUCH, powerPreference: 'high-performance' });
-// telefoons hebben een hoge pixeldichtheid maar weinig vulkracht
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_TOUCH ? 1 : 1.5));
+/*
+ Scherpte (G wisselt ertussen).
+
+ MSAA staat op de pc al aan, maar dat helpt alleen tegen gekartelde randen van
+ driehoeken. Wat je in deze wijk vooral ziet flikkeren zijn dunne dingen op
+ afstand — spijlen van hekken, dakranden, belijning — en daar is maar één echt
+ middel tegen: op meer beeldpunten renderen dan het scherm heeft en de browser
+ het laten verkleinen. Op een gewoon 1×-scherm stond de teller op precies 1,00
+ en gebeurde er dus niets; 'scherp' rendert nu op anderhalf keer zoveel.
+
+ Op een telefoon is dat natuurlijk geen goed idee: die heeft al een hoge
+ pixeldichtheid en weinig vulkracht. Daar is 'normaal' het maximum, en 'zuinig'
+ rendert onder de schermresolutie voor wie het te traag vindt.
+*/
+const SCHERPTE = { zuinig: 0.75, normaal: 1.0, scherp: 1.5 };
+const SCHERPTE_RIJ = ['zuinig', 'normaal', 'scherp'];
+function pixelVerhouding(niveau) {
+  const basis = Math.min(window.devicePixelRatio || 1, IS_TOUCH ? 1 : 1.5);
+  return Math.min(2, basis * (SCHERPTE[niveau] || 1));
+}
+let scherpte = localStorage.getItem('tinga.scherpte');
+// De proefgereedschappen draaien in een headless browser op een softwarekaart;
+// daar is anderhalf keer zoveel beeldpunten alleen maar wachten.
+const HEADLESS = typeof navigator !== 'undefined' && navigator.webdriver === true;
+if (!SCHERPTE[scherpte]) scherpte = (IS_TOUCH || HEADLESS) ? 'normaal' : 'scherp';
+renderer.setPixelRatio(pixelVerhouding(scherpte));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.02;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+// asfalt en stoeptegels die schuin weglopen blijven scherp in plaats van grijs
+zetAnisotropie(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
 scene.background = null;
@@ -295,6 +322,9 @@ const politie = initPolitie({ scene, player, npcs, vehicles, hud });
 // Het verkeer moet ook voor de buurman remmen als hij oversteekt. De lijst met
 // voetgangers heeft een vaste lengte, dus die zetten we één keer klaar.
 const opDeWeg = npcs.people.concat([verhaal.hinder]);
+// Te voet loop je niet door auto's heen; js/player.js kent de auto's niet, dus
+// het duwtje komt hiervandaan (de auto waar je zelf in zit telt niet mee).
+player.blokkade = (x, z, r) => vehicles.duwUit(x, z, r, player.inCar);
 applyEnvIntensity(scene);
 
 // Hoe ver de schrik reikt. Een schot hoor je door de hele straat, een klap van
@@ -354,6 +384,13 @@ function toggleCar() {
 // Voetgangers aanrijden: js/vehicles.js roept dit aan voor drie punten langs de
 // auto zodra hij hard genoeg gaat.
 function aanrijden(x, z, straal, snelheid) {
+  // een agent aanrijden telt net zo hard als hem neerschieten (js/politie.js)
+  const blauw = politie.aanrijden(x, z, straal, snelheid);
+  if (blauw) {
+    geluid.klap();
+    npcs.paniek(x, z, PANIEK_KLAP);
+    hud.show(blauw > 1 ? `${blauw} agenten aangereden` : 'Agent aangereden', 2.5);
+  }
   const n = npcs.aanrijden(x, z, straal, snelheid);
   if (n) {
     geluid.klap();
@@ -389,6 +426,16 @@ function praatOfAuto() {
 }
 window.addEventListener('keydown', e => {
   if (e.code === 'KeyE' && !e.ctrlKey && !e.metaKey) praatOfAuto();
+});
+
+// Scherpte wisselen (G). Blijft bewaard, zodat je hem maar één keer hoeft te zetten.
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyG' || e.ctrlKey || e.metaKey) return;
+  scherpte = SCHERPTE_RIJ[(SCHERPTE_RIJ.indexOf(scherpte) + 1) % SCHERPTE_RIJ.length];
+  localStorage.setItem('tinga.scherpte', scherpte);
+  renderer.setPixelRatio(pixelVerhouding(scherpte));
+  resize();
+  hud.show(`Scherpte: ${scherpte} (${pixelVerhouding(scherpte).toFixed(2)}×)`, 2);
 });
 
 // Geluid uit en aan

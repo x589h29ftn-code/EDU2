@@ -38,11 +38,20 @@ export function rng(seed) {
   };
 }
 
-function tex(c, repeatX = 1, repeatY = 1, anis = 8) {
+/*
+ Anisotroop filteren houdt schuin weglopende vlakken — asfalt, stoeptegels, een
+ dakvlak — scherp in plaats van een grijze brij in de verte. Acht is een veilige
+ ondergrens; js/main.js zet hem bij het opstarten op wat de kaart aankan (meestal
+ zestien). Dat kost geen geheugen, alleen wat vulkracht.
+*/
+let ANIS = 8;
+export function zetAnisotropie(n) { ANIS = Math.max(1, Math.min(16, Math.round(n) || 8)); }
+
+function tex(c, repeatX = 1, repeatY = 1, anis = 0) {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(repeatX, repeatY);
-  t.anisotropy = anis;
+  t.anisotropy = anis || ANIS;
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
@@ -198,7 +207,7 @@ export function jumboVlag() {
   // zoom langs de mastkant
   g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillRect(0, 0, 6, 512);
   const t = new THREE.CanvasTexture(c);
-  t.anisotropy = 8; t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = ANIS; t.colorSpace = THREE.SRGBColorSpace;
   cache.set('jumbovlag', t); return t;
 }
 
@@ -884,7 +893,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
     }
   }
   const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANIS;
   cache.set(key, t); return t;
 }
 

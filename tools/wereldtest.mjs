@@ -154,6 +154,106 @@ ok(vlag.gevonden && vlag.driehoeken >= 24,
   'het doek is twee panelen rug aan rug, dus het woordmerk leest van beide kanten goed',
   `${vlag.driehoeken} driehoeken`);
 
+// ---------- heggen en schuttingen van de goede kant ----------
+/*
+ De vier hoeken van een heg of schutting worden in js/kaartwereld.js in één
+ volgorde gezet, en die volgorde bepaalt welke kant de zijvlakken op kijken.
+ Stonden ze naar binnen, dan zag je de zijkant van een heg niet: je keek er
+ dwars doorheen tegen de binnenkant van de overkant aan.
+*/
+kop('heggen en schuttingen');
+const heg = await page.evaluate(async () => {
+  const THREE = await import('./lib/three.module.js');
+  const g = window.__game;
+  const uit = {};
+  for (const klasse of ['heg', 'schutting']) {
+    let mesh = null;
+    g.scene.traverse(o => { if (o.userData && o.userData.klasse === klasse) mesh = o; });
+    if (!mesh) { uit[klasse] = null; continue; }
+    const pos = mesh.geometry.getAttribute('position');
+    const nor = mesh.geometry.getAttribute('normal');
+    // zwaartepunt van elk blokje kennen we niet, maar wel dat van het hele
+    // stuk: neem per zijvlak het punt en kijk of de normaal ervandaan wijst
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), n = new THREE.Vector3(), vn = new THREE.Vector3();
+    let zij = 0, klopt = 0;
+    for (let i = 0; i < pos.count; i += 3) {
+      a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); c.fromBufferAttribute(pos, i + 2);
+      e1.subVectors(b, a); e2.subVectors(c, a); n.crossVectors(e1, e2).normalize();
+      if (Math.abs(n.y) > 0.9) continue;                 // bovenvlak
+      vn.fromBufferAttribute(nor, i);
+      zij++;
+      if (n.dot(vn) > 0.5) klopt++;
+    }
+    uit[klasse] = { zij, klopt, side: mesh.material.side, dubbel: mesh.material.side === THREE.DoubleSide };
+  }
+  // en de proef op de som: staat er bij één heg een zijvlak dat naar buiten kijkt?
+  const { KAART } = await import('./js/kaart.js');
+  const h = (KAART.heggen || []).find(q => q.soort !== 'hekje');
+  let buiten = 0, binnen = 0;
+  if (h) {
+    let mesh = null;
+    g.scene.traverse(o => { if (o.userData && o.userData.klasse === 'heg') mesh = o; });
+    const pos = mesh.geometry.getAttribute('position');
+    const mid = { x: (h.a[0] + h.b[0]) / 2, z: (h.a[1] + h.b[1]) / 2 };
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), n = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i += 3) {
+      a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); c.fromBufferAttribute(pos, i + 2);
+      e1.subVectors(b, a); e2.subVectors(c, a); n.crossVectors(e1, e2).normalize();
+      if (Math.abs(n.y) > 0.9) continue;
+      const cx = (a.x + b.x + c.x) / 3, cz = (a.z + b.z + c.z) / 3;
+      if (Math.hypot(cx - mid.x, cz - mid.z) > 3) continue;
+      const naarBuiten = n.x * (cx - mid.x) + n.z * (cz - mid.z);
+      if (naarBuiten > 0.001) buiten++; else if (naarBuiten < -0.001) binnen++;
+    }
+  }
+  return { ...uit, buiten, binnen };
+});
+ok(heg.heg && heg.heg.zij > 100, 'de heggen hebben zijvlakken', `${heg.heg ? heg.heg.zij : 0} driehoeken`);
+ok(heg.binnen === 0 && heg.buiten > 0, 'en die kijken naar buiten, niet naar binnen',
+  `${heg.buiten} naar buiten, ${heg.binnen} naar binnen`);
+ok(heg.heg && heg.heg.klopt === heg.heg.zij, 'met een normaal die bij het vlak past',
+  `${heg.heg ? heg.heg.klopt : 0} van ${heg.heg ? heg.heg.zij : 0}`);
+ok(!heg.schutting || heg.schutting.klopt === heg.schutting.zij,
+  'de schuttingen ook', `${heg.schutting ? heg.schutting.klopt : 0} van ${heg.schutting ? heg.schutting.zij : 0}`);
+
+// ---------- scherpte (G) ----------
+/*
+ MSAA vangt gekartelde randen, maar de dunne dingen op afstand — hekspijlen,
+ dakranden, belijning — flikkeren daar doorheen. Daar helpt alleen op meer
+ beeldpunten renderen dan het scherm heeft. Op een gewoon 1x-scherm stond de
+ teller op precies 1,00, dus gebeurde er niets. Met G loop je door drie standen.
+*/
+kop('scherpte');
+const scherp = await page.evaluate(async () => {
+  const g = window.__game;
+  const T = await import('./js/textures.js');
+  const rij = [];
+  for (let i = 0; i < 4; i++) {
+    rij.push({
+      stand: localStorage.getItem('tinga.scherpte') || '(nog niet gezet)',
+      ratio: +g.renderer.getPixelRatio().toFixed(2),
+    });
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyG' }));
+    await new Promise(r => setTimeout(r, 40));
+  }
+  // hoe scherp staan de texturen bij schuine kijkhoek?
+  let anis = 0;
+  g.scene.traverse(o => {
+    const m = o.material;
+    for (const q of (Array.isArray(m) ? m : [m])) if (q && q.map) anis = Math.max(anis, q.map.anisotropy || 0);
+  });
+  return { rij, anis, max: g.renderer.capabilities.getMaxAnisotropy(), aa: g.renderer.getContext().getContextAttributes().antialias };
+});
+const standen = scherp.rij.map(q => `${q.stand} ${q.ratio}x`).join(' · ');
+ok(scherp.aa, 'de randen worden gladgemaakt door de kaart zelf (MSAA)');
+ok(scherp.rij.some(q => q.ratio > 1.2), 'met G kun je scherper renderen dan het scherm', standen);
+ok(scherp.rij.some(q => q.ratio < 0.9), 'en zuiniger, voor een trage machine', standen);
+ok(new Set(scherp.rij.map(q => q.stand)).size >= 3, 'de stand blijft bewaard en loopt rond', standen);
+ok(scherp.anis >= Math.min(16, scherp.max), 'de texturen staan op het maximale anisotroop filteren',
+  `${scherp.anis} van maximaal ${scherp.max}`);
+
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);
 process.exit(fouten === 0 ? 0 : 1);

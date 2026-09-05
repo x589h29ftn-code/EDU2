@@ -246,7 +246,15 @@ export function bouwKaartWereld(scene, W) {
     const balk = (a, b, dikte, h, doel, y0 = 0) => {
       const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 0.2) return;
       const nx = -dz / L * dikte / 2, nz = dx / L * dikte / 2;
-      const ring = [[a[0] + nx, a[1] + nz], [b[0] + nx, b[1] + nz], [b[0] - nx, b[1] - nz], [a[0] - nx, a[1] - nz]];
+      /*
+       De volgorde van de vier hoeken bepaalt welke kant de zijvlakken op kijken
+       (`randGeometrie` legt de normaal links van de looprichting). Andersom om
+       stonden ze naar binnen, en dan zie je met een gewoon materiaal de zijkant
+       van een heg of schutting niet — je keek er dwars doorheen tegen de
+       binnenkant van de overkant aan. Het bovenvlak trekt zich er niets van aan:
+       `vlakGeometrie` draait dat zelf recht.
+      */
+      const ring = [[a[0] - nx, a[1] - nz], [b[0] - nx, b[1] - nz], [b[0] + nx, b[1] + nz], [a[0] + nx, a[1] + nz]];
       vlakGeometrie([ring], y0 + h, 0.5, doel.pos, doel.uv, doel.nor);
       randGeometrie([ring], y0 + h, y0, doel.pos, doel.uv, doel.nor);
     };

@@ -59,7 +59,17 @@ const VUURTIJD = 1.8;                      // seconden tussen twee schoten
 const VUURDERS = 3;                        // zoveel agenten schieten er tegelijk op je
 const VUURBEREIK = 34;
 const SCHADE = 4;
-const SPAWN_MIN = 55, SPAWN_MAX = 150;     // afstand waarop ze opduiken (m)
+const SPAWN_MIN = 55, SPAWN_MAX = 150;     // afstand tot de plaats delict (m)
+/*
+ En hoe ver van jóu. De plaats delict is niet waar jij bent: schiet je iemand
+ neer en rijd je weg, dan blijft het zoekgebied achter en kan een punt dat keurig
+ 60 m van de melding ligt vlak achter je rug uitkomen. Een nieuwe eenheid komt
+ daarom nooit binnen SPAWN_VRIJ meter van de speler, en als je er vrij zicht op
+ hebt moet hij minstens SPAWN_ZICHT meter weg zijn — hij komt de straat in
+ rijden, hij verschijnt niet naast je.
+*/
+const SPAWN_VRIJ = 62;
+const SPAWN_ZICHT = 130;
 /*
  Een surveillanceauto waar de agenten uit gestapt zijn blijft staan en is te
  stelen. Hij verdwijnt weer, anders staat de wijk na een lange achtervolging vol
@@ -91,6 +101,17 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
    je kans om ongezien weg te komen, dan zoeken ze op de verkeerde plek.
   */
   const anker = () => laatstBekend || spelerPlek();
+  /*
+   Hoe hard en waarheen loopt de speler? Zodra de laatste agent hem uit het oog
+   verliest wordt dat gebruikt om te schatten waar hij naartoe gaat: niet de plek
+   waar hij nog stond, maar een stuk verder in dezelfde richting. Dat is het
+   verschil tussen een politie die de hoek waar je omging staat aan te staren en
+   een die de straat erachter uitkamt — en het blijft een schatting, want na die
+   ene sprong wordt er niets meer bijgehouden tot iemand je weer ziet.
+  */
+  let spVorig = null;
+  const spSnelheid = { x: 0, z: 0 };
+  const VOORUIT = 2.5;              // seconden vooruitgedacht
   const ster = () => { let n = 0; for (const g of STERREN) if (heat >= g) n++; return n; };
 
   /*
@@ -235,28 +256,64 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
 
   // ---------------------------------------------------------------- eenheden
   // Een plek op een rijbaan die ver genoeg weg is en liefst uit het zicht.
+  /*
+   Waar duikt een nieuwe eenheid op? Altijd op een rijbaan — ze komen ergens
+   vandaan gereden — op SPAWN_MIN..SPAWN_MAX van de plaats delict, ruim van de
+   speler vandaan en het liefst uit zijn zicht. Levert null als er zo gauw geen
+   fatsoenlijke plek is; dan wacht `vulAan` gewoon een tel. Liever een eenheid
+   later dan een eenheid die uit het niets naast je staat.
+  */
   function spawnPlek() {
     const sp = anker();
-    let beste = null, besteScore = -1;
-    for (let poging = 0; poging < 40 && rijbanen.length; poging++) {
-      const as = rijbanen[Math.floor(Math.random() * rijbanen.length)];
-      const k = Math.floor(Math.random() * as.pts.length);
-      const p = as.pts[k];
-      const d = Math.hypot(p[0] - sp.x, p[1] - sp.z);
-      if (d < SPAWN_MIN || d > SPAWN_MAX) continue;
-      // uit het zicht is beter, maar niet noodzakelijk
-      const score = d * (zichtVrij(sp.x, sp.z, p[0], p[1], 1.6) ? 0.4 : 1);
-      if (score > besteScore) {
-        besteScore = score;
-        // met de neus in de richting van de weg, anders begint hij met een
-        // manoeuvre door de voortuin van de buren
-        const q = as.pts[Math.min(as.pts.length - 1, k + 1)] || p;
-        beste = { x: p[0], z: p[1], yaw: Math.atan2(-(q[0] - p[0]), -(q[1] - p[1])) };
+    const pl = spelerPlek();
+    const zoek = (uitZicht) => {
+      let beste = null, besteScore = -1;
+      for (let poging = 0; poging < 60 && rijbanen.length; poging++) {
+        const as = rijbanen[Math.floor(Math.random() * rijbanen.length)];
+        const k = Math.floor(Math.random() * as.pts.length);
+        const p = as.pts[k];
+        const d = Math.hypot(p[0] - sp.x, p[1] - sp.z);
+        if (d < SPAWN_MIN || d > SPAWN_MAX) continue;
+        const dPl = Math.hypot(p[0] - pl.x, p[1] - pl.z);
+        if (dPl < SPAWN_VRIJ) continue;                 // dit is de harde eis
+        const gezien = zichtVrij(pl.x, pl.z, p[0], p[1], 1.6);
+        if (uitZicht && gezien && dPl < SPAWN_ZICHT) continue;
+        const score = dPl * (gezien ? 0.5 : 1);         // verder weg en uit het zicht wint
+        if (score > besteScore) {
+          besteScore = score;
+          // met de neus in de richting van de weg, anders begint hij met een
+          // manoeuvre door de voortuin van de buren
+          const q = as.pts[Math.min(as.pts.length - 1, k + 1)] || p;
+          beste = { x: p[0], z: p[1], yaw: Math.atan2(-(q[0] - p[0]), -(q[1] - p[1])) };
+        }
       }
+      return beste;
+    };
+    /*
+     Eerst met de zichteis erbij. Sta je midden op een lange rechte straat, dan
+     is bijna elk punt in de buurt zichtbaar en blijft die zoektocht leeg — dan
+     mag het toch, want geen politie is erger dan politie die je aan ziet komen
+     rijden. De harde ondergrens van SPAWN_VRIJ meter geldt altijd.
+    */
+    return zoek(true) || zoek(false);
+  }
+
+  /*
+   Waar rijdt een wagen heen om te verdwijnen? Hier hoeft niets: elk punt op een
+   rijbaan een eind bij de speler vandaan is goed, en er komt altijd iets uit.
+  */
+  function wegPlek() {
+    const pl = spelerPlek();
+    let beste = null, bd = -1;
+    for (let poging = 0; poging < 30 && rijbanen.length; poging++) {
+      const as = rijbanen[Math.floor(Math.random() * rijbanen.length)];
+      const p = as.pts[Math.floor(Math.random() * as.pts.length)];
+      const d = Math.hypot(p[0] - pl.x, p[1] - pl.z);
+      if (d > bd) { bd = d; beste = { x: p[0], z: p[1] }; }
     }
     if (beste) return beste;
     const hoek = Math.random() * 6.28;
-    return { x: sp.x + Math.sin(hoek) * SPAWN_MIN, z: sp.z + Math.cos(hoek) * SPAWN_MIN };
+    return { x: pl.x + Math.sin(hoek) * SPAWN_MAX, z: pl.z + Math.cos(hoek) * SPAWN_MAX };
   }
 
   function maakAgent(x, z, inWagen = null) {
@@ -341,8 +398,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     const nuVoet = agenten.filter(a => !a.wagen).length;
     vulT -= dt;
     if (vulT > 0) return;
-    if (wagens.length < wilWagens) { const p = spawnPlek(); maakWagen(p.x, p.z, p.yaw); vulT = 1.6; return; }
-    if (nuVoet < wilVoet) { const p = spawnPlek(); maakAgent(p.x, p.z); vulT = 1.4; return; }
+    // geen fatsoenlijke plek? dan volgende tel opnieuw proberen
+    if (wagens.length < wilWagens) { const p = spawnPlek(); if (p) maakWagen(p.x, p.z, p.yaw); vulT = p ? 1.6 : 0.5; return; }
+    if (nuVoet < wilVoet) { const p = spawnPlek(); if (p) maakAgent(p.x, p.z); vulT = p ? 1.4 : 0.5; return; }
     // te veel, of te ver van het zoekgebied? die eenheid gaat weg
     const sp = anker();
     if (wagens.length > wilWagens) {
@@ -459,13 +517,22 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
 
   // Een schot van de speler horen ze in de wijde omtrek.
   function hoorSchot(x, z) {
+    /*
+     Horen is niet zien. Ze weten waar het knalde, niet waar je nú staat; ze
+     gaan er dus op af en zoeken daar. Ze hierheen op 'jacht' zetten zou
+     betekenen dat een schot achter een gebouw ze rechtstreeks naar jou stuurt.
+    */
     let gehoord = false;
     for (const a of agenten) {
       const pos = a.persoon.groep.position;
-      if (a.staat === 'neer') continue;
-      if (Math.hypot(pos.x - x, pos.z - z) < GEHOOR) { a.staat = 'jacht'; gehoord = true; }
+      if (a.staat === 'neer' || a.staat === 'jacht') continue;
+      if (Math.hypot(pos.x - x, pos.z - z) < GEHOOR) {
+        a.staat = 'zoekt'; a.doel = { x, z }; a.route = null; a.zoekT = 12; gehoord = true;
+      }
     }
-    for (const w of wagens) if (Math.hypot(w.car.x - x, w.car.z - z) < GEHOOR) w.staat = 'jacht';
+    for (const w of wagens) if (w.staat !== 'jacht' && Math.hypot(w.car.x - x, w.car.z - z) < GEHOOR) {
+      w.staat = 'naarPlek'; w.doel = { x, z }; w.route = null; w.zoekT = 12;
+    }
     if (gehoord || wagens.length) laatstBekend = { x, z };
     return gehoord;
   }
@@ -487,15 +554,48 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     return false;
   }
 
+  /*
+   Een agent aanrijden. js/vehicles.js meldt drie punten langs de auto zodra
+   die hard genoeg gaat; main.js stuurt ze zowel naar de voetgangers als
+   hierheen. Levert het aantal agenten dat tegen de vlakte gaat.
+
+   Dezelfde drempel als bij de voetgangers: stapvoets langs iemand manoeuvreren
+   mag, met vaart gaat hij om. En het kost je net zoveel verdenking als hem
+   neerschieten — een aanrijding met een agent is geen ongelukje.
+  */
+  function aanrijden(x, z, straal, snelheid) {
+    if (snelheid < 1.7) return 0;
+    let n = 0;
+    for (const a of agenten) {
+      if (a.staat === 'neer' || !a.persoon.groep.visible) continue;
+      const pos = a.persoon.groep.position;
+      if (Math.hypot(pos.x - x, pos.z - z) > straal + 0.45) continue;
+      a.staat = 'neer';
+      a.omT = 0;
+      a.persoon.groep.userData.neer = true;
+      misdaad('agent', pos.x, pos.z);
+      n++;
+    }
+    return n;
+  }
+
   function doelen() {
     return agenten.filter(a => a.staat !== 'neer' && a.persoon.groep.visible).map(a => a.persoon.groep);
   }
 
   // ---------------------------------------------------------------- per beeld
+  let zagJeVorigBeeld = false;
   function update(dt) {
     const s = ster();
     let schade = 0;
     const sp = spelerPlek();
+    // hoe hard en waarheen loopt hij? (zie `spSnelheid` bovenin)
+    if (spVorig && dt > 1e-4) {
+      const f = Math.min(1, dt * 3);
+      spSnelheid.x += ((sp.x - spVorig.x) / dt - spSnelheid.x) * f;
+      spSnelheid.z += ((sp.z - spVorig.z) / dt - spSnelheid.z) * f;
+    }
+    spVorig = { x: sp.x, z: sp.z };
     if (meldT > 0) meldT -= dt;
     if (stille > 0) stille = Math.max(0, stille - dt / 90);   // na anderhalve minuut vergeten
 
@@ -531,16 +631,29 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       if (a.kijkT <= 0) {
         a.kijkT = 0.25;
         a.zicht = zietSpeler(pos, persoon.yaw, a.staat === 'jacht' && dSp < 18);
-        if (a.zicht) { a.staat = 'jacht'; laatstBekend = { x: sp.x, z: sp.z }; }
-        else if (a.staat === 'jacht' && dSp > 8) { a.staat = 'zoekt'; a.doel = laatstBekend ? { ...laatstBekend } : null; }
+        if (a.zicht) { a.staat = 'jacht'; a.kwijtT = 0; laatstBekend = { x: sp.x, z: sp.z }; }
+        else if (a.staat === 'jacht') {
+          /*
+           Hij ziet je niet meer. Even doorlopen naar waar je stond — anders
+           haakt hij af zodra je één keer achter een lantaarnpaal langs komt —
+           maar daarna is hij je kwijt en gaat hij zoeken. Dat de afstand hier
+           niet meer meetelt is precies het punt: sta je vlak achter de schutting
+           waar hij naar staat te kijken, dan wéét hij dat niet.
+          */
+          a.kwijtT = (a.kwijtT || 0) + 0.25;
+          if (a.kwijtT > 2) { a.staat = 'zoekt'; a.route = null; a.doel = laatstBekend ? { ...laatstBekend } : null; }
+        }
       }
       if (a.zicht) iemandZiet = true;
 
       if (a.staat === 'jacht') {
-        const dichtbij = dSp < DEKKING;
-        if (!dichtbij) loopNaar(a, volgPunt(a, pos, sp, dt, 4), dt, REN);
-        persoon.kijkNaar(sp.x, sp.z, dt, 7);
-        persoon.update(dt, { loopt: !dichtbij, mikt: true, snelheid: REN });
+        // zonder zicht loopt hij naar de laatst bekende plek, niet naar jou
+        const mik = (a.zicht || !laatstBekend) ? sp : laatstBekend;
+        const dMik = Math.hypot(mik.x - pos.x, mik.z - pos.z);
+        const dichtbij = a.zicht && dSp < DEKKING;
+        if (!dichtbij && dMik > 1.5) loopNaar(a, volgPunt(a, pos, mik, dt, 4), dt, REN);
+        persoon.kijkNaar(mik.x, mik.z, dt, 7);
+        persoon.update(dt, { loopt: !dichtbij && dMik > 1.5, mikt: true, snelheid: REN });
         a.vuurT -= dt;
         if (a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht && schutters.has(a)) {
           a.vuurT = VUURTIJD * (0.8 + Math.random() * 0.6);
@@ -628,7 +741,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       }
 
       if (w.staat === 'wegwezen') {
-        const weg = w.wegDoel || (w.wegDoel = spawnPlek());
+        const weg = w.wegDoel || (w.wegDoel = wegPlek());
         const afst = rijNaar(w, weg, dt, 16);
         w.wegT = (w.wegT || 0) + dt;
         // hij is vertrokken zodra hij er is, ver genoeg weg is, of het te lang duurt
@@ -641,7 +754,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
         w.zoekT = (w.zoekT || 0) - dt;
         if (!w.doel || w.zoekT <= 0) nieuwZoekpunt(w, w.staat === 'naarPlek' && !w.doel);
       }
-      const doel = w.staat === 'jacht' ? sp : w.doel;
+      // ook een wagen die je kwijt is rijdt naar de laatst bekende plek, niet
+      // naar waar je nu bent
+      const doel = w.staat === 'jacht' ? ((ziet || !laatstBekend) ? sp : laatstBekend) : w.doel;
       const afst = rijNaar(w, doel, dt, w.staat === 'jacht' ? 20 : 15);
       if (w.staat !== 'jacht' && afst < 12) { w.staat = 'zoekt'; nieuwZoekpunt(w); }
       if ((w.pogingen || 0) >= 3 && dSp > 55) { ruimWagen(w); continue; }   // hopeloos vast: verderop komt een verse wagen
@@ -694,6 +809,32 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       if (opTijd && dLeeg > LEEG_AFSTAND) ruimVerlaten(v);
     }
 
+    /*
+     ---- net uit het zicht verdwenen ----
+     De laatste die je zag is je kwijt. Ze weten wáár je toen stond, en met welke
+     vaart je die kant op ging; het zoekgebied schuift daarom een paar seconden
+     mee in die richting, tot het dichtstbijzijnde punt op een straat. Daarna
+     staat het stil — hoe langer je uit beeld blijft, hoe schever hun beeld — en
+     de eenheden waaieren er met hun eigen sectoren omheen uit (`nieuwZoekpunt`).
+    */
+    if (zagJeVorigBeeld && !iemandZiet && laatstBekend) {
+      const vaart = Math.hypot(spSnelheid.x, spSnelheid.z);
+      if (vaart > 1) {
+        let x = laatstBekend.x + spSnelheid.x * VOORUIT;
+        let z = laatstBekend.z + spSnelheid.z * VOORUIT;
+        const net = wegennet();
+        if (net) {
+          const i = net.naaste(x, z, 40, false);
+          if (i >= 0) { x = net.punten[i][0]; z = net.punten[i][1]; }
+        }
+        laatstBekend = { x, z };
+      }
+      // iedereen die nog aan het jagen was gaat vanaf daar zoeken
+      for (const a of agenten) if (a.staat === 'jacht') { a.route = null; }
+      for (const w of wagens) if (w.staat === 'jacht') { w.route = null; }
+    }
+    zagJeVorigBeeld = iemandZiet;
+
     // ---- verdenking bijwerken ----
     if (iemandZiet) {
       // let op: `laatstBekend` wordt alleen bijgewerkt op het moment dat iemand
@@ -732,7 +873,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   }
 
   return {
-    misdaad, update, raak, doelen, hoorSchot, reset,
+    misdaad, update, raak, doelen, hoorSchot, reset, aanrijden,
     get ster() { return ster(); },
     get heat() { return heat; },
     get gezocht() { return ster() > 0; },

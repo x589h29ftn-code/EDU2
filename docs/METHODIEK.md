@@ -241,6 +241,7 @@ naar `main` om een build te krijgen.
 | Lucht, wapen, erfscheidingen, vlaggen (stap 8) | `npm run wereldtest` | eindigt op "Alles goed" |
 | Politie, gezocht-sterren en de inzet per ster (stap 9–10) | `npm run politietest` | eindigt op "Alles goed" |
 | De boerderijwinkel en het geld (stap 11) | `npm run winkeltest` | eindigt op "Alles goed" |
+| Scherpte, heggen en schuttingen (stap 13) | `npm run wereldtest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` | < 700 calls, < 1,4 M driehoeken, < 100 MB |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -998,6 +999,72 @@ Controle: `npm run politietest` telt nu drieëndertig controles. De twaalf nieuw
 of de wagen echt blijft staan als de agenten eruit zijn, of je erin kunt stappen,
 of hij zichzelf opruimt, of een gestolen wagen blijft staan met zijn lichtbalk,
 en of een treffer in de levensbalk en de rode flits terechtkomt.
+
+
+**Zes dingen uit het spelen (stap 13).**
+
+1. *Je liep dwars door auto's heen.* Te voet gaat de speler alleen langs
+   `resolveCollisions` uit `js/world.js`, en daar staan alleen de vaste dingen
+   in — auto's bewegen. `js/vehicles.js` heeft er nu `duwUit()` bij: dezelfde rij
+   van drie cirkels langs de as die de auto's onderling al gebruiken. `main.js`
+   hangt hem als `player.blokkade` aan de speler; na het duwtje gaat de plek nog
+   één keer langs de vaste wereld, zodat een auto je niet een gevel in werkt.
+   Kosten: onmeetbaar (`player.update` blijft op 0,01 ms).
+2. *Er stond ineens politie achter je.* De plaats delict is niet waar jij bent:
+   schiet je iemand neer en rijd je weg, dan blijft het zoekgebied achter en kan
+   een punt dat keurig zestig meter van de melding ligt vlak achter je rug
+   uitkomen. Een nieuwe eenheid begint nu altijd op een rijbaan, minstens 62
+   meter van de spéler, en het liefst uit zijn zicht. Die zichteis is zacht: sta
+   je midden op een lange rechte straat, dan is bijna alles in de buurt
+   zichtbaar en zou er nooit meer iemand komen — dan mag het toch, want de harde
+   ondergrens van 62 meter is wat het probleem oploste. En de terugvalplek buiten
+   het wegennet is weg: geen agent die uit een voortuin komt.
+3. *Agenten kon je niet omverrijden.* `politie.aanrijden()` erbij, met dezelfde
+   drempel als bij de voetgangers (stapvoets mag), en `main.js` stuurt de drie
+   meetpunten van de auto nu naar allebei. Het kost net zoveel verdenking als
+   hem neerschieten.
+4. *Verstoppen werkte niet.* Het zicht zelf klopte al — `zietSpeler` gaat langs
+   `zichtVrij` — maar wat ze met dat zicht deden niet. Een schot hóren zette
+   iedereen binnen 65 meter op 'jacht', en 'jacht' betekende: ren naar de plek
+   waar de speler nú staat. Achter een gebouw gaan staan hielp dus niets. Nu
+   gaan ze bij een schot naar het geluid en zoeken ze daar, en zonder zicht
+   loopt een achtervolger naar de laatst bekende plek in plaats van naar jou —
+   met twee seconden speling, zodat hij niet afhaakt zodra je achter een
+   lantaarnpaal langs komt.
+5. *En ze denken mee.* Op het moment dat de laatste je uit het oog verliest
+   schuift de laatst bekende plek 2,5 seconde mee in de richting waarin je
+   wegliep, tot het dichtstbijzijnde punt op een straat. Daarna staat hij stil —
+   hoe langer je uit beeld blijft, hoe schever hun beeld — en de eenheden
+   waaieren er met hun eigen sectoren omheen uit. Dat is het verschil tussen een
+   politie die de hoek waar je omging staat aan te staren en een die de straat
+   erachter uitkamt.
+6. *Heggen en schuttingen misten een zijkant.* De vier hoeken van zo'n balk
+   stonden in de verkeerde volgorde, waardoor alle zijvlakken naar binnen keken
+   en met een gewoon materiaal wegvielen; je keek er dwars doorheen tegen de
+   binnenkant van de overkant aan. Eén regel omgedraaid — het bovenvlak trekt
+   zich er niets van aan, want `vlakGeometrie` draait dat zelf recht.
+
+**Scherpte op de pc (G).** MSAA staat er al aan, maar dat vangt alleen gekartelde
+randen van driehoeken. Wat in deze wijk flikkert zijn de dunne dingen op afstand:
+hekspijlen, dakranden, belijning. Daar helpt alleen op meer beeldpunten renderen
+dan het scherm heeft. De teller stond op `min(devicePixelRatio, 1.5)` en dat is
+op een gewoon 1×-scherm precies 1,00 — er gebeurde dus niets. Er zijn nu drie
+standen (0,75× / 1× / 1,5×), G loopt erdoorheen en de keuze blijft bewaard;
+telefoons beginnen op 1× en de proefgereedschappen ook, want anderhalf keer
+zoveel beeldpunten op een softwarekaart is alleen maar wachten. De texturen staan
+bovendien op het maximale anisotrope filter van de kaart (16 in plaats van 8).
+
+Onderweg viel nog iets op aan de proef zelf: sinds de schade van de politie
+écht van je leven af gaat, ging de proefspeler halverwege `politietest` neer,
+waarna `main.js` het opgeslagen spel laadt en `politie.reset()` aanroept — en er
+nooit meer een eenheid kwam. De hoofdlus staat in die proef nu uit; alleen het
+stukje dat juist naar de lus kijkt zet hem voor een paar beelden aan.
+
+Controle: `npm run politietest` (zevenveertig controles), `npm run rijtest` (drie
+nieuwe over te voet langs de auto's), `npm run wereldtest` (vier over de
+zijvlakken van heggen en schuttingen, vijf over de scherpte). Verhaaltest,
+looptest en winkeltest blijven groen, `geo:boven` staat nog op 1,31 % en de draw
+calls in de wijk veranderen niet.
 
 **Wat nog niet af is (in volgorde).**
 

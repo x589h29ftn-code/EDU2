@@ -21,6 +21,8 @@ export class Player {
     this.inCar = null;
     this.health = 100;
     this.ammo = 12; this.reserve = 60; this.reloading = 0;
+    // wordt door main.js gevuld: duwt je te voet uit de auto's (js/vehicles.js)
+    this.blokkade = null;
     this.recoil = 0; this.flashT = 0;
     this.active = false;        // spel gestart
     this.pointerLocked = false; // muis vastgezet door de browser
@@ -227,6 +229,16 @@ export class Player {
 
     let nx = this.pos.x + move.x, nz = this.pos.z + move.z;
     [nx, nz] = resolveCollisions(nx, nz, 0.35);
+    /*
+     Auto's staan niet in resolveCollisions — die lijst is voor de vaste wereld
+     en auto's bewegen. Zonder deze stap loop je er dwars doorheen. main.js hangt
+     `blokkade` op js/vehicles.js; daarna nog één keer langs de vaste wereld,
+     zodat een duwtje uit een auto je niet een gevel in werkt.
+    */
+    if (this.blokkade) {
+      const [bx, bz] = this.blokkade(nx, nz, 0.35);
+      if (bx !== nx || bz !== nz) [nx, nz] = resolveCollisions(bx, bz, 0.35);
+    }
     if (pointInWater(nx, nz)) { // niet het water in: probeer per as
       if (!pointInWater(nx, this.pos.z)) nz = this.pos.z; else if (!pointInWater(this.pos.x, nz)) nx = this.pos.x; else { nx = this.pos.x; nz = this.pos.z; }
     }
