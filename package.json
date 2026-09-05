@@ -48,6 +48,8 @@
     "woningshots": "node tools/woningshots.mjs",
     "adresshots": "node tools/adresshots.mjs",
     "viaducttest": "node tools/viaducttest.mjs",
-    "viaductshots": "node tools/viaductshots.mjs"
+    "viaductshots": "node tools/viaductshots.mjs",
+    "wapentest": "node tools/wapentest.mjs",
+    "wapenshots": "node tools/wapenshots.mjs"
   }
 }

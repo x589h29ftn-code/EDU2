@@ -244,7 +244,7 @@ ok(bouw.rood >= 4, 'op het dek liggen rode fietsstroken', `${bouw.rood} van ${bo
 
 // ---------- 7. de wereld eromheen ----------
 kop('de wereld eromheen');
-const om = await page.evaluate(() => {
+const om = await page.evaluate(async () => {
   const g = window.__game, V = window.__V, w = window.__W;
   // hoe hoog liggen de vlakken die op de dijk staan?
   const mid = V.as[Math.round((V.dekVan + V.dekTot) / 2)];
@@ -260,11 +260,15 @@ const om = await page.evaluate(() => {
   const onder = w.grondHoogte(mid[0], mid[1], 0);
   // een boom op de dijk
   const boom = window.__K.bomen.filter(b => w.grondHoogte(b.x, b.z, 0) > 1).length;
-  return { opgetild, plat, onder, boom };
+  // en geen boom die dwars door het brugdek heen groeit
+  const doorDek = window.__K.bomen.filter(b => w.onderBrug(b.x, b.z, 2.0)).length;
+  const kw = (await import('/js/kaartwereld.js')).kaartTelling;
+  return { opgetild, plat, onder, boom, doorDek, weggelaten: kw.bomenOnderBrug };
 });
 ok(om.opgetild > 200, 'de weg en het gras op de dijk zijn mee omhoog gegaan', `${om.opgetild} driehoeken boven 1 m`);
 ok(om.onder === 0, 'de rijksweg eronder is blijven liggen');
-ok(om.boom >= 0, 'de bomen op de dijk staan op de dijk', `${om.boom} bomen`);
+ok(om.boom > 0, 'de bomen op de dijk staan op de dijk', `${om.boom} bomen`);
+ok(om.weggelaten > 0, 'en de bomen onder het brugdek zijn weggelaten', `${om.weggelaten} van de ${om.doorDek} in de brugstrook`);
 
 console.log(fouten ? `\n${fouten} fout(en).` : '\nAlles goed.');
 await browser.close();

@@ -107,9 +107,13 @@ export function grondHoogte(x, z, y = Infinity) {
   return uit;
 }
 
-/** Ligt hier een brugdek boven het maaiveld (dus: kun je eronderdoor)? */
-export function onderBrug(x, z) {
-  for (const V of VIA) { const r = raak(V, x, z); if (r && r.dek && r.d <= r.kruin && r.h > 2) return true; }
+/**
+ * Ligt hier een brugdek boven het maaiveld (dus: kun je eronderdoor)? `marge`
+ * rekent er een strook naast het dek bij op — bomen met een kroon van drie
+ * meter groeiden anders dwars door de brug heen.
+ */
+export function onderBrug(x, z, marge = 0) {
+  for (const V of VIA) { const r = raak(V, x, z); if (r && r.dek && r.d <= r.kruin + marge && r.h > 2) return true; }
   return false;
 }
 
@@ -254,58 +258,82 @@ function bouwEen(scene, W, KM, V) {
     W.addCollider(cx, cz, bl / 2, 0.9, yaw, top).y0 = 0;
   }
 
-  // -- de houten bogen
+  /*
+   De houten boog. Op de foto zijn het twee brede gebogen wangen die vanaf de
+   dekranden naar elkaar toe hellen en boven het midden van de rijbaan bijna
+   samenkomen — vandaar dat je er vanaf het dek tegen een spitsboog aankijkt,
+   en vanaf de rijksweg tegen een boog die de weg overspant. Elke wang bestaat
+   uit twee evenwijdige gebogen liggers met latten ertussen; helemaal bovenin
+   verbinden een paar trekstangen de twee wangen.
+
+   Wat er níét is: dwarsbalken op ooghoogte. Die stonden er eerst wel en dan rij
+   je bovenop de brug tegen een pergola aan.
+  */
   const B = V.boog || {};
   if (B.overspanning) {
     const mid = (d0 + d1) / 2;
     const halve = Math.min((d1 - d0) / 2 - 1, B.overspanning / 2);
     const i0 = Math.round(mid - halve), i1 = Math.round(mid + halve);
-    const dikte = B.balk || 0.5;
-    const DELEN = 26;
+    const dikte = B.balk || 0.45;
+    const DELEN = 28;
+    const laagAf = B.laagAfstand ?? 0.9;      // afstand tussen de twee liggers, langs de brug
+    /*
+     Hoe ver staat de boog op hoogte u nog uit de as? Bij de voet staat hij op de
+     dekrand, vanaf ongeveer een tiende van de overspanning helt hij naar binnen
+     en bij de top raakt hij bijna de hartlijn. `resthoek` laat een spleet open,
+     zodat de twee wangen elkaar niet doorsnijden.
+    */
+    const helling = (u) => 0.05 + 0.95 * Math.min(1, Math.abs(2 * u - 1) * 1.25);
+    const boogY = (u, dekY) => dekY + B.pijl * (1 - (2 * u - 1) * (2 * u - 1));
+    // punt op de boog: u = 0..1 over de overspanning, zij = links/rechts,
+    // laag = -1/+1 voor de twee evenwijdige liggers (verschoven langs de brug)
+    const boogPunt = (u, zij, laag = 0) => {
+      // tussen twee stations in: afronden op een heel station gaf een boog met
+      // knikken erin, want de as ligt maar om de meter vast
+      const i = Math.max(0, Math.min(n - 1.001, i0 + (i1 - i0) * u + laag * laagAf / 2));
+      const k = Math.floor(i), f = i - k, k2 = Math.min(n - 1, k + 1);
+      const meng = (a, b) => a + (b - a) * f;
+      const kruinL = meng(as[k][3], as[k2][3]), kruinR = meng(as[k][5], as[k2][5]);
+      const rand = (zij > 0 ? kruinL + 0.25 : -(kruinR + 0.25)) * helling(u);
+      const nx = meng(V.nrm[k][0], V.nrm[k2][0]), nz = meng(V.nrm[k][1], V.nrm[k2][1]);
+      const dekY = meng(as[k][2], as[k2][2]);
+      return [meng(as[k][0], as[k2][0]) + nx * rand, boogY(u, dekY), meng(as[k][1], as[k2][1]) + nz * rand];
+    };
+    const balk = (a, b, half) => {
+      const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+      const L = Math.hypot(dx, dy, dz);
+      if (L < 1e-3) return;
+      const hb = Array.isArray(half) ? half[0] : half;
+      doosSchuin(hout, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2],
+        half, L / 2 + hb * 0.4, Math.atan2(dx, dz), -Math.atan2(dy, Math.hypot(dx, dz)));
+    };
     for (const zij of [1, -1]) {
-      const boogPunt = (u) => {
-        const i = i0 + (i1 - i0) * u;
-        const k = Math.max(0, Math.min(n - 1, Math.round(i)));
-        const w = zij > 0 ? as[k][3] + 0.2 : -(as[k][5] + 0.2);
-        const p = punt(k, w, as[k][2]);
-        return [p[0], as[k][2] + B.pijl * (1 - (2 * u - 1) * (2 * u - 1)), p[2]];
-      };
-      let vorig = boogPunt(0);
-      for (let s = 1; s <= DELEN; s++) {
-        const nu = boogPunt(s / DELEN);
-        const dx = nu[0] - vorig[0], dy = nu[1] - vorig[1], dz = nu[2] - vorig[2];
-        const L = Math.hypot(dx, dy, dz);
-        const yaw = Math.atan2(dx, dz);
-        // een recht stukje boog: box langs de koorde, iets langer zodat de knikken dichtzitten
-        const c = [(vorig[0] + nu[0]) / 2, (vorig[1] + nu[1]) / 2, (vorig[2] + nu[2]) / 2];
-        const hel = -Math.atan2(dy, Math.hypot(dx, dz));
-        doosSchuin(hout, c, dikte / 2, L / 2 + dikte * 0.2, yaw, hel);
-        vorig = nu;
+      for (const laag of [-1, 1]) {
+        let vorig = boogPunt(0, zij, laag);
+        for (let sg = 1; sg <= DELEN; sg++) {
+          const nu = boogPunt(sg / DELEN, zij, laag);
+          balk(vorig, nu, [dikte * 0.34, dikte * 0.6]);   // gelamineerde ligger: hoger dan breed
+          vorig = nu;
+        }
       }
-      // trekstangen van de boog naar de dekligger
-      for (let k = 1; k <= (B.hangers || 0); k++) {
-        const u = k / ((B.hangers || 0) + 1);
-        const p = boogPunt(u);
-        const i = Math.round(i0 + (i1 - i0) * u);
-        const dekY = as[Math.max(0, Math.min(n - 1, i))][2];
-        doos(hout, p[0], (p[1] + dekY) / 2, p[2], 0.11, (p[1] - dekY) / 2, 0.11, 0, 0.6);
+      // latten tussen de twee liggers: dat maakt de wang een vlak in plaats van
+      // twee losse balken, net als het lattenwerk op de foto
+      const latten = B.latten || 14;
+      for (let k = 0; k <= latten; k++) {
+        const u = k / latten;
+        balk(boogPunt(u, zij, -1), boogPunt(u, zij, 1), [dikte * 0.28, dikte * 0.22]);
       }
     }
-    // dwarsportalen tussen de twee bogen, bij de top
-    for (let k = 1; k <= (B.portalen || 0); k++) {
-      const u = 0.5 + (k - (B.portalen + 1) / 2) * (0.62 / Math.max(1, B.portalen));
-      const i = Math.max(0, Math.min(n - 1, Math.round(i0 + (i1 - i0) * u)));
-      const y = as[i][2] + B.pijl * (1 - (2 * u - 1) * (2 * u - 1)) - dikte * 0.6;
-      const wl = as[i][3] + 0.2, wr = as[i][5] + 0.2;
-      const cx = as[i][0] + V.nrm[i][0] * (wl - wr) / 2, cz = as[i][1] + V.nrm[i][1] * (wl - wr) / 2;
-      const yaw = Math.atan2(-V.nrm[i][1], V.nrm[i][0]);
-      doos(hout, cx, y, cz, (wl + wr) / 2, 0.16, 0.16, yaw, 0.6);
+    // trekstangen bij de top, tussen de twee wangen door
+    for (let k = 1; k <= (B.trekstangen || 0); k++) {
+      const u = 0.5 + (k - ((B.trekstangen || 0) + 1) / 2) * 0.075;
+      balk(boogPunt(u, 1, 0), boogPunt(u, -1, 0), 0.07);
     }
-    // de boogvoeten zijn dik genoeg om tegenaan te rijden
+    // de boogvoeten staan buiten de leuning; ze zijn dik genoeg om tegenaan te rijden
     for (const zij of [1, -1]) for (const i of [i0, i1]) {
-      const w = zij > 0 ? as[i][3] + 0.2 : -(as[i][5] + 0.2);
+      const w = zij > 0 ? as[i][3] + 0.25 : -(as[i][5] + 0.25);
       const p = punt(i, w, as[i][2]);
-      W.addCollider(p[0], p[2], dikte, dikte, 0, 2.5).y0 = as[i][2];
+      W.addCollider(p[0], p[2], dikte, dikte + laagAf / 2, 0, 3).y0 = as[i][2];
     }
   }
 
@@ -354,12 +382,15 @@ function bouwEen(scene, W, KM, V) {
 }
 
 // Een doos die om Y draait én kantelt (voor boogdelen en leuningregels).
+// `half` mag een getal zijn (vierkant) of [breed, hoog] voor een plank.
 function doosSchuin(g, c, half, halfLang, yaw, helling) {
+  const hb = Array.isArray(half) ? half[0] : half;
+  const hh = Array.isArray(half) ? half[1] : half;
   const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(helling, yaw, 0, 'YXZ'));
   const v = new THREE.Vector3();
   const hoekpunten = [];
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
-    v.set(sx * half, sy * half, sz * halfLang).applyQuaternion(q);
+    v.set(sx * hb, sy * hh, sz * halfLang).applyQuaternion(q);
     hoekpunten.push([c[0] + v.x, c[1] + v.y, c[2] + v.z]);
   }
   // index: (sx,sy,sz) -> 4*sx' + 2*sy' + sz'

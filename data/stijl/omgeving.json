@@ -144,12 +144,13 @@
       "dekdikte": 0.9,
       "taludHelling": 1.4,
       "boog": {
-        "_uitleg": "De twee houten bogen staan op de dekranden en overspannen het stuk boven de rijksweg. 'overspanning' is de lengte van de boog in meters, 'pijl' hoe hoog hij boven het dek uitkomt, 'hangers' het aantal verticale trekstangen per boog, 'portalen' het aantal dwarsverbanden tussen de twee bogen.",
+        "_uitleg": "Twee brede gebogen houten wangen op de dekranden. Ze hellen naar elkaar toe en komen boven het midden van de rijbaan bijna samen: vanaf het dek kijk je daardoor tegen een spitsboog aan (foto 'Viaduct Tinga'), vanaf de rijksweg tegen een boog die de weg overspant. 'overspanning' is de lengte in meters, 'pijl' de hoogte van de top boven het dek, 'balk' de dikte van een ligger, 'laagAfstand' de afstand tussen de twee evenwijdige liggers van één wang, 'latten' het aantal dwarslatten daartussen, 'trekstangen' de stangen die de twee wangen bovenin verbinden. Bewust geen dwarsbalken op ooghoogte: die stonden er eerst wel en dan rijd je bovenop de brug tegen een pergola aan.",
         "overspanning": 44,
-        "pijl": 5.6,
-        "hangers": 7,
-        "portalen": 5,
-        "balk": 0.55,
+        "pijl": 7.5,
+        "balk": 0.45,
+        "laagAfstand": 1.1,
+        "latten": 16,
+        "trekstangen": 2,
         "kleur": "#8d6f4c"
       },
       "leuning": { "_uitleg": "houten leuning langs het dek en het bovenste stuk van beide opritten; dezelfde tint als de bogen", "hoogte": 1.3 },
