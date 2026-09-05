@@ -4,6 +4,7 @@
    tinga_state_deur.png   buiten voor de schuurdeur, met de hint in beeld
    boerderij_deel.png     binnen: de deel met de kap van de stelpboerderij
    boerderij_toonbank.png de verkoper achter zijn toonbank, met de prijs
+   winkel_kaart.png       het winkelicoontje op de grote kaart (M)
 
  Gebruik: python3 -m http.server 8123 &  node tools/winkelshots.mjs 8123 [map]
 */
@@ -72,5 +73,13 @@ await page.evaluate(() => {
   b.update(0.1, false);
 });
 await foto('boerderij_toonbank');
+
+// 4. het icoontje op de grote kaart
+await page.evaluate(() => {
+  const g = window.__game, b = g.boerderij, p = b.plekken;
+  window.__kijk(p.stoep, p.deurBuiten, 0);
+  g.hud.toggleBig();
+});
+await foto('winkel_kaart');
 
 await browser.close();

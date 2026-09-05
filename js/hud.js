@@ -132,6 +132,36 @@ export class HUD {
     this.sterEl.classList.toggle('knippert', !!knippert);
   }
 
+  /*
+   Winkels op de kaart: [{ x, z, naam }]. Op dit moment is dat alleen de
+   munitiewinkel in de boerderij Tinga State (js/boerderij.js).
+  */
+  zetWinkels(lijst) { this.winkels = lijst || []; }
+
+  /*
+   Het winkeltje: een amberkleurig schildje met een patroon erin, getekend in
+   beeldpunten rond (0,0). De aanroeper zet hem op zijn plek en draait de
+   kaartrotatie eruit, zodat het icoontje altijd rechtop staat — een meedraaiend
+   symbool is op een draaiende minikaart niet te lezen.
+  */
+  static tekenWinkel(c, r = 9) {
+    c.beginPath();
+    c.moveTo(0, r * 1.25);                         // punt naar beneden, als een speldje
+    c.lineTo(-r * 0.72, r * 0.35);
+    c.arc(0, -r * 0.1, r, Math.PI * 0.78, Math.PI * 0.22, false);
+    c.closePath();
+    c.fillStyle = '#f2b632'; c.fill();
+    c.strokeStyle = '#3a2c10'; c.lineWidth = 1.4; c.stroke();
+    // een patroon: huls met een punt erop
+    c.fillStyle = '#3a2c10';
+    c.fillRect(-r * 0.20, -r * 0.28, r * 0.40, r * 0.62);
+    c.beginPath();
+    c.moveTo(-r * 0.20, -r * 0.28);
+    c.lineTo(0, -r * 0.72);
+    c.lineTo(r * 0.20, -r * 0.28);
+    c.closePath(); c.fill();
+  }
+
   // Mislukte missie: het beeld vaagt naar grijs.
   zetGrijs(aan) { document.body.classList.toggle('mislukt', !!aan); }
 
@@ -232,6 +262,14 @@ export class HUD {
         c.beginPath(); c.arc(p.x * scale, p.z * scale, r, 0, Math.PI * 2); c.fill();
       }
     }
+    // winkels: het icoontje draait niet mee, anders staat hij op zijn kop
+    for (const w of (this.winkels || [])) {
+      c.save();
+      c.translate(w.x * scale, w.z * scale);
+      c.rotate(-this._kaartRot);
+      HUD.tekenWinkel(c, 9);
+      c.restore();
+    }
     this.drawLabels(c, scale, -yaw + Math.PI, 40);
     c.restore();
     // speler
@@ -280,6 +318,19 @@ HUD.prototype.drawBig = function (player, vehicles) {
     for (const p of this.politiePlekken) {
       c.beginPath(); c.arc(p.x, p.z, (p.wagen ? 5.5 : 4) / scale, 0, Math.PI * 2); c.fill(); c.stroke();
     }
+  }
+  // winkels, met hun naam erbij; hier staat noorden boven, dus geen tegendraai
+  for (const w of (this.winkels || [])) {
+    c.save();
+    c.translate(w.x, w.z);
+    c.scale(1 / scale, 1 / scale);              // vaste maat in beeldpunten
+    HUD.tekenWinkel(c, 9);
+    if (w.naam) {
+      c.font = 'bold 12px sans-serif'; c.textAlign = 'center';
+      c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
+      c.strokeText(w.naam, 0, -16); c.fillStyle = '#f5e6c0'; c.fillText(w.naam, 0, -16);
+    }
+    c.restore();
   }
   const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);
   const pz = this.kaartVanaf ? this.kaartVanaf.z : (player.inCar ? player.inCar.z : player.pos.z);
