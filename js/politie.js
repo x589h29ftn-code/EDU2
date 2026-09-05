@@ -42,18 +42,24 @@ const VERGETEN = 18;      // seconden uit het zicht voor de eerste ster wegvalt
 const KOEL = 26;          // heat per seconde die eraf gaat als niemand je ziet
 
 // ---- eenheden ----
-const TE_VOET = [0, 2, 2, 3, 3, 4];        // agenten te voet per ster
-const WAGENS = [0, 0, 1, 2, 3, 4];         // surveillanceauto's per ster
+// Hoe meer sterren, hoe meer blauw op straat. Bij één ster rijdt er al een
+// surveillancewagen rond; bij vijf is de halve wijk aan het zoeken.
+const TE_VOET = [0, 3, 4, 5, 6, 8];        // agenten te voet per ster
+const WAGENS = [0, 1, 2, 3, 4, 5];         // surveillanceauto's per ster
+// Hoe wijd ze zoeken rond de laatst bekende plek (m). Met meer sterren wordt
+// het net groter: ze kammen dan ook de straten eromheen uit.
+const ZOEKSTRAAL = [0, 55, 85, 120, 155, 195];
 const ZICHT = 42;                          // hoe ver een agent je ziet (m)
 const GEZICHTSVELD = 1.15;                 // halve openingshoek (rad)
 const GEHOOR = 65;                         // een schot horen ze verder (m)
 const REN = 4.3;                           // rennende agent (m/s)
 const LOOP = 1.7;                          // zoekende agent (m/s)
 const DEKKING = 11;                        // dichterbij komen ze niet, ze schieten
-const VUURTIJD = 1.5;                      // seconden tussen twee schoten
+const VUURTIJD = 1.8;                      // seconden tussen twee schoten
+const VUURDERS = 3;                        // zoveel agenten schieten er tegelijk op je
 const VUURBEREIK = 34;
-const SCHADE = 5;
-const SPAWN_MIN = 70, SPAWN_MAX = 170;     // afstand waarop ze opduiken (m)
+const SCHADE = 4;
+const SPAWN_MIN = 55, SPAWN_MAX = 150;     // afstand waarop ze opduiken (m)
 const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c };
 
 export function initPolitie({ scene, player, npcs, vehicles, hud }) {
@@ -130,6 +136,47 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       j++;
     }
     return { x: e.route[j][0], z: e.route[j][1] };
+  }
+
+  /*
+   Een zoekpunt voor één eenheid.
+
+   Alle eenheden naar dezelfde plek sturen geeft een kluitje politie op de
+   plaats delict en verder een lege wijk — precies wat je niet wilt. Elke
+   eenheid krijgt daarom een eigen sector rond het anker (verdeeld met de gulden
+   snede, zodat ze mooi over de windroos verspreid staan) en zoekt daarin. De
+   straal groeit met het aantal sterren: bij één ster blijven ze in de buurt van
+   de melding, bij vijf kammen ze de halve wijk uit.
+
+   Het punt wordt naar de dichtstbijzijnde weg getrokken, want daar rijden en
+   lopen ze; een zoekpunt midden in een achtertuin levert alleen maar geduw
+   tegen schuttingen op.
+  */
+  let sectorTeller = 0;
+  function nieuwZoekpunt(e, dichtbij = false) {
+    const ank = anker();
+    const s = Math.max(1, ster());
+    if (e.sector === undefined) e.sector = (sectorTeller++ * 0.618034) % 1;
+    const straal = ZOEKSTRAAL[s] * (dichtbij ? 0.2 : 0.35 + Math.random() * 0.65);
+    const hoek = (e.sector + (Math.random() - 0.5) * 0.18) * Math.PI * 2;
+    let x = ank.x + Math.cos(hoek) * straal, z = ank.z + Math.sin(hoek) * straal;
+    const net = wegennet();
+    if (net) {
+      const i = net.naaste(x, z, 200, true);
+      if (i >= 0) {
+        // Op het knooppunt zelf gaan staan geeft een kluitje: twee eenheden die
+        // vanuit dezelfde hoek zoeken vallen op hetzelfde punt samen. Ieder
+        // krijgt daarom een eigen plekje van een paar meter eromheen.
+        const eigen = e.sector * Math.PI * 2;
+        const r = 3 + (e.sector * 7) % 5;
+        x = net.punten[i][0] + Math.cos(eigen) * r;
+        z = net.punten[i][1] + Math.sin(eigen) * r;
+      }
+    }
+    e.doel = { x, z };
+    e.zoekT = 14 + Math.random() * 12;
+    e.route = null;
+    return e.doel;
   }
 
   // ---------------------------------------------------------------- misdaad
@@ -406,6 +453,17 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
 
     let iemandZiet = false;
     let dichtsteSirene = null;
+    /*
+     Wie mag er schieten? Met acht agenten om je heen die allemaal om de anderhalve
+     seconde vuren is je levensbalk in tien tellen leeg en valt er niets meer te
+     spelen. Alleen de dichtstbijzijnde paar schieten; de rest komt aanlopen en
+     wacht op zijn beurt. Dat is ook wat je in GTA ziet gebeuren.
+    */
+    const schutters = new Set(agenten
+      .filter(a => a.staat === 'jacht' && a.zicht && a.persoon.groep.visible)
+      .sort((a, b) => Math.hypot(a.persoon.groep.position.x - sp.x, a.persoon.groep.position.z - sp.z)
+                    - Math.hypot(b.persoon.groep.position.x - sp.x, b.persoon.groep.position.z - sp.z))
+      .slice(0, VUURDERS));
 
     // ---- agenten te voet ----
     for (const a of agenten) {
@@ -434,7 +492,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
         persoon.kijkNaar(sp.x, sp.z, dt, 7);
         persoon.update(dt, { loopt: !dichtbij, mikt: true, snelheid: REN });
         a.vuurT -= dt;
-        if (a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht) {
+        if (a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht && schutters.has(a)) {
           a.vuurT = VUURTIJD * (0.8 + Math.random() * 0.6);
           persoon.vuur();
           geluid.schot();
@@ -446,31 +504,53 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
 
       if (a.staat === 'zoekt' || a.staat === 'naarPlek') {
         // komt hij al een tijd nergens meer? dan is hij 'omgelopen' en komt er
-        // verderop een verse collega aan (zie de wagens hierboven)
+        // verderop een verse collega aan (zie de wagens hieronder)
         const vorige = a.vorigePlek || (a.vorigePlek = { x: pos.x, z: pos.z, t: 0 });
         vorige.t += dt;
         if (vorige.t > 3) {
           if (Math.hypot(pos.x - vorige.x, pos.z - vorige.z) < 2 && dSp > 70 && !a.wagen) { ruimAgent(a); continue; }
           vorige.x = pos.x; vorige.z = pos.z; vorige.t = 0;
         }
-        const eindDoel = a.doel || laatstBekend || sp;
-        // ver weg loopt hij over straat, dichtbij rechtdoor
+        // een eigen zoekpunt: de eerste ligt dicht bij de melding, daarna gaan
+        // ze de straten eromheen af
+        a.zoekT = (a.zoekT || 0) - dt;
+        if (!a.doel || a.zoekT <= 0) nieuwZoekpunt(a, a.staat === 'naarPlek' && !a.zoekT);
+        const eindDoel = a.doel;
+        const snelheid = a.staat === 'naarPlek' ? REN : LOOP;
         const doel = volgPunt(a, pos, eindDoel, dt, 4);
-        const erIs = loopNaar(a, doel, dt, a.staat === 'naarPlek' ? REN : LOOP)
+        const erIs = loopNaar(a, doel, dt, snelheid)
           && Math.hypot(eindDoel.x - pos.x, eindDoel.z - pos.z) < 6;
-        persoon.update(dt, { loopt: !erIs, mikt: a.staat === 'zoekt', snelheid: a.staat === 'naarPlek' ? REN : LOOP });
+        // het wapen komt pas omhoog waar hij daadwerkelijk staat te zoeken, of
+        // als je in de buurt bent; onderweg naar zijn zoekpunt loopt hij gewoon
+        persoon.update(dt, { loopt: !erIs, mikt: a.staat === 'zoekt' && (erIs || dSp < 40), snelheid });
         if (erIs) {
-          // ter plekke rondkijken en dan een stukje verderop zoeken
+          // ter plekke rondkijken, dan verderop verder zoeken
           a.wacht += dt;
           persoon.draaiNaar(persoon.yaw + 1.1, dt, 1.1);
-          if (a.wacht > 2.5) {
-            a.wacht = 0; a.staat = 'zoekt';
-            const hoek = Math.random() * 6.28, straal = 8 + Math.random() * 22;
-            const basis = laatstBekend || sp;
-            a.doel = { x: basis.x + Math.sin(hoek) * straal, z: basis.z + Math.cos(hoek) * straal };
-          }
+          if (a.wacht > 2.5) { a.wacht = 0; a.staat = 'zoekt'; nieuwZoekpunt(a); }
         }
         continue;
+      }
+    }
+
+    /*
+     Elkaar niet in de weg lopen. Twee agenten die naar hetzelfde punt zoeken
+     komen anders in elkaar te staan — je ziet dan één poppetje met vier armen.
+     Een zacht duwtje uit elkaar is genoeg; het is dezelfde truc als bij de
+     voetgangers in js/npc.js.
+    */
+    const zichtbaar = agenten.filter(a => a.staat !== 'neer' && a.persoon.groep.visible);
+    for (let i = 0; i < zichtbaar.length; i++) {
+      for (let j = i + 1; j < zichtbaar.length; j++) {
+        const p = zichtbaar[i].persoon.groep.position, q = zichtbaar[j].persoon.groep.position;
+        let dx = q.x - p.x, dz = q.z - p.z;
+        const d = Math.hypot(dx, dz);
+        if (d > 1.1) continue;
+        if (d < 0.001) { dx = Math.cos(i * 2.4); dz = Math.sin(i * 2.4); }
+        const duw = (1.1 - Math.min(d, 1.1)) * 0.5;
+        const nx = dx / (d || 1), nz = dz / (d || 1);
+        p.x -= nx * duw; p.z -= nz * duw;
+        q.x += nx * duw; q.z += nz * duw;
       }
     }
 
@@ -498,21 +578,29 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       if (w.staat === 'wegwezen') {
         const weg = w.wegDoel || (w.wegDoel = spawnPlek());
         const afst = rijNaar(w, weg, dt, 16);
-        if (afst < 12) ruimWagen(w);
+        w.wegT = (w.wegT || 0) + dt;
+        // hij is vertrokken zodra hij er is, ver genoeg weg is, of het te lang duurt
+        if (afst < 12 || (dSp > 130 && w.wegT > 6) || w.wegT > 25) ruimWagen(w);
         continue;
       }
 
-      const doel = w.staat === 'jacht' ? sp : (laatstBekend || sp);
+      // achter je aan, of anders zijn eigen ronde door de wijk rijden
+      if (w.staat !== 'jacht') {
+        w.zoekT = (w.zoekT || 0) - dt;
+        if (!w.doel || w.zoekT <= 0) nieuwZoekpunt(w, w.staat === 'naarPlek' && !w.doel);
+      }
+      const doel = w.staat === 'jacht' ? sp : w.doel;
       const afst = rijNaar(w, doel, dt, w.staat === 'jacht' ? 20 : 15);
+      if (w.staat !== 'jacht' && afst < 12) { w.staat = 'zoekt'; nieuwZoekpunt(w); }
       if ((w.pogingen || 0) >= 3 && dSp > 55) { ruimWagen(w); continue; }   // hopeloos vast: verderop komt een verse wagen
       // ver buiten het zoekgebied verdwaald? die eenheid is uitgeschakeld
       const ank = anker();
       if (Math.hypot(car.x - ank.x, car.z - ank.z) > 420 && dSp > 120) { ruimWagen(w); continue; }
 
-      // ter plekke: de agenten stappen uit en gaan te voet verder
-      if (afst < 16 && w.agenten.some(a => !a.persoon.groep.visible)) {
+      // bij de speler in de buurt stappen ze uit en gaan ze te voet verder
+      if (dSp < 40 && w.agenten.some(a => !a.persoon.groep.visible)) {
         w.uitstapT += dt;
-        if (w.uitstapT > 0.4 || afst < 9) {
+        if (w.uitstapT > 0.4 || dSp < 22) {
           const zij = new THREE.Vector3(Math.cos(car.yaw), 0, -Math.sin(car.yaw));
           w.agenten.forEach((a, i) => {
             if (a.persoon.groep.visible) return;
