@@ -953,9 +953,17 @@ Twee dingen die pas opvielen doordat er nu naar dit pand gekeken werd:
    stap 9 verkleind worden is dat doek zelf 288 px — en zonder maat bleef de
    rest van het canvas zwart. Eén `drawImage` met de doelmaat erbij.
 
-Controle: `npm run winkeltest` (negentien controles over het beginkapitaal, de
-deur heen en terug, de maten van de deel, de wanden, de prijs, het geld en de
-kogels, en de lege portemonnee). `npm run winkelshots` maakt de foto's. De
+Op de kaart staat de winkel als een amberkleurig speldje, op de plek van de
+schuurdeur. Op de minikaart wordt de kaartrotatie er weer uitgedraaid en op de
+grote kaart wordt hij op een vaste maat in beeldpunten getekend — hetzelfde
+recept als bij de politiestippen, om dezelfde reden. `js/hud.js` weet niet welke
+winkels er zijn: `main.js` haalt ze bij de binnenruimtes op en geeft ze door met
+`zetWinkels`.
+
+Controle: `npm run winkeltest` (drieëntwintig controles over het beginkapitaal,
+de deur heen en terug, de maten van de deel, de wanden, de prijs, het geld en de
+kogels, de lege portemonnee, en het icoontje op allebei de kaarten — geteld in
+amberkleurige beeldpunten op het kaartdoek). `npm run winkelshots` maakt de foto's. De
 verhaalproef telt na de beloning nu € 550 in plaats van € 500; verder blijven
 alle proeven groen en staat `npm run geo:boven` nog op 1,31 %. Het
 texturegeheugen loopt met de binnenruimte mee van 82 naar 83 MB, de draw calls

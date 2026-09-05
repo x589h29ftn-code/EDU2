@@ -162,7 +162,47 @@ ok(nieuw.geld === nieuw.voor.geld - 100 && nieuw.kogels === nieuw.voor.kogels + 
   'twee dozen kosten honderd euro en geven tweehonderd kogels',
   `€ ${nieuw.voor.geld} → € ${nieuw.geld}, ${nieuw.voor.kogels} → ${nieuw.kogels} kogels`);
 
-// ---------- 7. de politie blijft buiten ----------
+// ---------- 7. het winkeltje op de kaart ----------
+kop('op de kaart');
+const kaart = await page.evaluate(async () => {
+  const g = window.__game;
+  const b = g.boerderij;
+  const w = (g.hud.winkels || [])[0];
+  if (!w) return { er: false };
+  // ga buiten bij de boerderij staan en tel de amberkleurige beeldpunten op de
+  // minikaart: die kunnen alleen van het icoontje komen
+  window.__zet(b.plekken.stoep);
+  g.hud.drawMap(g.player, g.vehicles, g.npcs);
+  const cv = g.hud.canvas, c = cv.getContext('2d');
+  const d = c.getImageData(0, 0, cv.width, cv.height).data;
+  let amber = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i] > 210 && d[i + 1] > 150 && d[i + 1] < 210 && d[i + 2] < 110) amber++;
+  }
+  // en op de grote kaart hoort de naam erbij te staan
+  const groot = (() => {
+    if (!g.hud.bigOpen) g.hud.toggleBig();
+    g.hud.drawBig(g.player, g.vehicles);
+    const cb = g.hud.big, cc = cb.getContext('2d');
+    const dd = cc.getImageData(0, 0, cb.width, cb.height).data;
+    let n = 0;
+    for (let i = 0; i < dd.length; i += 4) {
+      if (dd[i] > 210 && dd[i + 1] > 150 && dd[i + 1] < 210 && dd[i + 2] < 110) n++;
+    }
+    g.hud.toggleBig();
+    return n;
+  })();
+  return {
+    er: true, naam: w.naam, amber, groot,
+    bijDeur: Math.hypot(w.x - b.plekken.deurBuiten.x, w.z - b.plekken.deurBuiten.z),
+  };
+});
+ok(kaart.er && kaart.naam === 'Tinga State', 'de winkel staat als plek in de HUD', String(kaart.naam));
+ok(kaart.bijDeur < 0.01, 'op de plek van de schuurdeur', `${kaart.bijDeur.toFixed(2)} m ernaast`);
+ok(kaart.amber > 40, 'en het icoontje staat op de minikaart', `${kaart.amber} beeldpunten`);
+ok(kaart.groot > 40, 'en ook op de grote kaart', `${kaart.groot} beeldpunten`);
+
+// ---------- 8. de politie blijft buiten ----------
 kop('binnen ben je even veilig');
 const rust = await page.evaluate(() => {
   const g = window.__game;

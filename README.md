@@ -359,10 +359,17 @@ Je begint het spel met **€ 50**, dus één doos munitie zit er altijd in. Daar
 de beloning van Johan aan het eind van het verhaal is € 500 (zie [Het verhaal](#het-verhaal)). Je geld
 staat rechtsonder in beeld en gaat mee in de opslag.
 
-`npm run winkeltest` toetst het geheel: het beginkapitaal, de deur heen en terug, de maten van de
-deel, de wanden die je binnenhouden, de prijs, wat er van je geld af gaat en wat je aan kogels
-bijkrijgt, en dat je met een lege portemonnee niets koopt. `npm run winkelshots` maakt de drie foto's
-hierboven.
+De winkel is te vinden zonder ernaar te zoeken: op de minikaart én op de grote kaart (**M**) staat een
+amberkleurig speldje met een patroon erin, op de plek van de schuurdeur. Op de minikaart draait het
+icoontje niet mee met de kaart, zodat het altijd rechtop staat; op de grote kaart staat de naam
+erbij.
+
+![Het winkeltje op de kaart](docs/screenshots/winkel_kaart.png)
+
+`npm run winkeltest` toetst het geheel — 23 controles: het beginkapitaal, de deur heen en terug, de
+maten van de deel, de wanden die je binnenhouden, de prijs, wat er van je geld af gaat en wat je aan
+kogels bijkrijgt, dat je met een lege portemonnee niets koopt, en dat het icoontje op allebei de
+kaarten getekend wordt. `npm run winkelshots` maakt de foto's hierboven.
 
 ## Opslaan en laden
 

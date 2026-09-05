@@ -266,6 +266,7 @@ const verhaal = initVerhaal({
 // binnen en weer naar buiten (js/interieur.js).
 const LEEG = {
   update() {}, toets() { return false; }, binnen() { return false; }, meldAan() {}, kaart() { return null; },
+  winkels: [],
 };
 const interieur = initInterieur({ scene, player }) || LEEG;
 // En achter de schuurdeur van Tinga State: de deel met de toonbank waar je
@@ -274,6 +275,8 @@ const boerderij = initBoerderij({ scene, player, hud, verhaal }) || LEEG;
 // Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
 const binnenruimtes = [interieur, boerderij];
 const ergensBinnen = (x, z) => binnenruimtes.some(r => r.binnen(x, z));
+// winkeltjes op de minikaart en op de grote kaart
+hud.zetWinkels(binnenruimtes.flatMap(r => r.winkels || []));
 // Binnen wijst de HUD nog steeds de straat buiten aan (zie hud.kaartVanaf).
 function straatOf(x, z) {
   let k = null;
