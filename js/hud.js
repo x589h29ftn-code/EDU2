@@ -162,12 +162,12 @@ export class HUD {
     if (player.inCar) {
       this.speed.textContent = Math.round(Math.abs(player.inCar.speed) * 3.6) + ' km/u';
       this.speed.style.display = 'block'; this.ammo.style.display = 'none';
-      this.hint.textContent = 'W/S gas en rem · A/D sturen · spatie handrem · E uitstappen';
+      this.hint.textContent = 'W/S gas en rem · A/D sturen · spatie handrem · V camera · E uitstappen';
     } else {
       this.speed.style.display = 'none'; this.ammo.style.display = 'block';
       this.ammo.textContent = player.reloading > 0 ? 'herladen…' : `${player.ammo} / ${player.reserve}`;
       const car = vehicles.nearestDriveable(player.pos.x, player.pos.z);
-      this.hint.textContent = (car && !praten) ? 'Druk E om in te stappen' : 'WASD lopen · shift sprinten · spatie springen · muis kijken · LMB schieten · R herladen · M kaart';
+      this.hint.textContent = (car && !praten) ? 'Druk E om in te stappen' : 'WASD lopen · shift sprinten · spatie springen · muis kijken · LMB schieten · R herladen · V camera · M kaart';
     }
     if (this.msgT > 0) { this.msgT -= dt; if (this.msgT <= 0) this.msg.style.opacity = 0; }
     if (this.missieT > 0) { this.missieT -= dt; if (this.missieT <= 0) this.missieEl.style.opacity = 0; }

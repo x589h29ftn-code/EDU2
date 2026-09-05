@@ -236,6 +236,7 @@ naar `main` om een build te krijgen.
 | Stijl | tien vaste steekproefpunten naast Street View | per adres akkoord in de catalogus |
 | Panden met een eigen aanzien (winkel, boerderij) | `npm run adresshots` | foto per pand naast de bronfoto |
 | Het verhaal, alle vijf de missies (stap 8) | `npm run verhaaltest` | eindigt op "Alles goed" |
+| Rijden, de camera achter je, aanrijden (stap 8) | `npm run rijtest` | eindigt op "Alles goed" |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
 betrouwbaar kan beoordelen, omdat het een pixel-voor-pixel vergelijking is op
@@ -642,6 +643,61 @@ maken van de foto's kwam nog een fout boven die het spelen raakte: de tekstbalk
 kreeg `display: flex` voor het portretje, en dat verslaat de standaardstijl van
 het `hidden`-attribuut — de balk ging daardoor nooit meer uit beeld.
 `npm run geo:boven` blijft op 1,31 %.
+
+**Rijden, de camera achter je en voetgangers aanrijden (stap 8).**
+De auto's waren dozen met een kleinere doos erop, en je zat er met je neus op de
+voorruit in. Drie dingen zijn aangepakt, met steeds de 329 geparkeerde auto's in
+het achterhoofd: alles wat per auto een mesh kost, telt 329 keer mee.
+
+- **Het model** (`js/carmodel.js`) is opgebouwd uit lagen die naar boven toe
+  smaller worden — dorpel, flank met een taille, schouderlijn, motorkap,
+  kofferklep, dak — met schuine A- en C-stijlen, wielkasten (halve ringen om de
+  wielen), spiegels op een steeltje, portiernaden, grepen en een uitlaat. Dat
+  kost alleen driehoeken, en de geometrie wordt per soort één keer gemaakt en
+  door alle auto's gedeeld; het aantal meshes per geparkeerde auto blijft zeven.
+- **Wat beweegt zit in een tweede uitvoering** die alleen de auto krijgt waar je
+  in stapt (`Vehicles.maakBestuurbaar`): losse wielen in eigen groepjes (de
+  voorste sturen, alle vier rollen), een carrosserie in een tussengroep die
+  overhelt in de bocht en duikt bij het remmen, en losse rem- en
+  achteruitrijlichten. Dat zijn tien meshes extra voor één auto in plaats van
+  ruim tweeduizend voor allemaal.
+- **Het rijgedrag** (`Vehicles.drive`) heeft nu een trekkracht die met de
+  snelheid afneemt, motorrem en luchtweerstand, een stuuruitslag die kleiner
+  wordt naarmate je harder rijdt, en een rijrichting die achterloopt op de neus.
+  Die laatste is wat drift geeft: met de handrem loopt de rijrichting zóver
+  achter dat de kont uitbreekt. Bij het schrijven kwam een oude fout boven die
+  ook het vorige model raakte: de luchtweerstand werd per beeld afgetrokken in
+  plaats van per seconde, dus op een snelle machine remde een auto veel harder
+  af dan op een trage. Nu gaat hij maal `dt`.
+
+**De camera achter je** (`js/derdepersoon.js`, toets V) hangt aan een hengel die
+elk beeld wordt ingekort tot het eerste obstakel dat hoger is dan de camera zelf.
+Dat kan niet met een raycast over de hele scene — dat zijn duizenden meshes — maar
+wel met de botsingsdozen die er toch al zijn: `vrijeCamera` in `world.js` maakt
+eerst een korte lijst van de dozen binnen bereik (van de 4832 blijven er meestal
+een handvol over) en loopt daarna met stapjes van 25 cm langs de straal. Kan de
+hengel niet ver genoeg — je staat met je rug tegen een muur — dan klimt de camera
+omhoog in plaats van naar binnen. In de auto hangt de lengte aan de lengte van het
+voertuig, zodat je bij een bakwagen van zeven meter niet in de laadbak kijkt, en
+draait de camera vanzelf terug tot recht achter de auto zodra je zelf niet meer
+rondkijkt. Te voet krijg je een `Persoon` als poppetje; het richten blijft
+kloppen doordat de kogel uit zijn schouder komt en naar het punt onder het kruisje
+gaat.
+
+**Voetgangers aanrijden**: `NPCs.aanrijden` legt iedereen binnen een straal neer,
+aangeroepen vanuit `drive` voor drie punten langs de auto, zodat een bakwagen over
+zijn hele lengte raakt. Onder 1,6 m/s gebeurt er niets, zodat je stapvoets langs
+iemand kunt manoeuvreren. Wie geraakt wordt schuift nog een paar meter door in de
+richting van de klap en staat een halve minuut later ergens anders in de wijk weer
+op — dezelfde respawn als na een schot.
+
+Controle: `npm run rijtest` (32 controles: het model in beide uitvoeringen, de
+meshtelling, optrekken, topsnelheid, motorrem, remmen, achteruit, stuuruitslag,
+drift met de handrem, rollende en sturende wielen, overhellen en duiken, de rem-
+en achteruitrijlichten, de camera achter speler en auto, het inkorten bij een
+muur, het richten vanaf de schouder, en het aanrijden met en zonder vaart).
+`npm run rijshots` maakt de foto's. `npm run geo:boven` blijft op 1,31 % en
+`npm run verhaaltest` op "Alles goed".
 
 **Wat nog niet af is (in volgorde).**
 

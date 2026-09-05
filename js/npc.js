@@ -145,7 +145,7 @@ export class NPCs {
       if (!p.alive) {
         p.fall = Math.min(1, p.fall + dt * 3);
         p.respawn -= dt;
-        if (p.respawn <= 0) { p.alive = true; p.fall = 0; this.pickSegment(p, true); }
+        if (p.respawn <= 0) { p.alive = true; p.fall = 0; p.smak = null; this.pickSegment(p, true); }
       } else if (p.steek > 0) {
         // midden in het oversteken: van de ene stoep naar de andere
         p.steek = Math.max(0, p.steek - dt * (p.fietst ? 1.6 : 0.9));
@@ -178,6 +178,13 @@ export class NPCs {
       p.x = s.a[0] + (s.b[0] - s.a[0]) * p.t - dz * off;
       p.z = s.a[1] + (s.b[1] - s.a[1]) * p.t + dx * off;
       p.yaw = Math.atan2(-dx * p.dir, -dz * p.dir) + Math.PI;
+      // aangereden: hij schuift nog een paar meter door in de richting van de klap
+      if (p.smak) {
+        p.smak.t = Math.max(0, p.smak.t - dt);
+        p.smak.weg = (p.smak.weg || 0) + p.smak.t * 7 * dt;
+        p.x += p.smak.dx * p.smak.weg;
+        p.z += p.smak.dz * p.smak.weg;
+      }
 
       const h = p.height;
       const tilt = p.alive ? 0 : -p.fall * Math.PI / 2;
@@ -224,5 +231,29 @@ export class NPCs {
     if (!p || !p.alive) return false;
     p.alive = false; p.respawn = 25; p.fall = 0;
     return true;
+  }
+
+  /*
+   Aanrijden: iedereen die binnen `straal` van dit punt loopt gaat tegen de
+   vlakte. Wordt door js/vehicles.js aangeroepen voor drie punten langs de auto,
+   zodat een bakwagen van zeven meter ook echt over zijn hele lengte raakt.
+   Geeft terug hoeveel mensen er neergingen; wie geraakt is vliegt een stukje
+   met de auto mee en staat na een halve minuut verderop weer op.
+  */
+  aanrijden(x, z, straal = 1.2, snelheid = 0) {
+    let n = 0;
+    const vaart = Math.min(1, Math.abs(snelheid) / 14);
+    for (const p of this.people) {
+      if (!p.alive) continue;
+      const dx = p.x - x, dz = p.z - z;
+      if (dx * dx + dz * dz > straal * straal) continue;
+      p.alive = false; p.fall = 0; p.respawn = 22 + this.r() * 8;
+      p.pause = 0; p.steek = 0; p.opWeg = false;
+      // een zetje in de richting waarin hij geraakt wordt
+      const d = Math.hypot(dx, dz) || 1;
+      p.smak = { dx: dx / d, dz: dz / d, t: 0.35 + vaart * 0.5 };
+      n++;
+    }
+    return n;
   }
 }

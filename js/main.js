@@ -11,6 +11,7 @@ import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
 import { initSfeer } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur } from './interieur.js';
+import { initDerdePersoon } from './derdepersoon.js';
 import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
@@ -270,6 +271,10 @@ function straatOf(x, z) {
   hud.kaartVanaf = k ? k.punt : null;
   return k ? k.naam : nearestRoadName(x, z);
 }
+// Camera over de schouder (V): handig met de auto, en te voet zie je jezelf
+// lopen. De hengel wordt ingekort zodra er een muur achter je staat.
+const derde = initDerdePersoon({ scene, camera, player });
+
 // Het verkeer moet ook voor de buurman remmen als hij oversteekt. De lijst met
 // voetgangers heeft een vaste lengte, dus die zetten we één keer klaar.
 const opDeWeg = npcs.people.concat([verhaal.hinder]);
@@ -278,7 +283,10 @@ applyEnvIntensity(scene);
 // Schieten: raycast op auto's en voetgangers
 const raycaster = new THREE.Raycaster();
 const impactMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
-player.shootCb = (origin, dir) => {
+player.shootCb = (camOrigin, camDir) => {
+  // in de derde persoon komt de kogel uit de schouder van je poppetje en niet
+  // uit de camera, anders schiet je langs jezelf heen
+  const { origin, dir } = derde.mikpunt(camOrigin, camDir);
   verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
   raycaster.set(origin, dir); raycaster.far = 120;
   const targets = [...vehicles.cars.map(c => c.mesh), ...npcs.targets, ...verhaal.doelen()];
@@ -304,9 +312,38 @@ function toggleCar() {
     hud.show('Uitgestapt');
   } else {
     const car = vehicles.nearestDriveable(player.pos.x, player.pos.z);
-    if (car) { player.inCar = car; player.carLook = 0; geluid.portier(); geluid.motorAan(); hud.show('Ingestapt – W om te rijden'); }
+    if (car) {
+      vehicles.maakBestuurbaar(car);   // losse wielen, remlichten, verende carrosserie
+      player.inCar = car; player.carLook = 0;
+      if (derde.aan) derde.achterAuto(car);
+      geluid.portier(); geluid.motorAan();
+      hud.show(derde.aan ? 'Ingestapt – W om te rijden' : 'Ingestapt – W om te rijden · V voor de camera achter de auto', 3);
+    }
   }
 }
+
+// Voetgangers aanrijden: js/vehicles.js roept dit aan voor drie punten langs de
+// auto zodra hij hard genoeg gaat.
+function aanrijden(x, z, straal, snelheid) {
+  const n = npcs.aanrijden(x, z, straal, snelheid);
+  if (n) {
+    geluid.klap();
+    hud.show(n > 1 ? `${n} voetgangers aangereden` : 'Voetganger aangereden', 1.4);
+  }
+  return n;
+}
+
+// Camera wisselen tussen eerste en derde persoon.
+function wisselCamera() {
+  if (!player.active && !window.__autoplay) return;
+  if (editor && editor.actief) return;
+  const aan = derde.wissel();
+  if (aan && player.inCar) derde.achterAuto(player.inCar);
+  hud.show(aan ? 'Camera achter je' : 'Camera vanuit je ogen', 1.6);
+}
+window.addEventListener('keydown', e => {
+  if (e.code === 'KeyV' && !e.ctrlKey && !e.metaKey) wisselCamera();
+});
 // E doet vier dingen, in deze volgorde: een gesprek doorklikken, iemand
 // aanspreken die naast je staat, door de voordeur van Molenkrite 15 gaan, en
 // anders in- of uitstappen bij een auto.
@@ -343,6 +380,7 @@ const touch = IS_TOUCH ? initTouchControls(player, {
   onCar: praatOfAuto,
   onMap: () => hud.toggleBig(),
   onPause: () => pauseGame(),
+  onCamera: wisselCamera,
 }) : null;
 
 function startGame(vervolg = false) {
@@ -486,21 +524,27 @@ function loop() {
     player.update(dt);
     if (player.inCar) {
       const car = player.inCar;
-      vehicles.drive(car, player.driveInput(), dt);
+      vehicles.drive(car, player.driveInput(), dt, aanrijden);
       geluid.motorToeren(car.speed);
-      // camera op de bestuurdersstoel (links), meekijken met muis; een
-      // bakwagen heeft zijn eigen, hogere stoel (zie vehicles.voegToe)
-      const st = car.stoel || { x: -0.38, y: 1.25, z: -0.25 };
-      const seat = new THREE.Vector3(st.x, st.y, st.z);
-      seat.applyAxisAngle(new THREE.Vector3(0, 1, 0), car.yaw);
-      camera.position.set(car.x + seat.x, st.y, car.z + seat.z);
-      camera.rotation.set(0, 0, 0, 'YXZ');
-      camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
-      // yaw van speler volgt de auto (relatief kijken)
+      // yaw van speler volgt de auto (relatief kijken), zodat de camera vanzelf
+      // achter de auto blijft hangen
       if (player.lastCarYaw !== undefined) player.yaw += car.yaw - player.lastCarYaw;
       player.lastCarYaw = car.yaw;
+      if (!derde.update(dt, car)) {
+        // camera op de bestuurdersstoel (links), meekijken met muis; een
+        // bakwagen heeft zijn eigen, hogere stoel (zie vehicles.voegToe)
+        const st = car.stoel || { x: -0.38, y: 1.25, z: -0.25 };
+        const seat = new THREE.Vector3(st.x, st.y, st.z);
+        seat.applyAxisAngle(new THREE.Vector3(0, 1, 0), car.yaw);
+        camera.position.set(car.x + seat.x, st.y, car.z + seat.z);
+        camera.rotation.set(0, 0, 0, 'YXZ');
+        camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
+      }
       player.gun.visible = false;
-    } else player.lastCarYaw = undefined;
+    } else {
+      player.lastCarYaw = undefined;
+      derde.update(dt, null);
+    }
     vehicles.updateTraffic(dt, player, opDeWeg);
     npcs.update(dt, time);
     verhaal.update(dt);
@@ -535,8 +579,8 @@ loop();
 
 // Testhaak voor automatische screenshots
 window.__game = {
-  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur,
-  opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar,
+  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, derde,
+  opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
 };
 
 // Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,

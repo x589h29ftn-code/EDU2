@@ -36,6 +36,8 @@
     "geo:steekproef": "node tools/geo/steekproef.mjs 8123",
     "verhaaltest": "node tools/verhaaltest.mjs",
     "verhaalshots": "node tools/verhaalshots.mjs",
+    "rijtest": "node tools/rijtest.mjs",
+    "rijshots": "node tools/rijshots.mjs",
     "adresshots": "node tools/adresshots.mjs"
   }
 }

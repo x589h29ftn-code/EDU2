@@ -1769,6 +1769,41 @@ export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2) {
   return true;
 }
 
+/*
+ Hoe ver kan de camera achteruit voordat hij door een muur zakt? Loopt van het
+ draaipunt (px,py,pz) langs de richting (dx,dy,dz) naar buiten en levert de
+ afstand tot het eerste obstakel, met een marge zodat de camera er niet tegenaan
+ plakt. Wordt elk beeld gebruikt door de derdepersoonscamera (js/derdepersoon.js).
+
+ De wijk heeft bijna vijfduizend botsingsdozen, dus eerst wordt er een korte
+ lijst gemaakt van de dozen die überhaupt in de buurt liggen; daarna hoeven de
+ stapjes langs de straal alleen die paar te toetsen. De hoogte telt mee: een
+ heg van een meter houdt de camera niet tegen.
+*/
+const camKandidaten = [];
+export function vrijeCamera(px, py, pz, dx, dy, dz, maxD, marge = 0.35) {
+  camKandidaten.length = 0;
+  const bereik = maxD + 3;
+  for (const c of colliders) {
+    if (c.h < 0.6) continue;
+    if (Math.abs(c.cx - px) > bereik + c.hx || Math.abs(c.cz - pz) > bereik + c.hz) continue;
+    camKandidaten.push(c);
+  }
+  if (!camKandidaten.length) return maxD;
+  const stap = 0.25;
+  for (let d = stap; d <= maxD; d += stap) {
+    const x = px + dx * d, y = py + dy * d, z = pz + dz * d;
+    if (y < 0.35) return Math.max(0, d - stap - marge * 0.5);
+    for (const c of camKandidaten) {
+      if (c.h < y) continue;
+      const ax = x - c.cx, az = z - c.cz;
+      const lx = ax * c.cos - az * c.sin, lz = ax * c.sin + az * c.cos;
+      if (Math.abs(lx) < c.hx + marge && Math.abs(lz) < c.hz + marge) return Math.max(0, d - stap - marge * 0.5);
+    }
+  }
+  return maxD;
+}
+
 // Botsingsafhandeling: cirkel (x,z,radius) tegen alle colliders -> gecorrigeerde positie
 export function resolveCollisions(x, z, radius, ignoreLowH = 0) {
   for (const c of colliders) {
