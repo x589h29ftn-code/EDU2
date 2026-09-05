@@ -13,6 +13,7 @@ export class Vehicles {
     this.scene = scene;
     this.cars = [];   // {mesh,x,z,yaw,speed,driveable}
     this.traffic = [];
+    this.duwen = [];  // geparkeerde auto's die een klap kregen en uitrollen
     const r = rng(2024);
     for (const s of parkSpots) {
       const kind = r() < 0.15 ? 'van' : 'hatch';
@@ -175,6 +176,11 @@ export class Vehicles {
       if (rx !== px || rz !== pz) { cx += rx - px; cz += rz - pz; ok = false; }
     }
     if (pointInWater(cx, cz)) { cx = car.x; cz = car.z; ok = false; }
+
+    // ---- en tegen andere auto's, die net zo goed in de weg staan ----
+    const blik = this.botsAutos(car, cx, cz);
+    if (blik.raak) { cx = blik.x; cz = blik.z; ok = false; }
+
     if (!ok) { car.speed *= 0.25; car.rij = car.yaw; }
     car.x = cx; car.z = cz;
 
@@ -186,6 +192,80 @@ export class Vehicles {
     }
 
     this.zetNeer(car, dt, vorigeYaw, { gas, rem, hand });
+  }
+
+  /*
+   Blik tegen blik. Tot nu toe reed je dwars door de geparkeerde auto's en door
+   het verkeer heen: alleen gebouwen, hekken en bomen hielden je tegen. Elke
+   auto wordt hier als drie cirkels langs zijn lengteas gezien — dezelfde
+   indeling als bij de botsingen met de omgeving — en wat overlapt, wordt uit
+   elkaar geduwd.
+
+   Alleen wat binnen twaalf meter staat doet mee, anders kost het bij 329
+   geparkeerde auto's te veel. Een geparkeerde auto die je hard raakt schuift
+   een stukje weg (en niet een gebouw in: de duw gaat langs `resolveCollisions`),
+   het rijdende verkeer en de bakwagen staan muurvast.
+
+   Geeft de vrijgeduwde plek terug plus `raak`: hoeveel meter er overlapte.
+  */
+  botsAutos(car, cx, cz) {
+    const as = car.as || 1.4, radius = car.botsRadius || 0.95;
+    const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw);
+    const buurt = [];
+    for (const c of this.cars) {
+      if (c === car || !c.mesh.visible) continue;
+      if (Math.abs(c.x - cx) > 12 || Math.abs(c.z - cz) > 12) continue;
+      buurt.push({ x: c.x, z: c.z, yaw: c.yaw, as: c.as || 1.4, r: c.botsRadius || 0.95, auto: c });
+    }
+    for (const t of this.traffic) {
+      const p = t.mesh.position;
+      if (Math.abs(p.x - cx) > 12 || Math.abs(p.z - cz) > 12) continue;
+      buurt.push({ x: p.x, z: p.z, yaw: t.mesh.rotation.y, as: 1.4, r: 0.95 });
+    }
+    let raak = 0;
+    const hard = Math.abs(car.speed) > 3.5;
+    // twee rondjes, zodat een auto die tussen twee andere klem komt er ook uit komt
+    for (let ronde = 0; ronde < 2; ronde++) {
+      for (const o of buurt) {
+        const ox = -Math.sin(o.yaw), oz = -Math.cos(o.yaw);
+        const minAf = radius + o.r;
+        for (const a of [-as, 0, as]) {
+          for (const b of [-o.as, 0, o.as]) {
+            let dx = (cx + fx * a) - (o.x + ox * b), dz = (cz + fz * a) - (o.z + oz * b);
+            let d = Math.hypot(dx, dz);
+            if (d >= minAf) continue;
+            if (d < 1e-4) { dx = -fx; dz = -fz; d = 1; }
+            const duw = minAf - d;
+            raak = Math.max(raak, duw);
+            cx += (dx / d) * duw;
+            cz += (dz / d) * duw;
+            // een geparkeerde auto die je hard raakt rolt een stukje weg
+            if (o.auto && o.auto.speed === 0 && hard) {
+              const v = Math.min(3.5, Math.abs(car.speed) * 0.35);
+              o.auto.duwV = { x: -(dx / d) * v, z: -(dz / d) * v };
+              if (!this.duwen.includes(o.auto)) this.duwen.push(o.auto);
+            }
+          }
+        }
+      }
+    }
+    return { x: cx, z: cz, raak };
+  }
+
+  // Aangereden auto's rollen uit. Ze zitten niet in de rijnatuurkunde, dus ze
+  // krijgen hier een snelheid mee die in een halve meter wegvalt; gebouwen en
+  // hekken houden ze net zo goed tegen als de speler.
+  rolUit(dt) {
+    for (let i = this.duwen.length - 1; i >= 0; i--) {
+      const c = this.duwen[i], v = c.duwV;
+      if (!v) { this.duwen.splice(i, 1); continue; }
+      const [rx, rz] = resolveCollisions(c.x + v.x * dt, c.z + v.z * dt, c.botsRadius || 0.95, 3.5);
+      c.x = rx; c.z = rz;
+      c.mesh.position.set(rx, c.mesh.position.y, rz);
+      const rem = Math.max(0, 1 - 3.5 * dt);
+      v.x *= rem; v.z *= rem;
+      if (Math.hypot(v.x, v.z) < 0.15) { c.duwV = null; this.duwen.splice(i, 1); }
+    }
   }
 
   // De auto op zijn plek zetten en het model laten meebewegen.
@@ -217,6 +297,7 @@ export class Vehicles {
   // Verkeer. Auto's kijken een stukje vooruit en remmen voor elkaar, voor de
   // speler en voor overstekende voetgangers; daarna trekken ze weer op.
   updateTraffic(dt, speler = null, voetgangers = null) {
+    this.rolUit(dt);
     // eerst iedereen op zijn plek zetten, dan pas vooruitkijken
     for (const t of this.traffic) {
       const n = t.path.length;

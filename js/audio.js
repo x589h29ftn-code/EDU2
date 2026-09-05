@@ -7,7 +7,9 @@
 //   - vogels overdag, krekels 's avonds
 //   - regen als geruis, harder naarmate je buiten staat
 //   - voetstappen die verschillen op klinkers, tegels en gras
-//   - een motor in de auto waarvan de toonhoogte met de snelheid meeloopt
+//   - een motor in de auto met een versnellingsbak: de toeren lopen op en
+//     vallen terug zodra er geschakeld wordt
+//   - een rockdeuntje uit de autoradio zolang je achter het stuur zit
 //   - schoten, herladen, portieren en verkeer in de verte
 //
 // De browser staat pas geluid toe na een klik of toets, dus alles start bij de
@@ -172,6 +174,7 @@ export const geluid = {
       bronnen.jacht = { gain: g, bus: f, volgende: 0, maat: 0 };
     }
     const j = bronnen.jacht;
+    j.actief = actief;                 // de autoradio zakt hieronder weg
     j.gain.gain.setTargetAtTime(actief ? 0.5 : 0, nu(), actief ? 0.7 : 0.3);
     if (!actief) { j.maat = 0; return; }
 
@@ -234,13 +237,123 @@ export const geluid = {
     bronnen.motor = null;
   },
 
-  motorToeren(snelheid) {
+  /*
+   Toeren en versnellingen. Zonder versnellingsbak loopt de toonhoogte recht met
+   de snelheid mee en klinkt het alsof je de hele wijk in zijn één doorkomt.
+   Daarom een bak met vijf verzetten: binnen een verzet lopen de toeren op, bij
+   het schakelen vallen ze terug naar het begin van het volgende. Tijdens dat
+   schakelmoment valt het gas even weg en klikt de pook.
+
+   `top` is de topsnelheid van dít voertuig (een bakwagen schakelt eerder op).
+  */
+  motorToeren(snelheid, top = 24) {
     const m = bronnen.motor; if (!m) return;
-    const s = Math.min(1, Math.abs(snelheid) / 22);
-    m.o1.frequency.setTargetAtTime(48 + s * 150, nu(), 0.1);
-    m.o2.frequency.setTargetAtTime(24 + s * 75, nu(), 0.1);
-    m.filter.frequency.setTargetAtTime(380 + s * 1400, nu(), 0.15);
-    m.gain.gain.setTargetAtTime(0.06 + s * 0.06, nu(), 0.2);
+    const t = nu();
+    const v = Math.abs(snelheid);
+    // grenzen waarbij er opgeschakeld wordt, als deel van de topsnelheid
+    const GRENZEN = [0.16, 0.32, 0.52, 0.76, 1.02].map(f => f * top);
+    let bak = 0;
+    while (bak < GRENZEN.length - 1 && v > GRENZEN[bak]) bak++;
+    const onder = bak === 0 ? 0 : GRENZEN[bak - 1];
+    // achteruit is één lage versnelling die hoog opjankt
+    const achteruit = snelheid < -0.2;
+    const toeren = achteruit
+      ? Math.min(1, v / (top * 0.28))
+      : Math.min(1, (v - onder) / Math.max(0.5, GRENZEN[bak] - onder));
+
+    if (m.bak === undefined) m.bak = bak;
+    if (!achteruit && bak !== m.bak) {
+      m.bak = bak;
+      m.schakelT = t + 0.16;              // koppeling in: even geen gas
+      tik({ freq: 240, q: 2.4, duur: 0.05, volume: 0.05, type: 'lowpass', val: 0.5 });
+    }
+    if (achteruit) m.bak = 0;
+    const schakelt = (m.schakelT || 0) > t;
+    const gas = schakelt ? 0.35 : 1;      // tijdens het schakelen zakt hij in
+    const tau = schakelt ? 0.03 : 0.09;
+    // binnen een verzet loopt de toon van een derde naar vol toerental
+    const n = (achteruit ? 0.45 : 0.30) + toeren * 0.70;
+    m.o1.frequency.setTargetAtTime(48 + n * 155, t, tau);
+    m.o2.frequency.setTargetAtTime(24 + n * 78, t, tau);
+    m.filter.frequency.setTargetAtTime(380 + n * 1500 * gas, t, 0.12);
+    m.gain.gain.setTargetAtTime((0.055 + n * 0.055) * gas, t, schakelt ? 0.05 : 0.15);
+  },
+
+  /*
+   De autoradio. Een rockdeuntje uit de speakers in het portier: een vervormde
+   gitaarriff op de kwint (E-mineur), een bas eronder en een simpel drumstel.
+   Alles gaat door een smalle band met een lowpass erachter, zodat het klinkt
+   als een autoradio en niet als een concert, en het staat zacht genoeg om
+   eronder de motor te blijven horen. Tijdens het jachtdeuntje van het verhaal
+   zakt hij nog verder weg.
+
+   Wordt elk beeld aangeroepen met `true` zolang je in de auto zit.
+  */
+  autoradio(actief) {
+    if (!aan) return;
+    if (!bronnen.autoradio) {
+      if (!actief) return;
+      const g = ctx.createGain(); g.gain.value = 0;
+      const lo = ctx.createBiquadFilter(); lo.type = 'lowpass'; lo.frequency.value = 3400; lo.Q.value = 0.7;
+      const hi = ctx.createBiquadFilter(); hi.type = 'highpass'; hi.frequency.value = 190;
+      // vervorming voor de gitaar: een tanh-kromme, dus zachte overstuur
+      const vorm = ctx.createWaveShaper();
+      const kromme = new Float32Array(1024);
+      for (let i = 0; i < 1024; i++) kromme[i] = Math.tanh((i * 2 / 1024 - 1) * 12);
+      vorm.curve = kromme; vorm.oversample = '2x';
+      hi.connect(lo); lo.connect(g); g.connect(hoofd);
+      vorm.connect(hi);
+      bronnen.autoradio = { gain: g, bus: hi, gitaar: vorm, volgende: 0, maat: 0 };
+    }
+    const rr = bronnen.autoradio;
+    // achtergrondniveau; onder het jachtdeuntje uit het verhaal nog zachter
+    const doel = actief ? (bronnen.jacht && bronnen.jacht.actief ? 0.07 : 0.20) : 0;
+    rr.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
+    if (!actief) { rr.maat = 0; return; }
+
+    // 120 slagen per minuut: een achtste van 0,25 s, een maat van 2 s
+    const E = 82.41;                                   // E2
+    const halve = (n) => E * Math.pow(2, n / 12);
+    // twee maten riff in e-klein, per achtste de grondtoon (null = rust)
+    const RIFF = [
+      [0, 0, null, 3, 0, null, 5, 3],
+      [0, 0, null, 3, 5, 3, 0, null],
+      [0, 0, null, 3, 0, null, 7, 5],
+      [0, 0, 3, 0, 5, null, 3, null],
+    ];
+    const t = nu();
+    if (rr.volgende < t) rr.volgende = t + 0.05;
+    while (rr.volgende < t + 1.6) {
+      const start = rr.volgende;
+      const maat = RIFF[rr.maat % RIFF.length];
+      maat.forEach((n, i) => {
+        if (n === null) return;
+        const f = halve(n), van = i * 0.25;
+        // powerchord: grondtoon, kwint en octaaf door de vervorming
+        for (const [ratio, vol] of [[1, 0.10], [1.4983, 0.075], [2, 0.05]]) {
+          const o = ctx.createOscillator(); const g2 = ctx.createGain();
+          o.type = 'sawtooth'; o.frequency.value = f * ratio;
+          g2.gain.setValueAtTime(0.0001, start + van);
+          g2.gain.exponentialRampToValueAtTime(vol, start + van + 0.015);
+          g2.gain.exponentialRampToValueAtTime(0.0001, start + van + 0.23);
+          o.connect(g2); g2.connect(rr.gitaar);
+          o.start(start + van); o.stop(start + van + 0.26);
+        }
+        // bas een octaaf lager, schoon
+        const b = ctx.createOscillator(); const bg = ctx.createGain();
+        b.type = 'triangle'; b.frequency.value = f / 2;
+        bg.gain.setValueAtTime(0.0001, start + van);
+        bg.gain.exponentialRampToValueAtTime(0.075, start + van + 0.02);
+        bg.gain.exponentialRampToValueAtTime(0.0001, start + van + 0.24);
+        b.connect(bg); bg.connect(rr.bus);
+        b.start(start + van); b.stop(start + van + 0.26);
+      });
+      // drumstel: trap op één en drie, snare op twee en vier, hi-hat op elke achtste
+      for (const off of [0, 1.0]) tik({ freq: 110, q: 1.0, duur: 0.16, volume: 0.30, type: 'lowpass', val: 0.3, vertraag: start - t + off, bus: rr.bus });
+      for (const off of [0.5, 1.5]) tik({ freq: 1900, q: 0.7, duur: 0.13, volume: 0.16, type: 'bandpass', val: 0.5, vertraag: start - t + off, bus: rr.bus });
+      for (let i = 0; i < 8; i++) tik({ freq: 8000, q: 0.8, duur: 0.04, volume: i % 2 ? 0.05 : 0.08, type: 'highpass', vertraag: start - t + i * 0.25, bus: rr.bus });
+      rr.volgende += 2.0; rr.maat++;
+    }
   },
 
   // ---------- radio in de voortuin ----------

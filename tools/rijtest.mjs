@@ -14,6 +14,9 @@
     schouder in plaats van vanaf de camera.
  5. Voetgangers aanrijden: raak boven de drempelsnelheid, niet bij stapvoets, en
     ze staan later verderop weer op.
+ 6. Schrikken: van een schot en van een aanrijding rent iedereen in de buurt
+    weg, met een reactietijd, een realistisch looptempo en van de knal af.
+ 7. Auto's raken elkaar in plaats van door elkaar heen te rijden.
 
  Gebruik: python3 -m http.server 8123 &  node tools/rijtest.mjs 8123
 */
@@ -52,6 +55,7 @@ await page.evaluate(() => {
         if (p.lastCarYaw !== undefined) p.yaw += p.inCar.yaw - p.lastCarYaw;
         p.lastCarYaw = p.inCar.yaw;
       }
+      g.vehicles.updateTraffic(dt, p, g.npcs.people);
       g.npcs.update(dt, 0);
       g.derde.update(dt, p.inCar || null);
     }
@@ -309,6 +313,92 @@ const geluid = await page.evaluate(() => {
   return { tekst: el.textContent, zichtbaar: el.style.opacity !== '0' };
 });
 ok(/aangereden/i.test(geluid.tekst), 'de HUD meldt het', geluid.tekst);
+
+// ---------- 6. schrikken en wegrennen ----------
+kop('schrikken en wegrennen');
+const schrik = await page.evaluate(() => {
+  const g = window.__game;
+  g.player.inCar = null; g.player.lastCarYaw = undefined;
+  const p = g.npcs.people.find(q => q.alive && !q.fietst && q.steek === 0);
+  const ver = g.npcs.people.find(q => q.alive && q !== p && Math.hypot(q.x - p.x, q.z - p.z) > 90);
+  const bron = { x: p.x, z: p.z };
+  const wandel = p.speed;
+  const aantal = g.npcs.paniek(bron.x, bron.z, 26);
+  const meteen = { paniek: p.paniek, schrik: p.schrik, vNu: p.vNu };
+  window.__rij(6);                                    // eerste vijfde seconde: schrikken
+  const netNa = p.vNu;
+  window.__rij(60);                                   // twee seconden later rent hij
+  const rent = p.vNu;
+  const halverwege = Math.hypot(p.x - bron.x, p.z - bron.z);
+  window.__rij(90);                                   // en nog eens drie seconden
+  const weg = Math.hypot(p.x - bron.x, p.z - bron.z);
+  const verPaniek = ver ? ver.paniek : 0;
+  // uitrazen: de paniek loopt af en hij gaat weer wandelen
+  p.paniek = 0.01; p.bron = null;
+  window.__rij(90);
+  return { aantal, meteen, netNa: +netNa.toFixed(2), rent: +rent.toFixed(2), wandel: +wandel.toFixed(2),
+    halverwege: +halverwege.toFixed(1), weg: +weg.toFixed(1), verPaniek,
+    daarna: +p.vNu.toFixed(2), alive: p.alive };
+});
+ok(schrik.aantal >= 1 && schrik.meteen.paniek > 4, 'een knal laat de buurt schrikken',
+  `${schrik.aantal} mensen, ${schrik.meteen.paniek.toFixed(1)} s paniek`);
+ok(schrik.meteen.schrik > 0.1 && schrik.netNa < 1.2, 'eerst een tel van schrik, dan pas rennen', `${schrik.netNa} m/s na 0,2 s`);
+ok(schrik.rent > 3.6 && schrik.rent < 8, 'daarna rent hij in een realistisch tempo',
+  `${schrik.rent} m/s tegen ${schrik.wandel} m/s wandelen`);
+ok(schrik.weg > schrik.halverwege && schrik.weg > 14, 'en hij rent bij de knal vandaan',
+  `${schrik.halverwege} m → ${schrik.weg} m`);
+ok(schrik.verPaniek === 0, 'wie ver weg loopt merkt er niets van');
+ok(schrik.daarna < 2 && schrik.alive, 'als de schrik voorbij is wandelt hij weer', `${schrik.daarna} m/s`);
+
+const aanrijPaniek = await page.evaluate(() => {
+  const g = window.__game;
+  const p = g.npcs.people.find(q => q.alive && !q.fietst);
+  // een buurman op een paar meter afstand, zodat hij het ziet gebeuren
+  const buur = g.npcs.people.find(q => q.alive && q !== p && Math.hypot(q.x - p.x, q.z - p.z) < 18);
+  const voor = buur ? buur.paniek : -1;
+  g.aanrijden(p.x, p.z, 1.4, 11);
+  return { neer: !p.alive, buurVoor: voor, buurNa: buur ? buur.paniek : -1 };
+});
+ok(aanrijPaniek.neer && aanrijPaniek.buurNa > aanrijPaniek.buurVoor,
+  'wie een aanrijding ziet, rent ook weg', `paniek ${aanrijPaniek.buurVoor.toFixed(1)} → ${aanrijPaniek.buurNa.toFixed(1)} s`);
+
+const schotPaniek = await page.evaluate(async () => {
+  const THREE = await import('three');
+  const g = window.__game;
+  const p = g.npcs.people.find(q => q.alive && !q.fietst && q.paniek === 0);
+  g.player.pos.set(p.x + 3, 0, p.z);
+  const origin = new THREE.Vector3(p.x + 3, 1.5, p.z);
+  const dir = new THREE.Vector3(0, 0, 1).normalize();
+  g.player.shootCb(origin, dir);
+  return { paniek: p.paniek };
+});
+ok(schotPaniek.paniek > 0, 'en van een schot schrikt de hele straat', `${schotPaniek.paniek.toFixed(1)} s`);
+
+// ---------- 7. auto's rijden niet door elkaar heen ----------
+kop("auto's tegen elkaar");
+const blik = await page.evaluate(() => {
+  const g = window.__game;
+  const c = window.__leegveld();
+  // een tweede auto acht meter recht vooruit (bij yaw 0 is dat -z)
+  const doel = g.vehicles.voegToe({ x: c.x, z: c.z - 8, yaw: 0, soort: 'hatch', kleur: 0x2a3f8f });
+  doel.speed = 0;
+  const zVoor = doel.z;
+  let dichtst = 99, doorheen = false;
+  for (let i = 0; i < 120; i++) {
+    window.__rij(1, { KeyW: true });
+    const d = Math.hypot(c.x - doel.x, c.z - doel.z);
+    if (d < dichtst) dichtst = d;
+    if (c.z < doel.z) doorheen = true;           // voorbij hem = er dwars doorheen
+  }
+  const geduwd = zVoor - doel.z;
+  g.scene.remove(doel.mesh);
+  g.vehicles.cars.splice(g.vehicles.cars.indexOf(doel), 1);
+  return { dichtst: +dichtst.toFixed(2), doorheen, snelheid: +c.speed.toFixed(2), geduwd: +geduwd.toFixed(2) };
+});
+ok(!blik.doorheen, 'je rijdt niet meer dwars door een andere auto heen');
+ok(blik.dichtst > 2.5 && blik.dichtst < 5, 'de bumpers houden elkaar op afstand', `${blik.dichtst} m hart op hart`);
+ok(blik.snelheid < 6, 'en de klap haalt de vaart eruit', `${blik.snelheid} m/s`);
+ok(blik.geduwd > 0.02, 'een geparkeerde auto krijgt een zetje', `${blik.geduwd} m opgeschoven`);
 
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);

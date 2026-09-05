@@ -98,6 +98,11 @@ export class NPCs {
       const p = {
         seg: null, t: 0, dir: 1, side: r() < 0.5 ? 1 : -1,
         speed: fietst ? 4.2 + r() * 1.8 : (1.0 + r() * 0.55) * (0.85 + height * 0.2),
+        // hollen als er iets gebeurt: een volwassene haalt zo'n 4,8 m/s, een
+        // kind blijft rond de 4,2, en wie fietst gaat er stevig vandoor
+        ren: fietst ? 6.4 + r() * 1.6 : 1.9 + height * 2.6,
+        vNu: 0,                       // snelheid van dit moment, loopt op en af
+        paniek: 0, schrik: 0, bron: null,
         height, phase: r() * 6.28, alive: true, fall: 0, respawn: 0,
         pause: fietst ? 0 : r() * 12, x: 0, z: 0, yaw: 0,
         fietst,
@@ -131,10 +136,63 @@ export class NPCs {
     const cands = this.segs.filter(s => s !== p.seg &&
       (Math.hypot(s.a[0] - end[0], s.a[1] - end[1]) < 1.5 || Math.hypot(s.b[0] - end[0], s.b[1] - end[1]) < 1.5));
     if (!cands.length) { p.dir *= -1; p.t = Math.max(0, Math.min(1, p.t)); return; }
-    const s = cands[Math.floor(this.r() * cands.length)];
+    let s;
+    if (p.paniek > 0 && p.bron) {
+      // op de vlucht: op de hoek de straat in die het verst van de knal af leidt
+      let ver = -1;
+      for (const c of cands) {
+        const aanA = Math.hypot(c.a[0] - end[0], c.a[1] - end[1]) < 1.5;
+        const uit = aanA ? c.b : c.a;
+        const d = Math.hypot(uit[0] - p.bron.x, uit[1] - p.bron.z);
+        if (d > ver) { ver = d; s = c; }
+      }
+    } else {
+      s = cands[Math.floor(this.r() * cands.length)];
+    }
     const startsAtA = Math.hypot(s.a[0] - end[0], s.a[1] - end[1]) < 1.5;
     p.seg = s; p.dir = startsAtA ? 1 : -1; p.t = startsAtA ? 0 : 1;
-    if (this.r() < 0.35) p.side *= -1;     // soms oversteken naar de andere stoep
+    if (p.paniek <= 0 && this.r() < 0.35) p.side *= -1;   // soms oversteken naar de andere stoep
+  }
+
+  /*
+   De kant op langs het huidige segment die van de schrik af leidt. Loop je met
+   dir = +1 mee met (a → b), dan neemt de afstand tot de bron toe zolang je van
+   de bron af wijst; anders draait hij zich om.
+  */
+  vluchtRichting(p) {
+    if (!p.bron) return;
+    const s = p.seg;
+    const len = Math.max(0.1, Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));
+    const dx = (s.b[0] - s.a[0]) / len, dz = (s.b[1] - s.a[1]) / len;
+    p.dir = (p.x - p.bron.x) * dx + (p.z - p.bron.z) * dz >= 0 ? 1 : -1;
+  }
+
+  /*
+   Schrikken. Iedereen binnen `straal` van het punt kijkt op, blijft een tel
+   staan en rent dan weg van de knal: eerst de straat uit waar hij in staat, op
+   elke hoek de zijstraat die het verst van het punt af ligt. Wie dichterbij
+   staat rent langer door. `duur` is de looptijd in seconden voor wie er bovenop
+   staat. Geeft terug hoeveel mensen er schrikken.
+
+   Wordt aangeroepen als er geschoten wordt en als er iemand wordt aangereden
+   (zie js/main.js).
+  */
+  paniek(x, z, straal = 26, duur = 9) {
+    let n = 0;
+    for (const p of this.people) {
+      if (!p.alive) continue;
+      const d = Math.hypot(p.x - x, p.z - z);
+      if (d > straal) continue;
+      const t = duur * (1 - 0.45 * d / straal);
+      if (t > p.paniek) p.paniek = t;
+      // schrikmoment: een korte reactietijd voordat hij het op een lopen zet
+      if (!p.bron) p.schrik = 0.15 + this.r() * 0.35;
+      p.bron = { x, z };
+      p.pause = 0;
+      this.vluchtRichting(p);
+      n++;
+    }
+    return n;
   }
 
   update(dt, time) {
@@ -142,31 +200,52 @@ export class NPCs {
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
       let swing = 0;
+      // paniek loopt af; de eerste tienden van een seconde staat hij nog stil
+      if (p.paniek > 0) {
+        p.paniek = Math.max(0, p.paniek - dt);
+        p.schrik = Math.max(0, p.schrik - dt);
+        if (p.paniek === 0) { p.bron = null; p.schrik = 0; }
+      }
+      const rent = p.alive && p.paniek > 0 && p.schrik <= 0;
+      // snelheid van dit moment: niemand gaat in één beeld van stilstaan naar
+      // hollen, dus het loopt op (en na de schrik weer af)
+      const doelV = !p.alive || (p.paniek > 0 && p.schrik > 0) ? 0 : (rent ? p.ren : p.speed);
+      p.vNu += Math.max(-6.0 * dt, Math.min(3.2 * dt, doelV - p.vNu));
       if (!p.alive) {
         p.fall = Math.min(1, p.fall + dt * 3);
         p.respawn -= dt;
-        if (p.respawn <= 0) { p.alive = true; p.fall = 0; p.smak = null; this.pickSegment(p, true); }
+        if (p.respawn <= 0) {
+          p.alive = true; p.fall = 0; p.smak = null;
+          p.paniek = 0; p.bron = null; p.vNu = 0;
+          this.pickSegment(p, true);
+        }
       } else if (p.steek > 0) {
-        // midden in het oversteken: van de ene stoep naar de andere
-        p.steek = Math.max(0, p.steek - dt * (p.fietst ? 1.6 : 0.9));
+        // midden in het oversteken: van de ene stoep naar de andere; wie schrikt
+        // maakt er haast mee
+        p.steek = Math.max(0, p.steek - dt * (p.fietst ? 1.6 : 0.9) * (rent ? 2.2 : 1));
         if (p.steek === 0) { p.side = p.steekNaar; p.opWeg = false; }
-        swing = Math.sin(time * 6.2 / p.height + p.phase) * 0.5;
-      } else if (p.pause > 0) {
+        swing = Math.sin(time * (rent ? 11 : 6.2) / p.height + p.phase) * (rent ? 0.9 : 0.5);
+      } else if (p.pause > 0 && !rent) {
         p.pause -= dt;                       // even stilstaan
       } else {
         const s = p.seg;
         const len = Math.max(0.1, Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));
-        p.t += p.dir * p.speed * dt / len;
+        p.t += p.dir * p.vNu * dt / len;
         if (p.t > 1 || p.t < 0) { p.t = Math.max(0, Math.min(1, p.t)); this.pickSegment(p); }
-        if (!p.fietst && this.r() < dt * 0.03) p.pause = 2 + this.r() * 8;
-        // af en toe oversteken naar de overkant, dwars over de rijbaan
-        p.steekWacht -= dt;
-        if (p.steekWacht <= 0 && s.drive) {
-          p.steekWacht = 18 + this.r() * 40;
-          p.steekVan = p.side; p.steekNaar = -p.side;
-          p.steek = 1; p.opWeg = true;
+        if (!rent) {
+          if (!p.fietst && this.r() < dt * 0.03) p.pause = 2 + this.r() * 8;
+          // af en toe oversteken naar de overkant, dwars over de rijbaan
+          p.steekWacht -= dt;
+          if (p.steekWacht <= 0 && s.drive) {
+            p.steekWacht = 18 + this.r() * 40;
+            p.steekVan = p.side; p.steekNaar = -p.side;
+            p.steek = 1; p.opWeg = true;
+          }
         }
-        swing = Math.sin(time * (p.fietst ? 3.0 : 5.4) / p.height + p.phase) * (p.fietst ? 0.3 : 0.55);
+        // de pas loopt mee met de snelheid: slenteren, doorstappen of hollen
+        const cadans = p.fietst ? 3.0 + p.vNu * 0.35 : 3.0 + p.vNu * 2.0;
+        const uitslag = p.fietst ? 0.3 : 0.45 + Math.min(0.5, p.vNu * 0.12);
+        swing = Math.sin(time * cadans / p.height + p.phase) * uitslag;
       }
       const s = p.seg;
       const len = Math.max(0.1, Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));

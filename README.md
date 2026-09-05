@@ -60,6 +60,15 @@ snelheid onbestuurbaar. De auto rijdt bovendien niet precies waar zijn neus wijs
 loopt er iets achteraan, en met de **handrem** (spatie) loopt hij er zóver achteraan dat de kont
 uitbreekt en je de bocht uit glijdt.
 
+Auto's zijn massief: je rijdt niet meer dwars door de geparkeerde rij of door het verkeer heen. Raak
+je er eentje met vaart, dan rolt die een halve meter opzij en is jouw vaart eruit.
+
+De motor heeft een **versnellingsbak** van vijf verzetten. Binnen een verzet lopen de toeren op, bij
+het schakelen valt het gas even weg en beginnen ze weer onderaan — daardoor klinkt het niet meer
+alsof je de hele wijk in zijn één doorkomt. Achteruit is één laag verzet dat hoog opjankt. En zodra
+je achter het stuur zit speelt de **autoradio** een rockdeuntje: zacht genoeg om de motor eronder te
+blijven horen, en tijdens de achtervolging in het verhaal zakt hij nog verder weg.
+
 ## Camera over je schouder
 
 **V** zet de camera achter je. Met de auto is dat een stuk handiger sturen: je ziet de neus, je
@@ -86,8 +95,18 @@ ergens anders in de wijk weer op. Stapvoets langs iemand manoeuvreren kan gewoon
 
 ![Een aangereden voetganger](docs/screenshots/aangereden.png)
 
-`npm run rijtest` loopt dit allemaal na — 32 controles over het model, het rijgedrag, de wielen en de
-lichten, de camera achter je en het aanrijden. `npm run rijshots` maakt de foto's hierboven.
+## De buurt schrikt
+
+Van een schot (binnen 28 meter) of een aanrijding (binnen 20 meter) schrikt iedereen in de buurt. Ze
+kijken eerst een paar tienden van een seconde op — een reactietijd — en zetten het dan op een lopen,
+weg van de knal: eerst de straat uit waar ze staan, en op elke hoek de zijstraat die het verst van de
+knal af ligt. Rennen gaat met zo'n 4,5 meter per seconde tegen 1,3 wandelend, fietsers trappen naar
+7 m/s, en de pas loopt mee met de snelheid. Na een seconde of negen is de schrik voorbij en wandelt
+iedereen weer verder. Wie er ver vandaan loopt merkt er niets van.
+
+`npm run rijtest` loopt dit allemaal na — 42 controles over het model, het rijgedrag, de wielen en de
+lichten, de camera achter je, het aanrijden, het wegrennen en de botsingen tussen auto's onderling.
+`npm run rijshots` maakt de foto's hierboven.
 
 ## Het verhaal
 
