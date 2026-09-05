@@ -83,7 +83,9 @@ export function initDerdePersoon({ scene, camera, player }) {
     // draaipunt: het hoofd van de speler, of het midden van de auto
     const px = car ? car.x : player.pos.x;
     const pz = car ? car.z : player.pos.z;
-    const py = (car ? 0 : player.pos.y) + inst.hoog;
+    // op het viaduct ligt de auto meters boven het maaiveld, dus het draaipunt
+    // hangt aan de wagen zelf en niet aan y = 0
+    const py = (car ? (car.mesh ? car.mesh.position.y : 0) : player.pos.y) + inst.hoog;
 
     const yaw = player.yaw, pitch = player.pitch;
     const cp = Math.cos(pitch);
@@ -105,7 +107,7 @@ export function initDerdePersoon({ scene, camera, player }) {
     if (afstand > inst.afstand) afstand = inst.afstand;
     hoogte += (klim - hoogte) * Math.min(1, dt * 5);
 
-    camera.position.set(px + zx - dx * afstand, Math.max(0.4, py + hoogte - dy * afstand), pz + zz - dz * afstand);
+    camera.position.set(px + zx - dx * afstand, Math.max(py - inst.hoog + 0.4, py + hoogte - dy * afstand), pz + zz - dz * afstand);
     camera.rotation.set(0, 0, 0, 'YXZ');
     camera.rotation.y = yaw;
     camera.rotation.x = pitch;

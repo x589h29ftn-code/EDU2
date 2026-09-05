@@ -1,6 +1,6 @@
 // Speler: first-person besturing, botsingen, pistool.
 import * as THREE from 'three';
-import { resolveCollisions, pointInWater, ondergrondOp } from './world.js';
+import { resolveCollisions, pointInWater, ondergrondOp, grondHoogte } from './world.js';
 import { geluid } from './audio.js';
 
 export class Player {
@@ -238,7 +238,7 @@ export class Player {
     move.multiplyScalar(speed * dt);
 
     let nx = this.pos.x + move.x, nz = this.pos.z + move.z;
-    [nx, nz] = resolveCollisions(nx, nz, 0.35);
+    [nx, nz] = resolveCollisions(nx, nz, 0.35, 0, this.pos.y);
     /*
      Auto's staan niet in resolveCollisions — die lijst is voor de vaste wereld
      en auto's bewegen. Zonder deze stap loop je er dwars doorheen. main.js hangt
@@ -247,17 +247,23 @@ export class Player {
     */
     if (this.blokkade) {
       const [bx, bz] = this.blokkade(nx, nz, 0.35);
-      if (bx !== nx || bz !== nz) [nx, nz] = resolveCollisions(bx, bz, 0.35);
+      if (bx !== nx || bz !== nz) [nx, nz] = resolveCollisions(bx, bz, 0.35, 0, this.pos.y);
     }
-    if (pointInWater(nx, nz)) { // niet het water in: probeer per as
+    // op het viaduct loop je over de rondweg heen; het water eronder telt niet
+    if (this.pos.y < 1.5 && pointInWater(nx, nz)) { // niet het water in: probeer per as
       if (!pointInWater(nx, this.pos.z)) nz = this.pos.z; else if (!pointInWater(this.pos.x, nz)) nx = this.pos.x; else { nx = this.pos.x; nz = this.pos.z; }
     }
     this.pos.x = nx; this.pos.z = nz;
 
-    // springen / zwaartekracht
+    /*
+     Springen en zwaartekracht. De grond is bijna overal 0, maar op het viaduct
+     (js/viaduct.js) loopt hij op tot ruim vijf meter. Loop je de helling op,
+     dan tilt `grondHoogte` je mee; loop je van de brug af, dan val je.
+    */
     if (this.keys.Space) this.jump();
+    const grond = grondHoogte(this.pos.x, this.pos.z, this.pos.y + 0.9);
     this.vy -= 12 * dt; this.pos.y += this.vy * dt;
-    if (this.pos.y <= 0) { this.pos.y = 0; this.vy = 0; this.onGround = true; }
+    if (this.pos.y <= grond) { this.pos.y = grond; this.vy = 0; this.onGround = true; }
 
     // Voetstappen volgen de kop-beweging: elke halve slag zet je een voet neer,
     // en de klank hangt af van waar je op loopt.

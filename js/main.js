@@ -331,7 +331,7 @@ const politie = initPolitie({ scene, player, npcs, vehicles, hud });
 const opDeWeg = npcs.people.concat([verhaal.hinder]);
 // Te voet loop je niet door auto's heen; js/player.js kent de auto's niet, dus
 // het duwtje komt hiervandaan (de auto waar je zelf in zit telt niet mee).
-player.blokkade = (x, z, r) => vehicles.duwUit(x, z, r, player.inCar);
+player.blokkade = (x, z, r) => vehicles.duwUit(x, z, r, player.inCar, player.pos.y);
 applyEnvIntensity(scene);
 
 // Hoe ver de schrik reikt. Een schot hoor je door de hele straat, een klap van
@@ -626,7 +626,7 @@ function loop() {
         const st = car.stoel || car.mesh.userData.oog || { x: -0.34, y: 1.32, z: -0.87 };
         const seat = new THREE.Vector3(st.x, st.y, st.z);
         seat.applyAxisAngle(new THREE.Vector3(0, 1, 0), car.yaw);
-        camera.position.set(car.x + seat.x, st.y, car.z + seat.z);
+        camera.position.set(car.x + seat.x, (car.mesh ? car.mesh.position.y : 0) + st.y, car.z + seat.z);
         camera.rotation.set(0, 0, 0, 'YXZ');
         camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
       } else vehicles.ruiten(car, true);       // van buiten hoort het glas er wel te zitten
