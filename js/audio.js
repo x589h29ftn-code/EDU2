@@ -408,6 +408,39 @@ export const geluid = {
     }
   },
 
+  /*
+   Sirene van de politie: twee tonen die elkaar afwisselen (de Nederlandse
+   twee-toon, een kleine terts uit elkaar), door een bandfilter zodat het scherp
+   klinkt en niet als een fluit. Wordt elk beeld aangeroepen met de afstand tot
+   de dichtstbijzijnde eenheid met zwaailicht aan; `null` betekent stil.
+  */
+  sirene(afstand) {
+    if (!aan) return;
+    if (!bronnen.sirene) {
+      if (afstand == null) return;
+      const g = ctx.createGain(); g.gain.value = 0;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 1.4;
+      const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 660;
+      const o2 = ctx.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = 330;
+      const g2 = ctx.createGain(); g2.gain.value = 0.25;
+      o.connect(f); o2.connect(g2); g2.connect(f); f.connect(g); g.connect(hoofd);
+      o.start(); o2.start();
+      bronnen.sirene = { gain: g, o, o2, volgende: 0, hoog: false };
+    }
+    const s = bronnen.sirene;
+    // hoorbaar tot 140 m, met een kwadratisch verloop
+    const v = afstand == null ? 0 : Math.max(0, 1 - afstand / 140) ** 2;
+    s.gain.gain.setTargetAtTime(v * 0.22, nu(), 0.15);
+    if (v <= 0.001) return;
+    const t = nu();
+    if (t >= s.volgende) {
+      s.hoog = !s.hoog;
+      s.volgende = t + 0.62;
+      s.o.frequency.setTargetAtTime(s.hoog ? 660 : 550, t, 0.02);
+      s.o2.frequency.setTargetAtTime(s.hoog ? 330 : 275, t, 0.02);
+    }
+  },
+
   // ---------- omgeving per beeld ----------
   omgeving(dt, { weer = 'helder', nacht = false, wind = 0.2, binnen = false } = {}) {
     if (!aan) return;

@@ -380,9 +380,15 @@ ok(schrik.daarna < 2 && schrik.alive, 'als de schrik voorbij is wandelt hij weer
 const aanrijPaniek = await page.evaluate(() => {
   const g = window.__game;
   const p = g.npcs.people.find(q => q.alive && !q.fietst);
-  // een buurman op een paar meter afstand, zodat hij het ziet gebeuren
-  const buur = g.npcs.people.find(q => q.alive && q !== p && Math.hypot(q.x - p.x, q.z - p.z) < 18);
-  const voor = buur ? buur.paniek : -1;
+  // een buurman op een paar meter afstand, zodat hij het ziet gebeuren. Loopt er
+  // toevallig niemand in de buurt, dan zetten we er eentje neer: de proef gaat
+  // over het wegrennen, niet over waar de mensen op dat moment lopen.
+  let buur = g.npcs.people.find(q => q.alive && q !== p && Math.hypot(q.x - p.x, q.z - p.z) < 18);
+  if (!buur) {
+    buur = g.npcs.people.find(q => q.alive && q !== p);
+    buur.x = p.x + 6; buur.z = p.z + 2; buur.paniek = 0;
+  }
+  const voor = buur.paniek;
   g.aanrijden(p.x, p.z, 1.4, 11);
   return { neer: !p.alive, buurVoor: voor, buurNa: buur ? buur.paniek : -1 };
 });
