@@ -163,7 +163,7 @@ function stof() {
  De hoekpunten liggen in de BGT op een paar centimeter, dus ze worden per as op
  elkaar geklikt; dan is de plattegrond haaks en zijn de wanden rechte dozen.
 */
-function plattegrond(p) {
+export function plattegrond(p) {
   const L = Math.hypot(p.front[0], p.front[1]) || 1;
   const f = [p.front[0] / L, p.front[1] / L];
   const r = [f[1], -f[0]];                       // naar rechts, gezien van buiten
@@ -205,7 +205,7 @@ function plattegrond(p) {
  die binnen het pand ligt. Bij Molenkrite 15 zijn dat twee banden — het brede
  voorhuis en de smallere aanbouw — en dat is precies wat de kamer nodig heeft.
 */
-function banden(punten) {
+export function banden(punten) {
   const zs = [...new Set(punten.map(q => q[1]))].sort((a, b) => a - b);
   const uit = [];
   for (let i = 0; i < zs.length - 1; i++) {

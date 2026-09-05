@@ -11,6 +11,7 @@ import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
 import { initSfeer } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur } from './interieur.js';
+import { initBoerderij } from './boerderij.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
 import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
@@ -263,12 +264,20 @@ const verhaal = initVerhaal({
 // De woning achter de voordeur van Molenkrite 15: een losse kamer ruim buiten
 // het kaartgebied, met de maten van het echte pand. Bij de deur zet E je naar
 // binnen en weer naar buiten (js/interieur.js).
-const interieur = initInterieur({ scene, player }) || {
+const LEEG = {
   update() {}, toets() { return false; }, binnen() { return false; }, meldAan() {}, kaart() { return null; },
 };
-// Binnen wijst de HUD nog steeds de Molenkrite aan (zie hud.kaartVanaf).
+const interieur = initInterieur({ scene, player }) || LEEG;
+// En achter de schuurdeur van Tinga State: de deel met de toonbank waar je
+// munitie koopt (js/boerderij.js).
+const boerderij = initBoerderij({ scene, player, hud, verhaal }) || LEEG;
+// Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
+const binnenruimtes = [interieur, boerderij];
+const ergensBinnen = (x, z) => binnenruimtes.some(r => r.binnen(x, z));
+// Binnen wijst de HUD nog steeds de straat buiten aan (zie hud.kaartVanaf).
 function straatOf(x, z) {
-  const k = interieur.kaart(x, z);
+  let k = null;
+  for (const r of binnenruimtes) { k = r.kaart(x, z); if (k) break; }
   hud.kaartVanaf = k ? k.punt : null;
   return k ? k.naam : nearestRoadName(x, z);
 }
@@ -372,6 +381,7 @@ function praatOfAuto() {
   if (editor && editor.actief) return;
   if (verhaal.toets()) return;
   if (interieur.toets()) return;
+  if (boerderij.toets()) return;
   toggleCar();
 }
 window.addEventListener('keydown', e => {
@@ -520,7 +530,7 @@ const sfeer = initSfeer({
 // Wijkeditor (F2)
 const editor = initEditor({
   scene, camera, player, hud, npcs, vehicles,
-  onRebuild: () => { applyEnvIntensity(scene); verhaal.meldAan(); interieur.meldAan(); },
+  onRebuild: () => { applyEnvIntensity(scene); verhaal.meldAan(); for (const r of binnenruimtes) r.meldAan(); },
 });
 
 // Hoofdlus
@@ -572,9 +582,9 @@ function loop() {
     vehicles.updateTraffic(dt, player, opDeWeg);
     npcs.update(dt, time);
     verhaal.update(dt);
-    interieur.update(dt, verhaal.aanspreekbaar);
+    for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
     // de politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte
-    if (!interieur.binnen) player.health -= politie.update(dt);
+    if (!ergensBinnen(player.pos.x, player.pos.z)) player.health -= politie.update(dt);
     hud.zetSterren(politie.ster, politie.gezocht);
     hud.zetPolitie(politie.gezocht ? politie.plekken : null);
     if (player.health <= 0) { politie.reset(); verhaal.dood(); }
@@ -615,7 +625,7 @@ loop();
 
 // Testhaak voor automatische screenshots
 window.__game = {
-  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, derde, politie,
+  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, boerderij, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
 };
 

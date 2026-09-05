@@ -23,10 +23,10 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 |---|---|
 | W A S D | lopen (shift = sprinten, spatie = springen) |
 | muis | rondkijken · linkermuisknop = schieten · R = herladen · H = pistool weg en weer tevoorschijn |
-| E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15 naar binnen en naar buiten · anders in- en uitstappen bij een auto |
+| E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15 en de schuurdeur van Tinga State naar binnen en naar buiten · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
-| portemonnee | rechtsonder; wat je met missies verdient |
+| portemonnee | rechtsonder; je begint met € 50 en verdient de rest met missies |
 | **V** | camera: vanuit je ogen of over je schouder (handig met de auto) |
 | in de auto: W/S, A/D, spatie | gas/rem (en achteruit), sturen, handrem |
 | M | grote kaart van de wijk met straatnamen |
@@ -160,9 +160,10 @@ naar de laatst bekende plek — één hoek omgaan is dus niet genoeg. Blijf je u
 verdenking na een aftelling van achttien seconden plus zes per ster, en zijn ze je kwijt. Een agent
 neerschieten kost je meteen een paar sterren extra.
 
-`npm run politietest` loopt het allemaal na: de meldkans met en zonder getuigen, de sterdrempels, het
-uitrukken en aankomen, het aantal eenheden en hun spreiding per sterniveau, het schieten, het
-neerschieten van een agent en het ontsnappen. `npm run politieshots` maakt de twee foto's hierboven.
+`npm run politietest` loopt het allemaal na — eenentwintig controles: de meldkans met en zonder
+getuigen, de sterdrempels, het uitrukken en aankomen, het aantal eenheden en hun spreiding per
+sterniveau, het schieten, het neerschieten van een agent, het ontsnappen, en of de hoofdlus de
+politie buiten wél en binnenshuis niet bijwerkt. `npm run politieshots` maakt de twee foto's hierboven.
 
 ## Hondjes
 
@@ -335,6 +336,34 @@ mislukking bij een schot, het uitgeput raken, het pakken, de beloning, de woning
 (maten, wanden, teleport, hoogtes van aanrecht, bank en tv) en opslaan en laden.
 `npm run verhaalshots` maakt de foto's hierboven.
 
+## Naar binnen bij Tinga State: munitie kopen
+
+De stelpboerderij aan de Molenkrite is de tweede plek waar je naar binnen kunt. Ga voor de zwarte
+schuurdeur staan en druk op **E**:
+
+![De schuurdeur van Tinga State](docs/screenshots/tinga_state_deur.png)
+
+Daarachter ligt de deel: één open ruimte van 27,9 bij 19,1 m met de kap van binnen, van de goot op
+1,94 m tot de nokbalk op 13,32 m — allemaal maten uit de kaart. Langs de wanden staan stellingen,
+achterin liggen hooibalen.
+
+![De deel van binnen](docs/screenshots/boerderij_deel.png)
+
+Aan de toonbank staat een verkoper. Voor **€ 50** krijg je **100 kogels**; het geld gaat meteen van je
+portemonnee af. Sta je bij de bank, dan staat de prijs onderin beeld en reken je af met **E**. Heb je
+het niet, dan zegt hij dat ook. Meer dan 600 kogels krijg je niet in je tas.
+
+![De toonbank](docs/screenshots/boerderij_toonbank.png)
+
+Je begint het spel met **€ 50**, dus één doos munitie zit er altijd in. Daarna moet je het verdienen:
+de beloning van Johan aan het eind van het verhaal is € 500 (zie [Het verhaal](#het-verhaal)). Je geld
+staat rechtsonder in beeld en gaat mee in de opslag.
+
+`npm run winkeltest` toetst het geheel: het beginkapitaal, de deur heen en terug, de maten van de
+deel, de wanden die je binnenhouden, de prijs, wat er van je geld af gaat en wat je aan kogels
+bijkrijgt, en dat je met een lege portemonnee niets koopt. `npm run winkelshots` maakt de drie foto's
+hierboven.
+
 ## Opslaan en laden
 
 Er is één opslagplek, in de browser (de Windows-app draait dezelfde pagina en gebruikt dezelfde).
@@ -397,7 +426,9 @@ meter, en het parkeerterrein ernaast is met 1239 m² het grootste van de wijk.
 
 De stelpboerderij aan de Molenkrite: één steile piramidekap van rode pannen die van de nok op 13,3 m
 tot een dakvoet van twee tot vier meter doorloopt, met rijen dakramen erin. Daaronder een lage
-bakstenen wand rondom, met witte kozijnen, een zwarte schuurdeur en een groene staldeur.
+bakstenen wand rondom, met witte kozijnen, een zwarte schuurdeur en een groene staldeur. Achter die
+schuurdeur kun je naar binnen — daar zit de munitiewinkel, zie
+[Naar binnen bij Tinga State](#naar-binnen-bij-tinga-state-munitie-kopen).
 
 ![Tinga State](docs/screenshots/tinga_state.png)
 
@@ -504,6 +535,9 @@ vijver, zorgcomplex Tinga State en de N7 met afrit 21 aan de noordkant.
 - `tools/politietest.mjs` – toetst de politie: meldkans, sterren, uitrukken, de inzet en spreiding per
   sterniveau, schieten en ontsnappen
 - `tools/politieshots.mjs` – maakt de twee foto's van de politie-inzet bij vijf sterren
+- `tools/winkeltest.mjs` – toetst de boerderijwinkel: beginkapitaal, de schuurdeur, de deel en het
+  kopen van munitie
+- `tools/winkelshots.mjs` – maakt de foto's van Tinga State van buiten en van binnen
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

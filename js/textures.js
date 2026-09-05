@@ -150,8 +150,11 @@ export function pannenMetDakramen(base = '#a8512c') {
   const key = `roofram${base}`;
   if (cache.has(key)) return cache.get(key);
   const c = canvas(512, 512); const g = c.getContext('2d');
+  // Uitrekken naar het volle doek: sinds de textures verkleind worden (zie
+  // `kleiner`) is het pannendoek zelf geen 512 px meer, en zonder maat bleef de
+  // rest van dit canvas zwart — een kap met zwarte gaten ertussen.
   const bron = roofTiles(base, 5).image;
-  g.drawImage(bron, 0, 0);
+  g.drawImage(bron, 0, 0, 512, 512);
   // dakraam: grijs kader, donker glas met een schuine weerspiegeling
   const bw = Math.round(512 * 0.8 / 4), bh = Math.round(512 * 1.2 / 4);
   const bx = Math.round(512 * 0.42), by = Math.round(512 * 0.34);

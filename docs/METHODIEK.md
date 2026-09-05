@@ -240,6 +240,7 @@ naar `main` om een build te krijgen.
 | Nergens vastlopen op een binnenterrein (stap 8) | `npm run looptest` | eindigt op "Alles goed" |
 | Lucht, wapen, erfscheidingen, vlaggen (stap 8) | `npm run wereldtest` | eindigt op "Alles goed" |
 | Politie, gezocht-sterren en de inzet per ster (stap 9–10) | `npm run politietest` | eindigt op "Alles goed" |
+| De boerderijwinkel en het geld (stap 11) | `npm run winkeltest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` | < 700 calls, < 1,4 M driehoeken, < 100 MB |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -914,11 +915,52 @@ dief, die dezelfde poppetjes gebruiken.
 Kosten: een volle jacht met vijf sterren kost ongeveer 1,5 ms rekentijd per
 beeld en verandert niets aan de 595 draw calls van de wijk zelf.
 
-Controle: `npm run politietest` telt nu twintig controles; de vier nieuwe meten
+Controle: `npm run politietest` telt nu twintig controles (in stap 11 komen er
+twee bij); de vier nieuwe meten
 het aantal eenheden bij één tegen vijf sterren, hoe ver ze van de melding
 zoeken, hoeveel er verder dan zestig meter van de melding rondgaan, en dat er
 geen twee agenten binnen negentig centimeter van elkaar staan. `npm run
 politieshots` maakt de twee foto's. De andere proeven blijven groen.
+
+**De munitiewinkel in de boerderij, en twee fouten die daarbij boven kwamen
+(stap 11).** Tinga State is de tweede plek waar je naar binnen kunt. De aanpak
+is dezelfde als bij de woning in stap 8: een losse, dichte ruimte ruim buiten
+het kaartgebied, met E bij de deur als teleport heen en terug. De maten komen
+weer uit de kaart — het grondvlak van 27,9 bij 19,1 m, de goot op 1,94 m en de
+nok op 13,32 m — en de piramidekap wordt van binnen als vier schuine vlakken
+naar een nokbalk gebouwd. `plattegrond()` en `banden()` uit `js/interieur.js`
+worden nu gedeeld in plaats van overgeschreven. In `js/main.js` staan de
+binnenruimtes in één lijstje, zodat de deur, de HUD-naam en de botsingsdozen
+voor allebei op dezelfde manier werken.
+
+Handel: € 50 voor honderd kogels. Het geld zit in `js/verhaal.js` (daar staat de
+portemonnee al voor de beloning van Johan) en er is één methode bijgekomen,
+`betaal(bedrag)`, die false geeft als je het niet hebt. Je begint met € 50, dus
+één doos zit er altijd in; de rest verdien je met de missies.
+
+Twee dingen die pas opvielen doordat er nu naar dit pand gekeken werd:
+
+1. *De politie liep in het echte spel helemaal niet.* In de hoofdlus stond
+   `if (!interieur.binnen) player.health -= politie.update(dt)`, en `binnen` is
+   een functie — dus altijd waar, en `politie.update` werd nooit aangeroepen.
+   Alle proeven riepen `politie.update` zélf aan en zagen het daarom niet: de
+   sterren verschenen, maar er kwam nooit iemand opdagen. Dat verklaart precies
+   wat er over stap 9 en 10 gemeld werd. Er staat nu een controle bij die naar
+   de lus kijkt in plaats van naar de module: vier beelden laten draaien en
+   tellen hoe vaak `politie.update` langskomt, buiten én binnenshuis.
+2. *Het pannendak van de boerderij had zwarte gaten.* `pannenMetDakramen()`
+   tekent het pannendoek op een canvas van 512 px, maar sinds de textures in
+   stap 9 verkleind worden is dat doek zelf 288 px — en zonder maat bleef de
+   rest van het canvas zwart. Eén `drawImage` met de doelmaat erbij.
+
+Controle: `npm run winkeltest` (negentien controles over het beginkapitaal, de
+deur heen en terug, de maten van de deel, de wanden, de prijs, het geld en de
+kogels, en de lege portemonnee). `npm run winkelshots` maakt de foto's. De
+verhaalproef telt na de beloning nu € 550 in plaats van € 500; verder blijven
+alle proeven groen en staat `npm run geo:boven` nog op 1,31 %. Het
+texturegeheugen loopt met de binnenruimte mee van 82 naar 83 MB, de draw calls
+in de wijk veranderen niet — de deel staat buiten het kaartgebied en valt dus
+altijd buiten beeld.
 
 **Wat nog niet af is (in volgorde).**
 
