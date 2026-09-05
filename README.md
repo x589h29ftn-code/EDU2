@@ -381,6 +381,10 @@ mislukking bij een schot, het uitgeput raken, het pakken, de beloning, de woning
 
 ## Naar binnen bij de Wieken 29
 
+Aan de Wieken zit de voordeur bij **elke** woning aan dezelfde kant — rechts, met de woonkamerpui
+ernaast links. In de geveltexture stonden ze om en om links en rechts, zoals in de meeste rijtjes
+waar twee woningen om hun bouwmuur heen spiegelen; die stijl doet dat nu niet meer.
+
 Ook achter de blauwe voordeur van **de Wieken 29** kun je naar binnen. Het is dezelfde bouwer als bij
 Molenkrite 15 — een voorhuis met een aanbouw erachter — maar met de maten van dít pand uit de kaart:
 5,38 bij 14,07 m, met de keuken in de aanbouw en de gang aan de andere kant, want het grondvlak ligt
@@ -394,9 +398,12 @@ Drie dingen die er voor allebei de woningen bij zijn gekomen:
 
 **Je kunt naar buiten kijken.** Het glas is doorzichtig geworden. De kamer staat ver buiten het
 kaartgebied, dus daar was niets te zien; nu staat de buurt er weer omheen. De panden binnen vijftig
-meter van het huis zijn op hun echte plek, maat en goothoogte uit de kaart als eenvoudige blokken
-neergezet, met de straat en de stoep aan de voorkant, gras eromheen en een paar bomen. Van dichtbij is
-het een blokkendoos, maar door een raam is het precies de buurt zoals hij hoort te liggen.
+meter van het huis staan er op hun echte plek, maat en goothoogte uit de kaart, mét de geveltexture
+van hun eigen woningtype en een zadeldak met pannen — dezelfde texturen als de wijk buiten, dus het
+kost geen extra geheugen. Door de pui kijk je zo op de overkant van de straat, met de deuren, de
+ramen en de dakkapellen erop.
+
+![Door de pui naar de overkant](docs/screenshots/wieken29_uitzicht.png)
 
 ![De buren door de tuindeur](docs/screenshots/binnen_uitzicht.png)
 
@@ -413,9 +420,18 @@ de klok vooruit, met `\` laat je hem lopen.
 
 ![Dezelfde kamer 's avonds](docs/screenshots/wieken29_avond.png)
 
+**En er lopen katten.** Aan de Molenkrite één, aan de Wieken twee: zwart-wit, met een witte bles over
+de snuit. Ze lopen de kamer rond, blijven af en toe staan om rond te kijken, gaan zitten — en
+klimmen geregeld op de bank, waar ze een halve minuut blijven liggen. Een kat is 45 cm lang met een
+schofthoogte van 25 cm, dezelfde maat als de echte.
+
+![De katten](docs/screenshots/wieken29_katten.png)
+
 `npm run woningtest` toetst het geheel: de tweede woning en zijn maten, de deur heen en terug, het
 zitten (lager oog, niet meer kunnen lopen, weer opstaan), de lamp die met de klok mee aan en uit gaat,
-het doorzichtige glas met een buurt erachter, en het speeltuintje hieronder.
+het doorzichtige glas met een buurt erachter, de katten (aantal, rondlopen, binnen blijven, op de
+bank) en het speeltuintje hieronder. `npm run wereldtest` toetst dat de voordeur aan de Wieken bij
+elke woning rechts zit en dat een gewoon rijtje nog wél spiegelt.
 `npm run woningshots` maakt de foto's.
 
 ## Het speeltuintje achter de Wieken 144

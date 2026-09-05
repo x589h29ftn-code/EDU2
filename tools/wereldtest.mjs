@@ -154,6 +154,48 @@ ok(vlag.gevonden && vlag.driehoeken >= 24,
   'het doek is twee panelen rug aan rug, dus het woordmerk leest van beide kanten goed',
   `${vlag.driehoeken} driehoeken`);
 
+// ---------- de voordeur aan de Wieken ----------
+/*
+ Aan de Wieken zit de voordeur bij alle woningen rechts, met de woonkamerpui
+ links ernaast. In de geveltexture stond hij om en om links en rechts, zoals bij
+ de meeste rijtjes; de stijl zet daarom `deurRechts`. We kijken naar de texture
+ zelf: waar zitten de beeldpunten met de deurkleur?
+*/
+kop('de voordeur aan de Wieken');
+const deur = await page.evaluate(async () => {
+  const T = await import('./js/textures.js');
+  const meet = (type) => {
+    const st = T.HOUSE_STYLES[type];
+    const doel = st.door.map(h => h.replace('#', '').toLowerCase());
+    const rgb = doel.map(h => [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]);
+    const uit = [];
+    for (const n of [1, 2, 3]) {
+      const c = T.facade(type, n, 1, false, 0).image;
+      const g = c.getContext('2d');
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      const breed = c.width / n;
+      const perWoning = new Array(n).fill(0).map(() => ({ som: 0, aantal: 0 }));
+      for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+        const i = (y * c.width + x) * 4;
+        if (!rgb.some(q => Math.abs(d[i] - q[0]) < 12 && Math.abs(d[i + 1] - q[1]) < 12 && Math.abs(d[i + 2] - q[2]) < 12)) continue;
+        const w = Math.min(n - 1, Math.floor(x / breed));
+        perWoning[w].som += (x - w * breed) / breed; perWoning[w].aantal++;
+      }
+      uit.push(perWoning.map(q => (q.aantal ? q.som / q.aantal : -1)));
+    }
+    return uit;
+  };
+  return { wieken: meet('wieken_white'), gewoon: meet('molenkrite') };
+});
+const alleRechts = deur.wieken.flat().filter(q => q >= 0);
+ok(alleRechts.length >= 5, 'de deuren zijn in de texture te vinden', `${alleRechts.length} woningen bekeken`);
+ok(alleRechts.every(q => q > 0.5), 'aan de Wieken zit de voordeur bij elke woning rechts',
+  alleRechts.map(q => q.toFixed(2)).join(', '));
+const gewoon = deur.gewoon.flat().filter(q => q >= 0);
+ok(gewoon.some(q => q < 0.5) && gewoon.some(q => q > 0.5),
+  'en in een gewoon rijtje spiegelen ze nog steeds om elkaar heen',
+  gewoon.map(q => q.toFixed(2)).join(', '));
+
 // ---------- heggen en schuttingen van de goede kant ----------
 /*
  De vier hoeken van een heg of schutting worden in js/kaartwereld.js in één

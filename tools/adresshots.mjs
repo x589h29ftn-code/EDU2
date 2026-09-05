@@ -17,7 +17,10 @@ const map = process.argv[3] || 'docs/screenshots';
 mkdirSync(map, { recursive: true });
 
 const STIJL = JSON.parse(readFileSync('data/stijl/straten.json', 'utf8'));
-const PANDEN = Object.entries(STIJL.panden || {}).filter(([k]) => !k.startsWith('_'));
+// Alleen panden met een eigen woningtype: een regel die er alleen staat om er
+// objecten bij te zetten (het speeltuintje achter de Wieken 144) is geen gebouw
+// om een foto van te maken.
+const PANDEN = Object.entries(STIJL.panden || {}).filter(([k, r]) => !k.startsWith('_') && r.type);
 if (!PANDEN.length) { console.log('geen panden in data/stijl/straten.json'); process.exit(0); }
 
 const browser = await chromium.launch({

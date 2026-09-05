@@ -32,8 +32,9 @@
 */
 import * as THREE from 'three';
 import { KAART } from './kaartwereld.js';
-import { HOUSE_STYLES } from './textures.js';
+import { HOUSE_STYLES, facade, roofTiles, brick } from './textures.js';
 import { addCollider, resolveCollisions } from './world.js';
+import { maakKat } from './kat.js';
 
 /*
  De woningen waar je naar binnen kunt. Ze hebben allebei dezelfde opzet — een
@@ -42,8 +43,8 @@ import { addCollider, resolveCollisions } from './world.js';
  elkaars buurt, ver buiten het kaartgebied.
 */
 export const WONINGEN = [
-  { straat: 'Molenkrite', nr: '15', plek: 0 },
-  { straat: 'de Wieken', nr: '29', plek: 1 },
+  { straat: 'Molenkrite', nr: '15', plek: 0, katten: 1 },
+  { straat: 'de Wieken', nr: '29', plek: 1, katten: 2 },
 ];
 const HUIS = WONINGEN[0];
 
@@ -630,12 +631,51 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     gras: new THREE.MeshBasicMaterial({ color: 0x5f8a3f, vertexColors: true, fog: false }),
     weg: new THREE.MeshBasicMaterial({ color: 0x8d8f92, vertexColors: true, fog: false }),
     stoep: new THREE.MeshBasicMaterial({ color: 0xb4b3ad, vertexColors: true, fog: false }),
-    steen: new THREE.MeshBasicMaterial({ color: 0xb9a894, vertexColors: true, fog: false }),
-    dak: new THREE.MeshBasicMaterial({ color: 0x6d4b3c, vertexColors: true, fog: false }),
     stam: new THREE.MeshBasicMaterial({ color: 0x6b5334, vertexColors: true, fog: false }),
     kruin: new THREE.MeshBasicMaterial({ color: 0x3f6b33, vertexColors: true, fog: false }),
     heg: new THREE.MeshBasicMaterial({ color: 0x46702f, vertexColors: true, fog: false }),
   };
+  /*
+   Een zadeldak als twee schuine vlakken naar een nok in het midden, met de uv
+   in meters zodat de pannen overal even groot zijn. Een platte doos van vijf
+   meter hoog leest als een muur; dit leest als een dak.
+  */
+  function zadeldak(breed, diep, y0, y1) {
+    const b = breed / 2, d = diep / 2;
+    const nok = [[-b, y1, 0], [b, y1, 0]];
+    const pos = [], uv = [];
+    const hel = Math.hypot(d, y1 - y0);
+    for (const zk of [1, -1]) {
+      const A = nok[0], B = nok[1];
+      const C = [b, y0, d * zk], D = [-b, y0, d * zk];
+      const driehoeken = zk > 0 ? [[A, B, C], [A, C, D]] : [[B, A, D], [B, D, C]];
+      for (const t of driehoeken) for (const p of t) {
+        pos.push(p[0], p[1], p[2]);
+        uv.push(p[0] / 2.2, (p[1] === y1 ? hel : 0) / 2.2);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.computeVertexNormals();
+    return geo;
+  }
+  // de twee driehoeken op de kop van dat dak
+  function kopvlakken(breed, diep, y0, y1) {
+    const b = breed / 2, d = diep / 2;
+    const pos = [], uv = [];
+    for (const xk of [1, -1]) {
+      const A = [b * xk, y0, -d], B = [b * xk, y0, d], C = [b * xk, y1, 0];
+      const t = xk > 0 ? [A, B, C] : [B, A, C];
+      for (const p of t) { pos.push(p[0], p[1], p[2]); uv.push(p[2] / 2.6, p[1] / 2.6); }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.computeVertexNormals();
+    return geo;
+  }
+
   function bouwBuiten() {
     const plaat = (b, d, y, mat, x, z) => {
       const geo = new THREE.PlaneGeometry(b, d);
@@ -648,33 +688,75 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     plaat(220, 220, -0.02, buitenMat.gras, BREED / 2, DIEP / 2);
     plaat(220, 6.5, -0.012, buitenMat.weg, BREED / 2, -6.6);
     plaat(220, 1.9, -0.008, buitenMat.stoep, BREED / 2, -2.4);
-    // de buren, uit de kaart
+    /*
+     De buren, uit de kaart. Ze krijgen de échte geveltexture van hun eigen
+     woningtype mee — dezelfde die de wijk buiten gebruikt, en dus uit dezelfde
+     cache, wat geen extra geheugen kost. Een doos van three.js legt zijn uv per
+     zijde van 0 tot 1, en zo'n geveltexture bevat alle woningen van het rijtje
+     naast elkaar; die past dus precies over de lange kant, net als bij de echte
+     muren. De kopse kanten krijgen kale steen, want een uitgerekt rijtje van
+     opzij klopt niet.
+    */
     const hier = pand.rect;
+    const buitenMats = new Map();
+    const mat = (sleutel, maak) => {
+      if (!buitenMats.has(sleutel)) {
+        buitenMats.set(sleutel, new THREE.MeshBasicMaterial({ map: maak(), vertexColors: true, fog: false }));
+      }
+      return buitenMats.get(sleutel);
+    };
     for (const q of KAART.panden) {
       if (q === pand || !q.rect) continue;
       const d = Math.hypot(q.rect.cx - hier.cx, q.rect.cz - hier.cz);
       if (d > 52) continue;
+      const st2 = HOUSE_STYLES[q.type];
+      if (!st2) continue;
       const mid = plan.naarKamer(q.rect.cx, q.rect.cz);
       const as = plan.richting(Math.cos(q.rect.hoek), Math.sin(q.rect.hoek));
       const h = Math.max(2.6, q.goot || 3);
       const nok = Math.max(h + 0.6, q.nok || h + 2);
       /*
-       Iedere buur zijn eigen tint. Eén materiaal voor alle buren gaf één bruine
-       muur aan de overkant; een beetje verschil per pand maakt er weer een rij
-       huizen van. De tint hangt aan het pand-id, dus hij blijft hetzelfde.
+       Welke kant van de rechthoek is de gevel? Bij een rijtje is dat de lange
+       kant, maar een losse woning in een rij staat met zijn diepte langs de
+       rechthoek-as: dan ligt de gevel op de korte kant. Zonder deze slag keek de
+       halve straat je met een blinde zijmuur aan en stonden de nokken dwars op
+       de weg. `q.front` weet welke kant het is; komt hij overeen met de as van
+       de rechthoek, dan draait de doos een kwartslag mee.
       */
-      const zaad = (parseInt(q.id.slice(-4), 10) || 7) % 97;
-      const kleurMat = buitenMat.steen.clone();
-      kleurMat.color.offsetHSL(((zaad % 11) - 5) * 0.006, 0, ((zaad % 7) - 3) * 0.035);
-      const muur = new THREE.Mesh(schaduw(new THREE.BoxGeometry(q.rect.hx * 2, h, q.rect.hz * 2)), kleurMat);
+      const frontK = q.front ? plan.richting(q.front[0], q.front[1]) : null;
+      const langsAs = frontK ? frontK.x * as.x + frontK.z * as.z : 0;
+      const dwarsAs = frontK ? frontK.x * -as.z + frontK.z * as.x : 1;
+      const kwart = Math.abs(langsAs) > Math.abs(dwarsAs);
+      const breed = (kwart ? q.rect.hz : q.rect.hx) * 2;
+      const diep = (kwart ? q.rect.hx : q.rect.hz) * 2;
+      const naarPlusZ = kwart ? langsAs > 0 : dwarsAs > 0;
+      const SH = st2.storeyH || 2.9;
+      const lagen = Math.max(1, Math.min(4, Math.round(h / SH)));
+      const huizen = Math.max(1, Math.round(breed / (st2.w || 5.5)));
+      const zaad = (Number(String(q.id).slice(-1)) || 0) % 6;
+      const voorgevel = mat(`v|${q.type}|${huizen}|${lagen}|${zaad}`, () => facade(q.type, huizen, lagen, false, zaad));
+      const achtergevel = mat(`a|${q.type}|${huizen}|${lagen}|${zaad}`, () => facade(q.type, huizen, lagen, true, zaad));
+      const kopgevel = mat(`s|${q.type}`, () => brick(st2.brick[0], st2.brick[1], 1));
+      const draai = Math.atan2(-as.z, as.x) + (kwart ? Math.PI / 2 : 0);
+      const langsA = naarPlusZ ? voorgevel : achtergevel;
+      const langsB = naarPlusZ ? achtergevel : voorgevel;
+      // volgorde van BoxGeometry: +x, -x, +y, -y, +z, -z — de lange zijden zijn ±z
+      const muur = new THREE.Mesh(schaduw(new THREE.BoxGeometry(breed, h, diep)),
+        [kopgevel, kopgevel, kopgevel, kopgevel, langsA, langsB]);
       muur.position.set(mid.x, h / 2, mid.z);
-      muur.rotation.y = Math.atan2(-as.z, as.x);
+      muur.rotation.y = draai;
       buiten.add(muur);
-      // een simpel zadeldakje erop, zodat het geen doos blijft
-      const kap2 = new THREE.Mesh(schaduw(new THREE.BoxGeometry(q.rect.hx * 2 + 0.4, nok - h, q.rect.hz * 1.35)), buitenMat.dak);
-      kap2.position.set(mid.x, h + (nok - h) / 2, mid.z);
-      kap2.rotation.y = muur.rotation.y;
+      // een echt zadeldak met pannen erop: twee schuine vlakken naar een nok
+      const dakMat = mat(`d|${st2.roof}`, () => roofTiles(st2.roof, 5));
+      const kap2 = new THREE.Mesh(schaduw(zadeldak(breed + 0.4, diep + 0.4, 0, nok - h)), dakMat);
+      kap2.position.set(mid.x, h, mid.z);
+      kap2.rotation.y = draai;
       buiten.add(kap2);
+      // de topgevels dicht, anders kijk je onder de pannen door
+      const kop = new THREE.Mesh(schaduw(kopvlakken(breed, diep + 0.4, 0, nok - h)), kopgevel);
+      kop.position.set(mid.x, h, mid.z);
+      kop.rotation.y = draai;
+      buiten.add(kop);
     }
     // heg achter in de tuin en een paar bomen, zodat het niet kaal is
     for (const [x, z, b] of [[BREED / 2, DIEP + 7.5, BREED + 9]]) {
@@ -689,6 +771,79 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     }
   }
   bouwBuiten();
+
+  /*
+   ---------- de katten ----------
+   Eén aan de Molenkrite, twee aan de Wieken. Ze lopen de kamer rond, blijven af
+   en toe staan om rond te kijken, gaan zitten, en klimmen soms op de bank. Het
+   doel wordt geprikt in de vloervakken van de plattegrond zelf en daarna langs
+   `resolveCollisions` gehaald: ligt er een bank, een kast of een keukenblok, dan
+   komt het punt niet vrij en wordt er een nieuw geprikt. Zo hoeft er nergens een
+   looproute ingetekend te worden.
+  */
+  const katten = [];
+  const KAT_LOOP = 0.62;
+  function vrijPunt() {
+    for (let poging = 0; poging < 30; poging++) {
+      const v = vakken[Math.floor(Math.random() * vakken.length)];
+      const x = v.x0 + 0.5 + Math.random() * Math.max(0.1, v.x1 - v.x0 - 1.0);
+      const z = v.z0 + 0.5 + Math.random() * Math.max(0.1, v.z1 - v.z0 - 1.0);
+      const [rx, rz] = resolveCollisions(NUL.x + x, NUL.z + z, 0.2);
+      if (Math.hypot(rx - (NUL.x + x), rz - (NUL.z + z)) < 0.01) return { x, z };
+    }
+    return { x: BREED / 2, z: DIEP / 2 };
+  }
+  for (let i = 0; i < (HUIS.katten || 0); i++) {
+    const kat = maakKat({ schaduw, zaad: i });
+    const p = vrijPunt();
+    kat.zetNeer(p.x, p.z, Math.random() * 6.28);
+    groep.add(kat.groep);
+    katten.push({ kat, staat: 'wacht', doel: vrijPunt(), t: 1 + Math.random() * 2, opBank: false });
+  }
+  const BANK_ZIT = { x: BREED - MUUR - 0.50, y: 0.46 };
+  function katUpdate(dt) {
+    for (const k of katten) {
+      const pos = k.kat.groep.position;
+      k.t -= dt;
+      if (k.staat === 'loopt') {
+        const dx = k.doel.x - pos.x, dz = k.doel.z - pos.z;
+        const d = Math.hypot(dx, dz);
+        if (d > 0.12) {
+          k.kat.draaiNaar(Math.atan2(-dx, -dz), dt, 3.2);
+          const stap = Math.min(d, KAT_LOOP * dt);
+          const nx = pos.x + dx / d * stap, nz = pos.z + dz / d * stap;
+          const [rx, rz] = resolveCollisions(NUL.x + nx, NUL.z + nz, 0.16);
+          pos.x = rx - NUL.x; pos.z = rz - NUL.z;
+          // klem tegen de bank of een kast? dan een ander doel
+          if (Math.hypot(pos.x - nx, pos.z - nz) > 0.02) { k.doel = vrijPunt(); k.t = 0.5; }
+          k.kat.update(dt, { loopt: true, snelheid: KAT_LOOP });
+          continue;
+        }
+        k.staat = Math.random() < 0.45 ? 'zit' : 'wacht';
+        k.t = k.staat === 'zit' ? 5 + Math.random() * 9 : 1.5 + Math.random() * 3;
+      }
+      k.kat.update(dt, { loopt: false, zit: k.staat === 'zit' || k.opBank, snelheid: KAT_LOOP });
+      // rondkijken terwijl hij stilstaat
+      if (!k.opBank) k.kat.groep.rotation.y += Math.sin(k.t * 0.7) * dt * 0.35;
+      if (k.t > 0) continue;
+      if (k.opBank) {
+        // van de bank af en verder rondlopen
+        k.opBank = false; pos.y = 0;
+        k.doel = vrijPunt(); k.staat = 'loopt'; k.t = 20;
+        continue;
+      }
+      // een op de vier keer springt hij op de bank
+      if (Math.random() < 0.25) {
+        k.opBank = true;
+        pos.set(BANK_ZIT.x, BANK_ZIT.y, bankZ + (Math.random() - 0.5) * 1.2);
+        k.kat.groep.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+        k.staat = 'wacht';
+        k.t = 14 + Math.random() * 24;
+      } else {
+        k.doel = vrijPunt(); k.staat = 'loopt'; k.t = 20;
+      }
+    }
+  }
 
   /*
    ---------- dag en nacht ----------
@@ -819,6 +974,7 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     const bezig = player.active || window.__autoplay;
     // de lamp gaat aan zodra het buiten donker wordt
     if (sfeer) zetLicht(!!sfeer.nacht);
+    if (katten.length) katUpdate(Math.min(dt, 0.1));
     if (bezet) { hintAan = false; return; }
     let tekst = null;
     if (bezig && !player.inCar) {
@@ -852,6 +1008,7 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
 
   return {
     update, toets, binnen, meldAan, kaart, zetLicht, gaZitten, staOp,
+    get katten() { return katten.map(k => ({ x: k.kat.groep.position.x, y: k.kat.groep.position.y, z: k.kat.groep.position.z, staat: k.staat, opBank: k.opBank })); },
     get naam() { return `${HUIS.straat} ${HUIS.nr}`; },
     get nacht() { return nachtNu; },
     // de maten waar het om gaat, voor tools/verhaaltest.mjs

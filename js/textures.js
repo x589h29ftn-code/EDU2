@@ -420,7 +420,7 @@ export const HOUSE_STYLES = {
   // de Wieken 34 (foto): bungalow met de woonruimte in de kap, grote dakkapel
   // met rode kozijnen, rode deuren en rode ramen, lichtgele steen, witte
   // boeiboord, zonnepanelen op een deel van de daken.
-  wieken_white:{ brick: ['#c9b98f', '#dcd4c1'], frame: '#ffffff', frame2: '#c8322b', door: ['#c8322b', '#c8322b', '#1746a0'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.5, dormer: true, dormerGroot: true, dormerFrame: '#c8322b', chimney: false, band: '#f4f4f4' },
+  wieken_white:{ brick: ['#c9b98f', '#dcd4c1'], frame: '#ffffff', frame2: '#c8322b', door: ['#c8322b', '#c8322b', '#1746a0'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.5, dormer: true, dormerGroot: true, dormerFrame: '#c8322b', chimney: false, band: '#f4f4f4', deurRechts: true },
   wieken_yellow:{ brick: ['#c9b98f', '#dcd4c1'], frame: '#ffffff', frame2: '#c8322b', door: ['#c8322b', '#b52a24'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.5, dormer: true, dormerGroot: true, dormerFrame: '#c8322b', chimney: false, solar: true, band: '#f4f4f4' },
   // Bonkelaar 11 (foto): twee-onder-een-kap in donkere roodbruine steen, witte
   // kozijnen, witte houten topgevel, donkergrijze pannen, garage of carport
@@ -662,7 +662,13 @@ export function facade(type, n, storeys, back = false, seed = 1) {
 
   for (let i = 0; i < n; i++) {
     const x0 = i * HW;
-    const mirror = (i % 2 === 1) && !st.detached;
+    /*
+     Waar zit de voordeur? Standaard om en om: twee woningen delen een bouwmuur
+     en spiegelen om elkaar heen, zoals in de meeste rijtjes. Aan de Wieken zit
+     hij bij álle woningen aan dezelfde kant — rechts, met de woonkamerpui
+     ernaast links — dus die stijl zet `deurRechts` en dan vervalt het om en om.
+    */
+    const mirror = st.deurRechts ? true : ((i % 2 === 1) && !st.detached);
     const doorColor = st.door[(i + seed) % st.door.length];
     if (st.winkel) {
       /*

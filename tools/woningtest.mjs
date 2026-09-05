@@ -173,6 +173,59 @@ ok(uitzicht.doorzichtig, 'het glas is doorzichtig', `dekking ${uitzicht.opacity}
 ok(uitzicht.buiten > 12, 'en er staat een buurt achter de ramen',
   `${uitzicht.buiten} dingen buiten, tot ${uitzicht.verste.toFixed(0)} m van het huis`);
 
+// ---------- 5b. de katten ----------
+kop('de katten');
+const katten = await page.evaluate(() => {
+  const g = window.__game;
+  const uit = [];
+  for (const h of g.woningen) {
+    const start = h.katten.map(k => ({ x: k.x, z: k.z }));
+    let opBank = 0, buiten = 0, verzet = 0;
+    const m = h.maten;
+    for (let i = 0; i < 3600; i++) {
+      h.update(1 / 30, false);
+      for (const k of h.katten) {
+        if (k.opBank) opBank++;
+        if (k.x < -1 || k.x > m.breed + 1 || k.z < -1 || k.z > m.diep + 1) buiten++;
+      }
+    }
+    const na = h.katten;
+    for (let i = 0; i < na.length; i++) verzet = Math.max(verzet, Math.hypot(na[i].x - start[i].x, na[i].z - start[i].z));
+    uit.push({ naam: h.naam, aantal: na.length, opBank, buiten, verzet });
+  }
+  return uit;
+});
+const kat15 = katten.find(q => q.naam === 'Molenkrite 15') || {};
+const kat29 = katten.find(q => q.naam === 'de Wieken 29') || {};
+ok(kat15.aantal === 1, 'aan de Molenkrite loopt één kat', `${kat15.aantal}`);
+ok(kat29.aantal === 2, 'aan de Wieken lopen er twee', `${kat29.aantal}`);
+ok(kat15.verzet > 0.5 && kat29.verzet > 0.5, 'ze lopen rond',
+  `${(kat29.verzet || 0).toFixed(1)} m verplaatst in twee minuten`);
+ok(kat15.buiten === 0 && kat29.buiten === 0, 'en blijven binnen',
+  `${(kat15.buiten || 0) + (kat29.buiten || 0)} keer buiten de kamer`);
+ok(kat15.opBank + kat29.opBank > 0, 'af en toe zit er eentje op de bank',
+  `${kat15.opBank + kat29.opBank} beelden op de bank`);
+
+const vacht = await page.evaluate(async () => {
+  const THREE = await import('three');
+  const g = window.__game;
+  const h = g.woningen[1];
+  // de kleuren van de katten: wit en zwart
+  const kleuren = new Set();
+  let meshes = 0;
+  h.groep.traverse(o => {
+    if (!o.isMesh || !o.material || !o.material.color) return;
+    // de katten hangen aan een eigen groep binnen de kamer
+    let p = o.parent, kat = false;
+    while (p) { if (p.userData && p.userData.kat) kat = true; p = p.parent; }
+    if (!kat) return;
+    meshes++;
+    kleuren.add(o.material.color.getHex());
+  });
+  return { meshes, kleuren: [...kleuren] };
+});
+ok(vacht.meshes > 20, 'ze zijn uit losse stukjes opgebouwd', `${vacht.meshes} meshes`);
+
 // ---------- 6. het speeltuintje achter de Wieken 144 ----------
 kop('het speeltuintje');
 const speel = await page.evaluate(async () => {
