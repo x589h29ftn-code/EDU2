@@ -13,7 +13,8 @@
      16,5 x 40,32 m, doelgebied van 5,5 x 18,32 m, strafschopstip op 11 m en
      hoekcirkels van 1 m);
    - twee doelen van 7,32 bij 2,44 m met een net;
-   - rondom het hoofdveld de reclameborden, op een meter achter de zijlijn;
+   - rondom het hoofdveld de reclameborden, op een meter achter de zijlijn, met
+     om de vijf borden dat van Radio Spannenburg (js/textures.js);
    - een ballenvanger achter de doelen en een laag hek langs de kant;
    - dugouts langs de zijlijn en lichtmasten op de hoeken.
 
@@ -30,6 +31,13 @@ const CIRKEL = 9.15;        // straal middencirkel
 const STRAF_D = 16.5, STRAF_B = 40.32;
 const DOELGEB_D = 5.5, DOELGEB_B = 18.32;
 const STIP = 11.0;
+/*
+ Om de hoeveel borden er weer een van Radio Spannenburg staat. De lokale omroep
+ van De Fryske Marren sponsort de club, dus zijn bord komt rond het hele veld
+ terug in plaats van op één plek — precies zoals een hoofdsponsor op een
+ sportpark langs de lijn staat.
+*/
+const SPANNENBURG_STAP = 5;
 
 // de doelpalen en de lat: één vorm, hergebruikt voor alle acht doelen
 const paalGeo = new THREE.CylinderGeometry(0.06, 0.06, DOEL_H, 8);
@@ -55,6 +63,7 @@ function materialen() {
     bank: new THREE.MeshStandardMaterial({ color: 0xd8552f, roughness: 0.8 }),
     lamp: new THREE.MeshStandardMaterial({ color: 0xd8dde2, emissive: 0x2a2f34, roughness: 0.35, metalness: 0.5 }),
     borden: [0, 1, 2, 3, 4, 5].map(i => new THREE.MeshStandardMaterial({ map: T.reclamebord(i), roughness: 0.55, side: THREE.DoubleSide })),
+    spannenburg: new THREE.MeshStandardMaterial({ map: T.bordSpannenburg(), roughness: 0.5, side: THREE.DoubleSide }),
     achterkant: new THREE.MeshStandardMaterial({ color: 0x9aa1a8, roughness: 0.9 }),
   };
 }
@@ -128,8 +137,16 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
   const B = {
     paal: bak(), net: bak(), vanger: bak(), staal: bak(), hek: bak(),
     dugout: bak(), ruit: bak(), bank: bak(), lamp: bak(), achterkant: bak(),
-    borden: M.borden.map(() => bak()),
+    borden: M.borden.map(() => bak()), spannenburg: bak(),
   };
+  /*
+   Welk bord is dit er een? Om de zoveel staat Radio Spannenburg langs de lijn;
+   de rest gaat de zes gewone doeken langs. Die krijgen een eigen teller, want
+   met `n % 6` over álle borden vielen de overgeslagen nummers weg en stonden er
+   steeds dezelfde twee kleuren naast elkaar.
+  */
+  let gewoon = 0;
+  const bordBak = (n) => (n % SPANNENBURG_STAP === 2 ? B.spannenburg : B.borden[gewoon++ % B.borden.length]);
   // een vorm op zijn plek in de wereld zetten: eerst lokaal draaien en
   // verschuiven, dan het veld in
   const mat = new THREE.Matrix4(), hulp = new THREE.Matrix4();
@@ -243,7 +260,7 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
           const draai = -(V.hoek + hoek) + (Math.cos(naarVeld - hoek - Math.PI / 2) < 0 ? Math.PI : 0);
           const bx = wx(u, v), bz = wz(u, v);
           const vlak = new THREE.PlaneGeometry(stap - 0.06, bordH);
-          voegToe(B.borden[n % B.borden.length], vlak,
+          voegToe(bordBak(n), vlak,
             plaats(bx + Math.sin(draai) * 0.03, grondY + bordH / 2, bz + Math.cos(draai) * 0.03, draai));
           voegToe(B.achterkant, vlak,
             plaats(bx - Math.sin(draai) * 0.03, grondY + bordH / 2, bz - Math.cos(draai) * 0.03, draai + Math.PI));
@@ -325,6 +342,7 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
     [B.staal, M.staal, 'sportpaal'], [B.hek, M.hek, 'sporthek'], [B.dugout, M.dugout, 'dugout'],
     [B.ruit, M.ruit, 'dugoutruit'], [B.bank, M.bank, 'dugoutbank'], [B.lamp, M.lamp, 'lichtmast'],
     [B.achterkant, M.achterkant, 'reclameachter'],
+    [B.spannenburg, M.spannenburg, 'reclamebordSpannenburg'],
     ...B.borden.map((b, i) => [b, M.borden[i], 'reclamebord']),
   ];
   for (const [b, materiaal, klasse] of stukken) {

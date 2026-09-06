@@ -591,6 +591,13 @@ die je op een sportpark ziet. De maaibanen lopen in de lengte van het veld, zoal
 |---|---|
 | ![Middenstip](docs/screenshots/veld_midden.png) | ![Achter het doel](docs/screenshots/veld_doel.png) |
 
+Langs de lijn hangt **Radio Spannenburg** — *It hert fan De Fryske Marren* — de lokale omroep die de
+club sponsort. Zijn bord komt om de vijf borden terug, dus je ziet het rond het hele veld, aan alle
+vier de kanten. Er zitten geen plaatjesbestanden in dit spel: net als het Jumbo-woordmerk wordt het
+logo op een canvas getekend, hart en al.
+
+![De reclameborden langs de lijn](docs/screenshots/veld_reclame.png)
+
 Je kunt het veld op lopen — er staat niets in de weg — maar door de reclameborden, de ballenvanger
 en het hek heen niet.
 
@@ -611,7 +618,7 @@ bedden door lopen; alleen de randen, de schuurtjes en de kassen houden je tegen.
 |---|---|
 | ![Het pad](docs/screenshots/tuinen_pad.png) | ![Schuurtje en kas](docs/screenshots/tuinen_schuur.png) |
 
-`npm run sporttest` loopt beide na (34 controles): het kunstgras uit de brondata, de vier velden met
+`npm run sporttest` loopt beide na (38 controles): het kunstgras uit de brondata, de vier velden met
 hun maten en richting, de belijning, de doelen, de bordenring, het erlangs en erop lopen, en de
 volkstuinen — binnen het perceel, de grasrand, de paden, de schuurtjes en of je er doorheen kunt
 lopen. `npm run sportshots` maakt de foto's hierboven.

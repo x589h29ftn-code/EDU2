@@ -358,11 +358,18 @@ export function kunstgras() {
 export function reclamebord(seed = 1) {
   const key = 'reclame' + seed;
   if (cache.has(key)) return cache.get(key);
-  const W = 512, H = 96;               // 512 px = 3 m bord van 90 cm hoog
+  // 512 x 154 px = 3 bij 0,9 m: dezelfde verhouding als het bord zelf, anders
+  // wordt alles wat erop staat in de breedte samengeknepen
+  const W = 512, H = 154;
   const c = canvas(W, H); const g = c.getContext('2d');
   const r = rng(300 + seed * 17);
+  /*
+   Elke variant zijn eigen kleur. Dit was een trekking uit de reeks, en die
+   leverde bij vier van de zes seeds dezelfde amberkleur op — dan staat er een
+   rij van vier gele borden naast elkaar langs de lijn.
+  */
   const grond = ['#c8442c', '#1f4f9c', '#e8a021', '#1f7a48', '#2b2f36', '#f0efe9'];
-  const bg = grond[Math.floor(r() * grond.length)];
+  const bg = grond[seed % grond.length];
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
   const licht = bg === '#f0efe9' || bg === '#e8a021';
   // een schuine baan als accent
@@ -373,15 +380,100 @@ export function reclamebord(seed = 1) {
   let x = 26;
   const n = 4 + Math.floor(r() * 4);
   for (let i = 0; i < n; i++) {
-    const b = 16 + r() * 26, h = 30 + r() * 22;
+    const b = 16 + r() * 26, h = 48 + r() * 36;
     g.fillStyle = tekst; g.fillRect(x, (H - h) / 2, b, h);
-    if (r() < 0.4) { g.fillStyle = bg; g.fillRect(x + 4, (H - h) / 2 + 6, b - 8, h / 3); }
+    if (r() < 0.4) { g.fillStyle = bg; g.fillRect(x + 4, (H - h) / 2 + 10, b - 8, h / 3); }
     x += b + 8 + r() * 8;
     if (x > W - 60) break;
   }
   // randlijst boven en onder
-  g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(0, 0, W, 5); g.fillRect(0, H - 6, W, 6);
+  g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(0, 0, W, 8); g.fillRect(0, H - 9, W, 9);
   const t = tex(c); cache.set(key, t); return t;
+}
+
+/*
+ Het bord van Radio Spannenburg, de lokale omroep van De Fryske Marren. Er
+ staan geen plaatjesbestanden in dit spel — elke texture wordt hier op een canvas
+ getekend, net als het Jumbo-woordmerk — dus het logo wordt nagetekend: het
+ blauwe hart dat uit schuine geluidsbalken bestaat, het woordmerk RADIO /
+ SPANNENBURG in zwaar schreefloos zwart, en de slogan in blauwe cursief.
+*/
+export function bordSpannenburg() {
+  if (cache.has('spannenburg')) return cache.get('spannenburg');
+  const W = 512, H = 154;              // 3 bij 0,9 m, dezelfde verhouding als het bord
+  const c = canvas(W, H); const g = c.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+
+  // ---- het hart ----
+  const hx = 62, hy = 74, hw = 96, hh = 100;
+  g.save();
+  g.beginPath();
+  g.moveTo(hx, hy + hh * 0.46);
+  g.bezierCurveTo(hx - hw * 0.62, hy + hh * 0.02, hx - hw * 0.54, hy - hh * 0.56, hx - hw * 0.20, hy - hh * 0.36);
+  g.bezierCurveTo(hx - hw * 0.07, hy - hh * 0.28, hx + hw * 0.07, hy - hh * 0.28, hx + hw * 0.20, hy - hh * 0.36);
+  g.bezierCurveTo(hx + hw * 0.54, hy - hh * 0.56, hx + hw * 0.62, hy + hh * 0.02, hx, hy + hh * 0.46);
+  g.closePath();
+  g.fillStyle = '#1f6dc0'; g.fill();
+  /*
+   In het hart staan schuine balken, als de uitslag van een geluidsmeter. Ze
+   worden binnen het hart geknipt, zodat de vorm heel blijft; de linkerhelft
+   blijft egaal, net als in het logo.
+  */
+  g.clip();
+  const tinten = ['#4a96da', '#2f7fcb', '#63a9e4', '#1b5fa8', '#3d8ad2'];
+  const baan = (x, breed, kleur) => {
+    g.fillStyle = kleur;
+    g.beginPath();
+    g.moveTo(x, hy + hh * 0.6);
+    g.lineTo(x + breed, hy + hh * 0.6);
+    g.lineTo(x + breed + 18, hy - hh * 0.6);
+    g.lineTo(x + 18, hy - hh * 0.6);
+    g.closePath(); g.fill();
+  };
+  let i = 0;
+  for (let x = hx - hw * 0.20; x < hx + hw * 0.72; x += 16) {
+    baan(x, 3, '#ffffff');                       // witte naad tussen de balken
+    baan(x + 3, 11 + (i % 3) * 1.5, tinten[i % tinten.length]);
+    i++;
+  }
+  g.restore();
+
+  // ---- het woordmerk ----
+  g.fillStyle = '#1a1a1a';
+  g.textBaseline = 'alphabetic';
+  g.textAlign = 'left';
+  // een smal, zwaar schreefloos font: horizontaal iets samendrukken
+  const smal = (tekst, x, y, px, f) => {
+    g.save(); g.translate(x, y); g.scale(f, 1);
+    g.font = `bold ${px}px sans-serif`;
+    g.fillText(tekst, 0, 0);
+    const breed = g.measureText(tekst).width * f;
+    g.restore();
+    return x + breed;            // waar het woord ophoudt
+  };
+  const radioEind = smal('RADIO', 88, 74, 52, 0.92);
+  const spanEind = smal('SPANNENBURG', 84, 130, 54, 0.92);
+
+  /*
+   De slogan staat rechts van RADIO en loopt tot waar SPANNENBURG eindigt. Hoe
+   breed dat is hangt af van het font dat de browser voor 'serif' pakt, dus de
+   lettergrootte wordt hier op de beschikbare ruimte gerekend in plaats van
+   vastgezet — anders liep hij het bord af.
+  */
+  const slogan = 'It hert fan De Fryske Marren!';
+  const ruimte = spanEind - radioEind - 20;
+  g.font = 'italic bold 30px Georgia, "Times New Roman", serif';
+  const px = Math.min(30, 30 * ruimte / g.measureText(slogan).width);
+  g.save();
+  g.translate(radioEind + 14, 70); g.rotate(-0.045);
+  g.fillStyle = '#1f6dc0';
+  g.font = `italic bold ${px.toFixed(1)}px Georgia, "Times New Roman", serif`;
+  g.fillText(slogan, 0, 0);
+  g.restore();
+
+  // randlijst boven en onder, net als bij de andere borden
+  g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(0, 0, W, 8); g.fillRect(0, H - 9, W, 9);
+  const t = tex(c); cache.set('spannenburg', t); return t;
 }
 
 // ---------- Ballenvanger ----------
