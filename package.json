@@ -29,7 +29,7 @@
     "geo:test": "node tools/geo/rd.mjs test",
     "geo:controle": "node tools/geo/controle.mjs",
     "geo:bgt": "node tools/geo/bgt2geojson.mjs data/geo/bron/bgt_tinga.zip.zip",
-    "geo:bag3d": "node --no-warnings tools/geo/bag3d2geojson.mjs data/geo/bron/9-632-1008.gpkg",
+    "geo:bag3d": "node --no-warnings tools/geo/bag3d2geojson.mjs",
     "geo:plaat": "node tools/geo/plaat.mjs",
     "geo:genereer": "node tools/geo/genereer.mjs",
     "geo:boven": "node tools/geo/bovenaanzicht.mjs 8123 4",
@@ -50,6 +50,7 @@
     "viaducttest": "node tools/viaducttest.mjs",
     "viaductshots": "node tools/viaductshots.mjs",
     "wapentest": "node tools/wapentest.mjs",
-    "wapenshots": "node tools/wapenshots.mjs"
+    "wapenshots": "node tools/wapenshots.mjs",
+    "wereldshots": "node tools/wereldshots.mjs"
   }
 }

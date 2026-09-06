@@ -47,8 +47,20 @@ await page.evaluate(async () => {
   */
   g.player.active = false;
   window.__autoplay = false;
-  // een recht stuk Molenkrite als plaats delict
-  const as = KAART.wegassen.filter(w => w.drive && w.naam === 'Molenkrite' && w.lengte > 60)[0];
+  /*
+   Een recht stuk Molenkrite als plaats delict, en wel het stuk in het hart van
+   Tinga: de as die het dichtst bij de nulmeter ligt (de kruising Molenkrite /
+   Monnikmolen / Jasker). Dit stond op "de eerste in de lijst", maar die volgorde
+   komt uit de gegenereerde kaart. Toen de wereld groter werd schoof de proef
+   daardoor vanzelf vijfhonderd meter naar het oosten, naar een lus waar een
+   surveillancewagen die honderd meter verderop begint een kilometer moet
+   omrijden — daar haalde hij de melding nooit.
+  */
+  const as = KAART.wegassen.filter(w => w.drive && w.naam === 'Molenkrite' && w.lengte > 60)
+    .sort((p, q) => {
+      const m = (w) => { const t = w.pts[Math.floor(w.pts.length / 2)]; return Math.hypot(t[0], t[1]); };
+      return m(p) - m(q);
+    })[0];
   const a = as.pts[Math.floor(as.pts.length / 2)];
   const b = as.pts[Math.min(as.pts.length - 1, Math.floor(as.pts.length / 2) + 3)];
   const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;

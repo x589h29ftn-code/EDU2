@@ -7,7 +7,7 @@
 // Wat erin gaat: BGT-vlakken (ondergrond), 3D BAG (panden met echte daken),
 // straatnaamlabels en huisnummers. Wat eruit komt staat onderaan in TELLING
 // en wordt door tools/geo/controle.mjs en het bovenaanzicht getoetst.
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { middellijnen, raster, vulRaster } from './skelet.mjs';
@@ -186,9 +186,32 @@ for (const f of leesOpt('bgt_kunstwerkdeel')) if (f.geometry.type !== 'LineStrin
 for (const f of leesOpt('bgt_overigbouwwerk')) if (f.geometry.type !== 'LineString') voegVlak('bouwwerk', 'beton', 0.5, f.geometry, { sub: f.properties.bgt_type || undefined });
 
 // ---------------------------------------------------------------- panden
-const cityjson = JSON.parse(readFileSync(join(GEO, 'bron', '9-632-1008.city.json'), 'utf8'));
-const CJ = cityjson.CityObjects, VERT = cityjson.vertices, TR = cityjson.transform;
-const rdVertex = (i) => { const v = VERT[i]; return [v[0] * TR.scale[0] + TR.translate[0], v[1] * TR.scale[1] + TR.translate[1], v[2] * TR.scale[2] + TR.translate[2]]; };
+/*
+ De 3D-dakmodellen komen uit CityJSON. De 3D BAG deelt Nederland op in tegels
+ van wisselende grootte, dus dat zijn er meestal meer dan één; alle .city.json
+ in data/geo/bron/ die het gebied raken gaan mee. Hoekpuntnummers zijn per
+ tegel, dus elk pand onthoudt bij welke tegel het hoort — anders pakt een pand
+ uit tegel B de hoekpunten van tegel A en staat er een gebouw ondersteboven in
+ de sloot.
+*/
+const CJ = new Map();          // BAG-id -> { obj, tegel }
+const cityBestanden = readdirSync(join(GEO, 'bron')).filter(f => f.endsWith('.city.json')).sort();
+const cityGebruikt = [];
+for (const naam of cityBestanden) {
+  const j = JSON.parse(readFileSync(join(GEO, 'bron', naam), 'utf8'));
+  const e = j.metadata?.geographicalExtent;
+  // tegels die het gebied niet raken slaan we over: scheelt geheugen en tijd
+  if (e && (e[3] < X0 + G.x0 || e[0] > X0 + G.x1 || e[4] < Y0 - G.z1 || e[1] > Y0 - G.z0)) continue;
+  const tegel = { VERT: j.vertices, TR: j.transform };
+  let n = 0;
+  for (const [id, o] of Object.entries(j.CityObjects)) if (!CJ.has(id)) { CJ.set(id, { o, tegel }); n++; }
+  cityGebruikt.push(`${naam.replace('.city.json', '')} (${n})`);
+}
+const rdVertex = (tegel, i) => {
+  const v = tegel.VERT[i], T = tegel.TR;
+  return [v[0] * T.scale[0] + T.translate[0], v[1] * T.scale[1] + T.translate[1], v[2] * T.scale[2] + T.translate[2]];
+};
+tel('cityjson_tegels', cityGebruikt.length);
 
 const bgtPanden = lees('bgt_pand');
 const nummersPerPand = new Map();
@@ -215,20 +238,21 @@ for (const f of lees('bag3d_pand')) {
   };
   const np = nrPositie(id); if (np) pand.nrpos = np;
   // 3D-model uit CityJSON (LoD 2.2): gedeelde hoekpunten + vlakken met soort
-  const gebouw = CJ[p.identificatie];
-  if (gebouw) {
+  const treffer = CJ.get(p.identificatie);
+  if (treffer) {
+    const gebouw = treffer.o, tegel = treffer.tegel;
     const idx = new Map(); const v = []; const fl = []; const s = [];
     const hoekpunt = (i) => {
       let k = idx.get(i);
       if (k === undefined) {
-        const [X, Y, Z] = rdVertex(i);
+        const [X, Y, Z] = rdVertex(tegel, i);
         k = v.length / 3; idx.set(i, k);
         v.push(r2(X - X0), r2(Z - maaiveld), r2(Y0 - Y));
       }
       return k;
     };
     for (const kind of gebouw.children || []) {
-      const deel = CJ[kind]; if (!deel) continue;
+      const deel = CJ.get(kind)?.o; if (!deel) continue;
       for (const geom of deel.geometry || []) {
         if (String(geom.lod) !== '2.2') continue;
         const shells = geom.type === 'Solid' ? geom.boundaries : [geom.boundaries];

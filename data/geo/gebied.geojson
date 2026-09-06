@@ -1,17 +1,45 @@
 {
   "type": "FeatureCollection",
   "name": "gebied",
-  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::28992" } },
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:EPSG::28992"
+    }
+  },
   "features": [
     {
       "type": "Feature",
       "properties": {
         "naam": "Tinga, Sneek",
-        "toelichting": "Werkgebied van het spel: de wijk Tinga met de N7 aan de noordkant, binnen 3D BAG-tegel 9-632-1008 (X 171858-172601, Y 558912-559899)."
+        "toelichting": "Werkgebied van het spel: de wijk Tinga plus de buurt aan de overkant van de N7 (X 171650-172980, Y 558800-560100, 1330 x 1300 m). De randen liggen tussen de bebouwing door: aan de oostkant op 172980, want 40 m verder snijdt hij door de Lemmerweg en Duinterpen heen. 3D BAG-tegels: 9-632-1008, 9-632-1012, 9-636-1008 en 7-624-992 (die laatste alleen voor de zuidrand)."
       },
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[171870, 558920], [172600, 558920], [172600, 559790], [171870, 559790], [171870, 558920]]]
+        "coordinates": [
+          [
+            [
+              171650,
+              558800
+            ],
+            [
+              172980,
+              558800
+            ],
+            [
+              172980,
+              560100
+            ],
+            [
+              171650,
+              560100
+            ],
+            [
+              171650,
+              558800
+            ]
+          ]
+        ]
       }
     }
   ]

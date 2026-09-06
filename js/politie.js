@@ -49,6 +49,15 @@ const WAGENS = [0, 1, 2, 3, 4, 5];         // surveillanceauto's per ster
 // Hoe wijd ze zoeken rond de laatst bekende plek (m). Met meer sterren wordt
 // het net groter: ze kammen dan ook de straten eromheen uit.
 const ZOEKSTRAAL = [0, 55, 85, 120, 155, 195];
+/*
+ Zolang een eenheid nog uitrukt gaat hij niet zoeken maar recht op de melding af,
+ tot op deze afstand. Dat was een vijfde van de zoekstraal, en bij vijf sterren is
+ dat 39 m — net buiten de veertig meter waarop de agenten uitstappen. In de kleine
+ wijk werd zo'n punt nog teruggetrokken naar de dichtstbijzijnde straat en kwam
+ hij alsnog dichtbij uit; nu de wereld vier keer zo groot is ligt daar gewoon een
+ straat en bleef de hele ploeg net buiten bereik rondjes rijden.
+*/
+const UITRUK_STRAAL = 22;                  // (m)
 const ZICHT = 42;                          // hoe ver een agent je ziet (m)
 const GEZICHTSVELD = 1.15;                 // halve openingshoek (rad)
 const GEHOOR = 65;                         // een schot horen ze verder (m)
@@ -97,6 +106,37 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   let meldT = 0;               // korte pauze tussen twee meldingen in beeld
   let stille = 0;              // misdaden die (nog) niemand meldde
   const rijbanen = (KAART && KAART.wegassen ? KAART.wegassen.filter(w => w.drive && w.lengte > 40) : []);
+  /*
+   Een rooster over alle punten van die rijbanen, één keer opgebouwd. In de kleine
+   wijk kon `spawnPlek` gewoon zestig keer een willekeurig punt trekken en kijken
+   of het toevallig in de ring rond de plaats delict lag. Nu de wereld vier keer
+   zo groot is valt zo'n trekking bijna altijd buiten die ring, viel de zoektocht
+   met de zichteis leeg en week hij uit naar "dan maar in het zicht" — er dook
+   politie voor je neus op. Met dit rooster trekken we meteen uit de punten die
+   in de buurt liggen, dus de kans op een goede plek hangt niet meer af van hoe
+   groot de wereld is.
+  */
+  const CEL = 50;
+  const rooster = new Map();
+  for (const as of rijbanen) {
+    for (let k = 0; k < as.pts.length; k++) {
+      const p = as.pts[k];
+      const sleutel = `${Math.floor(p[0] / CEL)},${Math.floor(p[1] / CEL)}`;
+      let lijst = rooster.get(sleutel);
+      if (!lijst) rooster.set(sleutel, lijst = []);
+      lijst.push({ as, k });
+    }
+  }
+  const puntenRond = (x, z, straal) => {
+    const uit = [];
+    const i0 = Math.floor((x - straal) / CEL), i1 = Math.floor((x + straal) / CEL);
+    const j0 = Math.floor((z - straal) / CEL), j1 = Math.floor((z + straal) / CEL);
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+      const lijst = rooster.get(`${i},${j}`);
+      if (lijst) for (const q of lijst) uit.push(q);
+    }
+    return uit;
+  };
 
   const spelerPlek = () => (player.inCar ? { x: player.inCar.x, z: player.inCar.z } : { x: player.pos.x, z: player.pos.z });
   /*
@@ -194,7 +234,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     const ank = anker();
     const s = Math.max(1, ster());
     if (e.sector === undefined) e.sector = (sectorTeller++ * 0.618034) % 1;
-    const straal = ZOEKSTRAAL[s] * (dichtbij ? 0.2 : 0.35 + Math.random() * 0.65);
+    const straal = dichtbij
+      ? Math.min(ZOEKSTRAAL[s] * 0.2, UITRUK_STRAAL)
+      : ZOEKSTRAAL[s] * (0.35 + Math.random() * 0.65);
     const hoek = (e.sector + (Math.random() - 0.5) * 0.18) * Math.PI * 2;
     let x = ank.x + Math.cos(hoek) * straal, z = ank.z + Math.sin(hoek) * straal;
     const net = wegennet();
@@ -271,11 +313,11 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   function spawnPlek() {
     const sp = anker();
     const pl = spelerPlek();
+    const kandidaten = puntenRond(sp.x, sp.z, SPAWN_MAX);
     const zoek = (uitZicht) => {
       let beste = null, besteScore = -1;
-      for (let poging = 0; poging < 60 && rijbanen.length; poging++) {
-        const as = rijbanen[Math.floor(Math.random() * rijbanen.length)];
-        const k = Math.floor(Math.random() * as.pts.length);
+      for (let poging = 0; poging < 60 && kandidaten.length; poging++) {
+        const { as, k } = kandidaten[Math.floor(Math.random() * kandidaten.length)];
         const p = as.pts[k];
         const d = Math.hypot(p[0] - sp.x, p[1] - sp.z);
         if (d < SPAWN_MIN || d > SPAWN_MAX) continue;
@@ -679,10 +721,14 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
           if (Math.hypot(pos.x - vorige.x, pos.z - vorige.z) < 2 && dSp > 70 && !a.wagen) { ruimAgent(a); continue; }
           vorige.x = pos.x; vorige.z = pos.z; vorige.t = 0;
         }
-        // een eigen zoekpunt: de eerste ligt dicht bij de melding, daarna gaan
-        // ze de straten eromheen af
+        // een eigen zoekpunt: zolang hij nog aan het uitrukken is blijft dat
+        // dicht bij de melding, en pas als hij er is (of het niet binnen zijn
+        // zoektijd haalt) gaat hij de straten eromheen af
         a.zoekT = (a.zoekT || 0) - dt;
-        if (!a.doel || a.zoekT <= 0) nieuwZoekpunt(a, a.staat === 'naarPlek' && !a.zoekT);
+        if (!a.doel || a.zoekT <= 0) {
+          if (a.staat === 'naarPlek' && a.doel) a.staat = 'zoekt';
+          nieuwZoekpunt(a, a.staat === 'naarPlek');
+        }
         const eindDoel = a.doel;
         const snelheid = a.staat === 'naarPlek' ? REN : LOOP;
         const doel = volgPunt(a, pos, eindDoel, dt, 4);
@@ -757,7 +803,20 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       // achter je aan, of anders zijn eigen ronde door de wijk rijden
       if (w.staat !== 'jacht') {
         w.zoekT = (w.zoekT || 0) - dt;
-        if (!w.doel || w.zoekT <= 0) nieuwZoekpunt(w, w.staat === 'naarPlek' && !w.doel);
+        /*
+         Zolang hij uitrukt gaat hij naar de melding zelf; pas als hij er is
+         waaiert hij uit. Dat "zolang" ontbrak: alleen het eerste doel lag bij de
+         melding, en wie er niet binnen zijn zoektijd was kreeg meteen een punt op
+         de volle zoekstraal. In de kleine wijk viel zo'n punt nog terug op een
+         straat in de buurt, maar nu de wereld vier keer zo groot is liggen daar
+         echte straten — en dan reed de hele ploeg langs je heen de wijk uit in
+         plaats van bij je uit te stappen. Nu geldt: haalt hij het niet binnen
+         zijn zoektijd, dan geeft hij de melding op en gaat hij zoeken.
+        */
+        if (!w.doel || w.zoekT <= 0) {
+          if (w.staat === 'naarPlek' && w.doel) w.staat = 'zoekt';
+          nieuwZoekpunt(w, w.staat === 'naarPlek');
+        }
       }
       // ook een wagen die je kwijt is rijdt naar de laatst bekende plek, niet
       // naar waar je nu bent
