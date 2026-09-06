@@ -178,23 +178,23 @@ const inzet = await page.evaluate(() => {
      volgende twee. Daarom meten we elke seconde en houden we het hoogste getal
      vast — dat zegt of ze de wijk afzoeken, en het valt niet om op toeval.
     */
-    let ver60Max = 0;
+    let ver60Max = 0, verstMax = 0;
     for (let s = 0; s < 130; s++) {
       g.politie.zetHeat(heat); window.__stap(30);
-      const nu = g.politie.plekken.filter(q => Math.hypot(q.x - pd.x, q.z - pd.z) > 60).length;
+      const rond = g.politie.plekken.map(q => Math.hypot(q.x - pd.x, q.z - pd.z));
+      const nu = rond.filter(d => d > 60).length;
       if (nu > ver60Max) ver60Max = nu;
+      for (const d of rond) if (d > verstMax) verstMax = d;
     }
     const e = g.politie.eenheden;
     const p = g.politie.plekken;
-    const ds = p.map(q => Math.hypot(q.x - pd.x, q.z - pd.z));
     // staan er twee op precies dezelfde plek?
     let opElkaar = 0;
     for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++) {
       if (Math.hypot(p[i].x - p[j].x, p[i].z - p[j].z) < 0.9 && !p[i].wagen && !p[j].wagen) opElkaar++;
     }
     return { ster: g.politie.ster, wagens: e.wagens, agenten: e.voet + e.inWagen,
-      verst: ds.length ? Math.round(Math.max(...ds)) : 0,
-      ver60: ver60Max, opElkaar };
+      verst: Math.round(verstMax), ver60: ver60Max, opElkaar };
   };
   const uit = { een: meet(40), vijf: meet(400) };
   // de wijk weer achterlaten zoals proef 3 hem opleverde: drie sterren met
@@ -209,6 +209,13 @@ const inzet = await page.evaluate(() => {
 ok(inzet.vijf.wagens > inzet.een.wagens && inzet.vijf.agenten > inzet.een.agenten,
   'bij vijf sterren rijden en lopen er meer dan bij één',
   `1★ ${inzet.een.wagens} wagens/${inzet.een.agenten} agenten · 5★ ${inzet.vijf.wagens} wagens/${inzet.vijf.agenten} agenten`);
+/*
+ De verste eenheid werd hier als momentopname aan het eind van de proef gemeten,
+ en dat viel om: de speler staat op de plaats delict, dus na twee minuten hebben
+ ze hem gevonden en staan ze om hem heen — verste 50 m, terwijl er onderweg elf
+ eenheden verder dan zestig meter zochten. Nu is het, net als de maat eronder,
+ het hoogste getal over de hele proef.
+*/
 ok(inzet.vijf.verst > 80, 'ze blijven niet op de plaats delict hangen maar zoeken de wijk af',
   `verste eenheid ${inzet.vijf.verst} m van de melding`);
 // De verste eenheid is een grillig getal — één auto die net een lange straat
@@ -669,35 +676,69 @@ const uitstap = await page.evaluate(() => {
   const g = window.__game;
   const pd = window.__pd;
   const langs = window.__langs;
-  // een proef: rijd met deze snelheid langs de melding en kijk of ze uitstappen
+  /*
+   Een proef: rijd met deze snelheid weg van de melding met een surveillancewagen
+   op je hielen, en kijk of de bemanning uitstapt.
+
+   Twee eerdere opzetten vielen om. De eerste liet de speler stilstaan tot er een
+   wagen binnen 38 m was en ging pas daarna rijden — maar stilstaan is precies de
+   toestand waarin ze wél uitstappen, dus in de snelle proef stonden ze al buiten
+   voordat het rijden begon. De tweede reed heen en weer over dertig meter, en
+   bij elke ommekeer zakte de snelheid die `js/politie.js` schat (gedempt,
+   tijdconstante ⅓ s) door nul — ook dan stappen ze uit. En rondjes rijden hielp
+   niet: bij 50 km/u haalt geen wagen je in, dus dan is er niets om te meten.
+
+   Daarom wordt de wagen hier met de hand vijfentwintig meter achter de speler
+   gehouden. De regel die getoetst wordt gaat over de snelheid van de speler
+   (`dSp < 40 && spVaart < UITSTAP_SNELHEID`), niet over de vraag of de
+   achtervolging aankomt — die staat een paar proeven hierboven al.
+  */
   const proef = (mps) => {
     g.politie.reset();
     window.__zetSpeler(pd.x, pd.z);
     g.politie.zetHeat(400);
     g.politie.misdaad('neergeschoten', pd.x, pd.z);
-    // eerst laten aanrijden terwijl je stilstaat
+    // een wagen met bemanning die er nog in zit — een wagen waarvan de agenten
+    // al uitgestapt of uitgeschakeld zijn kan niemand meer laten uitstappen
+    const metBemanning = () => g.politie.intern.wagens.find(v => v.agenten.some(a => !a.persoon.groep.visible));
     let t = 0;
-    while (t < 60 * 30 && !g.politie.intern.wagens.some(w => Math.hypot(w.car.x - g.player.pos.x, w.car.z - g.player.pos.z) < 38)) {
-      window.__stap(5); t += 5;
-    }
-    if (!g.politie.intern.wagens.length) return null;
-    // en dan met de gevraagde snelheid heen en weer bewegen, zodat politie.js
-    // die snelheid ziet in zijn eigen schatting
+    while (t < 60 * 30 && !metBemanning()) { window.__stap(5); t += 5; }
+    const w = metBemanning();
+    if (!w) return null;
     const dt = 1 / 30;
-    let x = g.player.pos.x, z = g.player.pos.z, richting = 1;
+    // alleen de bemanning van déze wagen tellen, en alleen wie er in deze acht
+    // tellen uit stapt: tijdens het wachten hierboven staat de speler stil, en
+    // dan stappen er elders in de wijk natuurlijk ook agenten uit
+    // De bemanning apart bijhouden: zodra de laatste eruit stapt haalt
+    // `verlaatWagen` de wagen uit de lijst en maakt hij `w.agenten` leeg — tel je
+    // dáárop, dan lijkt het alsof er niemand is uitgestapt.
+    const bemanning = w.agenten.slice();
+    const buiten = () => bemanning.filter(a => a.persoon.groep.visible).length;
+    const voor = buiten();
+    let dichtbij = 0;
     for (let i = 0; i < 30 * 8; i++) {
-      x += langs.x * mps * dt * richting; z += langs.z * mps * dt * richting;
-      if (Math.hypot(x - pd.x, z - pd.z) > 30) richting = -richting;
+      const af = mps * i * dt;
+      const x = pd.x + langs.x * af, z = pd.z + langs.z * af;
       window.__zetSpeler(x, z);
+      // de wagen op vijfentwintig meter achter de speler houden
+      w.car.x = x - langs.x * 25; w.car.z = z - langs.z * 25;
       window.__stap(1);
+      if (Math.hypot(w.car.x - x, w.car.z - z) < 38) dichtbij++;
     }
-    return g.politie.eenheden.voet;
+    return { voet: buiten() - voor, dichtbij: +(dichtbij / 30).toFixed(1), bemanning: bemanning.length };
   };
-  return { langzaam: proef(1.2), snel: proef(14) };
+  const langzaam = proef(1.2), snel = proef(14);
+  return { langzaam: langzaam && langzaam.voet, snel: snel && snel.voet,
+    bijLangzaam: langzaam && langzaam.dichtbij, bijSnel: snel && snel.dichtbij };
 });
-ok(uitstap.langzaam > 0, 'loop je rond, dan stappen ze uit', `${uitstap.langzaam} te voet`);
-ok(uitstap.snel === 0 || uitstap.snel < uitstap.langzaam,
-  'scheur je voorbij, dan blijven ze zitten', `${uitstap.snel} te voet bij 50 km/u`);
+ok(uitstap.langzaam > 0, 'loop je rond, dan stappen ze uit',
+  `${uitstap.langzaam} van de bemanning eruit, ${uitstap.bijLangzaam} s binnen uitstapafstand`);
+// Zonder wagen binnen uitstapafstand zegt de proef hieronder niets: dan stapt er
+// niemand uit omdat er niemand ís, en niet omdat de speler te hard gaat.
+ok(uitstap.bijSnel >= 7, 'de wagen zit ook bij hoge snelheid op je hielen',
+  `${uitstap.bijSnel} s binnen uitstapafstand`);
+ok(uitstap.snel === 0, 'scheur je voorbij, dan blijven ze zitten',
+  `${uitstap.snel} van de bemanning eruit bij 50 km/u, ${uitstap.bijSnel} s binnen uitstapafstand`);
 
 kop('wegblokkades bij veel sterren');
 const blok = await page.evaluate(async () => {
@@ -719,7 +760,8 @@ const blok = await page.evaluate(async () => {
     window.__stap(1);
     for (const b of g.politie.intern.blokkades) {
       if (!gezien.some(q => q.b === b)) {
-        gezien.push({ b, afstand: Math.round(Math.hypot(b.x - x, b.z - z)),
+        const d = Math.hypot(b.x - x, b.z - z) || 1;
+        gezien.push({ b, afstand: Math.round(d),
           inZicht: W.zichtVrij(x, z, b.x, b.z, 1.6),
           vooruit: ((b.x - x) * langs.x + (b.z - z) * langs.z) > 0 });
       }

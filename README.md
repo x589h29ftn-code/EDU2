@@ -215,8 +215,8 @@ oplopend tot vijf. Hoe meer sterren, hoe meer blauw er op straat staat:
 | ★★★★ | 4 | 6 | 155 m |
 | ★★★★★ | 5 | 8 | 195 m |
 
-Bij elke auto zitten er nog twee agenten die uitstappen zodra je in de buurt komt, dus bij vijf
-sterren lopen en rijden er zo'n twintig eenheden rond. Ze rijden over de straten naar de **plaats
+Bij elke auto zitten er nog twee agenten die eruit stappen als je dichtbij genoeg komt en langzaam
+genoeg gaat (zie hieronder), dus bij vijf sterren lopen en rijden er zo'n twintig eenheden rond. Ze rijden over de straten naar de **plaats
 delict** — de laatste plek waar ze jou wisten — en gaan van daaruit zoeken. Niet allemaal op dezelfde
 hoek: iedere eenheid krijgt zijn eigen richting en een eigen afstand binnen die zoekring, dus ze
 waaieren over de omliggende straten uit en verleggen hun zoekpunt om de vijftien à vijfentwintig
@@ -227,12 +227,33 @@ ze al zijn — gewone auto's staan daar grijs op, zodat blauw echt politie betek
 
 ![Ze zoeken de hele wijk af](docs/screenshots/politie_zoekt.png)
 
-Komen ze met de auto bij je in de buurt, dan stappen de twee inzittenden uit. Die **wagen blijft dan
+Komen ze met de auto bij je in de buurt, dan stappen de twee inzittenden uit — **maar niet altijd**.
+Ze doen dat alleen als je binnen veertig meter bent én je langzamer gaat dan dertig kilometer per uur.
+Rijd je hard voorbij, dan blijven ze zitten en zetten ze de achtervolging in de auto voort; uitstappen
+voor een auto die er al lang vandoor is slaat nergens op. Stappen ze wél uit, dan blijft die **wagen
 staan** met zijn zwaailicht aan — hij rijdt niet leeg verder — en je kunt er zelf in stappen. Doe je
 dat, dan is hij van jou, lichtbalk en al. Laat je hem staan, dan verdwijnt hij vanzelf: snel zodra ze
 je kwijt zijn, en anders na drie kwartier minuut, maar nooit terwijl je ernaast staat.
 
 ![Een lege surveillanceauto](docs/screenshots/politie_leeg.png)
+
+**Vanaf vier sterren zetten ze wegblokkades.** Twee wagens kop aan staart dwars over de rijbaan —
+samen bijna negen meter, dus de straat zit echt dicht — met het zwaailicht aan, op honderd tot
+tweehonderdzestig meter vóór je, en altijd buiten je zicht neergezet, zodat je er tegenaan rijdt in
+plaats van er eentje voor je ogen te zien verschijnen. Ze kijken naar welke kant je op gaat: een
+blokkade achter je is geen blokkade, en sta je stil, dan wachten ze — zonder richting is er geen
+"vóór je". Er staan er hoogstens twee tegelijk, en ze worden opgeruimd zodra de verdenking onder de
+vier sterren zakt of de achtervolging voorbij is.
+
+![Een wegblokkade](docs/screenshots/politie_blokkade.png)
+
+**Je kunt op de auto's schieten.** Elke kogel kost tien van de honderd, dus na een stuk of tien
+vliegt hij in brand: de auto wordt zwartgeblakerd, er komt een vuurbal met rook overheen en rijden
+kun je er niet meer mee. Die knal laat de buurt schrikken, is voor de politie een schot als elk ander
+— ze komen erop af — en doet zeer als je er zelf binnen negen meter naast staat. Uitgebrande
+politieauto's worden door het spel opgeruimd zodra de achtervolging gestaakt is.
+
+![Een uitgebrande surveillanceauto](docs/screenshots/politie_wrak.png)
 
 Nieuwe eenheden komen **ergens vandaan rijden**: altijd op een rijbaan, minstens ruim zestig meter bij
 je vandaan en het liefst buiten je gezichtsveld. Ze verschijnen dus niet naast of achter je.
@@ -240,6 +261,11 @@ je vandaan en het liefst buiten je gezichtsveld. Ze verschijnen dus niet naast o
 Zien ze je — kijkhoek plus vrij zicht — of horen ze je schieten, dan zetten ze de achtervolging in en
 schieten ze op je. Elke treffer kost leven: de balk linksonder loopt terug en het beeld flitst rood.
 Een agent aanrijden kan ook, en kost je net zoveel verdenking als hem neerschieten.
+
+Wie op een **agent of een surveillanceauto** schiet geeft zichzelf weg. Ook een kogel die alleen de
+lak raakt is een aanwijzing: er wordt op ons geschoten en we weten vanwaar. De laatst bekende plek
+verspringt naar waar je op dat moment staat en alle eenheden draaien die kant op. Vanuit een hoekje
+blijven schieten werkt dus niet.
 
 **Verstoppen werkt.** Staat er een gebouw of een schutting tussen, dan zien ze je niet, en dan volgen
 ze je ook niet: ze lopen naar de plek waar ze je het láátst zagen. Horen ze alleen een schot, dan gaan
@@ -251,12 +277,16 @@ naar de laatst bekende plek — één hoek omgaan is dus niet genoeg. Blijf je u
 verdenking na een aftelling van achttien seconden plus zes per ster, en zijn ze je kwijt. Een agent
 neerschieten kost je meteen een paar sterren extra.
 
-`npm run politietest` loopt het allemaal na — zevenveertig controles: de meldkans met en zonder
+`npm run politietest` loopt het allemaal na — vierenzestig controles: de meldkans met en zonder
 getuigen, de sterdrempels, het uitrukken en aankomen, het aantal eenheden en hun spreiding per
 sterniveau, waar ze vandaan komen rijden, het schieten, het neerschieten én aanrijden van een agent,
 het verstoppen achter een gebouw, het meeschuivende zoekgebied, het ontsnappen, de lege
 surveillanceauto die blijft staan en te stelen is, en of de hoofdlus de politie buiten wél en
-binnenshuis niet bijwerkt en de schade in de levensbalk terechtkomt. `npm run politieshots` maakt de twee foto's hierboven.
+binnenshuis niet bijwerkt en de schade in de levensbalk terechtkomt. Een negende hoofdstuk toetst het
+nieuwe gedrag: dat een schot op een agent of een wagen de zoektocht verlegt, dat ze bij 50 km/u
+blijven zitten en stapvoets wél uitstappen, dat een blokkade vóór je en buiten je zicht komt te staan
+en weer wordt opgeruimd, en dat tien kogels een surveillanceauto tot wrak maken.
+`npm run politieshots` maakt de vijf foto's hierboven.
 
 ## Hondjes
 
@@ -860,8 +890,10 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `tools/wereldtest.mjs` – toetst wat je in beeld ziet: geen gat in de lucht, het pistool met zijn arm
   en de H-toets, de lage erfscheidingen en het dubbelzijdige vlaggendoek
 - `tools/politietest.mjs` – toetst de politie: meldkans, sterren, uitrukken, de inzet en spreiding per
-  sterniveau, schieten en ontsnappen
-- `tools/politieshots.mjs` – maakt de twee foto's van de politie-inzet bij vijf sterren
+  sterniveau, schieten en ontsnappen, en het nieuwe gedrag: de aanwijzing na een schot, het uitstappen
+  naar snelheid, de wegblokkades en het opblazen van een surveillanceauto
+- `tools/politieshots.mjs` – maakt de vijf foto's van de politie-inzet bij vijf sterren: het
+  straatbeeld, de kaart, een lege surveillanceauto, een wegblokkade en een uitgebrand wrak
 - `tools/winkeltest.mjs` – toetst de boerderijwinkel: beginkapitaal, de schuurdeur, de deel en het
   kopen van munitie
 - `tools/winkelshots.mjs` – maakt de foto's van Tinga State van buiten en van binnen
