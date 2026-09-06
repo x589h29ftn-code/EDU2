@@ -1467,9 +1467,19 @@ de KNVB toestaat; wat eruit komt is 105 × 68, 100 × 64, 103 × 68 en 100 × 64
 strafschopgebied 16,5 × 40,32 m, doelgebied 5,5 × 18,32 m, strafschopstip op
 11 m, hoekcirkels van 1 m), twee doelen van 7,32 × 2,44 m met een net, en rond
 het hoofdveld een ring van 120 reclameborden, een ballenvanger van 6 m achter de
-doelen, een spijlenhek langs de kant, twee dugouts en vier lichtmasten. Op de
-borden staat geen bestaand merk: het zijn de gekleurde vlakken en woordbeelden
+doelen, een spijlenhek langs de kant, twee dugouts en vier lichtmasten. Om de vijf borden staat dat
+van **Radio Spannenburg**, de lokale omroep die de club sponsort: het logo wordt
+op een canvas getekend (`bordSpannenburg` in js/textures.js), net als het
+Jumbo-woordmerk, want er zitten geen plaatjesbestanden in dit spel. De overige
+borden dragen geen bestaand merk: dat zijn de gekleurde vlakken en woordbeelden
 die je op een sportpark ziet.
+
+Twee dingen aan die borden klopten niet en zijn meteen rechtgezet. Het doek was
+512 bij 96 px voor een bord van 3 bij 0,9 m, dus alles wat erop stond werd in de
+breedte samengeknepen; het is nu 512 bij 154, dezelfde verhouding als het bord.
+En de achtergrondkleur werd uit de toevalsreeks getrokken, wat bij vier van de zes
+varianten dezelfde amberkleur opleverde — er stonden rijen van vier gele borden
+naast elkaar. Elke variant heeft nu zijn eigen kleur.
 
 *Volkstuinen achter de Wieken.* Het perceel tussen de twee sloten staat in de
 BGT als één stuk gras van ruim 18 000 m²; de tuintjes zelf zijn te klein om
@@ -1495,9 +1505,9 @@ zijn uv uit de wereldcoördinaten en de velden liggen schuin — dan lopen de ba
 diagonaal over het veld. Ze liggen er nu als aparte banen overheen, in de
 richting van het veld zelf.
 
-Controle: `npm run sporttest` (34 controles over de brondata, de vier velden, de
-belijning, de doelen, de bordenring, het erlangs en erop lopen, en de
-volkstuinen: binnen het perceel, de grasrand, de paden, de schuurtjes, en of je
+Controle: `npm run sporttest` (38 controles over de brondata, de vier velden, de
+belijning, de doelen, de bordenring inclusief de borden van Radio Spannenburg aan
+alle vier de kanten, het erlangs en erop lopen, en de volkstuinen: binnen het perceel, de grasrand, de paden, de schuurtjes, en of je
 er doorheen kunt lopen). `npm run sportshots` maakt de foto's.
 
 **Wat nog niet af is (in volgorde).**

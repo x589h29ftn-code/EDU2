@@ -5,6 +5,7 @@
    veld_boven.png     het hoofdveld van bovenaf, met de reclamering
    veld_midden.png    vanaf de middenstip
    veld_doel.png      achter het doel, door de ballenvanger heen
+   veld_reclame.png   de reclameborden langs de lijn, met Radio Spannenburg
    tuinen_boven.png   het volkstuincomplex van bovenaf
    tuinen_pad.png     over het schelpenpad tussen de tuintjes
    tuinen_schuur.png  een tuintje van dichtbij, met schuurtje en kas
@@ -67,6 +68,9 @@ const punten = await page.evaluate(() => {
     // sta je in het bosplantsoen en kijk je tegen de kruinen aan
     boven: [wx(-V.vl / 2 - 6, -V.vb / 2 - 6), wz(-V.vl / 2 - 6, -V.vb / 2 - 6)],
     doel: [wx(-V.vl / 2 - 14, 0), wz(-V.vl / 2 - 14, 0)],
+    // vanaf het veld naar de bordenrij langs de zijlijn kijken
+    reclame: [wx(-6, -V.vb / 2 + 4), wz(-6, -V.vb / 2 + 4)],
+    reclameDoel: [wx(-6, -V.vb / 2 - 4), wz(-6, -V.vb / 2 - 4)],
     hoek: V.hoek,
   };
 });
@@ -76,6 +80,9 @@ await page.evaluate((p) => window.__zet(p.mid[0], p.mid[1], p.hoek, -0.02), punt
 await foto('veld_midden');
 await page.evaluate((p) => window.__zet(p.doel[0], p.doel[1], window.__kijk(p.doel[0], p.doel[1], p.mid[0], p.mid[1]), 0.02), punten);
 await foto('veld_doel');
+await page.evaluate((p) => window.__zet(p.reclame[0], p.reclame[1],
+  window.__kijk(p.reclame[0], p.reclame[1], p.reclameDoel[0], p.reclameDoel[1]), 0), punten);
+await foto('veld_reclame');
 
 // ---- de volkstuinen ----
 const tuin = await page.evaluate(() => {

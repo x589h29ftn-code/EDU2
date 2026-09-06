@@ -7,7 +7,8 @@
    - staan de vier velden van VV Sneek Wit Zwart op hun eigen BGT-vlak, met de
      maten van een voetbalveld en de richting van dat vlak?
    - ligt de belijning op het veld, staan de doelen op de doellijn, en loopt de
-     ring reclameborden rond het hoofdveld?
+     ring reclameborden rond het hoofdveld, met dat van Radio Spannenburg aan
+     alle vier de kanten?
    - houden de borden, de ballenvanger en de lichtmasten je tegen, en kun je wel
      gewoon het veld op lopen?
    - liggen de volkstuintjes binnen het perceel, met een grasrand langs de sloot,
@@ -200,6 +201,33 @@ ok(reclame.n > 60, 'er staat een ring reclameborden om het hoofdveld',
 ok(reclame.langs > 0 && reclame.kop > 0, 'langs alle vier de kanten',
   `${reclame.langs} langs de zijlijn, ${reclame.kop} achter de doelen`);
 ok(reclame.binnen === 0, 'en geen enkel bord staat op het veld zelf');
+
+/*
+ Het bord van Radio Spannenburg hoort niet op één plek te staan maar rond het
+ hele veld terug te komen, zoals een hoofdsponsor langs de lijn staat.
+*/
+const sponsor = await page.evaluate(() => {
+  const g = window.__game;
+  const V = window.__K.sportvelden.find(v => v.hoofd);
+  const ex = Math.cos(V.hoek), ez = Math.sin(V.hoek);
+  const groep = g.scene.children.find(c => c.name === 'sportvelden');
+  let mesh = null;
+  groep.traverse(o => { if (o.userData && o.userData.klasse === 'reclamebordSpannenburg') mesh = o; });
+  if (!mesh) return { er: false };
+  const pos = mesh.geometry.getAttribute('position');
+  // elk bord is één rechthoek van zes hoekpunten; welke kant staat hij aan?
+  const kanten = new Set();
+  for (let i = 0; i < pos.count; i += 6) {
+    const dx = pos.getX(i) - V.cx, dz = pos.getZ(i) - V.cz;
+    const u = dx * ex + dz * ez, v = -dx * ez + dz * ex;
+    kanten.add(Math.abs(v) > V.vb / 2 ? (v > 0 ? 'zuid' : 'noord') : (u > 0 ? 'oost' : 'west'));
+  }
+  return { er: true, n: pos.count / 6, kanten: [...kanten].sort() };
+});
+ok(sponsor.er, 'Radio Spannenburg staat langs de lijn');
+ok(sponsor.er && sponsor.n >= 15, 'op diverse plekken rond het veld', `${sponsor.n} borden`);
+ok(sponsor.er && sponsor.kanten.length === 4, 'aan alle vier de kanten',
+  (sponsor.kanten || []).join(', '));
 
 // ---------- 4. erlangs en erop lopen ----------
 kop('over het sportpark lopen');
