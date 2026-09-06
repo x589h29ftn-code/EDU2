@@ -137,9 +137,20 @@
       "naam": "Viaduct Tinga",
       "bron": "Vier foto's in de chat (5 sep 2026): (1) de houten boogbrug over de N7, gezien vanaf de rijksweg eronder, met het bordje 'Molenkrite'; (2) het dek zelf, met twee rijen gelamineerde houten bogen over de rijbaan, rode fietsstroken aan weerskanten en een houten leuning; (3) de oprit vanaf Molenkrite 171 (de Jumbo), klinkerbestrating, een bord 30 km/u en een grastalud; (4) een schermafdruk uit het spel waar dezelfde weg nog vlak lag.",
       "_uitleg": "De BGT weet zelf welke wegvakken over de rondweg heen liggen: die hebben relatieveHoogteligging 1. 'dekvak' is het zoekvak waarin die vakken samen het brugdek vormen (het fietsbruggetje even verderop valt er buiten). 'voetZuid' en 'voetNoord' zijn de punten waar de oprit weer op maaiveld ligt; ze liggen op een wegas, de generator zoekt de route ertussen zelf op. Hoogte van het wegdek = doorrijhoogte + dekdikte. 'taludHelling' is de horizontale afstand per meter hoogte van het grastalud langs de oprit; de generator kapt hem af op de breedte die de BGT-grasstroken daar werkelijk hebben.",
-      "dekvak": { "x0": 266, "x1": 296, "z0": -246, "z1": -184 },
-      "voetZuid": [265.64, -80.43],
-      "voetNoord": [299.39, -333.68],
+      "dekvak": {
+        "x0": 266,
+        "x1": 296,
+        "z0": -246,
+        "z1": -184
+      },
+      "voetZuid": [
+        265.64,
+        -80.43
+      ],
+      "voetNoord": [
+        299.39,
+        -333.68
+      ],
       "doorrijhoogte": 4.7,
       "dekdikte": 0.9,
       "taludHelling": 1.4,
@@ -153,7 +164,10 @@
         "trekstangen": 2,
         "kleur": "#8d6f4c"
       },
-      "leuning": { "_uitleg": "houten leuning langs het dek en het bovenste stuk van beide opritten; dezelfde tint als de bogen", "hoogte": 1.3 },
+      "leuning": {
+        "_uitleg": "houten leuning langs het dek en het bovenste stuk van beide opritten; dezelfde tint als de bogen",
+        "hoogte": 1.3
+      },
       "fietsstrook": {
         "_uitleg": "De BGT kent voor het dek alleen 'gesloten verharding'; de foto laat rood asfalt zien. Waar de stroken liggen en hoe breed ze zijn komt uit de BGT-fietspadvakken zelf, alleen de kleur staat hier.",
         "rood": true
@@ -187,6 +201,98 @@
       "x1": 74,
       "z0": -88,
       "z1": -60
+    }
+  ],
+  "sportvelden": [
+    {
+      "naam": "VV Sneek Wit Zwart — hoofdveld",
+      "bron": "Google Maps en de foto van Kees de Vries (in de chat, 6 sep 2026): kunstgrasveld met reclameborden rondom, een ballenvanger achter de doelen, dugouts langs de zijlijn en lichtmasten. Het clubgebouw staat aan de noordkant (BGT-pand Molenkrite 132).",
+      "_uitleg": "punt = een punt in het BGT-vlak van het veld. Het vlak zelf, zijn richting en zijn maten komen uit de brondata; hier staat alleen wat erop en eromheen hoort. uitloop = strook tussen de zijlijn en de rand van het vlak (m). maat = grootste speelveld dat erin mag (KNVB: 105 x 68 m).",
+      "punt": [
+        555,
+        -63
+      ],
+      "soort": "kunstgras",
+      "hoofd": true,
+      "uitloop": 3.5,
+      "maat": [
+        105,
+        68
+      ],
+      "reclame": true,
+      "hek": true,
+      "doelen": true,
+      "dugouts": true,
+      "masten": 4
+    },
+    {
+      "naam": "VV Sneek Wit Zwart — tweede kunstgrasveld",
+      "punt": [
+        562,
+        88
+      ],
+      "soort": "kunstgras",
+      "uitloop": 3.5,
+      "maat": [
+        105,
+        68
+      ],
+      "reclame": false,
+      "hek": true,
+      "doelen": true,
+      "masten": 4
+    },
+    {
+      "naam": "VV Sneek Wit Zwart — grasveld noord",
+      "punt": [
+        585,
+        28
+      ],
+      "soort": "gras",
+      "uitloop": 3.5,
+      "maat": [
+        105,
+        68
+      ],
+      "reclame": false,
+      "hek": false,
+      "doelen": true
+    },
+    {
+      "naam": "VV Sneek Wit Zwart — grasveld oost",
+      "punt": [
+        677,
+        -2
+      ],
+      "soort": "gras",
+      "uitloop": 3.5,
+      "maat": [
+        105,
+        68
+      ],
+      "reclame": false,
+      "hek": false,
+      "doelen": true
+    }
+  ],
+  "volkstuinen": [
+    {
+      "naam": "Volkstuinen achter de Wieken",
+      "bron": "Street View '2 De Wieken' (foto in de chat, 6 sep 2026): een grindpad met een hek erin, links de tuintjes met schuurtjes, kasjes en groentebedden, rechts een houtwal. Aangewezen door de gebruiker op de spelkaart: het grasperceel tussen de twee sloten achter de Wieken.",
+      "_uitleg": "punt = een punt in het BGT-grasperceel dat het complex is. rand = grasstrook die vrij blijft langs de sloot (m). tuin = maat van één tuintje (m). pad = breedte van het pad tussen twee rijen (m). schuurkans/kaskans = hoeveel tuintjes een schuurtje of een kasje hebben.",
+      "punt": [
+        -330,
+        -120
+      ],
+      "rand": 8,
+      "tuin": {
+        "breed": 9,
+        "diep": 15
+      },
+      "pad": 3.0,
+      "schuurkans": 0.62,
+      "kaskans": 0.2,
+      "seed": 97
     }
   ]
 }

@@ -581,6 +581,13 @@ const uitgeput = await page.evaluate(() => {
     d.schrik();
     for (let i = 0; i < 40; i++) g.verhaal.update(0.05);
   }
+  /*
+   Ver bij hem vandaan gaan staan. De vorige proef liet de speler zes meter van
+   de dief achter, en vluchtte de dief toevallig díe kant op, dan had je hem te
+   pakken voordat hij buiten adem was — dan meet deze proef niet of hij op raakt
+   maar of hij toevallig de goede kant op rende.
+  */
+  g.player.pos.set(d.positie.x + 120, 0, d.positie.z + 120);
   d.vluchtT = 88;
   let tekst = '';
   for (let i = 0; i < 120 && d.staat === 'vlucht'; i++) {

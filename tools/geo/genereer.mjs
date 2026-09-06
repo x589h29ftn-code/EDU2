@@ -173,6 +173,11 @@ for (const f of lees('bgt_onbegroeidterreindeel')) {
   const p = f.properties, fy = p.bgt_fysiekVoorkomen;
   if (fy === 'erf') voegVlak('erf', 'erf', KERB, f.geometry);
   else if (fy === 'zand') voegVlak('zand', 'zand', 0.06, f.geometry);
+  // "kunststof" is de IMGeo-term voor kunstgras: de twee velden van VV Sneek
+  // Wit Zwart, de twee hockeyvelden en een paar padelbanen. Die stonden als
+  // gesloten verharding in het spel, dus als grijs asfalt — terwijl de brondata
+  // zelf zegt dat het een kunstgrasmat is.
+  else if (p.plus_fysiekVoorkomen === 'kunststof') voegVlak('kunstgras', 'kunstgras', KERB, f.geometry);
   else if (fy === 'gesloten verharding') voegVlak('asfaltvlak', 'asfalt', KERB, f.geometry);
   else if (fy === 'half verhard') voegVlak('halfverhard', 'grind', 0.08, f.geometry);
   else voegVlak('verharding', verharding(p.plus_fysiekVoorkomen, fy, 'voetpad'), KERB, f.geometry);
@@ -1390,6 +1395,144 @@ for (const V of OMGEVING.viaducten || []) {
 }
 tel('viaducten', VIADUCTEN.length);
 
+// ---------------------------------------------------------------- sportvelden
+/*
+ De velden van VV Sneek Wit Zwart aan de Molenkrite 132 en de hockeyvelden
+ ernaast. Het vlak zelf komt uit de BGT — kunstgras staat er als "kunststof",
+ gras als groenvoorziening — maar een BGT-vlak is een polygoon zonder richting,
+ en om er lijnen, doelen, reclameborden en hekken omheen te zetten moet je weten
+ welke kant het veld op ligt en hoe groot het is. Daarom wordt hier per veld de
+ kleinste omhullende rechthoek gezocht: die geeft het midden, de richting van de
+ lange as en de maten. Het uitgezette speelveld ligt daarbinnen met een
+ uitloopstrook eromheen, en nooit groter dan wat de KNVB toestaat.
+
+ In data/stijl/omgeving.json staat alleen een punt per veld en hoe het eruitziet.
+*/
+const SPORTVELDEN = [];
+for (const S of OMGEVING.sportvelden || []) {
+  const vlak = VLAKKEN.find(v => ['kunstgras', 'gras', 'asfaltvlak'].includes(v.k) && inPolygoon(S.punt, v.r));
+  if (!vlak) { console.warn(`LET OP: sportveld ${S.naam}: geen vlak op ${S.punt}`); continue; }
+  const ring = vlak.r[0];
+  /*
+   Kleinste omhullende rechthoek: bij een convexe vorm ligt één zijde van die
+   rechthoek altijd langs een zijde van de vorm zelf, dus het is genoeg om elke
+   zijde als richting te proberen en de kleinste oppervlakte te houden.
+  */
+  let beste = null;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i], b = ring[(i + 1) % ring.length];
+    const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz);
+    if (L < 1) continue;
+    const ex = dx / L, ez = dz / L;
+    let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+    for (const p of ring) {
+      const u = p[0] * ex + p[1] * ez, v = -p[0] * ez + p[1] * ex;
+      u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v);
+    }
+    const opp = (u1 - u0) * (v1 - v0);
+    if (!beste || opp < beste.opp) {
+      const um = (u0 + u1) / 2, vm = (v0 + v1) / 2;
+      beste = { opp, ex, ez, a: u1 - u0, b: v1 - v0, cx: um * ex - vm * ez, cz: um * ez + vm * ex };
+    }
+  }
+  if (!beste) { console.warn(`LET OP: sportveld ${S.naam}: geen rechthoek te vinden`); continue; }
+  // de lange as is de speelrichting; hoek is de richting daarvan in het spel
+  let { a: lang, b: breed, ex, ez } = beste;
+  if (breed > lang) { [lang, breed] = [breed, lang]; [ex, ez] = [-ez, ex]; }
+  const hoek = Math.atan2(ez, ex);
+  const uitloop = S.uitloop ?? 3.0;
+  const maxL = S.maat ? S.maat[0] : 105, maxB = S.maat ? S.maat[1] : 68;
+  const vl = Math.min(lang - 2 * uitloop, maxL), vb = Math.min(breed - 2 * uitloop, maxB);
+  if (vl < 40 || vb < 25) { console.warn(`LET OP: sportveld ${S.naam}: ${r2(vl)} x ${r2(vb)} m is te klein voor een veld`); continue; }
+  SPORTVELDEN.push({
+    naam: S.naam, soort: S.soort || (vlak.k === 'kunstgras' ? 'kunstgras' : 'gras'),
+    hoofd: !!S.hoofd, cx: r2(beste.cx), cz: r2(beste.cz), hoek: r2(hoek),
+    l: r2(lang), b: r2(breed), vl: r2(vl), vb: r2(vb),
+    reclame: S.reclame !== false, hek: S.hek !== false, doelen: S.doelen !== false,
+    dugouts: !!S.dugouts, masten: S.masten || 0,
+  });
+  telling[`sportveld_${S.naam.replace(/\W+/g, '_').toLowerCase()}`] = `${Math.round(vl)}x${Math.round(vb)} m`;
+}
+tel('sportvelden', SPORTVELDEN.length);
+
+// ---------------------------------------------------------------- volkstuinen
+/*
+ Het volkstuinencomplex achter de Wieken. De BGT kent het als één grasperceel
+ tussen twee sloten (Street View "2 De Wieken": een grindpad met een hek erin,
+ daarachter tuintjes met schuurtjes en kleine kassen). De percelen zelf staan
+ niet in de brondata — die zijn te klein om geregistreerd te worden — dus die
+ worden hier uitgezet: het perceel wordt op zijn eigen richting gelegd, er komt
+ een grasrand van `rand` meter langs de sloot, en in wat overblijft komen rijen
+ tuintjes met een pad ertussen. Wat niet helemaal binnen het perceel valt, komt
+ er niet: zo blijven de randen de vorm van de sloot volgen.
+*/
+const VOLKSTUINEN = [];
+for (const V of OMGEVING.volkstuinen || []) {
+  const vlak = VLAKKEN.find(v => ['gras', 'bodembedekker', 'heesters'].includes(v.k) && inPolygoon(V.punt, v.r));
+  if (!vlak) { console.warn(`LET OP: volkstuinen ${V.naam}: geen groenvak op ${V.punt}`); continue; }
+  const ringen = vlak.r;
+  const rand = V.rand ?? 7;
+  const tuinB = V.tuin?.breed ?? 9, tuinD = V.tuin?.diep ?? 16;
+  const padB = V.pad ?? 3;
+  // ligt een heel tuintje binnen het perceel, ruim van de rand af?
+  const vrij = (cx, cz, hb, hd, ex, ez) => {
+    for (const [s, t] of [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      const px = cx + ex * hb * s - ez * hd * t, pz = cz + ez * hb * s + ex * hd * t;
+      if (!inPolygoon([px, pz], ringen)) return false;
+      // en op `rand` meter van elke slootkant vandaan
+      for (const r of ringen) for (let i = 0; i < r.length; i++) {
+        const a = r[i], b = r[(i + 1) % r.length];
+        const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz || 1;
+        let u = ((px - a[0]) * dx + (pz - a[1]) * dz) / L2; u = Math.max(0, Math.min(1, u));
+        if (Math.hypot(px - (a[0] + dx * u), pz - (a[1] + dz * u)) < rand) return false;
+      }
+    }
+    return true;
+  };
+  // richting: de langste zijde van het perceel, zodat de rijen met de sloot meelopen
+  let ex = 1, ez = 0, langste = 0;
+  for (let i = 0; i < ringen[0].length; i++) {
+    const a = ringen[0][i], b = ringen[0][(i + 1) % ringen[0].length];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (L > langste) { langste = L; ex = (b[0] - a[0]) / L; ez = (b[1] - a[1]) / L; }
+  }
+  const [mx, mz] = zwaartepunt(ringen[0]);
+  const rs = rng(V.seed ?? 97);
+  const tuinen = [], paden = [];
+  // rijen tuintjes rug aan rug, met een pad tussen elk stel rijen
+  const stap = tuinD * 2 + padB;
+  const nRij = Math.ceil(120 / stap), nKol = Math.ceil(140 / tuinB);
+  for (let j = -nRij; j <= nRij; j++) {
+    const vBasis = j * stap;
+    let rijLeeg = true, v0 = null, v1 = null;
+    for (const kant of [-1, 1]) {
+      const vc = vBasis + kant * (padB / 2 + tuinD / 2);
+      for (let i = -nKol; i <= nKol; i++) {
+        const uc = i * tuinB;
+        const cx = mx + ex * uc - ez * vc, cz = mz + ez * uc + ex * vc;
+        if (!vrij(cx, cz, tuinB / 2 - 0.4, tuinD / 2 - 0.4, ex, ez)) continue;
+        rijLeeg = false;
+        v0 = v0 === null ? uc : Math.min(v0, uc); v1 = v1 === null ? uc : Math.max(v1, uc);
+        tuinen.push({
+          x: r2(cx), z: r2(cz), b: r2(tuinB - 0.8), d: r2(tuinD - 0.8), hoek: r2(Math.atan2(ez, ex)),
+          // het schuurtje staat aan de padkant, de kas ernaast
+          kant, schuur: rs() < (V.schuurkans ?? 0.6), kas: rs() < (V.kaskans ?? 0.22),
+          gewas: Math.floor(rs() * 5), s: r2(0.7 + rs() * 0.6),
+        });
+      }
+    }
+    if (!rijLeeg && v0 !== null) {
+      const ax = mx + ex * (v0 - tuinB / 2) - ez * vBasis, az = mz + ez * (v0 - tuinB / 2) + ex * vBasis;
+      const bx = mx + ex * (v1 + tuinB / 2) - ez * vBasis, bz = mz + ez * (v1 + tuinB / 2) + ex * vBasis;
+      paden.push({ a: [r2(ax), r2(az)], b: [r2(bx), r2(bz)], breed: r2(padB) });
+    }
+  }
+  if (!tuinen.length) { console.warn(`LET OP: volkstuinen ${V.naam}: geen tuintje past binnen het perceel`); continue; }
+  VOLKSTUINEN.push({ naam: V.naam, tuinen, paden });
+  telling[`volkstuinen_${V.naam.replace(/\W+/g, '_').toLowerCase()}`] = tuinen.length;
+}
+tel('volkstuinen', VOLKSTUINEN.reduce((n, v) => n + v.tuinen.length, 0));
+
 // ---------------------------------------------------------------- labels, start
 const LABELS = labels.filter(l => l.p[0] >= G.x0 && l.p[0] <= G.x1 && l.p[1] >= G.z0 && l.p[1] <= G.z1).map(l => ({ t: l.t, x: l.p[0], z: l.p[1], hoek: l.hoek }));
 const HUISNUMMERS = [];
@@ -1413,6 +1556,7 @@ const KAART = {
   hagen: HAGEN, bomen: BOMEN.concat(STRAATBOMEN, PARKBOMEN), struiken: STRUIKEN, lantaarns: LANTAARNS,
   heggen: HEGGEN, schuttingen: SCHUTTINGEN, paden: PADEN, tuinvlakken: TUINVLAKKEN, strepen: STREPEN, objecten: OBJECTEN,
   hekwerken: HEKWERKEN, poorten: POORTEN, viaducten: VIADUCTEN,
+  sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN,
   labels: LABELS, huisnummers: HUISNUMMERS,
   telling,
 };

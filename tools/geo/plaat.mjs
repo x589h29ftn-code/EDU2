@@ -46,10 +46,11 @@ const teken = (features, kleurVan, opties = '') => {
 // Klasse-indeling, gelijk aan tools/geo/genereer.mjs
 const klasseWeg = (fn) => fn === 'rijbaan autoweg' ? 'autoweg' : fn.startsWith('rijbaan') ? 'rijbaan' : ['woonerf', 'parkeervlak', 'inrit', 'fietspad', 'voetpad', 'spoorbaan'].includes(fn) ? fn : 'verharding';
 const klasseGroen = (plus) => plus === 'bosplantsoen' ? 'bos' : plus === 'heesters' ? 'heesters' : (plus === 'bodembedekkers' || plus === 'planten') ? 'bodembedekker' : 'gras';
-const klasseKaal = (fy) => fy === 'erf' ? 'erf' : fy === 'zand' ? 'zand' : fy === 'gesloten verharding' ? 'asfaltvlak' : fy === 'half verhard' ? 'halfverhard' : 'verharding';
+// let op: kunststof (kunstgras) gaat vóór de verharding, net als in genereer.mjs
+const klasseKaal = (fy, plus) => plus === 'kunststof' ? 'kunstgras' : fy === 'erf' ? 'erf' : fy === 'zand' ? 'zand' : fy === 'gesloten verharding' ? 'asfaltvlak' : fy === 'half verhard' ? 'halfverhard' : 'verharding';
 
 uit.push(`<rect width="${W}" height="${H}" fill="${K.achtergrond}"/>`);
-teken(laag('bgt_onbegroeidterreindeel'), p => K[klasseKaal(p.bgt_fysiekVoorkomen)]);
+teken(laag('bgt_onbegroeidterreindeel'), p => K[klasseKaal(p.bgt_fysiekVoorkomen, p.plus_fysiekVoorkomen)]);
 teken(laag('bgt_begroeidterreindeel'), p => K[klasseGroen(p.plus_fysiekVoorkomen)]);
 teken(laag('bgt_ondersteunendwegdeel'), () => K.berm);
 teken(laag('bgt_ondersteunendwaterdeel'), () => K.oever);

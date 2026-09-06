@@ -360,7 +360,7 @@ zoals het er echt uitziet, en vergelijkt het eerste pixel voor pixel met
 
 | meting | uitkomst |
 |---|---|
-| afwijkende pixels kaartplaat ↔ spel | **1,28 %** (doel < 2 %) |
+| afwijkende pixels kaartplaat ↔ spel | **1,29 %** (doel < 2 %) |
 | waarvan | randpixels door anti-aliasing; één pand met koepeldak; enkele dakvlakken |
 
 De uitkomst staat in `data/geo/spel-boven.png` (het spel van boven) en
@@ -1364,7 +1364,7 @@ Rijtest, verhaaltest, wereldtest, looptest, politietest, winkeltest en
 woningtest blijven groen en `geo:boven` staat nog op 1,31 %.
 
 
-**De wereld vergroot (stap 17).**
+**De wereld vergroot (stap 18).**
 
 De wereld ging van 730 × 870 m naar **1330 × 1300 m**: heel Tinga plus de buurt
 aan de overkant van de N7. Puur uitbreiding — de oorsprong ligt vast op het
@@ -1434,32 +1434,106 @@ van de N7.
 
 Controle: rijtest, verhaaltest, wereldtest, looptest, politietest, winkeltest,
 woningtest, viaducttest en wapentest zijn groen (politietest vier keer achter
-elkaar), `geo:boven` staat op **1,28 %** en `propcheck` geeft dezelfde vijf
+elkaar), `geo:boven` staat op **1,28 %** (na het sportpark 1,29 %) en `propcheck` geeft dezelfde vijf
 meldingen als vóór deze ronde. Let op: draai de proeven **één voor één**. Drie
 headless browsers tegelijk op software-rendering maakt ze zo traag dat
 tijdgevoelige controles omvallen aan de machine, niet aan het spel.
 
+**Het sportpark en de volkstuinen (stap 19).**
+
+Twee plekken die als leeg groen in het spel lagen terwijl er in werkelijkheid
+iets staat. Allebei op dezelfde manier gebouwd als het viaduct: het vlak komt
+uit de BGT, in `data/stijl/omgeving.json` staat alleen een punt erin en hoe het
+eruitziet, `tools/geo/genereer.mjs` rekent de rest uit de brondata uit, en
+`js/sportveld.js` en `js/volkstuin.js` bouwen de wereld.
+
+*Kunstgras stond in de data, maar niet in het spel.* De twee velden van VV Sneek
+Wit Zwart en de twee hockeyvelden ernaast staan in de BGT als `gesloten
+verharding` met `plus_fysiekVoorkomen` **`kunststof`** — de IMGeo-term voor een
+kunstgrasmat. De keten keek alleen naar `bgt_fysiekVoorkomen`, dus lagen die
+27 743 m² als grijs asfalt in de wereld. Er is nu een klasse `kunstgras`, in
+`genereer.mjs` én in `plaat.mjs`, zodat de kaartplaat en het spel het er nog
+steeds over eens zijn en `geo:boven` er niet op reageert.
+
+*De velden van VV Sneek Wit Zwart (Molenkrite 132).* Een BGT-vlak is een
+polygoon zonder richting; om er lijnen, doelen en borden omheen te zetten moet je
+weten hoe het veld ligt. De generator zoekt daarom per veld de **kleinste
+omhullende rechthoek** — bij een convexe vorm ligt één zijde daarvan altijd langs
+een zijde van de vorm zelf, dus het is genoeg om elke zijde als richting te
+proberen — en dat geeft het midden, de lange as en de maten. Het speelveld ligt
+daarbinnen met een uitloopstrook van 3,5 m en nooit groter dan de 105 × 68 m die
+de KNVB toestaat; wat eruit komt is 105 × 68, 100 × 64, 103 × 68 en 100 × 64 m.
+`js/sportveld.js` zet daarop de belijning (middencirkel 9,15 m,
+strafschopgebied 16,5 × 40,32 m, doelgebied 5,5 × 18,32 m, strafschopstip op
+11 m, hoekcirkels van 1 m), twee doelen van 7,32 × 2,44 m met een net, en rond
+het hoofdveld een ring van 120 reclameborden, een ballenvanger van 6 m achter de
+doelen, een spijlenhek langs de kant, twee dugouts en vier lichtmasten. Op de
+borden staat geen bestaand merk: het zijn de gekleurde vlakken en woordbeelden
+die je op een sportpark ziet.
+
+*Volkstuinen achter de Wieken.* Het perceel tussen de twee sloten staat in de
+BGT als één stuk gras van ruim 18 000 m²; de tuintjes zelf zijn te klein om
+geregistreerd te worden. De generator legt het perceel op zijn eigen richting
+(de langste zijde), houdt 8 m grasrand vrij langs de sloot en zet in wat
+overblijft rijen tuintjes rug aan rug met een pad ertussen — 58 stuks van 8,2 bij
+14,2 m. Een tuintje komt er alleen als het er hélemaal in past, dus de randen
+volgen vanzelf de bocht van de sloot. `js/volkstuin.js` bouwt per tuintje
+omgespitte grond met bedden gewas, een lage haag of een gaashekje met een poortje
+aan de padkant, bij 33 een schuurtje, bij 22 een kasje met een aluminium frame en
+een zadeldakje, en hier en daar een regenton of een bonenstaakrek. Je kunt overal
+tussen de bedden door lopen; alleen de randen, de schuurtjes en de kassen houden
+je tegen.
+
+*Drie dingen die misgingen en wat ze leren.* Een driehoek die je van boven ziet
+moet **met de klok mee** gewonden zijn, anders wijst zijn normaal de grond in en
+zie je hem niet: de belijning, de maaibanen, de paden en de bedden waren
+aanvankelijk allemaal onzichtbaar. Een **PlaneGeometry** legt zijn texture één
+keer over het hele vlak, dus een ballenvanger van 76 bij 6 m werd een paar brede
+balken in plaats van een net; `gaasVlak` rekent de uv nu in meters om. En de
+maaibanen kunnen niet in de texture van de ondergrond zitten, want die krijgt
+zijn uv uit de wereldcoördinaten en de velden liggen schuin — dan lopen de banen
+diagonaal over het veld. Ze liggen er nu als aparte banen overheen, in de
+richting van het veld zelf.
+
+Controle: `npm run sporttest` (34 controles over de brondata, de vier velden, de
+belijning, de doelen, de bordenring, het erlangs en erop lopen, en de
+volkstuinen: binnen het perceel, de grasrand, de paden, de schuurtjes, en of je
+er doorheen kunt lopen). `npm run sportshots` maakt de foto's.
+
 **Wat nog niet af is (in volgorde).**
 
-1. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
+Twee dingen die de gebruiker expliciet voor later heeft laten liggen staan
+bovenaan: de ontbrekende tegel (1) en de steekproef van de gebouwen (2).
+
+1. **3D BAG-tegel `9-636-1012`** voor de noordoosthoek. 183 panden aan de
+   Morrahemstraat, Rijperahemstraat, Oosthemstraat, Folsgaarsterhemstraat en
+   Scherwolderhemstraat vallen buiten alle tegels die er nu liggen (RD X
+   172608–172979, Y 559900–560001) en staan daardoor als opgetrokken grondvlak
+   in het spel, zonder hun echte kap. Beide bestanden (`.gpkg` en `.city.json`)
+   in `data/geo/bron/` zetten en de keten opnieuw draaien is genoeg; aan de
+   gereedschappen hoeft niets te veranderen.
+2. **Gebouwen steekproeven** als fijnafstelling. Nu de wereld vier keer zo groot
+   is en er 2506 panden in staan, moet er een ronde langs een steekproef van
+   adressen: klopt het woningtype per straat, de goothoogte, de voorgevelrichting
+   en de gevel? `npm run geo:steekproef` rendert twaalf vaste adressen vanaf de
+   straat met de Street View-link erbij; dat is de plek om die steekproef uit te
+   breiden naar de nieuwe buurten.
+3. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
    zonnepanelen en schoorstenen als losse elementen op de 3D BAG-daken.
-2. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede (de woningen 40–74;
+4. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede (de woningen 40–74;
    de RWZI op nr 1 is wel gedaan), Zeskanter, Omloop.
-3. De editor (F2) en de overige oude objecten uit `data.js` werken nog in pixels van de
+5. De editor (F2) en de overige oude objecten uit `data.js` werken nog in pixels van de
    oude kaart; enkele objecten staan daardoor een paar meter verkeerd. Omrekenen kan met
    drie ijkpunten in `oorsprong.json` (`rd.mjs px`). Het tuinfeest is al verhuisd: dat
    komt nu uit `js/verhaal.js`, op het adres uit de kaartdata.
-4. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
+6. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
    zonder 3D-model.
-5. 3D BAG-tegel `9-636-1012` voor de noordoosthoek: 183 panden aan de
-   Morrahemstraat, Rijperahemstraat, Oosthemstraat, Folsgaarsterhemstraat en
-   Scherwolderhemstraat staan er nu als opgetrokken grondvlak, zonder echt dak.
-6. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
+7. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
    nog van vóór de supermarkt en de boerderij: de vlaggenmast en de twee nieuwe
    woningtypen staan er nog niet op. Bijwerken kan met `npm run propshots` en
    `npm run assets` plus `python3 tools/contactblad.py objecten|woningen`, maar
    dat zijn 78 losse renders en dat duurt op software-rendering een uur.
-7. De overige panden die geen woning zijn en nog het naamloze `spil`-type
+8. De overige panden die geen woning zijn en nog het naamloze `spil`-type
    dragen: de school aan de Molenkrite (BAG-pand 0091100000007732, 1462 m² met
    een golvende plattegrond), de rij aan de Ligger/de Loper (0091100000014651,
    3485 m²) en het blok aan de Krans. Ze kunnen op dezelfde manier als de
