@@ -1589,6 +1589,79 @@ borden, springend wel, er zit een opening in het hek, de rest van het hek houdt 
 tegen, en aan de tribunekant kom je er niet langs). Alle tien de proeven zijn
 groen, politietest drie keer achter elkaar.
 
+**De Lemmerweg en IJlst erbij — de wereld op zijn volle maat (stap 22).**
+
+*De brondata was al veel groter dan het werkgebied.* Bij de vorige ronde stond
+hier dat de BGT niet tot IJlst reikt. Dat klopte niet: de GeoJSON-bestanden in
+`data/geo/bron/` zijn geknipt op `gebied.geojson`, dus die zeiden alleen iets over
+het gebied van toen. De ruwe download (`bgt_tinga.zip.zip`) blijkt **4,3 bij 2,5
+km** te beslaan: Tinga, de Lemmerweg naar het oosten, de polder ten zuidwesten, en
+in de zuidwesthoek de hele stad **IJlst**. Les voor de volgende keer: meet de bron,
+niet wat de keten ervan heeft overgehouden.
+
+Het werkgebied is nu die volle uitsnede: RD X 169750–174130, Y 557650–560150,
+**4380 × 2500 m = 10,95 km²**, zes keer zo groot als daarvoor. Verder naar buiten
+is er geen ondergrond meer, dus dat is meteen de buitengrens van de wereld.
+
+| | Tinga + overkant N7 | nu, met Lemmerweg en IJlst |
+|---|---|---|
+| gebied | 1,73 km² | **10,95 km²** |
+| panden | 2506 | **7885** (5467 met 3D-dak) |
+| rijbaan | 22,2 km | **75,2 km** |
+| straten | 49 | **155** |
+| `js/kaart.js` | 5,8 MB | 18,4 MB |
+
+*Drie meshes die de hele wereld beslaan, en dus nooit buiten beeld vallen.* Het
+tekenen liep van 2,7 naar 7,8 miljoen driehoeken per beeld, en dat kwam niet
+doordat er meer in beeld staat maar doordat drie dingen in één mesh voor de hele
+wereld zaten: het **riet** langs het water (2,1 miljoen driehoeken in één mesh),
+de **struiken** (19 173 bollen in één InstancedMesh) en de **geparkeerde auto's**
+(bijna achttienhonderd, in één stapel per soort — en die stapels zetten
+`frustumCulled` zelfs expliciet uit). Alle drie staan nu per tegel, net als de
+ondergrond en de bomen, en de auto's mogen weer gecullld worden. Daar kwam nog
+bij dat het **achtervlak van de camera** vaststond op 1200 m terwijl de mist bij
+helder weer al op 900 dichtslaat: dat loopt nu met de mist mee (en de luchtbol
+schaalt mee, anders kijk je door zijn achterkant heen tegen een zwart gat aan).
+
+*Twee lussen die met de wereld meegroeiden.* `resolveCollisions` liep elk beeld
+door álle botsingsdozen — 55 889 nu — voor de speler én voor elke voetganger en
+auto. Er ligt een rooster van 12 m overheen; alleen de schuifpoort van de
+waterzuivering staat er buiten, want die verhuist. En de minimap liep door alle
+wegvakken en sloten van de wereld; die hebben nu ook een rooster.
+
+*En de gevels.* 155 straten geven veel meer verschillende rijtjes, en elk rijtje
+is een eigen doek: het texturegeheugen liep naar 215 MB. Op 21 px/m in plaats van
+26, en afgekapt op 1600 in plaats van 2048 px, komt het op 157 MB — nauwelijks
+meer dan de 141 MB die de kleine wereld kostte.
+
+Wat het nu kost, gemeten met `npm run audit`:
+
+| | klein | nu |
+|---|---|---|
+| driehoeken (Molenkrite, het drukste punt) | 2,71 M | 4,33 M |
+| draw calls | 837 | 1467 |
+| texturegeheugen | 141 MB | 157 MB |
+| botsingsdozen | 15 479 | 55 889 |
+| JavaScript per beeld | ~3,0 ms | 4,5 ms |
+| wereld bouwen (headless) | 5,4 s | ~31 s |
+
+Die bouwtijd is het punt dat blijft staan: hij loopt recht evenredig met de
+oppervlakte, en de hele wereld wordt bij het starten opgebouwd terwijl je er maar
+negenhonderd meter van ziet. Dat vraagt om alleen bouwen wat in de buurt is, en
+dat is een verbouwing op zich (zie *Wat nog niet af is*).
+
+*De audit mat al die tijd één plek.* Hij zette wel `player.pos` maar riep nooit
+`applyCamera()` aan, en las `renderer.info` terwijl de hoofdlus stillag — dus
+gaven alle plekken exact hetzelfde getal. Hij tekent nu zelf één beeld per plek
+met de teller op nul, en er staan vier plekken bij in het nieuwe gebied.
+
+Controle: alle tien de proeven zijn groen. Drie ervan zaten aan de oude
+wereldgrootte vast en zijn rechtgezet: de rijtest telde op veertien meshes voor
+alle geparkeerde auto's (nu per tegel), de wereldtest pakte voor de heggenproef de
+eerste heg uit de lijst en kreeg de kopse vlakken van de buurman mee (hij zoekt nu
+een heg waar binnen vijf meter geen andere staat), en de sporttest ging uit van
+precies vier kunstgrasvelden — IJlst heeft zijn eigen sportpark.
+
 **Wat nog niet af is (in volgorde).**
 
 De eerste vijf punten heeft de gebruiker expliciet voor later laten liggen: de

@@ -246,7 +246,29 @@ const heg = await page.evaluate(async () => {
    dan een halve meter naast de lijn ligt of buiten de uiteinden valt, is een buur.
   */
   const { KAART } = await import('./js/kaart.js');
-  const h = (KAART.heggen || []).find(q => q.soort !== 'hekje');
+  /*
+   Een heg die op zichzelf staat. Alle heggen zitten in dezelfde mesh, dus de
+   driehoeken van de buurman zitten ertussen — en heggen sluiten kop aan kop op
+   elkaar aan, dus die liggen precies op dezelfde hartlijn. Zoek er daarom een
+   waar binnen vijf meter geen andere staat; met twaalfduizend heggen in de
+   wereld gaat dat via een rooster in plaats van iedereen met iedereen.
+  */
+  const alle = (KAART.heggen || []).filter(q => q.soort !== 'hekje');
+  const CEL = 5;
+  const rooster = new Map();
+  const cellenVan = (q) => {
+    const uit = [];
+    for (let i = Math.floor(Math.min(q.a[0], q.b[0]) / CEL) - 1; i <= Math.floor(Math.max(q.a[0], q.b[0]) / CEL) + 1; i++)
+      for (let j = Math.floor(Math.min(q.a[1], q.b[1]) / CEL) - 1; j <= Math.floor(Math.max(q.a[1], q.b[1]) / CEL) + 1; j++) uit.push(i + ':' + j);
+    return uit;
+  };
+  for (const q of alle) for (const k of cellenVan(q)) { if (!rooster.has(k)) rooster.set(k, []); rooster.get(k).push(q); }
+  const h = alle.find(q => {
+    if (Math.hypot(q.b[0] - q.a[0], q.b[1] - q.a[1]) < 4) return false;
+    const buren = new Set();
+    for (const k of cellenVan(q)) for (const b of (rooster.get(k) || [])) if (b !== q) buren.add(b);
+    return buren.size === 0;
+  });
   let buiten = 0, binnen = 0;
   if (h) {
     let mesh = null;
@@ -265,7 +287,9 @@ const heg = await page.evaluate(async () => {
       if (Math.abs(n.x * ax + n.z * az) > 0.9) continue;          // kopse kant
       const cx = (a.x + b.x + c.x) / 3 - h.a[0], cz = (a.z + b.z + c.z) / 3 - h.a[1];
       const langs = cx * ax + cz * az, dwars = cx * dx + cz * dz;
-      if (langs < -0.5 || langs > L + 0.5 || Math.abs(dwars) > 0.5) continue;  // van een buur
+      // ruim binnen de uiteinden blijven: heggen sluiten kop aan kop op elkaar
+      // aan, en dan liggen de kopse vlakken van de buurman óók op deze hartlijn
+      if (langs < 0.6 || langs > L - 0.6 || Math.abs(dwars) > 0.4) continue;
       const naarBuiten = (n.x * dx + n.z * dz) * Math.sign(dwars);
       if (naarBuiten > 0.001) buiten++; else if (naarBuiten < -0.001) binnen++;
     }

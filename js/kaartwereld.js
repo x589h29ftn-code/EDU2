@@ -227,6 +227,26 @@ function materialen(MAT) {
   for (const [k, kleur] of Object.entries(KLEUR)) KM.plat[k] = new THREE.MeshBasicMaterial({ color: kleur, side: THREE.DoubleSide });
 }
 
+/*
+ Maat en midden van het grondvlak onder de wereld: het gebied uit de kaart plus
+ tweemaal de mistafstand aan elke kant, zodat je nergens over de rand heen kijkt.
+*/
+function grondMaat() {
+  const g = KAART && KAART.gebied;
+  if (!g) return [2600, 2600];
+  return [(g.x1 - g.x0) + 2400, (g.z1 - g.z0) + 2400];
+}
+function grondMidden() {
+  const g = KAART && KAART.gebied;
+  return g ? { x: (g.x0 + g.x1) / 2, z: (g.z0 + g.z1) / 2 } : { x: 0, z: 0 };
+}
+function grondTextuur() {
+  const t = T.grass().clone(); t.needsUpdate = true;
+  const [b, d] = grondMaat();
+  t.repeat.set(b / 8, d / 8);          // één grasdoek per acht meter
+  return t;
+}
+
 // ---------------------------------------------------------------- bouwen
 /**
  * scene: Three-scene; W: de lijsten uit world.js
@@ -289,13 +309,20 @@ export function bouwKaartWereld(scene, W) {
     bouwViaducten(scene, W, KM);
     for (const g of randen.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'rand' }); if (m) scene.add(m); }
     for (const g of oevers.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'oeverwand' }); if (m) scene.add(m); }
-    // grondvlak onder alles, voor buiten het gebied en voor gaatjes
-    const groundTex = T.grass().clone(); groundTex.needsUpdate = true; groundTex.repeat.set(300, 300);
-    const grond = new THREE.Mesh(new THREE.PlaneGeometry(2600, 2600), new THREE.MeshStandardMaterial({ map: groundTex, roughness: 1 }));
-    grond.rotation.x = -Math.PI / 2; grond.position.y = -1.0; grond.receiveShadow = true; scene.add(grond);   // onder het water
+    /*
+     Grondvlak onder alles, voor buiten het gebied en voor gaatjes. Dit was een
+     vast vierkant van 2600 m; toen de wereld tot IJlst werd doorgetrokken (4380
+     bij 2500 m) hield het op halverwege de polder en keek je daar tegen een zwart
+     gat aan. Het volgt nu het gebied uit de kaart, met een ruime marge zodat de
+     rand ook vanaf de buitenste hoek buiten de mist valt.
+    */
+    const grond = new THREE.Mesh(new THREE.PlaneGeometry(...grondMaat()), new THREE.MeshStandardMaterial({ map: grondTextuur(), roughness: 1 }));
+    grond.rotation.x = -Math.PI / 2; grond.position.set(grondMidden().x, -1.0, grondMidden().z);
+    grond.receiveShadow = true; scene.add(grond);   // onder het water
   } else {
-    const grond = new THREE.Mesh(new THREE.PlaneGeometry(2600, 2600), KM.plat.achtergrond);
-    grond.rotation.x = -Math.PI / 2; grond.position.y = -1.0; scene.add(grond);
+    const grond = new THREE.Mesh(new THREE.PlaneGeometry(...grondMaat()), KM.plat.achtergrond);
+    grond.rotation.x = -Math.PI / 2; grond.position.set(grondMidden().x, -1.0, grondMidden().z);
+    scene.add(grond);
   }
 
   // -- panden
@@ -370,12 +397,26 @@ export function bouwKaartWereld(scene, W) {
     // omheinde terreinen: hekwerk, poort, bezinkbakken en tanks
     bouwTerreinen(scene, W);
     bouwBouwwerken(scene, W);
+    /*
+     Struiken per tegel. Ze zaten in één InstancedMesh van de hele wereld, en
+     zo'n mesh valt nooit buiten beeld: negentienduizend bollen werden élk beeld
+     getekend, ook die drie kilometer verderop in IJlst.
+    */
     if (K.struiken.length) {
-      const geo = new THREE.SphereGeometry(0.7, 7, 5);
-      const im = new THREE.InstancedMesh(geo, KM.struik, K.struiken.length);
+      const geo = new THREE.SphereGeometry(0.7, 6, 4);
+      const perTegel = new Map();
+      for (const s of K.struiken) {
+        const t = tegelVan(s.x, s.z);
+        if (!perTegel.has(t)) perTegel.set(t, []);
+        perTegel.get(t).push(s);
+      }
       const m = new THREE.Matrix4();
-      K.struiken.forEach((s, i) => { m.makeScale(s.s, s.s * 0.8, s.s); m.setPosition(s.x, grondHoogte(s.x, s.z, 0) + 0.45 * s.s, s.z); im.setMatrixAt(i, m); });
-      im.castShadow = true; scene.add(im);
+      for (const lijst of perTegel.values()) {
+        const im = new THREE.InstancedMesh(geo, KM.struik, lijst.length);
+        lijst.forEach((s, i) => { m.makeScale(s.s, s.s * 0.8, s.s); m.setPosition(s.x, grondHoogte(s.x, s.z, 0) + 0.45 * s.s, s.z); im.setMatrixAt(i, m); });
+        im.castShadow = true; im.computeBoundingSphere(); im.userData.klasse = 'struik';
+        scene.add(im);
+      }
     }
     bouwLantaarns(scene, W);
     // de belijning, doelen, reclameborden en hekken op de sportvelden aan de
@@ -832,6 +873,7 @@ function bouwTerreinen(scene, W) {
     for (const q of [blad, eind]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.08, p.h - 0.2, 0.08), KM.staal); b.position.set(q[0], KERB_Y + p.h / 2, q[1]); groep.add(b); }
     groep.traverse(c => { c.castShadow = true; }); scene.add(groep);
     const doos = W.addCollider((blad[0] + eind[0]) / 2, (blad[1] + eind[1]) / 2, L / 2, 0.08, draai, p.h);
+    doos.beweegt = true;      // een schuifpoort verhuist, dus hij hoort niet in het rooster
     poortBladen.push({
       terrein: p.terrein, groep, doos, richting: [ux, uz], lengte: L, open,
       midden: [(p.a[0] + p.b[0]) / 2, (p.a[1] + p.b[1]) / 2],

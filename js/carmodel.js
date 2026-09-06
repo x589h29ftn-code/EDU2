@@ -275,7 +275,14 @@ export function maakAutoStapel(kind, aantal) {
     m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     m.castShadow = !!d.schaduw;
     m.receiveShadow = true;
-    m.frustumCulled = false;      // ze staan over de hele wijk verspreid
+    /*
+     Culling mag weer aan. Dit stond uit omdat er één stapel per soort was voor de
+     hele wijk: die ligt altijd ergens in beeld, en dan is een bounding sphere
+     alleen maar werk zonder resultaat. Sinds js/vehicles.js een stapel per tegel
+     van 240 m maakt is die bol wél klein, en valt alles wat achter je of aan de
+     andere kant van de polder staat vanzelf weg.
+    */
+    m.frustumCulled = true;
     m.userData.autoStapel = kind;
     return m;
   });

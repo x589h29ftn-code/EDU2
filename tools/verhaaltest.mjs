@@ -577,16 +577,19 @@ ok(Math.hypot(misgeschoten.x - misgeschoten.opgeslagen.x, misgeschoten.z - misge
 const uitgeput = await page.evaluate(() => {
   const g = window.__game;
   const d = g.verhaal.dief;
+  /*
+   Eerst ver bij hem vandaan gaan staan, en pas dán de achtervolging weer
+   opstarten. De vorige proef laat de speler zes meter van de dief achter; bleef
+   hij daar staan, dan had je de dief te pakken vóórdat hij buiten adem was — bij
+   het opnieuw op de vlucht zetten hieronder al, of anders tijdens het wachten.
+   Dan meet deze proef niet of hij op raakt maar of hij toevallig de goede kant
+   op rende.
+  */
+  g.player.pos.set(d.positie.x + 120, 0, d.positie.z + 120);
   if (g.verhaal.fase !== 'achtervolging') {              // na het laden weer op de vlucht zetten
     d.schrik();
     for (let i = 0; i < 40; i++) g.verhaal.update(0.05);
   }
-  /*
-   Ver bij hem vandaan gaan staan. De vorige proef liet de speler zes meter van
-   de dief achter, en vluchtte de dief toevallig díe kant op, dan had je hem te
-   pakken voordat hij buiten adem was — dan meet deze proef niet of hij op raakt
-   maar of hij toevallig de goede kant op rende.
-  */
   g.player.pos.set(d.positie.x + 120, 0, d.positie.z + 120);
   d.vluchtT = 88;
   let tekst = '';

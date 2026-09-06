@@ -43,22 +43,39 @@ export class Vehicles {
      matrix. Stap je in, dan wordt die instantie op schaal nul gezet en komt het
      losse model met wielen ervoor in de plaats (zie `maakBestuurbaar`).
     */
+    /*
+     Eén stapel per soort én per tegel van 240 m. Er was er één per soort voor de
+     hele wereld, en zo'n instanced mesh valt nooit buiten beeld: met bijna
+     achttienhonderd geparkeerde auto's gingen die elk beeld naar de GPU, ook die
+     in IJlst. De afstandsregel in `lod` zette ze wel op schaal nul, maar een
+     instantie op nul wordt nog steeds verwerkt. Per tegel laat frustum culling
+     het meeste vallen, en `lod` blijft doen wat hij deed voor wat overblijft.
+    */
     const soorten = parkSpots.map(() => (r() < 0.15 ? 'van' : 'hatch'));
+    // 480 m: groter dan de tegels van de ondergrond, want een stapel is zeven
+    // meshes. Op 240 m culde het iets beter maar kostte het ruim vijfhonderd
+    // draw calls extra, en daar is een telefoon gevoeliger voor.
+    const AUTOTEGEL = 480;
+    const sleutelVan = (soort, x, z) => `${soort}|${Math.floor(x / AUTOTEGEL)}:${Math.floor(z / AUTOTEGEL)}`;
     this.stapels = {};
-    for (const soort of ['hatch', 'van']) {
-      const n = soorten.filter(k => k === soort).length;
-      if (!n) continue;
-      const stapel = maakAutoStapel(soort, n);
+    const tel = new Map();
+    parkSpots.forEach((s, i) => {
+      const k = sleutelVan(soorten[i], s.x, s.z);
+      tel.set(k, (tel.get(k) || 0) + 1);
+    });
+    for (const [k, n] of tel) {
+      const stapel = maakAutoStapel(k.split('|')[0], n);
       for (const m of stapel.meshes) scene.add(m);
-      this.stapels[soort] = { stapel, n: 0, autos: [] };
+      this.stapels[k] = { stapel, n: 0, autos: [] };
     }
     parkSpots.forEach((s, i) => {
       const kind = soorten[i];
       const kleur = COLORS[Math.floor(r() * COLORS.length)];
-      const stap = this.stapels[kind];
+      const sleutel = sleutelVan(kind, s.x, s.z);
+      const stap = this.stapels[sleutel];
       const idx = stap.n++;
       const car = {
-        mesh: null, inst: { soort: kind, i: idx }, zichtbaar: true,
+        mesh: null, inst: { sleutel, soort: kind, i: idx }, zichtbaar: true,
         x: s.x, z: s.z, yaw: s.yaw, speed: 0, steer: 0, driveable: true, hp: 100,
         soort: kind, kleur, breedte: kind === 'van' ? 1.90 : 1.78,
       };
@@ -67,7 +84,10 @@ export class Vehicles {
       stap.stapel.kleur(idx, kleur);
       this.cars.push(car);
     });
-    for (const k of Object.keys(this.stapels)) this.stapels[k].stapel.klaar();
+    for (const k of Object.keys(this.stapels)) {
+      this.stapels[k].stapel.klaar();
+      for (const m of this.stapels[k].stapel.meshes) m.computeBoundingSphere();
+    }
     // verkeer N7 (beide richtingen). Met de kaart uit de BGT zijn de twee
     // rijbanen van de N7 losse assen; elke as krijgt verkeer in één richting.
     const n7 = KAART ? KAART.wegassen.filter(w => w.naam === 'N7' && w.w > 6 && w.lengte > 150).map(w => w.pts.map(p => new THREE.Vector2(p[0], p[1]))) : [];
@@ -99,7 +119,7 @@ export class Vehicles {
   // De matrix van een geparkeerde auto in zijn stapel bijwerken.
   zetInstantie(car) {
     if (!car.inst) return;
-    const stap = this.stapels[car.inst.soort];
+    const stap = this.stapels[car.inst.sleutel];
     const zichtbaar = car.zichtbaar !== false && car.getekend !== false;
     stap.stapel.zet(car.inst.i, car.x, car.z, car.yaw, zichtbaar);
     stap.stapel.klaar();
@@ -111,10 +131,9 @@ export class Vehicles {
   /*
    Geparkeerde auto's op afstand uitzetten.
 
-   De stapels worden nooit weggecullld — één instanced mesh met de hele wijk
-   erin ligt altijd in beeld — dus alle 329 auto's gingen elk beeld naar de GPU:
-   ruim 380.000 driehoeken, ook die achter je. Op `ZICHT` meter is een auto nog
-   een blokje van een paar beeldpunten; verder weg zetten we ze op schaal nul.
+   De stapels staan per tegel, dus het meeste valt al weg door frustum culling.
+   Wat er dan nog vóór je ligt maar ver weg is, is nog een blokje van een paar
+   beeldpunten: verder dan `zicht` meter zetten we die op schaal nul.
    Dit loopt mee met de LOD-klok in js/main.js (vier keer per seconde), niet elk
    beeld.
   */

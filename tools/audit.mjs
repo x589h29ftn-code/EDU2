@@ -66,25 +66,48 @@ const alg = await page.evaluate(() => {
 console.log('\n--- scene ---');
 for (const [k, v] of Object.entries(alg)) console.log(' ', k.padEnd(22), JSON.stringify(v));
 
-// draw calls op een paar plekken
+/*
+ Draw calls op een paar plekken. Let op `applyCamera`: zonder die regel bleef de
+ camera staan waar hij stond en gaf elke plek exact hetzelfde getal — dan meet je
+ niet wat er vanaf die plek getekend wordt maar één keer hetzelfde beeld.
+ De plekken staan in spelmeters vanaf het kruispunt Molenkrite/Monnikmolen/Jasker.
+*/
 const plekken = [
-  ['Molenkrite begin', 405, 1222, -0.88],
-  ['De Wieken midden', 180, 1443, 1.44],
-  ['Jasker knoop', 370, 1245, -0.5],
-  ['Bonkelaar', 800, 1810, 1.6],
-  ['boven de wijk', 500, 1300, 0],
+  ['Molenkrite begin', 10, -7, -0.88],
+  ['De Wieken midden', -58, 61, 1.44],
+  ['Jasker knoop', 0, 0, -0.5],
+  ['Bonkelaar', 132, 173, 1.6],
+  ['sportpark Molenkrite', 555, -64, -0.62],
+  ['Lemmerweg oost', 1500, 500, 2.4],
+  ['IJlst centrum', -1800, 1100, 0.8],
+  ['polder ertussen', -900, 700, 1.2],
 ];
 console.log('\n--- draw calls per plek ---');
-for (const [naam, px, py, yaw] of plekken) {
-  await page.evaluate(({ px, py, yaw }) => {
+// de hoofdlus uit: met autoplay aan rijdt de speler zelf weg en meet je telkens
+// dezelfde plek in plaats van de acht hieronder
+await page.evaluate(() => { window.__autoplay = false; window.__game.player.active = false; });
+for (const [naam, px, pz, yaw] of plekken) {
+  await page.evaluate(({ px, pz, yaw }) => {
     const g = window.__game;
-    g.player.fly = naam => false;
-    g.player.pos.set((px - 370) / 3.26, 0, (py - 1245) / 3.26);
+    g.player.inCar = null;
+    g.player.pos.set(px, 0, pz);
     g.player.yaw = yaw; g.player.pitch = 0;
-  }, { px, py, yaw });
-  await page.waitForTimeout(900);
-  const r = await page.evaluate(() => ({ calls: window.__game.renderer.info.render.calls, tris: window.__game.renderer.info.render.triangles }));
-  console.log(' ', naam.padEnd(20), String(r.calls).padStart(5), 'calls', String(r.tris).padStart(8), 'driehoeken');
+    g.player.applyCamera();
+  }, { px, pz, yaw });
+  /*
+   Zelf één beeld tekenen en de teller daaromheen op nul zetten. Met de hoofdlus
+   uit tekent het spel niets meer, en dan bleef `renderer.info` staan op het
+   laatste beeld van dáárvoor — elke plek gaf dan hetzelfde getal.
+  */
+  const r = await page.evaluate(() => {
+    const g = window.__game;
+    g.camera.updateMatrixWorld(true);
+    g.vehicles.lod(g.camera.position.x, g.camera.position.z);
+    g.renderer.info.reset();
+    g.renderer.render(g.scene, g.camera);
+    return { calls: g.renderer.info.render.calls, tris: g.renderer.info.render.triangles };
+  });
+  console.log(' ', naam.padEnd(22), String(r.calls).padStart(5), 'calls', String(r.tris).padStart(9), 'driehoeken');
 }
 
 // hoeveel tijd kost het javascript per beeld (los van het tekenen)

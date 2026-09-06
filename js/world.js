@@ -1402,8 +1402,14 @@ function buildParks(scene) {
 }
 
 // ---------- Riet en oeverbegroeiing langs het water ----------
+/*
+ Per tegel één mesh, net als de bomen. Alle rietpollen zaten in één mesh van de
+ hele wereld, en zo'n mesh valt nooit buiten beeld: met 4,4 kilometer wereld en
+ elf kilometer oever waren dat twee miljoen driehoeken die élk beeld getekend
+ werden, ook die aan de andere kant van de polder.
+*/
 function buildReeds(scene) {
-  const tufts = [];
+  const perTegel = new Map();
   const r = rng(4242);
   for (const poly of waterPolys) {
     for (let i = 0; i < poly.length; i++) {
@@ -1416,15 +1422,20 @@ function buildReeds(scene) {
         const p = a.clone().add(d.clone().multiplyScalar(sPos)).add(nrm.clone().multiplyScalar((r() - 0.5) * 1.0));
         if (nearBuilding(p, 1.0)) continue;
         const h = 0.4 + r() * 0.35, rad = 0.22 + r() * 0.18;
-        const g = new THREE.SphereGeometry(rad, 6, 4);
+        const g = new THREE.SphereGeometry(rad, 5, 3);
         g.scale(1.0 + r() * 0.5, h / rad * 0.75, 1.0 + r() * 0.5);
         g.rotateY(r() * 3.14);
         g.translate(p.x, h * 0.42, p.y);
-        tufts.push(g);
+        const k = `${Math.floor(p.x / BOOMTEGEL)}:${Math.floor(p.y / BOOMTEGEL)}`;
+        if (!perTegel.has(k)) perTegel.set(k, []);
+        perTegel.get(k).push(g);
       }
     }
   }
-  if (tufts.length) { const m = new THREE.Mesh(mergeGeoms(tufts), MAT.reed); m.castShadow = true; scene.add(m); }
+  for (const tufts of perTegel.values()) {
+    const m = new THREE.Mesh(mergeGeoms(tufts), MAT.reed);
+    m.castShadow = true; m.userData.klasse = 'riet'; scene.add(m);
+  }
 }
 
 // ---------- Bomen (instanced, per tegel) ----------
@@ -1845,10 +1856,57 @@ export function vrijeCamera(px, py, pz, dx, dy, dz, maxD, marge = 0.35) {
  viaduct bijvoorbeeld) staan boven de grond: sta je eronder, dan loop je er
  gewoon onderdoor. Zonder dat argument doen ze mee zoals altijd.
 */
-export function resolveCollisions(x, z, radius, ignoreLowH = 0, y = null) {
+/*
+ Een rooster over de botsingsdozen. Deze lus ging door álle dozen: in de kleine
+ wijk waren dat er negenduizend, en met de Lemmerweg en IJlst erbij bijna
+ zesenvijftigduizend — elk beeld, voor de speler én voor elke voetganger en auto
+ die zich ergens langs wringt. Nu worden alleen de cellen bekeken waar je
+ daadwerkelijk in staat, en kost een toets evenveel in IJlst als in Tinga.
+
+ Dozen die bewegen (de schuifpoort van de waterzuivering) staan apart: die
+ zouden bij elke stap in een andere cel komen, dus die worden altijd getoetst.
+*/
+const CEL = 12;
+const CELSLEUTEL = (i, j) => i * 100003 + j;
+let rooster = null, roosterVoor = -1;
+const losseDozen = [];
+function bouwRooster() {
+  rooster = new Map();
+  losseDozen.length = 0;
   for (const c of colliders) {
-    if (c.h < ignoreLowH) continue;
-    if (c.y0 != null && y != null && (y + 1.8 < c.y0 || y > c.y0 + c.h)) continue;
+    if (c.beweegt) { losseDozen.push(c); continue; }
+    const r = Math.hypot(c.hx, c.hz) + 0.6;
+    const i0 = Math.floor((c.cx - r) / CEL), i1 = Math.floor((c.cx + r) / CEL);
+    const j0 = Math.floor((c.cz - r) / CEL), j1 = Math.floor((c.cz + r) / CEL);
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+      const k = CELSLEUTEL(i, j);
+      let l = rooster.get(k);
+      if (!l) rooster.set(k, l = []);
+      l.push(c);
+    }
+  }
+  roosterVoor = colliders.length;
+}
+let stempel = 0;
+
+export function resolveCollisions(x, z, radius, ignoreLowH = 0, y = null) {
+  if (rooster === null || roosterVoor !== colliders.length) bouwRooster();
+  stempel++;
+  const marge = radius + 1;
+  const i0 = Math.floor((x - marge) / CEL), i1 = Math.floor((x + marge) / CEL);
+  const j0 = Math.floor((z - marge) / CEL), j1 = Math.floor((z + marge) / CEL);
+  for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+    const lijst = rooster.get(CELSLEUTEL(i, j));
+    if (lijst) for (const c of lijst) { if (c._st !== stempel) { c._st = stempel; [x, z] = duwUit(c, x, z, radius, ignoreLowH, y); } }
+  }
+  for (const c of losseDozen) [x, z] = duwUit(c, x, z, radius, ignoreLowH, y);
+  return [x, z];
+}
+
+function duwUit(c, x, z, radius, ignoreLowH, y) {
+  {
+    if (c.h < ignoreLowH) return [x, z];
+    if (c.y0 != null && y != null && (y + 1.8 < c.y0 || y > c.y0 + c.h)) return [x, z];
     const dx = x - c.cx, dz = z - c.cz;
     const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
     const px = Math.abs(lx) - c.hx, pz = Math.abs(lz) - c.hz;

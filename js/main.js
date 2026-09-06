@@ -93,9 +93,17 @@ const skyMat = new THREE.ShaderMaterial({
       gl_FragColor = vec4(c, 1.0);
     }`,
 });
-const sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 32, 16), skyMat);
+/*
+ De luchtbol heeft straal 1 en wordt met de camera meegeschaald tot net binnen
+ het achtervlak (js/sfeer.js zet dat op de mistafstand + 60 m). Hij stond op een
+ vaste straal van 1000 m; toen het achtervlak met de mist mee omlaag ging naar
+ 960 m viel de achterkant van de bol erbuiten en keek je door dat gat tegen de
+ zwarte achtergrond aan.
+*/
+const sky = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), skyMat);
 sky.frustumCulled = false;
 scene.add(sky);
+sky.scale.setScalar(camera.far * 0.92);
 
 // ---------- Wolkendek ----------
 // Zachte cumulusvlekken op twee hoogtes. Ze liggen horizontaal, want vanaf de
@@ -681,6 +689,8 @@ function loop() {
   // meedraaide. Meeschuiven houdt hem altijd op 1000 m.
   const kijker = window.__bovenCam || camera;
   sky.position.copy(kijker.position);
+  // het achtervlak loopt met de mist mee (js/sfeer.js), dus de bol ook
+  if (Math.abs(sky.scale.x - kijker.far * 0.92) > 1) sky.scale.setScalar(kijker.far * 0.92);
   renderer.render(scene, kijker);
 }
 loop();
