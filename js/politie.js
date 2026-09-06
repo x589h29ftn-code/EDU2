@@ -436,7 +436,15 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   function zetBlokkade() {
     const sp = spelerPlek();
     const vaart = Math.hypot(spSnelheid.x, spSnelheid.z);
-    const rx = vaart > 1 ? spSnelheid.x / vaart : 0, rz = vaart > 1 ? spSnelheid.z / vaart : 0;
+    /*
+     Zonder richting geen blokkade. Sta je stil of loop je, dan is er geen "vóór
+     je", en dan werd elke kant even zwaar geteld en kon hij dus net zo goed
+     áchter je komen te staan — een straat die dichtgezet wordt waar je vandaan
+     komt. Hij wacht liever tot je ergens heen gaat; over een paar tellen wordt
+     het opnieuw geprobeerd.
+    */
+    if (vaart <= 1) return false;
+    const rx = spSnelheid.x / vaart, rz = spSnelheid.z / vaart;
     const kandidaten = puntenRond(sp.x, sp.z, BLOKKADE_MAX);
     let beste = null, besteScore = -1;
     for (let poging = 0; poging < 80 && kandidaten.length; poging++) {
@@ -448,8 +456,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       if (d < BLOKKADE_MIN || d > BLOKKADE_MAX) continue;
       if (zichtVrij(sp.x, sp.z, p[0], p[1], 1.6)) continue;      // hij mag niet te zien zijn
       if (blokkades.some(b => Math.hypot(b.x - p[0], b.z - p[1]) < 90)) continue;
-      // ligt hij vóór je? met stilstand telt elke kant even zwaar
-      const vooruit = rx ? ((p[0] - sp.x) * rx + (p[1] - sp.z) * rz) / d : 0.5;
+      // ligt hij vóór je?
+      const vooruit = ((p[0] - sp.x) * rx + (p[1] - sp.z) * rz) / d;
       if (vooruit < 0.2) continue;
       const score = vooruit * 100 - Math.abs(d - 160);
       if (score > besteScore) { besteScore = score; beste = { p, q }; }
@@ -458,11 +466,16 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     const { p, q } = beste;
     const dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz) || 1;
     const ex = dx / L, ez = dz / L;              // langs de weg
-    // de wagens staan dwars: hun lengteas haaks op de rijrichting
+    // De wagens staan dwars: hun lengteas haaks op de rijrichting. Bij die yaw
+    // wijst de lengteas van het model (de lokale x) naar (ez, −ex), dwars over
+    // de weg — dus zetten we ze langs diezelfde richting naast elkaar, kop aan
+    // staart. Zo spannen ze samen bijna negen meter en zit de rijbaan echt
+    // dicht; achter elkaar zetten (langs de weg) laat er naast allebei nog
+    // ruimte over.
     const yaw = Math.atan2(-ez, ex) + Math.PI / 2;
     const cars = [];
     for (const zij of [-1, 1]) {
-      const cx = p[0] + ex * zij * 1.9, cz = p[1] + ez * zij * 1.9;
+      const cx = p[0] + ez * zij * 2.2, cz = p[1] - ex * zij * 2.2;
       const car = vehicles.voegToe({ x: cx, z: cz, yaw, soort: 'hatch', kleur: 0x1b3a7a, driveable: false });
       const l = lichtbalk(car);
       cars.push({ car, ...l, knipper: Math.random() * 2 });
@@ -787,11 +800,21 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     const s = ster();
     let schade = 0;
     const sp = spelerPlek();
-    // hoe hard en waarheen loopt hij? (zie `spSnelheid` bovenin)
+    /*
+     Hoe hard en waarheen gaat hij? (zie `spSnelheid` bovenin) De schatting is
+     gedempt, en een sprong die geen enkele auto kan maken telt niet mee: naar
+     binnen en naar buiten gaan is in dit spel een teleport (js/interieur.js), en
+     één zo'n sprong gedeeld door een zestigste seconde is honderden meters per
+     seconde. Dat vervuilde de schatting en zette daarna een wegblokkade "vóór"
+     de speler in een richting waar hij nooit heen ging.
+    */
     if (spVorig && dt > 1e-4) {
-      const f = Math.min(1, dt * 3);
-      spSnelheid.x += ((sp.x - spVorig.x) / dt - spSnelheid.x) * f;
-      spSnelheid.z += ((sp.z - spVorig.z) / dt - spSnelheid.z) * f;
+      const stap = Math.hypot(sp.x - spVorig.x, sp.z - spVorig.z);
+      if (stap < dt * 60) {
+        const f = Math.min(1, dt * 3);
+        spSnelheid.x += ((sp.x - spVorig.x) / dt - spSnelheid.x) * f;
+        spSnelheid.z += ((sp.z - spVorig.z) / dt - spSnelheid.z) * f;
+      }
     }
     spVorig = { x: sp.x, z: sp.z };
     if (meldT > 0) meldT -= dt;
@@ -1113,6 +1136,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     for (const b of [...blokkades]) ruimBlokkade(b);
     ruimWrakken();
     heat = 0; gezienT = 0; laatstBekend = null; stille = 0; blokT = 0;
+    // ook de schatting van waar de speler heen gaat opnieuw beginnen
+    spVorig = null; spSnelheid.x = 0; spSnelheid.z = 0;
     geluid.sirene(null);
   }
 

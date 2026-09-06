@@ -300,21 +300,23 @@ Stap 1, 2, 3 en 4 zijn af; stap 6 (de stijlcatalogus) is ingericht en wacht op f
 staan de eerste vijf missies in de wijk (zie *Het verhaal en de opslag* onderaan).
 
 **Data (stap 1 en 2).**
-`data/geo/gebied.geojson` is het werkgebied: RD X 171650–172980, Y 558800–560100
-(1330 × 1300 m), heel Tinga plus de buurt aan de overkant van de N7. De randen
-liggen expres tussen de bebouwing door: aan de oostkant op 172980, want veertig
-meter verder snijdt de rand dwars door de Lemmerweg en Duinterpen heen.
+`data/geo/gebied.geojson` is het werkgebied: RD X 169750–174130, Y 557650–560150
+(4380 × 2500 m = 10,95 km²) — heel Tinga, de buurt aan de overkant van de N7, de
+Lemmerweg naar het oosten, de polder ten zuidwesten en de stad IJlst. Dat is
+precies zover als de BGT-download reikt, en daarmee de buitengrens van de wereld.
 `data/geo/oorsprong.json` legt het kruispunt Molenkrite / Monnikmolen / Jasker op
 RD 172214.98, 559360.95 — die oorsprong staat vast, dus het gebied vergroten laat
-alle bestaande coördinaten ongemoeid.
+alle bestaande coördinaten ongemoeid. Het gebied is in twee stappen gegroeid van
+1330 × 1300 m naar wat het nu is; de ronde waarin dat gebeurde staat onderaan bij
+*De Lemmerweg en IJlst erbij*.
 
 Het gebied is groter dan één 3D BAG-tegel. Die tegels zijn een quadtree met
 wisselende maten (9-632-1008 is 743 × 987 m, 7-624-992 vier keer zo groot), dus
 buurtegels zijn niet uit te rekenen — je zoekt ze op de kaart van 3dbag.nl op.
-Er liggen er nu vier onder het gebied: **9-632-1008** (de kern van Tinga),
-**9-632-1012**, **9-636-1008** en **7-624-992** (die laatste alleen voor de
-zuidrand). `8-624-1008` staat er ook, maar levert nul panden binnen het gebied;
-hij blijft liggen omdat hij bijna niets kost. De omzetters lezen álle `.gpkg`- en
+Er liggen er nu vijf onder het gebied: **9-632-1008** (de kern van Tinga),
+**9-632-1012**, **9-636-1008**, **8-624-1008** en **7-624-992** — die laatste is
+vier keer zo groot als de andere en bevat de hele stad IJlst (2005 panden).
+De omzetters lezen álle `.gpkg`- en
 `.city.json`-bestanden in `bron/` en ontdubbelen op BAG-identificatie, dus een
 tegel erbij zetten is genoeg — er hoeft niets aan de gereedschappen veranderd te
 worden.
@@ -325,62 +327,70 @@ GeoJSON van, en `controle.mjs` keurt het geheel ("Geen problemen").
 
 **Nog niet gedekt.** In de noordoosthoek (RD X 172608–172979, Y 559900–560001)
 staan 183 panden aan de Morrahemstraat, Rijperahemstraat, Oosthemstraat,
-Folsgaarsterhemstraat en Scherwolderhemstraat die buiten alle vier de tegels
+Folsgaarsterhemstraat en Scherwolderhemstraat die buiten alle vijf de tegels
 vallen. Ze staan er nu als opgetrokken grondvlak. Tegel **9-636-1012** vult dat
-gat.
+gat. Aan de westkant van IJlst ligt vermoedelijk hetzelfde probleem: het meest
+westelijke pand staat 12 m van de rand van `7-624-992`.
 
 **Generator (stap 3 en 4).**
-`tools/geo/genereer.mjs` schrijft `js/kaart.js` (5,5 MB) met:
+`tools/geo/genereer.mjs` schrijft `js/kaart.js` (18,4 MB) met:
 
-- 3695 vlakken ondergrond met klasse, materiaal en hoogte (rijbaan en parkeervlak op
+- 10 889 vlakken ondergrond met klasse, materiaal en hoogte (rijbaan en parkeervlak op
   0, stoep, berm, gras en erf op +12 cm zodat de trottoirband vanzelf ontstaat, water
   op −35 cm met een oeverwand);
-- 401 rijbaanassen (22,2 km) en 1292 padassen, afgeleid uit de vlakken met een
+- 1161 rijbaanassen (75,2 km) en 3190 padassen, afgeleid uit de vlakken met een
   skelet-algoritme (`skelet.mjs`), met per punt de gemeten breedte en de straatnaam
   uit de BGT-labels; de N7 is met de hand benoemd omdat rijkswegen geen label hebben;
-- 2506 panden: 1839 met het LoD 2.2-dakmodel uit 3D BAG (hoekpunten en vlakken per
-  pand, gedeelde punten), 667 zonder model als opgetrokken grondvlak (schuurtjes 2,5 m,
-  woningen met huisnummer 5,8 m goot). Dat is 27 % geschat, hetzelfde aandeel als in
-  het kleine gebied;
-- 779 parkeerplekken uit de parkeervlakken (langs- of haaks naar de breedte van het
-  vak), 5243 bomen gestrooid in bosplantsoen, 8715 struiken in heestervakken, 28 hagen,
-  en 606 lantaarns volgens een plaatsingsregel (om de 30 m langs een rijbaanas, alleen
-  op stoep of berm);
-- 123 straatnaamlabels en 1633 huisnummers;
+- 7885 panden: 5467 met het LoD 2.2-dakmodel uit 3D BAG (hoekpunten en vlakken per
+  pand, gedeelde punten), 2418 zonder model als opgetrokken grondvlak (schuurtjes 2,5 m,
+  woningen met huisnummer 5,8 m goot). Dat is 31 % geschat;
+- 1781 parkeerplekken uit de parkeervlakken (langs- of haaks naar de breedte van het
+  vak), 11 652 bomen gestrooid in bosplantsoen, 19 173 struiken in heestervakken,
+  139 hagen, en 2064 lantaarns volgens een plaatsingsregel (om de 30 m langs een
+  rijbaanas, alleen op stoep of berm);
+- 414 straatnaamlabels en 4658 huisnummers;
+- vier sportvelden en de volkstuinen achter de Wieken (zie *Het sportpark en de
+  volkstuinen*);
 - het viaduct Tinga als hoogteveld met stations per meter (zie *Het viaduct*).
 
 `js/kaartwereld.js` bouwt daar de wereld van; `main.js` laadt `kaart.js` en valt
 met `?kaart=oud` terug op de oude kaart.
 
 **Controle.**
-`tools/geo/bovenaanzicht.mjs` rendert het spel orthografisch van boven op 4 px/m,
-op dezelfde omhullende als de kaartplaat, eenmaal in egale klassekleuren en eenmaal
-zoals het er echt uitziet, en vergelijkt het eerste pixel voor pixel met
-`bgt-plaat-kaal.png`, die rechtstreeks uit de brondata komt.
+`tools/geo/bovenaanzicht.mjs` rendert het spel orthografisch van boven op 2 px/m
+(4 px/m over 4380 × 2500 m zou 175 megapixels zijn), op dezelfde omhullende als de
+kaartplaat, eenmaal in egale klassekleuren en eenmaal zoals het er echt uitziet, en
+vergelijkt het eerste pixel voor pixel met `bgt-plaat-kaal.png`, die rechtstreeks
+uit de brondata komt. Omdat WebGL niet groter tekent dan 8192 px per kant gaat dat
+in stukken, die de tool weer aan elkaar plakt (zie *Bovenaanzicht in stukken*).
 
 | meting | uitkomst |
 |---|---|
-| afwijkende pixels kaartplaat ↔ spel | **1,29 %** (doel < 2 %) |
+| afwijkende pixels kaartplaat ↔ spel | **1,59 %** (doel < 2 %) |
 | waarvan | randpixels door anti-aliasing; één pand met koepeldak; enkele dakvlakken |
 
 De uitkomst staat in `data/geo/spel-boven.png` (het spel van boven) en
 `data/geo/verschil.png` (rood = afwijking). Beide ontstaan met `npm run geo:boven`
 bij een draaiende webserver (`npm start`).
 
-**Wat de data over Tinga zegt.**
+**Wat de data zegt.**
 
-- Rijbanen zijn klinkers: 603 van de 670 wegdelen zijn open verharding, met
-  onderscheid tussen betonstraatstenen (grijs) en gebakken klinkers (rood). De N7 en
-  de Buitenroede zijn asfalt. De straatkleur komt dus uit de data, niet uit een foto.
-- Verkeersdrempels staan erin (27 stuks).
-- Huisnummers staan op het pand (901 panden); een adres opzoeken is een tabelvraag.
+- Rijbanen zijn klinkers: in de Tinga-uitsnede waren 603 van de 670 wegdelen open
+  verharding, met onderscheid tussen betonstraatstenen (grijs) en gebakken klinkers
+  (rood). De N7 en de Buitenroede zijn asfalt. De straatkleur komt dus uit de data,
+  niet uit een foto.
+- Verkeersdrempels staan erin (27 stuks in Tinga).
+- Huisnummers staan op het pand: 4658 in het hele gebied. Een adres opzoeken is een
+  tabelvraag.
 - Bomen en lantaarnpalen staan er niet in: Súdwest-Fryslân vult de optionele
   BGT-objecten paal, bak en straatmeubilair niet, en van vegetatieobjecten zijn er
-  alleen 18 hagen. Bosplantsoen en heesters staan wél als vlakken. Losse bomen en
-  lichtmasten komen daarom uit een plaatsingsregel (nu) of uit luchtfoto/OSM (later).
-- 667 BGT-panden hebben geen 3D BAG-model: grotendeels kleine bijgebouwen, de
-  woningen ten noorden van de Buitenroede (vermoedelijk nieuwbouw na de 3D
-  BAG-versie) en de 183 panden in de noordoosthoek waar nog een tegel ontbreekt.
+  alleen hagen (139 over het hele gebied). Bosplantsoen en heesters staan wél als
+  vlakken. Losse bomen en lichtmasten komen daarom uit een plaatsingsregel (nu) of
+  uit luchtfoto/OSM (later).
+- 2418 van de 7885 BGT-panden hebben geen 3D BAG-model (31 %): grotendeels kleine
+  bijgebouwen, de woningen ten noorden van de Buitenroede (vermoedelijk nieuwbouw na
+  de 3D BAG-versie), de 183 panden in de noordoosthoek waar nog een tegel ontbreekt,
+  en de westrand van IJlst.
 
 **Gevels en stijl (stap 4 en 6).**
 Elk pand krijgt zijn straat en voorgevelrichting uit de data: de straat is de naam
@@ -1662,65 +1672,168 @@ eerste heg uit de lijst en kreeg de kopse vlakken van de buurman mee (hij zoekt 
 een heg waar binnen vijf meter geen andere staat), en de sporttest ging uit van
 precies vier kunstgrasvelden — IJlst heeft zijn eigen sportpark.
 
+**Bovenaanzicht in stukken: de meting was stuk, niet de wereld (stap 23).**
+
+Meteen na die ronde meldde `npm run geo:boven` **48,41 %** afwijkende pixels,
+terwijl de eis < 2 % is. Dat is het soort getal waar je niet omheen kunt: óf de
+wereld deugt niet, óf de meting niet.
+
+Hoe het gevonden is, in deze volgorde — elke stap sloot iets uit:
+
+1. **De kleurhistogrammen van beide platen naast elkaar.** Ze kwamen bijna
+   overeen (gras 20,9 tegen 22,1 miljoen pixels, water 4,7 tegen 3,7). Als de
+   generator een klasse verkeerd zou indelen, zou juist dáár een gat zitten. Dus
+   geen klassefout.
+2. **De verschilparen.** Water → gras kwam net zo vaak voor als gras → water. Zo
+   symmetrisch is alleen een verschuiving.
+3. **Zoeken naar die verschuiving,** ±14 px in beide richtingen. Het vlak was
+   overal 48,2–48,8 %: geen kleine verschuiving.
+4. **Dezelfde uitsnede uit beide platen naast elkaar gezet.** Twee heel andere
+   plekken — en dát was het moment dat duidelijk werd dat het om veel meer dan
+   een paar pixels ging.
+5. **Grof zoeken over schaal én verschuiving.** Schaal 1,00 gaf 57 % gelijk,
+   schaal 1,069 gaf 65 %. En 1,069 = 8760 / 8192.
+
+`MAX_VIEWPORT_DIMS` is in deze browser 8192 px. Het gebied is 4380 m breed, op
+2 px/m dus 8760 px. Chrome verkleint het tekenvlak dan zelf, met behoud van de
+verhouding, en rekt het beeld daarna weer uit naar de maat van het doek. Het
+resultaat *zag er goed uit* — Sneek rechtsboven, IJlst linksonder, alles op zijn
+plek — maar stond 7 % te groot en een paar honderd pixels verschoven, en dus was
+langs elke weg, sloot en perceelgrens alles rood. Geen enkele foutmelding.
+
+`js/main.js` tekent het bovenaanzicht nu in stukken van hoogstens 8192 px
+(`window.__bovenRaster` zegt hoeveel er nodig zijn, `window.__boven(ix, iy)`
+tekent er één), en `tools/geo/bovenaanzicht.mjs` plakt ze op een canvas weer aan
+elkaar. Uitkomst: **1,59 %** in 2×1 stukken.
+
+Twee lessen. Ten eerste: een controle die met de wereld meegroeit moet zelf ook
+gecontroleerd worden — deze had een harde bovengrens waar niemand aan dacht. Ten
+tweede: geloof een groot getal niet meteen als een oordeel over het werk. Het
+verschilbeeld liet rode lijnen zien langs *alles*, en dat patroon hoort bij een
+systematische fout in de meting, niet bij een wereld die op honderd plekken
+verkeerd staat.
+
+**Slimmere agenten (stap 24).**
+
+De vier punten van de politie-wensenlijst uit de vorige ronde, alle vier in
+`js/politie.js`:
+
+- **Een schot is een aanwijzing.** `meldTreffer()` zet de laatst bekende plek op
+  waar de speler op dat moment staat en draait alle eenheden die kant op. Hij
+  wordt aangeroepen als een agent geraakt wordt (`raak`) én als een
+  surveillanceauto geraakt wordt (`raakWagen`) — ook als die kogel alleen de lak
+  raakt. Vanuit een hoekje blijven schieten kan dus niet meer.
+- **Niet iedereen stapt uit.** Uitstappen gebeurt alleen binnen veertig meter
+  én onder `UITSTAP_SNELHEID` = 8,3 m/s (30 km/u). Daarboven blijven ze zitten en
+  gaat de achtervolging in de auto door.
+- **Wegblokkades** vanaf vier sterren: twee wagens dwars over de rijbaan, tussen
+  110 en 260 m vóór de speler, op een punt waar hij géén zicht op heeft
+  (`zichtVrij` moet vals zijn) en dat vóór hem ligt gemeten aan zijn snelheid.
+  Hoogstens twee tegelijk, en ze worden opgeruimd zodra de verdenking onder de
+  vier sterren zakt of de achtervolging voorbij is. De twee wagens staan kop aan
+  staart dwars over de rijbaan en spannen samen bijna negen meter. Ze stonden
+  eerst achter elkaar, allebei dwars, met 1,9 m ertussen — dat blokkeert de weg
+  niet breder dan één auto lang, en op de foto zag je er ook maar één. Het was de
+  foto die dat aan het licht bracht.
+- **Auto's kunnen ontploffen.** Tien kogels van elk tien schade op honderd, en
+  `js/vehicles.js` zet de auto zwart, zet `wrak`, maakt hem onbestuurbaar en
+  hangt er een vuurbal met rook overheen die in 2,6 s uitdooft
+  (`werkKnallenBij`). De knal laat de buurt schrikken, geldt voor de politie als
+  een schot en doet binnen negen meter zeer. Wrakken van politieauto's gaan mee
+  in het opruimen van de achtervolging.
+
+Waar de eenheden en de blokkades vandaan komen kwam eerst uit de hele lijst
+rijbaanassen; dat leverde in de grote wereld punten aan de andere kant van IJlst
+op. Er ligt nu een rooster van 50 m over de rijbaanpunten (`puntenRond`), zodat
+er alleen in de buurt gezocht wordt.
+
+Controle: `npm run politietest` telt nu 64 controles — achttien nieuwe in een
+negende hoofdstuk, één per gedrag. Foto's: `npm run politieshots` maakt er twee
+bij, `politie_blokkade.png` en `politie_wrak.png`.
+
+*Wat het toetsen zelf opleverde.* De nieuwe proeven vielen de eerste keren om, en
+in drie gevallen lag dat aan de proef en in twee aan het spel:
+
+- **De verste eenheid** werd als momentopname aan het eind gemeten. De speler
+  staat op de plaats delict, dus na twee minuten hebben ze hem gevonden en staan
+  ze om hem heen — verste 50 m, terwijl er onderweg elf eenheden verder dan
+  zestig meter zochten. Nu is het het hoogste getal over de hele proef.
+- **De uitstapproef liet de speler eerst stilstaan** tot er een wagen in de buurt
+  was, en ging daarna pas rijden. Maar stilstaan is precies de toestand waarin ze
+  wél uitstappen: in de snelle proef stonden ze al buiten voordat het rijden
+  begon. Heen en weer rijden hielp niet (bij elke ommekeer zakt de geschatte
+  snelheid door nul) en rondjes rijden ook niet (bij 50 km/u haalt geen wagen je
+  in, dus dan is er niets te meten). Nu wordt de wagen met de hand
+  vijfentwintig meter achter de speler gehouden: de regel gaat over de snelheid,
+  niet over de vraag of de achtervolging aankomt.
+- **Er werd geteld op `w.agenten`** — maar zodra de laatste eruit stapt haalt
+  `verlaatWagen` de wagen uit de lijst en maakt hij die array leeg, dus het leek
+  alsof er niemand was uitgestapt. De bemanning wordt nu vooraf apart gezet.
+- **In het spel:** een teleport vervuilde de snelheidsschatting. Naar binnen en
+  naar buiten gaan is een teleport (`js/interieur.js`), en zo'n sprong gedeeld
+  door een zestigste seconde is honderden meters per seconde. Daarna zette de
+  politie een wegblokkade "vóór" de speler in een richting waar hij nooit heen
+  ging. Sprongen die geen auto kan maken (meer dan 60 m/s) tellen nu niet mee, en
+  `reset()` begint de schatting opnieuw.
+- **In het spel:** zonder richting geen blokkade. Sta je stil, dan is er geen
+  "vóór je", en telde elke kant even zwaar — dan kon hij dus net zo goed áchter
+  je komen te staan. Nu wacht hij tot je ergens heen gaat.
+
+Eén oude controle was wisselvallig: die op de lege surveillanceauto mislukte
+ongeveer één op de drie keer omdat een wagen vast kan komen te staan. Hij schuift
+nu per poging 25 m op langs de weg. Alle tien de proeven zijn groen, politietest
+twee keer achter elkaar.
+
 **Wat nog niet af is (in volgorde).**
 
-De eerste vijf punten heeft de gebruiker expliciet voor later laten liggen: de
-ontbrekende tegel (1), IJlst (2), de politie geloofwaardiger maken (3), de
-onzichtbare muren aan de wereldrand (4) en de steekproef van de gebouwen (5).
+Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
+twee af: IJlst staat er (stap 22) en de politie is bijgewerkt (stap 24). Wat er
+van dat lijstje over is staat hieronder als 1, 2 en 3.
 
-1. **3D BAG-tegel `9-636-1012`** voor de noordoosthoek. 183 panden aan de
-   Morrahemstraat, Rijperahemstraat, Oosthemstraat, Folsgaarsterhemstraat en
-   Scherwolderhemstraat vallen buiten alle tegels die er nu liggen (RD X
-   172608–172979, Y 559900–560001) en staan daardoor als opgetrokken grondvlak
-   in het spel, zonder hun echte kap. Beide bestanden (`.gpkg` en `.city.json`)
-   in `data/geo/bron/` zetten en de keten opnieuw draaien is genoeg; aan de
-   gereedschappen hoeft niets te veranderen.
-2. **IJlst erbij.** Tegel `7-624-992` bevat de hele stad: 2005 panden tussen RD
-   X 169596–171448 / Y 557135–558883, allemaal met een daktype. Maar de BGT
-   reikt niet verder dan de download rond Tinga (X 171225–173278 / Y
-   558514–560406), dus voor IJlst is er geen straat, geen water, geen stoep,
-   geen straatnaam en geen huisnummer — alleen gebouwen op een leeg grasveld.
-   Nodig: een BGT-download om IJlst (`bgt_ijlst.zip.zip` in `data/geo/bron/`;
-   `geo:bgt` leest sinds deze ronde álle `bgt_*.zip` en voegt ze samen), en
-   waarschijnlijk een 3D BAG-tegel ten westen van `7-624-992`, want het meest
-   westelijke pand van IJlst ligt 12 m van de westrand van die tegel. Let op de
-   omvang: Tinga plus IJlst is 3384 × 2965 m = 10,0 km², bijna zes keer het
-   huidige werkgebied.
-3. **De politie geloofwaardiger maken** (gevraagd door de gebruiker, 6 sep 2026):
-   - Word je op een agent of op een politieauto betrapt met een schot, dan is dat
-     een **aanwijzing**: daar weten ze dan dat je bent. Nu telt alleen zien.
-   - **Niet iedereen stapt uit.** Nu stapt elke bemanning uit zodra je binnen
-     veertig meter bent. Dat hoort alleen als je loopt of stapvoets rijdt; rijd je
-     harder dan 30 km/u, dan blijven ze in de auto en rijden ze achter je aan.
-   - Bij veel sterren **wegblokkades** bouwen, buiten je zicht opgesteld zodat je
-     er tegenaan rijdt in plaats van ze te zien verschijnen.
-   - Je moet **op auto's kunnen schieten**. Na een stuk of tien kogels vliegt de
-     auto in brand en explodeert hij; het wrak wordt opgeruimd zodra de
-     achtervolging is gestaakt, net als de lege surveillanceauto's nu.
-4. **Onzichtbare muren** aan de rand van de wereld, zodat je er niet uit kunt
-   lopen of rijden. Wacht tot het werkgebied vastligt (zie punt 2).
-5. **Gebouwen steekproeven** als fijnafstelling. Nu de wereld vier keer zo groot
-   is en er 2506 panden in staan, moet er een ronde langs een steekproef van
+1. **3D BAG-tegels aan de randen.** Twee gaten:
+   - de **noordoosthoek** (RD X 172608–172979, Y 559900–560001): 183 panden aan
+     de Morrahemstraat, Rijperahemstraat, Oosthemstraat, Folsgaarsterhemstraat en
+     Scherwolderhemstraat vallen buiten alle tegels die er nu liggen. Tegel
+     **9-636-1012** vult dat;
+   - de **westkant van IJlst**: het meest westelijke pand ligt 12 m van de
+     westrand van tegel `7-624-992`, dus daar ligt vermoedelijk nog een rij
+     panden zonder dakmodel. Welke tegel dat is, is op de kaart van 3dbag.nl op
+     te zoeken.
+   Beide bestanden (`.gpkg` en `.city.json`) in `data/geo/bron/` zetten en de
+   keten opnieuw draaien is genoeg; aan de gereedschappen hoeft niets te
+   veranderen. Panden zonder model staan nu als opgetrokken grondvlak in het
+   spel, zonder hun echte kap.
+2. **Onzichtbare muren** aan de rand van de wereld, zodat je er niet uit kunt
+   lopen of rijden. Het werkgebied ligt nu vast — verder dan de BGT-download
+   reikt is er geen ondergrond — dus dit kan.
+3. **Gebouwen steekproeven** als fijnafstelling. Nu de wereld zes keer zo groot
+   is en er 7885 panden in staan, moet er een ronde langs een steekproef van
    adressen: klopt het woningtype per straat, de goothoogte, de voorgevelrichting
    en de gevel? `npm run geo:steekproef` rendert twaalf vaste adressen vanaf de
    straat met de Street View-link erbij; dat is de plek om die steekproef uit te
    breiden naar de nieuwe buurten.
-6. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
+4. **Alleen bouwen wat in de buurt is.** De hele wereld wordt bij het starten
+   opgebouwd (headless ~31 s) terwijl je er hooguit negenhonderd meter van ziet,
+   en die tijd loopt recht evenredig met de oppervlakte. De ondergrond, de bomen,
+   de struiken, het riet en de geparkeerde auto's staan al per tegel van 240 of
+   480 m; die tegels in en uit beeld laten laden is de volgende stap. Dat is een
+   verbouwing van `js/kaartwereld.js` op zich.
+5. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
    zonnepanelen en schoorstenen als losse elementen op de 3D BAG-daken.
-7. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede (de woningen 40–74;
+6. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede (de woningen 40–74;
    de RWZI op nr 1 is wel gedaan), Zeskanter, Omloop.
-8. De editor (F2) en de overige oude objecten uit `data.js` werken nog in pixels van de
+7. De editor (F2) en de overige oude objecten uit `data.js` werken nog in pixels van de
    oude kaart; enkele objecten staan daardoor een paar meter verkeerd. Omrekenen kan met
    drie ijkpunten in `oorsprong.json` (`rd.mjs px`). Het tuinfeest is al verhuisd: dat
    komt nu uit `js/verhaal.js`, op het adres uit de kaartdata.
-9. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
+8. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
    zonder 3D-model.
-10. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
+9. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
    nog van vóór de supermarkt en de boerderij: de vlaggenmast en de twee nieuwe
    woningtypen staan er nog niet op. Bijwerken kan met `npm run propshots` en
    `npm run assets` plus `python3 tools/contactblad.py objecten|woningen`, maar
    dat zijn 78 losse renders en dat duurt op software-rendering een uur.
-11. De overige panden die geen woning zijn en nog het naamloze `spil`-type
+10. De overige panden die geen woning zijn en nog het naamloze `spil`-type
    dragen: de school aan de Molenkrite (BAG-pand 0091100000007732, 1462 m² met
    een golvende plattegrond), de rij aan de Ligger/de Loper (0091100000014651,
    3485 m²) en het blok aan de Krans. Ze kunnen op dezelfde manier als de
