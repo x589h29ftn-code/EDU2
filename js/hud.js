@@ -21,6 +21,7 @@ export class HUD {
     this.geldEl = document.getElementById('geld');
     this.sterEl = document.getElementById('ster');
     this.flitsEl = document.getElementById('raakflits');
+    this.dronkenEl = document.getElementById('dronken');
     this.missieT = 0;
     this.flitsT = 0;
     // navigatie: {route:[[x,z],...], doel:[x,z], naam}
@@ -119,6 +120,21 @@ export class HUD {
 
   // rode flits als je geraakt wordt
   flits() { this.flitsEl.style.opacity = 0.75; this.flitsT = 0.25; }
+
+  /*
+   Hoe wazig het beeld is van het bier (0 = nuchter, 1 = drie op). De speler
+   houdt het getal bij (js/player.js), de HUD zet er alleen de waas naar.
+  */
+  zetDronken(f) {
+    if (!this.dronkenEl) return;
+    const v = Math.max(0, Math.min(1, f));
+    // nul is nul: anders blijft er na het uitzakken een restje waas hangen,
+    // want de sprong van 0,018 naar 0 haalt de drempel hieronder niet
+    if (v !== 0 && Math.abs(v - (this._dronken ?? -1)) < 0.02) return;
+    if (v === 0 && this._dronken === 0) return;
+    this._dronken = v;
+    this.dronkenEl.style.opacity = v * 0.85;
+  }
 
   /*
    Portemonnee, rechtsonder. `buit` is los geld dat je nog moet afleveren; dat

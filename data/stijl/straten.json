@@ -215,7 +215,19 @@
         "langs": 0,
         "pitch": 0.05
       },
-      "bron": "foto Street View De Dassenboarch 32, IJlst (mei 2022, in de chat 6 sep 2026): supermarkt Poiesz. Donkerbruine baksteen onder een flauw dak van grijze metalen dakplaten (dat staat zo in het 3D BAG-model: goot 4,63 m, nok 7,76 m), over de hele voorgevel een glazen pui met lichtgrijze stijlen, en boven de ingang een puntdak met een luifel en het groene woordmerk POIESZ op een zilvergrijze band. `voorkantNaar` is het parkeerterrein aan de oostkant, waar de ingang aan ligt."
+      "objecten": [
+        {
+          "type": "winkelwagens",
+          "voor": 2.2,
+          "langs": 10.5
+        },
+        {
+          "type": "winkelwagens",
+          "voor": 2.2,
+          "langs": 13.2
+        }
+      ],
+      "bron": "foto Street View De Dassenboarch 32, IJlst (mei 2022, in de chat 6 sep 2026): supermarkt Poiesz. Donkerbruine baksteen onder een flauw dak van grijze metalen dakplaten (dat staat zo in het 3D BAG-model: goot 4,63 m, nok 7,76 m), over de hele voorgevel een glazen pui met lichtgrijze stijlen, en boven de ingang een puntdak met een luifel en het groene woordmerk POIESZ op een zilvergrijze band. `voorkantNaar` is het parkeerterrein aan de oostkant, waar de ingang aan ligt. De twee rijen winkelwagens staan op de foto rechts van de ingang tegen de gevel."
     },
     "0683100000290817": {
       "type": "molen",

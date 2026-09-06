@@ -67,6 +67,12 @@
   /* rode flits als je geraakt wordt */
   #raakflits { position: absolute; inset: 0; opacity: 0; transition: opacity .25s;
                background: radial-gradient(ellipse at center, rgba(180,0,0,0) 35%, rgba(180,0,0,.75) 100%); }
+  /* drie biertjes op: het beeld wordt wazig aan de randen en warm van kleur.
+     De vervaging gaat over het beeld eronder (backdrop-filter); browsers die
+     dat niet kunnen laten alleen de warme waas zien, en dat is genoeg. */
+  #dronken { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .4s;
+             backdrop-filter: blur(2.6px) saturate(1.25);
+             background: radial-gradient(ellipse at center, rgba(255,180,80,0) 22%, rgba(120,70,20,.55) 100%); }
   #minimap { position: absolute; right: 20px; top: 20px; width: 220px; height: 220px; border-radius: 50%; box-shadow: 0 2px 12px rgba(0,0,0,.5); background: #3f6a2b; }
   #bigmap { display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
   #title { position: absolute; left: 24px; top: 20px; font-size: 13px; opacity: .8; }
@@ -190,6 +196,7 @@
   <div id="hint"></div>
   <div id="msg"></div>
   <div id="raakflits"></div>
+  <div id="dronken"></div>
   <div id="opdracht" hidden></div>
   <div id="leven"><div id="levenbalk"></div></div>
   <div id="levenlabel">100</div>

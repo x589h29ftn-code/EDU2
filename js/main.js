@@ -12,6 +12,7 @@ import { initSfeer } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur, WONINGEN } from './interieur.js';
 import { initBoerderij } from './boerderij.js';
+import { initSupermarkt } from './supermarkt.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
 import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
@@ -314,8 +315,11 @@ const interieur = woningen[0] || LEEG;
 // En achter de schuurdeur van Tinga State: de deel met de toonbank waar je
 // munitie koopt (js/boerderij.js).
 const boerderij = initBoerderij({ scene, player, hud, verhaal }) || LEEG;
+// en achter de schuifdeuren van de Poiesz in IJlst, waar je bier koopt
+// (js/supermarkt.js).
+const supermarkt = initSupermarkt({ scene, player, hud, verhaal }) || LEEG;
 // Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
-const binnenruimtes = [...woningen, boerderij];
+const binnenruimtes = [...woningen, boerderij, supermarkt];
 const ergensBinnen = (x, z) => binnenruimtes.some(r => r.binnen(x, z));
 // winkeltjes op de minikaart en op de grote kaart
 hud.zetWinkels(binnenruimtes.flatMap(r => r.winkels || []));
@@ -731,7 +735,7 @@ loop();
 
 // Testhaak voor automatische screenshots
 window.__game = {
-  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, woningen, boerderij, derde, politie,
+  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
 };
 

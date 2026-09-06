@@ -1857,6 +1857,63 @@ met baksteen erboven). `npm run molenshots` maakt de foto's. Alle elf de proeven
 zijn groen en `npm run geo:boven` blijft op 1,59 %.
 
 
+**De Poiesz van binnen (stap 26).**
+
+De supermarkt in IJlst was tot nu toe een gevel. Nu kun je er naar binnen, en
+daar staat een winkel: `js/supermarkt.js`, de derde binnenruimte na de woning
+(`js/interieur.js`) en de boerderij (`js/boerderij.js`) en op precies dezelfde
+manier gebouwd — het pand op de kaart is een holle 3D BAG-huls, dus de ruimte
+staat als losse dichte doos vierduizend meter buiten het kaartgebied, en de deur
+is een teleport. Zo staat hij ook niet op de controleplaat en blijft `geo:boven`
+op 1,59 %.
+
+De maat komt uit de kaart (41,6 bij 30,7 m hal, plafond op 3,4 m onder een goot
+van 4,63 m); de inrichting komt van vier foto's van deze winkel:
+
+| op de foto | in het spel |
+|---|---|
+| oranje kopschotten met *Extra voordeel* aan elk gangpad | zeven dubbele schappenrijen met aan beide einden een kopschot |
+| blauwe diepvrieswand met glasdeuren en een fotobalk | de rechterwand, met twee eilanden met vrieskisten ervoor |
+| groene Poiesz-wand boven de versbalie | de achterwand links, met de balie eronder |
+| blauwe zuivelwand | de achterwand rechts |
+| kassa's met lopende banden | vijf, vlak bij de ingang |
+| personeel in groen met oranje | vijf medewerkers, met het logo op de borst |
+
+*Het logo op een poppetje.* De eerste poging zette een gevelbreed shirtdoek als
+texture op de romp van de `Persoon`. Dat werd een medewerker met een wit shirt en
+groene mouwen: de romp is uit drie dozen samengevoegd, en dan valt niet te
+zeggen welk stukje van de tekening op de borst uitkomt. Het logo hangt nu op een
+eigen lapje van 22 bij 8 cm vóór de romp, met het groene shirt en het oranje
+schort van de `Persoon` zelf eronder. Een vlak waarvan je de uv kent is meer
+waard dan een vlak dat toevallig groot genoeg is.
+
+*Bier.* Vijf euro per flesje, tien levenspunten erbij, niet boven de honderd.
+Vanaf het derde flesje deint het beeld: `js/player.js` houdt `dronken` bij (0 tot
+1), de camera rolt en dobbert op drie golven met verschillende perioden zodat het
+nooit op hetzelfde punt terugkomt, en `js/hud.js` legt er een warme waas
+overheen (`backdrop-filter`, met een vignet eronder voor browsers die dat niet
+kunnen). Het zakt in een minuut weg.
+
+Twee dingen die het toetsen opleverde, allebei in het spel en niet in de proef:
+
+- **de flesjesteller liep door.** Wie eerder op de dag drie flesjes op had, was
+  van het eerstvolgende flesje meteen weer scheef — ook een half uur later,
+  allang nuchter. De teller gaat nu terug op nul als je een minuut lang niets
+  gedronken hebt.
+- **er bleef een restje waas hangen.** `zetDronken` sloeg veranderingen kleiner
+  dan 0,02 over om niet elk beeld aan de stijl te zitten, en de laatste sprong
+  van 0,018 naar nul haalde die drempel niet. Nul is nu altijd nul.
+
+Eén oude controle in `politietest` was wisselvallig: die keek na het stelen van
+een lege surveillanceauto naar het *aantal* lege wagens in plaats van naar díe
+wagen, en terwijl je instapt kan er verderop een tweede ploeg uitstappen. Hij
+kijkt nu naar de wagen zelf.
+
+Controle: `npm run poiesztest` (vierendertig controles) en `npm run poieszshots`
+voor de foto's. Alle twaalf de proeven zijn groen, politietest en poiesztest
+twee keer achter elkaar, en `npm run geo:boven` blijft op 1,59 %.
+
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

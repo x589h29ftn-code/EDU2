@@ -429,7 +429,10 @@ const stelen = await page.evaluate(() => {
   g.player.inCar = v.car;
   window.__stap(2);
   const uit = {
-    er: true, uitLijst: g.politie.eenheden.verlaten === 0,
+    // let op: kijk naar déze wagen, niet naar het aantal lege wagens. Terwijl
+    // je instapt kan er verderop een tweede ploeg uitstappen, en dan staat de
+    // teller op één terwijl de gestolen wagen keurig van jou is.
+    er: true, uitLijst: !g.politie.intern.verlaten.some(q => q.car === v.car),
     balkAan: v.balk.parent === v.car.mesh,
     lampUit: v.links.material.emissiveIntensity < 0.5,
   };
