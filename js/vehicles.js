@@ -33,6 +33,7 @@ export class Vehicles {
   constructor(scene, parkSpots) {
     this.scene = scene;
     this.cars = [];   // {mesh|inst,x,z,yaw,speed,driveable}
+    this.knallen = [];   // lopende vuurballen van opgeblazen auto's
     this.traffic = [];
     this.duwen = [];  // geparkeerde auto's die een klap kregen en uitrollen
     const r = rng(2024);
@@ -65,7 +66,9 @@ export class Vehicles {
     });
     for (const [k, n] of tel) {
       const stapel = maakAutoStapel(k.split('|')[0], n);
-      for (const m of stapel.meshes) scene.add(m);
+      // `hit` zoekt de stapel op via dit merkteken; dat was de soort, maar er is
+      // er nu een per soort én per tegel
+      for (const m of stapel.meshes) { m.userData.autoStapel = k; scene.add(m); }
       this.stapels[k] = { stapel, n: 0, autos: [] };
     }
     parkSpots.forEach((s, i) => {
@@ -557,16 +560,63 @@ export class Vehicles {
 
   // Een treffer van het pistool. Het model is genest (carrosserie en wielen in
   // eigen groepen), dus zoek van de geraakte mesh omhoog naar de auto.
+  /*
+   Een auto opblazen. Tien kogels van tien schadepunten en hij is op: de lak
+   wordt roetzwart, hij komt niet meer van zijn plek en er staat een vuurbal op
+   het dak die in rook opgaat. Wie er vlakbij staat voelt het ook.
+
+   Het wrak blijft liggen: een auto die na de knal verdwijnt leest als een bug.
+   De politie ruimt haar eigen wrakken op zodra de achtervolging voorbij is (zie
+   js/politie.js); een gewone auto blijft staan waar hij staat.
+  */
+  laatOntploffen(car) {
+    if (!car || car.wrak) return false;
+    car.wrak = true;
+    car.driveable = false;
+    car.speed = 0;
+    const zwart = new THREE.MeshStandardMaterial({ color: 0x1b1a18, roughness: 0.95, metalness: 0.1 });
+    if (car.mesh) car.mesh.traverse(o => { if (o.isMesh) o.material = zwart; });
+    else this.zetInstantie(car);
+    // vuurbal en rook, een paar seconden
+    const groep = new THREE.Group();
+    groep.position.set(car.x, 0.9, car.z);
+    const vuur = new THREE.Mesh(new THREE.SphereGeometry(1.1, 10, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffb03a, transparent: true, opacity: 0.95 }));
+    const rook = new THREE.Mesh(new THREE.SphereGeometry(1.5, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0x3a3a38, transparent: true, opacity: 0.6 }));
+    groep.add(vuur, rook);
+    this.scene.add(groep);
+    this.knallen.push({ groep, vuur, rook, t: 0 });
+    return true;
+  }
+
+  // De vuurballen laten uitdoven. js/main.js roept dit elk beeld aan.
+  werkKnallenBij(dt) {
+    for (let i = this.knallen.length - 1; i >= 0; i--) {
+      const k = this.knallen[i];
+      k.t += dt;
+      const f = k.t / 2.6;
+      k.vuur.scale.setScalar(1 + f * 2.2);
+      k.vuur.material.opacity = Math.max(0, 0.95 - f * 1.6);
+      k.rook.scale.setScalar(1 + f * 3.4);
+      k.rook.position.y = f * 3.2;
+      k.rook.material.opacity = Math.max(0, 0.6 - f * 0.6);
+      if (k.t > 2.6) { this.scene.remove(k.groep); this.knallen.splice(i, 1); }
+    }
+  }
+
   hit(mesh, instanceId) {
     // een geparkeerde auto zit in een stapel: het instantienummer wijst hem aan
-    const soort = mesh && mesh.userData && mesh.userData.autoStapel;
-    if (soort && instanceId != null) {
-      const car = this.stapels[soort].autos[instanceId];
-      if (car) { car.hp -= 25; return car; }
+    const sleutel = mesh && mesh.userData && mesh.userData.autoStapel;
+    if (sleutel && this.stapels[sleutel] && instanceId != null) {
+      const car = this.stapels[sleutel].autos[instanceId];
+      // tien kogels tot hij op is; dat was vier, en dan ging een auto wel erg
+      // makkelijk in vlammen op
+      if (car) { car.hp -= 10; return car; }
       return null;
     }
     for (let p = mesh; p; p = p.parent) {
-      for (const c of this.cars) if (c.mesh === p) { c.hp -= 25; return c; }
+      for (const c of this.cars) if (c.mesh === p) { c.hp -= 10; return c; }
     }
     return null;
   }

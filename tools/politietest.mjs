@@ -622,6 +622,171 @@ ok(raak.balk < 100 && raak.label !== '100', 'en dat zie je aan de levensbalk',
   `${raak.balk} % breed, label ${raak.label}`);
 ok(raak.flits > 0, 'met een rode flits erbij', `flits ${raak.flits}`);
 
+// ---------- 9. slimmere agenten ----------
+/*
+ Vier dingen die de politie geloofwaardiger maken:
+   - schiet je op een agent of op een politieauto, dan weten ze waar je bent;
+   - ze stappen alleen uit als je loopt of stapvoets rijdt, niet als je met
+     dertig of harder langsscheurt;
+   - bij veel sterren zetten ze een straat vóór je dicht, buiten je zicht;
+   - je kunt hun auto's kapotschieten, en het wrak wordt opgeruimd zodra de
+     achtervolging voorbij is.
+*/
+kop('een treffer is een aanwijzing');
+const aanwijzing = await page.evaluate(() => {
+  const g = window.__game;
+  const pd = window.__pd;
+  g.politie.reset();
+  // ver van de melding gaan staan: zonder treffer weten ze niet waar je bent
+  window.__zetSpeler(pd.x + 150, pd.z + 150);
+  g.politie.zetHeat(300);
+  g.politie.misdaad('neergeschoten', pd.x, pd.z);
+  window.__stap(30 * 20);
+  const voor = g.politie.intern.laatstBekend;
+  const agent = g.politie.intern.agenten.find(a => a.staat !== 'neer');
+  if (!agent) return { er: false };
+  let obj = null;
+  agent.persoon.groep.traverse(o => { if (!obj && o.isMesh) obj = o; });
+  g.politie.raak(obj);
+  const na = g.politie.intern.laatstBekend;
+  const sp = { x: g.player.pos.x, z: g.player.pos.z };
+  return {
+    er: true,
+    voorAfstand: voor ? Math.round(Math.hypot(voor.x - sp.x, voor.z - sp.z)) : -1,
+    naAfstand: na ? Math.round(Math.hypot(na.x - sp.x, na.z - sp.z)) : -1,
+    zoekenNaarJou: g.politie.intern.agenten.filter(a => a.doel && Math.hypot(a.doel.x - sp.x, a.doel.z - sp.z) < 30).length,
+  };
+});
+ok(aanwijzing.er && aanwijzing.voorAfstand > 60,
+  'zonder treffer weten ze niet waar je staat', `laatst bekend ${aanwijzing.voorAfstand} m van je vandaan`);
+ok(aanwijzing.naAfstand >= 0 && aanwijzing.naAfstand < 3,
+  'schiet je een agent neer, dan weten ze het meteen wel', `${aanwijzing.naAfstand} m`);
+ok(aanwijzing.zoekenNaarJou > 0, 'en ze komen die kant op',
+  `${aanwijzing.zoekenNaarJou} agenten met jou als doel`);
+
+kop('uitstappen alleen bij lage snelheid');
+const uitstap = await page.evaluate(() => {
+  const g = window.__game;
+  const pd = window.__pd;
+  const langs = window.__langs;
+  // een proef: rijd met deze snelheid langs de melding en kijk of ze uitstappen
+  const proef = (mps) => {
+    g.politie.reset();
+    window.__zetSpeler(pd.x, pd.z);
+    g.politie.zetHeat(400);
+    g.politie.misdaad('neergeschoten', pd.x, pd.z);
+    // eerst laten aanrijden terwijl je stilstaat
+    let t = 0;
+    while (t < 60 * 30 && !g.politie.intern.wagens.some(w => Math.hypot(w.car.x - g.player.pos.x, w.car.z - g.player.pos.z) < 38)) {
+      window.__stap(5); t += 5;
+    }
+    if (!g.politie.intern.wagens.length) return null;
+    // en dan met de gevraagde snelheid heen en weer bewegen, zodat politie.js
+    // die snelheid ziet in zijn eigen schatting
+    const dt = 1 / 30;
+    let x = g.player.pos.x, z = g.player.pos.z, richting = 1;
+    for (let i = 0; i < 30 * 8; i++) {
+      x += langs.x * mps * dt * richting; z += langs.z * mps * dt * richting;
+      if (Math.hypot(x - pd.x, z - pd.z) > 30) richting = -richting;
+      window.__zetSpeler(x, z);
+      window.__stap(1);
+    }
+    return g.politie.eenheden.voet;
+  };
+  return { langzaam: proef(1.2), snel: proef(14) };
+});
+ok(uitstap.langzaam > 0, 'loop je rond, dan stappen ze uit', `${uitstap.langzaam} te voet`);
+ok(uitstap.snel === 0 || uitstap.snel < uitstap.langzaam,
+  'scheur je voorbij, dan blijven ze zitten', `${uitstap.snel} te voet bij 50 km/u`);
+
+kop('wegblokkades bij veel sterren');
+const blok = await page.evaluate(async () => {
+  const W = await import('/js/world.js');
+  const g = window.__game;
+  const pd = window.__pd;
+  const langs = window.__langs;
+  g.politie.reset();
+  window.__zetSpeler(pd.x, pd.z);
+  g.politie.zetHeat(400);
+  g.politie.misdaad('neergeschoten', pd.x, pd.z);
+  // rijdend, zodat de politie een richting ziet om vóór je te gaan staan
+  const dt = 1 / 30;
+  let x = pd.x, z = pd.z;
+  const gezien = [];
+  for (let i = 0; i < 30 * 50; i++) {
+    x += langs.x * 9 * dt; z += langs.z * 9 * dt;
+    window.__zetSpeler(x, z);
+    window.__stap(1);
+    for (const b of g.politie.intern.blokkades) {
+      if (!gezien.some(q => q.b === b)) {
+        gezien.push({ b, afstand: Math.round(Math.hypot(b.x - x, b.z - z)),
+          inZicht: W.zichtVrij(x, z, b.x, b.z, 1.6),
+          vooruit: ((b.x - x) * langs.x + (b.z - z) * langs.z) > 0 });
+      }
+    }
+  }
+  const nu = g.politie.intern.blokkades;
+  return {
+    n: gezien.length, staan: nu.length,
+    wagens: nu.reduce((n2, b) => n2 + b.cars.length, 0),
+    afstanden: gezien.map(q => q.afstand),
+    inZicht: gezien.filter(q => q.inZicht).length,
+    vooruit: gezien.filter(q => q.vooruit).length,
+  };
+});
+ok(blok.n > 0, 'bij vijf sterren zetten ze een straat dicht', `${blok.n} blokkades opgezet`);
+ok(blok.wagens === blok.staan * 2, 'met twee wagens dwars over de weg', `${blok.wagens} wagens`);
+ok(blok.n === 0 || blok.inZicht === 0, 'geen enkele verschijnt in je zicht',
+  `${blok.inZicht} van ${blok.n} zichtbaar bij het neerzetten`);
+ok(blok.n === 0 || blok.vooruit === blok.n, 'ze staan vóór je, niet achter je',
+  `${blok.vooruit} van ${blok.n}`);
+ok(blok.afstanden.every(d => d >= 100 && d <= 280), 'op ruime afstand',
+  blok.afstanden.join(', ') + ' m');
+
+kop('een politieauto kapotschieten');
+const knal = await page.evaluate(() => {
+  const g = window.__game;
+  const pd = window.__pd;
+  g.politie.reset();
+  window.__zetSpeler(pd.x, pd.z);
+  g.politie.zetHeat(400);
+  g.politie.misdaad('neergeschoten', pd.x, pd.z);
+  let t = 0;
+  while (t < 60 * 30 && !g.politie.intern.wagens.length) { window.__stap(5); t += 5; }
+  const w = g.politie.intern.wagens[0];
+  if (!w) return { er: false };
+  const car = w.car;
+  let obj = null;
+  car.mesh.traverse(o => { if (!obj && o.isMesh) obj = o; });
+  const wagensVoor = g.politie.eenheden.wagens;
+  let schoten = 0;
+  while (car.hp > 0 && schoten < 20) { g.politie.raakWagen(obj, 10); schoten++; }
+  const opgeblazen = g.vehicles.laatOntploffen(car);
+  g.politie.wagenOp(car);
+  const uit = {
+    er: true, schoten, opgeblazen, wrak: !!car.wrak, rijdt: car.driveable,
+    wagensVoor, wagensNa: g.politie.eenheden.wagens,
+    wrakken: g.politie.intern.wrakken.length,
+    inLijst: g.vehicles.cars.includes(car),
+    knallen: g.vehicles.knallen.length,
+  };
+  // achtervolging staken: het wrak hoort opgeruimd te worden
+  window.__zetSpeler(pd.x + 900, pd.z + 900);
+  g.politie.zetHeat(0);
+  window.__stap(90 * 30);
+  uit.wrakkenNa = g.politie.intern.wrakken.length;
+  uit.nogInLijst = g.vehicles.cars.includes(car);
+  return uit;
+});
+ok(knal.er && knal.schoten === 10, 'tien kogels en een politieauto is op', `${knal.schoten} schoten`);
+ok(knal.opgeblazen && knal.wrak && !knal.rijdt, 'hij vliegt in brand en rijdt niet meer');
+ok(knal.knallen > 0, 'er staat een vuurbal op', `${knal.knallen}`);
+ok(knal.wagensNa === knal.wagensVoor - 1, 'hij telt niet meer mee als surveillancewagen',
+  `${knal.wagensVoor} → ${knal.wagensNa}`);
+ok(knal.wrakken === 1 && knal.inLijst, 'het wrak blijft liggen');
+ok(knal.wrakkenNa === 0 && !knal.nogInLijst, 'en wordt opgeruimd als ze je kwijt zijn',
+  `${knal.wrakkenNa} wrakken over`);
+
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);
 process.exit(fouten === 0 ? 0 : 1);
