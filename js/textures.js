@@ -323,6 +323,158 @@ export function grass() {
   const t = tex(c); cache.set('grass', t); return t;
 }
 
+// ---------- Kunstgras ----------
+/*
+ De twee velden van VV Sneek Wit Zwart en de hockeyvelden liggen in de BGT als
+ "kunststof". Kunstgras is egaler dan gras — geen madeliefjes, geen dorre
+ plekken, alleen de mat met instrooirubber erin. De maaibanen zitten hier
+ bewust niet in: de ondergrond krijgt zijn uv uit de wereldcoördinaten, dus
+ banen in de texture zouden schuin over het veld lopen. js/sportveld.js legt ze
+ er als aparte banen overheen, in de richting van het veld zelf.
+*/
+export function kunstgras() {
+  if (cache.has('kunstgras')) return cache.get('kunstgras');
+  const S = 512;                       // 512 px = 5 m
+  const c = canvas(S, S); const g = c.getContext('2d');
+  const r = rng(77);
+  g.fillStyle = '#3f8f3f'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 70000; i++) {
+    const gr = 120 + r() * 55;
+    g.fillStyle = `rgba(${28 + r() * 25},${gr},${38 + r() * 25},${0.32 + r() * 0.28})`;
+    g.fillRect(r() * S, r() * S, 1.4, 2 + r() * 2);
+  }
+  // wat instrooirubber: kleine donkere korrels
+  for (let i = 0; i < 2600; i++) { g.fillStyle = `rgba(20,22,20,${0.15 + r() * 0.2})`; g.fillRect(r() * S, r() * S, 1.6, 1.6); }
+  const t = tex(c); cache.set('kunstgras', t); return t;
+}
+
+// ---------- Reclameborden langs het veld ----------
+/*
+ De borden rond het hoofdveld. Er staat geen echte merknaam op: het zijn de
+ gekleurde vlakken en woordbeelden die je op een sportpark ziet, zodat de rand
+ van het veld van een afstand klopt zonder dat er een bestaand logo wordt
+ nagemaakt.
+*/
+export function reclamebord(seed = 1) {
+  const key = 'reclame' + seed;
+  if (cache.has(key)) return cache.get(key);
+  const W = 512, H = 96;               // 512 px = 3 m bord van 90 cm hoog
+  const c = canvas(W, H); const g = c.getContext('2d');
+  const r = rng(300 + seed * 17);
+  const grond = ['#c8442c', '#1f4f9c', '#e8a021', '#1f7a48', '#2b2f36', '#f0efe9'];
+  const bg = grond[Math.floor(r() * grond.length)];
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  const licht = bg === '#f0efe9' || bg === '#e8a021';
+  // een schuine baan als accent
+  g.save(); g.beginPath(); g.moveTo(W * 0.62, 0); g.lineTo(W, 0); g.lineTo(W, H); g.lineTo(W * 0.5, H); g.closePath();
+  g.fillStyle = licht ? 'rgba(0,0,0,0.14)' : 'rgba(255,255,255,0.16)'; g.fill(); g.restore();
+  // een woordbeeld: blokken die op letters lijken
+  const tekst = licht ? '#22262c' : '#f4f2ec';
+  let x = 26;
+  const n = 4 + Math.floor(r() * 4);
+  for (let i = 0; i < n; i++) {
+    const b = 16 + r() * 26, h = 30 + r() * 22;
+    g.fillStyle = tekst; g.fillRect(x, (H - h) / 2, b, h);
+    if (r() < 0.4) { g.fillStyle = bg; g.fillRect(x + 4, (H - h) / 2 + 6, b - 8, h / 3); }
+    x += b + 8 + r() * 8;
+    if (x > W - 60) break;
+  }
+  // randlijst boven en onder
+  g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(0, 0, W, 5); g.fillRect(0, H - 6, W, 6);
+  const t = tex(c); cache.set(key, t); return t;
+}
+
+// ---------- Ballenvanger ----------
+// Zwart net achter de doelen: fijne mazen, dus grotendeels doorzichtig.
+export function ballenvanger() {
+  if (cache.has('ballenvanger')) return cache.get('ballenvanger');
+  const S = 64;                        // 64 px = 1 m: mazen van ongeveer 12 cm
+  const c = canvas(S, S); const g = c.getContext('2d');
+  g.clearRect(0, 0, S, S);
+  g.strokeStyle = 'rgba(20,26,22,0.85)'; g.lineWidth = 1.4;
+  for (let i = 0; i <= S; i += 8) {
+    g.beginPath(); g.moveTo(i, 0); g.lineTo(i, S); g.stroke();
+    g.beginPath(); g.moveTo(0, i); g.lineTo(S, i); g.stroke();
+  }
+  const t = tex(c); cache.set('ballenvanger', t); return t;
+}
+
+// ---------- Doelnet ----------
+export function doelnet() {
+  if (cache.has('doelnet')) return cache.get('doelnet');
+  const S = 64;                        // 64 px = 1 m
+  const c = canvas(S, S); const g = c.getContext('2d');
+  g.clearRect(0, 0, S, S);
+  g.strokeStyle = 'rgba(245,245,240,0.9)'; g.lineWidth = 1.2;
+  for (let i = 0; i <= S; i += 6) {
+    g.beginPath(); g.moveTo(i, 0); g.lineTo(i, S); g.stroke();
+    g.beginPath(); g.moveTo(0, i); g.lineTo(S, i); g.stroke();
+  }
+  const t = tex(c); cache.set('doelnet', t); return t;
+}
+
+// ---------- Tuinhek van gaas ----------
+// Groen geplastificeerd gaas van 5 cm om een volkstuintje. Veel fijner en
+// lichter dan de ballenvanger op het sportpark, anders staat er een bouwhek om
+// iemands sperziebonen.
+export function tuingaas() {
+  if (cache.has('tuingaas')) return cache.get('tuingaas');
+  const S = 128;                       // 128 px = 1 m: mazen van 5 cm
+  const c = canvas(S, S); const g = c.getContext('2d');
+  g.clearRect(0, 0, S, S);
+  g.strokeStyle = 'rgba(58,78,58,0.75)'; g.lineWidth = 1;
+  for (let i = 0; i <= S; i += 6.4) {
+    g.beginPath(); g.moveTo(i, 0); g.lineTo(i, S); g.stroke();
+    g.beginPath(); g.moveTo(0, i); g.lineTo(S, i); g.stroke();
+  }
+  const t = tex(c); cache.set('tuingaas', t); return t;
+}
+
+// ---------- Schelpenpad ----------
+// Het pad tussen de tuintjes: gebroken schelp met wat aarde erdoor.
+export function schelpenpad() {
+  if (cache.has('schelp')) return cache.get('schelp');
+  const S = 256;                       // 256 px = 2 m
+  const c = canvas(S, S); const g = c.getContext('2d');
+  const r = rng(611);
+  g.fillStyle = '#9d947c'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 7000; i++) {
+    const v = r();
+    g.fillStyle = v < 0.3 ? `rgba(224,217,197,${0.3 + r() * 0.45})`
+      : v < 0.75 ? `rgba(132,120,95,${0.25 + r() * 0.4})`
+        : `rgba(84,70,52,${0.25 + r() * 0.35})`;
+    g.fillRect(r() * S, r() * S, 1.5 + r() * 3, 1.5 + r() * 2.5);
+  }
+  const t = tex(c); cache.set('schelp', t); return t;
+}
+
+// ---------- Moestuingrond ----------
+// Omgespitte aarde met rijen gewas erin, voor de volkstuinen achter de Wieken.
+export function moestuin(seed = 1) {
+  const key = 'moestuin' + seed;
+  if (cache.has(key)) return cache.get(key);
+  const S = 256;                       // 256 px = 4 m
+  const c = canvas(S, S); const g = c.getContext('2d');
+  const r = rng(500 + seed * 31);
+  g.fillStyle = '#5b4630'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 9000; i++) {
+    const v = 0.1 + r() * 0.25;
+    g.fillStyle = r() < 0.5 ? `rgba(0,0,0,${v})` : `rgba(190,170,140,${v * 0.8})`;
+    g.fillRect(r() * S, r() * S, 2 + r() * 3, 2 + r() * 3);
+  }
+  // bedden: banen van 50 cm met gewas erop
+  const kleur = ['#4e7a30', '#6a8f3a', '#3f6b34', '#7d9a45', '#5f8b52'][seed % 5];
+  for (let y = 10; y < S; y += 32) {
+    if (r() < 0.22) continue;                      // een bed dat net leeg is
+    for (let x = 4; x < S - 4; x += 7 + r() * 5) {
+      const rad = 3 + r() * 4;
+      g.fillStyle = kleur; g.beginPath(); g.arc(x, y + (r() - 0.5) * 5, rad, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.12)'; g.beginPath(); g.arc(x - rad * 0.3, y - rad * 0.3, rad * 0.4, 0, Math.PI * 2); g.fill();
+    }
+  }
+  const t = tex(c); cache.set(key, t); return t;
+}
+
 // ---------- Water ----------
 export function water() {
   if (cache.has('water')) return cache.get('water');

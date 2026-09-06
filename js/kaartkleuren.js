@@ -8,6 +8,7 @@ export const KLEUR = {
   parkeervlak: '#a6a6a6', inrit: '#bdb8b0', spoorbaan: '#888888',
   berm: '#b7d9a3', gras: '#a8d08d', bodembedekker: '#8fc47a', heesters: '#74ad62', bos: '#5e9a4f',
   erf: '#e9e2d3', verharding: '#c9c4bb', asfaltvlak: '#b9b9b9', zand: '#eadfb8', halfverhard: '#cdc3a9',
+  kunstgras: '#4f9d55',
   water: '#7fb2e5', oever: '#b5d4ef', brug: '#9c8f7f', steiger: '#a08a6a',
   // bebouwing en groen
   pand: '#8e3b28', pandSchatting: '#b5533c', bouwwerk: '#a07f6a', haag: '#3f7f3a',

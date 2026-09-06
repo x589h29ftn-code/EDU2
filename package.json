@@ -51,6 +51,8 @@
     "viaductshots": "node tools/viaductshots.mjs",
     "wapentest": "node tools/wapentest.mjs",
     "wapenshots": "node tools/wapenshots.mjs",
-    "wereldshots": "node tools/wereldshots.mjs"
+    "wereldshots": "node tools/wereldshots.mjs",
+    "sporttest": "node tools/sporttest.mjs",
+    "sportshots": "node tools/sportshots.mjs"
   }
 }

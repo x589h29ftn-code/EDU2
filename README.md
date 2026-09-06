@@ -571,6 +571,51 @@ erboven, dan is het het dek.
 `npm run viaducttest` loopt het na (39 controles): de plek, het hoogteveld, lopen, de leuning,
 rijden, de houten boog en de wereld eromheen. `npm run viaductshots` maakt de foto's hierboven.
 
+## Het sportpark aan de Molenkrite
+
+Naast de Jumbo ligt **VV Sneek Wit Zwart** (Molenkrite 132), met vier velden. Twee ervan zijn
+kunstgras — dat staat zo in de brondata, als `kunststof` — en twee zijn gras. Ze lagen eerst als
+grijs asfalt en kaal gras in het spel; nu ligt er een echt veld.
+
+![Het hoofdveld van VV Sneek Wit Zwart](docs/screenshots/veld_boven.png)
+
+De belijning is uitgezet volgens de KNVB-maten op het speelveld dat de generator uit de omhullende
+rechthoek van het BGT-vlak berekent: middencirkel van 9,15 m, strafschopgebied van 16,5 × 40,32 m,
+doelgebied van 5,5 × 18,32 m, de strafschopstip op 11 m en hoekcirkels van 1 m. Er staan twee doelen
+van 7,32 × 2,44 m met een net in, en rond het hoofdveld een ring van 120 reclameborden, een
+ballenvanger van 6 m achter de doelen, een spijlenhek langs de kant, twee dugouts en vier
+lichtmasten. Op de borden staat geen bestaand merk: het zijn de gekleurde vlakken en woordbeelden
+die je op een sportpark ziet. De maaibanen lopen in de lengte van het veld, zoals ze horen.
+
+| Vanaf de middenstip | Achter het doel |
+|---|---|
+| ![Middenstip](docs/screenshots/veld_midden.png) | ![Achter het doel](docs/screenshots/veld_doel.png) |
+
+Je kunt het veld op lopen — er staat niets in de weg — maar door de reclameborden, de ballenvanger
+en het hek heen niet.
+
+## De volkstuinen achter de Wieken
+
+Het perceel tussen de twee sloten achter de Wieken staat in de BGT als één stuk gras van ruim
+18 000 m². In werkelijkheid is het een **volkstuincomplex**: 58 tuintjes van 8 bij 14 m, rug aan rug
+in rijen met een schelpenpad ertussen en een grasrand langs de sloot.
+
+![De volkstuinen van bovenaf](docs/screenshots/tuinen_boven.png)
+
+Elk tuintje heeft omgespitte grond met bedden gewas en een lage haag of een gaashekje met een
+poortje aan de padkant. Bij 33 staat een houten schuurtje, bij 22 een kasje met een aluminium frame
+en een zadeldakje, en hier en daar een regenton of een rek bonenstaken. Je kunt overal tussen de
+bedden door lopen; alleen de randen, de schuurtjes en de kassen houden je tegen.
+
+| Over het pad | Een tuintje van dichtbij |
+|---|---|
+| ![Het pad](docs/screenshots/tuinen_pad.png) | ![Schuurtje en kas](docs/screenshots/tuinen_schuur.png) |
+
+`npm run sporttest` loopt beide na (34 controles): het kunstgras uit de brondata, de vier velden met
+hun maten en richting, de belijning, de doelen, de bordenring, het erlangs en erop lopen, en de
+volkstuinen — binnen het perceel, de grasrand, de paden, de schuurtjes en of je er doorheen kunt
+lopen. `npm run sportshots` maakt de foto's hierboven.
+
 ## Naar binnen bij Tinga State: munitie kopen
 
 De stelpboerderij aan de Molenkrite is de tweede plek waar je naar binnen kunt. Ga voor de zwarte
@@ -746,6 +791,9 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   Molenkrite/Monnikmolen/Jasker. Niet met de hand bewerken; zie [docs/METHODIEK.md](docs/METHODIEK.md)
 - `js/kaartwereld.js` – bouwt de wereld uit `kaart.js`: ondergrond per materiaal, trottoirbanden, oevers,
   panden, hagen, struiken, bomen, lantaarns, en de aansluitingen voor verkeer, voetgangers en HUD
+- `js/sportveld.js` – de velden van VV Sneek Wit Zwart: belijning, maaibanen, doelen, reclameborden,
+  ballenvanger, dugouts en lichtmasten, uitgezet op het BGT-vlak
+- `js/volkstuin.js` – de volkstuinen achter de Wieken: bedden, paden, hagen en hekjes, schuurtjes en kassen
 - `js/kaartkleuren.js` – één kleur per klasse, gedeeld door kaartplaat, bovenaanzicht en minimap
 - `js/data.js` – de oude, handgetekende kaart in pixelcoördinaten; draait nog met `?kaart=oud`
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
@@ -808,6 +856,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `tools/wapenshots.mjs` – maakt de foto's van het wapen en de poppetjes
 - `tools/wereldshots.mjs` – maakt de foto's van de vergrote wereld: de grote kaart en twee straten aan de
   overkant van de N7
+- `tools/sporttest.mjs` – toetst het sportpark aan de Molenkrite en de volkstuinen achter de Wieken
+- `tools/sportshots.mjs` – maakt de foto's van het voetbalveld en de volkstuinen
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen
@@ -844,7 +894,7 @@ daktype, goot- en nokhoogte en bouwjaar. De brondata staat in `data/geo/` (zie
 **[docs/METHODIEK.md](docs/METHODIEK.md)** beschrijft de aanpak: waarom foto's geen bron voor
 geometrie zijn, welke bronnen en welk coördinatenstelsel (RD New) gebruikt worden, de stappen, en de
 controles. De belangrijkste controle is `npm run geo:boven`: een bovenaanzicht van het spel dat pixel
-voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,28 % afwijking).
+voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,29 % afwijking).
 
 ![Het spel van boven](data/geo/spel-boven.png)
 

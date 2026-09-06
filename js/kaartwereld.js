@@ -11,6 +11,8 @@ import * as T from './textures.js';
 import { KLEUR } from './kaartkleuren.js';
 import { PROP_TYPES } from './props.js';
 import { zetViaducten, bouwViaducten, grondHoogte, onderBrug } from './viaduct.js';
+import { bouwSportvelden } from './sportveld.js';
+import { bouwVolkstuinen } from './volkstuin.js';
 
 export let KAART = null;
 export function zetKaart(k) { KAART = k; zetViaducten(k && k.viaducten); }
@@ -194,6 +196,8 @@ function materialen(MAT) {
   KM.bosgrond = getint(T.grass(), 0x6f8a58);
   KM.bodembedekker = getint(T.grass(), 0x7ea86a);
   KM.erf = getint(T.grass(), 0xb8c79a);
+  // kunstgras: de sportvelden die in de BGT als "kunststof" staan
+  KM.kunstgras = std(T.kunstgras());
   KM.zand = MAT.sand;
   KM.oever = new THREE.MeshStandardMaterial({ color: 0x7e9a5c, roughness: 1 });
   KM.hout = new THREE.MeshStandardMaterial({ color: 0x8a6a45, roughness: 0.9 });
@@ -234,7 +238,7 @@ export function bouwKaartWereld(scene, W) {
   vlakIndex.clear(); waterRingen.length = 0; kaartLabels.length = 0; poortBladen.length = 0;
   const plat = STAND === 'plat';
   const matVoor = (v) => plat ? (KM.plat[v.k] || KM.plat.verharding) : (KM[v.m] || KM.klinker);
-  const uvVoor = (m) => (m === 'gras' || m === 'erf' || m === 'bosgrond' || m === 'bodembedekker' || m === 'grasklinker') ? 0.12 : m === 'water' ? 0.05 : 0.5;
+  const uvVoor = (m) => (m === 'gras' || m === 'erf' || m === 'bosgrond' || m === 'bodembedekker' || m === 'grasklinker') ? 0.12 : m === 'kunstgras' ? 0.2 : m === 'water' ? 0.05 : 0.5;
 
   // -- ondergrond, één mesh per materiaal
   const perMat = new Map();       // "materiaal|tegel" -> stuk
@@ -374,6 +378,10 @@ export function bouwKaartWereld(scene, W) {
       im.castShadow = true; scene.add(im);
     }
     bouwLantaarns(scene, W);
+    // de belijning, doelen, reclameborden en hekken op de sportvelden aan de
+    // Molenkrite, en de tuintjes op het volkstuincomplex achter de Wieken
+    bouwSportvelden(scene, W, K.sportvelden, KERB_Y);
+    bouwVolkstuinen(scene, W, K.volkstuinen);
   } else {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor);
