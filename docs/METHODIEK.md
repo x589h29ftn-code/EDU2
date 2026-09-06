@@ -1510,10 +1510,42 @@ belijning, de doelen, de bordenring inclusief de borden van Radio Spannenburg aa
 alle vier de kanten, het erlangs en erop lopen, en de volkstuinen: binnen het perceel, de grasrand, de paden, de schuurtjes, en of je
 er doorheen kunt lopen). `npm run sportshots` maakt de foto's.
 
+**Het doel omgekeerd, bomen op het veld, en de BGT-omzetter voor meer steden
+(stap 20).**
+
+Twee fouten die de gebruiker op zijn telefoon zag, allebei terug te voeren op één
+regel code.
+
+*Het doel stond met zijn rug naar de goede kant.* Het net hangt achter het doel,
+dus buiten het speelveld. In `js/sportveld.js` telt `dw` zijn eerste getal op bij
+de doellijn `s * hl`, en daar stond `-s * diep`: het net hing het veld ín. Naar
+buiten is dezelfde kant op als `s`. De proef kijkt nu of alle hoekpunten van het
+net voorbij de doellijn liggen, dus dit kan niet meer stil terugkomen.
+
+*Er groeiden bomen midden op het veld.* De twee grasvelden staan in de BGT als
+groenvoorziening van meer dan 600 m², en dat is precies waar de parkbomenregel
+grote bomen in strooit — er stonden er vijfentwintig op het ene veld en negentien
+op het andere, plus achttien struiken. Een voetbalveld is geen gazon: alles wat
+binnen het BGT-vlak van een sportveld terechtkomt gaat er nu weer af (36 stuks),
+dezelfde aanpak als bij de bomen onder het brugdek. Wat vlak achter de doellijn
+staat blijft staan; dat is gewoon de bomenrij achter het veld.
+
+*En de BGT-omzetter kan nu meer dan één download aan.* `bgt2geojson.mjs` las één
+zip; zonder argument leest hij nu álle `bgt_*.zip` in `data/geo/bron/` en voegt ze
+samen, ontdubbeld op lokaalID plus plek. Dat laatste is nodig omdat een
+straatnaam een paar keer langs dezelfde straat staat en die punten hun lokaalID
+delen — op het lokaalID alleen hielden we van de 123 labels er 54 over. Met de
+ene download die er nu ligt komt er byte-voor-byte hetzelfde uit als eerst; het is
+puur voorbereiding op een tweede stad (zie *Wat nog niet af is*, punt 2).
+
+Controle: `npm run sporttest` (41 controles; erbij: het net achter het doel, en
+er groeit niets op de velden). Alle proeven blijven groen.
+
 **Wat nog niet af is (in volgorde).**
 
-Twee dingen die de gebruiker expliciet voor later heeft laten liggen staan
-bovenaan: de ontbrekende tegel (1) en de steekproef van de gebouwen (2).
+De eerste vijf punten heeft de gebruiker expliciet voor later laten liggen: de
+ontbrekende tegel (1), IJlst (2), de politie geloofwaardiger maken (3), de
+onzichtbare muren aan de wereldrand (4) en de steekproef van de gebouwen (5).
 
 1. **3D BAG-tegel `9-636-1012`** voor de noordoosthoek. 183 panden aan de
    Morrahemstraat, Rijperahemstraat, Oosthemstraat, Folsgaarsterhemstraat en
@@ -1522,28 +1554,52 @@ bovenaan: de ontbrekende tegel (1) en de steekproef van de gebouwen (2).
    in het spel, zonder hun echte kap. Beide bestanden (`.gpkg` en `.city.json`)
    in `data/geo/bron/` zetten en de keten opnieuw draaien is genoeg; aan de
    gereedschappen hoeft niets te veranderen.
-2. **Gebouwen steekproeven** als fijnafstelling. Nu de wereld vier keer zo groot
+2. **IJlst erbij.** Tegel `7-624-992` bevat de hele stad: 2005 panden tussen RD
+   X 169596–171448 / Y 557135–558883, allemaal met een daktype. Maar de BGT
+   reikt niet verder dan de download rond Tinga (X 171225–173278 / Y
+   558514–560406), dus voor IJlst is er geen straat, geen water, geen stoep,
+   geen straatnaam en geen huisnummer — alleen gebouwen op een leeg grasveld.
+   Nodig: een BGT-download om IJlst (`bgt_ijlst.zip.zip` in `data/geo/bron/`;
+   `geo:bgt` leest sinds deze ronde álle `bgt_*.zip` en voegt ze samen), en
+   waarschijnlijk een 3D BAG-tegel ten westen van `7-624-992`, want het meest
+   westelijke pand van IJlst ligt 12 m van de westrand van die tegel. Let op de
+   omvang: Tinga plus IJlst is 3384 × 2965 m = 10,0 km², bijna zes keer het
+   huidige werkgebied.
+3. **De politie geloofwaardiger maken** (gevraagd door de gebruiker, 6 sep 2026):
+   - Word je op een agent of op een politieauto betrapt met een schot, dan is dat
+     een **aanwijzing**: daar weten ze dan dat je bent. Nu telt alleen zien.
+   - **Niet iedereen stapt uit.** Nu stapt elke bemanning uit zodra je binnen
+     veertig meter bent. Dat hoort alleen als je loopt of stapvoets rijdt; rijd je
+     harder dan 30 km/u, dan blijven ze in de auto en rijden ze achter je aan.
+   - Bij veel sterren **wegblokkades** bouwen, buiten je zicht opgesteld zodat je
+     er tegenaan rijdt in plaats van ze te zien verschijnen.
+   - Je moet **op auto's kunnen schieten**. Na een stuk of tien kogels vliegt de
+     auto in brand en explodeert hij; het wrak wordt opgeruimd zodra de
+     achtervolging is gestaakt, net als de lege surveillanceauto's nu.
+4. **Onzichtbare muren** aan de rand van de wereld, zodat je er niet uit kunt
+   lopen of rijden. Wacht tot het werkgebied vastligt (zie punt 2).
+5. **Gebouwen steekproeven** als fijnafstelling. Nu de wereld vier keer zo groot
    is en er 2506 panden in staan, moet er een ronde langs een steekproef van
    adressen: klopt het woningtype per straat, de goothoogte, de voorgevelrichting
    en de gevel? `npm run geo:steekproef` rendert twaalf vaste adressen vanaf de
    straat met de Street View-link erbij; dat is de plek om die steekproef uit te
    breiden naar de nieuwe buurten.
-3. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
+6. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
    zonnepanelen en schoorstenen als losse elementen op de 3D BAG-daken.
-4. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede (de woningen 40–74;
+7. Straten nog zonder foto: Windbord, Voorzoom, Buitenroede (de woningen 40–74;
    de RWZI op nr 1 is wel gedaan), Zeskanter, Omloop.
-5. De editor (F2) en de overige oude objecten uit `data.js` werken nog in pixels van de
+8. De editor (F2) en de overige oude objecten uit `data.js` werken nog in pixels van de
    oude kaart; enkele objecten staan daardoor een paar meter verkeerd. Omrekenen kan met
    drie ijkpunten in `oorsprong.json` (`rd.mjs px`). Het tuinfeest is al verhuisd: dat
    komt nu uit `js/verhaal.js`, op het adres uit de kaartdata.
-6. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
+9. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
    zonder 3D-model.
-7. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
+10. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
    nog van vóór de supermarkt en de boerderij: de vlaggenmast en de twee nieuwe
    woningtypen staan er nog niet op. Bijwerken kan met `npm run propshots` en
    `npm run assets` plus `python3 tools/contactblad.py objecten|woningen`, maar
    dat zijn 78 losse renders en dat duurt op software-rendering een uur.
-8. De overige panden die geen woning zijn en nog het naamloze `spil`-type
+11. De overige panden die geen woning zijn en nog het naamloze `spil`-type
    dragen: de school aan de Molenkrite (BAG-pand 0091100000007732, 1462 m² met
    een golvende plattegrond), de rij aan de Ligger/de Loper (0091100000014651,
    3485 m²) en het blok aan de Krans. Ze kunnen op dezelfde manier als de

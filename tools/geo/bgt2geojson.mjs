@@ -1,7 +1,12 @@
 // Zet de BGT-download (CityGML, zoals de PDOK-downloadviewer die levert) om in
 // GeoJSON per objecttype, geknipt op het gebied, alleen actuele objecten.
 //
-//   node tools/geo/bgt2geojson.mjs data/geo/bron/bgt_tinga.zip.zip
+//   node tools/geo/bgt2geojson.mjs [download.zip]
+//
+// Zonder argument leest hij álle bgt_*.zip in data/geo/bron/ en voegt ze samen;
+// dubbele objecten (een pand dat in twee downloads zit) gaan er op lokaalID uit.
+// Zo is een tweede stad erbij zetten een kwestie van de download in bron/ zetten
+// en de keten opnieuw draaien.
 //
 // Leest data/geo/gebied.geojson voor de omhullende, schrijft
 // data/geo/bron/bgt_<type>.geojson en drukt een telling af. Objecten met een
@@ -16,8 +21,11 @@ import { fileURLToPath } from 'node:url';
 
 const HIER = dirname(fileURLToPath(import.meta.url));
 const GEO = join(HIER, '..', '..', 'data', 'geo');
-const bron = process.argv[2] || join(GEO, 'bron', 'bgt_tinga.zip.zip');
+const bronnen = process.argv[2]
+  ? [process.argv[2]]
+  : readdirSync(join(GEO, 'bron')).filter(n => /^bgt_.*\.zip$/.test(n)).sort().map(n => join(GEO, 'bron', n));
 const uitMap = process.argv[3] || join(GEO, 'bron');
+if (!bronnen.length) throw new Error('geen bgt_*.zip in data/geo/bron/');
 
 // ------------------------------------------------------------ gebied
 function gebiedBbox() {
@@ -196,21 +204,50 @@ function verwerk(gmlPad) {
 }
 
 // ------------------------------------------------------------ hoofdprogramma
-let map = bron;
-if (bron.endsWith('.zip')) {
-  map = join(tmpdir(), 'bgt_uitgepakt');
-  mkdirSync(map, { recursive: true });
-  execFileSync('unzip', ['-q', '-o', bron, '-d', map]);
-}
 mkdirSync(uitMap, { recursive: true });
-
 const gebied = GEBIED.map(v => v.toFixed(0));
-console.log(`gebied RD X ${gebied[0]}–${gebied[2]}, Y ${gebied[1]}–${gebied[3]}\n`);
+console.log(`gebied RD X ${gebied[0]}–${gebied[2]}, Y ${gebied[1]}–${gebied[3]}`);
+console.log(`downloads: ${bronnen.map(b => basename(b)).join(', ')}\n`);
+
+// per objecttype alles uit alle downloads bij elkaar, ontdubbeld op lokaalID
+const perType = new Map();
+for (const bron of bronnen) {
+  let map = bron;
+  if (bron.endsWith('.zip')) {
+    map = join(tmpdir(), 'bgt_uitgepakt', basename(bron).replace(/\W+/g, '_'));
+    mkdirSync(map, { recursive: true });
+    execFileSync('unzip', ['-q', '-o', bron, '-d', map]);
+  }
+  for (const f of readdirSync(map).filter(n => n.endsWith('.gml')).sort()) {
+    const r = verwerk(join(map, f));
+    let t = perType.get(r.type);
+    if (!t) perType.set(r.type, t = { type: r.type, features: [], gezien: new Set(), totaal: 0, historisch: 0, buiten: 0, zonderGeom: 0 });
+    t.totaal += r.totaal; t.historisch += r.historisch; t.buiten += r.buiten; t.zonderGeom += r.zonderGeom;
+    for (const q of r.features) {
+      /*
+       Ontdubbelen op lokaalID én plek. Alleen op het lokaalID kan niet: een
+       straatnaam staat een paar keer langs dezelfde straat en die punten delen
+       hun lokaalID, dus dan hield je van de 123 labels er nog 54 over. Twee
+       downloads die hetzelfde object bevatten leveren wél precies hetzelfde
+       eerste punt op.
+      */
+      const id = q.properties && q.properties.lokaalID;
+      if (id) {
+        let p = q.geometry.coordinates;
+        while (Array.isArray(p) && Array.isArray(p[0])) p = p[0];
+        const sleutel = `${id}|${(p[0] || 0).toFixed(2)},${(p[1] || 0).toFixed(2)}`;
+        if (t.gezien.has(sleutel)) continue;
+        t.gezien.add(sleutel);
+      }
+      t.features.push(q);
+    }
+  }
+}
+
 console.log('| type | in download | historisch | buiten gebied | zonder geometrie | **geschreven** |');
 console.log('|---|---|---|---|---|---|');
 let geschreven = 0;
-for (const f of readdirSync(map).filter(n => n.endsWith('.gml')).sort()) {
-  const r = verwerk(join(map, f));
+for (const r of [...perType.values()].sort((a, b) => a.type.localeCompare(b.type))) {
   if (!r.features.length) { console.log(`| ${r.type} | ${r.totaal} | ${r.historisch} | ${r.buiten} | ${r.zonderGeom} | – |`); continue; }
   const uit = join(uitMap, `bgt_${r.type}.geojson`);
   writeFileSync(uit, JSON.stringify({ type: 'FeatureCollection', name: `bgt_${r.type}`, crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:EPSG::28992' } }, features: r.features }));

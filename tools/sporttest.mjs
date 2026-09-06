@@ -164,8 +164,28 @@ const erop = await page.evaluate(async () => {
       if (n) palen.push(n);
     }
   }
+  /*
+   Het net hangt achter het doel, dus buiten het speelveld. Stond het net erin,
+   dan stond het doel met zijn rug naar de goede kant — dat is precies wat er een
+   ronde lang mis was.
+  */
+  let netMesh = null;
+  groep.traverse(o => { if (o.userData && o.userData.klasse === 'doelnet') netMesh = o; });
+  let netBinnen = 0, netDiepst = 0;
+  if (netMesh) {
+    const np = netMesh.geometry.getAttribute('position');
+    for (let i = 0; i < np.count; i++) {
+      const dx = np.getX(i) - V.cx, dz = np.getZ(i) - V.cz;
+      const u = dx * ex + dz * ez, v = -dx * ez + dz * ex;
+      if (Math.abs(v) > V.vb / 2 + 4) continue;              // een net van een ander veld
+      if (Math.abs(u) < V.vl / 2 - 3) continue;              // idem
+      if (Math.abs(u) < V.vl / 2 - 0.05) netBinnen++;
+      netDiepst = Math.max(netDiepst, Math.abs(u) - V.vl / 2);
+    }
+  }
   return { groep: true, lijnpunten: hoogte, buiten, minY, maxY, omlaag, banen,
-    palen: palen.length, latHoogte: Math.round(latHoogte * 100) / 100 };
+    palen: palen.length, latHoogte: Math.round(latHoogte * 100) / 100,
+    netBinnen, netDiepst: Math.round(netDiepst * 100) / 100 };
 });
 ok(erop.groep, 'de sportvelden staan in de wereld');
 ok(erop.lijnpunten > 300, 'het hoofdveld heeft belijning', `${erop.lijnpunten} hoekpunten`);
@@ -178,6 +198,8 @@ ok(erop.banen === 2, 'er liggen maaibanen in de lengterichting', `${erop.banen} 
 ok(erop.palen === 4, 'er staan twee doelen, met de palen op de doellijn', `${erop.palen} palen`);
 ok(Math.abs(erop.latHoogte - (0.12 + 2.44)) < 0.12, 'met de lat op 2,44 m',
   `${erop.latHoogte} m boven maaiveld`);
+ok(erop.netBinnen === 0 && erop.netDiepst > 1,
+  'en met het net erachter, niet het veld in', `tot ${erop.netDiepst} m achter de doellijn`);
 
 const reclame = await page.evaluate(() => {
   const g = window.__game;
@@ -228,6 +250,29 @@ ok(sponsor.er, 'Radio Spannenburg staat langs de lijn');
 ok(sponsor.er && sponsor.n >= 15, 'op diverse plekken rond het veld', `${sponsor.n} borden`);
 ok(sponsor.er && sponsor.kanten.length === 4, 'aan alle vier de kanten',
   (sponsor.kanten || []).join(', '));
+
+/*
+ Een voetbalveld is geen gazon. De twee grasvelden zijn in de BGT
+ groenvoorziening van meer dan 600 m², en dat is precies waar de parkbomenregel
+ grote bomen in strooit: er stonden vijfentwintig bomen midden op het veld.
+*/
+const begroeiing = await page.evaluate(() => {
+  const K = window.__K;
+  let bomen = 0, struiken = 0, lantaarns = 0;
+  for (const V of K.sportvelden) {
+    const vak = K.vlakken.find(q => ['kunstgras', 'gras'].includes(q.k) && window.__inRing([V.cx, V.cz], q.r[0]));
+    if (!vak) continue;
+    bomen += K.bomen.filter(o => window.__inRing([o.x, o.z], vak.r[0])).length;
+    struiken += K.struiken.filter(o => window.__inRing([o.x, o.z], vak.r[0])).length;
+    lantaarns += K.lantaarns.filter(o => window.__inRing([o.x, o.z], vak.r[0])).length;
+  }
+  return { bomen, struiken, lantaarns, weg: K.telling.van_sportveld_weggehaald || 0 };
+});
+ok(begroeiing.bomen === 0 && begroeiing.struiken === 0 && begroeiing.lantaarns === 0,
+  'er groeit niets op de velden zelf',
+  `${begroeiing.bomen} bomen, ${begroeiing.struiken} struiken, ${begroeiing.lantaarns} lantaarns`);
+ok(begroeiing.weg > 0, 'de generator haalt weg wat er wel op terechtkwam',
+  `${begroeiing.weg} stuks`);
 
 // ---------- 4. erlangs en erop lopen ----------
 kop('over het sportpark lopen');
