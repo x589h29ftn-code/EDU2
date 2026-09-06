@@ -351,6 +351,8 @@ westelijke pand staat 12 m van de rand van `7-624-992`.
 - 414 straatnaamlabels en 4658 huisnummers;
 - vier sportvelden en de volkstuinen achter de Wieken (zie *Het sportpark en de
   volkstuinen*);
+- de houtzaagmolen aan het Sneekerpad in IJlst (zie *Een molen en een supermarkt
+  in IJlst*);
 - het viaduct Tinga als hoogteveld met stations per meter (zie *Het viaduct*).
 
 `js/kaartwereld.js` bouwt daar de wereld van; `main.js` laadt `kaart.js` en valt
@@ -1783,6 +1785,77 @@ Eén oude controle was wisselvallig: die op de lege surveillanceauto mislukte
 ongeveer één op de drie keer omdat een wagen vast kan komen te staan. Hij schuift
 nu per poging 25 m op langs de weg. Alle tien de proeven zijn groen, politietest
 twee keer achter elkaar.
+
+**Een molen en een supermarkt in IJlst (stap 25).**
+
+Twee panden die er als naamloos blok bij stonden, allebei in IJlst: **De
+Dassenboarch 32** (supermarkt Poiesz) en **Sneekerpad 16**.
+
+*De Poiesz* gaat zoals elk bijzonder pand: een regel met het BAG-pandnummer in
+`data/stijl/straten.json` en een eigen woningtype in `HOUSE_STYLES`. Wat er
+veranderd moest worden aan de winkelgevel die de Jumbo al had: die was
+Jumbo-geel ingebakken. De band heet nu `huisstijl` in plaats van `geel`, met
+`merk` en `merkKleur` erbij — de Poiesz krijgt een zilvergrijze band met het
+groene woordmerk. En er is een `puiDeel` bijgekomen: de Jumbo is onder de luifel
+helemaal glas, maar de Poiesz is voor het grootste deel gewoon een bakstenen
+doos met onderlangs een glazen pui. Zonder dat getal stond er een winkel van
+zesenveertig bij dertig meter volledig in het glas.
+
+*De molen* kon niet als pand. Het 3D BAG-model van een molen is een puntenwolk
+die de roeden meevangt: in de hoogteband van 8,7 tot 11,1 m boven het maaiveld
+lopen de stralen van 1,35 tot 6,63 m uit het hart. Opgetrokken tot een gebouw
+leverde dat de witte klomp van twintig meter op die de gebruiker in het spel
+zag staan. Daarom bouwt `js/molen.js` er een echte molen, en slaat
+`js/kaartwereld.js` het pand over — behalve op de platte controleplaat, want
+`geo:boven` vergelijkt grondvlakken en daar hoort de molen gewoon als pand mee
+te doen.
+
+Wat er wél uit de data komt, en dat is meer dan je zou denken:
+
+| uit de data | |
+|---|---|
+| het hart van de romp | het zwaartepunt van de 3D BAG-punten net boven de goot, 26 cm van het middelpunt van de omhullende rechthoek — de twee bevestigen elkaar |
+| de stelling | de goot van het pand: 7,52 m. Bij een stellingmolen ís de goot de stelling |
+| de tophoogte | de nok: 20,66 m |
+| de zaagloodsen | het grondvlak (28,0 x 13,6 m) en de richting van de omhullende rechthoek (134°) |
+| dat het een monument is | bouwjaar 1683 |
+
+En wat niet: de straal van het achtkant, de vlucht van het gevlucht (19,4 m) en
+de kruirichting. Die staan als opgemeten waarden in `data/stijl/straten.json`,
+met erbij waaróm ze daar staan. De kruirichting kán ook niet uit een bestand
+komen: een kap draait met de wind mee. Hij staat op 78°, naar het Sneekerpad
+toe, zodat je vanaf de weg het hele gevlucht ziet draaien in plaats van de
+zijkant ervan.
+
+Het gevlucht draait op 4,5 omwentelingen per minuut — ruim dertien seconden per
+rondje. Het hangt in een eigen `THREE.Group` aan de kop van de bovenas, met de
+lokale z-as langs die as (volgorde `YXZ`: buiten de kruirichting, daarbinnen de
+helling van de as, en daarbinnen het draaien zelf). `js/world.js` werkt het bij
+vanuit `updateProps()`, waar de drinkende figuren ook al in staan.
+
+*Twee dingen die bij het bouwen misgingen.* De eerste: `plaats()` gaf een
+gedeelde matrix terug, net als in js/sportveld.js. Dat gaat goed zolang je hem
+meteen gebruikt, maar in `plaats(...).multiply(plaats(...))` overschrijft de
+tweede aanroep de eerste voordat er vermenigvuldigd is, en dan staat het
+hekwerk in het hart van de molen in plaats van aan het eind van de roede. Hij
+maakt er nu elke keer een nieuwe. De tweede: de kap was net als de romp met riet
+gedekt en liep er naadloos in door, zodat je niet meer zag dát het een losse kap
+was. Hij is nu met hout beschoten en steekt een halve meter over de romp heen.
+
+Verder is elk vlak in `js/molen.js` zelfcorrigerend: je geeft mee waar "buiten"
+ligt en het vlak draait zichzelf om als de normaal de andere kant op wijst. Dat
+is niet uit netheid — het is de derde ronde waarin een vlak onzichtbaar bleek
+omdat zijn normaal de grond in wees, en bij een achtkant is de goede volgorde
+niet uit de code af te lezen.
+
+Controle: `npm run molentest` (vierendertig controles: de maten uit de data, dat
+het opgetrokken pand echt weg is, dat elk onderdeel er staat, dat het gevlucht
+draait op het opgegeven aantal toeren, dat de roeden over de stelling strijken
+zonder hem te raken, dat je niet door de molen heen loopt en dat er vanaf de weg
+niets vóór staat, en voor de Poiesz dat het woordmerk groen op de gevel staat
+met baksteen erboven). `npm run molenshots` maakt de foto's. Alle elf de proeven
+zijn groen en `npm run geo:boven` blijft op 1,59 %.
+
 
 **Wat nog niet af is (in volgorde).**
 

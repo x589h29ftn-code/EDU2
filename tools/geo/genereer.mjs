@@ -1588,6 +1588,56 @@ for (const V of OMGEVING.volkstuinen || []) {
 }
 tel('volkstuinen', VOLKSTUINEN.reduce((n, v) => n + v.tuinen.length, 0));
 
+// ---------------------------------------------------------------- molens
+/*
+ Houtzaagmolen De Rat aan het Sneekerpad 16 in IJlst, en elke andere molen die
+ in data/stijl/straten.json als `type: "molen"` staat.
+
+ Wat uit de data komt:
+   - het hart van de romp: het zwaartepunt van de 3D BAG-punten in de band net
+     boven de goot. Dat komt hier op 26 cm van het middelpunt van de omhullende
+     rechthoek uit, dus de twee bevestigen elkaar;
+   - de stellinghoogte: de goot van het pand (7,52 m);
+   - de tophoogte: de nok (20,66 m);
+   - de richting en de maat van de zaagloodsen: de omhullende rechthoek van het
+     grondvlak (28,0 x 13,6 m onder 134°).
+
+ Wat er níet uit komt: de straal van het achtkant en de vlucht van de roeden.
+ Het 3D BAG-model is bij een molen onbruikbaar voor de romp — de puntenwolk
+ vangt ook de roeden, zodat de straal in dezelfde hoogteband van 1,35 tot 6,63 m
+ loopt. Die twee maten staan daarom als opgemeten waarden in
+ data/stijl/straten.json, net als de kruirichting: een kap draait met de wind
+ mee en staat dus nergens in een bestand.
+*/
+const MOLENS = [];
+for (const p of PANDEN) {
+  const vast = (STIJL.panden || {})[p.id];
+  if (!vast || vast.type !== 'molen') continue;
+  const M = vast.molen || {};
+  if (!p.rect) { console.warn(`LET OP: molen ${p.id}: geen omhullende rechthoek`); continue; }
+  const stelling = M.stelling ?? p.goot ?? 7.5;
+  const top = M.top ?? p.nok ?? 20;
+  // het hart van de romp uit de punten net boven de stelling
+  let cx = p.rect.cx, cz = p.rect.cz, uitData = false;
+  if (p.v) {
+    const laag = stelling + 1.2, hoog = stelling + 3.6;
+    let sx = 0, sz = 0, n = 0;
+    for (let i = 0; i < p.v.length; i += 3) { if (p.v[i + 1] >= laag && p.v[i + 1] <= hoog) { sx += p.v[i]; sz += p.v[i + 2]; n++; } }
+    if (n >= 6) { cx = sx / n; cz = sz / n; uitData = true; }
+  }
+  MOLENS.push({
+    naam: M.naam || 'molen', pand: p.id,
+    cx: r2(cx), cz: r2(cz), stelling: r2(stelling), top: r2(top),
+    romp: M.romp ?? 4.5, rompTop: M.rompTop ?? 2.8, kap: M.kap ?? 4.2,
+    vlucht: M.vlucht ?? 19.4, kruihoek: M.kruihoek ?? 0, toeren: M.toeren ?? 4.5,
+    // de zaagloodsen eromheen: het grondvlak van het pand met de nokrichting
+    // van de omhullende rechthoek
+    loods: { ring: p.voet, hoek: p.rect.hoek, goot: M.loodsGoot ?? 3.6, nok: M.loodsNok ?? 6.4 },
+  });
+  if (!uitData) console.warn(`LET OP: molen ${p.id}: te weinig 3D-punten boven de stelling, hart uit de rechthoek`);
+}
+tel('molens', MOLENS.length);
+
 // ---------------------------------------------------------------- labels, start
 const LABELS = labels.filter(l => l.p[0] >= G.x0 && l.p[0] <= G.x1 && l.p[1] >= G.z0 && l.p[1] <= G.z1).map(l => ({ t: l.t, x: l.p[0], z: l.p[1], hoek: l.hoek }));
 const HUISNUMMERS = [];
@@ -1611,7 +1661,7 @@ const KAART = {
   hagen: HAGEN, bomen: BOMEN.concat(STRAATBOMEN, PARKBOMEN), struiken: STRUIKEN, lantaarns: LANTAARNS,
   heggen: HEGGEN, schuttingen: SCHUTTINGEN, paden: PADEN, tuinvlakken: TUINVLAKKEN, strepen: STREPEN, objecten: OBJECTEN,
   hekwerken: HEKWERKEN, poorten: POORTEN, viaducten: VIADUCTEN,
-  sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN,
+  sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN, molens: MOLENS,
   labels: LABELS, huisnummers: HUISNUMMERS,
   telling,
 };

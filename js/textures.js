@@ -722,8 +722,17 @@ export const HOUSE_STYLES = {
   // stijlen op een donkere plint, en boven de luifel de gele huisstijlband met
   // het woordmerk. `industrieel` zet de gevel aan alle kanten aan (een
   // vrijstaande winkel heeft geen achterkant) en houdt de dakkapellen uit;
-  // `winkel` kiest in facade() de winkelpui, `metaaldak` de dakplaten.
-  jumbo:       { brick: ['#8a7f74', '#c4bdb2'], frame: '#f4f4f2', frame2: '#f4f4f2', door: ['#3f4247'], roof: '#4b4e52', roofType: 'gable', storeys: 1, storeyH: 2.7, w: 6.0, dormer: false, chimney: false, band: '#f2f2f0', plint: '#3f4247', industrieel: true, winkel: true, metaaldak: true, geel: '#ffd200' },
+  // `winkel` kiest in facade() de winkelpui, `metaaldak` de dakplaten,
+  // `huisstijl` is de kleur van de band bovenaan en `merk`/`merkKleur` het
+  // woordmerk dat erin staat.
+  jumbo:       { brick: ['#8a7f74', '#c4bdb2'], frame: '#f4f4f2', frame2: '#f4f4f2', door: ['#3f4247'], roof: '#4b4e52', roofType: 'gable', storeys: 1, storeyH: 2.7, w: 6.0, dormer: false, chimney: false, band: '#f2f2f0', plint: '#3f4247', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#ffd200', merk: 'JUMBO' },
+  // Supermarkt Poiesz, De Dassenboarch 32 in IJlst (foto Street View, mei 2022):
+  // een laag gebouw in donkerbruine baksteen onder een flauw hellend dak van
+  // grijze metalen dakplaten, met over de hele voorgevel een glazen pui met
+  // lichtgrijze stijlen, en boven de ingang — die onder een puntdak met een
+  // luifel zit — het groene woordmerk op een zilvergrijze band. Verder dezelfde
+  // opzet als de Jumbo hierboven; alleen de kleuren en het merk verschillen.
+  poiesz:      { brick: ['#7c4b3c', '#c0b8ad'], frame: '#e8eaea', frame2: '#e8eaea', door: ['#3f4247'], roof: '#98a0a4', roofType: 'gable', storeys: 1, storeyH: 2.7, w: 6.0, dormer: false, chimney: false, band: '#eceeee', plint: '#4a4a48', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#dfe4e3', merk: 'POIESZ', merkKleur: '#2f9c1e', puiDeel: 0.62 },
   // Tinga State, Molenkrite 115 (foto, 4 sep 2026): een stelpboerderij — een
   // enorme steile piramidekap van rode pannen die van de nok op 13,3 m tot een
   // goot op 1,9 m doorloopt, met rijen dakramen erin. Daaronder een lage
@@ -738,7 +747,7 @@ export const HOUSE_STYLES = {
   // hele lengte een doorlopende raamstrook met felblauwe kozijnen en gele
   // gordijnen erachter, daarboven een gele plaatband onder een lichte dakrand,
   // en bij de ingang een geel bord. `school` kiest die gevel in facade().
-  school:      { brick: ['#8c5340', '#c9bfae'], frame: '#1f6fc4', frame2: '#1f6fc4', door: ['#1f6fc4'], roof: '#54514c', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#d8d5cc', plint: '#6b4436', industrieel: true, school: true, geel: '#f2c012' },
+  school:      { brick: ['#8c5340', '#c9bfae'], frame: '#1f6fc4', frame2: '#1f6fc4', door: ['#1f6fc4'], roof: '#54514c', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#d8d5cc', plint: '#6b4436', industrieel: true, school: true, huisstijl: '#f2c012' },
   // Jeugdhulp Friesland, Molenkrite 234 (Street View, foto in de chat 5 sep
   // 2026): een lang gebouw van één laag met plat dak, donkerbruine steen,
   // lichte kozijnen en een blauwe deur, met een parkeerterrein en een
@@ -798,6 +807,54 @@ export function hekje(kleur = '#8a7352') {
   }
   g.fillStyle = shade(kleur, 0.75); g.fillRect(0, 30, 256, 9); g.fillRect(0, 96, 256, 9);   // twee liggers
   const t = tex(c); t.wrapT = THREE.ClampToEdgeWrapping; cache.set(key, t); return t;
+}
+
+// ---------- Riet (het achtkant en de kap van de molen) ----------
+/*
+ Het achtkant van een houtzaagmolen is met riet gedekt: verticale bossen die van
+ de kap naar de stelling lopen, van dichtbij vezelig en van veraf een egale
+ donkerbruine huid. De tekening is verticaal, want zo hangt het riet ook — leg je
+ hem horizontaal, dan lijkt het gepotdekseld hout.
+*/
+export function rietdak(kleur = '#5a4630') {
+  const key = 'riet' + kleur;
+  if (cache.has(key)) return cache.get(key);
+  const S = 256, c = canvas(S, S), g = c.getContext('2d');
+  const r = rng(83);
+  g.fillStyle = kleur; g.fillRect(0, 0, S, S);
+  // bossen van ongeveer 20 px breed, elk met een eigen tint
+  for (let x = 0; x < S; x += 20) {
+    g.fillStyle = `rgba(0,0,0,${0.06 + r() * 0.10})`; g.fillRect(x, 0, 20, S);
+    g.fillStyle = `rgba(255,240,205,${0.05 + r() * 0.07})`; g.fillRect(x + 2, 0, 3, S);
+  }
+  // losse halmen eroverheen
+  for (let i = 0; i < 900; i++) {
+    const x = r() * S, y = r() * S, h = 14 + r() * 26;
+    g.strokeStyle = r() < 0.5 ? `rgba(0,0,0,${0.05 + r() * 0.12})` : `rgba(214,192,150,${0.05 + r() * 0.12})`;
+    g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 3, y + h); g.stroke();
+  }
+  // de bindrepen: om de meter een donkere band dwars over het riet
+  for (let y = 40; y < S; y += 84) { g.fillStyle = 'rgba(28,20,12,0.28)'; g.fillRect(0, y, S, 3); }
+  const t = tex(c); cache.set(key, t); return t;
+}
+
+// ---------- Hekwerk van een molenroede ----------
+/*
+ Het roedehekwerk: de latten (heklatten) waar bij het malen het zeil overheen
+ gaat. Ze zitten om de 25 cm dwars op de roede, met twee langsregels erlangs.
+ 64 px = 1 m, doorzichtig ertussen, dus het vlak wordt met alphaTest getekend en
+ je kijkt er echt doorheen — een molenwiek is meer lucht dan hout.
+*/
+export function wiekhek() {
+  if (cache.has('wiekhek')) return cache.get('wiekhek');
+  const S = 64, c = canvas(S, S), g = c.getContext('2d');
+  g.clearRect(0, 0, S, S);
+  g.fillStyle = 'rgba(46,36,26,0.95)';
+  for (let y = 0; y < S; y += 16) g.fillRect(0, y, S, 3);        // heklatten, om de 25 cm
+  g.fillRect(0, 0, 3, S); g.fillRect(S - 4, 0, 3, S);            // langsregels aan de randen
+  g.fillStyle = 'rgba(70,55,40,0.9)'; g.fillRect(S * 0.5 - 1, 0, 3, S);
+  const t = tex(c); cache.set('wiekhek', t); return t;
 }
 
 // ---------- Houten delen (witte topgevels, schuttingen) ----------
@@ -939,10 +996,18 @@ export function facade(type, n, storeys, back = false, seed = 1) {
        gevel onder de luifel geeft dat een pui van ruim twee meter, op het hoge
        glazen blok bij de ingang dezelfde opbouw maar groter.
       */
-      const geel = st.geel || '#ffd200';
+      const huisstijl = st.huisstijl || '#ffd200';
       const bandH2 = H * 0.13, luifelH = H * 0.05;
       const plintH2 = Math.max(m(0.22), H * 0.06);
-      const puiBoven = bandH2 + luifelH, puiOnder = H - plintH2;
+      /*
+       Hoeveel van de gevel is glas? Bij de Jumbo alles onder de luifel; de
+       Poiesz is voor het grootste deel gewoon een bakstenen doos met onderlangs
+       een glazen pui, dus daar begint het glas pas op ruim de helft. Wat
+       daarboven blijft staan is het metselwerk waar het doek al mee begon.
+      */
+      const glas = st.puiDeel ?? 1;
+      const bovenkant = H * (1 - glas);
+      const puiBoven = bovenkant + bandH2 + luifelH, puiOnder = H - plintH2;
       // plint
       g.fillStyle = st.plint || '#3f4247'; g.fillRect(x0, puiOnder, HW, plintH2);
       g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x0, puiOnder, HW, m(0.03));
@@ -967,22 +1032,23 @@ export function facade(type, n, storeys, back = false, seed = 1) {
         g.fillStyle = '#3f4247'; g.fillRect(dx - m(0.3), H - m(0.05), dw + m(0.6), m(0.05));
       }
       // luifelband met slagschaduw op de pui
-      g.fillStyle = '#f6f6f4'; g.fillRect(x0, bandH2, HW, luifelH);
-      g.fillStyle = 'rgba(255,255,255,0.4)'; g.fillRect(x0, bandH2, HW, luifelH * 0.2);
+      g.fillStyle = '#f6f6f4'; g.fillRect(x0, bovenkant + bandH2, HW, luifelH);
+      g.fillStyle = 'rgba(255,255,255,0.4)'; g.fillRect(x0, bovenkant + bandH2, HW, luifelH * 0.2);
       const sg2 = g.createLinearGradient(0, puiBoven, 0, puiBoven + luifelH * 3);
       sg2.addColorStop(0, 'rgba(0,0,0,0.4)'); sg2.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = sg2; g.fillRect(x0, puiBoven, HW, luifelH * 3);
-      // de gele band bovenaan met het woordmerk erin. Het staat in de eerste
+      // de huisstijlband bovenaan met het woordmerk erin. Het staat in de eerste
       // travee, want een smalle muur (het hoge blok bij de ingang) krijgt er
-      // maar één.
-      g.fillStyle = geel; g.fillRect(x0, 0, HW, bandH2);
-      g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(x0, bandH2 - m(0.05), HW, m(0.05));
+      // maar één. Jumbo heeft een gele band met donkere letters, Poiesz een
+      // zilvergrijze band met het groene woordmerk erop.
+      g.fillStyle = huisstijl; g.fillRect(x0, bovenkant, HW, bandH2);
+      g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(x0, bovenkant + bandH2 - m(0.05), HW, m(0.05));
       if (i % 3 === 0) {
         g.save();
-        g.fillStyle = '#2b2b28';
+        g.fillStyle = st.merkKleur || '#2b2b28';
         g.font = `bold ${Math.round(bandH2 * 0.62)}px sans-serif`;
         g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText('JUMBO', x0 + HW / 2, bandH2 * 0.54);
+        g.fillText(st.merk || 'JUMBO', x0 + HW / 2, bovenkant + bandH2 * 0.54);
         g.restore();
       }
     } else if (st.boerderij) {
@@ -1031,7 +1097,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
        winkel rekt kaartwereld.js de texture over de hele muurhoogte uit, dus
        alles staat in verhoudingen van H en niet in vaste meters.
       */
-      const geel = st.geel || '#f2c012';
+      const geel = st.huisstijl || '#f2c012';
       const randH = H * 0.07, bandH2 = H * 0.13;
       const ramenY = randH + bandH2 + H * 0.05, ramenH = H * 0.40;
       // lichte dakrand en gele plaatband eronder

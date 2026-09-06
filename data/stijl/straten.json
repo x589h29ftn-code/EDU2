@@ -89,7 +89,7 @@
     }
   },
   "panden": {
-    "_uitleg": "Panden die geen woning zijn en dus niet van hun straat af te leiden zijn. Sleutel is het BAG-pandnummer uit js/kaart.js. `type` is het type uit HOUSE_STYLES in js/textures.js en gaat voor op alle regels hierboven. `voorkantNaar` is een punt in spelmeters waar de voorgevel naartoe moet kijken (bij een winkel ligt de ingang aan het plein en niet aan de dichtstbijzijnde rijbaan, en dan raadt de generator hem verkeerd); de generator kiest de zijde van de omsluitende rechthoek die daar het meest naartoe wijst. `objecten` zet losse objecten uit js/props.js voor het pand: `voor` is de afstand vanaf de voorgevel naar de straat, `langs` de afstand langs de gevel naar rechts gezien van buiten. `foto` is de uitsnede voor tools/adresshots.mjs (dezelfde `voor` en `langs`, plus een kijkhoek); zonder die regel zoekt dat gereedschap zelf een standpunt met vrij zicht.",
+    "_uitleg": "Panden die geen woning zijn en dus niet van hun straat af te leiden zijn. Sleutel is het BAG-pandnummer uit js/kaart.js. `type` is het type uit HOUSE_STYLES in js/textures.js en gaat voor op alle regels hierboven. `voorkantNaar` is een punt in spelmeters waar de voorgevel naartoe moet kijken (bij een winkel ligt de ingang aan het plein en niet aan de dichtstbijzijnde rijbaan, en dan raadt de generator hem verkeerd); de generator kiest de zijde van de omsluitende rechthoek die daar het meest naartoe wijst. `objecten` zet losse objecten uit js/props.js voor het pand: `voor` is de afstand vanaf de voorgevel naar de straat, `langs` de afstand langs de gevel naar rechts gezien van buiten. `foto` is de uitsnede voor tools/adresshots.mjs (dezelfde `voor` en `langs`, plus een kijkhoek); zonder die regel zoekt dat gereedschap zelf een standpunt met vrij zicht. `molen` zet er met js/molen.js een echte molen neer in plaats van het opgetrokken 3D BAG-model, met de maten uit het blok `molen`.",
     "0091100000015898": {
       "type": "jumbo",
       "voorkantNaar": [
@@ -203,6 +203,34 @@
           "langs": 18.8
         }
       ]
+    },
+    "0683100000294717": {
+      "type": "poiesz",
+      "voorkantNaar": [
+        -1204,
+        1075
+      ],
+      "foto": {
+        "voor": 28,
+        "langs": 0,
+        "pitch": 0.05
+      },
+      "bron": "foto Street View De Dassenboarch 32, IJlst (mei 2022, in de chat 6 sep 2026): supermarkt Poiesz. Donkerbruine baksteen onder een flauw dak van grijze metalen dakplaten (dat staat zo in het 3D BAG-model: goot 4,63 m, nok 7,76 m), over de hele voorgevel een glazen pui met lichtgrijze stijlen, en boven de ingang een puntdak met een luifel en het groene woordmerk POIESZ op een zilvergrijze band. `voorkantNaar` is het parkeerterrein aan de oostkant, waar de ingang aan ligt."
+    },
+    "0683100000290817": {
+      "type": "molen",
+      "molen": {
+        "naam": "Houtzaagmolen De Rat",
+        "romp": 4.5,
+        "rompTop": 2.8,
+        "kap": 4.2,
+        "vlucht": 19.4,
+        "kruihoek": 78,
+        "toeren": 4.5,
+        "loodsGoot": 3.6,
+        "loodsNok": 6.4
+      },
+      "bron": "foto Google Maps 'Houtzaagmolen De Rat' (september 2017, in de chat 6 sep 2026) plus het BAG-pand zelf: bouwjaar 1683, goot 7,52 m (dat is de stelling), nok 20,66 m. Een achtkante stellingmolen met een rieten romp op een zwart geteerde onderbouw, met aan weerskanten de houten zaagloodsen. `romp` en `rompTop` zijn de straal van het achtkant bij de stelling en bij de kap, `vlucht` de spanwijdte van het gevlucht (19,4 m, dus roeden van 9,7 m); die drie staan niet in de data, want het 3D BAG-model vangt de roeden mee en geeft in dezelfde hoogteband stralen van 1,35 tot 6,63 m. `kruihoek` is de kant waar de kap op staat, in graden in het (x,z)-vlak: 78 graden is naar het Sneekerpad toe, zodat je vanaf de weg naar IJlst het hele gevlucht ziet draaien in plaats van de zijkant ervan. `toeren` is het aantal omwentelingen per minuut — een malende molen haalt er zestig tot tachtig, een molen die voor de sier draait blijft er rustig onder."
     }
   },
   "standaard": {

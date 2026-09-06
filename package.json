@@ -53,6 +53,8 @@
     "wapenshots": "node tools/wapenshots.mjs",
     "wereldshots": "node tools/wereldshots.mjs",
     "sporttest": "node tools/sporttest.mjs",
-    "sportshots": "node tools/sportshots.mjs"
+    "sportshots": "node tools/sportshots.mjs",
+    "molentest": "node tools/molentest.mjs",
+    "molenshots": "node tools/molenshots.mjs"
   }
 }
