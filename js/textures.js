@@ -476,6 +476,19 @@ export function bordSpannenburg() {
   const t = tex(c); cache.set('spannenburg', t); return t;
 }
 
+// ---------- Clubvlag ----------
+// De vlag aan de mast bij de tribune: geel en zwart, de kleuren van de club.
+export function clubvlag() {
+  if (cache.has('clubvlag')) return cache.get('clubvlag');
+  const W = 192, H = 120;
+  const c = canvas(W, H); const g = c.getContext('2d');
+  g.fillStyle = '#f2c327'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#1d1d1b'; g.fillRect(0, H * 0.38, W, H * 0.24);
+  g.fillStyle = 'rgba(0,0,0,0.12)';
+  for (let x = 0; x < W; x += 24) g.fillRect(x, 0, 10, H);          // plooien in het doek
+  const t = tex(c); cache.set('clubvlag', t); return t;
+}
+
 // ---------- Ballenvanger ----------
 // Zwart net achter de doelen: fijne mazen, dus grotendeels doorzichtig.
 export function ballenvanger() {

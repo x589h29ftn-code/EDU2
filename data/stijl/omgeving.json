@@ -223,7 +223,16 @@
       "hek": true,
       "doelen": true,
       "dugouts": true,
-      "masten": 4
+      "masten": 4,
+      "tribune": {
+        "bron": "Foto van Kees de Vries (in de chat, 6 sep 2026): overdekte tribune langs de zijlijn met betonnen traptreden en oranje stoeltjes, een vlak luifeldak op slanke kolommen met een lichte reclamerand langs de voorrand, de kantine met een lange pui erachter, en een vlaggenmast aan de kopse kant.",
+        "_uitleg": "pand = het BAG-pandnummer van de tribune uit js/kaart.js; de generator haalt daar de plek, de richting, de lengte en de goothoogte uit. De traptreden komen vóór dat pand te staan, in de strook tussen de zijlijn en de gevel — dat is wat je op de foto vanaf het veld ziet: reclameborden, dan de treden met stoeltjes, dan de gevel van de kantine erachter en het luifeldak eroverheen. diep = hoe diep die treden samen zijn (m), treden = het aantal, luifel = hoeveel meter het dak vóór de onderste trede uitsteekt.",
+        "pand": "0091100000009788",
+        "diep": 2.8,
+        "treden": 4,
+        "luifel": 2.2,
+        "vlaggenmast": true
+      }
     },
     {
       "naam": "VV Sneek Wit Zwart — tweede kunstgrasveld",

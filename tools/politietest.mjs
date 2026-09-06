@@ -396,13 +396,23 @@ const stelen = await page.evaluate(() => {
   g.politie.misdaad('neergeschoten', pd.x, pd.z);
   /*
    Wachten tot er een wagen leeg achterblijft. Vanaf een schone melding staat er
-   binnen een halve minuut een, maar de eenheden die hier nog van de vorige proef
-   rondrijden kunnen ervoor zorgen dat het niet lukt. Daarom: drie keer opnieuw
-   melden in plaats van eindeloos doorstappen.
+   binnen een halve minuut een, maar een wagen kan onderweg vast komen te staan
+   (zie *Wat nog niet af is*: de politie moet nog geloofwaardiger worden), en dan
+   komt er op díe plek nooit een bemanning uitstappen. Daarom niet alleen opnieuw
+   melden maar ook een stuk verderop gaan staan: vier pogingen, elke keer vijfentwintig
+   meter opgeschoven langs de rijbaan. Zo hangt de proef niet van één plek af.
   */
   let stap = 0;
-  for (let poging = 0; poging < 3 && g.politie.eenheden.verlaten === 0; poging++) {
-    if (poging) { g.politie.reset(); g.politie.zetHeat(400); g.politie.misdaad('neergeschoten', pd.x, pd.z); }
+  const langs = window.__langs;
+  for (let poging = 0; poging < 4 && g.politie.eenheden.verlaten === 0; poging++) {
+    if (poging) {
+      const d = (poging % 2 ? 1 : -1) * 25 * Math.ceil(poging / 2);
+      const px = pd.x + langs.x * d, pz = pd.z + langs.z * d;
+      g.politie.reset();
+      window.__zetSpeler(px, pz);
+      g.politie.zetHeat(400);
+      g.politie.misdaad('neergeschoten', px, pz);
+    }
     let t = 0;
     while (t < 90 * 30 && g.politie.eenheden.verlaten === 0) { window.__stap(5); t += 5; stap += 5; }
   }

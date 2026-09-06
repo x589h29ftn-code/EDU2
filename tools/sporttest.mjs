@@ -205,8 +205,12 @@ const reclame = await page.evaluate(() => {
   const g = window.__game;
   const V = window.__K.sportvelden.find(v => v.hoofd);
   const ex = Math.cos(V.hoek), ez = Math.sin(V.hoek);
-  // botsingsdozen van 0,9 m hoog rond het hoofdveld: dat zijn de borden
-  const borden = window.__W.colliders.filter(c => Math.abs(c.h - 0.9) < 0.01
+  /*
+   De reclameborden herken je aan hun botsingsdoos: laag, en met een `y0` zodat
+   je er overheen kunt springen. Ze zijn 90 cm hoog maar hun doos telt maar tot
+   60 cm, want een sprong komt tot 88 cm.
+  */
+  const borden = window.__W.colliders.filter(c => c.y0 != null && c.h < 0.8 && c.hz < 0.2
     && Math.hypot(c.cx - V.cx, c.cz - V.cz) < V.vl);
   let langs = 0, kop = 0, binnen = 0;
   for (const c of borden) {
@@ -305,6 +309,40 @@ const lopen = await page.evaluate(() => {
 ok(lopen.opVeld === 24, 'op het veld zelf loop je nergens tegenaan', `${lopen.opVeld} van 24`);
 ok(lopen.geblokkeerd > 0, 'maar de reclameborden houden je wel tegen',
   `${lopen.geblokkeerd} van de punten op de ring`);
+
+/*
+ En je moet het veld óp kunnen komen: door de opening in het hek naar binnen en
+ dan over de reclameborden heen springen. Een sprong komt tot 88 cm, en de
+ botsingsdoos van een bord telt niet meer boven de 72 cm.
+*/
+const erin = await page.evaluate(() => {
+  const V = window.__K.sportvelden.find(v => v.hoofd);
+  const ex = Math.cos(V.hoek), ez = Math.sin(V.hoek);
+  const wx = (u, v) => V.cx + ex * u - ez * v, wz = (u, v) => V.cz + ez * u + ex * v;
+  const vrij = (u, v, y) => {
+    const x = wx(u, v), z = wz(u, v);
+    const [nx, nz] = window.__W.resolveCollisions(x, z, 0.35, 0, y);
+    return Math.hypot(nx - x, nz - z) < 0.02;
+  };
+  const kant = V.tribune ? -V.tribune.kant : -1;      // de kant zonder tribune
+  const rand = kant * (V.vb / 2 + 1.6);
+  return {
+    // staand op de grond houdt het bord je tegen
+    lopend: vrij(0, rand, 0),
+    // op het hoogste punt van je sprong niet meer
+    springend: vrij(0, rand, 0.86),
+    // en door de opening in het hek loop je gewoon naar binnen
+    poort: vrij(0, kant * (V.vb / 2 + 4.5), 0),
+    // maar tien meter verderop staat het hek er nog
+    hek: !vrij(20, kant * (V.vb / 2 + 4.5), 0),
+    tribune: V.tribune ? !vrij(0, V.tribune.kant * (V.vb / 2 + 4.5), 0) : null,
+  };
+});
+ok(!erin.lopend, 'lopend kom je niet over de reclameborden heen');
+ok(erin.springend, 'springend wel — zo kom je het veld op');
+ok(erin.poort, 'en bij de middenlijn zit een opening in het hek');
+ok(erin.hek, 'de rest van het hek houdt je gewoon tegen');
+ok(erin.tribune !== false, 'en aan de tribunekant kom je er niet langs');
 
 // ---------- 5. de volkstuinen ----------
 kop('de volkstuinen achter de Wieken');
