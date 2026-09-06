@@ -115,7 +115,16 @@ const model = await page.evaluate(() => {
     driehoeken: u.bak.children[0].geometry.attributes.position.count / 3,
   };
 });
-ok(model.stapelMeshes <= 14, `alle ${model.autos} geparkeerde auto's samen kosten ${model.stapelMeshes} meshes (instanced)`);
+/*
+ Zeven meshes per stapel, en één stapel per soort per tegel van 480 m — niet één
+ mesh per auto. Dit stond op veertien (één stapel per soort voor de hele wereld),
+ maar zo'n stapel valt nooit buiten beeld: sinds de wereld tot IJlst doorloopt
+ staan ze per tegel, zodat frustum culling het meeste laat vallen. Wat de proef
+ bewaakt blijft hetzelfde: het aantal meshes moet ver onder het aantal auto's
+ liggen.
+*/
+ok(model.stapelMeshes < model.autos / 4,
+  `alle ${model.autos} geparkeerde auto's samen kosten ${model.stapelMeshes} meshes (instanced, per tegel)`);
 ok(model.wielen === 4 && model.stuurwielen === 2, 'de auto waar je in stapt heeft vier losse wielen, waarvan twee sturen',
   `${model.wielen} wielen, ${model.stuurwielen} gestuurd`);
 ok(model.remlicht && model.achteruit && model.bak, 'met remlichten, achteruitrijlichten en een kantelende carrosserie');

@@ -828,11 +828,14 @@ export function facade(type, n, storeys, back = false, seed = 1) {
    Beeldpunten per meter. Dit stond op 40 — een kozijn van 8 cm is dan drie
    pixels breed — maar de gevels zijn samen goed voor het leeuwendeel van het
    texturegeheugen, en dat liep op tot 187 MB. Op een telefoon is dat rond of
-   over het budget van de browser. Op 26 px/m is een kozijn nog twee pixels en
-   scheelt het ruim de helft. Een lang rijtje wordt bovendien afgekapt op 2048
-   px, want een blok van vijftien woningen werd anders in zijn eentje 6 MB.
+   over het budget van de browser. Toen de wereld tot IJlst werd doorgetrokken
+   liep het weer op naar 215 MB: honderdvijfenvijftig straten geven veel meer
+   verschillende rijtjes, en elk rijtje is een eigen doek. Op 21 px/m en met een
+   afkapping op 1600 px in plaats van 2048 komt het geheel weer onder de 140 MB
+   die de kleine wereld ook kostte. Een kozijn van 8 cm is dan nog anderhalve
+   pixel: van dichtbij iets zachter, op straat niet te zien.
   */
-  const PM = Math.min(26, 2048 / Math.max(1, st.w * n));
+  const PM = Math.min(21, 1600 / Math.max(1, st.w * n));
   const HW = Math.round(st.w * PM);
   const SH = st.storeyH || 2.9;
   const H = Math.round(storeys * SH * PM);

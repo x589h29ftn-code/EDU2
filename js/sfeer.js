@@ -151,6 +151,15 @@ export function initSfeer(ctx) {
     scene.fog.color.copy(bot);
     scene.fog.near = weer === 'regen' ? 40 : 180;
     scene.fog.far = weer === 'regen' ? 320 : weer === 'bewolkt' ? 620 : 900;
+    /*
+     Het achtervlak van de camera loopt met de mist mee. Het stond vast op 1200 m
+     terwijl de mist bij helder weer al op 900 dicht is en bij regen op 320: alles
+     daartussen werd wél getekend maar was niet te zien. In een wereld van vier
+     kilometer scheelt dat een hoop; in de kleine wijk viel het niet op omdat de
+     wereld daar toch al eerder ophield.
+    */
+    const wil = scene.fog.far + 60;
+    if (Math.abs(camera.far - wil) > 1) { camera.far = wil; camera.updateProjectionMatrix(); }
 
     // lampen gloeien alleen als het donker is
     mats.lamp.emissiveIntensity = nacht ? 2.4 : 0.15;

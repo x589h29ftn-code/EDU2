@@ -71,7 +71,8 @@ const kg = await page.evaluate(() => {
   return { n: vakken.length, groot: groot.length, opp: Math.round(groot.reduce((s, v) => s + opp(v.r[0]), 0)) };
 });
 ok(kg.n >= 7, 'de kunstgrasvakken staan in de kaart', `${kg.n} vakken`);
-ok(kg.groot === 4, 'waarvan vier hele velden: twee voetbal en twee hockey',
+// sinds de wereld tot IJlst doorloopt zit het sportpark van IJlst er ook bij
+ok(kg.groot >= 4, 'waarvan hele velden: voetbal en hockey in Sneek en IJlst',
   `${kg.groot} van meer dan 4000 m², samen ${kg.opp} m²`);
 
 // ---------- 2. de velden zelf ----------

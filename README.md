@@ -5,9 +5,10 @@ uit de officiële geodata van de wijk (BGT en 3D BAG): elke straat, stoep, parke
 huis staat op ware grootte en op de juiste plek, met de echte straatnamen en huisnummers en de echte
 dakvormen en hoogtes.
 
-De speelwereld is **1330 × 1300 meter**: heel Tinga én de buurt aan de overkant van de N7, samen
-**2506 panden**, 49 straten en 22 kilometer weg. Je kunt dus over het Viaduct Tinga de rondweg over
-rijden en aan de andere kant gewoon doorrijden de Hemstraten en de Zijlstraten in.
+De speelwereld is **4380 × 2500 meter** (bijna 11 km²): heel Tinga, de buurt aan de overkant van de
+N7, de Lemmerweg naar het oosten, de polder ten zuidwesten en helemaal aan het eind de stad
+**IJlst** — samen **7885 panden**, 155 straten en 75 kilometer weg. Dat is precies zover als de
+brondata reikt, en dus ook de buitengrens van de wereld.
 
 ![De hele wereld op de kaart](docs/screenshots/wereld_kaart.png)
 
@@ -805,7 +806,7 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 
 - `index.html` – pagina, HUD en startscherm
 - `js/kaart.js` – **de kaart van de wijk, gegenereerd uit BGT en 3D BAG** (`npm run geo:genereer`): alle
-  vlakken van de openbare ruimte, wegassen met gemeten breedte, 2506 panden met hun echte grondvlak en
+  vlakken van de openbare ruimte, wegassen met gemeten breedte, 7885 panden met hun echte grondvlak en
   3D-dak, parkeerplekken, straatnaamlabels en huisnummers, in meters vanaf het kruispunt
   Molenkrite/Monnikmolen/Jasker. Niet met de hand bewerken; zie [docs/METHODIEK.md](docs/METHODIEK.md)
 - `js/kaartwereld.js` – bouwt de wereld uit `kaart.js`: ondergrond per materiaal, trottoirbanden, oevers,

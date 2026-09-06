@@ -259,6 +259,45 @@ export class HUD {
     return this._water;
   }
 
+  /*
+   Een rooster over de wegvakken en de sloten, zodat de minimap niet elk beeld
+   door alle 4247 wegvakken en 529 waterpolygonen van de wereld loopt maar alleen
+   door de cellen die in het rondje passen. Bij één wijk was de lus goedkoop
+   genoeg; over vier kilometer wereld kostte hij bijna drie milliseconden.
+  */
+  kaartRooster() {
+    const wegen = roadSegments, water = this.waterDozen();
+    if (this._rooster && this._roosterN === wegen.length + water.length) return this._rooster;
+    this._roosterN = wegen.length + water.length;
+    const CEL = 80;
+    const r = { CEL, wegen: new Map(), water: new Map() };
+    const zet = (kaart, ding, x0, z0, x1, z1) => {
+      for (let i = Math.floor(x0 / CEL); i <= Math.floor(x1 / CEL); i++)
+        for (let j = Math.floor(z0 / CEL); j <= Math.floor(z1 / CEL); j++) {
+          const k = i + ':' + j;
+          let l = kaart.get(k); if (!l) kaart.set(k, l = []);
+          l.push(ding);
+        }
+    };
+    for (const s of wegen) zet(r.wegen, s, Math.min(s.a[0], s.b[0]), Math.min(s.a[1], s.b[1]), Math.max(s.a[0], s.b[0]), Math.max(s.a[1], s.b[1]));
+    for (const p of water) zet(r.water, p, p.doos[0], p.doos[1], p.doos[2], p.doos[3]);
+    this._rooster = r;
+    return r;
+  }
+
+  // wat ligt er binnen `R` meter van (px, pz)? ontdubbeld, want een lang wegvak
+  // ligt in meerdere cellen
+  uitRooster(kaart, px, pz, R) {
+    const { CEL } = this.kaartRooster();
+    const uit = [], gezien = new Set();
+    for (let i = Math.floor((px - R) / CEL); i <= Math.floor((px + R) / CEL); i++)
+      for (let j = Math.floor((pz - R) / CEL); j <= Math.floor((pz + R) / CEL); j++) {
+        const l = kaart.get(i + ':' + j);
+        if (l) for (const d of l) { if (!gezien.has(d)) { gezien.add(d); uit.push(d); } }
+      }
+    return uit;
+  }
+
   drawMap(player, vehicles, npcs) {
     const c = this.ctx, W = this.canvas.width, H = this.canvas.height;
     const scale = 1.35; // px per meter
@@ -284,13 +323,13 @@ export class HUD {
     c.translate(W / 2, H / 2); c.rotate(this._kaartRot); c.translate(-px * scale, -pz * scale);
     // water
     c.fillStyle = '#6a97a8';
-    for (const poly of this.waterDozen()) {
+    for (const poly of this.uitRooster(this.kaartRooster().water, px, pz, R)) {
       if (!doosNabij(poly.doos)) continue;
       c.beginPath(); poly.punten.forEach(([x, z], i) => { if (i) c.lineTo(x * scale, z * scale); else c.moveTo(x * scale, z * scale); }); c.closePath(); c.fill();
     }
     // wegen
     c.lineCap = 'round'; c.lineJoin = 'round';
-    for (const s of roadSegments) {
+    for (const s of this.uitRooster(this.kaartRooster().wegen, px, pz, R)) {
       if (s.w === 0) continue;
       if (!nabij(s.a[0], s.a[1]) && !nabij(s.b[0], s.b[1])) continue;
       c.strokeStyle = s.drive ? '#d9d6cf' : '#b9a58a'; c.lineWidth = Math.max(2, s.w * scale);

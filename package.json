@@ -32,7 +32,7 @@
     "geo:bag3d": "node --no-warnings tools/geo/bag3d2geojson.mjs",
     "geo:plaat": "node tools/geo/plaat.mjs",
     "geo:genereer": "node tools/geo/genereer.mjs",
-    "geo:boven": "node tools/geo/bovenaanzicht.mjs 8123 4",
+    "geo:boven": "node tools/geo/bovenaanzicht.mjs 8123 2",
     "geo:steekproef": "node tools/geo/steekproef.mjs 8123",
     "verhaaltest": "node tools/verhaaltest.mjs",
     "verhaalshots": "node tools/verhaalshots.mjs",
