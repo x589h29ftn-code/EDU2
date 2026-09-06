@@ -22,7 +22,7 @@ De ruwe downloads staan ook in `bron/`, zodat alles opnieuw te maken is:
 
 | bestand | wat | omzetten met |
 |---|---|---|
-| `bgt_tinga.zip.zip` | BGT als CityGML uit de PDOK-downloadviewer (getekend gebied rond Tinga) | `node tools/geo/bgt2geojson.mjs data/geo/bron/bgt_tinga.zip.zip` |
+| `bgt_*.zip` | BGT als CityGML uit de PDOK-downloadviewer (een getekend gebied per download) | `node tools/geo/bgt2geojson.mjs` — zonder argument leest hij **alle** `bgt_*.zip` in deze map en voegt ze samen |
 | `<tegel>.gpkg` | 3D BAG-tegel als GeoPackage (attributen en 2D-vlakken) | `node tools/geo/bag3d2geojson.mjs` — zonder argument leest hij **alle** `.gpkg` in deze map |
 | `<tegel>.city.json` | dezelfde tegels als CityJSON (3D-dakmodellen, LoD 2.2) | worden in stap 4 direct gelezen, alle `.city.json` in deze map |
 
@@ -56,6 +56,35 @@ opnieuw draaien. De omzetter loopt zelf langs alle tegels en ontdubbelt op
 BAG-identificatie, en `genereer.mjs` slaat een CityJSON-tegel over zodra zijn
 `geographicalExtent` het gebied niet raakt. Aan de gereedschappen hoeft niets
 veranderd te worden.
+
+### IJlst: wat er is en wat er ontbreekt
+
+Tegel `7-624-992` beslaat RD X 169585–173611 / Y 554869–558897 (4,0 × 4,0 km) en
+daar zit **IJlst** in: 2005 panden tussen X 169596–171448 en Y 557135–558883
+(1,85 × 1,75 km), allemaal met een daktype (1709 schuin, 267 plat, 23
+samengesteld, 6 onbekend) en bouwjaren van 1572 tot 2025. Het 3D-deel is er dus.
+
+Wat er **niet** is: de BGT reikt niet verder dan X 171225–173278 / Y 558514–560406
+— dat is de download rond Tinga. Van IJlst overlapt daar alleen een hoekje van
+223 × 369 m polder mee, geen stad. Zonder BGT is er voor IJlst dus geen enkele
+straat, geen water (en de Ee loopt dwars door de stad), geen stoep, berm of
+groen, geen straatnaam en geen huisnummer. Wat er dan overblijft is tweeduizend
+gebouwen met een goed dak op een leeg grasveld: niet te berijden, zonder namen,
+en elk pand zou terugvallen op een standaard woningtype omdat
+`data/stijl/straten.json` op straatnaam werkt.
+
+**Nodig om IJlst te kunnen bouwen:**
+
+1. `bgt_ijlst.zip.zip` — een BGT-download uit de PDOK-downloadviewer met een
+   gebied getekend om IJlst, alle objecttypen, als CityGML. Neerzetten in deze
+   map is genoeg; `geo:bgt` pakt hem vanzelf mee.
+2. Waarschijnlijk een 3D BAG-tegel ten **westen** van `7-624-992`: het meest
+   westelijke pand van IJlst ligt 12 m van de westrand van die tegel, dus de stad
+   houdt daar vermoedelijk niet uit zichzelf op.
+
+Let op de omvang: Tinga plus IJlst is samen RD X 169596–172980 / Y 557135–560100,
+oftewel 3384 × 2965 m = 10,0 km². Dat is bijna zes keer het huidige werkgebied
+(1,73 km²) en ongeveer een verdubbeling van het aantal panden.
 
 ## Bestanden in `bron/`
 

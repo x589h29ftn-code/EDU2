@@ -1409,6 +1409,7 @@ tel('viaducten', VIADUCTEN.length);
  In data/stijl/omgeving.json staat alleen een punt per veld en hoe het eruitziet.
 */
 const SPORTVELDEN = [];
+const veldRingen = [];              // de BGT-vlakken van de velden zelf
 for (const S of OMGEVING.sportvelden || []) {
   const vlak = VLAKKEN.find(v => ['kunstgras', 'gras', 'asfaltvlak'].includes(v.k) && inPolygoon(S.punt, v.r));
   if (!vlak) { console.warn(`LET OP: sportveld ${S.naam}: geen vlak op ${S.punt}`); continue; }
@@ -1444,6 +1445,7 @@ for (const S of OMGEVING.sportvelden || []) {
   const maxL = S.maat ? S.maat[0] : 105, maxB = S.maat ? S.maat[1] : 68;
   const vl = Math.min(lang - 2 * uitloop, maxL), vb = Math.min(breed - 2 * uitloop, maxB);
   if (vl < 40 || vb < 25) { console.warn(`LET OP: sportveld ${S.naam}: ${r2(vl)} x ${r2(vb)} m is te klein voor een veld`); continue; }
+  veldRingen.push(vlak.r);
   SPORTVELDEN.push({
     naam: S.naam, soort: S.soort || (vlak.k === 'kunstgras' ? 'kunstgras' : 'gras'),
     hoofd: !!S.hoofd, cx: r2(beste.cx), cz: r2(beste.cz), hoek: r2(hoek),
@@ -1454,6 +1456,21 @@ for (const S of OMGEVING.sportvelden || []) {
   telling[`sportveld_${S.naam.replace(/\W+/g, '_').toLowerCase()}`] = `${Math.round(vl)}x${Math.round(vb)} m`;
 }
 tel('sportvelden', SPORTVELDEN.length);
+/*
+ Een voetbalveld is geen gazon. De twee grasvelden zijn in de BGT gewoon
+ groenvoorziening van meer dan 600 m², en dat is precies waar de parkbomenregel
+ hierboven grote bomen in strooit — er stonden vijfentwintig bomen midden op het
+ veld. Alles wat op een veld terecht is gekomen gaat er hier weer af; dat is
+ dezelfde aanpak als bij de bomen onder het brugdek van het viaduct.
+*/
+if (veldRingen.length) {
+  const opVeld = (o) => veldRingen.some(r => inPolygoon([o.x, o.z], r));
+  let weg = 0;
+  for (const lijst of [BOMEN, STRAATBOMEN, PARKBOMEN, STRUIKEN, LANTAARNS]) {
+    for (let i = lijst.length - 1; i >= 0; i--) if (opVeld(lijst[i])) { lijst.splice(i, 1); weg++; }
+  }
+  tel('van_sportveld_weggehaald', weg);
+}
 
 // ---------------------------------------------------------------- volkstuinen
 /*

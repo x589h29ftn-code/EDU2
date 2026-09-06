@@ -227,14 +227,19 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
       }
       const [lx, lz] = dw(0, 0);
       voegToe(B.paal, latGeo, plaats(lx, grondY + DOEL_H, lz, draai));
-      // net: achterwand, twee zijkanten en een dak, 1,6 m diep naar achteren
-      const [ax, az] = dw(-s * diep, 0);
+      /*
+       Het net hangt áchter het doel, dus buiten het speelveld. Dat stond
+       verkeerd om: `dw` telt zijn eerste getal bij de doellijn s * hl op, en met
+       -s * diep kwam het net het veld ín te hangen — het doel stond met zijn rug
+       naar de goede kant. Naar buiten is dezelfde kant op als s.
+      */
+      const [ax, az] = dw(s * diep, 0);
       voegToe(B.net, gaasGeo(DOEL_B, DOEL_H + 0.4), plaats(ax, grondY + (DOEL_H + 0.4) / 2, az, draai + Math.PI / 2));
       for (const t of [-1, 1]) {
-        const [zx, zz] = dw(-s * diep / 2, t * halve);
+        const [zx, zz] = dw(s * diep / 2, t * halve);
         voegToe(B.net, gaasGeo(diep, DOEL_H), plaats(zx, grondY + DOEL_H / 2, zz, draai));
       }
-      const [dx, dz] = dw(-s * diep / 2, 0);
+      const [dx, dz] = dw(s * diep / 2, 0);
       voegToe(B.net, gaasGeo(diep, DOEL_B), plaats(dx, grondY + DOEL_H, dz, draai, -Math.PI / 2));
     }
 
