@@ -292,6 +292,31 @@ def('jumbovlag', 'Vlaggenmast supermarkt', 'straat', [0.5, 0.5], 8.4, () => bouw
   doos(0.78, 4.2, 0.02, M.vlagJumbo, 0.41, 6.0, 0.012, Math.PI),
 ]));
 
+/*
+ Een rij winkelwagens onder een afdakje, zoals ze bij de Poiesz aan De
+ Dassenboarch tegen de gevel staan. Vijf wagens in elkaar geschoven: elke wagen
+ is een mand van gaas (hier: een open bak met dwarslatten), vier wieltjes en een
+ rode handgreep. Ze staan met de kop naar -Z, net als elk object hier.
+*/
+def('winkelwagens', 'Rij winkelwagens', 'straat', [0.7, 3.6], 1.1, () => {
+  const d = [];
+  for (let i = 0; i < 5; i++) {
+    const z = -1.5 + i * 0.42;
+    // de mand: bodem, twee zijkanten en een achterwand, allemaal dun staal
+    d.push(doos(0.58, 0.03, 0.85, M.staal, 0, 0.55, z));
+    for (const sx of [-1, 1]) d.push(doos(0.03, 0.42, 0.85, M.staal, sx * 0.29, 0.75, z));
+    d.push(doos(0.58, 0.42, 0.03, M.staal, 0, 0.75, z + 0.42));
+    // onderstel en wielen
+    d.push(doos(0.52, 0.04, 0.06, M.staalDonker, 0, 0.18, z));
+    for (const sx of [-1, 1]) for (const dz of [-0.32, 0.3]) {
+      d.push(cil(0.06, 0.06, 0.03, M.zwart, sx * 0.24, 0.06, z + dz, 8, 0, Math.PI / 2));
+    }
+    // de handgreep in het rood van de winkelwagenmunt
+    d.push(doos(0.60, 0.05, 0.05, M.rood, 0, 1.00, z + 0.44));
+  }
+  return bouw(d);
+});
+
 def('nutskast', 'Nutskast', 'straat', [1.1, 0.5], 1.5, () => bouw([
   doos(1.1, 1.4, 0.5, M.grijsPlastic, 0, 0.7, 0),
   doos(1.16, 0.08, 0.56, M.staalDonker, 0, 1.42, 0),

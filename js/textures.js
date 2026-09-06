@@ -732,7 +732,7 @@ export const HOUSE_STYLES = {
   // lichtgrijze stijlen, en boven de ingang — die onder een puntdak met een
   // luifel zit — het groene woordmerk op een zilvergrijze band. Verder dezelfde
   // opzet als de Jumbo hierboven; alleen de kleuren en het merk verschillen.
-  poiesz:      { brick: ['#7c4b3c', '#c0b8ad'], frame: '#e8eaea', frame2: '#e8eaea', door: ['#3f4247'], roof: '#98a0a4', roofType: 'gable', storeys: 1, storeyH: 2.7, w: 6.0, dormer: false, chimney: false, band: '#eceeee', plint: '#4a4a48', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#dfe4e3', merk: 'POIESZ', merkKleur: '#2f9c1e', puiDeel: 0.62 },
+  poiesz:      { brick: ['#7c4b3c', '#c0b8ad'], frame: '#e8eaea', frame2: '#e8eaea', door: ['#3f4247'], roof: '#98a0a4', roofType: 'gable', storeys: 1, storeyH: 2.7, w: 6.0, dormer: false, chimney: false, band: '#eceeee', plint: '#4a4a48', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#dfe4e3', merk: 'POIESZ', merkKleur: '#43b02a', merkAccent: 2, merkAccentKleur: '#e8511f', puiDeel: 0.62 },
   // Tinga State, Molenkrite 115 (foto, 4 sep 2026): een stelpboerderij — een
   // enorme steile piramidekap van rode pannen die van de nok op 13,3 m tot een
   // goot op 1,9 m doorloopt, met rijen dakramen erin. Daaronder een lage
@@ -1044,11 +1044,36 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       g.fillStyle = huisstijl; g.fillRect(x0, bovenkant, HW, bandH2);
       g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(x0, bovenkant + bandH2 - m(0.05), HW, m(0.05));
       if (i % 3 === 0) {
+        /*
+         Het woordmerk. `merkAccent` is de letter die een eigen kleur heeft: bij
+         Poiesz is dat de I, die in het logo oranje is en schuin tussen de groene
+         letters door staat. Per letter tekenen in plaats van in één keer, zodat
+         die ene letter zijn eigen kleur en schuinte kan krijgen.
+        */
+        const woord = st.merk || 'JUMBO';
         g.save();
-        g.fillStyle = st.merkKleur || '#2b2b28';
         g.font = `bold ${Math.round(bandH2 * 0.62)}px sans-serif`;
-        g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText(st.merk || 'JUMBO', x0 + HW / 2, bovenkant + bandH2 * 0.54);
+        g.textBaseline = 'middle';
+        const breedtes = [...woord].map(l => g.measureText(l).width);
+        const totaal = breedtes.reduce((a, b) => a + b, 0);
+        let lx = x0 + HW / 2 - totaal / 2;
+        const ly = bovenkant + bandH2 * 0.54;
+        for (let k = 0; k < woord.length; k++) {
+          const accent = st.merkAccent === k;
+          g.fillStyle = accent ? (st.merkAccentKleur || '#e8511f') : (st.merkKleur || '#2b2b28');
+          if (accent) {
+            g.save();
+            g.translate(lx + breedtes[k] / 2, ly);
+            g.rotate(-0.16);                    // het schuine streepje van het logo
+            g.textAlign = 'center';
+            g.fillText(woord[k], 0, 0);
+            g.restore();
+          } else {
+            g.textAlign = 'left';
+            g.fillText(woord[k], lx, ly);
+          }
+          lx += breedtes[k];
+        }
         g.restore();
       }
     } else if (st.boerderij) {

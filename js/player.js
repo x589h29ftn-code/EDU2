@@ -21,6 +21,14 @@ export class Player {
     this.sprint = false;
     this.inCar = null;
     this.health = 100;
+    /*
+     Bier. `dronken` loopt van 0 tot 1 en zakt in een minuut terug naar nul
+     (js/supermarkt.js zet hem omhoog vanaf het derde flesje). Zolang hij
+     uitstaat deint het beeld: de camera rolt en dobbert wat, en js/hud.js legt
+     er een warme waas overheen.
+    */
+    this.dronken = 0;
+    this.dronkenT = 0;
     this.ammo = 12; this.reserve = 60; this.reloading = 0;
     // wordt door main.js gevuld: duwt je te voet uit de auto's (js/vehicles.js)
     this.blokkade = null;
@@ -182,6 +190,14 @@ export class Player {
     this.camera.rotation.set(0, 0, 0, 'YXZ');
     this.camera.rotation.y = this.yaw + this.kickYaw;
     this.camera.rotation.x = this.pitch + this.kickPitch;
+    if (this.dronken > 0) {
+      // drie trage golven met verschillende perioden: dan komt het deinen nooit
+      // op hetzelfde punt terug en blijft het onrustig aanvoelen
+      const d = this.dronken, t = this.dronkenT;
+      this.camera.rotation.z = Math.sin(t * 1.15) * 0.085 * d;
+      this.camera.rotation.y += Math.sin(t * 0.73) * 0.055 * d;
+      this.camera.rotation.x += Math.sin(t * 1.47 + 1.2) * 0.030 * d;
+    }
   }
 
   // De terugslag zakt terug naar nul; hoe verder hij nog uitstaat, hoe sneller.
@@ -194,6 +210,11 @@ export class Player {
 
   update(dt) {
     this.demptTerugslag(dt);
+    // het bier zakt weg: van vol naar nuchter duurt een minuut
+    if (this.dronken > 0) {
+      this.dronkenT += dt;
+      this.dronken = Math.max(0, this.dronken - dt / 60);
+    }
     if (this.reloading > 0) {
       this.reloading -= dt;
       if (this.reloading <= 0) { const need = 12 - this.ammo; const take = Math.min(need, this.reserve); this.ammo += take; this.reserve -= take; this.reloading = 0; }

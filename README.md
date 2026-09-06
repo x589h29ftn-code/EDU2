@@ -701,6 +701,52 @@ maten van de deel, de wanden die je binnenhouden, de prijs, wat er van je geld a
 kogels bijkrijgt, dat je met een lege portemonnee niets koopt, en dat het icoontje op allebei de
 kaarten getekend wordt. `npm run winkelshots` maakt de foto's hierboven.
 
+## Naar binnen bij de Poiesz: bier kopen
+
+De supermarkt aan De Dassenboarch 32 in IJlst is de derde plek waar je naar binnen kunt. Loop naar de
+schuifdeuren onder de punt van de gevel en druk op **E**.
+
+![Binnen bij de Poiesz](docs/screenshots/poiesz_binnen.png)
+
+Binnen is het een echte winkel van **41,6 bij 30,7 meter** — de maten van het BAG-pand — met een
+verlaagd plafond op 3,4 m vol tl-balken. Wat er staat komt van de foto's:
+
+- **vijf kassa's** met lopende banden en een verlicht kassanummer erboven;
+- **zeven dubbele schappenrijen** vol pakken, met aan het eind van elk gangpad het oranje kopschot met
+  *Extra voordeel* erop, en actiebakken in het brede pad ervoor;
+- rechts de **diepvriesafdeling**: blauwe glasdeuren met de vriesbalk erboven en twee eilanden met
+  vrieskisten;
+- achterin de **versbalie** met de groene Poiesz-wand erboven, en daarnaast de blauwe **zuivelwand**;
+- links de **drankafdeling** met het bier;
+- winkelwagens en plantenbakken in het halletje bij de deur.
+
+![Een gangpad](docs/screenshots/poiesz_gangpad.png)
+
+Er lopen **vijf medewerkers** rond in een groen shirt met een oranje schort en het logo op de borst —
+eentje achter de kassa, eentje aan de versbalie, en drie die de winkel doorlopen — plus **vier
+klanten** die van gangpad naar gangpad slenteren en af en toe bij een schap blijven staan.
+
+![De kassa's](docs/screenshots/poiesz_kassa.png)
+
+### Bier
+
+Bij het bierschap links staat er onderin beeld **E — flesje bier kopen (€ 5)**. Elk flesje kost € 5,
+gaat meteen naar binnen en levert **tien levenspunten** op; boven de honderd kom je niet.
+
+![Het bierschap](docs/screenshots/poiesz_bier.png)
+
+Maar drink je er meer dan twee, dan ga je het merken. Vanaf het **derde flesje** begint het beeld te
+deinen: de camera rolt en dobbert, en er komt een warme waas overheen die de randen vervaagt. Elk
+volgend flesje maakt het erger. Het zakt vanzelf weer weg — in **een minuut** ben je weer nuchter, en
+heb je een minuut lang niets gedronken, dan begint de telling ook weer bij nul.
+
+![Drie flesjes op](docs/screenshots/poiesz_dronken.png)
+
+`npm run poiesztest` toetst het geheel — vierendertig controles: de maten uit de kaart, de deur heen
+en terug, de inrichting en de schappen waar je niet doorheen loopt, de negen mensen en hun kleding,
+de prijs en de levenspunten van een flesje, dat je zonder geld niets krijgt, en het wazige beeld dat
+vanaf het derde flesje komt en in een minuut weer wegzakt. `npm run poieszshots` maakt de foto's.
+
 ## Opslaan en laden
 
 Er is één opslagplek, in de browser (de Windows-app draait dezelfde pagina en gebruikt dezelfde).
@@ -807,11 +853,14 @@ klomp die er tot nu toe stond.
 
 De supermarkt van IJlst: donkerbruine baksteen onder een flauw hellend dak van grijze metalen
 dakplaten, met onderlangs de hele voorgevel een glazen pui met lichtgrijze stijlen, en daarboven de
-zilvergrijze band met het **groene woordmerk**. De ingang zit onder het puntdak in het midden — dat
-staat zo in het 3D BAG-model. Het parkeerterrein ligt aan de oostkant, en daar kijkt de voorgevel
-ook naartoe.
+zilvergrijze band met het **groene woordmerk** — met de I in oranje, schuin tussen de andere letters
+door, net als in het echte logo. De ingang zit onder het puntdak in het midden — dat staat zo in het
+3D BAG-model. Het parkeerterrein ligt aan de oostkant, en daar kijkt de voorgevel ook naartoe; rechts
+van de ingang staan twee rijen winkelwagens tegen de gevel.
 
 ![Supermarkt Poiesz](docs/screenshots/poiesz_pui.png)
+
+En je kunt er naar binnen: zie [Naar binnen bij de Poiesz](#naar-binnen-bij-de-poiesz-bier-kopen).
 
 ### Basisschool De Spil, Molenkrite 169
 
@@ -882,6 +931,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `js/volkstuin.js` – de volkstuinen achter de Wieken: bedden, paden, hagen en hekjes, schuurtjes en kassen
 - `js/molen.js` – Houtzaagmolen De Rat aan het Sneekerpad: zaagloodsen, onderbouw, stelling, rieten
   achtkant, kap, staart en het draaiende gevlucht
+- `js/supermarkt.js` – de binnenkant van de Poiesz in IJlst: kassa's, schappen, diepvries, versbalie,
+  personeel en klanten, en het bier
 - `js/kaartkleuren.js` – één kleur per klasse, gedeeld door kaartplaat, bovenaanzicht en minimap
 - `js/data.js` – de oude, handgetekende kaart in pixelcoördinaten; draait nog met `?kaart=oud`
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
@@ -949,7 +1000,9 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `tools/sporttest.mjs` – toetst het sportpark aan de Molenkrite en de volkstuinen achter de Wieken
 - `tools/sportshots.mjs` – maakt de foto's van het voetbalveld en de volkstuinen
 - `tools/molentest.mjs` – toetst de houtzaagmolen en de Poiesz in IJlst
-- `tools/molenshots.mjs` – maakt de foto's van de molen en de supermarkt
+- `tools/molenshots.mjs` – maakt de foto's van de molen en de gevel van de supermarkt
+- `tools/poiesztest.mjs` – toetst de binnenkant van de Poiesz, het personeel en het bier
+- `tools/poieszshots.mjs` – maakt de foto's van de winkel van binnen
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

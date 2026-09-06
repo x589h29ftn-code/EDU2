@@ -55,6 +55,8 @@
     "sporttest": "node tools/sporttest.mjs",
     "sportshots": "node tools/sportshots.mjs",
     "molentest": "node tools/molentest.mjs",
-    "molenshots": "node tools/molenshots.mjs"
+    "molenshots": "node tools/molenshots.mjs",
+    "poiesztest": "node tools/poiesztest.mjs",
+    "poieszshots": "node tools/poieszshots.mjs"
   }
 }
