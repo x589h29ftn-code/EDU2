@@ -58,6 +58,22 @@ const ZOEKSTRAAL = [0, 55, 85, 120, 155, 195];
  straat en bleef de hele ploeg net buiten bereik rondjes rijden.
 */
 const UITRUK_STRAAL = 22;                  // (m)
+/*
+ Uitstappen doe je niet bij een achtervolging op snelheid. Elke bemanning stapte
+ uit zodra je binnen veertig meter kwam, ook als je met honderd langsscheurde —
+ dan stond er ineens een rij agenten op straat achter je. Loop of rijd je
+ stapvoets, dan stappen ze wél uit en komen ze je te voet halen. Dertig km/u is
+ 8,3 m/s.
+*/
+const UITSTAP_SNELHEID = 8.3;              // (m/s)
+/*
+ Wegblokkades. Vanaf dit aantal sterren zetten ze een straat vóór je dicht, ver
+ genoeg weg en buiten je zicht, zodat je er tegenaan rijdt in plaats van hem te
+ zien verschijnen.
+*/
+const BLOKKADE_STER = 4;
+const BLOKKADE_MIN = 110, BLOKKADE_MAX = 260;   // afstand tot de speler (m)
+const BLOKKADE_MAX_AANTAL = 2;
 const ZICHT = 42;                          // hoe ver een agent je ziet (m)
 const GEZICHTSVELD = 1.15;                 // halve openingshoek (rad)
 const GEHOOR = 65;                         // een schot horen ze verder (m)
@@ -103,6 +119,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   const agenten = [];          // { persoon, staat, ... }
   const wagens = [];           // { car, licht, agenten, staat }
   const verlaten = [];         // lege surveillanceauto's: { car, balk, links, rechts, t, knipper }
+  const wrakken = [];          // uitgebrande politieauto's: { car, t }
+  const blokkades = [];        // wegblokkades: { cars, x, z }
   let meldT = 0;               // korte pauze tussen twee meldingen in beeld
   let stille = 0;              // misdaden die (nog) niemand meldde
   const rijbanen = (KAART && KAART.wegassen ? KAART.wegassen.filter(w => w.drive && w.lengte > 40) : []);
@@ -381,8 +399,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
    het dak. Hij is niet in te stappen (`driveable: false`), want hij is van de
    politie. De twee lampen knipperen om beurten.
   */
-  function maakWagen(x, z, yaw = Math.random() * 6.28) {
-    const car = vehicles.voegToe({ x, z, yaw, soort: 'hatch', kleur: 0x1b3a7a, driveable: false });
+  // de zwaailichtbalk op het dak; ook de blokkadewagens krijgen er een
+  function lichtbalk(car) {
     const balk = new THREE.Group();
     const voet = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.22), new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 0.8 }));
     voet.position.set(0, 1.44, 0.1);
@@ -392,12 +410,82 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     links.position.set(-0.24, 1.53, 0.1); rechts.position.set(0.24, 1.53, 0.1);
     balk.add(voet, links, rechts);
     car.mesh.add(balk);
+    return { balk, links, rechts };
+  }
+
+  function maakWagen(x, z, yaw = Math.random() * 6.28) {
+    const car = vehicles.voegToe({ x, z, yaw, soort: 'hatch', kleur: 0x1b3a7a, driveable: false });
+    const { balk, links, rechts } = lichtbalk(car);
     const w = { car, balk, links, rechts, agenten: [], staat: 'naarPlek', knipper: 0, uitstapT: 0,
                 klemT: 0, stilT: 0, route: null, routeI: 1, routeDoel: null, routeT: 0 };
     // twee agenten zitten erin tot ze uitstappen
     w.agenten.push(maakAgent(x, z, w), maakAgent(x, z, w));
     wagens.push(w);
     return w;
+  }
+
+  /*
+   ---- wegblokkades ----
+   Vanaf vier sterren zetten ze een straat vóór je dicht: twee wagens dwars over
+   de rijbaan, met hun zwaailicht aan. Ze worden neergezet op ruim honderd meter
+   en buiten je zicht, zodat je er tegenaan rijdt in plaats van hem voor je ogen
+   te zien verschijnen. Het punt komt uit hetzelfde rooster van rijbaanpunten als
+   de eenheden zelf, en er wordt gekeken naar wélke kant je op gaat: een blokkade
+   achter je is geen blokkade.
+  */
+  function zetBlokkade() {
+    const sp = spelerPlek();
+    const vaart = Math.hypot(spSnelheid.x, spSnelheid.z);
+    const rx = vaart > 1 ? spSnelheid.x / vaart : 0, rz = vaart > 1 ? spSnelheid.z / vaart : 0;
+    const kandidaten = puntenRond(sp.x, sp.z, BLOKKADE_MAX);
+    let beste = null, besteScore = -1;
+    for (let poging = 0; poging < 80 && kandidaten.length; poging++) {
+      const { as, k } = kandidaten[Math.floor(Math.random() * kandidaten.length)];
+      const p = as.pts[k];
+      const q = as.pts[Math.min(as.pts.length - 1, k + 1)];
+      if (q === p) continue;
+      const d = Math.hypot(p[0] - sp.x, p[1] - sp.z);
+      if (d < BLOKKADE_MIN || d > BLOKKADE_MAX) continue;
+      if (zichtVrij(sp.x, sp.z, p[0], p[1], 1.6)) continue;      // hij mag niet te zien zijn
+      if (blokkades.some(b => Math.hypot(b.x - p[0], b.z - p[1]) < 90)) continue;
+      // ligt hij vóór je? met stilstand telt elke kant even zwaar
+      const vooruit = rx ? ((p[0] - sp.x) * rx + (p[1] - sp.z) * rz) / d : 0.5;
+      if (vooruit < 0.2) continue;
+      const score = vooruit * 100 - Math.abs(d - 160);
+      if (score > besteScore) { besteScore = score; beste = { p, q }; }
+    }
+    if (!beste) return false;
+    const { p, q } = beste;
+    const dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz) || 1;
+    const ex = dx / L, ez = dz / L;              // langs de weg
+    // de wagens staan dwars: hun lengteas haaks op de rijrichting
+    const yaw = Math.atan2(-ez, ex) + Math.PI / 2;
+    const cars = [];
+    for (const zij of [-1, 1]) {
+      const cx = p[0] + ex * zij * 1.9, cz = p[1] + ez * zij * 1.9;
+      const car = vehicles.voegToe({ x: cx, z: cz, yaw, soort: 'hatch', kleur: 0x1b3a7a, driveable: false });
+      const l = lichtbalk(car);
+      cars.push({ car, ...l, knipper: Math.random() * 2 });
+    }
+    blokkades.push({ cars, x: p[0], z: p[1] });
+    return true;
+  }
+
+  function ruimBlokkade(b) {
+    for (const c of b.cars) {
+      scene.remove(c.car.mesh);
+      const i = vehicles.cars.indexOf(c.car); if (i >= 0) vehicles.cars.splice(i, 1);
+    }
+    const j = blokkades.indexOf(b); if (j >= 0) blokkades.splice(j, 1);
+  }
+
+  function ruimWrakken() {
+    for (const w of [...wrakken]) {
+      if (player.inCar === w.car) continue;
+      scene.remove(w.car.mesh);
+      const i = vehicles.cars.indexOf(w.car); if (i >= 0) vehicles.cars.splice(i, 1);
+      const j = wrakken.indexOf(w); if (j >= 0) wrakken.splice(j, 1);
+    }
   }
 
   function ruimAgent(a) {
@@ -585,6 +673,26 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   }
 
   // ---------------------------------------------------------------- treffer
+  /*
+   Iemand van ons is geraakt. Dat gaat over de radio, en dan weten ze allemaal
+   waar het vandaan kwam: `laatstBekend` wordt de plek van de schutter, niet die
+   van het slachtoffer. Wie in de buurt is gaat er meteen op af; de rest krijgt
+   het mee als hij een nieuw zoekpunt kiest. Zonder dit kon je een agent van
+   dertig meter neerleggen zonder dat er iets veranderde, want alleen zíen telde.
+  */
+  function meldTreffer() {
+    const sp = spelerPlek();
+    laatstBekend = { x: sp.x, z: sp.z };
+    for (const a of agenten) {
+      if (a.staat === 'neer' || a.staat === 'jacht') continue;
+      a.staat = 'zoekt'; a.doel = { x: sp.x, z: sp.z }; a.route = null; a.zoekT = 16;
+    }
+    for (const w of wagens) {
+      if (w.staat === 'jacht') continue;
+      w.staat = 'naarPlek'; w.doel = null; w.route = null; w.zoekT = 0;
+    }
+  }
+
   // Een agent neerschieten: hij gaat neer en dat kost je een flinke verdenking.
   function raak(obj) {
     for (const a of agenten) {
@@ -596,6 +704,48 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       a.persoon.groep.userData.neer = true;
       const pos = a.persoon.groep.position;
       misdaad('agent', pos.x, pos.z);
+      meldTreffer();
+      return true;
+    }
+    return false;
+  }
+
+  /*
+   Op een politieauto schieten. Tien kogels en hij vliegt in brand: js/vehicles.js
+   houdt de schade bij en laat hem ontploffen. Ook een kogel die hem alleen raakt
+   is een aanwijzing — er wordt op ons geschoten en we weten vanwaar.
+  */
+  function raakWagen(obj, hoeveel = 10) {
+    for (const lijst of [wagens, verlaten]) {
+      for (const w of lijst) {
+        if (!w.car.mesh) continue;
+        let hit = false;
+        w.car.mesh.traverse(o => { if (o === obj) hit = true; });
+        if (!hit) continue;
+        w.car.hp -= hoeveel;
+        misdaad('schot', w.car.x, w.car.z);
+        meldTreffer();
+        return w.car;
+      }
+    }
+    return null;
+  }
+
+  // De wagen is opgeblazen: de inzittenden gaan mee en het wrak wordt bij het
+  // opruimen van de achtervolging weggehaald.
+  function wagenOp(car) {
+    for (const w of [...wagens]) {
+      if (w.car !== car) continue;
+      for (const a of [...w.agenten]) { a.staat = 'neer'; a.persoon.groep.userData.neer = true; a.wagen = null; }
+      w.agenten.length = 0;
+      const j = wagens.indexOf(w); if (j >= 0) wagens.splice(j, 1);
+      wrakken.push({ car, t: 0 });
+      return true;
+    }
+    for (const v of [...verlaten]) {
+      if (v.car !== car) continue;
+      const j = verlaten.indexOf(v); if (j >= 0) verlaten.splice(j, 1);
+      wrakken.push({ car, t: 0 });
       return true;
     }
     return false;
@@ -632,6 +782,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
 
   // ---------------------------------------------------------------- per beeld
   let zagJeVorigBeeld = false;
+  let blokT = 0;               // wachttijd tot de volgende wegblokkade
   function update(dt) {
     const s = ster();
     let schade = 0;
@@ -647,6 +798,26 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     if (stille > 0) stille = Math.max(0, stille - dt / 90);   // na anderhalve minuut vergeten
 
     if (s > 0) vulAan(dt);
+    /*
+     Wegblokkades: bij veel sterren komt er om de paar tellen een bij, tot het
+     maximum. Zakt de verdenking, dan worden ze weer weggehaald — een straat die
+     dicht blijft nadat ze je kwijt zijn is geen achtervolging meer maar een
+     wegversperring voor altijd.
+    */
+    blokT -= dt;
+    if (s >= BLOKKADE_STER && blokkades.length < BLOKKADE_MAX_AANTAL && blokT <= 0) {
+      blokT = zetBlokkade() ? 12 : 3;
+    }
+    if (s < BLOKKADE_STER) for (const b of [...blokkades]) {
+      // niet oplossen voor je neus: pas als je er niet vlakbij staat
+      if (Math.hypot(b.x - sp.x, b.z - sp.z) > 70) ruimBlokkade(b);
+    }
+    for (const b of blokkades) for (const c of b.cars) {
+      c.knipper += dt;
+      const aan = Math.floor(c.knipper * 4) % 2 === 0;
+      c.links.material.emissiveIntensity = aan ? 3.2 : 0.15;
+      c.rechts.material.emissiveIntensity = aan ? 0.15 : 3.2;
+    }
 
     let iemandZiet = false;
     let dichtsteSirene = null;
@@ -828,8 +999,13 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       const ank = anker();
       if (Math.hypot(car.x - ank.x, car.z - ank.z) > 420 && dSp > 120) { ruimWagen(w); continue; }
 
-      // bij de speler in de buurt stappen ze uit en gaan ze te voet verder
-      if (dSp < 40 && w.agenten.some(a => !a.persoon.groep.visible)) {
+      /*
+       Bij de speler in de buurt stappen ze uit en gaan ze te voet verder — maar
+       alleen als hij loopt of stapvoets rijdt. Scheur je voorbij, dan blijven ze
+       zitten en rijden ze achter je aan; uitstappen heeft dan geen zin.
+      */
+      const spVaart = Math.hypot(spSnelheid.x, spSnelheid.z);
+      if (dSp < 40 && spVaart < UITSTAP_SNELHEID && w.agenten.some(a => !a.persoon.groep.visible)) {
         w.uitstapT += dt;
         if (w.uitstapT > 0.4 || dSp < 22) {
           const zij = new THREE.Vector3(Math.cos(car.yaw), 0, -Math.sin(car.yaw));
@@ -918,6 +1094,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       for (const a of [...agenten]) if (!a.wagen) ruimAgent(a);
       if (wagens.length === 0 && agenten.length === 0 && laatstBekend) {
         laatstBekend = null;
+        ruimWrakken();
+        for (const b of [...blokkades]) ruimBlokkade(b);
         if (hud) hud.show('Je bent ze kwijt', 2);
       }
     }
@@ -932,12 +1110,14 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     // een lege wagen waar de speler in zit is van hem; die laten we staan
     for (const v of [...verlaten]) { if (player.inCar !== v.car) ruimVerlaten(v); }
     for (const a of [...agenten]) ruimAgent(a);
-    heat = 0; gezienT = 0; laatstBekend = null; stille = 0;
+    for (const b of [...blokkades]) ruimBlokkade(b);
+    ruimWrakken();
+    heat = 0; gezienT = 0; laatstBekend = null; stille = 0; blokT = 0;
     geluid.sirene(null);
   }
 
   return {
-    misdaad, update, raak, doelen, hoorSchot, reset, aanrijden,
+    misdaad, update, raak, raakWagen, wagenOp, doelen, hoorSchot, reset, aanrijden,
     get ster() { return ster(); },
     get heat() { return heat; },
     get gezocht() { return ster() > 0; },
@@ -952,6 +1132,6 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     },
     // voor de proef: dwing een bepaalde verdenking af en kijk binnen
     zetHeat(v) { heat = Math.max(0, Math.min(MAX_HEAT, v)); },
-    get intern() { return { wagens, agenten, verlaten, laatstBekend, gezienT, stille }; },
+    get intern() { return { wagens, agenten, verlaten, wrakken, blokkades, laatstBekend, gezienT, stille }; },
   };
 }

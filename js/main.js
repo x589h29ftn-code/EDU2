@@ -368,11 +368,44 @@ player.shootCb = (camOrigin, camDir) => {
       politie.misdaad('neergeschoten', h.point.x, h.point.z);
     } else if (politie.raak(h.object)) { geluid.raak(); hud.show('Agent neer!', 1.2); }
     else if (verhaal.raak(h.object)) { geluid.raak(); hud.show('Raak!', 0.8); }
-    else { const car = vehicles.hit(h.object, h.instanceId); if (car) { geluid.klap(); hud.show('Auto geraakt', 0.6); } }
+    else {
+      /*
+       Op een auto schieten. Een politieauto gaat eerst langs js/politie.js: die
+       telt de schade en zet meteen de melding uit — er wordt op ons geschoten en
+       we weten vanwaar. Tien kogels en hij vliegt in brand.
+      */
+      const politiewagen = politie.raakWagen(h.object, 10);
+      const car = politiewagen || vehicles.hit(h.object, h.instanceId);
+      if (car) {
+        geluid.klap();
+        if (car.hp <= 0 && !car.wrak) {
+          vehicles.laatOntploffen(car);
+          if (politiewagen) politie.wagenOp(car);
+          autoOntploft(car);
+          hud.show('Auto opgeblazen!', 1.4);
+        } else hud.show('Auto geraakt', 0.6);
+      }
+    }
     const mark = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), impactMat); mark.position.copy(h.point); scene.add(mark);
     setTimeout(() => scene.remove(mark), 8000);
   }
 };
+
+/*
+ Wat een ontploffing verder losmaakt: een knal die de buurt laat schrikken en de
+ politie op de plek afstuurt, en schade voor wie er te dicht bij staat.
+*/
+function autoOntploft(car) {
+  geluid.klap();
+  npcs.paniek(car.x, car.z, 34);
+  politie.hoorSchot(car.x, car.z);
+  politie.misdaad('schot', car.x, car.z);
+  const d = Math.hypot(player.pos.x - car.x, player.pos.z - car.z);
+  if (d < 9) {
+    player.health -= Math.round(38 * (1 - d / 9));
+    hud.zetLeven(player.health); hud.flits();
+  }
+}
 
 // In- en uitstappen
 function toggleCar() {
@@ -649,6 +682,7 @@ function loop() {
     for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
     // de politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte
     if (!ergensBinnen(player.pos.x, player.pos.z)) {
+      vehicles.werkKnallenBij(dt);       // de vuurballen van opgeblazen auto's
       const schade = politie.update(dt);
       // Zonder deze twee regels merk je er niets van dat er op je geschoten
       // wordt: de levensbalk wordt alleen bijgewerkt als iemand hem bijwerkt,
