@@ -64,11 +64,28 @@ export class HUD {
     }
     for (const [name, b] of seen) if (!this.labels.some(l => l.name === name)) this.labels.push({ name, ...b });
   }
+  /*
+   Straatnamen langs hun eigen straat. Twee namen die over elkaar heen vallen zijn
+   allebei onleesbaar; sinds de wereld vier keer zo groot is staan er honderd­
+   drieëntwintig labels op de grote kaart en liepen ze in de nieuwe buurten dwars
+   door elkaar. We houden daarom bij wat er al staat en slaan een naam over die
+   eroverheen zou komen. De langste straten gaan voor, dus wat overblijft zijn de
+   namen waar je op de kaart iets aan hebt.
+  */
   drawLabels(c, scale, rot, minLen) {
     c.font = 'bold 11px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    for (const l of this.labels) {
+    if (!this._labelsLang) this._labelsLang = [...this.labels].sort((a, b) => b.L - a.L);
+    const gezet = [];
+    for (const l of this._labelsLang) {
       if (l.L * scale < minLen) continue;
       const mx = (l.a[0] + l.b[0]) / 2 * scale, mz = (l.a[1] + l.b[1]) / 2 * scale;
+      if (l.halfBreed === undefined) l.halfBreed = c.measureText(l.name).width / 2 + 3;
+      let botst = false;
+      for (const q of gezet) {
+        if (Math.abs(q.x - mx) < q.halfBreed + l.halfBreed && Math.abs(q.z - mz) < 13) { botst = true; break; }
+      }
+      if (botst) continue;
+      gezet.push({ x: mx, z: mz, halfBreed: l.halfBreed });
       let ang = Math.atan2(l.b[1] - l.a[1], l.b[0] - l.a[0]);
       let screenAng = ang + rot;
       screenAng = ((screenAng % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
@@ -225,12 +242,40 @@ export class HUD {
     this.drawMap(player, vehicles, npcs);
     if (this.bigOpen) this.drawBig(player, vehicles);
   }
+  /*
+   De waterpolygonen met hun omhullende erbij, één keer uitgerekend. De lijst
+   verandert alleen als de wereld opnieuw gebouwd wordt, dus het aantal is
+   genoeg om te zien of hij nog klopt.
+  */
+  waterDozen() {
+    const bron = waterVlakken();
+    if (this._water && this._waterN === bron.length) return this._water;
+    this._waterN = bron.length;
+    this._water = bron.map(punten => {
+      const d = [Infinity, Infinity, -Infinity, -Infinity];
+      for (const [x, z] of punten) { if (x < d[0]) d[0] = x; if (z < d[1]) d[1] = z; if (x > d[2]) d[2] = x; if (z > d[3]) d[3] = z; }
+      return { punten, doos: d };
+    });
+    return this._water;
+  }
+
   drawMap(player, vehicles, npcs) {
     const c = this.ctx, W = this.canvas.width, H = this.canvas.height;
     const scale = 1.35; // px per meter
     const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);
     const pz = this.kaartVanaf ? this.kaartVanaf.z : (player.inCar ? player.inCar.z : player.pos.z);
     const yaw = player.inCar ? player.inCar.yaw : player.yaw;
+    /*
+     Alleen tekenen wat in het rondje past. Er past een straal van (W/2)/schaal
+     aan wereld in — een meter of tachtig — maar de lus liep over álle wegen,
+     alle sloten, alle auto's en alle mensen van de hele wijk. Zolang de kaart
+     één buurt besloeg viel dat niet op; toen het gebied groter werd kostte de
+     minimap alleen al bijna drie milliseconden per beeld. Wat eruit valt was
+     toch niet te zien, dus het beeld blijft precies hetzelfde.
+    */
+    const R = (W / 2) / scale + 10;
+    const nabij = (x, z) => Math.abs(x - px) < R && Math.abs(z - pz) < R;
+    const doosNabij = (b) => b[0] - px < R && px - b[2] < R && b[1] - pz < R && pz - b[3] < R;
     c.clearRect(0, 0, W, H);
     c.save();
     c.beginPath(); c.arc(W / 2, H / 2, W / 2 - 2, 0, Math.PI * 2); c.clip();
@@ -239,31 +284,37 @@ export class HUD {
     c.translate(W / 2, H / 2); c.rotate(this._kaartRot); c.translate(-px * scale, -pz * scale);
     // water
     c.fillStyle = '#6a97a8';
-    for (const poly of waterVlakken()) { c.beginPath(); poly.forEach(([x, z], i) => { if (i) c.lineTo(x * scale, z * scale); else c.moveTo(x * scale, z * scale); }); c.closePath(); c.fill(); }
+    for (const poly of this.waterDozen()) {
+      if (!doosNabij(poly.doos)) continue;
+      c.beginPath(); poly.punten.forEach(([x, z], i) => { if (i) c.lineTo(x * scale, z * scale); else c.moveTo(x * scale, z * scale); }); c.closePath(); c.fill();
+    }
     // wegen
     c.lineCap = 'round'; c.lineJoin = 'round';
     for (const s of roadSegments) {
       if (s.w === 0) continue;
+      if (!nabij(s.a[0], s.a[1]) && !nabij(s.b[0], s.b[1])) continue;
       c.strokeStyle = s.drive ? '#d9d6cf' : '#b9a58a'; c.lineWidth = Math.max(2, s.w * scale);
       c.beginPath(); c.moveTo(s.a[0] * scale, s.a[1] * scale); c.lineTo(s.b[0] * scale, s.b[1] * scale); c.stroke();
     }
     this.tekenRoute(c, scale, 3);
     // auto's — grijs, want blauw is voortaan van de politie alleen
     c.fillStyle = '#4c525c';
-    for (const car of vehicles.cars) { c.fillRect(car.x * scale - 2, car.z * scale - 2, 4, 4); }
+    for (const car of vehicles.cars) { if (nabij(car.x, car.z)) c.fillRect(car.x * scale - 2, car.z * scale - 2, 4, 4); }
     c.fillStyle = '#ffffff';
-    for (const p of npcs.people) if (p.alive) { c.fillRect(p.x * scale - 1.5, p.z * scale - 1.5, 3, 3); }
+    for (const p of npcs.people) if (p.alive && nabij(p.x, p.z)) { c.fillRect(p.x * scale - 1.5, p.z * scale - 1.5, 3, 3); }
     // politie: blauwe stippen die knipperen, wagens wat groter (js/politie.js)
     if (this.politiePlekken && this.politiePlekken.length) {
       const aan = Math.floor(performance.now() / 350) % 2 === 0;
       c.fillStyle = aan ? '#3d8bff' : '#c9dcff';
       for (const p of this.politiePlekken) {
+        if (!nabij(p.x, p.z)) continue;
         const r = p.wagen ? 3 : 2.2;
         c.beginPath(); c.arc(p.x * scale, p.z * scale, r, 0, Math.PI * 2); c.fill();
       }
     }
     // winkels: het icoontje draait niet mee, anders staat hij op zijn kop
     for (const w of (this.winkels || [])) {
+      if (!nabij(w.x, w.z)) continue;
       c.save();
       c.translate(w.x * scale, w.z * scale);
       c.rotate(-this._kaartRot);

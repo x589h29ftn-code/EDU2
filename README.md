@@ -5,6 +5,16 @@ uit de officiële geodata van de wijk (BGT en 3D BAG): elke straat, stoep, parke
 huis staat op ware grootte en op de juiste plek, met de echte straatnamen en huisnummers en de echte
 dakvormen en hoogtes.
 
+De speelwereld is **1330 × 1300 meter**: heel Tinga én de buurt aan de overkant van de N7, samen
+**2506 panden**, 49 straten en 22 kilometer weg. Je kunt dus over het Viaduct Tinga de rondweg over
+rijden en aan de andere kant gewoon doorrijden de Hemstraten en de Zijlstraten in.
+
+![De hele wereld op de kaart](docs/screenshots/wereld_kaart.png)
+
+| Morrahemstraat, over de N7 | Partuurstraat, de zuidrand |
+|---|---|
+| ![Morrahemstraat](docs/screenshots/wereld_overkant.png) | ![Partuurstraat](docs/screenshots/wereld_zuid.png) |
+
 ## Spelen
 
 Het spel staat online op GitHub Pages: **https://x589h29ftn-code.github.io/EDU2/**
@@ -716,16 +726,22 @@ staat, hoe harder je hem hoort.
 
 ## Straten in het spel
 
-Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal · Spinnekop ·
-Omloop · De Wieken · Windbord · Voorzoom · Bovenas · Grootwiel · Bonkelaar · Westhemstraat · het
-Tinga Parkje met vijver, zorgcomplex Tinga State, het Viaduct Tinga over de rondweg, en de N7 met
-afrit 21 aan de noordkant.
+**Tinga zelf:** Molenkrite · Monnikmolen · Kruirad · Binnenroede · Buitenroede · Jasker · Molenpaal ·
+Spinnekop · Omloop · de Wieken · Windbord · Voorzoom · Bovenas · Grootwiel · Bonkelaar · Eekmolen ·
+Zeskanter · Kaar · Koningsspil · de Vang · de Kap · de Krans · de Ligger · de Loper · de Hekken ·
+Voorlijn · Bovenslag · Korte Spruit · het Eerst · Het Perk · Kaatsland, het Tinga Parkje met vijver,
+zorgcomplex Tinga State, het Viaduct Tinga over de rondweg, en de N7 met afrit 21 aan de noordkant.
+
+**Aan de overkant van de N7** (erbij gekomen toen de wereld werd vergroot): Westhemstraat ·
+Scherwolderhemstraat · Morrahemstraat · Rijperahemstraat · Oosthemstraat · Folsgaarsterhemstraat ·
+Nijlanderhemstraat · Partuurstraat · Pripperstraat · Marnezijlstraat · Piekezijlstraat ·
+Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstraat. In totaal 49 straten.
 
 ## Opbouw
 
 - `index.html` – pagina, HUD en startscherm
 - `js/kaart.js` – **de kaart van de wijk, gegenereerd uit BGT en 3D BAG** (`npm run geo:genereer`): alle
-  vlakken van de openbare ruimte, wegassen met gemeten breedte, 1327 panden met hun echte grondvlak en
+  vlakken van de openbare ruimte, wegassen met gemeten breedte, 2506 panden met hun echte grondvlak en
   3D-dak, parkeerplekken, straatnaamlabels en huisnummers, in meters vanaf het kruispunt
   Molenkrite/Monnikmolen/Jasker. Niet met de hand bewerken; zie [docs/METHODIEK.md](docs/METHODIEK.md)
 - `js/kaartwereld.js` – bouwt de wereld uit `kaart.js`: ondergrond per materiaal, trottoirbanden, oevers,
@@ -790,6 +806,8 @@ afrit 21 aan de noordkant.
 - `tools/wapentest.mjs` – toetst het pistool, de terugslag, het herladen met zijn geluiden, en de
   bouw en de looppas van de mensen
 - `tools/wapenshots.mjs` – maakt de foto's van het wapen en de poppetjes
+- `tools/wereldshots.mjs` – maakt de foto's van de vergrote wereld: de grote kaart en twee straten aan de
+  overkant van de N7
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen
@@ -826,7 +844,7 @@ daktype, goot- en nokhoogte en bouwjaar. De brondata staat in `data/geo/` (zie
 **[docs/METHODIEK.md](docs/METHODIEK.md)** beschrijft de aanpak: waarom foto's geen bron voor
 geometrie zijn, welke bronnen en welk coördinatenstelsel (RD New) gebruikt worden, de stappen, en de
 controles. De belangrijkste controle is `npm run geo:boven`: een bovenaanzicht van het spel dat pixel
-voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,3 % afwijking).
+voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,28 % afwijking).
 
 ![Het spel van boven](data/geo/spel-boven.png)
 

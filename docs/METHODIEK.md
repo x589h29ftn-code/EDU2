@@ -106,9 +106,15 @@ Elke stap eindigt met een controle. Pas als die groen is, begint de volgende.
 1. BGT downloaden met het gebied als polygoon, alle objecttypen, en per type als
    GeoJSON in EPSG:28992 exporteren naar `data/geo/bron/bgt_<type>.geojson`.
 2. BAG `pand` en `verblijfsobject` voor het gebied, idem.
-3. 3D BAG-tegel(s) downloaden; de GeoPackage-laag `pand` (LoD 2.2-attributen)
-   knippen op het gebied en exporteren als `bag3d_pand.geojson`; het CityJSON-bestand
-   ongeknipt bewaren als `data/geo/bron/bag3d_tegel.city.json`.
+3. 3D BAG-tegels downloaden. Zoek op `https://3dbag.nl/en/download` alle tegels op
+   die het gebied raken — de tegels zijn een quadtree met wisselende maten, dus je
+   kunt de buurtegel niet uit het nummer afleiden — en bewaar van elke tegel
+   **beide** bestanden ongeknipt in `data/geo/bron/`: `<tegel>.gpkg` (attributen en
+   2D-vlakken) en `<tegel>.city.json` (het LoD 2.2-dakmodel). `npm run geo:bag3d`
+   loopt langs alle `.gpkg` in die map, knipt op het gebied, ontdubbelt op
+   BAG-identificatie en schrijft `bag3d_pand.geojson`; `genereer.mjs` leest alle
+   `.city.json` en slaat er een over zodra zijn `geographicalExtent` het gebied niet
+   raakt.
 4. Luchtfoto-uitsnede van het gebied als `data/geo/bron/luchtfoto.tif` (GeoTIFF,
    EPSG:28992). Dit is het enige rasterbestand; de rest is vector.
 5. Alles committen. Een wijk is een paar megabyte; dat hoort in de repo, want
@@ -294,31 +300,54 @@ Stap 1, 2, 3 en 4 zijn af; stap 6 (de stijlcatalogus) is ingericht en wacht op f
 staan de eerste vijf missies in de wijk (zie *Het verhaal en de opslag* onderaan).
 
 **Data (stap 1 en 2).**
-`data/geo/gebied.geojson` is het werkgebied: RD X 171870–172600, Y 558920–559790
-(730 × 870 m), de kern van Tinga met de N7, binnen 3D BAG-tegel 9-632-1008. Het
-zuidoosten van de wijk (Kaar, Koningsspil, Zomermeter) valt buiten die tegel en
-vraagt later een tweede tegel. `data/geo/oorsprong.json` legt het kruispunt
-Molenkrite / Monnikmolen / Jasker op RD 172214.98, 559360.95. De ruwe downloads
-(BGT-CityGML, 3D BAG GeoPackage en CityJSON) staan in `data/geo/bron/`, de
-omzetters `bgt2geojson.mjs` en `bag3d2geojson.mjs` maken er GeoJSON van, en
-`controle.mjs` keurt het geheel ("Geen problemen").
+`data/geo/gebied.geojson` is het werkgebied: RD X 171650–172980, Y 558800–560100
+(1330 × 1300 m), heel Tinga plus de buurt aan de overkant van de N7. De randen
+liggen expres tussen de bebouwing door: aan de oostkant op 172980, want veertig
+meter verder snijdt de rand dwars door de Lemmerweg en Duinterpen heen.
+`data/geo/oorsprong.json` legt het kruispunt Molenkrite / Monnikmolen / Jasker op
+RD 172214.98, 559360.95 — die oorsprong staat vast, dus het gebied vergroten laat
+alle bestaande coördinaten ongemoeid.
+
+Het gebied is groter dan één 3D BAG-tegel. Die tegels zijn een quadtree met
+wisselende maten (9-632-1008 is 743 × 987 m, 7-624-992 vier keer zo groot), dus
+buurtegels zijn niet uit te rekenen — je zoekt ze op de kaart van 3dbag.nl op.
+Er liggen er nu vier onder het gebied: **9-632-1008** (de kern van Tinga),
+**9-632-1012**, **9-636-1008** en **7-624-992** (die laatste alleen voor de
+zuidrand). `8-624-1008` staat er ook, maar levert nul panden binnen het gebied;
+hij blijft liggen omdat hij bijna niets kost. De omzetters lezen álle `.gpkg`- en
+`.city.json`-bestanden in `bron/` en ontdubbelen op BAG-identificatie, dus een
+tegel erbij zetten is genoeg — er hoeft niets aan de gereedschappen veranderd te
+worden.
+
+De ruwe downloads (BGT-CityGML, 3D BAG GeoPackage en CityJSON) staan in
+`data/geo/bron/`, de omzetters `bgt2geojson.mjs` en `bag3d2geojson.mjs` maken er
+GeoJSON van, en `controle.mjs` keurt het geheel ("Geen problemen").
+
+**Nog niet gedekt.** In de noordoosthoek (RD X 172608–172979, Y 559900–560001)
+staan 183 panden aan de Morrahemstraat, Rijperahemstraat, Oosthemstraat,
+Folsgaarsterhemstraat en Scherwolderhemstraat die buiten alle vier de tegels
+vallen. Ze staan er nu als opgetrokken grondvlak. Tegel **9-636-1012** vult dat
+gat.
 
 **Generator (stap 3 en 4).**
-`tools/geo/genereer.mjs` schrijft `js/kaart.js` (2,3 MB) met:
+`tools/geo/genereer.mjs` schrijft `js/kaart.js` (5,5 MB) met:
 
-- 1885 vlakken ondergrond met klasse, materiaal en hoogte (rijbaan en parkeervlak op
+- 3695 vlakken ondergrond met klasse, materiaal en hoogte (rijbaan en parkeervlak op
   0, stoep, berm, gras en erf op +12 cm zodat de trottoirband vanzelf ontstaat, water
   op −35 cm met een oeverwand);
-- 130 rijbaanassen (8,1 km) en 608 padassen, afgeleid uit de vlakken met een
+- 401 rijbaanassen (22,2 km) en 1292 padassen, afgeleid uit de vlakken met een
   skelet-algoritme (`skelet.mjs`), met per punt de gemeten breedte en de straatnaam
   uit de BGT-labels; de N7 is met de hand benoemd omdat rijkswegen geen label hebben;
-- 1327 panden: 1032 met het LoD 2.2-dakmodel uit 3D BAG (hoekpunten en vlakken per
-  pand, gedeelde punten), 295 zonder model als opgetrokken grondvlak (schuurtjes 2,5 m,
-  woningen met huisnummer 5,8 m goot);
-- parkeerplekken uit de parkeervlakken (langs- of haaks naar de breedte van het vak),
-  bomen gestrooid in bosplantsoen, struiken in heestervakken, 18 hagen, en lantaarns
-  volgens een plaatsingsregel (om de 30 m langs een rijbaanas, alleen op stoep of berm);
-- 65 straatnaamlabels en 901 huisnummers.
+- 2506 panden: 1839 met het LoD 2.2-dakmodel uit 3D BAG (hoekpunten en vlakken per
+  pand, gedeelde punten), 667 zonder model als opgetrokken grondvlak (schuurtjes 2,5 m,
+  woningen met huisnummer 5,8 m goot). Dat is 27 % geschat, hetzelfde aandeel als in
+  het kleine gebied;
+- 779 parkeerplekken uit de parkeervlakken (langs- of haaks naar de breedte van het
+  vak), 5243 bomen gestrooid in bosplantsoen, 8715 struiken in heestervakken, 28 hagen,
+  en 606 lantaarns volgens een plaatsingsregel (om de 30 m langs een rijbaanas, alleen
+  op stoep of berm);
+- 123 straatnaamlabels en 1633 huisnummers;
+- het viaduct Tinga als hoogteveld met stations per meter (zie *Het viaduct*).
 
 `js/kaartwereld.js` bouwt daar de wereld van; `main.js` laadt `kaart.js` en valt
 met `?kaart=oud` terug op de oude kaart.
@@ -331,7 +360,7 @@ zoals het er echt uitziet, en vergelijkt het eerste pixel voor pixel met
 
 | meting | uitkomst |
 |---|---|
-| afwijkende pixels kaartplaat ↔ spel | **1,31 %** (doel < 2 %) |
+| afwijkende pixels kaartplaat ↔ spel | **1,28 %** (doel < 2 %) |
 | waarvan | randpixels door anti-aliasing; één pand met koepeldak; enkele dakvlakken |
 
 De uitkomst staat in `data/geo/spel-boven.png` (het spel van boven) en
@@ -349,8 +378,9 @@ bij een draaiende webserver (`npm start`).
   BGT-objecten paal, bak en straatmeubilair niet, en van vegetatieobjecten zijn er
   alleen 18 hagen. Bosplantsoen en heesters staan wél als vlakken. Losse bomen en
   lichtmasten komen daarom uit een plaatsingsregel (nu) of uit luchtfoto/OSM (later).
-- 295 BGT-panden hebben geen 3D BAG-model: 220 kleine bijgebouwen en 75 woningen
-  ten noorden van de Buitenroede, vermoedelijk nieuwbouw na de 3D BAG-versie.
+- 667 BGT-panden hebben geen 3D BAG-model: grotendeels kleine bijgebouwen, de
+  woningen ten noorden van de Buitenroede (vermoedelijk nieuwbouw na de 3D
+  BAG-versie) en de 183 panden in de noordoosthoek waar nog een tegel ontbreekt.
 
 **Gevels en stijl (stap 4 en 6).**
 Elk pand krijgt zijn straat en voorgevelrichting uit de data: de straat is de naam
@@ -1334,6 +1364,81 @@ Rijtest, verhaaltest, wereldtest, looptest, politietest, winkeltest en
 woningtest blijven groen en `geo:boven` staat nog op 1,31 %.
 
 
+**De wereld vergroot (stap 17).**
+
+De wereld ging van 730 × 870 m naar **1330 × 1300 m**: heel Tinga plus de buurt
+aan de overkant van de N7. Puur uitbreiding — de oorsprong ligt vast op het
+kruispunt Molenkrite / Monnikmolen / Jasker, dus geen enkele bestaande coördinaat
+verschuift. Dat is ook gemeten: tegenover de vorige versie is er geen pand
+verdwenen, staan 1238 van de 1327 panden byte-voor-byte gelijk, en van de 89
+gewijzigde kregen er 26 een echt 3D-dak in plaats van een schatting, werden er 42
+compleet (hun grondvlak liep vroeger de oude rand uit) en veranderde bij 55 de
+gevelrichting minder dan een graad. Alle 118 gewijzigde vlakken liggen precies op
+de oude gebiedsgrens.
+
+De BGT-download in de repo bleek al 4,3 × 2,5 km te dekken, dus daar was niets
+voor nodig. De 3D BAG-tegels wel: `data.3dbag.nl` is vanaf hier niet bereikbaar
+(de netwerkpolitie van de omgeving blokkeert het), dus die zijn met de hand
+aangeleverd. `bag3d2geojson.mjs` en `genereer.mjs` lezen nu álle tegels in
+`data/geo/bron/` en ontdubbelen op BAG-identificatie; zie
+[data/geo/README.md](../data/geo/README.md) voor welke tegels er liggen en welke
+er nog ontbreekt.
+
+Wat de wereld nu is: 3695 vlakken, 401 rijbaanassen (22,2 km), 2506 panden (1839
+met 3D-dak), 49 straten, 779 auto's en 14 980 botsingsdozen. `js/kaart.js` groeide
+van 2,9 naar 5,5 MB.
+
+*Twee dingen die pas bij deze omvang stukgingen.*
+
+De **minikaart** tekende elk beeld álle wegvakken, waterpartijen, auto's en mensen
+van de hele wereld, ook wat honderden meters buiten het kaartje viel. Dat kostte
+2,9 ms per beeld. `js/hud.js` knipt nu eerst weg wat buiten de getekende cirkel
+ligt (`nabij` en `doosNabij`, met de waterpolygonen één keer voorgerekend). Wat
+eruit valt was toch niet te zien, dus het beeld blijft precies hetzelfde:
+`hud.update` ging naar 0,9 ms en het totaal aan JavaScript per beeld van 5,4 naar
+ongeveer 3,0 ms — minder dan de kleine wereld vóór deze ronde kostte. Op de grote
+kaart (M) liepen bovendien de straatnamen door elkaar heen: dat waren er 65 en het
+zijn er nu 123. `drawLabels` legt de langste straten eerst neer en slaat een naam
+over die over een al geplaatste heen zou vallen, zodat wat er staat leesbaar is.
+
+De **politie** kwam niet meer opdagen, om twee redenen die allebei met de omvang
+te maken hebben. `spawnPlek` trok zestig keer een willekeurig punt van een
+willekeurige rijbaan en keek of het toevallig in de ring van 55–150 m rond de
+melding lag; in een wereld die vier keer zo groot is lukt dat bijna nooit meer,
+dus viel de zoektocht met de zichteis leeg en week hij uit naar "dan maar in het
+zicht" — er dook politie voor je neus op. Er ligt nu een rooster van 50 m over de
+rijbaanpunten, zodat er meteen uit de buurt getrokken wordt en de kans op een
+goede plek niet meer van de wereldgrootte afhangt. En een eenheid die uitrukte
+kreeg alleen zijn éérste doel bij de melding; haalde hij dat niet binnen zijn
+zoektijd van veertien tot zesentwintig seconden, dan kreeg hij een punt op de
+volle zoekstraal. In de kleine wijk viel zo'n punt nog terug op een straat in de
+buurt, maar nu liggen daar echte straten en reed de hele ploeg langs je heen de
+wijk uit in plaats van bij je uit te stappen. Uitrukken houdt nu vast aan de
+melding (tot `UITRUK_STRAAL` = 22 m, want een vijfde van de zoekstraal was bij
+vijf sterren 39 m — net buiten de veertig meter waarop ze uitstappen), en wie het
+niet binnen zijn zoektijd haalt geeft de melding op en gaat zoeken.
+
+*En twee proeven die aan de wereld vastzaten in plaats van aan het spel.* De
+wereldtest keek of de zijvlakken van een heg naar buiten kijken door alle
+driehoeken binnen drie meter van het midden te pakken; in de dichtere wereld
+staan daar nu vier andere heggen, en die kijken vanaf dat midden gezien naar
+binnen. De proef zoekt nu op afstand tot de hartlijn van díe heg. De politietest
+koos als plaats delict "de eerste Molenkrite-as in de lijst", en die volgorde komt
+uit de gegenereerde kaart: de proef schoof daardoor vanzelf vijfhonderd meter naar
+het oosten, naar een lus waar een surveillancewagen die honderd meter verderop
+begint een kilometer moet omrijden. Hij kiest nu de Molenkrite-as die het dichtst
+bij de nulmeter ligt.
+
+Foto's: `npm run wereldshots` maakt de grote kaart en twee straten aan de overkant
+van de N7.
+
+Controle: rijtest, verhaaltest, wereldtest, looptest, politietest, winkeltest,
+woningtest, viaducttest en wapentest zijn groen (politietest vier keer achter
+elkaar), `geo:boven` staat op **1,28 %** en `propcheck` geeft dezelfde vijf
+meldingen als vóór deze ronde. Let op: draai de proeven **één voor één**. Drie
+headless browsers tegelijk op software-rendering maakt ze zo traag dat
+tijdgevoelige controles omvallen aan de machine, niet aan het spel.
+
 **Wat nog niet af is (in volgorde).**
 
 1. De achterkant van het Kruirad (groene panelen, balkons) en dakdetails als
@@ -1346,7 +1451,9 @@ woningtest blijven groen en `geo:boven` staat nog op 1,31 %.
    komt nu uit `js/verhaal.js`, op het adres uit de kaartdata.
 4. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
    zonder 3D-model.
-5. Tweede 3D BAG-tegel voor het zuidoosten van de wijk.
+5. 3D BAG-tegel `9-636-1012` voor de noordoosthoek: 183 panden aan de
+   Morrahemstraat, Rijperahemstraat, Oosthemstraat, Folsgaarsterhemstraat en
+   Scherwolderhemstraat staan er nu als opgetrokken grondvlak, zonder echt dak.
 6. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
    nog van vóór de supermarkt en de boerderij: de vlaggenmast en de twee nieuwe
    woningtypen staan er nog niet op. Bijwerken kan met `npm run propshots` en

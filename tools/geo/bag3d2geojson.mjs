@@ -2,19 +2,30 @@
 // maaiveld-, goot- en nokhoogte, bouwjaar, status) binnen het gebied en
 // schrijft data/geo/bron/bag3d_pand.geojson.
 //
-//   node tools/geo/bag3d2geojson.mjs data/geo/bron/9-632-1008.gpkg
+//   node tools/geo/bag3d2geojson.mjs                       alle tegels in bron/
+//   node tools/geo/bag3d2geojson.mjs data/geo/bron/9-632-1008.gpkg   één tegel
+//
+// De 3D BAG deelt Nederland op in tegels van wisselende grootte (een adaptieve
+// quadtree: 9-632-1008 is 743 bij 987 m, 7-624-992 vier keer zo groot). Eén
+// tegel dekt dus lang niet altijd het hele gebied. Zonder argument leest dit
+// script daarom álle .gpkg-bestanden in data/geo/bron/ en voegt ze samen; een
+// pand dat in twee tegels zit telt één keer mee.
 //
 // Leest de GeoPackage met de ingebouwde SQLite van Node (22+) en ontleedt de
 // WKB-geometrie zelf; geen GDAL nodig.
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HIER = dirname(fileURLToPath(import.meta.url));
 const GEO = join(HIER, '..', '..', 'data', 'geo');
-const gpkg = process.argv[2] || join(GEO, 'bron', '9-632-1008.gpkg');
-const uit = process.argv[3] || join(GEO, 'bron', 'bag3d_pand.geojson');
+const BRON = join(GEO, 'bron');
+const tegels = process.argv[2]
+  ? [process.argv[2]]
+  : readdirSync(BRON).filter(f => f.endsWith('.gpkg')).sort().map(f => join(BRON, f));
+const uit = process.argv[3] || join(BRON, 'bag3d_pand.geojson');
+if (!tegels.length) { console.error(`geen .gpkg-tegels in ${BRON}`); process.exit(1); }
 
 const gebied = (() => {
   const g = JSON.parse(readFileSync(join(GEO, 'gebied.geojson'), 'utf8'));
@@ -56,24 +67,51 @@ export function gpkgNaarGeoJSON(buf) {
 const bboxVan = (g) => { const b = [Infinity, Infinity, -Infinity, -Infinity]; const loop = (a) => { if (typeof a[0] === 'number') { b[0] = Math.min(b[0], a[0]); b[1] = Math.min(b[1], a[1]); b[2] = Math.max(b[2], a[0]); b[3] = Math.max(b[3], a[1]); } else for (const c of a) loop(c); }; loop(g.coordinates); return b; };
 const overlapt = (a, b) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
 
-if (!existsSync(gpkg)) { console.error(`${gpkg} bestaat niet`); process.exit(1); }
-const db = new DatabaseSync(gpkg, { readOnly: true });
+for (const t of tegels) if (!existsSync(t)) { console.error(`${t} bestaat niet`); process.exit(1); }
+const oppRing = (r) => { let a = 0; for (let i = 0; i < r.length - 1; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; return Math.abs(a) / 2; };
 const KOLOMMEN = ['identificatie', 'oorspronkelijkbouwjaar', 'status', 'b3_dak_type', 'b3_bouwlagen', 'b3_h_maaiveld', 'b3_h_nok', 'b3_n_nok', 'b3_n_vlakken',
   'b3_opp_grond', 'b3_opp_dak_plat', 'b3_opp_dak_schuin', 'b3_volume_lod22', 'b3_kwaliteitsindicator', 'b3_pw_bron'];
-const rijen = db.prepare(`select geom, ${KOLOMMEN.join(', ')} from pand`).all();
+
+/*
+ Alle tegels inlezen. Tegels overlappen elkaar aan de randen, dus een pand kan
+ twee keer voorkomen; de eerste telt en de rest wordt overgeslagen. Tegels die
+ helemaal buiten het gebied liggen worden meteen weer dichtgedaan — dat scheelt
+ het lezen van tienduizenden dakvlakken.
+*/
+const rijen = [];
+const dakdelen = new Map();
+const gezien = new Set();
+const perTegel = [];
+for (const pad of tegels) {
+  const db = new DatabaseSync(pad, { readOnly: true });
+  const naam = basename(pad, '.gpkg');
+  const alle = db.prepare(`select geom, ${KOLOMMEN.join(', ')} from pand`).all();
+  let mee = 0;
+  for (const r of alle) {
+    if (gezien.has(r.identificatie)) continue;
+    const g = gpkgNaarGeoJSON(r.geom);
+    if (!overlapt(bboxVan(g), gebied)) continue;
+    gezien.add(r.identificatie);
+    rijen.push({ ...r, _geom: g });
+    mee++;
+  }
+  if (mee) {
+    for (const r of db.prepare('select identificatie, geom, b3_h_min, b3_h_max from lod22_2d').all()) {
+      if (!gezien.has(r.identificatie)) continue;
+      const g = gpkgNaarGeoJSON(r.geom);
+      const opp = g.type === 'Polygon' ? oppRing(g.coordinates[0]) : g.coordinates.reduce((t, p) => t + oppRing(p[0]), 0);
+      if (!dakdelen.has(r.identificatie)) dakdelen.set(r.identificatie, []);
+      dakdelen.get(r.identificatie).push({ opp, min: r.b3_h_min, max: r.b3_h_max });
+    }
+  }
+  perTegel.push(`${naam}: ${alle.length} panden, ${mee} in het gebied`);
+  db.close();
+}
 
 // De goothoogte staat niet in de laag pand, maar in lod22_2d per dakvlak. De
 // goot is de laagste rand van de grote dakvlakken (minstens 40 % van het
 // grootste vlak); kleine afdakjes en erkers tellen niet mee. De nok is de
 // hoogste rand van alle vlakken (boven NAP).
-const oppRing = (r) => { let a = 0; for (let i = 0; i < r.length - 1; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; return Math.abs(a) / 2; };
-const dakdelen = new Map();
-for (const r of db.prepare('select identificatie, geom, b3_h_min, b3_h_max from lod22_2d').all()) {
-  const g = gpkgNaarGeoJSON(r.geom);
-  const opp = g.type === 'Polygon' ? oppRing(g.coordinates[0]) : g.coordinates.reduce((t, p) => t + oppRing(p[0]), 0);
-  if (!dakdelen.has(r.identificatie)) dakdelen.set(r.identificatie, []);
-  dakdelen.get(r.identificatie).push({ opp, min: r.b3_h_min, max: r.b3_h_max });
-}
 const dak = new Map();
 for (const [id, delen] of dakdelen) {
   const grootste = Math.max(...delen.map(d => d.opp));
@@ -82,10 +120,8 @@ for (const [id, delen] of dakdelen) {
 }
 
 const features = [];
-let buiten = 0;
 for (const r of rijen) {
-  const g = gpkgNaarGeoJSON(r.geom);
-  if (!overlapt(bboxVan(g), gebied)) { buiten++; continue; }
+  const g = r._geom;
   const props = {};
   for (const k of KOLOMMEN) if (r[k] !== null && r[k] !== undefined) props[k] = r[k];
   const d = dak.get(r.identificatie);
@@ -102,7 +138,8 @@ for (const r of rijen) {
 writeFileSync(uit, JSON.stringify({ type: 'FeatureCollection', name: 'bag3d_pand', crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:EPSG::28992' } }, features }));
 
 const tel = (k) => { const t = {}; for (const f of features) { const v = f.properties[k] ?? '(leeg)'; t[v] = (t[v] || 0) + 1; } return Object.entries(t).sort((a, b) => b[1] - a[1]).map(([v, n]) => `${v} ${n}`).join(', '); };
-console.log(`3D BAG: ${rijen.length} panden in de tegel, ${buiten} buiten het gebied, ${features.length} geschreven naar ${uit}`);
+for (const r of perTegel) console.log(`  ${r}`);
+console.log(`3D BAG: ${tegels.length} tegel(s), ${features.length} panden in het gebied geschreven naar ${uit}`);
 console.log(`daktype: ${tel('b3_dak_type')}`);
 console.log(`bouwlagen: ${tel('b3_bouwlagen')}`);
 console.log(`status: ${tel('status')}`);

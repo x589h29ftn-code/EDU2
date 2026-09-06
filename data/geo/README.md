@@ -12,7 +12,7 @@ node tools/geo/controle.mjs
 
 | bestand | inhoud |
 |---|---|
-| `gebied.geojson` | één polygoon: CBS-buurt Tinga met 150 m buffer, EPSG:28992 |
+| `gebied.geojson` | één polygoon: het werkgebied, RD X 171650–172980 / Y 558800–560100 (1330 × 1300 m), EPSG:28992 — heel Tinga plus de buurt aan de overkant van de N7 |
 | `oorsprong.json` | RD-coördinaat van de oorsprong van de spelwereld (kruispunt Molenkrite / Monnikmolen / Jasker) en drie of meer ijkpunten voor de oude pixelkaart; zie `oorsprong.voorbeeld.json` |
 | `bron/` | de gedownloade lagen, zie hieronder |
 
@@ -23,12 +23,39 @@ De ruwe downloads staan ook in `bron/`, zodat alles opnieuw te maken is:
 | bestand | wat | omzetten met |
 |---|---|---|
 | `bgt_tinga.zip.zip` | BGT als CityGML uit de PDOK-downloadviewer (getekend gebied rond Tinga) | `node tools/geo/bgt2geojson.mjs data/geo/bron/bgt_tinga.zip.zip` |
-| `9-632-1008.gpkg` | 3D BAG-tegel als GeoPackage (attributen en 2D-vlakken) | `node tools/geo/bag3d2geojson.mjs data/geo/bron/9-632-1008.gpkg` |
-| `9-632-1008.city.json` | dezelfde tegel als CityJSON (3D-dakmodellen, LoD 2.2) | wordt in stap 4 direct gelezen |
+| `<tegel>.gpkg` | 3D BAG-tegel als GeoPackage (attributen en 2D-vlakken) | `node tools/geo/bag3d2geojson.mjs` — zonder argument leest hij **alle** `.gpkg` in deze map |
+| `<tegel>.city.json` | dezelfde tegels als CityJSON (3D-dakmodellen, LoD 2.2) | worden in stap 4 direct gelezen, alle `.city.json` in deze map |
 
 De omzetters knippen op `gebied.geojson`, laten historische objecten weg en
 schrijven de GeoJSON-bestanden hieronder. Daarna: `node tools/geo/plaat.mjs` voor
 de kaartplaat (`bgt-plaat.png` + `.pgw`) en `node tools/geo/controle.mjs`.
+
+### Welke 3D BAG-tegels
+
+Het gebied is groter dan één tegel. De tegels van 3dbag.nl zijn een **quadtree met
+wisselende maten** — 9-632-1008 is 743 × 987 m, 7-624-992 is vier keer zo groot —
+dus je kunt de buurtegel niet uit het nummer afleiden; je zoekt hem op de kaart van
+`https://3dbag.nl/en/download` op. Van elke tegel zijn **beide** bestanden nodig:
+de GeoPackage én de CityJSON.
+
+| tegel | wat hij dekt |
+|---|---|
+| `9-632-1008` | de kern van Tinga |
+| `9-632-1012` | de zuidkant |
+| `9-636-1008` | de oostkant, over de N7 |
+| `7-624-992` | alleen de zuidrand |
+| `8-624-1008` | levert nul panden binnen het gebied; blijft liggen omdat hij bijna niets kost |
+
+**Nog te halen:** `9-636-1012`. In de noordoosthoek (RD X 172608–172979,
+Y 559900–560001) staan 183 panden aan de Morrahemstraat, Rijperahemstraat,
+Oosthemstraat, Folsgaarsterhemstraat en Scherwolderhemstraat die buiten alle vijf
+de tegels vallen; die staan nu als opgetrokken grondvlak in het spel.
+
+Een tegel erbij zetten is genoeg: beide bestanden in `bron/` zetten en de keten
+opnieuw draaien. De omzetter loopt zelf langs alle tegels en ontdubbelt op
+BAG-identificatie, en `genereer.mjs` slaat een CityJSON-tegel over zodra zijn
+`geographicalExtent` het gebied niet raakt. Aan de gereedschappen hoeft niets
+veranderd te worden.
 
 ## Bestanden in `bron/`
 
