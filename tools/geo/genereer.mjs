@@ -1445,13 +1445,51 @@ for (const S of OMGEVING.sportvelden || []) {
   const maxL = S.maat ? S.maat[0] : 105, maxB = S.maat ? S.maat[1] : 68;
   const vl = Math.min(lang - 2 * uitloop, maxL), vb = Math.min(breed - 2 * uitloop, maxB);
   if (vl < 40 || vb < 25) { console.warn(`LET OP: sportveld ${S.naam}: ${r2(vl)} x ${r2(vb)} m is te klein voor een veld`); continue; }
+  /*
+   De tribune. Die staat als gewoon pand in de BGT — bij het hoofdveld een blok
+   van 45 bij 14 m langs de zijlijn — maar wat je ervan ziet zijn de traptreden
+   met stoeltjes en het luifeldak, en dat staat nergens in de brondata. Hier
+   wordt het pand opgezocht en omgerekend naar de plek van de tribune ten
+   opzichte van het veld; js/sportveld.js bouwt hem.
+  */
+  let tribune = null;
+  if (S.tribune) {
+    const p = PANDEN.find(q => q.id === S.tribune.pand);
+    if (!p || !p.rect) console.warn(`LET OP: sportveld ${S.naam}: geen pand ${S.tribune.pand} voor de tribune`);
+    else {
+      const r = p.rect;
+      // ligt de lange kant van het pand langs het veld? zo niet, de andere kant
+      const langsPand = Math.abs(Math.cos(r.hoek - hoek)) > 0.7;
+      const lang = langsPand ? r.hx * 2 : r.hz * 2;
+      const diepPand = langsPand ? r.hz * 2 : r.hx * 2;
+      /*
+       Waar staat het pand ten opzichte van het veld? u loopt langs het veld,
+       v er dwars op: v = -dx * ez + dz * ex, met de as (ex, ez) langs het veld.
+       De voorkant van de tribune is de zijde die naar het veld toe kijkt, dus
+       een halve panddiepte de kant van het veld op.
+      */
+      const dx = r.cx - beste.cx, dz = r.cz - beste.cz;
+      const u = dx * ex + dz * ez, v = -dx * ez + dz * ex;
+      const kant = Math.sign(v) || 1;
+      const vVoor = v - kant * diepPand / 2;
+      tribune = {
+        lang: r2(lang), diep: r2(Math.min(S.tribune.diep ?? 6, diepPand - 1)),
+        treden: S.tribune.treden ?? 5, luifel: r2(S.tribune.luifel ?? 2),
+        goot: p.goot, kant,
+        // het midden van de voorgevel, in wereldcoördinaten
+        vx: r2(beste.cx + ex * u - ez * vVoor), vz: r2(beste.cz + ez * u + ex * vVoor),
+        hoek: r2(hoek), vlaggenmast: !!S.tribune.vlaggenmast,
+      };
+      telling[`tribune_${S.naam.replace(/\W+/g, '_').toLowerCase()}_m`] = Math.round(lang);
+    }
+  }
   veldRingen.push(vlak.r);
   SPORTVELDEN.push({
     naam: S.naam, soort: S.soort || (vlak.k === 'kunstgras' ? 'kunstgras' : 'gras'),
     hoofd: !!S.hoofd, cx: r2(beste.cx), cz: r2(beste.cz), hoek: r2(hoek),
     l: r2(lang), b: r2(breed), vl: r2(vl), vb: r2(vb),
     reclame: S.reclame !== false, hek: S.hek !== false, doelen: S.doelen !== false,
-    dugouts: !!S.dugouts, masten: S.masten || 0,
+    dugouts: !!S.dugouts, masten: S.masten || 0, tribune,
   });
   telling[`sportveld_${S.naam.replace(/\W+/g, '_').toLowerCase()}`] = `${Math.round(vl)}x${Math.round(vb)} m`;
 }

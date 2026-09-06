@@ -591,6 +591,18 @@ die je op een sportpark ziet. De maaibanen lopen in de lengte van het veld, zoal
 |---|---|
 | ![Middenstip](docs/screenshots/veld_midden.png) | ![Achter het doel](docs/screenshots/veld_doel.png) |
 
+Langs de zijlijn staat de **overdekte tribune**: betonnen traptreden met oranje stoeltjes, daarboven
+een vlak luifeldak op slanke kolommen met een reclamerand langs de voorrand, en de kantine erachter.
+Waar hij staat, hoe lang hij is en hoe hoog het dak komt, haalt de generator uit het BAG-pand van de
+tribune zelf (Molenkrite 132); de treden, de stoeltjes en het dak komen uit de foto. Aan het einde
+staat een vlaggenmast met de clubvlag.
+
+![De tribune langs de zijlijn](docs/screenshots/veld_tribune.png)
+
+**Je kunt het veld op.** Bij de middenlijn zit een opening in het hek, en over de reclameborden heen
+spring je: ze zijn 90 cm hoog en een sprong komt tot 88, dus hun botsingsdoos telt maar tot 60 cm.
+Lopend houden ze je nog steeds tegen, en auto's ook — die geven geen hoogte mee.
+
 Langs de lijn hangt **Radio Spannenburg** — *It hert fan De Fryske Marren* — de lokale omroep die de
 club sponsort. Zijn bord komt om de vijf borden terug, dus je ziet het rond het hele veld, aan alle
 vier de kanten. Er zitten geen plaatjesbestanden in dit spel: net als het Jumbo-woordmerk wordt het
@@ -618,7 +630,7 @@ bedden door lopen; alleen de randen, de schuurtjes en de kassen houden je tegen.
 |---|---|
 | ![Het pad](docs/screenshots/tuinen_pad.png) | ![Schuurtje en kas](docs/screenshots/tuinen_schuur.png) |
 
-`npm run sporttest` loopt beide na (38 controles): het kunstgras uit de brondata, de vier velden met
+`npm run sporttest` loopt beide na (46 controles): het kunstgras uit de brondata, de vier velden met
 hun maten en richting, de belijning, de doelen, de bordenring, het erlangs en erop lopen, en de
 volkstuinen — binnen het perceel, de grasrand, de paden, de schuurtjes en of je er doorheen kunt
 lopen. `npm run sportshots` maakt de foto's hierboven.

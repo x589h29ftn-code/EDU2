@@ -1541,6 +1541,54 @@ puur voorbereiding op een tweede stad (zie *Wat nog niet af is*, punt 2).
 Controle: `npm run sporttest` (41 controles; erbij: het net achter het doel, en
 er groeit niets op de velden). Alle proeven blijven groen.
 
+**De tribune, en het veld op kunnen komen (stap 21).**
+
+*De tribune was een bakstenen muur.* Langs de zijlijn van het hoofdveld staat een
+overdekte tribune, en die stond in het spel als een gewoon pand: een blok van 45
+bij 14 m met een baksteengevel. Wat je er in het echt van ziet — betonnen
+traptreden met stoeltjes, een vlak luifeldak op kolommen met een reclamerand —
+staat nergens in de brondata.
+
+De aanpak is dezelfde als bij de rest van het sportpark: in
+`data/stijl/omgeving.json` staat onder het veld alleen het **BAG-pandnummer** van
+de tribune plus hoe diep de treden zijn, hoeveel er zijn en hoever het dak
+uitsteekt. `genereer.mjs` zoekt dat pand op, kijkt welke kant van het veld het op
+ligt, en levert de voorgevel, de lengte (45,3 m) en de goothoogte (5,84 m).
+`js/sportveld.js` zet de treden vóór die gevel neer, in de strook tussen de
+zijlijn en het pand — precies wat je op de foto vanaf het veld ziet: eerst de
+reclameborden, dan de treden met stoeltjes, dan de gevel van de kantine, en het
+luifeldak eroverheen. Het pand zelf blijft gewoon staan en is de achterwand. Het
+hek loopt niet door vóór de tribune, want daar is de tribune de afscheiding.
+
+*En je kon het veld niet op.* De ring reclameborden en het spijlenhek sloten het
+veld helemaal af. Twee dingen erbij:
+
+- Bij de **middenlijn** zit nu een opening van 5 m in het hek, zoals het poortje
+  waar de spelers het veld op komen.
+- Over de **reclameborden** spring je heen. Een bord is 90 cm hoog, maar zijn
+  botsingsdoos krijgt een `y0` en een hoogte van 60 cm. Een sprong komt tot 88 cm
+  (`vy` 4,6 m/s tegen 12 m/s² in `js/player.js`), en een doos met `y0` telt niet
+  meer zodra je voeten boven `y0 + h` zitten — dat geeft een ruime halve seconde
+  waarin je eroverheen bent. Lopend word je nog steeds tegengehouden, en auto's
+  ook: die geven geen hoogte mee aan `resolveCollisions`, en dan geldt de doos
+  onverkort.
+
+*Het doel stond al goed.* De omgekeerde doelen die op de telefoon te zien waren,
+waren de bouw van vóór stap 20; die fout was in dezelfde ronde al verholpen.
+
+*En nog een proef die op geluk dreef.* De politietest wacht op een wagen die zijn
+bemanning laat uitstappen, en die viel één op de drie keer om: een wagen kan
+onderweg vast komen te staan, en dan komt er op díe plek nooit iemand uit. De
+proef schuift nu bij elke nieuwe poging vijfentwintig meter op langs de rijbaan
+(vier pogingen in plaats van drie), zodat hij niet van één plek afhangt. Dat de
+politie zelf vast kan lopen blijft staan — dat hoort bij de overhaul die onder
+*Wat nog niet af is* punt 3 staat.
+
+Controle: `npm run sporttest` (46 controles; erbij: lopend kom je niet over de
+borden, springend wel, er zit een opening in het hek, de rest van het hek houdt je
+tegen, en aan de tribunekant kom je er niet langs). Alle tien de proeven zijn
+groen, politietest drie keer achter elkaar.
+
 **Wat nog niet af is (in volgorde).**
 
 De eerste vijf punten heeft de gebruiker expliciet voor later laten liggen: de

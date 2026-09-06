@@ -38,6 +38,16 @@ const STIP = 11.0;
  sportpark langs de lijn staat.
 */
 const SPANNENBURG_STAP = 5;
+/*
+ Een reclamebord is 90 cm hoog, maar zijn botsingsdoos is lager. Een sprong komt
+ tot 88 cm (js/player.js: vy 4,6 m/s tegen 12 m/s² zwaartekracht), en een doos
+ telt niet meer zodra je voeten boven `y0 + h` zitten. Met 60 cm heb je een ruime
+ halve seconde waarin je eroverheen bent — precies genoeg om het veld op te
+ springen, terwijl je er lopend nog steeds niet doorheen kunt. Auto's geven geen
+ hoogte mee en worden dus gewoon tegengehouden.
+*/
+const BORD_H = 0.9, BORD_SPRONG = 0.6;
+const POORT = 5.0;          // opening in het hek bij de middenlijn (m)
 
 // de doelpalen en de lat: één vorm, hergebruikt voor alle acht doelen
 const paalGeo = new THREE.CylinderGeometry(0.06, 0.06, DOEL_H, 8);
@@ -65,6 +75,10 @@ function materialen() {
     borden: [0, 1, 2, 3, 4, 5].map(i => new THREE.MeshStandardMaterial({ map: T.reclamebord(i), roughness: 0.55, side: THREE.DoubleSide })),
     spannenburg: new THREE.MeshStandardMaterial({ map: T.bordSpannenburg(), roughness: 0.5, side: THREE.DoubleSide }),
     achterkant: new THREE.MeshStandardMaterial({ color: 0x9aa1a8, roughness: 0.9 }),
+    beton: new THREE.MeshStandardMaterial({ color: 0xb4b0a6, roughness: 0.95 }),
+    stoel: new THREE.MeshStandardMaterial({ color: 0xd8552f, roughness: 0.7 }),
+    luifel: new THREE.MeshStandardMaterial({ color: 0x2f343a, roughness: 0.75, metalness: 0.2 }),
+    vlag: new THREE.MeshStandardMaterial({ map: T.clubvlag(), side: THREE.DoubleSide, roughness: 0.85 }),
   };
 }
 
@@ -138,6 +152,7 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
     paal: bak(), net: bak(), vanger: bak(), staal: bak(), hek: bak(),
     dugout: bak(), ruit: bak(), bank: bak(), lamp: bak(), achterkant: bak(),
     borden: M.borden.map(() => bak()), spannenburg: bak(),
+    beton: bak(), stoel: bak(), luifel: bak(), vlag: bak(),
   };
   /*
    Welk bord is dit er een? Om de zoveel staat Radio Spannenburg langs de lijn;
@@ -245,7 +260,7 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
 
     // ---- reclameborden ----
     if (V.reclame) {
-      const bordL = 3.0, bordH = 0.9, af = 1.6;      // achter de zijlijn
+      const bordL = 3.0, bordH = BORD_H, af = 1.6;   // achter de zijlijn
       const ru = hl + af, rv = hb + af;
       const zijden = [
         { a: [-ru, -rv], b: [ru, -rv] }, { a: [ru, rv], b: [-ru, rv] },
@@ -269,7 +284,8 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
             plaats(bx + Math.sin(draai) * 0.03, grondY + bordH / 2, bz + Math.cos(draai) * 0.03, draai));
           voegToe(B.achterkant, vlak,
             plaats(bx - Math.sin(draai) * 0.03, grondY + bordH / 2, bz - Math.cos(draai) * 0.03, draai + Math.PI));
-          W.addCollider(bx, bz, stap / 2, 0.1, -(V.hoek + hoek), bordH);
+          const doos = W.addCollider(bx, bz, stap / 2, 0.1, -(V.hoek + hoek), BORD_SPRONG);
+          doos.y0 = grondY;                           // hierboven spring je eroverheen
           n++;
         }
       }
@@ -289,13 +305,23 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
         }
         W.addCollider(wx(s * vu, 0), wz(s * vu, 0), 0.1, breed / 2, -V.hoek, vangerH);
       }
-      // spijlenhek langs de lange kanten; de texture is 2,5 bij 2 m, dus het
-      // hek is precies zo hoog als het doek en herhaalt om de 2,5 m
+      /*
+       Spijlenhek langs de lange kanten; de texture is 2,5 bij 2 m, dus het hek is
+       precies zo hoog als het doek en herhaalt om de 2,5 m. Het loopt niet door
+       vóór de tribune — daar is de tribune zelf de afscheiding — en bij de
+       middenlijn zit een opening, zoals het poortje waar de spelers het veld op
+       komen. Zonder die opening kwam je nergens meer bij het veld.
+      */
       const hekH = 2.0, lang = Math.min(V.vl + 6, V.l - 1);
+      const stuk = (lang - POORT) / 2;
       for (const t of [-1, 1]) {
-        voegToe(B.hek, gaasGeo(lang, hekH, 2.5, 2.0),
-          plaats(wx(0, t * vv), grondY + hekH / 2, wz(0, t * vv), -V.hoek));
-        W.addCollider(wx(0, t * vv), wz(0, t * vv), lang / 2, 0.08, -V.hoek, hekH);
+        if (V.tribune && V.tribune.kant === t) continue;
+        for (const zij of [-1, 1]) {
+          const u = zij * (POORT / 2 + stuk / 2);
+          voegToe(B.hek, gaasGeo(stuk, hekH, 2.5, 2.0),
+            plaats(wx(u, t * vv), grondY + hekH / 2, wz(u, t * vv), -V.hoek));
+          W.addCollider(wx(u, t * vv), wz(u, t * vv), stuk / 2, 0.08, -V.hoek, hekH);
+        }
       }
     }
 
@@ -312,6 +338,80 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
       voegToe(B.dugout, new THREE.BoxGeometry(b + 0.3, 0.12, d + 0.3), lok(0, h, 0));
       voegToe(B.bank, new THREE.BoxGeometry(b - 0.4, 0.1, 0.45), lok(0, 0.45, -d / 4));
       W.addCollider(ox, oz, b / 2, d / 2, draai, h);
+    }
+
+    /*
+     ---- de tribune ----
+     Wat je vanaf het veld ziet is niet het pand maar wat ervóór staat: een rij
+     betonnen traptreden met stoeltjes, en daar een vlak luifeldak overheen op
+     slanke kolommen met een lichte reclamerand langs de voorrand. Het pand zelf
+     (de kantine) blijft gewoon staan en vormt de achterwand. De maten komen uit
+     de BGT: tools/geo/genereer.mjs zoekt het pand op en levert de voorgevel, de
+     lengte en de goothoogte.
+    */
+    if (V.tribune) {
+      const Tb = V.tribune;
+      const ax = Math.cos(Tb.hoek), az = Math.sin(Tb.hoek);       // langs de tribune
+      const nx = -az * Tb.kant, nz = ax * Tb.kant;                // van het veld af
+      // lokaal: l langs de tribune, d naar het veld toe vanaf de voorgevel
+      const tx = (l, d) => Tb.vx + ax * l - nx * d;
+      const tz = (l, d) => Tb.vz + az * l - nz * d;
+      const draai = -Tb.hoek + (Tb.kant > 0 ? Math.PI : 0);
+      const halveL = Tb.lang / 2;
+      const tredeD = Tb.diep / Tb.treden, tredeH = 0.38;
+      const doos = (l, d, y, bl, bd, bh, bak2) => {
+        voegToe(bak2, new THREE.BoxGeometry(bl, bh, bd),
+          plaats(tx(l, d), grondY + y, tz(l, d), draai));
+      };
+      // de treden: elke volgende ligt dieper naar achteren en hoger
+      for (let i = 0; i < Tb.treden; i++) {
+        const d = Tb.diep - (i + 0.5) * tredeD;                   // vanaf de gevel naar het veld
+        const h = (i + 1) * tredeH;
+        doos(0, d, h / 2, Tb.lang, tredeD, h, B.beton);
+        // stoeltjes op de bovenste treden, met een gangpad in het midden
+        if (i >= 1) {
+          for (let l = -halveL + 1.2; l <= halveL - 1.2; l += 0.52) {
+            if (Math.abs(l) < 1.4) continue;                      // het trapje naar boven
+            doos(l, d, h + 0.22, 0.44, 0.42, 0.09, B.stoel);      // zitting
+            doos(l, d + 0.16, h + 0.46, 0.44, 0.09, 0.42, B.stoel); // rugleuning
+          }
+        }
+      }
+      // de voorrand van de onderste trede: een lage betonnen borstwering
+      doos(0, Tb.diep + 0.05, 0.35, Tb.lang, 0.14, 0.7, B.beton);
+      /*
+       Het luifeldak op de goothoogte van het pand, met kolommen op de voorrand.
+       Ze staan aan het uiteinde van de luifel zodat je vanaf de tribune vrij
+       zicht op het veld houdt.
+      */
+      const dakY = Tb.goot, uit = Tb.diep + Tb.luifel;
+      voegToe(B.luifel, new THREE.BoxGeometry(Tb.lang + 0.6, 0.22, uit + 0.4),
+        plaats(tx(0, uit / 2), grondY + dakY, tz(0, uit / 2), draai));
+      for (let l = -halveL + 2; l <= halveL - 2 + 0.01; l += (Tb.lang - 4) / 5) {
+        voegToe(B.staal, new THREE.CylinderGeometry(0.1, 0.1, dakY, 8),
+          plaats(tx(l, uit - 0.3), grondY + dakY / 2, tz(l, uit - 0.3), draai));
+        W.addCollider(tx(l, uit - 0.3), tz(l, uit - 0.3), 0.12, 0.12, draai, dakY);
+      }
+      // de reclamerand langs de voorrand van het dak: de borden van het veld
+      const randH = 0.55, randL = 3.2;
+      const nRand = Math.max(1, Math.round(Tb.lang / randL));
+      for (let i = 0; i < nRand; i++) {
+        const l = -halveL + (i + 0.5) * (Tb.lang / nRand);
+        const vlak = new THREE.PlaneGeometry(Tb.lang / nRand - 0.05, randH);
+        // met het gezicht naar het veld: zonder die halve slag lees je het
+        // woordmerk van de achterkant, dus in spiegelbeeld
+        voegToe(bordBak(i * 2 + 1), vlak,
+          plaats(tx(l, uit + 0.22), grondY + dakY - randH / 2 - 0.12, tz(l, uit + 0.22), draai));
+      }
+      // de tribune zelf houdt je tegen; je kunt er niet doorheen lopen
+      W.addCollider(tx(0, Tb.diep / 2), tz(0, Tb.diep / 2), halveL, Tb.diep / 2, draai, 1.8);
+      // een vlaggenmast aan de kopse kant, zoals op de foto
+      if (Tb.vlaggenmast) {
+        const mx = tx(-halveL - 2.5, uit - 1), mz = tz(-halveL - 2.5, uit - 1);
+        voegToe(B.staal, new THREE.CylinderGeometry(0.07, 0.09, 11, 8), plaats(mx, grondY + 5.5, mz, 0));
+        voegToe(B.vlag, gaasGeo(1.6, 1.0), plaats(mx + 0.8 * ax, grondY + 9.6, mz + 0.8 * az, draai));
+        W.addCollider(mx, mz, 0.12, 0.12, 0, 11);
+      }
     }
 
     // ---- lichtmasten ----
@@ -347,6 +447,8 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
     [B.staal, M.staal, 'sportpaal'], [B.hek, M.hek, 'sporthek'], [B.dugout, M.dugout, 'dugout'],
     [B.ruit, M.ruit, 'dugoutruit'], [B.bank, M.bank, 'dugoutbank'], [B.lamp, M.lamp, 'lichtmast'],
     [B.achterkant, M.achterkant, 'reclameachter'],
+    [B.beton, M.beton, 'tribune'], [B.stoel, M.stoel, 'tribunestoel'],
+    [B.luifel, M.luifel, 'tribuneluifel'], [B.vlag, M.vlag, 'clubvlag'],
     [B.spannenburg, M.spannenburg, 'reclamebordSpannenburg'],
     ...B.borden.map((b, i) => [b, M.borden[i], 'reclamebord']),
   ];
