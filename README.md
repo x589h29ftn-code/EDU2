@@ -744,10 +744,10 @@ vóór de vlaggenmasten):
 
 ![Alle objecten](docs/screenshots/objecten.png)
 
-## Twee gebouwen die geen woning zijn
+## Gebouwen die geen woning zijn
 
-Bijna heel Tinga bestaat uit woningen, en die krijgen hun aanzien van hun straat. Vier panden vielen
-daarbuiten en stonden er tot nu toe als een naamloos blok bij. Ze staan nu met hun BAG-pandnummer in
+Bijna de hele wereld bestaat uit woningen, en die krijgen hun aanzien van hun straat. Een handvol
+panden valt daarbuiten en stond er als een naamloos blok bij. Ze staan nu met hun BAG-pandnummer in
 **[data/stijl/straten.json](data/stijl/straten.json)** en hebben hun eigen aanzien gekregen.
 
 ### De Jumbo aan de Molenkrite
@@ -779,6 +779,40 @@ Zulke uitzonderingen staan als vak in **[data/stijl/omgeving.json](data/stijl/om
 
 ![De overkant van de Molenkrite bij nummer 15](docs/screenshots/molenkrite15_overkant.png)
 
+### Houtzaagmolen De Rat, Sneekerpad 16 in IJlst
+
+Kom je vanuit Sneek over het Sneekerpad IJlst binnenrijden, dan staat hij links aan het water: een
+**achtkante stellingmolen** van ruim twintig meter, met de zaagloodsen aan weerskanten. **De wieken
+draaien**, rustig — vier en een halve omwenteling per minuut, dus ruim dertien seconden per rondje.
+
+![Houtzaagmolen De Rat vanaf het Sneekerpad](docs/screenshots/molen_pad.png)
+
+Van onder naar boven: een zwart geteerde achtkante onderbouw tot aan de **stelling** op 7,5 m, met
+een omloop met een plankier, een leuning en schoren eronder; daarboven het **rieten achtkant** dat
+naar boven toe smaller wordt; dan de **kap**, die een halve meter over de romp heen steekt zodat je
+ziet dat hij los kan draaien, met de **bovenas** eruit die naar de kop toe omhoog loopt; en achter de
+kap de **staart** met het kruirad, waarmee een molenaar de kap op de wind zet. Het **gevlucht** is
+twee gekruiste roeden van 9,7 m met aan één kant van elke roede het hekwerk — meer lucht dan hout,
+dus je kijkt er dwars doorheen.
+
+![De molen van dichtbij](docs/screenshots/molen_dichtbij.png)
+
+Wat er uit de data komt en wat niet, staat in [docs/METHODIEK.md](docs/METHODIEK.md). Kort: het pand
+is er een uit 1683 met een goot op 7,52 m — dat is bij een stellingmolen precies de stelling — en een
+nok op 20,66 m, en het grondvlak van 28 bij 13,6 m is dat van de zaagloodsen. Het 3D BAG-model zelf
+is bij een molen onbruikbaar: dat vangt de roeden mee, en opgetrokken tot een gebouw was het de witte
+klomp die er tot nu toe stond.
+
+### Supermarkt Poiesz, De Dassenboarch 32 in IJlst
+
+De supermarkt van IJlst: donkerbruine baksteen onder een flauw hellend dak van grijze metalen
+dakplaten, met onderlangs de hele voorgevel een glazen pui met lichtgrijze stijlen, en daarboven de
+zilvergrijze band met het **groene woordmerk**. De ingang zit onder het puntdak in het midden — dat
+staat zo in het 3D BAG-model. Het parkeerterrein ligt aan de oostkant, en daar kijkt de voorgevel
+ook naartoe.
+
+![Supermarkt Poiesz](docs/screenshots/poiesz_pui.png)
+
 ### Basisschool De Spil, Molenkrite 169
 
 Het grootste pand van de wijk: een U van 6600 m² om een plein heen. Roodbruine baksteen met over de
@@ -802,6 +836,8 @@ overal vervalt waar hij op de weg, de inrit of het voetpad zou komen. Daardoor o
 de inrit vanzelf.
 
 `npm run adresshots` maakt de foto's van deze panden; de uitsnede staat bij het pand in de catalogus.
+`npm run molenshots` maakt die van de molen en de Poiesz, `npm run molentest` toetst ze allebei —
+vierendertig controles, van de stellinghoogte tot het aantal toeren van het gevlucht.
 `node tools/plek.mjs <x> <z> <kijkNaarX> <kijkNaarZ> [naam]` maakt een foto van een willekeurige plek
 in de wijk, handig als er ergens iets niet klopt.
 
@@ -844,6 +880,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `js/sportveld.js` – de velden van VV Sneek Wit Zwart: belijning, maaibanen, doelen, reclameborden,
   ballenvanger, dugouts en lichtmasten, uitgezet op het BGT-vlak
 - `js/volkstuin.js` – de volkstuinen achter de Wieken: bedden, paden, hagen en hekjes, schuurtjes en kassen
+- `js/molen.js` – Houtzaagmolen De Rat aan het Sneekerpad: zaagloodsen, onderbouw, stelling, rieten
+  achtkant, kap, staart en het draaiende gevlucht
 - `js/kaartkleuren.js` – één kleur per klasse, gedeeld door kaartplaat, bovenaanzicht en minimap
 - `js/data.js` – de oude, handgetekende kaart in pixelcoördinaten; draait nog met `?kaart=oud`
 - `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
@@ -910,6 +948,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   overkant van de N7
 - `tools/sporttest.mjs` – toetst het sportpark aan de Molenkrite en de volkstuinen achter de Wieken
 - `tools/sportshots.mjs` – maakt de foto's van het voetbalveld en de volkstuinen
+- `tools/molentest.mjs` – toetst de houtzaagmolen en de Poiesz in IJlst
+- `tools/molenshots.mjs` – maakt de foto's van de molen en de supermarkt
 - `tools/audit.mjs` – meet draw calls, geheugen en laadtijd door
 - `tools/contactblad.py` – plakt de losse foto's uit `tools/propshots.mjs` en `tools/assets.mjs` tot de
   overzichtsbladen met alle objecten en woningtypen

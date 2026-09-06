@@ -13,6 +13,7 @@ import { PROP_TYPES } from './props.js';
 import { zetViaducten, bouwViaducten, grondHoogte, onderBrug } from './viaduct.js';
 import { bouwSportvelden } from './sportveld.js';
 import { bouwVolkstuinen } from './volkstuin.js';
+import { bouwMolens } from './molen.js';
 
 export let KAART = null;
 export function zetKaart(k) { KAART = k; zetViaducten(k && k.viaducten); }
@@ -423,6 +424,8 @@ export function bouwKaartWereld(scene, W) {
     // Molenkrite, en de tuintjes op het volkstuincomplex achter de Wieken
     bouwSportvelden(scene, W, K.sportvelden, KERB_Y);
     bouwVolkstuinen(scene, W, K.volkstuinen);
+    // en de houtzaagmolen aan het Sneekerpad, met zijn zaagloodsen
+    bouwMolens(scene, W, K.molens);
   } else {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor);
@@ -775,9 +778,19 @@ function bouwPanden(scene, W, plat) {
   };
 
   let met3d = 0, geschat = 0;
+  /*
+   Panden waar een molen op staat slaan we over: js/molen.js zet er een echte
+   molen neer in plaats van het opgetrokken 3D BAG-model, dat bij een molen niet
+   meer is dan een puntenwolk met de roeden erin. Op de platte controleplaat
+   (`?boven=1&plat=1`) doen ze wél mee, want die vergelijkt het grondvlak met de
+   kaartplaat uit de brondata.
+  */
+  const molenPanden = new Set(plat ? [] : (K.molens || []).map(m => m.pand));
   for (const p of K.panden) {
     tegelNu = tegelVan(p.rect ? p.rect.cx : p.voet[0][0], p.rect ? p.rect.cz : p.voet[0][1]);
-    if (p.v && p.f) {
+    if (molenPanden.has(p.id)) {
+      // alleen de botsingsdozen, verderop in deze lus
+    } else if (p.v && p.f) {
       const V = p.v;
       const pt = (i) => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]];
       p.f.forEach((ringen, fi) => vlak3d(p, ringen.map(r => r.map(pt)), p.s[fi]));

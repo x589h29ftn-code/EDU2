@@ -5,6 +5,7 @@ import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
 import { KAART, bouwKaartWereld, ondergrondKaart, kaartStand, vlakOp } from './kaartwereld.js';
+import { draaiMolens } from './molen.js';
 export { grondHoogte, opViaduct, onderBrug } from './viaduct.js';
 
 export const colliders = [];   // {cx,cz,hx,hz,cos,sin,h} georiënteerde rechthoeken
@@ -1310,6 +1311,7 @@ export const radioPlekken = [];
 // Af en toe gaat het flesje naar de mond en weer omlaag. Elk poppetje heeft
 // zijn eigen tempo, anders drinken ze als een peloton.
 export function updateProps(dt) {
+  draaiMolens(dt);              // het gevlucht van de houtzaagmolen
   for (const a of drinkArmen) {
     a.fase += dt / a.duur;
     if (a.fase >= 1) a.fase -= 1;
