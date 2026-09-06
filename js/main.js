@@ -741,18 +741,45 @@ window.__game = {
 if (BOVEN && KAART) {
   const G = KAART.gebied, S = Number(URLP.get('schaal') || 4);
   const W = Math.round((G.x1 - G.x0) * S), H = Math.round((G.z1 - G.z0) * S);
-  const ortho = new THREE.OrthographicCamera(-(G.x1 - G.x0) / 2, (G.x1 - G.x0) / 2, (G.z1 - G.z0) / 2, -(G.z1 - G.z0) / 2, 1, 600);
-  ortho.position.set((G.x0 + G.x1) / 2, 300, (G.z0 + G.z1) / 2);
+  /*
+   WebGL tekent niet groter dan MAX_VIEWPORT_DIMS (hier 8192 px per kant). Het
+   hele gebied is op 2 px/m 8760 px breed; die ene grote opname liep stil tegen
+   die grens aan. Chrome verkleint het tekenvlak dan zelf, met behoud van de
+   verhouding, en rekt het beeld daarna weer uit naar de maat van het doek: de
+   plaat zag er nog goed uit maar stond 7 % te groot en een paar honderd pixels
+   verschoven. `geo:boven` meldde daardoor 48 % verschil terwijl er niets mis
+   was met de wereld. Daarom nu in stukken van hoogstens MAX px, die
+   tools/geo/bovenaanzicht.mjs weer aan elkaar plakt.
+  */
+  const gl = renderer.getContext();
+  const vp = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+  const MAX = Math.min(renderer.capabilities.maxTextureSize, vp[0], vp[1], 8192);
+  const KOLOMMEN = Math.ceil(W / MAX), RIJEN = Math.ceil(H / MAX);
+  const grens = (i, n, tot) => Math.round(i * tot / n);
+  const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 600);
   ortho.up.set(0, 0, -1);            // noorden boven
-  ortho.lookAt((G.x0 + G.x1) / 2, 0, (G.z0 + G.z1) / 2);
   scene.fog = null;
   const plat = URLP.has('plat');
   if (plat) { renderer.toneMapping = THREE.NoToneMapping; scene.background = new THREE.Color(KLEUR.achtergrond); }
   else { scene.background = new THREE.Color(0xdfe6ee); }
   renderer.shadowMap.enabled = !plat;
-  window.__boven = () => {
+  window.__bovenRaster = { W, H, kolommen: KOLOMMEN, rijen: RIJEN, max: MAX, schaal: S };
+  // Eén stuk van het raster. Zonder argumenten (raster 1×1) is dat het geheel.
+  window.__boven = (ix = 0, iy = 0) => {
+    const px0 = grens(ix, KOLOMMEN, W), px1 = grens(ix + 1, KOLOMMEN, W);
+    const py0 = grens(iy, RIJEN, H), py1 = grens(iy + 1, RIJEN, H);
+    const bw = px1 - px0, bh = py1 - py0;
+    // pixelgrenzen terug naar spelmeters; beeldrij 0 is de noordkant (kleinste z)
+    const wx0 = G.x0 + px0 / S, wx1 = G.x0 + px1 / S;
+    const wz0 = G.z0 + py0 / S, wz1 = G.z0 + py1 / S;
+    const cx = (wx0 + wx1) / 2, cz = (wz0 + wz1) / 2;
+    ortho.left = -(wx1 - wx0) / 2; ortho.right = (wx1 - wx0) / 2;
+    ortho.top = (wz1 - wz0) / 2; ortho.bottom = -(wz1 - wz0) / 2;
+    ortho.position.set(cx, 300, cz);
+    ortho.lookAt(cx, 0, cz);
+    ortho.updateProjectionMatrix();
     renderer.setPixelRatio(1);
-    renderer.setSize(W, H, false);
+    renderer.setSize(bw, bh, false);
     // verkeer en voetgangers uit beeld
     vehicles.zichtbaarheid(false);
     for (const m of Object.values(npcs.meshes)) m.visible = false;
@@ -760,10 +787,11 @@ if (BOVEN && KAART) {
     player.gun.visible = false;
     if (verhaal.buurman) verhaal.buurman.groep.visible = false;   // hij hoort bij de mensen
     for (const l of clouds) l.mesh.visible = false;
-    if (!plat) { sun.position.set(ortho.position.x + 60, 300, ortho.position.z + 40); sun.target.position.set(ortho.position.x, 0, ortho.position.z); sun.target.updateMatrixWorld(); }
+    if (!plat) { sun.position.set(cx + 60, 300, cz + 40); sun.target.position.set(cx, 0, cz); sun.target.updateMatrixWorld(); }
     window.__bovenCam = ortho;
+    sky.position.copy(ortho.position);
     renderer.render(scene, ortho);
     // meteen uitlezen, in dezelfde tik als het tekenen
-    return { W, H, png: renderer.domElement.toDataURL('image/png') };
+    return { W: bw, H: bh, x: px0, y: py0, geheel: [W, H], png: renderer.domElement.toDataURL('image/png') };
   };
 }
