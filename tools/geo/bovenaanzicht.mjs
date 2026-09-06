@@ -28,6 +28,13 @@ const browser = await chromium.launch({
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
 });
 
+/*
+ WebGL tekent niet groter dan 8192 px per kant. Het hele gebied is op 2 px/m
+ 8760 px breed, dus laat het spel de plaat in stukken tekenen (window.__bovenRaster
+ zegt hoeveel) en plak ze hier weer aan elkaar. Eén te grote opname werd door
+ Chrome stilzwijgend verkleind en daarna weer uitgerekt: de plaat leek goed maar
+ stond 7 % te groot, en de vergelijking meldde 48 % verschil.
+*/
 async function opname(plat, uit) {
   const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
   const fouten = [];
@@ -35,12 +42,30 @@ async function opname(plat, uit) {
   page.on('console', m => { if (m.type() === 'error') fouten.push(m.text()); });
   await page.goto(`http://127.0.0.1:${poort}/index.html?boven=1&schaal=${schaal}${plat ? '&plat=1' : ''}`, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__game && window.__boven, null, { timeout: 180000 });
-  // twee keer: de eerste keer laadt de GPU de texturen en schaduwen, de tweede levert het beeld
-  await page.evaluate(() => window.__boven());
+  const raster = await page.evaluate(() => window.__bovenRaster);
+  const { W, H, kolommen, rijen } = raster;
+  // eerste opname warmt de GPU op (texturen, schaduwen); die gooien we weg
+  await page.evaluate(() => window.__boven(0, 0));
   await page.waitForTimeout(500);
-  const { W, H, png } = await page.evaluate(() => window.__boven());
+  const stukken = [];
+  for (let iy = 0; iy < rijen; iy++) {
+    for (let ix = 0; ix < kolommen; ix++) {
+      const s = await page.evaluate(([ix, iy]) => window.__boven(ix, iy), [ix, iy]);
+      stukken.push({ x: s.x, y: s.y, W: s.W, H: s.H, png: s.png });
+    }
+  }
+  const png = stukken.length === 1 ? stukken[0].png
+    : await page.evaluate(async ({ W, H, stukken }) => {
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const ctx = c.getContext('2d');
+      for (const s of stukken) {
+        const im = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.src = s.png; });
+        ctx.drawImage(im, s.x, s.y);
+      }
+      return c.toDataURL('image/png');
+    }, { W, H, stukken });
   writeFileSync(uit, Buffer.from(png.split(',')[1], 'base64'));
-  console.log(`${uit}: ${W}×${H} px${fouten.length ? `, fouten: ${fouten.join(' | ')}` : ''}`);
+  console.log(`${uit}: ${W}×${H} px in ${kolommen}×${rijen} stuk(ken)${fouten.length ? `, fouten: ${fouten.join(' | ')}` : ''}`);
   await page.close();
   return { W, H };
 }
