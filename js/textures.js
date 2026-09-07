@@ -693,6 +693,28 @@ export const HOUSE_STYLES = {
   // tussen de woningen, grindtuin met klinkerpad.
   bonkelaar:  { brick: ['#7a4a3c', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#f2f2f2', '#2a2a2a', '#1f3a6e'], roof: '#37322f', roofType: 'gable', storeys: 2, w: 6.4, dormer: false, chimney: true, band: '#f2f2f2', semi: true, topgevel: '#f2f2ee' },
   detached:   { brick: ['#7e5a48', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2a2a', '#5a2d1a'], roof: '#3b3432', roofType: 'gable', storeys: 2, w: 10.0, dormer: false, chimney: true, band: '#f2f2f2', solar: true, detached: true },
+  /*
+   Keizersmantel 401-437 en 441-485 in Duinterpen (foto's Street View april 2024,
+   in de chat 7 sep 2026). Twee gebogen blokken van drie lagen die om hun eigen
+   parkeerterrein heen buigen: roodbruine baksteen, een cremekleurige band langs
+   de gebogen dakrand, en per woning een brede pui met een donker paneel eronder
+   waar op de foto het balkon zit.
+
+   De begane grond zit hier niet in. Die ligt in het echt een paar meter terug
+   achter een rij ronde zuilen, en dat bouwt js/zuilengang.js als echte
+   geometrie — een gevelplaat is één plat vlak op de rooilijn en kan een
+   terugliggende pui niet laten zien. `js/kaartwereld.js` knipt de muren van
+   deze panden daarom op de goothoogte af en laat het stuk eronder weg. De uv
+   van de plaat loopt nog wel vanaf straatniveau, dus de onderste laag van dit
+   doek valt achter de gang en is niet te zien.
+
+   Het verschil tussen de twee blokken: bij de Poiesz antracietgrijze kozijnen
+   met donkere panelen eronder, wat de brede puien met rolluiken van de foto
+   geeft; bij het blok ernaast witte kozijnen zonder paneel, dus losse ramen met
+   steen ertussen zoals daar op de foto staat.
+  */
+  duinterpen:  { brick: ['#9e5a44', '#cfc7ba'], frame: '#ffffff', frame2: '#ffffff', door: ['#4a3b30'], roof: '#8f8d88', roofType: 'flat', storeys: 3, storeyH: 3.9, w: 5.6, dormer: false, chimney: false, band: '#ece6d6', plint: '#6b5a4d', balcony: true },
+  duinterpen_poiesz: { brick: ['#9e5a44', '#cfc7ba'], frame: '#3a3f44', frame2: '#3a3f44', door: ['#2f3337'], roof: '#8f8d88', roofType: 'flat', storeys: 3, storeyH: 3.9, w: 5.6, dormer: false, chimney: false, band: '#ece6d6', plint: '#6b5a4d', paneel: '#33383b', balcony: true },
   appart:     { brick: ['#d6c08c', '#e5dccb'], frame: '#ffffff', frame2: '#ffffff', door: ['#2b2b2b'], roof: '#555', roofType: 'flat', storeys: 3, w: 7.0, dormer: false, chimney: false, band: '#f2f2f2', balcony: true },
   // Bovenas 5 (foto): één laag met de slaapkamers in de kap, lichtgele steen,
   // witte kozijnen met bordeauxrode deuren en draaidelen, dakramen,

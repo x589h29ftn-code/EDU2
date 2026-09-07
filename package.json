@@ -60,6 +60,8 @@
     "poieszshots": "node tools/poieszshots.mjs",
     "relieftest": "node tools/relieftest.mjs",
     "optimeer": "node tools/optimeer.mjs",
+    "duinterpentest": "node tools/duinterpentest.mjs",
+    "duinterpenshots": "node tools/duinterpenshots.mjs",
     "beeldshots": "node tools/beeldshots.mjs"
   }
 }

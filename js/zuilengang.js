@@ -29,6 +29,13 @@
 import * as THREE from 'three';
 
 const HOEKEN = 12;          // een zuil is een twaalfhoek: rond genoeg op straat
+/*
+ De stoep, het erf en het gras liggen in js/kaartwereld.js op KERB_Y = 0,12 m
+ boven de rijbaan. De vloer van de gang moet daar dus bovenop en niet op nul:
+ op y = 0,01 lag hij ónder het gras eromheen, en dan zie je een groene streep
+ langs de voet van de winkelpui.
+*/
+const STOEP_Y = 0.14;
 
 // ---------------------------------------------------------------- texturen
 // Alles op een canvas getekend; er zit geen enkel plaatje in het spel.
@@ -138,9 +145,8 @@ function mesh(bak, mat, klasse, schaduw = true) {
   return m;
 }
 
-export function bouwZuilengangen(scene, W, gangen, panden) {
+export function bouwZuilengangen(scene, W, gangen) {
   if (!gangen || !gangen.length) return 0;
-  const pandVan = new Map((panden || []).map(p => [p.id, p]));
 
   const MAT = {
     zuil: new THREE.MeshStandardMaterial({ color: 0xe7e6e0, roughness: 0.55, metalness: 0.05 }),
@@ -156,22 +162,39 @@ export function bouwZuilengangen(scene, W, gangen, panden) {
     const boog = gang.boog;
     if (!boog || boog.length < 2) continue;
     const H = gang.hoogte, D = gang.diepte, R = gang.straal;
-    const pand = pandVan.get(gang.pand);
 
     /*
-     Naar welke kant ligt "buiten"? De boog loopt langs de rooilijn; de pui ligt
-     `diepte` meter naar de andere kant. Welke kant dat is volgt uit het
-     zwaartepunt van de boog tegenover het hart van het pand: het pand zit
-     áchter de gang.
+     Welke kant is "naar binnen"? Dat staat per stuk boog in de kaart
+     (`gang.binnen`), uitgerekend door de generator met een punt-in-veelhoektoets
+     op het grondvlak. Zelf uitrekenen met het hart van de omhullende rechthoek
+     ging mis: bij een halvemaanvormig grondvlak ligt dat punt in de holte, aan
+     dezelfde kant als het parkeerterrein, en dan komt de pui 2,4 m de
+     parkeerplaats in te staan — vóór de zuilen langs.
      */
-    let bx = 0, bz = 0;
-    for (const p of boog) { bx += p[0]; bz += p[1]; }
-    bx /= boog.length; bz /= boog.length;
-    const hx = pand && pand.rect ? pand.rect.cx : bx;
-    const hz = pand && pand.rect ? pand.rect.cz : bz;
-    let ix = hx - bx, iz = hz - bz;
+    const binnen = gang.binnen || [];
+    // een gemiddelde richting voor het bord en voor de terugval
+    let ix = 0, iz = 0;
+    for (const n of binnen) { ix += n[0]; iz += n[1]; }
     const iL = Math.hypot(ix, iz) || 1;
-    ix /= iL; iz /= iL;                       // van de boog naar binnen
+    ix /= iL; iz /= iL;
+
+    /*
+     Per hóekpunt een richting naar binnen: het gemiddelde van de twee stukken
+     eromheen. Elk stuk langs zijn eigen normaal verschuiven lijkt hetzelfde,
+     maar dan sluiten twee stukken op een knik in de boog niet op elkaar aan en
+     staat er een verticale spleet tussen — op de foto van het spel zag je daar
+     het gras achter de winkel doorheen. Met een richting per hoekpunt delen twee
+     opeenvolgende vlakken hun hoekpunten en kan er geen gat vallen.
+    */
+    const vnaarBinnen = [];
+    for (let i = 0; i < boog.length; i++) {
+      const a1 = binnen[i - 1], a2 = binnen[i];
+      let nx = 0, nz = 0;
+      if (a1) { nx += a1[0]; nz += a1[1]; }
+      if (a2) { nx += a2[0]; nz += a2[1]; }
+      const L = Math.hypot(nx, nz) || 1;
+      vnaarBinnen.push([nx / L, nz / L]);
+    }
 
     const puiBak = { pos: [], nor: [], uv: [] };
     const plafondBak = { pos: [], nor: [], uv: [] };
@@ -185,28 +208,33 @@ export function bouwZuilengangen(scene, W, gangen, panden) {
       const dx = b[0] - a[0], dz = b[1] - a[1];
       const L = Math.hypot(dx, dz);
       if (L < 0.05) continue;
-      // de vier hoeken: voor (op de rooilijn) en achter (bij de pui)
+      // de vier hoeken: voor (op de rooilijn) en achter (bij de pui), elk hoekpunt
+      // langs zijn eigen richting naar binnen zodat de vlakken aansluiten
+      const na = vnaarBinnen[i], nb2 = vnaarBinnen[i + 1];
+      const nb = binnen[i] || [ix, iz];
+      const jx = nb[0], jz = nb[1];                 // voor de kant waar het vlak op kijkt
       const av = [a[0], 0, a[1]], bv = [b[0], 0, b[1]];
-      const aa = [a[0] + ix * D, 0, a[1] + iz * D], ba = [b[0] + ix * D, 0, b[1] + iz * D];
+      const aa = [a[0] + na[0] * D, 0, a[1] + na[1] * D];
+      const ba = [b[0] + nb2[0] * D, 0, b[1] + nb2[1] * D];
       const u0 = langs / 4, u1 = (langs + L) / 4;      // 4 m per herhaling
       langs += L;
 
       // de pui: van de vloer tot het plafond, kijkend naar buiten
       quad(puiBak,
         [aa[0], 0, aa[2]], [ba[0], 0, ba[2]], [ba[0], H, ba[2]], [aa[0], H, aa[2]],
-        [[u0, 0], [u1, 0], [u1, 1], [u0, 1]], [-ix, 0, -iz]);
+        [[u0, 0], [u1, 0], [u1, 1], [u0, 1]], [-jx, 0, -jz]);
       // het plafond van de gang, kijkend naar beneden
       quad(plafondBak,
         [av[0], H, av[2]], [bv[0], H, bv[2]], [ba[0], H, ba[2]], [aa[0], H, aa[2]],
         [[u0, 0], [u1, 0], [u1, 1], [u0, 1]], [0, -1, 0]);
-      // de vloer, kijkend naar boven; een centimeter boven de stoep
+      // de vloer, kijkend naar boven; net boven de stoep eromheen
       quad(vloerBak,
-        [av[0], 0.01, av[2]], [bv[0], 0.01, bv[2]], [ba[0], 0.01, ba[2]], [aa[0], 0.01, aa[2]],
+        [av[0], STOEP_Y, av[2]], [bv[0], STOEP_Y, bv[2]], [ba[0], STOEP_Y, ba[2]], [aa[0], STOEP_Y, aa[2]],
         [[u0, 0], [u1, 0], [u1, 1], [u0, 1]], [0, 1, 0]);
       // de lichte band langs de voorkant van het plafond, 24 cm hoog
       quad(bandBak,
         [av[0], H - 0.24, av[2]], [bv[0], H - 0.24, bv[2]], [bv[0], H, bv[2]], [av[0], H, av[2]],
-        [[u0, 0], [u1, 0], [u1, 1], [u0, 1]], [-ix, 0, -iz]);
+        [[u0, 0], [u1, 0], [u1, 1], [u0, 1]], [-jx, 0, -jz]);
     }
 
     for (const [bak, mat, klasse, schaduw] of [
@@ -242,15 +270,16 @@ export function bouwZuilengangen(scene, W, gangen, panden) {
     /*
      Het woordmerk boven de ingang, alleen bij een pand dat een winkel is. Het
      hangt tegen de pui in het midden van de boog, want daar zit op de foto de
-     ingang: 2,4 m breed en 60 cm hoog, met de onderkant op 2,6 m.
+     ingang: 4,2 m breed en 90 cm hoog, met het hart op 3,1 m — net onder het
+     plafond van de gang van 3,95 m.
      */
     if (gang.merk) {
       const mid = Math.floor((boog.length - 1) / 2);
       const a = boog[mid], b = boog[mid + 1] || boog[mid];
       const mx = (a[0] + b[0]) / 2 + ix * (D - 0.06);
       const mz = (a[1] + b[1]) / 2 + iz * (D - 0.06);
-      const bord = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.6), MAT.merk);
-      bord.position.set(mx, 2.9, mz);
+      const bord = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.9), MAT.merk);
+      bord.position.set(mx, Math.min(3.1, H - 0.55), mz);
       // het bord kijkt naar buiten, dus tegen de looprichting van de gang in
       bord.rotation.y = Math.atan2(-ix, -iz);
       bord.userData.klasse = 'winkelmerk';
@@ -264,8 +293,9 @@ export function bouwZuilengangen(scene, W, gangen, panden) {
      */
     for (let i = 0; i < boog.length - 1; i++) {
       const a = boog[i], b = boog[i + 1];
-      const ax = a[0] + ix * D, az = a[1] + iz * D;
-      const bx2 = b[0] + ix * D, bz2 = b[1] + iz * D;
+      const na = vnaarBinnen[i], nb2 = vnaarBinnen[i + 1];
+      const ax = a[0] + na[0] * D, az = a[1] + na[1] * D;
+      const bx2 = b[0] + nb2[0] * D, bz2 = b[1] + nb2[1] * D;
       const dx = bx2 - ax, dz = bz2 - az, L = Math.hypot(dx, dz);
       if (L < 0.3) continue;
       W.addCollider((ax + bx2) / 2, (az + bz2) / 2, L / 2, 0.12, -Math.atan2(dz, dx), H);

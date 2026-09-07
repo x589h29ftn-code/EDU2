@@ -14,6 +14,7 @@ import { zetViaducten, bouwViaducten, grondHoogte, onderBrug } from './viaduct.j
 import { bouwSportvelden } from './sportveld.js';
 import { bouwVolkstuinen } from './volkstuin.js';
 import { bouwMolens } from './molen.js';
+import { bouwZuilengangen } from './zuilengang.js';
 
 export let KAART = null;
 export function zetKaart(k) { KAART = k; zetViaducten(k && k.viaducten); }
@@ -503,6 +504,9 @@ export function bouwKaartWereld(scene, W) {
     bouwVolkstuinen(scene, W, K.volkstuinen);
     // en de houtzaagmolen aan het Sneekerpad, met zijn zaagloodsen
     bouwMolens(scene, W, K.molens);
+    // en de zuilengangen onder de twee blokken aan de Keizersmantel in Duinterpen
+    const gangen = bouwZuilengangen(scene, W, K.zuilengangen);
+    if (gangen) console.log(`kaart: ${gangen} zuilengang(en) gebouwd`);
   } else {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor);
@@ -646,6 +650,14 @@ function bouwPanden(scene, W, plat) {
    voor draw calls. Op 480 m was dat -381.000 driehoeken voor +191 draw calls;
    op 960 m staat het in de tabel hieronder in METHODIEK.
   */
+  /*
+   Panden met een zuilengang (data/stijl/straten.json): daar begint de muur pas
+   op de hoogte van de gang. Het stuk eronder bouwt js/zuilengang.js — de begane
+   grond ligt terug achter een rij zuilen, en dat is met een gevelplaat op de
+   rooilijn niet te maken.
+  */
+  const gangHoogte = new Map((K.zuilengangen || []).map(z => [z.pand, z.hoogte]));
+
   const PAND_CEL = 960;
   const PAND_STAP = Math.round(PAND_CEL / TEGEL);
   const pandTegel = () => {
@@ -695,7 +707,7 @@ function bouwPanden(scene, W, plat) {
     // Dakkapel: een muurvlak dat helemaal boven de goot begint. Witte wangen,
     // en aan de voorkant het kozijn van de dakkapel.
     let laagste = Infinity; for (const p of punten) laagste = Math.min(laagste, p[1]);
-    if (st && !ind && pand.goot && laagste > pand.goot - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven) {
+    if (st && !ind && !pand.gang && pand.goot && laagste > pand.goot - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven) {
       if (Math.abs(kant) > 0.6 && breed >= 1.2) {
         const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
@@ -779,6 +791,25 @@ function bouwPanden(scene, W, plat) {
   const vlak3d = (pand, ringen, soort) => {
     const buiten = ringen[0];
     const n = normaal(buiten);
+    /*
+     Zuilengang: alles onder de gang weglaten. Let op dat dit vóór de knip op de
+     goot hieronder staat: bij deze blokken ís de goot de rand van de gang
+     (3,95 m), en dan zou die knip de twee woonlagen erboven als kopgevel
+     behandelen — kale steen in plaats van een gevel met balkons. Na het knippen
+     ligt de onderkant op de ganghoogte, dus die tweede knip komt niet meer aan
+     de beurt en er is geen kans op eindeloos terugroepen.
+    */
+    const gangH = gangHoogte.get(pand.id);
+    if (gangH !== undefined && soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1) {
+      let l = Infinity, t = 0;
+      for (const p of buiten) { l = Math.min(l, p[1]); t = Math.max(t, p[1]); }
+      if (t <= gangH + 0.3) return;                 // dit vlak zit helemaal in de gang
+      if (l < gangH - 0.02) {
+        const { boven } = knipOpHoogte(buiten, gangH);
+        if (boven) vlak3d(pand, [boven], 1);
+        return;
+      }
+    }
     if (soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1 && !pand.boven && !(T.HOUSE_STYLES[pand.type] || {}).industrieel) {
       // Muren boven de goot doorknippen: eronder de gevel, erboven een kopgevel
       // (tot de nok) of de wang van een dakkapel (lager dan de nok). 3D BAG trekt
@@ -894,8 +925,17 @@ function bouwPanden(scene, W, plat) {
     } else if (p.v && p.f) {
       const V = p.v;
       const pt = (i) => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]];
-      p.f.forEach((ringen, fi) => vlak3d(p, ringen.map(r => r.map(pt)), p.s[fi]));
-      if (p.kapel) dakkapel(p);
+      /*
+       Bij een pand met een zuilengang gaat de vlag `gang` er meteen op, en de
+       goot eraf. De goot van zo'n blok is de rand van de gang (3,95 m) en niet
+       een dakrand, en `muurKeuze` houdt elk vlak dat boven de goot begint voor
+       de wang van een dakkapel. Dat gebeurde niet alleen bij de vlakken die
+       hieronder afgeknipt worden maar ook bij de vlakken die al hoger beginnen,
+       en die kwamen als wit plaatmateriaal in beeld.
+      */
+      const pg = gangHoogte.has(p.id) ? { ...p, gang: true, goot: null } : p;
+      p.f.forEach((ringen, fi) => vlak3d(pg, ringen.map(r => r.map(pt)), p.s[fi]));
+      if (p.kapel) dakkapel(pg);
       met3d++;
     } else {
       // muren naar buiten: ring met de klok mee (in xz)

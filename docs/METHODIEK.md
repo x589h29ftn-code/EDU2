@@ -2207,6 +2207,82 @@ uitwees en het beredeneren ze had gemist.
   guard is weg — ontbreekt `lodAan`, dan hoort dat een fout te zijn en geen
   stilte.
 
+**De twee blokken aan de Keizersmantel in Duinterpen (stap 30).**
+
+Op Keizersmantel 437 zit een Poiesz op de begane grond van een gebogen blok van
+drie lagen, en het blok ernaast (441-485) is in dezelfde trant. Beide staan op
+een rij ronde zuilen met de winkelpui een paar meter naar achteren.
+
+*Wat uit de data komt.* De twee BAG-panden 0091100000019594 en 0091100000019595
+hebben 46 en 45 hoeken in hun grondvlak — dat is de gebogen plattegrond — en een
+3D BAG-model dat als muur tot 11,73 en 11,53 m doorloopt met maar vijf
+dakvlakken. De goot op 3,95 en 4,01 m is niet een dakrand maar precies de rand
+van de zuilengang. Beide blokken buigen om hun eigen parkeerterrein heen: het
+zwaartepunt van de parkeervakken ligt op (1297, 296) en (1349, 305), aan de holle
+kant, en dat is waar de zuilen en de ingang aan liggen. Ze vielen tot nu toe
+onder de regel voor een grondvlak boven 300 m² en kregen daarmee het naamloze
+`spil`-type (open punt 10 hieronder, nu voor deze twee weg).
+
+*Wat van de foto komt:* de kleuren (roodbruine steen, cremekleurige band langs
+de dakrand, antracietgrijze kozijnen bij de Poiesz en witte bij de buur), de
+dikte van een zuil, hun onderlinge afstand en de diepte van de pui. Dat staat per
+pand in de `bron` in `data/stijl/straten.json`.
+
+*Waarom een eigen module.* Een gevelplaat is één plat vlak op de rooilijn, en die
+kan een terugliggende pui niet laten zien — je zou tegen een dichte wand met een
+tekening van winkelramen aankijken. `tools/geo/genereer.mjs` haalt daarom de boog
+uit het grondvlak en zet de zuilen erop; `js/zuilengang.js` bouwt de zuilen, de
+pui, het plafond van de gang en het woordmerk; en `js/kaartwereld.js` knipt de
+muur van zo'n pand op de ganghoogte af met het bestaande `knipOpHoogte`.
+
+Vier dingen die niet vanzelf goed gingen, alle vier gevonden door te meten of te
+kijken en niet door te beredeneren:
+
+- **De boog werd niet gevonden.** De eerste versie zocht randen waarvan de
+  buitennormaal naar het parkeerterrein wijst, met een drempel van 0,35 op het
+  inproduct. Bij de Poiesz kwam de hoogste waarde niet boven 0,29 uit en meldde
+  de generator "geen boog gevonden". Dat komt doordat het blok *om* zijn
+  parkeerterrein heen buigt: het doel ligt er vlak naast, dus de richting erheen
+  loopt bijna langs de gevel. Wat de boog eruit haalt is niet de scherpte van de
+  hoek maar de eis dat een rand minstens 2,5 m lang is — de gebogen voorgevel
+  bestaat uit stukken van zeven meter, de kopse kanten uit stukjes van
+  anderhalf. Met dubbele hoekpunten eruit (de BGT zet er soms twee op een paar
+  centimeter) geeft dat bij beide blokken een boog van 56 m over negen punten.
+- **De pui stond op de parkeerplaats.** "Naar binnen" werd uitgerekend als de
+  richting van de boog naar het hart van de omhullende rechthoek. Bij een
+  halvemaanvormig grondvlak ligt dat hart in de holte, aan dezelfde kant als het
+  parkeerterrein, dus wees die richting naar buiten en kwam de hele winkelpui
+  2,4 m vóór de zuilen langs te staan. De richting komt nu per stuk boog uit de
+  generator, met de punt-in-veelhoektoets die daar toch al staat.
+- **Twee woonlagen in wit plaatmateriaal.** Na het afknippen valt de onderkant
+  van de muur samen met de goot, en `muurKeuze` houdt elk vlak dat boven de goot
+  begint voor de wang van een dakkapel — 3D BAG trekt die namelijk door tot de
+  grond. Het blok stond daarmee als een wit gebouw met donkere lintramen in het
+  spel. De vlag `gang` gaat nu bij de bron op het pand en niet pas na het
+  knippen: vlakken die al boven de gang beginnen gaan die knip niet in en hadden
+  de vlag anders niet.
+- **Spleten in de pui.** Elk stuk boog werd langs zijn eigen normaal naar binnen
+  geschoven. Dat klinkt goed, maar dan sluiten twee stukken op een knik in de
+  boog niet op elkaar aan en staat er een verticale spleet tussen — je zag het
+  gras achter de winkel erdoorheen. Het verschuiven gaat nu per hóekpunt, met
+  het gemiddelde van de twee stukken eromheen, zodat opeenvolgende vlakken hun
+  hoekpunten delen.
+
+En twee dingen die de proef zelf verkeerd deed, wat de moeite van het vermelden
+waard is omdat het dezelfde valkuil twee keer is:
+
+- een omhullende doos om dit grondvlak is 59 bij 69 m en vangt dus de buren en
+  het parkeerterrein mee. Muren, gevels en dakkapellen staan per materiaal
+  samengevoegd in één mesh per tegel van 960 m, dus daarmee telde de proef de
+  dakkapellen van de hele buurt aan dit blok toe;
+- een punt-in-veelhoektoets valt op de grens willekeurig uit, en een
+  muurhoekpunt ligt juist precies op die grens. De proef telt nu de hoekpunten
+  die binnen 60 cm van de omtrek liggen.
+
+Controle: `npm run duinterpentest` (vierendertig controles: de boog, de
+richtingen, de zuilen, de gevel erboven en het lopen eromheen) en
+`npm run duinterpenshots` voor de foto's.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -2262,7 +2338,14 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
    3485 m²) en het blok aan de Krans. Ze kunnen op dezelfde manier als de
    supermarkt en de boerderij een eigen type krijgen in het blok `panden` van
    `data/stijl/straten.json`, zodra er een foto van is.
-11. **De drie punten belichting die na stap 27 overbleven.** Punt 1 (normal maps)
+11. **Onder de zuilengang door kunnen lopen, en een deur de Poiesz in.** De
+   botsingsdozen van een pand volgen het grondvlak, en de zuilen staan op die
+   lijn: je loopt nu tot aan de zuilen en houdt daar op, net als bij elke andere
+   gevel. Om onder de gang door te kunnen lopen moeten de dozen van deze twee
+   panden op de puilijn gelegd worden in plaats van op het grondvlak. Dat is pas
+   de moeite als er ook een deur de winkel in komt — dan kan deze Poiesz dezelfde
+   binnenruimte krijgen als die in IJlst (`js/supermarkt.js`).
+12. **De drie punten belichting die na stap 27 overbleven.** Punt 1 (normal maps)
    en 2 (roughness maps) zijn af; wat er nog ligt:
    - **ambient occlusion.** Onder een dakrand, in een portiek en in de hoek van
      twee muren hoort het donkerder te zijn. Echte SSAO vraagt een
