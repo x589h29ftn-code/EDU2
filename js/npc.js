@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { rng } from './textures.js';
 import { grondHoogte } from './viaduct.js';
+import { zichtVrij } from './world.js';
 import { MAAT, DEEL, loopHouding, fietsHouding } from './lichaam.js';
 
 const SHIRTS = [0x2f3a56, 0x8a1f1f, 0xe8e2d0, 0x2a6b3a, 0x2b2b2b, 0xd8b04a, 0x6a4c93, 0xc85a2a, 0x3f7fb0];
@@ -202,6 +203,99 @@ export class NPCs {
     this._h = {};       // gewrichtshoeken van dit beeld (zie js/lichaam.js)
   }
 
+  /*
+   Iemand naar de buurt van de speler verhuizen.
+
+   De honderddertig voetgangers werden één keer op een willekeurig wegvak in de
+   héle wereld gezet en bleven daar rondlopen. Over 10,95 km² is dat twaalf
+   mensen per vierkante kilometer: gemeten stonden er binnen tachtig meter van de
+   speler overal nul of één, en binnen tweehonderd meter drie tot negen. Rijd je
+   hard, dan laat je die paar achter en staat er niets vóór je — er kwam ook
+   niets bij, want na het opstarten wordt er niemand meer neergezet.
+
+   Wie ver genoeg weg is om niet gezien te worden, wordt daarom in een band om de
+   speler heen opnieuw neergezet. Het aantal blijft gelijk, dus het kost niets;
+   alleen staan ze nu waar je bent.
+
+   `zichtVrij` (js/world.js) houdt in de gaten dat het niet vóór je neus gebeurt.
+   Ligt er een gebouw tussen, dan mag het dichterbij (`DEKKING`) dan wanneer je
+   er vrij zicht op hebt (`OPEN`), en van de plekken achter een gebouw wint de
+   dichtstbijzijnde: zo staan ze in de straat waar je loopt en niet pas aan de
+   rand van je zicht. Zonder die voorkeur bleef het binnen tachtig meter bij nul
+   of twee mensen, want vanaf honderdtien meter moeten ze eerst nog naar je toe
+   lopen.
+  */
+  verhuisNaarBuurt(p, cx, cz, DEKKING = 70, OPEN = 110, BUITEN = 205) {
+    let beste = null, besteScore = -1;
+    for (let poging = 0; poging < 40; poging++) {
+      const s = this.segs[Math.floor(this.r() * this.segs.length)];
+      if (!s) break;
+      const t = this.r();
+      const x = s.a[0] + (s.b[0] - s.a[0]) * t, z = s.a[1] + (s.b[1] - s.a[1]) * t;
+      const d = Math.hypot(x - cx, z - cz);
+      if (d < DEKKING || d > BUITEN) continue;
+      const uitZicht = !zichtVrij(cx, cz, x, z, 1.6);
+      if (!uitZicht && d < OPEN) continue;
+      // achter een gebouw gaat vóór, en daarvan de dichtstbijzijnde
+      const score = (uitZicht ? 1000 : 0) + (BUITEN - d);
+      if (score > besteScore) { besteScore = score; beste = { s, t }; }
+    }
+    if (!beste) return false;
+    p.seg = beste.s; p.t = beste.t;
+    p.dir = this.r() < 0.5 ? 1 : -1;
+    p.paniek = 0; p.bron = null; p.schrik = 0; p.vNu = 0;
+    if (p.hond) p.hond.geplaatst = false;
+    return true;
+  }
+
+  /*
+   Zoveel voetgangers wil het spel om de speler heen hebben. In twee ringen: een
+   handvol in de straat waar je bent (`DICHTBIJ`) en een twintigtal in de buurt
+   (`NABIJ`). Meer niet — een Sneker woonwijk hoort niet vol te staan.
+
+   Zonder de binnenste ring bleef het bij nul tot vier mensen binnen tachtig
+   meter, ook als er twintig binnen tweehonderd meter stonden: die twintig zitten
+   verdeeld over een schijf waarvan het stuk bij je maar een zesde is.
+
+   Voor de binnenste ring wordt niemand in het open veld neergezet: is er geen
+   plek achter een gebouw, dan gebeurt er niets en probeert het spel het een
+   halve seconde later opnieuw.
+  */
+  vulBuurtAan(camX, camZ, dt) {
+    const DICHTBIJ = 100, NABIJ = 200, VER = 380, DOEL_DICHTBIJ = 4, DOEL = 18;
+    this._vulKlok = (this._vulKlok || 0) + dt;
+    if (this._vulKlok < 0.5) return;
+    this._vulKlok = 0;
+    let dichtbij = 0, nabij = 0;
+    for (const p of this.people) {
+      if (!p.alive) continue;
+      const d = Math.hypot(p.x - camX, p.z - camZ);
+      if (d < DICHTBIJ) dichtbij++;
+      if (d < NABIJ) nabij++;
+    }
+    if (dichtbij >= DOEL_DICHTBIJ && nabij >= DOEL) return;
+    // wie het verst weg is verhuist; staat de straat leeg dan twee tegelijk
+    const aantal = dichtbij < 2 ? 2 : 1;
+    for (let n = 0; n < aantal; n++) {
+      let verste = null, vd = VER;
+      for (const p of this.people) {
+        if (!p.alive || p.steek > 0) continue;
+        const d = Math.hypot(p.x - camX, p.z - camZ);
+        if (d > vd) { vd = d; verste = p; }
+      }
+      if (!verste) return;
+      /*
+       Infinity als open-grens: in de binnenste ring telt alleen wat uit het
+       zicht ligt. Lukt dat niet, dan de buitenste ring alsnog — anders bleef in
+       IJlst, waar de straten breed en open zijn, de hele buurt leeg: het spel
+       bleef de binnenste ring proberen en kwam nooit aan de buitenste toe.
+      */
+      const kort = dichtbij + n < DOEL_DICHTBIJ
+        && this.verhuisNaarBuurt(verste, camX, camZ, 45, Infinity, 105);
+      if (!kort && nabij + n < DOEL) this.verhuisNaarBuurt(verste, camX, camZ);
+    }
+  }
+
   pickSegment(p, random = false) {
     if (random || !p.seg) {
       const target = this.r() * this.total;
@@ -315,7 +409,8 @@ export class NPCs {
     }
   }
 
-  update(dt, time) {
+  update(dt, time, camX = null, camZ = null) {
+    if (camX !== null) this.vulBuurtAan(camX, camZ, dt);
     const m = this._m, q = this._q, e = this._e, v = this._v, sc = this._s;
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];

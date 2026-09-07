@@ -1,6 +1,6 @@
 // Auto's: geparkeerd, bestuurbaar en verkeer op de N7 en in de wijk.
 import * as THREE from 'three';
-import { resolveCollisions, pointInWater, grondHoogte } from './world.js';
+import { resolveCollisions, pointInWater, grondHoogte, zichtVrij } from './world.js';
 import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
 import { makeCar, maakAutoStapel } from './carmodel.js';
@@ -126,8 +126,64 @@ export class Vehicles {
       const path = rd.pts;
       const mesh = makeCar(COLORS[Math.floor(r() * COLORS.length)]);
       scene.add(mesh);
-      this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: 1, lane: 1.4, speed: 6 + r() * 2, y: 0.1, bounce: true });
+      // `lokaal` merkt de wijkauto's, zodat `vulBuurtAan` ze kan laten meeverhuizen
+      this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: 1, lane: 1.4, speed: 6 + r() * 2, y: 0.1, bounce: true, lokaal: true });
     }
+    /*
+     En álle rijbanen van de wereld als voorraad om die wijkauto's op te zetten.
+     Het wijkverkeer reed alleen op acht assen in Tinga (Molenkrite, Jasker,
+     Monnikmolen, De Wieken, Buitenroede, Bonkelaar), dus in IJlst, Duinterpen en
+     langs de Lemmerweg was er geen enkele rijdende auto: gemeten nul binnen
+     tweehonderd meter. Ze verhuizen nu mee met de speler.
+    */
+    this.rijbanen = KAART
+      ? KAART.wegassen.filter(w => w.drive && w.naam !== 'N7' && w.naam !== 'Afrit 21' && w.lengte > 60)
+        .map(w => w.pts.map(q => new THREE.Vector2(q[0], q[1])))
+      : [];
+  }
+
+  /*
+   Een wijkauto naar de buurt van de speler verhuizen. Zelfde reden als bij de
+   voetgangers in js/npc.js: het aantal blijft gelijk, alleen staan ze waar je
+   bent. Er gaat hoogstens één per seconde, en een auto verhuist alleen als hij
+   ver genoeg weg is om niet gezien te worden.
+  */
+  vulBuurtAan(camX, camZ, dt) {
+    if (!this.rijbanen || !this.rijbanen.length) return;
+    const NABIJ = 260, VER = 520, DOEL = 4;
+    this._vulKlok = (this._vulKlok || 0) + dt;
+    if (this._vulKlok < 1) return;
+    this._vulKlok = 0;
+    const lokaal = this.traffic.filter(t => t.lokaal && t._pos);
+    if (!lokaal.length) return;
+    let nabij = 0, verste = null, vd = VER;
+    for (const t of lokaal) {
+      const d = Math.hypot(t._pos.x - camX, t._pos.y - camZ);
+      if (d < NABIJ) nabij++;
+      if (d > vd) { vd = d; verste = t; }
+    }
+    if (nabij >= DOEL || !verste) return;
+    // een rijbaan zoeken die in de band om de speler ligt; net als bij de
+    // voetgangers mag het dichterbij als er een gebouw tussen staat
+    const DEKKING = 80, OPEN = 130, BUITEN = 250;
+    let beste = null, besteScore = -1;
+    for (let poging = 0; poging < 30; poging++) {
+      const pad = this.rijbanen[Math.floor(Math.random() * this.rijbanen.length)];
+      const k = Math.floor(Math.random() * pad.length);
+      const q = pad[k];
+      const d = Math.hypot(q.x - camX, q.y - camZ);
+      if (d < DEKKING || d > BUITEN) continue;
+      const uitZicht = !zichtVrij(camX, camZ, q.x, q.y, 1.4);
+      if (!uitZicht && d < OPEN) continue;
+      const score = (uitZicht ? 1000 : 0) + (BUITEN - d);
+      if (score > besteScore) { besteScore = score; beste = { pad, k }; }
+    }
+    if (!beste) return;
+    verste.path = beste.pad;
+    verste.t = Math.max(0, Math.min(beste.pad.length - 1.001, beste.k));
+    verste.dir = Math.random() < 0.5 ? 1 : -1;
+    verste.snelheid = 0; verste.doel = verste.speed;
+    verste._pos = null; verste._dir = null;
   }
 
   // De matrix van een geparkeerde auto in zijn stapel bijwerken.
@@ -558,7 +614,8 @@ export class Vehicles {
     return uit;
   }
 
-  updateTraffic(dt, speler = null, voetgangers = null) {
+  updateTraffic(dt, speler = null, voetgangers = null, camX = null, camZ = null) {
+    if (camX !== null) this.vulBuurtAan(camX, camZ, dt);
     this.rolUit(dt);
     // eerst iedereen op zijn plek zetten, dan pas vooruitkijken
     for (const t of this.traffic) {

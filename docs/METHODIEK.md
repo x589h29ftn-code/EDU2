@@ -2386,6 +2386,71 @@ niet met een texture per vlak.
 
 Controle: `npm run schooltest` (elf controles) en `npm run schoolshots`.
 
+**De buurt verhuist met je mee (stap 33).**
+
+*"Het lijkt als ik hard rijd dat er ook minder mensen spawnen en auto's. Hoeft
+ook niet enorm druk te zijn maar miss heeft dit een reden."* — er was een reden,
+en die was erger dan het leek: **er spawnde helemaal niets**, niet als je hard
+reed en niet als je stilstond.
+
+*Eerst meten.* Bij het opstarten worden de honderddertig voetgangers één keer met
+`pickSegment(p, true)` op een willekeurig wegvak in de héle wereld gezet, en
+daarna nooit meer. Over 10,95 km² is dat twaalf mensen per vierkante kilometer.
+Gemeten op zes standpunten stond er binnen tachtig meter **nul of één** iemand,
+en binnen tweehonderd meter drie tot elf; in IJlst nul binnen tweehonderd meter.
+Het verkeer was net zo: van de twintig rijdende auto's zitten er veertien op de
+N7 en zes op acht assen in Tinga (Molenkrite, Jasker, Monnikmolen, De Wieken,
+Buitenroede, Bonkelaar), dus in IJlst, langs de Lemmerweg en in Duinterpen reed
+er geen enkele auto. Rijd je hard, dan laat je die paar achter, en er komt niets
+voor terug.
+
+*De oplossing is verhuizen, niet bijmaken.* Wie meer dan 380 m achter je ligt
+(auto's 520 m) wordt in een band om je heen opnieuw neergezet: `verhuisNaarBuurt`
+in `js/npc.js` en `vulBuurtAan` in `js/vehicles.js`. Het aantal blijft dus
+precies gelijk — 130 mensen, 20 auto's, 7 draw calls voor de mensen — en het kost
+niets. Alleen staan ze nu waar jij bent. De auto's kunnen daarbij op elke rijbaan
+van de kaart terecht (355 assen, N7 en afrit uitgezonderd, want daar rijdt het
+snelwegverkeer al).
+
+Drie dingen bleken nodig, en elk daarvan kwam uit een meting:
+
+- **Niet vóór je neus.** `zichtVrij` uit `js/world.js` — sinds stap 31 gerasterd
+  en dus 2900× sneller — kijkt of er een gebouw tussen jou en de plek staat. Ligt
+  er niets tussen, dan moet het minstens 110 m van je af (auto's 130 m); staat er
+  wél iets tussen, dan mag het dichterbij, want je ziet het niet gebeuren. Van de
+  kandidaten wint de plek achter een gebouw, en daarvan de dichtstbijzijnde.
+- **Een tweede, binnenste ring.** Met alleen een doel van achttien mensen binnen
+  tweehonderd meter bleef het bij nul tot vier mensen binnen tachtig meter: die
+  achttien zitten verdeeld over een schijf waarvan het stuk bij jou maar een
+  zesde is, en wie op 110 m wordt neergezet moet eerst nog naar je toe lopen. Er
+  is nu ook een doel voor de straat waar je staat: vier binnen honderd meter,
+  neergezet in de band 45–105 m. Daar wordt niemand in het open veld gezet — is
+  er geen plek achter een gebouw, dan gebeurt er niets.
+- **En die binnenste ring mag de buitenste niet uithongeren.** Dat ging meteen
+  mis: in IJlst, waar de straten breed en open zijn, lukt het bijna nooit iemand
+  dichtbij achter een gebouw te zetten, en het spel bleef dat proberen. Uitkomst:
+  IJlst zakte van 21 naar **1** mens binnen tweehonderd meter — slechter dan
+  vóór de hele ronde. Lukt de binnenste ring niet, dan gaat dezelfde poging nu
+  door naar de buitenste ring.
+
+*Wat het oplevert.* Rijdend met 50 km/u over de Wieken: gemiddeld **7 mensen
+binnen tachtig meter** (minimaal 3, hoogstens 10, was 0 tot 1) en zes van de
+tweeëntwintig metingen met een auto binnen tachtig meter. Stilstaand na een
+minuut: 18 tot 23 mensen binnen tweehonderd meter in elke wijk, inclusief IJlst
+(0 → 18) en Duinterpen (6 → 23), en overal 1 tot 3 rijdende auto's. De kosten
+zijn niet te meten: 1,45 → 1,29 ms voor `npcs.update` plus `updateTraffic`
+samen — dat is ruis, want het bijvullen loopt hoogstens twee keer per seconde en
+verzet dan één of twee mensen.
+
+Het is bewust rustig gehouden ("hoeft niet enorm druk"): de doelen stonden eerst
+op 22 en 5 en gaven pieken van veertien mensen binnen tachtig meter, wat voor een
+Sneker woonwijk te veel is. Op 18 en 4 zit het maximum op tien.
+
+Controle: `npm run bevolkingtest` (twintig controles, waaronder tweehonderd keer
+verhuizen met de eis dat niets binnen 110 m in het vrije zicht landt), plus
+`looptest`, `rijtest`, `politietest`, `verhaaltest`, `wereldtest` en `winkeltest`
+opnieuw.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
