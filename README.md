@@ -946,6 +946,40 @@ van de ingang staan twee rijen winkelwagens tegen de gevel.
 
 En je kunt er naar binnen: zie [Naar binnen bij de Poiesz](#naar-binnen-bij-de-poiesz-bier-kopen).
 
+### De twee blokken aan de Keizersmantel in Duinterpen
+
+Op **Keizersmantel 437** zit een Poiesz op de begane grond van een gebogen blok van drie lagen, en het
+blok ernaast (441–485) is in dezelfde trant. Beide buigen om hun eigen parkeerterrein heen en staan op
+een rij ronde zuilen, met de winkelpui een paar meter naar achteren.
+
+| | Poiesz-blok | blok ernaast |
+|---|---|---|
+| BAG-pand | 0091100000019594 | 0091100000019595 |
+| huisnummers | 401–437 | 441–485 |
+| hoeken in het grondvlak | 46 | 45 |
+| goot / nok | 3,95 / 11,73 m | 4,01 / 11,53 m |
+| zuilen | 10 | 11 |
+
+Die 46 en 45 hoeken zijn de gebogen plattegrond uit de BGT, en de goot op bijna vier meter is niet een
+dakrand maar precies de rand van de zuilengang — die hoogte is dus gemeten en niet geschat. Van de
+foto's komen alleen de kleuren, de dikte van een zuil, hun onderlinge afstand en de diepte van de pui.
+
+Een gevelplaat is één plat vlak op de rooilijn en kan een terugliggende pui niet laten zien. Daarom
+haalt `npm run geo:genereer` de boog uit het grondvlak, bouwt `js/zuilengang.js` de zuilen, de pui met
+donker glas, het plafond van de gang en het groene POIESZ-woordmerk, en knipt `js/kaartwereld.js` de
+muur van deze panden op de ganghoogte af.
+
+| de Poiesz vanaf het parkeerterrein | onder de zuilengang |
+|---|---|
+| ![Poiesz Duinterpen](docs/screenshots/duinterpen_poiesz_ver.png) | ![de gang](docs/screenshots/duinterpen_poiesz_gang.png) |
+
+| dicht op de Poiesz | het blok ernaast |
+|---|---|
+| ![dichtbij](docs/screenshots/duinterpen_poiesz_dichtbij.png) | ![buurblok](docs/screenshots/duinterpen_buur_dichtbij.png) |
+
+Je loopt tot aan de zuilen; onder de gang door kunnen lopen en een deur de winkel in staan als open
+punt in [docs/METHODIEK.md](docs/METHODIEK.md).
+
 ### Basisschool De Spil, Molenkrite 169
 
 Het grootste pand van de wijk: een U van 6600 m² om een plein heen. Roodbruine baksteen met over de

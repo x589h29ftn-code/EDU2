@@ -1664,43 +1664,85 @@ for (const p of PANDEN) {
   if (!vast || !vast.zuilengang) continue;
   const Z = vast.zuilengang;
   if (!vast.voorkantNaar) { console.warn(`LET OP: zuilengang ${p.id}: geen voorkantNaar`); continue; }
-  const ring = p.voet;
   const doel = vast.voorkantNaar;
+
+  /*
+   Dubbele hoekpunten eruit. In de BGT staat een hoekpunt soms twee keer met een
+   paar centimeter ertussen; die piepkleine randjes onderbreken anders de reeks
+   en dan valt de boog in stukken uiteen.
+  */
+  const ring = [];
+  for (const q of p.voet) {
+    const v = ring[ring.length - 1];
+    if (!v || Math.hypot(q[0] - v[0], q[1] - v[1]) > 0.2) ring.push(q);
+  }
+  if (ring.length > 2 && Math.hypot(ring[0][0] - ring[ring.length - 1][0], ring[0][1] - ring[ring.length - 1][1]) < 0.2) ring.pop();
+  const N = ring.length;
 
   // ligt (x,z) in het grondvlak?
   const binnen = (x, z) => {
     let in_ = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    for (let i = 0, j = N - 1; i < N; j = i++) {
       const a = ring[i], b = ring[j];
       if ((a[1] > z) !== (b[1] > z) && x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0]) in_ = !in_;
     }
     return in_;
   };
 
-  // per rand: kijkt hij naar het parkeerterrein?
-  const kijkt = ring.map((_, i) => {
-    const a = ring[i], b = ring[(i + 1) % ring.length];
+  /*
+   Welke randen kijken naar het parkeerterrein? De drempel op het inproduct staat
+   laag met opzet. Deze blokken buigen om hun parkeerterrein heen, dus het doel
+   ligt er vlak naast en de richting erheen loopt bijna langs de boog: bij de
+   Poiesz kwam de hoogste waarde niet boven 0,29 uit, en op een drempel van 0,35
+   vond de generator geen enkele rand. Wat de boog eruit haalt is niet de
+   scherpte van de hoek maar de eis dat een rand minstens `minRand` lang is —
+   de gebogen voorgevel bestaat uit stukken van zeven meter, de kopse kanten uit
+   stukjes van anderhalf.
+  */
+  const minRand = Z.minRand ?? 2.5;
+  const lengte = [], kijkt = [];
+  for (let i = 0; i < N; i++) {
+    const a = ring[i], b = ring[(i + 1) % N];
     const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz);
-    if (L < 0.4) return false;
+    lengte.push(L);
+    if (L < minRand) { kijkt.push(false); continue; }
     const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
     let nx = dz / L, nz = -dx / L;
     if (binnen(mx + nx * 0.4, mz + nz * 0.4)) { nx = -nx; nz = -nz; }   // naar buiten wijzen
     const tx = doel[0] - mx, tz = doel[1] - mz, T = Math.hypot(tx, tz) || 1;
-    return (nx * tx + nz * tz) / T > 0.35;
-  });
-
-  // de langste aaneengesloten reeks van die randen, rondlopend
-  let besteStart = -1, besteLen = 0;
-  for (let i = 0; i < ring.length; i++) {
-    if (!kijkt[i]) continue;
-    let n = 0;
-    while (n < ring.length && kijkt[(i + n) % ring.length]) n++;
-    if (n > besteLen) { besteLen = n; besteStart = i; }
+    kijkt.push((nx * tx + nz * tz) / T > 0.05);
   }
-  if (besteLen < 2) { console.warn(`LET OP: zuilengang ${p.id}: geen boog naar voorkantNaar gevonden`); continue; }
+
+  // de langste aaneengesloten reeks van die randen, gemeten in meters
+  let besteStart = -1, besteLengte = 0, besteLen = 0;
+  for (let i = 0; i < N; i++) {
+    if (!kijkt[i]) continue;
+    let n = 0, L = 0;
+    while (n < N && kijkt[(i + n) % N]) { L += lengte[(i + n) % N]; n++; }
+    if (L > besteLengte) { besteLengte = L; besteStart = i; besteLen = n; }
+  }
+  if (besteStart < 0 || besteLengte < 15) { console.warn(`LET OP: zuilengang ${p.id}: geen boog naar voorkantNaar gevonden`); continue; }
 
   const boog = [];
-  for (let n = 0; n <= besteLen; n++) boog.push(ring[(besteStart + n) % ring.length]);
+  for (let n = 0; n <= besteLen; n++) boog.push(ring[(besteStart + n) % N]);
+
+  /*
+   En per stuk boog de richting naar binnen, want daar ligt de pui. Die hoort
+   hier te worden uitgerekend en niet in js/zuilengang.js: de punt-in-
+   veelhoektoets staat hier al, en het hart van de omhullende rechthoek is bij
+   een halvemaanvormig grondvlak juist géén goede maat voor "binnen" — dat punt
+   ligt in de holte, aan dezelfde kant als het parkeerterrein. De eerste poging
+   bouwde de pui daardoor 2,4 m de parkeerplaats in, vóór de zuilen langs.
+  */
+  const binnenNormaal = [];
+  for (let i = 0; i < boog.length - 1; i++) {
+    const a2 = boog[i], b2 = boog[i + 1];
+    const dx = b2[0] - a2[0], dz = b2[1] - a2[1], L = Math.hypot(dx, dz) || 1;
+    let nx = dz / L, nz = -dx / L;
+    const mx = (a2[0] + b2[0]) / 2, mz = (a2[1] + b2[1]) / 2;
+    if (!binnen(mx + nx * 0.4, mz + nz * 0.4)) { nx = -nx; nz = -nz; }   // naar binnen wijzen
+    binnenNormaal.push([r2(nx), r2(nz)]);
+  }
 
   /*
    Zuilen op gelijke afstand langs de boog. Eerst de booglengte per hoekpunt
@@ -1735,6 +1777,7 @@ for (const p of PANDEN) {
     // hangt er een winkelmerk boven de ingang? (de Poiesz wel, het blok ernaast niet)
     merk: !!Z.merk,
     boog: boog.map(a => [r2(a[0]), r2(a[1])]),
+    binnen: binnenNormaal,
     zuilen,
   });
 }
