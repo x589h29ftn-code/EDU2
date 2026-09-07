@@ -27,6 +27,18 @@ function zelfdeLaag(a, b) {
   return Math.abs(a - b) < 2.5;
 }
 
+// Eén stapel geparkeerde auto's per soort én per tegel van deze maat. 480 m:
+// groter dan de tegels van de ondergrond, want een stapel is zeven meshes. Op
+// 240 m culde het iets beter maar kostte het ruim vijfhonderd draw calls extra,
+// en daar is een telefoon gevoeliger voor.
+const AUTOTEGEL = 480;
+const AUTOTEGEL_HALF = AUTOTEGEL * 0.71;   // halve diagonaal
+// het midden van de tegel uit een stapelsleutel "soort|i:j"
+function tegelMidden(sleutel) {
+  const [i, j] = sleutel.split('|')[1].split(':').map(Number);
+  return { x: (i + 0.5) * AUTOTEGEL, z: (j + 0.5) * AUTOTEGEL };
+}
+
 const COLORS = [0x1c1e24, 0xd8d9dc, 0x8a8d93, 0x2a3f8f, 0x9c1f1f, 0xffffff, 0x3e3a36, 0x2f6b3a, 0x5b6470, 0xc9c1a8];
 
 export class Vehicles {
@@ -56,7 +68,6 @@ export class Vehicles {
     // 480 m: groter dan de tegels van de ondergrond, want een stapel is zeven
     // meshes. Op 240 m culde het iets beter maar kostte het ruim vijfhonderd
     // draw calls extra, en daar is een telefoon gevoeliger voor.
-    const AUTOTEGEL = 480;
     const sleutelVan = (soort, x, z) => `${soort}|${Math.floor(x / AUTOTEGEL)}:${Math.floor(z / AUTOTEGEL)}`;
     this.stapels = {};
     const tel = new Map();
@@ -144,6 +155,23 @@ export class Vehicles {
     const q = zicht * zicht;
     for (const k of Object.keys(this.stapels)) {
       const stap = this.stapels[k];
+      /*
+       Eerst de hele stapel: ligt de tegel voorbij het zicht, dan gaan de zeven
+       meshes uit. Frustum culling haalt alleen de tegels weg die achter je
+       liggen; wat vóór je ligt tot aan de mist van negenhonderd meter werd wél
+       getekend, en met 664 driehoeken per carrosserie was dat op het zwaarste
+       standpunt 2,06 miljoen driehoeken — meer dan de helft van het hele beeld.
+       De instanties op schaal nul zetten hielp daar niet tegen: een instantie
+       op nul gaat nog steeds door de vertex shader.
+      */
+      const ver = stap.ver !== undefined ? stap.ver : (stap.ver = tegelMidden(k));
+      const tdx = ver.x - camX, tdz = ver.z - camZ;
+      const tegelDicht = tdx * tdx + tdz * tdz < (zicht + AUTOTEGEL_HALF) * (zicht + AUTOTEGEL_HALF);
+      if (stap.aan !== tegelDicht) {
+        stap.aan = tegelDicht;
+        for (const m of stap.stapel.meshes) m.visible = tegelDicht;
+      }
+      if (!tegelDicht) continue;
       let veranderd = false;
       for (const car of stap.autos) {
         if (!car || car.mesh) continue;                    // deze rijdt, die heeft zijn eigen model
@@ -496,6 +524,40 @@ export class Vehicles {
 
   // Verkeer. Auto's kijken een stukje vooruit en remmen voor elkaar, voor de
   // speler en voor overstekende voetgangers; daarna trekken ze weer op.
+  /*
+   Rooster over de geparkeerde auto's. Die staan stil — een auto die gaat rijden
+   krijgt zijn eigen model (`c.mesh`) en valt hier dan buiten — dus het rooster
+   hoeft alleen opnieuw als het aantal stilstaande auto's verandert (er wordt
+   een auto gestolen of opgeruimd).
+  */
+  parkeerRooster() {
+    const stil = [];
+    for (const c of this.cars) if (!c.mesh) stil.push(c);
+    if (this._pRooster && this._pRoosterN === stil.length) return this._pRooster;
+    this._pRoosterN = stil.length;
+    const CEL = 16;
+    const cellen = new Map();
+    for (const c of stil) {
+      const k = Math.floor(c.x / CEL) + ':' + Math.floor(c.z / CEL);
+      let l = cellen.get(k); if (!l) cellen.set(k, l = []);
+      l.push(c);
+    }
+    this._pRooster = { CEL, cellen };
+    return this._pRooster;
+  }
+
+  // welke stilstaande auto's staan binnen `R` meter van (x, z)?
+  parkeerNabij(x, z, R) {
+    const { CEL, cellen } = this.parkeerRooster();
+    const uit = [];
+    for (let i = Math.floor((x - R) / CEL); i <= Math.floor((x + R) / CEL); i++)
+      for (let j = Math.floor((z - R) / CEL); j <= Math.floor((z + R) / CEL); j++) {
+        const l = cellen.get(i + ':' + j);
+        if (l) for (const c of l) uit.push(c);
+      }
+    return uit;
+  }
+
   updateTraffic(dt, speler = null, voetgangers = null) {
     this.rolUit(dt);
     // eerst iedereen op zijn plek zetten, dan pas vooruitkijken
@@ -513,6 +575,12 @@ export class Vehicles {
     const KIJK = 11;          // meter vooruitkijken
     const BREED = 2.2;        // hoe ver naast de as iets nog in de weg staat
 
+    // De auto's met een eigen model (gestolen of rijdend) één keer opzoeken. Het
+    // aflopen van de lijst van 1781 is zelf het werk — niet `isZichtbaar` — dus
+    // dit moet buiten de lus hieronder staan.
+    const metModel = [];
+    for (const c of this.cars) if (c.mesh) metModel.push(c);
+
     for (const t of this.traffic) {
       let vrij = KIJK;
 
@@ -526,7 +594,20 @@ export class Vehicles {
       };
 
       for (const a of this.traffic) { if (a !== t) inDeWeg(a._pos.x, a._pos.y, 0.4); }
-      for (const c of this.cars) { if (this.isZichtbaar(c)) inDeWeg(c.x, c.z, 0.4); }
+      /*
+       De geparkeerde auto's uit het rooster in plaats van alle 1781. Twintig
+       rijdende auto's die elk de hele lijst afgingen waren 35.620 toetsen per
+       beeld — met 1,14 ms de tweede grootste post in het javascript, terwijl er
+       binnen de elf meter vooruitkijken maar een handjevol staat. `isZichtbaar`
+       wordt nog wel per kandidaat gevraagd, dus het remmen blijft hetzelfde.
+      */
+      for (const c of this.parkeerNabij(t._pos.x, t._pos.y, KIJK + 2)) {
+        if (this.isZichtbaar(c)) inDeWeg(c.x, c.z, 0.4);
+      }
+      // en de auto's met een eigen model: die rijden of zijn gestolen, staan dus
+      // niet in het rooster. Die lijst is één keer per beeld gemaakt en niet per
+      // rijdende auto — anders loop je alsnog twintig keer door alle 1781.
+      for (const c of metModel) { if (this.isZichtbaar(c)) inDeWeg(c.x, c.z, 0.4); }
       if (speler && !speler.inCar) inDeWeg(speler.pos.x, speler.pos.z, 0.1);
       if (voetgangers) {
         for (const v of voetgangers) { if (v.alive && v.opWeg) inDeWeg(v.x, v.z, 0.1); }

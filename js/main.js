@@ -53,6 +53,10 @@ renderer.setPixelRatio(pixelVerhouding(scherpte));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// de schaduwkaart om het beeld bijwerken in plaats van elk beeld; zie de
+// hoofdlus onderaan dit bestand
+renderer.shadowMap.autoUpdate = false;
+let schaduwBeeld = 0;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.02;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -747,6 +751,20 @@ function loop() {
   sky.position.copy(kijker.position);
   // het achtervlak loopt met de mist mee (js/sfeer.js), dus de bol ook
   if (Math.abs(sky.scale.x - kijker.far * 0.92) > 1) sky.scale.setScalar(kijker.far * 0.92);
+  /*
+   De schaduwkaart om het beeld. Hij kostte gemeten 386 draw calls en bijna een
+   miljoen driehoeken per beeld — een vijfde van al het tekenwerk — en dat is
+   een hele pas die niets met het beeld zelf te maken heeft. Een beeld oud is
+   hij nooit te zien: de doos volgt de speler, en op vijf meter per seconde
+   staat hij na één beeld acht centimeter mis.
+
+   Let op: three telt de schaduwpas niet in `renderer.info`, want `info.reset()`
+   staat in `render()` ná `shadowMap.render()` (lib/three.module.js:29594 en
+   :29600). Wie dit wil meten moet `info.autoReset` uitzetten en zelf resetten,
+   zoals tools/optimeer.mjs doet.
+  */
+  schaduwBeeld++;
+  renderer.shadowMap.needsUpdate = (schaduwBeeld & 1) === 0;
   renderer.render(scene, kijker);
 }
 loop();
@@ -812,6 +830,9 @@ if (BOVEN && KAART) {
     if (!plat) { sun.position.set(cx + 60, 300, cz + 40); sun.target.position.set(cx, 0, cz); sun.target.updateMatrixWorld(); }
     window.__bovenCam = ortho;
     sky.position.copy(ortho.position);
+    // de schaduwkaart staat op handmatig bijwerken (zie de hoofdlus); voor een
+    // losse opname als deze moet hij dus zelf om een verversing vragen
+    renderer.shadowMap.needsUpdate = true;
     renderer.render(scene, ortho);
     // meteen uitlezen, in dezelfde tik als het tekenen
     return { W: bw, H: bh, x: px0, y: py0, geheel: [W, H], png: renderer.domElement.toDataURL('image/png') };

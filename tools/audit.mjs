@@ -22,6 +22,7 @@ await page.waitForFunction(() => window.__game, null, { timeout: 300000 });
 console.log(`laadtijd tot speelbaar: ${Date.now() - t0} ms`);
 console.log(bouwtijd);
 await page.evaluate(() => { window.__autoplay = true; document.getElementById('overlay').style.display = 'none'; });
+await page.evaluate(async () => { window.__W = await import('/js/world.js'); });
 await page.waitForTimeout(1200);
 
 const alg = await page.evaluate(() => {
@@ -107,6 +108,10 @@ for (const [naam, px, pz, yaw] of plekken) {
     const g = window.__game;
     g.camera.updateMatrixWorld(true);
     g.vehicles.lod(g.camera.position.x, g.camera.position.z);
+    // ook de afstandstegels bijwerken, zoals de hoofdlus doet (js/main.js:728).
+    // Zonder dit staat alles wat `lodAan` heeft aangemeld nog op zijn
+    // beginstand — en dan tekenen de fijne én de grove boomkroon tegelijk.
+    window.__W.updateLOD(g.camera.position.x, g.camera.position.z);
     // de zon meeverhuizen zoals de hoofdlus doet (js/main.js:719), anders blijft
     // de schaduwdoos staan waar hij stond en meet je overal dezelfde schaduwpas
     const zon = g.scene.children.find(c => c.isDirectionalLight && c.castShadow);

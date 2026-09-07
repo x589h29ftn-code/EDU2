@@ -253,6 +253,37 @@ function grondTextuur() {
  * scene: Three-scene; W: de lijsten uit world.js
  *   { MAT, colliders, roadSegments, parkSpots, treePositions, lampPosities, waterPolys, addCollider }
  */
+/*
+ Tegelbakken. Een klasse die over de hele kaart voorkomt hoort niet in één mesh:
+ zo'n mesh heeft een omhullende bol van meer dan twee kilometer en dan kan
+ frustum culling er niets mee. Alle 123.360 driehoeken van alle schuttingen van
+ Sneek en IJlst gingen daardoor elk beeld naar de GPU, ook als je in de polder
+ stond. `bak(bundel, cel, x, z)` levert de bak waar een stukje geometrie op
+ (x, z) in hoort; `zetTegels` maakt er per bak een mesh van en meldt hem aan bij
+ de LOD-afstand, zodat een tegel voorbij `ver` meter helemaal uitgaat.
+*/
+function bak(bundel, cel, x, z) {
+  const i = Math.floor(x / cel), j = Math.floor(z / cel);
+  const k = i + ':' + j;
+  let g = bundel.get(k);
+  if (!g) bundel.set(k, g = { pos: [], uv: [], nor: [], i, j });
+  return g;
+}
+
+function zetTegels(scene, W, bundel, cel, mat, klasse, opties = {}) {
+  const { schaduw = false, ver = 0 } = opties;
+  let meshes = 0;
+  for (const g of bundel.values()) {
+    const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse, schaduw });
+    if (!m) continue;
+    scene.add(m); meshes++;
+    // voorbij `ver` meter uit; de halve diagonaal erbij, anders gaat een tegel
+    // die met zijn rand nog in beeld ligt te vroeg uit
+    if (ver) W.lodAan(m, (g.i + 0.5) * cel, (g.j + 0.5) * cel, { tot: ver, straal: cel * 0.71 });
+  }
+  return meshes;
+}
+
 export function bouwKaartWereld(scene, W) {
   const K = KAART;
   materialen(W.MAT);
@@ -308,8 +339,26 @@ export function bouwKaartWereld(scene, W) {
   if (!plat) {
     // dijklichaam, brugdek en de houten bogen van het viaduct
     bouwViaducten(scene, W, KM);
-    for (const g of randen.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'rand' }); if (m) scene.add(m); }
-    for (const g of oevers.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'oeverwand' }); if (m) scene.add(m); }
+    /*
+     Stoepbanden en oeverwanden staan al per tegel; ze krijgen er nu een afstand
+     bij. Een trottoirband is dertien centimeter hoog en een oeverwand
+     drieënzeventig: op tweehonderd meter is dat een lijntje van één beeldpunt
+     dat tegen de stoep en het gras wegvalt, en het waren met 272.816 driehoeken
+     de vierde post in het beeld. Het vlak van de stoep zelf blijft wel staan,
+     dus er valt geen gat.
+    */
+    for (const [t, g] of randen) {
+      const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'rand' });
+      if (!m) continue; scene.add(m);
+      const [i, j] = t.split(':').map(Number);
+      if (Number.isFinite(i)) W.lodAan(m, (i + 0.5) * TEGEL, (j + 0.5) * TEGEL, { tot: 200, straal: TEGEL * 0.71 });
+    }
+    for (const [t, g] of oevers) {
+      const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'oeverwand' });
+      if (!m) continue; scene.add(m);
+      const [i, j] = t.split(':').map(Number);
+      if (Number.isFinite(i)) W.lodAan(m, (i + 0.5) * TEGEL, (j + 0.5) * TEGEL, { tot: 260, straal: TEGEL * 0.71 });
+    }
     /*
      Grondvlak onder alles, voor buiten het gebied en voor gaatjes. Dit was een
      vast vierkant van 2600 m; toen de wereld tot IJlst werd doorgetrokken (4380
@@ -351,9 +400,22 @@ export function bouwKaartWereld(scene, W) {
     for (const v of K.vlakken) if (v.drempel) vlakGeometrie(v.r, 0.012, 0.5, dr.pos, dr.uv, dr.nor);
     const drm = maakMesh(dr.pos, dr.uv, dr.nor, KM.drempel, { klasse: 'drempel' }); if (drm) scene.add(drm);
     // percelen: lage hagen, schuttingen en tegelpaden uit de plaatsingsregels
-    const hg2 = { pos: [], uv: [], nor: [] }, sch = { pos: [], uv: [], nor: [] }, pd = { pos: [], uv: [], nor: [] }, st = { pos: [], uv: [], nor: [] };
-    const balk = (a, b, dikte, h, doel, y0 = 0) => {
+    /*
+     De heggen en de schuttingen in tegels, de rest niet. Ze stonden allemaal als
+     één mesh voor de hele kaart in de scene en dat is voor de twee grote fout:
+     samen 451.600 driehoeken die van élke plek in de wereld getekend werden.
+     Voor het vlakke tuinspul — tegelpaden, grindtuinen, hekjes, belijning — is
+     tegelen juist een verslechtering: dat is samen maar 22.000 driehoeken, en
+     opgeknipt kostte het 149 draw calls in plaats van 5. Gemeten met
+     `npm run optimeer`, niet beredeneerd.
+    */
+    const TUIN_CEL = 240;
+    const hg2 = new Map(), sch = new Map();
+    const pd = { pos: [], uv: [], nor: [] }, st = { pos: [], uv: [], nor: [] };
+    // `doel` is of een tegelbundel (een Map) of één bak
+    const balk = (a, b, dikte, h, waar, y0 = 0) => {
       const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 0.2) return;
+      const doel = waar instanceof Map ? bak(waar, TUIN_CEL, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2) : waar;
       const nx = -dz / L * dikte / 2, nz = dx / L * dikte / 2;
       /*
        De volgorde van de vier hoeken bepaalt welke kant de zijvlakken op kijken
@@ -379,13 +441,19 @@ export function bouwKaartWereld(scene, W) {
       }
       balk(h.a, h.b, 0.5, h.h, hg2, KERB_Y);
     }
-    for (const t of K.tuinvlakken || []) vlakGeometrie([t.r], KERB_Y + 0.01, t.m === 'grind' ? 0.5 : 1 / 1.2, (t.m === 'grind' ? tv : tvt).pos, (t.m === 'grind' ? tv : tvt).uv, (t.m === 'grind' ? tv : tvt).nor);
+    for (const t of K.tuinvlakken || []) { const d = t.m === 'grind' ? tv : tvt; vlakGeometrie([t.r], KERB_Y + 0.01, t.m === 'grind' ? 0.5 : 1 / 1.2, d.pos, d.uv, d.nor); }
     for (const f of K.schuttingen || []) balk(f.a, f.b, 0.06, f.h, sch, KERB_Y);
     for (const ring of K.paden || []) vlakGeometrie([ring], KERB_Y + 0.015, 1 / 1.2, pd.pos, pd.uv, pd.nor);
     for (const l of K.strepen || []) balk(l.a, l.b, 0.1, 0.008, st, 0.0);
-    for (const [g, mat, k, schaduw] of [[hg2, KM.hedge, 'heg', true], [hek, KM.hekje, 'hekje', true], [sch, KM.schutting, 'schutting', true], [pd, KM.tegels, 'tegelpad', false], [tv, KM.grind, 'grindtuin', false], [tvt, KM.tegels, 'tegeltuin', false], [st, KM.streep, 'belijning', false]]) {
+    // de twee zware in tegels, met een afstand waarop ze uit mogen
+    let tegelMeshes = 0;
+    tegelMeshes += zetTegels(scene, W, hg2, TUIN_CEL, KM.hedge, 'heg', { schaduw: true, ver: 320 });
+    tegelMeshes += zetTegels(scene, W, sch, TUIN_CEL, KM.schutting, 'schutting', { schaduw: true, ver: 260 });
+    // en de rest als één mesh, zoals het was
+    for (const [g, mat, k, schaduw] of [[hek, KM.hekje, 'hekje', true], [pd, KM.tegels, 'tegelpad', false], [tv, KM.grind, 'grindtuin', false], [tvt, KM.tegels, 'tegeltuin', false], [st, KM.streep, 'belijning', false]]) {
       const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse: k, schaduw }); if (m) scene.add(m);
     }
+    console.log(`kaart: heggen en schuttingen in ${tegelMeshes} tegelmeshes`);
     // losse objecten uit de objectenbibliotheek (doelen, banken)
     for (const o of K.objecten || []) {
       const obj = W.maakProp ? W.maakProp(o.type) : null; if (!obj) continue;
@@ -412,11 +480,20 @@ export function bouwKaartWereld(scene, W) {
         perTegel.get(t).push(s);
       }
       const m = new THREE.Matrix4();
-      for (const lijst of perTegel.values()) {
+      for (const [t, lijst] of perTegel) {
         const im = new THREE.InstancedMesh(geo, KM.struik, lijst.length);
         lijst.forEach((s, i) => { m.makeScale(s.s, s.s * 0.8, s.s); m.setPosition(s.x, grondHoogte(s.x, s.z, 0) + 0.45 * s.s, s.z); im.setMatrixAt(i, m); });
-        im.castShadow = true; im.computeBoundingSphere(); im.userData.klasse = 'struik';
+        im.computeBoundingSphere(); im.userData.klasse = 'struik';
         scene.add(im);
+        /*
+         Voorbij tweehonderd meter uit. Een struik is anderhalve meter breed en
+         een meter hoog; op die afstand is dat een groen puntje van drie
+         beeldpunten dat toch al in het gras wegvalt, en er stonden er 482.436
+         driehoeken van in beeld. Schaduw werpen doet hij ook niet meer: dat
+         vlekje ligt binnen de struik zelf.
+        */
+        const [i, j] = String(t).split(':').map(Number);
+        if (Number.isFinite(i)) W.lodAan(im, (i + 0.5) * TEGEL, (j + 0.5) * TEGEL, { tot: 200, straal: TEGEL * 0.71 });
       }
     }
     bouwLantaarns(scene, W);
@@ -549,18 +626,42 @@ function pandDozen(p) {
 
 function bouwPanden(scene, W, plat) {
   const K = KAART;
-  // Gevels blijven per materiaal samengevoegd en gaan niet in tegels: elke
-  // gevelsoort komt maar bij een handvol panden voor, dus die meshes zijn al
-  // klein. Tegels erbovenop leverden vooral extra draw calls op.
+  /*
+   Welke pandonderdelen in tegels en welke niet.
+
+   Kale baksteen, dakpannen, platte daken en dakkapelwangen delen hun materiaal
+   met honderden panden, dus zonder tegels wordt dat één mesh met alle muren van
+   Sneek én IJlst erin. De omhullende bol daarvan is 2350 m — de halve wereld —
+   en dan kan frustum culling er niets mee: die 319.319 driehoeken gingen van
+   élke plek naar de GPU, in de beeldpas én in de schaduwpas.
+
+   De gevels juist niet. Elke gevelplaat is een eigen materiaal dat maar bij een
+   handvol panden voorkomt (643 materialen over 643 meshes, samen 31.205
+   driehoeken), dus die meshes zijn al klein en tegelen levert alleen extra
+   draw calls op. Dat is eerder geprobeerd en teruggedraaid; die conclusie
+   blijft staan.
+
+   Hoe groot de tegel moet zijn is gemeten en niet beredeneerd. Een muur-
+   materiaal komt in veel tegels voor, dus fijner knippen ruilt driehoeken in
+   voor draw calls. Op 480 m was dat -381.000 driehoeken voor +191 draw calls;
+   op 960 m staat het in de tabel hieronder in METHODIEK.
+  */
+  const PAND_CEL = 960;
+  const PAND_STAP = Math.round(PAND_CEL / TEGEL);
+  const pandTegel = () => {
+    const [i, j] = tegelNu.split(':').map(Number);
+    // tegelNu staat op de tegel van 240 m; PAND_STAP daarvan naast elkaar
+    return `${Math.floor(i / PAND_STAP)}:${Math.floor(j / PAND_STAP)}`;
+  };
   const groepen = new Map();
   const matCache = new Map();
-  const groep = (sleutel, maak, klasse) => {
-    const k = sleutel;
+  const groep = (sleutel, maak, klasse, perTegel = false) => {
+    const k = perTegel ? `${sleutel}#${pandTegel()}` : sleutel;
     let g = groepen.get(k);
     if (!g) {
       let mat = matCache.get(sleutel);
       if (!mat) { mat = plat ? KM.plat.pand : maak(); matCache.set(sleutel, mat); }
-      g = { pos: [], uv: [], nor: [], mat, klasse };
+      g = { pos: [], uv: [], nor: [], mat, klasse, tegel: perTegel ? pandTegel() : null };
       groepen.set(k, g);
     }
     return g;
@@ -596,28 +697,28 @@ function bouwPanden(scene, W, plat) {
     let laagste = Infinity; for (const p of punten) laagste = Math.min(laagste, p[1]);
     if (st && !ind && pand.goot && laagste > pand.goot - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven) {
       if (Math.abs(kant) > 0.6 && breed >= 1.2) {
-        const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel');
+        const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
       }
-      const g = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel');
+      const g = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel', true);
       return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 1.2, p[1] / 1.2] };
     }
     if (pand.boven && st) {
       const totNok = !pand.nok || (pand.bovenTop ?? top) >= pand.nok - 0.6;
       if (!totNok && st.dormer) {
         // wang van een dakkapel: wit
-        const g = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel');
+        const g = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 1.2, p[1] / 1.2] };
       }
       if (totNok && st.topgevel) {
         // houten topgevel boven de goot (Bonkelaar, Jasker): delen van 15 cm
-        const g = groep(`planken|${st.topgevel}`, () => std(T.planks(st.topgevel)), 'topgevel');
+        const g = groep(`planken|${st.topgevel}`, () => std(T.planks(st.topgevel)), 'topgevel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 1.2, p[1] / 1.2] };
       }
     }
     if (!gevel) {
       const sleutel = `steen|${pand.type}|${seed % 3}`;
-      const g = groep(sleutel, () => std(T.brick(steen[0], steen[1], seed % 3 + 1)), 'muur');
+      const g = groep(sleutel, () => std(T.brick(steen[0], steen[1], seed % 3 + 1)), 'muur', true);
       // baksteen: 2,6 m per texture
       return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 2.6, p[1] / 2.6] };
     }
@@ -636,14 +737,14 @@ function bouwPanden(scene, W, plat) {
   };
   const dakGroep = (pand, hellend) => {
     const st = T.HOUSE_STYLES[pand.type];
-    if (!hellend && st && st.industrieel) return groep(`dak|plat|${st.roof}`, () => new THREE.MeshStandardMaterial({ color: st.roof, roughness: 0.6, metalness: 0.3 }), 'platdak');
-    if (!hellend) return groep('dak|plat', () => std(T.bitumen()), 'platdak');
+    if (!hellend && st && st.industrieel) return groep(`dak|plat|${st.roof}`, () => new THREE.MeshStandardMaterial({ color: st.roof, roughness: 0.6, metalness: 0.3 }), 'platdak', true);
+    if (!hellend) return groep('dak|plat', () => std(T.bitumen()), 'platdak', true);
     const kleur = st ? st.roof : '#4a3a33';
     // dakplaten in plaats van pannen (de puntdaken van de supermarkt)
-    if (st && st.metaaldak) return groep(`dak|plaat|${kleur}`, () => new THREE.MeshStandardMaterial({ color: kleur, roughness: 0.5, metalness: 0.35 }), 'dak');
+    if (st && st.metaaldak) return groep(`dak|plaat|${kleur}`, () => new THREE.MeshStandardMaterial({ color: kleur, roughness: 0.5, metalness: 0.35 }), 'dak', true);
     // pannen met dakramen erin (de kap van de stelpboerderij)
-    if (st && st.dakramen) return groep(`dak|ramen|${kleur}`, () => std(T.pannenMetDakramen(kleur)), 'dak');
-    return groep(`dak|${kleur}`, () => std(T.roofTiles(kleur, 5)), 'dak');
+    if (st && st.dakramen) return groep(`dak|ramen|${kleur}`, () => std(T.pannenMetDakramen(kleur)), 'dak', true);
+    return groep(`dak|${kleur}`, () => std(T.roofTiles(kleur, 5)), 'dak', true);
   };
 
   // Een muurvlak in een deel onder en een deel boven hoogte h knippen (voor
@@ -768,9 +869,9 @@ function bouwPanden(scene, W, plat) {
     const y0 = dakY(pv[0], pv[2]) - 0.15, yDakAchter = dakY(pa[0], pa[2]);
     const y1 = Math.min(y0 + 1.55, yDakAchter - 0.05);
     if (y1 - y0 < 1.1 || y0 < (pand.goot || 0) - 0.5) return;
-    const gVoor = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel');
-    const gWang = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel');
-    const gTop = groep('dak|plat', () => std(T.bitumen()), 'platdak');
+    const gVoor = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);
+    const gWang = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel', true);
+    const gTop = groep('dak|plat', () => std(T.bitumen()), 'platdak', true);
     const bl = bm - w / 2, br = bm + w / 2;
     vierhoek(P(aVoor, bl, y0), P(aVoor, br, y0), P(aVoor, br, y1), P(aVoor, bl, y1), gVoor, f, (p) => [((p[0] - c[0]) * rr[0] + (p[2] - c[2]) * rr[2] - bl) / w, Math.min(1, (p[1] - y0) / (y1 - y0))]);
     for (const [b, nz] of [[bl, [-rr[0], 0, -rr[2]]], [br, rr]]) vierhoek(P(aAchter, b, y0), P(aVoor, b, y0), P(aVoor, b, y1), P(aAchter, b, y1), gWang, nz, (p) => [((p[0] - c[0]) * f[0] + (p[2] - c[2]) * f[2]) / 1.2, p[1] / 1.2]);
@@ -809,7 +910,9 @@ function bouwPanden(scene, W, plat) {
   }
   for (const g of groepen.values()) {
     const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { schaduw: true, klasse: g.klasse });
-    if (m) { if (plat) m.material.side = THREE.DoubleSide; scene.add(m); }
+    if (!m) continue;
+    if (plat) m.material.side = THREE.DoubleSide;
+    scene.add(m);
   }
   console.log(`kaart: ${met3d} panden met 3D BAG-dak, ${geschat} geschat, ${matCache.size} materialen in ${groepen.size} stukken, ${K.vlakken.length} vlakken, ${K.wegassen.length} wegassen`);
 }

@@ -2,11 +2,11 @@
  Waar gaat het geld heen? Dit gereedschap splitst de drie dure dingen uit naar
  hun oorzaak, zodat een optimalisatieronde niet op gevoel begint:
 
-   1. driehoeken en draw calls **per klasse** op een paar standpunten. `renderer.info`
-      geeft één totaal; hier wordt de frustumtest van three nagedaan (dezelfde
-      `frustumCulled`-regel en dezelfde bounding sphere) en per `userData.klasse`
-      geteld. De uitkomst hoort dicht bij `renderer.info` te liggen — dat wordt
-      erbij gemeld, zodat je ziet of de nabootsing klopt.
+   1. driehoeken en draw calls **per klasse**, exact gemeten: een klasse wordt
+      uitgezet, het beeld opnieuw getekend, en het verschil is wat die klasse
+      kost. Een frustumtest nabootsen leverde getallen op die tot veertig
+      procent van `renderer.info` afweken (bij instanced meshes gebruikt three
+      een andere omhullende), dus dat is vervangen door dit.
    2. wat de **schaduwpas** kost. Let op: `renderer.info` telt die *niet* mee.
       In r160 staat `info.reset()` in `WebGLRenderer.render()` een paar regels
       ná `shadowMap.render()` (lib/three.module.js:29594 en :29600), dus alles
@@ -39,6 +39,7 @@ await page.evaluate(() => {
   window.__game.player.active = false;
 });
 await page.evaluate(async () => { window.__THREE = await import('/lib/three.module.js'); });
+await page.evaluate(async () => { window.__W = await import('/js/world.js'); });
 
 const PLEKKEN = [
   ['Molenkrite begin', 10, -7, -0.88],
@@ -48,9 +49,45 @@ const PLEKKEN = [
 ];
 
 // ---------- 1 + 2. per klasse, en wat de schaduw kost ----------
+/*
+ De klassen die het waard zijn om apart te wegen. `klasse` staat in
+ `userData.klasse` (js/kaartwereld.js en js/world.js zetten hem); de instanced
+ meshes van de bomen, struiken en geparkeerde auto's hebben er geen, dus die
+ worden aan hun geometrie herkend.
+*/
+const WEEG = [
+  ['boomkronen', 'geo:IcosahedronGeometry'],
+  ['boomstammen', 'geo:CylinderGeometry'],
+  ['struiken', 'geo:SphereGeometry'],
+  ['geparkeerde autos', 'inst-overig'],
+  ['riet', 'klasse:riet'],
+  ['stoepbanden', 'klasse:rand'],
+  ['muren', 'klasse:muur'],
+  ['daken', 'klasse:dak'],
+  ['platte daken', 'klasse:platdak'],
+  ['dakkapellen', 'klasse:dakkapel'],
+  ['schuttingen', 'klasse:schutting'],
+  ['heggen', 'klasse:heg'],
+  ['gevels', 'klasse:voorgevel,achtergevel'],
+  ['bermen', 'klasse:berm'],
+  ['voetpaden', 'klasse:voetpad'],
+  ['hekjes', 'klasse:hekje'],
+  ['tegelpaden', 'klasse:tegelpad'],
+  ['grindtuinen', 'klasse:grindtuin'],
+  ['tegeltuinen', 'klasse:tegeltuin'],
+  ['belijning', 'klasse:belijning'],
+  ['hagen', 'klasse:haag'],
+  ['drempels', 'klasse:drempel'],
+  ['oeverwanden', 'klasse:oeverwand'],
+  ['oevers', 'klasse:oever'],
+  ['erven', 'klasse:erf'],
+  ['gras', 'klasse:gras'],
+  ['parkeervlakken', 'klasse:parkeervlak'],
+  ['water', 'klasse:water'],
+];
+
 for (const [naam, px, pz, yaw] of PLEKKEN) {
-  const r = await page.evaluate(({ px, pz, yaw }) => {
-    const THREE = window.__THREE;
+  const r = await page.evaluate(({ px, pz, yaw, WEEG }) => {
     const g = window.__game;
     g.player.inCar = null;
     g.player.pos.set(px, 0, pz);
@@ -58,6 +95,10 @@ for (const [naam, px, pz, yaw] of PLEKKEN) {
     g.player.applyCamera();
     g.camera.updateMatrixWorld(true);
     g.vehicles.lod(g.camera.position.x, g.camera.position.z);
+    // ook de afstandstegels bijwerken, zoals de hoofdlus doet (js/main.js:728).
+    // Zonder dit staat alles wat `lodAan` heeft aangemeld nog op zijn
+    // beginstand — en dan tekenen de fijne én de grove boomkroon tegelijk.
+    window.__W.updateLOD(g.camera.position.x, g.camera.position.z);
     // de zon meeverhuizen zoals de hoofdlus doet (js/main.js:719), anders blijft
     // de schaduwdoos staan waar hij stond en meet je overal dezelfde schaduwpas
     const zon = g.scene.children.find(c => c.isDirectionalLight && c.castShadow);
@@ -71,63 +112,66 @@ for (const [naam, px, pz, yaw] of PLEKKEN) {
       zon.position.set(cx + dx, dy, cz + dz); zon.updateMatrixWorld();
     }
 
-    // alleen de beeldpas: zo telt three zelf, want hij reset na de schaduwpas
+    /*
+     Alles tellen, dus ook de schaduwpas: `info.autoReset` uit en zelf resetten
+     vóór het tekenen. Three reset zelf een paar regels ná `shadowMap.render()`
+     (lib/three.module.js:29594 en :29600), dus met de standaardinstelling valt
+     de schaduw buiten de telling.
+    */
+    g.renderer.info.autoReset = false;
+    const meet = () => {
+      g.renderer.info.reset();
+      g.renderer.render(g.scene, g.camera);
+      return { calls: g.renderer.info.render.calls, tris: g.renderer.info.render.triangles };
+    };
+    // en de beeldpas apart, zoals three zelf telt
+    g.renderer.info.autoReset = true;
     g.renderer.render(g.scene, g.camera);
     const beeld = { calls: g.renderer.info.render.calls, tris: g.renderer.info.render.triangles };
-
-    // en nu allebei: zelf resetten vóór het tekenen in plaats van three erna
     g.renderer.info.autoReset = false;
-    g.renderer.info.reset();
-    g.renderer.render(g.scene, g.camera);
-    const alles = { calls: g.renderer.info.render.calls, tris: g.renderer.info.render.triangles };
-    g.renderer.info.autoReset = true;
 
-    // de frustumtest van three nadoen en per klasse tellen
-    const frustum = new THREE.Frustum();
-    frustum.setFromProjectionMatrix(
-      new THREE.Matrix4().multiplyMatrices(g.camera.projectionMatrix, g.camera.matrixWorldInverse));
-    const bol = new THREE.Sphere();
-    const per = new Map();
-    const tel = (k, tris, calls, objecten) => {
-      const e = per.get(k) || { tris: 0, calls: 0, objecten: 0 };
-      e.tris += tris; e.calls += calls; e.objecten += objecten; per.set(k, e);
+    const alles = meet();
+
+    // welke objecten horen bij een keuze?
+    const kies = (sleutel) => {
+      const uit = [];
+      g.scene.traverse(o => {
+        if (!o.isMesh && !o.isInstancedMesh) return;
+        if (sleutel.startsWith('klasse:')) {
+          const namen = sleutel.slice(7).split(',');
+          if (namen.includes(o.userData.klasse)) uit.push(o);
+        } else if (sleutel.startsWith('geo:')) {
+          if (o.isInstancedMesh && o.geometry.type === sleutel.slice(4)) uit.push(o);
+        } else if (sleutel === 'inst-overig') {
+          if (o.isInstancedMesh && !['IcosahedronGeometry', 'CylinderGeometry', 'SphereGeometry'].includes(o.geometry.type)) uit.push(o);
+        }
+      });
+      return uit;
     };
-    let zichtbaar = 0;
-    g.scene.traverse(o => {
-      if (!o.visible || !o.isMesh && !o.isInstancedMesh && !o.isLine && !o.isPoints) return;
-      // een onzichtbare ouder telt niet mee
-      for (let p = o.parent; p; p = p.parent) if (!p.visible) return;
-      const geo = o.geometry;
-      if (!geo) return;
-      if (o.frustumCulled) {
-        if (!geo.boundingSphere) geo.computeBoundingSphere();
-        bol.copy(geo.boundingSphere).applyMatrix4(o.matrixWorld);
-        if (!frustum.intersectsSphere(bol)) return;
-      }
-      const index = geo.index ? geo.index.count : (geo.attributes.position ? geo.attributes.position.count : 0);
-      let tris = index / 3;
-      if (o.isInstancedMesh) tris *= o.count;
-      if (o.isLine || o.isPoints) tris = 0;
-      // een instanced mesh zonder klasse is aan zijn materiaal te herkennen
-      const klasse = o.userData.klasse || o.name
-        || (o.isInstancedMesh ? `inst:${(o.material && o.material.name) || o.geometry.userData.naam || o.geometry.type}` : 'onbenoemd');
-      tel(klasse, tris, 1, 1);
-      zichtbaar++;
-    });
-    const lijst = [...per.entries()].map(([k, e]) => ({ klasse: k, ...e, tris: Math.round(e.tris) }))
-      .sort((a, b) => b.tris - a.tris);
-    const som = lijst.reduce((n, e) => n + e.tris, 0);
-    return { beeld, alles, lijst, som, zichtbaar };
-  }, { px, pz, yaw });
+
+    const lijst = [];
+    for (const [wat, sleutel] of WEEG) {
+      const objecten = kies(sleutel).filter(o => o.visible);
+      if (!objecten.length) { lijst.push({ wat, objecten: 0, calls: 0, tris: 0 }); continue; }
+      for (const o of objecten) o.visible = false;
+      const zonder = meet();
+      for (const o of objecten) o.visible = true;
+      lijst.push({ wat, objecten: objecten.length, calls: alles.calls - zonder.calls, tris: alles.tris - zonder.tris });
+    }
+    g.renderer.info.autoReset = true;
+    lijst.sort((a, b) => b.tris - a.tris);
+    return { beeld, alles, lijst };
+  }, { px, pz, yaw, WEEG });
 
   console.log(`\n=== ${naam} ===`);
-  console.log(`  beeldpas (wat audit meldt): ${String(r.beeld.calls).padStart(5)} calls, ${r.beeld.tris.toLocaleString('nl-NL').padStart(10)} driehoeken`);
+  console.log(`  beeldpas                  : ${String(r.beeld.calls).padStart(5)} calls, ${r.beeld.tris.toLocaleString('nl-NL').padStart(10)} driehoeken`);
   console.log(`  beeldpas + schaduwpas     : ${String(r.alles.calls).padStart(5)} calls, ${r.alles.tris.toLocaleString('nl-NL').padStart(10)} driehoeken`);
   console.log(`  de schaduw kost dus       : ${String(r.alles.calls - r.beeld.calls).padStart(5)} calls, ${(r.alles.tris - r.beeld.tris).toLocaleString('nl-NL').padStart(10)} driehoeken`);
-  console.log(`  nagebootst in de frustum  : ${r.zichtbaar} objecten, ${r.som.toLocaleString('nl-NL')} driehoeken`);
-  console.log('  de tien zwaarste klassen:');
-  for (const e of r.lijst.slice(0, 10)) {
-    console.log(`    ${String(e.klasse).padEnd(18)} ${String(e.tris.toLocaleString('nl-NL')).padStart(11)} driehoeken  ${String(e.objecten).padStart(4)} objecten`);
+  console.log('  wat elke klasse kost (uitgezet en opnieuw getekend, beide passen):');
+  console.log(`    ${'wat'.padEnd(20)} ${'calls'.padStart(6)} ${'driehoeken'.padStart(11)} ${'meshes'.padStart(7)}`);
+  for (const e of r.lijst) {
+    if (!e.tris && !e.calls) continue;
+    console.log(`    ${e.wat.padEnd(20)} ${String(e.calls).padStart(6)} ${e.tris.toLocaleString('nl-NL').padStart(11)} ${String(e.objecten).padStart(7)}`);
   }
 }
 

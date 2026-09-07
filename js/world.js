@@ -12,19 +12,41 @@ export const colliders = [];   // {cx,cz,hx,hz,cos,sin,h} georiënteerde rechtho
 export const roadSegments = []; // voor straatnaam-detectie en NPC-paden: {name,a:[x,z],b:[x,z],w}
 export const parkSpots = [];   // parkeerplaatsen voor auto's: {x,z,yaw}
 export const treePositions = [];
-export const lodGroepen = [];   // {obj,x,z} – fijn detail dat op afstand uit gaat
+export const lodGroepen = [];   // {obj,x,z,ver} – gaat uit voorbij `ver` meter
 export const lampPosities = []; // {x,z} – koppen van de lantaarnpalen
 
 // Binnen deze afstand tekent het spel boeiboorden, goten en regenpijpen.
 const LOD_AFSTAND = 85;
 
+/*
+ Iets aanmelden dat alleen binnen een bepaalde afstandsband getekend hoeft te
+ worden. Naast het fijne werk aan een pand zijn dat de tegels met tuinspul (een
+ schuttingplank van zes centimeter is op tweehonderdvijftig meter smaller dan
+ een beeldpunt) en de twee maten boomkroon: dichtbij de fijne bol van tachtig
+ vlakken, ver weg dezelfde boom met twintig.
+
+   tot     tot deze afstand zichtbaar (0 = de standaard LOD_AFSTAND)
+   vanaf   pas vanaf deze afstand zichtbaar, voor de grove versie van iets
+   straal  halve diagonaal van de tegel; die komt bij `tot` en gaat van `vanaf`
+           af, zodat een tegel die met zijn rand nog in beeld ligt niet te vroeg
+           omklapt en er bij de overgang nooit een gat valt
+*/
+export function lodAan(obj, x, z, { tot = 0, vanaf = 0, straal = 0 } = {}) {
+  lodGroepen.push({
+    obj, x, z,
+    tot: (tot || LOD_AFSTAND) + straal,
+    vanaf: vanaf ? Math.max(0, vanaf - straal) : 0,
+  });
+}
+
 // Zet het fijne werk aan of uit naar gelang de afstand tot de camera. Hoeft
 // niet elk beeld: een paar keer per seconde is ruim genoeg.
 export function updateLOD(camX, camZ) {
-  const d2 = LOD_AFSTAND * LOD_AFSTAND;
   for (const g of lodGroepen) {
+    const tot = g.tot || LOD_AFSTAND;
     const dx = g.x - camX, dz = g.z - camZ;
-    const zichtbaar = dx * dx + dz * dz < d2;
+    const d2 = dx * dx + dz * dz;
+    const zichtbaar = d2 < tot * tot && (!g.vanaf || d2 >= g.vanaf * g.vanaf);
     if (g.obj.visible !== zichtbaar) g.obj.visible = zichtbaar;
   }
 }
@@ -1079,7 +1101,7 @@ function buildRow(scene, row, idx) {
     sign.position.set(runs[0].cx, facadeH - 0.9, depth / 2 + 0.02); group.add(sign);
   }
   scene.add(group);
-  if (detail.children.length) lodGroepen.push({ obj: detail, x: center.x, z: center.y });
+  if (detail.children.length) lodAan(detail, center.x, center.y);
   rowBuilds.push({ row, st, runs, group, depth, toWorldLocal, facadeH, why });
 }
 
@@ -1434,9 +1456,20 @@ function buildReeds(scene) {
       }
     }
   }
-  for (const tufts of perTegel.values()) {
+  /*
+   Voorbij driehonderd meter gaat een riettegel helemaal uit. Een rietpol is
+   twintig centimeter breed en veertig hoog; op die afstand is dat minder dan
+   een beeldpunt, en er stonden op het zwaarste standpunt 123.160 driehoeken
+   riet in beeld waarvan het meeste aan de andere kant van de polder lag.
+   Schaduw werpen doet hij ook niet meer: een pol van veertig centimeter geeft
+   een vlekje dat tegen het gras wegvalt, en riet was met 193 meshes een van de
+   grootste posten in de schaduwpas.
+  */
+  for (const [k, tufts] of perTegel) {
     const m = new THREE.Mesh(mergeGeoms(tufts), MAT.reed);
-    m.castShadow = true; m.userData.klasse = 'riet'; scene.add(m);
+    m.userData.klasse = 'riet'; scene.add(m);
+    const [i, j] = k.split(':').map(Number);
+    lodAan(m, (i + 0.5) * BOOMTEGEL, (j + 0.5) * BOOMTEGEL, { tot: 300, straal: BOOMTEGEL * 0.71 });
   }
 }
 
@@ -1463,6 +1496,15 @@ function boomTegels(lijst) {
   return [...per.values()];
 }
 
+// het midden van de tegel waar deze groep bomen in staat, voor de LOD-afstand
+function boomTegelMidden(groep) {
+  const t = groep[0];
+  return [
+    (Math.floor(t.x / BOOMTEGEL) + 0.5) * BOOMTEGEL,
+    (Math.floor(t.z / BOOMTEGEL) + 0.5) * BOOMTEGEL,
+  ];
+}
+
 function buildTrees(scene) {
   const normal = treePositions.filter(t => !t.tall);
   const tall = treePositions.filter(t => t.tall);
@@ -1477,10 +1519,24 @@ function buildTrees(scene) {
     // de tweede, kleinere kroon zit boven op de eerste en is alleen een bobbel
     // in het silhouet: die mag met twintig vlakken toe in plaats van tachtig
     const leafGeoGrof = new THREE.IcosahedronGeometry(2.2, 0);
+    /*
+     Twee maten kroon. De boomkronen waren met 1,05 miljoen driehoeken op het
+     zwaarste standpunt de tweede grootste post in het beeld, en het meeste
+     daarvan stond honderden meters weg: een boom van vijf meter breed is op
+     tweehonderd meter een blok van dertig beeldpunten hoog, en of daar tachtig
+     of twintig vlakken in zitten is niet te zien. Elke tegel krijgt dus
+     dezelfde bomen twee keer — fijn en grof, met dezelfde matrices — en
+     `updateLOD` laat er telkens één van staan. De grove is een fractie groter,
+     zodat het silhouet bij de overgang niet krimpt (een icosaëder van detail 0
+     ligt binnen die van detail 1).
+    */
+    const GROF_VANAF = 170;
+    const GROF_OP = 1.06;
     for (const groep of boomTegels(normal)) {
       const n = groep.length;
       const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunk, n);
       const leavesA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n);
+      const leavesAver = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf, n);
       const leavesB = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf2, n);
       groep.forEach((t, i) => {
         const s2 = t.s; q.identity();
@@ -1490,14 +1546,28 @@ function buildTrees(scene) {
         const ty = t.y || 0;      // op de dijk van het viaduct staat een boom hoger
         m.compose(new THREE.Vector3(t.x, ty + 2.5 * s2, t.z), q, new THREE.Vector3(dik, s2, dik)); trunks.setMatrixAt(i, m);
         q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-        m.compose(new THREE.Vector3(t.x, ty + 5.2 * s2, t.z), q, new THREE.Vector3(s2 * (0.95 + r() * 0.45), s2 * (0.85 + r() * 0.4), s2 * (0.95 + r() * 0.45))); leavesA.setMatrixAt(i, m);
+        const kw = s2 * (0.95 + r() * 0.45), kh = s2 * (0.85 + r() * 0.4), kd = s2 * (0.95 + r() * 0.45);
+        const kp = new THREE.Vector3(t.x, ty + 5.2 * s2, t.z);
+        m.compose(kp, q, new THREE.Vector3(kw, kh, kd)); leavesA.setMatrixAt(i, m);
+        m.compose(kp, q, new THREE.Vector3(kw * GROF_OP, kh * GROF_OP, kd * GROF_OP)); leavesAver.setMatrixAt(i, m);
         q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
         m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, ty + 6.7 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
         if (!t.vrij) addCollider(t.x, t.z, 0.3 * dik, 0.3 * dik, 0, 3);
       });
-      trunks.castShadow = true; leavesA.castShadow = true; leavesB.castShadow = true;
-      trunks.computeBoundingSphere(); leavesA.computeBoundingSphere(); leavesB.computeBoundingSphere();
-      scene.add(trunks, leavesA, leavesB);
+      trunks.castShadow = true; leavesA.castShadow = true;
+      // de grove kroon en de bobbel werpen geen schaduw: de schaduwdoos is
+      // tweeënvijftig meter, dus daar komt de grove versie nooit in, en de
+      // bobbel valt binnen de schaduw van de kroon eronder
+      trunks.computeBoundingSphere(); leavesA.computeBoundingSphere();
+      leavesAver.computeBoundingSphere(); leavesB.computeBoundingSphere();
+      scene.add(trunks, leavesA, leavesAver, leavesB);
+      const [mx, mz] = boomTegelMidden(groep);
+      // de stam en de bobbel alleen dichtbij, de fijne kroon tot GROF_VANAF,
+      // daarna de grove tot waar de mist hem toch opslokt
+      lodAan(trunks, mx, mz, { tot: 260, straal: BOOMTEGEL * 0.71 });
+      lodAan(leavesB, mx, mz, { tot: 170, straal: BOOMTEGEL * 0.71 });
+      lodAan(leavesA, mx, mz, { tot: GROF_VANAF, straal: BOOMTEGEL * 0.71 });
+      lodAan(leavesAver, mx, mz, { tot: 1000, vanaf: GROF_VANAF, straal: BOOMTEGEL * 0.71 });
     }
   }
 
@@ -1510,6 +1580,8 @@ function buildTrees(scene) {
       const n = groep.length;
       const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunkPale, n);
       const crownA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n * 2);
+      // dezelfde kronen nog een keer met twintig vlakken, voor ver weg
+      const crownAver = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf, n * 2);
       const crownB = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf2, n * 2);
       groep.forEach((t, i) => {
         const s2 = t.s; q.identity();
@@ -1519,17 +1591,27 @@ function buildTrees(scene) {
           q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
           const y = ty + (6.0 + k * 2.2) * s2;
           const w = (1.30 - k * 0.30) * s2;
-          m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.2 * s2, y, t.z + (r() - 0.5) * 1.2 * s2), q, new THREE.Vector3(w, w * 1.25, w));
+          const p1 = new THREE.Vector3(t.x + (r() - 0.5) * 1.2 * s2, y, t.z + (r() - 0.5) * 1.2 * s2);
+          m.compose(p1, q, new THREE.Vector3(w, w * 1.25, w));
           (k === 0 ? crownA : crownB).setMatrixAt(i * 2 + k, m);
+          if (k === 0) { m.compose(p1, q, new THREE.Vector3(w * 1.06, w * 1.325, w * 1.06)); crownAver.setMatrixAt(i * 2 + k, m); }
           q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-          m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 2.2 * s2, y + 1.2 * s2, t.z + (r() - 0.5) * 2.2 * s2), q, new THREE.Vector3(w * 0.8, w, w * 0.8));
+          const p2 = new THREE.Vector3(t.x + (r() - 0.5) * 2.2 * s2, y + 1.2 * s2, t.z + (r() - 0.5) * 2.2 * s2);
+          m.compose(p2, q, new THREE.Vector3(w * 0.8, w, w * 0.8));
           (k === 0 ? crownB : crownA).setMatrixAt(i * 2 + k, m);
+          if (k === 1) { m.compose(p2, q, new THREE.Vector3(w * 0.85, w * 1.06, w * 0.85)); crownAver.setMatrixAt(i * 2 + k, m); }
         }
         if (!t.vrij) addCollider(t.x, t.z, 0.45, 0.45, 0, 3);
       });
-      trunks.castShadow = true; crownA.castShadow = true; crownB.castShadow = true;
-      trunks.computeBoundingSphere(); crownA.computeBoundingSphere(); crownB.computeBoundingSphere();
-      scene.add(trunks, crownA, crownB);
+      trunks.castShadow = true; crownA.castShadow = true;
+      trunks.computeBoundingSphere(); crownA.computeBoundingSphere();
+      crownAver.computeBoundingSphere(); crownB.computeBoundingSphere();
+      scene.add(trunks, crownA, crownAver, crownB);
+      const [mx, mz] = boomTegelMidden(groep);
+      lodAan(trunks, mx, mz, { tot: 260, straal: BOOMTEGEL * 0.71 });
+      lodAan(crownB, mx, mz, { tot: 170, straal: BOOMTEGEL * 0.71 });
+      lodAan(crownA, mx, mz, { tot: 170, straal: BOOMTEGEL * 0.71 });
+      lodAan(crownAver, mx, mz, { tot: 1000, vanaf: 170, straal: BOOMTEGEL * 0.71 });
     }
   }
 }
@@ -1727,7 +1809,7 @@ export function buildWorld(scene) {
   // Kaart uit BGT en 3D BAG (js/kaart.js): dan komt alles daaruit en blijven
   // alleen de losse objecten uit de editor (PROPS) over.
   if (KAART) {
-    bouwKaartWereld(scene, { MAT, colliders, roadSegments, parkSpots, treePositions, lampPosities, waterPolys, addCollider, maakProp });
+    bouwKaartWereld(scene, { MAT, colliders, roadSegments, parkSpots, treePositions, lampPosities, waterPolys, addCollider, maakProp, lodAan });
     buildTrees(scene);
     if (kaartStand() !== 'plat') buildReeds(scene);
     if (kaartStand() !== 'plat') buildProps(scene);

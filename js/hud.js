@@ -73,11 +73,43 @@ export class HUD {
    eroverheen zou komen. De langste straten gaan voor, dus wat overblijft zijn de
    namen waar je op de kaart iets aan hebt.
   */
-  drawLabels(c, scale, rot, minLen) {
+  drawLabels(c, scale, rot, minLen, rondje = null) {
     c.font = 'bold 11px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     if (!this._labelsLang) this._labelsLang = [...this.labels].sort((a, b) => b.L - a.L);
+    if (!this._labelRooster) {
+      /*
+       Een rooster over de labels, net als over de wegen. De minimap liep elk
+       beeld door alle vierhonderdveertien straatnamen van de hele wereld, met
+       per naam een botsingstoets tegen alles wat er al stond. Dat was met 1,38
+       van de 2,5 ms het duurste stuk van de hele hud, terwijl er hoogstens een
+       stuk of tien in het rondje passen. De grote kaart (M) heeft geen rondje
+       en loopt nog wel door alles; die tekent maar zolang hij open staat.
+      */
+      const CEL = 120;
+      const r = new Map();
+      for (const l of this._labelsLang) {
+        const mx = (l.a[0] + l.b[0]) / 2, mz = (l.a[1] + l.b[1]) / 2;
+        const k = Math.floor(mx / CEL) + ':' + Math.floor(mz / CEL);
+        let q = r.get(k); if (!q) r.set(k, q = []);
+        q.push(l);
+      }
+      this._labelRooster = { CEL, cellen: r };
+    }
+    let lijst = this._labelsLang;
+    if (rondje) {
+      const { CEL, cellen } = this._labelRooster;
+      const { x, z, R } = rondje;
+      lijst = [];
+      for (let i = Math.floor((x - R) / CEL); i <= Math.floor((x + R) / CEL); i++)
+        for (let j = Math.floor((z - R) / CEL); j <= Math.floor((z + R) / CEL); j++) {
+          const q = cellen.get(i + ':' + j);
+          if (q) for (const l of q) lijst.push(l);
+        }
+      // de langste eerst, net als in de volledige lijst: die gaan voor bij botsing
+      lijst.sort((p, q) => q.L - p.L);
+    }
     const gezet = [];
-    for (const l of this._labelsLang) {
+    for (const l of lijst) {
       if (l.L * scale < minLen) continue;
       const mx = (l.a[0] + l.b[0]) / 2 * scale, mz = (l.a[1] + l.b[1]) / 2 * scale;
       if (l.halfBreed === undefined) l.halfBreed = c.measureText(l.name).width / 2 + 3;
@@ -376,7 +408,7 @@ export class HUD {
       HUD.tekenWinkel(c, 9);
       c.restore();
     }
-    this.drawLabels(c, scale, -yaw + Math.PI, 40);
+    this.drawLabels(c, scale, -yaw + Math.PI, 40, { x: px, z: pz, R });
     c.restore();
     // speler
     c.save(); c.translate(W / 2, H / 2);

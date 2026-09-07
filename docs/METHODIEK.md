@@ -2087,6 +2087,126 @@ worden, in de beeldpas én in de schaduwpas, ook als je in IJlst staat en er gee
 enkele van in beeld is. Het is dezelfde fout die bij de ondergrond al eens is
 opgelost, alleen bij de panden nooit gemaakt.
 
+**De optimalisatieronde (stap 29).**
+
+Van de zeven punten uit stap 28 zijn er zes opgepakt; de geparkeerde auto's
+eenvoudiger maken (punt 3) heeft de gebruiker laten liggen. Wat er per ingreep
+uitkwam, allemaal gemeten met `npm run optimeer` op het zwaarste standpunt
+(Molenkrite begin, 1280 × 720), niet beredeneerd:
+
+*Het javascript.* Van 6,3 naar 1,83 ms per beeld.
+
+| lus | voor | na |
+|---|---|---|
+| `hud.update` (de minikaart) | 4,06 | **0,31** |
+| `vehicles.updateTraffic` | 1,14 | **0,53** |
+| `npcs.update` | 0,72 | 0,60 |
+| `player.update` | 0,33 | 0,29 |
+| som | 6,3 | **1,83** |
+
+De minikaart was het niet aan zijn tekenwerk kwijt maar aan de straatnamen:
+`drawLabels` liep elk beeld door alle vierhonderdveertien labels van de hele
+wereld, elk met een botsingstoets tegen alles wat er al stond, terwijl er in het
+rondje van eenennegentig meter dertien passen. Met een rooster over de labels —
+hetzelfde middel dat de wegen en de sloten al hadden — gaat dat van 2,02 naar
+0,07 ms. Een tempolimiet op de kaart, die in het plan stond, is daarmee niet meer
+nodig: hij blijft elk beeld meedraaien en dus vloeiend.
+
+Bij het verkeer zat de eerste poging ernaast. Twintig rijdende auto's die elk de
+lijst van 1781 geparkeerde auto's afgingen zijn 35.620 toetsen per beeld, dus
+kwam er een rooster over de geparkeerde auto's. Dat hielp niets (1,14 → 1,29 ms).
+Nameten binnen de functie wees uit dat het niet de toets was maar het *aflopen*
+van de lijst — en daar stond na de verbouwing nog een lus over alle 1781 in, om
+de auto's met een eigen model eruit te vissen, twintig keer per beeld. Die lijst
+wordt nu één keer per beeld gemaakt: 0,53 ms.
+
+*Het tekenwerk.* Van 1830 naar 1752 draw calls en van 5,83 naar 3,84 miljoen
+driehoeken (beeldpas + schaduwpas samen).
+
+| klasse | voor | na |
+|---|---|---|
+| geparkeerde auto's | 2.063.632 / 183 | (nog te doen, punt 3) |
+| boomkronen | 1.046.200 / 128 | **537.640 / 66** |
+| struiken | 482.436 / 32 | **113.580 / 5** |
+| boomstammen | 342.104 / 68 | **258.500 / 26** |
+| muren | 319.319 / 90 | **141.880 / 162** |
+| stoepbanden | 272.816 / 36 | **52.074 / 6** |
+| schuttingen | 246.720 / 2 | **33.820 / 10** |
+| heggen | 204.880 / 2 | **22.910 / 11** |
+| riet | 123.160 / 33 | **33.240 / 7** |
+| daken | 97.036 / 15 | **40.612 / 36** |
+| dakkapellen | 85.660 / 10 | **34.676 / 25** |
+| platte daken | 63.598 / 6 | **33.132 / 13** |
+| gevels | 57.102 / 628 | 57.102 / 628 |
+| schaduwpas | 1.499.252 / 363 | **936.525 / 386** |
+
+Wat er veranderd is:
+
+- **Bomen op twee maten.** Elke boomtegel heeft nu dezelfde kronen twee keer,
+  fijn (tachtig vlakken) en grof (twintig), met dezelfde matrices; `updateLOD`
+  laat er één van staan en klapt om op honderdzeventig meter. De grove is zes
+  procent groter, want een icosaëder van detail 0 ligt binnen die van detail 1
+  en anders krimpt het silhouet bij de overgang. Stammen en de bobbel bovenop
+  gaan bij tweehonderdzestig respectievelijk honderdzeventig meter helemaal uit.
+- **Afstandsgrenzen op wat te klein is om te zien.** Een trottoirband is dertien
+  centimeter, een schuttingplank zes, een rietpol twintig; op tweehonderd meter
+  is dat minder dan een beeldpunt. Stoepbanden, oeverwanden, struiken, riet,
+  schuttingen en heggen gaan per tegel uit. Het vlák van de stoep blijft staan,
+  dus er valt geen gat in de grond.
+- **Heggen en schuttingen in tegels van 240 m.** Die stonden als één mesh voor de
+  hele kaart in de scene, samen 451.600 driehoeken met een omhullende bol van
+  2227 m.
+- **De panden in tegels.** Kale baksteen, dakpannen, platte daken en
+  dakkapelwangen delen hun materiaal met honderden panden, dus dat was één mesh
+  met alle muren van Sneek én IJlst: 319.319 driehoeken met een bol van 2350 m,
+  die van élke plek in de wereld getekend werden. De gevels blijven bewust per
+  materiaal samengevoegd: elke gevelplaat is een eigen materiaal dat maar bij een
+  handvol panden voorkomt, dus die meshes zijn al klein.
+- **De schaduwkaart om het beeld.** Die kostte een vijfde van al het tekenwerk en
+  heeft niets met het beeld zelf te maken. Een beeld oud is hij nooit te zien:
+  de doos volgt de speler en die staat na één beeld acht centimeter mis. Riet,
+  struiken en de grove boomkronen werpen geen schaduw meer — een rietpol geeft
+  een vlekje dat tegen het gras wegvalt, en de grove kroon komt nooit binnen de
+  schaduwdoos van tweeënvijftig meter.
+
+*Twee dingen die niet werkten en waarom.* Ze staan hier omdat het meten ze
+uitwees en het beredeneren ze had gemist.
+
+- **Tegels zijn niet altijd goed.** Het vlakke tuinspul — tegelpaden,
+  grindtuinen, tegeltuinen, hekjes, belijning — is samen maar 22.000 driehoeken.
+  Opgeknipt in tegels kostte dat 149 draw calls in plaats van 5, en dat is de
+  verkeerde kant op: een telefoon is gevoeliger voor draw calls dan voor
+  driehoeken. Alleen de twee zware (heg en schutting, samen 451.600) zijn
+  getegeld; de rest is teruggedraaid.
+- **De maat van de pandtegel is een ruil.** Fijner knippen haalt driehoeken weg
+  en kost draw calls, want een muurmateriaal komt in veel tegels voor. Gemeten
+  over de vier standpunten samen:
+
+  | pandtegel | draw calls | driehoeken |
+  |---|---|---|
+  | 240 m | 6333 | 10,00 M |
+  | 480 m | 5860 | 10,20 M |
+  | **960 m** | **5627** | **10,48 M** |
+
+  Van 240 naar 960 m is dat 706 draw calls minder voor 482.000 driehoeken meer.
+  Een draw call kost op een telefoon in de orde van tien microseconden en een
+  half miljoen driehoeken ruim minder, dus 960 m. Het staat als `PAND_CEL` in
+  `js/kaartwereld.js` en is met dit tabelletje na te meten.
+
+*En twee gaten in de meting zelf.* Beide zaten er al voordat deze ronde begon.
+
+- `optimeer` en `audit` riepen `updateLOD` nooit aan, zodat alles wat met
+  `lodAan` is aangemeld nog op zijn beginstand stond — en dan tekenen de fijne
+  én de grove boomkroon tegelijk. De eerste meting na de bomenronde was daardoor
+  *slechter* dan ervoor (1.162.600 in plaats van 1.046.200 driehoeken kroon).
+  Beide gereedschappen doen nu wat de hoofdlus doet.
+- `bouwKaartWereld` krijgt geen module maar een handgeschreven lijstje mee, en
+  `lodAan` stond daar niet in. De aanroepen in `kaartwereld.js` hadden een
+  `if (W.lodAan && …)` ervoor en werden dus stil overgeslagen: stoepbanden en
+  oeverwanden bleven 272.816 driehoeken kosten terwijl de code er al stond. De
+  guard is weg — ontbreekt `lodAan`, dan hoort dat een fout te zijn en geen
+  stilte.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
