@@ -657,6 +657,30 @@ function bouwPanden(scene, W, plat) {
    rooilijn niet te maken.
   */
   const gangHoogte = new Map((K.zuilengangen || []).map(z => [z.pand, z.hoogte]));
+  const gangBoog = new Map((K.zuilengangen || []).map(z => [z.pand, z.boog]));
+  /*
+   Alleen de muur langs de zuilengang mag weg, niet de hele onderbouw. De eerste
+   versie knipte élk muurvlak van het pand op de ganghoogte af, dus ook de
+   achterkant en de kopse kanten — en dan staat de Poiesz aan de achterkant open
+   en kijk je onder het gebouw door. De gang loopt alleen langs de gebogen
+   voorgevel, dus een vlak wordt pas geknipt als het op die boog ligt.
+  */
+  const opDeBoog = (pandId, punten) => {
+    const boog = gangBoog.get(pandId);
+    if (!boog) return false;
+    let mx = 0, mz = 0;
+    for (const p of punten) { mx += p[0]; mz += p[2]; }
+    mx /= punten.length; mz /= punten.length;
+    for (let i = 1; i < boog.length; i++) {
+      const a2 = boog[i - 1], b2 = boog[i];
+      const dx = b2[0] - a2[0], dz = b2[1] - a2[1], L2 = dx * dx + dz * dz;
+      if (L2 < 1e-6) continue;
+      let t = ((mx - a2[0]) * dx + (mz - a2[1]) * dz) / L2;
+      t = Math.max(0, Math.min(1, t));
+      if (Math.hypot(mx - (a2[0] + dx * t), mz - (a2[1] + dz * t)) < 1.2) return true;
+    }
+    return false;
+  };
 
   const PAND_CEL = 960;
   const PAND_STAP = Math.round(PAND_CEL / TEGEL);
@@ -800,7 +824,8 @@ function bouwPanden(scene, W, plat) {
      de beurt en er is geen kans op eindeloos terugroepen.
     */
     const gangH = gangHoogte.get(pand.id);
-    if (gangH !== undefined && soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1) {
+    if (gangH !== undefined && soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1
+        && opDeBoog(pand.id, buiten)) {
       let l = Infinity, t = 0;
       for (const p of buiten) { l = Math.min(l, p[1]); t = Math.max(t, p[1]); }
       if (t <= gangH + 0.3) return;                 // dit vlak zit helemaal in de gang

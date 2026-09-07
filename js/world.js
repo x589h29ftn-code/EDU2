@@ -1881,20 +1881,47 @@ export function buildWorld(scene) {
  het RWZI-terrein gebruikt dit (js/bewaking.js): achter een gebouw of achter de
  vrachtwagen zien ze je niet en schieten ze niet.
 */
+/*
+ Kan iemand op (x1,z1) iemand op (x2,z2) zien? Er wordt in stapjes van twee
+ meter langs de kijklijn gelopen; ligt een stapje in een botsingsdoos die hoger
+ is dan `hoogte`, dan staat er iets tussen.
+
+ Dit liep voor élk stapje door álle botsingsdozen: dertig stappen maal
+ zesenvijftigduizend dozen is 1,7 miljoen toetsen voor één kijklijn, en dat
+ kostte gemeten 19,2 ms — één aanroep. De politie doet er meerdere per beeld
+ (elke agent en elke wagen kijkt of hij je ziet, en `spawnPlek` toetst zestig
+ kandidaten), dus bij drie sterren stond `politie.update` op 13,1 ms per beeld
+ en werd het spel zichtbaar traag zodra je een ster had.
+
+ Het rooster dat `resolveCollisions` gebruikt lag er al. Elke doos staat daarin
+ in álle cellen die zijn omhullende cirkel raakt, dus een punt kan alleen in een
+ doos liggen die in de cel van dát punt staat: per stapje hoeven er maar een
+ paar dozen getoetst te worden en het antwoord blijft precies hetzelfde. De
+ losse dozen (die bewegen, zoals de poort in js/verhaal.js) staan niet in het
+ rooster en gaan er elke stap los bij.
+*/
 export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2) {
   const dx = x2 - x1, dz = z2 - z1;
   const L = Math.hypot(dx, dz);
   if (L < 1) return true;
+  if (rooster === null || roosterVoor !== colliders.length) bouwRooster();
   const stappen = Math.min(30, Math.max(2, Math.round(L / 2)));
+  const inDoos = (c, x, z) => {
+    if (c.h < hoogte) return false;
+    const ax = x - c.cx, az = z - c.cz;
+    const lx = ax * c.cos - az * c.sin, lz = ax * c.sin + az * c.cos;
+    return Math.abs(lx) < c.hx && Math.abs(lz) < c.hz;
+  };
+  // opeenvolgende stapjes liggen vaak in dezelfde cel van twaalf meter, dus de
+  // lijst wordt maar opgezocht als de cel verandert
+  let sleutel = null, lijst = null;
   for (let i = 1; i < stappen; i++) {
     const t = i / stappen;
     const x = x1 + dx * t, z = z1 + dz * t;
-    for (const c of colliders) {
-      if (c.h < hoogte) continue;
-      const ax = x - c.cx, az = z - c.cz;
-      const lx = ax * c.cos - az * c.sin, lz = ax * c.sin + az * c.cos;
-      if (Math.abs(lx) < c.hx && Math.abs(lz) < c.hz) return false;
-    }
+    const k = CELSLEUTEL(Math.floor(x / CEL), Math.floor(z / CEL));
+    if (k !== sleutel) { sleutel = k; lijst = rooster.get(k); }
+    if (lijst) for (const c of lijst) if (inDoos(c, x, z)) return false;
+    for (const c of losseDozen) if (inDoos(c, x, z)) return false;
   }
   return true;
 }

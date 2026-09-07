@@ -980,6 +980,10 @@ muur van deze panden op de ganghoogte af.
 Je loopt tot aan de zuilen; onder de gang door kunnen lopen en een deur de winkel in staan als open
 punt in [docs/METHODIEK.md](docs/METHODIEK.md).
 
+| de achterkant, waar eerst een gat zat |
+|---|
+| ![achterkant](docs/screenshots/duinterpen_poiesz_achter.png) |
+
 ### Basisschool De Spil, Molenkrite 169
 
 Het grootste pand van de wijk: een U van 6600 m² om een plein heen. Roodbruine baksteen met over de
