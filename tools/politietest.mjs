@@ -140,7 +140,27 @@ const komst = await page.evaluate(() => {
   window.__zetSpeler(pd.x, pd.z);
   g.politie.zetHeat(160);                      // drie sterren
   g.politie.misdaad('neergeschoten', pd.x, pd.z);
-  const na = (s) => { window.__stap(Math.round(s * 30)); const p = g.politie.plekken; return p.length ? Math.min(...p.map(q => Math.hypot(q.x - pd.x, q.z - pd.z))) : 999; };
+  /*
+   De verdenking tijdens de nadering vasthouden. Deze toets meet of de eenheden
+   aankomen, maar de verdenking dooft ondertussen vanzelf uit: `VERGETEN` (18 s)
+   plus zes seconden per ster geeft zesendertig seconden, en daarna gaat er
+   `KOEL` (26) heat per seconde af, dus rond de tweeënveertigste seconde is de
+   zaak voorbij en rukt iedereen weer in. Of dat gebeurt voordat ze in zicht
+   komen hangt af van waar ze opduiken — `spawnPlek` trekt een punt tussen de
+   vijfenvijftig en honderdvijftig meter — en dus van het toeval. Deze proef was
+   daardoor wisselvallig: hij meldde 131 m → 85 m → 999 m en dat is niet een
+   politie die niet aankomt maar een zaak die vanzelf gesloten werd.
+
+   Met de heat elk beeld terug op drie sterren meet hij wat er staat: komen ze
+   dichterbij en bereiken ze de plaats delict. Dat het uitdooft als je uit het
+   zicht blijft is precies wat proef 5 (Ontsnappen) toetst, en dat blijft staan.
+  */
+  const na = (s) => {
+    const n = Math.round(s * 30);
+    for (let i = 0; i < n; i++) { g.politie.zetHeat(160); g.politie.update(1 / 30); }
+    const p = g.politie.plekken;
+    return p.length ? Math.min(...p.map(q => Math.hypot(q.x - pd.x, q.z - pd.z))) : 999;
+  };
   const start = { ...g.politie.eenheden };
   /*
    Ruim de tijd nemen. De eenheden druppelen binnen (vulAan zet er één per keer
