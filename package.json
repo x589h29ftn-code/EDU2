@@ -57,6 +57,8 @@
     "molentest": "node tools/molentest.mjs",
     "molenshots": "node tools/molenshots.mjs",
     "poiesztest": "node tools/poiesztest.mjs",
-    "poieszshots": "node tools/poieszshots.mjs"
+    "poieszshots": "node tools/poieszshots.mjs",
+    "relieftest": "node tools/relieftest.mjs",
+    "beeldshots": "node tools/beeldshots.mjs"
   }
 }

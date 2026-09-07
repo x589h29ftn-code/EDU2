@@ -47,12 +47,21 @@ export function rng(seed) {
 let ANIS = 8;
 export function zetAnisotropie(n) { ANIS = Math.max(1, Math.min(16, Math.round(n) || 8)); }
 
-function tex(c, repeatX = 1, repeatY = 1, anis = 0) {
+/*
+ Van welke soort is dit doek? Dat wordt bij het dóek onthouden en niet bij de
+ texture, want een texture wordt soms gekloond (de ondergrond doet dat om zijn
+ eigen herhaling te kunnen zetten) en dan is het doek nog steeds hetzelfde.
+ `normaalVoor` en `ruwVoor` onderaan dit bestand hebben de soort nodig om te
+ weten welk reliëf en welke glans erbij horen.
+*/
+const soortVanDoek = new WeakMap();
+function tex(c, repeatX = 1, repeatY = 1, anis = 0, soort = null) {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(repeatX, repeatY);
   t.anisotropy = anis || ANIS;
   t.colorSpace = THREE.SRGBColorSpace;
+  if (soort) soortVanDoek.set(c, soort);
   return t;
 }
 
@@ -98,7 +107,7 @@ export function brick(base = '#8a6752', mortar = '#b9b2a6', seed = 1) {
       g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x + offs, y + bh - 1.5, bw, 1.5);
     }
   }
-  const t = tex(kleiner(c, 288), 1, 1); cache.set(key, t); return t;
+  const t = tex(kleiner(c, 288), 1, 1, 0, 'baksteen'); cache.set(key, t); return t;
 }
 
 // ---------- Pleisterwerk ----------
@@ -112,7 +121,7 @@ export function plaster(base = '#ece9e2', seed = 3) {
     g.fillStyle = `rgba(0,0,0,${r() * 0.07})`;
     g.fillRect(r() * 256, r() * 256, 2, 2);
   }
-  const t = tex(kleiner(c, 288)); cache.set(key, t); return t;
+  const t = tex(kleiner(c, 288), 1, 1, 0, 'pleister'); cache.set(key, t); return t;
 }
 
 // ---------- Dakpannen ----------
@@ -145,7 +154,7 @@ export function roofTiles(base = '#4a3a33', seed = 5) {
       }
     }
   }
-  const t = tex(kleiner(c, 288)); cache.set(key, t); return t;
+  const t = tex(kleiner(c, 288), 1, 1, 0, 'dakpan'); cache.set(key, t); return t;
 }
 
 /*
@@ -221,7 +230,7 @@ export function bitumen() {
     g.fillStyle = `rgba(${200 + r() * 55},${200 + r() * 55},${200 + r() * 40},${r() * 0.25})`;
     g.fillRect(r() * 256, r() * 256, 2, 2);
   }
-  const t = tex(c); cache.set('bit', t); return t;
+  const t = tex(c, 1, 1, 0, 'bitumen'); cache.set('bit', t); return t;
 }
 
 // ---------- Klinkers ----------
@@ -259,7 +268,7 @@ export function klinkers(kind = 'grijs') {
       }
     }
   }
-  const t = tex(c); cache.set(key, t); return t;
+  const t = tex(c, 1, 1, 0, 'klinkers'); cache.set(key, t); return t;
 }
 
 // ---------- Stoeptegels 30x30 ----------
@@ -279,7 +288,7 @@ export function tiles() {
     g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x + 3, y + s - 6, s - 6, 3);
     if (r() < 0.15) { g.fillStyle = 'rgba(60,80,30,0.35)'; g.fillRect(x + 3, y + 3, s - 6, 3); }   // mos in de voeg
   }
-  const t = tex(c); cache.set('tiles', t); return t;
+  const t = tex(c, 1, 1, 0, 'tegels'); cache.set('tiles', t); return t;
 }
 
 // ---------- Asfalt ----------
@@ -293,7 +302,7 @@ export function asphalt() {
     g.fillStyle = `rgba(${v},${v},${v + 4},0.6)`;
     g.fillRect(r() * 512, r() * 512, 2, 2);
   }
-  const t = tex(c); cache.set('asf', t); return t;
+  const t = tex(c, 1, 1, 0, 'asfalt'); cache.set('asf', t); return t;
 }
 
 // ---------- Gras ----------
@@ -320,7 +329,7 @@ export function grass() {
   }
   // paar bruine blaadjes en madeliefjes
   for (let i = 0; i < 260; i++) { g.fillStyle = r() < 0.6 ? `rgba(${120 + r() * 60},${80 + r() * 40},30,0.7)` : 'rgba(240,240,230,0.8)'; g.fillRect(r() * S, r() * S, 2 + r() * 2, 2); }
-  const t = tex(c); cache.set('grass', t); return t;
+  const t = tex(c, 1, 1, 0, 'gras'); cache.set('grass', t); return t;
 }
 
 // ---------- Kunstgras ----------
@@ -345,7 +354,7 @@ export function kunstgras() {
   }
   // wat instrooirubber: kleine donkere korrels
   for (let i = 0; i < 2600; i++) { g.fillStyle = `rgba(20,22,20,${0.15 + r() * 0.2})`; g.fillRect(r() * S, r() * S, 1.6, 1.6); }
-  const t = tex(c); cache.set('kunstgras', t); return t;
+  const t = tex(c, 1, 1, 0, 'kunstgras'); cache.set('kunstgras', t); return t;
 }
 
 // ---------- Reclameborden langs het veld ----------
@@ -550,7 +559,7 @@ export function schelpenpad() {
         : `rgba(84,70,52,${0.25 + r() * 0.35})`;
     g.fillRect(r() * S, r() * S, 1.5 + r() * 3, 1.5 + r() * 2.5);
   }
-  const t = tex(c); cache.set('schelp', t); return t;
+  const t = tex(c, 1, 1, 0, 'schelp'); cache.set('schelp', t); return t;
 }
 
 // ---------- Moestuingrond ----------
@@ -769,7 +778,7 @@ export function damwand(kleur = '#2f5da8') {
     g.fillStyle = shade(kleur, 0.72); g.fillRect(x + rib * 0.35, 0, rib * 0.12, S); // schaduwkant
     g.fillStyle = shade(kleur, 0.9); g.fillRect(x + rib * 0.85, 0, rib * 0.15, S);
   }
-  const t = tex(c); cache.set(key, t); return t;
+  const t = tex(c, 1, 1, 0, 'damwand'); cache.set(key, t); return t;
 }
 
 // ---------- Spijlenhek (grijs stalen hek van 2 m, RWZI) ----------
@@ -836,7 +845,7 @@ export function rietdak(kleur = '#5a4630') {
   }
   // de bindrepen: om de meter een donkere band dwars over het riet
   for (let y = 40; y < S; y += 84) { g.fillStyle = 'rgba(28,20,12,0.28)'; g.fillRect(0, y, S, 3); }
-  const t = tex(c); cache.set(key, t); return t;
+  const t = tex(c, 1, 1, 0, 'riet'); cache.set(key, t); return t;
 }
 
 // ---------- Hekwerk van een molenroede ----------
@@ -870,7 +879,7 @@ export function planks(kleur = '#f0efe9') {
     g.fillStyle = `rgba(255,255,255,${0.15 + r() * 0.1})`; g.fillRect(0, y + 3, 256, 2);   // lichtrandje
     g.fillStyle = `rgba(0,0,0,${r() * 0.04})`; g.fillRect(0, y + 8, 256, 20);
   }
-  const t = tex(c); cache.set(key, t); return t;
+  const t = tex(c, 1, 1, 0, 'planken'); cache.set(key, t); return t;
 }
 
 // Idem voor de gevels: zes varianten per type geeft genoeg afwisseling in
@@ -1251,6 +1260,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
   }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANIS;
+  soortVanDoek.set(c, 'gevel');
   cache.set(key, t); return t;
 }
 
@@ -1308,4 +1318,220 @@ export function dormerFront(frameColor = '#ffffff') {
   g.fillStyle = frameColor; g.fillRect(124, 22, 8, 84);
   g.fillStyle = 'rgba(190,210,230,0.35)'; g.fillRect(26, 26, 60, 76);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; cache.set(key, t); return t;
+}
+
+/*
+ ================= Reliëf en glans, afgeleid uit dezelfde doeken =================
+
+ Alle doeken hierboven zijn alleen kleur. Een gemetselde muur is daardoor een
+ vlakke plaat met een tekening erop: strijklicht doet er niets mee, en van
+ dichtbij zie je dat het geen steen is maar een plaatje van steen. Twee kaarten
+ halen daar het meeste uit, en allebei zijn ze uit het bestaande doek te maken —
+ er hoeft geen enkele nieuwe tekening bij.
+
+ **De normal map** komt uit de helderheid van het doek: die wordt als hoogte
+ gelezen en met een Sobel-operator omgezet in een helling per beeldpunt. Dat is
+ geen echte hoogtemeting, maar bij metselwerk, een pannendak of een
+ klinkerbestrating ligt de tekening zó dicht tegen het reliëf aan dat het klopt.
+
+ Eén ding moet je per soort weten: **is licht hoog of laag?** Bij klinkers,
+ stoeptegels, dakpannen, planken en riet is de voeg of de naad donker getekend,
+ dus donker is laag. Bij baksteen is het net andersom — `brick()` zet de specie
+ lichter dan de steen — en daar moet de hoogte dus omgekeerd. Zonder die vlag
+ zit het metselwerk binnenstebuiten en steken de voegen uit de muur.
+
+ **De roughness map** is er alleen voor de gevels, en daar is hij het meest waard:
+ een gevel is mat metselwerk met glimmend glas erin, en zonder zo'n kaart is
+ alles even mat. Het glas is in het doek te herkennen aan zijn kleur — de ruiten
+ zijn met een blauwgrijs verloop getekend en het metselwerk is warm — dus een
+ pixel die blauwer is dan rood is glas. Verf (de witte kozijnen en boeiboorden)
+ glimt er een beetje tussenin.
+
+ Maten: de normal maps blijven op ware grootte, de roughness maps gaan naar een
+ kwart. Dat eerste is een les uit de eerste poging: op halve maat waren ze
+ nauwelijks te zien. Een voeg in het metselwerk is 1,3 cm en het steendoek staat
+ op 111 beeldpunten per meter, dus die voeg is anderhalve pixel breed — halveer
+ je dat doek, dan verdwijnt hij in de vervaging en blijft er een vlakke muur
+ over. De doeken met reliëf zijn allemaal 288 tot 512 px, dus op ware grootte
+ kosten ze samen maar een paar megabyte. Glans is wel laagfrequent (een ruit is
+ glad, een muur is mat) en kan prima op een kwart.
+
+ De gevels krijgen bewust géén normal map. Het gevelblad bevat naast de
+ baksteen ook geschilderd licht — vitrage, spiegelingen, slagschaduw onder de
+ dakrand — en dat zou als reliëf terugkomen. Ze krijgen wel hun glans; het
+ metselwerk ernaast en de daken erboven dragen het reliëf.
+*/
+
+// s = hoe sterk het reliëf, om = licht is laag in plaats van hoog
+const RELIEF = {
+  baksteen:  { s: 2.2, om: true },
+  pleister:  { s: 0.7, om: false },
+  dakpan:    { s: 1.8, om: false },
+  klinkers:  { s: 1.6, om: false },
+  tegels:    { s: 1.4, om: false },
+  asfalt:    { s: 0.5, om: false },
+  bitumen:   { s: 0.8, om: false },
+  planken:   { s: 1.2, om: false },
+  damwand:   { s: 1.5, om: false },
+  riet:      { s: 1.3, om: false },
+  gras:      { s: 0.5, om: false },
+  kunstgras: { s: 0.4, om: false },
+  schelp:    { s: 0.9, om: false },
+};
+
+const normaalCache = new Map();      // doek -> basis-normaaltexture
+const ruwCache = new Map();          // doek -> basis-roughnesstexture
+const kopieCache = new Map();        // basis + herhaling -> kloon
+
+// Een doek als helderheid uitlezen, op ware grootte. Levert { w, h, v }.
+function helderheid(bron) {
+  const w = bron.width, h = bron.height;
+  const k = canvas(w, h); const g = k.getContext('2d');
+  g.drawImage(bron, 0, 0);
+  const d = g.getImageData(0, 0, w, h).data;
+  const v = new Float32Array(w * h);
+  for (let i = 0, p = 0; p < w * h; p++, i += 4) {
+    v[p] = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) / 255;
+  }
+  return { w, h, v };
+}
+
+/*
+ De normal map. Let op het teken van het groene kanaal: een canvas telt zijn
+ rijen van boven naar beneden, maar three keert het doek om (`flipY`), zodat v
+ juist omhoog loopt. De afgeleide naar beneden in het doek is daarmee de
+ afgeleide omhoog in de texture, en het groene kanaal krijgt dus +dy en niet
+ -dy. Staat dat verkeerd om, dan lijkt elke bult een deuk zodra de zon draait.
+*/
+function normaalDoek(bron, sterkte, omkeren) {
+  const { w, h, v } = helderheid(bron);
+  const k = canvas(w, h); const g = k.getContext('2d');
+  const beeld = g.createImageData(w, h), o = beeld.data;
+  // de doeken liggen getegeld, dus over de rand heen doorlezen
+  const H = (x, y) => v[((y % h) + h) % h * w + ((x % w) + w) % w] * (omkeren ? -1 : 1);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const dx = (H(x + 1, y - 1) + 2 * H(x + 1, y) + H(x + 1, y + 1))
+             - (H(x - 1, y - 1) + 2 * H(x - 1, y) + H(x - 1, y + 1));
+    const dy = (H(x - 1, y + 1) + 2 * H(x, y + 1) + H(x + 1, y + 1))
+             - (H(x - 1, y - 1) + 2 * H(x, y - 1) + H(x + 1, y - 1));
+    const nx = -dx * sterkte, ny = dy * sterkte, nz = 1;
+    const L = Math.hypot(nx, ny, nz) || 1;
+    const i = (y * w + x) * 4;
+    o[i] = Math.round((nx / L * 0.5 + 0.5) * 255);
+    o[i + 1] = Math.round((ny / L * 0.5 + 0.5) * 255);
+    o[i + 2] = Math.round((nz / L * 0.5 + 0.5) * 255);
+    o[i + 3] = 255;
+  }
+  g.putImageData(beeld, 0, 0);
+  return k;
+}
+
+/*
+ De roughness map van een gevel. Glas is blauwer dan rood en wordt glad (0,10),
+ licht en kleurloos is verf en wordt halfglanzend (0,55), de rest is metselwerk
+ en blijft mat (0,92). Er gaat een lichte vervaging overheen zodat de randen
+ van een kozijn niet gaan flikkeren.
+*/
+function ruwDoek(bron) {
+  const w = Math.max(8, Math.round(bron.width / 4));
+  const h = Math.max(8, Math.round(bron.height / 4));
+  const k = canvas(w, h); const g = k.getContext('2d');
+  g.imageSmoothingQuality = 'high';
+  g.filter = 'blur(1px)';
+  g.drawImage(bron, 0, 0, w, h);
+  g.filter = 'none';
+  const beeld = g.getImageData(0, 0, w, h), d = beeld.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], gr = d[i + 1], b = d[i + 2];
+    let ruw = 0.92;
+    if (b > r + 6) ruw = 0.10;                                        // glas
+    else if (r > 190 && Math.abs(r - b) < 14 && Math.abs(r - gr) < 14) ruw = 0.55;  // verf
+    const v = Math.round(ruw * 255);
+    d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+  }
+  g.putImageData(beeld, 0, 0);
+  return k;
+}
+
+// De herhaling en de filtering van het kleurdoek overnemen. Een kloon deelt zijn
+// bron, dus hij kost geen tweede plek in het videogeheugen.
+function zelfdeLigging(basis, kleur) {
+  const sleutel = `${basis.uuid}|${kleur.repeat.x}|${kleur.repeat.y}|${kleur.offset.x}|${kleur.offset.y}|${kleur.wrapS}|${kleur.wrapT}`;
+  let k = kopieCache.get(sleutel);
+  if (k) return k;
+  k = basis.clone();
+  k.repeat.copy(kleur.repeat);
+  k.offset.copy(kleur.offset);
+  k.wrapS = kleur.wrapS; k.wrapT = kleur.wrapT;
+  k.anisotropy = kleur.anisotropy;
+  k.needsUpdate = true;
+  kopieCache.set(sleutel, k);
+  return k;
+}
+
+/*
+ Alleen voor tools/relieftest.mjs: het omzetten van een doek naar een normal map
+ los aanroepbaar. De richting van het groene kanaal is het soort fout dat je pas
+ ziet als de zon een halve dag verder staat, dus die wordt met een doek met een
+ bekende bult nagerekend in plaats van met het oog.
+*/
+export function _normaalDoek(bron, sterkte = 1, omkeren = false) {
+  return normaalDoek(bron, sterkte, omkeren);
+}
+
+/** De normal map die bij dit kleurdoek hoort, of null als die soort er geen heeft. */
+export function normaalVoor(kleur) {
+  if (!kleur || !kleur.image) return null;
+  const R = RELIEF[soortVanDoek.get(kleur.image)];
+  if (!R) return null;
+  let basis = normaalCache.get(kleur.image);
+  if (!basis) {
+    basis = new THREE.CanvasTexture(normaalDoek(kleur.image, R.s, R.om));
+    basis.wrapS = basis.wrapT = THREE.RepeatWrapping;
+    basis.colorSpace = THREE.NoColorSpace;     // richtingen, geen kleuren
+    basis.anisotropy = ANIS;
+    normaalCache.set(kleur.image, basis);
+  }
+  return zelfdeLigging(basis, kleur);
+}
+
+/** De roughness map die bij dit kleurdoek hoort (nu alleen de gevels). */
+export function ruwVoor(kleur) {
+  if (!kleur || !kleur.image) return null;
+  if (soortVanDoek.get(kleur.image) !== 'gevel') return null;
+  let basis = ruwCache.get(kleur.image);
+  if (!basis) {
+    basis = new THREE.CanvasTexture(ruwDoek(kleur.image));
+    basis.wrapS = basis.wrapT = THREE.RepeatWrapping;
+    basis.colorSpace = THREE.NoColorSpace;
+    basis.anisotropy = ANIS;
+    ruwCache.set(kleur.image, basis);
+  }
+  return zelfdeLigging(basis, kleur);
+}
+
+/*
+ Reliëf en glans over een hele scene zetten. Eén keer aanroepen na het bouwen van
+ de wereld: elk materiaal dat een kleurdoek heeft van een soort met reliëf
+ krijgt de bijbehorende normal map, en elke gevel zijn roughness map. Levert
+ hoeveel materialen er zijn aangeraakt.
+*/
+export function zetReliëf(root) {
+  const gezien = new Set();
+  let normalen = 0, glans = 0;
+  root.traverse(o => {
+    const mats = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []);
+    for (const m of mats) {
+      if (!m || gezien.has(m) || !m.isMeshStandardMaterial || !m.map) continue;
+      gezien.add(m);
+      if (!m.normalMap) { const nm = normaalVoor(m.map); if (nm) { m.normalMap = nm; normalen++; } }
+      if (!m.roughnessMap) {
+        const rm = ruwVoor(m.map);
+        // de kaart draagt de waarde, dus het getal op het materiaal moet 1 zijn
+        if (rm) { m.roughnessMap = rm; m.roughness = 1; glans++; }
+      }
+      if (m.normalMap || m.roughnessMap) m.needsUpdate = true;
+    }
+  });
+  return { normalen, glans, materialen: gezien.size };
 }

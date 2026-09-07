@@ -1,9 +1,13 @@
 // Meet de motor door: draw calls, driehoeken, texturegeheugen, objecten in de
 // scene, laadtijd en de tijd die JavaScript per beeld kost.
-// Gebruik: node tools/audit.mjs [poort]
+// Gebruik: node tools/audit.mjs [poort] [zoekreeks]
+//
+// De zoekreeks gaat achter index.html, zodat je twee standen naast elkaar kunt
+// meten: `node tools/audit.mjs 8123 '?relief=0'` laat het reliëf weg.
 import { chromium } from 'playwright';
 
 const port = process.argv[2] || '8123';
+const vraag = process.argv[3] || '';
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
@@ -13,8 +17,8 @@ page.on('pageerror', e => console.log('[pageerror]', e.message));
 let bouwtijd = '';
 page.on('console', m => { if (m.text().startsWith('Wereld gebouwd')) bouwtijd = m.text(); });
 const t0 = Date.now();
-await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'load' });
-await page.waitForFunction(() => window.__game, null, { timeout: 90000 });
+await page.goto(`http://127.0.0.1:${port}/index.html${vraag}`, { waitUntil: 'load', timeout: 300000 });
+await page.waitForFunction(() => window.__game, null, { timeout: 300000 });
 console.log(`laadtijd tot speelbaar: ${Date.now() - t0} ms`);
 console.log(bouwtijd);
 await page.evaluate(() => { window.__autoplay = true; document.getElementById('overlay').style.display = 'none'; });

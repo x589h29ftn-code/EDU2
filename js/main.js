@@ -19,7 +19,7 @@ import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
-import { zetAnisotropie } from './textures.js';
+import { zetAnisotropie, zetReliëf } from './textures.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -256,6 +256,21 @@ if (URLP.get('kaart') !== 'oud') {
 const t0 = performance.now();
 const world = buildWorld(scene);
 console.log(`Wereld gebouwd in ${Math.round(performance.now() - t0)} ms, ${colliders.length} colliders, ${world.parkSpots.length} auto's`);
+
+/*
+ Reliëf en glans (js/textures.js). Elk kleurdoek van een soort met reliëf krijgt
+ er een normal map bij, en elke gevel een roughness map waarin het glas glad is
+ en het metselwerk mat. Dat is de pc-kant van de kwaliteit: het kost een extra
+ textuurophaling per materiaal en een stuk of veertig megabyte, en dat is op een
+ telefoon net te veel — vandaar dat het aan `IS_TOUCH` hangt. Met `?relief=0`
+ gaat het uit; daarmee zijn de voor-en-na-foto's en de audit gemaakt.
+*/
+const RELIEF_AAN = !IS_TOUCH && new URLSearchParams(location.search).get('relief') !== '0';
+if (RELIEF_AAN) {
+  const t1 = performance.now();
+  const r = zetReliëf(scene);
+  console.log(`reliëf: ${r.normalen} normal maps en ${r.glans} roughness maps over ${r.materialen} materialen in ${Math.round(performance.now() - t1)} ms`);
+}
 
 // Omgevingslicht sterker laten meewegen. three r160 heeft nog geen
 // scene.environmentIntensity, dus het gaat per materiaal.
@@ -631,7 +646,10 @@ const sfeer = initSfeer({
 // Wijkeditor (F2)
 const editor = initEditor({
   scene, camera, player, hud, npcs, vehicles,
-  onRebuild: () => { applyEnvIntensity(scene); verhaal.meldAan(); for (const r of binnenruimtes) r.meldAan(); },
+  onRebuild: () => {
+    if (RELIEF_AAN) zetReliëf(scene);   // de herbouwde wereld heeft nieuwe materialen
+    applyEnvIntensity(scene); verhaal.meldAan(); for (const r of binnenruimtes) r.meldAan();
+  },
 });
 
 // Hoofdlus
