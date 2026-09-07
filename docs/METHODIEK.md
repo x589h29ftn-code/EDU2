@@ -249,7 +249,13 @@ naar `main` om een build te krijgen.
 | De boerderijwinkel en het geld (stap 11) | `npm run winkeltest` | eindigt op "Alles goed" |
 | Scherpte, heggen en schuttingen (stap 13) | `npm run wereldtest` | eindigt op "Alles goed" |
 | De Wieken 29, zitten, licht en het speeltuintje (stap 14) | `npm run woningtest` | eindigt op "Alles goed" |
-| Snelheid: draw calls, driehoeken, geheugen | `npm run audit` | < 700 calls, < 1,4 M driehoeken, < 100 MB |
+| Het viaduct over de rondweg (stap 15) | `npm run viaducttest` | eindigt op "Alles goed" |
+| Het pistool, de kogels en de explosies (stap 16) | `npm run wapentest` | eindigt op "Alles goed" |
+| Het sportpark en de volkstuinen (stap 20–21) | `npm run sporttest` | eindigt op "Alles goed" |
+| Houtzaagmolen De Rat (stap 25) | `npm run molentest` | eindigt op "Alles goed" |
+| De Poiesz van binnen en het bier (stap 26) | `npm run poiesztest` | eindigt op "Alles goed" |
+| Reliëf, glans en nat wegdek (stap 27) | `npm run relieftest` | eindigt op "Alles goed" |
+| Snelheid: draw calls, driehoeken, geheugen | `npm run audit` (met `?relief=0` voor de kale stand) | de wereld is sinds stap 22 zes keer zo groot; de meting is nu een vergelijking met de vorige ronde, geen vaste bovengrens |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
 betrouwbaar kan beoordelen, omdat het een pixel-voor-pixel vergelijking is op
@@ -1914,6 +1920,98 @@ voor de foto's. Alle twaalf de proeven zijn groen, politietest en poiesztest
 twee keer achter elkaar, en `npm run geo:boven` blijft op 1,59 %.
 
 
+**Reliëf en glans uit de kleurdoeken (stap 27).**
+
+De vraag was hoe de belichting en de texturen op de pc beter kunnen. Er kwamen
+vijf punten uit; dit is punt 1 (normal maps) en punt 2 (roughness maps, en het
+natte wegdek dat daar meteen uit volgt). Punt 3 (ambient occlusion), 4 (scherpere
+schaduw dichtbij) en 5 (de omgevingsreflectie met de klok mee opnieuw bakken)
+staan nog open.
+
+*Het idee.* Er zit geen enkel plaatje in dit spel: elke texture wordt op een
+canvas getekend. Een canvas geeft kleur, en kleur alleen is vlak. Wat ontbrak is
+niet meer detail in de tekening maar de andere twee doeken die een
+`MeshStandardMaterial` kan gebruiken: de richting van het oppervlak en de
+ruwheid. Die zijn nergens vandaan te halen — behalve uit het kleurdoek zelf. Dus
+worden ze op de pc bij het opstarten **afgeleid**, in `zetReliëf()` in
+`js/textures.js`, en kost het geen enkel bestand.
+
+| doek | waar het uit komt | wat het doet |
+|---|---|---|
+| normal map | luminantie van het kleurdoek → Sobel → normaal | licht valt op de bovenkant van de steen, de voeg blijft donker; het reliëf draait met de zon mee |
+| roughness map | kwart maat, 1 px vervaging, dan drie soorten uit elkaar gehaald | ruiten spiegelen de lucht (0,10), verf zit ertussen (0,55), steen blijft mat (0,92) |
+
+Elk kleurdoek krijgt bij het tekenen een *soort* mee (`baksteen`, `dakpan`,
+`klinkers`, …) in een `WeakMap`. Die soort bepaalt of er reliëf op komt en hoe
+sterk: baksteen 2,2, damwand 1,5, riet 1,3, planken 1,2, asfalt en gras 0,5. Een
+doelnet of een reclamebord staat niet in de lijst en houdt zijn vlakke doek.
+
+Vier dingen die niet vanzelf goed gingen, alle vier gemeten en niet geraden:
+
+- **Het groene kanaal moest `+dy`, niet `-dy`.** Op een canvas loopt y naar
+  beneden, maar three zet `flipY` op een texture, dus v loopt in de shader naar
+  boven. De proef zet daarom een lichte blok op een donker doek en kijkt of de
+  normaal aan de linkerrand naar links wijst en aan de bovenrand naar boven.
+- **Baksteen moet van de *omgekeerde* hoogte komen.** `brick()` tekent de voeg
+  lichter dan de steen; recht overgenomen werd elke voeg een randje in plaats van
+  een groef. De proef rekent beide varianten uit en eist dat de map op de
+  omgekeerde uitkomt (afwijking 0,0 tegen 135,3).
+- **Gevels krijgen geen normal map.** In een gevelplaat is het licht al
+  meegetekend: dorpels, negge, slagschaduw onder de dakrand. Een normaal die je
+  daaruit haalt vecht met de zon. Een gevel krijgt dus alleen de glansmap. Van de
+  785 materialen kregen er 111 reliëf en 643 glans.
+- **Op halve maat was er niets te zien.** De eerste ronde leverde
+  voor-en-naplaatjes op die nauwelijks verschilden. Een voeg in het metselwerk is
+  1,3 cm en het steendoek staat op 111 beeldpunten per meter, dus die voeg is
+  anderhalve pixel breed; halveer je dat doek voor de hoogtelezing, dan verdwijnt
+  hij in de vervaging en houd je een vlakke muur over. De normal maps gaan nu op
+  volle maat (de doeken zijn ≤ 512 px, dus dat kost een paar MB). De glansmap mag
+  wél op een kwart: die scheidt vlakken, geen lijntjes.
+
+*Nat wegdek.* Met de ruwheid in de hand is regen op straat bijna gratis:
+`js/world.js` geeft de vijf wegmaterialen (asfalt, grijze en rode klinkers,
+stoeptegels en fietspad) door aan `sfeerMaterialen()`, en
+`js/sfeer.js` zet bij regen de ruwheid op 0,35, de kleur 28 % omlaag en de
+metalness op 0,12. De oude waarden staan in `userData.droogRuw` en
+`userData.droogKleur`, zodat het opdrogen exact terugzet in plaats van ongeveer.
+
+*Wat het kost,* met `npm run audit` twee keer gemeten, met en zonder `?relief=0`:
+
+| | zonder | met |
+|---|---|---|
+| texturegeheugen | 169,4 MB | 212,9 MB |
+| doeken | 784 | 1501 |
+| texturen in de GPU | 496 | 966 |
+| shaderprogramma's | 31 | 33 |
+| wereld bouwen | 28,9 s | 36,0 s |
+| javascript per beeld | 4,14 ms | 4,16 ms |
+| draw calls / driehoeken | 1467 / 4,33 M | onveranderd |
+
+Dus 44 MB en 5,5 s bij het opstarten — waarvan het uitlezen van de 643
+gevelplaten het grootste deel is — en per beeld niets. Daarom staat het op een
+telefoon uit (`!IS_TOUCH`) en is er `?relief=0` om het op de pc ook uit te zetten;
+dat is tegelijk de schakelaar waarmee de proef en de voor-en-naplaatjes de twee
+standen naast elkaar zetten.
+
+*Standpunten kiezen.* Reliëf zie je alleen bij strijklicht, en de zon staat in
+`js/sfeer.js` op een vaste baan met een noordcomponent. Voor `tools/beeldshots.mjs`
+zijn de standpunten daarom niet op het oog gekozen maar gerekend: uit `js/kaart.js`
+de muurvlakken die niet met een buur gedeeld worden, met de vrije ruimte ervoor,
+en daarbij de klokstand waarop de zon er onder een hoek van 20 tot 30 graden
+overheen strijkt. Voor de gevel-close-up hielp dat niet: welke muur een gevelplaat
+krijgt en welke kale steen hangt van `kant` in `kaartwereld.js` af, niet van de
+lengte, dus twee gerekende standpunten leverden allebei een kale kopgevel op. Dat
+is uiteindelijk met een straal­proef in de draaiende wereld gevonden (schiet
+stralen rond en meld `userData.klasse`).
+
+Controle: `npm run relieftest` (drieëndertig controles: zijn de maps er, staan ze
+lineair, wijzen de normalen naar buiten, klopt de richting op een kunstmatig blok,
+komt baksteen van de omgekeerde hoogte, glimt het glas en blijft de steen mat,
+wordt het wegdek nat en precies weer droog, blijft het geheugen onder 260 MB, en
+geeft `?relief=0` nul maps) en `npm run beeldshots` voor de paren. Alle dertien de
+proeven zijn groen en `npm run geo:boven` blijft op 1,59 % — het bovenaanzicht
+rendert in platte klassekleuren, dus daar kan reliëf per definitie niet aan zitten.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -1969,3 +2067,19 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
    3485 m²) en het blok aan de Krans. Ze kunnen op dezelfde manier als de
    supermarkt en de boerderij een eigen type krijgen in het blok `panden` van
    `data/stijl/straten.json`, zodra er een foto van is.
+11. **De drie punten belichting die na stap 27 overbleven.** Punt 1 (normal maps)
+   en 2 (roughness maps) zijn af; wat er nog ligt:
+   - **ambient occlusion.** Onder een dakrand, in een portiek en in de hoek van
+     twee muren hoort het donkerder te zijn. Echte SSAO vraagt een
+     `EffectComposer`, en die zit niet in `lib/three.module.js` (er is geen
+     buildstap en `three/addons` is er niet). Het kan dus of met een vendored
+     bestand, of — goedkoper en beter voor de telefoon — door de omgevingsfactor
+     per hoekpunt in de vertexkleur te bakken, zoals de binnenruimtes al doen.
+   - **scherpere schaduw dichtbij.** Eén schaduwkaart van 2048² over een doos van
+     104 m is 5,1 cm per texel; dat is te grof voor de rand van een dakkapel. Met
+     twee of drie cascades (dichtbij fijn, ver grof) wordt dat een centimeter.
+     CSM zit ook niet in de vendored three, dus dat is met de hand op te zetten.
+   - **de omgevingsreflectie met de klok mee.** De PMREM-map wordt één keer uit de
+     luchtshader gebakken en blijft daarna staan, dus bij zonsondergang spiegelen
+     de ruiten nog een middaglucht. Hem elke paar minuten spelletijd opnieuw
+     bakken kost ~40 ms; dat kan op een vast moment in de dag-nachtcyclus.

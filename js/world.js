@@ -1958,7 +1958,11 @@ export function ondergrondOp(x, z) {
 // De sfeermodule heeft deze materialen nodig om water te laten stromen, de
 // bladeren te laten waaien en de lantaarns 's avonds aan te doen.
 export function sfeerMaterialen() {
-  return { water: MAT.water, blad: [MAT.leaf, MAT.leaf2], lamp: MAT.lamp, hedge: MAT.hedge };
+  return {
+    water: MAT.water, blad: [MAT.leaf, MAT.leaf2], lamp: MAT.lamp, hedge: MAT.hedge,
+    // het wegdek, zodat js/sfeer.js het bij regen nat kan maken
+    weg: [MAT.asfalt, MAT.klinker, MAT.rood, MAT.tiles, MAT.fietspad].filter(Boolean),
+  };
 }
 
 export function nearestRoadName(x, z) {

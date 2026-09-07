@@ -168,6 +168,30 @@ export function initSfeer(ctx) {
     mats.water.roughness = weer === 'regen' ? 0.55 : 0.25;
     mats.water.color.set(nacht ? 0x40525e : weer === 'helder' ? 0xa8cfd6 : 0x8fa4ad);
 
+    /*
+     Nat wegdek. Asfalt en klinkers staan droog op ruwheid 0,95 en spiegelen dus
+     niets; bij regen gaan ze naar 0,35 en dan vangen ze de lucht uit de
+     environment map die er al is (js/main.js). Dat is de goedkoopste
+     weersverandering die er is — één getal per materiaal, geen extra texture,
+     geen extra tekenwerk — en het is meteen het duidelijkst te zien.
+
+     Ze worden er ook een tikje donkerder van, want nat asfalt is donker asfalt.
+     De kleur staat op de eigen tint van het materiaal, dus die wordt niet
+     overschreven maar met een factor vermenigvuldigd: de oorspronkelijke kleur
+     ligt in userData, zodat opdrogen weer bij het origineel uitkomt.
+    */
+    for (const m of mats.weg || []) {
+      if (m.userData.droogRuw === undefined) {
+        m.userData.droogRuw = m.roughness;
+        m.userData.droogKleur = m.color.getHex();
+      }
+      const nat = weer === 'regen';
+      m.roughness = nat ? Math.min(m.userData.droogRuw, 0.35) : m.userData.droogRuw;
+      m.color.setHex(m.userData.droogKleur);
+      if (nat) m.color.multiplyScalar(0.72);
+      m.metalness = nat ? 0.12 : 0;
+    }
+
     regen.visible = weer === 'regen';
     sterkte.value = weer === 'regen' ? 0.30 : weer === 'bewolkt' ? 0.22 : 0.16;
     ctx.onWeer && ctx.onWeer(weer, nacht);

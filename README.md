@@ -345,6 +345,80 @@ De texturen staan bovendien op het maximale anisotrope filter dat de kaart aanka
 plaats van 8. Dat houdt asfalt en stoeptegels die schuin weglopen scherp in plaats van een grijze brij
 in de verte, en het kost geen geheugen.
 
+### Reliëf en glans (alleen pc)
+
+Alle texturen zijn op een canvas getekend, er zit geen enkel plaatje in het spel. Een canvas geeft
+kleur, en kleur alleen is vlak: een muur van baksteen was een foto van baksteen op een plat vlak, en
+of de zon er recht op stond of er langs streek maakte niets uit. Op de pc worden daarom bij het
+opstarten twee extra doeken uit elk kleurdoek **afgeleid**, dus zonder één extra bestand:
+
+- een **normal map**: per beeldpunt in welke richting het oppervlak staat. Uit de helderheid van het
+  kleurdoek wordt met een Sobel-filter een hoogteverschil gehaald, en daaruit de normaal. Nu vangt de
+  bovenkant van elke baksteen licht en ligt de voeg in de schaduw, draait het licht met de zon mee, en
+  krijgt de bestrating diepte in plaats van een patroon.
+- een **roughness map**: per beeldpunt hoe mat of glad het is. Op een gevelplaat staan steen,
+  kozijnen, deuren en ruiten door elkaar in één doek; de kaart leest ze uit elkaar (blauwachtig
+  → glas, glad; licht en neutraal → verf, half; de rest → steen, mat). Ruiten spiegelen de lucht in
+  plaats van er als grijs papier in te zitten.
+
+Twee dingen zijn met opzet anders dan je zou verwachten:
+
+- **Baksteen wordt van de omgekeerde hoogte afgeleid.** `brick()` tekent de voeg *lichter* dan de
+  steen, dus recht overgenomen zou elke voeg een randje zijn in plaats van een groef.
+- **Gevels krijgen geen normal map.** In een gevelplaat zit het licht al getekend (dorpels, negge,
+  slagschaduw onder de dakrand). Een normaal daaruit halen vecht met de zon. Een gevel krijgt dus
+  alleen de glansmap; het reliëf zit op de dertien andere soorten — kale baksteen, pleisterwerk,
+  dakpannen, bitumen, klinkers, stoeptegels, asfalt, planken, damwand, riet, gras, kunstgras en
+  schelpenpad — samen 111 doeken.
+
+**Nat wegdek.** Bij regen gaat de ruwheid van de vijf wegmaterialen (asfalt, grijze en rode
+klinkers, stoeptegels en fietspad) naar 0,35, de
+kleur 28 % omlaag en de metalness naar 0,12. De weg spiegelt dan de grauwe lucht. Droogt het op, dan
+worden de oude waarden exact teruggezet (ze staan in `userData.droogRuw` en `userData.droogKleur`).
+
+Wat het kost, gemeten met `npm run audit` met en zonder `?relief=0`:
+
+| | zonder | met |
+|---|---|---|
+| texturegeheugen | 169,4 MB | **212,9 MB** |
+| doeken | 784 | **1501** |
+| texturen in de GPU | 496 | **966** |
+| shaderprogramma's | 31 | **33** |
+| wereld bouwen | 28,9 s | **36,0 s** |
+| javascript per beeld | 4,14 ms | **4,16 ms** |
+| draw calls / driehoeken | 1467 / 4,33 M | 1467 / 4,33 M |
+
+Dus: 44 MB geheugen en 5,5 s bij het opstarten (de 643 gevelplaten uitlezen is het duurste stuk),
+en per beeld niets. Daarom staat het **op de telefoon uit** en op de pc aan; met `?relief=0` in de
+adresbalk zet je het ook op de pc uit. `npm run beeldshots` maakt de voor-en-naparen hieronder,
+`npm run relieftest` loopt de 33 proeven na.
+
+| kale kopgevel, zon er schuin over | dezelfde gevel met reliëf |
+|---|---|
+| ![zonder](docs/screenshots/beeld_kopgevel_zonder.png) | ![met](docs/screenshots/beeld_kopgevel_met.png) |
+
+| bestrating bij laag zonnetje | met reliëf |
+|---|---|
+| ![zonder](docs/screenshots/beeld_klinkers_zonder.png) | ![met](docs/screenshots/beeld_klinkers_met.png) |
+
+| voorgevel in de schaduw | met glansmap: de ruiten spiegelen |
+|---|---|
+| ![zonder](docs/screenshots/beeld_gevel_zonder.png) | ![met](docs/screenshots/beeld_gevel_met.png) |
+
+| droog wegdek | nat wegdek bij regen |
+|---|---|
+| ![droog](docs/screenshots/beeld_wegdek_droog.png) | ![nat](docs/screenshots/beeld_wegdek_nat.png) |
+
+En op afstand, waar het verschil kleiner is maar niet weg — de straat en de daken:
+
+| de Molenkrite zonder | met |
+|---|---|
+| ![zonder](docs/screenshots/beeld_straat_zonder.png) | ![met](docs/screenshots/beeld_straat_met.png) |
+
+| de daken zonder | met |
+|---|---|
+| ![zonder](docs/screenshots/beeld_dak_zonder.png) | ![met](docs/screenshots/beeld_dak_met.png) |
+
 ## Het verhaal
 
 Je heet **Erik**. Je broer **Mark** heeft vier missies voor je, en daarna belt Johan.
@@ -894,7 +968,8 @@ in de wijk, handig als er ergens iets niet klopt.
 
 De zon draait van oost naar west, met bijpassende kleuren voor licht, lucht en mist. Wordt het donker,
 dan springen de straatlantaarns aan. Bij regen zakt het zicht van 900 naar 320 meter, wordt het water
-dof en hoor je het op je jas.
+dof, hoor je het op je jas en wordt het wegdek nat: asfalt, klinkers, fietspad en tegels worden
+donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en glans**).
 
 ![Dag, nacht en weer](docs/screenshots/sfeer.png)
 
@@ -1039,7 +1114,7 @@ daktype, goot- en nokhoogte en bouwjaar. De brondata staat in `data/geo/` (zie
 **[docs/METHODIEK.md](docs/METHODIEK.md)** beschrijft de aanpak: waarom foto's geen bron voor
 geometrie zijn, welke bronnen en welk coördinatenstelsel (RD New) gebruikt worden, de stappen, en de
 controles. De belangrijkste controle is `npm run geo:boven`: een bovenaanzicht van het spel dat pixel
-voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,29 % afwijking).
+voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,59 % afwijking).
 
 ![Het spel van boven](data/geo/spel-boven.png)
 
