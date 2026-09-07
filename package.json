@@ -62,6 +62,8 @@
     "optimeer": "node tools/optimeer.mjs",
     "duinterpentest": "node tools/duinterpentest.mjs",
     "duinterpenshots": "node tools/duinterpenshots.mjs",
+    "schooltest": "node tools/schooltest.mjs",
+    "schoolshots": "node tools/schoolshots.mjs",
     "beeldshots": "node tools/beeldshots.mjs"
   }
 }

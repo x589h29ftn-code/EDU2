@@ -759,13 +759,22 @@ function bouwPanden(scene, W, plat) {
       return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 2.6, p[1] / 2.6] };
     }
     const achter = !ind && kant < 0;
-    const SH = st.storeyH || 2.9;
+    /*
+     Een pand kan twee gevelstijlen hebben, gekozen op de hoogte van het vlak.
+     Kindcentrum De Wynpôlle is een lage vleugel met een houten beschot en
+     gekleurde luifels naast hogere delen van baksteen; welk vlak waarbij hoort
+     staat in de hoogte van het 3D BAG-model (`steenBoven`) en niet in een
+     aanname. Zonder dit zou het hele complex één van de twee worden.
+    */
+    const gtype = (st.steenBoven && st.bovenType && top > st.steenBoven) ? st.bovenType : pand.type;
+    const gst = T.HOUSE_STYLES[gtype] || st;
+    const SH = gst.storeyH || 2.9;
     // bedrijfsgevel: het aantal lagen past op de echte muurhoogte en de
     // texture wordt over de hele muur uitgerekt, zodat de dakrand bovenaan zit
     const lagen = ind ? Math.max(1, Math.min(4, Math.floor(top / SH + 0.35))) : Math.max(1, Math.min(4, Math.round(top / SH)));
-    const huizen = Math.max(1, Math.round(breed / st.w));
-    const sleutel = `gevel|${pand.type}|${huizen}|${lagen}|${achter}|${seed % 6}`;
-    const g = groep(sleutel, () => std(T.facade(pand.type, huizen, lagen, achter, seed % 6)), achter ? 'achtergevel' : 'voorgevel');
+    const huizen = Math.max(1, Math.round(breed / gst.w));
+    const sleutel = `gevel|${gtype}|${huizen}|${lagen}|${achter}|${seed % 6}`;
+    const g = groep(sleutel, () => std(T.facade(gtype, huizen, lagen, achter, seed % 6)), achter ? 'achtergevel' : 'voorgevel');
     const hoogte = ind ? Math.max(top, 2.5) : lagen * SH;
     // de texture bevat alle `huizen` naast elkaar, dus u loopt over de hele muur
     // van 0 tot 1 (met ×huizen zag een brede muur alleen de laatste pixelkolom)

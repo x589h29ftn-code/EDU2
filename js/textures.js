@@ -778,6 +778,33 @@ export const HOUSE_STYLES = {
   // hele lengte een doorlopende raamstrook met felblauwe kozijnen en gele
   // gordijnen erachter, daarboven een gele plaatband onder een lichte dakrand,
   // en bij de ingang een geel bord. `school` kiest die gevel in facade().
+  /*
+   Kindcentrum De Wynpôlle, Keizersmantel 1 in Duinterpen (foto's Street View
+   april 2024 en mei 2022, in de chat 7 sep 2026). Een complex van 7937 m² met
+   131 hoeken in zijn grondvlak: een lage gebogen vleugel met een liggend houten
+   beschot en per lokaal een felgekleurde luifel — rood, oranje, geel, groen,
+   blauw als een regenboog langs de bocht — en daarnaast hogere delen van
+   roodbruine baksteen met lichte kozijnen.
+
+   Welk deel wat krijgt komt uit de hoogte van het 3D BAG-model en niet uit een
+   aanname: de bovenkanten van de 228 muurvlakken liggen in twee groepen, 78
+   vlakken tot 9,5 m (de houten vleugel, goot 7,49 m) en 143 erboven (tot de nok
+   op 14,61 m). `steenBoven` legt die grens, `bovenType` zegt welke stijl de
+   hoge vlakken krijgen.
+
+   `industrieel` staat aan omdat een school naar alle kanten ramen heeft.
+   `voorkantNaar` wijst maar één richting aan, en bij een gebogen plattegrond
+   met 131 hoeken haalt dat hoogstens een handvol vlakken: de rest kwam als kale
+   bleke steen in beeld. Met deze vlag krijgt elke muur boven 2,6 m een gevel,
+   net als bij de waterzuivering.
+
+   De oranje deur zit alleen op de houten vleugel. De bakstenen delen kregen er
+   per lokaal ook een, want de gewone geveltak zet op elke begane grond een
+   deur: zes oranje deuren op een gevel van vier lagen, terwijl dat deel op de
+   foto donkere entrees heeft.
+  */
+  dewynpolle:  { brick: ['#9c5a42', '#cfc7ba'], hout: '#8a6a45', luifels: ['#c8402c', '#e07b1a', '#e8c11a', '#4a9c4a', '#2f6fb5'], frame: '#f0efe9', frame2: '#f0efe9', door: ['#e0651a'], roof: '#8f8d88', roofType: 'flat', storeys: 2, storeyH: 3.7, w: 5.2, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true, steenBoven: 9.5, bovenType: 'dewynpolle_steen' },
+  dewynpolle_steen: { brick: ['#9c5a42', '#cfc7ba'], frame: '#efeee7', frame2: '#efeee7', door: ['#3a3f44'], roof: '#8f8d88', roofType: 'flat', storeys: 4, storeyH: 3.6, w: 4.6, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true },
   school:      { brick: ['#8c5340', '#c9bfae'], frame: '#1f6fc4', frame2: '#1f6fc4', door: ['#1f6fc4'], roof: '#54514c', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#d8d5cc', plint: '#6b4436', industrieel: true, school: true, huisstijl: '#f2c012' },
   // Jeugdhulp Friesland, Molenkrite 234 (Street View, foto in de chat 5 sep
   // 2026): een lang gebouw van één laag met plat dak, donkerbruine steen,
@@ -932,9 +959,14 @@ export function facade(type, n, storeys, back = false, seed = 1) {
   const m = (v) => v * PM;   // meters -> pixels
 
   // achtergrond baksteen / pleister (320 px baksteen = 2,6 m)
-  const bimg = st.damwand ? damwand(st.brick[0]).image : st.plaster ? plaster(st.brick[0]).image : brick(st.brick[0], st.brick[1], seed).image;
+  // `hout` is een liggend houten beschot in plaats van metselwerk: 1,2 m per
+  // doek in plaats van 2,6 m, want `planks` tekent acht delen van 15 cm
+  const bimg = st.hout ? planks(st.hout).image
+    : st.damwand ? damwand(st.brick[0]).image
+    : st.plaster ? plaster(st.brick[0]).image
+    : brick(st.brick[0], st.brick[1], seed).image;
   const pat = g.createPattern(bimg, 'repeat');
-  const sc = PM * 2.6 / bimg.width;
+  const sc = PM * (st.hout ? 1.2 : 2.6) / bimg.width;
   g.save(); g.scale(sc, sc); g.fillStyle = pat; g.fillRect(0, 0, HW * n / sc, H / sc); g.restore();
   // lichte vervuiling onder de dakrand en boven de plint
   const vuil = g.createLinearGradient(0, 0, 0, H);
@@ -1145,6 +1177,40 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       const og = g.createLinearGradient(0, m(0.14), 0, m(1.0));
       og.addColorStop(0, 'rgba(0,0,0,0.5)'); og.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = og; g.fillRect(x0, m(0.14), HW, m(0.86));
+    } else if (st.luifels) {
+      /*
+       Schoolgevel met luifels (kindcentrum De Wynpôlle, Keizersmantel 1): een
+       liggend houten beschot met per lokaal een brede raamstrook en daarboven
+       een felgekleurde luifel. Op de foto lopen die kleuren als een regenboog
+       langs de gebogen vleugel en verschilt de rij boven van de rij onder, dus
+       de kleur hangt af van zowel het lokaal als de verdieping.
+
+       De luifel wordt hier als band getekend en niet als uitstekend zeil: van de
+       straat gezien is een luifel boven een raam een gekleurde balk met een
+       slagschaduw op het glas eronder, en dat is precies wat een plat vlak kan.
+      */
+      const kl = st.luifels;
+      for (let s2 = 0; s2 < storeys; s2++) {
+        const fy = H - (s2 + 1) * SH * PM;
+        const bx = x0 + m(0.3), bw2 = m(st.w - 0.6);
+        // de raamstrook
+        win(bx, fy + m(1.05), bw2, m(1.55), st.frame);
+        // de luifel erboven, met een lichte bovenrand en schaduw op het glas
+        const ly = fy + m(0.62);
+        const lh = m(0.40);
+        g.fillStyle = kl[(i + s2 * 2) % kl.length];
+        g.fillRect(bx - m(0.12), ly, bw2 + m(0.24), lh);
+        g.fillStyle = 'rgba(255,255,255,0.22)';
+        g.fillRect(bx - m(0.12), ly, bw2 + m(0.24), m(0.07));
+        const sg2 = g.createLinearGradient(0, ly + lh, 0, ly + lh + m(0.5));
+        sg2.addColorStop(0, 'rgba(0,0,0,0.42)'); sg2.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = sg2; g.fillRect(bx - m(0.12), ly + lh, bw2 + m(0.24), m(0.5));
+        // een dorpel onder het raam
+        g.fillStyle = shade(st.hout || '#8a6a45', 0.78);
+        g.fillRect(bx, fy + m(2.6), bw2, m(0.09));
+      }
+      // de ingang: één oranje deur per zes lokalen
+      if (i % 6 === 3) door(x0 + m(st.w / 2 - 0.6), H - m(2.25), m(1.2), m(2.25), st.door[0]);
     } else if (st.school) {
       /*
        Schoolgevel (De Spil): een doorlopende raamstrook met felblauwe kozijnen

@@ -292,6 +292,19 @@
         "pitch": 0.1
       },
       "bron": "foto Street View Keizersmantel 441-485, Duinterpen Sneek (april 2024, in de chat 7 sep 2026): het blok naast de Poiesz, in dezelfde trant maar zonder winkel: gebogen, drie lagen, roodbruine baksteen met een cremekleurige band langs de dakrand, en hier witte kozijnen met roeden in plaats van donkere. Balkons met donkere balustrades op de eerste verdieping. Ook hier ligt de begane grond terug achter ronde witte zuilen, met bedrijfsruimte achter glas. In de bocht ervoor staat een groene lantaarnpaal. De hoogte van de zuilengang komt uit de goot (4,01 m)."
+    },
+    "0091100000004552": {
+      "type": "dewynpolle",
+      "voorkantNaar": [
+        854,
+        240
+      ],
+      "foto": {
+        "voor": 34,
+        "langs": 0,
+        "pitch": 0.08
+      },
+      "bron": "foto's Street View Keizersmantel 1, Duinterpen Sneek (april 2024 en mei 2022, in de chat 7 sep 2026): kindcentrum De Wynpôlle. Een lage gebogen vleugel met een liggend houten beschot en per lokaal een felgekleurde luifel — rood, oranje, geel, groen, blauw als een regenboog langs de bocht — met daarnaast hogere delen van roodbruine baksteen met lichte kozijnen en een oranje entree. Welk deel wat krijgt komt uit het 3D BAG-model en niet uit een aanname: de bovenkanten van de 228 muurvlakken liggen in twee groepen, 78 tot 9,5 m (de houten vleugel, goot 7,49 m) en 143 erboven tot de nok op 14,61 m; `steenBoven` in HOUSE_STYLES legt die grens. `voorkantNaar` is het schoolplein: het zwaartepunt van de 66 bestrate vakken binnen 45 m die buiten het grondvlak liggen, op (854, 246), iets doorgetrokken."
     }
   },
   "standaard": {
