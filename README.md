@@ -153,6 +153,41 @@ meewijst met de elleboog.
 terugslag, het herladen, de bouw van een mens, de looppas en een agent). `npm run wapenshots` maakt
 de foto's hierboven.
 
+### De buurt verhuist met je mee
+
+De honderddertig voetgangers werden bij het opstarten één keer op een willekeurig wegvak in de héle
+wereld gezet, en daarna kwam er niemand meer bij. Over 10,95 km² is dat twaalf mensen per vierkante
+kilometer: gemeten stond er op elk standpunt **nul of één** iemand binnen tachtig meter, en in IJlst
+en Duinterpen niets binnen tweehonderd meter. Rijd je hard, dan laat je die paar achter en staat er
+niets meer vóór je. Met het verkeer was het net zo: veertien auto's reden op de N7 en zes op acht
+assen in Tinga, dus in IJlst, langs de Lemmerweg en in Duinterpen reed er geen enkele auto.
+
+Er wordt nu niemand bijgemaakt — ze **verhuizen**. Wie meer dan 380 m achter je ligt, wordt in een
+band om je heen opnieuw op straat gezet; auto's net zo, op elke rijbaan van de kaart. Het aantal
+blijft dus precies gelijk (130 mensen, 20 auto's) en het kost niets: gemeten +0,1 ms per beeld, wat
+binnen de ruis van de meting valt.
+
+Twee dingen bepalen waar iemand terechtkomt:
+
+- **Niet vóór je neus.** `zichtVrij` uit `js/world.js` kijkt of er een gebouw tussen jou en de plek
+  staat. Zo niet, dan moet het minstens 110 m van je af (auto's 130 m); staat er wél iets tussen, dan
+  mag het dichterbij, want je ziet het niet gebeuren.
+- **Twee ringen.** Een handvol mensen in de straat waar je bent (vier binnen 100 m) en een
+  twintigtal in de buurt (achttien binnen 200 m). Alleen die buitenste ring was niet genoeg:
+  achttien mensen verdeeld over een schijf van tweehonderd meter laten er maar één of twee bij je
+  staan, want het stuk binnen tachtig meter is maar een zesde van die schijf. Voor de binnenste ring
+  wordt niemand in het open veld gezet — is er geen plek achter een gebouw, dan gebeurt er niets en
+  probeert het spel het een halve seconde later opnieuw.
+
+Rijd je nu met 50 km/u door de Wieken, dan staan er onderweg gemiddeld zeven mensen binnen tachtig
+meter (minimaal drie, hoogstens tien) en komt er regelmatig een auto voorbij. Stilstaand in IJlst,
+waar eerst niets was, staan er na een minuut achttien mensen en drie rijdende auto's binnen
+tweehonderd meter. Het blijft een woonwijk: het wordt niet druk, maar het is niet meer uitgestorven.
+
+`npm run bevolkingtest` toetst dit (twintig controles: het aantal blijft gelijk, elke wijk vult zich,
+niemand verschijnt in het vrije zicht binnen 110 m, de binnenste ring blijft binnen 105 m, en de
+kosten per beeld).
+
 ## Camera over je schouder
 
 **V** zet de camera achter je. Met de auto is dat een stuk handiger sturen: je ziet de neus, je

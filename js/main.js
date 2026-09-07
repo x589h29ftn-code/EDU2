@@ -702,8 +702,8 @@ function loop() {
       player.lastCarYaw = undefined;
       derde.update(dt, null);
     }
-    vehicles.updateTraffic(dt, player, opDeWeg);
-    npcs.update(dt, time);
+    vehicles.updateTraffic(dt, player, opDeWeg, camera.position.x, camera.position.z);
+    npcs.update(dt, time, camera.position.x, camera.position.z);
     verhaal.update(dt);
     for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
     // de politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte
@@ -737,8 +737,8 @@ function loop() {
     player.applyCamera();
     updateClouds(dt, camera.position.x, camera.position.z);
     sfeer.update(dt, camera.position.x, camera.position.z);
-    npcs.update(dt, time);
-    vehicles.updateTraffic(dt, player, opDeWeg);
+    npcs.update(dt, time, camera.position.x, camera.position.z);
+    vehicles.updateTraffic(dt, player, opDeWeg, camera.position.x, camera.position.z);
     verhaal.update(dt);
     hud.update(dt, player, vehicles, npcs, straatOf(camera.position.x, camera.position.z), verhaal.aanspreekbaar);
   }
