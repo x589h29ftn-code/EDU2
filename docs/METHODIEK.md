@@ -2331,8 +2331,9 @@ het westelijke uiteinde van de Keizersmantel-as, dus de generator zet het aan de
 Schoenlapper. Ook zoeken in een doos rond de Poiesz gaf niets, en in de brondata
 stonden daar maar vier grote panden. Wat het wél opleverde was zoeken langs de
 hele Keizersmantel-as: het grootste pand binnen 250 m daarvan is
-**0091100000004552** — 7937 m², 131 hoeken in het grondvlak, bouwjaar 2007, goot
-7,49 m, nok 14,61 m, huisnummer 1. Dat is de school.
+**0091100000004552** — 3846 m² grondvlak (7937 m² als je de omhullende doos
+neemt, want het gebouw buigt), 131 hoeken, bouwjaar 2007, goot 7,49 m, nok
+14,61 m, huisnummer 1. Dat is de school.
 
 *Wat uit de data komt.* De 131 hoeken zijn de zwierige gebogen plattegrond van
 de foto's. En de tweedeling van het gebouw zit in het 3D BAG-model: de
@@ -2384,7 +2385,7 @@ metselwerk van het pand zelf, dus dezelfde roodbruine steen als de hoge delen, e
 vallen niet uit de toon. Een gebogen wand die één doorlopende gevel deelt kan
 niet met een texture per vlak.
 
-Controle: `npm run schooltest` (elf controles) en `npm run schoolshots`.
+Controle: `npm run schooltest` en `npm run schoolshots`.
 
 **De buurt verhuist met je mee (stap 33).**
 
@@ -2450,6 +2451,50 @@ Controle: `npm run bevolkingtest` (twintig controles, waaronder tweehonderd keer
 verhuizen met de eis dat niets binnen 110 m in het vrije zicht landt), plus
 `looptest`, `rijtest`, `politietest`, `verhaaltest`, `wereldtest` en `winkeltest`
 opnieuw.
+
+**De bijbouw van de school, op 1A (stap 34).**
+
+*"Bij de school die je texture hebt gegeven keizersmantel heb je het gebouw
+ernaast gemist dat is ook onderdeel van de school."*
+
+*Eerst zoeken welk gebouw dat is.* Dat ging in eerste instantie mis, doordat ik
+in de verkeerde maat zocht: ik keek naar een gebouw *van formaat* naast de
+school en vond op 48 m een pand van 152 m² met huisnummer 1-15 aan de
+Vuurvlinder, dus een rij woningen. Conclusie toen: "de school is in de data één
+pand". Dat was voorbarig. Het gebouw ernaast is klein en staat er wél:
+
+**1900100010087850** — 87 m² (15,0 × 5,8 m, vier hoeken), plat dak op 3,49 m uit
+3D BAG, bouwjaar 2023, huisnummer **1A**, en het raakt de school op 4,9 m. Dat
+huisnummer is het bewijs uit de data zelf: 1A hangt aan 1. Het is het enige pand
+binnen 45 m van de school.
+
+*Wat het was.* Het viel onder de standaardregel voor de straat: een plat pand
+aan de Schoenlapper wordt `jasker_flat`, het type van de portiekflats aan de
+Jasker. Naast een school van beschot en luifels stond dus een losse flat van drie
+lagen in het klein.
+
+*Wat het wordt.* Een eigen type `dewynpolle_bij`: het houten beschot en de
+kozijnen van de lage schoolvleugel, één laag van 3,4 m, een donkere deur, plat
+dak. Zonder luifels — die zitten op de foto's op de lange vleugel van de school
+en niet op een bijgebouw van één laag. Uit de data komen het grondvlak, de
+hoogte, het bouwjaar en het huisnummer; dat het bij de school hoort komt van de
+gebruiker, en dat staat zo in het `bron`-veld in `data/stijl/straten.json`.
+
+*Wat er onderweg misging.* De eerste opname gaf een grote grijze roldeur midden
+op het schoolplein. `industrieel` (nodig, want een bijgebouw van vier hoeken kan
+naar alle kanten kijken) stuurt `facade()` naar de bedrijfstak, en die zet in
+elke derde travee een overheaddeur: op vijftien meter gevel is dat er precies
+één, pontificaal in het midden. De vlag `kantoor` zet die tak op gewone ramen met
+lichte kozijnen en alleen een stalen deur, en dat is wat een bijgebouw van een
+school heeft.
+
+Controle: `npm run schooltest` — nu achttien controles, met zeven over de
+bijbouw (type, huisnummer, afstand tot de school, maat en hoogte uit de data,
+hetzelfde beschot, en géén luifelkleuren in het doek) — en `npm run schoolshots`,
+dat nu ook de bijbouw fotografeert. Die opnamen kregen een stap zijwaarts langs
+de gevel (`langs`) en kijken vandaar terug naar het hart van het pand: recht
+vooruit staat de camera in een parkeervak van de school, en dan vulde een
+geparkeerde auto het halve beeld.
 
 **Wat nog niet af is (in volgorde).**
 

@@ -983,9 +983,10 @@ En je kunt er naar binnen: zie [Naar binnen bij de Poiesz](#naar-binnen-bij-de-p
 
 ### Kindcentrum De Wynpôlle, Keizersmantel 1
 
-Een complex van **7937 m² met 131 hoeken** in zijn grondvlak: een lage gebogen vleugel met een liggend
-houten beschot en per lokaal een felgekleurde luifel — rood, oranje, geel, groen, blauw als een
-regenboog langs de bocht — met daarnaast hogere delen van roodbruine baksteen.
+Een complex met een grondvlak van **3846 m² en 131 hoeken** (de omhullende doos is 7937 m², want het
+gebouw buigt): een lage gebogen vleugel met een liggend houten beschot en per lokaal een felgekleurde
+luifel — rood, oranje, geel, groen, blauw als een regenboog langs de bocht — met daarnaast hogere
+delen van roodbruine baksteen.
 
 Welk deel wat krijgt is gemeten en niet verzonnen: de bovenkanten van de 228 muurvlakken in het
 3D BAG-model liggen in twee groepen, 85 tot 9,5 m (de lage vleugel, goot 7,49 m) en 143 erboven tot de
@@ -999,6 +1000,18 @@ entree.
 Het pand was niet op naam te vinden: zijn huisnummerlabel ligt elf meter van het pad Schoenlapper, dus
 de generator zet het aan díe straat. Het is gevonden door langs de hele Keizersmantel-as naar het
 grootste pand binnen 250 m te zoeken.
+
+**De bijbouw op 1A** hoort er ook bij. Dat is een pand van 87 m² (15,0 × 5,8 m) met een plat dak op
+3,49 m uit 3D BAG, bouwjaar 2023, dat op vijf meter tegen de school aan staat. Het stond als
+`jasker_flat` in beeld — het standaardtype voor een plat pand in deze straat — en zag er dus uit als
+een losse portiekflat naast een school. Het krijgt nu het beschot en de kozijnen van de lage vleugel,
+zonder de luifels (die zitten op de foto's op de lange vleugel zelf) en zonder overheaddeur: de
+bedrijfstak van `facade()` zet die in elke derde travee, en op vijftien meter gevel stond er zo een
+grijze roldeur midden op het schoolplein.
+
+| de bijbouw op 1A | en hoe hij tegen de school aan staat |
+|---|---|
+| ![bijbouw](docs/screenshots/schoolbij_dichtbij.png) | ![bijbouw met school](docs/screenshots/schoolbij_voor.png) |
 
 ### De twee blokken aan de Keizersmantel in Duinterpen
 

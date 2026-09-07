@@ -305,6 +305,19 @@
         "pitch": 0.08
       },
       "bron": "foto's Street View Keizersmantel 1, Duinterpen Sneek (april 2024 en mei 2022, in de chat 7 sep 2026): kindcentrum De Wynpôlle. Een lage gebogen vleugel met een liggend houten beschot en per lokaal een felgekleurde luifel — rood, oranje, geel, groen, blauw als een regenboog langs de bocht — met daarnaast hogere delen van roodbruine baksteen met lichte kozijnen en een oranje entree. Welk deel wat krijgt komt uit het 3D BAG-model en niet uit een aanname: de bovenkanten van de 228 muurvlakken liggen in twee groepen, 78 tot 9,5 m (de houten vleugel, goot 7,49 m) en 143 erboven tot de nok op 14,61 m; `steenBoven` in HOUSE_STYLES legt die grens. `voorkantNaar` is het schoolplein: het zwaartepunt van de 66 bestrate vakken binnen 45 m die buiten het grondvlak liggen, op (854, 246), iets doorgetrokken."
+    },
+    "1900100010087850": {
+      "type": "dewynpolle_bij",
+      "voorkantNaar": [
+        842,
+        206
+      ],
+      "foto": {
+        "voor": 22,
+        "langs": 0,
+        "pitch": 0.06
+      },
+      "bron": "hoort bij kindcentrum De Wynpôlle, Keizersmantel 1 (gebruiker, chat 7 sep 2026: 'het gebouw ernaast dat is ook onderdeel van de school'). Uit de data: BGT-pand 1900100010087850 met huisnummer 1A, grondvlak 87 m2 (15,0 x 5,8 m, vier hoeken), plat dak op 3,49 m uit 3D BAG, bouwjaar 2023, en het raakt het schoolpand op 4,9 m. Het stond als jasker_flat in beeld, het standaardtype voor een plat pand in deze straat, en zag er dus uit als een losse portiekflat. Het krijgt nu het houten beschot en de kozijnen van de lage schoolvleugel, maar zonder de luifels: die staan op de foto's op de lange vleugel van de school zelf. voorkantNaar is het dichtstbijzijnde punt van de rijbaan (842, 206), 13 m ten zuiden; met industrieel: true krijgt elke muur toch een gevel, dus ook de kant van het schoolplein."
     }
   },
   "standaard": {

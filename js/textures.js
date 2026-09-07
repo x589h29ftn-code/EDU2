@@ -805,6 +805,24 @@ export const HOUSE_STYLES = {
   */
   dewynpolle:  { brick: ['#9c5a42', '#cfc7ba'], hout: '#8a6a45', luifels: ['#c8402c', '#e07b1a', '#e8c11a', '#4a9c4a', '#2f6fb5'], frame: '#f0efe9', frame2: '#f0efe9', door: ['#e0651a'], roof: '#8f8d88', roofType: 'flat', storeys: 2, storeyH: 3.7, w: 5.2, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true, steenBoven: 9.5, bovenType: 'dewynpolle_steen' },
   dewynpolle_steen: { brick: ['#9c5a42', '#cfc7ba'], frame: '#efeee7', frame2: '#efeee7', door: ['#3a3f44'], roof: '#8f8d88', roofType: 'flat', storeys: 4, storeyH: 3.6, w: 4.6, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true },
+  /*
+   Keizersmantel 1A, de bijbouw die tegen de school aan staat (BAG-pand
+   1900100010087850, 87 m², plat dak op 3,49 m, bouwjaar 2023). Uit de data komt
+   dat het aan hetzelfde huisnummer hangt (1 en 1A), dat het het pand op 4,9 m
+   raakt en dat het één laag is. Dat het bij de school hoort zegt de gebruiker.
+
+   Het krijgt het houten beschot en de kozijnen van de lage vleugel, zodat het
+   één complex is en geen losse flat — het stond als `jasker_flat` in beeld,
+   want dat is het type van de straat. De luifels blijven eraf: die zitten op de
+   foto op de lange vleugel van de school en niet op een bijgebouw van één laag.
+   Eén laag van 3,4 m met brede ramen en een donkere deur.
+
+   `kantoor` staat erbij omdat de bedrijfstak van `facade()` anders in elke derde
+   travee een overheaddeur zet: op vijftien meter gevel stond er een grote
+   grijze roldeur midden op het schoolplein. Met deze vlag komen er gewone ramen
+   met lichte kozijnen en alleen een stalen deur.
+  */
+  dewynpolle_bij: { brick: ['#9c5a42', '#cfc7ba'], hout: '#8a6a45', frame: '#f0efe9', frame2: '#f0efe9', door: ['#3a3f44'], roof: '#8f8d88', roofType: 'flat', storeys: 1, storeyH: 3.4, w: 4.4, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true, kantoor: true },
   school:      { brick: ['#8c5340', '#c9bfae'], frame: '#1f6fc4', frame2: '#1f6fc4', door: ['#1f6fc4'], roof: '#54514c', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#d8d5cc', plint: '#6b4436', industrieel: true, school: true, huisstijl: '#f2c012' },
   // Jeugdhulp Friesland, Molenkrite 234 (Street View, foto in de chat 5 sep
   // 2026): een lang gebouw van één laag met plat dak, donkerbruine steen,
