@@ -946,6 +946,25 @@ van de ingang staan twee rijen winkelwagens tegen de gevel.
 
 En je kunt er naar binnen: zie [Naar binnen bij de Poiesz](#naar-binnen-bij-de-poiesz-bier-kopen).
 
+### Kindcentrum De Wynpôlle, Keizersmantel 1
+
+Een complex van **7937 m² met 131 hoeken** in zijn grondvlak: een lage gebogen vleugel met een liggend
+houten beschot en per lokaal een felgekleurde luifel — rood, oranje, geel, groen, blauw als een
+regenboog langs de bocht — met daarnaast hogere delen van roodbruine baksteen.
+
+Welk deel wat krijgt is gemeten en niet verzonnen: de bovenkanten van de 228 muurvlakken in het
+3D BAG-model liggen in twee groepen, 85 tot 9,5 m (de lage vleugel, goot 7,49 m) en 143 erboven tot de
+nok op 14,61 m. Van de foto's komen alleen het beschot, de luifelkleuren, de kozijnen en de oranje
+entree.
+
+| het schoolplein | dicht op de luifels |
+|---|---|
+| ![school](docs/screenshots/school_plein.png) | ![luifels](docs/screenshots/school_dichtbij.png) |
+
+Het pand was niet op naam te vinden: zijn huisnummerlabel ligt elf meter van het pad Schoenlapper, dus
+de generator zet het aan díe straat. Het is gevonden door langs de hele Keizersmantel-as naar het
+grootste pand binnen 250 m te zoeken.
+
 ### De twee blokken aan de Keizersmantel in Duinterpen
 
 Op **Keizersmantel 437** zit een Poiesz op de begane grond van een gebogen blok van drie lagen, en het

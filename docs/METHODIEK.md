@@ -2323,6 +2323,69 @@ die hoekpunten liggen binnen een meter van de boog en maakten de meting nul. De
 toets kijkt daarom naar het midden van de gevel en laat de eerste en laatste vier
 meter van de boog buiten beschouwing.
 
+**Kindcentrum De Wynpôlle, Keizersmantel 1 (stap 32).**
+
+*Eerst het pand vinden.* Op naam zoeken leverde niets: het huisnummerlabel "1"
+van dit complex ligt elf meter van het pad Schoenlapper en tweehonderd meter van
+het westelijke uiteinde van de Keizersmantel-as, dus de generator zet het aan de
+Schoenlapper. Ook zoeken in een doos rond de Poiesz gaf niets, en in de brondata
+stonden daar maar vier grote panden. Wat het wél opleverde was zoeken langs de
+hele Keizersmantel-as: het grootste pand binnen 250 m daarvan is
+**0091100000004552** — 7937 m², 131 hoeken in het grondvlak, bouwjaar 2007, goot
+7,49 m, nok 14,61 m, huisnummer 1. Dat is de school.
+
+*Wat uit de data komt.* De 131 hoeken zijn de zwierige gebogen plattegrond van
+de foto's. En de tweedeling van het gebouw zit in het 3D BAG-model: de
+bovenkanten van de 228 muurvlakken liggen in twee groepen, 85 vlakken tot 9,5 m
+(de lage vleugel, goot 7,49 m) en 143 erboven tot de nok op 14,61 m. `steenBoven`
+in HOUSE_STYLES legt die grens en `bovenType` zegt welke stijl de hoge vlakken
+krijgen, dus welk deel hout en welk deel baksteen wordt is gemeten en niet
+verzonnen. `voorkantNaar` is het zwaartepunt van de 66 bestrate vakken binnen
+45 m die buiten het grondvlak liggen — het schoolplein.
+
+*Wat van de foto komt:* het liggende houten beschot, de vijf luifelkleuren en
+hun regenboogorde langs de bocht, de lichte kozijnen, de oranje entree en de
+roodbruine steen van de hoge delen.
+
+*Nieuw in `facade()`.* Twee dingen: `hout` legt een liggend beschot van
+`planks()` als achtergrond in plaats van metselwerk (1,2 m per doek in plaats van
+2,6 m), en `luifels` tekent per lokaal een brede raamstrook met een gekleurde
+luifel erboven. De kleur hangt af van zowel het lokaal als de verdieping
+(`(i + s * 2) % 5`), want op de foto verschilt de rij boven van de rij onder. Een
+luifel wordt als band met een slagschaduw op het glas getekend en niet als
+uitstekend zeil: van de straat gezien is dat precies wat je ziet, en dat kan een
+plat vlak.
+
+Vier dingen die niet vanzelf goed gingen:
+
+- **Bijna het hele complex kwam als kale bleke steen in beeld.** Een gevel
+  vraagt in `muurKeuze` dat het vlak naar voren of naar achteren kijkt
+  (`|kant| > 0,6`), en `voorkantNaar` wijst maar één richting aan. Bij een
+  grondvlak met 131 hoeken haalt dat een handvol vlakken. De vlag `industrieel`,
+  die bij de waterzuivering al bestond, geeft elke muur boven 2,6 m een gevel —
+  en dat is voor een school ook juist, die heeft naar alle kanten ramen.
+- **De camera van het opnamegereedschap stond ín het gebouw.** Het hart van een
+  complex van 7937 m² ligt middenin, dus "zesentwintig meter vanaf het hart" was
+  een binnenmuur. Het gereedschap loopt nu vanaf het hart naar buiten tot het
+  grondvlak uit is (37 m) en rekent de standpunten daarvandaan.
+- **En hij keek de verkeerde kant op.** De camera kijkt langs
+  (-sin yaw, -cos yaw), en die moet gelijk zijn aan -front, dus sin yaw = fx en
+  cos yaw = fz. Met een min ervoor stond de opname met zijn rug naar de school.
+- **Zes oranje deuren op de bakstenen vleugel.** De gewone geveltak zet op elke
+  begane grond een deur in de deurkleur van het type. Voor de houten vleugel is
+  oranje juist, voor de bakstenen delen niet: die hebben op de foto donkere
+  entrees. Die stijl heeft nu zijn eigen deurkleur. De proef ving dit doordat de
+  oranje luifelkleur ook in het bakstenen doek opdook.
+
+*Wat er blijft.* De smalle facetten van de gebogen wand blijven kale steen: een
+gevel vraagt 2,4 m breed en een gebogen wand bestaat uit stukken die daar deels
+onder blijven (471 van de 983 muurhoekpunten op de omtrek). Ze krijgen het
+metselwerk van het pand zelf, dus dezelfde roodbruine steen als de hoge delen, en
+vallen niet uit de toon. Een gebogen wand die één doorlopende gevel deelt kan
+niet met een texture per vlak.
+
+Controle: `npm run schooltest` (elf controles) en `npm run schoolshots`.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
