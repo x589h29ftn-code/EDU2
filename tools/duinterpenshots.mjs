@@ -87,6 +87,14 @@ const poiesz = plekken.find(p => p.merk);
 if (poiesz) {
   const yaw = Math.atan2(poiesz.nx, poiesz.nz) - 1.05;
   await schot('duinterpen_poiesz_gang', poiesz.mx + poiesz.nx * 9, poiesz.mz + poiesz.nz * 9, yaw, 0.10, 0, 11.5);
+  /*
+   En de achterkant. Daar zat een gat: het afknippen van de muur onder de
+   zuilengang gold eerst voor élk muurvlak van het pand, dus ook voor de
+   achterkant en de kopse kanten, en dan keek je onder het gebouw door. Het
+   standpunt ligt aan de bolle kant, dus tegen de normaal in.
+  */
+  const yawA = Math.atan2(-poiesz.nx, -poiesz.nz);
+  await schot('duinterpen_poiesz_achter', poiesz.mx - poiesz.nx * 42, poiesz.mz - poiesz.nz * 42, yawA, 0.10, 0, 15.5);
 }
 
 await browser.close();

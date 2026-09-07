@@ -2283,6 +2283,46 @@ Controle: `npm run duinterpentest` (vierendertig controles: de boog, de
 richtingen, de zuilen, de gevel erboven en het lopen eromheen) en
 `npm run duinterpenshots` voor de foto's.
 
+**Twee fouten uit het spel gehaald (stap 31).**
+
+*Het spel werd traag zodra je een ster had.* `zichtVrij` in `js/world.js` liep
+voor élk stapje langs de kijklijn door álle botsingsdozen: dertig stappen maal
+zesenvijftigduizend dozen is 1,7 miljoen toetsen voor één kijklijn. Gemeten
+kostte één aanroep over zestig meter **19,2 ms**, en omdat elke agent en elke
+wagen per beeld kijkt of hij je ziet — en `spawnPlek` zestig kandidaten toetst —
+stond `politie.update` bij drie sterren op **13,1 ms per beeld**. Dat is het hele
+budget van 16,7 ms, dus het spel zakte in zodra de politie uitrukte.
+
+Het rooster dat `resolveCollisions` gebruikt (0,001 ms bij dezelfde
+zesenvijftigduizend dozen) lag er al. Elke doos staat daarin in alle cellen die
+zijn omhullende cirkel raakt, dus een punt kan alleen in een doos liggen die in
+de cel van dát punt staat: per stapje hoeven er maar een paar dozen getoetst te
+worden en het antwoord blijft precies hetzelfde.
+
+| | voor | na |
+|---|---|---|
+| `zichtVrij` over 60 m | 14,7 ms | **0,005 ms** |
+| `politie.update` bij 3 sterren | 13,1 ms | **1,05 ms** |
+
+Dat het antwoord gelijk blijft is niet aangenomen maar nagerekend: drieduizend
+willekeurige kijklijnen door de bewoonde wereld, met vier verschillende
+kijkhoogtes, gaven **3000 van 3000** dezelfde uitkomst — waarvan 1060
+geblokkeerd, dus de toets is niet triviaal.
+
+*De Poiesz stond aan de achterkant open.* Het afknippen van de muur onder de
+zuilengang (stap 30) gold voor élk muurvlak van het pand, dus ook voor de
+achterkant en de kopse kanten: daar stond de onderste vier meter muur niet meer
+en keek je onder het gebouw door. De gang loopt alleen langs de gebogen
+voorgevel, dus een vlak wordt nu pas geknipt als zijn hart binnen 1,2 m van de
+boog ligt. `duinterpentest` legt dat aan twee kanten vast: op de boog begint de
+muur op 3,95 m, en daarbuiten op 0,00 m.
+
+De proef had daar zelf een valkuil. De boog begint en eindigt op een hoek van het
+grondvlak, en de kopse muur die daar op aansluit loopt wél tot de grond door;
+die hoekpunten liggen binnen een meter van de boog en maakten de meting nul. De
+toets kijkt daarom naar het midden van de gevel en laat de eerste en laatste vier
+meter van de boog buiten beschouwing.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
