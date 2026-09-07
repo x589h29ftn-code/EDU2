@@ -2012,6 +2012,81 @@ geeft `?relief=0` nul maps) en `npm run beeldshots` voor de paren. Alle dertien 
 proeven zijn groen en `npm run geo:boven` blijft op 1,59 % — het bovenaanzicht
 rendert in platte klassekleuren, dus daar kan reliëf per definitie niet aan zitten.
 
+**Eerst meten: waar de tijd heen gaat (stap 28, begin van de optimalisatieronde).**
+
+Het spel werd trager na de vergroting van de wereld (stap 22). Voor er één regel
+verbeterd wordt, is uitgesplitst waar het werk zit: `npm run optimeer`
+(`tools/optimeer.mjs`) telt driehoeken en draw calls per klasse op vier
+standpunten, meet de schaduwpas apart, en zet de javascripttijd fijner uiteen dan
+`audit.mjs` deed.
+
+*De eerste vondst is dat de meting zelf een gat had.* In `WebGLRenderer.render()`
+van de gevendorde three staat `info.reset()` een paar regels **ná**
+`shadowMap.render()` (`lib/three.module.js:29594` en `:29600`). De schaduwpas
+tekent dus wel, maar zijn tellers worden meteen weer op nul gezet. Elk getal dat
+`audit.mjs` ooit gemeld heeft — ook de tabel in de README — was alleen de
+beeldpas. Met `info.autoReset = false` en zelf resetten vóór het tekenen komt de
+schaduw er wel bij. Bijkomende fout in de meting: de zon werd niet meeverhuisd
+naar het standpunt, zodat de schaduwdoos bleef staan waar de hoofdlus hem het
+laatst had gezet en elke plek precies dezelfde schaduwpas gaf. Beide
+gereedschappen zetten de doos nu zelf om de camera, zoals `js/main.js:719` doet.
+
+Wat er per beeld werkelijk staat te gebeuren, op het zwaarste standpunt
+(Molenkrite begin, 1280 × 720):
+
+| | beeldpas | schaduwpas | samen |
+|---|---|---|---|
+| draw calls | 1467 | 416 | **1883** |
+| driehoeken | 4,33 M | 1,50 M | **5,83 M** |
+
+En de javascripttijd per beeld:
+
+| lus | ms |
+|---|---|
+| `hud.drawMap` (de minikaart) | **2,97** |
+| `vehicles.updateTraffic` (1781 auto's) | 1,14 |
+| `npcs.update` (130 mensen) | 0,72 |
+| `player.update` | 0,33 |
+| `world.updateProps`, `updateLOD`, `resolveCollisions` | 0,005 elk |
+| som | **~6,3** |
+
+Op 60 beelden per seconde is het budget 16,7 ms, dus het javascript eet er nu al
+ruim een derde van — en op een telefoon is dat drie tot vijf keer zoveel.
+`resolveCollisions` staat er met 56.036 colliders op 0,005 ms: dat is dus al
+netjes geïndexeerd en geen probleem.
+
+Waar de driehoeken zitten, over de hele wereld geteld:
+
+| bron | aantal | driehoeken elk | totaal |
+|---|---|---|---|
+| geparkeerde auto's (instanced, 7 delen) | 1781 | ~1116 | **2,0 M** |
+| boomkronen (`IcosahedronGeometry`, twee schalen) | 15.635 | 80 + 20 | **1,56 M** |
+| riet langs de sloten (193 losse meshes) | — | — | **1,17 M** |
+| struiken (`SphereGeometry`) | 19.173 | 36 | 0,69 M |
+| stoepbanden (`rand`, 162 meshes) | — | — | 0,51 M |
+| boomstammen (`CylinderGeometry`) | 7665 | 24 | 0,18 M |
+
+*En de belangrijkste structurele vondst.* De ondergrond, de bomen en de
+geparkeerde auto's staan per tegel van 240 of 480 m, zodat frustum culling zijn
+werk kan doen. **De panden niet.** `groep()` in `js/kaartwereld.js` bundelt per
+materiaalsleutel over de hele kaart, dus er is één mesh met alle muren van dat
+type, één met alle dakkapellen, één met alle schuttingen en één met alle heggen.
+Hun omhullende bol is 2200 tot 2400 m — de halve wereld:
+
+| klasse | meshes | driehoeken | grootste bol |
+|---|---|---|---|
+| `muur` | 75 | 166.379 | 2350 m |
+| `schutting` | 1 | 123.360 | 2227 m |
+| `heg` | 1 | 102.440 | 2223 m |
+| `dak` | 13 | 49.413 | 2358 m |
+| `dakkapel` | 5 | 42.830 | 2286 m |
+| `platdak` | — | 31.479 | 2329 m |
+
+Dat is een halve miljoen driehoeken die van élke plek in de wereld getekend
+worden, in de beeldpas én in de schaduwpas, ook als je in IJlst staat en er geen
+enkele van in beeld is. Het is dezelfde fout die bij de ondergrond al eens is
+opgelost, alleen bij de panden nooit gemaakt.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

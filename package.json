@@ -59,6 +59,7 @@
     "poiesztest": "node tools/poiesztest.mjs",
     "poieszshots": "node tools/poieszshots.mjs",
     "relieftest": "node tools/relieftest.mjs",
+    "optimeer": "node tools/optimeer.mjs",
     "beeldshots": "node tools/beeldshots.mjs"
   }
 }
