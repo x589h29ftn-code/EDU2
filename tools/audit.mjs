@@ -86,7 +86,7 @@ const plekken = [
   ['IJlst centrum', -1800, 1100, 0.8],
   ['polder ertussen', -900, 700, 1.2],
 ];
-console.log('\n--- draw calls per plek ---');
+console.log('\n--- draw calls per plek (beeldpas + schaduwpas) ---');
 // de hoofdlus uit: met autoplay aan rijdt de speler zelf weg en meet je telkens
 // dezelfde plek in plaats van de acht hieronder
 await page.evaluate(() => { window.__autoplay = false; window.__game.player.active = false; });
@@ -107,11 +107,38 @@ for (const [naam, px, pz, yaw] of plekken) {
     const g = window.__game;
     g.camera.updateMatrixWorld(true);
     g.vehicles.lod(g.camera.position.x, g.camera.position.z);
+    // de zon meeverhuizen zoals de hoofdlus doet (js/main.js:719), anders blijft
+    // de schaduwdoos staan waar hij stond en meet je overal dezelfde schaduwpas
+    const zon = g.scene.children.find(c => c.isDirectionalLight && c.castShadow);
+    if (zon) {
+      // de richting van de zon houden zoals hij staat, alleen de doos verplaatsen
+      const dx = zon.position.x - zon.target.position.x;
+      const dy = zon.position.y - zon.target.position.y;
+      const dz = zon.position.z - zon.target.position.z;
+      const cx = g.camera.position.x, cz = g.camera.position.z;
+      zon.target.position.set(cx, 0, cz); zon.target.updateMatrixWorld();
+      zon.position.set(cx + dx, dy, cz + dz); zon.updateMatrixWorld();
+    }
+    /*
+     `info.autoReset` uit, en zelf resetten vóór het tekenen. Three doet zijn
+     eigen reset in `render()` een paar regels ná `shadowMap.render()`
+     (lib/three.module.js:29594 en :29600), dus met de standaardinstelling telt
+     `renderer.info` de schaduwpas niet mee — en die is hier een derde van het
+     werk. Elk getal dat dit gereedschap vóór de optimalisatieronde meldde was
+     dus alleen de beeldpas.
+    */
+    g.renderer.render(g.scene, g.camera);
+    const beeld = { calls: g.renderer.info.render.calls, tris: g.renderer.info.render.triangles };
+    g.renderer.info.autoReset = false;
     g.renderer.info.reset();
     g.renderer.render(g.scene, g.camera);
-    return { calls: g.renderer.info.render.calls, tris: g.renderer.info.render.triangles };
+    const alles = { calls: g.renderer.info.render.calls, tris: g.renderer.info.render.triangles };
+    g.renderer.info.autoReset = true;
+    return { beeld, alles };
   });
-  console.log(' ', naam.padEnd(22), String(r.calls).padStart(5), 'calls', String(r.tris).padStart(9), 'driehoeken');
+  console.log(' ', naam.padEnd(22),
+    String(r.alles.calls).padStart(5), 'calls', String(r.alles.tris).padStart(9), 'driehoeken',
+    `(beeldpas ${r.beeld.calls} / ${r.beeld.tris}, schaduw ${r.alles.calls - r.beeld.calls} / ${r.alles.tris - r.beeld.tris})`);
 }
 
 // hoeveel tijd kost het javascript per beeld (los van het tekenen)

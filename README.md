@@ -297,14 +297,24 @@ donkerbruin, grijs, zwart) en in maat. Alle hondjes samen kosten twee draw calls
 ## Snelheid
 
 Het spel draait op een telefoon en straks op een pc, dus de motor is gemeten en
-niet op gevoel bijgesteld (`npm run audit`):
+niet op gevoel bijgesteld (`npm run audit`, en fijner uitgesplitst met `npm run
+optimeer`).
 
-| | eerst | nu |
+De ronde hieronder is van toen de wereld nog één buurt was:
+
+| | eerst | na die ronde |
 |---|---|---|
 | draw calls in de wijk | 1649 | **595** |
 | driehoeken per beeld | 1,69 M | **1,28 M** |
 | texturegeheugen | 187 MB | **82 MB** |
 | meshes in de scene | 3254 | **1256** |
+
+Sinds de wereld op zijn volle maat staat (4,4 × 2,5 km, 7885 panden) is dat
+achterhaald. Op het zwaarste standpunt staat het nu op **1883 draw calls en 5,83
+M driehoeken per beeld**, waarvan 416 calls en 1,50 M in de schaduwpas — die
+kwam in de oude cijfers niet voor, omdat three zijn tellers ná de schaduwpas op
+nul zet. Er loopt een optimalisatieronde; wat er gemeten is en wat eraan gedaan
+wordt staat in [docs/METHODIEK.md](docs/METHODIEK.md) onder *Eerst meten*.
 
 Wat daarvoor veranderd is:
 
