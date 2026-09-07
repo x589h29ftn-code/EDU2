@@ -209,7 +209,7 @@ export class NPCs {
    De honderddertig voetgangers werden één keer op een willekeurig wegvak in de
    héle wereld gezet en bleven daar rondlopen. Over 10,95 km² is dat twaalf
    mensen per vierkante kilometer: gemeten stonden er binnen tachtig meter van de
-   speler overal nul of één, en binnen tweehonderd meter drie tot negen. Rijd je
+   speler nul tot twee, en binnen tweehonderd meter nul (IJlst) tot elf. Rijd je
    hard, dan laat je die paar achter en staat er niets vóór je — er kwam ook
    niets bij, want na het opstarten wordt er niemand meer neergezet.
 
@@ -222,7 +222,7 @@ export class NPCs {
    er vrij zicht op hebt (`OPEN`), en van de plekken achter een gebouw wint de
    dichtstbijzijnde: zo staan ze in de straat waar je loopt en niet pas aan de
    rand van je zicht. Zonder die voorkeur bleef het binnen tachtig meter bij nul
-   of twee mensen, want vanaf honderdtien meter moeten ze eerst nog naar je toe
+   tot vier mensen, want vanaf honderdtien meter moeten ze eerst nog naar je toe
    lopen.
   */
   verhuisNaarBuurt(p, cx, cz, DEKKING = 70, OPEN = 110, BUITEN = 205) {

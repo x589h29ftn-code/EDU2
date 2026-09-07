@@ -13,7 +13,13 @@
     vleugel (tot 9,5 m) krijgt het houten beschot met luifels, de hoge delen
     baksteen. Er moeten dus twee gevelstijlen op één pand staan;
  4. de vijf luifelkleuren staan echt in het doek, en niet in het bakstenen doek;
- 5. de achtergrond van de lage gevel is liggend beschot en geen metselwerk.
+ 5. de achtergrond van de lage gevel is liggend beschot en geen metselwerk;
+ 6. de bijbouw op nummer 1A hoort erbij. Die stond als `jasker_flat` in beeld —
+    het standaardtype voor een plat pand in deze straat — en zag er dus uit als
+    een losse portiekflat naast de school. Hij heeft nu het beschot van de lage
+    vleugel, zonder de luifels, en geen overheaddeur: de bedrijfstak van
+    `facade()` zet die in elke derde travee, en op vijftien meter gevel stond er
+    zo een grijze roldeur op het schoolplein.
 
  Gebruik: python3 -m http.server 8123 &  node tools/schooltest.mjs 8123
 */
@@ -21,6 +27,7 @@ import { chromium } from 'playwright';
 
 const port = process.argv[2] || '8123';
 const PAND = '0091100000004552';
+const BIJ = '1900100010087850';
 let fouten = 0;
 const ok = (goed, wat, extra = '') => {
   console.log(`${goed ? '  ok  ' : ' FOUT '} ${wat}${extra ? ` — ${extra}` : ''}`);
@@ -188,6 +195,66 @@ ok(wereld.gevelStijlen >= 2,
 */
 ok(wereld.hoogsteInDoos > wereld.nok - 0.6, 'het complex komt tot de nok uit 3D BAG',
   `${wereld.hoogsteInDoos.toFixed(2)} m tegen nok ${wereld.nok} m`);
+
+// ---------- 4. de bijbouw op 1A ----------
+kop('de bijbouw op nummer 1A');
+const bij = await page.evaluate(async ([BIJ, PAND]) => {
+  const { KAART } = await import('/js/kaart.js');
+  const p = KAART.panden.find(q => q.id === BIJ);
+  const s = KAART.panden.find(q => q.id === PAND);
+  if (!p) return null;
+  const opp = (r) => { let a = 0; for (let i = 0; i < r.length; i++) { const j = (i + 1) % r.length; a += r[i][0] * r[j][1] - r[j][0] * r[i][1]; } return Math.abs(a) / 2; };
+  let d = 1e9;
+  for (const a of p.voet) for (const b of s.voet) d = Math.min(d, Math.hypot(a[0] - b[0], a[1] - b[1]));
+  return { type: p.type, nr: p.nr, opp: +opp(p.voet).toFixed(0), hoeken: p.voet.length,
+           nok: p.nok, jaar: p.jaar, afstand: +d.toFixed(1) };
+}, [BIJ, PAND]);
+ok(!!bij, 'de bijbouw staat in de kaart');
+ok(bij && bij.type === 'dewynpolle_bij', 'en heeft het type van de school en niet van de straat',
+  bij ? bij.type : '');
+ok(bij && bij.nr.includes('1A'), 'het huisnummer hangt aan dat van de school', bij ? bij.nr.join(',') : '');
+ok(bij && bij.afstand < 6, 'hij staat tegen de school aan', bij ? `${bij.afstand} m` : '');
+ok(bij && bij.opp > 70 && bij.opp < 110 && bij.nok < 4,
+  'het is een bijgebouw van één laag uit de data', bij ? `${bij.opp} m², plat op ${bij.nok} m` : '');
+
+const bijDoek = await page.evaluate(() => {
+  const T = window.__T;
+  const im = T.facade('dewynpolle_bij', 4.4, 1, false, 1).image;
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+  const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+  const d = g.getImageData(0, 0, im.width, im.height).data;
+  const bijKleur = (hex, marge = 26) => {
+    const r = parseInt(hex.slice(1, 3), 16), gg = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - r) < marge && Math.abs(d[i + 1] - gg) < marge && Math.abs(d[i + 2] - b) < marge) n++;
+    return n;
+  };
+  // liggend beschot: donkere lijnen op regelmaat, net als bij de lage vleugel
+  const rij = [];
+  for (let y = 0; y < im.height; y++) {
+    let som = 0;
+    for (let x = 0; x < im.width; x += 7) { const i = (y * im.width + x) * 4; som += d[i] + d[i + 1] + d[i + 2]; }
+    rij.push(som);
+  }
+  const gem = rij.reduce((a, b) => a + b, 0) / rij.length;
+  let wissels = 0;
+  for (let y = 1; y < rij.length; y++) if ((rij[y - 1] < gem) !== (rij[y] < gem)) wissels++;
+  return { luifels: T.HOUSE_STYLES.dewynpolle.luifels.map(k => bijKleur(k)), wissels, maat: `${im.width}x${im.height}` };
+});
+/*
+ Minder wisselingen dan bij de school (19), en dat klopt: dat doek is 155 rijen
+ hoog voor twee lagen, dit er 71 voor één laag, en de ramen vullen daar een
+ groot deel van.
+*/
+ok(bijDoek.wissels >= 4, 'de bijbouw heeft hetzelfde liggende beschot',
+  `${bijDoek.wissels} wisselingen, doek ${bijDoek.maat}`);
+/*
+ Geen luifels: die zitten op de foto's op de lange vleugel van de school. Het
+ geel (#e8c11a) wordt niet geteld omdat het houten beschot (#8a6a45) met zijn
+ lichte banen binnen de meetmarge van die kleur kan komen.
+*/
+const luifelsZonderGeel = bijDoek.luifels.filter((_, i) => i !== 2);
+ok(luifelsZonderGeel.every(n => n < 40), 'en geen luifels', bijDoek.luifels.join(', ') + ' beeldpunten');
 
 console.log(fouten ? `\n${fouten} fout(en).` : '\nAlles goed.');
 await browser.close();
