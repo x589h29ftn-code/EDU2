@@ -217,30 +217,35 @@ const heg = await page.evaluate(async () => {
   const g = window.__game;
   const uit = {};
   for (const klasse of ['heg', 'schutting']) {
-    let mesh = null;
-    g.scene.traverse(o => { if (o.userData && o.userData.klasse === klasse) mesh = o; });
-    if (!mesh) { uit[klasse] = null; continue; }
-    const pos = mesh.geometry.getAttribute('position');
-    const nor = mesh.geometry.getAttribute('normal');
+    // Alle meshes van deze klasse: ze staan sinds de optimalisatieronde per
+    // tegel van 240 m in de scene in plaats van als één mesh voor de hele kaart.
+    const meshes = [];
+    g.scene.traverse(o => { if (o.userData && o.userData.klasse === klasse) meshes.push(o); });
+    if (!meshes.length) { uit[klasse] = null; continue; }
     // zwaartepunt van elk blokje kennen we niet, maar wel dat van het hele
     // stuk: neem per zijvlak het punt en kijk of de normaal ervandaan wijst
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
     const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), n = new THREE.Vector3(), vn = new THREE.Vector3();
     let zij = 0, klopt = 0;
-    for (let i = 0; i < pos.count; i += 3) {
-      a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); c.fromBufferAttribute(pos, i + 2);
-      e1.subVectors(b, a); e2.subVectors(c, a); n.crossVectors(e1, e2).normalize();
-      if (Math.abs(n.y) > 0.9) continue;                 // bovenvlak
-      vn.fromBufferAttribute(nor, i);
-      zij++;
-      if (n.dot(vn) > 0.5) klopt++;
+    for (const mesh of meshes) {
+      const pos = mesh.geometry.getAttribute('position');
+      const nor = mesh.geometry.getAttribute('normal');
+      for (let i = 0; i < pos.count; i += 3) {
+        a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); c.fromBufferAttribute(pos, i + 2);
+        e1.subVectors(b, a); e2.subVectors(c, a); n.crossVectors(e1, e2).normalize();
+        if (Math.abs(n.y) > 0.9) continue;                 // bovenvlak
+        vn.fromBufferAttribute(nor, i);
+        zij++;
+        if (n.dot(vn) > 0.5) klopt++;
+      }
     }
-    uit[klasse] = { zij, klopt, side: mesh.material.side, dubbel: mesh.material.side === THREE.DoubleSide };
+    const mat = meshes[0].material;
+    uit[klasse] = { zij, klopt, meshes: meshes.length, side: mat.side, dubbel: mat.side === THREE.DoubleSide };
   }
   /*
    En de proef op de som: staat er bij één heg een zijvlak dat naar buiten kijkt?
-   Alle heggen zitten in dezelfde mesh, dus we moeten de driehoeken van déze heg
-   eruit pikken. Sinds de wereld groter is staan er buurheggen op ruim twee meter,
+   De heggen zitten in tegelmeshes, dus we moeten de driehoeken van déze heg
+   uit al die meshes bij elkaar pikken. Sinds de wereld groter is staan er buurheggen op ruim twee meter,
    en hún buitenkant kijkt naar de hartlijn van deze heg toe. Daarom zoeken we niet
    op afstand tot het midden maar op afstand tot de hartlijn zelf: alles wat verder
    dan een halve meter naast de lijn ligt of buiten de uiteinden valt, is een buur.
@@ -271,27 +276,38 @@ const heg = await page.evaluate(async () => {
   });
   let buiten = 0, binnen = 0;
   if (h) {
-    let mesh = null;
-    g.scene.traverse(o => { if (o.userData && o.userData.klasse === 'heg') mesh = o; });
-    const pos = mesh.geometry.getAttribute('position');
+    /*
+     Alle heggenmeshes langs, niet één. Sinds de optimalisatieronde staan de
+     heggen per tegel van 240 m in de scene in plaats van als één mesh voor de
+     hele kaart, dus deze ene heg zit in precies één van die elf meshes. Deze
+     proef pakte de laatste die hij tegenkwam en vond daar niets in: nul
+     vlakken naar buiten én nul naar binnen, en dan slaagt de toets ten
+     onrechte niet. Het spel is hier niet veranderd, de aanname van de proef
+     was verouderd.
+    */
+    const meshes = [];
+    g.scene.traverse(o => { if (o.userData && o.userData.klasse === 'heg') meshes.push(o); });
     const lx = h.b[0] - h.a[0], lz = h.b[1] - h.a[1];
     const L = Math.hypot(lx, lz) || 1;
     const ax = lx / L, az = lz / L;              // langs de heg
     const dx = -az, dz = ax;                     // dwars erop
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
     const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), n = new THREE.Vector3();
-    for (let i = 0; i < pos.count; i += 3) {
-      a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); c.fromBufferAttribute(pos, i + 2);
-      e1.subVectors(b, a); e2.subVectors(c, a); n.crossVectors(e1, e2).normalize();
-      if (Math.abs(n.y) > 0.9) continue;                          // bovenvlak
-      if (Math.abs(n.x * ax + n.z * az) > 0.9) continue;          // kopse kant
-      const cx = (a.x + b.x + c.x) / 3 - h.a[0], cz = (a.z + b.z + c.z) / 3 - h.a[1];
-      const langs = cx * ax + cz * az, dwars = cx * dx + cz * dz;
-      // ruim binnen de uiteinden blijven: heggen sluiten kop aan kop op elkaar
-      // aan, en dan liggen de kopse vlakken van de buurman óók op deze hartlijn
-      if (langs < 0.6 || langs > L - 0.6 || Math.abs(dwars) > 0.4) continue;
-      const naarBuiten = (n.x * dx + n.z * dz) * Math.sign(dwars);
-      if (naarBuiten > 0.001) buiten++; else if (naarBuiten < -0.001) binnen++;
+    for (const mesh of meshes) {
+      const pos = mesh.geometry.getAttribute('position');
+      for (let i = 0; i < pos.count; i += 3) {
+        a.fromBufferAttribute(pos, i); b.fromBufferAttribute(pos, i + 1); c.fromBufferAttribute(pos, i + 2);
+        e1.subVectors(b, a); e2.subVectors(c, a); n.crossVectors(e1, e2).normalize();
+        if (Math.abs(n.y) > 0.9) continue;                          // bovenvlak
+        if (Math.abs(n.x * ax + n.z * az) > 0.9) continue;          // kopse kant
+        const cx = (a.x + b.x + c.x) / 3 - h.a[0], cz = (a.z + b.z + c.z) / 3 - h.a[1];
+        const langs = cx * ax + cz * az, dwars = cx * dx + cz * dz;
+        // ruim binnen de uiteinden blijven: heggen sluiten kop aan kop op elkaar
+        // aan, en dan liggen de kopse vlakken van de buurman óók op deze hartlijn
+        if (langs < 0.6 || langs > L - 0.6 || Math.abs(dwars) > 0.4) continue;
+        const naarBuiten = (n.x * dx + n.z * dz) * Math.sign(dwars);
+        if (naarBuiten > 0.001) buiten++; else if (naarBuiten < -0.001) binnen++;
+      }
     }
   }
   return { ...uit, buiten, binnen };
