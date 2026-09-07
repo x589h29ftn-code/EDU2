@@ -1638,6 +1638,108 @@ for (const p of PANDEN) {
 }
 tel('molens', MOLENS.length);
 
+/*
+ ------------------------------------------------------------------ zuilengangen
+ De twee gebogen blokken aan de Keizersmantel in Duinterpen (401-437 met de
+ Poiesz op de begane grond, en 441-485 ernaast) staan op een rij ronde zuilen:
+ de begane grond ligt een paar meter terug en de twee woonlagen erboven staan
+ op de rooilijn. Wat daarvan uit de data komt:
+
+   - de boog waar de zuilen op staan: de rand van het grondvlak die naar het
+     parkeerterrein kijkt. Welke rand dat is volgt uit `voorkantNaar` in
+     data/stijl/straten.json, en de buitenkant van een rand wordt met een
+     punt-in-veelhoektoets bepaald en niet uit de winding — deze grondvlakken
+     zijn halvemaanvormig, en dan ligt het zwaartepunt buiten het pand;
+   - de hoogte van de gang: de goot van het pand (3,95 en 4,01 m). Dat is precies
+     de onderste dakrand in het 3D BAG-model, dus de zuilen komen tot waar de
+     woonlagen beginnen.
+
+ Wat er niet uit komt: de dikte van de zuilen, hun onderlinge afstand en hoe diep
+ de winkelpui achterligt. Die drie staan als opgemeten waarden bij het pand in
+ data/stijl/straten.json, met de foto als bron.
+*/
+const ZUILENGANGEN = [];
+for (const p of PANDEN) {
+  const vast = (STIJL.panden || {})[p.id];
+  if (!vast || !vast.zuilengang) continue;
+  const Z = vast.zuilengang;
+  if (!vast.voorkantNaar) { console.warn(`LET OP: zuilengang ${p.id}: geen voorkantNaar`); continue; }
+  const ring = p.voet;
+  const doel = vast.voorkantNaar;
+
+  // ligt (x,z) in het grondvlak?
+  const binnen = (x, z) => {
+    let in_ = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[i], b = ring[j];
+      if ((a[1] > z) !== (b[1] > z) && x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0]) in_ = !in_;
+    }
+    return in_;
+  };
+
+  // per rand: kijkt hij naar het parkeerterrein?
+  const kijkt = ring.map((_, i) => {
+    const a = ring[i], b = ring[(i + 1) % ring.length];
+    const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz);
+    if (L < 0.4) return false;
+    const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+    let nx = dz / L, nz = -dx / L;
+    if (binnen(mx + nx * 0.4, mz + nz * 0.4)) { nx = -nx; nz = -nz; }   // naar buiten wijzen
+    const tx = doel[0] - mx, tz = doel[1] - mz, T = Math.hypot(tx, tz) || 1;
+    return (nx * tx + nz * tz) / T > 0.35;
+  });
+
+  // de langste aaneengesloten reeks van die randen, rondlopend
+  let besteStart = -1, besteLen = 0;
+  for (let i = 0; i < ring.length; i++) {
+    if (!kijkt[i]) continue;
+    let n = 0;
+    while (n < ring.length && kijkt[(i + n) % ring.length]) n++;
+    if (n > besteLen) { besteLen = n; besteStart = i; }
+  }
+  if (besteLen < 2) { console.warn(`LET OP: zuilengang ${p.id}: geen boog naar voorkantNaar gevonden`); continue; }
+
+  const boog = [];
+  for (let n = 0; n <= besteLen; n++) boog.push(ring[(besteStart + n) % ring.length]);
+
+  /*
+   Zuilen op gelijke afstand langs de boog. Eerst de booglengte per hoekpunt
+   opmeten, dan op vaste stappen bemonsteren: zo valt er geen zuil dubbel op een
+   knik in de boog, en de laatste komt precies op het eind te staan. Het aantal
+   volgt uit de lengte, de afstand uit de foto.
+  */
+  const tussen = Z.tussen ?? 6.0;
+  const langs = [0];
+  for (let i = 1; i < boog.length; i++) {
+    langs.push(langs[i - 1] + Math.hypot(boog[i][0] - boog[i - 1][0], boog[i][1] - boog[i - 1][1]));
+  }
+  const totaal = langs[langs.length - 1];
+  const opAfstand = (s) => {
+    let i = 1;
+    while (i < langs.length - 1 && langs[i] < s) i++;
+    const t = (s - langs[i - 1]) / Math.max(1e-6, langs[i] - langs[i - 1]);
+    return [
+      r2(boog[i - 1][0] + (boog[i][0] - boog[i - 1][0]) * t),
+      r2(boog[i - 1][1] + (boog[i][1] - boog[i - 1][1]) * t),
+    ];
+  };
+  const aantal = Math.max(2, Math.round(totaal / tussen));
+  const zuilen = [];
+  for (let k = 0; k <= aantal; k++) zuilen.push(opAfstand(totaal * k / aantal));
+
+  ZUILENGANGEN.push({
+    pand: p.id,
+    hoogte: r2(Z.hoogte ?? p.goot ?? 3.9),
+    straal: Z.straal ?? 0.2,
+    diepte: Z.diepte ?? 2.4,
+    // hangt er een winkelmerk boven de ingang? (de Poiesz wel, het blok ernaast niet)
+    merk: !!Z.merk,
+    boog: boog.map(a => [r2(a[0]), r2(a[1])]),
+    zuilen,
+  });
+}
+tel('zuilengangen', ZUILENGANGEN.length);
+
 // ---------------------------------------------------------------- labels, start
 const LABELS = labels.filter(l => l.p[0] >= G.x0 && l.p[0] <= G.x1 && l.p[1] >= G.z0 && l.p[1] <= G.z1).map(l => ({ t: l.t, x: l.p[0], z: l.p[1], hoek: l.hoek }));
 const HUISNUMMERS = [];
@@ -1660,6 +1762,7 @@ const KAART = {
   vlakken: VLAKKEN, wegassen: WEGASSEN, parkeerplekken: PARKEER, panden: PANDEN,
   hagen: HAGEN, bomen: BOMEN.concat(STRAATBOMEN, PARKBOMEN), struiken: STRUIKEN, lantaarns: LANTAARNS,
   heggen: HEGGEN, schuttingen: SCHUTTINGEN, paden: PADEN, tuinvlakken: TUINVLAKKEN, strepen: STREPEN, objecten: OBJECTEN,
+  zuilengangen: ZUILENGANGEN,
   hekwerken: HEKWERKEN, poorten: POORTEN, viaducten: VIADUCTEN,
   sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN, molens: MOLENS,
   labels: LABELS, huisnummers: HUISNUMMERS,

@@ -243,6 +243,55 @@
         "loodsNok": 6.4
       },
       "bron": "foto Google Maps 'Houtzaagmolen De Rat' (september 2017, in de chat 6 sep 2026) plus het BAG-pand zelf: bouwjaar 1683, goot 7,52 m (dat is de stelling), nok 20,66 m. Een achtkante stellingmolen met een rieten romp op een zwart geteerde onderbouw, met aan weerskanten de houten zaagloodsen. `romp` en `rompTop` zijn de straal van het achtkant bij de stelling en bij de kap, `vlucht` de spanwijdte van het gevlucht (19,4 m, dus roeden van 9,7 m); die drie staan niet in de data, want het 3D BAG-model vangt de roeden mee en geeft in dezelfde hoogteband stralen van 1,35 tot 6,63 m. `kruihoek` is de kant waar de kap op staat, in graden in het (x,z)-vlak: 78 graden is naar het Sneekerpad toe, zodat je vanaf de weg naar IJlst het hele gevlucht ziet draaien in plaats van de zijkant ervan. `toeren` is het aantal omwentelingen per minuut — een malende molen haalt er zestig tot tachtig, een molen die voor de sier draait blijft er rustig onder."
+    },
+    "0091100000019594": {
+      "type": "duinterpen_poiesz",
+      "voorkantNaar": [
+        1297,
+        296
+      ],
+      "zuilengang": {
+        "tussen": 6.0,
+        "straal": 0.2,
+        "diepte": 2.4,
+        "merk": true
+      },
+      "foto": {
+        "voor": 30,
+        "langs": 0,
+        "pitch": 0.1
+      },
+      "objecten": [
+        {
+          "type": "winkelwagens",
+          "voor": 1.6,
+          "langs": -3.0
+        },
+        {
+          "type": "winkelwagens",
+          "voor": 1.6,
+          "langs": -0.4
+        }
+      ],
+      "bron": "foto Street View Keizersmantel 437, Duinterpen Sneek (april 2024, in de chat 7 sep 2026): gebogen blok van drie lagen dat om zijn eigen parkeerterrein heen buigt, met op de begane grond de Poiesz. Roodbruine baksteen, een cremekleurige band langs de gebogen dakrand, donkergrijze kozijnen en rolluiken, balkons op de eerste en tweede verdieping. De begane grond ligt terug achter een rij ronde witte zuilen; daarachter een glazen pui met het groene woordmerk POIESZ bij de ingang. `voorkantNaar` is het parkeerterrein binnen de boog, waar de ingang aan ligt. De rijen winkelwagens staan op de foto links van de ingang onder de gang. De hoogte van de zuilengang komt uit de goot van het pand (3,95 m); de dikte, de onderlinge afstand en de diepte van de pui zijn van de foto afgemeten."
+    },
+    "0091100000019595": {
+      "type": "duinterpen",
+      "voorkantNaar": [
+        1349,
+        305
+      ],
+      "zuilengang": {
+        "tussen": 5.6,
+        "straal": 0.2,
+        "diepte": 2.4
+      },
+      "foto": {
+        "voor": 30,
+        "langs": 0,
+        "pitch": 0.1
+      },
+      "bron": "foto Street View Keizersmantel 441-485, Duinterpen Sneek (april 2024, in de chat 7 sep 2026): het blok naast de Poiesz, in dezelfde trant maar zonder winkel: gebogen, drie lagen, roodbruine baksteen met een cremekleurige band langs de dakrand, en hier witte kozijnen met roeden in plaats van donkere. Balkons met donkere balustrades op de eerste verdieping. Ook hier ligt de begane grond terug achter ronde witte zuilen, met bedrijfsruimte achter glas. In de bocht ervoor staat een groene lantaarnpaal. De hoogte van de zuilengang komt uit de goot (4,01 m)."
     }
   },
   "standaard": {
