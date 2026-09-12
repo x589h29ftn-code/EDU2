@@ -47,10 +47,19 @@ const STANDEN = [
     wat: 'vlak voor de onderdoorgang' },
   { naam: 'rotonde_boven', x: 782, z: -150, y: 150, yaw: 0, pitch: -1.4,
     wat: 'het geheel van boven' },
+  { naam: 'rotonde_fietstunnel', x: 748.5, z: -206, oog: 1.6, yaw: Math.PI - 0.12, pitch: -0.05,
+    wat: 'het fietspad dat onder de oprit door duikt' },
 ];
 
 for (const s of STANDEN) {
-  await page.evaluate((a) => { window.__oog = a; window.__W.updateLOD(a.x, a.z); }, s);
+  await page.evaluate(async (a) => {
+    // `oog` betekent: ooghoogte boven de grond, en die ligt hier niet op nul
+    if (a.oog !== undefined) {
+      const V = await import('/js/viaduct.js');
+      a = { ...a, y: V.grondHoogte(a.x, a.z, -Infinity) + a.oog };
+    }
+    window.__oog = a; window.__W.updateLOD(a.x, a.z);
+  }, s);
   await page.waitForTimeout(2400);
   await page.screenshot({ path: `${map}/${s.naam}.png`, timeout: 300000 });
   console.log(`${map}/${s.naam}.png — ${s.wat}`);

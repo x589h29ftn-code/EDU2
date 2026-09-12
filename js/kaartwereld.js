@@ -480,8 +480,26 @@ export function* bouwKaartWereldStap(scene, W) {
      in plaats van in de tunnelbak. Onder het gat komt een tweede vlak, diep
      genoeg om er niet doorheen te kijken.
     */
+    /*
+     De gaten mogen elkaar niet overlappen: twee overlappende gaten in één vorm
+     geven een driehoeksverdeling waar je niets aan hebt (het fietstunneltje
+     ligt binnen de bak van de rijksweg, en dan bleef het deksel gewoon liggen).
+     Overlappende rechthoeken worden daarom samengevoegd tot hun omhullende.
+    */
     const bakken = (K.viaducten || []).filter(v => v.verdiept)
-      .map(v => ({ b: v.bbox, diep: v.hoogte }));
+      .map(v => ({ b: v.bbox.slice(), diep: v.hoogte }));
+    for (let weer = true; weer;) {
+      weer = false;
+      for (let i = 0; i < bakken.length && !weer; i++) for (let j = i + 1; j < bakken.length; j++) {
+        const a = bakken[i].b, c = bakken[j].b;
+        if (a[2] < c[0] || c[2] < a[0] || a[3] < c[1] || c[3] < a[1]) continue;
+        bakken[i] = {
+          b: [Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(a[2], c[2]), Math.max(a[3], c[3])],
+          diep: Math.min(bakken[i].diep, bakken[j].diep),
+        };
+        bakken.splice(j, 1); weer = true; break;
+      }
+    }
     const grond = new THREE.Mesh(grondGeometrie(bakken.map(q => q.b)), new THREE.MeshStandardMaterial({ map: grondTextuur(), roughness: 1 }));
     grond.rotation.x = -Math.PI / 2; grond.position.set(0, -1.0, 0);
     grond.receiveShadow = true; scene.add(grond);   // onder het water

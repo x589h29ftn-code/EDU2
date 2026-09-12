@@ -3131,7 +3131,21 @@ Gemeten: 351 m bak, 53 m onder de dekken, steilste helling 6 %, doorrijhoogte
 4,7 m. Het bovenaanzicht bleef op 1,59 % — de controleplaat rendert plat, dus de
 hoogte telt daar niet mee.
 
-Controle: `npm run rotondetest` (achttien controles) en `npm run rotondeshots`.
+*En het fietspad eronderdoor (stap 46b).* De gebruiker stuurde er nog twee foto's
+bij: het fietspad langs de rijksweg duikt onder de oprit door, met een keermuur
+ernaast. De BGT heeft dat ook zo — onder de twee brugdekken van de opritten
+liggen fietspad- en voetpadvlakken — maar het lag plat op elkaar. Twee verdiepte
+paden erbij, met 2,5 m doorrijhoogte en een dek van 70 cm; de as is met de hand
+uit de padvlakken gelezen, want het skelet maakt alleen middellijnen voor
+rijbanen. Aan de kant van de rijksweg lopen ze door tot ín de bak, zodat de klim
+eruit wegvalt onder de diepere bak in plaats van als muurtje in beeld te komen.
+
+Eén ding brak daarvan: het gat in het grondvlak. Twee overlappende gaten in één
+`Shape` geven een driehoeksverdeling waar je niets aan hebt — het fietstunneltje
+ligt binnen de bak van de rijksweg — en dan blijft het deksel op −1 m gewoon
+liggen. Overlappende gaten worden nu eerst samengevoegd tot hun omhullende.
+
+Controle: `npm run rotondetest` (drieëntwintig controles) en `npm run rotondeshots`.
 
 **Wat nog niet af is (in volgorde).
 

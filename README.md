@@ -422,6 +422,12 @@ onderdoorlopen. Dat is ook hoe het er in het echt bij ligt (foto's van de gebrui
 |---|---|
 | ![de bak](docs/screenshots/rotonde_bak.png) | ![onderdoor](docs/screenshots/rotonde_onderdoor.png) |
 
+**Het fietspad gaat er ook onderdoor.** Langs de rijksweg loopt een fietspad, en dat duikt bij de twee
+opritten onder het viaduct door — precies zoals op de foto's. Het is dezelfde truc, maar dan klein: een
+tunneltje van 2,5 m hoog waar het pad in zakt en weer uit komt.
+
+![het fietspad onder de oprit door](docs/screenshots/rotonde_fietstunnel.png)
+
 De rijksweg zakt over 350 meter weg tot 5,6 m onder maaiveld en komt er aan de andere kant weer uit;
 de steilste helling is 6 %, en onder het dek is 4,7 m doorrijhoogte — een vrachtwagen kan eronderdoor.
 De rotonde, de op- en afritten en de rest van de wijk blijven precies waar ze lagen: alleen de weg zelf

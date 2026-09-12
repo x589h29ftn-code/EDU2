@@ -18,7 +18,9 @@
  5. het grondvlak op −1 m moet een gat hebben boven de bak. Zonder dat gat kijk
     je op gras in plaats van in de tunnelbak — dat was de eerste keer ook zo;
  6. het wegdek in de bak moet er echt liggen (een straal van boven raakt asfalt
-    op de diepte van het hoogteveld).
+    op de diepte van het hoogteveld);
+ 7. het fietspad langs de rijksweg gaat onder de opritten door (foto's van de
+    gebruiker): twee fietstunneltjes met 2,5 m doorrijhoogte.
 
  Gebruik: python3 -m http.server 8123 &  node tools/rotondetest.mjs 8123
 */
@@ -122,6 +124,37 @@ ok(straal.asfalt && straal.asfalt.y < -3, 'van bovenaf raak je het asfalt in de 
 ok(straal.eerste && straal.eerste.y < -2.5,
   'en er hangt geen grondvlak overheen — het gat in het maaiveld zit erin',
   straal.eerste ? `eerste treffer ${straal.eerste.y} m (${straal.eerste.klasse || 'zonder klasse'})` : 'niets geraakt');
+
+kop('het fietspad duikt er ook onderdoor');
+/*
+ Uit de foto's van de gebruiker: het fietspad langs de rijksweg gaat onder de
+ oprit door. De BGT heeft dat ook zo — onder de twee brugdekken van de opritten
+ liggen fietspad- en voetpadvlakken — maar alles lag plat op elkaar. Twee
+ fietstunneltjes zijn nu verdiepte paden, met 2,5 m doorrijhoogte.
+*/
+const fiets = await page.evaluate(async () => {
+  const { KAART } = await import('/js/kaart.js');
+  const V = await import('/js/viaduct.js');
+  const tunnels = (KAART.viaducten || []).filter(v => /Fietstunnel/.test(v.naam));
+  const g = (x, z) => +V.grondHoogte(x, z, -Infinity).toFixed(2);
+  return {
+    aantal: tunnels.length,
+    diepstes: tunnels.map(t => +Math.min(...t.as.map(s => s[2])).toFixed(2)),
+    onderNoord: g(742, -172), onderZuid: g(738, -128),
+    aanloopNoord: g(750, -210), aanloopZuid: g(736, -102),
+    verWeg: g(733, -70),
+    hoogtes: tunnels.map(t => t.dekdikte),
+  };
+});
+ok(fiets.aantal === 2, 'er liggen twee fietstunneltjes onder de opritten', `${fiets.aantal}`);
+ok(fiets.onderNoord < -3 && fiets.onderZuid < -3, 'onder het dek ligt het pad ruim drie meter lager',
+  `${fiets.onderNoord} en ${fiets.onderZuid} m`);
+ok(fiets.onderNoord >= -3.6 && 0 - fiets.hoogtes[0] - fiets.onderNoord >= 2.4,
+  'met twee en een halve meter doorrijhoogte — genoeg voor een fietser',
+  `${(0 - fiets.hoogtes[0] - fiets.onderNoord).toFixed(2)} m vrij`);
+ok(fiets.aanloopNoord < -0.3 && fiets.aanloopNoord > -3 && fiets.aanloopZuid < -0.3,
+  'de aanloop loopt geleidelijk af', `${fiets.aanloopNoord} en ${fiets.aanloopZuid} m`);
+ok(Math.abs(fiets.verWeg) < 0.15, 'en verderop ligt het pad weer op maaiveld', `${fiets.verWeg} m`);
 
 kop('rijden door de bak');
 const rit = await page.evaluate(async () => {

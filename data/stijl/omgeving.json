@@ -240,6 +240,162 @@
         ]
       ],
       "bakBreed": 12
+    },
+    {
+      "naam": "Fietstunnel noord onder de oprit",
+      "bron": "Twee foto's van de gebruiker (12 sep 2026) bij de rotonde: het fietspad langs de rijksweg duikt onder het viaduct door, met een keermuur ernaast. De BGT heeft het ook zo: onder de twee brugdekken van de opritten liggen fietspad- en voetpadvlakken.",
+      "_uitleg": "Een fietstunneltje: hier zakt het fietspad in plaats van de weg. Dezelfde machinerie als bij de rijksweg (`verdiept`), maar smal en ondiep — 2,5 m doorrijhoogte is genoeg voor een fietser. `as` is met de hand uit de BGT-vlakken gelezen; het skelet maakt alleen middellijnen voor rijbanen, niet voor paden. De as loopt aan de zuidkant door tot in de bak van de rijksweg: daar ligt de grond toch al dieper, zodat de klim eruit niet als een muurtje in beeld komt.",
+      "verdiept": true,
+      "dekvak": {
+        "x0": 732,
+        "z0": -180,
+        "x1": 750,
+        "z1": -160
+      },
+      "as": [
+        [
+          754,
+          -228
+        ],
+        [
+          753.7,
+          -222
+        ],
+        [
+          752,
+          -216
+        ],
+        [
+          750,
+          -210
+        ],
+        [
+          748,
+          -204
+        ],
+        [
+          746,
+          -198
+        ],
+        [
+          744.5,
+          -192
+        ],
+        [
+          742.5,
+          -186
+        ],
+        [
+          742,
+          -180
+        ],
+        [
+          742,
+          -174
+        ],
+        [
+          741.5,
+          -166
+        ],
+        [
+          741,
+          -160
+        ],
+        [
+          740.5,
+          -154
+        ],
+        [
+          740,
+          -150
+        ]
+      ],
+      "doorrijhoogte": 2.5,
+      "dekdikte": 0.7,
+      "taludHelling": 1.6,
+      "kruinMax": 5,
+      "kruinGat": 1,
+      "bakBreed": 2.6
+    },
+    {
+      "naam": "Fietstunnel zuid onder de oprit",
+      "bron": "Twee foto's van de gebruiker (12 sep 2026) bij de rotonde: het fietspad langs de rijksweg duikt onder het viaduct door, met een keermuur ernaast. De BGT heeft het ook zo: onder de twee brugdekken van de opritten liggen fietspad- en voetpadvlakken.",
+      "_uitleg": "Een fietstunneltje: hier zakt het fietspad in plaats van de weg. Dezelfde machinerie als bij de rijksweg (`verdiept`), maar smal en ondiep — 2,5 m doorrijhoogte is genoeg voor een fietser. `as` is met de hand uit de BGT-vlakken gelezen; het skelet maakt alleen middellijnen voor rijbanen, niet voor paden. De as loopt aan de noordkant door tot in de bak van de rijksweg: daar ligt de grond toch al dieper, zodat de klim eruit niet als een muurtje in beeld komt.",
+      "verdiept": true,
+      "dekvak": {
+        "x0": 728,
+        "z0": -143,
+        "x1": 748,
+        "z1": -120
+      },
+      "as": [
+        [
+          733,
+          -66
+        ],
+        [
+          733.5,
+          -72
+        ],
+        [
+          734,
+          -78
+        ],
+        [
+          734.5,
+          -84
+        ],
+        [
+          735,
+          -90
+        ],
+        [
+          735.5,
+          -96
+        ],
+        [
+          736,
+          -102
+        ],
+        [
+          736.5,
+          -108
+        ],
+        [
+          737,
+          -114
+        ],
+        [
+          737.5,
+          -120
+        ],
+        [
+          737.5,
+          -128
+        ],
+        [
+          737,
+          -136
+        ],
+        [
+          737,
+          -144
+        ],
+        [
+          736.5,
+          -150
+        ],
+        [
+          736.5,
+          -154
+        ]
+      ],
+      "doorrijhoogte": 2.5,
+      "dekdikte": 0.7,
+      "taludHelling": 1.6,
+      "kruinMax": 5,
+      "kruinGat": 1,
+      "bakBreed": 2.6
     }
   ],
   "voortuinen": {
