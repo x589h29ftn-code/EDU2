@@ -72,6 +72,8 @@
     "steekproeftest": "node tools/steekproeftest.mjs",
     "steekproefshots": "node tools/steekproefshots.mjs",
     "gevoeltest": "node tools/gevoeltest.mjs",
-    "gevoelshots": "node tools/gevoelshots.mjs"
+    "gevoelshots": "node tools/gevoelshots.mjs",
+    "menutest": "node tools/menutest.mjs",
+    "menushots": "node tools/menushots.mjs"
   }
 }

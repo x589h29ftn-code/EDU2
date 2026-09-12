@@ -1,0 +1,4 @@
+{
+  "_uitleg": "Achtergronden voor het laadscherm (js/menu.js). Zet hier je eigen schermafdruk neer -- liggend, het liefst 1920x1080 of groter -- en voeg een regel toe. Is de lijst leeg of ontbreekt een bestand, dan tekent het spel zelf een achtergrond op een canvas; er gaat dus niets stuk. Dit is naast de muziek in audio/radio/ de enige plek in het spel waar een afbeelding uit een bestand komt.",
+  "beelden": []
+}
