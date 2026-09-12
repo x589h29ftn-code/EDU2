@@ -76,7 +76,7 @@ const uit = await page.evaluate(async () => {
   // ---- 1/2/3/4: de wijken ----
   const wijken = [];
   for (const [naam, x, z] of [['Molenkrite', 30, -20], ['Jasker', -180, 120], ['Bonkelaar', 210, 60],
-    ['Lemmerweg', 700, 330], ['IJlst', 1180, 700], ['Duinterpen', 1320, 300]]) {
+    ['Lemmerweg', 700, 330], ['Kleine vos', 1180, 700], ['Duinterpen', 1320, 300]]) {
     const voor = { r80: tel(x, z, 80), r200: tel(x, z, 200) };
     stap(x, z, 60);
     wijken.push({ naam, x, z, voor, na: { r80: tel(x, z, 80), r200: tel(x, z, 200) } });
