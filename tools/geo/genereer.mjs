@@ -1699,9 +1699,18 @@ for (const t of (OMGEVING.tankstations || [])) {
     for (const q of ring) { cx += q[0]; cz += q[1]; }
     cx /= ring.length; cz /= ring.length;
     const d = Math.hypot(cx - t.luifelBij[0], cz - t.luifelBij[1]);
-    if (d < besteD) { besteD = d; beste = { ring, cx, cz }; }
+    if (d < besteD) { besteD = d; beste = { ring, cx, cz, vlak: v }; }
   }
   if (!beste || besteD > 40) { console.warn(`LET OP: tankstation ${t.naam}: geen luifel gevonden`); continue; }
+  /*
+   Het bouwwerk gaat als vlák uit de kaart. Een `bouwwerk` wordt in de wereld
+   een betonnen plaat van een halve meter hoog, en dat is voor een fietsenstalling
+   of een trafohuisje ook prima — maar dit bouwwerk ís de luifel, en die wordt
+   hieronder als echte luifel op vier kolommen gebouwd. Zolang het vlak er ook
+   nog lag stond er midden op het pompplein een vreemd verhoogd platform
+   (melding beta-test 12 sep 2026).
+  */
+  VLAKKEN.splice(VLAKKEN.indexOf(beste.vlak), 1);
   // de langste zijde geeft de richting
   let as = [1, 0], asL = 0;
   for (let i = 0; i < beste.ring.length; i++) {
@@ -1845,6 +1854,47 @@ if (baanRingen.length) {
   }
   tel('van_tennisbaan_weggehaald', weg);
 }
+
+/*
+ --------------------------------------------------------------- wegafsluitingen
+ Waar de wijk voor de speler ophoudt. De gebruiker geeft een punt door (met de
+ K-toets in het spel op het klembord te zetten); hier wordt de dichtstbijzijnde
+ rijbaan-as gezocht, en daar komen de richting en de breedte van de weg vandaan.
+ De afzetting staat er dwars overheen, en de onzichtbare wand loopt links en
+ rechts door tot `muur` meter zodat je er niet via de berm omheen rijdt.
+*/
+const AFSLUITINGEN = [];
+for (const a of ((OMGEVING.wegafsluitingen || {}).plekken || [])) {
+  let best = null, bd = Infinity;
+  for (const w of WEGASSEN) {
+    if (!w.drive) continue;
+    for (let i = 1; i < w.pts.length; i++) {
+      const p0 = w.pts[i - 1], p1 = w.pts[i];
+      const dx = p1[0] - p0[0], dz = p1[1] - p0[1];
+      const l2 = dx * dx + dz * dz;
+      if (!l2) continue;
+      let t = ((a.punt[0] - p0[0]) * dx + (a.punt[1] - p0[1]) * dz) / l2;
+      t = Math.max(0, Math.min(1, t));
+      const qx = p0[0] + t * dx, qz = p0[1] + t * dz;
+      const d = Math.hypot(a.punt[0] - qx, a.punt[1] - qz);
+      if (d < bd) {
+        bd = d;
+        const L = Math.sqrt(l2);
+        best = { x: qx, z: qz, ax: dx / L, az: dz / L, naam: w.naam,
+          breed: Math.max(3, (p0[2] + p1[2]) / 2 || w.w) };
+      }
+    }
+  }
+  if (!best || bd > 40) { console.warn(`LET OP: wegafsluiting ${a.naam}: geen rijbaan bij ${a.punt}`); continue; }
+  AFSLUITINGEN.push({
+    naam: a.naam, straat: best.naam,
+    x: r2(best.x), z: r2(best.z),
+    as: [r2(best.ax), r2(best.az)],       // langs de weg; de afzetting staat er dwars op
+    breed: r2(best.breed), muur: a.muur ?? 24,
+  });
+  telling[`afsluiting_${a.naam.replace(/\W+/g, '_')}`] = `${best.naam}, ${best.breed.toFixed(1)} m breed`;
+}
+tel('wegafsluitingen', AFSLUITINGEN.length);
 
 /*
  ------------------------------------------------------------------ zuilengangen
@@ -2016,6 +2066,7 @@ const KAART = {
   zuilengangen: ZUILENGANGEN,
   hekwerken: HEKWERKEN, poorten: POORTEN, viaducten: VIADUCTEN,
   sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN, molens: MOLENS, tankstations: TANKSTATIONS, tennisparken: TENNIS,
+  wegafsluitingen: AFSLUITINGEN,
   labels: LABELS, huisnummers: HUISNUMMERS,
   telling,
 };

@@ -17,6 +17,7 @@ import { bouwMolens } from './molen.js';
 import { bouwTankstations } from './tankstation.js';
 import { bouwTennisparken } from './tennis.js';
 import { bouwZuilengangen } from './zuilengang.js';
+import { bouwAfsluitingen } from './afsluiting.js';
 
 export let KAART = null;
 export function zetKaart(k) { KAART = k; zetViaducten(k && k.viaducten); }
@@ -584,6 +585,9 @@ export function* bouwKaartWereldStap(scene, W) {
     bouwTankstations(scene, W, K.tankstations);
     // en de tennisbanen aan de Molenkrite, op de grindvlakken naast het sportpark
     bouwTennisparken(scene, W, K.tennisparken);
+    // de afzettingen waar de wijk voor de speler ophoudt
+    const dicht = bouwAfsluitingen(scene, W, K.wegafsluitingen);
+    if (dicht) console.log(`kaart: ${dicht} wegafsluiting(en)`);
     // en de zuilengangen onder de twee blokken aan de Keizersmantel in Duinterpen
     const gangen = bouwZuilengangen(scene, W, K.zuilengangen);
     if (gangen) console.log(`kaart: ${gangen} zuilengang(en) gebouwd`);
@@ -1297,9 +1301,28 @@ function bouwBouwwerken(scene, W) {
   }
 }
 
+/*
+ Lantaarnpalen.
+
+ Ze staan als drie instanced meshes in de wereld — paal, arm en kop — en die
+ delen dezelfde matrix per paal, dus één instantie omzetten kantelt de hele
+ lantaarn in één keer.
+
+ Een paal kan omvergereden worden (verzoek beta-test 12 sep 2026). Rij je er met
+ vaart tegenaan, dan klapt hij in een seconde om in de richting waarin je reed en
+ zakt zijn botsdoos naar knieehoogte: erlangs rijden kan dan, en je struikelt er
+ niet over. Uit beeld, en niet te snel, staat hij weer overeind — net als de
+ wrakken van auto's. Er verdwijnt dus niets permanent uit de wijk.
+*/
+const LANTAARNS = [];      // { x, z, y, hoek, i, doos, om, t, val, richting }
+let lampStapels = null;    // { palen, armen, koppen }
+const LAMP_TERUG = 40;     // seconden voordat hij weer overeind mag
+const LAMP_VER = 60;       // en pas als je zo ver weg bent
+
 function bouwLantaarns(scene, W) {
   const K = KAART;
   if (!K.lantaarns.length) return;
+  LANTAARNS.length = 0;
   const paalGeo = new THREE.CylinderGeometry(0.06, 0.09, 5.2, 8); paalGeo.translate(0, 2.6, 0);
   const armGeo = new THREE.BoxGeometry(0.9, 0.08, 0.08); armGeo.translate(0.35, 5.15, 0);
   const kopGeo = new THREE.BoxGeometry(0.5, 0.14, 0.24); kopGeo.translate(0.7, 5.12, 0);
@@ -1315,10 +1338,74 @@ function bouwLantaarns(scene, W) {
     m.makeRotationY(hoek); m.setPosition(l.x, y, l.z);
     palen.setMatrixAt(i, m); armen.setMatrixAt(i, m); koppen.setMatrixAt(i, m);
     W.lampPosities.push({ x: l.x + Math.cos(hoek) * 0.7, y: y + 5.1, z: l.z - Math.sin(hoek) * 0.7 });
-    W.addCollider(l.x, l.z, 0.1, 0.1, 0, 5);
+    const doos = W.addCollider(l.x, l.z, 0.1, 0.1, 0, 5);
+    LANTAARNS.push({ x: l.x, z: l.z, y, hoek, i, doos, om: false, t: 0, val: 0, richting: 0, lamp: W.lampPosities[W.lampPosities.length - 1] });
   });
   palen.castShadow = true;
   scene.add(palen, armen, koppen);
+  lampStapels = { palen, armen, koppen };
+}
+
+// De matrix van één lantaarn opnieuw schrijven, met `val` radialen kanteling.
+const lampM = new THREE.Matrix4(), lampQ = new THREE.Quaternion();
+const lampAs = new THREE.Vector3(), lampPos = new THREE.Vector3(), lampSchaal = new THREE.Vector3(1, 1, 1);
+function zetLantaarn(L) {
+  if (!lampStapels) return;
+  // kantelen om de as die dwars op de valrichting staat, door de voet van de paal
+  lampAs.set(Math.cos(L.richting + Math.PI / 2), 0, Math.sin(L.richting + Math.PI / 2)).normalize();
+  lampQ.setFromAxisAngle(lampAs, L.val);
+  lampM.compose(lampPos.set(L.x, L.y, L.z), lampQ, lampSchaal);
+  lampM.multiply(new THREE.Matrix4().makeRotationY(L.hoek));
+  for (const s of [lampStapels.palen, lampStapels.armen, lampStapels.koppen]) {
+    s.setMatrixAt(L.i, lampM);
+    s.instanceMatrix.needsUpdate = true;
+  }
+}
+
+/*
+ Een paal omver rijden. `x, z` is de plek van de klap, `richting` de rijrichting
+ en `snelheid` hoe hard. Geeft terug of er eentje omging, zodat js/main.js er een
+ klap en een schok bij kan zetten.
+*/
+export function raakLantaarn(x, z, richting, snelheid) {
+  if (Math.abs(snelheid) < 5) return false;
+  for (const L of LANTAARNS) {
+    if (L.om) continue;
+    if (Math.hypot(L.x - x, L.z - z) > 1.7) continue;
+    L.om = true; L.t = 0; L.richting = richting;
+    // de botsdoos zakt naar de hoogte van een liggende paal
+    L.doos.h = 0.35;
+    return true;
+  }
+  return false;
+}
+
+/*
+ De palen laten vallen en later weer overeind zetten. js/main.js roept dit elk
+ beeld aan met de plek van de speler erbij.
+*/
+export function werkLantaarnsBij(dt, px = null, pz = null) {
+  for (const L of LANTAARNS) {
+    if (!L.om) continue;
+    L.t += dt;
+    const doel = Math.PI / 2 - 0.06;                  // net niet plat, dat leest beter
+    if (L.val < doel) {
+      L.val = Math.min(doel, L.val + dt * (1.6 + L.val * 2.4));   // hij valt versneld
+      zetLantaarn(L);
+      if (L.lamp) L.lamp.y = L.y + 0.6;               // het licht ligt mee op straat
+    } else if (L.t > LAMP_TERUG && px != null && Math.hypot(L.x - px, L.z - pz) > LAMP_VER) {
+      L.om = false; L.t = 0; L.val = 0;
+      L.doos.h = 5;
+      if (L.lamp) L.lamp.y = L.y + 5.1;
+      zetLantaarn(L);
+    }
+  }
+}
+
+// voor de proef: hoeveel palen liggen er om?
+export function lantaarnsOm() { return LANTAARNS.filter(L => L.om).length; }
+export function lantaarnBij(x, z, straal = 3) {
+  return LANTAARNS.find(L => Math.hypot(L.x - x, L.z - z) <= straal) || null;
 }
 
 /** Startpositie en kijkrichting uit de kaart. */

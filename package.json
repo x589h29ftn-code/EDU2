@@ -74,6 +74,8 @@
     "gevoeltest": "node tools/gevoeltest.mjs",
     "gevoelshots": "node tools/gevoelshots.mjs",
     "menutest": "node tools/menutest.mjs",
-    "menushots": "node tools/menushots.mjs"
+    "menushots": "node tools/menushots.mjs",
+    "betatest": "node tools/betatest.mjs",
+    "betashots": "node tools/betashots.mjs"
   }
 }
