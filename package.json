@@ -68,6 +68,8 @@
     "schoolshots": "node tools/schoolshots.mjs",
     "beeldshots": "node tools/beeldshots.mjs",
     "tennistest": "node tools/tennistest.mjs",
-    "tennisshots": "node tools/tennisshots.mjs"
+    "tennisshots": "node tools/tennisshots.mjs",
+    "steekproeftest": "node tools/steekproeftest.mjs",
+    "steekproefshots": "node tools/steekproefshots.mjs"
   }
 }

@@ -424,6 +424,136 @@
         "pitch": 0.05
       },
       "bron": "foto van de voorkant (gebruiker, chat 12 sep 2026: 'grote pand langs de rondweg zonnedauw is een ranzijn tuin en dierenwinkel'). Uit de data: BGT-pand 0091100000015459, Akkerwinde 1, grondvlak 3112 m2 (81,4 x 45,3 m), goot 3,94 m en nok 6,44 m uit 3D BAG, bouwjaar 1980, voorkant naar het westen (parkeerterrein aan de rondweg). Van de foto komen alleen kleur en indeling: lichtgrijze gevelbeplating op een donkere plint, glazen pui over de voorkant en daarboven de gele band met het woordmerk RANZIJN in het groen."
+    },
+    "0091100000009603": {
+      "type": "westhem",
+      "voorkantNaar": [
+        346,
+        -292
+      ],
+      "foto": {
+        "voor": 16,
+        "langs": 0,
+        "pitch": 0.05
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026, eerste reeks steekproef): het rijtje bungalows aan de Westhemstraat. Uit de data: BGT-panden 0091100000009603/9587/9703/9683, huisnummers 55 t/m 61, elk ongeveer 13,2 x 7,1 m met de nok evenwijdig aan de straat, goot 2,8-3,1 m en nok 6,6-6,7 m uit 3D BAG, bouwjaar 1972. Van de foto komen alleen kleur en indeling: lichte zandkleurige steen, witte kozijnen met blauwe deuren en blauwe draaidelen, een brede woonkamerpui, een gemetselde schoorsteen per woning op de nok en zonnepanelen over het hele voordakvlak. De voorkant kijkt naar het oosten, naar het voetpad en de parkeerstrook."
+    },
+    "0091100000009587": {
+      "type": "westhem",
+      "voorkantNaar": [
+        346,
+        -292
+      ],
+      "foto": {
+        "voor": 16,
+        "langs": 0,
+        "pitch": 0.05
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026, eerste reeks steekproef): het rijtje bungalows aan de Westhemstraat. Uit de data: BGT-panden 0091100000009603/9587/9703/9683, huisnummers 55 t/m 61, elk ongeveer 13,2 x 7,1 m met de nok evenwijdig aan de straat, goot 2,8-3,1 m en nok 6,6-6,7 m uit 3D BAG, bouwjaar 1972. Van de foto komen alleen kleur en indeling: lichte zandkleurige steen, witte kozijnen met blauwe deuren en blauwe draaidelen, een brede woonkamerpui, een gemetselde schoorsteen per woning op de nok en zonnepanelen over het hele voordakvlak. De voorkant kijkt naar het oosten, naar het voetpad en de parkeerstrook."
+    },
+    "0091100000009703": {
+      "type": "westhem",
+      "voorkantNaar": [
+        346,
+        -292
+      ],
+      "foto": {
+        "voor": 16,
+        "langs": 0,
+        "pitch": 0.05
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026, eerste reeks steekproef): het rijtje bungalows aan de Westhemstraat. Uit de data: BGT-panden 0091100000009603/9587/9703/9683, huisnummers 55 t/m 61, elk ongeveer 13,2 x 7,1 m met de nok evenwijdig aan de straat, goot 2,8-3,1 m en nok 6,6-6,7 m uit 3D BAG, bouwjaar 1972. Van de foto komen alleen kleur en indeling: lichte zandkleurige steen, witte kozijnen met blauwe deuren en blauwe draaidelen, een brede woonkamerpui, een gemetselde schoorsteen per woning op de nok en zonnepanelen over het hele voordakvlak. De voorkant kijkt naar het oosten, naar het voetpad en de parkeerstrook."
+    },
+    "0091100000009683": {
+      "type": "westhem",
+      "voorkantNaar": [
+        346,
+        -292
+      ],
+      "foto": {
+        "voor": 16,
+        "langs": 0,
+        "pitch": 0.05
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026, eerste reeks steekproef): het rijtje bungalows aan de Westhemstraat. Uit de data: BGT-panden 0091100000009603/9587/9703/9683, huisnummers 55 t/m 61, elk ongeveer 13,2 x 7,1 m met de nok evenwijdig aan de straat, goot 2,8-3,1 m en nok 6,6-6,7 m uit 3D BAG, bouwjaar 1972. Van de foto komen alleen kleur en indeling: lichte zandkleurige steen, witte kozijnen met blauwe deuren en blauwe draaidelen, een brede woonkamerpui, een gemetselde schoorsteen per woning op de nok en zonnepanelen over het hele voordakvlak. De voorkant kijkt naar het oosten, naar het voetpad en de parkeerstrook."
+    },
+    "0091100000019603": {
+      "type": "potterzijl_gaanderij",
+      "voorkantNaar": [
+        683,
+        -180
+      ],
+      "foto": {
+        "voor": 34,
+        "langs": 0,
+        "pitch": 0.16
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026): de galerijflats aan de Potterzijlstraat. Uit de data: BGT-panden 0091100000019604 (2-48) en 0091100000019603 (3-49), elk 69 x 10,6 m, plat dak op 11,1 m uit 3D BAG, bouwjaar 1966 - bij 2,8 m per laag zijn dat vier lagen, waarvan de onderste de open onderbouw is. Van de foto komen alleen kleur en indeling: roodbruine steen, lichte kozijnen, een donkere onderbouw met bergingen op poten en voor elke woonlaag langs een donker stalen galerijhek."
+    },
+    "0091100000019604": {
+      "type": "potterzijl_gaanderij",
+      "voorkantNaar": [
+        683,
+        -180
+      ],
+      "foto": {
+        "voor": 34,
+        "langs": 0,
+        "pitch": 0.16
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026): de galerijflats aan de Potterzijlstraat. Uit de data: BGT-panden 0091100000019604 (2-48) en 0091100000019603 (3-49), elk 69 x 10,6 m, plat dak op 11,1 m uit 3D BAG, bouwjaar 1966 - bij 2,8 m per laag zijn dat vier lagen, waarvan de onderste de open onderbouw is. Van de foto komen alleen kleur en indeling: roodbruine steen, lichte kozijnen, een donkere onderbouw met bergingen op poten en voor elke woonlaag langs een donker stalen galerijhek."
+    },
+    "0091100000004654": {
+      "type": "potterzijl_hoog",
+      "voorkantNaar": [
+        660,
+        -250
+      ],
+      "foto": {
+        "voor": 56,
+        "langs": 34,
+        "pitch": 0.3
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026): de twee hoogbouwflats aan de Potterzijlstraat, met goot 25,6 m de hoogste gebouwen van de kaart. Uit de data: BGT-panden 0091100000004654 (51-177) en 0091100000004393 (157-241), elk 51 x 12,5 m, goot 25,6 en nok 28,6 m uit 3D BAG, bouwjaar 1968 - negen lagen. Van de foto komen alleen kleur en indeling: doorlopende witte balkonplaten over de volle breedte met glas erachter, een donkere onderbouw en een gele trappentoren."
+    },
+    "0091100000004393": {
+      "type": "potterzijl_hoog",
+      "voorkantNaar": [
+        660,
+        -250
+      ],
+      "foto": {
+        "voor": 56,
+        "langs": 34,
+        "pitch": 0.3
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026): de twee hoogbouwflats aan de Potterzijlstraat, met goot 25,6 m de hoogste gebouwen van de kaart. Uit de data: BGT-panden 0091100000004654 (51-177) en 0091100000004393 (157-241), elk 51 x 12,5 m, goot 25,6 en nok 28,6 m uit 3D BAG, bouwjaar 1968 - negen lagen. Van de foto komen alleen kleur en indeling: doorlopende witte balkonplaten over de volle breedte met glas erachter, een donkere onderbouw en een gele trappentoren."
+    },
+    "0091100000013880": {
+      "type": "sudwester",
+      "voorkantNaar": [
+        644,
+        190
+      ],
+      "foto": {
+        "voor": 40,
+        "langs": 0,
+        "pitch": 0.06
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026): Sudwester aan de Lemmerweg. Uit de data: BGT-pand 0091100000013880, Lemmerweg 130a, 77 x 44 m, goot 6,25 en nok 12,32 m uit 3D BAG, bouwjaar 1980, negentien dakvlakken (de gebogen kap van de foto). Van de foto komen alleen kleur en indeling: een lange, vrijwel dichte wand in donkergroen met hoog in de gevel een strook korte ramen, en bij de entree een glazen pui met houtkleurige stijlen onder een overstek."
+    },
+    "0683100000293900": {
+      "type": "sneekerpad_loods",
+      "voorkantNaar": [
+        -1105,
+        1010
+      ],
+      "foto": {
+        "voor": 34,
+        "langs": 0,
+        "pitch": 0.08
+      },
+      "bron": "foto van de gebruiker (chat 12 sep 2026): de grote loods aan het Sneekerpad, naast houtzaagmolen De Rat. Uit de data: BGT-pand 0683100000293900, Sneekerpad 25, 63 x 55 m, goot 3,57 en nok 8,34 m uit 3D BAG, bouwjaar 1981. Van de foto komen alleen kleur en materiaal: een lage wand van roodbruine steen met daarboven een steil dak van donkergrijze felsplaten dat bijna tot de grond komt. De oranje houten aanbouw met het terras aan de zuidkant zit er nog niet in: die is in de brondata niet van de loods te onderscheiden."
     }
   },
   "standaard": {

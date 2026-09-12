@@ -844,6 +844,45 @@ export const HOUSE_STYLES = {
    ongeveer de helft van de gevel komt — de rest is dichte beplating.
   */
   tuincentrum: { brick: ['#b3b8b2', '#d3d7d1'], frame: '#f2f4f1', frame2: '#f2f4f1', door: ['#1e6b3c'], roof: '#5b5f5c', roofType: 'flat', storeys: 1, storeyH: 3.6, w: 6.0, dormer: false, chimney: false, band: '#f2c11c', plint: '#4c4f4c', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#f2c11c', merk: 'RANZIJN', merkKleur: '#1e6b3c', puiDeel: 0.55 },
+  /*
+   Westhemstraat 55-61 (foto van de gebruiker 12 sep 2026): een rijtje
+   bungalows van één laag met een flauwe kap, lichte zandkleurige steen, witte
+   kozijnen met blauwe deuren en blauwe draaidelen, en een brede woonkamerpui.
+   Kenmerkend zijn de rij gemetselde schoorstenen boven de nok — één per woning,
+   netjes op afstand — en de zonnepanelen die het hele voordakvlak vullen.
+   `dakdetail` zet die twee aan op een pand met een 3D BAG-model (js/kaartwereld.js);
+   zonder die vlag blijft een pand een kaal dak houden, zoals overal elders.
+  */
+  westhem:     { brick: ['#c4b189', '#dbd4c1'], frame: '#f4f3ee', frame2: '#1f4fa0', door: ['#1f4fa0', '#1a4794'], roof: '#4a3b31', roofType: 'gable', storeys: 1, storeyH: 2.9, w: 7.0, dormer: false, chimney: true, solar: true, solarFull: true, dakdetail: true, band: '#f4f4f4', plint: '#7a6a52' },
+  /*
+   Potterzijlstraat 2-48 en 3-49 (foto): galerijflats van 1966, drie woonlagen
+   op een open onderbouw met bergingen. Roodbruine steen, lichte kozijnen, en
+   voor elke laag langs een donker stalen hekwerk. `galerij` tekent die opbouw;
+   `industrieel` geeft alle kanten een gevel — een galerijflat heeft geen
+   achterkant in de zin van een rijtjeshuis.
+  */
+  potterzijl_gaanderij: { brick: ['#9c5240', '#c7bbac'], frame: '#e6e6e0', frame2: '#e6e6e0', door: ['#3a4045'], roof: '#3f4347', roofType: 'flat', storeys: 4, storeyH: 2.8, w: 5.6, dormer: false, chimney: false, band: '#3f4347', plint: '#2f3438', industrieel: true, galerij: true, railing: '#343a3e', paneel: '#8d9298' },
+  /*
+   Potterzijlstraat 51-177 en 157-241 (foto): de twee hoogste gebouwen van de
+   kaart, goot 25,6 m — negen lagen. Doorlopende witte balkonplaten over de
+   volle breedte, glas erachter, een donkere onderbouw en een gele
+   trappentoren. `maxLagen` is nodig omdat een gevel anders op vier lagen wordt
+   afgekapt; op 25 meter muur worden dat lagen van ruim zes meter.
+  */
+  potterzijl_hoog: { brick: ['#8d9298', '#b7bbbe'], frame: '#e8eaec', frame2: '#e8eaec', door: ['#33383b'], roof: '#3a3f43', roofType: 'flat', storeys: 9, storeyH: 2.85, w: 6.0, dormer: false, chimney: false, band: '#3a3f43', plint: '#2b2f32', industrieel: true, balkonband: true, maxLagen: 10, toren: '#f2c211' },
+  /*
+   Sûdwester, Lemmerweg 130a (foto): een lange, vrijwel dichte wand in
+   donkergroen met hoog in de gevel één strook korte ramen, en bij de entree een
+   glazen pui met houtkleurige stijlen onder een overstek. `plaster` maakt van
+   de wand een glad vlak in plaats van metselwerk.
+  */
+  sudwester:   { brick: ['#2c473a', '#3a5a49'], frame: '#e8e8e2', frame2: '#e8e8e2', door: ['#7a5a3c'], roof: '#24352d', roofType: 'flat', storeys: 3, storeyH: 4.0, w: 8.0, dormer: false, chimney: false, band: '#24352d', plint: '#1f2e27', industrieel: true, plaster: true, kantoor: true, strookramen: true, pui: '#7a5a3c', maxLagen: 3 },
+  /*
+   Sneekerpad 25 (foto): de grote loods naast de molen. Een lage wand van
+   roodbruine steen met daarboven een steil dak van donkergrijze felsplaten dat
+   bijna tot de grond komt; `metaaldak` kiest die dakplaten.
+  */
+  sneekerpad_loods: { brick: ['#8a4a38', '#b49c8c'], frame: '#3a3d42', frame2: '#3a3d42', door: ['#4a4f55'], roof: '#3f4347', roofType: 'gable', storeys: 2, storeyH: 4.2, w: 7.0, dormer: false, chimney: false, band: '#5a5f63', plint: '#5a3a2e', industrieel: true, metaaldak: true, strookramen: true },
   school:      { brick: ['#8c5340', '#c9bfae'], frame: '#1f6fc4', frame2: '#1f6fc4', door: ['#1f6fc4'], roof: '#54514c', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#d8d5cc', plint: '#6b4436', industrieel: true, school: true, huisstijl: '#f2c012' },
   // Jeugdhulp Friesland, Molenkrite 234 (Street View, foto in de chat 5 sep
   // 2026): een lang gebouw van één laag met plat dak, donkerbruine steen,
@@ -1089,7 +1128,97 @@ export function facade(type, n, storeys, back = false, seed = 1) {
     */
     const mirror = st.deurRechts ? true : ((i % 2 === 1) && !st.detached);
     const doorColor = st.door[(i + seed) % st.door.length];
-    if (st.winkel) {
+    if (st.galerij) {
+      /*
+       Galerijflat (Potterzijlstraat 2-48 en 3-49, foto van de gebruiker
+       12 sep 2026). De opbouw van de foto, van onder naar boven:
+
+         - een open begane grond op poten, met een rij donkere bergingdeuren
+           tussen de kolommen door;
+         - daarboven drie woonlagen, elke laag een brede pui met daarnaast een
+           smaller keukenraam, en een dichte borstwering eronder;
+         - voor elke laag langs de galerij: een stalen hekwerk met spijlen, dat
+           je van de straat af als een donkere band voor de gevel ziet.
+
+       Het aantal lagen komt uit de hoogte van het 3D BAG-model (goot 11,1 m),
+       niet uit een aanname: bij 2,8 m per laag zijn dat er vier, waarvan de
+       onderste de open onderbouw is.
+      */
+      const rail = st.railing || '#3a4045';
+      for (let s = 0; s < storeys; s++) {
+        const fy = H - (s + 1) * SH * PM;
+        if (s === 0) {
+          // de open onderbouw: donker, met bergingdeuren en een kolom per travee
+          g.fillStyle = '#2d3236'; g.fillRect(x0, fy, HW, SH * PM);
+          for (let k = 0; k < 2; k++) {
+            const dx = x0 + m(0.6) + k * m(st.w / 2);
+            g.fillStyle = '#3f4448';
+            g.fillRect(dx, fy + m(0.5), m(st.w / 2 - 1.2), SH * PM - m(0.5));
+            g.fillStyle = 'rgba(255,255,255,0.07)'; g.fillRect(dx, fy + m(0.5), m(st.w / 2 - 1.2), m(0.04));
+            g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(dx + m(st.w / 4 - 0.62), fy + m(0.5), m(0.05), SH * PM - m(0.5));
+          }
+          g.fillStyle = '#c9c3b6'; g.fillRect(x0, fy, m(0.28), SH * PM);       // kolom
+          continue;
+        }
+        // woonlaag: brede pui + keukenraam, met de borstwering eronder
+        win(x0 + m(0.45), fy + m(0.45), m(st.w - 2.4), m(1.45), st.frame);
+        win(x0 + m(st.w - 1.75), fy + m(0.55), m(1.3), m(1.25), st.frame);
+        g.fillStyle = st.paneel || '#8d9298';
+        g.fillRect(x0 + m(0.45), fy + m(1.95), m(st.w - 0.9), m(0.55));
+        g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x0 + m(0.45), fy + m(2.44), m(st.w - 0.9), m(0.06));
+        // het hekwerk van de galerij ervoor: bovenregel, onderregel en spijlen
+        const hy = fy + m(SH - 1.35);
+        g.fillStyle = rail; g.fillRect(x0, hy, HW, m(0.09));
+        g.fillRect(x0, hy + m(0.78), HW, m(0.07));
+        for (let sp = 0; sp * 0.14 < st.w; sp++) g.fillRect(x0 + m(sp * 0.14), hy, m(0.045), m(0.85));
+        g.fillStyle = 'rgba(0,0,0,0.30)'; g.fillRect(x0, hy + m(0.85), HW, m(0.16));
+      }
+    } else if (st.balkonband) {
+      /*
+       Hoogbouw (Potterzijlstraat 51-177 en 157-241, foto van de gebruiker
+       12 sep 2026). Dit zijn met goot 25,6 m de twee hoogste gebouwen van de
+       kaart; je ziet ze vanaf de rondweg overal bovenuit komen, en juist dan
+       telt alleen de grote streping: over de volle breedte een doorlopende
+       witte balkonplaat per laag, met daarboven glas en daaronder de schaduw.
+
+       De gele trappentoren van de foto staat in één travee over de volle
+       hoogte. Welke travee dat is volgt uit de breedte van de muur, niet uit
+       een vaste plek: bij negen traveeën komt hij op de derde, net als op de
+       foto ongeveer een kwart vanaf de kop.
+      */
+      const torenBaan = Math.max(1, Math.round(n * 0.28));
+      for (let s = 0; s < storeys; s++) {
+        const fy = H - (s + 1) * SH * PM;
+        if (s === 0) {
+          // donkere onderbouw met de bergingen
+          g.fillStyle = '#2b2f32'; g.fillRect(x0, fy, HW, SH * PM);
+          g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(x0, fy, HW, m(0.05));
+          continue;
+        }
+        // glas achter het balkon
+        const gl = g.createLinearGradient(0, fy + m(0.2), 0, fy + m(2.1));
+        gl.addColorStop(0, '#93a8bb'); gl.addColorStop(0.5, '#3d4d5a'); gl.addColorStop(1, '#242d34');
+        g.fillStyle = gl; g.fillRect(x0 + m(0.25), fy + m(0.2), HW - m(0.5), m(1.9));
+        g.fillStyle = st.frame; g.fillRect(x0 + m(st.w / 2 - 0.04), fy + m(0.2), m(0.08), m(1.9));
+        // de balkonplaat: lichte band over de volle breedte, met de schaduw eronder
+        g.fillStyle = '#e9ece9'; g.fillRect(x0, fy + m(2.1), HW, m(0.62));
+        g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(x0, fy + m(2.1), HW, m(0.07));
+        g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x0, fy + m(2.66), HW, m(0.08));
+        const sg = g.createLinearGradient(0, fy + m(2.74), 0, fy + m(SH));
+        sg.addColorStop(0, 'rgba(0,0,0,0.40)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = sg; g.fillRect(x0, fy + m(2.74), HW, m(SH - 2.74));
+      }
+      if (i === torenBaan && st.toren) {
+        // de trappentoren: gekleurd paneel over de volle hoogte met een glasstrook
+        g.fillStyle = st.toren; g.fillRect(x0 + m(0.3), 0, HW - m(0.6), H);
+        g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x0 + m(0.3), 0, m(0.06), H);
+        for (let s = 0; s < storeys; s++) {
+          const fy = H - (s + 1) * SH * PM;
+          g.fillStyle = '#33424c'; g.fillRect(x0 + m(0.9), fy + m(0.3), HW - m(1.8), m(1.9));
+          g.fillStyle = 'rgba(205,225,245,0.26)'; g.fillRect(x0 + m(0.9), fy + m(0.3), (HW - m(1.8)) * 0.35, m(1.9));
+        }
+      }
+    } else if (st.winkel) {
       /*
        Winkelpui (Jumbo): donkere plint, glazen pui met witte stijlen, een witte
        luifelband en bovenaan de gele huisstijlband met het woordmerk. Bij een
@@ -1322,7 +1451,38 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       // deur, in elke derde travee een overheaddeur; het kantoortype krijgt
       // gewone ramen met witte kozijnen en geen overheaddeur
       const kantoor = !!st.kantoor;
-      for (let s = 0; s < storeys; s++) {
+      if (st.strookramen) {
+        /*
+         Sûdwester, Lemmerweg 130a (foto van de gebruiker 12 sep 2026): een
+         lange, vrijwel dichte wand in donkergroen, met hoog in de gevel één
+         strook korte liggende ramen, en bij de entree een glazen pui onder een
+         overstek. Dus geen rij bedrijfsramen per laag — dat zou van deze wand
+         een fabriek maken.
+        */
+        const ry = H * 0.30, rh = m(0.55);
+        for (let k = 0; k * 1.55 < st.w - 0.8; k++) {
+          const rx = x0 + m(0.6 + k * 1.55);
+          g.fillStyle = 'rgba(0,0,0,0.30)'; g.fillRect(rx, ry - m(0.07), m(1.15), m(0.07));
+          g.fillStyle = '#20282c'; g.fillRect(rx, ry, m(1.15), rh);
+          g.fillStyle = 'rgba(190,215,235,0.26)'; g.fillRect(rx + m(0.05), ry + m(0.05), m(0.38), rh - m(0.1));
+          g.fillStyle = st.frame; g.fillRect(rx, ry, m(1.15), m(0.05));
+        }
+        // de glazen entreepui in de middelste traveeën, met het overstek erboven.
+        // Alleen als de stijl er een heeft: de loods aan het Sneekerpad is onder
+        // het dak gewoon een dichte muur.
+        if (st.pui && Math.abs(i - (n - 1) / 2) < 1.2) {
+          const py = H * 0.46, ph = H - py - m(0.35);
+          const pg2 = g.createLinearGradient(0, py, 0, py + ph);
+          pg2.addColorStop(0, '#8fa7ba'); pg2.addColorStop(0.45, '#3a4a57'); pg2.addColorStop(1, '#212a31');
+          g.fillStyle = pg2; g.fillRect(x0 + m(0.3), py, HW - m(0.6), ph);
+          g.fillStyle = st.pui || '#7a5a3c';
+          for (let k = 0; k * 1.5 <= st.w; k++) g.fillRect(x0 + m(0.3 + k * 1.5), py, m(0.14), ph);
+          g.fillRect(x0 + m(0.3), py, HW - m(0.6), m(0.16));
+          const sg3 = g.createLinearGradient(0, py, 0, py + m(1.2));
+          sg3.addColorStop(0, 'rgba(0,0,0,0.45)'); sg3.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = sg3; g.fillRect(x0 + m(0.3), py, HW - m(0.6), m(1.2));
+        }
+      } else for (let s = 0; s < storeys; s++) {
         const fy = H - (s + 1) * SH * PM;
         if (s === 0 && !kantoor && i % 3 === 1) { overheadDeur(x0 + m(1.4), H - m(3.0), m(3.2), m(3.0)); continue; }
         const ry = kantoor ? fy + m(SH - 2.5) : fy + m(SH - 3.05), rh = kantoor ? m(1.5) : m(1.1);
