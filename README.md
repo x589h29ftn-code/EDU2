@@ -46,7 +46,7 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | Y | weer: helder, bewolkt, regen |
 | U | geluid uit en aan |
 | **K** | je eigen plek in spelmeters (`x, z`), in beeld en op het klembord — handig om een plek door te geven |
-| Esc | muis vrijgeven |
+| Esc | muis vrijgeven · het pauzescherm met deze hele lijst erin |
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
 vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstappen, de camera, de
@@ -266,6 +266,30 @@ gevelbeplating op een donkere plint, een glazen pui over de voorkant en daarbove
 woordmerk in het groen. De voorkant kijkt naar het westen, naar het parkeerterrein aan de rondweg.
 
 ![Ranzijn Tuin & Dier](docs/screenshots/tuincentrum.png)
+
+## Vijf panden uit de steekproef
+
+Uit de brondata kwamen achttien panden die er qua maat uitspringen en die nog als generiek blok in het
+spel stonden. Dit zijn de eerste vijf, elk met een eigen gevel. Steeds hetzelfde recept: **maat, hoogte
+en richting uit de BGT en het 3D BAG, kleur en indeling uit de foto.**
+
+| Pand | Uit de data | Van de foto |
+|---|---|---|
+| **Westhemstraat 55–61** | vier bungalows van 13,2 × 7,1 m, goot 2,8–3,1 en nok 6,6–6,7 m, bj 1972 | lichte zandkleurige steen, blauwe deuren en draaidelen, schoorsteen per woning op de nok, zonnepanelen over het hele voordakvlak |
+| **Potterzijlstraat 2–48 / 3–49** | galerijflats, 69 × 10,6 m, plat dak op 11,1 m, bj 1966 — vier lagen | roodbruine steen, donkere open onderbouw met bergingen, een stalen galerijhek voor elke woonlaag |
+| **Potterzijlstraat 51–177 / 157–241** | 51 × 12,5 m, goot 25,6 m, bj 1968 — negen lagen, de hoogste gebouwen van de kaart | doorlopende witte balkonplaten, glas erachter, donkere onderbouw, gele trappentoren |
+| **Sûdwester, Lemmerweg 130a** | 77 × 44 m, goot 6,25 en nok 12,32 m, 19 dakvlakken, bj 1980 | donkergroene dichte wand met hoog één strook ramen, glazen entreepui onder een overstek |
+| **Sneekerpad 25** | de loods naast de molen, 63 × 55 m, goot 3,57 en nok 8,34 m, bj 1981 | roodbruine steen onder donkergrijze felsplaten, verder een dichte wand |
+
+Twee dingen zijn er nieuw voor bij gekomen. Een pand uit de BGT had tot nu toe een kaal dakvlak: geen
+schoorsteen, geen zonnepanelen. Dat kan nu, en het staat per stijl aan — anders komen er in één klap
+honderden schoorstenen bij. En een gevel werd altijd op vier lagen afgekapt; op de muur van 25 meter van
+de hoogbouw werden dat lagen van ruim zes meter. `npm run steekproeftest` rekent het na,
+`npm run steekproefshots` maakt de foto's.
+
+| Westhemstraat | Potterzijlstraat |
+|---|---|
+| ![Westhemstraat](docs/screenshots/westhemstraat.png) | ![Potterzijlstraat](docs/screenshots/potterzijl_hoog.png) |
 
 ## De autoradio
 

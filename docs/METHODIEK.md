@@ -257,6 +257,7 @@ naar `main` om een build te krijgen.
 | Reliëf, glans en nat wegdek (stap 27) | `npm run relieftest` | eindigt op "Alles goed" |
 | Tankstation BP Slump Oil (stap 39) | `npm run tanktest` | eindigt op "Alles goed" |
 | Tennispark Molenkrite (stap 40) | `npm run tennistest` | eindigt op "Alles goed" |
+| De vijf panden uit de steekproef (stap 41) | `npm run steekproeftest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` (met `?relief=0` voor de kale stand) | de wereld is sinds stap 22 zes keer zo groot; de meting is nu een vergelijking met de vorige ronde, geen vaste bovengrens |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -2765,6 +2766,76 @@ Van de foto komen alleen kleur en indeling, zoals de regel voorschrijft:
 lichtgrijze gevelbeplating op een donkere plint, een glazen pui over de voorkant
 en daarboven de gele band met het woordmerk in het groen. Dat is het type
 `tuincentrum` in `js/textures.js`, gekoppeld in `data/stijl/straten.json`.
+
+**De eerste vijf foto's van de steekproef (stap 41).**
+
+De gebruiker had achttien panden gefotografeerd die er volgens hun eigen maten
+uitspringen en die nog als generiek blok (`spil`) in het spel stonden. De eerste
+vijf lagen in de wacht tot de rest binnen was; dit is die ronde. Steeds hetzelfde
+recept: **maat, hoogte en richting uit de BGT en het 3D BAG, kleur en indeling
+uit de foto** — en niets anders.
+
+*Westhemstraat 55-61.* Vier panden van 13,2 × 7,1 m, goot 2,8-3,1 en nok
+6,6-6,7 m, bouwjaar 1972: bungalows van één laag, diep en smal, met de nok
+evenwijdig aan de straat. Van de foto: lichte zandkleurige steen, witte kozijnen
+met blauwe deuren en blauwe draaidelen, een brede woonkamerpui. En het beeld dat
+deze rij maakt: een gemetselde schoorsteen per woning op de nok, en zonnepanelen
+die het hele voordakvlak vullen.
+
+Die twee waren er nog niet. De rijtjes die het spel zelf uitzet hebben ze al
+(`js/world.js`), maar een pand uit de BGT had alleen een kaal dakvlak. Dat zit nu
+in `dakDetails` in `js/kaartwereld.js`, en het staat per stijl aan (`dakdetail`)
+en niet voor alle panden tegelijk — anders komen er in één klap honderden
+schoorstenen bij, en dat is een andere beslissing dan deze ene straat.
+
+Het paneel ligt op het dakvlak met een eigen assenstelsel: één as langs de nok,
+één van de nok naar de goot, en de derde er loodrecht op. Met drie losse
+draaiingen om x en y klopt het teken maar in de helft van de windrichtingen —
+dezelfde soort fout als bij het tennispark een stap eerder, en de proef meet het
+nu na: de schoorsteen moet boven de nok uitsteken en op het hart van de nok
+staan, en het paneel moet tussen goot en nok blijven.
+
+*Potterzijlstraat 2-48 en 3-49.* Galerijflats van 1966, 69 × 10,6 m met een plat
+dak op 11,1 m — bij 2,8 m per laag zijn dat vier lagen, waarvan de onderste de
+open onderbouw is. Van de foto: roodbruine steen, lichte kozijnen, een donkere
+onderbouw met bergingen op poten, en voor elke woonlaag langs een donker stalen
+galerijhek. Dat laatste is een nieuwe geveltekening (`galerij`): per laag een
+brede pui met een keukenraam ernaast, een borstwering eronder, en daarvoor het
+hek met spijlen.
+
+*Potterzijlstraat 51-177 en 157-241.* Met goot 25,6 m de twee hoogste gebouwen
+van de kaart; je ziet ze vanaf de rondweg overal bovenuit komen. Negen lagen.
+Juist op die afstand telt alleen de grote streping, en dat is wat `balkonband`
+tekent: over de volle breedte een doorlopende witte balkonplaat per laag, glas
+erachter, de schaduw eronder, een donkere onderbouw en een gele trappentoren.
+
+Hier kwam een oude aanname naar boven. Een gevel werd altijd op **vier lagen**
+afgekapt — hoger wordt er in deze wijk niet gewoond, en meer lagen kosten alleen
+geheugen. Op een muur van 25 meter werden dat lagen van ruim zes meter. Een stijl
+kan nu `maxLagen` zetten; alleen deze twee doen dat.
+
+*Sûdwester, Lemmerweg 130a.* 77 × 44 m, goot 6,25 en nok 12,32 m, bouwjaar 1980,
+negentien dakvlakken — de gebogen kap van de foto zit dus in de brondata. Van de
+foto: een lange, vrijwel dichte wand in donkergroen met hoog in de gevel één
+strook korte ramen, en bij de entree een glazen pui met houtkleurige stijlen. Dat
+laatste is `strookramen`: geen rij bedrijfsramen per laag, want dat maakt van
+deze wand een fabriek.
+
+*Sneekerpad 25.* De grote loods naast houtzaagmolen De Rat, 63 × 55 m, goot 3,57
+en nok 8,34 m, bouwjaar 1981. Van de foto: roodbruine steen onder een dak van
+donkergrijze felsplaten, en verder een dichte wand met alleen hoog een strook
+ramen. Wat er **niet** in zit: het steile dak dat op de foto bijna tot de grond
+komt, en de oranje houten aanbouw met het terras ernaast. Het 3D BAG-model van
+dit pand is een doos, en de aanbouw is in de brondata niet van de loods te
+onderscheiden — dus dat blijft staan zoals de data het zegt.
+
+Controle: `npm run steekproeftest` (zestien controles) en
+`npm run steekproefshots`.
+
+*De toetsenlijst onderin is weg.* Er stond permanent een regel in beeld met alle
+toetsen. Je leest hem één keer en daarna staat hij alleen maar voor de wijk. Wat
+blijft is wat je nú kunt doen — "Druk E om in te stappen" als je naast een auto
+staat. De lijst zelf staat nog in het start- en pauzescherm (Esc) en in de README.
 
 **Wat nog niet af is (in volgorde).**
 

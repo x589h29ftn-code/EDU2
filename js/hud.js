@@ -270,19 +270,27 @@ export class HUD {
     }
   }
   toggleBig() { this.bigOpen = !this.bigOpen; this.big.style.display = this.bigOpen ? 'block' : 'none'; }
-  // praten = er staat iemand naast je of er loopt een gesprek; dan gaat E over
-  // praten en niet over instappen (zie praatOfAuto in main.js)
+  /*
+   praten = er staat iemand naast je of er loopt een gesprek; dan gaat E over
+   praten en niet over instappen (zie praatOfAuto in main.js).
+
+   Onderin stond altijd de hele toetsenlijst. Die is eruit (verzoek in de chat
+   12 sep 2026): je leest hem één keer en daarna staat hij alleen maar in het
+   beeld. De lijst zelf staat nog wel in het start- en pauzescherm (Esc) en in
+   de README; wat hier overblijft is alleen wat je nú kunt doen, zoals de
+   E-knop als je naast een auto staat.
+  */
   update(dt, player, vehicles, npcs, streetName, praten = false) {
     this.street.textContent = streetName;
     if (player.inCar) {
       this.speed.textContent = Math.round(Math.abs(player.inCar.speed) * 3.6) + ' km/u';
       this.speed.style.display = 'block'; this.ammo.style.display = 'none';
-      this.hint.textContent = 'W/S gas en rem · A/D sturen · spatie handrem · V camera · E uitstappen';
+      this.hint.textContent = '';
     } else {
       this.speed.style.display = 'none'; this.ammo.style.display = 'block';
       this.ammo.textContent = player.reloading > 0 ? 'herladen…' : `${player.ammo} / ${player.reserve}`;
       const car = vehicles.nearestDriveable(player.pos.x, player.pos.z);
-      this.hint.textContent = (car && !praten) ? 'Druk E om in te stappen' : 'WASD lopen · shift sprinten · spatie springen · muis kijken · LMB schieten · R herladen · V camera · M kaart';
+      this.hint.textContent = (car && !praten) ? 'Druk E om in te stappen' : '';
     }
     if (this.msgT > 0) { this.msgT -= dt; if (this.msgT <= 0) this.msg.style.opacity = 0; }
     if (this.missieT > 0) { this.missieT -= dt; if (this.missieT <= 0) this.missieEl.style.opacity = 0; }

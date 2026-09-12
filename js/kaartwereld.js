@@ -823,7 +823,15 @@ function bouwPanden(scene, W, plat) {
     const SH = gst.storeyH || 2.9;
     // bedrijfsgevel: het aantal lagen past op de echte muurhoogte en de
     // texture wordt over de hele muur uitgerekt, zodat de dakrand bovenaan zit
-    const lagen = ind ? Math.max(1, Math.min(4, Math.floor(top / SH + 0.35))) : Math.max(1, Math.min(4, Math.round(top / SH)));
+    /*
+     Het aantal lagen wordt normaal op vier afgekapt: hoger dan dat wordt in
+     deze wijk niet gewoond, en een doek van meer lagen kost alleen maar
+     geheugen. De twee flats aan de Potterzijlstraat zijn de uitzondering — die
+     zijn negen lagen hoog — en die zetten `maxLagen` in hun stijl. Zonder dat
+     werd hun gevel van 25 m over vier lagen uitgerekt: lagen van ruim zes meter.
+    */
+    const maxLagen = gst.maxLagen || 4;
+    const lagen = ind ? Math.max(1, Math.min(maxLagen, Math.floor(top / SH + 0.35))) : Math.max(1, Math.min(maxLagen, Math.round(top / SH)));
     const huizen = Math.max(1, Math.round(breed / gst.w));
     const sleutel = `gevel|${gtype}|${huizen}|${lagen}|${achter}|${seed % 6}`;
     const g = groep(sleutel, () => std(T.facade(gtype, huizen, lagen, achter, seed % 6)), achter ? 'achtergevel' : 'voorgevel');
@@ -1033,6 +1041,8 @@ function bouwPanden(scene, W, plat) {
       const h = Math.max(3, p.nok || p.goot || 3);
       for (const d of pandDozen(p)) W.addCollider(d.x, d.z, d.hx, d.hz, -d.hoek, h);
     }
+    const dst = T.HOUSE_STYLES[p.type];
+    if (dst && dst.dakdetail) dakDetails(scene, W, p, dst);
   }
   for (const g of groepen.values()) {
     const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { schaduw: true, klasse: g.klasse });
@@ -1041,6 +1051,85 @@ function bouwPanden(scene, W, plat) {
     scene.add(m);
   }
   console.log(`kaart: ${met3d} panden met 3D BAG-dak, ${geschat} geschat, ${matCache.size} materialen in ${groepen.size} stukken, ${K.vlakken.length} vlakken, ${K.wegassen.length} wegassen`);
+}
+
+/*
+ Schoorstenen en zonnepanelen op een pand met een echt 3D BAG-dak.
+
+ De rijtjes woningen die het spel zelf uitzet (js/world.js) hebben dit al; een
+ pand uit de BGT had alleen een kaal dakvlak. Aan de Westhemstraat is juist dát
+ het beeld van de foto: een rij schoorstenen op een rij en zonnepanelen die het
+ hele voordakvlak vullen.
+
+ Alles wordt uit de brondata afgeleid en niet geschat: de nok en de goot komen
+ uit het 3D BAG-model, en `rect` geeft de richting en de maat van het pand. De
+ nokrichting is de kórte as: een rijtjeswoning is diep en smal, en de nok loopt
+ evenwijdig aan de straat — dus langs de kant waar de buren staan. Aan welke
+ kant het voordakvlak ligt zegt `front`.
+
+ Het staat aan per stijl (`dakdetail`), niet voor alle panden tegelijk: dan
+ zouden er in één klap honderden schoorstenen bijkomen, en dat is een andere
+ beslissing dan deze ene straat.
+*/
+function dakDetails(scene, W, p, st) {
+  const R = p.rect;
+  if (!R || !p.nok || !p.goot || p.nok - p.goot < 0.6) return;
+  const u = [Math.cos(R.hoek), Math.sin(R.hoek)];          // lange as
+  const w = [-u[1], u[0]];                                  // korte as = nokrichting
+  const halfDiep = R.hx, halfNok = R.hz;
+  const groep = new THREE.Group();
+  const nok = p.nok, goot = p.goot;
+
+  if (st.chimney) {
+    const B = 0.62, HGT = Math.min(1.7, 0.55 + (nok - goot) * 0.35);
+    const m1 = new THREE.MeshStandardMaterial({ color: 0xb3a082, roughness: 0.95 });
+    const schoorsteen = new THREE.Mesh(new THREE.BoxGeometry(B, HGT, B), m1);
+    schoorsteen.position.set(R.cx, nok - 0.25 + HGT / 2, R.cz);
+    schoorsteen.rotation.y = -R.hoek;
+    schoorsteen.castShadow = true;
+    groep.add(schoorsteen);
+    const kap = new THREE.Mesh(new THREE.BoxGeometry(B + 0.14, 0.1, B + 0.14),
+      new THREE.MeshStandardMaterial({ color: 0x4a4744, roughness: 0.8 }));
+    kap.position.set(R.cx, nok - 0.25 + HGT + 0.05, R.cz);
+    kap.rotation.y = -R.hoek;
+    groep.add(kap);
+  }
+
+  if (st.solar) {
+    /*
+     Het voordakvlak: van de goot aan de voorkant omhoog naar de nok. De helling
+     volgt uit de twee hoogtes en de halve diepte, dus het paneel ligt echt op
+     het dak en niet er een halve meter boven of onder.
+    */
+    const zij = p.front ? Math.sign(p.front[0] * u[0] + p.front[1] * u[1]) || 1 : 1;
+    const loop = Math.hypot(halfDiep, nok - goot);           // lengte van het dakvlak
+    const deel = st.solarFull ? 0.70 : 0.45;
+    const pw = 2 * halfNok * (st.solarFull ? 0.84 : 0.55);   // breedte langs de nok
+    const ph = loop * deel;
+    /*
+     Het dakvlak als eigen assenstelsel: `wv` langs de nok, `sv` van de nok naar
+     de goot toe, `nv` er loodrecht op. Met die drie staat het paneel in één keer
+     goed; met drie losse draaiingen om x en y klopt het teken maar in de helft
+     van de windrichtingen.
+    */
+    const wv = new THREE.Vector3(w[0], 0, w[1]).normalize();
+    const sv = new THREE.Vector3(zij * u[0] * halfDiep, goot - nok, zij * u[1] * halfDiep).normalize();
+    let nv = new THREE.Vector3().crossVectors(sv, wv).normalize();
+    if (nv.y < 0) { nv.negate(); wv.negate(); }              // de normaal hoort omhoog te wijzen
+    const vlak = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph),
+      new THREE.MeshStandardMaterial({ map: T.solarPanel(), roughness: 0.3, metalness: 0.5 }));
+    // PlaneGeometry ligt in het xy-vlak met +z als normaal
+    vlak.quaternion.setFromRotationMatrix(
+      new THREE.Matrix4().makeBasis(wv, sv.clone().negate(), nv));
+    vlak.position.copy(new THREE.Vector3(R.cx, nok, R.cz)
+      .addScaledVector(sv, ph / 2 + loop * 0.10)
+      .addScaledVector(nv, 0.06));
+    groep.add(vlak);
+  }
+
+  if (!groep.children.length) return;
+  scene.add(groep);
+  if (W.lodAan) W.lodAan(groep, R.cx, R.cz, { tot: 260, straal: Math.max(halfDiep, halfNok) + 2 });
 }
 
 // Hekwerken en poorten van de omheinde terreinen (RWZI, data/stijl/omgeving.json):
