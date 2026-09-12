@@ -172,6 +172,74 @@
         "_uitleg": "De BGT kent voor het dek alleen 'gesloten verharding'; de foto laat rood asfalt zien. Waar de stroken liggen en hoe breed ze zijn komt uit de BGT-fietspadvakken zelf, alleen de kleur staat hier.",
         "rood": true
       }
+    },
+    {
+      "naam": "Rotonde Lemmerweg over de N7",
+      "bron": "Drie schermafdrukken van Google Maps in de chat (12 sep 2026): street view op de Lemmerweg bij de rotonde, dezelfde weg noordwaarts, en de N7 zelf — daar zie je de rijksweg in een bak liggen met twee viaducten erboven. Melding uit de beta-test: 'op lemmerweg loopt het omhoog de rotonde, onder rotonde loopt de andere weg door'.",
+      "_uitleg": "Hier gaat niet de weg omhoog maar de weg eronder omlaag: `verdiept`. De rotonde (twee halve ringen met elk een middeneiland) ligt gewoon op maaiveld, de N7 loopt er in een bak onderdoor en de twee helften van de ring zijn met twee brugdekken aan elkaar geknoopt. Die dekken staan als relatieveHoogteligging 1 in de BGT en vallen samen in `dekvak`. `as` is de middellijn van de rijksweg, met de hand uit de BGT-vlakken gelezen: het skelet heeft onder de brug een gat, en een route erover zou over de rotonde lopen in plaats van eronderdoor. Aan de uiteinden van die as ligt de weg weer op maaiveld. `kruinMax` en `kruinGat` maken de bak zo breed als de verharding werkelijk is (twee rijbanen met een middenberm horen in één bak); `bakBreed` is de halve breedte onder het dek, waar de rotonde er vlak tegenaan ligt.",
+      "verdiept": true,
+      "dekvak": {
+        "x0": 748,
+        "z0": -166,
+        "x1": 815,
+        "z1": -134
+      },
+      "doorrijhoogte": 4.7,
+      "dekdikte": 0.9,
+      "taludHelling": 2.2,
+      "kruinMax": 13,
+      "kruinGat": 3,
+      "leuning": {
+        "hoogte": 1.05,
+        "soort": "beton"
+      },
+      "as": [
+        [
+          600,
+          -158.5
+        ],
+        [
+          640,
+          -157
+        ],
+        [
+          680,
+          -155
+        ],
+        [
+          700,
+          -153.5
+        ],
+        [
+          730,
+          -152
+        ],
+        [
+          760,
+          -150.5
+        ],
+        [
+          790,
+          -149.5
+        ],
+        [
+          820,
+          -148
+        ],
+        [
+          860,
+          -145.5
+        ],
+        [
+          900,
+          -143.5
+        ],
+        [
+          950,
+          -141
+        ]
+      ],
+      "bakBreed": 12
     }
   ],
   "voortuinen": {

@@ -18,7 +18,13 @@
 
  Onder de brug is dat gewoon 0 — daar rijdt de rondweg. Het derde argument is de
  hoogte waar je nu bent; daarmee weet dit bestand of je op de brug staat of
- eronder. Zonder dat argument telt het dek.
+ eronder. Zonder dat argument telt het dek; met −Infinity juist nooit, en dat is
+ wat de wereldopbouw vraagt ("geef me de grond zelf").
+
+ Er is een tweede soort: `verdiept`. Bij de rotonde in de Lemmerweg gaat niet de
+ weg omhoog maar de rijksweg omlaag — die loopt in een bak onder de ring door,
+ met twee brugdekken erover. De hoogtes zijn daar negatief en het dek ligt op
+ maaiveld in plaats van bovenop de weg. De rest van de rekensom is dezelfde.
 */
 import * as THREE from 'three';
 
@@ -91,20 +97,30 @@ function raak(V, x, z) {
  * dan is de grond het maaiveld en niet het dek.
  */
 export function grondHoogte(x, z, y = Infinity) {
-  let uit = 0;
+  let uit = 0, diepste = 0;
   for (const V of VIA) {
     const r = raak(V, x, z);
-    if (!r || r.h <= 0) continue;
+    if (!r || r.h === 0) continue;
+    // hetzelfde dwarsprofiel voor omhoog en omlaag: vlak op de kruin, daarna
+    // schuin tot de teen van het talud (of van de bakwand)
     let h;
     if (r.d <= r.kruin) h = r.h;
     else if (r.teen <= r.kruin || r.d >= r.teen) h = 0;
     else h = r.h * (r.teen - r.d) / (r.teen - r.kruin);
+    if (h === 0) continue;
+    if (V.verdiept) {
+      if (h > 0) continue;
+      // boven de bak ligt het dek: sta je daarop, dan is de grond gewoon nul
+      if (r.dek && y > h + 1.2 && y > -1e6) continue;
+      if (h < diepste) diepste = h;
+      continue;
+    }
     if (h <= 0) continue;
     // op een brugdek kun je er ook onderdoor: dan telt het maaiveld
     if (r.dek && y < h - 1.2) continue;
     if (h > uit) uit = h;
   }
-  return uit;
+  return uit || diepste;
 }
 
 /**
@@ -113,13 +129,18 @@ export function grondHoogte(x, z, y = Infinity) {
  * meter groeiden anders dwars door de brug heen.
  */
 export function onderBrug(x, z, marge = 0) {
-  for (const V of VIA) { const r = raak(V, x, z); if (r && r.dek && r.d <= r.kruin + marge && r.h > 2) return true; }
+  for (const V of VIA) {
+    const r = raak(V, x, z);
+    if (r && r.dek && r.d <= r.kruin + marge && Math.abs(r.h) > 2) return true;
+  }
   return false;
 }
 
 /** Ligt (x,z) op het weglichaam van een viaduct (kruin, niet het talud)? */
 export function opViaduct(x, z) {
-  for (const V of VIA) { const r = raak(V, x, z); if (r && r.h > 0.15 && r.d <= r.kruin) return true; }
+  for (const V of VIA) {
+    const r = raak(V, x, z); if (r && Math.abs(r.h) > 0.15 && r.d <= r.kruin) return true;
+  }
   return false;
 }
 
@@ -202,19 +223,49 @@ function bouwEen(scene, W, KM, V) {
   */
   const ONDER = 0.06;
   for (let i = 1; i < n; i++) {
-    if (as[i - 1][7] && as[i][7]) continue;                 // op het dek geen dijk
-    if (as[i - 1][2] < 0.02 && as[i][2] < 0.02) continue;   // op maaiveld niet nodig
+    // op het dek geen dijk — maar in een bak juist wél: daar is dit de bakwand
+    if (!V.verdiept && as[i - 1][7] && as[i][7]) continue;
+    if (Math.abs(as[i - 1][2]) < 0.02 && Math.abs(as[i][2]) < 0.02) continue;
     const prof = (k) => {
       const [x, z, h, kl, tl, kr, tr] = as[k];
       return [punt(k, -tr, 0), punt(k, -kr, h - ONDER), punt(k, kl, h - ONDER), punt(k, tl, 0)];
     };
-    strook(grond, prof(i - 1), prof(i), 0.12);
+    /*
+     Staat de wand recht overeind, dan is het geen grastalud maar een keermuur:
+     dat gebeurt waar de bak langs de rotonde loopt en er geen ruimte is om af te
+     schuinen. Beton dus, geen gras.
+    */
+    const steil = Math.max(as[i][4] - as[i][3], as[i][6] - as[i][5]) < 0.4 && Math.abs(as[i][2]) > 1;
+    strook(V.verdiept && steil ? beton : grond, prof(i - 1), prof(i), 0.12);
   }
 
-  // Brugdek: rijvlak, dekligger eronder en de randen dicht.
-  const d0 = Math.max(1, V.dekVan), d1 = Math.min(n - 1, V.dekTot);
+  /*
+   De brugdekken over de bak. Dit zijn geen wegen die het spel bouwt — de BGT
+   legt het wegdek er al vlak overheen — maar de plaat eronder: van beneden zie
+   je anders door de brug heen de lucht.
+  */
+  if (V.verdiept) for (const b of V.bakDekken || []) {
+    const [bx0, bz0, bx1, bz1] = b;
+    const cx = (bx0 + bx1) / 2, cz = (bz0 + bz1) / 2;
+    const hx = (bx1 - bx0) / 2, hz = (bz1 - bz0) / 2;
+    doos(beton, cx, -V.dekdikte / 2 - 0.02, cz, hx, V.dekdikte / 2, hz, 0, 0.3);
+    // een lage rand langs de lange zijden, zodat je er niet zomaar af rijdt
+    const langsZ = hz >= hx;
+    const L = V.leuning || { hoogte: 1.0 };
+    for (const zij of [-1, 1]) {
+      const px = langsZ ? cx + zij * (hx - 0.15) : cx, pz = langsZ ? cz : cz + zij * (hz - 0.15);
+      doos(beton, px, L.hoogte / 2, pz, langsZ ? 0.15 : hx, L.hoogte / 2, langsZ ? hz : 0.15, 0, 0.4);
+      const c = W.addCollider(px, pz, langsZ ? 0.2 : hx, langsZ ? hz : 0.2, 0, L.hoogte);
+      c.y0 = 0;
+    }
+  }
+
+  // Brugdek: rijvlak, dekligger eronder en de randen dicht. Een oprit van een
+  // knooppunt heeft geen dek (dekVan = -1); dan blijft het bij het dijklichaam.
+  const heeftDek = V.dekVan >= 0 && V.dekTot > V.dekVan && !V.verdiept;
+  const d0 = heeftDek ? Math.max(1, V.dekVan) : -1, d1 = heeftDek ? Math.min(n - 1, V.dekTot) : -1;
   const DIK = V.dekdikte;
-  for (let i = d0 + 1; i <= d1; i++) {
+  for (let i = d0 + 1; heeftDek && i <= d1; i++) {
     const prof = (k, y) => { const [, , h, kl, , kr] = as[k]; return [punt(k, -kr - 0.35, y(h)), punt(k, kl + 0.35, y(h))]; };
     strook(beton, prof(i - 1, h => h - DIK), prof(i, h => h - DIK), 0.25);
     // zijkanten van de ligger
@@ -230,7 +281,7 @@ function bouwEen(scene, W, KM, V) {
    Landhoofden: het dijklichaam houdt bij de brug op, dus daar staat een muur.
    Zonder die muur kijk je van opzij zo de dijk in.
   */
-  for (const k of [d0, d1]) {
+  for (const k of heeftDek ? [d0, d1] : []) {
     const [x, z, h, kl, , kr] = as[k];
     // lokale x dwars over de weg (langs de normaal), lokale z in de rijrichting
     const yaw = Math.atan2(-V.nrm[k][1], V.nrm[k][0]);
@@ -270,7 +321,7 @@ function bouwEen(scene, W, KM, V) {
    je bovenop de brug tegen een pergola aan.
   */
   const B = V.boog || {};
-  if (B.overspanning) {
+  if (B.overspanning && heeftDek) {
     const mid = (d0 + d1) / 2;
     const halve = Math.min((d1 - d0) / 2 - 1, B.overspanning / 2);
     const i0 = Math.round(mid - halve), i1 = Math.round(mid + halve);
@@ -337,21 +388,24 @@ function bouwEen(scene, W, KM, V) {
     }
   }
 
-  // -- houten leuning langs het dek en een stuk de oprit op
-  const L = V.leuning || { hoogte: 1.3 };
+  // -- leuning langs het dek en een stuk de oprit op. Een oprit zonder dek
+  // krijgt er geen: daar rijd je gewoon een talud af.
+  const L = V.leuning === false ? null : (V.leuning || { hoogte: 1.3 });
+  // een houten leuning op de boogbrug, een betonnen rand op een rijksweg-dek
+  const leuningG = L && L.soort === 'beton' ? beton : hout;
   const van = Math.max(1, d0 - 10), tot = Math.min(n - 2, d1 + 10);
-  for (const zij of [1, -1]) {
+  for (const zij of L && heeftDek ? [1, -1] : []) {
     let vorigP = null;
     for (let i = van; i <= tot; i++) {
       const w = zij > 0 ? as[i][3] + 0.22 : -(as[i][5] + 0.22);
       const p = punt(i, w, as[i][2]);
-      if ((i - van) % 2 === 0) doos(hout, p[0], p[1] + L.hoogte / 2, p[2], 0.07, L.hoogte / 2, 0.07, 0, 0.7);
+      if ((i - van) % 2 === 0) doos(leuningG, p[0], p[1] + L.hoogte / 2, p[2], 0.07, L.hoogte / 2, 0.07, 0, 0.7);
       if (vorigP) {
         const dx = p[0] - vorigP[0], dz = p[2] - vorigP[2], dy = p[1] - vorigP[1];
         const len = Math.hypot(dx, dz, dy);
         const yaw = Math.atan2(dx, dz), hel = -Math.atan2(dy, Math.hypot(dx, dz));
         for (const hh of [L.hoogte, L.hoogte * 0.55]) {
-          doosSchuin(hout, [(p[0] + vorigP[0]) / 2, (p[1] + vorigP[1]) / 2 + hh, (p[2] + vorigP[2]) / 2], hh === L.hoogte ? 0.06 : 0.045, len / 2 + 0.02, yaw, hel);
+          doosSchuin(leuningG, [(p[0] + vorigP[0]) / 2, (p[1] + vorigP[1]) / 2 + hh, (p[2] + vorigP[2]) / 2], hh === L.hoogte ? 0.06 : 0.045, len / 2 + 0.02, yaw, hel);
         }
       }
       vorigP = p;

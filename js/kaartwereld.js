@@ -286,10 +286,35 @@ function grondMidden() {
   const g = KAART && KAART.gebied;
   return g ? { x: (g.x0 + g.x1) / 2, z: (g.z0 + g.z1) / 2 } : { x: 0, z: 0 };
 }
-function grondTextuur() {
+/*
+ Het grondvlak als vorm, met een gat per verdiepte weg. Zonder gaten is dit
+ gewoon een rechthoek en precies wat PlaneGeometry ook zou maken; met gaten kun
+ je in de bak kijken. De uv's worden met de hand gezet: ShapeGeometry geeft de
+ vormcoördinaten zelf terug, en dat zijn hier duizenden meters.
+*/
+function grondGeometrie(gaten = []) {
+  const [b, d] = grondMaat(), m = grondMidden();
+  const x0 = m.x - b / 2, x1 = m.x + b / 2, z0 = m.z - d / 2, z1 = m.z + d / 2;
+  const vorm = new THREE.Shape();
+  // let op: de vorm ligt in het xy-vlak en wordt straks om de x-as gekanteld,
+  // dus y hier is −z in de wereld
+  vorm.moveTo(x0, -z0); vorm.lineTo(x1, -z0); vorm.lineTo(x1, -z1); vorm.lineTo(x0, -z1); vorm.closePath();
+  for (const g of gaten) {
+    const gat = new THREE.Path();
+    gat.moveTo(g[0], -g[1]); gat.lineTo(g[0], -g[3]); gat.lineTo(g[2], -g[3]); gat.lineTo(g[2], -g[1]); gat.closePath();
+    vorm.holes.push(gat);
+  }
+  const geo = new THREE.ShapeGeometry(vorm);
+  const pos = geo.attributes.position, uv = geo.attributes.uv;
+  for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / 8, pos.getY(i) / 8);
+  uv.needsUpdate = true;
+  return geo;
+}
+
+function grondTextuur(hx = 1, hz = 1) {
   const t = T.grass().clone(); t.needsUpdate = true;
-  const [b, d] = grondMaat();
-  t.repeat.set(b / 8, d / 8);          // één grasdoek per acht meter
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(hx, hz);                // op het grote vlak staan de uv's al in meters/8
   return t;
 }
 
@@ -370,7 +395,13 @@ export function* bouwKaartWereldStap(scene, W) {
   // Vakken die op of tegen een viaduct liggen krijgen de hoogte van het
   // dijklichaam mee; de rest blijft plat en dus net zo goedkoop als eerst.
   const viaVakken = (K.viaducten || []).map(v => v.bbox);
-  const maaiveld = (x, z) => grondHoogte(x, z, 0);
+  /*
+   −Infinity betekent: geef me de grond zelf, nooit het dek erboven. Met 0 zou
+   het wegdek onder het viaduct goed gaan (dat ligt op maaiveld) maar de rijksweg
+   in de verdiepte bak bij de rotonde niet: die ligt op −5,6 m en zou als
+   maaiveld worden aangelegd, met het brugdek erdoorheen.
+  */
+  const maaiveld = (x, z) => grondHoogte(x, z, -Infinity);
   const opHelling = (r) => {
     const b = bboxRing(r[0]);
     return viaVakken.some(q => b[2] >= q[0] && b[0] <= q[2] && b[3] >= q[1] && b[1] <= q[3]);
@@ -443,9 +474,24 @@ export function* bouwKaartWereldStap(scene, W) {
      gat aan. Het volgt nu het gebied uit de kaart, met een ruime marge zodat de
      rand ook vanaf de buitenste hoek buiten de mist valt.
     */
-    const grond = new THREE.Mesh(new THREE.PlaneGeometry(...grondMaat()), new THREE.MeshStandardMaterial({ map: grondTextuur(), roughness: 1 }));
-    grond.rotation.x = -Math.PI / 2; grond.position.set(grondMidden().x, -1.0, grondMidden().z);
+    /*
+     Waar een weg verdiept ligt (de N7 onder de rotonde) moet er een gat in: dat
+     vlak op −1 m lag anders als een deksel over de bak heen en je keek op gras
+     in plaats van in de tunnelbak. Onder het gat komt een tweede vlak, diep
+     genoeg om er niet doorheen te kijken.
+    */
+    const bakken = (K.viaducten || []).filter(v => v.verdiept)
+      .map(v => ({ b: v.bbox, diep: v.hoogte }));
+    const grond = new THREE.Mesh(grondGeometrie(bakken.map(q => q.b)), new THREE.MeshStandardMaterial({ map: grondTextuur(), roughness: 1 }));
+    grond.rotation.x = -Math.PI / 2; grond.position.set(0, -1.0, 0);
     grond.receiveShadow = true; scene.add(grond);   // onder het water
+    for (const q of bakken) {
+      const bodem = new THREE.Mesh(new THREE.PlaneGeometry(q.b[2] - q.b[0], q.b[3] - q.b[1]),
+        new THREE.MeshStandardMaterial({ map: grondTextuur((q.b[2] - q.b[0]) / 8, (q.b[3] - q.b[1]) / 8), roughness: 1 }));
+      bodem.rotation.x = -Math.PI / 2;
+      bodem.position.set((q.b[0] + q.b[2]) / 2, q.diep - 1.0, (q.b[1] + q.b[3]) / 2);
+      bodem.receiveShadow = true; scene.add(bodem);
+    }
   } else {
     const grond = new THREE.Mesh(new THREE.PlaneGeometry(...grondMaat()), KM.plat.achtergrond);
     grond.rotation.x = -Math.PI / 2; grond.position.set(grondMidden().x, -1.0, grondMidden().z);
@@ -471,7 +517,7 @@ export function* bouwKaartWereldStap(scene, W) {
     let bomenWeg = 0;
     for (const b of K.bomen) {
       if (onderBrug(b.x, b.z, 3.0)) { bomenWeg++; continue; }
-      W.treePositions.push({ x: b.x, z: b.z, y: grondHoogte(b.x, b.z, 0), s: b.s, tall: !!b.tall, vrij: !!b.vrij });
+      W.treePositions.push({ x: b.x, z: b.z, y: grondHoogte(b.x, b.z, -Infinity), s: b.s, tall: !!b.tall, vrij: !!b.vrij });
     }
     kaartTelling.bomenOnderBrug = bomenWeg;
     // drempels: witte markering op de rijbaan
@@ -536,7 +582,7 @@ export function* bouwKaartWereldStap(scene, W) {
     // losse objecten uit de objectenbibliotheek (doelen, banken)
     for (const o of K.objecten || []) {
       const obj = W.maakProp ? W.maakProp(o.type) : null; if (!obj) continue;
-      obj.position.set(o.x, KERB_Y + grondHoogte(o.x, o.z, 0), o.z); obj.rotation.y = (o.yaw || 0) * Math.PI / 180;
+      obj.position.set(o.x, KERB_Y + grondHoogte(o.x, o.z, -Infinity), o.z); obj.rotation.y = (o.yaw || 0) * Math.PI / 180;
       obj.traverse(c => { c.castShadow = true; c.receiveShadow = true; });
       scene.add(obj);
       const def = PROP_TYPES[o.type];
@@ -561,7 +607,7 @@ export function* bouwKaartWereldStap(scene, W) {
       const m = new THREE.Matrix4();
       for (const [t, lijst] of perTegel) {
         const im = new THREE.InstancedMesh(geo, KM.struik, lijst.length);
-        lijst.forEach((s, i) => { m.makeScale(s.s, s.s * 0.8, s.s); m.setPosition(s.x, grondHoogte(s.x, s.z, 0) + 0.45 * s.s, s.z); im.setMatrixAt(i, m); });
+        lijst.forEach((s, i) => { m.makeScale(s.s, s.s * 0.8, s.s); m.setPosition(s.x, grondHoogte(s.x, s.z, -Infinity) + 0.45 * s.s, s.z); im.setMatrixAt(i, m); });
         im.computeBoundingSphere(); im.userData.klasse = 'struik';
         scene.add(im);
         /*
@@ -1334,7 +1380,13 @@ function bouwLantaarns(scene, W) {
     let best = null, bd = 1e9;
     for (const s of W.roadSegments) { if (!s.drive) continue; const d = Math.hypot(s.a[0] - l.x, s.a[1] - l.z); if (d < bd) { bd = d; best = s; } }
     const hoek = best ? Math.atan2(-(best.a[1] - l.z), best.a[0] - l.x) : 0;
-    const y = grondHoogte(l.x, l.z, 0);        // staat hij op de dijk van het viaduct?
+    /*
+     Waar staat de paal? −Infinity betekent: op de grond zelf. Op een dijklichaam
+     is dat de dijk, onder een brug het maaiveld eronder, en in de verdiepte bak
+     bij de rotonde de rijksweg — daar stond hij anders vijf meter boven de weg
+     te zweven, met een botsdoos waar je tegenaan reed.
+    */
+    const y = grondHoogte(l.x, l.z, -Infinity);
     m.makeRotationY(hoek); m.setPosition(l.x, y, l.z);
     palen.setMatrixAt(i, m); armen.setMatrixAt(i, m); koppen.setMatrixAt(i, m);
     W.lampPosities.push({ x: l.x + Math.cos(hoek) * 0.7, y: y + 5.1, z: l.z - Math.sin(hoek) * 0.7 });

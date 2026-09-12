@@ -261,6 +261,7 @@ naar `main` om een build te krijgen.
 | Botsgevoel en geluid (stap 42) | `npm run gevoeltest` | eindigt op "Alles goed" |
 | Startscherm, laadscherm en opbouw (stap 43, 45) | `npm run menutest` | eindigt op "Alles goed" |
 | De losse punten uit de beta-test (stap 44) | `npm run betatest` | eindigt op "Alles goed" |
+| De rotonde over de N7 (stap 46) | `npm run rotondetest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` (met `?relief=0` voor de kale stand) | de wereld is sinds stap 22 zes keer zo groot; de meting is nu een vergelijking met de vorige ronde, geen vaste bovengrens |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -3057,7 +3058,67 @@ plek verbouwen maakt het alleen erger. Dit wacht op twee getallen uit het spel
 
 Controle: `npm run betatest` (negentien controles) en `npm run betashots`.
 
-**Wat nog niet af is (in volgorde).**
+**De rotonde over de N7 (stap 46).**
+
+Het laatste punt uit de beta-test: *"op lemmerweg loopt het omhoog de rotonde,
+onder rotonde loopt de andere weg door"*. De gebruiker stuurde er drie
+schermafdrukken van Google Maps bij, en de derde gaf het antwoord: de rijksweg
+ligt daar in een **bak**, met twee viaducten erboven. De rotonde zelf ligt
+gewoon op maaiveld.
+
+*Wat het is.* Eén rotonde met twee halve middeneilanden: de ring spant over de
+N7 heen met twee brugdekken, west en oost, en tussen de eilanden door loopt de
+rijksweg eronder. In de BGT staat dat er precies zo in — de twee dekken hebben
+relatieveHoogteligging 1 — maar de BGT kent geen hoogte, dus het lag in het spel
+allemaal plat op elkaar.
+
+*De eerste poging was verkeerd om.* Die tilde de hele ring vijf en een halve
+meter op (een nieuw soort hoogtestuk: een plateau, een rechthoek die overal even
+hoog ligt). Dat klopte niet met de foto's en het werkte ook niet: de BGT tekent
+hier één groot wegvlak waar zowel de rijksweg als alle op- en afritten in
+zitten, en dat vlak half optillen geeft scherven asfalt en grasheuvels over de
+rijbaan. Bovendien moest dan élke aansluitende weg mee omhoog. Die weg is
+teruggedraaid.
+
+*Wat er wel staat.* De bestaande viaductmachinerie met een minteken ervoor:
+`verdiept`. Een viaduct is een weg die ergens overheen gaat — een lijn met een
+hoogte erlangs, een kruin en een talud. Een verdiepte weg is precies hetzelfde,
+maar de hoogtes zijn negatief en het dek ligt niet bovenop de weg maar erboven
+op maaiveld. Daarmee verandert er maar één ding aan de wereld: de rijksweg zelf
+zakt over driehonderdvijftig meter weg tot −5,6 m en komt er weer uit. De
+rotonde, de op- en afritten en de hele wijk blijven waar ze lagen.
+
+Vier dingen moesten erbij:
+
+1. *de as met de hand.* Het skelet van de rijbaanvlakken heeft onder de brug een
+   gat, dus de kortste weg van west naar oost loopt over de rotonde in plaats
+   van eronderdoor. Voor deze ene weg staat de middellijn daarom in
+   `data/stijl/omgeving.json`, om de twintig meter uit de BGT-vlakken gelezen —
+   het midden van de twee rijbanen samen;
+2. *de bak moet zo breed zijn als de weg.* Een rijksweg is twee rijbanen met
+   gras ertussen; meet je alleen tot waar de verharding ophoudt, dan krijg je
+   twee smalle geulen met een richel ertussen. `kruinGat` laat de meting over
+   een middenberm heen stappen, `kruinMax` houdt hem van de rotonde af, en onder
+   het dek is de bak precies zo breed als het dek spant (`bakBreed`);
+3. *een gat in het grondvlak.* Onder de hele wereld ligt een vlak op −1 m voor
+   de kieren. Dat lag als een deksel over de bak: je keek op gras in plaats van
+   in de tunnelbak. Het is nu een vorm met een gat erin (`ShapeGeometry`), met
+   een tweede vlak onder de bak;
+4. *−Infinity als "de grond zelf".* `grondHoogte(x, z, y)` gebruikt `y` om te
+   weten of je op een brug staat of eronder. Alles wat op de grond hoort te
+   staan — bomen, straatmeubilair, lantaarnpalen, en de wereldopbouw zelf —
+   vroeg dat met `y = 0`, en dat betekende in de bak "ik sta op maaiveld", dus
+   boven de weg. Twee lantaarnpalen zweefden zo vijf meter boven de middenberm,
+   mét botsdoos: de proefauto reed er middenin de bak tegenaan. Die aanroepen
+   vragen nu `-Infinity`, wat voor de bestaande brug precies hetzelfde oplevert.
+
+Gemeten: 351 m bak, 53 m onder de dekken, steilste helling 6 %, doorrijhoogte
+4,7 m. Het bovenaanzicht bleef op 1,59 % — de controleplaat rendert plat, dus de
+hoogte telt daar niet mee.
+
+Controle: `npm run rotondetest` (achttien controles) en `npm run rotondeshots`.
+
+**Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
 twee af: IJlst staat er (stap 22) en de politie is bijgewerkt (stap 24). Wat er

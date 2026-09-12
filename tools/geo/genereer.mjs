@@ -1239,15 +1239,24 @@ tel('hekwerken', HEKWERKEN.length); tel('poorten', POORTEN.length);
  halve breedte van de kruin en van de teen van het talud, links en rechts. Het
  spel (js/viaduct.js) leest daar de hoogte van elk punt uit, zodat de
  ondergrond, de auto's en de speler allemaal dezelfde helling voelen.
+
+ Met `verdiept` staat het op zijn kop: dan is niet de weg omhoog gegaan maar de
+ wég eronder omlaag. Dat is de rotonde in de Lemmerweg over de N7 (foto's van de
+ gebruiker, 12 sep 2026): de ring ligt gewoon op maaiveld en de rijksweg loopt er
+ in een bak onderdoor, met twee brugdekken erover. De route die hier uitgerekend
+ wordt is dan de rijksweg zelf, de hoogte is negatief, en het dek is niet de weg
+ maar wat eroverheen ligt. Alles ertussenin — de route zoeken, het profiel, de
+ breedte van de bak, het rechttrekken — is hetzelfde werk.
 */
 const VIADUCTEN = [];
 for (const V of OMGEVING.viaducten || []) {
   const D = V.dekvak;
   const inVak = (p) => p[0] >= D.x0 && p[0] <= D.x1 && p[1] >= D.z0 && p[1] <= D.z1;
   const inDekvak = (v) => inVak(zwaartepunt(v.r[0]));
+  const OMLAAG = !!V.verdiept;
   const dekVlakken = VLAKKEN.filter(v => (v.hl === 1 || v.k === 'brug') && v.sub !== 'pijler' && inDekvak(v));
   // de BGT tekent de pijler als eigen vlak; die staat straks onder het dek
-  const PIJLERS = VLAKKEN.filter(v => v.sub === 'pijler' && inDekvak(v)).map(v => v.r[0]);
+  const PIJLERS = OMLAAG ? [] : VLAKKEN.filter(v => v.sub === 'pijler' && inDekvak(v)).map(v => v.r[0]);
   if (!dekVlakken.length) { console.warn(`viaduct ${V.naam}: geen dekvlakken in het dekvak`); continue; }
   const opDek = (x, z) => dekVlakken.some(v => inPolygoon([x, z], v.r));
 
@@ -1262,21 +1271,51 @@ for (const V of OMGEVING.viaducten || []) {
     knopen[a].buren.push([b, L, k.w]); knopen[b].buren.push([a, L, k.w]);
   }
   const dichtst = (q) => { let bi = -1, bd = 1e9; knopen.forEach((n, i) => { const d = Math.hypot(n.p[0] - q[0], n.p[1] - q[1]); if (d < bd) { bd = d; bi = i; } }); return bi; };
-  const start = dichtst(V.voetZuid), doel = dichtst(V.voetNoord);
-  const afst = knopen.map(() => Infinity), via = knopen.map(() => -1), gedaan = knopen.map(() => false);
-  afst[start] = 0;
-  for (;;) {
-    let u = -1, bd = Infinity;
-    for (let i = 0; i < knopen.length; i++) if (!gedaan[i] && afst[i] < bd) { bd = afst[i]; u = i; }
-    if (u < 0 || u === doel) break;
-    gedaan[u] = true;
-    for (const [b, L] of knopen[u].buren) if (afst[u] + L < afst[b]) { afst[b] = afst[u] + L; via[b] = u; }
+  /*
+   De punten waar de weg weer op maaiveld ligt. Twee is genoeg voor een viaduct;
+   bij de verdiepte rijksweg staan er vier, want de kortste weg van west naar
+   oost loopt over de rotonde en niet eronderdoor — met een punt onder elk
+   brugdek erbij ligt de route vast. De generator zoekt de stukjes ertussen
+   zelf op.
+  */
+  const voeten = V.voeten || [V.voetZuid, V.voetNoord];
+  const routeTussen = (a, b) => {
+    const start = dichtst(a), doel = dichtst(b);
+    const afst = knopen.map(() => Infinity), via = knopen.map(() => -1), gedaan = knopen.map(() => false);
+    afst[start] = 0;
+    for (;;) {
+      let u = -1, bd = Infinity;
+      for (let i = 0; i < knopen.length; i++) if (!gedaan[i] && afst[i] < bd) { bd = afst[i]; u = i; }
+      if (u < 0 || u === doel) break;
+      gedaan[u] = true;
+      for (const [c, L] of knopen[u].buren) if (afst[u] + L < afst[c]) { afst[c] = afst[u] + L; via[c] = u; }
+    }
+    if (afst[doel] === Infinity) return null;
+    const r = []; for (let i = doel; i >= 0; i = via[i]) r.unshift(knopen[i].p);
+    return r;
+  };
+  const route = [];
+  if (V.as) {
+    /*
+     De as met de hand. Onder de brugdekken heeft het skelet van de rijbaanvlakken
+     een gat — de kortste weg van west naar oost loopt daardoor over de rotonde
+     en niet eronderdoor. Voor die ene weg staat de middellijn daarom in
+     data/stijl/omgeving.json, uitgelezen uit de BGT-vlakken zelf (het midden van
+     de twee rijbanen samen, om de twintig meter gemeten).
+    */
+    route.push(...V.as.map(p => [p[0], p[1]]));
+  } else {
+    let stukKapot = false;
+    for (let i = 1; i < voeten.length; i++) {
+      const r = routeTussen(voeten[i - 1], voeten[i]);
+      if (!r) { stukKapot = true; break; }
+      route.push(...(i === 1 ? r : r.slice(1)));
+    }
+    if (stukKapot) { console.warn(`viaduct ${V.naam}: geen route tussen de voetpunten`); continue; }
   }
-  if (afst[doel] === Infinity) { console.warn(`viaduct ${V.naam}: geen route tussen de twee voetpunten`); continue; }
-  const route = []; for (let i = doel; i >= 0; i = via[i]) route.unshift(knopen[i].p);
 
   // -- om de meter een station, met de hoogte uit het profiel
-  const HOOG = V.doorrijhoogte + V.dekdikte;
+  const HOOG = (OMLAAG ? -1 : 1) * (V.doorrijhoogte + V.dekdikte);
   const STAP = 1.0;
   const stations = [];
   let rest = 0;
@@ -1289,7 +1328,14 @@ for (const V of OMGEVING.viaducten || []) {
   stations.push(route[route.length - 1]);
   const dek = stations.map(p => opDek(p[0], p[1]));
   let d0 = dek.indexOf(true), d1 = dek.lastIndexOf(true);
-  if (d0 < 0) { console.warn(`viaduct ${V.naam}: de route raakt het dek niet`); continue; }
+  if (d0 < 0) {
+    console.warn(`viaduct ${V.naam}: de route raakt het dek niet`);
+    if (process.env.KNOOP_DEBUG) {
+      console.warn('  route bij het knooppunt:', stations.filter(p => p[0] > 700 && p[0] < 880 && p[1] > -200 && p[1] < -100).filter((_, i) => i % 5 === 0).map(p => `${p[0].toFixed(0)},${p[1].toFixed(0)}`).join(' '));
+      console.warn('  dekvlakken:', dekVlakken.map(v => v.k + ' ' + bboxRing(v.r[0]).map(Math.round).join(' ')).join(' | '));
+    }
+    continue;
+  }
   // gaatjes in het dek (een naad tussen twee BGT-vakken) tellen als dek
   for (let i = d0; i <= d1; i++) dek[i] = true;
   /*
@@ -1332,21 +1378,35 @@ for (const V of OMGEVING.viaducten || []) {
      zakt het talud daarna af tot in het gras. KRUIN_MAX houdt kruispunten en
      parkeerstroken buiten het weglichaam.
     */
-    const KRUIN_MAX = 9;
+    const KRUIN_MAX = V.kruinMax || 9;
     const kanten = [];
     for (const zij of [1, -1]) {
-      let kruin = 1.5, teen = 1.5;
+      let kruin = 1.5, teen = 1.5, gat = 0;
       for (let d = 1.5; d <= KRUIN_MAX; d += 0.25) {
         const x = p[0] + nx * zij * d, z = p[1] + nz * zij * d;
-        if (dek[i] ? opDek(x, z) : HARD.has(klasseVan(x, z))) { kruin = d; teen = d; continue; }
-        break;
+        // onder een dek telt bij een verdiepte weg de weg zelf, niet het dek
+        if (!OMLAAG && dek[i] ? opDek(x, z) : HARD.has(klasseVan(x, z))) { kruin = d; teen = d; gat = 0; continue; }
+        /*
+         Een rijksweg is twee rijbanen met gras ertussen, en die liggen samen in
+         één bak. Meet je tot waar de verharding ophoudt, dan krijg je twee
+         smalle geulen met een richel ertussen. `kruinGat` laat de meting over
+         een middenberm heen stappen.
+        */
+        gat += 0.25;
+        if (gat > (V.kruinGat || 0)) break;
       }
-      if (!dek[i]) for (let d = kruin + 0.25; d <= kruin + h * V.taludHelling + 1; d += 0.25) {
+      if (OMLAAG || !dek[i]) for (let d = kruin + 0.25; d <= kruin + Math.abs(h) * V.taludHelling + 1; d += 0.25) {
         const k = klasseVan(p[0] + nx * zij * d, p[1] + nz * zij * d);
         if (k && ZACHT.has(k)) { teen = d; continue; }
         break;
       }
-      kanten.push([r2(kruin), r2(dek[i] ? kruin : Math.max(teen, kruin + h * 0.5))]);
+      /*
+       Onder de brug is de bak precies zo breed als het dek spant: de rotonde
+       ligt er aan weerszijden vlak tegenaan, en die hoort op maaiveld te blijven
+       liggen. Verderop bepaalt de verharding zelf hoe breed de bak is.
+      */
+      if (OMLAAG && dek[i] && V.bakBreed) { kruin = V.bakBreed; teen = V.bakBreed; }
+      kanten.push([r2(kruin), r2(!OMLAAG && dek[i] ? kruin : Math.max(teen, kruin + Math.abs(h) * 0.5))]);
     }
     AS.push([r2(p[0]), r2(p[1]), r2(h), kanten[0][0], kanten[0][1], kanten[1][0], kanten[1][1], dek[i] ? 1 : 0]);
   }
@@ -1393,8 +1453,28 @@ for (const V of OMGEVING.viaducten || []) {
 
   const bb = [Infinity, Infinity, -Infinity, -Infinity];
   for (const s of AS) { const m = Math.max(s[4], s[6]) + 2; bb[0] = Math.min(bb[0], s[0] - m); bb[1] = Math.min(bb[1], s[1] - m); bb[2] = Math.max(bb[2], s[0] + m); bb[3] = Math.max(bb[3], s[1] + m); }
+  /*
+   Bij een verdiepte weg is het dek niet de weg zelf maar wat eroverheen ligt.
+   De BGT tekent elk dek als een handvol vlakken; die worden hier tot één
+   rechthoek per brug samengevoegd, zodat het spel er een betonnen plaat van kan
+   maken met een rand eraan.
+  */
+  const BAKDEKKEN = [];
+  if (OMLAAG) {
+    const groepen = [];
+    for (const v of dekVlakken) {
+      const c = zwaartepunt(v.r[0]);
+      let g = groepen.find(q => Math.hypot(q.c[0] - c[0], q.c[1] - c[1]) < 16);
+      if (!g) { g = { c, b: [Infinity, Infinity, -Infinity, -Infinity] }; groepen.push(g); }
+      const q = bboxRing(v.r[0]);
+      g.b[0] = Math.min(g.b[0], q[0]); g.b[1] = Math.min(g.b[1], q[1]);
+      g.b[2] = Math.max(g.b[2], q[2]); g.b[3] = Math.max(g.b[3], q[3]);
+    }
+    for (const g of groepen) BAKDEKKEN.push(g.b.map(r2));
+    telling[`viaduct_${V.naam.replace(/\W+/g, '_').toLowerCase()}_dekken`] = BAKDEKKEN.length;
+  }
   VIADUCTEN.push({
-    naam: V.naam, hoogte: r2(HOOG), dekdikte: V.dekdikte,
+    naam: V.naam, hoogte: r2(HOOG), dekdikte: V.dekdikte, ...(OMLAAG ? { verdiept: true, bakDekken: BAKDEKKEN } : {}),
     as: AS, dekVan: d0, dekTot: d1, bbox: bb.map(r2), dek: dekVlakken.map(v => v.r[0]), pijlers: PIJLERS,
     boog: V.boog, leuning: V.leuning, fietsstrook: V.fietsstrook,
   });
@@ -1416,7 +1496,7 @@ for (const V of OMGEVING.viaducten || []) {
    gemeten kruin valt zou anders naar het maaiveld zakken, en dan hangt er een
    scherf rood fietspad van de brug af.
   */
-  for (const v of dekVlakken) v.dekh = r2(HOOG);
+  for (const v of dekVlakken) v.dekh = OMLAAG ? 0 : r2(HOOG);
   const lengte = (AS.length - 1) * STAP;
   telling[`viaduct_${V.naam.replace(/\W+/g, '_').toLowerCase()}_m`] = Math.round(lengte);
   telling[`viaduct_${V.naam.replace(/\W+/g, '_').toLowerCase()}_dek_m`] = Math.round((d1 - d0) * STAP);

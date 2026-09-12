@@ -404,10 +404,23 @@ uit de vlakkenlijst gehaald zodra hij als luifel is gebruikt.
 `npm run betatest` rekent deze punten na — negentien controles — en `npm run betashots` maakt de
 foto's hierboven.
 
-Eén punt uit de beta-test staat nog open: de rotonde aan de Lemmerweg waar de weg omhoog loopt terwijl
-de andere weg eronderdoor hoort te gaan. Op de foto is niet te zien wélke rotonde het is. Ga er in het
-spel heen en druk op **K**: de coördinaat komt in beeld, en daarmee is de hoogtekaart op die plek te
-herstellen.
+## De rotonde over de N7
+
+Het laatste punt uit de beta-test: op de Lemmerweg ligt een rotonde over de rijksweg heen, en in het
+spel lag dat allemaal plat op elkaar. Nu niet meer — maar andersom dan je zou denken: niet de rotonde
+gaat omhoog, **de N7 gaat omlaag**. Hij ligt er in een bak van 5,6 m diep, met twee brugdekken erover
+waar de twee helften van de ring overheen lopen, en tussen de middeneilanden door zie je hem
+onderdoorlopen. Dat is ook hoe het er in het echt bij ligt (foto's van de gebruiker).
+
+| De bak van onderaf | Vlak voor de onderdoorgang |
+|---|---|
+| ![de bak](docs/screenshots/rotonde_bak.png) | ![onderdoor](docs/screenshots/rotonde_onderdoor.png) |
+
+De rijksweg zakt over 350 meter weg tot 5,6 m onder maaiveld en komt er aan de andere kant weer uit;
+de steilste helling is 6 %, en onder het dek is 4,7 m doorrijhoogte — een vrachtwagen kan eronderdoor.
+De rotonde, de op- en afritten en de rest van de wijk blijven precies waar ze lagen: alleen de weg zelf
+verandert van hoogte. `npm run rotondetest` rekent het na (achttien controles),
+`npm run rotondeshots` maakt de foto's.
 
 ## De autoradio
 
