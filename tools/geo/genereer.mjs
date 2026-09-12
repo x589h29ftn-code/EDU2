@@ -1757,6 +1757,95 @@ for (const t of (OMGEVING.tankstations || [])) {
 }
 tel('tankstations', TANKSTATIONS.length);
 
+// ------------------------------------------------------------- tennisbanen
+/*
+ De tennisbanen bij Molenkrite 130, pal naast het sportpark.
+
+ Uit de data: de banen liggen in de BGT als **halfverhard** (grind) — vier
+ blokken van 1276 tot 2535 m² rond (478, 225), met het clubgebouw (688 m²,
+ bouwjaar 2012) ernaast en tien parkeervakken ervoor. Maat, plek en richting van
+ elk blok komen daar vandaan.
+
+ Wat er niet uit komt: hoeveel banen er in zo'n blok liggen. Dat rekent de
+ generator uit met de maat van een echte baan: een afgezette tennisbaan is
+ 36,6 × 18,3 m (speelvlak 23,77 × 10,97 m plus uitloop). De korte kant van het
+ blok is dus de lengte van één baan, en over de lange kant passen er
+ `lengte / 18,3` naast elkaar.
+*/
+const TENNIS = [];
+const baanRingen = [];
+for (const t of (OMGEVING.tennisparken || [])) {
+  const vak = t.vak;
+  const blokken = [];
+  for (const v of VLAKKEN) {
+    if (v.k !== 'halfverhard') continue;
+    const ring = v.r[0];
+    let cx = 0, cz = 0;
+    for (const q of ring) { cx += q[0]; cz += q[1]; }
+    cx /= ring.length; cz /= ring.length;
+    if (cx < vak.x0 || cx > vak.x1 || cz < vak.z0 || cz > vak.z1) continue;
+    // de langste zijde geeft de richting
+    let as = [1, 0], asL = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (L > asL) { asL = L; as = [(b[0] - a[0]) / L, (b[1] - a[1]) / L]; }
+    }
+    let u0 = Infinity, u1 = -Infinity, w0 = Infinity, w1 = -Infinity;
+    for (const q of ring) {
+      const du = (q[0] - cx) * as[0] + (q[1] - cz) * as[1];
+      const dw = (q[0] - cx) * -as[1] + (q[1] - cz) * as[0];
+      u0 = Math.min(u0, du); u1 = Math.max(u1, du); w0 = Math.min(w0, dw); w1 = Math.max(w1, dw);
+    }
+    const langs = u1 - u0, dwars = w1 - w0;
+    if (Math.min(langs, dwars) < 20 || langs * dwars < 700) continue;   // te klein voor een baan
+    /*
+     De korte kant is de lengte van de baan (36,6 m), de lange kant vult zich met
+     banen naast elkaar. Ligt de korte kant langs `as`, dan draait de baanrichting
+     een kwartslag mee.
+     */
+    const baanLangsAs = langs <= dwars;
+    const baanLengte = baanLangsAs ? langs : dwars;
+    const rij = baanLangsAs ? dwars : langs;
+    const n = Math.max(1, Math.round(rij / (t.baanBreed || 18.3)));
+    const richting = baanLangsAs ? as : [-as[1], as[0]];
+    /*
+     Het hek staat om de omhullende rechthoek van het grindvlak, niet om de
+     veelhoek zelf — dat is ook wat er straks getekend wordt. Die rechthoek is
+     dus wat er vrijgemaakt moet worden.
+    */
+    {
+      const [ux, uz] = richting, [wx, wz] = [-richting[1], richting[0]];
+      const hl = baanLengte / 2, hb = rij / 2;
+      baanRingen.push([[[1, 1], [1, -1], [-1, -1], [-1, 1]].map(
+        ([a, b]) => [cx + ux * hl * a + wx * hb * b, cz + uz * hl * a + wz * hb * b])]);
+    }
+    blokken.push({
+      cx: r2(cx), cz: r2(cz), as: [r2(richting[0]), r2(richting[1])],
+      lengte: r2(baanLengte), breedte: r2(rij), banen: n,
+    });
+  }
+  if (!blokken.length) { console.warn(`LET OP: tennispark ${t.naam}: geen grindvlakken in het vak`); continue; }
+  TENNIS.push({ naam: t.naam, pand: t.pand || null, blokken,
+    hek: t.hek ?? 3.6, masten: t.masten !== false });
+  telling[`tennis_${t.naam.replace(/\W+/g, '_')}_banen`] = blokken.reduce((s2, b) => s2 + b.banen, 0);
+}
+tel('tennisparken', TENNIS.length);
+/*
+ Dezelfde opruimactie als bij de voetbalvelden: grind is voor de strooiregels
+ hierboven zachte grond, dus er kwamen bomen en struiken tussen de banen te
+ staan — binnen het hek, met een stam dwars door de uitloop heen. Alles wat
+ binnen zo'n omheind blok terecht is gekomen gaat er hier weer af.
+*/
+if (baanRingen.length) {
+  const opBaan = (o) => baanRingen.some(r => inPolygoon([o.x, o.z], r));
+  let weg = 0;
+  for (const lijst of [BOMEN, STRAATBOMEN, PARKBOMEN, STRUIKEN, BOSGEBIED_BOMEN, LANTAARNS]) {
+    for (let i = lijst.length - 1; i >= 0; i--) if (opBaan(lijst[i])) { lijst.splice(i, 1); weg++; }
+  }
+  tel('van_tennisbaan_weggehaald', weg);
+}
+
 /*
  ------------------------------------------------------------------ zuilengangen
  De twee gebogen blokken aan de Keizersmantel in Duinterpen (401-437 met de
@@ -1926,7 +2015,7 @@ const KAART = {
   heggen: HEGGEN, schuttingen: SCHUTTINGEN, paden: PADEN, tuinvlakken: TUINVLAKKEN, strepen: STREPEN, objecten: OBJECTEN,
   zuilengangen: ZUILENGANGEN,
   hekwerken: HEKWERKEN, poorten: POORTEN, viaducten: VIADUCTEN,
-  sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN, molens: MOLENS, tankstations: TANKSTATIONS,
+  sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN, molens: MOLENS, tankstations: TANKSTATIONS, tennisparken: TENNIS,
   labels: LABELS, huisnummers: HUISNUMMERS,
   telling,
 };

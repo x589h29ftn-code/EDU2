@@ -29,8 +29,8 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 page.on('pageerror', e => console.log('[pageerror]', e.message));
-await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'load' });
-await page.waitForFunction(() => window.__game, null, { timeout: 120000 });
+await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'load', timeout: 300000 });
+await page.waitForFunction(() => window.__game, null, { timeout: 300000 });
 await page.evaluate(() => {
   localStorage.removeItem('tinga.spel.v1');
   window.__autoplay = true;
@@ -88,8 +88,10 @@ for (const [id, regel] of PANDEN) {
     g.player.pitch = pl.pitch;
     g.player.applyCamera();
   }, plek);
-  await page.waitForTimeout(900);
-  await page.screenshot({ path: `${map}/${naam}.png` });
+  await page.waitForTimeout(2200);
+  // ruime tijdslimiet: op de kale softwarerenderer van de proefopstelling haalt
+  // één beeld de standaard van dertig seconden niet
+  await page.screenshot({ path: `${map}/${naam}.png`, timeout: 300000 });
   console.log(`${map}/${naam}.png`);
 }
 

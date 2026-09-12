@@ -237,6 +237,36 @@ komen plek, richting en maat vandaan. Alleen de doorrijhoogte, het aantal pompen
 |---|---|
 | ![tankstation](docs/screenshots/tank_onder.png) | ![prijzenzuil](docs/screenshots/tank_voor.png) |
 
+## Tennispark Molenkrite
+
+Naast het sportpark, bij Molenkrite 130, liggen tien gravelbanen: roodbruin gravel met witte belijning,
+een net per baan, een donkergroen gaashek van 3,6 m eromheen en lichtmasten op de hoeken.
+
+Ook dit komt uit de brondata. De banen staan in de BGT als **halfverhard** — grind, en dat is in
+Nederland gewoon gravel — in vier blokken van 1276 tot 2535 m². Maat, plek en richting van elk blok
+komen daar vandaan; alleen het aantal banen rekent de generator erbij, met de maat van een echte baan
+(36,6 × 18,3 m inclusief uitloop). Dat geeft 2 + 2 + 2 + 4 = tien banen.
+
+De belijning wordt op één doek per blok getekend in plaats van als losse balkjes: dat scheelt honderd
+objecten per park en een lijn van vijf centimeter blijft zo scherp. Door het hek rijd je niet heen;
+tussen de banen sta je vrij. Wat de strooiregels op het grind hadden neergezet — achtendertig bomen en
+struiken binnen het hek — wordt bij het genereren weer weggehaald, net als eerder op de voetbalvelden.
+`npm run tennistest` rekent het na, `npm run tennisshots` maakt de foto's.
+
+| Van bovenaf | Vanaf de baan |
+|---|---|
+| ![tennisbanen](docs/screenshots/tennis_boven.png) | ![net](docs/screenshots/tennis_net.png) |
+
+## Ranzijn Tuin & Dier
+
+Aan de rondweg bij de Zonnedauw staat het tuincentrum: Akkerwinde 1, één pand van 3112 m² (81 × 45 m)
+met een goot op 3,94 en een nok op 6,44 m, bouwjaar 1980. Die maat komt onveranderd uit de BGT en het
+3D BAG. Van de foto komen alleen kleur en indeling, zoals de regel voorschrijft: lichtgrijze
+gevelbeplating op een donkere plint, een glazen pui over de voorkant en daarboven de gele band met het
+woordmerk in het groen. De voorkant kijkt naar het westen, naar het parkeerterrein aan de rondweg.
+
+![Ranzijn Tuin & Dier](docs/screenshots/tuincentrum.png)
+
 ## De autoradio
 
 Zodra je in een auto stapt speelt de radio een nummer uit `audio/radio/`, door dezelfde smalle band als
