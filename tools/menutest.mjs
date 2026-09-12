@@ -15,7 +15,10 @@
  5. de wereld die eruit komt moet dezelfde zijn als vroeger — evenveel
     botsdozen, panden en parkeerplekken;
  6. de achtergrond komt uit beeld/laadscherm/beelden.json en zoomt langzaam in;
-    het verloop eroverheen hoort stil te staan.
+    het verloop eroverheen hoort stil te staan;
+ 7. het menudeuntje uit audio/menu/ speelt op herhaling, loopt door van het
+    startscherm naar het laadscherm, fadet uit als het spel begint en komt
+    terug bij Esc.
 
  Gebruik: python3 -m http.server 8123 &  node tools/menutest.mjs 8123
 */
@@ -73,6 +76,22 @@ ok(doek.zoomt && doek.eerst !== doek.later, 'en dat beeld zoomt langzaam in',
   `${doek.eerst} → ${doek.later}`);
 ok(doek.waas === 'none', 'het verloop eroverheen blijft staan', doek.waas);
 
+kop('het menudeuntje speelt en loopt door');
+/*
+ Muziek uit audio/menu/, op herhaling. Een browser laat geluid pas toe na een
+ klik; die is er hierboven geweest (Besturing), dus hij hoort nu te spelen. Hij
+ moet blijven spelen als het laadscherm ervoor schuift — dat is het hele punt —
+ en pas stoppen als het spel begint.
+*/
+await page.evaluate(() => document.getElementById('menuBesturing').click());
+await page.waitForTimeout(1500);
+const muziek = await page.evaluate(async () => (await import('/js/menu.js')).muziekStand());
+ok(muziek.er, 'er is een menudeuntje geladen');
+ok(muziek.er && muziek.lus, 'en het staat op herhaling');
+ok(muziek.er && muziek.speelt && muziek.volume > 0.05, 'het speelt in het startscherm',
+  muziek.er ? `volume ${muziek.volume}` : '');
+await page.evaluate(() => document.getElementById('menuBesturing').click());
+
 kop('de opbouw gaat in stukjes en laat zien hoever hij is');
 /*
  Tijdens het bouwen wordt er gemeten hoe lang het langste blok is waarin de
@@ -129,6 +148,10 @@ ok(wereld.botsdozen > 50000, 'de botsdozen staan er', `${wereld.botsdozen}`);
 ok(wereld.wegstukken > 5000, 'de wegstukken ook', `${wereld.wegstukken}`);
 ok(wereld.autos > 1500, 'en de geparkeerde auto\'s', `${wereld.autos} auto\'s, ${wereld.mensen} mensen`);
 
+const muziekNaLaden = await page.evaluate(async () => (await import('/js/menu.js')).muziekStand());
+ok(muziekNaLaden.speelt && muziekNaLaden.tijd > 1,
+  'tijdens het laadscherm speelt hetzelfde nummer door', `op ${muziekNaLaden.tijd} s`);
+
 kop('het spel begint na het laadscherm');
 await page.waitForFunction(() => window.__game && window.__game.player.active, null, { timeout: 60000 });
 const gestart = await page.evaluate(() => ({
@@ -137,6 +160,10 @@ const gestart = await page.evaluate(() => ({
 }));
 ok(gestart.actief, 'de speler is actief');
 ok(gestart.menuWeg, 'en het menu is uit beeld');
+await page.waitForTimeout(1200);
+const muziekInSpel = await page.evaluate(async () => (await import('/js/menu.js')).muziekStand());
+ok(!muziekInSpel.speelt || muziekInSpel.volume < 0.02, 'en het menudeuntje is uitgefadet',
+  `volume ${muziekInSpel.volume}`);
 
 kop('Esc brengt het menu terug, met Doorgaan erbij');
 const pauze = await page.evaluate(async () => {
@@ -157,6 +184,10 @@ const pauze = await page.evaluate(async () => {
   };
 });
 ok(pauze.zichtbaar && !pauze.actief, 'Esc pauzeert en toont het menu');
+await page.waitForTimeout(1400);
+const muziekPauze = await page.evaluate(async () => (await import('/js/menu.js')).muziekStand());
+ok(muziekPauze.speelt && muziekPauze.volume > 0.05, 'en het deuntje komt terug in het pauzescherm',
+  `volume ${muziekPauze.volume}`);
 ok(pauze.doorgaan, 'met Doorgaan erbij');
 ok(pauze.besturing && pauze.regels >= 8, 'Besturing klapt open met de hele toetsenlijst',
   `${pauze.regels} regels`);

@@ -2980,6 +2980,21 @@ Het beeld zelf is met de meegeleverde Chromium van 2,4 MB PNG naar 411 kB JPEG
 gebracht (kwaliteit 0,88) — er is in dit project geen beeldgereedschap, maar een
 canvas kan het ook.
 
+*En de muziek erbij (stap 47).* Eén nummer uit `audio/menu/` op herhaling, voor
+het startscherm, het laadscherm én het pauzescherm. Het moet vooral **doorlopen**
+als je van het startscherm naar het laadscherm gaat — daarom staat de speler in
+`js/menu.js` en niet in het scherm zelf, en zet `toonLaadscherm` hem niet stil
+maar juist aan. Hij fadet in ruim een seconde uit als het spel begint en komt
+terug bij Esc.
+
+Twee dingen die anders misgaan: een browser weigert geluid vóór de eerste klik
+(dan hangt er een eenmalige luisteraar aan `pointerdown`/`keydown` die het alsnog
+probeert), en het geluid van het spel staat los van dit element — `U` en de
+instelling Geluid roepen daarom `menu.zetGeluid()` aan, anders speelt het menu
+vrolijk door terwijl de rest stil is. De proef in `menutest` meet het nummer op
+vier plekken: in het startscherm, tijdens het laden (dezelfde `currentTime`, dus
+hij is niet opnieuw begonnen), in het spel (stil) en na Esc (weer aan).
+
 **De losse punten uit de beta-test (stap 44).**
 
 De overige meldingen uit het beta-testverslag gingen niet over één onderwerp maar

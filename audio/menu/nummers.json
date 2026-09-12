@@ -1,0 +1,11 @@
+{
+  "_uitleg": "Muziek voor het startscherm, het laadscherm en het pauzescherm (js/menu.js). Het eerste nummer dat laadt wordt gedraaid, op herhaling, en het loopt door als je van het startscherm naar het laadscherm gaat — het stopt pas als het spel begint en komt terug zodra je op Esc drukt. Staat de lijst leeg of laadt een bestand niet, dan blijft het menu gewoon stil; er gaat niets stuk. Let op de rechten: deze map gaat mee in een openbare repo, net als audio/radio/.",
+  "nummers": [
+    {
+      "bestand": "thema.mp3",
+      "titel": "Theme Song",
+      "artiest": "Grand Theft Auto: San Andreas",
+      "bron": "aangeleverd door de gebruiker, chat 12 sep 2026"
+    }
+  ]
+}

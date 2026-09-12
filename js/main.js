@@ -269,6 +269,7 @@ menu.bouwMenu({
   opAfsluiten: () => afsluiten(),
 });
 menu.laadBeelden();
+menu.laadMuziek();          // het menudeuntje uit audio/menu/, op herhaling
 menu.toonMenu();
 let keuzeBelofte = menu.wachtOpKeuze();
 let laadBalk = null;
@@ -658,7 +659,7 @@ window.addEventListener('keydown', e => {
 let stil = false;
 window.addEventListener('keydown', e => {
   if (e.code !== 'KeyU' || e.ctrlKey || e.metaKey) return;
-  stil = !stil; geluid.demp(stil);
+  stil = !stil; geluid.demp(stil); menu.zetGeluid(!stil);
   hud.show(stil ? 'Geluid uit' : 'Geluid aan', 1.8);
 });
 
@@ -808,7 +809,7 @@ menu.zetInstellingen(() => [
       resize();
     },
   },
-  { id: 'geluid', naam: 'Geluid', waarde: () => (stil ? 'uit' : 'aan'), volgende: () => { stil = !stil; geluid.demp(stil); } },
+  { id: 'geluid', naam: 'Geluid', waarde: () => (stil ? 'uit' : 'aan'), volgende: () => { stil = !stil; geluid.demp(stil); menu.zetGeluid(!stil); } },
   {
     id: 'weer', naam: 'Weer', waarde: () => sfeer.weer,
     volgende: () => { sfeer.weer = WEER_RIJ[(WEER_RIJ.indexOf(sfeer.weer) + 1) % WEER_RIJ.length]; },

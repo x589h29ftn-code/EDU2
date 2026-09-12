@@ -324,6 +324,12 @@ De beelden voor het laadscherm staan in [`beeld/laadscherm/`](beeld/laadscherm/)
 `beelden.json` — zet daar je eigen beelden neer. Is er niets, dan tekent `js/menu.js` zelf een
 achtergrond op een canvas, dus het werkt ook leeg.
 
+Er speelt **muziek** bij, uit [`audio/menu/`](audio/menu/): één nummer op herhaling dat begint zodra het
+menu er staat, gewoon **doorloopt** als het laadscherm ervoor schuift, uitfadet zodra het spel begint en
+weer terugkomt als je op Esc drukt. Een browser laat geluid pas toe ná een klik of toetsaanslag, dus als
+de eerste poging geweigerd wordt wacht het spel op de eerste de beste aanraking. Met **U** (of via
+Instellingen) gaat hij mee uit met de rest van het geluid.
+
 Het beeld staat niet stil: het **zoomt in achtentwintig seconden een procent of tien in**, met de vaart
 er langzaam uit — zoals een echt GTA-laadscherm. Per beeld staat in `beelden.json` hoever (`zoom`),
 welk deel in beeld blijft op een breder scherm (`focus`) en wat er onderin als titel staat (`titel`).

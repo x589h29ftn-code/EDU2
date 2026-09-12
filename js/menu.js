@@ -25,6 +25,12 @@
  GTA-laadscherm). Hoever, staat per beeld in `beelden.json`. Het verloop dat de
  tekst leesbaar houdt ligt in een eigen laag eroverheen en zoomt dus niet mee —
  anders schuift de donkere onderkant het scherm af terwijl je kijkt.
+
+ Er hoort **muziek** bij, uit `audio/menu/`: één nummer op herhaling dat blijft
+ doorspelen als je van het startscherm naar het laadscherm gaat, uitfadet zodra
+ het spel begint en terugkomt als je op Esc drukt. Een browser laat geluid pas
+ toe ná een klik of toetsaanslag, dus als de eerste poging geweigerd wordt
+ wacht dit bestand op de eerste de beste aanraking van de pagina.
 */
 
 const TIPS = [
@@ -143,6 +149,86 @@ function kiesBeeld() {
   if (i === vorigBeeld) i = (i + 1) % beelden.length;
   vorigBeeld = i;
   return beelden[i];
+}
+
+/* ------------------------------------------------------------------ muziek */
+let muziek = null;            // het <audio>-element
+let muziekAan = true;         // staat het geluid van het spel aan?
+let muziekWil = false;        // moet hij nu spelen?
+let vervaag = null;           // lopende fade
+
+const MUZIEK_LUID = 0.55;     // hard genoeg om het scherm te dragen, zacht genoeg om te praten
+
+/*
+ De lijst ophalen en het eerste nummer dat laadt klaarzetten. Hij begint pas te
+ spelen als het menu erom vraagt; of dat meteen mag, beslist de browser.
+*/
+export async function laadMuziek(pad = 'audio/menu/nummers.json') {
+  if (muziek) return muziek;
+  try {
+    const r = await fetch(pad, { cache: 'force-cache' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const eerste = (j.nummers || []).find(n => n && n.bestand);
+    if (!eerste) return null;
+    const a = new Audio(pad.replace(/[^/]*$/, '') + eerste.bestand);
+    a.loop = true;                      // op herhaling, zoals een menu hoort
+    a.volume = 0;
+    a.preload = 'auto';
+    muziek = a;
+    if (muziekWil) speelMuziek(true);
+  } catch { /* geen muziek: het menu is dan gewoon stil */ }
+  return muziek;
+}
+
+function naarVolume(doel, seconden = 0.8) {
+  if (!muziek) return;
+  clearInterval(vervaag);
+  const van = muziek.volume, stap = 40;
+  let i = 0;
+  vervaag = setInterval(() => {
+    i++;
+    const f = Math.min(1, i / (seconden * stap));
+    muziek.volume = Math.max(0, Math.min(1, van + (doel - van) * f));
+    if (f >= 1) {
+      clearInterval(vervaag); vervaag = null;
+      if (doel === 0) muziek.pause();
+    }
+  }, 1000 / stap);
+}
+
+/*
+ Aan of uit. Aanzetten kan door de browser geweigerd worden zolang er nog niet
+ geklikt is; dan hangen we er een eenmalige luisteraar aan die het bij de eerste
+ aanraking alsnog probeert.
+*/
+export function speelMuziek(aan) {
+  muziekWil = aan;
+  if (!muziek) return;
+  if (!aan || !muziekAan) { naarVolume(0, 0.6); return; }
+  const p = muziek.play();
+  naarVolume(MUZIEK_LUID, 1.2);
+  if (p && p.catch) p.catch(() => {
+    const nogEens = () => {
+      window.removeEventListener('pointerdown', nogEens);
+      window.removeEventListener('keydown', nogEens);
+      if (muziekWil && muziekAan) { muziek.play().catch(() => {}); naarVolume(MUZIEK_LUID, 0.6); }
+    };
+    window.addEventListener('pointerdown', nogEens, { once: true });
+    window.addEventListener('keydown', nogEens, { once: true });
+  });
+}
+
+// Voor de proef: speelt de muziek, staat hij op herhaling, hoe hard?
+export function muziekStand() {
+  if (!muziek) return { er: false };
+  return { er: true, speelt: !muziek.paused, lus: muziek.loop, volume: +muziek.volume.toFixed(2), wil: muziekWil, tijd: +muziek.currentTime.toFixed(1) };
+}
+
+// Het geluid van het spel staat uit (of weer aan): de menumuziek doet mee.
+export function zetGeluid(aan) {
+  muziekAan = !!aan;
+  if (muziek) { if (!muziekAan) naarVolume(0, 0.3); else if (muziekWil) speelMuziek(true); }
 }
 
 function knop(tekst, id, opKlik, hoofd = false) {
@@ -274,12 +360,14 @@ export function toonMenu({ pauze = false, heeftOpslag = null } = {}) {
   el.knoppen.nieuw.classList.toggle('hoofd', !pauze);
   el.knoppen.doorgaan.classList.toggle('hoofd', pauze);
   el.zijpaneel.hidden = true;
+  speelMuziek(true);           // ook bij Esc: het menu heeft zijn eigen deuntje
 }
 
 export function verbergMenu() {
   if (!el.wortel) return;
   el.wortel.style.display = 'none';
   el.laad.hidden = true;
+  speelMuziek(false);          // het spel begint: de menumuziek fadet uit
 }
 
 /*
@@ -291,6 +379,8 @@ export function toonLaadscherm() {
   el.wortel.style.display = 'flex';
   el.paneel.hidden = true;
   el.laad.hidden = false;
+  // de muziek loopt door van het startscherm naar het laadscherm: niets stoppen
+  speelMuziek(true);
   const b = kiesBeeld();
   zetDoek(el.laadDoek, b);
   if (el.laadTitel) el.laadTitel.textContent = (b && b.titel) || 'TINGA';
