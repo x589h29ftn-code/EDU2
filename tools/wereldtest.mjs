@@ -390,7 +390,13 @@ const gaten = await page.evaluate(() => {
       o.material.transparent = false; o.material.opacity = 1; o.material.depthWrite = true;
       watervlakken++;
     }
-    if (!o.isMesh || o.geometry.type !== 'PlaneGeometry') return;
+    /*
+     Het grondvlak was een PlaneGeometry; sinds de verdiepte rijksweg bij de
+     rotonde is het een ShapeGeometry met gaten erin (anders ligt het als deksel
+     over de tunnelbak). De vlakken ónder die bakken liggen dieper en vallen weg
+     op de hoogtetoets hieronder.
+    */
+    if (!o.isMesh || (o.geometry.type !== 'PlaneGeometry' && o.geometry.type !== 'ShapeGeometry')) return;
     if (Math.abs(o.position.y + 1.0) > 0.01) return;
     o.material = o.material.clone();
     o.material.color.setHex(0xff00ff);
