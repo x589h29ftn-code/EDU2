@@ -415,7 +415,10 @@ const gaten = await page.evaluate(() => {
   const plekken = [
     ['Molenkrite', 30, -20], ['Jasker', -180, 120], ['Lemmerweg', 700, 330],
     ['Kleine vos', 1180, 700], ['Duinterpen', 1320, 300], ['Bonkelaar', 210, 60],
-    ['IJlst', -1400, 1100],
+    // IJlst: een plek met volledige BGT-dekking. Op de Eegracht en eromheen
+    // houdt de dekking op (26 % van het terrein binnen 40 m heeft geen vlak),
+    // en daar is het grondvlak gewoon de ondergrond — geen kier.
+    ['IJlst', -1847, 716],
   ];
   const uit = [];
   for (const [naam, x, z] of plekken) {
