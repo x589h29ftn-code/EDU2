@@ -553,6 +553,7 @@ function startGame(vervolg = false) {
   overlay.style.display = 'none';
   player.active = true;
   geluid.start();
+  geluid.laadRadio();                      // muziek voor de autoradio, als die er is
   if (touch) {
     touch.setVisible(true);
     // volledig scherm en dwars: op een telefoon scheelt dat de halve browserbalk
@@ -673,6 +674,7 @@ const editor = initEditor({
 
 // Hoofdlus
 let last = performance.now(); let time = 0; let lodKlok = 0;
+let laatsteRadio = null;     // welk nummer er als laatste in het balkje stond
 // Afstand tot de dichtstbijzijnde radio in de wijk; audio.js bepaalt daarmee
 // het volume. Null als er geen radio staat.
 function afstandTotRadio(x, z) {
@@ -742,7 +744,16 @@ function loop() {
     updateProps(dt);
     geluid.omgeving(dt, { weer: sfeer.weer, nacht: sfeer.nacht, binnen: !!player.inCar });
     geluid.radio(afstandTotRadio(cx, cz));
-    geluid.autoradio(!!player.inCar);        // rockje uit de speakers in het portier
+    geluid.autoradio(!!player.inCar);        // muziek uit audio/radio/, anders het riffje
+    /*
+     Titel van het nummer in het balkje, net als een autoradio die het
+     scherm bijwerkt. Alleen als het nummer verandert, en alleen in de auto.
+    */
+    if (player.inCar) {
+      const nu2 = geluid.radioNummer();
+      const naam = nu2 ? `${nu2.titel} — ${nu2.artiest}` : null;
+      if (naam && naam !== laatsteRadio) { laatsteRadio = naam; hud.show(`♪ ${naam}`, 3.5); }
+    } else laatsteRadio = null;
     lodKlok += dt;
     if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); vehicles.lod(cx, cz); }
     hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);

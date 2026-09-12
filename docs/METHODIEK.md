@@ -2622,6 +2622,41 @@ Beide getallen zijn spelmeters vanaf de oorsprong (het kruispunt Molenkrite /
 Monnikmolen / Jasker, zie stap 1), dus ze zijn stabiel: de kaart opnieuw
 genereren verschuift ze niet.
 
+**Muziek op de autoradio, en de kaart die het spel ophield (stap 38).**
+
+*Muziek.* De radio in de auto speelt nu een bestand uit `audio/radio/` in plaats
+van het gesynthetiseerde riffje. Het gaat door dezelfde smalle band (hoogdoorlaat
+190 Hz, laagdoorlaat 3,4 kHz), dus het blijft uit de speakers in het portier
+klinken en niet als een concert, en het zakt weg onder het jachtdeuntje. Het
+bestand loopt via een `<audio>`-element dat als bron in de geluidsketen hangt —
+dan hoeft er niets in het geheugen gedecodeerd te worden. Welke nummers er zijn
+staat in `audio/radio/nummers.json`; er een bij zetten is een regel in dat
+bestand. Lukt het laden niet, dan komt het riffje terug: dat blijft de terugval.
+De titel verschijnt kort in het berichtbalkje, zoals een radio die zijn scherm
+bijwerkt. Controle: `npm run radiotest`.
+
+Het eerste nummer is *Snow (Hey Oh)* van de Red Hot Chili Peppers, aangeleverd
+als plaatshouder. Dat is geen rechtenvrije muziek en de repo is openbaar; voor
+een blijvende versie hoort daar eigen of rechtenvrij werk te staan.
+
+*De kaart.* "Als ik de map open wordt het spel ineens enorm traag" — dat klopte,
+en het was te meten: `drawBig` bouwde de hele kaart elk beeld opnieuw op en
+kostte **15,55 ms per beeld**, bovenop het spel zelf. Daar zat alles in: de
+ondergrond, het water, 1161 wegassen, 414 straatnaamlabels met een rand eromheen,
+de winkels, en 1781 auto's als evenzoveel losse `fillRect`-opdrachten.
+
+Het vaste deel gaat nu één keer op een eigen doek en wordt daarna alleen nog
+gekopieerd; opnieuw tekenen gebeurt alleen als het venster van maat verandert of
+als de route wijzigt. Wat elk beeld overblijft is het bewegende werk: de auto's
+(nu als één pad in plaats van 1781 opdrachten), de politie en je eigen pijltje.
+Uitkomst: **15,55 → 0,55 ms**, achtentwintig keer zo snel.
+
+*Wat niet oploopt.* Om zeker te weten dat het niet ergens anders aan ligt is er
+drie minuten spel gesimuleerd (voetgangers, verkeer, politie en props) met een
+telling ervoor en erna: 4537 objecten in de scène, 5645 meshes, 1287
+geometrieën, 989 texturen, 1781 auto's, 130 mensen, 56.097 colliders — vóór en
+ná exact gelijk. Er lekt dus niets weg tijdens het spelen.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -2676,17 +2711,11 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
    komt nu uit `js/verhaal.js`, op het adres uit de kaartdata.
 8. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
    zonder 3D-model.
-9. **Muziek uit een bestand voor de autoradio.** Al het geluid is nu
-   gesynthetiseerd (`js/audio.js`: er staat geen enkel geluidsbestand in de
-   repo), inclusief het rockje uit de portierspeakers. Wil je echte muziek, dan
-   komt er een map `audio/` bij met één of meer nummers, geladen met een
-   `<audio>`-element en door dezelfde smalle filterband gehaald als de
-   gesynthetiseerde radio, zodat het uit de speakers van de auto blijft klinken
-   en niet als een concert. Formaat: **mp3** werkt overal; ogg/opus is bij
-   gelijke kwaliteit kleiner maar werkt niet op elke oudere iPhone; m4a/aac kan
-   ook. Richtlijn 128 kbps en een paar megabyte per nummer, want alles gaat mee
-   in de repo en over GitHub Pages. Let op de rechten: eigen opname of
-   rechtenvrij, want de repo is openbaar.
+9. **Rechtenvrije muziek voor de autoradio.** De speler is er (stap 38), maar
+   het enige nummer dat erin staat is een plaatshouder waarop rechten rusten.
+   Formaat voor een vervanger: **mp3** werkt overal, ogg/opus is kleiner maar
+   niet op elke oudere iPhone, m4a/aac kan ook; richtlijn 128 kbps en een paar
+   megabyte per nummer, want alles gaat mee over GitHub Pages.
 10. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
    nog van vóór de supermarkt en de boerderij: de vlaggenmast en de twee nieuwe
    woningtypen staan er nog niet op. Bijwerken kan met `npm run propshots` en

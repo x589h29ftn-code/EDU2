@@ -64,6 +64,7 @@
     "duinterpenshots": "node tools/duinterpenshots.mjs",
     "schooltest": "node tools/schooltest.mjs",
     "bevolkingtest": "node tools/bevolkingtest.mjs",
+    "radiotest": "node tools/radiotest.mjs",
     "schoolshots": "node tools/schoolshots.mjs",
     "beeldshots": "node tools/beeldshots.mjs"
   }

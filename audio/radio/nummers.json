@@ -1,0 +1,6 @@
+{
+  "_uitleg": "De nummers die op de autoradio gedraaid worden, in deze volgorde. Zet een mp3 (of ogg/m4a) in deze map en voeg hem hier toe; het spel pakt hem vanzelf op. Staat de lijst leeg of lukt het laden niet, dan valt de radio terug op het gesynthetiseerde riffje uit js/audio.js. Let op de rechten: deze map gaat mee in een openbare repo.",
+  "nummers": [
+    { "bestand": "snow-hey-oh.mp3", "titel": "Snow (Hey Oh)", "artiest": "Red Hot Chili Peppers" }
+  ]
+}
