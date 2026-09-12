@@ -70,6 +70,8 @@
     "tennistest": "node tools/tennistest.mjs",
     "tennisshots": "node tools/tennisshots.mjs",
     "steekproeftest": "node tools/steekproeftest.mjs",
-    "steekproefshots": "node tools/steekproefshots.mjs"
+    "steekproefshots": "node tools/steekproefshots.mjs",
+    "gevoeltest": "node tools/gevoeltest.mjs",
+    "gevoelshots": "node tools/gevoelshots.mjs"
   }
 }

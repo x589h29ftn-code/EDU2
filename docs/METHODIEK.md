@@ -258,6 +258,7 @@ naar `main` om een build te krijgen.
 | Tankstation BP Slump Oil (stap 39) | `npm run tanktest` | eindigt op "Alles goed" |
 | Tennispark Molenkrite (stap 40) | `npm run tennistest` | eindigt op "Alles goed" |
 | De vijf panden uit de steekproef (stap 41) | `npm run steekproeftest` | eindigt op "Alles goed" |
+| Botsgevoel en geluid (stap 42) | `npm run gevoeltest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` (met `?relief=0` voor de kale stand) | de wereld is sinds stap 22 zes keer zo groot; de meting is nu een vergelijking met de vorige ronde, geen vaste bovengrens |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -2836,6 +2837,64 @@ Controle: `npm run steekproeftest` (zestien controles) en
 toetsen. Je leest hem één keer en daarna staat hij alleen maar voor de wijk. Wat
 blijft is wat je nú kunt doen — "Druk E om in te stappen" als je naast een auto
 staat. De lijst zelf staat nog in het start- en pauzescherm (Esc) en in de README.
+
+**Botsgevoel en geluid (stap 42).**
+
+Uit de beta-test kwam een lijst met meldingen, en daarnaast twee punten uit het
+voorstel voor de spelbeleving: het gevoel van een botsing, en geluiden die er
+nog niet waren. Deze stap doet die twee.
+
+*De klap.* Een aanrijding was tot nu toe alleen een getal — `car.speed *= 0.25`
+en verder veranderde er niets. Nu zet `drive` de snelheid waarmee je erin reed in
+`botsKracht`, en maakt js/main.js daar een schok van: een uitslag die in een
+halve seconde uitdempt en vlak voor het renderen bij de camera wordt opgeteld.
+De uitslag is een sinus met drie snelheden door elkaar; één zuivere trilling
+leest als een defect beeldscherm en niet als een klap. Hij zit op de camera en
+niet op de speler, want anders schuift de botsdoos mee en loop je door een muur.
+
+*Remsporen.* Honderdtwintig vierhoekjes in één buffer die als ringbuffer
+hergebruikt worden: er komt nooit geometrie bij, er wordt alleen in bestaande
+hoekpunten geschreven. Dat kost één draw call voor alle sporen samen, ook als je
+de halve wijk hebt rondgeslipt. Vervagen gaat via een eigen hoekpuntwaarde in een
+kleine shader, want een materiaal dat per spoor van doorzichtigheid verandert is
+een materiaal per spoor. Er zijn drie manieren om ze te maken — de handrem, hard
+remmen vanaf snelheid, en dwars door een bocht glijden — en samen geven die het
+`gierNiveau` waar ook het geluid op meeloopt.
+
+*Wrakken.* Een uitgebrande auto bleef er eeuwig staan. Nu komt hij na een minuut
+terug als gewone auto op zijn eigen parkeerplek, maar alleen als de speler er
+meer dan tachtig meter vandaan is: iets zien verdwijnen waar je naar kijkt leest
+als een fout. Daarvoor moest een geparkeerde auto onthouden waar hij stond
+(`start`) en wat zijn lak was. Bij het opblazen bleek een geparkeerde auto
+trouwens helemaal niet zwart te worden: die zit in een instanced stapel en had
+geen eigen materiaal om te vervangen. Dat gaat nu via de kleur van de instantie.
+
+*Vier nieuwe geluiden.* Een auto die ontploft speelde `klap()` af — hetzelfde
+blikken geluid als een kogel in een portier. Een benzinetank is vooral láág en
+lang; de scherpte zit alleen in de eerste vijftig milliseconden. De `explosie`
+heeft dus vier lagen, net als het schot: de flits, een sinus die van 90 naar
+28 Hz zakt, anderhalve seconde uitdovend vuur, en brokken die op straat vallen.
+Daarnaast `glas` (scherven als hoge tikjes over een halve seconde), `kreet`
+(een zaagtand op stemhoogte door drie formantbanden — dat maakt er een klinker
+van in plaats van een zoemer, met `schrik` en `pijn` als varianten) en `gier`
+(één doorlopende bron waarvan sterkte en toonhoogte met het slippen meelopen).
+
+*Vier meldingen uit de beta-test.*
+
+1. **De sirene loeide door zodra je een gebouw in liep.** Binnen wordt
+   `politie.update` niet aangeroepen — je staat dan in een andere ruimte — en dus
+   werd de sirene ook niet meer bijgewerkt; hij bleef op zijn laatste stand
+   hangen. Binnen wordt hij nu zelf op stil gezet.
+2. **De motor bromde door in het pauzescherm.** Zelfde soort oorzaak: de
+   oscillator loopt door en `motorToeren` wordt niet meer aangeroepen. Er is nu
+   een `geluid.pauzeer` die het hoofdvolume dichtdraait en de muziek echt stilzet.
+3. **De motor overstemde de radio.** De muziek stond op 0,22 en de motor liep tot
+   0,11 met een open filter erbij. Muziek naar 0,32, motor naar hoogstens 0,074.
+4. **"Raak!" en "Agent neer!" zijn weg.** Je ziet het gebeuren, en het balkje
+   stond er voortdurend. Wat ervoor in de plaats komt is de kreet: dat vertelt
+   hetzelfde zonder tekst.
+
+Controle: `npm run gevoeltest` (dertien controles) en `npm run gevoelshots`.
 
 **Wat nog niet af is (in volgorde).**
 

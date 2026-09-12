@@ -20,6 +20,7 @@ let ctx = null;
 let hoofd = null;      // eindvolume
 let aan = false;
 let gedempt = false;
+let gepauzeerd = false;   // Esc: alles stil, zie geluid.pauzeer
 
 const bronnen = {};          // langlopende lagen
 let radioLijst = [];         // de nummers uit audio/radio/nummers.json
@@ -112,7 +113,7 @@ export const geluid = {
   // hoofdvolume; de U-toets in main.js zet het geluid hiermee uit en aan
   demp(v) {
     gedempt = v;
-    if (hoofd) hoofd.gain.setTargetAtTime(v ? 0 : 0.55, nu(), 0.15);
+    if (hoofd) hoofd.gain.setTargetAtTime(gedempt || gepauzeerd ? 0 : 0.55, nu(), 0.15);
   },
 
   /*
@@ -297,6 +298,138 @@ export const geluid = {
     toon({ freq: 320, naar: 180, duur: 0.2, volume: 0.12, golf: 'triangle' });
   },
 
+  /*
+   Een auto die ontploft. Dit was hetzelfde blikken `klap()` als een kogel in een
+   portier, en dat leest niet als een explosie — een knal van een benzinetank is
+   vooral láág en lang, en de scherpte zit er alleen in de eerste vijftig
+   milliseconden.
+
+   Vier lagen, net als bij het schot:
+   1. de flits: breedbandige ruis van 60 ms, de klap die je het eerst hoort;
+   2. de stoot: een sinus die van 90 naar 28 Hz zakt — dat is wat je voelt;
+   3. het vuur: laaggefilterde ruis van anderhalve seconde die uitdooft, het
+      rommelende deel;
+   4. de brokken: een handvol tikjes in het eerste halve seconde, blik en glas
+      dat op de straat terechtkomt.
+  */
+  explosie() {
+    if (!aan) return;
+    tik({ freq: 2200, q: 0.4, duur: 0.06, volume: 0.5, type: 'highpass', val: 0.15 });
+    tik({ freq: 240, q: 0.6, duur: 0.55, volume: 0.5, type: 'lowpass', val: 0.25 });
+    toon({ freq: 90, naar: 28, duur: 0.65, volume: 0.30, golf: 'sine' });
+    tik({ freq: 420, q: 0.5, duur: 1.6, volume: 0.22, type: 'lowpass', val: 0.35, vertraag: 0.05 });
+    for (let i = 0; i < 7; i++) {
+      tik({ freq: 2600 + Math.random() * 4000, q: 3, duur: 0.05, volume: 0.07,
+            vertraag: 0.12 + Math.random() * 0.5 });
+    }
+  },
+
+  /*
+   Glas. Een ruit die het begeeft is geen enkele klap maar een handvol scherven
+   die kort na elkaar op de stoep vallen: hoge tikjes met wisselende toonhoogte,
+   uitgesmeerd over een halve seconde.
+  */
+  glas() {
+    if (!aan) return;
+    tik({ freq: 5200, q: 1.2, duur: 0.05, volume: 0.16, type: 'highpass', val: 0.2 });
+    const n = 5 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < n; i++) {
+      toon({ freq: 3200 + Math.random() * 4200, duur: 0.025 + Math.random() * 0.03,
+             volume: 0.035 + Math.random() * 0.03, golf: 'triangle',
+             vertraag: 0.02 + Math.random() * 0.45 });
+    }
+  },
+
+  /*
+   Een menselijke kreet. Geen samples, dus het moet uit formanten komen: een
+   zaagtand op de toonhoogte van een stem met drie smalle banden erop, die samen
+   ongeveer een "aah" vormen. `soort` is 'schrik' (kort, hoog, omhoog) of 'pijn'
+   (lager, langer, zakkend). `stem` schuift de toonhoogte, zodat niet iedereen in
+   de straat dezelfde keel heeft.
+
+   Afstand telt: wie honderd meter verderop schrikt hoor je niet.
+  */
+  kreet(soort = 'schrik', afstand = 0, stem = Math.random()) {
+    if (!aan) return;
+    const v = Math.max(0, 1 - afstand / 55) ** 1.5;
+    if (v < 0.03) return;
+    const t = nu();
+    const laag = soort === 'pijn';
+    const basis = (laag ? 150 : 230) * (0.82 + stem * 0.42);
+    const duur = laag ? 0.42 : 0.26;
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(basis * (laag ? 1.12 : 0.88), t);
+    o.frequency.exponentialRampToValueAtTime(basis * (laag ? 0.62 : 1.28), t + duur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.16 * v, t + 0.035);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+    // drie formanten maken er een klinker van in plaats van een zoemer
+    let laatste = o;
+    for (const [f, q] of [[720, 7], [1180, 9], [2600, 11]]) {
+      const b = ctx.createBiquadFilter();
+      b.type = 'bandpass'; b.frequency.value = f * (0.9 + stem * 0.2); b.Q.value = q;
+      laatste.connect(b); laatste = b;
+    }
+    laatste.connect(g); g.connect(hoofd);
+    o.start(t); o.stop(t + duur + 0.05);
+  },
+
+  /*
+   Bandengier. Eén doorlopende bron die elk beeld een sterkte tussen 0 en 1
+   krijgt: hoe harder de banden slippen, hoe luider en hoe hoger. Ruis door een
+   smalle band rond 1,3 kHz klinkt als rubber over asfalt; een enkele toon erbij
+   geeft het de piep.
+  */
+  gier(sterkte = 0) {
+    if (!aan) return;
+    if (!bronnen.gier) {
+      if (sterkte <= 0.01) return;
+      const src = ctx.createBufferSource();
+      src.buffer = ruisBuffer(3); src.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1300; f.Q.value = 7;
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 780;
+      const og = ctx.createGain(); og.gain.value = 0.06;
+      const g = ctx.createGain(); g.gain.value = 0;
+      src.connect(f); o.connect(og); og.connect(f); f.connect(g); g.connect(hoofd);
+      src.start(); o.start();
+      bronnen.gier = { gain: g, filter: f, o };
+    }
+    const s = bronnen.gier, t = nu();
+    const k = Math.max(0, Math.min(1, sterkte));
+    s.gain.gain.setTargetAtTime(k * 0.13, t, k > 0.05 ? 0.04 : 0.12);
+    s.filter.frequency.setTargetAtTime(1050 + k * 900, t, 0.1);
+    s.o.frequency.setTargetAtTime(640 + k * 420, t, 0.1);
+  },
+
+  /*
+   Pauze. Zonder dit blijft de motor doorbrommen zodra je Esc indrukt: de
+   oscillator loopt door en `motorToeren` wordt niet meer aangeroepen, dus hij
+   blijft op de laatste stand hangen. Hetzelfde geldt voor de sirene en de
+   omgevingslagen. Het hoofdvolume in één keer dichtdraaien lost ze alle drie op,
+   en de muziek wordt echt stilgezet zodat hij niet doorloopt terwijl je in het
+   menu staat.
+  */
+  // De stand van de geluidsketen, voor tools/gevoeltest.mjs: wat staat er open?
+  stand() {
+    return {
+      aan, gedempt, gepauzeerd,
+      hoofd: hoofd ? +hoofd.gain.value.toFixed(4) : null,
+      motor: bronnen.motor ? +bronnen.motor.gain.gain.value.toFixed(4) : null,
+      sirene: bronnen.sirene ? +bronnen.sirene.gain.gain.value.toFixed(4) : null,
+      gier: bronnen.gier ? +bronnen.gier.gain.gain.value.toFixed(4) : null,
+      muziek: bronnen.muziek ? +bronnen.muziek.gain.gain.value.toFixed(4) : null,
+    };
+  },
+
+  pauzeer(v) {
+    gepauzeerd = !!v;
+    if (hoofd) hoofd.gain.setTargetAtTime(gedempt || gepauzeerd ? 0 : 0.55, nu(), 0.08);
+    const m = bronnen.muziek;
+    if (m && m.el) { if (gepauzeerd) m.el.pause(); else if (m.aan) m.el.play().catch(() => {}); }
+  },
+
   // ---------- motor in de auto ----------
   motorAan() {
     if (!aan || bronnen.motor) return;
@@ -357,7 +490,7 @@ export const geluid = {
     m.o1.frequency.setTargetAtTime(48 + n * 155, t, tau);
     m.o2.frequency.setTargetAtTime(24 + n * 78, t, tau);
     m.filter.frequency.setTargetAtTime(380 + n * 1500 * gas, t, 0.12);
-    m.gain.gain.setTargetAtTime((0.055 + n * 0.055) * gas, t, schakelt ? 0.05 : 0.15);
+    m.gain.gain.setTargetAtTime((0.036 + n * 0.038) * gas, t, schakelt ? 0.05 : 0.15);
   },
 
   /*
@@ -421,8 +554,15 @@ export const geluid = {
       el.addEventListener('error', () => { bronnen.muziek.stuk = true; });
     }
     const m = bronnen.muziek;
+    m.aan = !!actief;                               // zodat geluid.pauzeer weet of hij mag hervatten
     if (m.stuk) return false;                       // bestand doet het niet: terug naar het riffje
-    const doel = actief ? (bronnen.jacht && bronnen.jacht.actief ? 0.06 : 0.22) : 0;
+    /*
+     De muziek stond op 0,22 en de motor liep tot 0,11 met een open filter erbij;
+     in de auto overstemde de motor daarmee het nummer (melding beta-test
+     12 sep 2026). De muziek gaat omhoog en de motor omlaag, zodat je de motor
+     nog steeds hoort schakelen maar de radio ervoor komt.
+    */
+    const doel = actief ? (bronnen.jacht && bronnen.jacht.actief ? 0.08 : 0.32) : 0;
     m.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (actief) {
       if (!m.nummer) {
