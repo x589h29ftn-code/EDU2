@@ -85,10 +85,23 @@ export function initSfeer(ctx) {
     druppels.push({ x: (Math.random() - 0.5) * 70, y: Math.random() * 26, z: (Math.random() - 0.5) * 70, v: 22 + Math.random() * 14 });
   }
 
-  // ---------- straatverlichting ----------
-  // Acht lampen in een pool: die springen naar de dichtstbijzijnde palen, zodat
-  // je nooit meer dan acht echte lichtbronnen hebt.
-  const POOL = 8;
+  /*
+   ---------- straatverlichting ----------
+   Een handvol lampen in een pool die naar de dichtstbijzijnde palen springen,
+   zodat er nooit meer dan `POOL` echte lichtbronnen in de scène staan.
+
+   Het waren er acht, en dat was de reden dat het spel 's avonds inzakte
+   (melding beta-test 12 sep 2026). Gemeten op de proefopstelling: overdag 1702
+   ms per beeld, 's nachts 4812 — bijna drie keer zo traag bij hetzelfde aantal
+   draw calls en dezelfde driehoeken. Het zit dus niet in wat er getekend wordt
+   maar in hoe duur elk beeldpunt wordt: elke puntlamp telt mee in de
+   belichtingslus van élk materiaal, en de kaart moest er ook nog eens
+   negentien extra shaderprogramma's voor vertalen (32 → 51).
+
+   Drie lampen geven op straat hetzelfde beeld — je staat altijd in de plas van
+   één paal met twee in de verte — voor ruim de helft minder rekenwerk.
+  */
+  const POOL = 3;
   const lichten = [];
   for (let i = 0; i < POOL; i++) {
     const l = new THREE.PointLight(0xffdca8, 0, 26, 1.8);
@@ -98,6 +111,13 @@ export function initSfeer(ctx) {
   }
   let lichtTeller = 0;
 
+  /*
+   Proberen de programma's van de avondstand vooraf te laten vertalen met
+   `renderer.compile` hielp niet: de kaart maakte er zesendertig varianten bij
+   die daarna niet eens gebruikt werden (32 → 68 programma's overdag), en het
+   beeld werd er langzamer van in plaats van sneller. Wat wel werkt is gewoon
+   minder lampen, zie POOL hierboven.
+  */
   function zetLampen(camX, camZ, aan) {
     if (!aan) {
       for (const l of lichten) if (l.visible) { l.visible = false; l.intensity = 0; }
@@ -114,7 +134,7 @@ export function initSfeer(ctx) {
       const l = lichten[i];
       if (i < dichtbij.length) {
         l.position.set(dichtbij[i].p.x, dichtbij[i].p.y, dichtbij[i].p.z);
-        l.visible = true; l.intensity = 9;
+        l.visible = true; l.intensity = 11;
       } else { l.visible = false; l.intensity = 0; }
     }
   }

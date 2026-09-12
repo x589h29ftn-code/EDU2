@@ -356,6 +356,52 @@ motor bromde door zolang je in het pauzescherm stond, de motor overstemde de rad
 muziek harder), en de meldingen "Raak!" en "Agent neer!" zijn weg — je ziet het gebeuren en nu hoor je
 het ook. `npm run gevoeltest` rekent het na.
 
+## Zeven punten uit de beta-test
+
+De rest van de beta-test ging over de wereld en de auto zelf. Wat er is veranderd:
+
+**De avond kostte de helft van je snelheid.** Liep de klok het donker in, dan zakte het spel in. Dat
+kwam van de straatlampen: elke puntlamp telt mee in de belichting van **elk** materiaal in beeld, dus
+acht lampen rond de speler betekent acht keer rekenen per oppervlak. Het zijn er nu **drie**, met een
+hogere sterkte per lamp (9 → 11) zodat de straat er even licht uit ziet. De nachtprijs zakte van
+**+183 % naar +96 %** per beeld.
+
+**Uit de auto schieten.** Dat kon helemaal niet. Nu wel — naar voren en opzij, tot 150° van de neus
+af. Recht naar achteren niet: je hangt uit het raam, je hangt niet over de achterbank.
+
+**De koplampen staken uit de neus.** Vijf centimeter vóór het plaatwerk, waardoor ze van schuin voren
+als een los blokje naast de auto zweefden. Koplampen, achterlichten, achteruitrijlichten, de grille en
+de lampen van de vrachtwagen zitten nu **in** het blik, met anderhalve centimeter die er nog uitsteekt.
+
+**Lantaarnpalen gaan om.** Rijd je er met vaart tegenaan (boven de 5 m/s), dan kantelt de paal in een
+halve seconde om en blijft liggen. Zijn botsdoos zakt mee naar 0,35 m: met de auto rijd je er daarna
+overheen, te voet stap je er nog omheen. Pas veertig seconden later én meer dan zestig meter verderop
+staat hij weer rechtop — anders is de wijk na een half uur kaal, maar je ziet het ook niet gebeuren.
+
+![een omgereden lantaarnpaal](docs/screenshots/lantaarn_om.png)
+
+**Wegafsluitingen in plaats van onzichtbare muren.** Op (800.9, −554.2) stond een onzichtbare wand
+waar je zonder waarschuwing tegenaan reed. Daar staan nu **rood-wit gestreepte schrikhekken** dwars
+over de weg met een baken aan weerszijden. De botsdoos loopt links en rechts zeventig meter door, dus
+via de berm kom je er ook niet omheen — maar je ziet nu dat het einde een afzetting is en geen bug.
+Een plek toevoegen is een regel in `data/stijl/omgeving.json` onder `wegafsluitingen`; de generator
+zoekt zelf de dichtstbijzijnde rijbaan-as en zet het hek er haaks op.
+
+![de wegafsluiting aan de Lemmerweg](docs/screenshots/afsluiting.png)
+
+**Het verhoogde platform bij het tankstation.** Onder de luifel lag een betonnen verhoging waar je
+tegenaan reed. Dat was het BGT-vlak van het bouwwerk *van de luifel zelf*: de generator gebruikte die
+polygoon om de luifel te plaatsen en tekende hem daarna nóg een keer als verhoogd vlak. Hij wordt nu
+uit de vlakkenlijst gehaald zodra hij als luifel is gebruikt.
+
+`npm run betatest` rekent deze punten na — negentien controles — en `npm run betashots` maakt de
+foto's hierboven.
+
+Eén punt uit de beta-test staat nog open: de rotonde aan de Lemmerweg waar de weg omhoog loopt terwijl
+de andere weg eronderdoor hoort te gaan. Op de foto is niet te zien wélke rotonde het is. Ga er in het
+spel heen en druk op **K**: de coördinaat komt in beeld, en daarmee is de hoogtekaart op die plek te
+herstellen.
+
 ## De autoradio
 
 Zodra je in een auto stapt speelt de radio een nummer uit `audio/radio/`, door dezelfde smalle band als
@@ -1324,6 +1370,14 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   kunnen dat niet)
 - `js/wapen.js` – het pistool in beeld: het model met slede, loop, trekkerbeugel, greep en een los
   magazijn, de hand eromheen, het mondingsvuur en de hele herlaadbeweging met de klikken erbij
+- `js/tennis.js` – het tennispark aan de Molenkrite: rood gravel, netten met een witte band,
+  gaashekken, ballenvangers en lichtmasten, uitgezet op de BGT-vlakken
+- `js/menu.js` – het startscherm, het pauzescherm (Esc), de instellingen, de toetsenlijst en het
+  laadscherm met de voortgangsbalk
+- `js/sporen.js` – remsporen: honderdtwintig vierhoekjes in één buffer die als ringbuffer
+  hergebruikt worden, samen één draw call
+- `js/afsluiting.js` – de wegafsluitingen aan de rand van het speelgebied: schrikhekken met een
+  baken, en de onzichtbare wand erachter
 - `js/opslag.js` – opslaan en laden van het spel (F5 en F9)
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd

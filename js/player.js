@@ -167,8 +167,27 @@ export class Player {
     this.reloading = HERLAADTIJD;
   }
 
+  /*
+   Schieten. Achter het stuur kan dat ook, maar alleen naar voren en opzij
+   (verzoek beta-test 12 sep 2026): je hangt uit het raam en niet over de
+   achterbank heen. De grens ligt op honderdvijftig graden — je mag dus iets
+   voorbij dwars mikken, maar niet naar achteren.
+
+   Hoeveel je opzij kijkt is het verschil tussen waar jij kijkt en waar de neus
+   van de auto heen wijst. `player.yaw` loopt met de auto mee (zie de hoofdlus in
+   js/main.js), dus dat verschil is precies je kijkrichting in de auto.
+  */
+  magSchieten() {
+    if (this.reloading > 0 || this.wapenUit) return false;
+    if (!this.inCar) return true;
+    let d = this.yaw - this.inCar.yaw;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return Math.abs(d) < Math.PI * (150 / 180);
+  }
+
   shoot() {
-    if (this.inCar || this.reloading > 0 || this.wapenUit) return;
+    if (!this.magSchieten()) return;
     if (this.ammo <= 0) { geluid.leegKlik(); this.reload(); return; }
     this.ammo--;
     this.recoil = 1; this.flashT = 0.06;

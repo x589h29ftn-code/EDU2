@@ -96,9 +96,10 @@ function truckGeoms() {
   const kastT = wielkast(R);
   for (const w of wielen) zwartVast.push({ geo: kastT, x: Math.sign(w.x) * (W / 2 + 0.01), y: R, z: w.z });
   const lampen = [];
+  // zelfde reden als bij de personenauto: ondiep en net aan uitstekend
   const koplampen = [
-    { geo: doos(0.4, 0.2, 0.10), x: -0.75, y: 0.78, z: -L / 2 + 0.08 },
-    { geo: doos(0.4, 0.2, 0.10), x: 0.75, y: 0.78, z: -L / 2 + 0.08 },
+    { geo: doos(0.4, 0.2, 0.05), x: -0.75, y: 0.78, z: -L / 2 + 0.055 },
+    { geo: doos(0.4, 0.2, 0.05), x: 0.75, y: 0.78, z: -L / 2 + 0.055 },
   ];
   lampen.push(...koplampen);
   const head = merge(koplampen);
@@ -210,7 +211,7 @@ function autoGeoms(kind) {
      zag je daardoor een zwevend plaatje met daglicht erachter. Ze zitten nu
      allemaal een centimeter ín het plaatwerk.
     */
-    { geo: doos(W - 0.42, 0.13, 0.10), y: schouderY - 0.13, z: -L / 2 + 0.06 },    // grille
+    { geo: doos(W - 0.42, 0.13, 0.05), y: schouderY - 0.13, z: -L / 2 + 0.06 - 0.015 + 0.025 },  // grille, zie de lampen hierboven
     /*
      Sierlijst langs de dorpel. Hij liep eerst over L − 1,5 m = 2,80 m, en de
      wielen staan op z = ±1,32 met een straal van 0,32: de lijst stak dus veertig
@@ -248,16 +249,33 @@ function autoGeoms(kind) {
   const hubGeo = new THREE.CylinderGeometry(R * 0.58, R * 0.58, 0.23, 8); hubGeo.rotateZ(Math.PI / 2);
 
   const kopY = schouderY - 0.14;
+  /*
+   Koplampen en achterlichten liggen ín het plaatwerk, met alleen het glas eruit.
+
+   Ze waren tien centimeter diep en stonden met hun hart op de voorkant van de
+   flank (−L/2 + 0,06). Daarmee stak er vijf centimeter vóór de auto uit, en van
+   schuin voren zag je de zijkanten van dat blokje als een wit tabje naast de
+   neus zweven (melding beta-test 12 sep 2026). Nu zijn ze de helft ondieper en
+   steken ze nog anderhalve centimeter uit — genoeg om ze te zien, te weinig om
+   ze als los blokje te herkennen.
+
+     voorkant flank : −L/2 + 0,060
+     voorkant lamp  : −L/2 + 0,045   (1,5 cm ervoor)
+     achterkant lamp: −L/2 + 0,095   (3,5 cm erin)
+  */
+  const lampD = 0.05, lampUit = 0.015;
+  const zKop = -L / 2 + 0.06 - lampUit + lampD / 2;
+  const zAchter = L / 2 - 0.06 + lampUit - lampD / 2;
   const lampen = [];                       // voor `delen` hieronder
   const koplampen = [
-    { geo: doos(0.40, 0.15, 0.10), x: -W / 2 + 0.26, y: kopY, z: -L / 2 + 0.06 },
-    { geo: doos(0.40, 0.15, 0.10), x: W / 2 - 0.26, y: kopY, z: -L / 2 + 0.06 },
+    { geo: doos(0.40, 0.15, lampD), x: -W / 2 + 0.26, y: kopY, z: zKop },
+    { geo: doos(0.40, 0.15, lampD), x: W / 2 - 0.26, y: kopY, z: zKop },
   ];
   lampen.push(...koplampen);
   const head = merge(koplampen);
   const achter = [
-    { geo: doos(0.34, 0.17, 0.10), x: -W / 2 + 0.24, y: kopY + 0.06, z: L / 2 - 0.06 },
-    { geo: doos(0.34, 0.17, 0.10), x: W / 2 - 0.24, y: kopY + 0.06, z: L / 2 - 0.06 },
+    { geo: doos(0.34, 0.17, lampD), x: -W / 2 + 0.24, y: kopY + 0.06, z: zAchter },
+    { geo: doos(0.34, 0.17, lampD), x: W / 2 - 0.24, y: kopY + 0.06, z: zAchter },
   ];
   lampen.push(...achter);
   const rem = merge([
@@ -265,8 +283,8 @@ function autoGeoms(kind) {
     { geo: doos(W - 0.60, 0.05, 0.05), y: dakY - 0.05, z: cabZ + cabL / 2 - 0.22 },   // derde remlicht
   ]);
   const achteruit = merge([
-    { geo: doos(0.16, 0.11, 0.10), x: -W / 2 + 0.60, y: kopY + 0.06, z: L / 2 - 0.048 },
-    { geo: doos(0.16, 0.11, 0.10), x: W / 2 - 0.60, y: kopY + 0.06, z: L / 2 - 0.048 },
+    { geo: doos(0.16, 0.11, lampD), x: -W / 2 + 0.60, y: kopY + 0.06, z: zAchter + 0.004 },
+    { geo: doos(0.16, 0.11, lampD), x: W / 2 - 0.60, y: kopY + 0.06, z: zAchter + 0.004 },
   ]);
   // op de bumper, niet ervóór: de bumper steekt tot ±(L/2 + 0,04) uit
   const platen = [

@@ -260,6 +260,7 @@ naar `main` om een build te krijgen.
 | De vijf panden uit de steekproef (stap 41) | `npm run steekproeftest` | eindigt op "Alles goed" |
 | Botsgevoel en geluid (stap 42) | `npm run gevoeltest` | eindigt op "Alles goed" |
 | Startscherm, laadscherm en opbouw (stap 43) | `npm run menutest` | eindigt op "Alles goed" |
+| De losse punten uit de beta-test (stap 44) | `npm run betatest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` (met `?relief=0` voor de kale stand) | de wereld is sinds stap 22 zes keer zo groot; de meting is nu een vergelijking met de vorige ronde, geen vaste bovengrens |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -2957,6 +2958,84 @@ plek in het spel waar een afbeelding uit een bestand mag komen.
 
 Controle: `npm run menutest` (vijftien controles) en `npm run menushots`.
 
+**De losse punten uit de beta-test (stap 44).**
+
+De overige meldingen uit het beta-testverslag gingen niet over één onderwerp maar
+over zeven losse dingen. Ze staan hier bij elkaar omdat ze in één ronde zijn
+gedaan, met de redenering per punt.
+
+*1. De avond kostte de halve snelheid.* "Als de klok het donker in loopt wordt
+het spel heel traag." Dat is geen gevoel maar rekenwerk: in een forward renderer
+telt **elke puntlamp mee in de shader van elk materiaal dat hij kan raken**. Acht
+straatlampen rond de speler is dus acht keer belichting uitrekenen per oppervlak,
+bovenop de zon. Gemeten kostte de nacht **+183 %** per beeld. De pool in
+`js/sfeer.js` is van acht naar **drie** lampen terug (`const POOL = 3`), met de
+sterkte per lamp van 9 naar 11 zodat de straat er even licht uit blijft zien:
+**+96 %**. Meer dan de helft van de nachtprijs weg, zonder dat het donkerder
+oogt — de lampen staan nu alleen dichter bij de speler geconcentreerd.
+
+Wat níét werkte en er daarom uit is: `renderer.compile()` vooraf draaien om de
+schaderhaperingen weg te nemen. Dat maakte 36 programmavarianten die daarna
+nergens meer gebruikt werden (32 → 68 programma's) en het werd er langzamer van.
+De meting staat als commentaar op de plek waar de functie stond, zodat de
+volgende die het probeert het niet nog eens hoeft te ontdekken.
+
+*2. Uit de auto schieten.* Kon niet. `player.magSchieten()` is nieuw: zit je in
+een auto, dan mag je binnen **150°** van de neus schieten — naar voren en opzij
+dus, en recht naar achteren niet. De redenering is de houding: je hangt uit het
+raam, niet over de achterbank.
+
+*3. De koplampen staken uit de neus.* Vijf centimeter vóór het plaatwerk, en van
+schuin voren zag je ze als los blokje naast de auto zweven. In `js/carmodel.js`
+worden de lampdoosjes nu **in** het blik gezet (`lampUit = 0.015`, dus anderhalve
+centimeter blijft zichtbaar), voor koplampen, achterlichten, achteruitrijlichten,
+de grille en de lampen van de vrachtwagen. De controle meet het na tegen de lak
+**en de bumpers** samen: de kentekenplaat hoort op de bumper te zitten en steekt
+dus terecht voorbij de lak uit — meten tegen alleen de lak wees die plaat als
+fout aan.
+
+*4. Lantaarnpalen.* "Palen die je omver kunt rijden en die dan buiten beeld weer
+terugkomen." Ze stonden als losse mesh met een botsdoos en werden bij een aanraking
+meteen teruggezet. Nu houdt `js/kaartwereld.js` een lijstje `LANTAARNS` bij:
+`raakLantaarn(x, z, richting, snelheid)` kantelt de paal versneld om — een halve
+seconde — zodra je boven de 5 m/s komt, en zet zijn botsdoos mee omlaag naar
+0,35 m. Een
+auto negeert botsdozen lager dan 3,5 m (`ignoreLowH`, hetzelfde mechanisme
+waarmee je over een stoeprand en onder een luifel door rijdt), dus je rijdt er
+daarna overheen; te voet loop je er nog tegenaan, en dat hoort ook. Overeind
+komen gebeurt pas **veertig seconden later én meer dan zestig meter verderop**:
+iets zien opstaan waar je naar kijkt leest als een fout.
+
+*5. De onzichtbare muur op (800.9, −554.2).* Dit is punt 2 van de lijst hieronder,
+nu voor het eerst echt gebruikt. `data/stijl/omgeving.json` heeft een blok
+`wegafsluitingen` met `{naam, punt, muur}`; de generator zoekt de dichtstbijzijnde
+**drijfbare** rijbaan-as, neemt daar de richting en de breedte van, en schrijft
+`wegafsluitingen` naar de kaart. `js/afsluiting.js` bouwt er rood-wit gestreepte
+schrikhekken van (de streping op een canvas, zoals alle textuur in dit spel) met
+een baken aan weerszijden, en zet er een botsdoos van `muur` meter breed en vier
+meter hoog achter. Die breedte is het hele punt: zonder dat rij je er via de berm
+omheen en is de afzetting een decorstuk. `addCollider` wil de hoek van de **lange
+as** zelf (`−atan2(dz, dx)`) en niet de draaiing van het model; dat scheelt een
+kwartslag, en de doos lag er de eerste keer dwars overheen.
+
+*6. Het verhoogde platform bij het tankstation.* Op de foto lag er een betonnen
+verhoging midden op het pompplein. Dat was het BGT-vlak van het bouwwerk **van de
+luifel zelf**: de generator zoekt dat bouwwerk op om de luifel te plaatsen, maar
+liet het daarna ook nog als `bouwwerk` in `VLAKKEN` staan, en een bouwwerk wordt
+in de wereld een plaat van een halve meter hoog. Eén regel: het vlak gaat uit de
+lijst zodra het als luifel is gebruikt. `tanktest` toetste tot nu toe of er een
+bouwwerk-vlak bij het zwaartepunt van de luifel lag — dat is precies het vlak dat
+er nu níét meer hoort te zijn, dus die controle kijkt nu naar de ring die het
+tankstation zelf bewaart en eist dat er géén vlak meer overheen ligt.
+
+*7. Wat er niet is gedaan.* "Op locatie screenshot op Lemmerweg loopt het omhoog
+de rotonde, onder rotonde loopt de andere weg door." Op de foto is niet te zien
+welke van de rotondes aan de Lemmerweg het is, en het hoogteveld op de verkeerde
+plek verbouwen maakt het alleen erger. Dit wacht op twee getallen uit het spel
+(**K**).
+
+Controle: `npm run betatest` (negentien controles) en `npm run betashots`.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -2976,19 +3055,19 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
    keten opnieuw draaien is genoeg; aan de gereedschappen hoeft niets te
    veranderen. Panden zonder model staan nu als opgetrokken grondvlak in het
    spel, zonder hun echte kap.
-2. **Onzichtbare muren en wegblokkades** aan de rand van de wereld, zodat je er
-   niet uit kunt lopen of rijden. Het werkgebied ligt nu vast — verder dan de
-   BGT-download reikt is er geen ondergrond — dus dit kan. Wat er nog moet
-   komen is een blok `grenzen` in `data/stijl/omgeving.json`: een lijst lijnen
-   `{a, b, hoogte}` voor de onzichtbare muren (alleen een collider, geen mesh) en
-   een lijst `{op: [x, z], type}` voor de blokkades die je wél ziet — betonblok,
-   schrikhek of een bord — waarbij de generator de breedte van de weg uit de
-   rijbaanas haalt en de blokkade over de volle breedte zet. De plekken zelf
-   moeten van de gebruiker komen; sinds stap 37 kan dat: **K** zet je plek op het
-   klembord en de grote kaart laat hem linksonder zien. Drie soorten aanwijzing
-   werken: twee getallen uit het spel, een straatnaam met een herkenningspunt
-   ("de Lemmerweg net na de rotonde"), of een streep op een schermafdruk van de
-   kaart.
+2. **Wegblokkades aan de rand van de wereld**, zodat je er niet uit kunt lopen of
+   rijden. Het mechanisme staat er sinds stap 44: een blok `wegafsluitingen` in
+   `data/stijl/omgeving.json` met per plek `{naam, punt, muur}`, waarbij de
+   generator de dichtstbijzijnde drijfbare rijbaan-as opzoekt en er haaks een
+   schrikhek op zet met een onzichtbare wand van `muur` meter breed erachter
+   (`js/afsluiting.js`). Er staat er nu **één**, op (800.9, −554.2). Wat er nog
+   moet komen zijn de overige plekken, en die moeten van de gebruiker komen:
+   **K** zet je plek op het klembord en de grote kaart laat hem linksonder zien.
+   Drie soorten aanwijzing werken: twee getallen uit het spel, een straatnaam met
+   een herkenningspunt ("de Lemmerweg net na de rotonde"), of een streep op een
+   schermafdruk van de kaart. Een muur zonder hek — alleen een collider, voor
+   een oever of een spoordijk — kan met hetzelfde blok als er een `type`
+   bijkomt; dat is nog niet nodig geweest.
 3. **Gebouwen steekproeven** als fijnafstelling. Nu de wereld zes keer zo groot
    is en er 7885 panden in staan, moet er een ronde langs een steekproef van
    adressen: klopt het woningtype per straat, de goothoogte, de voorgevelrichting

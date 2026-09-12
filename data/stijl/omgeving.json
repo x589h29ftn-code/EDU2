@@ -346,5 +346,19 @@
       "hek": 3.6,
       "masten": true
     }
-  ]
+  ],
+  "wegafsluitingen": {
+    "_uitleg": "Waar de wijk voor de speler ophoudt. Geef per plek een punt in spelmeters (in het spel met de K-toets op het klembord te zetten); de generator zoekt de dichtstbijzijnde rijbaan-as, neemt daar de richting en de breedte van over en zet er een afzetting dwars overheen. `muur` is hoe breed de onzichtbare wand ernaast doorloopt, zodat je er niet via de berm omheen rijdt.",
+    "plekken": [
+      {
+        "naam": "Lemmerweg zuid",
+        "punt": [
+          800.9,
+          -554.2
+        ],
+        "muur": 70,
+        "bron": "gebruiker, chat 12 sep 2026: 'op plek 800.9, -554.2 een invisible wall met wegafsluiting hekken'"
+      }
+    ]
+  }
 }

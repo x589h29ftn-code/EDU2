@@ -16,7 +16,7 @@ import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
 import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
-import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
+import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, zetReliëf } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
@@ -870,6 +870,19 @@ function loop() {
         schok(0.35 + Math.min(0.85, car.botsKracht / 16));
         car.botsKracht = 0;
       }
+      /*
+       Een lantaarnpaal omver rijden. De neus van de auto is het punt dat hem
+       raakt, dus daar wordt gekeken; de paal valt in de richting waarin je reed.
+      */
+      if (Math.abs(car.speed) > 5) {
+        const nx = car.x - Math.sin(car.yaw) * ((car.as || 1.4) + 0.5);
+        const nz = car.z - Math.cos(car.yaw) * ((car.as || 1.4) + 0.5);
+        if (raakLantaarn(nx, nz, car.rij, car.speed)) {
+          geluid.klap(); geluid.glas();
+          schok(0.5);
+          car.speed *= 0.7;
+        }
+      }
       // yaw van speler volgt de auto (relatief kijken), zodat de camera vanzelf
       // achter de auto blijft hangen
       if (player.lastCarYaw !== undefined) player.yaw += car.yaw - player.lastCarYaw;
@@ -888,13 +901,20 @@ function loop() {
         camera.rotation.set(0, 0, 0, 'YXZ');
         camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
       } else vehicles.ruiten(car, true);       // van buiten hoort het glas er wel te zitten
-      player.gun.visible = false;
+      /*
+       Het pistool is in de auto te zien zolang je naar voren of opzij kijkt —
+       dan hang je uit het raam en kun je ook schieten. Kijk je achterom, dan
+       gaat hij weg: over de achterbank heen richten kan niet, en een wapen dat
+       in beeld staat terwijl er niets gebeurt leest als een fout.
+      */
+      player.gun.visible = !player.wapenUit && !derde.aan && player.magSchieten();
     } else {
       player.lastCarYaw = undefined;
       derde.update(dt, null);
       geluid.gier(0);
     }
     werkSporenBij(dt);
+    werkLantaarnsBij(dt, player.pos.x, player.pos.z);
     vehicles.updateTraffic(dt, player, opDeWeg, camera.position.x, camera.position.z);
     npcs.update(dt, time, camera.position.x, camera.position.z);
     verhaal.update(dt);
@@ -1000,6 +1020,7 @@ window.__game = {
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
   geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller,
+  raakLantaarn, werkLantaarnsBij, lantaarnsOm,
 };
 
 // Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,
