@@ -422,15 +422,29 @@ export class HUD {
   }
 }
 
-HUD.prototype.drawBig = function (player, vehicles) {
-  const cv = this.big, c = cv.getContext('2d');
-  const W = cv.width = Math.min(window.innerWidth - 80, 1100), H = cv.height = Math.min(window.innerHeight - 80, 760);
+/*
+ De grote kaart. Het vaste deel — de ondergrond, het water, 1161 wegassen, 414
+ straatnaamlabels en de winkels — wordt één keer op een eigen doek getekend en
+ daarna alleen nog gekopieerd. Dat scheelt alles: hij werd elk beeld helemaal
+ opnieuw opgebouwd en kostte zo 15,5 ms per beeld bovenop het spel zelf, en dat
+ is precies waarom het spel stroperig werd zodra je de kaart opende. Nu blijft
+ alleen het bewegende werk over: de auto's, de politie en je eigen pijltje.
+
+ Het doek wordt opnieuw gemaakt als het venster van maat verandert, en als de
+ route wijzigt (die hoort bij het vaste deel, want hij verandert alleen als je
+ een nieuw doel kiest).
+*/
+HUD.prototype.bigVast = function (W, H, minX, maxX, minZ, maxZ, scale) {
+  // De route hoort bij het vaste deel: hij verandert alleen als je een ander
+  // doel kiest, en dan mag het doek opnieuw.
+  const r = this.nav && this.nav.route;
+  const sleutel = `${W}x${H}|${r ? r.length + ':' + r[0] + ':' + r[r.length - 1] : '-'}`;
+  if (this._vastDoek && this._vastSleutel === sleutel) return this._vastDoek;
+  const cv = this._vastDoek && this._vastDoek.width === W && this._vastDoek.height === H
+    ? this._vastDoek : Object.assign(document.createElement('canvas'), { width: W, height: H });
+  const c = cv.getContext('2d');
   c.clearRect(0, 0, W, H);
   c.fillStyle = 'rgba(8,14,24,0.92)'; c.fillRect(0, 0, W, H);
-  // wereldgrenzen (m)
-  const g = KAART ? KAART.gebied : { x0: -140, x1: 280, z0: -290, z1: 300 };
-  const minX = g.x0, maxX = g.x1, minZ = g.z0, maxZ = g.z1;
-  const scale = Math.min(W / (maxX - minX), H / (maxZ - minZ));
   c.save(); c.translate(W / 2, H / 2); c.scale(scale, scale); c.translate(-(minX + maxX) / 2, -(minZ + maxZ) / 2);
   c.fillStyle = '#3f6a2b'; c.fillRect(minX, minZ, maxX - minX, maxZ - minZ);
   c.fillStyle = '#6a97a8';
@@ -443,25 +457,11 @@ HUD.prototype.drawBig = function (player, vehicles) {
   }
   this._kaartRot = 0;
   this.tekenRoute(c, 1, 2.5 / scale);
-  c.fillStyle = '#4c525c';
-  const cr = 1.7 / scale;
-  for (const car of vehicles.cars) c.fillRect(car.x - cr, car.z - cr, cr * 2, cr * 2);
-  // politie: ook op de grote kaart zie je waar ze zoeken (js/politie.js). De
-  // stippen krijgen een vaste maat in beeldpunten — de hele wijk past hier op
-  // ruim één pixel per meter, dus op ware grootte zie je ze niet liggen.
-  if (this.politiePlekken && this.politiePlekken.length) {
-    const aan = Math.floor(performance.now() / 350) % 2 === 0;
-    c.fillStyle = aan ? '#3d8bff' : '#c9dcff';
-    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.2 / scale;
-    for (const p of this.politiePlekken) {
-      c.beginPath(); c.arc(p.x, p.z, (p.wagen ? 5.5 : 4) / scale, 0, Math.PI * 2); c.fill(); c.stroke();
-    }
-  }
-  // winkels, met hun naam erbij; hier staat noorden boven, dus geen tegendraai
+  // winkels met hun naam; hier staat noorden boven, dus geen tegendraai
   for (const w of (this.winkels || [])) {
     c.save();
     c.translate(w.x, w.z);
-    c.scale(1 / scale, 1 / scale);              // vaste maat in beeldpunten
+    c.scale(1 / scale, 1 / scale);
     HUD.tekenWinkel(c, 9);
     c.textAlign = 'center';
     c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
@@ -475,18 +475,54 @@ HUD.prototype.drawBig = function (player, vehicles) {
     }
     c.restore();
   }
+  c.restore();
+  // straatnamen staan in schermcoördinaten
+  c.save(); c.translate(W / 2, H / 2); c.translate(-(minX + maxX) / 2 * scale, -(minZ + maxZ) / 2 * scale);
+  this.drawLabels(c, scale, 0, 0);
+  c.restore();
+  c.fillStyle = '#fff'; c.font = 'bold 16px sans-serif'; c.textAlign = 'left';
+  const sluit = document.body.classList.contains('touch') ? 'tik weer op de kaartknop' : 'M om te sluiten';
+  c.fillText(`TINGA · SNEEK — kaart (${sluit}, noorden boven)`, 16, 26);
+  this._vastDoek = cv; this._vastSleutel = sleutel;
+  return cv;
+};
+
+HUD.prototype.drawBig = function (player, vehicles) {
+  const cv = this.big, c = cv.getContext('2d');
+  const W = Math.min(window.innerWidth - 80, 1100), H = Math.min(window.innerHeight - 80, 760);
+  if (cv.width !== W) cv.width = W;
+  if (cv.height !== H) cv.height = H;
+  // wereldgrenzen (m)
+  const g = KAART ? KAART.gebied : { x0: -140, x1: 280, z0: -290, z1: 300 };
+  const minX = g.x0, maxX = g.x1, minZ = g.z0, maxZ = g.z1;
+  const scale = Math.min(W / (maxX - minX), H / (maxZ - minZ));
+  c.clearRect(0, 0, W, H);
+  c.drawImage(this.bigVast(W, H, minX, maxX, minZ, maxZ, scale), 0, 0);
+  c.save(); c.translate(W / 2, H / 2); c.scale(scale, scale); c.translate(-(minX + maxX) / 2, -(minZ + maxZ) / 2);
+  // De 1781 auto's als één pad: 1781 losse fillRects zijn evenzoveel opdrachten
+  // aan de tekenlaag, en dat telt op bij een kaart die elk beeld gevuld wordt.
+  c.fillStyle = '#4c525c';
+  const cr = 1.7 / scale;
+  c.beginPath();
+  for (const car of vehicles.cars) c.rect(car.x - cr, car.z - cr, cr * 2, cr * 2);
+  c.fill();
+  // politie: ook op de grote kaart zie je waar ze zoeken (js/politie.js). De
+  // stippen krijgen een vaste maat in beeldpunten — de hele wijk past hier op
+  // ruim één pixel per meter, dus op ware grootte zie je ze niet liggen.
+  if (this.politiePlekken && this.politiePlekken.length) {
+    const aan = Math.floor(performance.now() / 350) % 2 === 0;
+    c.fillStyle = aan ? '#3d8bff' : '#c9dcff';
+    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.2 / scale;
+    for (const p of this.politiePlekken) {
+      c.beginPath(); c.arc(p.x, p.z, (p.wagen ? 5.5 : 4) / scale, 0, Math.PI * 2); c.fill(); c.stroke();
+    }
+  }
   const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);
   const pz = this.kaartVanaf ? this.kaartVanaf.z : (player.inCar ? player.inCar.z : player.pos.z);
   const yaw = player.inCar ? player.inCar.yaw : player.yaw;
   c.save(); c.translate(px, pz); c.rotate(-yaw + Math.PI);
   c.fillStyle = '#ffd400'; c.beginPath(); c.moveTo(0, -7); c.lineTo(5, 6); c.lineTo(-5, 6); c.closePath(); c.fill(); c.restore();
   c.restore();
-  // labels in schermcoördinaten
-  c.save(); c.translate(W / 2, H / 2); c.translate(-(minX + maxX) / 2 * scale, -(minZ + maxZ) / 2 * scale);
-  this.drawLabels(c, scale, 0, 0);
-  c.restore();
-  const sluit = document.body.classList.contains('touch') ? 'tik weer op de kaartknop' : 'M om te sluiten';
-  c.fillStyle = '#fff'; c.font = 'bold 16px sans-serif'; c.textAlign = 'left'; c.fillText(`TINGA · SNEEK — kaart (${sluit}, noorden boven)`, 16, 26);
   /*
    Je eigen plek in spelmeters, linksonder. Dat is er om plekken te kúnnen
    doorgeven: waar een onzichtbare muur moet komen, waar een wegblokkade hoort,

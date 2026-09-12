@@ -1,5 +1,6 @@
-// Geluid, volledig gesynthetiseerd met de Web Audio API. Er zijn geen
-// geluidsbestanden: alles wordt uit ruis en oscillatoren opgebouwd. Dat scheelt
+// Geluid, gesynthetiseerd met de Web Audio API. Op één ding na — de muziek op de
+// autoradio, die uit audio/radio/ komt — zijn er geen geluidsbestanden: alles
+// wordt uit ruis en oscillatoren opgebouwd. Dat scheelt
 // downloads en werkt ook waar externe bestanden geblokkeerd zijn.
 //
 // Wat er te horen is:
@@ -20,7 +21,9 @@ let hoofd = null;      // eindvolume
 let aan = false;
 let gedempt = false;
 
-const bronnen = {};    // langlopende lagen
+const bronnen = {};          // langlopende lagen
+let radioLijst = [];         // de nummers uit audio/radio/nummers.json
+let lijstGeladen = false;
 let vogelKlok = 0, krekelKlok = 0;
 
 function nu() { return ctx ? ctx.currentTime : 0; }
@@ -314,6 +317,85 @@ export const geluid = {
   },
 
   /*
+   De afspeellijst van de autoradio: audio/radio/nummers.json. Eén keer ophalen,
+   en het mag mislukken — dan blijft het gesynthetiseerde riffje hieronder de
+   radio. Zo kun je er een nummer bij zetten zonder aan de code te komen.
+  */
+  async laadRadio(pad = 'audio/radio/nummers.json') {
+    if (lijstGeladen) return radioLijst;
+    lijstGeladen = true;
+    try {
+      const r = await fetch(pad, { cache: 'force-cache' });
+      if (!r.ok) return radioLijst;
+      const j = await r.json();
+      radioLijst = (j.nummers || []).filter(n => n && n.bestand)
+        .map(n => ({ ...n, url: pad.replace(/[^/]*$/, '') + n.bestand }));
+    } catch { /* geen lijst: het riffje blijft */ }
+    return radioLijst;
+  },
+
+  // Wat er nu speelt, voor het berichtbalkje: { titel, artiest } of null.
+  radioNummer() {
+    const m = bronnen.muziek;
+    return m && m.nummer ? { titel: m.nummer.titel, artiest: m.nummer.artiest } : null;
+  },
+
+  // De stand van de muziekspeler, voor tools/radiotest.mjs.
+  radioStand() {
+    const m = bronnen.muziek;
+    if (!m) return { speler: false, nummers: radioLijst.length };
+    return { speler: true, nummers: radioLijst.length, stuk: !!m.stuk, speelt: !m.el.paused,
+      bron: (m.el.src || '').split('/').pop(), tijd: +m.el.currentTime.toFixed(2),
+      duur: isFinite(m.el.duration) ? +m.el.duration.toFixed(0) : null };
+  },
+
+  /*
+   Muziek uit een bestand, door dezelfde smalle band als het riffje hieronder:
+   een hoogdoorlaat op 190 Hz en een laagdoorlaat op 3,4 kHz, zodat het uit de
+   speakers in het portier klinkt en niet als een concert. Het bestand loopt via
+   een <audio>-element (dan hoeft er niets in het geheugen te worden gedecodeerd)
+   dat als bron in de geluidsketen hangt.
+
+   Lukt dat niet — geen lijst, bestand weg, browser wil niet — dan valt de radio
+   terug op het gesynthetiseerde deuntje.
+  */
+  muziek(actief) {
+    if (!aan || !radioLijst.length) return false;
+    if (!bronnen.muziek) {
+      if (!actief) return true;
+      const el = new Audio();
+      el.crossOrigin = 'anonymous';
+      el.preload = 'none';
+      const g = ctx.createGain(); g.gain.value = 0;
+      const lo = ctx.createBiquadFilter(); lo.type = 'lowpass'; lo.frequency.value = 3400; lo.Q.value = 0.7;
+      const hi = ctx.createBiquadFilter(); hi.type = 'highpass'; hi.frequency.value = 190;
+      let bron = null;
+      try { bron = ctx.createMediaElementSource(el); } catch { return false; }
+      bron.connect(hi); hi.connect(lo); lo.connect(g); g.connect(hoofd);
+      bronnen.muziek = { el, gain: g, nummer: null, beurt: Math.floor(Math.random() * radioLijst.length), stuk: false };
+      el.addEventListener('ended', () => { bronnen.muziek.nummer = null; });
+      el.addEventListener('error', () => { bronnen.muziek.stuk = true; });
+    }
+    const m = bronnen.muziek;
+    if (m.stuk) return false;                       // bestand doet het niet: terug naar het riffje
+    const doel = actief ? (bronnen.jacht && bronnen.jacht.actief ? 0.06 : 0.22) : 0;
+    m.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
+    if (actief) {
+      if (!m.nummer) {
+        m.nummer = radioLijst[m.beurt % radioLijst.length];
+        m.beurt++;
+        m.el.src = m.nummer.url;
+        // niet elke keer bij nul beginnen: een radio speelt door terwijl je loopt
+        m.el.currentTime = 0;
+      }
+      if (m.el.paused) m.el.play().catch(() => { m.stuk = true; });
+    } else if (!m.el.paused) {
+      m.el.pause();
+    }
+    return true;
+  },
+
+  /*
    De autoradio. Een rockdeuntje uit de speakers in het portier: een vervormde
    gitaarriff op de kwint (E-mineur), een bas eronder en een simpel drumstel.
    Alles gaat door een smalle band met een lowpass erachter, zodat het klinkt
@@ -325,6 +407,12 @@ export const geluid = {
   */
   autoradio(actief) {
     if (!aan) return;
+    // Staat er muziek in audio/radio/, dan speelt die; het riffje hieronder is
+    // de terugval als dat niet lukt.
+    if (this.muziek(actief)) {
+      if (bronnen.autoradio) bronnen.autoradio.gain.gain.setTargetAtTime(0, nu(), 0.3);
+      return;
+    }
     if (!bronnen.autoradio) {
       if (!actief) return;
       const g = ctx.createGain(); g.gain.value = 0;

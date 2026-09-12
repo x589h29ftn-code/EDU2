@@ -222,6 +222,18 @@ een randje, en elk stukje rand hoort voortaan bij de tegel waar het zélf ligt i
 tegel van het eerste hoekpunt van zijn vlak. Wat overblijft zijn spleetjes in de brondata zelf:
 0,04 % van het open terrein in Tinga ligt tussen twee vlakken in.
 
+## De autoradio
+
+Zodra je in een auto stapt speelt de radio een nummer uit `audio/radio/`, door dezelfde smalle band als
+het gesynthetiseerde deuntje dat er eerst zat: hoogdoorlaat op 190 Hz, laagdoorlaat op 3,4 kHz. Zo klinkt
+het uit de speakers in het portier en niet als een concert, en het zakt weg onder het jachtdeuntje van het
+verhaal. De titel staat even in het balkje. Een nummer toevoegen is een regel in
+`audio/radio/nummers.json` — mp3, ogg of m4a; is er niets of laadt het niet, dan neemt het
+gesynthetiseerde riffje het weer over. `npm run radiotest` loopt dat na.
+
+Het nummer dat er nu in staat is een plaatshouder waarop rechten rusten; voor een openbare versie hoort
+daar eigen of rechtenvrij werk te staan.
+
 ## Camera over je schouder
 
 **V** zet de camera achter je. Met de auto is dat een stuk handiger sturen: je ziet de neus, je
