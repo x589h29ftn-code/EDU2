@@ -63,6 +63,12 @@ export function zetViaducten(lijst) {
 
 export function viaducten() { return VIA; }
 
+// Ligt (x,z) onder een van de brugdekken van een verdiepte weg?
+function opBakdek(V, x, z) {
+  for (const b of V.bakDekken || []) if (x >= b[0] && x <= b[2] && z >= b[1] && z <= b[3]) return true;
+  return false;
+}
+
 // Welk stuk van de as ligt het dichtst bij (x,z)? null buiten het viaduct.
 function raak(V, x, z) {
   if (x < V.bbox[0] || x > V.bbox[2] || z < V.bbox[1] || z > V.bbox[3]) return null;
@@ -110,8 +116,13 @@ export function grondHoogte(x, z, y = Infinity) {
     if (h === 0) continue;
     if (V.verdiept) {
       if (h > 0) continue;
-      // boven de bak ligt het dek: sta je daarop, dan is de grond gewoon nul
-      if (r.dek && y > h + 1.2 && y > -1e6) continue;
+      /*
+       Boven de bak ligt het dek: sta je daarop, dan is de grond gewoon nul.
+       Dat geldt alleen onder een écht brugdek en niet in het gat ertussen —
+       daar is boven je de open lucht, en een auto die op de rijksweg het
+       knooppunt in rijdt hoort daar gewoon in de bak te blijven.
+      */
+      if (r.dek && y > h + 1.2 && y > -1e6 && opBakdek(V, x, z)) continue;
       if (h < diepste) diepste = h;
       continue;
     }
@@ -221,7 +232,12 @@ function bouwEen(scene, W, KM, V) {
    omhoog gelegd met grondHoogte, dus dit is alleen de onderlaag: hij vult de
    gaten tussen die vlakken en zorgt dat je nergens door de dijk heen kijkt.
   */
-  const ONDER = 0.06;
+  /*
+   Hoever de onderlaag onder het wegdek ligt. Bij een bak iets dieper: de
+   driehoeken van de ondergrond zijn 2,5 m groot en op een schuine bakwand
+   prikte het gras met zes centimeter speling door het asfalt heen.
+  */
+  const ONDER = V.verdiept ? 0.18 : 0.06;
   for (let i = 1; i < n; i++) {
     // op het dek geen dijk — maar in een bak juist wél: daar is dit de bakwand
     if (!V.verdiept && as[i - 1][7] && as[i][7]) continue;
@@ -249,8 +265,19 @@ function bouwEen(scene, W, KM, V) {
     const cx = (bx0 + bx1) / 2, cz = (bz0 + bz1) / 2;
     const hx = (bx1 - bx0) / 2, hz = (bz1 - bz0) / 2;
     doos(beton, cx, -V.dekdikte / 2 - 0.02, cz, hx, V.dekdikte / 2, hz, 0, 0.3);
-    // een lage rand langs de lange zijden, zodat je er niet zomaar af rijdt
-    const langsZ = hz >= hx;
+    /*
+     Een lage rand langs de weg die erover gaat, zodat je er niet zomaar af
+     rijdt. Die weg loopt dwars op de bak eronder, dus de richting komt uit de
+     as van de bak en niet uit de vorm van het dek: bij het fietstunneltje is
+     het dek bijna vierkant, en op de langste zijde afgaan legde de randen
+     precies verkeerd om.
+    */
+    let dx = 0, dz2 = 0;
+    for (let i = 1; i < n; i++) {
+      if (!(as[i][0] >= bx0 && as[i][0] <= bx1 && as[i][1] >= bz0 && as[i][1] <= bz1)) continue;
+      dx += Math.abs(as[i][0] - as[i - 1][0]); dz2 += Math.abs(as[i][1] - as[i - 1][1]);
+    }
+    const langsZ = dz2 <= dx;            // bak oost-west → weg noord-zuid → randen langs z
     const L = V.leuning || { hoogte: 1.0 };
     for (const zij of [-1, 1]) {
       const px = langsZ ? cx + zij * (hx - 0.15) : cx, pz = langsZ ? cz : cz + zij * (hz - 0.15);
