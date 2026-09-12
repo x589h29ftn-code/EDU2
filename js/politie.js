@@ -413,8 +413,19 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     return { balk, links, rechts };
   }
 
+  /*
+   Een surveillancewagen rijdt harder dan een gewone auto. Dat is niet alleen
+   echt — een politieauto is zwaarder gemotoriseerd — maar ook nodig om te
+   kunnen achtervolgen: met dezelfde topsnelheid als de speler haalt hij je
+   nooit meer in zodra je een rechte weg hebt, en dan blijft hij eeuwig een
+   straat achter je hangen. Twintig procent erbij (24 → 29 m/s, dus 86 tegen
+   104 km/u) is genoeg om je in te lopen zonder dat het onbegonnen werk wordt.
+  */
+  const POLITIE_TOP = 29;
+
   function maakWagen(x, z, yaw = Math.random() * 6.28) {
     const car = vehicles.voegToe({ x, z, yaw, soort: 'hatch', kleur: 0x1b3a7a, driveable: false });
+    car.topSnelheid = POLITIE_TOP;
     const { balk, links, rechts } = lichtbalk(car);
     const w = { car, balk, links, rechts, agenten: [], staat: 'naarPlek', knipper: 0, uitstapT: 0,
                 klemT: 0, stilT: 0, route: null, routeI: 1, routeDoel: null, routeT: 0 };
@@ -1015,7 +1026,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       // ook een wagen die je kwijt is rijdt naar de laatst bekende plek, niet
       // naar waar je nu bent
       const doel = w.staat === 'jacht' ? ((ziet || !laatstBekend) ? sp : laatstBekend) : w.doel;
-      const afst = rijNaar(w, doel, dt, w.staat === 'jacht' ? 20 : 15);
+      const afst = rijNaar(w, doel, dt, w.staat === 'jacht' ? 26 : 15);
       if (w.staat !== 'jacht' && afst < 12) { w.staat = 'zoekt'; nieuwZoekpunt(w); }
       if ((w.pogingen || 0) >= 3 && dSp > 55) { ruimWagen(w); continue; }   // hopeloos vast: verderop komt een verse wagen
       // ver buiten het zoekgebied verdwaald? die eenheid is uitgeschakeld

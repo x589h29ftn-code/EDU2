@@ -2657,6 +2657,58 @@ telling ervoor en erna: 4537 objecten in de scène, 5645 meshes, 1287
 geometrieën, 989 texturen, 1781 auto's, 130 mensen, 56.097 colliders — vóór en
 ná exact gelijk. Er lekt dus niets weg tijdens het spelen.
 
+**Tankstation, derdepersoonscamera, snellere politie en een echte knal (stap 39).**
+
+*Tankstation BP Slump Oil, Lemmerweg 63.* Aan de rondweg naast het sportpark.
+Wat uit de data komt: de **luifel** staat als los bouwwerk in de BGT
+(`bgt_overigbouwwerk`, klasse `bouwwerk`) — een vierhoek van 24,6 × 10,8 m,
+waaruit de generator de plek, de richting (de langste zijde) en de maat haalt; en
+de **shop** is pand 0091100000004556 (236 m², plat op 4,88 m), dat via
+`data/stijl/straten.json` het type `bp_shop` krijgt: donkere bruine steen, een
+doorlopende groene band over de glazen pui, en `shop` in het groen. De
+pompeilanden liggen op een derde en twee derde van de breedte, evenwijdig aan de
+lange as — zo staan ze onder elke luifel, want je rijdt er langs de lange kant
+onderdoor. De prijzenzuil komt bij de hoek van de luifel die het dichtst bij een
+rijbaan ligt, vier meter naar de weg toe. In `data/stijl/omgeving.json` staan
+alleen de maten die nergens in de data zitten: de doorrijhoogte (5,2 m), de
+dikte van het dek, het aantal pompen en de prijzen van de foto.
+
+Het zonnetje van BP en de prijsborden worden op een canvas getekend, net als alle
+andere texturen in dit spel — er komt geen plaatje bij.
+
+Wat er misging: de botsdozen van de pompeilanden stonden **dwars** over het
+plein. `addCollider` wil de hoek van de lange as zelf (−atan2(dz, dx)) en niet de
+draaiing om de y-as van het model; die twee schelen negentig graden. De proef
+mat het meteen: 1,97 m wegduwen midden onder de luifel, waar je juist vrij moet
+kunnen rijden. Controle: `npm run tanktest` (acht controles) en
+`npm run tankshots`.
+
+*Camera.* Stap je in een auto, dan staat de camera nu standaard achter de auto —
+je ziet de neus, je achterwielen en het stuk weg eromheen, en dat stuurt een stuk
+prettiger. Hoe je te voet liep wordt onthouden: stap je uit, dan kijk je weer
+door je eigen ogen als je zo liep.
+
+*De wijkeditor is eruit.* Hij werd niet gebruikt en hield wel overal haakjes in
+de gang: een module, een paneel in `index.html`, vier `if (editor.actief)`-poorten
+in de hoofdlus, drie gereedschappen en een eigen opslagpad naast die van het
+spel. Weg is weg — `js/editor.js`, `docs/EDITOR.md`, `tools/editortest.mjs`,
+`tools/editorshots.mjs`, `tools/proptest.mjs` en `tools/desktoptest.mjs`.
+
+*De politie rijdt harder.* Een surveillancewagen had dezelfde topsnelheid als de
+speler (24 m/s), en dan haalt hij je nooit meer in zodra je een rechte weg hebt:
+hij blijft eeuwig een straat achter je hangen. Nu 29 m/s — 104 tegen 86 km/u — en
+tijdens een jacht mag hij ook harder willen rijden (26 in plaats van 20). Genoeg
+om in te lopen, niet zoveel dat wegkomen onbegonnen werk wordt.
+
+*Het schot.* Een pistoolschot is geen "boem" maar een knal: een drukgolf van een
+paar milliseconden met energie tot ver boven de 10 kHz, dan een korte lage klap
+van het uitstromende gas, en dan de straat die het terugkaatst. Er stonden drie
+gefilterde ruisstootjes op 2600, 900 en 240 Hz plus een vierkante toon, en dat
+klonk dof — meer een dichtslaande deur. Nu vier lagen: de knal (ongefilterde ruis
+van vier milliseconden met een piek op 3,2 kHz), de gasklap (laagdoorlaat plus
+een sinus van 180 naar 50 Hz), drie kaatsingen tegen de gevels op 38, 74 en
+130 ms die steeds zachter en doffer worden, en een naijl van een halve seconde.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

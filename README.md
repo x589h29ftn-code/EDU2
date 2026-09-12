@@ -46,7 +46,6 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | Y | weer: helder, bewolkt, regen |
 | U | geluid uit en aan |
 | **K** | je eigen plek in spelmeters (`x, z`), in beeld en op het klembord — handig om een plek door te geven |
-| **F2** | wijkeditor: huizen verplaatsen en toevoegen |
 | Esc | muis vrijgeven |
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
@@ -222,6 +221,22 @@ een randje, en elk stukje rand hoort voortaan bij de tegel waar het zélf ligt i
 tegel van het eerste hoekpunt van zijn vlak. Wat overblijft zijn spleetjes in de brondata zelf:
 0,04 % van het open terrein in Tinga ligt tussen twee vlakken in.
 
+## Tankstation BP Slump Oil
+
+Aan de Lemmerweg, op de hoek bij het sportpark, staat het tankstation: een luifel op vier kolommen met
+een groene rand en een dunne gele lijn eronder, het BP-zonnetje op de koppen, twee pompeilanden met
+groen-witte pompen, en aan de weg een prijzenzuil met de prijzen in groene cijfers. De shop ernaast is
+het echte pand (Lemmerweg 63) met een groene band over de glazen pui.
+
+De maten komen uit de brondata: de luifel staat als los bouwwerk in de BGT (24,6 × 10,8 m), en daar
+komen plek, richting en maat vandaan. Alleen de doorrijhoogte, het aantal pompen en de prijzen staan in
+`data/stijl/omgeving.json`. Onder de luifel kun je gewoon doorrijden; door een pomp of de zuil niet.
+`npm run tanktest` rekent dat na, `npm run tankshots` maakt de foto's.
+
+| Onder de luifel | De prijzenzuil |
+|---|---|
+| ![tankstation](docs/screenshots/tank_onder.png) | ![prijzenzuil](docs/screenshots/tank_voor.png) |
+
 ## De autoradio
 
 Zodra je in een auto stapt speelt de radio een nummer uit `audio/radio/`, door dezelfde smalle band als
@@ -236,8 +251,9 @@ daar eigen of rechtenvrij werk te staan.
 
 ## Camera over je schouder
 
-**V** zet de camera achter je. Met de auto is dat een stuk handiger sturen: je ziet de neus, je
-achterwielen en het stuk weg eromheen. Kijk je zelf niet rond, dan draait de camera vanzelf terug tot
+Stap je in een auto, dan staat de camera **standaard achter de auto**: je ziet de neus, je achterwielen
+en het stuk weg eromheen, en dat stuurt een stuk prettiger. Met **V** kijk je alsnog door je eigen ogen.
+Te voet onthoudt het spel hoe je liep, dus bij het uitstappen sta je weer zoals je stond. Kijk je zelf niet rond, dan draait de camera vanzelf terug tot
 recht achter de auto.
 
 ![Rijden met de camera achter de auto](docs/screenshots/auto_derdepersoon.png)
@@ -922,13 +938,13 @@ auto en de vrachtwagen staan, hoe het met de dief staat en hoeveel geld je hebt.
 
 Staat er een opgeslagen spel, dan biedt het startscherm **Verder spelen** aan naast **Nieuw spel**, met
 de datum van de opslag erbij; na **Esc** is datzelfde scherm het pauzescherm met **Doorgaan**. De wijk
-zelf zit niet in de opslag: huizenrijen en objecten uit de wijkeditor hebben hun eigen opslag, zodat
+zelf zit niet in de opslag, want die ligt vast in de gegenereerde kaart, zodat
 een gewone opslag nooit werk aan de wijk overschrijft.
 
-## Windows-app en wijkeditor
+## Windows-app
 
-Naast de webversie is er een Windows-app met dezelfde wereld, waarin je **zelf huizenrijen kunt
-verplaatsen, draaien, toevoegen en verwijderen** en die wijzigingen naar schijf kunt opslaan.
+Naast de webversie is er een Windows-app met dezelfde wereld, zodat je hem zonder browser kunt
+draaien.
 
 ```bash
 npm install
@@ -939,21 +955,6 @@ npm run dist:win     # bouwt dist/Tinga-win32-x64/Tinga.exe
 De GitHub-workflow **Windows-app** bouwt bij elke push een kant-en-klare zip; die staat onder
 *Actions → de run → Artifacts*.
 
-De editor werkt ook in de browser (F2), alleen kan die het bestand niet zelf wegschrijven en krijg je
-`rows.user.js` als download. Alle toetsen en de werkwijze staan in **[docs/EDITOR.md](docs/EDITOR.md)**.
-
-![De editor in acht stappen](docs/screenshots/editor-doorloop.png)
-
-Met **T** wissel je tussen achttien woningtypen:
-
-![Alle woningtypen](docs/screenshots/woningtypen.png)
-
-En met **O** ga je naar de objecten: carports, bergingen, aanbouwen, hagen en hekken, verkeersborden,
-containers, speeltoestellen, bomen, de vlaggenmasten van de supermarkt en zittende buren met een
-biertje — 58 stuks, nagebouwd naar de street-viewfoto's van de wijk (het blad hieronder is nog van
-vóór de vlaggenmasten):
-
-![Alle objecten](docs/screenshots/objecten.png)
 
 ## Gebouwen die geen woning zijn
 
@@ -1180,8 +1181,6 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   personeel en klanten, en het bier
 - `js/kaartkleuren.js` – één kleur per klasse, gedeeld door kaartplaat, bovenaanzicht en minimap
 - `js/data.js` – de oude, handgetekende kaart in pixelcoördinaten; draait nog met `?kaart=oud`
-- `js/rows.user.js` – eigen huizenrijen uit de editor; staat dit bestand er, dan gaat het voor op `data.js`
-- `js/editor.js` – de wijkeditor (F2): huizenrijen en objecten
 - `js/props.js` – de objectenbibliotheek (carports, borden, speeltoestellen, zittende buren met een biertje, ...)
 - `js/verhaal.js` – de vijf missies: Mark voor Molenkrite 15, het gesprek onderin het scherm, de
   bierdrinkers schuin tegenover, de rit naar de waterzuivering, de bewaking op het terrein en het

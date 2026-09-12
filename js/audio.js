@@ -116,18 +116,62 @@ export const geluid = {
   },
 
   /*
-   Een schot bestaat uit drie dingen tegelijk: de knal zelf (heel kort en hard),
-   de klap van het gas (laag, iets langer) en de naijl in de straat. Elk schot
-   krijgt een beetje toonhoogteverschil mee, anders klinkt een serie als een
-   kopieermachine. Vlak erna tikt de huls op de stoep.
+   Een schot.
+
+   Een pistoolschot is in het echt geen "boem" maar een **knal**: een
+   drukgolf van een paar milliseconden met energie tot ver boven de 10 kHz,
+   daarna een korte lage klap van het uitstromende gas, en dan de straat die
+   het terugkaatst. Dat laatste is wat je in een woonwijk vooral hoort — twee,
+   drie echo's tegen de overkant en de gevels verderop.
+
+   De eerste versie was drie gefilterde ruisstootjes op 2600, 900 en 240 Hz plus
+   een vierkante toon: dat klonk dof, meer als een dichtslaande deur. Deze versie
+   zet de vier lagen apart neer:
+
+   1. de knal: ongefilterde ruis van vier milliseconden, alleen de laagste tonen
+      eraf. Kort en breed, dat is wat het scherp maakt;
+   2. de gasklap: ruis door een laagdoorlaat plus een sinus die van 180 naar
+      50 Hz zakt — de stoot die je in je borst voelt;
+   3. de kaatsingen: drie kopieën van de knal, steeds zachter en doffer, op 38,
+      74 en 130 ms. Dat zijn de gevels aan de overkant van de straat;
+   4. de naijl: een zachte ruisstaart van een halve seconde die wegsterft.
+
+   Elk schot krijgt wat toonhoogte- en tijdverschil mee, anders klinkt een serie
+   als een kopieermachine. En vlak erna tikt de huls op de stoep.
   */
   schot() {
+    if (!aan) return;
     const v = 0.92 + Math.random() * 0.16;
-    tik({ freq: 2600 * v, q: 0.5, duur: 0.035, volume: 0.5, val: 0.1 });
-    tik({ freq: 900 * v, q: 0.7, duur: 0.10, volume: 0.5, val: 0.08 });
-    tik({ freq: 240 * v, q: 1.1, duur: 0.34, volume: 0.34, val: 0.22 });
-    toon({ freq: 150 * v, naar: 48, duur: 0.24, volume: 0.16, golf: 'square' });
-    tik({ freq: 700, q: 0.8, duur: 0.45, volume: 0.10, val: 0.3, vertraag: 0.05 });  // naijl
+    const t0 = nu();
+
+    // 1. de knal zelf: heel korte, brede ruisstoot
+    {
+      const src = ctx.createBufferSource(); src.buffer = ruisBuffer(0.1);
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 320;
+      const piek = ctx.createBiquadFilter(); piek.type = 'peaking';
+      piek.frequency.value = 3200 * v; piek.Q.value = 0.9; piek.gain.value = 9;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.85, t0);
+      g.gain.exponentialRampToValueAtTime(0.06, t0 + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.045);
+      src.connect(hp); hp.connect(piek); piek.connect(g); g.connect(hoofd);
+      src.start(t0); src.stop(t0 + 0.08);
+    }
+
+    // 2. de klap van het gas
+    tik({ freq: 420 * v, q: 0.6, duur: 0.09, volume: 0.42, type: 'lowpass', val: 0.35 });
+    toon({ freq: 180 * v, naar: 50, duur: 0.16, volume: 0.20, golf: 'sine' });
+
+    // 3. de straat kaatst hem terug: drie keer zachter en doffer
+    const echos = [[0.038, 0.30, 5200], [0.074, 0.16, 3000], [0.130, 0.08, 1800]];
+    for (const [na, vol, top] of echos) {
+      tik({ freq: top * v, q: 0.5, duur: 0.05, volume: vol, type: 'lowpass', val: 0.5,
+        vertraag: na + Math.random() * 0.006 });
+    }
+
+    // 4. naijl tussen de huizen
+    tik({ freq: 900, q: 0.7, duur: 0.55, volume: 0.075, type: 'bandpass', val: 0.35, vertraag: 0.06 });
+
     // de huls: een klein metalig tikje op de grond
     setTimeout(() => { toon({ freq: 3200, naar: 2100, duur: 0.07, volume: 0.05 }); }, 260);
   },

@@ -1668,6 +1668,95 @@ for (const p of PANDEN) {
 }
 tel('molens', MOLENS.length);
 
+// ------------------------------------------------------------- tankstations
+/*
+ Tankstation BP Slump Oil, Lemmerweg 63 aan de rondweg, naast het sportpark.
+
+ Wat uit de data komt:
+   - de **luifel** staat als los bouwwerk in de BGT (bgt_overigbouwwerk, klasse
+     `bouwwerk`): een vierhoek van 26,4 x 13,0 m. Maat, plek en richting komen
+     daar vandaan, niet uit een schatting;
+   - de **shop** is gewoon een pand (0091100000004556, 236 m², plat op 4,88 m),
+     dat via data/stijl/straten.json zijn eigen gevel krijgt;
+   - de **richting** van de luifel is de langste zijde van die vierhoek. De
+     pompeilanden liggen daar evenwijdig aan, want zo staan ze onder elke
+     luifel: je rijdt er langs de lange kant onderdoor;
+   - de **prijzenzuil** komt bij de hoek van de luifel die het dichtst bij de
+     rijbaan ligt, vier meter naar de weg toe.
+
+ Wat er niet uit komt: de hoogte van de luifel (5,2 m vrije doorrijhoogte is de
+ norm voor een station zonder vrachtverkeer) en het aantal pompen per eiland.
+ Die staan in data/stijl/omgeving.json.
+*/
+const TANKSTATIONS = [];
+for (const t of (OMGEVING.tankstations || [])) {
+  // de luifel: het bouwwerk waarvan het zwaartepunt het dichtst bij `luifelBij` ligt
+  let beste = null, besteD = Infinity;
+  for (const v of VLAKKEN) {
+    if (v.k !== 'bouwwerk') continue;
+    const ring = v.r[0];
+    let cx = 0, cz = 0;
+    for (const q of ring) { cx += q[0]; cz += q[1]; }
+    cx /= ring.length; cz /= ring.length;
+    const d = Math.hypot(cx - t.luifelBij[0], cz - t.luifelBij[1]);
+    if (d < besteD) { besteD = d; beste = { ring, cx, cz }; }
+  }
+  if (!beste || besteD > 40) { console.warn(`LET OP: tankstation ${t.naam}: geen luifel gevonden`); continue; }
+  // de langste zijde geeft de richting
+  let as = [1, 0], asL = 0;
+  for (let i = 0; i < beste.ring.length; i++) {
+    const a = beste.ring[i], b = beste.ring[(i + 1) % beste.ring.length];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (L > asL) { asL = L; as = [(b[0] - a[0]) / L, (b[1] - a[1]) / L]; }
+  }
+  // maat in de lengte en in de breedte
+  let l0 = Infinity, l1 = -Infinity, b0 = Infinity, b1 = -Infinity;
+  for (const q of beste.ring) {
+    const dl = (q[0] - beste.cx) * as[0] + (q[1] - beste.cz) * as[1];
+    const db = (q[0] - beste.cx) * -as[1] + (q[1] - beste.cz) * as[0];
+    l0 = Math.min(l0, dl); l1 = Math.max(l1, dl); b0 = Math.min(b0, db); b1 = Math.max(b1, db);
+  }
+  const lengte = l1 - l0, breedte = b1 - b0;
+  // pompeilanden: evenwijdig aan de lange as, op een derde en twee derde van de breedte
+  const eilanden = [];
+  const nEil = t.eilanden || 2;
+  for (let i = 0; i < nEil; i++) {
+    const db = b0 + breedte * (i + 1) / (nEil + 1);
+    eilanden.push({
+      x: r2(beste.cx + -as[1] * db), z: r2(beste.cz + as[0] * db),
+      lengte: r2(Math.min(lengte - 4, 9)), pompen: t.pompenPerEiland || 2,
+    });
+  }
+  // de zuil bij de hoek die het dichtst bij een rijbaan ligt
+  let hoek = beste.ring[0], hoekD = Infinity, naar = null;
+  for (const q of beste.ring) {
+    for (const w of WEGASSEN) {
+      if (!w.drive) continue;
+      for (const p2 of w.pts) {
+        const d = Math.hypot(p2[0] - q[0], p2[1] - q[1]);
+        if (d < hoekD) { hoekD = d; hoek = q; naar = p2; }
+      }
+    }
+  }
+  let zx = hoek[0], zz = hoek[1], zyaw = 0;
+  if (naar) {
+    const dx = naar[0] - hoek[0], dz = naar[1] - hoek[1], L = Math.hypot(dx, dz) || 1;
+    zx = hoek[0] + dx / L * 4; zz = hoek[1] + dz / L * 4;
+    zyaw = r2(Math.atan2(-dx / L, -dz / L));
+  }
+  TANKSTATIONS.push({
+    naam: t.naam, merk: t.merk || 'bp', pand: t.pand || null,
+    ring: beste.ring.map(q => [r2(q[0]), r2(q[1])]),
+    cx: r2(beste.cx), cz: r2(beste.cz), as: [r2(as[0]), r2(as[1])],
+    lengte: r2(lengte), breedte: r2(breedte),
+    hoogte: t.hoogte ?? 5.2, dek: t.dek ?? 0.75,
+    eilanden, zuil: { x: r2(zx), z: r2(zz), yaw: zyaw, hoog: t.zuilHoogte ?? 6.5 },
+    prijzen: t.prijzen || [],
+  });
+  telling[`tankstation_${t.naam.replace(/\W+/g, '_')}_m`] = `${lengte.toFixed(1)}x${breedte.toFixed(1)} m`;
+}
+tel('tankstations', TANKSTATIONS.length);
+
 /*
  ------------------------------------------------------------------ zuilengangen
  De twee gebogen blokken aan de Keizersmantel in Duinterpen (401-437 met de
@@ -1837,7 +1926,7 @@ const KAART = {
   heggen: HEGGEN, schuttingen: SCHUTTINGEN, paden: PADEN, tuinvlakken: TUINVLAKKEN, strepen: STREPEN, objecten: OBJECTEN,
   zuilengangen: ZUILENGANGEN,
   hekwerken: HEKWERKEN, poorten: POORTEN, viaducten: VIADUCTEN,
-  sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN, molens: MOLENS,
+  sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN, molens: MOLENS, tankstations: TANKSTATIONS,
   labels: LABELS, huisnummers: HUISNUMMERS,
   telling,
 };

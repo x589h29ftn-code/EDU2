@@ -7,7 +7,6 @@ import { NPCs } from './npc.js';
 import { HUD } from './hud.js';
 import { isTouchDevice, initTouchControls } from './touch.js';
 import { START, toWorld, ROWS, PROPS } from './data.js';
-import { initEditor, opgeslagenWijk, pasWijkToe } from './editor.js';
 import { initSfeer } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur, WONINGEN } from './interieur.js';
@@ -230,18 +229,6 @@ const fill = new THREE.DirectionalLight(0xcfe0f2, 0.8);
 fill.position.set(-SUN_DIR.x * 150, 90, -SUN_DIR.z * 150);
 scene.add(fill);
 
-// Eigen huizenrijen: js/rows.user.js (uit de editor, Ctrl+S) gaat voor op
-// data.js; staat dat bestand er niet, dan tellen de wijzigingen in de browser.
-try {
-  const eigen = await import('./rows.user.js');
-  pasWijkToe({ rows: eigen.ROWS, props: eigen.PROPS });
-  console.log(`rows.user.js geladen: ${ROWS.length} rijen, ${PROPS.length} objecten`);
-} catch { /* geen eigen bestand, dat is prima */ }
-{
-  const lokaal = opgeslagenWijk();
-  if (lokaal) { pasWijkToe(lokaal); console.log(`uit de browser-opslag: ${ROWS.length} rijen, ${PROPS.length} objecten`); }
-}
-
 // Kaart uit BGT en 3D BAG (js/kaart.js). Met ?kaart=oud draait de oude,
 // handgetekende kaart uit data.js; met ?boven=1 komt er een orthografisch
 // bovenaanzicht van het hele gebied (en met &plat=1 in egale controlekleuren).
@@ -431,10 +418,13 @@ function autoOntploft(car) {
 }
 
 // In- en uitstappen
+let derdeTeVoet = false;     // stond de camera te voet al achter je?
 function toggleCar() {
   if (!player.active) return;
   if (player.inCar) {
     const car = player.inCar; player.inCar = null;
+    // buiten weer door je eigen ogen, als je te voet zo liep
+    if (derde.aan && !derdeTeVoet) derde.wissel();
     vehicles.ruiten(car, true);          // buiten hoort het glas er weer in
     const side = new THREE.Vector3(Math.cos(car.yaw), 0, -Math.sin(car.yaw)).multiplyScalar(-1.6);
     player.pos.set(car.x + side.x, 0, car.z + side.z); player.yaw = car.yaw; player.pitch = 0;
@@ -445,9 +435,17 @@ function toggleCar() {
     if (car) {
       vehicles.maakBestuurbaar(car);   // losse wielen, remlichten, verende carrosserie
       player.inCar = car; player.carLook = 0;
-      if (derde.aan) derde.achterAuto(car);
+      /*
+       In de auto standaard de camera achter de auto: je ziet de neus, je
+       achterwielen en het stuk weg eromheen, en dat stuurt een stuk prettiger.
+       Hoe je te voet liep wordt onthouden, zodat je bij het uitstappen weer
+       door je eigen ogen kijkt als je zo liep.
+      */
+      derdeTeVoet = derde.aan;
+      if (!derde.aan) derde.wissel();
+      derde.achterAuto(car);
       geluid.portier(); geluid.motorAan();
-      hud.show(derde.aan ? 'Ingestapt – W om te rijden' : 'Ingestapt – W om te rijden · V voor de camera achter de auto', 3);
+      hud.show('Ingestapt – W om te rijden · V voor de camera vanuit je ogen', 3);
     }
   }
 }
@@ -475,7 +473,6 @@ function aanrijden(x, z, straal, snelheid) {
 // Camera wisselen tussen eerste en derde persoon.
 function wisselCamera() {
   if (!player.active && !window.__autoplay) return;
-  if (editor && editor.actief) return;
   const aan = derde.wissel();
   if (aan && player.inCar) derde.achterAuto(player.inCar);
   hud.show(aan ? 'Camera achter je' : 'Camera vanuit je ogen', 1.6);
@@ -486,10 +483,8 @@ window.addEventListener('keydown', e => {
 // E doet vier dingen, in deze volgorde: een gesprek doorklikken, iemand
 // aanspreken die naast je staat, door de voordeur van Molenkrite 15 gaan, en
 // anders in- of uitstappen bij een auto.
-// In de editor is E omhoog vliegen, dus daar blijft hij van af.
 function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
-  if (editor && editor.actief) return;
   if (verhaal.toets()) return;
   for (const r of binnenruimtes) if (r.toets()) return;
   toggleCar();
@@ -630,7 +625,6 @@ function laadSpelNu() {
 
 window.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  if (editor && editor.actief) return;      // in de editor bewaart Ctrl+S de wijk
   if (e.code === 'F5') { e.preventDefault(); bewaarSpelNu(); }
   else if (e.code === 'F9') { e.preventDefault(); laadSpelNu(); }
 });
@@ -663,15 +657,6 @@ const sfeer = initSfeer({
   zonRichting: SUN_DIR,
 });
 
-// Wijkeditor (F2)
-const editor = initEditor({
-  scene, camera, player, hud, npcs, vehicles,
-  onRebuild: () => {
-    if (RELIEF_AAN) zetReliëf(scene);   // de herbouwde wereld heeft nieuwe materialen
-    applyEnvIntensity(scene); verhaal.meldAan(); for (const r of binnenruimtes) r.meldAan();
-  },
-});
-
 // Hoofdlus
 let last = performance.now(); let time = 0; let lodKlok = 0;
 let laatsteRadio = null;     // welk nummer er als laatste in het balkje stond
@@ -689,7 +674,6 @@ function afstandTotRadio(x, z) {
 function loop() {
   requestAnimationFrame(loop);
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
-  if (editor && editor.actief) editor.update();
   if (player.active || window.__autoplay) {
     player.update(dt);
     if (player.inCar) {
@@ -797,7 +781,7 @@ loop();
 
 // Testhaak voor automatische screenshots
 window.__game = {
-  scene, camera, player, vehicles, npcs, renderer, hud, editor, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
+  scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
 };
 
