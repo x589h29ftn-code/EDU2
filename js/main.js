@@ -19,6 +19,7 @@ import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, zetReliëf } from './textures.js';
+import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -350,12 +351,46 @@ const opDeWeg = npcs.people.concat([verhaal.hinder]);
 // Te voet loop je niet door auto's heen; js/player.js kent de auto's niet, dus
 // het duwtje komt hiervandaan (de auto waar je zelf in zit telt niet mee).
 player.blokkade = (x, z, r) => vehicles.duwUit(x, z, r, player.inCar, player.pos.y);
+// remsporen: js/vehicles.js legt ze neer via deze haak
+bouwSporen(scene);
+vehicles.spoor = zetSpoor;
 applyEnvIntensity(scene);
+
+/*
+ Botsgevoel: de camera schudt van een klap.
+
+ Een aanrijding was tot nu toe alleen een getal — je snelheid ging eraf en dat
+ was het. `schok(kracht)` zet een uitslag die in een halve seconde uitdempt en
+ die vlak voor het renderen bij de camera wordt opgeteld. De uitslag is een
+ sinus met drie snelheden door elkaar, want één zuivere trilling leest als een
+ defect beeldscherm en niet als een klap.
+
+ Het wordt op de camera zelf gezet en niet op de speler: anders schuift je
+ botsdoos mee en loop je door een muur heen.
+*/
+const SCHOK = { t: 0, kracht: 0 };
+function schok(kracht) { SCHOK.kracht = Math.max(SCHOK.kracht, Math.min(1.2, kracht)); SCHOK.t = 0; }
+function schokCamera(cam, dt) {
+  if (SCHOK.kracht <= 0.001) return;
+  SCHOK.t += dt;
+  const over = Math.max(0, 1 - SCHOK.t / 0.55);
+  SCHOK.kracht *= Math.max(0, 1 - dt * 3.2);
+  const a = SCHOK.kracht * over * over;
+  if (a <= 0.001) { SCHOK.kracht = 0; return; }
+  const t = SCHOK.t;
+  const dx = (Math.sin(t * 61) * 0.6 + Math.sin(t * 37) * 0.4) * a * 0.20;
+  const dy = (Math.sin(t * 53 + 1.1) * 0.6 + Math.sin(t * 29) * 0.4) * a * 0.16;
+  cam.position.x += dx; cam.position.y += dy;
+  cam.rotation.z += Math.sin(t * 44) * a * 0.035;
+}
 
 // Hoe ver de schrik reikt. Een schot hoor je door de hele straat, een klap van
 // een aanrijding wat minder ver; wie binnen die straal loopt, gaat ervandoor.
 const PANIEK_SCHOT = 28;
 const PANIEK_KLAP = 20;
+
+// afstand van de speler tot een punt in de wereld, voor het volume van een kreet
+const afstandTot = (p) => Math.hypot(player.pos.x - p.x, player.pos.z - p.z);
 
 // Schieten: raycast op auto's en voetgangers
 const raycaster = new THREE.Raycaster();
@@ -366,18 +401,35 @@ player.shootCb = (camOrigin, camDir) => {
   const { origin, dir } = derde.mikpunt(camOrigin, camDir);
   verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
   politie.hoorSchot(origin.x, origin.z);         // en de politie ook
-  npcs.paniek(origin.x, origin.z, PANIEK_SCHOT); // en de buurt rent weg
+  /*
+   De buurt rent weg — en schreeuwt. Eén of twee kreten per schot, niet per
+   voetganger: een straat vol mensen die allemaal tegelijk gillen is lawaai en
+   geen schrik. Ze komen een tiende seconde later, want zo snel schrik je niet.
+  */
+  const gevlucht = npcs.paniek(origin.x, origin.z, PANIEK_SCHOT);
+  if (gevlucht) {
+    const hoeveel = Math.min(2, gevlucht);
+    for (let i = 0; i < hoeveel; i++) {
+      setTimeout(() => geluid.kreet('schrik', 6 + Math.random() * 16), 120 + Math.random() * 260);
+    }
+  }
   politie.misdaad('schot', origin.x, origin.z);
   raycaster.set(origin, dir); raycaster.far = 120;
   const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen()];
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
     const h = hits[0];
+    /*
+     Geen meldingen meer bij een treffer ("Raak!", "Agent neer!"): je ziet het
+     gebeuren en het balkje stond er voortdurend (melding beta-test 12 sep 2026).
+     Wat er wél bij komt is een kreet — dat vertelt hetzelfde zonder tekst.
+    */
     if (npcs.hit(h.object, h.instanceId)) {
-      geluid.raak(); hud.show('Raak!', 0.8);
+      geluid.raak();
+      geluid.kreet('pijn', afstandTot(h.point));
       politie.misdaad('neergeschoten', h.point.x, h.point.z);
-    } else if (politie.raak(h.object)) { geluid.raak(); hud.show('Agent neer!', 1.2); }
-    else if (verhaal.raak(h.object)) { geluid.raak(); hud.show('Raak!', 0.8); }
+    } else if (politie.raak(h.object)) { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); }
+    else if (verhaal.raak(h.object)) { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); }
     else {
       /*
        Op een auto schieten. Een politieauto gaat eerst langs js/politie.js: die
@@ -388,12 +440,12 @@ player.shootCb = (camOrigin, camDir) => {
       const car = politiewagen || vehicles.hit(h.object, h.instanceId);
       if (car) {
         geluid.klap();
+        if (Math.random() < 0.4) geluid.glas();     // een ruit die het begeeft
         if (car.hp <= 0 && !car.wrak) {
           vehicles.laatOntploffen(car);
           if (politiewagen) politie.wagenOp(car);
           autoOntploft(car);
-          hud.show('Auto opgeblazen!', 1.4);
-        } else hud.show('Auto geraakt', 0.6);
+        }
       }
     }
     const mark = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), impactMat); mark.position.copy(h.point); scene.add(mark);
@@ -406,11 +458,15 @@ player.shootCb = (camOrigin, camDir) => {
  politie op de plek afstuurt, en schade voor wie er te dicht bij staat.
 */
 function autoOntploft(car) {
-  geluid.klap();
+  geluid.explosie();
+  geluid.glas();
   npcs.paniek(car.x, car.z, 34);
   politie.hoorSchot(car.x, car.z);
   politie.misdaad('schot', car.x, car.z);
   const d = Math.hypot(player.pos.x - car.x, player.pos.z - car.z);
+  if (d < 40) schok(1.1 * Math.max(0, 1 - d / 40));
+  // wie het ziet gebeuren schreeuwt
+  for (let i = 0; i < 3; i++) geluid.kreet('schrik', d + i * 6);
   if (d < 9) {
     player.health -= Math.round(38 * (1 - d / 9));
     hud.zetLeven(player.health); hud.flits();
@@ -457,15 +513,17 @@ function aanrijden(x, z, straal, snelheid) {
   const blauw = politie.aanrijden(x, z, straal, snelheid);
   if (blauw) {
     geluid.klap();
+    geluid.kreet('pijn', Math.hypot(player.pos.x - x, player.pos.z - z));
     npcs.paniek(x, z, PANIEK_KLAP);
-    hud.show(blauw > 1 ? `${blauw} agenten aangereden` : 'Agent aangereden', 2.5);
+    schok(0.5 + Math.min(0.5, snelheid / 26));
   }
   const n = npcs.aanrijden(x, z, straal, snelheid);
   if (n) {
     geluid.klap();
+    geluid.kreet('pijn', Math.hypot(player.pos.x - x, player.pos.z - z));
     npcs.paniek(x, z, PANIEK_KLAP);   // wie het ziet gebeuren rent weg
     politie.misdaad('aangereden', x, z);
-    hud.show(n > 1 ? `${n} voetgangers aangereden` : 'Voetganger aangereden', 1.4);
+    schok(0.45 + Math.min(0.5, snelheid / 26));
   }
   return n;
 }
@@ -548,6 +606,7 @@ function startGame(vervolg = false) {
   overlay.style.display = 'none';
   player.active = true;
   geluid.start();
+  geluid.pauzeer(false);
   geluid.laadRadio();                      // muziek voor de autoradio, als die er is
   if (touch) {
     touch.setVisible(true);
@@ -578,6 +637,10 @@ function pauseGame() {
   player.active = false;
   if (touch) touch.setVisible(false);
   gepauzeerd = true;
+  // Zonder dit bromt de motor door zolang je in het menu staat: de oscillator
+  // loopt door en `motorToeren` wordt niet meer aangeroepen, dus hij blijft op
+  // zijn laatste stand hangen (melding beta-test 12 sep 2026).
+  geluid.pauzeer(true);
   toonOpslagKeuze();
   overlay.style.display = 'flex';
 }
@@ -680,6 +743,12 @@ function loop() {
       const car = player.inCar;
       vehicles.drive(car, player.driveInput(), dt, aanrijden);
       geluid.motorToeren(car.speed, car.topSnelheid || 24);
+      geluid.gier(car.gierNiveau || 0);
+      if (car.botsKracht) {
+        geluid.klap();
+        schok(0.35 + Math.min(0.85, car.botsKracht / 16));
+        car.botsKracht = 0;
+      }
       // yaw van speler volgt de auto (relatief kijken), zodat de camera vanzelf
       // achter de auto blijft hangen
       if (player.lastCarYaw !== undefined) player.yaw += car.yaw - player.lastCarYaw;
@@ -702,14 +771,25 @@ function loop() {
     } else {
       player.lastCarYaw = undefined;
       derde.update(dt, null);
+      geluid.gier(0);
     }
+    werkSporenBij(dt);
     vehicles.updateTraffic(dt, player, opDeWeg, camera.position.x, camera.position.z);
     npcs.update(dt, time, camera.position.x, camera.position.z);
     verhaal.update(dt);
     for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
-    // de politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte
-    if (!ergensBinnen(player.pos.x, player.pos.z)) {
-      vehicles.werkKnallenBij(dt);       // de vuurballen van opgeblazen auto's
+    /*
+     De politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte.
+     Binnen loopt de politie niet mee: je staat dan in een andere ruimte. Maar
+     dan wordt `politie.update` ook niet aangeroepen, en dus ook de sirene niet
+     bijgewerkt — die bleef binnen op zijn laatste stand doorloeien (melding
+     beta-test 12 sep 2026). Binnen zetten we hem daarom zelf uit.
+    */
+    if (ergensBinnen(player.pos.x, player.pos.z)) {
+      geluid.sirene(null);
+      geluid.gier(0);
+    } else {
+      vehicles.werkKnallenBij(dt, player.pos.x, player.pos.z);   // vuurballen en wrakken
       const schade = politie.update(dt);
       // Zonder deze twee regels merk je er niets van dat er op je geschoten
       // wordt: de levensbalk wordt alleen bijgewerkt als iemand hem bijwerkt,
@@ -775,6 +855,8 @@ function loop() {
   */
   schaduwBeeld++;
   renderer.shadowMap.needsUpdate = (schaduwBeeld & 1) === 0;
+  // de klap van een botsing, vlak voor het tekenen op de camera gezet
+  if (kijker === camera) schokCamera(kijker, dt);
   renderer.render(scene, kijker);
 }
 loop();
@@ -783,6 +865,7 @@ loop();
 window.__game = {
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
+  geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller,
 };
 
 // Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,

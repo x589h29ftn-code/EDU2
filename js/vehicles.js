@@ -92,6 +92,8 @@ export class Vehicles {
         mesh: null, inst: { sleutel, soort: kind, i: idx }, zichtbaar: true,
         x: s.x, z: s.z, yaw: s.yaw, speed: 0, steer: 0, driveable: true, hp: 100,
         soort: kind, kleur, breedte: kind === 'van' ? 1.90 : 1.78,
+        // waar hij geparkeerd stond, zodat een opgeruimd wrak terugkomt
+        start: { x: s.x, z: s.z, yaw: s.yaw },
       };
       stap.autos[idx] = car;
       stap.stapel.zet(idx, s.x, s.z, s.yaw, true);
@@ -440,8 +442,39 @@ export class Vehicles {
     const blik = this.botsAutos(car, cx, cz);
     if (blik.raak) { cx = blik.x; cz = blik.z; ok = false; }
 
+    /*
+     Een klap. Voor de motor was dit alleen "snelheid eraf"; je zag en hoorde er
+     niets van. `botsKracht` is de snelheid waarmee je erin reed, en js/main.js
+     maakt daar een schok van de camera en een klap van. Hij wordt één beeld
+     lang gezet en daarna weer op nul, zodat één botsing ook één klap geeft.
+    */
+    car.botsKracht = (!ok && Math.abs(v) > 2.2) ? Math.abs(v) : 0;
     if (!ok) { car.speed *= 0.25; car.rij = car.yaw; }
     car.x = cx; car.z = cz;
+
+    /*
+     Slippen: remsporen en bandengier. Er zijn drie manieren om rubber te laten
+     liggen — de handrem, hard remmen vanaf snelheid, en dwars door een bocht
+     glijden (dan loopt de rijrichting achter op de neus, `car.slip`). Samen
+     geven ze `gierNiveau` tussen 0 en 1; js/main.js gebruikt dat voor het geluid
+     en legt er sporen mee neer onder de achterwielen.
+    */
+    const snel = Math.abs(car.speed);
+    let slip = Math.min(1, Math.abs(car.slip || 0) * 2.6);
+    if (hand && snel > 2) slip = Math.max(slip, 0.75);
+    if (rem && car.speed > 6) slip = Math.max(slip, Math.min(0.85, (car.speed - 6) / 12));
+    car.gierNiveau = snel > 2.2 ? slip : 0;
+    car.spoorKlok = (car.spoorKlok || 0) - dt;
+    if (car.gierNiveau > 0.22 && car.spoorKlok <= 0 && this.spoor) {
+      car.spoorKlok = 0.05;
+      const breedte = (car.breedte || 1.7) / 2 - 0.18;
+      const rx = Math.cos(car.yaw), rz = -Math.sin(car.yaw);       // dwars op de auto
+      for (const kant of [-1, 1]) {
+        this.spoor(cx + fx * -as * 0.85 + rx * breedte * kant,
+          cz + fz * -as * 0.85 + rz * breedte * kant,
+          car.rij, 0.24, Math.max(0.5, snel * 0.09), car.gierNiveau);
+      }
+    }
 
     // ---- iemand aanrijden ----
     if (raak && Math.abs(car.speed) > 1.6) {
@@ -713,8 +746,17 @@ export class Vehicles {
     car.driveable = false;
     car.speed = 0;
     const zwart = new THREE.MeshStandardMaterial({ color: 0x1b1a18, roughness: 0.95, metalness: 0.1 });
-    if (car.mesh) car.mesh.traverse(o => { if (o.isMesh) o.material = zwart; });
-    else this.zetInstantie(car);
+    if (car.mesh) {
+      // de oude lak bewaren, anders kan het wrak nooit meer teruggezet worden
+      car.lak = [];
+      car.mesh.traverse(o => { if (o.isMesh) { car.lak.push([o, o.material]); o.material = zwart; } });
+    } else if (car.inst) {
+      // een geparkeerde auto zit in een stapel en heeft geen eigen materiaal:
+      // daar gaat de kleur van de instantie op roetzwart
+      const stap = this.stapels[car.inst.sleutel];
+      stap.stapel.kleur(car.inst.i, 0x1b1a18);
+      this.zetInstantie(car);
+    }
     // vuurbal en rook, een paar seconden
     const groep = new THREE.Group();
     groep.position.set(car.x, 0.9, car.z);
@@ -728,8 +770,17 @@ export class Vehicles {
     return true;
   }
 
-  // De vuurballen laten uitdoven. js/main.js roept dit elk beeld aan.
-  werkKnallenBij(dt) {
+  /*
+   De vuurballen laten uitdoven, en de wrakken opruimen. js/main.js roept dit elk
+   beeld aan met de plek van de speler erbij.
+
+   Een wrak dat er eeuwig blijft staan verandert de wijk: na een half uur spelen
+   staat er overal zwart blik. Maar hem laten verdwijnen terwijl je ernaar kijkt
+   leest als een fout. Dus: pas na een minuut, en pas als je er meer dan tachtig
+   meter vandaan bent — dan is hij ook door de LOD al uit beeld. De auto komt
+   terug als een gewone auto op zijn eigen plek, precies zoals hij begon.
+  */
+  werkKnallenBij(dt, px = null, pz = null) {
     for (let i = this.knallen.length - 1; i >= 0; i--) {
       const k = this.knallen[i];
       k.t += dt;
@@ -741,6 +792,31 @@ export class Vehicles {
       k.rook.material.opacity = Math.max(0, 0.6 - f * 0.6);
       if (k.t > 2.6) { this.scene.remove(k.groep); this.knallen.splice(i, 1); }
     }
+    if (px == null) return;
+    for (const car of this.cars) {
+      if (!car.wrak) continue;
+      car.wrakT = (car.wrakT || 0) + dt;
+      if (car.wrakT < 60) continue;
+      if (Math.hypot(car.x - px, car.z - pz) < 80) continue;
+      this.herstelWrak(car);
+    }
+  }
+
+  // Een uitgebrand wrak weer een gewone auto maken, op zijn eigen parkeerplek.
+  herstelWrak(car) {
+    car.wrak = false; car.wrakT = 0;
+    car.hp = 100;
+    car.driveable = true;
+    car.speed = 0;
+    if (car.start) { car.x = car.start.x; car.z = car.start.z; car.yaw = car.start.yaw; }
+    car.rij = car.yaw;
+    if (car.lak) { for (const [o, m] of car.lak) o.material = m; car.lak = null; }
+    if (car.inst) {
+      const stap = this.stapels[car.inst.sleutel];
+      stap.stapel.kleur(car.inst.i, car.kleur);
+      this.zetInstantie(car);
+    }
+    return true;
   }
 
   hit(mesh, instanceId) {

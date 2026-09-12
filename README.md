@@ -291,6 +291,38 @@ de hoogbouw werden dat lagen van ruim zes meter. `npm run steekproeftest` rekent
 |---|---|
 | ![Westhemstraat](docs/screenshots/westhemstraat.png) | ![Potterzijlstraat](docs/screenshots/potterzijl_hoog.png) |
 
+## Botsgevoel en geluid
+
+Een aanrijding was een getal: je snelheid ging eraf en verder veranderde er niets. Nu voel je het.
+
+- **De camera schudt** van een klap, en hoe harder je erin rijdt hoe meer. De uitslag dempt in een
+  halve seconde uit. Hij zit op de camera en niet op de speler, anders zou je botsdoos meeschuiven en
+  door een muur heen lopen.
+- **Remsporen.** Op de handrem, hard remmen vanaf snelheid, of dwars door een bocht glijden legt rubber
+  op de weg. Honderdtwintig vierhoekjes in één buffer die als ringbuffer hergebruikt worden: één draw
+  call voor alle sporen bij elkaar, ook als je de halve wijk hebt rondgeslipt. Na veertien seconden
+  zijn ze weg.
+- **Wrakken worden opgeruimd.** Een uitgebrande auto bleef er eeuwig staan; na een half uur spelen
+  stond de wijk vol zwart blik. Nu komt hij na een minuut terug als gewone auto op zijn eigen
+  parkeerplek — maar alleen als je meer dan tachtig meter verderop bent, want iets zien verdwijnen
+  waar je naar kijkt leest als een fout.
+
+![remsporen](docs/screenshots/remsporen.png)
+
+Vier nieuwe geluiden, allemaal gesynthetiseerd zoals al het andere geluid in het spel:
+
+| Geluid | Waaruit | Wanneer |
+|---|---|---|
+| **explosie** | een korte brede knal, een sinus die van 90 naar 28 Hz zakt, anderhalve seconde rommelend vuur en een handvol brokken | een auto vliegt in brand — dat was hetzelfde blikken geluid als een kogel in een portier |
+| **glas** | vijf tot tien hoge tikjes met wisselende toonhoogte over een halve seconde | een ruit die het begeeft |
+| **kreet** | een zaagtand op stemhoogte door drie formantfilters, `schrik` of `pijn` | iemand wordt geraakt of schrikt van een schot |
+| **bandengier** | ruis door een smalle band rond 1,3 kHz met een toon erbij, sterkte loopt met het slippen mee | zolang de banden slippen |
+
+En vier meldingen uit de beta-test opgelost: de sirene loeide door zodra je een gebouw in liep, de
+motor bromde door zolang je in het pauzescherm stond, de motor overstemde de radio (motor zachter,
+muziek harder), en de meldingen "Raak!" en "Agent neer!" zijn weg — je ziet het gebeuren en nu hoor je
+het ook. `npm run gevoeltest` rekent het na.
+
 ## De autoradio
 
 Zodra je in een auto stapt speelt de radio een nummer uit `audio/radio/`, door dezelfde smalle band als
