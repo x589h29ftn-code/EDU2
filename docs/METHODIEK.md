@@ -255,6 +255,8 @@ naar `main` om een build te krijgen.
 | Houtzaagmolen De Rat (stap 25) | `npm run molentest` | eindigt op "Alles goed" |
 | De Poiesz van binnen en het bier (stap 26) | `npm run poiesztest` | eindigt op "Alles goed" |
 | Reliëf, glans en nat wegdek (stap 27) | `npm run relieftest` | eindigt op "Alles goed" |
+| Tankstation BP Slump Oil (stap 39) | `npm run tanktest` | eindigt op "Alles goed" |
+| Tennispark Molenkrite (stap 40) | `npm run tennistest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` (met `?relief=0` voor de kale stand) | de wereld is sinds stap 22 zes keer zo groot; de meting is nu een vergelijking met de vorige ronde, geen vaste bovengrens |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -2708,6 +2710,61 @@ klonk dof — meer een dichtslaande deur. Nu vier lagen: de knal (ongefilterde r
 van vier milliseconden met een piek op 3,2 kHz), de gasklap (laagdoorlaat plus
 een sinus van 180 naar 50 Hz), drie kaatsingen tegen de gevels op 38, 74 en
 130 ms die steeds zachter en doffer worden, en een naijl van een halve seconde.
+
+**Tennispark Molenkrite en tuincentrum Ranzijn (stap 40).**
+
+*De tennisbanen bij Molenkrite 130.* De gebruiker: "rond Molenkrite 130 is een
+tennisbaan, daar heb je nu al groene velden gemaakt, vlak naast het voetbalveld."
+In de data staat het er gewoon: vier vlakken **halfverhard** (BGT `fysiek
+voorkomen = half verhard`, in het spel `grind`) van 1276 tot 2535 m², pal naast
+het sportpark, met het clubgebouw (688 m², bouwjaar 2012) ertussen en tien
+parkeervakken ervoor. Halfverhard is in Nederland precies wat een tennisbaan is:
+een gravelbaan. Daar komt ook de kleur vandaan — roodbruin en niet grijs.
+
+Wat uit de data komt: plek, maat en richting van elk blok (de langste zijde geeft
+de as, de omhullende rechthoek de maat). Wat er niet uit komt is hoeveel banen er
+in zo'n blok liggen, en dat rekent de generator erbij met de maat van een echte
+baan: 36,6 × 18,3 m inclusief uitloop, speelvlak 23,77 × 10,97 m. De korte kant
+van het blok is de lengte van één baan, over de lange kant passen er
+`rij / 18,3` naast elkaar — 2 + 2 + 2 + 4 = tien banen. Opgemeten waarden in
+`data/stijl/omgeving.json`: de hekhoogte (3,6 m) en of er lichtmasten staan.
+
+De belijning gaat als één doek per blok de wereld in, niet als losse balkjes.
+Dat scheelt ruim honderd objecten per park, en het is scherper ook: een lijn van
+vijf centimeter is als plat vlakje op deze schaal een paar beeldpunten breed.
+
+Twee dingen gingen mis, en allebei zag je ze pas op een foto:
+
+- **Het hele blok stond een kwartslag gedraaid.** `rotation.y` legt de
+  plaatselijke **z**-as op een richting, en de baanvloer was langs de plaatselijke
+  **x**-as gebouwd. Gevolg: het blok van vier banen werd 73 m lang in plaats van
+  35, en de banen lagen over het pad en de bomen ernaast heen. De botsdozen
+  klopten wél, want die rekenen met de as zelf — dezelfde valkuil als bij de
+  pompeilanden van het tankstation een stap eerder, maar nu andersom. De proef
+  meet het nu na: de hoek van de vloer wordt in de wereld opgezocht en langs de
+  as en dwars erop uitgedrukt; dat moet een halve lengte en een halve breedte
+  zijn en niet omgekeerd.
+- **Er stonden bomen op de baan.** Grind is voor de strooiregels zachte grond,
+  dus er kwamen achtendertig bomen en struiken binnen het hek te staan — met een
+  stam dwars door de uitloop. Die worden er bij het genereren weer afgehaald,
+  dezelfde opruimactie als eerder op de voetbalvelden (dertig stuks). Het
+  opruimvlak is de omheinde rechthoek en niet het BGT-vlak zelf: het hek staat om
+  die rechthoek, dus dat is wat vrij hoort te zijn.
+
+Het net was eerst een dunne donkere doos, en die viel tegen het hek op de
+achtergrond volledig weg. Nu is het één vlak met een fijne maas en de witte band
+erboven — dat is ook wat je in het echt van een afstand ziet. Controle:
+`npm run tennistest` (zestien controles) en `npm run tennisshots`.
+
+*Ranzijn Tuin & Dier, Akkerwinde 1.* De gebruiker: "grote pand langs de rondweg
+Zonnedauw is een Ranzijn tuin- en dierenwinkel." Uit de data: één pand van
+3112 m² (81,4 × 45,3 m), goot 3,94 en nok 6,44 m, bouwjaar 1980, met de voorkant
+naar het westen — naar het parkeerterrein aan de rondweg. Dat is dus een lage,
+brede doos met een flauw dak, en die maat komt onveranderd uit de BGT en 3D BAG.
+Van de foto komen alleen kleur en indeling, zoals de regel voorschrijft:
+lichtgrijze gevelbeplating op een donkere plint, een glazen pui over de voorkant
+en daarboven de gele band met het woordmerk in het groen. Dat is het type
+`tuincentrum` in `js/textures.js`, gekoppeld in `data/stijl/straten.json`.
 
 **Wat nog niet af is (in volgorde).**
 

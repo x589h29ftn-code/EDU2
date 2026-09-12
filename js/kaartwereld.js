@@ -15,6 +15,7 @@ import { bouwSportvelden } from './sportveld.js';
 import { bouwVolkstuinen } from './volkstuin.js';
 import { bouwMolens } from './molen.js';
 import { bouwTankstations } from './tankstation.js';
+import { bouwTennisparken } from './tennis.js';
 import { bouwZuilengangen } from './zuilengang.js';
 
 export let KAART = null;
@@ -553,6 +554,8 @@ export function bouwKaartWereld(scene, W) {
     // en de houtzaagmolen aan het Sneekerpad, met zijn zaagloodsen
     bouwMolens(scene, W, K.molens);
     bouwTankstations(scene, W, K.tankstations);
+    // en de tennisbanen aan de Molenkrite, op de grindvlakken naast het sportpark
+    bouwTennisparken(scene, W, K.tennisparken);
     // en de zuilengangen onder de twee blokken aan de Keizersmantel in Duinterpen
     const gangen = bouwZuilengangen(scene, W, K.zuilengangen);
     if (gangen) console.log(`kaart: ${gangen} zuilengang(en) gebouwd`);

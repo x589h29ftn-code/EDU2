@@ -831,6 +831,19 @@ export const HOUSE_STYLES = {
    los op het plein en je rijdt er omheen.
   */
   bp_shop:     { brick: ['#6a4a3c', '#b9b0a4'], frame: '#eef2ee', frame2: '#eef2ee', door: ['#1f5c33'], roof: '#4f5350', roofType: 'flat', storeys: 1, storeyH: 3.4, w: 5.4, dormer: false, chimney: false, band: '#009640', plint: '#4a352b', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#009640', merk: 'shop', merkKleur: '#ffffff', puiDeel: 0.72 },
+  /*
+   Ranzijn Tuin & Dier, Akkerwinde 1 aan de rondweg bij de Zonnedauw (foto van de
+   voorkant, chat 12 sep 2026). Uit de data: één groot pand van 3112 m²
+   (81 × 45 m), goot 3,94 en nok 6,44 m, bouwjaar 1980 — een lage, brede doos met
+   een flauw dak, met het parkeerterrein aan de westkant waar de voorkant naar
+   toe wijst.
+
+   Van de foto komen alleen de kleur en de indeling: lichtgrijze gevelbeplating
+   op een donkere plint, een glazen pui over de hele voorkant en daarboven de
+   gele band met het woordmerk. `puiDeel` staat laag omdat het glas hier maar tot
+   ongeveer de helft van de gevel komt — de rest is dichte beplating.
+  */
+  tuincentrum: { brick: ['#b3b8b2', '#d3d7d1'], frame: '#f2f4f1', frame2: '#f2f4f1', door: ['#1e6b3c'], roof: '#5b5f5c', roofType: 'flat', storeys: 1, storeyH: 3.6, w: 6.0, dormer: false, chimney: false, band: '#f2c11c', plint: '#4c4f4c', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#f2c11c', merk: 'RANZIJN', merkKleur: '#1e6b3c', puiDeel: 0.55 },
   school:      { brick: ['#8c5340', '#c9bfae'], frame: '#1f6fc4', frame2: '#1f6fc4', door: ['#1f6fc4'], roof: '#54514c', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#d8d5cc', plint: '#6b4436', industrieel: true, school: true, huisstijl: '#f2c012' },
   // Jeugdhulp Friesland, Molenkrite 234 (Street View, foto in de chat 5 sep
   // 2026): een lang gebouw van één laag met plat dak, donkerbruine steen,

@@ -66,6 +66,8 @@
     "tanktest": "node tools/tanktest.mjs",
     "tankshots": "node tools/tankshots.mjs",
     "schoolshots": "node tools/schoolshots.mjs",
-    "beeldshots": "node tools/beeldshots.mjs"
+    "beeldshots": "node tools/beeldshots.mjs",
+    "tennistest": "node tools/tennistest.mjs",
+    "tennisshots": "node tools/tennisshots.mjs"
   }
 }
