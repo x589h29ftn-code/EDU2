@@ -328,7 +328,28 @@ function zetTegels(scene, W, bundel, cel, mat, klasse, opties = {}) {
   return meshes;
 }
 
+/*
+ De wereld opbouwen.
+
+ Dit duurt tientallen seconden — er zitten tienduizenden vlakken en ruim
+ vijfduizend panden in — en het gebeurde in één keer. De pagina stond al die tijd
+ stil: geen menu, geen teller, alleen een zwart scherm. Daarom is het nu een
+ generator die tussen de fases en binnen de twee grootste lussen `yield`t. De
+ aanroeper (js/main.js) laat er een paar milliseconden per beeld van draaien en
+ houdt zo het laadscherm in de lucht.
+
+ Wat er geyield wordt is de voortgang: { wat, deel } met `deel` tussen 0 en 1.
+ De verdeling over de fases is gemeten en niet geschat — de panden zijn veruit
+ het duurst.
+
+ `bouwKaartWereld` blijft als gewone functie bestaan voor wie hem in één keer
+ wil: die draait de generator gewoon leeg.
+*/
 export function bouwKaartWereld(scene, W) {
+  for (const _ of bouwKaartWereldStap(scene, W)) { /* in één keer */ }
+}
+
+export function* bouwKaartWereldStap(scene, W) {
   const K = KAART;
   materialen(W.MAT);
   vlakIndex.clear(); waterRingen.length = 0; kaartLabels.length = 0; poortBladen.length = 0;
@@ -353,7 +374,10 @@ export function bouwKaartWereld(scene, W) {
     const b = bboxRing(r[0]);
     return viaVakken.some(q => b[2] >= q[0] && b[0] <= q[2] && b[3] >= q[1] && b[1] <= q[3]);
   };
+  let vlakNr = 0;
   for (const v of K.vlakken) {
+    // om de vijfhonderd vlakken het beeld teruggeven aan de browser
+    if ((vlakNr++ % 250) === 0) yield { wat: 'ondergrond', deel: 0.30 * (vlakNr / K.vlakken.length) };
     for (const b of bucketsVan(v.r)) { if (!vlakIndex.has(b)) vlakIndex.set(b, []); vlakIndex.get(b).push(v); }
     /*
      Een vlak op het brugdek ligt vlak op de dekhoogte. De rest volgt de dijk op
@@ -385,7 +409,9 @@ export function bouwKaartWereld(scene, W) {
     }
   }
   HF = null;
+  yield { wat: 'ondergrond', deel: 0.30 };
   for (const g of perMat.values()) { const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: g.klasse }); if (m) scene.add(m); }
+  yield { wat: 'stoepen en oevers', deel: 0.36 };
   if (!plat) {
     // dijklichaam, brugdek en de houten bogen van het viaduct
     bouwViaducten(scene, W, KM);
@@ -426,9 +452,11 @@ export function bouwKaartWereld(scene, W) {
   }
 
   // -- panden
-  bouwPanden(scene, W, plat);
+  yield { wat: 'gebouwen', deel: 0.42 };
+  yield* bouwPandenStap(scene, W, plat);
 
   // -- hagen, struiken, bomen, lantaarns
+  yield { wat: 'groen en straatmeubilair', deel: 0.86 };
   if (!plat) {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) { vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor); randGeometrie([ring], 1.1, 0.0, hg.pos, hg.uv, hg.nor); }
@@ -565,6 +593,7 @@ export function bouwKaartWereld(scene, W) {
     const hm = maakMesh(hg.pos, hg.uv, hg.nor, KM.plat.haag, { klasse: 'haag' }); if (hm) scene.add(hm);
   }
 
+  yield { wat: 'straten', deel: 0.97 };
   // -- wegassen -> roadSegments (verkeer, voetgangers, straatnaam) en parkeerplekken
   for (const w of K.wegassen) {
     for (let i = 1; i < w.pts.length; i++) {
@@ -681,6 +710,10 @@ function pandDozen(p) {
 }
 
 function bouwPanden(scene, W, plat) {
+  for (const _ of bouwPandenStap(scene, W, plat)) { /* in één keer */ }
+}
+
+function* bouwPandenStap(scene, W, plat) {
   const K = KAART;
   /*
    Welke pandonderdelen in tegels en welke niet.
@@ -1012,7 +1045,11 @@ function bouwPanden(scene, W, plat) {
    kaartplaat uit de brondata.
   */
   const molenPanden = new Set(plat ? [] : (K.molens || []).map(m => m.pand));
+  let pandNr = 0;
   for (const p of K.panden) {
+    // de panden zijn het duurste stuk van de opbouw: om de tweehonderd even het
+    // beeld teruggeven, zodat het laadscherm blijft lopen
+    if ((pandNr++ % 60) === 0) yield { wat: 'gebouwen', deel: 0.42 + 0.38 * (pandNr / K.panden.length) };
     tegelNu = tegelVan(p.rect ? p.rect.cx : p.voet[0][0], p.rect ? p.rect.cz : p.voet[0][1]);
     if (molenPanden.has(p.id)) {
       // alleen de botsingsdozen, verderop in deze lus
@@ -1044,7 +1081,11 @@ function bouwPanden(scene, W, plat) {
     const dst = T.HOUSE_STYLES[p.type];
     if (dst && dst.dakdetail) dakDetails(scene, W, p, dst);
   }
+  // de meshes van de panden: honderden stukken, en samen het duurste blok van
+  // de hele opbouw na de panden zelf — dus ook hiertussen even ademhalen
+  let mNr = 0;
   for (const g of groepen.values()) {
+    if ((mNr++ % 6) === 0) yield { wat: 'gevels', deel: 0.80 + 0.06 * (mNr / groepen.size) };
     const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { schaduw: true, klasse: g.klasse });
     if (!m) continue;
     if (plat) m.material.side = THREE.DoubleSide;

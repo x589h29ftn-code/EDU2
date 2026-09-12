@@ -4,7 +4,7 @@ import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PROPS, PARKS, PAR
 import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
-import { KAART, bouwKaartWereld, ondergrondKaart, kaartStand, vlakOp } from './kaartwereld.js';
+import { KAART, bouwKaartWereld, bouwKaartWereldStap, ondergrondKaart, kaartStand, vlakOp } from './kaartwereld.js';
 import { draaiMolens } from './molen.js';
 export { grondHoogte, opViaduct, onderBrug } from './viaduct.js';
 
@@ -623,9 +623,38 @@ function nearParkBay(p, margin) {
   for (const s of parkSpots) { if (Math.hypot(p.x - s.x, p.y - s.z) < margin + 2.6) return true; }
   return false;
 }
+/*
+ Staat hier een gebouw of een ander obstakel?
+
+ Deze functie liep álle botsdozen langs. Dat waren er vijftig toen hij geschreven
+ werd; met de kaart uit de BGT zijn het er zesenvijftigduizend, en het riet langs
+ het water vraagt het voor elke pol opnieuw. Gemeten: **negenentwintig seconden**
+ voor het riet alleen, bijna de helft van de hele opbouw, aan een lus die vooral
+ dozen telt die honderden meters verderop staan.
+
+ Er ligt verderop in dit bestand al een rooster over de botsdozen voor
+ `resolveCollisions`; dat wordt hier nu ook gebruikt. Eén cel is twaalf meter,
+ dus een vraag met een marge van een meter kijkt naar hoogstens vier cellen in
+ plaats van naar zesenvijftigduizend dozen.
+*/
 function nearBuilding(p, margin) {
   for (const u of units) { if (pointInUnit(p.x, p.y, u, margin + 6)) return true; }
-  for (const c of colliders) {
+  if (rooster === null || roosterVoor !== colliders.length) bouwRooster();
+  const i0 = Math.floor((p.x - margin) / CEL), i1 = Math.floor((p.x + margin) / CEL);
+  const j0 = Math.floor((p.y - margin) / CEL), j1 = Math.floor((p.y + margin) / CEL);
+  for (let gi = i0; gi <= i1; gi++) {
+    for (let gj = j0; gj <= j1; gj++) {
+      const lijst = rooster.get(CELSLEUTEL(gi, gj));
+      if (!lijst) continue;
+      for (const c of lijst) {
+        const dx = p.x - c.cx, dz = p.y - c.cz;
+        const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
+        if (Math.abs(lx) < c.hx + margin && Math.abs(lz) < c.hz + margin) return true;
+      }
+    }
+  }
+  // dozen die bewegen staan niet in het rooster
+  for (const c of losseDozen) {
     const dx = p.x - c.cx, dz = p.y - c.cz;
     const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
     if (Math.abs(lx) < c.hx + margin && Math.abs(lz) < c.hz + margin) return true;
@@ -1801,6 +1830,27 @@ export function resetWorld(scene) {
   lodGroepen.length = 0; lampPosities.length = 0; plateauVlakken.length = 0;
   drinkArmen.length = 0; radioPlekken.length = 0; propPlekken = null;
   waterPolys.length = 0; parkPolys.length = 0; woodPolys.length = 0;
+}
+
+/*
+ De wereld in stappen opbouwen, zodat het laadscherm ondertussen kan blijven
+ lopen. Geeft tussendoor de voortgang terug ({ wat, deel }); js/main.js laat er
+ een paar milliseconden per beeld van draaien. `buildWorld` hieronder is dezelfde
+ opbouw in één keer, voor het gereedschap dat de wereld opnieuw bouwt
+ (tools/assets.mjs, tools/propshots.mjs) en voor de oude kaart uit data.js.
+*/
+export function* buildWorldStap(scene) {
+  const bekend = new Set(scene.children);
+  materials();
+  if (!KAART) { buildWorld(scene); return { colliders, roadSegments, parkSpots, waterPolys }; }
+  yield* bouwKaartWereldStap(scene, { MAT, colliders, roadSegments, parkSpots, treePositions, lampPosities, waterPolys, addCollider, maakProp, lodAan });
+  yield { wat: 'bomen', deel: 0.975 };
+  buildTrees(scene);
+  if (kaartStand() !== 'plat') { yield { wat: 'riet', deel: 0.985 }; buildReeds(scene); }
+  if (kaartStand() !== 'plat') { yield { wat: 'straatmeubilair', deel: 0.995 }; buildProps(scene); }
+  for (const c of scene.children) if (!bekend.has(c)) worldObjects.push(c);
+  yield { wat: 'klaar', deel: 1 };
+  return { colliders, roadSegments, parkSpots, waterPolys };
 }
 
 export function buildWorld(scene) {

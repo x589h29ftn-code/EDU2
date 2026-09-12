@@ -1,6 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, nearestRoadName, colliders, updateLOD, updateProps, radioPlekken } from './world.js';
+import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, updateProps, radioPlekken } from './world.js';
 import { Player } from './player.js';
 import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
@@ -20,6 +20,7 @@ import { zetKaart, zetStand, startKaart, KAART } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, zetReliëf } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
+import * as menu from './menu.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -244,9 +245,50 @@ if (URLP.get('kaart') !== 'oud') {
   } catch (e) { console.warn('geen js/kaart.js, de oude kaart uit data.js wordt gebruikt', e); }
 }
 
-// Wereld
+/*
+ De wereld opbouwen.
+
+ Dit kostte drieënveertig seconden in één blok, en al die tijd stond de pagina
+ stil: geen menu, geen teller, een zwart scherm. Nu is het een generator die
+ tussen de fases en binnen de twee grootste lussen teruggeeft (js/world.js), en
+ draaien we er hier per beeld een stukje van. Daardoor:
+
+   - staat het menu er meteen, en laadt de wereld terwijl je ernaar kijkt;
+   - kan er een voortgangsbalk mee, want er is nu voortgang om te tonen;
+   - blijft het tabblad reageren in plaats van een halve minuut te bevriezen.
+
+ `BUDGET` is hoeveel milliseconde er per stuk gebouwd mag worden. Tussen de
+ stukken door geven we het beeld terug met een `setTimeout` en niet met een
+ `requestAnimationFrame`: de hoofdlus draait nog niet, en in een browser zonder
+ grafische kaart (de proefopstelling) haalt die maar een paar beelden per
+ seconde — dan zou de opbouw uren duren in plaats van een minuut.
+*/
+const BUDGET = 24;
+menu.bouwMenu({
+  heeftOpslag: !!opslagInfo(),
+  opAfsluiten: () => afsluiten(),
+});
+menu.laadBeelden();
+menu.toonMenu();
+let keuzeBelofte = menu.wachtOpKeuze();
+let laadBalk = null;
+// zodra je iets kiest schuift het laadscherm ervoor, ook als de wereld nog bouwt
+keuzeBelofte.then(() => { if (!laadBalk) laadBalk = menu.toonLaadscherm(); });
+
 const t0 = performance.now();
-const world = buildWorld(scene);
+const world = await (async () => {
+  const stappen = buildWorldStap(scene);
+  let klaar = null;
+  while (true) {
+    const grens = performance.now() + BUDGET;
+    let r;
+    do { r = stappen.next(); } while (!r.done && performance.now() < grens);
+    if (r.done) { klaar = r.value; break; }
+    if (laadBalk) laadBalk(r.value.deel, r.value.wat);
+    await new Promise(r => setTimeout(r, 0));
+  }
+  return klaar;
+})();
 console.log(`Wereld gebouwd in ${Math.round(performance.now() - t0)} ms, ${colliders.length} colliders, ${world.parkSpots.length} auto's`);
 
 /*
@@ -257,6 +299,19 @@ console.log(`Wereld gebouwd in ${Math.round(performance.now() - t0)} ms, ${colli
  telefoon net te veel — vandaar dat het aan `IS_TOUCH` hangt. Met `?relief=0`
  gaat het uit; daarmee zijn de voor-en-na-foto's en de audit gemaakt.
 */
+/*
+ Vanaf hier is de wereld er, maar het spel nog niet: het reliëf, de speler, de
+ auto's, de voetgangers en de binnenruimtes moeten nog. Gemeten kostte dat stuk
+ achtentwintig seconden — meer dan de helft van het wachten — en het stond als
+ één blok achter de laatste stap van de opbouw. `adem` zet de balk een stukje
+ verder en geeft het beeld terug, zodat het laadscherm ook hier blijft lopen.
+*/
+const adem = async (wat, deel) => {
+  if (laadBalk) laadBalk(deel, wat);
+  await new Promise(r => setTimeout(r, 0));
+};
+
+await adem('reliëf en glans', 0.955);
 const RELIEF_AAN = !IS_TOUCH && new URLSearchParams(location.search).get('relief') !== '0';
 if (RELIEF_AAN) {
   const t1 = performance.now();
@@ -264,11 +319,18 @@ if (RELIEF_AAN) {
   console.log(`reliëf: ${r.normalen} normal maps en ${r.glans} roughness maps over ${r.materialen} materialen in ${Math.round(performance.now() - t1)} ms`);
 }
 
-// Omgevingslicht sterker laten meewegen. three r160 heeft nog geen
-// scene.environmentIntensity, dus het gaat per materiaal.
-function applyEnvIntensity(root, v = 1.7) {
+/*
+ Omgevingslicht sterker laten meewegen. three r160 heeft nog geen
+ `scene.environmentIntensity`, dus het gaat per materiaal.
+
+ Dit liep over de hele scène in één keer en was met tien seconden het langste
+ blok dat er na de opbouw nog over was. Het gaat nu per honderd takken van de
+ scène, met een adempauze ertussen; `seen` houdt bij welke materialen al gehad
+ zijn, dus opknippen verandert niets aan de uitkomst.
+*/
+async function applyEnvIntensity(root, v = 1.7, stapsgewijs = false) {
   const seen = new Set();
-  root.traverse(o => {
+  const doe = (o) => {
     const mats = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []);
     for (const m of mats) {
       if (!m || seen.has(m) || !m.isMeshStandardMaterial) continue;
@@ -276,9 +338,17 @@ function applyEnvIntensity(root, v = 1.7) {
       m.envMapIntensity = m.metalness > 0.4 ? v * 0.8 : v;
       m.needsUpdate = true;
     }
-  });
+  };
+  if (!stapsgewijs) { root.traverse(doe); return; }
+  const takken = root.children.slice();
+  for (let i = 0; i < takken.length; i++) {
+    takken[i].traverse(doe);
+    if ((i % 100) === 99) await adem('licht', 0.962 + 0.004 * (i / takken.length));
+  }
 }
-applyEnvIntensity(scene);
+await adem('licht', 0.962);
+await applyEnvIntensity(scene, 1.7, true);
+await adem('de speler', 0.966);
 
 // Beginpunt: op de berm voor Molenkrite 15, met de buurman recht vooruit (zie
 // js/verhaal.js). Zonder kaartdata valt het terug op het punt uit de kaart of
@@ -286,10 +356,13 @@ applyEnvIntensity(scene);
 const [ox, oz] = toWorld(START.at[0], START.at[1]);
 const beginpunt = verhaalStart() || (KAART ? startKaart() : { x: ox, z: oz, yaw: START.yaw });
 const player = new Player(camera, scene, beginpunt.x, beginpunt.z, beginpunt.yaw);
+await adem('verkeer', 0.97);
 const vehicles = new Vehicles(scene, world.parkSpots);
+await adem('voetgangers', 0.978);
 const npcs = new NPCs(scene, world.roadSegments, 130);
 player.applyCamera();   // meteen op ooghoogte op de Molenkrite, ook voor het startscherm
 const hud = new HUD();
+await adem('het verhaal', 0.984);
 // Het verhaal: broer Mark voor Molenkrite 15, het gezelschap schuin tegenover,
 // de rit naar de waterzuivering, de bewaking en het afleveren bij de boerderij.
 // Zonder kaartdata (?kaart=oud) speelt het niet en doet alles niets.
@@ -317,13 +390,16 @@ const LEEG = {
  kamers vragen alleen of het buiten donker is, en dat pas als de lus draait.
 */
 const dagKlok = { get nacht() { return sfeer ? sfeer.nacht : false; } };
+await adem('woningen van binnen', 0.988);
 const woningen = WONINGEN.map(h => initInterieur({ scene, player, sfeer: dagKlok, huis: h })).filter(Boolean);
 const interieur = woningen[0] || LEEG;
 // En achter de schuurdeur van Tinga State: de deel met de toonbank waar je
 // munitie koopt (js/boerderij.js).
+await adem('de boerderij', 0.992);
 const boerderij = initBoerderij({ scene, player, hud, verhaal }) || LEEG;
 // en achter de schuifdeuren van de Poiesz in IJlst, waar je bier koopt
 // (js/supermarkt.js).
+await adem('de supermarkt', 0.996);
 const supermarkt = initSupermarkt({ scene, player, hud, verhaal }) || LEEG;
 // Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
 const binnenruimtes = [...woningen, boerderij, supermarkt];
@@ -354,7 +430,9 @@ player.blokkade = (x, z, r) => vehicles.duwUit(x, z, r, player.inCar, player.pos
 // remsporen: js/vehicles.js legt ze neer via deze haak
 bouwSporen(scene);
 vehicles.spoor = zetSpoor;
-applyEnvIntensity(scene);
+// nog een keer: de speler, de auto's en de binnenruimtes zijn er ná de eerste
+// ronde bij gekomen en hebben hun eigen materialen
+await applyEnvIntensity(scene);
 
 /*
  Botsgevoel: de camera schudt van een klap.
@@ -588,7 +666,6 @@ window.addEventListener('keydown', e => {
 // Het spel hangt niet af van muisvergrendeling. Lukt die niet, bijvoorbeeld
 // omdat de browser hem blokkeert of de pagina in een frame staat, dan kijk je
 // rond door te slepen met de linkerknop en is een korte klik een schot.
-const overlay = document.getElementById('overlay');
 let dragHint = false;
 
 // Op een aanraakscherm is er geen muis om vast te zetten: dan verschijnt er een
@@ -603,7 +680,7 @@ const touch = IS_TOUCH ? initTouchControls(player, {
 function startGame(vervolg = false) {
   if (vervolg) laadSpelNu();
   gepauzeerd = false;
-  overlay.style.display = 'none';
+  menu.verbergMenu();
   player.active = true;
   geluid.start();
   geluid.pauzeer(false);
@@ -634,6 +711,7 @@ function useDragMode() {
 }
 
 function pauseGame() {
+  if (gepauzeerd) return;
   player.active = false;
   if (touch) touch.setVisible(false);
   gepauzeerd = true;
@@ -641,34 +719,51 @@ function pauseGame() {
   // loopt door en `motorToeren` wordt niet meer aangeroepen, dus hij blijft op
   // zijn laatste stand hangen (melding beta-test 12 sep 2026).
   geluid.pauzeer(true);
-  toonOpslagKeuze();
-  overlay.style.display = 'flex';
+  menu.toonMenu({ pauze: true, heeftOpslag: !!opslagInfo() });
+  wachtOpMenu(true);
+}
+
+/*
+ Wachten tot er in het menu iets gekozen wordt, en dat uitvoeren. Bij het
+ opstarten gaat het om Start spel of Spel laden; na Esc komt Doorgaan erbij.
+ Bij Spel laden komt het laadscherm er nog even voor — niet omdat het laden lang
+ duurt (de wereld staat er dan al), maar omdat je anders midden in de wijk
+ gepootd wordt zonder dat je weet dat er iets gebeurd is.
+*/
+async function wachtOpMenu(pauze = false) {
+  const wat = await menu.volgendeKeuze();
+  if (wat === 'doorgaan') { startGame(false); return; }
+  const balk = menu.toonLaadscherm();
+  balk(0.15, wat === 'laden' ? 'opgeslagen spel' : 'nieuw spel');
+  await new Promise(r => setTimeout(r, 260));
+  balk(1, 'klaar');
+  await new Promise(r => setTimeout(r, 240));
+  if (pauze && wat === 'nieuw') { location.reload(); return; }   // nieuw spel vanuit de pauze
+  startGame(wat === 'laden');
+}
+
+/*
+ Afsluiten. In een tabblad mag `window.close()` alleen als de pagina zelf met een
+ script is geopend, dus dat lukt meestal niet; in de bureaubladversie (Electron)
+ wel. Lukt het niet, dan zeggen we eerlijk dat je het venster zelf kunt sluiten
+ in plaats van te doen alsof er iets gebeurt.
+*/
+function afsluiten() {
+  if (player.active) pauseGame();
+  geluid.demp(true);
+  window.close();
+  setTimeout(() => {
+    const w = document.getElementById('overlay');
+    if (!w) return;
+    w.innerHTML = '<div class="menupaneel"><h1>TOT ZIENS</h1>'
+      + '<div class="menuonder">Je kunt dit venster nu sluiten</div></div>';
+  }, 220);
 }
 
 // ---------- Opslaan en laden ----------
-// Eén opslagplek: F5 bewaart, F9 zet terug. Staat er iets, dan biedt het
-// startscherm 'verder spelen' aan; anders begin je als Erik voor Molenkrite 15.
-const startKnop = document.getElementById('start');
-const verderKnop = document.getElementById('verder');
-const opslagRegel = document.getElementById('opslaginfo');
-
-function tweeCijfers(v) { return String(Math.floor(v)).padStart(2, '0'); }
-
-// Het startscherm doet dubbel werk: bij het opstarten kies je tussen een nieuw
-// en een opgeslagen spel, en na Esc is het een pauzescherm waar je doorgaat.
+// Eén opslagplek: F5 bewaart, F9 zet terug. Staat er iets, dan biedt het menu
+// 'Spel laden' aan; anders begin je als Erik voor Molenkrite 15.
 let gepauzeerd = false;
-function toonOpslagKeuze() {
-  const info = opslagInfo();
-  document.body.classList.toggle('heeftopslag', !!info && !gepauzeerd);
-  verderKnop.hidden = !info;
-  opslagRegel.hidden = !info;
-  startKnop.textContent = gepauzeerd ? 'Doorgaan' : info ? 'Nieuw spel' : 'Klik om te spelen';
-  verderKnop.textContent = gepauzeerd ? 'Opgeslagen spel laden' : 'Verder spelen';
-  if (!info) return;
-  const wanneer = new Date(info.tijd).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' });
-  const klok = info.uur != null ? ` · ${tweeCijfers(info.uur)}:${tweeCijfers(info.uur % 1 * 60)} uur in het spel` : '';
-  opslagRegel.textContent = `Opgeslagen ${wanneer}${info.straat ? ` op de ${info.straat}` : ''}${klok}. In het spel: F5 opslaan, F9 laden.`;
-}
 
 function bewaarSpelNu() {
   const gelukt = bewaarSpel({
@@ -676,7 +771,6 @@ function bewaarSpelNu() {
     straat: nearestRoadName(camera.position.x, camera.position.z),
   });
   hud.show(gelukt ? 'Spel opgeslagen' : 'Opslaan lukte niet', 2);
-  toonOpslagKeuze();
 }
 
 function laadSpelNu() {
@@ -692,15 +786,42 @@ window.addEventListener('keydown', e => {
   else if (e.code === 'F9') { e.preventDefault(); laadSpelNu(); }
 });
 
-startKnop.addEventListener('click', () => startGame(false));
-verderKnop.addEventListener('click', () => startGame(true));
-// een klik op het beeld doet hetzelfde als de eerste knop
-canvas.addEventListener('click', () => { if (!player.active) startGame(!verderKnop.hidden); });
 window.addEventListener('keydown', e => {
   if (e.code !== 'Escape') return;
   if (player.active && !document.pointerLockElement) pauseGame();
 });
-toonOpslagKeuze();
+
+/*
+ De instellingen in het menu. Ze staan hier en niet in js/menu.js, want ze gaan
+ over het spel: de scherpte, het geluid, het weer en de klok. Elke regel is een
+ naam, wat er nu staat, en wat er gebeurt als je erop klikt.
+*/
+const WEER_RIJ = ['helder', 'bewolkt', 'regen'];
+menu.zetInstellingen(() => [
+  {
+    id: 'scherpte', naam: 'Scherpte',
+    waarde: () => `${scherpte} (${pixelVerhouding(scherpte).toFixed(2)}×)`,
+    volgende: () => {
+      scherpte = SCHERPTE_RIJ[(SCHERPTE_RIJ.indexOf(scherpte) + 1) % SCHERPTE_RIJ.length];
+      localStorage.setItem('tinga.scherpte', scherpte);
+      renderer.setPixelRatio(pixelVerhouding(scherpte));
+      resize();
+    },
+  },
+  { id: 'geluid', naam: 'Geluid', waarde: () => (stil ? 'uit' : 'aan'), volgende: () => { stil = !stil; geluid.demp(stil); } },
+  {
+    id: 'weer', naam: 'Weer', waarde: () => sfeer.weer,
+    volgende: () => { sfeer.weer = WEER_RIJ[(WEER_RIJ.indexOf(sfeer.weer) + 1) % WEER_RIJ.length]; },
+  },
+  {
+    id: 'camera', naam: 'Camera', waarde: () => (derde.aan ? 'achter je' : 'vanuit je ogen'),
+    volgende: () => { derde.wissel(); if (derde.aan && player.inCar) derde.achterAuto(player.inCar); },
+  },
+  {
+    id: 'klok', naam: 'Klok', waarde: () => `${String(Math.floor(sfeer.uur)).padStart(2, '0')}:${String(Math.round(sfeer.uur % 1 * 60)).padStart(2, '0')}`,
+    volgende: () => { sfeer.uur = (sfeer.uur + 1) % 24; },
+  },
+]);
 document.addEventListener('pointerlockchange', () => {
   // Esc geeft de muis vrij; dan pauzeren we ook echt.
   if (!document.pointerLockElement && player.active && !dragHint) pauseGame();
@@ -860,6 +981,19 @@ function loop() {
   renderer.render(scene, kijker);
 }
 loop();
+
+/*
+ De wereld staat er; nu wachten we op de keuze uit het menu. Die kan al gemaakt
+ zijn terwijl er nog gebouwd werd — dan staat het laadscherm er al en gaat het
+ spel meteen beginnen.
+*/
+(async () => {
+  const wat = await keuzeBelofte;
+  if (!laadBalk) laadBalk = menu.toonLaadscherm();
+  laadBalk(1, 'klaar');
+  await new Promise(r => setTimeout(r, 400));
+  startGame(wat === 'laden');
+})();
 
 // Testhaak voor automatische screenshots
 window.__game = {

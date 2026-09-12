@@ -46,7 +46,7 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | Y | weer: helder, bewolkt, regen |
 | U | geluid uit en aan |
 | **K** | je eigen plek in spelmeters (`x, z`), in beeld en op het klembord — handig om een plek door te geven |
-| Esc | muis vrijgeven · het pauzescherm met deze hele lijst erin |
+| Esc | muis vrijgeven · het menu, met Doorgaan, Instellingen, Besturing en Afsluiten |
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
 vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstappen, de camera, de
@@ -290,6 +290,39 @@ de hoogbouw werden dat lagen van ruim zes meter. `npm run steekproeftest` rekent
 | Westhemstraat | Potterzijlstraat |
 |---|---|
 | ![Westhemstraat](docs/screenshots/westhemstraat.png) | ![Potterzijlstraat](docs/screenshots/potterzijl_hoog.png) |
+
+## Het startscherm en het laadscherm
+
+Je komt binnen op een menu: **Start spel · Doorgaan · Spel laden · Instellingen · Besturing ·
+Afsluiten**. Dat staat er na **2,8 seconden**; daarvóór keek je drieënveertig seconden naar een zwart
+scherm terwijl de wereld werd opgebouwd. Kies je iets, dan schuift het laadscherm ervoor met een beeld
+uit de wijk en een voortgangsbalk. Met Esc komt hetzelfde menu tijdens het spelen terug, nu met
+Doorgaan bovenaan — en dat is ook waar de instellingen en de toetsenlijst zitten.
+
+| Startscherm | Laadscherm |
+|---|---|
+| ![startscherm](docs/screenshots/startscherm.png) | ![laadscherm](docs/screenshots/laadscherm.png) |
+
+**De wereld wordt nu in stukjes opgebouwd.** `buildWorld` is een generator geworden die tussen de fases
+en binnen de grootste lussen teruggeeft (de vlakken, de panden, de gevels); `js/main.js` laat er
+vierentwintig milliseconde per keer van draaien en werkt de balk bij. Daardoor staat het menu er meteen,
+loopt er een teller, en bevriest het tabblad niet meer een halve minuut.
+
+Onderweg kwam er één echte rem boven water. `nearBuilding` — "staat hier een gebouw?" — liep **alle
+56.128 botsdozen** langs, en het riet langs het water vraagt dat voor elke pol opnieuw: **29 seconden**
+voor het riet alleen. Er lag al een rooster over de botsdozen voor de botsingen; dat wordt nu ook hier
+gebruikt. Riet: **29 → 4,3 s**.
+
+| | vóór | ná |
+|---|---|---|
+| menu in beeld | 68 s | **2,8 s** |
+| wereld opbouwen | 43,3 s | **28,1 s** |
+| laadtijd tot speelbaar | 67,8 s | **44,4 s** |
+| langste bevriezing tijdens de opbouw | 43 s | **4,1 s** |
+
+De beelden voor het laadscherm staan in [`beeld/laadscherm/`](beeld/laadscherm/) met een lijstje in
+`beelden.json` — zet daar je eigen schermafdrukken neer. Is er niets, dan tekent `js/menu.js` zelf een
+achtergrond op een canvas, dus het werkt ook leeg.
 
 ## Botsgevoel en geluid
 

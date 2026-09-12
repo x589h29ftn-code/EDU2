@@ -259,6 +259,7 @@ naar `main` om een build te krijgen.
 | Tennispark Molenkrite (stap 40) | `npm run tennistest` | eindigt op "Alles goed" |
 | De vijf panden uit de steekproef (stap 41) | `npm run steekproeftest` | eindigt op "Alles goed" |
 | Botsgevoel en geluid (stap 42) | `npm run gevoeltest` | eindigt op "Alles goed" |
+| Startscherm, laadscherm en opbouw (stap 43) | `npm run menutest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` (met `?relief=0` voor de kale stand) | de wereld is sinds stap 22 zes keer zo groot; de meting is nu een vergelijking met de vorige ronde, geen vaste bovengrens |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -2895,6 +2896,66 @@ van in plaats van een zoemer, met `schrik` en `pijn` als varianten) en `gier`
    hetzelfde zonder tekst.
 
 Controle: `npm run gevoeltest` (dertien controles) en `npm run gevoelshots`.
+
+**Startscherm, laadscherm en de opbouw in stukjes (stap 43).**
+
+*Wat er mis was.* Je opende de pagina en keek achtenzestig seconden naar zwart.
+De wereld werd in één blok opgebouwd — drieënveertig seconden — en pas daarna
+verscheen het startscherm. Er was geen teller, geen menu, en het tabblad
+reageerde nergens op; een browser die zo lang niets doet krijgt van het systeem
+een "wilt u deze pagina sluiten"-melding.
+
+*Het menu eerst.* `js/menu.js` bouwt nu meteen een startscherm: Start spel,
+Doorgaan, Spel laden, Instellingen, Besturing, Afsluiten. Dat staat er na 2,8
+seconden. De wereld bouwt eronder door; kies je iets, dan schuift het laadscherm
+ervoor met een beeld uit de wijk en een voortgangsbalk. Met Esc komt hetzelfde
+menu terug, nu met Doorgaan bovenaan — en daar zitten ook de instellingen
+(scherpte, geluid, weer, camera, klok) en de toetsenlijst, die daardoor niet meer
+permanent onderin het beeld hoeven te staan.
+
+De wortel houdt de naam `overlay`, want alle gereedschappen in `tools/` zetten
+dat element op `display: none` om een foto zonder menu te maken.
+
+*De opbouw in stukjes.* `bouwKaartWereld` en `buildWorld` zijn generators
+geworden die tussen de fases en binnen de grootste lussen `yield`en: om de 250
+vlakken, om de 60 panden, om de 6 gevelmeshes. `js/main.js` laat er
+vierentwintig milliseconde per keer van draaien en geeft het beeld daarna terug
+met een `setTimeout` — niet met een `requestAnimationFrame`, want de hoofdlus
+draait dan nog niet en op de proefopstelling zonder grafische kaart haalt die
+maar een paar beelden per seconde; dan zou de opbouw uren duren.
+
+Ook het stuk ná de wereld is opgeknipt: het reliëf, het omgevingslicht, de
+speler, het verkeer, de voetgangers, het verhaal en de binnenruimtes. Dat was bij
+elkaar achtentwintig seconden en stond als één blok achter de balk.
+
+*Wat de meting opleverde.* De proef meet hoe lang de pagina achter elkaar niet
+reageert. Dat bracht meteen een echte rem boven water: `nearBuilding` —
+"staat hier een gebouw?" — liep **alle 56.128 botsdozen** langs. Die functie is
+geschreven toen het er vijftig waren; het riet langs het water vraagt het voor
+elke pol opnieuw, en dat kostte **negenentwintig seconden** voor het riet alleen.
+Verderop in hetzelfde bestand lag al een rooster over de botsdozen voor
+`resolveCollisions`; dat wordt nu ook hier gebruikt. Riet: 29 → 4,3 s.
+
+| | vóór | ná |
+|---|---|---|
+| menu in beeld | 68 s | 2,8 s |
+| wereld opbouwen | 43,3 s | 28,1 s |
+| laadtijd tot speelbaar | 67,8 s | 44,4 s |
+| langste bevriezing tijdens de opbouw | 43 s | 4,1 s |
+
+Wat er niet op te knippen valt is het eerste beeld: de kaart moet dan zijn dertig
+programma's vertalen en tweehonderdvijftig megabyte textuur versturen. Op de
+softwarerenderer van de proefopstelling is dat tien seconden, op een machine met
+een grafische kaart een fractie daarvan — en je kijkt er naar het laadscherm en
+niet naar een bevroren wereld.
+
+*De beelden.* `beeld/laadscherm/` met een lijstje in `beelden.json`, net als de
+muziek in `audio/radio/`. Staat er niets, dan tekent `js/menu.js` zelf een
+achtergrond op een canvas: een rij daken bij zonsondergang met verlichte ramen.
+Zo werkt het scherm ook leeg, en het blijft waar: dit is naast de radio de enige
+plek in het spel waar een afbeelding uit een bestand mag komen.
+
+Controle: `npm run menutest` (vijftien controles) en `npm run menushots`.
 
 **Wat nog niet af is (in volgorde).**
 

@@ -344,11 +344,21 @@ ok(omver.geraakt && omver.aantal >= 1, 'met vaart gaat hij tegen de vlakte', `${
 ok(omver.smak > 0.2, 'en schuift hij een stuk door', `${omver.smak} m`);
 ok(omver.weerOp && !omver.smakNa, 'later staat hij verderop weer op');
 
-const geluid = await page.evaluate(() => {
+/*
+ Er hoort géén melding meer in beeld te komen ("Voetganger aangereden") — je ziet
+ het gebeuren en je hoort de klap en de kreet (verzoek beta-test 12 sep 2026).
+ Wat er wel moet gebeuren is dat de politie het meekrijgt.
+*/
+const naKlap = await page.evaluate(() => {
   const el = document.getElementById('msg');
-  return { tekst: el.textContent, zichtbaar: el.style.opacity !== '0' };
+  return {
+    tekst: el.textContent,
+    zichtbaar: el.style.opacity !== '0',
+    heat: window.__game.politie.gezocht || window.__game.politie.ster > 0,
+  };
 });
-ok(/aangereden/i.test(geluid.tekst), 'de HUD meldt het', geluid.tekst);
+ok(!/aangereden|raak/i.test(naKlap.tekst) || !naKlap.zichtbaar,
+  'er komt geen melding in beeld', naKlap.tekst ? `balkje: "${naKlap.tekst}"` : 'balkje leeg');
 
 // ---------- 6. schrikken en wegrennen ----------
 kop('schrikken en wegrennen');

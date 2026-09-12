@@ -20,7 +20,7 @@ console.log('touch gedetecteerd:', await page.evaluate(() => document.body.class
 await page.screenshot({ path: `${out}/tc_start.png` });
 
 // starten
-await page.tap('#start');
+await page.tap('#menuNieuw');
 await page.waitForTimeout(600);
 console.log('actief:', await page.evaluate(() => window.__game.player.active),
   'touch-ui:', await page.evaluate(() => getComputedStyle(document.getElementById('touch')).display));
