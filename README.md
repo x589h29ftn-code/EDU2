@@ -434,6 +434,24 @@ De rotonde, de op- en afritten en de rest van de wijk blijven precies waar ze la
 verandert van hoogte. `npm run rotondetest` rekent het na (achttien controles),
 `npm run rotondeshots` maakt de foto's.
 
+## Muren, hekken en vangrails uit de BGT
+
+Twee lagen van de BGT bleven tot nu toe liggen: `scheiding` (muur, hek, kademuur, walbescherming,
+damwand) en de twee soorten uit `weginrichtingselement` die je vanaf de weg ziet — de **vangrail** en de
+**balustrade**. Toen het spel nog alleen Tinga was zat daar bijna niets in; met IJlst en Duinterpen erbij
+is het **ruim acht kilometer** straatmeubilair: 2,6 km muur, 2,7 km damwand langs het water, 1,8 km
+spijlenhek, 590 m kademuur, 390 m vangrail en 83 m balustrade.
+
+| De vangrail langs de Lemmerweg | Het spijlenhek bij de waterzuivering |
+|---|---|
+| ![vangrail](docs/screenshots/scheiding_vangrail.png) | ![hek](docs/screenshots/scheiding_hek.png) |
+
+Een muur staat als **vlak** in de BGT — een lang, smal polygoon — en wordt teruggebracht tot zijn
+hartlijn, met de dikte die hij werkelijk heeft. De hoogte weet de BGT niet; die staat per soort in
+`data/stijl/omgeving.json`. Alles van één soort gaat in één mesh, dus het kost vier draw calls voor de
+hele wereld; wat er wél per stuk bij komt is een botsdoos. `npm run scheidingtest` rekent het na
+(achttien controles), `npm run scheidingshots` maakt de foto's.
+
 ## De autoradio
 
 Zodra je in een auto stapt speelt de radio een nummer uit `audio/radio/`, door dezelfde smalle band als
@@ -1410,6 +1428,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   hergebruikt worden, samen één draw call
 - `js/afsluiting.js` – de wegafsluitingen aan de rand van het speelgebied: schrikhekken met een
   baken, en de onzichtbare wand erachter
+- `js/scheiding.js` – muren, hekken, kademuren, damwanden, vangrails en balustrades uit de
+  BGT-lagen `scheiding` en `weginrichtingselement`
 - `js/opslag.js` – opslaan en laden van het spel (F5 en F9)
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd

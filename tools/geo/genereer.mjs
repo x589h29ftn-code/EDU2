@@ -1225,6 +1225,111 @@ for (const h of OMGEVING.hekken || []) {
 
 tel('hekwerken', HEKWERKEN.length); tel('poorten', POORTEN.length);
 
+// --------------------------------------------------------------- scheidingen
+/*
+ Muren, hekken, kademuren en vangrails uit de BGT.
+
+ Toen dit spel nog alleen Tinga was zat er in de laag `scheiding` niets anders
+ dan een paar kademuren, en daarom werd die laag overgeslagen. Met IJlst en
+ Duinterpen erbij staan er 113 objecten in: vier kilometer muur, bijna twee
+ kilometer spijlenhek, walbeschermingen langs het water en damwanden. In
+ `weginrichtingselement` staan bovendien de vangrails langs de rijksweg en de
+ balustrades op de bruggen — precies het soort straatmeubilair waar je aan ziet
+ dat een weg een échte weg is.
+
+ Een `muur` of `kademuur` staat als vlák in de BGT: een lang, smal polygoon. Dat
+ wordt hier teruggebracht tot zijn hartlijn (de middellijn van de twee lange
+ zijden), zodat het spel er net als bij een hek een wand van kan maken — met de
+ dikte die het vlak werkelijk heeft. De hoogte weet de BGT niet; die staat per
+ soort in data/stijl/omgeving.json.
+*/
+const SCHEIDINGEN = [];
+{
+  const ST = OMGEVING.scheidingen || {};
+  const inGebied = (pts) => pts.some(q => q[0] >= G.x0 - 20 && q[0] <= G.x1 + 20 && q[1] >= G.z0 - 20 && q[1] <= G.z1 + 20);
+  // punten uitdunnen: de BGT zet er om de halve meter een, en dat is voor een
+  // rechte muur van tachtig meter zonde van het geheugen
+  const dun = (pts, tol = 0.35) => {
+    const uit = [pts[0]];
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = uit[uit.length - 1], b = pts[i], c = pts[i + 1];
+      const dx = c[0] - a[0], dz = c[1] - a[1], L = Math.hypot(dx, dz) || 1;
+      const afw = Math.abs((b[0] - a[0]) * dz - (b[1] - a[1]) * dx) / L;
+      if (afw > tol) uit.push(b);
+    }
+    uit.push(pts[pts.length - 1]);
+    return uit;
+  };
+  const lengteVan = (pts) => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; };
+  /*
+   De hartlijn van een lang, smal vlak. De BGT-ring loopt heen langs de ene kant
+   en terug langs de andere; het midden van die twee kanten is de muur zelf. In
+   plaats van dat uit te puzzelen wordt de ring op zijn langste as geprojecteerd
+   en per stukje van twee meter het midden genomen.
+  */
+  const hartlijn = (ring) => {
+    const r = kleinsteRechthoek(ring);
+    if (!r || r.L < 1.5) return null;
+    const c = Math.cos(r.hoek), sn = Math.sin(r.hoek);
+    const naarLokaal = (q) => [(q[0] - r.cx) * c + (q[1] - r.cz) * sn, -(q[0] - r.cx) * sn + (q[1] - r.cz) * c];
+    const stap = 2, n = Math.max(2, Math.round(r.L / stap));
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const u = -r.L / 2 + (r.L * i) / n;
+      // het midden dwars op de as: neem de dwarsligging van de dichtstbijzijnde randpunten
+      let som = 0, tel2 = 0;
+      for (const q of ring) {
+        const l = naarLokaal(q);
+        if (Math.abs(l[0] - u) > stap) continue;
+        som += l[1]; tel2++;
+      }
+      const v = tel2 ? som / tel2 : 0;
+      pts.push([r2(r.cx + u * c - v * sn), r2(r.cz + u * sn + v * c)]);
+    }
+    return { pts, dik: r2(Math.max(0.2, Math.min(1.2, r.B))) };
+  };
+
+  const voeg = (soort, pts, extra = {}) => {
+    if (!pts || pts.length < 2) return;
+    const d = dun(pts);
+    const L = lengteVan(d);
+    if (L < 2 || !inGebied(d)) return;
+    const st = ST[soort] || {};
+    SCHEIDINGEN.push({
+      soort, pts: d.map(q => [r2(q[0]), r2(q[1])]), lengte: r2(L),
+      h: st.hoogte ?? 1.6, ...(st.kleur ? { kleur: st.kleur } : {}), ...extra,
+    });
+  };
+
+  const lijnen = (g) => g.type === 'LineString' ? [g.coordinates]
+    : g.type === 'MultiLineString' ? g.coordinates : [];
+  const ringen = (g) => g.type === 'Polygon' ? [g.coordinates[0]]
+    : g.type === 'MultiPolygon' ? g.coordinates.map(p2 => p2[0]) : [];
+
+  for (const f of leesOpt('bgt_scheiding')) {
+    const t = f.properties.bgt_type;
+    const soort = t === 'hek' ? 'hek' : t === 'kademuur' ? 'kademuur'
+      : t === 'walbescherming' || t === 'damwand' ? 'damwand' : t === 'muur' ? 'muur' : null;
+    if (!soort) continue;
+    for (const l of lijnen(f.geometry)) voeg(soort, l.map(naarSpel));
+    for (const r of ringen(f.geometry)) {
+      const hl = hartlijn(r.map(naarSpel));
+      if (hl) voeg(soort, hl.pts, { dik: hl.dik });
+    }
+  }
+  for (const f of leesOpt('bgt_weginrichtingselement')) {
+    const t = f.properties.plus_type;
+    const soort = t === 'geleideconstructie' ? 'vangrail' : t === 'balustrade' ? 'balustrade' : null;
+    if (!soort) continue;
+    for (const l of lijnen(f.geometry)) voeg(soort, l.map(naarSpel), { hl: f.properties.relatieveHoogteligging || undefined });
+  }
+  for (const soort of ['muur', 'hek', 'kademuur', 'damwand', 'vangrail', 'balustrade']) {
+    const q = SCHEIDINGEN.filter(s => s.soort === soort);
+    if (q.length) telling[`scheiding_${soort}_m`] = Math.round(q.reduce((a, b) => a + b.lengte, 0));
+  }
+}
+tel('scheidingen', SCHEIDINGEN.length);
+
 // ---------------------------------------------------------------- viaducten
 /*
  Het viaduct over de rondweg. De BGT markeert de wegvakken die erover heen
@@ -2144,7 +2249,7 @@ const KAART = {
   hagen: HAGEN, bomen: BOMEN.concat(STRAATBOMEN, PARKBOMEN), struiken: STRUIKEN, lantaarns: LANTAARNS,
   heggen: HEGGEN, schuttingen: SCHUTTINGEN, paden: PADEN, tuinvlakken: TUINVLAKKEN, strepen: STREPEN, objecten: OBJECTEN,
   zuilengangen: ZUILENGANGEN,
-  hekwerken: HEKWERKEN, poorten: POORTEN, viaducten: VIADUCTEN,
+  hekwerken: HEKWERKEN, poorten: POORTEN, viaducten: VIADUCTEN, scheidingen: SCHEIDINGEN,
   sportvelden: SPORTVELDEN, volkstuinen: VOLKSTUINEN, molens: MOLENS, tankstations: TANKSTATIONS, tennisparken: TENNIS,
   wegafsluitingen: AFSLUITINGEN,
   labels: LABELS, huisnummers: HUISNUMMERS,

@@ -262,6 +262,7 @@ naar `main` om een build te krijgen.
 | Startscherm, laadscherm en opbouw (stap 43, 45) | `npm run menutest` | eindigt op "Alles goed" |
 | De losse punten uit de beta-test (stap 44) | `npm run betatest` | eindigt op "Alles goed" |
 | De rotonde over de N7 (stap 46) | `npm run rotondetest` | eindigt op "Alles goed" |
+| Muren, hekken en vangrails (stap 47) | `npm run scheidingtest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` (met `?relief=0` voor de kale stand) | de wereld is sinds stap 22 zes keer zo groot; de meting is nu een vergelijking met de vorige ronde, geen vaste bovengrens |
 
 Het bovenaanzicht is de belangrijkste. Het is het enige beeld dat Claude wél
@@ -3146,6 +3147,38 @@ ligt binnen de bak van de rijksweg — en dan blijft het deksel op −1 m gewoon
 liggen. Overlappende gaten worden nu eerst samengevoegd tot hun omhullende.
 
 Controle: `npm run rotondetest` (drieëntwintig controles) en `npm run rotondeshots`.
+
+**Muren, hekken en vangrails uit de BGT (stap 47).**
+
+Twee lagen bleven liggen. In `scheiding` zitten muren, hekken, kademuren,
+walbeschermingen en damwanden; in `weginrichtingselement` de vangrails
+(`geleideconstructie`) en de balustrades op de bruggen. De generator sloeg ze
+over met de opmerking dat er in Tinga alleen kademuren in stonden — dat klopte
+toen, maar met IJlst en Duinterpen erbij zijn het 111 objecten en ruim acht
+kilometer.
+
+Wat er bij kwam kijken:
+
+- *een muur is een vlak, geen lijn.* De BGT tekent hem als lang, smal polygoon.
+  Die wordt hier teruggebracht tot zijn hartlijn: de ring wordt op zijn langste
+  as geprojecteerd en om de twee meter wordt het midden dwars daarop genomen.
+  De breedte van de omhullende rechthoek is meteen de dikte van de muur;
+- *de punten worden uitgedund.* De BGT zet er om de halve meter een; voor een
+  rechte muur van tachtig meter zijn twee genoeg. Een hek van 480 m is daardoor
+  één doorzichtig vlak met een herhalende textuur;
+- *een vangrail hangt.* Het blad zit op 52 cm op paaltjes van 72 cm, en je kijkt
+  eronderdoor. Een dichte balk op de grond leest als een stoeprand. De paaltjes
+  vielen er de eerste keer uit: ze werden gebouwd als doos van een millimeter
+  lang, en dat viel precies weg tegen de ondergrens voor lengte in de
+  doosfunctie;
+- *botsdozen per segment.* Te voet loop je niet door een muur of een hek. Een
+  auto negeert alles onder 3,5 m (`ignoreLowH`), dus dwars door een hek rijden
+  kan nog steeds — dat is dezelfde afspraak als bij de tuinhekken.
+
+Alles van één soort gaat in één mesh: vier draw calls voor acht kilometer.
+
+Controle: `npm run scheidingtest` (achttien controles) en `npm run
+scheidingshots`.
 
 **Wat nog niet af is (in volgorde).
 

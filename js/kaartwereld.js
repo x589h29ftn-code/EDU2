@@ -11,6 +11,7 @@ import * as T from './textures.js';
 import { KLEUR } from './kaartkleuren.js';
 import { PROP_TYPES } from './props.js';
 import { zetViaducten, bouwViaducten, grondHoogte, onderBrug } from './viaduct.js';
+import { bouwScheidingen } from './scheiding.js';
 import { bouwSportvelden } from './sportveld.js';
 import { bouwVolkstuinen } from './volkstuin.js';
 import { bouwMolens } from './molen.js';
@@ -609,6 +610,8 @@ export function* bouwKaartWereldStap(scene, W) {
     // omheinde terreinen: hekwerk, poort, bezinkbakken en tanks
     bouwTerreinen(scene, W);
     bouwBouwwerken(scene, W);
+    // muren, hekken, kademuren, damwanden, vangrails en balustrades uit de BGT
+    bouwScheidingen(scene, W, KM, K.scheidingen, (x, z) => grondHoogte(x, z));
     /*
      Struiken per tegel. Ze zaten in één InstancedMesh van de hele wereld, en
      zo'n mesh valt nooit buiten beeld: negentienduizend bollen werden élk beeld

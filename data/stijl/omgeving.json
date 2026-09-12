@@ -584,5 +584,31 @@
         "bron": "gebruiker, chat 12 sep 2026: 'op plek 800.9, -554.2 een invisible wall met wegafsluiting hekken'"
       }
     ]
+  },
+  "scheidingen": {
+    "_uitleg": "Muren, hekken, kademuren, damwanden, vangrails en balustrades uit de BGT-lagen `scheiding` en `weginrichtingselement`. De BGT weet waar ze liggen en hoe dik ze zijn, maar niet hoe hoog; dat staat hier per soort. `kleur` is optioneel.",
+    "muur": {
+      "hoogte": 2.0,
+      "kleur": "#9c9489"
+    },
+    "hek": {
+      "hoogte": 1.8,
+      "kleur": "#5a6066"
+    },
+    "kademuur": {
+      "hoogte": 0.55,
+      "kleur": "#8e8b84"
+    },
+    "damwand": {
+      "hoogte": 0.45,
+      "kleur": "#6f6a5e"
+    },
+    "vangrail": {
+      "hoogte": 0.75
+    },
+    "balustrade": {
+      "hoogte": 1.1,
+      "kleur": "#7d848c"
+    }
   }
 }

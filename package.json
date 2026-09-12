@@ -78,6 +78,8 @@
     "betatest": "node tools/betatest.mjs",
     "betashots": "node tools/betashots.mjs",
     "rotondetest": "node tools/rotondetest.mjs",
-    "rotondeshots": "node tools/rotondeshots.mjs"
+    "rotondeshots": "node tools/rotondeshots.mjs",
+    "scheidingtest": "node tools/scheidingtest.mjs",
+    "scheidingshots": "node tools/scheidingshots.mjs"
   }
 }
