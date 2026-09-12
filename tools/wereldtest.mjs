@@ -414,7 +414,8 @@ const gaten = await page.evaluate(() => {
   };
   const plekken = [
     ['Molenkrite', 30, -20], ['Jasker', -180, 120], ['Lemmerweg', 700, 330],
-    ['IJlst', 1180, 700], ['Duinterpen', 1320, 300], ['Bonkelaar', 210, 60],
+    ['Kleine vos', 1180, 700], ['Duinterpen', 1320, 300], ['Bonkelaar', 210, 60],
+    ['IJlst', -1400, 1100],
   ];
   const uit = [];
   for (const [naam, x, z] of plekken) {
