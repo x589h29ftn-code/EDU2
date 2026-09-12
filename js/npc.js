@@ -477,7 +477,19 @@ export class NPCs {
       const off = basis * zijde;
       p.x = s.a[0] + (s.b[0] - s.a[0]) * p.t - dz * off;
       p.z = s.a[1] + (s.b[1] - s.a[1]) * p.t + dx * off;
-      p.yaw = Math.atan2(-dx * p.dir, -dz * p.dir) + Math.PI;
+      /*
+       De kijkrichting. Het lichaam uit js/lichaam.js kijkt langs zijn eigen −z:
+       de neus zit op z = −0,108, de klep van de pet op −0,155 en de neus van de
+       schoen op −0,045. Een draai om y van `yaw` zet die −z op
+       (−sin yaw, −cos yaw), dus voor een looprichting (vx, vz) hoort
+       yaw = atan2(−vx, −vz). Hier stond nog `+ Math.PI` achter, en dat is precies
+       een halve slag: iedereen liep achteruit, met het gezicht de kant op waar hij
+       vandaan kwam. De fiets kijkt dezelfde kant op (stuur op z = −0,44), dus die
+       reed ook achterstevoren. Overal elders in het spel (js/persoon.js,
+       js/verhaal.js, js/bewaking.js, js/dief.js) staat de formule zonder die halve
+       slag.
+      */
+      p.yaw = Math.atan2(-dx * p.dir, -dz * p.dir);
       // aangereden: hij schuift nog een paar meter door in de richting van de klap
       if (p.smak) {
         p.smak.t = Math.max(0, p.smak.t - dt);

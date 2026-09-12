@@ -2496,6 +2496,132 @@ de gevel (`langs`) en kijken vandaar terug naar het hart van het pand: recht
 vooruit staat de camera in een parkeervak van de school, en dan vulde een
 geparkeerde auto het halve beeld.
 
+**Drie fouten uit het spel, gevonden door ze te meten (stap 35).**
+
+De gebruiker meldde drie dingen na het spelen. Alle drie bleken echt, en alle
+drie zijn ze met een meting vastgepind voordat er een regel veranderde.
+
+*1. "Fietsers en wandelaars lopen heel vaak achteruit."* Klopt, en niet vaak
+maar altijd. Het lichaam uit `js/lichaam.js` kijkt langs zijn eigen −z: de neus
+zit op z = −0,108, de klep van de pet op −0,155, de neus van de schoen op
+−0,045. Een draai `yaw` om de y-as zet die −z op (−sin yaw, −cos yaw), dus voor
+een looprichting (vx, vz) hoort yaw = atan2(−vx, −vz) — precies wat er in
+`js/persoon.js`, `js/verhaal.js`, `js/bewaking.js` en `js/dief.js` staat. In
+`js/npc.js` stond er `+ Math.PI` achter: een halve slag, dus iedereen liep met
+het gezicht naar waar hij vandaan kwam. De fiets keek dezelfde kant op (stuur op
+z = −0,44), dus die reed ook achterstevoren.
+
+Gemeten met het inproduct van de kijkrichting en de verplaatsing over een
+seconde, over alle honderddertig voetgangers, waarbij wie net een hoek omsloeg
+niet meetelt (dan is de sprong geen looprichting): **95 vooruit, 0 achteruit**.
+Vóór de wijziging was dat andersom.
+
+*2. "Zijkant auto en voorkant geven clipping met onder andere banden en
+chassis."* Drie fouten in `js/carmodel.js`, alle drie na te rekenen uit de
+maten:
+
+- de **sierlijst langs de dorpel** was L − 1,5 = 2,80 m lang en liep dus van
+  z = −1,40 tot 1,40, terwijl de wielen op z = ±1,32 staan met een straal van
+  0,32 (band van z = 1,00 tot 1,64). De lijst stak veertig centimeter dwars door
+  beide banden. Hij loopt nu alleen tussen de wielkasten door;
+- het **chassis van de bakwagen** was 2,25 m breed over de volle lengte, met de
+  wielen op x = ±1,00 en een band van 0,30 breed: 27 van de 30 centimeter band
+  zat in het chassis. Een bakwagen heeft een ladderchassis dat smaller is dan de
+  spoorbreedte — nu 1,66 m, met de wielen ernaast;
+- **grille, koplampen, achterlichten en kentekenplaten** hingen los vóór het
+  plaatwerk. De flank is L − 0,12 lang, dus zijn voorkant ligt op −L/2 + 0,06,
+  en de grille stond op −L/2 − 0,035: drieënhalve centimeter ertussen, waar je
+  van schuin voren doorheen keek. Bij de bakwagen was het erger: de achterkant
+  van de laadbak ligt op 3,40 en de achterlichten stonden op 3,62, twintig
+  centimeter achter de wagen in de lucht, en de kentekenplaat zat juist ín de
+  bumper. Alles zit nu een centimeter in het plaatwerk.
+
+Dezelfde ronde: de **wielkasten** stonden op wielX + 0,02 = W/2 − 0,07, dus
+binnen de flank, waar je ze niet ziet; ze staan nu op W/2 + 0,01. De bakwagen
+had er helemaal geen en heeft ze nu ook. En de dorpel reikte tot 0,569 m terwijl
+de flank op 0,570 begint — een naad van één millimeter over de hele lengte.
+
+*3. "Ik zie ruimte tussen gras en wegen alsof je door de wereld heen kan
+kijken."* Dat klopte letterlijk. Om dat te meten is het grondvlak onder alles
+(een plaat op y = −1,0) felroze gemaakt; elk roze beeldpunt is dan een plek waar
+je tussen de vlakken door naar beneden kijkt. Op vijf standpunten was **0,14 %
+tot 0,58 % van het beeld roze** — dunne lijnen langs elke berm, elk plantsoen en
+elke slootkant. Ter controle: buiten het gebied, waar het grondvlak hóórt te
+staan, is 70 % van het beeld roze.
+
+De oorzaak zit in `randGeometrie` in `js/kaartwereld.js`. De opstaande rand van
+een verhoogd vlak wordt per rand als vierhoek opgebouwd, en zowel de normaal
+(dz, 0, −dx) als de volgorde van de hoekpunten klapt om als de ring andersom
+loopt. De brondata houdt zich niet aan één draairichting, dus de helft van de
+randen keek naar binnen en werd als achterkant weggeknipt. Eerst getoetst met
+een proef — de randen dubbelzijdig maken maakte alle roze pixels weg — en toen
+netjes opgelost: de draairichting wordt nu per ring rechtgezet (buitenring
+linksom, gaten rechtsom), zodat het bij één zijde per vlak blijft en er dus geen
+driehoek bij komt. De oeverwand van een sloot en de binnenwand van een
+bezinkbak zie je juist van de andere kant, en die krijgen `naarBinnen: true`;
+zonder die vlag werden IJlst en de Lemmerweg juist slechter (823 → 2451 en
+852 → 4864 roze beeldpunten), want daar is veel water in beeld. Na afloop:
+**nul roze beeldpunten** op alle standpunten.
+
+Het was niet de LOD: met alle stoepbanden geforceerd aan bleef het beeld
+hetzelfde (3315 tegen 3315 roze beeldpunten).
+
+**De school na de tweede reeks foto's, en het schoolplein (stap 36).**
+
+Twee foto's van Keizersmantel 1 (de voorkant met de luifels, en de hoek met de
+bakstenen kop) lieten drie dingen zien die anders waren dan wat er stond:
+
+- de luifels zijn **losse zeilen per raam**, niet één doorlopende gekleurde balk.
+  Ze staan schuin naar voren, dus van de straat gezien is hun bovenrand smaller
+  dan hun onderrand — als vlakke vierhoek prima te tekenen;
+- de kleuren lopen **in blokken van een paar lokalen** (een rij gele naast een
+  rij oranje, dan blauw, dan groen) en niet om en om per lokaal. Vandaar
+  `KLEURVAK = 3` in `facade()`, met een verschuiving per verdieping;
+- het beschot is **warmer roodbruin** dan het olijfbruin dat erop zat
+  (#8a6a45 → #8a5c39).
+
+Op de foto's staan ook twee vlaggenmasten met banieren bij de glazen entree,
+rijen fietsen ervoor, en aan de kant van de bakstenen kop een speelplein met
+klimtoestel, glijbaan, speelhuisje en pergola achter een zwart spijlenhek. Dat
+staat er nu, en daarvoor is de generator op twee punten uitgebreid:
+
+1. **een object mag zijn eigen plek krijgen** (`x`/`z` in spelmeters) in plaats
+   van een maat vanaf de voorgevel. Bij dit pand moest dat wel: het plein ligt
+   achter de bocht, en in de maat vanaf de voorgevel is dat `voor: -60`, wat
+   niemand kan nalezen. De plekken zijn gekozen op een raster van een meter met
+   de eis dat ze buiten elk grondvlak liggen, op verharding of gras, en minstens
+   3,5 m van een gevel af;
+2. **`hekken`**: een rij hekwerkjes van A naar B, in stukken van drie meter, met
+   de kop in de richting van de lijn. Daarvoor is er een nieuwe prop
+   `spijlenhek` (staande spijlen met een punt, twee liggers, zwaardere
+   staanders).
+
+Wat er misging: de eerste reeks plekken kwam uit een raster van vijf meter, en
+daar stond een bank net ín het grondvlak van de school en een glijbaan op de
+rijbaan. Nu rekent `npm run schooltest` (drieëntwintig controles, waarvan vijf
+over het plein) na dat geen enkel object in een gebouw of op de rijbaan staat.
+`npm run schoolshots` maakt er twee opnamen bij, vanaf het plein en langs het
+hek; het standpunt komt uit de toestellen zelf.
+
+*Nog niet gedaan:* op de foto's zijn de banieren aan de masten paars-blauwe
+schoolvlaggen. Er staat nu de gewone vlaggenmast uit `js/props.js`, met een
+Nederlandse vlag.
+
+**Plekken doorgeven: waar moeten de muren komen (stap 37)?**
+
+Voor de onzichtbare muren en de wegblokkades aan de rand van de wereld is één
+ding nodig dat er nog niet was: een manier om een plek dóór te geven. Die zit er
+nu in, op twee manieren:
+
+- **K** zet je eigen plek in het berichtbalkje én op het klembord, als
+  `x, z` in spelmeters (`js/main.js`);
+- de **grote kaart (M)** laat diezelfde twee getallen linksonder zien, want op de
+  telefoon is er geen toetsenbord en geen klembord.
+
+Beide getallen zijn spelmeters vanaf de oorsprong (het kruispunt Molenkrite /
+Monnikmolen / Jasker, zie stap 1), dus ze zijn stabiel: de kaart opnieuw
+genereren verschuift ze niet.
+
 **Wat nog niet af is (in volgorde).**
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -2515,9 +2641,19 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
    keten opnieuw draaien is genoeg; aan de gereedschappen hoeft niets te
    veranderen. Panden zonder model staan nu als opgetrokken grondvlak in het
    spel, zonder hun echte kap.
-2. **Onzichtbare muren** aan de rand van de wereld, zodat je er niet uit kunt
-   lopen of rijden. Het werkgebied ligt nu vast — verder dan de BGT-download
-   reikt is er geen ondergrond — dus dit kan.
+2. **Onzichtbare muren en wegblokkades** aan de rand van de wereld, zodat je er
+   niet uit kunt lopen of rijden. Het werkgebied ligt nu vast — verder dan de
+   BGT-download reikt is er geen ondergrond — dus dit kan. Wat er nog moet
+   komen is een blok `grenzen` in `data/stijl/omgeving.json`: een lijst lijnen
+   `{a, b, hoogte}` voor de onzichtbare muren (alleen een collider, geen mesh) en
+   een lijst `{op: [x, z], type}` voor de blokkades die je wél ziet — betonblok,
+   schrikhek of een bord — waarbij de generator de breedte van de weg uit de
+   rijbaanas haalt en de blokkade over de volle breedte zet. De plekken zelf
+   moeten van de gebruiker komen; sinds stap 37 kan dat: **K** zet je plek op het
+   klembord en de grote kaart laat hem linksonder zien. Drie soorten aanwijzing
+   werken: twee getallen uit het spel, een straatnaam met een herkenningspunt
+   ("de Lemmerweg net na de rotonde"), of een streep op een schermafdruk van de
+   kaart.
 3. **Gebouwen steekproeven** als fijnafstelling. Nu de wereld zes keer zo groot
    is en er 7885 panden in staan, moet er een ronde langs een steekproef van
    adressen: klopt het woningtype per straat, de goothoogte, de voorgevelrichting
@@ -2540,7 +2676,18 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
    komt nu uit `js/verhaal.js`, op het adres uit de kaartdata.
 8. Koepel- en samengestelde daken (`multiple horizontal`) en de 75 nieuwbouwwoningen
    zonder 3D-model.
-9. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
+9. **Muziek uit een bestand voor de autoradio.** Al het geluid is nu
+   gesynthetiseerd (`js/audio.js`: er staat geen enkel geluidsbestand in de
+   repo), inclusief het rockje uit de portierspeakers. Wil je echte muziek, dan
+   komt er een map `audio/` bij met één of meer nummers, geladen met een
+   `<audio>`-element en door dezelfde smalle filterband gehaald als de
+   gesynthetiseerde radio, zodat het uit de speakers van de auto blijft klinken
+   en niet als een concert. Formaat: **mp3** werkt overal; ogg/opus is bij
+   gelijke kwaliteit kleiner maar werkt niet op elke oudere iPhone; m4a/aac kan
+   ook. Richtlijn 128 kbps en een paar megabyte per nummer, want alles gaat mee
+   in de repo en over GitHub Pages. Let op de rechten: eigen opname of
+   rechtenvrij, want de repo is openbaar.
+10. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png` zijn
    nog van vóór de supermarkt en de boerderij: de vlaggenmast en de twee nieuwe
    woningtypen staan er nog niet op. Bijwerken kan met `npm run propshots` en
    `npm run assets` plus `python3 tools/contactblad.py objecten|woningen`, maar

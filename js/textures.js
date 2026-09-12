@@ -803,7 +803,7 @@ export const HOUSE_STYLES = {
    deur: zes oranje deuren op een gevel van vier lagen, terwijl dat deel op de
    foto donkere entrees heeft.
   */
-  dewynpolle:  { brick: ['#9c5a42', '#cfc7ba'], hout: '#8a6a45', luifels: ['#c8402c', '#e07b1a', '#e8c11a', '#4a9c4a', '#2f6fb5'], frame: '#f0efe9', frame2: '#f0efe9', door: ['#e0651a'], roof: '#8f8d88', roofType: 'flat', storeys: 2, storeyH: 3.7, w: 5.2, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true, steenBoven: 9.5, bovenType: 'dewynpolle_steen' },
+  dewynpolle:  { brick: ['#9c5a42', '#cfc7ba'], hout: '#8a5c39', luifels: ['#c8402c', '#e07b1a', '#e8c11a', '#4a9c4a', '#2f6fb5'], frame: '#f0efe9', frame2: '#f0efe9', door: ['#e0651a'], roof: '#8f8d88', roofType: 'flat', storeys: 2, storeyH: 3.7, w: 5.2, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true, steenBoven: 9.5, bovenType: 'dewynpolle_steen' },
   dewynpolle_steen: { brick: ['#9c5a42', '#cfc7ba'], frame: '#efeee7', frame2: '#efeee7', door: ['#3a3f44'], roof: '#8f8d88', roofType: 'flat', storeys: 4, storeyH: 3.6, w: 4.6, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true },
   /*
    Keizersmantel 1A, de bijbouw die tegen de school aan staat (BAG-pand
@@ -822,7 +822,7 @@ export const HOUSE_STYLES = {
    grijze roldeur midden op het schoolplein. Met deze vlag komen er gewone ramen
    met lichte kozijnen en alleen een stalen deur.
   */
-  dewynpolle_bij: { brick: ['#9c5a42', '#cfc7ba'], hout: '#8a6a45', frame: '#f0efe9', frame2: '#f0efe9', door: ['#3a3f44'], roof: '#8f8d88', roofType: 'flat', storeys: 1, storeyH: 3.4, w: 4.4, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true, kantoor: true },
+  dewynpolle_bij: { brick: ['#9c5a42', '#cfc7ba'], hout: '#8a5c39', frame: '#f0efe9', frame2: '#f0efe9', door: ['#3a3f44'], roof: '#8f8d88', roofType: 'flat', storeys: 1, storeyH: 3.4, w: 4.4, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true, kantoor: true },
   school:      { brick: ['#8c5340', '#c9bfae'], frame: '#1f6fc4', frame2: '#1f6fc4', door: ['#1f6fc4'], roof: '#54514c', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#d8d5cc', plint: '#6b4436', industrieel: true, school: true, huisstijl: '#f2c012' },
   // Jeugdhulp Friesland, Molenkrite 234 (Street View, foto in de chat 5 sep
   // 2026): een lang gebouw van één laag met plat dak, donkerbruine steen,
@@ -1199,27 +1199,52 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       /*
        Schoolgevel met luifels (kindcentrum De Wynpôlle, Keizersmantel 1): een
        liggend houten beschot met per lokaal een brede raamstrook en daarboven
-       een felgekleurde luifel. Op de foto lopen die kleuren als een regenboog
-       langs de gebogen vleugel en verschilt de rij boven van de rij onder, dus
-       de kleur hangt af van zowel het lokaal als de verdieping.
+       felgekleurde luifels.
 
-       De luifel wordt hier als band getekend en niet als uitstekend zeil: van de
-       straat gezien is een luifel boven een raam een gekleurde balk met een
-       slagschaduw op het glas eronder, en dat is precies wat een plat vlak kan.
+       Twee dingen zijn na de foto's van de voorkant (chat 7 sep 2026) anders dan
+       in de eerste versie:
+
+       1. het is geen doorlopende balk maar een rij losse zeilen, één per raam,
+          met een kier ertussen. Ze staan schuin naar voren, dus van de straat
+          gezien is de bovenrand smaller dan de onderrand — dat is als vlakke
+          vierhoek wél te tekenen, en het verschil met een rechte balk is precies
+          wat je op de foto ziet;
+       2. de kleuren lopen niet per lokaal om maar in blokken van een paar
+          lokalen: op de foto zit er een rij gele naast een rij oranje, dan blauw,
+          dan groen. Vandaar de deling door `KLEURVAK`. De rij boven verschilt
+          van de rij onder, dus de verdieping schuift de kleur op.
       */
       const kl = st.luifels;
+      const KLEURVAK = 3;                       // zoveel lokalen dezelfde kleur
       for (let s2 = 0; s2 < storeys; s2++) {
         const fy = H - (s2 + 1) * SH * PM;
         const bx = x0 + m(0.3), bw2 = m(st.w - 0.6);
         // de raamstrook
         win(bx, fy + m(1.05), bw2, m(1.55), st.frame);
-        // de luifel erboven, met een lichte bovenrand en schaduw op het glas
-        const ly = fy + m(0.62);
-        const lh = m(0.40);
-        g.fillStyle = kl[(i + s2 * 2) % kl.length];
-        g.fillRect(bx - m(0.12), ly, bw2 + m(0.24), lh);
-        g.fillStyle = 'rgba(255,255,255,0.22)';
-        g.fillRect(bx - m(0.12), ly, bw2 + m(0.24), m(0.07));
+        const kleur = kl[(Math.floor(i / KLEURVAK) + s2 * 2) % kl.length];
+        const ly = fy + m(0.62), lh = m(0.40);
+        // de zeilen: per raam van ongeveer 1,25 m één luifel
+        const n = Math.max(2, Math.round((st.w - 0.6) / 1.25));
+        const kier = m(0.10);
+        const lw = (bw2 - kier * (n - 1)) / n;
+        for (let k = 0; k < n; k++) {
+          const lx = bx + k * (lw + kier);
+          const inkeep = lw * 0.16;             // schuinte: de bovenrand ligt terug
+          g.fillStyle = kleur;
+          g.beginPath();
+          g.moveTo(lx + inkeep, ly);
+          g.lineTo(lx + lw - inkeep, ly);
+          g.lineTo(lx + lw, ly + lh);
+          g.lineTo(lx, ly + lh);
+          g.closePath();
+          g.fill();
+          // lichte bovenrand en een donkere onderrand: de kant van het zeil
+          g.fillStyle = 'rgba(255,255,255,0.24)';
+          g.fillRect(lx + inkeep, ly, lw - inkeep * 2, m(0.06));
+          g.fillStyle = 'rgba(0,0,0,0.28)';
+          g.fillRect(lx, ly + lh - m(0.05), lw, m(0.05));
+        }
+        // slagschaduw van de rij zeilen op het glas eronder
         const sg2 = g.createLinearGradient(0, ly + lh, 0, ly + lh + m(0.5));
         sg2.addColorStop(0, 'rgba(0,0,0,0.42)'); sg2.addColorStop(1, 'rgba(0,0,0,0)');
         g.fillStyle = sg2; g.fillRect(bx - m(0.12), ly + lh, bw2 + m(0.24), m(0.5));

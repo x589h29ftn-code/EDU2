@@ -51,20 +51,31 @@ const GEO = {};
 function truckGeoms() {
   const L = 7.2, W = 2.35, R = 0.45;      // lengte, breedte, wielradius
   const cabZ = -L / 2 + 1.15, bakZ = 1.0;
-  const paint = merge([
-    { geo: doos(W - 0.1, 0.35, L), y: 0.62 },                     // chassis
+  /*
+   Het chassis was W − 0,1 = 2,25 m breed en liep over de volle lengte, terwijl
+   de wielen op x = ±1,00 staan met een band van 0,30 breed: zevenentwintig van
+   de dertig centimeter band zat ín het chassis, en dat zag je van opzij als een
+   halve band. Een echte bakwagen heeft een ladderchassis dat smaller is dan de
+   spoorbreedte, met de wielen ernaast.
+  */
+  const chassisB = 2 * (W / 2 - 0.18) - 0.34;                     // 1,66 m: tussen de banden
+  const paintDelen = [
+    { geo: doos(chassisB, 0.40, L), y: 0.60 },                    // chassis (loopt door tot ín de cabine)
     { geo: doos(W, 1.45, 2.1), y: 1.52, z: cabZ },                // cabine
     { geo: doos(W - 0.14, 0.3, 1.9), y: 2.35, z: cabZ + 0.05 },   // dakspoiler
     { geo: doos(W, 2.3, 4.8), y: 2.15, z: bakZ },                 // laadbak
     { geo: doos(W + 0.06, 0.12, 4.8), y: 3.32, z: bakZ },         // dakrand
-    { geo: doos(0.2, 0.1, 0.14), x: -W / 2 - 0.12, y: 1.9, z: cabZ - 0.9 },
-    { geo: doos(0.2, 0.1, 0.14), x: W / 2 + 0.12, y: 1.9, z: cabZ - 0.9 },
-  ]);
-  const glass = merge([
+    // spiegels: op W/2 + 0,12 hingen ze twee centimeter naast de cabine
+    { geo: doos(0.2, 0.1, 0.14), x: -W / 2 - 0.06, y: 1.9, z: cabZ - 0.9 },
+    { geo: doos(0.2, 0.1, 0.14), x: W / 2 + 0.06, y: 1.9, z: cabZ - 0.9 },
+  ];
+  const paint = merge(paintDelen);
+  const glasDelen = [
     { geo: doos(W - 0.22, 0.8, 0.06), y: 1.95, z: cabZ - 1.03 },  // voorruit
     { geo: doos(0.06, 0.65, 1.1), x: -W / 2 + 0.02, y: 1.9, z: cabZ + 0.2 },
     { geo: doos(0.06, 0.65, 1.1), x: W / 2 - 0.02, y: 1.9, z: cabZ + 0.2 },
-  ]);
+  ];
+  const glass = merge(glasDelen);
   const wielGeo = new THREE.CylinderGeometry(R, R, 0.3, 14); wielGeo.rotateZ(Math.PI / 2);
   const hubGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.32, 8); hubGeo.rotateZ(Math.PI / 2);
   const wielen = [
@@ -75,30 +86,53 @@ function truckGeoms() {
   const zwartVast = [
     { geo: doos(W + 0.04, 0.24, 0.22), y: 0.5, z: -L / 2 + 0.05 },
     { geo: doos(W + 0.04, 0.24, 0.22), y: 0.62, z: L / 2 - 0.05 },
-    { geo: doos(1.2, 0.5, 0.06), y: 1.0, z: -L / 2 - 0.01 },      // grille
+    // grille en lampen zaten vóór de cabine in de lucht: die begint pas op
+    // cabZ − 1,05 = −3,50 en de grille stond op −3,61
+    { geo: doos(1.2, 0.5, 0.14), y: 1.0, z: -L / 2 + 0.06 },      // grille
     { geo: doos(0.16, 0.16, 0.5), x: -W / 2 + 0.3, y: 0.42, z: L / 2 - 0.6 },   // uitlaat
   ];
-  const head = merge([
-    { geo: doos(0.4, 0.2, 0.05), x: -0.75, y: 0.78, z: -L / 2 - 0.02 },
-    { geo: doos(0.4, 0.2, 0.05), x: 0.75, y: 0.78, z: -L / 2 - 0.02 },
-  ]);
-  const achter = [
-    { geo: doos(0.34, 0.18, 0.05), x: -0.85, y: 0.9, z: L / 2 + 0.02 },
-    { geo: doos(0.34, 0.18, 0.05), x: 0.85, y: 0.9, z: L / 2 + 0.02 },
+  // wielkasten, net als bij de personenauto: zonder die ring loopt de band zo de
+  // cabine en de laadbak in
+  const kastT = wielkast(R);
+  for (const w of wielen) zwartVast.push({ geo: kastT, x: Math.sign(w.x) * (W / 2 + 0.01), y: R, z: w.z });
+  const lampen = [];
+  const koplampen = [
+    { geo: doos(0.4, 0.2, 0.10), x: -0.75, y: 0.78, z: -L / 2 + 0.08 },
+    { geo: doos(0.4, 0.2, 0.10), x: 0.75, y: 0.78, z: -L / 2 + 0.08 },
   ];
-  const plate = merge([{ geo: doos(0.5, 0.11, 0.02), y: 0.72, z: L / 2 + 0.04 }]);
+  lampen.push(...koplampen);
+  const head = merge(koplampen);
+  /*
+   De achterkant van de laadbak ligt op bakZ + 2,4 = 3,40 en niet op L/2 = 3,60:
+   de lichten hingen twintig centimeter achter de wagen in de lucht. De
+   kentekenplaat zat juist ín de bumper en was dus onzichtbaar.
+  */
+  const zBak = bakZ + 2.4;
+  const achter = [
+    { geo: doos(0.34, 0.18, 0.06), x: -0.85, y: 1.05, z: zBak + 0.02 },
+    { geo: doos(0.34, 0.18, 0.06), x: 0.85, y: 1.05, z: zBak + 0.02 },
+  ];
+  const platen = [{ geo: doos(0.5, 0.11, 0.02), y: 0.72, z: L / 2 - 0.05 + 0.12 }];
+  lampen.push(...platen, ...achter);
+  const plate = merge(platen);
   const rem = merge(achter.map(a => ({ ...a, z: a.z + 0.01 })));
   const achteruit = merge([
-    { geo: doos(0.2, 0.14, 0.05), x: -0.45, y: 0.9, z: L / 2 + 0.03 },
-    { geo: doos(0.2, 0.14, 0.05), x: 0.45, y: 0.9, z: L / 2 + 0.03 },
+    { geo: doos(0.2, 0.14, 0.06), x: -0.45, y: 1.05, z: zBak + 0.03 },
+    { geo: doos(0.2, 0.14, 0.06), x: 0.45, y: 1.05, z: zBak + 0.03 },
   ]);
   // oogpunt van de bestuurder: net vóór de voorruit, zodat je niet door twee
   // getinte glasplaten naar buiten kijkt (zie js/main.js)
   // in de cabine, vlak achter de voorruit: de cabine is één doos, dus vanbinnen
   // zie je er niets van en heb je vrij zicht over de weg
   const oog = { x: -(W / 2 - 0.6), y: 1.98, z: cabZ - 0.85 };
+  const delen = [
+    ...paintDelen.map(d => ({ ...d, groep: 'lak' })),
+    ...glasDelen.map(d => ({ ...d, groep: 'glas' })),
+    ...zwartVast.map(d => ({ ...d, groep: 'zwart' })),
+    ...lampen.map(d => ({ ...d, groep: 'licht' })),
+  ];
   return { paint, glass, zwartVast, chroomVast: [], head, tail: merge(achter), rem, achteruit, plate,
-    wielGeo, hubGeo, wielen, R, L, W, oog };
+    wielGeo, hubGeo, wielen, R, L, W, oog, delen };
 }
 
 /*
@@ -123,7 +157,12 @@ function autoGeoms(kind) {
   const kontZ = L / 2 - (bus ? 1.10 : 0.55), kontL = bus ? 2.10 : 1.05;
 
   const lak = [
-    { geo: doos(W - 0.10, R * 0.84, L - 0.34), y: dorpelY },                        // dorpel
+    /*
+     Dorpel. Hij stond op dorpelY en reikte tot 0,569 m, terwijl de flank op
+     0,570 begint: een naad van een millimeter over de hele flank, waar je van
+     dichtbij dwars doorheen keek. Twee centimeter hoger overlappen ze.
+    */
+    { geo: doos(W - 0.10, R * 0.84, L - 0.34), y: dorpelY + 0.02 },                 // dorpel
     { geo: doos(W, flankH, L - 0.12), y: flankY },                                  // flank, breedste punt
     { geo: doos(W - 0.09, 0.10, L - 0.40), y: schouderY - 0.05 },                   // schouderlijn
     { geo: doos(W - 0.20, 0.11, kapL), y: schouderY + (bus ? 0.30 : 0.02), z: kapZ }, // motorkap
@@ -153,16 +192,35 @@ function autoGeoms(kind) {
     { geo: doos(W - (bus ? 0.26 : 0.46), stijlH / Math.cos(cHoek) + 0.06, 0.05),
       y: (schouderY + dakY) / 2 + 0.03, z: cabZ + cabL / 2 - 0.24 - Math.sin(cHoek) * stijlH / 2, rx: cHoek },
     // zijruiten
-    { geo: doos(0.05, stijlH - 0.06, cabL - (bus ? 0.35 : 0.85)), x: -W / 2 + 0.10, y: (schouderY + dakY) / 2 + 0.02, z: cabZ + 0.02 },
-    { geo: doos(0.05, stijlH - 0.06, cabL - (bus ? 0.35 : 0.85)), x: W / 2 - 0.10, y: (schouderY + dakY) / 2 + 0.02, z: cabZ + 0.02 },
+    // De ruit loopt tot ín de schouderlijn en het dak. Hij was stijlH − 0,06 hoog
+    // en zweefde daarmee in het portiergat: elf centimeter open boven en onder,
+    // waar je dwars de auto in keek.
+    { geo: doos(0.05, stijlH + 0.10, cabL - (bus ? 0.35 : 0.85)), x: -W / 2 + 0.10, y: (schouderY + dakY) / 2, z: cabZ + 0.02 },
+    { geo: doos(0.05, stijlH + 0.10, cabL - (bus ? 0.35 : 0.85)), x: W / 2 - 0.10, y: (schouderY + dakY) / 2, z: cabZ + 0.02 },
   ];
 
+  const lijstL = 2 * (wielZ - R - 0.05);        // tussen de banden, zie hieronder
   const zwartVast = [
     { geo: doos(W + 0.03, 0.24, 0.26), y: dorpelY + 0.06, z: -L / 2 + 0.09 },      // bumper voor
     { geo: doos(W + 0.03, 0.24, 0.26), y: dorpelY + 0.08, z: L / 2 - 0.09 },       // bumper achter
-    { geo: doos(W - 0.42, 0.13, 0.06), y: schouderY - 0.13, z: -L / 2 - 0.005 },   // grille
-    { geo: doos(0.07, 0.13, L - 1.5), x: -W / 2 + 0.01, y: dorpelY - 0.04 },       // sierlijst dorpel
-    { geo: doos(0.07, 0.13, L - 1.5), x: W / 2 - 0.01, y: dorpelY - 0.04 },
+    /*
+     Grille, koplampen, achterlichten en kentekenplaten zaten allemaal een paar
+     centimeter vóór de carrosserie: de flank is L − 0,12 lang, dus zijn voorkant
+     ligt op −L/2 + 0,06, en de grille stond op −L/2 − 0,035. Van schuin voren
+     zag je daardoor een zwevend plaatje met daglicht erachter. Ze zitten nu
+     allemaal een centimeter ín het plaatwerk.
+    */
+    { geo: doos(W - 0.42, 0.13, 0.10), y: schouderY - 0.13, z: -L / 2 + 0.06 },    // grille
+    /*
+     Sierlijst langs de dorpel. Hij liep eerst over L − 1,5 m = 2,80 m, en de
+     wielen staan op z = ±1,32 met een straal van 0,32: de lijst stak dus veertig
+     centimeter dwars door beide banden heen. Nu loopt hij alleen tussen de
+     wielkasten door.
+    */
+    // x op W/2 − 0,03: op − 0,01 hing hij vijf millimeter naast de dorpel (die
+    // loopt tot W/2 − 0,05) en zat er dus een spleet tussen
+    { geo: doos(0.07, 0.13, lijstL), x: -W / 2 + 0.03, y: dorpelY - 0.02 },       // sierlijst dorpel
+    { geo: doos(0.07, 0.13, lijstL), x: W / 2 - 0.03, y: dorpelY - 0.02 },
     { geo: doos(0.10, 0.10, 0.24), x: -W / 2 + 0.34, y: dorpelY - 0.02, z: L / 2 + 0.02 },  // uitlaat
   ];
   // portiernaden: twee dunne lijnen per flank
@@ -175,7 +233,9 @@ function autoGeoms(kind) {
     { x: -wielX, z: -wielZ, stuur: true }, { x: wielX, z: -wielZ, stuur: true },
     { x: -wielX, z: wielZ }, { x: wielX, z: wielZ },
   ];
-  for (const w of wielen) zwartVast.push({ geo: kast, x: w.x + Math.sign(w.x) * 0.02, y: R, z: w.z });
+  // De kast hoort nét buiten het plaatwerk te staan, anders zit hij erin en zie
+  // je hem niet: de flank loopt tot W/2 en de kast stond op wielX + 0,02 = W/2 − 0,07.
+  for (const w of wielen) zwartVast.push({ geo: kast, x: Math.sign(w.x) * (W / 2 + 0.01), y: R, z: w.z });
 
   const chroomVast = [
     { geo: doos(0.11, 0.035, 0.05), x: -W / 2 - 0.01, y: flankY + 0.12, z: cabZ - 0.32 },   // portiergrepen
@@ -188,34 +248,74 @@ function autoGeoms(kind) {
   const hubGeo = new THREE.CylinderGeometry(R * 0.58, R * 0.58, 0.23, 8); hubGeo.rotateZ(Math.PI / 2);
 
   const kopY = schouderY - 0.14;
-  const head = merge([
-    { geo: doos(0.40, 0.15, 0.06), x: -W / 2 + 0.26, y: kopY, z: -L / 2 - 0.005 },
-    { geo: doos(0.40, 0.15, 0.06), x: W / 2 - 0.26, y: kopY, z: -L / 2 - 0.005 },
-  ]);
-  const achter = [
-    { geo: doos(0.34, 0.17, 0.06), x: -W / 2 + 0.24, y: kopY + 0.06, z: L / 2 + 0.005 },
-    { geo: doos(0.34, 0.17, 0.06), x: W / 2 - 0.24, y: kopY + 0.06, z: L / 2 + 0.005 },
+  const lampen = [];                       // voor `delen` hieronder
+  const koplampen = [
+    { geo: doos(0.40, 0.15, 0.10), x: -W / 2 + 0.26, y: kopY, z: -L / 2 + 0.06 },
+    { geo: doos(0.40, 0.15, 0.10), x: W / 2 - 0.26, y: kopY, z: -L / 2 + 0.06 },
   ];
+  lampen.push(...koplampen);
+  const head = merge(koplampen);
+  const achter = [
+    { geo: doos(0.34, 0.17, 0.10), x: -W / 2 + 0.24, y: kopY + 0.06, z: L / 2 - 0.06 },
+    { geo: doos(0.34, 0.17, 0.10), x: W / 2 - 0.24, y: kopY + 0.06, z: L / 2 - 0.06 },
+  ];
+  lampen.push(...achter);
   const rem = merge([
     ...achter.map(a => ({ ...a, z: a.z + 0.012 })),
     { geo: doos(W - 0.60, 0.05, 0.05), y: dakY - 0.05, z: cabZ + cabL / 2 - 0.22 },   // derde remlicht
   ]);
   const achteruit = merge([
-    { geo: doos(0.16, 0.11, 0.06), x: -W / 2 + 0.60, y: kopY + 0.06, z: L / 2 + 0.012 },
-    { geo: doos(0.16, 0.11, 0.06), x: W / 2 - 0.60, y: kopY + 0.06, z: L / 2 + 0.012 },
+    { geo: doos(0.16, 0.11, 0.10), x: -W / 2 + 0.60, y: kopY + 0.06, z: L / 2 - 0.048 },
+    { geo: doos(0.16, 0.11, 0.10), x: W / 2 - 0.60, y: kopY + 0.06, z: L / 2 - 0.048 },
   ]);
-  const plate = merge([
-    { geo: doos(0.5, 0.11, 0.02), y: dorpelY + 0.16, z: L / 2 + 0.06 },
-    { geo: doos(0.5, 0.11, 0.02), y: dorpelY + 0.14, z: -L / 2 - 0.06 },
-  ]);
+  // op de bumper, niet ervóór: de bumper steekt tot ±(L/2 + 0,04) uit
+  const platen = [
+    { geo: doos(0.5, 0.11, 0.02), y: dorpelY + 0.16, z: L / 2 + 0.035 },
+    { geo: doos(0.5, 0.11, 0.02), y: dorpelY + 0.14, z: -L / 2 - 0.035 },
+  ];
+  lampen.push(...platen);
+  const plate = merge(platen);
 
   // oogpunt van de bestuurder: net vóór de voorruit en vlak onder de dakrand.
   // Zat de camera op de stoel, dan vulde de voorruit het halve beeld met een
   // grauwe tint en hing de dakrand als een donkere balk in beeld.
   const zVoorruit = cabZ - cabL / 2 + 0.30 - Math.sin(aHoek) * stijlH / 2;
   const oog = { x: -(W / 2 - 0.55), y: dakY - 0.08, z: zVoorruit - 0.15 };
+  /*
+   `delen` is de lijst dozen waar dit model uit bestaat, met hun maat en plek.
+   Het model zelf gebruikt hem niet — de geometrieën zijn hierboven al
+   samengevoegd — maar tools/rijtest.mjs rekent er twee dingen mee na: dat geen
+   enkel onderdeel dwars door een band loopt, en dat er niets los vóór het
+   plaatwerk hangt. Dat waren de twee fouten die je in het spel zag.
+  */
+  const delen = [
+    ...lak.map(d => ({ ...d, groep: 'lak' })),
+    ...glas.map(d => ({ ...d, groep: 'glas' })),
+    ...zwartVast.map(d => ({ ...d, groep: 'zwart' })),
+    ...chroomVast.map(d => ({ ...d, groep: 'chroom' })),
+    ...lampen.map(d => ({ ...d, groep: 'licht' })),
+  ];
   return { paint: merge(lak), glass: merge(glas), zwartVast, chroomVast,
-    head, tail: merge(achter), rem, achteruit, plate, wielGeo, hubGeo, wielen, R, L, W, oog };
+    head, tail: merge(achter), rem, achteruit, plate, wielGeo, hubGeo, wielen, R, L, W, oog, delen };
+}
+
+/*
+ De dozen waar een model uit bestaat, als gewone getallen: naam van de groep,
+ middelpunt en maat, plus de wielen. tools/rijtest.mjs rekent hiermee na dat er
+ niets door een band loopt en niets los vóór het plaatwerk hangt. Onderdelen die
+ geen doos zijn (de wielkastringen) vallen weg — die hóren om de band heen.
+*/
+export function autoOnderdelen(kind) {
+  const G = geoms(kind);
+  const dozen = [];
+  for (const d of G.delen || []) {
+    const p = d.geo && d.geo.parameters;
+    if (!p || d.geo.type !== 'BoxGeometry') continue;
+    dozen.push({ groep: d.groep, x: d.x || 0, y: d.y || 0, z: d.z || 0,
+      b: p.width, h: p.height, d: p.depth, rx: d.rx || 0 });
+  }
+  return { dozen, wielen: G.wielen.map(w => ({ x: w.x, z: w.z })), R: G.R, L: G.L, W: G.W,
+    bandBreed: kind === 'truck' ? 0.30 : 0.22 };
 }
 
 function geoms(kind) {

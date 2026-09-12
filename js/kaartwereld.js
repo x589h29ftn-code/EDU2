@@ -148,9 +148,43 @@ function vlakGeometrie(ringen, y, uvSchaal, pos, uv, nor) {
   }
 }
 
-// Opstaande rand langs alle ringen van een vlak, van yBoven naar yOnder.
-function randGeometrie(ringen, yBoven, yOnder, pos, uv, nor) {
-  for (const ring of ringen) {
+/*
+ Opstaande rand langs alle ringen van een vlak, van yBoven naar yOnder.
+
+ De draairichting van de ring bepaalt hier álles: de zijwand wordt per rand
+ opgebouwd als een vierhoek met de normaal (dz, 0, −dx), en zowel die normaal als
+ de volgorde van de hoekpunten klapt om als de ring andersom loopt. Loopt hij
+ verkeerd om, dan kijkt de wand naar binnen, wordt hij als achterkant weggeknipt
+ en kijk je door de stoeprand heen tot op het grondvlak op −1 m. Gemeten op vijf
+ standpunten was tussen de 0,14 % en 0,58 % van het beeld zo'n kier — een roze
+ lijn langs elke berm en elk plantsoen in de proefopstelling waar het grondvlak
+ felroze was gemaakt.
+
+ De brondata houdt zich niet aan één draairichting, dus die wordt hier
+ rechtgezet: de buitenring linksom (positieve oppervlakte in x-z), de gaten
+ erbinnen rechtsom, zodat de wand van een gat de gatkant op kijkt.
+
+ `naarBinnen` draait die keus om, voor de wanden die je juist van de andere kant
+ ziet: de oeverwand van een sloot (je staat op de kant en kijkt naar het water,
+ dus de wand moet de sloot in kijken) en de binnenwand van een bezinkbak. Zonder
+ die vlag werd de wal bij de Lemmerweg en in IJlst juist slechter — daar is veel
+ water in beeld.
+*/
+function ringOppervlak(ring) {
+  let a = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const p = ring[i], q = ring[(i + 1) % ring.length];
+    a += p[0] * q[1] - q[0] * p[1];
+  }
+  return a / 2;
+}
+
+function randGeometrie(ringen, yBoven, yOnder, pos, uv, nor, naarBinnen = false, kies = null) {
+  for (let r = 0; r < ringen.length; r++) {
+    const opp = ringOppervlak(ringen[r]);
+    const wilLinksom = (r === 0) !== naarBinnen;
+    const omdraaien = wilLinksom ? opp < 0 : opp > 0;
+    const ring = omdraaien ? ringen[r].slice().reverse() : ringen[r];
     for (let i = 0; i < ring.length; i++) {
       const a = ring[i], b = ring[(i + 1) % ring.length];
       const dx = b[0] - a[0], dz = b[1] - a[1];
@@ -164,8 +198,15 @@ function randGeometrie(ringen, yBoven, yOnder, pos, uv, nor) {
         const h0 = HF ? HF(p0[0], p0[1]) : 0, h1 = HF ? HF(p1[0], p1[1]) : 0;
         const Ls = L / stukken;
         const quad = [[p0[0], h0 + yBoven, p0[1]], [p1[0], h1 + yBoven, p1[1]], [p1[0], h1 + yOnder, p1[1]], [p0[0], h0 + yOnder, p0[1]]];
+        /*
+         `kies` deelt elk stukje rand bij de tegel in waar het zelf ligt. Zonder
+         dat ging een heel vlak naar de tegel van zijn eerste hoekpunt, en een
+         sloot of een berm kan honderden meters lang zijn: dan lag het "midden"
+         van dat brok ver weg en verdween de rand terwijl je er pal naast stond.
+        */
+        const doel = kies ? kies((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2) : { pos, uv, nor };
         for (const [p, q, r] of [[0, 1, 2], [0, 2, 3]]) {
-          for (const k of [p, q, r]) { const v = quad[k]; pos.push(v[0], v[1], v[2]); uv.push(k === 1 || k === 2 ? Ls : 0, v[1]); nor.push(nx, 0, nz); }
+          for (const k of [p, q, r]) { const v = quad[k]; doel.pos.push(v[0], v[1], v[2]); doel.uv.push(k === 1 || k === 2 ? Ls : 0, v[1]); doel.nor.push(nx, 0, nz); }
         }
       }
     }
@@ -329,10 +370,16 @@ export function bouwKaartWereld(scene, W) {
     if (v.k === 'water') {
       waterRingen.push(v.r[0]);
       W.waterPolys.push(v.r[0].map(([x, z]) => new THREE.Vector2(x, z)));
-      if (!plat) { const o = stuk(oevers, t, KM.oeverwand, 'oeverwand'); randGeometrie(v.r, 0.13, -0.6, o.pos, o.uv, o.nor); }
-    } else if (!plat && v.y > 0.03 && v.k !== 'brug' && v.k !== 'steiger' && v.k !== 'bouwwerk') {
-      const rnd = stuk(randen, t, KM.curb, 'rand');
-      randGeometrie(v.r, v.y, -0.02, rnd.pos, rnd.uv, rnd.nor);
+      if (!plat) randGeometrie(v.r, 0.13, -0.6, null, null, null, true, (x, z) => stuk(oevers, tegelVan(x, z), KM.oeverwand, 'oeverwand'));
+    /*
+     Opstaande rand voor élk vlak dat boven de rijbaan ligt. De grens stond op
+     3 cm, en daar vielen de 157 fietspaden (y = 2 cm) en zes spoorbanen buiten:
+     die lagen dus met een open rand op de weg, en van een meter of drie hoog
+     keek je door die spleet tot op het grondvlak. Het scheelt 4 % meer
+     randpunten.
+    */
+    } else if (!plat && v.y > 0.005 && v.k !== 'brug' && v.k !== 'steiger' && v.k !== 'bouwwerk') {
+      randGeometrie(v.r, v.y, -0.02, null, null, null, false, (x, z) => stuk(randen, tegelVan(x, z), KM.curb, 'rand'));
     }
   }
   HF = null;
@@ -1090,7 +1137,7 @@ function bouwBouwwerken(scene, W) {
       const binnen = ring.map(p => [cx + (p[0] - cx) * (1 - 0.35 / rMax), cz + (p[1] - cz) * (1 - 0.35 / rMax)]);
       randGeometrie([ring], h, -0.02, beton.pos, beton.uv, beton.nor);          // buitenwand
       vlakGeometrie([ring, binnen], h, 0.5, beton.pos, beton.uv, beton.nor);    // rand bovenop
-      randGeometrie([binnen], h, h - 0.35, beton.pos, beton.uv, beton.nor);     // binnenwand
+      randGeometrie([binnen], h, h - 0.35, beton.pos, beton.uv, beton.nor, true);  // binnenwand
       vlakGeometrie([binnen], h - 0.3, 0.05, water.pos, water.uv, water.nor);   // water
       if (rMax < 30) {
         // ruimerbrug van het midden naar de rand, met een middenkolom

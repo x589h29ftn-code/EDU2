@@ -487,6 +487,16 @@ HUD.prototype.drawBig = function (player, vehicles) {
   c.restore();
   const sluit = document.body.classList.contains('touch') ? 'tik weer op de kaartknop' : 'M om te sluiten';
   c.fillStyle = '#fff'; c.font = 'bold 16px sans-serif'; c.textAlign = 'left'; c.fillText(`TINGA · SNEEK — kaart (${sluit}, noorden boven)`, 16, 26);
+  /*
+   Je eigen plek in spelmeters, linksonder. Dat is er om plekken te kúnnen
+   doorgeven: waar een onzichtbare muur moet komen, waar een wegblokkade hoort,
+   of waar een object moet staan. Op de telefoon is er geen toetsenbord, dus hier
+   staat hij gewoon te lezen; op de pc zet K hem ook op het klembord.
+  */
+  c.font = 'bold 14px monospace';
+  c.fillStyle = 'rgba(8,14,24,0.85)'; c.fillRect(12, H - 34, 232, 24);
+  c.fillStyle = '#ffd400';
+  c.fillText(`plek  ${px.toFixed(1)} , ${pz.toFixed(1)}`, 20, H - 17);
 };
 
 

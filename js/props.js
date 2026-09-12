@@ -618,6 +618,22 @@ def('poortje', 'Tuinpoortje', 'hek', [1.1, 0.14], 1.85, () => {
   return bouw(d);
 });
 
+/*
+ Zwart spijlenhek van 3 m, zoals om het schoolplein van De Wynpôlle
+ (foto Keizersmantel 1, chat 12 sep 2026): staande spijlen met een punt erop
+ tussen twee liggers, en om de paar meter een zwaardere staander.
+*/
+def('spijlenhek', 'Zwart spijlenhek (3 m)', 'hek', [3.0, 0.08], 1.55, () => {
+  const d = [doos(0.08, 1.55, 0.08, M.zwart, -1.5, 0.775, 0), doos(0.08, 1.55, 0.08, M.zwart, 1.5, 0.775, 0)];
+  for (const y of [0.30, 1.28]) d.push(doos(3.0, 0.06, 0.045, M.zwart, 0, y, 0));   // liggers
+  for (let i = 0; i <= 15; i++) {
+    const x = -1.44 + i * 0.192;
+    d.push(doos(0.035, 1.50, 0.035, M.zwart, x, 0.75, 0));
+    d.push(doos(0.035, 0.10, 0.035, M.zwart, x, 1.53, 0));      // punt
+  }
+  return bouw(d);
+});
+
 def('betonpaaltje', 'Betonnen paaltje', 'hek', [0.34, 0.34], 0.45, () => bouw([
   cil(0.15, 0.17, 0.42, M.beton, 0, 0.21, 0, 12),
   cil(0.15, 0.13, 0.06, M.betonDonker, 0, 0.44, 0, 12),

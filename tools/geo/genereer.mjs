@@ -989,16 +989,46 @@ for (const pl of OMGEVING.plantsoenen || []) {
 */
 for (const p of PANDEN) {
   const vast = (STIJL.panden || {})[p.id];
-  if (!vast || !vast.objecten || !p.rect || !p.front) continue;
+  if (!vast || (!vast.objecten && !vast.hekken) || !p.rect || !p.front) continue;
   const r = p.rect, u = [Math.cos(r.hoek), Math.sin(r.hoek)];
   const diep = Math.abs(p.front[0] * u[0] + p.front[1] * u[1]) > 0.7 ? r.hx : r.hz;
   const gx = r.cx + p.front[0] * diep, gz = r.cz + p.front[1] * diep;
   const langs = [p.front[1], -p.front[0]];
   const yaw = Math.round(Math.atan2(-p.front[0], -p.front[1]) * 180 / Math.PI * 10) / 10;
-  for (const o of vast.objecten) {
-    const x = gx + p.front[0] * (o.voor || 0) + langs[0] * (o.langs || 0);
-    const z = gz + p.front[1] * (o.voor || 0) + langs[1] * (o.langs || 0);
-    OBJECTEN.push({ type: o.type, x: r2(x), z: r2(z), yaw });
+  for (const o of vast.objecten || []) {
+    /*
+     Meestal vanaf het midden van de voorgevel (`voor`/`langs`). Bij een gebogen
+     pand loopt die maat weg: het schoolplein van De Wynpôlle ligt achter de
+     bocht, en dan kom je uit op `voor: -60`, wat niemand meer kan nalezen. Zo'n
+     object mag daarom ook zijn eigen plek in spelmeters krijgen (`x`/`z`), net
+     als `voorkantNaar`. tools/schooltest.mjs controleert dat ze buiten de
+     grondvlakken en op verharding of gras staan.
+    */
+    const eigen = o.x !== undefined && o.z !== undefined;
+    const x = eigen ? o.x : gx + p.front[0] * (o.voor || 0) + langs[0] * (o.langs || 0);
+    const z = eigen ? o.z : gz + p.front[1] * (o.voor || 0) + langs[1] * (o.langs || 0);
+    OBJECTEN.push({ type: o.type, x: r2(x), z: r2(z), yaw: o.yaw !== undefined ? o.yaw : yaw });
+  }
+  /*
+   Een hek van A naar B: het wordt in stukken van `stap` meter neergezet, met de
+   kop in de richting van de lijn. De props in js/props.js zijn drie meter breed,
+   dus `stap` is standaard 3.
+  */
+  for (const h of vast.hekken || []) {
+    const stap = h.stap || 3;
+    const dx = h.b[0] - h.a[0], dz = h.b[1] - h.a[1];
+    const L = Math.hypot(dx, dz);
+    const n = Math.max(1, Math.round(L / stap));
+    /*
+     De prop is drie meter breed langs zijn eigen x-as. Een draai `yaw` om y zet
+     die as op (cos yaw, −sin yaw), dus voor een lijn (dx, dz) hoort
+     yaw = atan2(−dz, dx) — in graden, want zo staan alle objecten in de kaart.
+    */
+    const hoek = Math.round(Math.atan2(-dz / L, dx / L) * 180 / Math.PI * 10) / 10;
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n;
+      OBJECTEN.push({ type: h.type || 'spijlenhek', x: r2(h.a[0] + dx * t), z: r2(h.a[1] + dz * t), yaw: hoek });
+    }
   }
 }
 tel('objecten', OBJECTEN.length);

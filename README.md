@@ -45,12 +45,16 @@ Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
 | Y | weer: helder, bewolkt, regen |
 | U | geluid uit en aan |
+| **K** | je eigen plek in spelmeters (`x, z`), in beeld en op het klembord — handig om een plek door te geven |
 | **F2** | wijkeditor: huizen verplaatsen en toevoegen |
 | Esc | muis vrijgeven |
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
 vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstappen, de camera, de
-kaart en pauze.
+kaart en pauze. Daar is geen toetsenbord, dus **je plek staat ook linksonder op de grote kaart (M)** —
+dezelfde twee getallen. Ze tellen vanaf het kruispunt Molenkrite / Monnikmolen / Jasker en veranderen
+niet als de kaart opnieuw gegenereerd wordt, dus je kunt er een plek mee doorgeven: *"hier een
+onzichtbare muur"*, *"hier een wegblokkade"*, *"dit object hoort hier".*
 
 ## Rijden
 
@@ -187,6 +191,36 @@ tweehonderd meter. Het blijft een woonwijk: het wordt niet druk, maar het is nie
 `npm run bevolkingtest` toetst dit (twintig controles: het aantal blijft gelijk, elke wijk vult zich,
 niemand verschijnt in het vrije zicht binnen 110 m, de binnenste ring blijft binnen 105 m, en de
 kosten per beeld).
+
+## Drie dingen rechtgezet
+
+Uit het spelen kwamen drie meldingen, en alle drie klopten ze:
+
+**Iedereen liep achteruit.** Het lichaam kijkt langs zijn eigen −z (de neus zit op z = −0,108, de klep
+van de pet op −0,155), dus voor een looprichting (vx, vz) hoort `yaw = atan2(−vx, −vz)`. In `js/npc.js`
+stond er een halve slag te veel bij: de voetgangers en fietsers liepen met hun gezicht naar waar ze
+vandaan kwamen. Gemeten over alle honderddertig mensen, met wie net een hoek omsloeg of aan het
+oversteken is buiten beschouwing: **89 vooruit, 0 achteruit**.
+
+**De auto's liepen door hun eigen wielen.** Drie fouten, alle drie uit de maten na te rekenen: de
+sierlijst langs de dorpel was 2,80 m lang terwijl de wielen op ±1,32 staan met een straal van 0,32 —
+veertig centimeter dwars door beide banden; het chassis van de bakwagen was 2,25 m breed met de wielen
+op ±1,00, dus 27 van de 30 centimeter band zat erin; en grille, koplampen, achterlichten en
+kentekenplaten hingen centimeters vóór het plaatwerk, met daglicht ertussen. Daarbij kwamen nog de
+zijruiten die in het portiergat zweefden en de spiegels van de bakwagen die twee centimeter naast de
+cabine hingen. `npm run rijtest` rekent nu voor alle drie de modellen na dat geen onderdeel tot aan de
+buitenkant van een band komt en dat elk onderdeel ergens tegenaan zit.
+
+**Je kon tussen het gras en de weg door kijken.** De opstaande rand langs een verhoogd vlak wordt per
+rand als vierhoek opgebouwd, en zowel de normaal als de volgorde van de hoekpunten klapt om als de
+ring andersom loopt. De brondata houdt zich niet aan één draairichting, dus de helft van die randen
+keek naar binnen en werd als achterkant weggeknipt: je keek onder de stoep door tot op het grondvlak
+een meter lager. Gemeten met een felroze grondvlak was **0,14 % tot 0,58 % van het beeld** zo'n kier.
+De draairichting wordt nu per ring rechtgezet — buitenring linksom, gaten rechtsom, en voor een
+oeverwand precies andersom omdat je die van de waterkant ziet. Ook de fietspaden (2 cm hoog) krijgen nu
+een randje, en elk stukje rand hoort voortaan bij de tegel waar het zélf ligt in plaats van bij de
+tegel van het eerste hoekpunt van zijn vlak. Wat overblijft zijn spleetjes in de brondata zelf:
+0,04 % van het open terrein in Tinga ligt tussen twee vlakken in.
 
 ## Camera over je schouder
 
@@ -1000,6 +1034,15 @@ entree.
 Het pand was niet op naam te vinden: zijn huisnummerlabel ligt elf meter van het pad Schoenlapper, dus
 de generator zet het aan díe straat. Het is gevonden door langs de hele Keizersmantel-as naar het
 grootste pand binnen 250 m te zoeken.
+
+De luifels zijn **losse zeilen per raam** die schuin naar voren staan, in blokken van drie lokalen dezelfde
+kleur — zo staan ze op de foto, en niet als één doorlopende gekleurde balk om en om. Aan de kant van de
+bakstenen kop ligt het **schoolplein**: klimtoestel, glijbaan, speelhuisje, zandbak en een pergola achter
+een zwart spijlenhek, en voor de glazen entree twee vlaggenmasten met een rij fietsenrekken.
+
+| het schoolplein | langs het hek |
+|---|---|
+| ![schoolplein](docs/screenshots/school_plein_speel.png) | ![hek](docs/screenshots/school_plein_hek.png) |
 
 **De bijbouw op 1A** hoort er ook bij. Dat is een pand van 87 m² (15,0 × 5,8 m) met een plat dak op
 3,49 m uit 3D BAG, bouwjaar 2023, dat op vijf meter tegen de school aan staat. Het stond als

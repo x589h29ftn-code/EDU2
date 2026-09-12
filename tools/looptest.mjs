@@ -134,6 +134,50 @@ for (const wl of uitslag.wandelingen) {
     wl.geenPlek ? 'geen open plek gevonden' : `${wl.vast} richtingen klem, ${wl.binnen} keer een gebouw in, verste ${wl.verste} m`);
 }
 
+/*
+ ---------- lopen ze wel voorwaarts? ----------
+ Het lichaam uit js/lichaam.js kijkt langs zijn eigen −z (de neus zit op
+ z = −0,108, de klep van de pet op −0,155). Een draai `yaw` om de y-as zet die −z
+ op (−sin yaw, −cos yaw), dus het inproduct daarvan met de verplaatsing hoort +1
+ te zijn. In js/npc.js stond er een halve slag te veel bij, en dan loopt en fietst
+ iedereen met het gezicht naar waar hij vandaan komt.
+
+ Wie tussen de twee metingen van wegvak wisselt telt niet mee: dan springt hij
+ naar het begin van het volgende vak en is de verplaatsing geen looprichting.
+ Hetzelfde geldt voor wie op hetzelfde vak omkeert (dat gebeurt op een doodlopend
+ stuk) en voor wie midden in het oversteken is: die loopt dwars op de as.
+*/
+console.log('\n--- kijkrichting ---');
+const richting = await page.evaluate(() => {
+  const g = window.__game;
+  const dt = 1 / 30;
+  const stap = (n) => { for (let i = 0; i < n; i++) g.npcs.update(dt, i * dt); };
+  stap(300);                                    // eerst even lopen: velen staan bij het begin stil
+  const voor = g.npcs.people.map(p => ({ x: p.x, z: p.z, seg: p.seg, dir: p.dir, steek: p.steek }));
+  stap(30);
+  let vooruit = 0, achteruit = 0, stil = 0, gewisseld = 0;
+  const perSoort = { loop: [0, 0], fiets: [0, 0] };
+  for (let i = 0; i < g.npcs.people.length; i++) {
+    const p = g.npcs.people[i], v = voor[i];
+    const dx = p.x - v.x, dz = p.z - v.z, L = Math.hypot(dx, dz);
+    if (L < 0.05) { stil++; continue; }
+    if (p.seg !== v.seg || p.dir !== v.dir || p.steek > 0 || v.steek > 0) { gewisseld++; continue; }
+    const dot = (dx * -Math.sin(p.yaw) + dz * -Math.cos(p.yaw)) / L;
+    const soort = p.fietst ? 'fiets' : 'loop';
+    if (dot > 0.5) { vooruit++; perSoort[soort][0]++; }
+    else if (dot < -0.5) { achteruit++; perSoort[soort][1]++; }
+  }
+  return { totaal: g.npcs.people.length, vooruit, achteruit, stil, gewisseld, perSoort };
+});
+ok(richting.achteruit === 0, 'niemand loopt of fietst achteruit',
+  `${richting.vooruit} vooruit, ${richting.achteruit} achteruit ` +
+  `(${richting.stil} stil, ${richting.gewisseld} net gekeerd of aan het oversteken)`);
+ok(richting.perSoort.fiets[0] > 0 && richting.perSoort.fiets[1] === 0,
+  'ook de fietsers rijden met het stuur naar voren',
+  `${richting.perSoort.fiets[0]} vooruit, ${richting.perSoort.fiets[1]} achteruit`);
+ok(richting.vooruit > 40, 'en er lopen er genoeg om iets te meten',
+  `${richting.vooruit} van ${richting.totaal}`);
+
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);
 process.exit(fouten === 0 ? 0 : 1);
