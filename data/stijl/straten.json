@@ -398,6 +398,19 @@
         "pitch": 0.06
       },
       "bron": "hoort bij kindcentrum De Wynpôlle, Keizersmantel 1 (gebruiker, chat 7 sep 2026: 'het gebouw ernaast dat is ook onderdeel van de school'). Uit de data: BGT-pand 1900100010087850 met huisnummer 1A, grondvlak 87 m2 (15,0 x 5,8 m, vier hoeken), plat dak op 3,49 m uit 3D BAG, bouwjaar 2023, en het raakt het schoolpand op 4,9 m. Het stond als jasker_flat in beeld, het standaardtype voor een plat pand in deze straat, en zag er dus uit als een losse portiekflat. Het krijgt nu het houten beschot en de kozijnen van de lage schoolvleugel, maar zonder de luifels: die staan op de foto's op de lange vleugel van de school zelf. voorkantNaar is het dichtstbijzijnde punt van de rijbaan (842, 206), 13 m ten zuiden; met industrieel: true krijgt elke muur toch een gevel, dus ook de kant van het schoolplein."
+    },
+    "0091100000004556": {
+      "type": "bp_shop",
+      "voorkantNaar": [
+        721,
+        133
+      ],
+      "foto": {
+        "voor": 26,
+        "langs": 0,
+        "pitch": 0.06
+      },
+      "bron": "foto's Street View Lemmerweg (september 2023 en april 2024, in de chat 12 sep 2026): tankstation BP Slump Oil aan de rondweg, naast het sportpark. De shop is dit pand (236 m², plat dak op 4,88 m): donkere bruine baksteen, een doorlopende groene band over de glazen pui en het woord shop in het groen. De luifel ervoor staat als los bouwwerk in de BGT (24,6 x 10,8 m) en wordt gebouwd uit data/stijl/omgeving.json -> tankstations; voorkantNaar is het hart van die luifel, want de shop kijkt naar het pompplein."
     }
   },
   "standaard": {

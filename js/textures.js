@@ -823,6 +823,14 @@ export const HOUSE_STYLES = {
    met lichte kozijnen en alleen een stalen deur.
   */
   dewynpolle_bij: { brick: ['#9c5a42', '#cfc7ba'], hout: '#8a5c39', frame: '#f0efe9', frame2: '#f0efe9', door: ['#3a3f44'], roof: '#8f8d88', roofType: 'flat', storeys: 1, storeyH: 3.4, w: 4.4, dormer: false, chimney: false, band: '#e8e4d8', plint: '#5f5347', industrieel: true, kantoor: true },
+  /*
+   De shop van BP Slump Oil, Lemmerweg 63 (foto's Street View, chat 12 sep 2026):
+   donkere bruine baksteen met een doorlopende groene band over de pui, een glazen
+   front met groene stijlen en het woord `shop` in het groen. `winkel` zet de pui
+   met luifel aan, `industrieel` geeft alle kanten een gevel — het gebouw staat
+   los op het plein en je rijdt er omheen.
+  */
+  bp_shop:     { brick: ['#6a4a3c', '#b9b0a4'], frame: '#eef2ee', frame2: '#eef2ee', door: ['#1f5c33'], roof: '#4f5350', roofType: 'flat', storeys: 1, storeyH: 3.4, w: 5.4, dormer: false, chimney: false, band: '#009640', plint: '#4a352b', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#009640', merk: 'shop', merkKleur: '#ffffff', puiDeel: 0.72 },
   school:      { brick: ['#8c5340', '#c9bfae'], frame: '#1f6fc4', frame2: '#1f6fc4', door: ['#1f6fc4'], roof: '#54514c', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#d8d5cc', plint: '#6b4436', industrieel: true, school: true, huisstijl: '#f2c012' },
   // Jeugdhulp Friesland, Molenkrite 234 (Street View, foto in de chat 5 sep
   // 2026): een lang gebouw van één laag met plat dak, donkerbruine steen,

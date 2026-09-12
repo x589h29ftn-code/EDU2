@@ -231,9 +231,9 @@ export function initSfeer(ctx) {
     if (e.code === 'KeyY') {
       weer = WEER[(WEER.indexOf(weer) + 1) % WEER.length];
       pasToe(); hud.show(`Weer: ${weer}`, 2);
-    } else if (e.code === 'BracketRight' && !window.__game?.editor?.actief) {
+    } else if (e.code === 'BracketRight') {
       uur = (uur + 1) % 24; pasToe(); hud.show(`${String(Math.floor(uur)).padStart(2, '0')}:${String(Math.floor(uur % 1 * 60)).padStart(2, '0')} uur`, 2);
-    } else if (e.code === 'BracketLeft' && !window.__game?.editor?.actief) {
+    } else if (e.code === 'BracketLeft') {
       uur = (uur + 23) % 24; pasToe(); hud.show(`${String(Math.floor(uur)).padStart(2, '0')}:${String(Math.floor(uur % 1 * 60)).padStart(2, '0')} uur`, 2);
     } else if (e.code === 'Backslash') {
       loopt = !loopt; hud.show(loopt ? 'Klok loopt (een dag in vier minuten)' : 'Klok stil', 2.5);

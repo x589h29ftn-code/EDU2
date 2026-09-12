@@ -303,5 +303,32 @@
       "kaskans": 0.2,
       "seed": 97
     }
+  ],
+  "tankstations": [
+    {
+      "naam": "BP Slump Oil",
+      "_uitleg": "Tankstation aan de Lemmerweg 63, aan de rondweg naast het sportpark (foto's Street View, chat 12 sep 2026). De luifel komt uit de BGT (los bouwwerk van 26,4 x 13,0 m) en de shop is pand 0091100000004556; hier staan alleen de maten die nergens in de data zitten. `luifelBij` is het punt waar de generator het bouwwerk zoekt.",
+      "merk": "bp",
+      "pand": "0091100000004556",
+      "luifelBij": [
+        721,
+        133
+      ],
+      "hoogte": 5.2,
+      "dek": 0.75,
+      "eilanden": 2,
+      "pompenPerEiland": 2,
+      "zuilHoogte": 6.5,
+      "prijzen": [
+        {
+          "naam": "diesel",
+          "prijs": "183.9"
+        },
+        {
+          "naam": "euro 95",
+          "prijs": "206.9"
+        }
+      ]
+    }
   ]
 }

@@ -6,7 +6,7 @@
   },
   "name": "tinga-sneek",
   "version": "1.0.0",
-  "description": "Open-wereld Tinga (Sneek) met wijkeditor",
+  "description": "Open-wereld Tinga (Sneek)",
   "private": true,
   "type": "module",
   "main": "desktop/main.cjs",
@@ -15,10 +15,8 @@
     "desktop": "electron .",
     "dist:win": "node tools/pack.mjs win32 x64",
     "shots": "node tools/screenshot.mjs",
-    "editortest": "node tools/editortest.mjs",
     "dist:linux": "node tools/pack.mjs linux x64",
     "assets": "node tools/assets.mjs",
-    "editorshots": "node tools/editorshots.mjs",
     "propshots": "node tools/propshots.mjs",
     "propcheck": "node tools/propcheck.mjs",
     "audit": "node tools/audit.mjs",
@@ -65,6 +63,8 @@
     "schooltest": "node tools/schooltest.mjs",
     "bevolkingtest": "node tools/bevolkingtest.mjs",
     "radiotest": "node tools/radiotest.mjs",
+    "tanktest": "node tools/tanktest.mjs",
+    "tankshots": "node tools/tankshots.mjs",
     "schoolshots": "node tools/schoolshots.mjs",
     "beeldshots": "node tools/beeldshots.mjs"
   }

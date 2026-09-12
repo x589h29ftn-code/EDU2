@@ -15,7 +15,7 @@ const paden = await packager({
   out: 'dist',
   platform, arch,
   overwrite: true,
-  asar: false,                       // de editor moet js/rows.user.js kunnen schrijven
+  asar: false,
   appVersion: pkg.version,
   appCopyright: 'Tinga Sneek',
   prune: true,
