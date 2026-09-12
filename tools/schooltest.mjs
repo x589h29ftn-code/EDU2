@@ -93,8 +93,13 @@ const doeken = await page.evaluate(() => {
     return n;
   };
   const st = T.HOUSE_STYLES.dewynpolle;
-  const hout = lees(T.facade('dewynpolle', 6, 2, false, 1));
-  const steen = lees(T.facade('dewynpolle_steen', 6, 4, false, 1));
+  /*
+   Vijftien lokalen breed, niet zes: de kleuren lopen in blokken van drie
+   lokalen (zo staan ze op de foto), dus in een doek van zes komen er maar vier
+   van de vijf voor.
+  */
+  const hout = lees(T.facade('dewynpolle', 15, 2, false, 1));
+  const steen = lees(T.facade('dewynpolle_steen', 15, 4, false, 1));
   // liggend beschot: rijen donkere schaduwlijnen. Tel per beeldrij hoe donker
   // hij gemiddeld is en kijk of dat regelmatig op en neer gaat.
   const rijDonker = [];
@@ -255,6 +260,59 @@ ok(bijDoek.wissels >= 4, 'de bijbouw heeft hetzelfde liggende beschot',
 */
 const luifelsZonderGeel = bijDoek.luifels.filter((_, i) => i !== 2);
 ok(luifelsZonderGeel.every(n => n < 40), 'en geen luifels', bijDoek.luifels.join(', ') + ' beeldpunten');
+
+// ---------- 5. het schoolplein ----------
+/*
+ De speeltoestellen en het hek staan met een eigen plek in spelmeters in
+ data/stijl/straten.json, want bij dit gebogen pand loopt de maat vanaf de
+ voorgevel weg. Daarom wordt hier nagerekend wat bij zo'n handmatige plek fout
+ kan gaan: een toestel in een gebouw, een toestel op de rijbaan, of een hek dat
+ dwars door de school loopt.
+*/
+kop('het schoolplein');
+const plein = await page.evaluate(async () => {
+  const { KAART } = await import('/js/kaart.js');
+  const soorten = ['speeltoestel', 'glijbaan', 'speelhuisje', 'wipkip', 'zandbak', 'pergola', 'bank'];
+  const binnen = (ring, x, z) => {
+    let in_ = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[i], b = ring[j];
+      if ((a[1] > z) !== (b[1] > z) && x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0]) in_ = !in_;
+    }
+    return in_;
+  };
+  const bij = KAART.objecten.filter(o => Math.hypot(o.x - 830, o.z - 268) < 70);
+  const toestellen = bij.filter(o => soorten.includes(o.type));
+  const hek = bij.filter(o => o.type === 'spijlenhek');
+  const panden = KAART.panden.filter(p => Math.hypot(p.rect.cx - 830, p.rect.cz - 268) < 160);
+  const vlakken = KAART.vlakken.filter(v => v.r.some(r => r.some(q => Math.hypot(q[0] - 830, q[1] - 268) < 120)));
+  const klasse = (x, z) => {
+    let k = '-';
+    for (const v of vlakken) {
+      if (!binnen(v.r[0], x, z)) continue;
+      let gat = false;
+      for (let i = 1; i < v.r.length; i++) if (binnen(v.r[i], x, z)) gat = true;
+      if (!gat) k = v.k;
+    }
+    return k;
+  };
+  const inPand = (x, z) => panden.some(p => binnen(p.voet, x, z));
+  const beoordeel = (lijst) => lijst.map(o => ({ type: o.type, x: o.x, z: o.z, pand: inPand(o.x, o.z), vlak: klasse(o.x, o.z) }));
+  // ook de fietsenrekken en de masten vóór de school
+  const voor = KAART.objecten.filter(o => ['fietsenrek', 'vlaggenmast'].includes(o.type) && Math.hypot(o.x - 858, o.z - 220) < 40);
+  return { toestellen: beoordeel(toestellen), hek: beoordeel(hek), voor: beoordeel(voor) };
+});
+const alles = [...plein.toestellen, ...plein.hek, ...plein.voor];
+ok(plein.toestellen.length >= 6, 'er staan speeltoestellen op het plein',
+  plein.toestellen.map(o => o.type).join(', '));
+ok(plein.hek.length >= 6, 'en er staat een spijlenhek langs', `${plein.hek.length} stukken van 3 m`);
+ok(plein.voor.length >= 4, 'voor de ingang staan vlaggenmasten en fietsenrekken',
+  plein.voor.map(o => o.type).join(', '));
+ok(alles.every(o => !o.pand), 'niets staat in een gebouw',
+  alles.filter(o => o.pand).map(o => `${o.type} op ${o.x},${o.z}`).join(', ') || `${alles.length} objecten nagelopen`);
+const opWeg = alles.filter(o => o.vlak === 'rijbaan' || o.vlak === 'parkeervlak');
+ok(opWeg.length === 0, 'en niets staat op de rijbaan of in een parkeervak',
+  opWeg.map(o => `${o.type} op ${o.vlak}`).join(', ') || `${alles.length} objecten nagelopen`);
 
 console.log(fouten ? `\n${fouten} fout(en).` : '\nAlles goed.');
 await browser.close();

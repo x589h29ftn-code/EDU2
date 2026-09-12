@@ -498,6 +498,21 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyE' && !e.ctrlKey && !e.metaKey) praatOfAuto();
 });
 
+/*
+ K: je eigen plek, in het berichtbalkje én op het klembord. Bedoeld om plekken
+ door te geven — waar een onzichtbare muur moet komen, waar een wegblokkade
+ hoort, waar een object moet staan. De grote kaart (M) laat dezelfde twee
+ getallen linksonder zien, voor op de telefoon.
+*/
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyK' || e.ctrlKey || e.metaKey) return;
+  const p = player.inCar || player.pos;
+  const tekst = `${(p.x).toFixed(1)}, ${(p.z).toFixed(1)}`;
+  hud.show(`plek ${tekst} — staat op het klembord`, 3);
+  if (navigator.clipboard) navigator.clipboard.writeText(tekst).catch(() => {});
+  console.log('plek', tekst);
+});
+
 // Scherpte wisselen (G). Blijft bewaard, zodat je hem maar één keer hoeft te zetten.
 window.addEventListener('keydown', e => {
   if (e.code !== 'KeyG' || e.ctrlKey || e.metaKey) return;

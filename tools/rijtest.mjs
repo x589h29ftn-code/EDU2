@@ -480,6 +480,67 @@ ok(tevoet.er && tevoet.metDuw > 1.1, 'je loopt niet meer dwars door een geparkee
 ok(tevoet.er && tevoet.zonder < 0.4, 'zonder dat duwtje loop je er zo doorheen',
   `tot ${(tevoet.zonder || 0).toFixed(2)} m van het midden`);
 
+/*
+ ---------- het model zelf ----------
+ Twee dingen die je in het spel zag en die uit de maten na te rekenen zijn:
+
+ 1. een onderdeel dat dwars door een band loopt. De sierlijst langs de dorpel was
+    2,80 m lang terwijl de wielen op ±1,32 staan met een straal van 0,32, dus hij
+    stak veertig centimeter door beide banden; het chassis van de bakwagen was
+    2,25 m breed met de wielen op ±1,00, dus 27 van de 30 centimeter band zat
+    erin. De regel: raakt een onderdeel de band in de lengterichting én steekt
+    het voorbij de binnenkant van de band, dan moet het ruim boven de as blijven
+    (R + 0,20) — dat is een wielkast, en dat mag;
+ 2. een onderdeel dat nergens tegenaan zit. Grille, koplampen, achterlichten en
+    kentekenplaten hingen centimeters vóór het plaatwerk in de lucht, met
+    daglicht ertussen. De regel: elk onderdeel moet minstens één ander onderdeel
+    overlappen.
+*/
+kop('de maten van het model');
+const modelMaten = await page.evaluate(async () => {
+  const { autoOnderdelen } = await import('/js/carmodel.js');
+  const uit = {};
+  for (const soort of ['hatch', 'van', 'truck']) {
+    const { dozen, wielen, R, bandBreed } = autoOnderdelen(soort);
+    const doorBand = [], los = [];
+    const doos = (d) => ({
+      x0: d.x - d.b / 2, x1: d.x + d.b / 2,
+      y0: d.y - d.h / 2, y1: d.y + d.h / 2,
+      z0: d.z - d.d / 2, z1: d.z + d.d / 2,
+    });
+    const boxen = dozen.map(doos);
+    for (let i = 0; i < dozen.length; i++) {
+      const b = boxen[i];
+      for (const w of wielen) {
+        const buitenX = Math.abs(w.x) + bandBreed / 2;       // buitenkant van de band
+        const raaktZ = b.z1 > w.z - R && b.z0 < w.z + R;
+        const voorbij = Math.max(Math.abs(b.x0), Math.abs(b.x1)) > buitenX - 0.03;
+        const laag = b.y0 < R + 0.20 && b.y1 > 0;
+        if (raaktZ && voorbij && laag) { doorBand.push({ groep: dozen[i].groep, i, y0: +b.y0.toFixed(2) }); break; }
+      }
+      // hangt hij ergens tegenaan?
+      let raakt = false;
+      for (let j = 0; j < dozen.length && !raakt; j++) {
+        if (i === j) continue;
+        const a = boxen[j];
+        raakt = b.x1 > a.x0 - 0.001 && b.x0 < a.x1 + 0.001
+             && b.y1 > a.y0 - 0.001 && b.y0 < a.y1 + 0.001
+             && b.z1 > a.z0 - 0.001 && b.z0 < a.z1 + 0.001;
+      }
+      if (!raakt) los.push({ groep: dozen[i].groep, z: +dozen[i].z.toFixed(2) });
+    }
+    uit[soort] = { delen: dozen.length, doorBand, los };
+  }
+  return uit;
+});
+for (const soort of ['hatch', 'van', 'truck']) {
+  const m = modelMaten[soort];
+  ok(m.doorBand.length === 0, `${soort}: geen onderdeel dwars door een band`,
+    m.doorBand.length ? m.doorBand.map(d => `${d.groep} op y=${d.y0}`).join(', ') : `${m.delen} onderdelen nagelopen`);
+  ok(m.los.length === 0, `${soort}: niets hangt los vóór het plaatwerk`,
+    m.los.length ? m.los.map(d => `${d.groep} op z=${d.z}`).join(', ') : `${m.delen} onderdelen nagelopen`);
+}
+
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);
 process.exit(fouten === 0 ? 0 : 1);

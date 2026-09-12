@@ -89,7 +89,7 @@
     }
   },
   "panden": {
-    "_uitleg": "Panden die geen woning zijn en dus niet van hun straat af te leiden zijn. Sleutel is het BAG-pandnummer uit js/kaart.js. `type` is het type uit HOUSE_STYLES in js/textures.js en gaat voor op alle regels hierboven. `voorkantNaar` is een punt in spelmeters waar de voorgevel naartoe moet kijken (bij een winkel ligt de ingang aan het plein en niet aan de dichtstbijzijnde rijbaan, en dan raadt de generator hem verkeerd); de generator kiest de zijde van de omsluitende rechthoek die daar het meest naartoe wijst. `objecten` zet losse objecten uit js/props.js voor het pand: `voor` is de afstand vanaf de voorgevel naar de straat, `langs` de afstand langs de gevel naar rechts gezien van buiten. `foto` is de uitsnede voor tools/adresshots.mjs (dezelfde `voor` en `langs`, plus een kijkhoek); zonder die regel zoekt dat gereedschap zelf een standpunt met vrij zicht. `molen` zet er met js/molen.js een echte molen neer in plaats van het opgetrokken 3D BAG-model, met de maten uit het blok `molen`.",
+    "_uitleg": "Panden die geen woning zijn en dus niet van hun straat af te leiden zijn. Sleutel is het BAG-pandnummer uit js/kaart.js. `type` is het type uit HOUSE_STYLES in js/textures.js en gaat voor op alle regels hierboven. `voorkantNaar` is een punt in spelmeters waar de voorgevel naartoe moet kijken (bij een winkel ligt de ingang aan het plein en niet aan de dichtstbijzijnde rijbaan, en dan raadt de generator hem verkeerd); de generator kiest de zijde van de omsluitende rechthoek die daar het meest naartoe wijst. `objecten` zet losse objecten uit js/props.js voor het pand: `voor` is de afstand vanaf de voorgevel naar de straat, `langs` de afstand langs de gevel naar rechts gezien van buiten. Bij een gebogen pand loopt die maat weg (het schoolplein van De Wynpôlle ligt achter de bocht, op `voor: -60`), en dan mag een object zijn eigen plek in spelmeters krijgen met `x` en `z`, met eventueel een eigen `yaw` in graden. `hekken` zet een rij hekwerkjes van `a` naar `b` in spelmeters, standaard het type `spijlenhek` in stukken van drie meter. `foto` is de uitsnede voor tools/adresshots.mjs (dezelfde `voor` en `langs`, plus een kijkhoek); zonder die regel zoekt dat gereedschap zelf een standpunt met vrij zicht. `molen` zet er met js/molen.js een echte molen neer in plaats van het opgetrokken 3D BAG-model, met de maten uit het blok `molen`.",
     "0091100000015898": {
       "type": "jumbo",
       "voorkantNaar": [
@@ -304,7 +304,87 @@
         "langs": 0,
         "pitch": 0.08
       },
-      "bron": "foto's Street View Keizersmantel 1, Duinterpen Sneek (april 2024 en mei 2022, in de chat 7 sep 2026): kindcentrum De Wynpôlle. Een lage gebogen vleugel met een liggend houten beschot en per lokaal een felgekleurde luifel — rood, oranje, geel, groen, blauw als een regenboog langs de bocht — met daarnaast hogere delen van roodbruine baksteen met lichte kozijnen en een oranje entree. Welk deel wat krijgt komt uit het 3D BAG-model en niet uit een aanname: de bovenkanten van de 228 muurvlakken liggen in twee groepen, 78 tot 9,5 m (de houten vleugel, goot 7,49 m) en 143 erboven tot de nok op 14,61 m; `steenBoven` in HOUSE_STYLES legt die grens. `voorkantNaar` is het schoolplein: het zwaartepunt van de 66 bestrate vakken binnen 45 m die buiten het grondvlak liggen, op (854, 246), iets doorgetrokken."
+      "objecten": [
+        {
+          "type": "vlaggenmast",
+          "voor": 7,
+          "langs": -2
+        },
+        {
+          "type": "vlaggenmast",
+          "voor": 7,
+          "langs": -5
+        },
+        {
+          "type": "fietsenrek",
+          "voor": 5,
+          "langs": -8
+        },
+        {
+          "type": "fietsenrek",
+          "voor": 5,
+          "langs": -11
+        },
+        {
+          "type": "fietsenrek",
+          "voor": 5,
+          "langs": -14
+        },
+        {
+          "type": "speeltoestel",
+          "x": 824,
+          "z": 266
+        },
+        {
+          "type": "glijbaan",
+          "x": 830,
+          "z": 267
+        },
+        {
+          "type": "speelhuisje",
+          "x": 824,
+          "z": 273
+        },
+        {
+          "type": "wipkip",
+          "x": 830,
+          "z": 260
+        },
+        {
+          "type": "zandbak",
+          "x": 818,
+          "z": 264
+        },
+        {
+          "type": "pergola",
+          "x": 824,
+          "z": 259
+        },
+        {
+          "type": "bank",
+          "x": 818,
+          "z": 271
+        },
+        {
+          "type": "bank",
+          "x": 818,
+          "z": 278
+        }
+      ],
+      "hekken": [
+        {
+          "type": "spijlenhek",
+          "a": [
+            812,
+            256
+          ],
+          "b": [
+            812,
+            284
+          ]
+        }
+      ],
+      "bron": "foto's Street View Keizersmantel 1, Duinterpen Sneek (april 2024 en mei 2022, in de chat 7 sep 2026): kindcentrum De Wynpôlle. Een lage gebogen vleugel met een liggend houten beschot en per lokaal een felgekleurde luifel — rood, oranje, geel, groen, blauw als een regenboog langs de bocht — met daarnaast hogere delen van roodbruine baksteen met lichte kozijnen en een oranje entree. Welk deel wat krijgt komt uit het 3D BAG-model en niet uit een aanname: de bovenkanten van de 228 muurvlakken liggen in twee groepen, 78 tot 9,5 m (de houten vleugel, goot 7,49 m) en 143 erboven tot de nok op 14,61 m; `steenBoven` in HOUSE_STYLES legt die grens. `voorkantNaar` is het schoolplein: het zwaartepunt van de 66 bestrate vakken binnen 45 m die buiten het grondvlak liggen, op (854, 246), iets doorgetrokken. De tweede reeks foto's (chat 12 sep 2026) laat de voorkant en de zijkant zien: losse gekleurde zeilen per raam in blokken van een paar lokalen (geen doorlopende balk), warm roodbruin beschot, twee vlaggenmasten met banieren bij de glazen entree, rijen fietsen ervoor, en aan de kant van de bakstenen kop een speelplein met klimtoestel, glijbaan, speelhuisje en pergola achter een zwart spijlenhek. De speeltoestellen staan met `x`/`z` op het bestrate plein ten westen van het pand (BGT-klasse verharding); het hek staat op de grens met het asfalt erachter."
     },
     "1900100010087850": {
       "type": "dewynpolle_bij",

@@ -232,7 +232,14 @@ const speel = await page.evaluate(async () => {
   const { KAART } = await import('./js/kaart.js');
   const huis = KAART.panden.find(p => p.straat === 'de Wieken' && (p.nr || []).includes('144'));
   const wil = ['schommel', 'speelhuisje', 'wipwap', 'glijbaan'];
-  const staan = KAART.objecten.filter(o => wil.includes(o.type));
+  /*
+   Alleen de toestellen bij dít huis. Sinds het schoolplein van De Wynpôlle er is
+   (Keizersmantel 1, 832 m verderop) staan dezelfde typen op meer plekken in de
+   wijk, en dan keurde deze proef het speeltuintje af op toestellen die er niets
+   mee te maken hebben.
+  */
+  const staan = KAART.objecten.filter(o => wil.includes(o.type)
+    && Math.hypot(o.x - huis.rect.cx, o.z - huis.rect.cz) < 120);
   const bij = staan.map(o => Math.hypot(o.x - huis.rect.cx, o.z - huis.rect.cz));
   // ligt het op gras?
   const inRing = (pt, ring) => {

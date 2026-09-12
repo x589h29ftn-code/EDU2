@@ -12,6 +12,7 @@
     `lageErfscheidingen` staat geen schutting van 1,8 m maar een lage haag.
  4. De vlaggen bij de supermarkt: het doek is twee panelen rug aan rug, zodat
     het woordmerk van beide kanten goed leest.
+ 5. Gaten in de ondergrond: nergens kijk je tussen de vlakken door naar beneden.
 
  Gebruik: python3 -m http.server 8123 &  node tools/wereldtest.mjs 8123
 */
@@ -355,6 +356,89 @@ ok(scherp.rij.some(q => q.ratio < 0.9), 'en zuiniger, voor een trage machine', s
 ok(new Set(scherp.rij.map(q => q.stand)).size >= 3, 'de stand blijft bewaard en loopt rond', standen);
 ok(scherp.anis >= Math.min(16, scherp.max), 'de texturen staan op het maximale anisotroop filteren',
   `${scherp.anis} van maximaal ${scherp.max}`);
+
+/*
+ ---------- gaten in de ondergrond ----------
+ De opstaande rand langs een verhoogd vlak (berm, stoep, plantsoen) wordt in
+ js/kaartwereld.js per rand als vierhoek opgebouwd, en de volgorde van de
+ hoekpunten klapt om als de ring andersom loopt. Liep hij verkeerd om, dan keek
+ de wand naar binnen, werd hij als achterkant weggeknipt en keek je onder het
+ gras door tot op het grondvlak op −1 m.
+
+ Meten gaat zo: het grondvlak wordt felroze gemaakt. Elk roze beeldpunt is dan
+ een gat. Ter controle staat er één standpunt buiten het gebied, waar het
+ grondvlak juist wél hoort te zien te zijn.
+
+ De camera kijkt daarbij steil naar beneden, naar de grond binnen een meter of
+ tien.
+ Dat is nodig omdat de BGT-dekking niet overal doorloopt: ten zuidwesten van IJlst
+ houdt hij op, en daar is het grondvlak gewoon de ondergrond en geen gat. Kijk je
+ vooruit, dan staat die kale strook in beeld en meet de proef 2712 beeldpunten die
+ niets met een kier te maken hebben.
+*/
+kop('gaten in de ondergrond');
+await page.evaluate(async () => { window.__W = await import('/js/world.js'); });
+const gaten = await page.evaluate(() => {
+  const g = window.__game;
+  let platen = 0, watervlakken = 0;
+  g.scene.traverse(o => {
+    // Het water is doorzichtig en ligt op −0,35, dus je kijkt er zo doorheen naar
+    // het grondvlak op −1. Dat is geen gat — de speler ziet water. Voor de proef
+    // maken we het ondoorzichtig.
+    if (o.isMesh && o.userData && o.userData.klasse === 'water') {
+      o.material = o.material.clone();
+      o.material.transparent = false; o.material.opacity = 1; o.material.depthWrite = true;
+      watervlakken++;
+    }
+    if (!o.isMesh || o.geometry.type !== 'PlaneGeometry') return;
+    if (Math.abs(o.position.y + 1.0) > 0.01) return;
+    o.material = o.material.clone();
+    o.material.color.setHex(0xff00ff);
+    if (o.material.emissive) o.material.emissive.setHex(0xff00ff);
+    platen++;
+  });
+  const tel = (x, z, yaw, pitch, hoog) => {
+    g.sfeer.uur = 12; g.sfeer.weer = 'helder';
+    g.player.inCar = null; g.player.zit = false;
+    g.player.pos.set(x, hoog, z); g.player.yaw = yaw; g.player.pitch = pitch; g.player.applyCamera();
+    window.__W.updateLOD(x, z);      // anders staat de LOD nog op de vorige plek
+    g.renderer.render(g.scene, g.camera);
+    const gl = g.renderer.getContext();
+    const w = g.renderer.domElement.width, h = g.renderer.domElement.height;
+    const buf = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    let roze = 0;
+    for (let i = 0; i < buf.length; i += 4) if (buf[i] > 140 && buf[i + 1] < 90 && buf[i + 2] > 140) roze++;
+    return { roze, deel: +(roze / (w * h) * 100).toFixed(3),
+      camY: +g.camera.position.y.toFixed(2), derde: !!(g.derde && g.derde.aan) };
+  };
+  const plekken = [
+    ['Molenkrite', 30, -20], ['Jasker', -180, 120], ['Lemmerweg', 700, 330],
+    ['IJlst', 1180, 700], ['Duinterpen', 1320, 300], ['Bonkelaar', 210, 60],
+  ];
+  const uit = [];
+  for (const [naam, x, z] of plekken) {
+    for (const [yaw, pitch, hoog] of [[0.4, -1.00, 2.0], [2.5, -0.95, 3.0], [4.2, -1.05, 1.6]]) {
+      uit.push({ naam, ...tel(x, z, yaw, pitch, hoog) });
+    }
+  }
+  const ijk = tel(-2400, -700, 0, -1.00, 2.0);   // buiten het gebied
+  return { platen, watervlakken, uit, ijk };
+});
+ok(gaten.platen === 1, 'het grondvlak onder alles is gevonden', `${gaten.platen} plaat`);
+ok(gaten.ijk.deel > 20, 'de proef werkt: buiten het gebied zie je het grondvlak wél',
+  `${gaten.ijk.deel} % van het beeld`);
+/*
+ Een enkel beeldpunt mag: de BGT laat tussen twee vlakken af en toe een spleet van
+ een paar decimeter open (0,04 % van het open terrein in Tinga, gemeten op een
+ raster van twee meter), en daar is het grondvlak gewoon de ondergrond. Waar het
+ om gaat is een hele wand die ontbreekt, en dat is een heel andere orde: vóór de
+ draairichting rechtgezet werd stond er 0,58 % van het beeld vol.
+*/
+const ergste = gaten.uit.reduce((a, b) => (b.deel > a.deel ? b : a), gaten.uit[0]);
+ok(gaten.uit.every(u => u.deel < 0.1), 'nergens kijk je tussen het gras en de weg door naar beneden',
+  `${gaten.uit.length} standpunten, ergste ${ergste.naam} met ${ergste.deel} % van het beeld ` +
+  `(${ergste.roze} beeldpunten)`);
 
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);
