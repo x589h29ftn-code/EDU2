@@ -19,6 +19,12 @@
  van de wijk bij zonsondergang. Zo werkt het scherm ook zonder dat er ooit een
  plaatje bij komt, en dat is de enige plek in het spel waar een afbeelding uit
  een bestand mag komen.
+
+ Het beeld staat niet stil: het zoomt in achtentwintig seconden een procent of
+ twaalf in, met de vaart er langzaam uit (dezelfde truc als op een echt
+ GTA-laadscherm). Hoever, staat per beeld in `beelden.json`. Het verloop dat de
+ tekst leesbaar houdt ligt in een eigen laag eroverheen en zoomt dus niet mee —
+ anders schuift de donkere onderkant het scherm af terwijl je kijkt.
 */
 
 const TIPS = [
@@ -105,7 +111,38 @@ export async function laadBeelden(pad = 'beeld/laadscherm/beelden.json') {
     beelden = (j.beelden || []).filter(b => b && b.bestand)
       .map(b => ({ ...b, url: pad.replace(/[^/]*$/, '') + b.bestand }));
   } catch { /* geen lijst: het nooddoek doet het ook */ }
+  // het menu staat er al voordat deze lijst binnen is: dan nu pas het echte beeld
+  if (beelden.length && el && el.doek) zetDoek(el.doek, kiesBeeld());
   return beelden;
+}
+
+/*
+ Een achtergrond op een doek zetten en hem langzaam laten inzoomen — zoals een
+ GTA-laadscherm, dat nooit helemaal stilstaat. De animatie moet per keer opnieuw
+ starten; een CSS-animatie doet dat alleen als hij eerst van het element af is,
+ vandaar het lezen van offsetWidth ertussen (dat dwingt de browser tot een
+ herberekening).
+*/
+function zetDoek(doel, b, zoomen = true) {
+  if (!doel) return;
+  doel.style.backgroundImage = `url(${b ? b.url : nooddoek()})`;
+  doel.style.backgroundPosition = (b && b.focus) || 'center';
+  doel.classList.remove('zoomt');
+  if (!zoomen || !b) { doel.style.transform = ''; return; }
+  doel.style.setProperty('--zoom', b.zoom || 1.12);
+  void doel.offsetWidth;
+  doel.classList.add('zoomt');
+}
+
+// Welk beeld komt er in beeld? Eén beeld: altijd dat. Meer: elke keer een ander.
+let vorigBeeld = -1;
+function kiesBeeld() {
+  if (!beelden.length) return null;
+  if (beelden.length === 1) return beelden[0];
+  let i = Math.floor(Math.random() * beelden.length);
+  if (i === vorigBeeld) i = (i + 1) % beelden.length;
+  vorigBeeld = i;
+  return beelden[i];
 }
 
 function knop(tekst, id, opKlik, hoofd = false) {
@@ -130,7 +167,8 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
   const doek = document.createElement('div'); doek.id = 'menudoek';
   // achter het menu hetzelfde beeld als op het laadscherm: bij het opstarten is
   // er nog geen wereld om doorheen te kijken, en een zwarte leegte is geen scherm
-  doek.style.backgroundImage = `url(${nooddoek()})`;
+  zetDoek(doek, kiesBeeld());
+  const waas = document.createElement('div'); waas.id = 'menuwaas';
   const paneel = document.createElement('div'); paneel.className = 'menupaneel';
   const titel = document.createElement('h1'); titel.textContent = 'TINGA';
   const onder = document.createElement('div'); onder.className = 'menuonder'; onder.textContent = 'Sneek · open wereld op ware grootte';
@@ -161,6 +199,7 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
   // het laadscherm zit in dezelfde wortel, zodat het met het menu mee verdwijnt
   const laad = document.createElement('div'); laad.id = 'laadscherm'; laad.hidden = true;
   const laadDoek = document.createElement('div'); laadDoek.id = 'laaddoek';
+  const laadWaas = document.createElement('div'); laadWaas.id = 'laadwaas';
   const laadVoet = document.createElement('div'); laadVoet.id = 'laadvoet';
   const laadTitel = document.createElement('div'); laadTitel.id = 'laadtitel'; laadTitel.textContent = 'TINGA';
   const laadTip = document.createElement('div'); laadTip.id = 'laadtip';
@@ -169,10 +208,10 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
   balk.append(balkIn);
   const laadWat = document.createElement('div'); laadWat.id = 'laadwat';
   laadVoet.append(laadTitel, laadTip, balk, laadWat);
-  laad.append(laadDoek, laadVoet);
+  laad.append(laadDoek, laadWaas, laadVoet);
 
-  wortel.append(doek, paneel, laad);
-  el = { wortel, paneel, lijst, knoppen, zijpaneel, laad, laadDoek, laadTip, balkIn, laadWat };
+  wortel.append(doek, waas, paneel, laad);
+  el = { wortel, doek, paneel, lijst, knoppen, zijpaneel, laad, laadDoek, laadTitel, laadTip, balkIn, laadWat };
   return el;
 }
 
@@ -252,8 +291,9 @@ export function toonLaadscherm() {
   el.wortel.style.display = 'flex';
   el.paneel.hidden = true;
   el.laad.hidden = false;
-  const b = beelden.length ? beelden[Math.floor(Math.random() * beelden.length)] : null;
-  el.laadDoek.style.backgroundImage = `url(${b ? b.url : nooddoek()})`;
+  const b = kiesBeeld();
+  zetDoek(el.laadDoek, b);
+  if (el.laadTitel) el.laadTitel.textContent = (b && b.titel) || 'TINGA';
   el.laadTip.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
   return (deel, wat) => {
     el.balkIn.style.width = `${Math.round(Math.max(0, Math.min(1, deel)) * 100)}%`;

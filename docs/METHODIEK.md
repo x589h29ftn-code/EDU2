@@ -259,7 +259,7 @@ naar `main` om een build te krijgen.
 | Tennispark Molenkrite (stap 40) | `npm run tennistest` | eindigt op "Alles goed" |
 | De vijf panden uit de steekproef (stap 41) | `npm run steekproeftest` | eindigt op "Alles goed" |
 | Botsgevoel en geluid (stap 42) | `npm run gevoeltest` | eindigt op "Alles goed" |
-| Startscherm, laadscherm en opbouw (stap 43) | `npm run menutest` | eindigt op "Alles goed" |
+| Startscherm, laadscherm en opbouw (stap 43, 45) | `npm run menutest` | eindigt op "Alles goed" |
 | De losse punten uit de beta-test (stap 44) | `npm run betatest` | eindigt op "Alles goed" |
 | Snelheid: draw calls, driehoeken, geheugen | `npm run audit` (met `?relief=0` voor de kale stand) | de wereld is sinds stap 22 zes keer zo groot; de meting is nu een vergelijking met de vorige ronde, geen vaste bovengrens |
 
@@ -2956,7 +2956,28 @@ achtergrond op een canvas: een rij daken bij zonsondergang met verlichte ramen.
 Zo werkt het scherm ook leeg, en het blijft waar: dit is naast de radio de enige
 plek in het spel waar een afbeelding uit een bestand mag komen.
 
-Controle: `npm run menutest` (vijftien controles) en `npm run menushots`.
+Controle: `npm run menutest` (achttien controles) en `npm run menushots`.
+
+*Het beeld erop (stap 45).* De gebruiker leverde er een aan: een GTA-VI-affiche
+van de wijk. Het staat nu op het startscherm én op het laadscherm, en het zoomt
+in achtentwintig seconden tien procent in met de vaart er langzaam uit
+(`cubic-bezier(.17,.67,.35,1)`), zoals een echt laadscherm van dat spel. Drie
+dingen bleken te moeten kloppen:
+
+- *het verloop mag niet meezoomen.* Het stond als `::after` op het doek zelf, en
+  dan schaalt het mee: de donkere onderrand schuift het scherm af en de
+  voortgangsbalk wordt onleesbaar. Het is nu een eigen laag eroverheen;
+- *het zoompunt ligt hoog* (`transform-origin: 50% 18%`). Het affiche is vier
+  staand op vijf breed en het scherm zestien op negen, dus er gaat hoe dan ook
+  dertig procent van de hoogte af. Zoom je om het midden, dan loopt de bovenkant
+  — met de titel van het affiche erin — binnen een halve minuut uit beeld;
+- *de animatie moet opnieuw kunnen starten.* Een CSS-animatie begint alleen
+  opnieuw als hij eerst van het element af is; daar staat in `js/menu.js` een
+  `void doel.offsetWidth` tussen, die de browser tot herberekenen dwingt.
+
+Het beeld zelf is met de meegeleverde Chromium van 2,4 MB PNG naar 411 kB JPEG
+gebracht (kwaliteit 0,88) — er is in dit project geen beeldgereedschap, maar een
+canvas kan het ook.
 
 **De losse punten uit de beta-test (stap 44).**
 

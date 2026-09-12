@@ -80,11 +80,16 @@
   #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: flex-start;
              color: #fff; background: #070b12; z-index: 20; }
   /* de achtergrond van het menu: een donkere waas over het spelbeeld heen */
-  #menudoek { position: absolute; inset: 0; background-size: cover; background-position: center; }
+  /* het zoompunt ligt hoog: zo blijft de bovenkant van het beeld in beeld terwijl
+     er ingezoomd wordt, en zakt alleen de onderrand weg */
+  #menudoek { position: absolute; inset: 0; background-size: cover; background-position: center;
+              transform-origin: 50% 18%; will-change: transform; }
   /* de achtergrond wegvegen aan de kant waar de knoppen staan, zodat de tekst
-     leesbaar blijft en het beeld rechts open blijft */
-  #menudoek::after { content: ""; position: absolute; inset: 0;
-                     background: linear-gradient(100deg, rgba(5,8,14,.96) 0%, rgba(5,8,14,.88) 38%, rgba(5,8,14,.30) 100%); }
+     leesbaar blijft en het beeld rechts open blijft. Dit waas is een eigen laag
+     en geen ::after op het doek: het doek zoomt langzaam in, en een verloop dat
+     meezoomt schuift zijn donkere kant het scherm af. */
+  #menuwaas { position: absolute; inset: 0; pointer-events: none;
+              background: linear-gradient(100deg, rgba(5,8,14,.96) 0%, rgba(5,8,14,.88) 38%, rgba(5,8,14,.30) 100%); }
   /* het paneel blijft binnen het scherm: met de besturing uitgeklapt is het
      langer dan een laptopscherm hoog, en dan viel de titel eraf */
   .menupaneel { position: relative; margin-left: min(9vw, 120px); width: min(430px, 86vw);
@@ -117,9 +122,20 @@
   /* het laadscherm: beeldvullende achtergrond met de balk eronder */
   #laadscherm { position: absolute; inset: 0; background: #05080e; }
   #laadscherm[hidden] { display: none; }
-  #laaddoek { position: absolute; inset: 0; background-size: cover; background-position: center; }
-  #laaddoek::after { content: ""; position: absolute; inset: 0;
-                     background: linear-gradient(to bottom, rgba(5,8,14,.15) 40%, rgba(5,8,14,.92) 100%); }
+  #laaddoek { position: absolute; inset: 0; background-size: cover; background-position: center;
+              transform-origin: 50% 18%; will-change: transform; }
+  #laadwaas { position: absolute; inset: 0; pointer-events: none;
+              background: linear-gradient(to bottom, rgba(5,8,14,.15) 40%, rgba(5,8,14,.92) 100%); }
+  /* Langzaam inzoomen, zoals op een GTA-laadscherm: het beeld staat stil genoeg
+     om naar te kijken en leeft toch. De eindschaal komt uit beelden.json en
+     wordt als --zoom meegegeven. Wie 'beweging beperken' aan heeft staan krijgt
+     een stilstaand beeld. */
+  .zoomt { animation: laadzoom 28s cubic-bezier(.17,.67,.35,1) forwards; }
+  @keyframes laadzoom {
+    from { transform: scale(1); }
+    to   { transform: scale(var(--zoom, 1.12)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .zoomt { animation: none; } }
   #laadvoet { position: absolute; left: min(7vw, 90px); right: min(7vw, 90px); bottom: min(9vh, 64px); }
   #laadtitel { font-size: clamp(30px, 4.6vw, 54px); font-weight: 800; letter-spacing: 6px; }
   #laadtip { font-size: 14px; opacity: .75; margin: 6px 0 18px; max-width: 620px; line-height: 1.45; }

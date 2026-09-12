@@ -321,8 +321,15 @@ gebruikt. Riet: **29 → 4,3 s**.
 | langste bevriezing tijdens de opbouw | 43 s | **4,1 s** |
 
 De beelden voor het laadscherm staan in [`beeld/laadscherm/`](beeld/laadscherm/) met een lijstje in
-`beelden.json` — zet daar je eigen schermafdrukken neer. Is er niets, dan tekent `js/menu.js` zelf een
+`beelden.json` — zet daar je eigen beelden neer. Is er niets, dan tekent `js/menu.js` zelf een
 achtergrond op een canvas, dus het werkt ook leeg.
+
+Het beeld staat niet stil: het **zoomt in achtentwintig seconden een procent of tien in**, met de vaart
+er langzaam uit — zoals een echt GTA-laadscherm. Per beeld staat in `beelden.json` hoever (`zoom`),
+welk deel in beeld blijft op een breder scherm (`focus`) en wat er onderin als titel staat (`titel`).
+Het donkere verloop dat de tekst leesbaar houdt ligt in een eigen laag en zoomt níét mee, anders schuift
+de onderrand het scherm af terwijl je kijkt. Wie in zijn systeem "beweging beperken" aan heeft staan
+krijgt een stilstaand beeld.
 
 ## Botsgevoel en geluid
 

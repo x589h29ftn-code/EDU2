@@ -1,4 +1,12 @@
 {
-  "_uitleg": "Achtergronden voor het laadscherm (js/menu.js). Zet hier je eigen schermafdruk neer -- liggend, het liefst 1920x1080 of groter -- en voeg een regel toe. Is de lijst leeg of ontbreekt een bestand, dan tekent het spel zelf een achtergrond op een canvas; er gaat dus niets stuk. Dit is naast de muziek in audio/radio/ de enige plek in het spel waar een afbeelding uit een bestand komt.",
-  "beelden": []
+  "_uitleg": "Achtergronden voor het laadscherm en het startscherm (js/menu.js). Zet hier je eigen beeld neer en voeg een regel toe: 'bestand' is de bestandsnaam, 'titel' wat er in het laadscherm onderaan mag staan, 'focus' welk deel van het beeld in het midden blijft als het scherm breder is dan het beeld (CSS background-position, bv. '50% 35%'), en 'zoom' hoever er in 28 seconden ingezoomd wordt (1.12 = twaalf procent, zoals een GTA-laadscherm). Is de lijst leeg of ontbreekt een bestand, dan tekent het spel zelf een achtergrond op een canvas; er gaat dus niets stuk. Dit is naast de muziek in audio/radio/ de enige plek in het spel waar een afbeelding uit een bestand komt.",
+  "beelden": [
+    {
+      "bestand": "tinga_vi.jpg",
+      "titel": "Tinga VI",
+      "focus": "50% 10%",
+      "zoom": 1.1,
+      "bron": "aangeleverd door de gebruiker, chat 12 sep 2026"
+    }
+  ]
 }

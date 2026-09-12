@@ -13,7 +13,9 @@
  4. de knoppen moeten doen wat ze zeggen: Start spel begint, Spel laden staat er
     alleen als er iets opgeslagen is, en Besturing en Instellingen klappen open;
  5. de wereld die eruit komt moet dezelfde zijn als vroeger — evenveel
-    botsdozen, panden en parkeerplekken.
+    botsdozen, panden en parkeerplekken;
+ 6. de achtergrond komt uit beeld/laadscherm/beelden.json en zoomt langzaam in;
+    het verloop eroverheen hoort stil te staan.
 
  Gebruik: python3 -m http.server 8123 &  node tools/menutest.mjs 8123
 */
@@ -42,6 +44,34 @@ const menuNa = Date.now() - t0;
 const wereldKlaar = await page.evaluate(() => !!window.__game);
 ok(menuNa < 30000, 'het menu is er binnen dertig seconden', `${(menuNa / 1000).toFixed(1)} s`);
 ok(!wereldKlaar, 'en de wereld is dan nog niet klaar — hij bouwt eronder door');
+
+kop('het beeld erachter komt uit beeld/laadscherm en zoomt langzaam in');
+/*
+ Het beeld uit beelden.json hoort op het startscherm én op het laadscherm te
+ staan, en langzaam in te zoomen zoals een GTA-laadscherm. Het verloop dat de
+ tekst leesbaar houdt ligt in een eigen laag en mag juist níét meebewegen: doet
+ hij dat wel, dan schuift de donkere onderrand het scherm af en wordt de
+ voortgangsbalk onleesbaar.
+*/
+const doek = await page.evaluate(async () => {
+  const d = document.getElementById('menudoek'), w = document.getElementById('menuwaas');
+  const lees = () => getComputedStyle(d).transform;
+  const eerst = lees();
+  await new Promise(r => setTimeout(r, 1200));
+  const r2 = await fetch('beeld/laadscherm/beelden.json').then(x => x.json()).catch(() => ({ beelden: [] }));
+  return {
+    bestand: (r2.beelden[0] || {}).bestand || null,
+    beeld: d.style.backgroundImage,
+    zoomt: d.classList.contains('zoomt'),
+    eerst, later: lees(),
+    waas: w ? getComputedStyle(w).transform : 'weg',
+  };
+});
+ok(!!doek.bestand && doek.beeld.includes(doek.bestand),
+  'het startscherm toont het aangeleverde beeld', doek.bestand || 'geen lijst');
+ok(doek.zoomt && doek.eerst !== doek.later, 'en dat beeld zoomt langzaam in',
+  `${doek.eerst} → ${doek.later}`);
+ok(doek.waas === 'none', 'het verloop eroverheen blijft staan', doek.waas);
 
 kop('de opbouw gaat in stukjes en laat zien hoever hij is');
 /*
