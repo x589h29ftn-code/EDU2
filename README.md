@@ -160,11 +160,40 @@ alsof je de hele wijk in zijn één doorkomt. Achteruit is één laag verzet dat
 je achter het stuur zit speelt de **autoradio** een rockdeuntje: zacht genoeg om de motor eronder te
 blijven horen, en tijdens de achtervolging in het verhaal zakt hij nog verder weg.
 
-Vanachter het stuur kijk je vanaf een oogpunt vlak vóór de voorruit over de
-motorkap. Dat is geen luxe: het glas is van buiten donker getint, en vanaf de
-stoel keek je door twee van die vlakken naar buiten met de dakrand als donkere
-balk erboven. De ruiten gaan daarom uit zolang jij erachter zit, en komen terug
-zodra je uitstapt of naar de camera achter de auto gaat.
+### In de auto
+
+Vanachter het stuur zit je nu **echt in de auto**: dashboard, stuur, klokken,
+deurpanelen met armsteun, hemelbekleding, stoelen, middenconsole met pook en
+handrem, achterbank, hoedenplank, binnenspiegel en zonnekleppen. Het stuur
+draait mee met de voorwielen en de twee wijzers lopen mee met je snelheid en je
+toeren.
+
+![Vanachter het stuur](docs/screenshots/auto_interieur.png)
+
+Hoe dit slim blijft: er wordt **geen interieur in elk automodel gebouwd**. De
+1781 geparkeerde auto's zijn instanced meshes en krijgen er niets bij; er is
+maar één auto tegelijk waar je in zit, en alleen díe krijgt het erin gehangen —
+aan de carrosseriegroep, zodat het meehelt in de bocht en meeduikt bij het
+remmen. Stap je uit, dan gaat het weer weg. Met de camera over je schouder staat
+het uit. Eenenveertig onderdelen, 353 driehoeken, en buiten die ene auto kost
+het niets.
+
+Twee dingen moesten daarvoor veranderen. Het **oogpunt** lag vóór de voorruit en
+vlak onder de dakrand — eigenlijk boven de motorkap, buiten de auto: een
+noodgreep, want er wás geen interieur en vanaf de stoel keek je door twee
+getinte ruiten naar een leeg gat. Nu zit het waar een stoel staat. En de
+**cabine is hol geworden**: de flank en de schouderlijn liepen als dichte
+blokken door de hele auto, dus zodra de camera erin zat keek je tegen de
+bovenkant van zo'n blok aan — een rode vlakte waar het interieur hoort te
+zitten. Er blijven nu twee zijwanden over plus een vulling vóór en achter de
+cabine; van buiten is er niets aan veranderd, want de buitenvlakken liggen op
+precies dezelfde plek.
+
+De ruiten blijven uit zolang je erin zit: het glas is van buiten donker getint,
+en van binnen keek je er dwars doorheen naar een grauwe plaat. Wat je ziet is de
+opening met de stijlen eromheen, alsof de ramen openstaan — en dat is precies
+wat je in een spel wilt. Ze komen terug zodra je uitstapt of naar de camera
+achter de auto gaat.
 
 ![Rijden vanuit de auto](docs/screenshots/auto_eerstepersoon.png)
 
@@ -291,7 +320,7 @@ terugslag, het herladen, de bouw van een mens, de looppas en een agent). `npm ru
 de foto's hierboven. Het machinegeweer, de buit, het verkeer dat op je reageert en de rest van de
 punten van 13 september staan in **`npm run puntentest`** (vijfenveertig controles) met
 `npm run puntenshots` voor de foto's; de mensen, de auto's, het vuil, het bukken en de zwaardere
-politie in **`npm run vuiltest`** (zesendertig controles) met `npm run vuilshots`.
+politie in **`npm run vuiltest`** (vierenveertig controles) met `npm run vuilshots`.
 
 ### Wat er op straat blijft liggen
 
@@ -1718,8 +1747,15 @@ voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,59 % afwijking
 
 Elk pand krijgt zijn gevel met ramen en deuren uit het woningtype in de stijlcatalogus
 `data/stijl/straten.json` (per straat), met het aantal lagen uit de echte goothoogte. `npm run
-geo:steekproef` rendert twaalf vaste adressen vanaf de straat en zet er de Street View-link van
+geo:steekproef` rendert de vaste adressen vanaf de straat en zet er de Street View-link van
 hetzelfde camerapunt naast, zie **[docs/steekproef/README.md](docs/steekproef/README.md)**.
+
+De derde ronde staat klaar in **[docs/steekproef/ronde3.md](docs/steekproef/ronde3.md)**: twintig
+standpunten in IJlst, Duinterpen, de nieuwbouw ten oosten van Tinga en de noordoosthoek, elk met de
+Street View-link van precies het punt waar het spel vanaf rendert. Dat is de grootste openstaande
+aanname in de kaart — al die straten worden nu met het Molenkrite-woningtype getekend, de gele
+baksteen en de kap van Tinga uit de jaren zeventig. `node tools/geo/steekproeflinks.mjs 3` maakt die
+lijst opnieuw, zonder browser.
 
 De oude, handgetekende kaart in `js/data.js` (overgetypt uit schermafbeeldingen, bijgesteld met
 Street View) draait nog met `?kaart=oud`. Street View-foto's dienen voortaan alleen nog voor de

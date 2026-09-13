@@ -250,6 +250,67 @@ ok(autos.lakRuw, 'de lak is matter dan hiervoor, geen plastic speelgoed');
 ok(autos.dakBreed, 'het dak sluit over de zijruiten heen, dus je kijkt er niet meer doorheen');
 ok(autos.driehoeken > 900, 'een auto is meer dan een stapel dozen', `${autos.driehoeken} driehoeken`);
 
+// -------------------------------------------------------- het interieur
+kop('het interieur van de auto waar je in zit');
+const binnen = await page.evaluate(async () => {
+  const THREE = await import('three');
+  const g = window.__game;
+  const stapel = g.vehicles.cars.filter(c => !c.mesh);
+  const voor = stapel.length;
+  const auto = g.vehicles.voegToe({ x: g.player.pos.x + 6, z: g.player.pos.z, yaw: 0, soort: 'hatch' });
+  const u = auto.mesh.userData;
+  const b = u.binnen;
+  let meshes = 0, driehoeken = 0;
+  b.groep.traverse(o => { if (o.isMesh) { meshes++; driehoeken += o.geometry.attributes.position.count / 3; } });
+  // het stuur draait mee met de voorwielen
+  auto.steer = 0.2; b.update(auto, 1 / 60);
+  const stuurIn = b.stuur.rotation.z;
+  auto.steer = -0.2; b.update(auto, 1 / 60);
+  const stuurUit = b.stuur.rotation.z;
+  // en de naald loopt met de snelheid mee
+  auto.speed = 0; auto.topSnelheid = 24;
+  for (let i = 0; i < 200; i++) b.update(auto, 1 / 60);
+  const stil = b.naalden[0].rotation.z;
+  auto.speed = 22;
+  for (let i = 0; i < 200; i++) b.update(auto, 1 / 60);
+  const hard = b.naalden[0].rotation.z;
+  // de geparkeerde auto's krijgen er niets bij
+  const stapelBinnen = g.vehicles.cars.filter(c => !c.mesh && c.inst).length;
+  return {
+    meshes, driehoeken, stuurIn, stuurUit, stil, hard,
+    zichtbaar: b.groep.visible,
+    inBak: b.groep.parent === u.bak,
+    geparkeerdZonder: stapelBinnen > 1000,
+  };
+});
+ok(binnen.meshes > 20 && binnen.driehoeken > 200, 'de auto heeft een echt interieur',
+  `${binnen.meshes} onderdelen, ${Math.round(binnen.driehoeken)} driehoeken`);
+ok(binnen.inBak, 'het hangt in de carrosseriegroep, dus het helt mee in de bocht');
+ok(binnen.geparkeerdZonder, 'de geparkeerde auto\'s krijgen er niets bij: die blijven instanced');
+ok(Math.sign(binnen.stuurIn) !== Math.sign(binnen.stuurUit) && Math.abs(binnen.stuurIn) > 0.3,
+  'het stuur draait mee met de voorwielen',
+  `${(binnen.stuurIn * 57.3).toFixed(0)}° en ${(binnen.stuurUit * 57.3).toFixed(0)}°`);
+ok(Math.abs(binnen.hard - binnen.stil) > 0.5, 'en de snelheidsmeter loopt mee',
+  `naald van ${(binnen.stil * 57.3).toFixed(0)}° naar ${(binnen.hard * 57.3).toFixed(0)}°`);
+
+const zit = await page.evaluate(async () => {
+  const { autoMaat } = await import('/js/carmodel.js');
+  const uit = {};
+  for (const soort of ['hatch', 'van', 'truck']) {
+    const m = autoMaat(soort);
+    uit[soort] = {
+      oog: +m.oog.y.toFixed(2), dak: +m.dakY.toFixed(2), schouder: +m.schouderY.toFixed(2),
+      vloer: +m.dorpelY.toFixed(2),
+    };
+  }
+  return uit;
+});
+for (const [soort, m] of Object.entries(zit)) {
+  ok(m.oog > m.schouder && m.oog < m.dak - 0.05,
+    `de bestuurdersstoel van de ${soort} zit in de cabine, niet erboven of eronder`,
+    `oog ${m.oog} m, raamlijn ${m.schouder} m, dak ${m.dak} m`);
+}
+
 // ------------------------------------------------------------- de rommel
 kop('de wijk is niet meer kraakhelder');
 const rommel = await page.evaluate(() => {

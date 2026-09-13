@@ -1,46 +1,368 @@
 {
   "_uitleg": "Vaste steekproef voor de stijlcontrole (docs/METHODIEK.md stap 6). tools/geo/steekproef.mjs rendert per adres het spel vanaf de straat, recht voor de voorgevel, en per omgevingsplek vanaf de dichtstbijzijnde rijbaan, en geeft de Street View-link van precies dat camerapunt. Een adres met 'type' in plaats van 'nr' kiest het eerste pand van dat woningtype in die straat. Plekken staan in spelmeters (x oost, z zuid vanaf het kruispunt Molenkrite/Monnikmolen/Jasker); soort 'profiel' kijkt langs de straat in plaats van naar de plek.",
   "adressen": [
-    { "straat": "Molenkrite", "nr": "19", "ronde": 1 },
-    { "straat": "Molenkrite", "nr": "43", "ronde": 1 },
-    { "straat": "Molenkrite", "nr": "70", "ronde": 1 },
-    { "straat": "Kruirad", "nr": "50", "ronde": 1 },
-    { "straat": "Kruirad", "nr": "12", "ronde": 1 },
-    { "straat": "Monnikmolen", "nr": "148", "ronde": 1 },
-    { "straat": "Binnenroede", "nr": "15", "ronde": 1 },
-    { "straat": "Jasker", "nr": "7", "ronde": 1 },
-    { "straat": "de Wieken", "nr": "34", "ronde": 1 },
-    { "straat": "Bovenas", "nr": "5", "ronde": 1 },
-    { "straat": "Molenpaal", "nr": "6", "ronde": 1 },
-    { "straat": "Bonkelaar", "nr": "11", "ronde": 1 },
-
-    { "straat": "Molenkrite", "type": "molenkrite", "ronde": 2, "vraag": "het tweelaagse deel van de Molenkrite: steen, kozijnen, deuren, dakkapel of dakraam" },
-    { "straat": "Kruirad", "nr": "30", "ronde": 2, "vraag": "rood of blauw? hier ligt in het spel de grens tussen de twee rijen" },
-    { "straat": "Binnenroede", "nr": "24", "ronde": 2, "vraag": "hetzelfde als de Monnikmolen (rood met luifel) of anders?" },
-    { "straat": "Spinnekop", "nr": "9", "ronde": 2, "vraag": "nu getekend als Molenpaal-type: klopt de steen en de kozijnkleur?" },
-    { "straat": "Jasker", "type": "jasker_flat", "ronde": 2, "vraag": "de platte daken aan de Jasker: kleur steen, kozijnen, dakrand" },
-    { "straat": "Grootwiel", "nr": "7", "ronde": 2, "vraag": "nu bruine steen met donkergroene kozijnen: klopt dat?" },
-    { "straat": "Omloop", "nr": "45", "ronde": 2, "vraag": "zelfde type als Grootwiel gekozen; klopt dat?" },
-    { "straat": "Buitenroede", "nr": "66", "ronde": 2, "vraag": "nu gele steen met felblauwe kozijnen: klopt dat?" },
-    { "straat": "de Hekken", "nr": "5", "ronde": 2, "vraag": "zelfde type als Bonkelaar gekozen (roodbruin, witte topgevel); klopt dat?" },
-    { "straat": "Eekmolen", "nr": "21", "ronde": 2, "vraag": "geen enkele aanname nog: steen, kozijnen, deuren, dak" },
-    { "straat": "Zeskanter", "nr": "8", "ronde": 2, "vraag": "geen enkele aanname nog: steen, kozijnen, deuren, dak" }
+    {
+      "straat": "Molenkrite",
+      "nr": "19",
+      "ronde": 1
+    },
+    {
+      "straat": "Molenkrite",
+      "nr": "43",
+      "ronde": 1
+    },
+    {
+      "straat": "Molenkrite",
+      "nr": "70",
+      "ronde": 1
+    },
+    {
+      "straat": "Kruirad",
+      "nr": "50",
+      "ronde": 1
+    },
+    {
+      "straat": "Kruirad",
+      "nr": "12",
+      "ronde": 1
+    },
+    {
+      "straat": "Monnikmolen",
+      "nr": "148",
+      "ronde": 1
+    },
+    {
+      "straat": "Binnenroede",
+      "nr": "15",
+      "ronde": 1
+    },
+    {
+      "straat": "Jasker",
+      "nr": "7",
+      "ronde": 1
+    },
+    {
+      "straat": "de Wieken",
+      "nr": "34",
+      "ronde": 1
+    },
+    {
+      "straat": "Bovenas",
+      "nr": "5",
+      "ronde": 1
+    },
+    {
+      "straat": "Molenpaal",
+      "nr": "6",
+      "ronde": 1
+    },
+    {
+      "straat": "Bonkelaar",
+      "nr": "11",
+      "ronde": 1
+    },
+    {
+      "straat": "Molenkrite",
+      "type": "molenkrite",
+      "ronde": 2,
+      "vraag": "het tweelaagse deel van de Molenkrite: steen, kozijnen, deuren, dakkapel of dakraam"
+    },
+    {
+      "straat": "Kruirad",
+      "nr": "30",
+      "ronde": 2,
+      "vraag": "rood of blauw? hier ligt in het spel de grens tussen de twee rijen"
+    },
+    {
+      "straat": "Binnenroede",
+      "nr": "24",
+      "ronde": 2,
+      "vraag": "hetzelfde als de Monnikmolen (rood met luifel) of anders?"
+    },
+    {
+      "straat": "Spinnekop",
+      "nr": "9",
+      "ronde": 2,
+      "vraag": "nu getekend als Molenpaal-type: klopt de steen en de kozijnkleur?"
+    },
+    {
+      "straat": "Jasker",
+      "type": "jasker_flat",
+      "ronde": 2,
+      "vraag": "de platte daken aan de Jasker: kleur steen, kozijnen, dakrand"
+    },
+    {
+      "straat": "Grootwiel",
+      "nr": "7",
+      "ronde": 2,
+      "vraag": "nu bruine steen met donkergroene kozijnen: klopt dat?"
+    },
+    {
+      "straat": "Omloop",
+      "nr": "45",
+      "ronde": 2,
+      "vraag": "zelfde type als Grootwiel gekozen; klopt dat?"
+    },
+    {
+      "straat": "Buitenroede",
+      "nr": "66",
+      "ronde": 2,
+      "vraag": "nu gele steen met felblauwe kozijnen: klopt dat?"
+    },
+    {
+      "straat": "de Hekken",
+      "nr": "5",
+      "ronde": 2,
+      "vraag": "zelfde type als Bonkelaar gekozen (roodbruin, witte topgevel); klopt dat?"
+    },
+    {
+      "straat": "Eekmolen",
+      "nr": "21",
+      "ronde": 2,
+      "vraag": "geen enkele aanname nog: steen, kozijnen, deuren, dak"
+    },
+    {
+      "straat": "Zeskanter",
+      "nr": "8",
+      "ronde": 2,
+      "vraag": "geen enkele aanname nog: steen, kozijnen, deuren, dak"
+    },
+    {
+      "straat": "Duizendblad",
+      "nr": "33",
+      "ronde": 3,
+      "vraag": "de hele oostkant is nu met de Molenkrite-steen getekend: welke steen, kozijnen, deuren en dakpannen staan er echt?"
+    },
+    {
+      "straat": "Zilverschoon",
+      "nr": "64",
+      "ronde": 3,
+      "vraag": "kap of plat, dakkapellen, kleur van steen en kozijnen"
+    },
+    {
+      "straat": "Walstro",
+      "nr": "44",
+      "ronde": 3,
+      "vraag": "rijtjes of twee-onder-een-kap, garages, voortuinen"
+    },
+    {
+      "straat": "Rode Klaver",
+      "nr": "2",
+      "ronde": 3,
+      "vraag": "hoekwoning: hoe ziet de zijgevel eruit (blind, ramen, schuur)?"
+    },
+    {
+      "straat": "Koolwitje",
+      "nr": "14",
+      "ronde": 3,
+      "vraag": "geen 3D BAG-dak: hoe hoog is de goot en wat voor dak zit erop?"
+    },
+    {
+      "straat": "Dagpauwoog",
+      "nr": "10",
+      "ronde": 3,
+      "vraag": "steen en kozijnen, en of er zonnepanelen op liggen"
+    },
+    {
+      "straat": "Ylostinslaan",
+      "nr": "62",
+      "ronde": 3,
+      "vraag": "IJlst is nu Tinga-steen: welke steen en kozijnen horen hier?"
+    },
+    {
+      "straat": "Sikko Sjaerdemalaan",
+      "nr": "27",
+      "ronde": 3,
+      "vraag": "naoorlogse rijtjes in IJlst: steen, dakvorm, kozijnkleur"
+    },
+    {
+      "straat": "Eegracht",
+      "nr": "10",
+      "ronde": 3,
+      "vraag": "grachtenpand aan het water: gevelvorm (tuitgevel? lijstgevel?), steen, ramen"
+    },
+    {
+      "straat": "Uilenburg",
+      "nr": "56",
+      "ronde": 3,
+      "vraag": "nu getekend als 'spil'; klopt dat, of is dit ook een historisch pand?"
+    },
+    {
+      "straat": "Galamagracht",
+      "nr": "37",
+      "ronde": 3,
+      "vraag": "nu een bungalowtype: klopt de goothoogte en het dak?"
+    },
+    {
+      "straat": "Morrahemstraat",
+      "nr": "176",
+      "ronde": 3,
+      "vraag": "de noordoosthoek: welke steen, welk dak, hoeveel lagen?"
+    },
+    {
+      "straat": "Scherwolderhemstraat",
+      "nr": "76",
+      "ronde": 3,
+      "vraag": "geen 3D BAG-dak: goothoogte, dakvorm en dakkapellen"
+    },
+    {
+      "straat": "Rijperahemstraat",
+      "nr": "44",
+      "ronde": 3,
+      "vraag": "geen enkel dakmodel in deze straat: dakvorm en hoogte"
+    },
+    {
+      "straat": "Oosthemstraat",
+      "nr": "3",
+      "ronde": 3,
+      "vraag": "geen dakmodel: kopgevel van de rij, steen en dak"
+    }
   ],
   "plekken": [
-    { "naam": "Straatprofiel Molenkrite", "soort": "profiel", "x": 30, "z": -5, "vraag": "stoep, berm met bomen, parkeren langs de rijbaan, kleur van de klinkers en tegels, lantaarnpalen" },
-    { "naam": "Straatprofiel de Wieken", "soort": "profiel", "x": -150, "z": 60, "vraag": "rode klinkers? stoep aan één of twee kanten, bomen, parkeervakken" },
-    { "naam": "Straatprofiel Jasker", "soort": "profiel", "x": 100, "z": 62, "vraag": "stoep, berm, parkeren, straatbomen" },
-    { "naam": "Parkeerhof Kruirad", "soort": "parkeren", "x": -25, "z": -57, "vraag": "haaks parkeren? belijning, bestrating, hagen of muurtjes rond het hof, bergingen" },
-    { "naam": "Parkeerplaats Tinga State", "soort": "parkeren", "x": 250, "z": -59, "vraag": "groot parkeerterrein: bestrating, belijning, bomen of hagen ertussen, verlichting" },
-    { "naam": "Parkeervak Buitenroede", "soort": "parkeren", "x": 186, "z": -123, "vraag": "parkeervakken langs de doorgaande weg: haaks of langs, bestrating" },
-    { "naam": "Parkje de Wieken met vijver", "soort": "groen", "x": -148, "z": -99, "vraag": "gemaaid gras of ruig, boomsoorten (populieren?), oever van de vijver, paden, bankjes" },
-    { "naam": "Bosje aan de Buitenroede", "soort": "groen", "x": -78, "z": -220, "vraag": "dicht bos of losse bomen, ondergroei, pad erdoor" },
-    { "naam": "Bosje bij de Wieken", "soort": "groen", "x": -172, "z": -152, "vraag": "boomsoorten, ondergroei, hoe dicht" },
-    { "naam": "Vijver tussen Molenkrite en Jasker", "soort": "groen", "x": 105, "z": 131, "vraag": "oever (riet, gras, beschoeiing), bomen erlangs, pad, bankjes" },
-    { "naam": "Sloot noord van de Monnikmolen", "soort": "groen", "x": -45, "z": -180, "vraag": "breedte van de sloot, oever, bomenrij, hekwerk" },
-    { "naam": "Groen oostzijde bij Tinga State", "soort": "groen", "x": 215, "z": -41, "vraag": "bosplantsoen of parkgras, bomen, paden" },
-    { "naam": "Heestervak de Wieken zuid", "soort": "groen", "x": -45, "z": 190, "vraag": "wat voor struiken staan in zo'n heestervak, hoe hoog" },
-    { "naam": "Voortuinen Kruirad hofkant", "soort": "voortuin", "x": -50, "z": -35, "vraag": "hekjes, hagen, tegels of grind, schuttingen tussen de tuinen" },
-    { "naam": "Voortuinen de Wieken", "soort": "voortuin", "x": -130, "z": 80, "vraag": "gras met pad, hagen, hekjes, hoe diep is de voortuin" }
+    {
+      "naam": "Straatprofiel Molenkrite",
+      "soort": "profiel",
+      "x": 30,
+      "z": -5,
+      "vraag": "stoep, berm met bomen, parkeren langs de rijbaan, kleur van de klinkers en tegels, lantaarnpalen"
+    },
+    {
+      "naam": "Straatprofiel de Wieken",
+      "soort": "profiel",
+      "x": -150,
+      "z": 60,
+      "vraag": "rode klinkers? stoep aan één of twee kanten, bomen, parkeervakken"
+    },
+    {
+      "naam": "Straatprofiel Jasker",
+      "soort": "profiel",
+      "x": 100,
+      "z": 62,
+      "vraag": "stoep, berm, parkeren, straatbomen"
+    },
+    {
+      "naam": "Parkeerhof Kruirad",
+      "soort": "parkeren",
+      "x": -25,
+      "z": -57,
+      "vraag": "haaks parkeren? belijning, bestrating, hagen of muurtjes rond het hof, bergingen"
+    },
+    {
+      "naam": "Parkeerplaats Tinga State",
+      "soort": "parkeren",
+      "x": 250,
+      "z": -59,
+      "vraag": "groot parkeerterrein: bestrating, belijning, bomen of hagen ertussen, verlichting"
+    },
+    {
+      "naam": "Parkeervak Buitenroede",
+      "soort": "parkeren",
+      "x": 186,
+      "z": -123,
+      "vraag": "parkeervakken langs de doorgaande weg: haaks of langs, bestrating"
+    },
+    {
+      "naam": "Parkje de Wieken met vijver",
+      "soort": "groen",
+      "x": -148,
+      "z": -99,
+      "vraag": "gemaaid gras of ruig, boomsoorten (populieren?), oever van de vijver, paden, bankjes"
+    },
+    {
+      "naam": "Bosje aan de Buitenroede",
+      "soort": "groen",
+      "x": -78,
+      "z": -220,
+      "vraag": "dicht bos of losse bomen, ondergroei, pad erdoor"
+    },
+    {
+      "naam": "Bosje bij de Wieken",
+      "soort": "groen",
+      "x": -172,
+      "z": -152,
+      "vraag": "boomsoorten, ondergroei, hoe dicht"
+    },
+    {
+      "naam": "Vijver tussen Molenkrite en Jasker",
+      "soort": "groen",
+      "x": 105,
+      "z": 131,
+      "vraag": "oever (riet, gras, beschoeiing), bomen erlangs, pad, bankjes"
+    },
+    {
+      "naam": "Sloot noord van de Monnikmolen",
+      "soort": "groen",
+      "x": -45,
+      "z": -180,
+      "vraag": "breedte van de sloot, oever, bomenrij, hekwerk"
+    },
+    {
+      "naam": "Groen oostzijde bij Tinga State",
+      "soort": "groen",
+      "x": 215,
+      "z": -41,
+      "vraag": "bosplantsoen of parkgras, bomen, paden"
+    },
+    {
+      "naam": "Heestervak de Wieken zuid",
+      "soort": "groen",
+      "x": -45,
+      "z": 190,
+      "vraag": "wat voor struiken staan in zo'n heestervak, hoe hoog"
+    },
+    {
+      "naam": "Voortuinen Kruirad hofkant",
+      "soort": "voortuin",
+      "x": -50,
+      "z": -35,
+      "vraag": "hekjes, hagen, tegels of grind, schuttingen tussen de tuinen"
+    },
+    {
+      "naam": "Voortuinen de Wieken",
+      "soort": "voortuin",
+      "x": -130,
+      "z": 80,
+      "vraag": "gras met pad, hagen, hekjes, hoe diep is de voortuin"
+    },
+    {
+      "naam": "Straatprofiel Duizendblad",
+      "soort": "profiel",
+      "x": 934,
+      "z": -58,
+      "ronde": 3,
+      "vraag": "nieuwbouwstraat: breedte, stoep, parkeervakken, berm, lantaarns — is dit hetzelfde profiel als Tinga of anders?"
+    },
+    {
+      "naam": "Straatprofiel Ylostinslaan",
+      "soort": "profiel",
+      "x": -2143,
+      "z": 1039,
+      "ronde": 3,
+      "vraag": "IJlst: straatprofiel, bestrating, bomen, parkeren"
+    },
+    {
+      "naam": "Kade van de Eegracht",
+      "soort": "kade",
+      "x": -1455,
+      "z": 1177,
+      "ronde": 3,
+      "vraag": "kademuur, bolders, bomenrij, hoe dicht het water aan de straat ligt"
+    },
+    {
+      "naam": "Fietstunnel onder de oprit",
+      "soort": "tunnel",
+      "x": 740,
+      "z": -160,
+      "ronde": 3,
+      "vraag": "beton: gestort of met bekisting, verlichting in de tunnel, en staat er graffiti op?"
+    },
+    {
+      "naam": "Stoepranden en kliko's Monnikmolen",
+      "soort": "rommel",
+      "x": 67,
+      "z": -175,
+      "ronde": 3,
+      "vraag": "waar staan de rolcontainers (in de berm, op de stoep, aan de weg?), hoeveel onkruid staat er langs de band, en hoe vies zijn de plinten van de gevels?"
+    }
   ]
 }

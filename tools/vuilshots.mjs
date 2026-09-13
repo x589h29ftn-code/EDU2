@@ -6,7 +6,7 @@
    3. een auto van schuin voren: velgen met spaken, wissers, vuilrand
    4. de stoeprand met onkruid, zwerfvuil en rolcontainers
    5. gebukt achter een muurtje (toets C)
-   6. een agent met een machinepistool
+   6. het interieur van de auto, vanaf de bestuurdersstoel
 
  Gebruik: npm run server &   node tools/vuilshots.mjs 8123 [map]
 */
@@ -141,5 +141,27 @@ await page.evaluate(() => {
   g.derde.update(1 / 60, null);
 });
 await foto('gebukt');
+
+/*
+ ---- 6: het interieur van de auto, vanaf de bestuurdersstoel. De auto staat
+ stil met een beetje stuuruitslag, zodat je ziet dat het stuur meedraait.
+*/
+await page.evaluate(async () => {
+  const g = window.__game;
+  if (g.derde.aan) g.derde.wissel();
+  g.player.bukken(false);
+  const { KAART } = await import('/js/kaart.js');
+  const as = KAART.wegassen.filter(w => w.drive && w.naam === 'Molenkrite' && w.lengte > 60)[0];
+  const p0 = as.pts[0], p1 = as.pts[as.pts.length - 1];
+  const yaw = Math.atan2(-(p1[0] - p0[0]), -(p1[1] - p0[1]));
+  const auto = g.vehicles.voegToe({ x: p0[0], z: p0[1], yaw, soort: 'hatch', kleur: 0x9c1f1f });
+  g.player.inCar = auto; g.player.lastCarYaw = auto.yaw;
+  g.player.pos.set(auto.x, 0, auto.z);
+  g.player.yaw = yaw; g.player.pitch = -0.14;
+  g.player.wapenUit = true; g.player.gun.visible = false;
+  auto.steer = 0.16; auto.speed = 11; auto.topSnelheid = 24;
+});
+await page.waitForTimeout(1600);
+await foto('auto_interieur');
 
 await browser.close();

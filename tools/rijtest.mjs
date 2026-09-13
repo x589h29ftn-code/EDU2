@@ -105,8 +105,10 @@ const model = await page.evaluate(() => {
   g.vehicles.maakBestuurbaar(stil);
   const naTotaal = (() => { let n = 0; g.scene.traverse(q => { if (q.isMesh) n++; }); return n; })();
   const u = stil.mesh.userData;
+  // het interieur (js/autobinnen.js) telt apart: dat hoort bij die ene auto
+  const binnenMeshes = u.binnen ? tel(u.binnen.groep) : 0;
   return {
-    stapelMeshes, rijdendMeshes: tel(stil.mesh), erbij: naTotaal - voorTotaal,
+    stapelMeshes, rijdendMeshes: tel(stil.mesh), erbij: naTotaal - voorTotaal, binnenMeshes,
     instantieUit: !stil.zichtbaar,
     wielen: u.wielen ? u.wielen.length : 0,
     stuurwielen: u.wielen ? u.wielen.filter(w => w.stuur).length : 0,
@@ -129,8 +131,17 @@ ok(model.wielen === 4 && model.stuurwielen === 2, 'de auto waar je in stapt heef
   `${model.wielen} wielen, ${model.stuurwielen} gestuurd`);
 ok(model.remlicht && model.achteruit && model.bak, 'met remlichten, achteruitrijlichten en een kantelende carrosserie');
 ok(model.instantieUit, 'en zijn plek in de stapel gaat uit, zodat hij er niet dubbel staat');
-ok(model.erbij <= 18 && model.rijdendMeshes === model.erbij,
-  'dat rijdende model kost meshes voor die ene auto en verder niets', `${model.erbij} erbij`);
+/*
+ Het rijdende model kost meshes voor die ene auto en verder niets. Sinds er een
+ interieur in zit (js/autobinnen.js) zijn dat er meer, en dat is de bedoeling:
+ dashboard, stuur, klokken, stoelen. De carrosserie zelf telt hier apart, want
+ díe mag niet groeien.
+*/
+ok(model.rijdendMeshes === model.erbij && model.erbij - model.binnenMeshes <= 18,
+  'dat rijdende model kost meshes voor die ene auto en verder niets',
+  `${model.erbij} erbij, waarvan ${model.binnenMeshes} interieur`);
+ok(model.binnenMeshes > 20, 'en er zit een echt interieur in: geen kale doos',
+  `${model.binnenMeshes} onderdelen`);
 ok(model.driehoeken > 120, `de carrosserie is meer dan een doos (${model.driehoeken} driehoeken lak)`);
 
 // ---------- 1b. het uitzicht vanachter het stuur ----------
@@ -145,12 +156,31 @@ const uitzicht = await page.evaluate(async () => {
   const omlaag = new THREE.Vector3(-Math.sin(c.yaw), -0.45, -Math.cos(c.yaw)).normalize();
   g.vehicles.ruiten(c, false);
   const uit = !c.mesh.userData.glas.visible;
-  const kijk = (richting) => new THREE.Raycaster(oorsprong, richting, 0.02, 6).intersectObject(c.mesh, true).length;
-  const recht = kijk(vooruit), schuin = kijk(omlaag);
+  const binnen = c.mesh.userData.binnen ? c.mesh.userData.binnen.groep : null;
+  if (binnen) binnen.visible = true;
+  /*
+   Alleen wat zichtbaar is telt mee. Dat moet met de hand: de ruiten staan op
+   onzichtbaar zolang je erin zit (het glas is van buiten getint), maar een
+   straal van three trekt zich daar niets van aan.
+  */
+  const zichtbaar = (ob) => { for (let p = ob; p; p = p.parent) if (!p.visible) return false; return true; };
+  const kijk = (richting) => new THREE.Raycaster(oorsprong, richting, 0.02, 6)
+    .intersectObject(c.mesh, true).filter(h => zichtbaar(h.object));
+  const inBinnen = (ob) => { for (let p = ob; p; p = p.parent) if (p === binnen) return true; return false; };
+  const recht = kijk(vooruit);
+  const schuin = kijk(omlaag);
   g.vehicles.ruiten(c, true);
-  return { oogY: +oog.y.toFixed(2), soort: c.soort, uit, recht, schuin, weerAan: c.mesh.userData.glas.visible };
+  if (binnen) binnen.visible = false;
+  return {
+    oogY: +oog.y.toFixed(2), soort: c.soort, uit,
+    recht: recht.length, schuin: schuin.length,
+    dashboard: schuin.filter(h => inBinnen(h.object)).length,
+    weerAan: c.mesh.userData.glas.visible,
+  };
 });
 ok(uitzicht.recht === 0, 'vanachter het stuur kijk je vrij naar buiten', `${uitzicht.recht} stukken auto in beeld`);
+ok(uitzicht.dashboard > 0, 'maar naar beneden kijk je op het dashboard: er zit een interieur in',
+  `${uitzicht.dashboard} stukken interieur onder je`);
 ok(uitzicht.schuin > 0, 'en zie je onder je nog wel de motorkap', `${uitzicht.schuin} treffers omlaag`);
 ok(uitzicht.oogY > 1.1 && uitzicht.oogY < (uitzicht.soort === 'van' ? 2.0 : 1.4),
   'het oogpunt zit op ooghoogte onder de dakrand', `${uitzicht.oogY} m in een ${uitzicht.soort}`);

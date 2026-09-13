@@ -3347,7 +3347,58 @@ bij vijf, per agent bepaald op het moment dat hij uitrukt. Salvo's van drie, en
 elk schot daarvan op 45 % van de gewone trefkans — zonder die verzwakking is
 vier sterren geen uitdaging meer maar een executie.
 
-Controle: `npm run vuiltest` (zesendertig controles) en `npm run vuilshots`.
+Controle: `npm run vuiltest` (vierenveertig controles) en `npm run vuilshots`.
+
+**Een interieur in de auto, en twintig nieuwe steekproefplekken (stap 51).**
+
+*Het interieur.* De vraag was of het slim kon, en dat kan: er komt géén
+interieur in elk automodel. De 1781 geparkeerde auto's zijn instanced meshes en
+krijgen er niets bij; er is maar één auto tegelijk waar je in zit, en alleen die
+ene krijgt js/autobinnen.js erin gehangen — aan de carrosseriegroep, zodat het
+meehelt in de bocht. Eenenveertig onderdelen, 353 driehoeken, en buiten die auto
+kost het niets.
+
+Twee dingen die eruit kwamen rollen en die groter waren dan het interieur zelf:
+
+- *het oogpunt lag buiten de auto.* Het stond vóór de voorruit en vlak onder de
+  dakrand — boven de motorkap dus. Dat was ooit een noodgreep: er was geen
+  interieur, en vanaf de stoel keek je door twee getinte ruiten naar een leeg
+  gat. Nu zit het waar een stoel staat, en voor de bestelbus apart uitgerekend,
+  want die heeft een hoge neus: op de gewone hoogte keek de bestuurder tegen
+  zijn eigen motorkap aan;
+- *de carrosserie was massief.* De flank en de schouderlijn liepen als dichte
+  blokken door de hele auto, en de cabine van de bakwagen was één blok. Zodra de
+  camera erin zat, keek je tegen de bovenkant van zo'n blok aan: een rode vlakte
+  waar het interieur hoort te zitten. `holleKoker()` in js/carmodel.js haalt het
+  middenstuk eruit en laat twee zijwanden plus een vulling voor en achter staan.
+  Van buiten is er niets aan veranderd — de buitenvlakken liggen op precies
+  dezelfde plek, en de rijproef bevestigt dat.
+
+Twee proeven moesten mee. "Het rijdende model kost meshes voor die ene auto en
+verder niets" telde er achttien; dat zijn er nu achtenvijftig, waarvan
+eenenveertig interieur — de proef telt die apart, zodat de carrosserie zelf nog
+steeds niet mag groeien. En "vanachter het stuur kijk je vrij naar buiten" keek
+recht vooruit vanuit een punt dat buiten de auto lag; nu zit die straal ín de
+auto, dus hij telt alleen wat zíchtbaar is (de ruiten staan uit) en er is een
+tweede controle bij: naar beneden kijkend móet je het dashboard zien.
+
+*Twintig nieuwe steekproefplekken.* De wereld is doorgetrokken tot IJlst,
+Duinterpen en de nieuwbouw ten oosten van Tinga, maar elke straat daar wordt nog
+met het Molenkrite-woningtype getekend: de gele baksteen en de kap van Tinga uit
+de jaren zeventig. Dat is de grootste openstaande aanname in de hele kaart. Ronde
+3 in `data/stijl/steekproef.json` zet er vijftien adressen en vijf plekken
+tegenover: zes in de nieuwbouw, vijf in IJlst, vier in de noordoosthoek (waar
+het 3D BAG-dak ontbreekt en het pand als opgetrokken grondvlak in het spel
+staat), en vijf omgevingsplekken waaronder één die uitsluitend over de
+vuilronde van stap 50 gaat — waar staan de rolcontainers echt, hoeveel onkruid
+staat er langs de band, en hoe vies zijn de plinten.
+
+De rekensom voor het camerapunt is uit tools/geo/steekproef.mjs gehaald en staat
+nu in tools/geo/steekproefplek.mjs, zodat het nieuwe
+`node tools/geo/steekproeflinks.mjs 3` (dat alleen de lijst met Street
+View-links maakt, zonder browser) gegarandeerd hetzelfde standpunt gebruikt als
+het gereedschap dat er een foto van het spel bij rendert. De lijst staat in
+`docs/steekproef/ronde3.md`.
 
 **Wat nog niet af is (in volgorde).
 

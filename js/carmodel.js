@@ -16,6 +16,7 @@
               alleen de auto waar je in stapt (zie js/vehicles.js).
 */
 import * as THREE from 'three';
+import { maakAutoBinnen } from './autobinnen.js';
 
 function merge(parts) {
   const pos = [], nor = [], uv = [];
@@ -77,6 +78,34 @@ function naafGeo(R) {
   return geo;
 }
 
+/*
+ Een holle koker in plaats van een massieve doos.
+
+ De carrosserie was opgebouwd uit dichte blokken die over de hele lengte liepen:
+ de flank, de schouderlijn, bij de bakwagen de hele cabine. Van buiten klopt dat
+ precies, maar zodra de camera erín zit (js/autobinnen.js) kijk je tegen de
+ bovenkant van zo'n blok aan — een rode vlakte waar het interieur hoort te
+ zitten. Daarom wordt het middenstuk eruit gehaald: er blijven twee zijwanden
+ over plus een vulling vóór en áchter de cabine. Van buiten zie je exact
+ hetzelfde, want de buitenvlakken liggen op precies dezelfde plek.
+
+ `gat0`/`gat1` is het stuk in de lengte dat open moet blijven.
+*/
+function holleKoker(b, h, d, x, y, z, wand, gat0, gat1) {
+  const uit = [];
+  const z0 = z - d / 2, z1 = z + d / 2;
+  for (const sx of [-1, 1]) uit.push({ geo: doos(wand, h, d), x: x + sx * (b / 2 - wand / 2), y, z });
+  if (gat0 > z0 + 0.02) {
+    const len = gat0 - z0;
+    uit.push({ geo: doos(b, h, len), x, y, z: z0 + len / 2 });
+  }
+  if (gat1 < z1 - 0.02) {
+    const len = z1 - gat1;
+    uit.push({ geo: doos(b, h, len), x, y, z: gat1 + len / 2 });
+  }
+  return uit;
+}
+
 function wielkast(R) {
   const g = new THREE.TorusGeometry(R + 0.07, 0.05, 4, 10, Math.PI);
   g.rotateY(Math.PI / 2);
@@ -100,7 +129,10 @@ function truckGeoms() {
   const chassisB = 2 * (W / 2 - 0.18) - 0.34;                     // 1,66 m: tussen de banden
   const paintDelen = [
     { geo: doos(chassisB, 0.40, L), y: 0.60 },                    // chassis (loopt door tot ín de cabine)
-    { geo: doos(W, 1.45, 2.1), y: 1.52, z: cabZ },                // cabine
+    // de cabine is hol: daar zit de bestuurder in (js/autobinnen.js)
+    ...holleKoker(W, 1.45, 2.1, 0, 1.52, cabZ, 0.12, cabZ - 0.92, cabZ + 0.80),
+    { geo: doos(W, 0.10, 2.1), y: 2.20, z: cabZ },                // cabinedak
+    { geo: doos(W, 0.12, 2.1), y: 0.85, z: cabZ },                // cabinevloer
     { geo: doos(W - 0.14, 0.3, 1.9), y: 2.35, z: cabZ + 0.05 },   // dakspoiler
     { geo: doos(W, 2.3, 4.8), y: 2.15, z: bakZ },                 // laadbak
     { geo: doos(W + 0.06, 0.12, 4.8), y: 3.32, z: bakZ },         // dakrand
@@ -167,7 +199,7 @@ function truckGeoms() {
   // getinte glasplaten naar buiten kijkt (zie js/main.js)
   // in de cabine, vlak achter de voorruit: de cabine is één doos, dus vanbinnen
   // zie je er niets van en heb je vrij zicht over de weg
-  const oog = { x: -(W / 2 - 0.6), y: 1.98, z: cabZ - 0.85 };
+  const oog = { x: -(W / 2 - 0.6), y: 1.82, z: cabZ + 0.10 };
   const delen = [
     ...paintDelen.map(d => ({ ...d, groep: 'lak' })),
     ...glasDelen.map(d => ({ ...d, groep: 'glas' })),
@@ -175,7 +207,11 @@ function truckGeoms() {
     ...lampen.map(d => ({ ...d, groep: 'licht' })),
   ];
   return { paint, glass, zwartVast, chroomVast: [], head, tail: merge(achter), rem, achteruit, plate,
-    wielGeo, hubGeo, wielen, R, L, W, oog, delen };
+    wielGeo, hubGeo, wielen, R, L, W, oog, delen,
+    // de maten van de cabine zoals hij er werkelijk staat: vloer op 0,91, de
+    // onderkant van de voorruit op 1,55 en het dak op 2,15
+    maat: { L, W, R, dakY: 2.15, schouderY: 1.52, flankY: 1.2, dorpelY: 0.79, cabZ, cabL: 2.1,
+      aHoek: 0.30, stijlH: 1.0, oog, truck: true } };
 }
 
 /*
@@ -206,8 +242,13 @@ function autoGeoms(kind) {
      dichtbij dwars doorheen keek. Twee centimeter hoger overlappen ze.
     */
     { geo: doos(W - 0.10, R * 0.84, L - 0.34), y: dorpelY + 0.02 },                 // dorpel
-    { geo: doos(W, flankH, L - 0.12), y: flankY },                                  // flank, breedste punt
-    { geo: doos(W - 0.09, 0.10, L - 0.40), y: schouderY - 0.05 },                   // schouderlijn
+    /*
+     Flank en schouderlijn zijn holle kokers: het stuk onder de cabine is eruit,
+     zodat er ruimte is voor het interieur (js/autobinnen.js). Van buiten is er
+     niets aan veranderd — de buitenvlakken liggen op dezelfde plek.
+    */
+    ...holleKoker(W, flankH, L - 0.12, 0, flankY, 0, 0.10, cabZ - cabL / 2 + 0.12, cabZ + cabL / 2 - 0.12),
+    ...holleKoker(W - 0.09, 0.10, L - 0.40, 0, schouderY - 0.05, 0, 0.10, cabZ - cabL / 2 + 0.12, cabZ + cabL / 2 - 0.12),
     { geo: doos(W - 0.20, 0.11, kapL), y: schouderY + (bus ? 0.30 : 0.02), z: kapZ }, // motorkap
     { geo: doos(W - 0.14, 0.20, kontL), y: schouderY + 0.09, z: kontZ },            // kofferklep
     /*
@@ -401,7 +442,18 @@ function autoGeoms(kind) {
   // Zat de camera op de stoel, dan vulde de voorruit het halve beeld met een
   // grauwe tint en hing de dakrand als een donkere balk in beeld.
   const zVoorruit = cabZ - cabL / 2 + 0.30 - Math.sin(aHoek) * stijlH / 2;
-  const oog = { x: -(W / 2 - 0.55), y: dakY - 0.08, z: zVoorruit - 0.15 };
+  /*
+   Het oogpunt van de bestuurder. Het lag hierboven: vóór de voorruit en vlak
+   onder de dakrand, dus eigenlijk bóven de motorkap en buiten de auto. Dat was
+   een noodgreep — er wás geen interieur, dus vanaf de stoel keek je door twee
+   getinte ruiten naar buiten met de dakrand als donkere balk erboven.
+
+   Sinds js/autobinnen.js er is zit je echt in de auto: achter het stuur, met
+   het dashboard voor je en de stijlen naast je. De ooghoogte ligt twintig
+   centimeter boven de schouderlijn (1,10 m bij een hatchback), en in de lengte
+   een stuk achter de voorruit — precies waar een stoel staat.
+  */
+  const oog = { x: -(W / 2 - 0.46), y: schouderY + (bus ? 0.42 : 0.27), z: cabZ + 0.04 };
   /*
    `delen` is de lijst dozen waar dit model uit bestaat, met hun maat en plek.
    Het model zelf gebruikt hem niet — de geometrieën zijn hierboven al
@@ -417,7 +469,16 @@ function autoGeoms(kind) {
     ...lampen.map(d => ({ ...d, groep: 'licht' })),
   ];
   return { paint: merge(lak), glass: merge(glas), zwartVast, chroomVast,
-    head, tail: merge(achter), rem, achteruit, plate, wielGeo, hubGeo, wielen, R, L, W, oog, delen };
+    head, tail: merge(achter), rem, achteruit, plate, wielGeo, hubGeo, wielen, R, L, W, oog, delen,
+    // de maten die js/autobinnen.js nodig heeft om het interieur op te bouwen
+    /*
+     De maten die js/autobinnen.js nodig heeft. Bij de bus staat de vloer van de
+     cabine hoger dan de dorpel van de carrosserie — dat is ook wat een bestelbus
+     heeft: je stapt er ín in plaats van erin te zakken. Zonder dat zat de
+     bestuurder een meter onder zijn eigen stuur.
+    */
+    maat: { L, W, R, dakY, schouderY, flankY, dorpelY: bus ? schouderY - 0.75 : dorpelY,
+      cabZ, cabL, aHoek, stijlH, oog, bus } };
 }
 
 /*
@@ -426,6 +487,9 @@ function autoGeoms(kind) {
  niets door een band loopt en niets los vóór het plaatwerk hangt. Onderdelen die
  geen doos zijn (de wielkastringen) vallen weg — die hóren om de band heen.
 */
+/** De maten van de cabine, voor js/autobinnen.js. */
+export function autoMaat(kind) { return geoms(kind).maat; }
+
 export function autoOnderdelen(kind) {
   const G = geoms(kind);
   const dozen = [];
@@ -557,6 +621,16 @@ export function makeCar(color, kind = 'hatch', animatie = false) {
   if (!animatie) { g.userData.length = G.L; g.userData.oog = G.oog; return g; }
 
   g.add(bak);
+  /*
+   Het interieur (js/autobinnen.js). Alleen de auto waar je in zit krijgt het —
+   dit is de tak met `animatie`, en dat is per definitie die ene. Het hangt in
+   `bak`, de carrosseriegroep, dus het helt mee in de bocht en duikt mee bij het
+   remmen. Standaard staat het uit: js/main.js zet het aan zodra je erin zit en
+   vanuit je ogen kijkt.
+  */
+  const binnen = maakAutoBinnen(G.maat);
+  binnen.groep.visible = false;
+  bak.add(binnen.groep);
   const rem = new THREE.Mesh(G.rem, SHARED.rem); rem.visible = false; bak.add(rem);
   const achteruit = new THREE.Mesh(G.achteruit, SHARED.achteruit); achteruit.visible = false; bak.add(achteruit);
   const wielen = G.wielen.map(w => {
@@ -568,6 +642,6 @@ export function makeCar(color, kind = 'hatch', animatie = false) {
     g.add(groep);
     return { groep, band, stuur: !!w.stuur };
   });
-  g.userData = { length: G.L, oog: G.oog, bak, glas, wielen, rem, achteruit, R: G.R };
+  g.userData = { length: G.L, oog: G.oog, bak, glas, wielen, rem, achteruit, R: G.R, binnen };
   return g;
 }

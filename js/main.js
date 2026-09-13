@@ -582,6 +582,8 @@ function toggleCar() {
   if (!player.active) return;
   if (player.inCar) {
     const car = player.inCar; player.inCar = null;
+    // het interieur hoort alleen te staan als je erin zit
+    if (car.mesh && car.mesh.userData.binnen) car.mesh.userData.binnen.groep.visible = false;
     // buiten weer door je eigen ogen, als je te voet zo liep
     if (derde.aan && !derdeTeVoet) derde.wissel();
     vehicles.ruiten(car, true);          // buiten hoort het glas er weer in
@@ -959,6 +961,16 @@ function loop() {
       // achter de auto blijft hangen
       if (player.lastCarYaw !== undefined) player.yaw += car.yaw - player.lastCarYaw;
       player.lastCarYaw = car.yaw;
+      /*
+       Het interieur: alleen zichtbaar als je erin zit en vanuit je ogen kijkt.
+       Met de camera over je schouder zou je door het dak heen tegen de
+       binnenkant van het dashboard aankijken.
+      */
+      const binnen = car.mesh && car.mesh.userData.binnen;
+      if (binnen) {
+        binnen.groep.visible = !derde.aan;
+        if (!derde.aan) binnen.update(car, dt);
+      }
       if (!derde.update(dt, car)) {
         // camera op de bestuurdersstoel (links), meekijken met muis; een
         // bakwagen heeft zijn eigen, hogere stoel (zie vehicles.voegToe).
