@@ -50,6 +50,10 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, straat = '' }) {
       x: player.pos.x, y: player.pos.y, z: player.pos.z,
       yaw: player.yaw, pitch: player.pitch,
       ammo: player.ammo, reserve: player.reserve, health: player.health,
+      // welke wapens je hebt, welk je vasthoudt en wat er in het andere magazijn zit
+      wapens: (player.wapens || ['pistool']).slice(),
+      wapen: player.wapenSoort,
+      magazijnen: { ...(player.magazijnen || {}) },
     },
     auto: auto ? {
       index: vehicles ? vehicles.cars.indexOf(auto) : -1,
@@ -72,6 +76,18 @@ export function laadSpel({ player, sfeer, vehicles, verhaal }) {
   player.vy = 0;
   if (typeof s.ammo === 'number') player.ammo = s.ammo;
   if (typeof s.reserve === 'number') player.reserve = s.reserve;
+  /*
+   De wapens. Een opslag van vóór het machinegeweer heeft dit veld niet; dan
+   blijft het bij het pistool. Het wapen dat je vasthield komt terug in je hand,
+   met het magazijn dat erin zat.
+  */
+  if (Array.isArray(s.wapens) && s.wapens.length) {
+    player.wapens = s.wapens.filter(w => player.modellen && player.modellen[w]);
+    if (!player.wapens.length) player.wapens = ['pistool'];
+    if (s.magazijnen) player.magazijnen = { ...player.magazijnen, ...s.magazijnen };
+    player.zetWapen(player.wapens.includes(s.wapen) ? s.wapen : player.wapens[0]);
+    if (typeof s.ammo === 'number') player.ammo = s.ammo;
+  }
   if (typeof s.health === 'number') player.health = s.health;
   player.reloading = 0;
 

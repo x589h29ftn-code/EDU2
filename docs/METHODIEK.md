@@ -3219,6 +3219,63 @@ lijst, → wisselt, de nieuwe zender speelt op 3322 s, het logo staat er, een
 andere auto begint ergens anders in het uur, en de server antwoordt Range met
 206).
 
+**De twaalf punten uit het Word-document (stap 49).**
+
+Een lijst van twaalf losse punten, net als de beta-test van een ronde eerder.
+Punt 11 (Radio Spannenburg) staat hierboven als stap 48; de andere elf zijn deze
+ronde gedaan. Wat er bij een paar ervan kwam kijken:
+
+- *het laadscherm wacht op enter* (punt 3). De balk stond vol en het spel begon
+  vanzelf; nu komt er onderaan "klik op enter om te beginnen" te staan en blijft
+  het beeld staan tot je drukt. Op een aanraakscherm is er geen enter, dus daar
+  staat er "tik op het scherm" en luistert hij op `pointerdown`. Twee proeven
+  liepen erop vast (menutest en touchtest wachtten op een spel dat vanzelf
+  begon); die klikken hem nu door;
+- *het machinegeweer* (punt 5). De verleiding was een tweede wapenmodel naast het
+  pistool te zetten. Het is één functie geworden met een schakelaar: de greep, de
+  hand, de onderarm, het mondingsvuur en de hele herlaadbeweging in vijf stappen
+  zijn voor allebei hetzelfde — dat is waar de speler aan vastzit — en alleen wat
+  erboven zit verschilt. `maakPistool` en `maakMitrailleur` zijn twee regels om
+  `maakWapen(geluid, soort)` heen. De magazijnen liggen per wapen apart
+  (`magazijnen`), de voorraad kogels is er één voor allebei — zo past de munitie
+  van een agent altijd;
+- *"het pistool schiet niet meer"*. Het automatische vuur kreeg een klok tussen
+  twee schoten, en die zette ik ook op het pistool. De wapenproef viel er meteen
+  over: die vuurt vierentwintig keer achter elkaar zonder een beeld te draaien,
+  dus de klok liep nooit af en er kwam één schot uit. Het pistool heeft nu tempo
+  nul — zo snel als je klikt, precies zoals het was;
+- *de koplampen clippen nog* (punt 4). Dit was al een keer "opgelost" door de
+  lampen ondieper te maken, en toch flikkerde het. De lampen waren ook niet het
+  probleem: de **grille** lag op precies dezelfde diepte en was zo breed dat er
+  een kwart meter van over de lampen heen lag. Twee vlakken op dezelfde plek
+  flikkeren over elkaar heen zodra je langs de neus loopt. De grille houdt nu op
+  waar de lamp begint en ligt een centimeter dieper;
+- *achteruit wegrijden* (punt 1). Het verkeer rijdt op rails, dus achteruit is
+  dezelfde baan de andere kant op — dat deel was makkelijk. Wat niet lukte: een
+  auto die met tachtig over de N7 rijdt, remt in anderhalve seconde niet naar
+  achteruit. De klok liep af voordat hij ooit achteruit reed. Een aanrijding zet
+  zijn snelheid nu vrijwel op nul, want dat is ook wat een klap doet;
+- *op een rijdende auto schieten* (punt 10) kon helemaal niet: het verkeer stond
+  niet in de doelenlijst waar de kogel op mikt. Nu wel — de bestuurder geeft gas,
+  maar de auto gaat niet in vlammen op: een wrak midden op de N7 sluit de rij
+  erachter op;
+- *meer omgevingsgeluid* (punt 8). Negen geluiden in plaats van één, op dezelfde
+  manier gemaakt als de rest: een meeuw is een zaagtand met een knik erin, een
+  kraai een ruisstoot door een smal filter, een torenklok drie tonen die samen
+  uitdoven. Overdag een andere verzameling dan 's nachts, en nooit twee keer
+  achter elkaar hetzelfde;
+- *schudden naar afstand* (punt 12). Dat liep lineair uit tot veertig meter, dus
+  een knal een straat verderop gaf nog een flinke duw terwijl je hem nauwelijks
+  hoorde. Nu telt het kwadraat, en het geluid van de explosie zakt op dezelfde
+  manier weg — dat was tot nu toe overal even hard;
+- *buit op straat* (punt 2 en 6). Een nieuw bestandje, `js/buit.js`: een
+  stapeltje briefjes of een doosje patronen dat ronddraait en dobbert, en dat je
+  oppakt door erlangs te lopen. Levensgroot was het niet te zien (een pakje
+  briefjes is vijftien centimeter), dus het staat er op 170 % — dezelfde
+  overdrijving die GTA gebruikt.
+
+Controle: `npm run puntentest` (vijfenveertig controles) en `npm run puntenshots`.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

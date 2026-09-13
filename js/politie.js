@@ -83,7 +83,7 @@ const DEKKING = 11;                        // dichterbij komen ze niet, ze schie
 const VUURTIJD = 1.8;                      // seconden tussen twee schoten
 const VUURDERS = 3;                        // zoveel agenten schieten er tegelijk op je
 const VUURBEREIK = 34;
-const SCHADE = 4;
+const SCHADE = 6;                          // per treffer; was 4 (punt 7 van 13 sep 2026)
 const SPAWN_MIN = 55, SPAWN_MAX = 150;     // afstand tot de plaats delict (m)
 /*
  En hoe ver van jóu. De plaats delict is niet waar jij bent: schiet je iemand
@@ -911,7 +911,16 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
           a.vuurT = VUURTIJD * (0.8 + Math.random() * 0.6);
           persoon.vuur();
           geluid.schot();
-          const kans = Math.max(0.10, 0.5 - dSp * 0.011);
+          /*
+           Hoe vaak een agent raak schiet. Dit was 0,5 min 1,1 % per meter, met
+           een bodem van 10 %: op tien meter raakte hij vier van de tien keer en
+           deed dat vier schade. Dat voelde als losse flodders — je kon in een
+           vuurgevecht blijven staan en gewoon terugschieten (punt 7 van 13 sep
+           2026). Nu ligt de kans een stuk hoger en de schade op zes; op dekking
+           (elf meter) is dat ruim vier levenspunten per seconde van drie
+           schutters samen, dus wegkomen is het antwoord en niet wachten.
+          */
+          const kans = Math.max(0.14, 0.58 - dSp * 0.0105);
           if (Math.random() < kans) schade += SCHADE;
         }
         continue;

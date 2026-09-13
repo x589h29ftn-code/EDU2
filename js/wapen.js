@@ -43,11 +43,54 @@ function mat(kleur, ruw, metaal = 0) {
   return new THREE.MeshStandardMaterial({ color: kleur, roughness: ruw, metalness: metaal });
 }
 
+/*
+ Alle blokjes van hetzelfde materiaal binnen één onderdeel gaan samen in één
+ geometrie. Dat scheelt hier veel: het wapen hangt aan de camera en is dus
+ altijd in beeld, en als los blokje zou elk ribbeltje op de slede een eigen
+ draw call kosten — drieënveertig in totaal, tegen dertien voor het oude
+ model. Zo zijn het er vijftien.
+*/
+const bak = () => ({ delen: [] });
+const doos = (bk, m, b, h, d, x = 0, y = 0, z = 0) => {
+  const g = new THREE.BoxGeometry(b, h, d);
+  g.translate(x, y, z);
+  bk.delen.push({ g, m });
+};
+const vorm = (bk, g, m) => bk.delen.push({ g, m });
+const bouw = (bk, ouder) => {
+  const perMat = new Map();
+  for (const { g, m } of bk.delen) {
+    if (!perMat.has(m)) perMat.set(m, []);
+    perMat.get(m).push(g.index ? g.toNonIndexed() : g);
+  }
+  for (const [m, lijst] of perMat) {
+    const pos = [], nor = [];
+    for (const g of lijst) { pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array); g.dispose(); }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    ouder.add(new THREE.Mesh(geo, m));
+  }
+  return ouder;
+};
+
 /**
  * Bouwt het pistool met hand en onderarm. `geluid` is js/audio.js; de module
  * roept daar zelf de klikken van het herladen op.
  */
-export function maakPistool(geluid) {
+export function maakPistool(geluid) { return maakWapen(geluid, 'pistool'); }
+
+/**
+ * Hetzelfde, maar dan het machinegeweer dat je bij Tinga State kunt kopen. De
+ * greep, de hand, de arm en de hele herlaadbeweging zijn gelijk — daar zit de
+ * speler aan vast. Wat erboven zit is anders: een langere kast met een
+ * loopmantel, een grendel in plaats van een slede, een lange magazijnschacht
+ * door de greep heen (zoals bij een Uzi) en een ingeklapte schouderstut.
+ */
+export function maakMitrailleur(geluid) { return maakWapen(geluid, 'mitrailleur'); }
+
+function maakWapen(geluid, soort = 'pistool') {
+  const SMG = soort === 'mitrailleur';
   const staal = mat(STAAL, 0.42, 0.7);
   const staalDof = mat(0x1b1e22, 0.6, 0.5);
   const greepMat = mat(GREEP, 0.92);
@@ -58,36 +101,6 @@ export function maakPistool(geluid) {
   const ribbelMat = mat(0x201b18, 0.95);
 
   const groep = new THREE.Group();
-  /*
-   Alle blokjes van hetzelfde materiaal binnen één onderdeel gaan samen in één
-   geometrie. Dat scheelt hier veel: het pistool hangt aan de camera en is dus
-   altijd in beeld, en als los blokje zou elk ribbeltje op de slede een eigen
-   draw call kosten — drieënveertig in totaal, tegen dertien voor het oude
-   model. Zo zijn het er vijftien.
-  */
-  const bak = () => ({ delen: [] });
-  const doos = (bk, m, b, h, d, x = 0, y = 0, z = 0) => {
-    const g = new THREE.BoxGeometry(b, h, d);
-    g.translate(x, y, z);
-    bk.delen.push({ g, m });
-  };
-  const vorm = (bk, g, m) => bk.delen.push({ g, m });
-  const bouw = (bk, ouder) => {
-    const perMat = new Map();
-    for (const { g, m } of bk.delen) {
-      if (!perMat.has(m)) perMat.set(m, []);
-      perMat.get(m).push(g.index ? g.toNonIndexed() : g);
-    }
-    for (const [m, lijst] of perMat) {
-      const pos = [], nor = [];
-      for (const g of lijst) { pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array); g.dispose(); }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-      geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-      ouder.add(new THREE.Mesh(geo, m));
-    }
-    return ouder;
-  };
 
   // ---------------------------------------------------------------- wapen
   // Alles wat vastzit aan het frame zit in `wapen`; de slede en het magazijn
@@ -96,6 +109,19 @@ export function maakPistool(geluid) {
   groep.add(wapen);
 
   const sB = bak();
+  if (SMG) {
+    /*
+     Bij een machinepistool schuift niet de hele bovenkant naar achteren maar de
+     grendel eronder; wat je ziet bewegen is de spanknop op de kast. Die zit
+     daarom in hetzelfde onderdeel als bij het pistool, zodat de herlaadbeweging
+     hieronder voor allebei klopt.
+    */
+    doos(sB, staal, 0.044, 0.042, 0.250, 0, 0.028, -0.055);          // grendelkast
+    doos(sB, staalDof, 0.046, 0.010, 0.250, 0, 0.049, -0.055);       // rib over de rug
+    doos(sB, staalDof, 0.014, 0.016, 0.032, 0, 0.054, -0.020);       // spanknop
+    doos(sB, staalDof, 0.014, 0.012, 0.008, 0, 0.056, -0.172);       // korrel
+    for (const sx of [-1, 1]) doos(sB, staalDof, 0.008, 0.011, 0.008, sx * 0.012, 0.056, 0.055);  // keep
+  } else {
   doos(sB, staal, 0.030, 0.040, 0.176, 0, 0.020, -0.048);
   doos(sB, staalDof, 0.031, 0.014, 0.030, 0, 0.004, -0.128);      // afschuining voorop
   // grepen op de slede: de ribbels waar je hem aan overhaalt
@@ -104,11 +130,28 @@ export function maakPistool(geluid) {
   doos(sB, staalDof, 0.012, 0.010, 0.006, 0, 0.043, -0.126);      // korrel, vlak achter de mond
   for (const sx of [-1, 1]) doos(sB, staalDof, 0.007, 0.009, 0.008, sx * 0.010, 0.043, 0.030);  // keep achterop
   doos(sB, staalDof, 0.026, 0.020, 0.008, 0, 0.030, 0.040);       // sluitstuk
+  }
   const slede = bouw(sB, new THREE.Group());
   wapen.add(slede);
 
   // onderstel: kast, stofkap onder de loop, trekkerbeugel, trekker en de loop
   const fB = bak();
+  if (SMG) {
+    const loopSMG = new THREE.CylinderGeometry(0.0075, 0.0075, 0.10, 10);
+    loopSMG.rotateX(Math.PI / 2); loopSMG.translate(0, 0.024, -0.230);
+    vorm(fB, loopSMG, staalDof);
+    doos(fB, staal, 0.040, 0.040, 0.110, 0, 0.024, -0.180);         // loopmantel
+    for (let i = 0; i < 4; i++) doos(fB, staalDof, 0.042, 0.011, 0.008, 0, 0.024, -0.142 - i * 0.024);  // koelribben
+    doos(fB, staal, 0.036, 0.030, 0.160, 0, -0.004, -0.060);        // kast onder de grendel
+    doos(fB, staal, 0.021, 0.007, 0.046, 0, -0.041, -0.020);        // onderkant beugel
+    doos(fB, staal, 0.021, 0.020, 0.007, 0, -0.031, -0.042);        // voorkant beugel
+    doos(fB, staalDof, 0.009, 0.021, 0.007, 0, -0.029, -0.017);     // trekker
+    doos(fB, staalDof, 0.009, 0.011, 0.010, -0.019, -0.010, 0.004); // magazijnknop
+    // de schouderstut ingeklapt: twee stangen langs de kast met de plaat erachter
+    for (const sx of [-1, 1]) doos(fB, staalDof, 0.008, 0.010, 0.170, sx * 0.026, 0.008, 0.105);
+    doos(fB, staalDof, 0.062, 0.013, 0.030, 0, 0.008, 0.196);
+    bouw(fB, wapen);
+  } else {
   const loopGeo = new THREE.CylinderGeometry(0.0058, 0.0058, 0.030, 10);
   loopGeo.rotateX(Math.PI / 2); loopGeo.translate(0, 0.021, -0.146);
   vorm(fB, loopGeo, staalDof);
@@ -119,6 +162,7 @@ export function maakPistool(geluid) {
   doos(fB, staalDof, 0.009, 0.021, 0.007, 0, -0.029, -0.017);     // trekker
   doos(fB, staalDof, 0.009, 0.011, 0.010, -0.017, -0.007, 0.004); // magazijnknop
   bouw(fB, wapen);
+  }
 
   // greep, iets naar achteren gekanteld, met ribbels op de rug
   const gB = bak();
@@ -128,10 +172,17 @@ export function maakPistool(geluid) {
   greep.rotation.x = 0.24;
   wapen.add(greep);
 
-  // magazijn: los, zodat het eruit kan vallen
+  // magazijn: los, zodat het eruit kan vallen. Bij het machinepistool zit het
+  // net als bij een Uzi door de greep heen, en het is een stuk langer: dertig
+  // patronen in plaats van twaalf.
   const mB = bak();
+  if (SMG) {
+    doos(mB, magMat, 0.026, 0.150, 0.032, 0, -0.095, 0.022);
+    doos(mB, staalDof, 0.033, 0.008, 0.042, 0, -0.174, 0.022);
+  } else {
   doos(mB, magMat, 0.024, 0.086, 0.030, 0, -0.062, 0.022);
   doos(mB, staalDof, 0.031, 0.008, 0.040, 0, -0.108, 0.022);      // bodemplaat
+  }
   const magazijn = bouw(mB, new THREE.Group());
   magazijn.rotation.x = 0.24;
   wapen.add(magazijn);
@@ -158,7 +209,7 @@ export function maakPistool(geluid) {
     vorm(vB, blad, vlamMat);
   }
   const flits = bouw(vB, new THREE.Group());
-  flits.position.set(0, 0.021, -0.168);
+  flits.position.set(0, SMG ? 0.024 : 0.021, SMG ? -0.278 : -0.168);
   flits.visible = false;
   wapen.add(flits);
 
@@ -187,12 +238,15 @@ export function maakPistool(geluid) {
   const arm = bouw(aB, new THREE.Group());
   groep.add(arm);
 
-  groep.position.set(0.15, -0.13, -0.42);
-  groep.rotation.set(0, 0.10, 0.06);
-
   // ---------------------------------------------------------------- beweging
   let flitsT = 0, terugslag = 0, gedaan = -1;
-  const RUST = { x: 0.15, y: -0.13, z: -0.42 };
+  // het machinepistool is een halve meter lang; dat hangt verder van je af en
+  // wat lager, anders vult de loop het halve scherm
+  const RUST = SMG ? { x: 0.16, y: -0.155, z: -0.46 } : { x: 0.15, y: -0.13, z: -0.42 };
+  const HERLAAD = SMG ? 2.05 : HERLAADTIJD;       // een lang magazijn kost meer tijd
+  const SLAG = SMG ? 0.016 : 0.026;               // hoever de grendel/slede terugloopt
+  groep.position.set(RUST.x, RUST.y, RUST.z);
+  groep.rotation.set(0, 0.10, 0.06);
 
   /** Eén schot: mondingsvuur aan en de slede schiet naar achteren. */
   function vuur() {
@@ -215,7 +269,7 @@ export function maakPistool(geluid) {
     vlamMat.opacity = aan ? 0.55 + Math.random() * 0.45 : 0;
 
     if (herlaad > 0) {
-      const t = 1 - herlaad / HERLAADTIJD;
+      const t = 1 - herlaad / HERLAAD;
       // geluid: elke stap één keer, op het moment dat je hem ziet
       const stapNr = t < STAP.magUit[0] ? 0 : t < STAP.magIn[0] ? 1 : t < STAP.slede[0] ? 2 : t < STAP.terug[0] ? 3 : 4;
       if (stapNr !== gedaan) {
@@ -250,17 +304,17 @@ export function maakPistool(geluid) {
       if (in1 >= 1) { magazijn.visible = true; magazijn.position.set(0, 0, 0); }
       // slede naar achteren en weer naar voren
       const sl = deel(t, STAP.slede);
-      slede.position.z = Math.sin(sl * Math.PI) * 0.030;
+      slede.position.z = Math.sin(sl * Math.PI) * (SMG ? 0.020 : 0.030);
       return;
     }
     gedaan = -1;
     magazijn.visible = true; magazijn.position.set(0, 0, 0);
     nieuwMag.visible = false;
-    slede.position.z = terugslag * 0.026;
+    slede.position.z = terugslag * SLAG;
     groep.rotation.set(terugslag * 0.22, 0.10, 0.06);
     groep.position.set(RUST.x, RUST.y + Math.sin(bob) * 0.006, RUST.z + terugslag * 0.045);
   }
 
   // de losse onderdelen erbij, zodat tools/wapentest.mjs de beweging kan meten
-  return { groep, vuur, update, delen: { slede, magazijn, nieuwMag, flits, hand, arm }, get terugslag() { return terugslag; } };
+  return { groep, vuur, update, soort, herlaadtijd: HERLAAD, delen: { slede, magazijn, nieuwMag, flits, hand, arm }, get terugslag() { return terugslag; } };
 }

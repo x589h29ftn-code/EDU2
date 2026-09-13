@@ -260,6 +260,9 @@ export class Vehicles {
     const uit = [];
     for (const k of Object.keys(this.stapels)) uit.push(...this.stapels[k].stapel.meshes);
     for (const c of this.cars) if (c.mesh) uit.push(c.mesh);
+    // het rijdende verkeer hoort er ook bij: daar zat geen kogel in te krijgen,
+    // en juist daar zit een bestuurder die er op kan reageren (zie schrikAf)
+    for (const t of this.traffic) if (t.mesh.visible) uit.push(t.mesh);
     return uit;
   }
 
@@ -520,7 +523,7 @@ export class Vehicles {
       const p = t.mesh.position;
       if (Math.abs(p.x - cx) > 12 || Math.abs(p.z - cz) > 12) continue;
       if (!zelfdeLaag(y, p.y)) continue;
-      buurt.push({ x: p.x, z: p.z, yaw: t.mesh.rotation.y, as: 1.4, r: 0.95 });
+      buurt.push({ x: p.x, z: p.z, yaw: t.mesh.rotation.y, as: 1.4, r: 0.95, verkeer: t });
     }
     let raak = 0;
     const hard = Math.abs(car.speed) > 3.5;
@@ -539,6 +542,8 @@ export class Vehicles {
             raak = Math.max(raak, duw);
             cx += (dx / d) * duw;
             cz += (dz / d) * duw;
+            // er zit iemand achter het stuur: die schrikt en probeert achteruit weg
+            if (o.verkeer && hard) this.schrikAf(o.verkeer, 'botsing');
             // een geparkeerde auto die je hard raakt rolt een stukje weg
             if (o.auto && o.auto.speed === 0 && hard) {
               const v = Math.min(3.5, Math.abs(car.speed) * 0.35);
@@ -550,6 +555,41 @@ export class Vehicles {
       }
     }
     return { x: cx, z: cz, raak };
+  }
+
+  /*
+   Er zit iemand achter het stuur van het verkeer, en die reageert nu ergens op.
+
+   Twee dingen kunnen een bestuurder laten schrikken. Rijd je hem aan, dan zet
+   hij hem in zijn achteruit en probeert hij van je weg te komen — een seconde
+   of twee, want hij rijdt op zijn baan en verder achteruit dan dat heeft geen
+   zin. Schiet je op een rijdende auto, dan geeft de bestuurder juist gas: een
+   seconde of zes hard door, zodat hij bij je vandaan is voordat de volgende
+   kogel komt.
+
+   Allebei zijn het tijden op de auto zelf (`achteruit` en `haast`), die in
+   `updateTraffic` de doelsnelheid overrulen. De baan zelf blijft dezelfde: het
+   verkeer rijdt op rails, dus wegrijden is harder of andersom over diezelfde
+   rails.
+  */
+  schrikAf(t, waarom) {
+    if (!t) return;
+    if (waarom === 'botsing') {
+      if ((t.achteruit || 0) > 0) return;                  // niet stapelen
+      t.achteruit = 1.1 + Math.random() * 0.9;
+      t.haast = 0;
+      /*
+       Een klap kost vaart. Zonder dit stond de auto er na een aanrijding nog
+       met tachtig kilometer per uur in, en die snelheid is er in anderhalve
+       seconde niet uit te remmen: dan liep de achteruit-klok af voordat hij
+       ooit achteruit reed. Een aanrijding zet hem vrijwel stil, en vanaf stil
+       is achteruit een kwestie van een halve seconde.
+      */
+      if (t.snelheid !== undefined) t.snelheid = Math.min(t.snelheid, 3);
+    } else {
+      t.achteruit = 0;
+      t.haast = Math.max(t.haast || 0, 5 + Math.random() * 3);
+    }
   }
 
   // Aangereden auto's rollen uit. Ze zitten niet in de rijnatuurkunde, dus ze
@@ -708,9 +748,18 @@ export class Vehicles {
         for (const v of voetgangers) { if (v.alive && v.opWeg) inDeWeg(v.x, v.z, 0.1); }
       }
 
+      // een geschrokken bestuurder rijdt niet gewoon door (zie schrikAf)
+      if (t.achteruit > 0) t.achteruit -= dt;
+      if (t.haast > 0) t.haast -= dt;
+      // wie beschoten is geeft gas; harder dan dit rijdt hij niet, ook niet op de N7
+      const basis = t.haast > 0 ? Math.min(t.speed * 1.9, t.speed + 12) : t.speed;
+
       // remmen naar nul op vier meter, weer optrekken zodra het vrij is
-      t.doel = vrij >= KIJK ? t.speed : Math.max(0, t.speed * (vrij - 4) / (KIJK - 4));
-      const versnelling = t.doel < t.snelheid ? 14 : 3.5;    // remmen gaat harder dan optrekken
+      t.doel = vrij >= KIJK ? basis : Math.max(0, basis * (vrij - 4) / (KIJK - 4));
+      // achteruit gaat voor: dan kijkt hij niet vooruit maar wil hij er weg
+      if (t.achteruit > 0) t.doel = -3.2;
+      // remmen gaat harder dan optrekken, en wie achteruit wil harder dan dat
+      const versnelling = t.achteruit > 0 ? 20 : t.doel < t.snelheid ? 14 : (t.haast > 0 ? 8 : 3.5);
       t.snelheid += Math.max(-versnelling * dt, Math.min(versnelling * dt, t.doel - t.snelheid));
 
       const n = t.path.length;
@@ -836,6 +885,15 @@ export class Vehicles {
     }
     for (let p = mesh; p; p = p.parent) {
       for (const c of this.cars) if (c.mesh === p) { c.hp -= 10; return c; }
+      // rijdend verkeer: die auto's zitten niet in `cars` en gaan niet stuk, maar
+      // de bestuurder geeft wel gas om weg te komen
+      for (const t of this.traffic) if (t.mesh === p) {
+        this.schrikAf(t, 'beschoten');
+        // hp blijft boven nul: rijdend verkeer gaat niet in vlammen op (het rijdt
+        // op rails, een wrak midden op de N7 zou de rij erachter opsluiten). De
+        // teruggave zorgt wel voor de klap en het glasgerinkel.
+        return { hp: 1, verkeer: t };
+      }
     }
     return null;
   }

@@ -88,7 +88,10 @@ function truckGeoms() {
     { geo: doos(W + 0.04, 0.24, 0.22), y: 0.62, z: L / 2 - 0.05 },
     // grille en lampen zaten vóór de cabine in de lucht: die begint pas op
     // cabZ − 1,05 = −3,50 en de grille stond op −3,61
-    { geo: doos(1.2, 0.5, 0.14), y: 1.0, z: -L / 2 + 0.06 },      // grille
+    // grille smaller dan de koplampen (die staan op x ±0,75, 0,4 breed, dus van
+    // ±0,55 tot ±0,95): op 1,2 m breed liep hij er vijf centimeter in, en daar
+    // flikkerden de twee vlakken over elkaar heen
+    { geo: doos(1.0, 0.5, 0.14), y: 1.0, z: -L / 2 + 0.06 },      // grille
     { geo: doos(0.16, 0.16, 0.5), x: -W / 2 + 0.3, y: 0.42, z: L / 2 - 0.6 },   // uitlaat
   ];
   // wielkasten, net als bij de personenauto: zonder die ring loopt de band zo de
@@ -211,7 +214,16 @@ function autoGeoms(kind) {
      zag je daardoor een zwevend plaatje met daglicht erachter. Ze zitten nu
      allemaal een centimeter ín het plaatwerk.
     */
-    { geo: doos(W - 0.42, 0.13, 0.05), y: schouderY - 0.13, z: -L / 2 + 0.06 - 0.015 + 0.025 },  // grille, zie de lampen hierboven
+    /*
+     Grille. Hij was W − 0,42 breed (±0,68 m) en lag op precies dezelfde diepte
+     als de koplampen, die van ±0,43 tot ±0,83 lopen. Een kwart meter lag dus
+     dwars door elkaar heen, met twee vlakken op dezelfde plek: dat flikkerde van
+     grille naar lampglas en terug zodra je langs de neus liep — de melding dat
+     de voorlampen nog clippen (punt 4 van 13 sep 2026). Nu houdt de grille op
+     waar de lampen beginnen (±0,39) en ligt hij een centimeter dieper, zodat er
+     ook bij het schuin kijken niets meer samenvalt.
+    */
+    { geo: doos(W - 1.00, 0.13, 0.05), y: schouderY - 0.13, z: -L / 2 + 0.06 - 0.015 + 0.035 },  // grille, zie de lampen hierboven
     /*
      Sierlijst langs de dorpel. Hij liep eerst over L − 1,5 m = 2,80 m, en de
      wielen staan op z = ±1,32 met een straal van 0,32: de lijst stak dus veertig

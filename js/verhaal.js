@@ -551,6 +551,19 @@ export function initVerhaal(ctx) {
    Afrekenen. Levert false als je het niet hebt, en dan gebeurt er niets — de
    verkoper bij Tinga State (js/boerderij.js) gebruikt dit.
   */
+  /*
+   Geld erbij. Tot nu toe kwam er alleen geld binnen bij het afleveren van een
+   missie; sinds 13 september 2026 rapen we ook op wat er op straat ligt
+   (js/buit.js). Levert op hoeveel erbij kwam.
+  */
+  function verdien(bedrag) {
+    const n = Math.round(bedrag || 0);
+    if (n <= 0) return 0;
+    geld += n;
+    zetGeldInBeeld();
+    return n;
+  }
+
   function betaal(bedrag) {
     if (bedrag <= 0 || geld < bedrag) return false;
     geld -= bedrag;
@@ -1144,7 +1157,7 @@ export function initVerhaal(ctx) {
     get bewaking() { return bewaking; },
     get dief() { return dief; },
     get johan() { return johan; },
-    betaal,
+    betaal, verdien,
     get geld() { return geld; },
     get buit() { return buit; },
     get truck() { return truck; },

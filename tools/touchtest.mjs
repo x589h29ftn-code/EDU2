@@ -19,8 +19,10 @@ await page.waitForTimeout(1200);
 console.log('touch gedetecteerd:', await page.evaluate(() => document.body.classList.contains('touch')));
 await page.screenshot({ path: `${out}/tc_start.png` });
 
-// starten
+// starten: eerst kiezen, dan het laadscherm doorklikken ("tik om te beginnen")
 await page.tap('#menuNieuw');
+await page.waitForSelector('#laadklaar:not([hidden])', { timeout: 300000 });
+await page.tap('#laadscherm');
 await page.waitForTimeout(600);
 console.log('actief:', await page.evaluate(() => window.__game.player.active),
   'touch-ui:', await page.evaluate(() => getComputedStyle(document.getElementById('touch')).display));

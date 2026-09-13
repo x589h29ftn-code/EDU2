@@ -36,8 +36,10 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 |---|---|
 | W A S D | lopen (shift = sprinten, spatie = springen) |
 | ← → | in de auto: radiozender wisselen |
-| muis | rondkijken · linkermuisknop = schieten · R = herladen · H = pistool weg en weer tevoorschijn |
+| muis | rondkijken · linkermuisknop = schieten (het machinegeweer schiet door zolang je hem vasthoudt) · R = herladen · H = wapen weg en weer tevoorschijn |
+| scrollwiel | wisselen tussen het pistool en het machinegeweer; het icoon van het wapen staat kort rechtsonder |
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto |
+| F | aan de toonbank bij Tinga State: het machinegeweer kopen (€ 500) |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
 | portemonnee | rechtsonder; je begint met € 50 en verdient de rest met missies |
@@ -52,8 +54,8 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | Esc | muis vrijgeven · het menu, met Doorgaan, Instellingen, Besturing en Afsluiten |
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
-vegen om rond te kijken, en knoppen voor vuren, springen, herladen, in-/uitstappen, de camera, de
-kaart en pauze. Daar is geen toetsenbord, dus **je plek staat ook linksonder op de grote kaart (M)** —
+vegen om rond te kijken, en knoppen voor vuren, springen, herladen, wapen wisselen, in-/uitstappen,
+de camera, de kaart en pauze. Daar is geen toetsenbord, dus **je plek staat ook linksonder op de grote kaart (M)** —
 dezelfde twee getallen. Ze tellen vanaf het kruispunt Molenkrite / Monnikmolen / Jasker en veranderen
 niet als de kaart opnieuw gegenereerd wordt, dus je kunt er een plek mee doorgeven: *"hier een
 onzichtbare muur"*, *"hier een wegblokkade"*, *"dit object hoort hier".*
@@ -82,6 +84,13 @@ Auto's zijn massief: je rijdt niet meer dwars door de geparkeerde rij of door he
 voet loop je er ook niet doorheen — je loopt eromheen zoals om alles wat er staat. Raak je er eentje
 met vaart, dan rolt die een halve meter opzij en is jouw vaart eruit.
 
+**In het rijdende verkeer zit iemand achter het stuur.** Rijd je zo'n auto aan, dan schrikt de
+bestuurder: de klap haalt zijn vaart eruit, hij zet hem in zijn achteruit en probeert anderhalve
+seconde lang bij je vandaan te komen. Schiet je op een rijdende auto — dat kon eerst niet, het
+verkeer stond niet in de doelenlijst van je kogels — dan geeft hij juist gas: vijf tot acht seconden
+bijna twee keer zo hard, tot hij de straat uit is. De auto zelf gaat niet in vlammen op; hij rijdt op
+een vaste baan, en een wrak midden op de N7 sluit de rij erachter op.
+
 De motor heeft een **versnellingsbak** van vijf verzetten. Binnen een verzet lopen de toeren op, bij
 het schakelen valt het gas even weg en beginnen ze weer onderaan — daardoor klinkt het niet meer
 alsof je de hele wijk in zijn één doorkomt. Achteruit is één laag verzet dat hoog opjankt. En zodra
@@ -96,7 +105,30 @@ zodra je uitstapt of naar de camera achter de auto gaat.
 
 ![Rijden vanuit de auto](docs/screenshots/auto_eerstepersoon.png)
 
-## Het pistool
+## De wapens
+
+Je hebt er twee: het pistool waar je mee begint, en een **machinegeweer** dat je voor **€ 500** koopt
+aan de toonbank bij Tinga State (toets **F**, waar **E** een doos kogels koopt). Met het **scrollwiel**
+wissel je ertussen; het icoon van het wapen dat je pakt staat twee tellen rechtsonder in beeld. Het
+magazijn blijft in het wapen zitten dat je weglegt, en de voorraad kogels is voor allebei dezelfde —
+een doos van Tinga State, of de munitie van een neergeschoten agent, past dus altijd.
+
+| | pistool | machinegeweer |
+|---|---|---|
+| magazijn | 12 | 30 |
+| vuren | per klik | doorschieten zolang je de knop vasthoudt (ruim tien schoten per seconde) |
+| nauwkeurig | precies waar je kijkt | een fractie ernaast — harder, maar slordiger |
+| herladen | 1,55 s | 2,05 s |
+| prijs | je begint ermee | € 500 |
+
+![Het machinegeweer in de hand](docs/screenshots/punten_machinegeweer.png)
+
+Het machinegeweer heeft hetzelfde onderstel als het pistool — dezelfde greep, hand en onderarm, en
+dezelfde herlaadbeweging in vijf stappen — met daarboven een langere grendelkast met een loopmantel
+met koelribben, een spanknop in plaats van een slede, een magazijnschacht door de greep heen (zoals
+bij een Uzi) en een ingeklapte schouderstut.
+
+### Het pistool
 
 Het pistool zit in je rechterhand met een onderarm die naar de rechteronderhoek uit beeld loopt. Met
 **H** stop je hem weg: dan verdwijnt ook het kruisje en schiet je niet meer, tot je hem met dezelfde
@@ -157,7 +189,18 @@ meewijst met de elleboog.
 
 `npm run wapentest` loopt dit allemaal na (veertig controles over het model, het schieten, de
 terugslag, het herladen, de bouw van een mens, de looppas en een agent). `npm run wapenshots` maakt
-de foto's hierboven.
+de foto's hierboven. Het machinegeweer, de buit, het verkeer dat op je reageert en de rest van de
+punten van 13 september staan in **`npm run puntentest`** (vijfenveertig controles) met
+`npm run puntenshots` voor de foto's.
+
+### Wat er op straat blijft liggen
+
+Neerschieten leverde niets op. Nu laat een voetganger die je neerschiet wisselend wat geld vallen —
+**vaak niets, hooguit een tientje**, zoals iemand met een paar briefjes op zak — en een agent zijn
+**munitie**, drie tot vijftien kogels die in elk wapen passen. Het ligt er echt: een stapeltje
+briefjes of een doosje patronen dat rondjes draait en op en neer dobbert, groter dan levensgroot zodat
+je het van een paar meter ziet liggen. Loop je er binnen een meter langs, dan pak je het op; na een
+minuut knippert het even en is het weg, anders ligt de wijk na een half uur vol.
 
 ### De buurt verhuist met je mee
 
@@ -340,13 +383,26 @@ Het donkere verloop dat de tekst leesbaar houdt ligt in een eigen laag en zoomt 
 de onderrand het scherm af terwijl je kijkt. Wie in zijn systeem "beweging beperken" aan heeft staan
 krijgt een stilstaand beeld.
 
+**Het spel begint pas als jij dat zegt.** Staat de balk op honderd, dan komt er onderaan *"klik op
+enter om te beginnen"* te staan en blijft het beeld staan tot je op enter (of de spatiebalk) drukt —
+op een telefoon tik je op het scherm. Het startscherm zelf is teruggebracht tot de titel, de plaats en
+de knoppen: de twee regels uitleg die eronder stonden ("open wereld op ware grootte" en de regel over
+de BGT) zijn eraf.
+
+| Startscherm zonder de uitlegregels | Het laadscherm wacht op enter |
+|---|---|
+| ![startscherm](docs/screenshots/punten_startscherm.png) | ![laadscherm](docs/screenshots/punten_laadscherm.png) |
+
 ## Botsgevoel en geluid
 
 Een aanrijding was een getal: je snelheid ging eraf en verder veranderde er niets. Nu voel je het.
 
 - **De camera schudt** van een klap, en hoe harder je erin rijdt hoe meer. De uitslag dempt in een
   halve seconde uit. Hij zit op de camera en niet op de speler, anders zou je botsdoos meeschuiven en
-  door een muur heen lopen.
+  door een muur heen lopen. Bij een **explosie** telt de afstand mee, en met het kwadraat: naast de
+  auto voel je alles, op twintig meter nog een kwart, op zestig meter niets meer. Het geluid van de
+  knal zakt op dezelfde manier weg — hij was tot dan toe overal even hard, ook honderd meter verderop,
+  en daarmee had de klap geen plek in de wereld.
 - **Remsporen.** Op de handrem, hard remmen vanaf snelheid, of dwars door een bocht glijden legt rubber
   op de weg. Honderdtwintig vierhoekjes in één buffer die als ringbuffer hergebruikt worden: één draw
   call voor alle sporen bij elkaar, ook als je de halve wijk hebt rondgeslipt. Na veertien seconden
@@ -366,6 +422,17 @@ Vier nieuwe geluiden, allemaal gesynthetiseerd zoals al het andere geluid in het
 | **glas** | vijf tot tien hoge tikjes met wisselende toonhoogte over een halve seconde | een ruit die het begeeft |
 | **kreet** | een zaagtand op stemhoogte door drie formantfilters, `schrik` of `pijn` | iemand wordt geraakt of schrikt van een schot |
 | **bandengier** | ruis door een smalle band rond 1,3 kHz met een toon erbij, sterkte loopt met het slippen mee | zolang de banden slippen |
+
+**De buurt laat zich horen.** Er stond één mussengeluidje op een klok van een paar seconden, en verder
+niets: acht minuten lang steeds datzelfde vogeltje. Er zijn er nu negen, allemaal op dezelfde manier
+gemaakt — een meeuw is een zaagtand met een knik erin, een kraai een ruisstoot door een smal filter,
+een brommer een lage zaagtand die aanzwelt en weer wegzakt:
+
+| overdag | 's nachts |
+|---|---|
+| mus, merel, meeuw, houtduif, kraai, blaffende hond, brommer, torenklok | uil, hond, kraai, brommer, torenklok (plus het krekeltapijt dat er al was) |
+
+Nooit twee keer achter elkaar hetzelfde, en in de auto hoor je alleen wat er doorheen komt.
 
 En vier meldingen uit de beta-test opgelost: de sirene loeide door zodra je een gebouw in liep, de
 motor bromde door zolang je in het pauzescherm stond, de motor overstemde de radio (motor zachter,
@@ -588,6 +655,14 @@ je vandaan en het liefst buiten je gezichtsveld. Ze verschijnen dus niet naast o
 Zien ze je — kijkhoek plus vrij zicht — of horen ze je schieten, dan zetten ze de achtervolging in en
 schieten ze op je. Elke treffer kost leven: de balk linksonder loopt terug en het beeld flitst rood.
 Een agent aanrijden kan ook, en kost je net zoveel verdenking als hem neerschieten.
+
+**Ze schieten raker dan eerst.** Op dekkingsafstand (elf meter) raakte een agent je vier van de tien
+keer voor vier levenspunten; dat voelde als losse flodders, en je kon in een vuurgevecht blijven staan
+om terug te schieten. Nu is het zes punten en bijna de helft van de schoten: met de drie agenten die
+tegelijk mogen vuren is dat ruim vier levenspunten per seconde. Wegkomen is het antwoord geworden, en
+niet uitzitten. Wie een agent neerschiet vindt zijn **munitie** op straat: drie tot vijftien kogels.
+
+![Wat er op straat blijft liggen](docs/screenshots/punten_buit.png)
 
 Wie op een **agent of een surveillanceauto** schiet geeft zichzelf weg. Ook een kogel die alleen de
 lak raakt is een aanwijzing: er wordt op ons geschoten en we weten vanwaar. De laatst bekende plek
@@ -1093,6 +1168,10 @@ achterin liggen hooibalen.
 Aan de toonbank staat een verkoper. Voor **€ 50** krijg je **100 kogels**; het geld gaat meteen van je
 portemonnee af. Sta je bij de bank, dan staat de prijs onderin beeld en reken je af met **E**. Heb je
 het niet, dan zegt hij dat ook. Meer dan 600 kogels krijg je niet in je tas.
+
+Hij verkoopt er sinds kort ook een **machinegeweer** bij, voor **€ 500**, met **F** — één keer, want
+daarna heb je hem. Hij komt meteen in je handen met een vol magazijn uit je eigen voorraad; wisselen
+doe je daarna met het scrollwiel (zie [De wapens](#de-wapens)).
 
 ![De toonbank](docs/screenshots/boerderij_toonbank.png)
 

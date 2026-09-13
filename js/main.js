@@ -18,8 +18,10 @@ import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
-import { zetAnisotropie, zetReliëf, bordSpannenburg, logoTinga } from './textures.js';
+import { zetAnisotropie, zetReliëf, bordSpannenburg, logoTinga, wapenIcoon } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
+import { grondHoogte } from './viaduct.js';
+import { maakBuit, zakgeld, agentMunitie } from './buit.js';
 import * as menu from './menu.js';
 
 const canvas = document.getElementById('game');
@@ -422,6 +424,13 @@ const derde = initDerdePersoon({ scene, camera, player });
 // en boven een drempel komen er eenheden op je af (zie js/politie.js).
 const politie = initPolitie({ scene, player, npcs, vehicles, hud });
 
+/*
+ Wat er op straat blijft liggen (js/buit.js): geld uit de zak van een
+ voetganger, munitie van een agent. Het ligt er echt en je pakt het op door er
+ langs te lopen.
+*/
+const buit = maakBuit(scene, (x, z) => grondHoogte(x, z, -Infinity));
+
 // Het verkeer moet ook voor de buurman remmen als hij oversteekt. De lijst met
 // voetgangers heeft een vaste lengte, dus die zetten we één keer klaar.
 const opDeWeg = npcs.people.concat([verhaal.hinder]);
@@ -507,7 +516,14 @@ player.shootCb = (camOrigin, camDir) => {
       geluid.raak();
       geluid.kreet('pijn', afstandTot(h.point));
       politie.misdaad('neergeschoten', h.point.x, h.point.z);
-    } else if (politie.raak(h.object)) { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); }
+      // wat iemand op zak had: vaak niets, hooguit een tientje (js/buit.js)
+      buit.laatVallen('geld', h.point.x, h.point.z, zakgeld());
+    } else if (politie.raak(h.object)) {
+      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
+      // een agent draagt munitie bij zich: drie tot vijftien kogels, en die
+      // passen in elk wapen
+      buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie());
+    }
     else if (verhaal.raak(h.object)) { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); }
     else {
       /*
@@ -537,13 +553,21 @@ player.shootCb = (camOrigin, camDir) => {
  politie op de plek afstuurt, en schade voor wie er te dicht bij staat.
 */
 function autoOntploft(car) {
-  geluid.explosie();
+  const d = Math.hypot(player.pos.x - car.x, player.pos.z - car.z);
+  geluid.explosie(d);
   geluid.glas();
   npcs.paniek(car.x, car.z, 34);
   politie.hoorSchot(car.x, car.z);
   politie.misdaad('schot', car.x, car.z);
-  const d = Math.hypot(player.pos.x - car.x, player.pos.z - car.z);
-  if (d < 40) schok(1.1 * Math.max(0, 1 - d / 40));
+  /*
+   Schudden naar afstand. Dit liep lineair uit tot veertig meter, en daardoor
+   kreeg een knal een straat verderop nog een flinke duw mee terwijl je hem
+   nauwelijks hoorde (punt 12 van 13 sep 2026). Nu telt het kwadraat: naast de
+   auto voel je alles, op twintig meter nog een kwart, en op zestig meter niets
+   meer — dezelfde vorm als waarmee het geluid uitdooft.
+  */
+  const nabij = Math.max(0, 1 - d / 60);
+  if (nabij > 0) schok(1.2 * nabij * nabij);
   // wie het ziet gebeuren schreeuwt
   for (let i = 0; i < 3; i++) geluid.kreet('schrik', d + i * 6);
   if (d < 9) {
@@ -637,6 +661,27 @@ window.addEventListener('keydown', e => {
 });
 
 /*
+ F: het machinegeweer kopen aan de toonbank bij Tinga State. Het gaat rechtstreeks
+ naar de boerderij en niet langs `binnenruimtes`, want de andere ruimtes kennen
+ alleen E — die zouden op F hun eigen deur opendoen.
+*/
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyF' || e.ctrlKey || e.metaKey) return;
+  if (!player.active && !window.__autoplay) return;
+  if (boerderij.toets) boerderij.toets('F');
+});
+
+/*
+ Het wapenicoon: draai je met het scrollwiel naar een ander wapen, dan staat er
+ twee tellen een tekening van dat wapen rechtsonder. Hetzelfde idee als het
+ zenderlogo hierboven.
+*/
+function toonWapenIcoon(soort) {
+  hud.toonWapen(wapenIcoon(soort).image);
+}
+player.wisselCb = toonWapenIcoon;
+
+/*
  K: je eigen plek, in het berichtbalkje én op het klembord. Bedoeld om plekken
  door te geven — waar een onzichtbare muur moet komen, waar een wegblokkade
  hoort, waar een object moet staan. De grote kaart (M) laat dezelfde twee
@@ -700,6 +745,7 @@ const touch = IS_TOUCH ? initTouchControls(player, {
   onMap: () => hud.toggleBig(),
   onPause: () => pauseGame(),
   onCamera: wisselCamera,
+  onWapen: () => { const s = player.kiesWapen(1); if (s) toonWapenIcoon(s); },
 }) : null;
 
 function startGame(vervolg = false) {
@@ -763,6 +809,7 @@ async function wachtOpMenu(pauze = false) {
   await new Promise(r => setTimeout(r, 260));
   balk(1, 'klaar');
   await new Promise(r => setTimeout(r, 240));
+  await menu.wachtOpStart();          // ook hier eerst op enter wachten
   if (pauze && wat === 'nieuw') { location.reload(); return; }   // nieuw spel vanuit de pauze
   startGame(wat === 'laden');
 }
@@ -940,6 +987,17 @@ function loop() {
     }
     werkSporenBij(dt);
     werkLantaarnsBij(dt, player.pos.x, player.pos.z);
+    // wat er op straat ligt: loop je erlangs, dan pak je het op (js/buit.js)
+    buit.update(dt, player, (soort, waarde) => {
+      if (soort === 'geld') {
+        verhaal.verdien(waarde);
+        hud.show(`€ ${waarde} opgeraapt`, 2);
+      } else {
+        player.reserve += waarde;
+        hud.show(`${waarde} kogels opgeraapt`, 2);
+      }
+      geluid.raak();
+    });
     vehicles.updateTraffic(dt, player, opDeWeg, camera.position.x, camera.position.z);
     npcs.update(dt, time, camera.position.x, camera.position.z);
     verhaal.update(dt);
@@ -1037,6 +1095,7 @@ loop();
   if (!laadBalk) laadBalk = menu.toonLaadscherm();
   laadBalk(1, 'klaar');
   await new Promise(r => setTimeout(r, 400));
+  await menu.wachtOpStart();          // "klik op enter om te beginnen"
   startGame(wat === 'laden');
 })();
 
@@ -1045,7 +1104,10 @@ window.__game = {
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
   geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller,
-  raakLantaarn, werkLantaarnsBij, lantaarnsOm,
+  raakLantaarn, werkLantaarnsBij, lantaarnsOm, buit,
+  // haken voor tools/puntentest.mjs: een knal laten afgaan en de uitslag lezen
+  __ontplof: autoOntploft, __schokNul: () => { SCHOK.kracht = 0; SCHOK.t = 0; },
+  __schokKracht: () => SCHOK.kracht,
 };
 
 // Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,

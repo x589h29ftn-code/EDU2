@@ -18,6 +18,9 @@ export class HUD {
     this.zenderEl = document.getElementById('zender');
     this.zenderDoek = document.getElementById('zenderlogo');
     this.zenderT = 0;
+    this.wapenEl = document.getElementById('wapen');
+    this.wapenDoek = document.getElementById('wapenicoon');
+    this.wapenT = 0;
     this.levenbalk = document.getElementById('levenbalk');
     this.levenlabel = document.getElementById('levenlabel');
     this.missieEl = document.getElementById('missie');
@@ -147,6 +150,20 @@ export class HUD {
     g.drawImage(doek, 0, 0, this.zenderDoek.width, this.zenderDoek.height);
     this.zenderEl.style.opacity = 1;
     this.zenderT = t;
+  }
+
+  /*
+   Hetzelfde trucje voor het wapen: pak je met het scrollwiel een ander wapen,
+   dan staat er twee tellen een tekening van dat wapen rechtsonder, boven de
+   kogelteller. Ook dit is een canvas uit js/textures.js en geen plaatje.
+  */
+  toonWapen(doek, t = 2.2) {
+    if (!this.wapenEl || !doek) return;
+    const g = this.wapenDoek.getContext('2d');
+    g.clearRect(0, 0, this.wapenDoek.width, this.wapenDoek.height);
+    g.drawImage(doek, 0, 0, this.wapenDoek.width, this.wapenDoek.height);
+    this.wapenEl.style.opacity = 1;
+    this.wapenT = t;
   }
 
   // Levensbalk: groen, oranje onder de helft, rood onder een kwart.
@@ -312,6 +329,7 @@ export class HUD {
     }
     if (this.msgT > 0) { this.msgT -= dt; if (this.msgT <= 0) this.msg.style.opacity = 0; }
     if (this.zenderT > 0) { this.zenderT -= dt; if (this.zenderT <= 0) this.zenderEl.style.opacity = 0; }
+    if (this.wapenT > 0) { this.wapenT -= dt; if (this.wapenT <= 0) this.wapenEl.style.opacity = 0; }
     if (this.missieT > 0) { this.missieT -= dt; if (this.missieT <= 0) this.missieEl.style.opacity = 0; }
     if (this.flitsT > 0) { this.flitsT -= dt; if (this.flitsT <= 0) this.flitsEl.style.opacity = 0; }
     this.drawMap(player, vehicles, npcs);

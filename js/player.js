@@ -1,8 +1,25 @@
-// Speler: first-person besturing, botsingen, pistool.
+// Speler: first-person besturing, botsingen, wapens.
 import * as THREE from 'three';
 import { resolveCollisions, pointInWater, ondergrondOp, grondHoogte } from './world.js';
 import { geluid } from './audio.js';
-import { maakPistool, HERLAADTIJD } from './wapen.js';
+import { maakPistool, maakMitrailleur, HERLAADTIJD } from './wapen.js';
+
+/*
+ De twee wapens. Het pistool heb je vanaf het begin; het machinegeweer koop je
+ voor vijfhonderd euro bij Tinga State.
+
+ - `mag` is de magazijngrootte; de reserve is voor allebei dezelfde voorraad;
+ - `auto` betekent dat hij doorschiet zolang je de knop ingedrukt houdt;
+ - `tempo` is de tijd tussen twee schoten (0 = zo snel als je klikt);
+ - `spreiding` is hoeveel de loop afwijkt — het machinegeweer schiet harder maar
+   slordiger, anders is er geen reden om het pistool ooit nog te pakken;
+ - `kick` is hoeveel het beeld per schot omhoog loopt.
+*/
+export const WAPENS = {
+  // het pistool heeft `tempo` nul: zo snel als je klikt, precies zoals het was
+  pistool: { naam: 'Pistool', mag: 12, auto: false, tempo: 0, spreiding: 0, kick: 1 },
+  mitrailleur: { naam: 'Machinegeweer', mag: 30, auto: true, tempo: 0.085, spreiding: 0.022, kick: 0.62 },
+};
 
 export class Player {
   get locked() { return this.active; }
@@ -29,7 +46,20 @@ export class Player {
     */
     this.dronken = 0;
     this.dronkenT = 0;
+    /*
+     Wapens. Je begint met het pistool; het machinegeweer koop je bij Tinga
+     State (js/boerderij.js) en staat daarna in `wapens`. Met het scrollwiel
+     wissel je. `ammo` is wat er in het magazijn van het wapen in je hand zit,
+     `magazijnen` houdt bij wat er in het andere magazijn was blijven zitten, en
+     `reserve` is de voorraad kogels — die is voor alle wapens dezelfde, dus een
+     doos kogels of de munitie van een agent past altijd.
+    */
+    this.wapens = ['pistool'];
+    this.wapenNr = 0;
+    this.magazijnen = { pistool: 12, mitrailleur: 0 };
     this.ammo = 12; this.reserve = 60; this.reloading = 0;
+    this.vuurAan = false;       // trekker ingedrukt (voor het automatische vuur)
+    this.vuurKlok = 0;          // tijd tot het volgende schot mag
     // wordt door main.js gevuld: duwt je te voet uit de auto's (js/vehicles.js)
     this.blokkade = null;
     // zit je ergens op? dan staat de ooghoogte lager en loop je niet
@@ -48,6 +78,7 @@ export class Player {
     this.dragging = false; this.dragDist = 0;
     this.kijkT = 0;             // tijd sinds je voor het laatst rondkeek
     this.shootCb = null;
+    this.wisselCb = null;       // js/main.js: het wapenicoon kort in beeld
 
     this.buildGun();
     this.bindInput();
@@ -58,10 +89,64 @@ export class Player {
    js/wapen.js; hier hangt alleen de aansturing.
   */
   buildGun() {
-    this.wapen = maakPistool(geluid);
+    // allebei de modellen staan er meteen; wisselen is een kwestie van zichtbaar
+    // maken. Dat is een paar honderd driehoeken en het scheelt een hapering op
+    // het moment dat je het scrollwiel draait.
+    this.modellen = { pistool: maakPistool(geluid), mitrailleur: maakMitrailleur(geluid) };
+    for (const k of Object.keys(this.modellen)) {
+      this.modellen[k].groep.visible = false;
+      this.camera.add(this.modellen[k].groep);
+    }
+    this.wapen = this.modellen.pistool;
     this.gun = this.wapen.groep;
-    this.wapenUit = false;      // pistool weggestopt (toets H)
-    this.camera.add(this.gun);
+    this.gun.visible = true;
+    this.wapenUit = false;      // wapen weggestopt (toets H)
+  }
+
+  // Wat het wapen in je hand kan: magazijngrootte, vuursnelheid en terugslag.
+  get wapenSoort() { return this.wapens[this.wapenNr] || 'pistool'; }
+  get wapenInfo() { return WAPENS[this.wapenSoort]; }
+
+  /*
+   Van wapen wisselen met het scrollwiel. `stap` is +1 of −1; heb je er maar
+   één, dan gebeurt er niets. Het magazijn van het wapen dat je wegdoet blijft
+   erin zitten: leg je het pistool met drie kogels weg, dan zitten er drie in
+   als je het weer pakt. Levert de nieuwe soort terug, of null.
+  */
+  kiesWapen(stap) {
+    if (this.wapens.length < 2 || this.reloading > 0) return null;
+    this.magazijnen[this.wapenSoort] = this.ammo;
+    const n = this.wapens.length;
+    this.wapenNr = ((this.wapenNr + stap) % n + n) % n;
+    return this.zetWapen(this.wapenSoort);
+  }
+
+  // Het wapen van een soort in de hand nemen (ook gebruikt door het laden van
+  // een opgeslagen spel en door het kopen van het machinegeweer).
+  zetWapen(soort) {
+    if (!this.modellen[soort]) return null;
+    const nr = this.wapens.indexOf(soort);
+    if (nr < 0) return null;
+    this.wapenNr = nr;
+    this.gun.visible = false;
+    this.wapen = this.modellen[soort];
+    this.gun = this.wapen.groep;
+    this.gun.visible = !this.wapenUit;
+    this.ammo = Math.min(this.magazijnen[soort] ?? 0, WAPENS[soort].mag);
+    this.vuurAan = false;
+    return soort;
+  }
+
+  // Een wapen erbij (gekocht bij Tinga State). Het komt meteen in je hand, met
+  // een vol magazijn uit je eigen voorraad als je die hebt.
+  krijgWapen(soort) {
+    if (!WAPENS[soort]) return false;
+    this.magazijnen[this.wapenSoort] = this.ammo;        // eerst wegleggen wat je vasthebt
+    if (!this.wapens.includes(soort)) this.wapens.push(soort);
+    const vul = Math.min(WAPENS[soort].mag - (this.magazijnen[soort] || 0), this.reserve);
+    if (vul > 0) { this.magazijnen[soort] = (this.magazijnen[soort] || 0) + vul; this.reserve -= vul; }
+    this.zetWapen(soort);
+    return true;
   }
 
   // Pistool trekken of wegstoppen. Weggestopt schiet je niet en staat het
@@ -95,15 +180,26 @@ export class Player {
     });
     document.addEventListener('mousedown', e => {
       if (!this.active || e.button !== 0) return;
-      if (this.pointerLocked) { this.shoot(); return; }
+      if (this.pointerLocked) { this.vuurAan = true; this.shoot(); return; }
       this.dragging = true; this.dragDist = 0;
     });
     document.addEventListener('mouseup', e => {
-      if (!this.active || e.button !== 0 || this.pointerLocked) return;
+      if (!this.active || e.button !== 0) return;
+      this.vuurAan = false;
+      if (this.pointerLocked) return;
       // een korte klik zonder slepen is een schot
       if (this.dragDist < 8) this.shoot();
       this.dragging = false;
     });
+    /*
+     Wapen wisselen met het scrollwiel. `wisselCb` wordt door js/main.js gezet en
+     laat het icoon van het wapen kort in beeld komen.
+    */
+    window.addEventListener('wheel', e => {
+      if (!this.active) return;
+      const soort = this.kiesWapen(e.deltaY > 0 ? 1 : -1);
+      if (soort && this.wisselCb) this.wisselCb(soort);
+    }, { passive: true });
     document.addEventListener('pointerlockchange', () => {
       this.pointerLocked = document.pointerLockElement != null;
     });
@@ -162,9 +258,9 @@ export class Player {
   }
 
   reload() {
-    if (this.reloading > 0 || this.ammo === 12 || this.reserve <= 0) return;
+    if (this.reloading > 0 || this.ammo === this.wapenInfo.mag || this.reserve <= 0) return;
     // de klikken horen bij de beweging en komen uit js/wapen.js
-    this.reloading = HERLAADTIJD;
+    this.reloading = this.wapen.herlaadtijd || HERLAADTIJD;
   }
 
   /*
@@ -188,15 +284,27 @@ export class Player {
 
   shoot() {
     if (!this.magSchieten()) return;
+    if (this.vuurKlok > 0) return;
     if (this.ammo <= 0) { geluid.leegKlik(); this.reload(); return; }
+    const W = this.wapenInfo;
     this.ammo--;
+    this.vuurKlok = W.tempo;
     this.recoil = 1; this.flashT = 0.06;
     // beeld omhoog en een willekeurig tikje opzij
-    this.kickPitch += 0.026 + Math.random() * 0.010;
-    this.kickYaw += (Math.random() - 0.5) * 0.014;
+    this.kickPitch += (0.026 + Math.random() * 0.010) * W.kick;
+    this.kickYaw += (Math.random() - 0.5) * 0.014 * W.kick;
     if (this.wapen) this.wapen.vuur();
     geluid.schot();
     const dir = new THREE.Vector3(); this.camera.getWorldDirection(dir);
+    // het machinegeweer schiet slordiger: de kogel gaat een fractie naast de
+    // richting waar je in kijkt
+    if (W.spreiding) {
+      const zij = new THREE.Vector3(dir.z, 0, -dir.x).normalize();
+      const op = new THREE.Vector3().crossVectors(zij, dir).normalize();
+      dir.addScaledVector(zij, (Math.random() - 0.5) * W.spreiding);
+      dir.addScaledVector(op, (Math.random() - 0.5) * W.spreiding);
+      dir.normalize();
+    }
     const origin = this.camera.getWorldPosition(new THREE.Vector3());
     if (this.shootCb) this.shootCb(origin, dir);
   }
@@ -236,8 +344,19 @@ export class Player {
     }
     if (this.reloading > 0) {
       this.reloading -= dt;
-      if (this.reloading <= 0) { const need = 12 - this.ammo; const take = Math.min(need, this.reserve); this.ammo += take; this.reserve -= take; this.reloading = 0; }
+      if (this.reloading <= 0) {
+        const need = this.wapenInfo.mag - this.ammo;
+        const take = Math.min(need, this.reserve);
+        this.ammo += take; this.reserve -= take; this.reloading = 0;
+      }
     }
+    /*
+     Doorschieten. Het machinegeweer vuurt zolang je de knop ingedrukt houdt;
+     het pistool niet — daar is `auto` false en telt `vuurKlok` alleen hoe snel
+     je achter elkaar kunt klikken.
+    */
+    this.vuurKlok = Math.max(0, this.vuurKlok - dt);
+    if (this.vuurAan && this.wapenInfo.auto && this.reloading <= 0) this.shoot();
     if (this.inCar) return; // camera wordt door de auto bestuurd
 
     /*

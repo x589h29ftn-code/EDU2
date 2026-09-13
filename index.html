@@ -23,6 +23,10 @@
             opacity: 0; transition: opacity .35s; pointer-events: none;
             background: rgba(5,8,14,.55); padding: 6px; border-radius: 8px; }
   #zenderlogo { display: block; width: 256px; height: 77px; border-radius: 4px; }
+  /* het wapen dat je pakt: kort rechtsonder, boven de kogelteller */
+  #wapen { position: absolute; right: 24px; bottom: 240px; opacity: 0; transition: opacity .3s;
+           pointer-events: none; background: rgba(5,8,14,.5); padding: 5px 7px; border-radius: 7px; }
+  #wapenicoon { display: block; width: 168px; height: 56px; }
   /* gesprekken: een tekstbalk onderin het scherm, door te klikken met E */
   #dialoog { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%);
              width: min(760px, 88vw); box-sizing: border-box; padding: 10px 16px;
@@ -147,6 +151,11 @@
   #laadbalk { height: 6px; border-radius: 3px; background: rgba(255,255,255,.14); overflow: hidden; }
   #laadbalkin { height: 100%; width: 0; background: #ffd400; border-radius: 3px; transition: width .18s linear; }
   #laadwat { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; opacity: .6; margin-top: 8px; }
+  /* de regel die verschijnt als de wereld er staat; knippert rustig, zoals in GTA */
+  #laadklaar { font-size: 15px; letter-spacing: 2.5px; text-transform: uppercase; font-weight: 700;
+    color: #ffd400; margin-top: 14px; animation: klaarknipper 1.6s ease-in-out infinite; }
+  @keyframes klaarknipper { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { #laadklaar { animation: none; } }
 
   @media (max-width: 900px), (max-height: 560px) {
     .menupaneel { margin-left: 6vw; width: min(320px, 88vw); }
@@ -177,6 +186,7 @@
   #tjump { right: 128px; bottom: 40px; width: 66px; height: 66px; font-size: 12px; }
   #treload { right: 34px; bottom: 128px; width: 58px; height: 58px; font-size: 18px; }
   #tcar { right: 136px; bottom: 122px; width: 58px; height: 58px; font-size: 18px; }
+  #twapen { right: 100px; bottom: 128px; width: 52px; height: 52px; font-size: 18px; }
   #tmap { right: 22px; top: 168px; width: 52px; height: 52px; font-size: 18px; }
   #tcam { right: 22px; top: 228px; width: 52px; height: 52px; font-size: 18px; }
   #tpause { left: 16px; top: 46px; width: 46px; height: 46px; font-size: 16px; }
@@ -235,6 +245,8 @@
   <div id="msg"></div>
   <!-- het logo van de radiozender, kort in beeld als je instapt of wisselt -->
   <div id="zender"><canvas id="zenderlogo" width="256" height="77"></canvas></div>
+  <!-- het wapen dat je net gepakt hebt, kort in beeld (scrollwiel) -->
+  <div id="wapen"><canvas id="wapenicoon" width="336" height="112"></canvas></div>
   <div id="raakflits"></div>
   <div id="dronken"></div>
   <div id="opdracht" hidden></div>
@@ -260,6 +272,8 @@
   <div class="tbtn" id="tfire">VUUR</div>
   <div class="tbtn" id="tjump">SPRING</div>
   <div class="tbtn" id="treload">⟳</div>
+  <!-- van wapen wisselen: op een telefoon is er geen scrollwiel -->
+  <div class="tbtn" id="twapen">🔫</div>
   <div class="tbtn" id="tcar">🚗</div>
   <div class="tbtn" id="tmap">🗺</div>
   <div class="tbtn" id="tcam">👁</div>

@@ -48,6 +48,14 @@ const wereldKlaar = await page.evaluate(() => !!window.__game);
 ok(menuNa < 30000, 'het menu is er binnen dertig seconden', `${(menuNa / 1000).toFixed(1)} s`);
 ok(!wereldKlaar, 'en de wereld is dan nog niet klaar — hij bouwt eronder door');
 
+kop('het startscherm is het beeld en de keuze, geen uitleg');
+// twee regels tekst zijn eruit gehaald: de ondertitel over de open wereld en de
+// voetregel over de BGT. Wat er stond mag nergens meer in het startscherm staan.
+const tekst = await page.evaluate(() => document.getElementById('overlay').innerText);
+ok(!/ware grootte/i.test(tekst), 'de regel over de open wereld op ware grootte is weg');
+ok(!/BGT/i.test(tekst), 'en de regel over de BGT en het 3D BAG ook');
+ok(/TINGA/.test(tekst), 'de titel staat er nog wel');
+
 kop('het beeld erachter komt uit beeld/laadscherm en zoomt langzaam in');
 /*
  Het beeld uit beelden.json hoort op het startscherm én op het laadscherm te
@@ -152,8 +160,25 @@ const muziekNaLaden = await page.evaluate(async () => (await import('/js/menu.js
 ok(muziekNaLaden.speelt && muziekNaLaden.tijd > 1,
   'tijdens het laadscherm speelt hetzelfde nummer door', `op ${muziekNaLaden.tijd} s`);
 
+kop('het laadscherm wacht op enter');
+/*
+ Zoals in GTA: de balk is vol, maar het spel begint pas als jij op enter drukt.
+ Tot die tijd blijft het beeld staan en loopt de muziek door.
+*/
+await page.waitForSelector('#laadklaar:not([hidden])', { timeout: 300000 });
+const wacht = await page.evaluate(() => ({
+  tekst: document.getElementById('laadklaar').textContent,
+  actief: window.__game.player.active,
+  balk: document.getElementById('laadbalkin').style.width,
+}));
+ok(/enter/i.test(wacht.tekst), 'onderaan het laadscherm staat de regel om te beginnen', wacht.tekst);
+ok(!wacht.actief, 'en het spel is nog niet begonnen zolang je niet drukt', `balk ${wacht.balk}`);
+await page.keyboard.press('Enter');
+
 kop('het spel begint na het laadscherm');
 await page.waitForFunction(() => window.__game && window.__game.player.active, null, { timeout: 60000 });
+ok(await page.evaluate(() => document.getElementById('laadklaar').hidden),
+  'de regel verdwijnt zodra je begint');
 const gestart = await page.evaluate(() => ({
   actief: window.__game.player.active,
   menuWeg: getComputedStyle(document.getElementById('overlay')).display === 'none',

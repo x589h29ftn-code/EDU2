@@ -430,6 +430,45 @@ export function logoTinga() {
 }
 
 /*
+ Het icoontje van een wapen: de zijkant van het wapen in silhouet, met de naam
+ eronder. Het komt twee tellen rechtsonder in beeld als je met het scrollwiel
+ wisselt (js/hud.js). Geen plaatje — net als al het andere hier getekend, in
+ dezelfde verhouding als het vakje in index.html (336 × 112).
+*/
+export function wapenIcoon(soort = 'pistool') {
+  const sleutel = `wapenicoon:${soort}`;
+  if (cache.has(sleutel)) return cache.get(sleutel);
+  const W = 336, H = 112;
+  const c = canvas(W, H); const g = c.getContext('2d');
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = '#e8ecf2';
+  const mp = soort === 'mitrailleur';
+  if (mp) {
+    g.fillRect(56, 34, 190, 22);            // grendelkast
+    g.fillRect(44, 38, 20, 14);             // schouderplaat achter
+    g.fillRect(228, 38, 62, 13);            // loopmantel
+    g.fillRect(288, 42, 26, 6);             // loop
+    for (let i = 0; i < 4; i++) g.fillRect(234 + i * 15, 34, 4, 21);   // koelribben
+    g.fillRect(120, 56, 26, 46);            // greep met magazijn erin
+    g.fillRect(116, 98, 34, 8);             // bodemplaat
+    g.fillRect(150, 56, 8, 14);             // trekkerbeugel
+    g.fillRect(150, 66, 40, 6);
+  } else {
+    g.fillRect(96, 34, 150, 22);            // slede
+    g.fillRect(236, 40, 22, 9);             // loop
+    g.fillRect(112, 56, 28, 44);            // greep
+    g.fillRect(108, 92, 36, 8);             // magazijnbodem
+    g.fillRect(146, 56, 8, 12);             // trekkerbeugel
+    g.fillRect(146, 64, 40, 6);
+  }
+  g.fillStyle = '#ffd400';
+  g.font = '700 20px system-ui, sans-serif';
+  g.textBaseline = 'alphabetic';
+  g.fillText(mp ? 'MACHINEGEWEER' : 'PISTOOL', 16, 26);
+  const t = tex(c); cache.set(sleutel, t); return t;
+}
+
+/*
  Het bord van Radio Spannenburg, de lokale omroep van De Fryske Marren. Er
  staan geen plaatjesbestanden in dit spel — elke texture wordt hier op een canvas
  getekend, net als het Jumbo-woordmerk — dus het logo wordt nagetekend: het

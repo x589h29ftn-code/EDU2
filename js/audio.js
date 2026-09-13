@@ -30,6 +30,25 @@ let zenderStand = [];        // per zender: waar je gebleven was (seconden)
 let radioAuto = null;        // in welke auto je zat: een andere auto = andere plek in de uitzending
 let lijstGeladen = false;
 let vogelKlok = 0, krekelKlok = 0;
+let laatsteSfeer = null;     // welk omgevingsgeluid er het laatst klonk
+
+/*
+ De losse geluiden van de buurt, per moment van de dag. Overdag hoor je vogels,
+ een hond en af en toe een brommer; 's nachts blijft er weinig over — een uil,
+ een hond verderop, en een enkele brommer. Binnen (in de auto) hoor je de
+ kleine geluiden niet, alleen wat er doorheen komt.
+*/
+const SFEER_DAG = ['mus', 'merel', 'meeuw', 'kraai', 'duif', 'hond', 'brommer', 'klok'];
+const SFEER_NACHT = ['uil', 'hond', 'brommer', 'kraai', 'klok'];
+const SFEER_BINNEN = ['brommer', 'klok', 'meeuw'];
+function kiesSfeer(nacht, binnen) {
+  const lijst = binnen ? SFEER_BINNEN : nacht ? SFEER_NACHT : SFEER_DAG;
+  let naam = lijst[Math.floor(Math.random() * lijst.length)];
+  // nooit twee keer achter elkaar hetzelfde: dat is precies wat het oude
+  // mussengeluidje deed
+  if (naam === laatsteSfeer && lijst.length > 1) naam = lijst[(lijst.indexOf(naam) + 1) % lijst.length];
+  return naam;
+}
 
 function nu() { return ctx ? ctx.currentTime : 0; }
 
@@ -316,14 +335,24 @@ export const geluid = {
    4. de brokken: een handvol tikjes in het eerste halve seconde, blik en glas
       dat op de straat terechtkomt.
   */
-  explosie() {
+  explosie(afstand = 0) {
     if (!aan) return;
-    tik({ freq: 2200, q: 0.4, duur: 0.06, volume: 0.5, type: 'highpass', val: 0.15 });
-    tik({ freq: 240, q: 0.6, duur: 0.55, volume: 0.5, type: 'lowpass', val: 0.25 });
-    toon({ freq: 90, naar: 28, duur: 0.65, volume: 0.30, golf: 'sine' });
-    tik({ freq: 420, q: 0.5, duur: 1.6, volume: 0.22, type: 'lowpass', val: 0.35, vertraag: 0.05 });
+    /*
+     Hoe ver weg het gebeurt telt mee. Een auto die honderd meter verderop de
+     lucht in gaat klonk precies zo hard als eentje naast je, en dat verraadde
+     dat de knal geen plek in de wereld had. Boven de honderdtwintig meter hoor
+     je hem niet meer; de hoge kant (de flits, de brokjes) valt sneller weg dan
+     het lage rommelen, want dat is ook wat lucht met geluid doet.
+    */
+    const v = Math.max(0, 1 - afstand / 120) ** 1.4;
+    if (v < 0.03) return;
+    const hoog = v * v;
+    tik({ freq: 2200, q: 0.4, duur: 0.06, volume: 0.5 * hoog, type: 'highpass', val: 0.15 });
+    tik({ freq: 240, q: 0.6, duur: 0.55, volume: 0.5 * v, type: 'lowpass', val: 0.25 });
+    toon({ freq: 90, naar: 28, duur: 0.65, volume: 0.30 * v, golf: 'sine' });
+    tik({ freq: 420, q: 0.5, duur: 1.6, volume: 0.22 * v, type: 'lowpass', val: 0.35, vertraag: 0.05 });
     for (let i = 0; i < 7; i++) {
-      tik({ freq: 2600 + Math.random() * 4000, q: 3, duur: 0.05, volume: 0.07,
+      tik({ freq: 2600 + Math.random() * 4000, q: 3, duur: 0.05, volume: 0.07 * hoog,
             vertraag: 0.12 + Math.random() * 0.5 });
     }
   },
@@ -839,20 +868,23 @@ export const geluid = {
     bronnen.regen.gain.gain.setTargetAtTime(weer === 'regen' ? (binnen ? 0.030 : 0.085) : 0, t, 1.0);
     bronnen.verkeer.gain.gain.setTargetAtTime(nacht ? 0.004 : 0.012, t, 2.0);
 
-    // vogels overdag, krekels 's avonds
-    if (!nacht && weer !== 'regen') {
+    /*
+     De buurt laten horen dat hij er is. Hier stond één mussengeluidje op een
+     klok van tweeënhalf tot negenenhalve seconde, en verder niets: acht
+     minuten lang steeds datzelfde vogeltje (punt 8 van 13 sep 2026). Nu is er
+     een handvol geluiden die bij de wijk en bij het moment horen — zie
+     `sfeerGeluid` hieronder — met per keer een andere keuze en een andere
+     tussenpoos.
+    */
+    if (weer !== 'regen') {
       vogelKlok -= dt;
       if (vogelKlok <= 0) {
-        vogelKlok = 2.5 + Math.random() * 7;
-        const f = 2200 + Math.random() * 2200;
-        const n = 2 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < n; i++) {
-          toon({ freq: f * (0.9 + Math.random() * 0.3), naar: f * (0.6 + Math.random() * 0.7),
-                 duur: 0.07 + Math.random() * 0.06, volume: 0.020 + Math.random() * 0.02,
-                 vertraag: i * (0.09 + Math.random() * 0.07) });
-        }
+        vogelKlok = 4 + Math.random() * 9;
+        this.sfeerGeluid(kiesSfeer(nacht, binnen));
       }
-    } else if (nacht && weer !== 'regen') {
+    }
+    // krekels blijven wat ze waren: een doorlopend tapijt 's nachts, geen los geluid
+    if (nacht && weer !== 'regen') {
       krekelKlok -= dt;
       if (krekelKlok <= 0) {
         krekelKlok = 0.5 + Math.random() * 0.9;
@@ -860,4 +892,100 @@ export const geluid = {
       }
     }
   },
+
+  /*
+   Eén los omgevingsgeluid, met de naam erbij zodat de proef kan kijken of er
+   genoeg verschillende langskomen. Alles is hier gemaakt en niet opgenomen: een
+   meeuw is een zaagtand met een knik erin, een kraai een ruisstoot door een
+   smal filter, een brommer een lage zaagtand die aanzwelt en weer wegzakt.
+  */
+  sfeerGeluid(naam) {
+    if (!aan) return null;
+    laatsteSfeer = naam;
+    const r = Math.random();
+    switch (naam) {
+      case 'mus': {                       // het oude geluidje: kort en druk
+        const f = 2200 + r * 2200;
+        for (let i = 0, n = 2 + Math.floor(Math.random() * 3); i < n; i++) {
+          toon({ freq: f * (0.9 + Math.random() * 0.3), naar: f * (0.6 + Math.random() * 0.7),
+                 duur: 0.07 + Math.random() * 0.06, volume: 0.020 + Math.random() * 0.02,
+                 vertraag: i * (0.09 + Math.random() * 0.07) });
+        }
+        break;
+      }
+      case 'merel': {                     // een fluitend zinnetje van vier tonen
+        let t = 0;
+        for (let i = 0; i < 4 + Math.floor(r * 3); i++) {
+          const f = 1500 + Math.random() * 1100;
+          toon({ freq: f, naar: f * (0.7 + Math.random() * 0.6), duur: 0.16 + Math.random() * 0.12,
+                 volume: 0.016 + Math.random() * 0.012, vertraag: t });
+          t += 0.20 + Math.random() * 0.16;
+        }
+        break;
+      }
+      case 'meeuw': {                     // Sneek ligt aan het water
+        for (let i = 0, n = 3 + Math.floor(r * 3); i < n; i++) {
+          const f = 900 + Math.random() * 260;
+          toon({ freq: f * 0.8, naar: f * 1.35, duur: 0.10, volume: 0.018, golf: 'sawtooth', vertraag: i * 0.34 });
+          toon({ freq: f * 1.3, naar: f * 0.7, duur: 0.18, volume: 0.014, golf: 'sawtooth', vertraag: i * 0.34 + 0.10 });
+        }
+        break;
+      }
+      case 'kraai': {
+        for (let i = 0, n = 2 + Math.floor(r * 2); i < n; i++) {
+          tik({ freq: 780 + Math.random() * 260, q: 5, duur: 0.22, volume: 0.055, val: 0.7, vertraag: i * 0.42 });
+        }
+        break;
+      }
+      case 'duif': {                      // houtduif: vijf lage koeroe-tonen
+        const f = 430 + r * 60;
+        for (const [v, d, k] of [[0, 0.22, 1], [0.26, 0.30, 1.12], [0.60, 0.16, 1], [0.80, 0.18, 0.94], [1.02, 0.26, 0.92]]) {
+          toon({ freq: f * k, naar: f * k * 0.94, duur: d, volume: 0.020, vertraag: v });
+        }
+        break;
+      }
+      case 'hond': {                      // een blaffende hond in een achtertuin
+        for (let i = 0, n = 2 + Math.floor(r * 3); i < n; i++) {
+          const v = i * (0.30 + Math.random() * 0.18);
+          toon({ freq: 280 + Math.random() * 90, naar: 150, duur: 0.13, volume: 0.030, golf: 'sawtooth', vertraag: v });
+          tik({ freq: 1100, q: 1.2, duur: 0.10, volume: 0.030, val: 0.4, vertraag: v });
+        }
+        break;
+      }
+      case 'brommer': {                   // eentje die een straat verderop langsrijdt
+        const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+        o.type = 'sawtooth';
+        f.type = 'lowpass'; f.frequency.value = 900; f.Q.value = 0.8;
+        const t = nu(), duur = 4.5 + r * 2.5, basis = 92 + r * 40;
+        o.frequency.setValueAtTime(basis * 1.06, t);
+        o.frequency.linearRampToValueAtTime(basis * 1.28, t + duur * 0.45);   // komt eraan
+        o.frequency.linearRampToValueAtTime(basis * 0.92, t + duur);          // en weer weg
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.020, t + duur * 0.45);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+        o.connect(f); f.connect(g); g.connect(hoofd);
+        o.start(t); o.stop(t + duur + 0.05);
+        break;
+      }
+      case 'uil': {                       // 's nachts: twee lage hoe-tonen
+        for (const v of [0, 0.9]) toon({ freq: 400, naar: 370, duur: 0.42, volume: 0.022, vertraag: v });
+        break;
+      }
+      case 'klok': {                      // de torenklok van de Martinikerk, ver weg
+        for (let i = 0, n = 1 + Math.floor(r * 2); i < n; i++) {
+          const v = i * 2.2;
+          toon({ freq: 262, naar: 258, duur: 1.8, volume: 0.022, vertraag: v });
+          toon({ freq: 525, naar: 516, duur: 1.2, volume: 0.011, vertraag: v });
+          toon({ freq: 786, naar: 772, duur: 0.7, volume: 0.006, vertraag: v });
+        }
+        break;
+      }
+      default: laatsteSfeer = null; return null;
+    }
+    return naam;
+  },
+
+  // welke er het laatst klonk (voor tools/sfeergeluidtest.mjs)
+  get laatsteSfeer() { return laatsteSfeer; },
+  get sfeerSoorten() { return [...SFEER_DAG, ...SFEER_NACHT].filter((v, i, a) => a.indexOf(v) === i); },
 };

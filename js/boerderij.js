@@ -40,6 +40,10 @@ const TOONBANK_BEREIK = 3.2;
 
 // ---------- de handel ----------
 export const MUNITIE = { prijs: 50, kogels: 100 };
+// Achter de toonbank ligt sinds 13 september 2026 ook een machinegeweer. Vijf
+// keer de prijs van een doos kogels, en je koopt hem één keer: daarna wissel je
+// er met het scrollwiel tussen (js/player.js).
+export const MITRAILLEUR = { prijs: 500, soort: 'mitrailleur', naam: 'Machinegeweer' };
 
 // ---------- kleine texturehulpjes ----------
 function doek(w, h) {
@@ -474,9 +478,33 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     return 'ok';
   }
 
+  /*
+   Het machinegeweer kopen (toets F aan de toonbank). Levert 'ok', 'arm' of
+   'heeft' als je hem al hebt. Hij komt meteen in je handen, met een vol
+   magazijn uit je eigen voorraad kogels.
+  */
+  function koopWapen() {
+    if (player.wapens && player.wapens.includes(MITRAILLEUR.soort)) {
+      hud.melding('Die heb je al', 'Wisselen doe je met het scrollwiel.', 3);
+      return 'heeft';
+    }
+    if (!verhaal.betaal || !verhaal.betaal(MITRAILLEUR.prijs)) {
+      hud.melding('Te weinig geld', `Een ${MITRAILLEUR.naam.toLowerCase()} kost € ${MITRAILLEUR.prijs}.`, 3);
+      return 'arm';
+    }
+    player.krijgWapen(MITRAILLEUR.soort);
+    hud.melding(`${MITRAILLEUR.naam} gekocht`, `€ ${MITRAILLEUR.prijs} betaald. Wisselen met het scrollwiel.`, 4);
+    return 'ok';
+  }
+
   // E bij de deur of aan de toonbank. Geeft true als de toets gebruikt is.
-  function toets() {
+  function toets(wat = 'E') {
     if (!player.active && !window.__autoplay) return false;
+    if (wat === 'F') {
+      if (!bijToonbank(player.pos.x, player.pos.z)) return false;
+      koopWapen();
+      return true;
+    }
     if (bijToonbank(player.pos.x, player.pos.z)) { koop(); return true; }
     const w = bijDeur(player.pos.x, player.pos.z);
     if (w === 'in' && !player.inCar) { naarBinnenGaan(); return true; }
@@ -495,6 +523,10 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     if (bezig && !player.inCar) {
       if (bijToonbank(player.pos.x, player.pos.z)) {
         tekst = `E — ${MUNITIE.kogels} kogels kopen (€ ${MUNITIE.prijs})`;
+        // het machinegeweer erbij, zolang je hem nog niet hebt
+        if (!(player.wapens && player.wapens.includes(MITRAILLEUR.soort))) {
+          tekst += `   ·   F — ${MITRAILLEUR.naam.toLowerCase()} kopen (€ ${MITRAILLEUR.prijs})`;
+        }
       } else {
         const w = bijDeur(player.pos.x, player.pos.z);
         if (w) tekst = w === 'in' ? 'E — de boerderij in' : 'E — naar buiten';
@@ -518,7 +550,7 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
   }
 
   return {
-    update, toets, binnen, meldAan, kaart, koop,
+    update, toets, binnen, meldAan, kaart, koop, koopWapen,
     get maten() {
       return {
         breed: BREED, diep: DIEP, goot: GOOT, nok: NOK,

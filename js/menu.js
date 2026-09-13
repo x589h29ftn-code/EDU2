@@ -41,7 +41,8 @@ const TIPS = [
   'Uit het zicht blijven laat de politie je sneller vergeten.',
   'Met [ en ] draai je de klok een uur terug of vooruit.',
   'Met Y wissel je het weer: helder, bewolkt of regen.',
-  'De hele wijk komt uit de BGT en het 3D BAG — elk pand staat waar het echt staat.',
+  'In de auto wissel je met ← en → van radiozender.',
+  'Met het scrollwiel wissel je van wapen.',
 ];
 
 let el = {};                 // de vaste onderdelen van het scherm
@@ -257,7 +258,7 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
   const waas = document.createElement('div'); waas.id = 'menuwaas';
   const paneel = document.createElement('div'); paneel.className = 'menupaneel';
   const titel = document.createElement('h1'); titel.textContent = 'TINGA';
-  const onder = document.createElement('div'); onder.className = 'menuonder'; onder.textContent = 'Sneek · open wereld op ware grootte';
+  const onder = document.createElement('div'); onder.className = 'menuonder'; onder.textContent = 'Sneek';
   const lijst = document.createElement('div'); lijst.className = 'menulijst';
   paneel.append(titel, onder, lijst);
 
@@ -278,9 +279,7 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
   const zijpaneel = document.createElement('div'); zijpaneel.className = 'menuzij'; zijpaneel.hidden = true;
   paneel.append(zijpaneel);
 
-  const voet = document.createElement('div'); voet.className = 'menuvoet';
-  voet.textContent = 'De hele wijk komt uit de BGT en het 3D BAG.';
-  paneel.append(voet);
+  // geen voettekst meer onder de knoppen: het startscherm is het beeld en de keuze
 
   // het laadscherm zit in dezelfde wortel, zodat het met het menu mee verdwijnt
   const laad = document.createElement('div'); laad.id = 'laadscherm'; laad.hidden = true;
@@ -293,11 +292,12 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
   const balkIn = document.createElement('div'); balkIn.id = 'laadbalkin';
   balk.append(balkIn);
   const laadWat = document.createElement('div'); laadWat.id = 'laadwat';
-  laadVoet.append(laadTitel, laadTip, balk, laadWat);
+  const laadKlaar = document.createElement('div'); laadKlaar.id = 'laadklaar'; laadKlaar.hidden = true;
+  laadVoet.append(laadTitel, laadTip, balk, laadWat, laadKlaar);
   laad.append(laadDoek, laadWaas, laadVoet);
 
   wortel.append(doek, waas, paneel, laad);
-  el = { wortel, doek, paneel, lijst, knoppen, zijpaneel, laad, laadDoek, laadTitel, laadTip, balkIn, laadWat };
+  el = { wortel, doek, paneel, lijst, knoppen, zijpaneel, laad, laadDoek, laadTitel, laadTip, balkIn, laadWat, laadKlaar };
   return el;
 }
 
@@ -323,7 +323,9 @@ function toonPaneel(welke) {
     for (const [a, b] of [
       ['W A S D', 'lopen · shift = rennen · spatie = springen'],
       ['muis', 'rondkijken · linkermuisknop = schieten · R = herladen'],
+      ['scrollwiel', 'wisselen tussen pistool en machinegeweer · H = wapen weg'],
       ['E', 'praten, naar binnen, in- en uitstappen'],
+      ['F', 'aan de toonbank: het machinegeweer kopen'],
       ['V', 'camera: vanuit je ogen of achter je'],
       ['M', 'grote kaart van de wijk'],
       ['in de auto', 'W/S gas en rem · A/D sturen · spatie handrem'],
@@ -386,11 +388,46 @@ export function toonLaadscherm() {
   zetDoek(el.laadDoek, b);
   if (el.laadTitel) el.laadTitel.textContent = (b && b.titel) || 'TINGA';
   el.laadTip.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
+  if (el.laadKlaar) el.laadKlaar.hidden = true;
   return (deel, wat) => {
     el.balkIn.style.width = `${Math.round(Math.max(0, Math.min(1, deel)) * 100)}%`;
     el.laadWat.textContent = wat ? `${wat}…` : '';
   };
 }
+
+/*
+ De wereld staat er — maar het spel begint pas als jij dat zegt. Zoals in GTA:
+ de balk is vol, onderaan komt "klik op enter om te beginnen" te staan, en tot
+ die tijd blijft het beeld staan en loopt de muziek door. Enter en de spatiebalk
+ werken, en een klik of tik ook: op een telefoon is er geen Enter.
+*/
+export function wachtOpStart() {
+  if (!el.laadKlaar) return Promise.resolve();
+  const tik = matchMedia('(pointer: coarse)').matches;
+  el.laadKlaar.textContent = tik ? 'Tik op het scherm om te beginnen' : 'Klik op enter om te beginnen';
+  el.laadKlaar.hidden = false;
+  return new Promise(klaar => {
+    const af = () => {
+      window.removeEventListener('keydown', opToets);
+      el.laad.removeEventListener('pointerdown', opTik);
+      el.laadKlaar.hidden = true;
+      klaar();
+    };
+    const opToets = (e) => {
+      if (e.code !== 'Enter' && e.code !== 'NumpadEnter' && e.code !== 'Space') return;
+      e.preventDefault();
+      af();
+    };
+    const opTik = () => af();
+    window.addEventListener('keydown', opToets);
+    el.laad.addEventListener('pointerdown', opTik);
+    startHaak = af;            // voor de proeven: menu.__start()
+  });
+}
+
+let startHaak = null;
+// testhaak: het laadscherm doorklikken zonder toetsenbord
+export function __start() { if (startHaak) { const f = startHaak; startHaak = null; f(); } }
 
 // Waar main.js op wacht: de eerste keuze uit het menu.
 export function wachtOpKeuze() {
