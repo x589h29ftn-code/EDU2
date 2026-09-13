@@ -15,6 +15,9 @@ export class HUD {
     this.ammo = document.getElementById('ammo');
     this.hint = document.getElementById('hint');
     this.msg = document.getElementById('msg');
+    this.zenderEl = document.getElementById('zender');
+    this.zenderDoek = document.getElementById('zenderlogo');
+    this.zenderT = 0;
     this.levenbalk = document.getElementById('levenbalk');
     this.levenlabel = document.getElementById('levenlabel');
     this.missieEl = document.getElementById('missie');
@@ -130,6 +133,21 @@ export class HUD {
     }
   }
   show(text, t = 2.5) { this.msg.textContent = text; this.msg.style.opacity = 1; this.msgT = t; }
+
+  /*
+   Het logo van de radiozender, een paar tellen boven in beeld — zoals een
+   autoradio die even laat zien waar je naar luistert. `doek` is het canvas van
+   de logotextuur uit js/textures.js; dat wordt hier overgetekend, zodat de HUD
+   niets van three hoeft te weten.
+  */
+  toonZender(doek, t = 3.2) {
+    if (!this.zenderEl || !doek) return;
+    const g = this.zenderDoek.getContext('2d');
+    g.clearRect(0, 0, this.zenderDoek.width, this.zenderDoek.height);
+    g.drawImage(doek, 0, 0, this.zenderDoek.width, this.zenderDoek.height);
+    this.zenderEl.style.opacity = 1;
+    this.zenderT = t;
+  }
 
   // Levensbalk: groen, oranje onder de helft, rood onder een kwart.
   zetLeven(hp) {
@@ -293,6 +311,7 @@ export class HUD {
       this.hint.textContent = (car && !praten) ? 'Druk E om in te stappen' : '';
     }
     if (this.msgT > 0) { this.msgT -= dt; if (this.msgT <= 0) this.msg.style.opacity = 0; }
+    if (this.zenderT > 0) { this.zenderT -= dt; if (this.zenderT <= 0) this.zenderEl.style.opacity = 0; }
     if (this.missieT > 0) { this.missieT -= dt; if (this.missieT <= 0) this.missieEl.style.opacity = 0; }
     if (this.flitsT > 0) { this.flitsT -= dt; if (this.flitsT <= 0) this.flitsEl.style.opacity = 0; }
     this.drawMap(player, vehicles, npcs);

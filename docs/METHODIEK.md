@@ -3180,6 +3180,45 @@ Alles van één soort gaat in één mesh: vier draw calls voor acht kilometer.
 Controle: `npm run scheidingtest` (achttien controles) en `npm run
 scheidingshots`.
 
+**Een tweede zender op de autoradio (stap 48).**
+
+De radio had één zender met één nummer. Er kwam een tweede bij: **Radio
+Spannenburg**, een uitzending van een uur (`audio/radio/spannenburg.mp3`).
+`audio/radio/zenders.json` is nu de lijst, met per zender een naam, een logo en
+zijn nummers; ontbreekt dat bestand, dan valt `js/audio.js` terug op de oude
+`nummers.json`. Met **←** en **→** wissel je van zender zolang je in een auto
+zit, en het logo van de zender komt drie seconden bovenaan het scherm
+(`#zenderlogo` in `index.html`, gevuld vanuit `hud.toonZender()` met een doek dat
+`T.logoTinga()` of `T.bordSpannenburg()` tekent — ook een logo is hier geen
+plaatje maar een canvas).
+
+Drie dingen die niet vanzelf goed gingen:
+
+- *een uur duurt een uur.* Een uitzending die elke keer op 0 begint, hoor je
+  drie keer hetzelfde begin van. Een zender met `doorlopend: true` loopt door
+  alsof hij echt uitzendt: stap je in een auto waar je nog niet in zat, dan valt
+  hij ergens willekeurig in het uur binnen (`Math.random() * (duur - 60)`), en
+  `zenderStand[]` onthoudt per zender waar je gebleven was, per auto
+  (`radioInstap(sleutel)`). Dezelfde auto weer in betekent verder waar je was;
+- *`src` opnieuw zetten zet `currentTime` terug op nul.* De speler laadde bij elk
+  nummerbesluit dezelfde bron opnieuw, en daarmee viel de onthouden plek weg.
+  Nu wordt `src` alleen toegekend als de URL écht anders is, en de plek wordt
+  meteen gezet als `readyState >= 1`, anders bij `loadedmetadata`;
+- *springen in een mp3 vraagt om Range.* `python3 -m http.server` kan geen
+  `Range: bytes=…` en stuurt het hele bestand met status 200; de browser springt
+  dan niet en `currentTime` blijft nul. Daarom staat er nu een eigen servertje,
+  `tools/server.mjs` (`npm run server`), dat 206 met `Content-Range` antwoordt, en
+  heeft `desktop/main.cjs` hetzelfde gekregen voor de Windows-app. GitHub Pages
+  kon het al.
+
+De pijltoetsen stuurden tot nu toe ook de auto; dat doen nu alleen nog **A** en
+**D**, zodat ← en → vrij zijn voor de zender.
+
+Controle: `npm run radiotest` (achttien controles, waaronder: twee zenders in de
+lijst, → wisselt, de nieuwe zender speelt op 3322 s, het logo staat er, een
+andere auto begint ergens anders in het uur, en de server antwoordt Range met
+206).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

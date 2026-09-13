@@ -327,6 +327,7 @@ function toonPaneel(welke) {
       ['V', 'camera: vanuit je ogen of achter je'],
       ['M', 'grote kaart van de wijk'],
       ['in de auto', 'W/S gas en rem · A/D sturen · spatie handrem'],
+      ['← →', 'in de auto: radiozender wisselen'],
       ['F5 / F9', 'opslaan / laden'],
       ['[ ]  \\', 'klok een uur terug, vooruit, of laten lopen'],
       ['Y · U', 'weer wisselen · geluid uit en aan'],

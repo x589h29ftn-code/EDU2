@@ -401,6 +401,35 @@ export function reclamebord(seed = 1) {
 }
 
 /*
+ Het logo van Radio Tinga, de zender met het rockdeuntje. Er bestaat geen echte
+ omroep met die naam — het is de huiszender van dit spel — dus hier staat iets
+ eenvoudigs dat naast het bord van Spannenburg niet uit de toon valt: een
+ donkerblauw vlak met een zendmast erin en het woordmerk ernaast.
+*/
+export function logoTinga() {
+  if (cache.has('logotinga')) return cache.get('logotinga');
+  const W = 512, H = 154;
+  const c = canvas(W, H); const g = c.getContext('2d');
+  g.fillStyle = '#11213a'; g.fillRect(0, 0, W, H);
+  // zendmast met twee golfjes
+  g.strokeStyle = '#ffd400'; g.lineWidth = 7; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(64, 118); g.lineTo(84, 44); g.lineTo(104, 118); g.stroke();
+  g.beginPath(); g.moveTo(72, 92); g.lineTo(96, 92); g.stroke();
+  g.lineWidth = 5;
+  for (const r of [30, 46]) {
+    g.beginPath(); g.arc(84, 40, r, -Math.PI * 0.85, -Math.PI * 0.15); g.stroke();
+  }
+  g.fillStyle = '#ffd400'; g.beginPath(); g.arc(84, 40, 7, 0, Math.PI * 2); g.fill();
+  // woordmerk
+  g.fillStyle = '#f2f4f8';
+  g.font = '700 40px system-ui, sans-serif'; g.textBaseline = 'middle';
+  g.fillText('RADIO', 150, 56);
+  g.font = '800 54px system-ui, sans-serif';
+  g.fillText('TINGA', 150, 104);
+  const t = tex(c); cache.set('logotinga', t); return t;
+}
+
+/*
  Het bord van Radio Spannenburg, de lokale omroep van De Fryske Marren. Er
  staan geen plaatjesbestanden in dit spel — elke texture wordt hier op een canvas
  getekend, net als het Jumbo-woordmerk — dus het logo wordt nagetekend: het

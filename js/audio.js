@@ -23,7 +23,11 @@ let gedempt = false;
 let gepauzeerd = false;   // Esc: alles stil, zie geluid.pauzeer
 
 const bronnen = {};          // langlopende lagen
-let radioLijst = [];         // de nummers uit audio/radio/nummers.json
+let radioLijst = [];         // de nummers van de zender die nu opstaat
+let zenders = [];            // de zenders uit audio/radio/zenders.json
+let zenderNu = 0;            // welke zender opstaat
+let zenderStand = [];        // per zender: waar je gebleven was (seconden)
+let radioAuto = null;        // in welke auto je zat: een andere auto = andere plek in de uitzending
 let lijstGeladen = false;
 let vogelKlok = 0, krekelKlok = 0;
 
@@ -498,17 +502,66 @@ export const geluid = {
    en het mag mislukken — dan blijft het gesynthetiseerde riffje hieronder de
    radio. Zo kun je er een nummer bij zetten zonder aan de code te komen.
   */
-  async laadRadio(pad = 'audio/radio/nummers.json') {
+  async laadRadio(map = 'audio/radio/') {
     if (lijstGeladen) return radioLijst;
     lijstGeladen = true;
+    const bestanden = (lijst) => (lijst || []).filter(n => n && n.bestand).map(n => ({ ...n, url: map + n.bestand }));
     try {
-      const r = await fetch(pad, { cache: 'force-cache' });
-      if (!r.ok) return radioLijst;
-      const j = await r.json();
-      radioLijst = (j.nummers || []).filter(n => n && n.bestand)
-        .map(n => ({ ...n, url: pad.replace(/[^/]*$/, '') + n.bestand }));
-    } catch { /* geen lijst: het riffje blijft */ }
+      const r = await fetch(`${map}zenders.json`, { cache: 'force-cache' });
+      if (r.ok) {
+        const j = await r.json();
+        zenders = (j.zenders || []).map(z => ({ ...z, nummers: bestanden(z.nummers) })).filter(z => z.nummers.length);
+      }
+    } catch { /* geen zenderlijst: dan de oude lijst hieronder */ }
+    if (!zenders.length) {
+      try {
+        const r = await fetch(`${map}nummers.json`, { cache: 'force-cache' });
+        if (r.ok) {
+          const j = await r.json();
+          const n = bestanden(j.nummers);
+          if (n.length) zenders = [{ naam: 'Radio Tinga', logo: 'tinga', nummers: n }];
+        }
+      } catch { /* ook niet: het riffje blijft */ }
+    }
+    zenderStand = zenders.map(() => null);
+    radioLijst = zenders.length ? zenders[zenderNu].nummers : [];
     return radioLijst;
+  },
+
+  // De zenders, voor het menu en de proef.
+  radioZenders() { return zenders.map(z => ({ naam: z.naam, logo: z.logo, nummers: z.nummers.length, doorlopend: !!z.doorlopend })); },
+  radioZender() { return zenders[zenderNu] ? { naam: zenders[zenderNu].naam, logo: zenders[zenderNu].logo, nr: zenderNu } : null; },
+
+  /*
+   Van zender wisselen. De plek in de uitzending van de zender die je verlaat
+   wordt onthouden, zodat je er bij terugkomst weer instapt waar hij was — een
+   radiozender loopt door terwijl jij naar iets anders luistert.
+  */
+  zenderWissel(stap = 1) {
+    if (zenders.length < 2) return this.radioZender();
+    const m = bronnen.muziek;
+    if (m && m.el && !m.stuk) zenderStand[zenderNu] = m.el.currentTime;
+    zenderNu = (zenderNu + stap + zenders.length) % zenders.length;
+    radioLijst = zenders[zenderNu].nummers;
+    if (m) { m.nummer = null; m.zender = zenderNu; }
+    return this.radioZender();
+  },
+
+  /*
+   Je stapt in een auto. Elke auto heeft zijn eigen radio: in dezelfde auto
+   loopt de uitzending door waar hij was, in een andere begint hij ergens
+   anders. Zonder dat hoor je in elke auto weer hetzelfde begin.
+  */
+  radioInstap(sleutel) {
+    const anders = sleutel !== radioAuto;
+    radioAuto = sleutel;
+    if (anders) {
+      const m = bronnen.muziek;
+      if (m) { m.nummer = null; m.nieuweAuto = true; }
+      // een andere auto: ook de onthouden plekken van de zenders vervallen
+      zenderStand = zenders.map(() => null);
+    }
+    return this.radioZender();
   },
 
   // Wat er nu speelt, voor het berichtbalkje: { titel, artiest } of null.
@@ -523,7 +576,8 @@ export const geluid = {
     if (!m) return { speler: false, nummers: radioLijst.length };
     return { speler: true, nummers: radioLijst.length, stuk: !!m.stuk, speelt: !m.el.paused,
       bron: (m.el.src || '').split('/').pop(), tijd: +m.el.currentTime.toFixed(2),
-      duur: isFinite(m.el.duration) ? +m.el.duration.toFixed(0) : null };
+      duur: isFinite(m.el.duration) ? +m.el.duration.toFixed(0) : null,
+      zender: zenders[zenderNu] ? zenders[zenderNu].naam : null, zenders: zenders.length };
   },
 
   /*
@@ -566,13 +620,40 @@ export const geluid = {
     m.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (actief) {
       if (!m.nummer) {
+        const zender = zenders[zenderNu];
         m.nummer = radioLijst[m.beurt % radioLijst.length];
         m.beurt++;
-        m.el.src = m.nummer.url;
-        // niet elke keer bij nul beginnen: een radio speelt door terwijl je loopt
-        m.el.currentTime = 0;
+        /*
+         Alleen een ándere bron laden. Dezelfde url opnieuw toekennen laadt het
+         bestand wéér, en dan gooit die herstart de plek weg die we er net in
+         hadden gezet — precies het geval "je stapt in een andere auto terwijl
+         dezelfde zender opstaat".
+        */
+        const zelfde = m.el.src && m.el.src === new URL(m.nummer.url, location.href).href;
+        if (!zelfde) m.el.src = m.nummer.url;
+        m.zender = zenderNu;
+        /*
+         Waar begint hij? Een doorlopende zender (Radio Spannenburg is een
+         uitzending van een uur) mag nooit steeds bij nul beginnen: dan hoor je
+         in elke auto hetzelfde fragment. Ben je hier al eerder geweest, dan
+         pakt hij de onthouden plek op; stap je in een ándere auto, dan begint
+         hij ergens willekeurig. De duur is pas bekend als de metadata binnen
+         is, dus dat gebeurt in een luisteraar.
+        */
+        const onthouden = zenderStand[zenderNu];
+        const zetPlek = () => {
+          const duur = m.el.duration;
+          if (!isFinite(duur) || duur < 1) return;
+          if (onthouden != null && onthouden < duur - 2) m.el.currentTime = onthouden;
+          else if (zender && zender.doorlopend) m.el.currentTime = Math.random() * Math.max(1, duur - 60);
+        };
+        if (zelfde && m.el.readyState >= 1) zetPlek();
+        else m.el.addEventListener('loadedmetadata', zetPlek, { once: true });
+        m.nieuweAuto = false;
       }
       if (m.el.paused) m.el.play().catch(() => { m.stuk = true; });
+      // waar hij is, voor de volgende keer dat je van zender wisselt
+      if (m.zender === zenderNu) zenderStand[zenderNu] = m.el.currentTime;
     } else if (!m.el.paused) {
       m.el.pause();
     }

@@ -390,9 +390,14 @@ export class Vehicles {
     const wielbasis = (car.as || 1.4) * 2;
 
     // ---- sturen: bij stilstand vol, op snelheid nog een kwart ----
+    /*
+     Sturen met A en D. De pijltjes naar links en rechts stuurden hier ook mee,
+     maar die wisselen sinds de tweede radiozender van zender (js/main.js) —
+     anders stuur je de berm in terwijl je Radio Spannenburg zoekt.
+    */
     let doel = 0;
-    if (keys.KeyA || keys.ArrowLeft) doel = 1;
-    if (keys.KeyD || keys.ArrowRight) doel = -1;
+    if (keys.KeyA) doel = 1;
+    if (keys.KeyD) doel = -1;
     const maxStuur = 0.60 * (0.26 + 0.74 / (1 + Math.abs(car.speed) / 8));
     car.steer += (doel * maxStuur - car.steer) * Math.min(1, dt * 8);
 

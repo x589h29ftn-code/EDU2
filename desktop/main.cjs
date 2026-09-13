@@ -32,10 +32,29 @@ function startServer() {
       const file = path.join(APP_DIR, rel === '/' ? 'index.html' : rel);
       // niet buiten de app-map lezen
       if (!file.startsWith(APP_DIR)) { res.writeHead(403).end(); return; }
-      fs.readFile(file, (err, buf) => {
-        if (err) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('niet gevonden'); return; }
-        res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
-        res.end(buf);
+      /*
+       Range-verzoeken. Zonder dit kan de browser niet in een bestand springen,
+       en dan blijft Radio Spannenburg — een uitzending van een uur — altijd bij
+       nul beginnen: `currentTime` zetten doet dan niets. Met een 206 en het
+       gevraagde stuk erin werkt het wel.
+      */
+      fs.stat(file, (err, st) => {
+        if (err || !st.isFile()) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('niet gevonden'); return; }
+        const type = MIME[path.extname(file)] || 'application/octet-stream';
+        const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+        if (m) {
+          const van = m[1] ? Number(m[1]) : Math.max(0, st.size - Number(m[2]));
+          const tot = m[2] && m[1] ? Math.min(Number(m[2]), st.size - 1) : st.size - 1;
+          if (van >= st.size || van > tot) { res.writeHead(416, { 'Content-Range': `bytes */${st.size}` }).end(); return; }
+          res.writeHead(206, {
+            'Content-Type': type, 'Content-Length': tot - van + 1,
+            'Content-Range': `bytes ${van}-${tot}/${st.size}`, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store',
+          });
+          fs.createReadStream(file, { start: van, end: tot }).pipe(res);
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': type, 'Content-Length': st.size, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store' });
+        fs.createReadStream(file).pipe(res);
       });
     });
     server.listen(0, '127.0.0.1', () => resolve(server.address().port));

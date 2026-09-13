@@ -13,6 +13,7 @@
   "scripts": {
     "start": "python3 -m http.server 8123",
     "desktop": "electron .",
+    "server": "node tools/server.mjs",
     "dist:win": "node tools/pack.mjs win32 x64",
     "shots": "node tools/screenshot.mjs",
     "dist:linux": "node tools/pack.mjs linux x64",

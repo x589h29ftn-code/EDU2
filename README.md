@@ -24,15 +24,18 @@ Lokaal draaien kan ook. Het spel heeft geen build-stap, maar omdat het ES-module
 via een webserver geladen worden (niet via `file://`):
 
 ```bash
-python3 -m http.server 8000
-# open daarna http://localhost:8000/
+npm run server        # node tools/server.mjs, op http://localhost:8123/
 ```
 
-Of gebruik een andere statische server (`npx serve`, VS Code Live Server, GitHub Pages).
+Of een andere statische server (`npx serve`, VS Code Live Server, GitHub Pages). Eén ding moet die
+server wel kunnen: **Range-verzoeken**. `python3 -m http.server` kan dat niet, en dan kan de browser
+niet in een geluidsbestand springen — Radio Spannenburg (een uitzending van een uur) begint dan altijd
+bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 
 | Toets | Actie |
 |---|---|
 | W A S D | lopen (shift = sprinten, spatie = springen) |
+| ← → | in de auto: radiozender wisselen |
 | muis | rondkijken · linkermuisknop = schieten · R = herladen · H = pistool weg en weer tevoorschijn |
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
@@ -454,15 +457,27 @@ hele wereld; wat er wél per stuk bij komt is een botsdoos. `npm run scheidingte
 
 ## De autoradio
 
-Zodra je in een auto stapt speelt de radio een nummer uit `audio/radio/`, door dezelfde smalle band als
-het gesynthetiseerde deuntje dat er eerst zat: hoogdoorlaat op 190 Hz, laagdoorlaat op 3,4 kHz. Zo klinkt
-het uit de speakers in het portier en niet als een concert, en het zakt weg onder het jachtdeuntje van het
-verhaal. De titel staat even in het balkje. Een nummer toevoegen is een regel in
-`audio/radio/nummers.json` — mp3, ogg of m4a; is er niets of laadt het niet, dan neemt het
-gesynthetiseerde riffje het weer over. `npm run radiotest` loopt dat na.
+Zodra je in een auto stapt speelt de radio, door dezelfde smalle band als het gesynthetiseerde deuntje dat
+er eerst zat: hoogdoorlaat op 190 Hz, laagdoorlaat op 3,4 kHz. Zo klinkt het uit de speakers in het portier
+en niet als een concert, en het zakt weg onder het jachtdeuntje van het verhaal.
 
-Het nummer dat er nu in staat is een plaatshouder waarop rechten rusten; voor een openbare versie hoort
-daar eigen of rechtenvrij werk te staan.
+Er zijn **twee zenders**, en met de **pijltjes naar links en rechts** wissel je ertussen zolang je achter
+het stuur zit:
+
+- **Radio Tinga** — de huiszender, met het rocknummer;
+- **Radio Spannenburg** — de lokale omroep van De Fryske Marren, een uitzending van een uur.
+
+Bij het instappen en bij het wisselen komt het **logo van de zender** een paar tellen boven in beeld.
+Een doorlopende zender begint nooit bij nul: stap je in een andere auto, dan val je ergens middenin de
+uitzending binnen; stap je weer in dezelfde auto, dan loopt hij door waar hij was. En wissel je van zender
+en weer terug, dan is die ondertussen ook doorgelopen — net als een echte radio.
+
+De zenders staan in `audio/radio/zenders.json`: naam, logo, en de bestanden (mp3, ogg of m4a). Is dat
+bestand er niet, dan valt hij terug op `nummers.json`, en anders op het gesynthetiseerde riffje.
+`npm run radiotest` loopt het allemaal na (achttien controles).
+
+Wat er nu in staat zijn plaatshouders waarop rechten rusten; voor een openbare versie hoort daar eigen of
+rechtenvrij werk te staan.
 
 ## Camera over je schouder
 

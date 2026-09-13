@@ -6,7 +6,17 @@
  klinkt dus als een concert in plaats van uit de portierspeakers. En als er géén
  muziek is moet het gesynthetiseerde riffje het overnemen — dat is de terugval.
 
- Gebruik: python3 -m http.server 8123 &  node tools/radiotest.mjs 8123
+ Sinds er twee zenders zijn (Radio Tinga met het rocknummer en Radio
+ Spannenburg, een uitzending van een uur) komt daar bij: de zenderlijst moet
+ kloppen, met de pijltjes wissel je van zender, en een doorlopende zender mag
+ niet elke keer bij nul beginnen — in een andere auto hoor je een ander stuk.
+
+ Let op de server: `python3 -m http.server` kent geen Range-verzoeken, en dan
+ kan de browser niet in een bestand springen — een uitzending van een uur begint
+ dan altijd bij nul. Gebruik hier dus tools/server.mjs, die dat wél kan (net als
+ GitHub Pages en de Electron-schil).
+
+ Gebruik: node tools/server.mjs 8123 &  node tools/radiotest.mjs 8123
 */
 import { chromium } from 'playwright';
 
@@ -32,8 +42,9 @@ await page.waitForFunction(() => window.__game, null, { timeout: 300000 });
 
 kop('de afspeellijst');
 const lijst = await page.evaluate(async () => {
-  const r = await fetch('audio/radio/nummers.json');
+  const r = await fetch('audio/radio/zenders.json');
   const j = await r.json();
+  j.nummers = (j.zenders || []).flatMap(z => z.nummers || []);
   const uit = [];
   for (const n of j.nummers || []) {
     const h = await fetch('audio/radio/' + n.bestand, { method: 'HEAD' });
@@ -77,6 +88,66 @@ ok(rit.inAuto.tijd > 0.2, 'de muziek loopt ook echt door', `${rit.inAuto.tijd} s
 ok(!!rit.inAuto.nummer && !!rit.inAuto.nummer.titel, 'en het spel weet welk nummer het is',
   rit.inAuto.nummer ? `${rit.inAuto.nummer.titel} — ${rit.inAuto.nummer.artiest}` : '');
 ok(!rit.buiten.speelt, 'stap je uit, dan stopt hij', `speelt: ${rit.buiten.speelt}`);
+
+kop('twee zenders, en wisselen met de pijltjes');
+const zend = await page.evaluate(async () => {
+  const { geluid } = await import('/js/audio.js');
+  const g = window.__game;
+  const auto = g.vehicles.cars.find(c => c.driveable);
+  const lijst = geluid.radioZenders();
+  // instappen in auto A en even luisteren
+  geluid.radioInstap('autoA');
+  g.player.inCar = auto;
+  geluid.autoradio(true);
+  await new Promise(r => setTimeout(r, 1200));
+  const eerste = geluid.radioStand();
+  // wisselen met het pijltje naar rechts
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowRight', bubbles: true }));
+  geluid.autoradio(true);
+  await new Promise(r => setTimeout(r, 1800));
+  const tweede = geluid.radioStand();
+  /*
+   De dekking van de stijl zelf en niet die uit getComputedStyle: dat laatste
+   geeft de waarde midden in de overgang terug, en in een headless browser die
+   één beeld per seconde haalt staat die overgang soms nog op nul.
+  */
+  const logoZichtbaar = +document.getElementById('zender').style.opacity;
+  const logoKlok = window.__game.hud ? window.__game.hud.zenderT : 'geen hud';
+  /*
+   Een doorlopende zender mag in een andere auto niet bij nul beginnen. Uitstappen,
+   in een andere auto stappen, en kijken waar hij dan begint.
+  */
+  g.player.inCar = null; geluid.autoradio(false);
+  await new Promise(r => setTimeout(r, 300));
+  geluid.radioInstap('autoB');
+  g.player.inCar = auto;
+  geluid.autoradio(true);
+  await new Promise(r => setTimeout(r, 1800));
+  const andereAuto = geluid.radioStand();
+  g.player.inCar = null; geluid.autoradio(false);
+  return { lijst, eerste, tweede, andereAuto, logoZichtbaar: +logoZichtbaar, logoKlok };
+});
+ok(zend.lijst.length >= 2, 'er staan twee zenders in de lijst',
+  zend.lijst.map(z => z.naam).join(' · '));
+ok(zend.lijst.some(z => z.doorlopend), 'een ervan is een doorlopende uitzending',
+  zend.lijst.filter(z => z.doorlopend).map(z => z.naam).join(', '));
+ok(zend.eerste.zender !== zend.tweede.zender, 'met het pijltje naar rechts sta je op de andere zender',
+  `${zend.eerste.zender} → ${zend.tweede.zender}`);
+ok(zend.tweede.speelt && zend.tweede.bron !== zend.eerste.bron, 'en die speelt ook echt',
+  `${zend.tweede.bron} op ${zend.tweede.tijd}s`);
+ok(zend.logoZichtbaar > 0.5, 'het logo van de zender komt in beeld',
+  `dekking ${zend.logoZichtbaar}, klok ${zend.logoKlok}`);
+ok(zend.andereAuto.tijd > 30, 'in een andere auto begint de uitzending ergens anders',
+  `op ${zend.andereAuto.tijd}s van ${zend.andereAuto.duur}s`);
+
+kop('de server kan springen');
+const springen = await page.evaluate(async () => {
+  const r = await fetch('audio/radio/spannenburg.mp3', { headers: { Range: 'bytes=100-200' } });
+  return { status: r.status, lengte: (await r.arrayBuffer()).byteLength };
+});
+ok(springen.status === 206 && springen.lengte === 101,
+  'de server geeft een stuk uit het bestand terug (Range) — anders kun je nergens in springen',
+  `status ${springen.status}, ${springen.lengte} bytes`);
 
 kop('de klank van een autoradio');
 const keten = await page.evaluate(async () => {

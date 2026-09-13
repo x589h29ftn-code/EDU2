@@ -18,6 +18,11 @@
   #ammo { position: absolute; right: 24px; bottom: 170px; font-size: 22px; font-weight: 700; }
   #hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); font-size: 14px; opacity: .85; white-space: nowrap; }
   #msg { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); font-size: 26px; font-weight: 700; opacity: 0; transition: opacity .3s; }
+  /* de zender: logo boven in beeld, een paar tellen zichtbaar */
+  #zender { position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
+            opacity: 0; transition: opacity .35s; pointer-events: none;
+            background: rgba(5,8,14,.55); padding: 6px; border-radius: 8px; }
+  #zenderlogo { display: block; width: 256px; height: 77px; border-radius: 4px; }
   /* gesprekken: een tekstbalk onderin het scherm, door te klikken met E */
   #dialoog { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%);
              width: min(760px, 88vw); box-sizing: border-box; padding: 10px 16px;
@@ -228,6 +233,8 @@
   <div id="ammo"></div>
   <div id="hint"></div>
   <div id="msg"></div>
+  <!-- het logo van de radiozender, kort in beeld als je instapt of wisselt -->
+  <div id="zender"><canvas id="zenderlogo" width="256" height="77"></canvas></div>
   <div id="raakflits"></div>
   <div id="dronken"></div>
   <div id="opdracht" hidden></div>

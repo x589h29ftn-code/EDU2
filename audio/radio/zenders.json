@@ -1,0 +1,29 @@
+{
+  "_uitleg": "De zenders van de autoradio. Met de pijltjes naar links en rechts wissel je van zender zodra je achter het stuur zit. Elke zender heeft een naam, een logo (`tinga` of `spannenburg`, getekend in js/textures.js) en een lijst bestanden in deze map. Zet `doorlopend` op true voor een zender die geen afspeellijst is maar een uitzending van een uur: die begint dan op een willekeurige plek als je in een andere auto stapt, en loopt door waar je gebleven was als je weer in dezelfde auto stapt. Is dit bestand er niet, dan valt de radio terug op nummers.json en anders op het gesynthetiseerde riffje uit js/audio.js. Let op de rechten: deze map gaat mee in een openbare repo.",
+  "zenders": [
+    {
+      "naam": "Radio Tinga",
+      "logo": "tinga",
+      "nummers": [
+        {
+          "bestand": "snow-hey-oh.mp3",
+          "titel": "Snow (Hey Oh)",
+          "artiest": "Red Hot Chili Peppers"
+        }
+      ]
+    },
+    {
+      "naam": "Radio Spannenburg",
+      "logo": "spannenburg",
+      "doorlopend": true,
+      "nummers": [
+        {
+          "bestand": "spannenburg.mp3",
+          "titel": "Radio Spannenburg",
+          "artiest": "de omroep van De Fryske Marren",
+          "bron": "aangeleverd door de gebruiker, chat 13 sep 2026"
+        }
+      ]
+    }
+  ]
+}

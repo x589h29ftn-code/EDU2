@@ -18,7 +18,7 @@ import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
-import { zetAnisotropie, zetReliëf } from './textures.js';
+import { zetAnisotropie, zetReliëf, bordSpannenburg, logoTinga } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
 import * as menu from './menu.js';
 
@@ -580,6 +580,12 @@ function toggleCar() {
       if (!derde.aan) derde.wissel();
       derde.achterAuto(car);
       geluid.portier(); geluid.motorAan();
+      /*
+       Elke auto heeft zijn eigen radio. Stap je in een ándere auto, dan begint
+       een doorlopende zender ergens willekeurig in de uitzending; stap je weer
+       in dezelfde, dan loopt hij door waar hij was. Het logo komt kort in beeld.
+      */
+      toonZenderLogo(geluid.radioInstap(car.id ?? car.uuid ?? vehicles.cars.indexOf(car)));
       hud.show('Ingestapt – W om te rijden · V voor de camera vanuit je ogen', 3);
     }
   }
@@ -653,6 +659,24 @@ window.addEventListener('keydown', e => {
   renderer.setPixelRatio(pixelVerhouding(scherpte));
   resize();
   hud.show(`Scherpte: ${scherpte} (${pixelVerhouding(scherpte).toFixed(2)}×)`, 2);
+});
+
+/*
+ De radiozender: met de pijltjes naar links en rechts wissel je van zender
+ zolang je achter het stuur zit. Sturen doe je met A en D — de pijltjes deden
+ dat in de auto ook, en die taak nemen ze hier over; te voet blijven ze gewoon
+ zijwaarts lopen.
+*/
+function toonZenderLogo(z) {
+  if (!z) return;
+  const doek = (z.logo === 'spannenburg' ? bordSpannenburg() : logoTinga()).image;
+  hud.toonZender(doek);
+}
+window.addEventListener('keydown', e => {
+  if (!player.inCar || e.ctrlKey || e.metaKey) return;
+  if (e.code !== 'ArrowLeft' && e.code !== 'ArrowRight') return;
+  e.preventDefault();
+  toonZenderLogo(geluid.zenderWissel(e.code === 'ArrowRight' ? 1 : -1));
 });
 
 // Geluid uit en aan
