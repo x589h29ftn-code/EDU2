@@ -3400,6 +3400,26 @@ View-links maakt, zonder browser) gegarandeerd hetzelfde standpunt gebruikt als
 het gereedschap dat er een foto van het spel bij rendert. De lijst staat in
 `docs/steekproef/ronde3.md`.
 
+**Het schap bij Tinga State (stap 52).**
+
+Er lag één doos kogels op toets E, en daar kwam het machinegeweer op F bij. Met
+een verbandtrommel en een pistool erbij wordt dat een toetsenbord vol losse
+afspraken. Het is nu een lijst: elk artikel weet zelf wat het kost, of het nog
+zin heeft om aangeboden te worden, en wat er gebeurt als je het koopt. Aan de
+toonbank staat die lijst genummerd in beeld en je koopt met de cijfertoets van
+dat nummer. Er kan iets bij zonder dat er een toets bij hoeft.
+
+Twee keuzes die er in zitten. De **verbandtrommel** vult altijd tot precies vol
+en geen punt meer; wie al fit is krijgt hem niet verkocht en betaalt dus ook
+niets — die staat dan ook niet meer in de lijst, en de nummers schuiven op. Wat
+je ziet is wat je indrukt. Het **pistool** ligt in het schap maar je hebt er al
+een bij het begin van het spel, dus hij staat er grijs bij als *in bezit*; raak
+je er ooit een kwijt — bijvoorbeeld bij een aanhouding, zie docs/PLAN.md — dan
+staat hij vanzelf weer op de lijst.
+
+Controle: `npm run winkeltest` (de negen nieuwe controles staan onder *het schap
+aan de toonbank*).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

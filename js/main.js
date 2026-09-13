@@ -663,14 +663,20 @@ window.addEventListener('keydown', e => {
 });
 
 /*
- F: het machinegeweer kopen aan de toonbank bij Tinga State. Het gaat rechtstreeks
- naar de boerderij en niet langs `binnenruimtes`, want de andere ruimtes kennen
- alleen E — die zouden op F hun eigen deur opendoen.
+ De cijfers 1 tot en met 4 kopen aan de toonbank bij Tinga State het artikel met
+ dat nummer: kogels, een verbandtrommel, een pistool, een machinegeweer. F doet
+ nog steeds het machinegeweer, want daar zat hij op.
+
+ Het gaat rechtstreeks naar de boerderij en niet langs `binnenruimtes`: de
+ andere ruimtes kennen alleen E en zouden op een cijfer hun eigen deur opendoen.
 */
 window.addEventListener('keydown', e => {
-  if (e.code !== 'KeyF' || e.ctrlKey || e.metaKey) return;
+  if (e.ctrlKey || e.metaKey) return;
   if (!player.active && !window.__autoplay) return;
-  if (boerderij.toets) boerderij.toets('F');
+  if (!boerderij.toets) return;
+  if (e.code === 'KeyF') { boerderij.toets('F'); return; }
+  const cijfer = /^Digit([1-9])$/.exec(e.code) || /^Numpad([1-9])$/.exec(e.code);
+  if (cijfer) boerderij.toets(cijfer[1]);
 });
 
 /*

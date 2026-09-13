@@ -185,8 +185,20 @@ const gestart = await page.evaluate(() => ({
 }));
 ok(gestart.actief, 'de speler is actief');
 ok(gestart.menuWeg, 'en het menu is uit beeld');
-await page.waitForTimeout(1200);
-const muziekInSpel = await page.evaluate(async () => (await import('/js/menu.js')).muziekStand());
+/*
+ Wachten tot het deuntje echt uit is in plaats van een vaste twaalf tienden.
+ De fade loopt op een `setInterval` van vijfentwintig milliseconde, en in de
+ proefopstelling (een softwarerenderer die één beeld per seconde haalt) worden
+ timers zwaar afgeknepen: dan staat hij na 1,2 seconde nog op een kwart en valt
+ de proef om, terwijl er in het spel niets mis is. Nu krijgt hij er acht
+ seconden voor — haalt hij het niet, dan is er wél iets mis.
+*/
+const lees = () => page.evaluate(async () => (await import('/js/menu.js')).muziekStand());
+let muziekInSpel = await lees();
+for (let i = 0; i < 40 && muziekInSpel.speelt && muziekInSpel.volume >= 0.02; i++) {
+  await page.waitForTimeout(200);
+  muziekInSpel = await lees();
+}
 ok(!muziekInSpel.speelt || muziekInSpel.volume < 0.02, 'en het menudeuntje is uitgefadet',
   `volume ${muziekInSpel.volume}`);
 

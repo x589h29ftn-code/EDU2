@@ -16,6 +16,10 @@ brondata reikt, en dus ook de buitengrens van de wereld.
 |---|---|
 | ![Morrahemstraat](docs/screenshots/wereld_overkant.png) | ![Partuurstraat](docs/screenshots/wereld_zuid.png) |
 
+> **Waar dit heen kan** — de plannen voor slimmere politie (omsingelen, onderscheppen,
+> wegversperringen, aanhouden) en wat er verder bij zou kunnen (een fiets, een boot, klusjes,
+> verstopte molentjes) staan in **[docs/PLAN.md](docs/PLAN.md)**.
+
 ## Spelen
 
 Het spel staat online op GitHub Pages: **https://x589h29ftn-code.github.io/EDU2/**
@@ -40,7 +44,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | muis | rondkijken · linkermuisknop = schieten (het machinegeweer schiet door zolang je hem vasthoudt) · R = herladen · H = wapen weg en weer tevoorschijn |
 | scrollwiel | wisselen tussen het pistool en het machinegeweer; het icoon van het wapen staat kort rechtsonder |
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto |
-| F | aan de toonbank bij Tinga State: het machinegeweer kopen (€ 500) |
+| 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, verband, wapens) |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
 | portemonnee | rechtsonder; je begint met € 50 en verdient de rest met missies |
@@ -1286,7 +1290,7 @@ hun maten en richting, de belijning, de doelen, de bordenring, het erlangs en er
 volkstuinen — binnen het perceel, de grasrand, de paden, de schuurtjes en of je er doorheen kunt
 lopen. `npm run sportshots` maakt de foto's hierboven.
 
-## Naar binnen bij Tinga State: munitie kopen
+## Naar binnen bij Tinga State: kogels, verband en wapens
 
 De stelpboerderij aan de Molenkrite is de tweede plek waar je naar binnen kunt. Ga voor de zwarte
 schuurdeur staan en druk op **E**:
@@ -1299,13 +1303,21 @@ achterin liggen hooibalen.
 
 ![De deel van binnen](docs/screenshots/boerderij_deel.png)
 
-Aan de toonbank staat een verkoper. Voor **€ 50** krijg je **100 kogels**; het geld gaat meteen van je
-portemonnee af. Sta je bij de bank, dan staat de prijs onderin beeld en reken je af met **E**. Heb je
-het niet, dan zegt hij dat ook. Meer dan 600 kogels krijg je niet in je tas.
+Aan de toonbank staat een verkoper met een **schap**. Wat er ligt staat genummerd onderin beeld, en je
+koopt het met de **cijfertoets** van dat nummer (**E** pakt het eerste, de kogels):
 
-Hij verkoopt er sinds kort ook een **machinegeweer** bij, voor **€ 500**, met **F** — één keer, want
-daarna heb je hem. Hij komt meteen in je handen met een vol magazijn uit je eigen voorraad; wisselen
-doe je daarna met het scrollwiel (zie [De wapens](#de-wapens)).
+| | artikel | prijs | |
+|---|---|---|---|
+| 1 | 100 kogels | € 50 | meer dan 600 krijg je niet in je tas |
+| 2 | verbandtrommel | € 25 | **+50 levenspunten**, nooit meer dan vol — sta je op 80, dan word je 100 |
+| 3 | pistool | € 150 | alleen als je er geen hebt; anders staat hij als *in bezit* in de vitrine |
+| 4 | machinegeweer | € 500 | één keer; wisselen daarna met het scrollwiel |
+
+De lijst is precies wat er te koop is: ben je al helemaal fit, dan verdwijnt de verbandtrommel eruit
+en schuiven de nummers op — wat je ziet is wat je indrukt. Een wapen dat je al hebt staat er grijs bij
+als *in bezit*, zodat je ziet dát de verkoper het heeft. Heb je te weinig geld, dan zegt hij dat, en
+er gaat niets af. Een gekocht wapen komt meteen in je handen met een vol magazijn uit je eigen
+voorraad kogels (zie [De wapens](#de-wapens)).
 
 ![De toonbank](docs/screenshots/boerderij_toonbank.png)
 

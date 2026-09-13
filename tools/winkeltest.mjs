@@ -137,6 +137,83 @@ ok(koop.naKogels === koop.voorKogels + 100, 'je krijgt honderd kogels',
 ok(koop.naGeld === koop.voorGeld - 50, 'en er gaat vijftig euro af',
   `€ ${koop.voorGeld} → € ${koop.naGeld}`);
 
+// ---------- 4b. het schap: kogels, verband, pistool, machinegeweer ----------
+kop('het schap aan de toonbank');
+const schap = await page.evaluate(async () => {
+  const g = window.__game, b = g.boerderij;
+  const B = await import('/js/boerderij.js');
+  window.__zet(b.plekken.toonbank);
+  // wat er in de portemonnee zat blijft van de volgende proef: aan het eind
+  // wordt het verschil weer afgerekend
+  const geldBegin = g.verhaal.geld;
+  g.verhaal.verdien(2000);
+  const beginSchap = b.schap.map(a => a.sleutel);
+  const beginBezit = b.inBezit.slice();
+
+  // 1. een verbandtrommel als je gewond bent
+  g.player.health = 40; g.hud.zetLeven(40);
+  b.update(0.1, false);
+  const hintGewond = (() => { const e = document.getElementById('praat'); return e.hidden ? '' : e.textContent; })();
+  const nrEhbo = b.schap.findIndex(a => a.sleutel === 'ehbo') + 1;
+  const geldVoor = g.verhaal.geld;
+  const gebruikt = b.toets(String(nrEhbo));
+  const naEen = { leven: g.player.health, betaald: geldVoor - g.verhaal.geld };
+  // nog een keer: hij mag nooit boven het maximum uitkomen
+  b.toets(String(Math.max(1, b.schap.findIndex(a => a.sleutel === 'ehbo') + 1)));
+  const naTwee = g.player.health;
+  // en vol is vol: dan verkoopt hij hem niet en kost het niets
+  const geldVol = g.verhaal.geld;
+  const vol = b.koopLeven();
+  const naVol = { leven: g.player.health, betaald: geldVol - g.verhaal.geld };
+  // het verband staat er dan ook niet meer bij
+  b.update(0.1, false);
+  const hintFit = (() => { const e = document.getElementById('praat'); return e.hidden ? '' : e.textContent; })();
+
+  // 2. het machinegeweer
+  const mp = b.koopWapen('mitrailleur');
+  const naKoop = { schap: b.schap.map(a => a.sleutel), bezit: b.inBezit.slice() };
+
+  // 3. en het pistool, als je er geen hebt
+  g.player.wapens = ['mitrailleur']; g.player.wapenNr = 0;
+  const zonderPistool = b.schap.find(a => a.sleutel === 'pistool');
+  const nrPistool = b.schap.findIndex(a => a.sleutel === 'pistool') + 1;
+  const geldPistool = g.verhaal.geld;
+  b.toets(String(nrPistool));
+  const naPistool = { wapens: g.player.wapens.slice(), betaald: geldPistool - g.verhaal.geld };
+
+  // de portemonnee weer op zijn oude stand, anders koopt de volgende proef
+  // ("met een lege portemonnee koop je niets") gewoon door
+  if (g.verhaal.geld > geldBegin) g.verhaal.betaal(g.verhaal.geld - geldBegin);
+
+  return {
+    beginSchap, beginBezit, hintGewond, nrEhbo, gebruikt, naEen, naTwee, vol, naVol, hintFit,
+    mp, naKoop, prijsPistool: zonderPistool ? zonderPistool.prijs : null, naPistool,
+    prijzen: { munitie: B.MUNITIE.prijs, ehbo: B.EHBO.prijs, pistool: B.PISTOOL.prijs, mp: B.MITRAILLEUR.prijs },
+    maxLeven: B.MAX_LEVEN, punten: B.EHBO.punten,
+  };
+});
+ok(schap.beginSchap[0] === 'munitie' && schap.beginSchap.includes('mitrailleur'),
+  'het schap is een genummerde lijst', schap.beginSchap.join(', '));
+ok(schap.beginBezit.includes('pistool'),
+  'het pistool dat je al hebt staat er als "in bezit" bij, niet als koopje',
+  schap.beginBezit.join(', '));
+ok(/1 —/.test(schap.hintGewond) && /verband/i.test(schap.hintGewond),
+  'gewond staat de verbandtrommel in de lijst', schap.hintGewond);
+ok(schap.gebruikt && schap.naEen.leven === 90 && schap.naEen.betaald === schap.prijzen.ehbo,
+  `een verbandtrommel geeft ${schap.punten} levenspunten voor € ${schap.prijzen.ehbo}`,
+  `40 → ${schap.naEen.leven} leven, € ${schap.naEen.betaald} betaald`);
+ok(schap.naTwee === schap.maxLeven, 'en nooit meer dan vol', `${schap.naTwee} van ${schap.maxLeven}`);
+ok(schap.vol === 'vol' && schap.naVol.betaald === 0,
+  'wie al fit is krijgt er geen verkocht, en betaalt dus ook niets',
+  `${schap.naVol.leven} leven, € ${schap.naVol.betaald} betaald`);
+ok(!/verband/i.test(schap.hintFit), 'dan staat hij ook niet meer in de lijst', schap.hintFit);
+ok(schap.mp === 'ok' && schap.naKoop.bezit.includes('machinegeweer'),
+  'het machinegeweer koop je één keer en staat daarna als "in bezit"',
+  schap.naKoop.bezit.join(', '));
+ok(schap.prijsPistool === schap.prijzen.pistool && schap.naPistool.wapens.includes('pistool'),
+  `zonder pistool ligt er een in de vitrine voor € ${schap.prijzen.pistool}`,
+  `€ ${schap.naPistool.betaald} betaald, nu ${schap.naPistool.wapens.join(' en ')}`);
+
 // ---------- 5. zonder geld geen kogels ----------
 const arm = await page.evaluate(() => {
   const g = window.__game;

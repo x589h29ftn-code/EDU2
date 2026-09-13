@@ -38,12 +38,26 @@ const UIT_VOOR = 3.0;      // zover voor de gevel kom je weer buiten
 const TOONBANK_H = 1.05;
 const TOONBANK_BEREIK = 3.2;
 
-// ---------- de handel ----------
+/* ---------- de handel ----------------------------------------------------
+ Wat er achter de toonbank ligt. Het was één doos kogels op toets E, en daar
+ kwam het machinegeweer op F bij. Met een derde en een vierde artikel wordt dat
+ een toetsenbord vol losse afspraken, dus het is nu een **schap**: een lijst
+ waar de verkoper alles uit haalt, en je kiest met de cijfertoetsen 1 tot 4.
+ Wat er te koop is staat daarmee op één plek, en er kan iets bij zonder dat er
+ een toets bij hoeft.
+
+ Elk artikel heeft een `koop(ctx)` die 'ok', 'arm' (te weinig geld), 'vol' of
+ 'heeft' teruggeeft, en een `beschikbaar(ctx)` die zegt of het nog zin heeft het
+ aan te bieden — een machinegeweer dat je al hebt hoort niet meer in de lijst.
+*/
 export const MUNITIE = { prijs: 50, kogels: 100 };
-// Achter de toonbank ligt sinds 13 september 2026 ook een machinegeweer. Vijf
-// keer de prijs van een doos kogels, en je koopt hem één keer: daarna wissel je
-// er met het scrollwiel tussen (js/player.js).
 export const MITRAILLEUR = { prijs: 500, soort: 'mitrailleur', naam: 'Machinegeweer' };
+export const PISTOOL = { prijs: 150, soort: 'pistool', naam: 'Pistool' };
+// Een verbandtrommel: vijftig levenspunten voor vijfentwintig euro, en nooit
+// meer dan vol. Wie al fit is koopt hem niet — dan gooi je je geld weg.
+export const EHBO = { prijs: 25, punten: 50 };
+export const MAX_LEVEN = 100;
+export const MAX_RESERVE = 600;
 
 // ---------- kleine texturehulpjes ----------
 function doek(w, h) {
@@ -460,52 +474,151 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
   }
 
   /*
-   Munitie kopen. Levert 'ok', 'arm' (te weinig geld) of 'vol' (je reserve zit
-   al aan het maximum). Ook los aan te roepen vanuit de proef.
+   Het schap. Elk artikel weet zelf wat het kost, of het nog zin heeft om het
+   aan te bieden, en wat er gebeurt als je het koopt. `koop(n)` hieronder pakt
+   het n-de artikel dat op dat moment in de lijst staat.
+
+   De uitkomsten zijn overal hetzelfde: 'ok', 'arm' (te weinig geld), 'vol' (je
+   kunt het niet meer opbergen) of 'heeft' (je hebt het al).
   */
-  const MAX_RESERVE = 600;
-  function koop() {
-    if (player.reserve >= MAX_RESERVE) {
-      hud.melding('Je tas zit vol', `Meer dan ${MAX_RESERVE} kogels krijg je er niet in.`, 3);
-      return 'vol';
-    }
-    if (!verhaal.betaal || !verhaal.betaal(MUNITIE.prijs)) {
-      hud.melding('Te weinig geld', `Een doos van ${MUNITIE.kogels} kogels kost € ${MUNITIE.prijs}.`, 3);
-      return 'arm';
-    }
-    player.reserve = Math.min(MAX_RESERVE, player.reserve + MUNITIE.kogels);
-    hud.melding(`${MUNITIE.kogels} kogels gekocht`, `€ ${MUNITIE.prijs} betaald bij Tinga State.`, 3);
-    return 'ok';
+  const betaal = (bedrag) => !!(verhaal.betaal && verhaal.betaal(bedrag));
+
+  const SCHAP = [
+    {
+      sleutel: 'munitie',
+      naam: `${MUNITIE.kogels} kogels`,
+      prijs: MUNITIE.prijs,
+      beschikbaar: () => true,
+      koop() {
+        if (player.reserve >= MAX_RESERVE) {
+          hud.melding('Je tas zit vol', `Meer dan ${MAX_RESERVE} kogels krijg je er niet in.`, 3);
+          return 'vol';
+        }
+        if (!betaal(MUNITIE.prijs)) {
+          hud.melding('Te weinig geld', `Een doos van ${MUNITIE.kogels} kogels kost € ${MUNITIE.prijs}.`, 3);
+          return 'arm';
+        }
+        player.reserve = Math.min(MAX_RESERVE, player.reserve + MUNITIE.kogels);
+        hud.melding(`${MUNITIE.kogels} kogels gekocht`, `€ ${MUNITIE.prijs} betaald bij Tinga State.`, 3);
+        return 'ok';
+      },
+    },
+    {
+      /*
+       De verbandtrommel. Vijftig punten voor vijfentwintig euro, en nooit meer
+       dan vol: sta je op tachtig, dan krijg je er twintig bij en betaal je
+       gewoon de volle prijs — een halve trommel bestaat niet. Wie al helemaal
+       fit is krijgt hem niet verkocht; dan gooi je je geld weg en dat zegt de
+       verkoper ook.
+      */
+      sleutel: 'ehbo',
+      naam: `verbandtrommel (+${EHBO.punten} leven)`,
+      prijs: EHBO.prijs,
+      beschikbaar: () => player.health < MAX_LEVEN,
+      koop() {
+        if (player.health >= MAX_LEVEN) {
+          hud.melding('Je bent er prima aan toe', 'Een verbandtrommel heeft nu geen zin.', 3);
+          return 'vol';
+        }
+        if (!betaal(EHBO.prijs)) {
+          hud.melding('Te weinig geld', `Een verbandtrommel kost € ${EHBO.prijs}.`, 3);
+          return 'arm';
+        }
+        const voor = player.health;
+        player.health = Math.min(MAX_LEVEN, player.health + EHBO.punten);
+        if (hud.zetLeven) hud.zetLeven(player.health);
+        hud.melding('Verbandtrommel gekocht', `${Math.round(player.health - voor)} levenspunten erbij, € ${EHBO.prijs} betaald.`, 3);
+        return 'ok';
+      },
+    },
+    wapenArtikel(PISTOOL, 'Wisselen doe je met het scrollwiel.'),
+    wapenArtikel(MITRAILLEUR, 'Wisselen doe je met het scrollwiel.'),
+  ];
+
+  /*
+   Een wapen in het schap. Hij staat er alleen zolang je hem niet hebt — een
+   tweede pistool kopen kan niet, en dat hoeft de lijst dan ook niet te laten
+   zien. Hij komt meteen in je handen, met een vol magazijn uit je eigen
+   voorraad kogels (js/player.js).
+  */
+  function wapenArtikel(wapen, hint) {
+    return {
+      sleutel: wapen.soort,
+      naam: wapen.naam.toLowerCase(),
+      prijs: wapen.prijs,
+      beschikbaar: () => !(player.wapens && player.wapens.includes(wapen.soort)),
+      koop() {
+        if (player.wapens && player.wapens.includes(wapen.soort)) {
+          hud.melding('Die heb je al', hint, 3);
+          return 'heeft';
+        }
+        if (!betaal(wapen.prijs)) {
+          hud.melding('Te weinig geld', `Een ${wapen.naam.toLowerCase()} kost € ${wapen.prijs}.`, 3);
+          return 'arm';
+        }
+        player.krijgWapen(wapen.soort);
+        hud.melding(`${wapen.naam} gekocht`, `€ ${wapen.prijs} betaald. ${hint}`, 4);
+        return 'ok';
+      },
+    };
+  }
+
+  // wat er nu in de schappen ligt, in de volgorde waarin het in beeld staat
+  function aanbod() { return SCHAP.filter(a => a.beschikbaar()); }
+  /*
+   En wat er wel in de vitrine ligt maar niet meer te koop is: het pistool en
+   het machinegeweer die je al hebt. Ze staan er grijs bij in het balkje aan de
+   toonbank, zodat je ziet dát de verkoper ze heeft — en de dag dat je er eentje
+   kwijtraakt, staat hij vanzelf weer op de lijst.
+  */
+  function inBezit() {
+    return SCHAP.filter(a => !a.beschikbaar() && (a.sleutel === PISTOOL.soort || a.sleutel === MITRAILLEUR.soort))
+      .map(a => a.naam);
   }
 
   /*
-   Het machinegeweer kopen (toets F aan de toonbank). Levert 'ok', 'arm' of
-   'heeft' als je hem al hebt. Hij komt meteen in je handen, met een vol
-   magazijn uit je eigen voorraad kogels.
+   Het n-de artikel kopen (1 tot en met vier, de cijfertoetsen). Zonder nummer
+   pakt hij het eerste — dat is wat E aan de toonbank doet, en dat is altijd de
+   munitie.
   */
-  function koopWapen() {
-    if (player.wapens && player.wapens.includes(MITRAILLEUR.soort)) {
-      hud.melding('Die heb je al', 'Wisselen doe je met het scrollwiel.', 3);
-      return 'heeft';
-    }
-    if (!verhaal.betaal || !verhaal.betaal(MITRAILLEUR.prijs)) {
-      hud.melding('Te weinig geld', `Een ${MITRAILLEUR.naam.toLowerCase()} kost € ${MITRAILLEUR.prijs}.`, 3);
-      return 'arm';
-    }
-    player.krijgWapen(MITRAILLEUR.soort);
-    hud.melding(`${MITRAILLEUR.naam} gekocht`, `€ ${MITRAILLEUR.prijs} betaald. Wisselen met het scrollwiel.`, 4);
-    return 'ok';
+  function koop(nr = 1) {
+    const lijst = aanbod();
+    const artikel = lijst[Math.max(1, Math.round(nr)) - 1];
+    if (!artikel) return null;
+    return artikel.koop();
   }
 
-  // E bij de deur of aan de toonbank. Geeft true als de toets gebruikt is.
+  // de oude namen, zodat de proeven en js/main.js blijven werken
+  function koopWapen(soort = MITRAILLEUR.soort) {
+    const artikel = SCHAP.find(a => a.sleutel === soort);
+    return artikel ? artikel.koop() : null;
+  }
+  function koopLeven() {
+    const artikel = SCHAP.find(a => a.sleutel === 'ehbo');
+    return artikel ? artikel.koop() : null;
+  }
+
+  /*
+   Toetsen. E doet bij de deur wat hij altijd deed en aan de toonbank het eerste
+   artikel; de cijfers 1 tot en met 4 pakken het artikel met dat nummer uit de
+   lijst die op dat moment in beeld staat. `wat` is 'E' of een cijfer als tekst.
+   Geeft true als de toets gebruikt is.
+  */
   function toets(wat = 'E') {
     if (!player.active && !window.__autoplay) return false;
+    const bij = bijToonbank(player.pos.x, player.pos.z);
+    const nr = Number(wat);
+    if (Number.isFinite(nr) && nr >= 1 && nr <= 9) {
+      if (!bij) return false;
+      return koop(nr) !== null;
+    }
+    // F bleef werken voor het machinegeweer sinds het daarop zat
     if (wat === 'F') {
-      if (!bijToonbank(player.pos.x, player.pos.z)) return false;
+      if (!bij) return false;
       koopWapen();
       return true;
     }
-    if (bijToonbank(player.pos.x, player.pos.z)) { koop(); return true; }
+    if (bij) { koop(1); return true; }
     const w = bijDeur(player.pos.x, player.pos.z);
     if (w === 'in' && !player.inCar) { naarBinnenGaan(); return true; }
     if (w === 'uit') { naarBuitenGaan(); return true; }
@@ -522,11 +635,10 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     let tekst = null;
     if (bezig && !player.inCar) {
       if (bijToonbank(player.pos.x, player.pos.z)) {
-        tekst = `E — ${MUNITIE.kogels} kogels kopen (€ ${MUNITIE.prijs})`;
-        // het machinegeweer erbij, zolang je hem nog niet hebt
-        if (!(player.wapens && player.wapens.includes(MITRAILLEUR.soort))) {
-          tekst += `   ·   F — ${MITRAILLEUR.naam.toLowerCase()} kopen (€ ${MITRAILLEUR.prijs})`;
-        }
+        // het schap in beeld, genummerd zoals je het koopt
+        tekst = aanbod().map((a, i) => `${i + 1} — ${a.naam} (€ ${a.prijs})`).join('   ·   ');
+        const heb = inBezit();
+        if (heb.length) tekst += `   ·   ${heb.join(' en ')}: in bezit`;
       } else {
         const w = bijDeur(player.pos.x, player.pos.z);
         if (w) tekst = w === 'in' ? 'E — de boerderij in' : 'E — naar buiten';
@@ -550,7 +662,9 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
   }
 
   return {
-    update, toets, binnen, meldAan, kaart, koop, koopWapen,
+    update, toets, binnen, meldAan, kaart, koop, koopWapen, koopLeven,
+    get schap() { return aanbod().map(a => ({ sleutel: a.sleutel, naam: a.naam, prijs: a.prijs })); },
+    get inBezit() { return inBezit(); },
     get maten() {
       return {
         breed: BREED, diep: DIEP, goot: GOOT, nok: NOK,
