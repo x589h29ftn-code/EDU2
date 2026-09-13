@@ -20,6 +20,9 @@ const MIME = {
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2', '.ico': 'image/x-icon',
+  // de radiomuziek en het menudeuntje: zonder eigen type valt het terug op
+  // octet-stream, en dan hangt het van de browser af of hij het nog afspeelt
+  '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4', '.wav': 'audio/wav',
 };
 
 function startServer() {

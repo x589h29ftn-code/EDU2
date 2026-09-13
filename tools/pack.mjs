@@ -19,7 +19,18 @@ const paden = await packager({
   appVersion: pkg.version,
   appCopyright: 'Tinga Sneek',
   prune: true,
-  ignore: [/^\/dist/, /^\/shots/, /^\/\.git/, /^\/docs\/screenshots/],
+  /*
+   Wat er niet in de app hoeft. De schil serveert alleen index.html, js/, lib/,
+   audio/ en beeld/; de rest is gereedschap en brondata. `data/geo` alleen al is
+   148 MB ruwe BGT- en 3D BAG-download waar het spel niets mee doet — dat zit in
+   js/kaart.js verwerkt — en data/stijl/fotos zijn de referentiefoto's waarmee
+   de gevels zijn gemaakt. Zonder deze regels was de Windows-app 292 MB.
+  */
+  ignore: [
+    /^\/dist/, /^\/shots/, /^\/\.git/, /^\/\.github/,
+    /^\/data\/geo/, /^\/data\/stijl\/fotos/, /^\/tools/, /^\/docs/,
+    /^\/[^/]*\.md$/,
+  ],
   quiet: true,
 });
 

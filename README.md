@@ -1170,6 +1170,11 @@ npm run dist:win     # bouwt dist/Tinga-win32-x64/Tinga.exe
 De GitHub-workflow **Windows-app** bouwt bij elke push een kant-en-klare zip; die staat onder
 *Actions → de run → Artifacts*.
 
+In de app zit alleen wat het spel nodig heeft: `index.html`, `js/`, `lib/`, `audio/` en `beeld/`. De
+brondata (`data/geo`, 148 MB ruwe BGT- en 3D BAG-download), de referentiefoto's, het gereedschap in
+`tools/` en de documentatie blijven eruit — die zitten al verwerkt in `js/kaart.js`. Dat scheelt ruim
+de helft: het pakket ging van 292 MB naar ongeveer 120 MB, waarvan het meeste Electron zelf is.
+
 
 ## Gebouwen die geen woning zijn
 
