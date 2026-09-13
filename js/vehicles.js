@@ -39,7 +39,16 @@ function tegelMidden(sleutel) {
   return { x: (i + 0.5) * AUTOTEGEL, z: (j + 0.5) * AUTOTEGEL };
 }
 
-const COLORS = [0x1c1e24, 0xd8d9dc, 0x8a8d93, 0x2a3f8f, 0x9c1f1f, 0xffffff, 0x3e3a36, 0x2f6b3a, 0x5b6470, 0xc9c1a8];
+/*
+ Lakkleuren. Er stonden er tien, waarvan drie fel (wit, knalrood, koningsblauw).
+ Een Nederlandse woonstraat staat vol grijs, zilver, donkerblauw en zwart met
+ hier en daar iets anders; de felle kleuren blijven erbij maar zijn nu de
+ uitzondering, en er staat ook wat verschoten en stoffig tussen.
+*/
+const COLORS = [
+  0x1c1e24, 0x2b2f36, 0x8a8d93, 0xa8abb0, 0xd8d9dc, 0xc9c1a8, 0x5b6470, 0x6e737a,
+  0x2a3f8f, 0x2f4a6e, 0x9c1f1f, 0x7a3b2a, 0x2f6b3a, 0x3e3a36, 0xffffff, 0xb9a98c,
+];
 
 export class Vehicles {
   constructor(scene, parkSpots) {

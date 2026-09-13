@@ -1013,6 +1013,131 @@ export function hekje(kleur = '#8a7352') {
   const t = tex(c); t.wrapT = THREE.ClampToEdgeWrapping; cache.set(key, t); return t;
 }
 
+/* ---------------------------------------------------------------- rommel ---
+ De wijk was te schoon: geen onkruid tussen de tegels, geen papiertje in de
+ goot, geen tag op een blinde muur. Deze drie doeken horen bij js/rommel.js.
+*/
+
+/*
+ Een pol onkruid: grassprieten en een paar blaadjes op een doorzichtig doek.
+ Twee van deze vlakken kruislings door elkaar worden een pol die van alle kanten
+ iets voorstelt — dezelfde truc als bij de hekken.
+*/
+export function onkruid() {
+  if (cache.has('onkruid')) return cache.get('onkruid');
+  const c = canvas(128, 128); const g = c.getContext('2d');
+  const r = rng(41);
+  g.clearRect(0, 0, 128, 128);
+  for (let i = 0; i < 34; i++) {
+    const x = 18 + r() * 92;
+    const h = 40 + r() * 78;
+    const top = 128 - h, buig = (r() - 0.5) * 34;
+    const groen = 70 + Math.floor(r() * 60);
+    g.strokeStyle = `rgba(${Math.floor(groen * 0.55)},${groen},${Math.floor(groen * 0.42)},0.95)`;
+    g.lineWidth = 1.6 + r() * 2.2;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(x, 128);
+    g.quadraticCurveTo(x + buig * 0.4, top + h * 0.45, x + buig, top);
+    g.stroke();
+  }
+  // een enkel bloempje: paardenbloem of madelief
+  for (let i = 0; i < 3; i++) {
+    if (r() < 0.45) continue;
+    const x = 24 + r() * 80, y = 30 + r() * 50;
+    g.fillStyle = r() < 0.5 ? 'rgba(230,214,90,0.95)' : 'rgba(240,240,232,0.95)';
+    g.beginPath(); g.arc(x, y, 3 + r() * 2, 0, 6.283); g.fill();
+  }
+  const t = tex(c); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; cache.set('onkruid', t); return t;
+}
+
+/*
+ Zwerfvuil, vier stuks op één doek van 2×2: een verfrommeld papiertje, een
+ blikje, een plastic zak en een patatbakje. `js/rommel.js` kiest er per stuk een
+ door de uv's te verschuiven, zodat het allemaal in één instanced mesh past.
+*/
+export function zwerfvuil() {
+  if (cache.has('zwerfvuil')) return cache.get('zwerfvuil');
+  const c = canvas(256, 256); const g = c.getContext('2d');
+  const r = rng(93);
+  g.clearRect(0, 0, 256, 256);
+  const vak = (cx, cy, teken) => { g.save(); g.translate(cx, cy); teken(); g.restore(); };
+  // 1. papiertje, linksboven
+  vak(0, 0, () => {
+    g.fillStyle = '#e8e4da';
+    g.beginPath();
+    g.moveTo(30, 46); g.lineTo(62, 28); g.lineTo(96, 44); g.lineTo(88, 84); g.lineTo(48, 92);
+    g.closePath(); g.fill();
+    g.fillStyle = 'rgba(150,145,135,0.55)';
+    g.beginPath(); g.moveTo(62, 28); g.lineTo(96, 44); g.lineTo(70, 62); g.closePath(); g.fill();
+  });
+  // 2. blikje, rechtsboven
+  vak(128, 0, () => {
+    g.fillStyle = '#b9bcc2'; g.fillRect(44, 42, 46, 46);
+    g.fillStyle = '#8e2c22'; g.fillRect(44, 54, 46, 18);
+    g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(50, 42, 8, 46);
+    g.fillStyle = '#9aa0a6'; g.fillRect(40, 42, 6, 46); g.fillRect(88, 42, 6, 46);
+  });
+  // 3. plastic zak, linksonder
+  vak(0, 128, () => {
+    g.fillStyle = 'rgba(228,232,236,0.92)';
+    g.beginPath(); g.moveTo(26, 70); g.quadraticCurveTo(40, 28, 70, 36);
+    g.quadraticCurveTo(104, 30, 100, 74); g.quadraticCurveTo(66, 96, 26, 70); g.fill();
+    g.strokeStyle = 'rgba(160,168,174,0.8)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(44, 44); g.quadraticCurveTo(62, 62, 58, 84); g.stroke();
+  });
+  // 4. patatbakje, rechtsonder
+  vak(128, 128, () => {
+    g.fillStyle = '#d8c8ac';
+    g.beginPath(); g.moveTo(38, 84); g.lineTo(48, 44); g.lineTo(88, 44); g.lineTo(96, 84); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(180,60,40,0.75)';
+    for (let i = 0; i < 5; i++) g.fillRect(52 + i * 7, 50 + r() * 10, 4, 10);
+  });
+  const t = tex(c); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; cache.set('zwerfvuil', t); return t;
+}
+
+/*
+ Graffiti: vier tags op één doek van 2×2, tegen een doorzichtige achtergrond
+ zodat ze over de muur heen geplakt kunnen worden. Geen namen van bestaande
+ groepen of mensen — dit zijn krabbels: een golvende letterbrij met een
+ schaduwrand, zoals elke tag in elke wijk.
+*/
+export function graffiti() {
+  if (cache.has('graffiti')) return cache.get('graffiti');
+  const S = 256;
+  const c = canvas(S * 2, S * 2); const g = c.getContext('2d');
+  const r = rng(151);
+  g.clearRect(0, 0, S * 2, S * 2);
+  const kleuren = [['#2b3fd0', '#0d1560'], ['#d03020', '#5a0f0a'], ['#f0c020', '#7a5a08'], ['#20c060', '#0a4a24']];
+  for (let v = 0; v < 4; v++) {
+    const ox = (v % 2) * S, oy = Math.floor(v / 2) * S;
+    const [vul, rand] = kleuren[v];
+    g.save(); g.translate(ox, oy);
+    // een slordige tag: drie tot vijf halen die in elkaar overlopen
+    for (const [kleur, dik, dx, dy] of [[rand, 26, 3, 4], [vul, 18, 0, 0]]) {
+      g.strokeStyle = kleur; g.lineWidth = dik; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath();
+      let x = 40 + dx, y = 150 + dy;
+      g.moveTo(x, y);
+      for (let k = 0; k < 5; k++) {
+        const nx = x + 30 + r() * 40, ny = 70 + r() * 120 + dy;
+        g.quadraticCurveTo(x + 20, y - 60 + r() * 40, nx, ny);
+        x = nx; y = ny;
+      }
+      g.stroke();
+    }
+    // een paar spetters eromheen
+    g.fillStyle = vul;
+    for (let k = 0; k < 10; k++) {
+      g.globalAlpha = 0.25 + r() * 0.4;
+      g.beginPath(); g.arc(30 + r() * 200, 60 + r() * 160, 1.5 + r() * 4, 0, 6.283); g.fill();
+    }
+    g.globalAlpha = 1;
+    g.restore();
+  }
+  const t = tex(c); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; cache.set('graffiti', t); return t;
+}
+
 // ---------- Riet (het achtkant en de kap van de molen) ----------
 /*
  Het achtkant van een houtzaagmolen is met riet gedekt: verticale bossen die van
@@ -1119,7 +1244,11 @@ export function facade(type, n, storeys, back = false, seed = 1) {
   vuil.addColorStop(0, 'rgba(0,0,0,0.10)'); vuil.addColorStop(0.12, 'rgba(0,0,0,0)'); vuil.addColorStop(0.9, 'rgba(0,0,0,0)'); vuil.addColorStop(1, 'rgba(0,0,0,0.12)');
   g.fillStyle = vuil; g.fillRect(0, 0, HW * n, H);
 
+  // waar de ramen zitten, voor de regenstrepen onder de vensterbanken (zie
+  // `verweer` onderaan deze functie)
+  const ramen = [];
   const win = (x, y, w, h, frame, opties = {}) => {
+    ramen.push([x, y, w, h]);
     // latei-schaduw boven het kozijn
     g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x - m(0.03), y - m(0.08), w + m(0.06), m(0.08));
     // kozijn (buitenrand) en een donkere sponning erbinnen
@@ -1638,6 +1767,82 @@ export function facade(type, n, storeys, back = false, seed = 1) {
       }
     }
   }
+  /*
+   ------------------------------------------------------------------ verweren
+
+   De wijk was te schoon. Elke gevel was kraakhelder metselwerk met een strakke
+   plint, en niets van wat een straat na dertig jaar laat zien stond erop. Dit
+   is de laatste laag over het hele doek heen:
+
+     - **groene aanslag** onderaan, met een rafelige bovenrand. Aan de
+       noordkant van een huis in Friesland groeit die vanzelf;
+     - **regenstrepen onder de vensterbanken**: het water loopt van de bank af
+       en neemt het stof van de gevel mee. Daarom zijn de ramen hierboven
+       bijgehouden;
+     - **roet onder de dakrand** en donkere vegen langs de regenpijp;
+     - **vlekken en haarscheurtjes**, willekeurig over het vlak verdeeld.
+
+   Hoe vuil, hangt van het huis af (`vuilheid`): de ene gevel is vorig jaar nog
+   gereinigd, de andere staat er al twintig jaar zo bij. Eén op de zes blijft
+   bijna schoon, zodat een straat niet één grauwe brij wordt.
+  */
+  const vuilheid = st.winkel ? 0.35 : (r() < 0.17 ? 0.15 : 0.45 + r() * 0.55);
+  const breedteTot = HW * n;
+  // groene aanslag op de plint
+  const mosH = m(0.35 + r() * 0.55) * vuilheid;
+  if (mosH > 2) {
+    g.save();
+    g.beginPath();
+    g.moveTo(0, H);
+    g.lineTo(0, H - mosH);
+    for (let x = 0; x <= breedteTot; x += Math.max(6, breedteTot / 40)) {
+      g.lineTo(x, H - mosH * (0.35 + r() * 0.9));
+    }
+    g.lineTo(breedteTot, H);
+    g.closePath();
+    g.fillStyle = `rgba(74,88,52,${0.16 + 0.20 * vuilheid})`;
+    g.fill();
+    g.restore();
+  }
+  // regenstrepen onder de vensterbanken
+  for (const [rx, ry, rw, rh] of ramen) {
+    if (r() > 0.55 * vuilheid + 0.15) continue;
+    const onder = ry + rh;
+    const lang = Math.min(H - onder, m(0.5 + r() * 2.2) * vuilheid);
+    if (lang < 3) continue;
+    const gr = g.createLinearGradient(0, onder, 0, onder + lang);
+    gr.addColorStop(0, `rgba(38,34,28,${0.28 * vuilheid})`);
+    gr.addColorStop(1, 'rgba(38,34,28,0)');
+    g.fillStyle = gr;
+    // twee strepen: onder de hoeken van de bank, daar loopt het water af
+    const bw = Math.max(2, rw * 0.16);
+    g.fillRect(rx - m(0.02), onder, bw, lang);
+    g.fillRect(rx + rw - bw + m(0.02), onder, bw, lang);
+    if (r() < 0.4) { g.globalAlpha = 0.5; g.fillRect(rx + rw * 0.45, onder, bw * 0.7, lang * 0.7); g.globalAlpha = 1; }
+  }
+  // roet onder de dakrand
+  const roet = g.createLinearGradient(0, 0, 0, m(1.4));
+  roet.addColorStop(0, `rgba(28,26,24,${0.16 * vuilheid})`);
+  roet.addColorStop(1, 'rgba(28,26,24,0)');
+  g.fillStyle = roet; g.fillRect(0, m(bandH || 0.2), breedteTot, m(1.4));
+  // vlekken en haarscheurtjes
+  const vlekken = Math.round(8 * vuilheid * n);
+  for (let i = 0; i < vlekken; i++) {
+    const x = r() * breedteTot, y = m(0.5) + r() * (H - m(0.8));
+    const rr = m(0.15 + r() * 0.6);
+    const v = g.createRadialGradient(x, y, 0, x, y, rr);
+    v.addColorStop(0, `rgba(60,54,44,${0.05 + r() * 0.07 * vuilheid})`);
+    v.addColorStop(1, 'rgba(60,54,44,0)');
+    g.fillStyle = v; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
+  }
+  g.strokeStyle = `rgba(40,36,30,${0.14 * vuilheid})`; g.lineWidth = Math.max(1, m(0.012));
+  for (let i = 0; i < Math.round(2 * vuilheid * n); i++) {
+    let x = r() * breedteTot, y = m(0.6) + r() * (H - m(1.2));
+    g.beginPath(); g.moveTo(x, y);
+    for (let k = 0; k < 4; k++) { x += (r() - 0.5) * m(0.5); y += m(0.2 + r() * 0.4); g.lineTo(x, y); }
+    g.stroke();
+  }
+
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANIS;
   soortVanDoek.set(c, 'gevel');

@@ -83,6 +83,8 @@
     "scheidingtest": "node tools/scheidingtest.mjs",
     "scheidingshots": "node tools/scheidingshots.mjs",
     "puntentest": "node tools/puntentest.mjs",
-    "puntenshots": "node tools/puntenshots.mjs"
+    "puntenshots": "node tools/puntenshots.mjs",
+    "vuiltest": "node tools/vuiltest.mjs",
+    "vuilshots": "node tools/vuilshots.mjs"
   }
 }

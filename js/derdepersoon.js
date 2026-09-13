@@ -62,7 +62,8 @@ export function initDerdePersoon({ scene, camera, player }) {
       pop.groep.position.set(p.x, p.y, p.z);
       pop.yaw = player.yaw;
       pop.groep.rotation.y = player.yaw;
-      pop.update(dt, { loopt: snelheid > 0.3, snelheid: Math.max(1, snelheid) });
+      // gebukt zakt het poppetje net zo diep als de camera (js/player.js)
+      pop.update(dt, { loopt: snelheid > 0.3, snelheid: Math.max(1, snelheid), hurkt: player.hurk || 0 });
     } else { vorigeX = null; vorigeZ = null; }
 
     if (!aan) { afstand = 0; hoogte = 0; return false; }

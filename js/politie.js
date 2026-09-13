@@ -121,7 +121,6 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   const verlaten = [];         // lege surveillanceauto's: { car, balk, links, rechts, t, knipper }
   const wrakken = [];          // uitgebrande politieauto's: { car, t }
   const blokkades = [];        // wegblokkades: { cars, x, z }
-  let meldT = 0;               // korte pauze tussen twee meldingen in beeld
   let stille = 0;              // misdaden die (nog) niemand meldde
   const rijbanen = (KAART && KAART.wegassen ? KAART.wegassen.filter(w => w.drive && w.lengte > 40) : []);
   /*
@@ -307,15 +306,16 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     if (Math.random() > kans) { stille += M.ernst; return false; }
     stille = 0;
 
-    const voor = ster();
     heat = Math.min(MAX_HEAT, heat + M.heat);
     gezienT = 0;
     laatstBekend = { x, z };
-    const na = ster();
-    if (na > voor && hud) {
-      hud.show(na === 1 ? 'De politie is gebeld' : `Gezocht: ${na} sterren`, 2.2);
-      meldT = 2;
-    }
+    /*
+     Er stond hier een regel tekst in beeld ("De politie is gebeld", "Gezocht:
+     drie sterren") op het moment dat je iemand neerschoot of aanreed. Die is
+     eruit (verzoek 13 sep 2026): de sterren rechtsboven zeggen het al, en die
+     knipperen zolang ze je zoeken. Een balkje met tekst over je beeld is precies
+     wat een spel níét hoeft te doen als hetzelfde ook te zien is.
+    */
     return true;
   }
 
@@ -381,13 +381,29 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     return { x: pl.x + Math.sin(hoek) * SPAWN_MAX, z: pl.z + Math.cos(hoek) * SPAWN_MAX };
   }
 
+  /*
+   Draagt deze agent een machinepistool?
+
+   Tot drie sterren niet: dan is het gewone surveillance en hebben ze hun
+   dienstwapen. Vanaf vier sterren wordt er zwaarder uitgerukt — veertig procent
+   van de agenten die dan uitrukt heeft een machinepistool, bij vijf sterren de
+   helft (verzoek 13 sep 2026). Het wordt per agent bepaald op het moment dat hij
+   komt, dus wie er al staat wisselt niet ineens van wapen, en een ploeg is nooit
+   helemaal de een of de ander.
+  */
+  const MP_KANS = { 4: 0.40, 5: 0.50 };
+  function heeftMP() {
+    return Math.random() < (MP_KANS[ster()] || 0);
+  }
+
   function maakAgent(x, z, inWagen = null) {
-    const persoon = new Persoon({ ...UNIFORM, huid: Math.random() < 0.5 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + Math.random() * 0.04, wapen: true, pet: true });
+    const mp = heeftMP();
+    const persoon = new Persoon({ ...UNIFORM, huid: Math.random() < 0.5 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + Math.random() * 0.04, wapen: mp ? 'mp' : true, pet: true });
     scene.add(persoon.groep);
     persoon.zetNeer(x, z, Math.random() * 6.28);
     const a = {
       persoon, staat: 'naarPlek', vuurT: VUURTIJD * Math.random(), kijkT: Math.random() * 0.3,
-      zicht: false, doel: null, wacht: 0, omT: 0, wagen: inWagen,
+      zicht: false, doel: null, wacht: 0, omT: 0, wagen: inWagen, mp,
     };
     persoon.groep.visible = !inWagen;
     agenten.push(a);
@@ -671,7 +687,15 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       while (v < -Math.PI) v += Math.PI * 2;
       if (Math.abs(v) > GEZICHTSVELD) return false;
     }
-    return zichtVrij(pos.x, pos.z, sp.x, sp.z, 1.3);
+    /*
+     Hoe hoog moet het obstakel zijn om je uit het zicht te houden? Staand kijkt
+     een agent over alles heen wat lager is dan 1,3 m — een muurtje, een haag,
+     een auto. Zit je gehurkt (toets C, js/player.js), dan is 0,75 m genoeg:
+     achter een geparkeerde auto of een tuinmuurtje zien ze je niet meer. Dat is
+     waar bukken voor is.
+    */
+    const hoogte = 1.3 - (player.hurk || 0) * 0.55;
+    return zichtVrij(pos.x, pos.z, sp.x, sp.z, hoogte);
   }
 
   // Een schot van de speler horen ze in de wijde omtrek.
@@ -828,7 +852,6 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       }
     }
     spVorig = { x: sp.x, z: sp.z };
-    if (meldT > 0) meldT -= dt;
     if (stille > 0) stille = Math.max(0, stille - dt / 90);   // na anderhalve minuut vergeten
 
     if (s > 0) vulAan(dt);
@@ -908,9 +931,17 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
         persoon.update(dt, { loopt: !dichtbij && dMik > 1.5, mikt: true, snelheid: REN });
         a.vuurT -= dt;
         if (a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht && schutters.has(a)) {
-          a.vuurT = VUURTIJD * (0.8 + Math.random() * 0.6);
+          /*
+           Wie een machinepistool heeft schiet korte salvo's: drie schoten kort
+           achter elkaar in plaats van één, en hij is eerder weer aan de beurt.
+           Elk schot van zo'n salvo is wel minder trefzeker dan één gericht
+           schot — anders is vier sterren geen uitdaging meer maar een executie.
+          */
+          const salvo = a.mp ? 3 : 1;
+          a.vuurT = (a.mp ? VUURTIJD * 0.85 : VUURTIJD) * (0.8 + Math.random() * 0.6);
           persoon.vuur();
           geluid.schot();
+          if (a.mp) for (let k = 1; k < salvo; k++) setTimeout(() => geluid.schot(), k * 85);
           /*
            Hoe vaak een agent raak schiet. Dit was 0,5 min 1,1 % per meter, met
            een bodem van 10 %: op tien meter raakte hij vier van de tien keer en
@@ -920,8 +951,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
            (elf meter) is dat ruim vier levenspunten per seconde van drie
            schutters samen, dus wegkomen is het antwoord en niet wachten.
           */
-          const kans = Math.max(0.14, 0.58 - dSp * 0.0105);
-          if (Math.random() < kans) schade += SCHADE;
+          const kans = Math.max(0.14, 0.58 - dSp * 0.0105) * (a.mp ? 0.45 : 1);
+          for (let k = 0; k < salvo; k++) if (Math.random() < kans) schade += SCHADE;
         }
         continue;
       }

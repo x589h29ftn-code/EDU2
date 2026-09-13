@@ -3,6 +3,15 @@ import * as THREE from 'three';
 import { resolveCollisions, pointInWater, ondergrondOp, grondHoogte } from './world.js';
 import { geluid } from './audio.js';
 import { maakPistool, maakMitrailleur, HERLAADTIJD } from './wapen.js';
+import { hurkHouding } from './lichaam.js';
+
+/*
+ Hoeveel je zakt als je bukt. Hetzelfde getal als waarmee het poppetje in de
+ derde persoon zakt, want dat is hetzelfde lichaam: js/lichaam.js rekent het uit
+ de beenlengte en de knik in de knie uit.
+*/
+export const HURK_ZAK = hurkHouding({}, 1);
+
 
 /*
  De twee wapens. Het pistool heb je vanaf het begin; het machinegeweer koop je
@@ -65,6 +74,15 @@ export class Player {
     // zit je ergens op? dan staat de ooghoogte lager en loop je niet
     this.zit = false;
     this.eyeStaand = this.eye;
+    /*
+     Bukken (toets C). `gebukt` is wat je wilt, `hurk` is waar hij nu staat: de
+     overgang loopt in een derde seconde, want in één beeld van staand naar
+     gehurkt schieten leest als een storing. Gehurkt zak je achtenveertig
+     centimeter, loop je op een derde van je snelheid en zien de agenten je niet
+     meer over een muurtje of een geparkeerde auto heen (js/politie.js).
+    */
+    this.gebukt = false;
+    this.hurk = 0;
     this.recoil = 0; this.flashT = 0;
     /*
      Camera-terugslag. Een schot tilt het beeld even op en zet het een tikje
@@ -158,11 +176,22 @@ export class Player {
     return !this.wapenUit;
   }
 
+  /*
+   Bukken aan- of uitzetten. In de auto en zittend op de bank doet hij niets;
+   springen zet je vanzelf weer rechtop, want gehurkt spring je niet.
+  */
+  bukken(aan = !this.gebukt) {
+    if (this.inCar || this.zit) return false;
+    this.gebukt = !!aan;
+    return this.gebukt;
+  }
+
   bindInput() {
     window.addEventListener('keydown', e => {
       this.keys[e.code] = true;
       if (e.code === 'KeyR') this.reload();
       if (e.code === 'KeyH' && this.active) this.wisselWapen();
+      if (e.code === 'KeyC' && this.active && !e.ctrlKey && !e.metaKey) this.bukken();
       // meteen springen, zodat een korte tik nooit tussen twee beelden valt
       if (e.code === 'Space' && this.active) this.jump();
       // scrollen met de spatiebalk voorkomen zodra het spel loopt
@@ -232,6 +261,7 @@ export class Player {
 
   jump() {
     if (this.inCar || !this.onGround) return;
+    if (this.gebukt) { this.gebukt = false; return; }   // eerst overeind
     this.vy = 4.6; this.onGround = false;
     geluid.sprong();
   }
@@ -369,8 +399,17 @@ export class Player {
     if (this.fly) { this.updateFly(dt); return; }
 
 
-    const running = this.keys.ShiftLeft || this.keys.ShiftRight || this.sprint;
-    const speed = running ? 7.5 : 4.2;
+    /*
+     Gebukt: de ooghoogte zakt naar de hurkhoogte en je komt maar op een derde
+     van je snelheid vooruit. Rennen kan niet — wie hurkt rent niet.
+    */
+    const naarHurk = this.gebukt ? 1 : 0;
+    this.hurk += (naarHurk - this.hurk) * Math.min(1, dt * 9);
+    if (Math.abs(this.hurk - naarHurk) < 0.01) this.hurk = naarHurk;
+    this.eye = this.eyeStaand - HURK_ZAK * this.hurk;
+
+    const running = (this.keys.ShiftLeft || this.keys.ShiftRight || this.sprint) && this.hurk < 0.3;
+    const speed = (running ? 7.5 : 4.2) * (1 - this.hurk * 0.62);
     const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const r = new THREE.Vector3(-f.z, 0, f.x);
     const move = new THREE.Vector3();

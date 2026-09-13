@@ -78,6 +78,38 @@ function paneel(g, a, b, y0, h, weg) {
   }
 }
 
+/*
+ Een tag op een muurvlak: een rechthoekje dat aan beide kanten van de muur wordt
+ gezet, met de uv's op een van de vier vakken van het graffitidoek.
+
+ `dx, dz` is de richting van het muurstuk over zijn lengte, `L` die lengte, `uit`
+ hoe ver het vlak voor de muur ligt.
+*/
+function tag(g, cx, cz, cy, dx, dz, L, breed, hoog, uit, vak) {
+  const ux = dx / L, uz = dz / L;             // langs de muur
+  const nx = -uz, nz = ux;                    // dwars erop
+  const u0 = (vak % 2) * 0.5, v0 = (1 - Math.floor(vak / 2)) * 0.5;
+  const uvs = [[u0, v0], [u0 + 0.5, v0], [u0 + 0.5, v0 + 0.5], [u0, v0 + 0.5]];
+  for (const kant of [-1, 1]) {
+    const ox = nx * uit * kant, oz = nz * uit * kant;
+    const hb = breed / 2, hh = hoog / 2;
+    const p = [
+      [cx - ux * hb + ox, cy - hh, cz - uz * hb + oz],
+      [cx + ux * hb + ox, cy - hh, cz + uz * hb + oz],
+      [cx + ux * hb + ox, cy + hh, cz + uz * hb + oz],
+      [cx - ux * hb + ox, cy + hh, cz - uz * hb + oz],
+    ];
+    const volgorde = kant > 0 ? [[0, 1, 2], [0, 2, 3]] : [[0, 2, 1], [0, 3, 2]];
+    for (const driehoek of volgorde) {
+      for (const i of driehoek) {
+        g.pos.push(...p[i]);
+        g.uv.push(uvs[i][0], uvs[i][1]);
+        g.nor.push(nx * kant, 0, nz * kant);
+      }
+    }
+  }
+}
+
 function mesh(g, mat, klasse, schaduw = true) {
   if (!g.pos.length) return null;
   const geo = new THREE.BufferGeometry();
@@ -99,6 +131,8 @@ export function bouwScheidingen(scene, W, KM, lijst, grond = () => 0) {
   if (!lijst || !lijst.length) return 0;
   const nieuw = () => ({ pos: [], uv: [], nor: [] });
   const beton = nieuw(), metaal = nieuw(), hout = nieuw(), gaas = nieuw();
+  // tags op de blinde muren; zie de uitleg onderaan bij `verf`
+  const verf = nieuw();
   let n = 0;
 
   for (const s of lijst) {
@@ -136,6 +170,22 @@ export function bouwScheidingen(scene, W, KM, lijst, grond = () => 0) {
         doosNaar(hout, a, b, y0 - 0.6, y0 + h, dik, 0.7);
       } else {
         doosNaar(beton, a, b, y0 - 0.2, y0 + h, dik, 0.45);
+        /*
+         En af en toe een tag erop. Een blinde muur langs een fietspad blijft in
+         geen enkele wijk dertig jaar schoon; dit is wat er dan op staat. Het
+         vlak ligt vijf centimeter voor de muur, zodat het er niet doorheen
+         flikkert, en het kiest een van de vier tags op het doek door de uv's op
+         een van de vier vakken te zetten. Eén op de negen stukken muur, en
+         alleen als hij hoog en lang genoeg is om er iets op te zetten.
+        */
+        if (h > 1.1 && L > 2.4 && ((i * 2654435761 + Math.round(mx * 7) + Math.round(mz * 13)) >>> 0) % 9 === 0) {
+          const vak = ((Math.round(mx) + Math.round(mz * 3)) >>> 0) % 4;
+          const tagB = Math.min(L - 0.6, 1.4 + (Math.abs(Math.round(mx)) % 5) * 0.4);
+          const tagH = Math.min(h - 0.4, tagB * 0.62);
+          const f = 0.5;
+          const cx = a[0] + (b[0] - a[0]) * f, cz = a[1] + (b[1] - a[1]) * f;
+          tag(verf, cx, cz, y0 + 0.35 + tagH / 2, b[0] - a[0], b[1] - a[1], L, tagB, tagH, dik / 2 + 0.05, vak);
+        }
       }
 
       // botsdozen: een muur houdt je tegen, een damwand aan de waterkant ook
@@ -149,6 +199,10 @@ export function bouwScheidingen(scene, W, KM, lijst, grond = () => 0) {
   }
 
   const delen = [];
+  if (verf.pos.length) {
+    const mv = mesh(verf, KM.graffiti, 'graffiti', false);
+    if (mv) { mv.renderOrder = 1; scene.add(mv); delen.push(mv); }
+  }
   for (const [g, mat, klasse] of [
     [beton, KM.betonwand || KM.beton, 'muur'],
     [metaal, KM.staal, 'vangrail'],

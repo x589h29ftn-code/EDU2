@@ -38,6 +38,45 @@ const doos = (b, h, d) => new THREE.BoxGeometry(b, h, d);
 
 // Een wielkast: een halve ring die om het wiel heen staat, in de lengterichting
 // van de auto. Dat is wat een auto van een schoenendoos onderscheidt.
+/*
+ Een velg met spaken in plaats van een gladde schijf. De naaf was een cilinder
+ van acht kanten: van dichtbij een blikken dop. Dit is een rand, een naafje in
+ het midden en vijf spaken ertussen — bij elkaar een stuk of honderdvijftig
+ driehoeken, en die geometrie wordt door álle auto's gedeeld.
+*/
+function naafGeo(R) {
+  const delen = [];
+  /*
+   De velg zit aan de buitenkant van de band, niet in het midden ervan: een band
+   is 22 cm breed, dus een schijf op x = 0 verdwijnt erin. Daarom twee keer
+   hetzelfde, op ±11,5 cm — dan zie je hem aan allebei de kanten van de auto.
+  */
+  for (const xs of [-1, 1]) {
+    const rand = new THREE.CylinderGeometry(R * 0.64, R * 0.64, 0.030, 12);
+    rand.rotateZ(Math.PI / 2); rand.translate(xs * 0.112, 0, 0); delen.push(rand);
+    const naaf = new THREE.CylinderGeometry(R * 0.20, R * 0.20, 0.045, 8);
+    naaf.rotateZ(Math.PI / 2); naaf.translate(xs * 0.118, 0, 0); delen.push(naaf);
+    for (let i = 0; i < 5; i++) {
+      const sp = new THREE.BoxGeometry(0.026, R * 0.58, 0.050);
+      sp.translate(0, R * 0.31, 0);
+      sp.rotateX(i * Math.PI * 2 / 5);
+      sp.translate(xs * 0.110, 0, 0);
+      delen.push(sp);
+    }
+  }
+  const pos = [], nor = [];
+  for (const g of delen) {
+    const ng = g.index ? g.toNonIndexed() : g;
+    pos.push(...ng.attributes.position.array);
+    nor.push(...ng.attributes.normal.array);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Array(pos.length / 3 * 2).fill(0), 2));
+  return geo;
+}
+
 function wielkast(R) {
   const g = new THREE.TorusGeometry(R + 0.07, 0.05, 4, 10, Math.PI);
   g.rotateY(Math.PI / 2);
@@ -171,7 +210,13 @@ function autoGeoms(kind) {
     { geo: doos(W - 0.09, 0.10, L - 0.40), y: schouderY - 0.05 },                   // schouderlijn
     { geo: doos(W - 0.20, 0.11, kapL), y: schouderY + (bus ? 0.30 : 0.02), z: kapZ }, // motorkap
     { geo: doos(W - 0.14, 0.20, kontL), y: schouderY + 0.09, z: kontZ },            // kofferklep
-    { geo: doos(W - (bus ? 0.20 : 0.40), 0.07, cabL - (bus ? 0.10 : 0.55)), y: dakY, z: cabZ }, // dak
+    /*
+     Het dak. Het was W − 0,40 breed (1,38 m) terwijl de zijruiten op ±0,79
+     staan: aan weerskanten bleef tien centimeter open, en daar keek je dwars
+     door de auto heen. Van schuin voren leek elke auto een cabriolet. Nu sluit
+     het dak over de ruiten heen, met een druiplijst langs de dakrand.
+    */
+    { geo: doos(W - (bus ? 0.14 : 0.16), 0.085, cabL - (bus ? 0.10 : 0.52)), y: dakY, z: cabZ }, // dak
     // spiegels op een steeltje
     { geo: doos(0.09, 0.05, 0.05), x: -W / 2 - 0.05, y: schouderY + 0.16, z: cabZ - cabL / 2 + 0.15 },
     { geo: doos(0.09, 0.05, 0.05), x: W / 2 + 0.05, y: schouderY + 0.16, z: cabZ - cabL / 2 + 0.15 },
@@ -182,7 +227,7 @@ function autoGeoms(kind) {
   const stijlH = dakY - schouderY;
   const aHoek = bus ? 0.34 : 0.62, cHoek = bus ? -0.16 : -0.50;
   for (const zx of [-1, 1]) {
-    const x = zx * (W / 2 - (bus ? 0.10 : 0.20));
+    const x = zx * (W / 2 - (bus ? 0.10 : 0.075));
     lak.push({ geo: doos(0.09, stijlH + 0.16, 0.10), x, y: (schouderY + dakY) / 2, z: cabZ - cabL / 2 + 0.30 - Math.sin(aHoek) * stijlH / 2, rx: aHoek });
     lak.push({ geo: doos(0.09, stijlH + 0.14, 0.12), x, y: (schouderY + dakY) / 2, z: cabZ + cabL / 2 - 0.24 - Math.sin(cHoek) * stijlH / 2, rx: cHoek });
     lak.push({ geo: doos(0.07, stijlH, 0.08), x, y: (schouderY + dakY) / 2, z: cabZ + (bus ? 0.30 : 0.18) });
@@ -199,8 +244,8 @@ function autoGeoms(kind) {
     // De ruit loopt tot ín de schouderlijn en het dak. Hij was stijlH − 0,06 hoog
     // en zweefde daarmee in het portiergat: elf centimeter open boven en onder,
     // waar je dwars de auto in keek.
-    { geo: doos(0.05, stijlH + 0.10, cabL - (bus ? 0.35 : 0.85)), x: -W / 2 + 0.10, y: (schouderY + dakY) / 2, z: cabZ + 0.02 },
-    { geo: doos(0.05, stijlH + 0.10, cabL - (bus ? 0.35 : 0.85)), x: W / 2 - 0.10, y: (schouderY + dakY) / 2, z: cabZ + 0.02 },
+    { geo: doos(0.05, stijlH + 0.10, cabL - (bus ? 0.35 : 0.85)), x: -W / 2 + 0.045, y: (schouderY + dakY) / 2, z: cabZ + 0.02 },
+    { geo: doos(0.05, stijlH + 0.10, cabL - (bus ? 0.35 : 0.85)), x: W / 2 - 0.045, y: (schouderY + dakY) / 2, z: cabZ + 0.02 },
   ];
 
   const lijstL = 2 * (wielZ - R - 0.05);        // tussen de banden, zie hieronder
@@ -255,10 +300,56 @@ function autoGeoms(kind) {
     { geo: doos(0.11, 0.035, 0.05), x: W / 2 + 0.01, y: flankY + 0.12, z: cabZ - 0.32 },
     { geo: doos(0.11, 0.035, 0.05), x: -W / 2 - 0.01, y: flankY + 0.12, z: cabZ + 0.92 },
     { geo: doos(0.11, 0.035, 0.05), x: W / 2 + 0.01, y: flankY + 0.12, z: cabZ + 0.92 },
+    // tankdop op het achterspatbord
+    { geo: doos(0.02, 0.115, 0.115), x: W / 2 + 0.005, y: flankY + 0.06, z: kontZ + 0.30 },
   ];
 
+  /*
+   De kleine dingen die een auto een auto maken. Ze staan hier apart omdat ze
+   allemaal zwart zijn en dus in dezelfde mesh vallen; bij elkaar zijn het een
+   paar honderd driehoeken voor het hele wagenpark, want de geometrie wordt
+   gedeeld.
+
+     ruitenwissers   twee armen plat op de voorruit, met een blad eraan. Van
+                     alle details is dit degene die je het eerst ziet als hij
+                     ontbreekt: een auto zonder wissers heeft een spiegel in
+                     plaats van een ruit;
+     antenne         een staafje op de achterkant van het dak;
+     grillelamellen  de grille was één glad vlak; drie horizontale ribbels
+                     erover maken er een rooster van;
+     vuilrand        een donkere band langs de dorpel en rond de wielkasten.
+                     Dat is geen sierlijst maar opspattend vuil van de weg, en
+                     het is precies wat elke auto die niet net gewassen is heeft
+                     (zie ook de wijk in js/kaartwereld.js).
+  */
+  if (!bus) {
+    /*
+     De wissers liggen in hun ruststand op de motorkap, vlak voor de voorruit —
+     niet ervoor in de lucht. De kap loopt tot kapZ + kapL/2 en zijn bovenkant
+     ligt op schouderY + 0,075; daar liggen ze net bovenop.
+    */
+    const wisZ = kapZ + kapL / 2 - 0.12;
+    for (const sx of [-1, 1]) {
+      zwartVast.push({ geo: doos(0.34, 0.018, 0.040), x: sx * 0.30, y: schouderY + 0.080, z: wisZ, rz: sx * 0.10 });
+      zwartVast.push({ geo: doos(0.05, 0.030, 0.055), x: sx * 0.16, y: schouderY + 0.075, z: wisZ });
+    }
+    // antenne achter op het dak
+    zwartVast.push({ geo: doos(0.016, 0.34, 0.016), x: -W / 2 + 0.22, y: dakY + 0.17, z: cabZ + cabL / 2 - 0.34 });
+  }
+  for (let i = 0; i < 3; i++) {
+    zwartVast.push({ geo: doos(W - 1.04, 0.016, 0.055), y: schouderY - 0.175 + i * 0.045, z: -L / 2 + 0.06 - 0.015 + 0.030 });
+  }
+  if (!bus) for (const sx of [-1, 1]) {
+    zwartVast.push({ geo: doos(0.030, 0.030, cabL - 0.50), x: sx * (W / 2 - 0.085), y: dakY + 0.035, z: cabZ });
+  }
+  // vuilrand langs de dorpel: net als de sierlijst alleen tussen de wielkasten
+  // door, anders loopt hij dwars door de banden heen
+  for (const sx of [-1, 1]) {
+    zwartVast.push({ geo: doos(0.035, 0.075, lijstL), x: sx * (W / 2 - 0.015), y: dorpelY - 0.11 });
+  }
+
   const wielGeo = new THREE.CylinderGeometry(R, R, 0.22, 14); wielGeo.rotateZ(Math.PI / 2);
-  const hubGeo = new THREE.CylinderGeometry(R * 0.58, R * 0.58, 0.23, 8); hubGeo.rotateZ(Math.PI / 2);
+  const hubGeo = naafGeo(R);
 
   const kopY = schouderY - 0.14;
   /*
@@ -390,7 +481,12 @@ const paintCache = new Map();
 */
 export function maakAutoStapel(kind, aantal) {
   const G = geoms(kind);
-  const lak = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.5 });
+  /*
+   Autolak. Hij stond op ruwheid 0,35 met metaalgehalte 0,5 en dat leest als
+   plastic speelgoed: te glad en te spiegelend. Een gelakte auto die een paar
+   weken buiten staat is matter dan dat. Lager metaalgehalte, iets ruwer.
+  */
+  const lak = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.46, metalness: 0.22 });
   const delen = [
     { geo: G.paint, mat: lak, kleurbaar: true, schaduw: true },
     { geo: G.glass, mat: SHARED.glass },
@@ -445,7 +541,7 @@ export function maakAutoStapel(kind, aantal) {
 export function makeCar(color, kind = 'hatch', animatie = false) {
   const g = new THREE.Group();
   const G = geoms(kind);
-  if (!paintCache.has(color)) paintCache.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.5 }));
+  if (!paintCache.has(color)) paintCache.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.46, metalness: 0.22 }));
 
   const bak = animatie ? new THREE.Group() : g;    // carrosserie, kan overhellen
   const body = new THREE.Mesh(G.paint, paintCache.get(color)); body.castShadow = true;

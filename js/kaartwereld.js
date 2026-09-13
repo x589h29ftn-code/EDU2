@@ -12,6 +12,7 @@ import { KLEUR } from './kaartkleuren.js';
 import { PROP_TYPES } from './props.js';
 import { zetViaducten, bouwViaducten, grondHoogte, onderBrug } from './viaduct.js';
 import { bouwScheidingen } from './scheiding.js';
+import { bouwRommel } from './rommel.js';
 import { bouwSportvelden } from './sportveld.js';
 import { bouwVolkstuinen } from './volkstuin.js';
 import { bouwMolens } from './molen.js';
@@ -263,6 +264,12 @@ function materialen(MAT) {
   KM.streep = MAT.streep;
   KM.drempel = new THREE.MeshStandardMaterial({ map: T.zebra(), roughness: 0.9 });
   // omheinde terreinen (RWZI): spijlenhek, staal, betonnen bakken met water, silo's
+  // tags op de blinde muren (js/scheiding.js); het doek heeft vier tags in een
+  // raster van twee bij twee en is verder doorzichtig
+  KM.graffiti = new THREE.MeshStandardMaterial({
+    map: T.graffiti(), transparent: true, alphaTest: 0.35, side: THREE.DoubleSide,
+    roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2,
+  });
   KM.spijlen = new THREE.MeshStandardMaterial({ map: T.spijlenhek(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.55, metalness: 0.35 });
   KM.staal = new THREE.MeshStandardMaterial({ color: 0x6b7178, roughness: 0.5, metalness: 0.5 });
   KM.betonwand = new THREE.MeshStandardMaterial({ color: 0xa9a59b, roughness: 0.95, side: THREE.DoubleSide });
@@ -642,6 +649,13 @@ export function* bouwKaartWereldStap(scene, W) {
         if (Number.isFinite(i)) W.lodAan(im, (i + 0.5) * TEGEL, (j + 0.5) * TEGEL, { tot: 200, straal: TEGEL * 0.71 });
       }
     }
+    /*
+     Onkruid, zwerfvuil en rolcontainers langs de straten (js/rommel.js). Dit is
+     wat een wijk waar dertig jaar in gewoond is van een maquette onderscheidt.
+    */
+    const rommel = bouwRommel(scene, W, K.wegassen, (x, z) => grondHoogte(x, z, -Infinity));
+    console.log(`kaart: ${rommel.onkruid} pollen onkruid, ${rommel.vuil} stuks zwerfvuil, ${rommel.kliko} rolcontainers`);
+
     bouwLantaarns(scene, W);
     // de belijning, doelen, reclameborden en hekken op de sportvelden aan de
     // Molenkrite, en de tuintjes op het volkstuincomplex achter de Wieken

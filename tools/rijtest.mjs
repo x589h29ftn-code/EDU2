@@ -376,14 +376,30 @@ const schrik = await page.evaluate(() => {
   window.__rij(60);                                   // twee seconden later rent hij
   const rent = p.vNu;
   const halverwege = Math.hypot(p.x - bron.x, p.z - bron.z);
-  window.__rij(90);                                   // en nog eens drie seconden
+  /*
+   En nog eens drie seconden. We meten twee dingen: hoe ver hij van de knal af
+   staat, en hoeveel weg hij daadwerkelijk heeft afgelegd.
+
+   Alleen naar de hemelsbrede afstand kijken was niet eerlijk: hij rent over de
+   straten, dus komt hij een hoek tegen of loopt hij een doodlopend stuk in, dan
+   is hij na vijf seconden dertig meter gelopen en staat hij toch maar vier meter
+   van de knal vandaan. Deze proef viel daar om de haverklap over, met elke keer
+   een ander getal — en dat is geen fout in het spel maar in de meting.
+  */
+  let gelopen = 0;
+  let vx = p.x, vz = p.z;
+  for (let k = 0; k < 90; k++) {
+    window.__rij(1);
+    gelopen += Math.hypot(p.x - vx, p.z - vz);
+    vx = p.x; vz = p.z;
+  }
   const weg = Math.hypot(p.x - bron.x, p.z - bron.z);
   const verPaniek = ver ? ver.paniek : 0;
   // uitrazen: de paniek loopt af en hij gaat weer wandelen
   p.paniek = 0.01; p.bron = null;
   window.__rij(90);
   return { aantal, meteen, netNa: +netNa.toFixed(2), rent: +rent.toFixed(2), wandel: +wandel.toFixed(2),
-    halverwege: +halverwege.toFixed(1), weg: +weg.toFixed(1), verPaniek,
+    halverwege: +halverwege.toFixed(1), weg: +weg.toFixed(1), gelopen: +gelopen.toFixed(1), verPaniek,
     daarna: +p.vNu.toFixed(2), alive: p.alive };
 });
 ok(schrik.aantal >= 1 && schrik.meteen.paniek > 4, 'een knal laat de buurt schrikken',
@@ -391,8 +407,8 @@ ok(schrik.aantal >= 1 && schrik.meteen.paniek > 4, 'een knal laat de buurt schri
 ok(schrik.meteen.schrik > 0.1 && schrik.netNa < 1.2, 'eerst een tel van schrik, dan pas rennen', `${schrik.netNa} m/s na 0,2 s`);
 ok(schrik.rent > 3.6 && schrik.rent < 8, 'daarna rent hij in een realistisch tempo',
   `${schrik.rent} m/s tegen ${schrik.wandel} m/s wandelen`);
-ok(schrik.weg > schrik.halverwege && schrik.weg > 14, 'en hij rent bij de knal vandaan',
-  `${schrik.halverwege} m → ${schrik.weg} m`);
+ok(schrik.weg > schrik.halverwege && schrik.gelopen > 12, 'en hij rent bij de knal vandaan',
+  `${schrik.halverwege} m → ${schrik.weg} m hemelsbreed, ${schrik.gelopen} m gelopen`);
 ok(schrik.verPaniek === 0, 'wie ver weg loopt merkt er niets van');
 ok(schrik.daarna < 2 && schrik.alive, 'als de schrik voorbij is wandelt hij weer', `${schrik.daarna} m/s`);
 

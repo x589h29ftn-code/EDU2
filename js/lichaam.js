@@ -78,31 +78,78 @@ export const DEEL = {
     doosGeo(0.395, 0.24, 0.225, 0, 0.10, 0),
     doosGeo(0.345, 0.21, 0.195, 0, -0.11, 0),
     doosGeo(0.425, 0.10, 0.235, 0, 0.185, 0),      // schouderlijn
+    // de schouders zelf: twee blokjes die de hoek eraf halen, zodat de romp
+    // bovenin niet als een plank ophoudt
+    doosGeo(0.115, 0.075, 0.205, -0.165, 0.225, 0),
+    doosGeo(0.115, 0.075, 0.205, 0.165, 0.225, 0),
+    doosGeo(0.185, 0.085, 0.150, 0, 0.245, 0),     // aanzet van de nek
   ]),
-  bekken: () => doosGeo(0.335, 0.19, 0.205),
+  // bekken met een broekband die een slag breder is dan de broek eronder
+  bekken: () => samen([
+    doosGeo(0.335, 0.19, 0.205),
+    doosGeo(0.352, 0.042, 0.215, 0, 0.085, 0),
+  ]),
   nek: () => { const g = new THREE.CylinderGeometry(0.055, 0.068, 0.10, 7); return g; },
-  // hoofd met een neus en oren; zonder die twee is het een biljartbal
+  /*
+   Hoofd met een neus, oren, een kaak en een kin. De bol alleen was een
+   biljartbal; met de neus en de oren erbij werd het een hoofd, maar van opzij
+   bleef het een bal met dingen erop. Een kaaklijn die naar de kin toe smaller
+   wordt is wat je van een mens herkent, ook op tien meter.
+  */
   hoofd: () => {
     const kop = new THREE.SphereGeometry(MAAT.hoofdR, 10, 8);
     kop.scale(1.0, 1.13, 1.06);
-    const delen = [kop, doosGeo(0.030, 0.032, 0.036, 0, -0.012, -0.108)];
+    const delen = [
+      kop,
+      doosGeo(0.030, 0.034, 0.038, 0, -0.014, -0.106),        // neus
+      doosGeo(0.150, 0.052, 0.150, 0, -0.088, -0.012),        // kaak
+      doosGeo(0.086, 0.034, 0.090, 0, -0.112, -0.024),        // kin
+    ];
     for (const sx of [-1, 1]) delen.push(doosGeo(0.014, 0.045, 0.030, sx * 0.108, 0.005, 0.008));
     return samen(delen);
   },
+  /*
+   Ogen, als eigen onderdeel omdat ze een andere kleur hebben dan de huid — bij
+   de voetgangers is elk onderdeel één instanced mesh met één kleur. Twee
+   donkere spleetjes, meer niet, en het is het verschil tussen een pop en iemand
+   die je aankijkt.
+
+   Er zaten eerst wenkbrauwen bij. Die liepen op deze afstand met de ogen samen
+   tot één donkere band over het gezicht — een blinddoek. Weg dus; twee kleine
+   ogen doen het werk.
+  */
+  ogen: () => {
+    const delen = [];
+    for (const sx of [-1, 1]) {
+      delen.push(doosGeo(0.022, 0.012, 0.010, sx * 0.045, 0.008, -0.103));
+    }
+    return samen(delen);
+  },
   // kapsel: kruin plus een stukje in de nek
+  /*
+   Kapsel: een kruin plus een stukje in de nek. De kruin liep tot op de ooglijn
+   en dat las als een helm; hij houdt nu hoger op, zodat er voorhoofd overblijft.
+  */
   haar: () => samen([
-    new THREE.SphereGeometry(0.119, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.56),
-    doosGeo(0.185, 0.09, 0.10, 0, -0.055, 0.055),
+    new THREE.SphereGeometry(0.119, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.44),
+    doosGeo(0.205, 0.075, 0.085, 0, -0.030, 0.060),        // achterhoofd
+    doosGeo(0.215, 0.030, 0.150, 0, -0.058, 0.035),        // in de nek
   ]),
   bovenarm: () => doosGeo(0.092, MAAT.bovenarm, 0.098, 0, -MAAT.bovenarm / 2, 0),
   onderarm: () => doosGeo(0.080, MAAT.onderarm, 0.086, 0, -MAAT.onderarm / 2, 0),
-  hand: () => samen([doosGeo(0.078, 0.100, 0.052, 0, -0.050, 0)]),
+  // hand met een duim eraan: van dichtbij is een blokje aan een arm een want
+  hand: () => samen([
+    doosGeo(0.072, 0.095, 0.050, 0, -0.048, 0),
+    doosGeo(0.030, 0.052, 0.038, -0.038, -0.030, 0.004),
+  ]),
   bovenbeen: () => doosGeo(0.135, MAAT.bovenbeen, 0.155, 0, -MAAT.bovenbeen / 2, 0),
   onderbeen: () => doosGeo(0.115, MAAT.onderbeen, 0.125, 0, -MAAT.onderbeen / 2, 0),
   // schoen: hangt aan de enkel en steekt naar voren uit
   schoen: () => samen([
     doosGeo(0.108, MAAT.schoenH, 0.235, 0, -MAAT.schoenH / 2, -0.045),
     doosGeo(0.098, 0.045, 0.10, 0, -0.020, 0.030),        // hiel
+    doosGeo(0.114, 0.022, 0.245, 0, -MAAT.schoenH + 0.008, -0.048),   // zool, iets breder
+    doosGeo(0.100, 0.050, 0.070, 0, 0.020, 0.006),        // wreef, tot over de enkel
   ]),
   // pet met klep, in plaats van haar
   pet: () => samen([
@@ -133,7 +180,7 @@ export const DEEL = {
  Een knie kan maar één kant op, dus die krijgt alleen een positieve buiging als
  het onderbeen naar achteren zwaait — anders knikt hij de verkeerde kant uit.
 */
-export function loopHouding(fase, loopt, ren = 0, uit = {}) {
+export function loopHouding(fase, loopt, ren = 0, uit = {}, klok = 0) {
   const zw = loopt ? 0.38 + ren * 0.26 : 0;
   const s = Math.sin(fase), c = Math.cos(fase);
   uit.heupL = s * zw;
@@ -141,9 +188,16 @@ export function loopHouding(fase, loopt, ren = 0, uit = {}) {
   // knie: buigt als het been naar achteren gaat en bij het opzwaaien
   uit.knieL = loopt ? Math.max(0, -s) * (0.55 + ren * 0.55) + Math.max(0, -c) * 0.25 : 0.03;
   uit.knieR = loopt ? Math.max(0, s) * (0.55 + ren * 0.55) + Math.max(0, c) * 0.25 : 0.03;
-  // enkel volgt het onderbeen maar blijft vlakker
-  uit.enkelL = -uit.knieL * 0.45;
-  uit.enkelR = -uit.knieR * 0.45;
+  /*
+   De enkel. Hij volgde alleen de knie, en daardoor stond de voet het hele
+   rondje in dezelfde stand — alsof je op planken loopt. Een pas heeft twee
+   momenten die je ziet: de hiel komt als eerste neer (voet omhoog), en aan het
+   eind zet je af met de teen (voet omlaag). Dat is één sinus, een kwartslag
+   verschoven ten opzichte van de heup.
+  */
+  const afzet = loopt ? (0.30 + ren * 0.22) : 0;
+  uit.enkelL = -uit.knieL * 0.35 + c * afzet;
+  uit.enkelR = -uit.knieR * 0.35 - c * afzet;
   // armen tegengesteld aan de benen, met een elleboog die altijd wat gebogen is
   const az = loopt ? 0.34 + ren * 0.30 : 0;
   uit.schouderL = -s * az;
@@ -158,6 +212,43 @@ export function loopHouding(fase, loopt, ren = 0, uit = {}) {
   */
   const been = MAAT.bovenbeen + MAAT.onderbeen;
   uit.wip = loopt ? -been * (1 - Math.cos(zw * Math.abs(s))) * 0.85 : 0;
+
+  /*
+   Wat er tot nu toe ontbrak: het lichaam zelf deed niet mee. Armen en benen
+   zwaaiden, maar de romp stond er kaarsrecht en doodstil bij, en dat is waarom
+   iedereen eruitzag als een marionet.
+
+     romp    voorover hellen. Wie rent hangt vooruit; wie stilstaat staat een
+             fractie voorover, want kaarsrecht staat niemand;
+     rol     de zijwaartse slinger. Bij elke pas valt je gewicht op één been en
+             helt je bovenlichaam een graad of twee die kant op — twee keer per
+             hele slag, dus op het dubbele van de pasfrequentie;
+     hoofd   tegendraai, zodat het hoofd waterpas blijft terwijl de romp helt.
+             Dat doet een mens vanzelf: je ogen willen stil staan;
+     armZij  de armen hangen niet plat tegen de romp maar een paar graden naar
+             buiten, en bij het rennen verder.
+
+   Staat hij stil, dan staat hij niet stíl: `klok` (de tijd in seconden) laat
+   hem ademen en langzaam van het ene op het andere been wisselen. Een rij
+   mensen die allemaal bevroren staan te wachten is net zo verkeerd als een rij
+   die allemaal precies gelijk loopt.
+  */
+  if (loopt) {
+    uit.romp = 0.035 + ren * 0.16;
+    uit.rol = Math.sin(fase * 2 + Math.PI / 2) * (0.022 + ren * 0.030);
+    uit.armZij = 0.07 + ren * 0.07;
+    uit.wip += Math.abs(c) * (0.004 + ren * 0.010);
+  } else {
+    const adem = Math.sin(klok * 1.7);
+    uit.romp = 0.020 + adem * 0.008;
+    uit.rol = Math.sin(klok * 0.45) * 0.035;
+    uit.armZij = 0.06;
+    uit.wip = adem * 0.007;
+    // en de armen hangen niet als twee stokken stil
+    uit.schouderL = Math.sin(klok * 0.45 + 0.4) * 0.035;
+    uit.schouderR = -uit.schouderL;
+  }
+  uit.hoofd = -uit.romp * 0.8;
   return uit;
 }
 
@@ -166,6 +257,7 @@ export function loopHouding(fase, loopt, ren = 0, uit = {}) {
  het stuur. De romp helt naar voren (dat regelt de aanroeper met `tilt`).
 */
 export function fietsHouding(fase, uit = {}) {
+  uit.romp = 0; uit.rol = 0; uit.hoofd = 0; uit.armZij = 0.10;
   const s = Math.sin(fase), c = Math.cos(fase);
   uit.heupL = 1.05 + s * 0.42;
   uit.heupR = 1.05 - s * 0.42;
@@ -176,6 +268,42 @@ export function fietsHouding(fase, uit = {}) {
   uit.elleboogL = 0.30; uit.elleboogR = 0.30;
   uit.wip = 0;
   return uit;
+}
+
+/*
+ Gebukt lopen. `mate` loopt van 0 (rechtop) tot 1 (zo diep als het gaat): de
+ heupen zakken, de knieën buigen mee en het bovenlichaam helt naar voren, zodat
+ je achter een muurtje of een auto past. De armen komen wat naar voren, want met
+ twee slingerende armen naast je lichaam zie je er niet uit als iemand die zich
+ verstopt.
+
+ Levert terug hoeveel het lichaam zakt (in meters, bij schaal 1): de aanroeper
+ zet de heup en de camera daarmee lager.
+*/
+export const HURK_HEUP = 1.45, HURK_KNIE = 2.15;
+export function hurkHouding(uit, mate = 1) {
+  const m = Math.max(0, Math.min(1, mate));
+  if (!m) return 0;
+  const h = m * HURK_HEUP, k = m * HURK_KNIE;
+  uit.heupL += h; uit.heupR += h;
+  uit.knieL += k; uit.knieR += k;
+  // de voet blijft plat op de grond staan: de enkel maakt de knik goed
+  uit.enkelL += k - h; uit.enkelR += k - h;
+  uit.schouderL += m * 0.30; uit.schouderR += m * 0.30;
+  uit.elleboogL += m * 0.55; uit.elleboogR += m * 0.55;
+  uit.romp = (uit.romp || 0) + m * 0.26;
+  uit.hoofd = -(uit.romp || 0) * 0.8;
+  uit.armZij = (uit.armZij || 0) + m * 0.05;
+  /*
+   Hoeveel de heup zakt, uitgerekend en niet geschat: het bovenbeen staat onder
+   `h` uit het lood en het onderbeen onder `h − k`, dus wat er van de beenlengte
+   in hoogte overblijft is de som van die twee cosinussen. Volledig gehurkt is
+   dat achtenveertig centimeter — precies zoveel als een mens zakt.
+  */
+  const staand = MAAT.bovenbeen + MAAT.onderbeen;
+  const zak = staand - (MAAT.bovenbeen * Math.cos(h) + MAAT.onderbeen * Math.cos(h - k));
+  uit.wip = (uit.wip || 0) - zak;
+  return zak;
 }
 
 /** Houding voor wie met twee handen een wapen vooruit houdt. */

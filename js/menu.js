@@ -322,6 +322,7 @@ function toonPaneel(welke) {
     const kop = document.createElement('h3'); kop.textContent = 'Besturing'; z.append(kop);
     for (const [a, b] of [
       ['W A S D', 'lopen · shift = rennen · spatie = springen'],
+      ['C', 'bukken: lager, langzamer, en moeilijker te zien'],
       ['muis', 'rondkijken · linkermuisknop = schieten · R = herladen'],
       ['scrollwiel', 'wisselen tussen pistool en machinegeweer · H = wapen weg'],
       ['E', 'praten, naar binnen, in- en uitstappen'],

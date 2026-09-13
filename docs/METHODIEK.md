@@ -3276,6 +3276,79 @@ ronde gedaan. Wat er bij een paar ervan kwam kijken:
 
 Controle: `npm run puntentest` (vijfenveertig controles) en `npm run puntenshots`.
 
+**Mensen, auto's en een wijk die geleefd heeft (stap 50).**
+
+Een tweede lijst dezelfde dag: de mensen en de auto's er beter uit laten zien,
+de wijk minder schoon maken, zwaardere politie vanaf vier sterren, bukken met C,
+en de meldingen bij aanrijden en neerschieten eruit.
+
+*De mensen.* Het model was niet het probleem — dat had al een skelet met
+ellebogen en knieën. Wat ontbrak was dat het **lichaam zelf** meedeed: armen en
+benen zwaaiden en de romp stond er kaarsrecht en doodstil bij. Vier dingen erbij
+in `loopHouding` (js/lichaam.js), en daarmee in één klap voor de voetgangers
+(instanced) én voor de losse poppetjes: voorover hellen, een zijwaartse slinger
+op het dubbele van de pasfrequentie, een hoofd dat er tegenin draait, en armen
+die een paar graden naar buiten hangen. Plus een enkel die afzet in plaats van
+de knie te volgen, en ademhalen voor wie stilstaat.
+
+Dat laatste vroeg twee dingen van de aanroepers: de voetgangers geven nu
+`time + i` mee, zodat niet honderddertig mensen als één man staan te deinen, en
+de zijwaartse slinger moest in de euler van elk onderdeel — met de volgorde YXZ
+is dat de binnenste draai, dus hij kantelt om de lengteas van het lichaam en
+niet om een wereldas. Bij de armen kwam er een correctie bij: die naar buiten
+draaien verschuift de elleboog met `sin(zij)` en verkort de projectie met
+`cos(zij)`; zonder dat knikt de arm bij de elleboog.
+
+Aan het uiterlijk: ogen (een eigen onderdeel, want een eigen kleur), een kaak met
+een kin, schouders, een broekband, een duim, een zool, en korte mouwen voor ruim
+de helft. Eén ding ging mis en was leerzaam: de eerste versie had ook
+wenkbrauwen, en op tien meter liepen die met de ogen samen tot één donkere band
+over het gezicht — een blinddoek. Twee kleine ogen doen het werk.
+
+*De auto's.* Het dak was smaller dan de zijruiten; aan weerskanten bleef tien
+centimeter open en van schuin voren leek elke auto een cabriolet. Verder velgen
+met spaken (aan beide kanten van de band — een schijf in het midden verdwijnt
+erin), wissers, een antenne, lamellen in de grille en een vuilrand langs de
+dorpel. Twee van die nieuwe details liepen meteen tegen de proef aan: de
+vuilrand sneed dwars door de banden (nu tussen de wielkasten door, net als de
+sierlijst) en de wissers hingen vijftien centimeter boven de motorkap in de lucht
+(nu in hun ruststand erop). Dat de rijtest die twee eruit haalt is precies
+waarvoor hij er is.
+
+*Minder schoon.* Dit was de open vraag van de gebruiker en er zat een keuze in:
+alles vuil maken is net zo verkeerd als alles schoon. Wat er gekomen is:
+
+- een **verweerlaag over elke gevel** (js/textures.js): groene aanslag op de
+  plint met een rafelige bovenrand, regenstrepen onder de vensterbanken — daar
+  worden de ramen tijdens het tekenen voor bijgehouden — roet onder de dakrand,
+  vlekken en haarscheurtjes. Hoe vuil hangt per huis af, en één op de zes blijft
+  bijna schoon;
+- **js/rommel.js**: 28.625 pollen onkruid langs de trottoirbanden, 3427 stuks
+  zwerfvuil in de goot en 936 rolcontainers, allemaal per tegel in instanced
+  meshes met een afstandsgrens. Waar het staat komt uit een dobbelsteen die aan
+  de plek hangt, dus dezelfde kaart geeft dezelfde rommel en er hoeft niets van
+  bewaard te worden;
+- **tags op de blinde muren** uit de BGT (js/scheiding.js): een vlak vijf
+  centimeter voor de muur, met de uv's op een van de vier tags van het doek.
+
+Kosten: 45 draw calls, zes megabyte textuur en anderhalve seconde opbouwtijd.
+Niets meetbaars per beeld.
+
+*Bukken.* Hoeveel je zakt is niet geschat maar uitgerekend: met een heup van
+1,45 en een knie van 2,15 radialen houdt het been
+`bovenbeen·cos(h) + onderbeen·cos(h−k)` aan hoogte over, en dat is achtenveertig
+centimeter minder dan rechtop. Datzelfde getal zakt de camera én het poppetje in
+de derde persoon — het is hetzelfde lichaam. Waar het voor dient zit in
+js/politie.js: de zichtlijn wordt op 0,75 m getoetst in plaats van 1,30 m, en
+dus houdt een tuinmuurtje of een geparkeerde auto je uit het zicht.
+
+*Machinepistolen vanaf vier sterren.* Veertig procent bij vier sterren, de helft
+bij vijf, per agent bepaald op het moment dat hij uitrukt. Salvo's van drie, en
+elk schot daarvan op 45 % van de gewone trefkans — zonder die verzwakking is
+vier sterren geen uitdaging meer maar een executie.
+
+Controle: `npm run vuiltest` (zesendertig controles) en `npm run vuilshots`.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -13,7 +13,7 @@
 */
 import * as THREE from 'three';
 import { grondHoogte } from './viaduct.js';
-import { MAAT, DEEL, loopHouding, mikHouding } from './lichaam.js';
+import { MAAT, DEEL, loopHouding, mikHouding, hurkHouding } from './lichaam.js';
 
 const SCHOUDER_X = 0.235;
 
@@ -30,8 +30,10 @@ export class Persoon {
   */
   constructor({ shirt = 0x2a6b3a, broek = 0x24303f, huid = 0xd9b48f, haar = 0x2a1d12,
     hoogte = 1.0, wapen = false, pet = false, petKleur = 0x1d2634,
-    vest = null, schoen = 0x24242a } = {}) {
+    vest = null, schoen = 0x24242a, oog = 0x2a1d14, korteMouw = false } = {}) {
     const mShirt = mat(shirt), mBroek = mat(broek), mHuid = mat(huid, 0.85);
+    // korte mouwen: dan is de onderarm huidkleur en zie je dat het een arm is
+    const mMouw = korteMouw ? mHuid : mShirt;
     const mHaar = mat(haar), mSchoen = mat(schoen, 0.7);
     this.groep = new THREE.Group();
     this.groep.scale.setScalar(hoogte);
@@ -47,9 +49,15 @@ export class Persoon {
     this.groep.add(mesh(DEEL.romp(), mShirt, 0, MAAT.romp, 0));
     this.groep.add(mesh(DEEL.bekken(), mBroek, 0, MAAT.bekken, 0));
     this.groep.add(mesh(DEEL.nek(), mHuid, 0, MAAT.nek, 0));
-    this.groep.add(mesh(DEEL.hoofd(), mHuid, 0, MAAT.hoofd, 0));
-    if (pet) this.groep.add(mesh(DEEL.pet(), mat(petKleur), 0, MAAT.hoofd + 0.020, 0));
-    else this.groep.add(mesh(DEEL.haar(), mHaar, 0, MAAT.hoofd + 0.020, 0));
+    // hoofd met ogen; de ogen zijn een eigen mesh omdat ze een eigen kleur hebben
+    this.hoofd = new THREE.Group();
+    this.hoofd.position.set(0, MAAT.hoofd, 0);
+    this.hoofd.add(mesh(DEEL.hoofd(), mHuid));
+    this.hoofd.add(mesh(DEEL.ogen(), mat(oog, 0.4)));
+    this.groep.add(this.hoofd);
+    // pet of haar hangt aan het hoofd, zodat hij meedraait als het hoofd knikt
+    if (pet) this.hoofd.add(mesh(DEEL.pet(), mat(petKleur), 0, 0.020, 0));
+    else this.hoofd.add(mesh(DEEL.haar(), mHaar, 0, 0.020, 0));
     if (vest) this.groep.add(mesh(DEEL.vest(), mat(vest, 0.72), 0, MAAT.romp, 0));
 
     /*
@@ -74,9 +82,9 @@ export class Persoon {
     };
 
     this.armLinks = ledemaat(-SCHOUDER_X, MAAT.schouder, DEEL.bovenarm(), DEEL.onderarm(), DEEL.hand(),
-      mShirt, mShirt, mHuid, MAAT.bovenarm, MAAT.onderarm);
+      mShirt, mMouw, mHuid, MAAT.bovenarm, MAAT.onderarm);
     this.armRechts = ledemaat(SCHOUDER_X, MAAT.schouder, DEEL.bovenarm(), DEEL.onderarm(), DEEL.hand(),
-      mShirt, mShirt, mHuid, MAAT.bovenarm, MAAT.onderarm);
+      mShirt, mMouw, mHuid, MAAT.bovenarm, MAAT.onderarm);
     this.beenLinks = ledemaat(-MAAT.heupX, MAAT.heup, DEEL.bovenbeen(), DEEL.onderbeen(), DEEL.schoen(),
       mBroek, mBroek, mSchoen, MAAT.bovenbeen, MAAT.onderbeen);
     this.beenRechts = ledemaat(MAAT.heupX, MAAT.heup, DEEL.bovenbeen(), DEEL.onderbeen(), DEEL.schoen(),
@@ -90,20 +98,37 @@ export class Persoon {
      mee met de elleboog en steekt hij niet door de mouw heen als hij mikt.
     */
     this.wapen = null;
+    this.wapenSoort = wapen === 'mp' ? 'mp' : (wapen ? 'geweer' : null);
     if (wapen) {
       const g = new THREE.Group();
       const zwart = mat(0x1b1d21, 0.5);
-      g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.62), zwart, 0, 0, -0.20));
-      g.add(mesh(new THREE.BoxGeometry(0.06, 0.12, 0.26), mat(0x2c2118), 0, -0.02, 0.20));
-      g.add(mesh(new THREE.BoxGeometry(0.05, 0.16, 0.08), zwart, 0, -0.11, -0.02));
-      g.add(mesh(new THREE.BoxGeometry(0.02, 0.05, 0.05), zwart, 0, 0.045, 0.02));   // vizier
+      if (wapen === 'mp') {
+        /*
+         Het machinepistool van de arrestatie-eenheid: korter dan het geweer, een
+         kast met een magazijn dat eronder uitsteekt, een loopmantel en een
+         ingeklapte schouderstut. Dezelfde vorm als het wapen dat je zelf kunt
+         kopen (js/wapen.js), maar dan als los blok — je ziet hem op tien meter
+         en niet in je handen.
+        */
+        g.add(mesh(new THREE.BoxGeometry(0.06, 0.09, 0.34), zwart, 0, 0, -0.04));
+        g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.17), mat(0x121417, 0.5), 0, 0.01, -0.27));  // loopmantel
+        g.add(mesh(new THREE.BoxGeometry(0.045, 0.19, 0.05), mat(0x15171a, 0.5), 0, -0.12, 0.01)); // magazijn
+        g.add(mesh(new THREE.BoxGeometry(0.05, 0.09, 0.10), mat(0x2c2118), 0, -0.03, 0.14));       // greep
+        g.add(mesh(new THREE.BoxGeometry(0.055, 0.03, 0.20), zwart, 0, 0.05, 0.20));               // stut
+        g.add(mesh(new THREE.BoxGeometry(0.02, 0.04, 0.04), zwart, 0, 0.065, -0.10));              // vizier
+      } else {
+        g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.62), zwart, 0, 0, -0.20));
+        g.add(mesh(new THREE.BoxGeometry(0.06, 0.12, 0.26), mat(0x2c2118), 0, -0.02, 0.20));
+        g.add(mesh(new THREE.BoxGeometry(0.05, 0.16, 0.08), zwart, 0, -0.11, -0.02));
+        g.add(mesh(new THREE.BoxGeometry(0.02, 0.05, 0.05), zwart, 0, 0.045, 0.02));   // vizier
+      }
       g.position.set(0, -MAAT.onderarm - 0.03, 0);
       g.rotation.x = -Math.PI / 2;
       this.armRechts.onder.add(g);
       this.wapen = g;
-      const vlam = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6),
+      const vlam = new THREE.Mesh(new THREE.SphereGeometry(wapen === 'mp' ? 0.08 : 0.07, 8, 6),
         new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
-      vlam.position.set(0, 0, -0.52);
+      vlam.position.set(0, 0, wapen === 'mp' ? -0.38 : -0.52);
       g.add(vlam);
       this.vlam = vlam;
       this.vlamT = 0;
@@ -157,7 +182,7 @@ export class Persoon {
 
   // loopt: benen en armen zwaaien · zwaait: rechterarm omhoog en heen en weer
   // mikt: geweer vooruit, dus beide armen naar voren
-  update(dt, { loopt = false, zwaait = false, mikt = false, snelheid = 1.3 } = {}) {
+  update(dt, { loopt = false, zwaait = false, mikt = false, snelheid = 1.3, hurkt = 0 } = {}) {
     this.klok += dt;
     // hij loopt zelf rond, dus elk beeld opnieuw kijken waar de grond ligt
     this.grond = grondHoogte(this.groep.position.x, this.groep.position.z, this.groep.position.y + 0.9);
@@ -168,7 +193,9 @@ export class Persoon {
     // de pas telt door met de snelheid, net als bij de voetgangers
     if (loopt) this.stap += dt * (2.6 + snelheid * 1.9);
     const ren = Math.max(0, Math.min(1, (snelheid - 1.6) / 3.2));
-    const H = loopHouding(this.stap, loopt, ren, this._h);
+    // `klok` laat hem ademen en van been wisselen als hij stilstaat
+    const H = loopHouding(this.stap, loopt, ren, this._h, this.klok);
+    if (hurkt > 0) hurkHouding(H, hurkt);
 
     if (mikt) {
       /*
@@ -187,10 +214,6 @@ export class Persoon {
       H.schouderL = Math.sin(this.klok * 1.1) * 0.05;
       this.armRechts.boven.rotation.z = 2.15 + Math.sin(this.klok * 7.5) * 0.30;
       this.armLinks.boven.rotation.z = 0;
-    } else {
-      const terug = Math.min(1, dt * 8);
-      this.armRechts.boven.rotation.z += (0 - this.armRechts.boven.rotation.z) * terug;
-      this.armLinks.boven.rotation.z += (0 - this.armLinks.boven.rotation.z) * terug;
     }
 
     this.armLinks.boven.rotation.x = H.schouderL;
@@ -203,6 +226,26 @@ export class Persoon {
     this.beenRechts.onder.rotation.x = -H.knieR;
     this.beenLinks.eind.rotation.x = H.enkelL;
     this.beenRechts.eind.rotation.x = H.enkelR;
-    if (!this.omT) this.groep.position.y = this.grond + H.wip;
+    /*
+     Het lichaam zelf doet mee: voorover bij het lopen, een zijwaartse slinger
+     bij elke pas, en een hoofd dat er tegenin draait zodat het waterpas blijft.
+     Zonder dit zwaaien alleen de ledematen en staat de romp er als een paal bij.
+     Bij omvallen (`omT`) laten we het met rust: dan bepaalt `legNeer` de stand.
+    */
+    if (!this.omT) {
+      this.groep.rotation.x = H.romp || 0;
+      this.groep.rotation.z = H.rol || 0;
+      this.hoofd.rotation.x = H.hoofd || 0;
+      this.groep.position.y = this.grond + H.wip;
+    }
+    // de armen hangen een paar graden naar buiten in plaats van plat tegen de romp
+    if (!mikt && !(zwaait && !loopt)) {
+      // naar buiten is voor de linkerarm een negatieve draai en voor de rechter
+      // een positieve: een positieve draai om z brengt het uiteinde naar +x
+      const zij = H.armZij || 0;
+      const f = Math.min(1, dt * 8);
+      this.armLinks.boven.rotation.z += (-zij - this.armLinks.boven.rotation.z) * f;
+      this.armRechts.boven.rotation.z += (zij - this.armRechts.boven.rotation.z) * f;
+    }
   }
 }

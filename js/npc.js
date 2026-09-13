@@ -11,6 +11,9 @@ const SHIRTS = [0x2f3a56, 0x8a1f1f, 0xe8e2d0, 0x2a6b3a, 0x2b2b2b, 0xd8b04a, 0x6a
 const PANTS = [0x1f2a44, 0x333333, 0x5a4632, 0x6f7480, 0x24303f];
 const SKIN = [0xd9b48f, 0xc48a5a, 0x8d5a3b, 0xf0d5b8, 0xa9714b];
 const HAIR = [0x2a1d12, 0x141414, 0x8a6a3a, 0xd8c39a, 0x6b3a1f, 0x9a9a9a];
+// oogkleuren: donkerbruin, bruin, grijsblauw en groen. Op deze afstand is het
+// vooral "er zit iets donkers in dat gezicht", en juist dat werkt.
+const OGEN = [0x2a1d14, 0x4a3320, 0x3d4a55, 0x3a4a34];
 // vachtkleuren van de hondjes: wit, crème, zandbruin, roodbruin, donkerbruin,
 // grijs, zwart en een lichtgrijze
 const VACHT = [0xe8e2d6, 0xd9c39a, 0xc39a63, 0x9a5a30, 0x5a3a24, 0x8d8d8d, 0x2b2b2b, 0xbfb9ae];
@@ -34,8 +37,10 @@ const DELEN = [
   { naam: 'nek', geo: DEEL.nek, kleur: 'huid', y: MAAT.nek },
   { naam: 'hoofd', geo: DEEL.hoofd, kleur: 'huid', y: MAAT.hoofd },
   { naam: 'haar', geo: DEEL.haar, kleur: 'haar', y: MAAT.hoofd + 0.020 },
+  // ogen en wenkbrauwen: een eigen deel, want ze hebben een eigen kleur
+  { naam: 'ogen', geo: DEEL.ogen, kleur: 'oog', y: MAAT.hoofd },
   { naam: 'bovenarm', geo: DEEL.bovenarm, kleur: 'shirt', paar: true },
-  { naam: 'onderarm', geo: DEEL.onderarm, kleur: 'shirt', paar: true },
+  { naam: 'onderarm', geo: DEEL.onderarm, kleur: 'mouw', paar: true },
   { naam: 'hand', geo: DEEL.hand, kleur: 'huid', paar: true },
   { naam: 'bovenbeen', geo: DEEL.bovenbeen, kleur: 'broek', paar: true },
   { naam: 'onderbeen', geo: DEEL.onderbeen, kleur: 'broek', paar: true },
@@ -144,7 +149,25 @@ export class NPCs {
       const skin = SKIN[Math.floor(r() * SKIN.length)];
       const hair = HAIR[Math.floor(r() * HAIR.length)];
       const schoen = SCHOEN[Math.floor(r() * SCHOEN.length)];
-      const kleuren = { shirt, broek: pants, huid: skin, haar: hair, schoen };
+      /*
+       Oogkleur en korte mouwen komen niet uit `r()` maar uit het nummer van de
+       persoon zelf. Dat is met opzet: `r()` is één doorlopende reeks waar ook de
+       lengte, de fietsers, de hondjes en de loopsnelheden uit komen, en er twee
+       trekkingen bij zetten schuift die hele reeks op — dan is het ineens een
+       andere wijk met andere mensen. Zo blijft alles wat er al was precies staan.
+      */
+      const oog = OGEN[(i * 7 + 3) % OGEN.length];
+      /*
+       Korte mouwen. Iedereen liep in hetzelfde lange shirt: romp, bovenarm en
+       onderarm allemaal één kleur, en daardoor viel een arm niet op als arm.
+       Ruim de helft draagt nu korte mouwen — dan is de onderarm huidkleur, en
+       dat is meteen te zien. Een jas herken je aan dat verschil.
+      */
+      const korteMouw = ((Math.imul(i + 1, 2654435761) >>> 0) % 100) < 55;
+      const kleuren = {
+        shirt, broek: pants, huid: skin, haar: hair, schoen, oog,
+        mouw: korteMouw ? skin : shirt,
+      };
       for (const def of DELEN) {
         const mesh = this.meshes[def.naam], hex = kleuren[def.kleur];
         if (def.paar) { mesh.setColorAt(i * 2, col.setHex(hex)); mesh.setColorAt(i * 2 + 1, col.setHex(hex)); }
@@ -378,28 +401,48 @@ export class NPCs {
   zetLichaam(i, x, y, z, yaw, tilt, h, H) {
     const m = this._m, q = this._q, e = this._e, v = this._v, sc = this._s, w = this._w;
     sc.set(h, h, h);
-    const zet = (mesh, nr, ox, oy, oz, hoek) => {
-      e.set(tilt + hoek, yaw, 0, 'YXZ'); q.setFromEuler(e);
-      e.set(tilt, yaw, 0, 'YXZ'); w.setFromEuler(e);
+    /*
+     `rol` is de zijwaartse slinger van het bovenlichaam (js/lichaam.js). Hij zit
+     in de z van dezelfde euler: met de volgorde YXZ is dat de binnenste draai,
+     dus hij kantelt om de lengteas van het lichaam en niet om een wereldas.
+    */
+    const rol = H.rol || 0;
+    const zet = (mesh, nr, ox, oy, oz, hoek, extra = 0, zij = 0) => {
+      e.set(tilt + hoek + extra, yaw, rol + zij, 'YXZ'); q.setFromEuler(e);
+      e.set(tilt, yaw, rol, 'YXZ'); w.setFromEuler(e);
       v.set(ox * h, oy * h, oz * h).applyQuaternion(w);
       m.compose(v.set(x + v.x, y + v.y, z + v.z), q, sc);
       mesh.setMatrixAt(nr, m);
     };
-    // romp, bekken, nek, hoofd en haar draaien alleen met het lichaam mee
+    // romp, bekken, nek, hoofd en haar draaien alleen met het lichaam mee; het
+    // hoofd draait er een stukje tegenin, zodat het waterpas blijft
+    const kop = H.hoofd || 0;
     zet(this.meshes.romp, i, 0, MAAT.romp, 0, 0);
     zet(this.meshes.bekken, i, 0, MAAT.bekken, 0, 0);
     zet(this.meshes.nek, i, 0, MAAT.nek, 0, 0);
-    zet(this.meshes.hoofd, i, 0, MAAT.hoofd, 0, 0);
-    zet(this.meshes.haar, i, 0, MAAT.hoofd + 0.020, 0, 0);
+    zet(this.meshes.hoofd, i, 0, MAAT.hoofd, 0, kop);
+    zet(this.meshes.ogen, i, 0, MAAT.hoofd, 0, kop);
+    zet(this.meshes.haar, i, 0, MAAT.hoofd + 0.020, 0, kop);
     // armen en benen, links (2i) en rechts (2i+1)
     for (const [nr, kant] of [[i * 2, 'L'], [i * 2 + 1, 'R']]) {
       const sx = kant === 'L' ? -1 : 1;
       const a1 = H['schouder' + kant], a2 = a1 + H['elleboog' + kant];
       const sxa = sx * SCHOUDER_X, sy = MAAT.schouder;
-      zet(this.meshes.bovenarm, nr, sxa, sy, 0, a1);
-      const ex = sxa, ey = sy - MAAT.bovenarm * Math.cos(a1), ez = -MAAT.bovenarm * Math.sin(a1);
-      zet(this.meshes.onderarm, nr, ex, ey, ez, a2);
-      zet(this.meshes.hand, nr, ex - 0, ey - MAAT.onderarm * Math.cos(a2), ez - MAAT.onderarm * Math.sin(a2), a2);
+      /*
+       De arm hangt een paar graden naar buiten (`armZij`), niet plat tegen de
+       romp. Met de eulervolgorde YXZ is die draai de binnenste, dus de elleboog
+       schuift er `sin(zij)` opzij mee en de rest van de arm wordt `cos(zij)`
+       korter geprojecteerd. Zonder die correctie knikt de arm bij de elleboog.
+      */
+      const zij = sx * (H.armZij || 0);
+      const zs = Math.sin(zij), zc = Math.cos(zij);
+      zet(this.meshes.bovenarm, nr, sxa, sy, 0, a1, 0, zij);
+      const ex = sxa + MAAT.bovenarm * zs;
+      const ey = sy - MAAT.bovenarm * zc * Math.cos(a1);
+      const ez = -MAAT.bovenarm * zc * Math.sin(a1);
+      zet(this.meshes.onderarm, nr, ex, ey, ez, a2, 0, zij);
+      zet(this.meshes.hand, nr, ex + MAAT.onderarm * zs, ey - MAAT.onderarm * zc * Math.cos(a2),
+        ez - MAAT.onderarm * zc * Math.sin(a2), a2, 0, zij);
       const b1 = H['heup' + kant], b2 = b1 - H['knie' + kant], b3 = b2 + H['enkel' + kant];
       const hx = sx * MAAT.heupX, hy = MAAT.heup;
       zet(this.meshes.bovenbeen, nr, hx, hy, 0, b1);
@@ -516,10 +559,16 @@ export class NPCs {
       }
       // de stand van alle gewrichten
       const H = this._h;
-      if (dood) loopHouding(0, false, 0, H);
+      if (dood) loopHouding(0, false, 0, H, 0);
       else if (p.fietst) fietsHouding(p.fase, H);
-      else loopHouding(p.fase, loopt, renDeel, H);
-      this.zetLichaam(i, p.x, gy + yLift + (dood ? 0 : H.wip * h), p.z, p.yaw, tilt, h, H);
+      // `time + i` : iedereen ademt en verlegt zijn gewicht op zijn eigen moment.
+      // Zonder die verschuiving staat een rij wachtenden als één man te deinen.
+      else loopHouding(p.fase, loopt, renDeel, H, time + i * 0.83);
+      // de voorovergebogen houding telt bij de kanteling van het hele lichaam op;
+      // wie omvalt hoeft er niet ook nog bij te hellen
+      const helling = tilt + (dood ? 0 : (H.romp || 0));
+      if (dood) H.rol = 0;
+      this.zetLichaam(i, p.x, gy + yLift + (dood ? 0 : H.wip * h), p.z, p.yaw, helling, h, H);
       p.wip = H.wip;
     }
     // ---- de hondjes ----

@@ -2,8 +2,8 @@
 //
 //   linkerhelft  virtuele joystick om te lopen (helemaal uitslaan = sprinten)
 //   rechterhelft vegen om rond te kijken, korte tik = schot
-//   knoppen      schieten, springen, herladen, wapen wisselen, in-/uitstappen,
-//                camera, kaart, pauze
+//   knoppen      schieten, springen, herladen, wapen wisselen, bukken,
+//                in-/uitstappen, camera, kaart, pauze
 //
 // De knoppen en de twee veeggebieden luisteren zelf naar touch-events, zodat
 // meerdere vingers tegelijk werken: een touch die op een element begint stuurt
@@ -154,6 +154,8 @@ export function initTouchControls(player, opts = {}) {
   button('treload', () => player.reload());
   // van wapen wisselen: de knop doet wat het scrollwiel op een pc doet
   button('twapen', () => opts.onWapen && opts.onWapen());
+  // bukken aan en uit: hetzelfde als C op een toetsenbord
+  button('tduik', () => player.bukken());
   button('tcar', () => opts.onCar && opts.onCar());
   button('tmap', () => opts.onMap && opts.onMap());
   button('tcam', () => opts.onCamera && opts.onCamera());

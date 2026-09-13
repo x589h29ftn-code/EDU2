@@ -35,6 +35,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | Toets | Actie |
 |---|---|
 | W A S D | lopen (shift = sprinten, spatie = springen) |
+| **C** | bukken: je zakt een halve meter, loopt op een derde van je snelheid en bent achter een muurtje of een auto niet meer te zien |
 | ← → | in de auto: radiozender wisselen |
 | muis | rondkijken · linkermuisknop = schieten (het machinegeweer schiet door zolang je hem vasthoudt) · R = herladen · H = wapen weg en weer tevoorschijn |
 | scrollwiel | wisselen tussen het pistool en het machinegeweer; het icoon van het wapen staat kort rechtsonder |
@@ -54,11 +55,60 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | Esc | muis vrijgeven · het menu, met Doorgaan, Instellingen, Besturing en Afsluiten |
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
-vegen om rond te kijken, en knoppen voor vuren, springen, herladen, wapen wisselen, in-/uitstappen,
-de camera, de kaart en pauze. Daar is geen toetsenbord, dus **je plek staat ook linksonder op de grote kaart (M)** —
+vegen om rond te kijken, en knoppen voor vuren, springen, herladen, wapen wisselen, bukken,
+in-/uitstappen, de camera, de kaart en pauze. Daar is geen toetsenbord, dus **je plek staat ook linksonder op de grote kaart (M)** —
 dezelfde twee getallen. Ze tellen vanaf het kruispunt Molenkrite / Monnikmolen / Jasker en veranderen
 niet als de kaart opnieuw gegenereerd wordt, dus je kunt er een plek mee doorgeven: *"hier een
 onzichtbare muur"*, *"hier een wegblokkade"*, *"dit object hoort hier".*
+
+## Bukken (C)
+
+Met **C** ga je door je knieën. Je zakt **achtenveertig centimeter** — precies zoveel als het lichaam
+in js/lichaam.js zakt bij een heup van 1,45 en een knie van 2,15 radialen, dus het poppetje in de
+derde persoon zakt evenveel als de camera — en je komt op ruim een derde van je snelheid vooruit.
+Rennen kan niet; springen zet je eerst weer overeind.
+
+Waar het voor is: **de politie kijkt lager**. Staand kijkt een agent over alles heen wat lager is dan
+1,30 m — een tuinmuurtje, een haag, een geparkeerde auto. Gehurkt is 0,75 m genoeg om je uit het
+zicht te houden. Achter het muurtje zitten werkt dus echt, en dat is een ander antwoord op vier
+sterren dan wegrennen.
+
+![Gebukt achter een muurtje](docs/screenshots/gebukt.png)
+
+## De wijk heeft geleefd
+
+De wijk was té netjes: geen onkruid tussen de tegels, geen papiertje in de goot, geen tag op een
+blinde muur, en gevels die er stuk voor stuk bij stonden alsof ze gisteren zijn opgeleverd. Dat valt
+niet op als een fout maar wel als een gevoel — het was een maquette en geen wijk waar dertig jaar in
+gewoond is. Wat er nu staat:
+
+| | wat | hoeveel |
+|---|---|---|
+| **onkruid** | pollen gras en een enkele paardenbloem langs de trottoirbanden, waar de veegwagen niet komt | 28.625 |
+| **zwerfvuil** | een verfrommeld papiertje, een blikje, een plastic zak of een patatbakje, plat in de goot | 3.427 |
+| **rolcontainers** | grijs, groen en blauw, op de stoep en in de berm, meestal met z'n tweeën | 936 |
+| **graffiti** | een tag op ongeveer één op de negen blinde muurstukken uit de BGT | per muur |
+| **verweerde gevels** | groene aanslag op de plint, regenstrepen onder de vensterbanken, roet onder de dakrand, vlekken en haarscheurtjes | elke gevel |
+
+![De stoeprand](docs/screenshots/stoeprand_rommel.png)
+
+Waar het staat komt uit de kaart zelf: langs de assen van de rijbanen en de voetpaden, op een vaste
+afstand uit het hart, met een dobbelsteen die aan de plek hangt. Dezelfde kaart geeft dus altijd
+dezelfde rommel — het verspringt niet als je opnieuw laadt, en er hoeft geen lijst voor bewaard te
+worden. Alles gaat per tegel van 240 m in instanced meshes met een afstandsgrens, net als de
+struiken: een pol onkruid is op honderd meter een groen puntje van twee beeldpunten. Het kostte
+**45 draw calls** en **zes megabyte** textuur extra, en geen meetbare tijd per beeld.
+
+Hoe vuil een gevel is, verschilt per huis: de ene is vorig jaar gereinigd, de andere staat er al
+twintig jaar zo bij. Een straat waar élke gevel even grauw is klopt net zo min als een straat waar
+alles glimt.
+
+**Wat er nog meer zou kunnen** (nog niet gedaan, in volgorde van wat het meeste oplevert):
+olievlekken en gerepareerde stukken asfalt op de rijbaan, scheefliggende en verzakte stoeptegels,
+mos in de voegen van het trottoir, bladeren in de goot onder de bomen, een omgevallen fiets tegen een
+lantaarnpaal, een grofvuilhoop bij een oprit, schotelantennes en losse dakramen op de achterkanten,
+gordijnen die per woning verschillen, een enkele verlaten auto op een parkeervak, en verf die van de
+kozijnen bladdert op de straten waar de foto's dat laten zien.
 
 ## Rijden
 
@@ -67,6 +117,19 @@ stappen. Ze zijn opgebouwd uit een dorpel, een flank met een taille, een schoude
 en een kofferklep, met schuine A- en C-stijlen, wielkasten, spiegels, portiernaden en een uitlaat.
 
 ![Een auto van dichtbij](docs/screenshots/auto_model.png)
+
+**Wat er in de ronde van 13 september bij kwam.** Het dak was W − 0,40 breed terwijl de zijruiten
+tien centimeter verder naar buiten stonden: aan weerskanten bleef er een spleet open en van schuin
+voren leek elke auto een cabriolet. Het dak sluit nu over de ruiten heen, met een druiplijst langs de
+dakrand. Verder: **velgen met vijf spaken** in plaats van een gladde dop (aan beide kanten van de
+band, want een schijf in het midden verdwijnt erin), **ruitenwissers** in hun ruststand op de
+motorkap, een **antenne** op het dak, **lamellen** in de grille, een **tankdop** op het achterspatbord
+en een **vuilrand** langs de dorpel — opspattend wegvuil, niet een sierlijst. De lak is matter
+(ruwheid 0,46, metaalgehalte 0,22): op 0,35 en 0,5 leek het plastic speelgoed. En het wagenpark is
+minder bont: zestien kleuren waarvan de meeste grijs, zilver, donkerblauw en zwart, zoals een
+Nederlandse woonstraat er werkelijk uitziet.
+
+![Een auto van schuin voren](docs/screenshots/auto_detail.png)
 
 Zodra je instapt krijgt die ene auto het model met **losse wielen**: de voorwielen sturen mee en alle
 vier rollen ze met de afgelegde weg. De carrosserie helt over in de bocht en duikt als je remt, de
@@ -181,17 +244,54 @@ rent zwaait verder en buigt dieper; wie fietst trapt rondjes met de armen op het
 |---|---|
 | ![Een voetganger](docs/screenshots/mensen_straat.png) | ![Een agent](docs/screenshots/mensen_agent.png) |
 
+**Wat er in de ronde van 13 september bij kwam.** Ze zwaaiden met armen en benen, maar de rómp stond
+er kaarsrecht en doodstil bij — en dat is waarom ze eruitzagen als marionetten. Nu doet het lichaam
+mee:
+
+- **voorover hellen.** Wie loopt helt twee graden naar voren, wie rent elf. Dat is het verschil
+  tussen wandelen en hard weglopen, en je ziet het van ver;
+- **de slinger opzij.** Bij elke pas valt je gewicht op één been en helt je bovenlichaam een graad of
+  twee die kant op — twee keer per hele slag;
+- **een hoofd dat waterpas blijft.** Het draait tegen de romp in, want je ogen willen stilstaan. Het
+  hoofd is daarvoor een eigen groep geworden, met de pet of het haar eraan vast;
+- **de voet zet af.** De enkel volgde alleen de knie, en daardoor stond de voet het hele rondje in
+  dezelfde stand, alsof je op planken loopt. Nu komt de hiel als eerste neer en zet de teen aan het
+  eind af;
+- **de armen hangen naar buiten**, een paar graden, in plaats van plat tegen de romp;
+- **en wie stilstaat, staat niet stíl:** hij ademt en verlegt langzaam zijn gewicht van het ene op
+  het andere been, ieder op zijn eigen moment. Een rij mensen die allemaal bevroren staan te wachten
+  is net zo verkeerd als een rij die precies gelijk loopt.
+
+Aan het uiterlijk veranderde net zoveel: **ogen** in het gezicht (twee donkere spleetjes — een eigen
+onderdeel, want ze hebben een eigen kleur), een **kaaklijn met een kin** in plaats van een bal met
+een neus erop, **schouders** die de hoek van de romp afhalen, een **broekband**, een **duim** aan de
+hand, een **zool** onder de schoen, en bij ruim de helft **korte mouwen** — dan is de onderarm
+huidkleur, en dat is meteen te zien. Een jas herken je aan dat verschil.
+
+| Van voren | Driekwart: stilstaan, lopen, mikken |
+|---|---|
+| ![Drie mensen van voren](docs/screenshots/mensen_voor.png) | ![Driekwart](docs/screenshots/mensen_zij.png) |
+
 De politie draagt een donkerblauw uniform met een **fluorescerend vest** eroverheen en een pet. Dat
 is niet alleen echter — een agent in het donkerblauw was tussen de voetgangers nauwelijks te
 onderscheiden, en nu zie je van ver of het blauw op je afkomt. De bewaking op de waterzuivering
 draagt een oranje vest. Hun geweer hangt aan de onderarm en niet aan de schouder, zodat de loop
 meewijst met de elleboog.
 
+**Vanaf vier sterren rukt de politie zwaarder uit.** Veertig procent van de agenten die dan komt heeft
+een **machinepistool** in plaats van het dienstwapen, bij vijf sterren de helft. Het wordt per agent
+bepaald op het moment dat hij komt, dus wie er al staat wisselt niet ineens van wapen en een ploeg is
+nooit helemaal de een of de ander. Zo iemand schiet **salvo's van drie**, korter na elkaar, en je
+ziet het aan zijn wapen: korter dan het geweer, met een magazijn dat eronder uitsteekt en een
+ingeklapte schouderstut. Elk schot van zo'n salvo is wel minder trefzeker dan één gericht schot —
+anders is vier sterren geen uitdaging meer maar een executie.
+
 `npm run wapentest` loopt dit allemaal na (veertig controles over het model, het schieten, de
 terugslag, het herladen, de bouw van een mens, de looppas en een agent). `npm run wapenshots` maakt
 de foto's hierboven. Het machinegeweer, de buit, het verkeer dat op je reageert en de rest van de
 punten van 13 september staan in **`npm run puntentest`** (vijfenveertig controles) met
-`npm run puntenshots` voor de foto's.
+`npm run puntenshots` voor de foto's; de mensen, de auto's, het vuil, het bukken en de zwaardere
+politie in **`npm run vuiltest`** (zesendertig controles) met `npm run vuilshots`.
 
 ### Wat er op straat blijft liggen
 
@@ -655,6 +755,11 @@ je vandaan en het liefst buiten je gezichtsveld. Ze verschijnen dus niet naast o
 Zien ze je — kijkhoek plus vrij zicht — of horen ze je schieten, dan zetten ze de achtervolging in en
 schieten ze op je. Elke treffer kost leven: de balk linksonder loopt terug en het beeld flitst rood.
 Een agent aanrijden kan ook, en kost je net zoveel verdenking als hem neerschieten.
+
+**Geen tekst meer in beeld.** Er verscheen een regel ("De politie is gebeld", "Gezocht: drie
+sterren") op het moment dat je iemand neerschoot of aanreed. Die is eruit: de sterren rechtsboven
+zeggen het al, en die knipperen zolang ze je zoeken. Een balkje met tekst over je beeld is precies
+wat een spel niet hoeft te doen als hetzelfde ook te zien is.
 
 **Ze schieten raker dan eerst.** Op dekkingsafstand (elf meter) raakte een agent je vier van de tien
 keer voor vier levenspunten; dat voelde als losse flodders, en je kon in een vuurgevecht blijven staan
