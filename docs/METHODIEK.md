@@ -3672,6 +3672,16 @@ Bewaard wordt de JPEG (14 MB tegen 51) — op papier is het verschil er niet, en
 een blad van vijftig megapixel is per keer een halve gigabyte aan
 opslaggeschiedenis. Met `--png` komt het lossless origineel er ook uit.
 
+Na de eerste afdruk kwamen er twee dingen bij (zelfde stap). De **straatnamen**
+zijn geschift: een straat krijgt alleen een naam als hij opgeteld 250 m lang is
+óf ergens 9 m breed, dezelfde naam komt hoogstens drie keer voor en dan nog
+minstens vierhonderd meter uit elkaar. Van de 414 bordjes blijven er ruim 150
+over, en de zestien namen die helemaal wegvallen zijn stuk voor stuk steegjes
+van onder de honderdvijftig meter. En de **herkenningspunten** staan nu alleen
+nog op het lichte blad: op het blad waarop je tekent wil je weten waar Tinga
+State en het startpunt liggen, op de kleurenplaat zitten die punten alleen in de
+weg.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

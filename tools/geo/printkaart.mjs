@@ -42,11 +42,19 @@ const naam = process.argv[4] || 'tinga-speelgebied';
 */
 const alleenJpg = !process.argv.includes('--png');
 /*
- Twee bladen uit dezelfde opname: het gewone, en een met een witte waas over de
- kaart. Dat laatste is waar je op tekent — een stift op een volle groene polder
- is nauwelijks te zien, en het scheelt ook nogal wat inkt.
+ Twee bladen uit dezelfde opname, met elk hun eigen taak.
+
+ Het gewone blad is de kaart zoals het spel eruitziet: straatnamen, raster en
+ verder niets. Het lichte blad heeft een witte waas over de kaart — daarop teken
+ je, want een stift op een volle groene polder is nauwelijks te zien, en het
+ scheelt ook nogal wat inkt — en dáár staan de herkenningspunten op (het
+ startpunt, Tinga State, het tankstation), want die heb je nodig om te weten waar
+ je de grens legt. Op het kleurenblad zouden ze alleen in de weg zitten.
 */
-const BLADEN = [{ licht: 0, achter: '' }, { licht: 0.55, achter: '-licht' }];
+const BLADEN = [
+  { licht: 0, merken: false, achter: '' },
+  { licht: 0.55, merken: true, achter: '-licht' },
+];
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || undefined,
@@ -84,8 +92,8 @@ console.log('tekenen…');
  je hem nu op één of op twee beeldpunten per meter zet, dus de letters en de
  lijnen horen daar mee te schalen en niet met het aantal pixels per meter.
 */
-async function blad(licht) {
-  return page.evaluate(async ({ raster, stukken, schaal, datum, licht }) => {
+async function blad(licht, merken) {
+  return page.evaluate(async ({ raster, stukken, schaal, datum, licht, merken }) => {
     const { KAART } = await import('/js/kaart.js');
     const G = KAART.gebied;
     const W = raster.W, H = raster.H;
@@ -128,10 +136,42 @@ async function blad(licht) {
     // ---------- straatnamen ----------
     /*
      De namen komen uit de kaart (KAART.labels) en staan langs hun eigen straat
-     gedraaid, met een witte gloed eromheen. Er zijn er vierhonderd en in de
-     dichte buurten liggen ze over elkaar heen; wat al bezet is wordt daarom
-     overgeslagen. Dat kost een paar namen en levert een leesbare kaart op.
+     gedraaid, met een witte gloed eromheen. Er zijn er vierhonderd, en zonder
+     schifting wordt dat een kaart waar je doorheen moet turen. Drie zeven:
+
+     1. **Kleine straatjes krijgen geen naam.** Een straat telt mee als hij bij
+        elkaar opgeteld minstens MIN_LENGTE lang is óf ergens minstens MIN_BREED
+        breed — dan is het een straat waar je doorheen rijdt en geen hofje van
+        veertig meter. Zestien namen vallen zo weg, allemaal steegjes.
+     2. **Niet tien keer dezelfde naam.** De Molenkrite stond er tien keer op en
+        de Zuidwesthoekweg elf; hoogstens MAX_PER_NAAM keer is genoeg, en dan ook
+        nog minstens MIN_AFSTAND meter uit elkaar, zodat een lange weg aan beide
+        einden zijn naam houdt.
+     3. En wat dan nog over elkaar heen valt, wordt overgeslagen.
+
+     Namen zonder weg-as — het water, de vaarten, de paden — blijven staan: dat
+     zijn er maar een paar dozijn en ze helpen juist met oriënteren.
     */
+    const MIN_LENGTE = 250, MIN_BREED = 9, MAX_PER_NAAM = 3, MIN_AFSTAND = 400;
+    const straat = new Map();
+    for (const w of (KAART.wegassen || [])) {
+      if (!w.naam) continue;
+      const o = straat.get(w.naam) || { lengte: 0, breed: 0 };
+      o.lengte += w.lengte || 0;
+      for (const p of w.pts) o.breed = Math.max(o.breed, p[2] || w.w || 0);
+      straat.set(w.naam, o);
+    }
+    const alGezet = new Map();
+    const magNaam = (l) => {
+      const o = straat.get(l.t);
+      if (o && o.lengte < MIN_LENGTE && o.breed < MIN_BREED) return false;
+      const eerder = alGezet.get(l.t) || [];
+      if (eerder.length >= MAX_PER_NAAM) return false;
+      if (eerder.some(q => Math.hypot(q.x - l.x, q.z - l.z) < MIN_AFSTAND)) return false;
+      eerder.push(l); alGezet.set(l.t, eerder);
+      return true;
+    };
+
     g.font = `600 ${NAAMMAAT}px system-ui, sans-serif`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
@@ -141,6 +181,7 @@ async function blad(licht) {
       Math.abs(q.x - x) < (q.w + w) / 2 && Math.abs(q.y - y) < (q.h + h) / 2);
     let gezet = 0, over = 0;
     for (const l of (KAART.labels || [])) {
+      if (!magNaam(l)) { over++; continue; }
       const X = px(l.x), Y = py(l.z);
       const b = g.measureText(l.t).width, h = NAAMMAAT * 1.25;
       if (botst(X, Y, b, h)) { over++; continue; }
@@ -235,7 +276,7 @@ async function blad(licht) {
       { p: molen ? { x: molen.cx, z: molen.cz } : null, t: 'De Rat (IJlst)', k: '#7a4b12' },
       { p: pand('0683100000288505'), t: 'Poiesz (IJlst)', k: '#b8860b' },
     ].filter(q => q.p);
-    for (const q of punten) {
+    for (const q of (merken ? punten : [])) {
       const X = px(q.p.x), Y = py(q.p.z), r = W * 0.0018;
       g.beginPath(); g.arc(X, Y, r, 0, Math.PI * 2);
       g.fillStyle = q.k; g.fill();
@@ -297,11 +338,14 @@ async function blad(licht) {
     g.textAlign = 'left'; g.textBaseline = 'middle';
     const items = [
       [(X, Y) => { g.fillStyle = '#c0392b'; g.fillRect(X - KLEIN * 0.55, Y - KLEIN * 0.1, KLEIN * 1.1, KLEIN * 0.2); g.fillRect(X - KLEIN * 0.1, Y - KLEIN * 0.55, KLEIN * 0.2, KLEIN * 1.1); }, 'nulpunt (0, 0)'],
-      [(X, Y) => { g.beginPath(); g.arc(X, Y, KLEIN * 0.45, 0, Math.PI * 2); g.fillStyle = '#1d7a3a'; g.fill(); }, 'start van het spel'],
-      [(X, Y) => { g.beginPath(); g.arc(X, Y, KLEIN * 0.45, 0, Math.PI * 2); g.fillStyle = '#c0392b'; g.fill(); }, 'huis waar je naar binnen kunt'],
-      [(X, Y) => { g.beginPath(); g.arc(X, Y, KLEIN * 0.45, 0, Math.PI * 2); g.fillStyle = '#b8860b'; g.fill(); }, 'winkel'],
-      [(X, Y) => { g.beginPath(); g.arc(X, Y, KLEIN * 0.45, 0, Math.PI * 2); g.fillStyle = '#00713c'; g.fill(); }, 'tankstation en wasboxen'],
       [(X, Y) => { g.fillStyle = '#e8622a'; g.fillRect(X - KLEIN * 0.6, Y - KLEIN * 0.25, KLEIN * 1.2, KLEIN * 0.5); }, 'wegafsluiting'],
+      // de rest staat alleen op het blad waar de herkenningspunten op staan
+      ...(merken ? [
+        [(X, Y) => { g.beginPath(); g.arc(X, Y, KLEIN * 0.45, 0, Math.PI * 2); g.fillStyle = '#1d7a3a'; g.fill(); }, 'start van het spel'],
+        [(X, Y) => { g.beginPath(); g.arc(X, Y, KLEIN * 0.45, 0, Math.PI * 2); g.fillStyle = '#c0392b'; g.fill(); }, 'huis waar je naar binnen kunt'],
+        [(X, Y) => { g.beginPath(); g.arc(X, Y, KLEIN * 0.45, 0, Math.PI * 2); g.fillStyle = '#b8860b'; g.fill(); }, 'winkel'],
+        [(X, Y) => { g.beginPath(); g.arc(X, Y, KLEIN * 0.45, 0, Math.PI * 2); g.fillStyle = '#00713c'; g.fill(); }, 'tankstation en wasboxen'],
+      ] : []),
     ];
     items.forEach(([teken, tekst], i) => {
       const X = lx + Math.floor(i / 3) * Math.round(W * 0.15), Y = ly + (i % 3) * KLEIN * 2.0;
@@ -338,11 +382,11 @@ async function blad(licht) {
       jpg: c.toDataURL('image/jpeg', 0.94),
       gezet, over, CW, CH,
     };
-  }, { raster, stukken, schaal, datum: new Date().toISOString().slice(0, 10), licht });
+  }, { raster, stukken, schaal, datum: new Date().toISOString().slice(0, 10), licht, merken });
 }
 
 for (const B of BLADEN) {
-  const r = await blad(B.licht);
+  const r = await blad(B.licht, B.merken);
   const mb = (b) => `${(b.length / 1048576).toFixed(1)} MB`;
   const png = Buffer.from(r.png.split(',')[1], 'base64');
   const jpg = Buffer.from(r.jpg.split(',')[1], 'base64');

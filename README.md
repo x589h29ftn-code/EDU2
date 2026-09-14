@@ -1612,8 +1612,13 @@ schaalbalk, een noordpijl en een legenda.
 
 | | |
 |---|---|
-| `tinga-speelgebied.jpg` | in kleur, zoals het spel eruitziet |
-| `tinga-speelgebied-licht.jpg` | met een witte waas erover — híerop teken je, want een stift op een volle groene polder zie je niet, en het scheelt een halve cartridge inkt |
+| `tinga-speelgebied.jpg` | in kleur, zoals het spel eruitziet: alleen de kaart, het raster en de straatnamen |
+| `tinga-speelgebied-licht.jpg` | met een witte waas erover, plus de herkenningspunten — híerop teken je, want een stift op een volle groene polder zie je niet, en het scheelt een halve cartridge inkt |
+
+De **herkenningspunten** (het startpunt, Molenkrite 15, Tinga State, het tankstation met de wasboxen,
+de molen, de Poiesz) staan alleen op het lichte blad: daar heb je ze nodig om te weten waar je de
+grens legt. Op het kleurenblad zouden ze alleen in de weg zitten. Het nulpunt en de wegafsluiting
+staan op allebei.
 
 Het gebied is **4380 × 2500 m**; op twee beeldpunten per meter is de plaat 8760 × 5000 px. Afgedrukt
 op A1 (84 cm breed) is dat 265 dpi, op A2 375 en op A3 530 — het is dus echt een drukwerkbestand en
@@ -1626,9 +1631,16 @@ je er de coördinaten zo af — en andersom: geef je mij `x, z` door, dan weet i
 bedoelt. Dat is waar deze kaart voor bedoeld is: **de grens van het speelgebied intekenen** en de
 hoekpunten doorgeven.
 
-Het rode kruis is het nulpunt (0, 0), vlak bij de Molenkrite. Verder staan het startpunt, de huizen
-waar je naar binnen kunt, de winkels, het tankstation met de wasboxen, de molen en de bestaande
-wegafsluiting erop.
+Het rode kruis is het nulpunt (0, 0), vlak bij de Molenkrite.
+
+**Alleen de grotere straten krijgen een naam.** Er zitten vierhonderd straatnaambordjes in de kaart
+en zonder schifting wordt dat een plaat waar je doorheen moet turen. Drie zeven: een straat telt mee
+als hij bij elkaar opgeteld minstens 250 m lang is óf ergens minstens 9 m breed — dan is het een
+straat waar je doorheen rijdt en geen hofje van veertig meter; dezelfde naam komt hoogstens drie keer
+voor en dan nog minstens vierhonderd meter uit elkaar, zodat een lange weg aan beide einden zijn naam
+houdt (de Molenkrite stond er tien keer op); en wat dan nóg over elkaar heen valt gaat eruit. Van de
+414 bordjes blijven er zo ruim 150 staan. De namen van het water en de vaarten blijven er allemaal
+op: dat zijn er maar een paar dozijn en ze helpen juist met oriënteren.
 
 ```bash
 npm run server &          # het spel moet ergens draaien
