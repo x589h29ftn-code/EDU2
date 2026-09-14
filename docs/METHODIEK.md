@@ -3642,6 +3642,36 @@ ernaast staan.
 
 Controle: `npm run spuittest` (zesentwintig controles) en `npm run spuitshots`.
 
+**Een kaart om af te drukken (stap 56).**
+
+`tools/geo/printkaart.mjs` maakt het speelgebied als drukwerk: het hele spel van
+boven op twee beeldpunten per meter (8760 × 5000 px, op A1 dus 265 dpi), met een
+raster van honderd meter, de straatnamen, herkenningspunten, een schaalbalk, een
+noordpijl en een legenda.
+
+De opname is dezelfde als bij `geo:boven` — het spel tekent zichzelf
+orthografisch (`?boven=1&schaal=…`) in stukken van hoogstens 8192 px, want
+verder tekent WebGL niet — en alles wat erbovenop komt wordt op een canvas in de
+browser getekend; er zitten geen beeldpakketten in dit project.
+
+Waar het om gaat is het **raster**: de cijfers langs de randen zijn spelmeters,
+dezelfde die de K-toets afdrukt. Wat je op papier aanwijst is dus meteen een
+coördinaat, en dat is precies wat er nodig is om de grens van het speelgebied
+door te geven (tot nu toe ging dat punt voor punt via de K-toets).
+
+Drie dingen die onderweg bijgesteld zijn. De maten van alles wat geen kaart is
+hingen eerst aan de schaal in px/m; dat is fout — een afdruk op A1 is even groot
+of je hem nu op één of op twee beeldpunten per meter maakt, dus de letters en de
+lijnen horen aan de bladbreedte te hangen. Van de vierhonderd straatnamen vallen
+er in de dichte buurten veel over elkaar heen, dus wat al bezet is wordt
+overgeslagen — dat kost een stuk of honderd namen en levert een leesbare kaart
+op. En er komt een tweede blad uit met een witte waas over de kaart: een stift op
+een volle groene polder is niet te zien, en het scheelt een halve cartridge inkt.
+
+Bewaard wordt de JPEG (14 MB tegen 51) — op papier is het verschil er niet, en
+een blad van vijftig megapixel is per keer een halve gigabyte aan
+opslaggeschiedenis. Met `--png` komt het lossless origineel er ook uit.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

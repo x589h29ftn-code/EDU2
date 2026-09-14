@@ -1604,6 +1604,50 @@ en terug, de inrichting en de schappen waar je niet doorheen loopt, de negen men
 de prijs en de levenspunten van een flesje, dat je zonder geld niets krijgt, en het wazige beeld dat
 vanaf het derde flesje komt en in een minuut weer wegzakt. `npm run poieszshots` maakt de foto's.
 
+## Een kaart om af te drukken
+
+Voor aan de muur, en om er met een stift op te tekenen: **`docs/kaart/tinga-speelgebied.jpg`**. Het
+hele spel recht van boven, met een raster van honderd meter eroverheen, de straatnamen, een
+schaalbalk, een noordpijl en een legenda.
+
+| | |
+|---|---|
+| `tinga-speelgebied.jpg` | in kleur, zoals het spel eruitziet |
+| `tinga-speelgebied-licht.jpg` | met een witte waas erover — híerop teken je, want een stift op een volle groene polder zie je niet, en het scheelt een halve cartridge inkt |
+
+Het gebied is **4380 × 2500 m**; op twee beeldpunten per meter is de plaat 8760 × 5000 px. Afgedrukt
+op A1 (84 cm breed) is dat 265 dpi, op A2 375 en op A3 530 — het is dus echt een drukwerkbestand en
+geen schermafdruk.
+
+**Wat het bruikbaar maakt is het raster.** De cijfers langs alle vier de randen zijn *spelmeters*:
+precies dezelfde getallen die de **K**-toets in het spel in je berichtbalk en op je klembord zet. Elk
+hokje is honderd bij honderd meter, elke vijfde lijn is dik. Wijs je op papier een punt aan, dan lees
+je er de coördinaten zo af — en andersom: geef je mij `x, z` door, dan weet ik precies welk hokje je
+bedoelt. Dat is waar deze kaart voor bedoeld is: **de grens van het speelgebied intekenen** en de
+hoekpunten doorgeven.
+
+Het rode kruis is het nulpunt (0, 0), vlak bij de Molenkrite. Verder staan het startpunt, de huizen
+waar je naar binnen kunt, de winkels, het tankstation met de wasboxen, de molen en de bestaande
+wegafsluiting erop.
+
+```bash
+npm run server &          # het spel moet ergens draaien
+npm run kaart:print       # twee bladen op 2 px/m in docs/kaart/
+node tools/geo/printkaart.mjs 8123 1                      # half zo groot, voor A3
+node tools/geo/printkaart.mjs 8123 3                      # anderhalf keer zo scherp, voor A0
+node tools/geo/printkaart.mjs 8123 2 tinga-speelgebied --png   # ook de PNG bewaren
+```
+
+Bewaard wordt de **JPEG**: veertien megabyte in plaats van eenenvijftig, en op papier is het verschil
+er niet. Met `--png` komt het lossless origineel er ook uit — vijftig megapixel is per keer een halve
+gigabyte aan opslaggeschiedenis, dus dat is niet de standaard.
+
+De opname gaat net als bij `npm run geo:boven`: het spel tekent zichzelf orthografisch van boven
+(`?boven=1&schaal=…`) in stukken van hoogstens 8192 px — verder tekent WebGL niet — en het
+gereedschap plakt ze weer aan elkaar en tekent er het raster, de namen en de legenda overheen. Dat
+laatste gebeurt op een canvas in de browser: er zitten geen beeldpakketten in dit project, net zoals
+er geen plaatjesbestanden in het spel zitten.
+
 ## Opslaan en laden
 
 Er is één opslagplek, in de browser (de Windows-app draait dezelfde pagina en gebruikt dezelfde).
