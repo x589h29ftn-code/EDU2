@@ -894,6 +894,52 @@ export const geluid = {
   },
 
   /*
+   ---- de buitenboordmotor van de sloep ----
+   Een boot klinkt niet als een auto. Er is geen versnellingsbak, dus de toon
+   loopt gewoon met het gas mee; daarbovenop hoor je de schroef die het water
+   omwoelt en, met vaart, de boeggolf die langs de romp loopt. Dat laatste is
+   ruis die met de snelheid opkomt — zonder dat klinkt varen als stilliggen met
+   een draaiende motor.
+
+   Elk beeld aanroepen met (gas −1…1, vaart 0…1); `null` zet hem uit.
+  */
+  bootMotor(gas, vaart = 0) {
+    if (!aan) return;
+    if (gas == null) {
+      const b = bronnen.boot; if (!b) return;
+      b.gain.gain.setTargetAtTime(0, nu(), 0.25);
+      b.plons.gain.setTargetAtTime(0, nu(), 0.3);
+      setTimeout(() => { try { b.o1.stop(); b.o2.stop(); b.ruis.stop(); } catch {} }, 700);
+      bronnen.boot = null;
+      return;
+    }
+    if (!bronnen.boot) {
+      const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
+      o1.type = 'sawtooth'; o2.type = 'triangle';
+      o1.frequency.value = 44; o2.frequency.value = 88;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 340; f.Q.value = 1.6;
+      const g = ctx.createGain(); g.gain.value = 0;
+      o1.connect(f); o2.connect(f); f.connect(g); g.connect(hoofd);
+      // het water langs de romp
+      const ruis = ctx.createBufferSource();
+      ruis.buffer = ruisBuffer(3); ruis.loop = true;
+      const pf = ctx.createBiquadFilter(); pf.type = 'bandpass'; pf.frequency.value = 900; pf.Q.value = 0.7;
+      const pg = ctx.createGain(); pg.gain.value = 0;
+      ruis.connect(pf); pf.connect(pg); pg.connect(hoofd);
+      o1.start(); o2.start(); ruis.start();
+      bronnen.boot = { o1, o2, filter: f, gain: g, ruis, plons: pg, plonsF: pf };
+    }
+    const b = bronnen.boot, t = nu();
+    const n = 0.3 + Math.abs(gas) * 0.7;            // stationair loopt hij door
+    b.o1.frequency.setTargetAtTime(38 + n * 74, t, 0.20);
+    b.o2.frequency.setTargetAtTime(76 + n * 150, t, 0.20);
+    b.filter.frequency.setTargetAtTime(260 + n * 620, t, 0.25);
+    b.gain.gain.setTargetAtTime(0.040 + n * 0.042, t, 0.20);
+    b.plons.gain.setTargetAtTime(Math.min(1, vaart) * 0.055, t, 0.30);
+    b.plonsF.frequency.setTargetAtTime(700 + Math.min(1, vaart) * 900, t, 0.35);
+  },
+
+  /*
    De portofoon van de politie: de melding dat ze je gezien hebben gaat rond.
    Wat je ervan hoort als je dichtbij staat is niet wat er gezegd wordt maar het
    apparaat zelf — een kort ruisje, twee piepjes, en de klik waarmee de

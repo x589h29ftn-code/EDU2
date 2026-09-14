@@ -2099,6 +2099,24 @@ export function pointInWater(x, z) {
   return inWater(new THREE.Vector2(x, z));
 }
 
+/*
+ Kan een boot hier varen? Dat is net iets anders dan `pointInWater`.
+
+ Voor iemand te voet ligt een brug bóven het water en loop je er dus overheen.
+ Een boot vaart er juist onder door: de Geeuw houdt bij elke brug op als je dat
+ niet apart regelt, en dan kom je vanaf de waterzuivering geen meter. Een
+ steiger en een duiker houden een boot wél tegen — over de eerste vaar je niet
+ en door de tweede past hij niet.
+*/
+const DICHT_VOOR_BOOT = new Set(['steiger', 'duiker']);
+export function vaarbaar(x, z) {
+  if (KAART) {
+    const v = vlakOp(x, z);
+    if (v && DICHT_VOOR_BOOT.has(v.k)) return false;
+  }
+  return inWater(new THREE.Vector2(x, z));
+}
+
 // Waar loop je op? Bepaalt de klank van de voetstappen.
 export function ondergrondOp(x, z) {
   if (KAART) return ondergrondKaart(x, z);

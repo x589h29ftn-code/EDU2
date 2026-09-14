@@ -3,23 +3,26 @@
 
    node tools/geo/printkaart.mjs [poort] [schaal]
 
- Maakt `docs/kaart/tinga-speelgebied.png`: het hele spel recht van boven, met
- een raster in spelmeters eroverheen, de straatnamen, een schaalbalk, een
- noordpijl en een legenda. Bedoeld om uit te printen en er met een stift op te
- tekenen — bijvoorbeeld om aan te geven waar de grens van het speelgebied moet
- komen te liggen. Elk rasterhokje is honderd bij honderd meter en de cijfers
- langs de rand zijn dezelfde meters die de **K**-toets in het spel afdrukt, dus
- wat je op papier aanwijst kun je één op één doorgeven.
+ Maakt `docs/kaart/tinga-speelgebied.jpg`: het hele spel recht van boven, met de
+ straatnamen, een maatverdeling langs de randen, een schaalbalk, een noordpijl
+ en een legenda. Bedoeld om uit te printen en er met een stift op te tekenen —
+ bijvoorbeeld om aan te geven waar de grens van het speelgebied moet komen te
+ liggen. Langs alle vier de randen staat om de honderd meter een streepje en om
+ de vijfhonderd een cijfer, en die cijfers zijn dezelfde meters die de
+ **K**-toets in het spel afdrukt: wat je op papier aanwijst kun je dus één op
+ één doorgeven.
 
  De opname zelf gaat net als bij tools/geo/bovenaanzicht.mjs: het spel tekent
  zichzelf orthografisch van boven (`?boven=1&schaal=…`) in stukken van hoogstens
- 8192 px, want verder tekent WebGL niet, en die stukken worden hier weer aan
- elkaar geplakt. Alle tekenwerk gebeurt op een canvas in de browser — er zitten
- geen beeldpakketten in dit project.
+ 8192 px per kant en zestien megapixel in het geheel, want groter geeft WebGL
+ een leeg beeld terug, en die stukken worden hier weer aan elkaar geplakt. De
+ stukken blijven in de bladzijde staan; alleen hun maten reizen mee terug naar
+ node. Alle tekenwerk gebeurt op een canvas in de browser — er zitten geen
+ beeldpakketten in dit project.
 
- De schaal is in beeldpunten per meter. Twee is genoeg voor een scherpe afdruk
- op A1 (het gebied is 4380 bij 2500 m, dus 8760 × 5000 px; op 84 cm breed is dat
- 265 dpi). Eén levert een half zo grote plaat voor A3.
+ De schaal is in beeldpunten per meter. Drie is de standaard: het gebied is 4380
+ bij 2500 m, dus 13.140 × 7500 px, en op A1 (84 cm breed) is dat bijna 400 dpi.
+ Twee is genoeg voor A1 op 265 dpi, één levert een plaat voor A3.
 */
 import { chromium } from 'playwright';
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -35,17 +38,18 @@ const poort = process.argv[2] || '8123';
 const schaal = Number(process.argv[3] || 2);
 const naam = process.argv[4] || 'tinga-speelgebied';
 /*
- Standaard wordt alleen de JPEG bewaard. De PNG van een blad van vijftig
- megapixel is een halve gigabyte aan opslaggeschiedenis per keer dat je hem
- opnieuw maakt, en op papier is het verschil er niet. Wil je hem toch — voor een
- drukker die per se lossless wil — geef dan `--png` mee.
+ Standaard wordt alleen de JPEG bewaard, op kwaliteit 0,90. De PNG van een blad
+ van honderdtwintig megapixel is meer dan een gigabyte aan opslaggeschiedenis per
+ keer dat je hem opnieuw maakt, en op papier is het verschil er niet. Wil je hem
+ toch — voor een drukker die per se lossless wil — geef dan `--png` mee; dan
+ wordt hij ook pas gemaakt, want ook het heen en weer sturen ervan kost tijd.
 */
 const alleenJpg = !process.argv.includes('--png');
 /*
  Twee bladen uit dezelfde opname, met elk hun eigen taak.
 
- Het gewone blad is de kaart zoals het spel eruitziet: straatnamen, raster en
- verder niets. Het lichte blad heeft een witte waas over de kaart — daarop teken
+ Het gewone blad is de kaart zoals het spel eruitziet: straatnamen, de
+ maatverdeling langs de randen en verder niets. Het lichte blad heeft een witte waas over de kaart — daarop teken
  je, want een stift op een volle groene polder is nauwelijks te zien, en het
  scheelt ook nogal wat inkt — en dáár staan de herkenningspunten op (het
  startpunt, Tinga State, het tankstation), want die heb je nodig om te weten waar
@@ -74,13 +78,24 @@ console.log(`gebied ${raster.W}×${raster.H} px op ${schaal} px/m, in ${raster.k
 await page.evaluate(() => window.__boven(0, 0));
 await page.waitForTimeout(600);
 
-const stukken = [];
+await page.evaluate(() => { window.__bovenStukken = []; });
+let leeg = 0;
 for (let iy = 0; iy < raster.rijen; iy++) {
   for (let ix = 0; ix < raster.kolommen; ix++) {
-    const s = await page.evaluate(([ix, iy]) => window.__boven(ix, iy), [ix, iy]);
-    stukken.push({ x: s.x, y: s.y, png: s.png });
-    console.log(`  stuk ${ix},${iy} klaar (${s.W}×${s.H})`);
+    const s = await page.evaluate(([ix, iy]) => window.__boven(ix, iy, true), [ix, iy]);
+    if (s.gevuld <= 0) leeg++;
+    console.log(`  stuk ${ix},${iy} klaar (${s.W}×${s.H}, ${Math.round(s.gevuld * 100)}% getekend)`);
   }
+}
+/*
+ Een leeg stuk is geen zeldzaamheid maar wel altijd fout: zo kwam er een keer
+ een spierwitte kaart uit terwijl er geen enkele foutmelding was. Liever hier
+ stoppen dan een lege plaat in docs/kaart/ zetten.
+*/
+if (leeg) {
+  console.error(`${leeg} van de ${raster.kolommen * raster.rijen} stukken is leeg gebleven — kaart niet bewaard.`);
+  await browser.close();
+  process.exit(1);
 }
 
 console.log('tekenen…');
@@ -93,7 +108,8 @@ console.log('tekenen…');
  lijnen horen daar mee te schalen en niet met het aantal pixels per meter.
 */
 async function blad(licht, merken) {
-  return page.evaluate(async ({ raster, stukken, schaal, datum, licht, merken }) => {
+  return page.evaluate(async ({ raster, schaal, datum, licht, merken, metPng }) => {
+    const stukken = window.__bovenStukken;
     const { KAART } = await import('/js/kaart.js');
     const G = KAART.gebied;
     const W = raster.W, H = raster.H;
@@ -113,7 +129,7 @@ async function blad(licht, merken) {
     // maten van alles wat geen kaart is, als deel van de bladbreedte
     const pt = (f) => Math.max(7, Math.round(W * f));
     const GROOT = pt(0.0130), MID = pt(0.0056), KLEIN = pt(0.0042);
-    const RANDMAAT = pt(0.0046), NAAMMAAT = pt(0.0030), MERKMAAT = pt(0.0042);
+    const RANDMAAT = pt(0.0046), NAAMMAAT = pt(0.0034), MERKMAAT = pt(0.0044);
 
     // ---------- papier ----------
     g.fillStyle = '#ffffff';
@@ -202,22 +218,38 @@ async function blad(licht, merken) {
       g.restore();
     }
 
-    // ---------- het raster van honderd meter ----------
+    /*
+     ---------- de streepjes langs de rand ----------
+     Hier lag een raster van honderd meter over de hele kaart. Dat las prettig
+     als ruitjespapier maar het lag wél over alles heen: over de daken, over de
+     straatnamen, over het water. Het is nu weg, en wat ervoor terugkomt zijn
+     streepjes langs alle vier de randen — elke honderd meter een kort streepje,
+     elke vijfhonderd een lang. Je legt er een liniaal tegenaan en je hebt
+     dezelfde lijn, maar de kaart eronder blijft heel.
+    */
     const HOK = 100, DIK = 500;
     const eerste = (v, stap) => Math.ceil(v / stap) * stap;
-    const dun = Math.max(1, W * 0.00018), zwaarLijn = Math.max(2, W * 0.00045);
+    const dun = Math.max(1, W * 0.00022), zwaarLijn = Math.max(2, W * 0.00050);
+    const streep = W * 0.0035, streepLang = W * 0.0070;
     g.lineCap = 'butt';
+    g.strokeStyle = 'rgba(16,26,40,0.85)';
     for (let x = eerste(G.x0, HOK); x < G.x1; x += HOK) {
       const zwaar = x % DIK === 0;
-      g.strokeStyle = zwaar ? 'rgba(16,26,40,0.55)' : 'rgba(16,26,40,0.26)';
+      const l = zwaar ? streepLang : streep;
       g.lineWidth = zwaar ? zwaarLijn : dun;
-      g.beginPath(); g.moveTo(px(x), RAND); g.lineTo(px(x), RAND + H); g.stroke();
+      g.beginPath();
+      g.moveTo(px(x), RAND); g.lineTo(px(x), RAND + l);
+      g.moveTo(px(x), RAND + H); g.lineTo(px(x), RAND + H - l);
+      g.stroke();
     }
     for (let z = eerste(G.z0, HOK); z < G.z1; z += HOK) {
       const zwaar = z % DIK === 0;
-      g.strokeStyle = zwaar ? 'rgba(16,26,40,0.55)' : 'rgba(16,26,40,0.26)';
+      const l = zwaar ? streepLang : streep;
       g.lineWidth = zwaar ? zwaarLijn : dun;
-      g.beginPath(); g.moveTo(RAND, py(z)); g.lineTo(RAND + W, py(z)); g.stroke();
+      g.beginPath();
+      g.moveTo(RAND, py(z)); g.lineTo(RAND + l, py(z));
+      g.moveTo(RAND + W, py(z)); g.lineTo(RAND + W - l, py(z));
+      g.stroke();
     }
 
     // het nulpunt: waar het spel zijn assen vandaan heeft
@@ -305,7 +337,7 @@ async function blad(licht, merken) {
     g.font = `500 ${MID}px system-ui, sans-serif`;
     g.fillStyle = '#3a4653';
     g.fillText(
-      `${(G.x1 - G.x0).toFixed(0)} × ${(G.z1 - G.z0).toFixed(0)} m · raster 100 m · ${schaal} px/m · ${datum}`,
+      `${(G.x1 - G.x0).toFixed(0)} × ${(G.z1 - G.z0).toFixed(0)} m · streepjes om de 100 m · ${schaal} px/m · ${datum}`,
       RAND, bY + GROOT * 1.3,
     );
     g.font = `500 ${KLEIN}px system-ui, sans-serif`;
@@ -378,17 +410,17 @@ async function blad(licht, merken) {
      mailt of op een USB-stick meeneemt.
     */
     return {
-      png: c.toDataURL('image/png'),
-      jpg: c.toDataURL('image/jpeg', 0.94),
+      png: metPng ? c.toDataURL('image/png') : '',
+      jpg: c.toDataURL('image/jpeg', 0.90),
       gezet, over, CW, CH,
     };
-  }, { raster, stukken, schaal, datum: new Date().toISOString().slice(0, 10), licht, merken });
+  }, { raster, schaal, datum: new Date().toISOString().slice(0, 10), licht, merken, metPng: !alleenJpg });
 }
 
 for (const B of BLADEN) {
   const r = await blad(B.licht, B.merken);
   const mb = (b) => `${(b.length / 1048576).toFixed(1)} MB`;
-  const png = Buffer.from(r.png.split(',')[1], 'base64');
+  const png = r.png ? Buffer.from(r.png.split(',')[1], 'base64') : Buffer.alloc(0);
   const jpg = Buffer.from(r.jpg.split(',')[1], 'base64');
   if (!alleenJpg) writeFileSync(join(UIT, `${naam}${B.achter}.png`), png);
   writeFileSync(join(UIT, `${naam}${B.achter}.jpg`), jpg);

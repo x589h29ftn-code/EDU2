@@ -3645,19 +3645,19 @@ Controle: `npm run spuittest` (zesentwintig controles) en `npm run spuitshots`.
 **Een kaart om af te drukken (stap 56).**
 
 `tools/geo/printkaart.mjs` maakt het speelgebied als drukwerk: het hele spel van
-boven op twee beeldpunten per meter (8760 × 5000 px, op A1 dus 265 dpi), met een
-raster van honderd meter, de straatnamen, herkenningspunten, een schaalbalk, een
-noordpijl en een legenda.
+boven op drie beeldpunten per meter (13.140 × 7500 px, op A1 dus bijna 400 dpi),
+met een maatverdeling langs alle vier de randen, de straatnamen,
+herkenningspunten, een schaalbalk, een noordpijl en een legenda.
 
 De opname is dezelfde als bij `geo:boven` — het spel tekent zichzelf
-orthografisch (`?boven=1&schaal=…`) in stukken van hoogstens 8192 px, want
-verder tekent WebGL niet — en alles wat erbovenop komt wordt op een canvas in de
-browser getekend; er zitten geen beeldpakketten in dit project.
+orthografisch (`?boven=1&schaal=…`) in stukken — en alles wat erbovenop komt
+wordt op een canvas in de browser getekend; er zitten geen beeldpakketten in dit
+project.
 
-Waar het om gaat is het **raster**: de cijfers langs de randen zijn spelmeters,
-dezelfde die de K-toets afdrukt. Wat je op papier aanwijst is dus meteen een
-coördinaat, en dat is precies wat er nodig is om de grens van het speelgebied
-door te geven (tot nu toe ging dat punt voor punt via de K-toets).
+Waar het om gaat is de **maatverdeling**: de cijfers langs de randen zijn
+spelmeters, dezelfde die de K-toets afdrukt. Wat je op papier aanwijst is dus
+meteen een coördinaat, en dat is precies wat er nodig is om de grens van het
+speelgebied door te geven (tot nu toe ging dat punt voor punt via de K-toets).
 
 Drie dingen die onderweg bijgesteld zijn. De maten van alles wat geen kaart is
 hingen eerst aan de schaal in px/m; dat is fout — een afdruk op A1 is even groot
@@ -3668,8 +3668,8 @@ overgeslagen — dat kost een stuk of honderd namen en levert een leesbare kaart
 op. En er komt een tweede blad uit met een witte waas over de kaart: een stift op
 een volle groene polder is niet te zien, en het scheelt een halve cartridge inkt.
 
-Bewaard wordt de JPEG (14 MB tegen 51) — op papier is het verschil er niet, en
-een blad van vijftig megapixel is per keer een halve gigabyte aan
+Bewaard wordt de JPEG — op papier is het verschil er niet, en een blad van
+honderdtwintig megapixel is per keer meer dan een gigabyte aan
 opslaggeschiedenis. Met `--png` komt het lossless origineel er ook uit.
 
 Na de eerste afdruk kwamen er twee dingen bij (zelfde stap). De **straatnamen**
@@ -3681,6 +3681,91 @@ van onder de honderdvijftig meter. En de **herkenningspunten** staan nu alleen
 nog op het lichte blad: op het blad waarop je tekent wil je weten waar Tinga
 State en het startpunt liggen, op de kleurenplaat zitten die punten alleen in de
 weg.
+
+**Hoger en zonder raster (stap 57).**
+
+Twee wensen aan dezelfde kaart: het raster eruit en wat meer beeldpunten. Het
+**raster** van honderd meter over de hele plaat is vervangen door streepjes langs
+de vier randen — kort om de honderd meter, lang om de vijfhonderd, met daar het
+vette cijfer bij. Dat leest op papier beter: je tekent je grens niet meer dwars
+door tweehonderd lijntjes heen. De **schaal** is van twee naar drie beeldpunten
+per meter gegaan (13.140 × 7500 px, bijna 400 dpi op A1) en de straatnamen zijn
+een maatje groter.
+
+En toen kwam er een spierwitte kaart uit. Geen foutmelding, geen waarschuwing:
+straatnamen, streepjes, schaalbalk en legenda stonden er keurig op, maar de kaart
+zelf was leeg. De oorzaak zat in het opnemen: een stuk mag niet groter zijn dan
+8192 px per kant, en op 3 px/m paste het gebied in twee stukken van 6570 × 7500.
+Elke kant ruim binnen de grens — maar samen negenveertig megapixel, en zoveel
+tekenvlak geeft swiftshader stilzwijgend leeg terug. Nu geldt er **ook een grens
+op het oppervlak** (zestien megapixel per stuk, `js/main.js`), en knipt het spel
+er zo nodig een rij of kolom bij; op 3 px/m zijn het acht stukken van 3285 × 3750.
+
+Om dat nooit meer stil te laten gebeuren meldt `window.__boven` per stuk hoeveel
+van de proefpunten een andere kleur heeft dan het eerste punt — nul betekent één
+egale vlakte, dus een leeg stuk — en stopt `printkaart.mjs` met een foutmelding
+in plaats van een lege plaat weg te schrijven. Bij dezelfde ingreep blijven de
+opnamen in de bladzijde staan in plaats van als tekst naar node en weer terug te
+reizen (dat scheelt honderden megabytes over de draad), en wordt de PNG van het
+blad alleen nog gemaakt als er om gevraagd wordt.
+
+**Varen (stap 58).**
+
+Twee bestuurbare sloepen op het water — één aan de Geeuwkade achter de
+waterzuivering, één aan de steiger in IJlst — als voorbereiding op een missie
+waarbij er iets vervoerd moet worden dat niet over de weg kan. `js/boot.js`.
+
+*De romp.* Een boot is geen doos en met een doos ziet het er ook naar uit. De
+romp wordt **gelofd**: tweeëntwintig spanten over de lengte, elk spant een halve
+superellips van het boord naar de kiel, en daartussen een vel. Drie functies doen
+het werk — hoe breed dat spant is, hoe diep, en hoe hoog het boord er ligt (de
+zeeg) — en die lopen van een scherpe steven naar een vlakke spiegel. De macht van
+de superellips (2,7) bepaalt de kim: twee geeft een halve cirkel, hoger maakt de
+bodem vlakker en de zij steiler. Daar komen bij: een berghout, een boord, een
+houten vlonder, twee doften, een stuurconsole met een wiel, een
+buitenboordmotor, navigatielichten, stootwillen, een bolder en de naam op de
+spiegel — allemaal getekend, geen enkel plaatje.
+
+*De natuurkunde.* De snelheid wordt uiteengelegd in **langsscheeps** en
+**dwarsscheeps**. Langsscheeps is de weerstand klein en kwadratisch (traag op
+gang, traag uitlopen — er zit geen rem op een boot), dwarsscheeps groot en
+lineair: dat is de kiel. Daardoor zwenkt de achtersteven in een bocht naar buiten
+en zeilt hij de bocht uit nadat het roer al recht staat. Het roer werkt met de
+snelheid mee (stilliggend niets, achteruit andersom) en daar bovenop kan de
+schroef hem op zijn plek ronddraaien zolang er gas op staat — anders kom je nooit
+van de kant. Top zeven meter per seconde vooruit, ruim twee achteruit.
+
+*De vaarweg.* `vaarbaar(x, z)` in `js/world.js`, naast het bestaande
+`pointInWater`. Het verschil is één klasse: te voet ligt een brug bóven het water
+en loop je eroverheen, varend ga je eronderdoor. Zonder dat onderscheid houdt de
+Geeuw bij elke brug op. Een steiger en een duiker houden een boot wél tegen.
+Vanaf de Geeuwkade hangt er 250.000 m² aan bevaarbaar water aan elkaar, vanaf
+IJlst 185.000 m².
+
+*De ligplaatsen.* Uit de kaart gemeten (ruim water, de oever ernaast, de as van
+de vaargeul), maar de gemeten koers geldt midden op het water. Zodra de boot naar
+de kade schuift klopt hij niet meer: bij allebei de ligplaatsen stak de steven de
+wal in en kwam je drie meter ver. Daarom zoekt de module de koers **ter plekke**,
+om de tien graden rond de meting, en wint de richting met de meeste ruimte zowel
+vóór als achter. Past de plek aan de kade niet, dan blijft de boot op het gemeten
+punt in het ruime water liggen.
+
+*Twee dingen die het water afdwong.* De waterspiegel is één vlak vlak dwars door
+de wereld; alles van de boot eronder is dus onzichtbaar. De vlonder lag eerst
+26 cm ónder de waterlijn en je keek zo door je eigen boot het water in — nu ligt
+hij er negen centimeter bóven, met een voordek, een achterdek en een schot
+eronder. En het schuim in het kielzog was onzichtbaar omdat het water zelf half
+doorzichtig is (opacity 0,94): één waterpolygoon van tweehonderd meter heeft zijn
+middelpunt dichter bij de camera dan de vlek achter je boot, en werd er dus
+overheen getekend. Een hogere `renderOrder` zet het schuim als laatste op het
+scherm.
+
+*Instappen.* Negen meter, want de speler kan het water niet in lopen
+(`js/player.js` houdt hem tegen) en vanaf de kade is het hart van de romp al gauw
+zes meter weg. Staat er een bestuurbare auto dichterbij, dan wint die — anders
+kaapt een boot aan de overkant de auto weg waar je naast staat.
+
+Controle: `npm run boottest` (achtendertig controles) en `npm run bootshots`.
 
 **Wat nog niet af is (in volgorde).
 

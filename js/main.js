@@ -12,6 +12,7 @@ import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur, WONINGEN } from './interieur.js';
 import { initBoerderij } from './boerderij.js';
 import { initSpuiterij } from './spuiterij.js';
+import { initBoten } from './boot.js';
 import { initSupermarkt } from './supermarkt.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
@@ -434,6 +435,13 @@ const politie = initPolitie({ scene, player, npcs, vehicles, hud, sfeer: dagKlok
 const spuiterij = initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }) || null;
 
 /*
+ De twee sloepen op het water (js/boot.js): één aan de Geeuwkade achter de
+ waterzuivering, één aan de steiger in IJlst. Je stapt er met E in, net als in
+ een auto.
+*/
+const boten = initBoten({ scene, player, hud }) || null;
+
+/*
  Wat er op straat blijft liggen (js/buit.js): geld uit de zak van een
  voetganger, munitie van een agent. Het ligt er echt en je pakt het op door er
  langs te lopen.
@@ -750,7 +758,40 @@ function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
   if (verhaal.toets()) return;
   for (const r of binnenruimtes) if (r.toets()) return;
+  if (toggleBoot()) return;
   toggleCar();
+}
+
+/*
+ In- en uitstappen bij een boot. Zit je erin, dan brengt E je aan wal; sta je
+ naast een sloep en niet in een auto, dan stap je in. Staat er geen boot naast
+ je, dan geeft dit niets terug en gaat E gewoon door naar de auto.
+*/
+function toggleBoot() {
+  if (!boten) return false;
+  if (boten.inBoot) {
+    if (!boten.stapUit()) return true;            // te ver van de kant: E doet verder niets
+    if (derde.aan && !derdeTeVoet) derde.wissel();
+    hud.show('Uitgestapt', 2);
+    return true;
+  }
+  if (player.inCar) return false;                 // eerst uit de auto
+  const boot = boten.dichtstbij(player.pos.x, player.pos.z);
+  if (!boot) return false;
+  /*
+   Een boot pak je van verder weg dan een auto (je staat op de kade, hij ligt in
+   het water), en daardoor kan hij een auto wegkapen die vlak naast je staat.
+   Staat er een bestuurbare auto dichterbij, dan wint die.
+  */
+  const auto = vehicles.nearestDriveable(player.pos.x, player.pos.z);
+  if (auto && Math.hypot(auto.x - player.pos.x, auto.z - player.pos.z)
+    < Math.hypot(boot.x - player.pos.x, boot.z - player.pos.z)) return false;
+  boten.stapIn(boot);
+  derdeTeVoet = derde.aan;
+  if (!derde.aan) derde.wissel();
+  player.yaw = boot.yaw; player.pitch = -0.08;
+  hud.show('Aan boord – W om te varen · E om aan wal te gaan', 4);
+  return true;
 }
 window.addEventListener('keydown', e => {
   if (e.code === 'KeyE' && !e.ctrlKey && !e.metaKey) praatOfAuto();
@@ -1047,6 +1088,12 @@ function loop() {
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
   if (player.active || window.__autoplay) {
     player.update(dt);
+    /*
+     De boten. Ook als je er niet in zit deinen ze mee met het water, dus dit
+     staat vóór de keuze tussen te voet, in de auto en aan boord; alleen de
+     stuurinvoer gaat er alleen heen als je er zelf in staat.
+    */
+    if (boten) boten.update(dt, boten.inBoot ? player.driveInput() : null);
     if (player.inCar) {
       const car = player.inCar;
       vehicles.drive(car, player.driveInput(), dt, aanrijden);
@@ -1105,6 +1152,24 @@ function loop() {
        in beeld staat terwijl er niets gebeurt leest als een fout.
       */
       player.gun.visible = !player.wapenUit && !derde.aan && player.magSchieten();
+    } else if (boten && boten.inBoot) {
+      /*
+       Aan boord. Het gaat net als in de auto: de boot bepaalt waar je bent, de
+       camera hangt erachter, en je kijkrichting draait met de romp mee (dat
+       laatste doet js/boot.js zelf). Uit je ogen kijken kan ook — dan sta je
+       achter de console, iets achter het midden van de kuip.
+      */
+      player.lastCarYaw = undefined;
+      const boot = boten.inBoot;
+      if (!derde.update(dt, boot)) {
+        camera.position.set(boot.x - Math.sin(boot.yaw) * -0.7,
+          (boot.mesh ? boot.mesh.position.y : 0) + 1.42,
+          boot.z - Math.cos(boot.yaw) * -0.7);
+        camera.rotation.set(0, 0, 0, 'YXZ');
+        camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
+      }
+      player.gun.visible = !player.wapenUit && !derde.aan;
+      geluid.gier(0);
     } else {
       player.lastCarYaw = undefined;
       derde.update(dt, null);
@@ -1231,7 +1296,7 @@ loop();
 window.__game = {
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
-  geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij,
+  geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij, boten,
   raakLantaarn, werkLantaarnsBij, lantaarnsOm, buit,
   // haken voor tools/puntentest.mjs: een knal laten afgaan en de uitslag lezen
   __ontplof: autoOntploft, __schokNul: () => { SCHOK.kracht = 0; SCHOK.t = 0; },
@@ -1259,7 +1324,18 @@ if (BOVEN && KAART) {
   const gl = renderer.getContext();
   const vp = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
   const MAX = Math.min(renderer.capabilities.maxTextureSize, vp[0], vp[1], 8192);
-  const KOLOMMEN = Math.ceil(W / MAX), RIJEN = Math.ceil(H / MAX);
+  /*
+   Niet alleen de zijde telt, ook het oppervlak. Op 3 px/m paste het gebied in
+   twee stukken van 6570×7500 — elke kant ruim onder de 8192, maar samen 49
+   megapixel. Swiftshader gaf daar zonder één foutmelding een leeg beeld op
+   terug: de kaart kwam spierwit uit de molen. Onder de 16 megapixel per stuk
+   gaat het goed, dus daar knippen we desnoods een rij of kolom extra voor.
+  */
+  const MAX_OPP = 16e6;
+  let KOLOMMEN = Math.ceil(W / MAX), RIJEN = Math.ceil(H / MAX);
+  while ((W / KOLOMMEN) * (H / RIJEN) > MAX_OPP) {
+    if (W / KOLOMMEN >= H / RIJEN) KOLOMMEN++; else RIJEN++;
+  }
   const grens = (i, n, tot) => Math.round(i * tot / n);
   const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 600);
   ortho.up.set(0, 0, -1);            // noorden boven
@@ -1269,8 +1345,15 @@ if (BOVEN && KAART) {
   else { scene.background = new THREE.Color(0xdfe6ee); }
   renderer.shadowMap.enabled = !plat;
   window.__bovenRaster = { W, H, kolommen: KOLOMMEN, rijen: RIJEN, max: MAX, schaal: S };
-  // Eén stuk van het raster. Zonder argumenten (raster 1×1) is dat het geheel.
-  window.__boven = (ix = 0, iy = 0) => {
+  /*
+   Eén stuk van het raster. Zonder argumenten (raster 1×1) is dat het geheel.
+   Met `bewaar` blijft de opname in de bladzijde staan (window.__bovenStukken)
+   in plaats van als tekst mee terug te reizen naar node: bij acht stukken van
+   twaalf megapixel is dat een paar honderd megabyte die anders twee keer over
+   de draad gaat. Dan komt er ook een `gevuld` bij: het deel van de proefpunten
+   dat niet de achtergrondkleur heeft, zodat een leeg stuk meteen opvalt.
+  */
+  window.__boven = (ix = 0, iy = 0, bewaar = false) => {
     const px0 = grens(ix, KOLOMMEN, W), px1 = grens(ix + 1, KOLOMMEN, W);
     const py0 = grens(iy, RIJEN, H), py1 = grens(iy + 1, RIJEN, H);
     const bw = px1 - px0, bh = py1 - py0;
@@ -1300,6 +1383,30 @@ if (BOVEN && KAART) {
     renderer.shadowMap.needsUpdate = true;
     renderer.render(scene, ortho);
     // meteen uitlezen, in dezelfde tik als het tekenen
-    return { W: bw, H: bh, x: px0, y: py0, geheel: [W, H], png: renderer.domElement.toDataURL('image/png') };
+    const png = renderer.domElement.toDataURL('image/png');
+    const stuk = { W: bw, H: bh, x: px0, y: py0, geheel: [W, H] };
+    if (!bewaar) return { ...stuk, png };
+    (window.__bovenStukken || (window.__bovenStukken = [])).push({ ...stuk, png });
+    return { ...stuk, gevuld: proef(bw, bh) };
   };
+  /*
+   Hoeveel staat er op dit stuk? We lezen veertig beeldrijen uit het net
+   getekende beeld en tellen welk deel van de proefpunten een andere kleur
+   heeft dan het eerste punt. Nul betekent één egale vlakte: een leeg stuk.
+  */
+  function proef(bw, bh) {
+    const rij = new Uint8Array(bw * 4);
+    let eerste = null, anders = 0, tel = 0;
+    for (let j = 0; j < 40; j++) {
+      gl.readPixels(0, Math.floor((j + 0.5) * bh / 40), bw, 1, gl.RGBA, gl.UNSIGNED_BYTE, rij);
+      for (let i = 0; i < 40; i++) {
+        const p = Math.floor((i + 0.5) * bw / 40) * 4;
+        const k = (rij[p] << 16) | (rij[p + 1] << 8) | rij[p + 2];
+        if (eerste === null) eerste = k;
+        else if (Math.abs(k - eerste) > 0) anders++;
+        tel++;
+      }
+    }
+    return +(anders / tel).toFixed(3);
+  }
 }

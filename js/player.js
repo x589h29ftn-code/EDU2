@@ -84,6 +84,7 @@ export class Player {
     this.moveAxis = { x: 0, y: 0 };
     this.sprint = false;
     this.inCar = null;
+    this.inBoot = null;      // de sloep waar je in staat (js/boot.js)
     this.health = 100;
     /*
      Bier. `dronken` loopt van 0 tot 1 en zakt in een minuut terug naar nul
@@ -545,6 +546,7 @@ export class Player {
     this.zetBeeldhoek();
 
     if (this.inCar) return; // camera wordt door de auto bestuurd
+    if (this.inBoot) return; // en aan boord door de boot (js/boot.js)
 
     /*
      Zitten (op de bank, zie js/interieur.js). Je blijft waar je bent en kijkt

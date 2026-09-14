@@ -44,7 +44,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | muis | rondkijken · linkermuisknop = schieten (het machinegeweer schiet door zolang je hem vasthoudt) · R = herladen · H = wapen weg en weer tevoorschijn |
 | scrollwiel | wisselen tussen het pistool en het machinegeweer; je bergt het ene op en trekt het andere, en het icoon staat kort rechtsonder |
 | **rechtermuisknop** | over het vizier richten zolang je hem vasthoudt: nauwkeuriger en minder terugslag, maar je loopt langzamer |
-| E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto |
+| E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto of een boot |
 | 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, verband, wapens) |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
@@ -52,6 +52,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | **V** | camera: vanuit je ogen of over je schouder (handig met de auto) |
 | **G** | scherpte: scherp, normaal of zuinig (blijft bewaard) |
 | in de auto: W/S, A/D, spatie | gas/rem (en achteruit), sturen, handrem |
+| in de boot: W/S, A/D | gas en achteruit, roer — er zit geen rem op een boot |
 | M | grote kaart van de wijk met straatnamen |
 | in de auto: naar de wasbox rijden | achter het BP-station: overspuiten, alle sterren kwijt (€ 100 per ster) |
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
@@ -1604,15 +1605,96 @@ en terug, de inrichting en de schappen waar je niet doorheen loopt, de negen men
 de prijs en de levenspunten van een flesje, dat je zonder geld niets krijgt, en het wazige beeld dat
 vanaf het derde flesje komt en in een minuut weer wegzakt. `npm run poieszshots` maakt de foto's.
 
-## Een kaart om af te drukken
+## Varen
 
-Voor aan de muur, en om er met een stift op te tekenen: **`docs/kaart/tinga-speelgebied.jpg`**. Het
-hele spel recht van boven, met een raster van honderd meter eroverheen, de straatnamen, een
-schaalbalk, een noordpijl en een legenda.
+Op het water liggen **twee sloepen die je kunt besturen**: één aan de Geeuwkade achter de
+waterzuivering, één aan de steiger in IJlst. Je stapt in met **E**, net als bij een auto, en dan vaar
+je. Ze zijn er met een reden: een boot is straks het vervoermiddel voor een lading die niet op de weg
+mag komen — en op het water staat geen wegversperring.
 
 | | |
 |---|---|
-| `tinga-speelgebied.jpg` | in kleur, zoals het spel eruitziet: alleen de kaart, het raster en de straatnamen |
+| ![aan de Geeuwkade](docs/screenshots/boot_ligplaats.png) | ![de spiegel met de naam erop](docs/screenshots/boot_voren.png) |
+| de ligplaats aan de Geeuw, achter de waterzuivering | de spiegel, met de naam erop en de buitenboordmotor eraan |
+| ![de kuip](docs/screenshots/boot_kuip.png) | ![varend op de Geeuw](docs/screenshots/boot_varend.png) |
+| de kuip: houten vlonder, twee doften, de stuurconsole | varend, met het schuim in het kielzog |
+
+### Traag, en dat is expres
+
+De sloep haalt **zeven meter per seconde** — ruim 25 km/u, nog geen kwart van wat een auto doet — en
+hij komt daar ook niet in één tel. Vol gas vanaf stil: na één seconde twee meter per seconde, na vijf
+seconden zit hij pas op zijn top. Dat hoort zo. Een overtocht over het water móét iets kosten,
+anders is er geen reden om ooit de weg te nemen.
+
+### Hij vaart als een boot, niet als een auto
+
+Vier dingen maken het verschil, en ze zitten alle vier in de natuurkunde en niet in een tabel:
+
+- **De schroef duwt, de romp remt.** Gas geven zet een kracht op de romp; het water zet daar een
+  weerstand tegenover die met het kwadraat van de snelheid oploopt. Daardoor loopt hij traag op gang,
+  hóúdt hij zijn vaart als je het gas eraf haalt, en staat hij pas tientallen meters verder stil.
+  **Er zit geen rem op een boot** — haal je het gas eraf op volle vaart, dan vaar je een seconde later
+  nog steeds bijna even hard.
+- **Langsscheeps glijdt hij, dwarsscheeps niet.** De weerstand is in de lengterichting klein en dwars
+  op de romp groot; dat is precies wat een kiel doet. Daardoor zwenkt de achtersteven in een bocht
+  naar buiten en zeilt hij de bocht nog een stukje uit nadat je het roer al recht hebt gezet.
+- **Het roer werkt alleen als er water langs stroomt.** Stilliggend draai je met A of D niets. Wat wél
+  werkt is de buitenboordmotor: met gas kun je hem op zijn plek ronddraaien, en zo kom je van de kant
+  af.
+- **Achteruit is traag en onwillig**, zoals achteruit op een boot hoort — ruim twee meter per seconde
+  en geen meter meer.
+
+Hij deint mee met het water als hij stil ligt, hangt in de bocht naar buiten en zet met gas zijn neus
+omhoog. Achter de schroef en langs de boeg blijft schuim liggen dat langzaam uitdijt en wegtrekt.
+
+### Waar je kunt komen
+
+De vaarweg komt uit de BGT, net als alle andere geometrie in dit spel, maar met één verschil met
+lopen: **een boot vaart ónder een brug door**. Voor iemand te voet ligt een brug bóven het water en
+loop je eroverheen (`pointInWater`); een boot gaat eronderdoor (`vaarbaar`). Zonder dat onderscheid
+houdt de Geeuw bij elke brug op en kom je vanaf de waterzuivering geen meter. Een **steiger** en een
+**duiker** houden hem wél tegen: over de eerste vaar je niet en door de tweede past hij niet.
+
+Vanaf de Geeuwkade hangt er zo ruim **250.000 m²** aan bevaarbaar water aan elkaar, vanaf IJlst
+**185.000 m²**. Vaar je de kant in, dan stopt hij; je vaart hier niet de wal op.
+
+Uitstappen kan alleen als er binnen negen meter wal is. Ligt de boot midden op het brede water, dan
+krijg je een melding en blijf je aan boord — dat scheelt zwemmen.
+
+### Waar ze liggen
+
+Allebei de plekken zijn uit de kaart gemeten en niet verzonnen: een punt met ruim water, de oever
+ernaast, en de richting waarin de vaart loopt. De boot schuift daarna zelf naar de kant tot hij op
+bijna drie meter van de oever ligt, en zoekt ter plekke zijn koers — om de tien graden rond de meting,
+en hij kiest de richting waarin er zowel vóór als achter de meeste ruimte is. Dat is niet voor de
+sier: met de gemeten koers uit het midden van de vaart stak de steven bij allebei de ligplaatsen de
+wal in, en dan kwam je drie meter ver.
+
+Bij de Geeuw ligt er een **houten steiger** naast, van de romp tot op het gras, want in de BGT staat
+daar niets en een boot die in het riet ligt is geen ligplaats. In IJlst ligt de steiger er al.
+
+![IJlst](docs/screenshots/boot_ijlst.png)
+
+Instappen mag van negen meter afstand. Dat lijkt ver voor "ernaast staan", maar je kunt het water
+niet in lopen: vanaf de kade is het hart van de romp al gauw zes meter van je vandaan, met de steiger
+ertussen. Staat er een bestuurbare auto dichterbij, dan wint die — anders kaapt een boot aan de
+overkant van de kade de auto weg waar je net naast staat.
+
+`npm run boottest` toetst het geheel — achtendertig controles: de ligplaatsen, in- en uitstappen
+(ook vanaf de wal), dat hij traag optrekt en traag uitloopt, dat het roer zonder vaart niets doet en
+met vaart wel, dat de schroef hem vanuit stilstand wél draait, dat hij de wal niet op vaart, dat je
+midden op het water niet uitstapt, dat bruggen wel en duikers en steigers niet bevaarbaar zijn, en
+dat er alleen schuim komt als je vaart. `npm run bootshots` maakt de foto's.
+
+## Een kaart om af te drukken
+
+Voor aan de muur, en om er met een stift op te tekenen: **`docs/kaart/tinga-speelgebied.jpg`**. Het
+hele spel recht van boven, met langs alle vier de randen een maatverdeling van honderd meter, de
+straatnamen, een schaalbalk, een noordpijl en een legenda.
+
+| | |
+|---|---|
+| `tinga-speelgebied.jpg` | in kleur, zoals het spel eruitziet: alleen de kaart en de straatnamen |
 | `tinga-speelgebied-licht.jpg` | met een witte waas erover, plus de herkenningspunten — híerop teken je, want een stift op een volle groene polder zie je niet, en het scheelt een halve cartridge inkt |
 
 De **herkenningspunten** (het startpunt, Molenkrite 15, Tinga State, het tankstation met de wasboxen,
@@ -1620,16 +1702,20 @@ de molen, de Poiesz) staan alleen op het lichte blad: daar heb je ze nodig om te
 grens legt. Op het kleurenblad zouden ze alleen in de weg zitten. Het nulpunt en de wegafsluiting
 staan op allebei.
 
-Het gebied is **4380 × 2500 m**; op twee beeldpunten per meter is de plaat 8760 × 5000 px. Afgedrukt
-op A1 (84 cm breed) is dat 265 dpi, op A2 375 en op A3 530 — het is dus echt een drukwerkbestand en
-geen schermafdruk.
+Het gebied is **4380 × 2500 m**; op drie beeldpunten per meter is de plaat 13.140 × 7500 px.
+Afgedrukt op A1 (84 cm breed) is dat bijna 400 dpi, op A2 560 en op A3 790 — het is dus echt een
+drukwerkbestand en geen schermafdruk.
 
-**Wat het bruikbaar maakt is het raster.** De cijfers langs alle vier de randen zijn *spelmeters*:
-precies dezelfde getallen die de **K**-toets in het spel in je berichtbalk en op je klembord zet. Elk
-hokje is honderd bij honderd meter, elke vijfde lijn is dik. Wijs je op papier een punt aan, dan lees
-je er de coördinaten zo af — en andersom: geef je mij `x, z` door, dan weet ik precies welk hokje je
-bedoelt. Dat is waar deze kaart voor bedoeld is: **de grens van het speelgebied intekenen** en de
-hoekpunten doorgeven.
+**Wat het bruikbaar maakt is de maatverdeling langs de randen.** De cijfers zijn *spelmeters*:
+precies dezelfde getallen die de **K**-toets in het spel in je berichtbalk en op je klembord zet. Om
+de honderd meter staat er een streepje, om de vijfhonderd een lang streepje met een vet cijfer.
+Leg een liniaal tussen twee streepjes en je leest de coördinaten van elk punt af — en andersom: geef
+je mij `x, z` door, dan weet ik precies waar je bedoelt. Dat is waar deze kaart voor bedoeld is: **de
+grens van het speelgebied intekenen** en de hoekpunten doorgeven.
+
+Hier stond eerst een raster van honderd meter over de hele plaat. Dat leest prettig op een scherm en
+slecht op papier: je tekent je grens dwars door tweehonderd lijntjes heen en ziet je eigen stift niet
+meer terug. Streepjes langs de rand doen hetzelfde werk en laten het midden leeg.
 
 Het rode kruis is het nulpunt (0, 0), vlak bij de Molenkrite.
 
@@ -1644,21 +1730,28 @@ op: dat zijn er maar een paar dozijn en ze helpen juist met oriënteren.
 
 ```bash
 npm run server &          # het spel moet ergens draaien
-npm run kaart:print       # twee bladen op 2 px/m in docs/kaart/
-node tools/geo/printkaart.mjs 8123 1                      # half zo groot, voor A3
-node tools/geo/printkaart.mjs 8123 3                      # anderhalf keer zo scherp, voor A0
-node tools/geo/printkaart.mjs 8123 2 tinga-speelgebied --png   # ook de PNG bewaren
+npm run kaart:print       # twee bladen op 3 px/m in docs/kaart/
+node tools/geo/printkaart.mjs 8123 1                      # een derde zo groot, voor A3
+node tools/geo/printkaart.mjs 8123 2                      # tussenmaat, voor A1 op 265 dpi
+node tools/geo/printkaart.mjs 8123 3 tinga-speelgebied --png   # ook de PNG bewaren
 ```
 
-Bewaard wordt de **JPEG**: veertien megabyte in plaats van eenenvijftig, en op papier is het verschil
-er niet. Met `--png` komt het lossless origineel er ook uit — vijftig megapixel is per keer een halve
+Bewaard wordt de **JPEG**, op kwaliteit 0,90 — op papier is het verschil met het origineel er niet.
+Met `--png` komt dat origineel er ook uit, maar honderdtwintig megapixel is per keer meer dan een
 gigabyte aan opslaggeschiedenis, dus dat is niet de standaard.
 
 De opname gaat net als bij `npm run geo:boven`: het spel tekent zichzelf orthografisch van boven
-(`?boven=1&schaal=…`) in stukken van hoogstens 8192 px — verder tekent WebGL niet — en het
-gereedschap plakt ze weer aan elkaar en tekent er het raster, de namen en de legenda overheen. Dat
-laatste gebeurt op een canvas in de browser: er zitten geen beeldpakketten in dit project, net zoals
-er geen plaatjesbestanden in het spel zitten.
+(`?boven=1&schaal=…`) in stukken en het gereedschap plakt ze weer aan elkaar en tekent er de
+streepjes, de namen en de legenda overheen. Dat laatste gebeurt op een canvas in de browser: er
+zitten geen beeldpakketten in dit project, net zoals er geen plaatjesbestanden in het spel zitten.
+
+Een stuk mag **niet groter zijn dan 8192 px per kant én niet groter dan zestien megapixel**. Die
+tweede grens kostte een ronde: op 3 px/m paste het gebied in twee stukken van 6570 × 7500 — elke kant
+ruim binnen de marge, samen negenveertig megapixel — en daar gaf de tekenaar zonder één foutmelding
+een leeg beeld op terug. Het resultaat was een spierwitte kaart met alleen de straatnamen erop. Nu
+knipt het spel er zo nodig een rij of kolom bij (op 3 px/m zijn het er acht), en meldt
+`printkaart.mjs` per stuk hoeveel procent ervan getekend is; is er één leeg, dan stopt hij en schrijft
+hij niets weg.
 
 ## Opslaan en laden
 
@@ -1952,6 +2045,9 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   baken, en de onzichtbare wand erachter
 - `js/scheiding.js` – muren, hekken, kademuren, damwanden, vangrails en balustrades uit de
   BGT-lagen `scheiding` en `weginrichtingselement`
+- `js/boot.js` – varen: de twee bestuurbare sloepen, hun gelofte romp, de vaarnatuurkunde
+  (langs- en dwarsscheepse weerstand, roer op snelheid, schroef op de plek), de ligplaatsen met hun
+  eigen steiger, en het schuim in het kielzog
 - `js/opslag.js` – opslaan en laden van het spel (F5 en F9)
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd
@@ -1962,6 +2058,10 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `tools/verhaaltest.mjs` – loopt het verhaal na en toetst opslaan en laden
 - `tools/verhaalshots.mjs` – maakt de foto's van het verhaal
 - `tools/adresshots.mjs` – maakt de foto's van de panden die met naam in `data/stijl/straten.json` staan
+- `tools/boottest.mjs` – toetst de sloepen: de ligplaatsen, in- en uitstappen (ook vanaf de wal), de
+  trage optrek en het trage uitlopen, het roer met en zonder vaart, de wal die hem tegenhoudt, de
+  bruggen waar hij wel en de duikers waar hij niet onderdoor kan, en het schuim
+- `tools/bootshots.mjs` – maakt de foto's van de sloepen
 - `tools/rijtest.mjs` – toetst het automodel, de besturing, de camera achter de auto en het aanrijden
 - `tools/rijshots.mjs` – maakt de foto's van het rijden en de derdepersoonscamera
 - `tools/looptest.mjs` – toetst of je nergens vastloopt: het open terrein binnen de panden en een
