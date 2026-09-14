@@ -3526,6 +3526,67 @@ van 11,5 m en een nok op 14,4 m) en vijf plekken die het spel uit regels opbouwt
 en die nog nooit tegen een foto zijn gelegd: het tankstation, het tennispark,
 het sportpark, de volkstuinen en de houtzaagmolen.
 
+**Vijf dingen die opvielen bij het spelen (stap 54).**
+
+**Het schap bleef staan.** Kocht je iets bij Tinga State en drukte je op Esc,
+dan bleven de kaartjes onderin het scherm hangen. Ze worden elk beeld door
+js/boerderij.js gezet — maar de hoofdlus staat stil zolang je in het menu staat,
+dus dan wordt er niets meer gezet en blijft staan wat er stond. `pauseGame` zet
+ze nu uit, samen met het hintbalkje dat hetzelfde probleem had; komt de lus weer
+op gang, dan staan ze er meteen weer als je nog aan de toonbank staat.
+
+**De kogels die in de lucht bleven hangen** waren zwarte bolletjes van vier
+centimeter die acht seconden bleven liggen, neergezet op het raakpunt van de
+straal. Die straal raakt alleen dingen die *bewegen* — auto's, voetgangers,
+agenten; de gebouwen zitten niet in de doelenlijst — dus het bolletje bleef
+hangen op de plek waar de auto wás. Vandaar de rij zwarte kraaltjes in de lucht.
+Het is nu een stofwolkje van 0,28 s uit een vaste voorraad van twaalf, met een
+vonk erbij op blik en glas, dat met de hoofdlus meeloopt in plaats van met een
+`setTimeout` — op pauze staat de wolk dus ook stil. Er blijft niets liggen.
+
+**De herlaadbeweging.** Die deed mechanisch al het goede — magazijn eruit, nieuw
+erin — maar je zag er niets van, en dat had twee oorzaken die elkaar versterkten.
+Het wapen *zákte* drie centimeter bij het herladen, en de onderrand van het beeld
+ligt op die afstand een kwart meter onder het midden: de magazijnschacht hing er
+al tegenaan en alles wat eronder gebeurde viel buiten beeld. En het kantelde naar
+rechts, recht in je eigen onderarm. Nu komt het tien centimeter omhoog, kantelt
+het naar links, en draait de onderarm tegen de kanteling in mee (je elleboog
+blijft staan als je je pols draait). Daar kwam een **linkerhand** bij die het
+nieuwe magazijn brengt: dat is wat het van "een wapen dat zichzelf laadt" tot een
+handeling maakt. Het lege magazijn valt nu ook echt — met de versnelling van de
+zwaartekracht en een tuimeling erin — in plaats van weg te zakken.
+
+**De portofoon (PLAN 1.1, half).** Ziet één agent je, dan wisten de anderen dat
+niet: `laatstBekend` verschoof wel, maar wie aan het zoeken was liep zijn sector
+af tot zijn zoektijd om was. Je kon dus in het volle zicht van een agent langs
+vier collega's lopen die niets deden. Elke waarneming — van een agent, een
+surveillanceauto of de helikopter — is nu een melding via `meldDoor()`, die na
+0,9 s wordt uitgedeeld aan iedereen binnen 420 m die nog niet aan het jagen was.
+Die gaan op `naarPlek`, en dat betekent rennen. `hoorSchot` en `meldTreffer`
+lopen door dezelfde functie, zodat er één mechanisme is in plaats van drie
+bijna-kopieën.
+
+**Schieten verraadt je alleen nog als iemand het ziet.** In `misdaad()` stond
+`kans = ster() > 0 ? 1 : …`: werd je al gezocht, dan was elke misdaad meteen een
+melding, en de melding zette `laatstBekend` op de plek die werd doorgegeven. Voor
+een lichaam klopt dat (dat ligt er en wordt gevonden), maar bij een schot is die
+plek jóuw plek — dus elk schot in een lege steeg verraadde je. Nu geldt voor
+'schot' dat er een getuige moet zijn: een voetganger binnen 32 m met vrij zicht,
+of een agent in de buurt. De agenten kregen daarbij dezelfde zichteis als de
+voetgangers; die telden eerst puur op afstand mee, dus ook dwars door een
+huizenblok heen.
+
+Twee proeven gingen hiervan om, en één bleek al die tijd op het randje te staan:
+de meting "met getuigen erbij gaat de telefoon veel vaker" trok tweehonderd
+monsters voor een verschil van twintig procentpunt, en dat viel om de zoveel
+keer om zonder dat er iets veranderd was. Nu zeshonderd. En de wegversperring
+uit stap 53 kon op vijftig meter uitkomen: die zocht honderdtien meter *asfalt*
+vooruit, en een route die om een huizenblok buigt ligt daarna nog steeds bij je
+om de hoek. Nu moeten allebei de afstanden kloppen.
+
+Controle: `npm run meldtest` (tweeëntwintig controles over deze vijf punten),
+plus de drie nieuwe foto's van het herladen in `npm run richtshots`.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

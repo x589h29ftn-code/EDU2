@@ -89,12 +89,20 @@ const kans = await page.evaluate(() => {
   const pd = window.__pd;
   // ver van iedereen vandaan: bijna geen getuigen
   const stil = { x: pd.x + 3000, z: pd.z + 3000 };
+  /*
+   Zeshonderd trekkingen en niet tweehonderd. Het verschil dat we hier meten is
+   ongeveer twintig procentpunt, en met tweehonderd trekkingen is de ruis op één
+   meting al drie punten — dan viel deze proef om de zoveel keer om zonder dat
+   er iets veranderd was. Het is puur rekenwerk zonder beeld, dus het kost
+   niets om er meer te doen.
+  */
+  const N = 600;
   let gemeldStil = 0;
-  for (let i = 0; i < 200; i++) { g.politie.reset(); if (g.politie.misdaad('neergeschoten', stil.x, stil.z)) gemeldStil++; }
+  for (let i = 0; i < N; i++) { g.politie.reset(); if (g.politie.misdaad('neergeschoten', stil.x, stil.z)) gemeldStil++; }
   // en nu midden tussen de mensen
   const p = g.npcs.people.find(q => q.alive);
   let gemeldDruk = 0;
-  for (let i = 0; i < 200; i++) { g.politie.reset(); if (g.politie.misdaad('neergeschoten', p.x, p.z)) gemeldDruk++; }
+  for (let i = 0; i < N; i++) { g.politie.reset(); if (g.politie.misdaad('neergeschoten', p.x, p.z)) gemeldDruk++; }
   // twee keer achter elkaar in de leegte: de tweede valt eerder op
   let tweede = 0;
   for (let i = 0; i < 300; i++) {
@@ -102,7 +110,7 @@ const kans = await page.evaluate(() => {
     for (let k = 0; k < 4 && g.politie.ster === 0; k++) { if (g.politie.misdaad('neergeschoten', stil.x, stil.z)) { tweede += k + 1; break; } }
   }
   g.politie.reset();
-  return { stil: gemeldStil / 200, druk: gemeldDruk / 200, gemiddeldeBeurt: tweede / 300 };
+  return { stil: gemeldStil / N, druk: gemeldDruk / N, gemiddeldeBeurt: tweede / 300 };
 });
 ok(kans.stil > 0.02 && kans.stil < 0.35, 'in je eentje zonder getuigen blijft het vaak onopgemerkt',
   `${Math.round(kans.stil * 100)} % gemeld`);

@@ -90,6 +90,7 @@
     "richtshots": "node tools/richtshots.mjs",
     "helitest": "node tools/helitest.mjs",
     "helishots": "node tools/helishots.mjs",
+    "meldtest": "node tools/meldtest.mjs",
     "vuilshots": "node tools/vuilshots.mjs"
   }
 }

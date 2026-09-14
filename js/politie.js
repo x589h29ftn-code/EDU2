@@ -83,6 +83,28 @@ const UITSTAP_SNELHEID = 8.3;              // (m/s)
  gewoon achter je aan rijden — anders is je spiegel ineens leeg en merk je van
  de hele achtervolging niets meer.
 */
+/*
+ ---- de portofoon ----
+ Ziet één agent je, dan wisten de anderen dat niet. `laatstBekend` verschoof wel
+ naar jouw plek, maar wie aan het zoeken was liep gewoon zijn eigen sector af tot
+ zijn zoektijd om was — vijftien tot vijfentwintig seconden later. Je kon dus in
+ het volle zicht van een agent langs vier collega's lopen die niets deden.
+
+ Dat is nu een melding. Ziet iemand je — een agent, een surveillanceauto of de
+ helikopter — dan gaat dat over de radio en komt iedereen die in de buurt is er
+ rénnend op af, in plaats van zijn rondje af te maken.
+
+ Drie dingen houden het eerlijk. Er zit een seconde tussen (iemand moet het
+ zeggen), er wordt hooguit om de paar tellen een nieuwe melding gedaan, en wat
+ doorgegeven wordt is de plek waar je wás — niet waar je nú bent. Wegkomen kan
+ dus nog steeds; het kost alleen meer dan één hoek omgaan.
+*/
+const RADIO_VERTRAGING = 0.9;              // seconden voor de melding rondgaat
+const RADIO_HERHAAL = 2.5;                 // niet vaker dan dit een nieuwe melding
+const RADIO_VERSCHOVEN = 14;               // of eerder, als de plek zover verschoof (m)
+const RADIO_BEREIK = 420;                  // verder dan dit hoort niemand mee (m)
+const RADIO_GELDIG = 18;                   // zolang loopt een eenheid op die melding af
+
 const ONDERSCHEP_VAART = 5.6;              // (m/s) daaronder rijdt hij gewoon achter je aan
 const ONDERSCHEP_VOORUIT = 6.5;            // seconden vooruitgedacht
 const ONDERSCHEP_MIN = 40;                 // niet vlak voor je neus (m)
@@ -352,6 +374,67 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     return dHij < dJij * ONDERSCHEP_OMWEG + 30;
   }
 
+  // ---------------------------------------------------------------- portofoon
+  /*
+   Een melding doen. `x, z` is waar de verdachte gezien is; `dringend` zet de
+   herhaaltijd opzij (een treffer of een aanhouding wacht niet op de klok).
+
+   De melding gaat niet meteen rond: er zit RADIO_VERTRAGING tussen, want iemand
+   moet het eerst zéggen. In die tijd kun je nog net om de hoek zijn.
+  */
+  let meldPlek = null;      // { x, z } wat er doorgegeven wordt
+  let meldWacht = 0;        // aftellen tot de melding rondgaat
+  let meldNieuw = false;    // er staat een melding klaar
+  let meldRust = 0;         // hoe lang geleden de laatste melding uitging
+
+  function meldDoor(x, z, dringend = false) {
+    if (!dringend && meldRust > 0 && meldPlek
+      && Math.hypot(meldPlek.x - x, meldPlek.z - z) < RADIO_VERSCHOVEN) return false;
+    meldPlek = { x, z };
+    meldWacht = dringend ? 0.25 : RADIO_VERTRAGING;
+    meldNieuw = true;
+    meldRust = RADIO_HERHAAL;
+    return true;
+  }
+
+  /*
+   De melding uitdelen. Wie al aan het jagen is hoort het niet meer — die weet
+   het al; wie neer ligt of nog in de auto zit ook niet. De rest gaat rennen
+   (`naarPlek`), en dat is precies het verschil met eerst: ze lopen niet hun
+   eigen sector af maar komen ergens vandaan op je af.
+  */
+  function deelMeldingUit() {
+    if (!meldPlek) return 0;
+    let n = 0;
+    for (const a of agenten) {
+      if (a.staat === 'neer' || a.staat === 'jacht') continue;
+      if (a.wagen && !a.persoon.groep.visible) continue;
+      const pos = a.persoon.groep.position;
+      if (Math.hypot(pos.x - meldPlek.x, pos.z - meldPlek.z) > RADIO_BEREIK) continue;
+      a.staat = 'naarPlek';
+      a.doel = { x: meldPlek.x, z: meldPlek.z };
+      a.route = null;
+      a.zoekT = RADIO_GELDIG;
+      a.wacht = 0;
+      n++;
+    }
+    for (const w of wagens) {
+      if (w.staat === 'jacht' || w.staat === 'wegwezen') continue;
+      if (Math.hypot(w.car.x - meldPlek.x, w.car.z - meldPlek.z) > RADIO_BEREIK) continue;
+      w.staat = 'naarPlek';
+      w.doel = { x: meldPlek.x, z: meldPlek.z };
+      w.route = null;
+      w.zoekT = RADIO_GELDIG;
+      n++;
+    }
+    // je hoort het ook: een korte ruis met een piep, als een portofoon
+    if (n) {
+      const d = Math.hypot(spelerPlek().x - meldPlek.x, spelerPlek().z - meldPlek.z);
+      if (d < 70) geluid.portofoon();
+    }
+    return n;
+  }
+
   // ---------------------------------------------------------------- misdaad
   /*
    Een misdaad melden. `soort` staat in MISDADEN hierboven. Of het gemeld wordt
@@ -369,8 +452,19 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       if (d > M.straal) continue;
       if (d < 12 || zichtVrij(p.x, p.z, x, z, 1.5)) getuigen++;
     }
-    // agenten die het zien zijn altijd een getuige
-    for (const a of agenten) if (a.staat !== 'neer' && Math.hypot(a.persoon.groep.position.x - x, a.persoon.groep.position.z - z) < ZICHT) getuigen += 2;
+    /*
+     Agenten die het zien tellen dubbel — maar ze moeten het wél kunnen zien.
+     Dit keek alleen naar de afstand, dus een agent die veertig meter verderop
+     aan de andere kant van een huizenblok stond was ook een getuige. Nu geldt
+     dezelfde regel als voor iedereen: vrij zicht, of zo dichtbij dat je het
+     door de heg heen hoort.
+    */
+    for (const a of agenten) {
+      if (a.staat === 'neer') continue;
+      const p = a.persoon.groep.position;
+      const d = Math.hypot(p.x - x, p.z - z);
+      if (d < ZICHT && (d < 12 || zichtVrij(p.x, p.z, x, z, 1.5))) getuigen += 2;
+    }
 
     /*
      De kans dat het gemeld wordt. Eén iemand neerschieten waar niemand bij is
@@ -379,13 +473,32 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
      telt de misdaden die tot nu toe onopgemerkt bleven en zakt langzaam weg.
      Word je al gezocht, dan telt alles meteen mee.
     */
-    const kans = ster() > 0 ? 1 : Math.min(0.96, (0.08 + 0.26 * getuigen + 0.20 * stille) * M.ernst);
+    /*
+     Word je al gezocht, dan telt alles meteen mee. Voor een lichaam klopt dat
+     ook zonder getuige: dat ligt er, en daar komen ze vanzelf achter. Maar voor
+     een *schot* is het iets anders, en daar zat een gat.
+
+     De plek die hier gemeld wordt is bij 'neergeschoten' en 'aangereden' die
+     van het slachtoffer, en bij 'schot' die van jou. Dat laatste betekende dat
+     élk schot tijdens een achtervolging je plek verraadde, ook in een lege
+     steeg met niemand in de buurt — verstoppen werd onmogelijk zodra je één
+     keer de trekker overhaalde. Nu moet iemand het horen én zien: een
+     voetganger binnen tweeëndertig meter met vrij zicht, of een agent in de
+     buurt. Is er niemand, dan hoorden ze hooguit een knal — en `hoorSchot`
+     stuurt ze dan naar dat gelúid, niet naar jou.
+    */
+    const opgemerkt = getuigen > 0;
+    const kans = ster() > 0
+      ? (soort === 'schot' ? (opgemerkt ? 1 : 0.18) : 1)
+      : Math.min(0.96, (0.08 + 0.26 * getuigen + 0.20 * stille) * M.ernst);
     if (Math.random() > kans) { stille += M.ernst; return false; }
     stille = 0;
 
     heat = Math.min(MAX_HEAT, heat + M.heat);
     gezienT = 0;
     laatstBekend = { x, z };
+    // en de melder belt: dat gaat over de radio naar iedereen die in de buurt is
+    meldDoor(x, z, M.ernst >= 0.9);
     /*
      Er stond hier een regel tekst in beeld ("De politie is gebeld", "Gezocht:
      drie sterren") op het moment dat je iemand neerschoot of aanreed. Die is
@@ -573,6 +686,14 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
           if (langs > BLOKKADE_MAX) break;
           const p = r[i], q = r[Math.min(r.length - 1, i + 1)];
           if (q === p) break;
+          /*
+           Ver genoeg wég, en niet alleen ver genoeg te rijden. Een route die om
+           een huizenblok heen buigt legt honderdtien meter asfalt af en komt
+           dan vijftig meter van je vandaan uit — daar staat de versperring dus
+           bij je om de hoek, en die zie je gewoon staan. Allebei de afstanden
+           moeten kloppen.
+          */
+          if (Math.hypot(p[0] - sp.x, p[1] - sp.z) < BLOKKADE_MIN) continue;
           if (zichtVrij(sp.x, sp.z, p[0], p[1], 1.6)) continue;
           if (blokkades.some(b => Math.hypot(b.x - p[0], b.z - p[1]) < 90)) continue;
           return plaatsBlokkade(p, q);
@@ -832,7 +953,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     for (const w of wagens) if (w.staat !== 'jacht' && Math.hypot(w.car.x - x, w.car.z - z) < GEHOOR) {
       w.staat = 'naarPlek'; w.doel = { x, z }; w.route = null; w.zoekT = 12;
     }
-    if (gehoord || wagens.length) laatstBekend = { x, z };
+    if (gehoord || wagens.length) { laatstBekend = { x, z }; meldDoor(x, z, true); }
     return gehoord;
   }
 
@@ -855,6 +976,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       if (w.staat === 'jacht') continue;
       w.staat = 'naarPlek'; w.doel = null; w.route = null; w.zoekT = 0;
     }
+    meldDoor(sp.x, sp.z, true);     // "er wordt op ons geschoten" gaat vóór alles
   }
 
   // Een agent neerschieten: hij gaat neer en dat kost je een flinke verdenking.
@@ -970,6 +1092,17 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     spVorig = { x: sp.x, z: sp.z };
     if (stille > 0) stille = Math.max(0, stille - dt / 90);   // na anderhalve minuut vergeten
 
+    /*
+     De portofoon. Een melding die klaarstaat gaat na RADIO_VERTRAGING rond;
+     daarna mag er een paar tellen geen nieuwe achteraan (anders sturen ze
+     elkaar elk beeld opnieuw op pad en komt er niemand ergens aan).
+    */
+    if (meldRust > 0) meldRust = Math.max(0, meldRust - dt);
+    if (meldNieuw) {
+      meldWacht -= dt;
+      if (meldWacht <= 0) { deelMeldingUit(); meldNieuw = false; }
+    }
+
     if (s > 0) vulAan(dt);
     /*
      Wegblokkades: bij veel sterren komt er om de paar tellen een bij, tot het
@@ -1022,7 +1155,10 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       if (a.kijkT <= 0) {
         a.kijkT = 0.25;
         a.zicht = zietSpeler(pos, persoon.yaw, a.staat === 'jacht' && dSp < 18);
-        if (a.zicht) { a.staat = 'jacht'; a.kwijtT = 0; laatstBekend = { x: sp.x, z: sp.z }; }
+        if (a.zicht) {
+          a.staat = 'jacht'; a.kwijtT = 0; laatstBekend = { x: sp.x, z: sp.z };
+          meldDoor(sp.x, sp.z);       // en hij roept het om: de rest komt eraan
+        }
         else if (a.staat === 'jacht') {
           /*
            Hij ziet je niet meer. Even doorlopen naar waar je stond — anders
@@ -1156,7 +1292,10 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       if (dichtsteSirene === null || dSp < dichtsteSirene) dichtsteSirene = dSp;
 
       const ziet = zietSpeler({ x: car.x, z: car.z }, car.yaw, dSp < 30);
-      if (ziet) { iemandZiet = true; laatstBekend = { x: sp.x, z: sp.z }; w.staat = 'jacht'; w.kwijtT = 0; }
+      if (ziet) {
+        iemandZiet = true; laatstBekend = { x: sp.x, z: sp.z }; w.staat = 'jacht'; w.kwijtT = 0;
+        meldDoor(sp.x, sp.z);
+      }
       else if (w.staat === 'jacht') {
         // een paar seconden blijven ze nog achter je aan rijden — je kunt niet
         // ontsnappen door één keer een hoek om te gaan — maar daarna rijden ze
@@ -1279,6 +1418,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     if (heliZiet) {
       iemandZiet = true;
       laatstBekend = { x: sp.x, z: sp.z };
+      // hij hangt erboven en geeft door wat hij ziet; dat is waar hij voor is
+      meldDoor(sp.x, sp.z);
     }
 
     /*
@@ -1348,6 +1489,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     // ook de schatting van waar de speler heen gaat opnieuw beginnen
     spVorig = null; spSnelheid.x = 0; spSnelheid.z = 0;
     heli.reset();
+    meldPlek = null; meldNieuw = false; meldWacht = 0; meldRust = 0;
     geluid.sirene(null);
   }
 

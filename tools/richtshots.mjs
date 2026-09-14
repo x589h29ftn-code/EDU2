@@ -72,6 +72,29 @@ await page.evaluate(() => {
 });
 await foto('wapen_opbergen');
 
+// ---- 5b: het herladen, in drie standen
+await page.evaluate(() => {
+  const g = window.__game;
+  g.player.zetWapen('pistool'); g.player.wisselT = 0; g.player.holster = 0;
+  g.player.reserve = 200; g.player.ammo = 0;
+  window.__laat(40);
+  /*
+   De stand van de herlaadbeweging met de hand zetten. De hoofdlus draait door,
+   dus `reloading` wordt elk beeld bijgewerkt; dit zet hem telkens terug en
+   tekent de bijbehorende houding.
+  */
+  window.__stand = (f) => {
+    const p = g.player;
+    p.reloading = p.wapen.herlaadtijd * (1 - f);
+    p.wapen.update(0.016, { herlaad: p.reloading, bob: 0, mik: 0, holster: 0 });
+  };
+});
+for (const [naam, f] of [['wapen_herlaad_uit', 0.26], ['wapen_herlaad_hand', 0.56], ['wapen_herlaad_erin', 0.70]]) {
+  await page.evaluate(v => window.__stand(v), f);
+  await foto(naam);
+}
+await page.evaluate(() => { window.__game.player.reloading = 0; window.__laat(40); });
+
 // ---- 6: het schap bij Tinga State
 await page.evaluate(() => {
   const g = window.__game, b = g.boerderij;

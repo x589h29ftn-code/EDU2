@@ -18,7 +18,14 @@ de laatste plek waar ze je zagen en waaieren daarvandaan uit in sectoren. Wat
 eraan ontbreekt is dat het voelt alsof ze *nadenken over jou*. Zes dingen, in
 volgorde:
 
-### 1.1 Omsingelen in plaats van erop af rennen
+### 1.1 Omsingelen in plaats van erop af rennen — **half af (14 sep 2026)**
+
+*Wat er af is:* de portofoon. Ziet één eenheid je, dan gaat dat rond en komt
+iedereen binnen vierhonderd meter er rennend op af in plaats van zijn eigen
+sector af te lopen (`meldDoor` in js/politie.js). *Wat er nog ligt:* de rollen —
+twee die je van voren bezighouden en de rest naar een flankpunt aan de andere
+kant van het blok, zodat er iemand áchter je vandaan komt. Dat staat hieronder.
+
 
 Nu mogen de drie dichtstbijzijnde agenten schieten en lopen de rest naar
 dezelfde plek. Daardoor komt alles altijd uit één richting, en is wegrennen naar
@@ -166,4 +173,5 @@ bijten elkaar niet:
 3. **De fiets** (2.1). Eén voertuig erbij dat past bij de stad, gebruikmaakt van
    een model dat er al is, en de smalle paden van de wijk ineens nuttig maakt.
 
-*Stand op 14 september 2026: 1.2, 1.3 en 1.4 zijn af.*
+*Stand op 14 september 2026: 1.2, 1.3 en 1.4 zijn af; van 1.1 is de portofoon af
+en de rolverdeling nog niet.*

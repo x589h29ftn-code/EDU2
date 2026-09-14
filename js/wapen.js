@@ -36,10 +36,13 @@ export const HERLAADTIJD = 1.55;
 */
 const STAP = {
   kantelen: [0.00, 0.16],   // wapen kantelt naar je toe, magazijnknop in
-  magUit: [0.16, 0.32],     // het lege magazijn valt eruit
-  magIn: [0.34, 0.64],      // het volle magazijn komt van onderen omhoog
-  slede: [0.70, 0.86],      // slede naar achteren en weer naar voren
-  terug: [0.86, 1.00],      // terug in de aanslag
+  magUit: [0.16, 0.38],     // het lege magazijn valt eruit en tuimelt weg
+  hand: [0.30, 0.46],       // de linkerhand komt met een vol magazijn in beeld
+  magIn: [0.46, 0.66],      // en duwt het erin
+  tik: [0.66, 0.74],        // een tik op de bodem: hij zit
+  handWeg: [0.74, 0.86],    // de hand zakt weer uit beeld
+  slede: [0.76, 0.90],      // slede naar achteren en weer naar voren
+  terug: [0.88, 1.00],      // terug in de aanslag
 };
 const deel = (t, [a, b]) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 const soepel = (u) => u * u * (3 - 2 * u);
@@ -198,6 +201,40 @@ function maakWapen(geluid, soort = 'pistool') {
   wapen.add(nieuwMag);
 
   /*
+   ---- de linkerhand ----
+   Het herladen was een magazijn dat uit zichzelf naar beneden zakte en een
+   tweede dat uit zichzelf omhoog kwam. Dat is de beweging van een wapen dat
+   zichzelf laadt, en dat is precies waarom het niet overtuigde: een magazijn
+   wisselt niet vanzelf, je doet het met je andere hand.
+
+   Dit is die hand: een handpalm met vier vingers eromheen en een duim, met het
+   nieuwe magazijn erin geklemd. Hij komt van linksonder het beeld in, duwt het
+   magazijn erin, geeft er met de muis van zijn hand een tik op, en zakt weer
+   weg. Hij hangt aan `wapen` en niet aan `groep`, zodat hij met het wapen
+   meekantelt: je brengt je hand naar het wapen, niet naar een vast punt in de
+   lucht, en zo blijft hij bij het magazijn dat hij vasthoudt.
+  */
+  const MAG_ONDER = SMG ? -0.205 : -0.142;   // waar de hand het magazijn beetpakt
+  const lhB = bak();
+  doos(lhB, huid, 0.052, 0.058, 0.070, -0.014, 0, 0.002);         // handpalm, links naast het magazijn
+  for (let i = 0; i < 4; i++) doos(lhB, huid, 0.038, 0.013, 0.017, 0.005, 0.016 - i * 0.016, -0.030);
+  doos(lhB, huid, 0.020, 0.044, 0.022, 0.014, 0.004, 0.034);      // duim langs de achterkant
+  const polsL = new THREE.BoxGeometry(0.054, 0.052, 0.060);
+  polsL.rotateZ(0.30); polsL.translate(-0.044, -0.048, 0.010);
+  vorm(lhB, polsL, huid);
+  const mouwL = new THREE.BoxGeometry(0.080, 0.080, 0.30);
+  mouwL.rotateZ(0.30); mouwL.rotateY(-0.18); mouwL.translate(-0.115, -0.135, 0.130);
+  vorm(lhB, mouwL, stof);
+  const manchetL = new THREE.BoxGeometry(0.086, 0.086, 0.032);
+  manchetL.rotateZ(0.30); manchetL.translate(-0.062, -0.080, 0.028);
+  vorm(lhB, manchetL, manchetMat);
+  const linkerhand = bouw(lhB, new THREE.Group());
+  linkerhand.rotation.x = 0.24;                // dezelfde rake als de greep
+  linkerhand.position.set(0, MAG_ONDER, 0.022);
+  linkerhand.visible = false;
+  wapen.add(linkerhand);
+
+  /*
    Mondingsvuur. Een bolletje was te rond en te braaf; dit is een kegel vooruit
    met een dwarskruis erdoorheen, additief opgeteld bij wat erachter ligt.
   */
@@ -310,7 +347,7 @@ function maakWapen(geluid, soort = 'pistool') {
     if (herlaad > 0) {
       const t = 1 - herlaad / HERLAAD;
       // geluid: elke stap één keer, op het moment dat je hem ziet
-      const stapNr = t < STAP.magUit[0] ? 0 : t < STAP.magIn[0] ? 1 : t < STAP.slede[0] ? 2 : t < STAP.terug[0] ? 3 : 4;
+      const stapNr = t < STAP.magUit[0] ? 0 : t < STAP.magIn[0] ? 1 : t < STAP.tik[0] ? 2 : t < STAP.slede[0] ? 3 : 4;
       if (stapNr !== gedaan) {
         gedaan = stapNr;
         if (stapNr === 0) geluid.magazijnKnop();
@@ -319,28 +356,79 @@ function maakWapen(geluid, soort = 'pistool') {
         else if (stapNr === 4) geluid.slede();
       }
       /*
-       Het wapen kantelt naar je toe, zakt een stukje en komt dichterbij, zodat
-       je in het magazijnhuis kijkt. Niet verder: zak je er echt mee weg, dan
-       valt de hele beweging onder de onderrand van het beeld en zie je alleen
-       nog "herladen..." in de hoek staan.
+       Het wapen komt omhoog, naar het midden en naar je toe, en kantelt naar je
+       toe zodat je in het magazijnhuis kijkt — zoals je een wapen omhoog haalt
+       om erin te kunnen kijken terwijl je herlaadt.
+
+       Het zákte hier eerst drie centimeter, en dat was precies de fout: de
+       onderrand van het beeld ligt op deze afstand een kleine kwart meter onder
+       het midden, en de magazijnschacht hing daar al tegenaan. Alles wat er
+       daarna gebeurde — het magazijn dat eruit viel, het nieuwe dat erin ging —
+       speelde zich onder de onderrand af. Je zag het wapen wiebelen en verder
+       niets. Tien centimeter omhoog zet de hele beweging in beeld.
       */
       const uit = soepel(deel(t, STAP.kantelen)) - soepel(deel(t, STAP.terug));
-      groep.position.x = RUST.x - 0.030 * uit;
-      groep.position.y = RUST.y - 0.030 * uit;
-      groep.position.z = RUST.z + 0.070 * uit;
-      groep.rotation.z = 0.06 + 0.62 * uit;
+      groep.position.x = RUST.x - 0.140 * uit;
+      groep.position.y = RUST.y + 0.105 * uit;
+      groep.position.z = RUST.z + 0.090 * uit;
+      /*
+       En hij kantelt naar líjnks, niet naar rechts. Dat was de tweede helft van
+       hetzelfde probleem: gekanteld naar rechts wijst de magazijnschacht recht
+       in je eigen onderarm, die vanuit de rechteronderhoek in beeld komt, en
+       viel het magazijn er precies achter weg. Naar links toe ligt de schacht
+       vrij, komt de linkerhand er van de goede kant bij, en zie je alles wat er
+       gebeurt.
+      */
+      groep.rotation.z = 0.06 - 0.72 * uit;
       groep.rotation.x = 0.16 * uit;
-      groep.rotation.y = 0.10 - 0.30 * uit;
-      // het lege magazijn valt eruit
+      groep.rotation.y = 0.10 - 0.60 * uit;
+      /*
+       De onderarm draait niet mee. Hij hangt in dezelfde groep als het wapen,
+       dus kantelde hij er netjes mee en kwam hij ineens van linksonder in beeld
+       — precies dwars door de plek waar het magazijn uit valt. Je elleboog
+       blijft echter waar hij is als je je pols draait, dus hier draait de arm
+       terug: de pols volgt het wapen, de mouw komt nog steeds uit de
+       rechteronderhoek.
+      */
+      arm.rotation.z = 0.72 * uit * 0.62;
+      arm.rotation.y = 0.60 * uit * 0.45;
+      arm.rotation.x = -0.16 * uit;
+      /*
+       Het lege magazijn valt eruit — en valt dan ook echt: met de versnelling
+       van de zwaartekracht (daarom het kwadraat), een tuimeling erin, en ver
+       genoeg om onder de onderrand van het beeld te verdwijnen. Eerst schiet
+       het een paar centimeter uit de schacht, daarna laat de zwaartekracht het
+       los; dat is de beweging die je ziet als iemand de magazijnknop indrukt.
+      */
       const val = deel(t, STAP.magUit);
       magazijn.visible = val < 1;
-      magazijn.position.y = -0.30 * val * val;
-      magazijn.position.z = 0.03 * val;
-      // het nieuwe magazijn komt van onderen omhoog en klikt vast
-      const in1 = soepel(deel(t, STAP.magIn));
-      nieuwMag.visible = in1 > 0 && in1 < 1;
-      nieuwMag.position.y = -0.26 * (1 - in1);
-      if (in1 >= 1) { magazijn.visible = true; magazijn.position.set(0, 0, 0); }
+      magazijn.position.y = -(0.05 * val + 0.52 * val * val);
+      magazijn.position.z = 0.05 * val;
+      magazijn.rotation.x = 0.24 + val * 1.1;          // hij kantelt onder het vallen
+      magazijn.rotation.z = val * val * 0.9;
+
+      /*
+       De linkerhand met het volle magazijn. Hij komt van linksonder in beeld
+       (`hand`), schuift het magazijn de schacht in (`magIn`), geeft er met de
+       muis van zijn hand een tik op (`tik` — de kleine stoot omhoog), en zakt
+       weer weg (`handWeg`). Het magazijn en de hand lopen op dezelfde hoogte,
+       zodat hij het werkelijk vasthoudt in plaats van ernaast te zweven.
+      */
+      const komt = soepel(deel(t, STAP.hand));
+      const duwt = soepel(deel(t, STAP.magIn));
+      const tik = Math.sin(deel(t, STAP.tik) * Math.PI) * 0.012;
+      const weg = soepel(deel(t, STAP.handWeg));
+      const magZak = -0.30 * (1 - duwt) - 0.26 * (1 - komt) + tik;
+      nieuwMag.visible = komt > 0 && duwt < 1;
+      nieuwMag.position.set(0, magZak, 0);
+      linkerhand.visible = komt > 0 && weg < 1;
+      linkerhand.position.set(
+        -0.11 * (1 - komt) - 0.16 * weg,
+        MAG_ONDER + magZak - 0.20 * weg,
+        0.022 + 0.05 * (1 - komt) + 0.06 * weg,
+      );
+      if (duwt >= 1) { magazijn.visible = true; magazijn.position.set(0, tik, 0); magazijn.rotation.set(0.24, 0, 0); }
+
       // slede naar achteren en weer naar voren
       const sl = deel(t, STAP.slede);
       slede.position.z = Math.sin(sl * Math.PI) * (SMG ? 0.020 : 0.030);
@@ -348,8 +436,12 @@ function maakWapen(geluid, soort = 'pistool') {
       return;
     }
     gedaan = -1;
-    magazijn.visible = true; magazijn.position.set(0, 0, 0);
+    magazijn.visible = true;
+    magazijn.position.set(0, 0, 0);
+    magazijn.rotation.set(0.24, 0, 0);        // de tuimeling van het herladen terugzetten
     nieuwMag.visible = false;
+    linkerhand.visible = false;
+    arm.rotation.set(0, 0, 0);
     slede.position.z = terugslag * SLAG;
 
     /*
@@ -389,7 +481,7 @@ function maakWapen(geluid, soort = 'pistool') {
   // de losse onderdelen erbij, zodat tools/wapentest.mjs de beweging kan meten
   return {
     groep, vuur, update, soort, herlaadtijd: HERLAAD,
-    delen: { slede, magazijn, nieuwMag, flits, hand, arm },
+    delen: { slede, magazijn, nieuwMag, flits, hand, arm, linkerhand },
     // waar het wapen hangt in de heup en aan het oog, zodat tools/wapentest.mjs
     // kan narekenen dat de vizierlijn door het midden van het scherm loopt
     houding: { rust: RUST, mik: MIK, vizierY: VIZIER_Y },

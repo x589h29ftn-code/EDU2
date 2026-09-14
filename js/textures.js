@@ -469,6 +469,44 @@ export function wapenIcoon(soort = 'pistool') {
 }
 
 /*
+ Het stofwolkje van een kogelinslag (js/main.js).
+
+ Een pluim is geen bolletje en geen cirkel: hij is onregelmatig, in het midden
+ dicht en naar de randen toe rafelig, en hij heeft geen harde omtrek. Dit tekent
+ er een met een handvol vlekken die naar buiten toe lichter en kleiner worden,
+ op een doek van 64 bij 64 — groter heeft geen zin voor iets dat een kwart
+ seconde en hooguit een halve meter groot in beeld staat.
+*/
+export function inslagPluim() {
+  if (cache.has('inslagpluim')) return cache.get('inslagpluim');
+  const N = 64;
+  const c = canvas(N, N); const g = c.getContext('2d');
+  g.clearRect(0, 0, N, N);
+  // de kern: een zachte vlek die naar buiten toe wegvalt
+  const kern = g.createRadialGradient(N / 2, N / 2, 1, N / 2, N / 2, N * 0.42);
+  kern.addColorStop(0, 'rgba(226,220,208,0.95)');
+  kern.addColorStop(0.45, 'rgba(186,178,164,0.55)');
+  kern.addColorStop(1, 'rgba(150,142,130,0)');
+  g.fillStyle = kern;
+  g.beginPath(); g.arc(N / 2, N / 2, N * 0.42, 0, Math.PI * 2); g.fill();
+  // en de rafels eromheen: kleine vlekjes op willekeurige plekken in de rand
+  let s = 20260914;
+  const dobbel = () => { s = (Math.imul(s ^ (s >>> 15), 2246822519) >>> 0); return s / 4294967296; };
+  for (let i = 0; i < 14; i++) {
+    const hoek = dobbel() * Math.PI * 2;
+    const r = N * (0.18 + dobbel() * 0.26);
+    const x = N / 2 + Math.cos(hoek) * r, y = N / 2 + Math.sin(hoek) * r;
+    const straal = N * (0.05 + dobbel() * 0.09);
+    const vlek = g.createRadialGradient(x, y, 0, x, y, straal);
+    vlek.addColorStop(0, `rgba(214,206,192,${0.30 + dobbel() * 0.35})`);
+    vlek.addColorStop(1, 'rgba(214,206,192,0)');
+    g.fillStyle = vlek;
+    g.beginPath(); g.arc(x, y, straal, 0, Math.PI * 2); g.fill();
+  }
+  const t = tex(c); cache.set('inslagpluim', t); return t;
+}
+
+/*
  De plaatjes bij het schap aan de toonbank van Tinga State.
 
  Het schap stond er als een regel tekst — "1 — 100 kogels (€ 50)" — en dat leest

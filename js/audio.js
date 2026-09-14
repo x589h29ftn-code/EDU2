@@ -870,6 +870,20 @@ export const geluid = {
   },
 
   /*
+   De portofoon van de politie: de melding dat ze je gezien hebben gaat rond.
+   Wat je ervan hoort als je dichtbij staat is niet wat er gezegd wordt maar het
+   apparaat zelf — een kort ruisje, twee piepjes, en de klik waarmee de
+   zendknop weer losgelaten wordt. Geen stem: gesynthetiseerde spraak klinkt
+   nergens naar, en dit vertelt hetzelfde.
+  */
+  portofoon() {
+    tik({ freq: 2200, q: 1.2, duur: 0.06, volume: 0.07 });
+    toon({ freq: 1500, duur: 0.05, volume: 0.05, vertraag: 0.07 });
+    toon({ freq: 1900, duur: 0.05, volume: 0.05, vertraag: 0.14 });
+    tik({ freq: 3000, q: 6, duur: 0.03, volume: 0.05, vertraag: 0.24 });
+  },
+
+  /*
    ---- de politiehelikopter ----
    Wat je van een heli hoort is niet een motor maar het slaan van de bladen: een
    stoot lucht per blad, vier bladen per omwenteling, een stuk of twintig keer

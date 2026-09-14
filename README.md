@@ -304,6 +304,14 @@ dwarskruis, elk schot een slag gedraaid en een maat anders) en tikt even later d
 De knal is elke keer nét iets anders van toon, zodat een serie schoten niet klinkt als een
 kopieermachine.
 
+**Waar de kogel aankomt** is een stofwolkje van een kwart seconde, met een vonk erbij op blik en glas.
+Daar stond een zwart bolletje van vier centimeter dat acht seconden bleef liggen, en dat was op twee
+manieren fout: de straal raakt alleen dingen die *bewegen* — auto's, voetgangers, agenten — dus het
+bolletje bleef hangen op de plek waar de auto wás, en je zag een rij zwarte kraaltjes in de lucht
+staan waar net iemand gereden of gelopen had. En een bol is sowieso geen inslag. De wolkjes komen uit
+een vaste voorraad van twaalf, dus er wordt niets bijgemaakt en niets vergeten op te ruimen, en ze
+lopen mee met de hoofdlus: zet je het spel op pauze, dan staat de wolk ook stil.
+
 ![Het moment van het schot](docs/screenshots/wapen_schot.png)
 
 **Terugslag.** Het beeld schokt bij elk schot een graad of anderhalf omhoog en een tikje opzij, en
@@ -312,16 +320,26 @@ hebt gezet, dus het tweede schot komt op dezelfde plek aan en je hoeft niet na t
 Aangeslagen (rechtermuisknop) blijft er nog geen halve terugslag over: tien schoten achter elkaar
 tillen het beeld dan 0,08 rad op in plaats van 0,19.
 
-**Herladen (R).** Dat is een beweging van anderhalve seconde in vijf stappen: het wapen kantelt naar
-je toe zodat je in het magazijnhuis kijkt, de magazijnknop gaat in, het lege magazijn valt eruit, een
-vol magazijn komt van onderen omhoog en klikt vast, de slede gaat naar achteren en weer naar voren,
-en dan ligt hij weer in de aanslag. De klik, de klap van het magazijn en het overhalen van de slede
-klinken precies op het moment dat je ze ziet gebeuren. Schiet je met een leeg magazijn, dan hoor je
-alleen de klik van de slagpin.
+**Herladen (R).** Een beweging van anderhalve seconde met twee handen erin. Het wapen komt **omhoog**
+en kantelt naar links, zodat je in het magazijnhuis kijkt; de magazijnknop gaat in en het lege
+magazijn **valt er echt uit** — het schiet een paar centimeter uit de schacht, de zwaartekracht neemt
+het over, het tuimelt en het verdwijnt onder de onderrand van het beeld. Dan komt je **linkerhand**
+van linksonder in beeld met een vol magazijn, schuift het de schacht in, geeft er met de muis van de
+hand een tik op, en zakt weer weg; de slede gaat naar achteren en weer naar voren, en dan ligt hij
+weer in de aanslag. De klik, de klap van het magazijn en het overhalen van de slede klinken precies
+op het moment dat je ze ziet gebeuren. Schiet je met een leeg magazijn, dan hoor je alleen de klik
+van de slagpin.
 
-| Het magazijn valt eruit | De slede gaat naar achteren |
-|---|---|
-| ![Magazijn eruit](docs/screenshots/wapen_magazijn.png) | ![Slede naar achteren](docs/screenshots/wapen_slede.png) |
+Twee dingen maakten het verschil met wat er eerst stond. Het wapen **zákte** bij het herladen drie
+centimeter, en de onderrand van het beeld ligt op die afstand een kwart meter onder het midden: de
+hele beweging speelde zich dus onder het scherm af en je zag alleen wat gewiebel. En het kantelde
+naar rechts, recht in je eigen onderarm, die vanuit de rechteronderhoek in beeld komt — daar viel het
+magazijn precies achter weg. Nu gaat het omhoog en kantelt het naar links, en draait de onderarm
+tegen de kanteling in mee, zoals je elleboog blijft staan als je je pols draait.
+
+| Het magazijn valt eruit | De linkerhand komt met een nieuwe | En duwt hem erin |
+|---|---|---|
+| ![Magazijn eruit](docs/screenshots/wapen_herlaad_uit.png) | ![De linkerhand](docs/screenshots/wapen_herlaad_hand.png) | ![Erin](docs/screenshots/wapen_herlaad_erin.png) |
 
 ## De mensen
 
@@ -923,6 +941,26 @@ lak raakt is een aanwijzing: er wordt op ons geschoten en we weten vanwaar. De l
 verspringt naar waar je op dat moment staat en alle eenheden draaien die kant op. Vanuit een hoekje
 blijven schieten werkt dus niet.
 
+**Ze hebben een portofoon.** Ziet één agent je, dan wisten de anderen dat niet: die liepen hun eigen
+sector af tot hun zoektijd om was, vijftien tot vijfentwintig seconden later. Je kon dus in het volle
+zicht van een agent langs vier collega's lopen die niets deden. Nu is dat een **melding**: ziet een
+agent, een surveillanceauto of de helikopter je, dan gaat dat rond en komt iedereen binnen
+vierhonderd meter er rénnend op af in plaats van zijn rondje af te maken. Sta je dichtbij, dan hoor
+je het apparaat ook — een ruisje, twee piepjes en de klik van de zendknop.
+
+Drie dingen houden het eerlijk: er zit een seconde tussen (iemand moet het zeggen), er gaat hooguit
+om de paar tellen een nieuwe melding uit, en wat doorgegeven wordt is de plek waar je wás. Wegkomen
+kan dus nog steeds — het kost alleen meer dan één hoek omgaan.
+
+**Schieten verraadt je alleen als iemand het ziet.** Elk schot tijdens een achtervolging verschoof de
+laatst bekende plek naar jou, ook in een lege steeg met niemand in de buurt: verstoppen werd
+onmogelijk zodra je één keer de trekker overhaalde. Nu moet iemand het **horen én zien** — een
+voetganger binnen tweeëndertig meter met vrij zicht (of zo dichtbij dat hij het door de heg heen
+hoort), of een agent in de buurt. Is die er, dan belt hij, staat de laatst bekende plek op jou en
+gaat de melding rond. Is er niemand, dan hoorden ze hooguit een knal, en dáár gaan ze dan op af — op
+het geluid, niet op jou. Een lichaam is iets anders: dat ligt er, dat wordt gevonden, en daar hoeft
+geen getuige bij te zijn.
+
 **Verstoppen werkt.** Staat er een gebouw of een schutting tussen, dan zien ze je niet, en dan volgen
 ze je ook niet: ze lopen naar de plek waar ze je het láátst zagen. Horen ze alleen een schot, dan gaan
 ze op dat gelúid af, niet op jou. Wel denken ze mee: op het moment dat de laatste je uit het oog
@@ -950,6 +988,12 @@ gehurkt, onder een boom, in een bosvlak, onder het viaduct en op grote afstand n
 op straat wél, dat hij de laatst bekende plek bijwerkt, dat de wegversperring op drie sterren staat
 en ver vooruit en buiten je zicht komt, en dat een deel van de wagens onderschept terwijl er altijd
 één in je spiegel blijft hangen. `npm run helishots` maakt de vier foto's.
+
+`npm run meldtest` toetst de ronde daarna — tweeëntwintig controles: dat het schap bij Tinga State
+niet in beeld blijft staan als je op Esc drukt, dat één waarneming via de portofoon twaalf collega's
+in beweging zet, dat een schot mét getuige je plek verraadt en zonder getuige meestal niet, dat een
+kogelinslag een stofwolkje is dat weer verdwijnt in plaats van een zwart bolletje dat blijft hangen,
+en dat het herladen het magazijn er echt uit laat vallen en een linkerhand een nieuwe laat brengen.
 
 ## Hondjes
 

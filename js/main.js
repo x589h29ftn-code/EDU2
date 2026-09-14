@@ -18,7 +18,7 @@ import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
-import { zetAnisotropie, zetReliëf, bordSpannenburg, logoTinga, wapenIcoon } from './textures.js';
+import { zetAnisotropie, zetReliëf, bordSpannenburg, logoTinga, wapenIcoon, inslagPluim } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
 import { grondHoogte } from './viaduct.js';
 import { maakBuit, zakgeld, agentMunitie } from './buit.js';
@@ -483,7 +483,85 @@ const afstandTot = (p) => Math.hypot(player.pos.x - p.x, player.pos.z - p.z);
 
 // Schieten: raycast op auto's en voetgangers
 const raycaster = new THREE.Raycaster();
-const impactMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+
+/*
+ Waar de kogel aankomt.
+
+ Hier stond een zwart bolletje van vier centimeter dat acht seconden bleef
+ liggen. Dat was op twee manieren fout. De straal raakt namelijk alleen dingen
+ die bewégen — auto's, voetgangers, agenten; de gebouwen zitten niet in de
+ lijst — dus het bolletje bleef hangen op de plek waar de auto wás, en je zag
+ een rij zwarte kraaltjes in de lucht staan waar iemand net gereden of gelopen
+ had. En een bol is sowieso geen kogelinslag: een inslag is een flits en een
+ wolkje, en dat is een kwart seconde te zien en geen acht.
+
+ Het is nu een stofwolkje: twee kruislingse vlakjes met een getekende pluim
+ erop, die in een kwart seconde uitzetten, omhoog drijven en wegvagen, met een
+ kort vonkje erbij op metaal. Ze komen uit een vaste voorraad van twaalf — meer
+ zie je nooit tegelijk — dus er wordt niets bijgemaakt en niets vergeten op te
+ ruimen, en ze lopen mee met de hoofdlus in plaats van met een `setTimeout`:
+ zet je het spel op pauze, dan staat de wolk ook stil.
+*/
+const INSLAG_TIJD = 0.28;
+const inslagen = [];
+{
+  /*
+   Elk wolkje heeft zijn eigen materiaal. Dat lijkt verkwistend voor twaalf
+   vlakjes, maar de doorzichtigheid loopt per wolk terug, en met één gedeeld
+   materiaal zou de jongste inslag de doorzichtigheid van alle andere
+   overschrijven — dan knipperen ze samen in plaats van ieder voor zich weg te
+   vagen. De textuur wordt wél gedeeld.
+  */
+  const doek = inslagPluim();
+  const pluim = new THREE.PlaneGeometry(1, 1);
+  const bol = new THREE.SphereGeometry(0.045, 5, 4);
+  for (let i = 0; i < 12; i++) {
+    const stofMat = new THREE.MeshBasicMaterial({
+      map: doek, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide,
+    });
+    const vonkMat = new THREE.MeshBasicMaterial({
+      color: 0xffd08a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const groep = new THREE.Group();
+    for (const r of [0, Math.PI / 2]) {
+      const v = new THREE.Mesh(pluim, stofMat);
+      v.rotation.y = r;
+      groep.add(v);
+    }
+    const vonk = new THREE.Mesh(bol, vonkMat);
+    groep.add(vonk);
+    groep.visible = false;
+    groep.renderOrder = 3;
+    scene.add(groep);
+    inslagen.push({ groep, vonk, stofMat, vonkMat, t: 0, maat: 1 });
+  }
+}
+let inslagNr = 0;
+
+/** Een wolkje op de plek waar de kogel aankwam. `hard` = metaal, dus met vonk. */
+function toonInslag(punt, hard = true, maat = 1) {
+  const o = inslagen[inslagNr = (inslagNr + 1) % inslagen.length];
+  o.groep.position.copy(punt);
+  o.groep.rotation.y = Math.random() * Math.PI * 2;
+  o.t = INSLAG_TIJD;
+  o.maat = maat;
+  o.vonk.visible = hard;
+  o.groep.visible = true;
+}
+
+function werkInslagenBij(dt) {
+  for (const o of inslagen) {
+    if (o.t <= 0) continue;
+    o.t -= dt;
+    if (o.t <= 0) { o.groep.visible = false; continue; }
+    const f = 1 - o.t / INSLAG_TIJD;                 // 0 bij de knal, 1 als hij weg is
+    const s = (0.12 + f * 0.34) * o.maat;
+    o.groep.scale.set(s, s, s);
+    o.groep.position.y += dt * 0.35;                 // het wolkje drijft op
+    o.stofMat.opacity = 0.85 * (1 - f) ** 1.5;
+    o.vonkMat.opacity = Math.max(0, 1 - f * 4);
+  }
+}
 player.shootCb = (camOrigin, camDir) => {
   // in de derde persoon komt de kogel uit de schouder van je poppetje en niet
   // uit de camera, anders schiet je langs jezelf heen
@@ -513,19 +591,21 @@ player.shootCb = (camOrigin, camDir) => {
      gebeuren en het balkje stond er voortdurend (melding beta-test 12 sep 2026).
      Wat er wél bij komt is een kreet — dat vertelt hetzelfde zonder tekst.
     */
-    if (npcs.hit(h.object, h.instanceId)) {
+    const raakMens = npcs.hit(h.object, h.instanceId);
+    let raakAgent = false, raakVerhaal = false;
+    if (raakMens) {
       geluid.raak();
       geluid.kreet('pijn', afstandTot(h.point));
       politie.misdaad('neergeschoten', h.point.x, h.point.z);
       // wat iemand op zak had: vaak niets, hooguit een tientje (js/buit.js)
       buit.laatVallen('geld', h.point.x, h.point.z, zakgeld());
-    } else if (politie.raak(h.object)) {
+    } else if ((raakAgent = politie.raak(h.object))) {
       geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
       // een agent draagt munitie bij zich: drie tot vijftien kogels, en die
       // passen in elk wapen
       buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie());
     }
-    else if (verhaal.raak(h.object)) { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); }
+    else if ((raakVerhaal = verhaal.raak(h.object))) { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); }
     else {
       /*
        Op een auto schieten. Een politieauto gaat eerst langs js/politie.js: die
@@ -544,8 +624,13 @@ player.shootCb = (camOrigin, camDir) => {
         }
       }
     }
-    const mark = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), impactMat); mark.position.copy(h.point); scene.add(mark);
-    setTimeout(() => scene.remove(mark), 8000);
+    /*
+     Het wolkje op de plek van de inslag. Op blik en glas slaat een vonk af; uit
+     een mens komt stof en geen vuur, dus daar blijft het bij het wolkje — en
+     dat is meteen het enige dat je nog ziet, want er blijft niets liggen.
+    */
+    const opMens = raakMens || raakAgent || raakVerhaal;
+    toonInslag(h.point, !opMens, opMens ? 0.8 : 1);
   }
 };
 
@@ -794,6 +879,19 @@ function pauseGame() {
   if (gepauzeerd) return;
   player.active = false;
   if (touch) touch.setVisible(false);
+  /*
+   De twee balkjes die zeggen wat je hier kunt doen — de hint bij een deur en
+   het schap aan de toonbank van Tinga State — worden elk beeld door de module
+   zelf gezet. Maar de hoofdlus staat stil zolang je in het menu staat, dus dan
+   wordt er niets meer gezet en bleven ze onderin het scherm staan: je kocht
+   iets, drukte op Esc, en de kaartjes van het schap stonden er nog. Hier gaan
+   ze uit; komt de lus weer op gang, dan zet de module ze meteen weer neer als
+   je nog steeds aan de toonbank staat.
+  */
+  for (const id of ['praat', 'schap']) {
+    const el = document.getElementById(id);
+    if (el) el.hidden = true;
+  }
   gepauzeerd = true;
   // Zonder dit bromt de motor door zolang je in het menu staat: de oscillator
   // loopt door en `motorToeren` wordt niet meer aangeroepen, dus hij blijft op
@@ -1005,6 +1103,7 @@ function loop() {
       geluid.gier(0);
     }
     werkSporenBij(dt);
+    werkInslagenBij(dt);        // de stofwolkjes van de kogelinslagen
     werkLantaarnsBij(dt, player.pos.x, player.pos.z);
     // wat er op straat ligt: loop je erlangs, dan pak je het op (js/buit.js)
     buit.update(dt, player, (soort, waarde) => {
@@ -1128,6 +1227,8 @@ window.__game = {
   // haken voor tools/puntentest.mjs: een knal laten afgaan en de uitslag lezen
   __ontplof: autoOntploft, __schokNul: () => { SCHOK.kracht = 0; SCHOK.t = 0; },
   __schokKracht: () => SCHOK.kracht,
+  // voor tools/meldtest.mjs: hoeveel stofwolkjes van kogelinslagen er nu leven
+  __inslagen: () => inslagen.filter(o => o.t > 0).length,
 };
 
 // Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,
