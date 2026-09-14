@@ -33,38 +33,42 @@ vandaan komt, en dat is precies waar het gevoel "ze zijn slim" vandaan komt.
 Kosten: middelgroot. De routezoeker en de sectoren zijn er al; het is vooral een
 kwestie van de sectorkeuze vervangen door een verdeling van rollen.
 
-### 1.2 Vooruit denken in plaats van achteraan rijden
+### 1.2 Vooruit denken in plaats van achteraan rijden — **af (14 sep 2026)**
 
-De surveillanceauto's rijden naar `laatstBekend` — de plek waar je wás. Op
-snelheid is dat altijd te laat en zie je ze in je spiegel hangen.
+De surveillanceauto's reden naar `laatstBekend` — de plek waar je wás. Op
+snelheid is dat altijd te laat en zag je ze in je spiegel hangen.
 
-Laat ze **onderscheppen**: neem je snelheid en richting, loop een paar honderd
-meter vooruit over het wegennet, en rijd naar dát punt. Op een kruising nemen ze
-de andere tak, zodat ze van opzij de straat in komen. Dit is dezelfde
-routezoeker met een ander doelpunt, dus het is weinig werk voor veel effect.
+Ze **onderscheppen** nu: `onderschepPunt()` in js/politie.js neemt je snelheid
+en richting, loopt zes en een halve seconde vooruit over het wegennet, en de
+jagers rijden naar dát punt. Op een kruising nemen ze de andere tak, zodat ze
+van opzij de straat in komen. Drie regels houden het eerlijk: er moet vaart in
+zitten, de wagen moet achter je hangen, en de dichtstbijzijnde jager blijft
+gewoon achter je aan rijden — anders is je spiegel leeg.
 
-### 1.3 Wegversperring vanaf drie sterren
+### 1.3 Wegversperring vanaf drie sterren — **af (14 sep 2026)**
 
-Twee wagens neus aan neus dwars over de straat waar je heen rijdt, met agenten
-erachter. Het mechanisme staat er al: `js/afsluiting.js` zet sinds de
-beta-ronde een schrikhek met een onzichtbare wand neer, en de blokkades van de
-politie worden al opgeruimd (`ruimBlokkade`). Wat er bij moet is de keuze *waar*:
-het eerste kruispunt op je voorspelde route dat ver genoeg vooruit ligt om er te
-komen.
+Twee wagens neus aan neus dwars over de straat waar je heen rijdt. Hij stond op
+vier sterren en staat nu op drie — bij vier ben je meestal al te voet, en dan
+kwam hij bijna nooit voor. En de keuze *waar* komt nu van de voorspelde route:
+de routezoeker rekent uit hoe je naar het onderscheppunt van 1.2 rijdt en de
+wagens komen op het eerste punt van díe route dat ver genoeg vooruit ligt en dat
+je nog niet kunt zien.
 
 Dit is het punt waarop een achtervolging een besluit wordt in plaats van een
 gaspedaal: doorrijden en eromheen, of de wijk in en te voet verder.
 
-### 1.4 Een helikopter vanaf vier sterren
+### 1.4 Een helikopter vanaf vier sterren — **af (14 sep 2026)**
 
-Eén heli die boven je cirkelt en `laatstBekend` blijft bijwerken zolang je onder
-de open lucht bent. Dat maakt in één klap alles wat er al ligt betekenisvol:
-onder het viaduct, in het bos bij de Buitenroede, in een gebouw of onder de
-bomen langs de Wieken ben je uit zijn zicht, en dat is waar je dan heen rent.
-Met een zoeklicht in het donker en een geluid dat met de afstand meeloopt.
+Eén heli (js/helikopter.js) die op 62 m in een rondje van 48 m boven `anker()`
+cirkelt en `laatstBekend` bijwerkt zolang hij je ziet. Dat maakt in één klap
+alles wat er al ligt betekenisvol: **gehurkt** (toets C), onder een boomkroon,
+in een bos- of heestervlak uit de kaart of onder een dek ben je uit zijn zicht,
+en dat is waar je dan heen rent. Met een zoeklicht in het donker en een geluid —
+het slaan van de bladen — dat met de afstand meeloopt.
 
-Kosten: de heli zelf is een model plus een cirkelbaan; de winst zit erin dat
-`zichtVrij` al bestaat en dat "is er dak boven me" een korte straal omhoog is.
+Wat er nog bij kan: een gebouw telt nog niet als dak (binnen sta je in dit spel
+in een andere ruimte, dus dat gaat vanzelf goed), en de heli reageert nog niet
+op beschieting.
 
 ### 1.5 Aanhouden in plaats van alleen schieten
 
@@ -155,9 +159,11 @@ aanhouding moet je een nieuwe kopen.
 Als er tijd is voor drie dingen, dan deze — ze veranderen samen het meest en
 bijten elkaar niet:
 
-1. **Onderscheppen en omsingelen** (1.1 en 1.2). Zelfde routezoeker, ander
-   doelpunt, en de achtervolging is een ander spel.
+1. **Omsingelen** (1.1). Onderscheppen (1.2) is af en dat scheelde al veel;
+   rollen verdelen zodat er iemand áchter je vandaan komt is de andere helft.
 2. **Aanhouden** (1.5). Er komt een tweede afloop bij, en lage sterren worden
    spannend in plaats van hinderlijk.
 3. **De fiets** (2.1). Eén voertuig erbij dat past bij de stad, gebruikmaakt van
    een model dat er al is, en de smalle paden van de wijk ineens nuttig maakt.
+
+*Stand op 14 september 2026: 1.2, 1.3 en 1.4 zijn af.*

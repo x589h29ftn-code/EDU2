@@ -86,6 +86,10 @@
     "puntentest": "node tools/puntentest.mjs",
     "puntenshots": "node tools/puntenshots.mjs",
     "vuiltest": "node tools/vuiltest.mjs",
+    "richttest": "node tools/richttest.mjs",
+    "richtshots": "node tools/richtshots.mjs",
+    "helitest": "node tools/helitest.mjs",
+    "helishots": "node tools/helishots.mjs",
     "vuilshots": "node tools/vuilshots.mjs"
   }
 }

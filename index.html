@@ -46,6 +46,21 @@
   #praat { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%);
            font-size: 15px; font-weight: 700; background: rgba(8,14,24,.62);
            padding: 6px 14px; border-radius: 6px; }
+  /* Het schap aan de toonbank van Tinga State: per artikel een getekend plaatje
+     (js/textures.js), het nummer waarmee je het koopt en wat het kost. Wat je
+     al hebt staat er grijs bij, zodat je ziet dát de verkoper het voert. */
+  #schap { position: absolute; left: 50%; bottom: 58px; transform: translateX(-50%);
+           display: flex; gap: 10px; align-items: flex-end; }
+  #schap .kaart { width: 118px; background: rgba(8,14,24,.72); border: 1px solid rgba(255,255,255,.16);
+                  border-radius: 8px; padding: 7px 7px 6px; text-align: center; }
+  #schap .kaart.bezit { opacity: .42; }
+  #schap canvas { width: 104px; height: 56px; display: block; margin: 0 auto; }
+  #schap .nr { display: inline-block; min-width: 17px; background: #ffd400; color: #101820;
+               font-weight: 800; font-size: 13px; line-height: 17px; border-radius: 4px; padding: 0 4px; }
+  #schap .naam { font-size: 11px; font-weight: 700; line-height: 1.25; margin-top: 3px;
+                 color: rgba(255,255,255,.9); }
+  #schap .prijs { font-size: 15px; font-weight: 800; color: #ffd400; margin-top: 1px; }
+  #schap .bezitlabel { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.7); margin-top: 1px; }
   #opdracht { position: absolute; left: 24px; top: 42px; font-size: 14px; font-weight: 700; color: #ffd400; }
   /* rood knipperend doel, bijvoorbeeld "schiet hem NIET neer" */
   #opdracht.rood { color: #ff5a44; animation: knipper 1s steps(1, end) infinite; }
@@ -211,6 +226,11 @@
     #dialoogTekst { font-size: 14px; }
     #dialoogVerder { font-size: 11px; margin-top: 4px; }
     #praat { left: 10px; bottom: 62px; transform: none; font-size: 13px; }
+    #schap { bottom: 104px; gap: 5px; }
+    #schap .kaart { width: 78px; padding: 5px 4px 4px; }
+    #schap canvas { width: 68px; height: 37px; }
+    #schap .naam { font-size: 9px; }
+    #schap .prijs { font-size: 12px; }
     #opdracht { left: 70px; top: 34px; font-size: 12px; }
     #leven { left: 14px; bottom: 44px; width: 128px; height: 12px; }
     #geld { right: 20px; bottom: 232px; font-size: 15px; }
@@ -257,6 +277,7 @@
   <div id="ster" hidden></div>
   <div id="missie"></div>
   <div id="praat" hidden>E — praten</div>
+  <div id="schap" hidden></div>
   <div id="dialoog" hidden>
     <canvas id="dialoogKop" width="72" height="72" hidden></canvas>
     <div>

@@ -216,6 +216,96 @@
       "nr": "3",
       "ronde": 3,
       "vraag": "geen dakmodel: kopgevel van de rij, steen en dak"
+    },
+    {
+      "straat": "Jonkvrouw",
+      "nr": "45",
+      "ronde": 4,
+      "vraag": "nieuwbouw in de noordoosthoek, nu met de Molenkrite-kap: welke steen, dakpannen, kozijnen en voordeur staan er echt?"
+    },
+    {
+      "straat": "Age Piersstraat",
+      "nr": "33",
+      "ronde": 4,
+      "vraag": "goot 5,70 en nok 5,76 m — dat is dus plat. Klopt dat, of zit er een flauwe kap op?"
+    },
+    {
+      "straat": "De Dassenboarch",
+      "nr": "8",
+      "ronde": 4,
+      "vraag": "nu een bungalowtype: één laag met een kap? En wat voor steen en kozijnen?"
+    },
+    {
+      "straat": "Liaukemastraat",
+      "nr": "2-14",
+      "ronde": 4,
+      "vraag": "appartementen, goot 11,5 m: hoeveel lagen, galerij of portiek, balkons aan de straat of aan de achterkant?"
+    },
+    {
+      "straat": "Willem Santemastraat",
+      "nr": "30",
+      "ronde": 4,
+      "vraag": "nu getekend als flat met de Jasker-steen: klopt de steen, en hoeveel lagen zijn het?"
+    },
+    {
+      "straat": "Gajus Nautastraat",
+      "nr": "1",
+      "ronde": 4,
+      "vraag": "kop van de rij, ook als flat getekend: is het een flat of een rijtje eengezinswoningen?"
+    },
+    {
+      "straat": "Partuurstraat",
+      "nr": "98",
+      "ronde": 4,
+      "vraag": "rijtjeshuis met kap: steen, dakpannen, kozijnkleur, dakkapel of niet"
+    },
+    {
+      "straat": "Julianastraat",
+      "nr": "15",
+      "ronde": 4,
+      "vraag": "nok 3,40 m — dat is te laag voor een woning. Is dit een garagebox, een berging of iets anders?"
+    },
+    {
+      "straat": "Kaatsland",
+      "nr": "160",
+      "ronde": 4,
+      "vraag": "goot 6,0 en nok 9,2: twee lagen met een kap. Welke steen, en liggen er zonnepanelen?"
+    },
+    {
+      "straat": "Pripperstraat",
+      "nr": "58",
+      "ronde": 4,
+      "vraag": "steen en kozijnen, en of de voortuinen hier heggen of schuttingen hebben"
+    },
+    {
+      "straat": "Bockamastraat",
+      "nr": "48",
+      "ronde": 4,
+      "vraag": "twee-onder-een-kap of rijtje? En wat voor bergingen staan er aan de zijkant?"
+    },
+    {
+      "straat": "Wilgeroosje",
+      "nr": "50",
+      "ronde": 4,
+      "vraag": "de bloemenbuurt: steen, dak en hoe breed de voortuinen zijn"
+    },
+    {
+      "straat": "Apollovlinder",
+      "nr": "41",
+      "ronde": 4,
+      "vraag": "de vlinderbuurt, nok 9,7 m: hoeveel lagen, welk dak, welke steen?"
+    },
+    {
+      "straat": "Holtropweg",
+      "nr": "14",
+      "ronde": 4,
+      "vraag": "nu getekend als \"spil\" met een nok op 14,4 m: is dit werkelijk zo hoog, en wat voor pand is het?"
+    },
+    {
+      "straat": "Jutrijpstraat",
+      "nr": "20",
+      "ronde": 4,
+      "vraag": "steen, dakvorm en of er dakkapellen aan de straatkant zitten"
     }
   ],
   "plekken": [
@@ -363,6 +453,46 @@
       "z": -175,
       "ronde": 3,
       "vraag": "waar staan de rolcontainers (in de berm, op de stoep, aan de weg?), hoeveel onkruid staat er langs de band, en hoe vies zijn de plinten van de gevels?"
+    },
+    {
+      "naam": "Tankstation BP Slump Oil",
+      "soort": "tankstation",
+      "x": 720.95,
+      "z": 133.58,
+      "ronde": 4,
+      "vraag": "de luifel: kleur, hoogte, hoeveel pompen eronder, en hoe de shop en de wasstraat erbij staan"
+    },
+    {
+      "naam": "Tennispark Molenkrite",
+      "soort": "sport",
+      "x": 472.79,
+      "z": 165.37,
+      "ronde": 4,
+      "vraag": "kleur van de banen, hoogte en kleur van de hekken, vangnetten, en wat er langs de banen staat"
+    },
+    {
+      "naam": "Sportpark VV Sneek Wit Zwart",
+      "soort": "sport",
+      "x": 555.25,
+      "z": -63.69,
+      "ronde": 4,
+      "vraag": "lichtmasten, reclameborden langs het veld, dug-outs en de tribune: kleuren en maten"
+    },
+    {
+      "naam": "Volkstuinen achter de Wieken",
+      "soort": "tuin",
+      "x": -259.68,
+      "z": -113.02,
+      "ronde": 4,
+      "vraag": "de schuurtjes en kassen: kleur, maat, en hoe de paden en de scheidingen ertussen lopen"
+    },
+    {
+      "naam": "Houtzaagmolen De Rat",
+      "soort": "molen",
+      "x": -1127.03,
+      "z": 903.87,
+      "ronde": 4,
+      "vraag": "de wieken en de stelling: kleur van het hekwerk, de riet- of houtbekleding van de romp, en de loodsen ernaast"
     }
   ]
 }

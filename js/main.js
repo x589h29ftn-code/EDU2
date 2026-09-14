@@ -422,7 +422,8 @@ const derde = initDerdePersoon({ scene, camera, player });
 
 // Politie en het gezocht-systeem: schieten en aanrijden leveren verdenking op,
 // en boven een drempel komen er eenheden op je af (zie js/politie.js).
-const politie = initPolitie({ scene, player, npcs, vehicles, hud });
+// `sfeer` gaat mee voor de helikopter: die doet zijn zoeklicht alleen 's nachts aan.
+const politie = initPolitie({ scene, player, npcs, vehicles, hud, sfeer: dagKlok });
 
 /*
  Wat er op straat blijft liggen (js/buit.js): geld uit de zak van een
@@ -1030,6 +1031,7 @@ function loop() {
     if (ergensBinnen(player.pos.x, player.pos.z)) {
       geluid.sirene(null);
       geluid.gier(0);
+      geluid.heli(null);      // en de heli hoor je binnen ook niet doorklapperen
     } else {
       vehicles.werkKnallenBij(dt, player.pos.x, player.pos.z);   // vuurballen en wrakken
       const schade = politie.update(dt);

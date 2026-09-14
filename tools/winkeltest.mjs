@@ -1,10 +1,11 @@
 /*
  Toetst de boerderijwinkel bij Tinga State (js/boerderij.js).
 
- 1. Je begint met € 50 op zak.
+ 1. Je begint met € 1000 op zak.
  2. Bij de schuurdeur zet E je naar binnen, en binnen weer naar buiten.
  3. De deel heeft de maten van het pand uit de kaart en je loopt er niet doorheen.
- 4. Aan de toonbank koop je voor € 50 honderd kogels; het geld gaat eraf.
+ 4. Aan de toonbank staat het schap met plaatjes, nummers en prijzen; voor € 50 koop je
+    honderd kogels en het geld gaat eraf.
  5. Met een lege portemonnee koop je niets.
  6. Het geld staat in de HUD en gaat mee in de opslag.
 
@@ -44,8 +45,8 @@ const start = await page.evaluate(() => {
   const g = window.__game;
   return { geld: g.verhaal.geld, hud: document.getElementById('geld').textContent, reserve: g.player.reserve };
 });
-ok(start.geld === 50, 'je begint met vijftig euro', `€ ${start.geld}`);
-ok(/50/.test(start.hud), 'en dat staat rechtsonder in beeld', start.hud);
+ok(start.geld === 1000, 'je begint met duizend euro', `€ ${start.geld}`);
+ok(/1\.?000/.test(start.hud), 'en dat staat rechtsonder in beeld', start.hud);
 
 // ---------- 2. naar binnen en naar buiten ----------
 kop('de schuurdeur van Tinga State');
@@ -120,7 +121,7 @@ const koop = await page.evaluate(() => {
   const b = g.boerderij;
   window.__zet(b.plekken.toonbank);
   b.update(0.1, false);
-  const hint = (() => { const e = document.getElementById('praat'); return e.hidden ? '' : e.textContent; })();
+  const hint = (() => { const e = document.getElementById('schap'); return e.hidden ? '' : e.textContent; })();
   const voorGeld = g.verhaal.geld, voorKogels = g.player.reserve;
   const gebruikt = b.toets();
   return {
@@ -130,7 +131,8 @@ const koop = await page.evaluate(() => {
     melding: document.getElementById('melding') ? document.getElementById('melding').textContent : '',
   };
 });
-ok(koop.hint.includes('kogels') && koop.hint.includes('50'), 'aan de toonbank vertelt de hint wat het kost', koop.hint);
+ok(koop.hint.includes('kogels') && koop.hint.includes('€ 50'),
+  'aan de toonbank staat het schap met de prijzen in beeld', koop.hint);
 ok(koop.gebruikt, 'met E reken je af');
 ok(koop.naKogels === koop.voorKogels + 100, 'je krijgt honderd kogels',
   `${koop.voorKogels} → ${koop.naKogels}`);
@@ -153,7 +155,7 @@ const schap = await page.evaluate(async () => {
   // 1. een verbandtrommel als je gewond bent
   g.player.health = 40; g.hud.zetLeven(40);
   b.update(0.1, false);
-  const hintGewond = (() => { const e = document.getElementById('praat'); return e.hidden ? '' : e.textContent; })();
+  const hintGewond = (() => { const e = document.getElementById('schap'); return e.hidden ? '' : e.textContent; })();
   const nrEhbo = b.schap.findIndex(a => a.sleutel === 'ehbo') + 1;
   const geldVoor = g.verhaal.geld;
   const gebruikt = b.toets(String(nrEhbo));
@@ -167,7 +169,7 @@ const schap = await page.evaluate(async () => {
   const naVol = { leven: g.player.health, betaald: geldVol - g.verhaal.geld };
   // het verband staat er dan ook niet meer bij
   b.update(0.1, false);
-  const hintFit = (() => { const e = document.getElementById('praat'); return e.hidden ? '' : e.textContent; })();
+  const hintFit = (() => { const e = document.getElementById('schap'); return e.hidden ? '' : e.textContent; })();
 
   // 2. het machinegeweer
   const mp = b.koopWapen('mitrailleur');
@@ -197,8 +199,8 @@ ok(schap.beginSchap[0] === 'munitie' && schap.beginSchap.includes('mitrailleur')
 ok(schap.beginBezit.includes('pistool'),
   'het pistool dat je al hebt staat er als "in bezit" bij, niet als koopje',
   schap.beginBezit.join(', '));
-ok(/1 —/.test(schap.hintGewond) && /verband/i.test(schap.hintGewond),
-  'gewond staat de verbandtrommel in de lijst', schap.hintGewond);
+ok(/verband/i.test(schap.hintGewond) && schap.hintGewond.includes('€ 25'),
+  'gewond staat de verbandtrommel met nummer en prijs in het schap', schap.hintGewond);
 ok(schap.gebruikt && schap.naEen.leven === 90 && schap.naEen.betaald === schap.prijzen.ehbo,
   `een verbandtrommel geeft ${schap.punten} levenspunten voor € ${schap.prijzen.ehbo}`,
   `40 → ${schap.naEen.leven} leven, € ${schap.naEen.betaald} betaald`);
@@ -218,8 +220,11 @@ ok(schap.prijsPistool === schap.prijzen.pistool && schap.naPistool.wapens.includ
 const arm = await page.evaluate(() => {
   const g = window.__game;
   const b = g.boerderij;
+  // de portemonnee helemaal leeg: met € 1000 startgeld raak je er anders niet
+  // doorheen, en het gaat er hier juist om wat er zonder geld gebeurt
+  g.verhaal.betaal(g.verhaal.geld);
   const voor = g.player.reserve;
-  const uit = b.koop();                        // portemonnee is nu leeg
+  const uit = b.koop();
   return { uit, voor, na: g.player.reserve, geld: g.verhaal.geld };
 });
 ok(arm.uit === 'arm' && arm.na === arm.voor, 'met een lege portemonnee koop je niets',

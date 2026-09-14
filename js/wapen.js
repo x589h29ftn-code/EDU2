@@ -18,6 +18,11 @@
  erin, slede overhalen, terug in de aanslag); `update` krijgt de voortgang mee en
  zet elk beeld de onderdelen op hun plek. De geluiden hangen aan diezelfde
  voortgang, zodat de klik altijd valt op het moment dat je hem ziet gebeuren.
+
+ Datzelfde `update` doet ook de twee houdingen die er later bij kwamen: over het
+ vizier kijken (`mik`, zie MIK hieronder — de korrel en de keep komen dan
+ werkelijk op het midden van het scherm te liggen) en wegbergen bij het wisselen
+ van wapen (`holster`).
 */
 import * as THREE from 'three';
 
@@ -243,6 +248,38 @@ function maakWapen(geluid, soort = 'pistool') {
   // het machinepistool is een halve meter lang; dat hangt verder van je af en
   // wat lager, anders vult de loop het halve scherm
   const RUST = SMG ? { x: 0.16, y: -0.155, z: -0.46 } : { x: 0.15, y: -0.13, z: -0.42 };
+
+  /*
+   Over het vizier kijken (rechtermuisknop).
+
+   Dit is geen zoom-effect maar echt richten: de korrel en de keep hierboven
+   staan allebei op dezelfde hoogte boven de kast en allebei op x = 0. Zet je het
+   wapen dus op x = 0 en y = −die hoogte, recht voor de camera zonder enige
+   draaiing, dan loopt de lijn korrel–keep precies door het midden van het scherm
+   — je kijkt er werkelijk overheen, en de korrel valt in de keep zoals het hoort.
+
+   Die hoogte is niet het hart van de korrel maar de bovenkant ervan (4,8 cm bij
+   het pistool, 6,2 bij het machinepistool). Dat scheelt een halve centimeter en
+   het is precies het verschil tussen kijken en niets zien: mik je op het hart,
+   dan ligt de bovenkant van de slede exact op ooghoogte, kijk je er van opzij
+   tegenaan en is het één zwart blok. Een halve centimeter hoger kijk je over de
+   slede heen naar achteren weg lopend, met de korrel als silhouetje aan het
+   eind — precies wat je over een echt vizier ziet.
+
+   Verder komt het wapen een paar centimeter naar je toe: richten doe je met het
+   wapen dichter bij je oog, niet op gestrekte armen.
+  */
+  const VIZIER_Y = SMG ? 0.062 : 0.048;
+  /*
+   En hoe ver van je oog. Dat is voor de twee wapens precies andersom, en dat is
+   geen detail maar wat ze van elkaar onderscheidt: een pistool richt je met
+   gestrékte armen, dus vérder weg dan uit de heup — knijp je het tegen je oog,
+   dan is de achterkant van de slede een zwart blok en zie je niets meer. Een
+   machinepistool trek je juist naar je schouder toe — maar het heeft een
+   ingeklapte schouderstut die eenentwintig centimeter achter de kast uitsteekt,
+   dus ook die schuift van je af: anders staat die plaat in je oog.
+  */
+  const MIK = { x: 0, y: -VIZIER_Y, z: RUST.z - (SMG ? 0.10 : 0.12) };
   const HERLAAD = SMG ? 2.05 : HERLAADTIJD;       // een lang magazijn kost meer tijd
   const SLAG = SMG ? 0.016 : 0.026;               // hoever de grendel/slede terugloopt
   groep.position.set(RUST.x, RUST.y, RUST.z);
@@ -259,9 +296,11 @@ function maakWapen(geluid, soort = 'pistool') {
 
   /**
    * Eén beeld. `herlaad` is de resterende herlaadtijd in seconden (0 = niet
-   * bezig), `bob` de loopbeweging van de speler.
+   * bezig), `bob` de loopbeweging van de speler, `mik` hoever je over het
+   * vizier kijkt (0 = uit de heup, 1 = aangeslagen) en `holster` hoever het
+   * wapen weggeborgen is (0 = in de aanslag, 1 = helemaal uit beeld).
    */
-  function update(dt, { herlaad = 0, bob = 0 } = {}) {
+  function update(dt, { herlaad = 0, bob = 0, mik = 0, holster = 0 } = {}) {
     terugslag = Math.max(0, terugslag - dt * 7);
     flitsT -= dt;
     const aan = flitsT > 0;
@@ -305,16 +344,55 @@ function maakWapen(geluid, soort = 'pistool') {
       // slede naar achteren en weer naar voren
       const sl = deel(t, STAP.slede);
       slede.position.z = Math.sin(sl * Math.PI) * (SMG ? 0.020 : 0.030);
+      wegbergen(holster);
       return;
     }
     gedaan = -1;
     magazijn.visible = true; magazijn.position.set(0, 0, 0);
     nieuwMag.visible = false;
     slede.position.z = terugslag * SLAG;
-    groep.rotation.set(terugslag * 0.22, 0.10, 0.06);
-    groep.position.set(RUST.x, RUST.y + Math.sin(bob) * 0.006, RUST.z + terugslag * 0.045);
+
+    /*
+     Van de heup naar het vizier en terug. Alles wat het wapen scheef en opzij
+     houdt (de kanteling van 0,10 en 0,06 rad, de x-verschuiving, het deinen van
+     het lopen) loopt met `m` terug naar nul: aangeslagen staat het wapen recht
+     voor je en staat het stil, want anders kijk je er niet overheen. De
+     terugslag blijft wel te zien, maar korter — je hebt hem beter in bedwang.
+    */
+    const m = Math.max(0, Math.min(1, mik));
+    const deinen = Math.sin(bob) * 0.006 * (1 - m);
+    groep.rotation.set(terugslag * 0.22 * (1 - 0.45 * m), 0.10 * (1 - m), 0.06 * (1 - m));
+    groep.position.set(
+      RUST.x + (MIK.x - RUST.x) * m,
+      RUST.y + (MIK.y - RUST.y) * m + deinen,
+      RUST.z + (MIK.z - RUST.z) * m + terugslag * 0.045 * (1 - 0.5 * m),
+    );
+    wegbergen(holster);
+  }
+
+  /*
+   Het wapen wegbergen. Bij het wisselen zakt het eerst onder de onderrand van
+   het beeld weg met de loop naar beneden en de kolf naar je toe — dat is de
+   beweging van een wapen dat in je broeksband of onder je jas verdwijnt —
+   en komt het andere er op dezelfde manier weer uit. Het staat apart omdat het
+   bovenop alles komt: je kunt ook midden in het herladen wisselen.
+  */
+  function wegbergen(h) {
+    if (!(h > 0)) return;
+    groep.position.y -= 0.42 * h;
+    groep.position.z += 0.16 * h;
+    groep.position.x += 0.05 * h;
+    groep.rotation.x -= 0.95 * h;      // loop omlaag
+    groep.rotation.z += 0.42 * h;      // en de kolf naar binnen gedraaid
   }
 
   // de losse onderdelen erbij, zodat tools/wapentest.mjs de beweging kan meten
-  return { groep, vuur, update, soort, herlaadtijd: HERLAAD, delen: { slede, magazijn, nieuwMag, flits, hand, arm }, get terugslag() { return terugslag; } };
+  return {
+    groep, vuur, update, soort, herlaadtijd: HERLAAD,
+    delen: { slede, magazijn, nieuwMag, flits, hand, arm },
+    // waar het wapen hangt in de heup en aan het oog, zodat tools/wapentest.mjs
+    // kan narekenen dat de vizierlijn door het midden van het scherm loopt
+    houding: { rust: RUST, mik: MIK, vizierY: VIZIER_Y },
+    get terugslag() { return terugslag; },
+  };
 }

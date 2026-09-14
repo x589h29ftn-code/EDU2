@@ -121,13 +121,31 @@ function klikoGeo() {
 
 const KLIKO_KLEUR = [0x4a4f55, 0x3d5a34, 0x2f4a70, 0x4a4f55, 0x6b6f74];
 
+/*
+ Waar géén onkruid hoort te staan. De as van een straat weet alleen hoe breed
+ het weglichaam ongeveer is; het echte asfalt ligt in de kaart als een vlak en
+ is op een bocht, een inham of een verbreding bij een kruising meters breder dan
+ dat. Zette je de pollen puur op afstand uit het hart, dan stonden ze op de
+ rijbaan te groeien — precies wat er niet hoort. Deze lijst zijn de vlakken waar
+ gereden en geparkeerd wordt: daar komt de veegwagen en daar staat niets.
+
+ Verharding waar je alleen loopt (voetpad, erf, inrit, verharding) staat er niet
+ tussen: dáár groeit het juist tussen de tegels door, en dat is de bedoeling.
+*/
+const GEEN_ONKRUID = new Set([
+  'rijbaan', 'autoweg', 'parkeervlak', 'asfaltvlak', 'fietspad', 'brug', 'duiker', 'overbrugging', 'water', 'steiger',
+]);
+const STAP_UIT = 0.4;      // zoveel schuift een pol per poging naar de berm
+const STAPPEN = 6;         // en zoveel keer proberen we het
+
 /**
  * De rommel neerzetten. `W` is js/world.js (voor `lodAan`), `wegassen` de assen
- * uit de kaart en `maaiveld(x, z)` de grondhoogte.
+ * uit de kaart, `maaiveld(x, z)` de grondhoogte en `klasseOp(x, z)` de klasse
+ * van het kaartvlak onder een punt (`rijbaan`, `gras`, … of null).
  *
  * Levert { onkruid, vuil, kliko } met de aantallen.
  */
-export function bouwRommel(scene, W, wegassen, maaiveld = () => 0) {
+export function bouwRommel(scene, W, wegassen, maaiveld = () => 0, klasseOp = null) {
   if (!wegassen || !wegassen.length) return { onkruid: 0, vuil: 0, kliko: 0 };
 
   const matOnkruid = new THREE.MeshStandardMaterial({
@@ -139,6 +157,11 @@ export function bouwRommel(scene, W, wegassen, maaiveld = () => 0) {
   const matKliko = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75 });
 
   // per tegel verzamelen, zodat wat ver weg ligt buiten beeld kan vallen
+  // ligt hier asfalt? Zonder kaartvlakken (de oude wereld) weten we het niet en
+  // laten we de afstand uit het hart het werk doen, zoals het was.
+  const opDeWeg = klasseOp ? (x, z) => GEEN_ONKRUID.has(klasseOp(x, z) || '') : () => false;
+  let geweerd = 0;
+
   const perTegel = new Map();
   const tegelVan = (x, z) => `${Math.floor(x / TEGEL)}:${Math.floor(z / TEGEL)}`;
   const bak = (x, z) => {
@@ -168,8 +191,16 @@ export function bouwRommel(scene, W, wegassen, maaiveld = () => 0) {
           const px = a[0] + dx * f, pz = a[1] + dz * f;
           const d = dobbel(px, pz, 3 + kant);
           if (d > 0.55) continue;              // niet overal, dat wordt een berm
-          const uit = rand + 0.05 + d * 0.35;
-          const x = px + nx * kant * uit, z = pz + nz * kant * uit;
+          let uit = rand + 0.05 + d * 0.35;
+          let x = px + nx * kant * uit, z = pz + nz * kant * uit;
+          // staat hij op het asfalt, dan schuift hij naar buiten tot hij van de
+          // rijbaan af is; lukt dat binnen een paar meter niet, dan vervalt hij
+          let poging = 0;
+          while (opDeWeg(x, z) && poging < STAPPEN) {
+            uit += STAP_UIT; poging++;
+            x = px + nx * kant * uit; z = pz + nz * kant * uit;
+          }
+          if (poging && opDeWeg(x, z)) { geweerd++; continue; }
           bak(x, z).onkruid.push({ x, z, s: 0.18 + d * 0.38, yaw: d * 6.283 });
         }
       }
@@ -269,5 +300,5 @@ export function bouwRommel(scene, W, wegassen, maaiveld = () => 0) {
       for (const o of lijst.kliko) W.addCollider(o.x, o.z, 0.32, 0.30, -o.yaw, 1.1);
     }
   }
-  return { onkruid: nOnkruid, vuil: nVuil, kliko: nKliko };
+  return { onkruid: nOnkruid, vuil: nVuil, kliko: nKliko, geweerd };
 }

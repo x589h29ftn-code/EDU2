@@ -83,7 +83,7 @@ const DIEF_STOEP = 9;          // de lengte van zijn stukje trottoir
 const MARKER_AFSTAND = 8;      // zo dicht bij de marker begint een gesprek
 const BUIT = 1000;             // wat de dief gejat heeft
 const BELONING = 500;          // wat Johan je ervoor geeft
-const START_GELD = 50;         // waar je het spel mee begint — genoeg voor één doos munitie
+const START_GELD = 1000;       // waar je het spel mee begint — ruim, zodat de testfase het schap kan proberen
 
 const PRAAT_AFSTAND = 5.5;
 const ZWAAI_AFSTAND = 26;
@@ -327,7 +327,7 @@ export function initVerhaal(ctx) {
   let naMissieT = 0;             // pauze tussen twee missies
   let misluktT = 0;              // aftellen na een mislukte missie
   let envelop = null;            // {obj, t} – de envelop die de dief weggooit
-  let geld = START_GELD;         // portemonnee; je begint met een doos munitie op zak
+  let geld = START_GELD;         // portemonnee; ruim gevuld zolang het spel in de testfase zit
   let buit = 0;                  // geld dat nog afgeleverd moet worden
   let johanNaarB = true, johanWacht = 0;
   const hinder = { alive: true, opWeg: false, x: thuis.x, z: thuis.z };

@@ -26,6 +26,7 @@ import { KAART } from './kaartwereld.js';
 import { addCollider, resolveCollisions } from './world.js';
 import { plattegrond, banden } from './interieur.js';
 import { Persoon } from './persoon.js';
+import { schapIcoon } from './textures.js';
 
 const PAND = { straat: 'Molenkrite', nr: '115', type: 'tinga_state' };
 
@@ -571,9 +572,70 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
    toonbank, zodat je ziet dát de verkoper ze heeft — en de dag dat je er eentje
    kwijtraakt, staat hij vanzelf weer op de lijst.
   */
-  function inBezit() {
-    return SCHAP.filter(a => !a.beschikbaar() && (a.sleutel === PISTOOL.soort || a.sleutel === MITRAILLEUR.soort))
-      .map(a => a.naam);
+  function bezitLijst() {
+    return SCHAP.filter(a => !a.beschikbaar() && (a.sleutel === PISTOOL.soort || a.sleutel === MITRAILLEUR.soort));
+  }
+  function inBezit() { return bezitLijst().map(a => a.naam); }
+
+  /*
+   Het schap in beeld.
+
+   Het stond er als één regel tekst, en dat leest als een menu in een terminal:
+   je moest de namen lezen om te weten wat je kocht. Nu is het een rij kaartjes
+   met een getekend plaatje van het artikel (js/textures.js), het nummer waarmee
+   je het koopt in een geel blokje, en de prijs eronder — precies de drie dingen
+   die je aan een toonbank nodig hebt. Wat je al hebt staat er grijs achteraan,
+   zonder nummer, want daar valt niets te drukken.
+
+   De kaartjes worden alleen opnieuw gemaakt als de lijst verandert (je koopt
+   iets, of je loopt gewond naar binnen): een handtekening van namen en prijzen
+   zegt of dat zo is. Zestig keer per seconde de HUD herbouwen zou zonde zijn
+   van het werk.
+  */
+  const schapEl = document.getElementById('schap');
+  let schapHandtekening = null;
+
+  function toonSchap() {
+    if (!schapEl) return;
+    const kopen = aanbod(), heeft = bezitLijst();
+    const handtekening = kopen.map((a, i) => `${i + 1}:${a.naam}:${a.prijs}`).join('|')
+      + '#' + heeft.map(a => a.naam).join('|');
+    if (handtekening !== schapHandtekening) {
+      schapHandtekening = handtekening;
+      schapEl.textContent = '';
+      const kaartje = (a, nr) => {
+        const el = document.createElement('div');
+        el.className = nr ? 'kaart' : 'kaart bezit';
+        const beeld = schapIcoon(a.sleutel);
+        if (beeld) {
+          // een eigen canvas per kaartje: het getekende plaatje wordt gedeeld,
+          // maar hetzelfde canvas kan niet op twee plekken in beeld staan
+          const c = document.createElement('canvas');
+          c.width = beeld.width; c.height = beeld.height;
+          c.getContext('2d').drawImage(beeld, 0, 0);
+          el.appendChild(c);
+        }
+        const kop = document.createElement('div');
+        kop.className = 'nr';
+        kop.textContent = nr ? String(nr) : '✓';
+        el.appendChild(kop);
+        const naam = document.createElement('div');
+        naam.className = 'naam'; naam.textContent = a.naam;
+        el.appendChild(naam);
+        const prijs = document.createElement('div');
+        prijs.className = nr ? 'prijs' : 'bezitlabel';
+        prijs.textContent = nr ? `€ ${a.prijs}` : 'in bezit';
+        el.appendChild(prijs);
+        return el;
+      };
+      kopen.forEach((a, i) => schapEl.appendChild(kaartje(a, i + 1)));
+      heeft.forEach(a => schapEl.appendChild(kaartje(a, 0)));
+    }
+    schapEl.hidden = false;
+  }
+
+  function verbergSchap() {
+    if (schapEl && !schapEl.hidden) schapEl.hidden = true;
   }
 
   /*
@@ -631,19 +693,20 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     // de verkoper kijkt op zodra je binnen staat
     if (bezig && binnen(player.pos.x, player.pos.z)) verkoper.kijkNaar(player.pos.x, player.pos.z, dt, 2.2);
     verkoper.update(dt, { loopt: false });
-    if (bezet) { hintAan = false; return; }
+    if (bezet) { hintAan = false; verbergSchap(); return; }
     let tekst = null;
+    let bijSchap = false;
     if (bezig && !player.inCar) {
       if (bijToonbank(player.pos.x, player.pos.z)) {
-        // het schap in beeld, genummerd zoals je het koopt
-        tekst = aanbod().map((a, i) => `${i + 1} — ${a.naam} (€ ${a.prijs})`).join('   ·   ');
-        const heb = inBezit();
-        if (heb.length) tekst += `   ·   ${heb.join(' en ')}: in bezit`;
+        // het schap met de plaatjes in beeld; de tekstbalk blijft voor de deur
+        bijSchap = true;
+        toonSchap();
       } else {
         const w = bijDeur(player.pos.x, player.pos.z);
         if (w) tekst = w === 'in' ? 'E — de boerderij in' : 'E — naar buiten';
       }
     }
+    if (!bijSchap) verbergSchap();
     if (tekst) {
       praatEl.textContent = tekst;
       praatEl.hidden = false;

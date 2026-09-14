@@ -653,8 +653,10 @@ export function* bouwKaartWereldStap(scene, W) {
      Onkruid, zwerfvuil en rolcontainers langs de straten (js/rommel.js). Dit is
      wat een wijk waar dertig jaar in gewoond is van een maquette onderscheidt.
     */
-    const rommel = bouwRommel(scene, W, K.wegassen, (x, z) => grondHoogte(x, z, -Infinity));
-    console.log(`kaart: ${rommel.onkruid} pollen onkruid, ${rommel.vuil} stuks zwerfvuil, ${rommel.kliko} rolcontainers`);
+    const rommel = bouwRommel(scene, W, K.wegassen, (x, z) => grondHoogte(x, z, -Infinity),
+      (x, z) => { const v = vlakOp(x, z); return v ? v.k : null; });
+    console.log(`kaart: ${rommel.onkruid} pollen onkruid, ${rommel.vuil} stuks zwerfvuil, ${rommel.kliko} rolcontainers`
+      + `${rommel.geweerd ? ` (${rommel.geweerd} pollen geweerd: die stonden op de rijbaan)` : ''}`);
 
     bouwLantaarns(scene, W);
     // de belijning, doelen, reclameborden en hekken op de sportvelden aan de

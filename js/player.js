@@ -30,6 +30,44 @@ export const WAPENS = {
   mitrailleur: { naam: 'Machinegeweer', mag: 30, auto: true, tempo: 0.085, spreiding: 0.022, kick: 0.62 },
 };
 
+/*
+ Over het vizier richten (rechtermuisknop ingedrukt houden).
+
+ Uit de heup schiet je snel en slordig; aangeslagen schiet je nauwkeurig maar
+ sta je stil en zie je minder om je heen. Dat is de hele afweging, en die staat
+ hier in vier getallen:
+
+ - MIK_TIJD   hoe lang het duurt om aan te slaan en weer te laten zakken;
+ - MIK_KICK   wat er van de terugslag overblijft — het wapen ligt tegen je
+              schouder en je hebt hem beter in bedwang, dus ruim de helft eraf;
+ - MIK_SPREID wat er van de spreiding overblijft: over het vizier gaat de kogel
+              vrijwel waar je kijkt;
+ - MIK_LOOP   hoeveel langzamer je loopt terwijl je richt.
+
+ De beeldhoek loopt van 72 naar 54 graden: dat is geen kijker maar wel genoeg om
+ te zien dat je scherper kijkt, en het maakt een doel op honderd meter een stuk
+ groter dan een beeldpunt.
+*/
+const MIK_TIJD = 0.16;
+const MIK_KICK = 0.42;
+const MIK_SPREID = 0.30;
+const MIK_LOOP = 0.55;
+const MIK_FOV = 0.75;       // beeldhoek maal dit getal
+
+/*
+ Wisselen van wapen duurt tijd, want je bergt er eerst een op.
+
+ Het was een omschakeling in één beeld: scrollwiel, ander model, klaar. Dat is
+ geen wisselen maar toveren. Nu zakt het wapen dat je vasthebt eerst weg onder
+ de onderrand (WEGBERGEN), wisselt het model op het moment dat je niets meer
+ ziet, en komt het andere er weer uit (TREKKEN). Ondertussen schiet je niet en
+ herlaad je niet — dat is de prijs van het wisselen, en precies wat een wissel
+ tot een keuze maakt.
+*/
+const WEGBERGEN = 0.24;
+const TREKKEN = 0.28;
+const soepel = (u) => u * u * (3 - 2 * u);
+
 export class Player {
   get locked() { return this.active; }
   set locked(v) { this.active = v; }
@@ -69,6 +107,19 @@ export class Player {
     this.ammo = 12; this.reserve = 60; this.reloading = 0;
     this.vuurAan = false;       // trekker ingedrukt (voor het automatische vuur)
     this.vuurKlok = 0;          // tijd tot het volgende schot mag
+    /*
+     Richten en wisselen. `richtAan` is wat je wilt (rechtermuisknop), `mik` waar
+     de beweging nu staat — net als bij het bukken loopt dat in een fractie van
+     een seconde, want in één beeld aanslaan leest als een storing. `wisselT`
+     telt de wisselbeweging af, `wisselNaar` is het wapen dat na het wegbergen
+     in je hand komt en `holster` hoever het huidige wapen weg is.
+    */
+    this.richtAan = false;
+    this.mik = 0;
+    this.wisselT = 0;
+    this.wisselNaar = null;
+    this.holster = 0;
+    this.fovBasis = camera.fov;
     // wordt door main.js gevuld: duwt je te voet uit de auto's (js/vehicles.js)
     this.blokkade = null;
     // zit je ergens op? dan staat de ooghoogte lager en loop je niet
@@ -132,11 +183,47 @@ export class Player {
    als je het weer pakt. Levert de nieuwe soort terug, of null.
   */
   kiesWapen(stap) {
-    if (this.wapens.length < 2 || this.reloading > 0) return null;
-    this.magazijnen[this.wapenSoort] = this.ammo;
+    if (this.wapens.length < 2 || this.reloading > 0 || this.wisselT > 0) return null;
     const n = this.wapens.length;
-    this.wapenNr = ((this.wapenNr + stap) % n + n) % n;
-    return this.zetWapen(this.wapenSoort);
+    const soort = this.wapens[((this.wapenNr + stap) % n + n) % n];
+    if (soort === this.wapenSoort) return null;
+    return this.startWissel(soort);
+  }
+
+  /*
+   De wisselbeweging op gang brengen: eerst wegbergen, dan het andere trekken.
+   Het wapen in je hand blijft tot halverwege wat het is — `wapenSoort`,
+   `wapenInfo` en het magazijn kloppen dus steeds met wat je ziet — maar je
+   schiet en herlaadt er niet mee, want je bent aan het opbergen. Levert de
+   soort terug die eraan komt, zodat js/main.js het icoon meteen kan tonen.
+  */
+  startWissel(soort) {
+    if (!this.modellen[soort] || !this.wapens.includes(soort)) return null;
+    this.wisselNaar = soort;
+    this.wisselT = WEGBERGEN + TREKKEN;
+    this.vuurAan = false;
+    this.richtAan = false;      // richten en wisselen gaan niet samen
+    return soort;
+  }
+
+  /*
+   De wisselbeweging een beeld verder. Halverwege — als het oude wapen onder de
+   onderrand zit — wisselt het model; daarna komt het nieuwe weer omhoog.
+  */
+  wisselStap(dt) {
+    if (this.wisselT <= 0) { this.holster = 0; return; }
+    this.wisselT = Math.max(0, this.wisselT - dt);
+    if (this.wisselNaar && this.wisselT <= TREKKEN) {
+      this.magazijnen[this.wapenSoort] = this.ammo;
+      const n = this.wapens.indexOf(this.wisselNaar);
+      if (n >= 0) this.wapenNr = n;
+      this.zetWapen(this.wisselNaar);
+      this.wisselNaar = null;
+      geluid.wapenWissel();
+    }
+    this.holster = this.wisselNaar
+      ? soepel(Math.min(1, (WEGBERGEN + TREKKEN - this.wisselT) / WEGBERGEN))
+      : soepel(Math.min(1, this.wisselT / TREKKEN));
   }
 
   // Het wapen van een soort in de hand nemen (ook gebruikt door het laden van
@@ -164,6 +251,11 @@ export class Player {
     const vul = Math.min(WAPENS[soort].mag - (this.magazijnen[soort] || 0), this.reserve);
     if (vul > 0) { this.magazijnen[soort] = (this.magazijnen[soort] || 0) + vul; this.reserve -= vul; }
     this.zetWapen(soort);
+    // je krijgt hem meteen in handen — er valt niets op te bergen, dus alleen
+    // de tweede helft van de wisselbeweging: het wapen komt omhoog in beeld
+    this.wisselNaar = null;
+    this.wisselT = TREKKEN;
+    this.holster = 1;
     return true;
   }
 
@@ -186,6 +278,21 @@ export class Player {
     return this.gebukt;
   }
 
+  /*
+   Over het vizier kijken aan- of uitzetten. Achter het stuur hang je uit het
+   raam en heb je één hand aan het stuur; met een weggestopt wapen, midden in
+   het herladen of midden in een wissel valt er niets te richten.
+  */
+  richten(aan = !this.richtAan) {
+    const kan = aan && !this.inCar && !this.wapenUit && this.reloading <= 0 && this.wisselT <= 0;
+    this.richtAan = !!kan;
+    return this.richtAan;
+  }
+
+  // Hoe nauwkeurig het wapen in je hand op dit moment is: over het vizier gaat
+  // de kogel vrijwel waar je kijkt en houd je de terugslag beter in bedwang.
+  get mikFactor() { return { kick: 1 - (1 - MIK_KICK) * this.mik, spreiding: 1 - (1 - MIK_SPREID) * this.mik }; }
+
   bindInput() {
     window.addEventListener('keydown', e => {
       this.keys[e.code] = true;
@@ -204,16 +311,29 @@ export class Player {
     document.addEventListener('mousemove', e => {
       if (!this.active) return;
       if (!this.pointerLocked && !this.dragging) return;
-      this.lookBy(e.movementX, e.movementY, this.pointerLocked ? 0.0022 : 0.0032);
+      // aangeslagen kijk je rustiger rond: de muis wordt trager naarmate je
+      // verder over het vizier kijkt, precies zoals de beeldhoek smaller wordt
+      const gevoel = (this.pointerLocked ? 0.0022 : 0.0032) * (1 - 0.42 * this.mik);
+      this.lookBy(e.movementX, e.movementY, gevoel);
       if (this.dragging) this.dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
     });
+    /*
+     Rechtermuisknop: over het vizier kijken zolang je hem ingedrukt houdt. Het
+     menu dat de browser daar normaal bij opent gaat uit zolang het spel loopt —
+     anders staat hij midden in beeld op het moment dat je richt.
+    */
+    document.addEventListener('contextmenu', e => { if (this.active) e.preventDefault(); });
     document.addEventListener('mousedown', e => {
-      if (!this.active || e.button !== 0) return;
+      if (!this.active) return;
+      if (e.button === 2) { this.richten(true); e.preventDefault(); return; }
+      if (e.button !== 0) return;
       if (this.pointerLocked) { this.vuurAan = true; this.shoot(); return; }
       this.dragging = true; this.dragDist = 0;
     });
     document.addEventListener('mouseup', e => {
-      if (!this.active || e.button !== 0) return;
+      if (!this.active) return;
+      if (e.button === 2) { this.richten(false); return; }
+      if (e.button !== 0) return;
       this.vuurAan = false;
       if (this.pointerLocked) return;
       // een korte klik zonder slepen is een schot
@@ -288,7 +408,8 @@ export class Player {
   }
 
   reload() {
-    if (this.reloading > 0 || this.ammo === this.wapenInfo.mag || this.reserve <= 0) return;
+    if (this.reloading > 0 || this.wisselT > 0) return;
+    if (this.ammo === this.wapenInfo.mag || this.reserve <= 0) return;
     // de klikken horen bij de beweging en komen uit js/wapen.js
     this.reloading = this.wapen.herlaadtijd || HERLAADTIJD;
   }
@@ -304,7 +425,7 @@ export class Player {
    js/main.js), dus dat verschil is precies je kijkrichting in de auto.
   */
   magSchieten() {
-    if (this.reloading > 0 || this.wapenUit) return false;
+    if (this.reloading > 0 || this.wapenUit || this.wisselT > 0) return false;
     if (!this.inCar) return true;
     let d = this.yaw - this.inCar.yaw;
     while (d > Math.PI) d -= Math.PI * 2;
@@ -317,22 +438,26 @@ export class Player {
     if (this.vuurKlok > 0) return;
     if (this.ammo <= 0) { geluid.leegKlik(); this.reload(); return; }
     const W = this.wapenInfo;
+    // over het vizier ligt het wapen vaster: minder terugslag en minder
+    // spreiding, en dát is waarom je zou richten
+    const mikF = this.mikFactor;
     this.ammo--;
     this.vuurKlok = W.tempo;
     this.recoil = 1; this.flashT = 0.06;
     // beeld omhoog en een willekeurig tikje opzij
-    this.kickPitch += (0.026 + Math.random() * 0.010) * W.kick;
-    this.kickYaw += (Math.random() - 0.5) * 0.014 * W.kick;
+    this.kickPitch += (0.026 + Math.random() * 0.010) * W.kick * mikF.kick;
+    this.kickYaw += (Math.random() - 0.5) * 0.014 * W.kick * mikF.kick;
     if (this.wapen) this.wapen.vuur();
     geluid.schot();
     const dir = new THREE.Vector3(); this.camera.getWorldDirection(dir);
     // het machinegeweer schiet slordiger: de kogel gaat een fractie naast de
     // richting waar je in kijkt
-    if (W.spreiding) {
+    const spreiding = W.spreiding * mikF.spreiding;
+    if (spreiding) {
       const zij = new THREE.Vector3(dir.z, 0, -dir.x).normalize();
       const op = new THREE.Vector3().crossVectors(zij, dir).normalize();
-      dir.addScaledVector(zij, (Math.random() - 0.5) * W.spreiding);
-      dir.addScaledVector(op, (Math.random() - 0.5) * W.spreiding);
+      dir.addScaledVector(zij, (Math.random() - 0.5) * spreiding);
+      dir.addScaledVector(op, (Math.random() - 0.5) * spreiding);
       dir.normalize();
     }
     const origin = this.camera.getWorldPosition(new THREE.Vector3());
@@ -355,6 +480,25 @@ export class Player {
       this.camera.rotation.y += Math.sin(t * 0.73) * 0.055 * d;
       this.camera.rotation.x += Math.sin(t * 1.47 + 1.2) * 0.030 * d;
     }
+  }
+
+  /*
+   De beeldhoek volgt het richten: van 72 graden uit de heup naar 54 aangeslagen.
+   Het kruisje gaat ondertussen uit — je kijkt over de korrel en de keep, en dan
+   is een kruisje ernaast alleen maar verwarrend.
+
+   `fovBasis` wordt één keer uit de camera gelezen, zodat een andere beeldhoek
+   elders in het spel (een cameramodus, een instelling) hier gewoon meegaat.
+  */
+  zetBeeldhoek() {
+    const doel = this.fovBasis * (1 - (1 - MIK_FOV) * this.mik);
+    if (Math.abs(this.camera.fov - doel) > 0.01) {
+      this.camera.fov = doel;
+      this.camera.updateProjectionMatrix();
+    }
+    // het kruisje één keer opzoeken: dit loopt elk beeld
+    if (this.kruisEl === undefined) this.kruisEl = document.getElementById('crosshair');
+    if (this.kruisEl && !this.wapenUit) this.kruisEl.style.display = this.mik > 0.5 ? 'none' : '';
   }
 
   // De terugslag zakt terug naar nul; hoe verder hij nog uitstaat, hoe sneller.
@@ -387,6 +531,19 @@ export class Player {
     */
     this.vuurKlok = Math.max(0, this.vuurKlok - dt);
     if (this.vuurAan && this.wapenInfo.auto && this.reloading <= 0) this.shoot();
+
+    /*
+     Aanslaan en laten zakken, en de wisselbeweging. Allebei lopen ze ook door
+     als je instapt — richten kan in de auto niet, dus daar zakt het wapen
+     vanzelf; het wisselen dat je nog was begonnen maak je gewoon af.
+    */
+    this.wisselStap(dt);
+    if (this.inCar || this.wapenUit || this.reloading > 0 || this.wisselT > 0) this.richtAan = false;
+    const mikDoel = this.richtAan ? 1 : 0;
+    this.mik += Math.max(-1, Math.min(1, mikDoel - this.mik)) * Math.min(1, dt / MIK_TIJD);
+    if (Math.abs(this.mik - mikDoel) < 0.002) this.mik = mikDoel;
+    this.zetBeeldhoek();
+
     if (this.inCar) return; // camera wordt door de auto bestuurd
 
     /*
@@ -408,8 +565,10 @@ export class Player {
     if (Math.abs(this.hurk - naarHurk) < 0.01) this.hurk = naarHurk;
     this.eye = this.eyeStaand - HURK_ZAK * this.hurk;
 
-    const running = (this.keys.ShiftLeft || this.keys.ShiftRight || this.sprint) && this.hurk < 0.3;
-    const speed = (running ? 7.5 : 4.2) * (1 - this.hurk * 0.62);
+    // rennen kan niet gehurkt en niet terwijl je over het vizier kijkt; richtend
+    // loop je sowieso langzamer, want je kijkt over je wapen en niet waar je gaat
+    const running = (this.keys.ShiftLeft || this.keys.ShiftRight || this.sprint) && this.hurk < 0.3 && this.mik < 0.3;
+    const speed = (running ? 7.5 : 4.2) * (1 - this.hurk * 0.62) * (1 - (1 - MIK_LOOP) * this.mik);
     const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const r = new THREE.Vector3(-f.z, 0, f.x);
     const move = new THREE.Vector3();
@@ -468,10 +627,11 @@ export class Player {
     this.camera.rotation.y = this.yaw + this.kickYaw;
     this.camera.rotation.x = this.pitch + this.kickPitch;
 
-    // wapenanimatie: schot, terugslag en de vijf stappen van het herladen
+    // wapenanimatie: schot, terugslag, de vijf stappen van het herladen, het
+    // aanslaan over het vizier en het wegbergen bij een wissel
     this.recoil = Math.max(0, this.recoil - dt * 6);
     this.flashT -= dt;
-    this.wapen.update(dt, { herlaad: this.reloading, bob: this.bob });
+    this.wapen.update(dt, { herlaad: this.reloading, bob: this.bob, mik: this.mik, holster: this.holster });
     this.gun.visible = !this.wapenUit;
   }
 }

@@ -28,6 +28,7 @@ import { resolveCollisions, zichtVrij } from './world.js';
 import { KAART } from './kaartwereld.js';
 import { Navigatie } from './navigatie.js';
 import { geluid } from './audio.js';
+import { initHelikopter, HELI_STER } from './helikopter.js';
 
 // ---- verdenking ----
 const MISDADEN = {
@@ -67,11 +68,37 @@ const UITRUK_STRAAL = 22;                  // (m)
 */
 const UITSTAP_SNELHEID = 8.3;              // (m/s)
 /*
+ ---- onderscheppen ----
+ Een surveillanceauto reed naar de plek waar je wás. Op snelheid is dat per
+ definitie te laat: je ziet ze in je spiegel hangen en verder gebeurt er niets.
+
+ Nu kijken ze vooruit. Neem je snelheid en je richting, loop een stuk vooruit
+ over het wegennet, en rijd naar dát punt: op een kruising nemen ze de andere
+ tak en komen ze van opzij de straat in. Het is dezelfde routezoeker met een
+ ander doelpunt, en het verandert de hele achtervolging.
+
+ Drie regels houden het eerlijk. Er moet vaart in zitten (onder de twintig
+ km/u valt er niets te onderscheppen); de wagen moet áchter je hangen, want
+ wie al voor je rijdt hoeft nergens heen; en de dichtstbijzijnde jager blijft
+ gewoon achter je aan rijden — anders is je spiegel ineens leeg en merk je van
+ de hele achtervolging niets meer.
+*/
+const ONDERSCHEP_VAART = 5.6;              // (m/s) daaronder rijdt hij gewoon achter je aan
+const ONDERSCHEP_VOORUIT = 6.5;            // seconden vooruitgedacht
+const ONDERSCHEP_MIN = 40;                 // niet vlak voor je neus (m)
+const ONDERSCHEP_MAX = 240;                // en niet de halve wijk verderop (m)
+const ONDERSCHEP_OMWEG = 1.5;              // hij moet er eerder zijn dan jij, met wat marge
+/*
  Wegblokkades. Vanaf dit aantal sterren zetten ze een straat vóór je dicht, ver
  genoeg weg en buiten je zicht, zodat je er tegenaan rijdt in plaats van hem te
  zien verschijnen.
+
+ Dat stond op vier sterren, en daarmee kwam hij bijna nooit voor: bij vier
+ sterren ben je meestal al te voet. Op drie is het precies wat het moet zijn —
+ het moment waarop een achtervolging een besluit wordt in plaats van een
+ gaspedaal: doorrijden en eromheen, of de wijk in en te voet verder.
 */
-const BLOKKADE_STER = 4;
+export const BLOKKADE_STER = 3;
 const BLOKKADE_MIN = 110, BLOKKADE_MAX = 260;   // afstand tot de speler (m)
 const BLOKKADE_MAX_AANTAL = 2;
 const ZICHT = 42;                          // hoe ver een agent je ziet (m)
@@ -112,7 +139,7 @@ const LEEG_AFSTAND = 45;
 */
 const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c, vest: 0xd6dc46, schoen: 0x14161c };
 
-export function initPolitie({ scene, player, npcs, vehicles, hud }) {
+export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }) {
   let heat = 0;
   let gezienT = 0;             // seconden sinds een agent je voor het laatst zag
   let laatstBekend = null;     // { x, z } waar ze jou het laatst wisten
@@ -121,6 +148,12 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
   const verlaten = [];         // lege surveillanceauto's: { car, balk, links, rechts, t, knipper }
   const wrakken = [];          // uitgebrande politieauto's: { car, t }
   const blokkades = [];        // wegblokkades: { cars, x, z }
+  /*
+   De helikopter (js/helikopter.js). Vanaf vier sterren komt hij over de wijk
+   cirkelen en werkt hij `laatstBekend` bij zolang hij je ziet — en hij ziet je
+   niet als je gehurkt zit, onder de bomen staat of onder een dek.
+  */
+  const heli = initHelikopter({ scene, player });
   let stille = 0;              // misdaden die (nog) niemand meldde
   const rijbanen = (KAART && KAART.wegassen ? KAART.wegassen.filter(w => w.drive && w.lengte > 40) : []);
   /*
@@ -273,6 +306,50 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     e.zoekT = 14 + Math.random() * 12;
     e.route = null;
     return e.doel;
+  }
+
+  /*
+   Waar ben je over een paar tellen?
+
+   Je snelheid en je richting staan al bij (`spSnelheid`); dit trekt die lijn
+   door en legt het eindpunt op het wegennet, want daar rijd je. Het punt schuift
+   mee met je vaart: rijd je hard, dan ligt het verder vooruit — met dertig meter
+   per seconde is dat bijna tweehonderd meter, en dat is precies hoeveel voorsprong
+   er nodig is om er eerder te zijn dan jij.
+
+   Levert null zodra er geen richting in zit; dan valt er niets te onderscheppen
+   en rijden ze gewoon achter je aan. Wordt één keer per beeld uitgerekend en
+   door alle wagens gedeeld.
+  */
+  function onderschepPunt() {
+    const vaart = Math.hypot(spSnelheid.x, spSnelheid.z);
+    if (vaart < ONDERSCHEP_VAART) return null;
+    const sp = spelerPlek();
+    const ver = Math.max(ONDERSCHEP_MIN, Math.min(ONDERSCHEP_MAX, vaart * ONDERSCHEP_VOORUIT));
+    let x = sp.x + (spSnelheid.x / vaart) * ver;
+    let z = sp.z + (spSnelheid.z / vaart) * ver;
+    const net = wegennet();
+    if (net) {
+      const i = net.naaste(x, z, 80, true);
+      if (i >= 0) { x = net.punten[i][0]; z = net.punten[i][1]; }
+    }
+    return { x, z, vaart, rx: spSnelheid.x / vaart, rz: spSnelheid.z / vaart };
+  }
+
+  /*
+   Mag deze wagen onderscheppen? Alleen als hij achter je hangt (anders rijdt hij
+   van je weg om ergens te gaan staan waar je al langs bent) en als hij er
+   redelijkerwijs eerder kan zijn dan jij: het punt mag niet veel verder van hem
+   af liggen dan van jou. De politieauto haalt 29 m/s en jij in de wijk zelden
+   meer, dus anderhalf keer je afstand is een eerlijke marge.
+  */
+  function magOnderscheppen(car, mik, sp) {
+    if (!mik) return false;
+    const naarWagen = (car.x - sp.x) * mik.rx + (car.z - sp.z) * mik.rz;
+    if (naarWagen > -6) return false;                     // hij rijdt al voor je
+    const dJij = Math.hypot(mik.x - sp.x, mik.z - sp.z);
+    const dHij = Math.hypot(mik.x - car.x, mik.z - car.z);
+    return dHij < dJij * ONDERSCHEP_OMWEG + 30;
   }
 
   // ---------------------------------------------------------------- misdaad
@@ -472,6 +549,37 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     */
     if (vaart <= 1) return false;
     const rx = spSnelheid.x / vaart, rz = spSnelheid.z / vaart;
+
+    /*
+     Eerst de goede manier: de route die jij volgens je richting gaat rijden.
+     Die is er al — het onderscheppunt ligt een paar honderd meter vooruit op het
+     wegennet — dus vraag de routezoeker hoe je daar komt en zet de wagens op het
+     eerste punt van díe route dat ver genoeg vooruit ligt en dat je nog niet kunt
+     zien. Dat is de straat waar je heen rijdt, en niet zomaar een straat die
+     toevallig vóór je ligt.
+
+     Lukt dat niet (geen wegennet, geen route, alles in zicht), dan valt hij terug
+     op de oude manier: rondkijken naar punten vóór je en de beste kiezen.
+    */
+    const mik = onderschepPunt();
+    const net = wegennet();
+    if (mik && net) {
+      const r = net.route([sp.x, sp.z], [mik.x, mik.z]);
+      if (r && r.length > 2) {
+        let langs = 0;
+        for (let i = 1; i < r.length; i++) {
+          langs += Math.hypot(r[i][0] - r[i - 1][0], r[i][1] - r[i - 1][1]);
+          if (langs < BLOKKADE_MIN) continue;
+          if (langs > BLOKKADE_MAX) break;
+          const p = r[i], q = r[Math.min(r.length - 1, i + 1)];
+          if (q === p) break;
+          if (zichtVrij(sp.x, sp.z, p[0], p[1], 1.6)) continue;
+          if (blokkades.some(b => Math.hypot(b.x - p[0], b.z - p[1]) < 90)) continue;
+          return plaatsBlokkade(p, q);
+        }
+      }
+    }
+
     const kandidaten = puntenRond(sp.x, sp.z, BLOKKADE_MAX);
     let beste = null, besteScore = -1;
     for (let poging = 0; poging < 80 && kandidaten.length; poging++) {
@@ -490,7 +598,15 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       if (score > besteScore) { besteScore = score; beste = { p, q }; }
     }
     if (!beste) return false;
-    const { p, q } = beste;
+    return plaatsBlokkade(beste.p, beste.q);
+  }
+
+  /*
+   Twee wagens neus aan neus dwars over de straat op punt `p`, in de richting
+   van `p` naar `q`. Staat apart omdat er nu twee manieren zijn om aan dat punt
+   te komen: over je voorspelde route, of door rond te kijken.
+  */
+  function plaatsBlokkade(p, q) {
     const dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz) || 1;
     const ex = dx / L, ez = dz / L;              // langs de weg
     // De wagens staan dwars: hun lengteas haaks op de rijrichting. Bij die yaw
@@ -1013,7 +1129,20 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       }
     }
 
-    // ---- surveillanceauto's ----
+    /*
+     ---- surveillanceauto's ----
+     Eerst één keer uitrekenen waar je over een paar tellen bent, en wie er van
+     de jagers achter je aan blijft rijden. Die ene houdt je in je spiegel; de
+     rest gaat je voor.
+    */
+    const mikPunt = onderschepPunt();
+    let volger = null, volgerD = Infinity;
+    if (mikPunt) for (const w of wagens) {
+      if (w.staat !== 'jacht') continue;
+      const d = Math.hypot(sp.x - w.car.x, sp.z - w.car.z);
+      if (d < volgerD) { volgerD = d; volger = w; }
+    }
+
     for (const w of [...wagens]) {
       const car = w.car;
       // iedereen eruit: deze wagen rijdt niet meer, hij blijft leeg staan
@@ -1063,9 +1192,17 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
           nieuwZoekpunt(w, w.staat === 'naarPlek');
         }
       }
-      // ook een wagen die je kwijt is rijdt naar de laatst bekende plek, niet
-      // naar waar je nu bent
-      const doel = w.staat === 'jacht' ? ((ziet || !laatstBekend) ? sp : laatstBekend) : w.doel;
+      /*
+       Waar rijdt hij heen? Een wagen die je kwijt is rijdt naar de laatst
+       bekende plek en niet naar waar je nu bent. Een jager rijdt achter je aan
+       — behalve als hij kan onderscheppen: dan rijdt hij naar waar je zó bent.
+      */
+      let doel = w.staat === 'jacht' ? ((ziet || !laatstBekend) ? sp : laatstBekend) : w.doel;
+      w.onderschept = false;
+      if (w.staat === 'jacht' && w !== volger && magOnderscheppen(car, mikPunt, sp)) {
+        doel = { x: mikPunt.x, z: mikPunt.z };
+        w.onderschept = true;
+      }
       const afst = rijNaar(w, doel, dt, w.staat === 'jacht' ? 26 : 15);
       if (w.staat !== 'jacht' && afst < 12) { w.staat = 'zoekt'; nieuwZoekpunt(w); }
       if ((w.pogingen || 0) >= 3 && dSp > 55) { ruimWagen(w); continue; }   // hopeloos vast: verderop komt een verse wagen
@@ -1121,6 +1258,27 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
       const dLeeg = Math.hypot(sp.x - v.car.x, sp.z - v.car.z);
       const opTijd = v.t > (ster() === 0 ? LEEG_KWIJT : LEEG_WEG);
       if (opTijd && dLeeg > LEEG_AFSTAND) ruimVerlaten(v);
+    }
+
+    /*
+     ---- de helikopter ----
+     Vanaf vier sterren hangt hij boven de plek waar ze je vermoeden. Ziet hij je,
+     dan is dat precies zo goed als een agent die je ziet: `laatstBekend` wordt
+     bijgewerkt en het aftellen begint opnieuw. Ziet hij je niet — je zit gehurkt,
+     je staat onder de bomen, je rijdt onder het viaduct — dan blijft hij boven de
+     verkeerde plek cirkelen, en dat is het hele spel dat hij erbij brengt.
+
+     Hij mikt op `anker()` en niet op de speler: zo blijft de regel overeind dat
+     ze alleen weten wat ze gezien hebben.
+    */
+    const heliZiet = heli.update(dt, {
+      aan: s >= HELI_STER,
+      doel: anker(),
+      donker: !!(sfeer && sfeer.nacht),
+    });
+    if (heliZiet) {
+      iemandZiet = true;
+      laatstBekend = { x: sp.x, z: sp.z };
     }
 
     /*
@@ -1189,6 +1347,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     heat = 0; gezienT = 0; laatstBekend = null; stille = 0; blokT = 0;
     // ook de schatting van waar de speler heen gaat opnieuw beginnen
     spVorig = null; spSnelheid.x = 0; spSnelheid.z = 0;
+    heli.reset();
     geluid.sirene(null);
   }
 
@@ -1199,6 +1358,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     get gezocht() { return ster() > 0; },
     get eenheden() { return { voet: agenten.filter(a => !a.wagen).length, inWagen: agenten.filter(a => a.wagen).length, wagens: wagens.length, verlaten: verlaten.length }; },
     get stille() { return stille; },
+    // de helikopter, voor js/hud.js en tools/helitest.mjs
+    get heli() { return { actief: heli.actief, fase: heli.fase, ziet: heli.ziet, x: heli.positie.x, y: heli.positie.y, z: heli.positie.z }; },
+    heliZicht: (x, z, y = 0) => heli.zichtbaar(x, z, y),
     get plekken() {
       // voor de minikaart: waar staan de eenheden?
       const uit = agenten.filter(a => a.staat !== 'neer' && a.persoon.groep.visible)
@@ -1208,6 +1370,6 @@ export function initPolitie({ scene, player, npcs, vehicles, hud }) {
     },
     // voor de proef: dwing een bepaalde verdenking af en kijk binnen
     zetHeat(v) { heat = Math.max(0, Math.min(MAX_HEAT, v)); },
-    get intern() { return { wagens, agenten, verlaten, wrakken, blokkades, laatstBekend, gezienT, stille }; },
+    get intern() { return { wagens, agenten, verlaten, wrakken, blokkades, laatstBekend, gezienT, stille, heli }; },
   };
 }

@@ -58,6 +58,9 @@ kop('punt 5 — het machinegeweer, te koop en met het scrollwiel te pakken');
 const koop = await page.evaluate(async () => {
   const g = window.__game;
   const { MITRAILLEUR } = await import('/js/boerderij.js');
+  // eerst de portemonnee leeg: je begint sinds de testfase met € 1000 op zak
+  // (js/verhaal.js), en dan valt er niets te bewijzen over "te weinig geld"
+  g.verhaal.betaal(g.verhaal.geld);
   const start = { wapens: g.player.wapens.slice(), geld: g.verhaal.geld };
   // te weinig geld: dan gebeurt er niets
   const arm = g.boerderij.koopWapen();
@@ -87,10 +90,19 @@ ok(koop.nogmaals === 'heeft', 'twee keer kopen kan niet', koop.nogmaals);
 
 const wissel = await page.evaluate(() => {
   const g = window.__game, p = g.player;
+  /*
+   Wisselen is sinds 14 september 2026 een beweging: het wapen wordt eerst
+   opgeborgen en pas halverwege wisselt het model (js/player.js). De proef laat
+   die beweging daarom aflopen voordat hij kijkt wat je vasthebt.
+  */
+  const laat = (n = 40, dt = 0.02) => { for (let i = 0; i < n; i++) p.update(dt); };
+  laat();                                         // het aanpakken bij de toonbank afmaken
   p.ammo = 7;                                     // zeven in het machinegeweer
   const heen = p.kiesWapen(1);
+  laat();
   const naHeen = { soort: p.wapenSoort, ammo: p.ammo, model: p.gun.visible };
   const terug = p.kiesWapen(1);
+  laat();
   return { heen, naHeen, terug, soort: p.wapenSoort, ammo: p.ammo,
            modellen: Object.keys(p.modellen),
            zichtbaar: Object.keys(p.modellen).filter(k => p.modellen[k].groep.visible) };

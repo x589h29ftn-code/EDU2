@@ -469,6 +469,97 @@ export function wapenIcoon(soort = 'pistool') {
 }
 
 /*
+ De plaatjes bij het schap aan de toonbank van Tinga State.
+
+ Het schap stond er als een regel tekst — "1 — 100 kogels (€ 50)" — en dat leest
+ als een menu in een terminal en niet als een winkel. Dit tekent per artikel een
+ plaatje: een doos patronen, een verbandtrommel, het pistool en het
+ machinegeweer, elk op een houten plank met een schaduwtje eronder, zodat het
+ iets is dat ergens op ligt.
+
+ Ze gaan niet naar de wereld maar naar het scherm (js/boerderij.js zet het canvas
+ in de HUD), dus dit levert het canvas zelf op en geen texture. Ook hier komt er
+ geen plaatjesbestand aan te pas.
+*/
+const ICOON_B = 232, ICOON_H = 124;
+
+function plank(g) {
+  // de plank waar het op ligt, met een houtnerf en een schaduw eronder
+  const y = ICOON_H - 16;
+  g.fillStyle = '#5b432c'; g.fillRect(0, y, ICOON_B, 16);
+  g.fillStyle = 'rgba(0,0,0,.28)';
+  for (let i = 0; i < 5; i++) g.fillRect(0, y + 2 + i * 3, ICOON_B, 1);
+  g.fillStyle = 'rgba(0,0,0,.35)';
+  g.beginPath(); g.ellipse(ICOON_B / 2, y + 1, 74, 7, 0, 0, Math.PI * 2); g.fill();
+}
+
+function icoonMunitie(g) {
+  // een open doos met patronen die er rechtop in staan
+  g.fillStyle = '#8a6134'; g.fillRect(60, 60, 112, 48);          // doos
+  g.fillStyle = '#6d4c28'; g.fillRect(60, 60, 112, 9);           // opstaande rand
+  g.fillStyle = '#a87b45'; g.fillRect(150, 42, 34, 50);          // opengeslagen deksel
+  for (let i = 0; i < 6; i++) {
+    const x = 68 + i * 14;
+    g.fillStyle = '#c9a227'; g.fillRect(x, 34, 9, 30);           // huls
+    g.fillStyle = '#9c7f1c'; g.fillRect(x, 56, 9, 8);            // rand van de huls
+    g.fillStyle = '#b08d5a';                                      // de kogel erop
+    g.beginPath(); g.moveTo(x, 34); g.lineTo(x + 4.5, 22); g.lineTo(x + 9, 34); g.closePath(); g.fill();
+  }
+  g.fillStyle = '#f0e6d2'; g.font = '700 15px system-ui, sans-serif';
+  g.textBaseline = 'middle'; g.textAlign = 'center';
+  g.fillText('9 mm', 116, 92);
+}
+
+function icoonEhbo(g) {
+  // een witte trommel met een rood kruis en een handvat
+  g.fillStyle = '#3a3f46'; g.fillRect(104, 30, 24, 8);           // handvat
+  g.fillStyle = '#eef1f5'; g.fillRect(60, 38, 112, 70);
+  g.fillStyle = '#c9ced6'; g.fillRect(60, 68, 112, 5);           // de naad van het deksel
+  g.fillStyle = '#d2232a';
+  g.fillRect(104, 52, 24, 44); g.fillRect(94, 62, 44, 24);       // het kruis
+  g.fillStyle = '#9aa2ad'; g.fillRect(60, 38, 112, 3);
+}
+
+function icoonWapen(g, mp) {
+  // dezelfde silhouetten als het icoon rechtsonder in beeld, maar dan liggend
+  // op de plank en zonder de naam erbij — die staat op de kaart eronder
+  g.fillStyle = '#dfe4ec';
+  if (mp) {
+    g.fillRect(44, 44, 118, 15);
+    g.fillRect(34, 47, 14, 10);                                   // schouderplaat
+    g.fillRect(150, 47, 40, 9);                                   // loopmantel
+    g.fillRect(188, 49, 18, 5);                                   // loop
+    for (let i = 0; i < 4; i++) g.fillRect(154 + i * 10, 44, 3, 15);
+    g.fillRect(88, 59, 18, 40);                                   // greep met magazijn
+    g.fillRect(85, 96, 24, 7);
+    g.fillRect(110, 59, 6, 10); g.fillRect(110, 66, 28, 5);       // trekkerbeugel
+  } else {
+    g.fillRect(66, 44, 104, 16);
+    g.fillRect(162, 49, 18, 7);                                   // loop
+    g.fillRect(82, 60, 20, 32);                                   // greep
+    g.fillRect(79, 88, 26, 7);                                    // magazijnbodem
+    g.fillRect(106, 60, 6, 9); g.fillRect(106, 66, 30, 5);        // trekkerbeugel
+  }
+}
+
+/**
+ * Het plaatje van één artikel uit het schap. `sleutel` is 'munitie', 'ehbo',
+ * 'pistool' of 'mitrailleur'. Levert het canvas; js/boerderij.js hangt het in
+ * de HUD.
+ */
+export function schapIcoon(sleutel = 'munitie') {
+  const k = `schapicoon:${sleutel}`;
+  if (cache.has(k)) return cache.get(k);
+  const c = canvas(ICOON_B, ICOON_H); const g = c.getContext('2d');
+  g.clearRect(0, 0, ICOON_B, ICOON_H);
+  plank(g);
+  if (sleutel === 'munitie') icoonMunitie(g);
+  else if (sleutel === 'ehbo') icoonEhbo(g);
+  else icoonWapen(g, sleutel === 'mitrailleur');
+  cache.set(k, c); return c;
+}
+
+/*
  Het bord van Radio Spannenburg, de lokale omroep van De Fryske Marren. Er
  staan geen plaatjesbestanden in dit spel — elke texture wordt hier op een canvas
  getekend, net als het Jumbo-woordmerk — dus het logo wordt nagetekend: het

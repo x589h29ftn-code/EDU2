@@ -669,6 +669,14 @@ const aanwijzing = await page.evaluate(() => {
   g.politie.reset();
   // ver van de melding gaan staan: zonder treffer weten ze niet waar je bent
   window.__zetSpeler(pd.x + 150, pd.z + 150);
+  /*
+   Gehurkt, want bij vier sterren hangt er sinds 14 september 2026 een
+   helikopter boven de wijk (js/helikopter.js) en die zou je hier gewoon zien
+   liggen — dan weten ze wél waar je staat en gaat deze proef nergens meer
+   over. Gehurkt ziet hij je niet, en dan gaat het hier weer over de agenten
+   te voet, zoals bedoeld.
+  */
+  g.player.hurk = 1;
   g.politie.zetHeat(300);
   g.politie.misdaad('neergeschoten', pd.x, pd.z);
   window.__stap(30 * 20);
@@ -679,6 +687,7 @@ const aanwijzing = await page.evaluate(() => {
   agent.persoon.groep.traverse(o => { if (!obj && o.isMesh) obj = o; });
   g.politie.raak(obj);
   const na = g.politie.intern.laatstBekend;
+  g.player.hurk = 0;
   const sp = { x: g.player.pos.x, z: g.player.pos.z };
   return {
     er: true,

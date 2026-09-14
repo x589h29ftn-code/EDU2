@@ -222,6 +222,17 @@ export const geluid = {
     tik({ freq: 1500, q: 5, duur: 0.06, volume: 0.20, vertraag: 0.10 });
   },
 
+  /*
+   Het moment waarop het ene wapen weg is en het andere komt: geen klik van
+   metaal op metaal maar het doffe schuren van staal langs stof — ruis die
+   laag wegzakt, met een kort tikje erachteraan van het wapen dat in de hand
+   valt. js/player.js roept hem aan halverwege de wisselbeweging.
+  */
+  wapenWissel() {
+    tik({ freq: 480, q: 0.9, duur: 0.13, volume: 0.10, val: 0.5 });
+    tik({ freq: 1300, q: 3, duur: 0.05, volume: 0.09, vertraag: 0.12 });
+  },
+
   // blijft bestaan voor wie hem al aanriep: de hele reeks achter elkaar
   herladen() {
     this.magazijnKnop();
@@ -451,6 +462,7 @@ export const geluid = {
       hoofd: hoofd ? +hoofd.gain.value.toFixed(4) : null,
       motor: bronnen.motor ? +bronnen.motor.gain.gain.value.toFixed(4) : null,
       sirene: bronnen.sirene ? +bronnen.sirene.gain.gain.value.toFixed(4) : null,
+      heli: bronnen.heli ? +bronnen.heli.gain.gain.value.toFixed(4) : null,
       gier: bronnen.gier ? +bronnen.gier.gain.gain.value.toFixed(4) : null,
       muziek: bronnen.muziek ? +bronnen.muziek.gain.gain.value.toFixed(4) : null,
     };
@@ -855,6 +867,51 @@ export const geluid = {
       s.o.frequency.setTargetAtTime(s.hoog ? 660 : 550, t, 0.02);
       s.o2.frequency.setTargetAtTime(s.hoog ? 330 : 275, t, 0.02);
     }
+  },
+
+  /*
+   ---- de politiehelikopter ----
+   Wat je van een heli hoort is niet een motor maar het slaan van de bladen: een
+   stoot lucht per blad, vier bladen per omwenteling, een stuk of twintig keer
+   per seconde. Dat is hier een lage zaagtand die door een laagdoorlaat gaat
+   (het dreunen) met daaroverheen ruis die op datzelfde ritme open- en dichtgaat
+   (het klapperen). Hoe verder hij weg is, hoe zachter en hoe doffer — hoge
+   tonen halen de afstand niet, en dat is precies waardoor je hoort of hij
+   boven je hangt of drie straten verder.
+
+   Wordt elk beeld aangeroepen met de afstand tot de heli; `null` betekent stil.
+  */
+  heli(afstand) {
+    if (!aan) return;
+    if (!bronnen.heli) {
+      if (afstand == null) return;
+      const g = ctx.createGain(); g.gain.value = 0;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300; f.Q.value = 0.8;
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 21;
+      // het klapperen: ruis die door dezelfde slagfrequentie gestuurd wordt
+      const ruis = ctx.createBufferSource();
+      const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      ruis.buffer = buf; ruis.loop = true;
+      const rf = ctx.createBiquadFilter(); rf.type = 'bandpass'; rf.frequency.value = 520; rf.Q.value = 1.1;
+      const rg = ctx.createGain(); rg.gain.value = 0.0;
+      const slag = ctx.createOscillator(); slag.type = 'square'; slag.frequency.value = 21;
+      const slagG = ctx.createGain(); slagG.gain.value = 0.5;
+      slag.connect(slagG); slagG.connect(rg.gain);
+      ruis.connect(rf); rf.connect(rg); rg.connect(g);
+      o.connect(f); f.connect(g); g.connect(hoofd);
+      o.start(); ruis.start(); slag.start();
+      bronnen.heli = { gain: g, filter: f, ruisGain: rg };
+    }
+    const h = bronnen.heli;
+    // hoorbaar tot 320 m — een heli hoor je veel verder dan een sirene
+    const v = afstand == null ? 0 : Math.max(0, 1 - afstand / 320) ** 1.6;
+    const t = nu();
+    h.gain.gain.setTargetAtTime(v * 0.20, t, 0.35);
+    h.ruisGain.gain.setTargetAtTime(v * 0.16, t, 0.35);
+    // dichtbij hoor je het klapperen, ver weg alleen het dreunen
+    h.filter.frequency.setTargetAtTime(180 + v * 900, t, 0.5);
   },
 
   // ---------- omgeving per beeld ----------

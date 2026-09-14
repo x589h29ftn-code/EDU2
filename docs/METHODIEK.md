@@ -993,8 +993,8 @@ voor allebei op dezelfde manier werken.
 
 Handel: € 50 voor honderd kogels. Het geld zit in `js/verhaal.js` (daar staat de
 portemonnee al voor de beloning van Johan) en er is één methode bijgekomen,
-`betaal(bedrag)`, die false geeft als je het niet hebt. Je begint met € 50, dus
-één doos zit er altijd in; de rest verdien je met de missies.
+`betaal(bedrag)`, die false geeft als je het niet hebt. Je begint met € 1000 —
+ruim, zolang het spel in de testfase zit — en de rest verdien je met de missies.
 
 Twee dingen die pas opvielen doordat er nu naar dit pand gekeken werd:
 
@@ -3419,6 +3419,112 @@ staat hij vanzelf weer op de lijst.
 
 Controle: `npm run winkeltest` (de negen nieuwe controles staan onder *het schap
 aan de toonbank*).
+
+**Over het vizier, opbergen, en een politie die vooruitdenkt (stap 53).**
+
+Zeven punten, waarvan er twee in vijf minuten zaten en vijf echt werk waren.
+
+**Het startgeld** ging van € 50 naar € 1000. Dat is geen spelbalans maar een
+testinstelling: het schap van Tinga State hoort in één keer uit te proberen te
+zijn zonder eerst het verhaal uit te spelen. Drie proeven gingen ervan om (ze
+gingen uit van een lege portemonnee na één doos kogels) en die maken de
+portemonnee nu expliciet leeg waar dat de vraag is.
+
+**Onkruid op de rijbaan.** De pollen uit stap 50 stonden op een vaste afstand
+uit het hart van de weg-as, en die as weet alleen hoe breed het weglichaam
+*ongeveer* is. In een bocht, bij een inham en bij een verbreding voor een
+kruising ligt het echte asfalt meters verder, en daar stond dus gras midden op
+de weg. Elke pol wordt nu getoetst aan het kaartvlak waar hij op valt
+(`vlakOp` uit js/kaartwereld.js): op een rijbaan, fietspad, parkeervlak of brug
+schuift hij per stap veertig centimeter naar buiten tot hij eraf is, en lukt dat
+binnen een paar meter niet, dan vervalt hij. 28.625 pollen werden er 24.425.
+Verharding waar je alleen loopt — voetpad, erf, inrit — staat expres niet in die
+lijst: dáár groeit het juist tussen de tegels door.
+
+**Over het vizier richten** was de grootste. Het zit hem in één getal: de korrel
+en de keep van het model staan allebei op dezelfde hoogte boven de kast en
+allebei op x = 0, dus het wapen hoeft alleen maar op x = 0 en y = −die hoogte
+gezet te worden om de vizierlijn precies door het midden van het scherm te laten
+lopen. Dat getal is niet het hart van de korrel maar de **bovenkant** ervan
+(4,8 cm bij het pistool, 6,2 bij het machinepistool): mik je op het hart, dan
+ligt de bovenkant van de slede exact op ooghoogte, kijk je er van opzij tegenaan
+en is het één zwart blok. Een halve centimeter hoger kijk je er overheen.
+
+De tweede les kwam uit de foto's: het pistool moest bij het richten **verder van
+je af** (gestrekte armen, −0,54 m in plaats van −0,42), en het machinepistool
+ook, omdat de ingeklapte schouderstut eenentwintig centimeter achter de kast
+uitsteekt en anders in je oog staat. Verder: beeldhoek 72° → 54°, muis 42 %
+trager, lopen op 55 % en rennen uit, terugslag op 42 % en spreiding op 30 %.
+Tien schoten met het machinegeweer tillen het beeld aangeslagen 0,08 rad op in
+plaats van 0,19.
+
+**Wisselen is een beweging geworden.** Het was een omschakeling in één beeld, en
+dat is geen wisselen maar toveren. Nu gaat het in twee stukken: 0,24 s wegbergen
+(het wapen zakt met de loop omlaag en de kolf naar binnen onder de onderrand
+weg), dán wisselt het model — op het moment dat je niets meer ziet, dus je ziet
+nooit een wapen in je hand verspringen — en 0,28 s trekken. Ondertussen schiet
+en herlaad je niet. Een wapen dat je koopt maakt alleen de tweede helft.
+
+**Het schap kreeg plaatjes.** Eén regel tekst leest als een menu in een
+terminal; het is nu een rij kaartjes met een getekende afbeelding, het nummer in
+een geel blokje en de prijs eronder. De plaatjes zijn getekend op een canvas
+(`schapIcoon` in js/textures.js) — een doos patronen, een verbandtrommel, en de
+zijkanten van de twee wapens, elk op een plank met een schaduwtje. De kaartjes
+worden alleen opnieuw opgebouwd als de lijst verandert; een handtekening van
+namen en prijzen zegt of dat zo is.
+
+**De politie: onderscheppen, versperren, en een helikopter.** Dit zijn de punten
+1.2, 1.3 en 1.4 uit docs/PLAN.md.
+
+*Onderscheppen.* Een wagen reed naar `laatstBekend` — de plek waar je wás — en
+op snelheid is dat per definitie te laat. `onderschepPunt()` trekt je snelheid
+en richting door (zes en een halve seconde vooruit, geplakt op het wegennet) en
+de jagers rijden daarheen. Drie regels houden het eerlijk: er moet vaart in
+zitten (5,6 m/s), de wagen moet achter je hangen, en het punt mag niet veel
+verder van hem liggen dan van jou. De dichtstbijzijnde jager blijft expres
+gewoon achter je aan rijden — anders is je spiegel leeg en merk je van de hele
+achtervolging niets.
+
+*De wegversperring* ging van vier naar drie sterren (bij vier ben je meestal al
+te voet, en dan kwam hij nooit voor) en wordt nu op je voorspelde route gezet in
+plaats van op een willekeurig punt vóór je: de routezoeker rekent uit hoe je
+naar het onderscheppunt rijdt, en de wagens komen op het eerste punt van díe
+route dat ver genoeg vooruit ligt en dat je nog niet kunt zien. Lukt dat niet,
+dan valt hij terug op de oude manier.
+
+*De helikopter* (js/helikopter.js) is nieuw. Vanaf vier sterren vliegt hij aan,
+cirkelt op 62 m in een rondje van 48 m boven `anker()` — de plek waar ze je
+vermoeden, niet waar je bent — en werkt die plek bij zolang hij je ziet. Wat hem
+tegenhoudt is expres een kort lijstje dat je kunt navertellen: gehurkt, onder
+een boomkroon, in een bos- of heestervlak uit de kaart, of onder een dek. Die
+eerste maakt toets C in één klap veel belangrijker; de tweede en derde geven de
+bomen langs de Wieken en het bosje bij de Buitenroede een reden om er te staan.
+"Onder een boom" is een rooster over `treePositions` uit js/world.js met de
+kroonstraal van 2,2 m maal de schaal; "onder een dek" is `grondHoogte(x, z, ∞)`
+tegen de hoogte waar je staat. Het model is met de hand gebouwd — witte romp met
+een blauwe streep, staartboom met vin en staartrotor, vier bladen met een
+doorzichtige waas eroverheen, twee sleden — en het geluid is het slaan van de
+bladen: een lage zaagtand door een laagdoorlaat met ruis die op diezelfde
+slagfrequentie open- en dichtgaat, allebei zachter en doffer met de afstand.
+
+Twee bestaande proeven gingen hiervan om, en dat is precies wat je wilt zien:
+`politietest` ging ervan uit dat ze bij vier sterren niet weten waar je staat als
+niemand je ziet — met een heli boven je hoofd klopt dat niet meer, dus daar
+hurkt de speler nu; en `puntentest` wisselde twee keer van wapen in één beeld,
+wat nu niet meer kan.
+
+Controle: `npm run richttest` (achttien controles: de vizierlijn, de beeldhoek,
+het kruisje, de terugslag, de wisselbeweging, het schap en het onkruid) en
+`npm run helitest` (twintig: de heli, de dekking, de versperring en het
+onderscheppen). Foto's: `npm run richtshots` en `npm run helishots`.
+
+**Ronde 4 van de steekproef.** Twintig nieuwe standpunten in
+`docs/steekproef/ronde4.md`: twaalf adressen in Sneek buiten Tinga (die nu
+allemaal met het Molenkrite- of Jasker-type getekend worden), vier metingen die
+vreemd zijn (een goot op 5,70 met een nok op 5,76, een nok van 3,40 m, een blok
+van 11,5 m en een nok op 14,4 m) en vijf plekken die het spel uit regels opbouwt
+en die nog nooit tegen een foto zijn gelegd: het tankstation, het tennispark,
+het sportpark, de volkstuinen en de houtzaagmolen.
 
 **Wat nog niet af is (in volgorde).
 

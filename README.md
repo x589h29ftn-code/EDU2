@@ -42,12 +42,13 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | **C** | bukken: je zakt een halve meter, loopt op een derde van je snelheid en bent achter een muurtje of een auto niet meer te zien |
 | ← → | in de auto: radiozender wisselen |
 | muis | rondkijken · linkermuisknop = schieten (het machinegeweer schiet door zolang je hem vasthoudt) · R = herladen · H = wapen weg en weer tevoorschijn |
-| scrollwiel | wisselen tussen het pistool en het machinegeweer; het icoon van het wapen staat kort rechtsonder |
+| scrollwiel | wisselen tussen het pistool en het machinegeweer; je bergt het ene op en trekt het andere, en het icoon staat kort rechtsonder |
+| **rechtermuisknop** | over het vizier richten zolang je hem vasthoudt: nauwkeuriger en minder terugslag, maar je loopt langzamer |
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto |
 | 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, verband, wapens) |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
 | levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
-| portemonnee | rechtsonder; je begint met € 50 en verdient de rest met missies |
+| portemonnee | rechtsonder; je begint met € 1000 (testfase) en verdient de rest met missies |
 | **V** | camera: vanuit je ogen of over je schouder (handig met de auto) |
 | **G** | scherpte: scherp, normaal of zuinig (blijft bewaard) |
 | in de auto: W/S, A/D, spatie | gas/rem (en achteruit), sturen, handrem |
@@ -77,6 +78,10 @@ Waar het voor is: **de politie kijkt lager**. Staand kijkt een agent over alles 
 zicht te houden. Achter het muurtje zitten werkt dus echt, en dat is een ander antwoord op vier
 sterren dan wegrennen.
 
+En sinds er vanaf vier sterren een **helikopter** boven de wijk hangt, doet C er nog meer toe:
+gehurkt ziet die je niet (zie [De helikopter](#de-helikopter-vanaf-vier-sterren)). Op een open
+parkeerterrein is door je knieën gaan dan het verschil tussen gezien worden en niet.
+
 ![Gebukt achter een muurtje](docs/screenshots/gebukt.png)
 
 ## De wijk heeft geleefd
@@ -88,7 +93,7 @@ gewoond is. Wat er nu staat:
 
 | | wat | hoeveel |
 |---|---|---|
-| **onkruid** | pollen gras en een enkele paardenbloem langs de trottoirbanden, waar de veegwagen niet komt | 28.625 |
+| **onkruid** | pollen gras en een enkele paardenbloem langs de trottoirbanden, waar de veegwagen niet komt | 24.425 |
 | **zwerfvuil** | een verfrommeld papiertje, een blikje, een plastic zak of een patatbakje, plat in de goot | 3.427 |
 | **rolcontainers** | grijs, groen en blauw, op de stoep en in de berm, meestal met z'n tweeën | 936 |
 | **graffiti** | een tag op ongeveer één op de negen blinde muurstukken uit de BGT | per muur |
@@ -97,7 +102,14 @@ gewoond is. Wat er nu staat:
 ![De stoeprand](docs/screenshots/stoeprand_rommel.png)
 
 Waar het staat komt uit de kaart zelf: langs de assen van de rijbanen en de voetpaden, op een vaste
-afstand uit het hart, met een dobbelsteen die aan de plek hangt. Dezelfde kaart geeft dus altijd
+afstand uit het hart, met een dobbelsteen die aan de plek hangt. **Op het asfalt groeit niets.** Die
+vaste afstand uit het hart bleek niet genoeg: de as van een straat weet alleen hoe breed het
+weglichaam ongeveer is, en in een bocht, bij een inham of bij een verbreding voor een kruising ligt
+het echte asfalt meters verder. Daar stonden dus pollen gras midden op de rijbaan. Nu wordt elke pol
+getoetst aan het kaartvlak waar hij op valt: ligt hij op een rijbaan, een fietspad, een parkeervlak
+of een brug, dan schuift hij per stap veertig centimeter naar de berm tot hij eraf is, en lukt dat
+binnen een paar meter niet, dan vervalt hij. Dat scheelde 4.200 pollen. Tussen de stoeptegels,
+op een erf en langs een inrit groeit het juist wél — daar hoort het. Dezelfde kaart geeft dus altijd
 dezelfde rommel — het verspringt niet als je opnieuw laadt, en er hoeft geen lijst voor bewaard te
 worden. Alles gaat per tegel van 240 m in instanced meshes met een afstandsgrens, net als de
 struiken: een pol onkruid is op honderd meter een groen puntje van twee beeldpunten. Het kostte
@@ -217,6 +229,55 @@ een doos van Tinga State, of de munitie van een neergeschoten agent, past dus al
 | herladen | 1,55 s | 2,05 s |
 | prijs | je begint ermee | € 500 |
 
+### Over het vizier richten (rechtermuisknop)
+
+Houd de **rechtermuisknop** ingedrukt en je slaat aan: het wapen komt in een zesde seconde recht voor
+je te staan en de beeldhoek versmalt van 72 naar 54 graden.
+
+Dit is geen zoomknop maar echt richten. De korrel en de keep van het model staan allebei op dezelfde
+hoogte boven de kast en allebei op het hart; aangeslagen wordt het wapen precies zóver omlaag gezet
+dat die lijn door het midden van het scherm loopt, en alles wat het scheef hield — de kanteling van
+het wapen, de verschuiving naar rechts, het deinen van het lopen — gaat naar nul. Je kijkt er dus
+werkelijk overheen. Het kruisje verdwijnt: je hebt het niet meer nodig en het zou alleen maar
+verwarren.
+
+Wat het oplevert, en wat het kost:
+
+| | uit de heup | over het vizier |
+|---|---|---|
+| terugslag | vol | **42 %** — het wapen ligt vast, je houdt hem in bedwang |
+| spreiding (machinegeweer) | vol | **30 %** — de kogel gaat vrijwel waar je kijkt |
+| beeldhoek | 72° | 54° |
+| muis | normaal | 42 % trager, zodat je rustiger kunt richten |
+| lopen | normaal | 55 %, en rennen kan niet |
+
+Het pistool komt aangeslagen juist **verder** van je af — richten doe je met gestrekte armen — en het
+machinegeweer trek je naar je schouder toe. Richten kan niet in de auto, niet met een weggestopt
+wapen, niet tijdens het herladen en niet tijdens een wissel.
+
+| Het pistool uit de heup | Over het vizier |
+|---|---|
+| ![Pistool uit de heup](docs/screenshots/wapen_pistool_heup.png) | ![Pistool over het vizier](docs/screenshots/wapen_pistool_vizier.png) |
+
+| Het machinegeweer uit de heup | Over het vizier |
+|---|---|
+| ![Machinegeweer uit de heup](docs/screenshots/wapen_mp_heup.png) | ![Machinegeweer over het vizier](docs/screenshots/wapen_mp_vizier.png) |
+
+### Wisselen is een beweging
+
+Het scrollwiel wisselde vroeger in één beeld van model, en dat is geen wisselen maar toveren. Nu
+**berg je het wapen dat je vasthebt eerst op**: het zakt in een kwart seconde met de loop omlaag en de
+kolf naar binnen gedraaid onder de onderrand van het beeld weg. Op het moment dat je niets meer ziet
+wisselt het model — je ziet dus nooit een wapen in je hand verspringen — en daarna komt het andere er
+in ruim een kwart seconde weer uit. Er hoort een geluid bij: staal langs stof, geen klik van metaal
+op metaal.
+
+Ondertussen schiet je niet en herlaad je niet. Dat halve seconde is de prijs van het wisselen, en
+precies wat er een keuze van maakt. Een wapen dat je bij Tinga State koopt krijg je meteen in handen
+en maakt alleen de tweede helft van die beweging: hij komt omhoog in beeld.
+
+![Het wapen gaat weg](docs/screenshots/wapen_opbergen.png)
+
 ![Het machinegeweer in de hand](docs/screenshots/punten_machinegeweer.png)
 
 Het machinegeweer heeft hetzelfde onderstel als het pistool — dezelfde greep, hand en onderarm, en
@@ -248,6 +309,8 @@ kopieermachine.
 **Terugslag.** Het beeld schokt bij elk schot een graad of anderhalf omhoog en een tikje opzij, en
 zakt in een halve seconde weer terug. Het is alleen beeld: je kijkrichting blijft staan waar jij hem
 hebt gezet, dus het tweede schot komt op dezelfde plek aan en je hoeft niet na te corrigeren.
+Aangeslagen (rechtermuisknop) blijft er nog geen halve terugslag over: tien schoten achter elkaar
+tillen het beeld dan 0,08 rad op in plaats van 0,19.
 
 **Herladen (R).** Dat is een beweging van anderhalve seconde in vijf stappen: het wapen kantelt naar
 je toe zodat je in het magazijnhuis kijkt, de magazijnknop gaat in, het lege magazijn valt eruit, een
@@ -764,15 +827,68 @@ je kwijt zijn, en anders na drie kwartier minuut, maar nooit terwijl je ernaast 
 
 ![Een lege surveillanceauto](docs/screenshots/politie_leeg.png)
 
-**Vanaf vier sterren zetten ze wegblokkades.** Twee wagens kop aan staart dwars over de rijbaan —
+**Ze denken vooruit in plaats van achter je aan te rijden.** Een surveillanceauto reed naar de plek
+waar je wás, en op snelheid is dat per definitie te laat: je zag ze in je spiegel hangen en verder
+gebeurde er niets. Nu nemen ze je snelheid en je richting, lopen daarmee een stuk vooruit over het
+wegennet — met dertig meter per seconde is dat bijna tweehonderd meter — en rijden ze naar dát punt.
+Op een kruising nemen ze de andere tak en komen ze van opzij de straat in. Drie regels houden het
+eerlijk: er moet vaart in zitten (onder de twintig km/u valt er niets te onderscheppen), de wagen
+moet áchter je hangen, en de dichtstbijzijnde jager blijft gewoon achter je aan rijden — anders is je
+spiegel ineens leeg en merk je van de hele achtervolging niets meer.
+
+**Vanaf drie sterren zetten ze wegblokkades.** Twee wagens kop aan staart dwars over de rijbaan —
 samen bijna negen meter, dus de straat zit echt dicht — met het zwaailicht aan, op honderd tot
 tweehonderdzestig meter vóór je, en altijd buiten je zicht neergezet, zodat je er tegenaan rijdt in
-plaats van er eentje voor je ogen te zien verschijnen. Ze kijken naar welke kant je op gaat: een
-blokkade achter je is geen blokkade, en sta je stil, dan wachten ze — zonder richting is er geen
-"vóór je". Er staan er hoogstens twee tegelijk, en ze worden opgeruimd zodra de verdenking onder de
-vier sterren zakt of de achtervolging voorbij is.
+plaats van er eentje voor je ogen te zien verschijnen. De plek komt van diezelfde vooruitblik: de
+routezoeker rekent uit hoe je naar dat punt rijdt en zet de wagens op het eerste punt van díe route
+dat ver genoeg vooruit ligt. Het is dus de straat waar je heen gaat en niet zomaar een straat die
+toevallig vóór je ligt. Sta je stil, dan wachten ze — zonder richting is er geen "vóór je". Er staan
+er hoogstens twee tegelijk, en ze worden opgeruimd zodra de verdenking onder de drie sterren zakt of
+de achtervolging voorbij is.
 
-![Een wegblokkade](docs/screenshots/politie_blokkade.png)
+Dat het van vier naar drie sterren ging is geen detail: bij vier ben je meestal al te voet, en dan
+kwam hij bijna nooit voor. Op drie is het precies het moment waarop een achtervolging een besluit
+wordt in plaats van een gaspedaal — doorrijden en eromheen, of de wijk in en te voet verder.
+
+| Een wegblokkade | De versperring van dichtbij |
+|---|---|
+| ![Een wegblokkade](docs/screenshots/politie_blokkade.png) | ![Twee wagens dwars over de straat](docs/screenshots/politie_wegversperring.png) |
+
+### De helikopter (vanaf vier sterren)
+
+Vanaf vier sterren komt er een politiehelikopter over de wijk. Hij vliegt van buiten het gebied aan,
+gaat op **tweeënzestig meter** hoogte in een rondje van achtenveertig meter boven de plek cirkelen
+waar ze je vermoeden, en werkt die plek bij zolang hij je ziet. Zakt de verdenking, dan draait hij af.
+Je hóórt hem eerder dan je hem ziet: het slaan van de bladen loopt met de afstand mee en is tot ruim
+driehonderd meter te horen. 's Nachts gaat er een zoeklicht aan.
+
+En dat is wat hij aan het spel toevoegt: in één klap krijgt alles wat er al lag betekenis. Onder de
+open lucht op een parkeerterrein wegrennen is met een heli boven je hoofd geen plan meer. **Vier
+dingen houden hem tegen**, en het is expres een lijstje dat je kunt navertellen:
+
+| | |
+|---|---|
+| **gehurkt** (toets **C**) | dan zien ze je niet — dat is de uitweg te voet |
+| **onder een boomkroon** | de bomen langs de Wieken, de laanbomen aan de Molenkrite |
+| **in een bos- of heestervlak** uit de kaart | het bosje bij de Buitenroede |
+| **onder een dek** | het viaduct over de rondweg, de fietstunnel |
+
+Verder dan tweehonderdtien meter ziet hij je sowieso niet. Ziet hij je wél, dan is dat precies zo
+goed als een agent die je ziet: de laatst bekende plek springt op jou en het aftellen begint opnieuw.
+Ziet hij je niet, dan blijft hij boven de verkeerde plek cirkelen — en dat is het hele spel dat hij
+erbij brengt.
+
+| De helikopter boven de wijk | Van onderaf, vanaf de stoep |
+|---|---|
+| ![De helikopter boven Tinga](docs/screenshots/heli_opzij.png) | ![Van onderaf](docs/screenshots/heli_vanonder.png) |
+
+![Het zoeklicht 's nachts](docs/screenshots/heli_zoeklicht.png)
+
+Het toestel is met de hand in doosjes en cilinders gebouwd, net als de auto's: een witte romp met een
+blauwe streep en een donkere cockpitruit, een staartboom met een vin en een staartrotor, vier bladen
+op een mast (met een doorzichtige waas eroverheen, want op toeren zie je geen bladen maar een schijf),
+twee landingssleden en twee blauwe zwaailichten onder de buik. Er komt geen plaatjesbestand aan te
+pas.
 
 **Je kunt op de auto's schieten.** Elke kogel kost tien van de honderd, dus na een stuk of tien
 vliegt hij in brand: de auto wordt zwartgeblakerd, er komt een vuurbal met rook overheen en rijden
@@ -827,6 +943,13 @@ nieuwe gedrag: dat een schot op een agent of een wagen de zoektocht verlegt, dat
 blijven zitten en stapvoets wél uitstappen, dat een blokkade vóór je en buiten je zicht komt te staan
 en weer wordt opgeruimd, en dat tien kogels een surveillanceauto tot wrak maken.
 `npm run politieshots` maakt de vijf foto's hierboven.
+
+`npm run helitest` toetst wat er op 14 september 2026 bij kwam — dat de heli vanaf vier sterren komt
+en op de goede hoogte in een rondje hangt, dat hij weer afdraait als de sterren zakken, dat hij je
+gehurkt, onder een boom, in een bosvlak, onder het viaduct en op grote afstand níet ziet en rechtop
+op straat wél, dat hij de laatst bekende plek bijwerkt, dat de wegversperring op drie sterren staat
+en ver vooruit en buiten je zicht komt, en dat een deel van de wagens onderschept terwijl er altijd
+één in je spiegel blijft hangen. `npm run helishots` maakt de vier foto's.
 
 ## Hondjes
 
@@ -1303,8 +1426,10 @@ achterin liggen hooibalen.
 
 ![De deel van binnen](docs/screenshots/boerderij_deel.png)
 
-Aan de toonbank staat een verkoper met een **schap**. Wat er ligt staat genummerd onderin beeld, en je
-koopt het met de **cijfertoets** van dat nummer (**E** pakt het eerste, de kogels):
+Aan de toonbank staat een verkoper met een **schap**. Wat er ligt staat als een rij kaartjes onderin
+beeld, met per artikel een getekend plaatje, het nummer in een geel blokje en de prijs eronder — de
+drie dingen die je aan een toonbank nodig hebt. Je koopt het met de **cijfertoets** van dat nummer
+(**E** pakt het eerste, de kogels):
 
 | | artikel | prijs | |
 |---|---|---|---|
@@ -1315,13 +1440,20 @@ koopt het met de **cijfertoets** van dat nummer (**E** pakt het eerste, de kogel
 
 De lijst is precies wat er te koop is: ben je al helemaal fit, dan verdwijnt de verbandtrommel eruit
 en schuiven de nummers op — wat je ziet is wat je indrukt. Een wapen dat je al hebt staat er grijs bij
-als *in bezit*, zodat je ziet dát de verkoper het heeft. Heb je te weinig geld, dan zegt hij dat, en
-er gaat niets af. Een gekocht wapen komt meteen in je handen met een vol magazijn uit je eigen
-voorraad kogels (zie [De wapens](#de-wapens)).
+als *in bezit* met een vinkje in plaats van een nummer, zodat je ziet dát de verkoper het heeft. Heb
+je te weinig geld, dan zegt hij dat, en er gaat niets af. Een gekocht wapen komt meteen in je handen
+met een vol magazijn uit je eigen voorraad kogels (zie [De wapens](#de-wapens)).
+
+De plaatjes zijn, net als alles in dit spel, getekend en geen bestand: een doos met patronen erin,
+een verbandtrommel met een rood kruis, en de zijkanten van het pistool en het machinegeweer, elk op
+een houten plank met een schaduwtje eronder (`schapIcoon` in `js/textures.js`).
+
+![Het schap aan de toonbank](docs/screenshots/boerderij_schap.png)
 
 ![De toonbank](docs/screenshots/boerderij_toonbank.png)
 
-Je begint het spel met **€ 50**, dus één doos munitie zit er altijd in. Daarna moet je het verdienen:
+Je begint het spel met **€ 1000**. Dat is een testbedrag: zolang het spel in ontwikkeling is hoort het
+schap in één keer uit te proberen te zijn, zonder eerst het verhaal uit te spelen. Daarna verdien je het:
 de beloning van Johan aan het eind van het verhaal is € 500 (zie [Het verhaal](#het-verhaal)). Je geld
 staat rechtsonder in beeld en gaat mee in de opslag.
 
