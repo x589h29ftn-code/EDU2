@@ -870,6 +870,30 @@ export const geluid = {
   },
 
   /*
+   De roldeur van de wasbox: een elektromotor die aanslaat en de latten die over
+   de geleiders ratelen. Een zoemende zaagtand die opkomt en wegzakt, met daar
+   overheen een reeks korte tikjes — dat ratelen is wat een roldeur van een
+   gewone deur onderscheidt.
+  */
+  roldeur() {
+    toon({ freq: 62, naar: 78, duur: 1.5, volume: 0.07, golf: 'sawtooth' });
+    for (let i = 0; i < 14; i++) {
+      tik({ freq: 1400 + Math.random() * 900, q: 5, duur: 0.03, volume: 0.035, vertraag: 0.08 + i * 0.1 });
+    }
+    tik({ freq: 320, q: 2, duur: 0.10, volume: 0.09, vertraag: 1.5 });      // de klap aan het eind
+  },
+
+  /*
+   De spuitbus in de wasbox: ruis door een smal filter dat heen en weer loopt,
+   zoals een spuitpistool dat over een auto zwaait.
+  */
+  spuitbus() {
+    for (let i = 0; i < 5; i++) {
+      tik({ freq: 2600 - i * 220, q: 1.1, duur: 0.5, volume: 0.05, type: 'bandpass', val: 0.6, vertraag: i * 0.42 });
+    }
+  },
+
+  /*
    De portofoon van de politie: de melding dat ze je gezien hebben gaat rond.
    Wat je ervan hoort als je dichtbij staat is niet wat er gezegd wordt maar het
    apparaat zelf — een kort ruisje, twee piepjes, en de klik waarmee de

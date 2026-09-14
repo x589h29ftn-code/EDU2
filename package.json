@@ -91,6 +91,8 @@
     "helitest": "node tools/helitest.mjs",
     "helishots": "node tools/helishots.mjs",
     "meldtest": "node tools/meldtest.mjs",
+    "spuittest": "node tools/spuittest.mjs",
+    "spuitshots": "node tools/spuitshots.mjs",
     "vuilshots": "node tools/vuilshots.mjs"
   }
 }

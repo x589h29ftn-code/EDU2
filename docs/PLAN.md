@@ -124,9 +124,12 @@ aanhouding moet je een nieuwe kopen.
 - **Een boot.** De Geeuw, de Houkesloot en het water bij IJlst liggen er, met
   kades en beschoeiing uit de BGT. Een sloep die je bij een steiger meeneemt
   opent de helft van de kaart die nu alleen decor is.
-- **Een garage die je auto repareert** (en je sterren kwijtraakt als je hem
-  overspuit). Dat laatste is de klassieke uitweg uit een achtervolging en maakt
-  de politie meteen interessanter.
+- **Een garage die je auto repareert.** Het overspuiten is er sinds 14 september
+  2026: de wasboxen achter BP Slump Oil (js/spuiterij.js) — je rijdt naar
+  binnen, de deur gaat dicht, en je komt er in een andere kleur zonder sterren
+  weer uit voor honderd euro per ster. Wat er nog niet is, is **repareren**: de
+  schade aan de carrosserie en de motor blijft staan. Dat hoort in dezelfde box
+  thuis, met een eigen prijs.
 - **Het ziekenhuis.** Ga je neer, dan begin je nu bij je laatste opgeslagen
   spel. Bij het Antonius weer buiten komen — zonder wapens, met minder geld —
   is een betere straf en zet het ziekenhuis op de kaart.

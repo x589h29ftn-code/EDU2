@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { resolveCollisions, pointInWater, grondHoogte, zichtVrij } from './world.js';
 import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
-import { makeCar, maakAutoStapel } from './carmodel.js';
+import { makeCar, maakAutoStapel, lakVoor } from './carmodel.js';
 import { KAART } from './kaartwereld.js';
 
 /*
@@ -45,7 +45,7 @@ function tegelMidden(sleutel) {
  hier en daar iets anders; de felle kleuren blijven erbij maar zijn nu de
  uitzondering, en er staat ook wat verschoten en stoffig tussen.
 */
-const COLORS = [
+export const LAKKLEUREN = [
   0x1c1e24, 0x2b2f36, 0x8a8d93, 0xa8abb0, 0xd8d9dc, 0xc9c1a8, 0x5b6470, 0x6e737a,
   0x2a3f8f, 0x2f4a6e, 0x9c1f1f, 0x7a3b2a, 0x2f6b3a, 0x3e3a36, 0xffffff, 0xb9a98c,
 ];
@@ -93,7 +93,7 @@ export class Vehicles {
     }
     parkSpots.forEach((s, i) => {
       const kind = soorten[i];
-      const kleur = COLORS[Math.floor(r() * COLORS.length)];
+      const kleur = LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)];
       const sleutel = sleutelVan(kind, s.x, s.z);
       const stap = this.stapels[sleutel];
       const idx = stap.n++;
@@ -120,7 +120,7 @@ export class Vehicles {
     for (let i = 0; i < 14; i++) {
       const dir = i % 2 ? 1 : -1;
       const lane = (i % 4 < 2) ? 2.1 : 6.2;
-      const mesh = makeCar(COLORS[Math.floor(r() * COLORS.length)], r() < 0.3 ? 'van' : 'hatch');
+      const mesh = makeCar(LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)], r() < 0.3 ? 'van' : 'hatch');
       scene.add(mesh);
       if (n7.length) {
         const path = n7[i % n7.length];
@@ -135,7 +135,7 @@ export class Vehicles {
     for (let i = 0; i < 6 && local.length; i++) {
       const rd = local[i % local.length];
       const path = rd.pts;
-      const mesh = makeCar(COLORS[Math.floor(r() * COLORS.length)]);
+      const mesh = makeCar(LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)]);
       scene.add(mesh);
       // `lokaal` merkt de wijkauto's, zodat `vulBuurtAan` ze kan laten meeverhuizen
       this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: 1, lane: 1.4, speed: 6 + r() * 2, y: 0.1, bounce: true, lokaal: true });
@@ -372,6 +372,35 @@ export class Vehicles {
     this.scene.add(nieuw);
     car.mesh = nieuw;
     return car;
+  }
+
+  /*
+   Een auto overspuiten. De spuiterij bij het tankstation (js/spuiterij.js)
+   gebruikt dit: je rijdt er in één kleur in en in een andere weer uit.
+
+   Het lakmateriaal wordt per kleur gedeeld tussen alle auto's, dus we ruilen
+   het materiaal om en maken er geen nieuw aan; de carrosseriedelen die de lak
+   dragen zijn in js/carmodel.js gemerkt met `userData.lak`. Staat de auto nog
+   als instantie in de stapel, dan gaat de kleur daar naartoe.
+  */
+  verf(car, kleur) {
+    if (!car) return null;
+    car.kleur = kleur;
+    if (car.mesh) {
+      const lak = lakVoor(kleur);
+      car.mesh.traverse(o => { if (o.isMesh && o.userData.lak) o.material = lak; });
+    }
+    if (car.inst) {
+      const stap = this.stapels && this.stapels[car.inst.soort];
+      if (stap && stap.stapel) stap.stapel.kleur(car.inst.i, kleur);
+    }
+    return kleur;
+  }
+
+  /** Een andere lakkleur dan `nu`, uit dezelfde reeks als het overige verkeer. */
+  andereKleur(nu) {
+    const keus = LAKKLEUREN.filter(k => k !== nu);
+    return keus[Math.floor(Math.random() * keus.length)];
   }
 
   /*

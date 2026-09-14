@@ -11,6 +11,7 @@ import { initSfeer } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur, WONINGEN } from './interieur.js';
 import { initBoerderij } from './boerderij.js';
+import { initSpuiterij } from './spuiterij.js';
 import { initSupermarkt } from './supermarkt.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
@@ -424,6 +425,13 @@ const derde = initDerdePersoon({ scene, camera, player });
 // en boven een drempel komen er eenheden op je af (zie js/politie.js).
 // `sfeer` gaat mee voor de helikopter: die doet zijn zoeklicht alleen 's nachts aan.
 const politie = initPolitie({ scene, player, npcs, vehicles, hud, sfeer: dagKlok });
+
+/*
+ De wasboxen achter BP Slump Oil (js/spuiterij.js). Ze komen ná de politie,
+ want ze hebben hem nodig: de roldeur blijft dicht als er blauw naast staat, en
+ een overspuiting wist de sterren.
+*/
+const spuiterij = initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }) || null;
 
 /*
  Wat er op straat blijft liggen (js/buit.js): geld uit de zak van een
@@ -1120,6 +1128,7 @@ function loop() {
     npcs.update(dt, time, camera.position.x, camera.position.z);
     verhaal.update(dt);
     for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
+    if (spuiterij) spuiterij.update(dt);      // de roldeuren van de wasboxen
     /*
      De politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte.
      Binnen loopt de politie niet mee: je staat dan in een andere ruimte. Maar
@@ -1222,7 +1231,7 @@ loop();
 window.__game = {
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
-  geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller,
+  geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij,
   raakLantaarn, werkLantaarnsBij, lantaarnsOm, buit,
   // haken voor tools/puntentest.mjs: een knal laten afgaan en de uitslag lezen
   __ontplof: autoOntploft, __schokNul: () => { SCHOK.kracht = 0; SCHOK.t = 0; },

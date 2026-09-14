@@ -602,6 +602,12 @@ export function maakAutoStapel(kind, aantal) {
  animatie losse wielen, een kantelende carrosserie en rem- en
           achteruitrijlichten; alleen voor een auto die echt rijdt
 */
+/** Het lakmateriaal voor een kleur, gedeeld tussen alle auto's van die kleur. */
+export function lakVoor(color) {
+  if (!paintCache.has(color)) paintCache.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.46, metalness: 0.22 }));
+  return paintCache.get(color);
+}
+
 export function makeCar(color, kind = 'hatch', animatie = false) {
   const g = new THREE.Group();
   const G = geoms(kind);
@@ -609,6 +615,8 @@ export function makeCar(color, kind = 'hatch', animatie = false) {
 
   const bak = animatie ? new THREE.Group() : g;    // carrosserie, kan overhellen
   const body = new THREE.Mesh(G.paint, paintCache.get(color)); body.castShadow = true;
+  // gemerkt, zodat js/vehicles.js hem later kan overspuiten (de spuiterij bij BP)
+  body.userData.lak = true;
   const glas = new THREE.Mesh(G.glass, SHARED.glass);
   bak.add(body, glas,
     new THREE.Mesh(animatie ? G.blackLos : G.black, SHARED.black),

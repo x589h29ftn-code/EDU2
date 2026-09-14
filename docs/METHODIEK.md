@@ -3587,6 +3587,61 @@ om de hoek. Nu moeten allebei de afstanden kloppen.
 Controle: `npm run meldtest` (tweeëntwintig controles over deze vijf punten),
 plus de drie nieuwe foto's van het herladen in `npm run richtshots`.
 
+**De wasboxen achter het tankstation, en wat je er doet (stap 55).**
+
+Op de foto's van de Lemmerweg staan achter BP Slump Oil drie open wasboxen met
+de groene band van BP erboven. Hier zijn het **gesloten** boxen met een roldeur
+geworden, en dat verschil is het hele punt: je rijdt naar binnen, de deur gaat
+achter je dicht, en je komt er in een andere kleur weer uit zonder sterren.
+Honderd euro per ster.
+
+**Waar ze staan.** Dit was het lastigste stuk, en het antwoord kwam uit de
+kaart. Het terrein van het station is in de BGT krap: de luifel beslaat
+z 127–140, de shop z 146–161, en alles daaromheen is rijbaan met een weg-as
+erin — daar kun je niets neerzetten zonder het verkeer door een muur te laten
+rijden. Maar de voetafdruk van de shop (pand 0091100000004556) heeft aan de
+noordwestkant een inham: het lage deel loopt tot z ≈ 156,6 en het hoge deel
+begint pas bij x ≈ 714,9. In het echt is dat de doorgang naar de wasstraat, en
+daar past een rij van 9,3 bij 7,6 m precies, met de rug tegen het lage deel.
+`plek()` in js/spuiterij.js leidt dat af uit de voetafdruk zelf — het westelijke
+punt en de knik ernaast — zodat de rij meeschuift als de kaart verandert.
+
+**De roldeur.** Een roldeur is geen plaat maar een stapel latten, en dat zie je
+als hij opgaat. Het zijn er acht, elk met zijn eigen stukje van de beweging: de
+bovenste verdwijnt als eerste in de kast en de rest schuift na.
+
+De botsdoos eronder gaat mee, en daar zat een adder onder het gras. Een auto
+negeert in `resolveCollisions` alles onder de drieënhalve meter (`ignoreLowH`),
+zodat hij over stoepranden en door struiken kan — een muur van drie meter zou
+hij dus dwars doorheen rijden. De wanden en de deur hebben daarom een botsdoos
+van 4,2 m, onzichtbaar boven het dak uit. Opendoen is dan een kwestie van die
+hoogte op nul zetten: `resolveCollisions` slaat hem over en er hoeft niets uit
+de lijst gehaald te worden.
+
+**Welke deur opengaat.** Eerst gingen alle drie tegelijk open. De boxen staan
+drie meter uit elkaar, dus wie voor de middelste stopt staat ook binnen twaalf
+meter van de twee ernaast en kijkt er nog schuin naartoe ook. Er is een tweede
+eis bij gekomen: je moet met de box uitgelijnd staan, binnen driekwart
+boxbreedte van zijn hartlijn. Dat is ook wat je in het echt doet.
+
+**Eén keer per bezoek.** De tweede fout was erger: een auto die na het
+overspuiten in de box bleef staan werd meteen opnieuw aan de beurt genomen —
+deur dicht, spuiten, betalen — en zo door tot de portemonnee leeg was. De box
+onthoudt nu welke auto er geweest is en laat hem pas weer toe als hij naar
+buiten gereden is.
+
+**Twee dingen die er nieuw voor waren.** `vehicles.verf(car, kleur)` spuit een
+auto over: het lakmateriaal wordt per kleur gedeeld tussen alle auto's, dus het
+wordt omgeruild en niet bijgemaakt, en de carrosseriedelen die de lak dragen
+zijn in js/carmodel.js gemerkt met `userData.lak`. En `politie.vergeet()` zet de
+verdenking op nul en laat de plek die ze wisten vervallen; de rest — wagens die
+wegrijden, agenten die inrukken, blokkades die weggehaald worden — doet
+`update` al zelf zodra er geen sterren meer zijn. `politie.blauwBij(x, z, r)`
+telt wat er aan blauw in de buurt staat; daarmee blijft de deur dicht als ze
+ernaast staan.
+
+Controle: `npm run spuittest` (zesentwintig controles) en `npm run spuitshots`.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

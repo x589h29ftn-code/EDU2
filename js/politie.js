@@ -1510,6 +1510,36 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       for (const w of wagens) uit.push({ x: w.car.x, z: w.car.z, wagen: true });
       return uit;
     },
+    /*
+     Ze zijn je kwijt — niet omdat je ze afgeschud hebt, maar omdat de auto waar
+     ze naar zochten een andere kleur heeft. De spuiterij bij het tankstation
+     (js/spuiterij.js) roept dit aan. De verdenking gaat naar nul en de plek die
+     ze wisten vervalt; de rest regelt `update` zelf: de wagens rijden weg, de
+     agenten trekken in en de blokkades worden opgeruimd.
+    */
+    vergeet() {
+      heat = 0;
+      laatstBekend = null;
+      gezienT = 0;
+      meldPlek = null; meldNieuw = false; meldWacht = 0; meldRust = 0;
+    },
+    /*
+     Hoeveel blauw er binnen `straal` van een punt staat: agenten die te voet op
+     straat lopen plus surveillanceauto's. De spuiterij gebruikt dit om te
+     bepalen of de roldeur wel open mag — staat de politie ernaast, dan zien ze
+     je naar binnen rijden en heeft overspuiten geen zin.
+    */
+    blauwBij(x, z, straal = 26) {
+      let n = 0;
+      for (const a of agenten) {
+        if (a.staat === 'neer' || !a.persoon.groep.visible) continue;
+        const p = a.persoon.groep.position;
+        if (Math.hypot(p.x - x, p.z - z) < straal) n++;
+      }
+      for (const w of wagens) if (Math.hypot(w.car.x - x, w.car.z - z) < straal) n++;
+      for (const v of verlaten) if (Math.hypot(v.car.x - x, v.car.z - z) < straal) n++;
+      return n;
+    },
     // voor de proef: dwing een bepaalde verdenking af en kijk binnen
     zetHeat(v) { heat = Math.max(0, Math.min(MAX_HEAT, v)); },
     get intern() { return { wagens, agenten, verlaten, wrakken, blokkades, laatstBekend, gezienT, stille, heli }; },

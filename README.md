@@ -53,6 +53,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | **G** | scherpte: scherp, normaal of zuinig (blijft bewaard) |
 | in de auto: W/S, A/D, spatie | gas/rem (en achteruit), sturen, handrem |
 | M | grote kaart van de wijk met straatnamen |
+| in de auto: naar de wasbox rijden | achter het BP-station: overspuiten, alle sterren kwijt (€ 100 per ster) |
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
 | Y | weer: helder, bewolkt, regen |
 | U | geluid uit en aan |
@@ -496,6 +497,50 @@ komen plek, richting en maat vandaan. Alleen de doorrijhoogte, het aantal pompen
 | Onder de luifel | De prijzenzuil |
 |---|---|
 | ![tankstation](docs/screenshots/tank_onder.png) | ![prijzenzuil](docs/screenshots/tank_voor.png) |
+
+### De wasboxen achter het station — en wat je er écht doet
+
+Achter de shop, op het terrein van het station, staat een rij **wasboxen** met de groene band van BP
+erboven en JET WASH erop. In het echt zijn het open boxen met alleen zijschotten; hier zijn het
+**gesloten** boxen met een roldeur, en dat is met opzet, want een gesloten deur is het hele idee.
+
+Wat er gebeurt:
+
+1. Je rijdt er **met een auto** naartoe. Kom je binnen twaalf meter, ben je met de box uitgelijnd en
+   wijst je neus die kant op, dan gaat de roldeur omhoog — lat voor lat, in anderhalve seconde.
+2. Je rijdt naar binnen. De deur gaat achter je dicht.
+3. Vier tellen later gaat hij weer open en rijd je er **in een andere kleur** uit. Alle sterren zijn
+   weg: ze zoeken een auto die niet meer bestaat.
+4. **Staat er politie vlak naast de box, dan gaat de deur niet open.** Ze zien je naar binnen rijden,
+   en dan heeft het geen zin. Het scherm zegt dat ook.
+
+Wat het kost is **€ 100 per ster**: één ster honderd euro, vijf sterren vijfhonderd. Zonder sterren
+kun je er ook in voor honderd euro, dan krijg je alleen een andere kleur. Heb je het geld niet, dan
+gebeurt er niets en zegt de verkoper dat.
+
+| | |
+|---|---|
+| prijs | € 100 per ster (★ 100 · ★★ 200 · ★★★ 300 · ★★★★ 400 · ★★★★★ 500) |
+| duur | de deur anderhalve seconde open, vier seconden spuiten, en weer open |
+| werkt niet | met politie binnen zesentwintig meter, of met te weinig geld |
+| daarna | blijf je binnen staan, dan gebeurt het niet nog een keer — eerst naar buiten |
+
+Dat maakt de achtervolging een ander spel: bij vijf sterren met een helikopter boven je hoofd is er
+nu een plek waar je heen kúnt rijden, en dat is precies de klassieke uitweg. Hij is niet gratis, hij
+kost je de tijd dat je stilstaat, en hij werkt niet als ze er al staan.
+
+| Op het terrein | Dicht | De deur gaat open | Binnen, deur dicht | In een andere kleur eruit |
+|---|---|---|---|---|
+| ![het terrein](docs/screenshots/spuiterij_terrein.png) | ![dicht](docs/screenshots/spuiterij_dicht.png) | ![open](docs/screenshots/spuiterij_open.png) | ![binnen](docs/screenshots/spuiterij_binnen.png) | ![klaar](docs/screenshots/spuiterij_klaar.png) |
+
+Waar de rij staat komt uit de kaart: de voetafdruk van de shop (BAG-pand 0091100000004556) heeft aan
+de noordwestkant een inham — daar is in het echt de doorgang naar de wasstraat — en daar past de rij
+precies, met de rug tegen het lage deel en de deuren naar het achterterrein. Drie boxen van 3,10 m
+breed en 7,60 m diep; de maten van de boxen zelf staan nergens in de BGT, net zomin als de
+doorrijhoogte van de luifel of de maten van de deel bij Tinga State.
+
+`npm run spuittest` toetst het (zesentwintig controles: de boxen, de roldeur, de politie ernaast, het
+overspuiten, en dat het niet in herhaling valt), `npm run spuitshots` maakt de foto's hierboven.
 
 ## Tennispark Molenkrite
 
