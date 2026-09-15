@@ -1955,24 +1955,72 @@ export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2) {
   const L = Math.hypot(dx, dz);
   if (L < 1) return true;
   if (rooster === null || roosterVoor !== colliders.length) bouwRooster();
-  const stappen = Math.min(30, Math.max(2, Math.round(L / 2)));
-  const inDoos = (c, x, z) => {
+
+  /*
+   Eerst werd er om de twee meter een punt getoetst: ligt dít punt in een doos?
+   Dat werkt voor een huis van tien meter en niet voor een schutting van zes
+   centimeter. Een kijklijn van zes meter krijgt drie stapjes, en de kans dat er
+   eentje precies op de plank valt is nihil — van de honderdtwintig schuttingen
+   brak er zo maar een vijfde de lijn, en agenten keken dus dwars door de
+   achtertuinen heen. Meer stapjes lost het niet op: bij een plank van zes
+   centimeter zou je om de paar centimeter moeten proeven, en dat is over
+   tweehonderd meter duizenden toetsen.
+
+   Nu wordt het lijnstuk zelf tegen de doos gesneden (de gewone slab-toets in het
+   assenstelsel van de doos). Dat is exact — een plank van een millimeter zou hij
+   ook vinden — en het kost juist mínder werk dan dertig punten proeven.
+  */
+  const raaktDoos = (c, ax, az, bx, bz) => {
     if (c.h < hoogte) return false;
-    const ax = x - c.cx, az = z - c.cz;
-    const lx = ax * c.cos - az * c.sin, lz = ax * c.sin + az * c.cos;
-    return Math.abs(lx) < c.hx && Math.abs(lz) < c.hz;
+    // het lijnstuk naar het assenstelsel van de doos
+    const ux = ax - c.cx, uz = az - c.cz, vx = bx - c.cx, vz = bz - c.cz;
+    const p0x = ux * c.cos - uz * c.sin, p0z = ux * c.sin + uz * c.cos;
+    const p1x = vx * c.cos - vz * c.sin, p1z = vx * c.sin + vz * c.cos;
+    const ex = p1x - p0x, ez = p1z - p0z;
+    let t0 = 0, t1 = 1;
+    // per as: waar gaat het lijnstuk de band tussen −h en +h in en weer uit?
+    if (Math.abs(ex) < 1e-9) { if (p0x < -c.hx || p0x > c.hx) return false; }
+    else {
+      let a2 = (-c.hx - p0x) / ex, b2 = (c.hx - p0x) / ex;
+      if (a2 > b2) { const t = a2; a2 = b2; b2 = t; }
+      if (a2 > t0) t0 = a2;
+      if (b2 < t1) t1 = b2;
+      if (t0 > t1) return false;
+    }
+    if (Math.abs(ez) < 1e-9) { if (p0z < -c.hz || p0z > c.hz) return false; }
+    else {
+      let a2 = (-c.hz - p0z) / ez, b2 = (c.hz - p0z) / ez;
+      if (a2 > b2) { const t = a2; a2 = b2; b2 = t; }
+      if (a2 > t0) t0 = a2;
+      if (b2 < t1) t1 = b2;
+      if (t0 > t1) return false;
+    }
+    return true;
   };
-  // opeenvolgende stapjes liggen vaak in dezelfde cel van twaalf meter, dus de
-  // lijst wordt maar opgezocht als de cel verandert
+
+  /*
+   Welke cellen komt het lijnstuk door? Elke doos staat in álle cellen die zijn
+   omhullende cirkel raakt (zie `bouwRooster`), dus het is genoeg om de cellen
+   langs de lijn af te lopen. We zetten er stapjes van een halve cel, zodat er
+   geen cel tussenuit valt, en slaan met een stempel over wat we al gehad hebben.
+  */
+  stempel++;
+  const stappen = Math.max(2, Math.ceil(L / (CEL * 0.5)));
   let sleutel = null, lijst = null;
-  for (let i = 1; i < stappen; i++) {
+  for (let i = 0; i <= stappen; i++) {
     const t = i / stappen;
     const x = x1 + dx * t, z = z1 + dz * t;
     const k = CELSLEUTEL(Math.floor(x / CEL), Math.floor(z / CEL));
-    if (k !== sleutel) { sleutel = k; lijst = rooster.get(k); }
-    if (lijst) for (const c of lijst) if (inDoos(c, x, z)) return false;
-    for (const c of losseDozen) if (inDoos(c, x, z)) return false;
+    if (k === sleutel) continue;
+    sleutel = k; lijst = rooster.get(k);
+    if (!lijst) continue;
+    for (const c of lijst) {
+      if (c._zs === stempel) continue;
+      c._zs = stempel;
+      if (raaktDoos(c, x1, z1, x2, z2)) return false;
+    }
   }
+  for (const c of losseDozen) if (raaktDoos(c, x1, z1, x2, z2)) return false;
   return true;
 }
 

@@ -943,6 +943,22 @@ goed als een agent die je ziet: de laatst bekende plek springt op jou en het aft
 Ziet hij je niet, dan blijft hij boven de verkeerde plek cirkelen — en dat is het hele spel dat hij
 erbij brengt.
 
+#### Hem neerhalen
+
+**Twintig kogels en hij gaat neer.** Dat is het dubbele van een politieauto (tien), en dat hoort ook:
+hij hangt op tweeënzestig meter en je schiet met een pistool omhoog naar iets dat rondjes vliegt. Het
+is geen kwestie van even richten — en elke treffer telt als een schot op de politie, dus ze weten
+ondertussen precies waar je staat.
+
+Halverwege begint hij te roken. Bij de twintigste raakt hij zijn staartrotor kwijt, gaat om zijn
+eigen as tollen en zakt met een dikke rookpluim naar beneden; onderweg ziet hij je niet meer. Waar
+hij insloeg blijft een paar tellen een vuurbal liggen, en dat voel je: de camera schudt tot op
+honderdveertig meter, de buurt rent gillend weg, en sta je er binnen veertien meter naast dan kost
+het je flink wat leven.
+
+Daarna is de lucht even leeg. Pas na **vijfenveertig seconden** komt er een nieuw toestel — ze hebben
+er niet tien — en die begint weer met twintig.
+
 | De helikopter boven de wijk | Van onderaf, vanaf de stoep |
 |---|---|
 | ![De helikopter boven Tinga](docs/screenshots/heli_opzij.png) | ![Van onderaf](docs/screenshots/heli_vanonder.png) |
@@ -1703,6 +1719,40 @@ met vaart wel, dat de schroef hem vanuit stilstand wél draait, dat hij de wal n
 met zijn steven niet in steekt, dat je midden op het water niet uitstapt, dat bruggen wel en duikers
 en steigers niet bevaarbaar zijn, en dat er alleen schuim komt als je vaart. `npm run bootshots`
 maakt de foto's.
+
+## Hekken, heggen en schuttingen
+
+Achter de huizen staan schuttingen van **1,80 m** en langs de voortuinen heggen en hekjes. Ze stonden
+er alleen als plaatje: je liep er dwars doorheen, en — erger — **de politie keek er dwars doorheen**.
+Achter een schutting staan was geen dekking maar een optische illusie. Nu hebben alle 26.300
+erfscheidingen een botsdoos, samen goed voor 124 kilometer heg en schutting.
+
+Er zaten twee dingen fout, en het tweede was het echte probleem.
+
+**Ze hadden geen botsdoos.** De heggen, schuttingen en hekjes werden getekend en verder niets. Dat is
+nu rechtgezet, met de hoogte erbij — en die hoogte doet het werk, want `zichtVrij` toetst op 1,20 m.
+Een schutting (1,80 plus de stoeprand) breekt de kijklijn dus wél en een heggetje van een halve meter
+niet, en dat is precies goed: over een heg in de voortuin kijk je heen, langs een schutting in de
+achtertuin niet. Auto's negeren nog steeds alles onder de 3,5 m, dus die rijden er gewoon doorheen.
+
+**En de kijklijn zelf deugde niet.** `zichtVrij` toetste om de twee meter één punt: *ligt dít punt in
+een doos?* Dat werkt voor een huis van tien meter en niet voor een plank van zes centimeter. Een
+kijklijn van zes meter krijgt drie stapjes, en de kans dat er eentje precies op de plank valt is
+nihil — van honderdtwintig schuttingen brak er zo maar **een vijfde** de lijn, zelfs mét botsdoos.
+Meer stapjes lost dat niet op: bij zes centimeter zou je om de paar centimeter moeten proeven, en dat
+zijn over tweehonderd meter duizenden toetsen. Nu wordt het lijnstuk zélf tegen de doos gesneden (de
+gewone slab-toets in het assenstelsel van de doos). Dat is exact — een plank van een millimeter zou
+hij ook vinden — en het kost mínder werk dan dertig punten proeven, want er is geen enkele doos die
+twee keer aan de beurt komt.
+
+Gemeten: van honderdtwintig schuttingen houden er nu **120 van de 120** je tegen en breken er **120
+van de 120** de kijklijn; van de heggen houden ze je allemaal tegen en breekt bijna geen enkele de
+lijn. `resolveCollisions` blijft op 0,002 ms per beeld ondanks 82.029 dozen — het rooster van twaalf
+meter doet zijn werk.
+
+`npm run looptest` telt sindsdien apart hoeveel open terrein er in een heg of schutting valt (4778
+van de 74.007 proefpunten): dat is geen fout maar een schutting, en de toets kijkt voor "klem" alleen
+nog naar de dozen boven de twee meter.
 
 ## De wal langs het water
 

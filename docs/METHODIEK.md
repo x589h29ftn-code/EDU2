@@ -3835,6 +3835,40 @@ Piersstraat), een eenlaags rijtje met groene kozijnen (De Dassenboarch) en twee
 straten met rode kozijnaccenten (Pripperstraat, Jutrijpstraat). Samen goed voor
 504 panden.
 
+**Erfscheidingen en de heli (stap 60).**
+
+*Hekken, heggen en schuttingen.* Ze werden getekend en kregen geen botsdoos: je
+liep er doorheen en de politie keek er doorheen. Alle 26.300 erfscheidingen
+(samen 124 km) hebben er nu een, met hun hoogte erbij — een schutting van 1,80
+breekt de kijklijn op 1,20 m, een heg van een halve meter niet.
+
+Daarmee was het nog niet klaar, en het tweede stuk was het echte probleem.
+`zichtVrij` toetste om de twee meter één punt: ligt dít punt in een doos? Dat
+werkt voor een huis en niet voor een plank van zes centimeter — een kijklijn van
+zes meter krijgt drie stapjes en die vallen er vrijwel altijd naast. Mét
+botsdozen brak nog steeds maar een vijfde van de schuttingen de lijn. Meer
+stapjes is geen oplossing (bij zes centimeter zou je om de paar centimeter
+moeten proeven, duizenden toetsen over tweehonderd meter); het lijnstuk wordt nu
+tegen de doos gesneden met de gewone slab-toets in het assenstelsel van de doos.
+Exact, en goedkoper dan dertig punten proeven omdat er met een stempel geen doos
+twee keer aan de beurt komt.
+
+Gemeten: 120 van 120 schuttingen houden je tegen en breken de kijklijn (was 121
+tegen en 22 zicht), `resolveCollisions` blijft op 0,002 ms per beeld bij 82.029
+dozen. `npm run looptest` telt de punten die in een heg of schutting vallen nu
+apart (4778 van 74.007) en kijkt voor "klem" alleen naar de dozen boven de twee
+meter — een punt in een schutting is geen fout maar een schutting.
+
+*De helikopter neerhalen.* Twintig treffers, het dubbele van een politieauto: hij
+hangt op tweeënzestig meter en je schiet met een pistool omhoog naar iets dat
+rondjes vliegt. Elke treffer telt als een schot op de politie. Bij de twintigste
+verliest hij zijn staartrotor, tolt om zijn as, zakt met een rookpluim naar
+beneden en slaat kapot; onderweg ziet hij je niet meer. De klap schudt de camera
+tot op honderdveertig meter, laat de buurt wegrennen en kost leven binnen veertien
+meter. Daarna duurt het vijfenveertig seconden voor er een nieuw toestel komt.
+
+Controle: `npm run helitest` (twaalf controles erbij).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

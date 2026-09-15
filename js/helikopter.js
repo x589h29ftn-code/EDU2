@@ -41,6 +41,23 @@ const VER_WEG = 520;                 // vanaf zover buiten beeld komt hij aanvli
 const ZICHT = 210;                   // verder dan dit ziet hij je niet (m)
 const KROON = 2.2;                   // de straal van een boomkroon bij schaal 1 (js/world.js)
 const GROEN = new Set(['bos', 'heesters', 'bodembedekker']);
+// ---------- hem neerhalen ----------
+/*
+ Twintig kogels en hij gaat neer. Dat is het dubbele van een politieauto (tien,
+ zie js/main.js) en dat hoort ook: hij hangt op tweeënzestig meter en je schiet
+ met een pistool omhoog naar een doel dat rondjes vliegt. Het is geen kwestie van
+ even richten.
+
+ Daarna valt hij niet als een steen. Hij verliest zijn staartrotor, gaat om zijn
+ eigen as tollen, zakt met een dikke rookpluim naar beneden en slaat op de grond
+ kapot. Dat duurt een paar tellen, en in die tellen ziet hij je niet meer.
+*/
+const HELI_HP = 20;                  // zoveel treffers houdt hij
+const TOL = 3.6;                     // rad/s waarmee hij om zijn as gaat
+const VAL = 15;                      // (m/s) waarmee hij naar beneden komt
+const VAL_AAN = 9;                   // en zo hard versnelt hij daarbij (m/s²)
+const NA_DE_KLAP = 6;                // zoveel seconden blijft de vuurbal staan
+const TERUG = 45;                    // en zo lang duurt het voor er een nieuwe komt
 const HURK_GRENS = 0.55;             // vanaf hier tel je als gehurkt
 const DAK_BOVEN = 1.6;               // zoveel meter dak boven je is genoeg (m)
 
@@ -234,10 +251,61 @@ export function initHelikopter({ scene, player }) {
 
   // ---------- de baan ----------
   let actief = false;           // hoort hij er te zijn?
-  let fase = 'weg';             // 'weg' | 'komt' | 'cirkelt' | 'gaat'
+  // 'weg' | 'komt' | 'cirkelt' | 'gaat' | 'stort' (geraakt, op weg naar beneden)
+  // | 'wrak' (ligt te branden)
+  let fase = 'weg';
   let hoek = 0;                 // waar hij op zijn rondje staat
   let ziet = false;
   let klok = 0;
+  let hp = HELI_HP;             // wat er nog over is van de twintig
+  let valT = 0;                 // hoe lang hij al valt
+  let tol = 0;                  // de hoek waarover hij tolt
+  let wachtT = 0;               // zoveel seconden geen nieuwe heli na een crash
+  let ontploft = null;          // {x, y, z} waar hij insloeg, voor js/politie.js
+
+  /*
+   De rookpluim achter een geraakte heli en de vuurbal bij de klap. Allebei
+   getekend met de bollen die er toch al zijn — er zitten geen plaatjes in dit
+   spel. De pluim is een handvol bollen die achterblijven en uitdijen, de vuurbal
+   één grote die opzwelt en wegzakt.
+  */
+  const PLUIM = 14;
+  const pluim = [];
+  const rookGeo = new THREE.SphereGeometry(1, 7, 5);
+  for (let i = 0; i < PLUIM; i++) {
+    const m = new THREE.Mesh(rookGeo, new THREE.MeshBasicMaterial({
+      color: 0x2a2724, transparent: true, opacity: 0, depthWrite: false,
+    }));
+    m.visible = false;
+    scene.add(m);
+    pluim.push({ mesh: m, t: 0, maat: 1 });
+  }
+  let pluimKlok = 0;
+  const vuurbal = new THREE.Mesh(rookGeo, new THREE.MeshBasicMaterial({
+    color: 0xff8a2a, transparent: true, opacity: 0, depthWrite: false,
+  }));
+  vuurbal.visible = false;
+  scene.add(vuurbal);
+
+  function rookNa(x, y, z, vuur = false) {
+    const p = pluim.find(o => o.t <= 0);
+    if (!p) return;
+    p.t = 1; p.maat = vuur ? 3.2 : 1.4 + Math.random() * 1.2;
+    p.mesh.position.set(x, y, z);
+    p.mesh.material.color.setHex(vuur ? 0xff7a1a : 0x2a2724);
+    p.mesh.visible = true;
+  }
+  function werkRookBij(dt) {
+    for (const p of pluim) {
+      if (p.t <= 0) continue;
+      p.t -= dt * 0.28;
+      if (p.t <= 0) { p.mesh.visible = false; continue; }
+      const g = p.maat * (1 + (1 - p.t) * 2.4);
+      p.mesh.scale.setScalar(g);
+      p.mesh.position.y += dt * 1.6;                  // rook stijgt
+      p.mesh.material.opacity = 0.55 * p.t;
+    }
+  }
 
   function startPlek(doel) {
     // hij komt van buiten de wijk aanvliegen, altijd van dezelfde kant als waar
@@ -258,15 +326,29 @@ export function initHelikopter({ scene, player }) {
    */
   function update(dt, { aan = false, doel = null, donker = false } = {}) {
     klok += dt;
+    werkRookBij(dt);
     const sp = player.inCar || player.pos;
     const mik = doel || { x: sp.x, z: sp.z };
+
+    /*
+     ---- neergehaald ----
+     Storten en branden gaan hun eigen gang: of er nog vier sterren staan doet er
+     even niet toe, en zolang hij valt ziet hij je niet. Na de klap blijft de
+     vuurbal een paar tellen liggen en duurt het TERUG seconden voor er een nieuw
+     toestel komt — ze hebben er niet tien.
+    */
+    if (fase === 'stort' || fase === 'wrak') { stortStap(dt); return false; }
+    if (wachtT > 0) { wachtT -= dt; geluid.heli(null); ziet = false; return false; }
 
     if (aan && !actief) {
       actief = true;
       fase = 'komt';
+      hp = HELI_HP;
       const p = startPlek(mik);
       H.groep.position.set(p.x, HOOGTE + 40, p.z);
+      H.groep.rotation.set(0, 0, 0);
       H.groep.visible = true;
+      if (H.staartRotor) H.staartRotor.visible = true;
     } else if (!aan && actief) {
       actief = false;
       fase = 'gaat';
@@ -337,19 +419,113 @@ export function initHelikopter({ scene, player }) {
     return ziet;
   }
 
+  /*
+   ---- de crash ----
+   Eén beeld van het storten of van het wrak. Hij tolt om zijn as (de staartrotor
+   is eraf, dus er is niets meer wat de romp tegenhoudt), zakt steeds sneller en
+   laat rook achter. Bij de grond klapt hij en blijft er een vuurbal liggen.
+  */
+  function stortStap(dt) {
+    const pos = H.groep.position;
+    if (fase === 'stort') {
+      valT += dt;
+      tol += TOL * dt;
+      H.groep.rotation.y = tol;
+      H.groep.rotation.z = Math.sin(tol * 0.7) * 0.35;
+      H.groep.rotation.x = 0.28;
+      if (H.rotor) H.rotor.rotation.y += dt * 6;      // de rotor loopt uit
+      pos.y -= (VAL + VAL_AAN * valT) * dt;
+      pluimKlok -= dt;
+      if (pluimKlok <= 0) { pluimKlok = 0.06; rookNa(pos.x, pos.y, pos.z); }
+      const grond = grondHoogte(pos.x, pos.z, -Infinity);
+      if (pos.y <= grond + 1.6) {
+        pos.y = grond + 1.6;
+        fase = 'wrak';
+        valT = 0;
+        ontploft = { x: pos.x, y: grond, z: pos.z };
+        H.groep.visible = false;
+        vuurbal.position.set(pos.x, grond + 2.2, pos.z);
+        vuurbal.visible = true;
+        for (let i = 0; i < 8; i++) {
+          const a2 = i / 8 * 6.283;
+          rookNa(pos.x + Math.cos(a2) * 2.5, grond + 1.5, pos.z + Math.sin(a2) * 2.5, true);
+        }
+        geluid.klap();
+        geluid.heli(null);
+      } else {
+        // hoe lager hij komt, hoe harder je hem hoort — en dan is het stil
+        geluid.heli(Math.hypot(pos.x - (player.inCar || player.pos).x, pos.z - (player.inCar || player.pos).z));
+      }
+      return;
+    }
+    // fase === 'wrak': de vuurbal zakt weg en daarna is er even geen heli
+    valT += dt;
+    const f = Math.max(0, 1 - valT / NA_DE_KLAP);
+    vuurbal.scale.setScalar(3.5 + (1 - f) * 3);
+    vuurbal.material.opacity = 0.85 * f * f;
+    if (valT > 0.25 && valT < NA_DE_KLAP * 0.6 && Math.random() < dt * 6) {
+      rookNa(vuurbal.position.x + (Math.random() - 0.5) * 4, vuurbal.position.y,
+        vuurbal.position.z + (Math.random() - 0.5) * 4);
+    }
+    if (valT >= NA_DE_KLAP) {
+      vuurbal.visible = false;
+      fase = 'weg';
+      actief = false;
+      wachtT = TERUG;
+    }
+  }
+
+  /**
+   * Een kogel. Levert true als hij de heli raakte, zodat js/main.js weet dat hij
+   * niet ook nog iets anders moet doen met dezelfde treffer.
+   */
+  function raak(obj, hoeveel = 1) {
+    if (fase === 'weg' || fase === 'stort' || fase === 'wrak') return false;
+    let hit = false;
+    H.groep.traverse(o => { if (o === obj) hit = true; });
+    if (!hit) return false;
+    hp -= hoeveel;
+    if (hp > 0) {
+      // je hoort en ziet dat je hem raakt, ook al gaat hij nog niet neer
+      geluid.raak();
+      if (hp <= HELI_HP * 0.4) rookNa(H.groep.position.x, H.groep.position.y, H.groep.position.z);
+      return true;
+    }
+    // op: de staartrotor eraf en naar beneden
+    fase = 'stort';
+    valT = 0; tol = H.groep.rotation.y; ziet = false;
+    if (H.staartRotor) H.staartRotor.visible = false;
+    geluid.klap();
+    return true;
+  }
+
+  // waar de kogels op mogen stuiten (js/main.js zet dit bij de doelen)
+  function doelen() {
+    return (fase === 'weg' || fase === 'wrak' || !H.groep.visible) ? [] : [H.groep];
+  }
+
   function reset() {
     actief = false; fase = 'weg'; ziet = false;
+    hp = HELI_HP; valT = 0; wachtT = 0; ontploft = null;
     H.groep.visible = false;
+    H.groep.rotation.set(0, 0, 0);
+    if (H.staartRotor) H.staartRotor.visible = true;
+    vuurbal.visible = false;
+    for (const p of pluim) { p.t = 0; p.mesh.visible = false; }
     geluid.heli(null);
   }
 
   return {
-    update, reset, groep: H.groep,
+    update, reset, raak, doelen, groep: H.groep,
     // voor js/hud.js en de proeven
     get actief() { return fase !== 'weg'; },
     get fase() { return fase; },
     get ziet() { return ziet; },
     get positie() { return H.groep.position; },
+    get hp() { return hp; },
+    get maxHp() { return HELI_HP; },
+    // waar hij insloeg, één keer op te halen; js/politie.js maakt er een melding van
+    pakOntploft() { const o = ontploft; ontploft = null; return o; },
     zichtbaar, onderBoom, onderDak,
   };
 }

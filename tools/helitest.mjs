@@ -270,6 +270,62 @@ ok(onder.rollen.filter(r => r.onderschept).every(r => r.doelVooruit === null || 
   'wie onderschept mikt op een punt vóór je, niet erachter',
   onder.rollen.filter(r => r.onderschept).map(r => (r.doelVooruit === null ? '—' : `${r.doelVooruit.toFixed(0)} m vooruit`)).join(', '));
 
+// ---------------------------------------------------------------- neerhalen
+kop('twintig kogels en hij gaat neer');
+const neer = await page.evaluate(async () => {
+  const g = window.__game, P = g.politie;
+  P.reset();
+  g.player.active = true;
+  g.player.pos.set(0, 0, 0);
+  P.zetHeat(300);                                    // vier sterren
+  // hem laten komen en op zijn rondje laten gaan
+  for (let i = 0; i < 400; i++) P.update(0.05);
+  const uit = { ster: P.ster, fase: P.heli.fase, maxHp: P.heli.maxHp, hp: P.heli.hp };
+  uit.doelen = P.doelen().length;
+
+  // één mesh uit de heli pakken en er kogels in zetten
+  let mesh = null;
+  g.scene.traverse(o => { if (!mesh && o.isMesh && o.parent && heliVan(o)) mesh = o; });
+  function heliVan(o) { let p = o; while (p) { if (p === P.intern.heli.groep) return true; p = p.parent; } return false; }
+  uit.meshGevonden = !!mesh;
+  uit.raakNa = [];
+  for (let n = 1; n <= 19; n++) { P.raakHeli(mesh); }
+  uit.naNegentien = { fase: P.heli.fase, hp: P.heli.hp };
+  P.raakHeli(mesh);
+  uit.naTwintig = { fase: P.heli.fase, hp: P.heli.hp };
+  const y0 = P.heli.y;
+  for (let i = 0; i < 40; i++) { P.zetHeat(300); P.update(0.05); }
+  uit.zakt = P.heli.y < y0 - 5;
+  uit.zietTijdensVal = P.heli.ziet;
+  // door laten vallen tot de klap en daarna
+  for (let i = 0; i < 400; i++) { P.zetHeat(300); P.update(0.05); }
+  uit.naDeKlap = P.heli.fase;
+  uit.inslag = P.heliOntploft();
+  // en er komt niet meteen een nieuwe
+  for (let i = 0; i < 40; i++) { P.zetHeat(300); P.update(0.05); }
+  uit.meteenNieuw = P.heli.fase !== 'weg';
+  // maar na de wachttijd wel
+  for (let i = 0; i < 1400; i++) { P.zetHeat(300); P.update(0.05); }
+  uit.laterNieuw = P.heli.fase;
+  uit.nieuweHp = P.heli.hp;
+  P.reset();
+  return uit;
+});
+ok(neer.ster >= 4, 'bij vier sterren hangt hij er', `${neer.ster} sterren, fase ${neer.fase}`);
+ok(neer.meshGevonden, 'de heli zit tussen de doelen waar je op kunt schieten', `${neer.doelen} doelen`);
+ok(neer.maxHp === 20, 'hij houdt twintig kogels', `${neer.maxHp}`);
+ok(neer.naNegentien.fase !== 'stort', 'na negentien kogels vliegt hij nog',
+  `fase ${neer.naNegentien.fase}, ${neer.naNegentien.hp} over`);
+ok(neer.naTwintig.fase === 'stort', 'en bij de twintigste gaat hij neer', `fase ${neer.naTwintig.fase}`);
+ok(neer.zakt, 'hij zakt ook echt naar beneden');
+ok(!neer.zietTijdensVal, 'en ziet je onderweg niet meer');
+ok(neer.naDeKlap === 'weg', 'na de klap is hij weg', `fase ${neer.naDeKlap}`);
+ok(!!neer.inslag, 'en js/main.js krijgt de plek van de inslag door',
+  neer.inslag ? `(${neer.inslag.x.toFixed(0)}, ${neer.inslag.z.toFixed(0)})` : 'geen');
+ok(!neer.meteenNieuw, 'er komt niet meteen een nieuwe');
+ok(neer.laterNieuw !== 'weg', 'maar na de wachttijd wel', `fase ${neer.laterNieuw}`);
+ok(neer.nieuweHp === 20, 'en die begint weer met twintig', `${neer.nieuweHp}`);
+
 console.log(`\n${fouten === 0 ? 'alles goed.' : `${fouten} fout(en).`}`);
 await browser.close();
 process.exit(fouten ? 1 : 0);

@@ -595,6 +595,31 @@ export function* bouwKaartWereldStap(scene, W) {
       vlakGeometrie([ring], y0 + h, 0.5, doel.pos, doel.uv, doel.nor);
       randGeometrie([ring], y0 + h, y0, doel.pos, doel.uv, doel.nor);
     };
+    /*
+     En een botsdoos bij elke erfscheiding.
+
+     Ze stonden er alleen als plaatje: je liep dwars door de schutting achter de
+     huizen heen, en erger nog — `zichtVrij` in js/world.js kijkt naar diezelfde
+     botsdozen, dus een agent keek er ook doorheen. Achter een schutting van 1,80
+     staan was geen dekking maar een optische illusie.
+
+     De hoogte gaat mee, want daar hangt het zicht aan: `zichtVrij` toetst op
+     1,20 m. Een schutting (1,80 + de stoeprand) breekt de lijn dus wel en een
+     lage haag van een halve meter niet, en dat is precies goed — over een heggetje
+     in de voortuin kijk je heen, langs een schutting in de achtertuin niet.
+
+     De dikte is de echte dikte; de straal van wie er tegenaan loopt doet de rest
+     (`resolveCollisions` telt die erbij op). Auto's negeren alles onder de 3,5 m,
+     dus die rijden er nog gewoon doorheen — een schutting houdt geen auto tegen.
+    */
+    let scheidingDozen = 0;
+    const scheidingDoos = (a2, b2, dikte, h) => {
+      const dx = b2[0] - a2[0], dz = b2[1] - a2[1], L = Math.hypot(dx, dz);
+      if (L < 0.2) return;
+      W.addCollider((a2[0] + b2[0]) / 2, (a2[1] + b2[1]) / 2, L / 2, Math.max(0.05, dikte / 2),
+        -Math.atan2(dz, dx), KERB_Y + h);
+      scheidingDozen++;
+    };
     const hek = { pos: [], uv: [], nor: [] }, tv = { pos: [], uv: [], nor: [] }, tvt = { pos: [], uv: [], nor: [] };
     for (const h of K.heggen || []) {
       if (h.soort === 'hekje') {
@@ -603,12 +628,14 @@ export function* bouwKaartWereldStap(scene, W) {
         const nx = dz / L, nz = -dx / L;
         const q = [[h.a[0], KERB_Y + h.h, h.a[1]], [h.b[0], KERB_Y + h.h, h.b[1]], [h.b[0], KERB_Y, h.b[1]], [h.a[0], KERB_Y, h.a[1]]];
         for (const [i0, i1, i2] of [[0, 1, 2], [0, 2, 3]]) for (const k of [i0, i1, i2]) { const v = q[k]; hek.pos.push(v[0], v[1], v[2]); hek.uv.push(k === 1 || k === 2 ? L : 0, (v[1] - KERB_Y) / h.h); hek.nor.push(nx, 0, nz); }
+        scheidingDoos(h.a, h.b, 0.08, h.h);
         continue;
       }
       balk(h.a, h.b, 0.5, h.h, hg2, KERB_Y);
+      scheidingDoos(h.a, h.b, 0.5, h.h);
     }
     for (const t of K.tuinvlakken || []) { const d = t.m === 'grind' ? tv : tvt; vlakGeometrie([t.r], KERB_Y + 0.01, t.m === 'grind' ? 0.5 : 1 / 1.2, d.pos, d.uv, d.nor); }
-    for (const f of K.schuttingen || []) balk(f.a, f.b, 0.06, f.h, sch, KERB_Y);
+    for (const f of K.schuttingen || []) { balk(f.a, f.b, 0.06, f.h, sch, KERB_Y); scheidingDoos(f.a, f.b, 0.06, f.h); }
     for (const ring of K.paden || []) vlakGeometrie([ring], KERB_Y + 0.015, 1 / 1.2, pd.pos, pd.uv, pd.nor);
     for (const l of K.strepen || []) balk(l.a, l.b, 0.1, 0.008, st, 0.0);
     // de twee zware in tegels, met een afstand waarop ze uit mogen
@@ -619,7 +646,7 @@ export function* bouwKaartWereldStap(scene, W) {
     for (const [g, mat, k, schaduw] of [[hek, KM.hekje, 'hekje', true], [pd, KM.tegels, 'tegelpad', false], [tv, KM.grind, 'grindtuin', false], [tvt, KM.tegels, 'tegeltuin', false], [st, KM.streep, 'belijning', false]]) {
       const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse: k, schaduw }); if (m) scene.add(m);
     }
-    console.log(`kaart: heggen en schuttingen in ${tegelMeshes} tegelmeshes`);
+    console.log(`kaart: heggen en schuttingen in ${tegelMeshes} tegelmeshes, ${scheidingDozen} botsdozen`);
     // losse objecten uit de objectenbibliotheek (doelen, banken)
     for (const o of K.objecten || []) {
       const obj = W.maakProp ? W.maakProp(o.type) : null; if (!obj) continue;

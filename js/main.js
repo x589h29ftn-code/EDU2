@@ -621,6 +621,14 @@ player.shootCb = (camOrigin, camDir) => {
       // passen in elk wapen
       buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie());
     }
+    /*
+     De helikopter. Twintig kogels en hij gaat tollend naar beneden
+     (js/helikopter.js). Hij staat vóór de auto's in de rij, want anders zou een
+     treffer in de romp ook nog als "op een auto geschoten" tellen.
+    */
+    else if (politie.raakHeli(h.object)) {
+      schok(0.25);
+    }
     else if ((raakVerhaal = verhaal.raak(h.object))) { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); }
     else {
       /*
@@ -1214,6 +1222,26 @@ function loop() {
       // wordt: de levensbalk wordt alleen bijgewerkt als iemand hem bijwerkt,
       // en de rode flits komt uit js/hud.js — net als bij de bewaking op de RWZI.
       if (schade > 0) { player.health -= schade; hud.zetLeven(player.health); hud.flits(); }
+      /*
+       Een neergehaalde helikopter slaat ergens in de wijk in. Dat hoor en voel
+       je: de camera schudt naar de afstand, de buurt rent weg en wie er vlak
+       naast staat krijgt het te verduren. Dezelfde vorm als bij een auto die
+       ontploft (`autoOntploft` hierboven).
+      */
+      const inslag = politie.heliOntploft();
+      if (inslag) {
+        const d = Math.hypot(player.pos.x - inslag.x, player.pos.z - inslag.z);
+        const nabij = Math.max(0, 1 - d / 140);
+        if (nabij > 0) schok(2.0 * nabij * nabij);
+        geluid.klap();
+        npcs.paniek(inslag.x, inslag.z, PANIEK_KLAP);
+        for (let i = 0; i < 3; i++) geluid.kreet('schrik', d + i * 8);
+        if (d < 14) {
+          player.health -= Math.round(55 * (1 - d / 14));
+          hud.zetLeven(player.health); hud.flits();
+        }
+        hud.show('Helikopter neergehaald', 4);
+      }
     }
     hud.zetSterren(politie.ster, politie.gezocht);
     hud.zetPolitie(politie.gezocht ? politie.plekken : null);

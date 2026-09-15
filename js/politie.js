@@ -1063,7 +1063,21 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   }
 
   function doelen() {
-    return agenten.filter(a => a.staat !== 'neer' && a.persoon.groep.visible).map(a => a.persoon.groep);
+    const uit = agenten.filter(a => a.staat !== 'neer' && a.persoon.groep.visible).map(a => a.persoon.groep);
+    // en de helikopter, zodat je erop kunt schieten (twintig kogels, js/helikopter.js)
+    return uit.concat(heli.doelen());
+  }
+
+  /**
+   * Een kogel in de helikopter. Twintig treffers en hij gaat neer. Elke treffer
+   * telt als een schot op de politie: ze weten meteen waar je staat, net als bij
+   * een geraakte surveillancewagen.
+   */
+  function raakHeli(obj) {
+    if (!heli.raak(obj)) return false;
+    misdaad('schot', spelerPlek().x, spelerPlek().z);
+    meldTreffer();
+    return true;
   }
 
   // ---------------------------------------------------------------- per beeld
@@ -1494,14 +1508,16 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   }
 
   return {
-    misdaad, update, raak, raakWagen, wagenOp, doelen, hoorSchot, reset, aanrijden,
+    misdaad, update, raak, raakWagen, raakHeli, wagenOp, doelen, hoorSchot, reset, aanrijden,
     get ster() { return ster(); },
     get heat() { return heat; },
     get gezocht() { return ster() > 0; },
     get eenheden() { return { voet: agenten.filter(a => !a.wagen).length, inWagen: agenten.filter(a => a.wagen).length, wagens: wagens.length, verlaten: verlaten.length }; },
     get stille() { return stille; },
     // de helikopter, voor js/hud.js en tools/helitest.mjs
-    get heli() { return { actief: heli.actief, fase: heli.fase, ziet: heli.ziet, x: heli.positie.x, y: heli.positie.y, z: heli.positie.z }; },
+    get heli() { return { actief: heli.actief, fase: heli.fase, ziet: heli.ziet, hp: heli.hp, maxHp: heli.maxHp, x: heli.positie.x, y: heli.positie.y, z: heli.positie.z }; },
+    // de plek waar een neergehaalde heli insloeg, één keer op te halen
+    heliOntploft: () => heli.pakOntploft(),
     heliZicht: (x, z, y = 0) => heli.zichtbaar(x, z, y),
     get plekken() {
       // voor de minikaart: waar staan de eenheden?

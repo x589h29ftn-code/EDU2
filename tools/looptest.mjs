@@ -68,7 +68,7 @@ const uitslag = await page.evaluate(async () => {
   // strookje dat net iets te ruim is hindert niemand
   const vrijVanPanden = (x, z) => !dichtbij(x, z, 4).some(q => inVoet(x, z, q.voet) || randAf(x, z, q.voet) < 1.5);
 
-  let punten = 0, klem = 0;
+  let punten = 0, klem = 0, erfscheiding = 0;
   const ergste = [];
   for (const p of KAART.panden) {
     if (!p.rect || !p.voet || p.voet.length < 4) continue;
@@ -81,7 +81,20 @@ const uitslag = await page.evaluate(async () => {
       if (!vrijVanPanden(x, z)) continue;
       punten++; hier++;
       const [rx, rz] = w.resolveCollisions(x, z, 0.35);
-      if (Math.hypot(rx - x, rz - z) > 0.01) { klem++; dicht++; }
+      if (Math.hypot(rx - x, rz - z) <= 0.01) continue;
+      /*
+       Geblokkeerd — maar waardóór? Sinds de erfscheidingen een botsdoos hebben
+       staat er op elke perceelsgrens een heg (tot ~1,1 m) of een schutting
+       (1,92 m), en een punt dat in zo'n schutting valt is geen fout maar een
+       schutting. Dat is precies de bedoeling: je loopt er niet meer doorheen.
+       Waar deze toets over gaat is het open terrein dat door een gebouw of een
+       muur dichtzit, en dat zijn de dozen boven de twee meter. `ignoreLowH`
+       slaat alles daaronder over, dus als het punt dán vrij is was het een
+       erfscheiding.
+      */
+      const [gx, gz] = w.resolveCollisions(x, z, 0.35, 2.0);
+      if (Math.hypot(gx - x, gz - z) <= 0.01) { erfscheiding++; continue; }
+      klem++; dicht++;
     }
     if (dicht > 4) ergste.push({ nr: (p.nr || []).join('/') || p.id.slice(-6), straat: p.straat || '?', dicht, hier });
   }
@@ -119,10 +132,11 @@ const uitslag = await page.evaluate(async () => {
     wandelingen.push({ nr: (p.nr || []).join('/') || p.id.slice(-6), vast, binnen, verste: +verste.toFixed(1) });
   }
 
-  return { colliders: w.colliders.length, punten, klem, ergste: ergste.slice(0, 6), wandelingen };
+  return { colliders: w.colliders.length, punten, klem, erfscheiding, ergste: ergste.slice(0, 6), wandelingen };
 });
 
-console.log(`${uitslag.colliders} botsingsdozen · ${uitslag.punten} open punten binnen de panden getoetst`);
+console.log(`${uitslag.colliders} botsingsdozen · ${uitslag.punten} open punten binnen de panden getoetst`
+  + ` · ${uitslag.erfscheiding} daarvan liggen in een heg of schutting`);
 ok(uitslag.klem / Math.max(1, uitslag.punten) < 0.02,
   'het open terrein binnen de panden is begaanbaar',
   `${uitslag.klem} van de ${uitslag.punten} punten geblokkeerd`);
