@@ -2184,7 +2184,13 @@ geometrie zijn, welke bronnen en welk coördinatenstelsel (RD New) gebruikt word
 controles. De belangrijkste controle is `npm run geo:boven`: een bovenaanzicht van het spel dat pixel
 voor pixel naast de kaartplaat van de brondata wordt gelegd (nu 1,59 % afwijking).
 
-![Het spel van boven](data/geo/spel-boven.png)
+![Het spel van boven](docs/spel-van-boven.jpg)
+
+*De plaat hierboven is een verkleining. De controle zelf draait op
+`data/geo/spel-boven.png`, 8760 × 5000 px — die staat niet in versiebeheer, want
+hij wordt bij elke controle opnieuw geschreven en woog zesenveertig megabyte per
+keer. `npm run geo:boven` maakt hem opnieuw; `node tools/geo/verkleinplaat.mjs`
+maakt er deze JPEG van.*
 
 Elk pand krijgt zijn gevel met ramen en deuren uit het woningtype in de stijlcatalogus
 `data/stijl/straten.json` (per straat), met het aantal lagen uit de echte goothoogte. `npm run

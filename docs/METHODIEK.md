@@ -389,6 +389,15 @@ De uitkomst staat in `data/geo/spel-boven.png` (het spel van boven) en
 `data/geo/verschil.png` (rood = afwijking). Beide ontstaan met `npm run geo:boven`
 bij een draaiende webserver (`npm start`).
 
+Die twee staan **niet in versiebeheer**, en dat is met reden. `spel-boven.png` is
+8760 × 5000 px en zesenveertig megabyte, en hij wordt bij elke controle opnieuw
+geschreven: hij stond eenenveertig keer in de geschiedenis, samen bijna twee
+gigabyte, en daar liep het opslagquotum van GitHub op stuk. Hetzelfde geldt voor
+`bgt-plaat.png`. Het zijn uitkomsten van een controle en geen bron; wie ze wil
+hebben draait de controle. Voor in de README staat er een verkleinde JPEG van een
+halve megabyte in `docs/spel-van-boven.jpg`, gemaakt met
+`node tools/geo/verkleinplaat.mjs`.
+
 **Wat de data zegt.**
 
 - Rijbanen zijn klinkers: in de Tinga-uitsnede waren 603 van de 670 wegdelen open

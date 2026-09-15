@@ -9,4 +9,14 @@ data/geo/bgt-plaat-kaal.svg
 data/geo/bgt-plaat-kaal.png
 data/geo/bgt-plaat-kaal.pgw
 data/geo/spel-plaat.png
+# Controleplaten van `npm run geo:boven` en `tools/geo/plaat.mjs`. Ze worden bij
+# elke controle opnieuw geschreven en zijn samen tachtig megabyte; spel-boven.png
+# stond eenenveertig keer in de geschiedenis, goed voor bijna twee gigabyte, en
+# daar liep het opslagquotum van GitHub op stuk. Ze horen bij de controle, niet
+# bij de bron: `npm run geo:boven` maakt ze in een paar minuten opnieuw. Voor in
+# de README staat er een verkleinde JPEG in docs/spel-van-boven.jpg
+# (tools/geo/verkleinplaat.mjs).
+data/geo/spel-boven.png
+data/geo/verschil.png
+data/geo/bgt-plaat.png
 tools/tmp/
