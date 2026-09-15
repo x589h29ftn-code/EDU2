@@ -2360,7 +2360,15 @@ Elk pand krijgt zijn gevel met ramen en deuren uit het woningtype in de stijlcat
 geo:steekproef` rendert de vaste adressen vanaf de straat en zet er de Street View-link van
 hetzelfde camerapunt naast, zie **[docs/steekproef/README.md](docs/steekproef/README.md)**.
 
-De derde ronde staat klaar in **[docs/steekproef/ronde3.md](docs/steekproef/ronde3.md)**: twintig
+De **vijfde ronde** staat klaar in **[docs/steekproef/ronde5.md](docs/steekproef/ronde5.md)**:
+vierentwintig standpunten die gaan over de gebouwen die *niet* in een rijtje passen. Zeven
+grachtenpanden in de oude stad van IJlst (nu getekend als gewone Tinga-rijtjeshuizen), negen
+bedrijfspanden op het terrein van IJlst en aan de Lemmerweg (allemaal het algemene type `spil`,
+twee zelfs zonder 3D BAG-meting), en acht omgevingsplekken — met als belangrijkste het **sportpark
+van IJlst**, waar wel 7700 m² kunstgras in de kaart ligt maar niets op staat: geen doelen, geen
+belijning, geen clubgebouw. `node tools/geo/steekproeflinks.mjs 5` maakt die lijst opnieuw.
+
+De derde ronde staat in **[docs/steekproef/ronde3.md](docs/steekproef/ronde3.md)**: twintig
 standpunten in IJlst, Duinterpen, de nieuwbouw ten oosten van Tinga en de noordoosthoek, elk met de
 Street View-link van precies het punt waar het spel vanaf rendert. Dat is de grootste openstaande
 aanname in de kaart — al die straten worden nu met het Molenkrite-woningtype getekend, de gele

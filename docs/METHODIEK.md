@@ -398,6 +398,24 @@ hebben draait de controle. Voor in de README staat er een verkleinde JPEG van ee
 halve megabyte in `docs/spel-van-boven.jpg`, gemaakt met
 `node tools/geo/verkleinplaat.mjs`.
 
+*En daarna ook uit de geschiedenis.* Ze uit versiebeheer halen stopte de groei
+maar haalde niets weg: de `.git`-map was 1,9 GB en bleef dat, want de oude
+versies stonden er nog in. Een gewone `git gc --prune=now` haalde er 0,1 GB af —
+dat zijn alleen de onbereikbare objecten. De rest zit in de commits zelf en gaat
+er alleen uit door de geschiedenis te herschrijven.
+
+Gedaan met `git filter-repo --invert-paths` op de drie platen
+(`spel-boven.png` 1153 MB over 25 versies, `verschil.png` 92 MB,
+`bgt-plaat.png` 47 MB). Wat er daarna staat is te controleren: de boom van de
+laatste commit heeft **exact dezelfde hash** als ervoor, dus aan de inhoud van de
+repo is niets veranderd — alleen de historie is lichter. Van 1,9 GB naar 618 MB,
+en één commit minder (die bevatte alleen nog maar een plaat en werd leeg).
+
+Let op de laatste stap, want die wordt makkelijk vergeten: de drie takken op
+GitHub moesten allemaal opnieuw gepusht worden. Zolang één tak de oude
+geschiedenis nog vasthoudt, blijven die 1,3 GB daar gewoon staan en is het
+quotum niets opgeschoten.
+
 **Wat de data zegt.**
 
 - Rijbanen zijn klinkers: in de Tinga-uitsnede waren 603 van de 670 wegdelen open
@@ -3534,6 +3552,27 @@ vreemd zijn (een goot op 5,70 met een nok op 5,76, een nok van 3,40 m, een blok
 van 11,5 m en een nok op 14,4 m) en vijf plekken die het spel uit regels opbouwt
 en die nog nooit tegen een foto zijn gelegd: het tankstation, het tennispark,
 het sportpark, de volkstuinen en de houtzaagmolen.
+
+**Ronde 5 van de steekproef.** Vierentwintig standpunten in
+`docs/steekproef/ronde5.md`, en deze ronde gaat over wat er *niet* in een rijtje
+past. De vorige rondes gingen over steen, dakvorm en kozijnkleur van
+rijtjeshuizen; die zijn nu redelijk op orde. Wat overblijft:
+
+- **De oude stad van IJlst** (zeven adressen). De grachtenpanden van 1850 aan de
+  Eegracht, de Galamagracht, de Popmawal en de Geeuwkade worden getekend als
+  gewone Tinga-rijtjeshuizen met een kap (`molenkrite_kap`) — precies wat ze niet
+  zijn. Uilenburg 56 is helemaal onduidelijk: 620 m² grondvlak, 12,5 m hoog, 1850.
+- **De bedrijfspanden** (negen adressen). Drie hallen aan de Roodhemsterweg, De
+  Finne en de Trompmoledyk, en zes panden aan of vlak bij de Lemmerweg. Allemaal
+  `spil`, het algemene type. Bij Lemmerweg 130B en Lemmerweg 51 is er niet eens
+  een 3D BAG-meting: daar staat een gok van goot 5,8 en nok 8,8 m.
+- **Wat er nog niet staat** (acht plekken). De belangrijkste is het sportpark van
+  IJlst: in de kaart ligt daar 7700 m² kunstgras, maar `KAART.sportvelden` kent
+  alleen de vier velden van VV Sneek Wit Zwart aan de Molenkrite. In IJlst is het
+  dus een groen vlak zonder doelen, belijning, ballenvangers of clubgebouw.
+  Verder de twee grachten, het bedrijventerrein, de grootste hal van IJlst (6100
+  m², zonder adres in de kaart), het profiel van de Lemmerweg, de brug daarin en
+  de kade waar de sloep ligt.
 
 **Vijf dingen die opvielen bij het spelen (stap 54).**
 

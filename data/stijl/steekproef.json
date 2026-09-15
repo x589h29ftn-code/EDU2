@@ -306,6 +306,102 @@
       "nr": "20",
       "ronde": 4,
       "vraag": "steen, dakvorm en of er dakkapellen aan de straatkant zitten"
+    },
+    {
+      "straat": "Uilenburg",
+      "nr": "56",
+      "ronde": 5,
+      "vraag": "1850, nok 12,5 m en 620 m² grondvlak — dat is geen woonhuis. Wat voor gebouw is dit (pakhuis, kerk, school?), van welk materiaal en met welke gevel?"
+    },
+    {
+      "straat": "Eegracht",
+      "nr": "28-29",
+      "ronde": 5,
+      "vraag": "1898 aan de gracht: hoeveel panden zijn dit, wat voor gevels (trap-, tuit- of lijstgevel), welke steen en welke kleuren?"
+    },
+    {
+      "straat": "Galamagracht",
+      "nr": "5",
+      "ronde": 5,
+      "vraag": "1850 aan het water: gevelvorm, steen, luiken, en of er een stoep met stoeppalen voor ligt"
+    },
+    {
+      "straat": "Popmawal",
+      "nr": "2",
+      "ronde": 5,
+      "vraag": "1850 op de wal: gevel, dakpannen, en hoe het pand op de kade staat — met of zonder voortuin"
+    },
+    {
+      "straat": "Geeuwkade",
+      "nr": "17",
+      "ronde": 5,
+      "vraag": "1933 aan de Geeuw: steen, kozijnen, en of de kade ervoor van hout, beton of steen is"
+    },
+    {
+      "straat": "Stadslaan",
+      "nr": "42",
+      "ronde": 5,
+      "vraag": "1955 aan de doorgaande straat: steen en dak, en zitten er winkels of bedrijven op de begane grond?"
+    },
+    {
+      "straat": "Julianastraat",
+      "nr": "75",
+      "ronde": 5,
+      "vraag": "1985, 1480 m² en nok 14,2 m: is dit een school, een sporthal of een bedrijf? En welke gevel?"
+    },
+    {
+      "straat": "Roodhemsterweg",
+      "nr": "7",
+      "ronde": 5,
+      "vraag": "1991, 3980 m² onder één dak: wat voor bedrijf, welke gevel- en dakbeplating, welke kleur, en waar zitten de overheaddeuren?"
+    },
+    {
+      "straat": "De Finne",
+      "nr": "2",
+      "ronde": 5,
+      "vraag": "2002, 3290 m², nok 10,5 m: bedrijfshal of iets anders? Kleur van de damwandplaat en hoeveel kantoor er aan de voorkant zit"
+    },
+    {
+      "straat": "Trompmoledyk",
+      "nr": "6-6A",
+      "ronde": 5,
+      "vraag": "1996, nok 15,2 m — de hoogste hal van het terrein. Wat staat hier, en hoe ziet hij eruit?"
+    },
+    {
+      "straat": "Lemmerweg",
+      "nr": "130a",
+      "ronde": 5,
+      "vraag": "1980, 2975 m², nok 12,3 m: welk bedrijf zit hier, welke gevelplaat en welke kleur? En hoe ziet het terrein ervoor eruit?"
+    },
+    {
+      "straat": "Lemmerweg",
+      "nr": "130B",
+      "ronde": 5,
+      "vraag": "hier is géén 3D BAG: het spel gokt goot 5,8 en nok 8,8 m. Hoe hoog is het echt, hoeveel lagen, en wat zit erin?"
+    },
+    {
+      "straat": "Lemmerweg",
+      "nr": "84",
+      "ronde": 5,
+      "vraag": "1858, nok 13,9 m en 1560 m²: een boerderij? Kop-hals-romp of stelp, riet of pannen, en welke kleur staldeuren?"
+    },
+    {
+      "straat": "Lemmerweg",
+      "nr": "51",
+      "ronde": 5,
+      "vraag": "ook geschat (goot 5,8, nok 8,8). Wat staat hier aan de zuidkant bij de N7, en hoe hoog is het werkelijk?"
+    },
+    {
+      "straat": "Quirijn de Blaustraat",
+      "nr": "50-50B",
+      "ronde": 5,
+      "vraag": "2012, nok 25,9 m — het hoogste pand aan deze kant van de Lemmerweg. Hoeveel lagen, welk materiaal, en balkons of galerijen?"
+    },
+    {
+      "straat": "Potterzijlstraat",
+      "nr": "11",
+      "ronde": 5,
+      "vraag": "1968, 1834 m², nok 8,9 m langs de Lemmerweg: wat voor gebouw is dit en welke gevel heeft het?"
     }
   ],
   "plekken": [
@@ -493,6 +589,70 @@
       "z": 903.87,
       "ronde": 4,
       "vraag": "de wieken en de stelling: kleur van het hekwerk, de riet- of houtbekleding van de romp, en de loodsen ernaast"
+    },
+    {
+      "naam": "Sportpark IJlst",
+      "soort": "sport",
+      "x": -948,
+      "z": 1022,
+      "ronde": 5,
+      "vraag": "hier ligt 7700 m² kunstgras in de kaart, maar er staat nog níets op: geen doelen, geen belijning, geen ballenvangers, geen clubgebouw. Hoeveel velden zijn het, waar staan de lichtmasten en de dug-outs, hangen er reclameborden, en hoe ziet het clubhuis en het hek eruit?"
+    },
+    {
+      "naam": "Bedrijventerrein IJlst",
+      "soort": "terrein",
+      "x": -1578,
+      "z": 661,
+      "ronde": 5,
+      "vraag": "de hallen samen: kleuren van de damwand, hoogte en soort hekwerk, opslag in de open lucht, bedrijfsborden en wat voor lantaarnpalen er staan"
+    },
+    {
+      "naam": "De grote hal aan de Sneekerpad-kant",
+      "soort": "gebouw",
+      "x": -1330,
+      "z": 863,
+      "ronde": 5,
+      "vraag": "6100 m² onder één dak uit 1960, nok 17 m, en zonder adres in de kaart — het grootste gebouw van IJlst. Wat is dit, en hoe ziet het eruit?"
+    },
+    {
+      "naam": "De Eegracht",
+      "soort": "profiel",
+      "x": -1370,
+      "z": 1300,
+      "ronde": 5,
+      "vraag": "het grachtprofiel: kademuur of houten beschoeiing, bomen, ligplaatsen, bruggetjes naar de voordeuren, en welke verharding de rijbaan en de stoep hebben"
+    },
+    {
+      "naam": "De Galamagracht",
+      "soort": "profiel",
+      "x": -1395,
+      "z": 1155,
+      "ronde": 5,
+      "vraag": "zelfde vraag als de Eegracht, maar dan aan de andere kant: hoe breed is het water, waar staan de bomen, en hoe zien de bruggetjes en de kade eruit?"
+    },
+    {
+      "naam": "De Lemmerweg bij het tankstation",
+      "soort": "profiel",
+      "x": 760,
+      "z": 100,
+      "ronde": 5,
+      "vraag": "het wegprofiel: hoeveel rijstroken, vrijliggend fietspad of niet, middenberm, bomenrij, lantaarns, geleiderail en bebording"
+    },
+    {
+      "naam": "De brug in de Lemmerweg",
+      "soort": "brug",
+      "x": 779,
+      "z": -264,
+      "ronde": 5,
+      "vraag": "de brug over het water: leuningen (kleur en model), of er een apart fietspad overheen loopt, en of het een vaste brug of een beweegbare is"
+    },
+    {
+      "naam": "De kop van de Geeuw bij IJlst",
+      "soort": "water",
+      "x": -1282,
+      "z": 1106,
+      "ronde": 5,
+      "vraag": "de kade waar de sloep ligt: steigers, bolders, afmeerpalen, hoe de oever eruitziet en wat er langs de kant staat"
     }
   ]
 }
