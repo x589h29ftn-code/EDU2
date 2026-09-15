@@ -3869,6 +3869,41 @@ meter. Daarna duurt het vijfenveertig seconden voor er een nieuw toestel komt.
 
 Controle: `npm run helitest` (twaalf controles erbij).
 
+*De pijltjes op de kaart.* "Op de minimap lijkt hij verkeerd te richten", en dat
+klopte — allebei de kaarten stonden fout, en op een manier die je makkelijk over
+het hoofd ziet.
+
+De minimap houdt jouw kijkrichting boven en draaide daarvoor over `-yaw + π`. Dat
+is niet een halve slag mis maar een spiegeling: `-yaw + π` en `yaw` vallen alleen
+samen bij yaw = ±π/2. Pal oost en pal west klopte de kaart dus, en daartussen
+draaide hij de verkeerde kant op — twee keer zo hard, want wat je ziet is het
+verschil 2·yaw. Narekenen: een punt één meter vóór je ligt op (−sin yaw, −cos yaw)
+ten opzichte van jou, en na `rotate(θ)` komt dat op het doek uit op
+(sin(θ − yaw), −cos(θ − yaw)). Recht boven het midden betekent x = 0 en y < 0, en
+dat geldt alleen voor θ = yaw.
+
+Op de grote kaart staat noorden boven en draait alleen het pijltje. Daar stond
+dezelfde `-yaw + π`, en omdat de kaart zelf niet meedraait komt dat neer op
+precies achteruit wijzen: de punt hoort op −yaw te staan (bij yaw 90° kijk je
+naar het westen, en west is op een noord-boven kaart naar links). En de maat was
+mis: binnen de `c.scale(schaal, schaal)` van de kaart stond de driehoek nog in
+spelmeters, dus dertien eenheden was dertien méter — op een kaart van 0,25
+beeldpunt per meter een vlekje van drie pixels. De stippen van de politie delen
+daarom door de schaal en de winkels zetten hem terug op 1; dit pijltje deed geen
+van beide. Nu zet hij de schaal terug en is hij een driehoek met een hap uit de
+achterkant, met donkere omlijning.
+
+Controle: `npm run kaarttest`, en die rekent niets na maar meet wat er op het doek
+staat: waar staat de rode 'N' op de minimap, en waar de punt van het gele pijltje
+op de grote kaart, in acht richtingen (0, 45, 90, 135, 180, 225, 270, 315°).
+Zestien controles.
+
+De toets zelf had ook nog een les. Hij zei eerst dat het pijltje bij 180° de
+verkeerde kant op wees, en dat was de toets: "geel" stond er ruim in (r > 200,
+g > 160, b < 110) en het bordje boven een winkel is #f2b632, wat daar net zo goed
+aan voldoet. Het verste "gele" beeldpunt was dan een letter van een winkelnaam een
+eind verderop. Met een nauwe test om #ffd400 heen kloppen alle acht richtingen.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

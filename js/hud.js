@@ -412,7 +412,22 @@ export class HUD {
     c.save();
     c.beginPath(); c.arc(W / 2, H / 2, W / 2 - 2, 0, Math.PI * 2); c.clip();
     c.fillStyle = '#3f6a2b'; c.fillRect(0, 0, W, H);
-    this._kaartRot = -yaw + Math.PI;
+    /*
+     Hoever draait de kaart mee? De minimap houdt jouw kijkrichting boven, dus
+     een punt vóór je hoort recht boven het midden te komen.
+
+     Hier stond `-yaw + Math.PI`, en dat is niet een halve slag mis maar
+     gespiegeld: de twee vallen alleen samen bij yaw = ±π/2. Pal oost of west
+     klopte de kaart dus, en overal daartussen draaide hij de verkeerde kant op —
+     twee keer zo hard, want wat je ziet is het verschil 2·yaw. Dat is precies
+     het gevoel dat het pijltje "verkeerd richt".
+
+     De rekensom: een punt één meter voor je staat op (−sin yaw, −cos yaw) ten
+     opzichte van jou. Na `rotate(θ)` komt dat op het doek uit op
+     (sin(θ − yaw), −cos(θ − yaw)); recht boven het midden betekent x = 0 en
+     y < 0, en dat geldt alleen voor θ = yaw.
+    */
+    this._kaartRot = yaw;
     c.translate(W / 2, H / 2); c.rotate(this._kaartRot); c.translate(-px * scale, -pz * scale);
     // water
     c.fillStyle = '#6a97a8';
@@ -453,15 +468,17 @@ export class HUD {
       HUD.tekenWinkel(c, 9);
       c.restore();
     }
-    this.drawLabels(c, scale, -yaw + Math.PI, 40, { x: px, z: pz, R });
+    // `rot` bepaalt alleen of een straatnaam omgeklapt moet om leesbaar te
+    // blijven, dus die moet dezelfde draai zijn als de kaart zelf
+    this.drawLabels(c, scale, this._kaartRot, 40, { x: px, z: pz, R });
     c.restore();
     // speler
     c.save(); c.translate(W / 2, H / 2);
     c.fillStyle = '#ffd400'; c.beginPath(); c.moveTo(0, -7); c.lineTo(5, 6); c.lineTo(-5, 6); c.closePath(); c.fill();
     c.restore();
     c.strokeStyle = 'rgba(255,255,255,0.7)'; c.lineWidth = 2; c.beginPath(); c.arc(W / 2, H / 2, W / 2 - 2, 0, Math.PI * 2); c.stroke();
-    // noordpijl
-    c.save(); c.translate(W / 2, H / 2); c.rotate(-yaw + Math.PI);
+    // noordpijl: dezelfde draai als de kaart, anders wijst hij niet naar noord
+    c.save(); c.translate(W / 2, H / 2); c.rotate(this._kaartRot);
     c.fillStyle = '#ff5544'; c.font = 'bold 12px sans-serif'; c.textAlign = 'center'; c.fillText('N', 0, -(W / 2 - 12));
     c.restore();
   }
@@ -565,8 +582,26 @@ HUD.prototype.drawBig = function (player, vehicles) {
   const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);
   const pz = this.kaartVanaf ? this.kaartVanaf.z : (player.inCar ? player.inCar.z : player.pos.z);
   const yaw = player.inCar ? player.inCar.yaw : player.yaw;
-  c.save(); c.translate(px, pz); c.rotate(-yaw + Math.PI);
-  c.fillStyle = '#ffd400'; c.beginPath(); c.moveTo(0, -7); c.lineTo(5, 6); c.lineTo(-5, 6); c.closePath(); c.fill(); c.restore();
+  /*
+   Op de grote kaart staat noorden boven en draait de kaart dus niet mee; alleen
+   het pijltje draait. De punt van de driehoek ligt op (0, −7), dus hij wijst
+   zonder draai naar boven = naar noord. Je kijkrichting is (−sin yaw, −cos yaw),
+   en `rotate(θ)` zet die punt op (sin θ, −cos θ): dat komt uit op θ = −yaw.
+   Hier stond `-yaw + Math.PI` en dat is precies andersom — het pijltje wees de
+   hele tijd achteruit.
+  */
+  /*
+   En let op de maat: hierbinnen staat de tekening nog in spelmeters (`c.scale`
+   hierboven), dus een driehoek van dertien eenheden was dertien méter — op een
+   kaart van 0,25 beeldpunt per meter een vlekje van drie pixels. De stippen van
+   de politie delen daarom door de schaal en de winkels zetten hem terug op 1;
+   dit pijltje deed geen van beide en was daardoor nauwelijks te vinden.
+  */
+  c.save(); c.translate(px, pz); c.scale(1 / scale, 1 / scale); c.rotate(-yaw);
+  c.fillStyle = '#ffd400';
+  c.strokeStyle = 'rgba(8,14,24,0.85)'; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(0, -13); c.lineTo(7, 8); c.lineTo(0, 4); c.lineTo(-7, 8); c.closePath();
+  c.fill(); c.stroke(); c.restore();
   c.restore();
   /*
    Je eigen plek in spelmeters, linksonder. Dat is er om plekken te kúnnen

@@ -2164,6 +2164,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   trage optrek en het trage uitlopen, het roer met en zonder vaart, de wal die hem tegenhoudt, de
   bruggen waar hij wel en de duikers waar hij niet onderdoor kan, en het schuim
 - `tools/bootshots.mjs` – maakt de foto's van de sloepen
+- `tools/kaarttest.mjs` – toetst of de kaarten de goede kant op wijzen: de noordpijl op de minimap en
+  het spelerpijltje op de grote kaart, in acht richtingen van het beeld afgelezen
 - `tools/rijtest.mjs` – toetst het automodel, de besturing, de camera achter de auto en het aanrijden
 - `tools/rijshots.mjs` – maakt de foto's van het rijden en de derdepersoonscamera
 - `tools/looptest.mjs` – toetst of je nergens vastloopt: het open terrein binnen de panden en een
