@@ -1626,8 +1626,9 @@ vanaf het derde flesje komt en in een minuut weer wegzakt. `npm run poieszshots`
 
 Op het water liggen **twee sloepen die je kunt besturen**: één aan de Geeuwkade achter de
 waterzuivering, één aan de steiger in IJlst. Je stapt in met **E**, net als bij een auto, en dan vaar
-je. Ze zijn er met een reden: een boot is straks het vervoermiddel voor een lading die niet op de weg
-mag komen — en op het water staat geen wegversperring.
+je. Ze zijn er met een reden: een boot is het vervoermiddel voor een lading die niet op de weg mag
+komen (zie **De lading over het water** verderop) — en op het water staat geen wegversperring. Wel
+een politiesloep, zodra je gezocht wordt.
 
 | | |
 |---|---|
@@ -1819,6 +1820,70 @@ eraf.
 `npm run waltest` houdt het vast: geen zwerfvuil en geen rolcontainers in het water, hoogstens een
 handvol struiken en bomen, de oeverwanden tweezijdig, en een boot die met zijn steven en zijn
 breedste punten op het water blijft als je vol op de kant af vaart.
+
+## De politie op het water
+
+Op de Geeuw was je veilig. De politie rijdt over de weg, dus wie de sloep nam was van de
+achtervolging af: de wagens reden een eind mee over de Oppenhuizerweg en daarna hield de weg op. Wie
+met een boot vlucht hoort met een boot achterna gezeten te worden.
+
+Er komt nu **één politiesloep**, donkerblauw met POLITIE op de spiegel, een zwaailicht op de console
+en twee agenten aan boord. Hij komt alleen als het ergens op slaat:
+
+* je zit **zelf in een boot** — aan de wal valt er niets te patrouilleren, ook niet met vijf sterren;
+* en er is **verdenking** — één ster is genoeg.
+
+Hij komt op vijfentachtig tot honderdvijftig meter in beeld, bij voorkeur achter je en uit het zicht,
+en vaart met dezelfde natuurkunde als jouw sloep. Wat hij niet deelt is de topsnelheid: **8,5 tegen
+7,0 m/s**, want anders is wegvaren geen keuze maar een garantie. In plaats van een toetsenbord zit er
+een stuurautomaat op; ligt er wal in de weg, dan probeert hij een waaier van koersen om de vijftien
+graden en neemt de vrijste. Binnen tweeënveertig meter wordt er geschoten, vanaf een deinend dek dus
+minder trefzeker dan vanaf de kant. Veertien treffers en de motor geeft het op: hij blijft liggen, het
+zwaailicht gaat uit en er wordt niet meer geschoten. Op de kaart is hij een blauwe stip als een wagen.
+
+Dat kostte een optimalisatie. `vaarbaar(x, z)` liep door **alle 529 waterpolygonen** met een volledige
+punt-in-polygoon-toets. Dat viel niet op zolang het één keer per beeld voor de voetstappen gebeurde,
+maar de romp van een sloep wordt op negen punten getoetst en die koerswaaier komt neer op honderden
+toetsen per beeld. Er ligt nu een rooster van veertig meter overheen, net als bij de botsdozen: **2,89
+µs** per toets, en het zoeken van de vaarroute over de hele overtocht ging van 810 naar 190 ms.
+
+| | |
+|---|---|
+| ![de politiesloep van opzij](docs/screenshots/politieboot_opzij.png) | ![hij komt achter je aan](docs/screenshots/politieboot_achtervolging.png) |
+| ![langszij vanaf je eigen helmstok](docs/screenshots/politieboot_langszij.png) | ![en op de kaart](docs/screenshots/politieboot_kaart.png) |
+
+`npm run watertest` toetst het, en vooral wanneer hij er níet is.
+
+## De lading over het water
+
+Hier waren de boten voor. **Ophalen in IJlst, over de Geeuw naar de kade bij de waterzuivering.**
+
+De eerste vraag was of het kon: liggen die twee ligplaatsen aan hetzelfde water? Dat was geen gegeven —
+IJlst en de Geeuw zijn aparte waterdelen in de BGT. Gemeten: **ja**, 2532 meter vaarwater tegen 1773
+meter hemelsbreed. Zonder dat antwoord was de hele missie een onmogelijke opdracht geweest.
+
+| | |
+|---|---|
+| **1. Het telefoontje** | Sander belt zodra het verhaal uitgespeeld is: er ligt een sloep in IJlst |
+| **2. Aan boord** | stap je in díe sloep, dan komt de lading in de kuip te liggen — zes pakken onder de doft |
+| **3. Varen** | vanaf dat moment loopt de verdenking op: één ster, dan twee, dan drie |
+| **4. Afleveren** | binnen twaalf meter van de kade is hij over. Beloning € 2.500, en ze zijn je kwijt |
+
+De route staat op de kaart, en die wordt over het water gezocht en niet over de weg: de navigatie van
+het spel loopt over wegassen en die houden bij de kade op. Er gaat daarom een rooster van zes meter
+over `vaarbaar` — zes omdat de sloep 2,16 m breed is en de smalste vaart waar hij door moet een meter
+of acht.
+
+Met verdenking én een boot onder je komt de politiesloep het water op (hierboven). Je kunt de hele
+overtocht doen zonder een schot te lossen, maar je moet wel blijven varen. Stap je onderweg uit, dan
+mislukt er niets — de missie wacht gewoon; je kunt aanleggen, iets regelen en verder varen.
+
+| | |
+|---|---|
+| ![de sloep in IJlst](docs/screenshots/vaart_ijlst.png) | ![de lading in de kuip](docs/screenshots/vaart_lading.png) |
+| ![onderweg over de Geeuw](docs/screenshots/vaart_onderweg.png) | ![de kade bij de waterzuivering](docs/screenshots/vaart_kade.png) |
+
+`npm run vaarttest` toetst de hele keten, inclusief F5 en F9 midden op de Geeuw.
 
 ## Een kaart om af te drukken
 
@@ -2184,6 +2249,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   (langs- en dwarsscheepse weerstand, roer op snelheid, schroef op de plek), de ligplaatsen met hun
   eigen steiger, en het schuim in het kielzog
 - `js/opslag.js` – opslaan en laden van het spel (F5 en F9)
+- `js/politieboot.js` – de politie op het water: één sloep, alleen als je zelf vaart en gezocht wordt
+- `js/vaart.js` – de lading over het water: ophalen in IJlst, afleveren aan de Geeuwkade
 - `js/sfeer.js` – tijd van de dag, weer, wind, stromend water en straatverlichting
 - `js/audio.js` – alle geluid, volledig gesynthetiseerd
 - `tools/geo/` – de geodata-keten: `bgt2geojson.mjs` en `bag3d2geojson.mjs` (ruwe downloads → GeoJSON),
@@ -2203,6 +2270,13 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   het spelerpijltje op de grote kaart, in acht richtingen van het beeld afgelezen
 - `tools/breektest.mjs` – toetst het kapotrijden van heggen en schuttingen: de koppeling tussen
   botsdoos en tekening, wat er vóór en na de klap door- en overheen kan, en dat stilstaand niets sloopt
+- `tools/watertest.mjs` – toetst de politie op het water: wanneer hij er wél en niet is, dat hij
+  achter je aan komt en op het water blijft, en dat hij na veertien treffers stilligt
+- `tools/watershots.mjs` – maakt de foto's van de politiesloep
+- `tools/vaarttest.mjs` – toetst de lading over het water: de vaarweg tussen de twee ligplaatsen, de
+  lading aan boord, de oplopende verdenking, het afleveren en F5/F9 onderweg
+- `tools/vaartshots.mjs` – maakt de foto's van de lading over het water
+- `tools/geo/steekproefjpg.mjs` – zet een map steekproeffoto's van PNG naar JPEG om (62 → 11 MB)
 - `tools/rijtest.mjs` – toetst het automodel, de besturing, de camera achter de auto en het aanrijden
 - `tools/rijshots.mjs` – maakt de foto's van het rijden en de derdepersoonscamera
 - `tools/looptest.mjs` – toetst of je nergens vastloopt: het open terrein binnen de panden en een

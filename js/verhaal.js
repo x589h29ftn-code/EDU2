@@ -1150,6 +1150,15 @@ export function initVerhaal(ctx) {
 
   return {
     update, toets, doelen, raak, hinder, bewaar, herstel, meldAan, schotGehoord, dood, mislukt,
+    /*
+     Twee haakjes voor een missie die buiten dit bestand draait (js/vaart.js, de
+     lading over het water): de opdrachtregel in beeld en de gespreksbalk. Ze
+     horen bij het verhaal en niet bij de HUD — de balk weet van telefoontjes, van
+     "E — verder" en van hoe hij weer dichtgaat — dus ze worden hier gedeeld in
+     plaats van nagebouwd.
+    */
+    zetOpdracht,
+    zegLosse: (regels) => zeg(regels),
     get missie() { return missie; },
     get fase() { return fase; },
     get buurman() { return mark; },      // oude naam, gebruikt door de testtools

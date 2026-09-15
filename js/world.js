@@ -610,7 +610,50 @@ function inPark(p) { return parkPolys.some(poly => pointInPoly(p, poly)); }
 // verdichting uit stroken groen zoals de berm langs De Wieken.
 function inWoods(p) { return woodPolys.some(poly => pointInPoly(p, poly)); }
 const woodPoly = entry => (Array.isArray(entry) ? entry : entry.poly);
-function inWater(p) { return waterPolys.some(poly => pointInPoly(p, poly)); }
+/*
+ Ligt dit punt in het water?
+
+ Dit liep door álle 529 waterpolygonen van de wereld, elk met een volledige
+ punt-in-polygoon-toets. Dat viel niet op zolang het één keer per beeld gebeurde
+ voor de voetstappen — maar sinds er boten varen is het de duurste lus van het
+ spel: de romp van een sloep wordt op negen punten getoetst, en de stuurautomaat
+ van de politieboot probeert per beeld een waaier van koersen, wat neerkomt op
+ honderden toetsen per beeld. En de vaarroute over tweeënhalve kilometer (
+ js/vaart.js) kostte er in zijn eentje acht tienden van een seconde mee.
+
+ Er ligt nu een rooster van veertig meter overheen, net als bij de botsdozen: elk
+ polygoon staat in de cellen die zijn omhullende raakt, en een toets kijkt alleen
+ naar de cel waar het punt in valt. Bij de Geeuw scheelt dat een factor honderd —
+ in de meeste cellen ligt één polygoon, en in de cellen zonder water nul.
+*/
+const WCEL = 40;
+let waterRooster = null, waterRoosterN = -1;
+function bouwWaterRooster() {
+  waterRooster = new Map();
+  for (const poly of waterPolys) {
+    let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+    for (const q of poly) {
+      if (q.x < x0) x0 = q.x; if (q.x > x1) x1 = q.x;
+      if (q.y < z0) z0 = q.y; if (q.y > z1) z1 = q.y;
+    }
+    for (let i = Math.floor(x0 / WCEL); i <= Math.floor(x1 / WCEL); i++)
+      for (let j = Math.floor(z0 / WCEL); j <= Math.floor(z1 / WCEL); j++) {
+        const k = i + ':' + j;
+        let l = waterRooster.get(k);
+        if (!l) waterRooster.set(k, l = []);
+        l.push(poly);
+      }
+  }
+  waterRoosterN = waterPolys.length;
+}
+const waterPunt = { x: 0, y: 0 };
+function inWater(p) {
+  if (waterRooster === null || waterRoosterN !== waterPolys.length) bouwWaterRooster();
+  const lijst = waterRooster.get(Math.floor(p.x / WCEL) + ':' + Math.floor(p.y / WCEL));
+  if (!lijst) return false;
+  for (const poly of lijst) if (pointInPoly(p, poly)) return true;
+  return false;
+}
 export function nearRoad(p, margin) {
   for (const s of roadSegments) {
     if (s.w === 0) continue;
@@ -2217,7 +2260,9 @@ export function pointInWater(x, z) {
     const v = vlakOp(x, z);
     if (v && BOVEN_WATER.has(v.k)) return false;
   }
-  return inWater(new THREE.Vector2(x, z));
+  // geen nieuwe Vector2 per aanroep: dit wordt honderden keren per beeld gedaan
+  waterPunt.x = x; waterPunt.y = z;
+  return inWater(waterPunt);
 }
 
 /*
@@ -2235,7 +2280,8 @@ export function vaarbaar(x, z) {
     const v = vlakOp(x, z);
     if (v && DICHT_VOOR_BOOT.has(v.k)) return false;
   }
-  return inWater(new THREE.Vector2(x, z));
+  waterPunt.x = x; waterPunt.y = z;
+  return inWater(waterPunt);
 }
 
 // Waar loop je op? Bepaalt de klank van de voetstappen.

@@ -8,9 +8,10 @@
 
  Een boot is met opzet **traag**. De sloep haalt zeven meter per seconde — nog
  geen kwart van wat een auto doet — en hij komt daar ook niet in één tel. Dat is
- niet om je te pesten: een boot is straks het vervoermiddel voor een lading die
- niet op de weg mag komen, en dan hoort de overtocht iets te kosten. Wat je er
- voor terugkrijgt is dat er op het water geen wegversperring staat.
+ niet om je te pesten: een boot is het vervoermiddel voor een lading die niet op
+ de weg mag komen (js/vaart.js), en dan hoort de overtocht iets te kosten. Wat je
+ ervoor terugkrijgt is dat er op het water geen wegversperring staat — al vaart
+ er sinds js/politieboot.js wel een politiesloep rond zodra je gezocht wordt.
 
  Hoe hij vaart, en waarom het anders voelt dan een auto:
 
@@ -235,9 +236,18 @@ function boordVorm(vorm, dikte = 0.085) {
   return g;
 }
 
-export function initBoten({ scene, player, hud }) {
-  if (!scene) return null;
+/*
+ Alles wat elke sloep deelt: de rompvorm, de boordrand en de materialen. Het
+ wordt pas gemaakt zodra er een eerste boot gebouwd wordt (`spullen()`), zodat
+ het importeren van dit bestand nog niets aan de grafische kaart kost.
 
+ Dit stond in `initBoten` en is eruit gehaald toen de politie een boot kreeg
+ (js/politieboot.js): die wil dezelfde romp en dezelfde toets of hij er nog
+ past, maar hij hoort niet bij de twee sloepen die jij kunt losmaken.
+*/
+let SPULLEN = null;
+function spullen() {
+  if (SPULLEN) return SPULLEN;
   const std = (o) => new THREE.MeshStandardMaterial(o);
   const vorm = rompVorm();
   const rompGeo = vorm.geo;
@@ -257,219 +267,241 @@ export function initBoten({ scene, player, hud }) {
     touw: std({ color: 0xcfc09a, roughness: 0.95 }),
   };
   for (const m of Object.values(gedeeld)) if (m.map) m.map.anisotropy = 4;
+  SPULLEN = { std, vorm, rompGeo, boordGeo, gedeeld };
+  return SPULLEN;
+}
+
+// De maten en de natuurkunde van de sloep, voor wie er zelf een wil laten varen.
+export const SLOEP = { LENGTE, BREEDTE, DIEPGANG, OPBOORD, VLOER, WATER_Y, TOP, TOP_ACHTER, STUW, LANGS, LANGS_VAST, DWARS, ROER };
+
+
+
+/*
+ Een sloep bouwen. `L` geeft de naam op de spiegel en de twee kleuren: `romp`
+ voor het casco en `kleur` voor het boord, de console en de motorkap.
+*/
+export function bouwSloep(L) {
+  const { std, vorm, rompGeo, boordGeo, gedeeld } = spullen();
+  const groep = new THREE.Group();
+  /*
+   De romp is getekend met de steven op +x en stuurboord op +z, want zo reken
+   je een boot uit: langsscheeps eerst. Varen doet hij naar −z — dat is de
+   richting die uit `yaw` komt, net als bij de auto's. De hele boot gaat daarom
+   in een binnengroep die een kwartslag gedraaid staat. Buitenom blijft de
+   groep de bewegingsrichting houden, zodat rollen om z en stampen om x precies
+   de assen zijn die je verwacht.
+  */
+  const schip = new THREE.Group();
+  schip.rotation.y = Math.PI / 2;
+  groep.add(schip);
+  const romp = new THREE.Mesh(rompGeo, std({ color: L.romp, roughness: 0.42, side: THREE.DoubleSide }));
+  romp.castShadow = true; romp.receiveShadow = true;
+  schip.add(romp);
+
+  // berghout: de donkere band net onder het boord, die elke sloep heeft
+  const berg = new THREE.Mesh(boordGeo, gedeeld.berghout);
+  berg.position.y = -0.055; berg.scale.set(1, 1, 1.035);
+  schip.add(berg);
+  const boord = new THREE.Mesh(boordGeo, std({ color: L.kleur, roughness: 0.45 }));
+  boord.castShadow = true;
+  schip.add(boord);
+
+  /*
+   Het voordek en het achterdek. Ze zitten er niet alleen omdat elke sloep ze
+   heeft: het water is één plat vlak dwars door de wereld, dus wat er van de
+   boot onder de waterlijn zit valt erachter weg. Bij de steven en bij de
+   spiegel keek je zonder dek de boot dóór, zo het water in.
+  */
+  for (const [t0, t1] of [[0, VOORDEK], [ACHTERDEK, 1]]) {
+    const dek = new THREE.Mesh(dekVorm(vorm, t0, t1), std({ color: L.romp, roughness: 0.5, side: THREE.DoubleSide }));
+    dek.castShadow = true; dek.receiveShadow = true;
+    schip.add(dek);
+  }
+  /*
+   En een schot onder elk dek. Vanuit de kuip keek je anders onder het voordek
+   door naar de ruimte eronder, en die ligt onder water — dus je zag daar een
+   boog water midden in de boot. Een schot is precies wat er in het echt ook
+   zit: het sluit de punt af en je hebt er een bergruimte aan.
+  */
+  for (const t of [VOORDEK, ACHTERDEK]) {
+    const h = vorm.zeeg(t) - VLOER;
+    const schot = new THREE.Mesh(new THREE.BoxGeometry(0.05, h, vorm.breed(t) * 2),
+      std({ color: L.romp, roughness: 0.5 }));
+    schot.position.set(vorm.lang(t), VLOER + h / 2, 0);
+    schot.castShadow = true;
+    schip.add(schot);
+  }
+
+  /*
+   De vlonder — de houten vloer waar je op staat. Hij ligt een handbreedte
+   bóven de waterlijn, want dat is waar de vloer van een boot hoort te liggen
+   en, net als bij de dekken hierboven, omdat alles eronder achter het
+   watervlak verdwijnt.
+  */
+  const vloerY = VLOER;
+  const N = 9, stap = (ACHTERDEK - VOORDEK) / N;
+  for (let i = 0; i < N; i++) {
+    const t = VOORDEK + i * stap;
+    const b = vorm.breed(t) * 1.0, x = vorm.lang(t);
+    const bb = vorm.breed(t + stap) * 1.0, xx = vorm.lang(t + stap);
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(x - xx) + 0.02, 0.05, (b + bb)), gedeeld.hout);
+    plank.position.set((x + xx) / 2, vloerY, 0);
+    plank.receiveShadow = true;
+    schip.add(plank);
+  }
+
+  // de spiegel: de vlakke achterkant waar de motor aan hangt
+  const spiegelB = vorm.breed(1) * 2, spiegelH = vorm.zeeg(1) + vorm.diep(1);
+  const spiegel = new THREE.Mesh(new THREE.BoxGeometry(0.07, spiegelH, spiegelB * 0.99), std({ color: L.romp, roughness: 0.42 }));
+  spiegel.position.set(vorm.lang(1) - 0.03, vorm.zeeg(1) - spiegelH / 2, 0);
+  spiegel.castShadow = true;
+  schip.add(spiegel);
+  // de naam erop, zoals elke boot er een heeft
+  const naam = new THREE.Mesh(new THREE.PlaneGeometry(spiegelB * 0.72, 0.22),
+    new THREE.MeshBasicMaterial({ map: naamTextuur(L.naam), transparent: true }));
+  naam.position.set(vorm.lang(1) - 0.075, vorm.zeeg(1) - 0.20, 0);
+  naam.rotation.y = -Math.PI / 2;
+  schip.add(naam);
+
+  // ---- twee doften en een stuurconsole ----
+  const doft = (t) => {
+    const b = vorm.breed(t) * 1.84;
+    const bank = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.07, b), gedeeld.hout);
+    bank.position.set(vorm.lang(t), vorm.zeeg(t) - 0.34, 0);
+    bank.castShadow = true; schip.add(bank);
+    const kussen = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.075, b * 0.94), gedeeld.kussen);
+    kussen.position.set(vorm.lang(t), vorm.zeeg(t) - 0.27, 0);
+    schip.add(kussen);
+  };
+  doft(0.34); doft(0.90);
+
+  const console = new THREE.Group();
+  console.position.set(vorm.lang(0.62), vloerY, 0.30);
+  const kast = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.86, 0.62), std({ color: L.kleur, roughness: 0.4 }));
+  kast.position.y = 0.43; kast.castShadow = true;
+  console.add(kast);
+  const blad = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.05, 0.68), gedeeld.donker);
+  blad.position.y = 0.885; console.add(blad);
+  const stuur = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.022, 8, 22), gedeeld.zwart);
+  stuur.position.set(-0.13, 0.99, 0);
+  stuur.rotation.set(0, 0, Math.PI / 2 - 0.45);
+  console.add(stuur);
+  for (let i = 0; i < 3; i++) {
+    const spaak = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.32, 0.018), gedeeld.zwart);
+    spaak.position.copy(stuur.position);
+    spaak.rotation.set(i * Math.PI / 3, 0, Math.PI / 2 - 0.45);
+    console.add(spaak);
+  }
+  const meter = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.02, 14), gedeeld.wit);
+  meter.position.set(-0.12, 0.80, 0.16); meter.rotation.z = Math.PI / 2 - 0.3;
+  console.add(meter);
+  const gashendel = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.24, 0.035), gedeeld.zwart);
+  gashendel.position.set(0.02, 0.96, -0.24); gashendel.rotation.x = 0.35;
+  console.add(gashendel);
+  schip.add(console);
+
+  // ---- buitenboordmotor aan de spiegel ----
+  const motor = new THREE.Group();
+  motor.position.set(vorm.lang(1) - 0.32, vorm.zeeg(1) - 0.24, 0);
+  const kap = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.40, 0.34), std({ color: L.kleur, roughness: 0.35 }));
+  kap.castShadow = true; motor.add(kap);
+  const staart = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.72, 0.16), gedeeld.donker);
+  staart.position.y = -0.55; motor.add(staart);
+  const torpedo = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.30, 4, 10), gedeeld.donker);
+  torpedo.position.set(-0.02, -0.92, 0); torpedo.rotation.z = Math.PI / 2;
+  motor.add(torpedo);
+  const schroef = new THREE.Group();
+  schroef.position.set(-0.20, -0.92, 0);
+  for (let i = 0; i < 3; i++) {
+    const blad2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.15, 0.06), gedeeld.rvs);
+    blad2.position.set(0, Math.cos(i * 2.094) * 0.075, Math.sin(i * 2.094) * 0.075);
+    blad2.rotation.x = i * 2.094 + 0.5;
+    schroef.add(blad2);
+  }
+  motor.add(schroef);
+  schip.add(motor);
+
+  // ---- navigatielichten, stootwillen, een touw naar de wal ----
+  const lampje = (mat, x, z) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), mat);
+    m.position.set(x, vorm.zeeg(0.12) + 0.03, z);
+    schip.add(m); return m;
+  };
+  lampje(gedeeld.rood, vorm.lang(0.10), -vorm.breed(0.10) * 0.8);
+  lampje(gedeeld.groen, vorm.lang(0.10), vorm.breed(0.10) * 0.8);
+  const hek = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.62, 6), gedeeld.rvs);
+  hek.position.set(vorm.lang(1) + 0.14, vorm.zeeg(1) + 0.31, 0);
+  schip.add(hek);
+  const heklicht = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), gedeeld.wit);
+  heklicht.position.set(vorm.lang(1) + 0.14, vorm.zeeg(1) + 0.63, 0);
+  schip.add(heklicht);
+
+  for (const t of [0.42, 0.74]) for (const zij of [-1, 1]) {
+    const wil = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.20, 4, 8), gedeeld.donker);
+    wil.position.set(vorm.lang(t), vorm.zeeg(t) - 0.22, (vorm.breed(t) + 0.08) * zij);
+    schip.add(wil);
+  }
+  // de bolder voorop, met het touw eraan
+  const bolder = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.13, 8), gedeeld.rvs);
+  bolder.position.set(vorm.lang(0.04), vorm.zeeg(0.04) + 0.05, 0);
+  schip.add(bolder);
+
+  /*
+   `length` is wat js/derdepersoon.js uitleest om te bepalen hoe ver de camera
+   achter je hangt. Een sloep van ruim zes meter krijgt daarmee acht meter
+   hengel, en dat is precies genoeg om de hele boot en het water eromheen te
+   zien zonder dat je de kant uit het oog verliest.
+  */
+  groep.userData = { romp, motor, schroef, lichten: [heklicht], console, stuur, length: LENGTE };
+  return groep;
+}
+
+/*
+ Past de romp hier? We kijken op vijf punten: de steven, de spiegel, het
+ midden en de twee breedste punten. Ligt één daarvan op de kant, dan gaat de
+ boot niet verder. Het is ruim genomen — de punten liggen binnen de romp, niet
+ erbuiten — want een boot die bij elke rietkraag vastloopt is geen boot.
+*/
+/*
+ De proefpunten liggen op de **buitenkant** van de romp en niet erbinnen.
+
+ Ze stonden eerst op 46 % van de lengte en 42 % van de breedte, ruim binnen de
+ huid. Dat leek voorzichtig maar pakte andersom uit: de steven steekt tot
+ 3,47 m vooruit (de overhang, zie `lang`), dus de boot voer een halve meter de
+ wal in voordat er iets tegenhield. Je zag je eigen boeg in het gras steken.
+ Nu ligt de voorste proef op de steven zelf, de achterste op de spiegel en de
+ twee zijproeven op het breedste punt van de romp, met er nog een paar tussen
+ zodat een schuine oever niet tussen twee punten door glipt.
+*/
+const PROEF = [
+  [LENGTE * 0.55, 0],                                  // de steven, overhang en al
+  [-LENGTE * 0.5, 0],                                  // de spiegel
+  [0, 0],
+  [LENGTE * 0.28, BREEDTE * 0.34], [LENGTE * 0.28, -BREEDTE * 0.34],
+  [LENGTE * 0.05, BREEDTE * 0.5], [LENGTE * 0.05, -BREEDTE * 0.5],
+  [-LENGTE * 0.32, BREEDTE * 0.47], [-LENGTE * 0.32, -BREEDTE * 0.47],
+];
+export function sloepPast(x, z, yaw) {
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  for (const [l, d] of PROEF) {
+    // lokaal: +x is de neus, +z is stuurboord
+    const px = x - s * l + c * d, pz = z - c * l - s * d;
+    if (!vaarbaar(px, pz)) return false;
+  }
+  return true;
+}
+
+
+export function initBoten({ scene, player, hud }) {
+  if (!scene) return null;
 
   // het schuim achter de boot: één zacht wit vlekje, veel keer opnieuw gebruikt
   const schuimMap = schuimTextuur();
+  // de romp en de walcontrole staan nu buiten dit blok, want de politieboot
+  // gebruikt ze ook (js/politieboot.js)
+  const bouwBoot = bouwSloep;
+  const pastHier = sloepPast;
 
-  function bouwBoot(L) {
-    const groep = new THREE.Group();
-    /*
-     De romp is getekend met de steven op +x en stuurboord op +z, want zo reken
-     je een boot uit: langsscheeps eerst. Varen doet hij naar −z — dat is de
-     richting die uit `yaw` komt, net als bij de auto's. De hele boot gaat daarom
-     in een binnengroep die een kwartslag gedraaid staat. Buitenom blijft de
-     groep de bewegingsrichting houden, zodat rollen om z en stampen om x precies
-     de assen zijn die je verwacht.
-    */
-    const schip = new THREE.Group();
-    schip.rotation.y = Math.PI / 2;
-    groep.add(schip);
-    const romp = new THREE.Mesh(rompGeo, std({ color: L.romp, roughness: 0.42, side: THREE.DoubleSide }));
-    romp.castShadow = true; romp.receiveShadow = true;
-    schip.add(romp);
-
-    // berghout: de donkere band net onder het boord, die elke sloep heeft
-    const berg = new THREE.Mesh(boordGeo, gedeeld.berghout);
-    berg.position.y = -0.055; berg.scale.set(1, 1, 1.035);
-    schip.add(berg);
-    const boord = new THREE.Mesh(boordGeo, std({ color: L.kleur, roughness: 0.45 }));
-    boord.castShadow = true;
-    schip.add(boord);
-
-    /*
-     Het voordek en het achterdek. Ze zitten er niet alleen omdat elke sloep ze
-     heeft: het water is één plat vlak dwars door de wereld, dus wat er van de
-     boot onder de waterlijn zit valt erachter weg. Bij de steven en bij de
-     spiegel keek je zonder dek de boot dóór, zo het water in.
-    */
-    for (const [t0, t1] of [[0, VOORDEK], [ACHTERDEK, 1]]) {
-      const dek = new THREE.Mesh(dekVorm(vorm, t0, t1), std({ color: L.romp, roughness: 0.5, side: THREE.DoubleSide }));
-      dek.castShadow = true; dek.receiveShadow = true;
-      schip.add(dek);
-    }
-    /*
-     En een schot onder elk dek. Vanuit de kuip keek je anders onder het voordek
-     door naar de ruimte eronder, en die ligt onder water — dus je zag daar een
-     boog water midden in de boot. Een schot is precies wat er in het echt ook
-     zit: het sluit de punt af en je hebt er een bergruimte aan.
-    */
-    for (const t of [VOORDEK, ACHTERDEK]) {
-      const h = vorm.zeeg(t) - VLOER;
-      const schot = new THREE.Mesh(new THREE.BoxGeometry(0.05, h, vorm.breed(t) * 2),
-        std({ color: L.romp, roughness: 0.5 }));
-      schot.position.set(vorm.lang(t), VLOER + h / 2, 0);
-      schot.castShadow = true;
-      schip.add(schot);
-    }
-
-    /*
-     De vlonder — de houten vloer waar je op staat. Hij ligt een handbreedte
-     bóven de waterlijn, want dat is waar de vloer van een boot hoort te liggen
-     en, net als bij de dekken hierboven, omdat alles eronder achter het
-     watervlak verdwijnt.
-    */
-    const vloerY = VLOER;
-    const N = 9, stap = (ACHTERDEK - VOORDEK) / N;
-    for (let i = 0; i < N; i++) {
-      const t = VOORDEK + i * stap;
-      const b = vorm.breed(t) * 1.0, x = vorm.lang(t);
-      const bb = vorm.breed(t + stap) * 1.0, xx = vorm.lang(t + stap);
-      const plank = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(x - xx) + 0.02, 0.05, (b + bb)), gedeeld.hout);
-      plank.position.set((x + xx) / 2, vloerY, 0);
-      plank.receiveShadow = true;
-      schip.add(plank);
-    }
-
-    // de spiegel: de vlakke achterkant waar de motor aan hangt
-    const spiegelB = vorm.breed(1) * 2, spiegelH = vorm.zeeg(1) + vorm.diep(1);
-    const spiegel = new THREE.Mesh(new THREE.BoxGeometry(0.07, spiegelH, spiegelB * 0.99), std({ color: L.romp, roughness: 0.42 }));
-    spiegel.position.set(vorm.lang(1) - 0.03, vorm.zeeg(1) - spiegelH / 2, 0);
-    spiegel.castShadow = true;
-    schip.add(spiegel);
-    // de naam erop, zoals elke boot er een heeft
-    const naam = new THREE.Mesh(new THREE.PlaneGeometry(spiegelB * 0.72, 0.22),
-      new THREE.MeshBasicMaterial({ map: naamTextuur(L.naam), transparent: true }));
-    naam.position.set(vorm.lang(1) - 0.075, vorm.zeeg(1) - 0.20, 0);
-    naam.rotation.y = -Math.PI / 2;
-    schip.add(naam);
-
-    // ---- twee doften en een stuurconsole ----
-    const doft = (t) => {
-      const b = vorm.breed(t) * 1.84;
-      const bank = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.07, b), gedeeld.hout);
-      bank.position.set(vorm.lang(t), vorm.zeeg(t) - 0.34, 0);
-      bank.castShadow = true; schip.add(bank);
-      const kussen = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.075, b * 0.94), gedeeld.kussen);
-      kussen.position.set(vorm.lang(t), vorm.zeeg(t) - 0.27, 0);
-      schip.add(kussen);
-    };
-    doft(0.34); doft(0.90);
-
-    const console = new THREE.Group();
-    console.position.set(vorm.lang(0.62), vloerY, 0.30);
-    const kast = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.86, 0.62), std({ color: L.kleur, roughness: 0.4 }));
-    kast.position.y = 0.43; kast.castShadow = true;
-    console.add(kast);
-    const blad = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.05, 0.68), gedeeld.donker);
-    blad.position.y = 0.885; console.add(blad);
-    const stuur = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.022, 8, 22), gedeeld.zwart);
-    stuur.position.set(-0.13, 0.99, 0);
-    stuur.rotation.set(0, 0, Math.PI / 2 - 0.45);
-    console.add(stuur);
-    for (let i = 0; i < 3; i++) {
-      const spaak = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.32, 0.018), gedeeld.zwart);
-      spaak.position.copy(stuur.position);
-      spaak.rotation.set(i * Math.PI / 3, 0, Math.PI / 2 - 0.45);
-      console.add(spaak);
-    }
-    const meter = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.02, 14), gedeeld.wit);
-    meter.position.set(-0.12, 0.80, 0.16); meter.rotation.z = Math.PI / 2 - 0.3;
-    console.add(meter);
-    const gashendel = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.24, 0.035), gedeeld.zwart);
-    gashendel.position.set(0.02, 0.96, -0.24); gashendel.rotation.x = 0.35;
-    console.add(gashendel);
-    schip.add(console);
-
-    // ---- buitenboordmotor aan de spiegel ----
-    const motor = new THREE.Group();
-    motor.position.set(vorm.lang(1) - 0.32, vorm.zeeg(1) - 0.24, 0);
-    const kap = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.40, 0.34), std({ color: L.kleur, roughness: 0.35 }));
-    kap.castShadow = true; motor.add(kap);
-    const staart = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.72, 0.16), gedeeld.donker);
-    staart.position.y = -0.55; motor.add(staart);
-    const torpedo = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.30, 4, 10), gedeeld.donker);
-    torpedo.position.set(-0.02, -0.92, 0); torpedo.rotation.z = Math.PI / 2;
-    motor.add(torpedo);
-    const schroef = new THREE.Group();
-    schroef.position.set(-0.20, -0.92, 0);
-    for (let i = 0; i < 3; i++) {
-      const blad2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.15, 0.06), gedeeld.rvs);
-      blad2.position.set(0, Math.cos(i * 2.094) * 0.075, Math.sin(i * 2.094) * 0.075);
-      blad2.rotation.x = i * 2.094 + 0.5;
-      schroef.add(blad2);
-    }
-    motor.add(schroef);
-    schip.add(motor);
-
-    // ---- navigatielichten, stootwillen, een touw naar de wal ----
-    const lampje = (mat, x, z) => {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), mat);
-      m.position.set(x, vorm.zeeg(0.12) + 0.03, z);
-      schip.add(m); return m;
-    };
-    lampje(gedeeld.rood, vorm.lang(0.10), -vorm.breed(0.10) * 0.8);
-    lampje(gedeeld.groen, vorm.lang(0.10), vorm.breed(0.10) * 0.8);
-    const hek = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.62, 6), gedeeld.rvs);
-    hek.position.set(vorm.lang(1) + 0.14, vorm.zeeg(1) + 0.31, 0);
-    schip.add(hek);
-    const heklicht = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), gedeeld.wit);
-    heklicht.position.set(vorm.lang(1) + 0.14, vorm.zeeg(1) + 0.63, 0);
-    schip.add(heklicht);
-
-    for (const t of [0.42, 0.74]) for (const zij of [-1, 1]) {
-      const wil = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.20, 4, 8), gedeeld.donker);
-      wil.position.set(vorm.lang(t), vorm.zeeg(t) - 0.22, (vorm.breed(t) + 0.08) * zij);
-      schip.add(wil);
-    }
-    // de bolder voorop, met het touw eraan
-    const bolder = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.13, 8), gedeeld.rvs);
-    bolder.position.set(vorm.lang(0.04), vorm.zeeg(0.04) + 0.05, 0);
-    schip.add(bolder);
-
-    /*
-     `length` is wat js/derdepersoon.js uitleest om te bepalen hoe ver de camera
-     achter je hangt. Een sloep van ruim zes meter krijgt daarmee acht meter
-     hengel, en dat is precies genoeg om de hele boot en het water eromheen te
-     zien zonder dat je de kant uit het oog verliest.
-    */
-    groep.userData = { romp, motor, schroef, lichten: [heklicht], console, stuur, length: LENGTE };
-    return groep;
-  }
-
-  /*
-   Past de romp hier? We kijken op vijf punten: de steven, de spiegel, het
-   midden en de twee breedste punten. Ligt één daarvan op de kant, dan gaat de
-   boot niet verder. Het is ruim genomen — de punten liggen binnen de romp, niet
-   erbuiten — want een boot die bij elke rietkraag vastloopt is geen boot.
-  */
-  /*
-   De proefpunten liggen op de **buitenkant** van de romp en niet erbinnen.
-
-   Ze stonden eerst op 46 % van de lengte en 42 % van de breedte, ruim binnen de
-   huid. Dat leek voorzichtig maar pakte andersom uit: de steven steekt tot
-   3,47 m vooruit (de overhang, zie `lang`), dus de boot voer een halve meter de
-   wal in voordat er iets tegenhield. Je zag je eigen boeg in het gras steken.
-   Nu ligt de voorste proef op de steven zelf, de achterste op de spiegel en de
-   twee zijproeven op het breedste punt van de romp, met er nog een paar tussen
-   zodat een schuine oever niet tussen twee punten door glipt.
-  */
-  const PROEF = [
-    [LENGTE * 0.55, 0],                                  // de steven, overhang en al
-    [-LENGTE * 0.5, 0],                                  // de spiegel
-    [0, 0],
-    [LENGTE * 0.28, BREEDTE * 0.34], [LENGTE * 0.28, -BREEDTE * 0.34],
-    [LENGTE * 0.05, BREEDTE * 0.5], [LENGTE * 0.05, -BREEDTE * 0.5],
-    [-LENGTE * 0.32, BREEDTE * 0.47], [-LENGTE * 0.32, -BREEDTE * 0.47],
-  ];
-  function pastHier(x, z, yaw) {
-    const c = Math.cos(yaw), s = Math.sin(yaw);
-    for (const [l, d] of PROEF) {
-      // lokaal: +x is de neus, +z is stuurboord
-      const px = x - s * l + c * d, pz = z - c * l - s * d;
-      if (!vaarbaar(px, pz)) return false;
-    }
-    return true;
-  }
 
   /*
    Waar komt de boot precies te liggen?
@@ -545,7 +577,7 @@ export function initBoten({ scene, player, hud }) {
     mesh.position.set(plek.x, WATER_Y, plek.z);
     mesh.rotation.y = plek.yaw;
     scene.add(mesh);
-    if (L.steiger) scene.add(maakSteiger(plek, plek.yaw, L.wal, gedeeld));
+    if (L.steiger) scene.add(maakSteiger(plek, plek.yaw, L.wal, spullen().gedeeld));
     boten.push({
       L, mesh, naam: L.naam, plek,
       x: plek.x, z: plek.z, yaw: plek.yaw,

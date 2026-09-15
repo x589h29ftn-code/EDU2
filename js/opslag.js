@@ -40,7 +40,7 @@ export function wisOpslag() {
  spel = { player, sfeer, vehicles, verhaal, straat }
  Geeft true als het opslaan gelukt is (localStorage kan vol of geblokkeerd zijn).
 */
-export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, straat = '' }) {
+export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, straat = '' }) {
   const auto = player.inCar;
   const data = {
     versie: VERSIE,
@@ -62,6 +62,8 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, str
     } : null,
     // de sloepen: waar ze liggen en of jij aan het roer stond (js/boot.js)
     boten: boten ? boten.bewaar() : null,
+    // en hoe ver de lading over het water is (js/vaart.js)
+    vaart: vaart ? vaart.bewaar() : null,
     sfeer: sfeer ? { uur: sfeer.uur, weer: sfeer.weer, loopt: sfeer.loopt } : null,
     verhaal: verhaal ? verhaal.bewaar() : null,
   };
@@ -69,7 +71,7 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, str
 }
 
 // Zet een opgeslagen spel terug. Geeft false als er niets (bruikbaars) staat.
-export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null }) {
+export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null }) {
   const d = lees();
   if (!d || !d.speler) return false;
   const s = d.speler;
@@ -126,6 +128,8 @@ export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null }) {
     boten.herstel(d.boten);
     if (d.boten && d.boten.aanBoord >= 0) player.inCar = null;
   }
+  // en de lading: die hangt aan de boot, dus hij moet ná de sloepen
+  if (vaart) vaart.herstel(d.vaart);
 
   player.applyCamera();
   return true;

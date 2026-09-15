@@ -34,6 +34,7 @@
     "geo:boven": "node tools/geo/bovenaanzicht.mjs 8123 2",
     "geo:steekproef": "node tools/geo/steekproef.mjs 8123",
     "geo:steekproeflinks": "node tools/geo/steekproeflinks.mjs",
+    "geo:steekproefjpg": "node tools/geo/steekproefjpg.mjs",
     "kaart:print": "node tools/geo/printkaart.mjs 8123 3",
     "verhaaltest": "node tools/verhaaltest.mjs",
     "verhaalshots": "node tools/verhaalshots.mjs",
@@ -98,6 +99,10 @@
     "waltest": "node tools/waltest.mjs",
     "kaarttest": "node tools/kaarttest.mjs",
     "breektest": "node tools/breektest.mjs",
+    "watertest": "node tools/watertest.mjs",
+    "watershots": "node tools/watershots.mjs",
+    "vaarttest": "node tools/vaarttest.mjs",
+    "vaartshots": "node tools/vaartshots.mjs",
     "bootshots": "node tools/bootshots.mjs",
     "vuilshots": "node tools/vuilshots.mjs"
   }

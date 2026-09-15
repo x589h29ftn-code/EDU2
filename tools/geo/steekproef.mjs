@@ -1,6 +1,6 @@
 // Steekproef voor de stijlcontrole: rendert per adres uit
 // data/stijl/steekproef.json het spel vanaf de straat, recht voor de
-// voorgevel, en schrijft docs/steekproef/<straat>-<nr>.png plus een
+// voorgevel, en schrijft docs/steekproef/<straat>-<nr>.jpg plus een
 // README.md met per adres de meetwaarden uit 3D BAG, het gekozen woningtype en
 // de Street View-link van hetzelfde camerapunt.
 //
@@ -68,12 +68,18 @@ for (const a of STEEK.adressen) {
     for (const car of g.vehicles.cars) if (car.mesh) car.mesh.visible = Math.hypot(car.x - c.x, car.z - c.z) > 6;
   }, cam);
   await page.waitForTimeout(600);
-  const bestand = join(UIT, `${naam}.png`);
-  await page.screenshot({ path: bestand, timeout: 300000 });
+  /*
+   JPEG en geen PNG. Eenentachtig schermafdrukken per ronde is als PNG
+   tweeënzestig megabyte, en elke ronde komt daar opnieuw bij in de
+   git-geschiedenis. Het zijn foto's van een 3D-beeld: op kwaliteit 82 gaat er
+   ruim tachtig procent af en zie je aan een gevel niets terug.
+  */
+  const bestand = join(UIT, `${naam}.jpg`);
+  await page.screenshot({ path: bestand, type: 'jpeg', quality: 82, timeout: 300000 });
   const link = streetView(cam.x, cam.z, cam.koers);
   const meet = pand.v ? `goot ${pand.goot} m, nok ${pand.nok} m, ${pand.dak}` : `geschat (geen 3D BAG)`;
-  console.log(`${a.straat} ${a.nr}: ${pand.type}, ${meet}, bouwjaar ${pand.jaar || '?'} -> ${naam}.png`);
-  doel.push(`| ${a.straat} ${a.nr} | ${pand.type} | ${meet} | ${pand.jaar || '?'} | ![](${naam}.png) | ${link ? `[Street View](${link})` : ''} |${a.ronde === 2 ? ` ${a.vraag || ''} |` : ''}`);
+  console.log(`${a.straat} ${a.nr}: ${pand.type}, ${meet}, bouwjaar ${pand.jaar || '?'} -> ${naam}.jpg`);
+  doel.push(`| ${a.straat} ${a.nr} | ${pand.type} | ${meet} | ${pand.jaar || '?'} | ![](${naam}.jpg) | ${link ? `[Street View](${link})` : ''} |${a.ronde === 2 ? ` ${a.vraag || ''} |` : ''}`);
 }
 
 // omgevingsplekken
@@ -87,10 +93,10 @@ for (const pl of STEEK.plekken || []) {
     for (const car of g.vehicles.cars) if (car.mesh) car.mesh.visible = Math.hypot(car.x - c.x, car.z - c.z) > 4;
   }, cam);
   await page.waitForTimeout(600);
-  await page.screenshot({ path: join(UIT, `${naam}.png`), timeout: 300000 });
+  await page.screenshot({ path: join(UIT, `${naam}.jpg`), type: 'jpeg', quality: 82, timeout: 300000 });
   const link = streetView(cam.x, cam.z, cam.koers);
-  console.log(`${pl.naam}: vanaf ${cam.straat}, ${cam.afstand.toFixed(0)} m van de plek -> ${naam}.png`);
-  plekRegels.push(`| ${pl.naam} | ${pl.soort} | ${pl.vraag} | ![](${naam}.png) | ${link ? `[Street View](${link})` : ''} |`);
+  console.log(`${pl.naam}: vanaf ${cam.straat}, ${cam.afstand.toFixed(0)} m van de plek -> ${naam}.jpg`);
+  plekRegels.push(`| ${pl.naam} | ${pl.soort} | ${pl.vraag} | ![](${naam}.jpg) | ${link ? `[Street View](${link})` : ''} |`);
 }
 await browser.close();
 

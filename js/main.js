@@ -16,6 +16,8 @@ import { initBoten } from './boot.js';
 import { initSupermarkt } from './supermarkt.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
+import { initPolitieboot } from './politieboot.js';
+import { initVaart } from './vaart.js';
 import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm } from './kaartwereld.js';
@@ -375,7 +377,7 @@ const verhaal = initVerhaal({
   scene, player, hud, vehicles,
   // Ga je neer, dan begint het verhaal bij het laatst opgeslagen spel; is er
   // niets opgeslagen, dan zegt laadSpel false en begint de missie opnieuw.
-  opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal, boten }),
+  opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart }),
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
   bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {}, mislukt() {},
@@ -440,6 +442,18 @@ const spuiterij = initSpuiterij({ scene, player, vehicles, hud, verhaal, politie
  een auto.
 */
 const boten = initBoten({ scene, player, hud }) || null;
+/*
+ De politie op het water (js/politieboot.js). Eén sloep, en alleen als je zelf
+ op het water zit én er verdenking is; aan de wal valt er niets te patrouilleren
+ en zonder sterren is er niets aan de hand.
+*/
+const politieboot = initPolitieboot({ scene, player, hud, politie, boten });
+/*
+ De lading over het water (js/vaart.js): ophalen in IJlst, afleveren aan de
+ Geeuwkade bij de waterzuivering. Hij meldt zich vanzelf als het verhaal
+ uitgespeeld is.
+*/
+const vaart = initVaart({ scene, player, hud, boten, politie, verhaal });
 
 /*
  Wat er op straat blijft liggen (js/buit.js): geld uit de zak van een
@@ -598,7 +612,8 @@ player.shootCb = (camOrigin, camDir) => {
   }
   politie.misdaad('schot', origin.x, origin.z);
   raycaster.set(origin, dir); raycaster.far = 120;
-  const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen()];
+  const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
+    ...(politieboot ? politieboot.doelen() : [])];
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
     const h = hits[0];
@@ -628,6 +643,20 @@ player.shootCb = (camOrigin, camDir) => {
     */
     else if (politie.raakHeli(h.object)) {
       schok(0.25);
+    }
+    /*
+     De politieboot en de twee agenten aan boord. Ze staan hier vóór de auto's,
+     net als de helikopter, anders telt een kogel in de romp ook nog als "op een
+     auto geschoten". Een agent aan boord is een agent: dat kost je net zoveel
+     verdenking als een agent op straat.
+    */
+    else if (politieboot && politieboot.raakAgent(h.object)) {
+      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
+      politie.misdaad('agent', h.point.x, h.point.z);
+    }
+    else if (politieboot && politieboot.raak(h.object)) {
+      geluid.klap();
+      politie.misdaad('schot', h.point.x, h.point.z);
     }
     else if ((raakVerhaal = verhaal.raak(h.object))) { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); }
     else {
@@ -1003,7 +1032,7 @@ let gepauzeerd = false;
 
 function bewaarSpelNu() {
   const gelukt = bewaarSpel({
-    player, sfeer, vehicles, verhaal, boten,
+    player, sfeer, vehicles, verhaal, boten, vaart,
     straat: nearestRoadName(camera.position.x, camera.position.z),
   });
   hud.show(gelukt ? 'Spel opgeslagen' : 'Opslaan lukte niet', 2);
@@ -1011,7 +1040,8 @@ function bewaarSpelNu() {
 
 function laadSpelNu() {
   politie.reset();          // een opgeslagen spel begint zonder achtervolging
-  const gelukt = laadSpel({ player, sfeer, vehicles, verhaal, boten });
+  if (politieboot) politieboot.reset();
+  const gelukt = laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart });
   hud.show(gelukt ? 'Spel geladen' : 'Er is nog geen opgeslagen spel', 2.5);
   return gelukt;
 }
@@ -1223,7 +1253,9 @@ function loop() {
       geluid.heli(null);      // en de heli hoor je binnen ook niet doorklapperen
     } else {
       vehicles.werkKnallenBij(dt, player.pos.x, player.pos.z);   // vuurballen en wrakken
-      const schade = politie.update(dt);
+      let schade = politie.update(dt);
+      if (politieboot) schade += politieboot.update(dt);
+      if (vaart) vaart.update(dt);
       // Zonder deze twee regels merk je er niets van dat er op je geschoten
       // wordt: de levensbalk wordt alleen bijgewerkt als iemand hem bijwerkt,
       // en de rode flits komt uit js/hud.js — net als bij de bewaking op de RWZI.
@@ -1250,8 +1282,15 @@ function loop() {
       }
     }
     hud.zetSterren(politie.ster, politie.gezocht);
-    hud.zetPolitie(politie.gezocht ? politie.plekken : null);
-    if (player.health <= 0) { politie.reset(); verhaal.dood(); }
+    /*
+     De blauwe stippen op de kaart. De politieboot hoort erbij — hij telt als een
+     wagen, want hij is even groot en je wilt hem op de kaart net zo goed zien
+     aankomen als een surveillancewagen.
+    */
+    const blauw = politie.gezocht ? politie.plekken : null;
+    if (blauw && politieboot && politieboot.plek) blauw.push({ ...politieboot.plek, wagen: true });
+    hud.zetPolitie(blauw);
+    if (player.health <= 0) { politie.reset(); if (politieboot) politieboot.reset(); verhaal.dood(); }
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
     sun.position.set(cx + SUN_DIR.x * 150, SUN_DIR.y * 150, cz + SUN_DIR.z * 150);
@@ -1332,7 +1371,7 @@ loop();
 window.__game = {
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
-  geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij, boten,
+  geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij, boten, politieboot, vaart,
   raakLantaarn, werkLantaarnsBij, lantaarnsOm, buit,
   // haken voor tools/puntentest.mjs: een knal laten afgaan en de uitslag lezen
   __ontplof: autoOntploft, __schokNul: () => { SCHOK.kracht = 0; SCHOK.t = 0; },

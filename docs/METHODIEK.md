@@ -3958,6 +3958,65 @@ muur, en het kost 0,102 ms per beeld voor alle honderddertig.
 
 Controle: `npm run looptest` (twee controles erbij).
 
+*De politie op het water.* Op de Geeuw was je veilig: de politie rijdt over de
+weg, dus wie de sloep nam was van de achtervolging af. Er komt nu één
+politiesloep achter je aan — donkerblauw, met een zwaailicht op de console en
+twee agenten aan boord — en alleen als het ergens op slaat: je zit zélf in een
+boot én er is verdenking. Aan de wal met vijf sterren komt er geen boot, en op het
+water zonder sterren ook niet.
+
+Hij komt op vijfentachtig tot honderdvijftig meter in beeld, bij voorkeur achter
+je en uit het zicht, en vaart met dezelfde natuurkunde als jouw sloep: dezelfde
+romp, dezelfde weerstand, dezelfde toets of de romp er nog past. Wat hij níet
+deelt is de topsnelheid — 8,5 tegen 7,0 m/s — want anders is wegvaren geen keuze
+maar een garantie. In plaats van een toetsenbord zit er een stuurautomaat op:
+hij wil tot zestien meter naderen, en ligt er wal in de weg dan probeert hij een
+waaier van koersen om de vijftien graden en neemt de vrijste. Veertien treffers
+en de motor geeft het op.
+
+Daar zat wel een prijs aan, en die was hoog. `vaarbaar(x, z)` liep door álle 529
+waterpolygonen van de wereld met een volledige punt-in-polygoon-toets. Voor de
+voetstappen viel dat niet op; met boten erbij is het de duurste lus van het spel
+— de romp van een sloep wordt op negen punten getoetst en die koerswaaier komt
+neer op honderden toetsen per beeld. Er ligt nu een rooster van veertig meter
+overheen, net als bij de botsdozen. Gemeten: 2,89 µs per toets, en de vaarroute
+over de hele overtocht ging van 810 naar 190 ms.
+
+Controle: `npm run watertest` (veertien controles) en `npm run watershots`.
+
+*De lading over het water.* Hier waren de boten voor. Ophalen in IJlst, over de
+Geeuw naar de kade bij de waterzuivering, en de verdenking loopt onderweg op.
+
+Eerst de vraag of het überhaupt kon: liggen die twee ligplaatsen aan hetzelfde
+water? Dat was geen gegeven — IJlst en de Geeuw zijn aparte waterdelen in de BGT,
+met in totaal 185.000 en 250.000 m² eraan vast. Gemeten met een breedte-eerst
+zoektocht over `vaarbaar`: **ja**, 2532 meter vaarwater tegen 1773 meter
+hemelsbreed. Zonder dat antwoord was de hele missie een onmogelijke opdracht
+geweest.
+
+Diezelfde zoektocht levert meteen de route op de kaart. De navigatie van het spel
+loopt over wegassen en die houden bij de kade op, dus hier gaat er een rooster van
+zes meter over het water — zes omdat de sloep 2,16 breed is en de smalste vaart
+waar hij door moet een meter of acht.
+
+Het verloop: je krijgt een telefoontje zodra het verhaal uitgespeeld is, de lading
+komt aan boord zodra je in de sloep in IJlst stapt (en niet in die andere), en
+vanaf dat moment loopt de verdenking van één ster naar drie. Met verdenking én een
+boot onder je komt de politiesloep het water op. Bij de kade is de lading over,
+en dan zijn ze je ook kwijt. Stap je onderweg uit, dan mislukt er niets — hij
+wacht gewoon; dat is het verschil tussen een missie en een strafexpeditie.
+
+Controle: `npm run vaarttest` (tweeëntwintig controles) en `npm run vaartshots`.
+
+*De steekproeffoto's als JPEG.* Eén ronde steekproef is eenentachtig
+schermafdrukken van 1280 × 720, en als PNG is dat tweeënzestig megabyte — elke
+ronde opnieuw, in de git-geschiedenis. Het zijn foto's van een 3D-beeld met lucht,
+gras en baksteen erop, precies waar JPEG voor gemaakt is. Op kwaliteit 82 gaat er
+ruim tachtig procent af en zie je aan een gevel niets terug.
+`tools/geo/steekproef.mjs` schrijft ze voortaan zo, en
+`npm run geo:steekproefjpg` zet een bestaande map om (op een canvas in de
+browser — er zitten geen beeldpakketten in dit project).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
