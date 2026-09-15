@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { rng } from './textures.js';
 import { grondHoogte } from './viaduct.js';
-import { zichtVrij } from './world.js';
+import { zichtVrij, resolveCollisions } from './world.js';
 import { MAAT, DEEL, loopHouding, fietsHouding } from './lichaam.js';
 
 const SHIRTS = [0x2f3a56, 0x8a1f1f, 0xe8e2d0, 0x2a6b3a, 0x2b2b2b, 0xd8b04a, 0x6a4c93, 0xc85a2a, 0x3f7fb0];
@@ -542,6 +542,23 @@ export class NPCs {
       }
 
       const h = p.height;
+      /*
+       En dan pas de wereld. Voetgangers liepen overal doorheen, en dat kwam niet
+       door een fout in de botsingen maar doordat ze er nooit aan meededen: hun
+       plek wordt elk beeld uit hun wegvak berekend, dus er viel niets te botsen.
+       Zolang ze keurig over de stoep liepen viel dat niet op; bij het oversteken,
+       na een aanrijding en overal waar de stoep langs een tuin loopt wel — en
+       helemaal sinds de heggen en schuttingen botsdozen hebben.
+
+       Het wegvak blijft leidend. Hij wordt alleen uit de doos geduwd waar hij in
+       zou staan, dus hij schuift langs een schutting in plaats van erdoorheen, en
+       vastlopen kan niet: zijn plek op het wegvak telt gewoon door. Wie neer ligt
+       blijft liggen — die is geen wandelaar meer maar een hoopje op de stoep.
+      */
+      if (p.alive) {
+        const [kx, kz] = resolveCollisions(p.x, p.z, 0.32, 0, grondHoogte(p.x, p.z));
+        p.x = kx; p.z = kz;
+      }
       // bijna overal nul; op het viaduct loopt de stoep meters omhoog
       const gy = grondHoogte(p.x, p.z);
       const dood = !p.alive;

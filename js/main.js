@@ -375,7 +375,7 @@ const verhaal = initVerhaal({
   scene, player, hud, vehicles,
   // Ga je neer, dan begint het verhaal bij het laatst opgeslagen spel; is er
   // niets opgeslagen, dan zegt laadSpel false en begint de missie opnieuw.
-  opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal }),
+  opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal, boten }),
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
   bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {}, mislukt() {},
@@ -1003,7 +1003,7 @@ let gepauzeerd = false;
 
 function bewaarSpelNu() {
   const gelukt = bewaarSpel({
-    player, sfeer, vehicles, verhaal,
+    player, sfeer, vehicles, verhaal, boten,
     straat: nearestRoadName(camera.position.x, camera.position.z),
   });
   hud.show(gelukt ? 'Spel opgeslagen' : 'Opslaan lukte niet', 2);
@@ -1011,7 +1011,7 @@ function bewaarSpelNu() {
 
 function laadSpelNu() {
   politie.reset();          // een opgeslagen spel begint zonder achtervolging
-  const gelukt = laadSpel({ player, sfeer, vehicles, verhaal });
+  const gelukt = laadSpel({ player, sfeer, vehicles, verhaal, boten });
   hud.show(gelukt ? 'Spel geladen' : 'Er is nog geen opgeslagen spel', 2.5);
   return gelukt;
 }
@@ -1111,6 +1111,12 @@ function loop() {
         geluid.klap();
         schok(0.35 + Math.min(0.85, car.botsKracht / 16));
         car.botsKracht = 0;
+      }
+      // een schutting of heg die het begeeft: hout, geen blik, en een lichte tik
+      if (car.brakKracht) {
+        geluid.kraak();
+        schok(0.18 + Math.min(0.2, car.brakKracht * 0.05));
+        car.brakKracht = 0;
       }
       /*
        Een lantaarnpaal omver rijden. De neus van de auto is het punt dat hem

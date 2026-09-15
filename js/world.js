@@ -674,6 +674,76 @@ export function addCollider(cx, cz, hx, hz, yaw, h = 8) {
   return c;      // de aanroeper kan de doos later verplaatsen of weghalen (zie de poort in verhaal.js)
 }
 
+/*
+ ---------------------------------------------------------------- erfscheidingen
+ Een heg, een schutting of een tuinhekje kapotrijden.
+
+ Sinds ze botsdozen hebben houden ze je tegen en breken ze de kijklijn, maar
+ auto's negeren alles onder de 3,5 meter en reden er dus nog dwars doorheen alsof
+ er niets stond. Een schutting die een auto tegenhoudt is geen schutting — een
+ schutting van achttien millimeter plank gaat om. Dus: hij breekt, en hij blijft
+ plat liggen.
+
+ Twee dingen gebeuren er. De botsdoos krijgt hoogte nul, en daarmee is hij weg
+ voor iedereen: `duwUit` laat hem los, `zichtVrij` toetst op hoogte en `h < 1.20`
+ is altijd waar, dus de agent kijkt er voortaan overheen. Dat is precies goed —
+ waar de schutting plat ligt is geen dekking meer.
+
+ En de tekening klapt om. Heggen en schuttingen staan niet als losse meshes in de
+ scene maar samengevoegd per tegel van 240 meter (js/kaartwereld.js), dus er is
+ geen object om te draaien. Wat er wél is: elke erfscheiding weet welk stukje van
+ welke hoekpuntenlijst van hem is. Die punten worden om de voet gescharnierd —
+ hoe hoger een punt zat, hoe verder het naar buiten komt — en dat is een paneel
+ dat omvalt, in de richting waarin de auto reed.
+*/
+export function breekScheiding(c, vanX = null, vanZ = null) {
+  if (!c || !c.breek || c.h <= 0) return false;
+  const b = c.breek;
+  c.h = 0;
+  const attr = b.doel && b.doel.attr;
+  if (attr) {
+    const arr = attr.array;
+    // de normaal op de scheiding; `naar` kiest de kant waar hij heen valt
+    let nx = -(b.bz - b.az), nz = b.bx - b.ax;
+    const L = Math.hypot(nx, nz) || 1; nx /= L; nz /= L;
+    const naar = (vanX === null) ? 1
+      : (((vanX - c.cx) * nx + (vanZ - c.cz) * nz) < 0 ? 1 : -1);
+    for (let i = b.van; i < b.tot; i += 3) {
+      const f = (arr[i + 1] - b.y0) / b.h;     // 0 aan de voet, 1 bovenaan
+      if (f < 0.01) continue;                  // de voet blijft staan
+      arr[i] += nx * naar * b.h * f;
+      arr[i + 2] += nz * naar * b.h * f;
+      arr[i + 1] = b.y0 + 0.05 * f;            // net geen nulhoogte: geen z-vechten met het gras
+    }
+    attr.needsUpdate = true;
+  }
+  return true;
+}
+
+/*
+ Welke erfscheidingen raakt een cirkel (de wielbasis van een auto)? Alles wat hij
+ raakt breekt. Levert het aantal dat het begaf, zodat de auto er vaart op kan
+ inleveren en er een krak te horen is.
+*/
+export function breekScheidingenBij(x, z, radius, vanX, vanZ) {
+  if (rooster === null || roosterVoor !== colliders.length) bouwRooster();
+  let n = 0;
+  const marge = radius + 1;
+  const i0 = Math.floor((x - marge) / CEL), i1 = Math.floor((x + marge) / CEL);
+  const j0 = Math.floor((z - marge) / CEL), j1 = Math.floor((z + marge) / CEL);
+  for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+    const lijst = rooster.get(CELSLEUTEL(i, j));
+    if (!lijst) continue;
+    for (const c of lijst) {
+      if (!c.breek || c.h <= 0) continue;
+      const dx = x - c.cx, dz = z - c.cz;
+      const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
+      if (Math.abs(lx) - c.hx < radius && Math.abs(lz) - c.hz < radius && breekScheiding(c, vanX, vanZ)) n++;
+    }
+  }
+  return n;
+}
+
 // ---------- Huizen ----------
 function gableRoof(w, d, h, mat, overhang = 0.35) {
   // dak met nok evenwijdig aan de lange zijde (x = lengte, z = diepte)
@@ -2114,6 +2184,9 @@ export function resolveCollisions(x, z, radius, ignoreLowH = 0, y = null) {
 
 function duwUit(c, x, z, radius, ignoreLowH, y) {
   {
+    // een doos zonder hoogte is er niet meer: zo blijft een kapotgereden
+    // schutting liggen zonder dat hij nog iemand tegenhoudt (`breekScheiding`)
+    if (c.h <= 0) return [x, z];
     if (c.h < ignoreLowH) return [x, z];
     if (c.y0 != null && y != null && (y + 1.8 < c.y0 || y > c.y0 + c.h)) return [x, z];
     const dx = x - c.cx, dz = z - c.cz;

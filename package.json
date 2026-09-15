@@ -97,6 +97,7 @@
     "boottest": "node tools/boottest.mjs",
     "waltest": "node tools/waltest.mjs",
     "kaarttest": "node tools/kaarttest.mjs",
+    "breektest": "node tools/breektest.mjs",
     "bootshots": "node tools/bootshots.mjs",
     "vuilshots": "node tools/vuilshots.mjs"
   }

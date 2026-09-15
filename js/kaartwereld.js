@@ -369,6 +369,9 @@ function zetTegels(scene, W, bundel, cel, mat, klasse, opties = {}) {
   for (const g of bundel.values()) {
     const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse, schaduw });
     if (!m) continue;
+    // de bundel houdt zijn eigen hoekpunten bij, zodat een erfscheiding er later
+    // uit kan worden omgeklapt (`breekScheiding` in js/world.js)
+    g.attr = m.geometry.attributes.position;
     scene.add(m); meshes++;
     // voorbij `ver` meter uit; de halve diagonaal erbij, anders gaat een tegel
     // die met zijn rand nog in beeld ligt te vroeg uit
@@ -580,8 +583,11 @@ export function* bouwKaartWereldStap(scene, W) {
     const pd = { pos: [], uv: [], nor: [] }, st = { pos: [], uv: [], nor: [] };
     // `doel` is of een tegelbundel (een Map) of één bak
     const balk = (a, b, dikte, h, waar, y0 = 0) => {
-      const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 0.2) return;
+      const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 0.2) return null;
       const doel = waar instanceof Map ? bak(waar, TUIN_CEL, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2) : waar;
+      // waar in de hoekpuntenlijst dit stukje komt te staan: `breekScheiding` in
+      // js/world.js klapt precies dit bereik om als er een auto doorheen rijdt
+      const van = doel.pos.length;
       const nx = -dz / L * dikte / 2, nz = dx / L * dikte / 2;
       /*
        De volgorde van de vier hoeken bepaalt welke kant de zijvlakken op kijken
@@ -594,6 +600,7 @@ export function* bouwKaartWereldStap(scene, W) {
       const ring = [[a[0] - nx, a[1] - nz], [b[0] - nx, b[1] - nz], [b[0] + nx, b[1] + nz], [a[0] + nx, a[1] + nz]];
       vlakGeometrie([ring], y0 + h, 0.5, doel.pos, doel.uv, doel.nor);
       randGeometrie([ring], y0 + h, y0, doel.pos, doel.uv, doel.nor);
+      return { doel, van, tot: doel.pos.length, y0 };
     };
     /*
      En een botsdoos bij elke erfscheiding.
@@ -609,16 +616,28 @@ export function* bouwKaartWereldStap(scene, W) {
      in de voortuin kijk je heen, langs een schutting in de achtertuin niet.
 
      De dikte is de echte dikte; de straal van wie er tegenaan loopt doet de rest
-     (`resolveCollisions` telt die erbij op). Auto's negeren alles onder de 3,5 m,
-     dus die rijden er nog gewoon doorheen — een schutting houdt geen auto tegen.
+     (`resolveCollisions` telt die erbij op).
+
+     Auto's negeren alles onder de 3,5 m, dus die rijden er nog doorheen — en dat
+     hoort ook: een schutting van achttien millimeter plank houdt geen auto tegen.
+     Wat hij wél doet is het begeven. `vorm` vertelt de doos welk stukje van de
+     tekening van hem is, zodat `breekScheiding` in js/world.js het paneel kan
+     laten omklappen als er iemand doorheen rijdt.
     */
     let scheidingDozen = 0;
-    const scheidingDoos = (a2, b2, dikte, h) => {
+    const scheidingDoos = (a2, b2, dikte, h, vorm = null) => {
       const dx = b2[0] - a2[0], dz = b2[1] - a2[1], L = Math.hypot(dx, dz);
-      if (L < 0.2) return;
-      W.addCollider((a2[0] + b2[0]) / 2, (a2[1] + b2[1]) / 2, L / 2, Math.max(0.05, dikte / 2),
+      if (L < 0.2) return null;
+      const c = W.addCollider((a2[0] + b2[0]) / 2, (a2[1] + b2[1]) / 2, L / 2, Math.max(0.05, dikte / 2),
         -Math.atan2(dz, dx), KERB_Y + h);
+      if (vorm && vorm.doel) {
+        c.breek = {
+          doel: vorm.doel, van: vorm.van, tot: vorm.tot, y0: vorm.y0, h,
+          ax: a2[0], az: a2[1], bx: b2[0], bz: b2[1],
+        };
+      }
       scheidingDozen++;
+      return c;
     };
     const hek = { pos: [], uv: [], nor: [] }, tv = { pos: [], uv: [], nor: [] }, tvt = { pos: [], uv: [], nor: [] };
     for (const h of K.heggen || []) {
@@ -627,15 +646,15 @@ export function* bouwKaartWereldStap(scene, W) {
         const dx = h.b[0] - h.a[0], dz = h.b[1] - h.a[1], L = Math.hypot(dx, dz); if (L < 0.3) continue;
         const nx = dz / L, nz = -dx / L;
         const q = [[h.a[0], KERB_Y + h.h, h.a[1]], [h.b[0], KERB_Y + h.h, h.b[1]], [h.b[0], KERB_Y, h.b[1]], [h.a[0], KERB_Y, h.a[1]]];
+        const van = hek.pos.length;
         for (const [i0, i1, i2] of [[0, 1, 2], [0, 2, 3]]) for (const k of [i0, i1, i2]) { const v = q[k]; hek.pos.push(v[0], v[1], v[2]); hek.uv.push(k === 1 || k === 2 ? L : 0, (v[1] - KERB_Y) / h.h); hek.nor.push(nx, 0, nz); }
-        scheidingDoos(h.a, h.b, 0.08, h.h);
+        scheidingDoos(h.a, h.b, 0.08, h.h, { doel: hek, van, tot: hek.pos.length, y0: KERB_Y });
         continue;
       }
-      balk(h.a, h.b, 0.5, h.h, hg2, KERB_Y);
-      scheidingDoos(h.a, h.b, 0.5, h.h);
+      scheidingDoos(h.a, h.b, 0.5, h.h, balk(h.a, h.b, 0.5, h.h, hg2, KERB_Y));
     }
     for (const t of K.tuinvlakken || []) { const d = t.m === 'grind' ? tv : tvt; vlakGeometrie([t.r], KERB_Y + 0.01, t.m === 'grind' ? 0.5 : 1 / 1.2, d.pos, d.uv, d.nor); }
-    for (const f of K.schuttingen || []) { balk(f.a, f.b, 0.06, f.h, sch, KERB_Y); scheidingDoos(f.a, f.b, 0.06, f.h); }
+    for (const f of K.schuttingen || []) scheidingDoos(f.a, f.b, 0.06, f.h, balk(f.a, f.b, 0.06, f.h, sch, KERB_Y));
     for (const ring of K.paden || []) vlakGeometrie([ring], KERB_Y + 0.015, 1 / 1.2, pd.pos, pd.uv, pd.nor);
     for (const l of K.strepen || []) balk(l.a, l.b, 0.1, 0.008, st, 0.0);
     // de twee zware in tegels, met een afstand waarop ze uit mogen
@@ -644,7 +663,9 @@ export function* bouwKaartWereldStap(scene, W) {
     tegelMeshes += zetTegels(scene, W, sch, TUIN_CEL, KM.schutting, 'schutting', { schaduw: true, ver: 260 });
     // en de rest als één mesh, zoals het was
     for (const [g, mat, k, schaduw] of [[hek, KM.hekje, 'hekje', true], [pd, KM.tegels, 'tegelpad', false], [tv, KM.grind, 'grindtuin', false], [tvt, KM.tegels, 'tegeltuin', false], [st, KM.streep, 'belijning', false]]) {
-      const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse: k, schaduw }); if (m) scene.add(m);
+      const m = maakMesh(g.pos, g.uv, g.nor, mat, { klasse: k, schaduw }); if (!m) continue;
+      g.attr = m.geometry.attributes.position;   // idem: de tuinhekjes kunnen ook omver
+      scene.add(m);
     }
     console.log(`kaart: heggen en schuttingen in ${tegelMeshes} tegelmeshes, ${scheidingDozen} botsdozen`);
     // losse objecten uit de objectenbibliotheek (doelen, banken)

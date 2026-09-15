@@ -314,6 +314,55 @@ const schuim = await page.evaluate(() => {
 ok('stilliggend laat hij geen schuim na', schuim.stil === 0, `${schuim.stil}`);
 ok('varend wel', schuim.varend > 0, `${schuim.varend}`);
 
+/*
+ ---------- opslaan en laden ----------
+ F5 sloeg alleen de auto op. Voer je naar de overkant en drukte je F9, dan stond
+ je ineens op de kant en lag de boot weer op zijn ligplaats. Nu hoort allebei
+ terug te komen: waar de sloepen liggen en of jij aan het roer stond.
+*/
+console.log('\nopslaan en laden');
+const bewaard = await page.evaluate(() => {
+  const g = window.__game;
+  if (!g.boten.inBoot) g.boten.stapIn(g.boten.ruw(0));
+  window.__ruim(1.1);                       // een eind van de ligplaats vandaan
+  const b = g.boten.inBoot;
+  const voor = { x: b.x, z: b.z, yaw: b.yaw };
+  g.opslaan();
+  // alles overhoop: van boord, en de boten terug naar hun ligplaats
+  g.boten.herstel(null);
+  g.boten.naarLigplaats(0); g.boten.naarLigplaats(1);
+  const tussen = { x: g.boten.ruw(0).x, z: g.boten.ruw(0).z, aanBoord: !!g.boten.inBoot };
+  g.laden();
+  const na = g.boten.ruw(0);
+  return {
+    voor, tussen,
+    na: { x: na.x, z: na.z, yaw: na.yaw },
+    aanBoord: g.boten.inBoot === na,
+    spelerInBoot: g.player.inBoot === na,
+    inCar: !!g.player.inCar,
+  };
+});
+ok('de proef begon met een verzette boot', Math.hypot(bewaard.tussen.x - bewaard.voor.x, bewaard.tussen.z - bewaard.voor.z) > 50);
+ok('na laden ligt de boot terug waar je hem liet',
+  Math.hypot(bewaard.na.x - bewaard.voor.x, bewaard.na.z - bewaard.voor.z) < 0.1,
+  JSON.stringify(bewaard));
+ok('met dezelfde koers', Math.abs(bewaard.na.yaw - bewaard.voor.yaw) < 0.01);
+ok('en je staat weer aan het roer', bewaard.aanBoord && bewaard.spelerInBoot);
+ok('en niet ook nog in een auto', !bewaard.inCar);
+
+const teVoet = await page.evaluate(() => {
+  const g = window.__game;
+  g.boten.stapUit() || g.boten.herstel({ boten: g.boten.bewaar().boten, aanBoord: -1 });
+  const b = g.boten.ruw(0);
+  g.player.pos.set(b.x, 0, b.z + 30);
+  g.opslaan();
+  g.boten.stapIn(b);
+  g.laden();
+  return { aanBoord: !!g.boten.inBoot, spelerInBoot: !!g.player.inBoot };
+});
+ok('sla je te voet op, dan sta je na laden niet ineens in de boot',
+  !teVoet.aanBoord && !teVoet.spelerInBoot, JSON.stringify(teVoet));
+
 console.log(`\nfouten in de pagina: ${fouten.length ? fouten.join(' | ') : 'geen'}`);
 if (fouten.length) fout++;
 console.log(`\n${goed} goed, ${fout} fout`);

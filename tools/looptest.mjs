@@ -192,6 +192,49 @@ ok(richting.perSoort.fiets[0] > 0 && richting.perSoort.fiets[1] === 0,
 ok(richting.vooruit > 40, 'en er lopen er genoeg om iets te meten',
   `${richting.vooruit} van ${richting.totaal}`);
 
+/*
+ --- en ze lopen nergens doorheen ---
+ Voetgangers deden helemaal niet mee aan de botsingen: hun plek wordt elk beeld
+ uit hun wegvak berekend, dus er viel niets op te lossen. Ze liepen dwars door
+ heggen, schuttingen en muren heen. Nu worden ze na het rekenen uit de doos
+ geduwd waar ze in zouden staan.
+
+ Getoetst wordt wat je op straat ziet: staat er iemand middenin iets dat er
+ staat? Een doos van een halve meter telt mee — over een heg stap je niet heen —
+ en de marge is krap gehouden (een halve straal), zodat een schouder die net een
+ heg raakt geen fout is maar een borstkas erin wel.
+*/
+console.log('\n--- mensen tegen de wereld ---');
+const doorheen = await page.evaluate(async () => {
+  const { colliders } = await import('/js/world.js');
+  const g = window.__game;
+  const dt = 1 / 30;
+  const t0 = performance.now();
+  for (let i = 0; i < 300; i++) g.npcs.update(dt, i * dt);
+  const kosten = (performance.now() - t0) / 300;
+  const inIets = (x, z, marge) => {
+    for (const c of colliders) {
+      if (c.h < 0.5) continue;
+      if (Math.abs(c.cx - x) > c.hx + 2 || Math.abs(c.cz - z) > c.hz + 2) continue;
+      const dx = x - c.cx, dz = z - c.cz;
+      const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
+      if (Math.abs(lx) < c.hx - marge && Math.abs(lz) < c.hz - marge) return true;
+    }
+    return false;
+  };
+  let klem = 0, geteld = 0;
+  for (const p of g.npcs.people) {
+    if (!p.alive) continue;
+    geteld++;
+    if (inIets(p.x, p.z, -0.16)) klem++;
+  }
+  return { klem, geteld, kosten };
+});
+ok(doorheen.klem === 0, 'niemand staat in een heg, schutting of muur',
+  `${doorheen.klem} van ${doorheen.geteld}`);
+ok(doorheen.kosten < 3.0, 'en het rekent nog steeds vlot',
+  `${doorheen.kosten.toFixed(2)} ms per beeld voor ${doorheen.geteld} mensen`);
+
 await browser.close();
 console.log(fouten === 0 ? '\nAlles goed.' : `\n${fouten} fout(en).`);
 process.exit(fouten === 0 ? 0 : 1);

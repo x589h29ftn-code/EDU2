@@ -3904,6 +3904,60 @@ g > 160, b < 110) en het bordje boven een winkel is #f2b632, wat daar net zo goe
 aan voldoet. Het verste "gele" beeldpunt was dan een letter van een winkelnaam een
 eind verderop. Met een nauwe test om #ffd400 heen kloppen alle acht richtingen.
 
+*De boot in het opgeslagen spel.* F5 bewaarde de auto waar je in zat en wist
+niets van de sloepen. Voer je naar IJlst en drukte je F9, dan stond je op de kant
+en lag de boot weer op zijn ligplaats. Nu bewaart `js/opslag.js` waar allebei de
+sloepen liggen en of jij aan het roer stond, en zet `js/boot.js` dat terug — mét
+de koers, en zonder de walcontrole van het gewone uitstappen, want die weigert
+midden op het water en dat is bij het laden van een opslag geen reden om aan
+boord te blijven. Een opslag van vóór de boten heeft het veld niet; dan blijven
+de sloepen staan waar ze staan, want terugzetten naar de ligplaats zou een boot
+verplaatsen op grond van iets wat we juist niet weten.
+
+Controle: `npm run boottest` (zes controles erbij, 45 in totaal).
+
+*Schuttingen die breken.* Sinds de erfscheidingen botsdozen hebben houden ze je
+tegen en breken ze de kijklijn, maar auto's negeren alles onder de 3,5 meter en
+reden er nog dwars doorheen. De oplossing is niet dat een schutting een auto
+tegenhoudt — achttien millimeter plank doet dat niet — maar dat hij het begeeft.
+
+Twee dingen gebeuren er. De botsdoos krijgt hoogte nul, en daarmee is hij weg
+voor iedereen tegelijk: `duwUit` laat hem los en `zichtVrij` toetst op hoogte, dus
+de agent kijkt er voortaan overheen. Dat hoort ook: waar de schutting plat ligt is
+geen dekking meer.
+
+En de tekening klapt om. Dat was het lastige stuk: heggen en schuttingen staan
+niet als losse meshes in de scene maar samengevoegd per tegel van 240 meter —
+zesentwintigduizend losse objecten zou het spel niet trekken — dus er is geen
+object om te draaien. Wat er nu wél is: elke erfscheiding onthoudt welk stukje van
+welke hoekpuntenlijst van hem is. Die punten worden om de voet gescharnierd (hoe
+hoger een punt zat, hoe verder het naar buiten komt) en dat is een paneel dat
+omvalt, in de richting waarin de auto reed. Eén `needsUpdate` op de buffer en het
+staat op het scherm.
+
+Stilstaand gebeurt er niets (anders sloop je een tuin door ertegenaan te leunen),
+het kost vaart naar het aantal panelen dat je meeneemt, en het klinkt naar hout:
+`kraak()` in js/audio.js is drie droge knappen kort na elkaar met een lage bons
+eronder, geen blikken `klap()`. De politie rijdt met dezelfde `drive`, dus een
+achtervolging door de achtertuinen laat een spoor na.
+
+Controle: `npm run breektest` (vijftien controles).
+
+*Voetgangers die overal doorheen liepen.* Dat kwam niet door een fout in de
+botsingen maar doordat ze er niet aan meededen: `js/npc.js` riep
+`resolveCollisions` nooit aan. Hun plek wordt elk beeld uit hun wegvak berekend,
+dus er viel niets op te lossen. Zolang ze over de stoep liepen viel het niet op;
+bij het oversteken, na een aanrijding en overal waar de stoep langs een tuin loopt
+wel.
+
+Het wegvak blijft leidend — ze worden alleen uit de doos geduwd waar ze in zouden
+staan. Daardoor schuiven ze langs een schutting in plaats van erdoorheen, en
+vastlopen kan niet, want hun plek op het wegvak telt gewoon door. Wie neer ligt
+blijft liggen. Gemeten: 0 van de 130 mensen staat nog in een heg, schutting of
+muur, en het kost 0,102 ms per beeld voor alle honderddertig.
+
+Controle: `npm run looptest` (twee controles erbij).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

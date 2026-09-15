@@ -4,7 +4,8 @@
  Eén opslagplek in de localStorage van de browser (in de Windows-app dezelfde
  plek, want die draait dezelfde pagina). Bewaard wordt alles wat je zelf
  veranderd hebt: waar je staat, waar je naar kijkt, je munitie, de tijd van de
- dag, het weer, de auto waar je in zat en hoe ver het verhaal is.
+ dag, het weer, de auto waar je in zat, waar de sloepen liggen en hoe ver het
+ verhaal is.
 
  De wijk zelf zit er niet in: huizenrijen en objecten uit de wijkeditor hebben
  hun eigen opslag (zie js/editor.js), zodat een gewone opslag geen wijzigingen
@@ -39,7 +40,7 @@ export function wisOpslag() {
  spel = { player, sfeer, vehicles, verhaal, straat }
  Geeft true als het opslaan gelukt is (localStorage kan vol of geblokkeerd zijn).
 */
-export function bewaarSpel({ player, sfeer, vehicles, verhaal, straat = '' }) {
+export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, straat = '' }) {
   const auto = player.inCar;
   const data = {
     versie: VERSIE,
@@ -59,6 +60,8 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, straat = '' }) {
       index: vehicles ? vehicles.cars.indexOf(auto) : -1,
       x: auto.x, z: auto.z, yaw: auto.yaw,
     } : null,
+    // de sloepen: waar ze liggen en of jij aan het roer stond (js/boot.js)
+    boten: boten ? boten.bewaar() : null,
     sfeer: sfeer ? { uur: sfeer.uur, weer: sfeer.weer, loopt: sfeer.loopt } : null,
     verhaal: verhaal ? verhaal.bewaar() : null,
   };
@@ -66,7 +69,7 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, straat = '' }) {
 }
 
 // Zet een opgeslagen spel terug. Geeft false als er niets (bruikbaars) staat.
-export function laadSpel({ player, sfeer, vehicles, verhaal }) {
+export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null }) {
   const d = lees();
   if (!d || !d.speler) return false;
   const s = d.speler;
@@ -112,6 +115,18 @@ export function laadSpel({ player, sfeer, vehicles, verhaal }) {
       player.lastCarYaw = undefined;
     }
   }
+
+  /*
+   En de sloepen. Dit moet ná de speler, want stap je aan boord dan bepaalt de
+   boot vanaf het eerste beeld waar je staat. In een auto en in een boot tegelijk
+   kan niet, dus de boot wint: `herstel` zet je alleen aan boord als je er bij het
+   opslaan ook in stond.
+  */
+  if (boten) {
+    boten.herstel(d.boten);
+    if (d.boten && d.boten.aanBoord >= 0) player.inCar = null;
+  }
+
   player.applyCamera();
   return true;
 }

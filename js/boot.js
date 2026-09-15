@@ -806,6 +806,45 @@ export function initBoten({ scene, player, hud }) {
     return verplaats(b, b.plek.x, b.plek.z, b.plek.yaw);
   }
 
+  /*
+   Opslaan en laden (js/opslag.js). Waar de sloepen liggen hoort bij wat jij
+   veranderd hebt: vaar je er een van IJlst naar de Geeuw en sla je op, dan ligt
+   hij daar ook als je terugkomt. En stond je zelf aan het roer, dan sta je daar
+   weer. Tot nu toe wist de opslag alleen van auto's: je werd na F9 op de kant
+   gezet terwijl de boot netjes op zijn ligplaats terugsprong.
+  */
+  function bewaar() {
+    return {
+      boten: boten.map(b => ({ x: +b.x.toFixed(3), z: +b.z.toFixed(3), yaw: +b.yaw.toFixed(4) })),
+      aanBoord: inBoot ? boten.indexOf(inBoot) : -1,
+    };
+  }
+
+  function herstel(d) {
+    /*
+     Eerst van boord, en niet via `stapUit`: die zoekt een stuk wal en weigert
+     midden op het water. Bij het laden van een opslag is dat geen reden om aan
+     boord te blijven — waar je staat komt toch uit het opgeslagen spel.
+    */
+    inBoot = null;
+    if (player) player.inBoot = null;
+    geluid.bootMotor(null);
+    for (const b of boten) { b.vx = 0; b.vz = 0; b.snelheid = 0; b.speed = 0; b.gas = 0; b.roer = 0; }
+    /*
+     Een opslag van vóór de boten heeft dit veld niet. Dan laten we de sloepen
+     staan waar ze staan: terugzetten naar de ligplaats zou een boot verplaatsen
+     op grond van iets wat we juist niet weten.
+    */
+    if (!d || !Array.isArray(d.boten)) { for (const b of boten) zetBeeld(b, 0, 0); return; }
+    d.boten.forEach((p, i) => {
+      const b = boten[i];
+      if (!b || !p) return;
+      b.x = p.x; b.z = p.z; b.yaw = p.yaw;
+      zetBeeld(b, 0, 0);
+    });
+    if (d.aanBoord >= 0 && boten[d.aanBoord]) stapIn(boten[d.aanBoord]);
+  }
+
   return {
     update,
     dichtstbij,
@@ -813,6 +852,8 @@ export function initBoten({ scene, player, hud }) {
     stapUit,
     verplaats,
     naarLigplaats,
+    bewaar,
+    herstel,
     ruw: (i) => boten[i],
     get inBoot() { return inBoot; },
     get vaart() { return inBoot ? inBoot.snelheid || 0 : 0; },

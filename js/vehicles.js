@@ -1,6 +1,6 @@
 // Auto's: geparkeerd, bestuurbaar en verkeer op de N7 en in de wijk.
 import * as THREE from 'three';
-import { resolveCollisions, pointInWater, grondHoogte, zichtVrij } from './world.js';
+import { resolveCollisions, pointInWater, grondHoogte, zichtVrij, breekScheidingenBij } from './world.js';
 import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
 import { makeCar, maakAutoStapel, lakVoor } from './carmodel.js';
@@ -477,6 +477,22 @@ export class Vehicles {
     // eronder rijdt, de leuning alleen wie erover rijdt
     const cy = car.mesh ? car.mesh.position.y : 0;
     let cx = nx, cz = nz;
+    /*
+     Erfscheidingen eerst, want die horen niet tegen te houden maar te breken.
+     Rijd je met een beetje vaart een schutting of een heg in, dan klapt hij plat
+     (js/world.js) en houdt hij daarna niemand meer tegen — ook de agent achter
+     je niet, die kijkt er dan dwars overheen. Het kost vaart, en hoe meer je er
+     tegelijk meeneemt hoe meer. Stilstaand gebeurt er niets, anders sloop je een
+     tuin door er tegenaan te leunen.
+    */
+    if (Math.abs(v) > 2) {
+      let stuk = 0;
+      for (const off of [-as, 0, as]) stuk += breekScheidingenBij(cx + fx * off, cz + fz * off, radius, car.x, car.z);
+      if (stuk) {
+        car.speed *= Math.max(0.55, 1 - stuk * 0.06);
+        car.brakKracht = stuk;
+      }
+    }
     for (const off of [-as, 0, as]) {
       const px = cx + fx * off, pz = cz + fz * off;
       const [rx, rz] = resolveCollisions(px, pz, radius, 3.5, cy);

@@ -333,6 +333,18 @@ export const geluid = {
   },
 
   /*
+   Hout dat het begeeft: een schutting waar je doorheen rijdt. Geen blik maar
+   brekende planken, dus geen heldere tik met een naklank maar drie droge
+   knappen kort na elkaar — de latten geven niet allemaal tegelijk mee — met er
+   een lage bons onder van het paneel dat plat slaat.
+  */
+  kraak() {
+    for (const [na, f, v] of [[0, 2600, 0.22], [0.035, 1700, 0.17], [0.075, 3300, 0.12]])
+      tik({ freq: f, q: 0.8, duur: 0.06, volume: v, val: 0.25, vertraag: na });
+    toon({ freq: 190, naar: 90, duur: 0.22, volume: 0.10, golf: 'triangle' });
+  },
+
+  /*
    Een auto die ontploft. Dit was hetzelfde blikken `klap()` als een kogel in een
    portier, en dat leest niet als een explosie — een knal van een benzinetank is
    vooral láág en lang, en de scherpte zit er alleen in de eerste vijftig

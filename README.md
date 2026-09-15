@@ -1754,6 +1754,40 @@ meter doet zijn werk.
 van de 74.007 proefpunten): dat is geen fout maar een schutting, en de toets kijkt voor "klem" alleen
 nog naar de dozen boven de twee meter.
 
+### En met de auto rijd je hem plat
+
+Auto's negeren alles onder de 3,5 meter, dus die reden nog dwars door de schuttingen heen alsof er
+niets stond. Dat is niet op te lossen door de schutting een auto te laten tegenhouden — achttien
+millimeter plank doet dat niet — dus hij **breekt, en blijft plat liggen**.
+
+De botsdoos krijgt hoogte nul en is daarmee in één klap weg voor iedereen: je loopt er doorheen en de
+agent achter je kijkt er overheen. Dat hoort ook zo — waar de schutting plat ligt is geen dekking
+meer. De tekening klapt om de voet naar buiten, in de richting waarin je reed. Dat kon niet zomaar,
+want heggen en schuttingen staan niet als losse meshes in de scene maar samengevoegd per tegel van
+240 meter (26.300 losse objecten trekt geen browser); daarom weet elke erfscheiding nu welk stukje
+van welke hoekpuntenlijst van hem is, en worden precies die punten omgeklapt.
+
+Stilstaand sloop je niets, het kost vaart naar het aantal panelen dat je meeneemt, en het klinkt naar
+hout: drie droge knappen kort na elkaar met een lage bons eronder, niet het blikken geluid van een
+aanrijding. De politie rijdt met dezelfde besturing, dus een achtervolging door de achtertuinen laat
+een spoor na.
+
+`npm run breektest` toetst het: dat elke erfscheiding zijn eigen stukje tekening kent, dat hij vóór
+de klap tegenhoudt en de kijklijn breekt, dat een auto hem omrijdt, dat de hoekpunten daarna plat
+liggen, dat je er dan doorheen loopt en overheen kijkt, en dat een stilstaande auto niets sloopt.
+
+### En de mensen lopen er niet meer doorheen
+
+Voetgangers deden helemaal niet mee aan de botsingen: hun plek wordt elk beeld uit hun wegvak
+berekend, dus er viel niets op te lossen — `js/npc.js` riep `resolveCollisions` nooit aan. Zolang ze
+netjes over de stoep liepen viel dat niet op; bij het oversteken, na een aanrijding en overal waar de
+stoep langs een tuin loopt wel.
+
+Het wegvak blijft leidend; ze worden alleen uit de doos geduwd waar ze in zouden staan. Zo schuiven
+ze langs een schutting in plaats van erdoorheen, en vastlopen kan niet, want hun plek op het wegvak
+telt gewoon door. Gemeten: **0 van de 130** mensen staat nog in een heg, schutting of muur, voor
+0,102 ms per beeld voor alle honderddertig samen.
+
 ## De wal langs het water
 
 Met een boot kijk je van het water naar de kant in plaats van andersom, en dan valt er van alles op
@@ -1857,7 +1891,8 @@ hij niets weg.
 
 Er is één opslagplek, in de browser (de Windows-app draait dezelfde pagina en gebruikt dezelfde).
 **F5** bewaart je spel, **F9** zet het terug. Bewaard worden: waar je staat en waar je naar kijkt, je
-munitie en je leven, de auto waar je in zat, de tijd van de dag, het weer, en de stand van het
+munitie en je leven, de auto waar je in zat, waar de twee sloepen liggen en of je aan het roer stond,
+de tijd van de dag, het weer, en de stand van het
 verhaal: welke missie, welke bierdrinkers en bewakers al neer liggen, of de poort open staat, waar de
 auto en de vrachtwagen staan, hoe het met de dief staat en hoeveel geld je hebt. Ga je in een vuurgevecht neer, dan begint het spel bij deze opslag.
 
@@ -2166,6 +2201,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `tools/bootshots.mjs` – maakt de foto's van de sloepen
 - `tools/kaarttest.mjs` – toetst of de kaarten de goede kant op wijzen: de noordpijl op de minimap en
   het spelerpijltje op de grote kaart, in acht richtingen van het beeld afgelezen
+- `tools/breektest.mjs` – toetst het kapotrijden van heggen en schuttingen: de koppeling tussen
+  botsdoos en tekening, wat er vóór en na de klap door- en overheen kan, en dat stilstaand niets sloopt
 - `tools/rijtest.mjs` – toetst het automodel, de besturing, de camera achter de auto en het aanrijden
 - `tools/rijshots.mjs` – maakt de foto's van het rijden en de derdepersoonscamera
 - `tools/looptest.mjs` – toetst of je nergens vastloopt: het open terrein binnen de panden en een
