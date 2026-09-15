@@ -142,10 +142,13 @@ const STAPPEN = 6;         // en zoveel keer proberen we het
  * De rommel neerzetten. `W` is js/world.js (voor `lodAan`), `wegassen` de assen
  * uit de kaart, `maaiveld(x, z)` de grondhoogte en `klasseOp(x, z)` de klasse
  * van het kaartvlak onder een punt (`rijbaan`, `gras`, … of null).
+ * `opHetWater(x, z)` zegt of een punt op een waterdeel ligt; dat is iets anders
+ * dan `klasseOp(x, z) === 'water'`, want over een sloot ligt vaak nog een strook
+ * oever of berm en dan leest het bovenste vlak als gras.
  *
  * Levert { onkruid, vuil, kliko } met de aantallen.
  */
-export function bouwRommel(scene, W, wegassen, maaiveld = () => 0, klasseOp = null) {
+export function bouwRommel(scene, W, wegassen, maaiveld = () => 0, klasseOp = null, opHetWater = null) {
   if (!wegassen || !wegassen.length) return { onkruid: 0, vuil: 0, kliko: 0 };
 
   const matOnkruid = new THREE.MeshStandardMaterial({
@@ -160,6 +163,14 @@ export function bouwRommel(scene, W, wegassen, maaiveld = () => 0, klasseOp = nu
   // ligt hier asfalt? Zonder kaartvlakken (de oude wereld) weten we het niet en
   // laten we de afstand uit het hart het werk doen, zoals het was.
   const opDeWeg = klasseOp ? (x, z) => GEEN_ONKRUID.has(klasseOp(x, z) || '') : () => false;
+  /*
+   Niets in het water. Een pol onkruid werd al van de rijbaan geweerd, maar een
+   patatbakje in de goot en een rolcontainer op de stoep niet — en waar een
+   straat vlak langs een sloot loopt kwamen die op het water uit. Op een
+   waterspiegel van −0,35 en met de rommel op maaiveldhoogte zweefden ze daar een
+   halve meter boven. Vanaf de kant zie je dat nauwelijks, vanaf een boot meteen.
+  */
+  const inHetWater = opHetWater || (klasseOp ? (x, z) => klasseOp(x, z) === 'water' : () => false);
   let geweerd = 0;
 
   const perTegel = new Map();
@@ -215,6 +226,7 @@ export function bouwRommel(scene, W, wegassen, maaiveld = () => 0, klasseOp = nu
         if (d > 0.5) continue;
         const uit = rand - 0.25 + d * 0.5;
         const x = px + nx * kant * uit, z = pz + nz * kant * uit;
+        if (inHetWater(x, z)) { geweerd++; continue; }
         bak(x, z).vuil[Math.floor(d * 8) % 4].push({ x, z, s: 0.34 + d * 0.30, yaw: d * 12.566 });
       }
 
@@ -229,10 +241,12 @@ export function bouwRommel(scene, W, wegassen, maaiveld = () => 0, klasseOp = nu
         const uit = rand + 0.75 + dobbel(px, pz, 12) * 0.5;
         const x = px + nx * kant * uit, z = pz + nz * kant * uit;
         const hoek = Math.atan2(-nx * kant, -nz * kant) + (dobbel(px, pz, 13) - 0.5) * 0.7;
+        if (inHetWater(x, z)) { geweerd++; continue; }
         bak(x, z).kliko.push({ x, z, yaw: hoek, kleur: KLIKO_KLEUR[Math.floor(dobbel(px, pz, 14) * KLIKO_KLEUR.length)] });
         // de tweede naast de eerste, want die staan zelden alleen
         if (dobbel(px, pz, 15) < 0.45) {
           const x2 = x + ux * 0.72, z2 = z + uz * 0.72;
+          if (inHetWater(x2, z2)) { geweerd++; continue; }
           bak(x2, z2).kliko.push({ x: x2, z: z2, yaw: hoek + 0.12, kleur: KLIKO_KLEUR[Math.floor(dobbel(x2, z2, 16) * KLIKO_KLEUR.length)] });
         }
       }

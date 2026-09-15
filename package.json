@@ -95,6 +95,7 @@
     "spuittest": "node tools/spuittest.mjs",
     "spuitshots": "node tools/spuitshots.mjs",
     "boottest": "node tools/boottest.mjs",
+    "waltest": "node tools/waltest.mjs",
     "bootshots": "node tools/bootshots.mjs",
     "vuilshots": "node tools/vuilshots.mjs"
   }

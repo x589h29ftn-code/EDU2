@@ -544,6 +544,15 @@ export class Player {
     this.mik += Math.max(-1, Math.min(1, mikDoel - this.mik)) * Math.min(1, dt / MIK_TIJD);
     if (Math.abs(this.mik - mikDoel) < 0.002) this.mik = mikDoel;
     this.zetBeeldhoek();
+    /*
+     De wapenanimatie hoort hier en niet onderaan. Hij stond na de uitstapjes
+     hieronder, en dus liep hij niet zodra je in een auto of in een boot zat:
+     schieten deed het wel — de kogel gaat gewoon weg — maar het wapen bewoog
+     niet mee, er kwam geen mondingsvuur en herladen was een stilstaand plaatje.
+     Aan boord van de sloep valt dat meteen op, want daar sta je in de open lucht
+     met het ding in je handen.
+    */
+    this.wapenStap(dt);
 
     if (this.inCar) return; // camera wordt door de auto bestuurd
     if (this.inBoot) return; // en aan boord door de boot (js/boot.js)
@@ -628,9 +637,11 @@ export class Player {
     this.camera.rotation.set(0, 0, 0, 'YXZ');
     this.camera.rotation.y = this.yaw + this.kickYaw;
     this.camera.rotation.x = this.pitch + this.kickPitch;
+  }
 
-    // wapenanimatie: schot, terugslag, de vijf stappen van het herladen, het
-    // aanslaan over het vizier en het wegbergen bij een wissel
+  // wapenanimatie: schot, terugslag, de vijf stappen van het herladen, het
+  // aanslaan over het vizier en het wegbergen bij een wissel
+  wapenStap(dt) {
     this.recoil = Math.max(0, this.recoil - dt * 6);
     this.flashT -= dt;
     this.wapen.update(dt, { herlaad: this.reloading, bob: this.bob, mik: this.mik, holster: this.holster });

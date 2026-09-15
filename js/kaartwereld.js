@@ -249,7 +249,22 @@ function materialen(MAT) {
   KM.zand = MAT.sand;
   KM.oever = new THREE.MeshStandardMaterial({ color: 0x7e9a5c, roughness: 1 });
   KM.hout = new THREE.MeshStandardMaterial({ color: 0x8a6a45, roughness: 0.9 });
-  KM.oeverwand = new THREE.MeshStandardMaterial({ color: 0x5f5140, roughness: 1 });
+  /*
+   De oeverwand staat aan twee kanten in beeld, dus hij moet aan twee kanten
+   getekend worden.
+
+   Hij wordt op de rand van het waterdeel gezet en kijkt het water in (zie
+   `naarBinnen` in randGeometrie): vanaf het water zie je hem dus goed. Maar sta
+   je ópe wal en kijk je over de rand, dan zie je zijn achterkant — en die werd
+   weggeknipt. Waar de BGT een damwand heeft valt dat niet op, want dat is een
+   dichte doos, maar overal daar waar hij er niet is keek je zo door de kant heen
+   tot op het grondvlak op −1 m. Dat is de strook die er langs elke sloot en
+   langs de hele Geeuw uitzag alsof de wal openlag. Tweezijdig tekenen kost geen
+   enkel driehoekje extra: alleen het wegknippen van de achterkant gaat eraf, en
+   three draait de normaal voor een achterkant vanzelf om, dus hij wordt aan
+   beide zijden goed belicht.
+  */
+  KM.oeverwand = new THREE.MeshStandardMaterial({ color: 0x5f5140, roughness: 1, side: THREE.DoubleSide });
   KM.curb = MAT.curb;
   KM.muur = std(T.brick('#8a6752', '#b9b2a6', 1));
   KM.muurGeel = std(T.brick('#c9b98a', '#d8d2c2', 2));
@@ -653,8 +668,27 @@ export function* bouwKaartWereldStap(scene, W) {
      Onkruid, zwerfvuil en rolcontainers langs de straten (js/rommel.js). Dit is
      wat een wijk waar dertig jaar in gewoond is van een maquette onderscheidt.
     */
+    /*
+     Voor het water is `vlakOp` niet genoeg. Die geeft het bovenste vlak, en over
+     een sloot ligt vaak nog een strook `oever` of `berm` — dan leest een punt
+     midden op het water als gras en zette js/rommel.js er een patatbakje of een
+     rolcontainer neer. Vandaar een aparte toets op de waterpolygonen zelf, met
+     een bbox per vlak: zonder dat gaat elk van de vierduizend stukken rommel
+     langs alle waterdelen.
+    */
+    const waterBbox = waterRingen.map(r => {
+      const b = [Infinity, Infinity, -Infinity, -Infinity];
+      for (const [x, z] of r) { if (x < b[0]) b[0] = x; if (z < b[1]) b[1] = z; if (x > b[2]) b[2] = x; if (z > b[3]) b[3] = z; }
+      return { r, b };
+    });
+    const inRing = (x, z, r) => { let o = false;
+      for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const a2 = r[i], c2 = r[j];
+        if ((a2[1] > z) !== (c2[1] > z) && x < (c2[0] - a2[0]) * (z - a2[1]) / (c2[1] - a2[1]) + a2[0]) o = !o; }
+      return o; };
+    const opHetWater = (x, z) => waterBbox.some(w =>
+      x >= w.b[0] && x <= w.b[2] && z >= w.b[1] && z <= w.b[3] && inRing(x, z, w.r));
     const rommel = bouwRommel(scene, W, K.wegassen, (x, z) => grondHoogte(x, z, -Infinity),
-      (x, z) => { const v = vlakOp(x, z); return v ? v.k : null; });
+      (x, z) => { const v = vlakOp(x, z); return v ? v.k : null; }, opHetWater);
     console.log(`kaart: ${rommel.onkruid} pollen onkruid, ${rommel.vuil} stuks zwerfvuil, ${rommel.kliko} rolcontainers`
       + `${rommel.geweerd ? ` (${rommel.geweerd} pollen geweerd: die stonden op de rijbaan)` : ''}`);
 

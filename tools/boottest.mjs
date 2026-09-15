@@ -220,6 +220,23 @@ const wal = await page.evaluate(() => {
 ok('hij vaart de wal niet op', wal.vaarbaar, JSON.stringify(wal));
 ok('en hij ligt daar stil', Math.abs(wal.vaart) < 1.5, `${wal.vaart.toFixed(2)} m/s`);
 
+/*
+ En de steven zelf blijft ook op het water. `pastHier` toetst de buitenkant van
+ de romp; zou hij ergens binnenin toetsen, dan steekt de boeg het gras in en dat
+ is precies waar het op lijkt als je erop afvaart.
+*/
+const steven = await page.evaluate(async () => {
+  const { vaarbaar } = await import('/js/world.js');
+  const b = window.__game.boten.inBoot;
+  const L = window.__game.boten.maten.LENGTE, B = window.__game.boten.maten.BREEDTE;
+  const punt = (l, d) => [b.x - Math.sin(b.yaw) * l + Math.cos(b.yaw) * d,
+    b.z - Math.cos(b.yaw) * l - Math.sin(b.yaw) * d];
+  const hoeken = [[L * 0.55, 0], [-L * 0.5, 0], [L * 0.05, B * 0.5], [L * 0.05, -B * 0.5]];
+  return hoeken.map(([l, d]) => { const [x, z] = punt(l, d); return vaarbaar(x, z); });
+});
+ok('ook zijn steven en zijn breedste punten liggen nog op het water',
+  steven.every(Boolean), JSON.stringify(steven));
+
 // ---------- uitstappen ----------
 console.log('\nuitstappen');
 const uit = await page.evaluate(() => {

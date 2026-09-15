@@ -1162,12 +1162,14 @@ function loop() {
       player.lastCarYaw = undefined;
       const boot = boten.inBoot;
       if (!derde.update(dt, boot)) {
-        camera.position.set(boot.x - Math.sin(boot.yaw) * -0.7,
-          (boot.mesh ? boot.mesh.position.y : 0) + 1.42,
-          boot.z - Math.cos(boot.yaw) * -0.7);
+        // vanuit je ogen sta je achter de console; js/boot.js heeft player.pos
+        // daar al neergezet, dus de ooghoogte komt er gewoon bovenop
+        camera.position.set(player.pos.x, player.pos.y + player.eye, player.pos.z);
         camera.rotation.set(0, 0, 0, 'YXZ');
-        camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
+        camera.rotation.y = player.yaw + player.kickYaw;
+        camera.rotation.x = player.pitch + player.kickPitch;
       }
+      // aan boord sta je in de open lucht: het wapen mag alle kanten op
       player.gun.visible = !player.wapenUit && !derde.aan;
       geluid.gier(0);
     } else {

@@ -3767,6 +3767,65 @@ kaapt een boot aan de overkant de auto weg waar je naast staat.
 
 Controle: `npm run boottest` (achtendertig controles) en `npm run bootshots`.
 
+**De wal, schieten vanaf de boot, en steekproef ronde 4 (stap 59).**
+
+*De wal.* Met een boot kijk je van het water naar de kant, en dat is een
+gezichtspunt waar de wereld nooit op gebouwd is. Vier dingen:
+
+1. **De boot voer de wal in.** De proefpunten van `pastHier` lagen op 46 % van de
+   lengte, ruim binnen de huid, terwijl de steven tot 3,47 m vooruit steekt (de
+   overhang). De boeg zat dus een halve meter in het gras voordat er iets
+   tegenhield. De punten liggen nu op de buitenkant: steven, spiegel en het
+   breedste punt, met een paar ertussen.
+2. **Er stond van alles in het water.** De BGT-lagen overlappen: een vak
+   `heesters` loopt over een sloot heen en een straat langs een vaart heeft zijn
+   goot boven het water. Bij de struiken zat het venijn in een detail — de plek
+   van de bóóm werd nagekeken en de struik eronder kreeg daarna nog een zetje van
+   1,25 m opzij dat níét meer werd nagekeken (`tools/geo/genereer.mjs`).
+3. **De rommel keek naar het verkeerde vlak.** `vlakOp` geeft het bovenste vlak
+   en over een sloot ligt vaak nog een strook oever of berm; een punt midden op
+   het water las dan als gras. `js/rommel.js` krijgt nu een aparte toets op de
+   waterpolygonen zelf mee.
+4. **Door de oever heen kijken.** De oeverwand staat op de rand van het
+   waterdeel met zijn normaal naar het water; zijn achterkant werd weggeknipt, en
+   bij een waterdeel met een eiland erin kijkt hij de verkeerde kant op. Nu
+   tweezijdig.
+
+Wat hier het meeste tijd kostte was het níét vinden van een vijfde ding. De
+donkere strook langs elke waterlijn die er als een gat uitziet, is geen gat: dat
+is de oeverwand plus de damwand, achtenveertig centimeter muur tussen het gras op
+0,12 en de waterspiegel op −0,35, van dichtbij en onder een scherende hoek. Een
+A/B-opname met de oeverwand eenzijdig en tweezijdig gaf twee praktisch gelijke
+beelden; pas toen was duidelijk dat het daar niet aan lag.
+
+Controle: `npm run waltest` (acht controles).
+
+*Schieten vanaf de boot.* Mechanisch kon het al — `magSchieten` kijkt alleen naar
+de auto — maar het zag er niet naar uit. De **wapenanimatie** stond onderaan in
+`player.update`, ná de afslagen voor auto en boot, dus in een voertuig bewoog het
+wapen niet, kwam er geen mondingsvuur en was herladen een stilstaand plaatje
+(dat gold ook in de auto). En **het poppetje** werd verborgen zodra je in een
+voertuig zat: in een auto klopt dat, op een open sloep krijg je een boot die in
+zijn eentje vaart en schiet. Een voertuig met `openDek` houdt het poppetje in
+beeld, en `player.pos` staat aan boord op de stuurstand in plaats van in het hart
+van de romp — dat is waar het poppetje staat, waar de camera vanuit je ogen hangt
+en waar de kogel vandaan komt.
+
+Bij hetzelfde werk kwam de **waterspiegel** goed te staan: de sloep ging uit van
+−0,15 (de oude handgetekende kaart) terwijl elk van de 529 waterdelen in de BGT
+op −0,35 ligt. De boot zweefde twintig centimeter.
+
+*Steekproef ronde 4.* Tien foto's uit de vierde ronde (15 sep 2026) — Age
+Piersstraat, Jonkvrouw, De Dassenboarch, Willem Santemastraat, Kaatsland,
+Pripperstraat, Bockamastraat, Wilgeroosje, Apollovlinder en Jutrijpstraat —
+hebben elk een eigen woningtype in `HOUSE_STYLES` gekregen en een regel in
+`data/stijl/straten.json`. Deze straten liggen buiten Tinga zelf en wijken meer
+van elkaar af dan de Tinga-rijtjes: er zit wit geschilderde steen bij
+(Kaatsland), rode steen met een grijze betonband en een plat dak (Age
+Piersstraat), een eenlaags rijtje met groene kozijnen (De Dassenboarch) en twee
+straten met rode kozijnaccenten (Pripperstraat, Jutrijpstraat). Samen goed voor
+504 panden.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

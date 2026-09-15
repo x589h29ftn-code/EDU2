@@ -53,6 +53,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | **G** | scherpte: scherp, normaal of zuinig (blijft bewaard) |
 | in de auto: W/S, A/D, spatie | gas/rem (en achteruit), sturen, handrem |
 | in de boot: W/S, A/D | gas en achteruit, roer — er zit geen rem op een boot |
+| in de boot: muis | schieten kan gewoon, alle kanten op: je staat in de open lucht |
 | M | grote kaart van de wijk met straatnamen |
 | in de auto: naar de wasbox rijden | achter het BP-station: overspuiten, alle sterren kwijt (€ 100 per ster) |
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
@@ -1680,11 +1681,60 @@ niet in lopen: vanaf de kade is het hart van de romp al gauw zes meter van je va
 ertussen. Staat er een bestuurbare auto dichterbij, dan wint die — anders kaapt een boot aan de
 overkant van de kade de auto weg waar je net naast staat.
 
-`npm run boottest` toetst het geheel — achtendertig controles: de ligplaatsen, in- en uitstappen
+### Schieten vanaf de boot
+
+Aan boord sta je in de open lucht, dus je kunt alle kanten op schieten — anders dan in de auto, waar
+je uit het raam hangt en niet over de achterbank heen kunt mikken. Met de camera achter je zie je
+jezelf achter de console staan; met **V** kijk je door je eigen ogen en heb je het wapen in beeld.
+Richten over het vizier werkt ook.
+
+Twee dingen zaten daarvoor in de weg. De **wapenanimatie** stond helemaal onderaan in
+`player.update`, ná de afslagen voor de auto en de boot: schieten deed het wel — de kogel gaat gewoon
+weg — maar het wapen bewoog niet mee, er kwam geen mondingsvuur en herladen was een stilstaand
+plaatje. Dat gold ook in de auto. En **je poppetje was er niet**: js/derdepersoon.js verbergt het
+zodra je in een voertuig zit, wat in een auto klopt maar op een open sloep een boot oplevert die in
+zijn eentje over de Geeuw vaart en ook nog schiet. Een voertuig met een open dek houdt het poppetje
+nu in beeld, en je staat waar je hoort te staan: achter het stuur, iets achter het midden en een
+stukje naar stuurboord.
+
+`npm run boottest` toetst het geheel — negenendertig controles: de ligplaatsen, in- en uitstappen
 (ook vanaf de wal), dat hij traag optrekt en traag uitloopt, dat het roer zonder vaart niets doet en
-met vaart wel, dat de schroef hem vanuit stilstand wél draait, dat hij de wal niet op vaart, dat je
-midden op het water niet uitstapt, dat bruggen wel en duikers en steigers niet bevaarbaar zijn, en
-dat er alleen schuim komt als je vaart. `npm run bootshots` maakt de foto's.
+met vaart wel, dat de schroef hem vanuit stilstand wél draait, dat hij de wal niet op vaart en er ook
+met zijn steven niet in steekt, dat je midden op het water niet uitstapt, dat bruggen wel en duikers
+en steigers niet bevaarbaar zijn, en dat er alleen schuim komt als je vaart. `npm run bootshots`
+maakt de foto's.
+
+## De wal langs het water
+
+Met een boot kijk je van het water naar de kant in plaats van andersom, en dan valt er van alles op
+wat je vanaf de stoep nooit zag. Vier dingen langs de oever zijn rechtgezet.
+
+**De boot voer de wal in.** `pastHier` toetst of de romp ergens nog past, en die proefpunten lagen op
+46 % van de lengte — ruim bínnen de huid. De steven steekt tot 3,47 m vooruit, dus de boeg zat al een
+halve meter in het gras voordat er iets tegenhield. De punten liggen nu op de steven zelf, op de
+spiegel en op het breedste punt van de romp, met een paar ertussen zodat een schuine oever er niet
+tussendoor glipt.
+
+**Er stond van alles ín het water.** De lagen van de BGT overlappen elkaar: een vak `heesters` of
+`bos` loopt gewoon over een sloot heen, en een straat langs een vaart heeft zijn goot boven het
+water. Struiken, zwerfvuil en rolcontainers kregen daar hun plek zonder dat er iemand naar het water
+keek — en omdat ze op maaiveldhoogte staan en de waterspiegel op −0,35 ligt, zweefden ze er een halve
+meter boven. Bij de struiken zat het venijn in een detail: de plek van de bóóm werd nagekeken en de
+struik eronder kreeg daarna nog een zetje van maximaal 1,25 m opzij dat níét meer werd nagekeken.
+
+**De rommel keek naar het verkeerde vlak.** `vlakOp` geeft het bovenste vlak, en over een sloot ligt
+vaak nog een strook oever of berm: een punt midden op het water las dan als gras. Er wordt nu op de
+waterpolygonen zelf getoetst.
+
+**Door de oever heen kijken.** Op de rand van elk waterdeel staat een oeverwand van 0,13 tot −0,6,
+met de normaal naar het water toe. Zijn achterkant werd weggeknipt, en bij een waterdeel met een
+eiland erin kijkt hij de verkeerde kant op — dan keek je door de wal heen tot op het grondvlak op
+−1 m. Hij wordt nu aan twee kanten getekend; dat kost geen driehoek extra, alleen het wegknippen gaat
+eraf.
+
+`npm run waltest` houdt het vast: geen zwerfvuil en geen rolcontainers in het water, hoogstens een
+handvol struiken en bomen, de oeverwanden tweezijdig, en een boot die met zijn steven en zijn
+breedste punten op het water blijft als je vol op de kant af vaart.
 
 ## Een kaart om af te drukken
 
@@ -2058,6 +2108,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `tools/verhaaltest.mjs` – loopt het verhaal na en toetst opslaan en laden
 - `tools/verhaalshots.mjs` – maakt de foto's van het verhaal
 - `tools/adresshots.mjs` – maakt de foto's van de panden die met naam in `data/stijl/straten.json` staan
+- `tools/waltest.mjs` – toetst de wal langs het water: niets dat in het water staat of drijft,
+  tweezijdige oeverwanden, en een boot die de kant niet in vaart
 - `tools/boottest.mjs` – toetst de sloepen: de ligplaatsen, in- en uitstappen (ook vanaf de wal), de
   trage optrek en het trage uitlopen, het roer met en zonder vaart, de wal die hem tegenhoudt, de
   bruggen waar hij wel en de duikers waar hij niet onderdoor kan, en het schuim

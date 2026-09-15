@@ -522,11 +522,42 @@ tel('parkeerplekken', PARKEER.length);
 // ---------------------------------------------------------------- groen
 const BOMEN = [], STRUIKEN = [], HAGEN = [];
 const rg = rng(11);
+
+/*
+ Staat dit punt in het water?
+
+ De lagen van de BGT overlappen elkaar: een vak `heesters` of `bos` loopt vaak
+ gewoon over een sloot heen, want het is één stuk groen met een greppel erin. Wie
+ daar blind in strooit zet struiken midden in het water — en omdat ze op
+ maaiveldhoogte staan en het water op −0,35 ligt, zweven ze er een halve meter
+ boven. Langs de Geeuw en langs elke sloot stonden zo bosjes in het water; met
+ een boot vaar je er nu doorheen. Ruim tweehonderd van de negentienduizend
+ struiken stonden zo, en een stuk of wat bomen.
+
+ De bbox-voorfilter is niet voor de netheid: zonder hem gaat elk van de
+ negentienduizend punten langs alle 529 waterdelen.
+*/
+const WATER_VLAKKEN = [];
+function vulWaterVlakken() {
+  if (WATER_VLAKKEN.length) return;
+  for (const v of VLAKKEN) if (v.k === 'water') WATER_VLAKKEN.push({ r: v.r, b: bboxRing(v.r[0]) });
+}
+function inWaterVlak(x, z) {
+  vulWaterVlakken();
+  for (const w of WATER_VLAKKEN) {
+    if (x < w.b[0] || x > w.b[2] || z < w.b[1] || z > w.b[3]) continue;
+    if (inPolygoon([x, z], w.r)) return true;
+  }
+  return false;
+}
+
 function strooi(vlak, afstand, uit, schaal) {
   const b = bboxRing(vlak.r[0]);
   for (let z = b[1] + afstand / 2; z < b[3]; z += afstand) for (let x = b[0] + afstand / 2; x < b[2]; x += afstand) {
     const px = x + (rg() - 0.5) * afstand * 0.7, pz = z + (rg() - 0.5) * afstand * 0.7;
-    if (inPolygoon([px, pz], vlak.r)) uit.push({ x: r2(px), z: r2(pz), s: r2(schaal[0] + rg() * (schaal[1] - schaal[0])) });
+    if (!inPolygoon([px, pz], vlak.r)) continue;
+    if (inWaterVlak(px, pz)) continue;
+    uit.push({ x: r2(px), z: r2(pz), s: r2(schaal[0] + rg() * (schaal[1] - schaal[0])) });
   }
 }
 const inBosgebied = (x, z) => (OMGEVING.bosgebieden || []).find(g => x >= g.x0 && x <= g.x1 && z >= g.z0 && z <= g.z1);
@@ -736,7 +767,17 @@ for (const g of OMGEVING.bosgebieden || []) {
     if (BOMEN.some(b => Math.hypot(b.x - px, b.z - pz) < 2.2)) continue;
     const sch = g.schaal[0] + rb() * (g.schaal[1] - g.schaal[0]);
     BOSGEBIED_BOMEN.push({ x: r2(px), z: r2(pz), s: r2(sch), tall: sch > 1.75 });
-    if (rb() < 0.6) STRUIKEN.push({ x: r2(px + (rb() - 0.5) * 2.5), z: r2(pz + (rb() - 0.5) * 2.5), s: r2(0.6 + rb() * 0.7) });
+    /*
+     De struik eronder krijgt een zetje van maximaal 1,25 m opzij, en dát punt
+     werd niet meer nagekeken. Langs het water zette dat ruim tweehonderd
+     struiken in de sloot: ze staan op maaiveldhoogte en het water ligt op −0,35,
+     dus ze zweefden er een halve meter boven. Vanaf de kant valt dat nauwelijks
+     op, vanaf een boot meteen. Nu telt de klasse van de plek van de struik zelf.
+    */
+    if (rb() < 0.6) {
+      const sx = px + (rb() - 0.5) * 2.5, sz = pz + (rb() - 0.5) * 2.5;
+      if ([3, 4, 8].includes(klasseOp(sx, sz))) STRUIKEN.push({ x: r2(sx), z: r2(sz), s: r2(0.6 + rb() * 0.7) });
+    }
   }
 }
 BOMEN.push(...BOSGEBIED_BOMEN);

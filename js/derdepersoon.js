@@ -50,7 +50,15 @@ export function initDerdePersoon({ scene, camera, player }) {
    js/main.js de gewone camerastand kan overslaan.
   */
   function update(dt, car = null) {
-    const zichtbaar = aan && !car;
+    /*
+     In een auto zit je erin en hoort er geen poppetje náást te staan. Op een
+     open sloep is dat net andersom: daar sta je in de buitenlucht aan het roer,
+     en een boot die in zijn eentje over de Geeuw vaart en ook nog schiet leest
+     als een fout. Een voertuig met `openDek` houdt het poppetje dus in beeld.
+     Lopen doet hij daar niet — hij vaart mee, en zijn voeten staan stil.
+    */
+    const dek = !!(car && car.openDek);
+    const zichtbaar = aan && (!car || dek);
     if (pop.groep.visible !== zichtbaar) pop.groep.visible = zichtbaar;
 
     if (zichtbaar) {
@@ -63,7 +71,7 @@ export function initDerdePersoon({ scene, camera, player }) {
       pop.yaw = player.yaw;
       pop.groep.rotation.y = player.yaw;
       // gebukt zakt het poppetje net zo diep als de camera (js/player.js)
-      pop.update(dt, { loopt: snelheid > 0.3, snelheid: Math.max(1, snelheid), hurkt: player.hurk || 0 });
+      pop.update(dt, { loopt: !dek && snelheid > 0.3, snelheid: Math.max(1, snelheid), hurkt: player.hurk || 0 });
     } else { vorigeX = null; vorigeZ = null; }
 
     if (!aan) { afstand = 0; hoogte = 0; return false; }

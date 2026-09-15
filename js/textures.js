@@ -1085,6 +1085,54 @@ export const HOUSE_STYLES = {
   // 2026): een lang gebouw van één laag met plat dak, donkerbruine steen,
   // lichte kozijnen en een blauwe deur, met een parkeerterrein en een
   // omheinde speeltuin ervoor.
+  /*
+   ---- steekproef ronde 4 (foto's van 15 sep 2026) ----
+   Tien straten buiten Tinga zelf, aan de andere kant van de Geeuw en in IJlst.
+   Ze wijken meer van elkaar af dan de Tinga-rijtjes: daar is alles lichtgele
+   steen met bruine pannen, hier zit er ook rode en witgeschilderde steen bij en
+   staan er platte daken tussen.
+  */
+  // Age Piersstraat 33 (foto): twee lagen, donkerrode steen, plat dak met een
+  // grijze betonrand, een doorlopende grijze band over de verdieping, witte
+  // kozijnen en een gele voordeur met een geel paneel ernaast.
+  agepiers:    { brick: ['#7e4438', '#c3b7a8'], frame: '#ffffff', frame2: '#ffffff', door: ['#d8b23a', '#c9a232', '#8a6a2a'], roof: '#6b6d6e', roofType: 'flat', storeys: 2, storeyH: 2.8, w: 5.4, dormer: false, chimney: false, band: '#9aa0a3' },
+  // Jonkvrouw 43 en 45 (foto): bruine steen, steile donkerbruine pannenkap met
+  // volle zonnepanelen en dakkapellen, witte kozijnen, donkerblauwgrijze deur en
+  // garagedeur, een geklinkerd erf ervoor in plaats van een voortuin.
+  jonkvrouw:   { brick: ['#7a5443', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#2b3a4a', '#243140'], roof: '#3a342f', roofType: 'gable', storeys: 2, w: 6.2, dormer: true, dormerFrame: '#ffffff', skylight: true, solar: true, chimney: false, band: '#f2f2f2' },
+  // De Dassenboarch 8 (foto, IJlst): een rijtje van één laag met een flauwe
+  // donkere pannenkap en dakramen, rode steen, een grijsbeige panelenband over
+  // de hele voorgevel (de rolluikkasten), donkergroene kozijnen en deuren,
+  // gemetselde schoorstenen.
+  dassenboarch:{ brick: ['#a75a3c', '#cfc3b2'], frame: '#1f5a33', frame2: '#1f5a33', door: ['#1f5a33', '#19482a'], roof: '#3a3a38', roofType: 'gable', storeys: 1, w: 5.2, dormer: false, skylight: true, chimney: true, band: '#c2c4c0' },
+  // Willem Santemastraat 30 (foto): twee lagen, roodbruine steen, plat dak,
+  // witte kozijnen met smalle staande ramen op de verdieping, blauwe en
+  // bruinoranje voordeuren, geen voortuin maar een betegeld terras.
+  santema:     { brick: ['#94402e', '#c9bdb0'], frame: '#ffffff', frame2: '#ffffff', door: ['#1f4fa0', '#8a4a22', '#1f4fa0'], roof: '#5a5c5e', roofType: 'flat', storeys: 2, storeyH: 2.8, w: 5.2, dormer: false, chimney: false, band: '#f2f2f2' },
+  // Kaatsland 160 (foto): wit geschilderde steen met een donkerbruine houten
+  // band over de hele verdieping, flauwe donkere kap, lichte kozijnen, dichte
+  // hagen in de voortuin.
+  kaatsland:   { brick: ['#e8e6df', '#f2f0ea'], frame: '#f0f0ec', frame2: '#2a2622', door: ['#2a2622', '#3a352f'], roof: '#3a3530', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, chimney: false, band: '#2f2a25', plaster: true },
+  // Pripperstraat 58 (foto): lichtbruine steen, donkere pannenkap met een vol
+  // zonnedak, witte kozijnen met opvallend rode draaidelen, donkergroene
+  // voordeuren, een witte boeiboord onder de goot.
+  pripperstraat:{ brick: ['#b9a273', '#d5cdb8'], frame: '#ffffff', frame2: '#b5241f', door: ['#1f4230', '#17351f'], roof: '#2e2b28', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, skylight: true, solar: true, solarFull: true, chimney: false, band: '#f4f4f4' },
+  // Bockamastraat 48 (foto): geelbeige steen, donkerbruine pannen, witte
+  // kozijnen met bij een deel van de woningen een zwart geschilderd kader om de
+  // ramen, schoorstenen, dakramen, lage hagen.
+  bockama:     { brick: ['#c0ad7e', '#d9d2c0'], frame: '#ffffff', frame2: '#26282b', door: ['#26282b', '#1f3a6e'], roof: '#4a423c', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, skylight: true, chimney: true, band: '#f2f2f2' },
+  // Wilgeroosje 50 (foto): tweekappers in bruine steen met roodbruine pannen,
+  // dakkapellen met witte wangen, zonnepanelen, witte garagedeuren aan de
+  // straat en een geklinkerd erf ervoor.
+  wilgeroosje: { brick: ['#8f6a4f', '#cabfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#f2f0ea', '#2a2a2a'], roof: '#7a4030', roofType: 'gable', storeys: 2, w: 6.4, dormer: true, dormerFrame: '#ffffff', skylight: true, solar: true, chimney: false, band: '#f2f2f2' },
+  // Apollovlinder 41 (foto): grijsbruine steen, donkere pannenkap met
+  // zonnepanelen en een dakkapel, houten beschot op de begane grond bij de
+  // aanbouw, hagen langs het erf.
+  apollovlinder:{ brick: ['#8a7a6a', '#c6bcae'], frame: '#f0efe9', frame2: '#3a3d42', door: ['#3a3d42', '#2a2d31'], roof: '#4a423b', roofType: 'gable', storeys: 2, w: 6.0, dormer: true, dormerFrame: '#f0efe9', solar: true, chimney: false, band: '#f0efe9' },
+  // Jutrijpstraat 20 (foto): bruine steen, donkere pannen, rode kozijnen met
+  // witte binnenramen en rode voordeuren, een crèmekleurige boeiboord onder de
+  // goot, houten schuttinkjes en hagen in de voortuin.
+  jutrijp:     { brick: ['#8a5a46', '#c9bfae'], frame: '#b5241f', frame2: '#ffffff', door: ['#b5241f', '#a01e1b'], roof: '#3a3530', roofType: 'gable', storeys: 2, w: 5.4, dormer: false, chimney: false, band: '#efe9d8' },
   zorg:        { brick: ['#6f5a4c', '#c2bbb0'], frame: '#eceae4', frame2: '#eceae4', door: ['#1f6fc4', '#3a3d42'], roof: '#4a4d50', roofType: 'flat', storeys: 1, storeyH: 3.0, w: 6.0, dormer: false, chimney: false, band: '#c9c6bd', plint: '#4f4137', industrieel: true, kantoor: true },
 };
 

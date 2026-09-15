@@ -42,6 +42,7 @@
 */
 import * as THREE from 'three';
 import { vaarbaar } from './world.js';
+import { KAART } from './kaartwereld.js';
 import { geluid } from './audio.js';
 import * as T from './textures.js';
 
@@ -50,8 +51,22 @@ const LENGTE = 6.30;
 const BREEDTE = 2.16;
 const DIEPGANG = 0.62;          // van de waterlijn tot de kiel
 const OPBOORD = 0.52;           // van de waterlijn tot het boord
-const WATER_Y = -0.15;          // de waterspiegel in js/world.js
+/*
+ De waterspiegel. In de kaart uit de BGT ligt elk waterdeel op −0,35 (alle 529
+ van ze); de −0,15 uit js/world.js hoort bij de oude, handgetekende kaart. De
+ boot lag daardoor twintig centimeter boven het water te zweven. Voor de zekerheid
+ wordt het uit de kaart gelezen, met −0,35 als terugval.
+*/
+const WATER_Y = (KAART && KAART.vlakken || []).find(v => v.k === 'water')?.y ?? -0.35;
 const VLOER = 0.09;             // de vlonder, net boven de waterlijn
+/*
+ Waar je staat: achter de stuurconsole, dus een eind achter het midden en een
+ stukje naar stuurboord. Dat is waar het poppetje komt te staan, waar de camera
+ vanuit je ogen hangt en waar een kogel vandaan komt als je vanaf de boot
+ schiet.
+*/
+const STUUR_L = -1.35;          // langsscheeps, negatief is naar achteren
+const STUUR_D = 0.30;           // dwarsscheeps, positief is stuurboord
 const VOORDEK = 0.20;           // tot dit spant loopt het voordek
 const ACHTERDEK = 0.88;         // en vanaf dit spant het achterdek
 
@@ -427,9 +442,24 @@ export function initBoten({ scene, player, hud }) {
    boot niet verder. Het is ruim genomen — de punten liggen binnen de romp, niet
    erbuiten — want een boot die bij elke rietkraag vastloopt is geen boot.
   */
+  /*
+   De proefpunten liggen op de **buitenkant** van de romp en niet erbinnen.
+
+   Ze stonden eerst op 46 % van de lengte en 42 % van de breedte, ruim binnen de
+   huid. Dat leek voorzichtig maar pakte andersom uit: de steven steekt tot
+   3,47 m vooruit (de overhang, zie `lang`), dus de boot voer een halve meter de
+   wal in voordat er iets tegenhield. Je zag je eigen boeg in het gras steken.
+   Nu ligt de voorste proef op de steven zelf, de achterste op de spiegel en de
+   twee zijproeven op het breedste punt van de romp, met er nog een paar tussen
+   zodat een schuine oever niet tussen twee punten door glipt.
+  */
   const PROEF = [
-    [LENGTE * 0.46, 0], [-LENGTE * 0.46, 0], [0, 0],
-    [LENGTE * 0.10, BREEDTE * 0.42], [LENGTE * 0.10, -BREEDTE * 0.42],
+    [LENGTE * 0.55, 0],                                  // de steven, overhang en al
+    [-LENGTE * 0.5, 0],                                  // de spiegel
+    [0, 0],
+    [LENGTE * 0.28, BREEDTE * 0.34], [LENGTE * 0.28, -BREEDTE * 0.34],
+    [LENGTE * 0.05, BREEDTE * 0.5], [LENGTE * 0.05, -BREEDTE * 0.5],
+    [-LENGTE * 0.32, BREEDTE * 0.47], [-LENGTE * 0.32, -BREEDTE * 0.47],
   ];
   function pastHier(x, z, yaw) {
     const c = Math.cos(yaw), s = Math.sin(yaw);
@@ -522,6 +552,9 @@ export function initBoten({ scene, player, hud }) {
       vx: 0, vz: 0,          // snelheid over de grond (m/s)
       roer: 0, gas: 0,
       deining: Math.random() * 6.283,
+      // js/derdepersoon.js houdt het poppetje in beeld bij een voertuig met een
+      // open dek: op een sloep sta je buiten en zie je jezelf staan
+      openDek: true,
       sporen: [],
     });
   }
@@ -672,7 +705,10 @@ export function initBoten({ scene, player, hud }) {
      relatief, net als in de auto — anders draait de boot onder je vandaan.
     */
     if (player) {
-      player.pos.x = inBoot.x; player.pos.z = inBoot.z;
+      const fx = -Math.sin(inBoot.yaw), fz = -Math.cos(inBoot.yaw);
+      const rx = Math.cos(inBoot.yaw), rz = -Math.sin(inBoot.yaw);
+      player.pos.x = inBoot.x + fx * STUUR_L + rx * STUUR_D;
+      player.pos.z = inBoot.z + fz * STUUR_L + rz * STUUR_D;
       player.pos.y = (inBoot.mesh ? inBoot.mesh.position.y : WATER_Y) + VLOER;
       player.yaw += inBoot.yaw - laatsteYaw;
       laatsteYaw = inBoot.yaw;

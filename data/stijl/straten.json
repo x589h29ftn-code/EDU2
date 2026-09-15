@@ -86,6 +86,46 @@
     "Zeskanter": {
       "type": "eekmolen",
       "bron": "aanname, zelfde buurt als Eekmolen"
+    },
+    "Age Piersstraat": {
+      "type": "agepiers",
+      "bron": "foto: Age Piersstraat 33 — plat dak, donkerrode steen, grijze betonband, gele voordeur"
+    },
+    "Jonkvrouw": {
+      "type": "jonkvrouw",
+      "bron": "foto: Jonkvrouw 43/45 — bruine steen, steile donkere kap met zonnepanelen en dakkapel, donkerblauwe deur en garagedeur"
+    },
+    "De Dassenboarch": {
+      "type": "dassenboarch",
+      "bron": "foto: De Dassenboarch 8 — eenlaags rijtje, rode steen, grijze panelenband, groene kozijnen en deuren"
+    },
+    "Willem Santemastraat": {
+      "type": "santema",
+      "bron": "foto: Willem Santemastraat 30 — plat dak, roodbruine steen, witte kozijnen, blauwe en bruine deuren"
+    },
+    "Kaatsland": {
+      "type": "kaatsland",
+      "bron": "foto: Kaatsland 160 — wit geschilderde steen met een donkere band op de verdieping"
+    },
+    "Pripperstraat": {
+      "type": "pripperstraat",
+      "bron": "foto: Pripperstraat 58 — lichtbruine steen, vol zonnedak, rode accenten in de kozijnen, donkergroene deuren"
+    },
+    "Bockamastraat": {
+      "type": "bockama",
+      "bron": "foto: Bockamastraat 48 — geelbeige steen, donkere pannen, witte kozijnen met zwarte accenten"
+    },
+    "Wilgeroosje": {
+      "type": "wilgeroosje",
+      "bron": "foto: Wilgeroosje 50 — bruine steen, roodbruine pannen, dakkapellen, zonnepanelen, witte garagedeuren"
+    },
+    "Apollovlinder": {
+      "type": "apollovlinder",
+      "bron": "foto: Apollovlinder 41 — grijsbruine steen, donkere kap met zonnepanelen, dakkapel"
+    },
+    "Jutrijpstraat": {
+      "type": "jutrijp",
+      "bron": "foto: Jutrijpstraat 20 — bruine steen, donkere pannen, rode kozijnen en rode deuren, crème boeiboord"
     }
   },
   "panden": {
@@ -251,7 +291,7 @@
         296
       ],
       "zuilengang": {
-        "tussen": 6.0,
+        "tussen": 6,
         "straal": 0.2,
         "diepte": 2.4,
         "merk": true
@@ -265,7 +305,7 @@
         {
           "type": "winkelwagens",
           "voor": 1.6,
-          "langs": -3.0
+          "langs": -3
         },
         {
           "type": "winkelwagens",

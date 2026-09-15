@@ -64,11 +64,12 @@ for (const a of STEEK.adressen) {
     const g = window.__game;
     g.player.pos.set(c.x, 0, c.z); g.player.yaw = c.yaw; g.player.pitch = 0.06; g.player.applyCamera();
     // geparkeerde auto's vlak voor de camera even weg
-    for (const car of g.vehicles.cars) car.mesh.visible = Math.hypot(car.x - c.x, car.z - c.z) > 6;
+    // niet elke auto heeft een eigen mesh: wie in een stapel staat heeft er geen
+    for (const car of g.vehicles.cars) if (car.mesh) car.mesh.visible = Math.hypot(car.x - c.x, car.z - c.z) > 6;
   }, cam);
   await page.waitForTimeout(600);
   const bestand = join(UIT, `${naam}.png`);
-  await page.screenshot({ path: bestand });
+  await page.screenshot({ path: bestand, timeout: 300000 });
   const link = streetView(cam.x, cam.z, cam.koers);
   const meet = pand.v ? `goot ${pand.goot} m, nok ${pand.nok} m, ${pand.dak}` : `geschat (geen 3D BAG)`;
   console.log(`${a.straat} ${a.nr}: ${pand.type}, ${meet}, bouwjaar ${pand.jaar || '?'} -> ${naam}.png`);
@@ -83,10 +84,10 @@ for (const pl of STEEK.plekken || []) {
   await page.evaluate((c) => {
     const g = window.__game;
     g.player.pos.set(c.x, 0, c.z); g.player.yaw = c.yaw; g.player.pitch = 0.0; g.player.applyCamera();
-    for (const car of g.vehicles.cars) car.mesh.visible = Math.hypot(car.x - c.x, car.z - c.z) > 4;
+    for (const car of g.vehicles.cars) if (car.mesh) car.mesh.visible = Math.hypot(car.x - c.x, car.z - c.z) > 4;
   }, cam);
   await page.waitForTimeout(600);
-  await page.screenshot({ path: join(UIT, `${naam}.png`) });
+  await page.screenshot({ path: join(UIT, `${naam}.png`), timeout: 300000 });
   const link = streetView(cam.x, cam.z, cam.koers);
   console.log(`${pl.naam}: vanaf ${cam.straat}, ${cam.afstand.toFixed(0)} m van de plek -> ${naam}.png`);
   plekRegels.push(`| ${pl.naam} | ${pl.soort} | ${pl.vraag} | ![](${naam}.png) | ${link ? `[Street View](${link})` : ''} |`);
