@@ -1,0 +1,97 @@
+# Oude Windows-builds opruimen.
+#
+# Waarom dit bestaat. Elke build laat onder "Artifacts" een zip van ruim honderd
+# megabyte achter, en die bleven dertig dagen staan. Op 16 september stonden er
+# vierennegentig van, samen 18,8 GB, en daar liep het opslagquotum van Actions op
+# stuk: de build zelf slaagde nog steeds, maar het uploaden gaf
+# "Artifact storage quota has been hit". Let op dat dit een ándere teller is dan
+# de grootte van de repo — die opschonen helpt hier niets.
+#
+# De knop staat hier en niet in een script op je eigen machine, omdat verwijderen
+# het recht `actions: write` vraagt. Dat heeft een gewoon token niet; het token
+# dat GitHub aan deze workflow geeft wel.
+#
+# Gebruik: Actions -> "Artifacts opruimen" -> Run workflow. Je kiest hoeveel van
+# de nieuwste builds blijven staan (standaard één, zodat er altijd een Tinga.exe
+# te downloaden is).
+name: Artifacts opruimen
+
+on:
+  workflow_dispatch:
+    inputs:
+      bewaren:
+        description: 'Hoeveel van de nieuwste builds blijven staan'
+        required: true
+        default: '1'
+      alleen_tonen:
+        description: 'Alleen laten zien wat er weg zou gaan (ja/nee)'
+        required: true
+        default: 'nee'
+
+permissions:
+  actions: write
+
+jobs:
+  opruimen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Opruimen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEWAREN: ${{ inputs.bewaren }}
+          ALLEEN_TONEN: ${{ inputs.alleen_tonen }}
+        run: |
+          set -euo pipefail
+
+          # Alle artifacts die nog niet verlopen zijn, nieuwste eerst.
+          # `--paginate` loopt zelf door de pagina's heen; per pagina wordt er
+          # één regel per artifact uitgedraaid met datum, nummer en grootte.
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false) | [.created_at, .id, .size_in_bytes, .name] | @tsv' \
+            | sort -r > alle.tsv
+
+          aantal=$(wc -l < alle.tsv)
+          totaal=$(awk -F'\t' '{s+=$3} END {printf "%.2f", s/1073741824}' alle.tsv)
+          echo "Nu in de opslag: $aantal artifacts, $totaal GB"
+          echo "Bewaren: de $BEWAREN nieuwste"
+          echo
+
+          tail -n +$((BEWAREN + 1)) alle.tsv > weg.tsv || true
+          n=$(wc -l < weg.tsv)
+          if [ "$n" -eq 0 ]; then
+            echo "Er valt niets op te ruimen."
+            exit 0
+          fi
+          vrij=$(awk -F'\t' '{s+=$3} END {printf "%.2f", s/1073741824}' weg.tsv)
+          echo "Weg te halen: $n artifacts, $vrij GB"
+          echo
+
+          if [ "$ALLEEN_TONEN" = "ja" ]; then
+            echo "Alleen tonen — er wordt niets verwijderd. De tien oudste:"
+            tail -10 weg.tsv | awk -F'\t' '{printf "  %s  %6.1f MB  %s\n", $1, $3/1048576, $4}'
+            exit 0
+          fi
+
+          goed=0
+          fout=0
+          while IFS=$'\t' read -r datum id maat naam; do
+            if gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id" --silent 2>/dev/null; then
+              goed=$((goed + 1))
+            else
+              fout=$((fout + 1))
+              echo "  niet gelukt: $id ($datum)"
+            fi
+          done < weg.tsv
+
+          echo
+          echo "Verwijderd: $goed van de $n ($vrij GB vrijgemaakt), mislukt: $fout"
+          echo "De teller van GitHub loopt zes tot twaalf uur achter; kort na het"
+          echo "opruimen kan het dus nog even lijken alsof de opslag nog vol zit."
+
+          {
+            echo "### Artifacts opgeruimd"
+            echo
+            echo "- vooraf: **$aantal** artifacts, **$totaal GB**"
+            echo "- verwijderd: **$goed** ($vrij GB)"
+            echo "- bewaard: de **$BEWAREN** nieuwste"
+          } >> "$GITHUB_STEP_SUMMARY"
