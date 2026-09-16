@@ -2064,6 +2064,56 @@ nok op 20,66 m, en het grondvlak van 28 bij 13,6 m is dat van de zaagloodsen. He
 is bij een molen onbruikbaar: dat vangt de roeden mee, en opgetrokken tot een gebouw was het de witte
 klomp die er tot nu toe stond.
 
+#### De houtkolk erachter
+
+Achter de molen ligt een **inham van 857 m²** die met twee punten aan de Geeuw vastzit: geen vijver
+maar een aftakking, en dat is precies wat een houtkolk is. Daar lagen de **boomstammen** te wachten
+tot ze de zaag in gingen — in het water, want nat hout scheurt en kromtrekt niet en een stam van zes
+meter duw je drijvend met één hand opzij. Ze liggen er nu in, met remmingpalen langs de kant en op de
+wal een stapeltje gezaagd hout met een paar losse stammen ernaast.
+
+![De houtkolk achter De Rat](docs/screenshots/houtkolk.png)
+
+Twee dingen waren nodig om dat er niet als een ongeluk uit te laten zien. De kolk wordt **niet als de
+dichtstbijzijnde** waterpartij gekozen maar als de **grootste** binnen tachtig meter, tussen 300 en
+4000 m²: de sloot pal naast de molen ligt zes meter dichterbij en is met 88 m² over veertig meter
+lengte een greppel, en zonder bovengrens wint de Geeuw zelf. En elke stam wordt **gepast** voordat hij
+er ligt: de kolk heeft een knik, dus een stam van zes meter langs de gemiddelde lengterichting steekt
+daar aan twee kanten de wal in. Er wordt gekeken of allebei de uiteinden nog in het water liggen, en
+zo niet draait hij een stukje bij — past hij nergens, dan blijft die plek leeg. Zo volgen de stammen
+vanzelf de vorm van de kolk.
+
+### De Terpensmole langs het Sneekerpad
+
+Halverwege het slingerweggetje van Sneek naar IJlst staat een **spinnenkopmolen** in het weiland, pal
+naast het fietspad. Dat is iets heel anders dan De Rat: geen achtkant, geen stelling en geen loodsen,
+maar een vierkante, taps toelopende romp van vijf bij vijf meter met een klein draaibaar bovenhuis
+erop — de spinnenkop — dat het hele gevlucht en de staart draagt. Zo'n molen maalt een polder droog
+en staat daarom alleen in het land, op een terpje met een beschoeiing eromheen.
+
+![De Terpensmole vanaf het fietspad](docs/screenshots/terpensmole_pad.png)
+
+**Hij stond er al, als schuur.** In de BAG is dit pand een gebouwtje van zestien vierkante meter met
+een nok op 10,35 m, en zo werd het ook getekend: een schuurtje van vijf bij vijf, tien meter hoog,
+midden in de wei. Dat is precies de kandidaat waar je naar zoekt — zo'n schuur bestaat niet.
+
+En de meting zelf vertelt waar de fout zat. Die 10,35 m is **niet de kap**: de twee punten boven de
+acht meter zitten allebei op een hóek van het grondvlak en niet in het midden, dus dat is een roede.
+De kap komt uit de dichte wolk punten tussen 7,0 en 8,1 m, en staat nu op 8,2. De vlucht van twaalf
+meter staat er als opgemeten waarde bij, van de foto — een puntenwolk is bij een molen nu eenmaal
+onbruikbaar voor het gevlucht, net als bij De Rat.
+
+![De staart, het kruirad en de trap](docs/screenshots/terpensmole_dichtbij.png)
+
+Twee draaiingen die niet samenvallen, en dat is het hele punt van dit type: de **romp** staat vast in
+de richting van het grondvlak (de omhullende rechthoek van het BAG-pand, 3,96 × 3,94 m onder −71,6°),
+en het **bovenhuis** staat op de wind. Bij een achtkant zie je dat verschil niet omdat die er van alle
+kanten hetzelfde uitziet; hier meteen. De **staart** loopt van het bovenhuis schuin naar beneden tot
+vlak boven de grond — daar duw je hem mee rond — met het **kruirad** eraan, en opzij van het gevlucht
+staat de **trap** naar het deurtje: wie de molen in wil moet niet onder de roeden door.
+
+`npm run terptest` toetst het allebei (zeventien controles), `npm run terpshots` maakt de foto's.
+
 ### Supermarkt Poiesz, De Dassenboarch 32 in IJlst
 
 De supermarkt van IJlst: donkerbruine baksteen onder een flauw hellend dak van grijze metalen
@@ -2224,7 +2274,8 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `js/sportveld.js` – de velden van VV Sneek Wit Zwart: belijning, maaibanen, doelen, reclameborden,
   ballenvanger, dugouts en lichtmasten, uitgezet op het BGT-vlak
 - `js/volkstuin.js` – de volkstuinen achter de Wieken: bedden, paden, hagen en hekjes, schuurtjes en kassen
-- `js/molen.js` – Houtzaagmolen De Rat aan het Sneekerpad: zaagloodsen, onderbouw, stelling, rieten
+- `js/molen.js` – de twee molens: Houtzaagmolen De Rat met zijn zaagloodsen en houtkolk, en De
+  Terpensmole (spinnenkop) in de polder. Voor De Rat: zaagloodsen, onderbouw, stelling, rieten
   achtkant, kap, staart en het draaiende gevlucht
 - `js/supermarkt.js` – de binnenkant van de Poiesz in IJlst: kassa's, schappen, diepvries, versbalie,
   personeel en klanten, en het bier

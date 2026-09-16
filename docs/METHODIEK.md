@@ -3576,6 +3576,53 @@ van 11,5 m en een nok op 14,4 m) en vijf plekken die het spel uit regels opbouwt
 en die nog nooit tegen een foto zijn gelegd: het tankstation, het tennispark,
 het sportpark, de volkstuinen en de houtzaagmolen.
 
+**De Terpensmole en de houtkolk (stap 61).** Twee dingen uit dezelfde set foto's
+(16 sep 2026), en allebei zaten ze al in de data — alleen verkeerd gelezen.
+
+*Een molen die als schuur in de kaart stond.* Halverwege het Sneekerpad, het
+slingerweggetje van Sneek naar IJlst, staat een spinnenkopmolen. In de BAG is dat
+pand 1900100010085318: zestien vierkante meter grondvlak, nok 10,35 m, bouwjaar
+1981. Zo werd het ook getekend — een schuurtje van vijf bij vijf, tien meter hoog,
+midden in de wei. Een schuur met die maatverhouding bestaat niet, en dat is precies
+hoe je zo'n pand terugvindt: zoek in de polder naar een klein grondvlak met een
+grote nok.
+
+De meting vertelt ook waar het misging. Die 10,35 m is niet de kap: de twee punten
+boven de acht meter zitten allebei op een hóek van het grondvlak en niet in het
+midden, dus dat is een roede en geen bovenhuis. De kap komt uit de dichte wolk
+punten tussen 7,0 en 8,1 m en staat op 8,2. De vlucht (12 m) staat als opgemeten
+waarde in de stijlcatalogus, van de foto — bij een molen is de puntenwolk voor het
+gevlucht onbruikbaar, precies zoals bij De Rat.
+
+`KAART.molens` heeft daarom nu een `soort`. Bij `stelling` (De Rat) blijft alles
+zoals het was; bij `spinnenkop` vervallen de stelling en de zaagloodsen en komt het
+vierkant van de romp uit de omhullende rechthoek van het grondvlak (3,96 × 3,94 m
+onder −71,6°). Dat levert twee draaiingen op die niet samenvallen — de romp staat
+in de richting van het pand, het bovenhuis op de wind — en dat is het kenmerk van
+dit type: bij een achtkant zie je het verschil niet.
+
+*De houtkolk achter De Rat.* Achter de zaagmolen ligt een waterdeel van 857 m² dat
+met twee punten aan de Geeuw vastzit: geen vijver maar een aftakking. Daar lagen de
+boomstammen te drijven. De kolk wordt gezocht als de **grootste** waterpartij binnen
+tachtig meter tussen 300 en 4000 m², en alle drie die grenzen doen werk: zonder
+bovengrens wint de Geeuw zelf (16.624 m²), zonder ondergrens de sloot pal naast de
+molen (88 m² over veertig meter lengte, dus een greppel), en op "de dichtstbijzijnde"
+wint diezelfde greppel omdat hij zes meter dichterbij ligt.
+
+Elke stam wordt gepast voordat hij er ligt. De kolk heeft een knik, dus een stam van
+zes meter langs de gemiddelde lengterichting steekt daar aan twee kanten de wal in.
+Er wordt gekeken of allebei de uiteinden nog in het water liggen; zo niet draait hij
+een stukje bij, en past hij nergens dan blijft die plek leeg. Zo volgen de stammen
+vanzelf de vorm van de kolk in plaats van er dwars overheen te liggen. Ze drijven
+ook echt: het hart ligt ónder de waterlijn, want nat hout ligt diep.
+
+Eén ding kostte onnodig tijd. De nieuwe bakken voor de meshes kregen de naam `g`,
+en verderop in dezelfde lus staat al een `const g` voor het gevlucht — dan valt de
+eerste in de dode zone van dat blok en viel de hele pagina om met "Cannot access 'g'
+before initialization", nog voor de wereld er stond. Hij heet nu `bakken`.
+
+Controle: `npm run terptest` (zeventien controles) en `npm run terpshots`.
+
 **Ronde 5 van de steekproef.** Vierentwintig standpunten in
 `docs/steekproef/ronde5.md`, en deze ronde gaat over wat er *niet* in een rijtje
 past. De vorige rondes gingen over steen, dakvorm en kozijnkleur van

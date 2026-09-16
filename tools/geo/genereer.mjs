@@ -1865,6 +1865,38 @@ tel('volkstuinen', VOLKSTUINEN.reduce((n, v) => n + v.tuinen.length, 0));
  data/stijl/straten.json, net als de kruirichting: een kap draait met de wind
  mee en staat dus nergens in een bestand.
 */
+/*
+ Het waterdeel naast een zaagmolen: de houtkolk. Gezocht wordt binnen `straal`
+ meter van het hart van de molen, tussen `minOpp` en `maxOpp` vierkante meter, en
+ daarvan wint de grootste.
+
+ Alle drie die grenzen doen werk. Zonder bovengrens wint de Geeuw zelf, en dat is
+ een vaart van zestienduizend vierkante meter. Zonder ondergrens wint de sloot
+ naast de molen: die ligt zes meter dichterbij dan de kolk en is met achtentachtig
+ vierkante meter op veertig meter lengte niet meer dan een greppel. En "de
+ grootste" in plaats van "de dichtstbijzijnde", omdat een kolk juist een breed
+ stuk water is — daar moet een vlot stammen in kunnen liggen.
+*/
+function zoekKolk(cx, cz, straal, maxOpp, minOpp) {
+  let beste = null;
+  for (const v of VLAKKEN) {
+    if (v.k !== 'water') continue;
+    const o = Math.abs(oppervlak(v.r[0]));
+    if (o > maxOpp || o < minOpp) continue;
+    let sx = 0, sz = 0;
+    for (const q of v.r[0]) { sx += q[0]; sz += q[1]; }
+    const mx = sx / v.r[0].length, mz = sz / v.r[0].length;
+    const d = Math.hypot(mx - cx, mz - cz);
+    if (d > straal) continue;
+    if (!beste || o > beste.opp) beste = { d, mx, mz, ring: v.r[0], opp: o, y: v.y };
+  }
+  if (!beste) return null;
+  return {
+    cx: r2(beste.mx), cz: r2(beste.mz), opp: Math.round(beste.opp), y: beste.y,
+    ring: beste.ring.map(q => [r2(q[0]), r2(q[1])]),
+  };
+}
+
 const MOLENS = [];
 for (const p of PANDEN) {
   const vast = (STIJL.panden || {})[p.id];
@@ -1881,16 +1913,43 @@ for (const p of PANDEN) {
     for (let i = 0; i < p.v.length; i += 3) { if (p.v[i + 1] >= laag && p.v[i + 1] <= hoog) { sx += p.v[i]; sz += p.v[i + 2]; n++; } }
     if (n >= 6) { cx = sx / n; cz = sz / n; uitData = true; }
   }
+  /*
+   Twee soorten. `stelling` is De Rat: een achtkante stellingmolen met een
+   omloop en zaagloodsen eromheen. `spinnenkop` is De Terpensmole in de polder
+   langs het Sneekerpad: een vierkante, taps toelopende romp van vijf bij vijf
+   meter met een klein draaibaar bovenhuis erop, zonder stelling en zonder
+   loodsen. Voor die tweede komt het vierkant uit de omhullende rechthoek van
+   het grondvlak — een spinnenkop is niet rond, dus die rechthoek ís de romp.
+  */
+  const soort = M.soort === 'spinnenkop' ? 'spinnenkop' : 'stelling';
   MOLENS.push({
-    naam: M.naam || 'molen', pand: p.id,
+    naam: M.naam || 'molen', pand: p.id, soort,
     cx: r2(cx), cz: r2(cz), stelling: r2(stelling), top: r2(top),
     romp: M.romp ?? 4.5, rompTop: M.rompTop ?? 2.8, kap: M.kap ?? 4.2,
     vlucht: M.vlucht ?? 19.4, kruihoek: M.kruihoek ?? 0, toeren: M.toeren ?? 4.5,
+    voet: soort === 'spinnenkop'
+      ? { hx: p.rect.hx, hz: p.rect.hz, hoek: p.rect.hoek, terp: M.terp ?? 4.6 }
+      : null,
     // de zaagloodsen eromheen: het grondvlak van het pand met de nokrichting
-    // van de omhullende rechthoek
-    loods: { ring: p.voet, hoek: p.rect.hoek, goot: M.loodsGoot ?? 3.6, nok: M.loodsNok ?? 6.4 },
+    // van de omhullende rechthoek. Een spinnenkop staat alleen in het land.
+    loods: soort === 'spinnenkop'
+      ? null
+      : { ring: p.voet, hoek: p.rect.hoek, goot: M.loodsGoot ?? 3.6, nok: M.loodsNok ?? 6.4 },
+    /*
+     De houtkolk: de inham naast een zaagmolen waar de boomstammen in het water
+     lagen te wachten. `houtkolk` in de stijlcatalogus is de straal waarbinnen
+     gezocht wordt; het wordt het dichtstbijzijnde waterdeel dat niet de vaart
+     zelf is, dus met een bovengrens op het oppervlak.
+    */
+    kolk: M.houtkolk ? zoekKolk(cx, cz, M.houtkolk, M.kolkMax ?? 4000, M.kolkMin ?? 300) : null,
   });
-  if (!uitData) console.warn(`LET OP: molen ${p.id}: te weinig 3D-punten boven de stelling, hart uit de rechthoek`);
+  /*
+   Alleen bij een stellingmolen is "geen punten boven de stelling" een teken dat
+   er iets mis is. Een spinnenkop hééft geen stelling, en zijn hart hoort uit de
+   omhullende rechthoek te komen — dat is bij een vierkante romp de beste meting
+   die er is.
+  */
+  if (!uitData && soort !== 'spinnenkop') console.warn(`LET OP: molen ${p.id}: te weinig 3D-punten boven de stelling, hart uit de rechthoek`);
 }
 tel('molens', MOLENS.length);
 

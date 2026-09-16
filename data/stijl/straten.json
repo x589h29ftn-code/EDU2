@@ -280,9 +280,12 @@
         "kruihoek": 78,
         "toeren": 4.5,
         "loodsGoot": 3.6,
-        "loodsNok": 6.4
+        "loodsNok": 6.4,
+        "houtkolk": 80,
+        "kolkMax": 4000,
+        "kolkMin": 300
       },
-      "bron": "foto Google Maps 'Houtzaagmolen De Rat' (september 2017, in de chat 6 sep 2026) plus het BAG-pand zelf: bouwjaar 1683, goot 7,52 m (dat is de stelling), nok 20,66 m. Een achtkante stellingmolen met een rieten romp op een zwart geteerde onderbouw, met aan weerskanten de houten zaagloodsen. `romp` en `rompTop` zijn de straal van het achtkant bij de stelling en bij de kap, `vlucht` de spanwijdte van het gevlucht (19,4 m, dus roeden van 9,7 m); die drie staan niet in de data, want het 3D BAG-model vangt de roeden mee en geeft in dezelfde hoogteband stralen van 1,35 tot 6,63 m. `kruihoek` is de kant waar de kap op staat, in graden in het (x,z)-vlak: 78 graden is naar het Sneekerpad toe, zodat je vanaf de weg naar IJlst het hele gevlucht ziet draaien in plaats van de zijkant ervan. `toeren` is het aantal omwentelingen per minuut — een malende molen haalt er zestig tot tachtig, een molen die voor de sier draait blijft er rustig onder."
+      "bron": "foto Google Maps 'Houtzaagmolen De Rat' (september 2017, in de chat 6 sep 2026) plus het BAG-pand zelf: bouwjaar 1683, goot 7,52 m (dat is de stelling), nok 20,66 m. Een achtkante stellingmolen met een rieten romp op een zwart geteerde onderbouw, met aan weerskanten de houten zaagloodsen. `romp` en `rompTop` zijn de straal van het achtkant bij de stelling en bij de kap, `vlucht` de spanwijdte van het gevlucht (19,4 m, dus roeden van 9,7 m); die drie staan niet in de data, want het 3D BAG-model vangt de roeden mee en geeft in dezelfde hoogteband stralen van 1,35 tot 6,63 m. `kruihoek` is de kant waar de kap op staat, in graden in het (x,z)-vlak: 78 graden is naar het Sneekerpad toe, zodat je vanaf de weg naar IJlst het hele gevlucht ziet draaien in plaats van de zijkant ervan. `toeren` is het aantal omwentelingen per minuut — een malende molen haalt er zestig tot tachtig, een molen die voor de sier draait blijft er rustig onder. De houtkolk is de inham pal achter de molen: in de BGT een waterdeel van 857 m2 dat met twee punten aan de Geeuw vastzit, dus geen vijver maar een aftakking. Daar lagen de boomstammen te wachten (foto Sneekerpad, april 2024, in de chat 16 sep 2026); `houtkolk` is de zoekstraal in meters en `kolkMax` het grootste oppervlak dat nog als kolk telt - zonder die bovengrens wint de Geeuw zelf, en dat is een vaart en geen kolk."
     },
     "0091100000019594": {
       "type": "duinterpen_poiesz",
@@ -594,6 +597,22 @@
         "pitch": 0.08
       },
       "bron": "foto van de gebruiker (chat 12 sep 2026): de grote loods aan het Sneekerpad, naast houtzaagmolen De Rat. Uit de data: BGT-pand 0683100000293900, Sneekerpad 25, 63 x 55 m, goot 3,57 en nok 8,34 m uit 3D BAG, bouwjaar 1981. Van de foto komen alleen kleur en materiaal: een lage wand van roodbruine steen met daarboven een steil dak van donkergrijze felsplaten dat bijna tot de grond komt. De oranje houten aanbouw met het terras aan de zuidkant zit er nog niet in: die is in de brondata niet van de loods te onderscheiden."
+    },
+    "1900100010085318": {
+      "type": "molen",
+      "molen": {
+        "naam": "De Terpensmole",
+        "soort": "spinnenkop",
+        "top": 8.2,
+        "romp": 1.24,
+        "rompTop": 1.24,
+        "kap": 3.0,
+        "vlucht": 12.0,
+        "kruihoek": 195,
+        "toeren": 6.5,
+        "terp": 4.6
+      },
+      "bron": "Foto langs het Sneekerpad (J Kleen, juli 2021, in de chat 16 sep 2026) plus het BAG-pand zelf. Een spinnenkopmolen in de polder tussen Sneek en IJlst, aan het fietspad dat daar elf meter verderop loopt. Het spel tekende hem tot nu toe als `schuur` van zestien vierkante meter en tien meter hoog, en dat is precies wat je erover moet weten: het grondvlak is 4,98 x 5,00 m (de omhullende rechthoek 3,96 x 3,94 m onder -71,6 graden) en de 3D BAG-punten lopen tot 10,43 m. Die hoogte is NIET de kap. De punten boven de acht meter zitten allebei op een hoek van het grondvlak en niet in het midden - dat is een roede, niet het bovenhuis. De kap komt uit de dichte wolk punten tussen 7,0 en 8,1 m, vandaar `top` 8,2. `vlucht` staat er als opgemeten waarde bij en komt van de foto: op een spinnenkop van deze maat is twaalf meter gebruikelijk, en de onderste roedepunt komt daarmee op negentig centimeter boven de terp, zoals op de foto. `kruihoek` 195 graden zet het gevlucht naar het fietspad toe. `terp` is de halve maat van het beschoeide terpje waar hij op staat."
     }
   },
   "standaard": {
