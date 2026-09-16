@@ -416,6 +416,29 @@ GitHub moesten allemaal opnieuw gepusht worden. Zolang één tak de oude
 geschiedenis nog vasthoudt, blijven die 1,3 GB daar gewoon staan en is het
 quotum niets opgeschoten.
 
+*En dat was niet waar het quotum op vastliep.* De melding die het pushen en de
+build blokkeerde luidde "Artifact storage quota has been hit", en dat gaat over de
+**artifactopslag van Actions** — een andere teller dan de grootte van de repo. Het
+herschrijven van de geschiedenis hierboven was op zichzelf de moeite waard, maar
+het loste deze melding niet op; dat had eerst uitgezocht moeten worden.
+
+Wat er wél aan de hand was: de workflow `windows.yml` bouwde de Windows-app bij
+elke push en bewaarde elke build dertig dagen. Eén build is 112 tot 278 MB (de
+oudste dateren van vóór de `ignore`-lijst in `tools/pack.mjs`). Op 16 september
+stonden er **vierennegentig, samen 18,8 GB**. De build slaagde nog steeds — alleen
+`upload-artifact` weigerde, dus er kwam geen .exe meer uit.
+
+Twee ingrepen. De workflow draait voortaan alleen op `workflow_dispatch` en op een
+tag `v*`, met `retention-days: 5` in plaats van 30: een .exe maak je op het moment
+dat je er een wilt. En er staat een knop bij om op te ruimen
+(`.github/workflows/opruimen.yml`): hij haalt alle artifacts weg op de N nieuwste
+na, met `alleen_tonen: ja` om eerst te kijken. Die knop moet in de repo staan en
+kan niet vanaf hier: verwijderen vraagt `actions: write`, en dat heeft alleen het
+token dat GitHub aan een workflow zelf geeft — een gewoon token krijgt 403.
+
+De teller van GitHub loopt zes tot twaalf uur achter, dus vlak na het opruimen kan
+het nog even lijken alsof de opslag vol blijft.
+
 **Wat de data zegt.**
 
 - Rijbanen zijn klinkers: in de Tinga-uitsnede waren 603 van de 670 wegdelen open

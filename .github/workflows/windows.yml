@@ -1,12 +1,29 @@
 # Bouwt de Windows-versie van Tinga. Na een run staat er onder "Artifacts" een
 # zip met Tinga.exe die je kunt downloaden en uitpakken.
+#
+# Let op de aanleiding: hij draaide bij élke push en bewaarde elke build dertig
+# dagen. Eén build is ruim honderd megabyte, en bij zes pushes op een dag staan
+# er binnen twee weken tientallen kopieën van hetzelfde spel. Op 16 september
+# waren dat er vierennegentig, samen 18,8 GB, en toen liep het opslagquotum van
+# Actions vol: de build slaagde nog steeds, maar het uploaden gaf
+# "Artifact storage quota has been hit" — en dus kwam er geen .exe meer uit.
+#
+# Daarom draait hij nu alleen nog als je hem zelf start, en blijft het resultaat
+# vijf dagen staan. Een .exe maak je op het moment dat je er een wilt:
+#
+#   Actions -> "Windows-app" -> Run workflow (kies desnoods een andere tak)
+#
+# De webversie op GitHub Pages werkt gewoon door bij elke push; die staat in
+# .github/workflows/pages.yml. Opruimen van oude builds kan met
+# .github/workflows/opruimen.yml.
 name: Windows-app
 
 on:
-  push:
-    branches: [claude/gta-game-tinga-sneek-st3yxi, claude/gta-tinga-game-setup-lcm1jy, main]
-    paths-ignore: ['docs/**', '**.md']
   workflow_dispatch:
+  # Een tag die met v begint levert ook een build op, zodat een uitgave er altijd
+  # een heeft: `git tag v0.9 && git push origin v0.9`.
+  push:
+    tags: ['v*']
 
 permissions:
   contents: read
@@ -32,4 +49,7 @@ jobs:
         with:
           name: Tinga-windows
           path: dist/Tinga-win32-x64
-          retention-days: 30
+          # Vijf dagen is genoeg om hem te downloaden en uit te proberen. Langer
+          # bewaren betekent alleen dat er meer kopieën tegelijk in de opslag
+          # staan; opnieuw bouwen kan altijd.
+          retention-days: 5

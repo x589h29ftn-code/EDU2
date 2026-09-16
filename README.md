@@ -1977,8 +1977,27 @@ npm run desktop      # meteen draaien (Windows, macOS of Linux)
 npm run dist:win     # bouwt dist/Tinga-win32-x64/Tinga.exe
 ```
 
-De GitHub-workflow **Windows-app** bouwt bij elke push een kant-en-klare zip; die staat onder
-*Actions → de run → Artifacts*.
+De GitHub-workflow **Windows-app** bouwt een kant-en-klare zip; die staat onder *Actions → de run →
+Artifacts*. Hij draait **alleen als je hem zelf start** (*Actions → Windows-app → Run workflow*), en
+op een tag die met `v` begint. Dat was niet altijd zo, en de reden om het te veranderen is leerzaam.
+
+Hij bouwde bij elke push en bewaarde elke build dertig dagen. Eén build is ruim honderd megabyte, en
+bij zes pushes op een dag staan er binnen twee weken tientallen kopieën van hetzelfde spel. Op 16
+september waren dat er **vierennegentig, samen 18,8 GB**, en toen liep het opslagquotum van Actions
+vol:
+
+```
+Failed to CreateArtifact: Artifact storage quota has been hit.
+```
+
+De build zélf slaagde nog steeds — alleen het uploaden ging niet meer, dus er kwam geen .exe meer
+uit. Let op dat dit een **andere teller** is dan de grootte van de repo: die is apart opgeschoond
+(1,9 GB → 618 MB, zie docs/METHODIEK.md) en dat heeft hier niets aan gedaan.
+
+Opruimen kan met de workflow **Artifacts opruimen** (`.github/workflows/opruimen.yml`): je kiest
+hoeveel van de nieuwste builds blijven staan en de rest gaat weg. Die knop staat in de repo en niet
+in een script hier, omdat verwijderen het recht `actions: write` vraagt — dat heeft alleen het token
+dat GitHub aan een workflow geeft. Met `alleen_tonen: ja` laat hij eerst zien wat er weg zou gaan.
 
 In de app zit alleen wat het spel nodig heeft: `index.html`, `js/`, `lib/`, `audio/` en `beeld/`. De
 brondata (`data/geo`, 148 MB ruwe BGT- en 3D BAG-download), de referentiefoto's, het gereedschap in
