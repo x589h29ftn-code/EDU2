@@ -32,11 +32,24 @@ jobs:
           mkdir -p _site
           cp index.html _site/
           cp -r js lib _site/
+          # audio/ en beeld/ zijn de twee mappen die het spel tijdens het spelen
+          # nog ophaalt: de radio en het menu lezen nummers.json en zenders.json,
+          # het laadscherm leest beelden.json. Stonden ze er niet in, dan laadde
+          # de webversie wel maar bleef de radio stil en het laadscherm zwart.
+          # Samen ruim twintig megabyte; dat past ruim in een Pages-site.
+          cp -r audio beeld _site/
           # Pages draait standaard Jekyll; dat is hier niet nodig en zou mappen
           # die met een underscore beginnen weglaten.
           touch _site/.nojekyll
 
+      # `enablement` zet Pages aan als dat nog niet gebeurd is. Zonder dat viel
+      # deze stap om met "Get Pages site failed ... Not Found": de workflow liep
+      # keurig, maar Pages stond in de repo-instellingen nooit aangezet, dus was
+      # er geen site om naartoe te publiceren. Dat kan ook met de hand, via
+      # Settings -> Pages -> Source: GitHub Actions; dit doet hetzelfde.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

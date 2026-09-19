@@ -24,6 +24,13 @@ brondata reikt, en dus ook de buitengrens van de wereld.
 
 Het spel staat online op GitHub Pages: **https://x589h29ftn-code.github.io/EDU2/**
 
+> Die publicatie liep tot nu toe niet. De workflow draaide braaf bij elke push maar viel steeds om op
+> `Get Pages site failed ... Not Found`: Pages stond in de repo-instellingen nooit **aan**, dus was er
+> geen site om naartoe te publiceren. En de site die hij samenstelde bevatte alleen `index.html`,
+> `js/` en `lib/` — zonder `audio/` en `beeld/` zou de radio stil blijven en het laadscherm zwart.
+> Allebei hersteld in `pages.yml`. Doet de link het nog niet, zet Pages dan één keer met de hand aan
+> onder *Settings → Pages → Source: GitHub Actions* en start de workflow opnieuw.
+
 Lokaal draaien kan ook. Het spel heeft geen build-stap, maar omdat het ES-modules gebruikt moet het
 via een webserver geladen worden (niet via `file://`):
 
@@ -1999,6 +2006,13 @@ hoeveel van de nieuwste builds blijven staan en de rest gaat weg. Die knop staat
 in een script hier, omdat verwijderen het recht `actions: write` vraagt — dat heeft alleen het token
 dat GitHub aan een workflow geeft. Met `alleen_tonen: ja` laat hij eerst zien wat er weg zou gaan.
 
+Dat is op 16 september gebeurd en het heeft gewerkt: er staan nu nog **twee** builds in de opslag,
+samen 0,29 GB in plaats van 18,8. Op 18 september liep de Windows-build weer helemaal door, upload
+en al. Wel goed om te weten dat GitHub de opslag pas **elke zes tot twaalf uur** herberekent: vlak na
+het opruimen kan een build nog één keer op hetzelfde quotum stuklopen terwijl de ruimte er al is.
+Krijg je de melding opnieuw, kijk dan eerst hoeveel er echt staat (*Actions → een run → Artifacts*,
+of de workflow met `alleen_tonen: ja`) voordat je iets anders gaat zoeken.
+
 In de app zit alleen wat het spel nodig heeft: `index.html`, `js/`, `lib/`, `audio/` en `beeld/`. De
 brondata (`data/geo`, 148 MB ruwe BGT- en 3D BAG-download), de referentiefoto's, het gereedschap in
 `tools/` en de documentatie blijven eruit — die zitten al verwerkt in `js/kaart.js`. Dat scheelt ruim
@@ -2403,7 +2417,7 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `js/hud.js` – straatnaambord, minimap, snelheid en munitie
 - `lib/three.module.js` – Three.js r160 (lokaal meegeleverd)
 - `tools/screenshot.mjs` – maakt testscreenshots met headless Chromium (Playwright)
-- `.github/workflows/pages.yml` – publiceert `index.html`, `js/` en `lib/` naar GitHub Pages
+- `.github/workflows/pages.yml` – publiceert `index.html`, `js/`, `lib/`, `audio/` en `beeld/` naar GitHub Pages
 
 ## Bronnen
 
