@@ -209,13 +209,89 @@ function randGeometrie(ringen, yBoven, yOnder, pos, uv, nor, naarBinnen = false,
          sloot of een berm kan honderden meters lang zijn: dan lag het "midden"
          van dat brok ver weg en verdween de rand terwijl je er pal naast stond.
         */
-        const doel = kies ? kies((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2) : { pos, uv, nor };
+        /*
+         `kies` krijgt het midden van dit stukje, en de twee uiteinden erachteraan.
+         Het midden bepaalt de tegel; de uiteinden zijn er voor wie een stukje
+         helemaal wil kunnen overslaan. Alleen op het midden toetsen was niet
+         genoeg: een stukje rand kan met zijn midden net buiten een kade vallen en
+         met een uiteinde er ruim onder, en dan bleef er alsnog een puntje wand
+         boven de tegels uitsteken — 228 van de 34.371 stukjes, gemeten.
+        */
+        const doel = kies ? kies((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, p0, p1) : { pos, uv, nor };
+        // `kies` mag null teruggeven: dan hoort dit stukje rand er niet te zijn.
+        // De oeverwand gebruikt dat om zichzelf weg te laten waar hij onder een
+        // kade of een steiger door zou lopen (zie `verhardBoven`).
+        if (!doel) continue;
         for (const [p, q, r] of [[0, 1, 2], [0, 2, 3]]) {
           for (const k of [p, q, r]) { const v = quad[k]; doel.pos.push(v[0], v[1], v[2]); doel.uv.push(k === 1 || k === 2 ? Ls : 0, v[1]); doel.nor.push(nx, 0, nz); }
         }
       }
     }
   }
+}
+
+/*
+ Ligt hier verharding die hoger ligt dan de rand van het water?
+
+ Waarom dit er is: een oeverwand loopt van 0,13 tot −0,60 rond elk waterdeel, en
+ de BGT kent waterdelen die een stukje ónder een kade, een steiger of een
+ asfaltvlak door lopen. Gemeten over de hele kaart: van de 33.478 hoekpunten van
+ waterdelen liggen er 498 (1,5 %) binnen een verhard vlak — 239 onder een steiger
+ van 0,30 m, 138 onder een voetpad van 0,12 m, 98 onder een asfaltvlak.
+
+ Het waterdek zelf ligt op −0,35 en verdwijnt daar netjes onder; de oeverwand
+ niet, want die komt tot 0,13 en steekt er dus één centimeter bovenuit. Dat is de
+ bruine band die dwars over de tegels van een kade liep (foto 19 sep 2026,
+ "clipping bij water en dat houten deel"). Eén centimeter is genoeg: van ooghoogte
+ kijk je er zo schuin op dat hij als een strook van een meter breed leest.
+
+ Hier wordt daarom per punt opgezocht of er verharding overheen ligt. Zo ja, dan
+ slaat `randGeometrie` dat stukje wand over en loopt de kade gewoon door — wat een
+ kade in het echt ook doet: die steekt over het water heen.
+
+ De opzoeking gaat over een rooster van 40 m, zodat het bij duizenden randpunten
+ niet over alle 2.600 verharde vlakken hoeft te lopen.
+*/
+const VERHARD_BOVEN = new Set(['voetpad', 'verharding', 'parkeervlak', 'steiger', 'asfaltvlak', 'rijbaan', 'inrit', 'fietspad']);
+const VCEL = 40;
+function bouwVerhardIndex(K, drempel) {
+  const net = new Map();
+  const inRing = (r, x, z) => {
+    let b = false;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const a = r[i], c = r[j];
+      if ((a[1] > z) !== (c[1] > z) && x < (c[0] - a[0]) * (z - a[1]) / (c[1] - a[1]) + a[0]) b = !b;
+    }
+    return b;
+  };
+  for (const v of K.vlakken) {
+    if (!VERHARD_BOVEN.has(v.k) || !(v.y >= drempel)) continue;
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (const r of v.r) for (const p of r) {
+      if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0];
+      if (p[1] < z0) z0 = p[1]; if (p[1] > z1) z1 = p[1];
+    }
+    const bb = [x0, x1, z0, z1];
+    for (let i = Math.floor(x0 / VCEL); i <= Math.floor(x1 / VCEL); i++) {
+      for (let j = Math.floor(z0 / VCEL); j <= Math.floor(z1 / VCEL); j++) {
+        const k = `${i}:${j}`;
+        if (!net.has(k)) net.set(k, []);
+        net.get(k).push({ v, bb });
+      }
+    }
+  }
+  return (x, z) => {
+    const lijst = net.get(`${Math.floor(x / VCEL)}:${Math.floor(z / VCEL)}`);
+    if (!lijst) return false;
+    for (const { v, bb } of lijst) {
+      if (x < bb[0] || x > bb[1] || z < bb[2] || z > bb[3]) continue;
+      if (!inRing(v.r[0], x, z)) continue;
+      let inGat = false;
+      for (let i = 1; i < v.r.length; i++) if (inRing(v.r[i], x, z)) { inGat = true; break; }
+      if (!inGat) return true;
+    }
+    return false;
+  };
 }
 
 function maakMesh(pos, uv, nor, mat, opties = {}) {
@@ -277,7 +353,17 @@ function materialen(MAT) {
   KM.schutting = std(T.planks('#7a5f42'));
   KM.hekje = new THREE.MeshStandardMaterial({ map: T.hekje(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9 });
   KM.streep = MAT.streep;
-  KM.drempel = new THREE.MeshStandardMaterial({ map: T.zebra(), roughness: 0.9 });
+  /*
+   De blokken op een verkeersdrempel. `transparent` met een alphaTest: zonder
+   dat werd het doorzichtige deel van de textuur zwart en lag er een egale
+   zwarte band over de weg (zie T.zebra). Met alphaTest hoeft three niets te
+   sorteren — een scherf is wit of hij is er niet — en de polygonOffset houdt hem
+   los van het asfalt eronder, dat op nauwelijks een centimeter afstand ligt.
+  */
+  KM.drempel = new THREE.MeshStandardMaterial({
+    map: T.zebra(), roughness: 0.9, transparent: true, alphaTest: 0.35,
+    polygonOffset: true, polygonOffsetFactor: -2,
+  });
   // omheinde terreinen (RWZI): spijlenhek, staal, betonnen bakken met water, silo's
   // tags op de blinde muren (js/scheiding.js); het doek heeft vier tags in een
   // raster van twee bij twee en is verder doorzichtig
@@ -409,9 +495,16 @@ export function* bouwKaartWereldStap(scene, W) {
   const matVoor = (v) => plat ? (KM.plat[v.k] || KM.plat.verharding) : (KM[v.m] || KM.klinker);
   const uvVoor = (m) => (m === 'gras' || m === 'erf' || m === 'bosgrond' || m === 'bodembedekker' || m === 'grasklinker') ? 0.12 : m === 'kunstgras' ? 0.2 : m === 'water' ? 0.05 : 0.5;
 
+  /*
+   Waar ligt er verharding overheen? De oeverwand komt tot 0,13, dus alles wat
+   op 0,11 of hoger ligt dekt hem af; de twee centimeter speling is er voor de
+   fietspaden van 0,12 die anders net buiten de boot vielen.
+  */
+  const verhardBoven = bouwVerhardIndex(K, 0.11);
+
   // -- ondergrond, één mesh per materiaal
   const perMat = new Map();       // "materiaal|tegel" -> stuk
-  const randen = new Map(), oevers = new Map();
+  const randen = new Map(), oevers = new Map(), steigerRanden = new Map();
   const stuk = (kaart, sleutel, mat, klasse) => {
     let g = kaart.get(sleutel);
     if (!g) { g = { pos: [], uv: [], nor: [], mat, klasse }; kaart.set(sleutel, g); }
@@ -454,7 +547,12 @@ export function* bouwKaartWereldStap(scene, W) {
     if (v.k === 'water') {
       waterRingen.push(v.r[0]);
       W.waterPolys.push(v.r[0].map(([x, z]) => new THREE.Vector2(x, z)));
-      if (!plat) randGeometrie(v.r, 0.13, -0.6, null, null, null, true, (x, z) => stuk(oevers, tegelVan(x, z), KM.oeverwand, 'oeverwand'));
+      if (!plat) {
+        randGeometrie(v.r, 0.13, -0.6, null, null, null, true, (x, z, p0, p1) => (
+          (verhardBoven(x, z) || verhardBoven(p0[0], p0[1]) || verhardBoven(p1[0], p1[1]))
+            ? null
+            : stuk(oevers, tegelVan(x, z), KM.oeverwand, 'oeverwand')));
+      }
     /*
      Opstaande rand voor élk vlak dat boven de rijbaan ligt. De grens stond op
      3 cm, en daar vielen de 157 fietspaden (y = 2 cm) en zes spoorbanen buiten:
@@ -462,7 +560,21 @@ export function* bouwKaartWereldStap(scene, W) {
      keek je door die spleet tot op het grondvlak. Het scheelt 4 % meer
      randpunten.
     */
-    } else if (!plat && v.y > 0.005 && v.k !== 'brug' && v.k !== 'steiger' && v.k !== 'bouwwerk') {
+    } else if (!plat && v.k === 'steiger') {
+      /*
+       Een steiger stond hier tot nu toe bij de uitzonderingen: geen opstaande
+       rand. Het gevolg was dat het dek (0,30 m) een vlak zonder dikte was, en
+       omdat het water op −0,35 ligt keek je er dwars overheen — de 207 steigers
+       in de kaart lazen als bruine stroken verf óp het water, met de glans van
+       de waterspiegel er dwars doorheen (foto 19 sep 2026).
+
+       Nu krijgt hij zijn eigen rand, van het dek tot net onder de waterlijn, in
+       hetzelfde hout als het dek. Geen stoepband: een steigerrand is een plank
+       en geen betonnen band, en hij moet tot ín het water doorlopen, anders
+       staat er een spleet onder waar je doorheen kijkt.
+      */
+      randGeometrie(v.r, v.y, -0.45, null, null, null, false, (x, z) => stuk(steigerRanden, tegelVan(x, z), KM.hout, 'steigerrand'));
+    } else if (!plat && v.y > 0.005 && v.k !== 'brug' && v.k !== 'bouwwerk') {
       randGeometrie(v.r, v.y, -0.02, null, null, null, false, (x, z) => stuk(randen, tegelVan(x, z), KM.curb, 'rand'));
     }
   }
@@ -492,6 +604,14 @@ export function* bouwKaartWereldStap(scene, W) {
       if (!m) continue; scene.add(m);
       const [i, j] = t.split(':').map(Number);
       if (Number.isFinite(i)) W.lodAan(m, (i + 0.5) * TEGEL, (j + 0.5) * TEGEL, { tot: 260, straal: TEGEL * 0.71 });
+    }
+    // de houten zijkant van de steigers; die mag verder mee dan een stoepband,
+    // want hij staat los boven het water en valt daardoor juist op
+    for (const [t, g] of steigerRanden) {
+      const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { klasse: 'steigerrand' });
+      if (!m) continue; scene.add(m);
+      const [i, j] = t.split(':').map(Number);
+      if (Number.isFinite(i)) W.lodAan(m, (i + 0.5) * TEGEL, (j + 0.5) * TEGEL, { tot: 300, straal: TEGEL * 0.71 });
     }
     /*
      Grondvlak onder alles, voor buiten het gebied en voor gaatjes. Dit was een
@@ -981,7 +1101,29 @@ function* bouwPandenStap(scene, W, plat) {
     // bedrijfsgebouw (RWZI): de bedrijfsgevel aan alle kanten, geen dakkapellen
     const ind = !!(st && st.industrieel);
     // (lage bedrijfsmuren onder 2,6 m, zoals de randen van de bakken, blijven kale steen)
-    const gevel = !pand.boven && st && pand.type !== 'schuur' && breed >= 2.4 && Math.abs(n[1]) < 0.3 && (ind ? top >= 2.6 : (kant > 0.6 || kant < -0.6));
+    /*
+     Hoe breed moet een muurvlak zijn voordat het een gevel met ramen krijgt?
+     Standaard 2,40 m: smaller is meestal een hoekje van het grondvlak en geen
+     woning, en daar hoort geen voordeur op.
+
+     De tiny houses aan de Molenkrite lieten zien dat die maat niet voor elk pand
+     klopt. Hun grondvlak heeft zestien punten waarvan er maar twéé een zijde van
+     meer dan 2,40 m opleveren: de twee lange zijden van 9,47 m. De voorkant —
+     drie en een halve meter breed — is opgedeeld in zeven facetjes van 0,07 tot
+     1,89 m, want daar zit de terugliggende entreenis die ook op de foto staat.
+     Gevolg: de lange zijden waren breed genoeg maar kijken niet naar de straat,
+     en de voorkant kijkt wel naar de straat maar was overal te smal. Het hele
+     huis werd blinde muur, zonder één deur of raam.
+
+     Een stijl mag die grens daarom zelf zetten met `gevelMin`. Voor de tiny
+     houses staat hij op 1,0 m. Op 1,5 m kregen er zeven van de twintig een
+     gevel en dertien niet, en dat komt doordat de muurvlakken hier niet uit het
+     grondvlak komen maar uit het 3D BAG-model: dat deelt dezelfde entreenis
+     nog eens verder op, en waar het grondvlak 1,89 m zegt staan in het model
+     smallere vlakken. Op 1,0 m hebben alle twintig een voordeur en een raam.
+    */
+    const gevelMin = (st && st.gevelMin) || 2.4;
+    const gevel = !pand.boven && st && pand.type !== 'schuur' && breed >= gevelMin && Math.abs(n[1]) < 0.3 && (ind ? top >= 2.6 : (kant > 0.6 || kant < -0.6));
     // Dakkapel: een muurvlak dat helemaal boven de goot begint. Witte wangen,
     // en aan de voorkant het kozijn van de dakkapel.
     let laagste = Infinity; for (const p of punten) laagste = Math.min(laagste, p[1]);
@@ -1007,10 +1149,24 @@ function* bouwPandenStap(scene, W, plat) {
       }
     }
     if (!gevel) {
-      const sleutel = `steen|${pand.type}|${seed % 3}`;
-      const g = groep(sleutel, () => std(T.brick(steen[0], steen[1], seed % 3 + 1)), 'muur', true);
-      // baksteen: 2,6 m per texture
-      return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 2.6, p[1] / 2.6] };
+      /*
+       Een blinde muur — een zijgevel, een achterkant zonder ramen — kreeg hier
+       altijd metselwerk, ook bij een pand dat helemaal geen metselwerk heeft.
+       Dat viel op bij de tiny houses aan de Molenkrite (19 sep 2026): hun voor-
+       en achtergevel kregen via T.facade netjes het staande profiel, en hun
+       kopgevels — precies wat je vanaf de straat ziet — bleven baksteen. Dezelfde
+       keuze als in T.facade dus: staand profiel, liggende delen, of steen.
+       Damwand is net als baksteen 2,6 m per doek, planken zijn 1,2 m.
+      */
+      const sleutel = st && st.damwand ? `damwand|${steen[0]}`
+        : st && st.hout ? `planken|${st.hout}`
+        : `steen|${pand.type}|${seed % 3}`;
+      const maak = st && st.damwand ? () => std(T.damwand(steen[0]))
+        : st && st.hout ? () => std(T.planks(st.hout))
+        : () => std(T.brick(steen[0], steen[1], seed % 3 + 1));
+      const g = groep(sleutel, maak, 'muur', true);
+      const perDoek = st && st.hout ? 1.2 : 2.6;
+      return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / perDoek, p[1] / perDoek] };
     }
     const achter = !ind && kant < 0;
     /*

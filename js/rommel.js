@@ -230,23 +230,39 @@ export function bouwRommel(scene, W, wegassen, maaiveld = () => 0, klasseOp = nu
         bak(x, z).vuil[Math.floor(d * 8) % 4].push({ x, z, s: 0.34 + d * 0.30, yaw: d * 12.566 });
       }
 
-      // ---- rolcontainers op de stoep, alleen langs straten waar je rijdt
+      /*
+       ---- rolcontainers op de stoep, alleen langs straten waar je rijdt
+
+       Twee dingen kwamen hier uit de test van 19 september 2026: er stonden er
+       te veel, en een deel stond op de rijbaan.
+
+       Op de rijbaan kwamen ze doordat de afstand tot de as uit de breedte van
+       het wegvák komt (`rand`), en die klopt niet overal: bij een parkeerhaven,
+       een verbreding voor een bushalte of een bocht is het asfalt breder dan de
+       as zegt, en dan valt rand + 0,75 nog midden op de weg. Meten is beter dan
+       rekenen — `opDeWeg` kijkt in welke kaartvlak het punt écht ligt. Datzelfde
+       deed onkruid al; een container hoorde er net zo goed onder te vallen.
+
+       Het aantal ging van 28% van de plekken naar 15%, en de kans op een tweede
+       ernaast van 45% naar 22%. Een Nederlandse straat heeft niet bij elk huis
+       een kliko buiten staan; het is woensdag, niet dinsdagavond.
+      */
       if (w.drive && !snelweg) for (let t = 0; t < L; t += KLIKO_OM) {
         const d = dobbel(a[0] + t, a[1], 11);
-        if (d > 0.28) continue;
-        const kant = d < 0.14 ? -1 : 1;
+        if (d > 0.15) continue;
+        const kant = d < 0.075 ? -1 : 1;
         const f = (t + d * KLIKO_OM) / L;
         if (f >= 1) continue;
         const px = a[0] + dx * f, pz = a[1] + dz * f;
         const uit = rand + 0.75 + dobbel(px, pz, 12) * 0.5;
         const x = px + nx * kant * uit, z = pz + nz * kant * uit;
         const hoek = Math.atan2(-nx * kant, -nz * kant) + (dobbel(px, pz, 13) - 0.5) * 0.7;
-        if (inHetWater(x, z)) { geweerd++; continue; }
+        if (inHetWater(x, z) || opDeWeg(x, z)) { geweerd++; continue; }
         bak(x, z).kliko.push({ x, z, yaw: hoek, kleur: KLIKO_KLEUR[Math.floor(dobbel(px, pz, 14) * KLIKO_KLEUR.length)] });
         // de tweede naast de eerste, want die staan zelden alleen
-        if (dobbel(px, pz, 15) < 0.45) {
+        if (dobbel(px, pz, 15) < 0.22) {
           const x2 = x + ux * 0.72, z2 = z + uz * 0.72;
-          if (inHetWater(x2, z2)) { geweerd++; continue; }
+          if (inHetWater(x2, z2) || opDeWeg(x2, z2)) { geweerd++; continue; }
           bak(x2, z2).kliko.push({ x: x2, z: z2, yaw: hoek + 0.12, kleur: KLIKO_KLEUR[Math.floor(dobbel(x2, z2, 16) * KLIKO_KLEUR.length)] });
         }
       }

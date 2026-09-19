@@ -363,7 +363,8 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
     if (boot.hp <= 0) {
       fase = 'wrak';
       geluid.klap();
-      if (hud) hud.show('De politieboot ligt stil', 2.4);
+      // Geen tekst in beeld (verzoek 19 sep 2026, net als bij de helikopter):
+      // de klap en een boot die stil komt te liggen vertellen het al.
     }
     return true;
   }

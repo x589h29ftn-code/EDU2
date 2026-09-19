@@ -1247,7 +1247,13 @@ function loop() {
      bijgewerkt — die bleef binnen op zijn laatste stand doorloeien (melding
      beta-test 12 sep 2026). Binnen zetten we hem daarom zelf uit.
     */
-    if (ergensBinnen(player.pos.x, player.pos.z)) {
+    /*
+     Binnen gaat ook het wapen uit beeld (verzoek 19 sep 2026). Dat staat hier
+     en niet in js/player.js omdat alleen main.js alle binnenruimtes kent; de
+     speler zelf hoeft er niets van te weten behalve de vlag.
+    */
+    player.binnen = ergensBinnen(player.pos.x, player.pos.z);
+    if (player.binnen) {
       geluid.sirene(null);
       geluid.gier(0);
       geluid.heli(null);      // en de heli hoor je binnen ook niet doorklapperen
@@ -1278,7 +1284,13 @@ function loop() {
           player.health -= Math.round(55 * (1 - d / 14));
           hud.zetLeven(player.health); hud.flits();
         }
-        hud.show('Helikopter neergehaald', 4);
+        /*
+         Hier stond 'Helikopter neergehaald'. Weg (verzoek 19 sep 2026): er valt
+         een brandende helikopter uit de lucht, de grond schudt en je hoort de
+         klap — een regel tekst die dat nog eens navertelt voegt niets toe en
+         leest als een scorebericht. Net als bij het neerschieten en aanrijden
+         van mensen laat het spel het beeld het werk doen.
+        */
       }
     }
     hud.zetSterren(politie.ster, politie.gezocht);

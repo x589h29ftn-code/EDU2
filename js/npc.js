@@ -477,7 +477,23 @@ export class NPCs {
           p.alive = true; p.fall = 0; p.smak = null;
           p.paniek = 0; p.bron = null; p.vNu = 0;
           if (p.hond) p.hond.geplaatst = false;      // het hondje verhuist mee
-          this.pickSegment(p, true);
+          /*
+           Waar komt hij terug? Dit was `pickSegment(p, true)`: een willekeurig
+           wegvak in de hele wereld. Over 10,95 km² betekende dat: schiet je er
+           twintig neer, dan komen die twintig een halve minuut later ergens in
+           Sneek of IJlst weer tevoorschijn en blijft het in de straat waar jij
+           staat leeg (vraag 19 sep 2026). `vulBuurtAan` kon dat niet opvangen,
+           want dat verhuist alleen wie léért — wie dood op straat ligt telt
+           nergens mee.
+
+           Nu komt hij terug in de band om je heen, net als een verhuizing, en
+           met dezelfde eis: nooit binnen je blikveld. Lukt dat niet — je staat
+           midden op een lange rechte straat waar alles zichtbaar is — dan valt
+           hij terug op het oude gedrag en komt hij ergens anders in de wereld
+           terug. Dan hoor je liever iemand te ver weg dan iemand die uit het
+           niets voor je neus verschijnt.
+          */
+          if (camX === null || !this.verhuisNaarBuurt(p, camX, camZ)) this.pickSegment(p, true);
         }
       } else if (p.steek > 0) {
         // midden in het oversteken: van de ene stoep naar de andere; wie schrikt

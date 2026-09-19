@@ -857,6 +857,33 @@ export const HOUSE_STYLES = {
   // steen, witte kozijnen met donkere accenten, donkergroene of donkerblauwe
   // voordeur, witte boeiboord boven de pui, roodbruine plint.
   molenkrite_kap: { brick: ['#a9906c', '#cfc6b4'], frame: '#ffffff', frame2: '#1f2f4f', door: ['#1f3a2a', '#1f2f5f', '#2a2a2a'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.4, dormer: true, dormerGroot: true, chimney: false, band: '#f2f2f2', plint: '#6a3a2e' },
+  /*
+   De tiny houses aan de Molenkrite, tegenover Jeugdhulp Friesland (foto van de
+   gebruiker, 19 sep 2026, met de Street View ernaast). Twintig losse woningen
+   van eenendertig vierkante meter, goot op 4,2 en nok op 6,3 — dat staat zo in
+   de BAG, en dat is precies waarom ze opvielen: ze stonden als `molenkrite` in
+   beeld, en dat is een rijtje van twee lagen in gele baksteen. Op de foto is het
+   een hof met smalle losse puntgevels.
+
+   Wat je ziet: een voorgevel van staande houten delen, licht en warm van kleur,
+   met een smal hoog raam boven de voordeur; daartussen tussenstukken in
+   donkerantraciet damwandprofiel, ook staand; een lichtgrijze betonnen lijst als
+   omlijsting van de puntgevel; en een dak van staande-naadplaat in dezelfde
+   grijstint als die lijst.
+
+   `damwand` tekent staande ribben om de twintig centimeter. Dat is hier met opzet
+   gekozen en niet `hout`: `hout` legt liggende delen van vijftien centimeter, en
+   liggend beschot is precies wat deze huizen níét hebben. Met een houtkleur
+   erin leest hetzelfde profiel als verticale houten delen.
+
+   Eén laag van 4,2 m, want de goothoogte is de hele gevelhoogte: boven de goot
+   begint de kap meteen. Breedte 4,2 m: eenendertig vierkante meter bij een
+   diepte van ruim zeven meter.
+  */
+  tinyhouse: { brick: ['#93764c', '#a68a5e'], damwand: true, frame: '#f2f1ec', frame2: '#333940',
+    door: ['#2b3139', '#33383f'], roof: '#8d949a', roofType: 'gable', metaaldak: true,
+    storeys: 1, storeyH: 4.2, w: 1.9, gevelMin: 1.0,
+    dormer: false, chimney: false, band: '#c4c1ba', plint: '#a6a39d' },
   // Molenkrite 70 (foto): lage bungalow (nok 6,7 m) met een vol zonnedak, witte
   // kozijnen, rode deur en rode accenten, schoorstenen, dakramen.
   molenkrite_bung:{ brick: ['#b09772', '#d0c7b5'], frame: '#ffffff', frame2: '#c8322b', door: ['#c8322b', '#b52a24'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, solar: true, solarFull: true, chimney: true, band: '#f4f4f4' },
@@ -2052,12 +2079,31 @@ export function sign30() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; cache.set('s30', t); return t;
 }
 
+/*
+ De blokmarkering op een verkeersdrempel: witte blokken met niets ertussen.
+
+ Dat "niets" was het probleem (melding 19 sep 2026: "op sommige overgangen op de
+ weg zit een soort zwarte shader"). Een leeggemaakt stuk canvas is rgba(0,0,0,0),
+ en het materiaal eronder stond niet op `transparent`. Dan negeert three de
+ alpha en houd je zwart over — en niet in strepen maar over de hele drempel,
+ want een textuur staat standaard op ClampToEdge: de laatste kolom van dit doek
+ is leeg, dus zodra een drempel breder was dan één herhaling werd die lege kolom
+ over de rest uitgerekt. Vandaar een egale zwarte band dwars over de rijbaan.
+
+ Twee dingen dus: hier de herhaling aanzetten, en in js/kaartwereld.js het
+ materiaal `transparent` maken (met een alphaTest, zodat het niets aan sorteren
+ kost). De blokken staan nu ook netjes tot de rand: de laatste begint op 224 en
+ is zestien breed, dus tussen 240 en 256 ligt de tussenruimte — precies de helft
+ van een periode, zodat een herhaling naadloos aansluit.
+*/
 export function zebra() {
   if (cache.has('zebra')) return cache.get('zebra');
   const c = canvas(256, 64); const g = c.getContext('2d');
   g.clearRect(0, 0, 256, 64);
   for (let x = 0; x < 256; x += 32) { g.fillStyle = 'rgba(240,240,240,0.9)'; g.fillRect(x, 0, 16, 64); }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; cache.set('zebra', t); return t;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  cache.set('zebra', t); return t;
 }
 
 export function solarPanel() {

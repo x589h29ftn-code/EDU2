@@ -106,6 +106,9 @@
     "vaarttest": "node tools/vaarttest.mjs",
     "vaartshots": "node tools/vaartshots.mjs",
     "bootshots": "node tools/bootshots.mjs",
-    "vuilshots": "node tools/vuilshots.mjs"
+    "vuilshots": "node tools/vuilshots.mjs",
+    "tinytest": "node tools/tinytest.mjs",
+    "tinyshots": "node tools/tinyshots.mjs",
+    "gedragtest": "node tools/gedragtest.mjs"
   }
 }

@@ -51,6 +51,29 @@ const WAGENS = [0, 1, 2, 3, 4, 5];         // surveillanceauto's per ster
 // het net groter: ze kammen dan ook de straten eromheen uit.
 const ZOEKSTRAAL = [0, 55, 85, 120, 155, 195];
 /*
+ Hoe ver mogen ze achterblijven?
+
+ Het anker van de zoekactie is `laatstBekend`: de plek waar ze je voor het laatst
+ zagen. Nieuwe eenheden komen op 55 tot 150 meter dáárvandaan de straat in. Dat
+ werkt zolang je in de buurt blijft, maar rijd je met vijf sterren in één ruk van
+ Tinga naar IJlst, dan blijft het anker in Tinga liggen en staat de hele macht
+ daar te zoeken terwijl jij twee kilometer verderop rustig doorrijdt — gemeld op
+ 19 september 2026: "ik zie eigenlijk geen politie meer".
+
+ Daarom schuift het anker met je mee zodra het te ver achterblijft, en hoe verder
+ de zaak geëscaleerd is hoe korter die lijn wordt. Dit is met opzet geen
+ alwetendheid: bij één ster mag je er achthonderd meter tussen leggen en ben je
+ ze kwijt, en dát is nog steeds de manier om ze af te schudden. Bij vijf sterren
+ hangt er een helikopter boven je en staat het hele korps op straat; dan is het
+ niet geloofwaardig dat ze een kwartier lang de verkeerde wijk uitkammen.
+
+ Meeschuiven gaat niet in één sprong maar met MEE_SNELHEID, zodat de melding
+ achter je aan kruipt in plaats van voor je neus te verschijnen — de harde eis
+ van SPAWN_VRIJ meter geldt daarbovenop nog steeds.
+*/
+const ANKER_ACHTERSTAND = [Infinity, 800, 620, 460, 320, 210];   // (m) per ster
+const MEE_SNELHEID = 45;                   // (m/s) waarmee het anker bijtrekt
+/*
  Zolang een eenheid nog uitrukt gaat hij niet zoeken maar recht op de melding af,
  tot op deze afstand. Dat was een vijfde van de zoekstraal, en bij vijf sterren is
  dat 39 m — net buiten de veertig meter waarop de agenten uitstappen. In de kleine
@@ -1104,6 +1127,23 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       }
     }
     spVorig = { x: sp.x, z: sp.z };
+    /*
+     Het anker laten bijtrekken als het te ver achterblijft (zie
+     ANKER_ACHTERSTAND). Alleen zolang je gezocht wordt: zonder sterren is er
+     geen zoekactie en hoort `laatstBekend` gewoon te blijven liggen waar hij
+     ligt. Het schuift recht op je af en stopt op de toegestane achterstand, dus
+     het anker komt nooit bij je uit — de eenheden blijven op afstand zoeken en
+     het is nog steeds aan hen om je te vinden.
+    */
+    if (s > 0 && laatstBekend) {
+      const max = ANKER_ACHTERSTAND[s];
+      const dx = sp.x - laatstBekend.x, dz = sp.z - laatstBekend.z;
+      const d = Math.hypot(dx, dz);
+      if (d > max) {
+        const stap = Math.min(d - max, MEE_SNELHEID * dt);
+        laatstBekend = { x: laatstBekend.x + dx / d * stap, z: laatstBekend.z + dz / d * stap };
+      }
+    }
     if (stille > 0) stille = Math.max(0, stille - dt / 90);   // na anderhalve minuut vergeten
 
     /*

@@ -171,6 +171,16 @@ export class Player {
     this.gun = this.wapen.groep;
     this.gun.visible = true;
     this.wapenUit = false;      // wapen weggestopt (toets H)
+    /*
+     Sta je binnen — bij de Poiesz, bij Tinga State of in een woning — dan gaat
+     het wapen vanzelf uit beeld (verzoek 19 sep 2026). Binnen valt er niets mee
+     te doen: er lopen geen doelen rond, er is geen politie, en een pistool dat
+     onder in beeld hangt terwijl je een flesje bier afrekent leest als een fout.
+     Dit is dus iets anders dan `wapenUit`: dat is jóuw keuze en die blijft
+     bewaard, zodat je buiten weer hebt wat je had. js/main.js zet dit elke
+     beeld op basis van `ergensBinnen`.
+    */
+    this.binnen = false;
   }
 
   // Wat het wapen in je hand kan: magazijngrootte, vuursnelheid en terugslag.
@@ -285,7 +295,7 @@ export class Player {
    het herladen of midden in een wissel valt er niets te richten.
   */
   richten(aan = !this.richtAan) {
-    const kan = aan && !this.inCar && !this.wapenUit && this.reloading <= 0 && this.wisselT <= 0;
+    const kan = aan && !this.inCar && !this.wapenUit && !this.binnen && this.reloading <= 0 && this.wisselT <= 0;
     this.richtAan = !!kan;
     return this.richtAan;
   }
@@ -426,7 +436,7 @@ export class Player {
    js/main.js), dus dat verschil is precies je kijkrichting in de auto.
   */
   magSchieten() {
-    if (this.reloading > 0 || this.wapenUit || this.wisselT > 0) return false;
+    if (this.reloading > 0 || this.wapenUit || this.binnen || this.wisselT > 0) return false;
     if (!this.inCar) return true;
     let d = this.yaw - this.inCar.yaw;
     while (d > Math.PI) d -= Math.PI * 2;
@@ -499,7 +509,8 @@ export class Player {
     }
     // het kruisje één keer opzoeken: dit loopt elk beeld
     if (this.kruisEl === undefined) this.kruisEl = document.getElementById('crosshair');
-    if (this.kruisEl && !this.wapenUit) this.kruisEl.style.display = this.mik > 0.5 ? 'none' : '';
+    // Binnen gaat het kruisje mee weg met het wapen: er valt niets te richten.
+    if (this.kruisEl && !this.wapenUit) this.kruisEl.style.display = (this.binnen || this.mik > 0.5) ? 'none' : '';
   }
 
   // De terugslag zakt terug naar nul; hoe verder hij nog uitstaat, hoe sneller.
@@ -645,6 +656,6 @@ export class Player {
     this.recoil = Math.max(0, this.recoil - dt * 6);
     this.flashT -= dt;
     this.wapen.update(dt, { herlaad: this.reloading, bob: this.bob, mik: this.mik, holster: this.holster });
-    this.gun.visible = !this.wapenUit;
+    this.gun.visible = !this.wapenUit && !this.binnen;
   }
 }

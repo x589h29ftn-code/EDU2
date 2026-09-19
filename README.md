@@ -2253,6 +2253,108 @@ vierendertig controles, van de stellinghoogte tot het aantal toeren van het gevl
 `node tools/plek.mjs <x> <z> <kijkNaarX> <kijkNaarZ> [naam]` maakt een foto van een willekeurige plek
 in de wijk, handig als er ergens iets niet klopt.
 
+## Acht punten van 19 september
+
+Een ronde die uit één lijstje kwam: twee dingen die er niet goed uitzagen, twee die er niet hoorden te
+staan, en vier die met het gedrag te maken hadden.
+
+### De twintig tiny houses aan de Molenkrite
+
+Tegenover Jeugdhulp Friesland staat een hof met twintig tiny houses. Het spel tekende ze als een
+rijtje van twee lagen in gele baksteen — het standaardtype voor deze straat — terwijl de data het al
+verklapte: **eenendertig vierkante meter** grondvlak, goot op **4,2 m**, nok op **6,3 m**. Een
+rijtjeswoning van twee lagen is dat niet.
+
+Ze staan nu als losse smalle puntgevels met staande houten delen, een grijs plaatdak en één woonlaag.
+De maat verandert niet: het grondvlak komt uit de BGT en de hoogte uit het 3D BAG-model, alleen de
+huid is anders. Daarbij bleek nog iets: een **blinde muur** — een kopgevel zonder ramen, precies wat je
+vanaf de straat ziet — kreeg altijd metselwerk, ook bij een pand dat helemaal geen metselwerk heeft.
+De voor- en achtergevel kregen het beschot wél. Dat is nu gelijkgetrokken.
+
+En ze hadden geen voordeur. Een muurvlak krijgt pas een gevel met ramen als het minstens 2,40 m breed
+is — smaller is meestal een hoekje van het grondvlak. Het grondvlak van een tiny house heeft zestien
+punten waarvan er maar **twee** een zijde van meer dan 2,40 m opleveren: de twee lange zijden van
+9,47 m. De voorkant is opgedeeld in zeven facetjes van 0,07 tot 1,89 m, want daar zit de
+terugliggende entreenis die ook op de foto staat. De lange zijden waren dus breed genoeg maar kijken
+niet naar de straat, en de voorkant kijkt wel naar de straat maar was overal te smal — het hele huis
+werd blinde muur. Een stijl mag die grens nu zelf zetten; voor deze staat hij op 1,0 m.
+
+![Een tiny house van dichtbij](docs/screenshots/tinyhouses_hof.png)
+
+![De tiny houses aan de Molenkrite](docs/screenshots/tinyhouses_straat.png)
+
+### Minder rolcontainers, en niet meer op de rijbaan
+
+Er stonden er te veel, en een deel stond op het asfalt. Dat laatste kwam doordat de afstand tot de as
+uit de bréédte van het wegvak werd gerekend, en die klopt niet overal: bij een parkeerhaven of een
+verbreding is het asfalt breder dan de as zegt. Meten is beter dan rekenen — er wordt nu gekeken in
+welk kaartvlak de container écht staat, net zoals het onkruid dat al deed. En de dichtheid ging van
+28 % van de plekken naar 15 %, met de kans op een tweede ernaast van 45 % naar 22 %: het is woensdag,
+niet dinsdagavond. Er staan er nu **443** in de hele wereld, geen enkele op een rijbaan of fietspad.
+
+### De zwarte band op de verkeersdrempels
+
+Op sommige drempels lag een egale zwarte band dwars over de weg. De blokmarkering wordt op een leeg
+stuk canvas getekend, en leeg is `rgba(0,0,0,0)` — maar het materiaal eronder stond niet op
+`transparent`, dus negeerde three de doorzichtigheid en hield zwart over. Niet in strepen maar over de
+hele drempel, want een textuur staat standaard op ClampToEdge: de laatste kolom van het doek is leeg,
+en die werd over de rest uitgerekt. Nu is het materiaal doorzichtig (met een `alphaTest`, dus zonder
+sorteerkosten) en herhaalt de textuur.
+
+![Een verkeersdrempel met zijn blokmarkering](docs/screenshots/drempel.png)
+
+### De oeverwand liep over de kades heen
+
+Rond elk waterdeel staat een oeverwand van 0,13 tot −0,60 m. De BGT kent waterdelen die een stukje
+ónder een kade, een steiger of een asfaltvlak door lopen: van de **33.478 hoekpunten** van alle
+waterdelen liggen er **498 (1,5 %)** binnen een verhard vlak — 239 onder een steiger van 0,30 m, 138
+onder een voetpad van 0,12 m, 98 onder een asfaltvlak. Het waterdek zelf ligt op −0,35 en verdwijnt
+daar netjes onder; de oeverwand komt tot 0,13 en stak er dus één centimeter bovenuit. Eén centimeter
+is genoeg: vanaf ooghoogte kijk je er zo schuin op dat het als een bruine strook van een meter breed
+leest. Die stukjes wand blijven nu weg, en de kade loopt gewoon door — wat een kade in het echt ook
+doet.
+
+En de steigers: die waren een vlak zonder dikte op 0,30 m, met het water op −0,35 eronder, dus je keek
+er dwars overheen. Ze lezen daardoor als bruine stroken verf óp het water. Ze hebben nu een houten
+zijkant die tot in het water doorloopt.
+
+![Een steiger boven het water](docs/screenshots/steiger.png)
+
+### Mensen komen terug in de buurt waar jij bent
+
+Schiet je er twintig neer, dan kwamen die een halve minuut later op een willekeurig wegvak in de héle
+wereld terug. Over 10,95 km² betekent dat: de straat waar jíj staat blijft leeg. Het spel verhuist
+levende voetgangers al naar een band om je heen, maar wie dood op straat ligt telde daar nergens in
+mee. Nu komt zo iemand terug in diezelfde band, met dezelfde eis: nooit in je blikveld. Gemeten over
+twintig doden: negentien van de twintig binnen 230 m, en niemand dichterbij dan 71 m.
+
+### De politie volgt je tot in IJlst
+
+Het anker van de zoekactie is de plek waar ze je voor het laatst zagen; nieuwe eenheden komen 55 tot
+150 meter dáárvandaan de straat in. Rijd je met vijf sterren in één ruk van Tinga naar IJlst, dan bleef
+dat anker in Tinga liggen en stond de hele macht daar te zoeken terwijl jij twee kilometer verderop
+doorreed. Het anker schuift nu met je mee zodra het te ver achterblijft, met 45 m/s, en hoe verder de
+zaak geëscaleerd is hoe korter die lijn: 800 m bij één ster, 210 m bij vijf. Dat is met opzet geen
+alwetendheid — bij één ster leg je er achthonderd meter tussen en ben je ze kwijt, en dat blijft de
+manier om ze af te schudden. Bij vijf hangt er een helikopter boven je en is het niet geloofwaardig
+dat ze een kwartier de verkeerde wijk uitkammen.
+
+### Geen tekst meer bij een neergehaalde helikopter
+
+Er viel een brandende helikopter uit de lucht, de grond schudde, je hoorde de klap — en dan kwam er
+`Helikopter neergehaald` in beeld. Weg, net als eerder bij het neerschieten en aanrijden van mensen.
+Hetzelfde geldt voor de politieboot die je stillegt.
+
+### Het wapen gaat uit beeld in de winkel
+
+Binnen bij de Poiesz, bij Tinga State en in de woningen hing het pistool onder in beeld terwijl je er
+niets mee kunt: er loopt niemand rond om op te schieten en de politie komt binnen niet. Nu gaat het
+weg zodra je binnen bent, samen met het kruisje, en kun je binnen niet schieten of richten. Het is
+iets anders dan zelf wegstoppen met **H**: dat is jouw keuze en die blijft bewaard, dus buiten heb je
+meteen weer wat je had.
+
+`npm run tinytest` (veertien controles) en `npm run gedragtest` (zestien controles) houden het vast.
+
 ## Dag, nacht en weer
 
 De zon draait van oost naar west, met bijpassende kleuren voor licht, lucht en mist. Wordt het donker,
@@ -2365,6 +2467,13 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
 - `tools/vaarttest.mjs` – toetst de lading over het water: de vaarweg tussen de twee ligplaatsen, de
   lading aan boord, de oplopende verdenking, het afleveren en F5/F9 onderweg
 - `tools/vaartshots.mjs` – maakt de foto's van de lading over het water
+- `tools/tinytest.mjs` – toetst de wereldwijzigingen van 19 september: de twintig tiny houses aan de
+  Molenkrite, geen rolcontainers meer op de rijbaan, de doorzichtige blokmarkering op de drempels, en
+  geen oeverwand meer onder een kade of steiger door
+- `tools/tinyshots.mjs` – maakt de foto's van de tiny houses, een verkeersdrempel en een steiger
+- `tools/gedragtest.mjs` – toetst het gedrag van 19 september: het wapen dat binnen uit beeld gaat, de
+  voetgangers die in jouw buurt terugkomen, de politie die je tot in IJlst volgt, en de meldingen die
+  weg zijn bij een neergehaalde helikopter
 - `tools/geo/steekproefjpg.mjs` – zet een map steekproeffoto's van PNG naar JPEG om (62 → 11 MB)
 - `tools/rijtest.mjs` – toetst het automodel, de besturing, de camera achter de auto en het aanrijden
 - `tools/rijshots.mjs` – maakt de foto's van het rijden en de derdepersoonscamera

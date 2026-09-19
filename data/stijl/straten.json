@@ -606,13 +606,93 @@
         "top": 8.2,
         "romp": 1.24,
         "rompTop": 1.24,
-        "kap": 3.0,
-        "vlucht": 12.0,
+        "kap": 3,
+        "vlucht": 12,
         "kruihoek": 195,
         "toeren": 6.5,
         "terp": 4.6
       },
       "bron": "Foto langs het Sneekerpad (J Kleen, juli 2021, in de chat 16 sep 2026) plus het BAG-pand zelf. Een spinnenkopmolen in de polder tussen Sneek en IJlst, aan het fietspad dat daar elf meter verderop loopt. Het spel tekende hem tot nu toe als `schuur` van zestien vierkante meter en tien meter hoog, en dat is precies wat je erover moet weten: het grondvlak is 4,98 x 5,00 m (de omhullende rechthoek 3,96 x 3,94 m onder -71,6 graden) en de 3D BAG-punten lopen tot 10,43 m. Die hoogte is NIET de kap. De punten boven de acht meter zitten allebei op een hoek van het grondvlak en niet in het midden - dat is een roede, niet het bovenhuis. De kap komt uit de dichte wolk punten tussen 7,0 en 8,1 m, vandaar `top` 8,2. `vlucht` staat er als opgemeten waarde bij en komt van de foto: op een spinnenkop van deze maat is twaalf meter gebruikelijk, en de onderste roedepunt komt daarmee op negentig centimeter boven de terp, zoals op de foto. `kruihoek` 195 graden zet het gevlucht naar het fietspad toe. `terp` is de halve maat van het beschoeide terpje waar hij op staat."
+    },
+    "1900100010085147": {
+      "type": "tinyhouse",
+      "bron": "Tiny houses aan de Molenkrite, tegenover Jeugdhulp Friesland (foto van de gebruiker, 19 sep 2026: \"Dit zijn tiny houses\", met de Street View ernaast). Twintig losse woningen van 31 m2 met de goot op 4,2 m en de nok op 6,3 m; ze stonden als molenkrite/eekmolen in beeld en dat is een rijtje van twee lagen in gele baksteen. Op de foto: smalle losse puntgevels van staande houten delen met een smal hoog raam boven de voordeur, ertussen tussenstukken in donkerantraciet damwandprofiel, een lichtgrijze betonnen lijst om de puntgevel en een dak van staande-naadplaat. Het grondvlak en de hoogte komen onveranderd uit de BGT en het 3D BAG-model; alleen de huid verandert."
+    },
+    "1900100010085150": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085153": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085156": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085159": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085162": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085165": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085168": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085171": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085174": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085177": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085180": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085183": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085186": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085189": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085192": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085195": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085198": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085201": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010085204": {
+      "type": "tinyhouse",
+      "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
     }
   },
   "standaard": {

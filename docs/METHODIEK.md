@@ -4126,6 +4126,85 @@ ruim tachtig procent af en zie je aan een gevel niets terug.
 `npm run geo:steekproefjpg` zet een bestaande map om (op een canvas in de
 browser — er zitten geen beeldpakketten in dit project).
 
+*Een pand dat te groot in beeld stond.* De twintig tiny houses aan de Molenkrite
+kwamen niet uit een foto maar uit de data, en dat is het patroon dat hier steeds
+terugkomt: zoek het pand dat niet kán kloppen. Eenendertig vierkante meter
+grondvlak, goot op 4,2 m, nok op 6,3 m — en het stond in beeld als een rijtje
+van twee lagen in gele baksteen, want dat is het standaardtype van die straat.
+Hetzelfde argument als bij De Terpensmole: een schuur van vijf bij vijf met een
+nok op tien meter bestaat niet, en een rijtjeswoning van eenendertig vierkante
+meter ook niet. De foto van de gebruiker bevestigde het en leverde de kleuren; de
+maat is niet aangeraakt.
+
+Eraan vast zaten twee fouten die er al langer zaten. De eerste: een **blinde
+muur** kreeg altijd metselwerk. De voor- en achtergevel gaan door `T.facade`, en
+die kijkt naar `damwand` en `hout` in de stijl; de kop- en zijgevels gingen
+rechtstreeks naar `T.brick`. Bij elk pand met baksteen viel dat niet op. Bij het
+eerste pand zonder baksteen wel, en precies op de gevel die je vanaf de straat
+ziet.
+
+De tweede: **geen voordeur**. Een muurvlak krijgt pas een gevel met ramen als het
+minstens 2,40 m breed is, want smaller is meestal een hoekje van het grondvlak.
+Het grondvlak van een tiny house heeft zestien punten waarvan er twee een zijde
+van meer dan 2,40 m opleveren — de twee lange zijden van 9,47 m. De voorkant is
+opgedeeld in zeven facetjes van 0,07 tot 1,89 m, want daar zit de terugliggende
+entreenis. De brede zijden kijken niet naar de straat en de straatkant was overal
+te smal: het hele huis werd blinde muur. Die grens is nu per stijl instelbaar. Op
+1,5 m kregen zeven van de twintig een gevel en dertien niet — de muurvlakken komen
+namelijk niet uit het grondvlak maar uit het 3D BAG-model, en dat deelt dezelfde
+nis nog eens verder op. Op 1,0 m hebben alle twintig een deur.
+
+Dat is ook de reden om zo'n drempelwaarde per stijl te zetten en niet in het
+algemeen te verlagen: 2,40 m is voor de 7885 andere panden precies goed, en één
+wijk met een bijzondere plattegrond hoort daar geen uitzondering voor af te
+dwingen.
+
+*Een doorzichtige textuur op een dicht materiaal.* Op sommige verkeersdrempels lag
+een egale zwarte band. De oorzaak is er een om te onthouden, want hij kan overal
+terugkomen: een canvas dat met `clearRect` leeg wordt gemaakt is
+`rgba(0,0,0,0)`, en een `MeshStandardMaterial` zonder `transparent: true`
+negeert die alpha en tekent dus zwart. Dat het een egale band was en niet een
+strepenpatroon komt erbovenop: een `CanvasTexture` staat standaard op
+ClampToEdge, en de laatste kolom van dat doek is leeg, dus zodra een drempel
+breder was dan één herhaling werd die lege kolom over de rest uitgerekt.
+
+Dit was niet te vinden met zoeken naar zwarte materialen — die zijn er niet. Het
+werd gevonden door in de draaiende wereld alle materialen langs te lopen op
+lichtheid en oppervlak, wat drie kandidaten opleverde die het geen van drieën
+waren, en daarna te redeneren vanuit wat de gebruiker schreef: "overgangen op de
+weg". Een verkeersdrempel is precies dat.
+
+*Meten waar het muntje op zijn kant valt.* De oeverwand rond elk waterdeel loopt
+van 0,13 tot −0,60 m, en de BGT kent waterdelen die onder een kade of een steiger
+door lopen: 498 van de 33.478 hoekpunten, 1,5 %. Die stukjes wand steken één
+centimeter boven de tegels uit, en dat leest vanaf ooghoogte als een bruine strook
+van een meter breed. Ze worden nu weggelaten.
+
+De les zit in de toets erop. Een eerste versie toetste één hoekpunt per stukje
+wand en meldde 228 fouten; met de uiteinden erbij 140; met het midden 128 — en de
+overgebleven punten bleken bij navraag gewoon goed te staan. Waar een steiger aan
+het water grenst is de rand van het waterdeel *dezelfde lijn* als de rand van de
+steiger. Het stukje wand ligt daar precies óp de grens, en "ligt dit punt in dat
+vlak?" is dan een muntje opgooien. De toets kijkt nu naar een schijfje van dertig
+centimeter: alleen als dat helemaal bedekt is loopt de wand er écht onderdoor.
+Dat is geen test die naar de code toe geschreven is maar een test die de goede
+vraag stelt — het verschil is dat de nieuwe vraag ook zonder de code te kennen de
+juiste is.
+
+*Waar iemand terugkomt die je hebt neergeschoten.* De vraag van de gebruiker was
+of het spel elders wel mensen bijzet. Het antwoord was: ja, maar op de verkeerde
+plek. Levende voetgangers werden al naar een band om de speler verhuisd, maar wie
+dood op straat lag telde nergens in mee en kwam na zijn respawn op een willekeurig
+wegvak in de hele wereld terug. Over 10,95 km² is dat hetzelfde als niet
+terugkomen. Dezelfde verhuizing gebruiken voor de respawn was één regel.
+
+*Een zoekactie die blijft staan waar hij begon.* Het anker van de politie is de
+plek waar ze je het laatst zagen. Dat is precies goed zolang je in de buurt
+blijft, en precies fout als je er met vijf sterren twee kilometer vandaan rijdt.
+Het anker schuift nu met 45 m/s bij tot een afstand die met de sterren meeloopt:
+800 m bij één ster, 210 m bij vijf. Dat bewaart allebei de dingen die je wilt —
+bij één ster schud je ze af door weg te rijden, bij vijf niet.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
