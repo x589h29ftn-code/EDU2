@@ -443,7 +443,23 @@ export function wapenIcoon(soort = 'pistool') {
   g.clearRect(0, 0, W, H);
   g.fillStyle = '#e8ecf2';
   const mp = soort === 'mitrailleur';
-  if (mp) {
+  const sn = soort === 'sniper';
+  if (sn) {
+    // lange loop, grendelkast, kolf naar achteren en de kijker erboven
+    g.fillRect(70, 40, 175, 18);            // grendelkast
+    g.fillRect(236, 44, 74, 10);            // loop
+    g.fillRect(300, 40, 20, 18);            // mondingsrem
+    g.fillRect(30, 40, 44, 26);             // kolfplaat
+    g.fillRect(64, 44, 30, 20);             // kolfhals
+    g.fillRect(104, 58, 24, 40);            // greep
+    g.fillRect(130, 58, 8, 12);             // trekkerbeugel
+    g.fillRect(130, 66, 34, 6);
+    g.fillRect(142, 58, 30, 22);            // magazijn
+    g.fillRect(120, 22, 96, 14);            // kijkerkoker
+    g.fillRect(206, 18, 26, 22);            // objectief
+    g.fillRect(112, 26, 10, 16);            // oculair
+    for (const x of [136, 196]) g.fillRect(x, 36, 8, 6);   // montagebeugels
+  } else if (mp) {
     g.fillRect(56, 34, 190, 22);            // grendelkast
     g.fillRect(44, 38, 20, 14);             // schouderplaat achter
     g.fillRect(228, 38, 62, 13);            // loopmantel
@@ -464,7 +480,7 @@ export function wapenIcoon(soort = 'pistool') {
   g.fillStyle = '#ffd400';
   g.font = '700 20px system-ui, sans-serif';
   g.textBaseline = 'alphabetic';
-  g.fillText(mp ? 'MACHINEGEWEER' : 'PISTOOL', 16, 26);
+  g.fillText(sn ? 'SNIPER' : mp ? 'MACHINEGEWEER' : 'PISTOOL', 16, sn ? 16 : 26);
   const t = tex(c); cache.set(sleutel, t); return t;
 }
 
@@ -558,11 +574,24 @@ function icoonEhbo(g) {
   g.fillStyle = '#9aa2ad'; g.fillRect(60, 38, 112, 3);
 }
 
-function icoonWapen(g, mp) {
+function icoonWapen(g, mp, sn = false) {
   // dezelfde silhouetten als het icoon rechtsonder in beeld, maar dan liggend
   // op de plank en zonder de naam erbij — die staat op de kaart eronder
   g.fillStyle = '#dfe4ec';
-  if (mp) {
+  if (sn) {
+    g.fillRect(48, 48, 108, 12);                                  // grendelkast
+    g.fillRect(150, 51, 44, 7);                                   // loop
+    g.fillRect(190, 48, 14, 12);                                  // mondingsrem
+    g.fillRect(20, 48, 28, 17);                                   // kolfplaat
+    g.fillRect(42, 51, 20, 13);                                   // kolfhals
+    g.fillRect(72, 60, 16, 27);                                   // greep
+    g.fillRect(88, 60, 6, 9); g.fillRect(88, 66, 24, 4);          // trekkerbeugel
+    g.fillRect(96, 60, 20, 15);                                   // magazijn
+    g.fillRect(84, 34, 62, 9);                                    // kijkerkoker
+    g.fillRect(140, 31, 17, 15);                                  // objectief
+    g.fillRect(78, 36, 7, 10);                                    // oculair
+    for (const x of [94, 132]) g.fillRect(x, 43, 6, 5);           // beugels
+  } else if (mp) {
     g.fillRect(44, 44, 118, 15);
     g.fillRect(34, 47, 14, 10);                                   // schouderplaat
     g.fillRect(150, 47, 40, 9);                                   // loopmantel
@@ -593,7 +622,7 @@ export function schapIcoon(sleutel = 'munitie') {
   plank(g);
   if (sleutel === 'munitie') icoonMunitie(g);
   else if (sleutel === 'ehbo') icoonEhbo(g);
-  else icoonWapen(g, sleutel === 'mitrailleur');
+  else icoonWapen(g, sleutel === 'mitrailleur', sleutel === 'sniper');
   cache.set(k, c); return c;
 }
 
@@ -1104,7 +1133,25 @@ export const HOUSE_STYLES = {
    gele band met het woordmerk. `puiDeel` staat laag omdat het glas hier maar tot
    ongeveer de helft van de gevel komt — de rest is dichte beplating.
   */
-  tuincentrum: { brick: ['#b3b8b2', '#d3d7d1'], frame: '#f2f4f1', frame2: '#f2f4f1', door: ['#1e6b3c'], roof: '#5b5f5c', roofType: 'flat', storeys: 1, storeyH: 3.6, w: 6.0, dormer: false, chimney: false, band: '#f2c11c', plint: '#4c4f4c', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#f2c11c', merk: 'RANZIJN', merkKleur: '#1e6b3c', puiDeel: 0.55 },
+  /*
+   Ranzijn Tuin & Dier aan de Zonnedauw (foto's van de gebruiker, 20 sep 2026:
+   de kaart, de inrit aan de Zonnedauw en twee opnamen van de voorkant). Het
+   stond er als een lange grijze loods met een geel streepje: een plat dak,
+   gevelbeplating en een pui die maar tot halverwege kwam. Wat er staat is een
+   **kas**: een glazen puntgevel over de volle hoogte met het gele bord met het
+   woordmerk er middenin, en daarachter een rij kasdaken met zonnepanelen erop.
+
+   Daarom: `roofType` van plat naar puntdak (het 3D BAG-model heeft er ook een —
+   goot 3,94 m, nok 6,44 m — dus het platte dak was gewoon niet waar), `puiDeel`
+   van 0,55 naar 0,88 zodat het glas tot onder de dakrand doorloopt, de
+   gevelkleur van beton naar de groengrijze tint van kasglas, en zonnepanelen op
+   het dak. De maat blijft wat hij was: 81,4 bij 45,3 m uit de BGT.
+  */
+  tuincentrum: { brick: ['#9db0ab', '#bccac5'], frame: '#dfe3de', frame2: '#dfe3de', door: ['#1e6b3c'],
+    roof: '#8e979b', roofType: 'gable', storeys: 1, storeyH: 4.4, w: 6.0,
+    dormer: false, chimney: false, band: '#f2c11c', plint: '#4c4f4c',
+    industrieel: true, winkel: true, metaaldak: true, dakGlans: 0.14, solar: true,
+    huisstijl: '#f2c11c', merk: 'RANZIJN', merkKleur: '#1e6b3c', puiDeel: 0.88 },
   /*
    Westhemstraat 55-61 (foto van de gebruiker 12 sep 2026): een rijtje
    bungalows van één laag met een flauwe kap, lichte zandkleurige steen, witte

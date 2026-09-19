@@ -50,18 +50,45 @@ const SCHOUDER_X = 0.235;      // iets buiten de romp, anders steken de armen er
 
 // Een fiets: frame, twee wielen en een stuur. Wie fietst krijgt hem onder zich,
 // wie loopt krijgt hem op schaal nul en is dus onzichtbaar.
+/*
+ De maten hieronder zijn niet die van een mooie fiets maar die van déze rijder.
+ Het zadel lag op 0,90 m en de fietser werd 0,42 m opgetild (`yLift` verderop),
+ dus hij zweefde vierenveertig centimeter boven zijn eigen zadel — en omdat het
+ zadel dertig centimeter achter het midden van de fiets zat, trapten zijn voeten
+ een halve meter vóór de trapas in de lucht (gemeld 20 sep 2026: "check even hoe
+ personen fietsen").
+
+ Nu is het andersom: de rijder ligt vast en de fiets is om hem heen gebouwd. De
+ plekken hieronder zijn niet geschat maar uitgerekend uit de houding in
+ js/lichaam.js, mét de voorovergebogen stand van 0,22 rad erbij — die kantelt het
+ hele lichaam om de grond, dus de heup komt niet op z = 0 uit maar op −0,20:
+
+   heupgewricht  (z −0,20, y 0,88)   → daar komt het zadel
+   voet          (z −0,21 … −0,77, y 0,12 … 0,38) over een hele trapomwenteling
+                                     → de trapas in het midden daarvan
+   hand          (z −0,80, y 1,20)   → daar komt het stuur
+
+ De fiets is daarmee geen mooie fiets maar wel déze fiets: wielbasis 1,05 m,
+ stuur hoog en ver naar voren zoals bij een stadsfiets waar je rechtop op zit.
+*/
 function fietsGeo() {
   const delen = [];
   const voeg = (g) => delen.push(g.index ? g.toNonIndexed() : g);
-  for (const dz of [-0.52, 0.52]) {
+  for (const dz of [-0.95, 0.10]) {                // voor- en achterwiel
     const w = new THREE.TorusGeometry(0.34, 0.028, 5, 12);
     w.rotateY(Math.PI / 2); w.translate(0, 0.34, dz); voeg(w);
   }
-  const frame = new THREE.BoxGeometry(0.05, 0.05, 0.95); frame.translate(0, 0.62, 0); voeg(frame);
-  const zadelbuis = new THREE.BoxGeometry(0.05, 0.34, 0.05); zadelbuis.translate(0, 0.72, 0.28); voeg(zadelbuis);
-  const zadel = new THREE.BoxGeometry(0.10, 0.05, 0.24); zadel.translate(0, 0.90, 0.30); voeg(zadel);
-  const balhoofd = new THREE.BoxGeometry(0.05, 0.46, 0.05); balhoofd.translate(0, 0.78, -0.42); voeg(balhoofd);
-  const stuur = new THREE.BoxGeometry(0.46, 0.04, 0.04); stuur.translate(0, 1.00, -0.44); voeg(stuur);
+  const frame = new THREE.BoxGeometry(0.05, 0.05, 0.62); frame.translate(0, 0.70, -0.52); voeg(frame);
+  const onderbuis = new THREE.BoxGeometry(0.05, 0.05, 0.62); onderbuis.rotateX(-0.60); onderbuis.translate(0, 0.46, -0.66); voeg(onderbuis);
+  const achterbrug = new THREE.BoxGeometry(0.05, 0.05, 0.42); achterbrug.rotateX(0.18); achterbrug.translate(0, 0.30, -0.10); voeg(achterbrug);
+  const zadelbuis = new THREE.BoxGeometry(0.05, 0.66, 0.05); zadelbuis.rotateX(-0.22); zadelbuis.translate(0, 0.57, -0.28); voeg(zadelbuis);
+  const zadel = new THREE.BoxGeometry(0.10, 0.05, 0.24); zadel.translate(0, 0.88, -0.20); voeg(zadel);
+  const trapas = new THREE.CylinderGeometry(0.085, 0.085, 0.03, 10);
+  trapas.rotateZ(Math.PI / 2); trapas.translate(0, 0.26, -0.49); voeg(trapas);   // kettingblad
+  const balhoofd = new THREE.BoxGeometry(0.05, 0.62, 0.05); balhoofd.rotateX(-0.20); balhoofd.translate(0, 0.86, -0.86); voeg(balhoofd);
+  const vork = new THREE.BoxGeometry(0.05, 0.05, 0.26); vork.rotateX(0.50); vork.translate(0, 0.44, -0.92); voeg(vork);
+  const stuur = new THREE.BoxGeometry(0.52, 0.04, 0.04); stuur.translate(0, 1.20, -0.80); voeg(stuur);
+  const stuurpen = new THREE.BoxGeometry(0.04, 0.04, 0.12); stuurpen.translate(0, 1.19, -0.83); voeg(stuurpen);
   const pos = [], nor = [];
   for (const g of delen) {
     pos.push(...g.attributes.position.array);
@@ -579,9 +606,27 @@ export class NPCs {
       const gy = grondHoogte(p.x, p.z);
       const dood = !p.alive;
       // omvallen: naar achteren kantelen en wegzakken
-      const tilt = (dood ? -p.fall * Math.PI / 2 : 0) + (p.fietst && !dood ? 0.30 : 0);
-      // op de fiets zit je hoger
-      const yLift = (dood ? p.fall * 0.3 : 0) + (p.fietst && !dood ? 0.42 : 0);
+      /*
+       De voorovergebogen houding op de fiets. Hij stond op 0,30 rad, en die
+       kanteling geldt voor het hele lichaam — ook voor de benen, die er dus een
+       stuk mee naar voren zwaaiden. Op 0,22 leunt hij nog steeds naar het stuur
+       zonder dat de voeten de trappers voorbijschieten.
+
+       En hij is negatief. Een punt bóven de oorsprong draait met een positieve
+       hoek om de X-as naar +z, en +z is hier achteruit: met 0,22 leunde de hele
+       rijder dus naar áchteren en zat hij veertig centimeter achter zijn zadel,
+       met zijn handen een halve meter achter het stuur. Bij de armen en benen
+       viel dat niet op, want die hangen ónder hun gewricht en draaien daardoor
+       de andere kant op.
+      */
+      const tilt = (dood ? -p.fall * Math.PI / 2 : 0) + (p.fietst && !dood ? -0.22 : 0);
+      /*
+       En hij wordt niet meer opgetild. De fiets is nu om de rijder heen gebouwd
+       (zie fietsGeo): het zadel zit op heuphoogte, dus de heup hoort gewoon op
+       zijn eigen hoogte te blijven. De 0,42 die hier stond was precies de reden
+       dat hij boven zijn zadel zweefde.
+      */
+      const yLift = (dood ? p.fall * 0.3 : 0);
       if (p.fietst) {
         e.set(dood ? tilt : 0, p.yaw, 0, 'YXZ'); q.setFromEuler(e);
         m.compose(v.set(p.x, gy + (dood ? 0.1 : 0), p.z), q, sc.set(h, h, h));

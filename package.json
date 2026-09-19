@@ -111,6 +111,8 @@
     "tinyshots": "node tools/tinyshots.mjs",
     "gedragtest": "node tools/gedragtest.mjs",
     "rondetest": "node tools/rondetest.mjs",
-    "rondeshots": "node tools/rondeshots.mjs"
+    "rondeshots": "node tools/rondeshots.mjs",
+    "sniptest": "node tools/sniptest.mjs",
+    "snipshots": "node tools/snipshots.mjs"
   }
 }

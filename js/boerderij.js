@@ -54,6 +54,7 @@ const TOONBANK_BEREIK = 3.2;
 export const MUNITIE = { prijs: 50, kogels: 100 };
 export const MITRAILLEUR = { prijs: 500, soort: 'mitrailleur', naam: 'Machinegeweer' };
 export const PISTOOL = { prijs: 150, soort: 'pistool', naam: 'Pistool' };
+export const SNIPER = { prijs: 650, soort: 'sniper', naam: 'Sniper' };
 // Een verbandtrommel: vijftig levenspunten voor vijfentwintig euro, en nooit
 // meer dan vol. Wie al fit is koopt hem niet — dan gooi je je geld weg.
 export const EHBO = { prijs: 25, punten: 50 };
@@ -534,6 +535,7 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     },
     wapenArtikel(PISTOOL, 'Wisselen doe je met het scrollwiel.'),
     wapenArtikel(MITRAILLEUR, 'Wisselen doe je met het scrollwiel.'),
+    wapenArtikel(SNIPER, 'Rechtermuisknop om door de kijker te kijken, scrollen zoomt.'),
   ];
 
   /*
@@ -573,7 +575,7 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
    kwijtraakt, staat hij vanzelf weer op de lijst.
   */
   function bezitLijst() {
-    return SCHAP.filter(a => !a.beschikbaar() && (a.sleutel === PISTOOL.soort || a.sleutel === MITRAILLEUR.soort));
+    return SCHAP.filter(a => !a.beschikbaar() && [PISTOOL.soort, MITRAILLEUR.soort, SNIPER.soort].includes(a.sleutel));
   }
   function inBezit() { return bezitLijst().map(a => a.naam); }
 

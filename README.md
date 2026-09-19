@@ -2448,6 +2448,102 @@ flat daar terug naar het gewone platte type.
 
 `npm run rondetest` (eenentwintig controles) houdt deze zeven vast.
 
+## Vijf punten van 20 september
+
+Een winkel die nagebouwd moest worden, twee dingen die erbij kwamen, één ding dat er niet goed
+uitzag, en een steekproef over de rest van de wijk.
+
+### Ranzijn Tuin & Dier aan de rondweg
+
+Aan de Zonnedauw, tegen de rondweg aan, staat het buitencentrum van Ranzijn. In de kaart was het een
+grijze loods met een streepje erop. Het pand (BAG 0091100000015459, goot 3,94 m, nok 6,44 m) is nu
+een eigen type `tuincentrum`: een kas met een glazen pui die tot vlak onder de dakrand doorloopt
+(`puiDeel` 0,88), lichte groenblauwe stijlen ertussen, een gele band over de hele gevel met het
+woordmerk **RANZIJN** in het donkergroen van de huisstijl, een donkere plint en een metalen puntdak
+met zonnepanelen. De dakvorm komt niet uit een foto maar uit het 3D BAG-model: goot 3,94 en nok
+6,44 betekent een kap van tweeënhalve meter, en dus geen plat dak.
+
+![Ranzijn Tuin & Dier](docs/screenshots/ranzijn.png)
+
+### De koplampen leggen licht op de weg
+
+De koplampen waren tot nu toe twee lichte vlakjes op de neus van de auto: ze lichtten zelf op maar
+schenen nergens op. Er hangt nu één spot aan de auto waar je in zit, die alleen 's nachts brandt en
+uitgaat zodra je uitstapt — één, want elke lamp kost een eigen shaderprogramma per materiaal, en om
+diezelfde reden staan er in de hele wijk maar drie lantaarnpalen mét echt licht.
+
+De sterkte is op het beeld gemeten en niet op gevoel. De eerste versie hing op 0,62 m — de hoogte van
+een echte koplamp — en scheen zesentwintig meter vooruit. Dat klopt natuurkundig en je ziet er niets
+van: zo scheer over het asfalt blijft er van het licht bijna niets over, want de invalshoek eet het
+op. Het strookje weg vóór de motorkap was met lamp 90,2 en zonder 83,8 — zeven procent, niet te zien.
+De lamp hangt nu op 1,9 m en kijkt twintig meter vooruit naar de grond; datzelfde strookje is nu 111
+tegen 84, een derde lichter, en dat is de plas licht die je op de foto ziet liggen. De toets meet dat
+verschil ook echt uit het beeld, niet uit de instellingen van de lamp.
+
+![De koplampen op de Lemmerweg](docs/screenshots/koplampen_nacht.png)
+
+### Een sniper als derde wapen
+
+Bij Tinga State ligt een derde wapen in het schap: een **sniper** van € 650. Vijf patronen, één schot
+per keer (geen automatisch vuur), 0,95 seconde tussen twee schoten, geen spreiding en een stevige
+terugslag. Het model heeft een grendel, een lange loop met mondingsrem, een houten voorhout en een
+kijker op twee montagevoeten.
+
+Met de rechtermuisknop kijk je erdoor: het beeld gaat in een ronde kijker met een draadkruis en
+streepjes, het wapen zelf verdwijnt uit beeld — je oog zit achter het oculair — en de beeldhoek gaat
+van 72° naar 18°. Met het scrollwiel zoom je tussen 4× en 12×; rechtsonder in de kijker staat hoeveel
+het nu is. Bij de andere twee wapens doet het scrollwiel gewoon weer wat het altijd deed: van wapen
+wisselen.
+
+![Door de kijker](docs/screenshots/sniper_kijker.png)
+
+### De fietsers zaten naast hun fiets
+
+"Check ook even hoe personen fietsen." Ze zaten inderdaad verkeerd, en het was erger dan het eruitzag:
+de rijder werd 0,42 m opgetild en zat daarmee vierenveertig centimeter boven zijn eigen zadel, met
+zijn voeten een halve meter vóór de trappers in de lucht. De fiets is daarna opnieuw om de rijder
+heen gebouwd — zadel, trapas en stuur precies waar de heup, de voeten en de handen uitkomen — en het
+optillen is weg.
+
+Daarna stond de toets op groen en de rijder nog steeds naast zijn fiets. De oorzaak: de
+voorovergebogen stand kantelt het hele lichaam om de grond, en die hoek stond op **+0,22** rad. Een
+punt bóven de oorsprong draait met een positieve hoek naar achteren, dus de rijder leunde niet naar
+voren maar naar achteren, en zat veertig centimeter achter zijn zadel met zijn handen een halve meter
+achter het stuur. Bij de armen en benen viel dat niet op, want die hangen ónder hun gewricht en
+draaien daardoor de andere kant op. De hoek is nu −0,22.
+
+Dat de toets dit niet zag is het punt om te onthouden: hij rekende de heup, de hand en de voet zélf
+uit de gewrichtshoeken uit en maakte daarbij dezelfde tekenfout, dus toets en spel waren het keurig
+met elkaar eens en allebei mis. De toets leest nu de instantiematrices uit de scene — de plek waar de
+fietser echt getekend wordt — en rekent die terug naar het assenstelsel van de fiets. Gemeten:
+heup (−0,20, 0,88) op het zadel (−0,20, 0,88), hand (−0,79, 1,20) op het stuur (−0,80, 1,20), enkel
+0,14 m van de trapas.
+
+![Een fietser](docs/screenshots/fietser.png)
+
+### Wat de steekproef opleverde
+
+Tien plekken die nog niet aan de beurt waren geweest, en twee dingen die er meteen uit te halen waren.
+
+**Witte kapelwangen op kopgevels.** Boven de gevels aan de Zeskanter stond een rij witte driehoeken.
+Een muurvlak dat helemaal boven de goot begint werd als dakkapel getekend — witte wangen, want zo ziet
+de zijkant van een kapelletje eruit — en dat gold ook voor een kopgevel van negen meter, want het 3D
+BAG-model knipt zo'n kopgevel in meerdere vlakken waarvan alleen het bovenste de nok haalt. Er staat
+nu een grens op: een kapelwang is hoogstens 3,40 m breed, en wat breder is, is gevel of blinde muur.
+De toets meet de breedste driehoek in de dakkapelmeshes: die was 55,5 m en is nu 3,4 m. Per driehoek
+gemeten, niet per mesh — alle dakkapellen van de kaart zitten in eenenzestig meshes, dus de omhullende
+daarvan zegt niets.
+
+**Bomen en struiken op de stoep en in het water.** De generator zet de bomen op de plekken die de
+BGT-klassenkaart vrij noemt, maar dat raster is een halve meter grof. Er staat nu een laatste zeef
+achter alle boomlijsten die elke boom en struik weghaalt die op verharding of in het water uitkomt:
+9 916 → 9 891 bomen, 13 944 → 13 872 struiken. Wat er overblijft (11 van de 11 619 bomen en 7 van de
+19 068 struiken, samen 0,09 %) staat op klassen die het raster niet kent — asfaltvlak, brug, steiger.
+
+![De Zeskanter](docs/screenshots/zeskanter.png)
+
+`npm run sniptest` (dertig controles) houdt deze vijf vast, `npm run snipshots` maakt de foto's.
+
 ## Dag, nacht en weer
 
 De zon draait van oost naar west, met bijpassende kleuren voor licht, lucht en mist. Wordt het donker,

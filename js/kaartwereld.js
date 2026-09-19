@@ -1087,6 +1087,14 @@ function* bouwPandenStap(scene, W, plat) {
   };
   const opp = (ring) => { let a = 0; for (let i = 0; i < ring.length; i++) { const p = ring[i], q = ring[(i + 1) % ring.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; };
 
+  /*
+   Hoe breed mag een muurvlak zijn en nog als dakkapelwang tellen? Een dakkapel
+   is in deze wijk een tot drie meter breed; wat daarboven zit is een kopgevel,
+   een topgevel of gewoon een stuk muur. Zonder deze grens kreeg elk vlak boven
+   de goot dat de nok niet haalt de witte wangen van een kapel.
+  */
+  const WANG_MAX = 3.4;
+
   // Welke groep en welke uv krijgt een muurvlak? Levert { g, uvf }.
   const muurKeuze = (pand, n, punten) => {
     const st = T.HOUSE_STYLES[pand.type];
@@ -1137,7 +1145,14 @@ function* bouwPandenStap(scene, W, plat) {
      gewoon een stuk voorgevel.
     */
     const gootKapel = Math.max(pand.goot || 0, 2.4);
-    if (st && !ind && !pand.gang && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven) {
+    /*
+     `breed < WANG_MAX` staat hier en niet alleen in de tak eronder. Zonder die
+     grens viel élk breed muurvlak dat boven de goot begint door naar de wang —
+     de toets vond een "kapelwang" van 55,5 m aan de rondweg. Een vlak dat te
+     breed is voor een kapel is gewoon gevel of blinde muur en zakt hieronder
+     door naar die keuze.
+    */
+    if (st && !ind && !pand.gang && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven && breed < WANG_MAX) {
       if (Math.abs(kant) > 0.6 && breed >= 1.2) {
         const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
@@ -1148,7 +1163,16 @@ function* bouwPandenStap(scene, W, plat) {
     }
     if (pand.boven && st) {
       const totNok = !pand.nok || (pand.bovenTop ?? top) >= pand.nok - 0.6;
-      if (!totNok && st.dormer) {
+      /*
+       `breed < WANG_MAX`: een dakkapelwang is de zijkant van een kapelletje en
+       dus ongeveer een meter breed. Die maat stond er niet bij, en daardoor
+       kreeg élk muurvlak boven de goot dat niet helemaal tot de nok komt de
+       witte wangen — ook een kopgevel van negen meter. Dat is de rij witte
+       driehoeken boven de gevels aan de Zeskanter, en het is dezelfde fout die
+       aan de Vang de hele voorgevel afdekte: het 3D BAG-model knipt zo'n
+       kopgevel in meerdere vlakken, en alleen het bovenste haalt de nok.
+      */
+      if (!totNok && st.dormer && breed < WANG_MAX) {
         /*
          Wang van een dakkapel: standaard wit, maar een stijl mag er zijn eigen
          kleur voor zetten. Dat is niet alleen de wang van het kapelletje zelf:

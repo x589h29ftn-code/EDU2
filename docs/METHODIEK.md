@@ -4258,6 +4258,62 @@ klasse en hun hoogtebereik zegt in één oogopslag wát er staat, en dat had ik
 eerder moeten doen dan vier keer een kleur of een grens verschuiven en opnieuw
 een foto maken.
 
+**De ronde van 20 september (stap 62).** Ranzijn Tuin & Dier, koplampen die licht
+geven, een sniper met kijker, de houding van de fietsers en een steekproef van
+tien plekken. Drie lessen, alle drie over toetsen die groen stonden terwijl het
+beeld iets anders liet zien.
+
+*Een toets die dezelfde som maakt als het spel, toetst niets.* De fietsers zaten
+naast hun fiets. De fiets is daarna om de rijder heen gebouwd: het zadel op de
+plek waar de heup uitkomt, de trapas in het midden van de voetbeweging, het stuur
+waar de handen liggen. De toets rekende die drie punten uit de gewrichtshoeken
+uit, kantelde ze over de voorovergebogen stand van 0,22 rad, en meldde dat ze
+precies klopten. In beeld zat de rijder veertig centimeter achter zijn zadel.
+
+De fout zat in het teken. Een punt bóven de oorsprong draait met een positieve
+hoek om de X-as naar achteren; een arm of een been hangt ónder zijn gewricht en
+draait dus de andere kant op. In `js/npc.js` stond +0,22 waar −0,22 hoort, en de
+toets maakte exact dezelfde fout — hij was uit dezelfde redenering geschreven als
+de code. Twee keer dezelfde som uitvoeren is geen controle, hoe netjes de tweede
+ook is opgeschreven.
+
+Wat het wel vastlegt: de instantiematrices uit de scene lezen — de plek waar de
+fietser werkelijk getekend wordt — en die terugrekenen naar het assenstelsel van
+de fiets. Dan staan er twee onafhankelijke dingen naast elkaar: wat er getekend
+wordt en welke maat het moest worden. Dezelfde regel geldt overal waar een toets
+een formule uit de broncode overneemt in plaats van het resultaat te meten.
+
+*Natuurkundig kloppen is niet hetzelfde als zien.* De koplamp hing eerst op 0,62 m
+— de hoogte van een echte koplamp — en scheen zesentwintig meter vooruit. De lamp
+stond aan, wees de goede kant op en reikte ver genoeg; alle vier de toetsen
+stonden groen. Er was alleen geen licht te zien. Bij die stand strijkt de bundel
+zo scheer over het asfalt dat de cosinus van de invalshoek er bijna alles van
+opeet: op vijftien meter is dat nog een veertigste.
+
+Dat is niet met redeneren op te lossen maar met meten aan het beeld zelf. Het
+canvas in een tweede canvas tekenen en de gemiddelde lichtheid van een strookje
+weg uitlezen geeft een getal: 90,2 met lamp en 83,8 zonder. Zeven procent, en
+daarmee was de vraag beantwoord. Met de lamp op 1,9 m en twintig meter vooruit is
+het 111 tegen 84. Die meting staat nu als toets in `tools/sniptest.mjs`, want
+"brandt de lamp" is een andere vraag dan "valt er licht op de weg" — en de
+gebruiker vroeg het tweede.
+
+*Een grens die maar in één tak staat, geldt maar in één tak.* Een muurvlak dat
+boven de goot begint wordt een dakkapel: witte wangen, of het kozijn van de kapel
+als het naar de straat kijkt. De ronde ervoor kreeg de wangtak een bovengrens —
+breder dan 3,40 m is geen kapel — maar alleen de tak voor panden met een
+verdieping. De andere tak had dezelfde vorm: eerst de voorkant met een
+breedtegrens, en daarna een `return` naar de wang voor al het overige. Dat "al het
+overige" was ongegrensd, dus daar kon een kopgevel van vijfenvijftig meter alsnog
+witte planken krijgen.
+
+De toets vond dat ook pas na een omweg. Alle dakkapellen van de kaart zitten in
+eenenzestig samengevoegde meshes; de omhullende daarvan is honderden meters breed
+en zegt niets. Per driehoek meten wél — mits je de index van de geometrie
+afloopt en niet de hoekpunten in volgorde, want dan meet je drie willekeurige
+punten uit de hele kaart als één driehoek (55,5 m bleek zo'n meting; na het
+aflopen van de index 3,4 m).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

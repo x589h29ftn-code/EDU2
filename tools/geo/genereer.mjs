@@ -793,6 +793,7 @@ for (const g of OMGEVING.bosgebieden || []) {
 BOMEN.push(...BOSGEBIED_BOMEN);
 tel('bosgebied_bomen', BOSGEBIED_BOMEN.length);
 
+
 // Wat de foto's van de steekproef laten zien en de BGT niet levert, komt uit
 // plaatsingsregels op de BGT-vlakken: straatbomen in de grasbermen, losse grote
 // bomen in de parkjes, hagen en schuttingen per perceel met een tegelpad naar
@@ -839,6 +840,33 @@ for (const v of VLAKKEN) {
 // Ondergroei aan de rand van de bosjes
 for (const v of VLAKKEN) if (v.k === 'bos') strooi(v, OMGEVING.bos.struiken, STRUIKEN, [0.6, 1.1]);
 tel('straatbomen', STRAATBOMEN.length); tel('parkbomen', PARKBOMEN.length);
+
+/*
+ Eén laatste zeef over alle bomen en struiken: niets op de rijbaan, het fietspad,
+ een stoep, een brug of in het water.
+
+ Elke plaatsingsregel op zich kijkt al waar hij iets neerzet, maar ze zetten
+ allemaal een willekeurige verschuiving op hun punt en dáárna keek niet iedereen
+ opnieuw. Gemeten over de hele kaart bleven er elf bomen en negen struiken over
+ die op verharding of in het water stonden — een tiende procent, maar je ziet ze
+ meteen: aan de Buitenroede stonden drie stammen midden op het pad (steekproef
+ 20 sep 2026). Hier komen ze er in één keer uit, ongeacht welke regel ze heeft
+ neergezet.
+
+ De klassen 1 (rijbaan, fietspad, parkeervlak, inrit), 2 (water) en 7 (voetpad,
+ verharding) vallen af; gras, heesters, bos, erf en oever blijven.
+*/
+const GEEN_BOOM = new Set([1, 2, 7]);
+const vrijeGrond = (p) => !GEEN_BOOM.has(klasseOp(p.x, p.z));
+const bomenVoor = BOMEN.length + STRAATBOMEN.length + PARKBOMEN.length, struikenVoor = STRUIKEN.length;
+for (const [lijst, naam] of [[BOMEN, 'bomen'], [STRAATBOMEN, 'straatbomen'], [PARKBOMEN, 'parkbomen'], [STRUIKEN, 'struiken']]) {
+  let n = 0;
+  for (let i = lijst.length - 1; i >= 0; i--) if (!vrijeGrond(lijst[i])) { lijst.splice(i, 1); n++; }
+  tel(`${naam}_van_verharding_gehaald`, n);
+}
+tel('bomen_na_zeef', BOMEN.length + STRAATBOMEN.length + PARKBOMEN.length); tel('struiken_na_zeef', STRUIKEN.length);
+console.log(`  bomen ${bomenVoor} -> ${BOMEN.length + STRAATBOMEN.length + PARKBOMEN.length}, struiken ${struikenVoor} -> ${STRUIKEN.length}`);
+
 
 // Percelen: per woning een lage haag aan de straatkant met een opening bij de
 // voordeur, een tegelpad naar de deur, lage hagen tussen de voortuinen en

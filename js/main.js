@@ -237,6 +237,26 @@ const fill = new THREE.DirectionalLight(0xcfe0f2, 0.8);
 fill.position.set(-SUN_DIR.x * 150, 90, -SUN_DIR.z * 150);
 scene.add(fill);
 
+/*
+ De koplampen van de auto waar je in zit. Ze waren tot nu toe alleen een
+ oplichtend vlakje aan de neus: de lamp zelf was te zien, maar er kwam geen
+ licht uit en 's nachts reed je door het donker met twee gloeiende stipjes
+ voor je (verzoek 20 sep 2026).
+
+ Eén spot, niet twee. Elke lamp telt mee in de belichtingslus van élk materiaal
+ en kost de kaart een eigen shaderprogramma — dat staat uitgerekend in
+ js/sfeer.js, waar de straatlantaarns om die reden van negentien naar drie
+ gingen. Eén brede spot vanaf het midden van de neus geeft op straat hetzelfde
+ beeld als twee smalle; wat je mist is de dubbele lichtbundel op een muur vlak
+ voor je, en dat is het niet waard.
+
+ Hij hangt aan een eigen `target` die elke beeld voor de auto uit wordt gezet;
+ zonder zo'n doel wijst een spot altijd naar de oorsprong.
+*/
+const koplamp = new THREE.SpotLight(0xfff0cf, 0, 62, 0.52, 0.55, 1.1);
+koplamp.visible = false;
+scene.add(koplamp); scene.add(koplamp.target);
+
 // Kaart uit BGT en 3D BAG (js/kaart.js). Met ?kaart=oud draait de oude,
 // handgetekende kaart uit data.js; met ?boven=1 komt er een orthografisch
 // bovenaanzicht van het hele gebied (en met &plat=1 in egale controlekleuren).
@@ -1166,6 +1186,29 @@ function loop() {
       if (player.lastCarYaw !== undefined) player.yaw += car.yaw - player.lastCarYaw;
       player.lastCarYaw = car.yaw;
       /*
+       De koplampen aan als het donker is. De spot staat op de neus van de auto
+       en kijkt twintig meter vooruit naar de grond — daar ligt de plas licht.
+
+       Hij hangt op 1,9 m en niet op de 0,62 m van een echte koplamp, en dat is
+       geen slordigheid maar het verschil tussen wél en niet te zien. Vanaf
+       koplamphoogte strijkt de bundel zo scheer over het asfalt dat de cosinus
+       van de invalshoek er bijna alles van opeet: gemeten aan het beeld was het
+       strookje weg vóór de motorkap 90,2 met lamp en 83,8 zonder — zeven
+       procent, niets dus. Vanaf 1,9 m valt hij schuiner in en is datzelfde
+       strookje 111 tegen 84. De lamp zelf zie je niet, alleen wat hij verlicht,
+       dus die hoogte kost niets.
+      */
+      if (sfeer && sfeer.nacht) {
+        const vx = -Math.sin(car.yaw), vz = -Math.cos(car.yaw);
+        const neus = (car.as || 1.4) + 0.6;
+        koplamp.position.set(car.x + vx * neus, (car.mesh ? car.mesh.position.y : 0) + 1.9, car.z + vz * neus);
+        koplamp.target.position.set(car.x + vx * 20, -0.1, car.z + vz * 20);
+        koplamp.target.updateMatrixWorld();
+        // ook de sterkte is uitgemeten en niet op gevoel gekozen; zie hierboven
+        koplamp.intensity = 300;
+        if (!koplamp.visible) koplamp.visible = true;
+      } else if (koplamp.visible) { koplamp.visible = false; koplamp.intensity = 0; }
+      /*
        Het interieur: alleen zichtbaar als je erin zit en vanuit je ogen kijkt.
        Met de camera over je schouder zou je door het dak heen tegen de
        binnenkant van het dashboard aankijken.
@@ -1204,6 +1247,8 @@ function loop() {
        achter de console, iets achter het midden van de kuip.
       */
       player.lastCarYaw = undefined;
+      // uit de auto: de koplampen gaan mee uit
+      if (koplamp.visible) { koplamp.visible = false; koplamp.intensity = 0; }
       const boot = boten.inBoot;
       if (!derde.update(dt, boot)) {
         // vanuit je ogen sta je achter de console; js/boot.js heeft player.pos
@@ -1218,6 +1263,8 @@ function loop() {
       geluid.gier(0);
     } else {
       player.lastCarYaw = undefined;
+      // uit de auto: de koplampen gaan mee uit
+      if (koplamp.visible) { koplamp.visible = false; koplamp.intensity = 0; }
       derde.update(dt, null);
       geluid.gier(0);
     }

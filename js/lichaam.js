@@ -264,8 +264,16 @@ export function fietsHouding(fase, uit = {}) {
   uit.knieL = 0.85 + c * 0.50;
   uit.knieR = 0.85 - c * 0.50;
   uit.enkelL = -0.25; uit.enkelR = -0.25;
-  uit.schouderL = 1.05; uit.schouderR = 1.05;
-  uit.elleboogL = 0.30; uit.elleboogR = 0.30;
+  /*
+   De armen naar het stuur. Schouder 1,26 rad en elleboog 0,34: de hand komt dan
+   uit op zo'n 0,44 m vóór en 0,36 m onder de schouder, en daar ligt het stuur
+   van de fiets in js/npc.js. Op 1,05 bleef de hand er een kwart meter vandaan
+   en stak de arm er als een plank naast.
+  */
+  uit.schouderL = 1.26; uit.schouderR = 1.26;
+  uit.elleboogL = 0.34; uit.elleboogR = 0.34;
+  // de handen staan op stuurbreedte uit elkaar, niet tegen de romp aan
+  uit.armZij = 0.16;
   uit.wip = 0;
   return uit;
 }

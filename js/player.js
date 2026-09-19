@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { resolveCollisions, pointInWater, ondergrondOp, grondHoogte } from './world.js';
 import { geluid } from './audio.js';
-import { maakPistool, maakMitrailleur, HERLAADTIJD } from './wapen.js';
+import { maakPistool, maakMitrailleur, maakSniper, HERLAADTIJD } from './wapen.js';
 import { hurkHouding } from './lichaam.js';
 
 /*
@@ -28,6 +28,21 @@ export const WAPENS = {
   // het pistool heeft `tempo` nul: zo snel als je klikt, precies zoals het was
   pistool: { naam: 'Pistool', mag: 12, auto: false, tempo: 0, spreiding: 0, kick: 1 },
   mitrailleur: { naam: 'Machinegeweer', mag: 30, auto: true, tempo: 0.085, spreiding: 0.022, kick: 0.62 },
+  /*
+   De sniper. Eén schot per keer, en dan bijna een seconde niets: de grendel
+   moet over. Dat is de prijs voor wat hij ertegenover zet — je raakt op
+   afstand wat je met de andere twee niet eens ziet.
+
+   `scope` is het getal waar het om draait: hoeveel keer de beeldhoek kleiner
+   wordt als je door de kijker kijkt. Vier tot twaalf keer, met het scrollwiel
+   ertussenin te zetten. De andere twee wapens hebben `scope` niet en houden de
+   gewone aanslag over het vizier (MIK_FOV, een kwart eraf).
+
+   Terugslag 2,6: harder dan het pistool, want je schiet een patroon af waar een
+   pistool er vijf van in past. Spreiding nul — hij is nauwkeurig, alleen traag.
+  */
+  sniper: { naam: 'Sniper', mag: 5, auto: false, tempo: 0.95, spreiding: 0, kick: 2.6,
+    scope: { min: 4, max: 12, stap: 1.6 } },
 };
 
 /*
@@ -104,7 +119,9 @@ export class Player {
     */
     this.wapens = ['pistool'];
     this.wapenNr = 0;
-    this.magazijnen = { pistool: 12, mitrailleur: 0 };
+    this.magazijnen = { pistool: 12, mitrailleur: 0, sniper: 0 };
+    // de stand van de kijker, per wapen (zie `zoom`)
+    this.zoomPer = {};
     this.ammo = 12; this.reserve = 60; this.reloading = 0;
     this.vuurAan = false;       // trekker ingedrukt (voor het automatische vuur)
     this.vuurKlok = 0;          // tijd tot het volgende schot mag
@@ -162,7 +179,7 @@ export class Player {
     // allebei de modellen staan er meteen; wisselen is een kwestie van zichtbaar
     // maken. Dat is een paar honderd driehoeken en het scheelt een hapering op
     // het moment dat je het scrollwiel draait.
-    this.modellen = { pistool: maakPistool(geluid), mitrailleur: maakMitrailleur(geluid) };
+    this.modellen = { pistool: maakPistool(geluid), mitrailleur: maakMitrailleur(geluid), sniper: maakSniper(geluid) };
     for (const k of Object.keys(this.modellen)) {
       this.modellen[k].groep.visible = false;
       this.camera.add(this.modellen[k].groep);
@@ -186,6 +203,25 @@ export class Player {
   // Wat het wapen in je hand kan: magazijngrootte, vuursnelheid en terugslag.
   get wapenSoort() { return this.wapens[this.wapenNr] || 'pistool'; }
   get wapenInfo() { return WAPENS[this.wapenSoort]; }
+
+  /*
+   De vergroting van de kijker. Hij hoort bij het wapen en niet bij de speler:
+   zet je de sniper weg en pak je hem later weer, dan staat hij nog op wat je
+   er het laatst op had staan. Zonder kijker is hij één.
+  */
+  get zoom() {
+    const sc = this.wapenInfo.scope;
+    if (!sc) return 1;
+    const z = this.zoomPer[this.wapenSoort];
+    return z === undefined ? sc.min : z;
+  }
+  zoomStap(richting) {
+    const sc = this.wapenInfo.scope;
+    if (!sc) return null;
+    const z = Math.max(sc.min, Math.min(sc.max, this.zoom + richting * sc.stap));
+    this.zoomPer[this.wapenSoort] = z;
+    return z;
+  }
 
   /*
    Van wapen wisselen met het scrollwiel. `stap` is +1 of −1; heb je er maar
@@ -355,8 +391,15 @@ export class Player {
      Wapen wisselen met het scrollwiel. `wisselCb` wordt door js/main.js gezet en
      laat het icoon van het wapen kort in beeld komen.
     */
+    /*
+     Het scrollwiel doet twee dingen, en welke hangt af van waar je mee bezig
+     bent. Normaal wissel je ermee van wapen. Kijk je door een kijker, dan zoom
+     je ermee in en uit — dat is waar een scrollwiel bij een scope voor is, en
+     van wapen wisselen terwijl je je oog tegen de kijker hebt wil je toch niet.
+    */
     window.addEventListener('wheel', e => {
       if (!this.active) return;
+      if (this.wapenInfo.scope && this.richtAan) { this.zoomStap(e.deltaY > 0 ? -1 : 1); return; }
       const soort = this.kiesWapen(e.deltaY > 0 ? 1 : -1);
       if (soort && this.wisselCb) this.wisselCb(soort);
     }, { passive: true });
@@ -502,7 +545,16 @@ export class Player {
    elders in het spel (een cameramodus, een instelling) hier gewoon meegaat.
   */
   zetBeeldhoek() {
-    const doel = this.fovBasis * (1 - (1 - MIK_FOV) * this.mik);
+    /*
+     Met een kijker op het wapen gaat de beeldhoek veel verder dicht dan bij een
+     gewone aanslag: niet een kwart eraf maar door `zoom` gedeeld, vier tot
+     twaalf keer. Het gaat door dezelfde `mik` die ook de aanslag doet, dus het
+     in- en uitzoomen loopt vanzelf mee met het optrekken van het wapen en er is
+     geen tweede toestand die uit de pas kan lopen.
+    */
+    const sc = this.wapenInfo.scope;
+    const dicht = sc ? this.fovBasis / this.zoom : this.fovBasis * MIK_FOV;
+    const doel = this.fovBasis + (dicht - this.fovBasis) * this.mik;
     if (Math.abs(this.camera.fov - doel) > 0.01) {
       this.camera.fov = doel;
       this.camera.updateProjectionMatrix();
@@ -511,6 +563,26 @@ export class Player {
     if (this.kruisEl === undefined) this.kruisEl = document.getElementById('crosshair');
     // Binnen gaat het kruisje mee weg met het wapen: er valt niets te richten.
     if (this.kruisEl && !this.wapenUit) this.kruisEl.style.display = (this.binnen || this.mik > 0.5) ? 'none' : '';
+    /*
+     Het beeld van de kijker: een zwarte kaart met een rond gat erin, met het
+     draadkruis erover. Hij komt pas als je bijna helemaal aangeslagen bent —
+     eerder zie je het wapen nog omhoog komen en zou een ronde koker daar
+     overheen liggen. Het wapen zelf gaat dan juist uit beeld: je oog zit tegen
+     de kijker, dus van de loop eronder zie je niets meer.
+    */
+    if (this.scopeEl === undefined) {
+      this.scopeEl = document.getElementById('scope');
+      this.scopeZoomEl = document.getElementById('scopezoom');
+    }
+    if (this.scopeEl) {
+      const aan = !!sc && this.mik > 0.72 && !this.binnen && !this.wapenUit;
+      if (aan !== this._scopeAan) {
+        this._scopeAan = aan;
+        this.scopeEl.hidden = !aan;
+        if (this.gun) this.gun.visible = !aan && !this.wapenUit && !this.binnen;
+      }
+      if (aan && this.scopeZoomEl) this.scopeZoomEl.textContent = `${this.zoom.toFixed(1)}×`;
+    }
   }
 
   // De terugslag zakt terug naar nul; hoe verder hij nog uitstaat, hoe sneller.
@@ -656,6 +728,8 @@ export class Player {
     this.recoil = Math.max(0, this.recoil - dt * 6);
     this.flashT -= dt;
     this.wapen.update(dt, { herlaad: this.reloading, bob: this.bob, mik: this.mik, holster: this.holster });
-    this.gun.visible = !this.wapenUit && !this.binnen;
+    // Kijk je door de kijker, dan zit het wapen zelf niet meer in beeld: je oog
+    // zit achter het oculair. `_scopeAan` wordt in zetBeeldhoek() gezet.
+    this.gun.visible = !this.wapenUit && !this.binnen && !this._scopeAan;
   }
 }

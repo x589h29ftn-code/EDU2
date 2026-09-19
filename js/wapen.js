@@ -97,8 +97,19 @@ export function maakPistool(geluid) { return maakWapen(geluid, 'pistool'); }
  */
 export function maakMitrailleur(geluid) { return maakWapen(geluid, 'mitrailleur'); }
 
+/**
+ * En de sniper, het derde wapen bij Tinga State. Weer dezelfde greep, hand, arm
+ * en herlaadbeweging; wat erboven zit is een lange loop met een vizierblok, een
+ * grendel die opzij uitsteekt, een houten kolf die tegen je schouder loopt, en
+ * een kijker op twee montagebeugels. Door die kijker kijk je niet in het model
+ * maar met de camera (zie `scope` in js/player.js): hier staat alleen wat je
+ * ziet zolang je hem gewoon vasthoudt.
+ */
+export function maakSniper(geluid) { return maakWapen(geluid, 'sniper'); }
+
 function maakWapen(geluid, soort = 'pistool') {
   const SMG = soort === 'mitrailleur';
+  const SNIPER = soort === 'sniper';
   const staal = mat(STAAL, 0.42, 0.7);
   const staalDof = mat(0x1b1e22, 0.6, 0.5);
   const greepMat = mat(GREEP, 0.92);
@@ -129,6 +140,17 @@ function maakWapen(geluid, soort = 'pistool') {
     doos(sB, staalDof, 0.014, 0.016, 0.032, 0, 0.054, -0.020);       // spanknop
     doos(sB, staalDof, 0.014, 0.012, 0.008, 0, 0.056, -0.172);       // korrel
     for (const sx of [-1, 1]) doos(sB, staalDof, 0.008, 0.011, 0.008, sx * 0.012, 0.056, 0.055);  // keep
+  } else if (SNIPER) {
+    /*
+     Bij een grendelgeweer beweegt de grendel, en die steekt opzij uit — dat is
+     wat je bij het herladen ziet bewegen. Hij zit daarom in hetzelfde onderdeel
+     als de slede van het pistool, zodat de beweging hieronder voor alle drie
+     klopt.
+    */
+    doos(sB, staal, 0.040, 0.036, 0.230, 0, 0.030, -0.030);          // grendelkast
+    doos(sB, staalDof, 0.011, 0.011, 0.070, 0.026, 0.026, 0.040);    // grendelsteel opzij
+    doos(sB, staalDof, 0.016, 0.016, 0.016, 0.040, 0.020, 0.070);    // knop eraan
+    doos(sB, staalDof, 0.042, 0.009, 0.060, 0, 0.049, -0.090);       // vizierbalk vooraan
   } else {
   doos(sB, staal, 0.030, 0.040, 0.176, 0, 0.020, -0.048);
   doos(sB, staalDof, 0.031, 0.014, 0.030, 0, 0.004, -0.128);      // afschuining voorop
@@ -159,6 +181,47 @@ function maakWapen(geluid, soort = 'pistool') {
     for (const sx of [-1, 1]) doos(fB, staalDof, 0.008, 0.010, 0.170, sx * 0.026, 0.008, 0.105);
     doos(fB, staalDof, 0.062, 0.013, 0.030, 0, 0.008, 0.196);
     bouw(fB, wapen);
+  } else if (SNIPER) {
+    // een lange, zware loop met een mondingsrem eraan
+    const loopSn = new THREE.CylinderGeometry(0.0105, 0.0115, 0.34, 12);
+    loopSn.rotateX(Math.PI / 2); loopSn.translate(0, 0.026, -0.330);
+    vorm(fB, loopSn, staalDof);
+    doos(fB, staal, 0.030, 0.030, 0.055, 0, 0.026, -0.500);          // mondingsrem
+    for (let i = 0; i < 3; i++) doos(fB, staalDof, 0.032, 0.006, 0.006, 0, 0.026, -0.485 + i * 0.014);
+    doos(fB, staal, 0.038, 0.034, 0.130, 0, 0.000, -0.060);          // kast onder de grendel
+    // voorhout van hout, onder de loop
+    doos(fB, greepMat, 0.040, 0.030, 0.190, 0, -0.002, -0.230);
+    doos(fB, staal, 0.021, 0.007, 0.050, 0, -0.041, -0.020);         // onderkant beugel
+    doos(fB, staal, 0.021, 0.020, 0.007, 0, -0.031, -0.045);         // voorkant beugel
+    doos(fB, staalDof, 0.009, 0.021, 0.007, 0, -0.029, -0.017);      // trekker
+    doos(fB, staalDof, 0.009, 0.011, 0.010, -0.020, -0.008, 0.004);  // magazijnknop
+    /*
+     De kolf. Hij loopt vanaf de kast naar achteren en iets omlaag, met een
+     wangsteun erop en een rubber plaat aan het eind; dat is wat een geweer een
+     geweer maakt in plaats van een groot pistool.
+    */
+    doos(fB, greepMat, 0.036, 0.052, 0.150, 0, -0.014, 0.135);       // kolfhals
+    doos(fB, greepMat, 0.038, 0.030, 0.090, 0, 0.026, 0.150);        // wangsteun
+    doos(fB, greepMat, 0.042, 0.090, 0.040, 0, -0.022, 0.228);       // kolfplaat
+    doos(fB, ribbelMat, 0.044, 0.094, 0.010, 0, -0.022, 0.252);      // rubber eind
+    /*
+     De kijker: een koker op twee beugels, met een dikkere objectieflens
+     vooraan. De lenzen zijn donkere schijfjes — je kijkt er in het spel niet
+     dóór (dat doet de camera), dus een glimmend vlak is genoeg.
+    */
+    for (const dz of [-0.075, 0.055]) doos(fB, staalDof, 0.012, 0.030, 0.014, 0, 0.062, dz);
+    const koker = new THREE.CylinderGeometry(0.016, 0.016, 0.230, 14);
+    koker.rotateX(Math.PI / 2); koker.translate(0, 0.082, -0.020);
+    vorm(fB, koker, staal);
+    const objectief = new THREE.CylinderGeometry(0.023, 0.023, 0.060, 14);
+    objectief.rotateX(Math.PI / 2); objectief.translate(0, 0.082, -0.160);
+    vorm(fB, objectief, staal);
+    const lens = new THREE.CylinderGeometry(0.021, 0.021, 0.004, 14);
+    lens.rotateX(Math.PI / 2); lens.translate(0, 0.082, -0.192);
+    vorm(fB, lens, mat(0x1d2e3a, 0.12, 0.8));
+    doos(fB, staalDof, 0.030, 0.030, 0.016, 0, 0.082, 0.070);        // oculair
+    doos(fB, staalDof, 0.014, 0.016, 0.014, 0.020, 0.082, -0.020);   // stelknop opzij
+    bouw(fB, wapen);
   } else {
   const loopGeo = new THREE.CylinderGeometry(0.0058, 0.0058, 0.030, 10);
   loopGeo.rotateX(Math.PI / 2); loopGeo.translate(0, 0.021, -0.146);
@@ -187,6 +250,10 @@ function maakWapen(geluid, soort = 'pistool') {
   if (SMG) {
     doos(mB, magMat, 0.026, 0.150, 0.032, 0, -0.095, 0.022);
     doos(mB, staalDof, 0.033, 0.008, 0.042, 0, -0.174, 0.022);
+  } else if (SNIPER) {
+    // vijf patronen, dus een kort recht magazijn dat nauwelijks uitsteekt
+    doos(mB, magMat, 0.028, 0.062, 0.044, 0, -0.050, 0.010);
+    doos(mB, staalDof, 0.034, 0.008, 0.050, 0, -0.084, 0.010);
   } else {
   doos(mB, magMat, 0.024, 0.086, 0.030, 0, -0.062, 0.022);
   doos(mB, staalDof, 0.031, 0.008, 0.040, 0, -0.108, 0.022);      // bodemplaat

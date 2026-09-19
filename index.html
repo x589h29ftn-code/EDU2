@@ -10,6 +10,33 @@
   #game { display: block; width: 100vw; height: 100vh; touch-action: none; }
   #ui { position: fixed; inset: 0; pointer-events: none; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
   #crosshair { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; }
+  /* Het beeld van de kijker op de sniper. Het zwart eromheen is één laag met
+     een rond gat er middenin; dat gat is geen apart element maar een
+     radial-gradient, zodat de rand zacht afloopt zoals bij een echte kijker.
+     Het draadkruis erover zijn twee lijnen met een opening in het midden, en er
+     staan streepjes op de verticale lijn om onder te houden bij afstand. */
+  #scope { position: absolute; inset: 0; pointer-events: none; }
+  #scope[hidden] { display: none; }
+  #scopedoek { position: absolute; inset: 0;
+               background: radial-gradient(circle at 50% 50%,
+                 rgba(0,0,0,0) 0, rgba(0,0,0,0) calc(min(46vh, 46vw) - 8px),
+                 rgba(0,0,0,.72) calc(min(46vh, 46vw) - 2px),
+                 rgba(0,0,0,.97) calc(min(46vh, 46vw) + 6px), #000 100%); }
+  #scope .draad { position: absolute; background: rgba(12,14,12,.85); }
+  #scope .draad.h { left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; }
+  #scope .draad.v { top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; }
+  /* de opening in het midden: een blokje van de achtergrondkleur eroverheen kan
+     niet (het beeld moet zichtbaar blijven), dus de lijnen zijn onderbroken met
+     twee stukken per as */
+  #scope .draad.h.links { right: calc(50% + 26px); }
+  #scope .draad.h.rechts { left: calc(50% + 26px); }
+  #scope .draad.v.boven { bottom: calc(50% + 26px); }
+  #scope .draad.v.onder { top: calc(50% + 26px); }
+  #scope .tik { position: absolute; left: 50%; width: 14px; height: 2px; margin-left: -7px;
+                background: rgba(12,14,12,.85); }
+  #scopezoom { position: absolute; left: 50%; bottom: calc(50% - min(46vh, 46vw) + 22px);
+               transform: translateX(-50%); font-size: 13px; font-weight: 700; letter-spacing: 1px;
+               color: rgba(220,230,215,.75); text-shadow: none; }
   #crosshair::before, #crosshair::after { content: ""; position: absolute; background: rgba(255,255,255,.9); }
   #crosshair::before { left: 6px; top: 0; width: 2px; height: 14px; }
   #crosshair::after { top: 6px; left: 0; width: 14px; height: 2px; }
@@ -297,6 +324,16 @@
     </div>
   </div>
   <canvas id="bigmap" width="1100" height="760"></canvas>
+  <!-- de kijker van de sniper; js/player.js zet hem aan zodra je aangeslagen bent -->
+  <div id="scope" hidden>
+    <div id="scopedoek"></div>
+    <div class="draad h links"></div><div class="draad h rechts"></div>
+    <div class="draad v boven"></div><div class="draad v onder"></div>
+    <div class="tik" style="top: calc(50% + 40px)"></div>
+    <div class="tik" style="top: calc(50% + 70px)"></div>
+    <div class="tik" style="top: calc(50% + 100px)"></div>
+    <div id="scopezoom">4.0×</div>
+  </div>
 </div>
 <div id="touch">
   <div id="tmove"><div id="tstick"><div id="tknob"></div></div></div>
