@@ -4231,6 +4231,33 @@ Het anker schuift nu met 45 m/s bij tot een afstand die met de sterren meeloopt:
 800 m bij één ster, 210 m bij vijf. Dat bewaart allebei de dingen die je wilt —
 bij één ster schud je ze af door weg te rijden, bij vijf niet.
 
+*Een tweede maat die geen maat is.* De goot uit het 3D BAG-model wordt op drie
+plekken gebruikt: om de gevel van de kopgevel te knippen, om te bepalen of een
+muurvlak een dakkapelwang is, en om een dakkapel op het dakvlak te zetten. Aan de
+Vang loopt het dak tot vlak boven de grond door en geeft het model een goot van
+0,51 m. Alle drie die regels sloegen daardoor om: de gevelstrook werd een halve
+meter hoog, elke wand die op een halve meter begon werd een kapelwang, en de
+kapel kwam op kniehoogte te staan. Het resultaat was een bakstenen driehoek van
+tien meter zonder deur of raam.
+
+Dat is het patroon om te onthouden: een afgeleide maat als "de goot" is geen
+meting maar een aanname over de vórm, en zodra de vorm afwijkt klopt hij niet
+meer. Een ondergrens per gebruik is dan geen smoesje maar precies de ontbrekende
+regel — met één les erbij: die ondergrens moet gelijk zijn aan de maat waarmee
+het doek getekend wordt (`storeyH`, 2,90 m) en niet aan een rond getal. Op 2,60 m
+werd het doek van 2,90 m over 2,60 m uitgerekt en viel de onderdorpel van de
+voordeur er net buiten.
+
+Eerlijk over de afloop: de gevel is terug — gemeten staat er nu een gevelvlak van
+0 tot 3,24 m — maar in beeld zie je hem niet, want het BAG-model heeft op dit
+adres óók een uitbouw van 0,53 tot 3,30 m met een plat dakje die er als witte
+kapelwang voor staat. Twee van de drie regels zijn aangepast en toch verandert
+er niets aan dat blok, dus de oorzaak zit ergens die ik nog niet gevonden heb. De
+meetmethode staat er in elk geval: de meshes rond één pand opsommen met hun
+klasse en hun hoogtebereik zegt in één oogopslag wát er staat, en dat had ik
+eerder moeten doen dan vier keer een kleur of een grens verschuiven en opnieuw
+een foto maken.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

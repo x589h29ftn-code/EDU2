@@ -1127,19 +1127,38 @@ function* bouwPandenStap(scene, W, plat) {
     // Dakkapel: een muurvlak dat helemaal boven de goot begint. Witte wangen,
     // en aan de voorkant het kozijn van de dakkapel.
     let laagste = Infinity; for (const p of punten) laagste = Math.min(laagste, p[1]);
-    if (st && !ind && !pand.gang && pand.goot && laagste > pand.goot - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven) {
+    /*
+     "Begint helemaal boven de goot" is de toets, en die klopt zolang de goot
+     een goot is. Aan de Vang geeft het 3D BAG-model een goot van 0,51 m, en dan
+     telt élke wand die op een halve meter begint als dakkapel: het model heeft
+     daar een uitbouw over de volle breedte van de voorgevel, en die werd een
+     witte kapelwang die precies de voordeur afdekte. Vandaar dezelfde
+     ondergrens als bij de gevelknip: onder de 2,4 m is het geen dakkapel maar
+     gewoon een stuk voorgevel.
+    */
+    const gootKapel = Math.max(pand.goot || 0, 2.4);
+    if (st && !ind && !pand.gang && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven) {
       if (Math.abs(kant) > 0.6 && breed >= 1.2) {
         const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
       }
-      const g = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel', true);
+      const wang = (st && st.wang) || '#eeede8';
+      const g = groep(`dakkapel|wang|${wang}`, () => std(T.planks(wang)), 'dakkapel', true);
       return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 1.2, p[1] / 1.2] };
     }
     if (pand.boven && st) {
       const totNok = !pand.nok || (pand.bovenTop ?? top) >= pand.nok - 0.6;
       if (!totNok && st.dormer) {
-        // wang van een dakkapel: wit
-        const g = groep('dakkapel|wang', () => std(T.planks('#eeede8')), 'dakkapel', true);
+        /*
+         Wang van een dakkapel: standaard wit, maar een stijl mag er zijn eigen
+         kleur voor zetten. Dat is niet alleen de wang van het kapelletje zelf:
+         bij een huis waarvan de hele verdieping boven de goot begint is dit het
+         vlak dat je vanaf de straat ziet. Aan de Atalanta is die verdieping
+         donker houten beschot, en met een vast wit werd het daar een wit blok
+         boven een donkere begane grond — het omgekeerde van de foto.
+        */
+        const wang = st.wang || '#eeede8';
+        const g = groep(`dakkapel|wang|${wang}`, () => std(T.planks(wang)), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / 1.2, p[1] / 1.2] };
       }
       if (totNok && st.topgevel) {
@@ -1294,7 +1313,30 @@ function* bouwPandenStap(scene, W, plat) {
       // wang als baksteen uit het dak steken.
       let laag = Infinity, top = 0;
       for (const p of buiten) { laag = Math.min(laag, p[1]); top = Math.max(top, p[1]); }
-      const gootH = pand.goot || gootVan(buiten, n).goot;
+      /*
+       De knip ligt op de goot, en dat werkt zolang de goot een goot is. Aan de
+       Vang staan woningen waarvan het dak tot vlak boven de grond doorloopt: het
+       3D BAG-model geeft daar een goot van 0,51 tot 3,22 m bij een nok van tien.
+       De knip kwam dan op een halve meter, het strookje eronder was te laag voor
+       een deur, en de hele voorgevel werd kopgevel — dus kale baksteen zonder
+       raam of deur (melding 19 sep 2026: "voorkant woning ziet nu alleen steen").
+
+       Zo'n huis heeft in het echt gewoon een begane grond in die punt, met de
+       voordeur erin. De knip gaat daarom nooit lager dan GOOT_MIN, tenzij de
+       muur daar te laag voor is — dan blijft hij staan waar hij stond, want een
+       schuurtje van drie meter hoort geen woonlaag te krijgen.
+      */
+      /*
+       Waarom precies 2,90 en niet 2,60: dat is de standaard laaghoogte
+       (`storeyH`) waarmee `T.facade` zijn doek tekent. De gevel wordt over
+       `lagen × storeyH` uitgerekt, dus een strook van 2,60 m laat een doek van
+       2,90 m zien met de onderste tien procent eraf — en daar zit de onderdorpel
+       van de voordeur. Op 2,90 valt de strook samen met precies één laag en
+       staat de deur waar hij hoort.
+      */
+      const GOOT_MIN = 2.9;
+      const gootRuw = pand.goot || gootVan(buiten, n).goot;
+      const gootH = top > GOOT_MIN + 1.2 ? Math.max(gootRuw, GOOT_MIN) : gootRuw;
       if (laag < gootH - 0.3 && top > gootH + 0.6) {
         const { onder, boven } = knipOpHoogte(buiten, gootH + 0.02);
         if (onder && boven) { vlak3d(pand, [onder], 1); vlak3d({ ...pand, boven: true, bovenTop: top }, [boven], 1); return; }
@@ -1375,6 +1417,16 @@ function* bouwPandenStap(scene, W, plat) {
     const dakY = (x, z) => q0[1] - (n[0] * (x - q0[0]) + n[2] * (z - q0[2])) / n[1];
     const pv = P(aVoor, bm, 0), pa = P(aAchter, bm, 0);
     const y0 = dakY(pv[0], pv[2]) - 0.15, yDakAchter = dakY(pa[0], pa[2]);
+    /*
+     Geen dakkapel op kniehoogte. De kapel wordt op het dakvlak gezet, 1,1 m
+     achter de druiplijn, en dat klopt zolang die druiplijn op goothoogte ligt.
+     Aan de Vang loopt het dak tot vlak boven de grond door — het BAG-model geeft
+     daar een goot van 0,51 m — en dan komt de kapel als een witte bak van 1,5 m
+     precies vóór de voordeur te staan. Dat was wat er van de voorgevel te zien
+     was (melding 19 sep 2026): geen deur, geen raam, alleen een wit blok met
+     baksteen erboven.
+    */
+    if (y0 < 2.4) return;
     const y1 = Math.min(y0 + 1.55, yDakAchter - 0.05);
     if (y1 - y0 < 1.1 || y0 < (pand.goot || 0) - 0.5) return;
     const gVoor = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);

@@ -126,6 +126,15 @@
     "Jutrijpstraat": {
       "type": "jutrijp",
       "bron": "foto: Jutrijpstraat 20 — bruine steen, donkere pannen, rode kozijnen en rode deuren, crème boeiboord"
+    },
+    "Atalanta": {
+      "type": "molenkrite",
+      "kap": "atalanta",
+      "laag": "molenkrite_bung",
+      "plat": "jasker_flat",
+      "plat_hoog": "appart",
+      "groot": "spil",
+      "bron": "foto Street View van de gebruiker (19 sep 2026), gemeld vanaf plek 1357.6, 389.1 met \"gebouw texture klopt niet\". De rij aan de Atalanta heeft twee lagen: een begane grond met een brede glazen pui in lichtgrijze stijlen, daarboven een verdieping met liggend donkerbruin houten beschot, over de volle breedte terracotta liggers van een stalen pergola langs de gevel, en een dak van grijze staande-naadplaat met zonnepanelen. In het spel stonden ze als molenkrite_kap: geelbeige baksteen met een wit beschot boven. De maten blijven uit de BGT en het 3D BAG-model; alleen de huid verandert. Alleen  is gezet en niet : aan de Atalanta staan ook een portiekflat, een appartementengebouw en een bungalow, en die horen niet bij deze rij."
     }
   },
   "panden": {
@@ -693,6 +702,74 @@
     "1900100010085204": {
       "type": "tinyhouse",
       "bron": "een van de twintig tiny houses aan de Molenkrite, zie 1900100010085147"
+    },
+    "1900100010088353": {
+      "type": "duinterpen_zalm",
+      "bron": "Het gebogen blok in Duinterpen dat om zijn eigen binnenterrein heen buigt (foto Street View van de gebruiker, 19 sep 2026, met het bordje Keizersmantel in beeld; gemeld vanaf plek 997.7, 304.2 met \"gebouw texture klopt niet\"). Vijftien BAG-panden met de goot op 7,7 en de nok op 11,35 m, met adressen aan de Schoenlapper, de Keizersmantel, de Dagpauwoog en de Koninginnenpage: een blok met vier straatnamen. Op de foto: zalmroze baksteen, kopgevels met kleine vierkante raampjes, daartussen over de hele bocht een glazen pui met grijsgroene kozijnen, en in het pannendak een rij dakkapellen met zonnepanelen. Het stond als molenkrite in beeld, het standaardtype van deze buurt."
+    },
+    "1900100010088346": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "0091100000014111": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "0091100000017086": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "1900100010088350": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "1900100010088345": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "0091100000019406": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "1900100010088351": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "1900100010088354": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "1900100010088349": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "0091100000002670": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "0091100000006281": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "0091100000018750": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "0091100000018649": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "0091100000002672": {
+      "type": "duinterpen_zalm",
+      "bron": "hoort bij het gebogen blok in Duinterpen, zie 1900100010088353"
+    },
+    "1900100010087000": {
+      "type": "jumbo_lemmerweg",
+      "voorkantNaar": [
+        700,
+        300
+      ],
+      "bron": "Jumbo Kooistra, Lemmerweg 130B (twee foto's van de gebruiker, 19 sep 2026: de zijgevel met de vrachtwagen ervoor en de ingang). BAG-pand van 1804 m2 met de goot op 5,80 en de nok op 8,80 m; het stond als naamloos spil-type in beeld, dus als een gewoon groot gebouw. Twee lagen: over de hele bovenverdieping een band van oranjebruine gevelpanelen, daaronder een glazen pui op een donkergrijze plint, en een brede platte dakrand met een lichte boeiboord die over de pui heen steekt. Het woordmerk JUMBO staat in geel op een donker bord bij de ingang. voorkantNaar wijst naar het parkeerterrein aan de westkant, waar de ingang aan ligt."
     }
   },
   "standaard": {

@@ -1007,6 +1007,23 @@ export const HOUSE_STYLES = {
   // lichtgrijze stijlen, en boven de ingang — die onder een puntdak met een
   // luifel zit — het groene woordmerk op een zilvergrijze band. Verder dezelfde
   // opzet als de Jumbo hierboven; alleen de kleuren en het merk verschillen.
+  /*
+   Jumbo Kooistra aan de Lemmerweg (foto van de gebruiker, 19 sep 2026: een
+   eigen opname en de ingang erbij). Een ander gebouw dan de Jumbo aan de
+   Molenkrite: twee lagen, met over de hele bovenverdieping een band van
+   oranjebruine gevelpanelen, daaronder een glazen pui op een donkergrijze
+   plint, en een brede platte dakrand met een lichte boeiboord die een flink
+   stuk over de pui heen steekt. Het BAG-pand is 1804 m2 met de goot op 5,8 en de
+   nok op 8,8 m.
+
+   `puiDeel` staat op 0,46: het glas loopt hier maar tot halverwege de
+   onderste laag, want daarboven begint het paneel al.
+  */
+  jumbo_lemmerweg: { brick: ['#b0562c', '#c67a4a'], frame: '#d5d7d6', frame2: '#d5d7d6',
+    door: ['#3a3d40'], roof: '#4b4e52', roofType: 'flat', storeys: 2, storeyH: 3.4, w: 6.0,
+    dormer: false, chimney: false, band: '#eef0ef', plint: '#3a3d40',
+    industrieel: true, winkel: true, metaaldak: true, dakGlans: 0.1,
+    huisstijl: '#ffd200', merk: 'JUMBO', merkKleur: '#2b2b28', puiDeel: 0.46 },
   poiesz:      { brick: ['#7c4b3c', '#c0b8ad'], frame: '#e8eaea', frame2: '#e8eaea', door: ['#3f4247'], roof: '#98a0a4', roofType: 'gable', storeys: 1, storeyH: 2.7, w: 6.0, dormer: false, chimney: false, band: '#eceeee', plint: '#4a4a48', industrieel: true, winkel: true, metaaldak: true, huisstijl: '#dfe4e3', merk: 'POIESZ', merkKleur: '#43b02a', merkAccent: 2, merkAccentKleur: '#e8511f', puiDeel: 0.62 },
   // Tinga State, Molenkrite 115 (foto, 4 sep 2026): een stelpboerderij — een
   // enorme steile piramidekap van rode pannen die van de nok op 13,3 m tot een
@@ -1175,6 +1192,38 @@ export const HOUSE_STYLES = {
   // Apollovlinder 41 (foto): grijsbruine steen, donkere pannenkap met
   // zonnepanelen en een dakkapel, houten beschot op de begane grond bij de
   // aanbouw, hagen langs het erf.
+  /*
+   Het gebogen blok in Duinterpen dat om zijn eigen binnenterrein heen buigt
+   (foto Street View bij de gebruiker, 19 sep 2026, met het bordje Keizersmantel
+   in beeld). Vijftien BAG-panden met de goot op 7,7 en de nok op 11,35, met
+   adressen aan de Schoenlapper, de Keizersmantel, de Dagpauwoog en de
+   Koninginnenpage — één blok, vier straatnamen.
+
+   Wat de foto laat zien: zalmroze baksteen, aan de kopgevels bijna vlakke
+   muren met kleine vierkante raampjes, daartussen over de hele bocht een
+   glazen pui met grijsgroene kozijnen en stijlen, en in het pannendak een rij
+   dakkapellen met zonnepanelen ertussen. Het stond als `molenkrite` in beeld:
+   geelbeige baksteen met witte kozijnen, het standaardtype van deze buurt.
+  */
+  duinterpen_zalm: { brick: ['#c08a78', '#dccabe'], frame: '#8e9a97', frame2: '#5c6866',
+    door: ['#3c4745', '#32403e'], roof: '#4a423c', roofType: 'gable', storeys: 3, storeyH: 2.75, w: 5.6,
+    dormer: true, dormerFrame: '#c9cfcd', solar: true, chimney: false, band: '#d8d2c8', plint: '#7a5a4e' },
+  /*
+   De rij aan de Atalanta (foto Street View bij de gebruiker, 19 sep 2026). Twee
+   lagen: een begane grond met een brede glazen pui in lichtgrijze stijlen, en
+   daarboven een verdieping met liggend donkerbruin houten beschot. Over de
+   volle breedte lopen terracotta liggers van een stalen pergola langs de gevel,
+   en het dak is grijze staande-naadplaat met zonnepanelen erop. Ze stonden als
+   `molenkrite_kap` in beeld — geelbeige baksteen met een wit beschot boven.
+
+   `hout` zet het liggende beschot over de hele gevel; de plint houdt de
+   bakstenen onderkant van de pui vast, en `band` is de terracotta ligger.
+  */
+  atalanta: { brick: ['#b6a687', '#cec4b0'], hout: '#5a4634', wang: '#5a4634', topgevel: '#5a4634',
+    frame: '#e9e9e6', frame2: '#8a4a2a',
+    door: ['#2f3538', '#343a3e'], roof: '#8d949a', roofType: 'gable', metaaldak: true, dakGlans: 0.08,
+    storeys: 2, storeyH: 2.75, w: 5.4, dormer: true, dormerFrame: '#e9e9e6', solar: true,
+    chimney: false, band: '#b4552b', plint: '#6a5a44' },
   apollovlinder:{ brick: ['#8a7a6a', '#c6bcae'], frame: '#f0efe9', frame2: '#3a3d42', door: ['#3a3d42', '#2a2d31'], roof: '#4a423b', roofType: 'gable', storeys: 2, w: 6.0, dormer: true, dormerFrame: '#f0efe9', solar: true, chimney: false, band: '#f0efe9' },
   // Jutrijpstraat 20 (foto): bruine steen, donkere pannen, rode kozijnen met
   // witte binnenramen en rode voordeuren, een crèmekleurige boeiboord onder de

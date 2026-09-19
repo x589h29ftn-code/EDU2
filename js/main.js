@@ -922,7 +922,7 @@ let dragHint = false;
 // joystick links en veeg je rechts om rond te kijken.
 const touch = IS_TOUCH ? initTouchControls(player, {
   onCar: praatOfAuto,
-  onMap: () => hud.toggleBig(),
+  onMap: () => hud.kaartStap(),
   onPause: () => pauseGame(),
   onCamera: wisselCamera,
   onWapen: () => { const s = player.kiesWapen(1); if (s) toonWapenIcoon(s); },

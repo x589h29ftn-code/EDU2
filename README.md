@@ -2366,7 +2366,87 @@ weg zodra je binnen bent, samen met het kruisje, en kun je binnen niet schieten 
 iets anders dan zelf wegstoppen met **H**: dat is jouw keuze en die blijft bewaard, dus buiten heb je
 meteen weer wat je had.
 
-`npm run tinytest` (veertien controles) en `npm run gedragtest` (zestien controles) houden het vast.
+`npm run tinytest` (vijftien controles) en `npm run gedragtest` (zestien controles) houden het vast.
+
+## Nog zeven punten van 19 september
+
+Een tweede lijst dezelfde dag, met foto's erbij.
+
+### De voorgevels aan de Vang waren kale steen
+
+Aan de Vang loopt het dak tot vlak boven de grond door. Het 3D BAG-model geeft daar een goot van
+**0,51 tot 3,22 m** bij een nok van tien, en de gevel wordt op die goot geknipt: eronder de gevel met
+deur en ramen, erboven een kopgevel in kale steen. Met een goot van een halve meter bleef er onder de
+knip een strookje over waar geen deur in past, en werd de hele voorkant kopgevel — een bakstenen
+driehoek van tien meter hoog zonder één opening. De knip gaat nu nooit lager dan 2,90 m (precies één
+woonlaag, zodat de deur op zijn plek valt), tenzij de muur daar te laag voor is; een schuurtje van
+drie meter hoort geen woonlaag te krijgen.
+
+> **Dit punt is maar half af.** Gemeten in de wereld staat er nu een gevelvlak van 0 tot 3,24 m waar
+> eerst alleen steen zat — de gevel is er dus. Maar er staat nog iets vóór: het 3D BAG-model heeft op
+> dit adres een uitbouw van 0,53 tot 3,30 m met een eigen plat dakje, en die wordt als dakkapel
+> getekend, met witte wangen, precies over de voordeur heen. Twee dingen die daaraan zouden moeten
+> liggen zijn aangepast — een dakkapel wordt niet meer op kniehoogte gezet, en een muur die onder de
+> 2,40 m begint telt niet meer als kapelwang — maar in beeld verandert er niets, dus de oorzaak zit
+> ergens anders. Wat er nu staat is beter dan een blinde muur, maar de deur is nog niet te zien.
+
+![De voorgevel aan de Vang](docs/screenshots/vang_voorgevel.png)
+
+### Jumbo Kooistra aan de Lemmerweg
+
+Het pand op Lemmerweg 130B (1804 m², goot 5,80 m, nok 8,80 m) stond als naamloos groot gebouw in
+beeld. Het is een supermarkt: twee lagen, over de hele bovenverdieping een band van oranjebruine
+gevelpanelen, daaronder een glazen pui op een donkergrijze plint, en een brede platte dakrand die
+over de pui heen steekt.
+
+![Jumbo Kooistra aan de Lemmerweg](docs/screenshots/jumbo_lemmerweg.png)
+
+### Bier halen bij de Poiesz in Duinterpen
+
+Er staat een tweede Poiesz in de wereld, op de begane grond van het gebogen blok aan de Keizersmantel.
+Die was alleen van buiten te zien. Er komt geen tweede winkel bij: het interieur is een hal van
+veertig bij dertig meter met zeventien schappen, vier kassa's en vijf rondlopende mensen, en dat twee
+keer neerzetten kost twee keer het geheugen voor een winkel die er precies hetzelfde uitziet. Er is
+alleen een tweede deur bij gekomen, en de winkel onthoudt door welke je naar binnen ging — dus je komt
+er ook weer uit waar je begon, 2640 meter van de andere ingang.
+
+### M in drie standen
+
+Eén keer **M** maakt de minikaart rechtsboven groter (van 220 naar 360 beeldpunten, op een telefoon van
+128 naar 210). Nog een keer opent de grote kaart in het midden, en nog een keer is alles weer dicht.
+Het doek zelf wordt groter en niet alleen de CSS opgerekt, dus je ziet er méér wereld op in plaats van
+hetzelfde beeld uitvergroot.
+
+![De vergrote minikaart](docs/screenshots/minikaart_groot.png)
+
+### Uit de cabine van de bakwagen kijken
+
+De cabine is een holle koker met een gat erin voor de bestuurder, en dat gat zat alleen in de zijkant.
+Vóór de stoel stond een dichte wand over de volle hoogte — precies waar de voorruit hoort. Van buiten
+zag je er niets van omdat het glas ervoor ligt; van binnen keek je er recht tegenaan. Het gat loopt nu
+door tot voorbij de voorkant, en het plaatwerk ónder de voorruit staat er los achteraan.
+
+![Vanaf de bestuurdersstoel van de bakwagen](docs/screenshots/cabine.png)
+
+### Twee bouwblokken met een eigen gevel
+
+Het **gebogen blok in Duinterpen** — vijftien BAG-panden met adressen aan de Schoenlapper, de
+Keizersmantel, de Dagpauwoog en de Koninginnenpage, één blok met vier straatnamen — stond in de
+geelbeige baksteen van de buurt. Het is zalmroze, met grijsgroene kozijnen en dakkapellen in een
+pannendak.
+
+De **rij aan de Atalanta** (41 kapwoningen) stond er ook als standaardtype: geelbeige baksteen met een
+wit beschot erboven. Het is donkerbruin houten beschot met terracotta liggers ervoor en een dak van
+grijze plaat met zonnepanelen. De flats in diezelfde straat houden hun eigen type — daarbij kwam een
+gat in de generator boven water: de regel die een plat pand met een goot boven zeven meter tot
+portiekflat maakt, stond alleen in de tak zónder straatentry. Zodra een straat er een kreeg zakte elke
+flat daar terug naar het gewone platte type.
+
+![Het gebogen blok in Duinterpen](docs/screenshots/duinterpen_zalm.png)
+
+![De rij aan de Atalanta](docs/screenshots/atalanta.png)
+
+`npm run rondetest` (eenentwintig controles) houdt deze zeven vast.
 
 ## Dag, nacht en weer
 
@@ -2484,6 +2564,10 @@ Katzijlstraat · Eesterzijlstraat · Jutrijpstraat · Hommertsstraat · Boetsstr
   Molenkrite, geen rolcontainers meer op de rijbaan, de doorzichtige blokmarkering op de drempels, en
   geen oeverwand meer onder een kade of steiger door
 - `tools/tinyshots.mjs` – maakt de foto's van de tiny houses, een verkeersdrempel en een steiger
+- `tools/rondetest.mjs` – toetst de tweede lijst van 19 september: de voorgevels aan de Vang, de Jumbo
+  aan de Lemmerweg, de tweede ingang van de Poiesz, de M-toets in drie standen, het zicht uit de
+  cabine van de bakwagen en de twee bouwblokken met een eigen gevel
+- `tools/rondeshots.mjs` – maakt de foto's daarvan
 - `tools/gedragtest.mjs` – toetst het gedrag van 19 september: het wapen dat binnen uit beeld gaat, de
   voetgangers die in jouw buurt terugkomen, de politie die je tot in IJlst volgt, en de meldingen die
   weg zijn bij een neergehaalde helikopter

@@ -109,6 +109,8 @@
     "vuilshots": "node tools/vuilshots.mjs",
     "tinytest": "node tools/tinytest.mjs",
     "tinyshots": "node tools/tinyshots.mjs",
-    "gedragtest": "node tools/gedragtest.mjs"
+    "gedragtest": "node tools/gedragtest.mjs",
+    "rondetest": "node tools/rondetest.mjs",
+    "rondeshots": "node tools/rondeshots.mjs"
   }
 }

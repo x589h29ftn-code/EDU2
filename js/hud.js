@@ -41,7 +41,25 @@ export class HUD {
     this.msgT = 0;
     this.big = document.getElementById('bigmap');
     this.bigOpen = false;
-    window.addEventListener('keydown', e => { if (e.code === 'KeyM') this.toggleBig(); });
+    /*
+     De M-toets loopt in drie standen (verzoek 19 sep 2026):
+
+       0  de gewone minikaart rechtsboven
+       1  diezelfde minikaart, maar groter — genoeg om te zien waar de straat
+          verderop heen gaat zonder dat het spel achter een kaart verdwijnt
+       2  de grote kaart in het midden van het scherm
+
+     en dan weer terug naar 0. Stand 1 is waar het om ging: tussen "ik zie twee
+     straten ver" en "ik zie de hele wijk maar het spel niet meer" zat niets.
+
+     Groter maken is niet alleen de CSS oprekken — dan rekt hij een doek van
+     220 beeldpunten uit en wordt hij wazig. Het doek zelf wordt groter, en
+     omdat `drawMap` alles uit `this.canvas.width` afleidt zie je er meteen meer
+     wereld op in plaats van hetzelfde beeld groter.
+    */
+    this.kaartStand = 0;
+    window.addEventListener('keydown', e => { if (e.code === 'KeyM') this.kaartStap(); });
+    window.addEventListener('resize', () => this.zetMinimap(this.kaartStand === 1));
     // labelposities: per straatnaam het langste stuk
     this.labels = [];
     const seen = new Map();
@@ -304,7 +322,46 @@ export class HUD {
       c.restore();
     }
   }
-  toggleBig() { this.bigOpen = !this.bigOpen; this.big.style.display = this.bigOpen ? 'block' : 'none'; }
+  /*
+   Hoe groot is de minikaart in de twee standen? Op een telefoon is 360 het
+   halve scherm, dus daar zijn de maten kleiner. De grens is dezelfde als die
+   van de media query in index.html, zodat de twee niet uit elkaar lopen.
+  */
+  minimapMaat() {
+    const klein = window.innerWidth <= 900 || window.innerHeight <= 560;
+    return klein ? { normaal: 128, groot: 210 } : { normaal: 220, groot: 360 };
+  }
+  zetMinimap(groot) {
+    const m = this.minimapMaat();
+    const n = groot ? m.groot : m.normaal;
+    if (this.canvas.width !== n) { this.canvas.width = n; this.canvas.height = n; }
+    // de CSS-maat moet mee: anders tekent hij op een groter doek en perst de
+    // browser dat terug in het oude vierkantje
+    this.canvas.style.width = `${n}px`;
+    this.canvas.style.height = `${n}px`;
+    // de sterren en de touchknoppen staan ónder de kaart en schuiven mee
+    document.body.classList.toggle('kaartgroot', !!groot);
+  }
+  // Eén stap in de reeks minikaart → grote minikaart → grote kaart → minikaart.
+  kaartStap() {
+    this.kaartStand = (this.kaartStand + 1) % 3;
+    this.zetMinimap(this.kaartStand === 1);
+    this.bigOpen = this.kaartStand === 2;
+    this.big.style.display = this.bigOpen ? 'block' : 'none';
+    return this.kaartStand;
+  }
+  /*
+   De grote kaart rechtstreeks aan- of uitzetten. Dit is wat het gereedschap in
+   tools/ gebruikt om een kaartfoto te maken, en het houdt de standenreeks
+   bij de les: aanzetten is stand 2, uitzetten is terug naar 0.
+  */
+  toggleBig() {
+    this.bigOpen = !this.bigOpen;
+    this.big.style.display = this.bigOpen ? 'block' : 'none';
+    this.kaartStand = this.bigOpen ? 2 : 0;
+    this.zetMinimap(false);
+    return this.bigOpen;
+  }
   /*
    praten = er staat iemand naast je of er loopt een gesprek; dan gaat E over
    praten en niet over instappen (zie praatOfAuto in main.js).

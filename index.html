@@ -98,6 +98,12 @@
              backdrop-filter: blur(2.6px) saturate(1.25);
              background: radial-gradient(ellipse at center, rgba(255,180,80,0) 22%, rgba(120,70,20,.55) 100%); }
   #minimap { position: absolute; right: 20px; top: 20px; width: 220px; height: 220px; border-radius: 50%; box-shadow: 0 2px 12px rgba(0,0,0,.5); background: #3f6a2b; }
+  /* Eén keer M maakt de minikaart groter (js/hud.js zet de maat zelf); wat
+     eronder hangt schuift dan mee naar beneden, anders staan de sterren en de
+     kaartknop ín de kaart. */
+  body.kaartgroot #ster { top: 372px; }
+  body.kaartgroot #tmap { top: 308px; }
+  body.kaartgroot #tcam { top: 368px; }
   #bigmap { display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
   #title { position: absolute; left: 24px; top: 20px; font-size: 13px; opacity: .8; }
   /* ---------- start-, laad- en pauzemenu (js/menu.js) ---------- */
@@ -214,6 +220,10 @@
     #minimap { width: 128px; height: 128px; right: 14px; top: 14px; }
     #tmap { top: 152px; }
     #tcam { top: 210px; }
+    /* op een telefoon is de vergrote kaart 210 in plaats van 360 (js/hud.js) */
+    body.kaartgroot #ster { top: 252px; }
+    body.kaartgroot #tmap { top: 236px; }
+    body.kaartgroot #tcam { top: 294px; }
     #street { left: 14px; bottom: 14px; font-size: 15px; padding: 4px 10px; border-width: 2px; }
     #ammo, #speed { right: 20px; bottom: 196px; font-size: 17px; }
     #hint { display: none; }

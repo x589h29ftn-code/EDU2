@@ -459,6 +459,16 @@ function kiesType(p, straat) {
   if (opp < 35 && !p.nr.length) return 'schuur';           // bijgebouw: kale steen, geen gevel
   const kap = laag && (p.nok ?? 0) > 8;                     // woonruimte in een steile kap
   if (s) {
+    /*
+     Een portiekflat is een plat pand met een goot boven de zeven meter, en die
+     krijgt een eigen type (`plat_hoog`). Die regel stond alleen in de tak
+     zónder straatentry, dus zodra een straat er een kreeg werd elke flat daar
+     een gewoon plat pand. Dat viel op toen de Atalanta een entry kreeg voor de
+     kapwoningen (19 sep 2026): het appartementengebouw in die straat zakte
+     ongevraagd terug naar het type van een lage portiekflat.
+    */
+    const hoog = plat && (p.goot ?? 0) > 7 && (s.plat_hoog || STIJL.standaard.plat_hoog);
+    if (hoog) return hoog;
     if (plat && s.plat) return s.plat;
     if (kap && s.kap) return s.kap;
     if (laag && s.laag) return s.laag;

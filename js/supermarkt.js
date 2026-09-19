@@ -42,6 +42,20 @@ import { Persoon } from './persoon.js';
 import { MAAT } from './lichaam.js';
 
 const PAND = { type: 'poiesz' };
+/*
+ Er staat een tweede Poiesz in de wereld: op de begane grond van het gebogen
+ blok aan de Keizersmantel in Duinterpen (BAG-pand 0091100000019594). Die was
+ alleen van buiten te zien.
+
+ Er komt geen tweede winkel bij (verzoek 19 sep 2026: "interieur gewoon koppelen
+ aan die van IJlst alleen stap je in en uit in duinterpen"). Dat is ook de enige
+ verstandige keuze: het interieur is een hal van veertig bij dertig meter met
+ zeventien schappen, vier kassa's en vijf rondlopende mensen, en dat twee keer
+ neerzetten kost twee keer het geheugen voor een winkel die er precies hetzelfde
+ uitziet. Er komt dus alleen een tweede deur bij, en de winkel onthoudt door
+ welke je naar binnen ging zodat je daar ook weer buiten staat.
+*/
+const PAND_DUINTERPEN = { type: 'duinterpen_poiesz', naam: 'Poiesz Duinterpen' };
 
 // ---------- maten (m) ----------
 const MUUR = 0.30;
@@ -363,6 +377,35 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
   const DEUR_X = HAL_B / 2;
   const deurBuiten = plan.naarWereld(DEUR_X, 0);
   const stoep = { x: deurBuiten.x + plan.f[0] * UIT_VOOR, z: deurBuiten.z + plan.f[1] * UIT_VOOR };
+
+  /*
+   De tweede ingang, in Duinterpen. Hij wordt op dezelfde manier uitgerekend als
+   die in IJlst — midden op de voorgevel van het pand, en de stoep drie meter
+   ervoor — alleen staat daar een heel ander gebouw omheen. Staat het pand er
+   niet (een kaart zonder Duinterpen), dan blijft het gewoon bij één deur.
+  */
+  const pand2 = KAART.panden.find(p => p.type === PAND_DUINTERPEN.type);
+  let ingangen = [{ naam: 'Poiesz IJlst', deur: deurBuiten, stoep, f: plan.f }];
+  if (pand2 && pand2.voet && pand2.rect && pand2.front) {
+    const plan2 = plattegrond(pand2);
+    const breed2 = Math.max(...plan2.punten.map(q => q[0]));
+    const deur2 = plan2.naarWereld(breed2 / 2, 0);
+    /*
+     De begane grond ligt hier terug achter een zuilengang (zie
+     data/stijl/straten.json). De deur zelf zit dus een stukje achter de
+     puilijn, en je staat er verder vandaan weer buiten: anders kom je midden
+     tussen de zuilen terecht.
+    */
+    const uit = UIT_VOOR + 2.2;
+    ingangen.push({
+      naam: PAND_DUINTERPEN.naam,
+      deur: deur2,
+      stoep: { x: deur2.x + plan2.f[0] * uit, z: deur2.z + plan2.f[1] * uit },
+      f: plan2.f,
+    });
+  }
+  // door welke deur je naar binnen bent gegaan; daar kom je ook weer buiten
+  let viaIngang = ingangen[0];
 
   // Ruim buiten het kaartgebied, en ver van de kamer en de boerderij vandaan.
   const G = KAART.gebied || { x1: 400, z1: 460 };
@@ -699,7 +742,12 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
   }
   function bijDeur(x, z) {
     if (binnen(x, z)) return Math.hypot(x - binnenDeur.x, z - binnenDeur.z) < DEUR_BEREIK ? 'uit' : null;
-    return Math.hypot(x - deurBuiten.x, z - deurBuiten.z) < DEUR_BEREIK ? 'in' : null;
+    // buiten: bij welke van de twee ingangen sta je? De dichtstbijzijnde wint,
+    // en die wordt onthouden zodat je daar ook weer naar buiten stapt.
+    for (const i of ingangen) {
+      if (Math.hypot(x - i.deur.x, z - i.deur.z) < DEUR_BEREIK) { viaIngang = i; return 'in'; }
+    }
+    return null;
   }
   function bijBier(x, z) {
     return binnen(x, z) && Math.hypot(x - bier.x, z - bier.z) < BIER_BEREIK;
@@ -713,9 +761,10 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
   }
   function naarBuitenGaan() {
     player.inCar = null;
-    const [ux, uz] = resolveCollisions(stoep.x, stoep.z, 0.4);
+    const i = viaIngang;
+    const [ux, uz] = resolveCollisions(i.stoep.x, i.stoep.z, 0.4);
     player.pos.set(ux, 0, uz);
-    player.yaw = Math.atan2(-plan.f[0], -plan.f[1]);
+    player.yaw = Math.atan2(-i.f[0], -i.f[1]);
     player.pitch = 0;
     player.applyCamera();
   }
@@ -819,7 +868,10 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
   // Wat de HUD laat zien als je binnen bent.
   function kaart(x, z) {
     if (!binnen(x, z)) return null;
-    return { naam: 'Poiesz IJlst', punt: deurBuiten };
+    // de naam en het punt van de deur waar je naar binnen ging: binnen sta je
+    // in dezelfde hal, maar op de kaart hoor je te staan waar je het gebouw in
+    // liep — in IJlst of in Duinterpen
+    return { naam: viaIngang.naam, punt: viaIngang.deur };
   }
 
   return {
@@ -836,6 +888,8 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
     get groep() { return groep; },
     get mensen() { return [kassiere, balie, ...lopers.map(l => l.p)]; },
     get plekken() { return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, bier, kassas: kassaPlekken }; },
-    get winkels() { return [{ x: deurBuiten.x, z: deurBuiten.z, naam: 'Poiesz IJlst', wat: 'bier' }]; },
+    get ingangen() { return ingangen; },
+    get viaIngang() { return viaIngang; },
+    get winkels() { return ingangen.map(i => ({ x: i.deur.x, z: i.deur.z, naam: i.naam, wat: 'bier' })); },
   };
 }

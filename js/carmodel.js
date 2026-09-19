@@ -129,8 +129,23 @@ function truckGeoms() {
   const chassisB = 2 * (W / 2 - 0.18) - 0.34;                     // 1,66 m: tussen de banden
   const paintDelen = [
     { geo: doos(chassisB, 0.40, L), y: 0.60 },                    // chassis (loopt door tot ín de cabine)
-    // de cabine is hol: daar zit de bestuurder in (js/autobinnen.js)
-    ...holleKoker(W, 1.45, 2.1, 0, 1.52, cabZ, 0.12, cabZ - 0.92, cabZ + 0.80),
+    /*
+     De cabine is hol: daar zit de bestuurder in (js/autobinnen.js).
+
+     Het gat liep van cabZ − 0,92 tot cabZ + 0,80, en dat is de zijkant. Vóór dat
+     gat zette `holleKoker` een dichte wand van cabZ − 1,05 tot cabZ − 0,92, over
+     de volle hoogte van de koker (0,80 tot 2,25 m). Precies daar zit de
+     voorruit. Van buiten zie je er niets van, want het glas ligt ervoor; van
+     binnen keek je er recht tegenaan en zag je de weg niet (melding 19 sep
+     2026: "first person view in vrachtwagen van de missie zie je buiten niet").
+
+     Het gat loopt nu tot voorbij de voorkant door, zodat `holleKoker` daar geen
+     wand meer zet, en het stuk plaatwerk ónder de voorruit — van de cabinevloer
+     tot de onderdorpel op 1,55 m — staat er los achteraan. Boven de ruit zit het
+     cabinedak al.
+    */
+    ...holleKoker(W, 1.45, 2.1, 0, 1.52, cabZ, 0.12, cabZ - 1.06, cabZ + 0.80),
+    { geo: doos(W, 0.64, 0.13), y: 1.23, z: cabZ - 0.985 },       // plaatwerk onder de voorruit
     { geo: doos(W, 0.10, 2.1), y: 2.20, z: cabZ },                // cabinedak
     { geo: doos(W, 0.12, 2.1), y: 0.85, z: cabZ },                // cabinevloer
     { geo: doos(W - 0.14, 0.3, 1.9), y: 2.35, z: cabZ + 0.05 },   // dakspoiler
