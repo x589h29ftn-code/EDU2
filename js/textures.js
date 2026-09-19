@@ -865,11 +865,18 @@ export const HOUSE_STYLES = {
    beeld, en dat is een rijtje van twee lagen in gele baksteen. Op de foto is het
    een hof met smalle losse puntgevels.
 
-   Wat je ziet: een voorgevel van staande houten delen, licht en warm van kleur,
-   met een smal hoog raam boven de voordeur; daartussen tussenstukken in
-   donkerantraciet damwandprofiel, ook staand; een lichtgrijze betonnen lijst als
-   omlijsting van de puntgevel; en een dak van staande-naadplaat in dezelfde
-   grijstint als die lijst.
+   Wat je op de foto ziet, en in welke verhouding — dat laatste is waar de eerste
+   poging op strandde (melding 19 sep 2026: "lijkt er qua texture niet eens op").
+   Het gebouw is grotendeels **donker**: de lange zijgevels en de tussenstukken
+   tussen de woningen zijn antraciet, bijna zwartgroen, in staand damwandprofiel.
+   Alleen de kopgevel met de voordeur is licht: grijsbruine houten delen, met een
+   smal hoog raam in de punt erboven. Het dak is donkergrijze staande-naadplaat,
+   niet licht. Er staat een lichtgrijze betonnen lijst omheen.
+
+   De eerste poging maakte er één warmbruine tint van met een lichtgrijs dak —
+   precies de omgekeerde verhouding, en daarmee een heel ander gebouw. Nu is
+   `brick` het lichte hout van de voorgevel en zet `zijkant` de blinde muren in
+   het donker; die twee zijn in deze wijk niet dezelfde kleur, en dat mag.
 
    `damwand` tekent staande ribben om de twintig centimeter. Dat is hier met opzet
    gekozen en niet `hout`: `hout` legt liggende delen van vijftien centimeter, en
@@ -880,10 +887,23 @@ export const HOUSE_STYLES = {
    begint de kap meteen. Breedte 4,2 m: eenendertig vierkante meter bij een
    diepte van ruim zeven meter.
   */
-  tinyhouse: { brick: ['#93764c', '#a68a5e'], damwand: true, frame: '#f2f1ec', frame2: '#333940',
-    door: ['#2b3139', '#33383f'], roof: '#8d949a', roofType: 'gable', metaaldak: true,
+  /*
+   Twee tinten die niet zijn wat je op de foto meet, en met opzet:
+
+   - het hout is hier `#9a8763` terwijl de foto rond `#a89a7d` zit. `damwand`
+     tekent per ribbel een lichte flank op 1,14 keer de kleur, en daar komt de
+     blauwige hemelbelichting overheen; op de gemeten kleur werd het een bleke
+     groenige tint in plaats van grijsbruin hout. Een stap warmer en donkerder
+     erin geeft er in beeld uit wat de foto laat zien.
+   - het dak is `#33383c` terwijl de plaat op de foto middengrijs is. Een
+     metaaldak krijgt `metalness: 0.35`, dus het vangt de lucht: op middengrijs
+     werd het bijna wit. Donkerder erin, middengrijs eruit.
+  */
+  tinyhouse: { brick: ['#8f7a52', '#a08a62'], damwand: true, zijkant: '#343b39',
+    frame: '#4a5055', frame2: '#2f353a',
+    door: ['#2b3136', '#30363b'], roof: '#3d4246', roofType: 'gable', metaaldak: true, dakGlans: 0.06,
     storeys: 1, storeyH: 4.2, w: 1.9, gevelMin: 1.0,
-    dormer: false, chimney: false, band: '#c4c1ba', plint: '#a6a39d' },
+    dormer: false, chimney: false, band: '#bdbcb6', plint: '#b3b2ab' },
   // Molenkrite 70 (foto): lage bungalow (nok 6,7 m) met een vol zonnedak, witte
   // kozijnen, rode deur en rode accenten, schoorstenen, dakramen.
   molenkrite_bung:{ brick: ['#b09772', '#d0c7b5'], frame: '#ffffff', frame2: '#c8322b', door: ['#c8322b', '#b52a24'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.4, dormer: false, skylight: true, solar: true, solarFull: true, chimney: true, band: '#f4f4f4' },

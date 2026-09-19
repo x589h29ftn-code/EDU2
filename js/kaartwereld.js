@@ -1157,11 +1157,28 @@ function* bouwPandenStap(scene, W, plat) {
        kopgevels — precies wat je vanaf de straat ziet — bleven baksteen. Dezelfde
        keuze als in T.facade dus: staand profiel, liggende delen, of steen.
        Damwand is net als baksteen 2,6 m per doek, planken zijn 1,2 m.
+
+       Met één uitzondering: `zijkant`. Bij de tiny houses is de blinde kant
+       niet dezelfde kleur als de voorgevel — de lange zijgevels en de
+       tussenstukken zijn antraciet en alleen de kopgevel met de voordeur is
+       licht hout. Dat is geen toevallige kleurkeuze maar het beeld van die
+       wijk, en zonder dit onderscheid krijg je een egaal bruin gebouw dat er
+       niet op lijkt. Staat `zijkant` niet in de stijl, dan blijft alles bij het
+       oude en volgt de blinde muur gewoon de gevelkleur.
+
+       En dan nog dit: niet elke blinde muur is een flank. De punt bóven de goot
+       aan de voorkant — het driehoekje met het hoge raam erin — is ook een
+       blinde muur, en die hoort bij de lichte kopgevel en niet bij de donkere
+       zijkant. `kant` weet al welke kant een vlak op kijkt, dus die beslist:
+       kijkt het vlak naar voren of naar achteren, dan de gevelkleur, anders de
+       zijkantkleur.
       */
-      const sleutel = st && st.damwand ? `damwand|${steen[0]}`
+      const naarDeStraat = kant > 0.6 || kant < -0.6;
+      const blind = (st && st.zijkant && !naarDeStraat) ? st.zijkant : (st && st.brick && st.brick[0]);
+      const sleutel = st && st.damwand ? `damwand|${blind}`
         : st && st.hout ? `planken|${st.hout}`
         : `steen|${pand.type}|${seed % 3}`;
-      const maak = st && st.damwand ? () => std(T.damwand(steen[0]))
+      const maak = st && st.damwand ? () => std(T.damwand(blind))
         : st && st.hout ? () => std(T.planks(st.hout))
         : () => std(T.brick(steen[0], steen[1], seed % 3 + 1));
       const g = groep(sleutel, maak, 'muur', true);
@@ -1204,7 +1221,15 @@ function* bouwPandenStap(scene, W, plat) {
     if (!hellend) return groep('dak|plat', () => std(T.bitumen()), 'platdak', true);
     const kleur = st ? st.roof : '#4a3a33';
     // dakplaten in plaats van pannen (de puntdaken van de supermarkt)
-    if (st && st.metaaldak) return groep(`dak|plaat|${kleur}`, () => new THREE.MeshStandardMaterial({ color: kleur, roughness: 0.5, metalness: 0.35 }), 'dak', true);
+    /*
+     Dakplaten in plaats van pannen. `dakGlans` regelt hoe metaalachtig: de
+     puntdaken van de supermarkt zijn blank staal en vangen de lucht, en 0,35
+     is daar precies goed. De staande-naadplaat van de tiny houses is mat
+     gecoat, en met diezelfde 0,35 werd een donkergrijs dak in beeld bijna wit —
+     het spiegelde de hemel. Een stijl mag die glans daarom zelf zetten.
+    */
+    const glans = st && st.dakGlans !== undefined ? st.dakGlans : 0.35;
+    if (st && st.metaaldak) return groep(`dak|plaat|${kleur}|${glans}`, () => new THREE.MeshStandardMaterial({ color: kleur, roughness: glans < 0.2 ? 0.75 : 0.5, metalness: glans }), 'dak', true);
     // pannen met dakramen erin (de kap van de stelpboerderij)
     if (st && st.dakramen) return groep(`dak|ramen|${kleur}`, () => std(T.pannenMetDakramen(kleur)), 'dak', true);
     return groep(`dak|${kleur}`, () => std(T.roofTiles(kleur, 5)), 'dak', true);

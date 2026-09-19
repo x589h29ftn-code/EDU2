@@ -2265,9 +2265,22 @@ rijtje van twee lagen in gele baksteen — het standaardtype voor deze straat �
 verklapte: **eenendertig vierkante meter** grondvlak, goot op **4,2 m**, nok op **6,3 m**. Een
 rijtjeswoning van twee lagen is dat niet.
 
-Ze staan nu als losse smalle puntgevels met staande houten delen, een grijs plaatdak en één woonlaag.
-De maat verandert niet: het grondvlak komt uit de BGT en de hoogte uit het 3D BAG-model, alleen de
-huid is anders. Daarbij bleek nog iets: een **blinde muur** — een kopgevel zonder ramen, precies wat je
+Ze staan nu als losse smalle puntgevels met één woonlaag. De maat verandert niet: het grondvlak komt
+uit de BGT en de hoogte uit het 3D BAG-model, alleen de huid is anders.
+
+En op die huid ging de eerste poging mis — hij werd één warmbruine tint met een lichtgrijs dak, en
+dat is de omgekeerde verhouding van wat er staat. Het gebouw is grotendeels **donker**: de lange
+zijgevels en de tussenstukken tussen de woningen zijn antraciet damwandprofiel, en alleen de kopgevel
+met de voordeur is licht grijsbruin hout. Het dak is donkergrijze staande-naadplaat. Een stijl kan
+daarom nu een aparte kleur voor zijn blinde zijden zetten, en `kant` — die al wist welke kant een
+muurvlak op kijkt — beslist per vlak: naar de straat is de lichte gevelkleur, opzij de donkere. Zo
+blijft de punt bóven de voordeur licht en gaan alleen de flanken het donker in.
+
+Twee kleuren in de stijl zijn met opzet níét wat je op de foto meet. Het hout staat een stap warmer
+en donkerder, want het staande profiel tekent per ribbel een lichte flank en daar komt de blauwige
+hemelbelichting overheen — op de gemeten kleur werd het bleek en groenig. En het dak staat donkerder,
+want een metaaldak vangt de lucht: op middengrijs werd het bijna wit. Die glans is nu ook per stijl
+instelbaar, zodat de blanke puntdaken van de supermarkt blijven zoals ze waren. Daarbij bleek nog iets: een **blinde muur** — een kopgevel zonder ramen, precies wat je
 vanaf de straat ziet — kreeg altijd metselwerk, ook bij een pand dat helemaal geen metselwerk heeft.
 De voor- en achtergevel kregen het beschot wél. Dat is nu gelijkgetrokken.
 

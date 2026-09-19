@@ -4159,6 +4159,32 @@ algemeen te verlagen: 2,40 m is voor de 7885 andere panden precies goed, en éé
 wijk met een bijzondere plattegrond hoort daar geen uitzondering voor af te
 dwingen.
 
+*De verhouding tussen twee materialen is belangrijker dan de kleuren zelf.* De
+eerste versie van deze tiny houses kreeg één warmbruine tint met een lichtgrijs
+dak, en het oordeel van de gebruiker was kort: "lijkt er qua texture niet eens
+op". Terecht, en de les is algemener dan deze wijk. Op de foto is het gebouw
+grotendeels donker — de lange zijgevels en de tussenstukken zijn antraciet — en
+alleen de kopgevel met de voordeur is licht hout, onder een donker dak. Eén tint
+voor alles draait die verhouding om, en dan helpt het niet meer of die ene tint
+goed gekozen is: je kijkt naar een ander gebouw.
+
+Wat het mogelijk maakte om het wél te doen was iets dat er al lag. `muurKeuze`
+weet per muurvlak met `kant` of het naar de straat kijkt of opzij — dat is
+precies hetzelfde onderscheid dat de foto maakt. Een stijl mag nu een aparte
+kleur voor zijn blinde zijden zetten; naar de straat blijft het de gevelkleur.
+Daardoor blijft de punt boven de voordeur licht en gaan alleen de flanken het
+donker in, zonder dat er iets nieuws aan geometrie bij hoefde.
+
+En twee kleuren staan er met opzet naast de meting. Het hout staat warmer en
+donkerder dan de foto zegt, want `damwand` tekent per ribbel een lichte flank en
+de hemelbelichting is blauwig: op de gemeten kleur kwam er een bleke groenige
+tint uit. Het dak staat donkerder, want een metaaldak met `metalness: 0.35` vangt
+de lucht en werd op middengrijs bijna wit. Dat is geen vrijheid nemen met de
+bron maar het omgekeerde: invoeren wat eruit moet komen. De glans is daarbij ook
+per stijl instelbaar geworden, want voor de blanke puntdaken van de supermarkt
+was die 0,35 juist goed — één stijl die uit de toon valt hoort de andere niet mee
+te trekken.
+
 *Een doorzichtige textuur op een dicht materiaal.* Op sommige verkeersdrempels lag
 een egale zwarte band. De oorzaak is er een om te onthouden, want hij kan overal
 terugkomen: een canvas dat met `clearRect` leeg wordt gemaakt is
