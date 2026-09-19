@@ -24,12 +24,17 @@ brondata reikt, en dus ook de buitengrens van de wereld.
 
 Het spel staat online op GitHub Pages: **https://x589h29ftn-code.github.io/EDU2/**
 
-> Die publicatie liep tot nu toe niet. De workflow draaide braaf bij elke push maar viel steeds om op
-> `Get Pages site failed ... Not Found`: Pages stond in de repo-instellingen nooit **aan**, dus was er
-> geen site om naartoe te publiceren. En de site die hij samenstelde bevatte alleen `index.html`,
-> `js/` en `lib/` — zonder `audio/` en `beeld/` zou de radio stil blijven en het laadscherm zwart.
-> Allebei hersteld in `pages.yml`. Doet de link het nog niet, zet Pages dan één keer met de hand aan
-> onder *Settings → Pages → Source: GitHub Actions* en start de workflow opnieuw.
+> **Die link doet het nog niet, en daar is één handeling voor nodig.** De workflow draaide bij elke
+> push braaf mee, maar viel vanaf de eerste run om op `Get Pages site failed ... Not Found`: Pages
+> stond in de repo-instellingen nooit **aan**, dus was er geen site om naartoe te publiceren. Dat
+> aanzetten kan alleen met beheerdersrechten, eenmalig, onder
+> *Settings → Pages → Source: **GitHub Actions***. Het token dat GitHub aan een workflow geeft mag het
+> niet (`Create Pages site failed. Resource not accessible by integration`), dus dit kan geen script
+> voor je doen. Daarna publiceert elke push naar de ontwikkelbranch vanzelf.
+>
+> Wat wél hier op te lossen was: de site bevatte alleen `index.html`, `js/` en `lib/`. Zonder `audio/`
+> en `beeld/` zou de webversie laden met een stille radio en een zwart laadscherm. Die gaan nu mee
+> (`_site` wordt 43 MB).
 
 Lokaal draaien kan ook. Het spel heeft geen build-stap, maar omdat het ES-modules gebruikt moet het
 via een webserver geladen worden (niet via `file://`):

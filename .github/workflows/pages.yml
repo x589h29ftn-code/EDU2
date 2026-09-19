@@ -42,11 +42,21 @@ jobs:
           # die met een underscore beginnen weglaten.
           touch _site/.nojekyll
 
-      # `enablement` zet Pages aan als dat nog niet gebeurd is. Zonder dat viel
-      # deze stap om met "Get Pages site failed ... Not Found": de workflow liep
-      # keurig, maar Pages stond in de repo-instellingen nooit aangezet, dus was
-      # er geen site om naartoe te publiceren. Dat kan ook met de hand, via
-      # Settings -> Pages -> Source: GitHub Actions; dit doet hetzelfde.
+      # Hier viel het om, vanaf de allereerste run: "Get Pages site failed ...
+      # Not Found". De workflow deed niets verkeerd — Pages stond in de
+      # repo-instellingen nooit aangezet, dus was er geen site om naartoe te
+      # publiceren.
+      #
+      # `enablement: true` laat de actie hem zelf aanmaken, maar dat mag níet
+      # met het token dat GitHub aan een workflow geeft: dan komt er
+      # "Create Pages site failed. Resource not accessible by integration".
+      # Aanzetten is eenmalig handwerk en kan alleen met beheerdersrechten:
+      #
+      #   Settings -> Pages -> Source: GitHub Actions
+      #
+      # De regel blijft staan omdat hij daarna niets meer doet (de site bestaat
+      # dan) en hij hem wél aanzet als deze workflow ooit met een persoonlijk
+      # token draait.
       - uses: actions/configure-pages@v5
         with:
           enablement: true
