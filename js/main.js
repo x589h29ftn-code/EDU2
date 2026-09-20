@@ -416,6 +416,8 @@ const verhaal = initVerhaal({
   */
   eersteP: () => { if (derde.aan) derde.wissel(); },
   sterrenWeg: () => politie.reset(),
+  // en één ster geven, zonder loting: dat hoort bij het stelen van de BX
+  sterGeven: (n, x, z) => politie.zetSter(n, x, z),
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
   bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {}, mislukt() {},

@@ -1,7 +1,8 @@
 /*
  Het verhaal van Erik en zijn broer Mark.
 
- Vier missies, achter elkaar:
+ Zes missies. De eerste vijf rijgen zichzelf aan elkaar; de zesde begint pas als
+ je er zelf heen gaat — hij staat als M op de kaart.
 
  1. molenkrite  – Mark staat op de stoep voor Molenkrite 15 (het pand met dat
     huisnummer in de kaartdata: steile kap met dakkapel, het vierde huis na de
@@ -25,6 +26,11 @@
     neerschieten laat de missie mislukken. Na negentig seconden is hij op en kun
     je hem tegen het asfalt trappen; met de duizend euro terug naar Johan levert
     dat vijfhonderd euro in je portemonnee op.
+ 6. bx          – daarna verschijnt er een M op de kaart bij Tinga State: daar
+    staat Mark met een klus van De Veteraan. Een groene Citroën BX ophalen van
+    het parkeerterrein van VV Sneek (dat kost je een politiester), hem bij de
+    wasbox achter de BP laten overspuiten voor de vijfhonderd euro die Mark
+    meegeeft, en hem afleveren op het parkeerterrein van de Poiesz in IJlst.
 
  Alle plekken komen uit js/kaart.js (BGT en 3D BAG): het pand met huisnummer 15
  aan de Molenkrite, het pand ertegenover, het hek en de schuifpoort van het
@@ -86,6 +92,21 @@ const BUIT = 1000;             // wat de dief gejat heeft
 const BELONING = 500;          // wat Johan je ervoor geeft
 const START_GELD = 1000;       // waar je het spel mee begint — ruim, zodat de testfase het schap kan proberen
 
+/*
+ Missie 6: de groene BX (verzoek 20 sep 2026). Alle plekken komen weer uit de
+ kaart: Tinga State is het pand met huisnummer 115 aan de Molenkrite, de auto
+ staat op de dichtstbijzijnde parkeerplek bij het hoofdveld van VV Sneek, de
+ wasbox zit achter BP Slump Oil uit `KAART.tankstations`, en afleveren gebeurt
+ op de parkeerplek naast de Poiesz in IJlst.
+*/
+const BX_HUIS = { straat: 'Molenkrite', nr: '115' };   // Tinga State: daar wacht Mark
+const BX_VELD = /vv sneek/i;                           // het voetbalveld waar de BX staat
+const BX_GROEN = 0x2f6b3a;                             // "Ja. Groen ook."
+const BX_SPUIT = 500;                                  // wat het overspuiten kost
+const BX_BELONING = 250;                               // wat je eraan overhoudt
+const BX_PARKEER = 8;                                  // zo dicht bij de plek staat hij goed
+const BX_MARK_NAAST = 4.2;                             // zover naast de plek wacht Mark
+
 const PRAAT_AFSTAND = 5.5;
 const ZWAAI_AFSTAND = 26;
 const ROEP_AFSTAND = 30;
@@ -108,7 +129,11 @@ const KOPPEN = {
   johan: { huid: '#d3a273', haar: '#3a2a1c', shirt: '#3d6b3a', stoppels: true },
   erik: { huid: '#d9b48f', haar: '#6b5a45', shirt: '#2f4a6e' },
   dief: { huid: '#c99b78', shirt: '#d8232a', pet: '#f4f4f4' },
+  mark: { huid: '#d9b48f', haar: '#4a3b2c', shirt: '#3c4148', stoppels: true },
 };
+// twee sprekers die elkaar afwisselen, dus twee hulpjes die een regel opmaken
+const zegtMark = (tekst) => ({ wie: 'Mark', kop: KOPPEN.mark, tekst });
+const zegtErik = (tekst) => ({ wie: 'Erik', kop: KOPPEN.erik, tekst });
 const TELEFOON = [
   'Yo, met Johan! Luister, het is hier compleet mis. Ik heb je nú nodig. Kom direct naar Kruirad 62! Geen gezeik door de lijn, kom als de sodemieter deze kant op voor die graftak ermee wegkomt!',
 ];
@@ -127,6 +152,58 @@ const AFRONDING = [
   { wie: 'Johan', kop: KOPPEN.johan, tekst: 'Afspraak is afspraak: hier, vijfhonderd voor jou. Steek die flappen in je zak, die gaan we later nog hard nodig hebben.' },
 ];
 const MISLUKT_SCHOT = 'Johan zei nog zo: geen wouten op ons dak!';
+
+// ---------- missie 6: de groene BX ----------
+const BX_AANKONDIGING = ['Nieuwe missies kunnen worden gestart door naar het '
+  + '<b>M-symbool</b> op de minimap te gaan.'];
+const BX_BRIEFING_A = [
+  zegtMark('Daar ben je eindelijk.'),
+  zegtErik('Wat is er?'),
+  zegtMark('De Veteraan heeft een auto nodig.'),
+  zegtErik('En daarvoor stuurt hij mij?'),
+  zegtMark('Blijkbaar. Hij schijnt nogal specifiek te zijn.'),
+  zegtErik('Wat voor auto?'),
+  zegtMark('Een Citroën BX.'),
+  zegtMark('Prachtige auto al zeg ik het zelf.'),
+  zegtErik('Een BX?'),
+  zegtMark('Ja. Groen ook.'),
+  zegtErik('Waar staat-ie?'),
+  zegtMark('Op het parkeerterrein van de voetbalvereniging Sneek.'),
+  zegtErik('En wat moet ik ermee?'),
+  zegtMark('Ophalen en daarna een andere kleur laten spuiten.'),
+  zegtErik('Waar?'),
+  zegtMark('Bij de BP. Achter het tankstation zit een wasbox. Daar kunnen ze hem voor je overspuiten.'),
+  zegtErik('Een wasbox?'),
+  zegtMark('Ja. Vraag niet hoe het werkt. Het werkt.'),
+  zegtErik('En daarna?'),
+  zegtMark('Breng hem naar het parkeerterrein van de Poiesz in IJlst.'),
+  zegtErik('Wie wacht daar?'),
+  zegtMark('Ik.'),
+  zegtErik('Natuurlijk.'),
+];
+// hier telt hij het geld voor het overspuiten uit
+const BX_BRIEFING_B = [
+  zegtMark('Vijfhonderd euro. Dat zijn de kosten voor het overspuiten.'),
+  zegtErik('En welke kleur moet-ie worden?'),
+  zegtMark('Maakt niet uit. Als-ie maar niet meer groen is.'),
+  zegtErik('Dat is nogal een belangrijke toevoeging.'),
+  zegtMark('Succes.'),
+];
+const BX_EINDE = [
+  zegtMark('Kijk nou.'),
+  zegtMark('Je zou bijna zeggen dat-ie nieuw is.'),
+  zegtErik('Bijna?'),
+  zegtMark('Het blijft een BX.'),
+  zegtErik('Waar is De Veteraan?'),
+  zegtMark('Die ziet hem later wel.'),
+  zegtErik('Dus dat was het?'),
+  zegtMark('Voor vandaag wel.'),
+  // hij loopt er nog een keer omheen
+  zegtMark('Mooie kleur trouwens.'),
+  zegtErik('Jij zei dat het niet uitmaakte.'),
+  zegtMark('Dat zei ik inderdaad.'),
+  zegtMark('Wees trouwens bereikbaar, De Veteraan heeft ons snel weer nodig en wij kunnen het geld gebruiken.'),
+];
 
 const ZITTERS = ['zit_rood', 'zit_blauw', 'zit_groen', 'zit_geel'];
 
@@ -182,6 +259,32 @@ function poortStelsel(terrein) {
   };
 }
 
+/*
+ De dichtstbijzijnde parkeerplek bij een punt, met de richting van het vak erbij
+ (`yaw` uit de kaartdata). Zo staat de BX straks netjes in een vak en niet
+ schuin op een grasveld, en zo weet het verhaal waar hij afgeleverd moet worden.
+*/
+function parkeerBij(x, z, straal = 220, vrij = null) {
+  let beste = null;
+  for (const p of KAART.parkeerplekken || []) {
+    const d = Math.hypot(p.x - x, p.z - z);
+    if (d > straal) continue;
+    // een vak waar al een auto in staat is geen vak: dan zet je de BX bovenop
+    // een geparkeerde auto, en stap je bij het indrukken van E in de verkeerde
+    if (vrij && !vrij(p.x, p.z)) continue;
+    if (!beste || d < beste.d) beste = { x: p.x, z: p.z, yaw: p.yaw || 0, d };
+  }
+  return beste;
+}
+
+// Het hoofdveld van de voetbalclub, om de parkeerplaats ernaast te vinden.
+function sportveldVan(naam) {
+  const v = (KAART.sportvelden || []).find(q => naam.test(q.naam || ''));
+  if (!v) return null;
+  const x = v.cx ?? (v.mid ? v.mid[0] : null), z = v.cz ?? (v.mid ? v.mid[1] : null);
+  return x == null ? null : { x, z, naam: v.naam };
+}
+
 function inPolygoon(x, z, poly) {
   let raak = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -207,11 +310,13 @@ export function verhaalStart() {
 */
 export function initVerhaal(ctx) {
   /*
-   `eersteP` en `sterrenWeg` komen uit js/main.js: dit bestand kent de camera en
-   de politie niet, maar moet er op twee momenten wel iets mee. Ze zijn optioneel,
+   `eersteP`, `sterrenWeg` en `sterGeven` komen uit js/main.js: dit bestand kent
+   de camera en de politie niet, maar moet er op een paar momenten wel iets mee
+   — de camera terug naar de eerste persoon, de sterren weghalen na de
+   vrachtwagen, en er juist één geven als je de BX steelt. Ze zijn optioneel,
    zodat het verhaal ook zonder werkt.
   */
-  const { scene, player, hud, vehicles, eersteP = null, sterrenWeg = null } = ctx;
+  const { scene, player, hud, vehicles, eersteP = null, sterrenWeg = null, sterGeven = null } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
   const tekstEl = document.getElementById('dialoogTekst');
@@ -335,6 +440,10 @@ export function initVerhaal(ctx) {
   let spanning = false;
   let spanningUit = 0;
   let startPraatT = -1;          // aftellen tot Mark uit zichzelf begint (zie beginGesprek)
+  // missie 6: de groene BX
+  let bxAuto = null;             // de Citroën BX zelf
+  let bxPlek = null;             // het parkeervak bij de Poiesz in IJlst
+  let bxGestolen = false;        // of de ster voor de diefstal al gegeven is
   let doodT = 0;                 // aftellen na het neergaan
   // missie 5
   let johan = null;              // de Persoon van Johan
@@ -449,6 +558,104 @@ export function initVerhaal(ctx) {
     else if (naam === 'bewaking') beginBewaking();
     else if (naam === 'afleveren') beginAfleveren();
     else if (naam === 'johan') beginJohan();
+    else if (naam === 'bx') beginBX();
+  }
+
+  /*
+   ---- missie 6: de groene BX ----
+
+   Vanaf hier werkt het spel anders: een missie begint niet meer vanzelf maar
+   staat als **M** op de kaart. Mark loopt naar Tinga State en wacht daar; met E
+   spreek je hem aan (verzoek 20 sep 2026).
+  */
+  function beginBX() {
+    fase = 'wacht';
+    bxGestolen = false;
+    const pand = pandVan(BX_HUIS);
+    const bij = pand ? voorPunt(pand, 7.5) : { x: player.pos.x + 6, z: player.pos.z };
+    const [mx, mz] = resolveCollisions(bij.x, bij.z, 0.4);
+    markDoel = null; markNa = null;
+    mark.zetNeer(mx, mz, pand ? kijkHoek({ x: mx, z: mz }, voorPunt(pand, 24)) : mark.yaw);
+    markZichtbaar(true);
+    zetOpdracht('ga naar de M op de kaart: Mark wacht bij Tinga State');
+    zetNavDoel(mx, mz, 'Tinga State', 'M');
+    // eenmalig uitleggen waar die M voor staat
+    uitleg.toon('missies', 'NIEUWE MISSIES',
+      BX_AANKONDIGING[0], 14);
+  }
+
+  /*
+   Elk parkeervak in de wijk is bezet: de geparkeerde auto's komen uit dezelfde
+   kaartdata als de vakken zelf (js/kaartwereld.js, `parkSpots`). Een "leeg vak"
+   zoeken heeft dus geen zin — dit zoekt de auto die er staat.
+  */
+  function geparkeerdBij(x, z, straal) {
+    let beste = null;
+    for (const c of vehicles.cars) {
+      if (c === bxAuto || !c.inst || c.zichtbaar === false) continue;
+      const d = Math.hypot(c.x - x, c.z - z);
+      if (d > straal) continue;
+      if (!beste || d < beste.d) beste = { c, d };
+    }
+    return beste ? beste.c : null;
+  }
+
+  /*
+   De BX neerzetten. Niet als extra auto bovenop een vak dat al bezet is — dan
+   stap je met E in de verkeerde — maar door de auto die het dichtst bij het
+   veld van VV Sneek staat *tot* de BX te maken: ander model, groene lak, en het
+   losse model in plaats van de instantie. Eén van de auto's op het
+   clubparkeerterrein ís de BX.
+  */
+  function zetBXNeer() {
+    if (bxAuto) return bxAuto;
+    const veld = sportveldVan(BX_VELD);
+    const staander = veld ? geparkeerdBij(veld.x, veld.z, 260) : null;
+    if (staander) {
+      staander.soort = 'bx';
+      vehicles.verf(staander, BX_GROEN);
+      vehicles.maakBestuurbaar(staander);
+      bxAuto = staander;
+      return bxAuto;
+    }
+    // geen geparkeerde auto in de buurt (een kale kaart): dan toch maar een nieuwe
+    const vak = veld ? parkeerBij(veld.x, veld.z, 260) : null;
+    const plek = vak || { x: player.pos.x + 8, z: player.pos.z + 8, yaw: 0 };
+    bxAuto = vehicles.voegToe({ x: plek.x, z: plek.z, yaw: plek.yaw, soort: 'bx', kleur: BX_GROEN });
+    return bxAuto;
+  }
+
+  // Waar hij afgeleverd moet worden: het vak naast de Poiesz in IJlst.
+  function bxAfleverPlek() {
+    if (bxPlek) return bxPlek;
+    const poiesz = (KAART.panden || []).find(q => q.type === 'poiesz');
+    const vak = poiesz ? parkeerBij(poiesz.rect.cx, poiesz.rect.cz, 120) : null;
+    if (vak) {
+      /*
+       En het vak leegmaken: de auto die er stond is weggereden. Zonder dat
+       parkeer je de BX dwars door een geparkeerde auto heen. Onzichtbaar
+       betekent hier ook: hij telt niet meer mee voor botsingen en voor het
+       instappen met E (`isZichtbaar` in js/vehicles.js).
+      */
+      const erop = geparkeerdBij(vak.x, vak.z, 2.2);
+      if (erop) {
+        erop.zichtbaar = false;
+        erop.driveable = false;
+        vehicles.zetInstantie(erop);
+      }
+    }
+    bxPlek = vak || (bxAuto ? { x: bxAuto.x, z: bxAuto.z, yaw: 0 } : null);
+    return bxPlek;
+  }
+
+  // Na de briefing: de auto staat klaar, de muziek gaat aan en de kaart wijst.
+  function startBXRit() {
+    fase = 'ophalen';
+    spanning = true; spanningUit = 0;          // spanningsmuziek, tot het eind
+    const auto = zetBXNeer();
+    markZichtbaar(false);                      // hij ziet je straks in IJlst wel
+    zetOpdracht('haal de groene Citroën BX op bij VV Sneek');
+    zetNavDoel(auto.x, auto.z, 'VV Sneek', 'A');
   }
 
   // -- missie 2: rijden naar de waterzuivering
@@ -691,6 +898,20 @@ export function initVerhaal(ctx) {
       zeg(GESPREK1, () => { fase = 'loopt'; zetOpdracht('ga met Mark mee'); });
       return true;
     }
+    /*
+     Missie 6 begint hier: Mark staat bij Tinga State onder de M op de kaart.
+     Halverwege het gesprek telt hij vijfhonderd euro uit voor het overspuiten;
+     daarom staat de briefing in twee stukken.
+    */
+    if (missie === 'bx' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND) {
+      fase = 'briefing';
+      zeg(BX_BRIEFING_A, () => {
+        verdien(BX_SPUIT);
+        hud.melding('Mark geeft je € 500', 'Dat is het geld voor het overspuiten.', 5);
+        zeg(BX_BRIEFING_B, () => startBXRit());
+      });
+      return true;
+    }
     return false;
   }
 
@@ -913,9 +1134,14 @@ export function initVerhaal(ctx) {
           buit = 0;
           geld += BELONING;
           zetGeldInBeeld();
-          missie = 'klaar'; fase = 'klaar';
           zetOpdracht('');
           hud.melding('MISSIE VOLTOOID', `Beloning: + ${euro(BELONING)} toegevoegd aan wallet`, 8);
+          /*
+           En meteen door naar de volgende: vanaf hier staat een missie als M op
+           de kaart in plaats van dat hij vanzelf begint (verzoek 20 sep 2026).
+           De uitleg daarover en de M bij Tinga State komen uit `beginBX`.
+          */
+          startMissie('bx');
           /*
            En waar je dat geld aan kwijt kunt. Tot hier is het spel een reeks
            opdrachten geweest; vanaf nu is het de wijk in, en dan helpt het om te
@@ -926,6 +1152,88 @@ export function initVerhaal(ctx) {
             + 'bij de <b>Poiesz</b> in IJlst en Duinterpen vul je je health aan', 13);
         });
       }
+    }
+  }
+
+  /*
+   Missie 6 per beeld. Vier stappen: de auto ophalen (dat kost je een ster), hem
+   laten overspuiten bij de wasbox achter de BP, hem naar IJlst rijden en hem
+   naast Mark parkeren. De kaart wijst steeds het volgende doel aan.
+  */
+  function werkBXBij(dt, sp) {
+    if (fase === 'wacht') {
+      // de hint boven de M: dit is dezelfde regel als bij Molenkrite 15
+      const bezig = player.active || window.__autoplay;
+      praatEl.textContent = 'E — praten';
+      praatEl.hidden = !(bezig && afst(sp, mark.groep.position) < PRAAT_AFSTAND && balk.hidden);
+      return;
+    }
+    if (fase === 'briefing' || fase === 'klaar') return;
+    navKlok += dt;
+    if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+
+    if (fase === 'ophalen') {
+      if (!bxAuto) return;
+      if (player.inCar === bxAuto) {
+        /*
+         Je stapt in een auto die niet van jou is, op een parkeerterrein waar
+         mensen lopen. Dat is één ster — niet afhankelijk van of iemand het ziet
+         (verzoek 20 sep 2026), want het hoort bij de missie.
+        */
+        if (!bxGestolen) {
+          bxGestolen = true;
+          if (sterGeven) sterGeven(1, bxAuto.x, bxAuto.z);
+          // en in deze auto staat Radio Spannenburg op
+          geluid.zetZender('Spannenburg');
+        }
+        fase = 'spuiten';
+        const bp = (KAART.tankstations || [])[0];
+        zetOpdracht('laat de BX overspuiten bij de wasbox achter de BP');
+        if (bp) zetNavDoel(bp.x ?? bp.cx, bp.z ?? bp.cz, 'BP Slump Oil', 'S');
+      }
+      return;
+    }
+
+    if (fase === 'spuiten') {
+      // De spuiterij (js/spuiterij.js) doet het werk; hier kijken we alleen of
+      // hij een andere kleur heeft gekregen. Welke kleur dat wordt kiest het
+      // spel, niet de speler.
+      if (bxAuto && bxAuto.kleur !== BX_GROEN) {
+        fase = 'wegbrengen';
+        const plek = bxAfleverPlek();
+        zetOpdracht('breng de BX naar het parkeerterrein van de Poiesz in IJlst');
+        if (plek) {
+          zetNavDoel(plek.x, plek.z, 'Poiesz IJlst', 'M');
+          // Mark staat daar te wachten; hij is intussen naar IJlst gereden
+          const naast = { x: plek.x - Math.sin(plek.yaw + Math.PI / 2) * BX_MARK_NAAST,
+            z: plek.z - Math.cos(plek.yaw + Math.PI / 2) * BX_MARK_NAAST };
+          const [mx, mz] = resolveCollisions(naast.x, naast.z, 0.4);
+          mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, plek));
+          markZichtbaar(true);
+        }
+      }
+      return;
+    }
+
+    if (fase === 'wegbrengen') {
+      const plek = bxAfleverPlek();
+      if (!bxAuto || !plek) return;
+      const d = Math.hypot(bxAuto.x - plek.x, bxAuto.z - plek.z);
+      const staat = Math.abs(bxAuto.speed || 0) < 1.2;
+      const erbij = player.inCar === bxAuto || afst(sp, bxAuto) < 12;
+      if (d < BX_PARKEER && staat && erbij && balk.hidden) {
+        fase = 'afronding';
+        zetOpdracht('');
+        hud.zetNavigatie(null); navDoel = null;
+        zeg(BX_EINDE, () => {
+          verdien(BX_BELONING);
+          missie = 'klaar'; fase = 'klaar';
+          spanningUit = 6;                 // de muziek loopt over de melding heen uit
+          hud.melding('MISSIE VOLTOOID – DE GROENE BX',
+            `Beloning: + ${euro(BX_BELONING)} toegevoegd aan wallet`, 8);
+        });
+      }
+      return;
     }
   }
 
@@ -1024,6 +1332,19 @@ export function initVerhaal(ctx) {
         mark.kijkNaar(sp.x, sp.z, dt, 2);
         mark.update(dt, {});
       }
+    } else if (missie === 'bx' && mark.groep.visible) {
+      /*
+       Bij de BX staat hij twee keer te wachten: onder de M bij Tinga State en
+       op het parkeerterrein in IJlst. Allebei de keren zwaait hij als je in
+       zicht komt — net als aan het begin van het spel voor Molenkrite 15. Als
+       de auto er eenmaal staat kijkt hij naar de auto en niet meer naar jou:
+       "Mooie kleur trouwens."
+      */
+      const naarAuto = fase === 'afronding' && bxAuto;
+      if (naarAuto) mark.kijkNaar(bxAuto.x, bxAuto.z, dt, 2);
+      else mark.kijkNaar(sp.x, sp.z, dt, 2);
+      mark.update(dt, { zwaait: !naarAuto && (fase === 'wacht' || fase === 'wegbrengen') && dMark < ZWAAI_AFSTAND });
+      hinder.opWeg = false;
     } else {
       // in de latere missies staat hij te wachten en kijkt hij naar je
       if (mark.groep.visible) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
@@ -1112,6 +1433,9 @@ export function initVerhaal(ctx) {
     // ---- missie 5: Johan en de dief ----
     if (missie === 'johan') werkJohanBij(dt, sp);
 
+    // ---- missie 6: de groene BX ----
+    if (missie === 'bx') werkBXBij(dt, sp);
+
     // ---- missie 4: afleveren ----
     if (missie === 'afleveren' && fase !== 'klaar') {
       navKlok += dt;
@@ -1138,6 +1462,7 @@ export function initVerhaal(ctx) {
       geld, buit,
       johan: johan ? { x: johan.groep.position.x, z: johan.groep.position.z, yaw: johan.yaw } : null,
       dief: dief ? dief.bewaar() : null,
+      bx: bxAuto ? { x: bxAuto.x, z: bxAuto.z, yaw: bxAuto.yaw, kleur: bxAuto.kleur, gestolen: bxGestolen } : null,
     };
   }
 
@@ -1149,7 +1474,8 @@ export function initVerhaal(ctx) {
     fase = s.fase || 'wacht';
     if (fase === 'gesprek' || fase === 'briefing') { fase = 'wacht'; missie = 'molenkrite'; }
     // Een opgeslagen spel middenin de rit begint ook weer met muziek eronder.
-    spanning = (missie === 'rijden' && fase !== 'instappen') || missie === 'bewaking' || missie === 'afleveren';
+    spanning = (missie === 'rijden' && fase !== 'instappen') || missie === 'bewaking' || missie === 'afleveren'
+      || (missie === 'bx' && fase !== 'wacht' && fase !== 'briefing' && fase !== 'klaar');
     spanningUit = 0;
     markDoel = null; markNa = null;
     if (s.mark) { mark.zetNeer(s.mark.x, s.mark.z, s.mark.yaw || 0); markZichtbaar(s.mark.zichtbaar !== false); }
@@ -1167,6 +1493,20 @@ export function initVerhaal(ctx) {
     else if (s.auto && vluchtauto) {
       vluchtauto.x = s.auto.x; vluchtauto.z = s.auto.z; vluchtauto.yaw = s.auto.yaw; vluchtauto.speed = 0;
       vluchtauto.mesh.position.set(s.auto.x, 0, s.auto.z); vluchtauto.mesh.rotation.y = s.auto.yaw;
+    }
+    /*
+     De BX uit missie 6. Hij staat niet in de kaart, dus hij wordt bij het laden
+     opnieuw neergezet — in de kleur die hij op dat moment had, want misschien
+     was hij al overgespoten.
+    */
+    if (s.bx) {
+      bxGestolen = !!s.bx.gestolen;
+      if (!bxAuto) bxAuto = vehicles.voegToe({ x: s.bx.x, z: s.bx.z, yaw: s.bx.yaw, soort: 'bx', kleur: s.bx.kleur ?? BX_GROEN });
+      else {
+        bxAuto.x = s.bx.x; bxAuto.z = s.bx.z; bxAuto.yaw = s.bx.yaw; bxAuto.speed = 0;
+        bxAuto.mesh.position.set(s.bx.x, 0, s.bx.z); bxAuto.mesh.rotation.y = s.bx.yaw;
+      }
+      if (bxAuto.kleur !== (s.bx.kleur ?? BX_GROEN)) vehicles.verf(bxAuto, s.bx.kleur ?? BX_GROEN);
     }
     if (s.truck) {
       if (!truck) truck = vehicles.voegToe({ x: s.truck.x, z: s.truck.z, yaw: s.truck.yaw, soort: 'truck', kleur: 0xdedede, driveable: !!s.truck.driveable });
@@ -1261,6 +1601,14 @@ export function initVerhaal(ctx) {
     update, toets, doelen, raak, hinder, bewaar, herstel, meldAan, schotGehoord, dood, mislukt,
     beginGesprek,
     /*
+     Wat het overspuiten kost. De wasbox achter de BP (js/spuiterij.js) rekent
+     normaal honderd euro per ster; de BX uit missie 6 gaat voor een vast bedrag
+     over de kop, ook zonder sterren — dat is precies het geld dat Mark je
+     meegaf. Levert null als het om een gewone auto gaat, en dan telt de prijs
+     van de spuiterij zelf.
+    */
+    spuitPrijs: (auto) => (missie === 'bx' && auto && auto === bxAuto ? BX_SPUIT : null),
+    /*
      Twee haakjes voor een missie die buiten dit bestand draait (js/vaart.js, de
      lading over het water): de opdrachtregel in beeld en de gespreksbalk. Ze
      horen bij het verhaal en niet bij de HUD — de balk weet van telefoontjes, van
@@ -1281,6 +1629,8 @@ export function initVerhaal(ctx) {
     get buit() { return buit; },
     get truck() { return truck; },
     get auto() { return vluchtauto; },
+    get bx() { return bxAuto; },
+    get bxPlek() { return bxAfleverPlek(); },
     get poortOpen() { return poortOpen; },
     get plekken() {
       return {
@@ -1292,9 +1642,14 @@ export function initVerhaal(ctx) {
       };
     },
     get aanspreekbaar() {
-      return !balk.hidden || (missie === 'molenkrite' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND);
+      const bijMark = afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND && mark.groep.visible;
+      return !balk.hidden
+        || (missie === 'molenkrite' && fase === 'wacht' && bijMark)
+        || (missie === 'bx' && fase === 'wacht' && bijMark);
     },
     // testhaak (tools/introtest.mjs): het moment waarop Erik zijn wapen krijgt
     __geefWapen: geefWapen,
+    // testhaak (tools/bxtest.mjs): meteen naar een missie, zonder de vorige te spelen
+    __startMissie: startMissie,
   };
 }

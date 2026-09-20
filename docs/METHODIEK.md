@@ -4550,6 +4550,52 @@ na anderhalve tot vier seconden, en niet door iedereen. "Niet gelijk
 claxonneren" was de vraag, en dat is precies het verschil tussen een grap en een
 alarmbel.
 
+**De groene BX (stap 68).** Missie 6, en meteen een ander soort missie: hij
+begint niet vanzelf maar staat als **M** op de kaart.
+
+*Een missie die wacht tot jij begint.* De eerste vijf missies rijgen zichzelf
+aan elkaar — de een eindigt en de volgende start. Dat werkt zolang het verhaal
+de speler aan de hand meeneemt, maar het maakt van de wijk een gang. De BX
+begint anders: na Johan komt er één balk in beeld die vertelt dát missies
+voortaan bij een M beginnen, en daarna is het aan jou. Dezelfde gedachte als bij
+Mark die zelf begint te praten (stap 67): vertel het op het moment dat het aan
+de orde is, en laat de speler daarna zelf kiezen.
+
+*Een auto die er al stond.* De eerste opzet zette de BX als extra auto neer op
+het parkeerterrein van VV Sneek, in het dichtstbijzijnde vak uit de kaartdata.
+In de proef bleek dat je met E níét in de BX stapte maar in de auto ernaast — en
+toen pas viel op wat er echt aan de hand was: **elk vak in de wijk is bezet**.
+De geparkeerde auto's komen uit dezelfde `parkeerplekken` als de vakken zelf, dus
+"zoek een leeg vak" levert per definitie niets op; de zoektocht liep er
+vierhonderd meter naast op zoek naar een vak dat niet bestond.
+
+De oplossing komt uit de wereld zelf: de auto die het dichtst bij het hoofdveld
+staat *wordt* de BX. Ander model, groene lak, en in plaats van de instantie het
+losse model met wielen. Bij het afleveren gebeurt het omgekeerde: de auto die op
+het afleverkvak in IJlst stond is weggereden, zodat er plek is. Beide keren geen
+nieuwe auto die uit de lucht komt vallen, en geen dubbele auto's op één vak.
+
+*Een model uit maten, niet uit een tekening.* De BX is geen apart bestand maar
+dezelfde parametrische opbouw als de andere auto's, met de maten van het echte
+ding: 4,23 × 1,69 m, wielbasis 2,65, dak op 1,37 — dertig centimeter lager dan
+de rest — plus een steilere voorruit en een motorkap die naar voren afloopt.
+Alles wat daarvan wordt afgeleid (stijlen, ruiten, bumpers, lampen, het
+interieur) schuift vanzelf mee. Eén `kind` erbij in js/carmodel.js, en de toets
+leest de maten terug uit `autoMaat('bx')`.
+
+*Prijzen horen bij de plek, niet bij de missie.* Het overspuiten kost normaal
+honderd euro per ster. Voor de BX is het een vast bedrag — precies het geld dat
+Mark meegeeft. Dat is geen speciaal geval in de wasbox geworden maar een vraag
+die de wasbox aan het verhaal stelt (`verhaal.spuitPrijs(auto)`): het verhaal
+weet welke auto van hem is, de wasbox weet hoe overspuiten werkt, en geen van
+beide hoeft iets van de ander te weten.
+
+*Eén ster, gegarandeerd.* Verdenking werkt in dit spel met getuigen en kansen:
+een misdaad die niemand ziet wordt vaak niet gemeld. Voor het stelen van de BX
+hoort er gewoon een ster te staan, altijd. Dat is een aparte ingang in
+js/politie.js (`zetSter`) geworden en geen uitzondering in de kansberekening —
+zo blijft het model voor alle andere misdaden intact.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

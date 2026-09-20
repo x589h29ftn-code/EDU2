@@ -663,9 +663,15 @@ for (let i = 0; i < 3; i++) {
 ok(/lekker werk/.test(beloning[0].tekst), 'Johan is blij', beloning[0].tekst.slice(0, 40));
 ok(/vijfhonderd voor jou/.test(beloning[1].tekst), 'en geeft je vijfhonderd euro', beloning[1].tekst.slice(0, 40));
 const eind = beloning[2];
-// je begint met € 1000 op zak (js/verhaal.js), dus na de beloning staat er € 1500
-ok(eind.missie === 'klaar' && eind.geld === 1500 && eind.buit === 0,
-  'de missie is voltooid en het geld staat in je portemonnee', `${eind.missie}, € ${eind.geld}`);
+/*
+ Je begint met € 1000 op zak (js/verhaal.js), dus na de beloning staat er
+ € 1500. De missie staat sinds 20 september niet meer op 'klaar' maar op 'bx':
+ direct na Johan begint missie 6, met een M op de kaart bij Tinga State.
+ tools/bxtest.mjs loopt die missie zelf na.
+*/
+ok(eind.missie === 'bx' && eind.geld === 1500 && eind.buit === 0,
+  'de missie is voltooid, het geld staat in je portemonnee en de volgende missie staat klaar',
+  `${eind.missie}, € ${eind.geld}`);
 ok(/MISSIE VOLTOOID/.test(eind.melding) && /500/.test(eind.melding), '"MISSIE VOLTOOID" met de beloning', eind.melding.slice(0, 50));
 ok(/1\.?500/.test(eind.geldEl), 'de portemonnee staat in beeld', eind.geldEl);
 
@@ -766,9 +772,9 @@ const opslag = await page.evaluate(() => {
     geld: g.verhaal.geld, diefStaat: g.verhaal.dief.staat,
   };
 });
-ok(opslag.inOpslag === 'klaar' && opslag.geldInOpslag === 1500, 'de stand van het verhaal en het geld zitten in de opslag',
+ok(opslag.inOpslag === 'bx' && opslag.geldInOpslag === 1500, 'de stand van het verhaal en het geld zitten in de opslag',
   `${opslag.inOpslag}, € ${opslag.geldInOpslag}`);
-ok(opslag.naLaden === 'klaar' && opslag.bewakingNeer === 5 && opslag.poortOpen && opslag.diefStaat === 'gepakt',
+ok(opslag.naLaden === 'bx' && opslag.bewakingNeer === 5 && opslag.poortOpen && opslag.diefStaat === 'gepakt',
   'na laden staat alles er weer: missie, bewaking, poort en de dief');
 ok(opslag.geld === 1500, 'en je geld ook', `€ ${opslag.geld}`);
 ok(opslag.leven === 100 && opslag.ammo !== 2, 'leven en munitie komen terug', `${opslag.leven} leven`);

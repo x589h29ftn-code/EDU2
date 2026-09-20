@@ -607,6 +607,22 @@ export const geluid = {
   },
 
   /*
+   Een zender op naam kiezen. Het verhaal gebruikt dit: in de groene BX uit
+   missie 6 staat Radio Spannenburg op (verzoek 20 sep 2026). Zit die zender er
+   niet, dan gebeurt er niets en blijft staan wat er stond.
+  */
+  zetZender(naam) {
+    const i = zenders.findIndex(z => new RegExp(naam, 'i').test(z.naam || ''));
+    if (i < 0 || i === zenderNu) return this.radioZender();
+    const m = bronnen.muziek;
+    if (m && m.el && !m.stuk) zenderStand[zenderNu] = m.el.currentTime;
+    zenderNu = i;
+    radioLijst = zenders[i].nummers;
+    if (m) { m.nummer = null; m.zender = i; }
+    return this.radioZender();
+  },
+
+  /*
    Je stapt in een auto. Elke auto heeft zijn eigen radio: in dezelfde auto
    loopt de uitzending door waar hij was, in een andere begint hij ergens
    anders. Zonder dat hoor je in elke auto weer hetzelfde begin.

@@ -318,7 +318,17 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
     else if (hint) { el.hidden = true; hint = null; }
   }
 
-  const prijsVoor = (sterren) => Math.max(1, sterren) * PRIJS_PER_STER;
+  /*
+   Wat het kost. Normaal honderd euro per ster, met een minimum van één ster —
+   ook zonder blauw op je dak kun je hem laten overspuiten. Het verhaal mag er
+   een eigen prijs voor vragen: de groene BX uit missie 6 gaat voor een vast
+   bedrag over de kop, precies het geld dat Mark je meegaf (js/verhaal.js).
+  */
+  const prijsVoor = (sterren, auto = null) => {
+    const eigen = verhaal && verhaal.spuitPrijs ? verhaal.spuitPrijs(auto || player.inCar) : null;
+    if (eigen != null) return eigen;
+    return Math.max(1, sterren) * PRIJS_PER_STER;
+  };
 
   // ---------- per beeld ----------
   let bezig = null;          // de box waar op dit moment iets gebeurt
@@ -450,7 +460,7 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
   */
   function klaarMet(box) {
     const sterren = politie ? politie.ster : 0;
-    const prijs = prijsVoor(sterren);
+    const prijs = prijsVoor(sterren, box.auto || player.inCar);
     if (!verhaal || !verhaal.betaal || !verhaal.betaal(prijs)) {
       if (hud) hud.melding('Te weinig geld', `Overspuiten kost € ${prijs}.`, 3);
       return;

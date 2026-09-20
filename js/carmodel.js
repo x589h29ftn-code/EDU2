@@ -237,18 +237,44 @@ function truckGeoms() {
 */
 function autoGeoms(kind) {
   const bus = kind === 'van';
-  const L = bus ? 5.20 : 4.30, W = bus ? 1.90 : 1.78, R = bus ? 0.35 : 0.32;
-  const wielZ = bus ? 1.62 : 1.32, wielX = W / 2 - 0.09;
-  const dorpelY = 0.30 + R * 0.42;
+  /*
+   De Citroën BX uit missie 6 (js/verhaal.js). Het is geen ander model maar
+   dezelfde opbouw met andere maten: 4,23 × 1,69 m op een wielbasis van 2,65
+   (de echte maten), een lager dak, een langere ruitpartij en een scherpere
+   neus — de wig waar een BX aan te herkennen is. Alles wat hieronder van deze
+   getallen wordt afgeleid — stijlen, ruiten, bumpers, lampen — schuift vanzelf
+   mee.
+  */
+  const bx = kind === 'bx';
+  let L = bus ? 5.20 : 4.30, W = bus ? 1.90 : 1.78, R = bus ? 0.35 : 0.32;
+  let wielZ = bus ? 1.62 : 1.32;
 
   // hoogtes: dorpel → flank → schouder → dak
-  const flankY = bus ? 1.02 : 0.72, flankH = bus ? 0.84 : 0.30;
-  const schouderY = bus ? 1.50 : 0.90;
-  const dakY = bus ? 2.02 : 1.40;
-  const cabZ = bus ? -0.60 : 0.10;              // midden van de cabine
-  const cabL = bus ? 2.30 : 1.95;               // lengte van de cabine
-  const kapZ = -L / 2 + (bus ? 0.55 : 0.80), kapL = bus ? 1.00 : 1.55;
-  const kontZ = L / 2 - (bus ? 1.10 : 0.55), kontL = bus ? 2.10 : 1.05;
+  let flankY = bus ? 1.02 : 0.72, flankH = bus ? 0.84 : 0.30;
+  let schouderY = bus ? 1.50 : 0.90;
+  let dakY = bus ? 2.02 : 1.40;
+  let cabZ = bus ? -0.60 : 0.10;                // midden van de cabine
+  let cabL = bus ? 2.30 : 1.95;                 // lengte van de cabine
+  let kapL = bus ? 1.00 : 1.55;
+  let kontL = bus ? 2.10 : 1.05;
+  let kapVoor = bus ? 0.55 : 0.80, kontAchter = bus ? 1.10 : 0.55;
+  if (bx) {
+    L = 4.23; W = 1.69; R = 0.30; wielZ = 1.325;
+    flankY = 0.66; flankH = 0.26;
+    /*
+     De schouderlijn ligt laag en het dak hoog genoeg om er een echte ruitpartij
+     tussen te krijgen: 0,55 m glas tegen 0,50 bij de andere auto's, op een dak
+     dat juist láger ligt. Dat is wat een BX zo plat doet lijken.
+    */
+    schouderY = 0.82; dakY = 1.37;
+    cabZ = 0.06; cabL = 2.15;
+    kapL = 1.45; kontL = 0.80;
+    kapVoor = 0.70; kontAchter = 0.42;
+  }
+  const wielX = W / 2 - 0.09;
+  const dorpelY = 0.30 + R * 0.42;
+  const kapZ = -L / 2 + kapVoor;
+  const kontZ = L / 2 - kontAchter;
 
   const lak = [
     /*
@@ -264,7 +290,12 @@ function autoGeoms(kind) {
     */
     ...holleKoker(W, flankH, L - 0.12, 0, flankY, 0, 0.10, cabZ - cabL / 2 + 0.12, cabZ + cabL / 2 - 0.12),
     ...holleKoker(W - 0.09, 0.10, L - 0.40, 0, schouderY - 0.05, 0, 0.10, cabZ - cabL / 2 + 0.12, cabZ + cabL / 2 - 0.12),
-    { geo: doos(W - 0.20, 0.11, kapL), y: schouderY + (bus ? 0.30 : 0.02), z: kapZ }, // motorkap
+    /*
+     Motorkap. Bij de BX loopt hij naar voren af: dat is de wig waar de auto aan
+     te herkennen is. Een negatieve kanteling om de x-as zet de voorkant omlaag
+     (y' = z·sin θ voor de voorste rand op −z).
+    */
+    { geo: doos(W - 0.20, 0.11, kapL), y: schouderY + (bus ? 0.30 : (bx ? -0.02 : 0.02)), z: kapZ, rx: bx ? -0.085 : 0 }, // motorkap
     { geo: doos(W - 0.14, 0.20, kontL), y: schouderY + 0.09, z: kontZ },            // kofferklep
     /*
      Het dak. Het was W − 0,40 breed (1,38 m) terwijl de zijruiten op ±0,79
@@ -281,7 +312,7 @@ function autoGeoms(kind) {
   ];
   // stijlen: A schuin naar voren, C schuin naar achteren, B recht in het midden
   const stijlH = dakY - schouderY;
-  const aHoek = bus ? 0.34 : 0.62, cHoek = bus ? -0.16 : -0.50;
+  const aHoek = bus ? 0.34 : (bx ? 0.74 : 0.62), cHoek = bus ? -0.16 : (bx ? -0.40 : -0.50);
   for (const zx of [-1, 1]) {
     const x = zx * (W / 2 - (bus ? 0.10 : 0.075));
     lak.push({ geo: doos(0.09, stijlH + 0.16, 0.10), x, y: (schouderY + dakY) / 2, z: cabZ - cabL / 2 + 0.30 - Math.sin(aHoek) * stijlH / 2, rx: aHoek });

@@ -532,6 +532,24 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     return true;
   }
 
+  /*
+   Sterren zonder loting. Het verhaal gebruikt dit als je in missie 6 de groene
+   BX steelt: daar hoort één ster bij, en die mag niet afhangen van of er
+   toevallig iemand op het parkeerterrein staat (verzoek 20 sep 2026). De heat
+   gaat naar net boven de drempel van dat aantal sterren en de melding gaat de
+   lucht in, precies zoals bij een misdaad die wél gezien is.
+  */
+  function zetSter(aantal = 1, x = null, z = null) {
+    const n = Math.max(1, Math.min(STERREN.length, Math.round(aantal)));
+    const plek = x == null ? spelerPlek() : { x, z };
+    heat = Math.max(heat, STERREN[n - 1] + 2);
+    gezienT = 0;
+    stille = 0;
+    laatstBekend = { x: plek.x, z: plek.z };
+    meldDoor(plek.x, plek.z, false);
+    return ster();
+  }
+
   // ---------------------------------------------------------------- eenheden
   // Een plek op een rijbaan die ver genoeg weg is en liefst uit het zicht.
   /*
@@ -1563,7 +1581,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   }
 
   return {
-    misdaad, update, raak, raakWagen, raakHeli, wagenOp, doelen, hoorSchot, reset, aanrijden,
+    misdaad, update, raak, raakWagen, raakHeli, wagenOp, doelen, hoorSchot, reset, aanrijden, zetSter,
     get ster() { return ster(); },
     get heat() { return heat; },
     get gezocht() { return ster() > 0; },

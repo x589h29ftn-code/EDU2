@@ -1272,7 +1272,8 @@ En op afstand, waar het verschil kleiner is maar niet weg — de straat en de da
 
 ## Het verhaal
 
-Je heet **Erik**. Je broer **Mark** heeft vier missies voor je, en daarna belt Johan.
+Je heet **Erik**. Je broer **Mark** heeft vier missies voor je, daarna belt Johan, en
+daarna staat de volgende klus als **M** op de kaart bij Tinga State.
 
 ### 1 · Molenkrite 15
 
@@ -1375,6 +1376,59 @@ spel een reeks opdrachten geweest; vanaf hier is het de wijk in, en dan helpt he
 om te weten waar de winkels voor zijn (verzoek 20 sep 2026).
 
 ![De balk over de winkels](docs/screenshots/uitleg_winkels.png)
+
+### 6 · De groene BX
+
+Vanaf hier begint een missie niet meer vanzelf. Na de beloning van Johan komt er
+eenmalig een balk in beeld:
+
+> **NIEUWE MISSIES** — Nieuwe missies kunnen worden gestart door naar het
+> **M-symbool** op de minimap te gaan.
+
+En die M staat bij **Tinga State** aan de Molenkrite, waar Mark op je staat te
+wachten. Met **E** spreek je hem aan.
+
+![De M bij Tinga State](docs/screenshots/bx_marker.png)
+
+De klus komt van De Veteraan: hij wil een **groene Citroën BX**, en die staat op
+het parkeerterrein van de voetbalvereniging. Mark telt halverwege het gesprek
+vijfhonderd euro uit — dat is precies wat het overspuiten kost.
+
+![De briefing bij Tinga State](docs/screenshots/bx_briefing.png)
+
+De route:
+
+1. naar het parkeerterrein van **VV Sneek Wit Zwart**, waar de groene BX staat;
+2. **instappen** — dat is een auto die niet van jou is, en dat levert je één
+   politiester op. In deze auto staat **Radio Spannenburg** op;
+3. naar de **wasbox achter BP Slump Oil** aan de Lemmerweg. Overspuiten kost hier
+   de vijfhonderd euro van Mark; welke kleur het wordt bepaalt het spel, daar ga
+   je zelf niet over ("Maakt niet uit. Als-ie maar niet meer groen is.");
+4. en dan naar het **parkeerterrein van de Poiesz in IJlst**, waar Mark staat te
+   zwaaien. Zet hem op het vak naast hem en de klus is klaar.
+
+![De groene BX bij VV Sneek](docs/screenshots/bx_groen.png)
+
+![Overgespoten, afgeleverd in IJlst](docs/screenshots/bx_nieuw.png)
+
+Beloning: **€ 250**. Onder de hele missie loopt de spanningsmuziek uit
+`audio/missie/`, vanaf het moment dat de briefing afgelopen is tot even na
+**MISSIE VOLTOOID – DE GROENE BX**; de autoradio zakt er intussen onder weg.
+
+**De BX is een eigen model.** Geen omgespoten hatchback maar dezelfde opbouw met
+de maten van het echte ding: 4,23 × 1,69 m op een wielbasis van 2,65 m, een dak
+op 1,37 m (dertig centimeter lager dan de andere auto's), een langere ruitpartij
+en een motorkap die naar voren afloopt — de wig waar een BX aan te herkennen is.
+
+**En hij komt niet uit de lucht vallen.** Elk parkeervak in de wijk is bezet:
+de geparkeerde auto's komen uit dezelfde kaartdata als de vakken. De BX wordt
+daarom niet als extra auto neergezet maar *is* de auto die het dichtst bij het
+hoofdveld van VV Sneek staat: die krijgt het BX-model en de groene lak. Bij de
+Poiesz in IJlst gebeurt het omgekeerde — de auto die op het afleverkvak stond is
+weggereden, zodat je de BX er echt in kunt zetten.
+
+`npm run bxtest` (eenendertig controles) loopt de hele missie na, van de M op de
+kaart tot de laatste regel van Mark; `npm run bxshots` maakt de foto's hierboven.
 
 ## Naar binnen bij Molenkrite 15
 

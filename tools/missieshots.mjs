@@ -43,7 +43,7 @@ await page.evaluate(async () => {
 
 // -------------------------------------------------- de balk over de winkels
 await page.evaluate(async () => {
-  const uitleg = await import('/js/uitleg.js');
+  const uitleg = window.__game.uitleg;
   uitleg.reset();
   /*
    In het spel staat het blokje dertien seconden in beeld; hier veel langer,
@@ -53,9 +53,15 @@ await page.evaluate(async () => {
   uitleg.toon('winkels', 'Wat je met je geld kunt',
     'Bij <b>Tinga State</b> aan de Molenkrite koop je wapens en munitie · '
     + 'bij de <b>Poiesz</b> in IJlst en Duinterpen vul je je health aan', 600);
+  /*
+   En de dekking hard zetten. In het spel fadet het blokje in een derde seconde
+   aan; in een headless browser blijft die overgang hangen op nul zolang er
+   verder niets aan de stijl verandert, en dan staat er op de foto niets.
+  */
+  document.getElementById('uitleg').style.opacity = '1';
 });
 const balk = await page.evaluate(async () => {
-  const uitleg = await import('/js/uitleg.js');
+  const uitleg = window.__game.uitleg;
   const el = document.getElementById('uitleg');
   return { inBeeld: uitleg.inBeeld(), klassen: el ? el.className : 'geen element',
     dekking: el ? getComputedStyle(el).opacity : null, zicht: el ? getComputedStyle(el).display : null };
@@ -65,9 +71,10 @@ await foto('uitleg_winkels', 700);
 
 // ----------------------------------------- de sterren: eerst op, dan weg
 await page.evaluate(async () => {
-  const uitleg = await import('/js/uitleg.js');
   const g = window.__game;
+  const uitleg = g.uitleg;
   uitleg.reset();
+  document.getElementById('uitleg').style.opacity = '0';
   for (let i = 0; i < 6; i++) g.politie.misdaad('agent', g.player.pos.x, g.player.pos.z);
   await new Promise(r => requestAnimationFrame(r));
 });
