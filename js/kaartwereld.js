@@ -21,6 +21,30 @@ import { bouwTennisparken } from './tennis.js';
 import { bouwZuilengangen } from './zuilengang.js';
 import { bouwAfsluitingen } from './afsluiting.js';
 
+/*
+ De buitennormaal van een muurvlak, voor een pand dat uit zijn grondvlak wordt
+ opgetrokken (geen 3D BAG-model, dus `schat`).
+
+ Hier stond `[dz/L, 0, -dx/L]`, en dat is de normaal die naar bínnen wijst: alle
+ 7885 grondvlakken in de kaart lopen dezelfde kant rond, en voor die richting
+ komt die formule in het pand uit — nagemeten op elk van de negentien zijden van
+ de Ranzijn-hal, en op de Jumbo en een rijtjeshuis.
+
+ Drie dingen gingen daardoor mis op elk opgetrokken pand. De belichting rekende
+ met een normaal die de verkeerde kant op keek. `kant` (kijkt dit vlak naar de
+ straat?) kreeg het omgekeerde teken, dus de vóórgevel werd als achterkant
+ behandeld. En de u-richting van de textuur liep achterstevoren, waardoor het
+ woordmerk op de gele band van Ranzijn gespiegeld in beeld stond: NIJZNAR.
+
+ De driehoeken zelf stonden wél goed — hun winding komt uit de volgorde van de
+ hoekpunten en die was al naar buiten gericht — dus er hoefde alleen een teken om.
+*/
+export function muurNormaal(a, b) {
+  const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1;
+  return [-dz / L, 0, dx / L];
+}
+
+
 export let KAART = null;
 export function zetKaart(k) { KAART = k; zetViaducten(k && k.viaducten); }
 
@@ -1391,7 +1415,7 @@ function* bouwPandenStap(scene, W, plat) {
       const a = voet[i], b = voet[(i + 1) % voet.length];
       const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 1e-4) continue;
       const q = [[a[0], 0, a[1]], [b[0], 0, b[1]], [b[0], h, b[1]], [a[0], h, a[1]]];
-      const n = [dz / L, 0, -dx / L];
+      const n = muurNormaal(a, b);
       const { g, uvf } = muurKeuze(pand, n, q);
       drie(q[0], q[1], q[2], g, n, uvf); drie(q[0], q[2], q[3], g, n, uvf);
     }

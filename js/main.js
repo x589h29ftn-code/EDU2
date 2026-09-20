@@ -27,6 +27,7 @@ import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
 import { grondHoogte } from './viaduct.js';
 import { maakBuit, zakgeld, agentMunitie } from './buit.js';
 import * as menu from './menu.js';
+import { maakPandWijzer, pandRegel } from './pandwijzer.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -894,6 +895,30 @@ window.addEventListener('keydown', e => {
   hud.show(`plek ${tekst} — staat op het klembord`, 3);
   if (navigator.clipboard) navigator.clipboard.writeText(tekst).catch(() => {});
   console.log('plek', tekst);
+});
+
+/*
+ P: welk pand kijk je aan. Hetzelfde idee als K, maar dan het gebouw in plaats
+ van de plek — met het BAG-pandnummer voorop, want dat is de sleutel waarmee een
+ pand in data/stijl/straten.json een eigen stijl krijgt.
+
+ Dit is er gekomen omdat een plek niet genoeg is. "Het grote pand langs de
+ rondweg" waren er twee, en de Ranzijn-stijl kwam op de verkeerde te staan
+ (20 sep 2026). Met P is daar niets meer aan te raden.
+*/
+let wijzer = null;
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyP' || e.ctrlKey || e.metaKey) return;
+  if (!KAART) { hud.show('geen kaart geladen', 2); return; }
+  if (!wijzer) wijzer = maakPandWijzer(KAART);
+  // in de auto kijk je met dezelfde yaw rond; alleen de plek is die van de auto
+  const p = player.inCar || player.pos;
+  const raak = wijzer.zoek(p.x, p.z, player.yaw);
+  const regel = pandRegel(raak);
+  if (!regel) { hud.show('geen pand in zicht', 2); return; }
+  hud.show(`${regel} — staat op het klembord`, 8);
+  if (navigator.clipboard) navigator.clipboard.writeText(regel).catch(() => {});
+  console.log('pand', regel, `(${raak.hoe}, ${raak.afstand.toFixed(1)} m)`);
 });
 
 // Scherpte wisselen (G). Blijft bewaard, zodat je hem maar één keer hoeft te zetten.

@@ -69,7 +69,7 @@ const shot = async (naam, kies, afst, hoog, mikY) => {
 };
 
 // ---- Ranzijn Tuin & Dier en de Zeskanter ----
-await shot('ranzijn', "q.type === 'tuincentrum'", 46, 4.0, 5.0);
+await shot('ranzijn', "q.type === 'tuincentrum'", 34, 3.0, 5.0);
 await shot('zeskanter', "q.straat === 'Zeskanter' && q.nok > 7", 20, 3.0, 5.0);
 
 // ---- een fietser van opzij ----

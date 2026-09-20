@@ -4314,6 +4314,57 @@ afloopt en niet de hoekpunten in volgorde, want dan meet je drie willekeurige
 punten uit de hele kaart als één driehoek (55,5 m bleek zo'n meting; na het
 aflopen van de index 3,4 m).
 
+**De pandwijzer (stap 63).** Het vervolg op de ronde hierboven: een correctie
+en het gereedschap dat die correctie overbodig maakt.
+
+*Een plek is geen pand.* De Ranzijn-stijl kwam op het verkeerde gebouw terecht.
+De melding was "op de Zonnedauw tegen de rondweg", en daar staan er twee van
+vijfduizend vierkante meter naast elkaar; ik koos 0091100000015459 en het was
+0091100000019457, honderd meter naar het oosten. Dat is geen slordigheid die je
+met beter lezen oplost — uit die zin viel het niet af te leiden, en dus werd het
+raden.
+
+De oplossing is niet preciezer vragen maar een ander soort antwoord mogelijk
+maken. Er zat al een toets **K** in het spel die je eigen plek op het klembord
+zet; daar is **P** bij gekomen die het pand op het klembord zet waar je naar
+kijkt, met het BAG-pandnummer voorop. Dat nummer is precies de sleutel in
+`data/stijl/straten.json`, dus er zit geen vertaalstap meer tussen wat de
+gebruiker aanwijst en wat ik aanpas.
+
+Het zoeken gaat niet met een raycast op de meshes — die zijn per tegel
+samengevoegd en weten niet bij welk pand ze horen — maar met een straal over de
+plattegrond: stapjes van veertig centimeter vanaf je eigen positie de
+kijkrichting op, en het eerste grondvlak dat geraakt wordt is het pand. Dat is
+tegelijk robuuster dan een raycast: de hoogte doet niet mee, dus de stoep vóór
+een huis levert ook dat huis op.
+
+Het algemene patroon: als ik iets moet raden, is dat een gat in het gereedschap
+en niet in de vraag. Twee keer eerder ging het net zo — de plek van een object
+en de plek van een wegblokkade — en daar loste K het op.
+
+*Een teken dat overal doorwerkt.* Op de gevel van de hal stond het woordmerk
+gespiegeld: NIJZNAR. De verleiding is dan om naar de textuur te kijken. Het zat
+in de normaal van het muurvlak. Voor een pand dat uit zijn grondvlak wordt
+opgetrokken (2418 van de 7885 panden hebben geen 3D BAG-model) stond er
+`[dz/L, 0, −dx/L]`, en die wijst naar bínnen: alle grondvlakken in de kaart
+lopen dezelfde kant rond, en dat is nagemeten op elke zijde van de hal, van de
+Jumbo en van een rijtjeshuis — 19, 10 en 6 van de 19, 10 en 6.
+
+Eén verkeerd teken deed drie dingen tegelijk: de belichting rekende met de
+verkeerde kant, `kant` (kijkt dit vlak naar de straat?) kreeg het omgekeerde
+teken zodat de vóórgevel als achterkant werd behandeld, en de u-richting van het
+doek liep achterstevoren. Alleen dat laatste viel op, en alleen op de twee
+panden met tekst op de gevel. De driehoeken zelf stonden goed — hun winding komt
+uit de volgorde van de hoekpunten — dus de reparatie was één min.
+
+Wat dit leert over toetsen: dit was niet te vinden met een toets op het
+eindresultaat, want "ziet de gevel er goed uit" is geen getal. Het was wél vast
+te leggen op het niveau eronder. De normaal is nu een geëxporteerde functie
+(`muurNormaal`) en de toets zet er een half metertje langs vanaf het midden van
+elke zijde en kijkt of dat punt buiten het grondvlak valt: 1347 zijden van 214
+panden, nul fout. Een tekenfout in een formule vang je met een eigenschap van
+die formule, niet met een foto.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

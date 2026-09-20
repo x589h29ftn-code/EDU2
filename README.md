@@ -72,6 +72,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | Y | weer: helder, bewolkt, regen |
 | U | geluid uit en aan |
 | **K** | je eigen plek in spelmeters (`x, z`), in beeld en op het klembord — handig om een plek door te geven |
+| **P** | het pand dat je aankijkt: BAG-pandnummer, type, adres, oppervlak en hoogtes, in beeld en op het klembord — daarmee is er geen twijfel over wélk gebouw je bedoelt |
 | Esc | muis vrijgeven · het menu, met Doorgaan, Instellingen, Besturing en Afsluiten |
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
@@ -2456,12 +2457,17 @@ uitzag, en een steekproef over de rest van de wijk.
 ### Ranzijn Tuin & Dier aan de rondweg
 
 Aan de Zonnedauw, tegen de rondweg aan, staat het buitencentrum van Ranzijn. In de kaart was het een
-grijze loods met een streepje erop. Het pand (BAG 0091100000015459, goot 3,94 m, nok 6,44 m) is nu
-een eigen type `tuincentrum`: een kas met een glazen pui die tot vlak onder de dakrand doorloopt
-(`puiDeel` 0,88), lichte groenblauwe stijlen ertussen, een gele band over de hele gevel met het
-woordmerk **RANZIJN** in het donkergroen van de huisstijl, een donkere plint en een metalen puntdak
-met zonnepanelen. De dakvorm komt niet uit een foto maar uit het 3D BAG-model: goot 3,94 en nok
-6,44 betekent een kap van tweeënhalve meter, en dus geen plat dak.
+grijze loods met een streepje erop. Het pand (BAG **0091100000019457**, 5272 m² — 121 bij 54 meter —
+goot 5,80 m en nok 8,80 m) is nu een eigen type `tuincentrum`: een kas met een glazen pui die tot
+vlak onder de dakrand doorloopt (`puiDeel` 0,88), lichte groenblauwe stijlen ertussen, een gele band
+over de hele gevel met het woordmerk **RANZIJN** in het donkergroen van de huisstijl, een donkere
+plint en een metalen puntdak met zonnepanelen.
+
+De eerste keer kwam die stijl op het **verkeerde pand** te staan: 0091100000015459, honderd meter naar
+het westen, want "het grote pand langs de rondweg" zijn er daar twee en ik heb de verkeerde gekozen.
+Dat is de aanleiding geweest voor de pandwijzer hieronder. De hoogtes van dit pand zijn trouwens geen
+meting: het zit niet in het 3D BAG-model en krijgt de standaardmaat van de generator — dat staat er
+nu ook bij als je met **P** naar het pand kijkt (`geschat`).
 
 ![Ranzijn Tuin & Dier](docs/screenshots/ranzijn.png)
 
@@ -2543,6 +2549,43 @@ achter alle boomlijsten die elke boom en struik weghaalt die op verharding of in
 ![De Zeskanter](docs/screenshots/zeskanter.png)
 
 `npm run sniptest` (dertig controles) houdt deze vijf vast, `npm run snipshots` maakt de foto's.
+
+## Welk pand bedoel je? (toets P)
+
+Met **K** geef je een plek door: twee getallen in spelmeters. Dat werkt goed voor "hier hoort een
+wegblokkade", maar niet voor een gebouw. Aan de Zonnedauw staan twee grote panden naast elkaar, en uit
+"het grote pand langs de rondweg" koos ik de verkeerde — de Ranzijn-stijl kwam op de buurman te staan.
+
+**P** haalt dat raden eruit. Je kijkt een pand aan, drukt op P, en dit staat in beeld én op je
+klembord:
+
+```
+0091100000019457 · tuincentrum · 1 · 5272 m2 · goot 5.8 nok 8.8 (geschat) · midden 1451.2 / -30.0
+```
+
+Het eerste getal is het BAG-pandnummer, en dat is precies de sleutel waarmee een pand in
+`data/stijl/straten.json` zijn eigen stijl krijgt. Plak die regel in de chat en er valt niets meer te
+kiezen.
+
+Hoe hij zoekt staat in `js/pandwijzer.js`: geen raycast op de meshes (die zijn samengevoegd en weten
+niet bij welk pand ze horen), maar een straal over de plattegrond — vanaf waar je staat de
+kijkrichting op, stapjes van veertig centimeter tot honderdzestig meter ver, en het eerste grondvlak
+dat geraakt wordt is het pand. De hoogte telt niet mee, dus je hoeft niet omhoog te kijken: de stoep
+vóór een huis levert dat huis op. Kijkt er niets in de weg, dan pakt hij het dichtstbijzijnde pand
+binnen dertig meter, zodat "ik sta hier pal naast" ook werkt. Het zoeken kost 0,2 ms.
+
+### Een gespiegeld woordmerk, en wat daarachter zat
+
+Op de gevel van de hal stond **NIJZNAR**. Niet de textuur was gespiegeld maar de normaal van het
+muurvlak: voor een pand dat uit zijn grondvlak wordt opgetrokken (2418 van de 7885 panden hebben geen
+3D BAG-model) stond er `[dz/L, 0, −dx/L]`, en dat wijst naar bínnen — nagemeten op elke zijde van de
+hal, van de Jumbo en van een rijtjeshuis, en bij alle 7885 grondvlakken loopt de ring dezelfde kant
+rond. Met een normaal die naar binnen wijst rekent de belichting met de verkeerde kant, wordt de
+voorgevel als achterkant behandeld, en loopt de u-richting van het doek achterstevoren. De driehoeken
+zelf stonden wél goed, dus er hoefde één teken om. `npm run pandtest` controleert nu 1347 zijden van
+214 panden: geen enkele normaal wijst nog naar binnen.
+
+`npm run pandtest` (negentien controles) houdt de pandwijzer en het juiste Ranzijn-pand vast.
 
 ## Dag, nacht en weer
 
