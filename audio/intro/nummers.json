@@ -1,0 +1,11 @@
+{
+  "_uitleg": "Muziek voor de intro (js/intro.js). Eén nummer, één keer, met een fade aan het eind; het filmpje is even lang gemaakt als dit bestand. Net als audio/menu/ en audio/radio/ is dit een bewuste uitzondering op de regel dat er geen geluids- of beeldbestanden in het spel zitten: een tune is niet te tekenen. Let op de rechten: deze map gaat mee in een openbare repo.",
+  "nummers": [
+    {
+      "bestand": "intro.mp3",
+      "titel": "Intromusic",
+      "duur": 65,
+      "bron": "aangeleverd door de gebruiker, chat 20 sep 2026"
+    }
+  ]
+}

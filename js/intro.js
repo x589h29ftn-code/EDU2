@@ -1,24 +1,35 @@
 /*
- De intro: een filmpje van twintig seconden voordat het spel begint.
+ De intro: een filmpje van ruim een minuut voordat het spel begint, met muziek.
 
- Wat je ziet (verzoek 20 sep 2026): eerst de wijk van boven, dan lager en dichter
- bij, dan een rit door een straat op ooghoogte, en ten slotte een daling naar
- precies het standpunt waar je het spel begint — zo is de overgang van filmpje
- naar spel geen sprong maar een doorkomst. Over het beeld heen komen de titels:
+ Wat je ziet (verzoek 20 sep 2026, uitgebreid op de tweede ronde): een reeks
+ rustige beelden langs de plekken die de wijk en de omgeving maken — de
+ Molenkrite, de Jumbo, het Tinga-bosje, de brug, de waterzuivering, de Geeuw,
+ houtzaagmolen De Rat aan het Sneekerpad en de Poiesz in IJlst — en dan een
+ daling naar precies het standpunt waar je het spel begint. Over het beeld heen
+ de titels:
 
    RED EAGLE PRODUCTIONS   →   presents   →   GTA VI / TINGA
 
- Geen enkele coördinaat staat hier hard in. De camerastanden worden afgeleid van
- het startpunt uit js/kaart.js en van het wegennet: het rechte stuk straat waar
- de camera doorheen vliegt wordt opgezocht in KAART.wegassen, zodat het filmpje
- ook klopt als de kaart opnieuw gegenereerd wordt.
+ **Geen enkele coördinaat staat hier hard in.** Elke plek wordt opgezocht in de
+ kaart: een pand op zijn type (`poiesz`, `jumbo`), de molen in `KAART.molens`,
+ een straat op zijn naam in `KAART.wegassen`, en het bos, de brug en het water
+ als het grootste vlak van die klasse in de buurt van waar we willen kijken. Als
+ de kaart opnieuw gegenereerd wordt klopt het filmpje dus nog steeds.
 
- De intro draait in zijn eigen lus met `requestAnimationFrame` en zet alleen de
- camera. De hoofdlus van js/main.js tekent gewoon door (de wolken schuiven, de
- auto's rijden), maar zet de camera niet terug zolang `bezig()` true is.
+ Hoogte en clipping. Alles wat van boven gefilmd wordt zit op minstens dertig
+ meter — hoger dan de bomen (18 m), de molen (20,7 m) en de hoogste flat van de
+ kaart (26 m) — zodat de camera nergens door een dak of een kruin heen zakt. De
+ twee lage beelden (de straat en de Poiesz) liggen op de rijbaan en op het
+ parkeerterrein, waar niets staat.
 
- Overslaan kan altijd: één toets, één klik, één tik. Dan loopt hij netjes af via
- hetzelfde zwart als waarmee hij begint.
+ De muziek staat in `audio/intro/`. Dat is, net als `audio/menu/` en
+ `audio/radio/`, een bewuste uitzondering op de regel dat er geen
+ beeld- of geluidsbestanden in het spel zitten: een tune is niet te tekenen.
+ Hij fadet uit in de laatste seconden, en meteen als je het filmpje overslaat.
+
+ De lus draait op `requestAnimationFrame` en zet alleen de camera. De hoofdlus
+ van js/main.js tekent door, maar zet de camera niet terug zolang `bezig()` true
+ is. Overslaan kan altijd met een toets, een klik of een tik.
 */
 
 let bezigNu = false;
@@ -28,103 +39,220 @@ export function bezig() { return bezigNu; }
 export function stand() { return { t: +tNu.toFixed(2), runs }; }
 
 // Een verloop dat rustig begint en rustig eindigt: een camera die met een ruk
-// op gang komt leest als een storing, ook in een filmpje van vijf seconden.
+// op gang komt leest als een storing, ook in een beeld van zes seconden.
 const soepel = (u) => u * u * (3 - 2 * u);
-// en eentje die alleen aan het eind afremt, voor een vlucht die al op gang is
+// en eentje die alleen aan het eind afremt, voor een vlucht die al loopt
 const uitloop = (u) => 1 - (1 - u) * (1 - u);
 
+export const MUZIEK = 'audio/intro/intro.mp3';
+const MUZIEK_VOL = 0.85;      // wat luider dan de menumuziek; zie het verzoek
+const UITFADE = 3.4;          // seconden waarin de muziek aan het eind wegzakt
+
+// ---------------------------------------------------------------- de plekken
+
 /*
- Een recht stuk straat in de buurt van een punt. Levert het begin- en eindpunt
- van het langste rechte vak binnen `straal` meter, of null. Hier vliegt de
- camera doorheen op ooghoogte.
+ Het midden van het eerste pand met dit type (bijvoorbeeld 'poiesz'), met de
+ richting waar de voorgevel naartoe kijkt erbij. Die richting is waar het om
+ gaat: sta je aan de achterkant, dan film je een blinde muur achter een rij
+ bomen. Met `front` uit de kaart vliegt de camera langs de kant waar de ingang
+ en het parkeerterrein zitten.
 */
-function rechteStraat(KAART, x, z, straal = 230) {
+function pandVan(KAART, type) {
+  const p = (KAART.panden || []).find(q => q.type === type);
+  if (!p || !p.voet || !p.voet.length) return null;
+  let x = 0, z = 0;
+  for (const q of p.voet) { x += q[0]; z += q[1]; }
+  const f = p.front || [0, -1];
+  return { x: x / p.voet.length, z: z / p.voet.length, hoog: p.nok || 6, hoek: Math.atan2(f[1], f[0]) };
+}
+
+// Het midden van alle panden waarvan het type met dit stukje begint: zo is het
+// terrein van de waterzuivering (rwzi, rwzi_kantoor, rwzi_blauw) één plek.
+function terreinVan(KAART, begin) {
+  let x = 0, z = 0, n = 0;
+  for (const p of KAART.panden || []) {
+    if (!p.type || !p.type.startsWith(begin) || !p.voet) continue;
+    let px = 0, pz = 0;
+    for (const q of p.voet) { px += q[0]; pz += q[1]; }
+    x += px / p.voet.length; z += pz / p.voet.length; n++;
+  }
+  return n ? { x: x / n, z: z / n, aantal: n } : null;
+}
+
+// Het midden van het grootste vlak van een klasse, eventueel in de buurt van
+// een punt (het Tinga-bosje is niet het grootste bos van de kaart, wel het
+// dichtstbijzijnde).
+function vlakVan(KAART, klasse, bij = null, straal = Infinity) {
+  let beste = null;
+  for (const v of KAART.vlakken || []) {
+    if (v.k !== klasse) continue;
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (const r of v.r) for (const p of r) {
+      if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0];
+      if (p[1] < z0) z0 = p[1]; if (p[1] > z1) z1 = p[1];
+    }
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    const d = bij ? Math.hypot(cx - bij.x, cz - bij.z) : 0;
+    if (d > straal) continue;
+    const opp = (x1 - x0) * (z1 - z0);
+    // dichterbij telt zwaarder dan groter: opp gedeeld door de afstand
+    const punt = { x: cx, z: cz, opp, maat: Math.max(x1 - x0, z1 - z0) };
+    const score = bij ? opp / (1 + d) : opp;
+    if (!beste || score > beste.score) beste = { ...punt, score };
+  }
+  return beste;
+}
+
+// Een punt op een straat met deze naam: het midden van het langste vak.
+function straatVan(KAART, naam) {
   let beste = null;
   for (const w of KAART.wegassen || []) {
-    if (!w.drive) continue;
+    if (!w.naam || w.naam.toLowerCase() !== naam.toLowerCase()) continue;
     for (let i = 0; i + 1 < w.pts.length; i++) {
       const a = w.pts[i], b = w.pts[i + 1];
       const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      if (L < 45) continue;
-      const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
-      if (Math.hypot(mx - x, mz - z) > straal) continue;
-      if (!beste || L > beste.L) beste = { a, b, L, naam: w.naam };
+      if (!beste || L > beste.L) {
+        beste = { L, a, b, x: (a[0] + b[0]) / 2, z: (a[1] + b[1]) / 2,
+          dx: (b[0] - a[0]) / (L || 1), dz: (b[1] - a[1]) / (L || 1) };
+      }
     }
   }
   return beste;
 }
 
 /*
- De beelden. Elk beeld heeft een tijdsduur, een cameraweg (`van` → `naar`) en
- een punt waar de camera naar kijkt (`kijkVan` → `kijkNaar`), allemaal in
- wereldmeters. `soepelheid` bepaalt of het beeld op gang komt of juist afremt.
+ Alles wat het filmpje aandoet, opgezocht in de kaart. Wat er niet is wordt
+ stilletjes overgeslagen (`null`), zodat een kaart zonder molen of zonder Poiesz
+ geen kapot filmpje geeft maar een kortere reeks.
 */
-function maakBeelden(KAART, start) {
-  const S = { x: start.x, z: start.z, yaw: start.yaw };
-  // de kijkrichting van de speler bij het begin: (−sin yaw, −cos yaw)
-  const vx = -Math.sin(S.yaw), vz = -Math.cos(S.yaw);
-  const zx = -vz, zz = vx;                       // opzij
-  const straat = rechteStraat(KAART, S.x, S.z) || { a: [S.x - 60, S.z], b: [S.x + 60, S.z] };
-  const dx = (straat.b[0] - straat.a[0]) / straat.L;
-  const dz = (straat.b[1] - straat.a[1]) / straat.L;
-
-  return [
-    // 1. hoog boven de wijk, langzaam zakkend en meedraaiend
-    {
-      duur: 6.0, ease: soepel,
-      van: { x: S.x - vx * 300 + zx * 210, y: 215, z: S.z - vz * 300 + zz * 210 },
-      naar: { x: S.x - vx * 170 + zx * 90, y: 150, z: S.z - vz * 170 + zz * 90 },
-      kijkVan: { x: S.x, y: 6, z: S.z }, kijkNaar: { x: S.x, y: 6, z: S.z },
-    },
-    // 2. lager, schuin over de daken naar de straat toe
-    {
-      duur: 5.0, ease: soepel,
-      van: { x: S.x + vx * 150 - zx * 120, y: 96, z: S.z + vz * 150 - zz * 120 },
-      naar: { x: S.x + vx * 60 - zx * 40, y: 44, z: S.z + vz * 60 - zz * 40 },
-      kijkVan: { x: S.x, y: 4, z: S.z }, kijkNaar: { x: S.x, y: 4, z: S.z },
-    },
-    // 3. door de straat, op ooghoogte, met de neus vooruit
-    {
-      duur: 4.6, ease: uitloop,
-      van: { x: straat.a[0] - dx * 4, y: 2.1, z: straat.a[1] - dz * 4 },
-      naar: { x: straat.a[0] + dx * straat.L * 0.62, y: 2.1, z: straat.a[1] + dz * straat.L * 0.62 },
-      kijkVan: { x: straat.a[0] + dx * 40, y: 2.0, z: straat.a[1] + dz * 40 },
-      kijkNaar: { x: straat.b[0], y: 2.0, z: straat.b[1] },
-    },
-    // 4. de daling naar het hoofdpersonage: eindigt exact op zijn ooghoogte en
-    //    in zijn kijkrichting, zodat het spel er naadloos uit tevoorschijn komt
-    {
-      duur: 4.4, ease: soepel,
-      van: { x: S.x - vx * 26 + zx * 12, y: 17, z: S.z - vz * 26 + zz * 12 },
-      naar: { x: S.x, y: 1.7, z: S.z },
-      kijkVan: { x: S.x + vx * 10, y: 1.4, z: S.z + vz * 10 },
-      kijkNaar: { x: S.x + vx * 30, y: 1.7, z: S.z + vz * 30 },
-    },
-  ];
+export function zoekPlekken(KAART, start) {
+  const molen = (KAART.molens || []).find(m => /rat/i.test(m.naam || '')) || (KAART.molens || [])[0];
+  const rwzi = (KAART.poorten || []).find(p => p.terrein === 'rwzi');
+  const sneekerpad = straatVan(KAART, 'Sneekerpad');
+  const geeuwkade = straatVan(KAART, 'Geeuwkade');
+  return {
+    start,
+    molenkrite: straatVan(KAART, 'Molenkrite'),
+    jumbo: pandVan(KAART, 'jumbo'),
+    poiesz: pandVan(KAART, 'poiesz'),
+    molen: molen ? { x: molen.cx, z: molen.cz, hoog: molen.top || 20 } : null,
+    sneekerpad,
+    bosje: vlakVan(KAART, 'bos', start, 900),
+    brug: vlakVan(KAART, 'brug'),
+    // de Geeuw: het water bij de Geeuwkade in IJlst, en anders bij de molen
+    geeuw: vlakVan(KAART, 'water', geeuwkade || sneekerpad || start, 700),
+    rwzi: terreinVan(KAART, 'rwzi') ||
+      (rwzi ? { x: (rwzi.a[0] + rwzi.b[0]) / 2, z: (rwzi.a[1] + rwzi.b[1]) / 2 } : null),
+  };
 }
 
-// De titels: wanneer ze komen, hoe lang ze blijven, en wat er staat.
+/*
+ Een beeld dat om een plek heen draait: twee standen op een cirkel eromheen, met
+ de camera er de hele tijd op gericht. Een rechte lijn tussen twee punten op die
+ cirkel is een koorde — dat leest als een rustige zwenk en niet als een zwaai.
+
+ `hoogte` is de vlieghoogte, `kijkY` de hoogte van het punt waar hij naar kijkt
+ (bij een molen van twintig meter kijk je halverwege de romp en niet naar de
+ stoep).
+*/
+function omheen(p, { straal, hoogte, van, tot, kijkY = 5, duur = 6.5, ease = soepel, basis = 0 }) {
+  const op = (hoek) => ({ x: p.x + Math.cos(basis + hoek) * straal, y: hoogte, z: p.z + Math.sin(basis + hoek) * straal });
+  return {
+    duur, ease,
+    van: op(van), naar: op(tot),
+    kijkVan: { x: p.x, y: kijkY, z: p.z }, kijkNaar: { x: p.x, y: kijkY, z: p.z },
+  };
+}
+
+/*
+ De beelden, op volgorde. Alles wat van boven komt zit op minstens dertig meter
+ (zie de kop van dit bestand); de twee lage beelden liggen op de weg.
+*/
+function maakBeelden(KAART, start) {
+  const P = zoekPlekken(KAART, start);
+  const S = { x: start.x, z: start.z, yaw: start.yaw };
+  const vx = -Math.sin(S.yaw), vz = -Math.cos(S.yaw);      // de kijkrichting bij de start
+  const zx = -vz, zz = vx;                                 // opzij
+  const rij = [];
+
+  // 1. hoog boven de wijk, heel langzaam zakkend
+  rij.push({
+    duur: 7.6, ease: soepel,
+    van: { x: S.x - vx * 330 + zx * 240, y: 235, z: S.z - vz * 330 + zz * 240 },
+    naar: { x: S.x - vx * 250 + zx * 170, y: 185, z: S.z - vz * 250 + zz * 170 },
+    kijkVan: { x: S.x, y: 8, z: S.z }, kijkNaar: { x: S.x, y: 8, z: S.z },
+  });
+
+  // 2. de Molenkrite zelf, laag over de rijbaan — hier woont het verhaal
+  if (P.molenkrite) {
+    const m = P.molenkrite;
+    rij.push({
+      duur: 7.0, ease: uitloop,
+      van: { x: m.a[0] - m.dx * 6, y: 2.2, z: m.a[1] - m.dz * 6 },
+      naar: { x: m.a[0] + m.dx * Math.min(m.L * 0.7, 90), y: 2.2, z: m.a[1] + m.dz * Math.min(m.L * 0.7, 90) },
+      kijkVan: { x: m.a[0] + m.dx * 45, y: 2.4, z: m.a[1] + m.dz * 45 },
+      kijkNaar: { x: m.b[0], y: 2.4, z: m.b[1] },
+    });
+  }
+
+  // 3. de Jumbo aan de Molenkrite
+  // langs de voorkant: `hoek` wijst naar het parkeerterrein, niet naar de achtermuur
+  if (P.jumbo) rij.push(omheen(P.jumbo, { basis: P.jumbo.hoek, straal: 66, hoogte: 34, van: 0.45, tot: -0.35, kijkY: 4, duur: 6.5 }));
+
+  // 4. het Tinga-bosje
+  if (P.bosje) rij.push(omheen(P.bosje, { straal: Math.max(90, P.bosje.maat * 0.7), hoogte: 46, van: 0.4, tot: 1.1, kijkY: 8, duur: 6.5 }));
+
+  // 5. de brug over het water
+  // laag en van veraf: recht van boven leest een brug als een plattegrond
+  if (P.brug) rij.push(omheen(P.brug, { straal: 95, hoogte: 24, van: 3.5, tot: 3.0, kijkY: 3, duur: 6.5 }));
+
+  // 6. de waterzuivering aan de Buitenroede
+  // van de open kant af: aan de zuidkant staat het bos ervoor
+  if (P.rwzi) rij.push(omheen(P.rwzi, { straal: 105, hoogte: 62, van: -2.0, tot: -2.6, kijkY: 3, duur: 6.5 }));
+
+  // 7. de Geeuw
+  if (P.geeuw) rij.push(omheen(P.geeuw, { straal: Math.max(110, P.geeuw.maat * 0.55), hoogte: 42, van: 5.5, tot: 4.9, kijkY: 1, duur: 6.5 }));
+
+  // 8. houtzaagmolen De Rat aan het Sneekerpad — halverwege de romp gekeken
+  if (P.molen) rij.push(omheen(P.molen, { straal: 58, hoogte: 33, van: 2.6, tot: 1.9, kijkY: (P.molen.hoog || 20) * 0.55, duur: 7.0 }));
+
+  // 9. de Poiesz in IJlst, laag langs de voorkant
+  if (P.poiesz) rij.push(omheen(P.poiesz, { basis: P.poiesz.hoek, straal: 48, hoogte: 13, van: 0.35, tot: -0.25, kijkY: 4, duur: 6.0 }));
+
+  // 10. en terug naar Erik: de daling naar het standpunt waar het spel begint
+  rij.push({
+    duur: 5.2, ease: soepel,
+    van: { x: S.x - vx * 34 + zx * 14, y: 30, z: S.z - vz * 34 + zz * 14 },
+    naar: { x: S.x, y: 1.7, z: S.z },
+    kijkVan: { x: S.x + vx * 12, y: 3, z: S.z + vz * 12 },
+    kijkNaar: { x: S.x + vx * 30, y: 1.7, z: S.z + vz * 30 },
+  });
+  return rij;
+}
+
+/*
+ De titels. Red Eagle en de filmtitel staan er lang in (verzoek 20 sep 2026),
+ met genoeg leeg beeld ertussen om de wijk te laten zien.
+*/
 const TITELS = [
-  { van: 1.2, tot: 5.0, klein: 'RED EAGLE PRODUCTIONS' },
-  { van: 6.6, tot: 9.8, klein: 'presents' },
-  { van: 12.0, tot: 19.2, klein: 'GTA VI', sub: 'TINGA' },
+  { van: 1.5, tot: 9.5, klein: 'RED EAGLE PRODUCTIONS' },
+  { van: 12.5, tot: 18.0, klein: 'presents' },
+  { van: 50.0, tot: 64.5, klein: 'GTA VI', sub: 'TINGA' },
 ];
 
 /*
  De camerastand op tijdstip `t`, als losse functie. De lus hieronder gebruikt
  hem, en de proeven en de fotogereedschappen ook: zo is "waar staat de camera op
- seconde dertien" een vraag met een antwoord, zonder dat er een filmpje van
- twintig seconden voor hoeft te lopen.
-
- Levert de plek, het punt waar hij naar kijkt, welke titel er hoort te staan en
- hoever het filmpje is (0 tot 1).
+ seconde dertien" een vraag met een antwoord, zonder dat er een filmpje van een
+ minuut voor hoeft te lopen.
 */
 export function beeldOp(t, KAART, start) {
   const beelden = maakBeelden(KAART, start);
   const totaal = beelden.reduce((a, b) => a + b.duur, 0);
-  let rest = Math.max(0, t), beeld = beelden[beelden.length - 1], u = 1;
-  for (const b of beelden) {
-    if (rest <= b.duur) { beeld = b; u = b.duur > 0 ? rest / b.duur : 1; break; }
+  let rest = Math.max(0, t), beeld = beelden[beelden.length - 1], u = 1, nr = beelden.length - 1;
+  for (let i = 0; i < beelden.length; i++) {
+    const b = beelden[i];
+    if (rest <= b.duur) { beeld = b; nr = i; u = b.duur > 0 ? rest / b.duur : 1; break; }
     rest -= b.duur;
   }
   const e = beeld.ease(Math.max(0, Math.min(1, u)));
@@ -133,7 +261,7 @@ export function beeldOp(t, KAART, start) {
   return {
     pos: { x: meng(beeld.van.x, beeld.naar.x), y: meng(beeld.van.y, beeld.naar.y), z: meng(beeld.van.z, beeld.naar.z) },
     kijk: { x: meng(beeld.kijkVan.x, beeld.kijkNaar.x), y: meng(beeld.kijkVan.y, beeld.kijkNaar.y), z: meng(beeld.kijkVan.z, beeld.kijkNaar.z) },
-    titel, deel: totaal > 0 ? Math.min(1, t / totaal) : 1, totaal,
+    titel, beeldNr: nr, beelden: beelden.length, deel: totaal > 0 ? Math.min(1, t / totaal) : 1, totaal,
   };
 }
 
@@ -141,11 +269,11 @@ export function beeldOp(t, KAART, start) {
  De intro spelen. Levert een belofte die klaar is als het filmpje uit is of
  overgeslagen wordt; daarna staat de camera op het standpunt van de speler.
 
- `start` is het beginpunt van de speler ({ x, z, yaw }) en `KAART` de kaart. Is
- er geen kaart (de oude, handgetekende wereld), dan slaat hij zichzelf over —
- een filmpje over een wijk die er niet zo uitziet heeft geen zin.
+ `geluid` uit (toets U of de instelling) betekent: geen muziek. Is er geen kaart
+ (de oude, handgetekende wereld), dan slaat hij zichzelf over — een filmpje over
+ een wijk die er niet zo uitziet heeft geen zin.
 */
-export function speelIntro({ camera, KAART, start }) {
+export function speelIntro({ camera, KAART, start, geluidAan = true, wapen = null }) {
   const laag = document.getElementById('intro');
   if (!laag || !KAART || !start) return Promise.resolve();
   const titelEl = document.getElementById('introtitel');
@@ -159,11 +287,39 @@ export function speelIntro({ camera, KAART, start }) {
   runs++;
   laag.classList.add('aan');
   zwart.style.opacity = '1';
-  // het zwart uit laten faden zodra het eerste beeld staat
   requestAnimationFrame(() => { zwart.style.opacity = '0'; });
+  /*
+   Het wapen uit beeld. Het hangt aan de camera, dus tijdens een filmpje waarin
+   die camera over de wijk vliegt zweefde het pistool mee door de lucht (gemeld
+   20 sep 2026). Het gaat na afloop terug naar de stand die de speler had.
+  */
+  const wapenStand = wapen ? wapen.visible : null;
+  if (wapen) wapen.visible = false;
 
-  // de titel in beeld zetten (of weghalen); `vorigeTitel` voorkomt dat de
-  // fade elk beeld opnieuw begint
+  // de muziek
+  let muziek = null;
+  if (geluidAan) {
+    try {
+      muziek = new Audio(MUZIEK);
+      muziek.volume = MUZIEK_VOL;
+      const p = muziek.play();
+      if (p && p.catch) p.catch(() => { muziek = null; });
+    } catch { muziek = null; }
+  }
+  const muziekUit = (tellen) => {
+    if (!muziek) return;
+    const m = muziek, van = m.volume, t0 = performance.now();
+    const stap = () => {
+      const u = (performance.now() - t0) / (tellen * 1000);
+      m.volume = Math.max(0, van * (1 - u));
+      if (u >= 1) { m.pause(); return; }
+      requestAnimationFrame(stap);
+    };
+    stap();
+  };
+
+  // de titel in beeld zetten (of weghalen); `vorigeTitel` voorkomt dat de fade
+  // elk beeld opnieuw begint
   let vorigeTitel;
   const zetTitel = (T) => {
     if (T === vorigeTitel) return;
@@ -178,25 +334,25 @@ export function speelIntro({ camera, KAART, start }) {
   return new Promise((klaar) => {
     /*
      De tijd komt van de klok en niet uit een optelling van beeldtijden. Op een
-     trage machine (of in een proef met softwarerendering) haalt hij maar een
-     paar beelden per seconde, en dan zou een filmpje van twintig seconden er
-     een minuut over doen. Nu duurt het altijd even lang; er vallen hooguit
-     beelden weg.
+     trage machine haalt hij maar een paar beelden per seconde, en dan zou een
+     filmpje van een minuut er vijf duren. Nu duurt het altijd even lang; er
+     vallen hooguit beelden weg — en het loopt gelijk met de muziek.
     */
     const t0 = performance.now();
-    let t = 0, gestopt = false;
+    let t = 0, gestopt = false, faded = false;
 
-    const afsluiten = () => {
+    const afsluiten = (snel = true) => {
       if (gestopt) return;
       gestopt = true;
       window.removeEventListener('keydown', opToets);
       window.removeEventListener('pointerdown', opTik);
-      // netjes uitfaden naar zwart en dan het beeld teruggeven aan het spel
+      if (snel) muziekUit(0.7);
       zwart.style.opacity = '1';
       titelEl.classList.remove('zichtbaar');
       setTimeout(() => {
         laag.classList.remove('aan');
         zwart.style.opacity = '1';
+        if (wapen && wapenStand !== null) wapen.visible = wapenStand;
         bezigNu = false;
         klaar();
       }, 620);
@@ -209,15 +365,14 @@ export function speelIntro({ camera, KAART, start }) {
     const stap = () => {
       if (gestopt) return;
       t = tNu = (performance.now() - t0) / 1000;
-
       const beeld = beeldOp(t, KAART, start);
       camera.position.set(beeld.pos.x, beeld.pos.y, beeld.pos.z);
       camera.lookAt(beeld.kijk.x, beeld.kijk.y, beeld.kijk.z);
       zetTitel(beeld.titel);
-      // de laatste seconde naar zwart, zodat het spel er niet in springt
-      if (t > totaal - 0.9) zwart.style.opacity = String(Math.min(1, (t - (totaal - 0.9)) / 0.9));
-
-      if (t >= totaal) { afsluiten(); return; }
+      // de muziek zakt weg in de laatste seconden, het beeld gaat mee naar zwart
+      if (!faded && t > totaal - UITFADE) { faded = true; muziekUit(UITFADE); }
+      if (t > totaal - 1.2) zwart.style.opacity = String(Math.min(1, (t - (totaal - 1.2)) / 1.2));
+      if (t >= totaal) { afsluiten(false); return; }
       requestAnimationFrame(stap);
     };
     requestAnimationFrame(stap);

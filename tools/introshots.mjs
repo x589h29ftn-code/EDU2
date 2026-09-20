@@ -93,10 +93,32 @@ const filmbeeld = async (naam, t) => {
   await foto(naam);
 };
 
-await filmbeeld('intro_lucht', 2.6);
-await filmbeeld('intro_daken', 8.0);
-await filmbeeld('intro_straat', 13.5);
-await filmbeeld('intro_erik', 19.6);
+/*
+ Eén foto per beeld, op het midden ervan: `beeldOp` geeft ook terug welk beeld
+ er bij een tijdstip hoort, dus de lijst hieronder volgt gewoon het filmpje.
+*/
+const momenten = await page.evaluate(async () => {
+  const I = await import('/js/intro.js');
+  const { KAART } = await import('/js/kaart.js');
+  const g = window.__game;
+  const tot = I.beeldOp(0, KAART, g.start).totaal;
+  const midden = [];
+  let vorige = -1;
+  // per beeld het midden opzoeken door de tijd af te lopen
+  const grenzen = [];
+  for (let t = 0; t <= tot; t += 0.1) {
+    const nr = I.beeldOp(t, KAART, g.start).beeldNr;
+    if (nr !== vorige) { grenzen.push(t); vorige = nr; }
+  }
+  grenzen.push(tot);
+  for (let i = 0; i + 1 < grenzen.length; i++) midden.push(+((grenzen[i] + grenzen[i + 1]) / 2).toFixed(1));
+  return midden;
+});
+const namen = ['intro_lucht', 'intro_molenkrite', 'intro_jumbo', 'intro_bosje', 'intro_brug',
+  'intro_rwzi', 'intro_geeuw', 'intro_molen', 'intro_poiesz', 'intro_erik'];
+for (let i = 0; i < momenten.length; i++) {
+  await filmbeeld(namen[i] || `intro_${i}`, momenten[i]);
+}
 
 // de filmlaag weer weg en de HUD terug
 await page.evaluate(() => {

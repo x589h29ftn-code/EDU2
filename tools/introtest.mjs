@@ -3,15 +3,18 @@
 
    npm run server &   node tools/introtest.mjs [poort]
 
- Vijf dingen (verzoek 20 sep 2026):
+ Zeven dingen (verzoek 20 sep 2026, met de aanvullingen van dezelfde avond):
 
- 1. Bij een nieuw spel komt er eerst een filmpje: hoog boven de wijk, lager,
-    door een straat, en dan een daling naar het standpunt waar je begint.
- 2. Met de titels RED EAGLE PRODUCTIONS → presents → GTA VI / TINGA.
- 3. Het filmpje is over te slaan en geeft de camera daarna netjes terug.
- 4. Erik loopt zonder wapen rond tot hij bij het gezelschap staat; dáár krijgt
+ 1. Bij een nieuw spel komt er eerst een filmpje langs de plekken van de wijk en
+    de omgeving, dat eindigt op het standpunt waar je begint.
+ 2. Het duurt even lang als het muziekje eronder.
+ 3. Met de titels RED EAGLE PRODUCTIONS → presents → GTA VI / TINGA, en de
+    eerste en de laatste staan er lang in beeld.
+ 4. De camera zakt nergens door een dak of een kruin heen.
+ 5. Het wapen hangt niet in beeld tijdens het filmpje.
+ 6. Erik loopt zonder wapen rond tot hij bij het gezelschap staat; dáár krijgt
     hij het, met de uitleg over H, de muisknoppen en R.
- 5. De eerste keer in een auto komt de uitleg over de radio en de camera.
+ 7. De eerste keer in een auto komt de uitleg over de radio en de camera.
 */
 import { chromium } from 'playwright';
 
@@ -33,39 +36,94 @@ await page.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load', tim
 await page.waitForFunction(() => window.__game, null, { timeout: 300000 });
 
 // ------------------------------------------------------------ de cameraweg
-console.log('\nde weg die de camera aflegt');
+console.log('\nde beelden en de plekken');
 /*
  Niet met een stopwatch maar met de functie die de lus zelf gebruikt:
- `beeldOp(t)` zegt waar de camera op seconde t staat. Zo is elk beeld te toetsen
- zonder dat er twintig seconden film langs hoeft.
+ `beeldOp(t)` zegt waar de camera op seconde t staat, en `zoekPlekken` welke
+ plekken het filmpje aandoet. Zo is elk beeld te toetsen zonder dat er een
+ minuut film langs hoeft.
 */
 const weg = await page.evaluate(async () => {
   const I = await import('/js/intro.js');
   const { KAART } = await import('/js/kaart.js');
   const start = window.__game.start;
-  const op = (t) => {
-    const b = I.beeldOp(t, KAART, start);
-    return { ...b, afstand: Math.hypot(b.pos.x - start.x, b.pos.z - start.z) };
-  };
-  const eind = op(0).totaal;
-  const laatste = op(eind - 0.01);
-  // de kijkrichting aan het eind, vergeleken met die van de speler
+  const P = I.zoekPlekken(KAART, start);
+  const eind = I.beeldOp(0, KAART, start).totaal;
+  const laatste = I.beeldOp(eind - 0.01, KAART, start);
   const dx = laatste.kijk.x - laatste.pos.x, dz = laatste.kijk.z - laatste.pos.z;
   const yaw = Math.atan2(-dx, -dz);
-  const verschil = Math.abs(((yaw - start.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+  const hoekverschil = Math.abs(((yaw - start.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+  /*
+   Clipping. Voor elk moment: staat de camera binnen het grondvlak van een pand
+   dat hoger is dan zij zelf? Dan vliegt ze door dat pand heen. Hetzelfde voor
+   de bomen, met een kruin van achttien meter als maat.
+  */
+  const inRing = (r, x, z) => {
+    let b = false;
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const a = r[i], c = r[j];
+      if ((a[1] > z) !== (c[1] > z) && x < (c[0] - a[0]) * (z - a[1]) / (c[1] - a[1]) + a[0]) b = !b;
+    }
+    return b;
+  };
+  const dozen = KAART.panden.map(p => {
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (const v of p.voet) {
+      if (v[0] < x0) x0 = v[0]; if (v[0] > x1) x1 = v[0];
+      if (v[1] < z0) z0 = v[1]; if (v[1] > z1) z1 = v[1];
+    }
+    return { p, x0, x1, z0, z1, hoog: p.nok || p.goot || 6 };
+  });
+  let doorPand = 0, doorBoom = 0, laagst = Infinity, hoogst = 0;
+  const KRUIN = 18;
+  for (let t = 0; t <= eind; t += 0.25) {
+    const b = I.beeldOp(t, KAART, start);
+    const { x, y, z } = b.pos;
+    laagst = Math.min(laagst, y); hoogst = Math.max(hoogst, y);
+    for (const d of dozen) {
+      if (y > d.hoog + 1 || x < d.x0 || x > d.x1 || z < d.z0 || z > d.z1) continue;
+      if (inRing(d.p.voet, x, z)) { doorPand++; break; }
+    }
+    // de bomen: alleen als de camera lager hangt dan een kruin
+    if (y < KRUIN) {
+      for (const boom of KAART.bomen) {
+        if (Math.hypot(boom.x - x, boom.z - z) < 3.5) { doorBoom++; break; }
+      }
+    }
+  }
+  // de duur van het muziekje erbij, uit het bestand zelf
+  const duurMuziek = await new Promise(r => {
+    const a = new Audio(I.MUZIEK);
+    a.addEventListener('loadedmetadata', () => r(a.duration));
+    a.addEventListener('error', () => r(null));
+    setTimeout(() => r(null), 8000);
+  });
   return {
-    totaal: eind,
-    hoog: op(2).pos.y, midden: op(8).pos.y, straat: op(13).pos.y,
-    straatAfstand: op(13).afstand,
-    eindY: laatste.pos.y, eindAfstand: laatste.afstand, eindHoek: +verschil.toFixed(3),
-    start,
+    totaal: eind, beelden: I.beeldOp(0, KAART, start).beelden, duurMuziek,
+    plekken: Object.fromEntries(Object.entries(P).map(([k, v]) => [k, v ? { x: +(v.x ?? 0).toFixed(0), z: +(v.z ?? 0).toFixed(0) } : null])),
+    doorPand, doorBoom, laagst: +laagst.toFixed(1), hoogst: +hoogst.toFixed(0),
+    eindAfstand: Math.hypot(laatste.pos.x - start.x, laatste.pos.z - start.z),
+    eindY: laatste.pos.y, eindHoek: +hoekverschil.toFixed(3),
+    molenUitKaart: (KAART.molens || []).map(m => ({ x: +m.cx.toFixed(0), z: +m.cz.toFixed(0) })),
   };
 });
-ok('het filmpje duurt een seconde of twintig', weg.totaal > 15 && weg.totaal < 26, `${weg.totaal} s`);
-ok('het begint hoog boven de wijk', weg.hoog > 120, `${weg.hoog.toFixed(0)} m hoog`);
-ok('daarna lager over de daken', weg.midden < weg.hoog && weg.midden > 25, `${weg.midden.toFixed(0)} m`);
-ok('dan door een straat op ooghoogte', weg.straat < 3.5 && weg.straatAfstand < 140,
-  `${weg.straat.toFixed(1)} m hoog, ${weg.straatAfstand.toFixed(0)} m van het beginpunt`);
+ok('het filmpje bestaat uit een reeks beelden', weg.beelden >= 8, `${weg.beelden} beelden`);
+ok('en duurt ongeveer een minuut', weg.totaal > 55 && weg.totaal < 75, `${weg.totaal.toFixed(1)} s`);
+ok('even lang als het muziekje eronder',
+  weg.duurMuziek == null || Math.abs(weg.duurMuziek - weg.totaal) < 4,
+  weg.duurMuziek == null ? 'muziekduur niet te lezen' : `film ${weg.totaal.toFixed(1)} s, muziek ${weg.duurMuziek.toFixed(1)} s`);
+for (const [naam, sleutel] of [['de Molenkrite', 'molenkrite'], ['de Jumbo', 'jumbo'], ['het Tinga-bosje', 'bosje'],
+  ['de brug', 'brug'], ['de waterzuivering', 'rwzi'], ['de Geeuw', 'geeuw'], ['de molen', 'molen'],
+  ['het Sneekerpad', 'sneekerpad'], ['de Poiesz in IJlst', 'poiesz']]) {
+  const p = weg.plekken[sleutel];
+  ok(`${naam} is in de kaart gevonden`, !!p, p ? `(${p.x}, ${p.z})` : 'niet gevonden');
+}
+ok('de molen is dezelfde als die in de kaart staat',
+  weg.molenUitKaart.some(m => Math.hypot(m.x - weg.plekken.molen.x, m.z - weg.plekken.molen.z) < 3),
+  JSON.stringify(weg.molenUitKaart));
+ok('de camera vliegt nergens door een pand heen', weg.doorPand === 0, `${weg.doorPand} momenten`);
+ok('en nergens door een boomkruin', weg.doorBoom === 0, `${weg.doorBoom} momenten`);
+ok('het hoogste beeld kijkt over de hele wijk', weg.hoogst > 150, `${weg.hoogst} m`);
 ok('en hij eindigt op het standpunt van de speler',
   weg.eindAfstand < 0.6 && Math.abs(weg.eindY - 1.7) < 0.2,
   `${weg.eindAfstand.toFixed(2)} m ernaast, ${weg.eindY.toFixed(2)} m hoog`);
@@ -91,6 +149,22 @@ ok('en ze staan in de goede volgorde',
   gezien[0] === 'RED EAGLE PRODUCTIONS' && gezien[1] === 'presents' && gezien[2] === 'GTA VI TINGA');
 ok('met leeg beeld ertussen', titels.filter(r => !r.tekst).length >= 3,
   `${titels.filter(r => !r.tekst).length} stukken zonder titel`);
+/*
+ Hoe lang elke titel er staat. Red Eagle en de filmtitel moeten er lang in
+ blijven (verzoek 20 sep 2026); "presents" is een tussenzin en mag kort.
+*/
+const duurVan = (tekst) => {
+  let van = null, tot = null;
+  for (let i = 0; i < titels.length; i++) {
+    if (titels[i].tekst === tekst && van === null) van = titels[i].t;
+    if (van !== null && titels[i].tekst !== tekst && tot === null && titels[i].t > van) { tot = titels[i].t; break; }
+  }
+  return tot === null ? null : tot - van;
+};
+const dRed = duurVan('RED EAGLE PRODUCTIONS'), dTitel = duurVan('GTA VI TINGA');
+ok('RED EAGLE PRODUCTIONS staat er ruim in', dRed !== null && dRed >= 6, `${dRed && dRed.toFixed(1)} s`);
+ok('en de filmtitel nog langer', (dTitel === null /* loopt door tot het eind */) || dTitel >= 10,
+  dTitel === null ? 'tot het eind van het filmpje' : `${dTitel.toFixed(1)} s`);
 
 // ------------------------------------------------- het filmpje in het spel
 console.log('\nhet filmpje bij het starten');
@@ -104,10 +178,12 @@ await page.waitForTimeout(700);
 const draait = await page.evaluate(async () => {
   const I = await import('/js/intro.js');
   const g = window.__game;
-  return { bezig: I.bezig(), actief: g.player.active, laag: document.getElementById('intro').classList.contains('aan') };
+  return { bezig: I.bezig(), actief: g.player.active, laag: document.getElementById('intro').classList.contains('aan'),
+    wapen: g.player.gun ? g.player.gun.visible : null };
 });
 ok('de intro draait en het spel staat nog stil', draait.bezig === true && draait.actief === false);
 ok('en de filmlaag staat in beeld', draait.laag === true);
+ok('het wapen hangt niet in beeld', draait.wapen === false, `gun.visible = ${draait.wapen}`);
 
 // overslaan met een toets
 await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' })));

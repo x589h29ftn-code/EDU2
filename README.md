@@ -2683,30 +2683,58 @@ zijn.
 
 ### Het filmpje bij het begin
 
-Een nieuw spel begint met twintig seconden film (verzoek 20 sep 2026). De camera
-staat eerst tweehonderd meter boven de wijk, zakt over de daken, rijdt daarna op
-ooghoogte door een straat, en daalt ten slotte naar precies het standpunt waar je
-het spel begint — dus geen sprong van filmpje naar spel maar een doorkomst. Over
-het beeld heen komen drie titels, elk met een fade:
+Een nieuw spel begint met een filmpje van **65 seconden**, precies zo lang als
+het muziekje eronder (`audio/intro/intro.mp3`, dat aan het eind uitfadet). Tien
+rustige beelden, elk een seconde of zeven:
 
-**RED EAGLE PRODUCTIONS** → **presents** → **GTA VI · TINGA**
+| # | Wat je ziet |
+|---|---|
+| 1 | Tinga van 235 meter hoogte, langzaam zakkend |
+| 2 | de Molenkrite zelf, laag over de rijbaan |
+| 3 | de Jumbo, langs de kant van het parkeerterrein |
+| 4 | het Tinga-bosje |
+| 5 | de brug over het water |
+| 6 | de waterzuivering met zijn bassins |
+| 7 | de Geeuw door IJlst |
+| 8 | houtzaagmolen De Rat aan het Sneekerpad |
+| 9 | de Poiesz in IJlst, laag langs de pui |
+| 10 | de daling naar het standpunt waar je begint |
 
-Er staat geen enkele coördinaat in `js/intro.js`. De camerastanden worden
-afgeleid van het startpunt van de speler en van het wegennet uit de kaart: het
-rechte stuk straat waar de camera doorheen vliegt wordt opgezocht in
-`KAART.wegassen`, zodat het filmpje ook klopt als de kaart opnieuw gegenereerd
-wordt. Overslaan kan altijd met een toets of een klik; hij eindigt dan via
-hetzelfde zwart als waarmee hij begint.
+Daaroverheen de titels, met een fade: **RED EAGLE PRODUCTIONS** (acht seconden)
+→ **presents** → **GTA VI · TINGA** (veertien seconden, tot het eind). Overslaan
+kan altijd met een toets of een klik; hij eindigt dan via hetzelfde zwart als
+waarmee hij begint. Het wapen hangt tijdens het filmpje niet in beeld — dat zit
+aan de camera vast en zweefde anders mee over de wijk.
+
+Er staat geen enkele coördinaat in `js/intro.js`. Elke plek wordt opgezocht in
+de kaart: een pand op zijn type (`jumbo`, `poiesz`), de molen in `KAART.molens`,
+een straat op zijn naam in `KAART.wegassen`, de waterzuivering als het midden
+van de vijf `rwzi`-panden, en het bos, de brug en het water als het grootste
+vlak van die klasse in de buurt. Bij een winkel wordt ook `front` gebruikt — de
+kant waar de ingang zit — zodat de camera niet langs een blinde achtermuur
+vliegt.
+
+**Niet door daken en kruinen heen.** Alles wat van boven gefilmd wordt zit op
+minstens 24 meter, hoger dan de bomen (18 m), de molen (20,7 m) en de hoogste
+flat (26 m); de twee lage beelden liggen op de rijbaan en op het parkeerterrein.
+De toets rekent dat na: hij loopt het hele filmpje af in stapjes van een kwart
+seconde en kijkt of de camera binnen het grondvlak van een pand zit dat hoger is
+dan zijzelf, of binnen drie en een halve meter van een boom terwijl ze lager
+hangt dan een kruin. Nul van de 262 momenten.
 
 De camerastand op een bepaald moment is een gewone functie (`beeldOp(t)`), en
 niet iets wat alleen in een lopend filmpje bestaat. Daardoor is "waar staat de
-camera op seconde dertien" een vraag met een antwoord: de toets controleert het
-zonder dat er twintig seconden film langs hoeft, en de foto's hieronder zijn
+camera op seconde dertien" een vraag met een antwoord: de toets controleert de
+hele weg zonder dat er een minuut film langs hoeft, en de foto's hieronder zijn
 precies dát beeld.
 
 ![Hoog boven de wijk](docs/screenshots/intro_lucht.png)
 
-![Door de straat](docs/screenshots/intro_straat.png)
+![De waterzuivering](docs/screenshots/intro_rwzi.png)
+
+![Houtzaagmolen De Rat](docs/screenshots/intro_molen.png)
+
+![De Poiesz in IJlst](docs/screenshots/intro_poiesz.png)
 
 ### Erik heeft nog geen wapen
 
@@ -2731,8 +2759,8 @@ ook opnieuw, want dit is een spel dat van hand tot hand gaat.
 
 ![De uitleg in de auto](docs/screenshots/uitleg_auto.png)
 
-`npm run introtest` (eenentwintig controles) houdt het filmpje, het wapen en de
-uitleg vast; `npm run introshots` maakt de foto's.
+`npm run introtest` (zesendertig controles) houdt het filmpje, de plekken, de
+hoogtes, het wapen en de uitleg vast; `npm run introshots` maakt de foto's.
 
 ## Dag, nacht en weer
 

@@ -1152,7 +1152,7 @@ async function startGame(vervolg = false, metIntro = false) {
     player.wapenSlot = true;
     const kruis = document.getElementById('crosshair');
     if (kruis) kruis.style.display = 'none';
-    await intro.speelIntro({ camera, KAART, start: beginpunt });
+    await intro.speelIntro({ camera, KAART, start: beginpunt, geluidAan: !stil, wapen: player.gun });
   }
   player.active = true;
   if (touch) {

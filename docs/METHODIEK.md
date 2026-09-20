@@ -4440,6 +4440,39 @@ Het patroon om te onthouden: alles wat een browser alleen "na een klik" toestaat
 hoort in dezelfde tel als die klik, en niet achter een `await` die er seconden
 tussen zet.
 
+**De intro, tweede ronde (stap 66).** Tien beelden langs de herkenningspunten,
+muziek eronder, en geen camera meer door een dak.
+
+*Een filmpje meet je niet met je ogen alleen.* De tweede ronde van de intro
+vroeg om tien beelden langs echte plekken — de molen in IJlst, de Poiesz, de
+Jumbo, de brug, de Geeuw, de waterzuivering, het Tinga-bosje — en om geen
+clipping van bovenaf. Dat eerste is een kwestie van opzoeken in de kaart; het
+tweede van nameten.
+
+De toets loopt het hele filmpje af in stapjes van een kwart seconde en vraagt
+zich bij elk moment af: zit de camera binnen het grondvlak van een pand dat
+hóger is dan zijzelf, of binnen drie en een halve meter van een boom terwijl ze
+onder de kruinhoogte hangt? Twee vragen, 262 momenten, nul treffers. Dat is
+iets anders dan "het zag er goed uit op de vier foto's die ik gemaakt heb" — en
+het blijft werken als de kaart verandert.
+
+Wat dat mogelijk maakt is dezelfde vorm als bij de eerste ronde: de camerastand
+is een functie van de tijd, geen toestand in een lus. Daardoor kan een toets
+langs het hele filmpje lopen in een paar milliseconden.
+
+*Een plek opzoeken is beter dan een plek onthouden.* Elk van de tien beelden
+wordt afgeleid uit de kaart: een pand op zijn type, de molen uit `KAART.molens`,
+een straat op zijn naam, de waterzuivering als het midden van de vijf
+`rwzi`-panden, en het bos, de brug en het water als het grootste vlak van die
+klasse in de buurt van waar we willen kijken.
+
+Twee beelden waren daarmee nog niet goed: de Jumbo stond achter een rij bomen en
+de waterzuivering achter een bos. Allebei opgelost met wat er al in de data zat
+en niet met een handmatig standpunt — `front` van het pand wijst waar de ingang
+en het parkeerterrein liggen, en het terrein van de zuivering heeft een open
+noordkant. De regel die daarachter zit: als een beeld niet klopt, kijk eerst of
+de kaart het antwoord al bevat.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
