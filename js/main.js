@@ -389,6 +389,13 @@ const player = new Player(camera, scene, beginpunt.x, beginpunt.z, beginpunt.yaw
 await adem('verkeer', 0.97);
 const vehicles = new Vehicles(scene, world.parkSpots);
 await adem('voetgangers', 0.978);
+/*
+ De claxon van een bestuurder die voor je staat te wachten (js/vehicles.js telt
+ af hoe lang je er al staat). Het geluid hoort hier en niet daar: dat bestand
+ gaat over rijden en botsen en heeft geen weet van de audioketen.
+*/
+vehicles.opClaxon = (x, z) => geluid.claxon(Math.hypot(player.pos.x - x, player.pos.z - z));
+
 const npcs = new NPCs(scene, world.roadSegments, 130);
 player.applyCamera();   // meteen op ooghoogte op de Molenkrite, ook voor het startscherm
 const hud = new HUD();
@@ -401,9 +408,18 @@ const verhaal = initVerhaal({
   // Ga je neer, dan begint het verhaal bij het laatst opgeslagen spel; is er
   // niets opgeslagen, dan zegt laadSpel false en begint de missie opnieuw.
   opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart }),
+  /*
+   Twee dingen die het verhaal niet zelf kan: de camera terug naar de eerste
+   persoon (bij het uitstappen op de waterzuivering) en de sterren eenmalig
+   weghalen (na het afleveren van de vrachtwagen). Allebei als functie, want
+   `derde` en `politie` bestaan hieronder pas.
+  */
+  eersteP: () => { if (derde.aan) derde.wissel(); },
+  sterrenWeg: () => politie.reset(),
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
   bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {}, mislukt() {},
+  beginGesprek() {},
   hinder: { alive: false, opWeg: false, x: 0, z: 0 },
   missie: 'geen', fase: 'geen', aanspreekbaar: false,
 };
@@ -753,8 +769,16 @@ player.shootCb = (camOrigin, camDir) => {
   }
   politie.misdaad('schot', origin.x, origin.z);
   raycaster.set(origin, dir); raycaster.far = 120;
+  /*
+   Niet op je eigen auto schieten. Zat je erin, dan begon de kogel bij je hoofd
+   en raakte hij als eerste de binnenkant van je eigen dak of motorkap — je
+   schoot je eigen auto (en de vrachtwagen van de missie) aan gort van binnenuit
+   (melding 20 sep 2026). Het voertuig waar je in zit gaat daarom uit de lijst
+   met doelen; de kogel vliegt er gewoon doorheen naar buiten.
+  */
+  const eigen = player.inCar && player.inCar.mesh ? player.inCar.mesh : null;
   const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
-    ...(politieboot ? politieboot.doelen() : [])];
+    ...(politieboot ? politieboot.doelen() : [])].filter(o => !eigen || o !== eigen);
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
     const h = hits[0];
@@ -1137,6 +1161,7 @@ async function startGame(vervolg = false, metIntro = false) {
   geluid.start();
   geluid.pauzeer(false);
   geluid.laadRadio();                      // muziek voor de autoradio, als die er is
+  geluid.laadMissieMuziek();               // en de spanningsmuziek onder de missies
   /*
    De muis vastzetten (of op een telefoon: volledig scherm) gebeurt vóór het
    filmpje en niet erna. Een browser geeft die twee dingen alleen op vertoon van
@@ -1155,6 +1180,13 @@ async function startGame(vervolg = false, metIntro = false) {
     await intro.speelIntro({ camera, KAART, start: beginpunt, geluidAan: !stil, wapen: player.gun });
   }
   player.active = true;
+  /*
+   En Mark begint meteen te praten. Een nieuw spel begon met een stilstaand
+   beeld van je broer en de vraag of je toevallig E zou indrukken; nu neemt hij
+   zelf het woord (verzoek 20 sep 2026). Bij een vervolg niet: daar sta je
+   midden in een missie.
+  */
+  if (!vervolg) verhaal.beginGesprek(metIntro ? 1.4 : 0.8);
   if (touch) {
     touch.setVisible(true);
     hud.show('Links lopen · rechts kijken', 4);
@@ -1178,6 +1210,37 @@ function volledigScherm() {
   const el = document.documentElement;
   if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
   if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+}
+
+/*
+ Auto's die langskomen (verzoek 20 sep 2026). Te voet hoor je het verkeer nu
+ ook als het vlak langs je heen rijdt: op het moment dat een auto het dichtst
+ bij is — de afstand liep terug en begint weer op te lopen — klinkt het
+ bandengeluid van js/audio.js, met het volume naar de afstand en de snelheid.
+
+ Dat "dichtst bij" is precies het moment dat je hem hoort passeren; zonder die
+ voorwaarde zou elke auto in de buurt voortdurend ruis maken. Per auto wordt de
+ vorige afstand onthouden, en na een passage houdt hij een paar tellen zijn
+ mond zodat een file er niet als een waterval uitkomt.
+*/
+const langsKlok = new Map();
+function langsrijders(dt) {
+  if (player.inCar || !vehicles.traffic) return;
+  const px = player.pos.x, pz = player.pos.z;
+  for (const t of vehicles.traffic) {
+    if (!t._pos || !t.mesh || !t.mesh.visible) continue;
+    const d = Math.hypot(t._pos.x - px, t._pos.y - pz);
+    const v = t.snelheid === undefined ? t.speed : t.snelheid;
+    let st = langsKlok.get(t);
+    if (!st) { st = { vorige: d, rust: 0 }; langsKlok.set(t, st); }
+    if (st.rust > 0) st.rust -= dt;
+    // het dichtste punt: hij kwam dichterbij en gaat nu weer weg
+    if (d < 26 && v > 2.5 && st.rust <= 0 && d > st.vorige) {
+      geluid.passeer(d, v);
+      st.rust = 2.5;
+    }
+    st.vorige = d;
+  }
 }
 
 function useDragMode() {
@@ -1571,6 +1634,7 @@ function loop() {
     updateClouds(dt, cx, cz);
     sfeer.update(dt, cx, cz);
     updateProps(dt);
+    langsrijders(dt);          // een auto die voorbijkomt hoor je ook
     geluid.omgeving(dt, { weer: sfeer.weer, nacht: sfeer.nacht, binnen: !!player.inCar });
     geluid.radio(afstandTotRadio(cx, cz));
     geluid.autoradio(!!player.inCar);        // muziek uit audio/radio/, anders het riffje

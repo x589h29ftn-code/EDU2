@@ -113,7 +113,7 @@ ok('even lang als het muziekje eronder',
   weg.duurMuziek == null || Math.abs(weg.duurMuziek - weg.totaal) < 4,
   weg.duurMuziek == null ? 'muziekduur niet te lezen' : `film ${weg.totaal.toFixed(1)} s, muziek ${weg.duurMuziek.toFixed(1)} s`);
 for (const [naam, sleutel] of [['de Molenkrite', 'molenkrite'], ['de Jumbo', 'jumbo'], ['het Tinga-bosje', 'bosje'],
-  ['de brug', 'brug'], ['de waterzuivering', 'rwzi'], ['de Geeuw', 'geeuw'], ['de molen', 'molen'],
+  ['het Viaduct Tinga', 'viaduct'], ['de waterzuivering', 'rwzi'], ['de Geeuw', 'geeuw'], ['de molen', 'molen'],
   ['het Sneekerpad', 'sneekerpad'], ['de Poiesz in IJlst', 'poiesz']]) {
   const p = weg.plekken[sleutel];
   ok(`${naam} is in de kaart gevonden`, !!p, p ? `(${p.x}, ${p.z})` : 'niet gevonden');
@@ -121,6 +121,46 @@ for (const [naam, sleutel] of [['de Molenkrite', 'molenkrite'], ['de Jumbo', 'ju
 ok('de molen is dezelfde als die in de kaart staat',
   weg.molenUitKaart.some(m => Math.hypot(m.x - weg.plekken.molen.x, m.z - weg.plekken.molen.z) < 3),
   JSON.stringify(weg.molenUitKaart));
+/*
+ Het viaductbeeld is er een van een andere soort: geen zwenk om een punt heen
+ maar een rechte lijn erop af (verzoek 20 sep 2026). Dat is te meten — de
+ afwijking van de lijn tussen begin- en eindpunt blijft nul, de afstand tot het
+ dek loopt terug, en de camera blijft erboven.
+*/
+const viaduct = await page.evaluate(async () => {
+  const I = await import('/js/intro.js');
+  const { KAART } = await import('/js/kaart.js');
+  const start = window.__game.start;
+  const P = I.zoekPlekken(KAART, start);
+  if (!P.viaduct) return null;
+  const totaal = I.beeldOp(0, KAART, start).totaal;
+  const punten = [];
+  for (let t = 0; t < totaal; t += 0.1) {
+    const b = I.beeldOp(t, KAART, start);
+    if (b.beeldNr !== 4) continue;
+    punten.push({ x: b.pos.x, y: b.pos.y, z: b.pos.z,
+      d: Math.hypot(b.pos.x - P.viaduct.x, b.pos.z - P.viaduct.z) });
+  }
+  if (punten.length < 3) return null;
+  const a = punten[0], e = punten[punten.length - 1];
+  const L = Math.hypot(e.x - a.x, e.z - a.z) || 1;
+  let scheef = 0;
+  for (const p of punten) {
+    scheef = Math.max(scheef, Math.abs((p.x - a.x) * (e.z - a.z) - (p.z - a.z) * (e.x - a.x)) / L);
+  }
+  return { n: punten.length, scheef, dVan: a.d, dTot: e.d, yVan: a.y, yTot: e.y,
+    laagst: Math.min(...punten.map(p => p.y)), dek: P.viaduct.y };
+});
+ok('het vijfde beeld is het viaduct', !!viaduct, viaduct ? `${viaduct.n} momenten` : 'geen viaduct in de kaart');
+if (viaduct) {
+  ok('de camera vliegt er in een rechte lijn op af, hij draait er niet omheen',
+    viaduct.scheef < 0.01 && viaduct.dTot < viaduct.dVan * 0.4,
+    `${viaduct.scheef.toFixed(3)} m van de lijn, ${viaduct.dVan.toFixed(0)} → ${viaduct.dTot.toFixed(0)} m`);
+  ok('en zakt daarbij, maar blijft boven het dek',
+    viaduct.yTot < viaduct.yVan && viaduct.laagst > viaduct.dek + 0.8,
+    `${viaduct.yVan.toFixed(1)} → ${viaduct.yTot.toFixed(1)} m boven een dek van ${viaduct.dek.toFixed(1)} m`);
+}
+
 ok('de camera vliegt nergens door een pand heen', weg.doorPand === 0, `${weg.doorPand} momenten`);
 ok('en nergens door een boomkruin', weg.doorBoom === 0, `${weg.doorBoom} momenten`);
 ok('het hoogste beeld kijkt over de hele wijk', weg.hoogst > 150, `${weg.hoogst} m`);

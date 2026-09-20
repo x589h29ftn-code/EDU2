@@ -4473,6 +4473,83 @@ en het parkeerterrein liggen, en het terrein van de zuivering heeft een open
 noordkant. De regel die daarachter zit: als een beeld niet klopt, kijk eerst of
 de kaart het antwoord al bevat.
 
+**Missiemuziek, een claxon en de camera terug (stap 67).** De derde lijst van
+20 september: geen kogels meer in je eigen auto, uitstappen in de eerste
+persoon, de sterren eenmalig weg na de vrachtwagen, muziek onder de missie, een
+balk over de winkels, een ander beeld in de intro, Mark die zelf begint, en het
+verkeer dat weer te horen is.
+
+*Wie schiet, schiet ergens vandaan.* De kogel begon bij je hoofd, en zat je in
+een auto dan stond je eigen dak als eerste in de baan. Het is verleidelijk om
+dat op te lossen door de kogel verderop te laten beginnen — een halve meter voor
+de neus, zeg — maar dan klopt het schot niet meer met wat je ziet, en schiet je
+ineens dóór een muur waar je tegenaan staat. De oplossing die wél klopt is een
+regel over doelen en niet over meetkunde: het voertuig waar je in zit staat niet
+in de lijst met dingen die geraakt kunnen worden. Eén regel, en de kogel vliegt
+gewoon naar buiten.
+
+*Een proef die alleen het verschil meet.* De eerste versie van de toets schoot
+van binnenuit op de auto (geen schade — goed) en daarna van zeven meter afstand
+(ook geen schade — dus wat bewees het eigenlijk?). Er kan van alles tussen
+staan: Mark, een voetganger, een lantaarnpaal. De tweede versie vuurt twéé keer
+exact dezelfde acht kogels vanaf exact hetzelfde punt, en verandert er maar één
+ding tussenin: zit de speler in die auto of niet. Dan meet je het verschil en
+niets anders. Dat is dezelfde les als bij de fietsende voetgangers: een toets
+die iets anders doet dan de code, of iets anders meet dan de verandering, kan
+groen staan zonder ergens over te gaan.
+
+*Muziek die niet elke keer hetzelfde is.* Het aangeleverde nummer duurt drie
+kwartier. Bij elke missie bij nul beginnen zou betekenen dat je het spel leert
+kennen aan de eerste twintig seconden ervan. Het spel springt daarom naar een
+willekeurige plek, met één voorwaarde: minstens twee minuten van de vorige
+vandaan. Dat springen kost niets aan geheugen — het bestand loopt door een
+`<audio>`-element — maar het stelt wel een eis aan de server: hij moet
+Range-verzoeken kennen. `python3 -m http.server` kan dat niet, `tools/server.mjs`
+wel, en dat staat nu in de kop van de toets zodat niemand zich erop verkijkt.
+
+En muziek die begint moet ook kúnnen ophouden. De fade-out is twee en een halve
+seconde, en het element gaat pas ná die tijd op pauze; zet je het meteen stil,
+dan hak je je eigen fade eraf. Datzelfde gold voor de proef: de fade hangt aan
+de klok van de AudioContext, dus een toets die het verhaal in stapjes van een
+tiende seconde vooruitspoelt meet een fade die in werkelijkheid nog maar net
+begonnen is. De toets loopt nu mee met de echte klok.
+
+*Een andere beweging leest anders dan een ander onderwerp.* Voor de intro vroeg
+de gebruiker om een ander beeld dan de brug én een andere camerahoek. Alle negen
+overige beelden zijn zwenken om een punt heen — een koorde op een cirkel. Het
+nieuwe beeld is daarom geen cirkel maar een rechte lijn: de camera vliegt over
+de rondweg ónder het Viaduct Tinga er recht op af, en zakt daarbij van elf naar
+zeven meter.
+
+Dat het van díe kant moest bleek uit het nakijken van de foto. De eerste opzet
+vloog langs het dek zelf, en daar is een viaduct geen vorm: je ziet asfalt dat
+wat oploopt, met bomen ervoor. Dwars erop staat de boog in beeld. Welke weg dat
+is wordt opgezocht en niet ingetypt: het langste stuk rijbaan binnen zeventig
+meter van het hoogste punt van de as dat dwárs op het dek ligt.
+
+Ook dit is te meten en niet alleen te bekijken: de toets bemonstert het beeld,
+legt een lijn tussen het begin- en eindpunt en kijkt hoe ver de camera daar
+tussenuit wijkt (nul), of de afstand tot het viaduct terugloopt (150 → 52 m) en
+of hij boven het dek blijft.
+
+*Een spel dat op de speler wacht, wacht soms eeuwig.* Het verhaal begon met
+Erik tegenover zijn broer en de stille aanname dat je op E zou drukken. Wie dat
+niet deed liep de wijk in en kwam het verhaal nooit tegen. De oplossing is niet
+een grotere hint maar een andere volgorde: Mark begint zelf te praten,
+anderhalve seconde nadat het filmpje voorbij is. Daarna loopt alles zoals het
+liep. Dezelfde gedachte als bij de uitleg-blokjes uit stap 65: leg iets uit op
+het moment dat het aan de orde is, in plaats van te hopen dat iemand het zelf
+bedenkt.
+
+*Stilte is een instelling die wegzakt.* "Ik hoor de vogels niet meer" bleek geen
+kapotte laag maar een optelsom: de omgevingslagen stonden zo zacht dat ze onder
+de voetstappen verdwenen. Erbij gekomen is wat er op straat hoort: een auto die
+langs je heen rijdt, herkend aan het moment dat de afstand ophoudt met kleiner
+worden, en een claxon van de bestuurder voor wie je in de weg staat — maar pas
+na anderhalve tot vier seconden, en niet door iedereen. "Niet gelijk
+claxonneren" was de vraag, en dat is precies het verschil tussen een grap en een
+alarmbel.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

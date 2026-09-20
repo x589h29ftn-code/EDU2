@@ -56,6 +56,8 @@ export class Vehicles {
     this.cars = [];   // {mesh|inst,x,z,yaw,speed,driveable}
     this.knallen = [];   // lopende vuurballen van opgeblazen auto's
     this.traffic = [];
+    // js/main.js hangt hier het geluid aan: een bestuurder die staat te wachten
+    this.opClaxon = null;
     this.duwen = [];  // geparkeerde auto's die een klap kregen en uitrollen
     const r = rng(2024);
     /*
@@ -797,7 +799,30 @@ export class Vehicles {
       // niet in het rooster. Die lijst is één keer per beeld gemaakt en niet per
       // rijdende auto — anders loop je alsnog twintig keer door alle 1781.
       for (const c of metModel) { if (this.isZichtbaar(c)) inDeWeg(c.x, c.z, 0.4); }
-      if (speler && !speler.inCar) inDeWeg(speler.pos.x, speler.pos.z, 0.1);
+      /*
+       De speler die voor de auto staat. `blokSpeler` telt hoe lang hij dat al
+       doet: pas als dat een seconde of twee duurt gaat de claxon (verzoek
+       20 sep 2026 — "niet gelijk claxonneren"). Daarna een rustpauze, anders
+       staat er een auto te loeien zolang jij daar staat.
+      */
+      if (speler && !speler.inCar) {
+        const voor = vrij;
+        inDeWeg(speler.pos.x, speler.pos.z, 0.1);
+        const doorSpeler = vrij < voor && vrij < 7;
+        if (t.claxonRust > 0) t.claxonRust -= dt;
+        if (doorSpeler && t.snelheid < 1.2) {
+          t.blokSpeler = (t.blokSpeler || 0) + dt;
+          if (t.blokSpeler > (t.claxonNa || (t.claxonNa = 1.6 + Math.random() * 2.2)) && (t.claxonRust || 0) <= 0) {
+            t.blokSpeler = 0;
+            t.claxonNa = 1.6 + Math.random() * 2.2;
+            t.claxonRust = 4 + Math.random() * 5;
+            // niet elke bestuurder is even kort aangebonden
+            if (this.opClaxon && Math.random() < 0.7) this.opClaxon(t._pos.x, t._pos.y);
+          }
+        } else if (t.blokSpeler) {
+          t.blokSpeler = Math.max(0, t.blokSpeler - dt * 2);
+        }
+      }
       if (voetgangers) {
         for (const v of voetgangers) { if (v.alive && v.opWeg) inDeWeg(v.x, v.z, 0.1); }
       }

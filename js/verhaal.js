@@ -206,7 +206,12 @@ export function verhaalStart() {
  de missie zelf opnieuw.
 */
 export function initVerhaal(ctx) {
-  const { scene, player, hud, vehicles } = ctx;
+  /*
+   `eersteP` en `sterrenWeg` komen uit js/main.js: dit bestand kent de camera en
+   de politie niet, maar moet er op twee momenten wel iets mee. Ze zijn optioneel,
+   zodat het verhaal ook zonder werkt.
+  */
+  const { scene, player, hud, vehicles, eersteP = null, sterrenWeg = null } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
   const tekstEl = document.getElementById('dialoogTekst');
@@ -320,6 +325,16 @@ export function initVerhaal(ctx) {
   let navVanaf = null;           // waar de route voor het laatst gezocht is
   let navKlok = 0;
   let poortOpen = false;
+  /*
+   De spanningsmuziek (audio/missie/, zie geluid.missiemuziek). Hij staat aan
+   vanaf het moment dat je in de auto stapt naar de waterzuivering, door de
+   bewaking en de rit met de vrachtwagen heen, tot even na MISSION COMPLETED —
+   en verder nergens. `spanningUit` is het uitlopen aan het eind; neergaan of
+   een mislukte missie zet hem meteen af.
+  */
+  let spanning = false;
+  let spanningUit = 0;
+  let startPraatT = -1;          // aftellen tot Mark uit zichzelf begint (zie beginGesprek)
   let doodT = 0;                 // aftellen na het neergaan
   // missie 5
   let johan = null;              // de Persoon van Johan
@@ -499,6 +514,14 @@ export function initVerhaal(ctx) {
     player.health = 100;
     hud.zetLeven(player.health);
     hud.melding('MISSION COMPLETED', 'De lading staat bij de boerderij.', 8);
+    /*
+     En de politie is je eenmalig kwijt. Je hebt net een vrachtwagen met een
+     lading dwars door de wijk gereden; dat de sterren daarna blijven staan
+     maakt het spel na de missie onspeelbaar (verzoek 20 sep 2026). Dit gebeurt
+     één keer, hier, en niet bij de andere missies.
+    */
+    if (sterrenWeg) sterrenWeg();
+    spanningUit = 6;                   // de muziek loopt over de melding heen uit
     naMissieT = 5;                     // daarna belt Johan
   }
 
@@ -578,6 +601,7 @@ export function initVerhaal(ctx) {
   function mislukt(reden) {
     if (misluktT > 0) return;
     misluktT = 3.4;
+    spanning = false; spanningUit = 0;
     gesprek = null; sluitBalk();
     zetOpdracht('');
     hud.zetGrijs(true);
@@ -595,6 +619,7 @@ export function initVerhaal(ctx) {
   function dood() {
     if (doodT > 0) return;
     doodT = 2.6;
+    spanning = false; spanningUit = 0;
     hud.melding('NEERGEGAAN', 'Je begint bij je laatste opgeslagen spel.', 3);
     player.active = false;
   }
@@ -607,6 +632,10 @@ export function initVerhaal(ctx) {
   }
   // Geen opgeslagen spel: dan begint de missie zelf opnieuw.
   function herstartMissie() {
+    // je staat weer buiten de auto: de muziek begint straks opnieuw, op een
+    // ander fragment
+    spanning = missie === 'bewaking' || missie === 'afleveren';
+    spanningUit = 0;
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -641,6 +670,17 @@ export function initVerhaal(ctx) {
       player.inCar = null;
       player.pos.set(s.x, 0, s.z); player.yaw = s.yaw; player.applyCamera();
     }
+  }
+
+  /*
+   Mark begint uit zichzelf. Het spel opende met jou tegenover je broer en de
+   vraag of je op <kbd>E</kbd> drukt; wie dat niet doorheeft loopt de wijk in en
+   het verhaal begint nooit (verzoek 20 sep 2026). Nu zet main.js dit klaar
+   zodra het filmpje voorbij is: na een tel begint hij te praten, en verder
+   loopt het gesprek zoals altijd met E verder.
+  */
+  function beginGesprek(na = 1.4) {
+    if (missie === 'molenkrite' && fase === 'wacht') startPraatT = na;
   }
 
   // ---------- E ----------
@@ -876,6 +916,14 @@ export function initVerhaal(ctx) {
           missie = 'klaar'; fase = 'klaar';
           zetOpdracht('');
           hud.melding('MISSIE VOLTOOID', `Beloning: + ${euro(BELONING)} toegevoegd aan wallet`, 8);
+          /*
+           En waar je dat geld aan kwijt kunt. Tot hier is het spel een reeks
+           opdrachten geweest; vanaf nu is het de wijk in, en dan helpt het om te
+           weten waar de winkels voor zijn (verzoek 20 sep 2026).
+          */
+          uitleg.toon('winkels', 'Wat je met je geld kunt',
+            'Bij <b>Tinga State</b> aan de Molenkrite koop je wapens en munitie · '
+            + 'bij de <b>Poiesz</b> in IJlst en Duinterpen vul je je health aan', 13);
         });
       }
     }
@@ -886,6 +934,25 @@ export function initVerhaal(ctx) {
     // Het spannende deuntje loopt precies zolang de achtervolging duurt: het
     // stopt als je hem pakt, als je hem neerschiet en als je neergaat.
     geluid.jacht(missie === 'johan' && fase === 'achtervolging' && doodT <= 0 && misluktT <= 0);
+    // En de muziek onder de missie: die loopt nog een paar tellen door over
+    // MISSION COMPLETED heen en dooft daarna uit (zie geluid.missiemuziek).
+    if (spanningUit > 0) {
+      spanningUit -= dt;
+      if (spanningUit <= 0) spanning = false;
+    }
+    geluid.missiemuziek(spanning && doodT <= 0 && misluktT <= 0);
+    // Mark die zelf begint (zie beginGesprek): even wachten tot het beeld staat
+    // en de speler zijn handen aan de muis heeft, en dan praat hij.
+    if (startPraatT > 0) {
+      startPraatT -= dt;
+      if (startPraatT <= 0) {
+        startPraatT = -1;
+        if (missie === 'molenkrite' && fase === 'wacht' && balk.hidden && !gesprek) {
+          fase = 'gesprek';
+          zeg(GESPREK1, () => { fase = 'loopt'; zetOpdracht('ga met Mark mee'); });
+        }
+      }
+    }
     if (doodT > 0) {
       doodT -= dt;
       if (doodT <= 0) naDeDood();
@@ -977,7 +1044,12 @@ export function initVerhaal(ctx) {
     if (missie === 'rijden') {
       if (player.inCar) {
         markZichtbaar(false);              // hij zit naast je in de auto
-        if (fase === 'instappen') fase = 'onderweg';
+        if (fase === 'instappen') {
+          fase = 'onderweg';
+          // portier dicht, muziek aan: vanaf hier tot het afleveren van de
+          // vrachtwagen speelt er een fragment onder (verzoek 20 sep 2026)
+          spanning = true; spanningUit = 0;
+        }
       } else {
         // stap je onderweg uit, dan stapt hij ook uit en wacht hij bij de auto
         markZichtbaar(true);
@@ -999,6 +1071,13 @@ export function initVerhaal(ctx) {
           const [ux, uz] = resolveCollisions(rauw.x, rauw.z, 0.4);
           player.pos.set(ux, 0, uz);
           player.yaw = kijkHoek({ x: ux, z: uz }, poort.mid);
+          /*
+           Uit de auto stap je in de eerste persoon. Reed je met de camera over
+           je schouder, dan stond je daarna als poppetje op het terrein te
+           kijken; dit is het moment waarop het spel weer van jou wordt (melding
+           20 sep 2026).
+          */
+          if (eersteP) eersteP();
           player.applyCamera();
           geluid.portier(); geluid.motorUit();
           naast = { x: auto.x - Math.cos(auto.yaw) * 3.6, z: auto.z + Math.sin(auto.yaw) * 3.6 };
@@ -1069,6 +1148,9 @@ export function initVerhaal(ctx) {
     missie = s.missie || 'molenkrite';
     fase = s.fase || 'wacht';
     if (fase === 'gesprek' || fase === 'briefing') { fase = 'wacht'; missie = 'molenkrite'; }
+    // Een opgeslagen spel middenin de rit begint ook weer met muziek eronder.
+    spanning = (missie === 'rijden' && fase !== 'instappen') || missie === 'bewaking' || missie === 'afleveren';
+    spanningUit = 0;
     markDoel = null; markNa = null;
     if (s.mark) { mark.zetNeer(s.mark.x, s.mark.z, s.mark.yaw || 0); markZichtbaar(s.mark.zichtbaar !== false); }
     omgevallen.clear();
@@ -1177,6 +1259,7 @@ export function initVerhaal(ctx) {
 
   return {
     update, toets, doelen, raak, hinder, bewaar, herstel, meldAan, schotGehoord, dood, mislukt,
+    beginGesprek,
     /*
      Twee haakjes voor een missie die buiten dit bestand draait (js/vaart.js, de
      lading over het water): de opdrachtregel in beeld en de gespreksbalk. Ze

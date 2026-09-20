@@ -2,6 +2,7 @@
  Foto's van de intro en van de uitleg onderweg:
 
    intro_lucht.png   het eerste beeld, hoog boven de wijk, met de eerste titel
+   intro_viaduct.png het vijfde beeld: de rechte aanvlucht op het Viaduct Tinga
    intro_daken.png   lager over de daken, met "presents"
    intro_straat.png  door de straat op ooghoogte, met "GTA VI TINGA"
    intro_erik.png    het laatste beeld: het standpunt waar het spel begint
@@ -114,7 +115,7 @@ const momenten = await page.evaluate(async () => {
   for (let i = 0; i + 1 < grenzen.length; i++) midden.push(+((grenzen[i] + grenzen[i + 1]) / 2).toFixed(1));
   return midden;
 });
-const namen = ['intro_lucht', 'intro_molenkrite', 'intro_jumbo', 'intro_bosje', 'intro_brug',
+const namen = ['intro_lucht', 'intro_molenkrite', 'intro_jumbo', 'intro_bosje', 'intro_viaduct',
   'intro_rwzi', 'intro_geeuw', 'intro_molen', 'intro_poiesz', 'intro_erik'];
 for (let i = 0; i < momenten.length; i++) {
   await filmbeeld(namen[i] || `intro_${i}`, momenten[i]);

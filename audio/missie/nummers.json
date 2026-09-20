@@ -1,0 +1,11 @@
+{
+  "_uitleg": "Spanningsmuziek onder de missies (js/audio.js, geluid.missiemuziek). Het spel kiest bij elke missie een willekeurig fragment uit het nummer — het begint dus nooit op dezelfde plek — zwelt in twee seconden aan en dooft aan het eind weer uit. Zet je hier meer nummers neer, dan wordt er ook uit de lijst gekozen. Net als audio/menu/, audio/intro/ en audio/radio/ is dit een bewuste uitzondering op de regel dat er geen geluids- of beeldbestanden in het spel zitten. Let op de rechten: deze map gaat mee in een openbare repo.",
+  "nummers": [
+    {
+      "bestand": "missie.mp3",
+      "titel": "Mission music",
+      "bron": "aangeleverd door de gebruiker, GitHub 20 sep 2026",
+      "fragment": 75
+    }
+  ]
+}

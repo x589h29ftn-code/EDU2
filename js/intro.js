@@ -3,7 +3,7 @@
 
  Wat je ziet (verzoek 20 sep 2026, uitgebreid op de tweede ronde): een reeks
  rustige beelden langs de plekken die de wijk en de omgeving maken — de
- Molenkrite, de Jumbo, het Tinga-bosje, de brug, de waterzuivering, de Geeuw,
+ Molenkrite, de Jumbo, het Tinga-bosje, het Viaduct Tinga, de waterzuivering, de Geeuw,
  houtzaagmolen De Rat aan het Sneekerpad en de Poiesz in IJlst — en dan een
  daling naar precies het standpunt waar je het spel begint. Over het beeld heen
  de titels:
@@ -12,15 +12,17 @@
 
  **Geen enkele coördinaat staat hier hard in.** Elke plek wordt opgezocht in de
  kaart: een pand op zijn type (`poiesz`, `jumbo`), de molen in `KAART.molens`,
- een straat op zijn naam in `KAART.wegassen`, en het bos, de brug en het water
+ een straat op zijn naam in `KAART.wegassen`, het viaduct in `KAART.viaducten`,
+ en het bos en het water
  als het grootste vlak van die klasse in de buurt van waar we willen kijken. Als
  de kaart opnieuw gegenereerd wordt klopt het filmpje dus nog steeds.
 
  Hoogte en clipping. Alles wat van boven gefilmd wordt zit op minstens dertig
  meter — hoger dan de bomen (18 m), de molen (20,7 m) en de hoogste flat van de
  kaart (26 m) — zodat de camera nergens door een dak of een kruin heen zakt. De
- twee lage beelden (de straat en de Poiesz) liggen op de rijbaan en op het
- parkeerterrein, waar niets staat.
+ drie lage beelden (de straat, het viaduct en de Poiesz) liggen op de rijbaan en
+ op het parkeerterrein, waar niets staat: bij het viaduct vliegt de camera over
+ de rondweg eronder, van elf naar zeven meter.
 
  De muziek staat in `audio/intro/`. Dat is, net als `audio/menu/` en
  `audio/radio/`, een bewuste uitzondering op de regel dat er geen
@@ -121,6 +123,40 @@ function straatVan(KAART, naam) {
 }
 
 /*
+ Een viaduct uit de kaart, met de richting van het dek: het hoogste punt van de
+ as, en de lijn van het begin naar dat punt. Daarmee kan de camera er recht op
+ af vliegen in plaats van er omheen te draaien.
+*/
+function viaductVan(KAART, naam) {
+  const v = (KAART.viaducten || []).find(x => new RegExp(naam, 'i').test(x.naam || ''));
+  if (!v || !v.as || v.as.length < 3) return null;
+  let top = v.as[0];
+  for (const p of v.as) if (Math.abs(p[2]) > Math.abs(top[2])) top = p;
+  const a = v.as[0];
+  const dx = top[0] - a[0], dz = top[1] - a[1];
+  const L = Math.hypot(dx, dz) || 1;
+  /*
+   En de weg eronder: het langste stuk rijbaan binnen zeventig meter van het
+   hoogste punt dat dwars op het dek ligt. Daarlangs kijk je tegen de boog van
+   het viaduct aan; langs het dek zelf zie je alleen asfalt dat wat oploopt.
+  */
+  let onder = null;
+  for (const w of KAART.wegassen || []) {
+    for (let i = 0; i + 1 < w.pts.length; i++) {
+      const p = w.pts[i], q = w.pts[i + 1];
+      const mx = (p[0] + q[0]) / 2, mz = (p[1] + q[1]) / 2;
+      if (Math.hypot(mx - top[0], mz - top[1]) > 70) continue;
+      const len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+      const ux = (q[0] - p[0]) / len, uz = (q[1] - p[1]) / len;
+      // dwars op het dek: het inproduct met de richting van het viaduct is klein
+      if (Math.abs(ux * (dx / L) + uz * (dz / L)) > 0.35) continue;
+      if (!onder || len > onder.len) onder = { len, dx: ux, dz: uz, naam: w.naam };
+    }
+  }
+  return { x: top[0], z: top[1], y: top[2], dx: dx / L, dz: dz / L, naam: v.naam, onder };
+}
+
+/*
  Alles wat het filmpje aandoet, opgezocht in de kaart. Wat er niet is wordt
  stilletjes overgeslagen (`null`), zodat een kaart zonder molen of zonder Poiesz
  geen kapot filmpje geeft maar een kortere reeks.
@@ -139,6 +175,7 @@ export function zoekPlekken(KAART, start) {
     sneekerpad,
     bosje: vlakVan(KAART, 'bos', start, 900),
     brug: vlakVan(KAART, 'brug'),
+    viaduct: viaductVan(KAART, 'viaduct tinga'),
     // de Geeuw: het water bij de Geeuwkade in IJlst, en anders bij de molen
     geeuw: vlakVan(KAART, 'water', geeuwkade || sneekerpad || start, 700),
     rwzi: terreinVan(KAART, 'rwzi') ||
@@ -202,9 +239,34 @@ function maakBeelden(KAART, start) {
   // 4. het Tinga-bosje
   if (P.bosje) rij.push(omheen(P.bosje, { straal: Math.max(90, P.bosje.maat * 0.7), hoogte: 46, van: 0.4, tot: 1.1, kijkY: 8, duur: 6.5 }));
 
-  // 5. de brug over het water
-  // laag en van veraf: recht van boven leest een brug als een plattegrond
-  if (P.brug) rij.push(omheen(P.brug, { straal: 95, hoogte: 24, van: 3.5, tot: 3.0, kijkY: 3, duur: 6.5 }));
+  /*
+   5. het Viaduct Tinga over de rondweg — de poort van de wijk.
+
+   Dit was eerst de brug over het water, van veraf en rondcirkelend als alle
+   andere beelden (verzoek 20 sep 2026: een ander beeld én een andere hoek).
+   Hier draait de camera niet: hij vliegt in één rechte lijn over de rondweg
+   ónder het viaduct door erop af, en zakt daarbij van elf naar zeven meter. Zo
+   staat de boog van het viaduct dwars in beeld; langs het dek zelf zie je
+   alleen asfalt dat wat oploopt, en dat leest niet als een viaduct. Een
+   inrijdende beweging leest bovendien heel anders dan een zwenk om een punt.
+  */
+  if (P.viaduct && P.viaduct.onder) {
+    const v = P.viaduct, o = v.onder;
+    /*
+     Zes meter naast de as van de rijbaan. Pal op de as scheerde de camera op
+     zeven meter hoogte langs een boom op (196, -210): drie meter ernaast, en
+     daarmee de enige treffer in de clipping-proef van de hele film. Aan deze
+     kant blijft er negen meter over.
+    */
+    const zx = o.dz, zz = -o.dx;
+    rij.push({
+      duur: 6.5, ease: soepel,
+      van: { x: v.x - o.dx * 150 + zx * 6, y: 11, z: v.z - o.dz * 150 + zz * 6 },
+      naar: { x: v.x - o.dx * 52 + zx * 6, y: 6.6, z: v.z - o.dz * 52 + zz * 6 },
+      kijkVan: { x: v.x + o.dx * 25, y: 4.6, z: v.z + o.dz * 25 },
+      kijkNaar: { x: v.x + o.dx * 18, y: 4.2, z: v.z + o.dz * 18 },
+    });
+  }
 
   // 6. de waterzuivering aan de Buitenroede
   // van de open kant af: aan de zuidkant staat het bos ervoor

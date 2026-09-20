@@ -689,6 +689,12 @@ Een aanrijding was een getal: je snelheid ging eraf en verder veranderde er niet
 
 ![remsporen](docs/screenshots/remsporen.png)
 
+**Niet op je eigen auto.** Schoot je vanuit de auto, dan begon de kogel bij je
+hoofd en raakte hij als eerste je eigen dak of motorkap — je schoot je eigen
+wagen, en de vrachtwagen van de missie, van binnenuit aan gort (melding 20 sep
+2026). Het voertuig waar je in zit gaat daarom uit de lijst met doelen; de kogel
+vliegt er gewoon doorheen naar buiten.
+
 Vier nieuwe geluiden, allemaal gesynthetiseerd zoals al het andere geluid in het spel:
 
 | Geluid | Waaruit | Wanneer |
@@ -697,6 +703,29 @@ Vier nieuwe geluiden, allemaal gesynthetiseerd zoals al het andere geluid in het
 | **glas** | vijf tot tien hoge tikjes met wisselende toonhoogte over een halve seconde | een ruit die het begeeft |
 | **kreet** | een zaagtand op stemhoogte door drie formantfilters, `schrik` of `pijn` | iemand wordt geraakt of schrikt van een schot |
 | **bandengier** | ruis door een smalle band rond 1,3 kHz met een toon erbij, sterkte loopt met het slippen mee | zolang de banden slippen |
+| **passerende auto** | een ruisveeg door een band rond 1,1 kHz die wegvalt, met een motortoon die van 150 naar 72 Hz zakt | een auto rijdt langs je heen: op het moment dat hij het dichtst bij is |
+| **claxon** | twee korte stoten van 0,26 seconde op 420 en 520 Hz, blokgolf | een bestuurder voor wie je in de weg staat en niet weggaat |
+
+**Het verkeer klinkt weer.** Na de intro was het stil geworden op straat: de
+vogels, de wind en het verkeer in de verte stonden zo zacht dat je ze naast de
+voetstappen niet meer hoorde (melding 20 sep 2026). De grondtoon van de wind, het
+verkeer in de verte en de vogels staan nu duidelijk hoger, en de vogels komen
+vaker terug.
+
+**Auto's die langskomen.** Te voet hoor je het verkeer nu ook als het vlak langs
+je heen rijdt. Per auto wordt de afstand van het vorige beeld onthouden; liep die
+terug en loopt hij weer op, dan is dát het moment dat hij passeert, en klinkt het
+bandengeluid met het volume naar de afstand en de snelheid. Zonder die voorwaarde
+zou elke auto in de buurt voortdurend staan te ruisen. Na een passage houdt hij een
+paar tellen zijn mond, zodat een rij auto's geen waterval wordt.
+
+**En de claxon.** Sta je letterlijk voor de neus van een auto en ga je niet aan de
+kant, dan claxonneert de bestuurder — maar **niet meteen**: pas na anderhalve tot
+vier seconden stilstaan, en niet elke bestuurder is even kort aangebonden (zeventig
+procent doet het). Daarna houdt diezelfde auto het een seconde of vijf voor
+gezien. De auto meet dat met dezelfde vooruitkijkfunctie waarmee hij ook voor
+andere auto's en voetgangers remt: pas als jij het bent die de weg verspert gaat
+de teller lopen.
 
 **De buurt laat zich horen.** Er stond één mussengeluidje op een klok van een paar seconden, en verder
 niets: acht minuten lang steeds datzelfde vogeltje. Er zijn er nu negen, allemaal op dezelfde manier
@@ -820,6 +849,34 @@ bestand er niet, dan valt hij terug op `nummers.json`, en anders op het gesynthe
 
 Wat er nu in staat zijn plaatshouders waarop rechten rusten; voor een openbare versie hoort daar eigen of
 rechtenvrij werk te staan.
+
+## Muziek onder een missie
+
+Onder de spannende delen van een missie loopt muziek uit `audio/missie/`
+(verzoek 20 sep 2026). Drie dingen maken het anders dan de radio:
+
+- **het is een score, geen uitzending.** Hij gaat niet door de bandfilters van
+  de portierspeakers maar recht op het eindvolume (0,26), en de autoradio zakt
+  eronder weg naar 0,08 — je hoort de radio nog, maar hij dringt niet meer voor.
+- **elke keer een ander fragment.** Het aangeleverde nummer duurt drie kwartier;
+  zou hij steeds bij nul beginnen, dan hoorde je bij elke missie precies
+  hetzelfde stuk. Het spel springt naar een willekeurige plek, en een nieuwe
+  moet minstens twee minuten van de vorige liggen. Dat springen vraagt wel een
+  server die Range-verzoeken kent — `tools/server.mjs`, GitHub Pages en de
+  Electron-schil doen dat, `python3 -m http.server` niet.
+- **hij zwelt aan en dooft uit.** Twee seconden aan, tweeënhalve seconde uit, en
+  het `<audio>`-element gaat pas ná die fade op pauze; anders hak je hem eraf.
+
+`npm run missietest` (eenendertig controles) houdt deze hele ronde vast: het
+fragment dat elke keer anders is, de fade, de radio die wegzakt, de kogels die
+je eigen auto niet raken, het uitstappen in de eerste persoon, de sterren die
+verdwijnen en Mark die zelf begint.
+
+Wanneer hij speelt staat in `js/verhaal.js` en nergens anders: vanaf het moment
+dat je in de auto naar de waterzuivering stapt, door de bewaking en de rit met
+de vrachtwagen heen, tot zes seconden na **MISSION COMPLETED**. Ga je neer of
+mislukt de missie, dan stopt hij meteen. Bij de andere missies en op straat is
+het gewoon stil — dat is wat spanning spannend houdt.
 
 ## Camera over je schouder
 
@@ -1246,7 +1303,11 @@ straten en een gele vlag op de bestemming.
 
 ### 3 · De bewaking
 
-Bij het terrein stap je automatisch uit. Achter het hek lopen **vijf bewakers** hun rondje, met de
+Bij het terrein stap je automatisch uit, en dat gebeurt **in de eerste
+persoon** — ook als je met de camera over je schouder reed. Reed je in de derde
+persoon, dan stond je daarna als poppetje op het terrein te kijken; dit is het
+moment waarop het spel weer van jou wordt (melding 20 sep 2026). Met **V** zet
+je hem daarna gewoon terug. Achter het hek lopen **vijf bewakers** hun rondje, met de
 vrachtwagen met de lading op het erf.
 
 ![De bewaking bij de waterzuivering](docs/screenshots/rwzi_bewaking.png)
@@ -1264,6 +1325,16 @@ afrijden. De kaart navigeert dan naar de boerderij in de zuidwesthoek van het ge
 bij de schuur en de klus is klaar:
 
 ![Mission completed](docs/screenshots/boerderij_afgeleverd.png)
+
+Bij **MISSION COMPLETED** ben je de politie **eenmalig** kwijt: je gezocht-niveau
+gaat terug naar nul en de eenheden die achter je aan zaten worden opgeruimd. Je
+hebt net een vrachtwagen met een lading dwars door de wijk gereden; bleven die
+sterren staan, dan was het spel daarna onspeelbaar (verzoek 20 sep 2026). Dit
+gebeurt één keer, hier, en bij geen enkele andere missie.
+
+| vlak voor het afleveren | en er meteen na |
+|---|---|
+| ![vier sterren](docs/screenshots/sterren_voor.png) | ![de sterren zijn weg](docs/screenshots/sterren_weg.png) |
 
 ### 5 · Het telefoontje van Johan
 
@@ -1296,6 +1367,14 @@ Kom je binnen armlengte (of ram je hem met de auto), dan smijt hij de envelop me
 Breng die terug naar Johan en je houdt er vijfhonderd euro aan over:
 
 ![De beloning](docs/screenshots/johan_beloning.png)
+
+Meteen na die beloning komt er een balkje in beeld met wat je met dat geld kunt:
+bij **Tinga State** aan de Molenkrite koop je wapens en munitie, en bij de
+**Poiesz** in IJlst en Duinterpen vul je je health aan. Tot dat moment is het
+spel een reeks opdrachten geweest; vanaf hier is het de wijk in, en dan helpt het
+om te weten waar de winkels voor zijn (verzoek 20 sep 2026).
+
+![De balk over de winkels](docs/screenshots/uitleg_winkels.png)
 
 ## Naar binnen bij Molenkrite 15
 
@@ -2693,7 +2772,7 @@ rustige beelden, elk een seconde of zeven:
 | 2 | de Molenkrite zelf, laag over de rijbaan |
 | 3 | de Jumbo, langs de kant van het parkeerterrein |
 | 4 | het Tinga-bosje |
-| 5 | de brug over het water |
+| 5 | het Viaduct Tinga, over de rondweg eronder recht erop af |
 | 6 | de waterzuivering met zijn bassins |
 | 7 | de Geeuw door IJlst |
 | 8 | houtzaagmolen De Rat aan het Sneekerpad |
@@ -2709,14 +2788,23 @@ aan de camera vast en zweefde anders mee over de wijk.
 Er staat geen enkele coördinaat in `js/intro.js`. Elke plek wordt opgezocht in
 de kaart: een pand op zijn type (`jumbo`, `poiesz`), de molen in `KAART.molens`,
 een straat op zijn naam in `KAART.wegassen`, de waterzuivering als het midden
-van de vijf `rwzi`-panden, en het bos, de brug en het water als het grootste
-vlak van die klasse in de buurt. Bij een winkel wordt ook `front` gebruikt — de
+van de vijf `rwzi`-panden, het viaduct in `KAART.viaducten`, en het bos en het
+water als het grootste vlak van die klasse in de buurt. Bij een winkel wordt ook `front` gebruikt — de
 kant waar de ingang zit — zodat de camera niet langs een blinde achtermuur
 vliegt.
 
+Beeld 5 was eerst de brug over het water, en net als alle andere beelden een
+zwenk om een punt heen. Op verzoek (20 sep 2026) is dat een ander onderwerp én
+een andere beweging geworden: de camera draait niet meer maar vliegt in één
+rechte lijn over de **rondweg ónder het viaduct** erop af, van elf naar zeven
+meter hoogte. De boog van het Viaduct Tinga staat dan dwars in beeld — langs het
+dek zelf zie je alleen asfalt dat wat oploopt, en dat leest niet als een
+viaduct. Welke weg dat is wordt opgezocht en niet ingetypt: het langste stuk
+rijbaan binnen zeventig meter van het hoogste punt dat dwárs op het dek ligt.
+
 **Niet door daken en kruinen heen.** Alles wat van boven gefilmd wordt zit op
 minstens 24 meter, hoger dan de bomen (18 m), de molen (20,7 m) en de hoogste
-flat (26 m); de twee lage beelden liggen op de rijbaan en op het parkeerterrein.
+flat (26 m); de drie lage beelden liggen op de rijbaan en op het parkeerterrein.
 De toets rekent dat na: hij loopt het hele filmpje af in stapjes van een kwart
 seconde en kijkt of de camera binnen het grondvlak van een pand zit dat hoger is
 dan zijzelf, of binnen drie en een halve meter van een boom terwijl ze lager
@@ -2729,6 +2817,8 @@ hele weg zonder dat er een minuut film langs hoeft, en de foto's hieronder zijn
 precies dát beeld.
 
 ![Hoog boven de wijk](docs/screenshots/intro_lucht.png)
+
+![De aanvlucht op het Viaduct Tinga](docs/screenshots/intro_viaduct.png)
 
 ![De waterzuivering](docs/screenshots/intro_rwzi.png)
 
@@ -2761,6 +2851,15 @@ ook opnieuw, want dit is een spel dat van hand tot hand gaat.
 
 `npm run introtest` (zesendertig controles) houdt het filmpje, de plekken, de
 hoogtes, het wapen en de uitleg vast; `npm run introshots` maakt de foto's.
+
+### Mark begint zelf
+
+Het spel begon met Erik tegenover zijn broer en de stille vraag of je op
+<kbd>E</kbd> zou drukken. Wie dat niet doorhad liep de wijk in en kwam het
+verhaal nooit tegen. Sinds 20 september neemt Mark zelf het woord: anderhalve
+seconde nadat het filmpje voorbij is begint hij te praten (`verhaal.beginGesprek`
+uit `js/main.js`), en daarna klikt het gesprek gewoon met <kbd>E</kbd> door. Bij
+een vervolgspel gebeurt dat niet — dan sta je midden in een missie.
 
 ## Dag, nacht en weer
 

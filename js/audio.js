@@ -29,6 +29,10 @@ let zenderNu = 0;            // welke zender opstaat
 let zenderStand = [];        // per zender: waar je gebleven was (seconden)
 let radioAuto = null;        // in welke auto je zat: een andere auto = andere plek in de uitzending
 let lijstGeladen = false;
+let missieLijst = [];        // de spanningsmuziek uit audio/missie/
+let missieGeladen = false;
+let missiePlek = -1;         // waar het vorige fragment begon (seconden), om niet te herhalen
+const MISSIE_VOL = 0.26;     // spanningsmuziek: onder de radio (0,32) en boven de motor
 let vogelKlok = 0, krekelKlok = 0;
 let laatsteSfeer = null;     // welk omgevingsgeluid er het laatst klonk
 
@@ -477,14 +481,16 @@ export const geluid = {
       heli: bronnen.heli ? +bronnen.heli.gain.gain.value.toFixed(4) : null,
       gier: bronnen.gier ? +bronnen.gier.gain.gain.value.toFixed(4) : null,
       muziek: bronnen.muziek ? +bronnen.muziek.gain.gain.value.toFixed(4) : null,
+      missie: bronnen.missie ? +bronnen.missie.gain.gain.value.toFixed(4) : null,
     };
   },
 
   pauzeer(v) {
     gepauzeerd = !!v;
     if (hoofd) hoofd.gain.setTargetAtTime(gedempt || gepauzeerd ? 0 : 0.55, nu(), 0.08);
-    const m = bronnen.muziek;
-    if (m && m.el) { if (gepauzeerd) m.el.pause(); else if (m.aan) m.el.play().catch(() => {}); }
+    for (const m of [bronnen.muziek, bronnen.missie]) {
+      if (m && m.el) { if (gepauzeerd) m.el.pause(); else if (m.aan) m.el.play().catch(() => {}); }
+    }
   },
 
   // ---------- motor in de auto ----------
@@ -669,7 +675,13 @@ export const geluid = {
      12 sep 2026). De muziek gaat omhoog en de motor omlaag, zodat je de motor
      nog steeds hoort schakelen maar de radio ervoor komt.
     */
-    const doel = actief ? (bronnen.jacht && bronnen.jacht.actief ? 0.08 : 0.32) : 0;
+    /*
+     Onder het jachtdeuntje, en onder de missiemuziek, zakt de radio weg. Zit je
+     in de auto van de missie, dan speelt de score; de radio blijft er zacht
+     onder staan zodat je hem nog hoort, maar hij dringt niet meer voor.
+    */
+    const onder = (bronnen.jacht && bronnen.jacht.actief) || (bronnen.missie && bronnen.missie.aan);
+    const doel = actief ? (onder ? 0.08 : 0.32) : 0;
     m.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (actief) {
       if (!m.nummer) {
@@ -714,6 +726,109 @@ export const geluid = {
   },
 
   /*
+   De spanningsmuziek onder een missie: audio/missie/nummers.json. Net als de
+   radiolijst één keer ophalen, en het mag mislukken — dan blijft het bij het
+   gewone geluid van de wijk.
+  */
+  async laadMissieMuziek(map = 'audio/missie/') {
+    if (missieGeladen) return missieLijst;
+    missieGeladen = true;
+    try {
+      const r = await fetch(`${map}nummers.json`, { cache: 'force-cache' });
+      if (r.ok) {
+        const j = await r.json();
+        missieLijst = (j.nummers || []).filter(n => n && n.bestand).map(n => ({ ...n, url: map + n.bestand }));
+      }
+    } catch { /* geen lijst: geen missiemuziek */ }
+    return missieLijst;
+  },
+
+  /*
+   Muziek onder de spannende delen van een missie (js/verhaal.js roept dit elk
+   beeld aan met true of false). Drie dingen maken het anders dan de radio:
+
+   - het is geen uitzending maar een score: hij gaat níet door het bandfilter
+     van de autospeakers, maar recht op het eindvolume;
+   - hij begint elke keer op een andere plek in het nummer. Het aangeleverde
+     bestand is drie kwartier lang; zou hij steeds bij nul beginnen, dan hoor
+     je bij elke missie hetzelfde fragment (verzoek 20 sep 2026). De vorige
+     plek wordt onthouden, en een nieuwe moet er minstens twee minuten vandaan
+     liggen;
+   - hij zwelt aan in ongeveer twee seconden en dooft in tweeënhalf weer uit;
+     het element gaat pas daarna op pauze, anders hak je de fade eraf.
+
+   De autoradio zakt weg zolang dit speelt — zie `muziek` en `autoradio`
+   hieronder: twee nummers door elkaar is geen spanning maar drukte.
+  */
+  missiemuziek(actief) {
+    if (!aan || !missieLijst.length) return false;
+    if (!bronnen.missie) {
+      if (!actief) return true;
+      const el = new Audio();
+      el.crossOrigin = 'anonymous';
+      el.preload = 'none';
+      const g = ctx.createGain(); g.gain.value = 0;
+      let bron = null;
+      try { bron = ctx.createMediaElementSource(el); } catch { return false; }
+      bron.connect(g); g.connect(hoofd);
+      bronnen.missie = { el, gain: g, nummer: null, stuk: false, speelt: false, stopT: 0 };
+      el.addEventListener('error', () => { bronnen.missie.stuk = true; });
+      // loopt het nummer toch een keer af, dan begint hij ergens anders opnieuw
+      el.addEventListener('ended', () => { bronnen.missie.nummer = null; bronnen.missie.speelt = false; });
+    }
+    const m = bronnen.missie;
+    m.aan = !!actief;                    // zodat geluid.pauzeer weet of hij mag hervatten
+    if (m.stuk) return false;
+    if (actief) {
+      m.stopT = 0;
+      if (!m.speelt) {
+        m.speelt = true;
+        m.nummer = missieLijst[Math.floor(Math.random() * missieLijst.length)];
+        const zelfde = m.el.src && m.el.src === new URL(m.nummer.url, location.href).href;
+        if (!zelfde) m.el.src = m.nummer.url;
+        const zetPlek = () => {
+          const duur = m.el.duration;
+          if (!isFinite(duur) || duur < 20) return;
+          // een fragment van een minuut of wat, ruim binnen de randen van het bestand
+          const stuk = Math.min(m.nummer.fragment || 75, Math.max(20, duur - 20));
+          const ruimte = Math.max(1, duur - stuk - 10);
+          let plek = 5 + Math.random() * ruimte;
+          // niet twee keer achter elkaar hetzelfde stuk: minstens twee minuten verderop
+          if (missiePlek >= 0 && ruimte > 260 && Math.abs(plek - missiePlek) < 120) {
+            plek = (missiePlek + 120 + Math.random() * (ruimte - 240)) % ruimte + 5;
+          }
+          missiePlek = plek;
+          try { m.el.currentTime = plek; } catch { /* nog niet te zetten: dan vanaf het begin */ }
+        };
+        if (m.el.readyState >= 1) zetPlek();
+        else m.el.addEventListener('loadedmetadata', zetPlek, { once: true });
+        m.gain.gain.cancelScheduledValues(nu());
+        m.gain.gain.setValueAtTime(0, nu());
+      }
+      if (m.el.paused && !gepauzeerd) m.el.play().catch(() => { m.stuk = true; });
+      m.gain.gain.setTargetAtTime(MISSIE_VOL, nu(), 0.7);      // aan in ~2 s
+    } else if (m.speelt) {
+      m.speelt = false;
+      m.gain.gain.setTargetAtTime(0, nu(), 0.8);               // uit in ~2,5 s
+      m.stopT = nu() + 2.5;
+    } else if (m.stopT && nu() > m.stopT) {
+      m.stopT = 0;
+      if (!m.el.paused) m.el.pause();                          // pas ná de fade
+    }
+    return true;
+  },
+
+  // Of de missiemuziek nu speelt, voor js/verhaal.js en tools/missietest.mjs.
+  missieStand() {
+    const m = bronnen.missie;
+    if (!m) return { speler: false, nummers: missieLijst.length };
+    return { speler: true, nummers: missieLijst.length, stuk: !!m.stuk, speelt: !m.el.paused,
+      aan: !!m.aan, volume: +m.gain.gain.value.toFixed(4),
+      bron: (m.el.src || '').split('/').pop(), tijd: +m.el.currentTime.toFixed(2),
+      duur: isFinite(m.el.duration) ? +m.el.duration.toFixed(0) : null };
+  },
+
+  /*
    De autoradio. Een rockdeuntje uit de speakers in het portier: een vervormde
    gitaarriff op de kwint (E-mineur), een bas eronder en een simpel drumstel.
    Alles gaat door een smalle band met een lowpass erachter, zodat het klinkt
@@ -746,8 +861,9 @@ export const geluid = {
       bronnen.autoradio = { gain: g, bus: hi, gitaar: vorm, volgende: 0, maat: 0 };
     }
     const rr = bronnen.autoradio;
-    // achtergrondniveau; onder het jachtdeuntje uit het verhaal nog zachter
-    const doel = actief ? (bronnen.jacht && bronnen.jacht.actief ? 0.07 : 0.20) : 0;
+    // achtergrondniveau; onder het jachtdeuntje en onder de missiemuziek zachter
+    const zacht = (bronnen.jacht && bronnen.jacht.actief) || (bronnen.missie && bronnen.missie.aan);
+    const doel = actief ? (zacht ? 0.07 : 0.20) : 0;
     rr.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (!actief) { rr.maat = 0; return; }
 
@@ -1010,16 +1126,62 @@ export const geluid = {
     h.filter.frequency.setTargetAtTime(180 + v * 900, t, 0.5);
   },
 
+  /*
+   Een auto die langsrijdt (verzoek 20 sep 2026: "kan je ook auto geluid
+   toevoegen als ze langskomen"). Wat je hoort is niet de motor maar de banden
+   op het asfalt: een ruisstoot door een filter dat van hoog naar laag zakt,
+   precies zoals een auto die eerst naar je toe komt en dan weer weg rijdt —
+   het dopplereffect dus, nagebouwd met de filterfrequentie in plaats van met
+   een toonhoogte. Er zit een lage rommel onder voor het gewicht.
+
+   `afstand` in meters, `snelheid` in meter per seconde: een auto die stapvoets
+   voorbijkomt hoor je nauwelijks, een auto op de rondweg wel.
+  */
+  passeer(afstand = 12, snelheid = 10) {
+    if (!aan) return;
+    const dicht = Math.max(0, 1 - afstand / 26);
+    const vaart = Math.max(0.25, Math.min(1.4, snelheid / 12));
+    const vol = 0.085 * dicht * dicht * vaart;
+    if (vol < 0.004) return;
+    // de banden: ruis die van 1100 naar 260 Hz wegzakt
+    tik({ freq: 1100 * vaart, q: 0.7, duur: 0.85, volume: vol, type: 'bandpass', val: 0.24 });
+    // en het gewicht eronder
+    toon({ freq: 150 * vaart, naar: 72, duur: 0.9, volume: vol * 0.5, golf: 'sawtooth' });
+  },
+
+  /*
+   De claxon. Twee tonen tegelijk (een kleine terts uit elkaar) geeft de scherpe
+   klank van een echte toeter; één toon klinkt als een pieper. Twee korte stoten
+   met een gaatje ertussen, want zo toetert iemand die geïrriteerd is.
+  */
+  claxon(afstand = 6) {
+    if (!aan) return;
+    const dicht = Math.max(0.12, 1 - afstand / 30);
+    const vol = 0.12 * dicht;
+    for (const vertraag of [0, 0.26]) {
+      for (const f of [420, 520]) {
+        toon({ freq: f, duur: vertraag ? 0.16 : 0.22, volume: vol, golf: 'square', vertraag });
+      }
+    }
+  },
+
   // ---------- omgeving per beeld ----------
   omgeving(dt, { weer = 'helder', nacht = false, wind = 0.2, binnen = false } = {}) {
     if (!aan) return;
     const t = nu();
     // wind zwelt aan bij slecht weer
-    const w = weer === 'regen' ? 0.055 : weer === 'bewolkt' ? 0.032 : 0.020;
+    /*
+     Iets luider dan het was. Na het introfilmpje — dat op 0,85 speelt — viel de
+     buurt in het niet: "ik mis na de intro wat ambient geluid, hoor de vogels
+     niet meer" (20 sep 2026). De wind en het verkeersgeruis staan nu een
+     kwart hoger en de vogels komen vaker langs; het blijft achtergrond, maar je
+     hoort dat er een wijk om je heen ligt.
+    */
+    const w = weer === 'regen' ? 0.068 : weer === 'bewolkt' ? 0.040 : 0.026;
     bronnen.wind.gain.gain.setTargetAtTime(binnen ? w * 0.35 : w, t, 1.2);
     bronnen.wind.filter.frequency.setTargetAtTime(weer === 'regen' ? 700 : 420, t, 2.0);
     bronnen.regen.gain.gain.setTargetAtTime(weer === 'regen' ? (binnen ? 0.030 : 0.085) : 0, t, 1.0);
-    bronnen.verkeer.gain.gain.setTargetAtTime(nacht ? 0.004 : 0.012, t, 2.0);
+    bronnen.verkeer.gain.gain.setTargetAtTime(nacht ? 0.006 : 0.017, t, 2.0);
 
     /*
      De buurt laten horen dat hij er is. Hier stond één mussengeluidje op een
@@ -1032,7 +1194,7 @@ export const geluid = {
     if (weer !== 'regen') {
       vogelKlok -= dt;
       if (vogelKlok <= 0) {
-        vogelKlok = 4 + Math.random() * 9;
+        vogelKlok = 2.6 + Math.random() * 6.5;
         this.sfeerGeluid(kiesSfeer(nacht, binnen));
       }
     }
@@ -1061,7 +1223,7 @@ export const geluid = {
         const f = 2200 + r * 2200;
         for (let i = 0, n = 2 + Math.floor(Math.random() * 3); i < n; i++) {
           toon({ freq: f * (0.9 + Math.random() * 0.3), naar: f * (0.6 + Math.random() * 0.7),
-                 duur: 0.07 + Math.random() * 0.06, volume: 0.020 + Math.random() * 0.02,
+                 duur: 0.07 + Math.random() * 0.06, volume: 0.034 + Math.random() * 0.03,
                  vertraag: i * (0.09 + Math.random() * 0.07) });
         }
         break;
@@ -1071,7 +1233,7 @@ export const geluid = {
         for (let i = 0; i < 4 + Math.floor(r * 3); i++) {
           const f = 1500 + Math.random() * 1100;
           toon({ freq: f, naar: f * (0.7 + Math.random() * 0.6), duur: 0.16 + Math.random() * 0.12,
-                 volume: 0.016 + Math.random() * 0.012, vertraag: t });
+                 volume: 0.027 + Math.random() * 0.018, vertraag: t });
           t += 0.20 + Math.random() * 0.16;
         }
         break;

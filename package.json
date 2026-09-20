@@ -118,6 +118,8 @@
     "spattest": "node tools/spattest.mjs",
     "spatshots": "node tools/spatshots.mjs",
     "introtest": "node tools/introtest.mjs",
+    "missietest": "node tools/missietest.mjs",
+    "missieshots": "node tools/missieshots.mjs",
     "introshots": "node tools/introshots.mjs"
   }
 }
