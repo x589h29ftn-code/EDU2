@@ -4405,6 +4405,41 @@ Eén detail dat daarbij tijd kostte: die handler hangt aan `document` en niet aa
 meting was overal nul, en dat is geen trage muis maar een toets die langs de
 code heen schiet.
 
+**De intro en de eerste stappen (stap 65).** Een filmpje bij het begin, een
+wapen dat pas komt als je het nodig hebt, en uitleg op het moment zelf. Twee
+lessen.
+
+*Een filmpje is een functie van de tijd, geen lus.* De eerste opzet was een
+`requestAnimationFrame`-lus die de camera elke beeld een stukje verder zette.
+Dat werkt, maar er valt niets aan te toetsen: "waar staat de camera op seconde
+dertien" is dan een vraag die je alleen kunt beantwoorden door dertien seconden
+te wachten — en op de softwarerenderer van de proeven duurt dat drie keer zo
+lang, of helemaal niet, want de eerste versie telde beeldtijden op met een
+bovengrens van een tiende seconde per beeld. Bij drie beelden per seconde loopt
+zo'n filmpje van twintig seconden ruim een minuut.
+
+Nu is `beeldOp(t)` een gewone functie: tijd erin, camerastand en titel eruit. De
+lus gebruikt hem met de klok (`performance.now`), de toets roept hem aan voor
+t = 2, 8, 13 en 20, en het fotogereedschap zet de camera op precies die standen.
+Zo staat er van elk beeld een foto die écht dat beeld is, en meet de toets de
+hele cameraweg zonder dat er film langs hoeft.
+
+Dezelfde regel als eerder bij de fietsers en de kijker, maar nu van de andere
+kant: niet "meet het echte resultaat" maar "maak van het resultaat iets dat te
+meten valt".
+
+*Toestemming van de browser verloopt.* De muis vastzetten en volledig scherm
+mogen alleen op vertoon van een verse klik of toetsaanslag. Het filmpje zit
+precies tussen die toetsaanslag (Enter op het laadscherm) en het begin van het
+spel in, en twintig seconden later is die toestemming verlopen: het spel begon
+in het sleepmodus-vangnet, met de muis los. De vergrendeling gebeurt daarom vóór
+het filmpje en niet erna — je kijkt dan naar een filmpje met een vastgezette
+muis, en dat merk je niet, want de speler staat toch stil.
+
+Het patroon om te onthouden: alles wat een browser alleen "na een klik" toestaat
+hoort in dezelfde tel als die klik, en niet achter een `await` die er seconden
+tussen zet.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

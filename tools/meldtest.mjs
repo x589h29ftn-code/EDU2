@@ -212,6 +212,7 @@ const inslag = await page.evaluate(async () => {
   const hitsVoor = rcVoor.intersectObjects(g.politie.doelen(), true).length;
   for (let i = 0; i < 6; i++) { g.player.ammo = 12; g.player.vuurKlok = 0; g.player.shoot(); }
   const meteen = g.__inslagen();
+  const bloedNu = g.__bloed();
   const zwart = telBol();
   /*
    De wolkjes lopen mee met de hoofdlus, niet met de klok van de computer: op de
@@ -224,13 +225,20 @@ const inslag = await page.evaluate(async () => {
   }
   const later = g.__inslagen();
   P.reset();
-  return { voor, zwart, meteen, later, hitsVoor };
+  return { voor, zwart, meteen, bloedNu, later, hitsVoor };
 });
 ok(!inslag.geenDoel, 'er staat iets om op te schieten');
 ok(inslag.zwart === 0 && inslag.voor === 0,
   'er blijven geen zwarte bolletjes in de lucht hangen', `${inslag.zwart} gevonden`);
 ok(inslag.hitsVoor > 0, 'de agent staat in de baan van de kogel', `${inslag.hitsVoor} raakvlakken`);
-ok(inslag.meteen > 0, 'je ziet een stofwolkje op de plek van de inslag', `${inslag.meteen} in beeld`);
+/*
+ Op een mens komt er sinds 20 september bloed in plaats van stof: het grijze
+ wolkje legde zich over de rode spat heen en maakte er een bleke vlek van, dus
+ er komt nu één ding per treffer. Hier wordt op een agent geschoten, en dus
+ hoort er bloed te staan en géén stof.
+*/
+ok(inslag.bloedNu > 0, 'je ziet bloed op de plek van de treffer', `${inslag.bloedNu} spatten in beeld`);
+ok(inslag.meteen === 0, 'en geen stofwolkje erbovenop', `${inslag.meteen} wolkjes`);
 ok(inslag.later === 0, 'en dat is een fractie later weer weg — er blijft niets liggen', `${inslag.later} over`);
 
 // ---------- 5. de herlaadbeweging ----------

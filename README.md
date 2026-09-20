@@ -72,6 +72,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | Y | weer: helder, bewolkt, regen |
 | U | geluid uit en aan |
 | **K** | je eigen plek in spelmeters (`x, z`), in beeld en op het klembord — handig om een plek door te geven |
+| **Enter / klik** | tijdens de intro: het filmpje overslaan |
 | **P** | het pand dat je aankijkt: BAG-pandnummer, type, adres, oppervlak en hoogtes, in beeld en op het klembord — daarmee is er geen twijfel over wélk gebouw je bedoelt |
 | Esc | muis vrijgeven · het menu, met Doorgaan, Instellingen, Besturing en Afsluiten |
 
@@ -2677,6 +2678,61 @@ zijn.
 > zelf raakt het iedereen die over een stoep of door een tuin loopt, en dat is een aparte ronde waard.
 
 `npm run spattest` (vierentwintig controles) houdt deze ronde vast, `npm run spatshots` maakt de foto's.
+
+## De intro en de eerste stappen
+
+### Het filmpje bij het begin
+
+Een nieuw spel begint met twintig seconden film (verzoek 20 sep 2026). De camera
+staat eerst tweehonderd meter boven de wijk, zakt over de daken, rijdt daarna op
+ooghoogte door een straat, en daalt ten slotte naar precies het standpunt waar je
+het spel begint — dus geen sprong van filmpje naar spel maar een doorkomst. Over
+het beeld heen komen drie titels, elk met een fade:
+
+**RED EAGLE PRODUCTIONS** → **presents** → **GTA VI · TINGA**
+
+Er staat geen enkele coördinaat in `js/intro.js`. De camerastanden worden
+afgeleid van het startpunt van de speler en van het wegennet uit de kaart: het
+rechte stuk straat waar de camera doorheen vliegt wordt opgezocht in
+`KAART.wegassen`, zodat het filmpje ook klopt als de kaart opnieuw gegenereerd
+wordt. Overslaan kan altijd met een toets of een klik; hij eindigt dan via
+hetzelfde zwart als waarmee hij begint.
+
+De camerastand op een bepaald moment is een gewone functie (`beeldOp(t)`), en
+niet iets wat alleen in een lopend filmpje bestaat. Daardoor is "waar staat de
+camera op seconde dertien" een vraag met een antwoord: de toets controleert het
+zonder dat er twintig seconden film langs hoeft, en de foto's hieronder zijn
+precies dát beeld.
+
+![Hoog boven de wijk](docs/screenshots/intro_lucht.png)
+
+![Door de straat](docs/screenshots/intro_straat.png)
+
+### Erik heeft nog geen wapen
+
+Je begint met lege handen. Druk je op **H**, dan zegt het spel waarom er niets
+gebeurt ("Erik houdt zijn wapen weg — eerst met Mark mee"). Pas als Mark bij het
+gezelschap in de voortuin staat en je de opdracht toeroept, trekt Erik zijn
+pistool — en dat is meteen het moment voor de uitleg:
+
+> **Je pistool** — <kbd>H</kbd> wapen pakken en weer wegbergen · <kbd>LMB</kbd>
+> schieten · <kbd>RMB</kbd> richten · <kbd>R</kbd> herladen
+
+![De uitleg bij het wapen](docs/screenshots/uitleg_wapen.png)
+
+En de eerste keer dat je in een auto zit komt het tweede blokje:
+
+> **In de auto** — <kbd>←</kbd><kbd>→</kbd> andere radiozender · <kbd>V</kbd>
+> camera vanuit je ogen of achter de auto
+
+Beide blokjes verdwijnen vanzelf na een paar tellen, of eerder met Enter of de
+spatiebalk. Ze komen één keer per spel: begin je opnieuw, dan begint de uitleg
+ook opnieuw, want dit is een spel dat van hand tot hand gaat.
+
+![De uitleg in de auto](docs/screenshots/uitleg_auto.png)
+
+`npm run introtest` (eenentwintig controles) houdt het filmpje, het wapen en de
+uitleg vast; `npm run introshots` maakt de foto's.
 
 ## Dag, nacht en weer
 

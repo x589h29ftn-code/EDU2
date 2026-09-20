@@ -27,6 +27,8 @@ import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
 import { grondHoogte } from './viaduct.js';
 import { maakBuit, zakgeld, agentMunitie } from './buit.js';
 import * as menu from './menu.js';
+import * as intro from './intro.js';
+import * as uitleg from './uitleg.js';
 import { maakPandWijzer, pandRegel } from './pandwijzer.js';
 
 const canvas = document.getElementById('game');
@@ -1019,6 +1021,18 @@ function toonWapenIcoon(soort) {
 player.wisselCb = toonWapenIcoon;
 
 /*
+ H terwijl het wapen nog op slot zit. Aan het begin van een nieuw spel loopt
+ Erik zonder wapen rond tot hij bij het gezelschap aan de Molenkrite staat; druk
+ je dan toch op H, dan hoor je waaróm er niets gebeurt in plaats van dat de
+ toets dood aanvoelt.
+*/
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyH' || e.ctrlKey || e.metaKey) return;
+  if (!player.active || !player.wapenSlot) return;
+  hud.show('Erik houdt zijn wapen weg — eerst met Mark mee', 3);
+});
+
+/*
  K: je eigen plek, in het berichtbalkje én op het klembord. Bedoeld om plekken
  door te geven — waar een onzichtbare muur moet komen, waar een wegblokkade
  hoort, waar een object moet staan. De grote kaart (M) laat dezelfde twee
@@ -1109,23 +1123,46 @@ const touch = IS_TOUCH ? initTouchControls(player, {
   onWapen: () => { const s = player.kiesWapen(1); if (s) toonWapenIcoon(s); },
 }) : null;
 
-function startGame(vervolg = false) {
+/*
+ Het spel beginnen. `vervolg` betekent: een opgeslagen spel laden. `metIntro`
+ staat alleen aan bij de allereerste start van een nieuw spel — dan draait
+ eerst het filmpje (js/intro.js) en zit het wapen op slot tot het verhaal het
+ vrijgeeft. Na Esc → Doorgaan komt hij hier ook langs, en dan hoort er geen
+ filmpje meer te komen.
+*/
+async function startGame(vervolg = false, metIntro = false) {
   if (vervolg) laadSpelNu();
   gepauzeerd = false;
   menu.verbergMenu();
-  player.active = true;
   geluid.start();
   geluid.pauzeer(false);
   geluid.laadRadio();                      // muziek voor de autoradio, als die er is
+  /*
+   De muis vastzetten (of op een telefoon: volledig scherm) gebeurt vóór het
+   filmpje en niet erna. Een browser geeft die twee dingen alleen op vertoon van
+   een verse klik of toetsaanslag, en dat is de Enter waarmee je net het
+   laadscherm doorklikte. Na twintig seconden film is die toestemming verlopen
+   en zou je in het sleepmodus-vangnet belanden.
+  */
+  if (touch) volledigScherm(); else vergrendelMuis();
+  if (metIntro && !vervolg) {
+    uitleg.reset();
+    // Erik loopt zonder wapen rond tot hij bij het gezelschap staat
+    player.wapenUit = true;
+    player.wapenSlot = true;
+    const kruis = document.getElementById('crosshair');
+    if (kruis) kruis.style.display = 'none';
+    await intro.speelIntro({ camera, KAART, start: beginpunt });
+  }
+  player.active = true;
   if (touch) {
     touch.setVisible(true);
-    // volledig scherm en dwars: op een telefoon scheelt dat de halve browserbalk
-    const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-    if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
     hud.show('Links lopen · rechts kijken', 4);
-    return;
   }
+}
+
+// De muis vastzetten; lukt dat niet, dan kijk je rond door te slepen.
+function vergrendelMuis() {
   const req = canvas.requestPointerLock({ unadjustedMovement: true });
   const fallback = () => {
     const again = canvas.requestPointerLock();
@@ -1134,6 +1171,13 @@ function startGame(vervolg = false) {
   if (req && req.catch) req.catch(fallback);
   // Lukt de vergrendeling binnen een halve seconde niet, dan slepen we.
   setTimeout(() => { if (!document.pointerLockElement) useDragMode(); }, 500);
+}
+
+// Op een telefoon: volledig scherm en dwars, dat scheelt de halve browserbalk.
+function volledigScherm() {
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+  if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
 }
 
 function useDragMode() {
@@ -1185,7 +1229,7 @@ async function wachtOpMenu(pauze = false) {
   await new Promise(r => setTimeout(r, 240));
   await menu.wachtOpStart();          // ook hier eerst op enter wachten
   if (pauze && wat === 'nieuw') { location.reload(); return; }   // nieuw spel vanuit de pauze
-  startGame(wat === 'laden');
+  startGame(wat === 'laden', wat !== 'laden');
 }
 
 /*
@@ -1347,6 +1391,13 @@ function loop() {
       if (player.lastCarYaw !== undefined) player.yaw += car.yaw - player.lastCarYaw;
       player.lastCarYaw = car.yaw;
       /*
+       De eerste keer dat je in een auto zit: wat er in een auto anders is dan
+       te voet (verzoek 20 sep 2026). Eén keer per spel, en hij loopt vanzelf
+       weer weg — zie js/uitleg.js.
+      */
+      uitleg.toon('auto', 'In de auto',
+        '<kbd>←</kbd><kbd>→</kbd> andere radiozender · <kbd>V</kbd> camera vanuit je ogen of achter de auto', 10);
+      /*
        De koplampen aan als het donker is. De spot staat op de neus van de auto
        en kijkt twintig meter vooruit naar de grond — daar ligt de plas licht.
 
@@ -1432,6 +1483,7 @@ function loop() {
     werkSporenBij(dt);
     werkInslagenBij(dt);        // de stofwolkjes van de kogelinslagen
     werkBloedBij(dt);           // de spatten en de plassen
+    uitleg.update(dt);          // de eenmalige uitleg die in beeld staat
     werkLantaarnsBij(dt, player.pos.x, player.pos.z);
     // wat er op straat ligt: loop je erlangs, dan pak je het op (js/buit.js)
     buit.update(dt, player, (soort, waarde) => {
@@ -1545,7 +1597,8 @@ function loop() {
      2026). `true` betekent hier: bezet, dus alles weg.
     */
     for (const r of binnenruimtes) r.update(dt, true);
-    player.applyCamera();
+    // tijdens de intro zet js/intro.js de camera; die niet overschrijven
+    if (!intro.bezig()) player.applyCamera();
     updateClouds(dt, camera.position.x, camera.position.z);
     sfeer.update(dt, camera.position.x, camera.position.z);
     npcs.update(dt, time, camera.position.x, camera.position.z);
@@ -1593,7 +1646,7 @@ loop();
   laadBalk(1, 'klaar');
   await new Promise(r => setTimeout(r, 400));
   await menu.wachtOpStart();          // "klik op enter om te beginnen"
-  startGame(wat === 'laden');
+  startGame(wat === 'laden', wat !== 'laden');
 })();
 
 // Testhaak voor automatische screenshots
@@ -1602,11 +1655,15 @@ window.__game = {
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
   geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij, boten, politieboot, vaart,
   raakLantaarn, werkLantaarnsBij, lantaarnsOm, buit,
+  // het beginpunt van de speler, voor de intro en de fotogereedschappen
+  start: beginpunt, intro, uitleg,
   // haken voor tools/puntentest.mjs: een knal laten afgaan en de uitslag lezen
   __ontplof: autoOntploft, __schokNul: () => { SCHOK.kracht = 0; SCHOK.t = 0; },
   __schokKracht: () => SCHOK.kracht,
   // voor tools/meldtest.mjs: hoeveel stofwolkjes van kogelinslagen er nu leven
   __inslagen: () => inslagen.filter(o => o.t > 0).length,
+  // en hoeveel bloedspatten; op een mens komt er bloed in plaats van stof
+  __bloed: () => spatten.filter(o => o.t > 0).length,
 };
 
 // Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,

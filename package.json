@@ -116,6 +116,8 @@
     "snipshots": "node tools/snipshots.mjs",
     "pandtest": "node tools/pandtest.mjs",
     "spattest": "node tools/spattest.mjs",
-    "spatshots": "node tools/spatshots.mjs"
+    "spatshots": "node tools/spatshots.mjs",
+    "introtest": "node tools/introtest.mjs",
+    "introshots": "node tools/introshots.mjs"
   }
 }

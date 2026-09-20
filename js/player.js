@@ -127,6 +127,8 @@ export class Player {
     */
     this.wapens = ['pistool'];
     this.wapenNr = 0;
+    // het wapen zit op slot tot het verhaal het vrijgeeft (zie wisselWapen)
+    this.wapenSlot = false;
     this.magazijnen = { pistool: 12, mitrailleur: 0, sniper: 0 };
     // de stand van de kijker, per wapen (zie `zoom`)
     this.zoomPer = {};
@@ -328,7 +330,15 @@ export class Player {
 
   // Pistool trekken of wegstoppen. Weggestopt schiet je niet en staat het
   // kruisje uit; in de auto blijft het hoe dan ook uit beeld (zie main.js).
+  /*
+   Wapen pakken of wegbergen (H). `wapenSlot` houdt hem weg zolang het verhaal
+   er nog niet aan toe is: aan het begin van een nieuw spel loopt Erik zonder
+   wapen rond, en hij trekt het pas bij het gezelschap aan de Molenkrite
+   (js/verhaal.js). Levert false als het wapen op slot zit, zodat de aanroeper
+   kan uitleggen waarom er niets gebeurt.
+  */
   wisselWapen() {
+    if (this.wapenSlot) return false;
     this.wapenUit = !this.wapenUit;
     const kruis = document.getElementById('crosshair');
     if (kruis) kruis.style.display = this.wapenUit ? 'none' : '';

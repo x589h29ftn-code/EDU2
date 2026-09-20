@@ -41,6 +41,7 @@ import { Dief } from './dief.js';
 import { euro, tekenKop } from './hud.js';
 import { Navigatie } from './navigatie.js';
 import { geluid } from './audio.js';
+import * as uitleg from './uitleg.js';
 
 // ---------- waar het verhaal zich afspeelt ----------
 const HUIS = { straat: 'Molenkrite', nr: '15' };      // het huis van Mark
@@ -653,6 +654,22 @@ export function initVerhaal(ctx) {
     return false;
   }
 
+  /*
+   Het wapen vrijgeven, met de uitleg erbij. Eén keer: staat het slot al open,
+   dan gebeurt er niets meer — je kunt deze missie ook opnieuw doen na een
+   mislukking, en dan hoeft dezelfde uitleg er niet nog eens overheen.
+  */
+  function geefWapen() {
+    if (!player.wapenSlot && !player.wapenUit) return;
+    player.wapenSlot = false;
+    player.wapenUit = false;
+    const kruis = document.getElementById('crosshair');
+    if (kruis) kruis.style.display = '';
+    uitleg.toon('wapen', 'Je pistool',
+      '<kbd>H</kbd> wapen pakken en weer wegbergen · '
+      + '<kbd>LMB</kbd> schieten · <kbd>RMB</kbd> richten · <kbd>R</kbd> herladen', 11);
+  }
+
   // ---------- schieten ----------
   function doelen() {
     const uit = [];
@@ -923,7 +940,17 @@ export function initVerhaal(ctx) {
           mark.kijkNaar(sp.x, sp.z, dt, 3);
           mark.update(dt, {});
           if (balk.hidden && dMark < ROEP_AFSTAND) {
-            zeg(BEVEL, () => { fase = 'opdracht'; zetOpdracht(`${BEVEL[0]} (${teGaan()} te gaan)`); });
+            zeg(BEVEL, () => {
+              fase = 'opdracht';
+              zetOpdracht(`${BEVEL[0]} (${teGaan()} te gaan)`);
+              /*
+               Hier krijgt Erik zijn wapen. Tot dit moment loopt hij met lege
+               handen rond (js/main.js zet `wapenSlot` bij een nieuw spel), en
+               dit is het eerste moment waarop je hem nodig hebt — dus ook het
+               moment om uit te leggen hoe hij werkt (verzoek 20 sep 2026).
+              */
+              geefWapen();
+            });
           } else if (balk.hidden) zetOpdracht('ga met Mark mee');
         }
       } else {
@@ -1184,5 +1211,7 @@ export function initVerhaal(ctx) {
     get aanspreekbaar() {
       return !balk.hidden || (missie === 'molenkrite' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND);
     },
+    // testhaak (tools/introtest.mjs): het moment waarop Erik zijn wapen krijgt
+    __geefWapen: geefWapen,
   };
 }
