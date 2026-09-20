@@ -25,9 +25,17 @@ export const HURK_ZAK = hurkHouding({}, 1);
  - `kick` is hoeveel het beeld per schot omhoog loopt.
 */
 export const WAPENS = {
-  // het pistool heeft `tempo` nul: zo snel als je klikt, precies zoals het was
-  pistool: { naam: 'Pistool', mag: 12, auto: false, tempo: 0, spreiding: 0, kick: 1 },
-  mitrailleur: { naam: 'Machinegeweer', mag: 30, auto: true, tempo: 0.085, spreiding: 0.022, kick: 0.62 },
+  /*
+   Het pistool heeft `tempo` nul: zo snel als je klikt, precies zoals het was.
+
+   `dodelijk` is hoeveel kogels er nodig zijn om iemand neer te krijgen (verzoek
+   20 sep 2026). Eén kogel voor alles was te makkelijk en maakte de drie wapens
+   inwisselbaar; nu heeft elk wapen zijn eigen gewicht. Een lijst betekent: er
+   wordt er één uit getrokken op het moment dat je iemand raakt, dus met het
+   pistool weet je nooit of hij na één of na twee kogels gaat.
+  */
+  pistool: { naam: 'Pistool', mag: 12, auto: false, tempo: 0, spreiding: 0, kick: 1, dodelijk: [1, 2] },
+  mitrailleur: { naam: 'Machinegeweer', mag: 30, auto: true, tempo: 0.085, spreiding: 0.022, kick: 0.62, dodelijk: 2 },
   /*
    De sniper. Eén schot per keer, en dan bijna een seconde niets: de grendel
    moet over. Dat is de prijs voor wat hij ertegenover zet — je raakt op
@@ -41,7 +49,7 @@ export const WAPENS = {
    Terugslag 2,6: harder dan het pistool, want je schiet een patroon af waar een
    pistool er vijf van in past. Spreiding nul — hij is nauwkeurig, alleen traag.
   */
-  sniper: { naam: 'Sniper', mag: 5, auto: false, tempo: 0.95, spreiding: 0, kick: 2.6,
+  sniper: { naam: 'Sniper', mag: 5, auto: false, tempo: 0.95, spreiding: 0, kick: 2.6, dodelijk: 1,
     scope: { min: 4, max: 12, stap: 1.6 } },
 };
 
@@ -209,6 +217,18 @@ export class Player {
    zet je de sniper weg en pak je hem later weer, dan staat hij nog op wat je
    er het laatst op had staan. Zonder kijker is hij één.
   */
+  /*
+   Hoeveel kogels dit wapen nodig heeft om iemand neer te krijgen. Staat er een
+   lijst in de tabel (het pistool), dan wordt er hier één uit getrokken: dat
+   gebeurt op het moment dat je iemand raakt, en het slachtoffer houdt dat getal
+   vast tot hij neergaat. Zo is het per persoon één of twee en niet per schot.
+  */
+  kogelsNodig() {
+    const d = this.wapenInfo.dodelijk;
+    if (Array.isArray(d)) return d[Math.floor(Math.random() * d.length)] || 1;
+    return d || 1;
+  }
+
   get zoom() {
     const sc = this.wapenInfo.scope;
     if (!sc) return 1;
@@ -360,7 +380,22 @@ export class Player {
       if (!this.pointerLocked && !this.dragging) return;
       // aangeslagen kijk je rustiger rond: de muis wordt trager naarmate je
       // verder over het vizier kijkt, precies zoals de beeldhoek smaller wordt
-      const gevoel = (this.pointerLocked ? 0.0022 : 0.0032) * (1 - 0.42 * this.mik);
+      let gevoel = (this.pointerLocked ? 0.0022 : 0.0032) * (1 - 0.42 * this.mik);
+      /*
+       Door de kijker beweegt de muis langzamer (verzoek 20 sep 2026). Dat is
+       geen hulpmiddel maar wat een kijker nu eenmaal doet: het beeld is vier tot
+       twaalf keer smaller, dus dezelfde beweging van je hand legt op het scherm
+       vier tot twaalf keer zoveel af. Helemaal evenredig (delen door de
+       vergroting) is op twaalf keer bijna niet meer te bewegen; de macht 0,75
+       houdt het bruikbaar: op 4× nog een derde van de snelheid, op 12× een
+       zesde. Het loopt mee met `mik`, dus terwijl je aanslaat wordt het
+       geleidelijk trager in plaats van in één beeld.
+      */
+      const sc = this.wapenInfo.scope;
+      if (sc && this.mik > 0) {
+        const traag = Math.pow(1 / this.zoom, 0.75);
+        gevoel *= 1 + (traag - 1) * this.mik;
+      }
       this.lookBy(e.movementX, e.movementY, gevoel);
       if (this.dragging) this.dragDist += Math.abs(e.movementX) + Math.abs(e.movementY);
     });

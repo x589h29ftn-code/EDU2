@@ -114,6 +114,8 @@
     "rondeshots": "node tools/rondeshots.mjs",
     "sniptest": "node tools/sniptest.mjs",
     "snipshots": "node tools/snipshots.mjs",
-    "pandtest": "node tools/pandtest.mjs"
+    "pandtest": "node tools/pandtest.mjs",
+    "spattest": "node tools/spattest.mjs",
+    "spatshots": "node tools/spatshots.mjs"
   }
 }

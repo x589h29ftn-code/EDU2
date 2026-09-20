@@ -20,9 +20,9 @@ import { initPolitieboot } from './politieboot.js';
 import { initVaart } from './vaart.js';
 import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
-import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm } from './kaartwereld.js';
+import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
-import { zetAnisotropie, zetReliëf, bordSpannenburg, logoTinga, wapenIcoon, inslagPluim } from './textures.js';
+import { zetAnisotropie, zetReliëf, bordSpannenburg, logoTinga, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
 import { grondHoogte } from './viaduct.js';
 import { maakBuit, zakgeld, agentMunitie } from './buit.js';
@@ -589,6 +589,103 @@ const inslagen = [];
 }
 let inslagNr = 0;
 
+/*
+ Bloed (verzoek 20 sep 2026: "voeg ook bloedeffecten toe bij iemand die
+ beschoten is").
+
+ Twee dingen, want een treffer en een dode zien er anders uit. De **spat** komt
+ op het moment van de kogel uit het lichaam: een rode wolk die een halve seconde
+ uitzet en wegzakt in plaats van op te drijven, want bloed valt. De **plas**
+ blijft liggen onder wie neergaat: een platte vlek op de grond die in een halve
+ seconde groeit, een halve minuut blijft en daarna wegtrekt.
+
+ Dezelfde aanpak als bij de inslagwolkjes hierboven: een vaste voorraad, eigen
+ materiaal per stuk (de doorzichtigheid loopt per vlek terug) en meelopen met de
+ hoofdlus, zodat er niets bijgemaakt wordt en er niets blijft hangen als je
+ pauzeert. Tien spatten en acht plassen: meer zie je nooit tegelijk.
+*/
+const SPAT_TIJD = 0.55, PLAS_TIJD = 32;
+const spatten = [], plassen = [];
+{
+  const spatDoek = bloedSpatDoek();
+  const plasDoek = bloedPlasDoek();
+  const vlak = new THREE.PlaneGeometry(1, 1);
+  for (let i = 0; i < 10; i++) {
+    const mat = new THREE.MeshBasicMaterial({
+      map: spatDoek, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide,
+    });
+    const groep = new THREE.Group();
+    for (const r of [0, Math.PI / 2]) {
+      const v = new THREE.Mesh(vlak, mat);
+      v.rotation.y = r;
+      groep.add(v);
+    }
+    groep.visible = false;
+    groep.renderOrder = 3;
+    scene.add(groep);
+    spatten.push({ groep, mat, t: 0, maat: 1 });
+  }
+  for (let i = 0; i < 8; i++) {
+    const mat = new THREE.MeshBasicMaterial({
+      map: plasDoek, transparent: true, opacity: 0, depthWrite: false,
+    });
+    const m = new THREE.Mesh(vlak, mat);
+    m.rotation.x = -Math.PI / 2;
+    m.visible = false;
+    m.renderOrder = 2;
+    scene.add(m);
+    plassen.push({ mesh: m, mat, t: 0, maat: 1 });
+  }
+}
+let spatNr = 0, plasNr = 0;
+
+/** De rode wolk op de plek waar de kogel iemand raakte. */
+function toonSpat(punt, richting) {
+  const o = spatten[spatNr = (spatNr + 1) % spatten.length];
+  o.groep.position.copy(punt);
+  // een stukje mee met de kogel: de spat komt aan de achterkant naar buiten
+  if (richting) o.groep.position.addScaledVector(richting, 0.12);
+  o.groep.rotation.y = Math.random() * Math.PI * 2;
+  o.t = SPAT_TIJD;
+  o.maat = 0.62 + Math.random() * 0.3;
+  o.groep.visible = true;
+  o.mat.opacity = 0.9;
+}
+
+/** De plas die blijft liggen bij wie neergaat. Op de grond, niet op de heup. */
+function toonPlas(x, z, y = 0) {
+  const o = plassen[plasNr = (plasNr + 1) % plassen.length];
+  o.mesh.position.set(x, y + 0.035, z);
+  o.mesh.rotation.z = Math.random() * Math.PI * 2;
+  o.t = PLAS_TIJD;
+  o.maat = 0.85 + Math.random() * 0.5;
+  o.mesh.visible = true;
+}
+
+function werkBloedBij(dt) {
+  for (const o of spatten) {
+    if (o.t <= 0) continue;
+    o.t -= dt;
+    if (o.t <= 0) { o.groep.visible = false; continue; }
+    const f = 1 - o.t / SPAT_TIJD;                  // 0 bij de treffer, 1 als hij weg is
+    const s = (0.18 + f * 0.55) * o.maat;
+    o.groep.scale.set(s, s, s);
+    o.groep.position.y -= dt * 0.5;                 // bloed valt, stof drijft op
+    o.mat.opacity = 0.9 * (1 - f) ** 1.4;
+  }
+  for (const o of plassen) {
+    if (o.t <= 0) continue;
+    o.t -= dt;
+    if (o.t <= 0) { o.mesh.visible = false; continue; }
+    const groei = Math.min(1, (PLAS_TIJD - o.t) / 0.45);      // loopt in een halve seconde uit
+    const s = (0.35 + groei * 0.75) * o.maat;
+    o.mesh.scale.set(s, s, 1);
+    // de laatste vier seconden trekt hij weg
+    o.mat.opacity = 0.85 * Math.min(1, groei) * Math.min(1, o.t / 4);
+  }
+}
+
+
 /** Een wolkje op de plek waar de kogel aankwam. `hard` = metaal, dus met vonk. */
 function toonInslag(punt, hard = true, maat = 1) {
   const o = inslagen[inslagNr = (inslagNr + 1) % inslagen.length];
@@ -613,6 +710,27 @@ function werkInslagenBij(dt) {
     o.vonkMat.opacity = Math.max(0, 1 - f * 4);
   }
 }
+/*
+ Wat er te zien is als een kogel iemand raakt: altijd een spat, en bij wie
+ neergaat ook een plas op de grond. De plas komt op de plek van de persoon en
+ niet op het punt van de kogel — een treffer in de borst hoort geen plas op
+ borsthoogte te geven.
+*/
+function bloedBij(punt, richting, raak) {
+  toonSpat(punt, richting);
+  if (!raak || !raak.neer) return;
+  const x = raak.x ?? punt.x, z = raak.z ?? punt.z;
+  /*
+   De hoogte van de grond ónder zijn voeten, en dat is niet hetzelfde als het
+   maaiveld: een stoep, een tuin en een grasberm liggen twaalf centimeter boven
+   de rijbaan (KERB_Y in js/kaartwereld.js). Met alleen `grondHoogte` lag de
+   plas onder de tegels en zag je er niets van. `vlakOp` geeft het vlak waar je
+   op staat, en dat weet zijn eigen hoogte.
+  */
+  const vlak = vlakOp(x, z);
+  toonPlas(x, z, grondHoogte(x, z) + (vlak ? vlak.y || 0 : 0));
+}
+
 player.shootCb = (camOrigin, camDir) => {
   // in de derde persoon komt de kogel uit de schouder van je poppetje en niet
   // uit de camera, anders schiet je langs jezelf heen
@@ -643,19 +761,30 @@ player.shootCb = (camOrigin, camDir) => {
      gebeuren en het balkje stond er voortdurend (melding beta-test 12 sep 2026).
      Wat er wél bij komt is een kreet — dat vertelt hetzelfde zonder tekst.
     */
-    const raakMens = npcs.hit(h.object, h.instanceId);
-    let raakAgent = false, raakVerhaal = false;
+    /*
+     Hoeveel kogels deze persoon nodig heeft hangt aan het wapen in je hand:
+     één met de sniper, twee met het machinegeweer, en met het pistool één of
+     twee (js/player.js, `dodelijk`). Het slachtoffer onthoudt dat getal, dus
+     een tweede kogel maakt het af en trekt niet opnieuw.
+    */
+    const nodig = player.kogelsNodig();
+    const raakMens = npcs.hit(h.object, h.instanceId, nodig);
+    let raakAgent = null, raakVerhaal = false;
     if (raakMens) {
       geluid.raak();
       geluid.kreet('pijn', afstandTot(h.point));
-      politie.misdaad('neergeschoten', h.point.x, h.point.z);
-      // wat iemand op zak had: vaak niets, hooguit een tientje (js/buit.js)
-      buit.laatVallen('geld', h.point.x, h.point.z, zakgeld());
-    } else if ((raakAgent = politie.raak(h.object))) {
+      bloedBij(h.point, dir, raakMens);
+      if (raakMens.neer) {
+        politie.misdaad('neergeschoten', h.point.x, h.point.z);
+        // wat iemand op zak had: vaak niets, hooguit een tientje (js/buit.js)
+        buit.laatVallen('geld', h.point.x, h.point.z, zakgeld());
+      }
+    } else if ((raakAgent = politie.raak(h.object, nodig))) {
       geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
+      bloedBij(h.point, dir, raakAgent);
       // een agent draagt munitie bij zich: drie tot vijftien kogels, en die
       // passen in elk wapen
-      buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie());
+      if (raakAgent.neer) buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie());
     }
     /*
      De helikopter. Twintig kogels en hij gaat tollend naar beneden
@@ -673,13 +802,17 @@ player.shootCb = (camOrigin, camDir) => {
     */
     else if (politieboot && politieboot.raakAgent(h.object)) {
       geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
+      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
       politie.misdaad('agent', h.point.x, h.point.z);
     }
     else if (politieboot && politieboot.raak(h.object)) {
       geluid.klap();
       politie.misdaad('schot', h.point.x, h.point.z);
     }
-    else if ((raakVerhaal = verhaal.raak(h.object))) { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); }
+    else if ((raakVerhaal = verhaal.raak(h.object))) {
+      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
+      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+    }
     else {
       /*
        Op een auto schieten. Een politieauto gaat eerst langs js/politie.js: die
@@ -699,12 +832,15 @@ player.shootCb = (camOrigin, camDir) => {
       }
     }
     /*
-     Het wolkje op de plek van de inslag. Op blik en glas slaat een vonk af; uit
-     een mens komt stof en geen vuur, dus daar blijft het bij het wolkje — en
-     dat is meteen het enige dat je nog ziet, want er blijft niets liggen.
+     Het wolkje op de plek van de inslag. Op blik en glas slaat een vonk af, op
+     steen en hout blijft het bij stof.
+
+     Op een mens komt er niets meer bij: daar staat sinds 20 september de spat
+     bloed, en het grijze stofwolkje legde zich er precies overheen — op de foto
+     werd de rode spat daardoor een bleke vlek. Eén ding per treffer is genoeg.
     */
     const opMens = raakMens || raakAgent || raakVerhaal;
-    toonInslag(h.point, !opMens, opMens ? 0.8 : 1);
+    if (!opMens) toonInslag(h.point, true, 1);
   }
 };
 
@@ -1295,6 +1431,7 @@ function loop() {
     }
     werkSporenBij(dt);
     werkInslagenBij(dt);        // de stofwolkjes van de kogelinslagen
+    werkBloedBij(dt);           // de spatten en de plassen
     werkLantaarnsBij(dt, player.pos.x, player.pos.z);
     // wat er op straat ligt: loop je erlangs, dan pak je het op (js/buit.js)
     buit.update(dt, player, (soort, waarde) => {
@@ -1399,7 +1536,15 @@ function loop() {
     hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);
   }
   if (!player.active && !window.__autoplay) {
-    // op het startscherm draaien de wolken en de minikaart gewoon door
+    /*
+     Staat het spel stil (startscherm, menu, muis vrijgegeven), dan draaien de
+     wolken en de minikaart door — en moeten de binnenruimtes hun eigen
+     schermwerk opruimen. Zonder deze regel werd `update` van de boerderij niet
+     meer aangeroepen en bleef het schap met de wapens onderin staan zodra je
+     bij de toonbank op Esc drukte; ook als je daarna wegliep (melding 20 sep
+     2026). `true` betekent hier: bezet, dus alles weg.
+    */
+    for (const r of binnenruimtes) r.update(dt, true);
     player.applyCamera();
     updateClouds(dt, camera.position.x, camera.position.z);
     sfeer.update(dt, camera.position.x, camera.position.z);

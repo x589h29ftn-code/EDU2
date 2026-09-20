@@ -523,6 +523,84 @@ export function inslagPluim() {
 }
 
 /*
+ Bloed. Twee doeken: de spat die op het moment van de treffer uit iemand komt,
+ en de plas die achterblijft bij wie neergaat (verzoek 20 sep 2026).
+
+ Dezelfde aanpak als het inslagwolkje hierboven — alles op een canvas, geen
+ plaatjesbestanden — en dezelfde maat: 64 bij 64 is ruim genoeg voor iets dat
+ een halve seconde en hooguit een halve meter groot in beeld staat.
+
+ De kleur is niet het rood van een tekenfilm maar het donkere, iets bruine rood
+ van echt bloed (#8e1410 in de kern, naar buiten toe #5e0b08): fel rood leest op
+ een groene berm als verf.
+*/
+export function bloedSpatDoek() {
+  if (cache.has('bloedspat')) return cache.get('bloedspat');
+  const N = 64;
+  const c = canvas(N, N); const g = c.getContext('2d');
+  g.clearRect(0, 0, N, N);
+  const kern = g.createRadialGradient(N / 2, N / 2, 1, N / 2, N / 2, N * 0.40);
+  kern.addColorStop(0, 'rgba(158,22,17,0.95)');
+  kern.addColorStop(0.5, 'rgba(126,16,13,0.55)');
+  kern.addColorStop(1, 'rgba(94,11,8,0)');
+  g.fillStyle = kern;
+  g.beginPath(); g.arc(N / 2, N / 2, N * 0.40, 0, Math.PI * 2); g.fill();
+  // de druppels: kleine vlekjes in de rand, want een spat is geen wolk
+  let s = 20260920;
+  const dobbel = () => { s = (Math.imul(s ^ (s >>> 15), 2246822519) >>> 0); return s / 4294967296; };
+  for (let i = 0; i < 16; i++) {
+    const hoek = dobbel() * Math.PI * 2;
+    const r = N * (0.16 + dobbel() * 0.30);
+    const x = N / 2 + Math.cos(hoek) * r, y = N / 2 + Math.sin(hoek) * r;
+    const straal = N * (0.03 + dobbel() * 0.07);
+    const vlek = g.createRadialGradient(x, y, 0, x, y, straal);
+    vlek.addColorStop(0, `rgba(142,20,16,${0.45 + dobbel() * 0.4})`);
+    vlek.addColorStop(1, 'rgba(142,20,16,0)');
+    g.fillStyle = vlek;
+    g.beginPath(); g.arc(x, y, straal, 0, Math.PI * 2); g.fill();
+  }
+  const t = tex(c); cache.set('bloedspat', t); return t;
+}
+
+/*
+ De plas op de grond. Geen ronde vlek maar een onregelmatige, met een paar
+ uitlopers: een plas loopt uit naar de kant waar de stoep afloopt, en een ronde
+ schijf leest als een sticker.
+*/
+export function bloedPlasDoek() {
+  if (cache.has('bloedplas')) return cache.get('bloedplas');
+  const N = 128;
+  const c = canvas(N, N); const g = c.getContext('2d');
+  g.clearRect(0, 0, N, N);
+  let s = 20260921;
+  const dobbel = () => { s = (Math.imul(s ^ (s >>> 15), 2246822519) >>> 0); return s / 4294967296; };
+  // de plas zelf: een gesloten vorm met een wisselende straal
+  g.beginPath();
+  const punten = 22;
+  for (let i = 0; i <= punten; i++) {
+    const a = i / punten * Math.PI * 2;
+    const r = N * (0.26 + 0.10 * Math.sin(a * 3 + 1.1) + 0.05 * Math.sin(a * 7));
+    const x = N / 2 + Math.cos(a) * r, y = N / 2 + Math.sin(a) * r;
+    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.closePath();
+  const vul = g.createRadialGradient(N / 2, N / 2, 2, N / 2, N / 2, N * 0.38);
+  vul.addColorStop(0, 'rgba(96,10,8,0.92)');
+  vul.addColorStop(0.7, 'rgba(112,14,11,0.80)');
+  vul.addColorStop(1, 'rgba(78,9,7,0.50)');
+  g.fillStyle = vul; g.fill();
+  // spatten eromheen
+  for (let i = 0; i < 10; i++) {
+    const a = dobbel() * Math.PI * 2;
+    const r = N * (0.30 + dobbel() * 0.16);
+    const x = N / 2 + Math.cos(a) * r, y = N / 2 + Math.sin(a) * r;
+    g.fillStyle = `rgba(104,12,9,${0.35 + dobbel() * 0.4})`;
+    g.beginPath(); g.ellipse(x, y, N * (0.02 + dobbel() * 0.035), N * (0.015 + dobbel() * 0.03), a, 0, Math.PI * 2); g.fill();
+  }
+  const t = tex(c); cache.set('bloedplas', t); return t;
+}
+
+/*
  De plaatjes bij het schap aan de toonbank van Tinga State.
 
  Het schap stond er als een regel tekst — "1 — 100 kogels (€ 50)" — en dat leest
@@ -1179,6 +1257,37 @@ export const HOUSE_STYLES = {
   */
   potterzijl_hoog: { brick: ['#8d9298', '#b7bbbe'], frame: '#e8eaec', frame2: '#e8eaec', door: ['#33383b'], roof: '#3a3f43', roofType: 'flat', storeys: 9, storeyH: 2.85, w: 6.0, dormer: false, chimney: false, band: '#3a3f43', plint: '#2b2f32', industrieel: true, balkonband: true, maxLagen: 10, toren: '#f2c211' },
   /*
+   Quirijn de Blaustraat 50-50B (foto's van de gebruiker 20 sep 2026). Negen
+   woonlagen boven een donkere bakstenen onderbouw met een parkeergarage; uit
+   het 3D BAG-model komt goot 3,23 m en nok 25,92 m, en die 25,9 is precies dat
+   beeld: de onderbouw is de goot en de toren staat erbovenop.
+
+   Lichte betonnen penanten over de volle hoogte met groengetint glas ertussen
+   (`penanten`, zie de gevelfunctie). `maxLagen` moet omhoog omdat een gevel
+   anders op vier lagen wordt afgekapt — op 26 meter muur worden dat lagen van
+   ruim zes meter.
+  */
+  blaustraat_toren: { brick: ['#cfc6b4', '#e0d9c9'], frame: '#dcd7cb', frame2: '#dcd7cb', door: ['#3a3733'], roof: '#43403b', roofType: 'flat', storeys: 9, storeyH: 2.9, w: 4.6, dormer: false, chimney: false, band: '#43403b', plint: '#4a443e', industrieel: true, penanten: true, penant: '#cfc6b4', maxLagen: 10 },
+  /*
+   Westhemstraat 46 — hospice De Kime (foto's van de gebruiker 20 sep 2026).
+   Eén bouwlaag met een plat dak (goot 3,22 m, nok 4,16 m), warme roodbruine
+   steen, en hoog in de gevel één strook liggende ramen; bij de entree een
+   glazen pui met grijze stijlen onder een witte dakrand, en oranjerode deuren.
+
+   Dus `strookramen` en niet de rij ramen per laag van een bedrijfsgevel: dit is
+   een zorggebouw en geen loods. De deur is de enige felle kleur die erop zit.
+  */
+  hospice: { brick: ['#a2654a', '#c69476'], frame: '#edeae2', frame2: '#8d9298', door: ['#d2572a'], roof: '#8f8d88', roofType: 'flat', storeys: 1, storeyH: 3.2, w: 6.0, dormer: false, chimney: false, band: '#f1efe8', plint: '#6a584a', industrieel: true, kantoor: true, strookramen: true, pui: '#9aa0a6', maxLagen: 1 },
+  /*
+   Scherwolderhemstraat 27-73 (foto van de gebruiker 20 sep 2026). Een
+   galerijflat van 1965 aan het water: een donkere onderbouw met bergingen en
+   daarboven drie woonlagen met een galerij ervoor, roodbruine steen tussen de
+   puien, en een hekwerk van staande spijlen in datzelfde roodbruin met wit.
+   Goot en nok liggen allebei op 11,0 m — een plat dak — en bij 2,75 m per laag
+   zijn dat vier lagen waarvan de onderste de bergingen zijn.
+  */
+  scherwolderhem: { brick: ['#9e4a34', '#c6b9a8'], frame: '#eceae2', frame2: '#eceae2', door: ['#333940'], roof: '#3d4146', roofType: 'flat', storeys: 4, storeyH: 2.75, w: 5.4, dormer: false, chimney: false, band: '#3d4146', plint: '#2f3338', industrieel: true, galerij: true, railing: '#a85a3e', paneel: '#3a4046' },
+  /*
    Sûdwester, Lemmerweg 130a (foto): een lange, vrijwel dichte wand in
    donkergroen met hoog in de gevel één strook korte ramen, en bij de entree een
    glazen pui met houtkleurige stijlen onder een overstek. `plaster` maakt van
@@ -1734,6 +1843,51 @@ export function facade(type, n, storeys, back = false, seed = 1) {
           g.fillStyle = '#33424c'; g.fillRect(x0 + m(0.9), fy + m(0.3), HW - m(1.8), m(1.9));
           g.fillStyle = 'rgba(205,225,245,0.26)'; g.fillRect(x0 + m(0.9), fy + m(0.3), (HW - m(1.8)) * 0.35, m(1.9));
         }
+      }
+    } else if (st.penanten) {
+      /*
+       Penantenbouw (Quirijn de Blaustraat 50-50B, foto's van de gebruiker
+       20 sep 2026). Het hoogste woongebouw van deze hoek, negen lagen op een
+       donkere bakstenen onderbouw met de parkeergarage erin. Wat het beeld
+       bepaalt is niet de streping van een balkonflat maar de **verticaal**: een
+       rij lichte betonnen penanten over de volle hoogte, met tussen elk paar
+       een glazen erker van vloer tot plafond.
+
+       Vandaar een eigen tak naast `balkonband` hierboven: daar loopt de witte
+       plaat over de volle breedte en overstemt de horizontaal alles, hier is
+       het precies andersom. Het glas is groenig getint zoals op de foto, niet
+       staalblauw.
+      */
+      const paal = st.penant || '#cfc6b4';
+      for (let s = 0; s < storeys; s++) {
+        const fy = H - (s + 1) * SH * PM;
+        if (s === 0) {
+          // de onderbouw: donkere baksteen met de liggende lamellen van de garage
+          g.fillStyle = st.plint || '#4a443e'; g.fillRect(x0, fy, HW, SH * PM);
+          for (let k = 0; k * 0.34 < SH - 0.9; k++) {
+            g.fillStyle = 'rgba(0,0,0,0.38)';
+            g.fillRect(x0 + m(0.4), fy + m(0.6 + k * 0.34), HW - m(0.8), m(0.17));
+          }
+          g.fillStyle = 'rgba(255,255,255,0.06)'; g.fillRect(x0, fy, HW, m(0.05));
+          continue;
+        }
+        // de glazen erker tussen de penanten
+        const gl = g.createLinearGradient(0, fy + m(0.25), 0, fy + m(SH - 0.3));
+        gl.addColorStop(0, '#a9c0b6'); gl.addColorStop(0.45, '#52706a'); gl.addColorStop(1, '#2c3b37');
+        g.fillStyle = gl; g.fillRect(x0 + m(0.55), fy + m(0.25), HW - m(1.1), m(SH - 0.55));
+        // roedes: een staande stijl in het midden en de regel op borsthoogte
+        g.fillStyle = st.frame;
+        g.fillRect(x0 + m(st.w / 2 - 0.05), fy + m(0.25), m(0.10), m(SH - 0.55));
+        g.fillRect(x0 + m(0.55), fy + m(1.05), HW - m(1.1), m(0.09));
+        // de vloerrand onderaan de laag
+        g.fillStyle = 'rgba(0,0,0,0.26)'; g.fillRect(x0 + m(0.55), fy + m(SH - 0.42), HW - m(1.1), m(0.12));
+      }
+      // de penanten zelf: van de onderbouw tot de dakrand, met licht en schaduw
+      const top = H - SH * PM;
+      for (const px of [x0, x0 + HW - m(0.55)]) {
+        g.fillStyle = paal; g.fillRect(px, 0, m(0.55), top);
+        g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(px + m(0.42), 0, m(0.13), top);
+        g.fillStyle = 'rgba(255,255,255,0.20)'; g.fillRect(px, 0, m(0.08), top);
       }
     } else if (st.winkel) {
       /*

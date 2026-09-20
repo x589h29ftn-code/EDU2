@@ -4365,6 +4365,46 @@ elke zijde en kijkt of dat punt buiten het grondvlak valt: 1347 zijden van 214
 panden, nul fout. Een tekenfout in een formule vang je met een eigenschap van
 die formule, niet met een foto.
 
+**Bloed, kogels en drie panden (stap 64).** De tweede lijst van 20 september.
+Drie dingen die het onthouden waard zijn.
+
+*Twee effecten op dezelfde plek zijn er één te veel.* De bloedspat werkte meteen
+— en was op de foto een bleke vlek. De oorzaak stond er al een maand: elke
+kogelinslag geeft een grijs stofwolkje, ook op een mens, en dat wolkje kwam
+precies over de rode spat te liggen. Het was niet zichtbaar fout zolang er niets
+anders op die plek stond.
+
+Het patroon: een nieuw effect kan een oud effect onzichtbaar maken zonder dat er
+iets kapot is. Bij een treffer op een mens komt er nu één ding, en dat is bloed.
+Het stof blijft voor blik, steen en hout.
+
+*Een plas hoort op de grond, en "de grond" is niet het maaiveld.* De plas lag
+onder de tegels. Een stoep, een tuin en een grasberm liggen in deze wereld
+twaalf centimeter boven de rijbaan (KERB_Y), en `grondHoogte` geeft het
+terrein, niet het vlak waar je op staat. `vlakOp` doet dat wel — het levert het
+BGT-vlak inclusief zijn eigen hoogte.
+
+En daarmee kwam er iets anders boven water dat er al die tijd zat: de
+voetgangers zelf staan óók op de terreinhoogte. Wie op de stoep loopt zakt er
+twaalf centimeter in, en dat zie je nu je weet waar je moet kijken. Dat is niet
+in deze ronde gerepareerd, want het raakt iedereen die loopt en het verdient een
+eigen ronde met een eigen toets. Het staat als zodanig in README.md — een
+half-afgemaakte reparatie die stilletjes doorwerkt is erger dan een bekend gat.
+
+*Meten door de echte handler heen.* De muis moest trager gaan door de kijker.
+De eerste toets rekende de gevoeligheid zelf na met de formule uit de
+broncode — dezelfde fout als bij de fietsers vorige week, en net zo waardeloos.
+De tweede versie stuurt een echte `mousemove` naar `document`, precies waar de
+handler van js/player.js aan hangt, en meet hoeveel de kijkrichting opschuift:
+0,32 rad uit de heup, 0,068 op vier keer en 0,030 op twaalf keer per honderd
+tellen muis. Dan staat er een getal dat een speler ook echt krijgt.
+
+Eén detail dat daarbij tijd kostte: die handler hangt aan `document` en niet aan
+`window`, en hij doet alleen iets als de muis vergrendeld is of je sleept.
+`window.dispatchEvent` bereikt een listener op `document` niet — de eerste
+meting was overal nul, en dat is geen trage muis maar een toets die langs de
+code heen schiet.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

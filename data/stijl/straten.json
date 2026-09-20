@@ -770,6 +770,33 @@
         "pitch": 0.05
       },
       "bron": "foto van de voorkant (gebruiker, chat 12 sep 2026: 'grote pand langs de rondweg zonnedauw is een ranzijn tuin en dierenwinkel'), met de plek erbij op 20 sep 2026: 1451,7 / -55,3. Uit de data: BGT-pand 0091100000019457, grondvlak 5272 m2 (121 x 54 m, x 1387..1508 en z -51..3), goot 5,80 m en nok 8,80 m. Die twee hoogtes zijn geen meting: dit pand zit niet in het 3D BAG-model en krijgt de standaardmaat van de generator. Van de foto komen alleen kleur en indeling: lichtgrijze gevelbeplating op een donkere plint, glazen pui over de voorkant en daarboven de gele band met het woordmerk RANZIJN in het groen. Stond eerst op 0091100000015459 (Akkerwinde, 3112 m2) — dat is het pand ernaast, honderd meter naar het westen, en dat was mis (gebruiker, 20 sep 2026: 'de verkeerde pand ranzijn geworden die zit er vlak naast 1451,7 -55,3')."
+    },
+    "1900100000313266": {
+      "type": "blaustraat_toren",
+      "foto": {
+        "voor": 70,
+        "langs": 0,
+        "pitch": 0.16
+      },
+      "bron": "foto's van de voorkant en van onderaf (gebruiker, 20 sep 2026, met het pandnummer uit toets P). Uit de data: BGT-pand 1900100000313266, Quirijn de Blaustraat 50-50B, 1743 m2 grondvlak (46 x 49 m), bouwjaar 2012, goot 3,23 m en nok 25,92 m uit het 3D BAG-model — de onderbouw is de goot, de toren staat erbovenop. Van de foto komen alleen kleur en indeling: lichte betonnen penanten over de volle hoogte met groengetint glas ertussen, en een donkere bakstenen onderbouw met liggende lamellen voor de parkeergarage."
+    },
+    "0091100000007740": {
+      "type": "hospice",
+      "foto": {
+        "voor": 40,
+        "langs": 0,
+        "pitch": 0.05
+      },
+      "bron": "foto's van de gebruiker (20 sep 2026, met het pandnummer uit toets P): hospice De Kime. Uit de data: BGT-pand 0091100000007740, Westhemstraat 46, 1040 m2 (52 x 42 m), bouwjaar 1969, goot 3,22 m en nok 4,16 m — een bouwlaag met een plat dak. Van de foto komen kleur en indeling: warme roodbruine steen, hoog in de gevel een strook liggende ramen, een witte dakrand en bij de entree een glazen pui met grijze stijlen en oranjerode deuren."
+    },
+    "0091100000019596": {
+      "type": "scherwolderhem",
+      "foto": {
+        "voor": 42,
+        "langs": 0,
+        "pitch": 0.08
+      },
+      "bron": "foto van de gebruiker (20 sep 2026, met het pandnummer uit toets P): de galerijflat aan het water. Uit de data: BGT-pand 0091100000019596, Scherwolderhemstraat 27-73, 614 m2 (15 x 70 m), bouwjaar 1965, goot en nok allebei 11,0 m (plat dak). Van de foto komen kleur en indeling: een donkere onderbouw met bergingen, daarboven drie woonlagen met een galerij ervoor, roodbruine steen tussen de puien en een hekwerk van staande spijlen in roodbruin."
     }
   },
   "standaard": {

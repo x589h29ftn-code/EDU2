@@ -695,7 +695,14 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     // de verkoper kijkt op zodra je binnen staat
     if (bezig && binnen(player.pos.x, player.pos.z)) verkoper.kijkNaar(player.pos.x, player.pos.z, dt, 2.2);
     verkoper.update(dt, { loopt: false });
-    if (bezet) { hintAan = false; verbergSchap(); return; }
+    /*
+     Bezet (een gesprek, het menu, een pauze): alles weg. Alleen `hintAan` op
+     false zetten was niet genoeg — dan bleef het balkje staan dat er op dat
+     moment stond. Datzelfde gold voor het schap: dat bleef na een bezoek aan de
+     wapenhandel onderin in beeld staan, ook als je allang weg was (melding
+     20 sep 2026).
+    */
+    if (bezet) { hintAan = false; praatEl.hidden = true; verbergSchap(); return; }
     let tekst = null;
     let bijSchap = false;
     if (bezig && !player.inCar) {

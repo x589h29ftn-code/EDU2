@@ -845,7 +845,8 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
     // de waas van het bier volgt de speler, ook buiten de winkel
     hud.zetDronken(player.dronken);
 
-    if (bezet) { hintAan = false; return; }
+    // bezet (gesprek, menu, pauze): ook het balkje zelf weg, niet alleen de vlag
+    if (bezet) { hintAan = false; praatEl.hidden = true; return; }
     let tekst = null;
     if (bezig && !player.inCar) {
       if (bijBier(player.pos.x, player.pos.z)) {

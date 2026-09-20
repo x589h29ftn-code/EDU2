@@ -1002,21 +1002,36 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     meldDoor(sp.x, sp.z, true);     // "er wordt op ons geschoten" gaat vóór alles
   }
 
-  // Een agent neerschieten: hij gaat neer en dat kost je een flinke verdenking.
-  function raak(obj) {
+  /*
+   Een agent raken. Net als bij de voetgangers (js/npc.js) hangt het aan het
+   wapen hoeveel kogels ervoor nodig zijn: `nodig` komt uit js/player.js. Een
+   agent die geraakt maar niet geveld is meldt het wel meteen door — er wordt op
+   ze geschoten, en dat is het moment waarop ze het weten.
+
+   Levert null op als er niemand geraakt is, en anders `{ neer, x, z }`.
+  */
+  function raak(obj, nodig = 1) {
     for (const a of agenten) {
       if (a.staat === 'neer') continue;
       let hit = false;
       a.persoon.groep.traverse(o => { if (o === obj) hit = true; });
       if (!hit) continue;
+      const pos = a.persoon.groep.position;
+      if (!a.raken) { a.raken = 0; a.nodig = Math.max(1, Math.round(nodig)); }
+      a.raken++;
+      if (a.raken < a.nodig) {
+        misdaad('schot', pos.x, pos.z);
+        meldDoor(pos.x, pos.z, true);
+        return { neer: false, x: pos.x, z: pos.z };
+      }
       a.staat = 'neer';
       a.persoon.groep.userData.neer = true;
-      const pos = a.persoon.groep.position;
+      a.raken = 0;
       misdaad('agent', pos.x, pos.z);
       meldTreffer();
-      return true;
+      return { neer: true, x: pos.x, z: pos.z };
     }
-    return false;
+    return null;
   }
 
   /*

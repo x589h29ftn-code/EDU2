@@ -2587,6 +2587,97 @@ zelf stonden wél goed, dus er hoefde één teken om. `npm run pandtest` control
 
 `npm run pandtest` (negentien controles) houdt de pandwijzer en het juiste Ranzijn-pand vast.
 
+## Zes punten en drie panden van 20 september
+
+### Bloed
+
+Wie geraakt wordt bloedt. Op het moment van de kogel komt er een **spat** uit het lichaam — een rode
+wolk die een halve seconde uitzet en wegzákt, want bloed valt waar stof opdrijft — en wie neergaat
+laat een **plas** achter die in een halve seconde uitloopt, een halve minuut blijft liggen en daarna
+wegtrekt. Allebei getekend op een canvas (`bloedSpatDoek` en `bloedPlasDoek` in js/textures.js), dus
+ook hier komt er geen plaatjesbestand aan te pas.
+
+Het grijze stofwolkje dat een kogelinslag altijd al gaf komt op een mens níét meer: dat legde zich
+precies over de spat heen en maakte er een bleke vlek van. Eén ding per treffer.
+
+De plas ligt op de grond waar hij op hoort. Dat is niet het maaiveld: een stoep, een tuin en een
+grasberm liggen twaalf centimeter boven de rijbaan, en met alleen de terreinhoogte lag de plas
+ónder de tegels. `vlakOp` uit de kaart geeft het vlak waar iemand op staat, en dat weet zijn eigen
+hoogte.
+
+![Bloed](docs/screenshots/bloed.png)
+
+![De plas erna](docs/screenshots/bloed_plas.png)
+
+### Hoeveel kogels iemand kost
+
+Eén kogel voor alles maakte de drie wapens inwisselbaar. Nu heeft elk wapen zijn eigen gewicht
+(`dodelijk` in de wapentabel van js/player.js):
+
+| Wapen | Kogels om iemand neer te krijgen |
+|---|---|
+| Pistool | **één of twee**, geloot op het moment dat je iemand raakt |
+| Machinegeweer | **twee** |
+| Sniper | **één** |
+
+Het slachtoffer onthoudt dat getal tot hij neergaat, dus met het pistool wordt er niet bij elke kogel
+opnieuw geloot — anders zou dezelfde man eindeloos kunnen blijven staan. Een treffer die niet dodelijk
+is telt wel: je hoort de kreet en je ziet het bloed, maar er valt niets te rapen. Hetzelfde geldt voor
+de agenten; die melden een niet-dodelijke treffer meteen door over de radio.
+
+### Door de kijker richten
+
+Volledig ingezoomd is het beeld twaalf keer smaller, en dan legt dezelfde handbeweging op het scherm
+twaalf keer zoveel af. De muis gaat daarom trager naarmate je verder inzoomt. Niet evenredig — delen
+door twaalf maakt het onbestuurbaar — maar met de macht 0,75: op 4× nog ongeveer een derde van de
+snelheid, op 12× een zesde. Gemeten door de echte muisafhandeling heen: 0,32 rad uit de heup, 0,068
+op 4× en 0,030 op 12× per honderd tellen muis. Het loopt mee met het aanslaan, dus het wordt
+geleidelijk trager in plaats van in één beeld. Bij het pistool en het machinegeweer verandert er
+niets.
+
+### Het schap bleef in beeld staan
+
+Na een bezoek aan de wapenhandel bleven de icoontjes onderin staan, ook als je allang weg was. Twee
+oorzaken, allebei weg:
+
+- Zodra je de muis vrijgaf (Esc, het menu) werd `update` van de binnenruimtes niet meer aangeroepen,
+  en dan ruimde niemand het schap nog op. Het startscherm werkt die ruimtes nu wél bij, met de vlag
+  "bezet": alles weg.
+- En "bezet" zette alleen een vlag op false zonder het balkje zelf te verbergen. Dat gold ook voor de
+  woning en de Poiesz.
+
+### Drie panden uit de lijst
+
+**Quirijn de Blaustraat 50-50B** (BAG 1900100000313266, 1743 m², goot 3,23 m, nok 25,92 m, 2012). Het
+hoogste woongebouw van deze hoek: negen lagen op een donkere bakstenen onderbouw met de parkeergarage
+erin. Wat het beeld bepaalt is de verticaal — lichte betonnen penanten over de volle hoogte met
+groengetint glas ertussen — en niet de streping van een balkonflat, dus er is een eigen gevelsoort
+`penanten` voor bijgekomen naast de bestaande `galerij` en `balkonband`.
+
+![De toren aan de Quirijn de Blaustraat](docs/screenshots/blaustraat_toren.png)
+
+**Westhemstraat 46 — hospice De Kime** (BAG 0091100000007740, 1040 m², goot 3,22 m, nok 4,16 m, 1969).
+Eén bouwlaag met een plat dak, warme roodbruine steen, hoog in de gevel één strook liggende ramen, een
+witte dakrand en bij de entree een glazen pui met oranjerode deuren. Dus `strookramen` en niet de rij
+bedrijfsramen per laag: dit is een zorggebouw en geen loods.
+
+![Hospice De Kime](docs/screenshots/hospice.png)
+
+**Scherwolderhemstraat 27-73** (BAG 0091100000019596, 614 m², goot en nok 11,0 m, 1965). Een
+galerijflat aan het water: een donkere onderbouw met bergingen en daarboven drie woonlagen met een
+galerij ervoor, roodbruine steen tussen de puien en een hekwerk van staande spijlen in datzelfde
+roodbruin. Bij 2,75 m per laag komen de elf meter uit op vier lagen, waarvan de onderste de bergingen
+zijn.
+
+![De galerijflat aan de Scherwolderhemstraat](docs/screenshots/scherwolderhem.png)
+
+> **Wat hierbij opviel en nog openstaat:** een neergeschoten voetganger zakt een stukje in de stoep
+> weg. Dat is dezelfde twaalf centimeter als hierboven — de voetgangers staan op de terreinhoogte en
+> niet op de hoogte van het vlak waar ze op lopen. Voor de plas is dat nu goed gezet; voor de mensen
+> zelf raakt het iedereen die over een stoep of door een tuin loopt, en dat is een aparte ronde waard.
+
+`npm run spattest` (vierentwintig controles) houdt deze ronde vast, `npm run spatshots` maakt de foto's.
+
 ## Dag, nacht en weer
 
 De zon draait van oost naar west, met bijpassende kleuren voor licht, lucht en mist. Wordt het donker,

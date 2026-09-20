@@ -975,7 +975,8 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     // de lamp gaat aan zodra het buiten donker wordt
     if (sfeer) zetLicht(!!sfeer.nacht);
     if (katten.length) katUpdate(Math.min(dt, 0.1));
-    if (bezet) { hintAan = false; return; }
+    // bezet (gesprek, menu, pauze): ook het balkje zelf weg, niet alleen de vlag
+    if (bezet) { hintAan = false; praatEl.hidden = true; return; }
     let tekst = null;
     if (bezig && !player.inCar) {
       if (player.zit && binnen(player.pos.x, player.pos.z)) tekst = 'E — opstaan';

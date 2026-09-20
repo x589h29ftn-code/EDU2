@@ -503,6 +503,7 @@ export class NPCs {
         if (p.respawn <= 0) {
           p.alive = true; p.fall = 0; p.smak = null;
           p.paniek = 0; p.bron = null; p.vNu = 0;
+          p.raken = 0;                                // weer heel, dus weer van voren af aan
           if (p.hond) p.hond.geplaatst = false;      // het hondje verhuist mee
           /*
            Waar komt hij terug? Dit was `pickSegment(p, true)`: een willekeurig
@@ -703,15 +704,31 @@ export class NPCs {
   // raycast-doelen: de instanced meshes zelf
   get targets() { return Object.values(this.meshes); }
 
-  hit(obj, instanceId) {
-    if (instanceId == null) return false;
+  /*
+   Iemand raken. `nodig` is hoeveel kogels er voor deze persoon nodig zijn — dat
+   hangt aan het wapen (js/player.js, `dodelijk`): één met de sniper, twee met
+   het machinegeweer, en met het pistool één of twee.
+
+   Het getal wordt bij de éérste treffer vastgelegd en niet per schot opnieuw
+   getrokken, anders zou een tweede pistoolkogel die "twee" trekt hem alsnog
+   laten staan en zou hetzelfde slachtoffer eindeloos kunnen blijven lopen.
+
+   Levert null op als er niemand geraakt is, en anders `{ neer, x, z }`: `neer`
+   zegt of hij ook tegen de vlakte gaat. Een treffer die niet dodelijk is telt
+   wel (bloed, kreet) maar levert geen buit op en geen lijk.
+  */
+  hit(obj, instanceId, nodig = 1) {
+    if (instanceId == null) return null;
     // armen, benen en schoenen zitten met twee instanties per persoon in één
     // mesh (links en rechts), dus dan is het instantienummer het dubbele
     const nr = obj && obj.userData && obj.userData.paar ? instanceId >> 1 : instanceId;
     const p = this.people[nr];
-    if (!p || !p.alive) return false;
-    p.alive = false; p.respawn = 25; p.fall = 0;
-    return true;
+    if (!p || !p.alive) return null;
+    if (!p.raken) { p.raken = 0; p.nodig = Math.max(1, Math.round(nodig)); }
+    p.raken++;
+    if (p.raken < p.nodig) return { neer: false, x: p.x, z: p.z };
+    p.alive = false; p.respawn = 25; p.fall = 0; p.raken = 0;
+    return { neer: true, x: p.x, z: p.z };
   }
 
   /*
@@ -729,7 +746,7 @@ export class NPCs {
       const dx = p.x - x, dz = p.z - z;
       if (dx * dx + dz * dz > straal * straal) continue;
       p.alive = false; p.fall = 0; p.respawn = 22 + this.r() * 8;
-      p.pause = 0; p.steek = 0; p.opWeg = false;
+      p.pause = 0; p.steek = 0; p.opWeg = false; p.raken = 0;
       // een zetje in de richting waarin hij geraakt wordt
       const d = Math.hypot(dx, dz) || 1;
       p.smak = { dx: dx / d, dz: dz / d, t: 0.35 + vaart * 0.5 };
