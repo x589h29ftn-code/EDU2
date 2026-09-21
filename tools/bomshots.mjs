@@ -41,6 +41,22 @@ const foto = async (naam, wacht = 900) => {
 };
 
 /*
+ Het verhaal stilzetten en weer laten lopen. Op een softwarerenderer duurt één
+ beeld seconden; een ontploffing van drieënhalve seconde is dan voorbij voordat
+ het beeld staat. Zolang het verhaal bevroren is werkt niets zich nog bij — de
+ vuurbal, de rook en de schutters blijven staan waar ze staan, en de foto laat
+ precies het moment zien dat bedoeld was.
+*/
+const bevries = () => page.evaluate(() => {
+  const v = window.__game.verhaal;
+  if (!v.__echteUpdate) { v.__echteUpdate = v.update; v.update = () => {}; }
+});
+const ontdooi = () => page.evaluate(() => {
+  const v = window.__game.verhaal;
+  if (v.__echteUpdate) { v.update = v.__echteUpdate; v.__echteUpdate = null; }
+});
+
+/*
  De camera op een plek zetten en naar een punt laten kijken. De speler staat
  gewoon op de grond (geen vliegstand), dus de camera hangt op ooghoogte: die
  hoogte moet ook in de kijkhoek zitten, anders kijk je over alles heen.
@@ -134,14 +150,15 @@ const winkel = await page.evaluate(() => {
   await page.evaluate(() => { window.__stap(4); });
   /*
    Het bierschap staat tegen de linkerwand van de hal en de winkel staat met
-   zijn assen gelijk aan de wereld (js/supermarkt.js), dus vijf meter in de +x
-   gaat het gangpad in — hetzelfde standpunt als de bierfoto in
-   tools/poieszshots.mjs. Naar het midden van de hal toe lopen komt in een
-   schappenrij terecht.
+   zijn assen gelijk aan de wereld (js/supermarkt.js), dus de +x gaat het
+   gangpad in — dezelfde kant op als de bierfoto in tools/poieszshots.mjs.
+   Naar het midden van de hal toe lopen komt in een schappenrij terecht.
   */
   console.log(`de plek bij de schappen: ${p.x.toFixed(0)}, ${p.z.toFixed(0)}` +
     ` (in de winkel: ${(p.x - winkel.nul.x).toFixed(1)}, ${(p.z - winkel.nul.z).toFixed(1)})`);
-  await kijk(p.x + 5.0, p.z, p.x, p.z, 1.55);
+  // tweeënhalve meter het gangpad in: verder naar achteren staat de volgende
+  // schappenrij in de weg
+  await kijk(p.x + 2.6, p.z, p.x, p.z, 1.2);
   await foto('bom_plek');
 }
 
@@ -173,8 +190,9 @@ const buiten = await page.evaluate(() => {
 });
 {
   const d = winkel.ing;
-  // van het parkeerterrein af, een meter of achttien van de deur
-  await kijk(d.x + d.fx * 18, d.z + d.fz * 18, d.x, d.z, 5.5);
+  // van het parkeerterrein af, een meter of achttien van de deur en een paar
+  // meter opzij: recht tegenover de ingang staat een boom
+  await kijk(d.x + d.fx * 18 - d.fz * 6, d.z + d.fz * 18 + d.fx * 6, d.x, d.z, 5.5);
   await page.evaluate(() => {
     const g = window.__game;
     // doorstappen tot de bom afgaat
@@ -188,7 +206,9 @@ const buiten = await page.evaluate(() => {
     for (let i = 0; i < 12; i++) g.verhaal.update(0.05);
     g.hud.melding('', '', 0);
   });
+  await bevries();                      // de vuurbal blijft staan tot de foto klaar is
   await foto('bom_knal', 120);
+  await ontdooi();
 }
 
 // ------------------------------------------------- de zes man die uitstappen
@@ -225,7 +245,9 @@ if (schutters && schutters.best) {
     const g = window.__game;
     g.player.health = 100; g.hud.zetLeven(100);
   });
+  await bevries();                      // ze schieten door terwijl het beeld staat
   await foto('bom_schutters', 250);
+  await ontdooi();
 } else {
   console.log('geen schutters in beeld');
 }

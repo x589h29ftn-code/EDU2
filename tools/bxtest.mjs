@@ -254,7 +254,15 @@ ok(einde.geldNa - einde.geldVoor === 250, 'de beloning is € 250',
   `€ ${einde.geldVoor} → € ${einde.geldNa}`);
 ok(/MISSIE VOLTOOID/.test(einde.melding) && /BX/.test(einde.melding), 'MISSIE VOLTOOID – DE GROENE BX',
   einde.melding.slice(0, 40));
-ok(einde.missie === 'klaar' && einde.fase === 'klaar', 'de missie is afgerond', `${einde.missie}/${einde.fase}`);
+/*
+ Afgerond is hier: de BX is klaar. Acht seconden na de beloning zet het verhaal
+ zelf de volgende missie klaar (de bom, met een M bij de Wieken 29), dus
+ 'bom/wacht' telt net zo goed als 'klaar/klaar' — zolang de BX maar niet meer
+ loopt.
+*/
+ok((einde.missie === 'klaar' && einde.fase === 'klaar')
+  || (einde.missie === 'bom' && einde.fase === 'wacht'),
+  'de missie is afgerond', `${einde.missie}/${einde.fase}`);
 ok(!einde.muziek.aan && einde.muziek.volume < 0.01, 'en de muziek is uitgedoofd',
   `volume ${einde.muziek.volume}`);
 
