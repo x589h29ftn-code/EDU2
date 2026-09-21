@@ -4723,7 +4723,7 @@ zodra het verhaal "bezet" meldde, en omdat de binnenruimtes ná het verhaal
 worden bijgewerkt wiste dat ook de regel van het verhaal zelf. Ze halen nu
 alleen hun eigen balkje weg — dat gold net zo goed voor "E — praten" bij Mark.
 
-`npm run bomtest` houdt de hele keten vast (vierenvijftig controles, van de
+`npm run bomtest` houdt de hele keten vast (achtenvijftig controles, van de
 bootmissie die uitstaat tot de € 300 bij Molenkrite 15), `npm run bomshots`
 maakt de foto's.
 
