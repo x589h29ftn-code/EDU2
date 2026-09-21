@@ -702,7 +702,9 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
      wapenhandel onderin in beeld staan, ook als je allang weg was (melding
      20 sep 2026).
     */
-    if (bezet) { hintAan = false; praatEl.hidden = true; verbergSchap(); return; }
+    // alleen ons eigen balkje weghalen: staat er een regel van het verhaal in
+    // (het verhaal draait vóór de binnenruimtes), dan blijft die staan
+    if (bezet) { if (hintAan) praatEl.hidden = true; hintAan = false; verbergSchap(); return; }
     let tekst = null;
     let bijSchap = false;
     if (bezig && !player.inCar) {

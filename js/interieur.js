@@ -975,8 +975,14 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     // de lamp gaat aan zodra het buiten donker wordt
     if (sfeer) zetLicht(!!sfeer.nacht);
     if (katten.length) katUpdate(Math.min(dt, 0.1));
-    // bezet (gesprek, menu, pauze): ook het balkje zelf weg, niet alleen de vlag
-    if (bezet) { hintAan = false; praatEl.hidden = true; return; }
+    /*
+     Bezet (gesprek, menu, pauze, of het verhaal dat zelf om E vraagt): ons
+     eigen balkje weg, niet alleen de vlag — maar alleen het onze. Zet het
+     verhaal er zijn eigen regel in ("E — praten", "E — de bom planten"), dan
+     hoort die te blijven staan: de binnenruimtes worden ná het verhaal
+     bijgewerkt en wisten hem anders elk beeld weer.
+    */
+    if (bezet) { if (hintAan) praatEl.hidden = true; hintAan = false; return; }
     let tekst = null;
     if (bezig && !player.inCar) {
       if (player.zit && binnen(player.pos.x, player.pos.z)) tekst = 'E — opstaan';

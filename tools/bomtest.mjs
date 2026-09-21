@@ -213,7 +213,9 @@ const planten = await page.evaluate(() => {
    markering staat bij het bierschap, en de winkel zette daar zijn eigen
    "E — flesje bier kopen" overheen; het verhaal hoort voor te gaan.
   */
-  g.supermarkt.update(0.05, g.verhaal.aanspreekbaar);
+  for (const r of [g.supermarkt, g.boerderij, ...(g.woningen || [])]) {
+    if (r && r.update) r.update(0.05, g.verhaal.aanspreekbaar);
+  }
   const praatEl = document.getElementById('praat');
   const hint = !praatEl.hidden;
   const hintTekst = praatEl.textContent;
