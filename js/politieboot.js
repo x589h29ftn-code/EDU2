@@ -38,9 +38,9 @@ const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c, vest: 0xd6dc46, schoen: 0x14
  een rechte vaart achter je hangen. Het is nu 40 % harder, met meer stuwkracht
  om het gat ook echt dicht te rijden (verzoek 21 sep 2026).
 */
-const TOP = SLOEP.TOP * 1.4;       // ruim 70 km/u: hij haalt je in
+const TOP = SLOEP.TOP * 1.4;       // ruim 140 km/u: hij haalt je in
 const STUW = SLOEP.STUW * 1.45;
-const ROER = 0.62;                 // rad/s bij volle vaart
+const ROER = 1.25;                 // rad/s bij volle vaart: mee omhoog met js/boot.js
 const ROER_TRAAG = 3.0;
 
 // ---- opkomen en afzwaaien ----
@@ -65,12 +65,12 @@ const HP = 14;
  niet het gevolg van iets wat je misdaan hebt.
 */
 export function initPolitieboot({ scene, player, hud = null, politie = null, boten = null,
-  jaagtOok = null, melding = true }) {
+  jaagtOok = null, melding = true, komVan = null, komNa = 2 }) {
   if (!scene || !boten) return null;
 
   let boot = null;                 // { groep, x, z, yaw, vx, vz, ... }
   let fase = 'weg';                // 'weg' | 'jaagt' | 'vertrekt' | 'wrak'
-  let komT = 2;                    // hoelang nog voor er een komt
+  let komT = komNa;                // hoelang nog voor er een komt
   let vuurT = 0;
   /*
    Hoelang hij al aan het afzwaaien is. Hij verdwijnt als hij ver genoeg weg is
@@ -175,8 +175,21 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
     const p = sp();
     const jij = player.inBoot;
     const fx = jij ? -Math.sin(jij.yaw) : 0, fz = jij ? -Math.cos(jij.yaw) : 0;
+    /*
+     `komVan` zegt uit welke hoek hij hoort te komen. Missie 8 gebruikt dat: de
+     waterpolitie komt van de kant waar jij naartoe moet, zodat je ze tegemoet
+     vaart in plaats van dat ze naast je opduiken (melding 21 sep 2026). Zonder
+     dat punt blijft het zoals het was: het liefst achter je en uit het zicht.
+    */
+    const van = komVan ? komVan() : null;
+    let vx = 0, vz = 0;
+    if (van) {
+      const dx = van.x - p.x, dz = van.z - p.z;
+      const L = Math.hypot(dx, dz) || 1;
+      vx = dx / L; vz = dz / L;
+    }
     let beste = null;
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < 220; i++) {
       const hoek = Math.random() * 6.283;
       const d = KOM_MIN + Math.random() * (KOM_MAX - KOM_MIN);
       const x = p.x + Math.cos(hoek) * d, z = p.z + Math.sin(hoek) * d;
@@ -184,10 +197,18 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
       // kijkt hij jouw kant op, en past hij daar?
       const yaw = Math.atan2(-(p.x - x), -(p.z - z));
       if (!sloepPast(x, z, yaw)) continue;
-      // achter je is beter, en uit het zicht is beter
-      const achter = jij ? -((x - p.x) * fx + (z - p.z) * fz) / d : 0;
       const gezien = zichtVrij(p.x, p.z, x, z, 1.4);
-      const score = achter * 40 + (gezien ? 0 : 25) + d * 0.1;
+      let score;
+      if (van) {
+        // hoe beter hij in de gevraagde richting ligt, hoe liever — en ver weg
+        // is hier juist goed: je moet ze zien aankomen
+        const langs = ((x - p.x) * vx + (z - p.z) * vz) / d;
+        score = langs * 80 + d * 0.4 + (gezien ? 15 : 0);
+      } else {
+        // achter je is beter, en uit het zicht is beter
+        const achter = jij ? -((x - p.x) * fx + (z - p.z) * fz) / d : 0;
+        score = achter * 40 + (gezien ? 0 : 25) + d * 0.1;
+      }
       if (!beste || score > beste.score) beste = { x, z, yaw, score };
     }
     return beste;
@@ -343,6 +364,14 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
 
     vaarStap(boot, dt);
     zetBeeld(boot, dt, 0);
+    /*
+     De sirene. Een politiewagen heeft er een en een politieboot hoort er ook
+     een te hebben (verzoek 21 sep 2026); het zwaailicht alleen is op het water
+     nauwelijks te zien. Hij claimt de sirene van js/audio.js alleen zolang hij
+     jaagt — wie het dichtst bij is wint, dus een wagen op de kade overstemt
+     hem niet en andersom ook niet.
+    */
+    if (fase === 'jaagt') geluid.sirene(d);
 
     // ---- schieten ----
     const mag = fase === 'jaagt' && d < VUURBEREIK && zichtVrij(boot.x, boot.z, p.x, p.z, 1.4);
@@ -422,7 +451,7 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
     return false;
   }
 
-  function reset() { ruim(); komT = 2; vertrekT = 0; }
+  function reset() { ruim(); komT = komNa; vertrekT = 0; }
 
   return {
     update, raak, raakAgent, doelen, reset,

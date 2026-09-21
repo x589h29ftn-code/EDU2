@@ -38,6 +38,8 @@ let missiePlek = -1;         // waar het vorige fragment begon (seconden), om ni
  de missiemuziek het weer over.
 */
 let radioVoor = false;
+// wie claimt de sirene, en tot wanneer (zie `sirene` verderop)
+let sireneD = 1e9, sireneT = 0;
 const MISSIE_VOL = 0.26;     // spanningsmuziek: onder de radio (0,32) en boven de motor
 let vogelKlok = 0, krekelKlok = 0;
 let laatsteSfeer = null;     // welk omgevingsgeluid er het laatst klonk
@@ -810,7 +812,7 @@ export const geluid = {
       let bron = null;
       try { bron = ctx.createMediaElementSource(el); } catch { return false; }
       bron.connect(g); g.connect(hoofd);
-      bronnen.missie = { el, gain: g, nummer: null, stuk: false, speelt: false, stopT: 0 };
+      bronnen.missie = { el, gain: g, nummer: null, stuk: false, speelt: false, stopT: 0, wil: -1 };
       el.addEventListener('error', () => { bronnen.missie.stuk = true; });
       // loopt het nummer toch een keer af, dan begint hij ergens anders opnieuw
       el.addEventListener('ended', () => { bronnen.missie.nummer = null; bronnen.missie.speelt = false; });
@@ -825,9 +827,16 @@ export const geluid = {
         m.nummer = missieLijst[Math.floor(Math.random() * missieLijst.length)];
         const zelfde = m.el.src && m.el.src === new URL(m.nummer.url, location.href).href;
         if (!zelfde) m.el.src = m.nummer.url;
-        const zetPlek = () => {
+        /*
+         Elke missie een ander stuk van het nummer. Springen kan alleen als de
+         speler de lengte al kent én het bestand mag doorzoeken; lukt het niet,
+         dan begint hij bij nul en hoor je elke missie hetzelfde begin (melding
+         21 sep 2026). Daarom wordt de sprong niet één keer geprobeerd maar
+         vastgehouden: de gewenste plek blijft staan tot hij er ook echt staat.
+        */
+        const kiesPlek = () => {
           const duur = m.el.duration;
-          if (!isFinite(duur) || duur < 20) return;
+          if (!isFinite(duur) || duur < 20) return -1;
           // een fragment van een minuut of wat, ruim binnen de randen van het bestand
           const stuk = Math.min(m.nummer.fragment || 75, Math.max(20, duur - 20));
           const ruimte = Math.max(1, duur - stuk - 10);
@@ -836,11 +845,31 @@ export const geluid = {
           if (missiePlek >= 0 && ruimte > 260 && Math.abs(plek - missiePlek) < 120) {
             plek = (missiePlek + 120 + Math.random() * (ruimte - 240)) % ruimte + 5;
           }
-          missiePlek = plek;
-          try { m.el.currentTime = plek; } catch { /* nog niet te zetten: dan vanaf het begin */ }
+          return plek;
         };
-        if (m.el.readyState >= 1) zetPlek();
-        else m.el.addEventListener('loadedmetadata', zetPlek, { once: true });
+        const zetPlek = () => {
+          if (m.wil < 0) {
+            const plek = kiesPlek();
+            if (plek < 0) return;
+            m.wil = plek;
+            missiePlek = plek;
+          }
+          try { m.el.currentTime = m.wil; } catch { /* nog niet te zetten: straks weer */ }
+        };
+        m.wil = -1;
+        zetPlek();
+        /*
+         En daarna nog een keer, zodra de speler iets nieuws weet. `loadedmetadata`
+         geeft de lengte, `canplay` betekent dat hij mag springen, en `playing`
+         is het laatste vangnet: staat hij dan nog aan het begin terwijl we
+         verderop wilden zitten, dan springt hij alsnog.
+        */
+        for (const gebeurtenis of ['loadedmetadata', 'canplay']) {
+          m.el.addEventListener(gebeurtenis, zetPlek, { once: true });
+        }
+        m.el.addEventListener('playing', () => {
+          if (m.wil > 0 && Math.abs(m.el.currentTime - m.wil) > 5) zetPlek();
+        }, { once: true });
         m.gain.gain.cancelScheduledValues(nu());
         m.gain.gain.setValueAtTime(0, nu());
       }
@@ -873,6 +902,7 @@ export const geluid = {
     return { speler: true, nummers: missieLijst.length, stuk: !!m.stuk, speelt: !m.el.paused,
       aan: !!m.aan, volume: +m.gain.gain.value.toFixed(4),
       bron: (m.el.src || '').split('/').pop(), tijd: +m.el.currentTime.toFixed(2),
+      plek: m.wil >= 0 ? +m.wil.toFixed(2) : null,
       duur: isFinite(m.el.duration) ? +m.el.duration.toFixed(0) : null };
   },
 
@@ -1019,8 +1049,25 @@ export const geluid = {
    klinkt en niet als een fluit. Wordt elk beeld aangeroepen met de afstand tot
    de dichtstbijzijnde eenheid met zwaailicht aan; `null` betekent stil.
   */
+  /*
+   Er is één sirene in de keten, en er zijn meerdere dingen die hem willen: de
+   wagens (js/politie.js) en sinds 21 sep 2026 ook de boten (js/politieboot.js).
+   Wie het dichtst bij is wint. Dat kan niet met "de laatste die roept", want
+   dan bepaalt de volgorde in de hoofdlus wie je hoort, en een wagen die `null`
+   roept zou de boot naast je het zwijgen opleggen. Een claim blijft daarom een
+   kwart seconde staan; alleen een claim die dichterbij is haalt hem eraf, en
+   `null` pas als de laatste claim verlopen is.
+  */
   sirene(afstand) {
     if (!aan) return;
+    const nuT = ctx ? ctx.currentTime : 0;
+    if (afstand == null) {
+      if (sireneT > nuT) return;            // iemand anders hoort hem nog
+    } else if (sireneT > nuT && afstand > sireneD + 0.5) {
+      return;                               // er is iets dichterbij aan het gillen
+    } else {
+      sireneD = afstand; sireneT = nuT + 0.25;
+    }
     if (!bronnen.sirene) {
       if (afstand == null) return;
       const g = ctx.createGain(); g.gain.value = 0;

@@ -218,6 +218,14 @@ export class Player {
 
   // Wat het wapen in je hand kan: magazijngrootte, vuursnelheid en terugslag.
   get wapenSoort() { return this.wapens[this.wapenNr] || 'pistool'; }
+  /*
+   Kijk je op dit moment door de kijker? Dan hoort het wapen uit beeld: je oog
+   zit tegen de scope en van de loop eronder zie je niets. Wie de zichtbaarheid
+   van het wapen zelf zet (js/main.js doet dat in de auto en in de boot) moet
+   dit meenemen, anders komt de sniper half in het vizier te staan (melding
+   21 sep 2026).
+  */
+  get inScope() { return !!this._scopeAan; }
   get wapenInfo() { return WAPENS[this.wapenSoort]; }
 
   /*

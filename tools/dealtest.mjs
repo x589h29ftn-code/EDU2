@@ -106,11 +106,14 @@ const bel = await page.evaluate(async () => {
     g.praat(); window.__stap(2);
   }
   window.__stap(4);
+  // even echte tijd: de speler moet het bestand kunnen openen en erin springen
+  await new Promise(r => setTimeout(r, 2500));
+  const stand = geluid.missieStand();
   return {
     beginFase, eerste, regels, fase: g.verhaal.fase,
     opdracht: document.getElementById('opdracht').textContent,
     nav: g.hud.nav ? g.hud.nav.naam : null,
-    muziek: geluid.missieStand().aan,
+    muziek: stand.aan, plek: stand.plek, tijd: stand.tijd, duur: stand.duur,
     heeftSniper: g.player.wapens.includes('sniper'),
   };
 });
@@ -124,6 +127,16 @@ ok(!bel.heeftSniper && bel.fase === 'kopen' && /sniper/i.test(bel.opdracht),
   'zonder sniper stuurt hij je eerst naar Tinga State', `${bel.fase} · ${bel.opdracht}`);
 ok(/Tinga State/i.test(bel.nav || ''), 'en de kaart wijst Tinga State aan', bel.nav || 'geen vlag');
 ok(bel.muziek === true, 'de missiemuziek loopt');
+/*
+ En hij begint niet elke missie op dezelfde plek: het spel springt naar een
+ willekeurig stuk van het bestand. Dat springen moet ook echt lukken — lukte
+ het niet, dan begon hij stilletjes bij nul en hoorde je steeds hetzelfde
+ (melding 21 sep 2026).
+*/
+ok(bel.plek > 5, 'hij kiest een stuk verderop in het nummer',
+  `${bel.plek === null ? 'geen plek gekozen' : bel.plek + ' s van de ' + bel.duur}`);
+ok(bel.tijd > 5 && Math.abs(bel.tijd - bel.plek) < 8, 'en hij staat daar ook echt',
+  `speelt op ${bel.tijd} s`);
 
 // --------------------------------------------------------- de sniper kopen
 kop('de sniper kopen');
@@ -262,6 +275,33 @@ ok(/gaat fout/i.test(scene.tekst || '') || /schiet ze neer/i.test(scene.tekst ||
   'Johan: "shit, dit gaat fout"', (scene.tekst || '').slice(0, 40));
 ok(scene.vuurSlot === false && scene.magSchieten, 'en dan mag jij ook schieten',
   JSON.stringify(scene.waarom));
+
+// -------------------------------------------------- door de kijker in de boot
+kop('door de kijker vanuit de boot');
+const kijker = await page.evaluate(async () => {
+  const g = window.__game;
+  // aanslaan met de rechtermuisknop en helemaal aangeslagen laten zijn
+  /*
+   Aanslaan en helemaal aangeslagen zijn. `mik` kruipt in de hoofdlus omhoog en
+   die loopt hier nauwelijks; de kijker komt in beeld bij mik > 0,72, dus zetten
+   we hem op één en laten we de lus een paar beelden doen.
+  */
+  g.player.richten(true);
+  g.player.mik = 1;
+  await new Promise(r => setTimeout(r, 1200));
+  return {
+    inBoot: !!g.player.inBoot,
+    scope: !document.getElementById('scope').hidden,
+    inScope: g.player.inScope,
+    wapenZichtbaar: g.player.gun.visible,
+    zoom: +g.player.zoom.toFixed(1),
+  };
+});
+ok(kijker.inBoot, 'je zit nog in de boot');
+ok(kijker.scope && kijker.inScope, 'de kijker vult het beeld');
+ok(kijker.wapenZichtbaar === false, 'en de sniper zelf staat niet half in het vizier',
+  `wapen zichtbaar: ${kijker.wapenZichtbaar}`);
+ok(kijker.zoom >= 4, 'de kijker zoomt in', `${kijker.zoom}×`);
 ok(scene.deinst > 0.5, 'De Veteraan deinst achteruit', `${scene.deinst.toFixed(1)} m`);
 ok(scene.fase === 'vuurgevecht' && /maffia/i.test(scene.opdracht), 'het vuurgevecht loopt',
   `${scene.fase} · ${scene.opdracht}`);
@@ -280,15 +320,30 @@ const terug = await page.evaluate(() => {
   const opdracht = document.getElementById('opdracht').textContent;
   const boten = g.verhaal.snipBoten.length;
   // de boten komen pas in beeld als ze de kans krijgen: even laten varen
-  for (let i = 0; i < 120; i++) g.verhaal.update(0.05);
+  const p0 = g.player.inBoot ? { x: g.player.inBoot.x, z: g.player.inBoot.z } : { x: g.player.pos.x, z: g.player.pos.z };
+  let eerste = null, dichtstbij = 1e9, sirene = 0;
+  for (let i = 0; i < 200; i++) {
+    g.verhaal.update(0.05);
+    for (const b of g.verhaal.snipBoten) {
+      if (!b.plek) continue;
+      const d = Math.hypot(b.plek.x - p0.x, b.plek.z - p0.z);
+      if (eerste === null) eerste = d;              // hoe ver weg de eerste opkomt
+      dichtstbij = Math.min(dichtstbij, d);
+    }
+    sirene = Math.max(sirene, g.geluid.stand().sirene || 0);
+  }
   const actief = g.verhaal.snipBoten.filter(b => b.actief).length;
-  return { neer, fase, opdracht, boten, actief, nav: g.hud.nav ? g.hud.nav.naam : null };
+  return { neer, fase, opdracht, boten, actief, eerste, dichtstbij, sirene,
+    nav: g.hud.nav ? g.hud.nav.naam : null };
 });
 ok(terug.neer === 5, 'alle vijf gaan neer', `${terug.neer} neer`);
 ok(terug.fase === 'terug' && /Geeuw/i.test(terug.nav || ''), 'daarna terug naar de Geeuwkade',
   `${terug.fase} · ${terug.nav}`);
 ok(terug.boten === 3, 'er komen drie waterpolitieboten achter je aan', `${terug.boten} boten`);
 ok(terug.actief > 0, 'en die varen ook echt uit', `${terug.actief} in het water`);
+ok(terug.eerste > 60, 'ze komen van ver aanvaren, niet naast je',
+  `de eerste kwam op ${(terug.eerste || 0).toFixed(0)} m op`);
+ok(terug.sirene > 0, 'en ze laten hun sirene horen', `sirene ${terug.sirene.toFixed(3)}`);
 
 // ------------------------------------------------------------- de beloning
 kop('terug bij de kade');

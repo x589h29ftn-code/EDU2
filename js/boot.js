@@ -84,14 +84,22 @@ const ACHTERDEK = 0.88;         // en vanaf dit spant het achterdek
  De politiesloep hangt hieraan vast met een eigen factor (js/politieboot.js):
  die moet je kunnen inhalen.
 */
-const TOP = 14.0;               // m/s vooruit — ruim 50 km/u
-const TOP_ACHTER = 4.4;
-const STUW = 7.2;               // versnelling bij vol gas (m/s²), vóór de weerstand
-const STUW_ACHTER = 3.0;
+const TOP = 28.0;               // m/s vooruit — ruim 100 km/u
+const TOP_ACHTER = 8.8;
+const STUW = 14.4;              // versnelling bij vol gas (m/s²), vóór de weerstand
+const STUW_ACHTER = 6.0;
 const LANGS = 0.065;            // rompweerstand in de lengte, × v²
 const LANGS_VAST = 0.14;        // en een beetje vaste weerstand, anders drijft hij eeuwig door
 const DWARS = 2.4;              // dwars op de romp remt het water veel harder af
-const ROER = 0.52;              // hoeveel het roer geeft bij volle vaart (rad/s)
+/*
+ Het roer moest mee omhoog. Een bocht is snelheid gedeeld door draaisnelheid:
+ op zeven meter per seconde was 0,52 rad/s een boog van dertien meter, op
+ achtentwintig zou dat vierenvijftig worden — dan kun je de Geeuw niet meer
+ volgen. Met 1,05 rad/s blijft de boog zevenentwintig meter, ruim binnen het
+ water, en stuurt hij nog steeds als een boot: traag op gang en met de kont
+ naar buiten.
+*/
+const ROER = 1.05;              // hoeveel het roer geeft bij volle vaart (rad/s)
 const ROER_TRAAG = 3.2;         // hoe snel het roer zelf meedraait
 const SCHROEF_DRAAI = 0.34;     // draaien op de plek, op de schroef alleen
 const HELLING = 0.22;           // hoever hij in de bocht naar buiten hangt (rad bij vol roer)

@@ -1584,7 +1584,7 @@ function loop() {
        gaat hij weg: over de achterbank heen richten kan niet, en een wapen dat
        in beeld staat terwijl er niets gebeurt leest als een fout.
       */
-      player.gun.visible = !player.wapenUit && !derde.aan && player.magSchieten();
+      player.gun.visible = !player.wapenUit && !derde.aan && !player.inScope && player.magSchieten();
     } else if (boten && boten.inBoot) {
       /*
        Aan boord. Het gaat net als in de auto: de boot bepaalt waar je bent, de
@@ -1604,8 +1604,9 @@ function loop() {
         camera.rotation.y = player.yaw + player.kickYaw;
         camera.rotation.x = player.pitch + player.kickPitch;
       }
-      // aan boord sta je in de open lucht: het wapen mag alle kanten op
-      player.gun.visible = !player.wapenUit && !derde.aan;
+      // aan boord sta je in de open lucht: het wapen mag alle kanten op — maar
+      // door de kijker zie je het niet, net als te voet
+      player.gun.visible = !player.wapenUit && !derde.aan && !player.inScope;
       geluid.gier(0);
     } else {
       player.lastCarYaw = undefined;

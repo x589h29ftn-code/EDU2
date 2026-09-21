@@ -16,7 +16,8 @@
     door een scope, en iemand die dekking zoekt is dan niet meer te vinden.
 
  Alles wordt hier getekend: de ring is een geometrie, de baard van De Veteraan
- een blokje, het hondje dezelfde vorm als de hondjes in de wijk (js/npc.js).
+ een paar blokjes, het hondje dezelfde vorm als de hondjes in de wijk
+ (js/npc.js).
 */
 import * as THREE from 'three';
 import { Persoon } from './persoon.js';
@@ -100,15 +101,24 @@ export function maakDeal(scene, plek, naarWater) {
   // De Veteraan staat links, met zijn gezicht naar de baas
   const veteraan = new Persoon({ ...VETERAAN, hoogte: 1.03 });
   /*
-   Een baard: een blok aan het hoofd, onder de neus. Persoon kent er geen, en
-   voor één man een gezichtshaar-instelling toevoegen is overdreven — dit is
-   hetzelfde blokwerk als de rest van het poppetje.
+   Een volle baard: kin, twee wangen en een snor, als blokjes aan het hoofd.
+   Persoon kent geen gezichtshaar en voor één man een instelling toevoegen is
+   overdreven — dit is hetzelfde blokwerk als de rest van het poppetje.
   */
-  const baard = new THREE.Mesh(
-    new THREE.BoxGeometry(0.15, 0.1, 0.055),
-    new THREE.MeshStandardMaterial({ color: 0x5a5148, roughness: 0.95 }));
-  baard.position.set(0, -0.035, -0.10);
-  veteraan.hoofd.add(baard);
+  const baardMat = new THREE.MeshStandardMaterial({ color: 0x5a5148, roughness: 0.95 });
+  // Door de kijker is een streepje onder de neus niets; dit is van vijftig
+  // meter te zien (verzoek 21 sep 2026)
+  const kin = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.20, 0.075), baardMat);
+  kin.position.set(0, -0.10, -0.085);
+  veteraan.hoofd.add(kin);
+  for (const kant of [-1, 1]) {
+    const wang = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.15, 0.13), baardMat);
+    wang.position.set(kant * 0.085, -0.055, -0.03);
+    veteraan.hoofd.add(wang);
+  }
+  const snor = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.045, 0.05), baardMat);
+  snor.position.set(0, -0.005, -0.105);
+  veteraan.hoofd.add(snor);
   const vetX = plek.x + zx * -3.2, vetZ = plek.z + zz * -3.2;
   zet(veteraan, vetX, vetZ, Math.atan2(-zx, -zz));
 

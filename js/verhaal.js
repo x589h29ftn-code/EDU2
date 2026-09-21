@@ -1666,6 +1666,14 @@ export function initVerhaal(ctx) {
         scene, player, hud, boten: b, politie: null,
         jaagtOok: () => missie === 'sniper' && fase === 'terug',
         melding: i === 0,
+        /*
+         Ze komen van de Geeuw af, dus van de kant waar jij naartoe moet: dan
+         vaar je ze tegemoet en zie je ze aankomen in plaats van dat ze naast
+         je opduiken (melding 21 sep 2026). En ze komen niet tegelijk: twee
+         tellen ertussen, zodat het er drie zijn en geen muur.
+        */
+        komVan: () => geeuwKade(),
+        komNa: 1.5 + i * 2.5,
       }));
     }
   }
