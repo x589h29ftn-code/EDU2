@@ -242,9 +242,12 @@ const scene = await page.evaluate(async () => {
   */
   await new Promise(r => setTimeout(r, 1300));
   const na = d.veteraan.groep.position;
+  const p = g.player;
   return {
     mensen, bijBaas, schietVoor, schietNa, tekst, vuurSlot,
-    magSchieten: g.player.magSchieten(),
+    magSchieten: p.magSchieten(),
+    waarom: { reloading: +p.reloading.toFixed(2), wisselT: +p.wisselT.toFixed(2),
+      wapenUit: p.wapenUit, binnen: p.binnen, inCar: !!p.inCar },
     fase: g.verhaal.fase,
     deinst: Math.hypot(na.x - voor.x, na.z - voor.z),
     opdracht: document.getElementById('opdracht').textContent,
@@ -256,7 +259,8 @@ ok(scene.schietVoor === false, 'eerst staan ze te praten');
 ok(scene.schietNa === true, 'na een seconde of vijftien trekken ze hun wapens');
 ok(/gaat fout/i.test(scene.tekst || '') || /schiet ze neer/i.test(scene.tekst || ''),
   'Johan: "shit, dit gaat fout"', (scene.tekst || '').slice(0, 40));
-ok(scene.vuurSlot === false && scene.magSchieten, 'en dan mag jij ook schieten');
+ok(scene.vuurSlot === false && scene.magSchieten, 'en dan mag jij ook schieten',
+  JSON.stringify(scene.waarom));
 ok(scene.deinst > 0.5, 'De Veteraan deinst achteruit', `${scene.deinst.toFixed(1)} m`);
 ok(scene.fase === 'vuurgevecht' && /maffia/i.test(scene.opdracht), 'het vuurgevecht loopt',
   `${scene.fase} · ${scene.opdracht}`);
@@ -298,7 +302,16 @@ const eind = await page.evaluate(async () => {
   const verzet = g.boten.verplaats(g.player.inBoot, lig.x, lig.z, lig.yaw);
   window.__stap(8);
   const bij = Math.hypot(g.player.inBoot.x - kade.x, g.player.inBoot.z - kade.z);
-  const teVroeg = { fase: g.verhaal.fase, opdracht: document.getElementById('opdracht').textContent };
+  /*
+   Meteen na het verzetten: de politieboten varen dan nog. Pas als hun eigen
+   beeld langskomt zien ze dat je 2,5 km verderop zit en draaien ze af — een
+   boot die zo ver achterblijft heb je ook echt afgeschud (js/politieboot.js).
+  */
+  const teVroeg = {
+    fase: g.verhaal.fase, missie: g.verhaal.missie,
+    actief: g.verhaal.snipBoten.filter(b => b.actief).length,
+    opdracht: document.getElementById('opdracht').textContent,
+  };
   // en dan de drie boten uitschakelen, zoals je ze met de sniper neerhaalt
   for (const b of g.verhaal.snipBoten) {
     for (const doel of b.doelen()) g.verhaal.raak(doel);
@@ -324,8 +337,9 @@ const eind = await page.evaluate(async () => {
 });
 ok(eind.verzet && eind.bij < 18, 'je vaart terug naar de kade aan de Geeuw',
   `${eind.bij.toFixed(1)} m van de wal`);
-ok(eind.teVroeg.fase === 'terug' && /waterpolitie/i.test(eind.teVroeg.opdracht),
-  'met de politie nog op het water ben je nog niet klaar', eind.teVroeg.opdracht);
+ok(eind.teVroeg.missie === 'sniper' && eind.teVroeg.fase === 'terug',
+  'met de politie achter je is de missie nog niet klaar',
+  `${eind.teVroeg.missie}/${eind.teVroeg.fase}, ${eind.teVroeg.actief} boten in het water`);
 ok(eind.fases.every(f => f === 'wrak' || f === 'weg'), 'de drie boten gaan uit',
   eind.fases.join(', '));
 ok(eind.regels.some(r => /Bedankt Erik/i.test(r)), 'Johan bedankt je',
