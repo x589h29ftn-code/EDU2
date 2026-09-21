@@ -611,11 +611,33 @@ export function initVerhaal(ctx) {
   }
 
   // ---------- missies ----------
+  /*
+   Een missie beginnen. Twee gebruikers: het verhaal zelf (de volgende missie na
+   een pauze) en de testfase, waarin je elke missie los moet kunnen starten
+   zonder de vorige zes te spelen (verzoek 21 sep 2026, zie `startMissieLos` in
+   js/main.js). Daarom gaat eerst alles van de vorige missie weg: een gesprek
+   dat nog openstaat, de opdrachtregel, de vlag op de kaart, en wat missie 7 in
+   de wereld had gezet.
+  */
   function startMissie(naam) {
+    gesprek = null; sluitBalk();
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+    markDoel = null; markNa = null;
+    spanning = false; spanningUit = 0;
+    naMissieT = 0;
+    ruimBomOp();
     missie = naam;
+    fase = 'wacht';
     player.health = 100;              // na elke missie is je leven weer vol
     hud.zetLeven(player.health);
-    if (naam === 'rijden') beginRijden();
+    if (naam === 'molenkrite') {
+      // terug naar het begin: Mark staat voor de deur en begint zelf te praten
+      mark.zetNeer(thuis.x, thuis.z, straatkant);
+      markZichtbaar(true);
+      beginGesprek(1.0);
+    }
+    else if (naam === 'rijden') beginRijden();
     else if (naam === 'bewaking') beginBewaking();
     else if (naam === 'afleveren') beginAfleveren();
     else if (naam === 'johan') beginJohan();
@@ -2158,7 +2180,13 @@ export function initVerhaal(ctx) {
     },
     // testhaak (tools/introtest.mjs): het moment waarop Erik zijn wapen krijgt
     __geefWapen: geefWapen,
-    // testhaak (tools/bxtest.mjs): meteen naar een missie, zonder de vorige te spelen
+    /*
+     Een missie los starten. Dit is geen testhaak meer maar onderdeel van het
+     spel zolang het in de testfase zit: js/main.js hangt er de toetsen
+     shift+1 … shift+7 en `?missie=` aan. `__startMissie` blijft staan voor de
+     gereedschappen die er al gebruik van maken.
+    */
+    startMissie,
     __startMissie: startMissie,
   };
 }

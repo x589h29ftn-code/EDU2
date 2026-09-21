@@ -4663,7 +4663,25 @@ niet ziet.
 blijven, alleen belt Sander niet meer. Een missie die later terugkomt hoort niet
 uit de code gesloopt te worden.
 
-`npm run bomtest` houdt de hele keten vast (eenenveertig controles, van de
+*Een missie los kunnen starten.* Om deze missie te bekijken moest je eerst zes
+missies uitspelen. Dat is nu **shift + 1 … 7** (of `index.html?missie=bom`), en
+het verhaal ruimt bij zo'n sprong zelf op wat er van de vorige missie nog stond.
+Testgereedschap hoort in het spel zelf te zitten en niet alleen in de
+proefbestanden: een controle die door een browser wordt afgespeeld ziet iets
+anders dan iemand die het zelf naspeelt, en juist dat naspelen moest eenvoudig
+worden.
+
+*Wat de foto's aan het licht brachten.* Twee dingen die geen enkele toets zou
+hebben gevonden. De vuurbal was op de opname telkens verdwenen — een
+softwarerenderer doet seconden over één beeld, dus een effect van drieënhalve
+seconde is voorbij voordat het beeld staat; het fototool zet het verhaal nu stil
+en stapt er zelf doorheen. En bij de schappen stond "E — flesje bier kopen" in
+beeld terwijl E daar de bom plant: elke binnenruimte maakte het hintbalkje leeg
+zodra het verhaal "bezet" meldde, en omdat de binnenruimtes ná het verhaal
+worden bijgewerkt wiste dat ook de regel van het verhaal zelf. Ze halen nu
+alleen hun eigen balkje weg — dat gold net zo goed voor "E — praten" bij Mark.
+
+`npm run bomtest` houdt de hele keten vast (vijfenveertig controles, van de
 bootmissie die uitstaat tot de € 300 bij Molenkrite 15), `npm run bomshots`
 maakt de foto's.
 

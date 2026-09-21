@@ -1037,12 +1037,58 @@ window.addEventListener('keydown', e => {
  andere ruimtes kennen alleen E en zouden op een cijfer hun eigen deur opendoen.
 */
 window.addEventListener('keydown', e => {
-  if (e.ctrlKey || e.metaKey) return;
+  if (e.ctrlKey || e.metaKey || e.shiftKey) return;   // shift+cijfer kiest een missie
   if (!player.active && !window.__autoplay) return;
   if (!boerderij.toets) return;
   if (e.code === 'KeyF') { boerderij.toets('F'); return; }
   const cijfer = /^Digit([1-9])$/.exec(e.code) || /^Numpad([1-9])$/.exec(e.code);
   if (cijfer) boerderij.toets(cijfer[1]);
+});
+
+/*
+ ---------- een missie los starten (testfase) ----------
+
+ Om missie 7 te bekijken hoefde je niet eerst zes missies te spelen (verzoek
+ 21 sep 2026). Elke missie is los te beginnen:
+
+   shift + 1 … shift + 7   in het spel
+   index.html?missie=bom   bij het starten
+
+ Twee ingangen, want de Windows-app heeft geen adresbalk. Het verhaal ruimt
+ daarbij zelf op wat er van de vorige missie nog stond (zie `startMissie` in
+ js/verhaal.js); hier gaan alleen de sterren eraf, want met de politie achter
+ je aan begint geen enkele missie prettig.
+
+ Dit is gereedschap voor de testfase. Is het spel af, dan kan dit blok eruit —
+ of achter dezelfde schakelaar als het startgeld van € 1.000.
+*/
+const MISSIES = [
+  { nr: 1, naam: 'molenkrite', titel: 'Molenkrite 15' },
+  { nr: 2, naam: 'rijden', titel: 'naar de waterzuivering' },
+  { nr: 3, naam: 'bewaking', titel: 'de bewaking' },
+  { nr: 4, naam: 'afleveren', titel: 'afleveren bij de boerderij' },
+  { nr: 5, naam: 'johan', titel: 'het telefoontje van Johan' },
+  { nr: 6, naam: 'bx', titel: 'de groene BX' },
+  { nr: 7, naam: 'bom', titel: 'de bom bij de Poiesz' },
+];
+function startMissieLos(naam) {
+  const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
+  if (!m || !verhaal.startMissie) return false;
+  politie.reset();
+  if (politieboot) politieboot.reset();
+  verhaal.startMissie(m.naam);
+  hud.show(`Missie ${m.nr} — ${m.titel}`, 3.5);
+  return true;
+}
+window.addEventListener('keydown', e => {
+  if (!e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!player.active && !window.__autoplay) return;
+  // op de toetscode en niet op de letter: shift+1 geeft op een Nederlands
+  // toetsenbord een '!' en op een ander een '1'
+  const cijfer = /^Digit([1-7])$/.exec(e.code) || /^Numpad([1-7])$/.exec(e.code);
+  if (!cijfer) return;
+  e.preventDefault();
+  startMissieLos(cijfer[1]);
 });
 
 /*
@@ -1198,6 +1244,15 @@ async function startGame(vervolg = false, metIntro = false) {
    midden in een missie.
   */
   if (!vervolg) verhaal.beginGesprek(metIntro ? 1.4 : 0.8);
+  /*
+   ?missie=bom (of ?missie=7) begint meteen bij die missie — dezelfde ingang
+   als shift+7, maar dan zonder eerst het spel in te hoeven. Alleen bij een
+   nieuw spel: bij een vervolg sta je al middenin iets.
+  */
+  const gevraagd = new URLSearchParams(location.search).get('missie');
+  if (gevraagd && !vervolg && !startMissieLos(gevraagd)) {
+    hud.show(`Onbekende missie: ${gevraagd}`, 4);
+  }
   if (touch) {
     touch.setVisible(true);
     hud.show('Links lopen · rechts kijken', 4);

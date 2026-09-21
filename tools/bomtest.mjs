@@ -65,6 +65,30 @@ const boot = await page.evaluate(async () => {
 ok(boot.vlag === false, 'de vlag VAART_AAN staat uit', `VAART_AAN = ${boot.vlag}`);
 ok(boot.fase === 'uit', 'en de missie blijft in de stand "uit"', `fase ${boot.fase}`);
 
+// ------------------------------------------- een missie los kunnen starten
+kop('elke missie is los te starten');
+const los = await page.evaluate(async () => {
+  const g = window.__game;
+  const voor = g.verhaal.missie;
+  // shift+7 in het spel
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit7', shiftKey: true }));
+  const naToets = g.verhaal.missie;
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit1', shiftKey: true }));
+  const terug = g.verhaal.missie;
+  // en ?missie=bom bij het starten: startGame leest de adresregel
+  history.replaceState({}, '', `${location.pathname}?missie=bom`);
+  await g.hervat(false, false);
+  const naAdres = g.verhaal.missie;
+  history.replaceState({}, '', location.pathname);
+  // een cijfer zonder shift hoort gewoon de toonbank te bedienen
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit3' }));
+  return { voor, naToets, terug, naAdres, naCijfer: g.verhaal.missie };
+});
+ok(los.naToets === 'bom', 'shift+7 begint missie 7', `${los.voor} → ${los.naToets}`);
+ok(los.terug === 'molenkrite', 'en shift+1 zet je terug bij missie 1', los.terug);
+ok(los.naAdres === 'bom', 'index.html?missie=bom begint er ook mee', los.naAdres);
+ok(los.naCijfer === 'bom', 'een cijfer zonder shift verandert de missie niet', los.naCijfer);
+
 // --------------------------------------------------- de M bij de Wieken 29
 kop('de missie begint binnen');
 const start = await page.evaluate(async () => {

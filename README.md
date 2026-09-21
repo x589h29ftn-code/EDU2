@@ -74,7 +74,38 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | **K** | je eigen plek in spelmeters (`x, z`), in beeld en op het klembord — handig om een plek door te geven |
 | **Enter / klik** | tijdens de intro: het filmpje overslaan |
 | **P** | het pand dat je aankijkt: BAG-pandnummer, type, adres, oppervlak en hoogtes, in beeld en op het klembord — daarmee is er geen twijfel over wélk gebouw je bedoelt |
+| **shift + 1 … 7** | testfase: die missie meteen beginnen, zonder de vorige te hoeven spelen (zie hieronder) |
 | Esc | muis vrijgeven · het menu, met Doorgaan, Instellingen, Besturing en Afsluiten |
+
+### Eén missie testen, zonder de rest te spelen
+
+Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
+één toets (verzoek 21 sep 2026):
+
+| | |
+|---|---|
+| **shift + 1** | Molenkrite 15 |
+| **shift + 2** | naar de waterzuivering |
+| **shift + 3** | de bewaking |
+| **shift + 4** | afleveren bij de boerderij |
+| **shift + 5** | het telefoontje van Johan |
+| **shift + 6** | de groene BX |
+| **shift + 7** | de bom bij de Poiesz |
+
+Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
+daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
+opdrachtregel, de vlag op de kaart, de bom en de schutters uit missie 7 — en de
+sterren gaan eraf, want met de politie achter je aan begint geen enkele missie
+prettig. Daarna sta je waar je stond: je rijdt zelf naar de M.
+
+Het kan ook bij het starten, met een adres: **`index.html?missie=bom`** (of
+`?missie=7`). Handig voor een link; in de Windows-app, die geen adresbalk heeft,
+gebruik je de toetsen. De namen zijn `molenkrite`, `rijden`, `bewaking`,
+`afleveren`, `johan`, `bx` en `bom`.
+
+Dit hoort bij de testfase, net als de € 1.000 startgeld. Het staat in één blok
+bovenin `js/main.js` (`MISSIES` en `startMissieLos`) en kan er in één keer uit
+zodra het spel af is.
 
 Op een telefoon of tablet verschijnt vanzelf touchbesturing: links een joystick om te lopen, rechts
 vegen om rond te kijken, en knoppen voor vuren, springen, herladen, wapen wisselen, bukken,
@@ -1516,7 +1547,7 @@ trouwens het geld van De Veteraan. We spreken, broeder!"*
 
 Beloning: **€ 300**.
 
-`npm run bomtest` (eenenveertig controles) loopt de hele missie na — van de
+`npm run bomtest` (vijfenveertig controles) loopt de hele missie na — van de
 bootmissie die uitstaat en de M bij de Wieken 29 tot de beloning bij Molenkrite
 15, inclusief de radio die voorgaat op de missiemuziek en de zes man die pas ná
 Marks waarschuwing uitstappen. `npm run bomshots` maakt de foto's hierboven.
