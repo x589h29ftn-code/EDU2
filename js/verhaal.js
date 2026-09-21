@@ -121,6 +121,11 @@ const BOM_BELONING = 300;
 const BOM_MANNEN = 6;                                 // zes man in drie auto's
 const BOM_AUTOS = 3;
 const BOM_KOMEN = 23;                                 // zover van je vandaan stoppen ze (m)
+const BOM_AANRIJ = 70;                                // en zover verderop zetten ze in
+const BOM_AANRIJ_V = 18;                              // hoe hard ze aan komen rijden (m/s)
+const BOM_REM = 20;                                   // op deze afstand gaan ze op de rem
+const BOM_TUSSEN = 7;                                 // afstand tussen de drie auto's
+const BOM_BUIT_KOGELS = [6, 13];                      // wat er nog in hun pistool zit
 const BOM_STERREN = 2;                                // wat de politie ervan vindt
 const BOM_PLANT_BEREIK = 3.0;                         // zo dicht bij de plek plant je hem
 const BOM_PARKEER = 26;                               // zo dicht bij de winkel ben je "voor het pand"
@@ -366,7 +371,7 @@ export function initVerhaal(ctx) {
     eersteP = null, sterrenWeg = null, sterGeven = null,
     // missie 7 heeft twee binnenruimtes en de camera nodig; ze komen als
     // functies binnen omdat js/main.js ze pas ná het verhaal maakt
-    wieken = null, poiesz = null, schokken = null,
+    wieken = null, poiesz = null, schokken = null, laatVallen = null,
   } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
@@ -494,6 +499,8 @@ export function initVerhaal(ctx) {
   // missie 7: de bom
   let schutters = null;          // de zes man die komen opdagen (js/bewaking.js)
   let schutterAutos = [];        // hun drie auto's
+  let aanrijders = [];           // diezelfde auto's zolang ze nog onderweg zijn
+  const gevallen = new Set();    // wie er al een wapen heeft laten liggen
   let bomAuto = null;            // de auto voor de deur aan de Wieken
   let bomMerk = null;            // de markering waar de bom moet komen
   let bomPakket = null;          // het pakket zelf, zodra het geplant is
@@ -631,6 +638,12 @@ export function initVerhaal(ctx) {
     fase = 'wacht';
     player.health = 100;              // na elke missie is je leven weer vol
     hud.zetLeven(player.health);
+    /*
+     Vanaf missie 2 heb je je pistool al. Sla je met shift+cijfer een missie
+     over, dan staat het slot van missie 1 nog dicht en kun je hem ook met H
+     niet tevoorschijn halen (melding 21 sep 2026) — dus dan gaat het hier open.
+    */
+    if (naam !== 'molenkrite') geefWapen();
     if (naam === 'molenkrite') {
       // terug naar het begin: Mark staat voor de deur en begint zelf te praten
       mark.zetNeer(thuis.x, thuis.z, straatkant);
@@ -1329,6 +1342,9 @@ export function initVerhaal(ctx) {
   // alles van de missie weer weghalen (bij opnieuw beginnen)
   function ruimBomOp() {
     if (schutters) { schutters.verwijder(); schutters = null; }
+    aanrijders = [];
+    gevallen.clear();
+    mark.bergWapen();
     for (const a of schutterAutos) if (a && a.mesh) { a.mesh.visible = false; a.zichtbaar = false; a.driveable = false; }
     schutterAutos = [];
     if (bomMerk) bomMerk.toon(false);
@@ -1399,14 +1415,21 @@ export function initVerhaal(ctx) {
    meter; pas daarna stappen de mannen uit. Dat "pas daarna" is precies wat de
    scène spannend maakt: eerst hoor je ze aankomen, dan pas staan ze er.
   */
-  function latenKomen(sp) {
-    if (schutters) return;
-    /*
-     Ze komen van het parkeerterrein af, dus van de winkel weg: de richting is
-     die van de deur naar jou toe, doorgetrokken. Zo staan ze tussen jou en de
-     uitgang van het terrein en niet met hun neus in de gevel.
-    */
+  /*
+   De drie auto's komen aanrijden. Niet tevoorschijn toveren maar echt aan
+   komen rijden en piepend tot stilstand komen (verzoek 21 sep 2026): ze zetten
+   zeventig meter verderop in, rijden achter elkaar de straat af en gaan op de
+   laatste twintig meter vol op de rem. Pas als ze stilstaan én Mark
+   uitgesproken is stappen de mannen uit — dat is `latenUitstappen` hieronder.
+
+   De koers komt uit de wegas onder hun stopplek (js/navigatie.js), niet uit een
+   richting die hier bedacht wordt: zo komen ze over de weg aanrijden en niet
+   dwars over het gras of door een gevel heen.
+  */
+  function latenAanrijden(sp) {
+    if (schutters || aanrijders.length) return;
     const ing = winkelIngang();
+    // van de winkel weg gezien: daar staan ze straks, tussen jou en de uitgang
     let vx = -Math.sin(player.yaw), vz = -Math.cos(player.yaw);
     if (ing) {
       const dx = sp.x - ing.deur.x, dz = sp.z - ing.deur.z;
@@ -1414,29 +1437,108 @@ export function initVerhaal(ctx) {
       if (L > 1) { vx = dx / L; vz = dz / L; }
       else { vx = ing.f[0]; vz = ing.f[1]; }
     }
-    const zx = -vz, zz = vx;                 // dwars erop: daar staan de auto's naast elkaar
-    const posten = [];
+    const stop0 = { x: sp.x + vx * BOM_KOMEN, z: sp.z + vz * BOM_KOMEN };
+    // de wegas eronder: die geeft de rijrichting
+    if (!navigatie) navigatie = new Navigatie(KAART.wegassen);
+    let tx = vx, tz = vz;
+    const k = navigatie.naaste(stop0.x, stop0.z, 60, true);
+    if (k >= 0 && navigatie.bogen[k].length) {
+      const a = navigatie.punten[k], b = navigatie.punten[navigatie.bogen[k][0].naar];
+      const dx = b[0] - a[0], dz = b[1] - a[1];
+      const L = Math.hypot(dx, dz) || 1;
+      tx = dx / L; tz = dz / L;
+      stop0.x = a[0]; stop0.z = a[1];
+    }
+    // ze komen van de kant die het verst van de speler ligt
+    const heen = Math.hypot(stop0.x + tx * 30 - sp.x, stop0.z + tz * 30 - sp.z);
+    const terug = Math.hypot(stop0.x - tx * 30 - sp.x, stop0.z - tz * 30 - sp.z);
+    if (terug > heen) { tx = -tx; tz = -tz; }
+    // dwars op de weg, naar de speler toe: aan die kant stappen ze uit
+    let zx = -tz, zz = tx;
+    if ((sp.x - stop0.x) * zx + (sp.z - stop0.z) * zz < 0) { zx = -zx; zz = -zz; }
+    aanrijders = [];
     schutterAutos = [];
     for (let i = 0; i < BOM_AUTOS; i++) {
-      const zij = (i - (BOM_AUTOS - 1) / 2) * 6.5;
-      const ax = sp.x + vx * BOM_KOMEN + zx * zij;
-      const az = sp.z + vz * BOM_KOMEN + zz * zij;
-      const [cx, cz] = resolveCollisions(ax, az, 1.2);
+      // achter elkaar: de eerste vooraan, de rest zeven meter erachter
+      const doel = { x: stop0.x + tx * (i * BOM_TUSSEN), z: stop0.z + tz * (i * BOM_TUSSEN) };
+      const yaw = Math.atan2(tx, tz);          // met de neus tegen de rijrichting in
       const auto = vehicles.voegToe({
-        x: cx, z: cz, yaw: Math.atan2(-(sp.x - cx), -(sp.z - cz)),
+        x: doel.x + tx * BOM_AANRIJ, z: doel.z + tz * BOM_AANRIJ, yaw,
         soort: i === 1 ? 'van' : 'hatch', kleur: i === 1 ? 0x2b2f36 : 0x1d1f24, driveable: false,
       });
       schutterAutos.push(auto);
-      // twee man per auto, elk naast een portier
+      aanrijders.push({ auto, doel, zij: { x: zx, z: zz }, snelheid: BOM_AANRIJ_V, piep: false, stil: false });
+    }
+  }
+
+  /*
+   Eén beeld van die aanrit. Levert true zodra ze alle drie stilstaan.
+  */
+  function werkAanrijdersBij(dt, sp) {
+    if (!aanrijders.length) return false;
+    let allemaalStil = true;
+    for (const a of aanrijders) {
+      if (a.stil) continue;
+      allemaalStil = false;
+      const dx = a.doel.x - a.auto.x, dz = a.doel.z - a.auto.z;
+      const d = Math.hypot(dx, dz) || 0.0001;
+      if (d < BOM_REM) {
+        if (!a.piep) { a.piep = true; geluid.piependeBanden(afst(sp, a.auto)); }
+        a.snelheid = Math.max(3.5, a.snelheid - 22 * dt);
+      }
+      const stap = Math.min(d, a.snelheid * dt);
+      a.auto.x += (dx / d) * stap;
+      a.auto.z += (dz / d) * stap;
+      a.auto.speed = a.snelheid;
+      if (a.auto.mesh) a.auto.mesh.position.set(a.auto.x, a.auto.mesh.position.y, a.auto.z);
+      if (d - stap < 0.35) { a.stil = true; a.auto.speed = 0; }
+    }
+    return allemaalStil;
+  }
+
+  /*
+   De zes man stappen uit: twee per auto, aan de kant van de speler. Dit gebeurt
+   bewust pas ná het aanrijden en ná de regel van Mark — eerst hoor je ze
+   aankomen, dan pas staan ze er.
+  */
+  function latenUitstappen() {
+    if (schutters || !aanrijders.length) return;
+    const posten = [];
+    for (const a of aanrijders) {
+      const zx = a.zij.x, zz = a.zij.z;
       for (let j = 0; j < BOM_MANNEN / BOM_AUTOS; j++) {
-        const px = cx + zx * (j ? 1.6 : -1.6), pz = cz + zz * (j ? 1.6 : -1.6);
+        const langs = j ? 1.7 : -1.7;          // voor- en achterportier
+        const px = a.auto.x + zx * 2.2 + Math.cos(a.auto.yaw) * langs;
+        const pz = a.auto.z + zz * 2.2 - Math.sin(a.auto.yaw) * langs;
         const [mx, mz] = resolveCollisions(px, pz, 0.4);
-        posten.push({ a: [mx, mz], b: [mx + vx * 4, mz + vz * 4] });
+        posten.push({ a: [mx, mz], b: [mx + zx * 4, mz + zz * 4] });
       }
     }
     schutters = new Bewaking(scene, posten);
     schutters.alarm = true;            // ze komen voor jou, ze hoeven niets te zien
     for (const w of schutters.wachters) w.staat = 'aanval';
+    // Mark trekt zijn pistool, en jij kunt de jouwe in elk geval pakken: zonder
+    // wapen is dit geen gevecht maar een executie
+    mark.geefWapen('pistool');
+    geefWapen();
+  }
+
+  /*
+   Wat een neergelegde schutter laat liggen: zijn pistool, met wat er nog in
+   zit (verzoek 21 sep 2026). Je kunt het oppakken en gebruiken — heb je zelf
+   al een pistool, dan houd je dat en gaan alleen de kogels in je voorraad
+   (js/main.js). Elke man laat er één keer iets vallen, of hij nu door jou of
+   door Mark is neergehaald.
+  */
+  function buitVanSchutters() {
+    if (!schutters || !laatVallen) return;
+    for (const w of schutters.wachters) {
+      if (w.staat !== 'neer' || gevallen.has(w)) continue;
+      gevallen.add(w);
+      const p = w.persoon.groep.position;
+      laatVallen('pistool', p.x, p.z, BOM_BUIT_KOGELS[0]
+        + Math.floor(Math.random() * (BOM_BUIT_KOGELS[1] - BOM_BUIT_KOGELS[0] + 1)));
+    }
   }
 
   /*
@@ -1571,27 +1673,40 @@ export function initVerhaal(ctx) {
         fase = 'aanval';
         bomT = 0;
         zeg(BOM_PERFECT, () => {
-          latenKomen(sp);
-          zeg(BOM_ALARM, () => {
-            fase = 'vuurgevecht';
-            zetOpdracht(`schakel ze uit (${schutters ? schutters.aantal : 0} te gaan)`, true);
-          }, { auto: 2.6 });
+          // ze komen aanrijden terwijl Mark praat; uitstappen doen ze pas
+          // daarna (zie de fase 'aanval' hieronder)
+          latenAanrijden(sp);
+          zeg(BOM_ALARM, null, { auto: 2.6 });
         }, { auto: 2.4 });
       }
       return;
     }
 
-    if (fase === 'aanval') return;          // de regels lopen vanzelf door
+    /*
+     De aanrit. Hier wordt op twee dingen tegelijk gewacht: de auto's moeten
+     stilstaan en Mark moet uitgesproken zijn. Pas dan stappen ze uit — dat is
+     precies de volgorde die de scène spannend maakt.
+    */
+    if (fase === 'aanval') {
+      const stil = werkAanrijdersBij(dt, sp);
+      if (!stil || !balk.hidden || !aanrijders.length) return;
+      latenUitstappen();
+      fase = 'vuurgevecht';
+      zetOpdracht(`schakel ze uit (${schutters ? schutters.aantal : 0} te gaan)`, true);
+      return;
+    }
 
     // -- het vuurgevecht
     if (fase === 'vuurgevecht') {
       markVuurt(dt);
+      buitVanSchutters();
       if (schutters && !schutters.alleNeer) {
         zetOpdracht(`schakel ze uit (${schutters.aantal - schutters.neer} te gaan)`, true);
         return;
       }
       if (!balk.hidden) return;
       fase = 'vluchten';
+      mark.bergWapen();                   // het gevecht is voorbij
       if (sterGeven) sterGeven(BOM_STERREN, sp.x, sp.z);
       const b = bos();
       zeg(BOM_POLITIE, () => {
@@ -2142,6 +2257,7 @@ export function initVerhaal(ctx) {
     get auto() { return vluchtauto; },
     get bx() { return bxAuto; },
     get schutters() { return schutters; },
+    get schutterAutos() { return schutterAutos; },
     get bomPlek() { return bomPlek(); },
     get bomGeplant() { return !!(bomPakket && bomPakket.zichtbaar); },
     get bomAuto() { return bomAuto; },

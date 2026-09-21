@@ -1,5 +1,5 @@
 /*
- Wat er op straat blijft liggen: geld en kogels.
+ Wat er op straat blijft liggen: geld, kogels en een pistool.
 
  Tot nu toe leverde neerschieten niets op. Nu laat een voetganger die je
  neerschiet wisselend wat geld vallen — vaak niets, hooguit een tientje, zoals
@@ -67,6 +67,29 @@ function kogelVorm(M) {
   return g;
 }
 
+/*
+ Een pistool dat op straat ligt: slede met loop, greep eronder. Het ligt plat,
+ een slag gedraaid, zodat je van bovenaf de vorm ziet. Dit valt uit de hand van
+ iemand die je neerschiet en een wapen droeg (missie 7, js/verhaal.js).
+*/
+function pistoolVorm(M) {
+  const g = new THREE.Group();
+  const slede = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.035, 0.055), M.staal);
+  slede.position.y = 0.03;
+  g.add(slede);
+  const loop = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.026, 0.026), M.staal);
+  loop.position.set(-0.115, 0.028, 0);
+  g.add(loop);
+  const greep = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.032), M.greep);
+  greep.position.set(0.05, 0.012, 0);
+  greep.rotation.z = 0.22;
+  g.add(greep);
+  const beugel = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.018, 0.02), M.staal);
+  beugel.position.set(0.005, 0.012, 0);
+  g.add(beugel);
+  return g;
+}
+
 /**
  * De buit die op straat ligt. `maaiveld(x, z)` geeft de grondhoogte terug —
  * daar komt het bovenop te liggen, ook op een viaduct.
@@ -75,17 +98,19 @@ export function maakBuit(scene, maaiveld = () => 0) {
   const M = {
     biljet: mat(0x6f9f63, 0.86), band: mat(0xd8d2c4, 0.9),
     karton: mat(0xa98a5e, 0.92), streep: mat(0x9a2f22, 0.9), messing: mat(0xbb9a42, 0.45, 0.8),
+    staal: mat(0x2a2d33, 0.45, 0.6), greep: mat(0x1b1b1f, 0.8),
   };
   const dingen = [];
 
   /**
-   * Iets laten vallen. `soort` is 'geld' of 'kogels', `waarde` het bedrag in
-   * euro's of het aantal kogels. Levert het ding terug, of null als er niets
-   * viel (waarde nul).
+   * Iets laten vallen. `soort` is 'geld', 'kogels' of 'pistool'; `waarde` is
+   * het bedrag in euro's, het aantal kogels, of bij een pistool het aantal
+   * kogels dat er nog in zit. Levert het ding terug, of null als er niets viel
+   * (waarde nul).
    */
   function laatVallen(soort, x, z, waarde) {
     if (!(waarde > 0)) return null;
-    const groep = soort === 'geld' ? geldVorm(M) : kogelVorm(M);
+    const groep = soort === 'geld' ? geldVorm(M) : soort === 'pistool' ? pistoolVorm(M) : kogelVorm(M);
     const y = maaiveld(x, z);
     groep.position.set(x, y + HOOG, z);
     groep.scale.setScalar(SCHAAL);

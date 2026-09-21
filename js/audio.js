@@ -1192,6 +1192,38 @@ export const geluid = {
   },
 
   /*
+   Piepende banden van een auto die vol op de rem gaat. Anders dan `gier`
+   hierboven is dit een losse knal van een seconde en geen doorlopende bron:
+   `gier` hangt aan de auto waar jij in zit en wordt elk beeld op nul gezet
+   zodra je te voet bent (js/main.js). De drie auto's die in missie 7 komen
+   aanrijden remmen terwijl jij ernaast staat, en die moeten wél te horen zijn.
+
+   Ruis door een smalle band die van 1,5 kHz naar 700 Hz zakt is het rubber; de
+   zaagtand erboven, die mee omlaag glijdt, is de piep.
+  */
+  piependeBanden(afstand = 0, duur = 0.9) {
+    if (!aan) return;
+    const v = Math.max(0.08, 1 - afstand / 60);
+    const t = nu();
+    const src = ctx.createBufferSource();
+    src.buffer = ruisBuffer(2);
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1500; f.Q.value = 6;
+    f.frequency.setValueAtTime(1500, t);
+    f.frequency.exponentialRampToValueAtTime(700, t + duur);
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(820, t);
+    o.frequency.exponentialRampToValueAtTime(430, t + duur);
+    const og = ctx.createGain(); og.gain.value = 0.05;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.16 * v, t + 0.08);
+    g.gain.setTargetAtTime(0, t + duur * 0.55, 0.18);
+    src.connect(f); o.connect(og); og.connect(f); f.connect(g); g.connect(hoofd);
+    src.start(t); o.start(t);
+    src.stop(t + duur + 0.4); o.stop(t + duur + 0.4);
+  },
+
+  /*
    Iets zwaars neerzetten: de tas met explosieven die op de winkelvloer gaat
    (js/verhaal.js, missie 7). Een doffe bonk met een riempje eroverheen.
   */

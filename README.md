@@ -1524,17 +1524,29 @@ parkeerterrein boven de gevel uit te komen. De camera schudt ervan (dezelfde
 schok als bij een aanrijding, kracht 0,9). Alles wordt getekend; er komt geen
 plaatje aan te pas.
 
-*"Perfect,"* zegt Mark, *"dat zal hem leren."* En dan komen er **drie auto's**
-aan met **zes man**. Ze stappen pas uit als ze staan, op een meter of twintig,
-en beginnen te schieten.
+*"Perfect,"* zegt Mark, *"dat zal hem leren."* En dan **komen er drie auto's
+aanrijden**. Ze verschijnen niet uit het niets: ze zetten zeventig meter
+verderop in, komen achter elkaar de straat af en gaan op de laatste twintig
+meter **piepend op de rem** (verzoek 21 sep 2026). De koers komt uit de wegas
+onder hun stopplek, dus ze rijden over de weg en niet dwars over het gras.
+
+Pas als ze stilstaan **én** Mark uitgesproken is, stappen de **zes man** uit —
+twee per auto, aan de kant waar jij staat, op een meter of twintig. Eerst hoor
+je ze aankomen, dan pas staan ze er.
 
 ![De zes man](docs/screenshots/bom_schutters.png)
 
-**Mark schiet mee en kan niet dood.** Hij vuurt elke 0,7 à 1,3 seconde op de
+**Mark schiet mee en kan niet dood.** Hij trekt zijn pistool zodra ze uitstappen
+(en bergt het op als het voorbij is), vuurt elke 0,7 à 1,3 seconde op de
 dichtstbijzijnde, en ongeveer één op de zes schoten is raak — genoeg om te
 merken dat hij meedoet, te weinig om het voor je op te lossen. De zes zelf zijn
 dezelfde bewaking als bij de vrachtwagenmissie (`js/bewaking.js`), meteen in
 alarm.
+
+**Wie neergaat laat zijn pistool liggen**, met zes tot dertien kogels erin. Loop
+je erlangs, dan pak je het op: heb je zelf nog geen pistool, dan krijg je het in
+je handen; heb je er al een, dan gaan alleen de kogels in je voorraad. Ze
+blijven een minuut liggen, net als het geld en de munitie die er al waren.
 
 Daarna staat de politie op **twee sterren**: *"Wegwezen, nu de politie
 afschudden. We gaan naar het Tinga bos."* Dat bos ligt tegen de

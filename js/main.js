@@ -424,6 +424,8 @@ const verhaal = initVerhaal({
    worden ze verderop pas gemaakt, dus ze gaan als functie mee. `schokken` is
    de camerabeving van de knal.
   */
+  // wat een neergeschoten schutter laat liggen (js/buit.js)
+  laatVallen: (soort, x, z, waarde) => buit.laatVallen(soort, x, z, waarde),
   wieken: () => woningen[1] || null,
   poiesz: () => (supermarkt && supermarkt.ingangen ? supermarkt : null),
   schokken: (kracht) => schok(kracht),
@@ -1619,6 +1621,16 @@ function loop() {
       if (soort === 'geld') {
         verhaal.verdien(waarde);
         hud.show(`€ ${waarde} opgeraapt`, 2);
+      } else if (soort === 'pistool') {
+        /*
+         Een pistool van iemand die je hebt neergelegd. Heb je er al een, dan
+         houd je het wapen dat je vasthebt en gaan alleen de kogels erin in je
+         voorraad — twee pistolen dragen kan niet in dit spel.
+        */
+        player.reserve += waarde;
+        const nieuw = !player.wapens.includes('pistool');
+        if (nieuw) player.krijgWapen('pistool');
+        hud.show(nieuw ? 'Pistool opgeraapt' : `Pistool opgeraapt · ${waarde} kogels`, 2.5);
       } else {
         player.reserve += waarde;
         hud.show(`${waarde} kogels opgeraapt`, 2);

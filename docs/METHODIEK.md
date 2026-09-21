@@ -4623,13 +4623,40 @@ Die maten zijn niet willekeurig — Mark staat aan de overkant van het
 parkeerterrein, en van daar moet de pluim bóven de gevel uitkomen. Getekend,
 niet ingeladen, zoals alles in dit spel.
 
-*Ze stappen pas uit als ze staan.* "Ineens komen er drie auto's aan met 6 man"
-en "pas daarna stappen de personen uit" is een volgorde, en die volgorde is het
-halve effect. De drie auto's worden op de weg voor de winkel gezet, de zes
-posten liggen op twintig tot vijfentwintig meter, en de bewaking uit
-`js/bewaking.js` (dezelfde als bij de vrachtwagen) gaat pas in alarm nadat Mark
-geroepen heeft. Hergebruik van wat er al stond: een nieuwe vijandklasse zou
-hetzelfde gedrag nog eens opschrijven.
+*Ze komen aanrijden, en stappen pas uit als ze staan.* "Ineens komen er drie
+auto's aan met 6 man" en "pas daarna stappen de personen uit" is een volgorde,
+en die volgorde is het halve effect. In de eerste opzet stonden de auto's er
+opeens; nu zetten ze zeventig meter verderop in, rijden achter elkaar aan en
+remmen op de laatste twintig meter piepend af. De koers komt uit de wegas onder
+hun stopplek (js/navigatie.js) en niet uit een richting die in de missie
+bedacht wordt — anders rijden ze dwars over het gras of door een gevel. Pas als
+ze alle drie stilstaan én de balk van Mark leeg is, stappen de mannen uit: twee
+per auto, aan de kant waar de speler staat. De bewaking uit `js/bewaking.js`
+(dezelfde als bij de vrachtwagen) doet daarna het vechten. Hergebruik van wat er
+al stond: een nieuwe vijandklasse zou hetzelfde gedrag nog eens opschrijven.
+
+*Piepende banden zijn een los geluid geworden.* Er wás al bandengier, maar dat
+is één doorlopende bron die aan jouw auto hangt en elk beeld op nul wordt gezet
+zodra je te voet bent (js/main.js). Deze auto's remmen terwijl jij ernaast
+staat, dus daar hoort een losse klap bij: `piependeBanden` in js/audio.js, ruis
+door een band die van 1,5 kHz naar 700 Hz zakt met een zaagtand die meeglijdt.
+
+*Een wapen in de hand van wie er een hoort te hebben.* Mark stond met lege
+handen terug te schieten. De bewaking en de politie kregen hun wapen bij het
+bouwen mee; dat is nu een methode (`geefWapen` in js/persoon.js) die ook later
+nog kan, met een derde vorm erbij: een handpistool. Mark trekt het als het
+vuurgevecht begint en bergt het op als het voorbij is.
+
+*En wie neergaat laat het liggen.* Je kon van een neergelegde schutter niets
+oppakken. Nu valt zijn pistool op straat, met zes tot dertien kogels erin — een
+vierde soort buit in js/buit.js, naast geld en munitie. Heb je zelf nog geen
+pistool, dan krijg je het in handen; heb je er al een, dan gaan alleen de kogels
+in je voorraad. Twee pistolen dragen kan dit spel niet, en dat hoeft ook niet.
+
+*Het wapenslot van missie 1.* Wie met shift+7 midden in het verhaal springt,
+liep rond zonder wapen en kreeg het met H ook niet tevoorschijn: het slot dat de
+intro dichtzet gaat pas open bij het gezelschap aan de Molenkrite. Een missie
+los starten opent het nu, behalve als je missie 1 zelf kiest.
 
 *Een bondgenoot die niet kan sneuvelen.* Mark schiet mee — elke 0,7 à 1,3
 seconde op de dichtstbijzijnde, ongeveer één op de zes raak. Genoeg om te zien
@@ -4681,7 +4708,7 @@ zodra het verhaal "bezet" meldde, en omdat de binnenruimtes ná het verhaal
 worden bijgewerkt wiste dat ook de regel van het verhaal zelf. Ze halen nu
 alleen hun eigen balkje weg — dat gold net zo goed voor "E — praten" bij Mark.
 
-`npm run bomtest` houdt de hele keten vast (vijfenveertig controles, van de
+`npm run bomtest` houdt de hele keten vast (zevenenvijftig controles, van de
 bootmissie die uitstaat tot de € 300 bij Molenkrite 15), `npm run bomshots`
 maakt de foto's.
 

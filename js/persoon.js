@@ -21,6 +21,15 @@ function mat(hex, ruw = 0.92) {
   return new THREE.MeshStandardMaterial({ color: hex, roughness: ruw });
 }
 
+// Een blokje op zijn plek, met schaduw aan. Stond eerst in de constructor;
+// `geefWapen` hieronder heeft hem ook nodig, en dat kan later gebeuren.
+function mesh(geo, m, x = 0, y = 0, z = 0) {
+  const o = new THREE.Mesh(geo, m);
+  o.position.set(x, y, z);
+  o.castShadow = true; o.receiveShadow = true;
+  return o;
+}
+
 export class Persoon {
   /*
    kleding en postuur; hoogte 1.0 is een volwassene van 1,75 m
@@ -37,13 +46,6 @@ export class Persoon {
     const mHaar = mat(haar), mSchoen = mat(schoen, 0.7);
     this.groep = new THREE.Group();
     this.groep.scale.setScalar(hoogte);
-
-    const mesh = (geo, m, x = 0, y = 0, z = 0) => {
-      const o = new THREE.Mesh(geo, m);
-      o.position.set(x, y, z);
-      o.castShadow = true; o.receiveShadow = true;
-      return o;
-    };
 
     // romp, bekken, nek en hoofd
     this.groep.add(mesh(DEEL.romp(), mShirt, 0, MAAT.romp, 0));
@@ -93,46 +95,11 @@ export class Persoon {
     this.armL = this.armLinks.boven; this.armR = this.armRechts.boven;
     this.beenL = this.beenLinks.boven; this.beenR = this.beenRechts.boven;
 
-    /*
-     Het geweer hangt aan de onderarm, niet aan de schouder: zo wijst de loop
-     mee met de elleboog en steekt hij niet door de mouw heen als hij mikt.
-    */
+    // een wapen in de hand (zie `geefWapen` hieronder); wie er geen krijgt kan
+    // hem later alsnog trekken
     this.wapen = null;
-    this.wapenSoort = wapen === 'mp' ? 'mp' : (wapen ? 'geweer' : null);
-    if (wapen) {
-      const g = new THREE.Group();
-      const zwart = mat(0x1b1d21, 0.5);
-      if (wapen === 'mp') {
-        /*
-         Het machinepistool van de arrestatie-eenheid: korter dan het geweer, een
-         kast met een magazijn dat eronder uitsteekt, een loopmantel en een
-         ingeklapte schouderstut. Dezelfde vorm als het wapen dat je zelf kunt
-         kopen (js/wapen.js), maar dan als los blok — je ziet hem op tien meter
-         en niet in je handen.
-        */
-        g.add(mesh(new THREE.BoxGeometry(0.06, 0.09, 0.34), zwart, 0, 0, -0.04));
-        g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.17), mat(0x121417, 0.5), 0, 0.01, -0.27));  // loopmantel
-        g.add(mesh(new THREE.BoxGeometry(0.045, 0.19, 0.05), mat(0x15171a, 0.5), 0, -0.12, 0.01)); // magazijn
-        g.add(mesh(new THREE.BoxGeometry(0.05, 0.09, 0.10), mat(0x2c2118), 0, -0.03, 0.14));       // greep
-        g.add(mesh(new THREE.BoxGeometry(0.055, 0.03, 0.20), zwart, 0, 0.05, 0.20));               // stut
-        g.add(mesh(new THREE.BoxGeometry(0.02, 0.04, 0.04), zwart, 0, 0.065, -0.10));              // vizier
-      } else {
-        g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.62), zwart, 0, 0, -0.20));
-        g.add(mesh(new THREE.BoxGeometry(0.06, 0.12, 0.26), mat(0x2c2118), 0, -0.02, 0.20));
-        g.add(mesh(new THREE.BoxGeometry(0.05, 0.16, 0.08), zwart, 0, -0.11, -0.02));
-        g.add(mesh(new THREE.BoxGeometry(0.02, 0.05, 0.05), zwart, 0, 0.045, 0.02));   // vizier
-      }
-      g.position.set(0, -MAAT.onderarm - 0.03, 0);
-      g.rotation.x = -Math.PI / 2;
-      this.armRechts.onder.add(g);
-      this.wapen = g;
-      const vlam = new THREE.Mesh(new THREE.SphereGeometry(wapen === 'mp' ? 0.08 : 0.07, 8, 6),
-        new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
-      vlam.position.set(0, 0, wapen === 'mp' ? -0.38 : -0.52);
-      g.add(vlam);
-      this.vlam = vlam;
-      this.vlamT = 0;
-    }
+    this.wapenSoort = null;
+    if (wapen) this.geefWapen(wapen === 'mp' ? 'mp' : (wapen === 'pistool' ? 'pistool' : 'geweer'));
 
     this.klok = 0;
     this.stap = 0;
@@ -174,6 +141,66 @@ export class Persoon {
     this.groep.rotation.x = -t * 1.45;
     this.groep.position.y = this.grond - t * 0.35;
   }
+
+  /*
+   Een wapen in zijn rechterhand. De bewaking en de politie krijgen het bij het
+   bouwen mee (`wapen` in de constructor); Mark trekt het pas als het
+   vuurgevecht van missie 7 begint, dus het moet ook later nog kunnen.
+
+   Het hangt aan de onderarm en niet aan de schouder: zo wijst de loop mee met
+   de elleboog en steekt hij niet door de mouw heen als hij mikt.
+  */
+  geefWapen(soort = 'pistool') {
+    if (this.wapen) { this.wapen.visible = true; return this.wapen; }
+    this.wapenSoort = soort;
+    const g = new THREE.Group();
+    const zwart = mat(0x1b1d21, 0.5);
+    if (soort === 'mp') {
+      /*
+       Het machinepistool van de arrestatie-eenheid: korter dan het geweer, een
+       kast met een magazijn dat eronder uitsteekt, een loopmantel en een
+       ingeklapte schouderstut. Dezelfde vorm als het wapen dat je zelf kunt
+       kopen (js/wapen.js), maar dan als los blok — je ziet hem op tien meter
+       en niet in je handen.
+      */
+      g.add(mesh(new THREE.BoxGeometry(0.06, 0.09, 0.34), zwart, 0, 0, -0.04));
+      g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.17), mat(0x121417, 0.5), 0, 0.01, -0.27));  // loopmantel
+      g.add(mesh(new THREE.BoxGeometry(0.045, 0.19, 0.05), mat(0x15171a, 0.5), 0, -0.12, 0.01)); // magazijn
+      g.add(mesh(new THREE.BoxGeometry(0.05, 0.09, 0.10), mat(0x2c2118), 0, -0.03, 0.14));       // greep
+      g.add(mesh(new THREE.BoxGeometry(0.055, 0.03, 0.20), zwart, 0, 0.05, 0.20));               // stut
+      g.add(mesh(new THREE.BoxGeometry(0.02, 0.04, 0.04), zwart, 0, 0.065, -0.10));              // vizier
+    } else if (soort === 'pistool') {
+      /*
+       Een handpistool: slede met loop, greep eronder, trekkerbeugel. Klein
+       genoeg om in een hand te passen (19 cm) en toch te zien op tien meter.
+      */
+      g.add(mesh(new THREE.BoxGeometry(0.035, 0.062, 0.19), zwart, 0, 0.015, -0.03));            // slede
+      g.add(mesh(new THREE.BoxGeometry(0.028, 0.030, 0.05), mat(0x121417, 0.5), 0, 0.0, -0.14)); // loop
+      g.add(mesh(new THREE.BoxGeometry(0.033, 0.105, 0.05), mat(0x2b2b30, 0.7), 0, -0.07, 0.05));// greep
+      g.add(mesh(new THREE.BoxGeometry(0.02, 0.028, 0.035), zwart, 0, -0.03, 0.0));              // beugel
+      g.add(mesh(new THREE.BoxGeometry(0.014, 0.018, 0.016), zwart, 0, 0.05, -0.10));            // korrel
+    } else {
+      g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.62), zwart, 0, 0, -0.20));
+      g.add(mesh(new THREE.BoxGeometry(0.06, 0.12, 0.26), mat(0x2c2118), 0, -0.02, 0.20));
+      g.add(mesh(new THREE.BoxGeometry(0.05, 0.16, 0.08), zwart, 0, -0.11, -0.02));
+      g.add(mesh(new THREE.BoxGeometry(0.02, 0.05, 0.05), zwart, 0, 0.045, 0.02));   // vizier
+    }
+    g.position.set(0, -MAAT.onderarm - 0.03, 0);
+    g.rotation.x = -Math.PI / 2;
+    this.armRechts.onder.add(g);
+    this.wapen = g;
+    const vlamAf = soort === 'mp' ? -0.38 : soort === 'pistool' ? -0.20 : -0.52;
+    const vlam = new THREE.Mesh(new THREE.SphereGeometry(soort === 'pistool' ? 0.055 : soort === 'mp' ? 0.08 : 0.07, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
+    vlam.position.set(0, 0, vlamAf);
+    g.add(vlam);
+    this.vlam = vlam;
+    this.vlamT = 0;
+    return g;
+  }
+
+  // Het wapen weer uit beeld: hij houdt het niet de hele dag vast.
+  bergWapen() { if (this.wapen) this.wapen.visible = false; }
 
   vuur() {
     this.vlamT = 0.07;

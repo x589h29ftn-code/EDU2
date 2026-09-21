@@ -266,17 +266,30 @@ const knal = await page.evaluate(() => {
   g.__schokNul();
   // de regels en de knal lopen vanzelf door
   let bezig = false, schok = 0;
-  for (let i = 0; i < 260; i++) {
+  // wat er tijdens de aanrit te zien is: rijden ze echt, en staan er dan al
+  // mannen naast de auto's? (dat hoort niet)
+  let reden = 0, vroegeMannen = 0, verweg = 0;
+  for (let i = 0; i < 400; i++) {
     g.verhaal.update(0.05);
     bezig = bezig || g.verhaal.knalBezig;
     schok = Math.max(schok, g.__schokKracht());
+    const autos = g.verhaal.schutterAutos || [];
+    if (autos.length && autos.some(a => a.speed > 1)) {
+      reden++;
+      if (g.verhaal.schutters) vroegeMannen++;
+      verweg = Math.max(verweg, Math.max(...autos.map(a => Math.hypot(
+        a.x - g.player.pos.x, a.z - g.player.pos.z))));
+    }
     if (g.verhaal.fase === 'vuurgevecht') break;
     if (!document.getElementById('dialoog').hidden) g.praat();
   }
   const s = g.verhaal.schutters;
   return {
-    zegt, bezig, schok, fase: g.verhaal.fase,
+    zegt, bezig, schok, fase: g.verhaal.fase, reden, vroegeMannen, verweg,
+    autos: (g.verhaal.schutterAutos || []).length,
     mannen: s ? s.aantal : 0,
+    markWapen: !!(g.verhaal.mark.wapen && g.verhaal.mark.wapen.visible),
+    wapenSlot: g.player.wapenSlot,
     afstand: s ? Math.min(...s.wachters.map(w => Math.hypot(
       w.persoon.groep.position.x - g.player.pos.x, w.persoon.groep.position.z - g.player.pos.z))) : -1,
     opdracht: document.getElementById('opdracht').textContent,
@@ -285,7 +298,14 @@ const knal = await page.evaluate(() => {
 ok(/afgaan/.test(knal.zegt || ''), 'Mark: "Ik laat hem afgaan"', (knal.zegt || '').slice(0, 40));
 ok(knal.bezig, 'er volgt een ontploffing met rook');
 ok(knal.schok > 0.3, 'en de camera schudt ervan', `schok ${knal.schok.toFixed(2)}`);
-ok(knal.mannen === 6, 'daarna komen er zes man opdagen', `${knal.mannen} man`);
+ok(knal.autos === 3, 'er komen drie auto\'s aanrijden', `${knal.autos} auto's`);
+ok(knal.reden > 10 && knal.verweg > 30, 'ze rijden echt aan, van ver',
+  `${knal.reden} beelden onderweg, tot ${knal.verweg.toFixed(0)} m van je vandaan`);
+ok(knal.vroegeMannen === 0, 'en er staat niemand naast de auto zolang ze rijden',
+  `${knal.vroegeMannen} beelden met mannen erbij`);
+ok(knal.mannen === 6, 'pas daarna stappen er zes man uit', `${knal.mannen} man`);
+ok(knal.markWapen, 'Mark heeft dan een pistool in zijn hand');
+ok(knal.wapenSlot === false, 'en jouw wapen zit niet meer op slot');
 ok(knal.afstand > 12 && knal.afstand < 40, 'ze stappen op een meter of twintig uit',
   `dichtstbijzijnde op ${knal.afstand.toFixed(0)} m`);
 ok(knal.fase === 'vuurgevecht' && /schakel ze uit/i.test(knal.opdracht), 'en het vuurgevecht begint',
@@ -306,16 +326,38 @@ const gevecht = await page.evaluate(() => {
   // en dan ruimen we ze zelf op, zoals een speler dat met zijn pistool doet
   for (const w of [...s.wachters]) g.verhaal.raak(w.persoon.groep);
   for (let i = 0; i < 40; i++) g.verhaal.update(0.05);
+  // wat ze laten liggen: een pistool per man, met kogels erin
+  const liggen = g.buit.dingen.filter(d => d.soort === 'pistool');
+  const wapens = liggen.length;
+  const kogelsIn = wapens ? Math.min(...liggen.map(d => d.waarde)) : 0;
+  // eentje oppakken zoals je erlangs loopt
+  const reserveVoor = g.player.reserve;
+  let opgepakt = 0;
+  if (wapens) {
+    const d = liggen[0];
+    g.player.pos.set(d.groep.position.x, 0, d.groep.position.z);
+    opgepakt = g.buit.update(0.05, g.player, (soort, waarde) => {
+      if (soort === 'pistool') { g.player.reserve += waarde; }
+    });
+  }
+  const reserveNa = g.player.reserve;
   if (!document.getElementById('dialoog').hidden) { g.praat(); g.praat(); }
   for (let i = 0; i < 20; i++) g.verhaal.update(0.05);
   return {
-    markVuurt, markStaat, neer: s.neer, fase: g.verhaal.fase,
+    markVuurt, markStaat, neer: s.neer, fase: g.verhaal.fase, wapens, kogelsIn,
+    opgepakt, erbij: reserveNa - reserveVoor,
+    markWapenNa: !!(g.verhaal.mark.wapen && g.verhaal.mark.wapen.visible),
     sterren: g.politie.ster, opdracht: document.getElementById('opdracht').textContent,
   };
 });
 ok(gevecht.markVuurt, 'Mark schiet terug');
 ok(gevecht.markStaat, 'en hij gaat zelf niet neer');
 ok(gevecht.neer === 6, 'alle zes gaan neer', `${gevecht.neer} neer`);
+ok(gevecht.wapens === 6, 'en ze laten alle zes een pistool liggen', `${gevecht.wapens} wapens`);
+ok(gevecht.kogelsIn >= 6, 'met kogels erin', `minstens ${gevecht.kogelsIn} kogels`);
+ok(gevecht.opgepakt === 1 && gevecht.erbij > 0, 'je kunt er eentje oppakken',
+  `${gevecht.opgepakt} opgepakt, ${gevecht.erbij} kogels erbij`);
+ok(gevecht.markWapenNa === false, 'Mark bergt zijn pistool weer op');
 ok(gevecht.sterren === 2, 'daarna staat de politie op twee sterren', `${gevecht.sterren} sterren`);
 ok(gevecht.fase === 'vluchten' && /bos/i.test(gevecht.opdracht), 'en je moet naar het Tinga-bos',
   `${gevecht.fase} · ${gevecht.opdracht}`);
