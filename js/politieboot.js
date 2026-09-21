@@ -48,7 +48,14 @@ const SCHADE = 5;
 // ---- er zelf aan gaan ----
 const HP = 14;
 
-export function initPolitieboot({ scene, player, hud = null, politie = null, boten = null }) {
+/*
+ `jaagtOok` is een haakje voor het verhaal: een functie die true geeft als deze
+ boot ook zonder verdenking achter je aan moet. Missie 8 zet er drie op het
+ water terwijl je geen enkele ster hebt — daar is de waterpolitie de missie, en
+ niet het gevolg van iets wat je misdaan hebt.
+*/
+export function initPolitieboot({ scene, player, hud = null, politie = null, boten = null,
+  jaagtOok = null, melding = true }) {
   if (!scene || !boten) return null;
 
   let boot = null;                 // { groep, x, z, yaw, vx, vz, ... }
@@ -62,7 +69,7 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
     ? { x: player.inBoot.x, z: player.inBoot.z }
     : { x: player.pos.x, z: player.pos.z });
 
-  const gezocht = () => !!(politie && politie.ster > 0);
+  const gezocht = () => !!(politie && politie.ster > 0) || !!(jaagtOok && jaagtOok());
   const opHetWater = () => !!boten.inBoot;
 
   /*
@@ -294,7 +301,7 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
       boot = maakBoot();
       boot.x = plek.x; boot.z = plek.z; boot.yaw = plek.yaw;
       fase = 'jaagt';
-      if (hud) hud.show('Politie te water', 2.6);
+      if (hud && melding) hud.show('Politie te water', 2.6);
       return 0;
     }
 

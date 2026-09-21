@@ -129,6 +129,12 @@ export class Player {
     this.wapenNr = 0;
     // het wapen zit op slot tot het verhaal het vrijgeeft (zie wisselWapen)
     this.wapenSlot = false;
+    /*
+     Wel richten, niet schieten. Missie 8 laat je eerst door de kijker
+     meekijken met een deal aan de overkant; pas als het misgaat mag je vuren
+     (js/verhaal.js zet dit weer op false).
+    */
+    this.vuurSlot = false;
     this.magazijnen = { pistool: 12, mitrailleur: 0, sniper: 0 };
     // de stand van de kijker, per wapen (zie `zoom`)
     this.zoomPer = {};
@@ -524,6 +530,7 @@ export class Player {
    js/main.js), dus dat verschil is precies je kijkrichting in de auto.
   */
   magSchieten() {
+    if (this.vuurSlot) return false;
     if (this.reloading > 0 || this.wapenUit || this.binnen || this.wisselT > 0) return false;
     if (!this.inCar) return true;
     let d = this.yaw - this.inCar.yaw;

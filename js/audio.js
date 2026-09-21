@@ -173,10 +173,17 @@ export const geluid = {
    Elk schot krijgt wat toonhoogte- en tijdverschil mee, anders klinkt een serie
    als een kopieermachine. En vlak erna tikt de huls op de stoep.
   */
-  schot() {
+  schot(afstand = 0) {
     if (!aan) return;
     const v = 0.92 + Math.random() * 0.16;
     const t0 = nu();
+    /*
+     Een schot van ver weg is zachter en doffer. Tot nu toe stond elk schot even
+     hard, want er werd alleen vlakbij geschoten; bij de deal aan de molen
+     (missie 8) kijk je van vijftig meter mee en dan hoort het geknal daar ook
+     vandaan te komen. Boven de tachtig meter blijft er een dof tikje over.
+    */
+    const k = Math.max(0.12, 1 - afstand / 80);
 
     // 1. de knal zelf: heel korte, brede ruisstoot
     {
@@ -185,29 +192,29 @@ export const geluid = {
       const piek = ctx.createBiquadFilter(); piek.type = 'peaking';
       piek.frequency.value = 3200 * v; piek.Q.value = 0.9; piek.gain.value = 9;
       const g = ctx.createGain();
-      g.gain.setValueAtTime(0.85, t0);
-      g.gain.exponentialRampToValueAtTime(0.06, t0 + 0.004);
+      g.gain.setValueAtTime(0.85 * k, t0);
+      g.gain.exponentialRampToValueAtTime(0.06 * k, t0 + 0.004);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.045);
       src.connect(hp); hp.connect(piek); piek.connect(g); g.connect(hoofd);
       src.start(t0); src.stop(t0 + 0.08);
     }
 
     // 2. de klap van het gas
-    tik({ freq: 420 * v, q: 0.6, duur: 0.09, volume: 0.42, type: 'lowpass', val: 0.35 });
-    toon({ freq: 180 * v, naar: 50, duur: 0.16, volume: 0.20, golf: 'sine' });
+    tik({ freq: 420 * v, q: 0.6, duur: 0.09, volume: 0.42 * k, type: 'lowpass', val: 0.35 });
+    toon({ freq: 180 * v, naar: 50, duur: 0.16, volume: 0.20 * k, golf: 'sine' });
 
     // 3. de straat kaatst hem terug: drie keer zachter en doffer
     const echos = [[0.038, 0.30, 5200], [0.074, 0.16, 3000], [0.130, 0.08, 1800]];
     for (const [na, vol, top] of echos) {
-      tik({ freq: top * v, q: 0.5, duur: 0.05, volume: vol, type: 'lowpass', val: 0.5,
+      tik({ freq: top * v, q: 0.5, duur: 0.05, volume: vol * k, type: 'lowpass', val: 0.5,
         vertraag: na + Math.random() * 0.006 });
     }
 
     // 4. naijl tussen de huizen
-    tik({ freq: 900, q: 0.7, duur: 0.55, volume: 0.075, type: 'bandpass', val: 0.35, vertraag: 0.06 });
+    tik({ freq: 900, q: 0.7, duur: 0.55, volume: 0.075 * k, type: 'bandpass', val: 0.35, vertraag: 0.06 });
 
-    // de huls: een klein metalig tikje op de grond
-    setTimeout(() => { toon({ freq: 3200, naar: 2100, duur: 0.07, volume: 0.05 }); }, 260);
+    // de huls: een klein metalig tikje op de grond, alleen als je erbij staat
+    if (afstand < 25) setTimeout(() => { toon({ freq: 3200, naar: 2100, duur: 0.07, volume: 0.05 }); }, 260);
   },
 
   // klik op een leeg magazijn

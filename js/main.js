@@ -426,6 +426,8 @@ const verhaal = initVerhaal({
   */
   // wat een neergeschoten schutter laat liggen (js/buit.js)
   laatVallen: (soort, x, z, waarde) => buit.laatVallen(soort, x, z, waarde),
+  // de sloepen: missie 8 speelt zich grotendeels op het water af
+  boten: () => boten,
   wieken: () => woningen[1] || null,
   poiesz: () => (supermarkt && supermarkt.ingangen ? supermarkt : null),
   schokken: (kracht) => schok(kracht),
@@ -1072,6 +1074,7 @@ const MISSIES = [
   { nr: 5, naam: 'johan', titel: 'het telefoontje van Johan' },
   { nr: 6, naam: 'bx', titel: 'de groene BX' },
   { nr: 7, naam: 'bom', titel: 'de bom bij de Poiesz' },
+  { nr: 8, naam: 'sniper', titel: 'de deal bij de molen' },
 ];
 function startMissieLos(naam) {
   const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
@@ -1087,7 +1090,7 @@ window.addEventListener('keydown', e => {
   if (!player.active && !window.__autoplay) return;
   // op de toetscode en niet op de letter: shift+1 geeft op een Nederlands
   // toetsenbord een '!' en op een ander een '1'
-  const cijfer = /^Digit([1-7])$/.exec(e.code) || /^Numpad([1-7])$/.exec(e.code);
+  const cijfer = /^Digit([1-8])$/.exec(e.code) || /^Numpad([1-8])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();
   startMissieLos(cijfer[1]);

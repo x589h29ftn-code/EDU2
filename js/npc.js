@@ -108,7 +108,7 @@ function fietsGeo() {
  zit in één mesh met de kleur per instantie, dus alle honden samen kosten twee
  draw calls: eentje voor de beesten en eentje voor de lijnen.
 */
-function hondGeo() {
+export function hondGeo() {
   const delen = [];
   const doos = (w, h, d, x, y, z, rx = 0) => {
     const g = new THREE.BoxGeometry(w, h, d);

@@ -39,11 +39,14 @@
 */
 import * as THREE from 'three';
 import { KAART, poortBladen } from './kaartwereld.js';
-import { drinkArmen, radioPlekken, resolveCollisions, addCollider } from './world.js';
+import { drinkArmen, radioPlekken, resolveCollisions, addCollider, vaarbaar, zichtVrij } from './world.js';
 import { maakProp, PROP_TYPES } from './props.js';
 import { Persoon } from './persoon.js';
 import { Bewaking } from './bewaking.js';
 import { maakMarkering, maakBompakket, ontplofBij } from './bom.js';
+import { maakWaterRing, maakDeal } from './deal.js';
+import { LIGPLAATSEN } from './boot.js';
+import { initPolitieboot } from './politieboot.js';
 import { Dief } from './dief.js';
 import { euro, tekenKop } from './hud.js';
 import { Navigatie } from './navigatie.js';
@@ -177,6 +180,23 @@ const AFRONDING = [
 ];
 const MISLUKT_SCHOT = 'Johan zei nog zo: geen wouten op ons dak!';
 
+/*
+ Missie 8: de deal bij de molen (verzoek 21 sep 2026). Johan belt een minuut na
+ de bom: hij heeft iemand met vaste handen nodig. Je koopt een sniper bij Tinga
+ State, vaart met hem vanaf de Geeuwkade naar IJlst, houdt vanaf het water de
+ ontmoeting bij houtzaagmolen De Rat in de gaten, en als die misgaat schiet je
+ de maffia neer. Daarna terug, met drie waterpolitieboten achter je aan.
+*/
+const SNIP_WACHT = 60;                                // zoveel seconden na de bom belt Johan
+const SNIP_WINKEL = { straat: 'Molenkrite', nr: '115' };  // Tinga State
+const SNIP_RING = 15;                                 // straal van de gele cirkel op het water
+const SNIP_VER = [46, 78];                            // zo ver van de molen mag de boot liggen
+const SNIP_LIEFST = 60;                               // en zo ver het liefst
+const SNIP_KIJK = 15;                                 // seconden meekijken voor het misgaat
+const SNIP_BOTEN = 3;                                 // zoveel waterpolitie komt er achter je aan
+const SNIP_THUIS = 18;                                // zo dicht bij de kade ben je terug
+const SNIP_BELONING = 500;
+
 // ---------- missie 7: de bom bij de Poiesz in Duinterpen ----------
 const BOM_BINNEN = [
   zegtMark('Erik, je moet je katten wel eten geven, ze blijven maar skooien.'),
@@ -200,6 +220,36 @@ const BOM_BOS = [
 const BOM_THUIS = [
   zegtMark('Bedankt. Hier heb je trouwens het geld van De Veteraan.'),
   zegtMark('We spreken, broeder!'),
+];
+
+// ---------- missie 8: de deal bij de molen ----------
+const zegtJohan = (tekst) => ({ wie: 'Johan', kop: KOPPEN.johan, tekst });
+const SNIP_TELEFOON = [
+  zegtJohan('Erik, Johan hier. Ik had je nog een bericht op Telegram gestuurd, maar je hebt het niet gelezen denk ik. Misschien moet ik eens WhatsApp gaan gebruiken.'),
+  zegtJohan('Afijn, ik heb iemand nodig met steady handjes. Die van mij trillen te veel, en ik weet dat jij om kan gaan met snipers.'),
+  zegtJohan('Koop er eentje bij de Tinga State en kom naar mij toe, achter de waterzuivering aan de Geeuw. Ik praat je daar bij.'),
+  zegtJohan('Zwembroek hoeft niet mee, haha. Grapje.'),
+];
+const SNIP_BIJ_JOHAN = [
+  zegtJohan('Erik, goed dat je er bent.'),
+  zegtJohan('De Veteraan gaat bij de molen in IJlst een belangrijke deal sluiten met de IJlster maffia. Die deal moet doorgaan.'),
+  zegtJohan('Hij vertrouwt het alleen niet en wil dat wij het met dit bootje op afstand in de gaten houden.'),
+  zegtJohan('Oké, jij vaart. Op naar IJlst.'),
+];
+const SNIP_OP_PLEK = [zegtJohan('Hier is het goed. Motor eruit en blijven liggen.')];
+const SNIP_SCOPE = [
+  zegtJohan('Oké, de meeting gaat plaatsvinden.'),
+  zegtJohan('Bekijk het door je scope: rechtermuisknop, en met het scrollwiel zoom je in.'),
+];
+const SNIP_MIS = [
+  zegtJohan('Shit, dit gaat fout.'),
+  zegtJohan('Erik, schiet ze neer!'),
+];
+const SNIP_WEG = [zegtJohan('Oké, wegwezen. Terug naar de kade bij de Geeuw waar we vandaan kwamen.')];
+const SNIP_POLITIE = [zegtJohan('Waterpolitie! Drie stuks. Schakel ze uit, anders varen we ze zo de haven in.')];
+const SNIP_KLAAR = [
+  zegtJohan('Bedankt Erik. Hier heb je een beloning.'),
+  zegtJohan('De Veteraan weet wie hem heeft gered. Dat komt goed van pas.'),
 ];
 
 // ---------- missie 6: de groene BX ----------
@@ -372,6 +422,8 @@ export function initVerhaal(ctx) {
     // missie 7 heeft twee binnenruimtes en de camera nodig; ze komen als
     // functies binnen omdat js/main.js ze pas ná het verhaal maakt
     wieken = null, poiesz = null, schokken = null, laatVallen = null,
+    // missie 8 vaart: de sloepen komen als functie binnen, net als de ruimtes
+    boten = null,
   } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
@@ -500,6 +552,12 @@ export function initVerhaal(ctx) {
   let schutters = null;          // de zes man die komen opdagen (js/bewaking.js)
   let schutterAutos = [];        // hun drie auto's
   let aanrijders = [];           // diezelfde auto's zolang ze nog onderweg zijn
+  // missie 8: de deal bij de molen
+  let deal = null;               // de ontmoeting op de kade (js/deal.js)
+  let snipRing = null;           // de gele cirkel op het water
+  let snipBoten = [];            // de drie waterpolitieboten
+  let snipT = 0;                 // aftellen tot de telefoon gaat
+  let snipKijkT = 0;             // hoelang je nog meekijkt voor het misgaat
   const gevallen = new Set();    // wie er al een wapen heeft laten liggen
   let bomAuto = null;            // de auto voor de deur aan de Wieken
   let bomMerk = null;            // de markering waar de bom moet komen
@@ -634,6 +692,7 @@ export function initVerhaal(ctx) {
     spanning = false; spanningUit = 0;
     naMissieT = 0;
     ruimBomOp();
+    ruimSniperOp();
     missie = naam;
     fase = 'wacht';
     player.health = 100;              // na elke missie is je leven weer vol
@@ -656,6 +715,7 @@ export function initVerhaal(ctx) {
     else if (naam === 'johan') beginJohan();
     else if (naam === 'bx') beginBX();
     else if (naam === 'bom') beginBom();
+    else if (naam === 'sniper') beginSniper();
   }
 
   /*
@@ -981,6 +1041,7 @@ export function initVerhaal(ctx) {
     spanning = missie === 'bewaking' || missie === 'afleveren';
     spanningUit = 0;
     if (missie === 'bom') { beginBom(); return; }
+    if (missie === 'sniper') { beginSniper(); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -1097,6 +1158,9 @@ export function initVerhaal(ctx) {
     if (bewaking && (missie === 'bewaking' || missie === 'afleveren' || missie === 'klaar')) uit.push(...bewaking.doelen());
     // de zes man uit missie 7, zolang ze er staan
     if (schutters) uit.push(...schutters.doelen());
+    // en de maffia op de kade plus de waterpolitie uit missie 8
+    if (deal) uit.push(...deal.doelen());
+    for (const b of snipBoten) uit.push(...b.doelen());
     // De dief is ook een doel — maar raak je hem, dan is de missie mislukt.
     if (dief && missie === 'johan' && (fase === 'naar_dewieken' || fase === 'achtervolging')) uit.push(...dief.doelen);
     return uit;
@@ -1105,6 +1169,9 @@ export function initVerhaal(ctx) {
   function raak(obj) {
     // de zes man bij de Poiesz: die mogen juist wel
     if (schutters && schutters.raak(obj)) return true;
+    // de maffia bij de molen, en de waterpolitie die achter je aan komt
+    if (deal && deal.raak(obj)) return true;
+    for (const b of snipBoten) if (b.raak(obj)) return true;
     // Op de dief mag je niet schieten: dan hangt de politie aan je broek.
     if (dief && missie === 'johan' && dief.isDief(obj)) {
       mislukt(MISLUKT_SCHOT);
@@ -1313,6 +1380,279 @@ export function initVerhaal(ctx) {
             + 'bij de <b>Poiesz</b> in IJlst en Duinterpen vul je je health aan', 13);
         });
       }
+    }
+  }
+
+  /*
+   ---- missie 8: de deal bij de molen ----
+
+   Twee plekken maken deze missie: de kade bij houtzaagmolen De Rat, waar de
+   ontmoeting is, en het stukje open water waar jij met de sloep moet liggen.
+   Allebei worden ze gezocht in de kaart en niet met de hand ingetikt: rond de
+   molen wordt een ring van kandidaten afgelopen, en de beste is die op een
+   meter of zestig ligt, ruim genoeg water eromheen heeft en vrij zicht op de
+   kade geeft. Zonder dat laatste kijk je door een kijker tegen een loods aan.
+  */
+  let snipPlek = null;           // { boot: {x,z}, kade: {x,z}, naarWater: {x,z} }
+  function zoekSnipPlek() {
+    if (snipPlek) return snipPlek;
+    const mol = (KAART.molens || []).find(m => /rat/i.test(m.naam || ''));
+    if (!mol) return null;
+    let beste = null;
+    for (let r = SNIP_VER[0]; r <= SNIP_VER[1]; r += 2) {
+      for (let i = 0; i < 64; i++) {
+        const hoek = (i / 64) * Math.PI * 2;
+        const x = mol.cx + Math.cos(hoek) * r, z = mol.cz + Math.sin(hoek) * r;
+        if (!vaarbaar(x, z)) continue;
+        // ruim genoeg om in te dobberen: de hele cirkel eromheen moet water zijn
+        let ruim = true;
+        for (let j = 0; j < 10 && ruim; j++) {
+          const h = (j / 10) * Math.PI * 2;
+          if (!vaarbaar(x + Math.cos(h) * (SNIP_RING * 0.6), z + Math.sin(h) * (SNIP_RING * 0.6))) ruim = false;
+        }
+        if (!ruim) continue;
+        // de oever ertussen: vanaf het water naar de molen lopen tot het land begint
+        const nx = (mol.cx - x) / r, nz = (mol.cz - z) / r;
+        let oever = null;
+        for (let d = 2; d < r; d += 1) {
+          const px = x + nx * d, pz = z + nz * d;
+          if (!vaarbaar(px, pz)) { oever = { x: px, z: pz }; break; }
+        }
+        if (!oever) continue;
+        const kade = { x: oever.x + nx * 2.6, z: oever.z + nz * 2.6 };
+        if (!zichtVrij(x, z, kade.x, kade.z, 1.6)) continue;
+        const score = -Math.abs(r - SNIP_LIEFST);
+        if (!beste || score > beste.score) {
+          beste = { score, boot: { x, z }, kade, naarWater: { x: -nx, z: -nz }, afstand: r };
+        }
+      }
+    }
+    snipPlek = beste;
+    return snipPlek;
+  }
+
+  // de kade aan de Geeuw waar je vertrekt en weer terugkomt
+  function geeuwKade() {
+    const lig = LIGPLAATSEN[0];
+    return lig.wal || { x: lig.x, z: lig.z };
+  }
+
+  function beginSniper() {
+    fase = 'telefoon';
+    ruimSniperOp();
+    snipT = 1.2;
+    zetOpdracht('neem de telefoon op');
+    hud.zetNavigatie(null); navDoel = null;
+    markZichtbaar(false);
+  }
+
+  function ruimSniperOp() {
+    if (deal) { deal.verwijder(); deal = null; }
+    if (snipRing) { snipRing.toon(false); }
+    for (const b of snipBoten) b.reset();
+    snipBoten = [];
+    snipT = 0; snipKijkT = 0;
+    player.vuurSlot = false;
+    if (johan) johan.groep.visible = false;
+  }
+
+  // Johan neerzetten bij het bootje aan de Geeuwkade
+  function johanBijDeBoot() {
+    if (!zorgVoorJohan()) return null;
+    const kade = geeuwKade();
+    const [jx, jz] = resolveCollisions(kade.x + 1.4, kade.z + 1.4, 0.4);
+    johan.zetNeer(jx, jz, kijkHoek({ x: jx, z: jz }, kade));
+    johan.groep.visible = true;
+    return { x: jx, z: jz };
+  }
+
+  // waar de speler is: in de boot telt de boot, niet het poppetje
+  function bootPunt() {
+    const b = boten && boten();
+    if (b && b.inBoot) return { x: b.inBoot.x, z: b.inBoot.z };
+    return spelerPunt();
+  }
+
+  function werkSniperBij(dt, sp) {
+    if (fase === 'klaar') return;
+    if (fase !== 'telefoon') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+    }
+
+    // -- de telefoon: Johan belt een minuut na de bom
+    if (fase === 'telefoon') {
+      if (snipT > 0) {
+        snipT -= dt;
+        if (snipT <= 0) {
+          geluid.telefoon();
+          zeg(SNIP_TELEFOON, () => {
+            const heeft = player.wapens.includes('sniper');
+            fase = heeft ? 'naar_johan' : 'kopen';
+            if (heeft) {
+              zetOpdracht('ga naar Johan bij de Geeuwkade achter de waterzuivering');
+              const p = johanBijDeBoot();
+              if (p) zetNavDoel(p.x, p.z, 'Johan bij de Geeuw', 'J');
+            } else {
+              zetOpdracht('koop een sniper bij Tinga State');
+              const pand = pandVan(SNIP_WINKEL);
+              const v = pand ? voorPunt(pand, 7.5) : null;
+              if (v) zetNavDoel(v.x, v.z, 'Tinga State', 'M');
+            }
+            hud.melding('NIEUWE MISSIE', heeft ? 'Ga naar Johan aan de Geeuw.'
+              : 'Koop een sniper bij Tinga State.', 5);
+            spanning = true; spanningUit = 0;
+          }, { wie: 'Johan', telefoon: true, kop: KOPPEN.johan });
+        }
+      }
+      return;
+    }
+
+    // -- de sniper kopen bij Tinga State
+    if (fase === 'kopen') {
+      if (!player.wapens.includes('sniper')) return;
+      fase = 'naar_johan';
+      zetOpdracht('ga naar Johan bij de Geeuwkade achter de waterzuivering');
+      const p = johanBijDeBoot();
+      if (p) zetNavDoel(p.x, p.z, 'Johan bij de Geeuw', 'J');
+      return;
+    }
+
+    // -- bij Johan aan de kade
+    if (fase === 'naar_johan') {
+      if (!johan || !johan.groep.visible) { johanBijDeBoot(); return; }
+      johan.update(dt, { loopt: false });
+      const d = afst(sp, johan.groep.position);
+      if (d > PRAAT_AFSTAND || !balk.hidden) return;
+      fase = 'briefing';
+      hud.zetNavigatie(null); navDoel = null;
+      johan.kijkNaar(sp.x, sp.z, 1, 99);
+      zeg(SNIP_BIJ_JOHAN, () => {
+        fase = 'varen';
+        const plek = zoekSnipPlek();
+        zetOpdracht('vaar met de sloep naar de molen in IJlst en blijf in de gele cirkel');
+        if (plek) {
+          if (!snipRing) snipRing = maakWaterRing(scene, SNIP_RING);
+          snipRing.zet(plek.boot.x, plek.boot.z);
+          snipRing.toon(true);
+          zetNavDoel(plek.boot.x, plek.boot.z, 'De Rat, IJlst', 'M');
+        }
+      });
+      return;
+    }
+    if (fase === 'briefing') { if (johan) johan.update(dt, { loopt: false }); return; }
+
+    // -- varen naar IJlst; Johan vaart mee en is dus uit beeld zodra jij aan boord bent
+    if (fase === 'varen') {
+      const b = boten && boten();
+      const aanBoord = !!(b && b.inBoot);
+      if (johan) johan.groep.visible = !aanBoord;
+      if (!aanBoord && johan) johan.update(dt, { loopt: false });
+      const plek = zoekSnipPlek();
+      if (!plek || !aanBoord) return;
+      const p = bootPunt();
+      const erin = Math.hypot(p.x - plek.boot.x, p.z - plek.boot.z) < SNIP_RING;
+      const traag = Math.abs(b.inBoot.snelheid || 0) < 1.6;
+      if (!erin || !traag || !balk.hidden) return;
+      fase = 'kijken';
+      snipKijkT = SNIP_KIJK;
+      hud.zetNavigatie(null); navDoel = null;
+      // de sniper in de hand, en schieten kan nog niet: eerst kijken
+      if (!player.wapens.includes('sniper')) player.krijgWapen('sniper');
+      else player.zetWapen('sniper');
+      player.wapenUit = false;
+      player.vuurSlot = true;
+      // de ontmoeting op de kade opbouwen, met hun gezicht naar het water
+      if (!deal) deal = maakDeal(scene, plek.kade, plek.naarWater);
+      zeg(SNIP_SCOPE, () => {
+        zetOpdracht('kijk door de kijker: rechtermuisknop, scrollwiel zoomt in');
+      });
+      return;
+    }
+
+    // -- meekijken door de kijker
+    if (fase === 'kijken') {
+      if (!balk.hidden) return;
+      snipKijkT -= dt;
+      if (snipKijkT > 0) return;
+      fase = 'vuurgevecht';
+      if (deal) deal.begin();
+      player.vuurSlot = false;
+      zeg(SNIP_MIS, () => {
+        zetOpdracht(`schakel de maffia uit (${deal ? deal.aantal : 0} te gaan)`, true);
+      }, { auto: 2.2 });
+      return;
+    }
+
+    // -- het vuurgevecht door de kijker
+    if (fase === 'vuurgevecht') {
+      if (!deal) return;
+      if (!deal.allemaalNeer) {
+        if (balk.hidden) zetOpdracht(`schakel de maffia uit (${deal.aantal - deal.neer} te gaan)`, true);
+        return;
+      }
+      if (!balk.hidden) return;
+      fase = 'terug';
+      const kade = geeuwKade();
+      zeg(SNIP_WEG, () => {
+        zetOpdracht('terug naar de kade aan de Geeuw');
+        zetNavDoel(kade.x, kade.z, 'Geeuwkade', 'M');
+        // en de waterpolitie komt achter je aan
+        maakWaterpolitie();
+        zeg(SNIP_POLITIE, null, { auto: 3.0 });
+      });
+      return;
+    }
+
+    // -- terug naar de Geeuwkade, met drie boten achter je aan
+    if (fase === 'terug') {
+      const p = bootPunt();
+      const kade = geeuwKade();
+      const thuis = Math.hypot(p.x - kade.x, p.z - kade.z) < SNIP_THUIS;
+      const politieWeg = snipBoten.every(b => !b.actief || b.fase === 'wrak');
+      if (balk.hidden) {
+        zetOpdracht(politieWeg
+          ? 'terug naar de kade aan de Geeuw'
+          : `schakel de waterpolitie uit (${snipBoten.filter(b => b.actief && b.fase !== 'wrak').length} te gaan)`,
+        !politieWeg);
+      }
+      if (!thuis || !politieWeg || !balk.hidden) return;
+      fase = 'afronding';
+      hud.zetNavigatie(null); navDoel = null;
+      const [jx, jz] = resolveCollisions(kade.x + 1.6, kade.z + 1.6, 0.4);
+      if (johan) {
+        johan.zetNeer(jx, jz, kijkHoek({ x: jx, z: jz }, { x: p.x, z: p.z }));
+        johan.groep.visible = true;
+      }
+      zeg(SNIP_KLAAR, () => {
+        verdien(SNIP_BELONING);
+        missie = 'klaar'; fase = 'klaar';
+        spanningUit = 6;
+        ruimSniperOp();
+        hud.melding('MISSIE VOLTOOID – DE DEAL BIJ DE MOLEN',
+          `Beloning: + ${euro(SNIP_BELONING)} toegevoegd aan wallet`, 8);
+      });
+      return;
+    }
+  }
+
+  /*
+   Drie politiesloepen die achter je aan komen zonder dat je een ster hebt: het
+   is hier geen gevolg van een misdaad maar een deel van de missie. Ze komen uit
+   js/politieboot.js — dezelfde boot, dezelfde vaartechniek, dezelfde twee
+   agenten aan boord — met een haakje dat zegt dat ze ook zonder verdenking
+   mogen jagen.
+  */
+  function maakWaterpolitie() {
+    if (snipBoten.length || !boten) return;
+    const b = boten();
+    if (!b) return;
+    for (let i = 0; i < SNIP_BOTEN; i++) {
+      snipBoten.push(initPolitieboot({
+        scene, player, hud, boten: b, politie: null,
+        jaagtOok: () => missie === 'sniper' && fase === 'terug',
+        melding: i === 0,
+      }));
     }
   }
 
@@ -1771,6 +2111,9 @@ export function initVerhaal(ctx) {
         verdien(BOM_BELONING);
         missie = 'klaar'; fase = 'klaar';
         spanningUit = 6;
+        // een minuut later belt Johan met de volgende klus (missie 8)
+        naMissieNaam = 'sniper';
+        naMissieT = SNIP_WACHT;
         hud.melding('MISSIE VOLTOOID – DE BOM',
           `Beloning: + ${euro(BOM_BELONING)} toegevoegd aan wallet`, 8);
       });
@@ -2065,6 +2408,20 @@ export function initVerhaal(ctx) {
     // ---- missie 6: de groene BX ----
     if (missie === 'bx') werkBXBij(dt, sp);
 
+    // ---- missie 8: de deal bij de molen ----
+    if (missie === 'sniper') werkSniperBij(dt, sp);
+    if (snipRing) snipRing.update(dt);
+    if (deal) deal.update(dt, bootPunt());
+    for (const b of snipBoten) {
+      const schade = b.update(dt);
+      if (schade > 0 && player.active) {
+        player.health = Math.max(0, player.health - schade);
+        hud.zetLeven(player.health);
+        hud.flits();
+        if (player.health <= 0) dood();
+      }
+    }
+
     // ---- missie 7: de bom ----
     if (missie === 'bom') werkBomBij(dt, sp);
     if (schutters) {
@@ -2283,6 +2640,12 @@ export function initVerhaal(ctx) {
     get bx() { return bxAuto; },
     get schutters() { return schutters; },
     get schutterAutos() { return schutterAutos; },
+    // missie 8
+    get deal() { return deal; },
+    get snipPlek() { return zoekSnipPlek(); },
+    get snipRing() { return snipRing; },
+    get snipBoten() { return snipBoten; },
+    get johanPersoon() { return johan; },
     get bomPlek() { return bomPlek(); },
     get bomGeplant() { return !!(bomPakket && bomPakket.zichtbaar); },
     get bomAuto() { return bomAuto; },
