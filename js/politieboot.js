@@ -47,6 +47,7 @@ const ROER_TRAAG = 3.0;
 const KOM_MIN = 85;                // zo ver weg komt hij in beeld
 const KOM_MAX = 150;
 const WEG = 260;                   // verder dan dit heeft het geen zin meer
+const VERTREK_MAX = 25;            // en zolang duurt afzwaaien hoogstens (s)
 const LANGSZIJ = 16;               // zo dichtbij wil hij komen en niet dichterbij
 
 // ---- schieten ----
@@ -71,6 +72,13 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
   let fase = 'weg';                // 'weg' | 'jaagt' | 'vertrekt' | 'wrak'
   let komT = 2;                    // hoelang nog voor er een komt
   let vuurT = 0;
+  /*
+   Hoelang hij al aan het afzwaaien is. Hij verdwijnt als hij ver genoeg weg is
+   (WEG hierboven), maar op een smalle vaart komt hij daar niet altijd: dan
+   ligt er wal in de richting waar hij heen wil en blijft hij rondjes varen in
+   beeld. Na een halve minuut afzwaaien is hij hoe dan ook vertrokken.
+  */
+  let vertrekT = 0;
   let knipper = 0;
   let schade = 0;                  // wat de speler dit beeld oploopt
 
@@ -317,7 +325,7 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
     const p = sp();
     const d = Math.hypot(p.x - boot.x, p.z - boot.z);
 
-    if (fase === 'jaagt' && !jacht) fase = 'vertrekt';
+    if (fase === 'jaagt' && !jacht) { fase = 'vertrekt'; vertrekT = 0; }
     if (fase === 'vertrekt' && jacht && boot.hp > 0) fase = 'jaagt';
 
     if (fase === 'jaagt') {
@@ -325,7 +333,8 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
     } else if (fase === 'vertrekt') {
       // van je weg varen: het spiegelbeeld van je eigen plek
       stuur(boot, { x: boot.x * 2 - p.x, z: boot.z * 2 - p.z }, dt);
-      if (d > WEG) { ruim(); return 0; }
+      vertrekT += dt;
+      if (d > WEG || vertrekT > VERTREK_MAX) { ruim(); return 0; }
     } else if (fase === 'wrak') {
       boot.gas = 0; boot.roer *= 0.98;
       if (d > WEG) { ruim(); return 0; }
@@ -413,7 +422,7 @@ export function initPolitieboot({ scene, player, hud = null, politie = null, bot
     return false;
   }
 
-  function reset() { ruim(); komT = 2; }
+  function reset() { ruim(); komT = 2; vertrekT = 0; }
 
   return {
     update, raak, raakAgent, doelen, reset,

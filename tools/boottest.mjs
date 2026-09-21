@@ -201,7 +201,13 @@ const achter = await page.evaluate(() => {
   window.__vaar({ KeyS: true }, 420);
   return g.boten.vaart;
 });
-ok('achteruit gaat hij ook, maar traag', achter < -0.4 && achter > -2.5, `${achter.toFixed(2)}`);
+/*
+ Achteruit is een derde van vooruit (4,4 tegen 14 m/s): hard genoeg om van een
+ steiger weg te komen, te langzaam om ermee te vluchten. De maat schaalt mee
+ met de top, zodat deze toets blijft kloppen als de sloep weer verandert.
+*/
+ok('achteruit gaat hij ook, maar veel langzamer dan vooruit',
+  achter < -0.4 && Math.abs(achter) < traag.top * 0.4, `${achter.toFixed(2)} tegen ${traag.top} vooruit`);
 
 // ---------- op het water blijven ----------
 console.log('\nop het water blijven');
