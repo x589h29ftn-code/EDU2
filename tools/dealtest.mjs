@@ -282,15 +282,22 @@ const kijker = await page.evaluate(async () => {
   const g = window.__game;
   // aanslaan met de rechtermuisknop en helemaal aangeslagen laten zijn
   /*
-   Aanslaan en helemaal aangeslagen zijn. `mik` kruipt in de hoofdlus omhoog en
-   die loopt hier nauwelijks; de kijker komt in beeld bij mik > 0,72, dus zetten
-   we hem op één en laten we de lus een paar beelden doen.
+   Aanslaan en helemaal aangeslagen zijn. `mik` kruipt in de hoofdlus omhoog,
+   en die lus doet in een headless browser een beeld per halve seconde — dan
+   duurt aanslaan tientallen seconden. Dus: het wapen staat klaar (wisselT op
+   nul), we slaan aan, zetten `mik` op één en roepen zelf de stap aan die de
+   kijker in beeld brengt. Daarna een paar beelden van de echte lus, want die
+   zet de zichtbaarheid van het wapen in de boot — en dat is precies wat hier
+   getoetst wordt.
   */
+  g.player.wisselT = 0;
   g.player.richten(true);
   g.player.mik = 1;
-  await new Promise(r => setTimeout(r, 1200));
+  g.player.zetBeeldhoek();
+  const richt = g.player.richtAan;
+  await new Promise(r => setTimeout(r, 1500));
   return {
-    inBoot: !!g.player.inBoot,
+    inBoot: !!g.player.inBoot, richt, mik: +g.player.mik.toFixed(2),
     scope: !document.getElementById('scope').hidden,
     inScope: g.player.inScope,
     wapenZichtbaar: g.player.gun.visible,
@@ -298,7 +305,8 @@ const kijker = await page.evaluate(async () => {
   };
 });
 ok(kijker.inBoot, 'je zit nog in de boot');
-ok(kijker.scope && kijker.inScope, 'de kijker vult het beeld');
+ok(kijker.scope && kijker.inScope, 'de kijker vult het beeld',
+  `richten: ${kijker.richt}, mik ${kijker.mik}`);
 ok(kijker.wapenZichtbaar === false, 'en de sniper zelf staat niet half in het vizier',
   `wapen zichtbaar: ${kijker.wapenZichtbaar}`);
 ok(kijker.zoom >= 4, 'de kijker zoomt in', `${kijker.zoom}×`);
