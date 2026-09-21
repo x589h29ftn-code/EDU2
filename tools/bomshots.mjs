@@ -85,7 +85,12 @@ await page.evaluate(async () => {
   g.hud.msgT = 0; g.hud.msg.style.transition = 'none'; g.hud.msg.style.opacity = 0;
   geluid.start();
   await geluid.laadMissieMuziek();
-  window.__stap = (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) g.verhaal.update(dt); };
+  // ook bruikbaar als het verhaal bevroren is: dan gaat het langs de echte
+  // update die daarvoor bewaard is
+  window.__stap = (n = 20, dt = 0.05) => {
+    const v = g.verhaal, f = v.__echteUpdate || v.update;
+    for (let i = 0; i < n; i++) f.call(v, dt);
+  };
   g.verhaal.__startMissie('bom');
   window.__stap(4);
 });
@@ -182,7 +187,9 @@ const buiten = await page.evaluate(() => {
   const m = g.verhaal.mark.groep.position;
   g.player.pos.set(m.x + 2.5, 0, m.z + 2.5);
   window.__stap(6);
-  for (let i = 0; i < 12; i++) {
+  // doorklikken tot Mark zegt dat hij hem laat afgaan, en daar stoppen: de
+  // ontploffing zelf wordt hieronder beeldje voor beeldje gezet
+  for (let i = 0; i < 12 && g.verhaal.fase !== 'knal'; i++) {
     if (!document.getElementById('dialoogTekst').textContent) break;
     g.praat(); window.__stap(2);
   }
@@ -190,23 +197,24 @@ const buiten = await page.evaluate(() => {
 });
 {
   const d = winkel.ing;
-  // van het parkeerterrein af, een meter of achttien van de deur en een paar
-  // meter opzij: recht tegenover de ingang staat een boom
-  await kijk(d.x + d.fx * 18 - d.fz * 6, d.z + d.fz * 18 + d.fx * 6, d.x, d.z, 5.5);
-  await page.evaluate(() => {
+  // van het parkeerterrein af, een meter of zestien van de deur en acht opzij:
+  // recht tegenover de ingang staan een boom en een lantaarnpaal
+  await kijk(d.x + d.fx * 16 + d.fz * 8, d.z + d.fz * 16 - d.fx * 8, d.x, d.z, 5.0);
+  /*
+   Eerst stilzetten, dan zelf stappen: zo loopt de hoofdlus de ontploffing niet
+   voorbij terwijl het beeld nog staat te renderen. Doorstappen tot de bom
+   afgaat en dan nog zes tiende seconde — de vuurbal is het grootst rond zeven
+   tiende en na negen tiende uitgedoofd (js/bom.js).
+  */
+  await bevries();
+  const stand = await page.evaluate(() => {
     const g = window.__game;
-    // doorstappen tot de bom afgaat
-    for (let i = 0; i < 200 && !g.verhaal.knalBezig; i++) g.verhaal.update(0.05);
-    /*
-     En dan de ontploffing zelf een halve seconde vooruit: op een trage
-     softwarerenderer duurt één beeld zo lang dat wachten op de klok de vuurbal
-     mist. De vuurbal is het grootst rond zeven tiende seconde en is na negen
-     tiende uitgedoofd (js/bom.js).
-    */
-    for (let i = 0; i < 12; i++) g.verhaal.update(0.05);
+    for (let i = 0; i < 300 && !g.verhaal.knalBezig; i++) window.__stap(1);
+    window.__stap(12);
     g.hud.melding('', '', 0);
+    return { bezig: g.verhaal.knalBezig, fase: g.verhaal.fase };
   });
-  await bevries();                      // de vuurbal blijft staan tot de foto klaar is
+  console.log(`de knal: ${stand.bezig ? 'in beeld' : 'niet in beeld'} · fase ${stand.fase}`);
   await foto('bom_knal', 120);
   await ontdooi();
 }
