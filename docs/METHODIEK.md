@@ -4768,7 +4768,8 @@ het schieten begint. Dat is geen luiheid maar een keuze: wie op vijftig meter
 dekking zoekt is door een kijker niet meer te vinden, en dan wordt de scène een
 zoekplaatje in plaats van een schot.
 
-`npm run dealtest` loopt de hele keten na, van het telefoontje tot de € 500.
+`npm run dealtest` loopt de hele keten na, van het telefoontje tot de € 500:
+zevenenveertig controles.
 
 **Wat nog niet af is (in volgorde).
 

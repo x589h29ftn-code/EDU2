@@ -1615,7 +1615,8 @@ kade bedankt Johan je.
 Beloning: **€ 500**. En onder alles loopt de spanningsmuziek uit `audio/missie/`,
 vanaf het telefoontje tot even na **MISSIE VOLTOOID**.
 
-`npm run dealtest` loopt de hele missie na, van het telefoontje tot de beloning,
+`npm run dealtest` (zevenenveertig controles) loopt de hele missie na, van het
+telefoontje tot de beloning,
 inclusief de plek die in de kaart gezocht wordt en de trekker die pas los gaat
 als het misgaat.
 
