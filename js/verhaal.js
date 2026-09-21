@@ -43,6 +43,7 @@ import { drinkArmen, radioPlekken, resolveCollisions, addCollider } from './worl
 import { maakProp, PROP_TYPES } from './props.js';
 import { Persoon } from './persoon.js';
 import { Bewaking } from './bewaking.js';
+import { maakMarkering, maakBompakket, ontplofBij } from './bom.js';
 import { Dief } from './dief.js';
 import { euro, tekenKop } from './hud.js';
 import { Navigatie } from './navigatie.js';
@@ -107,6 +108,24 @@ const BX_BELONING = 250;                               // wat je eraan overhoudt
 const BX_PARKEER = 8;                                  // zo dicht bij de plek staat hij goed
 const BX_MARK_NAAST = 4.2;                             // zover naast de plek wacht Mark
 
+/*
+ Missie 7: de bom bij de Poiesz in Duinterpen (verzoek 21 sep 2026). Hij begint
+ binnen, in het huis aan de Wieken waar je zelf ook naar binnen kunt: Mark zit
+ daar op de bank. Daarna: rijden naar Duinterpen, de bom bij de schappen
+ planten, buiten de knal afwachten, het vuurgevecht met de zes man die komen
+ opdagen, de politie afschudden in het Tinga-bos, en Mark thuisbrengen.
+*/
+const BOM_HUIS = { straat: 'de Wieken', nr: '29' };   // hier woont Erik
+const BOM_WINKEL = 'duinterpen_poiesz';               // het pand in Duinterpen
+const BOM_BELONING = 300;
+const BOM_MANNEN = 6;                                 // zes man in drie auto's
+const BOM_AUTOS = 3;
+const BOM_KOMEN = 23;                                 // zover van je vandaan stoppen ze (m)
+const BOM_STERREN = 2;                                // wat de politie ervan vindt
+const BOM_PLANT_BEREIK = 3.0;                         // zo dicht bij de plek plant je hem
+const BOM_PARKEER = 26;                               // zo dicht bij de winkel ben je "voor het pand"
+const BOM_THUIS_BEREIK = 14;                          // en zo dicht bij Molenkrite 15 ben je er
+
 const PRAAT_AFSTAND = 5.5;
 const ZWAAI_AFSTAND = 26;
 const ROEP_AFSTAND = 30;
@@ -152,6 +171,31 @@ const AFRONDING = [
   { wie: 'Johan', kop: KOPPEN.johan, tekst: 'Afspraak is afspraak: hier, vijfhonderd voor jou. Steek die flappen in je zak, die gaan we later nog hard nodig hebben.' },
 ];
 const MISLUKT_SCHOT = 'Johan zei nog zo: geen wouten op ons dak!';
+
+// ---------- missie 7: de bom bij de Poiesz in Duinterpen ----------
+const BOM_BINNEN = [
+  zegtMark('Erik, je moet je katten wel eten geven, ze blijven maar skooien.'),
+  zegtMark('Afijn, De Veteraan heeft een oogje op jou. Ik denk dat we grotere spelers in Tinga kunnen worden! Lekker geld verdienen!'),
+  zegtMark('De filiaalhouder van de Poiesz in Duinterpen heeft zich tegen De Veteraan gekeerd. Hij wil dat we een bom plaatsen in het pand, en hem eens een lesje leren wie de baas is.'),
+  zegtMark('Ga je mee?'),
+];
+const BOM_INSTAPPEN = [zegtMark('De auto staat voor de deur. Jij rijdt.')];
+const BOM_BIJ_WINKEL = [
+  zegtMark('Hier heb je de explosieven. Ga naar binnen en plant het bij de schappen.'),
+  zegtMark('We detoneren het buiten.'),
+];
+const BOM_AFGAAN = [zegtMark('Ik laat hem afgaan.')];
+const BOM_PERFECT = [zegtMark('Perfect. Dat zal hem leren.')];
+const BOM_ALARM = [zegtMark('Shit, wat hebben ze snel gereageerd! We moeten ze afschieten!!!')];
+const BOM_POLITIE = [zegtMark('Wegwezen, nu de politie afschudden. We gaan naar het Tinga-bos.')];
+const BOM_BOS = [
+  zegtMark('Poeh, op het nippertje.'),
+  zegtMark('Kun je me terugbrengen naar de Molenkrite 15?'),
+];
+const BOM_THUIS = [
+  zegtMark('Bedankt. Hier heb je trouwens het geld van De Veteraan.'),
+  zegtMark('We spreken, broeder!'),
+];
 
 // ---------- missie 6: de groene BX ----------
 const BX_AANKONDIGING = ['Nieuwe missies kunnen worden gestart door naar het '
@@ -203,6 +247,7 @@ const BX_EINDE = [
   zegtErik('Jij zei dat het niet uitmaakte.'),
   zegtMark('Dat zei ik inderdaad.'),
   zegtMark('Wees trouwens bereikbaar, De Veteraan heeft ons snel weer nodig en wij kunnen het geld gebruiken.'),
+  zegtMark('Trakteer jezelf ook maar op een biertje, kan je hier binnen halen bij de Poiesz!'),
 ];
 
 const ZITTERS = ['zit_rood', 'zit_blauw', 'zit_groen', 'zit_geel'];
@@ -316,7 +361,13 @@ export function initVerhaal(ctx) {
    vrachtwagen, en er juist één geven als je de BX steelt. Ze zijn optioneel,
    zodat het verhaal ook zonder werkt.
   */
-  const { scene, player, hud, vehicles, eersteP = null, sterrenWeg = null, sterGeven = null } = ctx;
+  const {
+    scene, player, hud, vehicles,
+    eersteP = null, sterrenWeg = null, sterGeven = null,
+    // missie 7 heeft twee binnenruimtes en de camera nodig; ze komen als
+    // functies binnen omdat js/main.js ze pas ná het verhaal maakt
+    wieken = null, poiesz = null, schokken = null,
+  } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
   const tekstEl = document.getElementById('dialoogTekst');
@@ -440,6 +491,16 @@ export function initVerhaal(ctx) {
   let spanning = false;
   let spanningUit = 0;
   let startPraatT = -1;          // aftellen tot Mark uit zichzelf begint (zie beginGesprek)
+  // missie 7: de bom
+  let schutters = null;          // de zes man die komen opdagen (js/bewaking.js)
+  let schutterAutos = [];        // hun drie auto's
+  let bomAuto = null;            // de auto voor de deur aan de Wieken
+  let bomMerk = null;            // de markering waar de bom moet komen
+  let bomPakket = null;          // het pakket zelf, zodra het geplant is
+  let knal = null;               // de lopende ontploffing
+  let bomT = 0;                  // klok voor de stappen die vanzelf doorlopen
+  let markVuurT = 0;             // wanneer Mark weer een schot lost
+  let naMissieNaam = 'johan';    // welke missie er na de pauze begint
   // missie 6: de groene BX
   let bxAuto = null;             // de Citroën BX zelf
   let bxPlek = null;             // het parkeervak bij de Poiesz in IJlst
@@ -559,6 +620,7 @@ export function initVerhaal(ctx) {
     else if (naam === 'afleveren') beginAfleveren();
     else if (naam === 'johan') beginJohan();
     else if (naam === 'bx') beginBX();
+    else if (naam === 'bom') beginBom();
   }
 
   /*
@@ -582,6 +644,46 @@ export function initVerhaal(ctx) {
     // eenmalig uitleggen waar die M voor staat
     uitleg.toon('missies', 'NIEUWE MISSIES',
       BX_AANKONDIGING[0], 14);
+  }
+
+  /*
+   De gele ruit die aanwijst waar de bom moet komen, en het pakket zelf
+   (js/bom.js). Ze staan er vanaf het begin maar zijn onzichtbaar tot missie 7
+   ze nodig heeft; zo hoeft er middenin een missie niets gebouwd te worden.
+  */
+  bomMerk = maakMarkering(scene);
+  bomPakket = maakBompakket(scene);
+
+  /*
+   Wat er weg mag zodra de speler even niet kijkt. Na missie 6 rijdt Mark met de
+   BX naar De Veteraan (verzoek 21 sep 2026), en dat mag je niet zien gebeuren:
+   iets dat verdwijnt terwijl je ernaar staat te kijken leest als een fout, iets
+   dat weg is als je je omdraait leest als vertrokken.
+  */
+  const weg = { mark: false, bx: false };
+  function ruimOpUitZicht() {
+    if (!weg.mark && !weg.bx) return;
+    const sp = spelerPunt();
+    const vx = -Math.sin(player.yaw), vz = -Math.cos(player.yaw);
+    const uitZicht = (x, z) => {
+      const dx = x - sp.x, dz = z - sp.z;
+      const d = Math.hypot(dx, dz);
+      if (d > 70) return true;                          // zo ver weg zie je het niet meer
+      if (d < 0.5) return false;
+      return (dx / d) * vx + (dz / d) * vz < 0.3;       // buiten de kijkkegel
+    };
+    if (weg.mark && mark.groep.visible && uitZicht(mark.groep.position.x, mark.groep.position.z)) {
+      markZichtbaar(false);
+      weg.mark = false;
+    }
+    if (weg.bx && bxAuto && player.inCar !== bxAuto && uitZicht(bxAuto.x, bxAuto.z)) {
+      // onzichtbaar betekent in js/vehicles.js ook: telt niet meer mee voor
+      // botsingen, voor het verkeer en voor het instappen met E
+      if (bxAuto.mesh) bxAuto.mesh.visible = false;
+      bxAuto.zichtbaar = false;
+      bxAuto.driveable = false;
+      weg.bx = false;
+    }
   }
 
   /*
@@ -843,6 +945,7 @@ export function initVerhaal(ctx) {
     // ander fragment
     spanning = missie === 'bewaking' || missie === 'afleveren';
     spanningUit = 0;
+    if (missie === 'bom') { beginBom(); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -903,6 +1006,25 @@ export function initVerhaal(ctx) {
      Halverwege het gesprek telt hij vijfhonderd euro uit voor het overspuiten;
      daarom staat de briefing in twee stukken.
     */
+    /*
+     De bom planten. Dat kan alleen op de plek bij de schappen die met de gele
+     ruit is aangewezen — een winkel van veertig bij dertig meter is te groot
+     voor "ergens binnen".
+    */
+    if (missie === 'bom' && fase === 'planten') {
+      const plek = bomPlek();
+      const sp = spelerPunt();
+      if (plek && Math.hypot(sp.x - plek.x, sp.z - plek.z) < BOM_PLANT_BEREIK) {
+        if (bomMerk) bomMerk.toon(false);
+        if (bomPakket) { bomPakket.zet(plek.x, 0, plek.z, player.yaw); bomPakket.toon(true); }
+        praatEl.hidden = true;
+        fase = 'naarbuiten';
+        geluid.neerzetten();
+        zetOpdracht('naar buiten, Mark wacht op je');
+        hud.melding('Bom geplant', 'Naar buiten — Mark laat hem afgaan.', 4);
+        return true;
+      }
+    }
     if (missie === 'bx' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND) {
       fase = 'briefing';
       zeg(BX_BRIEFING_A, () => {
@@ -938,12 +1060,16 @@ export function initVerhaal(ctx) {
       for (const b of drinkers) if (!omgevallen.has(b.i)) uit.push(b.obj);
     }
     if (bewaking && (missie === 'bewaking' || missie === 'afleveren' || missie === 'klaar')) uit.push(...bewaking.doelen());
+    // de zes man uit missie 7, zolang ze er staan
+    if (schutters) uit.push(...schutters.doelen());
     // De dief is ook een doel — maar raak je hem, dan is de missie mislukt.
     if (dief && missie === 'johan' && (fase === 'naar_dewieken' || fase === 'achtervolging')) uit.push(...dief.doelen);
     return uit;
   }
 
   function raak(obj) {
+    // de zes man bij de Poiesz: die mogen juist wel
+    if (schutters && schutters.raak(obj)) return true;
     // Op de dief mag je niet schieten: dan hangt de politie aan je broek.
     if (dief && missie === 'johan' && dief.isDief(obj)) {
       mislukt(MISLUKT_SCHOT);
@@ -1156,6 +1282,340 @@ export function initVerhaal(ctx) {
   }
 
   /*
+   ---- missie 7: de bom bij de Poiesz in Duinterpen ----
+
+   De plekken komen weer uit de wereld zelf: het huis aan de Wieken en de
+   winkel in Duinterpen zijn de twee binnenruimtes die er al waren
+   (js/interieur.js en js/supermarkt.js), het bos is het bosvlak naast de
+   waterzuivering, en thuis is Molenkrite 15.
+  */
+  function beginBom() {
+    fase = 'wacht';
+    bomT = 0;
+    ruimBomOp();
+    markZichtbaar(false);          // hij zit binnen; buiten zie je hem niet
+    const huis = wieken && wieken();
+    const deur = huis && huis.plekken ? huis.plekken.deurBuiten : null;
+    zetOpdracht('ga naar binnen bij de Wieken 29 — Mark zit op je bank');
+    if (deur) zetNavDoel(deur.x, deur.z, 'de Wieken 29', 'M');
+    else if (diefPand) {
+      const v = voorPunt(diefPand, 4);
+      zetNavDoel(v.x, v.z, 'de Wieken 29', 'M');
+    }
+  }
+
+  // alles van de missie weer weghalen (bij opnieuw beginnen)
+  function ruimBomOp() {
+    if (schutters) { schutters.verwijder(); schutters = null; }
+    for (const a of schutterAutos) if (a && a.mesh) { a.mesh.visible = false; a.zichtbaar = false; a.driveable = false; }
+    schutterAutos = [];
+    if (bomMerk) bomMerk.toon(false);
+    if (bomPakket) bomPakket.toon(false);
+    if (knal) { knal.stop(); knal = null; }
+  }
+
+  // het bosvlak naast de waterzuivering: daar schud je de politie af
+  let bosVlak = null;
+  function bos() {
+    if (bosVlak) return bosVlak;
+    const mid = poort ? poort.mid : { x: 0, z: 0 };
+    let beste = null;
+    for (const v of KAART.vlakken || []) {
+      if (v.k !== 'bos' || !v.r || !v.r[0] || v.r[0].length < 3) continue;
+      let sx = 0, sz = 0;
+      for (const q of v.r[0]) { sx += q[0]; sz += q[1]; }
+      const cx = sx / v.r[0].length, cz = sz / v.r[0].length;
+      let straal = 0;
+      for (const q of v.r[0]) straal = Math.max(straal, Math.hypot(q[0] - cx, q[1] - cz));
+      const d = Math.hypot(cx - mid.x, cz - mid.z);
+      // het bos moet in de buurt van de waterzuivering liggen én van formaat zijn
+      if (d > 700 || straal < 30) continue;
+      const score = straal - d * 0.5;
+      if (!beste || score > beste.score) beste = { score, x: cx, z: cz, straal, ring: v.r[0] };
+    }
+    bosVlak = beste;
+    return bosVlak;
+  }
+  function inHetBos(x, z) {
+    const b = bos();
+    if (!b) return false;
+    return inPolygoon(x, z, b.ring) || Math.hypot(x - b.x, z - b.z) < b.straal * 0.8;
+  }
+
+  // de winkel in Duinterpen: de ingang buiten en de plek bij de schappen binnen
+  function winkelIngang() {
+    const w = poiesz && poiesz();
+    if (!w || !w.ingangen) return null;
+    return w.ingangen.find(i => /duinterpen/i.test(i.naam || '')) || w.ingangen[0];
+  }
+  function bomPlek() {
+    const w = poiesz && poiesz();
+    return w && w.plekken ? w.plekken.bier : null;     // het schap achterin de winkel
+  }
+
+  // De auto voor de deur: dezelfde manier als bij missie 2 — op de rijbaan
+  // naast het huis, met de kop de straat af.
+  function zetBomAutoNeer() {
+    if (bomAuto && bomAuto.zichtbaar !== false) return bomAuto;
+    const huis = wieken && wieken();
+    const stoep = huis && huis.plekken ? huis.plekken.stoep : null;
+    const bij = stoep || (diefPand ? voorPunt(diefPand, 6) : { x: player.pos.x + 4, z: player.pos.z });
+    if (!navigatie) navigatie = new Navigatie(KAART.wegassen);
+    const k = navigatie.naaste(bij.x, bij.z, 400, true);
+    const as = k >= 0 ? navigatie.punten[k] : [bij.x, bij.z];
+    const langs = k >= 0 && navigatie.bogen[k].length
+      ? navigatie.punten[navigatie.bogen[k][0].naar] : [as[0] + 1, as[1]];
+    const dx = langs[0] - as[0], dz = langs[1] - as[1];
+    const L = Math.hypot(dx, dz) || 1;
+    const yaw = Math.atan2(-dx / L, -dz / L);
+    bomAuto = vehicles.voegToe({ x: as[0], z: as[1], yaw, soort: 'hatch', kleur: 0x9aa0a6 });
+    return bomAuto;
+  }
+
+  /*
+   De drie auto's met zes man. Ze komen aanrijden en stoppen op ruim twintig
+   meter; pas daarna stappen de mannen uit. Dat "pas daarna" is precies wat de
+   scène spannend maakt: eerst hoor je ze aankomen, dan pas staan ze er.
+  */
+  function latenKomen(sp) {
+    if (schutters) return;
+    /*
+     Ze komen van het parkeerterrein af, dus van de winkel weg: de richting is
+     die van de deur naar jou toe, doorgetrokken. Zo staan ze tussen jou en de
+     uitgang van het terrein en niet met hun neus in de gevel.
+    */
+    const ing = winkelIngang();
+    let vx = -Math.sin(player.yaw), vz = -Math.cos(player.yaw);
+    if (ing) {
+      const dx = sp.x - ing.deur.x, dz = sp.z - ing.deur.z;
+      const L = Math.hypot(dx, dz);
+      if (L > 1) { vx = dx / L; vz = dz / L; }
+      else { vx = ing.f[0]; vz = ing.f[1]; }
+    }
+    const zx = -vz, zz = vx;                 // dwars erop: daar staan de auto's naast elkaar
+    const posten = [];
+    schutterAutos = [];
+    for (let i = 0; i < BOM_AUTOS; i++) {
+      const zij = (i - (BOM_AUTOS - 1) / 2) * 6.5;
+      const ax = sp.x + vx * BOM_KOMEN + zx * zij;
+      const az = sp.z + vz * BOM_KOMEN + zz * zij;
+      const [cx, cz] = resolveCollisions(ax, az, 1.2);
+      const auto = vehicles.voegToe({
+        x: cx, z: cz, yaw: Math.atan2(-(sp.x - cx), -(sp.z - cz)),
+        soort: i === 1 ? 'van' : 'hatch', kleur: i === 1 ? 0x2b2f36 : 0x1d1f24, driveable: false,
+      });
+      schutterAutos.push(auto);
+      // twee man per auto, elk naast een portier
+      for (let j = 0; j < BOM_MANNEN / BOM_AUTOS; j++) {
+        const px = cx + zx * (j ? 1.6 : -1.6), pz = cz + zz * (j ? 1.6 : -1.6);
+        const [mx, mz] = resolveCollisions(px, pz, 0.4);
+        posten.push({ a: [mx, mz], b: [mx + vx * 4, mz + vz * 4] });
+      }
+    }
+    schutters = new Bewaking(scene, posten);
+    schutters.alarm = true;            // ze komen voor jou, ze hoeven niets te zien
+    for (const w of schutters.wachters) w.staat = 'aanval';
+  }
+
+  /*
+   Mark schiet mee. Hij kan niet neergaan — hij staat in geen enkele doellijst —
+   maar hij staat er ook niet werkeloos bij: hij vuurt op de dichtstbijzijnde
+   man en haalt er af en toe een neer, zodat het gevecht nooit vastloopt op een
+   laatste vijand die achter een auto blijft hangen.
+  */
+  function markVuurt(dt) {
+    if (!schutters) return;
+    const over = schutters.wachters.filter(w => w.staat !== 'neer');
+    if (!over.length) return;
+    const mp = mark.groep.position;
+    let doel = null, dBest = Infinity;
+    for (const w of over) {
+      const p = w.persoon.groep.position;
+      const d = Math.hypot(p.x - mp.x, p.z - mp.z);
+      if (d < dBest) { dBest = d; doel = w; }
+    }
+    if (!doel) return;
+    mark.kijkNaar(doel.persoon.groep.position.x, doel.persoon.groep.position.z, dt, 7);
+    mark.update(dt, { mikt: true });
+    markVuurT -= dt;
+    if (markVuurT > 0) return;
+    markVuurT = 0.7 + Math.random() * 0.6;
+    mark.vuur();
+    geluid.schot();
+    // ongeveer één op de zes schoten is raak; met zes man duurt dat lang genoeg
+    if (Math.random() < 0.17 && dBest < 45) schutters.raak(doel.persoon.groep);
+  }
+
+  function werkBomBij(dt, sp) {
+    if (fase === 'klaar') return;
+    const huis2 = huis;                 // het pand Molenkrite 15 uit de kaart
+    const woning = wieken && wieken();  // de binnenruimte aan de Wieken
+    const winkel = poiesz && poiesz();
+    const binnenHuis = woning && woning.binnen ? woning.binnen(sp.x, sp.z) : false;
+    const binnenWinkel = winkel && winkel.binnen ? winkel.binnen(sp.x, sp.z) : false;
+    if (fase !== 'wacht' && fase !== 'gesprek') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+    }
+
+    // -- binnen bij de Wieken: Mark zit op de bank en begint te praten
+    if (fase === 'wacht') {
+      if (!binnenHuis) return;
+      const bank = woning.plekken ? woning.plekken.bank : null;
+      if (bank) mark.zetNeer(bank.x, bank.z, kijkHoek(bank, { x: sp.x, z: sp.z }));
+      markZichtbaar(true);
+      fase = 'gesprek';
+      hud.zetNavigatie(null); navDoel = null;
+      zetOpdracht('');
+      zeg(BOM_BINNEN, () => {
+        fase = 'instappen';
+        zetBomAutoNeer();
+        markZichtbaar(false);          // hij loopt vast naar de auto
+        spanning = true; spanningUit = 0;
+        zeg(BOM_INSTAPPEN, () => {
+          zetOpdracht('rij met Mark naar de Poiesz in Duinterpen');
+          const ing = winkelIngang();
+          if (ing) zetNavDoel(ing.stoep.x, ing.stoep.z, 'Poiesz Duinterpen', 'M');
+        });
+      });
+      return;
+    }
+    if (fase === 'gesprek') {
+      // hij zit te praten: laat hem gehurkt op de bank zitten
+      mark.update(dt, { hurkt: 0.85 });
+      return;
+    }
+
+    // -- rijden naar Duinterpen
+    if (fase === 'instappen') {
+      const ing = winkelIngang();
+      if (!ing) return;
+      const d = Math.hypot(sp.x - ing.stoep.x, sp.z - ing.stoep.z);
+      const staat = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.5;
+      if (d < BOM_PARKEER && staat && balk.hidden) {
+        fase = 'planten';
+        hud.zetNavigatie(null); navDoel = null;
+        // Mark stapt uit en wacht bij de deur
+        const naast = { x: ing.stoep.x + ing.f[0] * 3.5, z: ing.stoep.z + ing.f[1] * 3.5 };
+        const [mx, mz] = resolveCollisions(naast.x, naast.z, 0.4);
+        mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, ing.deur));
+        markZichtbaar(true);
+        zeg(BOM_BIJ_WINKEL, () => {
+          zetOpdracht('ga naar binnen en plant de bom bij de schappen');
+          const plek = bomPlek();
+          if (plek && bomMerk) { bomMerk.zet(plek.x, 0, plek.z); bomMerk.toon(true); }
+        });
+      }
+      return;
+    }
+
+    // -- binnen: de bom bij de schappen planten
+    if (fase === 'planten') {
+      const plek = bomPlek();
+      if (!plek) return;
+      const bij = binnenWinkel && Math.hypot(sp.x - plek.x, sp.z - plek.z) < BOM_PLANT_BEREIK;
+      praatEl.textContent = 'E — de bom planten';
+      praatEl.hidden = !(bij && balk.hidden && (player.active || window.__autoplay));
+      return;
+    }
+
+    // -- weer naar buiten, naar Mark
+    if (fase === 'naarbuiten') {
+      if (binnenWinkel || !balk.hidden) return;
+      const dMark = afst(sp, mark.groep.position);
+      if (dMark > 26) return;
+      fase = 'knal';
+      bomT = 0;
+      zetOpdracht('');
+      hud.zetNavigatie(null); navDoel = null;
+      zeg(BOM_AFGAAN, null, { auto: 2.2 });
+      return;
+    }
+
+    // -- de ontploffing, en wat daarop volgt
+    if (fase === 'knal') {
+      bomT += dt;
+      if (bomT > 2.4 && !knal) {
+        const ing = winkelIngang();
+        // de knal is buiten te zien: op de gevel, niet in de kamer die ruim
+        // buiten het kaartgebied staat
+        const px = ing ? ing.deur.x : sp.x, pz = ing ? ing.deur.z : sp.z;
+        knal = ontplofBij(scene, px, 0, pz);
+        if (bomPakket) bomPakket.toon(false);
+        geluid.explosie(Math.hypot(sp.x - px, sp.z - pz));
+        if (schokken) schokken(0.9);
+      }
+      if (bomT > 4.6 && balk.hidden) {
+        fase = 'aanval';
+        bomT = 0;
+        zeg(BOM_PERFECT, () => {
+          latenKomen(sp);
+          zeg(BOM_ALARM, () => {
+            fase = 'vuurgevecht';
+            zetOpdracht(`schakel ze uit (${schutters ? schutters.aantal : 0} te gaan)`, true);
+          }, { auto: 2.6 });
+        }, { auto: 2.4 });
+      }
+      return;
+    }
+
+    if (fase === 'aanval') return;          // de regels lopen vanzelf door
+
+    // -- het vuurgevecht
+    if (fase === 'vuurgevecht') {
+      markVuurt(dt);
+      if (schutters && !schutters.alleNeer) {
+        zetOpdracht(`schakel ze uit (${schutters.aantal - schutters.neer} te gaan)`, true);
+        return;
+      }
+      if (!balk.hidden) return;
+      fase = 'vluchten';
+      if (sterGeven) sterGeven(BOM_STERREN, sp.x, sp.z);
+      const b = bos();
+      zeg(BOM_POLITIE, () => {
+        zetOpdracht('schud de politie af in het Tinga-bos');
+        if (b) zetNavDoel(b.x, b.z, 'Tinga-bos', 'M');
+      });
+      return;
+    }
+
+    // -- de politie afschudden in het bos
+    if (fase === 'vluchten') {
+      if (!inHetBos(sp.x, sp.z)) return;
+      fase = 'thuisbrengen';
+      if (sterrenWeg) sterrenWeg();
+      hud.zetNavigatie(null); navDoel = null;
+      zeg(BOM_BOS, () => {
+        zetOpdracht('breng Mark terug naar Molenkrite 15');
+        const t = voorPunt(huis2, 6);
+        zetNavDoel(t.x, t.z, 'Molenkrite 15', 'M');
+      });
+      return;
+    }
+
+    // -- en terug naar de Molenkrite
+    if (fase === 'thuisbrengen') {
+      const t = voorPunt(huis2, 6);
+      const d = Math.hypot(sp.x - t.x, sp.z - t.z);
+      const staat = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.5;
+      if (d > BOM_THUIS_BEREIK || !staat || !balk.hidden) return;
+      fase = 'afronding';
+      zetOpdracht('');
+      hud.zetNavigatie(null); navDoel = null;
+      const [mx, mz] = resolveCollisions(t.x + 1.8, t.z + 1.8, 0.4);
+      mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, { x: sp.x, z: sp.z }));
+      markZichtbaar(true);
+      zeg(BOM_THUIS, () => {
+        verdien(BOM_BELONING);
+        missie = 'klaar'; fase = 'klaar';
+        spanningUit = 6;
+        hud.melding('MISSIE VOLTOOID – DE BOM',
+          `Beloning: + ${euro(BOM_BELONING)} toegevoegd aan wallet`, 8);
+      });
+    }
+  }
+
+  /*
    Missie 6 per beeld. Vier stappen: de auto ophalen (dat kost je een ster), hem
    laten overspuiten bij de wasbox achter de BP, hem naar IJlst rijden en hem
    naast Mark parkeren. De kaart wijst steeds het volgende doel aan.
@@ -1231,6 +1691,12 @@ export function initVerhaal(ctx) {
           spanningUit = 6;                 // de muziek loopt over de melding heen uit
           hud.melding('MISSIE VOLTOOID – DE GROENE BX',
             `Beloning: + ${euro(BX_BELONING)} toegevoegd aan wallet`, 8);
+          // en hij rijdt weg met de auto — zodra je even niet kijkt
+          weg.mark = true;
+          weg.bx = true;
+          // de volgende klus staat straks als M bij je eigen voordeur
+          naMissieNaam = 'bom';
+          naMissieT = 8;
         });
       }
       return;
@@ -1274,13 +1740,14 @@ export function initVerhaal(ctx) {
     // pauze tussen twee missies: na de boerderij belt Johan
     if (naMissieT > 0) {
       naMissieT -= dt;
-      if (naMissieT <= 0) startMissie('johan');
+      if (naMissieT <= 0) startMissie(naMissieNaam);
     }
     // een regel die zichzelf wegklikt (wat er tijdens het rennen geroepen wordt)
     if (gesprek && gesprek.auto) {
       gesprek.autoT -= dt;
       if (gesprek.autoT <= 0) verderInGesprek();
     }
+    ruimOpUitZicht();       // Mark en de BX verdwijnen als je je omdraait
     const sp = spelerPunt();
     const dMark = afst(sp, mark.groep.position);
     const opTerrein = poort ? inPolygoon(sp.x, sp.z, poort.hek) : false;
@@ -1436,6 +1903,21 @@ export function initVerhaal(ctx) {
     // ---- missie 6: de groene BX ----
     if (missie === 'bx') werkBXBij(dt, sp);
 
+    // ---- missie 7: de bom ----
+    if (missie === 'bom') werkBomBij(dt, sp);
+    if (schutters) {
+      const schade = schutters.update(dt, player, true);
+      if (schade > 0 && player.active) {
+        player.health = Math.max(0, player.health - schade);
+        hud.zetLeven(player.health);
+        hud.flits();
+        if (player.health <= 0) dood();
+      }
+    }
+    if (bomMerk) bomMerk.update(dt);
+    if (bomPakket) bomPakket.update(dt);
+    if (knal) { knal.update(dt); if (knal.klaar) knal = null; }
+
     // ---- missie 4: afleveren ----
     if (missie === 'afleveren' && fase !== 'klaar') {
       navKlok += dt;
@@ -1473,9 +1955,16 @@ export function initVerhaal(ctx) {
     missie = s.missie || 'molenkrite';
     fase = s.fase || 'wacht';
     if (fase === 'gesprek' || fase === 'briefing') { fase = 'wacht'; missie = 'molenkrite'; }
+    /*
+     Missie 7 heeft een winkel vol losse toestand (de bende, de bom, de knal).
+     Die wordt niet in de opslag gestopt maar opnieuw opgezet: je begint hem
+     weer bij de M aan de Wieken. Dat is eerlijker dan half herstellen.
+    */
+    if (missie === 'bom' && fase !== 'klaar') { beginBom(); return; }
     // Een opgeslagen spel middenin de rit begint ook weer met muziek eronder.
     spanning = (missie === 'rijden' && fase !== 'instappen') || missie === 'bewaking' || missie === 'afleveren'
-      || (missie === 'bx' && fase !== 'wacht' && fase !== 'briefing' && fase !== 'klaar');
+      || (missie === 'bx' && fase !== 'wacht' && fase !== 'briefing' && fase !== 'klaar')
+      || (missie === 'bom' && fase !== 'wacht' && fase !== 'gesprek' && fase !== 'klaar');
     spanningUit = 0;
     markDoel = null; markNa = null;
     if (s.mark) { mark.zetNeer(s.mark.x, s.mark.z, s.mark.yaw || 0); markZichtbaar(s.mark.zichtbaar !== false); }
@@ -1630,6 +2119,12 @@ export function initVerhaal(ctx) {
     get truck() { return truck; },
     get auto() { return vluchtauto; },
     get bx() { return bxAuto; },
+    get schutters() { return schutters; },
+    get bomPlek() { return bomPlek(); },
+    get bomGeplant() { return !!(bomPakket && bomPakket.zichtbaar); },
+    get bomAuto() { return bomAuto; },
+    get knalBezig() { return !!knal; },
+    get bos() { return bos(); },
     get bxPlek() { return bxAfleverPlek(); },
     get poortOpen() { return poortOpen; },
     get plekken() {

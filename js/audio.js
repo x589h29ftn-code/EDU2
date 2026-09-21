@@ -32,6 +32,12 @@ let lijstGeladen = false;
 let missieLijst = [];        // de spanningsmuziek uit audio/missie/
 let missieGeladen = false;
 let missiePlek = -1;         // waar het vorige fragment begon (seconden), om niet te herhalen
+/*
+ Zet je zelf een zender op, dan gaat de radio vóór de missiemuziek (verzoek
+ 21 sep 2026). Dat blijft zo zolang je in die auto zit; stap je uit, dan neemt
+ de missiemuziek het weer over.
+*/
+let radioVoor = false;
 const MISSIE_VOL = 0.26;     // spanningsmuziek: onder de radio (0,32) en boven de motor
 let vogelKlok = 0, krekelKlok = 0;
 let laatsteSfeer = null;     // welk omgevingsgeluid er het laatst klonk
@@ -597,6 +603,8 @@ export const geluid = {
    radiozender loopt door terwijl jij naar iets anders luistert.
   */
   zenderWissel(stap = 1) {
+    // jij kiest: vanaf nu hoor je de radio en niet de missiemuziek
+    radioVoor = true;
     if (zenders.length < 2) return this.radioZender();
     const m = bronnen.muziek;
     if (m && m.el && !m.stuk) zenderStand[zenderNu] = m.el.currentTime;
@@ -666,6 +674,13 @@ export const geluid = {
    terug op het gesynthetiseerde deuntje.
   */
   muziek(actief) {
+    /*
+     Uit de auto: de missiemuziek is weer de baas. Dit staat vóór alles wat
+     hieronder kan afhaken (geen lijst, nog geen element), want anders bleef
+     `radioVoor` hangen zodra er geen mp3's in audio/radio/ staan en zweeg de
+     missiemuziek de rest van de missie.
+    */
+    if (!actief) radioVoor = false;
     if (!aan || !radioLijst.length) return false;
     if (!bronnen.muziek) {
       if (!actief) return true;
@@ -696,7 +711,8 @@ export const geluid = {
      in de auto van de missie, dan speelt de score; de radio blijft er zacht
      onder staan zodat je hem nog hoort, maar hij dringt niet meer voor.
     */
-    const onder = (bronnen.jacht && bronnen.jacht.actief) || (bronnen.missie && bronnen.missie.aan);
+    const onder = (bronnen.jacht && bronnen.jacht.actief)
+      || (bronnen.missie && bronnen.missie.aan && !radioVoor);
     const doel = actief ? (onder ? 0.08 : 0.32) : 0;
     m.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (actief) {
@@ -822,7 +838,13 @@ export const geluid = {
         m.gain.gain.setValueAtTime(0, nu());
       }
       if (m.el.paused && !gepauzeerd) m.el.play().catch(() => { m.stuk = true; });
-      m.gain.gain.setTargetAtTime(MISSIE_VOL, nu(), 0.7);      // aan in ~2 s
+      /*
+       Zet de speler zelf een zender op, dan stapt de missiemuziek opzij: hij
+       blijft wel doorlopen (zo komt hij zonder sprong terug zodra je uitstapt)
+       maar je hoort hem niet meer. Twee nummers door elkaar is geen spanning.
+      */
+      const opzij = radioVoor && bronnen.muziek && bronnen.muziek.aan;
+      m.gain.gain.setTargetAtTime(opzij ? 0 : MISSIE_VOL, nu(), opzij ? 0.6 : 0.7);
     } else if (m.speelt) {
       m.speelt = false;
       m.gain.gain.setTargetAtTime(0, nu(), 0.8);               // uit in ~2,5 s
@@ -833,6 +855,9 @@ export const geluid = {
     }
     return true;
   },
+
+  // Gaat de radio nu voor? Voor tools/bxtest.mjs en tools/missietest.mjs.
+  radioVoorgrond() { return radioVoor; },
 
   // Of de missiemuziek nu speelt, voor js/verhaal.js en tools/missietest.mjs.
   missieStand() {
@@ -878,7 +903,8 @@ export const geluid = {
     }
     const rr = bronnen.autoradio;
     // achtergrondniveau; onder het jachtdeuntje en onder de missiemuziek zachter
-    const zacht = (bronnen.jacht && bronnen.jacht.actief) || (bronnen.missie && bronnen.missie.aan);
+    const zacht = (bronnen.jacht && bronnen.jacht.actief)
+      || (bronnen.missie && bronnen.missie.aan && !radioVoor);
     const doel = actief ? (zacht ? 0.07 : 0.20) : 0;
     rr.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (!actief) { rr.maat = 0; return; }
@@ -1163,6 +1189,17 @@ export const geluid = {
     tik({ freq: 1100 * vaart, q: 0.7, duur: 0.85, volume: vol, type: 'bandpass', val: 0.24 });
     // en het gewicht eronder
     toon({ freq: 150 * vaart, naar: 72, duur: 0.9, volume: vol * 0.5, golf: 'sawtooth' });
+  },
+
+  /*
+   Iets zwaars neerzetten: de tas met explosieven die op de winkelvloer gaat
+   (js/verhaal.js, missie 7). Een doffe bonk met een riempje eroverheen.
+  */
+  neerzetten(afstand = 0) {
+    if (!aan) return;
+    const v = Math.max(0.15, 1 - afstand / 30);
+    tik({ freq: 190, q: 1.1, duur: 0.13, volume: 0.42 * v, type: 'lowpass', val: 0.4 });
+    tik({ freq: 1500, q: 1.6, duur: 0.05, volume: 0.14 * v, type: 'bandpass', val: 0.5, vertraag: 0.05 });
   },
 
   /*

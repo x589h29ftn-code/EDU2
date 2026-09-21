@@ -866,6 +866,12 @@ Onder de spannende delen van een missie loopt muziek uit `audio/missie/`
   Electron-schil doen dat, `python3 -m http.server` niet.
 - **hij zwelt aan en dooft uit.** Twee seconden aan, tweeënhalve seconde uit, en
   het `<audio>`-element gaat pas ná die fade op pauze; anders hak je hem eraf.
+- **kies je zélf een zender, dan gaat de radio voor** (verzoek 21 sep 2026).
+  Draai je tijdens een missie aan de radio, dan stapt de score opzij: hij blijft
+  wél doorlopen — zo komt hij zonder sprong terug — maar je hoort hem niet meer,
+  en de radio gaat van 0,08 naar zijn eigen 0,32. Twee nummers door elkaar is
+  geen spanning. Stap je uit de auto, dan vervalt die keuze (`radioVoor` in
+  `js/audio.js`) en is de missiemuziek weer de baas.
 
 `npm run missietest` (eenendertig controles) houdt deze hele ronde vast: het
 fragment dat elke keer anders is, de fade, de radio die wegzakt, de kogels die
@@ -1388,6 +1394,12 @@ eenmalig een balk in beeld:
 En die M staat bij **Tinga State** aan de Molenkrite, waar Mark op je staat te
 wachten. Met **E** spreek je hem aan.
 
+Die vlag is **anderhalf keer zo groot** als een gewone routevlag en de letter
+erin schaalt mee (verzoek 21 sep 2026): op de minimap tussen de straatjes van de
+wijk was hij nauwelijks te zien. Alleen een vlag mét letter wordt groter — de
+gewone punt aan het eind van een route blijft zoals hij was, anders dekt hij de
+kaart eronder af (`tekenRoute` in `js/hud.js`).
+
 ![De M bij Tinga State](docs/screenshots/bx_marker.png)
 
 De klus komt van De Veteraan: hij wil een **groene Citroën BX**, en die staat op
@@ -1429,6 +1441,85 @@ weggereden, zodat je de BX er echt in kunt zetten.
 
 `npm run bxtest` (eenendertig controles) loopt de hele missie na, van de M op de
 kaart tot de laatste regel van Mark; `npm run bxshots` maakt de foto's hierboven.
+
+Na afloop zegt Mark er nog één ding achteraan: *"Trakteer jezelf ook maar op een
+biertje, kan je hier binnen halen bij de Poiesz!"* — je staat er vlak voor de
+deur (verzoek 21 sep 2026). En dan **is hij weg**: hij is er met de BX vandoor.
+Dat gebeurt niet voor je ogen. Zolang je naar hem kijkt blijft hij staan; kijk
+je weg of loop je verder dan zeventig meter, dan zijn Mark en de auto
+verdwenen. `ruimOpUitZicht` in `js/verhaal.js` doet dat met de kijkrichting van
+de camera (binnen een hoek van ongeveer zeventig graden telt als "je kijkt
+ernaar"). Zo hoef je hem niet te zien oplossen in het niets.
+
+### 7 · De bom
+
+De volgende M staat **binnen**, in de woonkamer van **de Wieken 29** — het huis
+waar je naar binnen kunt. De vlag op de kaart wijst het pand aan; door de
+voordeur en Mark zit op de bank.
+
+![Mark op de bank in de Wieken 29](docs/screenshots/bom_bank.png)
+
+Hij begint over je katten, en komt dan ter zake: De Veteraan heeft een oogje op
+je, de filiaalhouder van de **Poiesz in Duinterpen** heeft zich tegen hem
+gekeerd, en die moet een lesje. *"Hij wil dat we een bom plaatsen in het pand.
+Ga je mee?"*
+
+Buiten staat een auto klaar — jij rijdt.
+
+![De auto voor de deur](docs/screenshots/bom_auto.png)
+
+Bij het parkeren voor de Poiesz stapt Mark uit en geeft je de tas: *"Hier heb je
+de explosieven, ga naar binnen en plant het bij de schappen. We detoneren het
+buiten."* Binnen staat een **gele ruit boven een lichtvlek** op de plek waar hij
+moet komen; met **E** zet je hem neer.
+
+![De plek bij de schappen](docs/screenshots/bom_plek.png)
+
+Dat icoontje staat er niet voor de sier. De winkel is een hal van veertig bij
+dertig meter met zeventien schappenrijen, en "bij de schappen" is daarbinnen
+geen aanwijzing. Een vlag op de kaart kan hier niet: het interieur ligt ruim
+buiten het kaartgebied (zie *Naar binnen bij de Poiesz*), dus het merkteken
+staat in de ruimte zelf.
+
+Weer buiten wacht Mark: *"Ik laat hem afgaan."*
+
+![De knal](docs/screenshots/bom_knal.png)
+
+De ontploffing is een eigen ding (`js/bom.js`): een vuurbal die in negen tiende
+seconde tot zes en een halve meter openklapt, veertien vonken die wegvliegen en
+vallen, en een rookpluim die in drieënhalve seconde tot **twaalf meter** stijgt
+en tot **acht meter** uitwaaiert — hoog genoeg om van de overkant van het
+parkeerterrein boven de gevel uit te komen. De camera schudt ervan (dezelfde
+schok als bij een aanrijding, kracht 0,9). Alles wordt getekend; er komt geen
+plaatje aan te pas.
+
+*"Perfect,"* zegt Mark, *"dat zal hem leren."* En dan komen er **drie auto's**
+aan met **zes man**. Ze stappen pas uit als ze staan, op een meter of twintig,
+en beginnen te schieten.
+
+![De zes man](docs/screenshots/bom_schutters.png)
+
+**Mark schiet mee en kan niet dood.** Hij vuurt elke 0,7 à 1,3 seconde op de
+dichtstbijzijnde, en ongeveer één op de zes schoten is raak — genoeg om te
+merken dat hij meedoet, te weinig om het voor je op te lossen. De zes zelf zijn
+dezelfde bewaking als bij de vrachtwagenmissie (`js/bewaking.js`), meteen in
+alarm.
+
+Daarna staat de politie op **twee sterren**: *"Wegwezen, nu de politie
+afschudden. We gaan naar het Tinga bos."* Dat bos ligt tegen de
+**waterzuiveringsinstallatie** aan; waar je er precies belandt maakt niet uit,
+rijdend of stilstaand. Ben je erin, dan zijn ze je kwijt.
+
+Dan nog één ritje: *"Poeh, op het nippertje. Kun je me terugbrengen naar de
+Molenkrite 15?"* Zet hem daar af en hij stapt uit: *"Bedankt, hier heb je
+trouwens het geld van De Veteraan. We spreken, broeder!"*
+
+Beloning: **€ 300**.
+
+`npm run bomtest` (eenenveertig controles) loopt de hele missie na — van de
+bootmissie die uitstaat en de M bij de Wieken 29 tot de beloning bij Molenkrite
+15, inclusief de radio die voorgaat op de missiemuziek en de zes man die pas ná
+Marks waarschuwing uitstappen. `npm run bomshots` maakt de foto's hierboven.
 
 ## Naar binnen bij Molenkrite 15
 
@@ -2002,6 +2093,11 @@ toetsen per beeld. Er ligt nu een rooster van veertig meter overheen, net als bi
 `npm run watertest` toetst het, en vooral wanneer hij er níet is.
 
 ## De lading over het water
+
+> **Staat nu uit.** Deze missie komt later terug (verzoek 21 sep 2026). De schakelaar is
+> `VAART_AAN` bovenin `js/vaart.js`: staat hij op `false`, dan belt Sander niet en blijft de missie in
+> de stand "uit". De boten, de politiesloep en het hele vaargebied blijven gewoon in het spel — je kunt
+> varen, alleen krijg je er geen opdracht bij. Zet hem op `true` en alles hieronder werkt weer.
 
 Hier waren de boten voor. **Ophalen in IJlst, over de Geeuw naar de kade bij de waterzuivering.**
 

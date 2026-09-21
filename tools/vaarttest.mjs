@@ -30,9 +30,16 @@ page.on('pageerror', e => fouten.push(e.message));
 await page.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load', timeout: 300000 });
 await page.waitForFunction(() => window.__game && window.__game.vaart, null, { timeout: 300000 });
 
-await page.evaluate(() => {
+await page.evaluate(async () => {
   const g = window.__game;
   g.player.active = true;
+  /*
+   De missie staat in het spel zelf uit (verzoek 21 sep 2026, hij komt later
+   terug); hier zetten we hem aan, anders test dit bestand niets. De code
+   blijft zo gewoon onder de toets staan.
+  */
+  const { zetVaartAan } = await import('/js/vaart.js');
+  zetVaartAan(true);
   window.__loop = (n, dt = 1 / 30) => {
     for (let i = 0; i < n; i++) { g.boten.update(dt, null); g.vaart.update(dt); }
   };

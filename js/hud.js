@@ -305,17 +305,29 @@ export class HUD {
     }
     if (doel) {
       const x = doel[0] * scale, z = doel[1] * scale;
+      /*
+       De vlag met een letter erin is de missiemarkering, en die was op de
+       minikaart amper te zien: de M van een nieuwe missie ging op in de
+       straatjes (melding 21 sep 2026). Een vlag mét letter is nu anderhalf keer
+       zo groot als een gewone routevlag. De maat gaat via `dikte` mee met het
+       doek waarop getekend wordt: op de minikaart is dat in beeldpunten, op de
+       grote kaart in meters (daar staat het doek op schaal). Een vaste
+       ondergrens in pixels kan hier dus niet — die zou op de grote kaart juist
+       een speldenprik opleveren.
+      */
+      const vlag = dikte * (this.nav.letter ? 1.55 : 1);
       c.save();
       c.fillStyle = '#ffd400'; c.strokeStyle = '#1a1a1a'; c.lineWidth = 1.5;
       c.beginPath();
-      c.moveTo(x, z - dikte * 3.2); c.lineTo(x + dikte * 2.4, z); c.lineTo(x, z + dikte * 3.2); c.lineTo(x - dikte * 2.4, z);
+      c.moveTo(x, z - vlag * 3.2); c.lineTo(x + vlag * 2.4, z); c.lineTo(x, z + vlag * 3.2); c.lineTo(x - vlag * 2.4, z);
       c.closePath(); c.fill(); c.stroke();
-      // een letter in de vlag (de 'J' van Johan), rechtop tegen de gedraaide kaart
+      // de letter zelf (de 'J' van Johan, de 'M' van een missie), rechtop tegen
+      // de gedraaide kaart
       if (this.nav.letter) {
         c.translate(x, z);
         c.rotate(-(this._kaartRot || 0));
         c.fillStyle = '#1a1a1a';
-        c.font = `bold ${Math.round(dikte * 3)}px sans-serif`;
+        c.font = `bold ${(vlag * 3).toFixed(1)}px sans-serif`;
         c.textAlign = 'center'; c.textBaseline = 'middle';
         c.fillText(this.nav.letter, 0, 0);
       }

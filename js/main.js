@@ -418,6 +418,15 @@ const verhaal = initVerhaal({
   sterrenWeg: () => politie.reset(),
   // en één ster geven, zonder loting: dat hoort bij het stelen van de BX
   sterGeven: (n, x, z) => politie.zetSter(n, x, z),
+  /*
+   Missie 7 speelt zich deels binnen af: in het huis aan de Wieken (waar Mark
+   op de bank zit) en in de Poiesz in Duinterpen (waar de bom komt). Allebei
+   worden ze verderop pas gemaakt, dus ze gaan als functie mee. `schokken` is
+   de camerabeving van de knal.
+  */
+  wieken: () => woningen[1] || null,
+  poiesz: () => (supermarkt && supermarkt.ingangen ? supermarkt : null),
+  schokken: (kracht) => schok(kracht),
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
   bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {}, mislukt() {},

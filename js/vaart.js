@@ -154,6 +154,16 @@ function maakLading() {
   return g;
 }
 
+/*
+ De missie staat tijdelijk uit (verzoek 21 sep 2026: "haal eerst even de
+ bootmissie weg, die komt later"). Alles blijft staan — de sloep, de route over
+ het water, de politieboot — maar hij meldt zich niet meer als het verhaal
+ uitgespeeld is. Zet deze vlag op `true` en hij doet weer precies wat hij deed;
+ tools/vaarttest.mjs zet hem zelf aan om de missie te kunnen naspelen.
+*/
+export let VAART_AAN = false;
+export function zetVaartAan(v) { VAART_AAN = !!v; }
+
 export function initVaart({ scene, player, hud, boten = null, politie = null, verhaal = null }) {
   if (!scene || !boten) return null;
 
@@ -227,9 +237,10 @@ export function initVaart({ scene, player, hud, boten = null, politie = null, ve
   function update(dt) {
     if (fase === 'klaar') return;
 
-    // hij belt pas als het verhaal uitgespeeld is
+    // hij belt pas als het verhaal uitgespeeld is — en alleen als de missie
+    // aanstaat (zie VAART_AAN bovenaan dit bestand)
     if (fase === 'uit') {
-      if (verhaal && verhaal.missie === 'klaar') { fase = 'wacht'; wachtT = NA_JOHAN; }
+      if (VAART_AAN && verhaal && verhaal.missie === 'klaar') { fase = 'wacht'; wachtT = NA_JOHAN; }
       return;
     }
     if (fase === 'wacht') {

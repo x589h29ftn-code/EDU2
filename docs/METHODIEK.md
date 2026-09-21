@@ -4596,6 +4596,77 @@ hoort er gewoon een ster te staan, altijd. Dat is een aparte ingang in
 js/politie.js (`zetSter`) geworden en geen uitzondering in de kansberekening —
 zo blijft het model voor alle andere misdaden intact.
 
+**De bom (stap 69).** Missie 7, en vier dingen die het spel nog niet kon: een
+missie die binnen begint, een aanwijzing in een ruimte zonder kaart, een
+ontploffing die niet aan een auto hangt, en een bondgenoot die meeschiet.
+
+*Een M die binnen staat.* De vlag wijst het pand aan de Wieken 29 aan, maar het
+gesprek begint pas achter de voordeur: de binnenruimte ligt ruim buiten het
+kaartgebied, dus de vlag kan niet op Mark zelf staan. De missie kijkt daarom
+niet naar de afstand tot Mark maar naar `woning.binnen(x, z)` — ben je in de
+kamer, dan zet hij Mark op de bank en begint hij te praten. Dezelfde truc als
+bij de winkel: de wereldcoördinaten van een binnenruimte zijn gewoon
+coördinaten, ze liggen alleen een paar kilometer verderop.
+
+*"Bij de schappen" is geen aanwijzing.* De Poiesz in Duinterpen is binnen een
+hal van veertig bij dertig meter met zeventien schappenrijen. Een vlag op de
+kaart kan er niet staan (zie hierboven), dus staat de aanwijzing in de ruimte
+zelf: een gele ruit die boven een lichtvlek dobbert, op de plek die het spel al
+kende — het bierschap. Een oppakpunt zoals elk spel dat heeft, en het scheelt
+een speler die tien minuten door een supermarkt loopt te zoeken.
+
+*Een ontploffing zonder auto eronder.* De vuurbal die er al was hangt aan een
+voertuig dat uitbrandt. Deze staat los in `js/bom.js`: een bol die in negen
+tiende seconde tot 6,5 m openklapt, veertien vonken met zwaartekracht, en negen
+rookbollen die in 3,4 s tot twaalf meter stijgen en tot acht meter uitwaaieren.
+Die maten zijn niet willekeurig — Mark staat aan de overkant van het
+parkeerterrein, en van daar moet de pluim bóven de gevel uitkomen. Getekend,
+niet ingeladen, zoals alles in dit spel.
+
+*Ze stappen pas uit als ze staan.* "Ineens komen er drie auto's aan met 6 man"
+en "pas daarna stappen de personen uit" is een volgorde, en die volgorde is het
+halve effect. De drie auto's worden op de weg voor de winkel gezet, de zes
+posten liggen op twintig tot vijfentwintig meter, en de bewaking uit
+`js/bewaking.js` (dezelfde als bij de vrachtwagen) gaat pas in alarm nadat Mark
+geroepen heeft. Hergebruik van wat er al stond: een nieuwe vijandklasse zou
+hetzelfde gedrag nog eens opschrijven.
+
+*Een bondgenoot die niet kan sneuvelen.* Mark schiet mee — elke 0,7 à 1,3
+seconde op de dichtstbijzijnde, ongeveer één op de zes raak. Genoeg om te zien
+dat hij meedoet, te weinig om het vuurgevecht voor je te winnen. Hij heeft geen
+levensbalk: een verhaal dat op hem verdergaat kan niet afhangen van een verdwaalde
+kogel.
+
+*De politie kwijtraken op een plek in plaats van na een tijd.* Sterren zakken
+normaal met de tijd. Hier niet: zolang je buiten het bos bent blijven het er
+twee, en zodra je in het bosvlak naast de waterzuivering komt — rijdend of
+stilstaand — zijn ze weg. Dat vlak komt uit de kaartdata (`bos` bij de poort van
+de rwzi), niet uit een met de hand getikte cirkel.
+
+*De radio gaat voor.* Wie tijdens een missie zelf aan de radio draait, wil de
+radio horen. `radioVoor` in js/audio.js onthoudt die keuze: de missiemuziek
+loopt door maar staat op nul, zodat hij zonder sprong terugkomt zodra je
+uitstapt — en uitstappen wist de keuze, want dan ben je van de radio af. Het
+wissen staat bewust vóór alle afhaakpunten in `muziek()`: staan er geen mp3's in
+`audio/radio/`, dan bleef de vlag anders hangen en zweeg de missiemuziek de rest
+van de missie.
+
+*Iemand laten verdwijnen zonder dat je het ziet.* Mark vertrekt na de BX met de
+auto. Hem ter plekke laten oplossen ziet er slecht uit, en hem laten weglopen
+kost een route. Het compromis: hij blijft staan zolang hij in beeld is, en is
+weg zodra je wegkijkt (buiten een hoek van zeventig graden) of verder dan
+zeventig meter bent. Hetzelfde principe als bij het opruimen van verkeer dat je
+niet ziet.
+
+*En de bootmissie staat uit.* Niet weggegooid maar op een schakelaar
+(`VAART_AAN` in js/vaart.js): de boten, de politiesloep en het vaargebied
+blijven, alleen belt Sander niet meer. Een missie die later terugkomt hoort niet
+uit de code gesloopt te worden.
+
+`npm run bomtest` houdt de hele keten vast (eenenveertig controles, van de
+bootmissie die uitstaat tot de € 300 bij Molenkrite 15), `npm run bomshots`
+maakt de foto's.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
