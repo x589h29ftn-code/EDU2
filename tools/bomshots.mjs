@@ -203,14 +203,16 @@ const buiten = await page.evaluate(() => {
   /*
    Eerst stilzetten, dan zelf stappen: zo loopt de hoofdlus de ontploffing niet
    voorbij terwijl het beeld nog staat te renderen. Doorstappen tot de bom
-   afgaat en dan nog zes tiende seconde — de vuurbal is het grootst rond zeven
-   tiende en na negen tiende uitgedoofd (js/bom.js).
+   afgaat en dan nog drie tiende seconde. Dat is niet het moment dat de vuurbal
+   het grootst is maar wel het moment dat je hem het best ziet: hij groeit tot
+   zes en een halve meter en wordt intussen doorzichtig (js/bom.js), dus na een
+   halve seconde is hij een vage waas over de gevel.
   */
   await bevries();
   const stand = await page.evaluate(() => {
     const g = window.__game;
     for (let i = 0; i < 300 && !g.verhaal.knalBezig; i++) window.__stap(1);
-    window.__stap(12);
+    window.__stap(6);
     g.hud.melding('', '', 0);
     return { bezig: g.verhaal.knalBezig, fase: g.verhaal.fase };
   });

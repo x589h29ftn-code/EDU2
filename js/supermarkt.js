@@ -845,8 +845,14 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
     // de waas van het bier volgt de speler, ook buiten de winkel
     hud.zetDronken(player.dronken);
 
-    // bezet (gesprek, menu, pauze): ook het balkje zelf weg, niet alleen de vlag
-    if (bezet) { hintAan = false; praatEl.hidden = true; return; }
+    /*
+     Bezet (gesprek, menu, pauze, of het verhaal dat zelf om E vraagt): ook het
+     balkje zelf weg, niet alleen de vlag — maar alleen ons eigen balkje. Bij de
+     schappen in Duinterpen staat de bom uit missie 7 op dezelfde plek als het
+     bier; dan hoort "E — de bom planten" te blijven staan en niet overschreven
+     of weggehaald te worden door de winkel.
+    */
+    if (bezet) { if (hintAan) praatEl.hidden = true; hintAan = false; return; }
     let tekst = null;
     if (bezig && !player.inCar) {
       if (bijBier(player.pos.x, player.pos.z)) {

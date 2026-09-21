@@ -208,15 +208,24 @@ const planten = await page.evaluate(() => {
   // en dan op de plek zelf
   g.player.pos.set(plek.x + 1.0, 0, plek.z + 0.6);
   window.__stap(3);
-  const hint = !document.getElementById('praat').hidden;
+  /*
+   Zoals de hoofdlus het doet: eerst het verhaal, dan de binnenruimtes. De
+   markering staat bij het bierschap, en de winkel zette daar zijn eigen
+   "E — flesje bier kopen" overheen; het verhaal hoort voor te gaan.
+  */
+  g.supermarkt.update(0.05, g.verhaal.aanspreekbaar);
+  const praatEl = document.getElementById('praat');
+  const hint = !praatEl.hidden;
+  const hintTekst = praatEl.textContent;
   g.praat();
   window.__stap(3);
-  return { ergensAnders, hint, geplant: g.verhaal.bomGeplant, fase: g.verhaal.fase,
+  return { ergensAnders, hint, hintTekst, geplant: g.verhaal.bomGeplant, fase: g.verhaal.fase,
     opdracht: document.getElementById('opdracht').textContent };
 });
 ok(!planten.ergensAnders.geplant && planten.ergensAnders.fase === 'planten',
   'ergens anders in de winkel plant hij niets', planten.ergensAnders.fase);
-ok(planten.hint, 'bij de schappen staat "E — de bom planten" in beeld');
+ok(planten.hint && /bom planten/.test(planten.hintTekst || ''),
+  'bij de schappen staat "E — de bom planten" in beeld', planten.hintTekst || 'niets in beeld');
 ok(planten.geplant && planten.fase === 'naarbuiten', 'daar plant hij hem wel',
   `${planten.fase} · geplant: ${planten.geplant}`);
 

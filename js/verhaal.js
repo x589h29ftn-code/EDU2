@@ -2138,7 +2138,21 @@ export function initVerhaal(ctx) {
     },
     get aanspreekbaar() {
       const bijMark = afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND && mark.groep.visible;
+      /*
+       Ook waar als het verhaal zelf de E-toets nodig heeft. Bij de schappen in
+       Duinterpen staat de bom op dezelfde plek als het bier: E plantte de bom
+       (js/verhaal.js gaat voor in `praatOfAuto`) maar in beeld stond nog
+       "E — flesje bier kopen". De binnenruimte laat haar eigen hint weg zodra
+       dit waar is.
+      */
+      const bijBom = missie === 'bom' && fase === 'planten' && (() => {
+        const plek = bomPlek();
+        if (!plek) return false;
+        const sp = spelerPunt();
+        return Math.hypot(sp.x - plek.x, sp.z - plek.z) < BOM_PLANT_BEREIK;
+      })();
       return !balk.hidden
+        || bijBom
         || (missie === 'molenkrite' && fase === 'wacht' && bijMark)
         || (missie === 'bx' && fase === 'wacht' && bijMark);
     },
