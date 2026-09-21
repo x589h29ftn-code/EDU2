@@ -236,11 +236,12 @@ const scene = await page.evaluate(async () => {
   window.__klik();
   window.__stap(20);
   /*
-   Even echte tijd laten lopen: het wapen komt in de hoofdlus omhoog (de
-   trekbeweging in js/player.js loopt op de klok van het spel, niet op de
-   stapjes die deze proef zelf zet), en zolang dat duurt mag je niet schieten.
+   Het wapen komt in de hoofdlus omhoog, en die klok loopt in een headless
+   browser bijna niet (één beeld per halve seconde). Die trekbeweging is hier
+   niet het punt — het gaat om het slot dat Johan eraf haalt — dus zetten we
+   hem op nul, zoals hij een halve seconde later in het spel ook staat.
   */
-  await new Promise(r => setTimeout(r, 1300));
+  g.player.wisselT = 0;
   const na = d.veteraan.groep.position;
   const p = g.player;
   return {
@@ -300,7 +301,6 @@ const eind = await page.evaluate(async () => {
   const lig = LIGPLAATSEN[0];
   const kade = lig.wal;
   const verzet = g.boten.verplaats(g.player.inBoot, lig.x, lig.z, lig.yaw);
-  window.__stap(8);
   const bij = Math.hypot(g.player.inBoot.x - kade.x, g.player.inBoot.z - kade.z);
   /*
    Meteen na het verzetten: de politieboten varen dan nog. Pas als hun eigen
@@ -312,6 +312,7 @@ const eind = await page.evaluate(async () => {
     actief: g.verhaal.snipBoten.filter(b => b.actief).length,
     opdracht: document.getElementById('opdracht').textContent,
   };
+  window.__stap(8);
   // en dan de drie boten uitschakelen, zoals je ze met de sniper neerhaalt
   for (const b of g.verhaal.snipBoten) {
     for (const doel of b.doelen()) g.verhaal.raak(doel);
