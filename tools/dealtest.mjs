@@ -191,6 +191,7 @@ const varen = await page.evaluate(async () => {
   const sloep = g.boten.ruw(0);
   g.boten.stapIn(sloep);
   const inBoot = !!g.player.inBoot;
+  window.__stap(3);                          // een paar beelden: dan stapt Johan mee
   const johanWeg = !g.verhaal.johanPersoon.groep.visible;
   g.boten.verplaats(sloep, plek.boot.x, plek.boot.z, 0);
   window.__stap(8);
@@ -218,7 +219,7 @@ ok(/scope|kijker/i.test(varen.opdracht), 'de opdracht wijst naar de kijker', var
 
 // ------------------------------------------------------------- de deal
 kop('de deal en wat er misgaat');
-const scene = await page.evaluate(() => {
+const scene = await page.evaluate(async () => {
   const g = window.__game;
   const d = g.verhaal.deal;
   const vet = d.veteraan.groep.position;
@@ -234,6 +235,12 @@ const scene = await page.evaluate(() => {
   const vuurSlot = g.player.vuurSlot;
   window.__klik();
   window.__stap(20);
+  /*
+   Even echte tijd laten lopen: het wapen komt in de hoofdlus omhoog (de
+   trekbeweging in js/player.js loopt op de klok van het spel, niet op de
+   stapjes die deze proef zelf zet), en zolang dat duurt mag je niet schieten.
+  */
+  await new Promise(r => setTimeout(r, 1300));
   const na = d.veteraan.groep.position;
   return {
     mensen, bijBaas, schietVoor, schietNa, tekst, vuurSlot,
@@ -283,16 +290,21 @@ kop('terug bij de kade');
 const eind = await page.evaluate(async () => {
   const { LIGPLAATSEN } = await import('/js/boot.js');
   const g = window.__game;
-  // eerst zonder de politie uit te schakelen terug: dan is het nog niet klaar
-  const kade = LIGPLAATSEN[0].wal;
-  g.boten.verplaats(g.player.inBoot, kade.x + 6, kade.z + 6, 0);
+  // eerst zonder de politie uit te schakelen terug: dan is het nog niet klaar.
+  // Terug naar de ligplaats zelf: daar past de romp, een paar meter ernaast
+  // kan de wal zijn en dan blijft de boot staan waar hij lag.
+  const lig = LIGPLAATSEN[0];
+  const kade = lig.wal;
+  const verzet = g.boten.verplaats(g.player.inBoot, lig.x, lig.z, lig.yaw);
   window.__stap(8);
+  const bij = Math.hypot(g.player.inBoot.x - kade.x, g.player.inBoot.z - kade.z);
   const teVroeg = { fase: g.verhaal.fase, opdracht: document.getElementById('opdracht').textContent };
   // en dan de drie boten uitschakelen, zoals je ze met de sniper neerhaalt
   for (const b of g.verhaal.snipBoten) {
     for (const doel of b.doelen()) g.verhaal.raak(doel);
   }
   window.__stap(12);
+  const fases = g.verhaal.snipBoten.map(b => (b.actief ? b.fase : 'weg'));
   const geldVoor = g.verhaal.geld;
   window.__stap(8);
   const regels = [];
@@ -304,14 +316,18 @@ const eind = await page.evaluate(async () => {
   }
   window.__stap(6);
   return {
-    teVroeg, regels, geldVoor, geldNa: g.verhaal.geld,
+    teVroeg, regels, geldVoor, geldNa: g.verhaal.geld, verzet, bij, fases,
     missie: g.verhaal.missie, fase: g.verhaal.fase,
     melding: document.getElementById('missie').textContent,
     ring: g.verhaal.snipRing ? g.verhaal.snipRing.zichtbaar : false,
   };
 });
+ok(eind.verzet && eind.bij < 18, 'je vaart terug naar de kade aan de Geeuw',
+  `${eind.bij.toFixed(1)} m van de wal`);
 ok(eind.teVroeg.fase === 'terug' && /waterpolitie/i.test(eind.teVroeg.opdracht),
   'met de politie nog op het water ben je nog niet klaar', eind.teVroeg.opdracht);
+ok(eind.fases.every(f => f === 'wrak' || f === 'weg'), 'de drie boten gaan uit',
+  eind.fases.join(', '));
 ok(eind.regels.some(r => /Bedankt Erik/i.test(r)), 'Johan bedankt je',
   (eind.regels[0] || '').slice(0, 40));
 ok(eind.geldNa - eind.geldVoor === 500, 'de beloning is € 500',

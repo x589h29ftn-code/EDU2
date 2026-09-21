@@ -4727,6 +4727,49 @@ alleen hun eigen balkje weg — dat gold net zo goed voor "E — praten" bij Mar
 bootmissie die uitstaat tot de € 300 bij Molenkrite 15), `npm run bomshots`
 maakt de foto's.
 
+**De deal bij de molen (stap 70).** Missie 8, en de eerste missie die zich
+grotendeels op het water afspeelt — met een kijker in plaats van een vuistvuurwapen.
+
+*Een plek die gezocht wordt, geen coördinaat die ingetikt wordt.* De missie
+vraagt om "op ruime afstand bij de Houtmolen, in het water". Dat is geen
+coördinaat maar een verzameling eisen: open vaarwater, ruimte om in te
+dobberen, een oever ertussen, en vrij zicht op de kade — anders kijk je door
+een kijker tegen een loods aan. Rond houtzaagmolen De Rat wordt daarom een ring
+van kandidaten afgelopen (46 tot 78 meter, 64 richtingen), elke kandidaat
+getoetst met `vaarbaar` en `zichtVrij`, en de beste is die het dichtst bij
+zestig meter ligt. De kade voor de ontmoeting volgt uit dezelfde lijn: vanaf het
+water naar de molen lopen tot het land begint, en dan tweeënhalve meter verder.
+Verplaatst de kaart, dan verplaatst de missie mee.
+
+*Wel kijken, niet schieten.* De scène vraagt om vijftien seconden meekijken
+zonder in te grijpen. Het wapen weghalen kan niet — je moet er juist doorheen
+kijken — dus is er een tweede slot bij gekomen: `vuurSlot` in js/player.js.
+Richten, zoomen en de scope werken gewoon; `magSchieten()` geeft false. Eén
+regel in de speler, en de missie hoeft niets van het wapen te weten.
+
+*Drie politieboten zonder ster.* De waterpolitie bestond al, maar kwam alleen
+opdagen bij verdenking en telde daarbij als "je hebt iets misdaan". Hier is de
+achtervolging de missie zelf. `initPolitieboot` heeft daarom een haakje
+gekregen (`jaagtOok`) waarmee het verhaal dezelfde boot drie keer inzet, en de
+treffers lopen via het verhaal in plaats van via js/main.js — want daar zou een
+agent aan boord meteen sterren opleveren.
+
+*Een schot van vijftig meter.* Elk schot klonk even hard, want er werd tot nu
+toe alleen vlakbij geschoten. Bij deze deal kijk je van een afstand mee, en dan
+hoort het geknal ook van die afstand te komen: `geluid.schot(afstand)` schaalt
+de knal, de echo's en de naijl, en boven de tachtig meter blijft er een dof
+tikje over.
+
+*De mensen op de kade.* De Veteraan heeft een baard (een blokje aan het hoofd —
+Persoon kent geen gezichtshaar en dat hoeft ook niet voor één man), een
+olijfgroen uniform met pet, en een dik hondje: dezelfde vorm als de hondjes aan
+de lijn in de wijk, anderhalf keer zo breed. Ze blijven staan waar ze staan als
+het schieten begint. Dat is geen luiheid maar een keuze: wie op vijftig meter
+dekking zoekt is door een kijker niet meer te vinden, en dan wordt de scène een
+zoekplaatje in plaats van een schot.
+
+`npm run dealtest` loopt de hele keten na, van het telefoontje tot de € 500.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -558,6 +558,7 @@ export function initVerhaal(ctx) {
   let snipBoten = [];            // de drie waterpolitieboten
   let snipT = 0;                 // aftellen tot de telefoon gaat
   let snipKijkT = 0;             // hoelang je nog meekijkt voor het misgaat
+  let snipGezien = false;        // is de waterpolitie al een keer in beeld geweest?
   const gevallen = new Set();    // wie er al een wapen heeft laten liggen
   let bomAuto = null;            // de auto voor de deur aan de Wieken
   let bomMerk = null;            // de markering waar de bom moet komen
@@ -1171,7 +1172,13 @@ export function initVerhaal(ctx) {
     if (schutters && schutters.raak(obj)) return true;
     // de maffia bij de molen, en de waterpolitie die achter je aan komt
     if (deal && deal.raak(obj)) return true;
-    for (const b of snipBoten) if (b.raak(obj)) return true;
+    /*
+     De waterpolitie uit missie 8: eerst de twee agenten aan boord, dan de romp.
+     Ze lopen bewust via het verhaal en niet via js/main.js, want daar telt een
+     agent als een misdaad — en deze achtervolging hoort juist geen sterren op
+     te leveren. Een snipertreffer in de romp telt voor drie.
+    */
+    for (const b of snipBoten) if (b.raakAgent(obj) || b.raak(obj, 3)) return true;
     // Op de dief mag je niet schieten: dan hangt de politie aan je broek.
     if (dief && missie === 'johan' && dief.isDief(obj)) {
       mislukt(MISLUKT_SCHOT);
@@ -1451,7 +1458,7 @@ export function initVerhaal(ctx) {
     if (snipRing) { snipRing.toon(false); }
     for (const b of snipBoten) b.reset();
     snipBoten = [];
-    snipT = 0; snipKijkT = 0;
+    snipT = 0; snipKijkT = 0; snipGezien = false;
     player.vuurSlot = false;
     if (johan) johan.groep.visible = false;
   }
@@ -1609,7 +1616,14 @@ export function initVerhaal(ctx) {
       const p = bootPunt();
       const kade = geeuwKade();
       const thuis = Math.hypot(p.x - kade.x, p.z - kade.z) < SNIP_THUIS;
-      const politieWeg = snipBoten.every(b => !b.actief || b.fase === 'wrak');
+      /*
+       Ze komen niet meteen het water op (js/politieboot.js laat ze een paar
+       tellen later opkomen). Zolang er nog geen boot te zien is geweest ben je
+       niet klaar — anders zou je de missie kunnen uitspelen door meteen terug
+       te varen voordat ze er zijn.
+      */
+      if (snipBoten.some(b => b.actief)) snipGezien = true;
+      const politieWeg = snipGezien && snipBoten.every(b => !b.actief || b.fase === 'wrak');
       if (balk.hidden) {
         zetOpdracht(politieWeg
           ? 'terug naar de kade aan de Geeuw'

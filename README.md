@@ -1571,6 +1571,54 @@ bootmissie die uitstaat en de M bij de Wieken 29 tot de beloning bij Molenkrite
 15, inclusief de radio die voorgaat op de missiemuziek en de zes man die pas ná
 Marks waarschuwing uitstappen. `npm run bomshots` maakt de foto's hierboven.
 
+### 8 · De deal bij de molen
+
+Een minuut na de bom gaat de telefoon. Johan, met een boodschap die hij eerst
+op Telegram had gezet: *"Ik heb iemand nodig met steady handjes. Die van mij
+trillen te veel, en ik weet dat jij om kan gaan met snipers. Koop er eentje bij
+de Tinga State en kom naar mij toe, achter de waterzuivering aan de Geeuw.
+Zwembroek hoeft niet mee, haha."*
+
+Dus eerst naar **Tinga State** voor een sniper (€ 650) — heb je er al een, dan
+wijst de kaart meteen naar Johan. Die staat bij het **bootje aan de Geeuwkade**
+achter de waterzuivering:
+
+> De Veteraan gaat bij de molen in IJlst een belangrijke deal sluiten met de
+> IJlster maffia. Die deal moet doorgaan. Hij vertrouwt het alleen niet en wil
+> dat wij het met dit bootje op afstand in de gaten houden. Oké, jij vaart.
+
+**Jij vaart, Johan gaat mee.** Bij houtzaagmolen De Rat ligt een **gele cirkel
+op het water**: daarbinnen blijven liggen, motor eruit. Die plek is niet
+ingetikt maar gezocht in de kaart — open water op een meter of zestig van de
+molen, met genoeg ruimte om te dobberen en **vrij zicht op de kade**. Zonder
+die laatste eis kijk je door een kijker tegen een loods aan.
+
+Dan zegt Johan dat de meeting begint en *dat je het door je scope moet
+bekijken*: **rechtermuisknop** om te richten, **scrollwiel** om in te zoomen
+(4× tot 12×). De sniper zit dan al in je handen, en **schieten kan nog niet** —
+je bent er om te kijken. Op de kade zie je De Veteraan staan, met baard, in
+uniform en met een dik hondje naast zich, tegenover de maffiabaas en zijn vier
+compagnons.
+
+Na een seconde of vijftien gaat het mis: *"Shit, dit gaat fout. Erik, schiet ze
+neer!"* De vijf trekken hun wapens en openen het vuur op De Veteraan, die
+achteruit deinst — en vanaf dat moment werkt jouw trekker wel. Ze blijven staan
+waar ze staan; wie op vijftig meter dekking zoekt is door een kijker niet meer
+te vinden.
+
+Daarna: *"Wegwezen, terug naar de kade bij de Geeuw waar we vandaan kwamen."*
+Er komen **drie waterpolitieboten** achter je aan. Geen sterren — dit is geen
+gevolg van een misdaad maar hoort bij de missie — maar je moet ze wel
+uitschakelen: twee agenten per boot, of de romp kapot schieten. Terug bij de
+kade bedankt Johan je.
+
+Beloning: **€ 500**. En onder alles loopt de spanningsmuziek uit `audio/missie/`,
+vanaf het telefoontje tot even na **MISSIE VOLTOOID**.
+
+`npm run dealtest` loopt de hele missie na, van het telefoontje tot de beloning,
+inclusief de plek die in de kaart gezocht wordt en de trekker die pas los gaat
+als het misgaat.
+
 ## Naar binnen bij Molenkrite 15
 
 Loop je naar de **voordeur van Molenkrite 15** en druk je op **E**, dan ga je naar binnen:
