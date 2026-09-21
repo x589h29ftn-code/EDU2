@@ -1559,7 +1559,7 @@ trouwens het geld van De Veteraan. We spreken, broeder!"*
 
 Beloning: **€ 300**.
 
-`npm run bomtest` (vijfenveertig controles) loopt de hele missie na — van de
+`npm run bomtest` (vierenvijftig controles) loopt de hele missie na — van de
 bootmissie die uitstaat en de M bij de Wieken 29 tot de beloning bij Molenkrite
 15, inclusief de radio die voorgaat op de missiemuziek en de zes man die pas ná
 Marks waarschuwing uitstappen. `npm run bomshots` maakt de foto's hierboven.
