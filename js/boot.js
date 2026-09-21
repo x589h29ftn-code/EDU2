@@ -71,11 +71,23 @@ const STUUR_D = 0.30;           // dwarsscheeps, positief is stuurboord
 const VOORDEK = 0.20;           // tot dit spant loopt het voordek
 const ACHTERDEK = 0.88;         // en vanaf dit spant het achterdek
 
-// ---------- hoe hij vaart ----------
-const TOP = 7.0;                // m/s vooruit — ruim 25 km/u, en dat is veel op een vaart
-const TOP_ACHTER = 2.2;
-const STUW = 3.6;               // versnelling bij vol gas (m/s²), vóór de weerstand
-const STUW_ACHTER = 1.5;
+/*
+ ---------- hoe hij vaart ----------
+
+ De sloep liep zeven meter per seconde, ruim 25 km/u. Dat is veel op een vaart
+ maar weinig als je van de Geeuwkade naar IJlst moet: tweeënhalve kilometer
+ vaarwater duurde daarmee zes minuten (verzoek 21 sep 2026, "maak de boot twee
+ keer zo snel"). Hij gaat naar veertien meter per seconde, ruim 50 km/u — een
+ stevige buitenboordmotor. De stuwkracht gaat evenredig mee omhoog, anders
+ duurt het optrekken twee keer zo lang als de vaart twee keer zo hoog is.
+
+ De politiesloep hangt hieraan vast met een eigen factor (js/politieboot.js):
+ die moet je kunnen inhalen.
+*/
+const TOP = 14.0;               // m/s vooruit — ruim 50 km/u
+const TOP_ACHTER = 4.4;
+const STUW = 7.2;               // versnelling bij vol gas (m/s²), vóór de weerstand
+const STUW_ACHTER = 3.0;
 const LANGS = 0.065;            // rompweerstand in de lengte, × v²
 const LANGS_VAST = 0.14;        // en een beetje vaste weerstand, anders drijft hij eeuwig door
 const DWARS = 2.4;              // dwars op de romp remt het water veel harder af

@@ -121,14 +121,20 @@ const traag = await page.evaluate(() => {
   return { ruim, v1, v3, v10, top: g.boten.top };
 });
 ok('het ruime water is bevaarbaar', traag.ruim);
-ok('na een seconde vol gas nog geen drie meter per seconde', traag.v1 < 3, `${traag.v1.toFixed(2)}`);
+ok('na een seconde vol gas nog geen zes meter per seconde', traag.v1 < 6, `${traag.v1.toFixed(2)}`);
 ok('hij loopt wel op', traag.v3 > traag.v1);
-ok('de topsnelheid is zeven meter per seconde', Math.abs(traag.top - 7) < 0.01, `${traag.top}`);
+/*
+ Sinds 21 sep 2026 loopt de sloep veertien meter per seconde in plaats van
+ zeven: de overtocht naar IJlst duurde anders zes minuten. Hij trekt nog steeds
+ traag op — dat is wat een boot van een auto onderscheidt — maar hij ligt niet
+ meer stil op het water.
+*/
+ok('de topsnelheid is veertien meter per seconde', Math.abs(traag.top - 14) < 0.01, `${traag.top}`);
 ok('na tien seconden zit hij onder de top', traag.v10 <= traag.top + 0.01, `${traag.v10.toFixed(2)}`);
 ok('en hij haalt wel het grootste deel ervan', traag.v10 > traag.top * 0.6, `${traag.v10.toFixed(2)}`);
 
-// een auto is veel sneller: dat is het hele punt van een trage boot
-ok('een boot is veel trager dan een auto', traag.top < 24 * 0.4, `${traag.top} tegen 24`);
+// een auto trekt nog altijd veel harder op: dat is het verschil met een boot
+ok('een boot trekt trager op dan een auto', traag.v1 < 24 * 0.25, `${traag.v1.toFixed(2)} m/s na één seconde`);
 
 // ---------- uitlopen: er zit geen rem op ----------
 console.log('\nuitlopen');

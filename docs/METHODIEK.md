@@ -3851,7 +3851,9 @@ lineair: dat is de kiel. Daardoor zwenkt de achtersteven in een bocht naar buite
 en zeilt hij de bocht uit nadat het roer al recht staat. Het roer werkt met de
 snelheid mee (stilliggend niets, achteruit andersom) en daar bovenop kan de
 schroef hem op zijn plek ronddraaien zolang er gas op staat — anders kom je nooit
-van de kant. Top zeven meter per seconde vooruit, ruim twee achteruit.
+van de kant. Top veertien meter per seconde vooruit, ruim vier achteruit (was zeven en twee; sinds
+missie 8 over de Geeuw naar IJlst vaart is de sloep twee keer zo snel, en de politiesloep veertig
+procent harder in plaats van tweeëntwintig).
 
 *De vaarweg.* `vaarbaar(x, z)` in `js/world.js`, naast het bestaande
 `pointInWater`. Het verschil is één klasse: te voet ligt een brug bóven het water

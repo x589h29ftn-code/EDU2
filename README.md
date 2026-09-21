@@ -1974,12 +1974,15 @@ een politiesloep, zodra je gezocht wordt.
 | ![de kuip](docs/screenshots/boot_kuip.png) | ![varend op de Geeuw](docs/screenshots/boot_varend.png) |
 | de kuip: houten vlonder, twee doften, de stuurconsole | varend, met het schuim in het kielzog |
 
-### Traag, en dat is expres
+### Traag op gang, en dat is expres
 
-De sloep haalt **zeven meter per seconde** — ruim 25 km/u, nog geen kwart van wat een auto doet — en
-hij komt daar ook niet in één tel. Vol gas vanaf stil: na één seconde twee meter per seconde, na vijf
-seconden zit hij pas op zijn top. Dat hoort zo. Een overtocht over het water móét iets kosten,
-anders is er geen reden om ooit de weg te nemen.
+De sloep haalt **veertien meter per seconde** — ruim 50 km/u. Dat was zeven, maar daarmee duurde de
+overtocht van de Geeuwkade naar IJlst zes minuten; sinds missie 8 daar heen en weer vaart is hij twee
+keer zo snel (verzoek 21 sep 2026).
+
+Wat niet veranderd is: **hij komt er niet in één tel**. Vol gas vanaf stil duurt het seconden voor hij
+op zijn top zit, hij houdt zijn vaart als je het gas eraf haalt, en een bocht kost je snelheid. Dat is
+het verschil met een auto — niet de topsnelheid maar hoe hij eraan komt en hoe hij hem kwijtraakt.
 
 ### Hij vaart als een boot, niet als een auto
 
@@ -2171,8 +2174,10 @@ en twee agenten aan boord. Hij komt alleen als het ergens op slaat:
 * en er is **verdenking** — één ster is genoeg.
 
 Hij komt op vijfentachtig tot honderdvijftig meter in beeld, bij voorkeur achter je en uit het zicht,
-en vaart met dezelfde natuurkunde als jouw sloep. Wat hij niet deelt is de topsnelheid: **8,5 tegen
-7,0 m/s**, want anders is wegvaren geen keuze maar een garantie. In plaats van een toetsenbord zit er
+en vaart met dezelfde natuurkunde als jouw sloep. Wat hij niet deelt is de topsnelheid: **19,6 tegen
+14,0 m/s**, veertig procent harder, want anders is wegvaren geen keuze maar een garantie. Hij liep
+eerst 22 % harder; toen jouw sloep twee keer zo snel werd was dat te weinig om nog echt in te lopen
+(verzoek 21 sep 2026). In plaats van een toetsenbord zit er
 een stuurautomaat op; ligt er wal in de weg, dan probeert hij een waaier van koersen om de vijftien
 graden en neemt de vrijste. Binnen tweeënveertig meter wordt er geschoten, vanaf een deinend dek dus
 minder trefzeker dan vanaf de kant. Veertien treffers en de motor geeft het op: hij blijft liggen, het

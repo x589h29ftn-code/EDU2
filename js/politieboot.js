@@ -28,9 +28,18 @@ import { geluid } from './audio.js';
 
 const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c, vest: 0xd6dc46, schoen: 0x14161c };
 
-// ---- varen ----
-const TOP = SLOEP.TOP * 1.22;      // sneller dan jouw sloep, maar geen speedboot
-const STUW = SLOEP.STUW * 1.25;
+/*
+ ---- varen ----
+
+ Sneller dan jouw sloep, want een achtervolging die je op topsnelheid gewoon
+ uitzit is geen achtervolging. Hij liep 22 % harder; sinds jouw sloep twee keer
+ zo snel is (js/boot.js) is dat te weinig om nog echt in te lopen — op veertien
+ meter per seconde scheelt 22 % drie meter per seconde, en dan blijft hij op
+ een rechte vaart achter je hangen. Het is nu 40 % harder, met meer stuwkracht
+ om het gat ook echt dicht te rijden (verzoek 21 sep 2026).
+*/
+const TOP = SLOEP.TOP * 1.4;       // ruim 70 km/u: hij haalt je in
+const STUW = SLOEP.STUW * 1.45;
 const ROER = 0.62;                 // rad/s bij volle vaart
 const ROER_TRAAG = 3.0;
 
