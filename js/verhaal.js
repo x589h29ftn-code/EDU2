@@ -122,8 +122,8 @@ const BOM_MANNEN = 6;                                 // zes man in drie auto's
 const BOM_AUTOS = 3;
 const BOM_KOMEN = 23;                                 // zover van je vandaan stoppen ze (m)
 const BOM_AANRIJ = 70;                                // en zover verderop zetten ze in
-const BOM_AANRIJ_V = 18;                              // hoe hard ze aan komen rijden (m/s)
-const BOM_REM = 20;                                   // op deze afstand gaan ze op de rem
+const BOM_AANRIJ_V = 20;                              // hoe hard ze aan komen rijden (m/s, 72 km/u)
+const BOM_REM_A = 7.5;                                // en hoe hard ze remmen (m/s²): 27 m uitloop
 const BOM_TUSSEN = 7;                                 // afstand tussen de drie auto's
 const BOM_BUIT_KOGELS = [6, 13];                      // wat er nog in hun pistool zit
 const BOM_STERREN = 2;                                // wat de politie ervan vindt
@@ -1482,16 +1482,24 @@ export function initVerhaal(ctx) {
       allemaalStil = false;
       const dx = a.doel.x - a.auto.x, dz = a.doel.z - a.auto.z;
       const d = Math.hypot(dx, dz) || 0.0001;
-      if (d < BOM_REM) {
-        if (!a.piep) { a.piep = true; geluid.piependeBanden(afst(sp, a.auto)); }
-        a.snelheid = Math.max(3.5, a.snelheid - 22 * dt);
-      }
+      /*
+       Remmen zoals een auto remt: de snelheid die nog past om precies op de
+       plek stil te staan is v = wortel(2·a·d). Zolang die boven de
+       rijsnelheid ligt gaat hij vol gas, daaronder remt hij af. De eerste
+       opzet remde op een vaste afstand naar een ondergrens en kroop daarna de
+       laatste meters naar zijn plek — dat zag eruit als stapvoets rijden
+       (melding 21 sep 2026).
+      */
+      const nodig = Math.sqrt(2 * BOM_REM_A * d);
+      const remt = nodig < BOM_AANRIJ_V;
+      a.snelheid = Math.min(BOM_AANRIJ_V, nodig);
+      if (remt && !a.piep) { a.piep = true; geluid.piependeBanden(afst(sp, a.auto)); }
       const stap = Math.min(d, a.snelheid * dt);
       a.auto.x += (dx / d) * stap;
       a.auto.z += (dz / d) * stap;
       a.auto.speed = a.snelheid;
       if (a.auto.mesh) a.auto.mesh.position.set(a.auto.x, a.auto.mesh.position.y, a.auto.z);
-      if (d - stap < 0.35) { a.stil = true; a.auto.speed = 0; }
+      if (d - stap < 0.4) { a.stil = true; a.auto.speed = 0; }
     }
     return allemaalStil;
   }
@@ -1714,6 +1722,23 @@ export function initVerhaal(ctx) {
         if (b) zetNavDoel(b.x, b.z, 'Tinga-bos', 'M');
       });
       return;
+    }
+
+    /*
+     Vanaf hier rijdt Mark met je mee. Hij loopt niet naar de auto en stapt
+     niet in — dat is een animatie die niets toevoegt en alles kan misgaan als
+     jij intussen wegrijdt. Zodra je achter het stuur zit is hij uit beeld
+     (verzoek 21 sep 2026: "laat Mark verwijderen als je in een auto instapt");
+     bij de Molenkrite staat hij weer naast je als hij uitstapt.
+    */
+    if (fase === 'vluchten' || fase === 'thuisbrengen') {
+      if (player.inCar && mark.groep.visible) markZichtbaar(false);
+      else if (!player.inCar && !mark.groep.visible) {
+        // stap je onderweg uit, dan stapt hij mee uit en staat hij naast je
+        const [mx, mz] = resolveCollisions(sp.x + 1.8, sp.z + 1.8, 0.4);
+        mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, sp));
+        markZichtbaar(true);
+      }
     }
 
     // -- de politie afschudden in het bos

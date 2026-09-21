@@ -4635,6 +4635,21 @@ per auto, aan de kant waar de speler staat. De bewaking uit `js/bewaking.js`
 (dezelfde als bij de vrachtwagen) doet daarna het vechten. Hergebruik van wat er
 al stond: een nieuwe vijandklasse zou hetzelfde gedrag nog eens opschrijven.
 
+*Remmen zoals een auto remt.* De eerste opzet remde op een vaste afstand naar
+een ondergrens en legde de laatste meters stapvoets af; dat zag er traag uit.
+Nu telt de natuurkunde: de snelheid die nog past om precies op de plek stil te
+staan is v = √(2·a·d). Zolang die boven de rijsnelheid ligt rijdt hij vol gas,
+daaronder remt hij. Met 20 m/s en 7,5 m/s² is dat zevenentwintig meter uitloop,
+en staat hij zonder gekruip stil.
+
+*Mark rijdt mee in plaats van dat hij instapt.* Na het vuurgevecht bleef hij op
+straat staan terwijl jij wegreed. Hem naar de auto laten lopen en laten
+instappen is een animatie die niets toevoegt en die stukloopt zodra jij
+wegrijdt; hij is nu gewoon uit beeld zodra jij achter het stuur zit, en staat
+weer naast je als je uitstapt. Dezelfde gedachte als Mark die na de BX
+verdwijnt zodra je wegkijkt: laat het spel niet iets naspelen wat de speler
+toch niet ziet.
+
 *Piepende banden zijn een los geluid geworden.* Er wás al bandengier, maar dat
 is één doorlopende bron die aan jouw auto hangt en elk beeld op nul wordt gezet
 zodra je te voet bent (js/main.js). Deze auto's remmen terwijl jij ernaast

@@ -301,6 +301,9 @@ ok(knal.schok > 0.3, 'en de camera schudt ervan', `schok ${knal.schok.toFixed(2)
 ok(knal.autos === 3, 'er komen drie auto\'s aanrijden', `${knal.autos} auto's`);
 ok(knal.reden > 10 && knal.verweg > 30, 'ze rijden echt aan, van ver',
   `${knal.reden} beelden onderweg, tot ${knal.verweg.toFixed(0)} m van je vandaan`);
+// 0,05 s per beeld: honderdvijftig beelden is zeven en een halve seconde. Meer
+// dan dat betekent dat ze de laatste meters stapvoets afleggen
+ok(knal.reden < 150, 'en ze doen er niet lang over', `${(knal.reden * 0.05).toFixed(1)} seconden onderweg`);
 ok(knal.vroegeMannen === 0, 'en er staat niemand naast de auto zolang ze rijden',
   `${knal.vroegeMannen} beelden met mannen erbij`);
 ok(knal.mannen === 6, 'pas daarna stappen er zes man uit', `${knal.mannen} man`);
@@ -361,6 +364,33 @@ ok(gevecht.markWapenNa === false, 'Mark bergt zijn pistool weer op');
 ok(gevecht.sterren === 2, 'daarna staat de politie op twee sterren', `${gevecht.sterren} sterren`);
 ok(gevecht.fase === 'vluchten' && /bos/i.test(gevecht.opdracht), 'en je moet naar het Tinga-bos',
   `${gevecht.fase} · ${gevecht.opdracht}`);
+
+// --------------------------------------------- Mark rijdt mee in de auto
+kop('Mark rijdt mee zodra je instapt');
+const meerijden = await page.evaluate(() => {
+  const g = window.__game;
+  const mp = g.verhaal.mark.groep.position;
+  // een auto naast Mark, en erin stappen zoals de speler dat met E doet
+  const auto = g.vehicles.voegToe({ x: mp.x + 3, z: mp.z + 3, yaw: 0, soort: 'hatch', kleur: 0x8a9096 });
+  g.player.pos.set(auto.x + 1.2, 0, auto.z + 1.2);
+  g.praat();
+  const inAuto = !!g.player.inCar;
+  window.__stap(4);
+  const inBeeld = g.verhaal.mark.groep.visible;
+  // en weer uitstappen: dan staat hij naast je
+  g.toggleCar();
+  window.__stap(4);
+  const sp = g.player.pos;
+  const terug = g.verhaal.mark.groep.visible;
+  const naast = Math.hypot(mp.x - sp.x, mp.z - sp.z);
+  // daarna weer instappen voor de rit naar het bos
+  g.praat();
+  return { inAuto, inBeeld, terug, naast, weerIn: !!g.player.inCar, fase: g.verhaal.fase };
+});
+ok(meerijden.inAuto, 'je kunt in een auto stappen na het vuurgevecht');
+ok(meerijden.inBeeld === false, 'Mark is dan uit beeld — hij rijdt mee');
+ok(meerijden.terug && meerijden.naast < 6, 'stap je uit, dan staat hij weer naast je',
+  `${meerijden.naast.toFixed(1)} m`);
 
 // ------------------------------------------------------ het bos en thuis
 kop('het bos in en Mark thuisbrengen');

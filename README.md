@@ -1526,9 +1526,11 @@ plaatje aan te pas.
 
 *"Perfect,"* zegt Mark, *"dat zal hem leren."* En dan **komen er drie auto's
 aanrijden**. Ze verschijnen niet uit het niets: ze zetten zeventig meter
-verderop in, komen achter elkaar de straat af en gaan op de laatste twintig
-meter **piepend op de rem** (verzoek 21 sep 2026). De koers komt uit de wegas
-onder hun stopplek, dus ze rijden over de weg en niet dwars over het gras.
+verderop in, komen achter elkaar de straat af met **72 km/u** en gaan er op de
+laatste zevenentwintig meter **piepend uit** (verzoek 21 sep 2026). Remmen gaat
+zoals een auto remt — de snelheid die nog past om precies op de plek stil te
+staan, dus geen laatste meters stapvoets. De koers komt uit de wegas onder hun
+stopplek, dus ze rijden over de weg en niet dwars over het gras.
 
 Pas als ze stilstaan **én** Mark uitgesproken is, stappen de **zes man** uit —
 twee per auto, aan de kant waar jij staat, op een meter of twintig. Eerst hoor
@@ -1554,7 +1556,12 @@ afschudden. We gaan naar het Tinga bos."* Dat bos ligt tegen de
 rijdend of stilstaand. Ben je erin, dan zijn ze je kwijt.
 
 Dan nog één ritje: *"Poeh, op het nippertje. Kun je me terugbrengen naar de
-Molenkrite 15?"* Zet hem daar af en hij stapt uit: *"Bedankt, hier heb je
+Molenkrite 15?"* **Mark rijdt mee zodra jij achter het stuur zit**: hij is dan
+uit beeld in plaats van dat hij naar de auto loopt en instapt. Dat scheelt een
+animatie die niets toevoegt en alles kan misgaan als jij intussen wegrijdt
+(verzoek 21 sep 2026). Stap je onderweg uit, dan staat hij weer naast je.
+
+Zet hem bij de Molenkrite af en hij stapt uit: *"Bedankt, hier heb je
 trouwens het geld van De Veteraan. We spreken, broeder!"*
 
 Beloning: **€ 300**.
