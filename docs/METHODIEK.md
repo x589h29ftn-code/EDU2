@@ -3851,9 +3851,11 @@ lineair: dat is de kiel. Daardoor zwenkt de achtersteven in een bocht naar buite
 en zeilt hij de bocht uit nadat het roer al recht staat. Het roer werkt met de
 snelheid mee (stilliggend niets, achteruit andersom) en daar bovenop kan de
 schroef hem op zijn plek ronddraaien zolang er gas op staat — anders kom je nooit
-van de kant. Top veertien meter per seconde vooruit, ruim vier achteruit (was zeven en twee; sinds
-missie 8 over de Geeuw naar IJlst vaart is de sloep twee keer zo snel, en de politiesloep veertig
-procent harder in plaats van tweeëntwintig).
+van de kant. Top achtentwintig meter per seconde vooruit, bijna negen achteruit (was zeven en twee;
+sinds missie 8 over de Geeuw naar IJlst vaart is de sloep in twee stappen vier keer zo snel, en de
+politiesloep veertig procent harder in plaats van tweeëntwintig). Het roer ging mee: een bocht is
+snelheid gedeeld door draaisnelheid, dus zonder een groter roer werd de boog vierenvijftig meter en
+paste hij niet meer in de vaart.
 
 *De vaarweg.* `vaarbaar(x, z)` in `js/world.js`, naast het bestaande
 `pointInWater`. Het verschil is één klasse: te voet ligt een brug bóven het water
@@ -4770,8 +4772,21 @@ het schieten begint. Dat is geen luiheid maar een keuze: wie op vijftig meter
 dekking zoekt is door een kijker niet meer te vinden, en dan wordt de scène een
 zoekplaatje in plaats van een schot.
 
+*Wat de proefsessie er nog uit haalde.* Vijf dingen, en drie ervan zaten niet in
+de missie maar in het spel eronder. De sniper stond half in het vizier zodra je
+in een boot of een auto zat: de scope verbergt het wapen, maar die twee takken
+in js/main.js zetten de zichtbaarheid elk beeld opnieuw — er is nu één getter
+(`player.inScope`) die alle drie de plekken gebruiken. De sirene kon maar door
+één ding tegelijk geclaimd worden en de volgorde in de hoofdlus bepaalde wie je
+hoorde; nu wint de dichtstbijzijnde claim. En de missiemuziek begon steeds op
+dezelfde plek: het springen naar een willekeurig stuk werd één keer geprobeerd
+en lukte dat niet — de lengte nog onbekend, of het bestand nog niet te
+doorzoeken — dan begon hij stil bij nul. De gewenste plek blijft nu staan tot
+hij er ook echt staat, en de proef toetst dat hij daar speelt en niet alleen
+dat hij het wilde.
+
 `npm run dealtest` loopt de hele keten na, van het telefoontje tot de € 500:
-zevenenveertig controles.
+vijfenvijftig controles.
 
 **Wat nog niet af is (in volgorde).
 

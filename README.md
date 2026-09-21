@@ -1607,15 +1607,18 @@ waar ze staan; wie op vijftig meter dekking zoekt is door een kijker niet meer
 te vinden.
 
 Daarna: *"Wegwezen, terug naar de kade bij de Geeuw waar we vandaan kwamen."*
-Er komen **drie waterpolitieboten** achter je aan. Geen sterren — dit is geen
-gevolg van een misdaad maar hoort bij de missie — maar je moet ze wel
-uitschakelen: twee agenten per boot, of de romp kapot schieten. Terug bij de
+Er komen **drie waterpolitieboten** achter je aan, met sirene, van de kant van
+de Geeuw — dus van de kant waar jij naartoe moet — en met een paar tellen
+ertussen, zodat je ze ziet aankomen in plaats van dat ze naast je opduiken.
+Geen sterren — dit is geen gevolg van een misdaad maar hoort bij de missie —
+maar je moet ze wel uitschakelen: twee agenten per boot, of de romp kapot
+schieten. Terug bij de
 kade bedankt Johan je.
 
 Beloning: **€ 500**. En onder alles loopt de spanningsmuziek uit `audio/missie/`,
 vanaf het telefoontje tot even na **MISSIE VOLTOOID**.
 
-`npm run dealtest` (zevenenveertig controles) loopt de hele missie na, van het
+`npm run dealtest` (vijfenvijftig controles) loopt de hele missie na, van het
 telefoontje tot de beloning,
 inclusief de plek die in de kaart gezocht wordt en de trekker die pas los gaat
 als het misgaat.
@@ -1976,9 +1979,11 @@ een politiesloep, zodra je gezocht wordt.
 
 ### Traag op gang, en dat is expres
 
-De sloep haalt **veertien meter per seconde** — ruim 50 km/u. Dat was zeven, maar daarmee duurde de
-overtocht van de Geeuwkade naar IJlst zes minuten; sinds missie 8 daar heen en weer vaart is hij twee
-keer zo snel (verzoek 21 sep 2026).
+De sloep haalt **achtentwintig meter per seconde** — ruim 100 km/u. Dat was zeven; sinds missie 8 van
+de Geeuwkade naar IJlst en terug vaart is hij in twee stappen vier keer zo snel geworden (verzoek
+21 sep 2026). Het roer ging mee omhoog, want een bocht is snelheid gedeeld door draaisnelheid: met
+het oude roer werd de boog vierenvijftig meter en kon je de Geeuw niet meer volgen. Met 1,05 rad/s
+blijft hij op zevenentwintig meter.
 
 Wat niet veranderd is: **hij komt er niet in één tel**. Vol gas vanaf stil duurt het seconden voor hij
 op zijn top zit, hij houdt zijn vaart als je het gas eraf haalt, en een bocht kost je snelheid. Dat is
@@ -2174,10 +2179,11 @@ en twee agenten aan boord. Hij komt alleen als het ergens op slaat:
 * en er is **verdenking** — één ster is genoeg.
 
 Hij komt op vijfentachtig tot honderdvijftig meter in beeld, bij voorkeur achter je en uit het zicht,
-en vaart met dezelfde natuurkunde als jouw sloep. Wat hij niet deelt is de topsnelheid: **19,6 tegen
-14,0 m/s**, veertig procent harder, want anders is wegvaren geen keuze maar een garantie. Hij liep
-eerst 22 % harder; toen jouw sloep twee keer zo snel werd was dat te weinig om nog echt in te lopen
-(verzoek 21 sep 2026). In plaats van een toetsenbord zit er
+en vaart met dezelfde natuurkunde als jouw sloep. Wat hij niet deelt is de topsnelheid: **39,2 tegen
+28,0 m/s**, veertig procent harder, want anders is wegvaren geen keuze maar een garantie. Hij liep
+eerst 22 % harder; toen jouw sloep sneller werd was dat te weinig om nog echt in te lopen (verzoek
+21 sep 2026). Hij heeft ook een **sirene**: er is er één in het spel en de dichtstbijzijnde claimt
+hem, dus een wagen op de kade legt een boot naast je niet het zwijgen op en andersom ook niet. In plaats van een toetsenbord zit er
 een stuurautomaat op; ligt er wal in de weg, dan probeert hij een waaier van koersen om de vijftien
 graden en neemt de vrijste. Binnen tweeënveertig meter wordt er geschoten, vanaf een deinend dek dus
 minder trefzeker dan vanaf de kant. Veertien treffers en de motor geeft het op: hij blijft liggen, het
