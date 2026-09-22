@@ -1635,6 +1635,8 @@ die met piepende banden aan komen zetten dezelfde schrikgolf door de wijk, met
 een ruimere straal voor de bom dan voor een auto: wie binnen zeventig meter
 staat rent weg.
 
+![De buurt rent weg van de knal](docs/screenshots/beleving_paniek.png)
+
 **Herstelpunten binnen een missie.** Ga je neer in de laatste etappe, dan begon
 je weer bij het eerste gesprek — bij missie 7 betekende dat de hele route naar
 de Poiesz opnieuw. Het verhaal onthoudt nu per missie in welke etappe je zat
@@ -1654,6 +1656,8 @@ op vijf meter bij stilstand uitkomt. Het strengste van de twee bepaalt de
 snelheid. Andersom kijken de voetgangers ook: voor ze van de stoep stappen
 vragen ze of er iets aankomt (`autoDichtbij`), en zo niet, dan wachten ze een
 paar tellen en proberen ze het opnieuw.
+
+![Een auto staat stil voor wie met de hond oversteekt](docs/screenshots/beleving_voorrang.png)
 
 **Ruimte in het geluid.** Het spel klonk binnen precies hetzelfde als op een
 weiland. Er hangt nu een galmtak naast de droge — drie korte vertragingen met
