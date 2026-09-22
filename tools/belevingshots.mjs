@@ -60,8 +60,33 @@ const kijk = async (px, pz, kx, kz, kijkY = 1.6) => {
   }, { px, pz, kx, kz, kijkY });
 };
 
-await page.evaluate(() => {
+await page.evaluate(async () => {
   const g = window.__game;
+  // vrij zicht van hier naar daar: dezelfde toets die het spel zelf gebruikt
+  const { zichtVrij } = await import('/js/world.js');
+  window.__zicht = (ax, az, bx, bz) => zichtVrij(ax, az, bx, bz, 1.6);
+  /*
+   Stil en weer op gang. Tussen het klaarzetten van een beeld en het afdrukken
+   zitten op een softwarerenderer een paar seconden, en de hoofdlus loopt
+   gewoon door: de vluchtende mensen zijn dan alweer de hoek om en de
+   overstekende voetganger staat weer op zijn eigen route. Zolang de mensen en
+   het verkeer stilstaan blijft staan wat er stond.
+  */
+  window.__stil = () => {
+    if (!g.npcs.__echt) { g.npcs.__echt = g.npcs.update; g.npcs.update = () => {}; }
+    if (!g.vehicles.__echt) {
+      g.vehicles.__echt = g.vehicles.updateTraffic; g.vehicles.updateTraffic = () => {};
+    }
+  };
+  window.__losser = () => {
+    if (g.npcs.__echt) { g.npcs.update = g.npcs.__echt; g.npcs.__echt = null; }
+    if (g.vehicles.__echt) { g.vehicles.updateTraffic = g.vehicles.__echt; g.vehicles.__echt = null; }
+  };
+  // ook bruikbaar als alles stilstaat: dan gaat het langs de bewaarde lus
+  window.__mensen = (dt, t, x, z) => (g.npcs.__echt || g.npcs.update).call(g.npcs, dt, t, x, z);
+  window.__verkeer = (dt, x, z) =>
+    (g.vehicles.__echt || g.vehicles.updateTraffic)
+      .call(g.vehicles, dt, g.player, g.npcs.people, x, z);
   localStorage.removeItem('tinga.spel.v1');
   document.getElementById('overlay').style.display = 'none';
   g.player.active = true;
@@ -98,13 +123,25 @@ const paniek = await page.evaluate(() => {
   const gevlucht = g.npcs.paniek(mid.x, mid.z, 70);
   for (let i = 0; i < 10; i++) g.npcs.update(0.1, 100 + i * 0.1, mid.x, mid.z);
   const bij = g.npcs.people.filter(q => q.alive && Math.hypot(q.x - mid.x, q.z - mid.z) < 40);
-  return { mid, gevlucht, dichtbij: bij.length, rennend: bij.filter(q => q.paniek > 0).length };
+  window.__stil();
+  /*
+   De camera gaat op het punt van de schrik staan en kijkt de vluchters
+   achterna. Ernaast gaan staan hielp niet: ze rennen van de knal weg, dus
+   vanaf elk ander punt loopt de helft uit beeld. Vanaf de knal zelf lopen ze
+   allemaal van je vandaan, en de dichtstbijzijnde met vrij zicht geeft de
+   kijkrichting.
+  */
+  const weg = bij.filter(q => q.paniek > 0)
+    .sort((a, b) => Math.hypot(a.x - mid.x, a.z - mid.z) - Math.hypot(b.x - mid.x, b.z - mid.z));
+  const vrij = weg.find(q => window.__zicht(mid.x, mid.z, q.x, q.z)) || weg[0];
+  const doel = vrij ? { x: vrij.x, z: vrij.z } : { x: mid.x + 10, z: mid.z };
+  return { mid, doel, gevlucht, dichtbij: bij.length, rennend: weg.length };
 });
 if (paniek) {
   console.log(`paniek: ${paniek.gevlucht} mensen op de vlucht,` +
     ` ${paniek.rennend} van de ${paniek.dichtbij} in beeld`);
-  const m = paniek.mid;
-  await kijk(m.x + 14, m.z + 14, m.x, m.z, 1.6);
+  const m = paniek.mid, d = paniek.doel;
+  await kijk(m.x, m.z, d.x, d.z, 1.2);
   await foto('beleving_paniek');
 } else {
   console.log('geen mensen gevonden');
@@ -113,6 +150,7 @@ if (paniek) {
 // ------------------------------------------ een auto remt voor wie oversteekt
 const weg = await page.evaluate(() => {
   const g = window.__game;
+  window.__losser();
   // een rustig rijdende auto zoeken en er iemand voor laten oversteken
   const rijdend = g.vehicles.traffic.filter(a => a._pos && a._dir && a.snelheid > 3)
     .sort((a, b) => a.snelheid - b.snelheid);
@@ -138,20 +176,37 @@ const weg = await page.evaluate(() => {
   };
   for (let i = 0; i < 24; i++) {
     zet(Math.max(7, 12 - i * 0.25));
-    g.npcs.update(0.05, 200 + i * 0.05, t._pos.x, t._pos.y);
-    g.vehicles.updateTraffic(0.05, g.player, g.npcs.people, t._pos.x, t._pos.y);
+    window.__mensen(0.05, 200 + i * 0.05, t._pos.x, t._pos.y);
+    window.__verkeer(0.05, t._pos.x, t._pos.y);
   }
-  zet(7); g.npcs.update(0.001, 300, t._pos.x, t._pos.y);   // vlak voor de foto
-  return { voor, na: t.snelheid,
-    auto: { x: t.mesh.position.x, z: t.mesh.position.z },
-    dir: { x: t._dir.x, z: t._dir.y }, mens: { x: p.x, z: p.z } };
+  zet(7); window.__mensen(0.001, 300, t._pos.x, t._pos.y);  // vlak voor de foto
+  window.__stil();                                          // en dan alles stil
+  const a = { x: t.mesh.position.x, z: t.mesh.position.z };
+  const d = { x: t._dir.x, z: t._dir.y }, zij = { x: -t._dir.y, z: t._dir.x };
+  /*
+   Een plek zoeken met vrij zicht op allebei. De eerste poging zette de camera
+   op een vast punt schuin voor de auto en dat werd een close-up van een
+   boomstam; nu worden een stuk of wat plekken langs de weg getoetst met
+   `zichtVrij`, en die met zicht op zowel de auto als de voetganger wint.
+  */
+  let cam = null;
+  for (const ver of [12, 15, 18]) {
+    for (const opzij of [6, -6, 9, -9, 3, -3]) {
+      const c = { x: a.x + d.x * ver + zij.x * opzij, z: a.z + d.z * ver + zij.z * opzij };
+      if (window.__zicht(c.x, c.z, a.x, a.z) && window.__zicht(c.x, c.z, p.x, p.z)) { cam = c; break; }
+    }
+    if (cam) break;
+  }
+  return { voor, na: t.snelheid, a, d,
+    cam: cam || { x: a.x + d.x * 12 + zij.x * 6, z: a.z + d.z * 12 + zij.z * 6 },
+    vrij: !!cam, mens: { x: p.x, z: p.z } };
 });
 if (weg) {
-  console.log(`voorrang: ${weg.voor.toFixed(1)} → ${weg.na.toFixed(1)} m/s`);
-  // schuin van voren, zodat de auto, de voetganger en de weg erbij staan
-  const a = weg.auto, d = weg.dir, zij = { x: -d.z, z: d.x };
-  await kijk(a.x + d.x * 11 + zij.x * 7, a.z + d.z * 11 + zij.z * 7,
-    a.x + d.x * 3, a.z + d.z * 3, 1.3);
+  console.log(`voorrang: ${weg.voor.toFixed(1)} → ${weg.na.toFixed(1)} m/s` +
+    `${weg.vrij ? '' : ' (geen plek met vrij zicht gevonden)'}`);
+  // tussen de auto en de voetganger in kijken, zodat ze er allebei op staan
+  const mik = { x: (weg.a.x + weg.mens.x) / 2, z: (weg.a.z + weg.mens.z) / 2 };
+  await kijk(weg.cam.x, weg.cam.z, mik.x, mik.z, 1.3);
   await foto('beleving_voorrang');
 } else {
   console.log('geen rijdende auto gevonden');
