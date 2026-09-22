@@ -40,8 +40,9 @@ let missiePlek = -1;         // waar het vorige fragment begon (seconden), om ni
 let radioVoor = false;
 // wie claimt de sirene, en tot wanneer (zie `sirene` verderop)
 let sireneD = 1e9, sireneT = 0;
+let galm = null;               // de galmtak naast de droge (zie `start`)
 const MISSIE_VOL = 0.26;     // spanningsmuziek: onder de radio (0,32) en boven de motor
-let vogelKlok = 0, krekelKlok = 0;
+let vogelKlok = 0, krekelKlok = 0, molenKlok = 0;
 let laatsteSfeer = null;     // welk omgevingsgeluid er het laatst klonk
 
 /*
@@ -134,6 +135,30 @@ export const geluid = {
     hoofd = ctx.createGain();
     hoofd.gain.value = 0.55;
     hoofd.connect(ctx.destination);
+    /*
+     Ruimte. Alles klonk even droog: een schot in een gang klonk als een schot
+     op een weiland (verzoek 22 sep 2026). Hier hangt daarom een galmtak naast
+     de droge: drie vertragingen met terugkoppeling en een laagdoorlaat erop,
+     die samen een kleine ruimte nabootsen. Geen impulsbestand — dat zou een
+     geluidsbestand zijn, en die zitten hier alleen in audio/ voor de muziek.
+
+     De sterkte wordt per beeld gezet (zie `omgeving`): binnen hoor je hem, op
+     straat bijna niet, want een straat kaatst maar een beetje terug.
+    */
+    galm = ctx.createGain(); galm.gain.value = 0;
+    const galmLo = ctx.createBiquadFilter();
+    galmLo.type = 'lowpass'; galmLo.frequency.value = 2600;
+    const terug = ctx.createGain(); terug.gain.value = 0.34;
+    for (const [tijd, sterkte] of [[0.031, 0.9], [0.057, 0.7], [0.089, 0.5]]) {
+      const d = ctx.createDelay(0.4);
+      d.delayTime.value = tijd;
+      const g = ctx.createGain(); g.gain.value = sterkte;
+      hoofd.connect(d); d.connect(g); g.connect(galmLo);
+      d.connect(terug);                       // een beetje terugkoppeling: staart
+    }
+    terug.connect(galmLo);
+    galmLo.connect(galm);
+    galm.connect(ctx.destination);
     aan = true;
 
     // grondtoon: wind door de bomen
@@ -142,6 +167,14 @@ export const geluid = {
     bronnen.verkeer = ruisLaag('bandpass', 180, 0.9, 0.012);
     // regen staat klaar maar begint op nul
     bronnen.regen = ruisLaag('highpass', 1300, 0.5, 0.0);
+    /*
+     Water tegen de kant. De Geeuw, de vaarten en de kolk bij de molen lagen er
+     volkomen stil bij; dit is het klotsen dat je hoort zodra je aan de wal
+     staat of erop vaart. Een smalle band rond 700 Hz klinkt als water tegen
+     hout en steen, en de sterkte komt uit de afstand tot bevaarbaar water
+     (js/main.js).
+    */
+    bronnen.water = ruisLaag('bandpass', 700, 1.1, 0.0);
     window.__geluid = true;
   },
 
@@ -892,6 +925,19 @@ export const geluid = {
     return true;
   },
 
+  /*
+   De stand van de ruimte: hoeveel galm er open staat, hoe dof het verkeer van
+   buiten klinkt en hoe hard het water klotst. Voor tools/belevingtest.mjs —
+   anders is "het klinkt ruimtelijker" niet te toetsen.
+  */
+  ruimteStand() {
+    return {
+      galm: galm ? +galm.gain.value.toFixed(4) : null,
+      verkeer: bronnen.verkeer ? Math.round(bronnen.verkeer.filter.frequency.value) : null,
+      water: bronnen.water ? +bronnen.water.gain.gain.value.toFixed(4) : null,
+    };
+  },
+
   // Gaat de radio nu voor? Voor tools/bxtest.mjs en tools/missietest.mjs.
   radioVoorgrond() { return radioVoor; },
 
@@ -1305,9 +1351,18 @@ export const geluid = {
   },
 
   // ---------- omgeving per beeld ----------
-  omgeving(dt, { weer = 'helder', nacht = false, wind = 0.2, binnen = false } = {}) {
+  omgeving(dt, { weer = 'helder', nacht = false, wind = 0.2, binnen = false,
+    water = 0, molen = 0 } = {}) {
     if (!aan) return;
     const t = nu();
+    /*
+     Binnen klinkt het anders. De galmtak komt op, het verkeersgeruis van buiten
+     zakt weg én wordt doffer — een muur laat de hoge tonen niet door. Buiten
+     staat er een vleugje galm op: een straat met gevels aan twee kanten kaatst
+     wel degelijk iets terug, en helemaal droog klinkt als een oefenruimte.
+    */
+    if (galm) galm.gain.setTargetAtTime(binnen ? 0.22 : 0.05, t, 0.8);
+    bronnen.verkeer.filter.frequency.setTargetAtTime(binnen ? 110 : 180, t, 1.5);
     // wind zwelt aan bij slecht weer
     /*
      Iets luider dan het was. Na het introfilmpje — dat op 0,85 speelt — viel de
@@ -1335,6 +1390,31 @@ export const geluid = {
       if (vogelKlok <= 0) {
         vogelKlok = 2.6 + Math.random() * 6.5;
         this.sfeerGeluid(kiesSfeer(nacht, binnen));
+      }
+    }
+    /*
+     Het water. `water` is nul tot één: hoe dichter je bij bevaarbaar water
+     staat, hoe luider het klotst. Vaar je zelf, dan hoor je het van dichtbij —
+     daar zorgt js/main.js voor door de afstand nul te maken zodra je in een
+     boot zit.
+    */
+    const kl = Math.max(0, Math.min(1, water));
+    bronnen.water.gain.gain.setTargetAtTime(binnen ? 0 : kl * 0.045, t, 1.0);
+    bronnen.water.filter.frequency.setTargetAtTime(600 + kl * 260, t, 1.5);
+    /*
+     En de molen. Sta je onder houtzaagmolen De Rat terwijl de wieken draaien,
+     dan hoor je hout kraken en de as knarsen — op onregelmatige tussenpozen,
+     want een molen tikt geen maat.
+    */
+    if (molen > 0.05 && !binnen) {
+      molenKlok -= dt;
+      if (molenKlok <= 0) {
+        molenKlok = 1.4 + Math.random() * 2.6;
+        const v = Math.min(1, molen);
+        tik({ freq: 220 + Math.random() * 90, q: 2.2, duur: 0.22, volume: 0.05 * v,
+          type: 'bandpass', val: 0.5 });
+        toon({ freq: 90 + Math.random() * 30, naar: 62, duur: 0.5, volume: 0.035 * v,
+          golf: 'triangle', vertraag: 0.06 });
       }
     }
     // krekels blijven wat ze waren: een doorlopend tapijt 's nachts, geen los geluid

@@ -156,6 +156,11 @@ export class NPCs {
     if (!this.segs.length) this.segs = roadSegments.filter(s => s.w > 0);
     const r = rng(555); this.r = r;
     this.people = [];
+    /*
+     Een haakje dat js/main.js invult: mag er hier overgestoken worden, of komt
+     er verkeer aan? Zonder haakje steekt iedereen over zoals hij altijd deed.
+    */
+    this.magOversteken = null;
 
     this.meshes = {};
     for (const def of DELEN) {
@@ -541,9 +546,20 @@ export class NPCs {
           // af en toe oversteken naar de overkant, dwars over de rijbaan
           p.steekWacht -= dt;
           if (p.steekWacht <= 0 && s.drive) {
-            p.steekWacht = 18 + this.r() * 40;
-            p.steekVan = p.side; p.steekNaar = -p.side;
-            p.steek = 1; p.opWeg = true;
+            /*
+             Eerst kijken. Komt er een auto aan, dan blijft hij op de stoep
+             staan en probeert hij het een paar tellen later opnieuw (verzoek
+             22 sep 2026). Zonder dat stapte iedereen blind de weg op en moest
+             het verkeer maar remmen; zo verlenen ze elkaar voorrang.
+            */
+            if (this.magOversteken && !this.magOversteken(p.x, p.z)) {
+              p.steekWacht = 1.5 + this.r() * 2.5;
+              p.pause = Math.max(p.pause, 0.6 + this.r() * 1.2);
+            } else {
+              p.steekWacht = 18 + this.r() * 40;
+              p.steekVan = p.side; p.steekNaar = -p.side;
+              p.steek = 1; p.opWeg = true;
+            }
           }
         }
         loopt = true;

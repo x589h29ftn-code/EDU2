@@ -129,6 +129,7 @@ const BOM_AANRIJ_V = 20;                              // hoe hard ze aan komen r
 const BOM_REM_A = 7.5;                                // en hoe hard ze remmen (m/s²): 27 m uitloop
 const BOM_TUSSEN = 7;                                 // afstand tussen de drie auto's
 const BOM_BUIT_KOGELS = [6, 13];                      // wat er nog in hun pistool zit
+const BOM_PANIEK = 70;                                // zover schrikt de buurt van de knal (m)
 const BOM_STERREN = 2;                                // wat de politie ervan vindt
 const BOM_PLANT_BEREIK = 3.0;                         // zo dicht bij de plek plant je hem
 const BOM_PARKEER = 26;                               // zo dicht bij de winkel ben je "voor het pand"
@@ -196,6 +197,7 @@ const SNIP_KIJK = 15;                                 // seconden meekijken voor
 const SNIP_BOTEN = 3;                                 // zoveel waterpolitie komt er achter je aan
 const SNIP_THUIS = 18;                                // zo dicht bij de kade ben je terug
 const SNIP_BELONING = 500;
+const MISLUKT_VETERAAN = 'Je hebt De Veteraan neergeschoten.';
 
 // ---------- missie 7: de bom bij de Poiesz in Duinterpen ----------
 const BOM_BINNEN = [
@@ -421,7 +423,7 @@ export function initVerhaal(ctx) {
     eersteP = null, sterrenWeg = null, sterGeven = null,
     // missie 7 heeft twee binnenruimtes en de camera nodig; ze komen als
     // functies binnen omdat js/main.js ze pas ná het verhaal maakt
-    wieken = null, poiesz = null, schokken = null, laatVallen = null,
+    wieken = null, poiesz = null, schokken = null, laatVallen = null, paniek = null,
     // missie 8 vaart: de sloepen komen als functie binnen, net als de ruimtes
     boten = null,
   } = ctx;
@@ -694,6 +696,7 @@ export function initVerhaal(ctx) {
     naMissieT = 0;
     ruimBomOp();
     ruimSniperOp();
+    punt = null;                      // een nieuwe missie, dus geen oud herstelpunt
     missie = naam;
     fase = 'wacht';
     player.health = 100;              // na elke missie is je leven weer vol
@@ -1041,8 +1044,12 @@ export function initVerhaal(ctx) {
     // ander fragment
     spanning = missie === 'bewaking' || missie === 'afleveren';
     spanningUit = 0;
-    if (missie === 'bom') { beginBom(); return; }
-    if (missie === 'sniper') { beginSniper(); return; }
+    /*
+     Missie 7 en 8 hervatten bij het laatste herstelpunt in plaats van bij het
+     begin: ze duren te lang om ze na elk ongeluk helemaal over te doen.
+    */
+    if (missie === 'bom') { hervatBom(punt && punt.missie === 'bom' ? punt.fase : 'wacht'); return; }
+    if (missie === 'sniper') { hervatSniper(punt && punt.missie === 'sniper' ? punt.fase : 'telefoon'); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -1115,7 +1122,7 @@ export function initVerhaal(ctx) {
         if (bomMerk) bomMerk.toon(false);
         if (bomPakket) { bomPakket.zet(plek.x, 0, plek.z, player.yaw); bomPakket.toon(true); }
         praatEl.hidden = true;
-        fase = 'naarbuiten';
+        fase = 'naarbuiten'; zetPunt(fase);
         geluid.neerzetten();
         zetOpdracht('naar buiten, Mark wacht op je');
         hud.melding('Bom geplant', 'Naar buiten — Mark laat hem afgaan.', 4);
@@ -1170,6 +1177,15 @@ export function initVerhaal(ctx) {
   function raak(obj) {
     // de zes man bij de Poiesz: die mogen juist wel
     if (schutters && schutters.raak(obj)) return true;
+    /*
+     Bij de molen: op De Veteraan schieten is het einde van de missie. Hij is
+     degene die jullie in de gaten houden; een kogel van jou maakt van de
+     bescherming een liquidatie (verzoek 22 sep 2026).
+    */
+    if (deal && missie === 'sniper' && deal.raakVeteraan(obj)) {
+      mislukt(MISLUKT_VETERAAN);
+      return true;
+    }
     // de maffia bij de molen, en de waterpolitie die achter je aan komt
     if (deal && deal.raak(obj)) return true;
     /*
@@ -1495,7 +1511,7 @@ export function initVerhaal(ctx) {
           geluid.telefoon();
           zeg(SNIP_TELEFOON, () => {
             const heeft = player.wapens.includes('sniper');
-            fase = heeft ? 'naar_johan' : 'kopen';
+            fase = heeft ? 'naar_johan' : 'kopen'; zetPunt(fase);
             if (heeft) {
               zetOpdracht('ga naar Johan bij de Geeuwkade achter de waterzuivering');
               const p = johanBijDeBoot();
@@ -1518,7 +1534,7 @@ export function initVerhaal(ctx) {
     // -- de sniper kopen bij Tinga State
     if (fase === 'kopen') {
       if (!player.wapens.includes('sniper')) return;
-      fase = 'naar_johan';
+      fase = 'naar_johan'; zetPunt(fase);
       zetOpdracht('ga naar Johan bij de Geeuwkade achter de waterzuivering');
       const p = johanBijDeBoot();
       if (p) zetNavDoel(p.x, p.z, 'Johan bij de Geeuw', 'J');
@@ -1535,7 +1551,7 @@ export function initVerhaal(ctx) {
       hud.zetNavigatie(null); navDoel = null;
       johan.kijkNaar(sp.x, sp.z, 1, 99);
       zeg(SNIP_BIJ_JOHAN, () => {
-        fase = 'varen';
+        fase = 'varen'; zetPunt(fase);
         const plek = zoekSnipPlek();
         zetOpdracht('vaar met de sloep naar de molen in IJlst en blijf in de gele cirkel');
         if (plek) {
@@ -1561,7 +1577,7 @@ export function initVerhaal(ctx) {
       const erin = Math.hypot(p.x - plek.boot.x, p.z - plek.boot.z) < SNIP_RING;
       const traag = Math.abs(b.inBoot.snelheid || 0) < 1.6;
       if (!erin || !traag || !balk.hidden) return;
-      fase = 'kijken';
+      fase = 'kijken'; zetPunt('varen');   // sterf je hier, dan vaar je opnieuw uit
       snipKijkT = SNIP_KIJK;
       hud.zetNavigatie(null); navDoel = null;
       // de sniper in de hand, en schieten kan nog niet: eerst kijken
@@ -1599,7 +1615,7 @@ export function initVerhaal(ctx) {
         return;
       }
       if (!balk.hidden) return;
-      fase = 'terug';
+      fase = 'terug'; zetPunt(fase);
       const kade = geeuwKade();
       zeg(SNIP_WEG, () => {
         zetOpdracht('terug naar de kade aan de Geeuw');
@@ -1886,6 +1902,8 @@ export function initVerhaal(ctx) {
     }
     schutters = new Bewaking(scene, posten);
     schutters.alarm = true;            // ze komen voor jou, ze hoeven niets te zien
+    // zes man die het vuur openen op een parkeerterrein: wie er loopt gaat weg
+    if (paniek) paniek(aanrijders[0].auto.x, aanrijders[0].auto.z, BOM_PANIEK * 0.6);
     for (const w of schutters.wachters) w.staat = 'aanval';
     // Mark trekt zijn pistool, en jij kunt de jouwe in elk geval pakken: zonder
     // wapen is dit geen gevecht maar een executie
@@ -1962,7 +1980,7 @@ export function initVerhaal(ctx) {
       hud.zetNavigatie(null); navDoel = null;
       zetOpdracht('');
       zeg(BOM_BINNEN, () => {
-        fase = 'instappen';
+        fase = 'instappen'; zetPunt(fase);
         zetBomAutoNeer();
         markZichtbaar(false);          // hij loopt vast naar de auto
         spanning = true; spanningUit = 0;
@@ -1987,7 +2005,7 @@ export function initVerhaal(ctx) {
       const d = Math.hypot(sp.x - ing.stoep.x, sp.z - ing.stoep.z);
       const staat = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.5;
       if (d < BOM_PARKEER && staat && balk.hidden) {
-        fase = 'planten';
+        fase = 'planten'; zetPunt(fase);
         hud.zetNavigatie(null); navDoel = null;
         // Mark stapt uit en wacht bij de deur
         const naast = { x: ing.stoep.x + ing.f[0] * 3.5, z: ing.stoep.z + ing.f[1] * 3.5 };
@@ -2038,6 +2056,8 @@ export function initVerhaal(ctx) {
         if (bomPakket) bomPakket.toon(false);
         geluid.explosie(Math.hypot(sp.x - px, sp.z - pz));
         if (schokken) schokken(0.9);
+        // een pand gaat de lucht in: iedereen binnen zeventig meter rent weg
+        if (paniek) paniek(px, pz, BOM_PANIEK);
       }
       if (bomT > 4.6 && balk.hidden) {
         fase = 'aanval';
@@ -2061,7 +2081,7 @@ export function initVerhaal(ctx) {
       const stil = werkAanrijdersBij(dt, sp);
       if (!stil || !balk.hidden || !aanrijders.length) return;
       latenUitstappen();
-      fase = 'vuurgevecht';
+      fase = 'vuurgevecht'; zetPunt(fase);
       zetOpdracht(`schakel ze uit (${schutters ? schutters.aantal : 0} te gaan)`, true);
       return;
     }
@@ -2075,7 +2095,7 @@ export function initVerhaal(ctx) {
         return;
       }
       if (!balk.hidden) return;
-      fase = 'vluchten';
+      fase = 'vluchten'; zetPunt(fase);
       mark.bergWapen();                   // het gevecht is voorbij
       if (sterGeven) sterGeven(BOM_STERREN, sp.x, sp.z);
       const b = bos();
@@ -2106,7 +2126,7 @@ export function initVerhaal(ctx) {
     // -- de politie afschudden in het bos
     if (fase === 'vluchten') {
       if (!inHetBos(sp.x, sp.z)) return;
-      fase = 'thuisbrengen';
+      fase = 'thuisbrengen'; zetPunt(fase);
       if (sterrenWeg) sterrenWeg();
       hud.zetNavigatie(null); navDoel = null;
       zeg(BOM_BOS, () => {
@@ -2227,6 +2247,149 @@ export function initVerhaal(ctx) {
         });
       }
       return;
+    }
+  }
+
+  /*
+   ---- herstelpunten binnen een missie ----
+
+   Ga je neer, dan begon de missie helemaal opnieuw. Bij de korte missies is dat
+   geen straf, maar missie 7 en 8 duren tien minuten: bij de laatste rit
+   opnieuw beginnen bij het eerste gesprek is geen uitdaging maar een boete
+   (verzoek 22 sep 2026). Elke fase die begint zet daarom een punt, en na het
+   neergaan hervat het spel bij die fase in plaats van bij het begin.
+
+   Het punt is geen opgeslagen wereld maar een naam: de missie bouwt de fase
+   opnieuw op met dezelfde functies die hem de eerste keer opzetten. Dat is
+   minder werk en het kan niet uit de pas lopen met wat de missie zelf doet.
+  */
+  let punt = null;               // { missie, fase }
+  function zetPunt(f) {
+    if (!f) return;
+    punt = { missie, fase: f };
+  }
+
+  /*
+   Missie 7 opnieuw opzetten vanaf een fase. Elke stap bouwt voort op de vorige,
+   dus 'planten' krijgt ook de auto en de opdracht van 'instappen' mee.
+  */
+  function hervatBom(f) {
+    beginBom();
+    if (f === 'wacht' || f === 'gesprek') return;
+
+    // het gesprek op de bank is geweest: de auto staat voor de deur
+    fase = 'instappen';
+    zetBomAutoNeer();
+    markZichtbaar(false);
+    spanning = true; spanningUit = 0;
+    zetOpdracht('rij met Mark naar de Poiesz in Duinterpen');
+    const ing = winkelIngang();
+    if (ing) zetNavDoel(ing.stoep.x, ing.stoep.z, 'Poiesz Duinterpen', 'M');
+    if (f === 'instappen') return;
+
+    // bij de winkel: Mark wacht bij de deur en de plek bij de schappen licht op
+    if (!ing) return;
+    fase = 'planten';
+    hud.zetNavigatie(null); navDoel = null;
+    const naast = { x: ing.stoep.x + ing.f[0] * 3.5, z: ing.stoep.z + ing.f[1] * 3.5 };
+    const [mx, mz] = resolveCollisions(naast.x, naast.z, 0.4);
+    mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, ing.deur));
+    markZichtbaar(true);
+    zetOpdracht('ga naar binnen en plant de bom bij de schappen');
+    const plek = bomPlek();
+    if (plek && bomMerk) { bomMerk.zet(plek.x, 0, plek.z); bomMerk.toon(true); }
+    if (f === 'planten') return;
+
+    // de bom ligt er al
+    fase = 'naarbuiten';
+    if (bomMerk) bomMerk.toon(false);
+    if (plek && bomPakket) { bomPakket.zet(plek.x, 0, plek.z, 0); bomPakket.toon(true); }
+    zetOpdracht('naar buiten, Mark wacht op je');
+    if (f === 'naarbuiten' || f === 'knal' || f === 'aanval') return;
+
+    /*
+     Het vuurgevecht opnieuw. Je begint bij de ingang en niet waar je neerging:
+     de zes man worden om die ingang heen opgebouwd, en midden tussen hen in
+     wakker worden is geen herstart maar een executie.
+    */
+    player.inCar = null;
+    player.pos.set(ing.stoep.x, 0, ing.stoep.z);
+    player.applyCamera();
+    if (bomPakket) bomPakket.toon(false);
+    const sp = spelerPunt();
+    latenAanrijden(sp);
+    for (const a of aanrijders) {           // ze staan er al, dus meteen op hun plek
+      a.auto.x = a.doel.x; a.auto.z = a.doel.z; a.auto.speed = 0; a.stil = true;
+      if (a.auto.mesh) a.auto.mesh.position.set(a.auto.x, a.auto.mesh.position.y, a.auto.z);
+    }
+    latenUitstappen();
+    if (f === 'vuurgevecht') {
+      fase = 'vuurgevecht';
+      zetOpdracht(`schakel ze uit (${schutters ? schutters.aantal : 0} te gaan)`, true);
+      return;
+    }
+
+    // en de twee laatste etappes: wegwezen en Mark thuisbrengen
+    ruimBomOp();
+    markZichtbaar(true);
+    const mp = voorPunt(huis, 6);
+    if (f === 'vluchten') {
+      fase = 'vluchten';
+      if (sterGeven) sterGeven(BOM_STERREN, player.pos.x, player.pos.z);
+      zetOpdracht('schud de politie af in het Tinga-bos');
+      const b = bos();
+      if (b) zetNavDoel(b.x, b.z, 'Tinga-bos', 'M');
+      return;
+    }
+    fase = 'thuisbrengen';
+    zetOpdracht('breng Mark terug naar Molenkrite 15');
+    zetNavDoel(mp.x, mp.z, 'Molenkrite 15', 'M');
+  }
+
+  /*
+   Missie 8 opnieuw opzetten. Drie etappes: naar Johan, de tocht naar de molen
+   (daar hoort het kijken en het schieten bij, want dat is één scène), en de
+   terugtocht. Je begint elke etappe aan de Geeuwkade, want daar ligt de boot.
+  */
+  function hervatSniper(f) {
+    ruimSniperOp();
+    spanning = true; spanningUit = 0;
+    const kade = geeuwKade();
+    if (f === 'telefoon' || f === 'kopen' || f === 'naar_johan' || f === 'briefing') {
+      const heeft = player.wapens.includes('sniper');
+      fase = heeft ? 'naar_johan' : 'kopen';
+      if (heeft) {
+        zetOpdracht('ga naar Johan bij de Geeuwkade achter de waterzuivering');
+        const p = johanBijDeBoot();
+        if (p) zetNavDoel(p.x, p.z, 'Johan bij de Geeuw', 'J');
+      } else {
+        zetOpdracht('koop een sniper bij Tinga State');
+        const pand = pandVan(SNIP_WINKEL);
+        const v = pand ? voorPunt(pand, 7.5) : null;
+        if (v) zetNavDoel(v.x, v.z, 'Tinga State', 'M');
+      }
+      return;
+    }
+    // vanaf hier ben je bijgepraat: terug naar de kade en opnieuw uitvaren
+    player.inCar = null;
+    const [kx, kz] = resolveCollisions(kade.x, kade.z, 0.4);
+    player.pos.set(kx, 0, kz);
+    player.applyCamera();
+    if (johan) johan.groep.visible = false;
+    if (f === 'terug' || f === 'afronding') {
+      fase = 'terug';
+      zetOpdracht('terug naar de kade aan de Geeuw');
+      zetNavDoel(kade.x, kade.z, 'Geeuwkade', 'M');
+      return;
+    }
+    fase = 'varen';
+    const plek = zoekSnipPlek();
+    zetOpdracht('vaar met de sloep naar de molen in IJlst en blijf in de gele cirkel');
+    if (plek) {
+      if (!snipRing) snipRing = maakWaterRing(scene, SNIP_RING);
+      snipRing.zet(plek.boot.x, plek.boot.z);
+      snipRing.toon(true);
+      zetNavDoel(plek.boot.x, plek.boot.z, 'De Rat, IJlst', 'M');
     }
   }
 

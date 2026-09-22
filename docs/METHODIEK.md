@@ -4788,6 +4788,17 @@ dat hij het wilde.
 `npm run dealtest` loopt de hele keten na, van het telefoontje tot de € 500:
 vijfenvijftig controles.
 
+**Bewaard voor later: een safehouse kopen (tussenmissie).** Erik verdient
+inmiddels aan missies maar kan er alleen wapens, munitie, health en een
+spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"
+worden. Het idee, op verzoek vastgelegd maar nog niet gebouwd (22 sep 2026): een
+korte missie tussen twee grote in waarin Erik een eigen huis kiest. Twee of drie
+panden in de wijk staan te koop, je loopt er binnen, en wat je kiest wordt je
+vaste stek — opslagpunt, plek om te herstellen, en de plaats waar een auto blijft
+staan. De onderdelen liggen er al: js/interieur.js kan een woning van binnen
+bouwen uit het grondvlak, het verhaal kan panden aanwijzen met een M, en de
+opslag bewaart al waar je spullen staan.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

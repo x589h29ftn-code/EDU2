@@ -1,6 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, updateProps, radioPlekken } from './world.js';
+import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, updateProps, radioPlekken, vaarbaar } from './world.js';
 import { Player } from './player.js';
 import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
@@ -426,6 +426,13 @@ const verhaal = initVerhaal({
   */
   // wat een neergeschoten schutter laat liggen (js/buit.js)
   laatVallen: (soort, x, z, waarde) => buit.laatVallen(soort, x, z, waarde),
+  /*
+   De buurt laten schrikken. Een autoknal en elk schot doen dit al (zie
+   `PANIEK_KLAP` hierboven); de bom in de Poiesz en het vuurgevecht dat erop
+   volgt deden het niet, en dan loopt de wijk onbewogen langs een pand dat net
+   de lucht in is gegaan (verzoek 22 sep 2026).
+  */
+  paniek: (x, z, straal) => npcs.paniek(x, z, straal),
   // de sloepen: missie 8 speelt zich grotendeels op het water af
   boten: () => boten,
   wieken: () => woningen[1] || null,
@@ -496,6 +503,12 @@ const spuiterij = initSpuiterij({ scene, player, vehicles, hud, verhaal, politie
  een auto.
 */
 const boten = initBoten({ scene, player, hud }) || null;
+/*
+ Voetgangers steken pas over als er geen auto aankomt, en auto's remmen voor wie
+ al oversteekt (js/npc.js en js/vehicles.js). De twee weten niets van elkaar; ze
+ worden hier aan elkaar geknoopt.
+*/
+npcs.magOversteken = (x, z) => !vehicles.autoDichtbij(x, z, 16);
 /*
  De politie op het water (js/politieboot.js). Eén sloep, en alleen als je zelf
  op het water zit én er verdenking is; aan de wal valt er niets te patrouilleren
@@ -1264,6 +1277,44 @@ async function startGame(vervolg = false, metIntro = false) {
   }
 }
 
+/*
+ Hoe dicht zit je bij het water, en bij de molen? Twee getallen van nul tot één
+ voor de omgevingslagen in js/audio.js (verzoek 22 sep 2026).
+
+ Water zoeken is een polygoontoets, dus dat gebeurt niet elk beeld maar twee
+ keer per seconde: acht richtingen op drie afstanden rond de camera. Zit je zelf
+ in een boot, dan is het antwoord altijd één — dan lig je erin.
+*/
+let waterT = 0, waterNu = 0;
+function waterNabij(dt, x, z) {
+  if (boten && boten.inBoot) return (waterNu = 1);
+  waterT -= dt;
+  if (waterT > 0) return waterNu;
+  waterT = 0.5;
+  let dichtst = 999;
+  for (const r of [5, 12, 22]) {
+    for (let i = 0; i < 8; i++) {
+      const h = (i / 8) * Math.PI * 2;
+      if (vaarbaar(x + Math.cos(h) * r, z + Math.sin(h) * r)) { dichtst = r; break; }
+    }
+    if (dichtst < 999) break;
+  }
+  waterNu = dichtst > 100 ? 0 : Math.max(0, 1 - dichtst / 26);
+  return waterNu;
+}
+
+/*
+ En de molen: hout kraakt alleen als je eronder staat. Houtzaagmolen De Rat
+ staat in de kaart, dus de afstand is een hypotenuse en geen ingetikte cirkel.
+*/
+let deRat;                      // pas opzoeken als de kaart geladen is
+function molenNabij(x, z) {
+  if (deRat === undefined) deRat = (KAART.molens || []).find(m => /rat/i.test(m.naam || '')) || null;
+  if (!deRat) return 0;
+  const d = Math.hypot(x - deRat.cx, z - deRat.cz);
+  return d > 45 ? 0 : 1 - d / 45;
+}
+
 // De muis vastzetten; lukt dat niet, dan kijk je rond door te slepen.
 function vergrendelMuis() {
   const req = canvas.requestPointerLock({ unadjustedMovement: true });
@@ -1717,7 +1768,10 @@ function loop() {
     sfeer.update(dt, cx, cz);
     updateProps(dt);
     langsrijders(dt);          // een auto die voorbijkomt hoor je ook
-    geluid.omgeving(dt, { weer: sfeer.weer, nacht: sfeer.nacht, binnen: !!player.inCar });
+    geluid.omgeving(dt, {
+      weer: sfeer.weer, nacht: sfeer.nacht, binnen: !!player.inCar || player.binnen,
+      water: waterNabij(dt, cx, cz), molen: molenNabij(cx, cz),
+    });
     geluid.radio(afstandTotRadio(cx, cz));
     geluid.autoradio(!!player.inCar);        // muziek uit audio/radio/, anders het riffje
     /*

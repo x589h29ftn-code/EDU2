@@ -123,6 +123,7 @@
     "bxtest": "node tools/bxtest.mjs",
     "bomtest": "node tools/bomtest.mjs",
     "dealtest": "node tools/dealtest.mjs",
+    "belevingtest": "node tools/belevingtest.mjs",
     "dealshots": "node tools/dealshots.mjs",
     "bomshots": "node tools/bomshots.mjs",
     "bxshots": "node tools/bxshots.mjs",

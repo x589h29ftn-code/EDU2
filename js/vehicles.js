@@ -765,6 +765,8 @@ export class Vehicles {
 
     const KIJK = 11;          // meter vooruitkijken
     const BREED = 2.2;        // hoe ver naast de as iets nog in de weg staat
+    const MENS_KIJK = 20;     // voor een overstekende voetganger verder vooruit
+    const MENS_BREED = 1.4;   // en breder, want hij is nog onderweg de weg op
 
     // De auto's met een eigen model (gestolen of rijdend) één keer opzoeken. Het
     // aflopen van de lijst van 1781 is zelf het werk — niet `isZichtbaar` — dus
@@ -775,10 +777,17 @@ export class Vehicles {
     for (const t of this.traffic) {
       let vrij = KIJK;
 
-      const inDeWeg = (x, z, marge) => {
+      /*
+       Staat er iets in de weg? `marge` is de speling naast de as, `kijk` hoe
+       ver vooruit. Voor een overstekende voetganger staat dat verder en breder
+       dan voor een auto: iemand die van de stoep stapt is vier meter uit de as
+       en loopt langzaam, en pas remmen als hij midden op de weg staat is geen
+       voorrang verlenen maar bijna aanrijden (verzoek 22 sep 2026).
+      */
+      const inDeWeg = (x, z, marge, kijk = KIJK) => {
         const dx = x - t._pos.x, dz = z - t._pos.y;
         const langs = dx * t._dir.x + dz * t._dir.y;         // afstand recht vooruit
-        if (langs <= 0.5 || langs > KIJK) return;
+        if (langs <= 0.5 || langs > kijk) return;
         const opzij = Math.abs(dx * -t._dir.y + dz * t._dir.x);
         if (opzij > BREED + marge) return;
         if (langs < vrij) vrij = langs;
@@ -824,7 +833,10 @@ export class Vehicles {
         }
       }
       if (voetgangers) {
-        for (const v of voetgangers) { if (v.alive && v.opWeg) inDeWeg(v.x, v.z, 0.1); }
+        for (const v of voetgangers) {
+          if (!v.alive || !v.opWeg) continue;
+          inDeWeg(v.x, v.z, MENS_BREED, MENS_KIJK);
+        }
       }
 
       // een geschrokken bestuurder rijdt niet gewoon door (zie schrikAf)
@@ -860,6 +872,27 @@ export class Vehicles {
       t.mesh.rotation.x = helling(tx, tz, t.mesh.rotation.y, ty - t.y);
       if (t.remlicht) t.remlicht.visible = t.doel < t.speed * 0.6;
     }
+  }
+
+  /*
+   Komt er verkeer aan bij dit punt? De voetgangers vragen dit voordat ze de
+   stoep af stappen (js/npc.js): wie een auto ziet naderen wacht even. Alleen
+   auto's die er ook echt naartoe rijden tellen — een auto die net voorbij is
+   hoeft niemand tegen te houden.
+  */
+  autoDichtbij(x, z, straal = 16) {
+    for (const t of this.traffic) {
+      if (!t._pos || !t._dir) continue;
+      const dx = x - t._pos.x, dz = z - t._pos.y;
+      const langs = dx * t._dir.x + dz * t._dir.y;       // vóór hem is positief
+      if (langs < 0 || langs > straal) continue;
+      const opzij = Math.abs(dx * -t._dir.y + dz * t._dir.x);
+      if (opzij > 5) continue;
+      // een auto die al stilstaat laat je juist wél voorgaan
+      if ((t.snelheid || 0) < 0.8) continue;
+      return true;
+    }
+    return false;
   }
 
   // Een treffer van het pistool. Het model is genest (carrosserie en wielen in

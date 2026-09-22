@@ -181,6 +181,17 @@ export function maakDeal(scene, plek, naarWater) {
 
     doelen() { return mensen.filter(m => !m.neer).map(m => m.persoon.groep); },
 
+    /*
+     Heb je De Veteraan zelf te pakken? Op hem schieten is precies wat er niet
+     mag — hij is degene die jullie komen beschermen (verzoek 22 sep 2026). Zijn
+     hondje telt mee: dat staat naast hem en wie daarop mikt, mikt op hem.
+    */
+    raakVeteraan(obj) {
+      let hit = obj === hond;
+      if (!hit) veteraan.groep.traverse(o => { if (o === obj) hit = true; });
+      return hit;
+    },
+
     raak(obj) {
       for (const m of mensen) {
         if (m.neer) continue;
