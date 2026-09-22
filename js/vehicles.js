@@ -775,19 +775,15 @@ export class Vehicles {
     for (const c of this.cars) if (c.mesh) metModel.push(c);
 
     for (const t of this.traffic) {
-      let vrij = KIJK;
+      let vrij = KIJK;            // het dichtstbijzijnde obstakel binnen elf meter
+      let vrijMens = MENS_KIJK;   // en de dichtstbijzijnde overstekende voetganger
 
-      /*
-       Staat er iets in de weg? `marge` is de speling naast de as, `kijk` hoe
-       ver vooruit. Voor een overstekende voetganger staat dat verder en breder
-       dan voor een auto: iemand die van de stoep stapt is vier meter uit de as
-       en loopt langzaam, en pas remmen als hij midden op de weg staat is geen
-       voorrang verlenen maar bijna aanrijden (verzoek 22 sep 2026).
-      */
-      const inDeWeg = (x, z, marge, kijk = KIJK) => {
+      // Staat er iets binnen elf meter recht vooruit? `marge` is de speling
+      // naast de as. Voetgangers worden verderop ook op ruimere maat bekeken.
+      const inDeWeg = (x, z, marge) => {
         const dx = x - t._pos.x, dz = z - t._pos.y;
         const langs = dx * t._dir.x + dz * t._dir.y;         // afstand recht vooruit
-        if (langs <= 0.5 || langs > kijk) return;
+        if (langs <= 0.5 || langs > KIJK) return;
         const opzij = Math.abs(dx * -t._dir.y + dz * t._dir.x);
         if (opzij > BREED + marge) return;
         if (langs < vrij) vrij = langs;
@@ -833,9 +829,21 @@ export class Vehicles {
         }
       }
       if (voetgangers) {
+        /*
+         Een voetganger telt twee keer. Dichtbij doet hij mee in `vrij`, net als
+         een auto of een paal: daar stopt de wagen voor. En verder vooruit telt
+         hij apart in `vrijMens`, in zijn eigen maat — twintig meter en een
+         meter breder — want iemand die van de stoep stapt is nog niet op de as
+         en moet je zien aankomen (verzoek 22 sep 2026).
+        */
         for (const v of voetgangers) {
           if (!v.alive || !v.opWeg) continue;
-          inDeWeg(v.x, v.z, MENS_BREED, MENS_KIJK);
+          inDeWeg(v.x, v.z, 0.1);
+          const dx = v.x - t._pos.x, dz = v.z - t._pos.y;
+          const langs = dx * t._dir.x + dz * t._dir.y;
+          if (langs <= 0.5 || langs > MENS_KIJK) continue;
+          const opzij = Math.abs(dx * -t._dir.y + dz * t._dir.x);
+          if (opzij <= BREED + MENS_BREED && langs < vrijMens) vrijMens = langs;
         }
       }
 
@@ -845,8 +853,17 @@ export class Vehicles {
       // wie beschoten is geeft gas; harder dan dit rijdt hij niet, ook niet op de N7
       const basis = t.haast > 0 ? Math.min(t.speed * 1.9, t.speed + 12) : t.speed;
 
-      // remmen naar nul op vier meter, weer optrekken zodra het vrij is
-      t.doel = vrij >= KIJK ? basis : Math.max(0, basis * (vrij - 4) / (KIJK - 4));
+      /*
+       Remmen naar nul op vier meter, weer optrekken zodra het vrij is. Voor een
+       overstekende voetganger geldt een eigen, ruimere curve: die begint al op
+       twintig meter af te remmen en staat op vijf meter stil, zodat je hem ziet
+       remmen in plaats van dat hij op het laatste moment in de ankers gaat
+       (verzoek 22 sep 2026). Het strengste van de twee wint.
+      */
+      const doelAuto = vrij >= KIJK ? basis : Math.max(0, basis * (vrij - 4) / (KIJK - 4));
+      const doelMens = vrijMens >= MENS_KIJK ? basis
+        : Math.max(0, basis * (vrijMens - 5) / (MENS_KIJK - 5));
+      t.doel = Math.min(doelAuto, doelMens);
       // achteruit gaat voor: dan kijkt hij niet vooruit maar wil hij er weg
       if (t.achteruit > 0) t.doel = -3.2;
       // remmen gaat harder dan optrekken, en wie achteruit wil harder dan dat

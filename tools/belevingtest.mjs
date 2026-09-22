@@ -147,17 +147,28 @@ ok(/MISLUKT/i.test(vet.melding) && /Veteraan/i.test(vet.melding),
 kop('voorrang op straat');
 const weg = await page.evaluate(() => {
   const g = window.__game;
-  // een rijdende auto zoeken en er een overstekende voetganger voor zetten
-  const t = g.vehicles.traffic.find(a => a._pos && a._dir && a.snelheid > 2);
+  /*
+   Een rijdende auto zoeken en er een overstekende voetganger voor zetten. De
+   rustigste van de rijdende auto's: een wagen die met honderd over de N7 komt
+   is de voetganger binnen een halve seconde voorbij, en dan meet je het
+   optrekken erna in plaats van het remmen. Daarom ook de laagste snelheid
+   onderweg en niet die aan het eind.
+  */
+  const rijdend = g.vehicles.traffic.filter(a => a._pos && a._dir && a.snelheid > 3)
+    .sort((a, b) => a.snelheid - b.snelheid);
+  const t = rijdend[0];
   if (!t) return null;
   const voor = t.snelheid;
   const p = g.npcs.people.find(q => q.alive);
-  const afstand = 13;
+  const afstand = 12;                 // net buiten de elf meter van het gewone remmen
   p.x = t._pos.x + t._dir.x * afstand;
   p.z = t._pos.y + t._dir.y * afstand;
   p.opWeg = true; p.steek = 1;
-  for (let i = 0; i < 20; i++) g.vehicles.updateTraffic(0.05, g.player, g.npcs.people, g.player.pos.x, g.player.pos.z);
-  const na = t.snelheid;
+  let na = t.snelheid;
+  for (let i = 0; i < 20; i++) {
+    g.vehicles.updateTraffic(0.05, g.player, g.npcs.people, g.player.pos.x, g.player.pos.z);
+    na = Math.min(na, t.snelheid);
+  }
   // en de vraag die de voetgangers stellen voor ze de stoep af stappen
   const komtIets = g.vehicles.autoDichtbij(t._pos.x + t._dir.x * 8, t._pos.y + t._dir.y * 8, 16);
   const komtNiets = g.vehicles.autoDichtbij(t._pos.x - t._dir.x * 60, t._pos.y - t._dir.y * 60, 16);
@@ -177,8 +188,15 @@ kop('ruimte in het geluid');
 const klank = await page.evaluate(async () => {
   const { geluid } = await import('/js/audio.js');
   const g = window.__game;
+  /*
+   De galm en het gedempte verkeer schuiven met `setTargetAtTime` naar hun
+   stand, met een tijdconstante van bijna een seconde. In deze kale browser
+   loopt de klok van de audio veel langzamer dan de echte, dus een paar tellen
+   wachten is te kort: dan meet je het onderweg zijn. Ruim drie seconden per
+   meting is genoeg om de stand te zien staan.
+  */
   const meet = async (opties) => {
-    for (let i = 0; i < 12; i++) { geluid.omgeving(0.05, opties); await new Promise(r => setTimeout(r, 60)); }
+    for (let i = 0; i < 40; i++) { geluid.omgeving(0.05, opties); await new Promise(r => setTimeout(r, 80)); }
     return geluid.ruimteStand();
   };
   const buiten = await meet({ weer: 'helder', nacht: false, binnen: false, water: 0, molen: 0 });

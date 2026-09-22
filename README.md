@@ -1623,6 +1623,50 @@ telefoontje tot de beloning,
 inclusief de plek die in de kaart gezocht wordt en de trekker die pas los gaat
 als het misgaat.
 
+## De wijk reageert: paniek, herstelpunten en voorrang
+
+Vijf dingen die niet in één missie zitten maar eronder, zodat de wijk zich
+gedraagt alsof er iets gebeurt (verzoek 22 sep 2026).
+
+**De buurt schrikt van de knal.** Een ontploffende auto joeg de mensen al op de
+vlucht, maar de bom in de Poiesz niet — juist de grootste knal van het spel
+liet iedereen rustig doorlopen. Nu gaat bij de ontploffing en bij de aanrijders
+die met piepende banden aan komen zetten dezelfde schrikgolf door de wijk, met
+een ruimere straal voor de bom dan voor een auto: wie binnen zeventig meter
+staat rent weg.
+
+**Herstelpunten binnen een missie.** Ga je neer in de laatste etappe, dan begon
+je weer bij het eerste gesprek — bij missie 7 betekende dat de hele route naar
+de Poiesz opnieuw. Het verhaal onthoudt nu per missie in welke etappe je zat
+(`zetPunt`), en bij het opnieuw beginnen bouwt het diezelfde etappe weer op:
+dezelfde opdracht, dezelfde tegenstanders, dezelfde navigatiepijl. Je begint dus
+opnieuw bij *"schud de politie af in het Tinga-bos"* en niet bij het telefoontje.
+
+**Op De Veteraan schieten is het einde van missie 8.** Hij is de man die je moet
+beschermen, dus was er geen reden waarom je hem wél mocht neerschieten. Een
+kogel op hem — of op zijn hondje — laat de missie mislukken met *"Je hebt De
+Veteraan neergeschoten."*
+
+**Voorrang op straat.** Auto's remden alleen voor auto's en palen, en dan pas op
+elf meter. Een overstekende voetganger telt nu apart mee, in zijn eigen maat:
+twintig meter vooruit, een meter breder naast de as, en een eigen remcurve die
+op vijf meter bij stilstand uitkomt. Het strengste van de twee bepaalt de
+snelheid. Andersom kijken de voetgangers ook: voor ze van de stoep stappen
+vragen ze of er iets aankomt (`autoDichtbij`), en zo niet, dan wachten ze een
+paar tellen en proberen ze het opnieuw.
+
+**Ruimte in het geluid.** Het spel klonk binnen precies hetzelfde als op een
+weiland. Er hangt nu een galmtak naast de droge — drie korte vertragingen met
+een lowpass erover — die binnen ver open staat en buiten op een vleugje; het
+verkeersgeruis van buiten wordt binnen doffer gefilterd; langs de kade klotst
+het water, harder naarmate er meer water om je heen ligt; en sta je onder een
+molen, dan hoor je het hout kraken.
+
+`npm run belevingtest` (achttien controles) houdt deze vijf vast: de buurt die
+na de knal wegrent, het neergaan in de laatste etappe en daar weer beginnen, de
+mislukte missie na een schot op De Veteraan, de auto die afremt voor wie
+oversteekt, en de galm die binnen open gaat en buiten dicht.
+
 ## Naar binnen bij Molenkrite 15
 
 Loop je naar de **voordeur van Molenkrite 15** en druk je op **E**, dan ga je naar binnen:

@@ -4788,6 +4788,60 @@ dat hij het wilde.
 `npm run dealtest` loopt de hele keten na, van het telefoontje tot de € 500:
 vijfenvijftig controles.
 
+**De wijk reageert (stap 71).** Vijf punten die niet in één missie zitten maar
+eronder (verzoek 22 sep 2026), en bij elk was de winst dat er al iets bestond
+dat alleen niet werd aangeroepen.
+
+*Paniek hoort bij de knal, niet bij de auto.* De schrikgolf (`paniek`) zat sinds
+stap 40 aan het ontploffen van een auto vast. De bom in de Poiesz is de grootste
+knal van het spel en liet iedereen doorlopen — niet omdat het gedrag ontbrak
+maar omdat het verhaal er niet bij kon. Eén haakje in de context van
+`js/verhaal.js` erbij, en de bom (zeventig meter) en de aanrijders met piepende
+banden (tweeënveertig) roepen hetzelfde aan als een brandende auto.
+
+*Herstelpunten zonder een tweede toestand.* De verleiding is een opslagpunt: de
+hele missie wegschrijven en terugzetten. Dat is een tweede weergave van de
+missie die je bij elke wijziging mee moet onderhouden. Hier staat er alleen
+`{missie, fase}` in, en het opnieuw beginnen roept dezelfde opbouwfuncties aan
+die die etappe de eerste keer neerzetten (`hervatBom`, `hervatSniper`). Een
+etappe die verandert, verandert daarmee vanzelf mee; wat er niet in staat —
+waar precies je stond, hoeveel kogels je nog had — was ook niet het punt.
+
+*Een verbod dat uit de missie komt.* Wie De Veteraan neerschiet, schiet de man
+neer die hij moet beschermen. De toets zit in js/deal.js (`raakVeteraan`, die
+ook het hondje meeneemt) en niet in het wapen: de missie weet wie er
+onschendbaar is, de speler hoeft dat niet te weten.
+
+*Voorrang is twee curves, geen ruimere blik.* Eerst is geprobeerd de voetganger
+mee te nemen in dezelfde vooruitblik met een grotere `kijk`-afstand. Dat leek te
+werken en deed niets: de remcurve deelde nog steeds door de elf meter van het
+gewone remmen, dus een voetganger op dertien meter gold als "vrij zicht". De
+proef zag het (27,9 → 25,6 m/s waar het 0,6 keer had moeten zijn) en de tweede
+ronde scheidde de twee: `vrij` voor auto's en palen, `vrijMens` voor wie
+oversteekt, elk met een eigen curve, en het strengste wint. Andersom kijken de
+voetgangers ook voor ze de stoep af stappen (`autoDichtbij`, haakje
+`magOversteken` in js/npc.js) — wie iets ziet aankomen wacht een paar tellen en
+probeert het opnieuw.
+
+*Ruimte in het geluid.* Een galmtak naast de droge (drie vertragingen van 31,
+57 en 89 ms met terugkoppeling, een lowpass erover), binnen ver open en buiten
+op een vleugje; het verkeersgeruis dat binnen doffer wordt gefilterd; een
+waterlaag die meeloopt met hoeveel vaarwater er om je heen ligt (acht
+richtingen, drie afstanden, twee keer per seconde bemonsterd in `waterNabij`);
+en het kraken van een molen als je eronder staat.
+
+*Wat de proef leerde over de proef.* Twee controles faalden op de meting en niet
+op het spel. De auto die moest afremmen was de snelste van de wijk — met honderd
+over de N7 is hij de voetganger in een halve seconde voorbij, en dan meet je het
+optrekken erna; nu wordt de rustigste rijdende auto genomen en de laagste
+snelheid onderweg. En de galm schuift met een tijdconstante van bijna een
+seconde naar zijn stand, terwijl de klok van de audio in deze kale browser zo'n
+drie keer langzamer loopt dan de echte: twaalf tellen van 60 ms was te kort en
+mat het onderweg zijn. Beide keren was het spel goed en de vraag verkeerd
+gesteld.
+
+`npm run belevingtest`: achttien controles.
+
 **Bewaard voor later: een safehouse kopen (tussenmissie).** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"
