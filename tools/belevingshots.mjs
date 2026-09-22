@@ -73,33 +73,41 @@ await page.evaluate(() => {
 // --------------------------------------------- de buurt rent weg van de knal
 const paniek = await page.evaluate(() => {
   const g = window.__game;
-  const ing = g.supermarkt.ingangen.find(i => /duinterpen/i.test(i.naam));
-  const d = ing.deur, f = ing.f;
   /*
-   Niet zelf mensen neerzetten: de bevolking komt naar de speler toe (stap 36),
-   dus de camera gaat eerst op zijn plek staan en dan lopen ze er vanzelf
-   heen. Zelf een rij neerzetten werkte niet — de eerstvolgende stap zet ze
-   weer op hun eigen route.
+   De camera gaat naar de mensen toe, en niet andersom. Een voetganger staat
+   niet op een plek maar op een wegvak (`p.seg`, `p.t` in js/npc.js): zijn x en
+   z worden elk beeld opnieuw uit dat vak gerekend, dus wie hem verplaatst ziet
+   hem één beeld later weer op zijn oude route lopen. Daarom wordt hier de
+   drukste plek van de wijk opgezocht — waar de meeste mensen binnen veertig
+   meter van elkaar lopen — en dáár gaat de camera staan.
   */
+  const mensen = g.npcs.people.filter(q => q.alive);
+  let mid = null, besteN = 0;
+  for (const q of mensen) {
+    const groep = mensen.filter(r => Math.hypot(r.x - q.x, r.z - q.z) < 40);
+    if (groep.length > besteN) {
+      besteN = groep.length;
+      mid = { x: groep.reduce((s, r) => s + r.x, 0) / groep.length,
+        z: groep.reduce((s, r) => s + r.z, 0) / groep.length };
+    }
+  }
+  if (!mid) return null;
   g.player.inCar = null;
-  g.player.pos.set(d.x + f[0] * 20, 0, d.z + f[1] * 20);
-  for (let i = 0; i < 120; i++) g.npcs.update(0.1, i * 0.1, g.player.pos.x, g.player.pos.z);
-  const bij = () => g.npcs.people.filter(q => q.alive
-    && Math.hypot(q.x - g.player.pos.x, q.z - g.player.pos.z) < 45);
-  const dichtbij = bij().length;
+  g.player.pos.set(mid.x, 0, mid.z);
   // dezelfde aanroep die de bom doet (BOM_PANIEK in js/verhaal.js)
-  const gevlucht = g.npcs.paniek(g.player.pos.x, g.player.pos.z, 70);
-  for (let i = 0; i < 8; i++) g.npcs.update(0.08, 100 + i * 0.08, g.player.pos.x, g.player.pos.z);
-  return { deur: { x: d.x, z: d.z, fx: f[0], fz: f[1] }, gevlucht, dichtbij,
-    rennend: bij().filter(q => q.paniek > 0).length };
+  const gevlucht = g.npcs.paniek(mid.x, mid.z, 70);
+  for (let i = 0; i < 10; i++) g.npcs.update(0.1, 100 + i * 0.1, mid.x, mid.z);
+  const bij = g.npcs.people.filter(q => q.alive && Math.hypot(q.x - mid.x, q.z - mid.z) < 40);
+  return { mid, gevlucht, dichtbij: bij.length, rennend: bij.filter(q => q.paniek > 0).length };
 });
-console.log(`paniek: ${paniek.gevlucht} mensen op de vlucht,` +
-  ` ${paniek.rennend} van de ${paniek.dichtbij} in beeld`);
-{
-  // blijven staan waar de mensen zijn, en naar de gevel kijken
-  const d = paniek.deur;
-  await kijk(d.x + d.fx * 20, d.z + d.fz * 20, d.x, d.z, 2.0);
+if (paniek) {
+  console.log(`paniek: ${paniek.gevlucht} mensen op de vlucht,` +
+    ` ${paniek.rennend} van de ${paniek.dichtbij} in beeld`);
+  const m = paniek.mid;
+  await kijk(m.x + 14, m.z + 14, m.x, m.z, 1.6);
   await foto('beleving_paniek');
+} else {
+  console.log('geen mensen gevonden');
 }
 
 // ------------------------------------------ een auto remt voor wie oversteekt
@@ -111,24 +119,29 @@ const weg = await page.evaluate(() => {
   const t = rijdend[0];
   if (!t) return null;
   const p = g.npcs.people.find(q => q.alive);
-  p.paniek = 0; p.opWeg = true; p.steek = 1;
   const voor = t.snelheid;
   /*
-   De voetganger blijft de hele opname voor de auto staan en schuift langzaam
-   dichterbij: hij loopt in het echt ook de weg op terwijl de auto nadert, en
-   zo staat hij op de foto nog op de rijbaan in plaats van er net achter. Na
-   elke verplaatsing moet `npcs.update` langskomen, anders verhuist alleen het
-   getal en blijft het poppetje staan waar het liep.
+   Een voetganger staat op een wegvak en niet op een plek (zie hierboven), dus
+   hem naar de weg schuiven houdt geen beeld stand. In plaats daarvan krijgt hij
+   een eigen wegvak: een lijntje dwars over de rijbaan, tien meter voor de auto.
+   Met `walkOff: 0` valt de stoeprand-verschuiving weg en staat hij precies op
+   die lijn; met `steek` staat hij midden in het oversteken, wat het verkeer
+   ziet als iemand die de weg op stapt.
   */
-  const zet = (afstand, dt) => {
-    p.x = t._pos.x + t._dir.x * afstand; p.z = t._pos.y + t._dir.y * afstand;
-    g.npcs.update(dt, 200 + afstand, t._pos.x, t._pos.y);
+  const dwars = { x: -t._dir.y, z: t._dir.x };
+  const zet = (afstand) => {
+    const m = { x: t._pos.x + t._dir.x * afstand, z: t._pos.y + t._dir.y * afstand };
+    p.seg = { a: [m.x - dwars.x * 5, m.z - dwars.z * 5],
+      b: [m.x + dwars.x * 5, m.z + dwars.z * 5], drive: true, w: 6, walkOff: 0 };
+    p.t = 0.5; p.dir = 1; p.side = 0; p.steekVan = 0; p.steekNaar = 0;
+    p.steek = 0.9; p.opWeg = true; p.pause = 0; p.paniek = 0; p.smak = null;
   };
   for (let i = 0; i < 24; i++) {
-    zet(Math.max(6, 12 - i * 0.25), 0.05);
+    zet(Math.max(7, 12 - i * 0.25));
+    g.npcs.update(0.05, 200 + i * 0.05, t._pos.x, t._pos.y);
     g.vehicles.updateTraffic(0.05, g.player, g.npcs.people, t._pos.x, t._pos.y);
   }
-  zet(6, 0.001);                        // en vlak voor de foto nog één keer
+  zet(7); g.npcs.update(0.001, 300, t._pos.x, t._pos.y);   // vlak voor de foto
   return { voor, na: t.snelheid,
     auto: { x: t.mesh.position.x, z: t.mesh.position.z },
     dir: { x: t._dir.x, z: t._dir.y }, mens: { x: p.x, z: p.z } };
