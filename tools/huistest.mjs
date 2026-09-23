@@ -218,11 +218,16 @@ const start = await page.evaluate(() => {
   const g = window.__game;
   g.verhaal.__startMissie('huis');
   window.__stap(40);                       // de telefoon gaat
+  /*
+   Doortellen op `dialoogTekst` kan niet: die houdt de laatste zin vast als de
+   balk allang weg is. De lus drukte daarna nog dertig keer E terwijl de speler
+   bij de tafel van Koningsspil stond — en liet hem zittend achter, waardoor de
+   koopregel verderop niet meer verscheen.
+  */
   let telefoon = '';
   for (let i = 0; i < 30; i++) {
-    const t = document.getElementById('dialoogTekst').textContent;
-    if (!t) break;
-    telefoon += ' ' + t;
+    if (document.getElementById('dialoog').hidden) break;
+    telefoon += ' ' + document.getElementById('dialoogTekst').textContent;
     g.praat(); window.__stap(2);
   }
   window.__stap(4);
@@ -305,18 +310,25 @@ const arm = await page.evaluate(() => {
    koopregel. Dus: uitwachten, wegklikken, en dan pas kijken.
   */
   window.__rust(); window.__klik(); window.__stap(6);
-  const balk = document.getElementById('dialoog').hidden;
   const el = document.getElementById('praat');
   const hint = el.hidden ? '' : el.textContent;
+  // waarom niet, als hij er niet staat: elk van de voorwaarden apart
+  const waarom = {
+    balk: document.getElementById('dialoog').hidden,
+    zit: !!g.player.zit, inCar: !!g.player.inCar, actief: !!g.player.active,
+    binnen: w.binnen(g.player.pos.x, g.player.pos.z),
+    bijTafel: w.bijTafel(g.player.pos.x, g.player.pos.z),
+    aanspreekbaar: g.verhaal.aanspreekbaar,
+  };
   g.praat();
   window.__stap(4);
   const melding = document.getElementById('dialoogTekst').textContent;
-  return { hint, melding, balk, aanbod: g.verhaal.stekAanbod, geld: g.verhaal.geld,
+  return { hint, melding, waarom, aanbod: g.verhaal.stekAanbod, geld: g.verhaal.geld,
     stek: g.verhaal.stek };
 });
 ok(/kopen/i.test(arm.hint) && /5\.?000/.test(arm.hint), 'aan tafel staat de koopregel',
-  `${arm.hint || 'geen'} (balk leeg: ${arm.balk})`);
-ok(/loopt niet weg|nog niet/i.test(arm.melding), 'Mark belt dat het nog niet genoeg is',
+  `${arm.hint || 'geen'} · ${JSON.stringify(arm.waarom)}`);
+ok(/zoveel heb je nog niet/i.test(arm.melding), 'Mark belt dat het nog niet genoeg is',
   (arm.melding || '').slice(0, 45));
 ok(arm.aanbod && !arm.stek, 'en het aanbod blijft openstaan');
 

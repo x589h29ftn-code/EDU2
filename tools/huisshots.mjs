@@ -104,14 +104,14 @@ await page.evaluate(() => {
   g.verhaal.__startMissie('huis');
   for (let i = 0; i < 60; i++) g.verhaal.update(0.05);
   for (let i = 0; i < 30; i++) {
-    if (!document.getElementById('dialoogTekst').textContent) break;
+    if (document.getElementById('dialoog').hidden) break;
     g.praat(); for (let k = 0; k < 2; k++) g.verhaal.update(0.05);
   }
   const m = g.verhaal.mark.groep.position;
   g.player.pos.set(m.x + 1.5, 0, m.z + 1.5);
   for (let i = 0; i < 6; i++) g.verhaal.update(0.05);
   for (let i = 0; i < 30; i++) {
-    if (!document.getElementById('dialoogTekst').textContent) break;
+    if (document.getElementById('dialoog').hidden) break;
     g.praat(); for (let k = 0; k < 2; k++) g.verhaal.update(0.05);
   }
 });

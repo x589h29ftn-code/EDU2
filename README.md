@@ -1698,8 +1698,9 @@ bent geweest zegt Mark dat je er rustig over na kunt denken, en is missie 9
 de drie vlaggen blijven op de kaart en je kunt later alsnog aan tafel gaan zitten
 en kopen.
 
-`npm run huistest` loopt de hele missie na, van het telefoontje tot de sleutels,
-en `npm run huisshots` maakt de foto's van de drie woonkamers en van de tuin.
+`npm run huistest` (eenenzestig controles) loopt de hele missie na, van het
+telefoontje tot de sleutels, en `npm run huisshots` maakt de foto's van de drie
+woonkamers en van de tuin.
 
 ## De wijk reageert: paniek, herstelpunten en voorrang
 

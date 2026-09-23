@@ -4992,6 +4992,17 @@ en aan tafel kun je alsnog kopen. Daarvoor moesten de koopregels loskomen van de
 missiefase — ze kijken nu naar `huisAanbod` in plaats van naar waar missie 9
 staat.
 
+*Wat de proef zelf kapot maakte.* Twee lussen in `tools/huistest.mjs` telden door
+op `dialoogTekst.textContent`, en dat element houdt de laatste zin vast nadat de
+balk allang weg is. Ze drukten daarna nog tot dertig keer op E. Eén keer kocht
+dat het huis dat de proef net wilde bekijken; de andere keer liet het de speler
+aan tafel *zitten*, en `player.zit` zet de koopregel uit — dus leek het alsof de
+koopregel stuk was. Beide lussen kijken nu naar `dialoog.hidden`, en dezelfde
+twee stonden in `tools/huisshots.mjs`. Les voor de volgende proef: een element
+dat je leegmaakt door het te verbergen is geen toestand om op te tellen.
+
+`npm run huistest` (eenenzestig controles) en `npm run huisshots` (vijf foto's).
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"
