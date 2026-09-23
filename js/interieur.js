@@ -193,6 +193,77 @@ function tvDoek() {
   return c;
 }
 
+/*
+ Het schilderij boven de bank: een Fries landschap zoals er in half Sneek een
+ aan de muur hangt. Lucht, een streep water, een dijkje en een molen in
+ silhouet. Getekend en niet gefotografeerd — er komen geen plaatjes in de repo.
+*/
+function schilderijDoek() {
+  const c = doek(128, 96), g = c.getContext('2d');
+  const lucht = g.createLinearGradient(0, 0, 0, 62);
+  lucht.addColorStop(0, '#c9d8e6'); lucht.addColorStop(1, '#f0e4cd');
+  g.fillStyle = lucht; g.fillRect(0, 0, 128, 62);
+  const r = rnd(53);
+  for (let k = 0; k < 7; k++) {                       // wolkenvegen
+    g.fillStyle = `rgba(255,255,255,${0.15 + r() * 0.2})`;
+    g.beginPath();
+    g.ellipse(r() * 128, 10 + r() * 34, 14 + r() * 20, 4 + r() * 5, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.fillStyle = '#7d9a63'; g.fillRect(0, 58, 128, 12);   // dijkje
+  g.fillStyle = '#5c7a4e'; g.fillRect(0, 68, 128, 28);   // weiland
+  g.fillStyle = '#8fa9bd'; g.fillRect(0, 62, 128, 7);    // water
+  // de molen: romp, kap en wieken
+  g.fillStyle = '#3a3128';
+  g.beginPath(); g.moveTo(88, 58); g.lineTo(94, 30); g.lineTo(101, 30); g.lineTo(107, 58);
+  g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(92, 30); g.lineTo(97.5, 22); g.lineTo(103, 30); g.closePath(); g.fill();
+  g.strokeStyle = '#3a3128'; g.lineWidth = 1.6;
+  for (const h of [0.5, 2.07]) {
+    g.beginPath();
+    g.moveTo(97.5 - Math.cos(h) * 13, 27 - Math.sin(h) * 13);
+    g.lineTo(97.5 + Math.cos(h) * 13, 27 + Math.sin(h) * 13);
+    g.stroke();
+  }
+  return c;
+}
+
+/*
+ De fotolijstjes op het dressoir. Drie kiekjes van een halve centimeter op het
+ doek: een kop met schouders tegen een vlakke achtergrond. Meer hoeft niet —
+ van een meter afstand zie je dat het foto's van mensen zijn, en dat is precies
+ wat een dressoir nodig heeft.
+*/
+function fotoDoek() {
+  const c = doek(96, 32), g = c.getContext('2d');
+  const r = rnd(29);
+  const achter = ['#c9d3dc', '#d8cfc0', '#cbd8c8'];
+  for (let i = 0; i < 3; i++) {
+    const x = i * 32;
+    g.fillStyle = achter[i]; g.fillRect(x, 0, 32, 32);
+    g.fillStyle = `hsl(${20 + r() * 20}, 40%, ${58 + r() * 12}%)`;   // gezicht
+    g.beginPath(); g.arc(x + 16, 13, 6, 0, Math.PI * 2); g.fill();
+    g.fillStyle = `hsl(${r() * 360}, 35%, ${30 + r() * 25}%)`;       // schouders
+    g.beginPath(); g.ellipse(x + 16, 33, 11, 11, 0, Math.PI, 0); g.fill();
+    g.fillStyle = 'rgba(40,34,28,0.75)';                             // haar
+    g.beginPath(); g.arc(x + 16, 11, 6.2, Math.PI, 0); g.fill();
+  }
+  return c;
+}
+
+// Het vloerkleed voor de bank: wollig, met een rand eromheen.
+function kleedDoek() {
+  const c = doek(64, 64), g = c.getContext('2d');
+  const r = rnd(71);
+  g.fillStyle = '#8a6f56'; g.fillRect(0, 0, 64, 64);
+  for (let k = 0; k < 500; k++) {
+    g.fillStyle = `rgba(${r() < 0.5 ? '112,90,70' : '160,134,104'},${0.25 + r() * 0.35})`;
+    g.fillRect(r() * 64, r() * 64, 1.5, 1.5);
+  }
+  g.strokeStyle = '#6d563f'; g.lineWidth = 3; g.strokeRect(2, 2, 60, 60);
+  return c;
+}
+
 // Bankstof: fijne grijze weving.
 function stof() {
   const c = doek(64, 64), g = c.getContext('2d');
@@ -388,6 +459,23 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       : new THREE.MeshBasicMaterial({ color: 0x121a24, fog: false }),
     lamp: new THREE.MeshBasicMaterial({ color: 0xfff4d8, side: THREE.DoubleSide, fog: false }),
     snoer: plat(0x33332f),
+    // de inrichting (verzoek 23 sep 2026): planten, een dressoir met foto's en
+    // een schemerlamp, een schilderij, een salontafel met een kleed eronder en
+    // wat spullen op het aanrecht
+    pot: plat(0xb0664a),
+    aarde: plat(0x3b2f26),
+    blad: plat(0x3f7a3a),
+    bladLicht: plat(0x58a04c),
+    stam: plat(0x6b5334),
+    donkerhout: plat(0x6b4a30),
+    lijst: plat(0x4a3826),
+    doekje: new THREE.MeshBasicMaterial({ map: texture(schilderijDoek(), 1, 1), vertexColors: true, fog: false }),
+    fotos: new THREE.MeshBasicMaterial({ map: texture(fotoDoek(), 1, 1), vertexColors: true, fog: false }),
+    kleed: new THREE.MeshBasicMaterial({ map: texture(kleedDoek(), 1, 1), vertexColors: true, fog: false }),
+    glas: new THREE.MeshBasicMaterial({ color: 0xcfdde6, fog: false, transparent: true, opacity: 0.55 }),
+    kap: plat(0xe8dcc2),
+    fruit: plat(0xc8532e),
+    keramiek: plat(0xe9e6df),
   };
   // vloeren krijgen hun eigen texture, want de repeat hangt aan de maat
   const vloerMat = (soort, w, d) => {
@@ -575,20 +663,76 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     else doos(van, tot, bij, bij + 0.02, 0, PLINT, MAT.plint, false);
   }
 
-  // ---------- de bank ----------
-  // Drie-zits tegen de rechterwand: 2,10 breed, 0,90 diep, zitting op 44 cm,
-  // leuningen op 62 en de rug op 85 cm.
-  const bankZ = (HAL.z1 + voorhuis.z1) / 2 - 0.4;
+  /*
+   ---------- de bank ----------
+   Tegen de rechterwand, met de tv aan de overkant. Hij was een drie-zits van
+   2,10 en is 2,55 geworden — in een woonkamer van negen meter breed viel een
+   bankje van twee meter weg (verzoek 23 sep 2026). In een kleine kamer past dat
+   niet, dus de lengte volgt de ruimte tussen de gang en de achterwand.
+   Zitting op 44 cm, leuningen op 62 en de rug op 85.
+  */
+  // wat er aan inrichting daadwerkelijk gepast heeft; de proef leest dit uit
+  const inrichting = { schilderij: false, kleed: false, salontafel: false,
+    dressoir: false, fotos: false, lamp: false, plant: false, fauteuil: false, keuken: 0 };
+  /*
+   De bank stond op een vaste 2,10 in het midden tussen de gang en de achterwand.
+   In een diepe kamer is dat te klein en in een ondiepe (Molenkrite 130c is maar
+   6,8 m diep) stak hij de gang in. Nu wordt eerst het vrije stuk wand bepaald en
+   past de bank zich daaraan aan: hoogstens 2,55, en netjes in het midden ervan.
+  */
+  const BANK_VAN = HAL.z1 + 0.15, BANK_TOT = voorhuis.z1 - MUUR - 0.15;
+  const BANK_LANG = Math.max(1.4, Math.min(2.55, BANK_TOT - BANK_VAN - 0.2));
+  const bankZ = (BANK_VAN + BANK_TOT) / 2;
   {
-    const x1 = BREED - MUUR - 0.04, x0 = x1 - 0.90;
-    const z0 = bankZ - 1.05, z1 = bankZ + 1.05;
+    const x1 = BREED - MUUR - 0.04, x0 = x1 - 0.95;
+    const z0 = bankZ - BANK_LANG / 2, z1 = bankZ + BANK_LANG / 2;
     doos(x0, x1, z0, z1, 0.10, 0.36, MAT.stof);                    // onderbak
-    doos(x0 + 0.10, x1, z0 + 0.10, z1 - 0.10, 0.36, 0.44, MAT.stof, false);   // zitkussens
+    doos(x0 + 0.10, x1, z0 + 0.10, z1 - 0.10, 0.36, 0.46, MAT.stof, false);   // zitkussens
     doos(x1 - 0.20, x1, z0, z1, 0.36, 0.85, MAT.stofRug, false);   // rugleuning
     doos(x0, x1 - 0.18, z0, z0 + 0.16, 0.36, 0.62, MAT.stofRug, false);
     doos(x0, x1 - 0.18, z1 - 0.16, z1, 0.36, 0.62, MAT.stofRug, false);
     for (const zz of [z0 + 0.12, z1 - 0.16]) for (const xx of [x0 + 0.06, x1 - 0.12]) {
       doos(xx, xx + 0.06, zz, zz + 0.06, 0, 0.10, MAT.poot, false);
+    }
+    // twee kussens in de hoeken, in de kleur van de rug
+    for (const zz of [z0 + 0.34, z1 - 0.62]) {
+      doos(x1 - 0.42, x1 - 0.24, zz, zz + 0.28, 0.46, 0.74, MAT.stofRug, false);
+    }
+    /*
+     Het schilderij erboven: een Fries landschap met een molen, in een lijst van
+     donker hout. Hij hangt met de onderkant op 1,25 m — vanaf de bank kijk je er
+     niet tegenaan maar zie je hem als je de kamer in loopt.
+    */
+    const sx = BREED - MUUR - 0.02;
+    const sh = Math.min(0.78, BANK_LANG * 0.42), sb = sh * 1.32;
+    doos(sx - 0.04, sx, bankZ - sb / 2 - 0.05, bankZ + sb / 2 + 0.05, 1.20, 1.25 + sh + 0.05, MAT.lijst, false);
+    doos(sx - 0.045, sx - 0.04, bankZ - sb / 2, bankZ + sb / 2, 1.25, 1.25 + sh, MAT.doekje, false);
+    inrichting.schilderij = true;
+  }
+
+  /*
+   ---------- de salontafel met een kleed eronder ----------
+   Voor de bank, tussen de bank en de tv in. Het kleed steekt er aan alle kanten
+   ruim onderuit, zoals het hoort; hij ligt een millimeter boven de vloer zodat
+   de twee vlakken niet met elkaar gaan vechten om hetzelfde beeldpunt.
+  */
+  {
+    const xm = BREED - MUUR - 1.85, zm = bankZ;
+    if (xm > MUUR + 1.2) {
+      const kb = Math.min(2.2, (xm - MUUR - 0.5) * 1.1), kl = Math.min(3.0, BANK_LANG + 0.5);
+      vloer(xm - kb / 2, xm + kb / 2, zm - kl / 2, zm + kl / 2, 0.012,
+        new THREE.MeshBasicMaterial({ map: texture(kleedDoek(), kb / 1.4, kl / 1.4), vertexColors: true, fog: false }));
+      const tb = 0.58, tl = Math.min(1.20, BANK_LANG - 0.6);
+      doos(xm - tb / 2, xm + tb / 2, zm - tl / 2, zm + tl / 2, 0.34, 0.40, MAT.donkerhout);
+      doos(xm - tb / 2 + 0.06, xm + tb / 2 - 0.06, zm - tl / 2 + 0.06, zm + tl / 2 - 0.06, 0.14, 0.18, MAT.donkerhout, false);
+      for (const xx of [xm - tb / 2 + 0.04, xm + tb / 2 - 0.10])
+        for (const zz of [zm - tl / 2 + 0.04, zm + tl / 2 - 0.10]) {
+          doos(xx, xx + 0.06, zz, zz + 0.06, 0, 0.34, MAT.poot, false);
+        }
+      // een schaal en een plantje op het blad
+      doos(xm - 0.13, xm + 0.13, zm - 0.13, zm + 0.13, 0.40, 0.47, MAT.keramiek, false);
+      doos(xm - 0.08, xm + 0.08, zm - 0.08, zm + 0.08, 0.45, 0.52, MAT.fruit, false);
+      inrichting.kleed = true; inrichting.salontafel = true;
     }
   }
 
@@ -605,6 +749,150 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     doos(x0 + 0.14, x0 + 0.20, zm - 0.22, zm + 0.22, 0.45, 0.50, MAT.tvRand, false);  // voet
     doos(x0 + 0.15, x0 + 0.20, zm - 0.62, zm + 0.62, 0.50, 1.22, MAT.tvRand, false);  // kast
     doos(x0 + 0.20, x0 + 0.21, zm - 0.60, zm + 0.60, 0.52, 1.20, MAT.tvBeeld, false); // beeld
+  }
+
+  /*
+   ---------- het dressoir met de foto's en de schemerlamp ----------
+   Tegen dezelfde wand als de tv, in het stuk dat daar nog vrij is: achter de tv
+   als de kamer diep genoeg is, anders ervoor richting de gang. Erop staan drie
+   fotolijstjes, een schemerlamp met een linnen kap en een plantje — de dingen
+   die een kamer van een ruimte een woonkamer maken (verzoek 23 sep 2026).
+  */
+  const DRESSOIR = (() => {
+    // eerst langs dezelfde wand als de tv, voor of achter het scherm
+    const achter = { van: bankZ + BANK_LANG / 2 + 0.2, tot: voorhuis.z1 - MUUR - 0.15 };
+    const voor = { van: HAL.z1 + 0.15, tot: bankZ - BANK_LANG / 2 - 0.2 };
+    const ruimte = (achter.tot - achter.van) >= (voor.tot - voor.van) ? achter : voor;
+    const lang = Math.min(1.45, ruimte.tot - ruimte.van - 0.1);
+    if (lang >= 0.9) {
+      const zm = (ruimte.van + ruimte.tot) / 2;
+      return { langs: 'z', x0: MUUR + 0.03, diep: 0.42, z0: zm - lang / 2, z1: zm + lang / 2, hoog: 0.80 };
+    }
+    /*
+     Past daar niets, dan is de kamer breed en ondiep (Molenkrite 130c: achttien
+     bij zeven) en gaat hij tegen de achterwand, dwars op de tv. Dezelfde kast,
+     een kwartslag gedraaid.
+    */
+    const bvan = HAL.x1 + 0.3, btot = BREED - MUUR - 1.3;
+    const blang = Math.min(1.45, btot - bvan - 0.1);
+    if (blang < 0.9) return null;
+    const xm = (bvan + btot) / 2;
+    return { langs: 'x', z0: voorhuis.z1 - MUUR - 0.45, diep: 0.42,
+      x0: xm - blang / 2, x1: xm + blang / 2, hoog: 0.80 };
+  })();
+  if (DRESSOIR && DRESSOIR.langs === 'x') {
+    /*
+     Tegen de achterwand. Hetzelfde meubel als hieronder, maar dan met x en z
+     verwisseld; het staat apart omdat een doos geen draaiing kent en de code
+     met twee verwisselde assen onleesbaar zou worden.
+    */
+    const d = DRESSOIR, z1 = d.z0 + d.diep, xm = (d.x0 + d.x1) / 2;
+    doos(d.x0, d.x1, d.z0, z1, 0.08, d.hoog, MAT.donkerhout);
+    doos(d.x0 - 0.02, d.x1 + 0.02, d.z0, z1 + 0.02, d.hoog, d.hoog + 0.035, MAT.hout, false);
+    for (const xx of [d.x0 + 0.06, d.x1 - 0.12]) {
+      doos(xx, xx + 0.06, d.z0 + 0.02, d.z0 + 0.08, 0, 0.08, MAT.poot, false);
+      doos(xx, xx + 0.06, z1 - 0.10, z1 - 0.04, 0, 0.08, MAT.poot, false);
+    }
+    doos(d.x0 + 0.08, d.x1 - 0.08, d.z0 - 0.008, d.z0, 0.30, 0.34, MAT.rvs, false);
+    const fb = Math.min(0.62, (d.x1 - d.x0) * 0.5);
+    doos(xm - fb / 2, xm + fb / 2, z1 - 0.10, z1 - 0.06, d.hoog + 0.035, d.hoog + 0.30, MAT.lijst, false);
+    doos(xm - fb / 2 + 0.02, xm + fb / 2 - 0.02, z1 - 0.105, z1 - 0.10, d.hoog + 0.07, d.hoog + 0.27, MAT.fotos, false);
+    const lx = d.x1 - 0.22;
+    doos(lx - 0.07, lx + 0.07, z1 - 0.28, z1 - 0.14, d.hoog + 0.035, d.hoog + 0.06, MAT.donkerhout, false);
+    doos(lx - 0.015, lx + 0.015, z1 - 0.22, z1 - 0.19, d.hoog + 0.06, d.hoog + 0.30, MAT.tvRand, false);
+    {
+      const m = new THREE.Mesh(schaduw(new THREE.CylinderGeometry(0.14, 0.10, 0.20, 12, 1, true)), MAT.kap);
+      m.position.set(lx, d.hoog + 0.40, z1 - 0.205);
+      groep.add(m);
+    }
+    const px2 = d.x0 + 0.20;
+    doos(px2 - 0.07, px2 + 0.07, z1 - 0.28, z1 - 0.14, d.hoog + 0.035, d.hoog + 0.18, MAT.pot, false);
+    doos(px2 - 0.06, px2 + 0.06, z1 - 0.27, z1 - 0.15, d.hoog + 0.16, d.hoog + 0.18, MAT.aarde, false);
+    for (const [dx, dz, h] of [[0.02, 0, 0.26], [-0.03, 0.04, 0.20], [0.04, -0.05, 0.22]]) {
+      const b = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(0.09, 0)), MAT.bladLicht);
+      b.position.set(px2 + dx, d.hoog + 0.12 + h, z1 - 0.21 + dz);
+      b.scale.set(1, 1.35, 1);
+      groep.add(b);
+    }
+    inrichting.dressoir = true; inrichting.fotos = true; inrichting.lamp = true;
+  } else if (DRESSOIR) {
+    const d = DRESSOIR, x1 = d.x0 + d.diep, zm = (d.z0 + d.z1) / 2;
+    doos(d.x0, x1, d.z0, d.z1, 0.08, d.hoog, MAT.donkerhout);                    // kast
+    doos(d.x0, x1 + 0.02, d.z0 - 0.02, d.z1 + 0.02, d.hoog, d.hoog + 0.035, MAT.hout, false); // blad
+    for (const zz of [d.z0 + 0.06, d.z1 - 0.12]) {
+      doos(d.x0 + 0.02, d.x0 + 0.08, zz, zz + 0.06, 0, 0.08, MAT.poot, false);   // pootjes
+      doos(x1 - 0.10, x1 - 0.04, zz, zz + 0.06, 0, 0.08, MAT.poot, false);
+    }
+    doos(x1 - 0.008, x1, d.z0 + 0.08, d.z1 - 0.08, 0.30, 0.34, MAT.rvs, false);  // greep van de lade
+    // drie fotolijstjes op het blad, allemaal de kamer in gedraaid
+    const fb = Math.min(0.62, (d.z1 - d.z0) * 0.5);
+    doos(d.x0 + 0.06, d.x0 + 0.10, zm - fb / 2, zm + fb / 2, d.hoog + 0.035, d.hoog + 0.30, MAT.lijst, false);
+    doos(d.x0 + 0.10, d.x0 + 0.105, zm - fb / 2 + 0.02, zm + fb / 2 - 0.02, d.hoog + 0.07, d.hoog + 0.27, MAT.fotos, false);
+    // de schemerlamp: voet, stang en een linnen kap
+    const lz = d.z1 - 0.22;
+    doos(d.x0 + 0.14, d.x0 + 0.28, lz - 0.07, lz + 0.07, d.hoog + 0.035, d.hoog + 0.06, MAT.donkerhout, false);
+    doos(d.x0 + 0.19, d.x0 + 0.22, lz - 0.015, lz + 0.015, d.hoog + 0.06, d.hoog + 0.30, MAT.tvRand, false);
+    {
+      const m = new THREE.Mesh(schaduw(new THREE.CylinderGeometry(0.14, 0.10, 0.20, 12, 1, true)), MAT.kap);
+      m.position.set(d.x0 + 0.205, d.hoog + 0.40, lz);
+      groep.add(m);
+    }
+    // en een plantje ernaast
+    const pz = d.z0 + 0.20;
+    doos(d.x0 + 0.14, d.x0 + 0.28, pz - 0.07, pz + 0.07, d.hoog + 0.035, d.hoog + 0.18, MAT.pot, false);
+    doos(d.x0 + 0.15, d.x0 + 0.27, pz - 0.06, pz + 0.06, d.hoog + 0.16, d.hoog + 0.18, MAT.aarde, false);
+    for (const [dx, dz, h] of [[0.02, 0.0, 0.26], [-0.03, 0.04, 0.20], [0.04, -0.05, 0.22]]) {
+      const b = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(0.09, 0)), MAT.bladLicht);
+      b.position.set(d.x0 + 0.21 + dx, d.hoog + 0.12 + h, pz + dz);
+      b.scale.set(1, 1.35, 1);
+      groep.add(b);
+    }
+    inrichting.dressoir = true; inrichting.fotos = true; inrichting.lamp = true;
+  }
+
+  /*
+   ---------- de fauteuil ----------
+   In een brede woonkamer staat er naast de bank nog een stoel, met de rug naar
+   het raam en het gezicht naar de tv. In een smalle kamer komt hij er niet: dan
+   loop je er alleen maar omheen.
+  */
+  if (BREED - HAL.x1 > 3.6) {
+    const fz = Math.max(HAL.z1 + 0.55, bankZ - BANK_LANG / 2 - 0.75);
+    if (fz + 0.45 < bankZ - BANK_LANG / 2 - 0.05) {
+      const x1 = BREED - MUUR - 0.10, x0 = x1 - 0.85;
+      const z0 = fz - 0.42, z1 = fz + 0.42;
+      doos(x0, x1, z0, z1, 0.10, 0.36, MAT.stof);
+      doos(x0 + 0.10, x1, z0 + 0.10, z1 - 0.10, 0.36, 0.46, MAT.stof, false);
+      doos(x1 - 0.18, x1, z0, z1, 0.36, 0.82, MAT.stofRug, false);
+      doos(x0, x1 - 0.16, z0, z0 + 0.14, 0.36, 0.60, MAT.stofRug, false);
+      doos(x0, x1 - 0.16, z1 - 0.14, z1, 0.36, 0.60, MAT.stofRug, false);
+      for (const zz of [z0 + 0.10, z1 - 0.16]) for (const xx of [x0 + 0.06, x1 - 0.12]) {
+        doos(xx, xx + 0.06, zz, zz + 0.06, 0, 0.10, MAT.poot, false);
+      }
+      inrichting.fauteuil = true;
+    }
+  }
+
+  /*
+   ---------- de grote plant in de hoek ----------
+   Een pot met een stam en drie bossen blad, in de hoek bij het raam. Hij staat
+   in de weg zoals een echte kamerplant in de weg staat: er zit een botsdoos om
+   de pot, dus je loopt er niet dwars doorheen.
+  */
+  {
+    const px = BREED - MUUR - 0.42, pz = MUUR + 0.50;
+    if (px > HAL.x1 + 0.6) {
+      doos(px - 0.22, px + 0.22, pz - 0.22, pz + 0.22, 0, 0.34, MAT.pot);
+      doos(px - 0.19, px + 0.19, pz - 0.19, pz + 0.19, 0.32, 0.35, MAT.aarde, false);
+      doos(px - 0.035, px + 0.035, pz - 0.035, pz + 0.035, 0.34, 1.05, MAT.stam, false);
+      for (const [dx, dz, h, r] of [[0, 0, 1.28, 0.30], [0.22, 0.12, 1.05, 0.22], [-0.18, -0.14, 1.12, 0.20]]) {
+        const b = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(r, 0)), dx ? MAT.bladLicht : MAT.blad);
+        b.position.set(px + dx, h, pz + dz);
+        b.scale.set(1, 0.8, 1);
+        groep.add(b);
+      }
+      inrichting.plant = true;
+    }
   }
 
   /*
@@ -708,6 +996,50 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     }
     doos(x0, x0 + 0.50, gatVan + 0.05, gatTot - 0.05, 1.55, 1.90, MAT.rvs, false);       // wasemkap
     doos(x0, x0 + 0.16, gatVan + 0.22, gatTot - 0.22, 1.90, BOVENKAST_BOVEN, MAT.rvs, false);
+
+    /*
+     En wat er op het aanrecht staat (verzoek 23 sep 2026). Een leeg werkblad
+     leest als een showroom; dit is wat er in een gewone keuken op staat: een
+     waterkoker, een snijplank tegen de tegels, een fruitschaal, een afdruiprek
+     naast de spoelbak en een theedoek over het handvat van de oven. Allemaal
+     zonder botsdoos — je loopt er niet tegenaan, je kijkt ernaar.
+    */
+    const bl = AANRECHT + 0.004;                      // net op het blad
+    const zet = (zz, breed, diep, hoog, mat, dx = 0.10) => {
+      if (zz < z0 + 0.05 || zz + diep > z1 - 0.05) return;
+      doos(x0 + dx, x0 + dx + breed, zz, zz + diep, bl, bl + hoog, mat, false);
+      inrichting.keuken++;
+    };
+    // waterkoker: een romp met een deksel en een tuit
+    const kz = z0 + (z1 - z0) * 0.12;
+    zet(kz, 0.17, 0.17, 0.22, MAT.rvs, 0.12);
+    zet(kz + 0.03, 0.11, 0.11, 0.26, MAT.tvRand, 0.15);
+    // snijplank rechtop tegen de tegels, met een blokje ernaast
+    const sz = z0 + (z1 - z0) * 0.45;
+    if (sz > z0 && sz + 0.30 < z1) {
+      doos(x0 + 0.03, x0 + 0.055, sz, sz + 0.30, bl, bl + 0.34, MAT.hout, false);
+      doos(x0 + 0.08, x0 + 0.20, sz + 0.33, sz + 0.45, bl, bl + 0.24, MAT.donkerhout, false);
+      inrichting.keuken++;
+    }
+    // fruitschaal met een paar appels erin
+    const fz = z1 - 0.42;
+    zet(fz, 0.26, 0.26, 0.07, MAT.keramiek, 0.16);
+    for (const [ddx, ddz] of [[0.02, 0.03], [0.10, 0.09], [0.06, 0.15]]) {
+      doos(x0 + 0.18 + ddx, x0 + 0.24 + ddx, fz + ddz, fz + 0.06 + ddz, bl + 0.05, bl + 0.11, MAT.fruit, false);
+    }
+    // afdruiprek naast de spoelbak: een bak met drie borden op hun kant
+    const az = spoelZ - 0.52;
+    if (az > z0 + 0.1) {
+      doos(x0 + 0.10, x0 + 0.44, az, az + 0.30, bl, bl + 0.04, MAT.rvs, false);
+      for (let i = 0; i < 3; i++) {
+        doos(x0 + 0.14, x0 + 0.40, az + 0.05 + i * 0.08, az + 0.065 + i * 0.08, bl + 0.04, bl + 0.22, MAT.keramiek, false);
+      }
+      inrichting.keuken++;
+    }
+    // theedoek over de greep van de onderkast onder de spoelbak
+    doos(x0 + KAST_DIEP + 0.005, x0 + KAST_DIEP + 0.035, spoelZ - 0.10, spoelZ + 0.10,
+      AANRECHT - 0.30, AANRECHT - 0.13, MAT.kap, false);
+    inrichting.keuken++;
   }
 
   // ---------- lampen ----------
@@ -1188,6 +1520,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     get soort() { return HUIS.soort || null; },
     get beschrijving() { return HUIS.beschrijving || ''; },
     get tvAan() { return !!MAT.tvBeeld.map; },
+    // wat er aan inrichting in deze kamer gepast heeft (npm run huistest)
+    get inrichting() { return { ...inrichting, meshes: groep.children.length }; },
     get flesjes() { return flesjes; },
     get katten() { return katten.map(k => ({ x: k.kat.groep.position.x, y: k.kat.groep.position.y, z: k.kat.groep.position.z, staat: k.staat, opBank: k.opBank })); },
     get naam() { return `${HUIS.straat} ${HUIS.nr}`; },
@@ -1198,7 +1532,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
         breed: BREED, diep: DIEP, hoogte: HOOGTE, banden: vakken,
         voordeur: { breed: DEUR_B, hoog: DEUR_H }, binnendeur: { breed: BINNENDEUR, hoog: BINNENDEUR_H },
         aanrecht: AANRECHT, bovenkast: [BOVENKAST_ONDER, BOVENKAST_BOVEN],
-        bank: { breed: 2.10, diep: 0.90, zitting: 0.44, rug: 0.85 },
+        bank: { breed: BANK_LANG, diep: 0.95, zitting: 0.46, rug: 0.85,
+          ruimte: BANK_TOT - BANK_VAN },
         tv: { breed: 1.20, hoog: 0.68, midden: 0.86 },
         gang: HAL_BREED, keuken: { breed: KEUKEN.x1 - KEUKEN.x0, diep: KEUKEN.z1 - KEUKEN.z0 },
       };

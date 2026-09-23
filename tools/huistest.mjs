@@ -114,6 +114,33 @@ ok(/koelkast/i.test(binnen.koelHint), 'bij de koelkast staat de hint',
 ok(binnen.leven > 60 && binnen.flesjes === 1, 'een flesje uit de eigen koelkast geeft leven',
   `${binnen.leven} leven, ${binnen.flesjes} flesje`);
 
+// ---------------------------------------------------------- de inrichting
+kop('de inrichting van de kamer');
+const spullen = await page.evaluate(() => {
+  const g = window.__game;
+  const uit = (w) => ({ naam: w.naam, ...w.inrichting,
+    bank: +w.maten.bank.breed.toFixed(2), bankRuimte: +w.maten.bank.ruimte.toFixed(2) });
+  return { stek: window.__stek().map(uit), wieken: uit(g.woningen[1]) };
+});
+for (const h of spullen.stek) {
+  ok(h.schilderij && h.kleed && h.salontafel,
+    `${h.naam}: schilderij, kleed en salontafel`,
+    `${h.schilderij ? '' : 'geen schilderij '}${h.kleed ? '' : 'geen kleed '}${h.salontafel ? '' : 'geen salontafel'}`);
+  ok(h.dressoir && h.fotos && h.lamp, `${h.naam}: dressoir met foto's en een schemerlamp`);
+  ok(h.plant, `${h.naam}: een plant in de hoek`);
+  ok(h.keuken >= 4, `${h.naam}: het aanrecht staat niet leeg`, `${h.keuken} dingen`);
+  /*
+   Hij was overal 2,10, ook in een kamer die maar 1,7 m wand had. Nu vult hij het
+   vrije stuk wand tot maximaal 2,55 — dus in een diepe kamer een stuk ruimer, en
+   in een ondiepe precies wat erin past.
+  */
+  const past = Math.min(2.55, h.bankRuimte - 0.2);
+  ok(h.bank >= past - 0.02, `${h.naam}: de bank vult de wand`,
+    `${h.bank} m van de ${h.bankRuimte} m wand`);
+}
+ok(spullen.wieken.schilderij && spullen.wieken.dressoir && spullen.wieken.plant,
+  'en de Wieken 29 is mee opgeknapt', `bank ${spullen.wieken.bank} m, ${spullen.wieken.keuken} in de keuken`);
+
 // ------------------------------------------------------------- de missie
 kop('de missie: Mark belt, drie vlaggen op de kaart');
 const start = await page.evaluate(() => {

@@ -4888,7 +4888,25 @@ meter van een van de drie, dan staat hij op het tegelpad; bij veertien meter zeg
 hij wat hij ervan vindt. Een tweede routezoeker voor een man die alleen
 commentaar levert zou meer code zijn dan de hele missie.
 
-`npm run huistest` en `npm run huisshots`.
+*En toen de inrichting.* De eerste foto's lieten zien wat de proef niet kon
+zien: een kamer van honderdtachtig vierkante meter met één bank, één tv en één
+tafel erin leest als een showroom (melding 23 sep 2026). Erbij gekomen zijn een
+schilderij (een Fries landschap met een molen, getekend op een doek van 128 bij
+96), een salontafel op een vloerkleed, een dressoir met drie fotolijstjes, een
+schemerlamp en een plantje, een grote kamerplant in de hoek, een fauteuil in een
+brede kamer, en spullen op het aanrecht: waterkoker, snijplank, fruitschaal,
+afdruiprek en een theedoek. Alleen de grote stukken hebben een botsdoos; de
+dingen op het blad en op het dressoir niet — daar loop je niet tegenaan, daar
+kijk je naar.
+
+Twee maten moesten mee veranderen. De bank stond op een vaste 2,10 m, en dat was
+in een diepe kamer te klein en in de ondiepe bungalow aan de Molenkrite te lang
+(hij stak de gang in). Nu wordt eerst het vrije stuk wand bepaald en vult de bank
+dat tot hoogstens 2,55. En het dressoir paste in diezelfde bungalow langs geen
+enkele wand naast de tv, dus daar staat hij tegen de achterwand, een kwartslag
+gedraaid. Allebei kwamen ze uit de proef en niet uit het oog.
+
+`npm run huistest` (drieënveertig controles) en `npm run huisshots`.
 
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
