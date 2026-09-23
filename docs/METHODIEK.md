@@ -5005,7 +5005,7 @@ koopregel stuk was. Beide lussen kijken nu naar `dialoog.hidden`, en dezelfde
 twee stonden in `tools/huisshots.mjs`. Les voor de volgende proef: een element
 dat je leegmaakt door het te verbergen is geen toestand om op te tellen.
 
-`npm run huistest` (eenenzestig controles) en `npm run huisshots` (vijf foto's).
+`npm run huistest` en `npm run huisshots` (vijf foto's).
 
 *Het huis als plek, niet als decor.* Negen punten uit de vierde ronde melding
 (23 sep 2026), waarvan er drie echte bouwfouten waren.
@@ -5016,7 +5016,12 @@ Molenkrite 130c is maar 6,8 m diep — begon de rij op 2,2 m terwijl de gang tot
 4,4 m doorloopt: de koelkast stond in de deuropening. De rij begint nu nooit
 eerder dan een derde meter achter de gang. Dat vroeg om één verplaatsing in het
 bestand: `HAL` wordt nu berekend vóór `KEUKEN`, want de keuken moet weten waar de
-gang ophoudt en niet andersom.
+gang ophoudt en niet andersom. Een kortere gang heeft daar meteen een tweede
+gevolg: de zijwand van de woonkamer werd 3,1 m in plaats van 1,9, dus de bank
+staat aan de Molenkrite nu ook gewoon tegen de zijwand. De achterwand-variant uit
+stap 72 blijft staan als terugval voor een kamer die écht te ondiep is.
+
+`npm run huistest`: negenenzestig controles.
 
 *Bij de Koningsspil liep je door de muur van de buren.* De kamer ligt ver buiten
 het kaartgebied en de buurt eromheen is daar nagebouwd uit de kaartdata: alle

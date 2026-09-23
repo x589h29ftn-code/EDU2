@@ -1653,9 +1653,8 @@ Binnen zijn ze ingericht als een woning waar iemand woont. De zithoek is een
 en een chaise longue die de kamer in steekt, met kussens en een plaid — met de
 **tv er op drie meter recht voor**, een **salontafel op een vloerkleed**
 ertussen, een **staande lamp** aan het uiteinde en een **poef** ernaast. Waar de
-zithoek staat hangt van de kamer af: normaal tegen de zijwand, en in de brede
-ondiepe bungalow aan de Molenkrite tegen de achterwand, want daar is de zijwand
-te kort voor een bank én kijkafstand.
+zithoek staat hangt van de kamer af: normaal tegen de zijwand, en als die te kort
+is voor een bank én kijkafstand tegen de achterwand.
 
 Verder een **schilderij van een Fries landschap** boven de bank, een **wand in
 een diepere kleur** erachter, een **boekenkast** met vier planken boeken en een
@@ -1712,7 +1711,7 @@ bent geweest zegt Mark dat je er rustig over na kunt denken, en is missie 9
 de drie vlaggen blijven op de kaart en je kunt later alsnog aan tafel gaan zitten
 en kopen.
 
-`npm run huistest` (eenenzestig controles) loopt de hele missie na, van het
+`npm run huistest` (negenenzestig controles) loopt de hele missie na, van het
 telefoontje tot de sleutels, en `npm run huisshots` maakt de foto's van de drie
 woonkamers en van de tuin.
 
