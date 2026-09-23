@@ -45,7 +45,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | Bestand | Waarvoor |
 |---|---|
 | `js/main.js` | de hoofdlus, de invoer, de mixer, alles aan elkaar |
-| `js/verhaal.js` | de negen missies, Mark, de gesprekken, de opslag van het verhaal |
+| `js/verhaal.js` | de tien missies, Mark, de gesprekken, de opslag van het verhaal |
 | `js/kaart.js` | **gegenereerd**: panden, wegen, water, straten uit de geodata |
 | `js/kaartwereld.js` | daar de wereld van bouwen (tegels, bomen, riet, auto's) |
 | `js/textures.js` | alle geveltextures, dakpannen, baksteen — op canvas |
@@ -56,6 +56,9 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/npc.js` | voetgangers en fietsers op wegvakken |
 | `js/audio.js` | alles synthetisch, plus de mp3-radio; `autoradio(actief, sterkte)` |
 | `js/hud.js` | minimap, grote kaart, meldingen, vlaggen |
+| `js/bewaking.js` | schutters: bewaking, de bende van missie 7 en 10 (met opties) |
+| `js/looppad.js` | een looproute te voet om hekken en gebouwen heen (A*) |
+| `js/deal.js` | missie 8, en `maakVeteraan()`: De Veteraan met zijn hondje |
 
 Een paar dingen die niet vanzelf spreken:
 
@@ -89,12 +92,20 @@ Street View-link erbij.
 6. de groene BX — stelen en overspuiten
 7. de bom bij de Poiesz — Duinterpen
 8. de deal bij de molen — sniper en boten
-9. **een eigen stek** — drie woningen kopen (laatst gebouwd)
+9. **een eigen stek** — drie woningen kopen
+10. **De Veteraan** — de tas bij VV Sneek en de hinderlaag (laatst gebouwd)
 
 Missie 9 in het kort: Mark belt, staat bij de Wieken 29, noemt drie adressen met
 bedrag (**1, 2 of 3** kiest en zet de navigatie), en je koopt er aan tafel een
 met E. Te weinig geld houdt het aanbod open; alle drie bekeken zonder kopen rondt
 de missie af en laat het aanbod staan.
+
+Missie 10 begint 45 s na het kopen: De Veteraan belt, staat met zijn hondje op
+het fietspad bij De Terpensmole, stuurt je om een tas voor de tribune van VV
+Sneek; bij het oppakken komen vier auto's met tien man naar het inritje aan de
+Molenkrite, die via een looproute om de kantine heen komen. Daarna is hij weg,
+belt Mark (omleggen, te snel in de rangen, ga naar huis) en is het thuis — het
+gekochte huis — klaar voor € 250. **shift+0** start hem los.
 
 De drie woningen: **Zeskanter 16** (€ 5.000), **Molenkrite 130c** (€ 2.500),
 **Koningsspil 20** (€ 1.000). Binnen: hoekbank met tv, eettafel om aan te zitten,
@@ -107,8 +118,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste twee die ertoe doen: `npm run huistest` (negenenzestig controles,
-groen) en `npm run huisshots` (vijf foto's).
+De laatste die ertoe doen: `npm run veteraantest` (zevenenveertig controles,
+groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
+(negenenzestig controles) en `npm run huisshots` (vijf foto's).
 
 **Valkuilen van deze omgeving — hier is veel tijd in gaan zitten:**
 

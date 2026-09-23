@@ -5073,6 +5073,72 @@ terwijl er nog woningen over zijn, dan noemt een melding de cijfers die nog te
 kiezen zijn met adres en bedrag, staat het in de opdrachtbalk, en gaat de
 navigatie alvast naar de dichtstbijzijnde die je nog niet zag.
 
+**De Veteraan (stap 73).** Missie 10 (verzoek 23 sep 2026): na het kopen van een
+huis belt De Veteraan zelf, bedankt je op het Sneekerpad bij De Terpensmole voor
+de molen in IJlst en stuurt je om een tas bij de tribune van VV Sneek. Daar
+wacht een hinderlaag van vier auto's en tien man; daarna is hij weg van het pad,
+belt Mark dat hij je heeft willen omleggen, en is de missie thuis klaar — in het
+huis dat je gekocht hebt — voor € 250.
+
+*Alles uit de kaart.* Het kleine molentje is de spinnenkop uit `KAART.molens`;
+De Veteraan staat op het dichtstbijzijnde punt van het fietspad ernaast (in de
+BGT heet dat pad "Tinga" en het gaat bij De Rat over in het Sneekerpad — de
+proef kijkt na dat het ene eind bij De Rat ligt en het andere bij de wijk). De
+tas staat op de maten van de tribune uit `KAART.sportvelden`, met dezelfde
+rekensom als js/sportveld.js. De Veteraan zelf en zijn hondje staan sindsdien
+in `maakVeteraan()` in js/deal.js, zodat de molen in IJlst en het Sneekerpad
+hetzelfde poppetje gebruiken; het portretje in de gespreksbalk kreeg een baard.
+
+*Drie keer stond de bende stil.* Dit was het werk van de ronde, en geen van de
+drie was te zien geweest zonder te meten.
+1. De auto's stopten op de rijbaan die het dichtst bij de tribune ligt. Die ligt
+   áchter de kantine: honderdtachtig tellen lang viel er geen schot, want de
+   mannen liepen recht tegen het gebouw op en zagen je nooit.
+2. Toen de plek op de weg met vrij zicht (`zichtVrij`, dezelfde kijklijn als de
+   schutters). Nu zagen ze je, maar ze bleven op 71 m tegen het hek rond het
+   veld staan — één meter buiten hun vuurbereik.
+3. Een looproute dan, en die bestond niet. Een vulling vanaf de tas leverde
+   7.500 m² op en geen uitgang, ook met de straal van de speler: rond het
+   hoofdveld staat een gesloten ring reclameborden met een botsdoos van zestig
+   centimeter. De speler springt eroverheen (dat is waarom die doos zo laag is);
+   de schutters konden niet springen.
+Nu stapt de bende uit bij het inritje van het clubparkeerterrein — de echte
+voorkant — en loopt een route die js/looppad.js één keer zoekt: A* over een
+raster van een meter, met dezelfde `resolveCollisions` als waar de mensen tegen
+lopen, en daarna strakgetrokken tot vijf punten om de kantine heen. Wat lager
+is dan zeventig centimeter stappen ze over, net als jij. js/bewaking.js kreeg
+daarvoor opties (schade, zicht, vuurbereik, dekking, kleding, looppad,
+`overLaag`); zonder opties gedragen de bewaking en de bende uit missie 7 zich
+als voorheen.
+
+*Aanrijden over de weg.* De auto's van missie 7 reden in een rechte lijn naar hun
+plek. Op de rechte straat voor de Poiesz ging dat goed, maar de Molenkrite buigt
+langs het sportpark. Ze volgen nu de wegas: bij elke knoop de tak die het meest
+rechtdoor gaat, met de neus mee in de bocht. De proef meet elke derde stap hoe
+ver elke auto buiten de rijbaan staat: 0,00 m.
+
+*De balans is nagerekend, niet gegokt.* Tien man met de schade van de bewaking
+(6) houdt niemand vol. Met een vaste loting over vier zaden: schade 3 en
+twintig meter dekking geeft 46 tot 76 leven over voor wie om de drieënhalve tel
+iemand raakt, 73 tot 91 om de tweeënhalve tel, en neer na een kleine vijftig
+tellen voor wie niets doet. De eerste versie van die proef raakte de
+dichtstbijzijnde man, ook door de kantine heen — dan is de bende dood voor ze om
+de hoek komt en kost het gevecht niets. Nu alleen wie je kunt zien.
+
+*Twee dingen in de opslag die voor elke missie golden.* De pauze tussen twee
+missies (`naMissieT`) werd niet bewaard: sloeg je op tussen het kopen en het
+telefoontje, dan belde er na het laden nooit meer iemand. De opslag heeft nu een
+veld `volgende`, en een opslag van vóór deze missie met een gekocht huis krijgt
+De Veteraan alsnog aan de lijn. En `herstel()` zet een spel dat in een fase
+`briefing` is opgeslagen terug naar missie 1; voor missie 10 niet meer. Voor de
+andere missies staat die regel er nog — bij Johan en bij missie 9 is dat
+vermoedelijk ook niet de bedoeling, maar het hoort niet bij deze ronde.
+
+*Uit de proef zelf.* Het kopen in de proef mislukte de eerste keer: binnenkomen
+laat Mark iets over de woning zeggen, en zolang dat in beeld staat klikt E dat
+weg in plaats van te kopen — dezelfde valkuil waar `huistest` `__rust` voor
+heeft. `npm run veteraantest`: zevenenveertig controles, alles groen.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

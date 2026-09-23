@@ -717,7 +717,7 @@ export function euro(bedrag) {
  Portretje voor de tekstbalk: een kop in dezelfde vlakke stijl als de poppetjes
  in het spel. Wordt gebruikt bij het telefoontje van Johan (js/verhaal.js).
 */
-export function tekenKop(canvas, { huid = '#d9b48f', haar = '#2a1d12', shirt = '#2f5d8a', stoppels = false, pet = null } = {}) {
+export function tekenKop(canvas, { huid = '#d9b48f', haar = '#2a1d12', shirt = '#2f5d8a', stoppels = false, pet = null, baard = null } = {}) {
   const g = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   g.clearRect(0, 0, W, H);
@@ -756,5 +756,15 @@ export function tekenKop(canvas, { huid = '#d9b48f', haar = '#2a1d12', shirt = '
   if (stoppels) {
     g.fillStyle = 'rgba(30,26,22,.35)';
     g.fillRect(W / 2 - 12 * s, 36 * s, 24 * s, 12 * s);
+  }
+  // een volle baard (De Veteraan): wangen, kin en een snor boven de mond
+  if (baard) {
+    g.fillStyle = baard;
+    g.beginPath(); g.ellipse(W / 2, 40 * s, rx - 1 * s, 11 * s, 0, 0, Math.PI); g.fill();
+    g.fillRect(W / 2 - rx + 1 * s, 32 * s, 4 * s, 9 * s);
+    g.fillRect(W / 2 + rx - 5 * s, 32 * s, 4 * s, 9 * s);
+    g.fillRect(W / 2 - 8 * s, 36.5 * s, 16 * s, 3 * s);
+    g.fillStyle = '#8a4a44';
+    g.fillRect(W / 2 - 5 * s, 41 * s, 10 * s, 2 * s);
   }
 }

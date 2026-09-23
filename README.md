@@ -91,6 +91,9 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + 5** | het telefoontje van Johan |
 | **shift + 6** | de groene BX |
 | **shift + 7** | de bom bij de Poiesz |
+| **shift + 8** | de deal bij de molen |
+| **shift + 9** | een eigen stek |
+| **shift + 0** | De Veteraan |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
@@ -101,7 +104,7 @@ prettig. Daarna sta je waar je stond: je rijdt zelf naar de M.
 Het kan ook bij het starten, met een adres: **`index.html?missie=bom`** (of
 `?missie=7`). Handig voor een link; in de Windows-app, die geen adresbalk heeft,
 gebruik je de toetsen. De namen zijn `molenkrite`, `rijden`, `bewaking`,
-`afleveren`, `johan`, `bx` en `bom`.
+`afleveren`, `johan`, `bx`, `bom`, `sniper`, `huis` en `veteraan`.
 
 Dit hoort bij de testfase, net als de € 1.000 startgeld. Het staat in één blok
 bovenin `js/main.js` (`MISSIES` en `startMissieLos`) en kan er in één keer uit
@@ -1714,6 +1717,66 @@ en kopen.
 `npm run huistest` (negenenzestig controles) loopt de hele missie na, van het
 telefoontje tot de sleutels, en `npm run huisshots` maakt de foto's van de drie
 woonkamers en van de tuin.
+
+### 10 · De Veteraan
+
+Een kleine driekwart minuut nadat je de sleutels hebt, gaat de telefoon. Het is
+geen Mark en geen Johan: **De Veteraan belt zelf**. *"Mark vertelde dat je een
+eigen stek hebt. Mooi zo, jongen. Kom naar het Sneekerpad, bij het kleine
+molentje. Ik sta daar met mijn hondje."*
+
+Het kleine molentje is **De Terpensmole**, de spinnenkop aan het fietspad van
+Tinga naar IJlst dat bij De Rat overgaat in het Sneekerpad. Daar staat hij op
+het pad, in zijn olijfgroene uniform met pet en grijze baard, met het dikke
+bruine hondje naast zich — dezelfde twee die je bij de molen in IJlst door je
+kijker zag. Een **V** op de kaart wijst hem aan. Kom je bij hem, dan begint hij
+vanzelf: hij is geen man van grote woorden, maar in IJlst lag hij er bijna bij en
+jij hebt ze van hem af geschoten. *"Zonder jou had dit hondje geen baasje meer
+gehad."*
+
+En dan de klus. Er wordt vandaag een **tas afgeleverd bij het voetbalveld van VV
+Sneek**, bij de tribune. *"Niks aan de hand: gewoon meenemen en hier
+terugbrengen. Ik wacht op je."* De tas — een zwarte sporttas met een geel ruitje
+erboven — staat op de tegels vóór de tribune van het hoofdveld (**T** op de
+kaart); spring over de reclameborden en pak hem met **E**.
+
+Dat lijkt simpel. Maar zodra je hem hebt rijden er **vier auto's** de Molenkrite
+af naar het inritje van het clubparkeerterrein, aan de voorkant van het
+sportpark, en stappen er **tien man** uit. Ze komen om de kantine heen, springen
+over de borden en openen het vuur. Een hevig vuurgevecht: ze blijven op een
+meter of twintig staan en schieten, en wie blijft staan houdt het geen minuut
+vol. De tribune en de kantine zijn je dekking, en wat ze laten vallen — pistolen
+met kogels — kun je oprapen. Ga je neer, dan begin je opnieuw bij de tas, met de
+bende al uit de auto's.
+
+![De Veteraan en zijn hondje bij De Terpensmole](docs/screenshots/veteraan_molentje.png)
+
+Zijn ze alle tien neer, dan wijst de kaart terug naar het molentje. **Maar daar
+staat niemand.** Even later gaat de telefoon vanzelf — Mark: *"De Veteraan heeft
+je geprobeerd om te leggen. Je bent te snel gegroeid in de rangen, broeder. Wie
+zo snel omhoog komt, wordt een gevaar voor degene die bovenaan staat. Ben je
+veilig?"* En dan: ga naar huis, hij gaat nadenken over een plan om hem terug te
+pakken.
+
+**Naar huis** is het huis dat je in missie 9 gekocht hebt — Zeskanter 16,
+Molenkrite 130c of Koningsspil 20 — en Mark noemt het adres ook. Een **H** op de
+kaart wijst de voordeur aan, en de Wieken 29 telt niet meer. Sta je voor je deur
+(of binnen), dan is de missie **geslaagd** en krijg je **€ 250**.
+
+| ![De tas voor de tribune](docs/screenshots/veteraan_tas.png) | ![De hinderlaag](docs/screenshots/veteraan_hinderlaag.png) |
+|---|---|
+| de tas voor de tribune van VV Sneek | vier auto's aan de voorkant, tien man |
+
+Wie missie 9 afrondde door alle drie de woningen te bekijken zonder te kopen,
+krijgt het telefoontje pas als hij er alsnog een koopt: De Veteraan belt iemand
+met een eigen stek. Een opgeslagen spel tussen het kopen en het telefoontje belt
+na het laden gewoon alsnog, en een opslag van vóór deze missie met een gekocht
+huis erin ook.
+
+`npm run veteraantest` (zevenenveertig controles) speelt de hele missie na, van
+het kopen tot de € 250, en rekent het vuurgevecht na met een vaste loting: wie
+om de drieënhalve tel iemand raakt die hij kan zien haalt het, wie niets doet
+niet. `npm run veteraanshots` maakt de drie foto's hierboven.
 
 ## De wijk reageert: paniek, herstelpunten en voorrang
 

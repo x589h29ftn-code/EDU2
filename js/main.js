@@ -1087,7 +1087,7 @@ window.addEventListener('keydown', e => {
  Om missie 7 te bekijken hoefde je niet eerst zes missies te spelen (verzoek
  21 sep 2026). Elke missie is los te beginnen:
 
-   shift + 1 … shift + 7   in het spel
+   shift + 1 … shift + 9   in het spel, en shift + 0 voor missie 10
    index.html?missie=bom   bij het starten
 
  Twee ingangen, want de Windows-app heeft geen adresbalk. Het verhaal ruimt
@@ -1108,6 +1108,7 @@ const MISSIES = [
   { nr: 7, naam: 'bom', titel: 'de bom bij de Poiesz' },
   { nr: 8, naam: 'sniper', titel: 'de deal bij de molen' },
   { nr: 9, naam: 'huis', titel: 'een eigen stek' },
+  { nr: 10, naam: 'veteraan', titel: 'De Veteraan' },
 ];
 function startMissieLos(naam) {
   const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
@@ -1135,10 +1136,11 @@ window.addEventListener('keydown', e => {
   if (!player.active && !window.__autoplay) return;
   // op de toetscode en niet op de letter: shift+1 geeft op een Nederlands
   // toetsenbord een '!' en op een ander een '1'
-  const cijfer = /^Digit([1-9])$/.exec(e.code) || /^Numpad([1-9])$/.exec(e.code);
+  const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();
-  startMissieLos(cijfer[1]);
+  // de nul staat achter de negen op het toetsenbord, dus die is missie 10
+  startMissieLos(cijfer[1] === '0' ? '10' : cijfer[1]);
 });
 
 /*

@@ -35,13 +35,34 @@ export class Bewaking {
   /*
    posten: [{ a: [x,z], b: [x,z] }] – het lijnstuk waarover een bewaker
    heen en weer loopt.
+
+   opties: voor een groep die geen bewaking is. De bende bij VV Sneek (missie
+   10) draagt geen oranje hesjes, schiet van verder weg en raakt minder hard —
+   met tien man tegelijk is de schade van vijf bewakers per man niet te
+   overleven. Zonder opties gedraagt alles zich als de bewaking.
+     schade, zicht, vuurbereik, dekking   in levenspunten en meters
+     kleuren                              [{ shirt, broek }], om de beurt
+     vest, pet                            hesje (kleur of null) en pet (ja/nee/'om de beurt')
+     looppad                              [[x, z], ...] uit js/looppad.js: de route die ze
+                                          eerst afleggen voor ze recht op je af gaan
+     overLaag                             botsdozen lager dan dit stappen ze overheen (m)
   */
-  constructor(scene, posten) {
+  constructor(scene, posten, opties = {}) {
     this.scene = scene;
     this.alarm = false;
+    this.schade = opties.schade ?? SCHADE;
+    this.zicht = opties.zicht ?? ZICHT;
+    this.vuurbereik = opties.vuurbereik ?? VUURBEREIK;
+    this.dekking = opties.dekking ?? DEKKING;
+    const kleuren = opties.kleuren || KLEUREN;
+    const vest = opties.vest === undefined ? 0xd8801f : opties.vest;
+    const pet = opties.pet ?? true;
+    this.looppad = opties.looppad || null;
+    this.overLaag = opties.overLaag || 0;
     this.wachters = posten.map((post, i) => {
-      const kleur = KLEUREN[i % KLEUREN.length];
-      const persoon = new Persoon({ ...kleur, huid: i % 2 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + (i % 3) * 0.02, wapen: true, pet: true, vest: 0xd8801f });
+      const kleur = kleuren[i % kleuren.length];
+      const persoon = new Persoon({ ...kleur, huid: i % 2 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + (i % 3) * 0.02,
+        wapen: true, pet: pet === 'om de beurt' ? i % 2 === 0 : !!pet, vest });
       scene.add(persoon.groep);
       const start = post.a;
       persoon.zetNeer(start[0], start[1], Math.atan2(-(post.b[0] - post.a[0]), -(post.b[1] - post.a[1])));
@@ -52,6 +73,7 @@ export class Bewaking {
         kijkT: i * 0.07,
         zicht: false,
         doel: null,               // waar hij naartoe loopt bij 'zoekt'
+        padI: 0,                  // hoever hij op het looppad is
         omT: 0,
       };
     });
@@ -107,7 +129,7 @@ export class Bewaking {
       const c = Math.cos(draai), s = Math.sin(draai);
       const rx = dx * c - dz * s, rz = dx * s + dz * c;
       const nx = pos.x + rx * stap, nz = pos.z + rz * stap;
-      const [kx, kz] = resolveCollisions(nx, nz, 0.34);
+      const [kx, kz] = resolveCollisions(nx, nz, 0.34, this.overLaag);
       if (Math.hypot(kx - nx, kz - nz) < 0.02) {
         pos.x = kx; pos.z = kz;
         w.persoon.draaiNaar(Math.atan2(-rx, -rz), dt, 6);
@@ -115,6 +137,25 @@ export class Bewaking {
       }
     }
     return false;
+  }
+
+  /*
+   Het looppad aflopen, zolang hij nog niet dichtbij genoeg is. Levert true
+   zolang hij erop loopt. Er zit een uitweg in: staat hij ergens vast (iets dat
+   na het zoeken van de route is neergezet, een auto), dan slaat hij na twee
+   tellen het punt over.
+  */
+  volgPad(w, dt, dSp) {
+    const pad = this.looppad;
+    if (!pad || w.padI >= pad.length || dSp < this.dekking) return false;
+    const pos = w.persoon.groep.position;
+    const voor = { x: pos.x, z: pos.z };
+    if (this.loopNaar(w, pad[w.padI], dt, REN)) { w.padI++; w.vastT = 0; return w.padI < pad.length; }
+    if (Math.hypot(pos.x - voor.x, pos.z - voor.z) < REN * dt * 0.2) {
+      w.vastT = (w.vastT || 0) + dt;
+      if (w.vastT > 2) { w.padI++; w.vastT = 0; }
+    } else w.vastT = 0;
+    return true;
   }
 
   /*
@@ -141,7 +182,7 @@ export class Bewaking {
       if (w.kijkT <= 0) {
         w.kijkT = 0.3;
         let zien = false;
-        if (dSp < ZICHT && (opTerrein || this.alarm)) {
+        if (dSp < this.zicht && (opTerrein || this.alarm)) {
           const hoek = Math.atan2(-(sp.x - pos.x), -(sp.z - pos.z));
           let d = hoek - persoon.yaw;
           while (d > Math.PI) d -= Math.PI * 2;
@@ -156,22 +197,25 @@ export class Bewaking {
       }
 
       if (w.staat === 'aanval') {
-        const dichtbij = dSp < DEKKING;
-        if (!dichtbij) this.loopNaar(w, [sp.x, sp.z], dt, REN);
+        const dichtbij = dSp < this.dekking;
+        const opPad = this.volgPad(w, dt, dSp);
+        if (!opPad && !dichtbij) this.loopNaar(w, [sp.x, sp.z], dt, REN);
         persoon.kijkNaar(sp.x, sp.z, dt, 7);
-        persoon.update(dt, { loopt: !dichtbij, mikt: true, snelheid: REN });
+        persoon.update(dt, { loopt: opPad || !dichtbij, mikt: true, snelheid: REN });
         w.vuurT -= dt;
-        if (w.vuurT <= 0 && dSp < VUURBEREIK) {
+        if (w.vuurT <= 0 && dSp < this.vuurbereik) {
           w.vuurT = VUURTIJD * (0.8 + Math.random() * 0.5);
           persoon.vuur();
           geluid.schot();
           const kans = Math.max(0.08, 0.55 - dSp * 0.012);
-          if (Math.random() < kans) schade += SCHADE;
+          if (Math.random() < kans) schade += this.schade;
         }
         continue;
       }
 
       if (w.staat === 'zoekt') {
+        // eerst de route af, dan pas naar waar hij je het laatst zag
+        if (this.volgPad(w, dt, dSp)) { persoon.update(dt, { loopt: true, mikt: true, snelheid: REN }); continue; }
         const doel = w.doel || w.post.a;
         const erIs = this.loopNaar(w, doel, dt, REN);
         persoon.update(dt, { loopt: !erIs, mikt: true, snelheid: REN });
@@ -225,7 +269,7 @@ export class Bewaking {
   reset() {
     this.alarm = false;
     for (const w of this.wachters) {
-      w.staat = 'patrouille'; w.naarB = true; w.wacht = 0; w.doel = null; w.omT = 0; w.zicht = false;
+      w.staat = 'patrouille'; w.naarB = true; w.wacht = 0; w.doel = null; w.omT = 0; w.zicht = false; w.padI = 0;
       w.persoon.legNeer(0);
       w.persoon.zetNeer(w.post.a[0], w.post.a[1], Math.atan2(-(w.post.b[0] - w.post.a[0]), -(w.post.b[1] - w.post.a[1])));
     }

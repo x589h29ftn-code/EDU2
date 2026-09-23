@@ -86,19 +86,13 @@ const VUURTIJD = [0.5, 1.3];   // hoe vaak een schutter vuurt
 const DEINS = 4.5;             // hoeveel meter De Veteraan achteruit gaat
 
 /*
- De ontmoeting. `plek` is het punt op de kade, `naarWater` de richting waarin
- het water ligt (dan staan ze met hun gezicht die kant op, zodat jij ze door de
- kijker van voren ziet en niet zeven ruggen).
+ De Veteraan zelf, met zijn hondje. Hij speelt in twee missies mee: bij de molen
+ in IJlst (hieronder) en op het Sneekerpad bij De Terpensmole, waar hij je
+ bedankt en je naar de tas bij VV Sneek stuurt (missie 10, js/verhaal.js). Het
+ poppetje staat daarom los van de deal; `hondBij` zet het hondje naast hem aan
+ de kant (zx, zz).
 */
-export function maakDeal(scene, plek, naarWater) {
-  const vx = naarWater.x, vz = naarWater.z;          // eenheidsvector naar het water
-  const zx = -vz, zz = vx;                           // dwars erop, langs de kade
-  const hoekNaarWater = Math.atan2(-vx, -vz);
-
-  const mensen = [];
-  const zet = (p, x, z, yaw) => { p.zetNeer(x, z, yaw); scene.add(p.groep); };
-
-  // De Veteraan staat links, met zijn gezicht naar de baas
+export function maakVeteraan(scene) {
   const veteraan = new Persoon({ ...VETERAAN, hoogte: 1.03 });
   /*
    Een volle baard: kin, twee wangen en een snor, als blokjes aan het hoofd.
@@ -119,8 +113,7 @@ export function maakDeal(scene, plek, naarWater) {
   const snor = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.045, 0.05), baardMat);
   snor.position.set(0, -0.005, -0.105);
   veteraan.hoofd.add(snor);
-  const vetX = plek.x + zx * -3.2, vetZ = plek.z + zz * -3.2;
-  zet(veteraan, vetX, vetZ, Math.atan2(-zx, -zz));
+  scene.add(veteraan.groep);
 
   /*
    Het hondje: dezelfde vorm als de hondjes aan de lijn in de wijk, maar dan
@@ -131,6 +124,40 @@ export function maakDeal(scene, plek, naarWater) {
   hond.scale.set(1.5, 1.15, 1.25);
   hond.castShadow = true;
   scene.add(hond);
+  return {
+    veteraan, hond,
+    hondBij(zx, zz) {
+      const p = veteraan.groep.position;
+      hond.position.set(p.x + zx * 0.9, p.y, p.z + zz * 0.9);
+      hond.rotation.y = veteraan.yaw;
+    },
+    toon(v) { veteraan.groep.visible = !!v; hond.visible = !!v; },
+    verwijder() {
+      scene.remove(veteraan.groep);
+      scene.remove(hond);
+      hond.geometry.dispose();
+    },
+  };
+}
+
+/*
+ De ontmoeting. `plek` is het punt op de kade, `naarWater` de richting waarin
+ het water ligt (dan staan ze met hun gezicht die kant op, zodat jij ze door de
+ kijker van voren ziet en niet zeven ruggen).
+*/
+export function maakDeal(scene, plek, naarWater) {
+  const vx = naarWater.x, vz = naarWater.z;          // eenheidsvector naar het water
+  const zx = -vz, zz = vx;                           // dwars erop, langs de kade
+  const hoekNaarWater = Math.atan2(-vx, -vz);
+
+  const mensen = [];
+  const zet = (p, x, z, yaw) => { p.zetNeer(x, z, yaw); scene.add(p.groep); };
+
+  // De Veteraan staat links, met zijn gezicht naar de baas
+  const vet = maakVeteraan(scene);
+  const { veteraan, hond } = vet;
+  const vetX = plek.x + zx * -3.2, vetZ = plek.z + zz * -3.2;
+  veteraan.zetNeer(vetX, vetZ, Math.atan2(-zx, -zz));
 
   // de baas tegenover hem, en vier compagnons in een boog daarachter
   const baas = new Persoon({ ...BAAS, hoogte: 1.02 });
@@ -152,11 +179,7 @@ export function maakDeal(scene, plek, naarWater) {
   let t = 0;
   let deins = 0;               // hoe ver De Veteraan al achteruit is
 
-  function hondBij() {
-    const p = veteraan.groep.position;
-    hond.position.set(p.x + zx * 0.9, p.y, p.z + zz * 0.9);
-    hond.rotation.y = veteraan.yaw;
-  }
+  const hondBij = () => vet.hondBij(zx, zz);
   hondBij();
 
   return {
@@ -241,9 +264,7 @@ export function maakDeal(scene, plek, naarWater) {
 
     verwijder() {
       for (const m of mensen) scene.remove(m.persoon.groep);
-      scene.remove(veteraan.groep);
-      scene.remove(hond);
-      hond.geometry.dispose();
+      vet.verwijder();
     },
 
     // waar de scène staat te kijken, voor de proef

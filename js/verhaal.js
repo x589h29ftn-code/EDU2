@@ -44,7 +44,9 @@ import { maakProp, PROP_TYPES } from './props.js';
 import { Persoon } from './persoon.js';
 import { Bewaking } from './bewaking.js';
 import { maakMarkering, maakBompakket, ontplofBij } from './bom.js';
-import { maakWaterRing, maakDeal } from './deal.js';
+import { maakWaterRing, maakDeal, maakVeteraan } from './deal.js';
+import { maakTas } from './tas.js';
+import { zoekLooppad } from './looppad.js';
 import { LIGPLAATSEN } from './boot.js';
 import { initPolitieboot } from './politieboot.js';
 import { Dief } from './dief.js';
@@ -158,6 +160,8 @@ const KOPPEN = {
   erik: { huid: '#d9b48f', haar: '#6b5a45', shirt: '#2f4a6e' },
   dief: { huid: '#c99b78', shirt: '#d8232a', pet: '#f4f4f4' },
   mark: { huid: '#d9b48f', haar: '#4a3b2c', shirt: '#3c4148', stoppels: true },
+  // olijfgroen uniform, pet en een volle grijze baard, net als op de kade
+  veteraan: { huid: '#d9b48f', shirt: '#4a5236', pet: '#3c4230', baard: '#5a5148' },
 };
 // twee sprekers die elkaar afwisselen, dus twee hulpjes die een regel opmaken
 const zegtMark = (tekst) => ({ wie: 'Mark', kop: KOPPEN.mark, tekst });
@@ -299,6 +303,87 @@ const HUIS_KLAAR = [
   zegtMark('Gefeliciteerd. De sleutels liggen binnen.'),
   zegtMark('Vanaf nu is dit jouw stek. Zet je auto maar voor de deur.'),
 ];
+
+/*
+ ---------- missie 10: De Veteraan ----------
+
+ Na het kopen van een huis belt De Veteraan zelf (verzoek 23 sep 2026). Hij
+ staat met zijn hondje op het Sneekerpad, het fietspad tussen Sneek en IJlst,
+ bij het kleine molentje: De Terpensmole, de spinnenkop uit `KAART.molens`. Hij
+ bedankt je voor de molen in IJlst en stuurt je om een tas die bij de tribune
+ van VV Sneek wordt afgeleverd. Pak je die op, dan rijden er vier auto's de weg
+ voor het sportpark op en stappen er tien man uit. Na het vuurgevecht is De
+ Veteraan weg van het pad en belt Mark: hij heeft je laten omleggen. Thuis — in
+ het huis dat je gekocht hebt — is de missie klaar.
+
+ De plekken komen weer uit de kaart: de molen uit `KAART.molens`, het stuk
+ fietspad ernaast uit de wegassen, de tribune uit `KAART.sportvelden` en de weg
+ voor het terrein uit het wegennet van de navigatie.
+*/
+const VET_WACHT = 45;               // zoveel seconden na het kopen belt hij
+const VET_MOLEN = /terpensmole/i;   // het kleine molentje aan het Sneekerpad
+const VET_PAD = 40;                 // zo dicht bij de molen moet het fietspad liggen (m)
+const VET_LEEG = 16;                // zo dicht bij zijn plek merk je dat hij weg is
+const VET_TAS_BEREIK = 2.2;         // zo dicht bij de tas pak je hem op
+const VET_AUTOS = 4;                // vier auto's
+const VET_MANNEN = [3, 3, 2, 2];    // met tien man erin
+const VET_TUSSEN = 8;               // afstand tussen de auto's op de weg
+const VET_STOP = [35, 150];         // zover van de tas mag de plek op de weg liggen (m)
+const VET_LAAG = 0.7;               // wat lager is stapt de bende overheen: de reclameborden
+const VET_THUIS = 8;                // zo dicht bij je voordeur ben je thuis
+const VET_BELONING = 250;
+/*
+ De bende. Tien man tegelijk met de schade van de bewaking (6 per treffer) is
+ in tien tellen voorbij; met 3 en een dekkingsafstand van twintig meter blijven
+ ze op afstand staan vuren en heb je tijd om ze een voor een neer te leggen.
+ Ze zien je van verder dan de bewaking, want ze komen van de weg en de tribune
+ staat negentig meter het terrein op. Nagerekend over vier lotingen: wie om de
+ drieënhalve tel iemand raakt die hij kan zien houdt 46 tot 76 leven over, om
+ de tweeënhalve tel 73 tot 91, en wie blijft staan gaat na een kleine vijftig
+ tellen neer. tools/veteraantest.mjs toetst de eerste en de laatste.
+*/
+const VET_BENDE = {
+  schade: 3, zicht: 90, vuurbereik: 70, dekking: 20,
+  // over de reclameborden rond het veld (60 cm) springen ze heen, net als jij
+  overLaag: VET_LAAG,
+  vest: null, pet: 'om de beurt',
+  kleuren: [
+    { shirt: 0x1f2226, broek: 0x2a2d33 }, { shirt: 0x3a2f2a, broek: 0x1e1f23 },
+    { shirt: 0x2d3440, broek: 0x23262c }, { shirt: 0x4a4038, broek: 0x26282d },
+    { shirt: 0x262a2f, broek: 0x33363c },
+  ],
+};
+const zegtVeteraan = (tekst) => ({ wie: 'De Veteraan', kop: KOPPEN.veteraan, tekst });
+const VET_TELEFOON = [
+  zegtVeteraan('Erik. Met De Veteraan. Mark vertelde dat je een eigen stek hebt. Mooi zo, jongen.'),
+  zegtVeteraan('Ik wil je onder vier ogen spreken. Kom naar het Sneekerpad, bij het kleine molentje. Ik sta daar met mijn hondje.'),
+];
+const VET_BRIEFING = [
+  zegtVeteraan('Daar is hij. De jongen met de vaste handjes.'),
+  zegtVeteraan('Ik ben geen man van grote woorden, Erik. Maar bij de molen in IJlst lag ik er bijna bij, en jij hebt ze van me af geschoten.'),
+  zegtVeteraan('Zonder jou had dit hondje geen baasje meer gehad. Dank je wel. Ik meen het.'),
+  zegtErik('Johan zei al dat je wist wie het was.'),
+  zegtVeteraan('Ik weet alles wat er in Tinga gebeurt. Daarom sta je hier.'),
+  zegtVeteraan('Vandaag wordt er een tas afgeleverd bij het voetbalveld van VV Sneek, hier in Tinga. Bij de tribune.'),
+  zegtErik('Wat zit erin?'),
+  zegtVeteraan('Spul. Niks waar jij je druk om hoeft te maken.'),
+  zegtVeteraan('Niks aan de hand: gewoon meenemen en hier terugbrengen. Ik wacht op je.'),
+  zegtErik('Komt goed.'),
+];
+const VET_GEPAKT = [zegtErik('Die is zwaarder dan ik dacht.')];
+const VET_AUTOS_ZIEN = [zegtErik('Wat krijgen we nou... Vier auto\'s?!')];
+const VET_NA_GEVECHT = [zegtErik('Dit was geen afleveradres. Dit was een hinderlaag.')];
+const VET_WEG = [zegtErik('Hé... waar is hij? Hij zou hier op me wachten.')];
+const VET_MARK = [
+  zegtMark('Erik! Ik hoor net dat er geschoten is bij VV Sneek. Zeg dat jij dat niet was.'),
+  zegtErik('Tien man, in vier auto\'s. Ik zou een tas ophalen voor De Veteraan. Nu sta ik bij het molentje en hij is weg.'),
+  zegtMark('Dan weet ik genoeg. De Veteraan heeft je geprobeerd om te leggen.'),
+  zegtMark('Je bent te snel gegroeid in de rangen, broeder. Wie zo snel omhoog komt, wordt een gevaar voor degene die bovenaan staat.'),
+  zegtMark('Ben je veilig?'),
+  zegtErik('Ik leef nog. Die tien niet.'),
+];
+// de laatste regel noemt je eigen adres, dus die wordt pas bij het bellen gemaakt
+const vetNaarHuis = (naam) => zegtMark(`Ga naar huis, naar ${naam}. Ik ga nadenken over een plan om hem terug te pakken.`);
 
 // ---------- missie 6: de groene BX ----------
 const BX_AANKONDIGING = ['Nieuwe missies kunnen worden gestart door naar het '
@@ -744,6 +829,7 @@ export function initVerhaal(ctx) {
     naMissieT = 0;
     ruimBomOp();
     ruimSniperOp();
+    ruimVeteraanOp();
     punt = null;                      // een nieuwe missie, dus geen oud herstelpunt
     missie = naam;
     fase = 'wacht';
@@ -769,6 +855,7 @@ export function initVerhaal(ctx) {
     else if (naam === 'bom') beginBom();
     else if (naam === 'sniper') beginSniper();
     else if (naam === 'huis') beginHuis();
+    else if (naam === 'veteraan') beginVeteraan();
   }
 
   /*
@@ -808,9 +895,9 @@ export function initVerhaal(ctx) {
    iets dat verdwijnt terwijl je ernaar staat te kijken leest als een fout, iets
    dat weg is als je je omdraait leest als vertrokken.
   */
-  const weg = { mark: false, bx: false };
+  const weg = { mark: false, bx: false, vet: false };
   function ruimOpUitZicht() {
-    if (!weg.mark && !weg.bx) return;
+    if (!weg.mark && !weg.bx && !weg.vet) return;
     const sp = spelerPunt();
     const vx = -Math.sin(player.yaw), vz = -Math.cos(player.yaw);
     const uitZicht = (x, z) => {
@@ -832,6 +919,11 @@ export function initVerhaal(ctx) {
       bxAuto.driveable = false;
       weg.bx = false;
     }
+    // De Veteraan na het gesprek: hij loopt weg zodra je niet meer kijkt
+    if (weg.vet && vet && vet.veteraan.groep.visible) {
+      const p = vet.veteraan.groep.position;
+      if (uitZicht(p.x, p.z)) { vet.toon(false); weg.vet = false; }
+    } else if (weg.vet && (!vet || !vet.veteraan.groep.visible)) weg.vet = false;
   }
 
   /*
@@ -1100,6 +1192,7 @@ export function initVerhaal(ctx) {
     if (missie === 'bom') { hervatBom(punt && punt.missie === 'bom' ? punt.fase : 'wacht'); return; }
     if (missie === 'sniper') { hervatSniper(punt && punt.missie === 'sniper' ? punt.fase : 'telefoon'); return; }
     if (missie === 'huis') { hervatHuis(punt && punt.missie === 'huis' ? punt.fase : 'telefoon'); return; }
+    if (missie === 'veteraan') { hervatVeteraan(punt && punt.missie === 'veteraan' ? punt.fase : 'telefoon'); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -1174,6 +1267,8 @@ export function initVerhaal(ctx) {
       const w = huisOnder(spelerPunt());
       if (w && w.bijTafel(player.pos.x, player.pos.z)) return koopHuis(w);
     }
+    // missie 10: de tas bij de tribune oppakken
+    if (bijDeTas()) return pakTas();
     if (missie === 'bom' && fase === 'planten') {
       const plek = bomPlek();
       const sp = spelerPunt();
@@ -1877,6 +1972,16 @@ export function initVerhaal(ctx) {
       else { vx = ing.f[0]; vz = ing.f[1]; }
     }
     const stop0 = { x: sp.x + vx * BOM_KOMEN, z: sp.z + vz * BOM_KOMEN };
+    rijAan(stop0, vx, vz, sp, BOM_AUTOS, BOM_TUSSEN);
+  }
+
+  /*
+   De auto's op de weg zetten, `n` achter elkaar vanaf `stop0`. Missie 7 en 10
+   delen dit: de wegas onder de stopplek geeft de rijrichting, ze komen van de
+   kant die het verst van de speler ligt en stappen uit aan de kant van de
+   speler. (vx, vz) is de richting waar de weg niet te vinden is.
+  */
+  function rijAan(stop0, vx, vz, sp, n, tussen) {
     // de wegas eronder: die geeft de rijrichting
     if (!navigatie) navigatie = new Navigatie(KAART.wegassen);
     let tx = vx, tz = vz;
@@ -1892,21 +1997,87 @@ export function initVerhaal(ctx) {
     const heen = Math.hypot(stop0.x + tx * 30 - sp.x, stop0.z + tz * 30 - sp.z);
     const terug = Math.hypot(stop0.x - tx * 30 - sp.x, stop0.z - tz * 30 - sp.z);
     if (terug > heen) { tx = -tx; tz = -tz; }
-    // dwars op de weg, naar de speler toe: aan die kant stappen ze uit
-    let zx = -tz, zz = tx;
-    if ((sp.x - stop0.x) * zx + (sp.z - stop0.z) * zz < 0) { zx = -zx; zz = -zz; }
+    /*
+     De weg zelf, vanaf de stopplek terug naar waar ze vandaan komen. Rechtdoor
+     rijden ging goed op de rechte straat voor de Poiesz, maar de Molenkrite
+     buigt langs het sportpark en daar reden ze door de gevels (missie 10). Nu
+     volgen ze de wegas: bij elke knoop de tak die het meest rechtdoor gaat.
+    */
+    const lijn = k >= 0 ? wegLangs(k, tx, tz, BOM_AANRIJ + n * tussen + 5)
+      : [[stop0.x, stop0.z], [stop0.x + tx * (BOM_AANRIJ + n * tussen + 5), stop0.z + tz * (BOM_AANRIJ + n * tussen + 5)]];
     aanrijders = [];
     schutterAutos = [];
-    for (let i = 0; i < BOM_AUTOS; i++) {
-      // achter elkaar: de eerste vooraan, de rest zeven meter erachter
-      const doel = { x: stop0.x + tx * (i * BOM_TUSSEN), z: stop0.z + tz * (i * BOM_TUSSEN) };
-      const yaw = Math.atan2(tx, tz);          // met de neus tegen de rijrichting in
+    for (let i = 0; i < n; i++) {
+      // achter elkaar: de eerste vooraan, de rest een paar meter erachter
+      const s0 = i * tussen;
+      const doel = opLijn(lijn, s0);
+      const start = opLijn(lijn, s0 + BOM_AANRIJ);
+      // met de neus tegen de lijn in: ze rijden naar de stopplek toe
       const auto = vehicles.voegToe({
-        x: doel.x + tx * BOM_AANRIJ, z: doel.z + tz * BOM_AANRIJ, yaw,
-        soort: i === 1 ? 'van' : 'hatch', kleur: i === 1 ? 0x2b2f36 : 0x1d1f24, driveable: false,
+        x: start.x, z: start.z, yaw: Math.atan2(start.ux, start.uz),
+        soort: i % 2 ? 'van' : 'hatch', kleur: i % 2 ? 0x2b2f36 : 0x1d1f24, driveable: false,
       });
+      // dwars op de weg, naar de speler toe: aan die kant stappen ze uit
+      let zx = -doel.uz, zz = doel.ux;
+      if ((sp.x - doel.x) * zx + (sp.z - doel.z) * zz < 0) { zx = -zx; zz = -zz; }
       schutterAutos.push(auto);
-      aanrijders.push({ auto, doel, zij: { x: zx, z: zz }, snelheid: BOM_AANRIJ_V, piep: false, stil: false });
+      aanrijders.push({ auto, doel, lijn, s0, s: s0 + BOM_AANRIJ, zij: { x: zx, z: zz },
+        snelheid: BOM_AANRIJ_V, piep: false, stil: false });
+    }
+  }
+
+  // Een stuk weg over het wegennet vanaf knoop k, zoveel meter in richting (tx, tz).
+  function wegLangs(k, tx, tz, lengte) {
+    const P = navigatie.punten;
+    const lijn = [[P[k][0], P[k][1]]];
+    let hier = k, vorige = -1, dx = tx, dz = tz, af = 0;
+    while (af < lengte) {
+      let beste = -1, besteS = 0.3;
+      for (const b of navigatie.bogen[hier] || []) {
+        if (b.naar === vorige || !navigatie.rijbaan[b.naar]) continue;
+        const L = Math.hypot(P[b.naar][0] - P[hier][0], P[b.naar][1] - P[hier][1]) || 1;
+        const sc = ((P[b.naar][0] - P[hier][0]) * dx + (P[b.naar][1] - P[hier][1]) * dz) / L;
+        if (sc > besteS) { besteS = sc; beste = b.naar; }
+      }
+      if (beste < 0) break;
+      const L = Math.hypot(P[beste][0] - P[hier][0], P[beste][1] - P[hier][1]);
+      if (L > 0.01) { dx = (P[beste][0] - P[hier][0]) / L; dz = (P[beste][1] - P[hier][1]) / L; }
+      af += L;
+      lijn.push([P[beste][0], P[beste][1]]);
+      vorige = hier; hier = beste;
+    }
+    // houdt het wegennet op, dan rechtdoor verder
+    if (af < lengte) {
+      const p = lijn[lijn.length - 1];
+      lijn.push([p[0] + dx * (lengte - af), p[1] + dz * (lengte - af)]);
+    }
+    return lijn;
+  }
+  // Het punt op `s` meter langs de lijn, met de richting van de lijn daar.
+  function opLijn(lijn, s) {
+    let rest = Math.max(0, s);
+    for (let i = 1; i < lijn.length; i++) {
+      const a = lijn[i - 1], b = lijn[i];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (L < 1e-6) continue;
+      const ux = (b[0] - a[0]) / L, uz = (b[1] - a[1]) / L;
+      if (rest <= L || i === lijn.length - 1) {
+        const t = Math.min(rest, L);
+        return { x: a[0] + ux * t, z: a[1] + uz * t, ux, uz };
+      }
+      rest -= L;
+    }
+    return { x: lijn[0][0], z: lijn[0][1], ux: 1, uz: 0 };
+  }
+  // Ze staan er al (na het neergaan): meteen op hun plek, met de neus goed.
+  function zetAanrijdersStil() {
+    for (const a of aanrijders) {
+      a.s = a.s0; a.stil = true; a.auto.speed = 0;
+      a.auto.x = a.doel.x; a.auto.z = a.doel.z; a.auto.yaw = Math.atan2(a.doel.ux, a.doel.uz);
+      if (a.auto.mesh) {
+        a.auto.mesh.position.set(a.auto.x, a.auto.mesh.position.y, a.auto.z);
+        a.auto.mesh.rotation.y = a.auto.yaw;
+      }
     }
   }
 
@@ -1919,8 +2090,7 @@ export function initVerhaal(ctx) {
     for (const a of aanrijders) {
       if (a.stil) continue;
       allemaalStil = false;
-      const dx = a.doel.x - a.auto.x, dz = a.doel.z - a.auto.z;
-      const d = Math.hypot(dx, dz) || 0.0001;
+      const d = Math.max(0.0001, a.s - a.s0);          // wat er nog over de weg te rijden is
       /*
        Remmen zoals een auto remt: de snelheid die nog past om precies op de
        plek stil te staan is v = wortel(2·a·d). Zolang die boven de
@@ -1934,10 +2104,15 @@ export function initVerhaal(ctx) {
       a.snelheid = Math.min(BOM_AANRIJ_V, nodig);
       if (remt && !a.piep) { a.piep = true; geluid.piependeBanden(afst(sp, a.auto)); }
       const stap = Math.min(d, a.snelheid * dt);
-      a.auto.x += (dx / d) * stap;
-      a.auto.z += (dz / d) * stap;
+      a.s -= stap;
+      const p = opLijn(a.lijn, a.s);
+      a.auto.x = p.x; a.auto.z = p.z;
+      a.auto.yaw = Math.atan2(p.ux, p.uz);
       a.auto.speed = a.snelheid;
-      if (a.auto.mesh) a.auto.mesh.position.set(a.auto.x, a.auto.mesh.position.y, a.auto.z);
+      if (a.auto.mesh) {
+        a.auto.mesh.position.set(a.auto.x, a.auto.mesh.position.y, a.auto.z);
+        a.auto.mesh.rotation.y = a.auto.yaw;
+      }
       if (d - stap < 0.4) { a.stil = true; a.auto.speed = 0; }
     }
     return allemaalStil;
@@ -1948,27 +2123,34 @@ export function initVerhaal(ctx) {
    bewust pas ná het aanrijden en ná de regel van Mark — eerst hoor je ze
    aankomen, dan pas staan ze er.
   */
-  function latenUitstappen() {
+  /*
+   `perAuto` zegt hoeveel man er uit elke auto komt (missie 10: drie, drie, twee
+   en twee) en `bende` gaat door naar js/bewaking.js; zonder die twee is het de
+   bende uit missie 7.
+  */
+  function latenUitstappen(perAuto = null, bende = undefined) {
     if (schutters || !aanrijders.length) return;
     const posten = [];
-    for (const a of aanrijders) {
+    for (const [k, a] of aanrijders.entries()) {
       const zx = a.zij.x, zz = a.zij.z;
-      for (let j = 0; j < BOM_MANNEN / BOM_AUTOS; j++) {
-        const langs = j ? 1.7 : -1.7;          // voor- en achterportier
+      const n = perAuto ? perAuto[k] || 0 : BOM_MANNEN / BOM_AUTOS;
+      for (let j = 0; j < n; j++) {
+        // voor- en achterportier, en met drie man ook een in het midden
+        const langs = n === 2 ? (j ? 1.7 : -1.7) : (j - (n - 1) / 2) * 1.7;
         const px = a.auto.x + zx * 2.2 + Math.cos(a.auto.yaw) * langs;
         const pz = a.auto.z + zz * 2.2 - Math.sin(a.auto.yaw) * langs;
         const [mx, mz] = resolveCollisions(px, pz, 0.4);
         posten.push({ a: [mx, mz], b: [mx + zx * 4, mz + zz * 4] });
       }
     }
-    schutters = new Bewaking(scene, posten);
+    schutters = new Bewaking(scene, posten, bende);
     schutters.alarm = true;            // ze komen voor jou, ze hoeven niets te zien
     // zes man die het vuur openen op een parkeerterrein: wie er loopt gaat weg
     if (paniek) paniek(aanrijders[0].auto.x, aanrijders[0].auto.z, BOM_PANIEK * 0.6);
     for (const w of schutters.wachters) w.staat = 'aanval';
     // Mark trekt zijn pistool, en jij kunt de jouwe in elk geval pakken: zonder
-    // wapen is dit geen gevecht maar een executie
-    mark.geefWapen('pistool');
+    // wapen is dit geen gevecht maar een executie. Bij VV Sneek sta je alleen.
+    if (missie === 'bom') mark.geefWapen('pistool');
     geefWapen();
   }
 
@@ -2379,10 +2561,7 @@ export function initVerhaal(ctx) {
     if (bomPakket) bomPakket.toon(false);
     const sp = spelerPunt();
     latenAanrijden(sp);
-    for (const a of aanrijders) {           // ze staan er al, dus meteen op hun plek
-      a.auto.x = a.doel.x; a.auto.z = a.doel.z; a.auto.speed = 0; a.stil = true;
-      if (a.auto.mesh) a.auto.mesh.position.set(a.auto.x, a.auto.mesh.position.y, a.auto.z);
-    }
+    zetAanrijdersStil();                    // ze staan er al, dus meteen op hun plek
     latenUitstappen();
     if (f === 'vuurgevecht') {
       fase = 'vuurgevecht';
@@ -2573,6 +2752,8 @@ export function initVerhaal(ctx) {
       spanningUit = 6;
       hud.melding('MISSIE VOLTOOID – EEN EIGEN STEK',
         `${w.naam} is van jou · ${euro(w.prijs)} sleutelgeld betaald`, 8);
+      // en even later belt De Veteraan zelf (missie 10)
+      if (!vetKlaar) { naMissieT = VET_WACHT; naMissieNaam = 'veteraan'; }
     }, { wie: 'Mark', telefoon: true, kop: KOPPEN.mark });
     return true;
   }
@@ -2767,6 +2948,416 @@ export function initVerhaal(ctx) {
     fase = 'kiezen';
     zetOpdracht('bekijk de drie woningen en kies er een');
     spanning = true; spanningUit = 0;
+  }
+
+
+  /*
+   ---------- missie 10: De Veteraan ----------
+
+   Zeven stappen: de telefoon, De Veteraan op het Sneekerpad, de tas bij de
+   tribune, de vier auto's, het vuurgevecht, de lege plek bij het molentje met
+   Mark aan de lijn, en naar huis. De bende gebruikt `schutters` en de aanrit van
+   missie 7, dus het schieten, de schade, de wapens die ze laten vallen en het
+   opruimen gaan vanzelf mee.
+  */
+  let vet = null;                // De Veteraan en zijn hondje (js/deal.js)
+  let vetT = 0;                  // klok voor wat vanzelf doorloopt
+  let tas = null;                // de sporttas bij de tribune (js/tas.js)
+  let tasMerk = null;            // het gele ruitje erboven (js/bom.js)
+  let tasBij = false;            // heb je hem bij je?
+  let vetKlaar = false;          // is deze missie ooit afgerond?
+  let vetPunt = null;            // { x, z, langs, molen }
+  let tribunePunt = null;        // { tas, yaw, veld, weg }
+  let tasHint = false;           // staat "E — de tas pakken" in beeld?
+
+  /*
+   Zijn plek: het punt op het fietspad dat het dichtst bij De Terpensmole ligt.
+   In de BGT heet dat stuk pad tussen Sneek en IJlst "Tinga"; het loopt van de
+   wijk langs het molentje en gaat bij De Rat over in het Sneekerpad.
+  */
+  function veteraanPlek() {
+    if (vetPunt) return vetPunt;
+    const mol = (KAART.molens || []).find(m => VET_MOLEN.test(m.naam || ''))
+      || (KAART.molens || []).find(m => m.soort === 'spinnenkop');
+    if (!mol) return null;
+    let beste = null;
+    for (const as of KAART.wegassen || []) {
+      if (as.drive) continue;
+      for (let i = 1; i < as.pts.length; i++) {
+        const a = as.pts[i - 1], b = as.pts[i];
+        const dx = b[0] - a[0], dz = b[1] - a[1];
+        const L2 = dx * dx + dz * dz;
+        if (L2 < 1e-6) continue;
+        const t = Math.max(0, Math.min(1, ((mol.cx - a[0]) * dx + (mol.cz - a[1]) * dz) / L2));
+        const x = a[0] + dx * t, z = a[1] + dz * t;
+        const d = Math.hypot(x - mol.cx, z - mol.cz);
+        if (d > VET_PAD || (beste && d >= beste.d)) continue;
+        const L = Math.sqrt(L2);
+        beste = { d, x, z, langs: { x: dx / L, z: dz / L } };
+      }
+    }
+    if (!beste) {
+      // geen pad in de buurt: dan maar een paar meter voor de molen
+      beste = { d: 8, x: mol.cx + 8, z: mol.cz, langs: { x: 0, z: 1 } };
+    }
+    const [x, z] = resolveCollisions(beste.x, beste.z, 0.4);
+    vetPunt = { x, z, langs: beste.langs, molen: { x: mol.cx, z: mol.cz }, naam: mol.naam };
+    return vetPunt;
+  }
+
+  /*
+   De tribune van het hoofdveld van VV Sneek. De tas staat op de tegels vóór de
+   onderste trede, naast het trapje in het midden, want daar kom je als je om
+   de tribune heen loopt. De maten zijn dezelfde als in js/sportveld.js:
+   `vx, vz` is de voorgevel van de kantine, `d` de afstand naar het veld toe.
+  */
+  function tribune() {
+    if (tribunePunt) return tribunePunt;
+    const v = (KAART.sportvelden || []).find(q => BX_VELD.test(q.naam || '') && q.tribune);
+    if (!v) return null;
+    const T = v.tribune;
+    const ax = Math.cos(T.hoek), az = Math.sin(T.hoek);
+    const nx = -az * T.kant, nz = ax * T.kant;               // van het veld af
+    const punt = (l, d) => ({ x: T.vx + ax * l - nx * d, z: T.vz + az * l - nz * d });
+    const plek = punt(2.6, T.diep + 1.0);
+    /*
+     Waar de bende uitstapt, en hoe ze bij de tribune komen. De voorkant van het
+     sportpark is de rijbaan die er het dichtst bij ligt: het inritje van het
+     clubparkeerterrein aan de Molenkrite. Daar ligt de kantine tussen, en rond
+     het veld staan hekken en borden, dus ze krijgen een looproute mee
+     (js/looppad.js). Is er geen route, dan de plek op de weg met vrij zicht.
+    */
+    if (!navigatie) navigatie = new Navigatie(KAART.wegassen);
+    const k = navigatie.naaste(plek.x, plek.z, 400, true);
+    let weg = k >= 0 ? { x: navigatie.punten[k][0], z: navigatie.punten[k][1] } : null;
+    let pad = weg ? zoekLooppad(weg, plek, { laag: VET_LAAG }) : null;
+    if (!pad) {
+      weg = wegVoorHetTerrein(plek);
+      pad = weg ? zoekLooppad(weg, plek, { laag: VET_LAAG }) : null;
+    }
+    tribunePunt = { tas: plek, yaw: -T.hoek, veld: { x: v.cx, z: v.cz }, weg, pad };
+    return tribunePunt;
+  }
+
+  /*
+   De terugval als er geen looproute te vinden is: het stuk weg dat het dichtst
+   bij de tas ligt én er vrij zicht op heeft, met dezelfde kijklijn als de
+   schutters zelf (`zichtVrij` op 1,2 m). Zonder route of zicht stapten ze uit
+   achter de kantine en zagen ze je nooit (de eerste proef: honderdtachtig
+   tellen lang geen schot).
+  */
+  function wegVoorHetTerrein(plek) {
+    if (!navigatie) navigatie = new Navigatie(KAART.wegassen);
+    let beste = null;
+    const P = navigatie.punten;
+    for (let i = 0; i < P.length; i++) {
+      if (!navigatie.rijbaan[i]) continue;
+      const d = Math.hypot(P[i][0] - plek.x, P[i][1] - plek.z);
+      if (d < VET_STOP[0] || d > VET_STOP[1] || (beste && d >= beste.d)) continue;
+      if (!zichtVrij(P[i][0], P[i][1], plek.x, plek.z, 1.2)) continue;
+      beste = { d, x: P[i][0], z: P[i][1] };
+    }
+    if (beste) return { x: beste.x, z: beste.z };
+    const k = navigatie.naaste(plek.x, plek.z, 400, true);
+    return k >= 0 ? { x: P[k][0], z: P[k][1] } : null;
+  }
+
+  // waar je woont: het huis dat je gekocht hebt, en anders de Wieken 29
+  function thuisDoel() {
+    const w = (huisGekozen && stekMet(huisGekozen)) || (wieken && wieken()) || null;
+    if (!w || !w.plekken) return null;
+    return { w, deur: w.plekken.deurBuiten, naam: w.naam };
+  }
+
+  function zetVeteraanNeer() {
+    const plek = veteraanPlek();
+    if (!plek) return null;
+    if (!vet) vet = maakVeteraan(scene);
+    // met zijn rug naar de molen, het pad af kijkend naar Sneek
+    const yaw = kijkHoek(plek.molen, plek);
+    vet.veteraan.zetNeer(plek.x, plek.z, yaw);
+    vet.toon(true);
+    vet.hondBij(plek.langs.x, plek.langs.z);
+    return plek;
+  }
+
+  function zorgVoorTas() {
+    if (!tas) tas = maakTas(scene);
+    if (!tasMerk) tasMerk = maakMarkering(scene);
+  }
+
+  function ruimVeteraanOp() {
+    if (vet) vet.toon(false);
+    if (tas) tas.toon(false);
+    if (tasMerk) tasMerk.toon(false);
+    tasBij = false;
+    weg.vet = false;
+    vetT = 0;
+  }
+
+  function beginVeteraan() {
+    fase = 'telefoon';
+    ruimVeteraanOp();
+    vetT = 1.2;
+    zetOpdracht('neem de telefoon op');
+    hud.zetNavigatie(null); navDoel = null;
+    markZichtbaar(false);
+  }
+
+  function naarVeteraan() {
+    fase = 'naar_veteraan'; zetPunt(fase);
+    const p = zetVeteraanNeer();
+    zetOpdracht('ga naar De Veteraan op het Sneekerpad, bij het kleine molentje');
+    if (p) zetNavDoel(p.x, p.z, 'De Veteraan · Sneekerpad', 'V');
+    spanning = true; spanningUit = 0;
+  }
+
+  function naarDeTas() {
+    fase = 'naar_tas'; zetPunt(fase);
+    zorgVoorTas();
+    const t = tribune();
+    zetOpdracht('haal de tas op bij de tribune van VV Sneek');
+    if (t) {
+      tas.zet(t.tas.x, 0.12, t.tas.z, t.yaw);
+      tas.toon(true);
+      tasMerk.zet(t.tas.x, 0.12, t.tas.z);
+      tasMerk.toon(true);
+      zetNavDoel(t.tas.x, t.tas.z, 'tribune VV Sneek', 'T');
+    }
+    // hij blijft niet op je wachten, al zie je dat pas als je terugkomt
+    weg.vet = true;
+    spanning = true; spanningUit = 0;
+  }
+
+  // De vier auto's op de weg voor het sportpark.
+  function vetAanrijden(sp) {
+    if (schutters || aanrijders.length) return;
+    const t = tribune();
+    const stop = t && t.weg ? { x: t.weg.x, z: t.weg.z } : { x: sp.x + 40, z: sp.z };
+    const vx = stop.x - sp.x, vz = stop.z - sp.z;
+    const L = Math.hypot(vx, vz) || 1;
+    rijAan(stop, vx / L, vz / L, sp, VET_AUTOS, VET_TUSSEN);
+  }
+
+  function beginGevecht() {
+    const t = tribune();
+    latenUitstappen(VET_MANNEN, { ...VET_BENDE, looppad: t ? t.pad : null });
+    fase = 'vuurgevecht'; zetPunt(fase);
+    zetOpdracht(`schakel ze uit (${schutters ? schutters.aantal : 0} te gaan)`, true);
+  }
+
+  function naarHuis() {
+    fase = 'naar_huis'; zetPunt(fase);
+    const t = thuisDoel();
+    zetOpdracht(t ? `ga naar huis: ${t.naam}` : 'ga naar huis');
+    if (t) zetNavDoel(t.deur.x, t.deur.z, t.naam, 'H');
+    spanning = true; spanningUit = 0;
+  }
+
+  function werkVeteraanBij(dt, sp) {
+    if (fase === 'klaar') return;
+    if (fase !== 'telefoon' && fase !== 'briefing') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+    }
+    // De Veteraan kijkt je aan zolang hij er staat, en het hondje blijft naast hem
+    if (vet && vet.veteraan.groep.visible) {
+      const vp = vet.veteraan.groep.position;
+      const d = afst(sp, vp);
+      if (d < ZWAAI_AFSTAND) vet.veteraan.kijkNaar(sp.x, sp.z, dt, 2);
+      vet.veteraan.update(dt, { zwaait: fase === 'naar_veteraan' && d < ZWAAI_AFSTAND && d > PRAAT_AFSTAND });
+      const plek = veteraanPlek();
+      if (plek) vet.hondBij(plek.langs.x, plek.langs.z);
+    }
+
+    // -- hij belt zelf
+    if (fase === 'telefoon') {
+      if (vetT > 0) {
+        vetT -= dt;
+        if (vetT <= 0) {
+          geluid.telefoon();
+          zeg(VET_TELEFOON, () => {
+            naarVeteraan();
+            hud.melding('NIEUWE MISSIE', 'De Veteraan wacht op het Sneekerpad.', 5);
+          }, { wie: 'De Veteraan', telefoon: true, kop: KOPPEN.veteraan });
+        }
+      }
+      return;
+    }
+
+    // -- bij het molentje: het gesprek begint vanzelf zodra je bij hem bent
+    if (fase === 'naar_veteraan') {
+      if (!vet || !vet.veteraan.groep.visible) { zetVeteraanNeer(); return; }
+      if (afst(sp, vet.veteraan.groep.position) > PRAAT_AFSTAND || !balk.hidden) return;
+      fase = 'briefing';
+      hud.zetNavigatie(null); navDoel = null;
+      zetOpdracht('');
+      zeg(VET_BRIEFING, () => naarDeTas());
+      return;
+    }
+    if (fase === 'briefing') return;
+
+    // -- de tas bij de tribune: E pakt hem op (zie toets)
+    if (fase === 'naar_tas') {
+      const t = tribune();
+      if (!t) return;
+      const bij = !player.inCar && Math.hypot(sp.x - t.tas.x, sp.z - t.tas.z) < VET_TAS_BEREIK;
+      const toon = bij && balk.hidden && (player.active || window.__autoplay);
+      // alleen onze eigen regel weghalen: onderweg staat er ook "E — instappen"
+      if (toon) { praatEl.textContent = 'E — de tas pakken'; praatEl.hidden = false; }
+      else if (tasHint) praatEl.hidden = true;
+      tasHint = toon;
+      return;
+    }
+
+    /*
+     De hinderlaag. Eerst zeg je iets over het gewicht, een tel later rijden
+     de auto's de weg voor het terrein op, en pas als ze alle vier stilstaan en
+     jij uitgesproken bent stappen de tien man uit.
+    */
+    if (fase === 'hinderlaag') {
+      vetT += dt;
+      if (vetT > 1.7 && !aanrijders.length) {
+        vetAanrijden(sp);
+        zeg(VET_AUTOS_ZIEN, null, { auto: 2.6 });
+      }
+      const stil = werkAanrijdersBij(dt, sp);
+      if (!stil || !balk.hidden || !aanrijders.length) return;
+      beginGevecht();
+      return;
+    }
+
+    if (fase === 'vuurgevecht') {
+      buitVanSchutters();
+      if (schutters && !schutters.alleNeer) {
+        zetOpdracht(`schakel ze uit (${schutters.aantal - schutters.neer} te gaan)`, true);
+        return;
+      }
+      if (!balk.hidden) return;
+      fase = 'terug'; zetPunt(fase);
+      const p = veteraanPlek();
+      zeg(VET_NA_GEVECHT, () => {
+        zetOpdracht('breng de tas terug naar De Veteraan op het Sneekerpad');
+        if (p) zetNavDoel(p.x, p.z, 'De Veteraan · Sneekerpad', 'V');
+      }, { auto: 3.0 });
+      return;
+    }
+
+    // -- terug bij het molentje: niemand. Even later gaat de telefoon.
+    if (fase === 'terug') {
+      buitVanSchutters();
+      const p = veteraanPlek();
+      if (!p || afst(sp, p) > VET_LEEG || !balk.hidden) return;
+      // stond hij er toch nog (je hebt nooit weggekeken), dan is hij nu weg
+      if (vet) vet.toon(false);
+      fase = 'leeg';
+      vetT = 0;
+      hud.zetNavigatie(null); navDoel = null;
+      zetOpdracht('');
+      zeg(VET_WEG, null, { auto: 2.8 });
+      return;
+    }
+    if (fase === 'leeg') {
+      vetT += dt;
+      if (vetT < 1.6 || !balk.hidden) return;
+      fase = 'telefoon_mark';
+      const t = thuisDoel();
+      geluid.telefoon();
+      zeg([...VET_MARK, vetNaarHuis(t ? t.naam : 'huis')], () => naarHuis(),
+        { wie: 'Mark', telefoon: true, kop: KOPPEN.mark });
+      return;
+    }
+    if (fase === 'telefoon_mark') return;
+
+    // -- thuis: in het huis dat je gekocht hebt
+    if (fase === 'naar_huis') {
+      const t = thuisDoel();
+      if (!t) return;
+      const binnen = t.w.binnen && t.w.binnen(sp.x, sp.z);
+      const staat = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.5;
+      const bij = Math.hypot(sp.x - t.deur.x, sp.z - t.deur.z) < VET_THUIS && staat;
+      if (!binnen && !bij) return;
+      fase = 'klaar';
+      missie = 'klaar';
+      vetKlaar = true;
+      tasBij = false;
+      zetOpdracht('');
+      hud.zetNavigatie(null); navDoel = null;
+      verdien(VET_BELONING);
+      spanningUit = 6;
+      hud.melding('MISSIE GESLAAGD – DE VETERAAN',
+        `Beloning: + ${euro(VET_BELONING)} toegevoegd aan wallet`, 8);
+    }
+  }
+
+  // E bij de tas
+  function pakTas() {
+    tasHint = false;
+    if (tas) tas.toon(false);
+    if (tasMerk) tasMerk.toon(false);
+    tasBij = true;
+    praatEl.hidden = true;
+    fase = 'hinderlaag';
+    vetT = 0;
+    hud.zetNavigatie(null); navDoel = null;
+    zetOpdracht('');
+    geluid.neerzetten();
+    hud.melding('Tas opgepakt', 'Breng hem terug naar De Veteraan.', 3);
+    zeg(VET_GEPAKT, null, { auto: 1.6 });
+    return true;
+  }
+  function bijDeTas() {
+    if (missie !== 'veteraan' || fase !== 'naar_tas' || player.inCar) return false;
+    const t = tribune();
+    if (!t) return false;
+    const sp = spelerPunt();
+    return Math.hypot(sp.x - t.tas.x, sp.z - t.tas.z) < VET_TAS_BEREIK;
+  }
+
+  /*
+   Missie 10 opnieuw opzetten na het neergaan of na het laden. Elke fase bouwt
+   op de vorige: na het gesprek staat de tas klaar, na de tas staat de bende er,
+   na de bende ben je op weg terug.
+  */
+  function hervatVeteraan(f) {
+    ruimBomOp();
+    beginVeteraan();
+    if (f === 'telefoon') return;
+    vetT = 0;
+    if (f === 'naar_veteraan' || f === 'briefing') { naarVeteraan(); return; }
+    // hij heeft je al gesproken en staat er niet meer
+    if (vet) vet.toon(false);
+    if (f === 'naar_tas') { naarDeTas(); if (vet) vet.toon(false); weg.vet = false; return; }
+    tasBij = true;
+    if (f === 'hinderlaag' || f === 'vuurgevecht') {
+      /*
+       Het vuurgevecht opnieuw, vanaf de tas en met de bende al uit de auto's:
+       net als bij de Poiesz begin je niet midden tussen hen in.
+      */
+      const t = tribune();
+      if (t) {
+        player.inCar = null;
+        const [px, pz] = resolveCollisions(t.tas.x, t.tas.z, 0.4);
+        player.pos.set(px, 0, pz);
+        if (t.weg) player.yaw = kijkHoek({ x: px, z: pz }, t.weg);
+        player.applyCamera();
+      }
+      const sp = spelerPunt();
+      vetAanrijden(sp);
+      zetAanrijdersStil();
+      beginGevecht();
+      spanning = true; spanningUit = 0;
+      return;
+    }
+    if (f === 'terug' || f === 'leeg') {
+      fase = 'terug';
+      const p = veteraanPlek();
+      zetOpdracht('breng de tas terug naar De Veteraan op het Sneekerpad');
+      if (p) zetNavDoel(p.x, p.z, 'De Veteraan · Sneekerpad', 'V');
+      spanning = true; spanningUit = 0;
+      return;
+    }
+    naarHuis();
   }
 
   // ---------- per beeld ----------
@@ -2971,6 +3562,7 @@ export function initVerhaal(ctx) {
 
     // ---- missie 8: de deal bij de molen ----
     if (missie === 'sniper') werkSniperBij(dt, sp);
+    if (missie === 'veteraan') werkVeteraanBij(dt, sp);
     if (missie === 'huis') werkHuisBij(dt, sp);
     // de koopregel blijft ook staan als de missie al voorbij is en het aanbod nog loopt
     else koopHint(sp);
@@ -2999,6 +3591,7 @@ export function initVerhaal(ctx) {
       }
     }
     if (bomMerk) bomMerk.update(dt);
+    if (tasMerk) tasMerk.update(dt);
     if (bomPakket) bomPakket.update(dt);
     if (knal) { knal.update(dt); if (knal.klaar) knal = null; }
 
@@ -3032,6 +3625,10 @@ export function initVerhaal(ctx) {
       // missie 9: het huis dat je gekocht hebt blijft van jou, en een aanbod dat
       // nog openstaat ook
       huis: huisGekozen, aanbod: huisAanbod, gezien: [...huisGezien], gestald,
+      // missie 10, en welke missie er nog moest beginnen: na het laden gaat de
+      // telefoon dan alsnog
+      veteraanKlaar: vetKlaar,
+      volgende: naMissieT > 0 ? naMissieNaam : null,
     };
   }
 
@@ -3058,7 +3655,8 @@ export function initVerhaal(ctx) {
     }
     huisGezien.clear();
     for (const n of s.gezien || []) huisGezien.add(n);
-    if (fase === 'gesprek' || fase === 'briefing') { fase = 'wacht'; missie = 'molenkrite'; }
+    vetKlaar = !!s.veteraanKlaar;
+    if ((fase === 'gesprek' || fase === 'briefing') && missie !== 'veteraan') { fase = 'wacht'; missie = 'molenkrite'; }
     /*
      Missie 7 heeft een winkel vol losse toestand (de bende, de bom, de knal).
      Die wordt niet in de opslag gestopt maar opnieuw opgezet: je begint hem
@@ -3170,9 +3768,18 @@ export function initVerhaal(ctx) {
       } else {
         zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
       }
+    } else if (missie === 'veteraan' && fase !== 'klaar') {
+      hervatVeteraan(fase);
     } else {
       zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
     }
+    /*
+     Tussen twee missies opgeslagen: dan belt de volgende alsnog, een paar tellen
+     na het laden. En een opslag van vóór missie 10 met een gekocht huis erin
+     krijgt De Veteraan ook nog aan de lijn.
+    */
+    if (missie === 'klaar' && s.volgende) { naMissieNaam = s.volgende; naMissieT = 6; }
+    else if (missie === 'klaar' && huisGekozen && !vetKlaar) { naMissieNaam = 'veteraan'; naMissieT = VET_WACHT; }
     hud.zetLeven(player.health);
   }
 
@@ -3270,6 +3877,7 @@ export function initVerhaal(ctx) {
       return !balk.hidden
         || bijBom
         || bijTafel
+        || bijDeTas()
         || (missie === 'molenkrite' && fase === 'wacht' && bijMark)
         || (missie === 'bx' && fase === 'wacht' && bijMark);
     },
@@ -3281,6 +3889,16 @@ export function initVerhaal(ctx) {
     get stekKeus() { return huisKeus; },
     get stekGezien() { return [...huisGezien]; },
     get stekHuis() { return huisGekozen ? stekMet(huisGekozen) : null; },
+    // missie 10: De Veteraan, de tas en waar je naartoe moet
+    get veteraan() { return vet; },
+    get veteraanPlek() { return veteraanPlek(); },
+    get tribune() { return tribune(); },
+    get tas() { return tas; },
+    get tasBij() { return tasBij; },
+    get thuisDoel() { return thuisDoel(); },
+    get veteraanKlaar() { return vetKlaar; },
+    get aanrijders() { return aanrijders; },
+    get volgendeMissie() { return naMissieT > 0 ? { naam: naMissieNaam, over: naMissieT } : null; },
     // testhaak (tools/introtest.mjs): het moment waarop Erik zijn wapen krijgt
     __geefWapen: geefWapen,
     /*
