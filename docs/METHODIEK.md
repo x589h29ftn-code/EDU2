@@ -5007,6 +5007,67 @@ dat je leegmaakt door het te verbergen is geen toestand om op te tellen.
 
 `npm run huistest` (eenenzestig controles) en `npm run huisshots` (vijf foto's).
 
+*Het huis als plek, niet als decor.* Negen punten uit de vierde ronde melding
+(23 sep 2026), waarvan er drie echte bouwfouten waren.
+
+*De keuken stond in de gangdeur.* Zonder aanbouw komt de keukenrij tegen de
+linkerwand achterin. Die wand is vóóraan de gang, en in een ondiepe woning —
+Molenkrite 130c is maar 6,8 m diep — begon de rij op 2,2 m terwijl de gang tot
+4,4 m doorloopt: de koelkast stond in de deuropening. De rij begint nu nooit
+eerder dan een derde meter achter de gang. Dat vroeg om één verplaatsing in het
+bestand: `HAL` wordt nu berekend vóór `KEUKEN`, want de keuken moet weten waar de
+gang ophoudt en niet andersom.
+
+*Bij de Koningsspil liep je door de muur van de buren.* De kamer ligt ver buiten
+het kaartgebied en de buurt eromheen is daar nagebouwd uit de kaartdata: alle
+panden binnen tweeënvijftig meter. Maar bij een rijtje of een schuin grondvlak
+valt de rechthoek van de buurman deels over die van jezelf, en dan staat er een
+nagebouwde muur dwars door je eigen woonkamer. Buren waarvan de omhullende cirkel
+het eigen erf raakt — de kamer plus de tuin plus de stoep — worden nu overgeslagen.
+De proef meet dat: `kijkdoosRaakt()` zet een punt om naar de lokale maten van elk
+blok in de kijkdoos en kijkt of het erin ligt, en vijf punten per woning (de
+deur, de stoel, de bank, de tafel, het terras) moeten vrij zijn.
+
+*De ramen zijn dichtgegaan.* Ze waren halfdoorzichtig, en dat was precies het
+probleem: door het glas zag je de nagebouwde buurt, die naast je eigen adres
+ligt maar er niet hetzelfde uitziet. Er zit nu een doek in met een luchtverloop
+en twee schuine weerspiegelingen — het leest als een raam, maar je kijkt er niet
+doorheen. Op één na: de ruit in de achtergevel kijkt op je eigen tuin, en daar
+klopt wat je ziet, dus die blijft doorzichtig.
+
+*Het huis had geen bovenkant.* Vanuit de tuin hield de woning bij de goot op.
+Elke band van de plattegrond krijgt nu een zadeldak met de nok over de langste
+kant en een topgevel op de kop, in de pannen van het eigen woningtype; de aanbouw
+een lagere kap dan het voorhuis. Het staat in de kijkdoos, dus zonder botsdoos en
+alleen van buiten te zien. Achter de schutting staan bovendien twee schuurtjes en
+vier heggen: een rij achtertuinen in plaats van een leeg veld.
+
+*De barbecue.* Op het terras staat een ketelbarbecue op drie poten. E legt het
+vlees erop, na zesentwintig tellen is het gaar en met E eet je het op: 28 leven,
+meer dan de twaalf van een flesje uit de koelkast. Het is de enige plek in het
+spel waar leven uit de tuin komt, en de enige waar je even moet wachten.
+
+*De radio op het dressoir.* Het plantje op het dressoir is een radiootje
+geworden — een kastje met een luidsprekerrooster, een schermpje dat oplicht en
+twee knoppen. E zet hem aan en uit. Het geluid komt uit dezelfde tak als de
+autoradio; `geluid.autoradio()` heeft er een tweede argument bij gekregen, een
+factor tussen nul en één. Die factor rekent de binnenruimte zelf uit uit de
+afstand tot het kastje (vol tot anderhalve meter, uitgedoofd na zes en een halve
+meter), en buiten de kamer is hij nul. De deur uit betekent dus stilte, en dat is
+geen aparte regel maar hetzelfde sommetje.
+
+*De auto op de oprit.* Naast elke voordeur ligt nu een strook klinkers, in de
+échte wereld en niet in de kijkdoos, met twee witte lijnen erop. Zet je daar een
+auto neer en stap je uit, dan onthoudt het verhaal welke auto dat was; bij het
+laden staat hij er weer, tenzij er al een staat. Auto's verdwijnen in dit spel
+verder niet, dus dit is precies het stuk dat ontbrak: de opslag.
+
+*En raden hoe je verder komt.* Na het bekijken van een woning stond er niets meer
+in beeld en moest je maar weten dat 1, 2 en 3 nog werkten. Stap je nu naar buiten
+terwijl er nog woningen over zijn, dan noemt een melding de cijfers die nog te
+kiezen zijn met adres en bedrag, staat het in de opdrachtbalk, en gaat de
+navigatie alvast naar de dichtstbijzijnde die je nog niet zag.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

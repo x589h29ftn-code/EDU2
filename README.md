@@ -1644,7 +1644,9 @@ eerder dan jij. Na zijn praatje staan er **drie blauwe huisjes op de kaart**:
 
 Alle drie een stuk groter dan de Wieken 29 (5,4 × 14,1 m). Je loopt ze langs in
 de volgorde die je zelf wilt; Mark staat er telkens eerder dan jij en zegt wat
-hij ervan vindt.
+hij ervan vindt. Stap je een woning weer uit, dan zegt het spel meteen welke
+cijfers er nog over zijn — met adres en bedrag — en legt de navigatie alvast op
+de dichtstbijzijnde die je nog niet hebt gezien.
 
 Binnen zijn ze ingericht als een woning waar iemand woont. De zithoek is een
 **hoekbank** van ruim vijf vierkante meter zitvlak — een lange poot langs de wand
@@ -1674,13 +1676,25 @@ zoals het hoort binnen.
 
 ![De woonkamer van Zeskanter 16](docs/screenshots/huis_zeskanter.png)
 
-En je kijkt naar buiten: in de zijwanden zitten **ramen** waar je halfdoorzichtig
-glas in ziet, naast de pui en boven het aanrecht, en achterin gaat een
-**tuindeur** open naar je eigen tuin. Daar ligt een **terras van tegels** met een
-**tafel, twee stoelen en een parasol**, daarachter **gras** tot aan de
-**schutting** van 1,78 m die je niet door kunt — met een **schuurtje** in de hoek
-en twee potten met een plant. Zitten in het zonnetje kan dus letterlijk: het is
-buiten, dus de galm van de kamer valt weg en de radio klinkt weer als buiten.
+In de zijwanden zitten **ramen**, naast de pui en boven het aanrecht. Het glas is
+dicht: je ziet lucht en een weerspiegeling, geen uitzicht. Dat is met opzet — de
+kamer staat ver buiten het kaartgebied en de buurt eromheen is nagebouwd, dus
+doorkijken verraadde dat je ergens anders stond. Eén raam is wél doorzichtig: dat
+in de achtergevel, want dat kijkt op je eigen tuin.
+
+Achterin gaat namelijk een **tuindeur** open. Daar ligt een **terras van
+betontegels** met een **tafel, twee stoelen en een parasol**, en een
+**barbecue**: leg er met E vlees op, wacht tot het gaar is en eet het op — dat is
+**28 leven**, meer dan een flesje uit de koelkast. Daarachter **gras** tot aan de
+**schutting** van 1,78 m die je niet door kunt, met een **schuurtje** in de hoek
+en twee potten. Het huis heeft van buiten een **dak** en achter de schutting
+liggen de tuinen van de buren, dus je kijkt niet meer de leegte in. Zitten in het
+zonnetje kan letterlijk: je bent buiten, dus de galm van de kamer valt weg.
+
+Op het **dressoir staat een radio**. Zet hem met E aan en Radio Spannenburg
+speelt; hoe verder je van het kastje af loopt, hoe zachter hij wordt, en als je
+de voordeur uit gaat valt hij stil. Naast de voordeur ligt een **oprit**: zet je
+auto daar neer en hij staat er de volgende keer nog — ook na opslaan en laden.
 
 ![De tuin achter Zeskanter 16](docs/screenshots/huis_tuin.png)
 

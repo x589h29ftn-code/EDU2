@@ -67,6 +67,9 @@ const WAND = 0.10;        // binnenwand
 const PLINT = 0.09;       // plinthoogte
 const HAL_BREED = 1.30;   // vrije breedte van de gang
 const HAL_DIEP = 4.30;    // gang tot aan de trapdeur
+const TUIN_DIEP = 6.6;    // tuin: vanaf de achtergevel tot de schutting
+const TUIN_ZIJ = 1.1;     // hoeveel de tuin aan weerszijden uitsteekt
+const HEK_H = 1.78;       // hoogte van de schutting
 const BINNENDEUR = 0.83;  // standaard binnendeur
 const BINNENDEUR_H = 2.31;
 const DEUR_H = 2.15;      // voordeur, net als in de geveltexture
@@ -167,6 +170,30 @@ function grasdoek() {
     g.lineWidth = 1;
     g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 2, y - h); g.stroke();
   }
+  return c;
+}
+
+/*
+ Dicht glas. Door de ramen kijken leverde het verkeerde uitzicht op: de kamer
+ ligt ver buiten het kaartgebied en de buren zijn daar nagebouwd, dus je zag dat
+ je ergens anders stond (melding 23 sep 2026). De ruiten zijn nu ondoorzichtig,
+ met een luchtverloop en een schuine weerspiegeling erin — het leest als een raam
+ met daglicht erachter. Alleen de ruiten die op je eigen tuin uitkijken blijven
+ doorzichtig, want daar klopt wat je ziet.
+*/
+function ruitdoek() {
+  const c = doek(128, 128), g = c.getContext('2d');
+  const lucht = g.createLinearGradient(0, 0, 0, 128);
+  lucht.addColorStop(0, '#9fc4e8');
+  lucht.addColorStop(0.55, '#cfe0ee');
+  lucht.addColorStop(1, '#e6ecef');
+  g.fillStyle = lucht; g.fillRect(0, 0, 128, 128);
+  g.save();
+  g.globalAlpha = 0.22; g.fillStyle = '#ffffff';
+  g.beginPath(); g.moveTo(-10, 120); g.lineTo(60, -10); g.lineTo(96, -10); g.lineTo(26, 120); g.fill();
+  g.globalAlpha = 0.13;
+  g.beginPath(); g.moveTo(52, 128); g.lineTo(118, 10); g.lineTo(128, 24); g.lineTo(74, 128); g.fill();
+  g.restore();
   return c;
 }
 
@@ -530,13 +557,16 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     plint: plat(0xf8f7f3),
     kozijn: plat(0xfafaf7),
     /*
-     Het glas is doorzichtig: door de pui en de tuindeur kijk je naar buiten.
-     Wat je daar ziet staat in `bouwBuiten()` hieronder — de kamer ligt ver
-     buiten het kaartgebied, dus de buren zijn daar in vereenvoudigde vorm
-     opnieuw neergezet, op hun echte plek en hoogte uit de kaart. Een vleugje
-     wit erover is de weerspiegeling die elk raam heeft.
+     De ruiten zijn dicht. Ze waren doorzichtig, en dan keek je vanuit de kamer
+     de nagebouwde buurt in die in `bouwBuiten()` om de kijkdoos heen staat — je
+     zag dus dat je ergens anders stond dan op je eigen adres (melding
+     23 sep 2026). Nu zit er een doek in met lucht en een weerspiegeling.
+     Uitzondering is `ruitDoor`: de ruit in de achtergevel kijkt op je eigen
+     tuin, en dáár klopt wat je ziet.
     */
-    ruit: new THREE.MeshBasicMaterial({ color: 0xdfeaf4, fog: false, transparent: true, opacity: 0.18 }),
+    ruit: new THREE.MeshBasicMaterial({ map: texture(ruitdoek(), 1, 1), fog: false }),
+    // en het glas waar je wél doorheen kijkt: de pui op de eigen tuin
+    ruitDoor: new THREE.MeshBasicMaterial({ color: 0xdfeaf4, fog: false, transparent: true, opacity: 0.18 }),
     voordeur: plat(0x24422f),
     binnendeur: plat(0xf4f3ee),
     klink: plat(0xa8aeb4),
@@ -632,19 +662,19 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     }
     if (p < tot) stuk(p, tot, y0, y1);
   }
-  // Een ruit met kozijn in een gat; de ruit is dicht en licht, want achter de
-  // kamer is niets te zien.
-  function raam(as, bij, dik, van, tot, y0, y1) {
+  // Een ruit met kozijn in een gat. Standaard dicht glas; `glas` kan op
+  // MAT.ruitDoor gezet worden waar je wél naar buiten mag kijken (de tuin).
+  function raam(as, bij, dik, van, tot, y0, y1, glas = MAT.ruit) {
     const k = 0.06;
     const mid = bij + dik / 2;
     if (as === 'x') {
-      doos(mid - 0.012, mid + 0.012, van + k, tot - k, y0 + k, y1 - k, MAT.ruit, false);
+      doos(mid - 0.012, mid + 0.012, van + k, tot - k, y0 + k, y1 - k, glas, false);
       doos(bij, bij + dik, van, tot, y0, y0 + k, MAT.kozijn, false);
       doos(bij, bij + dik, van, tot, y1 - k, y1, MAT.kozijn, false);
       doos(bij, bij + dik, van, van + k, y0, y1, MAT.kozijn, false);
       doos(bij, bij + dik, tot - k, tot, y0, y1, MAT.kozijn, false);
     } else {
-      doos(van + k, tot - k, mid - 0.012, mid + 0.012, y0 + k, y1 - k, MAT.ruit, false);
+      doos(van + k, tot - k, mid - 0.012, mid + 0.012, y0 + k, y1 - k, glas, false);
       doos(van, tot, bij, bij + dik, y0, y0 + k, MAT.kozijn, false);
       doos(van, tot, bij, bij + dik, y1 - k, y1, MAT.kozijn, false);
       doos(van, van + k, bij, bij + dik, y0, y1, MAT.kozijn, false);
@@ -662,8 +692,25 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   }, 0);
   const naarBinnen = opp > 0 ? 1 : -1;      // linkernormaal of rechternormaal
 
+  /*
+   De gang. Vast 4,30 m diep, behalve in een ondiepe woning: aan de Molenkrite
+   (achttien bij zes meter tachtig) at die gang tweederde van de diepte op, en
+   dan bleef er achter de gangdeur geen wand meer over voor de keuken — de
+   kastenrij stond half in de deuropening (melding 23 sep 2026). In zo'n woning
+   is de gang hoogstens 45% van de diepte, wat ook klopt met hoe een bungalow
+   werkelijk is ingedeeld.
+  */
+  const HALD = Math.min(HAL_DIEP, DIEP * 0.45);
+  const HAL = { x0: MUUR, x1: MUUR + HAL_BREED + WAND, z0: MUUR, z1: HALD + WAND };
+  /*
+   De keuken. Met een aanbouw staat hij daar; zonder aanbouw tegen de linkerwand
+   achterin. Die wand is vooraan de gang, en in een ondiepe woning liep de
+   kastenrij dwars door de gangdeur heen — aan de Molenkrite stond de koelkast
+   half in de deuropening (melding 23 sep 2026). De rij begint daarom nooit
+   eerder dan een derde meter achter de gang.
+  */
   const KEUKEN = aanbouw ? { x0: aanbouw.x0 + MUUR, x1: aanbouw.x1 - MUUR, z0: aanbouw.z0, z1: aanbouw.z1 - MUUR }
-    : { x0: MUUR, x1: BREED / 2, z0: DIEP - 4.6, z1: DIEP - MUUR };
+    : { x0: MUUR, x1: BREED / 2, z0: Math.max(DIEP - 4.6, HAL.z1 + 0.35), z1: DIEP - MUUR };
   const TUINDEUR = { van: (aanbouw ? aanbouw.x1 : BREED / 2) + 0.5, tot: BREED - MUUR - 0.3 };
   let tuinDeur = null;        // waar je de tuin in stapt (wordt in de lus gezet)
   let tuinTafel = null;       // de tuintafel op het terras (wordt hieronder gezet)
@@ -688,7 +735,6 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     }
   }
   let raamAantal = 0;         // hoeveel ramen er in de buitenmuren zitten
-  const HAL = { x0: MUUR, x1: MUUR + HAL_BREED + WAND, z0: MUUR, z1: HAL_DIEP + WAND };
 
   /*
    Waar de zithoek komt te staan. Dat wordt hier al uitgerekend en niet pas bij
@@ -735,7 +781,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
         gaten.push({ van: DEUR_X - DEUR_B / 2, tot: DEUR_X + DEUR_B / 2, y0: 0, y1: DEUR_H });
         gaten.push({ van: PUI.van, tot: PUI.tot, y0: RAAM_ONDER, y1: RAAM_BOVEN });
       } else if (z > DIEP - 0.2) {       // de achterkant van het huis
-        gaten.push({ van: van + 0.79, tot: Math.min(tot - 0.69, van + 2.19), y0: 0.95, y1: 2.15 });
+        gaten.push({ van: van + 0.79, tot: Math.min(tot - 0.69, van + 2.19), y0: 0.95, y1: 2.15, opTuin: true });
         /*
          En een tuindeur, als die er niet al in de tuinkant van het voorhuis
          zit. Een vrijstaand huis of een bungalow heeft maar één band en dus
@@ -752,7 +798,10 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       }
       wand({ as: 'z', bij, dik: MUUR, van, tot, mat: MAT.muur, gaten });
       for (const h of gaten) {
-        if (h.y0 > 0.02) { raam('z', bij, MUUR, h.van, h.tot, h.y0, h.y1); raamAantal++; }
+        if (h.y0 > 0.02) {
+          raam('z', bij, MUUR, h.van, h.tot, h.y0, h.y1, h.opTuin ? MAT.ruitDoor : MAT.ruit);
+          raamAantal++;
+        }
         /*
          Een gat in een buitenmuur is dicht — glas, of een voordeur die niet
          opengaat. Behalve de tuindeur: daar loop je doorheen, de tuin in.
@@ -779,9 +828,9 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       /*
        De zijmuren waren dicht, en in een vrijstaand huis van twintig meter diep
        kijk je dan tegen twee blinde wanden aan (verzoek 23 sep 2026). Er komen
-       nu ramen in: halfdoorzichtig glas met een kozijn, zodat je van binnen de
-       buurt ziet liggen. Ze blijven weg waar aan de binnenkant iets tegen die
-       wand staat — de keukenrij, de bank met het schilderij — en op de eerste
+       nu ramen in: een kozijn met dicht glas erin — doorkijken naar de
+       nagebouwde buurt verraadde dat de kamer ergens anders ligt. Ze blijven weg
+       waar aan de binnenkant iets tegen die wand staat — de keukenrij, de bank met het schilderij — en op de eerste
        anderhalve meter bij de voorgevel, want daar staat de gang.
       */
       const gaten = [];
@@ -826,19 +875,19 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   // Een wand langs de gang met aan het eind een deurgat naar de woonkamer, en
   // achterin de dichte deur naar de trap. Boven de begane grond is niets
   // ingericht, dus die deur blijft dicht.
-  wand({ as: 'x', bij: HAL.x1 - WAND, dik: WAND, van: MUUR, tot: HAL_DIEP - BINNENDEUR, mat: MAT.muur });
-  doos(HAL.x1 - WAND, HAL.x1, HAL_DIEP - BINNENDEUR, HAL.z1, BINNENDEUR_H, HOOGTE, MAT.muur, false);
+  wand({ as: 'x', bij: HAL.x1 - WAND, dik: WAND, van: MUUR, tot: HALD - BINNENDEUR, mat: MAT.muur });
+  doos(HAL.x1 - WAND, HAL.x1, HALD - BINNENDEUR, HAL.z1, BINNENDEUR_H, HOOGTE, MAT.muur, false);
   wand({
-    as: 'z', bij: HAL_DIEP, dik: WAND, van: MUUR, tot: HAL.x1, mat: MAT.muur,
+    as: 'z', bij: HALD, dik: WAND, van: MUUR, tot: HAL.x1, mat: MAT.muur,
     gaten: [{ van: MUUR + 0.2, tot: MUUR + 0.2 + BINNENDEUR, y0: 0, y1: BINNENDEUR_H }],
   });
   {
-    doos(MUUR + 0.22, MUUR + 0.2 + BINNENDEUR, HAL_DIEP - 0.045, HAL_DIEP - 0.005, 0.01, BINNENDEUR_H - 0.02, MAT.binnendeur, false);
+    doos(MUUR + 0.22, MUUR + 0.2 + BINNENDEUR, HALD - 0.045, HALD - 0.005, 0.01, BINNENDEUR_H - 0.02, MAT.binnendeur, false);
     const k = new THREE.Mesh(schaduw(new THREE.BoxGeometry(0.02, 0.02, 0.13)), MAT.klink);
-    k.position.set(MUUR + 0.2 + BINNENDEUR - 0.08, 1.04, HAL_DIEP - 0.09);
+    k.position.set(MUUR + 0.2 + BINNENDEUR - 0.08, 1.04, HALD - 0.09);
     groep.add(k);
     // hij blijft dicht, dus je loopt er niet door
-    dozen.push({ x: MUUR + 0.2 + BINNENDEUR / 2, z: HAL_DIEP + WAND / 2, hx: BINNENDEUR / 2, hz: WAND / 2, h: BINNENDEUR_H });
+    dozen.push({ x: MUUR + 0.2 + BINNENDEUR / 2, z: HALD + WAND / 2, hx: BINNENDEUR / 2, hz: WAND / 2, h: BINNENDEUR_H });
   }
 
   // ---------- plinten ----------
@@ -1029,11 +1078,27 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
    fotolijstjes, een schemerlamp met een linnen kap en een plantje — de dingen
    die een kamer van een ruimte een woonkamer maken (verzoek 23 sep 2026).
   */
+  /*
+   De radio op het dressoir en de barbecue op het terras (verzoek 23 sep 2026).
+   Allebei worden ze verderop gebouwd; hier staan alleen de plekken, want de
+   bediening (E) en de hint staan onderaan bij de deur en de koelkast.
+  */
+  let radioPlek = null;      // waar het radiootje staat, in kamermaten
+  let radioLicht = null;     // het schermpje, dat oplicht als hij aanstaat
+  let bbqPlek = null;        // de barbecue op het terras, in kamermaten
+
   const DRESSOIR = (() => {
     // eerst langs de linkerwand, voor of achter de tv — maar niet als de zithoek
     // tegen de achterwand staat: dan ligt die wand vol met de keuken
-    const achter = { van: bankZ + BANK_LANG / 2 + 0.2, tot: voorhuis.z1 - MUUR - 0.15 };
-    const voor = { van: HAL.z1 + 0.15, tot: bankZ - BANK_LANG / 2 - 0.2 };
+    /*
+     Staat de keukenrij tegen diezelfde linkerwand (een woning zonder aanbouw),
+     dan houdt de vrije wand op waar de keuken begint. Zonder die grens stond het
+     dressoir dwars door de kastenrij heen — dat viel pas op toen de gang in een
+     ondiepe woning korter werd en de keuken opschoof (melding 23 sep 2026).
+    */
+    const grens = aanbouw ? Infinity : KEUKEN.z0 - 0.35;
+    const achter = { van: bankZ + BANK_LANG / 2 + 0.2, tot: Math.min(voorhuis.z1 - MUUR - 0.15, grens) };
+    const voor = { van: HAL.z1 + 0.15, tot: Math.min(bankZ - BANK_LANG / 2 - 0.2, grens) };
     const ruimte = (achter.tot - achter.van) >= (voor.tot - voor.van) ? achter : voor;
     const lang = Math.min(1.45, ruimte.tot - ruimte.van - 0.1);
     if (!ACHTERWAND && lang >= 0.9) {
@@ -1079,14 +1144,15 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       m.position.set(lx, d.hoog + 0.40, z1 - 0.205);
       groep.add(m);
     }
-    const px2 = d.x0 + 0.20;
-    doos(px2 - 0.07, px2 + 0.07, z1 - 0.28, z1 - 0.14, d.hoog + 0.035, d.hoog + 0.18, MAT.pot, false);
-    doos(px2 - 0.06, px2 + 0.06, z1 - 0.27, z1 - 0.15, d.hoog + 0.16, d.hoog + 0.18, MAT.aarde, false);
-    for (const [dx, dz, h] of [[0.02, 0, 0.26], [-0.03, 0.04, 0.20], [0.04, -0.05, 0.22]]) {
-      const b = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(0.09, 0)), MAT.bladLicht);
-      b.position.set(px2 + dx, d.hoog + 0.12 + h, z1 - 0.21 + dz);
-      b.scale.set(1, 1.35, 1);
-      groep.add(b);
+    // en de radio ernaast, met de knoppen naar de kamer toe
+    {
+      const rx = d.x0 + 0.26, rb = d.hoog + 0.035;
+      doos(rx - 0.16, rx + 0.16, d.z0 + 0.06, d.z0 + 0.30, rb, rb + 0.19, MAT.donkerhout, false);
+      doos(rx - 0.13, rx - 0.02, d.z0 + 0.052, d.z0 + 0.06, rb + 0.04, rb + 0.15, MAT.tvRand, false);
+      radioLicht = doos(rx + 0.01, rx + 0.12, d.z0 + 0.052, d.z0 + 0.06, rb + 0.09, rb + 0.15, MAT.tvKast, false);
+      doos(rx + 0.03, rx + 0.07, d.z0 + 0.048, d.z0 + 0.06, rb + 0.03, rb + 0.07, MAT.rvs, false);
+      doos(rx + 0.09, rx + 0.13, d.z0 + 0.048, d.z0 + 0.06, rb + 0.03, rb + 0.07, MAT.rvs, false);
+      radioPlek = { x: rx, z: d.z0 + 0.18 };
     }
     inrichting.dressoir = true; inrichting.fotos = true; inrichting.lamp = true;
   } else if (DRESSOIR) {
@@ -1111,15 +1177,15 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       m.position.set(d.x0 + 0.205, d.hoog + 0.40, lz);
       groep.add(m);
     }
-    // en een plantje ernaast
-    const pz = d.z0 + 0.20;
-    doos(d.x0 + 0.14, d.x0 + 0.28, pz - 0.07, pz + 0.07, d.hoog + 0.035, d.hoog + 0.18, MAT.pot, false);
-    doos(d.x0 + 0.15, d.x0 + 0.27, pz - 0.06, pz + 0.06, d.hoog + 0.16, d.hoog + 0.18, MAT.aarde, false);
-    for (const [dx, dz, h] of [[0.02, 0.0, 0.26], [-0.03, 0.04, 0.20], [0.04, -0.05, 0.22]]) {
-      const b = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(0.09, 0)), MAT.bladLicht);
-      b.position.set(d.x0 + 0.21 + dx, d.hoog + 0.12 + h, pz + dz);
-      b.scale.set(1, 1.35, 1);
-      groep.add(b);
+    // en de radio ernaast, met de knoppen de kamer in
+    {
+      const rz = d.z0 + 0.26, rb = d.hoog + 0.035;
+      doos(x1 - 0.30, x1 - 0.06, rz - 0.16, rz + 0.16, rb, rb + 0.19, MAT.donkerhout, false);
+      doos(x1 - 0.068, x1 - 0.06, rz - 0.13, rz - 0.02, rb + 0.04, rb + 0.15, MAT.tvRand, false);
+      radioLicht = doos(x1 - 0.068, x1 - 0.06, rz + 0.01, rz + 0.12, rb + 0.09, rb + 0.15, MAT.tvKast, false);
+      doos(x1 - 0.072, x1 - 0.06, rz + 0.03, rz + 0.07, rb + 0.03, rb + 0.07, MAT.rvs, false);
+      doos(x1 - 0.072, x1 - 0.06, rz + 0.09, rz + 0.13, rb + 0.03, rb + 0.07, MAT.rvs, false);
+      radioPlek = { x: x1 - 0.18, z: rz };
     }
     inrichting.dressoir = true; inrichting.fotos = true; inrichting.lamp = true;
   }
@@ -1528,6 +1594,21 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       const st2 = HOUSE_STYLES[q.type];
       if (!st2) continue;
       const mid = plan.naarKamer(q.rect.cx, q.rect.cz);
+      /*
+       Buren die over het eigen erf heen zouden vallen slaan we over. Bij een
+       rijtje of een woning met een schuin grondvlak ligt de rechthoek van de
+       buurman deels over die van ons, en dan stond je bij het binnenkomen in de
+       muur van iemand anders — aan de Koningsspil liep je er half doorheen
+       (melding 23 sep 2026). Het erf is de kamer plus de tuin plus de stoep.
+      */
+      {
+        const rad = Math.hypot(q.rect.hx, q.rect.hz) + 0.6;
+        const ex0 = -TUIN_ZIJ - 0.4, ex1 = BREED + TUIN_ZIJ + 0.4;
+        const ez0 = -3.2, ez1 = DIEP + TUIN_DIEP + 0.4;
+        const cx = Math.max(ex0, Math.min(ex1, mid.x));
+        const cz = Math.max(ez0, Math.min(ez1, mid.z));
+        if (Math.hypot(mid.x - cx, mid.z - cz) < rad) continue;
+      }
       const as = plan.richting(Math.cos(q.rect.hoek), Math.sin(q.rect.hoek));
       const h = Math.max(2.6, q.goot || 3);
       const nok = Math.max(h + 0.6, q.nok || h + 2);
@@ -1574,6 +1655,54 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       kop.rotation.y = draai;
       buiten.add(kop);
     }
+    /*
+     Het dak van je eigen huis. Zonder dit hield de woning bij de goot op: vanuit
+     de tuin keek je tegen een rechte bovenrand aan en daarboven meteen de lucht
+     (melding 23 sep 2026). Elke band van de plattegrond krijgt een zadeldak met
+     de nok over de langste kant; de aanbouw een lagere kap dan het voorhuis.
+     Het ligt in de kijkdoos en niet in de kamer, dus het heeft geen botsdoos en
+     je ziet het alleen van buiten.
+    */
+    {
+      const dakMat = mat(`d|${st.roof || 'rood'}`, () => roofTiles(st.roof || 'rood', 5));
+      const gevelMat = st.brick
+        ? mat('eigenKop', () => brick(st.brick[0], st.brick[1], 1))
+        : buitenMat.stoep;
+      vakken.forEach((v, i) => {
+        const b = (v.x1 - v.x0) + 0.5, d = (v.z1 - v.z0) + 0.5;
+        const hoog = i === 0 ? 2.15 : 1.15;
+        const dwars = d > b;                       // nok over de langste kant
+        const B = dwars ? d : b, D = dwars ? b : d;
+        const mx = (v.x0 + v.x1) / 2, mz = (v.z0 + v.z1) / 2;
+        const kap = new THREE.Mesh(schaduw(zadeldak(B, D, 0, hoog)), dakMat);
+        kap.position.set(mx, HOOGTE, mz);
+        kap.rotation.y = dwars ? Math.PI / 2 : 0;
+        buiten.add(kap);
+        const kop = new THREE.Mesh(schaduw(kopvlakken(B - 0.5, D, 0, hoog)), gevelMat);
+        kop.position.set(mx, HOOGTE, mz);
+        kop.rotation.y = dwars ? Math.PI / 2 : 0;
+        buiten.add(kop);
+      });
+    }
+    /*
+     En wat er achter de schutting hoort te staan. Boven het hek uit was het leeg
+     (melding 23 sep 2026): nu staan daar de tuinen van de buren — een heg, twee
+     schuurtjes en een paar struiken — zodat het op een rij achtertuinen lijkt en
+     niet op een veld.
+    */
+    for (const [sx, sz, sb, sd] of [[-4.5, DIEP + 4.2, 2.2, 1.7], [BREED + 5.2, DIEP + 5.0, 2.6, 1.9]]) {
+      const m = new THREE.Mesh(schaduw(new THREE.BoxGeometry(sb, 2.1, sd)), buitenMat.stoep);
+      m.position.set(sx, 1.05, sz); buiten.add(m);
+      const dk = new THREE.Mesh(schaduw(new THREE.BoxGeometry(sb + 0.2, 0.12, sd + 0.2)), buitenMat.stam);
+      dk.position.set(sx, 2.16, sz); buiten.add(dk);
+    }
+    for (const [hx, hz, hb, hd] of [
+      [-5.5, DIEP + 9.5, 13, 0.7], [BREED + 5.5, DIEP + 9.5, 13, 0.7],
+      [-9.5, DIEP + 3.5, 0.7, 12], [BREED + 9.5, DIEP + 3.5, 0.7, 12],
+    ]) {
+      const m = new THREE.Mesh(schaduw(new THREE.BoxGeometry(hb, 1.6, hd)), buitenMat.heg);
+      m.position.set(hx, 0.8, hz); buiten.add(m);
+    }
     // heg achter in de tuin en een paar bomen, zodat het niet kaal is
     for (const [x, z, b] of [[BREED / 2, DIEP + 7.5, BREED + 9]]) {
       const m = new THREE.Mesh(schaduw(new THREE.BoxGeometry(b, 1.7, 0.6)), buitenMat.heg);
@@ -1599,9 +1728,6 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
    De tuin hoort bij de kamer en niet bij de kijkdoos: hij heeft botsdozen, je
    loopt erin rond, en hij staat dus in dezelfde groep als het huis.
   */
-  const TUIN_DIEP = 6.6;                 // vanaf de achtergevel tot de schutting
-  const TUIN_ZIJ = 1.1;                  // hoeveel de tuin aan weerszijden uitsteekt
-  const HEK_H = 1.78;
   const TUIN = tuinDeur ? {
     x0: -TUIN_ZIJ, x1: BREED + TUIN_ZIJ,
     z0: Math.min(voorhuis.z1, DIEP) , z1: DIEP + TUIN_DIEP,
@@ -1658,6 +1784,29 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     doos(sx0, sx0 + 1.9, sz0, sz0 + 1.5, 0, 2.05, MAT.hout);
     doos(sx0 - 0.08, sx0 + 1.98, sz0 - 0.08, sz0 + 1.58, 2.05, 2.15, MAT.donkerhout, false);
     doos(sx0 + 0.55, sx0 + 1.35, sz0 + 1.48, sz0 + 1.52, 0.05, 1.95, MAT.donkerhout, false);   // deur
+    /*
+     De barbecue op het terras (verzoek 23 sep 2026). Een ketelbarbecue op drie
+     poten: E legt het vlees erop, en als het gaar is eet je het op. Dat is de
+     enige plek in het spel waar leven uit de tuin komt.
+    */
+    {
+      const bx = Math.max(t.x0 + 0.9, Math.min(t.x1 - 0.9, tuinDeur.x - 1.95));
+      const bz = DIEP + 1.25;
+      for (const a of [0.5, 2.594, 4.689]) {
+        const px = bx + Math.cos(a) * 0.26, pz = bz + Math.sin(a) * 0.26;
+        doos(px - 0.022, px + 0.022, pz - 0.022, pz + 0.022, 0, 0.63, MAT.tvRand, false);
+      }
+      const kom = new THREE.Mesh(
+        schaduw(new THREE.SphereGeometry(0.30, 14, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2)), MAT.tvRand);
+      kom.position.set(bx, 0.63, bz); groep.add(kom);
+      const dek = new THREE.Mesh(
+        schaduw(new THREE.SphereGeometry(0.305, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2)), MAT.tvRand);
+      dek.position.set(bx, 0.655, bz); groep.add(dek);
+      doos(bx - 0.05, bx + 0.05, bz - 0.035, bz + 0.035, 0.955, 0.995, MAT.rvs, false);   // greep
+      doos(bx + 0.30, bx + 0.52, bz - 0.18, bz + 0.18, 0.58, 0.62, MAT.hout, false);      // zijplankje
+      dozen.push({ x: bx, z: bz, hx: 0.30, hz: 0.30, h: 0.96 });
+      bbqPlek = { x: bx, z: bz };
+    }
     // twee potten met een struik ernaast
     for (const [px, pz, r] of [[sx0 + 2.5, sz0 + 0.9, 0.42], [tx + 2.2, DIEP + 0.9, 0.34]]) {
       if (px < t.x1 - 0.6) {
@@ -1670,6 +1819,42 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     }
     inrichting.tuin = true;
   }
+
+  /*
+   ---------- de oprit ----------
+   Naast de voordeur, in de échte wereld (niet in de kijkdoos): een strook
+   klinkers waar je je auto kunt neerzetten. Het verhaal onthoudt wat daar staat,
+   zodat je auto er na het laden nog steeds staat (verzoek 23 sep 2026). Geen
+   botsdoos — je rijdt eroverheen — en hij ligt twee centimeter boven het maaiveld
+   zodat hij niet met de stoep gaat vechten.
+  */
+  const OPRIT = (() => {
+    const b = 2.70, d = 4.80;
+    const rechts = DEUR_X < BREED / 2;
+    const kant = DEUR_B / 2 + 0.40 + b / 2;
+    const cx = rechts ? Math.min(BREED - 0.2, DEUR_X + kant) : Math.max(0.2, DEUR_X - kant);
+    const cz = -d / 2 - 0.25;
+    const mid = plan.naarWereld(cx, cz);
+    const yaw = Math.atan2(-plan.f[0], -plan.f[1]);
+    const mat = new THREE.MeshBasicMaterial({ map: texture(terrastegels(), b / 0.9, d / 0.9), fog: false });
+    const geo = new THREE.PlaneGeometry(b, d);
+    geo.rotateX(-Math.PI / 2);
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(mid.x, 0.02, mid.z);
+    m.rotation.y = yaw;
+    scene.add(m);
+    // twee witte hoeklijnen, zodat je ziet dat het een vak is
+    for (const zk of [-1, 1]) {
+      const l = new THREE.Mesh(new THREE.PlaneGeometry(b - 0.3, 0.09),
+        new THREE.MeshBasicMaterial({ color: 0xe8e6de, fog: false }));
+      l.geometry.rotateX(-Math.PI / 2);
+      l.position.set(mid.x, 0.024, mid.z);
+      l.rotation.y = yaw;
+      l.translateZ(zk * (d / 2 - 0.25));
+      scene.add(l);
+    }
+    return { x: mid.x, z: mid.z, yaw, breed: b, diep: d };
+  })();
 
   /*
    ---------- de katten ----------
@@ -1831,6 +2016,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     player.applyCamera();
   }
   function naarBuitenGaan() {
+    zetRadio(false);
     player.inCar = null;
     if (player.zit) { player.zit = false; player.eye = player.eyeStaand; }
     const [ux, uz] = resolveCollisions(stoep.x, stoep.z, 0.4);
@@ -1918,6 +2104,64 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     return true;
   }
 
+  /*
+   ---------- de radio op het dressoir ----------
+   E zet hem aan en uit; dan speelt Radio Spannenburg. Het geluid komt uit
+   js/main.js, want daar zit de speler en daar staat de mixer: deze module levert
+   alleen waar het kastje staat en of hij aanstaat. Hoe verder je er in huis
+   vandaan loopt, hoe zachter hij wordt, en buiten de deur gaat hij uit
+   (verzoek 23 sep 2026).
+  */
+  const radioPunt = radioPlek ? wereld(radioPlek.x, radioPlek.z) : null;
+  const RADIO_BEREIK = 1.25;
+  let radioAan = false;
+  function bijRadio(x, z) {
+    return !!radioPunt && binnen(x, z) && Math.hypot(x - radioPunt.x, z - radioPunt.z) < RADIO_BEREIK;
+  }
+  function zetRadio(aan) {
+    if (!radioPunt) return false;
+    radioAan = !!aan;
+    if (radioLicht) radioLicht.material = radioAan ? MAT.lamp : MAT.tvKast;
+    return true;
+  }
+  /*
+   Hoe hard de radio hier klinkt: vlakbij vol, en over zes meter uitgedoofd.
+   Buiten het huis (of in de tuin) nul, want dan hoor je hem niet meer.
+  */
+  function radioSterkte(x, z) {
+    if (!radioAan || !radioPunt || !binnen(x, z) || tuin(x, z)) return 0;
+    const d = Math.hypot(x - radioPunt.x, z - radioPunt.z);
+    return Math.max(0.12, Math.min(1, 1.15 - d / 6.5));
+  }
+
+  /*
+   ---------- de barbecue op het terras ----------
+   E legt het vlees erop; na een halve minuut is het gaar en eet je het op. Dat
+   geeft meer leven dan een flesje uit de koelkast, maar je moet er wel even bij
+   blijven staan (verzoek 23 sep 2026).
+  */
+  const BBQ = { leven: 28, tijd: 26 };
+  const bbqPunt = bbqPlek ? wereld(bbqPlek.x, bbqPlek.z) : null;
+  const BBQ_BEREIK = 1.35;
+  let bbqT = 0;              // hoe lang het vlees nog moet
+  let bbqKlaar = false;      // het ligt gaar op de rooster
+  function bijBBQ(x, z) {
+    return !!bbqPunt && Math.hypot(x - bbqPunt.x, z - bbqPunt.z) < BBQ_BEREIK;
+  }
+  function bbqToets() {
+    if (bbqKlaar) {
+      bbqKlaar = false;
+      player.health = Math.min(100, player.health + BBQ.leven);
+      if (hud && hud.zetLeven) hud.zetLeven(player.health);
+      if (hud && hud.melding) hud.melding('Van de barbecue', `Dat smaakt · ${BBQ.leven} leven erbij.`, 3);
+      return true;
+    }
+    if (bbqT > 0) return false;             // hij staat al op; laat de hint staan
+    bbqT = BBQ.tijd;
+    if (hud && hud.melding) hud.melding('Op de barbecue', 'Even wachten tot het gaar is.', 3);
+    return true;
+  }
+
   // E bij de deur of bij de bank. Geeft true als de toets gebruikt is, zodat
   // main.js hem niet ook nog als in- of uitstappen leest.
   function toets() {
@@ -1933,6 +2177,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       if (!binnen(player.pos.x, player.pos.z)) return false;
       staOp(); return true;
     }
+    if (bijBBQ(player.pos.x, player.pos.z)) { if (bbqToets()) return true; }
+    if (bijRadio(player.pos.x, player.pos.z)) { zetRadio(!radioAan); return true; }
     if (bijKoelkast(player.pos.x, player.pos.z)) return pakBier();
     if (bijTafel(player.pos.x, player.pos.z)) { aanTafel(); return true; }
     if (bijBank(player.pos.x, player.pos.z)) { gaZitten(); return true; }
@@ -1957,6 +2203,14 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     // het beeld op de tv schuift door, en de telling van de flesjes loopt af
     if (MAT.tvBeeld.map) MAT.tvBeeld.map.offset.y = (MAT.tvBeeld.map.offset.y + dt * 0.035) % 1;
     if (nuchterT > 0) { nuchterT -= dt; if (nuchterT <= 0) flesjes = 0; }
+    // het vlees op de barbecue
+    if (bbqT > 0) {
+      bbqT -= dt;
+      if (bbqT <= 0) {
+        bbqT = 0; bbqKlaar = true;
+        if (hud && hud.melding) hud.melding('Het vlees is gaar', 'Druk op E om te eten.', 4);
+      }
+    }
     /*
      Bezet (gesprek, menu, pauze, of het verhaal dat zelf om E vraagt): ons
      eigen balkje weg, niet alleen de vlag — maar alleen het onze. Zet het
@@ -1968,7 +2222,13 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     let tekst = null;
     if (bezig && !player.inCar) {
       if (player.zit && binnen(player.pos.x, player.pos.z)) tekst = 'E — opstaan';
-      else if (bijKoelkast(player.pos.x, player.pos.z)) tekst = 'E — een flesje uit de koelkast';
+      else if (bijBBQ(player.pos.x, player.pos.z)) {
+        tekst = bbqKlaar ? 'E — het vlees opeten'
+          : bbqT > 0 ? `nog ${Math.ceil(bbqT)} tellen op de barbecue`
+            : 'E — vlees op de barbecue';
+      } else if (bijRadio(player.pos.x, player.pos.z)) {
+        tekst = radioAan ? 'E — de radio uitzetten' : 'E — de radio aanzetten';
+      } else if (bijKoelkast(player.pos.x, player.pos.z)) tekst = 'E — een flesje uit de koelkast';
       else if (bijTafel(player.pos.x, player.pos.z)) tekst = 'E — aan tafel zitten';
       else if (bijBank(player.pos.x, player.pos.z)) tekst = 'E — op de bank zitten';
       else {
@@ -1987,6 +2247,28 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   }
 
   /*
+   Staat er iets van de kijkdoos op deze plek? Alleen voor de proef: hij loopt de
+   nagebouwde buurt langs en kijkt of een van de dozen dit punt bevat. Zo is te
+   meten dat er geen buurpand over de kamer heen valt — aan de Koningsspil liep je
+   bij het binnenkomen half door de muur van iemand anders (melding 23 sep 2026).
+  */
+  const _punt = new THREE.Vector3();
+  const _doos = new THREE.Box3();
+  function kijkdoosRaakt(x, z, y = 1.0) {
+    buiten.updateMatrixWorld(true);
+    for (const m of buiten.children) {
+      if (!m.geometry) continue;
+      if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+      _doos.copy(m.geometry.boundingBox);
+      if (_doos.max.y - _doos.min.y < 0.02) continue;      // vlakke platen (gras, weg)
+      _punt.set(x, y, z);
+      m.worldToLocal(_punt);
+      if (_doos.containsPoint(_punt)) return true;
+    }
+    return false;
+  }
+
+  /*
    Wat de HUD moet laten zien als je binnen bent: de straatnaam met het
    huisnummer, en de plek van de voordeur als middelpunt voor de kaart. Zo
    blijft de minikaart de Molenkrite tonen in plaats van de leegte om de kamer
@@ -2000,6 +2282,10 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   return {
     update, toets, binnen, tuin, meldAan, kaart, zetLicht, gaZitten, staOp,
     aanTafel, bijTafel, bijKoelkast, pakBier,
+    // de radio op het dressoir en de barbecue op het terras
+    bijRadio, zetRadio, radioSterkte, bijBBQ, kijkdoosRaakt,
+    get radioAan() { return radioAan; },
+    get vlees() { return bbqKlaar ? 'gaar' : bbqT > 0 ? 'op de barbecue' : 'niets'; },
     // missie 9: is dit een van de drie woningen, wat kost hij, en staat de tv aan
     get stek() { return !!HUIS.stek; },
     get prijs() { return HUIS.prijs || 0; },
@@ -2023,16 +2309,20 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
           // het zitvlak van de hele hoekbank, dus met de chaise longue erbij
           zitvlak: BANK_LANG * BANK_DIEP + HOEK_LANG * BANK_DIEP },
         tv: { breed: 1.28, hoog: 0.73, midden: 0.92, afstand: TV_AFSTAND },
-        gang: HAL_BREED, keuken: { breed: KEUKEN.x1 - KEUKEN.x0, diep: KEUKEN.z1 - KEUKEN.z0 },
+        gang: HAL_BREED, hal: HAL, keukenVak: KEUKEN,
+        keuken: { breed: KEUKEN.x1 - KEUKEN.x0, diep: KEUKEN.z1 - KEUKEN.z0 },
       };
     },
     get groep() { return groep; },
+    // de kijkdoos om de kamer heen (npm run huistest kijkt of er niets overlapt)
+    get kijkdoos() { return buiten; },
     get plekken() {
       return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, keuken: KEUKEN, bank: zitPlek,
         tafel: wereld(TAFEL.x, TAFEL.z), stoel: tafelPlek, koelkast: koelPlek,
         tuindeur: tuinDeur ? wereld(tuinDeur.x, tuinDeur.z) : null,
         terras: TUIN ? wereld((TUIN.x0 + TUIN.x1) / 2, DIEP + 1.5) : null,
         tuintafel: tuinTafel ? wereld(tuinTafel.x, tuinTafel.z) : null,
+        radio: radioPunt, bbq: bbqPunt, oprit: OPRIT,
         hek: TUIN ? wereld((TUIN.x0 + TUIN.x1) / 2, TUIN.z1 - 0.04) : null };
     },
   };

@@ -159,7 +159,9 @@ await page.evaluate(() => {
     const g = window.__game;
     const w = window.__stek().find(x => x.plekken.tuindeur) || window.__stek()[0];
     const d = w.plekken.tuindeur, h = w.plekken.hek;
-    const tr = w.plekken.tuintafel || w.plekken.terras;   // op de tuintafel richten
+    // richten op het midden tussen de tuintafel en de barbecue
+    const tt = w.plekken.tuintafel || w.plekken.terras, bq = w.plekken.bbq;
+    const tr = tt && bq ? { x: (tt.x + bq.x) / 2, z: (tt.z + bq.z) / 2 } : tt;
     if (!d || !h || !tr) return null;
     // anderhalve meter vóór het achterhek, op de lijn hek → terras
     const dx = tr.x - h.x, dz = tr.z - h.z;

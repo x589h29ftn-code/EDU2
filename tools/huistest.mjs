@@ -212,6 +212,77 @@ ok(buitenom.hek.every(v => v > 0.1), 'en door het hek kom je niet',
 ok(buitenom.opstaan.zat && !buitenom.opstaan.zit && buitenom.opstaan.inHuis,
   'opstaan laat je staan in het huis waar je zat', buitenom.opstaan.naam);
 
+// ------------------------- dichte ramen, radio, barbecue, oprit en de kijkdoos
+kop('de tweede ronde meldingen');
+const ronde2 = await page.evaluate(() => {
+  const g = window.__game;
+  const uit = { keuken: [], overlap: [], radio: [], sterkte: [], bbq: null, oprit: [], zit: [] };
+  for (const w of window.__stek()) {
+    const m = w.maten, p = w.plekken;
+    // de keuken begint achter de gang, en niet in de gangdeur
+    uit.keuken.push(+(m.keukenVak.z0 - m.hal.z1).toFixed(2));
+    // geen nagebouwd buurpand over de kamer of de tuin heen
+    const punten = [p.deurBinnen, p.stoel, p.bank, p.tafel, p.terras].filter(Boolean);
+    uit.overlap.push(punten.filter(q => w.kijkdoosRaakt(q.x, q.z, 1.0)).length);
+    // op elk dressoir staat een radio, en die is met E aan en uit te zetten
+    uit.radio.push(!!p.radio);
+    if (p.radio) {
+      g.player.pos.set(p.radio.x + 0.6, 0, p.radio.z);
+      const hint1 = w.bijRadio(g.player.pos.x, g.player.pos.z);
+      w.toets();
+      const dichtbij = +w.radioSterkte(g.player.pos.x, g.player.pos.z).toFixed(2);
+      // een eind verderop in dezelfde kamer moet hij zachter staan
+      const ver = +w.radioSterkte(p.tafel.x, p.tafel.z).toFixed(2);
+      const buitenshuis = +w.radioSterkte(p.deurBuiten.x, p.deurBuiten.z).toFixed(2);
+      w.toets();                                  // en weer uit
+      const na = +w.radioSterkte(g.player.pos.x, g.player.pos.z).toFixed(2);
+      uit.sterkte.push({ naam: w.naam, hint: hint1, dichtbij, ver, buitenshuis, na, aan: w.radioAan });
+    }
+    // de oprit ligt naast de voordeur, in de echte wereld
+    const o = p.oprit;
+    uit.oprit.push(o ? +Math.hypot(o.x - p.deurBuiten.x, o.z - p.deurBuiten.z).toFixed(1) : -1);
+    // en aan tafel kun je zitten
+    g.player.inCar = null; g.player.zit = false;
+    g.player.pos.set(p.stoel.x, 0, p.stoel.z);
+    w.toets();
+    uit.zit.push({ naam: w.naam, zit: g.player.zit });
+    w.toets();
+  }
+  // de barbecue: vlees erop, wachten, opeten
+  {
+    const w = window.__stek()[0], p = w.plekken;
+    g.player.health = 40; g.hud.zetLeven(40);
+    g.player.pos.set(p.bbq.x + 0.8, 0, p.bbq.z);
+    const bij = w.bijBBQ(g.player.pos.x, g.player.pos.z);
+    w.toets();
+    const opgelegd = w.vlees;
+    for (let i = 0; i < 40; i++) w.update(1, false);        // veertig tellen wachten
+    const gaar = w.vlees;
+    w.toets();
+    uit.bbq = { bij, opgelegd, gaar, leven: g.player.health, na: w.vlees };
+  }
+  return uit;
+});
+ok(ronde2.keuken.every(v => v > 0), 'de keuken begint achter de gang',
+  ronde2.keuken.map(v => `${v} m`).join(' · '));
+ok(ronde2.overlap.every(v => v === 0), 'er staat geen buurpand over de kamer heen',
+  ronde2.overlap.join(' · '));
+ok(ronde2.radio.every(Boolean), 'op elk dressoir staat een radio');
+ok(ronde2.sterkte.every(r => r.hint && r.dichtbij > 0.7 && !r.aan && r.na === 0),
+  'E zet de radio aan en weer uit',
+  ronde2.sterkte.map(r => `${r.naam}: ${r.dichtbij}`).join(' · '));
+ok(ronde2.sterkte.every(r => r.ver < r.dichtbij && r.buitenshuis === 0),
+  'verder weg klinkt hij zachter, buiten de deur uit',
+  ronde2.sterkte.map(r => `${r.dichtbij} → ${r.ver} → ${r.buitenshuis}`).join(' · '));
+ok(ronde2.oprit.every(v => v > 1 && v < 12), 'naast elke voordeur ligt een oprit',
+  ronde2.oprit.map(v => `${v} m`).join(' · '));
+ok(ronde2.zit.every(r => r.zit), 'in elke woning kun je aan tafel gaan zitten',
+  ronde2.zit.map(r => `${r.naam}: ${r.zit ? 'ja' : 'nee'}`).join(' · '));
+ok(ronde2.bbq && ronde2.bbq.bij && ronde2.bbq.opgelegd === 'op de barbecue'
+  && ronde2.bbq.gaar === 'gaar' && ronde2.bbq.leven > 60 && ronde2.bbq.na === 'niets',
+  'op de barbecue braad je vlees en dat eet je op',
+  ronde2.bbq ? `${ronde2.bbq.opgelegd} → ${ronde2.bbq.gaar} → ${ronde2.bbq.leven} leven` : 'geen');
+
 // ------------------------------------------------------------- de missie
 kop('de missie: Mark belt, drie vlaggen op de kaart');
 const start = await page.evaluate(() => {

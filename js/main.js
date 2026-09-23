@@ -1552,7 +1552,7 @@ const sfeer = initSfeer({
 // Hoofdlus
 let last = performance.now(); let time = 0; let lodKlok = 0;
 let laatsteRadio = null;     // welk nummer er als laatste in het balkje stond
-let stekRadio = false;       // staat de tv in je eigen woning aan (missie 9)
+let stekRadio = false;       // staat de radio in een van de woningen aan (missie 9)
 // Afstand tot de dichtstbijzijnde radio in de wijk; audio.js bepaalt daarmee
 // het volume. Null als er geen radio staat.
 function afstandTotRadio(x, z) {
@@ -1817,10 +1817,22 @@ function loop() {
      Spannenburg (verzoek 22 sep 2026). Binnen zet de galmtak van vorige ronde er
      vanzelf een kamer omheen.
     */
-    const inStek = woningen.some(w => w.stek && w.binnen(player.pos.x, player.pos.z));
-    if (inStek && !stekRadio) { geluid.zetZender('Spannenburg'); stekRadio = true; }
-    if (!inStek) stekRadio = false;
-    geluid.autoradio(!!player.inCar || inStek);
+    /*
+     De radio op het dressoir (verzoek 23 sep 2026). Hij speelt alleen als je hem
+     met E hebt aangezet, hij wordt zachter naarmate je verder van het kastje af
+     staat, en hij gaat uit zodra je het huis uit loopt — ook als dat via de
+     opslag of een teleport gaat, want dan staat hij nog aan terwijl jij weg bent.
+    */
+    let radioSterk = 0;
+    for (const r of binnenruimtes) {
+      if (!r.radioSterkte) continue;
+      if (r.radioAan && !r.binnen(player.pos.x, player.pos.z)) r.zetRadio(false);
+      radioSterk = Math.max(radioSterk, r.radioSterkte(player.pos.x, player.pos.z));
+    }
+    const radioHier = !!player.inCar || radioSterk > 0;
+    if (radioSterk > 0 && !stekRadio) { geluid.zetZender('Spannenburg'); stekRadio = true; }
+    if (radioSterk <= 0) stekRadio = false;
+    geluid.autoradio(radioHier, player.inCar ? 1 : radioSterk);
     werkKaartvlaggenBij();
     /*
      Titel van het nummer in het balkje, net als een autoradio die het

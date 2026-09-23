@@ -715,7 +715,7 @@ export const geluid = {
    Lukt dat niet — geen lijst, bestand weg, browser wil niet — dan valt de radio
    terug op het gesynthetiseerde deuntje.
   */
-  muziek(actief) {
+  muziek(actief, sterkte = 1) {
     /*
      Uit de auto: de missiemuziek is weer de baas. Dit staat vóór alles wat
      hieronder kan afhaken (geen lijst, nog geen element), want anders bleef
@@ -755,7 +755,7 @@ export const geluid = {
     */
     const onder = (bronnen.jacht && bronnen.jacht.actief)
       || (bronnen.missie && bronnen.missie.aan && !radioVoor);
-    const doel = actief ? (onder ? 0.08 : 0.32) : 0;
+    const doel = actief ? (onder ? 0.08 : 0.32) * sterkte : 0;
     m.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (actief) {
       if (!m.nummer) {
@@ -962,11 +962,17 @@ export const geluid = {
 
    Wordt elk beeld aangeroepen met `true` zolang je in de auto zit.
   */
-  autoradio(actief) {
+  autoradio(actief, sterkte = 1) {
     if (!aan) return;
+    /*
+     `sterkte` schaalt het volume. In de auto is dat 1; in huis hangt het af van
+     hoe ver je van het radiootje op het dressoir vandaan staat (verzoek
+     23 sep 2026), zodat de muziek zachter wordt naarmate je verder de kamer uit
+     loopt.
+    */
     // Staat er muziek in audio/radio/, dan speelt die; het riffje hieronder is
     // de terugval als dat niet lukt.
-    if (this.muziek(actief)) {
+    if (this.muziek(actief, sterkte)) {
       if (bronnen.autoradio) bronnen.autoradio.gain.gain.setTargetAtTime(0, nu(), 0.3);
       return;
     }
@@ -988,7 +994,7 @@ export const geluid = {
     // achtergrondniveau; onder het jachtdeuntje en onder de missiemuziek zachter
     const zacht = (bronnen.jacht && bronnen.jacht.actief)
       || (bronnen.missie && bronnen.missie.aan && !radioVoor);
-    const doel = actief ? (zacht ? 0.07 : 0.20) : 0;
+    const doel = actief ? (zacht ? 0.07 : 0.20) * sterkte : 0;
     rr.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (!actief) { rr.maat = 0; return; }
 

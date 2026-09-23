@@ -2469,6 +2469,8 @@ export function initVerhaal(ctx) {
    commentaar levert, en je ziet hem nooit tevoorschijn komen.
   */
   let huisT = 0;                 // telefoon
+  let huisBinnen = null;         // in welke van de drie je nu binnen staat
+  let gestald = null;            // de auto die op de oprit van een woning staat
   let huisGekozen = null;        // het adres dat je gekocht hebt (blijft na de missie)
   let huisAanbod = false;        // het aanbod staat open: je kunt (nog) kopen
   let huisBij = null;            // bij welke woning Mark nu staat
@@ -2514,6 +2516,7 @@ export function initVerhaal(ctx) {
     huisKeus = null;
     huisGezegd.clear();
     huisGezien.clear();
+    huisBinnen = null;
     zetOpdracht('neem de telefoon op');
     hud.zetNavigatie(null); navDoel = null;
     markZichtbaar(false);
@@ -2641,9 +2644,34 @@ export function initVerhaal(ctx) {
         */
         markZichtbaar(false); huisBij = null;
       }
-      // binnen geweest? dan is die woning bekeken
+      /*
+       Binnen geweest? Dan is die woning bekeken. En stap je weer naar buiten
+       terwijl er nog woningen over zijn, dan zegt het spel meteen welke cijfers
+       er nog te kiezen zijn en legt de navigatie alvast op de dichtstbijzijnde
+       die je nog niet hebt gezien — anders moest je maar raden dat 1, 2 of 3 nog
+       werkte (melding 23 sep 2026).
+      */
       const hier = huisOnder(sp);
-      if (hier) huisGezien.add(hier.naam);
+      if (hier) { huisGezien.add(hier.naam); huisBinnen = hier.naam; }
+      else if (huisBinnen) {
+        huisBinnen = null;
+        const over = lijst.filter(w => !huisGezien.has(w.naam));
+        if (over.length) {
+          const nrs = over.map(w => lijst.indexOf(w) + 1);
+          const toets = nrs.length > 1 ? `${nrs.slice(0, -1).join(', ')} of ${nrs[nrs.length - 1]}` : `${nrs[0]}`;
+          hud.melding(over.length === 1 ? 'Nog één te bekijken' : `Nog ${over.length} te bekijken`,
+            `Druk ${toets} · ${over.map(w => `${w.naam} (${euro(w.prijs)})`).join(' · ')}`, 7);
+          zetOpdracht(`druk ${toets} voor de volgende woning`);
+          let dicht = over[0], dichtD = Infinity;
+          for (const w of over) {
+            const d = stekDeur(w);
+            const a = Math.hypot(sp.x - d.x, sp.z - d.z);
+            if (a < dichtD) { dichtD = a; dicht = w; }
+          }
+          const dd = stekDeur(dicht);
+          zetNavDoel(dd.x, dd.z, dicht.naam, 'H');
+        }
+      }
       /*
        Alle drie bekeken en niets gekocht: dan is de missie klaar en loopt het
        verhaal door. Het aanbod blijft staan — de vlaggen op de kaart ook — dus
@@ -2677,6 +2705,33 @@ export function initVerhaal(ctx) {
     if (!hier || !hier.bijTafel(player.pos.x, player.pos.z)) return;
     praatEl.textContent = `E — ${hier.naam} kopen (${euro(hier.prijs)})`;
     praatEl.hidden = false;
+  }
+
+  /*
+   ---------- de auto op de oprit ----------
+   Naast de voordeur van elk van de drie woningen ligt een oprit (js/interieur.js).
+   Zet je daar je auto neer en stap je uit, dan onthoudt het verhaal welke auto
+   dat was; bij het laden staat hij er weer (verzoek 23 sep 2026). Dat is het enige
+   wat een auto in dit spel blijvend maakt — verder staat alles waar de kaart het
+   heeft neergezet.
+  */
+  const STAL_BEREIK = 3.4;
+  function werkStallingBij() {
+    if (player.inCar || !vehicles || !vehicles.nearestDriveable) return;
+    for (const w of stekLijst()) {
+      const o = w.plekken && w.plekken.oprit;
+      if (!o) continue;
+      const car = vehicles.nearestDriveable(o.x, o.z);
+      if (!car) continue;
+      if (Math.hypot(car.x - o.x, car.z - o.z) > STAL_BEREIK) continue;
+      const nieuw = { huis: w.naam, x: car.x, z: car.z, yaw: car.yaw,
+        soort: car.soort || 'hatch', kleur: car.kleur ?? 0xd8d9dc };
+      const anders = !gestald || gestald.huis !== nieuw.huis
+        || Math.hypot(gestald.x - nieuw.x, gestald.z - nieuw.z) > 1.2;
+      gestald = nieuw;
+      if (anders) hud.melding('Op de oprit', `Je auto staat bij ${w.naam} en blijft daar staan.`, 4);
+      return;
+    }
   }
 
   /*
@@ -2919,6 +2974,7 @@ export function initVerhaal(ctx) {
     if (missie === 'huis') werkHuisBij(dt, sp);
     // de koopregel blijft ook staan als de missie al voorbij is en het aanbod nog loopt
     else koopHint(sp);
+    werkStallingBij();
     if (snipRing) snipRing.update(dt);
     if (deal) deal.update(dt, bootPunt());
     for (const b of snipBoten) {
@@ -2975,7 +3031,7 @@ export function initVerhaal(ctx) {
       bx: bxAuto ? { x: bxAuto.x, z: bxAuto.z, yaw: bxAuto.yaw, kleur: bxAuto.kleur, gestolen: bxGestolen } : null,
       // missie 9: het huis dat je gekocht hebt blijft van jou, en een aanbod dat
       // nog openstaat ook
-      huis: huisGekozen, aanbod: huisAanbod, gezien: [...huisGezien],
+      huis: huisGekozen, aanbod: huisAanbod, gezien: [...huisGezien], gestald,
     };
   }
 
@@ -2987,6 +3043,19 @@ export function initVerhaal(ctx) {
     fase = s.fase || 'wacht';
     huisGekozen = s.huis || null;
     huisAanbod = !!s.aanbod;
+    /*
+     De auto op de oprit. Stond hij er bij het opslaan, dan staat hij er bij het
+     laden weer — tenzij er al een auto staat, want dan zou je er twee in elkaar
+     zetten (verzoek 23 sep 2026).
+    */
+    gestald = s.gestald || null;
+    if (gestald) {
+      const bij = vehicles.nearestDriveable(gestald.x, gestald.z);
+      if (!bij || Math.hypot(bij.x - gestald.x, bij.z - gestald.z) > 4) {
+        vehicles.voegToe({ x: gestald.x, z: gestald.z, yaw: gestald.yaw || 0,
+          soort: gestald.soort || 'hatch', kleur: gestald.kleur ?? 0xd8d9dc });
+      }
+    }
     huisGezien.clear();
     for (const n of s.gezien || []) huisGezien.add(n);
     if (fase === 'gesprek' || fase === 'briefing') { fase = 'wacht'; missie = 'molenkrite'; }
@@ -3206,6 +3275,7 @@ export function initVerhaal(ctx) {
     },
     // missie 9: de vlaggen op de kaart en het huis dat van jou is
     huisMarkeringen, kiesHuis,
+    get gestaldeAuto() { return gestald; },
     get stek() { return huisGekozen; },
     get stekAanbod() { return huisAanbod; },
     get stekKeus() { return huisKeus; },
