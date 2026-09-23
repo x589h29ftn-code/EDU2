@@ -280,6 +280,29 @@ export class HUD {
     c.closePath(); c.fill();
   }
 
+  /*
+   De drie te koop staande woningen uit missie 9 (verzoek 22 sep 2026). Hetzelfde
+   speldje als een winkel, maar met een huisje erin en in het blauw, zodat je op
+   de kaart ziet welke vlag over een woning gaat en welke over een winkel.
+  */
+  static tekenHuis(c, r = 9) {
+    c.beginPath();
+    c.moveTo(0, r * 1.25);
+    c.lineTo(-r * 0.72, r * 0.35);
+    c.arc(0, -r * 0.1, r, Math.PI * 0.78, Math.PI * 0.22, false);
+    c.closePath();
+    c.fillStyle = '#5ea8e6'; c.fill();
+    c.strokeStyle = '#10283a'; c.lineWidth = 1.4; c.stroke();
+    // huisje: een puntdak op een blokje
+    c.fillStyle = '#10283a';
+    c.beginPath();
+    c.moveTo(-r * 0.42, -r * 0.16);
+    c.lineTo(0, -r * 0.62);
+    c.lineTo(r * 0.42, -r * 0.16);
+    c.closePath(); c.fill();
+    c.fillRect(-r * 0.30, -r * 0.16, r * 0.60, r * 0.42);
+  }
+
   // Mislukte missie: het beeld vaagt naar grijs.
   zetGrijs(aan) { document.body.classList.toggle('mislukt', !!aan); }
 
@@ -534,7 +557,7 @@ export class HUD {
       c.save();
       c.translate(w.x * scale, w.z * scale);
       c.rotate(-this._kaartRot);
-      HUD.tekenWinkel(c, 9);
+      if (w.wat === 'huis') HUD.tekenHuis(c, 9); else HUD.tekenWinkel(c, 9);
       c.restore();
     }
     // `rot` bepaalt alleen of een straatnaam omgeklapt moet om leesbaar te
@@ -593,7 +616,7 @@ HUD.prototype.bigVast = function (W, H, minX, maxX, minZ, maxZ, scale) {
     c.save();
     c.translate(w.x, w.z);
     c.scale(1 / scale, 1 / scale);
-    HUD.tekenWinkel(c, 9);
+    if (w.wat === 'huis') HUD.tekenHuis(c, 9); else HUD.tekenWinkel(c, 9);
     c.textAlign = 'center';
     c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
     if (w.naam) {

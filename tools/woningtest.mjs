@@ -36,13 +36,17 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(600);
 
-// ---------- 1. twee woningen ----------
-kop('twee voordeuren');
+// ---------- 1. de woningen ----------
+kop('de voordeuren waar je door kunt');
 const lijst = await page.evaluate(() => {
   const g = window.__game;
   return (g.woningen || []).map(h => ({ naam: h.naam, breed: h.maten.breed, diep: h.maten.diep, banden: h.maten.banden.length }));
 });
-ok(lijst.length === 2, 'er zijn twee woningen waar je naar binnen kunt', lijst.map(q => q.naam).join(' · '));
+/*
+ Twee vaste woningen (Molenkrite 15 en de Wieken 29) en sinds missie 9 de drie
+ panden van De Veteraan erbij (js/interieur.js).
+*/
+ok(lijst.length === 5, 'er zijn vijf woningen waar je naar binnen kunt', lijst.map(q => q.naam).join(' · '));
 ok(lijst.some(q => q.naam === 'de Wieken 29'), 'de Wieken 29 hoort erbij');
 const w29 = lijst.find(q => q.naam === 'de Wieken 29') || {};
 ok(w29.breed > 5 && w29.breed < 6 && w29.diep > 13 && w29.diep < 15,

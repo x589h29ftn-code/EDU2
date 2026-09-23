@@ -45,6 +45,18 @@ import { maakKat } from './kat.js';
 export const WONINGEN = [
   { straat: 'Molenkrite', nr: '15', plek: 0, katten: 1 },
   { straat: 'de Wieken', nr: '29', plek: 1, katten: 2 },
+  /*
+   En de drie woningen waar De Veteraan over gaat (missie 9). Ze zijn alle drie
+   fors groter dan de Wieken 29 — dat is 62 m² grondvlak — en ze liggen uit
+   elkaar, zodat je met Mark echt een rondje door de wijk maakt. De prijs is het
+   sleutelgeld dat je eenmalig betaalt; daarna is het jouw stek.
+  */
+  { straat: 'Zeskanter', nr: '16', plek: 2, katten: 2, stek: true, prijs: 5000,
+    soort: 'luxe', beschrijving: 'vrijstaand aan de noordkant, negen bij twintig meter' },
+  { straat: 'Molenkrite', nr: '130c', plek: 3, katten: 2, stek: true, prijs: 2500,
+    soort: 'middel', beschrijving: 'een brede bungalow van achttien meter' },
+  { straat: 'Koningsspil', nr: '20', plek: 4, katten: 2, stek: true, prijs: 1000,
+    soort: 'gewoon', beschrijving: 'diep en rustig, twee keer de Wieken' },
 ];
 const HUIS = WONINGEN[0];
 
@@ -154,6 +166,33 @@ function lichthout() {
   return c;
 }
 
+/*
+ Het beeld op de tv. Geen plaatje in de repo (dat is de afspraak: alles wordt
+ getekend), maar een doek met een programma erop zoals je het door een
+ woonkamerraam ziet: een lucht met een horizon, een paar vlakken die voor
+ gebouwen doorgaan, en onderin de balk van de omroep. Het schuift in de lus
+ langzaam door, en dan is het van drie meter afstand precies genoeg beweging om
+ te zien dat hij aanstaat.
+*/
+function tvDoek() {
+  const c = doek(128, 96), g = c.getContext('2d');
+  const r = rnd(41);
+  const lucht = g.createLinearGradient(0, 0, 0, 58);
+  lucht.addColorStop(0, '#2c5f96'); lucht.addColorStop(1, '#9fc4e0');
+  g.fillStyle = lucht; g.fillRect(0, 0, 128, 58);
+  g.fillStyle = '#3d6b3a'; g.fillRect(0, 54, 128, 42);
+  for (let k = 0; k < 9; k++) {
+    const x = r() * 128, w = 8 + r() * 16, h = 10 + r() * 22;
+    g.fillStyle = `rgba(${40 + r() * 60 | 0},${40 + r() * 40 | 0},${50 + r() * 50 | 0},0.9)`;
+    g.fillRect(x, 58 - h, w, h);
+  }
+  g.fillStyle = 'rgba(12,16,24,0.82)'; g.fillRect(0, 78, 128, 18);
+  g.fillStyle = '#f2c14a'; g.fillRect(4, 82, 3, 10);
+  g.fillStyle = '#e8e6e0'; g.font = 'bold 9px sans-serif';
+  g.fillText('SPANNENBURG', 11, 90);
+  return c;
+}
+
 // Bankstof: fijne grijze weving.
 function stof() {
   const c = doek(64, 64), g = c.getContext('2d');
@@ -248,7 +287,7 @@ export function banden(punten) {
  `huis` is een regel uit WONINGEN hierboven. Levert null als er geen kaartdata
  is of het huisnummer er niet in staat; dan doet de voordeur gewoon niets.
 */
-export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
+export function initInterieur({ scene, player, sfeer = null, hud = null, huis = HUIS }) {
   if (!KAART || !KAART.panden) return null;
   const HUIS = huis;
   const pand = KAART.panden.find(p => p.straat === HUIS.straat && (p.nr || []).includes(HUIS.nr));
@@ -338,7 +377,15 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     poot: plat(0x53422f),
     tvKast: plat(0x33333a),
     tvRand: plat(0x1a1a1e),
-    tvBeeld: new THREE.MeshBasicMaterial({ color: 0x121a24, fog: false }),
+    /*
+     Een donker scherm, behalve in de drie woningen van missie 9: daar staat de
+     tv aan op Radio Spannenburg en is het beeld een eigen doek dat langzaam
+     doorschuift. Zonder `vertexColors` blijft hij overal even fel — een scherm
+     dat aanstaat hoort niet mee te doen met het licht in de kamer.
+    */
+    tvBeeld: HUIS.stek
+      ? new THREE.MeshBasicMaterial({ map: texture(tvDoek(), 1, 1), fog: false })
+      : new THREE.MeshBasicMaterial({ color: 0x121a24, fog: false }),
     lamp: new THREE.MeshBasicMaterial({ color: 0xfff4d8, side: THREE.DoubleSide, fog: false }),
     snoer: plat(0x33332f),
   };
@@ -560,11 +607,75 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     doos(x0 + 0.20, x0 + 0.21, zm - 0.60, zm + 0.60, 0.52, 1.20, MAT.tvBeeld, false); // beeld
   }
 
+  /*
+   ---------- de eettafel ----------
+   Een tafel van 1,40 bij 0,85 met vier stoelen, in het voorste deel van de
+   woonkamer bij het raam — daar waar in een Sneker rijtjeshuis de eethoek
+   staat, met de bank achter je en de keuken in het verlengde. Aan de stoel met
+   de rug naar het raam kun je gaan zitten (verzoek 22 sep 2026); dan kijk je de
+   kamer in.
+  */
+  const TAFEL = (() => {
+    const bl = Math.min(1.40, Math.max(0.9, (BREED - MUUR - HAL.x1) - 0.9));
+    const dp = 0.85;
+    const xm = (HAL.x1 + BREED - MUUR) / 2;
+    const zm = Math.min(MUUR + 1.55, Math.max(MUUR + 1.0, (MUUR + HAL.z1) / 2 + 0.2));
+    return { x: xm, z: zm, breed: bl, diep: dp, hoog: 0.74 };
+  })();
+  {
+    const t = TAFEL;
+    const x0 = t.x - t.breed / 2, x1 = t.x + t.breed / 2;
+    const z0 = t.z - t.diep / 2, z1 = t.z + t.diep / 2;
+    doos(x0, x1, z0, z1, t.hoog - 0.04, t.hoog, MAT.hout);                   // blad
+    for (const xx of [x0 + 0.06, x1 - 0.12]) for (const zz of [z0 + 0.06, z1 - 0.12]) {
+      doos(xx, xx + 0.06, zz, zz + 0.06, 0, t.hoog - 0.04, MAT.poot, false); // poten
+    }
+    // vier stoelen: zitting op 45, rug tot 90
+    const stoel = (sx, sz, langsX) => {
+      const b = langsX ? 0.42 : 0.40, d = langsX ? 0.40 : 0.42;
+      const a0 = sx - b / 2, a1 = sx + b / 2, c0 = sz - d / 2, c1 = sz + d / 2;
+      doos(a0, a1, c0, c1, 0.43, 0.47, MAT.hout);
+      for (const xx of [a0 + 0.02, a1 - 0.06]) for (const zz of [c0 + 0.02, c1 - 0.06]) {
+        doos(xx, xx + 0.04, zz, zz + 0.04, 0, 0.43, MAT.poot, false);
+      }
+      if (langsX) doos(a0, a1, sz < t.z ? c0 : c1 - 0.04, sz < t.z ? c0 + 0.04 : c1, 0.47, 0.90, MAT.hout, false);
+      else doos(sx < t.x ? a0 : a1 - 0.04, sx < t.x ? a0 + 0.04 : a1, c0, c1, 0.47, 0.90, MAT.hout, false);
+    };
+    stoel(t.x - 0.38, z0 - 0.32, true);
+    stoel(t.x + 0.38, z0 - 0.32, true);
+    stoel(t.x - 0.38, z1 + 0.32, true);
+    stoel(t.x + 0.38, z1 + 0.32, true);
+  }
+
+  /*
+   ---------- de koelkast ----------
+   Naast het keukenblok, aan het eind van de rij: 60 breed, 65 diep, 1,80 hoog,
+   met een greep. Er staat bier in — je eigen bier, dus je betaalt er niets
+   voor; het scheelt hetzelfde leven als een flesje bij de Poiesz.
+  */
+  /*
+   Aan het eind van de keukenrij, tegen dezelfde wand: zo staat hij in elke
+   keuken, ook in een smalle aanbouw waar naast het aanrecht niets meer past.
+   De kastenrij hieronder houdt er rekening mee en begint erachter.
+  */
+  const KOEL_LENGTE = 0.68;
+  const KOELKAST = (KEUKEN.z1 - KEUKEN.z0 > 2.6)
+    ? { x0: KEUKEN.x0, z0: KEUKEN.z0 + 0.20, breed: 0.66, lang: KOEL_LENGTE }
+    : null;
+  if (KOELKAST) {
+    const k = KOELKAST;
+    const x1 = k.x0 + k.breed, z1 = k.z0 + k.lang;
+    doos(k.x0, x1, k.z0, z1, 0, 1.80, MAT.rvs);
+    doos(x1, x1 + 0.02, z1 - 0.16, z1 - 0.12, 0.55, 1.45, MAT.tvRand, false);   // greep
+    doos(k.x0, x1 + 0.002, k.z0 + 0.86, k.z0 + 0.89, 0, 1.80, MAT.tvRand, false); // naad
+  }
+
   // ---------- het keukenblok ----------
   // Eén rij tegen de zijwand van de aanbouw: onderkasten van 60 cm diep met een
   // werkblad op 90 cm, wandtegels tot 1,45 en bovenkasten van 1,45 tot 2,15.
   if (KEUKEN.z1 - KEUKEN.z0 > 2) {
-    const x0 = KEUKEN.x0, z0 = KEUKEN.z0 + 0.30, z1 = KEUKEN.z1 - 0.25;
+    const x0 = KEUKEN.x0;
+    const z0 = KEUKEN.z0 + 0.30 + (KOELKAST ? KOEL_LENGTE : 0), z1 = KEUKEN.z1 - 0.25;
     doos(x0, x0 + KAST_DIEP, z0, z1, 0.10, AANRECHT - 0.04, MAT.hout);          // kastenrij
     doos(x0, x0 + KAST_DIEP, z0, z1, 0, 0.10, MAT.werkblad, false);             // sokkel
     doos(x0, x0 + KAST_DIEP + 0.02, z0 - 0.02, z1 + 0.02, AANRECHT - 0.04, AANRECHT, MAT.werkblad, false);
@@ -879,6 +990,8 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
        hij is dan het felste vlak in de kamer.
       */
       if (t.m === MAT.lamp) { t.m.color.setHex(nacht ? 0xfff6d2 : 0xd7d4cb); continue; }
+      // en een tv die aanstaat is 's avonds juist het enige licht in de kamer
+      if (t.m === MAT.tvBeeld && MAT.tvBeeld.map) continue;
       t.m.color.copy(t.basis).multiply(nacht ? t.nacht : t.dag);
     }
   }
@@ -932,8 +1045,15 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
   const ZITHOOGTE = 1.05;
   const zitPlek = wereld(BREED - MUUR - 0.46, bankZ);
   const ZIT_BEREIK = 1.6;
+  // en de stoel aan de tafel, met de rug naar het raam en het gezicht de kamer in
+  const tafelPlek = wereld(TAFEL.x - 0.38, TAFEL.z - TAFEL.diep / 2 - 0.32);
+  const TAFEL_BEREIK = 1.1;
+  let zitWaar = null;                       // 'bank' of 'tafel', voor het opstaan
   function bijBank(x, z) {
     return binnen(x, z) && Math.hypot(x - zitPlek.x, z - zitPlek.z) < ZIT_BEREIK;
+  }
+  function bijTafel(x, z) {
+    return binnen(x, z) && Math.hypot(x - tafelPlek.x, z - tafelPlek.z) < TAFEL_BEREIK;
   }
   function gaZitten() {
     player.pos.set(zitPlek.x, 0, zitPlek.z);
@@ -941,14 +1061,53 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     player.yaw = Math.PI / 2;               // naar de tv aan de overkant
     player.pitch = 0;
     player.zit = true;
+    zitWaar = 'bank';
+    player.applyCamera();
+  }
+  function aanTafel() {
+    player.pos.set(tafelPlek.x, 0, tafelPlek.z);
+    player.eye = ZITHOOGTE;
+    player.yaw = Math.PI;                   // over de tafel heen de kamer in
+    player.pitch = 0;
+    player.zit = true;
+    zitWaar = 'tafel';
     player.applyCamera();
   }
   function staOp() {
+    const bij = zitWaar === 'tafel' ? tafelPlek : zitPlek;
+    const kant = zitWaar === 'tafel' ? { x: 0, z: -0.9 } : { x: -1.0, z: 0 };
     player.zit = false;
+    zitWaar = null;
     player.eye = player.eyeStaand;
-    // een stap de kamer in, zodat je niet in de bank blijft staan
-    player.pos.set(zitPlek.x - 1.0, 0, zitPlek.z);
+    // een stap opzij, zodat je niet in de bank of de tafel blijft staan
+    player.pos.set(bij.x + kant.x, 0, bij.z + kant.z);
     player.applyCamera();
+  }
+
+  /*
+   ---------- het bier uit de eigen koelkast ----------
+   Bij de Poiesz koop je een flesje (js/supermarkt.js); hier pak je er een, want
+   het is je eigen huis. Zelfde leven erbij en dezelfde waas na een stuk of wat,
+   zodat een flesje thuis net zo telt als een flesje in de winkel.
+  */
+  const BIER = { leven: 12, dronkenVanaf: 3, perFlesje: 0.34 };
+  const koelPlek = KOELKAST ? wereld(KOELKAST.x0 + KOELKAST.breed + 0.55, KOELKAST.z0 + KOELKAST.lang / 2) : null;
+  const KOEL_BEREIK = 1.3;
+  let flesjes = 0, nuchterT = 0;
+  function bijKoelkast(x, z) {
+    return !!koelPlek && binnen(x, z) && Math.hypot(x - koelPlek.x, z - koelPlek.z) < KOEL_BEREIK;
+  }
+  function pakBier() {
+    flesjes++; nuchterT = 60;
+    player.health = Math.min(100, player.health + BIER.leven);
+    if (hud && hud.zetLeven) hud.zetLeven(player.health);
+    if (flesjes >= BIER.dronkenVanaf) {
+      player.dronken = Math.min(1, (player.dronken || 0) + BIER.perFlesje);
+      if (hud && hud.melding) hud.melding(`Flesje ${flesjes}`, 'Je begint het te voelen.', 2.5);
+    } else if (hud && hud.melding) {
+      hud.melding('Uit de koelkast', `Een flesje bier · ${BIER.leven} leven erbij.`, 2.5);
+    }
+    return true;
   }
 
   // E bij de deur of bij de bank. Geeft true als de toets gebruikt is, zodat
@@ -956,6 +1115,8 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
   function toets() {
     if (!player.active && !window.__autoplay) return false;
     if (player.zit) { staOp(); return true; }
+    if (bijKoelkast(player.pos.x, player.pos.z)) return pakBier();
+    if (bijTafel(player.pos.x, player.pos.z)) { aanTafel(); return true; }
     if (bijBank(player.pos.x, player.pos.z)) { gaZitten(); return true; }
     const w = bijDeur(player.pos.x, player.pos.z);
     if (w === 'in' && !player.inCar) { naarBinnenGaan(); return true; }
@@ -975,6 +1136,9 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     // de lamp gaat aan zodra het buiten donker wordt
     if (sfeer) zetLicht(!!sfeer.nacht);
     if (katten.length) katUpdate(Math.min(dt, 0.1));
+    // het beeld op de tv schuift door, en de telling van de flesjes loopt af
+    if (MAT.tvBeeld.map) MAT.tvBeeld.map.offset.y = (MAT.tvBeeld.map.offset.y + dt * 0.035) % 1;
+    if (nuchterT > 0) { nuchterT -= dt; if (nuchterT <= 0) flesjes = 0; }
     /*
      Bezet (gesprek, menu, pauze, of het verhaal dat zelf om E vraagt): ons
      eigen balkje weg, niet alleen de vlag — maar alleen het onze. Zet het
@@ -986,6 +1150,8 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
     let tekst = null;
     if (bezig && !player.inCar) {
       if (player.zit && binnen(player.pos.x, player.pos.z)) tekst = 'E — opstaan';
+      else if (bijKoelkast(player.pos.x, player.pos.z)) tekst = 'E — een flesje uit de koelkast';
+      else if (bijTafel(player.pos.x, player.pos.z)) tekst = 'E — aan tafel zitten';
       else if (bijBank(player.pos.x, player.pos.z)) tekst = 'E — op de bank zitten';
       else {
         const w = bijDeur(player.pos.x, player.pos.z);
@@ -1015,6 +1181,14 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
 
   return {
     update, toets, binnen, meldAan, kaart, zetLicht, gaZitten, staOp,
+    aanTafel, bijTafel, bijKoelkast, pakBier,
+    // missie 9: is dit een van de drie woningen, wat kost hij, en staat de tv aan
+    get stek() { return !!HUIS.stek; },
+    get prijs() { return HUIS.prijs || 0; },
+    get soort() { return HUIS.soort || null; },
+    get beschrijving() { return HUIS.beschrijving || ''; },
+    get tvAan() { return !!MAT.tvBeeld.map; },
+    get flesjes() { return flesjes; },
     get katten() { return katten.map(k => ({ x: k.kat.groep.position.x, y: k.kat.groep.position.y, z: k.kat.groep.position.z, staat: k.staat, opBank: k.opBank })); },
     get naam() { return `${HUIS.straat} ${HUIS.nr}`; },
     get nacht() { return nachtNu; },
@@ -1030,6 +1204,9 @@ export function initInterieur({ scene, player, sfeer = null, huis = HUIS }) {
       };
     },
     get groep() { return groep; },
-    get plekken() { return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, keuken: KEUKEN, bank: zitPlek }; },
+    get plekken() {
+      return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, keuken: KEUKEN, bank: zitPlek,
+        tafel: wereld(TAFEL.x, TAFEL.z), stoel: tafelPlek, koelkast: koelPlek };
+    },
   };
 }

@@ -4842,12 +4842,60 @@ gesteld.
 
 `npm run belevingtest`: achttien controles.
 
-**Bewaard voor later: een safehouse kopen (tussenmissie).** Erik verdient
+**Een eigen stek (stap 72).** Missie 9, een dag na de notitie hieronder gebouwd
+(verzoek 23 sep 2026). De kortste missie tot nu toe, en de eerste waarin je iets
+kiest in plaats van iets doet.
+
+*Drie adressen die de bouwer aankan.* De eerste keuze ging op grondvlak: de drie
+grootste woningen van Tinga volgens de kaart. Dat bleek de verkeerde maat. De
+kamer die js/interieur.js bouwt is niet het grondvlak maar de eerste band van de
+plattegrond (`banden()`) in de volle diepte, en bij een brede woning met een
+inspringende hoek is dat een stuk minder. Spinnekop 127 heeft 132 m² grondvlak en
+werd binnen een kamer van 4,8 bij 16,3 — nauwelijks meer dan de Wieken 29. De
+tweede ronde toetste daarom wat de bouwer er écht van maakt: een scriptje met
+dezelfde `plattegrond()` en `banden()` over alle panden binnen zevenhonderd meter
+van het kruispunt, met per pand de kamermaat én de vraag of de keuken breed
+genoeg is voor een keukenblok. Wat overbleef: Zeskanter 16 (8,9 × 20,6),
+Molenkrite 130c (18,1 × 6,8, een bungalow zonder aanbouw) en Koningsspil 20
+(5,6 × 21,6). Alle drie fors groter dan de 5,4 × 14,1 van de Wieken 29.
+
+*De koelkast leerde waar hij moest staan.* Eerst stond hij tegen de wand
+tegenover het keukenblok. Dat paste in twee van de drie woningen en in de derde
+niet — een aanbouw van nog geen twee meter breed heeft geen overkant. Nu staat
+hij aan het begin van de keukenrij en begint de kastenrij erachter, zoals in elke
+Nederlandse keuken. Eén maat minder om over na te denken, en hij past overal.
+
+*Wat er nieuw in de woning staat.* Een eettafel met vier stoelen waar je aan kunt
+zitten (dezelfde `player.zit` als de bank, met een eigen plek om weer op te
+staan), de koelkast met bier — je eigen bier, dus zonder afrekenen maar met
+hetzelfde leven erbij als bij de Poiesz — en een tv die aanstaat. Het beeld is
+een eigen doek dat langzaam doorschuift (geen plaatje in de repo) en het geluid
+is Radio Spannenburg, dezelfde zender als in de groene BX: js/main.js zet de
+autoradio ook aan als je in een van de drie woningen staat, en de galmtak van
+stap 71 maakt er vanzelf een kamer van. De katten waren er al.
+
+*Kiezen zonder een tweede toestand.* De drie vlaggen op de kaart lopen via
+`hud.zetWinkels` — hetzelfde mechanisme als de winkeltjes, met een blauw huisje
+in plaats van een speldje. Het verhaal levert de lijst (`huisMarkeringen`) en
+js/main.js zet hem alleen opnieuw als hij verandert. Wat je gekocht hebt staat
+als één adres in de opslag; daarna is dat de enige vlag die overblijft. Heb je
+het geld niet, dan belt Mark en blijft de missie staan waar hij staat: dat is
+geen mislukking maar een open eind, en het is de eerste missie in het spel die
+dat kan.
+
+*Mark loopt niet mee.* Hij staat er eerder dan jij. Kom je binnen vijfenvijftig
+meter van een van de drie, dan staat hij op het tegelpad; bij veertien meter zegt
+hij wat hij ervan vindt. Een tweede routezoeker voor een man die alleen
+commentaar levert zou meer code zijn dan de hele missie.
+
+`npm run huistest` en `npm run huisshots`.
+
+**Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"
-worden. Het idee, op verzoek vastgelegd maar nog niet gebouwd (22 sep 2026): een
-korte missie tussen twee grote in waarin Erik een eigen huis kiest. Twee of drie
-panden in de wijk staan te koop, je loopt er binnen, en wat je kiest wordt je
+worden. Het idee, op verzoek vastgelegd maar toen nog niet gebouwd (22 sep 2026):
+een korte missie tussen twee grote in waarin Erik een eigen huis kiest. Twee of
+drie panden in de wijk staan te koop, je loopt er binnen, en wat je kiest wordt je
 vaste stek — opslagpunt, plek om te herstellen, en de plaats waar een auto blijft
 staan. De onderdelen liggen er al: js/interieur.js kan een woning van binnen
 bouwen uit het grondvlak, het verhaal kan panden aanwijzen met een M, en de

@@ -125,6 +125,8 @@
     "dealtest": "node tools/dealtest.mjs",
     "belevingtest": "node tools/belevingtest.mjs",
     "belevingshots": "node tools/belevingshots.mjs",
+    "huistest": "node tools/huistest.mjs",
+    "huisshots": "node tools/huisshots.mjs",
     "dealshots": "node tools/dealshots.mjs",
     "bomshots": "node tools/bomshots.mjs",
     "bxshots": "node tools/bxshots.mjs",

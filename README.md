@@ -1623,6 +1623,40 @@ telefoontje tot de beloning,
 inclusief de plek die in de kaart gezocht wordt en de trekker die pas los gaat
 als het misgaat.
 
+### 9 · Een eigen stek
+
+Een minuut na de deal bij de molen belt Mark. Het geld loopt door, en De
+Veteraan heeft drie panden in de wijk waar hij over gaat: sleutelgeld eenmalig,
+daarna een huur waar je om moet lachen. *"Jij woont nog steeds in dat hok. Kom
+even naar de Wieken, dan lopen we ze langs."*
+
+Mark staat voor **de Wieken 29** — waar missie 7 begon. Na zijn praatje staan er
+**drie blauwe huisjes op de kaart**:
+
+| | Adres | Kamer | Sleutelgeld |
+|---|---|---|---|
+| De dure | **Zeskanter 16** | vrijstaand, 8,9 × 20,6 m | € 5.000 |
+| De verstandige | **Molenkrite 130c** | brede bungalow, 18,1 × 6,8 m | € 2.500 |
+| De gewone | **Koningsspil 20** | diep en rustig, 5,6 × 21,6 m | € 1.000 |
+
+Alle drie een stuk groter dan de Wieken 29 (5,4 × 14,1 m). Je loopt ze langs in
+de volgorde die je zelf wilt; Mark staat er telkens eerder dan jij en zegt wat
+hij ervan vindt. Binnen zijn ze ingericht als een woning waar iemand woont: een
+**woonkamer met bank en tv**, een **eettafel met vier stoelen** waar je aan kunt
+gaan zitten, een **keuken met een koelkast** waar je een flesje bier uit pakt
+(je eigen bier, dus gratis, en hetzelfde leven erbij als bij de Poiesz), en
+**twee katten** die rondlopen, gaan zitten en op de bank springen. De **tv staat
+aan op Radio Spannenburg** — je hoort hem door het hele huis, gedempt zoals het
+hoort binnen.
+
+Kopen doe je **aan tafel**, met E. Heb je het geld niet, dan belt Mark: *"Hij
+loopt niet weg. Kom terug als je het hebt."* De missie blijft dan gewoon
+openstaan en de drie vlaggen blijven op de kaart. Koop je er een, dan verdwijnen
+de andere twee en houd je één vlag over: **je stek**.
+
+`npm run huistest` loopt de hele missie na, van het telefoontje tot de sleutels,
+en `npm run huisshots` maakt de foto's van de drie woonkamers.
+
 ## De wijk reageert: paniek, herstelpunten en voorrang
 
 Vijf dingen die niet in één missie zitten maar eronder, zodat de wijk zich

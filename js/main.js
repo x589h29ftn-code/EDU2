@@ -437,6 +437,8 @@ const verhaal = initVerhaal({
   boten: () => boten,
   wieken: () => woningen[1] || null,
   poiesz: () => (supermarkt && supermarkt.ingangen ? supermarkt : null),
+  // de drie woningen van missie 9 (js/interieur.js)
+  stekken: () => woningen.filter(w => w.stek),
   schokken: (kracht) => schok(kracht),
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
@@ -459,7 +461,7 @@ const LEEG = {
 */
 const dagKlok = { get nacht() { return sfeer ? sfeer.nacht : false; } };
 await adem('woningen van binnen', 0.988);
-const woningen = WONINGEN.map(h => initInterieur({ scene, player, sfeer: dagKlok, huis: h })).filter(Boolean);
+const woningen = WONINGEN.map(h => initInterieur({ scene, player, sfeer: dagKlok, hud, huis: h })).filter(Boolean);
 const interieur = woningen[0] || LEEG;
 // En achter de schuurdeur van Tinga State: de deel met de toonbank waar je
 // munitie koopt (js/boerderij.js).
@@ -472,8 +474,23 @@ const supermarkt = initSupermarkt({ scene, player, hud, verhaal }) || LEEG;
 // Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
 const binnenruimtes = [...woningen, boerderij, supermarkt];
 const ergensBinnen = (x, z) => binnenruimtes.some(r => r.binnen(x, z));
-// winkeltjes op de minikaart en op de grote kaart
-hud.zetWinkels(binnenruimtes.flatMap(r => r.winkels || []));
+/*
+ Winkeltjes op de minikaart en op de grote kaart, en daar komen tijdens missie 9
+ de drie te koop staande woningen bij (js/verhaal.js levert ze; js/hud.js tekent
+ ze als huisje in plaats van als winkelspeldje). De lijst wordt alleen opnieuw
+ gezet als hij verandert — elk beeld een nieuwe array doorgeven zou de kaart
+ nergens sneller van maken.
+*/
+const vasteWinkels = binnenruimtes.flatMap(r => r.winkels || []);
+let winkelsNu = '';
+function werkKaartvlaggenBij() {
+  const huizen = verhaal.huisMarkeringen ? verhaal.huisMarkeringen() : [];
+  const sleutel = huizen.map(h => `${h.naam}@${h.x.toFixed(0)},${h.z.toFixed(0)}`).join('|');
+  if (sleutel === winkelsNu) return;
+  winkelsNu = sleutel;
+  hud.zetWinkels([...vasteWinkels, ...huizen]);
+}
+werkKaartvlaggenBij();
 // Binnen wijst de HUD nog steeds de straat buiten aan (zie hud.kaartVanaf).
 function straatOf(x, z) {
   let k = null;
@@ -1088,6 +1105,7 @@ const MISSIES = [
   { nr: 6, naam: 'bx', titel: 'de groene BX' },
   { nr: 7, naam: 'bom', titel: 'de bom bij de Poiesz' },
   { nr: 8, naam: 'sniper', titel: 'de deal bij de molen' },
+  { nr: 9, naam: 'huis', titel: 'een eigen stek' },
 ];
 function startMissieLos(naam) {
   const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
@@ -1103,7 +1121,7 @@ window.addEventListener('keydown', e => {
   if (!player.active && !window.__autoplay) return;
   // op de toetscode en niet op de letter: shift+1 geeft op een Nederlands
   // toetsenbord een '!' en op een ander een '1'
-  const cijfer = /^Digit([1-8])$/.exec(e.code) || /^Numpad([1-8])$/.exec(e.code);
+  const cijfer = /^Digit([1-9])$/.exec(e.code) || /^Numpad([1-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();
   startMissieLos(cijfer[1]);
@@ -1520,6 +1538,7 @@ const sfeer = initSfeer({
 // Hoofdlus
 let last = performance.now(); let time = 0; let lodKlok = 0;
 let laatsteRadio = null;     // welk nummer er als laatste in het balkje stond
+let stekRadio = false;       // staat de tv in je eigen woning aan (missie 9)
 // Afstand tot de dichtstbijzijnde radio in de wijk; audio.js bepaalt daarmee
 // het volume. Null als er geen radio staat.
 function afstandTotRadio(x, z) {
@@ -1773,7 +1792,17 @@ function loop() {
       water: waterNabij(dt, cx, cz), molen: molenNabij(cx, cz),
     });
     geluid.radio(afstandTotRadio(cx, cz));
-    geluid.autoradio(!!player.inCar);        // muziek uit audio/radio/, anders het riffje
+    /*
+     Muziek uit audio/radio/, anders het riffje. Behalve in de auto speelt hij nu
+     ook in de drie woningen van missie 9: daar staat de tv aan op Radio
+     Spannenburg (verzoek 22 sep 2026). Binnen zet de galmtak van vorige ronde er
+     vanzelf een kamer omheen.
+    */
+    const inStek = woningen.some(w => w.stek && w.binnen(player.pos.x, player.pos.z));
+    if (inStek && !stekRadio) { geluid.zetZender('Spannenburg'); stekRadio = true; }
+    if (!inStek) stekRadio = false;
+    geluid.autoradio(!!player.inCar || inStek);
+    werkKaartvlaggenBij();
     /*
      Titel van het nummer in het balkje, net als een autoradio die het
      scherm bijwerkt. Alleen als het nummer verandert, en alleen in de auto.
@@ -1852,6 +1881,8 @@ loop();
 // Testhaak voor automatische screenshots
 window.__game = {
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
+  // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
+  kaartvlaggen: werkKaartvlaggenBij,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
   geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij, boten, politieboot, vaart,
   raakLantaarn, werkLantaarnsBij, lantaarnsOm, buit,

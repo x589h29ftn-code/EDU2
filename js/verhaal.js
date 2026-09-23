@@ -254,6 +254,46 @@ const SNIP_KLAAR = [
   zegtJohan('De Veteraan weet wie hem heeft gered. Dat komt goed van pas.'),
 ];
 
+/*
+ ---------- missie 9: een eigen stek ----------
+
+ Een korte tussenmissie. Het geld loopt aardig op en Erik woont nog steeds in
+ een rijtjeshuis van tweeënzestig vierkante meter; De Veteraan heeft drie
+ panden waar hij over gaat en biedt ze aan tegen sleutelgeld en een lage huur.
+ Je bekijkt ze met Mark en kiest er een. Heb je het geld niet, dan blijft de
+ missie openstaan en kun je later terugkomen (verzoek 22 sep 2026).
+
+ De woningen zelf staan in js/interieur.js — daar komen ook de prijzen vandaan.
+*/
+const HUIS_WACHT = 55;              // zoveel seconden na de deal belt Mark
+const HUIS_THUIS = { straat: 'de Wieken', nr: '29' };   // daar staat hij te wachten
+const HUIS_DICHTBIJ = 55;           // zo dicht bij een woning staat Mark er ook
+const HUIS_TELEFOON = [
+  zegtMark('Erik! Heb je het gezien? Het loopt lekker door, dat geld van ons.'),
+  zegtMark('De Veteraan heeft drie panden in de wijk waar hij over gaat. Sleutelgeld eenmalig, daarna een huur waar je om moet lachen.'),
+  zegtMark('Jij woont nog steeds in dat hok. Kom even naar de Wieken, dan lopen we ze langs.'),
+];
+const HUIS_BRIEFING = [
+  zegtMark('Drie stuks. Alle drie een stuk groter dan dit.'),
+  zegtMark('De Zeskanter is de dure: vrijstaand, negen bij twintig. Vijf mille sleutelgeld.'),
+  zegtMark('Aan de Molenkrite staat een brede bungalow, achttien meter breed. Vijfentwintighonderd.'),
+  zegtMark('En de Koningsspil: diep en rustig. Duizend, en nog steeds twee keer dit.'),
+  zegtMark('Ze staan alle drie op je kaart. Loop ze rustig langs — binnen aan tafel zeg je het maar.'),
+];
+const HUIS_BIJ = {
+  luxe: [zegtMark('Kijk, dít is wat ik bedoel. Hier geef je een feestje.')],
+  middel: [zegtMark('Deze is van ons drieën de verstandigste. Ruim, en je houdt geld over.')],
+  gewoon: [zegtMark('Niks mis mee. Voor dat geld woon je nergens zo.')],
+};
+const HUIS_ARM = [
+  zegtMark('Zoveel heb je nog niet, broeder.'),
+  zegtMark('Hij loopt niet weg. Kom terug als je het hebt, dan tekenen we.'),
+];
+const HUIS_KLAAR = [
+  zegtMark('Gefeliciteerd. De sleutels liggen binnen.'),
+  zegtMark('Vanaf nu is dit jouw stek. Zet je auto maar voor de deur.'),
+];
+
 // ---------- missie 6: de groene BX ----------
 const BX_AANKONDIGING = ['Nieuwe missies kunnen worden gestart door naar het '
   + '<b>M-symbool</b> op de minimap te gaan.'];
@@ -426,6 +466,8 @@ export function initVerhaal(ctx) {
     wieken = null, poiesz = null, schokken = null, laatVallen = null, paniek = null,
     // missie 8 vaart: de sloepen komen als functie binnen, net als de ruimtes
     boten = null,
+    // missie 9: de drie woningen waar je uit kunt kiezen (js/interieur.js)
+    stekken = null,
   } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
@@ -720,6 +762,7 @@ export function initVerhaal(ctx) {
     else if (naam === 'bx') beginBX();
     else if (naam === 'bom') beginBom();
     else if (naam === 'sniper') beginSniper();
+    else if (naam === 'huis') beginHuis();
   }
 
   /*
@@ -1050,6 +1093,7 @@ export function initVerhaal(ctx) {
     */
     if (missie === 'bom') { hervatBom(punt && punt.missie === 'bom' ? punt.fase : 'wacht'); return; }
     if (missie === 'sniper') { hervatSniper(punt && punt.missie === 'sniper' ? punt.fase : 'telefoon'); return; }
+    if (missie === 'huis') { hervatHuis(punt && punt.missie === 'huis' ? punt.fase : 'telefoon'); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -1115,6 +1159,15 @@ export function initVerhaal(ctx) {
      ruit is aangewezen — een winkel van veertig bij dertig meter is te groot
      voor "ergens binnen".
     */
+    /*
+     Missie 9: binnen aan de tafel van een van de drie woningen koop je hem. Dat
+     gaat vóór het gaan zitten aan diezelfde tafel (js/interieur.js laat zijn
+     eigen hint weg zolang `aanspreekbaar` waar is).
+    */
+    if (missie === 'huis' && fase === 'kiezen' && !player.zit) {
+      const w = huisOnder(spelerPunt());
+      if (w && w.bijTafel(player.pos.x, player.pos.z)) return koopHuis(w);
+    }
     if (missie === 'bom' && fase === 'planten') {
       const plek = bomPlek();
       const sp = spelerPunt();
@@ -1661,6 +1714,8 @@ export function initVerhaal(ctx) {
         ruimSniperOp();
         hud.melding('MISSIE VOLTOOID – DE DEAL BIJ DE MOLEN',
           `Beloning: + ${euro(SNIP_BELONING)} toegevoegd aan wallet`, 8);
+        // en een minuut later belt Mark over de drie woningen (missie 9)
+        if (!huisGekozen) { naMissieT = HUIS_WACHT; naMissieNaam = 'huis'; }
       });
       return;
     }
@@ -2393,6 +2448,208 @@ export function initVerhaal(ctx) {
     }
   }
 
+  /*
+   ---------- missie 9: een eigen stek ----------
+
+   De drie woningen komen uit js/interieur.js: dezelfde module die achter de
+   voordeur van Molenkrite 15 en de Wieken 29 zit, nu ook voor Zeskanter 14,
+   Spinnekop 127 en Grootwiel 12. Het verhaal hoeft er alleen de voordeur, de
+   prijs en de tafel van te weten.
+
+   Mark loopt niet echt met je mee de wijk door — hij staat er eerder dan jij.
+   Kom je binnen vijfenvijftig meter van een van de drie, dan staat hij op het
+   tegelpad, en zodra je er vlakbij bent zegt hij wat hij ervan vindt. Dat is
+   eerlijker dan een tweede route-zoeker voor een man die toch alleen maar
+   commentaar levert, en je ziet hem nooit tevoorschijn komen.
+  */
+  let huisT = 0;                 // telefoon
+  let huisGekozen = null;        // het adres dat je gekocht hebt (blijft na de missie)
+  let huisBij = null;            // bij welke woning Mark nu staat
+  const huisGezegd = new Set();  // waar hij zijn zegje al gedaan heeft
+
+  function stekLijst() {
+    const l = stekken ? stekken() : null;
+    return Array.isArray(l) ? l.filter(w => w && w.stek) : [];
+  }
+  function stekDeur(w) { return w.plekken.deurBuiten; }
+  function stekMet(naam) { return stekLijst().find(w => w.naam === naam) || null; }
+
+  /*
+   De vlaggetjes op de kaart (js/hud.js tekent ze als huisje). Tijdens het
+   kiezen staan alle drie de woningen erop met hun prijs; daarna alleen de jouwe,
+   zodat je je eigen stek terugvindt.
+  */
+  function huisMarkeringen() {
+    if (huisGekozen) {
+      const w = stekMet(huisGekozen);
+      if (!w) return [];
+      const d = stekDeur(w);
+      return [{ x: d.x, z: d.z, naam: 'je stek', wat: 'huis' }];
+    }
+    if (missie !== 'huis' || (fase !== 'kiezen' && fase !== 'briefing')) return [];
+    return stekLijst().map(w => {
+      const d = stekDeur(w);
+      return { x: d.x, z: d.z, naam: `${w.naam} · ${euro(w.prijs)}`, wat: 'huis' };
+    });
+  }
+
+  function beginHuis() {
+    fase = 'telefoon';
+    huisT = 1.2;
+    huisBij = null;
+    huisGezegd.clear();
+    zetOpdracht('neem de telefoon op');
+    hud.zetNavigatie(null); navDoel = null;
+    markZichtbaar(false);
+  }
+
+  // Mark voor de deur van de Wieken 29, waar missie 7 ook begon
+  function markBijDeWieken() {
+    const pand = pandVan(HUIS_THUIS);
+    const v = pand ? voorPunt(pand, 5.5) : null;
+    if (!v) return null;
+    const [mx, mz] = resolveCollisions(v.x, v.z, 0.4);
+    mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, { x: pand.rect.cx, z: pand.rect.cz }));
+    markZichtbaar(true);
+    return { x: mx, z: mz };
+  }
+
+  // Mark op het tegelpad van de woning waar je naartoe loopt
+  function markBijHuis(w) {
+    const d = stekDeur(w);
+    const pand = pandVan({ straat: w.naam.split(' ').slice(0, -1).join(' '), nr: w.naam.split(' ').pop() });
+    const v = pand ? voorPunt(pand, 4.5) : { x: d.x, z: d.z };
+    const [mx, mz] = resolveCollisions(v.x + 1.2, v.z + 1.2, 0.4);
+    mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, d));
+    markZichtbaar(true);
+    huisBij = w;
+  }
+
+  // In welke van de drie sta je?
+  function huisOnder(sp) {
+    return stekLijst().find(w => w.binnen(sp.x, sp.z)) || null;
+  }
+
+  /*
+   Kopen, aan de tafel in de woonkamer. Heb je het geld niet, dan belt Mark en
+   blijft de missie staan waar hij staat: de drie vlaggen blijven op de kaart en
+   je komt terug als je het hebt.
+  */
+  function koopHuis(w) {
+    if (!w) return false;
+    if (!betaal(w.prijs)) {
+      praatEl.hidden = true;
+      geluid.telefoon();
+      zeg(HUIS_ARM, null, { wie: 'Mark', telefoon: true, kop: KOPPEN.mark });
+      hud.melding('Te weinig geld', `${w.naam} kost ${euro(w.prijs)}.`, 4);
+      return true;
+    }
+    huisGekozen = w.naam;
+    praatEl.hidden = true;
+    hud.zetNavigatie(null); navDoel = null;
+    markZichtbaar(false);
+    zeg(HUIS_KLAAR, () => {
+      missie = 'klaar'; fase = 'klaar';
+      spanningUit = 6;
+      hud.melding('MISSIE VOLTOOID – EEN EIGEN STEK',
+        `${w.naam} is van jou · ${euro(w.prijs)} sleutelgeld betaald`, 8);
+    }, { wie: 'Mark', telefoon: true, kop: KOPPEN.mark });
+    return true;
+  }
+
+  function werkHuisBij(dt, sp) {
+    if (fase === 'klaar') return;
+    if (fase !== 'telefoon') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+    }
+
+    // -- de telefoon: Mark belt een minuut na de deal bij de molen
+    if (fase === 'telefoon') {
+      if (huisT > 0) {
+        huisT -= dt;
+        if (huisT <= 0) {
+          geluid.telefoon();
+          zeg(HUIS_TELEFOON, () => {
+            fase = 'naar_mark'; zetPunt(fase);
+            zetOpdracht('ga naar Mark bij de Wieken 29');
+            const p = markBijDeWieken();
+            if (p) zetNavDoel(p.x, p.z, 'Mark bij de Wieken', 'M');
+            hud.melding('NIEUWE MISSIE', 'Mark wacht bij de Wieken 29.', 5);
+            spanning = true; spanningUit = 0;
+          }, { wie: 'Mark', telefoon: true, kop: KOPPEN.mark });
+        }
+      }
+      return;
+    }
+
+    // -- bij Mark voor de deur
+    if (fase === 'naar_mark') {
+      if (!mark.groep.visible) { markBijDeWieken(); return; }
+      const d = afst(sp, mark.groep.position);
+      if (d > PRAAT_AFSTAND || !balk.hidden) return;
+      fase = 'briefing';
+      hud.zetNavigatie(null); navDoel = null;
+      zeg(HUIS_BRIEFING, () => {
+        fase = 'kiezen'; zetPunt(fase);
+        zetOpdracht('bekijk de drie woningen en kies er een');
+      });
+      return;
+    }
+
+    // -- de drie woningen langs, en binnen aan tafel kiezen
+    if (fase === 'kiezen') {
+      const lijst = stekLijst();
+      if (!lijst.length) return;
+      // de dichtstbijzijnde woning bepaalt waar de pijl heen wijst en waar Mark staat
+      let dichtst = null, dichtstD = Infinity;
+      for (const w of lijst) {
+        const d = stekDeur(w);
+        const afstand = w.binnen(sp.x, sp.z) ? 0 : Math.hypot(sp.x - d.x, sp.z - d.z);
+        if (afstand < dichtstD) { dichtstD = afstand; dichtst = w; }
+      }
+      if (dichtst && dichtstD < HUIS_DICHTBIJ) {
+        if (huisBij !== dichtst) markBijHuis(dichtst);
+        if (dichtstD < 14 && balk.hidden && !huisGezegd.has(dichtst.naam)) {
+          huisGezegd.add(dichtst.naam);
+          zeg(HUIS_BIJ[dichtst.soort] || HUIS_BIJ.gewoon, null, { auto: 3.2 });
+        }
+      } else if (huisBij) { markZichtbaar(false); huisBij = null; }
+      // de navigatiepijl naar de dichtstbijzijnde woning waar je nog niet was
+      const doel = lijst.find(w => !huisGezegd.has(w.naam)) || dichtst;
+      if (doel && (!navDoel || navDoel.naam !== doel.naam)) {
+        const d = stekDeur(doel);
+        zetNavDoel(d.x, d.z, doel.naam, 'H');
+      }
+      // binnen, aan tafel: de koophint van het verhaal
+      const hier = huisOnder(sp);
+      if (hier && !player.inCar && balk.hidden
+        && hier.bijTafel(player.pos.x, player.pos.z) && !player.zit) {
+        praatEl.textContent = `E — ${hier.naam} kopen (${euro(hier.prijs)})`;
+        praatEl.hidden = false;
+      }
+      return;
+    }
+  }
+
+  // Ga je neer tijdens het kiezen, dan sta je weer bij Mark voor de deur.
+  function hervatHuis(f) {
+    beginHuis();
+    if (f === 'telefoon') return;
+    huisT = 0;
+    if (f === 'naar_mark') {
+      fase = 'naar_mark';
+      zetOpdracht('ga naar Mark bij de Wieken 29');
+      const p = markBijDeWieken();
+      if (p) zetNavDoel(p.x, p.z, 'Mark bij de Wieken', 'M');
+      spanning = true; spanningUit = 0;
+      return;
+    }
+    fase = 'kiezen';
+    zetOpdracht('bekijk de drie woningen en kies er een');
+    spanning = true; spanningUit = 0;
+  }
+
   // ---------- per beeld ----------
   function update(dt) {
     // Het spannende deuntje loopt precies zolang de achtervolging duurt: het
@@ -2595,6 +2852,7 @@ export function initVerhaal(ctx) {
 
     // ---- missie 8: de deal bij de molen ----
     if (missie === 'sniper') werkSniperBij(dt, sp);
+    if (missie === 'huis') werkHuisBij(dt, sp);
     if (snipRing) snipRing.update(dt);
     if (deal) deal.update(dt, bootPunt());
     for (const b of snipBoten) {
@@ -2649,6 +2907,8 @@ export function initVerhaal(ctx) {
       johan: johan ? { x: johan.groep.position.x, z: johan.groep.position.z, yaw: johan.yaw } : null,
       dief: dief ? dief.bewaar() : null,
       bx: bxAuto ? { x: bxAuto.x, z: bxAuto.z, yaw: bxAuto.yaw, kleur: bxAuto.kleur, gestolen: bxGestolen } : null,
+      // missie 9: het huis dat je gekocht hebt blijft van jou
+      huis: huisGekozen,
     };
   }
 
@@ -2658,6 +2918,7 @@ export function initVerhaal(ctx) {
     doodT = 0;
     missie = s.missie || 'molenkrite';
     fase = s.fase || 'wacht';
+    huisGekozen = s.huis || null;
     if (fase === 'gesprek' || fase === 'briefing') { fase = 'wacht'; missie = 'molenkrite'; }
     /*
      Missie 7 heeft een winkel vol losse toestand (de bende, de bom, de knal).
@@ -2862,11 +3123,21 @@ export function initVerhaal(ctx) {
         const sp = spelerPunt();
         return Math.hypot(sp.x - plek.x, sp.z - plek.z) < BOM_PLANT_BEREIK;
       })();
+      // en binnen aan de tafel van een van de drie woningen uit missie 9
+      const bijTafel = missie === 'huis' && fase === 'kiezen' && !player.zit && (() => {
+        const w = huisOnder(spelerPunt());
+        return !!(w && w.bijTafel(player.pos.x, player.pos.z));
+      })();
       return !balk.hidden
         || bijBom
+        || bijTafel
         || (missie === 'molenkrite' && fase === 'wacht' && bijMark)
         || (missie === 'bx' && fase === 'wacht' && bijMark);
     },
+    // missie 9: de vlaggen op de kaart en het huis dat van jou is
+    huisMarkeringen,
+    get stek() { return huisGekozen; },
+    get stekHuis() { return huisGekozen ? stekMet(huisGekozen) : null; },
     // testhaak (tools/introtest.mjs): het moment waarop Erik zijn wapen krijgt
     __geefWapen: geefWapen,
     /*
