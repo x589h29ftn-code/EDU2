@@ -156,10 +156,10 @@ function grasdoek() {
   const c = doek(256, 256), g = c.getContext('2d');
   const r = rnd(23);
   g.fillStyle = '#5a8a3c'; g.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 160; i++) {                 // lichte en donkere vlekken
-    const x = r() * 256, y = r() * 256, w = 12 + r() * 40;
-    g.fillStyle = r() > 0.5 ? 'rgba(122,164,84,0.30)' : 'rgba(58,96,40,0.30)';
-    g.beginPath(); g.ellipse(x, y, w, w * 0.6, r() * 3, 0, 6.3); g.fill();
+  for (let i = 0; i < 260; i++) {                 // lichte en donkere vlekken
+    const x = r() * 256, y = r() * 256, w = 6 + r() * 14;
+    g.fillStyle = r() > 0.5 ? 'rgba(122,164,84,0.16)' : 'rgba(58,96,40,0.16)';
+    g.beginPath(); g.ellipse(x, y, w, w * 0.7, r() * 3, 0, 6.3); g.fill();
   }
   for (let i = 0; i < 900; i++) {                 // sprietjes
     const x = r() * 256, y = r() * 256, h = 2 + r() * 4;
@@ -666,6 +666,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     : { x0: MUUR, x1: BREED / 2, z0: DIEP - 4.6, z1: DIEP - MUUR };
   const TUINDEUR = { van: (aanbouw ? aanbouw.x1 : BREED / 2) + 0.5, tot: BREED - MUUR - 0.3 };
   let tuinDeur = null;        // waar je de tuin in stapt (wordt in de lus gezet)
+  let tuinTafel = null;       // de tuintafel op het terras (wordt hieronder gezet)
   /*
    Waar komt de tuindeur? Bij een huis met een aanbouw in de tuinkant van het
    voorhuis — dat is de klassieke indeling — maar alleen als daar ook echt een
@@ -1634,6 +1635,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     */
     const tx = Math.max(t.x0 + 1.4, Math.min(t.x1 - 1.4, tuinDeur.x + 1.5));
     const tz = DIEP + 1.5;
+    tuinTafel = { x: tx, z: tz };
     doos(tx - 0.55, tx + 0.55, tz - 0.55, tz + 0.55, 0.70, 0.76, MAT.hout);
     doos(tx - 0.07, tx + 0.07, tz - 0.07, tz + 0.07, 0, 0.70, MAT.tvRand, false);
     doos(tx - 0.28, tx + 0.28, tz - 0.28, tz + 0.28, 0, 0.05, MAT.tvRand, false);
@@ -2030,6 +2032,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
         tafel: wereld(TAFEL.x, TAFEL.z), stoel: tafelPlek, koelkast: koelPlek,
         tuindeur: tuinDeur ? wereld(tuinDeur.x, tuinDeur.z) : null,
         terras: TUIN ? wereld((TUIN.x0 + TUIN.x1) / 2, DIEP + 1.5) : null,
+        tuintafel: tuinTafel ? wereld(tuinTafel.x, tuinTafel.z) : null,
         hek: TUIN ? wereld((TUIN.x0 + TUIN.x1) / 2, TUIN.z1 - 0.04) : null };
     },
   };

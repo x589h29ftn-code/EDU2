@@ -158,7 +158,8 @@ await page.evaluate(() => {
   const m = await page.evaluate(() => {
     const g = window.__game;
     const w = window.__stek().find(x => x.plekken.tuindeur) || window.__stek()[0];
-    const d = w.plekken.tuindeur, h = w.plekken.hek, tr = w.plekken.terras;
+    const d = w.plekken.tuindeur, h = w.plekken.hek;
+    const tr = w.plekken.tuintafel || w.plekken.terras;   // op de tuintafel richten
     if (!d || !h || !tr) return null;
     // anderhalve meter vóór het achterhek, op de lijn hek → terras
     const dx = tr.x - h.x, dz = tr.z - h.z;
