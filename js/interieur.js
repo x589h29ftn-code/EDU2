@@ -251,6 +251,46 @@ function fotoDoek() {
   return c;
 }
 
+/*
+ Het behang. De wanden waren één egaal vlak van gebroken wit en dat leest als
+ een wachtkamer (melding 23 sep 2026). Dit doek is bijna wit met een fijne
+ korrel erin; de kleur komt van het materiaal, zodat dezelfde textuur met een
+ andere tint een andere kamer geeft.
+*/
+function behangDoek() {
+  const c = doek(96, 96), g = c.getContext('2d');
+  const r = rnd(97);
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 96, 96);
+  for (let k = 0; k < 2600; k++) {
+    const v = 232 + r() * 22;
+    g.fillStyle = `rgba(${v | 0},${v | 0},${(v - 4) | 0},${0.25 + r() * 0.3})`;
+    g.fillRect(r() * 96, r() * 96, 1, 1);
+  }
+  // een heel flauwe verticale baan, zoals de rol op de muur zit
+  for (let x = 0; x < 96; x += 24) {
+    g.fillStyle = 'rgba(214,208,196,0.20)';
+    g.fillRect(x, 0, 1, 96);
+  }
+  return c;
+}
+
+// De ruggen in de boekenkast: banden van verschillende breedte en kleur.
+function boekenDoek() {
+  const c = doek(128, 64), g = c.getContext('2d');
+  const r = rnd(113);
+  g.fillStyle = '#2b2118'; g.fillRect(0, 0, 128, 64);
+  let x = 1;
+  while (x < 127) {
+    const b = 3 + r() * 7, h = 40 + r() * 20;
+    g.fillStyle = `hsl(${r() * 360}, ${25 + r() * 35}%, ${25 + r() * 30}%)`;
+    g.fillRect(x, 64 - h, b, h);
+    g.fillStyle = 'rgba(255,255,255,0.18)';
+    g.fillRect(x, 64 - h + 4 + r() * 8, b, 1.5);
+    x += b + 0.6;
+  }
+  return c;
+}
+
 // Het vloerkleed voor de bank: wollig, met een rand eromheen.
 function kleedDoek() {
   const c = doek(64, 64), g = c.getContext('2d');
@@ -423,8 +463,25 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     map: texture(c, rx, ry), vertexColors: true, fog: false,
   });
   const plat = (kleur) => new THREE.MeshBasicMaterial({ color: kleur, vertexColors: true, fog: false });
+  /*
+   De kleur op de muur. Vijf schema's, één per woning: een warme wandkleur en
+   een accentkleur voor de wand achter de bank. Het gebroken wit van hiervoor
+   stond overal en gaf elke kamer hetzelfde ziekenhuisgevoel.
+  */
+  const KLEUREN = [
+    { muur: 0xe9e2d3, accent: 0x6f8068 },   // zand met salie
+    { muur: 0xe7e3da, accent: 0x8c5a48 },   // gebroken wit met terracotta
+    { muur: 0xeae2d2, accent: 0x4f6274 },   // zand met staalblauw
+    { muur: 0xe6e5de, accent: 0x7a6a86 },   // koel wit met oud paars
+    { muur: 0xece4d4, accent: 0x5d7a74 },   // zand met diepgroen
+  ];
+  const KLEUR = KLEUREN[(HUIS.plek || 0) % KLEUREN.length];
   const MAT = {
-    muur: plat(0xf3f0ea),
+    muur: new THREE.MeshBasicMaterial({
+      map: texture(behangDoek(), 2.5, 2.5), color: KLEUR.muur, vertexColors: true, fog: false,
+    }),
+    accent: plat(KLEUR.accent),
+    boeken: vlak(boekenDoek(), 1, 1),
     plafond: plat(0xfdfcfa),
     plint: plat(0xf8f7f3),
     kozijn: plat(0xfafaf7),
@@ -664,92 +721,190 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   }
 
   /*
-   ---------- de bank ----------
-   Tegen de rechterwand, met de tv aan de overkant. Hij was een drie-zits van
-   2,10 en is 2,55 geworden — in een woonkamer van negen meter breed viel een
-   bankje van twee meter weg (verzoek 23 sep 2026). In een kleine kamer past dat
-   niet, dus de lengte volgt de ruimte tussen de gang en de achterwand.
-   Zitting op 44 cm, leuningen op 62 en de rug op 85.
+   ---------- de zithoek ----------
+
+   Een hoekbank, de tv op kijkafstand ervoor, een salontafel op een kleed
+   ertussen, een schemerlamp aan het uiteinde en een poef erbij. Samen ruim twee
+   keer het zitvlak van de drie-zits die hier stond (verzoek 23 sep 2026).
+
+   Waar de groep staat hangt van de vorm van de kamer af. Normaal met de rug
+   tegen de rechterwand, maar in een brede ondiepe kamer — de bungalow aan de
+   Molenkrite is achttien bij zeven — is die wand te kort voor een bank én een
+   kijkafstand, en gaat de hele groep tegen de achterwand. Om dat niet twee keer
+   te hoeven uitschrijven staat alles in maten langs de bank (`u`) en vanaf de
+   wand (`v`); `dB` rekent dat om naar de kamer.
   */
   // wat er aan inrichting daadwerkelijk gepast heeft; de proef leest dit uit
   const inrichting = { schilderij: false, kleed: false, salontafel: false,
-    dressoir: false, fotos: false, lamp: false, plant: false, fauteuil: false, keuken: 0 };
+    dressoir: false, fotos: false, lamp: false, plant: false, fauteuil: false,
+    hoek: false, boekenkast: false, gordijnen: false, klok: false,
+    kattenmand: false, staandelamp: false, accentwand: false, keuken: 0 };
+
+  const BANK_DIEP = 0.98;
+  const Z_RUIMTE = (voorhuis.z1 - MUUR - 0.15) - (HAL.z1 + 0.15);   // langs de rechterwand
+  const X_RUIMTE = (BREED - MUUR - 0.3) - (HAL.x1 + 0.3);           // langs de achterwand
+  const ACHTERWAND = Z_RUIMTE < 2.6 && X_RUIMTE > Z_RUIMTE + 1.5;
+  const BANK_RUIMTE = ACHTERWAND ? X_RUIMTE : Z_RUIMTE;
+  const BANK_LANG = Math.max(1.4, Math.min(3.20, BANK_RUIMTE - 0.2));
   /*
-   De bank stond op een vaste 2,10 in het midden tussen de gang en de achterwand.
-   In een diepe kamer is dat te klein en in een ondiepe (Molenkrite 130c is maar
-   6,8 m diep) stak hij de gang in. Nu wordt eerst het vrije stuk wand bepaald en
-   past de bank zich daaraan aan: hoogstens 2,55, en netjes in het midden ervan.
+   Waar de bank langs die wand begint. Tegen de rechterwand in het midden; tegen
+   de achterwand juist aan de kant van de gang, want in zo'n brede kamer staat de
+   eettafel in het midden en wil je er niet tegenaan kijken.
   */
-  const BANK_VAN = HAL.z1 + 0.15, BANK_TOT = voorhuis.z1 - MUUR - 0.15;
-  const BANK_LANG = Math.max(1.4, Math.min(2.55, BANK_TOT - BANK_VAN - 0.2));
-  const bankZ = (BANK_VAN + BANK_TOT) / 2;
+  const BANK_U0 = ACHTERWAND
+    ? HAL.x1 + 0.3 + 0.2
+    : (HAL.z1 + 0.15) + (Z_RUIMTE - BANK_LANG) / 2;
+  const BANK_U1 = BANK_U0 + BANK_LANG;
+  const bankZ = ACHTERWAND ? voorhuis.z1 - MUUR - BANK_DIEP / 2 : (BANK_U0 + BANK_U1) / 2;
+  const bankX = ACHTERWAND ? (BANK_U0 + BANK_U1) / 2 : BREED - MUUR - BANK_DIEP / 2;
+
+  // u loopt langs de wand, v vanaf de wand de kamer in
+  const pB = (u, v) => (ACHTERWAND
+    ? { x: u, z: voorhuis.z1 - MUUR - v }
+    : { x: BREED - MUUR - v, z: u });
+  const dB = (u0, u1, v0, v1, y0, y1, mat, botst = true) => {
+    const a = pB(u0, v0), b = pB(u1, v1);
+    return doos(Math.min(a.x, b.x), Math.max(a.x, b.x), Math.min(a.z, b.z), Math.max(a.z, b.z),
+      y0, y1, mat, botst);
+  };
+
+  // de chaise longue: alleen als er naast de bank genoeg kamer over is
+  /*
+   Hoeveel kamer er vóór de bank is. Tegen de rechterwand is dat de hele breedte
+   van de kamer: de gang houdt op bij `HAL.z1` en de bank staat daar altijd
+   achter. Tegen de achterwand is het de diepte tot vlak voor de voorgevel, waar
+   de gordijnen hangen.
+  */
+  const DWARS = ACHTERWAND ? voorhuis.z1 - 2 * MUUR - 0.3 : BREED - 2 * MUUR;
+  const HOEK_LANG = (DWARS > 3.4 && BANK_LANG > 2.0) ? Math.min(1.95, DWARS * 0.36) : 0;
   {
-    const x1 = BREED - MUUR - 0.04, x0 = x1 - 0.95;
-    const z0 = bankZ - BANK_LANG / 2, z1 = bankZ + BANK_LANG / 2;
-    doos(x0, x1, z0, z1, 0.10, 0.36, MAT.stof);                    // onderbak
-    doos(x0 + 0.10, x1, z0 + 0.10, z1 - 0.10, 0.36, 0.46, MAT.stof, false);   // zitkussens
-    doos(x1 - 0.20, x1, z0, z1, 0.36, 0.85, MAT.stofRug, false);   // rugleuning
-    doos(x0, x1 - 0.18, z0, z0 + 0.16, 0.36, 0.62, MAT.stofRug, false);
-    doos(x0, x1 - 0.18, z1 - 0.16, z1, 0.36, 0.62, MAT.stofRug, false);
-    for (const zz of [z0 + 0.12, z1 - 0.16]) for (const xx of [x0 + 0.06, x1 - 0.12]) {
-      doos(xx, xx + 0.06, zz, zz + 0.06, 0, 0.10, MAT.poot, false);
+    const u0 = BANK_U0, u1 = BANK_U1;
+    // de lange poot langs de wand
+    dB(u0, u1, 0.04, BANK_DIEP, 0.10, 0.36, MAT.stof);                       // onderbak
+    dB(u0 + 0.10, u1, 0.04, BANK_DIEP - 0.10, 0.36, 0.46, MAT.stof, false);  // zitkussens
+    dB(u0, u1, 0.04, 0.24, 0.36, 0.85, MAT.stofRug, false);                  // rug tegen de wand
+    dB(u0, u0 + 0.16, 0.22, BANK_DIEP, 0.36, 0.62, MAT.stofRug, false);      // armleuning
+    for (const uu of [u0 + 0.12, u1 - 0.18]) for (const vv of [0.10, BANK_DIEP - 0.16]) {
+      dB(uu, uu + 0.06, vv, vv + 0.06, 0, 0.10, MAT.poot, false);
     }
-    // twee kussens in de hoeken, in de kleur van de rug
-    for (const zz of [z0 + 0.34, z1 - 0.62]) {
-      doos(x1 - 0.42, x1 - 0.24, zz, zz + 0.28, 0.46, 0.74, MAT.stofRug, false);
+    if (HOEK_LANG > 0) {
+      // de chaise longue haaks erop, aan het eind van de bank
+      dB(u1 - BANK_DIEP, u1, BANK_DIEP, BANK_DIEP + HOEK_LANG, 0.10, 0.36, MAT.stof);
+      dB(u1 - BANK_DIEP + 0.10, u1 - 0.10, BANK_DIEP, BANK_DIEP + HOEK_LANG - 0.10, 0.36, 0.46, MAT.stof, false);
+      dB(u1 - 0.20, u1, BANK_DIEP, BANK_DIEP + HOEK_LANG, 0.36, 0.85, MAT.stofRug, false);
+      dB(u1 - BANK_DIEP, u1 - 0.18, BANK_DIEP + HOEK_LANG - 0.16, BANK_DIEP + HOEK_LANG, 0.36, 0.62, MAT.stofRug, false);
+      for (const uu of [u1 - BANK_DIEP + 0.06, u1 - 0.18])
+        for (const vv of [BANK_DIEP + 0.10, BANK_DIEP + HOEK_LANG - 0.16]) {
+          dB(uu, uu + 0.06, vv, vv + 0.06, 0, 0.10, MAT.poot, false);
+        }
+      // een plaid over de chaise longue
+      dB(u1 - 0.80, u1 - 0.26, BANK_DIEP + 0.15, BANK_DIEP + HOEK_LANG - 0.30, 0.46, 0.50, MAT.stofRug, false);
+      inrichting.hoek = true;
+    } else {
+      dB(u1 - 0.16, u1, 0.22, BANK_DIEP, 0.36, 0.62, MAT.stofRug, false);    // tweede armleuning
+    }
+    // kussens tegen de rug
+    for (const uu of [u0 + 0.34, u1 - 0.62]) {
+      dB(uu, uu + 0.28, 0.24, 0.42, 0.46, 0.74, MAT.stofRug, false);
     }
     /*
      Het schilderij erboven: een Fries landschap met een molen, in een lijst van
-     donker hout. Hij hangt met de onderkant op 1,25 m — vanaf de bank kijk je er
-     niet tegenaan maar zie je hem als je de kamer in loopt.
+     donker hout, met de onderkant op 1,25 m.
     */
-    const sx = BREED - MUUR - 0.02;
-    const sh = Math.min(0.78, BANK_LANG * 0.42), sb = sh * 1.32;
-    doos(sx - 0.04, sx, bankZ - sb / 2 - 0.05, bankZ + sb / 2 + 0.05, 1.20, 1.25 + sh + 0.05, MAT.lijst, false);
-    doos(sx - 0.045, sx - 0.04, bankZ - sb / 2, bankZ + sb / 2, 1.25, 1.25 + sh, MAT.doekje, false);
+    const sh = Math.min(0.78, BANK_LANG * 0.36), sb = sh * 1.32;
+    const um = (u0 + u1) / 2;
+    dB(um - sb / 2 - 0.05, um + sb / 2 + 0.05, 0.01, 0.05, 1.20, 1.25 + sh + 0.05, MAT.lijst, false);
+    dB(um - sb / 2, um + sb / 2, 0.048, 0.053, 1.25, 1.25 + sh, MAT.doekje, false);
     inrichting.schilderij = true;
+    // en de accentwand erachter, van plint tot plafond
+    const av = Math.max(0.02, um - BANK_LANG / 2 - 0.45), at = um + BANK_LANG / 2 + 0.45;
+    dB(av, at, 0.004, 0.012, PLINT, HOOGTE - 0.02, MAT.accent, false);
+    inrichting.accentwand = true;
+  }
+
+  /*
+   ---------- de tv, op kijkafstand ----------
+   Hij stond tegen de zijwand, en in een kamer van negen meter breed keek je dus
+   van acht meter naar een scherm van 55 duim (melding 23 sep 2026). Nu staat het
+   dressoir drie meter twintig voor de bank — of zoveel minder als de kamer diep
+   is — met het beeld naar de bank toe.
+  */
+  const TV_AFSTAND = Math.max(1.9, Math.min(3.20, DWARS - BANK_DIEP - 1.35));
+  const TV_V = BANK_DIEP + TV_AFSTAND;
+  {
+    const um = (BANK_U0 + BANK_U1) / 2;
+    const u0 = um - 0.85, u1 = um + 0.85;
+    dB(u0, u1, TV_V, TV_V + 0.42, 0.06, 0.48, MAT.tvKast);
+    dB(u0 + 0.03, u1 - 0.03, TV_V + 0.02, TV_V + 0.42, 0.30, 0.33, MAT.tvRand, false);   // schapje
+    dB(um - 0.24, um + 0.24, TV_V + 0.15, TV_V + 0.22, 0.48, 0.53, MAT.tvRand, false);   // voet
+    dB(um - 0.66, um + 0.66, TV_V + 0.16, TV_V + 0.22, 0.53, 1.30, MAT.tvRand, false);   // kast
+    dB(um - 0.64, um + 0.64, TV_V + 0.15, TV_V + 0.16, 0.55, 1.28, MAT.tvBeeld, false);  // beeld
+    // twee dingen op het dressoir, want een kale kast leest als een doos
+    dB(u0 + 0.12, u0 + 0.28, TV_V + 0.10, TV_V + 0.26, 0.48, 0.62, MAT.pot, false);
+    dB(u0 + 0.13, u0 + 0.27, TV_V + 0.11, TV_V + 0.25, 0.60, 0.62, MAT.aarde, false);
+    for (const [du, h] of [[0, 0.20], [0.05, 0.15]]) {
+      const q = pB(u0 + 0.20 + du, TV_V + 0.18);
+      const b = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(0.08, 0)), MAT.bladLicht);
+      b.position.set(q.x, 0.62 + h, q.z);
+      b.scale.set(1, 1.3, 1);
+      groep.add(b);
+    }
+    dB(u1 - 0.30, u1 - 0.12, TV_V + 0.12, TV_V + 0.30, 0.48, 0.53, MAT.donkerhout, false); // stapeltje
   }
 
   /*
    ---------- de salontafel met een kleed eronder ----------
-   Voor de bank, tussen de bank en de tv in. Het kleed steekt er aan alle kanten
-   ruim onderuit, zoals het hoort; hij ligt een millimeter boven de vloer zodat
-   de twee vlakken niet met elkaar gaan vechten om hetzelfde beeldpunt.
+   Tussen de bank en de tv in, dichter bij de bank. Het kleed steekt er aan alle
+   kanten ruim onderuit en ligt een millimeter boven de vloer, zodat de twee
+   vlakken niet met elkaar gaan vechten om hetzelfde beeldpunt.
   */
   {
-    const xm = BREED - MUUR - 1.85, zm = bankZ;
-    if (xm > MUUR + 1.2) {
-      const kb = Math.min(2.2, (xm - MUUR - 0.5) * 1.1), kl = Math.min(3.0, BANK_LANG + 0.5);
-      vloer(xm - kb / 2, xm + kb / 2, zm - kl / 2, zm + kl / 2, 0.012,
-        new THREE.MeshBasicMaterial({ map: texture(kleedDoek(), kb / 1.4, kl / 1.4), vertexColors: true, fog: false }));
-      const tb = 0.58, tl = Math.min(1.20, BANK_LANG - 0.6);
-      doos(xm - tb / 2, xm + tb / 2, zm - tl / 2, zm + tl / 2, 0.34, 0.40, MAT.donkerhout);
-      doos(xm - tb / 2 + 0.06, xm + tb / 2 - 0.06, zm - tl / 2 + 0.06, zm + tl / 2 - 0.06, 0.14, 0.18, MAT.donkerhout, false);
-      for (const xx of [xm - tb / 2 + 0.04, xm + tb / 2 - 0.10])
-        for (const zz of [zm - tl / 2 + 0.04, zm + tl / 2 - 0.10]) {
-          doos(xx, xx + 0.06, zz, zz + 0.06, 0, 0.34, MAT.poot, false);
-        }
-      // een schaal en een plantje op het blad
-      doos(xm - 0.13, xm + 0.13, zm - 0.13, zm + 0.13, 0.40, 0.47, MAT.keramiek, false);
-      doos(xm - 0.08, xm + 0.08, zm - 0.08, zm + 0.08, 0.45, 0.52, MAT.fruit, false);
-      inrichting.kleed = true; inrichting.salontafel = true;
+    // voor het rechte deel van de bank, dus niet in de chaise longue
+    const vrijU1 = BANK_U1 - (HOEK_LANG > 0 ? BANK_DIEP : 0);
+    const um = (BANK_U0 + vrijU1) / 2;
+    const tv = BANK_DIEP + Math.min(1.0, TV_AFSTAND * 0.42);
+    const kl = Math.min(3.4, BANK_LANG + 0.6), kb = Math.min(2.6, TV_AFSTAND + 0.6);
+    const a = pB(BANK_U0 - 0.3, BANK_DIEP - 0.25), b = pB(BANK_U0 - 0.3 + kl, BANK_DIEP - 0.25 + kb);
+    vloer(Math.min(a.x, b.x), Math.max(a.x, b.x), Math.min(a.z, b.z), Math.max(a.z, b.z), 0.012,
+      new THREE.MeshBasicMaterial({ map: texture(kleedDoek(), kb / 1.4, kl / 1.4), vertexColors: true, fog: false }));
+    const tl = Math.min(1.30, (vrijU1 - BANK_U0) - 0.5), tb = 0.62;
+    dB(um - tl / 2, um + tl / 2, tv, tv + tb, 0.34, 0.40, MAT.donkerhout);
+    dB(um - tl / 2 + 0.06, um + tl / 2 - 0.06, tv + 0.06, tv + tb - 0.06, 0.14, 0.18, MAT.donkerhout, false);
+    for (const uu of [um - tl / 2 + 0.04, um + tl / 2 - 0.10]) for (const vv of [tv + 0.04, tv + tb - 0.10]) {
+      dB(uu, uu + 0.06, vv, vv + 0.06, 0, 0.34, MAT.poot, false);
+    }
+    // een schaal met fruit, een stapeltje tijdschriften en de afstandsbediening
+    dB(um - 0.13, um + 0.13, tv + tb / 2 - 0.13, tv + tb / 2 + 0.13, 0.40, 0.47, MAT.keramiek, false);
+    dB(um - 0.08, um + 0.08, tv + tb / 2 - 0.08, tv + tb / 2 + 0.08, 0.45, 0.52, MAT.fruit, false);
+    dB(um + 0.18, um + 0.42, tv + 0.06, tv + 0.26, 0.40, 0.45, MAT.doekje, false);
+    dB(um - 0.34, um - 0.18, tv + tb - 0.20, tv + tb - 0.14, 0.40, 0.43, MAT.tvRand, false);
+    inrichting.kleed = true; inrichting.salontafel = true;
+  }
+
+  /*
+   ---------- de staande lamp en de poef ----------
+   De lamp aan het uiteinde van de bank, de poef aan de andere kant van de
+   salontafel; allebei in dezelfde maten langs de bank als de rest.
+  */
+  {
+    const lu = BANK_U0 - 0.30;
+    if (lu > (ACHTERWAND ? HAL.x1 + 0.3 : HAL.z1 + 0.2)) {
+      dB(lu - 0.16, lu + 0.16, 0.20, 0.52, 0, 0.04, MAT.tvRand, false);        // voet
+      dB(lu - 0.02, lu + 0.02, 0.34, 0.38, 0.04, 1.45, MAT.tvRand, false);     // stang
+      const q = pB(lu, 0.36);
+      const kp = new THREE.Mesh(schaduw(new THREE.CylinderGeometry(0.20, 0.15, 0.26, 14, 1, true)), MAT.kap);
+      kp.position.set(q.x, 1.58, q.z);
+      groep.add(kp);
+      inrichting.staandelamp = true;
+    }
+    const pu = (BANK_U0 + BANK_U1) / 2 - BANK_LANG / 2 - 0.10;
+    const pv = BANK_DIEP + Math.min(1.0, TV_AFSTAND * 0.42) + 0.20;
+    if (pu > (ACHTERWAND ? HAL.x1 + 0.2 : HAL.z1 + 0.1)) {
+      dB(pu - 0.26, pu + 0.26, pv, pv + 0.52, 0, 0.40, MAT.stofRug);
+      dB(pu - 0.22, pu + 0.22, pv + 0.04, pv + 0.48, 0.40, 0.44, MAT.stof, false);
     }
   }
 
-  // ---------- de tv ----------
-  // Dressoir van 1,60 x 0,40 x 0,45 tegen de linkerwand, met een scherm van 55
-  // duim (1,24 x 0,72) erop; het beeld zit dan op 1,05 m, op ooghoogte vanaf de
-  // bank aan de overkant.
-  {
-    const x0 = MUUR + 0.03, x1 = x0 + 0.40;
-    const z0 = bankZ - 0.80, z1 = bankZ + 0.80;
-    doos(x0, x1, z0, z1, 0.06, 0.45, MAT.tvKast);
-    doos(x0, x1 - 0.02, z0 + 0.03, z1 - 0.03, 0.30, 0.32, MAT.tvRand, false);   // schapje
-    const zm = (z0 + z1) / 2;
-    doos(x0 + 0.14, x0 + 0.20, zm - 0.22, zm + 0.22, 0.45, 0.50, MAT.tvRand, false);  // voet
-    doos(x0 + 0.15, x0 + 0.20, zm - 0.62, zm + 0.62, 0.50, 1.22, MAT.tvRand, false);  // kast
-    doos(x0 + 0.20, x0 + 0.21, zm - 0.60, zm + 0.60, 0.52, 1.20, MAT.tvBeeld, false); // beeld
-  }
 
   /*
    ---------- het dressoir met de foto's en de schemerlamp ----------
@@ -759,12 +914,13 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
    die een kamer van een ruimte een woonkamer maken (verzoek 23 sep 2026).
   */
   const DRESSOIR = (() => {
-    // eerst langs dezelfde wand als de tv, voor of achter het scherm
+    // eerst langs de linkerwand, voor of achter de tv — maar niet als de zithoek
+    // tegen de achterwand staat: dan ligt die wand vol met de keuken
     const achter = { van: bankZ + BANK_LANG / 2 + 0.2, tot: voorhuis.z1 - MUUR - 0.15 };
     const voor = { van: HAL.z1 + 0.15, tot: bankZ - BANK_LANG / 2 - 0.2 };
     const ruimte = (achter.tot - achter.van) >= (voor.tot - voor.van) ? achter : voor;
     const lang = Math.min(1.45, ruimte.tot - ruimte.van - 0.1);
-    if (lang >= 0.9) {
+    if (!ACHTERWAND && lang >= 0.9) {
       const zm = (ruimte.van + ruimte.tot) / 2;
       return { langs: 'z', x0: MUUR + 0.03, diep: 0.42, z0: zm - lang / 2, z1: zm + lang / 2, hoog: 0.80 };
     }
@@ -773,7 +929,9 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
      bij zeven) en gaat hij tegen de achterwand, dwars op de tv. Dezelfde kast,
      een kwartslag gedraaid.
     */
-    const bvan = HAL.x1 + 0.3, btot = BREED - MUUR - 1.3;
+    // tegen de achterwand, voorbij de bank en de boekenkast
+    const bvan = ACHTERWAND ? BANK_U1 + 2.3 : HAL.x1 + 0.3;
+    const btot = BREED - MUUR - 0.4;
     const blang = Math.min(1.45, btot - bvan - 0.1);
     if (blang < 0.9) return null;
     const xm = (bvan + btot) / 2;
@@ -851,23 +1009,105 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   }
 
   /*
-   ---------- de fauteuil ----------
-   In een brede woonkamer staat er naast de bank nog een stoel, met de rug naar
-   het raam en het gezicht naar de tv. In een smalle kamer komt hij er niet: dan
-   loop je er alleen maar omheen.
+   ---------- de boekenkast ----------
+   Vier planken met boeken en een plantje bovenop. Staat de tv vrij in de kamer,
+   dan komt de kast tegen de wand erachter; staat hij tegen de wand, dan komt de
+   kast naast de bank langs dezelfde wand. Zo staat hij nooit in de looproute.
   */
-  if (BREED - HAL.x1 > 3.6) {
-    const fz = Math.max(HAL.z1 + 0.55, bankZ - BANK_LANG / 2 - 0.75);
-    if (fz + 0.45 < bankZ - BANK_LANG / 2 - 0.05) {
-      const x1 = BREED - MUUR - 0.10, x0 = x1 - 0.85;
-      const z0 = fz - 0.42, z1 = fz + 0.42;
-      doos(x0, x1, z0, z1, 0.10, 0.36, MAT.stof);
-      doos(x0 + 0.10, x1, z0 + 0.10, z1 - 0.10, 0.36, 0.46, MAT.stof, false);
-      doos(x1 - 0.18, x1, z0, z1, 0.36, 0.82, MAT.stofRug, false);
-      doos(x0, x1 - 0.16, z0, z0 + 0.14, 0.36, 0.60, MAT.stofRug, false);
-      doos(x0, x1 - 0.16, z1 - 0.14, z1, 0.36, 0.60, MAT.stofRug, false);
-      for (const zz of [z0 + 0.10, z1 - 0.16]) for (const xx of [x0 + 0.06, x1 - 0.12]) {
-        doos(xx, xx + 0.06, zz, zz + 0.06, 0, 0.10, MAT.poot, false);
+  {
+    const lang = Math.min(1.60, Math.max(0.9, BANK_LANG * 0.6));
+    const naast = BANK_U1 + 0.35;
+    const eind = ACHTERWAND ? BREED - MUUR - 0.3 : voorhuis.z1 - MUUR - 0.3;
+    const plek = (naast + lang < eind)
+      ? { u0: naast, u1: naast + lang, v0: 0.04, v1: 0.38 }              // naast de bank
+      : null;
+    if (plek) {
+      const { u0, u1, v0, v1 } = plek;
+      dB(u0, u1, v0, v1, 0, 1.95, MAT.donkerhout);                       // ombouw
+      for (let i = 0; i < 4; i++) {
+        const y = 0.30 + i * 0.42;
+        dB(u0 + 0.03, u1 - 0.03, v0 + 0.02, v1 - 0.02, y, y + 0.03, MAT.hout, false);
+        const n = Math.max(2, Math.round((u1 - u0 - 0.1) / 0.34));
+        for (let k = 0; k < n; k++) {
+          if ((i + k) % 5 === 3) continue;
+          const bu = u0 + 0.05 + k * ((u1 - u0 - 0.1) / n);
+          dB(bu, bu + ((u1 - u0 - 0.1) / n) - 0.03, v0 + 0.06, v1 - 0.04, y + 0.03, y + 0.31, MAT.boeken, false);
+        }
+      }
+      const um = (u0 + u1) / 2;
+      dB(um - 0.09, um + 0.09, v0 + 0.08, v1 - 0.08, 1.95, 2.10, MAT.pot, false);
+      for (const [du, h] of [[0, 0.18], [0.06, 0.13], [-0.05, 0.15]]) {
+        const q = pB(um + du, (v0 + v1) / 2);
+        const b = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(0.085, 0)), MAT.blad);
+        b.position.set(q.x, 2.10 + h, q.z);
+        b.scale.set(1, 1.25, 1);
+        groep.add(b);
+      }
+      inrichting.boekenkast = true;
+    }
+  }
+
+  /*
+   ---------- de gordijnen bij de pui ----------
+   Twee banen naast het raam, met een roede erboven. Ze hangen tot vijf
+   centimeter boven de vloer, zoals gordijnen horen te hangen.
+  */
+  if (PUI.tot - PUI.van > 1.2) {
+    const zw = MUUR + 0.02;
+    doos(PUI.van - 0.25, PUI.tot + 0.25, zw + 0.06, zw + 0.09, 2.36, 2.40, MAT.tvRand, false);  // roede
+    for (const [a, b] of [[PUI.van - 0.22, PUI.van + 0.30], [PUI.tot - 0.30, PUI.tot + 0.22]]) {
+      if (b - a < 0.2) continue;
+      doos(a, b, zw + 0.03, zw + 0.12, 0.05, 2.34, MAT.kap, false);
+      // een vouw erin, zodat het geen plank is
+      doos(a + (b - a) * 0.45, a + (b - a) * 0.62, zw + 0.12, zw + 0.17, 0.05, 2.34, MAT.kap, false);
+    }
+    inrichting.gordijnen = true;
+  }
+
+  /*
+   ---------- de klok en de kattenmand ----------
+   De klok hangt vooraan tegen de rechterwand, de mand staat in de hoek bij de
+   plant — de katten uit js/kat.js lopen er vanzelf langs.
+  */
+  {
+    const kx = BREED - MUUR - 0.04, kz = MUUR + 1.00;
+    if (!ACHTERWAND ? kz < BANK_U0 - 0.4 : true) {
+      const rand = new THREE.Mesh(schaduw(new THREE.CylinderGeometry(0.17, 0.17, 0.05, 18)), MAT.lijst);
+      rand.rotation.z = Math.PI / 2;
+      rand.position.set(kx - 0.03, 1.95, kz);
+      groep.add(rand);
+      const wijzer = new THREE.Mesh(schaduw(new THREE.CylinderGeometry(0.15, 0.15, 0.02, 18)), MAT.keramiek);
+      wijzer.rotation.z = Math.PI / 2;
+      wijzer.position.set(kx - 0.055, 1.95, kz);
+      groep.add(wijzer);
+      doos(kx - 0.07, kx - 0.06, kz - 0.005, kz + 0.005, 1.95, 2.06, MAT.tvRand, false);
+      doos(kx - 0.07, kx - 0.06, kz - 0.005, kz + 0.075, 1.945, 1.955, MAT.tvRand, false);
+      inrichting.klok = true;
+    }
+    const mx = BREED - MUUR - 0.50, mz = MUUR + 1.35;
+    if (!ACHTERWAND ? mz < BANK_U0 - 0.5 : mz < voorhuis.z1 - MUUR - BANK_DIEP - 1.0) {
+      doos(mx - 0.30, mx + 0.30, mz - 0.24, mz + 0.24, 0, 0.16, MAT.donkerhout);
+      doos(mx - 0.25, mx + 0.25, mz - 0.19, mz + 0.19, 0.10, 0.18, MAT.stof, false);
+      inrichting.kattenmand = true;
+    }
+  }
+
+  /*
+   ---------- de fauteuil ----------
+   Alleen als er geen chaise longue is: dan is er een losse stoel naast de bank,
+   in het verlengde ervan en met de rug tegen dezelfde wand.
+  */
+  if (HOEK_LANG === 0) {
+    const fu = BANK_U1 + 0.30;
+    const eind = ACHTERWAND ? BREED - MUUR - 0.3 : voorhuis.z1 - MUUR - 0.3;
+    if (fu + 0.85 < eind) {
+      dB(fu, fu + 0.85, 0.04, BANK_DIEP - 0.06, 0.10, 0.36, MAT.stof);
+      dB(fu + 0.10, fu + 0.85, 0.04, BANK_DIEP - 0.16, 0.36, 0.46, MAT.stof, false);
+      dB(fu, fu + 0.85, 0.04, 0.22, 0.36, 0.82, MAT.stofRug, false);
+      dB(fu, fu + 0.14, 0.20, BANK_DIEP - 0.06, 0.36, 0.60, MAT.stofRug, false);
+      dB(fu + 0.71, fu + 0.85, 0.20, BANK_DIEP - 0.06, 0.36, 0.60, MAT.stofRug, false);
+      for (const uu of [fu + 0.06, fu + 0.73]) for (const vv of [0.10, BANK_DIEP - 0.22]) {
+        dB(uu, uu + 0.06, vv, vv + 0.06, 0, 0.10, MAT.poot, false);
       }
       inrichting.fauteuil = true;
     }
@@ -1040,6 +1280,23 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     doos(x0 + KAST_DIEP + 0.005, x0 + KAST_DIEP + 0.035, spoelZ - 0.10, spoelZ + 0.10,
       AANRECHT - 0.30, AANRECHT - 0.13, MAT.kap, false);
     inrichting.keuken++;
+    // een pedaalemmer aan het eind van de rij, en een plantje op het raamkozijn
+    if (z1 + 0.45 < KEUKEN.z1) {
+      doos(x0 + 0.05, x0 + 0.40, z1 + 0.08, z1 + 0.43, 0, 0.62, MAT.rvs);
+      doos(x0 + 0.05, x0 + 0.40, z1 + 0.08, z1 + 0.43, 0.62, 0.66, MAT.tvRand, false);
+      inrichting.keuken++;
+    }
+    {
+      const vz = KEUKEN.z1 - 0.35;
+      doos(x0 + 0.02, x0 + 0.16, vz - 0.07, vz + 0.07, 0.95, 1.10, MAT.pot, false);
+      for (const [dz, h] of [[0, 0.16], [0.05, 0.12]]) {
+        const b = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(0.07, 0)), MAT.bladLicht);
+        b.position.set(x0 + 0.09, 1.10 + h, vz + dz);
+        b.scale.set(1, 1.2, 1);
+        groep.add(b);
+      }
+      inrichting.keuken++;
+    }
   }
 
   // ---------- lampen ----------
@@ -1243,7 +1500,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     groep.add(kat.groep);
     katten.push({ kat, staat: 'wacht', doel: vrijPunt(), t: 1 + Math.random() * 2, opBank: false });
   }
-  const BANK_ZIT = { x: BREED - MUUR - 0.50, y: 0.46 };
+  // waar een kat op de bank springt: op de zitting, in de maten langs de bank
+  const BANK_ZIT = { y: 0.46, plek: (t) => pB(BANK_U0 + 0.4 + t * (BANK_LANG - 0.8), 0.50) };
   function katUpdate(dt) {
     for (const k of katten) {
       const pos = k.kat.groep.position;
@@ -1278,8 +1536,9 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       // een op de vier keer springt hij op de bank
       if (Math.random() < 0.25) {
         k.opBank = true;
-        pos.set(BANK_ZIT.x, BANK_ZIT.y, bankZ + (Math.random() - 0.5) * 1.2);
-        k.kat.groep.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+        const zp = BANK_ZIT.plek(Math.random());
+        pos.set(zp.x, BANK_ZIT.y, zp.z);
+        k.kat.groep.rotation.y = (ACHTERWAND ? 0 : Math.PI / 2) + (Math.random() - 0.5) * 0.5;
         k.staat = 'wacht';
         k.t = 14 + Math.random() * 24;
       } else {
@@ -1375,7 +1634,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
    E drukt; rondkijken kan gewoon (zie `player.zit` in js/player.js).
   */
   const ZITHOOGTE = 1.05;
-  const zitPlek = wereld(BREED - MUUR - 0.46, bankZ);
+  const zitMid = pB((BANK_U0 + BANK_U1) / 2, 0.46);
+  const zitPlek = wereld(zitMid.x, zitMid.z);
   const ZIT_BEREIK = 1.6;
   // en de stoel aan de tafel, met de rug naar het raam en het gezicht de kamer in
   const tafelPlek = wereld(TAFEL.x - 0.38, TAFEL.z - TAFEL.diep / 2 - 0.32);
@@ -1390,7 +1650,9 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   function gaZitten() {
     player.pos.set(zitPlek.x, 0, zitPlek.z);
     player.eye = ZITHOOGTE;
-    player.yaw = Math.PI / 2;               // naar de tv aan de overkant
+    // naar de tv aan de overkant; die staat recht voor de bank, en waar dat is
+    // hangt af van de wand waar de zithoek tegenaan staat
+    player.yaw = ACHTERWAND ? 0 : Math.PI / 2;
     player.pitch = 0;
     player.zit = true;
     zitWaar = 'bank';
@@ -1407,7 +1669,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   }
   function staOp() {
     const bij = zitWaar === 'tafel' ? tafelPlek : zitPlek;
-    const kant = zitWaar === 'tafel' ? { x: 0, z: -0.9 } : { x: -1.0, z: 0 };
+    const kant = zitWaar === 'tafel' ? { x: 0, z: -0.9 }
+      : (ACHTERWAND ? { x: 0, z: -1.0 } : { x: -1.0, z: 0 });
     player.zit = false;
     zitWaar = null;
     player.eye = player.eyeStaand;
@@ -1532,9 +1795,11 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
         breed: BREED, diep: DIEP, hoogte: HOOGTE, banden: vakken,
         voordeur: { breed: DEUR_B, hoog: DEUR_H }, binnendeur: { breed: BINNENDEUR, hoog: BINNENDEUR_H },
         aanrecht: AANRECHT, bovenkast: [BOVENKAST_ONDER, BOVENKAST_BOVEN],
-        bank: { breed: BANK_LANG, diep: 0.95, zitting: 0.46, rug: 0.85,
-          ruimte: BANK_TOT - BANK_VAN },
-        tv: { breed: 1.20, hoog: 0.68, midden: 0.86 },
+        bank: { breed: BANK_LANG, diep: BANK_DIEP, zitting: 0.46, rug: 0.85,
+          ruimte: BANK_RUIMTE, hoek: HOEK_LANG, wand: ACHTERWAND ? 'achter' : 'rechts',
+          // het zitvlak van de hele hoekbank, dus met de chaise longue erbij
+          zitvlak: BANK_LANG * BANK_DIEP + HOEK_LANG * BANK_DIEP },
+        tv: { breed: 1.28, hoog: 0.73, midden: 0.92, afstand: TV_AFSTAND },
         gang: HAL_BREED, keuken: { breed: KEUKEN.x1 - KEUKEN.x0, diep: KEUKEN.z1 - KEUKEN.z0 },
       };
     },

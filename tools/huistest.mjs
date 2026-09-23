@@ -119,7 +119,9 @@ kop('de inrichting van de kamer');
 const spullen = await page.evaluate(() => {
   const g = window.__game;
   const uit = (w) => ({ naam: w.naam, ...w.inrichting,
-    bank: +w.maten.bank.breed.toFixed(2), bankRuimte: +w.maten.bank.ruimte.toFixed(2) });
+    bank: +w.maten.bank.breed.toFixed(2), bankRuimte: +w.maten.bank.ruimte.toFixed(2),
+    zitvlak: +w.maten.bank.zitvlak.toFixed(2), tvAfstand: +w.maten.tv.afstand.toFixed(2),
+    wand: w.maten.bank.wand });
   return { stek: window.__stek().map(uit), wieken: uit(g.woningen[1]) };
 });
 for (const h of spullen.stek) {
@@ -127,17 +129,28 @@ for (const h of spullen.stek) {
     `${h.naam}: schilderij, kleed en salontafel`,
     `${h.schilderij ? '' : 'geen schilderij '}${h.kleed ? '' : 'geen kleed '}${h.salontafel ? '' : 'geen salontafel'}`);
   ok(h.dressoir && h.fotos && h.lamp, `${h.naam}: dressoir met foto's en een schemerlamp`);
-  ok(h.plant, `${h.naam}: een plant in de hoek`);
-  ok(h.keuken >= 4, `${h.naam}: het aanrecht staat niet leeg`, `${h.keuken} dingen`);
+  ok(h.plant && h.klok && h.kattenmand, `${h.naam}: plant, klok en kattenmand`);
+  ok(h.gordijnen && h.accentwand, `${h.naam}: gordijnen bij de pui en een gekleurde wand`);
+  ok(h.keuken >= 6, `${h.naam}: het aanrecht staat niet leeg`, `${h.keuken} dingen`);
   /*
    Hij was overal 2,10, ook in een kamer die maar 1,7 m wand had. Nu vult hij het
    vrije stuk wand tot maximaal 2,55 — dus in een diepe kamer een stuk ruimer, en
    in een ondiepe precies wat erin past.
   */
-  const past = Math.min(2.55, h.bankRuimte - 0.2);
+  const past = Math.min(3.20, h.bankRuimte - 0.2);
   ok(h.bank >= past - 0.02, `${h.naam}: de bank vult de wand`,
     `${h.bank} m van de ${h.bankRuimte} m wand`);
+  /*
+   Het zitvlak moet ruim twee keer zo groot zijn als de oude drie-zits van
+   2,10 bij 0,90 — met de chaise longue erbij waar de kamer dat toelaat.
+  */
+  ok(h.zitvlak >= 3.8, `${h.naam}: het zitvlak is meer dan verdubbeld`,
+    `${h.zitvlak} m² tegen 1,9 m² (bank tegen de ${h.wand}wand`
+    + `${h.hoek ? ', met chaise longue' : ''})`);
 }
+ok(spullen.stek.every(h => h.tvAfstand > 2.4 && h.tvAfstand < 4.2),
+  'de tv staat op kijkafstand van de bank',
+  spullen.stek.map(h => `${h.tvAfstand} m`).join(' · '));
 ok(spullen.wieken.schilderij && spullen.wieken.dressoir && spullen.wieken.plant,
   'en de Wieken 29 is mee opgeknapt', `bank ${spullen.wieken.bank} m, ${spullen.wieken.keuken} in de keuken`);
 

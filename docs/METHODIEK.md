@@ -4906,7 +4906,39 @@ dat tot hoogstens 2,55. En het dressoir paste in diezelfde bungalow langs geen
 enkele wand naast de tv, dus daar staat hij tegen de achterwand, een kwartslag
 gedraaid. Allebei kwamen ze uit de proef en niet uit het oog.
 
-`npm run huistest` (drieënveertig controles) en `npm run huisshots`.
+*En daarna de kamer zelf.* De tweede ronde foto's liet zien dat een bank van
+2,55 in een kamer van negen meter nog steeds een bankje is, dat de tv van acht
+meter afstand een postzegel was, en dat gebroken witte wanden een wachtkamer
+maken (melding 23 sep 2026). Drie dingen kwamen daaruit:
+
+*De zithoek is één groep geworden.* Een hoekbank (lange poot plus chaise longue,
+ruim vijf vierkante meter zitvlak tegen 1,9 eerst), de tv op drie meter twintig
+recht ervoor, de salontafel op het kleed ertussen, een staande lamp aan het
+uiteinde en een poef. Waar die groep staat hangt van de vorm van de kamer af:
+normaal tegen de zijwand, maar in de bungalow aan de Molenkrite — achttien bij
+zeven — is die wand maar 1,8 m lang en gaat de hele groep tegen de achterwand.
+Om dat niet twee keer uit te hoeven schrijven staat alles in maten *langs* de
+bank en *vanaf* de wand, en rekent één functie (`dB`) dat om naar de kamer. Dat
+is dezelfde truc als bij de plattegrond: eerst een assenstelsel kiezen waarin het
+probleem simpel is.
+
+*De wanden hebben kleur gekregen.* Vijf schema's, één per woning: een warme
+wandkleur met een accentkleur voor de wand achter de bank, over een fijn
+behangdessin van 96 bij 96. De accentwand is geen aparte muur maar een paneel
+van acht millimeter ervoor — de wanden komen uit de plattegrond en die wil je
+niet per stuk anders gaan kleuren.
+
+*En er staat meer in.* Boekenkast met vier planken boeken (de ruggen zijn een
+doek van 128 bij 64), gordijnen naast de pui, een klok, een kattenmand, een
+pedaalemmer en een plantje op de vensterbank in de keuken.
+
+Wat de proef eruit haalde: in de ondiepe bungalow was het zitvlak niet
+verdubbeld (de bank stond tegen de verkeerde wand), en in de smalle woning aan de
+Koningsspil stond de tv op 1,9 m. Dat laatste kwam door een verkeerde aanname —
+de gang zou de kamer smaller maken — terwijl de gang ophoudt vóór de bank begint.
+Allebei gemeten, niet gezien.
+
+`npm run huistest` (tweeënzestig controles) en `npm run huisshots`.
 
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een

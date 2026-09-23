@@ -1643,19 +1643,31 @@ Alle drie een stuk groter dan de Wieken 29 (5,4 × 14,1 m). Je loopt ze langs in
 de volgorde die je zelf wilt; Mark staat er telkens eerder dan jij en zegt wat
 hij ervan vindt.
 
-Binnen zijn ze ingericht als een woning waar iemand woont. In de woonkamer staat
-een **bank** die zich naar de wand voegt — tot 2,55 m waar dat past, met twee
-kussens en in een brede kamer een **fauteuil** ernaast — met een **schilderij van
-een Fries landschap** erboven, een **salontafel op een vloerkleed**, een
-**dressoir met drie fotolijstjes, een schemerlamp en een plantje**, een **grote
-kamerplant** in de hoek bij het raam en de **tv**. Verder een **eettafel met vier
-stoelen** waar je aan kunt gaan zitten, en een **keuken** die niet leeg staat:
-een waterkoker, een snijplank tegen de tegels, een fruitschaal, een afdruiprek
-naast de spoelbak en een theedoek over de greep — plus de **koelkast** waar je
-een flesje bier uit pakt (je eigen bier, dus gratis, en hetzelfde leven erbij
-als bij de Poiesz). Er lopen **twee katten** rond die gaan zitten en op de bank
-springen, en de **tv staat aan op Radio Spannenburg** — je hoort hem door het
-hele huis, gedempt zoals het hoort binnen.
+Binnen zijn ze ingericht als een woning waar iemand woont. De zithoek is een
+**hoekbank** van ruim vijf vierkante meter zitvlak — een lange poot langs de wand
+en een chaise longue die de kamer in steekt, met kussens en een plaid — met de
+**tv er op drie meter recht voor**, een **salontafel op een vloerkleed**
+ertussen, een **staande lamp** aan het uiteinde en een **poef** ernaast. Waar de
+zithoek staat hangt van de kamer af: normaal tegen de zijwand, en in de brede
+ondiepe bungalow aan de Molenkrite tegen de achterwand, want daar is de zijwand
+te kort voor een bank én kijkafstand.
+
+Verder een **schilderij van een Fries landschap** boven de bank, een **wand in
+een diepere kleur** erachter, een **boekenkast** met vier planken boeken en een
+plant erop, een **dressoir met drie fotolijstjes, een schemerlamp en een
+plantje**, **gordijnen** naast de pui, een **klok** aan de muur, een **grote
+kamerplant** in de hoek en een **kattenmand**. Aan de andere kant van de kamer
+staat de **eettafel met vier stoelen** waar je aan kunt gaan zitten, en de
+**keuken** staat niet leeg: waterkoker, snijplank tegen de tegels, fruitschaal,
+afdruiprek naast de spoelbak, theedoek over de greep, pedaalemmer en een plantje
+op de vensterbank — plus de **koelkast** waar je een flesje bier uit pakt (je
+eigen bier, dus gratis, en hetzelfde leven erbij als bij de Poiesz).
+
+De muren zijn niet meer gebroken wit: elke woning heeft een eigen warme
+wandkleur met een accentkleur erachter de bank, over een fijn behangdessin. Er
+lopen **twee katten** rond die gaan zitten en op de bank springen, en de **tv
+staat aan op Radio Spannenburg** — je hoort hem door het hele huis, gedempt
+zoals het hoort binnen.
 
 Dezelfde inrichting staat ook in Molenkrite 15 en de Wieken 29: het is één
 bouwer, dus de twee oude woningen zijn meteen mee opgeknapt.
@@ -1665,7 +1677,7 @@ loopt niet weg. Kom terug als je het hebt."* De missie blijft dan gewoon
 openstaan en de drie vlaggen blijven op de kaart. Koop je er een, dan verdwijnen
 de andere twee en houd je één vlag over: **je stek**.
 
-`npm run huistest` (drieënveertig controles) loopt de hele missie na, van het
+`npm run huistest` (tweeënzestig controles) loopt de hele missie na, van het
 telefoontje tot de sleutels, en `npm run huisshots` maakt de foto's van de drie
 woonkamers.
 
