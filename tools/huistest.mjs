@@ -38,13 +38,32 @@ await page.evaluate(() => {
   document.getElementById('overlay').style.display = 'none';
   g.player.active = true;
   window.__stap = (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) g.verhaal.update(dt); };
+  /*
+   Een gesprek wegklikken. Stoppen zodra de balk weg is: `dialoogTekst` houdt de
+   laatste zin vast, dus daarop doortellen betekende nog dertig keer E drukken —
+   en stond je dan toevallig bij de tafel van een van de drie woningen, dan kocht
+   de proef het huis dat ze net wilde bekijken.
+  */
   window.__klik = (n = 30) => {
     for (let i = 0; i < n; i++) {
-      if (!document.getElementById('dialoogTekst').textContent) break;
+      if (document.getElementById('dialoog').hidden) break;
       g.praat(); window.__stap(2);
     }
   };
   window.__stek = () => g.woningen.filter(w => w.stek);
+  /*
+   Even wachten tot het stil is. Mark zegt bij elke woning iets zodra je vlakbij
+   staat; dat zinnetje klikt zichzelf weg, maar zolang het in beeld staat toont
+   het verhaal geen koopregel en gaat E naar het gesprek in plaats van naar de
+   tafel.
+  */
+  window.__rust = (n = 120) => {
+    for (let i = 0; i < n; i++) {
+      g.verhaal.update(0.2);
+      if (i > 8 && document.getElementById('dialoog').hidden) return true;
+    }
+    return document.getElementById('dialoog').hidden;
+  };
 });
 
 // ------------------------------------------------------- de drie woningen
@@ -154,6 +173,45 @@ ok(spullen.stek.every(h => h.tvAfstand > 2.4 && h.tvAfstand < 4.2),
 ok(spullen.wieken.schilderij && spullen.wieken.dressoir && spullen.wieken.plant,
   'en de Wieken 29 is mee opgeknapt', `bank ${spullen.wieken.bank} m, ${spullen.wieken.keuken} in de keuken`);
 
+// ------------------------------------------------- ramen, tuin en het opstaan
+kop('ramen, de tuin en uit het goede huis komen');
+const buitenom = await page.evaluate(async () => {
+  const W = await import('/js/world.js');
+  const g = window.__game;
+  const uit = { ramen: [], tuin: [], hek: [], deur: [] };
+  for (const w of window.__stek()) {
+    uit.ramen.push(w.inrichting.ramen);
+    const p = w.plekken;
+    uit.tuin.push(!!p.tuindeur && !!p.terras && w.tuin(p.terras.x, p.terras.z));
+    // door de tuindeur kun je lopen, door het hek niet
+    const d = p.tuindeur;
+    const [dx, dz] = W.resolveCollisions(d.x, d.z, 0.34);
+    uit.deur.push(+Math.hypot(dx - d.x, dz - d.z).toFixed(2));
+    const h = p.hek;
+    const [hx, hz] = W.resolveCollisions(h.x, h.z, 0.34);
+    uit.hek.push(+Math.hypot(hx - h.x, hz - h.z).toFixed(2));
+  }
+  // en het opstaan: ga in het derde huis zitten en druk op E via het spel zelf
+  const w = window.__stek()[2];
+  g.player.inCar = null;
+  g.player.pos.set(w.plekken.stoel.x, 0, w.plekken.stoel.z);
+  g.praat();                                   // zitten
+  const zat = g.player.zit;
+  g.praat();                                   // en opstaan
+  uit.opstaan = { zat, zit: g.player.zit, inHuis: w.binnen(g.player.pos.x, g.player.pos.z),
+    naam: w.naam };
+  return uit;
+});
+ok(buitenom.ramen.every(n => n >= 3), 'er zitten ramen in de buitenmuren',
+  buitenom.ramen.join(' · '));
+ok(buitenom.tuin.every(Boolean), 'achter elk huis ligt een tuin');
+ok(buitenom.deur.every(v => v < 0.05), 'door de tuindeur loop je naar buiten',
+  buitenom.deur.join(' · '));
+ok(buitenom.hek.every(v => v > 0.1), 'en door het hek kom je niet',
+  buitenom.hek.map(v => `${v} m opzij gezet`).join(' · '));
+ok(buitenom.opstaan.zat && !buitenom.opstaan.zit && buitenom.opstaan.inHuis,
+  'opstaan laat je staan in het huis waar je zat', buitenom.opstaan.naam);
+
 // ------------------------------------------------------------- de missie
 kop('de missie: Mark belt, drie vlaggen op de kaart');
 const start = await page.evaluate(() => {
@@ -191,34 +249,76 @@ const kiezen = await page.evaluate(() => {
 ok(kiezen.fase === 'kiezen', 'na de briefing mag je kiezen', kiezen.fase);
 ok(kiezen.vlaggen === 3, 'en staan er drie huisjes op de kaart', kiezen.namen.join(' · '));
 
+const keuze = await page.evaluate(() => {
+  const g = window.__game;
+  const w2 = window.__stek()[1];
+  const gekozen = g.verhaal.kiesHuis(2);
+  const nav = g.hud.nav;
+  const d = w2.plekken.deurBuiten;
+  const bij = nav && nav.doel ? Math.hypot(nav.doel[0] - d.x, nav.doel[1] - d.z) : -1;
+  // en Mark verdwijnt zodra je van de Wieken wegloopt
+  g.player.pos.set(d.x + 40, 0, d.z + 40);
+  window.__stap(6);
+  return { gekozen, naam: w2.naam, bij: +bij.toFixed(1), mark: g.verhaal.mark.groep.visible,
+    opdracht: document.getElementById('opdracht').textContent };
+});
+ok(keuze.gekozen && keuze.bij >= 0 && keuze.bij < 6,
+  'met 2 gaat de navigatie naar de tweede woning', `${keuze.naam}, ${keuze.bij} m van de deur`);
+ok(/Molenkrite 130c/i.test(keuze.opdracht), 'en de opdracht noemt hem', keuze.opdracht);
+ok(!keuze.mark, 'Mark blijft niet bij de Wieken staan als je op pad gaat');
+
+// ------------------------------------------- alle drie bekeken zonder te kopen
+kop('alle drie bekeken en niets gekocht');
+const rondje = await page.evaluate(() => {
+  const g = window.__game;
+  for (const w of window.__stek()) {
+    g.player.pos.set(w.plekken.deurBinnen.x, 0, w.plekken.deurBinnen.z);
+    window.__rust();
+  }
+  // weer de deur uit voor we het gesprek wegklikken: bij de tafel is E kopen
+  const eerste = window.__stek()[0];
+  g.player.pos.set(eerste.plekken.deurBuiten.x, 0, eerste.plekken.deurBuiten.z);
+  window.__rust(); window.__klik(); window.__stap(10);
+  g.kaartvlaggen();
+  return { missie: g.verhaal.missie, fase: g.verhaal.fase, aanbod: g.verhaal.stekAanbod,
+    gezien: g.verhaal.stekGezien.length, stek: g.verhaal.stek,
+    vlaggen: (g.hud.winkels || []).filter(x => x.wat === 'huis').length,
+    melding: document.getElementById('missie').textContent };
+});
+ok(rondje.gezien === 3, 'je hebt ze alle drie van binnen gezien', `${rondje.gezien} van de 3`);
+ok(rondje.missie === 'klaar' && /VOLTOOID/i.test(rondje.melding),
+  'de missie is klaar, ook zonder te kopen', `${rondje.missie}/${rondje.fase}`);
+ok(rondje.aanbod && !rondje.stek && rondje.vlaggen === 3,
+  'en het aanbod blijft staan: drie vlaggen op de kaart', `${rondje.vlaggen} vlaggen`);
+
 // --------------------------------------------------- te weinig geld, en genoeg
 kop('kopen: eerst te weinig, dan genoeg');
 const arm = await page.evaluate(() => {
   const g = window.__game;
   const w = window.__stek().find(x => x.prijs === 5000);
+  window.__klik(); window.__stap(4);         // eerst de balk leeg
   g.verhaal.betaal(g.verhaal.geld);          // wallet leeg
   g.player.pos.set(w.plekken.stoel.x, 0, w.plekken.stoel.z);
   /*
-   Mark zegt bij elk huis wat hij ervan vindt zodra je vlakbij staat. Dat zinnetje
-   klikt zichzelf weg, maar zolang het in beeld staat toont het verhaal geen
-   koopregel — dus eerst een paar tellen laten lopen en dan pas kijken.
+   Na een voltooide missie loopt het verhaal door en kan er onderweg nog een
+   telefoontje binnenkomen; zolang dat in beeld staat toont het verhaal geen
+   koopregel. Dus: uitwachten, wegklikken, en dan pas kijken.
   */
-  window.__stap(6);
-  for (let i = 0; i < 200 && !document.getElementById('dialoog').hidden; i++) g.verhaal.update(0.1);
-  window.__stap(4);
+  window.__rust(); window.__klik(); window.__stap(6);
+  const balk = document.getElementById('dialoog').hidden;
   const el = document.getElementById('praat');
   const hint = el.hidden ? '' : el.textContent;
   g.praat();
   window.__stap(4);
   const melding = document.getElementById('dialoogTekst').textContent;
-  return { hint, melding, missie: g.verhaal.missie, fase: g.verhaal.fase,
-    geld: g.verhaal.geld, stek: g.verhaal.stek };
+  return { hint, melding, balk, aanbod: g.verhaal.stekAanbod, geld: g.verhaal.geld,
+    stek: g.verhaal.stek };
 });
-ok(/kopen/i.test(arm.hint) && /5\.?000/.test(arm.hint), 'aan tafel staat de koopregel', arm.hint);
-ok(/niet|terug|hebt/i.test(arm.melding), 'Mark belt dat het nog niet genoeg is',
+ok(/kopen/i.test(arm.hint) && /5\.?000/.test(arm.hint), 'aan tafel staat de koopregel',
+  `${arm.hint || 'geen'} (balk leeg: ${arm.balk})`);
+ok(/loopt niet weg|nog niet/i.test(arm.melding), 'Mark belt dat het nog niet genoeg is',
   (arm.melding || '').slice(0, 45));
-ok(arm.missie === 'huis' && arm.fase === 'kiezen' && !arm.stek,
-  'en de missie blijft openstaan', `${arm.missie}/${arm.fase}`);
+ok(arm.aanbod && !arm.stek, 'en het aanbod blijft openstaan');
 
 const koop = await page.evaluate(() => {
   const g = window.__game;
@@ -227,21 +327,19 @@ const koop = await page.evaluate(() => {
   g.verhaal.verdien(4000);
   const voor = g.verhaal.geld;
   g.player.pos.set(w.plekken.stoel.x, 0, w.plekken.stoel.z);
-  window.__stap(6);
-  for (let i = 0; i < 200 && !document.getElementById('dialoog').hidden; i++) g.verhaal.update(0.1);
-  window.__stap(4);
+  window.__rust();
   g.praat();
   window.__stap(4); window.__klik(); window.__stap(10);
   g.kaartvlaggen();
   const vlaggen = (g.hud.winkels || []).filter(x => x.wat === 'huis');
-  return { voor, na: g.verhaal.geld, stek: g.verhaal.stek, missie: g.verhaal.missie,
+  return { voor, na: g.verhaal.geld, stek: g.verhaal.stek, aanbod: g.verhaal.stekAanbod,
     vlaggen: vlaggen.length, naam: vlaggen[0] ? vlaggen[0].naam : null,
     melding: document.getElementById('missie').textContent };
 });
 ok(koop.stek === 'Molenkrite 130c', 'met genoeg geld koop je het huis', String(koop.stek));
 ok(koop.voor - koop.na === 2500, 'en het sleutelgeld gaat van je wallet',
   `${koop.voor} → ${koop.na}`);
-ok(/VOLTOOID/i.test(koop.melding), 'de missie is voltooid', (koop.melding || '').slice(0, 40));
+ok(!koop.aanbod, 'het aanbod is daarmee van tafel');
 ok(koop.vlaggen === 1 && /stek/i.test(koop.naam || ''),
   'en op de kaart blijft alleen je eigen stek staan', `${koop.vlaggen} vlag: ${koop.naam}`);
 

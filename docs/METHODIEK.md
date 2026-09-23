@@ -4940,6 +4940,58 @@ Allebei gemeten, niet gezien.
 
 `npm run huistest` (tweeënzestig controles) en `npm run huisshots`.
 
+*Naar buiten kijken, en naar buiten kunnen.* Zes punten uit de derde ronde
+melding (23 sep 2026), waarvan er één een echte fout was.
+
+*De verkeerde deur.* Stap je uit een van de drie aangeboden woningen, dan kwam je
+voor de Molenkrite 15 te staan — het eerste huis in de lijst, niet het huis waar
+je in zat. De uitgang zelf klopte: een proefje in de browser liet zien dat de
+teleportatie precies het juiste adres teruggaf. De fout zat een regel eerder. De
+`toets()` van elke binnenruimte begint met "zit je? sta dan op", en die tak stond
+vóór de vraag of je wel in *dit* huis bent. Molenkrite 15 wordt als eerste
+gevraagd, ving het opstaan af, en zette je op zijn eigen stoep. Eén regel erbij
+(`if (!binnen(...)) return false`) en elk huis handelt weer zijn eigen tafel af.
+Dat is de vaste les van dit soort bugs: het onderdeel dat de verkeerde uitkomst
+oplevert is meestal niet het onderdeel dat de fout maakt.
+
+*Ramen die je van binnen ziet.* De zijwanden waren blinde muren. Nu krijgen ze
+gaten van 1,35 breed op 1,45 tot 2,25 hoog met halfdoorzichtig glas erin. Waar ze
+níet mogen komen is het lastige deel: niet in het stuk wand waar de hoekbank
+staat, niet achter het keukenblok, en niet in de eerste anderhalve meter bij de
+voorgevel. Daarvoor moesten de bankmaten omhoog in het bestand, boven de lus die
+de wanden zet — de indeling van de kamer bepaalt nu waar de ramen kunnen, in
+plaats van andersom.
+
+*Een tuin waar je in kunt.* Achter elke woning ligt nu 6,6 m tuin, 1,1 m breder
+dan het huis: een terras van tegels tegen de achtergevel, gras erachter, en een
+schutting van 1,78 m met een botsdoos eromheen. Er staat een tafel met twee
+stoelen en een parasol, een schuurtje en twee potten. De tuindeur was de eerste
+poging een gesloten deur: een drempel van vijf centimeter leek onschuldig, maar
+een gat in een wand wordt hier een botsdoos over de volle wanddikte, en met de
+straal van de speler erbij duwde die je 46 cm terug — precies MUUR/2 plus 0,34.
+De drempel eruit en het gat loopt weer tot de vloer. Waar de deur zit hangt van
+de vorm af: meestal in de achtergevel, maar heeft de woning een aanbouw die de
+achterkant in beslag neemt, dan zoekt een voorscan eerst een zijwand met genoeg
+ruimte. `binnen()` is uitgebreid tot over de tuin, zodat je niet halverwege het
+gras uit de binnenruimte valt.
+
+*Kiezen vóórdat je gaat lopen.* Mark noemt nu de drie adressen mét bedrag in de
+tekstbox en je drukt 1, 2 of 3; de navigatie gaat naar dat adres. Dat kostte
+geen nieuwe toestand: de toetsen lezen dezelfde lijst als de kaartvlaggen.
+
+*Mark verdwijnt van de stoep.* Hij stond bij de Wieken 29 te wachten terwijl je
+al twee straten verder was. Nu staat hij bij het dichtstbijzijnde van de drie
+huizen als je binnen vijfenvijftig meter bent, en nergens als je onderweg bent —
+dat leest als meelopen, zonder dat er een tweede routezoeker voor nodig is.
+
+*Geen keuze is ook een einde.* De missie bleef openstaan als je niets kocht.
+Nu onthoudt het verhaal welke van de drie je binnen bent geweest; zijn dat er
+drie, dan zegt Mark dat je er rustig over na kunt denken en is de missie
+voltooid. Het aanbod blijft los van de missie bestaan: de vlaggen blijven staan
+en aan tafel kun je alsnog kopen. Daarvoor moesten de koopregels loskomen van de
+missiefase — ze kijken nu naar `huisAanbod` in plaats van naar waar missie 9
+staat.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

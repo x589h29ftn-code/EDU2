@@ -474,6 +474,8 @@ const supermarkt = initSupermarkt({ scene, player, hud, verhaal }) || LEEG;
 // Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
 const binnenruimtes = [...woningen, boerderij, supermarkt];
 const ergensBinnen = (x, z) => binnenruimtes.some(r => r.binnen(x, z));
+// en sta je in de tuin van een van de woningen? Dan ben je buiten (js/interieur.js)
+const inTuin = (x, z) => binnenruimtes.some(r => r.tuin && r.tuin(x, z));
 /*
  Winkeltjes op de minikaart en op de grote kaart, en daar komen tijdens missie 9
  de drie te koop staande woningen bij (js/verhaal.js levert ze; js/hud.js tekent
@@ -1116,6 +1118,18 @@ function startMissieLos(naam) {
   hud.show(`Missie ${m.nr} — ${m.titel}`, 3.5);
   return true;
 }
+/*
+ 1, 2 en 3 zonder shift: de keuze uit de drie woningen van missie 9. Mark noemt
+ ze in de gespreksbalk met adres en bedrag, en de navigatie gaat naar wat je
+ kiest (verzoek 23 sep 2026). Buiten die missie doen de cijfers niets.
+*/
+window.addEventListener('keydown', e => {
+  if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!player.active && !window.__autoplay) return;
+  const k = /^Digit([123])$/.exec(e.code) || /^Numpad([123])$/.exec(e.code);
+  if (!k || !verhaal.kiesHuis) return;
+  if (verhaal.kiesHuis(+k[1])) e.preventDefault();
+});
 window.addEventListener('keydown', e => {
   if (!e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
   if (!player.active && !window.__autoplay) return;
@@ -1788,7 +1802,12 @@ function loop() {
     updateProps(dt);
     langsrijders(dt);          // een auto die voorbijkomt hoor je ook
     geluid.omgeving(dt, {
-      weer: sfeer.weer, nacht: sfeer.nacht, binnen: !!player.inCar || player.binnen,
+      /*
+       In de tuin achter het huis ben je binnen voor de kaart en de politie, maar
+       buiten voor je oren: daar hoort geen kamergalm (verzoek 23 sep 2026).
+      */
+      weer: sfeer.weer, nacht: sfeer.nacht,
+      binnen: !!player.inCar || (player.binnen && !inTuin(cx, cz)),
       water: waterNabij(dt, cx, cz), molen: molenNabij(cx, cz),
     });
     geluid.radio(afstandTotRadio(cx, cz));

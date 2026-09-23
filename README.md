@@ -1630,8 +1630,11 @@ Veteraan heeft drie panden in de wijk waar hij over gaat: sleutelgeld eenmalig,
 daarna een huur waar je om moet lachen. *"Jij woont nog steeds in dat hok. Kom
 even naar de Wieken, dan lopen we ze langs."*
 
-Mark staat voor **de Wieken 29** — waar missie 7 begon. Na zijn praatje staan er
-**drie blauwe huisjes op de kaart**:
+Mark staat voor **de Wieken 29** — waar missie 7 begon. Hij noemt de drie
+adressen met het bedrag erbij en vraagt waar je eerst wilt kijken: **druk op 1,
+2 of 3** en de navigatie gaat daarheen. Ga je op pad, dan is Mark van de stoep
+verdwenen — het lijkt alsof hij meeloopt, en hij staat bij het volgende huis
+eerder dan jij. Na zijn praatje staan er **drie blauwe huisjes op de kaart**:
 
 | | Adres | Kamer | Sleutelgeld |
 |---|---|---|---|
@@ -1669,17 +1672,34 @@ lopen **twee katten** rond die gaan zitten en op de bank springen, en de **tv
 staat aan op Radio Spannenburg** — je hoort hem door het hele huis, gedempt
 zoals het hoort binnen.
 
-Dezelfde inrichting staat ook in Molenkrite 15 en de Wieken 29: het is één
-bouwer, dus de twee oude woningen zijn meteen mee opgeknapt.
+![De woonkamer van Zeskanter 16](docs/screenshots/huis_zeskanter.png)
+
+En je kijkt naar buiten: in de zijwanden zitten **ramen** waar je halfdoorzichtig
+glas in ziet, naast de pui en boven het aanrecht, en achterin gaat een
+**tuindeur** open naar je eigen tuin. Daar ligt een **terras van tegels** met een
+**tafel, twee stoelen en een parasol**, daarachter **gras** tot aan de
+**schutting** van 1,78 m die je niet door kunt — met een **schuurtje** in de hoek
+en twee potten met een plant. Zitten in het zonnetje kan dus letterlijk: het is
+buiten, dus de galm van de kamer valt weg en de radio klinkt weer als buiten.
+
+![De tuin achter Zeskanter 16](docs/screenshots/huis_tuin.png)
+
+Dezelfde inrichting — ramen en tuin inbegrepen — staat ook in Molenkrite 15 en
+de Wieken 29: het is één bouwer, dus de twee oude woningen zijn meteen mee
+opgeknapt.
 
 Kopen doe je **aan tafel**, met E. Heb je het geld niet, dan belt Mark: *"Hij
-loopt niet weg. Kom terug als je het hebt."* De missie blijft dan gewoon
-openstaan en de drie vlaggen blijven op de kaart. Koop je er een, dan verdwijnen
-de andere twee en houd je één vlag over: **je stek**.
+loopt niet weg. Kom terug als je het hebt."* Koop je er een, dan verdwijnen de
+andere twee en houd je één vlag over: **je stek**.
 
-`npm run huistest` (tweeënzestig controles) loopt de hele missie na, van het
-telefoontje tot de sleutels, en `npm run huisshots` maakt de foto's van de drie
-woonkamers.
+En koop je er géén? Dan loopt de missie gewoon door. Zodra je alle drie binnen
+bent geweest zegt Mark dat je er rustig over na kunt denken, en is missie 9
+**voltooid** — het spel gaat verder naar de volgende. Het aanbod blijft staan:
+de drie vlaggen blijven op de kaart en je kunt later alsnog aan tafel gaan zitten
+en kopen.
+
+`npm run huistest` loopt de hele missie na, van het telefoontje tot de sleutels,
+en `npm run huisshots` maakt de foto's van de drie woonkamers en van de tuin.
 
 ## De wijk reageert: paniek, herstelpunten en voorrang
 

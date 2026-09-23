@@ -621,6 +621,53 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   const KEUKEN = aanbouw ? { x0: aanbouw.x0 + MUUR, x1: aanbouw.x1 - MUUR, z0: aanbouw.z0, z1: aanbouw.z1 - MUUR }
     : { x0: MUUR, x1: BREED / 2, z0: DIEP - 4.6, z1: DIEP - MUUR };
   const TUINDEUR = { van: (aanbouw ? aanbouw.x1 : BREED / 2) + 0.5, tot: BREED - MUUR - 0.3 };
+  let tuinDeur = null;        // waar je de tuin in stapt (wordt in de lus gezet)
+  /*
+   Waar komt de tuindeur? Bij een huis met een aanbouw in de tuinkant van het
+   voorhuis — dat is de klassieke indeling — maar alleen als daar ook echt een
+   wand ligt die breed genoeg is. Bij een vrijstaand huis of een bungalow is er
+   geen tussenwand, en bij sommige grondvlakken springt de plattegrond opzij in
+   plaats van naar achteren; dan gaat de deur in de achtergevel. Dit wordt vooraf
+   bepaald, want de zijden van het grondvlak komen in willekeurige volgorde
+   langs en de deur mag er maar één keer in.
+  */
+  let tuinIn = 'achter';
+  if (aanbouw && TUINDEUR.tot > TUINDEUR.van + 0.8) {
+    for (let i = 0; i < plan.punten.length; i++) {
+      const a = plan.punten[i], b = plan.punten[(i + 1) % plan.punten.length];
+      if (Math.abs(b[0] - a[0]) <= Math.abs(b[1] - a[1])) continue;     // geen wand langs x
+      const z = (a[1] + b[1]) / 2;
+      if (z < 0.2 || z > DIEP - 0.2) continue;                          // voor- of achtergevel
+      const van = Math.min(a[0], b[0]) - MUUR, tot = Math.max(a[0], b[0]) + MUUR;
+      if (TUINDEUR.van >= van && TUINDEUR.tot <= tot) { tuinIn = 'voorhuis'; break; }
+    }
+  }
+  let raamAantal = 0;         // hoeveel ramen er in de buitenmuren zitten
+  const HAL = { x0: MUUR, x1: MUUR + HAL_BREED + WAND, z0: MUUR, z1: HAL_DIEP + WAND };
+
+  /*
+   Waar de zithoek komt te staan. Dat wordt hier al uitgerekend en niet pas bij
+   het meubilair, omdat de muren het moeten weten: er komen ramen in de zijmuren
+   en die horen niet achter de bank of achter de keukenrij te zitten.
+  */
+  const BANK_DIEP = 0.98;
+  const Z_RUIMTE = (voorhuis.z1 - MUUR - 0.15) - (HAL.z1 + 0.15);   // langs de rechterwand
+  const X_RUIMTE = (BREED - MUUR - 0.3) - (HAL.x1 + 0.3);           // langs de achterwand
+  const ACHTERWAND = Z_RUIMTE < 2.6 && X_RUIMTE > Z_RUIMTE + 1.5;
+  const BANK_RUIMTE = ACHTERWAND ? X_RUIMTE : Z_RUIMTE;
+  const BANK_LANG = Math.max(1.4, Math.min(3.20, BANK_RUIMTE - 0.2));
+  /*
+   Waar de bank langs die wand begint. Tegen de rechterwand in het midden; tegen
+   de achterwand juist aan de kant van de gang, want in zo'n brede kamer staat de
+   eettafel in het midden en wil je er niet tegenaan kijken.
+  */
+  const BANK_U0 = ACHTERWAND
+    ? HAL.x1 + 0.3 + 0.2
+    : (HAL.z1 + 0.15) + (Z_RUIMTE - BANK_LANG) / 2;
+  const BANK_U1 = BANK_U0 + BANK_LANG;
+  const bankZ = ACHTERWAND ? voorhuis.z1 - MUUR - BANK_DIEP / 2 : (BANK_U0 + BANK_U1) / 2;
+  const bankX = ACHTERWAND ? (BANK_U0 + BANK_U1) / 2 : BREED - MUUR - BANK_DIEP / 2;
+
   const PUI = { van: MUUR + HAL_BREED + 0.4, tot: BREED - MUUR - 0.35 };
 
   for (let i = 0; i < plan.punten.length; i++) {
@@ -642,16 +689,34 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       if (z < 0.2) {                     // de voorgevel
         gaten.push({ van: DEUR_X - DEUR_B / 2, tot: DEUR_X + DEUR_B / 2, y0: 0, y1: DEUR_H });
         gaten.push({ van: PUI.van, tot: PUI.tot, y0: RAAM_ONDER, y1: RAAM_BOVEN });
-      } else if (z > DIEP - 0.2) {       // de achterkant van de aanbouw
+      } else if (z > DIEP - 0.2) {       // de achterkant van het huis
         gaten.push({ van: van + 0.79, tot: Math.min(tot - 0.69, van + 2.19), y0: 0.95, y1: 2.15 });
-      } else if (TUINDEUR.tot > TUINDEUR.van + 0.8) {   // de tuinkant van het voorhuis
-        gaten.push({ van: TUINDEUR.van, tot: TUINDEUR.tot, y0: 0.05, y1: 2.30 });
+        /*
+         En een tuindeur, als die er niet al in de tuinkant van het voorhuis
+         zit. Een vrijstaand huis of een bungalow heeft maar één band en dus
+         geen tussenwand; zonder deze deur kun je daar de tuin niet in
+         (verzoek 23 sep 2026).
+        */
+        if (tuinIn === 'achter' && tot - van > 3.6) {
+          // vanaf de vloer: een drempel van vijf centimeter is in de botsdozen
+          // een muurtje van een kwart meter dik en dan kom je de tuin niet in
+          gaten.push({ van: tot - 2.30, tot: tot - 1.00, y0: 0, y1: 2.30, tuin: true });
+        }
+      } else if (tuinIn === 'voorhuis') {   // de tuinkant van het voorhuis
+        gaten.push({ van: TUINDEUR.van, tot: TUINDEUR.tot, y0: 0, y1: 2.30, tuin: true });
       }
       wand({ as: 'z', bij, dik: MUUR, van, tot, mat: MAT.muur, gaten });
       for (const h of gaten) {
-        if (h.y0 > 0.02) raam('z', bij, MUUR, h.van, h.tot, h.y0, h.y1);
-        // een gat in een buitenmuur is dicht: glas of een deur die niet opengaat
-        dozen.push({ x: (h.van + h.tot) / 2, z: bij + MUUR / 2, hx: (h.tot - h.van) / 2, hz: MUUR / 2, h: h.y1 });
+        if (h.y0 > 0.02) { raam('z', bij, MUUR, h.van, h.tot, h.y0, h.y1); raamAantal++; }
+        /*
+         Een gat in een buitenmuur is dicht — glas, of een voordeur die niet
+         opengaat. Behalve de tuindeur: daar loop je doorheen, de tuin in.
+        */
+        if (!h.tuin) {
+          dozen.push({ x: (h.van + h.tot) / 2, z: bij + MUUR / 2, hx: (h.tot - h.van) / 2, hz: MUUR / 2, h: h.y1 });
+        } else {
+          tuinDeur = { x: (h.van + h.tot) / 2, z: bij + MUUR / 2, breed: h.tot - h.van };
+        }
       }
       // de voordeur zelf, aan de binnenkant tegen het kozijn
       if (z < 0.2) {
@@ -666,12 +731,36 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       const x = (a[0] + b[0]) / 2;
       const bij = nx > 0 ? x : x - MUUR;
       const van = Math.min(a[1], b[1]) - MUUR, tot = Math.max(a[1], b[1]) + MUUR;
-      wand({ as: 'x', bij, dik: MUUR, van, tot, mat: MAT.muur });
+      /*
+       De zijmuren waren dicht, en in een vrijstaand huis van twintig meter diep
+       kijk je dan tegen twee blinde wanden aan (verzoek 23 sep 2026). Er komen
+       nu ramen in: halfdoorzichtig glas met een kozijn, zodat je van binnen de
+       buurt ziet liggen. Ze blijven weg waar aan de binnenkant iets tegen die
+       wand staat — de keukenrij, de bank met het schilderij — en op de eerste
+       anderhalve meter bij de voorgevel, want daar staat de gang.
+      */
+      const gaten = [];
+      const rechts = bij > BREED / 2;
+      const vrij = [Math.max(van + 1.6, MUUR + 1.4), Math.min(tot - 1.0, DIEP - MUUR - 0.6)];
+      // wat er aan de binnenkant tegen deze wand staat en dus vrij moet blijven
+      const mijden = rechts
+        ? (ACHTERWAND ? [0, 0] : [BANK_U0 - 0.5, BANK_U1 + 2.2])   // bank en boekenkast
+        : [KEUKEN.z0 - 0.3, KEUKEN.z1 + 0.3];                      // de keukenrij
+      const RB = 1.35, RY0 = 1.45, RY1 = 2.25;
+      for (let r0 = vrij[0]; r0 + RB < vrij[1]; r0 += RB + 1.5) {
+        if (r0 + RB > mijden[0] && r0 < mijden[1]) continue;
+        gaten.push({ van: r0, tot: r0 + RB, y0: RY0, y1: RY1 });
+      }
+      wand({ as: 'x', bij, dik: MUUR, van, tot, mat: MAT.muur, gaten });
+      for (const h of gaten) {
+        raam('x', bij, MUUR, h.van, h.tot, h.y0, h.y1);
+        dozen.push({ x: bij + MUUR / 2, z: (h.van + h.tot) / 2, hx: MUUR / 2, hz: (h.tot - h.van) / 2, h: h.y1 });
+        raamAantal++;
+      }
     }
   }
 
   // ---------- vloer en plafond ----------
-  const HAL = { x0: MUUR, x1: MUUR + HAL_BREED + WAND, z0: MUUR, z1: HAL_DIEP + WAND };
   for (const v of vakken) {
     const x0 = v.x0, x1 = v.x1, z0 = v.z0, z1 = v.z1;
     vloer(x0, x1, z0, z1, HOOGTE, MAT.plafond, false);
@@ -738,25 +827,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   const inrichting = { schilderij: false, kleed: false, salontafel: false,
     dressoir: false, fotos: false, lamp: false, plant: false, fauteuil: false,
     hoek: false, boekenkast: false, gordijnen: false, klok: false,
-    kattenmand: false, staandelamp: false, accentwand: false, keuken: 0 };
-
-  const BANK_DIEP = 0.98;
-  const Z_RUIMTE = (voorhuis.z1 - MUUR - 0.15) - (HAL.z1 + 0.15);   // langs de rechterwand
-  const X_RUIMTE = (BREED - MUUR - 0.3) - (HAL.x1 + 0.3);           // langs de achterwand
-  const ACHTERWAND = Z_RUIMTE < 2.6 && X_RUIMTE > Z_RUIMTE + 1.5;
-  const BANK_RUIMTE = ACHTERWAND ? X_RUIMTE : Z_RUIMTE;
-  const BANK_LANG = Math.max(1.4, Math.min(3.20, BANK_RUIMTE - 0.2));
-  /*
-   Waar de bank langs die wand begint. Tegen de rechterwand in het midden; tegen
-   de achterwand juist aan de kant van de gang, want in zo'n brede kamer staat de
-   eettafel in het midden en wil je er niet tegenaan kijken.
-  */
-  const BANK_U0 = ACHTERWAND
-    ? HAL.x1 + 0.3 + 0.2
-    : (HAL.z1 + 0.15) + (Z_RUIMTE - BANK_LANG) / 2;
-  const BANK_U1 = BANK_U0 + BANK_LANG;
-  const bankZ = ACHTERWAND ? voorhuis.z1 - MUUR - BANK_DIEP / 2 : (BANK_U0 + BANK_U1) / 2;
-  const bankX = ACHTERWAND ? (BANK_U0 + BANK_U1) / 2 : BREED - MUUR - BANK_DIEP / 2;
+    kattenmand: false, staandelamp: false, accentwand: false, tuin: false, keuken: 0 };
 
   // u loopt langs de wand, v vanaf de wand de kamer in
   const pB = (u, v) => (ACHTERWAND
@@ -1473,6 +1544,88 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   bouwBuiten();
 
   /*
+   ---------- de tuin ----------
+   Achter de tuindeur ligt een echte tuin waar je in kunt lopen: een terras van
+   tegels tegen het huis, gras daarachter, en er een schutting omheen waar je
+   niet doorheen komt (verzoek 23 sep 2026). Op het terras staat een tafel met
+   twee stoelen en een parasol, en in de hoek een schuurtje met twee potten
+   ernaast — genoeg om er in het zonnetje te gaan zitten.
+
+   De tuin hoort bij de kamer en niet bij de kijkdoos: hij heeft botsdozen, je
+   loopt erin rond, en hij staat dus in dezelfde groep als het huis.
+  */
+  const TUIN_DIEP = 6.6;                 // vanaf de achtergevel tot de schutting
+  const TUIN_ZIJ = 1.1;                  // hoeveel de tuin aan weerszijden uitsteekt
+  const HEK_H = 1.78;
+  const TUIN = tuinDeur ? {
+    x0: -TUIN_ZIJ, x1: BREED + TUIN_ZIJ,
+    z0: Math.min(voorhuis.z1, DIEP) , z1: DIEP + TUIN_DIEP,
+  } : null;
+  if (TUIN) {
+    const t = TUIN;
+    // gras over de hele tuin, en een terras van tegels tegen de achtergevel
+    vloer(t.x0, t.x1, t.z0, t.z1, 0.002, new THREE.MeshBasicMaterial({
+      color: 0x5f8a3f, vertexColors: true, fog: false,
+    }));
+    const terrasB = Math.min(BREED + TUIN_ZIJ, tuinDeur.x + 2.6);
+    const terrasA = Math.max(t.x0, tuinDeur.x - 2.6);
+    vloer(terrasA, terrasB, DIEP, DIEP + 3.0, 0.006, new THREE.MeshBasicMaterial({
+      map: texture(blokjes(), (terrasB - terrasA) / 0.9, 3.0 / 0.9), vertexColors: true, fog: false,
+    }));
+    // de schutting: drie kanten dicht, met een paal om de paar meter
+    const hek = (x0, x1, z0, z1) => {
+      doos(x0, x1, z0, z1, 0, HEK_H, MAT.hout);
+      doos(x0 - 0.02, x1 + 0.02, z0 - 0.02, z1 + 0.02, HEK_H, HEK_H + 0.05, MAT.donkerhout, false);
+    };
+    hek(t.x0, t.x0 + 0.08, t.z0, t.z1);                    // links
+    hek(t.x1 - 0.08, t.x1, t.z0, t.z1);                    // rechts
+    hek(t.x0, t.x1, t.z1 - 0.08, t.z1);                    // achter
+    // en de twee stukjes naast het huis, zodat je er niet omheen loopt
+    hek(t.x0, 0, t.z0, t.z0 + 0.08);
+    hek(BREED, t.x1, t.z0, t.z0 + 0.08);
+    /*
+     Het terras: een ronde tafel op een poot, twee stoelen en een parasol. De
+     parasol staat open — hij is van drie meter hoog en je kijkt er vanaf het
+     terras tegenaan, dus de doek zit boven ooghoogte.
+    */
+    const tx = Math.max(t.x0 + 1.4, Math.min(t.x1 - 1.4, tuinDeur.x + 1.5));
+    const tz = DIEP + 1.5;
+    doos(tx - 0.55, tx + 0.55, tz - 0.55, tz + 0.55, 0.70, 0.76, MAT.hout);
+    doos(tx - 0.07, tx + 0.07, tz - 0.07, tz + 0.07, 0, 0.70, MAT.tvRand, false);
+    doos(tx - 0.28, tx + 0.28, tz - 0.28, tz + 0.28, 0, 0.05, MAT.tvRand, false);
+    for (const [sx, sz] of [[-1.05, 0], [1.05, 0]]) {
+      doos(tx + sx - 0.24, tx + sx + 0.24, tz + sz - 0.24, tz + sz + 0.24, 0.42, 0.47, MAT.hout);
+      doos(tx + sx + (sx < 0 ? -0.24 : 0.19), tx + sx + (sx < 0 ? -0.19 : 0.24), tz + sz - 0.24, tz + sz + 0.24, 0.47, 0.92, MAT.hout, false);
+      for (const px of [-0.20, 0.16]) for (const pz of [-0.20, 0.16]) {
+        doos(tx + sx + px, tx + sx + px + 0.04, tz + sz + pz, tz + sz + pz + 0.04, 0, 0.42, MAT.poot, false);
+      }
+    }
+    // de parasol: stok met een doek erop
+    doos(tx - 0.035, tx + 0.035, tz - 0.035, tz + 0.035, 0.76, 2.35, MAT.tvRand, false);
+    {
+      const kap = new THREE.Mesh(schaduw(new THREE.ConeGeometry(1.25, 0.42, 10)), MAT.kap);
+      kap.position.set(tx, 2.22, tz);
+      groep.add(kap);
+    }
+    // een schuurtje in de hoek, met een plat dakje
+    const sx0 = t.x0 + 0.25, sz0 = t.z1 - 2.1;
+    doos(sx0, sx0 + 1.9, sz0, sz0 + 1.5, 0, 2.05, MAT.hout);
+    doos(sx0 - 0.08, sx0 + 1.98, sz0 - 0.08, sz0 + 1.58, 2.05, 2.15, MAT.donkerhout, false);
+    doos(sx0 + 0.55, sx0 + 1.35, sz0 + 1.48, sz0 + 1.52, 0.05, 1.95, MAT.donkerhout, false);   // deur
+    // twee potten met een struik ernaast
+    for (const [px, pz, r] of [[sx0 + 2.5, sz0 + 0.9, 0.42], [tx + 2.2, DIEP + 0.9, 0.34]]) {
+      if (px < t.x1 - 0.6) {
+        doos(px - 0.26, px + 0.26, pz - 0.26, pz + 0.26, 0, 0.36, MAT.pot);
+        const b = new THREE.Mesh(schaduw(new THREE.IcosahedronGeometry(r, 0)), MAT.blad);
+        b.position.set(px, 0.36 + r * 0.8, pz);
+        b.scale.set(1, 0.9, 1);
+        groep.add(b);
+      }
+    }
+    inrichting.tuin = true;
+  }
+
+  /*
    ---------- de katten ----------
    Eén aan de Molenkrite, twee aan de Wieken. Ze lopen de kamer rond, blijven af
    en toe staan om rond te kijken, gaan zitten, en klimmen soms op de bank. Het
@@ -1602,8 +1755,22 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   const binnenDeur = wereld(DEUR_X, MUUR + 0.9);
 
   // Sta je in de kamer? Ruim om de plattegrond heen, dus ook in een deurgat.
+  /*
+   Sta je in de kamer? Ruim om de plattegrond heen, dus ook in een deurgat — en
+   sinds de tuin erbij zit ook daar: die ligt in dezelfde uithoek van de wereld,
+   dus de kaart hoort er hetzelfde adres te laten zien en de politie hoort er
+   niet te rijden.
+  */
   function binnen(x, z) {
-    return x > NUL.x - 2 && x < NUL.x + BREED + 2 && z > NUL.z - 2 && z < NUL.z + DIEP + 2;
+    const dz = TUIN ? TUIN.z1 + 1 : DIEP + 2;
+    const mx = TUIN ? TUIN_ZIJ + 1 : 2;
+    return x > NUL.x - mx && x < NUL.x + BREED + mx && z > NUL.z - 2 && z < NUL.z + dz;
+  }
+  // en sta je in de tuin? Dan ben je buiten: geen galm, en het wapen mag mee
+  function tuin(x, z) {
+    if (!TUIN) return false;
+    const rx = x - NUL.x, rz = z - NUL.z;
+    return rz > DIEP - 0.1 && rz < TUIN.z1 + 0.5 && rx > TUIN.x0 - 0.5 && rx < TUIN.x1 + 0.5;
   }
   function bijDeur(x, z) {
     if (binnen(x, z)) return Math.hypot(x - binnenDeur.x, z - binnenDeur.z) < DEUR_BEREIK ? 'uit' : null;
@@ -1709,7 +1876,17 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   // main.js hem niet ook nog als in- of uitstappen leest.
   function toets() {
     if (!player.active && !window.__autoplay) return false;
-    if (player.zit) { staOp(); return true; }
+    /*
+     Zit je? Dan sta je op — maar alleen als je in déze woning zit. Zonder die
+     tweede eis ving de eerste woning uit de rij (Molenkrite 15) het opstaan van
+     alle andere op, en stond je opeens in díé kamer: je ging in het huis aan de
+     Zeskanter op de bank zitten en kwam bij de Molenkrite naar buiten
+     (melding 23 sep 2026).
+    */
+    if (player.zit) {
+      if (!binnen(player.pos.x, player.pos.z)) return false;
+      staOp(); return true;
+    }
     if (bijKoelkast(player.pos.x, player.pos.z)) return pakBier();
     if (bijTafel(player.pos.x, player.pos.z)) { aanTafel(); return true; }
     if (bijBank(player.pos.x, player.pos.z)) { gaZitten(); return true; }
@@ -1775,7 +1952,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   }
 
   return {
-    update, toets, binnen, meldAan, kaart, zetLicht, gaZitten, staOp,
+    update, toets, binnen, tuin, meldAan, kaart, zetLicht, gaZitten, staOp,
     aanTafel, bijTafel, bijKoelkast, pakBier,
     // missie 9: is dit een van de drie woningen, wat kost hij, en staat de tv aan
     get stek() { return !!HUIS.stek; },
@@ -1784,7 +1961,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     get beschrijving() { return HUIS.beschrijving || ''; },
     get tvAan() { return !!MAT.tvBeeld.map; },
     // wat er aan inrichting in deze kamer gepast heeft (npm run huistest)
-    get inrichting() { return { ...inrichting, meshes: groep.children.length }; },
+    get inrichting() { return { ...inrichting, ramen: raamAantal, meshes: groep.children.length }; },
     get flesjes() { return flesjes; },
     get katten() { return katten.map(k => ({ x: k.kat.groep.position.x, y: k.kat.groep.position.y, z: k.kat.groep.position.z, staat: k.staat, opBank: k.opBank })); },
     get naam() { return `${HUIS.straat} ${HUIS.nr}`; },
@@ -1806,7 +1983,10 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     get groep() { return groep; },
     get plekken() {
       return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, keuken: KEUKEN, bank: zitPlek,
-        tafel: wereld(TAFEL.x, TAFEL.z), stoel: tafelPlek, koelkast: koelPlek };
+        tafel: wereld(TAFEL.x, TAFEL.z), stoel: tafelPlek, koelkast: koelPlek,
+        tuindeur: tuinDeur ? wereld(tuinDeur.x, tuinDeur.z) : null,
+        terras: TUIN ? wereld((TUIN.x0 + TUIN.x1) / 2, DIEP + 1.5) : null,
+        hek: TUIN ? wereld((TUIN.x0 + TUIN.x1) / 2, TUIN.z1 - 0.04) : null };
     },
   };
 }

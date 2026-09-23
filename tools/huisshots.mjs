@@ -5,6 +5,7 @@
    huis_spinnekop.png  Molenkrite 130c, een brede bungalow van achttien meter
    huis_grootwiel.png  Koningsspil 20, de goedkoopste, diep en rustig
    huis_tafel.png      aan tafel, met de koopregel in beeld
+   huis_tuin.png       de tuin achter Zeskanter 16, vanaf de tuindeur
 
  Gebruik: npm run server &   node tools/huisshots.mjs 8123 [map]
 */
@@ -145,6 +146,38 @@ await page.evaluate(() => {
     if (tekst) { el.textContent = tekst; el.hidden = false; }
   }, m.hint);
   await foto('huis_tafel', 900, false);
+}
+
+/*
+ En de tuin. Vanaf de tuindeur over het terras naar de schutting: dan staan het
+ tegelpad, de tafel met de parasol, het gras en het schuurtje op één foto.
+*/
+{
+  const m = await page.evaluate(() => {
+    const g = window.__game;
+    const w = window.__stek().find(x => x.plekken.tuindeur) || window.__stek()[0];
+    const d = w.plekken.tuindeur, h = w.plekken.hek;
+    if (!d || !h) return null;
+    const dx = h.x - d.x, dz = h.z - d.z;
+    const L = Math.hypot(dx, dz) || 1;
+    // een halve meter de tuin in, zodat de deurpost niet in beeld staat
+    const px = d.x + dx / L * 0.5, pz = d.z + dz / L * 0.5;
+    g.player.inCar = null; g.player.zit = false; g.player.fly = false;
+    g.player.pos.set(px, 0, pz);
+    g.player.eye = g.player.eyeStaand;
+    const oog = g.player.eyeStaand || 1.7;
+    g.player.yaw = Math.atan2(-(h.x - px), -(h.z - pz));
+    g.player.pitch = Math.atan2(0.9 - oog, Math.hypot(h.x - px, h.z - pz));
+    g.player.applyCamera();
+    for (let i = 0; i < 20; i++) g.verhaal.update(0.05);
+    return { naam: w.naam, diep: Math.hypot(dx, dz) };
+  });
+  if (m) {
+    console.log(`tuin bij ${m.naam}: ${m.diep.toFixed(1)} m diep`);
+    await foto('huis_tuin');
+  } else {
+    console.log('geen tuin gevonden');
+  }
 }
 
 await browser.close();
