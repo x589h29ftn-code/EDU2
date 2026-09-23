@@ -126,6 +126,50 @@ function laminaat() {
   return c;
 }
 
+/*
+ Het terras in de tuin: betontegels van 45 cm met een voeg ertussen. De eerste
+ versie leende de zwart-witte blokjes van de gang, en dat werd een dambord op
+ het gras (melding bij de foto's, 23 sep 2026). 256 px = 90 cm, dus vier tegels.
+*/
+function terrastegels() {
+  const c = doek(256, 256), g = c.getContext('2d');
+  const r = rnd(11), s = 128;
+  g.fillStyle = '#6e6b64'; g.fillRect(0, 0, 256, 256);          // de voeg
+  for (let y = 0; y < 256; y += s) for (let x = 0; x < 256; x += s) {
+    const f = 0.93 + r() * 0.12;
+    g.fillStyle = `rgb(${Math.round(166 * f)},${Math.round(162 * f)},${Math.round(152 * f)})`;
+    g.fillRect(x + 2, y + 2, s - 4, s - 4);
+    // wat korrel, anders is beton een vlak vlak
+    for (let i = 0; i < 90; i++) {
+      const a = 0.05 + r() * 0.07;
+      g.fillStyle = r() > 0.5 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a})`;
+      g.fillRect(x + 2 + r() * (s - 6), y + 2 + r() * (s - 6), 2, 2);
+    }
+    g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x + 2, y + 2, s - 4, 2);
+    g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x + 2, y + s - 4, s - 4, 2);
+  }
+  return c;
+}
+
+// Het gras in de tuin: 256 px = 2 m. Vlekkerig groen met sprietjes erdoor.
+function grasdoek() {
+  const c = doek(256, 256), g = c.getContext('2d');
+  const r = rnd(23);
+  g.fillStyle = '#5a8a3c'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 160; i++) {                 // lichte en donkere vlekken
+    const x = r() * 256, y = r() * 256, w = 12 + r() * 40;
+    g.fillStyle = r() > 0.5 ? 'rgba(122,164,84,0.30)' : 'rgba(58,96,40,0.30)';
+    g.beginPath(); g.ellipse(x, y, w, w * 0.6, r() * 3, 0, 6.3); g.fill();
+  }
+  for (let i = 0; i < 900; i++) {                 // sprietjes
+    const x = r() * 256, y = r() * 256, h = 2 + r() * 4;
+    g.strokeStyle = r() > 0.5 ? 'rgba(138,178,96,0.55)' : 'rgba(48,84,34,0.55)';
+    g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 2, y - h); g.stroke();
+  }
+  return c;
+}
+
 // Zwart-witte blokjes in de gang: 256 px = 1,2 m, dus tegels van 15 cm.
 function blokjes() {
   const c = doek(256, 256), g = c.getContext('2d');
@@ -1565,12 +1609,12 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     const t = TUIN;
     // gras over de hele tuin, en een terras van tegels tegen de achtergevel
     vloer(t.x0, t.x1, t.z0, t.z1, 0.002, new THREE.MeshBasicMaterial({
-      color: 0x5f8a3f, vertexColors: true, fog: false,
+      map: texture(grasdoek(), (t.x1 - t.x0) / 2, (t.z1 - t.z0) / 2), vertexColors: true, fog: false,
     }));
     const terrasB = Math.min(BREED + TUIN_ZIJ, tuinDeur.x + 2.6);
     const terrasA = Math.max(t.x0, tuinDeur.x - 2.6);
     vloer(terrasA, terrasB, DIEP, DIEP + 3.0, 0.006, new THREE.MeshBasicMaterial({
-      map: texture(blokjes(), (terrasB - terrasA) / 0.9, 3.0 / 0.9), vertexColors: true, fog: false,
+      map: texture(terrastegels(), (terrasB - terrasA) / 0.9, 3.0 / 0.9), vertexColors: true, fog: false,
     }));
     // de schutting: drie kanten dicht, met een paal om de paar meter
     const hek = (x0, x1, z0, z1) => {

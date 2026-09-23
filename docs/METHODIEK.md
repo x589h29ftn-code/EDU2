@@ -4973,7 +4973,11 @@ De drempel eruit en het gat loopt weer tot de vloer. Waar de deur zit hangt van
 de vorm af: meestal in de achtergevel, maar heeft de woning een aanbouw die de
 achterkant in beslag neemt, dan zoekt een voorscan eerst een zijwand met genoeg
 ruimte. `binnen()` is uitgebreid tot over de tuin, zodat je niet halverwege het
-gras uit de binnenruimte valt.
+gras uit de binnenruimte valt. De eerste foto liet zien wat de proef niet kan
+zien: het terras leende de zwart-witte blokjes van de gang en werd een dambord
+op het gras, en het gras zelf was één vlakke groene kleur. Er zijn nu twee eigen
+doeken bij: betontegels van 45 cm met korrel en voeg, en vlekkerig gras met
+sprietjes.
 
 *Kiezen vóórdat je gaat lopen.* Mark noemt nu de drie adressen mét bedrag in de
 tekstbox en je drukt 1, 2 of 3; de navigatie gaat naar dat adres. Dat kostte

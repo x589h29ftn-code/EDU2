@@ -5,7 +5,7 @@
    huis_spinnekop.png  Molenkrite 130c, een brede bungalow van achttien meter
    huis_grootwiel.png  Koningsspil 20, de goedkoopste, diep en rustig
    huis_tafel.png      aan tafel, met de koopregel in beeld
-   huis_tuin.png       de tuin achter Zeskanter 16, vanaf de tuindeur
+   huis_tuin.png       de tuin achter Zeskanter 16, vanaf het achterhek
 
  Gebruik: npm run server &   node tools/huisshots.mjs 8123 [map]
 */
@@ -34,7 +34,7 @@ const foto = async (naam, wacht = 900, schoon = true) => {
     g.hud.flitsT = 0; if (g.hud.flitsEl) g.hud.flitsEl.style.opacity = 0;
     g.hud.melding('', '', 0);
     // de balken van het verhaal horen niet op een foto van een woonkamer
-    if (schoon) for (const id of ['dialoog', 'opdracht', 'hint', 'praat']) {
+    if (schoon) for (const id of ['dialoog', 'opdracht', 'hint', 'praat', 'uitleg']) {
       const el = document.getElementById(id);
       if (el) el.hidden = true;
     }
@@ -139,7 +139,7 @@ await page.evaluate(() => {
   console.log(`aan tafel (${m.fase}): "${m.hint}"`);
   await page.evaluate((tekst) => {
     // de koopregel blijft staan, de rest van de HUD gaat weg
-    for (const id of ['dialoog', 'opdracht', 'hint']) {
+    for (const id of ['dialoog', 'opdracht', 'hint', 'uitleg']) {
       const el = document.getElementById(id); if (el) el.hidden = true;
     }
     const el = document.getElementById('praat');
@@ -149,31 +149,33 @@ await page.evaluate(() => {
 }
 
 /*
- En de tuin. Vanaf de tuindeur over het terras naar de schutting: dan staan het
- tegelpad, de tafel met de parasol, het gras en het schuurtje op één foto.
+ En de tuin. Achterin bij de schutting staan, met de rug naar het hek, kijkend
+ naar het terras en de achtergevel: dan staan het gras, het tegelpad, de tafel
+ met de parasol en het schuurtje op één foto. De eerste poging stond mét de rug
+ naar het huis en keek de lege tuin in — dan zie je alleen schutting.
 */
 {
   const m = await page.evaluate(() => {
     const g = window.__game;
     const w = window.__stek().find(x => x.plekken.tuindeur) || window.__stek()[0];
-    const d = w.plekken.tuindeur, h = w.plekken.hek;
-    if (!d || !h) return null;
-    const dx = h.x - d.x, dz = h.z - d.z;
+    const d = w.plekken.tuindeur, h = w.plekken.hek, tr = w.plekken.terras;
+    if (!d || !h || !tr) return null;
+    // anderhalve meter vóór het achterhek, op de lijn hek → terras
+    const dx = tr.x - h.x, dz = tr.z - h.z;
     const L = Math.hypot(dx, dz) || 1;
-    // een halve meter de tuin in, zodat de deurpost niet in beeld staat
-    const px = d.x + dx / L * 0.5, pz = d.z + dz / L * 0.5;
+    const px = h.x + dx / L * 1.5, pz = h.z + dz / L * 1.5;
     g.player.inCar = null; g.player.zit = false; g.player.fly = false;
     g.player.pos.set(px, 0, pz);
     g.player.eye = g.player.eyeStaand;
     const oog = g.player.eyeStaand || 1.7;
-    g.player.yaw = Math.atan2(-(h.x - px), -(h.z - pz));
-    g.player.pitch = Math.atan2(0.9 - oog, Math.hypot(h.x - px, h.z - pz));
+    g.player.yaw = Math.atan2(-(tr.x - px), -(tr.z - pz));
+    g.player.pitch = Math.atan2(1.3 - oog, Math.hypot(tr.x - px, tr.z - pz));
     g.player.applyCamera();
     for (let i = 0; i < 20; i++) g.verhaal.update(0.05);
-    return { naam: w.naam, diep: Math.hypot(dx, dz) };
+    return { naam: w.naam, diep: +Math.hypot(tr.x - px, tr.z - pz).toFixed(1) };
   });
   if (m) {
-    console.log(`tuin bij ${m.naam}: ${m.diep.toFixed(1)} m diep`);
+    console.log(`tuin bij ${m.naam}: ${m.diep} m tot het terras`);
     await foto('huis_tuin');
   } else {
     console.log('geen tuin gevonden');
