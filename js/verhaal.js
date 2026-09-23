@@ -47,6 +47,7 @@ import { maakMarkering, maakBompakket, ontplofBij } from './bom.js';
 import { maakWaterRing, maakDeal, maakVeteraan } from './deal.js';
 import { maakTas } from './tas.js';
 import { zoekLooppad } from './looppad.js';
+import { initBendes } from './bendes.js';
 import { LIGPLAATSEN } from './boot.js';
 import { initPolitieboot } from './politieboot.js';
 import { Dief } from './dief.js';
@@ -660,6 +661,13 @@ export function initVerhaal(ctx) {
     }
   }
 
+  /*
+   Na missie 10 heeft De Veteraan zich tegen je gekeerd: zijn mannen hangen in
+   groepjes rond in Tinga en langs de Lemmerweg (js/bendes.js). Ze staan er
+   alleen buiten de missies om.
+  */
+  const bendes = initBendes({ scene, player, laatVallen, paniek, uitleg });
+
   // ---------- toestand ----------
   let missie = 'molenkrite';     // molenkrite | rijden | bewaking | afleveren | klaar
   let fase = 'wacht';
@@ -1173,6 +1181,7 @@ export function initVerhaal(ctx) {
     player.active = false;
   }
   function naDeDood() {
+    bendes.reset();
     player.active = true;
     player.health = 100;
     hud.zetLeven(player.health);
@@ -1222,6 +1231,16 @@ export function initVerhaal(ctx) {
       fase = 'naar_kruirad';
       zetOpdracht('ga naar Kruirad 62');
       zetNavDoel(johanPlek.mid.x, johanPlek.mid.z, 'Kruirad 62', 'J');
+    } else if (missie === 'klaar' && huisGekozen && stekMet(huisGekozen)) {
+      /*
+       Neergegaan buiten een missie om — door de bende op straat, na missie 10.
+       Je wordt wakker voor je eigen voordeur en niet voor die van Mark aan de
+       Molenkrite, waar het spel ooit begon.
+      */
+      const d = stekDeur(stekMet(huisGekozen));
+      player.inCar = null;
+      const [px, pz] = resolveCollisions(d.x, d.z, 0.4);
+      player.pos.set(px, 0, pz); player.applyCamera();
     } else {
       const s = verhaalStart();
       player.inCar = null;
@@ -1320,6 +1339,8 @@ export function initVerhaal(ctx) {
     if (bewaking && (missie === 'bewaking' || missie === 'afleveren' || missie === 'klaar')) uit.push(...bewaking.doelen());
     // de zes man uit missie 7, zolang ze er staan
     if (schutters) uit.push(...schutters.doelen());
+    // de groepjes van De Veteraan op straat
+    uit.push(...bendes.doelen());
     // en de maffia op de kade plus de waterpolitie uit missie 8
     if (deal) uit.push(...deal.doelen());
     for (const b of snipBoten) uit.push(...b.doelen());
@@ -1331,6 +1352,8 @@ export function initVerhaal(ctx) {
   function raak(obj) {
     // de zes man bij de Poiesz: die mogen juist wel
     if (schutters && schutters.raak(obj)) return true;
+    // en de bende op straat na missie 10: die begon zelf
+    if (bendes.raak(obj)) return true;
     /*
      Bij de molen: op De Veteraan schieten is het einde van de missie. Hij is
      degene die jullie in de gaten houden; een kogel van jou maakt van de
@@ -1392,6 +1415,7 @@ export function initVerhaal(ctx) {
   // Elk schot van de speler: de bewaking hoort het.
   function schotGehoord(x, z) {
     if (bewaking) bewaking.hoorSchot(x, z);
+    bendes.hoorSchot(x, z);
   }
 
   // ---------- lopen ----------
@@ -3592,6 +3616,17 @@ export function initVerhaal(ctx) {
     }
     if (bomMerk) bomMerk.update(dt);
     if (tasMerk) tasMerk.update(dt);
+
+    // ---- na missie 10: de bende op straat ----
+    {
+      const schade = bendes.update(dt, vetKlaar && missie === 'klaar');
+      if (schade > 0 && player.active) {
+        player.health = Math.max(0, player.health - schade);
+        hud.zetLeven(player.health);
+        hud.flits();
+        if (player.health <= 0) dood();
+      }
+    }
     if (bomPakket) bomPakket.update(dt);
     if (knal) { knal.update(dt); if (knal.klaar) knal = null; }
 
@@ -3897,6 +3932,7 @@ export function initVerhaal(ctx) {
     get tasBij() { return tasBij; },
     get thuisDoel() { return thuisDoel(); },
     get veteraanKlaar() { return vetKlaar; },
+    get bendes() { return bendes; },
     get aanrijders() { return aanrijders; },
     get volgendeMissie() { return naMissieT > 0 ? { naam: naMissieNaam, over: naMissieT } : null; },
     // testhaak (tools/introtest.mjs): het moment waarop Erik zijn wapen krijgt

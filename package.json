@@ -128,6 +128,8 @@
     "huistest": "node tools/huistest.mjs",
     "veteraantest": "node tools/veteraantest.mjs",
     "veteraanshots": "node tools/veteraanshots.mjs",
+    "bendetest": "node tools/bendetest.mjs",
+    "bendeshots": "node tools/bendeshots.mjs",
     "huisshots": "node tools/huisshots.mjs",
     "dealshots": "node tools/dealshots.mjs",
     "bomshots": "node tools/bomshots.mjs",

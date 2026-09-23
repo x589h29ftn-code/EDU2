@@ -5139,6 +5139,45 @@ laat Mark iets over de woning zeggen, en zolang dat in beeld staat klikt E dat
 weg in plaats van te kopen — dezelfde valkuil waar `huistest` `__rust` voor
 heeft. `npm run veteraantest`: zevenenveertig controles, alles groen.
 
+**De bende op straat (stap 74).** Na missie 10 hangen er groepjes van De
+Veteraan rond in Tinga en langs de Lemmerweg (verzoek 23 sep 2026): twee tot vier
+man, met een pistool of een knuppel, die aanvallen als je te dichtbij komt, je
+achtervolgen en het na een tijdje opgeven. Alles staat in js/bendes.js; het
+verhaal zet ze aan zodra missie 10 voorbij is en er geen missie loopt, en deelt
+de doelen, de treffers, het horen van schoten en de schade.
+
+*De plekken.* Punten om de 22 meter langs de rijbaanassen van 26 straten, 2,6 m
+naast de rand van de rijbaan, binnen 1,1 km van het kruispunt (de Lemmerweg loopt
+kilometers door). De eerste lijst had 34 van de 317 punten óp een rijbaan: bij een
+kruising ligt de stoep van de ene straat op de rijbaan van de andere. Nu wordt elk
+punt tegen alle rijbanen getoetst, via een raster van twintig meter. En één punt
+lag tussen twee heggen die bij een straal van 1,4 m precies even hard
+terugduwden, zodat `resolveCollisions` het punt vrij verklaarde; nu met twee
+stralen.
+
+*De knuppel* is een nieuw wapen in js/persoon.js — blank hout, 82 cm, met tape om
+de greep — met een slag als houding: `update(dt, { slaat })` brengt de arm in
+het eerste derde boven het hoofd en slaat hem daarna naar voren. De klap telt op
+60 % van de slag, als je dan nog binnen bereik staat.
+
+*Achtervolgen en opgeven.* Ze rennen 4,6 m/s: sneller dan jij loopt (4,2),
+langzamer dan je sprint (7,5). Dat maakte de eerste regel — "opgeven na zoveel
+tellen als je verder dan zes meter weg bent" — zinloos: lopend houden ze je bij,
+dus die afstand haalde je nooit. Nu geven ze het op als je van hun plek bent
+weggelopen (35 m) en de tijd erop zit, of als ze je drie tellen lang kwijt zijn
+op dertig meter; sprinten is daarmee na een tel of negen voorbij, lopen na een
+kleine twintig.
+
+*Vast tegen een heg.* De eerste proef zette de speler tien meter verderop en de
+knuppels bleven op 2,1 m hangen: er stond een heg tussen. Wie in 1,2 tel niet
+dichterbij is gekomen en zelf ook nauwelijks bewogen heeft, zoekt nu een route
+met js/looppad.js (hoogstens om de twee tellen, en opnieuw als je meer dan zes
+meter verschuift). Hetzelfde op de terugweg; wie na anderhalve minuut nog niet
+thuis is, staat er weer zodra je niet kijkt.
+
+*Neergaan buiten een missie om* zette je voor Molenkrite 15, waar het spel begon.
+Nu voor je eigen voordeur. `npm run bendetest`: dertig controles, alles groen.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

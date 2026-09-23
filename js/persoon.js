@@ -169,6 +169,21 @@ export class Persoon {
       g.add(mesh(new THREE.BoxGeometry(0.05, 0.09, 0.10), mat(0x2c2118), 0, -0.03, 0.14));       // greep
       g.add(mesh(new THREE.BoxGeometry(0.055, 0.03, 0.20), zwart, 0, 0.05, 0.20));               // stut
       g.add(mesh(new THREE.BoxGeometry(0.02, 0.04, 0.04), zwart, 0, 0.065, -0.10));              // vizier
+    } else if (soort === 'knuppel') {
+      /*
+       Een honkbalknuppel van de bende (na missie 10): blank hout, dun bij de
+       greep en dik aan het eind, 82 cm lang. Hij steekt vanuit de vuist naar
+       voren, net als de loop van een pistool, dus in de slag van `slaat`
+       hieronder zwaait het dikke eind over de kop heen naar voren.
+      */
+      const hout = mat(0xb88a52, 0.7);
+      const k = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.016, 0.82, 10), hout);
+      k.rotation.x = -Math.PI / 2;           // de lange as langs -z
+      k.position.set(0, 0, -0.33);
+      k.castShadow = true;
+      g.add(k);
+      g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.1, 8), mat(0x1e1e22, 0.8), 0, 0, 0.05));  // tape om de greep
+      g.children[g.children.length - 1].rotation.x = -Math.PI / 2;
     } else if (soort === 'pistool') {
       /*
        Een handpistool: slede met loop, greep eronder, trekkerbeugel. Klein
@@ -189,6 +204,8 @@ export class Persoon {
     g.rotation.x = -Math.PI / 2;
     this.armRechts.onder.add(g);
     this.wapen = g;
+    // een knuppel vuurt niet: geen mondingsvlam
+    if (soort === 'knuppel') { this.vlam = null; this.vlamT = 0; return g; }
     const vlamAf = soort === 'mp' ? -0.38 : soort === 'pistool' ? -0.20 : -0.52;
     const vlam = new THREE.Mesh(new THREE.SphereGeometry(soort === 'pistool' ? 0.055 : soort === 'mp' ? 0.08 : 0.07, 8, 6),
       new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
@@ -209,7 +226,9 @@ export class Persoon {
 
   // loopt: benen en armen zwaaien · zwaait: rechterarm omhoog en heen en weer
   // mikt: geweer vooruit, dus beide armen naar voren
-  update(dt, { loopt = false, zwaait = false, mikt = false, snelheid = 1.3, hurkt = 0 } = {}) {
+  // slaat: 0..1, een slag met de knuppel — eerst over de schouder naar achteren
+  // uithalen, dan naar voren omlaag slaan (0 = geen slag)
+  update(dt, { loopt = false, zwaait = false, mikt = false, snelheid = 1.3, hurkt = 0, slaat = 0 } = {}) {
     this.klok += dt;
     // hij loopt zelf rond, dus elk beeld opnieuw kijken waar de grond ligt
     this.grond = grondHoogte(this.groep.position.x, this.groep.position.z, this.groep.position.y + 0.9);
@@ -235,6 +254,20 @@ export class Persoon {
       mikHouding(H);
       this.armLinks.boven.rotation.z = 0.30;
       this.armRechts.boven.rotation.z = -0.12;
+    } else if (slaat > 0) {
+      /*
+       De slag. Een positieve draai om x brengt de arm naar voren (zie hierboven),
+       dus 2,7 is boven het hoofd en iets naar achteren en 0,5 voor de borst: in
+       het eerste derde gaat hij omhoog, daarna hard naar voren. De linkerhand
+       gaat mee naar de greep en de romp buigt in de slag mee voorover.
+      */
+      const op = Math.min(1, slaat / 0.35), neer = Math.max(0, (slaat - 0.35) / 0.65);
+      const hoek = slaat < 0.35 ? 0.3 + (2.7 - 0.3) * op : 2.7 + (0.5 - 2.7) * Math.sin(neer * Math.PI / 2);
+      H.schouderR = hoek; H.elleboogR = 0.35;
+      H.schouderL = hoek * 0.7; H.elleboogL = 0.5;
+      H.romp = (H.romp || 0) + (slaat < 0.35 ? -0.08 * op : 0.18 * Math.sin(neer * Math.PI));
+      this.armRechts.boven.rotation.z = -0.15;
+      this.armLinks.boven.rotation.z = 0.25;
     } else if (zwaait && !loopt) {
       // arm omhoog naast het hoofd en dan wapperen
       H.schouderR = 0; H.elleboogR = 0.10;
@@ -266,7 +299,7 @@ export class Persoon {
       this.groep.position.y = this.grond + H.wip;
     }
     // de armen hangen een paar graden naar buiten in plaats van plat tegen de romp
-    if (!mikt && !(zwaait && !loopt)) {
+    if (!mikt && !(slaat > 0) && !(zwaait && !loopt)) {
       // naar buiten is voor de linkerarm een negatieve draai en voor de rechter
       // een positieve: een positieve draai om z brengt het uiteinde naar +x
       const zij = H.armZij || 0;

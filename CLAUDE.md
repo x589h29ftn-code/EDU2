@@ -58,6 +58,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/hud.js` | minimap, grote kaart, meldingen, vlaggen |
 | `js/bewaking.js` | schutters: bewaking, de bende van missie 7 en 10 (met opties) |
 | `js/looppad.js` | een looproute te voet om hekken en gebouwen heen (A*) |
+| `js/bendes.js` | na missie 10: groepjes van De Veteraan op straat in Tinga en langs de Lemmerweg |
 | `js/deal.js` | missie 8, en `maakVeteraan()`: De Veteraan met zijn hondje |
 
 Een paar dingen die niet vanzelf spreken:
@@ -107,6 +108,10 @@ Molenkrite, die via een looproute om de kantine heen komen. Daarna is hij weg,
 belt Mark (omleggen, te snel in de rangen, ga naar huis) en is het thuis — het
 gekochte huis — klaar voor € 250. **shift+0** start hem los.
 
+Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
+langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
+achtervolgen, na een tijdje opgeven. Alleen buiten de missies om.
+
 De drie woningen: **Zeskanter 16** (€ 5.000), **Molenkrite 130c** (€ 2.500),
 **Koningsspil 20** (€ 1.000). Binnen: hoekbank met tv, eettafel om aan te zitten,
 keuken met koelkast (bier = leven), twee katten, dichte ramen, tuin met terras,
@@ -118,7 +123,8 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run veteraantest` (zevenenveertig controles,
+De laatste die ertoe doen: `npm run bendetest` (dertig controles, groen) en
+`npm run bendeshots` (twee foto's), `npm run veteraantest` (zevenenveertig controles,
 groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
 (negenenzestig controles) en `npm run huisshots` (vijf foto's).
 

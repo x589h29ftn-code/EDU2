@@ -1778,6 +1778,38 @@ het kopen tot de € 250, en rekent het vuurgevecht na met een vaste loting: wie
 om de drieënhalve tel iemand raakt die hij kan zien haalt het, wie niets doet
 niet. `npm run veteraanshots` maakt de drie foto's hierboven.
 
+### Na missie 10: de bende op straat
+
+De Veteraan heeft zich met zijn bende tegen je gekeerd, en dat merk je in de
+wijk. Op willekeurige plekken in **Tinga en langs de Lemmerweg** hangen
+**groepjes van twee tot vier man** rond op de stoep, in trainingspakken en
+hoodies, sommigen met een pet. Er staan er nooit meer dan drie tegelijk in je
+buurt, ze verschijnen op zestig tot tweehonderdveertig meter en nooit waar je
+net kijkt.
+
+- **Te dichtbij** — op een meter of dertien te voet, of vlak langs met de auto —
+  en ze vallen aan. Een schot in de buurt hoort een groepje ook.
+- **Een knuppel** hebben de meesten: die moeten bij je komen, halen boven hun
+  hoofd uit en slaan (7 leven per klap). Staat er een heg tussen, dan lopen ze
+  eromheen.
+- **Een pistool** heeft ongeveer vier op de tien: die blijven op acht tot vijftien
+  meter staan en schieten. In een groepje van drie of vier zitten ze allebei.
+- **Loop je door**, dan komen ze achter je aan — ze zijn net iets sneller dan
+  lopen. Na een tijdje, als je van hun plek weg bent, geven ze het op en
+  slenteren ze terug. **Sprinten** (shift) is sneller dan zij: dan ben je ze na
+  een tel of tien kwijt.
+- **Een treffer** legt een man neer; een pistool blijft liggen met wat kogels,
+  een knuppel soms met wat geld. **Omverrijden** kan ook. Sterren levert het niet
+  op: zij begonnen.
+- **Ga je neer**, dan word je wakker voor je eigen voordeur.
+
+Tijdens een missie staan ze er niet. `npm run bendetest` loopt het na, van de
+plekken tot het opgeven, en `npm run bendeshots` maakt de twee foto's.
+
+| ![Een groepje op de stoep](docs/screenshots/bende_hangen.png) | ![Te dichtbij](docs/screenshots/bende_aanval.png) |
+|---|---|
+| rondhangen op de stoep | te dichtbij gekomen |
+
 ## De wijk reageert: paniek, herstelpunten en voorrang
 
 Vijf dingen die niet in één missie zitten maar eronder, zodat de wijk zich
