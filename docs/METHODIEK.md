@@ -5185,6 +5185,77 @@ klap met een pauze van 1,6 in plaats van 1,1 tel tussen twee slagen, en 2 per
 kogel: tweeëndertig tellen. De proef eist er minstens vijfentwintig, en dat je
 uiteindelijk wel neergaat.
 
+**Clipping, opstarten en licht (stap 75).** Op verzoek na een meting van 24 sep
+2026 (binnen 1,1 km van Tinga). Vijf bronnen van clipping, het opstarten en drie
+punten licht. Drie nieuwe proeven: `cliptest`, `opstarttest` en `lichttest`.
+
+*Het wapen.* Het stak 0,69 m voor de camera uit bij een botsstraal van 0,35 m;
+tegen een gevel was nog 45 % van zijn beeldpunten te zien. Het staat nu op laag 1
+(`WAPEN_LAAG` in js/player.js) en `tekenWapen` in js/main.js tekent het na de
+wereld, met een gewiste dieptebuffer en een voorvlak van 1 cm. De lampen staan
+ook op laag 1: three maakt een nieuw shaderprogramma zodra het aantal lampen
+verschilt, en het wapen hoort hetzelfde licht te krijgen als de wereld.
+
+*Het voorvlak* ging daarmee van 5 naar 15 cm. De hoek van het voorvlak ligt op
+25,5 cm van het oog, binnen de botsstraal, dus de wereld wordt nergens afgesneden;
+de nauwkeurigheid van de dieptebuffer wordt drie keer zo groot en een gat van
+2 mm flikkert pas vanaf 71 m in plaats van 41 m.
+
+*Voetgangers.* De statische meting zei dat 395 wegvakken met 1324 m door een
+botsdoos liepen. Dynamisch viel het mee: ze worden al elk beeld uit de dozen
+geduwd, en er dwars doorheen springen gebeurde een keer of vijf per minuut voor
+130 mensen. Wat wél vaak gebeurde: half in een heg staan of tegen een schutting
+aan geduwd worden, 73 keer per minuut. `stoepProfiel` in js/npc.js zoekt per
+wegvak en per kant om de halve meter een vrije afstand tot de as; waar nergens
+plek is steekt iemand over, en kan dat niet, dan keert hij één keer om. Nu 0.
+
+Drie fouten onderweg, alle drie door een proef gevonden. De eerste versie liet
+op fietspaden en woonerven geen plek over — daar ligt de looplijn óp de
+verharding (walkOff 0,3 bij 2,6 m breed) en de ondergrens was de stoeprand — dus
+98 % van de profielen stond dicht en 109 van de 130 mensen stonden stil
+(`looptest`). Mijn eigen `cliptest` zag dat niet, want stilstaan telt als "niet
+door een doos"; die meet nu ook hoeveel er lopen. Daarna keerde iedereen bij
+elk dicht punt om, en wie op een ingesloten stukje stoep liep bleef daar
+pendelen: de buurt kwam niet meer bij je (`bevolkingtest`, 2 van de 6 wijken in
+plaats van 4). Nu één keer omkeren per wegvak. En het profiel per wegvak bij het
+eerste gebruik uitrekenen kwam precies op het moment dat de buurt wordt
+bijgevuld; alle 4695 bij het maken van de voetgangers kost een paar tiende
+seconde.
+
+*Wat al mis was.* `relieftest` eist hoogstens 260 MB texturegeheugen en meet er
+343 — ook op de vorige versie, zonder deze ronde (gemeten met een tweede kopie
+van de repo naast deze). Die staat nog open.
+
+*De kaart.* Een laatste zeef in de generator, na alle plaatsingsregels: schuttingen
+en heggen geknipt waar ze meer dan 30 cm in een pand liepen, lantaarns van de
+rijbaan geschoven, parkeerplekken, bomen en struiken in een pand of op de rijbaan
+weggehaald. Eerst gecontroleerd dat de generator `js/kaart.js` precies
+terugmaakt (op de datum na); daarna is dit het enige verschil.
+
+*Opstarten.* Een profiel over de hele opstart gaf 72 s headless, en het meeste zat
+niet in de meetkunde maar in het tekenen op canvas. Een doek wordt pas echt
+getekend als iemand het leest, dus de tijd verhuisde steeds naar wie er als eerste
+aan kwam: eerst leek `kleiner` (het verkleinen van de baksteen) 16 s te kosten,
+maar de baksteen direct op 288 px tekenen hielp niets. Wat het echt was: 1145
+gevels (elk rijtje een eigen doek) en het reliëf. Allebei komen ze nu ná het
+opstarten, per materiaal en dichtstbij eerst (`reliëfStappen` en `maakAf` in
+js/textures.js); een gevel is tot die tijd een doekje van 4×4 in de steenkleur.
+Het aantal gevels verminderen deed ik niet: dan zou elk huis in een rij hetzelfde
+zijn. Daarbij rondt Chrome een `setTimeout(0)` na een paar keer af op 4 ms, en bij
+honderden stukken opbouw was dat een groot deel van de 12,9 s "idle" in het
+profiel; een MessageChannel komt meteen terug. Resultaat: 39 s, waarvan de
+gebouwen 13 s (was 32) en het eerste beeld 10 s — shaders compileren en texturen
+uploaden op de softwarekaart van deze omgeving. `window.__opstart` houdt de tijd
+per fase bij.
+
+*Licht.* Omgevingsschaduw aan de voet van elke muur via `onBeforeCompile`
+(js/licht.js): alleen het indirecte licht, want het directe komt uit de
+schaduwkaart. De omgevingskaart deelt nu de uniforms van de lucht en wordt
+opnieuw gebakken als de zon twee graden verschuift of de lucht van kleur
+verandert, hoogstens eens per zes seconden. De schaduw: 3072 px over 76 m op de
+pc (2,5 cm per beeldpunt), twintig meter vooruit in je kijkrichting en vastgeklikt
+op het raster van de kaart gezien vanuit de zon.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

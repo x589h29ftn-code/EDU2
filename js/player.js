@@ -91,6 +91,9 @@ const WEGBERGEN = 0.24;
 const TREKKEN = 0.28;
 const soepel = (u) => u * u * (3 - 2 * u);
 
+// de laag waarop het wapen in je hand staat (zie js/main.js, `tekenWapen`)
+export const WAPEN_LAAG = 1;
+
 export class Player {
   get locked() { return this.active; }
   set locked(v) { this.active = v; }
@@ -199,6 +202,14 @@ export class Player {
     for (const k of Object.keys(this.modellen)) {
       this.modellen[k].groep.visible = false;
       this.camera.add(this.modellen[k].groep);
+      /*
+       Het wapen op laag 1: js/main.js tekent eerst de wereld zonder wapen en
+       daarna, met een gewiste dieptebuffer, alleen het wapen eroverheen. Het
+       stak 0,69 m voor de camera uit terwijl je tot 0,35 m bij een muur kunt
+       komen, dus tegen een gevel verdween het half in de stenen (meting 24 sep
+       2026). Raycasts kijken naar laag 0 en zien het wapen dus ook niet.
+      */
+      this.modellen[k].groep.traverse(o => o.layers.set(WAPEN_LAAG));
     }
     this.wapen = this.modellen.pistool;
     this.gun = this.wapen.groep;

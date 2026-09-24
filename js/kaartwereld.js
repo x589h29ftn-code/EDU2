@@ -6,6 +6,7 @@
 // world.js roept bouwKaartWereld aan zodra er een kaart is en geeft zijn
 // eigen lijsten (colliders, roadSegments, ...) mee, zodat de rest van het spel
 // niets merkt van de andere bron.
+import { grondAO } from './licht.js';
 import * as THREE from 'three';
 import * as T from './textures.js';
 import { KLEUR } from './kaartkleuren.js';
@@ -55,6 +56,8 @@ export function zetStand(s) { STAND = s; }
 export function kaartStand() { return STAND; }
 
 const vlakIndex = new Map();   // bucket "i:j" -> vlakken, voor ondergrondKaart
+// de materiaalklassen die een muur zijn, voor de omgevingsschaduw aan de voet
+const MUREN = new Set(['muur', 'voorgevel', 'achtergevel', 'topgevel']);
 const BUCKET = 25;
 /*
  Tegels voor de wereldgeometrie. De kaart werd per materiaal in één mesh
@@ -1094,7 +1097,12 @@ function* bouwPandenStap(scene, W, plat) {
     let g = groepen.get(k);
     if (!g) {
       let mat = matCache.get(sleutel);
-      if (!mat) { mat = plat ? KM.plat.pand : maak(); matCache.set(sleutel, mat); }
+      if (!mat) {
+        mat = plat ? KM.plat.pand : maak();
+        // muren krijgen omgevingsschaduw aan de voet (js/licht.js)
+        if (!plat && MUREN.has(klasse)) grondAO(mat);
+        matCache.set(sleutel, mat);
+      }
       g = { pos: [], uv: [], nor: [], mat, klasse, tegel: perTegel ? pandTegel() : null };
       groepen.set(k, g);
     }

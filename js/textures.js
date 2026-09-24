@@ -10,6 +10,22 @@ function canvas(w, h) {
 }
 
 /*
+ Een doek dat op `S` beeldpunten getekend wordt maar als `max` bewaard: het doek
+ is meteen `max` groot en de tekening wordt geschaald. Eerst op volle grootte
+ tekenen en daarna verkleinen (`kleiner` hieronder) kostte bij het opstarten
+ het meeste van alles: 95 baksteendoeken van 512 bij 512 met zo'n zevenduizend
+ blokjes elk, 16 van de 72 seconden (profiel 24 sep 2026). De tekencode rekent
+ gewoon door in de maat van S.
+*/
+function klein(S, max) {
+  const n = Math.min(S, max);
+  const c = canvas(n, n);
+  const g = c.getContext('2d');
+  if (n !== S) g.scale(n / S, n / S);
+  return { c, g };
+}
+
+/*
  Een getekend doek verkleinen voordat het een texture wordt.
 
  De steen- en dakpandoeken worden per huisstijl in een eigen kleur gemaakt, dus
@@ -83,7 +99,7 @@ export function brick(base = '#8a6752', mortar = '#b9b2a6', seed = 1) {
   // 512 px voor 2,6 m is 197 px/m. Waalformaat: 21 x 5 cm steen met een voeg
   // van ruim een centimeter, in halfsteensverband.
   const S = 512, PM = S / 2.6;
-  const c = canvas(S, S); const g = c.getContext('2d');
+  const { c, g } = klein(S, 288);
   const r = rng(seed + 3);
   // voeg: iets donkerder en grijzer dan opgegeven, met korrel
   g.fillStyle = shade(mortar, 0.9); g.fillRect(0, 0, S, S);
@@ -107,7 +123,7 @@ export function brick(base = '#8a6752', mortar = '#b9b2a6', seed = 1) {
       g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x + offs, y + bh - 1.5, bw, 1.5);
     }
   }
-  const t = tex(kleiner(c, 288), 1, 1, 0, 'baksteen'); cache.set(key, t); return t;
+  const t = tex(c, 1, 1, 0, 'baksteen'); cache.set(key, t); return t;
 }
 
 // ---------- Pleisterwerk ----------
@@ -128,7 +144,7 @@ export function plaster(base = '#ece9e2', seed = 3) {
 export function roofTiles(base = '#4a3a33', seed = 5) {
   const key = `roof${base}`;
   if (cache.has(key)) return cache.get(key);
-  const c = canvas(512, 512); const g = c.getContext('2d');
+  const { c, g } = klein(512, 288);
   const r = rng(seed);
   g.fillStyle = shade(base, 0.6); g.fillRect(0, 0, 512, 512);
   const tw = 42, th = 34;
@@ -154,7 +170,7 @@ export function roofTiles(base = '#4a3a33', seed = 5) {
       }
     }
   }
-  const t = tex(kleiner(c, 288), 1, 1, 0, 'dakpan'); cache.set(key, t); return t;
+  const t = tex(c, 1, 1, 0, 'dakpan'); cache.set(key, t); return t;
 }
 
 /*
@@ -1634,10 +1650,57 @@ export function planks(kleur = '#f0efe9') {
 // Idem voor de gevels: zes varianten per type geeft genoeg afwisseling in
 // gordijnen, deurkleuren en raamindeling zonder het geheugen op te blazen.
 const GEVEL_VARIANTEN = 6;
+/*
+ Gevels later tekenen (verzoek 24 sep 2026: sneller opstarten). Elk rijtje in de
+ wijk heeft een eigen gevel met alle woningen naast elkaar, 1145 doeken, en dat
+ tekenen was het grootste deel van de 32 s die de gebouwen bij het opstarten
+ kostten. Zolang `uitstel` aan staat — tijdens de opbouw van de wereld — levert
+ `facade` een doekje van 4×4 in de kleur van de steen, en onthoudt het wat er
+ getekend moet worden. js/main.js tekent ze na het opstarten, dichtstbij eerst
+ (`reliëfStappen`), en `maakAf` doet er één meteen. Na de opbouw gaat `uitstel`
+ uit: wie daarna een gevel vraagt (de binnenruimtes, de proeven) krijgt hem af.
+*/
+let uitstel = false;
+const wachtend = new Map();          // texture -> functie die het echte doek tekent
+export function zetUitstel(aan) { uitstel = !!aan; }
+export function wachtendeGevels() { return wachtend.size; }
+export function maakAf(t) {
+  const teken = t && wachtend.get(t);
+  if (!teken) return false;
+  wachtend.delete(t);
+  const c = teken();
+  // eerst de oude (4×4) uit het videogeheugen: een doek van een andere maat
+  // past niet in de ruimte die three voor het kleine heeft vastgelegd
+  t.dispose();
+  t.image = c;
+  soortVanDoek.set(c, 'gevel');
+  t.needsUpdate = true;
+  return true;
+}
+
 export function facade(type, n, storeys, back = false, seed = 1) {
   seed = ((seed % GEVEL_VARIANTEN) + GEVEL_VARIANTEN) % GEVEL_VARIANTEN;
   const key = `fac_${type}_${n}_${storeys}_${back}_${seed}`;
-  if (cache.has(key)) return cache.get(key);
+  if (cache.has(key)) { const t = cache.get(key); if (!uitstel) maakAf(t); return t; }
+  if (uitstel) {
+    const st = HOUSE_STYLES[type] || {};
+    const kleur = st.hout || (Array.isArray(st.brick) ? st.brick[0] : null) || '#8a6752';
+    const p = canvas(4, 4); const pg = p.getContext('2d');
+    pg.fillStyle = kleur; pg.fillRect(0, 0, 4, 4);
+    const t = new THREE.CanvasTexture(p);
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANIS;
+    wachtend.set(t, () => gevelDoek(type, n, storeys, back, seed));
+    cache.set(key, t); return t;
+  }
+  const c = gevelDoek(type, n, storeys, back, seed);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANIS;
+  soortVanDoek.set(c, 'gevel');
+  cache.set(key, t); return t;
+}
+
+// Het doek van een gevel zelf: alle `n` woningen van het rijtje naast elkaar.
+function gevelDoek(type, n, storeys, back, seed) {
   const st = HOUSE_STYLES[type];
   /*
    Beeldpunten per meter. Dit stond op 40 — een kozijn van 8 cm is dan drie
@@ -2317,10 +2380,7 @@ export function facade(type, n, storeys, back = false, seed = 1) {
     g.stroke();
   }
 
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = ANIS;
-  soortVanDoek.set(c, 'gevel');
-  cache.set(key, t); return t;
+  return c;
 }
 
 // Straatnaambord (blauw met witte tekst)
@@ -2612,4 +2672,56 @@ export function zetReliëf(root) {
     }
   });
   return { normalen, glans, materialen: gezien.size };
+}
+
+/*
+ Hetzelfde als `zetReliëf`, maar in stapjes van één materiaal, dichtstbij eerst
+ (verzoek 24 sep 2026: sneller opstarten). Het reliëf kostte bij het opstarten
+ 13,7 s van de 72 (headless) en stond vóór het eerste beeld; nu start het spel
+ zonder, en vult js/main.js het elk beeld een paar milliseconde aan. Wat bij je
+ staat heeft het binnen een paar tellen, de rest van de wijk daarna.
+
+ `bij` is een functie die { x, z } levert: waar de speler begint. Hij wordt pas
+ bij de eerste stap aangeroepen. De materialen zelf worden wél meteen verzameld:
+ wat er daarna nog bij komt (de binnenruimtes) krijgt geen reliëf, net als
+ vroeger — anders kost het tachtig megabyte meer (npm run relieftest).
+*/
+export function reliëfStappen(root, bij = () => ({ x: 0, z: 0 }), metReliëf = true) {
+  const plekken = [];
+  const midden = new THREE.Vector3();
+  root.updateMatrixWorld(true);
+  root.traverse(o => {
+    const mats = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []);
+    if (!mats.length || !o.geometry) return;
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    midden.copy(o.geometry.boundingSphere.center).applyMatrix4(o.matrixWorld);
+    const eigen = mats.filter(m => m && m.isMeshStandardMaterial && m.map);
+    if (eigen.length) plekken.push({ x: midden.x, z: midden.z, r: o.geometry.boundingSphere.radius, mats: eigen });
+  });
+  return stappen(plekken, bij, metReliëf);
+}
+function* stappen(plekken, bij, metReliëf) {
+  const b = bij() || { x: 0, z: 0 };
+  const afstand = new Map();
+  for (const p of plekken) {
+    const d = Math.max(0, Math.hypot(p.x - b.x, p.z - b.z) - p.r);
+    for (const m of p.mats) if (!afstand.has(m) || d < afstand.get(m)) afstand.set(m, d);
+  }
+  const lijst = [...afstand.entries()].sort((a, b) => a[1] - b[1]).map(e => e[0]);
+  let normalen = 0, glans = 0, gevels = 0;
+  for (let i = 0; i < lijst.length; i++) {
+    const m = lijst[i];
+    if (maakAf(m.map)) gevels++;
+    if (!metReliëf) { yield { i: i + 1, van: lijst.length }; continue; }
+    if (!m.normalMap) { const nm = normaalVoor(m.map); if (nm) { m.normalMap = nm; normalen++; } }
+    if (!m.roughnessMap) {
+      const rm = ruwVoor(m.map);
+      if (rm) { m.roughnessMap = rm; m.roughness = 1; glans++; }
+    }
+    if (m.normalMap || m.roughnessMap) m.needsUpdate = true;
+    yield { i: i + 1, van: lijst.length };
+  }
+  // gevels die in geen enkel materiaal van de scene zitten, toch afmaken
+  for (const t of [...wachtend.keys()]) { if (maakAf(t)) gevels++; yield { i: lijst.length, van: lijst.length }; }
+  return { normalen, glans, gevels, materialen: lijst.length };
 }

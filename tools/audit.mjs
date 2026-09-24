@@ -19,6 +19,8 @@ page.on('console', m => { if (m.text().startsWith('Wereld gebouwd')) bouwtijd = 
 const t0 = Date.now();
 await page.goto(`http://127.0.0.1:${port}/index.html${vraag}`, { waitUntil: 'load', timeout: 300000 });
 await page.waitForFunction(() => window.__game, null, { timeout: 300000 });
+// het reliëf komt sinds 24 sep 2026 ná het opstarten; hier meteen afmaken
+await page.evaluate(() => window.__game.reliëfAf && window.__game.reliëfAf());
 console.log(`laadtijd tot speelbaar: ${Date.now() - t0} ms`);
 console.log(bouwtijd);
 await page.evaluate(() => { window.__autoplay = true; document.getElementById('overlay').style.display = 'none'; });

@@ -2377,6 +2377,140 @@ if (klasseOp(START.x, START.z) !== 1) {
   if (best) START = { x: best.x, z: best.z, yaw: START.yaw };
 }
 
+// ---------------------------------------------------------------- de laatste zeef: niets door een pand of op de rijbaan
+/*
+ Een meting over het spel (24 sep 2026) vond binnen 1,1 km van Tinga: 134
+ schuttingen en 17 heggen die door een pand liepen, 28 lantaarns op de
+ rijbaan, 7 geparkeerde auto's half in een gevel en een handvol bomen en
+ struiken in een pand of op de weg. Elke plaatsingsregel hierboven kijkt naar
+ zijn eigen vlak; wat een pand of een rijbaan van een andere straat raakt ziet
+ hij niet — bij een kruising ligt de stoep van de ene straat op de rijbaan van
+ de andere. Deze zeef kijkt naar alles tegelijk:
+
+ - schuttingen en heggen worden geknipt: alleen de stukken buiten de panden
+   blijven staan (een stuk korter dan een halve meter vervalt);
+ - een lantaarn op een rijbaan schuift van de dichtstbijzijnde as af tot hij er
+   een halve meter naast staat, op stoep of berm; lukt dat niet, dan vervalt hij;
+ - parkeerplekken waar een auto van 4,4 bij 1,8 m een pand raakt vervallen;
+ - bomen en struiken in een pand of op een rijbaan vervallen.
+
+ "In een pand" is dieper dan 30 cm: een schutting die tegen de gevel aan staat
+ hoort daar, en de BGT-lijn ligt vaak een paar centimeter binnen de muur.
+*/
+{
+  const C = 20, k = (x, z) => Math.floor(x / C) * 100003 + Math.floor(z / C);
+  const pIdx = new Map();
+  for (const p of PANDEN) {
+    const b = bboxRing(p.voet); p._bb = b;
+    for (let x = Math.floor(b[0] / C); x <= Math.floor(b[2] / C); x++) for (let z = Math.floor(b[1] / C); z <= Math.floor(b[3] / C); z++) {
+      const kk = x * 100003 + z; if (!pIdx.has(kk)) pIdx.set(kk, []); pIdx.get(kk).push(p);
+    }
+  }
+  const randAfstand = (x, z, ring) => {
+    let d = Infinity;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[j], c = ring[i], dx = c[0] - a[0], dz = c[1] - a[1], L2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / L2));
+      d = Math.min(d, Math.hypot(a[0] + dx * t - x, a[1] + dz * t - z));
+    }
+    return d;
+  };
+  const inPand = (x, z, diep = 0.3) => (pIdx.get(k(x, z)) || []).some(p => {
+    const b = p._bb; if (x < b[0] || x > b[2] || z < b[1] || z > b[3]) return false;
+    return inRing([x, z], p.voet) && randAfstand(x, z, p.voet) > diep;
+  });
+  const rIdx = new Map();
+  for (const w of WEGASSEN) {
+    if (!w.drive) continue;
+    for (let i = 1; i < w.pts.length; i++) {
+      const a = w.pts[i - 1], b = w.pts[i], st = { a, b, h: ((a[2] || w.w) + (b[2] || w.w)) / 4 };
+      for (let x = Math.floor((Math.min(a[0], b[0]) - 10) / C); x <= Math.floor((Math.max(a[0], b[0]) + 10) / C); x++)
+        for (let z = Math.floor((Math.min(a[1], b[1]) - 10) / C); z <= Math.floor((Math.max(a[1], b[1]) + 10) / C); z++) {
+          const kk = x * 100003 + z; if (!rIdx.has(kk)) rIdx.set(kk, []); rIdx.get(kk).push(st);
+        }
+    }
+  }
+  // de dichtstbijzijnde rijbaan waar dit punt op ligt: { st, d, px, pz } of null
+  const opRijbaan = (x, z, marge = 0) => {
+    let beste = null;
+    for (const st of rIdx.get(k(x, z)) || []) {
+      const dx = st.b[0] - st.a[0], dz = st.b[1] - st.a[1], L2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((x - st.a[0]) * dx + (z - st.a[1]) * dz) / L2));
+      const px = st.a[0] + dx * t, pz = st.a[1] + dz * t, d = Math.hypot(px - x, pz - z);
+      if (d < st.h + marge && (!beste || d - st.h < beste.d - beste.st.h)) beste = { st, d, px, pz };
+    }
+    return beste;
+  };
+
+  // schuttingen en heggen knippen
+  const knip = (lijst, naam) => {
+    const uit = []; let geknipt = 0, weg = 0;
+    for (const l of lijst) {
+      const L = Math.hypot(l.b[0] - l.a[0], l.b[1] - l.a[1]);
+      if (L < 0.01) { uit.push(l); continue; }
+      const n = Math.max(1, Math.ceil(L / 0.25));
+      const binnen = [];
+      for (let i = 0; i <= n; i++) { const t = i / n; binnen.push(inPand(l.a[0] + (l.b[0] - l.a[0]) * t, l.a[1] + (l.b[1] - l.a[1]) * t)); }
+      if (!binnen.some(Boolean)) { uit.push(l); continue; }
+      geknipt++;
+      let start = -1;
+      for (let i = 0; i <= n + 1; i++) {
+        const vrij = i <= n && !binnen[i];
+        if (vrij && start < 0) start = i;
+        if (!vrij && start >= 0) {
+          const t0 = start / n, t1 = (i - 1) / n;
+          if ((t1 - t0) * L >= 0.5) {
+            const pt = (t) => [r2(l.a[0] + (l.b[0] - l.a[0]) * t), r2(l.a[1] + (l.b[1] - l.a[1]) * t)];
+            uit.push({ ...l, a: pt(t0), b: pt(t1) });
+          } else weg++;
+          start = -1;
+        }
+      }
+    }
+    tel(`${naam}_door_pand_geknipt`, geknipt);
+    return uit;
+  };
+  const S2 = knip(SCHUTTINGEN, 'schuttingen'); SCHUTTINGEN.length = 0; SCHUTTINGEN.push(...S2);
+  const H2 = knip(HEGGEN, 'heggen'); HEGGEN.length = 0; HEGGEN.push(...H2);
+
+  // lantaarns van de rijbaan af
+  let verschoven = 0, vervallen = 0;
+  for (let i = LANTAARNS.length - 1; i >= 0; i--) {
+    const l = LANTAARNS[i];
+    const r = opRijbaan(l.x, l.z, 0.5);
+    if (!r) continue;
+    let ux = l.x - r.px, uz = l.z - r.pz, d = Math.hypot(ux, uz);
+    if (d < 0.05) { const dx = r.st.b[0] - r.st.a[0], dz = r.st.b[1] - r.st.a[1], L = Math.hypot(dx, dz) || 1; ux = -dz / L; uz = dx / L; } else { ux /= d; uz /= d; }
+    const nx = r.px + ux * (r.st.h + 0.6), nz = r.pz + uz * (r.st.h + 0.6);
+    const kl = klasseOp(nx, nz);
+    if (!opRijbaan(nx, nz, 0.4) && !inPand(nx, nz, 0) && kl !== 1 && kl !== 2) { l.x = r2(nx); l.z = r2(nz); verschoven++; }
+    else { LANTAARNS.splice(i, 1); vervallen++; }
+  }
+  tel('lantaarns_van_rijbaan_geschoven', verschoven); tel('lantaarns_op_rijbaan_vervallen', vervallen);
+
+  // parkeerplekken waar de auto een pand raakt
+  let autoWeg = 0;
+  for (let i = PARKEER.length - 1; i >= 0; i--) {
+    const c = PARKEER[i];
+    const fx = -Math.sin(c.yaw), fz = -Math.cos(c.yaw), rx = -fz, rz = fx;
+    const raakt = [[2.2, 0.9], [2.2, -0.9], [-2.2, 0.9], [-2.2, -0.9], [0, 0], [1.1, 0], [-1.1, 0]]
+      .some(([f, z]) => inPand(c.x + fx * f + rx * z, c.z + fz * f + rz * z, 0.05));
+    if (raakt) { PARKEER.splice(i, 1); autoWeg++; }
+  }
+  tel('parkeerplekken_in_pand_vervallen', autoWeg);
+
+  // bomen en struiken in een pand of op een rijbaan
+  for (const [lijst, naam] of [[BOMEN, 'bomen'], [STRAATBOMEN, 'straatbomen'], [PARKBOMEN, 'parkbomen'], [STRUIKEN, 'struiken']]) {
+    let n = 0;
+    for (let i = lijst.length - 1; i >= 0; i--) {
+      const b = lijst[i];
+      if (inPand(b.x, b.z, 0.3) || opRijbaan(b.x, b.z, -0.3)) { lijst.splice(i, 1); n++; }
+    }
+    tel(`${naam}_in_pand_of_op_rijbaan_vervallen`, n);
+  }
+  for (const p of PANDEN) delete p._bb;
+}
+
 // ---------------------------------------------------------------- schrijven
 const KAART = {
   versie: 1, gemaakt: new Date().toISOString().slice(0, 10),

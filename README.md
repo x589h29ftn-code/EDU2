@@ -2543,6 +2543,63 @@ knipt het spel er zo nodig een rij of kolom bij (op 3 px/m zijn het er acht), en
 `printkaart.mjs` per stuk hoeveel procent ervan getekend is; is er één leeg, dan stopt hij en schrijft
 hij niets weg.
 
+## Minder clipping, sneller opstarten en beter licht
+
+Een ronde op verzoek (24 sep 2026), na een meting van waar in de wereld iets door
+iets anders heen stak. `npm run cliptest`, `npm run opstarttest` en
+`npm run lichttest` meten het na.
+
+**Het wapen verdwijnt niet meer in de muur.** Het pistool stak 0,69 m voor de
+camera uit, terwijl je tot 0,35 m bij een gevel kunt komen: tegen een muur zag
+je nog maar de helft (45 % van de beeldpunten). Nu wordt eerst de wereld
+getekend en daarna, met een lege dieptebuffer, alleen het wapen eroverheen.
+
+**Minder flikkeren in de verte.** Het voorvlak van de camera staat op 15 cm in
+plaats van 5; dat maakt de dieptebuffer drie keer zo nauwkeurig. Twee grondlagen
+met 2 mm ertussen — klinkers op een plateau, belijning op een veld — flikkeren
+pas vanaf 71 m in plaats van 41 m. Dichterbij dan 15 cm komt de wereld toch niet,
+want je botsstraal is 35 cm.
+
+**Voetgangers lopen om heggen en schuttingen heen.** Elk stuk stoep heeft een
+vrije looplijn: om de halve meter de afstand tot de as waar iemand vrij staat.
+Staat er iets dwars over de hele stoep, dan steekt hij over, en kan dat niet,
+dan keert hij één keer om. In een minuut lopen met 130 mensen: van 73 keer half
+in een heg of tegen een schutting naar 0.
+
+**De kaart is opgeruimd.** Een laatste zeef in de generator
+(`tools/geo/genereer.mjs`) knipt schuttingen en heggen af waar ze door een pand
+liepen (446 en 56 over de hele kaart), schuift lantaarns van de rijbaan (182,
+en 24 vervallen) en haalt parkeerplekken, bomen en struiken weg die in een pand
+of op de weg stonden. Bij Tinga is dat van 134 schuttingen, 28 lantaarns, 7
+auto's en 24 bomen en struiken naar nul.
+
+**Sneller opstarten: van 72 naar 39 seconden** (gemeten headless; op een pc is
+alles zo'n drie keer sneller). Wat de tijd kostte was het tekenen van de 1145
+gevels en het reliëf. Die komen nu ná het opstarten, dichtstbij eerst: tot een
+gevel getekend is heeft hij de kleur van zijn steen, en binnen een paar tellen
+heeft wat om je heen staat zijn ramen, deuren en reliëf. Tussen de stukken
+opbouw wacht het spel ook niet meer: een `setTimeout(0)` kostte in Chrome
+minstens 4 ms per keer.
+
+**Licht.**
+- *Omgevingsschaduw aan de voet van elke muur*: waar een gevel de stoep raakt is
+  het indirecte licht zachter, zoals in het echt. Een huis staat nu op de grond
+  in plaats van erop.
+- *De reflectie loopt met de klok mee*: ruiten en lak spiegelden 's avonds nog
+  een blauwe middaglucht. De omgeving wordt nu opnieuw gebakken zodra de zon
+  twee graden verder staat of het weer omslaat (om half elf 's avonds is hij vier
+  keer zo donker als 's middags).
+- *Scherpere schaduw dichtbij*: 2,5 cm per beeldpunt in plaats van 5,1 cm, met
+  een schaduwdoos die met je kijkrichting meeschuift en per beeldpunt verspringt,
+  zodat de randen niet gaan zwemmen als je loopt. Op een telefoon blijft het zoals
+  het was.
+
+| ![Het wapen tegen de gevel](docs/screenshots/clip_wapen.png) | ![De Molenkrite om vier uur](docs/screenshots/licht_middag.png) | ![En om acht uur](docs/screenshots/licht_avond.png) |
+|---|---|---|
+| het pistool op 40 cm van de gevel | om vier uur | om acht uur: de ruiten spiegelen de avond |
+
+`npm run lichtshots` maakt deze drie foto's.
+
 ## Opslaan en laden
 
 Er is één opslagplek, in de browser (de Windows-app draait dezelfde pagina en gebruikt dezelfde).

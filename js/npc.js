@@ -7,6 +7,9 @@ import { grondHoogte } from './viaduct.js';
 import { zichtVrij, resolveCollisions } from './world.js';
 import { MAAT, DEEL, loopHouding, fietsHouding } from './lichaam.js';
 
+const STOEP_STAP = 0.5;     // om de zoveel meter kijkt het stoepprofiel of er plek is
+const STOEP_VOORUIT = 1.2;  // zover vooruit ziet een voetganger dat de stoep dicht is
+
 const SHIRTS = [0x2f3a56, 0x8a1f1f, 0xe8e2d0, 0x2a6b3a, 0x2b2b2b, 0xd8b04a, 0x6a4c93, 0xc85a2a, 0x3f7fb0];
 const PANTS = [0x1f2a44, 0x333333, 0x5a4632, 0x6f7480, 0x24303f];
 const SKIN = [0xd9b48f, 0xc48a5a, 0x8d5a3b, 0xf0d5b8, 0xa9714b];
@@ -161,6 +164,14 @@ export class NPCs {
      er verkeer aan? Zonder haakje steekt iedereen over zoals hij altijd deed.
     */
     this.magOversteken = null;
+    // de vrije looplijn op de stoep (zie `stoepProfiel`); uit te zetten voor de proef
+    this.stoepVrij = true;
+    /*
+     Alle profielen meteen: over de hele kaart kost dat een paar tiende seconde
+     (headless), en per wegvak bij het eerste gebruik kwam het precies op het
+     moment dat de buurt om je heen wordt bijgevuld (npm run bevolkingtest).
+    */
+    for (const s of this.segs) this.stoepProfiel(s);
 
     this.meshes = {};
     for (const def of DELEN) {
@@ -351,6 +362,64 @@ export class NPCs {
     }
   }
 
+  /*
+   De vrije looplijn van een stuk stoep (meting 24 sep 2026). Een voetganger
+   loopt op `walkOff` van de as en wordt elk beeld uit de botsdozen geduwd. Dat
+   gaat goed langs een heg die langs de stoep loopt, maar een schutting die er
+   dwars overheen staat duwt hem eerst terug en daarna, zodra hij over het
+   midden is, naar voren: hij sprong erdoorheen. Van de 6136 wegvakken bij Tinga
+   liepen er 395 zo door een doos, 1324 m bij elkaar.
+
+   Nu krijgt elk wegvak, de eerste keer dat iemand erover loopt, per kant een
+   profiel: om de halve meter de afstand tot de as waar iemand van 34 cm vrij
+   staat — liefst op de gewone plek, anders een stukje dichter bij de stoeprand
+   of de tuin in. Is er op een punt nergens plek (de schutting staat tot aan de
+   stoeprand), dan is de stoep daar dicht: wie eraan komt steekt over als dat
+   kan. Alle profielen worden bij het maken van de voetgangers uitgerekend.
+  */
+  stoepProfiel(s) {
+    if (s._stoep) return s._stoep;
+    const len = Math.max(0.1, Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));
+    const dx = (s.b[0] - s.a[0]) / len, dz = (s.b[1] - s.a[1]) / len;
+    const basis = s.walkOff || s.w / 2 + 0.8;
+    /*
+     Niet dichter bij de as dan de stoeprand — tenzij de gewone looplijn zelf al
+     dichterbij ligt: op een fietspad of een woonerf loop je óp de verharding
+     (walkOff 0,3 bij een pad van 2,6 m breed). Met alleen de stoeprand als
+     grens bleef daar geen enkele plek over en stond 98 % van de profielen dicht:
+     iedereen keerde elk beeld om en stond stil (npm run looptest).
+    */
+    const rand = Math.min(basis, s.w / 2 + 0.35);
+    const kandidaten = [0, -0.3, 0.3, -0.6, -0.9, 0.6, -1.2].map(d => basis + d).filter(o => o >= rand - 1e-6 && o > 0.05);
+    const n = Math.max(2, Math.ceil(len / STOEP_STAP) + 1);
+    const maak = (zijde) => {
+      const uit = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1);
+        const cx = s.a[0] + (s.b[0] - s.a[0]) * t, cz = s.a[1] + (s.b[1] - s.a[1]) * t;
+        uit[i] = NaN;
+        for (const o of kandidaten) {
+          const x = cx - dz * o * zijde, z = cz + dx * o * zijde;
+          const [kx, kz] = resolveCollisions(x, z, 0.34, 0, grondHoogte(x, z));
+          if (Math.hypot(kx - x, kz - z) < 0.01) { uit[i] = o; break; }
+        }
+      }
+      return uit;
+    };
+    s._stoep = { links: maak(-1), rechts: maak(1), n };
+    return s._stoep;
+  }
+  // de afstand tot de as op plek t aan deze kant, of NaN als de stoep daar dicht is
+  stoepOp(s, t, zijde) {
+    const pr = this.stoepProfiel(s);
+    const k = zijde > 0 ? pr.rechts : pr.links;
+    const f = Math.max(0, Math.min(1, t)) * (pr.n - 1);
+    const i = Math.floor(f), fr = f - i;
+    const a = k[i], b = k[Math.min(pr.n - 1, i + 1)];
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return Number.isFinite(a) && fr < 0.5 ? a : (Number.isFinite(b) && fr >= 0.5 ? b : NaN);
+    return a + (b - a) * fr;
+  }
+
   pickSegment(p, random = false) {
     if (random || !p.seg) {
       const target = this.r() * this.total;
@@ -539,6 +608,32 @@ export class NPCs {
       } else {
         const s = p.seg;
         const len = Math.max(0.1, Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));
+        /*
+         Staat er een meter verderop iets dwars over de stoep, dan oversteken
+         waar dat kan. Fietsers ook: die rijden hier op dezelfde lijn als wie
+         loopt.
+        */
+        if (this.stoepVrij) {
+          const vooruit = p.t + p.dir * STOEP_VOORUIT / len;
+          // alleen als hij nu zelf vrij staat: wie al op een dicht stuk staat
+          // (de stoep is over de hele lengte dicht) loopt gewoon door
+          if (vooruit > 0 && vooruit < 1 && Number.isFinite(this.stoepOp(s, p.t, p.side))
+            && !Number.isFinite(this.stoepOp(s, vooruit, p.side))) {
+            const overkant = Number.isFinite(this.stoepOp(s, p.t, -p.side));
+            /*
+             Kan hij niet oversteken, dan keert hij om — maar één keer per
+             wegvak. Altijd omkeren liet wie op een ingesloten stukje stoep liep
+             daar heen en weer lopen, en dan kwam de buurt niet meer bij je
+             (npm run bevolkingtest: 2 van de 6 wijken in plaats van 4). De
+             tweede keer loopt hij door zoals vroeger; nooit omkeren liet de
+             schuttingen weer staan waar hij doorheen sprong (npm run cliptest).
+            */
+            if (s.drive && overkant && !rent && (!this.magOversteken || this.magOversteken(p.x, p.z))) {
+              p.steekVan = p.side; p.steekNaar = -p.side; p.steek = 1; p.opWeg = true;
+              p.steekWacht = 18 + this.r() * 40;
+            } else if (p.omgekeerdOp !== s) { p.omgekeerdOp = s; p.dir *= -1; }
+          }
+        }
         p.t += p.dir * p.vNu * dt / len;
         if (p.t > 1 || p.t < 0) { p.t = Math.max(0, Math.min(1, p.t)); this.pickSegment(p); }
         if (!rent) {
@@ -577,7 +672,12 @@ export class NPCs {
       const basis = s.walkOff || s.w / 2 + 0.8;
       // tijdens het oversteken schuift de zijde van de ene naar de andere kant
       const zijde = p.steek > 0 ? p.steekVan * p.steek + p.steekNaar * (1 - p.steek) : p.side;
-      const off = basis * zijde;
+      let off = basis * zijde;
+      // op de stoep: de vrije looplijn in plaats van een vaste afstand tot de as
+      if (this.stoepVrij && p.steek <= 0 && s.walkOff > 0) {
+        const o = this.stoepOp(s, p.t, p.side);
+        if (Number.isFinite(o)) off = o * p.side;
+      }
       p.x = s.a[0] + (s.b[0] - s.a[0]) * p.t - dz * off;
       p.z = s.a[1] + (s.b[1] - s.a[1]) * p.t + dx * off;
       /*

@@ -66,6 +66,8 @@ async function serie(relief) {
   page.on('console', m => { if (m.text().startsWith('reliëf:')) melding = m.text(); });
   await page.goto(`http://127.0.0.1:${port}/index.html${relief ? '' : '?relief=0'}`, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__game, null, { timeout: 300000 });
+// het reliëf komt sinds 24 sep 2026 ná het opstarten; hier meteen afmaken
+await page.evaluate(() => window.__game.reliëfAf && window.__game.reliëfAf());
   await page.evaluate(() => {
     localStorage.removeItem('tinga.spel.v1');
     document.getElementById('overlay').style.display = 'none';

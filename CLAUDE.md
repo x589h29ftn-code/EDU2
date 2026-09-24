@@ -60,6 +60,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/looppad.js` | een looproute te voet om hekken en gebouwen heen (A*) |
 | `js/bendes.js` | na missie 10: groepjes van De Veteraan op straat in Tinga en langs de Lemmerweg |
 | `js/deal.js` | missie 8, en `maakVeteraan()`: De Veteraan met zijn hondje |
+| `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`) |
 
 Een paar dingen die niet vanzelf spreken:
 
@@ -123,7 +124,8 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run bendetest` (tweeëndertig controles, groen) en
+De laatste die ertoe doen: `npm run cliptest`, `opstarttest` en `lichttest`
+(clipping, opstarten en licht; stap 75), `npm run bendetest` (tweeëndertig controles, groen) en
 `npm run bendeshots` (twee foto's), `npm run veteraantest` (zevenenveertig controles,
 groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
 (negenenzestig controles) en `npm run huisshots` (vijf foto's).
@@ -141,6 +143,10 @@ groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
   ongevraagd een huis en liet de speler een keer aan tafel zitten.
 - **De audioklok loopt headless ongeveer drie keer trager.** Metingen aan geluid
   moeten lang genoeg zijn (tientallen stappen van 80 ms).
+- **Gevels en reliëf komen na het opstarten.** Een proef die naar texturen,
+  normal maps of roughness maps kijkt roept eerst `window.__game.reliëfAf()` aan.
+- **Het wapen staat op laag 1** en wordt apart getekend (`tekenWapen`); een eigen
+  render van de scène laat het dus weg, tenzij de camera die laag aanzet.
 - **Lege schermafdrukken** komen meestal doordat de camera niet bij de mensen
   staat of doordat NPC's hun positie uit `p.seg` herleiden; zet de camera en
   bevries npcs/voertuigen voor de foto.
@@ -153,8 +159,9 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
 2. Wegblokkades aan de rand van de wereld (het mechanisme staat er, de plekken
    moeten van de gebruiker komen — **K** zet je positie op het klembord).
 3. Steekproef van adressen: woningtype, goothoogte, voorgevelrichting.
-4. Alleen bouwen wat in de buurt is (nu wordt de hele wereld bij het starten
-   opgebouwd, ~31 s headless).
+4. Alleen bouwen wat in de buurt is. Het opstarten is van 72 naar 39 s headless
+   (gevels en reliëf komen na het opstarten, stap 75); wat er nog zit zijn de
+   gebouwen (13 s), het riet (5 s) en het eerste beeld (10 s).
 5. Dakdetails en de achterkant van het Kruirad.
 6. Straten zonder foto: Windbord, Voorzoom, Buitenroede 40–74, Zeskanter, Omloop.
 7. De editor (F2) en de oude objecten uit `data.js` rekenen nog in pixels.
@@ -163,9 +170,11 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
 10. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png`.
 11. Panden die nog het naamloze `spil`-type dragen (de school, de Ligger/Loper).
 12. Onder de zuilengang door kunnen lopen, en een deur de Poiesz in.
-13. Belichting: ambient occlusion, scherpere schaduw dichtbij, de
-    omgevingsreflectie met de klok mee.
-14. **Voorgevel de Vang**: alleen steen, geen deur of ramen (oude melding).
+13. `npm run relieftest` meet 343 MB texturegeheugen tegen een grens van 260 —
+    al van vóór stap 75.
+14. Belichting: echte SSAO (nu alleen omgevingsschaduw aan de voet van de muren,
+    js/licht.js). Scherpere schaduw en de reflectie met de klok mee zijn af.
+15. **Voorgevel de Vang**: alleen steen, geen deur of ramen (oude melding).
 
 ## 8 · Waar wat gedocumenteerd wordt
 

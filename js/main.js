@@ -1,7 +1,7 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
 import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, updateProps, radioPlekken, vaarbaar } from './world.js';
-import { Player } from './player.js';
+import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
 import { HUD } from './hud.js';
@@ -22,7 +22,7 @@ import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp } from './kaartwereld.js';
 import { KLEUR } from './kaartkleuren.js';
-import { zetAnisotropie, zetReliëf, bordSpannenburg, logoTinga, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
+import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
 import { grondHoogte } from './viaduct.js';
 import { maakBuit, zakgeld, agentMunitie } from './buit.js';
@@ -77,7 +77,16 @@ const scene = new THREE.Scene();
 scene.background = null;
 scene.fog = new THREE.Fog(0xc3d9ec, 180, 900);
 
-const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.05, 1200);
+/*
+ Het voorvlak op 15 cm in plaats van 5. De diepte-nauwkeurigheid schaalt met het
+ voorvlak: bij 5 cm konden twee grondlagen met 2 mm ertussen (klinkers op het
+ plateau, belijning op het veld) vanaf 41 m niet meer uit elkaar worden
+ gehouden en flikkerden ze; bij 15 cm is dat drie keer zo ver. Dichterbij dan
+ 15 cm komt de wereld niet: je botsstraal is 35 cm. Alleen het wapen in je hand
+ zit dichterbij, en dat wordt apart getekend (`tekenWapen` hieronder).
+*/
+const CAMERA_NEAR = 0.15;
+const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, CAMERA_NEAR, 1200);
 scene.add(camera);
 
 // ---------- Lucht met zonneschijf en horizonwaas ----------
@@ -204,22 +213,75 @@ function updateClouds(dt, camX, camZ) {
 // Omgevingslicht komt uit een environment map die uit de lucht zelf wordt
 // gerenderd; dat geeft baksteen, glas en lak veel natuurlijker aanzetten dan
 // een vlakke hemisphere light.
+/*
+ En die omgeving loopt met de klok mee (verzoek 24 sep 2026). Hij werd één keer
+ gebakken en bleef daarna staan, dus bij zonsondergang en 's nachts spiegelden
+ ruiten en lak nog een blauwe middaglucht. De luchtbol in de omgevingsscène
+ deelt nu de uniforms van de echte lucht (js/sfeer.js zet kleuren en zon), de
+ grond eronder wordt 's nachts donker, en `werkOmgevingBij` bakt hem opnieuw
+ zodra de zon twee graden verder staat — hoogstens eens per zes seconden, want
+ één keer bakken kost een paar honderdste seconde.
+*/
 const pmrem = new THREE.PMREMGenerator(renderer);
 pmrem.compileEquirectangularShader();
+const envScene = new THREE.Scene();
+const envSkyMat = skyMat.clone();
+envSkyMat.uniforms = skyUniforms;
+envScene.add(new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), envSkyMat));
+const ENV_GROND = new THREE.Color(0x5d7a46);
+const envGrondMat = new THREE.MeshBasicMaterial({ color: ENV_GROND.clone(), side: THREE.DoubleSide });
 {
-  const envScene = new THREE.Scene();
-  const envSky = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), skyMat.clone());
-  envScene.add(envSky);
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(400, 400),
-    new THREE.MeshBasicMaterial({ color: 0x5d7a46, side: THREE.DoubleSide }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), envGrondMat);
   ground.rotation.x = -Math.PI / 2; ground.position.y = -6;
   envScene.add(ground);
+}
+let envRT = null, envT = 0, envBakken = 0;
+const envZon = new THREE.Vector3(), envLucht = new THREE.Color();
+function bakOmgeving() {
+  // de grond: vol bij daglicht, bijna zwart als de zon onder is
+  const dag = Math.max(0.06, Math.min(1, SUN_DIR.y * 2.5 + 0.35));
+  envGrondMat.color.copy(ENV_GROND).multiplyScalar(dag);
   const rt = pmrem.fromScene(envScene, 0, 0.1, 200);
   scene.environment = rt.texture;
-  envSky.geometry.dispose();
+  if (envRT) envRT.dispose();
+  envRT = rt;
+  envZon.copy(SUN_DIR);
+  envLucht.copy(skyUniforms.mid.value);
+  envBakken++;
 }
-pmrem.dispose();
+bakOmgeving();
+/*
+ De schaduwdoos: een stuk vóór je, en vastgeklikt op het raster van de kaart
+ gezien vanuit de zon. Alleen de twee richtingen dwars op de zonnestraal tellen;
+ langs de straal maakt het voor de kaart niet uit waar het midden ligt.
+*/
+const _zonR = new THREE.Vector3(), _zonO = new THREE.Vector3(), _zonM = new THREE.Vector3();
+function zetSchaduwDoos(cx, cz) {
+  const kijk = new THREE.Vector3();
+  camera.getWorldDirection(kijk);
+  kijk.y = 0;
+  if (kijk.lengthSq() > 1e-6) kijk.normalize();
+  _zonM.set(cx + kijk.x * SHADOW_VOORUIT, 0, cz + kijk.z * SHADOW_VOORUIT);
+  const texel = (2 * SHADOW_R) / SHADOW_MAP;
+  _zonR.crossVectors(SUN_DIR, _zonO.set(0, 1, 0));
+  if (_zonR.lengthSq() < 1e-6) _zonR.set(1, 0, 0);
+  _zonR.normalize();
+  _zonO.crossVectors(_zonR, SUN_DIR).normalize();
+  const a = _zonM.dot(_zonR), b = _zonM.dot(_zonO);
+  _zonM.addScaledVector(_zonR, Math.round(a / texel) * texel - a);
+  _zonM.addScaledVector(_zonO, Math.round(b / texel) * texel - b);
+  sun.position.set(_zonM.x + SUN_DIR.x * 150, _zonM.y + SUN_DIR.y * 150, _zonM.z + SUN_DIR.z * 150);
+  sun.target.position.copy(_zonM); sun.target.updateMatrixWorld();
+}
+function werkOmgevingBij(dt) {
+  envT -= dt;
+  if (envT > 0) return;
+  envT = 6;
+  // ook bij ander weer: dan verandert de lucht zonder dat de zon beweegt
+  const lucht = skyUniforms.mid.value;
+  const anders = Math.abs(lucht.r - envLucht.r) + Math.abs(lucht.g - envLucht.g) + Math.abs(lucht.b - envLucht.b);
+  if (SUN_DIR.angleTo(envZon) > 0.035 || anders > 0.06) bakOmgeving();
+}
 
 const hemi = new THREE.HemisphereLight(0xd2e2f6, 0x6e8154, 0.75);
 scene.add(hemi);
@@ -227,9 +289,20 @@ const sun = new THREE.DirectionalLight(0xfff3e0, 2.2);
 sun.castShadow = true;
 // 2048 over een strakkere doos is vier keer goedkoper dan 4096 over 156 m en
 // nauwelijks van elkaar te onderscheiden; op een telefoon scheelt dat het meest.
-sun.shadow.mapSize.set(IS_TOUCH ? 1024 : 2048, IS_TOUCH ? 1024 : 2048);
+/*
+ Scherpere schaduw dichtbij (verzoek 24 sep 2026). Eén kaart van 2048 over een
+ doos van 104 m is 5,1 cm per beeldpunt, en dat is te grof voor de rand van een
+ dakkapel of een lantaarnpaal op de stoep. Op de pc nu 3072 over 76 m: 2,5 cm.
+ De doos is kleiner, dus hij schuift twintig meter mee in je kijkrichting — wat
+ achter je ligt zie je toch niet — en hij springt per beeldpunt van de kaart,
+ zodat de schaduwranden niet gaan zwemmen als je loopt. Op een telefoon blijft
+ het zoals het was.
+*/
+const SHADOW_MAP = IS_TOUCH ? 1024 : 3072;
+sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
 sun.shadow.camera.near = 8; sun.shadow.camera.far = 230;
-const SHADOW_R = 52;
+const SHADOW_R = IS_TOUCH ? 52 : 38;
+const SHADOW_VOORUIT = IS_TOUCH ? 0 : 20;
 sun.shadow.camera.left = -SHADOW_R; sun.shadow.camera.right = SHADOW_R;
 sun.shadow.camera.top = SHADOW_R; sun.shadow.camera.bottom = -SHADOW_R;
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.035;
@@ -293,6 +366,21 @@ if (URLP.get('kaart') !== 'oud') {
  seconde — dan zou de opbouw uren duren in plaats van een minuut.
 */
 const BUDGET = 24;
+/*
+ Het beeld teruggeven tussen twee stukken opbouw. Een `setTimeout(0)` wacht in
+ Chrome na een paar keer minstens vier milliseconde, en bij honderden stukken
+ was dat 12,9 van de 72 seconden stilstand (profiel 24 sep 2026). Een bericht
+ over een MessageChannel komt meteen terug. Eens per tiende seconde toch een
+ echte setTimeout, zodat het laadscherm ook echt getekend wordt.
+*/
+let laatsteEchtePauze = 0;
+const geefBeeldTerug = () => new Promise(klaar => {
+  const nu = performance.now();
+  if (nu - laatsteEchtePauze > 100) { laatsteEchtePauze = nu; setTimeout(klaar, 0); return; }
+  const kanaal = new MessageChannel();
+  kanaal.port1.onmessage = () => klaar();
+  kanaal.port2.postMessage(0);
+});
 menu.bouwMenu({
   heeftOpslag: !!opslagInfo(),
   opAfsluiten: () => afsluiten(),
@@ -305,7 +393,25 @@ let laadBalk = null;
 // zodra je iets kiest schuift het laadscherm ervoor, ook als de wereld nog bouwt
 keuzeBelofte.then(() => { if (!laadBalk) laadBalk = menu.toonLaadscherm(); });
 
+/*
+ Hoelang elke fase van het opstarten duurt, voor tools/opstarttest.mjs: per
+ fase de naam en de milliseconden. De opbouw van de wereld meldt zijn eigen
+ fases (`wat`), de rest komt uit `adem` hieronder.
+*/
+const OPSTART = window.__opstart = [];
+// de eerste fase telt vanaf het openen van de pagina: modules, kaart.js en het menu
+let opstartFase = { wat: 'pagina, modules en kaart.js', t: 0 };
+const opstartStap = (wat) => {
+  const nu = performance.now();
+  if (opstartFase && opstartFase.wat !== wat) {
+    OPSTART.push({ wat: opstartFase.wat, ms: Math.round(nu - opstartFase.t) });
+    opstartFase = { wat, t: nu };
+  }
+};
 const t0 = performance.now();
+opstartStap('wereld');
+// de gevels worden pas na het opstarten getekend (zie `maakAf` in js/textures.js)
+zetUitstel(true);
 const world = await (async () => {
   const stappen = buildWorldStap(scene);
   let klaar = null;
@@ -314,11 +420,13 @@ const world = await (async () => {
     let r;
     do { r = stappen.next(); } while (!r.done && performance.now() < grens);
     if (r.done) { klaar = r.value; break; }
+    opstartStap(`wereld: ${r.value.wat}`);
     if (laadBalk) laadBalk(r.value.deel, r.value.wat);
-    await new Promise(r => setTimeout(r, 0));
+    await geefBeeldTerug();
   }
   return klaar;
 })();
+zetUitstel(false);
 console.log(`Wereld gebouwd in ${Math.round(performance.now() - t0)} ms, ${colliders.length} colliders, ${world.parkSpots.length} auto's`);
 
 /*
@@ -337,17 +445,35 @@ console.log(`Wereld gebouwd in ${Math.round(performance.now() - t0)} ms, ${colli
  verder en geeft het beeld terug, zodat het laadscherm ook hier blijft lopen.
 */
 const adem = async (wat, deel) => {
+  opstartStap(wat);
   if (laadBalk) laadBalk(deel, wat);
-  await new Promise(r => setTimeout(r, 0));
+  await geefBeeldTerug();
 };
 
-await adem('reliëf en glans', 0.955);
 const RELIEF_AAN = !IS_TOUCH && new URLSearchParams(location.search).get('relief') !== '0';
-if (RELIEF_AAN) {
-  const t1 = performance.now();
-  const r = zetReliëf(scene);
-  console.log(`reliëf: ${r.normalen} normal maps en ${r.glans} roughness maps over ${r.materialen} materialen in ${Math.round(performance.now() - t1)} ms`);
+/*
+ Het reliëf komt ná het opstarten (zie `reliëfStappen` in js/textures.js): het
+ kostte hier 13,7 van de 72 seconden. De stappen worden hieronder klaargezet
+ zodra het beginpunt bekend is en in `loop` per beeld een paar milliseconde
+ afgewerkt; `reliëfAf` doet de rest in één keer, voor de proeven.
+*/
+let reliëf = null, reliëfT = 0, reliëfMs = 0;
+function reliëfAf() {
+  if (!reliëf) return null;
+  let r; do { r = reliëf.next(); } while (!r.done);
+  reliëf = null;
+  meldReliëf(r.value);
+  return r.value;
 }
+function meldReliëf(v) {
+  console.log(`reliëf: ${v.normalen} normal maps en ${v.glans} roughness maps over ${v.materialen} materialen, en ${v.gevels} gevels, na het opstarten in ${Math.round(reliëfMs)} ms`);
+}
+/*
+ De gevels en het reliëf komen ná het opstarten, maar welke materialen erbij
+ horen ligt hier vast: dezelfde als toen het reliëf hier nog in één keer ging.
+ Het beginpunt komt verderop pas; de volgorde wordt bij de eerste stap bepaald.
+*/
+reliëf = reliëfStappen(scene, () => beginpunt, RELIEF_AAN);
 
 /*
  Omgevingslicht sterker laten meewegen. three r160 heeft nog geen
@@ -471,6 +597,7 @@ const boerderij = initBoerderij({ scene, player, hud, verhaal }) || LEEG;
 // (js/supermarkt.js).
 await adem('de supermarkt', 0.996);
 const supermarkt = initSupermarkt({ scene, player, hud, verhaal }) || LEEG;
+opstartStap('de rest van de opzet');
 // Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
 const binnenruimtes = [...woningen, boerderij, supermarkt];
 const ergensBinnen = (x, z) => binnenruimtes.some(r => r.binnen(x, z));
@@ -559,7 +686,9 @@ bouwSporen(scene);
 vehicles.spoor = zetSpoor;
 // nog een keer: de speler, de auto's en de binnenruimtes zijn er ná de eerste
 // ronde bij gekomen en hebben hun eigen materialen
+opstartStap('omgevingslicht');
 await applyEnvIntensity(scene);
+opstartStap('de rest van de opzet (2)');
 
 /*
  Botsgevoel: de camera schudt van een klap.
@@ -1568,6 +1697,21 @@ function afstandTotRadio(x, z) {
 
 function loop() {
   requestAnimationFrame(loop);
+  /*
+   Het reliëf aanvullen: vier milliseconde per beeld, en twaalf zolang het spel
+   stilstaat (menu, laadscherm, pauze) — dan is er tijd genoeg.
+  */
+  if (reliëf) {
+    const t = performance.now();
+    const grens = t + (player.active ? 4 : 12);
+    let r;
+    do { r = reliëf.next(); } while (!r.done && performance.now() < grens);
+    reliëfMs += performance.now() - t;
+    if (r.done) {
+      meldReliëf(r.value);
+      reliëf = null;
+    }
+  }
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
   if (player.active || window.__autoplay) {
     player.update(dt);
@@ -1797,9 +1941,9 @@ function loop() {
     if (player.health <= 0) { politie.reset(); if (politieboot) politieboot.reset(); verhaal.dood(); }
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
-    sun.position.set(cx + SUN_DIR.x * 150, SUN_DIR.y * 150, cz + SUN_DIR.z * 150);
-    sun.target.position.set(cx, 0, cz); sun.target.updateMatrixWorld();
+    zetSchaduwDoos(cx, cz);
     updateClouds(dt, cx, cz);
+    werkOmgevingBij(dt);
     sfeer.update(dt, cx, cz);
     updateProps(dt);
     langsrijders(dt);          // een auto die voorbijkomt hoor je ook
@@ -1894,8 +2038,38 @@ function loop() {
   // de klap van een botsing, vlak voor het tekenen op de camera gezet
   if (kijker === camera) schokCamera(kijker, dt);
   renderer.render(scene, kijker);
+  if (kijker === camera && player.gun && player.gun.visible) tekenWapen();
 }
+
+/*
+ Het wapen in je hand, na de wereld en eroverheen. De dieptebuffer gaat leeg,
+ dus geen muur of paal kan er nog doorheen steken, en het krijgt een eigen
+ voorvlak van een centimeter. Alle lampen staan ook op laag 1, zodat het wapen
+ hetzelfde licht krijgt als de wereld — en dezelfde shaders, want three maakt
+ een nieuw programma zodra het aantal lampen verschilt.
+*/
+const WAPEN_NEAR = 0.01;
+let lampenOpWapenlaag = 0;
+function tekenWapen() {
+  if (lampenOpWapenlaag-- <= 0) {
+    lampenOpWapenlaag = 120;
+    scene.traverse(o => { if (o.isLight) o.layers.enable(WAPEN_LAAG); });
+  }
+  const oudClear = renderer.autoClear;
+  renderer.autoClear = false;
+  renderer.shadowMap.needsUpdate = false;
+  renderer.clearDepth();
+  const masker = camera.layers.mask;
+  camera.layers.set(WAPEN_LAAG);
+  camera.near = WAPEN_NEAR; camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  camera.layers.mask = masker;
+  camera.near = CAMERA_NEAR; camera.updateProjectionMatrix();
+  renderer.autoClear = oudClear;
+}
+opstartStap('het eerste beeld');
 loop();
+opstartStap('na het eerste beeld');
 
 /*
  De wereld staat er; nu wachten we op de keuze uit het menu. Die kan al gemaakt
@@ -1912,7 +2086,15 @@ loop();
 })();
 
 // Testhaak voor automatische screenshots
+opstartStap('klaar');
 window.__game = {
+  // de wapenpas en het voorvlak, voor tools/cliptest.mjs
+  tekenWapen, cameraNear: CAMERA_NEAR,
+  // het reliëf in één keer afmaken (de proeven), en hoever het is
+  reliëfAf, get reliëfBezig() { return !!reliëf; },
+  // licht (tools/lichttest.mjs): de omgeving opnieuw bakken en de schaduwdoos
+  bakOmgeving, werkOmgevingBij, zetSchaduwDoos, get omgevingGebakken() { return envBakken; }, sun,
+  schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,
