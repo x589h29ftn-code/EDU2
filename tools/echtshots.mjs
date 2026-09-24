@@ -7,6 +7,9 @@
    wapen_echt_schot.png        60 ms na een schot: de huls in de lucht, de
                                slede terug, mondingsvuur en een wolkje damp
    wapen_echt_sniper.png       de sniper met de grendel open, na het schot
+   mens_echt_gezicht.png       een meespelend personage van dichtbij: gezicht,
+                               ronde romp, breisteek en spijkerstof
+   mens_echt_straat.png        voetgangers op straat (de instanced mensen)
    auto_echt_straat.png        een geparkeerde auto schuin van achteren: ronde
                                randen, lak met een laklaag, achterlichten
    auto_echt_voor.png          van voren: koplampen en het gele kenteken
@@ -80,6 +83,41 @@ await page.evaluate(() => {
   p.kickPitch = 0; p.kickYaw = 0; p.applyCamera();
 });
 await foto('wapen_echt_sniper');
+
+// ---- de poppetjes: een personage van dichtbij en de voetgangers op straat
+await page.evaluate(async () => {
+  const g = window.__game, p = g.player, s = g.start;
+  const { Persoon } = await import('/js/persoon.js');
+  p.wapenUit = true; if (p.gun) p.gun.visible = false;
+  // twee mensen naast elkaar, anderhalve meter voor de camera, naar je toe
+  const vx = -Math.sin(p.yaw), vz = -Math.cos(p.yaw), rx = Math.cos(p.yaw), rz = -Math.sin(p.yaw);
+  window.__poppen = [
+    new Persoon({ shirt: 0xb03a2e, broek: 0x2c3e66, huid: 0xe0b896, haar: 0x3a2616 }),
+    new Persoon({ shirt: 0x2e7d4f, broek: 0x3b3b3b, huid: 0x8d5a3b, haar: 0x111111, korteMouw: true }),
+  ];
+  window.__poppen.forEach((q, i) => {
+    q.groep.position.set(p.pos.x + vx * 1.9 + rx * (i - 0.5) * 0.9, 0, p.pos.z + vz * 1.9 + rz * (i - 0.5) * 0.9);
+    q.groep.rotation.y = p.yaw + Math.PI + (i - 0.5) * 0.5;      // naar de camera toe
+    q.groep.traverse(o => { o.frustumCulled = false; });
+    g.scene.add(q.groep);
+  });
+  p.pitch = -0.12; p.applyCamera();
+});
+await foto('mens_echt_gezicht');
+await page.evaluate(() => {
+  const g = window.__game, p = g.player;
+  for (const q of window.__poppen) g.scene.remove(q.groep);
+  // de dichtstbijzijnde voetganger die loopt, en de camera op vijf meter
+  const ik = { x: p.pos.x, z: p.pos.z };
+  const mensen = g.npcs.people.filter(q => q.x !== undefined && !q.fietst);
+  const q = mensen.map(q => ({ q, d: Math.hypot(q.x - ik.x, q.z - ik.z) })).sort((a, b) => a.d - b.d)[0].q;
+  // vóór hem, in de richting waarin hij loopt (hij kijkt langs zijn eigen −z)
+  const kx = -Math.sin(q.yaw || 0), kz = -Math.cos(q.yaw || 0);
+  p.pos.set(q.x + kx * 4.5 + kz * 1.2, 0, q.z + kz * 4.5 - kx * 1.2);
+  p.yaw = Math.atan2(-(q.x - p.pos.x), -(q.z - p.pos.z)); p.pitch = -0.10;
+  p.applyCamera();
+});
+await foto('mens_echt_straat');
 
 // ---- een geparkeerde auto vlak bij het begin
 const auto = await page.evaluate(() => {

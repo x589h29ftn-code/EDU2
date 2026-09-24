@@ -13,7 +13,7 @@
 */
 import * as THREE from 'three';
 import { grondHoogte } from './viaduct.js';
-import { MAAT, DEEL, loopHouding, mikHouding, hurkHouding } from './lichaam.js';
+import { MAAT, DEEL, loopHouding, mikHouding, hurkHouding, lichaamMat } from './lichaam.js';
 
 const SCHOUDER_X = 0.235;
 
@@ -40,10 +40,13 @@ export class Persoon {
   constructor({ shirt = 0x2a6b3a, broek = 0x24303f, huid = 0xd9b48f, haar = 0x2a1d12,
     hoogte = 1.0, wapen = false, pet = false, petKleur = 0x1d2634,
     vest = null, schoen = 0x24242a, oog = 0x2a1d14, korteMouw = false } = {}) {
-    const mShirt = mat(shirt), mBroek = mat(broek), mHuid = mat(huid, 0.85);
+    // elk soort onderdeel zijn eigen doek (js/lichaam.js): breisteek, keper,
+    // huid, het gezicht, haar en leer
+    const mShirt = lichaamMat(shirt, 'stof'), mBroek = lichaamMat(broek, 'broek'), mHuid = lichaamMat(huid, 'huid');
+    const mGezicht = lichaamMat(huid, 'gezicht');
     // korte mouwen: dan is de onderarm huidkleur en zie je dat het een arm is
     const mMouw = korteMouw ? mHuid : mShirt;
-    const mHaar = mat(haar), mSchoen = mat(schoen, 0.7);
+    const mHaar = lichaamMat(haar, 'haar'), mSchoen = lichaamMat(schoen, 'schoen');
     this.groep = new THREE.Group();
     this.groep.scale.setScalar(hoogte);
 
@@ -54,13 +57,13 @@ export class Persoon {
     // hoofd met ogen; de ogen zijn een eigen mesh omdat ze een eigen kleur hebben
     this.hoofd = new THREE.Group();
     this.hoofd.position.set(0, MAAT.hoofd, 0);
-    this.hoofd.add(mesh(DEEL.hoofd(), mHuid));
+    this.hoofd.add(mesh(DEEL.hoofd(), mGezicht));
     this.hoofd.add(mesh(DEEL.ogen(), mat(oog, 0.4)));
     this.groep.add(this.hoofd);
     // pet of haar hangt aan het hoofd, zodat hij meedraait als het hoofd knikt
-    if (pet) this.hoofd.add(mesh(DEEL.pet(), mat(petKleur), 0, 0.020, 0));
+    if (pet) this.hoofd.add(mesh(DEEL.pet(), lichaamMat(petKleur, 'stof'), 0, 0.020, 0));
     else this.hoofd.add(mesh(DEEL.haar(), mHaar, 0, 0.020, 0));
-    if (vest) this.groep.add(mesh(DEEL.vest(), mat(vest, 0.72), 0, MAAT.romp, 0));
+    if (vest) this.groep.add(mesh(DEEL.vest(), lichaamMat(vest, 'stof'), 0, MAAT.romp, 0));
 
     /*
      Een ledemaat: een draaipunt met daaronder het bovenstuk, dan een tweede

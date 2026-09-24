@@ -138,6 +138,7 @@
     "gebouwshots": "node tools/gebouwshots.mjs",
     "wapenechttest": "node tools/wapenechttest.mjs",
     "autoechttest": "node tools/autoechttest.mjs",
+    "mensechttest": "node tools/mensechttest.mjs",
     "echtshots": "node tools/echtshots.mjs",
     "huisshots": "node tools/huisshots.mjs",
     "dealshots": "node tools/dealshots.mjs",

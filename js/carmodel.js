@@ -426,20 +426,77 @@ function autoGeoms(kind) {
     lak.push({ geo: doos(0.07, stijlH, 0.08), x, y: (schouderY + dakY) / 2, z: cabZ + (bus ? 0.30 : 0.18) });
   }
   if (!bus) lak.push({ geo: doos(W - 0.55, 0.05, 0.16), y: dakY + 0.02, z: cabZ + cabL / 2 - 0.30 });  // dakspoiler
+  /*
+   De laadruimte van de bestelbus. Achter de cabine hield de bus op 1,69 m op
+   (de kofferklep van een personenauto, maar dan lang), terwijl het cabinedak op
+   2,06 ligt: van achteren keek je over een open bak tegen de achterruit van de
+   cabine aan — een raam dat nergens bij leek te horen. Een bestelbus is één doos
+   tot aan het dak. Die staat hier, van de C-stijl tot de achterkant, met twee
+   achterdeuren met elk een ruit (hieronder bij het glas en de naden).
+  */
+  const laadZ0 = cabZ + cabL / 2 - 0.24 - Math.sin(cHoek) * (dakY - schouderY) / 2 + 0.02;
+  const laadZ1 = L / 2 - 0.06;
+  if (bus) lak.push({ geo: rdoos(W - 0.02, dakY + 0.04 - (schouderY - 0.08), laadZ1 - laadZ0, 0.05),
+    y: (dakY + 0.04 + schouderY - 0.08) / 2, z: (laadZ0 + laadZ1) / 2 });
 
+  /*
+   De ramen dekken de hele raamopening (melding 24 sep 2026: "de ramen lijken
+   niet het gehele raam oppervlakte te dekken"). Gemeten met stralen door de
+   raamopening, in een raster van 3 cm:
+
+   - De zijruit was een rechthoek, maar de opening tussen de schuine A-stijl en
+     C-stijl is een trapezium: aan weerskanten bleef een driehoek open, bij de
+     hatchback 30 % van de stralen door de opening. Nu is de zijruit zelf een
+     trapezium waarvan de voor- en achterrand de hartlijn van de stijlen volgen.
+   - De voor- en achterruit waren W − 0,42 en W − 0,46 breed, terwijl de stijlen
+     pas op ±(W/2 − 0,12) beginnen: tussen ruit en stijl een strook van zes
+     centimeter over de hele hoogte. Nu lopen ze twee centimeter de stijl in.
+  */
+  const yMid = (schouderY + dakY) / 2;
+  const zA = cabZ - cabL / 2 + 0.30 - Math.sin(aHoek) * stijlH / 2;
+  const zC = cabZ + cabL / 2 - 0.24 - Math.sin(cHoek) * stijlH / 2;
+  const stijlBinnen = W / 2 - (bus ? 0.10 : 0.075) - 0.045;           // binnenkant van een stijl
+  const ruitB = bus ? W - 0.24 : 2 * (stijlBinnen + 0.02);
+  /*
+   Tussen de voet van de C-stijl en de kofferklep bleef boven de schouderlijn een
+   spleet: bij de BX, met zijn korte kofferklep, twaalf centimeter waar je van
+   opzij dwars door de auto keek. Een vulstuk van de stijl tot in de klep.
+  */
+  if (!bus) {
+    // een trapezium in de lengte: de voorrand volgt de schuine C-stijl, tot de
+    // bovenkant van de kofferklep
+    const y0 = schouderY - 0.01, y1 = schouderY + 0.185;
+    const stijl = (y) => zC + (y - yMid) * Math.tan(cHoek) - 0.02;
+    const z1 = kontZ - kontL / 2 + 0.10;
+    const vorm = new THREE.Shape();
+    vorm.moveTo(stijl(y0), y0); vorm.lineTo(z1, y0); vorm.lineTo(z1, y1); vorm.lineTo(stijl(y1), y1); vorm.closePath();
+    const g = new THREE.ExtrudeGeometry(vorm, { depth: W - 0.14, bevelEnabled: false });
+    g.rotateY(-Math.PI / 2); g.translate((W - 0.14) / 2, 0, 0);
+    lak.push({ geo: g });
+  }
   const glas = [
     // voorruit en achterruit staan schuin tussen de schouderlijn en het dak
-    { geo: doos(W - (bus ? 0.24 : 0.42), stijlH / Math.cos(aHoek) + 0.10, 0.05),
-      y: (schouderY + dakY) / 2 + 0.03, z: cabZ - cabL / 2 + 0.30 - Math.sin(aHoek) * stijlH / 2, rx: aHoek },
-    { geo: doos(W - (bus ? 0.26 : 0.46), stijlH / Math.cos(cHoek) + 0.06, 0.05),
-      y: (schouderY + dakY) / 2 + 0.03, z: cabZ + cabL / 2 - 0.24 - Math.sin(cHoek) * stijlH / 2, rx: cHoek },
-    // zijruiten
-    // De ruit loopt tot ín de schouderlijn en het dak. Hij was stijlH − 0,06 hoog
-    // en zweefde daarmee in het portiergat: elf centimeter open boven en onder,
-    // waar je dwars de auto in keek.
-    { geo: doos(0.05, stijlH + 0.10, cabL - (bus ? 0.35 : 0.85)), x: -W / 2 + 0.045, y: (schouderY + dakY) / 2, z: cabZ + 0.02 },
-    { geo: doos(0.05, stijlH + 0.10, cabL - (bus ? 0.35 : 0.85)), x: W / 2 - 0.045, y: (schouderY + dakY) / 2, z: cabZ + 0.02 },
+    { geo: doos(ruitB, stijlH / Math.cos(aHoek) + 0.10, 0.05), y: yMid + 0.03, z: zA, rx: aHoek },
+    { geo: doos(bus ? W - 0.26 : ruitB, stijlH / Math.cos(cHoek) + 0.06, 0.05), y: yMid + 0.03, z: zC, rx: cHoek },
   ];
+  // de ruiten in de achterdeuren van de bus, een centimeter uit het plaatwerk
+  if (bus) for (const sx of [-1, 1]) glas.push({ geo: doos(0.66, 0.36, 0.03), x: sx * 0.42, y: dakY - 0.24, z: laadZ1 + 0.01 });
+  // zijruiten: een trapezium tussen de hartlijnen van de A- en de C-stijl. Hij
+  // loopt, net als voorheen, van vijf centimeter ín de schouderlijn tot net
+  // onder de bovenkant van het dak.
+  {
+    const y0 = schouderY - 0.05, y1 = dakY + 0.03;
+    const voor = (y) => zA + (y - yMid) * Math.tan(aHoek);
+    const achter = (y) => zC + (y - yMid) * Math.tan(cHoek);
+    const vorm = new THREE.Shape();
+    vorm.moveTo(voor(y0), y0); vorm.lineTo(achter(y0), y0); vorm.lineTo(achter(y1), y1); vorm.lineTo(voor(y1), y1); vorm.closePath();
+    for (const sx of [-1, 1]) {
+      const g = new THREE.ExtrudeGeometry(vorm, { depth: 0.05, bevelEnabled: false });
+      g.rotateY(-Math.PI / 2);                // vorm-x wordt z, de dikte loopt langs −x
+      g.translate(sx * (W / 2 - 0.045) + 0.025, 0, 0);
+      glas.push({ geo: g });
+    }
+  }
 
   const lijstL = 2 * (wielZ - R - 0.05);        // tussen de banden, zie hieronder
   const zwartVast = [
@@ -474,9 +531,14 @@ function autoGeoms(kind) {
     { geo: doos(0.07, 0.13, lijstL), x: W / 2 - 0.03, y: dorpelY - 0.02 },
     { geo: doos(0.10, 0.10, 0.24), x: -W / 2 + 0.34, y: dorpelY - 0.02, z: L / 2 + 0.02 },  // uitlaat
   ];
+  // de naad tussen de twee achterdeuren van de bus
+  if (bus) zwartVast.push({ geo: doos(0.025, dakY - flankY + 0.30, 0.02), y: (dakY + flankY - 0.30) / 2, z: laadZ1 + 0.008 });
   // portiernaden: twee dunne lijnen per flank
   for (const zx of [-1, 1]) for (const dz of bus ? [-0.15, 1.35] : [-0.62, 0.62]) {
-    zwartVast.push({ geo: doos(0.04, flankH + 0.16, 0.035), x: zx * (W / 2 - 0.005), y: flankY + 0.05, z: cabZ + dz });
+    // tot de schouderlijn en niet verder: ze liepen tien centimeter door, en
+    // dat stond als een zwart stokje midden in de zijruit
+    const onder = flankY - flankH / 2 - 0.03, boven = schouderY - 0.01;
+    zwartVast.push({ geo: doos(0.04, boven - onder, 0.035), x: zx * (W / 2 - 0.005), y: (onder + boven) / 2, z: cabZ + dz });
   }
   // wielkasten rond alle vier de wielen
   const kast = wielkast(R);

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { rng } from './textures.js';
 import { grondHoogte } from './viaduct.js';
 import { zichtVrij, resolveCollisions } from './world.js';
-import { MAAT, DEEL, loopHouding, fietsHouding } from './lichaam.js';
+import { MAAT, DEEL, loopHouding, fietsHouding, doekVoor, DOEK_VAN } from './lichaam.js';
 
 const STOEP_STAP = 0.5;     // om de zoveel meter kijkt het stoepprofiel of er plek is
 const STOEP_VOORUIT = 1.2;  // zover vooruit ziet een voetganger dat de stoep dicht is
@@ -176,7 +176,12 @@ export class NPCs {
     this.meshes = {};
     for (const def of DELEN) {
       const n = def.paar ? count * 2 : count;
-      const m = new THREE.InstancedMesh(def.geo(), new THREE.MeshStandardMaterial({ roughness: 0.92 }), n);
+      // het doek van dit soort onderdeel (js/lichaam.js); de kleur per persoon
+      // is de kleur van de instantie en wordt ermee vermenigvuldigd
+      const doek = DOEK_VAN[def.naam] ? doekVoor(DOEK_VAN[def.naam]) : null;
+      const mat = new THREE.MeshStandardMaterial({ roughness: doek ? doek.roughness : 0.4, map: doek ? doek.map : null });
+      if (doek && doek.normalMap) { mat.normalMap = doek.normalMap; mat.normalScale.set(0.8, 0.8); }
+      const m = new THREE.InstancedMesh(def.geo(), mat, n);
       m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       m.castShadow = true;
       m.frustumCulled = false;

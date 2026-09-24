@@ -5328,6 +5328,41 @@ licht), achterlicht en kenteken. Evenveel meshes als voorheen; een auto is nu
 5800 driehoeken, gedeeld per soort. `vuiltest` en `puntentest` lazen de oude
 regels uit de bron met een reguliere expressie en zijn bijgewerkt.
 
+**Ramen, poppetjes en meer steekproeven (stap 77).** Op verzoek van 24 sep 2026:
+"kijk bij de auto's goed naar de ramen", nog enkele foto's van woningen en
+straten, en de poppetjes net zo bijwerken als de wapens en de auto's. Nieuwe
+proef `mensechttest`; `autoechttest` meet de ramen.
+
+*De ramen: meten.* Een raster van stralen van 3 cm door de raamopening, van
+opzij, voor en achter; een straal die niets raakt terwijl er in dezelfde rij
+links en rechts ervan iets geraakt wordt, is een gat. Hatchback: 30 % door de
+zijkant, 8 % naast de voorruit. De zijruit is nu een trapezium (ExtrudeGeometry)
+langs de hartlijnen van A- en C-stijl, voor- en achterruit lopen twee centimeter
+in de stijlen. Daarna bleven er bij de BX 34 gaten: een spleet tussen de voet van
+de C-stijl en de korte kofferklep. Eerst een doos als vulstuk — 8 gaten over,
+want de stijl helt en de doos niet — en toen een trapezium dat de stijl volgt.
+Wat de meting niet vond maar de foto wel: de bestelbus hield achter de cabine op
+1,69 m op (een lange kofferklep), en de portiernaden staken tien centimeter in de
+zijruit.
+
+Een eerste versie van het meetgereedschap gaf de bus 560 gaten aan de
+achterkant: de straal stopte bij het midden van de cabine, niet bij de
+achterkant van de bus. Een meting die je niet naleest is een gok.
+
+*De poppetjes.* Afgeronde dozen voor de romp gaven een rij opgeblazen banden
+(elke overgang tussen twee dozen werd een groef); de romp is nu één vorm van
+negen ringen (een superellips met macht 3), `lijfGeo` in js/lichaam.js. De kaak
+als afgeronde doos stond als een witte baard onder het gezicht, en ook als
+ellipsoïde zolang hij vóór de bol uitstak: nu ligt hij erbinnen en steekt alleen
+de kin uit. `samen` rekende met `computeVertexNormals` de normalen opnieuw uit op
+een geometrie zonder index — dat maakt elk vlak plat, dus het hoofd was altijd
+een facettenbal; nu blijven de normalen van de vormen zelf staan. De eerste
+versie had 6048 driehoeken per mens; met 130 voetgangers die allemaal
+tegelijk getekend worden (en een schaduwpas) te veel voor een gewone pc. Minder
+segmenten in de gewrichtsbollen en het hoofd, ellipsoïden voor hand, neus en
+oren, een schoen van twee delen, en het kapsel als één kap (van achteren lazen
+twee afgeronde blokjes als een zwarte band met bolletjes): 3608.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

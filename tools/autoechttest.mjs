@@ -15,7 +15,8 @@
  3. Lak met een blanke laklaag (clearcoat), ook op de geparkeerde auto's.
  4. Lampen en kenteken met een doek: reflectoren in de koplamp die alleen in het
     glas oplichten, een geel Nederlands kenteken met de blauwe EU-strook.
- 5. En het blijft even goedkoop: evenveel meshes per soort als voorheen, en een
+ 5. De ramen dekken de hele raamopening: geen straal dwars door de auto.
+ 6. En het blijft even goedkoop: evenveel meshes per soort als voorheen, en een
     ruime grens op het aantal driehoeken (de geometrie wordt gedeeld, maar elke
     auto in beeld wordt wel getekend).
 */
@@ -119,6 +120,49 @@ ok(r.doek.kop && r.doek.licht > 0.05 && r.doek.donker > 0.1, 'de koplamp licht a
   `${(r.doek.licht * 100).toFixed(0)} % licht, ${(r.doek.donker * 100).toFixed(0)} % donker`);
 ok(r.doek.plaat && r.doek.geel > 0.5, 'het kenteken is geel', `${(r.doek.geel * 100).toFixed(0)} % geel`);
 ok(r.doek.blauw > 0.04 && r.doek.zwart > 0.05, 'met de blauwe EU-strook en zwarte letters', `${(r.doek.blauw * 100).toFixed(0)} % blauw, ${(r.doek.zwart * 100).toFixed(0)} % zwart`);
+
+kop('de ramen dekken de hele raamopening');
+/*
+ Melding 24 sep 2026: "de ramen lijken niet het gehele raam oppervlakte te
+ dekken". Gemeten met stralen in een raster van 3 cm, van opzij, van voren en
+ van achteren, over de hoogte van de ruiten. Per rij telt een straal die niets
+ raakt als gat zodra er links én rechts ervan in dezelfde rij wel iets geraakt
+ wordt: dan zit hij binnen de omtrek van de auto. Vóór deze ronde: bij de
+ hatchback 30 % van de stralen door de zijkant (een driehoek langs de schuine
+ stijlen) en 8 % naast de voorruit.
+*/
+const ramen = await page.evaluate(() => {
+  const { THREE, C } = window.__t;
+  const uit = {};
+  for (const soort of ['hatch', 'van', 'bx', 'truck']) {
+    const auto = C.makeCar(0x8a1c1c, soort); auto.updateMatrixWorld(true);
+    const M = C.autoMaat(soort);
+    const meshes = []; auto.traverse(o => { if (o.isMesh) meshes.push(o); });
+    const rc = new THREE.Raycaster();
+    const tel = {};
+    for (const kant of ['zij', 'voor', 'achter']) {
+      let gaten = 0, binnen = 0; const waar = [];
+      for (let y = M.schouderY + 0.03; y <= M.dakY - 0.03; y += 0.03) {
+        const rij = [];
+        const [a0, a1] = kant === 'zij' ? [-M.L / 2, M.L / 2] : [-M.W / 2, M.W / 2];
+        for (let t = a0; t <= a1; t += 0.03) {
+          if (kant === 'zij') { rc.set(new THREE.Vector3(M.W, y, t), new THREE.Vector3(-1, 0, 0)); rc.far = M.W / 2 + 0.3; }
+          else { const dz = kant === 'voor' ? 1 : -1; rc.set(new THREE.Vector3(t, y, -dz * (M.L / 2 + 1)), new THREE.Vector3(0, 0, dz)); rc.far = M.L + 2; }
+          rij.push(rc.intersectObjects(meshes).length > 0);
+        }
+        const eerste = rij.indexOf(true), laatste = rij.lastIndexOf(true);
+        for (let i = eerste + 1; i < laatste; i++) { binnen++; if (!rij[i]) { gaten++; if (waar.length < 4) waar.push([+y.toFixed(2), +(a0 + i * 0.03).toFixed(2)]); } }
+      }
+      tel[kant] = { gaten, binnen, waar };
+    }
+    uit[soort] = tel;
+  }
+  return uit;
+});
+for (const s of ['hatch', 'van', 'bx', 'truck']) {
+  const t = ramen[s], g = t.zij.gaten + t.voor.gaten + t.achter.gaten;
+  ok(g === 0, `${s}: geen straal door de raamopening`, `zij ${t.zij.gaten}, voor ${t.voor.gaten}, achter ${t.achter.gaten} van ${t.zij.binnen + t.voor.binnen + t.achter.binnen}${g ? ' bij (y, z|x) ' + JSON.stringify([...t.zij.waar, ...t.voor.waar, ...t.achter.waar]) : ''}`);
+}
 
 kop('even goedkoop');
 ok(r.hatch.meshes === 7 && r.truck.meshes === 7, 'evenveel meshes per auto als voorheen (zeven)', `${r.hatch.meshes} en ${r.truck.meshes}`);

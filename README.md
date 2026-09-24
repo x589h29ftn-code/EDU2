@@ -2674,6 +2674,39 @@ meshes per auto.
 |---|---|
 | ronde randen, lak met een laklaag, achterlichten | koplampen met reflectoren en het gele kenteken |
 
+**De ramen van de auto's dekken nu het hele raam.** Gemeten met stralen door de
+raamopening, in een raster van 3 cm (`npm run autoechttest`): bij de hatchback
+ging 30 % van de stralen dwars door de zijkant, want de zijruit was een
+rechthoek en de opening tussen de schuine stijlen een trapezium. De zijruit is
+nu zelf een trapezium; de voor- en achterruit lopen tot in de stijlen (er bleef
+naast de ruit een strook van zes centimeter open); en bij de BX zat er een spleet
+tussen de C-stijl en de kofferklep. De bestelbus is achter de cabine nu een
+dichte laadruimte tot aan het dak, met twee achterdeuren met ruiten — eerst hield
+hij daar op 1,69 m op en keek je van achteren over een open bak tegen de
+achterruit van de cabine. En de zwarte portiernaden houden op bij de raamlijn:
+ze staken als stokjes in de zijruit.
+
+**De poppetjes.** Geen stapel dozen meer maar ronde vormen: de romp is één
+gladde vorm van de taille via de borst naar de schouders, armen en benen zijn
+taps toelopend met een bol op elke elleboog en knie (daardoor gaapt er geen wig
+meer als ze buigen), en handen, neus, oren en kin zijn rond. Het gezicht staat
+op een doek: wenkbrauwen, oogkassen, een neusschaduw, lippen en wangen. Shirts
+hebben een breisteek, broeken een keper met een naad, haar heeft strengen en
+schoenen leer, met reliëf in stof en haar. Voor de pc: één doek per soort, door
+iedereen gedeeld; per soort onderdeel nog steeds één instanced mesh; een mens is
+3608 driehoeken (was 717).
+
+| ![Van dichtbij](docs/screenshots/mens_echt_gezicht.png) | ![Op straat](docs/screenshots/mens_echt_straat.png) |
+|---|---|
+| een personage van dichtbij | voetgangers op straat |
+
+**Meer steekproeven.** `npm run gebouwshots` maakt nu acht willekeurige woningen
+en vier straten (`straat_1` tot `straat_4`).
+
+| ![Straat](docs/screenshots/straat_1.png) | ![Straat](docs/screenshots/straat_2.png) |
+|---|---|
+| ![Straat](docs/screenshots/straat_3.png) | ![Straat](docs/screenshots/straat_4.png) |
+
 `npm run lichtshots` maakt deze drie foto's.
 
 ## Opslaan en laden

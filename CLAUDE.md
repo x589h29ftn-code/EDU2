@@ -62,6 +62,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/deal.js` | missie 8, en `maakVeteraan()`: De Veteraan met zijn hondje |
 | `js/wapen.js` | het wapen in je hand: afgeronde delen, eigen doeken, veer-terugslag, hulzen, grendel |
 | `js/carmodel.js` | automodellen (gedeelde geometrie, instanced), lak met clearcoat, kenteken |
+| `js/lichaam.js` | maten, onderdelen en doeken van alle mensen; `lichaamMat`, `doekVoor` |
 | `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`) |
 
 Een paar dingen die niet vanzelf spreken:
@@ -128,7 +129,8 @@ Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
 De laatste die ertoe doen: `npm run gebouwtest` (elke driehoek van de wereld:
 muurrichting, uitgerekte en afgekapte doeken; stap 76), `wapenechttest` en
-`autoechttest` (laden alleen de module, dus snel) met `gebouwshots` en
+`autoechttest` en `mensechttest` (laden alleen de module, dus snel; stap 77
+meet ook de ramen) met `gebouwshots` en
 `echtshots`; `npm run cliptest`, `opstarttest` en `lichttest`
 (clipping, opstarten en licht; stap 75), `npm run bendetest` (tweeëndertig controles, groen) en
 `npm run bendeshots` (twee foto's), `npm run veteraantest` (zevenenveertig controles,
@@ -184,6 +186,9 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
     (13 % van de kapeldriehoeken wijkt meer dan 1,8 keer af; gebouwtest).
 17. De wapens van de NPC's (js/persoon.js) zijn nog de oude blokjes; alleen
     het wapen in je eigen hand is in stap 76 vernieuwd.
+18. Een voetganger is sinds stap 77 3608 driehoeken (was 717); ze worden alle
+    130 getekend, ook buiten beeld (`frustumCulled = false`). Als de pc het
+    zwaar krijgt: een LOD of culling per groepje.
 
 ## 8 · Waar wat gedocumenteerd wordt
 
