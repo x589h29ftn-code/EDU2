@@ -36,6 +36,111 @@ function merge(parts) {
   return g;
 }
 const doos = (b, h, d) => new THREE.BoxGeometry(b, h, d);
+/*
+ Een doos met afgeronde randen (ronde van 24 sep 2026: "kan je de auto's
+ realistischer maken"). De carrosserie bestond uit scherpe dozen, en op lak zie
+ je dat het eerst: een scherpe rand vangt geen licht, dus elke hoek was een
+ harde lijn tussen twee egale vlakken. Met een straal van een paar centimeter
+ loopt de glans over de schouder van de auto heen, zoals bij echt plaatwerk.
+
+ Dezelfde omzetting als in js/wapen.js (RoundedBoxGeometry uit de voorbeelden
+ van three.js): een doos van (2·seg+1)³ vakjes waarvan de buitenste de
+ afronding worden, met de normaal vanaf de binnendoos. `userData.doos` houdt de
+ maat bij, zodat `autoOnderdelen` hem net als een gewone doos kan narekenen.
+*/
+function rdoos(b, h, d, r, seg = 1) {
+  r = Math.max(0.001, Math.min(r, b / 2 - 1e-4, h / 2 - 1e-4, d / 2 - 1e-4));
+  const s = seg * 2 + 1;
+  const geo = new THREE.BoxGeometry(1, 1, 1, s, s, s).toNonIndexed();
+  const P = geo.attributes.position, N = geo.attributes.normal;
+  const half = 0.5 / s, bx = b / 2 - r, by = h / 2 - r, bz = d / 2 - r;
+  const n = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+    n.set(x - Math.sign(x) * half, y - Math.sign(y) * half, z - Math.sign(z) * half).normalize();
+    P.setXYZ(i, bx * Math.sign(x) + n.x * r, by * Math.sign(y) + n.y * r, bz * Math.sign(z) + n.z * r);
+    N.setXYZ(i, n.x, n.y, n.z);
+  }
+  geo.userData.doos = { width: b, height: h, depth: d };
+  return geo;
+}
+
+/*
+ De band. Een cilinder is een blok met een scherpe rand, en dat is het eerste
+ wat opvalt aan een wiel van speelgoed. Dit is het profiel van een echte band,
+ rondgedraaid: de wang loopt van de velgrand naar buiten, de schouder is rond en
+ het loopvlak recht. Binnenin een donkere schijf (de remschijf en de naaf), zodat
+ je tussen de spaken door niet dwars door het wiel kijkt.
+*/
+function bandGeo(R, breed, rond = 22) {
+  const w = breed / 2;
+  const profiel = [
+    [R * 0.66, -w], [R * 0.86, -w - 0.004], [R * 0.95, -w + 0.012], [R * 0.99, -w + 0.035],
+    [R, -w + 0.06], [R, w - 0.06], [R * 0.99, w - 0.035], [R * 0.95, w - 0.012], [R * 0.86, w + 0.004], [R * 0.66, w],
+  ].map(([r, y]) => new THREE.Vector2(r, y));
+  const band = new THREE.LatheGeometry(profiel, rond);
+  band.rotateZ(Math.PI / 2);
+  const schijf = new THREE.CylinderGeometry(R * 0.67, R * 0.67, breed * 0.7, rond);
+  schijf.rotateZ(Math.PI / 2);
+  const delen = [band, schijf].map(g => g.index ? g.toNonIndexed() : g);
+  const pos = [], nor = [];
+  for (const g of delen) { pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Array(pos.length / 3 * 2).fill(0), 2));
+  return geo;
+}
+
+/*
+ Doeken voor de lampen en het kenteken, op canvas zoals alles in dit spel. Een
+ koplamp was een wit blok dat oplichtte; nu zit er een behuizing in met twee
+ reflectoren en een dagrijlicht eronder, en licht alleen het glas op (de
+ emissiveMap is hetzelfde doek: donker wat niet licht). Een achterlicht heeft
+ ribbels in het rode glas. En het kenteken is een geel Nederlands kenteken met
+ de blauwe EU-strook — het detail waar je een auto in Sneek aan herkent.
+*/
+function doekVan(w, h, teken) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  teken(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+const rondeRechthoek = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+let _kop = null, _achter = null, _plaat = null;
+function kopDoek() {
+  return _kop || (_kop = doekVan(256, 96, (g, W, H) => {
+    g.fillStyle = '#15181b'; g.fillRect(0, 0, W, H);
+    rondeRechthoek(g, 6, 6, W - 12, H - 12, 18); g.fillStyle = '#8d949b'; g.fill();
+    for (const cx of [W * 0.3, W * 0.68]) {
+      const gr = g.createRadialGradient(cx, H * 0.45, 2, cx, H * 0.45, H * 0.36);
+      gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.35, '#f4f1e6'); gr.addColorStop(0.8, '#9aa2aa'); gr.addColorStop(1, '#4a5056');
+      g.fillStyle = gr; g.beginPath(); g.arc(cx, H * 0.45, H * 0.34, 0, Math.PI * 2); g.fill();
+    }
+    g.fillStyle = '#fbfbff'; rondeRechthoek(g, 22, H - 22, W - 44, 8, 4); g.fill();   // dagrijlicht
+  }));
+}
+function achterDoek() {
+  return _achter || (_achter = doekVan(256, 128, (g, W, H) => {
+    g.fillStyle = '#2a0506'; g.fillRect(0, 0, W, H);
+    rondeRechthoek(g, 8, 8, W - 16, H - 16, 14); g.fillStyle = '#b01414'; g.fill();
+    for (let y = 14; y < H - 14; y += 9) { g.fillStyle = 'rgba(255,120,110,0.28)'; g.fillRect(14, y, W - 28, 3); }
+    g.fillStyle = 'rgba(255,90,80,0.55)'; rondeRechthoek(g, 26, 30, W * 0.46, H - 60, 10); g.fill();
+  }));
+}
+function plaatDoek() {
+  return _plaat || (_plaat = doekVan(256, 56, (g, W, H) => {
+    g.fillStyle = '#f2c400'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#111'; g.lineWidth = 3; g.strokeRect(2, 2, W - 4, H - 4);
+    g.fillStyle = '#1c3f9a'; g.fillRect(3, 3, 26, H - 6);
+    g.fillStyle = '#f2c400';
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; g.fillRect(16 + Math.cos(a) * 7 - 1, 17 + Math.sin(a) * 7 - 1, 2, 2); }
+    g.fillStyle = '#ffffff'; g.font = 'bold 14px sans-serif'; g.textAlign = 'center'; g.fillText('NL', 16, H - 9);
+    g.fillStyle = '#111'; g.font = 'bold 36px sans-serif'; g.textBaseline = 'middle';
+    g.fillText('GT-481-S', W / 2 + 14, H / 2 + 2);
+  }));
+}
 
 // Een wielkast: een halve ring die om het wiel heen staat, in de lengterichting
 // van de auto. Dat is wat een auto van een schoenendoos onderscheidt.
@@ -91,17 +196,18 @@ function naafGeo(R) {
 
  `gat0`/`gat1` is het stuk in de lengte dat open moet blijven.
 */
-function holleKoker(b, h, d, x, y, z, wand, gat0, gat1) {
+function holleKoker(b, h, d, x, y, z, wand, gat0, gat1, rond = 0) {
   const uit = [];
   const z0 = z - d / 2, z1 = z + d / 2;
-  for (const sx of [-1, 1]) uit.push({ geo: doos(wand, h, d), x: x + sx * (b / 2 - wand / 2), y, z });
+  const blok = (bb, hh, dd) => rond ? rdoos(bb, hh, dd, rond) : doos(bb, hh, dd);
+  for (const sx of [-1, 1]) uit.push({ geo: blok(wand, h, d), x: x + sx * (b / 2 - wand / 2), y, z });
   if (gat0 > z0 + 0.02) {
     const len = gat0 - z0;
-    uit.push({ geo: doos(b, h, len), x, y, z: z0 + len / 2 });
+    uit.push({ geo: blok(b, h, len), x, y, z: z0 + len / 2 });
   }
   if (gat1 < z1 - 0.02) {
     const len = z1 - gat1;
-    uit.push({ geo: doos(b, h, len), x, y, z: gat1 + len / 2 });
+    uit.push({ geo: blok(b, h, len), x, y, z: gat1 + len / 2 });
   }
   return uit;
 }
@@ -144,12 +250,12 @@ function truckGeoms() {
      tot de onderdorpel op 1,55 m — staat er los achteraan. Boven de ruit zit het
      cabinedak al.
     */
-    ...holleKoker(W, 1.45, 2.1, 0, 1.52, cabZ, 0.12, cabZ - 1.06, cabZ + 0.80),
+    ...holleKoker(W, 1.45, 2.1, 0, 1.52, cabZ, 0.12, cabZ - 1.06, cabZ + 0.80, 0.05),
     { geo: doos(W, 0.64, 0.13), y: 1.23, z: cabZ - 0.985 },       // plaatwerk onder de voorruit
-    { geo: doos(W, 0.10, 2.1), y: 2.20, z: cabZ },                // cabinedak
+    { geo: rdoos(W, 0.10, 2.1, 0.045), y: 2.20, z: cabZ },        // cabinedak
     { geo: doos(W, 0.12, 2.1), y: 0.85, z: cabZ },                // cabinevloer
-    { geo: doos(W - 0.14, 0.3, 1.9), y: 2.35, z: cabZ + 0.05 },   // dakspoiler
-    { geo: doos(W, 2.3, 4.8), y: 2.15, z: bakZ },                 // laadbak
+    { geo: rdoos(W - 0.14, 0.3, 1.9, 0.10), y: 2.35, z: cabZ + 0.05 },   // dakspoiler
+    { geo: rdoos(W, 2.3, 4.8, 0.035), y: 2.15, z: bakZ },         // laadbak
     { geo: doos(W + 0.06, 0.12, 4.8), y: 3.32, z: bakZ },         // dakrand
     // spiegels: op W/2 + 0,12 hingen ze twee centimeter naast de cabine
     { geo: doos(0.2, 0.1, 0.14), x: -W / 2 - 0.06, y: 1.9, z: cabZ - 0.9 },
@@ -162,16 +268,16 @@ function truckGeoms() {
     { geo: doos(0.06, 0.65, 1.1), x: W / 2 - 0.02, y: 1.9, z: cabZ + 0.2 },
   ];
   const glass = merge(glasDelen);
-  const wielGeo = new THREE.CylinderGeometry(R, R, 0.3, 14); wielGeo.rotateZ(Math.PI / 2);
-  const hubGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.32, 8); hubGeo.rotateZ(Math.PI / 2);
+  const wielGeo = bandGeo(R, 0.3);
+  const hubGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.32, 12); hubGeo.rotateZ(Math.PI / 2);
   const wielen = [
     { x: -W / 2 + 0.18, z: cabZ + 0.1, stuur: true }, { x: W / 2 - 0.18, z: cabZ + 0.1, stuur: true },
     { x: -W / 2 + 0.18, z: 1.5 }, { x: W / 2 - 0.18, z: 1.5 },
     { x: -W / 2 + 0.18, z: 2.6 }, { x: W / 2 - 0.18, z: 2.6 },
   ];
   const zwartVast = [
-    { geo: doos(W + 0.04, 0.24, 0.22), y: 0.5, z: -L / 2 + 0.05 },
-    { geo: doos(W + 0.04, 0.24, 0.22), y: 0.62, z: L / 2 - 0.05 },
+    { geo: rdoos(W + 0.04, 0.24, 0.22, 0.06), y: 0.5, z: -L / 2 + 0.05 },
+    { geo: rdoos(W + 0.04, 0.24, 0.22, 0.06), y: 0.62, z: L / 2 - 0.05 },
     // grille en lampen zaten vóór de cabine in de lucht: die begint pas op
     // cabZ − 1,05 = −3,50 en de grille stond op −3,61
     // grille smaller dan de koplampen (die staan op x ±0,75, 0,4 breed, dus van
@@ -282,33 +388,33 @@ function autoGeoms(kind) {
      0,570 begint: een naad van een millimeter over de hele flank, waar je van
      dichtbij dwars doorheen keek. Twee centimeter hoger overlappen ze.
     */
-    { geo: doos(W - 0.10, R * 0.84, L - 0.34), y: dorpelY + 0.02 },                 // dorpel
+    { geo: rdoos(W - 0.10, R * 0.84, L - 0.34, 0.06), y: dorpelY + 0.02 },          // dorpel
     /*
      Flank en schouderlijn zijn holle kokers: het stuk onder de cabine is eruit,
      zodat er ruimte is voor het interieur (js/autobinnen.js). Van buiten is er
      niets aan veranderd — de buitenvlakken liggen op dezelfde plek.
     */
-    ...holleKoker(W, flankH, L - 0.12, 0, flankY, 0, 0.10, cabZ - cabL / 2 + 0.12, cabZ + cabL / 2 - 0.12),
-    ...holleKoker(W - 0.09, 0.10, L - 0.40, 0, schouderY - 0.05, 0, 0.10, cabZ - cabL / 2 + 0.12, cabZ + cabL / 2 - 0.12),
+    ...holleKoker(W, flankH, L - 0.12, 0, flankY, 0, 0.10, cabZ - cabL / 2 + 0.12, cabZ + cabL / 2 - 0.12, 0.045),
+    ...holleKoker(W - 0.09, 0.10, L - 0.40, 0, schouderY - 0.05, 0, 0.10, cabZ - cabL / 2 + 0.12, cabZ + cabL / 2 - 0.12, 0.04),
     /*
      Motorkap. Bij de BX loopt hij naar voren af: dat is de wig waar de auto aan
      te herkennen is. Een negatieve kanteling om de x-as zet de voorkant omlaag
      (y' = z·sin θ voor de voorste rand op −z).
     */
-    { geo: doos(W - 0.20, 0.11, kapL), y: schouderY + (bus ? 0.30 : (bx ? -0.02 : 0.02)), z: kapZ, rx: bx ? -0.085 : 0 }, // motorkap
-    { geo: doos(W - 0.14, 0.20, kontL), y: schouderY + 0.09, z: kontZ },            // kofferklep
+    { geo: rdoos(W - 0.20, 0.11, kapL, 0.05), y: schouderY + (bus ? 0.30 : (bx ? -0.02 : 0.02)), z: kapZ, rx: bx ? -0.085 : 0 }, // motorkap
+    { geo: rdoos(W - 0.14, 0.20, kontL, 0.07), y: schouderY + 0.09, z: kontZ },     // kofferklep
     /*
      Het dak. Het was W − 0,40 breed (1,38 m) terwijl de zijruiten op ±0,79
      staan: aan weerskanten bleef tien centimeter open, en daar keek je dwars
      door de auto heen. Van schuin voren leek elke auto een cabriolet. Nu sluit
      het dak over de ruiten heen, met een druiplijst langs de dakrand.
     */
-    { geo: doos(W - (bus ? 0.14 : 0.16), 0.085, cabL - (bus ? 0.10 : 0.52)), y: dakY, z: cabZ }, // dak
+    { geo: rdoos(W - (bus ? 0.14 : 0.16), 0.085, cabL - (bus ? 0.10 : 0.52), 0.04), y: dakY, z: cabZ }, // dak
     // spiegels op een steeltje
     { geo: doos(0.09, 0.05, 0.05), x: -W / 2 - 0.05, y: schouderY + 0.16, z: cabZ - cabL / 2 + 0.15 },
     { geo: doos(0.09, 0.05, 0.05), x: W / 2 + 0.05, y: schouderY + 0.16, z: cabZ - cabL / 2 + 0.15 },
-    { geo: doos(0.17, 0.11, 0.07), x: -W / 2 - 0.13, y: schouderY + 0.17, z: cabZ - cabL / 2 + 0.15 },
-    { geo: doos(0.17, 0.11, 0.07), x: W / 2 + 0.13, y: schouderY + 0.17, z: cabZ - cabL / 2 + 0.15 },
+    { geo: rdoos(0.17, 0.11, 0.07, 0.03), x: -W / 2 - 0.13, y: schouderY + 0.17, z: cabZ - cabL / 2 + 0.15 },
+    { geo: rdoos(0.17, 0.11, 0.07, 0.03), x: W / 2 + 0.13, y: schouderY + 0.17, z: cabZ - cabL / 2 + 0.15 },
   ];
   // stijlen: A schuin naar voren, C schuin naar achteren, B recht in het midden
   const stijlH = dakY - schouderY;
@@ -337,8 +443,8 @@ function autoGeoms(kind) {
 
   const lijstL = 2 * (wielZ - R - 0.05);        // tussen de banden, zie hieronder
   const zwartVast = [
-    { geo: doos(W + 0.03, 0.24, 0.26), y: dorpelY + 0.06, z: -L / 2 + 0.09 },      // bumper voor
-    { geo: doos(W + 0.03, 0.24, 0.26), y: dorpelY + 0.08, z: L / 2 - 0.09 },       // bumper achter
+    { geo: rdoos(W + 0.03, 0.24, 0.26, 0.08), y: dorpelY + 0.06, z: -L / 2 + 0.09 },   // bumper voor
+    { geo: rdoos(W + 0.03, 0.24, 0.26, 0.08), y: dorpelY + 0.08, z: L / 2 - 0.09 },    // bumper achter
     /*
      Grille, koplampen, achterlichten en kentekenplaten zaten allemaal een paar
      centimeter vóór de carrosserie: de flank is L − 0,12 lang, dus zijn voorkant
@@ -435,7 +541,7 @@ function autoGeoms(kind) {
     zwartVast.push({ geo: doos(0.035, 0.075, lijstL), x: sx * (W / 2 - 0.015), y: dorpelY - 0.11 });
   }
 
-  const wielGeo = new THREE.CylinderGeometry(R, R, 0.22, 14); wielGeo.rotateZ(Math.PI / 2);
+  const wielGeo = bandGeo(R, 0.22);
   const hubGeo = naafGeo(R);
 
   const kopY = schouderY - 0.14;
@@ -458,8 +564,8 @@ function autoGeoms(kind) {
   const zAchter = L / 2 - 0.06 + lampUit - lampD / 2;
   const lampen = [];                       // voor `delen` hieronder
   const koplampen = [
-    { geo: doos(0.40, 0.15, lampD), x: -W / 2 + 0.26, y: kopY, z: zKop },
-    { geo: doos(0.40, 0.15, lampD), x: W / 2 - 0.26, y: kopY, z: zKop },
+    { geo: rdoos(0.40, 0.15, lampD, 0.02), x: -W / 2 + 0.26, y: kopY, z: zKop },
+    { geo: rdoos(0.40, 0.15, lampD, 0.02), x: W / 2 - 0.26, y: kopY, z: zKop },
   ];
   lampen.push(...koplampen);
   const head = merge(koplampen);
@@ -540,8 +646,9 @@ export function autoOnderdelen(kind) {
   const G = geoms(kind);
   const dozen = [];
   for (const d of G.delen || []) {
-    const p = d.geo && d.geo.parameters;
-    if (!p || d.geo.type !== 'BoxGeometry') continue;
+    // een afgeronde doos telt ook: zijn maat staat in userData.doos
+    const p = d.geo && (d.geo.userData.doos || (d.geo.type === 'BoxGeometry' && d.geo.parameters));
+    if (!p) continue;
     dozen.push({ groep: d.groep, x: d.x || 0, y: d.y || 0, z: d.z || 0,
       b: p.width, h: p.height, d: p.depth, rx: d.rx || 0 });
   }
@@ -563,16 +670,32 @@ function geoms(kind) {
   return G;
 }
 
+/*
+ De materialen. Het glas is donkerder en gladder dan het was, zodat het de lucht
+ spiegelt zoals een ruit doet in plaats van een grijze plaat te zijn; de velgen
+ zijn lichtmetaal (lichter en iets ruwer dan chroom); de lampen en het kenteken
+ krijgen hun doek.
+*/
 const SHARED = {
-  glass: new THREE.MeshStandardMaterial({ color: 0x1b2630, roughness: 0.1, metalness: 0.6, transparent: true, opacity: 0.85 }),
-  black: new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.9 }),
-  chrome: new THREE.MeshStandardMaterial({ color: 0xbbbbbb, metalness: 0.8, roughness: 0.3 }),
-  head: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4d0, emissiveIntensity: 0.4 }),
-  tail: new THREE.MeshStandardMaterial({ color: 0xaa1111, emissive: 0xff2020, emissiveIntensity: 0.4 }),
-  rem: new THREE.MeshStandardMaterial({ color: 0xff3020, emissive: 0xff2010, emissiveIntensity: 2.2 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0x101a22, roughness: 0.05, metalness: 0.45, transparent: true, opacity: 0.84, envMapIntensity: 1.4 }),
+  black: new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.82 }),
+  chrome: new THREE.MeshStandardMaterial({ color: 0xc9ccd0, metalness: 0.9, roughness: 0.28 }),
+  head: new THREE.MeshStandardMaterial({ color: 0xffffff, map: kopDoek(), emissive: 0xfff4d0, emissiveMap: kopDoek(), emissiveIntensity: 0.55, roughness: 0.12, metalness: 0.3 }),
+  tail: new THREE.MeshStandardMaterial({ color: 0xffffff, map: achterDoek(), emissive: 0xff3020, emissiveMap: achterDoek(), emissiveIntensity: 0.45, roughness: 0.15 }),
+  rem: new THREE.MeshStandardMaterial({ color: 0xff3020, map: achterDoek(), emissive: 0xff2010, emissiveMap: achterDoek(), emissiveIntensity: 2.6 }),
   achteruit: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff6e0, emissiveIntensity: 1.6 }),
-  plate: new THREE.MeshStandardMaterial({ color: 0xf2c400 }),
+  plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: plaatDoek(), roughness: 0.5 }),
 };
+/*
+ Autolak met een blanke laklaag. Een auto is geen egaal gekleurd plastic: onder
+ heeft hij de kleur (een beetje metallic, iets ruw), en daarover ligt een gladde,
+ heldere laag die de lucht en de straat spiegelt. MeshPhysicalMaterial heeft die
+ laag als `clearcoat`, en precies die tweede, scherpe spiegeling bovenop een
+ zachte kleur is wat lak op lak doet lijken.
+*/
+function nieuweLak(color) {
+  return new THREE.MeshPhysicalMaterial({ color, roughness: 0.5, metalness: 0.3, clearcoat: 1, clearcoatRoughness: 0.06 });
+}
 const paintCache = new Map();
 
 /*
@@ -596,7 +719,7 @@ export function maakAutoStapel(kind, aantal) {
    plastic speelgoed: te glad en te spiegelend. Een gelakte auto die een paar
    weken buiten staat is matter dan dat. Lager metaalgehalte, iets ruwer.
   */
-  const lak = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.46, metalness: 0.22 });
+  const lak = nieuweLak(0xffffff);
   const delen = [
     { geo: G.paint, mat: lak, kleurbaar: true, schaduw: true },
     { geo: G.glass, mat: SHARED.glass },
@@ -650,14 +773,14 @@ export function maakAutoStapel(kind, aantal) {
 */
 /** Het lakmateriaal voor een kleur, gedeeld tussen alle auto's van die kleur. */
 export function lakVoor(color) {
-  if (!paintCache.has(color)) paintCache.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.46, metalness: 0.22 }));
+  if (!paintCache.has(color)) paintCache.set(color, nieuweLak(color));
   return paintCache.get(color);
 }
 
 export function makeCar(color, kind = 'hatch', animatie = false) {
   const g = new THREE.Group();
   const G = geoms(kind);
-  if (!paintCache.has(color)) paintCache.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.46, metalness: 0.22 }));
+  if (!paintCache.has(color)) paintCache.set(color, nieuweLak(color));
 
   const bak = animatie ? new THREE.Group() : g;    // carrosserie, kan overhellen
   const body = new THREE.Mesh(G.paint, paintCache.get(color)); body.castShadow = true;

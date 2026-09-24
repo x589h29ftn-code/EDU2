@@ -5256,6 +5256,78 @@ verandert, hoogstens eens per zes seconden. De schaduw: 3072 px over 76 m op de
 pc (2,5 cm per beeldpunt), twintig meter vooruit in je kijkrichting en vastgeklikt
 op het raster van de kaart gezien vanuit de zon.
 
+**Gebouwen nagelopen, echtere wapens en auto's (stap 76).** Op verzoek van 24 sep
+2026. Drie nieuwe proeven: `gebouwtest`, `wapenechttest` en `autoechttest`, en
+twee fotorondes: `gebouwshots` en `echtshots`.
+
+*De gebouwen: eerst meten.* Een steekproef van foto's vindt wat je toevallig
+ziet; de proef loopt daarom élke driehoek na die een klasse heeft, per
+driehoek: NaN, richting tegen opgeslagen normaal, voor muren of een punt 40 cm
+vóór de muur buiten het pand ligt, en de verhouding van de beeldpunten per meter
+langs u en langs v. Wat eruit kwam, in volgorde van grootte:
+
+- 23 % van de gevelvlakken ingedrukt. `huizen = round(breed / w)` is minstens
+  één, dus een vlak van 2,4 m kreeg een woning van 5,4 m. Nu hoogstens 0,7 keer
+  ingedrukt (`toon` in `muurKeuze`); smaller laat het midden van de woning zien.
+- 20 % van de dakdriehoeken uitgerekt, en de pannenrijen dwars op elke goot die
+  niet langs x liep: de uv was `[x, z + 0,6·y]`. Nu u langs de goot en v de
+  helling op, in het vlak zelf.
+- 3812 gevel­driehoeken met `Math.min(1, y / hoogte)`: boven de laatste woonlaag
+  de bovenste rij beeldpunten, en per driehoek een andere mapping, dus ramen die
+  binnen één muur niet op één lijn lagen. `muurKeuze` geeft nu `kap` terug en
+  `vlak3d` knipt daar: eronder gevel, erboven kale muur (`pand.kaal`, bij een
+  gepleisterde gevel pleister).
+- 529 muurdriehoeken die het huis in keken: verkeerd om rond in het 3D
+  BAG-model. `vlak3d` draait een wand als een punt 40 cm ervóór binnen het
+  grondvlak ligt en 40 cm erachter erbuiten (alleen dat eenduidige geval), en een
+  dakvlak dat naar beneden wijst. 962 vlakken; 70 driehoeken blijven over, bij
+  panden waar grondvlak en model niet op elkaar passen.
+- 400 omgekeerde driehoeken: de bovenkant van elke volkstuinhaag
+  (`hegStuk` in js/volkstuin.js), verkeerd om rond.
+
+Een tweede fout kwam pas uit de foto's, niet uit de proef: in twee van de vier
+willekeurige woningen had één huis in de rij boven de voordeur alleen steen. Dat
+bleek geen gevolg van deze ronde maar al ouder: bij 719 panden (448 van het type
+molenkrite_kap) staat de goot op 2,6 m terwijl de voorgevel in het model over de
+volle breedte tot bijna zes meter loopt. De knip op de goot maakte daarvan een
+woonlaag met drie meter blinde muur. Is het stuk boven de goot breder dan een
+kapel, haalt het de nok niet en is het hoger dan twee meter, dan blijft de muur
+nu heel. Les: een proef meet wat je bedenkt, een foto laat zien wat je niet
+bedacht — allebei doen.
+
+Fouten in de proef zelf: `/gevel/` telde ook de houten topgevels mee, die met
+herhalende planken horen door te lopen boven v = 1; die telden als "afgekapt".
+Nu alleen voor- en achtergevel, en pas bij een veeg van meer dan 15 cm.
+
+*De wapens.* Elke doos is een afgeronde doos (de omzetting van
+RoundedBoxGeometry, zonder die mee te laden), vingers zijn capsules, de mouw is
+een buis. Zeven doeken, één keer getekend en gedeeld door de drie wapens, elk
+met een roughness map en waar het ertoe doet een normal map via `_normaalDoek`
+uit js/textures.js. De uv komt per driehoek uit de positie (de as van de
+normaal), niet per hoekpunt: anders loopt de naad van de projectie dwars door
+een driehoek op de afgeronde rand.
+
+De animatie is een veer (k = 420, c = 27, ζ ≈ 0,65) in plaats van de rechte lijn
+van vroeger; slede en trekker hebben een eigen tijd sinds het schot; de hulzen
+zitten in één InstancedMesh in een groep die elk beeld het omgekeerde van de
+wapenstand krijgt, zodat ze stilstaan ten opzichte van de camera zodra ze los
+zijn. Drie fouten: het omkijken sleepte het wapen de verkeerde kant op (yaw
+omlaag is naar rechts kijken); de gloed van het mondingsvuur kleurde de
+zwarte slede bruin (emissive op staal nu een tiende); en de proef laadde eerst
+`/`, dat is het spel zelf, waarvan de modules na `setContent` nog op een
+verdwenen DOM draaiden — nu een adres dat niet bestaat. Het budget van
+`wapentest` gaat van 19 naar 25 meshes; in de aanslag worden er vijftien
+getekend.
+
+*De auto's.* Afgeronde dozen voor dorpel, flanken, schouder, motorkap,
+kofferklep, dak, spiegels en bumpers (`rdoos`, met de maat in `userData.doos`
+zodat `autoOnderdelen` en de rijtest ze blijven narekenen); een band als
+rondgedraaid profiel met een schijf erin; lak als MeshPhysicalMaterial met
+clearcoat; doeken voor koplamp (ook als emissiveMap, zodat alleen het glas
+licht), achterlicht en kenteken. Evenveel meshes als voorheen; een auto is nu
+5800 driehoeken, gedeeld per soort. `vuiltest` en `puntentest` lazen de oude
+regels uit de bron met een reguliere expressie en zijn bijgewerkt.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

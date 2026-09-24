@@ -60,6 +60,8 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/looppad.js` | een looproute te voet om hekken en gebouwen heen (A*) |
 | `js/bendes.js` | na missie 10: groepjes van De Veteraan op straat in Tinga en langs de Lemmerweg |
 | `js/deal.js` | missie 8, en `maakVeteraan()`: De Veteraan met zijn hondje |
+| `js/wapen.js` | het wapen in je hand: afgeronde delen, eigen doeken, veer-terugslag, hulzen, grendel |
+| `js/carmodel.js` | automodellen (gedeelde geometrie, instanced), lak met clearcoat, kenteken |
 | `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`) |
 
 Een paar dingen die niet vanzelf spreken:
@@ -124,7 +126,10 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run cliptest`, `opstarttest` en `lichttest`
+De laatste die ertoe doen: `npm run gebouwtest` (elke driehoek van de wereld:
+muurrichting, uitgerekte en afgekapte doeken; stap 76), `wapenechttest` en
+`autoechttest` (laden alleen de module, dus snel) met `gebouwshots` en
+`echtshots`; `npm run cliptest`, `opstarttest` en `lichttest`
 (clipping, opstarten en licht; stap 75), `npm run bendetest` (tweeëndertig controles, groen) en
 `npm run bendeshots` (twee foto's), `npm run veteraantest` (zevenenveertig controles,
 groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
@@ -175,6 +180,10 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
 14. Belichting: echte SSAO (nu alleen omgevingsschaduw aan de voet van de muren,
     js/licht.js). Scherpere schaduw en de reflectie met de klok mee zijn af.
 15. **Voorgevel de Vang**: alleen steen, geen deur of ramen (oude melding).
+16. Dakkapellen: het doek van de voorkant wordt over de hele kapel uitgerekt
+    (13 % van de kapeldriehoeken wijkt meer dan 1,8 keer af; gebouwtest).
+17. De wapens van de NPC's (js/persoon.js) zijn nog de oude blokjes; alleen
+    het wapen in je eigen hand is in stap 76 vernieuwd.
 
 ## 8 · Waar wat gedocumenteerd wordt
 

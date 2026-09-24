@@ -266,7 +266,8 @@ const grille = await page.evaluate(async () => {
   // de maten uit de bron: de grille mag niet meer over de koplampen heen liggen
   const r = await fetch('/js/carmodel.js').then(x => x.text());
   const mGrille = /doos\(W - ([\d.]+), 0\.13, 0\.05\)/.exec(r);
-  const mLamp = /doos\(0\.40, 0\.15, lampD\), x: -W \/ 2 \+ ([\d.]+)/.exec(r);
+  // (sinds 24 sep 2026 een afgeronde doos, met de straal als vierde getal)
+  const mLamp = /r?doos\(0\.40, 0\.15, lampD(?:, [\d.]+)?\), x: -W \/ 2 \+ ([\d.]+)/.exec(r);
   if (!mGrille || !mLamp) return null;
   const W = 1.78;
   const grilleHalf = (W - Number(mGrille[1])) / 2;

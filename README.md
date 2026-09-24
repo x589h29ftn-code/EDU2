@@ -2598,6 +2598,82 @@ minstens 4 ms per keer.
 |---|---|---|
 | het pistool op 40 cm van de gevel | om vier uur | om acht uur: de ruiten spiegelen de avond |
 
+## Gebouwen nagelopen, echtere wapens en auto's
+
+Een ronde op verzoek (24 sep 2026): "neem de wereld met gebouwen door op
+steekproef basis — gaat het nog fout qua vectors en textures? Kan je de wapens en
+auto's realistischer maken qua uiterlijk en textures, ook animatie van de
+wapens." `npm run gebouwtest`, `npm run wapenechttest` en `npm run autoechttest`
+meten het na; `npm run gebouwshots` en `npm run echtshots` maken de foto's.
+
+**De gebouwen.** De proef loopt élke driehoek van de wereld na — ruim 800.000 —
+en meet wat je alleen ziet als je toevallig op de goede plek staat. Wat hij vond
+en wat er nu is:
+
+- *Muren die het huis in keken* (529 driehoeken, veel in IJlst langs de Sikko
+  Sjaerdemalaan). In het 3D BAG-model staat een deel van de wanden verkeerd om
+  rond; van buiten keek je door de muur heen het huis in. Bij het bouwen wordt nu
+  met het grondvlak nagegaan of een muur naar buiten wijst, en anders wordt hij
+  gedraaid (962 vlakken). Wat overblijft is 0,04 %.
+- *Ingedrukte gevels.* Een smal muurvlak kreeg het hele doek van een woning:
+  ramen en een deur van de halve breedte, bij bijna een kwart van de gevels. Nu
+  hoogstens 0,7 keer ingedrukt; smaller dan dat toont het vlak het midden van de
+  woning op ware grootte. Van 23 % naar 0,3 %.
+- *Strepen boven de bovenste verdieping.* Een muur die hoger was dan zijn laatste
+  woonlaag herhaalde daar de bovenste rij beeldpunten (3812 driehoeken), en de
+  ramen van twee driehoeken van één muur lagen niet op één lijn. Nu wordt de muur
+  daar geknipt: eronder de gevel, erboven metselwerk of pleister. Van 3812 naar 0.
+- *Een verdieping zonder ramen.* Bij 719 panden, vooral aan de Molenkrite en de
+  Partuurstraat, staat de goot in de data op 2,6 m terwijl de voorgevel over de
+  volle breedte tot zes meter doorloopt; alles boven de begane grond werd kale
+  steen. Zo'n muur krijgt nu gewoon twee woonlagen.
+- *Dakpannen dwars op de goot.* De uv van een schuin dak liep langs de assen van
+  de kaart; bij een dak waarvan de goot van noord naar zuid loopt lagen de rijen
+  dwars, en op een op de vijf dakdriehoeken was een pan langer dan breed. Nu loopt
+  het doek langs de goot en de helling op. Van 20 % naar 0.
+- *Hagen zonder bovenkant.* De bovenkant van elke haag in de volkstuinen stond
+  verkeerd om en was van boven onzichtbaar (400 driehoeken). Nu 0.
+
+| ![IJlst](docs/screenshots/gebouw_ijlst.png) | ![Partuurstraat](docs/screenshots/gebouw_steekproef_4.png) | ![Kruirad](docs/screenshots/gebouw_steekproef_1.png) |
+|---|---|---|
+| Sikko Sjaerdemalaan in IJlst | Partuurstraat (steekproef) | Kruirad (steekproef) |
+
+**De wapens.** Geen scherpe dozen meer: elke rand is een paar millimeter
+afgerond, zodat het licht over de hoek loopt, en de vingers zijn rond. Elk
+materiaal heeft zijn eigen doek: geblauwd staal met slijpsporen en krassen (die
+het licht vangen), een kunststof onderstel, stippels op de greep, notenhout met
+nerven aan de sniper, geweven stof aan de mouw en huid met een tekening. Het
+pistool heeft een driepuntsvizier met witte stippen.
+
+En het beweegt als een wapen:
+- de terugslag is een veer: de loop springt omhoog, veert één keer door en ligt
+  binnen een halve seconde stil;
+- de slede slaat in 30 ms naar achteren en veert terug, de trekker gaat mee, en
+  na het laatste patroon blijft de slede achter staan tot je herlaadt;
+- er vliegt bij elk schot een koperen huls rechts het beeld uit en er hangt een
+  wolkje kruitdamp aan de loop; het mondingsvuur is een ster en licht je hand op;
+- de sniper haalt na elk schot zijn grendel over — omhoog, terug (dán valt de
+  huls eruit), vooruit, omlaag;
+- lopend deint het wapen mee in een liggende acht, rennend zakt het en wijst de
+  loop omlaag, stilstaand ademt het, en als je snel omkijkt sleept het even
+  achter je blik aan. Aangeslagen over het vizier staat het stil.
+
+**De auto's.** De carrosserie heeft ronde randen, zodat de glans over de schouder
+en de neus loopt; de lak heeft een blanke laklaag over de kleur (de tweede,
+scherpe spiegeling die lak op lak doet lijken). De banden hebben een profiel met
+een ronde schouder, de koplampen twee reflectoren en een dagrijlicht, de
+achterlichten ribbels in het rode glas, en achterop en voorop zit een geel
+Nederlands kenteken met de blauwe EU-strook. Even goedkoop als voorheen: zeven
+meshes per auto.
+
+| ![Het pistool](docs/screenshots/wapen_echt_pistool.png) | ![Het schot](docs/screenshots/wapen_echt_schot.png) | ![De sniper](docs/screenshots/wapen_echt_sniper.png) |
+|---|---|---|
+| het pistool | 60 ms na het schot: de huls vliegt | de sniper met de grendel open |
+
+| ![Een geparkeerde auto](docs/screenshots/auto_echt_straat.png) | ![Van voren](docs/screenshots/auto_echt_voor.png) |
+|---|---|
+| ronde randen, lak met een laklaag, achterlichten | koplampen met reflectoren en het gele kenteken |
+
 `npm run lichtshots` maakt deze drie foto's.
 
 ## Opslaan en laden

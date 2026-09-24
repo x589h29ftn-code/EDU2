@@ -239,14 +239,15 @@ const autos = await page.evaluate(async () => {
     spaken: /function naafGeo/.test(bron),
     wissers: /ruitenwissers/.test(bron),
     vuilrand: /vuilrand/.test(bron),
-    lakRuw: /roughness: 0\.46, metalness: 0\.22/.test(bron),
+    // sinds 24 sep 2026 een ruwe kleurlaag onder een gladde laklaag (clearcoat)
+    lakRuw: /roughness: 0\.5, metalness: 0\.3, clearcoat: 1/.test(bron),
     dakBreed: /W - \(bus \? 0\.14 : 0\.16\)/.test(bron),
   };
 });
 ok(autos.spaken, 'de velgen hebben spaken in plaats van een gladde dop');
 ok(autos.wissers, 'er zitten ruitenwissers, een antenne en een grille met lamellen op');
 ok(autos.vuilrand, 'en een vuilrand langs de dorpel: opspattend wegvuil');
-ok(autos.lakRuw, 'de lak is matter dan hiervoor, geen plastic speelgoed');
+ok(autos.lakRuw, 'de lak is geen plastic speelgoed: een matte kleur onder een blanke laklaag');
 ok(autos.dakBreed, 'het dak sluit over de zijruiten heen, dus je kijkt er niet meer doorheen');
 ok(autos.driehoeken > 900, 'een auto is meer dan een stapel dozen', `${autos.driehoeken} driehoeken`);
 

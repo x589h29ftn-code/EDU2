@@ -65,7 +65,9 @@ function hegStuk(g, cx, cz, len, dik, h, hoek) {
   quad(p(hl, -hd, y0), p(-hl, -hd, y0), p(-hl, -hd, y1), p(hl, -hd, y1), len, h, [-nx, 0, -nz]);
   quad(p(hl, hd, y0), p(hl, -hd, y0), p(hl, -hd, y1), p(hl, hd, y1), dik, h, [ex, 0, ez]);
   quad(p(-hl, -hd, y0), p(-hl, hd, y0), p(-hl, hd, y1), p(-hl, -hd, y1), dik, h, [-ex, 0, -ez]);
-  quad(p(-hl, -hd, y1), p(hl, -hd, y1), p(hl, hd, y1), p(-hl, hd, y1), len, dik, [0, 1, 0]);
+  // het bovenvlak andersom rond dan de zijden: met -hd eerst wees het vlak naar
+  // beneden, en van bovenaf keek je dwars door de haag (gebouwtest, 24 sep 2026)
+  quad(p(-hl, hd, y1), p(hl, hd, y1), p(hl, -hd, y1), p(-hl, -hd, y1), len, dik, [0, 1, 0]);
 }
 
 // een enkel staand vlak (gaashekje), van twee kanten te zien

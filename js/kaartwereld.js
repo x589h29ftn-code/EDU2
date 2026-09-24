@@ -1163,7 +1163,7 @@ function* bouwPandenStap(scene, W, plat) {
      smallere vlakken. Op 1,0 m hebben alle twintig een voordeur en een raam.
     */
     const gevelMin = (st && st.gevelMin) || 2.4;
-    const gevel = !pand.boven && st && pand.type !== 'schuur' && breed >= gevelMin && Math.abs(n[1]) < 0.3 && (ind ? top >= 2.6 : (kant > 0.6 || kant < -0.6));
+    const gevel = !pand.boven && !pand.kaal && st && pand.type !== 'schuur' && breed >= gevelMin && Math.abs(n[1]) < 0.3 && (ind ? top >= 2.6 : (kant > 0.6 || kant < -0.6));
     // Dakkapel: een muurvlak dat helemaal boven de goot begint. Witte wangen,
     // en aan de voorkant het kozijn van de dakkapel.
     let laagste = Infinity; for (const p of punten) laagste = Math.min(laagste, p[1]);
@@ -1184,7 +1184,7 @@ function* bouwPandenStap(scene, W, plat) {
      breed is voor een kapel is gewoon gevel of blinde muur en zakt hieronder
      door naar die keuze.
     */
-    if (st && !ind && !pand.gang && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven && breed < WANG_MAX) {
+    if (st && !ind && !pand.gang && !pand.kaal && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven && breed < WANG_MAX) {
       if (Math.abs(kant) > 0.6 && breed >= 1.2) {
         const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
@@ -1250,11 +1250,16 @@ function* bouwPandenStap(scene, W, plat) {
       */
       const naarDeStraat = kant > 0.6 || kant < -0.6;
       const blind = (st && st.zijkant && !naarDeStraat) ? st.zijkant : (st && st.brick && st.brick[0]);
+      // (`kaal` is de strook boven de laatste woonlaag van een gevel, zie het
+      // eind van deze functie: bij een gepleisterde gevel hoort daar pleister)
+      const pleister = !!(pand.kaal && st && st.plaster && !st.damwand && !st.hout);
       const sleutel = st && st.damwand ? `damwand|${blind}`
         : st && st.hout ? `planken|${st.hout}`
+        : pleister ? `pleister|${steen[0]}`
         : `steen|${pand.type}|${seed % 3}`;
       const maak = st && st.damwand ? () => std(T.damwand(blind))
         : st && st.hout ? () => std(T.planks(st.hout))
+        : pleister ? () => std(T.plaster(steen[0]))
         : () => std(T.brick(steen[0], steen[1], seed % 3 + 1));
       const g = groep(sleutel, maak, 'muur', true);
       const perDoek = st && st.hout ? 1.2 : 2.6;
@@ -1286,9 +1291,28 @@ function* bouwPandenStap(scene, W, plat) {
     const sleutel = `gevel|${gtype}|${huizen}|${lagen}|${achter}|${seed % 6}`;
     const g = groep(sleutel, () => std(T.facade(gtype, huizen, lagen, achter, seed % 6)), achter ? 'achtergevel' : 'voorgevel');
     const hoogte = ind ? Math.max(top, 2.5) : lagen * SH;
+    /*
+     Een smal muurvlak — één woning, maar smaller dan die woning breed is —
+     kreeg het hele doek van die woning ineengedrukt: bij de gebouwtest van
+     24 sep 2026 was dat bij bijna een kwart van de gevelvlakken te zien, met
+     ramen en een deur van de halve breedte. Nu wordt het doek hoogstens tot 0,7
+     van zijn breedte samengedrukt; is het vlak smaller, dan laat het het midden
+     van de woning zien op die maat, en valt er aan de zijkanten iets af.
+    */
+    const toon = huizen === 1 ? Math.min(1, breed / (0.7 * gst.w)) : 1;
+    /*
+     Boven de laatste woonlaag. `hoogte` is een heel aantal lagen, en een muur
+     die daar bovenuit steekt kreeg `Math.min(1, …)`: alles erboven de bovenste
+     rij beeldpunten, als verticale strepen. Erger: welke driehoek van de muur
+     een hoekpunt boven die grens had, verschilde per driehoek, zodat de ramen
+     van twee driehoeken van dezelfde muur niet op één lijn lagen. `kap` vertelt
+     vlak3d waar hij de muur moet doorknippen: eronder de gevel, erboven kaal
+     metselwerk (of pleister) zonder ramen.
+    */
+    const kap = !ind && top > hoogte + 0.05 ? hoogte : 0;
     // de texture bevat alle `huizen` naast elkaar, dus u loopt over de hele muur
     // van 0 tot 1 (met ×huizen zag een brede muur alleen de laatste pixelkolom)
-    return { g, uvf: (p) => [((p[0] * r[0] + p[2] * r[2]) - u0) / breed, Math.min(1, p[1] / hoogte)] };
+    return { g, kap, uvf: (p) => [0.5 + toon * ((((p[0] * r[0] + p[2] * r[2]) - u0) / breed) - 0.5), Math.min(1, p[1] / hoogte)] };
   };
   const dakGroep = (pand, hellend) => {
     const st = T.HOUSE_STYLES[pand.type];
@@ -1339,9 +1363,39 @@ function* bouwPandenStap(scene, W, plat) {
     return { goot: goot === Infinity ? top : goot, top };
   };
 
+  /*
+   Wijst een muurvlak naar binnen? In het 3D BAG-model staat een klein deel van
+   de wanden verkeerd om rond (de gebouwtest van 24 sep 2026 vond er ruim
+   vijfhonderd, veel in IJlst langs de Sikko Sjaerdemalaan). Met FrontSide zie
+   je zo'n muur van buitenaf niet: je kijkt het huis in. De toets is het
+   grondvlak: ligt een punt 40 cm vóór de muur binnen het pand en 40 cm erachter
+   erbuiten, dan staat hij verkeerd om. Alleen bij dat eenduidige geval wordt
+   hij gedraaid — een muur die helemaal binnen of helemaal buiten het grondvlak
+   ligt blijft zoals het model hem geeft.
+  */
+  const inVoet = (pand, x, z) => {
+    const v = pand.voet; if (!v) return false;
+    let r = false;
+    for (let i = 0, j = v.length - 1; i < v.length; j = i++) {
+      const [xi, zi] = v[i], [xj, zj] = v[j];
+      if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) r = !r;
+    }
+    return r;
+  };
+  let gedraaid = 0, opbouwen = 0;
   const vlak3d = (pand, ringen, soort) => {
-    const buiten = ringen[0];
-    const n = normaal(buiten);
+    let buiten = ringen[0];
+    let n = normaal(buiten);
+    if (soort === 1 && Math.abs(n[1]) < 0.5 && !pand.boven && !pand.kaal) {
+      let mx = 0, mz = 0;
+      for (const p of buiten) { mx += p[0]; mz += p[2]; }
+      mx /= buiten.length; mz /= buiten.length;
+      const L = Math.hypot(n[0], n[2]) || 1, dx = n[0] / L * 0.4, dz = n[2] / L * 0.4;
+      if (inVoet(pand, mx + dx, mz + dz) && !inVoet(pand, mx - dx, mz - dz)) {
+        ringen = ringen.map(r => r.slice().reverse());
+        buiten = ringen[0]; n = normaal(buiten); gedraaid++;
+      }
+    }
     /*
      Zuilengang: alles onder de gang weglaten. Let op dat dit vóór de knip op de
      goot hieronder staat: bij deze blokken ís de goot de rand van de gang
@@ -1393,7 +1447,28 @@ function* bouwPandenStap(scene, W, plat) {
       const GOOT_MIN = 2.9;
       const gootRuw = pand.goot || gootVan(buiten, n).goot;
       const gootH = top > GOOT_MIN + 1.2 ? Math.max(gootRuw, GOOT_MIN) : gootRuw;
-      if (laag < gootH - 0.3 && top > gootH + 0.6) {
+      /*
+       Een hele verdieping boven de goot. Bij 719 panden — vooral het type
+       molenkrite_kap, met een goot van 2,6 m — loopt de voor- of achtergevel in
+       het 3D BAG-model over de volle breedte door tot bijna zes meter: een
+       opbouw of een brede kapel die de bovenverdieping een rechte gevel geeft.
+       De knip hieronder maakte daarvan een woonlaag met drie meter kale steen
+       erboven, en in een rij tweelaagse huizen zag je dan één huis zonder ramen
+       boven (gebouwtest 24 sep 2026, Partuurstraat 73). Is het stuk boven de
+       goot breder dan een kapel, haalt het de nok niet en is het hoger dan
+       twee meter, dan is het een verdieping: de muur blijft heel en krijgt een
+       gevel met het aantal lagen dat bij zijn hoogte hoort.
+      */
+      let opbouw = false;
+      if (pand.front && laag < gootH - 0.3 && top - gootH >= 2.0 && (!pand.nok || top < pand.nok - 0.6)) {
+        const kant = n[0] * pand.front[0] + n[2] * pand.front[1];
+        const r = [n[2], 0, -n[0]];
+        let u0 = Infinity, u1 = -Infinity;
+        for (const p of buiten) { const u = p[0] * r[0] + p[2] * r[2]; if (u < u0) u0 = u; if (u > u1) u1 = u; }
+        opbouw = Math.abs(kant) > 0.6 && u1 - u0 >= WANG_MAX;
+        if (opbouw) opbouwen++;
+      }
+      if (!opbouw && laag < gootH - 0.3 && top > gootH + 0.6) {
         const { onder, boven } = knipOpHoogte(buiten, gootH + 0.02);
         if (onder && boven) { vlak3d(pand, [onder], 1); vlak3d({ ...pand, boven: true, bovenTop: top }, [boven], 1); return; }
       }
@@ -1408,8 +1483,36 @@ function* bouwPandenStap(scene, W, plat) {
     try { tris = THREE.ShapeUtils.triangulateShape(contour, gaten); } catch { return; }
     const punten = ringen.flat();
     let g, uvf;
-    if (soort === 1 && Math.abs(n[1]) < 0.5) ({ g, uvf } = muurKeuze(pand, n, punten));
-    else { const hellend = Math.abs(n[1]) < 0.97 && pand.dak !== 'horizontal'; g = dakGroep(pand, hellend); const s = hellend ? 0.25 : 0.5; uvf = (p) => [p[0] * s, (p[2] + p[1] * 0.6) * s]; }
+    if (soort === 1 && Math.abs(n[1]) < 0.5) {
+      let kap;
+      ({ g, uvf, kap } = muurKeuze(pand, n, punten));
+      // de gevel houdt op bij zijn laatste woonlaag; wat erboven zit wordt kale
+      // muur (zie `kap` in muurKeuze)
+      if (kap && ringen.length === 1) {
+        const { onder, boven } = knipOpHoogte(buiten, kap);
+        if (onder && boven) { vlak3d(pand, [onder], 1); vlak3d({ ...pand, kaal: true }, [boven], 1); return; }
+      }
+    } else {
+      // een dakvlak dat naar beneden wijst staat verkeerd om rond (zie inVoet)
+      if (soort === 2 && n[1] < -0.2) { n = n.map(v => -v); gedraaid++; }
+      const hellend = Math.abs(n[1]) < 0.97 && pand.dak !== 'horizontal';
+      g = dakGroep(pand, hellend);
+      /*
+       De uv van een schuin dak liep langs de wereldassen: u langs x, v langs
+       z plus een stukje hoogte. Bij een dak waarvan de goot langs x loopt ging
+       dat goed; bij een goot langs z lagen de pannenrijen dwars op de goot, en
+       op elk dakvlak was de pan in de ene richting langer dan in de andere
+       (gebouwtest 24 sep 2026: een op de vijf dakdriehoeken). Nu loopt u langs
+       de goot en v de helling op, in het vlak zelf, dus overal vier meter per
+       doek in beide richtingen en de rijen evenwijdig aan de goot.
+      */
+      if (hellend) {
+        const L = Math.hypot(n[0], n[2]) || 1;
+        const t = [n[2] / L, 0, -n[0] / L];                                       // langs de goot
+        const b = [n[1] * t[2] - n[2] * t[1], n[2] * t[0] - n[0] * t[2], n[0] * t[1] - n[1] * t[0]];   // de helling op
+        uvf = (p) => [(p[0] * t[0] + p[2] * t[2]) * 0.25, (p[0] * b[0] + p[1] * b[1] + p[2] * b[2]) * 0.25];
+      } else uvf = (p) => [p[0] * 0.5, (p[2] + p[1] * 0.6) * 0.5];
+    }
     for (const [a, b, c] of tris) {
       const A = punten[a], B = punten[b], C = punten[c];
       const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], e2 = [C[0] - A[0], C[1] - A[1], C[2] - A[2]];
@@ -1549,7 +1652,8 @@ function* bouwPandenStap(scene, W, plat) {
     if (plat) m.material.side = THREE.DoubleSide;
     scene.add(m);
   }
-  console.log(`kaart: ${met3d} panden met 3D BAG-dak, ${geschat} geschat, ${matCache.size} materialen in ${groepen.size} stukken, ${K.vlakken.length} vlakken, ${K.wegassen.length} wegassen`);
+  kaartTelling.gedraaid = gedraaid; kaartTelling.opbouwen = opbouwen;
+  console.log(`kaart: ${met3d} panden met 3D BAG-dak, ${geschat} geschat, ${gedraaid} vlakken omgedraaid, ${matCache.size} materialen in ${groepen.size} stukken, ${K.vlakken.length} vlakken, ${K.wegassen.length} wegassen`);
 }
 
 /*

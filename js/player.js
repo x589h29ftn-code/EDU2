@@ -798,7 +798,12 @@ export class Player {
   wapenStap(dt) {
     this.recoil = Math.max(0, this.recoil - dt * 6);
     this.flashT -= dt;
-    this.wapen.update(dt, { herlaad: this.reloading, bob: this.bob, mik: this.mik, holster: this.holster });
+    // yaw en pitch voor het naslepen bij omkijken, `leeg` zodat de slede van
+    // het pistool na het laatste patroon achter blijft staan
+    this.wapen.update(dt, {
+      herlaad: this.reloading, bob: this.bob, mik: this.mik, holster: this.holster,
+      yaw: this.yaw, pitch: this.pitch, leeg: this.ammo <= 0,
+    });
     // Kijk je door de kijker, dan zit het wapen zelf niet meer in beeld: je oog
     // zit achter het oculair. `_scopeAan` wordt in zetBeeldhoek() gezet.
     this.gun.visible = !this.wapenUit && !this.binnen && !this._scopeAan;
