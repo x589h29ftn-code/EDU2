@@ -186,24 +186,29 @@ const aanval = await page.evaluate(async () => {
   window.__zet(q.x, q.z);
   window.__stap(10, 0.05);
   const op10 = gr.staat;
-  // blijven staan: hoe snel gaat het leven eraf?
-  let t = 0, eersteKlap = -1;
+  // blijven staan: hoe snel gaat het leven eraf, en hoelang houd je het uit?
+  let t = 0, eersteKlap = -1, na12 = -1;
   const ks = gr.leden.filter(l => l.soort === 'knuppel');
   let dichtst = Infinity;
-  for (; t < 12 && g.player.health > 0; t += 0.05) {
+  for (; t < 90 && g.player.health > 0; t += 0.05) {
     g.verhaal.update(0.05);
+    if (na12 < 0 && t >= 12) na12 = g.player.health;
     for (const l of ks) dichtst = Math.min(dichtst, Math.hypot(l.persoon.groep.position.x - g.player.pos.x, l.persoon.groep.position.z - g.player.pos.z));
     if (eersteKlap < 0 && ks.some(l => l.slag > 0)) eersteKlap = t;
   }
-  const leven = g.player.health;
+  const leven = na12 < 0 ? g.player.health : na12;
+  const tNeer = g.player.health <= 0 ? t : -1;
   window.__stap(80, 0.05);                  // ging je neer, dan loopt dat eerst af
-  return { leven, op20, op10, eersteKlap, dichtst, soorten: gr.leden.map(l => l.soort) };
+  return { leven, tNeer, op20, op10, eersteKlap, dichtst, soorten: gr.leden.map(l => l.soort) };
 });
 ok(aanval.op20 === 'hangen', 'op twintig meter laten ze je met rust', aanval.op20);
 ok(aanval.op10 === 'jacht', 'op tien meter vallen ze aan', aanval.op10);
 ok(aanval.eersteKlap >= 0 && aanval.dichtst < 1.8, 'de knuppels komen bij je en halen uit',
   `eerste slag na ${aanval.eersteKlap.toFixed(1)} s, dichtstbij ${aanval.dichtst.toFixed(1)} m`);
-ok(aanval.leven < 70, 'en wie blijft staan wordt in elkaar geslagen', `nog ${aanval.leven} leven na 12 s`);
+ok(aanval.leven < 90, 'wie blijft staan wordt geslagen en beschoten', `nog ${aanval.leven} leven na 12 s`);
+ok(aanval.tNeer >= 25, 'maar houdt het tegen vier man minstens vijfentwintig tellen uit',
+  aanval.tNeer < 0 ? 'na 90 s nog overeind' : `neer na ${aanval.tNeer.toFixed(0)} s`);
+ok(aanval.tNeer > 0, 'en gaat uiteindelijk wel neer', aanval.tNeer > 0 ? `na ${aanval.tNeer.toFixed(0)} s` : 'niet');
 
 // ----------------------------------------- doorlopen, en ze geven het op
 kop('achtervolgen en opgeven');

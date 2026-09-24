@@ -123,7 +123,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run bendetest` (dertig controles, groen) en
+De laatste die ertoe doen: `npm run bendetest` (tweeëndertig controles, groen) en
 `npm run bendeshots` (twee foto's), `npm run veteraantest` (zevenenveertig controles,
 groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
 (negenenzestig controles) en `npm run huisshots` (vijf foto's).

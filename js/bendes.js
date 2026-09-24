@@ -56,11 +56,19 @@ const RUST = 12;                 // na het opgeven vallen ze zo lang niet opnieu
 const PISTOOL_KANS = 0.4;        // zoveel van de mannen heeft een pistool
 const SCHIET_AF = [8, 15];       // op die afstand blijft een pistool staan
 const VUURTIJD = [1.4, 2.2];     // tussen twee schoten
-const PISTOOL_SCHADE = 5;
+/*
+ De schade (verzoek 24 sep 2026: lager). Met 7 per klap en 5 per kogel lag wie
+ bleef staan naast een groepje van vier binnen tien tellen, met 4 en 3 na
+ negentien. Nu 3 per klap met een langere pauze tussen twee slagen, en 2 per
+ kogel: npm run bendetest meet hoelang je het dan uithoudt en eist minstens
+ vijfentwintig tellen — genoeg om terug te schieten of weg te rennen als je er
+ per ongeluk tegenaan loopt.
+*/
+const PISTOOL_SCHADE = 2;
 const SLAG_BEREIK = 1.7;         // zo dichtbij raakt een knuppel
 const SLAG_DUUR = 0.55;          // een slag, van uithalen tot raken
-const SLAG_RUST = 1.1;           // en de pauze erna
-const SLAG_SCHADE = 7;
+const SLAG_RUST = 1.6;           // en de pauze erna
+const SLAG_SCHADE = 3;
 const OVER_LAAG = 0.7;           // over lage heggen en borden stappen ze heen
 const AANRIJ_V = 5;              // harder dan dit rijd je een man omver
 

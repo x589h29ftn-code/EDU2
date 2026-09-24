@@ -5178,6 +5178,13 @@ thuis is, staat er weer zodra je niet kijkt.
 *Neergaan buiten een missie om* zette je voor Molenkrite 15, waar het spel begon.
 Nu voor je eigen voordeur. `npm run bendetest`: dertig controles, alles groen.
 
+*Minder schade (24 sep 2026).* Op verzoek omlaag. De proef meet nu hoelang je het
+uithoudt als je stil blijft staan naast een groepje van vier: met 7 per klap en 5
+per kogel een tel of tien, met 4 en 3 negentien tellen — nog te kort. Nu 3 per
+klap met een pauze van 1,6 in plaats van 1,1 tel tussen twee slagen, en 2 per
+kogel: tweeëndertig tellen. De proef eist er minstens vijfentwintig, en dat je
+uiteindelijk wel neergaat.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

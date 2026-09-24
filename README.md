@@ -1790,10 +1790,13 @@ net kijkt.
 - **Te dichtbij** — op een meter of dertien te voet, of vlak langs met de auto —
   en ze vallen aan. Een schot in de buurt hoort een groepje ook.
 - **Een knuppel** hebben de meesten: die moeten bij je komen, halen boven hun
-  hoofd uit en slaan (7 leven per klap). Staat er een heg tussen, dan lopen ze
+  hoofd uit en slaan (3 leven per klap). Staat er een heg tussen, dan lopen ze
   eromheen.
 - **Een pistool** heeft ongeveer vier op de tien: die blijven op acht tot vijftien
-  meter staan en schieten. In een groepje van drie of vier zitten ze allebei.
+  meter staan en schieten (2 leven per treffer). In een groepje van drie of vier
+  zitten ze allebei. Blijf je stilstaan naast een groepje van vier, dan houd je
+  het ruim een halve minuut uit — tijd genoeg om terug te schieten of weg te
+  rennen.
 - **Loop je door**, dan komen ze achter je aan — ze zijn net iets sneller dan
   lopen. Na een tijdje, als je van hun plek weg bent, geven ze het op en
   slenteren ze terug. **Sprinten** (shift) is sneller dan zij: dan ben je ze na
