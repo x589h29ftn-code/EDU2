@@ -148,6 +148,9 @@
     "dealshots": "node tools/dealshots.mjs",
     "bomshots": "node tools/bomshots.mjs",
     "bxshots": "node tools/bxshots.mjs",
-    "introshots": "node tools/introshots.mjs"
+    "introshots": "node tools/introshots.mjs",
+    "terugslagshots": "node tools/terugslagshots.mjs",
+    "autolodtest": "node tools/autolodtest.mjs",
+    "autolodshots": "node tools/autolodshots.mjs"
   }
 }

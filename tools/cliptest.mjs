@@ -122,6 +122,9 @@ kop('voetgangers door schuttingen');
 const lopen = await page.evaluate(async () => {
   const W = await import('/js/world.js');
   const g = window.__game, n = g.npcs;
+  // iedereen een lichaam, ook verder dan tweehonderd meter: sinds stap 80 botst
+  // alleen wie getekend wordt, en hier gaat het om de looplijn, niet om het zicht
+  const zicht = n.ZICHT; n.ZICHT = Infinity;
   const meet = (vrij) => {
     n.stoepVrij = vrij;
     // iedereen opnieuw neerzetten in de wijk, en een minuut laten lopen
@@ -149,7 +152,7 @@ const lopen = await page.evaluate(async () => {
   };
   const zonder = meet(false);
   const met = meet(true);
-  n.stoepVrij = true;
+  n.stoepVrij = true; n.ZICHT = zicht;
   return { zonder, met };
 });
 ok(lopen.zonder.door > 0, 'zonder stoepprofiel gaat er wel eens iemand door een doos', `${lopen.zonder.door} keer in ${lopen.zonder.stappen} stappen`);

@@ -19,6 +19,10 @@
  6. En het blijft even goedkoop: evenveel meshes per soort als voorheen, en een
     ruime grens op het aantal driehoeken (de geometrie wordt gedeeld, maar elke
     auto in beeld wordt wel getekend).
+ 7. Op afstand (ronde van 25 sep 2026): een stapel heeft een grove uitvoering
+    van dezelfde maat met hoogstens een derde van de driehoeken, en tekent
+    alleen de auto's die er staan (achter elkaar, `count`). Een treffer vindt
+    de goede auto terug, ook als die ergens midden in de stapel zit.
 */
 import { chromium } from 'playwright';
 
@@ -169,6 +173,45 @@ ok(r.hatch.meshes === 7 && r.truck.meshes === 7, 'evenveel meshes per auto als v
 ok(r.hatch.stapelMeshes === 7, 'en evenveel instanced meshes per stapel', `${r.hatch.stapelMeshes}`);
 ok(r.hatch.driehoeken < 9000 && r.truck.driehoeken < 9000, 'een auto blijft onder de negenduizend driehoeken',
   `hatch ${r.hatch.driehoeken}, bus ${r.van.driehoeken}, BX ${r.bx.driehoeken}, bakwagen ${r.truck.driehoeken}`);
+
+kop('op afstand');
+const ver = await page.evaluate(() => {
+  const { THREE, C } = window.__t;
+  const tri = (m) => (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3;
+  const uit = {};
+  for (const soort of ['hatch', 'van']) {
+    const s = C.maakAutoStapel(soort, 6);
+    const doos = (lijst) => { const b = new THREE.Box3(); for (const m of lijst) { m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox); } return b; };
+    const a = doos(s.meshes), b = doos(s.verMeshes);
+    // zes auto's: twee dichtbij, twee ver, twee uit — door elkaar
+    const stand = [[true, false], [false, true], [true, true], [true, false], [true, true], [false, false]];
+    stand.forEach(([aan, opAfstand], i) => { s.zet(i, i * 5, 0, 0, aan, opAfstand); s.kleur(i, 0x100000 * (i + 1)); });
+    s.klaar(); s.omhul();
+    const kleur = new THREE.Color(); s.verMeshes[0].getColorAt(1, kleur);
+    uit[soort] = {
+      vol: s.meshes.reduce((n, m) => n + tri(m), 0), ver: s.verMeshes.reduce((n, m) => n + tri(m), 0),
+      maat: Math.max(...['x', 'y', 'z'].flatMap(k => [Math.abs(a.min[k] - b.min[k]), Math.abs(a.max[k] - b.max[k])])),
+      count: [s.meshes[0].count, s.verMeshes[0].count],
+      nummers: [0, 1].map(j => s.nummer(s.meshes[3], j)).concat([0, 1].map(j => s.nummer(s.verMeshes[2], j))),
+      kleurVer: kleur.getHex(),
+      bol: s.meshes[0].boundingSphere && s.meshes[0].boundingSphere.radius,
+      leegZichtbaar: (() => { const t = C.maakAutoStapel(soort, 2); t.zet(0, 0, 0, 0, false); t.zet(1, 0, 0, 0, false); t.klaar(); return t.alle.some(m => m.visible); })(),
+    };
+  }
+  return uit;
+});
+for (const s of ['hatch', 'van']) {
+  const v = ver[s];
+  ok(v.ver < v.vol / 3, `${s}: de grove uitvoering heeft hoogstens een derde van de driehoeken`, `${v.ver} tegen ${v.vol}`);
+  ok(v.maat < 0.02, 'en precies dezelfde maat', `${(v.maat * 100).toFixed(1)} cm verschil`);
+  ok(v.count[0] === 2 && v.count[1] === 2, 'de stapel tekent alleen wat er staat', `${v.count[0]} dichtbij, ${v.count[1]} ver (van zes, twee uit)`);
+  ok(JSON.stringify(v.nummers) === '[0,3,2,4]', 'een treffer vindt de goede auto terug', JSON.stringify(v.nummers));
+  ok(v.kleurVer === 0x500000, 'en de lakkleur schuift mee naar zijn plek in de stapel', `#${v.kleurVer.toString(16).padStart(6, '0')}`);
+  // de zes staan van x = 0 tot 25, de laatste uit: over wat er staat zou de bol
+  // 10 m plus een halve auto zijn, over de hele stapel 12,5 m plus een halve auto
+  ok(v.bol > 14, 'de omhullende bol gaat over de hele stapel, niet over wat er nu staat', `straal ${v.bol?.toFixed(1)} m`);
+  ok(!v.leegZichtbaar, 'en een lege stapel kost geen draw call');
+}
 
 console.log(`\n${fout ? fout + ' fout' : 'alles goed'}`);
 await browser.close();

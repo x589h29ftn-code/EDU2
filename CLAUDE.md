@@ -128,7 +128,10 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run omgevingtest` (wind, water, riet, gras in
+De laatste die ertoe doen: `npm run autolodtest` (geparkeerde auto's en
+voetgangers op afstand, treffers via `nummer`/`slotNaar`; stap 80) en
+`wapenechttest` (ook de terugslag bij elk beeldtempo) met `terugslagshots`,
+`npm run omgevingtest` (wind, water, riet, gras in
 3D, hagen, ramen 's avonds; stap 79) met `omgevingshots`, `npm run groentest` (bomen, struiken, gras en de
 driehoeken in beeld; stap 78) met `groenshots`, `npm run gebouwtest` (elke driehoek van de wereld:
 muurrichting, uitgerekte en afgekapte doeken; stap 76), `wapenechttest` en
@@ -160,6 +163,9 @@ groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
 - **De LOD draait headless niet vanzelf.** `updateLOD` zit in de hoofdlus; een
   foto of proef roept hem zelf aan, anders staan fijne en grove versies door
   elkaar in beeld.
+- **Een instantie is geen nummer meer.** Geparkeerde auto's en voetgangers
+  staan compact in hun meshes (stap 80): instantie `j` is `stapel.nummer(mesh, j)`
+  of `npcs.slotNaar[j]`. Een proef die iemand wil raken gebruikt `hitPersoon`.
 - **Het wapen staat op laag 1** en wordt apart getekend (`tekenWapen`); een eigen
   render van de scène laat het dus weg, tenzij de camera die laag aanzet.
 - **Lege schermafdrukken** komen meestal doordat de camera niet bij de mensen
@@ -194,9 +200,10 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
     (13 % van de kapeldriehoeken wijkt meer dan 1,8 keer af; gebouwtest).
 17. De wapens van de NPC's (js/persoon.js) zijn nog de oude blokjes; alleen
     het wapen in je eigen hand is in stap 76 vernieuwd.
-18. Een voetganger is sinds stap 77 3608 driehoeken (was 717); ze worden alle
-    130 getekend, ook buiten beeld (`frustumCulled = false`). Als de pc het
-    zwaar krijgt: een LOD of culling per groepje.
+18. Voetgangers binnen 200 m worden allemaal getekend (3608 driehoeken per
+    persoon, ook achter je: `frustumCulled = false`). Sinds stap 80 is wie
+    verder is weg; een grove uitvoering op afstand en een kijkkegel zijn de
+    volgende stap als het nodig is.
 
 ## 8 · Waar wat gedocumenteerd wordt
 

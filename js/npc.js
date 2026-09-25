@@ -174,6 +174,22 @@ export class NPCs {
     for (const s of this.segs) this.stoepProfiel(s);
 
     this.meshes = {};
+    this.kleurVan = [];                 // de kleuren per persoon, voor `kleurSlot`
+    /*
+     Wie er getekend wordt (ronde van 25 sep 2026). Het spel houdt er vier binnen
+     honderd meter en achttien binnen tweehonderd; de rest van de honderddertig
+     loopt ergens anders in Sneek of IJlst. Die werden allemaal getekend — 3608
+     driehoeken per persoon, in de beeldpas en de schaduwpas — en elk beeld kreeg
+     ieder zijn hele houding uitgerekend. Nu krijgen alleen de mensen binnen
+     `ZICHT` meter een plek in de meshes, achter elkaar (`count`); de rest loopt
+     door op zijn wegvak, maar zonder lichaam. `slotNaar[instantie]` is de
+     persoon bij een instantie, `slotVan[persoon]` andersom (−1: niet getekend).
+    */
+    this.ZICHT = 200;
+    this.slotNaar = new Int32Array(count);
+    this.slotVan = new Int32Array(count);
+    for (let i = 0; i < count; i++) { this.slotNaar[i] = i; this.slotVan[i] = i; }
+    this.nZicht = count;
     for (const def of DELEN) {
       const n = def.paar ? count * 2 : count;
       // het doek van dit soort onderdeel (js/lichaam.js); de kleur per persoon
@@ -216,11 +232,8 @@ export class NPCs {
         shirt, broek: pants, huid: skin, haar: hair, schoen, oog,
         mouw: korteMouw ? skin : shirt,
       };
-      for (const def of DELEN) {
-        const mesh = this.meshes[def.naam], hex = kleuren[def.kleur];
-        if (def.paar) { mesh.setColorAt(i * 2, col.setHex(hex)); mesh.setColorAt(i * 2 + 1, col.setHex(hex)); }
-        else mesh.setColorAt(i, col.setHex(hex));
-      }
+      this.kleurVan.push(kleuren);
+      this.kleurSlot(i, i);
 
       const height = 0.88 + r() * 0.22;   // kinderen tot volwassenen
       // een op de vijf is een fietser: hoger, sneller en met een fiets eronder
@@ -272,6 +285,41 @@ export class NPCs {
     this._e = new THREE.Euler(); this._v = new THREE.Vector3(); this._s = new THREE.Vector3();
     this._w = new THREE.Quaternion();
     this._h = {};       // gewrichtshoeken van dit beeld (zie js/lichaam.js)
+  }
+
+  // de kleuren van persoon `i` op instantie `j` van elk onderdeel
+  kleurSlot(j, i) {
+    const col = this._kleur || (this._kleur = new THREE.Color()), kleuren = this.kleurVan[i];
+    for (const def of DELEN) {
+      const mesh = this.meshes[def.naam], hex = kleuren[def.kleur];
+      if (def.paar) { mesh.setColorAt(j * 2, col.setHex(hex)); mesh.setColorAt(j * 2 + 1, col.setHex(hex)); }
+      else mesh.setColorAt(j, col.setHex(hex));
+    }
+  }
+
+  /*
+   Wie staat er binnen `ZICHT`? Die krijgen instantie 0, 1, 2, … in volgorde van
+   hun nummer; verandert de rij, dan gaan de kleuren mee naar hun nieuwe plek.
+  */
+  verdeelSlots(camX, camZ) {
+    const q = this.ZICHT * this.ZICHT;
+    let k = 0, anders = false;
+    for (let i = 0; i < this.people.length; i++) {
+      const p = this.people[i];
+      const dx = p.x - camX, dz = p.z - camZ;
+      if (camX !== null && dx * dx + dz * dz > q) { this.slotVan[i] = -1; continue; }
+      if (this.slotNaar[k] !== i) { anders = true; this.slotNaar[k] = i; this.kleurSlot(k, i); }
+      this.slotVan[i] = k++;
+    }
+    if (k !== this.nZicht || anders) {
+      this.nZicht = k;
+      for (const def of DELEN) {
+        const m = this.meshes[def.naam];
+        m.count = def.paar ? k * 2 : k;
+        if (anders) m.instanceColor.needsUpdate = true;
+      }
+      this.fiets.count = k;
+    }
   }
 
   /*
@@ -560,6 +608,7 @@ export class NPCs {
 
   update(dt, time, camX = null, camZ = null) {
     if (camX !== null) this.vulBuurtAan(camX, camZ, dt);
+    this.verdeelSlots(camX, camZ);
     const m = this._m, q = this._q, e = this._e, v = this._v, sc = this._s;
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
@@ -705,6 +754,9 @@ export class NPCs {
         p.x += p.smak.dx * p.smak.weg;
         p.z += p.smak.dz * p.smak.weg;
       }
+      // buiten `ZICHT`: hij loopt door, maar er is geen lichaam om neer te zetten
+      const j = this.slotVan[i];
+      if (j < 0) continue;
 
       const h = p.height;
       /*
@@ -752,10 +804,10 @@ export class NPCs {
       if (p.fietst) {
         e.set(dood ? tilt : 0, p.yaw, 0, 'YXZ'); q.setFromEuler(e);
         m.compose(v.set(p.x, gy + (dood ? 0.1 : 0), p.z), q, sc.set(h, h, h));
-        this.fiets.setMatrixAt(i, m);
+        this.fiets.setMatrixAt(j, m);
       } else {
         m.makeScale(0, 0, 0);
-        this.fiets.setMatrixAt(i, m);
+        this.fiets.setMatrixAt(j, m);
       }
       // de stand van alle gewrichten
       const H = this._h;
@@ -768,7 +820,7 @@ export class NPCs {
       // wie omvalt hoeft er niet ook nog bij te hellen
       const helling = tilt + (dood ? 0 : (H.romp || 0));
       if (dood) H.rol = 0;
-      this.zetLichaam(i, p.x, gy + yLift + (dood ? 0 : H.wip * h), p.z, p.yaw, helling, h, H);
+      this.zetLichaam(j, p.x, gy + yLift + (dood ? 0 : H.wip * h), p.z, p.yaw, helling, h, H);
       p.wip = H.wip;
     }
     // ---- de hondjes ----
@@ -842,8 +894,15 @@ export class NPCs {
     if (instanceId == null) return null;
     // armen, benen en schoenen zitten met twee instanties per persoon in één
     // mesh (links en rechts), dus dan is het instantienummer het dubbele
-    const nr = obj && obj.userData && obj.userData.paar ? instanceId >> 1 : instanceId;
-    const p = this.people[nr];
+    // en sinds alleen wie dichtbij is getekend wordt is de instantie niet meer
+    // het nummer van de persoon: `slotNaar` zoekt hem op
+    const slot = obj && obj.userData && obj.userData.paar ? instanceId >> 1 : instanceId;
+    if (obj && obj.isInstancedMesh && slot >= this.nZicht) return null;
+    return this.hitPersoon(this.people[this.slotNaar[slot]], nodig);
+  }
+
+  /** Persoon `p` raken (zie `hit`), zonder instantie: voor js/main.js en de proeven. */
+  hitPersoon(p, nodig = 1) {
     if (!p || !p.alive) return null;
     if (!p.raken) { p.raken = 0; p.nodig = Math.max(1, Math.round(nodig)); }
     p.raken++;

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { resolveCollisions, pointInWater, grondHoogte, zichtVrij, breekScheidingenBij } from './world.js';
 import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
-import { makeCar, maakAutoStapel, lakVoor } from './carmodel.js';
+import { makeCar, maakAutoStapel, lakVoor, VER_VANAF } from './carmodel.js';
 import { KAART } from './kaartwereld.js';
 
 /*
@@ -90,7 +90,7 @@ export class Vehicles {
       const stapel = maakAutoStapel(k.split('|')[0], n);
       // `hit` zoekt de stapel op via dit merkteken; dat was de soort, maar er is
       // er nu een per soort én per tegel
-      for (const m of stapel.meshes) { m.userData.autoStapel = k; scene.add(m); }
+      for (const m of stapel.alle) { m.userData.autoStapel = k; scene.add(m); }
       this.stapels[k] = { stapel, n: 0, autos: [] };
     }
     parkSpots.forEach((s, i) => {
@@ -113,7 +113,7 @@ export class Vehicles {
     });
     for (const k of Object.keys(this.stapels)) {
       this.stapels[k].stapel.klaar();
-      for (const m of this.stapels[k].stapel.meshes) m.computeBoundingSphere();
+      this.stapels[k].stapel.omhul();
     }
     // verkeer N7 (beide richtingen). Met de kaart uit de BGT zijn de twee
     // rijbanen van de N7 losse assen; elke as krijgt verkeer in één richting.
@@ -200,12 +200,16 @@ export class Vehicles {
   }
 
   // De matrix van een geparkeerde auto in zijn stapel bijwerken.
-  zetInstantie(car) {
+  // (`meteen` false: de stapel pas bijwerken bij `spoel`, voor wie er veel tegelijk zet)
+  zetInstantie(car, meteen = true) {
     if (!car.inst) return;
     const stap = this.stapels[car.inst.sleutel];
     const zichtbaar = car.zichtbaar !== false && car.getekend !== false;
     stap.stapel.zet(car.inst.i, car.x, car.z, car.yaw, zichtbaar);
-    stap.stapel.klaar();
+    if (meteen) stap.stapel.klaar(); else stap.vies = true;
+  }
+  spoel() {
+    for (const k in this.stapels) { const st = this.stapels[k]; if (st.vies) { st.vies = false; st.stapel.klaar(); } }
   }
 
   // Staat deze auto in beeld? Een geparkeerde auto heeft geen eigen mesh meer.
@@ -221,38 +225,38 @@ export class Vehicles {
    beeld.
   */
   lod(camX, camZ, zicht = 170) {
-    const q = zicht * zicht;
+    this._lodBij = { x: camX, z: camZ, zicht };
+    const q = zicht * zicht, qVer = VER_VANAF * VER_VANAF;
     for (const k of Object.keys(this.stapels)) {
       const stap = this.stapels[k];
       /*
-       Eerst de hele stapel: ligt de tegel voorbij het zicht, dan gaan de zeven
-       meshes uit. Frustum culling haalt alleen de tegels weg die achter je
+       Eerst de hele stapel: ligt de tegel voorbij het zicht, dan gaan al zijn
+       auto's uit. Frustum culling haalt alleen de tegels weg die achter je
        liggen; wat vóór je ligt tot aan de mist van negenhonderd meter werd wél
-       getekend, en met 664 driehoeken per carrosserie was dat op het zwaarste
-       standpunt 2,06 miljoen driehoeken — meer dan de helft van het hele beeld.
-       De instanties op schaal nul zetten hielp daar niet tegen: een instantie
-       op nul gaat nog steeds door de vertex shader.
+       getekend.
+
+       Daarna per auto: dichtbij het volle model, voorbij `VER_VANAF` meter de
+       grove uitvoering (js/carmodel.js), voorbij `zicht` niets. De stapel
+       tekent alleen wat er staat — een auto op schaal nul ging vroeger nog
+       gewoon door de vertex shader.
       */
       const ver = stap.ver !== undefined ? stap.ver : (stap.ver = tegelMidden(k));
       const tdx = ver.x - camX, tdz = ver.z - camZ;
       const tegelDicht = tdx * tdx + tdz * tdz < (zicht + AUTOTEGEL_HALF) * (zicht + AUTOTEGEL_HALF);
-      if (stap.aan !== tegelDicht) {
-        stap.aan = tegelDicht;
-        for (const m of stap.stapel.meshes) m.visible = tegelDicht;
-      }
-      if (!tegelDicht) continue;
+      if (!tegelDicht && stap.aan === false) continue;
+      stap.aan = tegelDicht;
       let veranderd = false;
       for (const car of stap.autos) {
         if (!car || car.mesh) continue;                    // deze rijdt, die heeft zijn eigen model
-        const dx = car.x - camX, dz = car.z - camZ;
-        const dichtbij = dx * dx + dz * dz < q;
-        const wil = dichtbij && car.zichtbaar !== false;
-        if (car.getekend === wil) continue;
-        car.getekend = wil;
-        stap.stapel.zet(car.inst.i, car.x, car.z, car.yaw, wil);
+        const dx = car.x - camX, dz = car.z - camZ, d2 = dx * dx + dz * dz;
+        const wil = tegelDicht && d2 < q && car.zichtbaar !== false;
+        const opAfstand = d2 > qVer;
+        if (car.getekend === wil && (!wil || car.opAfstand === opAfstand)) continue;
+        car.getekend = wil; car.opAfstand = opAfstand;
+        stap.stapel.zet(car.inst.i, car.x, car.z, car.yaw, wil, opAfstand);
         veranderd = true;
       }
-      if (veranderd) stap.stapel.klaar();
+      if (veranderd || stap.vies) { stap.vies = false; stap.stapel.klaar(); }
     }
   }
 
@@ -261,15 +265,25 @@ export class Vehicles {
   zichtbaarheid(aan) {
     for (const c of this.cars) {
       if (c.mesh) c.mesh.visible = aan;
-      else if (c.zichtbaar !== aan) { c.zichtbaar = aan; c.getekend = aan; this.zetInstantie(c); }
+      else if (c.zichtbaar !== aan) { c.zichtbaar = aan; c.getekend = aan; this.zetInstantie(c, false); }
     }
+    /*
+     Weer buiten: meteen de afstandsregel erover, vanaf waar hij het laatst
+     stond. Anders stonden alle auto's van de hele wereld aan tot `lod` de tegel
+     weer eens bekeek — en die slaat een tegel over die al ver weg was.
+    */
+    if (aan && this._lodBij) {
+      for (const k in this.stapels) this.stapels[k].aan = undefined;
+      this.lod(this._lodBij.x, this._lodBij.z, this._lodBij.zicht);
+    }
+    this.spoel();
     for (const t of this.traffic) t.mesh.visible = aan;
   }
 
   // De instanced meshes zelf, om op te schieten (raycast) — zie js/main.js.
   doelen() {
     const uit = [];
-    for (const k of Object.keys(this.stapels)) uit.push(...this.stapels[k].stapel.meshes);
+    for (const k of Object.keys(this.stapels)) uit.push(...this.stapels[k].stapel.alle);
     for (const c of this.cars) if (c.mesh) uit.push(c.mesh);
     // het rijdende verkeer hoort er ook bij: daar zat geen kogel in te krijgen,
     // en juist daar zit een bestuurder die er op kan reageren (zie schrikAf)
@@ -393,8 +407,10 @@ export class Vehicles {
       car.mesh.traverse(o => { if (o.isMesh && o.userData.lak) o.material = lak; });
     }
     if (car.inst) {
-      const stap = this.stapels && this.stapels[car.inst.soort];
-      if (stap && stap.stapel) stap.stapel.kleur(car.inst.i, kleur);
+      // (dit zocht de stapel op `soort`, maar er is er een per soort én per
+      // tegel: een geparkeerde auto overspuiten deed daardoor niets)
+      const stap = this.stapels && this.stapels[car.inst.sleutel];
+      if (stap && stap.stapel) { stap.stapel.kleur(car.inst.i, kleur); stap.stapel.klaar(); }
     }
     return kleur;
   }
@@ -1006,7 +1022,8 @@ export class Vehicles {
     // een geparkeerde auto zit in een stapel: het instantienummer wijst hem aan
     const sleutel = mesh && mesh.userData && mesh.userData.autoStapel;
     if (sleutel && this.stapels[sleutel] && instanceId != null) {
-      const car = this.stapels[sleutel].autos[instanceId];
+      const st = this.stapels[sleutel];
+      const car = st.autos[st.stapel.nummer(mesh, instanceId)];
       // tien kogels tot hij op is; dat was vier, en dan ging een auto wel erg
       // makkelijk in vlammen op
       if (car) { car.hp -= 10; return car; }

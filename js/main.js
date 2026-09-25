@@ -1845,8 +1845,8 @@ function loop() {
         // daar al neergezet, dus de ooghoogte komt er gewoon bovenop
         camera.position.set(player.pos.x, player.pos.y + player.eye, player.pos.z);
         camera.rotation.set(0, 0, 0, 'YXZ');
-        camera.rotation.y = player.yaw + player.kickYaw;
-        camera.rotation.x = player.pitch + player.kickPitch;
+        camera.rotation.y = player.yaw + player.zicht.yaw;
+        camera.rotation.x = player.pitch + player.zicht.pitch;
       }
       // aan boord sta je in de open lucht: het wapen mag alle kanten op — maar
       // door de kijker zie je het niet, net als te voet

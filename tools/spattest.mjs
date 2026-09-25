@@ -58,10 +58,11 @@ const kogels = await page.evaluate(async () => {
   const proef = (soort, mens) => {
     p.krijgWapen(soort);
     const nodig = p.kogelsNodig();
-    const mesh = g.npcs.meshes.romp;
+    // (`hitPersoon`: de instantie is niet meer het nummer van de persoon, sinds
+    // alleen wie binnen tweehonderd meter is een lichaam heeft)
     let n = 0;
     while (n < 6) {
-      const raak = g.npcs.hit(mesh, mens, nodig);
+      const raak = g.npcs.hitPersoon(g.npcs.people[mens], nodig);
       n++;
       if (!raak) return n;                 // al neer
       if (raak.neer) return n;

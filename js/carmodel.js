@@ -48,7 +48,17 @@ const doos = (b, h, d) => new THREE.BoxGeometry(b, h, d);
  afronding worden, met de normaal vanaf de binnendoos. `userData.doos` houdt de
  maat bij, zodat `autoOnderdelen` hem net als een gewone doos kan narekenen.
 */
+/*
+ De grove uitvoering voor auto's op afstand (ronde van 25 sep 2026). Een
+ geparkeerde auto is 5836 driehoeken, en de stapels van js/vehicles.js waren
+ samen driekwart van alles in beeld: 3,2 tot 4,5 miljoen. Voorbij `VER_VANAF`
+ meter tekent een stapel dezelfde auto met gewone dozen, banden van acht kanten
+ en een velg zonder spaken. Dat zet `GROF` aan terwijl `geomsVer` het model
+ bouwt; de maten blijven precies dezelfde.
+*/
+let GROF = false;
 function rdoos(b, h, d, r, seg = 1) {
+  if (GROF) { const g = new THREE.BoxGeometry(b, h, d); g.userData.doos = { width: b, height: h, depth: d }; return g; }
   r = Math.max(0.001, Math.min(r, b / 2 - 1e-4, h / 2 - 1e-4, d / 2 - 1e-4));
   const s = seg * 2 + 1;
   const geo = new THREE.BoxGeometry(1, 1, 1, s, s, s).toNonIndexed();
@@ -73,8 +83,10 @@ function rdoos(b, h, d, r, seg = 1) {
  je tussen de spaken door niet dwars door het wiel kijkt.
 */
 function bandGeo(R, breed, rond = 22) {
+  if (GROF) rond = 8;
   const w = breed / 2;
-  const profiel = [
+  // grof: alleen wang, loopvlak, wang
+  const profiel = GROF ? [[R * 0.66, -w], [R, -w + 0.04], [R, w - 0.04], [R * 0.66, w]].map(([r, y]) => new THREE.Vector2(r, y)) : [
     [R * 0.66, -w], [R * 0.86, -w - 0.004], [R * 0.95, -w + 0.012], [R * 0.99, -w + 0.035],
     [R, -w + 0.06], [R, w - 0.06], [R * 0.99, w - 0.035], [R * 0.95, w - 0.012], [R * 0.86, w + 0.004], [R * 0.66, w],
   ].map(([r, y]) => new THREE.Vector2(r, y));
@@ -151,6 +163,11 @@ function plaatDoek() {
  driehoeken, en die geometrie wordt door álle auto's gedeeld.
 */
 function naafGeo(R) {
+  if (GROF) {
+    // op afstand: alleen de lichte velgschijf aan weerskanten
+    const delen = [-1, 1].map(xs => { const c = new THREE.CylinderGeometry(R * 0.64, R * 0.64, 0.030, 8, 1); c.rotateZ(Math.PI / 2); c.translate(xs * 0.112, 0, 0); return { geo: c }; });
+    return merge(delen);
+  }
   const delen = [];
   /*
    De velg zit aan de buitenkant van de band, niet in het midden ervan: een band
@@ -213,7 +230,7 @@ function holleKoker(b, h, d, x, y, z, wand, gat0, gat1, rond = 0) {
 }
 
 function wielkast(R) {
-  const g = new THREE.TorusGeometry(R + 0.07, 0.05, 4, 10, Math.PI);
+  const g = new THREE.TorusGeometry(R + 0.07, 0.05, GROF ? 3 : 4, GROF ? 6 : 10, Math.PI);
   g.rotateY(Math.PI / 2);
   return g;
 }
@@ -732,6 +749,20 @@ function geoms(kind) {
   return G;
 }
 
+/** Dezelfde auto, grof: voor een stapel voorbij `VER_VANAF` meter. */
+function geomsVer(kind) {
+  const k = kind + '|ver';
+  if (GEO[k]) return GEO[k];
+  GROF = true;
+  let G;
+  try { G = kind === 'truck' ? truckGeoms() : autoGeoms(kind); } finally { GROF = false; }
+  G.black = merge([...G.zwartVast, ...G.wielen.map(w => ({ geo: G.wielGeo, x: w.x, y: G.R, z: w.z }))]);
+  G.chrome = merge([...G.chroomVast, ...G.wielen.map(w => ({ geo: G.hubGeo, x: w.x, y: G.R, z: w.z }))]);
+  GEO[k] = G;
+  return G;
+}
+export const VER_VANAF = 45;
+
 /*
  De materialen. Het glas is donkerder en gladder dan het was, zodat het de lucht
  spiegelt zoals een ruit doet in plaats van een grijze plaat te zijn; de velgen
@@ -775,7 +806,7 @@ const paintCache = new Map();
  uit beeld moet (binnen, of het bovenaanzicht).
 */
 export function maakAutoStapel(kind, aantal) {
-  const G = geoms(kind);
+  const G = geoms(kind), V = geomsVer(kind);
   /*
    Autolak. Hij stond op ruwheid 0,35 met metaalgehalte 0,5 en dat leest als
    plastic speelgoed: te glad en te spiegelend. Een gelakte auto die een paar
@@ -791,7 +822,16 @@ export function maakAutoStapel(kind, aantal) {
     { geo: G.plate, mat: SHARED.plate },
   ];
   if (G.chrome) delen.push({ geo: G.chrome, mat: SHARED.chrome });
-  const meshes = delen.map(d => {
+  // op afstand: zonder kenteken (vier beeldpunten geel) en alleen de lak werpt schaduw
+  const verDelen = [
+    { geo: V.paint, mat: lak, kleurbaar: true, schaduw: true },
+    { geo: V.glass, mat: SHARED.glass },
+    { geo: V.black, mat: SHARED.black },
+    { geo: V.head, mat: SHARED.head },
+    { geo: V.tail, mat: SHARED.tail },
+    { geo: V.chrome, mat: SHARED.chrome },
+  ];
+  const maak = (d) => {
     const m = new THREE.InstancedMesh(d.geo, d.mat, aantal);
     m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     m.castShadow = !!d.schaduw;
@@ -805,24 +845,78 @@ export function maakAutoStapel(kind, aantal) {
     */
     m.frustumCulled = true;
     m.userData.autoStapel = kind;
+    m.count = 0;
     return m;
-  });
-  const lakMesh = meshes[0];
-  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3();
+  };
+  const meshes = delen.map(maak), verMeshes = verDelen.map(maak);
+  const lakMesh = meshes[0], verLak = verMeshes[0];
+  /*
+   Wat hier staat is per auto (het nummer `i` dat js/vehicles.js kent): waar hij
+   staat, of hij getekend wordt, dichtbij of ver, en zijn kleur. `klaar()`
+   schrijft daaruit de instanties, maar alleen die er werkelijk staan en achter
+   elkaar: instantie 0 tot `count`. Een auto op schaal nul — uit beeld, of
+   omdat je erin zit — ging vroeger gewoon door de vertex shader, en een tegel
+   van 480 m heeft er honderd; de afstandsregel haalde zo bijna niets weg.
+   `nummer(mesh, instantie)` zoekt bij een treffer de auto terug.
+  */
+  const plek = new Float32Array(aantal * 3), aan = new Uint8Array(aantal), ver = new Uint8Array(aantal).fill(1);
+  const kleuren = new Uint32Array(aantal).fill(0xffffff);
+  const dichtNr = new Int32Array(aantal), verNr = new Int32Array(aantal);
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3(1, 1, 1), Y = new THREE.Vector3(0, 1, 0);
   const kleurHulp = new THREE.Color();
   return {
-    meshes, lengte: G.L,
-    zet(i, x, z, yaw, zichtbaar = true) {
-      P.set(x, 0, z);
-      Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-      S.setScalar(zichtbaar ? 1 : 0);
-      M.compose(P, Q, S);
-      for (const m of meshes) m.setMatrixAt(i, M);
+    meshes, verMeshes, alle: [...meshes, ...verMeshes], lengte: G.L,
+    zet(i, x, z, yaw, zichtbaar = true, opAfstand = null) {
+      plek[i * 3] = x; plek[i * 3 + 1] = z; plek[i * 3 + 2] = yaw;
+      aan[i] = zichtbaar ? 1 : 0;
+      if (opAfstand !== null) ver[i] = opAfstand ? 1 : 0;
     },
-    kleur(i, hex) { lakMesh.setColorAt(i, kleurHulp.setHex(hex)); },
+    kleur(i, hex) { kleuren[i] = hex; },
     klaar() {
-      for (const m of meshes) m.instanceMatrix.needsUpdate = true;
+      let n = 0, nv = 0;
+      for (let i = 0; i < aantal; i++) {
+        if (!aan[i]) continue;
+        P.set(plek[i * 3], 0, plek[i * 3 + 1]);
+        Q.setFromAxisAngle(Y, plek[i * 3 + 2]);
+        M.compose(P, Q, S);
+        kleurHulp.setHex(kleuren[i]);
+        if (ver[i]) {
+          for (const m of verMeshes) m.setMatrixAt(nv, M);
+          verLak.setColorAt(nv, kleurHulp);
+          verNr[nv++] = i;
+        } else {
+          for (const m of meshes) m.setMatrixAt(n, M);
+          lakMesh.setColorAt(n, kleurHulp);
+          dichtNr[n++] = i;
+        }
+      }
+      for (const [lijst, k] of [[meshes, n], [verMeshes, nv]]) {
+        for (const m of lijst) {
+          m.count = k;
+          m.visible = k > 0;                  // anders nog een lege draw call
+          m.instanceMatrix.needsUpdate = true;
+        }
+      }
       if (lakMesh.instanceColor) lakMesh.instanceColor.needsUpdate = true;
+      if (verLak.instanceColor) verLak.instanceColor.needsUpdate = true;
+    },
+    /** Welke auto (nummer i) hoort bij deze instantie van deze mesh? */
+    nummer(mesh, inst) {
+      if (meshes.includes(mesh)) return inst < lakMesh.count ? dichtNr[inst] : -1;
+      if (verMeshes.includes(mesh)) return inst < verLak.count ? verNr[inst] : -1;
+      return -1;
+    },
+    /*
+     De omhullende bol van de hele tegel, voor frustum culling en de raycast. Die
+     hoort over álle auto's te gaan, niet over wat er nu toevallig in beeld
+     staat: three rekent hem één keer uit en houdt hem dan vast.
+    */
+    omhul() {
+      const box = new THREE.Box3();
+      for (let i = 0; i < aantal; i++) box.expandByPoint(P.set(plek[i * 3], 1, plek[i * 3 + 1]));
+      const bol = box.getBoundingSphere(new THREE.Sphere());
+      bol.radius += G.L;                      // een auto steekt tot een halve lengte buiten zijn plek, plus wat hij rolt
+      for (const m of [...meshes, ...verMeshes]) m.boundingSphere = bol.clone();
     },
   };
 }

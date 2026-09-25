@@ -221,7 +221,13 @@ console.log('\nde fietsers');
 const fiets = await page.evaluate(async () => {
   const THREE = await import('three');
   const g = window.__game;
-  const i = g.npcs.people.findIndex(p => p.fietst && p.alive !== false);
+  const nr = g.npcs.people.findIndex(p => p.fietst && p.alive !== false);
+  if (nr < 0) return null;
+  // alleen wie binnen tweehonderd meter is heeft een lichaam in de meshes, en
+  // zijn instantie is `slotVan[nr]`: één beeld bijwerken vanaf waar hij fietst
+  const w = g.npcs.people[nr];
+  g.npcs.update(0.001, 0, w.x, w.z);
+  const i = g.npcs.slotVan[nr];
   if (i < 0) return null;
   const M = new THREE.Matrix4();
   g.npcs.fiets.getMatrixAt(i, M);

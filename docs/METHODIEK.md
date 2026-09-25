@@ -5464,6 +5464,68 @@ ramen uit. Dan meet je de soort, niet het toeval van welke ramen er in beeld sta
 Een grijs vlak midden op een grasveld aan de Monnikmolen leek een fout, maar is
 een asfaltvlak in de BGT (een speelveldje). Nagekeken en laten staan.
 
+**De terugslag van het pistool, en waar de pc zijn tijd aan kwijt was (stap 80).**
+Verzoek van 25 sep 2026: "schieten met handpistool lijkt wat raar nu qua recoil en
+animatie, check dit. Neem het spel verder door wat beter kan en optimalisatie."
+
+*De terugslag.* Wat raar voelde was niet de vorm maar drie maten:
+
+- **De veer liep met het beeldtempo mee.** Hij werd in één stap per beeld
+  doorgerekend, met een demping van c·dt ≈ 0,9 bij 30 beelden per seconde: in het
+  eerste beeld ving de demping de zet al bijna helemaal op. Gemeten op de oude
+  versie: 1,8° loop omhoog bij 30 fps, 3,8° bij 20 (daar begon hij te
+  slingeren), 7,5° bij 60 en 11,3° bij 240. De proef van stap 76 rekende in
+  stapjes van 1/240 s en zag dus alleen het mooiste geval. Nu rekent `update` de
+  veer zelf in stapjes van hoogstens 1/240 s door: 9,4 tot 10° bij elk tempo.
+- **Het draaide om de greep, met de onderarm eraan vast.** De loop ging omhoog en
+  het eind van de mouw 9,3 cm omlaag: een wip. Nu draait het om de pols (`POLS`),
+  draait de onderarm voor een derde mee en komt de pols een paar millimeter mee
+  omhoog; de mouw beweegt 2,1 cm.
+- **Het schoot 3,5 cm naar je oog toe.** Op 42 cm is dat een wapen dat in één
+  beeld 8 % groter wordt. Nu 2 cm. En het tikje opzij was 18 % van de zet omhoog,
+  nu 9 %: het wiebelde bij elk schot heen en weer.
+
+Daarbij: het beeld sprong bij een schot in één beeld omhoog. Een sprong zonder
+aanloop leest als een hapering; nu loopt de camera de terugslag in 25 ms achterna
+(`player.zicht`). Snel klikken stapelt niet meer tot het pistool rechtop staat:
+een zet komt minder hard aan als de loop al omhoog staat. `npm run
+terugslagshots` maakt de filmstrook van vijf momenten, van de nieuwe en (met een
+kopie van de oude module) van de oude versie.
+
+*Optimalisatie: eerst meten.* `tools/optimeer.mjs` op de vier vaste plekken zei
+iets wat niemand vermoedde: **de geparkeerde auto's waren 73 tot 84 % van alle
+driehoeken in beeld**, 3,2 tot 4,5 miljoen van 4,4 tot 5,3. Twee oorzaken. Een
+auto is sinds stap 77 5836 driehoeken, ook op honderd meter. En een auto op schaal
+nul — voorbij het zicht, of omdat je erin zit — ging nog steeds door de vertex
+shader; een stapel is een tegel van 480 m met honderd auto's, dus de afstandsregel
+haalde bijna niets weg. Nu:
+
+- tekent een stapel alleen de auto's die er staan, achter elkaar (`count`), en
+  zoekt `nummer(mesh, instantie)` bij een treffer de auto terug;
+- is er voorbij 45 m een grove uitvoering van dezelfde maat (`GROF` in
+  js/carmodel.js: gewone dozen, banden van acht kanten, een velg zonder spaken):
+  1428 driehoeken in plaats van 5836;
+- is de omhullende bol die van de hele tegel, want three rekent hem één keer uit.
+
+Uitkomst, beeldpas: Molenkrite 4,45 → 1,68 miljoen driehoeken, Jasker 4,27 →
+1,57, Bonkelaar 3,35 → 0,89, sportpark 5,34 → 1,17. De auto's zelf van 3,2 naar
+0,5 miljoen.
+
+Hetzelfde bij de voetgangers: het spel houdt er achttien binnen tweehonderd meter,
+maar alle honderddertig werden getekend (3608 driehoeken per persoon, in beide
+passen) en kregen elk beeld hun houding uitgerekend. Nu krijgen alleen wie binnen
+`ZICHT` (200 m) is een lichaam, in volgorde (`slotNaar`/`slotVan`), en lopen de
+anderen door zonder houding en zonder botsingen. Vier proeven lazen een persoon
+uit op zijn instantienummer; die gaan nu via `hitPersoon` en `slotVan`.
+
+*Twee fouten die de proef vond.* Een geparkeerde auto overspuiten deed niets:
+`verf` zocht de stapel op `car.inst.soort`, maar sinds stap 75 is er een stapel
+per soort én per tegel. En na een bezoek aan een huis stonden alle 1443 auto's van
+de wereld aan: `zichtbaarheid(true)` zette ze allemaal terug, en `lod` slaat een
+tegel over die al ver weg was. Nu rekent hij meteen opnieuw vanaf de laatste plek.
+Die tweede fout zat er vóór deze ronde niet, want toen ging een verre tegel als
+geheel uit; hij kwam met de compacte stapels, en `npm run autolodtest` ving hem.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

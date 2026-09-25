@@ -742,10 +742,30 @@ function maakWapen(geluid, soort = 'pistool') {
    van vroeger (`terugslag` die in een zevende seconde naar nul liep) stopte
    abrupt, en dat is wat een beweging mechanisch maakt.
   */
+  /*
+   Ronde van 25 sep 2026 ("schieten met het handpistool lijkt raar qua recoil en
+   animatie"). Drie dingen klopten niet:
+    - De veer werd in één stap per beeld doorgerekend. Met c·dt ≈ 0,9 bij 30
+      beelden per seconde ving de demping de zet in het eerste beeld al bijna
+      helemaal op: 2° loop omhoog bij 30 fps, 12° bij 144. Nu in stapjes van
+      hoogstens 1/240 s, dus bij elk beeldtempo dezelfde beweging.
+    - Het wapen draaide met hand en onderarm als één stijf blok om de greep:
+      de loop ging omhoog en de mouw sloeg tien centimeter omlaag, een wip. Nu
+      draait het om de pols (`POLS`) en draait de onderarm maar voor een derde
+      mee, zoals een pols die de klap opvangt.
+    - Het tikje opzij (y) was bijna zo groot als de zet omhoog, waardoor het
+      pistool bij elk schot heen en weer wiebelde. Nu een derde daarvan.
+    - Het schoot 3,5 cm naar je oog toe: op 42 cm is dat een wapen dat in één
+      beeld 8 % groter wordt. Nu 2 cm, en de handen komen een paar millimeter
+      mee omhoog.
+  */
   const VEER = { k: 420, c: 27 };
-  const KICK = SNIPER ? { z: 3.2, x: 17, y: 3 } : SMG ? { z: 1.0, x: 4.5, y: 2.2 } : { z: 1.8, x: 9.5, y: 2.6 };
+  const KICK = SNIPER ? { z: 3.0, x: 15, y: 1.6 } : SMG ? { z: 0.9, x: 4.5, y: 1.1 } : { z: 0.9, x: 8.2, y: 0.9 };
   const veer = { z: 0, vz: 0, x: 0, vx: 0, y: 0, vy: 0 };
   const PIEK_X = KICK.x / 41;                      // ongeveer de hoogste uitslag
+  // het draaipunt van de terugslag: de pols, achter en onder de greep
+  const POLS = { y: -0.080, z: 0.075 };
+  const ARM_MEE = 0.35;                            // zoveel draait de onderarm mee
   let sledeT = 9, grendelT = 9, trekT = 9, hulsWacht = -1;
   let tijd = 0, vorigeBob = null, loopF = 0, renF = 0, vorigeYaw = null, vorigePitch = null;
   const zwaai = { x: 0, y: 0 };
@@ -757,8 +777,11 @@ function maakWapen(geluid, soort = 'pistool') {
   /** Eén schot: mondingsvuur, terugslag, slede, trekker, huls en damp. */
   function vuur() {
     flitsT = SNIPER ? 0.07 : 0.055;
-    veer.vz += KICK.z * (0.9 + Math.random() * 0.2);
-    veer.vx += KICK.x * (0.9 + Math.random() * 0.2);
+    // snel achter elkaar klikken: de loop staat al omhoog, dan komt er minder
+    // bij (anders stapelt hij tot het pistool rechtop staat)
+    const al = Math.max(0, Math.min(0.6, veer.x / (PIEK_X * 2)));
+    veer.vz += KICK.z * (0.9 + Math.random() * 0.2) * (1 - al);
+    veer.vx += KICK.x * (0.9 + Math.random() * 0.2) * (1 - al);
     veer.vy += (Math.random() - 0.5) * 2 * KICK.y;
     terugslag = 1;
     flits.rotation.z = Math.random() * Math.PI;
@@ -827,10 +850,14 @@ function maakWapen(geluid, soort = 'pistool') {
   function update(dt, { herlaad = 0, bob = 0, mik = 0, holster = 0, yaw = null, pitch = null, leeg = false } = {}) {
     dt = Math.min(dt, 0.05);
     tijd += dt;
-    // de veer: versnelling tegen de uitwijking in, gedempt door de snelheid
-    for (const [p, v] of [['z', 'vz'], ['x', 'vx'], ['y', 'vy']]) {
-      veer[v] += (-VEER.k * veer[p] - VEER.c * veer[v]) * dt;
-      veer[p] += veer[v] * dt;
+    // de veer: versnelling tegen de uitwijking in, gedempt door de snelheid —
+    // in stapjes van hoogstens 1/240 s, zodat hij bij elk beeldtempo gelijk loopt
+    const stappen = Math.max(1, Math.ceil(dt * 240)), h = dt / stappen;
+    for (let s = 0; s < stappen; s++) {
+      for (const [p, v] of [['z', 'vz'], ['x', 'vx'], ['y', 'vy']]) {
+        veer[v] += (-VEER.k * veer[p] - VEER.c * veer[v]) * h;
+        veer[p] += veer[v] * h;
+      }
     }
     terugslag = Math.max(0, Math.min(1, veer.x / PIEK_X));
     flitsT -= dt;
@@ -914,6 +941,7 @@ function maakWapen(geluid, soort = 'pistool') {
        terug: de pols volgt het wapen, de mouw komt nog steeds uit de
        rechteronderhoek.
       */
+      arm.position.set(0, 0, 0);
       arm.rotation.z = 0.72 * uit * 0.62;
       arm.rotation.y = 0.60 * uit * 0.45;
       arm.rotation.x = -0.16 * uit;
@@ -1016,15 +1044,27 @@ function maakWapen(geluid, soort = 'pistool') {
     const adem = Math.sin(tijd * 1.6) * 0.0014 * vrij * (1 - loopF);
     const grendelKantel = SNIPER ? 0.10 * soepel(deel(grendelT, [0.08, 0.20])) * (1 - soepel(deel(grendelT, [0.60, 0.75]))) : 0;
     const terugM = 1 - 0.45 * m;
+    /*
+     De terugslag draait om de pols: `groep` draait om zijn eigen oorsprong (de
+     bovenkant van de greep), dus schuift hij er zoveel bij dat de pols blijft
+     staan waar hij stond. De onderarm draait voor `ARM_MEE` mee, om diezelfde
+     pols; de rest draait hij terug.
+    */
+    const rx = veer.x * terugM;
+    const cx = Math.cos(rx), sx = Math.sin(rx);
+    const polsY = POLS.y - (POLS.y * cx - POLS.z * sx), polsZ = POLS.z - (POLS.y * sx + POLS.z * cx);
+    const ax = -rx * (1 - ARM_MEE), ca = Math.cos(ax), sa = Math.sin(ax);
+    arm.rotation.set(ax, 0, 0);
+    arm.position.set(0, POLS.y - (POLS.y * ca - POLS.z * sa), POLS.z - (POLS.y * sa + POLS.z * ca));
     groep.rotation.set(
-      veer.x * terugM - 0.42 * ren + Math.sin(tijd * 1.6 + 1) * 0.004 * vrij + zwaai.y * 1.2 * vrij,
+      rx - 0.42 * ren + Math.sin(tijd * 1.6 + 1) * 0.004 * vrij + zwaai.y * 1.2 * vrij,
       0.10 * vrij + veer.y * terugM + 0.35 * ren - zwaai.x * 1.4 * vrij,
       0.06 * vrij + Math.sin(bob * 0.5) * 0.02 * pas + 0.25 * ren + grendelKantel,
     );
     groep.position.set(
       RUST.x + (MIK.x - RUST.x) * m + opzij + zwaai.x * vrij + 0.02 * ren,
-      RUST.y + (MIK.y - RUST.y) * m + deinen + adem + zwaai.y * vrij - 0.05 * ren,
-      RUST.z + (MIK.z - RUST.z) * m + veer.z * (1 - 0.5 * m) + 0.02 * ren,
+      RUST.y + (MIK.y - RUST.y) * m + deinen + adem + zwaai.y * vrij - 0.05 * ren + polsY + rx * 0.04,
+      RUST.z + (MIK.z - RUST.z) * m + veer.z * (1 - 0.5 * m) + 0.02 * ren + polsZ,
     );
     stand(holster);
     losBij(dt);

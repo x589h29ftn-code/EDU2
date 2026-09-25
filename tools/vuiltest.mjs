@@ -205,7 +205,7 @@ const stil = await page.evaluate(() => {
   // iemand neerschieten: dezelfde weg als een kogel
   const slachtoffer = g.npcs.people.find(p => p.alive);
   slachtoffer.x = g.player.pos.x + 2; slachtoffer.z = g.player.pos.z;
-  g.npcs.hit(g.npcs.meshes.romp, g.npcs.people.indexOf(slachtoffer));
+  g.npcs.hitPersoon(slachtoffer);
   // een misdaad wordt niet altijd gemeld (zie js/politie.js); hier gaat het om
   // de vraag of er tekst in beeld komt, dus we melden er een stuk of tien
   for (let i = 0; i < 12; i++) g.politie.misdaad('neergeschoten', slachtoffer.x, slachtoffer.z);

@@ -179,6 +179,13 @@ export class Player {
      verschuift en een tweede schot op dezelfde plek aankomt.
     */
     this.kickPitch = 0; this.kickYaw = 0;
+    /*
+     Wat je daarvan ziet loopt er een fractie achteraan (25 ms): het beeld
+     sprong eerst in één beeld omhoog, en een sprong zonder aanloop leest als
+     een hapering, niet als een klap. `kickPitch` blijft wat het schot doet
+     (daar rekenen de proeven mee), `zicht` is wat de camera ermee doet.
+    */
+    this.zicht = { pitch: 0, yaw: 0 };
     this.active = false;        // spel gestart
     this.pointerLocked = false; // muis vastgezet door de browser
     this.dragging = false; this.dragDist = 0;
@@ -595,8 +602,8 @@ export class Player {
   applyCamera() {
     this.camera.position.set(this.pos.x, this.pos.y + this.eye, this.pos.z);
     this.camera.rotation.set(0, 0, 0, 'YXZ');
-    this.camera.rotation.y = this.yaw + this.kickYaw;
-    this.camera.rotation.x = this.pitch + this.kickPitch;
+    this.camera.rotation.y = this.yaw + this.zicht.yaw;
+    this.camera.rotation.x = this.pitch + this.zicht.pitch;
     if (this.dronken > 0) {
       // drie trage golven met verschillende perioden: dan komt het deinen nooit
       // op hetzelfde punt terug en blijft het onrustig aanvoelen
@@ -660,6 +667,11 @@ export class Player {
   demptTerugslag(dt) {
     const f = Math.exp(-dt * 9);
     this.kickPitch *= f; this.kickYaw *= f;
+    const volg = 1 - Math.exp(-dt * 40);
+    this.zicht.pitch += (this.kickPitch - this.zicht.pitch) * volg;
+    this.zicht.yaw += (this.kickYaw - this.zicht.yaw) * volg;
+    if (!this.kickPitch && Math.abs(this.zicht.pitch) < 1e-4) this.zicht.pitch = 0;
+    if (!this.kickYaw && Math.abs(this.zicht.yaw) < 1e-4) this.zicht.yaw = 0;
     if (Math.abs(this.kickPitch) < 1e-4) this.kickPitch = 0;
     if (Math.abs(this.kickYaw) < 1e-4) this.kickYaw = 0;
   }
@@ -789,8 +801,8 @@ export class Player {
 
     this.camera.position.set(this.pos.x, this.pos.y + this.eye + bobY, this.pos.z);
     this.camera.rotation.set(0, 0, 0, 'YXZ');
-    this.camera.rotation.y = this.yaw + this.kickYaw;
-    this.camera.rotation.x = this.pitch + this.kickPitch;
+    this.camera.rotation.y = this.yaw + this.zicht.yaw;
+    this.camera.rotation.x = this.pitch + this.zicht.pitch;
   }
 
   // wapenanimatie: schot, terugslag, de vijf stappen van het herladen, het

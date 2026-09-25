@@ -2658,6 +2658,33 @@ En het beweegt als een wapen:
   loop omlaag, stilstaand ademt het, en als je snel omkijkt sleept het even
   achter je blik aan. Aangeslagen over het vizier staat het stil.
 
+**De terugslag, opnieuw afgesteld (25 sep).** Het pistool draait bij een schot om
+je pols: de loop gaat zo'n tien graden omhoog, je onderarm gaat maar een klein
+stukje mee, en het wapen komt zonder heen en weer te wiebelen terug. Dat is bij
+elk beeldtempo even groot — bij 30 beelden per seconde was het eerst bijna niets.
+Het beeld zelf loopt de klap een fractie achterna in plaats van te verspringen.
+
+| ![De terugslag](docs/screenshots/wapen_terugslag.png) |
+|---|
+| nu: vijf momenten na één schot, van 0 tot 250 ms |
+| ![De terugslag, oud](docs/screenshots/wapen_terugslag_oud.png) |
+| hoe het was, bij 60 beelden per seconde: minder omhoog, het wapen zakt en groeit naar je toe |
+
+**Lichter voor de pc (25 sep).** Een meting per soort object liet zien dat de
+geparkeerde auto's driekwart van alles in beeld waren. Nu tekent het spel alleen
+de auto's die er staan en voorbij 45 meter een eenvoudiger model; de voetgangers
+verder dan tweehonderd meter krijgen geen lichaam meer. Op de vier vaste
+meetplekken gaat het beeld van 3,3 tot 5,3 miljoen driehoeken naar 0,9 tot 1,7
+miljoen. Onderweg gevonden: een geparkeerde auto overspuiten veranderde zijn kleur
+niet — dat doet het nu wel.
+
+| ![Zoals het spel het tekent](docs/screenshots/autolod_straat.png) | ![Alles vol](docs/screenshots/autolod_vol.png) |
+|---|---|
+| zoals het spel het nu tekent: 1,35 miljoen driehoeken | dezelfde straat met alle auto's vol: 1,74 miljoen |
+
+`npm run autolodtest` meet het, `npm run autolodshots` en `npm run terugslagshots`
+maken de foto's.
+
 **De auto's.** De carrosserie heeft ronde randen, zodat de glans over de schouder
 en de neus loopt; de lak heeft een blanke laklaag over de kleur (de tweede,
 scherpe spiegeling die lak op lak doet lijken). De banden hebben een profiel met

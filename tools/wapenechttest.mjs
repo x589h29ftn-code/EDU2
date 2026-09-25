@@ -119,6 +119,65 @@ ok(schot.trek < -0.3, 'de trekker gaat mee naar achteren', `${(schot.trek * 57.3
 ok(schot.huls === 1, 'er springt een huls uit');
 ok(schot.rook, 'en er hangt een wolkje kruitdamp aan de loop');
 
+/*
+ Ronde van 25 sep 2026 ("schieten met het handpistool lijkt raar"). De veer liep
+ per beeld in één stap: bij 30 fps was de zet omhoog een zesde van die bij 144.
+ En het wapen draaide met de onderarm als een wip om de greep.
+*/
+const tempo = await page.evaluate(() => {
+  const { THREE, maak } = window.__t;
+  // het toeval van elk schot (0,9 tot 1,1) even vastzetten, anders meet je dat
+  const echt = Math.random; Math.random = () => 0.5;
+  const piek = (fps) => {
+    const w = maak('pistool');
+    for (let i = 0; i < 30; i++) w.update(1 / fps);
+    w.vuur();
+    let p = 0;
+    for (let i = 0; i < fps * 0.4; i++) { w.update(1 / fps); p = Math.max(p, w.veer.x); }
+    return p;
+  };
+  const uit = { fps: {} };
+  for (const f of [240, 144, 60, 30, 20]) uit.fps[f] = piek(f);
+  Math.random = echt;
+  // waar de loop, de pols en het eind van de mouw zijn, voor en op het hoogste punt
+  const w = maak('pistool');
+  for (let i = 0; i < 30; i++) w.update(1 / 240);
+  w.groep.updateMatrixWorld(true);
+  const mond = new THREE.Vector3(0, 0.021, -0.166), pols = new THREE.Vector3(0.016, -0.080, 0.075), mouw = new THREE.Vector3(0.10, -0.21, 0.50);
+  const plek = () => { w.groep.updateMatrixWorld(true); return { m: w.groep.localToWorld(mond.clone()), p: w.groep.localToWorld(pols.clone()), a: w.delen.arm.localToWorld(mouw.clone()) }; };
+  const voor = plek();
+  w.vuur();
+  let top = null, hoogst = -9;
+  for (let i = 0; i < 40; i++) { w.update(1 / 240); if (w.veer.x > hoogst) { hoogst = w.veer.x; top = plek(); } }
+  uit.mond = top.m.y - voor.m.y;
+  uit.polsOp = top.p.y - voor.p.y;          // de pols gaat mee naar achteren, maar niet omlaag of omhoog
+  uit.mouw = top.a.distanceTo(voor.a);
+  // het tikje opzij tegen de zet omhoog, over tien schoten
+  let zij = 0, op = 0;
+  for (let k = 0; k < 10; k++) {
+    const v = maak('pistool');
+    for (let i = 0; i < 10; i++) v.update(1 / 120);
+    v.vuur();
+    for (let i = 0; i < 40; i++) { v.update(1 / 240); zij = Math.max(zij, Math.abs(v.veer.y)); op = Math.max(op, v.veer.x); }
+  }
+  uit.zij = zij / op;
+  // zo snel klikken als je kunt: acht schoten in een halve seconde
+  const r = maak('pistool');
+  for (let i = 0; i < 10; i++) r.update(1 / 120);
+  let max = 0;
+  for (let k = 0; k < 8; k++) { r.vuur(); for (let i = 0; i < 4; i++) { r.update(1 / 60); max = Math.max(max, r.veer.x); } }
+  uit.snel = max;
+  return uit;
+});
+const f = tempo.fps, basis = f[240];
+ok([144, 60, 30, 20].every(k => Math.abs(f[k] / basis - 1) < 0.1), 'de zet omhoog is bij elk beeldtempo even groot',
+  Object.entries(f).map(([k, v]) => `${k} fps ${(v * 57.3).toFixed(1)}°`).join(', '));
+ok(tempo.mond > 0.03, 'de loop gaat een paar centimeter omhoog', `${(tempo.mond * 100).toFixed(1)} cm`);
+ok(tempo.polsOp > -0.002 && tempo.polsOp < 0.010, 'en het draait om de pols: die zakt niet, hij komt een paar millimeter mee omhoog', `${(tempo.polsOp * 1000).toFixed(1)} mm`);
+ok(tempo.mouw < 0.05, 'de mouw slaat niet meer als een wip omlaag', `${(tempo.mouw * 100).toFixed(1)} cm`);
+ok(tempo.zij < 0.35, 'het tikje opzij is klein naast de zet omhoog', `${(tempo.zij * 100).toFixed(0)} %`);
+ok(tempo.snel < 0.45, 'snel achter elkaar klikken stapelt niet tot het pistool rechtop staat', `${(tempo.snel * 57.3).toFixed(0)}° hoogst`);
+
 const huls = await page.evaluate(() => {
   const { THREE, maak } = window.__t;
   const w = maak('pistool');
