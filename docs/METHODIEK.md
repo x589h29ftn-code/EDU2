@@ -5403,6 +5403,53 @@ beeldpunt, geen witte vlekjes van vier beeldpunten of meer (de proef telt ze), e
 `grasVariatie` in js/groen.js: in wereldcoördinaten een ruisveld op 77 en 20 m
 dat het gras lichter, donkerder en op de hoge plekken geler maakt.
 
+**Water, riet, gras in 3D, hagen en de avond (stap 79).** Op verzoek van 25 sep
+2026 ("kijk naar gras, gras 3d objecten, hegjes, water, belichting — wat kan er
+nog beter voor we weer missies maken, zie je nog bugs"). Proef `omgevingtest`,
+foto's `omgevingshots`.
+
+*Eerst gekeken, met een fotoronde van precies deze onderwerpen en vier tijden
+van de dag.* Wat eruit kwam: lichtblauw ondoorzichtig water, riet als groene
+bolletjes, hagen als egale dozen, geen gras in 3D, een donkere wijk om elf uur,
+en spierwitte wolken tegen een zwarte nachtlucht.
+
+*Twee fouten.* (1) Een regressie uit stap 78: de nieuwe kroonmaterialen stonden
+niet in de lijst van `sfeerMaterialen().blad`, dus de bomen waaiden niet meer.
+Nu staan alle kronen, de struiken (via `kaartBladMaterialen`), het riet en het
+grasveld erin. `waai` in js/sfeer.js gooide bovendien een bestaande
+`onBeforeCompile` weg — dat merk je zodra de haag omgevingsschaduw krijgt — en
+nam bij een InstancedMesh de plek van de mesh als fase, zodat een hele tegel
+bomen in de maat zwaaide. (2) De wolken waren MeshBasicMaterial in vast wit;
+js/sfeer.js kleurt ze nu met de zon mee.
+
+*Water:* geen streepjesdoek meer maar een normal map van golven met gehele
+aantallen per doek (naadloos), donkere kleur, ruwheid 0,07; de spiegeling doet
+de rest. *Riet:* drie kruislingse vlakken met een doek van stengels en pluimen,
+alphaTest, als InstancedMesh per tegel. *Gras in 3D:* een rooster van pollen,
+vast aan de wereld, alleen op gras, bijgewerkt met de LOD. De eerste versie had
+twee fouten die pas op de foto zichtbaar werden: pollen van 16 tot 38 cm (een
+ongemaaid veld) en de helft zwart — met één vlak en DoubleSide draait three de
+normaal om voor de achterkant, dus die wees naar beneden. Nu beide kanten als
+eigen driehoeken met de normaal omhoog, en 7 tot 14 cm hoog.
+
+*Verlichte ramen* (`nachtRamen` in js/licht.js) zonder extra doek: de shader
+herkent glas aan de kleur van het geveldoek (blauwer dan rood, niet verzadigd,
+donker) en verdeelt de gevel in vakken per woning en verdieping. De eerste
+versie was te fel — de tonemapping maakte er wit van — en elke dakkapel brandde,
+omdat ze allemaal één vak zijn met dezelfde toevalswaarde; nu gaat de plek in de
+wereld mee in die waarde. Daarna brandde in elk huis van een rij hetzelfde raam:
+elke woning is een eigen muurvlak met één woning erop, dus dezelfde twee vakken.
+Een nummer per muurvlak als hoekpuntattribuut (`wandId`) lost dat exact op, zonder
+vakgrenzen dwars door een raam — maar eerst gaf het ruis per beeldpunt, want
+`fract(sin(x)·43758)` vergroot het kleinste interpolatieverschil tot een ander
+getal. Het nummer wordt nu eerst afgerond. Met alles tijdelijk aan was te zien dat
+het glas zelf overal goed herkend werd; zonder die proef had ik de drempels van de
+glasherkenning zitten verschuiven. De proef meet het in het beeld: het aandeel warme,
+lichte beeldpunten om elf uur tegen dat om twee uur.
+
+Een grijs vlak midden op een grasveld aan de Monnikmolen leek een fout, maar is
+een asfaltvlak in de BGT (een speelveldje). Nagekeken en laten staan.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

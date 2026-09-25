@@ -6,7 +6,7 @@
 // world.js roept bouwKaartWereld aan zodra er een kaart is en geeft zijn
 // eigen lijsten (colliders, roadSegments, ...) mee, zodat de rest van het spel
 // niets merkt van de andere bron.
-import { grondAO } from './licht.js';
+import { grondAO, nachtRamen } from './licht.js';
 import { grasVariatie, bolGeo, kroonMat } from './groen.js';
 import * as THREE from 'three';
 import * as T from './textures.js';
@@ -377,11 +377,15 @@ function maakMesh(pos, uv, nor, mat, opties = {}) {
 
 // ---------------------------------------------------------------- materialen
 const KM = {};
+// de struiken en de haag, voor js/sfeer.js (via world.js): die laat ze waaien
+export function kaartBladMaterialen() { return [KM.struik].filter(Boolean); }
 function materialen(MAT) {
   const std = (map, extra = {}) => new THREE.MeshStandardMaterial({ map, roughness: 0.95, metalness: 0, ...extra });
   const getint = (tex, kleur) => { const m = std(tex); m.color = new THREE.Color(kleur); return m; };
   KM.klinker = MAT.klinker; KM.rood = MAT.rood; KM.asfalt = MAT.asfalt; KM.tegels = MAT.tiles; KM.gras = MAT.grass;
   KM.fietspad = MAT.fietspad; KM.water = MAT.water; KM.hedge = MAT.hedge;
+  // de haag is aan de voet donkerder, net als een muur (js/licht.js)
+  grondAO(KM.hedge);
   KM.beton = getint(T.tiles(), 0xb8b6ae);
   KM.grind = new THREE.MeshStandardMaterial({ color: 0xa79f8f, roughness: 1 });
   KM.grasklinker = getint(T.grass(), 0xa3b48a);
@@ -1154,16 +1158,29 @@ function* bouwPandenStap(scene, W, plat) {
         mat = plat ? KM.plat.pand : maak();
         // muren krijgen omgevingsschaduw aan de voet (js/licht.js)
         if (!plat && MUREN.has(klasse)) grondAO(mat);
+        // 's avonds licht achter de ramen (js/licht.js): per woning twee vakken
+        // breed, per verdieping één hoog — de sleutel van een gevel draagt die maten
+        if (!plat && (klasse === 'voorgevel' || klasse === 'achtergevel') && sleutel.startsWith('gevel|')) {
+          const d = sleutel.split('|');
+          nachtRamen(mat, [(Number(d[2]) || 1) * 2, Number(d[3]) || 1]);
+        }
+        if (!plat && klasse === 'dakkapel' && !sleutel.startsWith('dakkapel|wang')) nachtRamen(mat, [1, 1]);
         matCache.set(sleutel, mat);
       }
       g = { pos: [], uv: [], nor: [], mat, klasse, tegel: perTegel ? pandTegel() : null };
+      // een nummer per muurvlak, voor de ramen die 's avonds branden: elke woning
+      // in een rij heeft zijn eigen muurvlak met dezelfde vakken, en zonder dit
+      // nummer brandde in elk huis hetzelfde raam (js/licht.js)
+      if (mat.userData.nachtRamen) g.wid = [];
       groepen.set(k, g);
     }
     return g;
   };
   const std = (map) => new THREE.MeshStandardMaterial({ map, roughness: 0.9 });
+  let wandNr = 0;
   const drie = (P, Q, R, g, n, uvf) => {
     for (const p of [P, Q, R]) { g.pos.push(p[0], p[1], p[2]); g.nor.push(n[0], n[1], n[2]); const [u, v] = uvf(p); g.uv.push(u, v); }
+    if (g.wid) { const w = (wandNr * 0.6180339) % 1; g.wid.push(w, w, w); }
   };
   const normaal = (pts) => {           // Newell
     let nx = 0, ny = 0, nz = 0;
@@ -1566,6 +1583,7 @@ function* bouwPandenStap(scene, W, plat) {
         uvf = (p) => [(p[0] * t[0] + p[2] * t[2]) * 0.25, (p[0] * b[0] + p[1] * b[1] + p[2] * b[2]) * 0.25];
       } else uvf = (p) => [p[0] * 0.5, (p[2] + p[1] * 0.6) * 0.5];
     }
+    wandNr++;
     for (const [a, b, c] of tris) {
       const A = punten[a], B = punten[b], C = punten[c];
       const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], e2 = [C[0] - A[0], C[1] - A[1], C[2] - A[2]];
@@ -1580,6 +1598,7 @@ function* bouwPandenStap(scene, W, plat) {
       const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz); if (L < 1e-4) continue;
       const q = [[a[0], 0, a[1]], [b[0], 0, b[1]], [b[0], h, b[1]], [a[0], h, a[1]]];
       const n = muurNormaal(a, b);
+      wandNr++;
       const { g, uvf } = muurKeuze(pand, n, q);
       drie(q[0], q[1], q[2], g, n, uvf); drie(q[0], q[2], q[3], g, n, uvf);
     }
@@ -1702,6 +1721,7 @@ function* bouwPandenStap(scene, W, plat) {
     if ((mNr++ % 6) === 0) yield { wat: 'gevels', deel: 0.80 + 0.06 * (mNr / groepen.size) };
     const m = maakMesh(g.pos, g.uv, g.nor, g.mat, { schaduw: true, klasse: g.klasse });
     if (!m) continue;
+    if (g.wid) m.geometry.setAttribute('wandId', new THREE.Float32BufferAttribute(g.wid, 1));
     if (plat) m.material.side = THREE.DoubleSide;
     scene.add(m);
   }

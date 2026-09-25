@@ -6,6 +6,7 @@
 // vooruit, met Y wissel je van weertype.
 import * as THREE from 'three';
 import { sfeerMaterialen, lampPosities } from './world.js';
+import { nachtUniform } from './licht.js';
 
 const WEER = ['helder', 'bewolkt', 'regen'];
 
@@ -50,23 +51,41 @@ export function initSfeer(ctx) {
   // haalt de dode stilte uit de bomen.
   const windUniform = { value: 0 };
   const sterkte = { value: 0.16 };
+  /*
+   Twee dingen die er later bij kwamen (25 sep 2026):
+   - `waai` zette `onBeforeCompile` en gooide weg wat er al stond. De haag heeft
+     sinds deze ronde omgevingsschaduw aan de voet (js/licht.js), en die zou dan
+     verdwijnen. Nu wordt het vorige eerst uitgevoerd.
+   - Bij een InstancedMesh (de kronen, het riet, het gras) nam de fase de plek van
+     de mesh en niet van de boom: alle bomen in een tegel van 240 m zwaaiden in de
+     maat. Nu de plek van de instantie.
+  */
   function waai(m) {
     if (!m || m.userData.waait) return;
     m.userData.waait = true;
-    m.onBeforeCompile = (sh) => {
+    const oud = m.onBeforeCompile;
+    const oudeSleutel = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => '';
+    m.onBeforeCompile = (sh, r) => {
+      if (oud) oud(sh, r);
       sh.uniforms.uTijd = windUniform;
       sh.uniforms.uWind = sterkte;
       sh.vertexShader = sh.vertexShader
         .replace('#include <common>', '#include <common>\nuniform float uTijd;\nuniform float uWind;')
         .replace('#include <begin_vertex>', `#include <begin_vertex>
-          vec3 wp = (modelMatrix * vec4(transformed, 1.0)).xyz;
+          #ifdef USE_INSTANCING
+            vec3 wp = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+          #else
+            vec3 wp = (modelMatrix * vec4(transformed, 1.0)).xyz;
+          #endif
           float zwaai = sin(uTijd * 1.6 + wp.x * 0.25 + wp.z * 0.2) + 0.5 * sin(uTijd * 2.7 + wp.z * 0.4);
           transformed.x += zwaai * uWind * max(0.0, transformed.y * 0.35 + 0.25);
           transformed.z += zwaai * uWind * 0.6 * max(0.0, transformed.y * 0.35 + 0.25);`);
     };
+    m.customProgramCacheKey = () => oudeSleutel() + '|waai';
     m.needsUpdate = true;
   }
   for (const m of mats.blad) waai(m);
+  ctx.waai = waai;
   if (mats.hedge) waai(mats.hedge);
 
   // ---------- regen ----------
@@ -184,9 +203,26 @@ export function initSfeer(ctx) {
     // lampen gloeien alleen als het donker is
     mats.lamp.emissiveIntensity = nacht ? 2.4 : 0.15;
 
-    // water: donkerder en doffer bij regen, spiegelend bij helder weer
-    mats.water.roughness = weer === 'regen' ? 0.55 : 0.25;
-    mats.water.color.set(nacht ? 0x40525e : weer === 'helder' ? 0xa8cfd6 : 0x8fa4ad);
+    // water: donkerder en doffer bij regen, spiegelend bij helder weer. De
+    // kleur is die van het water zelf (donker groenblauw); het licht erop komt
+    // uit de spiegeling van de lucht (zie MAT.water in js/world.js)
+    mats.water.roughness = weer === 'regen' ? 0.32 : weer === 'bewolkt' ? 0.14 : 0.07;
+    mats.water.color.set(nacht ? 0x121c22 : weer === 'helder' ? 0x2f5560 : 0x3b4f56);
+
+    /*
+     De wolken. Ze waren MeshBasicMaterial in vast wit, dus 's nachts hing er
+     een laag spierwitte wolken tegen een zwarte lucht (omgevingshots, 25 sep
+     2026). Nu de kleur van het licht: overdag wit, bij zonsondergang met de
+     kleur van de zon erin, 's nachts donkergrijs-blauw.
+    */
+    if (ctx.wolken) {
+      const helder = Math.max(0.10, Math.min(1, k.kracht / 1.6));
+      const kleur = new THREE.Color(1, 1, 1).lerp(k.zon, k.kracht < 1.6 ? 0.45 : 0.12).multiplyScalar(helder);
+      if (bewolkt) kleur.lerp(new THREE.Color(0.55, 0.58, 0.62).multiplyScalar(helder), 0.5);
+      for (const m of ctx.wolken) m.color.copy(kleur);
+    }
+    // hoe nacht het is, voor de verlichte ramen (js/licht.js)
+    nachtUniform.value = Math.max(0, Math.min(1, (0.75 - k.kracht) / 0.55));
 
     /*
      Nat wegdek. Asfalt en klinkers staan droog op ruwheid 0,95 en spiegelen dus
@@ -223,8 +259,9 @@ export function initSfeer(ctx) {
     if (loopt) { uur = (uur + dt * (24 / 240)) % 24; pasToe(); }   // een dag in vier minuten
     windUniform.value += dt;
 
-    // water laten stromen
-    if (mats.water.map) { mats.water.map.offset.x += dt * 0.012; mats.water.map.offset.y += dt * 0.02; }
+    // water laten stromen: de rimpels (normal map) schuiven langzaam
+    const golf = mats.water.normalMap || mats.water.map;
+    if (golf) { golf.offset.x += dt * 0.010; golf.offset.y += dt * 0.017; }
 
     // regen valt en blijft rond de camera hangen
     if (regen.visible) {

@@ -63,8 +63,8 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/wapen.js` | het wapen in je hand: afgeronde delen, eigen doeken, veer-terugslag, hulzen, grendel |
 | `js/carmodel.js` | automodellen (gedeelde geometrie, instanced), lak met clearcoat, kenteken |
 | `js/lichaam.js` | maten, onderdelen en doeken van alle mensen; `lichaamMat`, `doekVoor` |
-| `js/groen.js` | bomen, struiken, gras: `bolGeo`, `stamGeo`, blad- en schorsdoek, `grasVariatie` |
-| `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`) |
+| `js/groen.js` | bomen, struiken, gras: `bolGeo`, `stamGeo`, blad- en schorsdoek, `grasVariatie`, riet, `maakGrasVeld` (gras in 3D) |
+| `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`), verlichte ramen 's avonds (`nachtRamen`) |
 
 Een paar dingen die niet vanzelf spreken:
 
@@ -128,7 +128,8 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run groentest` (bomen, struiken, gras en de
+De laatste die ertoe doen: `npm run omgevingtest` (wind, water, riet, gras in
+3D, hagen, ramen 's avonds; stap 79) met `omgevingshots`, `npm run groentest` (bomen, struiken, gras en de
 driehoeken in beeld; stap 78) met `groenshots`, `npm run gebouwtest` (elke driehoek van de wereld:
 muurrichting, uitgerekte en afgekapte doeken; stap 76), `wapenechttest` en
 `autoechttest` en `mensechttest` (laden alleen de module, dus snel; stap 77
@@ -154,6 +155,8 @@ groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
   moeten lang genoeg zijn (tientallen stappen van 80 ms).
 - **Gevels en reliëf komen na het opstarten.** Een proef die naar texturen,
   normal maps of roughness maps kijkt roept eerst `window.__game.reliëfAf()` aan.
+- **Wat waait staat in `sfeerMaterialen().blad`** (js/world.js). Een nieuw
+  bladmateriaal dat daar niet bij staat, staat stil.
 - **De LOD draait headless niet vanzelf.** `updateLOD` zit in de hoofdlus; een
   foto of proef roept hem zelf aan, anders staan fijne en grove versies door
   elkaar in beeld.

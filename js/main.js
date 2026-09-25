@@ -1,6 +1,7 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, updateProps, radioPlekken, vaarbaar } from './world.js';
+import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, updateProps, radioPlekken, vaarbaar, waaitMee } from './world.js';
+import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
@@ -1675,9 +1676,22 @@ window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 
 // Sfeer: tijd van de dag, weer, wind, stromend water en straatverlichting
+/*
+ Gras in 3D rond de speler (js/groen.js): pollen op het gazon binnen 26 m,
+ bijgewerkt met de LOD. Alleen op gras en bodembedekker, niet in de platte
+ kaart of het bovenaanzicht. Het materiaal waait mee (js/sfeer.js), dus het
+ moet vóór initSfeer bestaan.
+*/
+const grasVeld = (KAART && !BOVEN) ? maakGrasVeld(scene,
+  (x, z) => { const v = vlakOp(x, z); return !!(v && (v.m === 'gras' || v.m === 'bodembedekker')); },
+  (x, z) => { const v = vlakOp(x, z); return v ? v.y : 0; }) : null;
+if (grasVeld) waaitMee(grasVeld.mat);
+
 const sfeer = initSfeer({
   scene, camera, renderer, sun, hemi, fill, skyUniforms, hud,
   zonRichting: SUN_DIR,
+  // de wolken kleuren mee met het licht (zie js/sfeer.js)
+  wolken: clouds.map(l => l.mesh.material),
 });
 
 // Hoofdlus
@@ -1990,7 +2004,7 @@ function loop() {
       if (naam && naam !== laatsteRadio) { laatsteRadio = naam; hud.show(`♪ ${naam}`, 3.5); }
     } else laatsteRadio = null;
     lodKlok += dt;
-    if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); vehicles.lod(cx, cz); }
+    if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); vehicles.lod(cx, cz); if (grasVeld) grasVeld.update(cx, cz); }
     hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);
   }
   if (!player.active && !window.__autoplay) {
@@ -2095,6 +2109,7 @@ window.__game = {
   // licht (tools/lichttest.mjs): de omgeving opnieuw bakken en de schaduwdoos
   bakOmgeving, werkOmgevingBij, zetSchaduwDoos, get omgevingGebakken() { return envBakken; }, sun,
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
+  grasVeld, wolken: clouds,
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,

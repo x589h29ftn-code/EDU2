@@ -935,6 +935,31 @@ export function moestuin(seed = 1) {
 }
 
 // ---------- Water ----------
+/*
+ Rimpels op het water, als normal map (25 sep 2026). Het water was een
+ lichtblauw vlak met witte streepjes erop getekend: van de oever af ijs of
+ plastic. Nu is het water zelf donker, en komt het licht uit de spiegeling van
+ de lucht; deze rimpels breken die spiegeling. Een som van golven met gehele
+ aantallen per doek, dus hij sluit naadloos aan.
+*/
+export function waterGolven() {
+  if (cache.has('watergolf')) return cache.get('watergolf');
+  const S = 256, c = canvas(S, S), g = c.getContext('2d'), r = rng(88);
+  const golven = Array.from({ length: 9 }, () => ({ kx: Math.round((r() - 0.5) * 14), ky: Math.round((r() - 0.5) * 14) || 3, a: 0.3 + r() * 0.7, f: r() * 6.28 }));
+  const beeld = g.createImageData(S, S);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    let v = 0;
+    for (const w of golven) v += w.a * Math.sin((w.kx * x + w.ky * y) / S * 6.2832 + w.f);
+    const k = (y * S + x) * 4, val = Math.round(128 + v * 28);
+    beeld.data[k] = beeld.data[k + 1] = beeld.data[k + 2] = val; beeld.data[k + 3] = 255;
+  }
+  g.putImageData(beeld, 0, 0);
+  const t = new THREE.CanvasTexture(normaalDoek(c, 2.2, false));
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.NoColorSpace; t.anisotropy = ANIS;
+  cache.set('watergolf', t);
+  return t;
+}
+
 export function water() {
   if (cache.has('water')) return cache.get('water');
   const c = canvas(256, 256); const g = c.getContext('2d');
@@ -964,12 +989,22 @@ export function hedge(soort = 'groen') {
   const r = rng(soort === 'groen' ? 61 : 62);
   const k = HAAG_KLEUREN[soort] || HAAG_KLEUREN.groen;
   const [r0, rd, g0, gd, b0, bd] = k.blad;
+  /*
+   Diepte in de haag (25 sep 2026): de ondergrond is donkerder dan het blad
+   (de schaduw diep in de haag), elk blaadje heeft een lichte kant, en de soort
+   'heg' geeft er via `reliëfStappen` een normal map bij. Zonder dat was een
+   haag een groen behangen doos.
+  */
   g.fillStyle = k.basis; g.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 4000; i++) {
-    g.fillStyle = `rgba(${r0 + r() * rd},${g0 + r() * gd},${b0 + r() * bd},0.85)`;
-    g.beginPath(); g.ellipse(r() * 256, r() * 256, 3 + r() * 4, 2 + r() * 3, r() * 3, 0, 6.3); g.fill();
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 4200; i++) {
+    const x = r() * 256, y = r() * 256, a = 3 + r() * 4, b = 2 + r() * 3, h = r() * 3;
+    g.fillStyle = `rgba(${r0 + r() * rd},${g0 + r() * gd},${b0 + r() * bd},0.9)`;
+    g.beginPath(); g.ellipse(x, y, a, b, h, 0, 6.3); g.fill();
+    g.fillStyle = 'rgba(230,245,190,0.14)';
+    g.beginPath(); g.ellipse(x - a * 0.25, y - b * 0.3, a * 0.55, b * 0.45, h, 0, 6.3); g.fill();
   }
-  const t = tex(c); cache.set(key, t); return t;
+  const t = tex(c, 1, 1, 0, 'heg'); cache.set(key, t); return t;
 }
 
 // ---------- Boomblad (alpha) ----------
@@ -2540,6 +2575,8 @@ const RELIEF = {
   gras:      { s: 0.5, om: false },
   kunstgras: { s: 0.4, om: false },
   schelp:    { s: 0.9, om: false },
+  // de haag: licht blad steekt uit, de donkere gaten ertussen liggen dieper
+  heg:       { s: 1.8, om: false },
 };
 
 const normaalCache = new Map();      // doek -> basis-normaaltexture

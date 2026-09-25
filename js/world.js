@@ -1,11 +1,11 @@
 // Wereldopbouw: wegen, stoepen, parkeervakken, water, groen, huizen, straatmeubilair.
 import * as THREE from 'three';
-import { bolGeo, stamGeo, kroonMat, kroonVerMat, stamMat } from './groen.js';
+import { bolGeo, stamGeo, kroonMat, kroonVerMat, stamMat, kruisGeo, rietMat } from './groen.js';
 import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PROPS, PARKS, PARKING_LOTS, PLATEAUS, PLAYGROUND, START, PX_PER_M, toWorld } from './data.js';
 import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
-import { KAART, bouwKaartWereld, bouwKaartWereldStap, ondergrondKaart, kaartStand, vlakOp, geenGroen, kaartTelling } from './kaartwereld.js';
+import { KAART, bouwKaartWereld, bouwKaartWereldStap, ondergrondKaart, kaartStand, vlakOp, geenGroen, kaartTelling, kaartBladMaterialen } from './kaartwereld.js';
 import { draaiMolens } from './molen.js';
 export { grondHoogte, opViaduct, onderBrug } from './viaduct.js';
 
@@ -153,7 +153,15 @@ function materials() {
   MAT.snelweg = std(T.asphalt());
   MAT.tiles = std(T.tiles());
   MAT.grass = std(T.grass());
-  MAT.water = new THREE.MeshStandardMaterial({ map: T.water(), color: 0xa8cfd6, roughness: 0.25, metalness: 0.05, transparent: true, opacity: 0.94, side: THREE.DoubleSide });
+  /*
+   Water: donker en glad, met rimpels die de lucht in stukjes breken
+   (T.waterGolven). Het was een lichtblauw doek met witte streepjes op
+   ruwheid 0,25: van dichtbij ijs of plastic. De kleur hier is die van het
+   water zelf; js/sfeer.js past hem per weer en per uur aan.
+  */
+  const golf = T.waterGolven(); golf.repeat.set(6, 6);
+  MAT.water = new THREE.MeshStandardMaterial({ color: 0x2f5560, normalMap: golf, roughness: 0.07, metalness: 0.0, transparent: true, opacity: 0.9, side: THREE.DoubleSide, envMapIntensity: 1.25 });
+  MAT.water.normalScale.set(0.35, 0.35);
   MAT.hedge = std(T.hedge());
   MAT.curb = new THREE.MeshStandardMaterial({ color: 0x9a9890, roughness: 0.9 });
   MAT.goot = new THREE.MeshStandardMaterial({ color: 0x3c3a37, roughness: 0.95 });
@@ -1597,14 +1605,11 @@ function buildReeds(scene) {
         if (r() < 0.55) continue;
         const p = a.clone().add(d.clone().multiplyScalar(sPos)).add(nrm.clone().multiplyScalar((r() - 0.5) * 1.0));
         if (nearBuilding(p, 1.0)) continue;
-        const h = 0.4 + r() * 0.35, rad = 0.22 + r() * 0.18;
-        const g = new THREE.SphereGeometry(rad, 5, 3);
-        g.scale(1.0 + r() * 0.5, h / rad * 0.75, 1.0 + r() * 0.5);
-        g.rotateY(r() * 3.14);
-        g.translate(p.x, h * 0.42, p.y);
+        // een bos stengels van 1,1 tot 1,9 m hoog en 0,7 tot 1,2 m breed (js/groen.js)
+        const h = 1.1 + r() * 0.8, b = 0.7 + r() * 0.5, draai = r() * Math.PI;
         const k = `${Math.floor(p.x / BOOMTEGEL)}:${Math.floor(p.y / BOOMTEGEL)}`;
         if (!perTegel.has(k)) perTegel.set(k, []);
-        perTegel.get(k).push(g);
+        perTegel.get(k).push({ x: p.x, z: p.y, h, b, draai });
       }
     }
   }
@@ -1617,8 +1622,17 @@ function buildReeds(scene) {
    een vlekje dat tegen het gras wegvalt, en riet was met 193 meshes een van de
    grootste posten in de schaduwpas.
   */
-  for (const [k, tufts] of perTegel) {
-    const m = new THREE.Mesh(mergeGeoms(tufts), MAT.reed);
+  const geo = kruisGeo(3), mat = rietMateriaal();
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
+  for (const [k, bossen] of perTegel) {
+    const m = new THREE.InstancedMesh(geo, mat, bossen.length);
+    bossen.forEach((o, i) => {
+      Q.setFromAxisAngle(Y, o.draai);
+      // de voet een fractie onder het water (op −0,15), zodat hij er echt in staat
+      M.compose(P.set(o.x, -0.1, o.z), Q, S.set(o.b, o.h, o.b));
+      m.setMatrixAt(i, M);
+    });
+    m.computeBoundingSphere();
     m.userData.klasse = 'riet'; scene.add(m);
     const [i, j] = k.split(':').map(Number);
     lodAan(m, (i + 0.5) * BOOMTEGEL, (j + 0.5) * BOOMTEGEL, { tot: 300, straal: BOOMTEGEL * 0.71 });
@@ -1657,9 +1671,13 @@ function boomTegelMidden(groep) {
   ];
 }
 
+// het riet: één materiaal (js/groen.js); ook voor js/sfeer.js, dat het laat waaien
+let _riet = null;
+export function rietMateriaal() { return _riet || (_riet = rietMat()); }
+
 // de materialen van de bomen, één keer (js/groen.js)
 let _groen = null;
-function groenMat() {
+export function groenMat() {
   return _groen || (_groen = {
     stam: stamMat(0xffffff), stamBleek: stamMat(0xd8d2c2),
     kroon: kroonMat(0xffffff), kroon2: kroonMat(0xc9d6b4),
@@ -2351,11 +2369,23 @@ export function ondergrondOp(x, z) {
   return 'gras';
 }
 
+// materialen die ergens anders gemaakt worden en ook moeten waaien (de struiken
+// uit js/kaartwereld.js, het grasveld uit js/main.js)
+const extraBlad = [];
+export function waaitMee(m) { if (m && !extraBlad.includes(m)) extraBlad.push(m); }
+
 // De sfeermodule heeft deze materialen nodig om water te laten stromen, de
 // bladeren te laten waaien en de lantaarns 's avonds aan te doen.
 export function sfeerMaterialen() {
   return {
-    water: MAT.water, blad: [MAT.leaf, MAT.leaf2], lamp: MAT.lamp, hedge: MAT.hedge,
+    water: MAT.water, lamp: MAT.lamp, hedge: MAT.hedge,
+    /*
+     Al het blad dat waait. Sinds stap 78 hebben de kronen eigen materialen
+     (js/groen.js), en die stonden hier niet bij: de bomen waren doodstil
+     (npm run omgevingtest, 25 sep 2026). Nu de kronen, de struiken, het riet
+     en de pollen gras erbij.
+    */
+    blad: [MAT.leaf, MAT.leaf2, groenMat().kroon, groenMat().kroon2, groenMat().kroonVer, rietMateriaal(), ...kaartBladMaterialen(), ...extraBlad],
     // het wegdek, zodat js/sfeer.js het bij regen nat kan maken
     weg: [MAT.asfalt, MAT.klinker, MAT.rood, MAT.tiles, MAT.fietspad].filter(Boolean),
   };

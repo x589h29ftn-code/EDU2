@@ -2742,6 +2742,41 @@ dorder — zodat een veld niet meer uit tegels bestaat.
 |---|---|---|
 | straatbomen van dichtbij | een struik | een grasveld van 3,7 ha |
 
+## Water, riet, gras in 3D, hagen en de avond
+
+Een ronde op verzoek (25 sep 2026), vóór de volgende missies. `npm run
+omgevingtest` meet het na, `npm run omgevingshots` maakt de foto's.
+
+- **Het waaien was stil gevallen.** Sinds de bomen in de vorige ronde eigen
+  materialen kregen, stonden de kronen doodstil. Alles waait weer, en elke boom
+  met zijn eigen fase: eerder zwaaiden alle bomen in een tegel van 240 m in de
+  maat.
+- **Water** is donker en glad, met rimpels die bewegen; het licht komt uit de
+  spiegeling van de lucht. Het was een lichtblauw vlak met witte streepjes: ijs.
+- **Riet** is een bos stengels van 1,1 tot 1,9 m met bruine pluimen, in plaats
+  van lichtgroene bolletjes van veertig centimeter. En het is goedkoper: twaalf
+  driehoeken per bos in plaats van dertig.
+- **Gras in 3D**: rond de speler staan pollen kort gras op het gazon, binnen
+  twintig meter, die meewaaien. Aan de rand worden ze kleiner, zodat je de grens
+  niet ziet.
+- **Hagen** hebben diepte in het blad (reliëf en schaduw tussen de blaadjes) en
+  zijn aan de voet donkerder.
+- **'s Avonds** brandt er achter een deel van de ramen licht, warm en elke avond
+  achter dezelfde ramen. En de wolken kleuren mee: bij zonsondergang roze, 's
+  nachts donker in plaats van spierwit tegen een zwarte lucht.
+
+Voor de pc: op de drie vaste meetplekken staan er niet meer driehoeken in beeld
+dan vóór deze ronde. Het gras kost er ongeveer 50.000 bij; het riet scheelt meer
+dan dat.
+
+| ![Water en riet](docs/screenshots/omgeving_water.png) | ![Gras in 3D](docs/screenshots/omgeving_gras.png) | ![Een haag](docs/screenshots/omgeving_heg.png) |
+|---|---|---|
+| een sloot met riet | kort gras op het gazon | een ligusterhaag |
+
+| ![Acht uur](docs/screenshots/licht_ochtend.png) | ![Half acht 's avonds](docs/screenshots/licht_avond2.png) | ![Elf uur](docs/screenshots/licht_nacht.png) |
+|---|---|---|
+| acht uur 's ochtends | half acht 's avonds | elf uur: licht achter de ramen |
+
 `npm run lichtshots` maakt deze drie foto's.
 
 ## Opslaan en laden

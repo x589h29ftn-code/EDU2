@@ -141,6 +141,8 @@
     "mensechttest": "node tools/mensechttest.mjs",
     "groentest": "node tools/groentest.mjs",
     "groenshots": "node tools/groenshots.mjs",
+    "omgevingtest": "node tools/omgevingtest.mjs",
+    "omgevingshots": "node tools/omgevingshots.mjs",
     "echtshots": "node tools/echtshots.mjs",
     "huisshots": "node tools/huisshots.mjs",
     "dealshots": "node tools/dealshots.mjs",

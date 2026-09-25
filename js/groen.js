@@ -292,3 +292,133 @@ export function grasVariatie(mat) {
   mat.needsUpdate = true;
   return mat;
 }
+
+// ------------------------------------------------------------------ riet
+/*
+ Riet was een rij bolletjes van 5 × 3 vlakken, veertig centimeter hoog en
+ lichtgroen: van dichtbij groene keien in het water. Echt riet is een bos
+ stengels van anderhalf tot twee meter met een pluim erop. Hier: drie vlakken
+ kruislings met een doek vol stengels op een doorzichtige achtergrond
+ (alphaTest, dus geen sortering nodig) — zes driehoeken per bos in plaats van
+ dertig.
+*/
+export function rietDoek() {
+  if (cache.has('rietdoek')) return cache.get('rietdoek');
+  const W = 128, H = 256, r = rng(907);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 70; i++) {
+    const x = 6 + r() * (W - 12), top = H * (0.02 + r() * 0.3), buig = (r() - 0.5) * 18;
+    const t = r();
+    g.strokeStyle = `rgb(${Math.round(90 + t * 70)},${Math.round(110 + t * 50)},${Math.round(45 + t * 25)})`;
+    g.lineWidth = 1.2 + r() * 1.3;
+    g.beginPath(); g.moveTo(x, H); g.quadraticCurveTo(x + buig * 0.3, (H + top) / 2, x + buig, top); g.stroke();
+    // een blad dat van de stengel afbuigt
+    if (r() < 0.6) { const y = H * (0.45 + r() * 0.4); g.lineWidth = 1.5; g.beginPath(); g.moveTo(x + buig * 0.2, y); g.quadraticCurveTo(x + buig * 0.2 + (r() < 0.5 ? -14 : 14), y - 20, x + buig * 0.2 + (r() < 0.5 ? -22 : 22), y - 8); g.stroke(); }
+    // de pluim: een bruine veer bovenaan een deel van de stengels
+    if (r() < 0.45) {
+      g.fillStyle = `rgba(${120 + r() * 30},${90 + r() * 20},${60 + r() * 15},0.95)`;
+      g.beginPath(); g.ellipse(x + buig, top + 10, 3.2, 12, buig * 0.01, 0, Math.PI * 2); g.fill();
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.anisotropy = 4;
+  cache.set('rietdoek', t);
+  return t;
+}
+/** Drie vlakken kruislings, 1 × 1 m met de voet op y = 0 (de instantie schaalt). */
+export function kruisGeo(n = 3) {
+  const pos = [], nor = [], uv = [];
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI, cx = Math.cos(a) * 0.5, cz = Math.sin(a) * 0.5;
+    const P = [[-cx, 0, -cz], [cx, 0, cz], [cx, 1, cz], [-cx, 1, -cz]], U = [[0, 0], [1, 0], [1, 1], [0, 1]];
+    /*
+     Beide kanten als eigen driehoeken, allebei met de normaal omhoog (van alle
+     kanten even licht). Met één vlak en DoubleSide draait three de normaal om
+     voor de achterkant, en dan wijst hij naar beneden: de helft van de pollen
+     was zwart (omgevingshots, 25 sep 2026).
+    */
+    for (const i of [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]) { pos.push(...P[i]); uv.push(...U[i]); nor.push(0, 1, 0); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  return g;
+}
+export function rietMat() {
+  return new THREE.MeshStandardMaterial({ map: rietDoek(), alphaTest: 0.5, roughness: 0.9 });
+}
+
+// ------------------------------------------------------------------ gras in 3D
+/*
+ Pollen gras rond de speler. Het grasdoek ligt plat, en van dichtbij — op
+ ooghoogte en zeker door het vizier — is een gazon een groen tapijt. Een rooster
+ van pollen van twee kruislingse vlakken, vast aan de wereld (zodat ze niet
+ meeschuiven als je loopt), alleen op gras, binnen `STRAAL` meter; aan de rand
+ krimpen ze tot niets, zodat je de grens niet ziet. Eén InstancedMesh voor
+ alles, bijgewerkt als je een paar meter verder bent.
+*/
+export function grasPolDoek() {
+  if (cache.has('graspol')) return cache.get('graspol');
+  const W = 128, H = 96, r = rng(313);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 90; i++) {
+    const x = 4 + r() * (W - 8), top = H * (0.05 + r() * 0.55), buig = (r() - 0.5) * 26, t = r();
+    g.strokeStyle = `rgb(${Math.round(55 + t * 55)},${Math.round(95 + t * 70)},${Math.round(28 + t * 25)})`;
+    g.lineWidth = 1 + r() * 1.4;
+    g.beginPath(); g.moveTo(x, H); g.quadraticCurveTo(x + buig * 0.2, (H + top) / 2, x + buig, top); g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.anisotropy = 4;
+  cache.set('graspol', t);
+  return t;
+}
+/*
+ Gemaaid gras: pollen van 7 tot 14 cm, niet de 16 tot 38 van de eerste versie —
+ dat was een ongemaaid veld vol onkruid. Dichter op elkaar en binnen een
+ kleinere straal, want kort gras zie je op twintig meter toch niet meer los.
+*/
+export const GRASVELD = { STRAAL: 20, CEL: 0.5, MAX: 6500 };
+/**
+ * Het grasveld rond de speler. `opGras(x, z)` zegt of er gras ligt;
+ * `hoogte(x, z)` de hoogte van de grond. Levert { mesh, update(x, z), aantal }.
+ */
+export function maakGrasVeld(scene, opGras, hoogte = () => 0) {
+  const { STRAAL, CEL, MAX } = GRASVELD;
+  const mat = new THREE.MeshStandardMaterial({ map: grasPolDoek(), alphaTest: 0.5, roughness: 1, color: 0xd8e6c4 });
+  const mesh = new THREE.InstancedMesh(kruisGeo(2), mat, MAX);
+  mesh.frustumCulled = false;
+  mesh.count = 0;
+  mesh.userData.klasse = 'grasveld';
+  scene.add(mesh);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), sc = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
+  // een vaste, niet-willekeurige ruis per cel: dezelfde cel geeft altijd dezelfde pol
+  const hash = (i, j, k) => { let h = Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(k, 2147483647); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  let laatst = null;
+  const veld = {
+    mesh, aantal: 0, mat,
+    update(x, z, dwing = false) {
+      if (!dwing && laatst && Math.hypot(x - laatst.x, z - laatst.z) < 3) return;
+      laatst = { x, z };
+      let n = 0;
+      const i0 = Math.floor((x - STRAAL) / CEL), i1 = Math.floor((x + STRAAL) / CEL);
+      const j0 = Math.floor((z - STRAAL) / CEL), j1 = Math.floor((z + STRAAL) / CEL);
+      for (let i = i0; i <= i1 && n < MAX; i++) for (let j = j0; j <= j1 && n < MAX; j++) {
+        const px = (i + hash(i, j, 1)) * CEL, pz = (j + hash(i, j, 2)) * CEL;
+        const d = Math.hypot(px - x, pz - z);
+        if (d > STRAAL) continue;
+        if (!opGras(px, pz)) continue;
+        const rand = Math.min(1, (STRAAL - d) / 5);                 // aan de rand krimpen ze weg
+        const h = (0.07 + hash(i, j, 3) * 0.07) * rand, b = (0.26 + hash(i, j, 4) * 0.18) * rand;
+        q.setFromAxisAngle(Y, hash(i, j, 5) * Math.PI);
+        m.compose(p.set(px, hoogte(px, pz) - 0.01, pz), q, sc.set(b, h, b));   // een centimeter in de grond
+        mesh.setMatrixAt(n++, m);
+      }
+      mesh.count = n; veld.aantal = n;
+      mesh.instanceMatrix.needsUpdate = true;
+    },
+  };
+  return veld;
+}
