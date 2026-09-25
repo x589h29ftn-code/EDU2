@@ -5084,6 +5084,65 @@ staan. De onderdelen liggen er al: js/interieur.js kan een woning van binnen
 bouwen uit het grondvlak, het verhaal kan panden aanwijzen met een M, en de
 opslag bewaart al waar je spullen staan.
 
+**Het haperen, en de nacht (stap 73).** Melding 25 sep 2026: "het beeld met de
+muis is prima, maar met lopen en rijden zie je lag; 's nachts ook, en bij in- en
+uitstappen." Dat onderscheid is de hele aanwijzing. Rondkijken en lopen tekenen
+hetzelfde beeld met dezelfde kosten; wat er anders is aan lopen, is het werk dat
+aan je pósitie hangt. Daar zaten twee dingen.
+
+*Het aantal lichtbronnen veranderde de hele tijd.* Three bouwt de shader van élk
+materiaal om het aantal zichtbare lichten heen: gaat er eentje aan of uit, dan
+wordt alles opnieuw vertaald. Dat gebeurde voortdurend. De drie straatlampen uit
+de pool van stap 27 gingen aan en uit zodra een paal binnen of buiten
+vijfenveertig meter kwam — dus om de paar meter dat je 's nachts liep of reed —
+en de koplampspot ging aan bij het instappen en uit bij het uitstappen. Nu staan
+de drie lampen 's nachts allemaal in de scene; een lamp zonder werk krijgt
+sterkte nul en wordt onder de grond geparkeerd. De spot staat 's nachts ook
+altijd in de scene, met sterkte nul als je niet rijdt. Het aantal verandert nog
+twee keer per etmaal, en die twee keer vallen samen met een beeld waarin je
+niets ziet gebeuren: de lampen komen bij zonkracht 0,45 in de scene met sterkte
+nul en lichten pas daarna op. Bovendien wordt de avondstand één keer achter het
+laadscherm voorgetekend — echt tekenen, niet `renderer.compile`, want dat maakte
+in stap 27 varianten aan die niemand gebruikte — zodat de programma's al in de
+cache zitten.
+
+*En veertig zichtlijnen per verhuizing.* Mensen en auto's verhuizen naar je
+buurt zodra je ze achter je laat (stap 36). Voor elke verhuizing werden veertig
+plekken geprikt en voor elk daarvan een zichtlijn getrokken, twee keer per
+seconde — en alleen terwijl je beweegt, want alleen dan raakt er iemand achter.
+Dat is precies het profiel van de klacht. De plekken worden nu eerst goedkoop
+verzameld en op afstand gesorteerd; daarna gaan er van dichtbij naar ver
+hoogstens vijf zichtlijnen uit en stopt het bij de eerste die uit het zicht
+ligt. De uitkomst is dezelfde, want de score is eerst "uit het zicht" en dan
+"zo dichtbij mogelijk", en dat is precies de volgorde waarin nu gezocht wordt.
+
+*Meten kon hier niet op de klok.* `npm run vloeiendtest` meet beeldtijden bij
+stilstaan, rondkijken, lopen en rijden, overdag en 's nachts. In de
+bouwcontainer duurt één beeld drieënhalve seconde, dus de absolute getallen
+zeggen niets; wat er wél uit komt is het aantal shaderprogramma's dat three
+erbij vertaalt, en dat hoort nul te zijn zodra de wereld er staat. Dat is de
+controle die blijft staan.
+
+*De wijk gaat slapen.* Verkeer en voetgangers zakken tussen 22:30 en 23:30 naar
+een zesde en komen tussen 05:00 en 06:30 terug (`sfeer.drukte`, een
+smoothstep-kromme). Het doelaantal schaalt mee, en wie te veel is verhuist naar
+buiten de wijk in plaats van te verdwijnen — één per halve seconde, dus de
+straat loopt leeg zoals hij ook volloopt. Na middernacht dooft tweederde van de
+straatverlichting in de woonstraten (`sfeer.lampenAan`); langs de doorgaande
+wegen blijft alles aan. Dat vroeg om twee stapels lantaarnkoppen met elk een
+eigen materiaal: een instantie kan zijn eigen kleur hebben maar niet zijn eigen
+gloed, en het doven zit in `emissiveIntensity`.
+
+*De wapenmelding was de proef zelf.* "Kogels doen geen schade na een ritje in de
+auto" bleek in de proef te reproduceren, en de diagnose wees naar de proef: acht
+schoten achter elkaar zonder dat er een beeld tussen zat. `demptTerugslag` loopt
+per beeld, dus de terugslag stapelde op tot bijna elf graden en dan gaat de
+kogel op zes meter ruim een meter over het hoofd heen. Een tweede straal, met de
+hand recht op de romp gericht, raakte wél — dat was het bewijs. In het spel
+speelt het niet: `player.update` dempt elk beeld, ook terwijl je in een auto
+zit. De proef laat er nu een beeld overheen gaan en is groen; de melding uit het
+spel zelf is daarmee nog niet verklaard.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -107,8 +107,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste twee die ertoe doen: `npm run huistest` (negenenzestig controles,
-groen) en `npm run huisshots` (vijf foto's).
+De laatste die ertoe doen: `npm run huistest` (missie 9 en de woningen),
+`npm run huisshots` (vijf foto's) en `npm run vloeiendtest` (beeldtijden en het
+aantal shaders dat three erbij vertaalt — dat laatste hoort nul te zijn).
 
 **Valkuilen van deze omgeving — hier is veel tijd in gaan zitten:**
 
@@ -126,6 +127,21 @@ groen) en `npm run huisshots` (vijf foto's).
 - **Lege schermafdrukken** komen meestal doordat de camera niet bij de mensen
   staat of doordat NPC's hun positie uit `p.seg` herleiden; zet de camera en
   bevries npcs/voertuigen voor de foto.
+- **Een zelfgemaakt wegvak heeft `w` en `walkOff` nodig.** js/npc.js rekent de
+  afstand tot de as uit met `s.walkOff || s.w / 2 + 0.8`; zonder die velden wordt
+  dat NaN en staat de voetganger nergens.
+- **Meerdere schoten achter elkaar vragen om een beeld ertussen.** De terugslag
+  wordt in `player.update` gedempt; vuur je in één keer acht keer, dan stapelt hij
+  op tot ruim tien graden en mis je alles.
+
+**Twee regels die uit stap 73 komen en overal gelden:**
+
+- **Verander tijdens het spelen nooit het aantal zichtbare lichtbronnen.** Three
+  vertaalt dan élk materiaal opnieuw. Regel met `intensity`, niet met `visible`,
+  en laat het aantal hoogstens bij zonsopkomst en zonsondergang veranderen.
+- **Werk dat aan de positie van de speler hangt is verdacht.** Rondkijken en
+  lopen tekenen hetzelfde beeld; hapert alleen lopen, dan zit het in wat er bij
+  het bewegen gebeurt (verhuizen, zichtlijnen, lampen).
 
 ## 7 · Wat er nog open staat
 
