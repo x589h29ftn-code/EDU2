@@ -1307,13 +1307,19 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   /*
    ---------- de grote plant in de hoek ----------
    Een pot met een stam en drie bossen blad, in de hoek bij het raam. Hij staat
-   in de weg zoals een echte kamerplant in de weg staat: er zit een botsdoos om
-   de pot, dus je loopt er niet dwars doorheen.
+   in de weg zoals een echte kamerplant in de weg staat.
+
+   De botsdoos zat alleen om de pot, en de bladeren steken er een stuk buiten:
+   die hangen op negentig centimeter tot anderhalve meter, precies op loophoogte,
+   en daar liep je dwars doorheen (melding 25 sep 2026). De doos loopt nu door
+   tot boven het blad en is zo breed als de bossen zelf.
   */
   {
     const px = BREED - MUUR - 0.42, pz = MUUR + 0.50;
     if (px > HAL.x1 + 0.6) {
-      doos(px - 0.22, px + 0.22, pz - 0.22, pz + 0.22, 0, 0.34, MAT.pot);
+      doos(px - 0.22, px + 0.22, pz - 0.22, pz + 0.22, 0, 0.34, MAT.pot, false);
+      // één doos om de hele plant, van de vloer tot boven het blad
+      dozen.push({ x: px, z: pz, hx: 0.30, hz: 0.30, h: 1.52 });
       doos(px - 0.19, px + 0.19, pz - 0.19, pz + 0.19, 0.32, 0.35, MAT.aarde, false);
       doos(px - 0.035, px + 0.035, pz - 0.035, pz + 0.035, 0.34, 1.05, MAT.stam, false);
       for (const [dx, dz, h, r] of [[0, 0, 1.28, 0.30], [0.22, 0.12, 1.05, 0.22], [-0.18, -0.14, 1.12, 0.20]]) {
