@@ -144,11 +144,13 @@ const auto = await page.evaluate(async () => {
     const car = g.vehicles.voegToe({ x: g.player.pos.x + 2.4, z: g.player.pos.z, yaw: 0, soort: 'hatch' });
     await window.__meet(8, null);
     const voorIn = g.renderer.info.programs.length;
-    const a = performance.now(); g.toggleCar(); await window.__meet(3, null);
-    const in1 = performance.now() - a;
+    // alleen het werk van het in- en uitstappen zelf timen, niet de beelden
+    // daarna: die duren in deze container seconden en zeggen niets
+    const a = performance.now(); g.toggleCar(); const in1 = performance.now() - a;
+    await window.__meet(3, null);
     const naIn = g.renderer.info.programs.length;
-    const b = performance.now(); g.toggleCar(); await window.__meet(3, null);
-    const uit1 = performance.now() - b;
+    const b = performance.now(); g.toggleCar(); const uit1 = performance.now() - b;
+    await window.__meet(3, null);
     uit[naam] = { instap: +in1.toFixed(1), uitstap: +uit1.toFixed(1), programmas: naIn - voorIn };
   }
   return uit;
