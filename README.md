@@ -2693,6 +2693,23 @@ raster van beeldpunten, en een boom die van zijn fijne naar zijn grove kroon gaa
 laat die twee precies in elkaar overlopen. Er rijdt ook weer verkeer in de buurt:
 twaalf wijkauto's in plaats van zes, en ze komen naar waar jij bent.
 
+**'s Nachts op straat (25 sep).** Onder elke lantaarn ligt 's avonds een plas warm
+licht op de stoep en de weg, niet alleen onder de drie dichtstbij. Geparkeerde
+auto's staan met hun lampen uit (ze stonden dag en nacht aan), en wat rijdt heeft
+overdag dagrijverlichting en 's nachts de koplampen aan, met een bundel licht op de
+weg ervoor. Rij je een paal om, dan ligt zijn plas licht er niet meer.
+
+| ![Een straat 's nachts](docs/screenshots/nacht_straat.png) | ![Verkeer 's nachts](docs/screenshots/nacht_verkeer.png) |
+|---|---|
+| plassen licht onder de palen | een wijkauto met zijn lampen aan |
+
+**Nog lichter voor de pc (25 sep).** De schaduw kostte meer dan gedacht: een meting
+die hem eindelijk echt tekende kwam op een vijfde van het beeld. De bomen werpen
+hun schaduw nu alleen nog in de buurt van waar je bent (de schaduwpas is ruim de
+helft goedkoper, met evenveel schaduw op de grond), de lantaarnpalen van heel
+Sneek en IJlst worden niet meer allemaal getekend maar per stuk wijk, en de
+voetgangers achter je rug krijgen geen lichaam meer tot je je omdraait.
+
 **De auto's.** De carrosserie heeft ronde randen, zodat de glans over de schouder
 en de neus loopt; de lak heeft een blanke laklaag over de kleur (de tweede,
 scherpe spiegeling die lak op lak doet lijken). De banden hebben een profiel met

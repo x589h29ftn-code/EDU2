@@ -5575,6 +5575,56 @@ weg was — ze reden allemaal tussen 300 en 500 m rond, dus er verhuisde nooit e
 Gemeten na een minuut aan de Molenkrite: twee binnen 260 m, waarvan één stilstond
 voor de speler. Nu twaalf, en wie buiten 300 m rijdt en niet te zien is verhuist.
 
+**De schaduwpas, de lantaarns en de nacht op straat (stap 82).** Verzoek van
+25 sep 2026: "neem de wereld verder door op verbeteringen en optimalisatie en
+spelbeleving".
+
+*Eerst de meting zelf.* `tools/optimeer.mjs` meldde bij elke plek "de schaduw kost
+0". Dat was de meting: js/main.js zet `shadowMap.autoUpdate` uit en vraagt de
+schaduw om het andere beeld aan met `needsUpdate`, en het gereedschap zette dat
+nooit — de schaduwpas werd dus nooit getekend. Echt gemeten: 574.000 driehoeken
+en 422 tekenopdrachten aan de Molenkrite, 22 % van het beeld. En de klassen
+waren een vaste lijst die bomen en struiken aan hun geometrie herkende; sinds
+js/groen.js viel dat allemaal buiten de telling. Nu per `klasse` (anders de soort
+geometrie), in één keer tekenen met `onAfterRender` en `onAfterShadow` per
+tekenopdracht. Per soort uitzetten en opnieuw tekenen kostte met een paar honderd
+soorten een uur per plek.
+
+*De lantaarns.* Eén stapel palen, armen en koppen voor de hele wereld (2040
+palen), die nooit uit beeld viel: 130.000 driehoeken paal plus 65.000 in de
+schaduwpas plus 49.000 arm en kop, op elke meetplek. Nu per tegel van 240 m, met
+`lodAan`: aan de Molenkrite staan er 21 van de 119 tegels aan, 26.656 driehoeken.
+Een lantaarn weet zijn tegel en zijn plek daarin (`L.tegel`, `L.j`), zodat omrijden
+nog werkt.
+
+*De bomen in de schaduwpas.* Een tegel van 240 m die de schaduwdoos (76 m) maar
+raakte, gooide al zijn bomen in de schaduwkaart: 185.000 driehoeken kroon en
+70.000 stam. Nu werpen de tegels geen schaduw meer, en staan de bomen binnen 70 m
+van het midden van de doos in een kleine eigen stapel (`werkSchaduwBomenBij`):
+grove kroon, de echte stam, dezelfde matrices, en een materiaal dat in het beeld
+niets schrijft (`colorWrite` en `depthWrite` uit). Een laag gebruiken ging niet:
+three toetst de lagen in de schaduwpas tegen de gewone camera. Schaduwpas aan de
+Molenkrite 535k → 248k driehoeken, Jasker 536k → 254k. De eerste versie gaf 1,1 %
+minder schaduw op de grond: de grove kroon ligt binnen de fijne, en een koker als
+stam heeft geen takken. Nu 6 % groter (net als `GROF_OP`) en de echte stam.
+
+*De nacht op straat.* Echte lampen zijn er drie, bij de camera (stap 23: elke
+puntlamp maakt elk beeldpunt duurder). De andere palen hadden 's nachts een
+gloeiende kop en verder niets. Nu ligt onder elke paal een plas licht: één instanced
+mesh voor alle 2040, optellend, overdag uit, en weg als de paal omligt. En de
+auto's: geparkeerd en rijdend deelden ze één lampmateriaal met een vaste gloed, dus
+elke geparkeerde auto stond dag en nacht met zijn lampen aan en het verkeer reed 's
+nachts even flauw als overdag. De stapels hebben nu hun eigen lampen, uit; wat
+rijdt heeft overdag dagrijverlichting en 's nachts de lampen vol aan, met een
+bundel op de weg (geen doel voor een kogel). Een meting vanaf het beginpunt zag
+0,0 % verschil met en zonder de plassen: daar staat geen paal in beeld, de
+dichtstbijzijnde staat dertig meter opzij. De proef kijkt nu naar een paal.
+
+*De voetgangers achter je* (open punt 18). Binnen de tweehonderd meter werd iedereen
+getekend en kreeg iedereen zijn houding, ook wie achter je liep. Nu alleen wie
+binnen 75° van je kijkrichting staat, of binnen vijftien meter (zijn schaduw, en
+omdraaien). De verdeling gaat elk beeld opnieuw, dus omkijken toont ze meteen.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

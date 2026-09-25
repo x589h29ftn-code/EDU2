@@ -128,7 +128,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run lodtest` (LOD verder weg en vervagend,
+De laatste die ertoe doen: `npm run schaduwtest` (de schaduwpas: bomen bij de
+doos, lantaarns per tegel) en `npm run nachttest` (plassen licht, lampen van de
+auto's) met `nachtshots`, stap 82; `npm run lodtest` (LOD verder weg en vervagend,
 het voorvlak, de intro voorbereid en met de LOD mee, het verkeer; stap 81),
 `npm run autolodtest` (geparkeerde auto's en
 voetgangers op afstand, treffers via `nummer`/`slotNaar`; stap 80) en
@@ -170,6 +172,10 @@ groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
 - **Een instantie is geen nummer meer.** Geparkeerde auto's en voetgangers
   staan compact in hun meshes (stap 80): instantie `j` is `stapel.nummer(mesh, j)`
   of `npcs.slotNaar[j]`. Een proef die iemand wil raken gebruikt `hitPersoon`.
+- **De schaduwpas telt alleen met `shadowMap.needsUpdate = true`.** js/main.js
+  zet `autoUpdate` uit; een meting of foto die de schaduw wil zien zet hem zelf.
+  De bomen werpen hun schaduw via `werkSchaduwBomenBij` (rond de schaduwdoos),
+  niet via hun tegels.
 - **Het wapen staat op laag 1** en wordt apart getekend (`tekenWapen`); een eigen
   render van de scène laat het dus weg, tenzij de camera die laag aanzet.
 - **Lege schermafdrukken** komen meestal doordat de camera niet bij de mensen
@@ -204,10 +210,9 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
     (13 % van de kapeldriehoeken wijkt meer dan 1,8 keer af; gebouwtest).
 17. De wapens van de NPC's (js/persoon.js) zijn nog de oude blokjes; alleen
     het wapen in je eigen hand is in stap 76 vernieuwd.
-18. Voetgangers binnen 200 m worden allemaal getekend (3608 driehoeken per
-    persoon, ook achter je: `frustumCulled = false`). Sinds stap 80 is wie
-    verder is weg; een grove uitvoering op afstand en een kijkkegel zijn de
-    volgende stap als het nodig is.
+18. Voetgangers: sinds stap 80 geen lichaam verder dan 200 m, sinds stap 82 ook
+    niet achter je (buiten 75° van de kijkrichting, verder dan 15 m). Een grove
+    uitvoering op afstand is de volgende stap als het nodig is.
 
 ## 8 · Waar wat gedocumenteerd wordt
 

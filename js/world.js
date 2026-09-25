@@ -1840,7 +1840,91 @@ export function groenMat() {
   });
 }
 
+/*
+ De schaduw van de bomen (ronde van 25 sep 2026). Elke tegel van 240 m wierp zijn
+ schaduw als geheel: raakte de tegel de schaduwdoos (76 m) ook maar, dan gingen
+ al zijn bomen de schaduwkaart in — 185.000 driehoeken kroon en 70.000 stam op
+ de Molenkrite, bijna de helft van de hele schaduwpas (npm run optimeer, nu hij
+ de schaduwpas ook echt tekent). Nu werpen de tegels geen schaduw meer, en staan
+ de bomen binnen `SCHADUW_R` meter van het midden van de doos in een kleine
+ eigen stapel: grove kroon, eenvoudige stam, dezelfde matrices. Die stapel schrijft
+ in het beeld zelf niets (`colorWrite` en `depthWrite` uit) en is er alleen voor
+ de schaduwpas. Zeventig meter: de doos is 76 m breed, en bij een lage zon valt
+ de schaduw van een boom van tien meter nog dertig meter verder.
+*/
+export const SCHADUW_R = 70;
+const schaduwBron = { stam: [], kroon: [] };          // { x, z, m, soort }
+let schaduwBomen = null, schaduwBij = null;
+const SCHADUW_CEL = 64, schaduwRooster = new Map();
+// de grove kroon ligt binnen de fijne (een icosaëder van detail 0 binnen die van
+// detail 1), net als bij `GROF_OP`: 6 % groter, anders krimpt de schaduw
+const SCHADUW_OP = new THREE.Vector3(1.06, 1.06, 1.06);
+function neemSchaduwOp(mesh, wat, geo, soort) {
+  const m = new THREE.Matrix4();
+  for (let i = 0; i < mesh.count; i++) {
+    mesh.getMatrixAt(i, m);
+    const e = m.elements;
+    if (e[0] === 0 && e[5] === 0) continue;
+    const r = { x: e[12], z: e[14], m: wat === 'kroon' ? m.clone().scale(SCHADUW_OP) : m.clone(), soort, wat, geo };
+    schaduwBron[wat].push(r);
+    const k = `${Math.floor(r.x / SCHADUW_CEL)}:${Math.floor(r.z / SCHADUW_CEL)}`;
+    if (!schaduwRooster.has(k)) schaduwRooster.set(k, []);
+    schaduwRooster.get(k).push(r);
+  }
+  mesh.castShadow = false;
+}
+function maakSchaduwBomen(scene) {
+  if (!schaduwBron.kroon.length) return;
+  const MAX = 900;
+  const mat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+  const stuk = (geo) => {
+    const im = new THREE.InstancedMesh(geo, mat, MAX);
+    im.castShadow = true; im.receiveShadow = false; im.frustumCulled = false;
+    im.count = 0; im.userData.klasse = 'schaduwboom';
+    im.raycast = () => {};
+    scene.add(im);
+    return im;
+  };
+  // per soort geometrie een stapel: de grove kroon van een straatboom en van een
+  // populier, en hun stammen met de takken (een koker zonder takken gaf te weinig
+  // schaduw)
+  const geos = new Map();
+  for (const r of [...schaduwBron.stam, ...schaduwBron.kroon]) {
+    const g = r.geo;
+    if (!geos.has(g)) geos.set(g, stuk(g));
+    r.stapel = geos.get(g);
+  }
+  schaduwBomen = [...geos.values()];
+}
+/** De schaduwbomen rond het midden van de schaduwdoos (js/main.js, `zetSchaduwDoos`). */
+export function werkSchaduwBomenBij(cx, cz, direct = false) {
+  if (!schaduwBomen) return;
+  if (!direct && schaduwBij && Math.hypot(cx - schaduwBij.x, cz - schaduwBij.z) < 6) return;
+  schaduwBij = { x: cx, z: cz };
+  for (const s of schaduwBomen) s.count = 0;
+  const R2 = SCHADUW_R * SCHADUW_R, c0 = Math.floor((cx - SCHADUW_R) / SCHADUW_CEL), c1 = Math.floor((cx + SCHADUW_R) / SCHADUW_CEL);
+  const d0 = Math.floor((cz - SCHADUW_R) / SCHADUW_CEL), d1 = Math.floor((cz + SCHADUW_R) / SCHADUW_CEL);
+  for (let i = c0; i <= c1; i++) for (let j = d0; j <= d1; j++) {
+    const lijst = schaduwRooster.get(`${i}:${j}`);
+    if (!lijst) continue;
+    for (const r of lijst) {
+      if ((r.x - cx) ** 2 + (r.z - cz) ** 2 > R2) continue;
+      const st = r.stapel;
+      if (st.count >= st.instanceMatrix.count) continue;
+      st.setMatrixAt(st.count++, r.m);
+    }
+  }
+  for (const s of schaduwBomen) s.instanceMatrix.needsUpdate = true;
+}
+export function schaduwBomenStand() {
+  return schaduwBomen ? { stapels: schaduwBomen.length, getekend: schaduwBomen.reduce((n, s) => n + s.count, 0), bron: schaduwBron.kroon.length + schaduwBron.stam.length, bij: schaduwBij } : null;
+}
+
 function buildTrees(scene) {
+  // opnieuw bouwen (de editor): de voorraad voor de schaduw ook opnieuw
+  schaduwBron.stam.length = 0; schaduwBron.kroon.length = 0; schaduwRooster.clear();
+  if (schaduwBomen) for (const st of schaduwBomen) st.parent && st.parent.remove(st);
+  schaduwBomen = null; schaduwBij = null;
   // de laatste zeef: geen boom in een pand of op de rijbaan (zie `geenGroen`)
   const voor = treePositions.length;
   for (let i = treePositions.length - 1; i >= 0; i--) if (KAART && geenGroen(treePositions[i].x, treePositions[i].z)) treePositions.splice(i, 1);
@@ -1915,7 +1999,10 @@ function buildTrees(scene) {
         m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, ty + 6.7 * s2 + lift, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
         if (!t.vrij) addCollider(t.x, t.z, 0.3 * dik, 0.3 * dik, 0, 3);
       });
-      trunks.castShadow = true; leavesA.castShadow = true;
+      // de schaduw komt van `schaduwBomen` (hieronder): alleen de bomen bij de
+      // schaduwdoos, niet de hele tegel
+      neemSchaduwOp(trunks, 'stam', trunkGeo, 'normaal');
+      neemSchaduwOp(leavesA, 'kroon', leafGeoGrof, 'normaal');
       // de grove kroon en de bobbel werpen geen schaduw: de schaduwdoos is
       // tweeënvijftig meter, dus daar komt de grove versie nooit in, en de
       // bobbel valt binnen de schaduw van de kroon eronder
@@ -1970,7 +2057,8 @@ function buildTrees(scene) {
         }
         if (!t.vrij) addCollider(t.x, t.z, 0.45, 0.45, 0, 3);
       });
-      trunks.castShadow = true; crownA.castShadow = true;
+      neemSchaduwOp(trunks, 'stam', trunkGeo, 'populier');
+      neemSchaduwOp(crownA, 'kroon', leafGeoGrof, 'populier');
       trunks.computeBoundingSphere(); crownA.computeBoundingSphere();
       crownAver.computeBoundingSphere(); crownB.computeBoundingSphere();
       scene.add(trunks, crownA, crownAver, crownB);
@@ -2183,7 +2271,7 @@ export function* buildWorldStap(scene) {
   if (!KAART) { buildWorld(scene); return { colliders, roadSegments, parkSpots, waterPolys }; }
   yield* bouwKaartWereldStap(scene, { MAT, colliders, roadSegments, parkSpots, treePositions, lampPosities, waterPolys, addCollider, maakProp, lodAan });
   yield { wat: 'bomen', deel: 0.975 };
-  buildTrees(scene);
+  buildTrees(scene); maakSchaduwBomen(scene);
   if (kaartStand() !== 'plat') { yield { wat: 'riet', deel: 0.985 }; buildReeds(scene); }
   if (kaartStand() !== 'plat') { yield { wat: 'straatmeubilair', deel: 0.995 }; buildProps(scene); }
   for (const c of scene.children) if (!bekend.has(c)) worldObjects.push(c);
@@ -2198,7 +2286,7 @@ export function buildWorld(scene) {
   // alleen de losse objecten uit de editor (PROPS) over.
   if (KAART) {
     bouwKaartWereld(scene, { MAT, colliders, roadSegments, parkSpots, treePositions, lampPosities, waterPolys, addCollider, maakProp, lodAan });
-    buildTrees(scene);
+    buildTrees(scene); maakSchaduwBomen(scene);
     if (kaartStand() !== 'plat') buildReeds(scene);
     if (kaartStand() !== 'plat') buildProps(scene);
     for (const c of scene.children) if (!bekend.has(c)) worldObjects.push(c);
@@ -2256,7 +2344,7 @@ export function buildWorld(scene) {
       if (Math.hypot(t.x - sx0, t.z - sz0) < 9) treePositions.splice(i, 1);
     }
   }
-  buildTrees(scene);
+  buildTrees(scene); maakSchaduwBomen(scene);
   buildFurniture(scene);
   buildProps(scene);
   for (const c of scene.children) if (!bekend.has(c)) worldObjects.push(c);

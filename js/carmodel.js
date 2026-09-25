@@ -782,6 +782,57 @@ const SHARED = {
   plate: new THREE.MeshStandardMaterial({ color: 0xffffff, map: plaatDoek(), roughness: 0.5 }),
 };
 /*
+ Lampen aan en uit (ronde van 25 sep 2026). Geparkeerde en rijdende auto's
+ deelden hetzelfde lampmateriaal met een vaste gloed van 0,55: elke geparkeerde
+ auto in de wijk stond dag en nacht met zijn koplampen aan, en het verkeer reed
+ 's nachts even flauw als overdag. Nu hebben de stapels hun eigen lampen, uit
+ (alleen de weerkaatsing van het glas), en zet `zetKoplampen` die van wat rijdt:
+ overdag dagrijverlichting, 's nachts vol aan met een bundel op de weg.
+*/
+SHARED.headUit = SHARED.head.clone(); SHARED.headUit.emissiveIntensity = 0.03;
+SHARED.tailUit = SHARED.tail.clone(); SHARED.tailUit.emissiveIntensity = 0.03;
+const BUNDELS = new Set();
+let bundelDoek = null;
+function bundelMateriaal() {
+  if (bundelDoek) return bundelDoek;
+  // een waaier licht op de weg: fel bij de auto, uitlopend naar voren en opzij
+  const c = document.createElement('canvas'); c.width = 64; c.height = 128;
+  const x = c.getContext('2d'), img = x.createImageData(64, 128);
+  for (let j = 0; j < 128; j++) for (let i = 0; i < 64; i++) {
+    const v = j / 127;                           // 0 bij de auto, 1 aan het eind
+    const breed = 0.25 + 0.75 * v;               // de bundel waaiert uit
+    const u = Math.abs(i / 63 - 0.5) * 2 / breed;
+    const lang = Math.pow(1 - v, 1.4) * Math.min(1, v * 7);
+    const a = Math.max(0, 1 - u * u) * lang;
+    const k = (j * 128 + i) * 4;
+    img.data[k] = 255; img.data[k + 1] = 236; img.data[k + 2] = 196; img.data[k + 3] = Math.round(a * 255);
+  }
+  x.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  bundelDoek = new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending,
+    depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  return bundelDoek;
+}
+function voegBundelToe(g, L) {
+  const geo = new THREE.PlaneGeometry(3.6, 11);
+  geo.rotateX(-Math.PI / 2);                     // plat op de weg
+  geo.translate(0, 0.06, -L / 2 - 5.2);          // vóór de neus (de neus zit op −z)
+  const m = new THREE.Mesh(geo, bundelMateriaal());
+  m.visible = nachtLampen; m.renderOrder = 2; m.userData.bundel = true;
+  m.raycast = () => {};                          // licht is geen doel: een kogel gaat erdoorheen
+  g.add(m);
+  BUNDELS.add(m);
+}
+let nachtLampen = false;
+/** Dag of nacht voor de lampen van alles wat rijdt (js/sfeer.js). */
+export function zetKoplampen(nacht) {
+  nachtLampen = !!nacht;
+  SHARED.head.emissiveIntensity = nacht ? 1.9 : 0.35;
+  SHARED.tail.emissiveIntensity = nacht ? 1.1 : 0.3;
+  for (const b of BUNDELS) b.visible = nachtLampen && b.parent !== null;
+}
+export function koplampStand() { return { nacht: nachtLampen, kop: SHARED.head.emissiveIntensity, stilKop: SHARED.headUit.emissiveIntensity, bundels: BUNDELS.size }; }
+/*
  Autolak met een blanke laklaag. Een auto is geen egaal gekleurd plastic: onder
  heeft hij de kleur (een beetje metallic, iets ruw), en daarover ligt een gladde,
  heldere laag die de lucht en de straat spiegelt. MeshPhysicalMaterial heeft die
@@ -819,8 +870,8 @@ export function maakAutoStapel(kind, aantal) {
     { geo: G.paint, mat: lak, kleurbaar: true, schaduw: true },
     { geo: G.glass, mat: SHARED.glass },
     { geo: G.black, mat: SHARED.black, schaduw: true },
-    { geo: G.head, mat: SHARED.head },
-    { geo: G.tail, mat: SHARED.tail },
+    { geo: G.head, mat: SHARED.headUit },
+    { geo: G.tail, mat: SHARED.tailUit },
     { geo: G.plate, mat: SHARED.plate },
   ];
   if (G.chrome) delen.push({ geo: G.chrome, mat: SHARED.chrome });
@@ -829,8 +880,8 @@ export function maakAutoStapel(kind, aantal) {
     { geo: V.paint, mat: lak, kleurbaar: true, schaduw: true },
     { geo: V.glass, mat: SHARED.glass },
     { geo: V.black, mat: SHARED.black },
-    { geo: V.head, mat: SHARED.head },
-    { geo: V.tail, mat: SHARED.tail },
+    { geo: V.head, mat: SHARED.headUit },
+    { geo: V.tail, mat: SHARED.tailUit },
     { geo: V.chrome, mat: SHARED.chrome },
   ];
   const maak = (d) => {
@@ -953,6 +1004,7 @@ export function makeCar(color, kind = 'hatch', animatie = false) {
   const chroom = animatie ? G.chroomLos : G.chrome;
   if (chroom) bak.add(new THREE.Mesh(chroom, SHARED.chrome));
 
+  voegBundelToe(g, G.L);
   if (!animatie) { g.userData.length = G.L; g.userData.oog = G.oog; return g; }
 
   g.add(bak);

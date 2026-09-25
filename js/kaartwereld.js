@@ -1947,6 +1947,44 @@ function bouwBouwwerken(scene, W) {
 */
 const LANTAARNS = [];      // { x, z, y, hoek, i, doos, om, t, val, richting }
 let lampStapels = null;    // { palen, armen, koppen }
+/*
+ Een plas licht onder elke lantaarn (ronde van 25 sep 2026). Echte lampen zijn er
+ maar drie, bij de camera (js/sfeer.js: elke puntlamp maakt élk beeldpunt
+ duurder); de rest van de palen had 's nachts alleen een gloeiende kop, en de
+ straat eronder was even donker als tussen twee palen. Nu ligt onder elke paal
+ een zachte, warme vlek op de grond: één instanced mesh voor allemaal, dus één
+ tekenopdracht, en optellend zodat hij oplicht wat eronder ligt in plaats van het
+ te bedekken. Overdag uit (`zetLichtpoelen`).
+*/
+let poelen = null;
+const POEL = 12;           // doorsnede van de vlek, in meter
+function poelDoek() {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  const gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,214,160,1)');
+  gr.addColorStop(0.35, 'rgba(255,200,140,0.55)');
+  gr.addColorStop(0.7, 'rgba(255,190,130,0.15)');
+  gr.addColorStop(1, 'rgba(255,190,130,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+/** 's Nachts de plassen licht aan, met `sterkte` 0..1 (js/sfeer.js). */
+export function zetLichtpoelen(sterkte) {
+  if (!poelen) return;
+  poelen.visible = sterkte > 0.01;
+  poelen.material.opacity = 0.42 * sterkte;
+}
+export function lichtpoelen() { return poelen; }
+const poelM = new THREE.Matrix4();
+function zetPoel(L, aan) {
+  if (!poelen) return;
+  if (aan) poelM.makeScale(POEL, 1, POEL).setPosition(L.lamp.x, grondHoogte(L.lamp.x, L.lamp.z, -Infinity) + 0.05, L.lamp.z);
+  else poelM.makeScale(0, 0, 0);
+  poelen.setMatrixAt(L.i, poelM);
+  poelen.instanceMatrix.needsUpdate = true;
+}
 const LAMP_TERUG = 40;     // seconden voordat hij weer overeind mag
 const LAMP_VER = 60;       // en pas als je zo ver weg bent
 
@@ -1958,7 +1996,26 @@ function bouwLantaarns(scene, W) {
   const armGeo = new THREE.BoxGeometry(0.9, 0.08, 0.08); armGeo.translate(0.35, 5.15, 0);
   const kopGeo = new THREE.BoxGeometry(0.5, 0.14, 0.24); kopGeo.translate(0.7, 5.12, 0);
   const n = K.lantaarns.length;
-  const palen = new THREE.InstancedMesh(paalGeo, KM.paal, n), armen = new THREE.InstancedMesh(armGeo, KM.paal, n), koppen = new THREE.InstancedMesh(kopGeo, KM.lamp, n);
+  /*
+   Per tegel van 240 m een eigen stapel palen, armen en koppen (ronde van 25 sep
+   2026). Het was één stapel voor de hele wereld, en zo'n stapel valt nooit uit
+   beeld: alle palen van Sneek en IJlst gingen elk beeld door de kaart, en in de
+   schaduwpas nog een keer — 244.000 driehoeken op elke meetplek (npm run
+   optimeer), voor palen die op een paar na kilometers weg stonden. Per tegel
+   valt het meeste weg door frustum culling, en `lodAan` zet de verre tegels uit.
+  */
+  const TEGEL_L = 240, tegels = new Map();
+  const tegelVan = (x, z) => {
+    const k = `${Math.floor(x / TEGEL_L)}:${Math.floor(z / TEGEL_L)}`;
+    if (!tegels.has(k)) tegels.set(k, { k, i: Math.floor(x / TEGEL_L), j: Math.floor(z / TEGEL_L), n: 0 });
+    return tegels.get(k);
+  };
+  const plek = K.lantaarns.map(l => { const t = tegelVan(l.x, l.z); return { t, j: t.n++ }; });
+  for (const t of tegels.values()) {
+    t.palen = new THREE.InstancedMesh(paalGeo, KM.paal, t.n);
+    t.armen = new THREE.InstancedMesh(armGeo, KM.paal, t.n);
+    t.koppen = new THREE.InstancedMesh(kopGeo, KM.lamp, t.n);
+  }
   const m = new THREE.Matrix4();
   K.lantaarns.forEach((l, i) => {
     // arm naar de dichtstbijzijnde rijbaan-as
@@ -1973,14 +2030,34 @@ function bouwLantaarns(scene, W) {
     */
     const y = grondHoogte(l.x, l.z, -Infinity);
     m.makeRotationY(hoek); m.setPosition(l.x, y, l.z);
-    palen.setMatrixAt(i, m); armen.setMatrixAt(i, m); koppen.setMatrixAt(i, m);
+    const { t, j } = plek[i];
+    t.palen.setMatrixAt(j, m); t.armen.setMatrixAt(j, m); t.koppen.setMatrixAt(j, m);
     W.lampPosities.push({ x: l.x + Math.cos(hoek) * 0.7, y: y + 5.1, z: l.z - Math.sin(hoek) * 0.7 });
     const doos = W.addCollider(l.x, l.z, 0.1, 0.1, 0, 5);
-    LANTAARNS.push({ x: l.x, z: l.z, y, hoek, i, doos, om: false, t: 0, val: 0, richting: 0, lamp: W.lampPosities[W.lampPosities.length - 1] });
+    LANTAARNS.push({ x: l.x, z: l.z, y, hoek, i, doos, om: false, t: 0, val: 0, richting: 0, lamp: W.lampPosities[W.lampPosities.length - 1],
+      tegel: plek[i].t, j: plek[i].j });
   });
-  palen.castShadow = true;
-  scene.add(palen, armen, koppen);
-  lampStapels = { palen, armen, koppen };
+  for (const t of tegels.values()) {
+    const groep = new THREE.Group();
+    t.palen.castShadow = true;
+    t.palen.userData.klasse = 'lantaarn'; t.armen.userData.klasse = 'lantaarn'; t.koppen.userData.klasse = 'lantaarnkop';
+    for (const s of [t.palen, t.armen, t.koppen]) s.computeBoundingSphere();
+    groep.add(t.palen, t.armen, t.koppen);
+    scene.add(groep);
+    // een paal is negen centimeter dik: op vijfhonderd meter minder dan een
+    // beeldpunt; de kop gloeit 's nachts, dus ruim
+    if (W.lodAan) W.lodAan(groep, (t.i + 0.5) * TEGEL_L, (t.j + 0.5) * TEGEL_L, { tot: 320, straal: TEGEL_L * 0.71 });
+  }
+  lampStapels = { tegels: [...tegels.values()] };
+  const vlak = new THREE.PlaneGeometry(1, 1); vlak.rotateX(-Math.PI / 2);
+  poelen = new THREE.InstancedMesh(vlak, new THREE.MeshBasicMaterial({ map: poelDoek(), transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), n);
+  poelen.userData.klasse = 'lichtpoel';
+  poelen.renderOrder = 2; poelen.visible = false;
+  poelen.raycast = () => {};
+  for (const L of LANTAARNS) zetPoel(L, true);
+  poelen.computeBoundingSphere();
+  scene.add(poelen);
 }
 
 // De matrix van één lantaarn opnieuw schrijven, met `val` radialen kanteling.
@@ -1993,8 +2070,9 @@ function zetLantaarn(L) {
   lampQ.setFromAxisAngle(lampAs, L.val);
   lampM.compose(lampPos.set(L.x, L.y, L.z), lampQ, lampSchaal);
   lampM.multiply(new THREE.Matrix4().makeRotationY(L.hoek));
-  for (const s of [lampStapels.palen, lampStapels.armen, lampStapels.koppen]) {
-    s.setMatrixAt(L.i, lampM);
+  const t = L.tegel;
+  for (const s of [t.palen, t.armen, t.koppen]) {
+    s.setMatrixAt(L.j, lampM);
     s.instanceMatrix.needsUpdate = true;
   }
 }
@@ -2010,6 +2088,7 @@ export function raakLantaarn(x, z, richting, snelheid) {
     if (L.om) continue;
     if (Math.hypot(L.x - x, L.z - z) > 1.7) continue;
     L.om = true; L.t = 0; L.richting = richting;
+    zetPoel(L, false);                    // een liggende lamp schijnt niet meer op straat
     // de botsdoos zakt naar de hoogte van een liggende paal
     L.doos.h = 0.35;
     return true;
@@ -2035,6 +2114,7 @@ export function werkLantaarnsBij(dt, px = null, pz = null) {
       L.doos.h = 5;
       if (L.lamp) L.lamp.y = L.y + 5.1;
       zetLantaarn(L);
+      zetPoel(L, true);
     }
   }
 }

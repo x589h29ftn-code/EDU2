@@ -130,6 +130,8 @@ const r = await page.evaluate(async () => {
 const mens = await page.evaluate(async () => {
   const THREE = await import('three');
   const g = window.__game, n = g.npcs, s = g.start;
+  // eerst zonder kijkkegel (die zet js/main.js elk beeld): iedereen binnen 200 m
+  n.kijk = null;
   n.update(1 / 60, 1, s.x, s.z);
   // de verdeling hoort bij de plekken van dít moment (in `update` gaat hij vóór het lopen)
   n.verdeelSlots(s.x, s.z);
@@ -147,13 +149,27 @@ const mens = await page.evaluate(async () => {
   const j = Math.max(0, n.nZicht - 1), c = new THREE.Color();
   n.meshes.romp.getColorAt(j, c);
   const kleur = c.getHex() === n.kleurVan[n.slotNaar[j]].shirt;
+  // en met de kijkkegel: naar het oosten kijkend telt wie achter je staat niet mee,
+  // behalve dichtbij (vijftien meter: zijn schaduw, en omdraaien)
+  const kegelFout = [];
+  let voorN = 0, achterN = 0;
+  n.kijk = { x: 1, z: 0 };
+  n.verdeelSlots(s.x, s.z);
+  for (let i = 0; i < n.people.length; i++) {
+    const p = n.people[i], dx = p.x - s.x, dz = p.z - s.z, d = Math.hypot(dx, dz);
+    if (d > n.ZICHT) continue;
+    const moet = d <= 15 || dx / d >= Math.cos(75 * Math.PI / 180) - 1e-9;
+    if (moet !== (n.slotVan[i] >= 0)) kegelFout.push(i);
+    if (n.slotVan[i] >= 0) voorN++; else achterN++;
+  }
+  n.kijk = null; n.verdeelSlots(s.x, s.z);
   const buiten = n.hit(n.meshes.romp, n.nZicht + 1) === null;
   const nZicht = n.nZicht;
   // de tijd per beeld: met de camera erbij (zoals js/main.js het doet) en zonder
   // (dan krijgt iedereen een lichaam, zoals het was)
   const klok = (cx, cz) => { n.update(1 / 60, 2, cx, cz); const a = performance.now(); for (let k = 0; k < 60; k++) n.update(1 / 60, 2 + k / 60, cx, cz); return (performance.now() - a) / 60; };
   const msAlles = klok(null, null), msZicht = klok(s.x, s.z);
-  return { msAlles, msZicht, binnen, nZicht, totaal: n.people.length, counts, perPersoon,
+  return { kegelFout: kegelFout.length, voorN, achterN, msAlles, msZicht, binnen, nZicht, totaal: n.people.length, counts, perPersoon,
     raak: raak && Math.hypot(raak.x - wie.x, raak.z - wie.z) < 0.01,
     kleur, buiten };
 });
@@ -171,6 +187,8 @@ ok(mens.nZicht === mens.binnen && mens.nZicht < mens.totaal / 2, 'alleen wie bin
   `${mens.nZicht} van ${mens.totaal}: ${((mens.totaal - mens.nZicht) * mens.perPersoon / 1e6).toFixed(2)} miljoen driehoeken per pas minder`);
 ok(mens.msZicht < mens.msAlles * 0.6, 'en de rest krijgt geen houding meer uitgerekend',
   `${mens.msZicht.toFixed(2)} ms per beeld tegen ${mens.msAlles.toFixed(2)} ms met iedereen`);
+ok(mens.kegelFout === 0 && mens.achterN > 0, 'en alleen wie vóór je is (of binnen vijftien meter): achter je geen lichaam',
+  `${mens.voorN} getekend, ${mens.achterN} achter je weggelaten, ${mens.kegelFout} verkeerd`);
 ok(mens.counts, 'en elk onderdeel tekent precies zoveel instanties (armen en benen twee per persoon)');
 ok(mens.raak, 'een treffer op een instantie raakt de persoon die daar staat');
 ok(mens.kleur, 'en zijn kleuren schuiven mee naar zijn plek');

@@ -117,61 +117,86 @@ for (const [naam, px, pz, yaw] of PLEKKEN) {
      vóór het tekenen. Three reset zelf een paar regels ná `shadowMap.render()`
      (lib/three.module.js:29594 en :29600), dus met de standaardinstelling valt
      de schaduw buiten de telling.
+
+     En de schaduwpas moet er ook echt zijn: js/main.js zet `autoUpdate` uit en
+     vraagt hem om het andere beeld aan met `needsUpdate`. Deze meting zette dat
+     niet, dus de schaduw kostte hier altijd nul (ronde van 25 sep 2026).
     */
-    g.renderer.info.autoReset = false;
+    const R = g.renderer;
     const meet = () => {
-      g.renderer.info.reset();
-      g.renderer.render(g.scene, g.camera);
-      return { calls: g.renderer.info.render.calls, tris: g.renderer.info.render.triangles };
+      R.info.autoReset = false; R.info.reset(); R.shadowMap.needsUpdate = true;
+      R.render(g.scene, g.camera);
+      const alles = { calls: R.info.render.calls, tris: R.info.render.triangles };
+      R.info.autoReset = true; R.shadowMap.needsUpdate = false;
+      R.render(g.scene, g.camera);
+      return { alles, beeld: { calls: R.info.render.calls, tris: R.info.render.triangles } };
     };
-    // en de beeldpas apart, zoals three zelf telt
-    g.renderer.info.autoReset = true;
-    g.renderer.render(g.scene, g.camera);
-    const beeld = { calls: g.renderer.info.render.calls, tris: g.renderer.info.render.triangles };
-    g.renderer.info.autoReset = false;
+    const nu = meet(), alles = nu.alles, beeld = nu.beeld;
 
-    const alles = meet();
-
-    // welke objecten horen bij een keuze?
-    const kies = (sleutel) => {
-      const uit = [];
-      g.scene.traverse(o => {
-        if (!o.isMesh && !o.isInstancedMesh) return;
-        if (sleutel.startsWith('klasse:')) {
-          const namen = sleutel.slice(7).split(',');
-          if (namen.includes(o.userData.klasse)) uit.push(o);
-        } else if (sleutel.startsWith('geo:')) {
-          if (o.isInstancedMesh && o.geometry.type === sleutel.slice(4)) uit.push(o);
-        } else if (sleutel === 'inst-overig') {
-          if (o.isInstancedMesh && !['IcosahedronGeometry', 'CylinderGeometry', 'SphereGeometry'].includes(o.geometry.type)) uit.push(o);
-        }
-      });
-      return uit;
+    /*
+     Per soort, zonder vaste lijst: de oude lijst herkende bomen en struiken aan
+     hun geometrie (IcosahedronGeometry, SphereGeometry), en sinds js/groen.js
+     vielen die er allemaal buiten. Nu de `klasse`, anders de stapel of de soort
+     geometrie, zodat er niets buiten de telling valt.
+    */
+    const npc = new Set(Object.values(g.npcs.meshes || {}));
+    const soortVan = (o) => o.userData.klasse || (o.userData.autoStapel ? 'geparkeerde auto' : null)
+      || (npc.has(o) ? 'voetganger' : null) || (o.parent && o.parent.userData && o.parent.userData.klasse)
+      || `${o.isInstancedMesh ? 'inst ' : ''}${o.geometry.type}`;
+    const zichtbaar = (o) => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
+    const groepen = new Map();
+    g.scene.traverse(o => {
+      if (!o.isMesh || !zichtbaar(o)) return;
+      const k = soortVan(o);
+      if (!groepen.has(k)) groepen.set(k, []);
+      groepen.get(k).push(o);
+    });
+    /*
+     Eén keer tekenen en per tekenopdracht bijhouden wat hij kostte: na elke
+     opdracht (`onAfterRender`, en `onAfterShadow` in de schaduwpas) is het
+     verschil in `renderer.info` wat dát object tekende. Eerst werd elke soort
+     uitgezet en het beeld opnieuw getekend, twee keer per soort, en met een paar
+     honderd soorten duurde één plek zo een uur.
+    */
+    const telling = new Map();
+    let laatste = { tris: 0, calls: 0 };
+    const tel = (o, schaduw) => {
+      const nu = { tris: R.info.render.triangles, calls: R.info.render.calls };
+      const k = o.userData._soort;
+      if (!telling.has(k)) telling.set(k, { wat: k, tris: 0, calls: 0, schaduw: 0, objecten: new Set() });
+      const t = telling.get(k);
+      const dt = nu.tris - laatste.tris;
+      if (schaduw) t.schaduw += dt; else t.tris += dt;
+      t.calls += nu.calls - laatste.calls;
+      t.objecten.add(o);
+      laatste = nu;
     };
-
-    const lijst = [];
-    for (const [wat, sleutel] of WEEG) {
-      const objecten = kies(sleutel).filter(o => o.visible);
-      if (!objecten.length) { lijst.push({ wat, objecten: 0, calls: 0, tris: 0 }); continue; }
-      for (const o of objecten) o.visible = false;
-      const zonder = meet();
-      for (const o of objecten) o.visible = true;
-      lijst.push({ wat, objecten: objecten.length, calls: alles.calls - zonder.calls, tris: alles.tris - zonder.tris });
+    const oud = [];
+    for (const [wat, objecten] of groepen) for (const o of objecten) {
+      o.userData._soort = wat;
+      oud.push([o, o.onAfterRender, o.onAfterShadow]);
+      const r0 = o.onAfterRender, s0 = o.onAfterShadow;
+      o.onAfterRender = function (...a) { r0.apply(this, a); tel(this, false); };
+      o.onAfterShadow = function (...a) { s0.apply(this, a); tel(this, true); };
     }
-    g.renderer.info.autoReset = true;
+    R.info.autoReset = false; R.info.reset(); R.shadowMap.needsUpdate = true;
+    R.render(g.scene, g.camera);
+    for (const [o, r0, s0] of oud) { o.onAfterRender = r0; o.onAfterShadow = s0; delete o.userData._soort; }
+    const lijst = [...telling.values()].map(t => ({ wat: t.wat, tris: t.tris + t.schaduw, schaduw: t.schaduw, calls: t.calls, objecten: t.objecten.size }));
+    R.info.autoReset = true;
     lijst.sort((a, b) => b.tris - a.tris);
-    return { beeld, alles, lijst };
+    return { beeld, alles, lijst: lijst.slice(0, 28) };
   }, { px, pz, yaw, WEEG });
 
   console.log(`\n=== ${naam} ===`);
   console.log(`  beeldpas                  : ${String(r.beeld.calls).padStart(5)} calls, ${r.beeld.tris.toLocaleString('nl-NL').padStart(10)} driehoeken`);
   console.log(`  beeldpas + schaduwpas     : ${String(r.alles.calls).padStart(5)} calls, ${r.alles.tris.toLocaleString('nl-NL').padStart(10)} driehoeken`);
   console.log(`  de schaduw kost dus       : ${String(r.alles.calls - r.beeld.calls).padStart(5)} calls, ${(r.alles.tris - r.beeld.tris).toLocaleString('nl-NL').padStart(10)} driehoeken`);
-  console.log('  wat elke klasse kost (uitgezet en opnieuw getekend, beide passen):');
-  console.log(`    ${'wat'.padEnd(20)} ${'calls'.padStart(6)} ${'driehoeken'.padStart(11)} ${'meshes'.padStart(7)}`);
+  console.log('  wat elke soort kost (uitgezet en opnieuw getekend, beide passen; de schaduw apart):');
+  console.log(`    ${'wat'.padEnd(26)} ${'calls'.padStart(6)} ${'driehoeken'.padStart(11)} ${'schaduw'.padStart(10)} ${'meshes'.padStart(7)}`);
   for (const e of r.lijst) {
     if (!e.tris && !e.calls) continue;
-    console.log(`    ${e.wat.padEnd(20)} ${String(e.calls).padStart(6)} ${e.tris.toLocaleString('nl-NL').padStart(11)} ${String(e.objecten).padStart(7)}`);
+    console.log(`    ${String(e.wat).slice(0, 26).padEnd(26)} ${String(e.calls).padStart(6)} ${e.tris.toLocaleString('nl-NL').padStart(11)} ${e.schaduw.toLocaleString('nl-NL').padStart(10)} ${String(e.objecten).padStart(7)}`);
   }
 }
 
@@ -194,7 +219,7 @@ const cpu = await page.evaluate(async () => {
   t('hud.drawMap', () => g.hud.drawMap(g.player, g.vehicles, g.npcs));
   t('hud.update (alles)', () => g.hud.update(0.016, g.player, g.vehicles, g.npcs, 'Molenkrite'));
   t('world.updateProps', () => W.updateProps(0.016, performance.now() / 1000));
-  t('world.updateLOD', () => W.updateLOD(g.camera));
+  t('world.updateLOD', () => W.updateLOD(g.camera.position.x, g.camera.position.z));
   t('resolveCollisions', () => W.resolveCollisions(g.player.pos, 0.35));
   return meet;
 });

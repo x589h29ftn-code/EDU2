@@ -186,6 +186,7 @@ export class NPCs {
      persoon bij een instantie, `slotVan[persoon]` andersom (−1: niet getekend).
     */
     this.ZICHT = 200;
+    this.kijk = null;                   // kijkrichting over de grond, { x, z } (zie `verdeelSlots`)
     this.slotNaar = new Int32Array(count);
     this.slotVan = new Int32Array(count);
     for (let i = 0; i < count; i++) { this.slotNaar[i] = i; this.slotVan[i] = i; }
@@ -301,13 +302,26 @@ export class NPCs {
    Wie staat er binnen `ZICHT`? Die krijgen instantie 0, 1, 2, … in volgorde van
    hun nummer; verandert de rij, dan gaan de kleuren mee naar hun nieuwe plek.
   */
+  /*
+   En alleen wie vóór je is (ronde van 25 sep 2026, open punt 18). Binnen de
+   tweehonderd meter stonden ook de mensen achter je in de meshes, met hun hele
+   houding uitgerekend — en `frustumCulled` staat uit, want één mesh draagt ze
+   allemaal. `kijk` is de kijkrichting van de camera over de grond (js/main.js
+   zet hem elk beeld); wie verder dan `DICHT` weg is en meer dan 75° opzij van die
+   richting staat, krijgt geen lichaam. Het beeld is 104° breed, dus er zit
+   ruim marge in; dichtbij telt iedereen, voor zijn schaduw en voor als je je
+   omdraait. De verdeling wordt elk beeld opnieuw gemaakt, dus omkijken toont
+   ze meteen.
+  */
   verdeelSlots(camX, camZ) {
-    const q = this.ZICHT * this.ZICHT;
+    const q = this.ZICHT * this.ZICHT, DICHT = 15, KEGEL = Math.cos(75 * Math.PI / 180);
+    const kx = this.kijk ? this.kijk.x : 0, kz = this.kijk ? this.kijk.z : 0;
     let k = 0, anders = false;
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
-      const dx = p.x - camX, dz = p.z - camZ;
-      if (camX !== null && dx * dx + dz * dz > q) { this.slotVan[i] = -1; continue; }
+      const dx = p.x - camX, dz = p.z - camZ, d2 = dx * dx + dz * dz;
+      if (camX !== null && d2 > q) { this.slotVan[i] = -1; continue; }
+      if (camX !== null && this.kijk && d2 > DICHT * DICHT && (dx * kx + dz * kz) < KEGEL * Math.sqrt(d2)) { this.slotVan[i] = -1; continue; }
       if (this.slotNaar[k] !== i) { anders = true; this.slotNaar[k] = i; this.kleurSlot(k, i); }
       this.slotVan[i] = k++;
     }

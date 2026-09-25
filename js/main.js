@@ -1,6 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, updateProps, radioPlekken, vaarbaar, waaitMee } from './world.js';
+import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee } from './world.js';
 import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
@@ -273,6 +273,8 @@ function zetSchaduwDoos(cx, cz) {
   _zonM.addScaledVector(_zonO, Math.round(b / texel) * texel - b);
   sun.position.set(_zonM.x + SUN_DIR.x * 150, _zonM.y + SUN_DIR.y * 150, _zonM.z + SUN_DIR.z * 150);
   sun.target.position.copy(_zonM); sun.target.updateMatrixWorld();
+  // de bomen die schaduw werpen: alleen die bij de doos (js/world.js)
+  werkSchaduwBomenBij(_zonM.x, _zonM.z);
 }
 function werkOmgevingBij(dt) {
   envT -= dt;
@@ -1406,6 +1408,14 @@ const touch = IS_TOUCH ? initTouchControls(player, {
  hapert hij niet bij elke nieuwe plek. Daarna de wereld zoals hij bij de eerste
  seconde hoort.
 */
+// de kijkrichting over de grond voor de voetgangers (js/npc.js, `verdeelSlots`)
+const kijkNpcs = new THREE.Vector3();
+function zetKijkNpcs() {
+  camera.getWorldDirection(kijkNpcs);
+  const l = Math.hypot(kijkNpcs.x, kijkNpcs.z);
+  // recht naar beneden kijken (de intro, van boven): dan geen richting, iedereen telt
+  npcs.kijk = l > 0.3 ? { x: kijkNpcs.x / l, z: kijkNpcs.z / l } : null;
+}
 let voorbereiden = false;
 let lodFilmBij = null;              // waar de LOD tijdens het filmpje het laatst bijgewerkt is
 async function voorFilm() {
@@ -1956,6 +1966,7 @@ function loop() {
       geluid.raak();
     });
     vehicles.updateTraffic(dt, player, opDeWeg, camera.position.x, camera.position.z);
+    zetKijkNpcs();
     npcs.update(dt, time, camera.position.x, camera.position.z);
     verhaal.update(dt);
     for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
@@ -2105,6 +2116,7 @@ function loop() {
     }
     updateClouds(dt, camera.position.x, camera.position.z);
     sfeer.update(dt, camera.position.x, camera.position.z);
+    zetKijkNpcs();
     npcs.update(dt, time, camera.position.x, camera.position.z);
     vehicles.updateTraffic(dt, player, opDeWeg, camera.position.x, camera.position.z);
     verhaal.update(dt);

@@ -7,6 +7,8 @@
 import * as THREE from 'three';
 import { sfeerMaterialen, lampPosities } from './world.js';
 import { nachtUniform, tijdUniform } from './licht.js';
+import { zetKoplampen } from './carmodel.js';
+import { zetLichtpoelen } from './kaartwereld.js';
 
 const WEER = ['helder', 'bewolkt', 'regen'];
 
@@ -223,6 +225,9 @@ export function initSfeer(ctx) {
     }
     // hoe nacht het is, voor de verlichte ramen (js/licht.js)
     nachtUniform.value = Math.max(0, Math.min(1, (0.75 - k.kracht) / 0.55));
+    // de plassen licht onder de palen en de lampen van wat rijdt gaan mee
+    zetLichtpoelen(nachtUniform.value);
+    zetKoplampen(nachtUniform.value > 0.35);
 
     /*
      Nat wegdek. Asfalt en klinkers staan droog op ruwheid 0,95 en spiegelen dus

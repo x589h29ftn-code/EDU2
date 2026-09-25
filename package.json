@@ -152,6 +152,9 @@
     "terugslagshots": "node tools/terugslagshots.mjs",
     "autolodtest": "node tools/autolodtest.mjs",
     "autolodshots": "node tools/autolodshots.mjs",
-    "lodtest": "node tools/lodtest.mjs"
+    "lodtest": "node tools/lodtest.mjs",
+    "nachttest": "node tools/nachttest.mjs",
+    "nachtshots": "node tools/nachtshots.mjs",
+    "schaduwtest": "node tools/schaduwtest.mjs"
   }
 }
