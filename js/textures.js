@@ -324,27 +324,52 @@ export function asphalt() {
 // ---------- Gras ----------
 export function grass() {
   if (cache.has('grass')) return cache.get('grass');
-  // 512 px = 4 m: fijne sprieten, met kleurvlekken (klaver, dor gras) zodat
-  // de herhaling niet opvalt.
+  /*
+   512 px = 5 m (js/kaartwereld.js, `uvVoor`): ruim honderd beeldpunten per
+   meter, dus een spriet van één beeldpunt is een centimeter breed.
+
+   Dit was 8,3 m per doek, met sprieten van anderhalve pixel (negen centimeter)
+   en "madeliefjes" van 2 tot 4 px — 12 tot 25 cm grote witte vlekjes, die in elke
+   schermafdruk als witte snippers in het gras lagen (steekproef 24 sep 2026).
+   Nu: schuine sprieten van één beeldpunt in drie lagen (donker onderin, licht
+   bovenop), klaverplekken, en maar een handvol bloemetjes van één of twee
+   beeldpunten. De variatie over grotere afstand komt niet uit dit doek maar uit
+   `grasVariatie` in js/groen.js.
+  */
   const S = 512;
   const c = canvas(S, S); const g = c.getContext('2d');
   const r = rng(41);
-  g.fillStyle = '#4c7a2c'; g.fillRect(0, 0, S, S);
-  for (let i = 0; i < 40; i++) {
-    const x = r() * S, y = r() * S, rad = 30 + r() * 90;
-    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
-    const tint = r() < 0.5 ? `rgba(120,150,60,${0.25 + r() * 0.3})` : `rgba(50,95,35,${0.25 + r() * 0.3})`;
-    gr.addColorStop(0, tint); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  g.fillStyle = '#3f6a26'; g.fillRect(0, 0, S, S);
+  // plekken: klaver (blauwiger groen), dunner gras (geler), en schaduw
+  for (let i = 0; i < 70; i++) {
+    const x = r() * S, y = r() * S, rad = 18 + r() * 70;
+    const soort = r();
+    const tint = soort < 0.4 ? `rgba(70,120,60,${0.25 + r() * 0.25})` : soort < 0.75 ? `rgba(130,150,65,${0.2 + r() * 0.25})` : `rgba(30,60,22,${0.25 + r() * 0.25})`;
+    for (const dx of [-S, 0, S]) for (const dy of [-S, 0, S]) {
+      const gr = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, rad);
+      gr.addColorStop(0, tint); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(x + dx - rad, y + dy - rad, rad * 2, rad * 2);
+    }
   }
-  for (let i = 0; i < 90000; i++) {
-    const gr = 95 + r() * 90, rd = 45 + r() * 60;
-    g.fillStyle = `rgba(${rd},${gr},${25 + r() * 35},${0.55 + r() * 0.35})`;
-    const x = r() * S, y = r() * S;
-    g.fillRect(x, y, 1.5, 2 + r() * 3);
+  // sprieten in drie lagen: donker en kort onderin, dan middel, dan licht en lang
+  const lagen = [[26000, 55, 90, 20, 2, 4], [30000, 75, 125, 30, 3, 6], [16000, 105, 165, 40, 4, 8]];
+  g.lineWidth = 1;
+  for (const [n, g0, g1, b0, l0, l1] of lagen) {
+    for (let i = 0; i < n; i++) {
+      const gg = g0 + r() * (g1 - g0), rr = gg * (0.45 + r() * 0.25), bb = b0 + r() * 25;
+      g.strokeStyle = `rgba(${rr | 0},${gg | 0},${bb | 0},${0.55 + r() * 0.4})`;
+      const x = r() * S, y = r() * S, L = l0 + r() * (l1 - l0), sch = (r() - 0.5) * 0.9;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + sch * L, y - L); g.stroke();
+      if (x < l1 || x > S - l1 || y < l1 || y > S - l1) {   // over de rand: ook aan de overkant
+        const ox = x < l1 ? S : x > S - l1 ? -S : 0, oy = y < l1 ? S : y > S - l1 ? -S : 0;
+        g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(x + ox + sch * L, y + oy - L); g.stroke();
+      }
+    }
   }
-  // paar bruine blaadjes en madeliefjes
-  for (let i = 0; i < 260; i++) { g.fillStyle = r() < 0.6 ? `rgba(${120 + r() * 60},${80 + r() * 40},30,0.7)` : 'rgba(240,240,230,0.8)'; g.fillRect(r() * S, r() * S, 2 + r() * 2, 2); }
+  // een paar dorre sprieten, bruine blaadjes en maar een handvol bloemetjes
+  for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${150 + r() * 50},${130 + r() * 40},${60 + r() * 30},0.55)`; g.fillRect(r() * S, r() * S, 1, 2 + r() * 3); }
+  for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(${110 + r() * 40},${75 + r() * 30},30,0.7)`; g.fillRect(r() * S, r() * S, 2, 1); }
+  for (let i = 0; i < 40; i++) { g.fillStyle = r() < 0.6 ? 'rgba(245,245,235,0.85)' : 'rgba(240,210,40,0.85)'; g.fillRect(r() * S, r() * S, 1 + (r() < 0.3 ? 1 : 0), 1); }
   const t = tex(c, 1, 1, 0, 'gras'); cache.set('grass', t); return t;
 }
 

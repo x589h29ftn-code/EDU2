@@ -5363,6 +5363,46 @@ segmenten in de gewrichtsbollen en het hoofd, ellipsoïden voor hand, neus en
 oren, een schoen van twee delen, en het kapsel als één kap (van achteren lazen
 twee afgeronde blokjes als een zwarte band met bolletjes): 3608.
 
+**Bomen, struiken en gras (stap 78).** Op verzoek: "kijk ook eens naar de bomen,
+bosjes en gras met dezelfde blik". Nieuwe proef `groentest`, foto's
+`groenshots`, nieuwe module js/groen.js.
+
+*Eerst een nulmeting.* Hoeveel driehoeken staan er in beeld op drie vaste
+plekken (7,52, 4,17 en 3,12 miljoen, inclusief de schaduwpas), zodat "even
+zwaar" een getal is en geen indruk. De eerste versie gaf struiken tachtig
+vlakken in plaats van 48 en dat kostte 2 tot 4 % — negentienduizend struiken.
+Terug naar een bol van 6 × 4, maar dan bobbelig en glad: binnen 1 %.
+
+*De fout die in elke foto stond.* `lodAan` trok de straal van de tegel af van
+`vanaf` en telde hem op bij `tot`. Bij bomen (tegels van 240 m, straal 170)
+werd "grove kroon vanaf 170 m" daarmee "vanaf 0 m", terwijl de fijne tot 340 m
+bleef. Dichtbij stonden dus beide kronen, de grove zes procent groter om de fijne
+heen. De proef telt nu dat dichtbij geen enkele verre kroon aan staat. En de
+foto's: de hoofdlus loopt headless nauwelijks, dus `updateLOD` draaide voor een
+foto nooit; de fotorondes roepen hem nu zelf aan. Zonder dat liet ook de eerste
+foto van deze ronde de fout nog zien, terwijl hij al hersteld was.
+
+*Vormen.* `bolGeo`: een icosaëder (of een eigen bol) waarvan elk hoekpunt een
+afstand krijgt uit een vaste ruis op zijn richting — dezelfde richting, dezelfde
+afstand, dus de kroon blijft dicht — met daarna per plek gemiddelde normalen
+(de icosaëder van three heeft geen index; zonder middelen blijft elk vlak plat)
+en licht in de hoekpunten van 0,55 onder tot 1,05 boven. Stam: open cilinder met
+drie takken hoog op de stam; de eerste takken zaten te laag en staken kaal onder
+de kroon uit.
+
+*Staan ze goed.* Stammen op de grond (ook op de dijk), geen struik die zweeft.
+1754 kronen begonnen onder de 2,3 m; `kroonOp` tilt ze op. De eerste meting van
+de onderkant nam de omhullende doos van een gedraaide bol en gaf een kroon op
+−0,02 m; het laagste hoekpunt zelf geeft de echte maat. Idem voor de plek: het
+midden van de doos om een stam met takken ligt niet op de stam, en dat gaf
+negen "bomen op de rijbaan" die er niet waren. Wat overbleef (3 bomen, 4
+struiken) valt nu weg via `geenGroen` in js/kaartwereld.js.
+
+*Gras.* 512 px per 5 m in plaats van per 8,3 m, sprieten in drie lagen van één
+beeldpunt, geen witte vlekjes van vier beeldpunten of meer (de proef telt ze), en
+`grasVariatie` in js/groen.js: in wereldcoördinaten een ruisveld op 77 en 20 m
+dat het gras lichter, donkerder en op de hoge plekken geler maakt.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

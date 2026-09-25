@@ -1,10 +1,11 @@
 // Wereldopbouw: wegen, stoepen, parkeervakken, water, groen, huizen, straatmeubilair.
 import * as THREE from 'three';
+import { bolGeo, stamGeo, kroonMat, kroonVerMat, stamMat } from './groen.js';
 import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PROPS, PARKS, PARKING_LOTS, PLATEAUS, PLAYGROUND, START, PX_PER_M, toWorld } from './data.js';
 import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
-import { KAART, bouwKaartWereld, bouwKaartWereldStap, ondergrondKaart, kaartStand, vlakOp } from './kaartwereld.js';
+import { KAART, bouwKaartWereld, bouwKaartWereldStap, ondergrondKaart, kaartStand, vlakOp, geenGroen, kaartTelling } from './kaartwereld.js';
 import { draaiMolens } from './molen.js';
 export { grondHoogte, opViaduct, onderBrug } from './viaduct.js';
 
@@ -35,7 +36,16 @@ export function lodAan(obj, x, z, { tot = 0, vanaf = 0, straal = 0 } = {}) {
   lodGroepen.push({
     obj, x, z,
     tot: (tot || LOD_AFSTAND) + straal,
-    vanaf: vanaf ? Math.max(0, vanaf - straal) : 0,
+    /*
+     `vanaf` telt de straal van de tegel er net zo bij op als `tot`. Hij trok hem
+     er eerst áf: bij de bomen (tegels van 240 m, straal 170) werd "de grove
+     kroon vanaf 170 m" daarmee "vanaf 0 m", terwijl de fijne kroon tot 340 m
+     bleef staan. Dichtbij stonden dus allebei de kronen — de grove, twintig
+     vlakken en 6 % groter, óm de fijne heen: de grote hoekige vlakken die je
+     op elke foto in de bomen zag (npm run groentest, 24 sep 2026). Nu gaat de
+     één uit waar de ander aangaat.
+    */
+    vanaf: vanaf ? vanaf + straal : 0,
   });
 }
 
@@ -1647,20 +1657,53 @@ function boomTegelMidden(groep) {
   ];
 }
 
+// de materialen van de bomen, één keer (js/groen.js)
+let _groen = null;
+function groenMat() {
+  return _groen || (_groen = {
+    stam: stamMat(0xffffff), stamBleek: stamMat(0xd8d2c2),
+    kroon: kroonMat(0xffffff), kroon2: kroonMat(0xc9d6b4),
+    kroonVer: kroonVerMat(0xffffff),
+  });
+}
+
 function buildTrees(scene) {
+  // de laatste zeef: geen boom in een pand of op de rijbaan (zie `geenGroen`)
+  const voor = treePositions.length;
+  for (let i = treePositions.length - 1; i >= 0; i--) if (KAART && geenGroen(treePositions[i].x, treePositions[i].z)) treePositions.splice(i, 1);
+  kaartTelling.bomenWeg = voor - treePositions.length;
   const normal = treePositions.filter(t => !t.tall);
   const tall = treePositions.filter(t => t.tall);
+  /*
+   De kroon begint boven hoofdhoogte. De oude regel ("de kroon begint pas op
+   ruim twee meter") gold voor een grote boom; bij een kleine (s = 0,8) en een
+   hoge, platte kroon lag de onderkant op 1,0 m, en met de bobbels erbij nog
+   wat lager: 1754 kronen waar je met je hoofd in liep (npm run groentest).
+   `kroonOp` tilt zo'n kroon op tot zijn laagste punt op 2,4 m ligt; de stam
+   loopt tot 5·s en steekt daar altijd in.
+  */
+  const BOL = 2.2 * 1.19;
+  const kroonOp = (y, maxSchaal, straal = BOL) => Math.max(y, 2.45 + straal * maxSchaal);
   const m = new THREE.Matrix4(); const q = new THREE.Quaternion(); const r = rng(99);
 
   // gewone straat- en parkbomen: brede bolkroon
   if (normal.length) {
     // De kroon begint pas op ruim twee meter: anders loop je op het trottoir
     // met je hoofd door de bladeren en zie je in een screenshot alleen groen.
-    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 5.0, 6);
-    const leafGeo = new THREE.IcosahedronGeometry(2.2, 1);
+    /*
+     Stam met takken en schors, kroon als bobbelige bol met gladde normalen,
+     een bladdoek en licht in de hoekpunten (js/groen.js). Evenveel vlakken in de
+     kroon als voorheen (tachtig, en twintig in de verte).
+    */
+    const trunkGeo = stamGeo(5.0, 0.16, 0.28, 1);
+    const leafGeo = bolGeo(2.2, 1, { zaad: 1, uvMaat: 1.8 });
     // de tweede, kleinere kroon zit boven op de eerste en is alleen een bobbel
     // in het silhouet: die mag met twintig vlakken toe in plaats van tachtig
-    const leafGeoGrof = new THREE.IcosahedronGeometry(2.2, 0);
+    const leafGeoGrof = bolGeo(2.2, 0, { zaad: 2, diepte: 0.12, uvMaat: 1.8 });
+    // de bobbel boven op de kroon staat dichtbij in beeld (tot 170 m), dus niet
+    // de twintig vlakken van de verre kroon maar een bol van 6 × 4
+    const bobbelGeo = bolGeo(2.2, 0, { zaad: 6, diepte: 0.16, uvMaat: 1.8, basis: new THREE.SphereGeometry(1, 6, 4) });
+    const M = groenMat();
     /*
      Twee maten kroon. De boomkronen waren met 1,05 miljoen driehoeken op het
      zwaarste standpunt de tweede grootste post in het beeld, en het meeste
@@ -1676,10 +1719,12 @@ function buildTrees(scene) {
     const GROF_OP = 1.06;
     for (const groep of boomTegels(normal)) {
       const n = groep.length;
-      const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunk, n);
-      const leavesA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n);
-      const leavesAver = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf, n);
-      const leavesB = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf2, n);
+      const trunks = new THREE.InstancedMesh(trunkGeo, M.stam, n);
+      const leavesA = new THREE.InstancedMesh(leafGeo, M.kroon, n);
+      const leavesAver = new THREE.InstancedMesh(leafGeoGrof, M.kroonVer, n);
+      const leavesB = new THREE.InstancedMesh(bobbelGeo, M.kroon2, n);
+      trunks.userData.klasse = 'stam'; leavesA.userData.klasse = 'kroon';
+      leavesAver.userData.klasse = 'kroonVer'; leavesB.userData.klasse = 'kroonBobbel';
       groep.forEach((t, i) => {
         const s2 = t.s; q.identity();
         // Een grote laanboom heeft ook een dikkere stam, anders staat er een
@@ -1689,11 +1734,12 @@ function buildTrees(scene) {
         m.compose(new THREE.Vector3(t.x, ty + 2.5 * s2, t.z), q, new THREE.Vector3(dik, s2, dik)); trunks.setMatrixAt(i, m);
         q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
         const kw = s2 * (0.95 + r() * 0.45), kh = s2 * (0.85 + r() * 0.4), kd = s2 * (0.95 + r() * 0.45);
-        const kp = new THREE.Vector3(t.x, ty + 5.2 * s2, t.z);
+        const kpY = kroonOp(5.2 * s2, Math.max(kw, kh, kd)), lift = kpY - 5.2 * s2;
+        const kp = new THREE.Vector3(t.x, ty + kpY, t.z);
         m.compose(kp, q, new THREE.Vector3(kw, kh, kd)); leavesA.setMatrixAt(i, m);
         m.compose(kp, q, new THREE.Vector3(kw * GROF_OP, kh * GROF_OP, kd * GROF_OP)); leavesAver.setMatrixAt(i, m);
         q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-        m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, ty + 6.7 * s2, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
+        m.compose(new THREE.Vector3(t.x + (r() - 0.5) * 1.4 * s2, ty + 6.7 * s2 + lift, t.z + (r() - 0.5) * 1.4 * s2), q, new THREE.Vector3(s2 * 0.85, s2 * 0.7, s2 * 0.85)); leavesB.setMatrixAt(i, m);
         if (!t.vrij) addCollider(t.x, t.z, 0.3 * dik, 0.3 * dik, 0, 3);
       });
       trunks.castShadow = true; leavesA.castShadow = true;
@@ -1715,23 +1761,29 @@ function buildTrees(scene) {
 
   // populieren langs de parkpaden: hoge, rechte stam met smalle kroon
   if (tall.length) {
-    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.30, 5.4, 7);
-    const leafGeo = new THREE.IcosahedronGeometry(2.0, 1);
-    const leafGeoGrof = new THREE.IcosahedronGeometry(2.0, 0);
+    const trunkGeo = stamGeo(5.4, 0.16, 0.30, 3);
+    const leafGeo = bolGeo(2.0, 1, { zaad: 3, uvMaat: 1.6 });
+    const leafGeoGrof = bolGeo(2.0, 0, { zaad: 4, diepte: 0.12, uvMaat: 1.6 });
+    const bobbelGeo = bolGeo(2.0, 0, { zaad: 7, diepte: 0.16, uvMaat: 1.6, basis: new THREE.SphereGeometry(1, 6, 4) });
+    const M = groenMat();
     for (const groep of boomTegels(tall)) {
       const n = groep.length;
-      const trunks = new THREE.InstancedMesh(trunkGeo, MAT.trunkPale, n);
-      const crownA = new THREE.InstancedMesh(leafGeo, MAT.leaf, n * 2);
+      const trunks = new THREE.InstancedMesh(trunkGeo, M.stamBleek, n);
+      const crownA = new THREE.InstancedMesh(leafGeo, M.kroon, n * 2);
       // dezelfde kronen nog een keer met twintig vlakken, voor ver weg
-      const crownAver = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf, n * 2);
-      const crownB = new THREE.InstancedMesh(leafGeoGrof, MAT.leaf2, n * 2);
+      const crownAver = new THREE.InstancedMesh(leafGeoGrof, M.kroonVer, n * 2);
+      const crownB = new THREE.InstancedMesh(bobbelGeo, M.kroon2, n * 2);
+      trunks.userData.klasse = 'stam'; crownA.userData.klasse = 'kroon';
+      crownAver.userData.klasse = 'kroonVer'; crownB.userData.klasse = 'kroonBobbel';
       groep.forEach((t, i) => {
         const s2 = t.s; q.identity();
         const ty = t.y || 0;
         m.compose(new THREE.Vector3(t.x, ty + 2.7 * s2, t.z), q, new THREE.Vector3(1, s2, 1)); trunks.setMatrixAt(i, m);
+        // (de onderste kroon van een populier boven hoofdhoogte, de bovenste schuift mee)
+        const liftP = kroonOp(6.0 * s2, 1.30 * s2 * 1.25, 2.0 * 1.19) - 6.0 * s2;
         for (let k = 0; k < 2; k++) {
           q.setFromEuler(new THREE.Euler(r() * 3, r() * 3, 0));
-          const y = ty + (6.0 + k * 2.2) * s2;
+          const y = ty + (6.0 + k * 2.2) * s2 + liftP;
           const w = (1.30 - k * 0.30) * s2;
           const p1 = new THREE.Vector3(t.x + (r() - 0.5) * 1.2 * s2, y, t.z + (r() - 0.5) * 1.2 * s2);
           m.compose(p1, q, new THREE.Vector3(w, w * 1.25, w));

@@ -31,6 +31,7 @@ const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 page.on('pageerror', e => console.log('[pageerror]', e.message));
 await page.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load', timeout: 900000 });
 await page.waitForFunction(() => window.__game, null, { timeout: 900000 });
+await page.evaluate(async () => { window.__W = await import('/js/world.js'); });
 
 await page.evaluate(() => {
   const g = window.__game;
@@ -48,6 +49,8 @@ const teken = () => page.evaluate(() => {
   g.hud.msgT = 0; g.hud.msg.style.transition = 'none'; g.hud.msg.style.opacity = 0;
   if (g.uitleg) g.uitleg.update(999);
   g.zetSchaduwDoos(g.camera.position.x, g.camera.position.z);
+  // de hoofdlus loopt headless nauwelijks: de LOD zelf bijwerken
+  window.__W && window.__W.updateLOD(g.camera.position.x, g.camera.position.z);
   g.renderer.render(g.scene, g.camera);
   if (g.player.gun && g.player.gun.visible) g.tekenWapen();
 });

@@ -2707,6 +2707,41 @@ en vier straten (`straat_1` tot `straat_4`).
 |---|---|
 | ![Straat](docs/screenshots/straat_3.png) | ![Straat](docs/screenshots/straat_4.png) |
 
+## Bomen, struiken en gras
+
+Nagelopen met dezelfde blik (24 sep 2026); `npm run groentest` meet het na,
+`npm run groenshots` maakt de foto's.
+
+**De grote hoekige vlakken in de bomen waren een fout.** Elke boom heeft een
+fijne kroon voor dichtbij en een grove (twintig vlakken, iets groter) voor in de
+verte. Door een rekenfout in de afstandsgrens stond de grove kroon óók dichtbij
+aan, óm de fijne heen: dat waren de grote platte groene vlakken die je in elke
+straat in de bomen zag. Nu gaat de een uit waar de ander aangaat.
+
+**Kronen en struiken** zijn geen geslepen edelstenen meer maar bobbelige, ronde
+vormen: gladde overgangen, een bladdoek waarin de blaadjes het licht vangen, en
+licht in de hoekpunten — onderin en in de holtes donker, bovenop licht. De stam
+heeft schors en drie takken die de kroon in lopen. Evenveel vlakken als voorheen,
+dus even zwaar voor de pc (de proef meet het aantal driehoeken in beeld op drie
+vaste plekken: binnen 1 % van hiervoor).
+
+**Kronen boven hoofdhoogte.** Bij 1754 bomen hing de kroon lager dan 2,3 m — bij
+een kleine boom met een platte kroon tot op 1,0 m. Elke kroon begint nu op
+minstens 2,4 m.
+
+**Nergens groen waar het niet hoort.** Drie bomen en vier struiken stonden in een
+pand of op de rijbaan; die vallen weg.
+
+**Gras.** Het doek herhaalde om de 8,3 m, met sprieten van negen centimeter breed
+en "madeliefjes" van 12 tot 25 cm die als witte snippers in beeld lagen. Nu vijf
+meter per doek met sprieten van een centimeter, een handvol echte bloemetjes, en
+een variatie over tientallen meters — lichter, donkerder en hier en daar wat
+dorder — zodat een veld niet meer uit tegels bestaat.
+
+| ![Een straatboom](docs/screenshots/groen_boom.png) | ![Een struik](docs/screenshots/groen_struik.png) | ![Een grasveld](docs/screenshots/groen_veld.png) |
+|---|---|---|
+| straatbomen van dichtbij | een struik | een grasveld van 3,7 ha |
+
 `npm run lichtshots` maakt deze drie foto's.
 
 ## Opslaan en laden

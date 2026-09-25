@@ -7,6 +7,7 @@
 // eigen lijsten (colliders, roadSegments, ...) mee, zodat de rest van het spel
 // niets merkt van de andere bron.
 import { grondAO } from './licht.js';
+import { grasVariatie, bolGeo, kroonMat } from './groen.js';
 import * as THREE from 'three';
 import * as T from './textures.js';
 import { KLEUR } from './kaartkleuren.js';
@@ -103,6 +104,46 @@ function bucketsVan(ringen) {
   const uit = [];
   for (let i = Math.floor(x0 / BUCKET); i <= Math.floor(x1 / BUCKET); i++) for (let j = Math.floor(z0 / BUCKET); j <= Math.floor(z1 / BUCKET); j++) uit.push(`${i}:${j}`);
   return uit;
+}
+
+/*
+ Staat (x, z) in een pand? Een rooster van 25 m over de grondvlakken, één keer
+ opgebouwd. Voor de laatste zeef op bomen en struiken (js/world.js): de
+ generator haalt ze al uit de panden, maar de bomen uit de oude parken van
+ js/data.js gaan niet door de generator, en een paar vielen erdoor
+ (npm run groentest).
+*/
+let pandRooster = null;
+export function inPand(x, z) {
+  if (!KAART) return false;
+  const C = 25, sl = (i, j) => i * 100003 + j;
+  if (!pandRooster) {
+    pandRooster = new Map();
+    for (const p of KAART.panden) {
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const [px, pz] of p.voet) { x0 = Math.min(x0, px); x1 = Math.max(x1, px); z0 = Math.min(z0, pz); z1 = Math.max(z1, pz); }
+      const b = [x0, z0, x1, z1];
+      for (let i = Math.floor(x0 / C); i <= Math.floor(x1 / C); i++) for (let j = Math.floor(z0 / C); j <= Math.floor(z1 / C); j++) {
+        const k = sl(i, j); if (!pandRooster.has(k)) pandRooster.set(k, []); pandRooster.get(k).push({ b, voet: p.voet });
+      }
+    }
+  }
+  for (const { b, voet } of pandRooster.get(sl(Math.floor(x / C), Math.floor(z / C))) || []) {
+    if (x < b[0] || x > b[2] || z < b[1] || z > b[3]) continue;
+    let r = false;
+    for (let i = 0, j = voet.length - 1; i < voet.length; j = i++) {
+      const [xi, zi] = voet[i], [xj, zj] = voet[j];
+      if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) r = !r;
+    }
+    if (r) return true;
+  }
+  return false;
+}
+/** Staat (x, z) in een pand of op een rijbaan? Daar hoort geen boom of struik. */
+export function geenGroen(x, z) {
+  if (inPand(x, z)) return true;
+  const v = vlakOp(x, z);
+  return !!(v && v.k === 'rijbaan');
 }
 
 /** Welke klasse ondergrond ligt op (x,z)? null buiten de kaart. */
@@ -347,6 +388,9 @@ function materialen(MAT) {
   KM.bosgrond = getint(T.grass(), 0x6f8a58);
   KM.bodembedekker = getint(T.grass(), 0x7ea86a);
   KM.erf = getint(T.grass(), 0xb8c79a);
+  // variatie over tientallen meters, zodat een grasveld niet uit tegels van
+  // vijf meter bestaat (js/groen.js)
+  for (const k of ['gras', 'grasklinker', 'bosgrond', 'bodembedekker', 'erf']) grasVariatie(KM[k]);
   // kunstgras: de sportvelden die in de BGT als "kunststof" staan
   KM.kunstgras = std(T.kunstgras());
   KM.zand = MAT.sand;
@@ -376,7 +420,8 @@ function materialen(MAT) {
   KM.dakpanRood = std(T.roofTiles('#7a3b2a', 6));
   KM.bitumen = std(T.bitumen());
   KM.paal = MAT.pole; KM.lamp = MAT.lamp;
-  KM.struik = MAT.shrubA;
+  // struiken: dezelfde bobbelige bol met bladdoek als de boomkronen (js/groen.js)
+  KM.struik = kroonMat(0xe4eed4);
   KM.schutting = std(T.planks('#7a5f42'));
   KM.hekje = new THREE.MeshStandardMaterial({ map: T.hekje(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9 });
   KM.streep = MAT.streep;
@@ -520,7 +565,8 @@ export function* bouwKaartWereldStap(scene, W) {
   vlakIndex.clear(); waterRingen.length = 0; kaartLabels.length = 0; poortBladen.length = 0;
   const plat = STAND === 'plat';
   const matVoor = (v) => plat ? (KM.plat[v.k] || KM.plat.verharding) : (KM[v.m] || KM.klinker);
-  const uvVoor = (m) => (m === 'gras' || m === 'erf' || m === 'bosgrond' || m === 'bodembedekker' || m === 'grasklinker') ? 0.12 : m === 'kunstgras' ? 0.2 : m === 'water' ? 0.05 : 0.5;
+  // gras: vijf meter per doek (was 8,3, met sprieten van negen centimeter breed)
+  const uvVoor = (m) => (m === 'gras' || m === 'erf' || m === 'bosgrond' || m === 'bodembedekker' || m === 'grasklinker') ? 0.2 : m === 'kunstgras' ? 0.2 : m === 'water' ? 0.05 : 0.5;
 
   /*
    Waar ligt er verharding overheen? De oeverwand komt tot 0,13, dus alles wat
@@ -673,12 +719,12 @@ export function* bouwKaartWereldStap(scene, W) {
         bakken.splice(j, 1); weer = true; break;
       }
     }
-    const grond = new THREE.Mesh(grondGeometrie(bakken.map(q => q.b)), new THREE.MeshStandardMaterial({ map: grondTextuur(), roughness: 1 }));
+    const grond = new THREE.Mesh(grondGeometrie(bakken.map(q => q.b)), grasVariatie(new THREE.MeshStandardMaterial({ map: grondTextuur(), roughness: 1 })));
     grond.rotation.x = -Math.PI / 2; grond.position.set(0, -1.0, 0);
     grond.receiveShadow = true; scene.add(grond);   // onder het water
     for (const q of bakken) {
       const bodem = new THREE.Mesh(new THREE.PlaneGeometry(q.b[2] - q.b[0], q.b[3] - q.b[1]),
-        new THREE.MeshStandardMaterial({ map: grondTextuur((q.b[2] - q.b[0]) / 8, (q.b[3] - q.b[1]) / 8), roughness: 1 }));
+        grasVariatie(new THREE.MeshStandardMaterial({ map: grondTextuur((q.b[2] - q.b[0]) / 8, (q.b[3] - q.b[1]) / 8), roughness: 1 })));
       bodem.rotation.x = -Math.PI / 2;
       bodem.position.set((q.b[0] + q.b[2]) / 2, q.diep - 1.0, (q.b[1] + q.b[3]) / 2);
       bodem.receiveShadow = true; scene.add(bodem);
@@ -835,13 +881,20 @@ export function* bouwKaartWereldStap(scene, W) {
      getekend, ook die drie kilometer verderop in IJlst.
     */
     if (K.struiken.length) {
-      const geo = new THREE.SphereGeometry(0.7, 6, 4);
+      // evenveel vlakken als de oude struik (een bol van 6 × 4), maar rond,
+      // bobbelig en met licht in de hoekpunten: onderin donker, zoals in het echt.
+      // (Met tachtig vlakken kwamen er 2 tot 4 % driehoeken in beeld bij: er
+      // staan er negentienduizend.)
+      const geo = bolGeo(0.7, 0, { zaad: 5, diepte: 0.22, uvMaat: 0.9, basis: new THREE.SphereGeometry(1, 6, 4) });
       const perTegel = new Map();
+      let struikWeg = 0;
       for (const s of K.struiken) {
+        if (geenGroen(s.x, s.z)) { struikWeg++; continue; }
         const t = tegelVan(s.x, s.z);
         if (!perTegel.has(t)) perTegel.set(t, []);
         perTegel.get(t).push(s);
       }
+      kaartTelling.struikenWeg = struikWeg;
       const m = new THREE.Matrix4();
       for (const [t, lijst] of perTegel) {
         const im = new THREE.InstancedMesh(geo, KM.struik, lijst.length);
