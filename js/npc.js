@@ -281,7 +281,19 @@ export class NPCs {
    lopen.
   */
   verhuisNaarBuurt(p, cx, cz, DEKKING = 70, OPEN = 110, BUITEN = 205) {
-    let beste = null, besteScore = -1;
+    /*
+     Eerst goedkoop veertig plekken in de band prikken, dán pas zichtlijnen
+     trekken — en hoogstens vijf. De oude volgorde trok er veertig, twee keer
+     per seconde, en alléén terwijl je liep of reed (want alleen dan raken er
+     mensen achter). Dat is precies het werk dat je als haperen voelde bij
+     bewegen terwijl rondkijken vloeiend bleef (melding 25 sep 2026).
+
+     De uitkomst blijft dezelfde. De beste plek is die met de hoogste score, en
+     die score is `uit het zicht` eerst en dan `zo dichtbij mogelijk`; loop je de
+     kandidaten van dichtbij naar ver af, dan is de eerste die uit het zicht ligt
+     meteen de winnaar en hoeft de rest niet meer gemeten te worden.
+    */
+    const kandidaten = [];
     for (let poging = 0; poging < 40; poging++) {
       const s = this.segs[Math.floor(this.r() * this.segs.length)];
       if (!s) break;
@@ -289,13 +301,15 @@ export class NPCs {
       const x = s.a[0] + (s.b[0] - s.a[0]) * t, z = s.a[1] + (s.b[1] - s.a[1]) * t;
       const d = Math.hypot(x - cx, z - cz);
       if (d < DEKKING || d > BUITEN) continue;
+      kandidaten.push({ s, t, x, z, d });
+    }
+    kandidaten.sort((a, b) => a.d - b.d);
+    let beste = null, stralen = 0;
+    for (const k of kandidaten) {
       // voorbij `OPEN` telt het toch als uit het zicht, en dan hoeft die
       // zichtlijn — over honderden meters — niet eens getrokken te worden
-      const uitZicht = d >= OPEN ? true : !zichtVrij(cx, cz, x, z, 1.6);
-      if (!uitZicht && d < OPEN) continue;
-      // achter een gebouw gaat vóór, en daarvan de dichtstbijzijnde
-      const score = (uitZicht ? 1000 : 0) + (BUITEN - d);
-      if (score > besteScore) { besteScore = score; beste = { s, t }; }
+      const uitZicht = k.d >= OPEN ? true : (stralen++ < 5 ? !zichtVrij(cx, cz, k.x, k.z, 1.6) : false);
+      if (uitZicht) { beste = k; break; }
     }
     if (!beste) return false;
     p.seg = beste.s; p.t = beste.t;

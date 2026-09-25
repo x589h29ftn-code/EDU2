@@ -199,37 +199,38 @@ export class Vehicles {
     if (nabij >= DOEL || !verste) return;
     // een rijbaan zoeken die in de band om de speler ligt; net als bij de
     // voetgangers mag het dichterbij als er een gebouw tussen staat
-    const DEKKING = 80, OPEN = 130, BUITEN = 250;
-    let beste = null, besteScore = -1;
-    for (let poging = 0; poging < 30; poging++) {
-      const pad = this.rijbanen[Math.floor(Math.random() * this.rijbanen.length)];
-      const k = Math.floor(Math.random() * pad.length);
-      const q = pad[k];
-      const d = Math.hypot(q.x - camX, q.y - camZ);
-      if (d < DEKKING || d > BUITEN) continue;
-      const uitZicht = !zichtVrij(camX, camZ, q.x, q.y, 1.4);
-      if (!uitZicht && d < OPEN) continue;
-      const score = (uitZicht ? 1000 : 0) + (BUITEN - d);
-      if (score > besteScore) { besteScore = score; beste = { pad, k }; }
-    }
+    const beste = this.kiesRijbaan(camX, camZ, 80, 130, 250);
     if (!beste) return;
     this.zetOp(verste, beste.pad, beste.k);
   }
 
-  // een wijkauto op een rijbaan in een band om de speler zetten
-  zetOpRijbaan(t, camX, camZ, DEKKING, OPEN, BUITEN) {
-    let beste = null, besteScore = -1;
+  /*
+   Een plek op een rijbaan in de band om de speler. Net als bij de voetgangers:
+   eerst goedkoop dertig plekken prikken, dan van dichtbij naar ver hoogstens
+   vijf zichtlijnen trekken en stoppen bij de eerste die uit het zicht ligt.
+  */
+  kiesRijbaan(camX, camZ, DEKKING, OPEN, BUITEN) {
+    const kandidaten = [];
     for (let poging = 0; poging < 30; poging++) {
       const pad = this.rijbanen[Math.floor(Math.random() * this.rijbanen.length)];
       const k = Math.floor(Math.random() * pad.length);
       const q = pad[k];
       const d = Math.hypot(q.x - camX, q.y - camZ);
       if (d < DEKKING || d > BUITEN) continue;
-      const uitZicht = d >= OPEN ? true : !zichtVrij(camX, camZ, q.x, q.y, 1.4);
-      if (!uitZicht && d < OPEN) continue;
-      const score = (uitZicht ? 1000 : 0) + (BUITEN - d);
-      if (score > besteScore) { besteScore = score; beste = { pad, k }; }
+      kandidaten.push({ pad, k, q, d });
     }
+    kandidaten.sort((a, b) => a.d - b.d);
+    let stralen = 0;
+    for (const c of kandidaten) {
+      const uitZicht = c.d >= OPEN ? true : (stralen++ < 5 ? !zichtVrij(camX, camZ, c.q.x, c.q.y, 1.4) : false);
+      if (uitZicht) return c;
+    }
+    return null;
+  }
+
+  // een wijkauto op een rijbaan in een band om de speler zetten
+  zetOpRijbaan(t, camX, camZ, DEKKING, OPEN, BUITEN) {
+    const beste = this.kiesRijbaan(camX, camZ, DEKKING, OPEN, BUITEN);
     if (!beste) return false;
     this.zetOp(t, beste.pad, beste.k);
     return true;
