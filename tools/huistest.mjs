@@ -317,6 +317,50 @@ for (const h of inelkaar) {
     h.paren.length ? `${h.paren.length} paren, o.a. ${h.paren.slice(0, 3).join(' · ')}` : `${h.meubels} meubels`);
 }
 
+// ------------------------------ loop je ergens dwars doorheen? (ook clipping)
+/*
+ De andere helft van de melding: een meubelstuk zonder botsdoos loop je zo in.
+ Alles in de kamer dat groter is dan dertig bij dertig centimeter en op
+ loophoogte staat (tussen 35 cm en 1,20 m) hoort een botsdoos te hebben.
+ Platte dingen (het kleed), dingen boven je hoofd (de parasol, de lampenkap) en
+ dunne vlakken (het tv-beeld, de gordijnen) vallen er vanzelf buiten.
+*/
+kop('nergens dwars doorheen lopen');
+const doorheen = await page.evaluate(async () => {
+  const THREE = await import('/lib/three.module.js');
+  const g = window.__game;
+  const uit = [];
+  for (const w of g.woningen) {
+    const doos = new THREE.Box3();
+    const los = [];
+    for (const m of w.groep.children) {
+      if (!m.geometry) continue;
+      doos.setFromObject(m);
+      const bx = doos.max.x - doos.min.x, bz = doos.max.z - doos.min.z;
+      if (bx < 0.30 || bz < 0.30) continue;
+      if (doos.min.y > 1.20 || doos.max.y < 0.35) continue;
+      /*
+       Box3 geeft wereldmaten, de botsdozen staan in kamermaten (de groep staat
+       op NUL). Eerst gelijk rekenen, anders klopt er niets van de vergelijking.
+      */
+      const cx = (doos.min.x + doos.max.x) / 2 - w.plekken.nul.x;
+      const cz = (doos.min.z + doos.max.z) / 2 - w.plekken.nul.z;
+      const gedekt = w.botsdozen.some(d =>
+        Math.abs(d.x - cx) < d.hx + 0.05 && Math.abs(d.z - cz) < d.hz + 0.05 && d.h > 0.35);
+      if (!gedekt) {
+        los.push(`${bx.toFixed(2)}×${bz.toFixed(2)} m op (${cx.toFixed(1)}, ${cz.toFixed(1)})`
+          + ` h ${doos.min.y.toFixed(2)}–${doos.max.y.toFixed(2)}`);
+      }
+    }
+    uit.push({ naam: w.naam, los });
+  }
+  return uit;
+});
+for (const h of doorheen) {
+  ok(h.los.length === 0, `${h.naam}: alles waar je tegenaan loopt heeft een botsdoos`,
+    h.los.length ? `${h.los.length} zonder: ${h.los.slice(0, 5).join(' · ')}` : 'niets los');
+}
+
 // ------------------------------------------------------------- de missie
 kop('de missie: Mark belt, drie vlaggen op de kaart');
 const start = await page.evaluate(() => {
