@@ -175,9 +175,14 @@ const nacht = await page.evaluate(() => {
     g.sfeer.uur = u;
     krom[u] = { drukte: +g.sfeer.drukte.toFixed(2), lampen: +g.sfeer.lampenAan.toFixed(2) };
   }
-  // springt er ergens iets? per kwartier de grootste stap
+  /*
+   Springt er ergens iets? Per vijf minuten de grootste stap. Een kromme die
+   over een uur loopt stapt per kwartier vanzelf een kwart — dat is geen
+   schakelaar maar een grove meting. Waar het om gaat is dat er nergens een
+   sprong in zit: een knop die omgaat zou hier 0,84 laten zien.
+  */
   let sprongD = 0, sprongL = 0, vorig = null;
-  for (let u = 0; u < 24; u += 0.25) {
+  for (let u = 0; u < 24; u += 1 / 12) {
     g.sfeer.uur = u;
     const nu = { d: g.sfeer.drukte, l: g.sfeer.lampenAan };
     if (vorig) {
@@ -208,8 +213,8 @@ ok(nacht.krom[6.5].drukte === 1, "en om half zeven 's ochtends is het weer vol")
 ok(nacht.krom[23].lampen === 1 && nacht.krom[1].lampen < 0.5 && nacht.krom[6.5].lampen === 1,
   'na middernacht brandt een deel van de straatverlichting niet meer',
   `23 u: ${nacht.krom[23].lampen} · 1 u: ${nacht.krom[1].lampen} · 6.5 u: ${nacht.krom[6.5].lampen}`);
-ok(nacht.sprongD < 0.25 && nacht.sprongL < 0.25, 'allebei lopen ze geleidelijk, zonder schakelaar',
-  `grootste stap per kwartier: drukte ${nacht.sprongD}, lampen ${nacht.sprongL}`);
+ok(nacht.sprongD < 0.12 && nacht.sprongL < 0.12, 'allebei lopen ze geleidelijk, zonder schakelaar',
+  `grootste stap per vijf minuten: drukte ${nacht.sprongD}, lampen ${nacht.sprongL}`);
 ok(nacht.snachts < nacht.overdag * 0.6, "en de straat loopt 's nachts ook echt leeg",
   `${nacht.overdag} mensen overdag, ${nacht.snachts} 's nachts`);
 
