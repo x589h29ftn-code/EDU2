@@ -289,7 +289,9 @@ export class NPCs {
       const x = s.a[0] + (s.b[0] - s.a[0]) * t, z = s.a[1] + (s.b[1] - s.a[1]) * t;
       const d = Math.hypot(x - cx, z - cz);
       if (d < DEKKING || d > BUITEN) continue;
-      const uitZicht = !zichtVrij(cx, cz, x, z, 1.6);
+      // voorbij `OPEN` telt het toch als uit het zicht, en dan hoeft die
+      // zichtlijn — over honderden meters — niet eens getrokken te worden
+      const uitZicht = d >= OPEN ? true : !zichtVrij(cx, cz, x, z, 1.6);
       if (!uitZicht && d < OPEN) continue;
       // achter een gebouw gaat vóór, en daarvan de dichtstbijzijnde
       const score = (uitZicht ? 1000 : 0) + (BUITEN - d);
@@ -317,7 +319,15 @@ export class NPCs {
    halve seconde later opnieuw.
   */
   vulBuurtAan(camX, camZ, dt) {
-    const DICHTBIJ = 100, NABIJ = 200, VER = 380, DOEL_DICHTBIJ = 4, DOEL = 18;
+    const DICHTBIJ = 100, NABIJ = 200, VER = 380;
+    /*
+     `drukte` komt uit js/sfeer.js en hangt aan de klok: 1 overdag, 0,16 midden
+     in de nacht, met een zachte overgang (verzoek 25 sep 2026). Het schaalt
+     alleen het doel; het verhuizen zelf gaat per halve seconde één of twee
+     mensen, dus de straat loopt geleidelijk leeg en niet in één beeld.
+    */
+    const f = this.drukte === undefined ? 1 : this.drukte;
+    const DOEL_DICHTBIJ = Math.max(1, Math.round(4 * f)), DOEL = Math.max(2, Math.round(18 * f));
     this._vulKlok = (this._vulKlok || 0) + dt;
     if (this._vulKlok < 0.5) return;
     this._vulKlok = 0;
@@ -327,6 +337,27 @@ export class NPCs {
       const d = Math.hypot(p.x - camX, p.z - camZ);
       if (d < DICHTBIJ) dichtbij++;
       if (d < NABIJ) nabij++;
+    }
+    /*
+     Staan er te veel — 's avonds loopt het doel terug terwijl de mensen er al
+     zijn — dan gaat er telkens één naar huis: de dichtstbijzijnde die uit het
+     zicht staat verhuist naar een wegvak ver buiten de wijk.
+    */
+    if (nabij > DOEL + 1) {
+      /*
+       Wie gaat er naar huis? De dichtstbijzijnde die al meer dan vijftig meter
+       verderop is. Een zichtlijn trekken naar iedereen zou honderd raycasts per
+       halve seconde kosten en dat is precies het soort werk dat het spel doet
+       haperen; op vijftig meter valt het verdwijnen toch niet op.
+      */
+      let weg = null, wd = Infinity;
+      for (const p of this.people) {
+        if (!p.alive || p.steek > 0 || p.paniek > 0) continue;
+        const d = Math.hypot(p.x - camX, p.z - camZ);
+        if (d > 50 && d < wd) { wd = d; weg = p; }
+      }
+      if (weg) this.verhuisNaarBuurt(weg, camX, camZ, 420, 420, 1200);
+      return;
     }
     if (dichtbij >= DOEL_DICHTBIJ && nabij >= DOEL) return;
     // wie het verst weg is verhuist; staat de straat leeg dan twee tegelijk

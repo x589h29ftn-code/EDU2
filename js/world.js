@@ -157,6 +157,13 @@ function materials() {
   MAT.leaf2 = new THREE.MeshStandardMaterial({ color: 0x3f6b25, roughness: 1 });
   MAT.pole = new THREE.MeshStandardMaterial({ color: 0x7a7f86, roughness: 0.6, metalness: 0.6 });
   MAT.lamp = new THREE.MeshStandardMaterial({ color: 0xfff2c0, emissive: 0xffe9a0, emissiveIntensity: 0.6 });
+  /*
+   Dezelfde lamp, maar voor de palen die na middernacht uitgaan (verzoek
+   25 sep 2026). Een eigen materiaal, want het zijn instanced meshes: een
+   instantie kan zijn eigen kleur hebben maar niet zijn eigen gloed, dus de
+   palen die kunnen doven staan in een eigen stapel met dit materiaal.
+  */
+  MAT.lampNacht = new THREE.MeshStandardMaterial({ color: 0xfff2c0, emissive: 0xffe9a0, emissiveIntensity: 0.6 });
   MAT.kliko = new THREE.MeshStandardMaterial({ color: 0x3a3f44, roughness: 0.7 });
   MAT.klikoLid = new THREE.MeshStandardMaterial({ color: 0x1f5fd0, roughness: 0.6 });
   MAT.white = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.8 });
@@ -2303,7 +2310,7 @@ export function ondergrondOp(x, z) {
 // bladeren te laten waaien en de lantaarns 's avonds aan te doen.
 export function sfeerMaterialen() {
   return {
-    water: MAT.water, blad: [MAT.leaf, MAT.leaf2], lamp: MAT.lamp, hedge: MAT.hedge,
+    water: MAT.water, blad: [MAT.leaf, MAT.leaf2], lamp: MAT.lamp, lampNacht: MAT.lampNacht, hedge: MAT.hedge,
     // het wegdek, zodat js/sfeer.js het bij regen nat kan maken
     weg: [MAT.asfalt, MAT.klinker, MAT.rood, MAT.tiles, MAT.fietspad].filter(Boolean),
   };

@@ -163,7 +163,14 @@ export class Vehicles {
   */
   vulBuurtAan(camX, camZ, dt) {
     if (!this.rijbanen || !this.rijbanen.length) return;
-    const NABIJ = 260, VER = 520, DOEL = 4;
+    const NABIJ = 260, VER = 520;
+    /*
+     Net als bij de voetgangers hangt het doel aan de klok (js/sfeer.js,
+     `drukte`): na half elf 's avonds rijdt er bijna niets meer, en tussen vijf
+     en half zeven komt het verkeer terug (verzoek 25 sep 2026).
+    */
+    const f = this.drukte === undefined ? 1 : this.drukte;
+    const DOEL = Math.max(1, Math.round(4 * f));
     this._vulKlok = (this._vulKlok || 0) + dt;
     if (this._vulKlok < 1) return;
     this._vulKlok = 0;
@@ -174,6 +181,20 @@ export class Vehicles {
       const d = Math.hypot(t._pos.x - camX, t._pos.y - camZ);
       if (d < NABIJ) nabij++;
       if (d > vd) { vd = d; verste = t; }
+    }
+    /*
+     Rijden er er te veel — het doel zakt 's avonds terwijl de auto's er al zijn
+     — dan gaat er telkens één weg: de dichtstbijzijnde die uit het zicht rijdt,
+     naar een rijbaan ver buiten de buurt.
+    */
+    if (nabij > DOEL + 1) {
+      let weg = null, wd = Infinity;
+      for (const t of lokaal) {
+        const d = Math.hypot(t._pos.x - camX, t._pos.y - camZ);
+        if (d > 90 && d < wd) { wd = d; weg = t; }
+      }
+      if (weg) this.zetOpRijbaan(weg, camX, camZ, 420, 420, 1400);
+      return;
     }
     if (nabij >= DOEL || !verste) return;
     // een rijbaan zoeken die in de band om de speler ligt; net als bij de
@@ -192,11 +213,34 @@ export class Vehicles {
       if (score > besteScore) { besteScore = score; beste = { pad, k }; }
     }
     if (!beste) return;
-    verste.path = beste.pad;
-    verste.t = Math.max(0, Math.min(beste.pad.length - 1.001, beste.k));
-    verste.dir = Math.random() < 0.5 ? 1 : -1;
-    verste.snelheid = 0; verste.doel = verste.speed;
-    verste._pos = null; verste._dir = null;
+    this.zetOp(verste, beste.pad, beste.k);
+  }
+
+  // een wijkauto op een rijbaan in een band om de speler zetten
+  zetOpRijbaan(t, camX, camZ, DEKKING, OPEN, BUITEN) {
+    let beste = null, besteScore = -1;
+    for (let poging = 0; poging < 30; poging++) {
+      const pad = this.rijbanen[Math.floor(Math.random() * this.rijbanen.length)];
+      const k = Math.floor(Math.random() * pad.length);
+      const q = pad[k];
+      const d = Math.hypot(q.x - camX, q.y - camZ);
+      if (d < DEKKING || d > BUITEN) continue;
+      const uitZicht = d >= OPEN ? true : !zichtVrij(camX, camZ, q.x, q.y, 1.4);
+      if (!uitZicht && d < OPEN) continue;
+      const score = (uitZicht ? 1000 : 0) + (BUITEN - d);
+      if (score > besteScore) { besteScore = score; beste = { pad, k }; }
+    }
+    if (!beste) return false;
+    this.zetOp(t, beste.pad, beste.k);
+    return true;
+  }
+
+  zetOp(t, pad, k) {
+    t.path = pad;
+    t.t = Math.max(0, Math.min(pad.length - 1.001, k));
+    t.dir = Math.random() < 0.5 ? 1 : -1;
+    t.snelheid = 0; t.doel = t.speed;
+    t._pos = null; t._dir = null;
   }
 
   // De matrix van een geparkeerde auto in zijn stapel bijwerken.

@@ -283,6 +283,40 @@ ok(ronde2.bbq && ronde2.bbq.bij && ronde2.bbq.opgelegd === 'op de barbecue'
   'op de barbecue braad je vlees en dat eet je op',
   ronde2.bbq ? `${ronde2.bbq.opgelegd} → ${ronde2.bbq.gaar} → ${ronde2.bbq.leven} leven` : 'geen');
 
+// ------------------------------------- staan er meubels in elkaar? (clipping)
+/*
+ Melding 25 sep 2026: "clipping bij objecten in de huisjes die je kan kopen".
+ Elk meubelstuk met een botsdoos wordt tegen elk ander gelegd; overlappen twee
+ grondvlakken meer dan twaalf centimeter in beide richtingen, dan staan ze in
+ elkaar. Muren, kozijnen en deuren tellen niet mee: daar hoort een kast juist
+ tegenaan te staan.
+*/
+kop('staat er niets in elkaar');
+const inelkaar = await page.evaluate(() => {
+  const g = window.__game;
+  const uit = [];
+  for (const w of g.woningen) {
+    const meubels = w.botsdozen.filter(d => !d.muur);
+    const paren = [];
+    for (let i = 0; i < meubels.length; i++) {
+      for (let j = i + 1; j < meubels.length; j++) {
+        const a = meubels[i], b = meubels[j];
+        const ox = Math.min(a.x + a.hx, b.x + b.hx) - Math.max(a.x - a.hx, b.x - b.hx);
+        const oz = Math.min(a.z + a.hz, b.z + b.hz) - Math.max(a.z - a.hz, b.z - b.hz);
+        if (ox > 0.12 && oz > 0.12) {
+          paren.push(`${ox.toFixed(2)}×${oz.toFixed(2)} m bij (${(a.x - w.plekken.nul.x).toFixed(1)}, ${(a.z - w.plekken.nul.z).toFixed(1)})`);
+        }
+      }
+    }
+    uit.push({ naam: w.naam, meubels: meubels.length, paren });
+  }
+  return uit;
+});
+for (const h of inelkaar) {
+  ok(h.paren.length === 0, `${h.naam}: geen meubels in elkaar`,
+    h.paren.length ? `${h.paren.length} paren, o.a. ${h.paren.slice(0, 3).join(' · ')}` : `${h.meubels} meubels`);
+}
+
 // ------------------------------------------------------------- de missie
 kop('de missie: Mark belt, drie vlaggen op de kaart');
 const start = await page.evaluate(() => {

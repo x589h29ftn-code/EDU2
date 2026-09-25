@@ -1773,7 +1773,18 @@ function bouwLantaarns(scene, W) {
   const armGeo = new THREE.BoxGeometry(0.9, 0.08, 0.08); armGeo.translate(0.35, 5.15, 0);
   const kopGeo = new THREE.BoxGeometry(0.5, 0.14, 0.24); kopGeo.translate(0.7, 5.12, 0);
   const n = K.lantaarns.length;
-  const palen = new THREE.InstancedMesh(paalGeo, KM.paal, n), armen = new THREE.InstancedMesh(armGeo, KM.paal, n), koppen = new THREE.InstancedMesh(kopGeo, KM.lamp, n);
+  const palen = new THREE.InstancedMesh(paalGeo, KM.paal, n), armen = new THREE.InstancedMesh(armGeo, KM.paal, n);
+  /*
+   Twee stapels koppen: de palen die de hele nacht branden en de palen die na
+   middernacht uitgaan (verzoek 25 sep 2026). Het moeten twee stapels zijn omdat
+   een instantie wel zijn eigen kleur kan hebben maar niet zijn eigen gloed, en
+   het doven zit in `emissiveIntensity`. Twee van de drie palen in een woonstraat
+   gaan uit; langs de doorgaande wegen blijft alles aan, want die blijven 's
+   nachts verlicht.
+  */
+  const koppen = new THREE.InstancedMesh(kopGeo, KM.lamp, n);
+  const koppenNacht = new THREE.InstancedMesh(kopGeo, KM.lampNacht, n);
+  let aantalAan = 0, aantalUit = 0;
   const m = new THREE.Matrix4();
   K.lantaarns.forEach((l, i) => {
     // arm naar de dichtstbijzijnde rijbaan-as
@@ -1788,14 +1799,20 @@ function bouwLantaarns(scene, W) {
     */
     const y = grondHoogte(l.x, l.z, -Infinity);
     m.makeRotationY(hoek); m.setPosition(l.x, y, l.z);
-    palen.setMatrixAt(i, m); armen.setMatrixAt(i, m); koppen.setMatrixAt(i, m);
-    W.lampPosities.push({ x: l.x + Math.cos(hoek) * 0.7, y: y + 5.1, z: l.z - Math.sin(hoek) * 0.7 });
+    palen.setMatrixAt(i, m); armen.setMatrixAt(i, m);
+    const doorgaand = !!(best && /N7|Lemmerweg|Afrit|Oppenhuizerweg/.test(best.naam || best.name || ''));
+    const nachtUit = !doorgaand && (i % 3 !== 0);
+    const kopI = nachtUit ? aantalUit++ : aantalAan++;
+    (nachtUit ? koppenNacht : koppen).setMatrixAt(kopI, m);
+    W.lampPosities.push({ x: l.x + Math.cos(hoek) * 0.7, y: y + 5.1, z: l.z - Math.sin(hoek) * 0.7, nachtUit });
     const doos = W.addCollider(l.x, l.z, 0.1, 0.1, 0, 5);
-    LANTAARNS.push({ x: l.x, z: l.z, y, hoek, i, doos, om: false, t: 0, val: 0, richting: 0, lamp: W.lampPosities[W.lampPosities.length - 1] });
+    LANTAARNS.push({ x: l.x, z: l.z, y, hoek, i, kopI, nachtUit, doos, om: false, t: 0, val: 0, richting: 0,
+      lamp: W.lampPosities[W.lampPosities.length - 1] });
   });
   palen.castShadow = true;
-  scene.add(palen, armen, koppen);
-  lampStapels = { palen, armen, koppen };
+  koppen.count = aantalAan; koppenNacht.count = aantalUit;
+  scene.add(palen, armen, koppen, koppenNacht);
+  lampStapels = { palen, armen, koppen, koppenNacht };
 }
 
 // De matrix van één lantaarn opnieuw schrijven, met `val` radialen kanteling.
@@ -1808,10 +1825,14 @@ function zetLantaarn(L) {
   lampQ.setFromAxisAngle(lampAs, L.val);
   lampM.compose(lampPos.set(L.x, L.y, L.z), lampQ, lampSchaal);
   lampM.multiply(new THREE.Matrix4().makeRotationY(L.hoek));
-  for (const s of [lampStapels.palen, lampStapels.armen, lampStapels.koppen]) {
+  for (const s of [lampStapels.palen, lampStapels.armen]) {
     s.setMatrixAt(L.i, lampM);
     s.instanceMatrix.needsUpdate = true;
   }
+  // de kop zit in een van de twee stapels, met zijn eigen nummer
+  const kop = L.nachtUit ? lampStapels.koppenNacht : lampStapels.koppen;
+  kop.setMatrixAt(L.kopI, lampM);
+  kop.instanceMatrix.needsUpdate = true;
 }
 
 /*

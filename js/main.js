@@ -1570,6 +1570,25 @@ function loop() {
   if (player.active || window.__autoplay) {
     player.update(dt);
     /*
+     De koplampspot staat 's nachts áltijd in de scene, ook als je te voet bent.
+     Hij aan- en uitzetten verandert het aantal lichtbronnen, en dan vertaalt
+     three élk materiaal opnieuw: dat was de schok bij het in- en uitstappen, en
+     's nachts erger dan overdag (melding 25 sep 2026). Nu verandert het aantal
+     nog twee keer per etmaal, en regelt de sterkte de rest.
+    */
+    const nachtNu = !!(sfeer && sfeer.nacht);
+    if (koplamp.visible !== nachtNu) koplamp.visible = nachtNu;
+    if (!player.inCar) koplamp.intensity = 0;
+    /*
+     Hoe druk het buiten is hangt aan de klok: na half elf 's avonds zakt het
+     verkeer en het aantal mensen op straat weg, en tussen vijf en half zeven
+     's ochtends komt het terug (verzoek 25 sep 2026). De twee modules verhuizen
+     mensen en auto's naar je buurt; dit zegt er alleen hoeveel het er moeten zijn.
+    */
+    const drukteNu = sfeer ? sfeer.drukte : 1;
+    npcs.drukte = drukteNu;
+    vehicles.drukte = drukteNu;
+    /*
      De boten. Ook als je er niet in zit deinen ze mee met het water, dus dit
      staat vóór de keuze tussen te voet, in de auto en aan boord; alleen de
      stuurinvoer gaat er alleen heen als je er zelf in staat.
@@ -1628,7 +1647,7 @@ function loop() {
        strookje 111 tegen 84. De lamp zelf zie je niet, alleen wat hij verlicht,
        dus die hoogte kost niets.
       */
-      if (sfeer && sfeer.nacht) {
+      if (nachtNu) {
         const vx = -Math.sin(car.yaw), vz = -Math.cos(car.yaw);
         const neus = (car.as || 1.4) + 0.6;
         koplamp.position.set(car.x + vx * neus, (car.mesh ? car.mesh.position.y : 0) + 1.9, car.z + vz * neus);
@@ -1636,8 +1655,7 @@ function loop() {
         koplamp.target.updateMatrixWorld();
         // ook de sterkte is uitgemeten en niet op gevoel gekozen; zie hierboven
         koplamp.intensity = 300;
-        if (!koplamp.visible) koplamp.visible = true;
-      } else if (koplamp.visible) { koplamp.visible = false; koplamp.intensity = 0; }
+      } else koplamp.intensity = 0;
       /*
        Het interieur: alleen zichtbaar als je erin zit en vanuit je ogen kijkt.
        Met de camera over je schouder zou je door het dak heen tegen de
@@ -1677,8 +1695,6 @@ function loop() {
        achter de console, iets achter het midden van de kuip.
       */
       player.lastCarYaw = undefined;
-      // uit de auto: de koplampen gaan mee uit
-      if (koplamp.visible) { koplamp.visible = false; koplamp.intensity = 0; }
       const boot = boten.inBoot;
       if (!derde.update(dt, boot)) {
         // vanuit je ogen sta je achter de console; js/boot.js heeft player.pos
@@ -1694,8 +1710,6 @@ function loop() {
       geluid.gier(0);
     } else {
       player.lastCarYaw = undefined;
-      // uit de auto: de koplampen gaan mee uit
-      if (koplamp.visible) { koplamp.visible = false; koplamp.intensity = 0; }
       derde.update(dt, null);
       geluid.gier(0);
     }
@@ -1894,6 +1908,32 @@ function loop() {
   renderer.render(scene, kijker);
 }
 loop();
+
+/*
+ De avondstand één keer vooraf laten vertalen. Three bouwt de shader van elk
+ materiaal om het aantal lichtbronnen heen. Overdag zijn dat er nul extra,
+ 's avonds drie puntlampen en een spot — en de eerste keer dat die erbij komen
+ moet élk materiaal opnieuw vertaald worden. Dat is de schok bij het invallen
+ van de avond, en vroeger ook bij elke paal die je passeerde (melding 25 sep
+ 2026). Hier gebeurt het één keer, achter het laadscherm, in een beeld dat je
+ toch niet ziet: de lampen aan, één keer tekenen, en weer uit. Daarna zitten de
+ avondvarianten in de programmacache van three en kost de overgang niets meer.
+
+ Een eerdere poging met `renderer.compile` hielp niet — die maakte varianten aan
+ die daarna niet gebruikt werden (zie js/sfeer.js). Echt tekenen levert precies
+ de goede.
+*/
+function warmDeAvondOp() {
+  const lampen = scene.children.filter(o => o.isPointLight);
+  const stond = lampen.map(l => l.visible);
+  const spot = koplamp.visible;
+  for (const l of lampen) l.visible = true;
+  koplamp.visible = true; koplamp.intensity = 0;
+  renderer.render(scene, camera);
+  lampen.forEach((l, i) => { l.visible = stond[i]; });
+  koplamp.visible = spot;
+}
+try { warmDeAvondOp(); } catch (e) { console.warn('avond voorverwarmen mislukt', e); }
 
 /*
  De wereld staat er; nu wachten we op de keuze uit het menu. Die kan al gemaakt
