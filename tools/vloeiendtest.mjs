@@ -160,6 +160,59 @@ for (const [k, v] of Object.entries(auto)) {
     + ` · ${v.programmas} nieuwe programma's`);
 }
 
+// --------------------------------------------------- de wijk 's nachts
+/*
+ De tweede helft van de melding: na elven hoort het buiten leeg te lopen, en na
+ middernacht hoort een deel van de straatverlichting uit te gaan — allebei
+ geleidelijk. Dit rekent alleen aan de krommen en aan het verhuizen, dus het
+ kost geen beelden.
+*/
+kop("de wijk 's nachts");
+const nacht = await page.evaluate(() => {
+  const g = window.__game;
+  const krom = {};
+  for (const u of [12, 22, 22.75, 23, 23.5, 1, 4, 5.75, 6.5]) {
+    g.sfeer.uur = u;
+    krom[u] = { drukte: +g.sfeer.drukte.toFixed(2), lampen: +g.sfeer.lampenAan.toFixed(2) };
+  }
+  // springt er ergens iets? per kwartier de grootste stap
+  let sprongD = 0, sprongL = 0, vorig = null;
+  for (let u = 0; u < 24; u += 0.25) {
+    g.sfeer.uur = u;
+    const nu = { d: g.sfeer.drukte, l: g.sfeer.lampenAan };
+    if (vorig) {
+      sprongD = Math.max(sprongD, Math.abs(nu.d - vorig.d));
+      sprongL = Math.max(sprongL, Math.abs(nu.l - vorig.l));
+    }
+    vorig = nu;
+  }
+  // en loopt de straat echt leeg? het verhuizen zestig keer laten draaien
+  const tel = (x, z) => g.npcs.people.filter(p => p.alive && Math.hypot(p.x - x, p.z - z) < 200).length;
+  const px = g.player.pos.x, pz = g.player.pos.z;
+  g.npcs.drukte = 1;
+  for (let i = 0; i < 60; i++) { g.npcs.vulBuurtAan(px, pz, 1); g.npcs.update(0.05, i, px, pz); }
+  const overdag = tel(px, pz);
+  g.npcs.drukte = 0.16;
+  for (let i = 0; i < 60; i++) { g.npcs.vulBuurtAan(px, pz, 1); g.npcs.update(0.05, i, px, pz); }
+  const snachts = tel(px, pz);
+  g.sfeer.uur = 12; g.npcs.drukte = 1;
+  return { krom, sprongD: +sprongD.toFixed(3), sprongL: +sprongL.toFixed(3), overdag, snachts };
+});
+console.log('  krommen:', JSON.stringify(nacht.krom));
+ok(nacht.krom[12].drukte === 1 && nacht.krom[22].drukte === 1,
+  'overdag is het gewoon druk', `${nacht.krom[12].drukte} om twaalf uur`);
+ok(nacht.krom[23.5].drukte < 0.25 && nacht.krom[1].drukte < 0.25 && nacht.krom[4].drukte < 0.25,
+  "tussen half twaalf en vijven is het buiten leeg",
+  `${nacht.krom[23.5].drukte} · ${nacht.krom[1].drukte} · ${nacht.krom[4].drukte}`);
+ok(nacht.krom[6.5].drukte === 1, "en om half zeven 's ochtends is het weer vol");
+ok(nacht.krom[23].lampen === 1 && nacht.krom[1].lampen < 0.5 && nacht.krom[6.5].lampen === 1,
+  'na middernacht brandt een deel van de straatverlichting niet meer',
+  `23 u: ${nacht.krom[23].lampen} · 1 u: ${nacht.krom[1].lampen} · 6.5 u: ${nacht.krom[6.5].lampen}`);
+ok(nacht.sprongD < 0.25 && nacht.sprongL < 0.25, 'allebei lopen ze geleidelijk, zonder schakelaar',
+  `grootste stap per kwartier: drukte ${nacht.sprongD}, lampen ${nacht.sprongL}`);
+ok(nacht.snachts < nacht.overdag * 0.6, "en de straat loopt 's nachts ook echt leeg",
+  `${nacht.overdag} mensen overdag, ${nacht.snachts} 's nachts`);
+
 kop('het oordeel');
 ok(dagKijk.programmas === 0 && dagLoop.programmas === 0,
   'overdag vertaalt three geen nieuwe shaders tijdens het spelen',
