@@ -5116,7 +5116,7 @@ hoogstens vijf zichtlijnen uit en stopt het bij de eerste die uit het zicht
 ligt. De uitkomst is dezelfde, want de score is eerst "uit het zicht" en dan
 "zo dichtbij mogelijk", en dat is precies de volgorde waarin nu gezocht wordt.
 
-*Meten kon hier niet op de klok.* `npm run vloeiendtest` meet beeldtijden bij
+*Meten kon hier niet op de klok.* `npm run vloeiendtest` (nieuw) meet beeldtijden bij
 stilstaan, rondkijken, lopen en rijden, overdag en 's nachts. In de
 bouwcontainer duurt één beeld drieënhalve seconde, dus de absolute getallen
 zeggen niets; wat er wél uit komt is het aantal shaderprogramma's dat three
@@ -5132,6 +5132,27 @@ straatverlichting in de woonstraten (`sfeer.lampenAan`); langs de doorgaande
 wegen blijft alles aan. Dat vroeg om twee stapels lantaarnkoppen met elk een
 eigen materiaal: een instantie kan zijn eigen kleur hebben maar niet zijn eigen
 gloed, en het doven zit in `emissiveIntensity`.
+
+*En de clipping in de woningen.* Twee controles erbij in `npm run huistest`.
+De eerste legt elk meubelstuk met een botsdoos tegen elk ander: overlappen twee
+grondvlakken meer dan twaalf centimeter in beide richtingen, dan staan ze in
+elkaar. Muren en kozijnen tellen niet mee — daar hoort een kast juist tegenaan —
+en daarvoor weet `doos()` sinds deze ronde of hij tijdens `wand()` gebouwd werd.
+Die controle was meteen groen: er staat nergens iets in elkaar.
+
+De tweede vond het wel. Alles in de kamer dat groter is dan dertig bij dertig
+centimeter en op loophoogte staat (tussen 35 cm en 1,20 m) hoort een botsdoos te
+hebben; platte dingen, dingen boven je hoofd en dunne vlakken vallen er vanzelf
+buiten. In alle vijf de woningen wees hij precies drie dingen aan, en steeds
+dezelfde: de drie bladbossen van de grote kamerplant. Die hangen op negentig
+centimeter tot anderhalve meter terwijl de doos alleen om de pot zat, en die is
+smaller — dus liep je door het blad heen. De plant heeft nu één doos van de vloer
+tot boven het blad.
+
+Ook die proef mat eerst de verkeerde dingen: `Box3.setFromObject` geeft
+wereldmaten en de botsdozen staan in kamermaten, dus leek er in elke woning
+drieëndertig dingen los te staan. Dezelfde les als bij de terugslag hieronder —
+een proef die te veel vindt heeft meestal zelf een fout.
 
 *De wapenmelding was de proef zelf.* "Kogels doen geen schade na een ritje in de
 auto" bleek in de proef te reproduceren, en de diagnose wees naar de proef: acht
