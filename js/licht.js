@@ -53,13 +53,28 @@ export function grondAO(mat) {
  herkent het glas aan de kleur van het doek zelf — blauwgrijs en donker, anders
  dan baksteen (warm), pleister (grijs) of een blauw kozijn (verzadigd) — en
  verdeelt de gevel in vakken: per woning twee ramen breed en per verdieping één
- hoog. Per vak een vaste kans dat het licht aan is en een eigen tint, dus het
- is elke avond hetzelfde raam dat brandt.
+ hoog. Per vak een vaste toevalswaarde, dus het is elke avond hetzelfde raam dat
+ brandt, en wat er achter dat raam is (wens van de gebruiker, 25 sep 2026: "deels
+ gordijn dicht en deel licht komt eruit, niet al te fel, gewoon sfeer"):
+
+   ruim de helft   donker
+   open            warm lamplicht, met de vitrage en de gordijnen als silhouet
+   gordijn dicht   gedempt licht door de stof, oranje, roodachtig of beige, met plooien
+   half dicht      een deel van het vak gordijn, de rest open
+   een tv          koel blauw dat langzaam flikkert (een op de twintig)
+
+ Alles gedempt: te fel en de tonemapping maakt er wit van, en het moet een
+ woonwijk om elf uur zijn, geen etalage.
 
    nachtUniform  0 overdag, 1 's nachts; js/sfeer.js zet hem
    vakken        [breed, hoog] in vakken over de hele uv (huizen × 2, lagen)
 */
 export const nachtUniform = { value: 0 };
+// de klok voor het flikkeren van een tv achter het raam; js/sfeer.js zet hem
+export const tijdUniform = { value: 0 };
+// alleen voor de proef: ≥ 0 zet elk brandend raam op dezelfde soort (0,2 open,
+// 0,6 gordijn dicht, 0,97 tv), zodat elke soort apart te meten is; -1 is gewoon
+export const raamSoortUniform = { value: -1 };
 
 export function nachtRamen(mat, vakken = [2, 2]) {
   if (!mat || mat.userData.nachtRamen) return mat;
@@ -68,12 +83,14 @@ export function nachtRamen(mat, vakken = [2, 2]) {
   mat.onBeforeCompile = (shader, renderer) => {
     if (vorige) vorige(shader, renderer);
     shader.uniforms.uNacht = nachtUniform;
+    shader.uniforms.uRaamTijd = tijdUniform;
+    shader.uniforms.uRaamSoort = raamSoortUniform;
     shader.uniforms.uVakken = { value: new Float32Array(vakken) };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vRaamW;\nattribute float wandId;\nvarying float vWand;')
       .replace('#include <project_vertex>', '#include <project_vertex>\n  vRaamW = (modelMatrix * vec4(transformed, 1.0)).xyz;\n  vWand = wandId;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uNacht;\nuniform vec2 uVakken;\nvarying vec3 vRaamW;\nvarying float vWand;\nfloat raamRuis(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }')
+      .replace('#include <common>', '#include <common>\nuniform float uNacht;\nuniform float uRaamTijd;\nuniform float uRaamSoort;\nuniform vec2 uVakken;\nvarying vec3 vRaamW;\nvarying float vWand;\nfloat raamRuis(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
   #ifdef USE_MAP
   if (uNacht > 0.0) {
@@ -88,11 +105,24 @@ export function nachtRamen(mat, vakken = [2, 2]) {
     // uit de interpolatie tot een ander getal, en dan wordt het ruis per pixel)
     float wand = floor(vWand * 997.0 + 0.5);
     vec2 vak = floor(vMapUv * uVakken) + vec2(wand, floor(wand * 0.37)) + floor(vRaamW.xz / 3.0) * step(uVakken.x, 1.5);
-    float aan = step(raamRuis(vak), 0.50);
+    float aan = step(raamRuis(vak), 0.48);
+    float soort = uRaamSoort >= 0.0 ? uRaamSoort : raamRuis(vak + 5.13);   // wat er achter dit raam gebeurt
     float tint = raamRuis(vak + 17.31);
-    // warm en gedempt: te sterk en de tonemapping maakt er wit van
-    vec3 licht = mix(vec3(1.0, 0.58, 0.26), vec3(1.0, 0.74, 0.45), tint) * (0.45 + 0.4 * raamRuis(vak + 3.7));
-    totalEmissiveRadiance += licht * glas * aan * uNacht * 0.85;
+    vec2 inVak = fract(vMapUv * uVakken);        // waar in het vak (0..1)
+    // open: warm lamplicht, met de vitrage en de gordijnen van het doek als silhouet
+    vec3 open = mix(vec3(1.0, 0.58, 0.26), vec3(1.0, 0.72, 0.42), tint) * (0.45 + 0.35 * raamRuis(vak + 3.7));
+    // gordijn dicht: gedempt licht door de stof, in de kleur van het gordijn, met plooien
+    vec3 stof = tint < 0.34 ? vec3(0.95, 0.45, 0.18) : tint < 0.67 ? vec3(0.80, 0.28, 0.20) : vec3(0.92, 0.78, 0.55);
+    float plooi = 0.78 + 0.22 * sin(inVak.x * 60.0 + tint * 6.0);
+    vec3 dicht = stof * 0.38 * plooi;
+    // half dicht: een deel van het vak gordijn, de rest open
+    float deel = step(inVak.x, 0.25 + 0.5 * raamRuis(vak + 9.1));
+    // een tv: koel blauw dat langzaam flikkert
+    float tv = 0.30 + 0.10 * sin(uRaamTijd * 3.1 + tint * 20.0) + 0.06 * sin(uRaamTijd * 7.3 + tint * 11.0);
+    vec3 scherm = vec3(0.35, 0.50, 0.95) * tv;
+    vec3 licht = soort < 0.42 ? open : soort < 0.74 ? dicht : soort < 0.95 ? mix(open, dicht, deel) : scherm;
+    // gedempt: sfeer, geen etalage (en te fel maakt de tonemapping er wit van)
+    totalEmissiveRadiance += licht * glas * aan * uNacht * 0.75;
   }
   #endif`);
   };

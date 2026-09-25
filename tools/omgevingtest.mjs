@@ -109,20 +109,52 @@ const r = await page.evaluate(async () => {
   // in beeld: warme, lichte beeldpunten op de gevels aan de Molenkrite om elf uur
   // (uit het echte beeld, niet uit een eigen rendertarget: die is lineair en
   // zonder tonemapping, en dan valt een warm raam onder de drempel)
-  const telWarm = () => {
+  const beeld = () => {
     g.renderer.setRenderTarget(null); g.renderer.render(g.scene, g.camera);
     const W2 = gl.drawingBufferWidth, H2 = gl.drawingBufferHeight;
     const b = new Uint8Array(W2 * H2 * 4); gl.readPixels(0, 0, W2, H2, gl.RGBA, gl.UNSIGNED_BYTE, b);
-    // lichte, warme beeldpunten (de tonemapping maakt het raam beige, niet oranje)
-    let n = 0; for (let i = 0; i < b.length; i += 4) if (b[i] > 110 && b[i] > b[i + 2] + 20) n++;
-    return n / (W2 * H2);
+    return b;
+  };
+  const telWarm = (b) => {
+    // lichte, warme beeldpunten (de tonemapping maakt het raam beige, niet oranje),
+    // en wat bijna wit is
+    let n = 0, wit = 0;
+    for (let i = 0; i < b.length; i += 4) {
+      if (b[i] > 110 && b[i] > b[i + 2] + 20) n++;
+      if (b[i] > 235 && b[i + 1] > 235 && b[i + 2] > 235) wit++;
+    }
+    const N = b.length / 4;
+    return { warm: n / N, wit: wit / N };
+  };
+  // de beeldpunten die van een brandend raam komen (anders dan in het beeld met
+  // de ramen uit), en hun gemiddelde kleur
+  const telRaam = (b, donker) => {
+    let n = 0, r = 0, gr = 0, bl = 0;
+    for (let i = 0; i < b.length; i += 4) {
+      if (Math.abs(b[i] - donker[i]) + Math.abs(b[i + 1] - donker[i + 1]) + Math.abs(b[i + 2] - donker[i + 2]) < 12) continue;
+      n++; r += b[i]; gr += b[i + 1]; bl += b[i + 2];
+    }
+    return n ? { deel: n / (b.length / 4), r: r / n, g: gr / n, b: bl / n, lum: (0.3 * r + 0.55 * gr + 0.15 * bl) / n } : { deel: 0 };
   };
   const vx = -Math.sin(s.yaw || 0), vz = -Math.cos(s.yaw || 0);
-  // dezelfde nacht twee keer: met de ramen aan en met de ramen uit
+  // dezelfde nacht een paar keer: met de ramen uit, gewoon, en met elk brandend
+  // raam op één soort (open, gordijn dicht, tv)
   zet(s.x - vx * 6, s.z - vz * 6, s.yaw || 0, -0.05, 23);
-  uit.warmNacht = telWarm();
+  const aan = L.nachtUniform.value;
+  const gewoon = beeld();
   L.nachtUniform.value = 0;
-  uit.warmUit = telWarm();
+  const donker = beeld();
+  L.nachtUniform.value = aan;
+  uit.warmNacht = telWarm(gewoon);
+  uit.warmUit = telWarm(donker);
+  uit.soorten = {};
+  for (const [naam, w] of [['open', 0.2], ['dicht', 0.6], ['tv', 0.97]]) {
+    L.raamSoortUniform.value = w;
+    uit.soorten[naam] = telRaam(beeld(), donker);
+  }
+  L.raamSoortUniform.value = -1;
+  uit.soorten.gewoon = telRaam(gewoon, donker);
+  L.nachtUniform.value = 0;
 
   // ---- driehoeken
   const plekken = [[s.x, s.z, s.yaw || 0], [s.x + 150, s.z - 60, 1.2], [s.x - 200, s.z + 120, 3.0]];
@@ -163,8 +195,20 @@ kop("'s avonds");
 ok(r.wolkDag > 0.8 && r.wolkNacht < 0.3, "de wolken zijn 's nachts donker, niet wit", `${r.wolkDag?.toFixed(2)} overdag, ${r.wolkNacht?.toFixed(2)} 's nachts`);
 ok(r.nachtDag === 0 && r.nachtNacht > 0.9, 'de nacht gaat aan en uit met de klok', `${r.nachtDag} om één uur, ${r.nachtNacht.toFixed(2)} om elf uur`);
 ok(r.ramen.metRamen === r.ramen.gevels, 'elke gevel kan licht achter de ramen hebben', `${r.ramen.metRamen} van ${r.ramen.gevels}`);
-ok(r.warmNacht - r.warmUit > 0.004, 'en om elf uur brandt er echt licht in beeld',
-  `${(r.warmNacht * 100).toFixed(2)} % lichte warme beeldpunten met de ramen aan, ${(r.warmUit * 100).toFixed(2)} % met de ramen uit`);
+ok(r.warmNacht.warm - r.warmUit.warm > 0.004, 'en om elf uur brandt er echt licht in beeld',
+  `${(r.warmNacht.warm * 100).toFixed(2)} % lichte warme beeldpunten met de ramen aan, ${(r.warmUit.warm * 100).toFixed(2)} % met de ramen uit`);
+{
+  const S = r.soorten, kl = (o) => `${(o.deel * 100).toFixed(2)} % van het beeld, gemiddeld ${o.r?.toFixed(0)}/${o.g?.toFixed(0)}/${o.b?.toFixed(0)}`;
+  console.log(`       gewoon: ${kl(S.gewoon)}\n       open:   ${kl(S.open)}\n       dicht:  ${kl(S.dicht)}\n       tv:     ${kl(S.tv)}`);
+  ok(S.open.deel > 0.003 && S.open.r > S.open.b + 20, 'een open raam geeft warm licht', `${kl(S.open)}`);
+  ok(S.dicht.deel > S.open.deel * 0.5 && S.dicht.lum < S.open.lum * 0.8 && S.dicht.r > S.dicht.b + 10,
+    'met het gordijn dicht is het licht gedempt en nog steeds warm', `helderheid ${S.dicht.lum?.toFixed(0)} tegen ${S.open.lum?.toFixed(0)} open`);
+  ok(S.tv.deel > S.open.deel * 0.5 && S.tv.b > S.tv.r, 'achter een raam met de tv aan is het blauw', `${kl(S.tv)}`);
+  ok(S.gewoon.r > S.gewoon.b && S.gewoon.lum < S.open.lum, 'en door elkaar: vooral warm, gemiddeld minder fel dan alles open',
+    `helderheid ${S.gewoon.lum?.toFixed(0)} tegen ${S.open.lum?.toFixed(0)}`);
+}
+ok(r.warmNacht.wit - r.warmUit.wit < 0.0005, 'en niet te fel: geen witte ramen',
+  `${((r.warmNacht.wit - r.warmUit.wit) * 100).toFixed(3)} % witte beeldpunten erbij`);
 
 kop('voor de pc');
 r.driehoeken.forEach((d, i) => ok(d <= VOOR[i] * 1.03, `plek ${i + 1}: hoogstens 3 % meer driehoeken`, `${(d / 1e6).toFixed(2)} miljoen (was ${(VOOR[i] / 1e6).toFixed(2)})`));

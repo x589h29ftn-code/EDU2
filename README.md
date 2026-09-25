@@ -2761,8 +2761,11 @@ omgevingtest` meet het na, `npm run omgevingshots` maakt de foto's.
   niet ziet.
 - **Hagen** hebben diepte in het blad (reliëf en schaduw tussen de blaadjes) en
   zijn aan de voet donkerder.
-- **'s Avonds** brandt er achter een deel van de ramen licht, warm en elke avond
-  achter dezelfde ramen. En de wolken kleuren mee: bij zonsondergang roze, 's
+- **'s Avonds** brandt er achter een deel van de ramen licht, elke avond achter
+  dezelfde ramen, en gedempt: sfeer, geen etalage. Ruim de helft is donker. Achter
+  de rest is het open (warm lamplicht), is het gordijn dicht (zacht oranje,
+  roodachtig of beige licht door de stof, met plooien), is het half dicht, of
+  flikkert er blauw een tv. En de wolken kleuren mee: bij zonsondergang roze, 's
   nachts donker in plaats van spierwit tegen een zwarte lucht.
 
 Voor de pc: op de drie vaste meetplekken staan er niet meer driehoeken in beeld

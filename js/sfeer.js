@@ -6,7 +6,7 @@
 // vooruit, met Y wissel je van weertype.
 import * as THREE from 'three';
 import { sfeerMaterialen, lampPosities } from './world.js';
-import { nachtUniform } from './licht.js';
+import { nachtUniform, tijdUniform } from './licht.js';
 
 const WEER = ['helder', 'bewolkt', 'regen'];
 
@@ -258,6 +258,7 @@ export function initSfeer(ctx) {
   function update(dt, camX, camZ) {
     if (loopt) { uur = (uur + dt * (24 / 240)) % 24; pasToe(); }   // een dag in vier minuten
     windUniform.value += dt;
+    tijdUniform.value = windUniform.value;       // de tv's achter de ramen
 
     // water laten stromen: de rimpels (normal map) schuiven langzaam
     const golf = mats.water.normalMap || mats.water.map;

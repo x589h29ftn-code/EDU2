@@ -5447,6 +5447,20 @@ het glas zelf overal goed herkend werd; zonder die proef had ik de drempels van 
 glasherkenning zitten verschuiven. De proef meet het in het beeld: het aandeel warme,
 lichte beeldpunten om elf uur tegen dat om twee uur.
 
+*Wat er achter het raam is* (verzoek dezelfde dag: "deels gordijn dicht en deel
+licht komt eruit, niet al te fel, gewoon sfeer"). Ruim de helft van de ramen
+blijft donker; van de rest is ongeveer twee op de vijf open (warm lamplicht, met
+de vitrage van het doek als silhouet), een op de drie heeft het gordijn dicht
+(gedempt licht in oranje, roodachtig of beige, met plooien), een op de vijf is
+half dicht en een op de twintig is blauw van een tv die langzaam flikkert. Het zit
+allemaal in dezelfde shader, met een tweede en derde toevalswaarde per vak.
+De eerste proef telde "gordijnkleurige" beeldpunten in het gewone beeld en haalde
+de drempel niet (0,06 % tegen 0,02 %): het beige gordijn viel buiten het
+kleurcriterium, en in één beeld staan maar een handvol ramen. Nu zet de proef met
+`raamSoortUniform` elk brandend raam op één soort en vergelijkt dezelfde
+beeldpunten: open tegen dicht tegen tv, elk ten opzichte van het beeld met de
+ramen uit. Dan meet je de soort, niet het toeval van welke ramen er in beeld staan.
+
 Een grijs vlak midden op een grasveld aan de Monnikmolen leek een fout, maar is
 een asfaltvlak in de BGT (een speelveldje). Nagekeken en laten staan.
 
