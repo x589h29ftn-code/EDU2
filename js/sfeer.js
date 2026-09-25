@@ -129,7 +129,16 @@ export function initSfeer(ctx) {
    sterkte nul en wordt onder de grond geparkeerd. Dan verandert het aantal nog
    maar twee keer per etmaal: bij het invallen en bij het opkomen.
   */
-  function zetLampen(camX, camZ, aan) {
+  function zetLampen(camX, camZ, kracht) {
+    /*
+     De lampen komen in de scene zodra het begint te schemeren (kracht 0,45) maar
+     met sterkte nul; ze lichten pas op naarmate het donkerder wordt. Zo valt het
+     ene moment waarop het aantal lichtbronnen verandert — en three dus één keer
+     alles opnieuw vertaalt — samen met een beeld waarin je niets ziet gebeuren.
+     En het aangaan zelf is een overgang in plaats van een schakelaar.
+    */
+    const aan = kracht < 0.45;
+    const sterkte = Math.max(0, Math.min(1, (0.45 - kracht) / 0.20));
     for (const l of lichten) if (l.visible !== aan) l.visible = aan;
     if (!aan) {
       for (const l of lichten) l.intensity = 0;
@@ -155,7 +164,7 @@ export function initSfeer(ctx) {
       if (i < dichtbij.length) {
         const p = dichtbij[i].p;
         l.position.set(p.x, p.y, p.z);
-        l.intensity = 11 * (p.nachtUit ? f : 1);
+        l.intensity = 11 * sterkte * (p.nachtUit ? f : 1);
       } else {
         // niets te verlichten: sterkte nul, en onder de grond zodat hij ook
         // niets kán raken. Zichtbaar blijft hij, zie de uitleg hierboven.
@@ -207,10 +216,15 @@ export function initSfeer(ctx) {
     const wil = scene.fog.far + 60;
     if (Math.abs(camera.far - wil) > 1) { camera.far = wil; camera.updateProjectionMatrix(); }
 
-    // lampen gloeien alleen als het donker is; de palen die na middernacht
-    // uitgaan hebben hun eigen materiaal, zodat ze los kunnen doven
-    mats.lamp.emissiveIntensity = nacht ? 2.4 : 0.15;
-    if (mats.lampNacht) mats.lampNacht.emissiveIntensity = nacht ? 2.4 * lampFactor() : 0.15;
+    /*
+     De gloed van de lampkoppen loopt mee met dezelfde schemerkromme als de
+     lichtbronnen hierboven: van 0,15 overdag naar 2,4 als het echt donker is,
+     in plaats van een schakelaar op één uur. De palen die na middernacht uitgaan
+     hebben hun eigen materiaal, zodat ze los kunnen doven.
+    */
+    const donker = Math.max(0, Math.min(1, (0.45 - k.kracht) / 0.20));
+    mats.lamp.emissiveIntensity = 0.15 + 2.25 * donker;
+    if (mats.lampNacht) mats.lampNacht.emissiveIntensity = 0.15 + 2.25 * donker * lampFactor();
 
     // water: donkerder en doffer bij regen, spiegelend bij helder weer
     mats.water.roughness = weer === 'regen' ? 0.55 : 0.25;
@@ -270,7 +284,7 @@ export function initSfeer(ctx) {
     }
 
     lampKlok += dt;
-    if (lampKlok > 0.4) { lampKlok = 0; zetLampen(camX, camZ, meng(uur).kracht < 0.35); }
+    if (lampKlok > 0.4) { lampKlok = 0; zetLampen(camX, camZ, meng(uur).kracht); }
   }
 
   // ---------- bediening ----------
