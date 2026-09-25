@@ -372,7 +372,7 @@ function materialen(MAT) {
   KM.dakpan = std(T.roofTiles('#4a3a33', 5));
   KM.dakpanRood = std(T.roofTiles('#7a3b2a', 6));
   KM.bitumen = std(T.bitumen());
-  KM.paal = MAT.pole; KM.lamp = MAT.lamp;
+  KM.paal = MAT.pole; KM.lamp = MAT.lamp; KM.lampNacht = MAT.lampNacht;
   KM.struik = MAT.shrubA;
   KM.schutting = std(T.planks('#7a5f42'));
   KM.hekje = new THREE.MeshStandardMaterial({ map: T.hekje(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.9 });
