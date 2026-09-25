@@ -151,6 +151,7 @@
     "introshots": "node tools/introshots.mjs",
     "terugslagshots": "node tools/terugslagshots.mjs",
     "autolodtest": "node tools/autolodtest.mjs",
-    "autolodshots": "node tools/autolodshots.mjs"
+    "autolodshots": "node tools/autolodshots.mjs",
+    "lodtest": "node tools/lodtest.mjs"
   }
 }

@@ -33,7 +33,7 @@ const LOD_AFSTAND = 85;
            omklapt en er bij de overgang nooit een gat valt
 */
 export function lodAan(obj, x, z, { tot = 0, vanaf = 0, straal = 0 } = {}) {
-  lodGroepen.push({
+  const g = {
     obj, x, z,
     tot: (tot || LOD_AFSTAND) + straal,
     /*
@@ -46,19 +46,174 @@ export function lodAan(obj, x, z, { tot = 0, vanaf = 0, straal = 0 } = {}) {
      één uit waar de ander aangaat.
     */
     vanaf: vanaf ? vanaf + straal : 0,
-  });
+    f: 1, doel: null, meshes: [],
+  };
+  obj.traverse(o => { if (o.isMesh) g.meshes.push(o); });
+  lodGroepen.push(g);
 }
 
-// Zet het fijne werk aan of uit naar gelang de afstand tot de camera. Hoeft
-// niet elk beeld: een paar keer per seconde is ruim genoeg.
-export function updateLOD(camX, camZ) {
+/*
+ De LOD verder weg en zacht (verzoek 25 sep 2026: "de LOD pas op verdere afstand
+ inzetten en smooth laten overgaan").
+
+ `LOD.schaal` vermenigvuldigt alle afstanden. Sinds de geparkeerde auto's op
+ afstand grof zijn (stap 80) is er ruimte: het beeld aan de Molenkrite ging van
+ 4,45 naar 1,68 miljoen driehoeken.
+
+ En niets klapt meer om. Met `zacht` (de hoofdlus) gaat een tegel die aan moet in
+ `VERVAAG` seconden van niets naar alles, en een tegel die uit moet andersom: een
+ dithering, per beeldpunt aan of uit volgens een vast 4 × 4-patroon, dus zonder
+ doorzichtigheid en zonder sorteren. De grove versie van iets (met `vanaf`)
+ gebruikt het omgekeerde patroon, zodat de fijne en de grove kroon bij de
+ overgang precies elkaars gaten vullen: nooit een gat en nooit dubbel. Zonder
+ `zacht` (de proeven en de foto's) gaat het meteen, zoals het altijd ging.
+
+ Eén materiaal hoort bij honderden tegels, en three stuurt de waarden van een
+ materiaal alleen opnieuw naar de kaart als er tussen twee tekenopdrachten een
+ ánder materiaal zat — een fractie per tegel op een gedeeld materiaal komt dus
+ niet aan. Daarom krijgt een tegel zolang hij vervaagt een eigen kopie van zijn
+ materialen (uit een voorraad, `vervaagKloon`), met `LOD_VERVAAG` als define.
+ Alleen die kopieën hebben de dithering; het gewone materiaal blijft precies
+ zoals het was, ook zonder `discard` (dat zou de vroege dieptetoets van de kaart
+ uitzetten voor alles wat dat materiaal draagt). `lodVoorbereid` vertaalt die
+ shaders vooraf, zodat de eerste overgang niet hapert.
+*/
+export const LOD = { schaal: 1.4, VERVAAG: 0.6 };
+const vervagend = new Set();
+const voorraad = new Map();          // origineel materiaal → vrije kopieën
+
+const BAYER = `
+float lodBayer(vec2 p) {
+  // de 4 × 4-matrix van Bayer: vier keer het 2 × 2-rooster (0 2 / 3 1) in zichzelf
+  vec2 q = mod(floor(p), 4.0);
+  float bx = mod(q.x, 2.0), by = mod(q.y, 2.0), hx = floor(q.x * 0.5), hy = floor(q.y * 0.5);
+  float klein = 2.0 * bx + 3.0 * by - 4.0 * bx * by;
+  float groot = 2.0 * hx + 3.0 * hy - 4.0 * hx * hy;
+  return (4.0 * klein + groot + 0.5) / 16.0;
+}`;
+function vervaagKloon(bron) {
+  let lijst = voorraad.get(bron);
+  if (!lijst) voorraad.set(bron, lijst = []);
+  let k = lijst.pop();
+  // (`copy` zet userData door JSON heen: traag, en een doek erin gaat als
+  // plaatje mee; dus even leeg en daarna gewoon overnemen)
+  const neem = (doel) => { const ud = bron.userData; bron.userData = {}; try { doel ? doel.copy(bron) : (doel = bron.clone()); } finally { bron.userData = ud; } doel.userData = { ...ud }; return doel; };
+  if (!k) {
+    k = neem(null);
+    k._bron = bron; k._lodF = { value: 1 }; k._lodOm = { value: 0 };
+    k.onBeforeCompile = function (sh, r) {
+      // de keten van het origineel (grondAO, waai, nachtRamen, …) en dan de dithering
+      if (this._bron.onBeforeCompile) this._bron.onBeforeCompile.call(this, sh, r);
+      sh.uniforms.uLodF = this._lodF;
+      sh.uniforms.uLodOm = this._lodOm;
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform float uLodF;\nuniform float uLodOm;' + BAYER)
+        .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+  #ifdef LOD_VERVAAG
+  float lodD = lodBayer(gl_FragCoord.xy);
+  if (uLodOm > 0.5) lodD = 1.0 - lodD;
+  if (lodD >= uLodF) discard;
+  #endif`);
+    };
+    const sleutel = bron.customProgramCacheKey.bind(bron);
+    k.customProgramCacheKey = () => sleutel() + '|lodVervaag';
+    k._versie = -1;
+  }
+  // is het origineel veranderd (reliëf erbij, een nieuwe shader), dan opnieuw overnemen
+  if (k._versie !== bron.version) {
+    const f = k._lodF, om = k._lodOm, oude = k.onBeforeCompile, sl = k.customProgramCacheKey;
+    neem(k);
+    k._lodF = f; k._lodOm = om; k.onBeforeCompile = oude; k.customProgramCacheKey = sl;
+    k.defines = { ...(bron.defines || {}), LOD_VERVAAG: '' };
+    k.needsUpdate = true;
+    k._versie = bron.version;
+  }
+  return k;
+}
+function terugInVoorraad(k) { if (k && k._bron) voorraad.get(k._bron).push(k); }
+
+// de meshes van een tegel op hun kopie zetten, of terug op het origineel
+function metKopie(g, aan) {
+  for (const o of g.meshes) {
+    if (aan && !o.userData.lodOrig) {
+      o.userData.lodOrig = o.material;
+      o.material = Array.isArray(o.material) ? o.material.map(vervaagKloon) : vervaagKloon(o.material);
+    } else if (!aan && o.userData.lodOrig) {
+      for (const k of Array.isArray(o.material) ? o.material : [o.material]) terugInVoorraad(k);
+      o.material = o.userData.lodOrig;
+      delete o.userData.lodOrig;
+    }
+  }
+}
+function zetFractie(g) {
+  for (const o of g.meshes) for (const k of Array.isArray(o.material) ? o.material : [o.material]) {
+    if (!k._lodF) continue;
+    k._lodF.value = g.f; k._lodOm.value = g.vanaf ? 1 : 0;
+    // de tint van dag en nacht (js/sfeer.js) zet het origineel elk beeld
+    const b = k._bron;
+    if (b.color && k.color) k.color.copy(b.color);
+    if (b.emissive && k.emissive) k.emissive.copy(b.emissive);
+    if (b.envMapIntensity !== undefined) k.envMapIntensity = b.envMapIntensity;
+  }
+}
+
+export function updateLOD(camX, camZ, { zacht = false, schaal = LOD.schaal } = {}) {
   for (const g of lodGroepen) {
-    const tot = g.tot || LOD_AFSTAND;
+    const tot = (g.tot || LOD_AFSTAND) * schaal, vanaf = g.vanaf * schaal;
     const dx = g.x - camX, dz = g.z - camZ;
     const d2 = dx * dx + dz * dz;
-    const zichtbaar = d2 < tot * tot && (!g.vanaf || d2 >= g.vanaf * g.vanaf);
-    if (g.obj.visible !== zichtbaar) g.obj.visible = zichtbaar;
+    const zichtbaar = d2 < tot * tot && (!vanaf || d2 >= vanaf * vanaf);
+    if (!zacht || g.doel === null) {
+      // meteen: geen vervaging (de proeven, de foto's), of de allereerste keer
+      if (vervagend.delete(g)) metKopie(g, false);
+      g.doel = zichtbaar; g.f = zichtbaar ? 1 : 0;
+      if (g.obj.visible !== zichtbaar) g.obj.visible = zichtbaar;
+      continue;
+    }
+    if (g.doel === zichtbaar) continue;
+    g.doel = zichtbaar;
+    if (!vervagend.has(g)) { vervagend.add(g); metKopie(g, true); }
+    g.obj.visible = true;
+    zetFractie(g);
   }
+}
+
+/** Elk beeld: wat aan het vervagen is een stap verder. */
+export function vervaagLOD(dt) {
+  if (!vervagend.size) return;
+  const stap = dt / LOD.VERVAAG;
+  for (const g of vervagend) {
+    g.f = Math.max(0, Math.min(1, g.f + (g.doel ? stap : -stap)));
+    if (g.f === (g.doel ? 1 : 0)) {
+      vervagend.delete(g); metKopie(g, false); g.obj.visible = g.doel;
+    } else zetFractie(g);
+  }
+}
+export function lodVervagend() { return vervagend.size; }
+
+/*
+ De shaders van de kopieën vooraf vertalen: één stand-in per soort mesh en
+ materiaal (instanced of niet, met of zonder kleur per instantie — dat zijn
+ andere programma's), in een losse scène met de lampen van de echte. Loopt op de
+ achtergrond (`compileAsync`), zodat het laden er niet op wacht.
+*/
+export function lodVoorbereid(renderer, camera, scene) {
+  const los = new THREE.Scene(), gehad = new Set(), kopie = [];
+  for (const g of lodGroepen) for (const o of g.meshes) {
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of mats) {
+      const sleutel = `${m.uuid}|${o.isInstancedMesh ? 1 : 0}|${o.instanceColor ? 1 : 0}|${o.geometry.attributes.color ? 1 : 0}`;
+      if (gehad.has(sleutel)) continue;
+      gehad.add(sleutel);
+      const k = vervaagKloon(m); kopie.push(k);
+      const stand = o.isInstancedMesh ? new THREE.InstancedMesh(o.geometry, k, 1) : new THREE.Mesh(o.geometry, k);
+      if (o.instanceColor) stand.setColorAt(0, new THREE.Color(1, 1, 1));
+      stand.frustumCulled = false;
+      los.add(stand);
+    }
+  }
+  const klaar = () => { for (const k of kopie) terugInVoorraad(k); return kopie.length; };
+  return (renderer.compileAsync ? renderer.compileAsync(los, camera, scene) : Promise.resolve(renderer.compile(los, camera, scene))).then(klaar, klaar);
 }
 
 const ROAD_Y = 0.10, WATER_Y = -0.15;

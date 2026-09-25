@@ -40,11 +40,15 @@ await page.evaluate(() => {
 await page.waitForTimeout(800);
 await page.evaluate(async () => { const m = await import('/js/menu.js'); m.__start(); });
 await page.waitForTimeout(600);
+/*
+ Eerst maakt `voorFilm` (js/main.js) de film klaar, achter zwart; headless duurt
+ dat een minuut. Pas als hij echt draait overslaan. (Niet met waitForFunction en
+ een async functie: die geeft een belofte terug, en die telt als waar.)
+*/
+const wacht = async (fn, max = 1200) => { for (let i = 0; i < max; i++) { if (await page.evaluate(fn)) return; await page.waitForTimeout(500); } };
+await wacht(async () => (await import('/js/intro.js')).bezig());
 await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' })));
-await page.waitForFunction(async () => {
-  const I = await import('/js/intro.js');
-  return !I.bezig() && window.__game.player.active;
-}, null, { timeout: 40000 });
+await wacht(async () => !(await import('/js/intro.js')).bezig() && window.__game.player.active);
 /*
  Nog even wachten. Het uitfaden van de intro loopt met een `setTimeout`, en op
  een trage machine komt die pas een seconde later aan de beurt — zette de
@@ -75,11 +79,18 @@ const filmbeeld = async (naam, t) => {
     g.player.yaw = Math.atan2(-(b.kijk.x - b.pos.x), -(b.kijk.z - b.pos.z));
     g.player.pitch = Math.atan2(b.kijk.y - b.pos.y, Math.hypot(b.kijk.x - b.pos.x, b.kijk.z - b.pos.z));
     g.player.updateFly(0);
+    // de wereld zoals hij bij dít beeld hoort (in het spel volgt de LOD de camera)
+    const W = await import('/js/world.js');
+    W.updateLOD(b.pos.x, b.pos.z); g.vehicles.lod(b.pos.x, b.pos.z);
+    if (g.grasVeld) g.grasVeld.update(b.pos.x, b.pos.z, true);
+    g.zetSchaduwDoos(b.kijk.x, b.kijk.z);
     document.getElementById('ui').style.display = 'none';
     // de filmlaag met de balken en de titel erbij
     const laag = document.getElementById('intro');
     laag.classList.add('aan');
-    document.getElementById('introzwart').style.opacity = '0';
+    // zonder de overgang: anders is het eerste beeld nog zwart als de foto komt
+    const zw = document.getElementById('introzwart');
+    zw.style.transition = 'none'; zw.style.opacity = '0';
     const tel = document.getElementById('introtitel');
     const T = b.titel;
     tel.querySelector('.klein').textContent = T ? (T.klein || '') : '';

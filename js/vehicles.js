@@ -134,7 +134,13 @@ export class Vehicles {
     const local = KAART
       ? KAART.wegassen.filter(w => w.drive && namen.includes(w.naam) && w.lengte > 80).sort((a, b) => b.lengte - a.lengte).slice(0, 8).map(w => ({ pts: w.pts.map(p => new THREE.Vector2(p[0], p[1])) }))
       : ROADS.filter(rd => namen.includes(rd.name) && rd.pts.length > 3).map(rd => ({ pts: rd.pts.map(p => { const [x, z] = toWorld(p[0], p[1]); return new THREE.Vector2(x, z); }) }));
-    for (let i = 0; i < 6 && local.length; i++) {
+    /*
+     Twaalf in plaats van zes (melding 25 sep 2026: "ik zie geen verkeer meer
+     rijden"). Gemeten na een minuut aan de Molenkrite: twee binnen 260 m, en
+     één daarvan stond stil voor de speler. Zes wijkauto's voor heel Sneek en
+     IJlst is te weinig, ook als ze meeverhuizen.
+    */
+    for (let i = 0; i < 12 && local.length; i++) {
       const rd = local[i % local.length];
       const path = rd.pts;
       const mesh = makeCar(LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)]);
@@ -163,7 +169,13 @@ export class Vehicles {
   */
   vulBuurtAan(camX, camZ, dt) {
     if (!this.rijbanen || !this.rijbanen.length) return;
-    const NABIJ = 260, VER = 520, DOEL = 4;
+    /*
+     Wie verhuist: iedereen buiten de band (`VER`) die je niet kunt zien. Dat was
+     alleen wie verder dan 520 m reed, en de wijkauto's reden bijna allemaal
+     tussen 300 en 500 m rond: dan verhuisde er nooit een, en bleef het bij twee
+     in de buurt.
+    */
+    const NABIJ = 260, VER = 300, DOEL = 7;
     this._vulKlok = (this._vulKlok || 0) + dt;
     if (this._vulKlok < 1) return;
     this._vulKlok = 0;
@@ -173,7 +185,8 @@ export class Vehicles {
     for (const t of lokaal) {
       const d = Math.hypot(t._pos.x - camX, t._pos.y - camZ);
       if (d < NABIJ) nabij++;
-      if (d > vd) { vd = d; verste = t; }
+      // niet wegtoveren wat je ziet rijden
+      if (d > vd && (d > 600 || !zichtVrij(camX, camZ, t._pos.x, t._pos.y, 1.4))) { vd = d; verste = t; }
     }
     if (nabij >= DOEL || !verste) return;
     // een rijbaan zoeken die in de band om de speler ligt; net als bij de

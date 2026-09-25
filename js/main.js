@@ -1,6 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, updateProps, radioPlekken, vaarbaar, waaitMee } from './world.js';
+import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, updateProps, radioPlekken, vaarbaar, waaitMee } from './world.js';
 import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
@@ -468,6 +468,9 @@ function reliëfAf() {
 }
 function meldReliëf(v) {
   console.log(`reliëf: ${v.normalen} normal maps en ${v.glans} roughness maps over ${v.materialen} materialen, en ${v.gevels} gevels, na het opstarten in ${Math.round(reliëfMs)} ms`);
+  // nu de materialen af zijn: de shaders voor het vervagen van de LOD vooraf
+  // vertalen (js/world.js), op de achtergrond
+  lodVoorbereid(renderer, camera, scene).then(n => console.log(`LOD: ${n} vervaagshaders klaargezet`));
 }
 /*
  De gevels en het reliëf komen ná het opstarten, maar welke materialen erbij
@@ -1393,6 +1396,67 @@ const touch = IS_TOUCH ? initTouchControls(player, {
  vrijgeeft. Na Esc → Doorgaan komt hij hier ook langs, en dan hoort er geen
  filmpje meer te komen.
 */
+/*
+ Het filmpje voorbereiden, achter een zwart scherm (verzoek 25 sep 2026: "bij de
+ intro is de LOD wat lelijk, misschien kan je dat pre-renderen"). De gevels en
+ het reliëf komen na het opstarten, dichtstbij het beginpunt eerst — maar de
+ film gaat naar de molen, de waterzuivering en de Poiesz in IJlst, en daar waren
+ ze dan nog niet. Nu eerst alles af, en daarna elk beeld van de film één keer
+ getekend: dan staan de doeken en de shaders op de kaart voordat hij begint, en
+ hapert hij niet bij elke nieuwe plek. Daarna de wereld zoals hij bij de eerste
+ seconde hoort.
+*/
+let voorbereiden = false;
+let lodFilmBij = null;              // waar de LOD tijdens het filmpje het laatst bijgewerkt is
+async function voorFilm() {
+  if (!KAART || !beginpunt) return;
+  const laag = document.getElementById('intro'), zwart = document.getElementById('introzwart');
+  if (laag) laag.classList.add('aan');
+  if (zwart) { zwart.style.transition = 'none'; zwart.style.opacity = '1'; }
+  const t0 = performance.now();
+  // de hoofdlus tekent zolang niet mee: het scherm is zwart, en elk beeld dat hij
+  // tussendoor tekende kostte meer dan het stuk reliëf ervoor (headless: veertig
+  // milliseconde reliëf, dan een seconde tekenen)
+  voorbereiden = true;
+  while (reliëf) {
+    const grens = performance.now() + 150;
+    let r;
+    do { r = reliëf.next(); } while (!r.done && performance.now() < grens);
+    if (r.done) { reliëf = null; meldReliëf(r.value); }
+    await geefBeeldTerug();
+  }
+  const totaal = intro.beeldOp(0, KAART, beginpunt).totaal;
+  const zet = (t) => {
+    const b = intro.beeldOp(t, KAART, beginpunt);
+    camera.position.set(b.pos.x, b.pos.y, b.pos.z);
+    camera.lookAt(b.kijk.x, b.kijk.y, b.kijk.z);
+    camera.updateMatrixWorld();
+    updateLOD(b.pos.x, b.pos.z); vehicles.lod(b.pos.x, b.pos.z);
+    if (grasVeld) grasVeld.update(b.pos.x, b.pos.z, true);
+    zetSchaduwDoos(b.kijk.x, b.kijk.z);
+    zetVoorvlak();
+  };
+  // één beeld per stuk film, op het midden ervan: zo komt elke plek één keer langs
+  const midden = [];
+  let vorige = -1, begin = 0;
+  for (let t = 0; t <= totaal + 0.1; t += 0.25) {
+    const nr = t > totaal ? -2 : intro.beeldOp(t, KAART, beginpunt).beeldNr;
+    if (nr !== vorige) { if (vorige >= 0) midden.push((begin + t) / 2); vorige = nr; begin = t; }
+  }
+  let n = 0;
+  for (const t of midden) {
+    zet(t);
+    renderer.render(scene, camera);
+    n++;
+    await geefBeeldTerug();
+  }
+  zet(0);
+  voorbereiden = false;
+  if (zwart) zwart.style.transition = '';
+  window.__voorFilm = { beelden: n, ms: Math.round(performance.now() - t0) };
+  console.log(`intro voorbereid: ${n} beelden in ${window.__voorFilm.ms} ms`);
+}
+
 async function startGame(vervolg = false, metIntro = false) {
   if (vervolg) laadSpelNu();
   gepauzeerd = false;
@@ -1416,7 +1480,12 @@ async function startGame(vervolg = false, metIntro = false) {
     player.wapenSlot = true;
     const kruis = document.getElementById('crosshair');
     if (kruis) kruis.style.display = 'none';
+    await voorFilm();
     await intro.speelIntro({ camera, KAART, start: beginpunt, geluidAan: !stil, wapen: player.gun });
+    // de wereld meteen bij Erik, niet bij waar de film was toen je hem oversloeg
+    // (anders groeien de kronen om je heen nog een halve seconde van grof naar fijn)
+    updateLOD(player.pos.x, player.pos.z); vehicles.lod(player.pos.x, player.pos.z);
+    if (grasVeld) grasVeld.update(player.pos.x, player.pos.z, true);
   }
   player.active = true;
   /*
@@ -1726,6 +1795,7 @@ function loop() {
       reliëf = null;
     }
   }
+  if (voorbereiden) return;           // de intro wordt klaargezet (`voorFilm`)
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
   if (player.active || window.__autoplay) {
     player.update(dt);
@@ -2004,7 +2074,7 @@ function loop() {
       if (naam && naam !== laatsteRadio) { laatsteRadio = naam; hud.show(`♪ ${naam}`, 3.5); }
     } else laatsteRadio = null;
     lodKlok += dt;
-    if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); vehicles.lod(cx, cz); if (grasVeld) grasVeld.update(cx, cz); }
+    if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz, { zacht: true }); vehicles.lod(cx, cz); if (grasVeld) grasVeld.update(cx, cz); }
     hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);
   }
   if (!player.active && !window.__autoplay) {
@@ -2019,6 +2089,20 @@ function loop() {
     for (const r of binnenruimtes) r.update(dt, true);
     // tijdens de intro zet js/intro.js de camera; die niet overschrijven
     if (!intro.bezig()) player.applyCamera();
+    else {
+      /*
+       En de wereld volgt die camera. De LOD, de auto's op afstand en het gras
+       draaiden alleen als het spel liep, dus het hele filmpje stond de wereld
+       zoals hij bij het beginpunt was: de molen, de Poiesz en de waterzuivering
+       met de grove bomen en zonder tuinen. De schaduwdoos gaat naar het punt
+       waar de camera naar kijkt.
+      */
+      lodKlok += dt;
+      const cx = camera.position.x, cz = camera.position.z;
+      if (lodKlok > 0.12) { lodKlok = 0; updateLOD(cx, cz, { zacht: true }); vehicles.lod(cx, cz); if (grasVeld) grasVeld.update(cx, cz); lodFilmBij = { x: cx, z: cz }; }
+      const k = intro.kijkNu();
+      if (k) zetSchaduwDoos(k.x, k.z);
+    }
     updateClouds(dt, camera.position.x, camera.position.z);
     sfeer.update(dt, camera.position.x, camera.position.z);
     npcs.update(dt, time, camera.position.x, camera.position.z);
@@ -2051,6 +2135,8 @@ function loop() {
   renderer.shadowMap.needsUpdate = (schaduwBeeld & 1) === 0;
   // de klap van een botsing, vlak voor het tekenen op de camera gezet
   if (kijker === camera) schokCamera(kijker, dt);
+  vervaagLOD(dt);
+  if (kijker === camera) zetVoorvlak();
   renderer.render(scene, kijker);
   if (kijker === camera && player.gun && player.gun.visible) tekenWapen();
 }
@@ -2062,6 +2148,19 @@ function loop() {
  hetzelfde licht krijgt als de wereld — en dezelfde shaders, want three maakt
  een nieuw programma zodra het aantal lampen verschilt.
 */
+/*
+ Het voorvlak met de hoogte mee (ronde van 25 sep 2026: "de voortuinen clippen in
+ het intro filmpje"). Vanaf tweehonderd meter hoog, het eerste beeld van de
+ intro, flikkerden de tuinen: tegels op het erf, paden en gras liggen een paar
+ millimeter boven elkaar, en met een voorvlak van 15 cm is de dieptebuffer op
+ die afstand te grof om ze uit elkaar te houden. Gemeten bij een verschuiving
+ van één millimeter: 0,25 tot 0,36 % van het beeld sprong, met een voorvlak van
+ 3 % van de hoogte 0,03 %. Op ooghoogte blijft het 15 cm.
+*/
+function zetVoorvlak() {
+  const near = Math.max(CAMERA_NEAR, Math.min(4, (camera.position.y - 2) * 0.03));
+  if (Math.abs(camera.near - near) > 1e-3) { camera.near = near; camera.updateProjectionMatrix(); }
+}
 const WAPEN_NEAR = 0.01;
 let lampenOpWapenlaag = 0;
 function tekenWapen() {
@@ -2078,7 +2177,7 @@ function tekenWapen() {
   camera.near = WAPEN_NEAR; camera.updateProjectionMatrix();
   renderer.render(scene, camera);
   camera.layers.mask = masker;
-  camera.near = CAMERA_NEAR; camera.updateProjectionMatrix();
+  zetVoorvlak();
   renderer.autoClear = oudClear;
 }
 opstartStap('het eerste beeld');
@@ -2105,7 +2204,7 @@ window.__game = {
   // de wapenpas en het voorvlak, voor tools/cliptest.mjs
   tekenWapen, cameraNear: CAMERA_NEAR,
   // het reliëf in één keer afmaken (de proeven), en hoever het is
-  reliëfAf, get reliëfBezig() { return !!reliëf; },
+  reliëfAf, get reliëfBezig() { return !!reliëf; }, voorFilm, zetVoorvlak, get lodFilmBij() { return lodFilmBij; },
   // licht (tools/lichttest.mjs): de omgeving opnieuw bakken en de schaduwdoos
   bakOmgeving, werkOmgevingBij, zetSchaduwDoos, get omgevingGebakken() { return envBakken; }, sun,
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },

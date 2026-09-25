@@ -39,6 +39,9 @@ let tNu = 0, runs = 0;
 export function bezig() { return bezigNu; }
 // voor de proeven: hoever het filmpje is en hoe vaak hij gestart is
 export function stand() { return { t: +tNu.toFixed(2), runs }; }
+// het punt waar de camera nu naar kijkt: js/main.js zet de schaduwdoos daar
+let kijkPunt = null;
+export function kijkNu() { return bezigNu ? kijkPunt : null; }
 
 // Een verloop dat rustig begint en rustig eindigt: een camera die met een ruk
 // op gang komt leest als een storing, ook in een beeld van zes seconden.
@@ -430,6 +433,7 @@ export function speelIntro({ camera, KAART, start, geluidAan = true, wapen = nul
       const beeld = beeldOp(t, KAART, start);
       camera.position.set(beeld.pos.x, beeld.pos.y, beeld.pos.z);
       camera.lookAt(beeld.kijk.x, beeld.kijk.y, beeld.kijk.z);
+      kijkPunt = beeld.kijk;
       zetTitel(beeld.titel);
       // de muziek zakt weg in de laatste seconden, het beeld gaat mee naar zwart
       if (!faded && t > totaal - UITFADE) { faded = true; muziekUit(UITFADE); }

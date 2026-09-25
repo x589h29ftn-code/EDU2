@@ -5526,6 +5526,55 @@ tegel over die al ver weg was. Nu rekent hij meteen opnieuw vanaf de laatste ple
 Die tweede fout zat er vóór deze ronde niet, want toen ging een verre tegel als
 geheel uit; hij kwam met de compacte stapels, en `npm run autolodtest` ving hem.
 
+**De intro, de LOD en het verkeer (stap 81).** Melding van 25 sep 2026: "de
+voortuinen clippen in het intro filmpje. Ook bij de intro is de LOD wat lelijk;
+misschien kan je dat pre-renderen. Ik zie ook geen verkeer meer rijden. Verder de
+LOD pas op verdere afstand inzetten en smooth laten overgaan."
+
+*De voortuinen.* Eerst gemeten wat "clippen" kon zijn. De camera komt in de hele
+film nergens binnen een halve meter van een haag, schutting, muur of kroon (alle
+31.118 kronen uit de instantiematrices, niet de 3,5 m uit `introtest`). Wat het
+wel was: het eerste beeld hangt op 190 tot 226 m, en met een voorvlak van 15 cm is
+de dieptebuffer daar te grof voor lagen die millimeters boven elkaar liggen —
+erftegels, paden, gras. Gemeten met een verschuiving van één millimeter (zodat
+alleen dieptegevechten tellen en geen beweging): 0,25 tot 0,36 % van het beeld
+sprong. Een eerste meting met een verschuiving van een centimeter mat vooral de
+beweging zelf en zag geen verschil; dat was de verkeerde maat. Nu loopt het
+voorvlak met de hoogte mee (3 % van de hoogte boven twee meter, hoogstens 4 m):
+op ooghoogte blijft het 15 cm.
+
+*De LOD in de intro.* `updateLOD`, `vehicles.lod` en het gras zaten in de tak van
+de hoofdlus die alleen loopt als het spel loopt. Het hele filmpje stond de wereld
+dus zoals hij bij het beginpunt was: bij de molen, de waterzuivering en de Poiesz
+de grove bomen en geen tuinspul. Nu volgt de LOD de camera, en de schaduwdoos het
+punt waar hij naar kijkt. En het "pre-renderen": `voorFilm` maakt achter het zwart
+eerst de gevels en het reliëf af (die kwamen dichtstbij het beginpunt eerst, dus
+de verre plekken van de film waren nog niet klaar) en tekent daarna elk stuk film
+één keer, zodat de doeken en shaders op de kaart staan voordat hij begint. De
+eerste versie deed dat in stukjes van 40 ms, en tussen elk stukje tekende de
+hoofdlus een heel beeld: headless werd dat meer dan tien minuten. Nu tekent de
+hoofdlus niet mee zolang het scherm zwart is (headless 55 s, waarvan het reliëf
+het meeste; op de pc is dat grotendeels al af terwijl het menu er staat).
+
+*Verder weg en zacht.* `LOD.schaal` (1,4) vermenigvuldigt alle afstanden, en de
+auto's worden pas op 70 m grof in plaats van 45. En niets klapt meer om: een tegel
+vervaagt in 0,6 s met een dithering (4 × 4 Bayer, per beeldpunt aan of uit, dus
+zonder doorzichtigheid en zonder sorteren), en de grove kroon gebruikt het
+omgekeerde patroon zodat de fijne en de grove precies elkaars gaten vullen. Het
+lastige deel: three stuurt de waarden van een materiaal alleen opnieuw naar de kaart
+als er tussen twee tekenopdrachten een ánder materiaal zat, dus een fractie per
+tegel op een gedeeld materiaal komt nooit aan (`uniformsNeedUpdate` werkt alleen
+voor een ShaderMaterial). Een vervagende tegel krijgt daarom een kopie van zijn
+materialen uit een voorraad, met `LOD_VERVAAG` als define; het origineel heeft
+geen `discard` en houdt zijn vroege dieptetoets. `lodVoorbereid` vertaalt de 84
+shaders van die kopieën vooraf, zodra het reliëf af is.
+
+*Het verkeer.* Het reed wel, maar er was bijna niets van te zien. Zes wijkauto's
+voor heel Sneek en IJlst, en er verhuisde er alleen een als hij verder dan 520 m
+weg was — ze reden allemaal tussen 300 en 500 m rond, dus er verhuisde nooit een.
+Gemeten na een minuut aan de Molenkrite: twee binnen 260 m, waarvan één stilstond
+voor de speler. Nu twaalf, en wie buiten 300 m rijdt en niet te zien is verhuist.
+
 **Het idee zoals het een dag eerder was vastgelegd.** Erik verdient
 inmiddels aan missies maar kan er alleen wapens, munitie, health en een
 spuitbeurt van kopen — terwijl Mark belooft dat ze "grotere spelers in Tinga"

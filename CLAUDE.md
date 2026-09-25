@@ -128,7 +128,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run autolodtest` (geparkeerde auto's en
+De laatste die ertoe doen: `npm run lodtest` (LOD verder weg en vervagend,
+het voorvlak, de intro voorbereid en met de LOD mee, het verkeer; stap 81),
+`npm run autolodtest` (geparkeerde auto's en
 voetgangers op afstand, treffers via `nummer`/`slotNaar`; stap 80) en
 `wapenechttest` (ook de terugslag bij elk beeldtempo) met `terugslagshots`,
 `npm run omgevingtest` (wind, water, riet, gras in
@@ -162,7 +164,9 @@ groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
   bladmateriaal dat daar niet bij staat, staat stil.
 - **De LOD draait headless niet vanzelf.** `updateLOD` zit in de hoofdlus; een
   foto of proef roept hem zelf aan, anders staan fijne en grove versies door
-  elkaar in beeld.
+  elkaar in beeld. Zonder `{ zacht: true }` gaat hij meteen om (zo willen proeven
+  en foto's het); de hoofdlus vervaagt, en een vervagende tegel draagt dan even
+  een kópie van zijn materialen (`_bron` is het origineel).
 - **Een instantie is geen nummer meer.** Geparkeerde auto's en voetgangers
   staan compact in hun meshes (stap 80): instantie `j` is `stapel.nummer(mesh, j)`
   of `npcs.slotNaar[j]`. Een proef die iemand wil raken gebruikt `hitPersoon`.

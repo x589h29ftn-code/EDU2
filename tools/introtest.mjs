@@ -214,6 +214,17 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(900);
 await page.evaluate(async () => { const m = await import('/js/menu.js'); m.__start(); });
+/*
+ Vóór het filmpje maakt `voorFilm` (js/main.js) de gevels af en tekent hij elk
+ stuk film één keer, achter zwart; headless duurt dat een minuut. Dus wachten tot
+ hij echt draait, in plaats van een vaste tijd.
+*/
+const zwartVooraf = await page.evaluate(() => document.getElementById('intro').classList.contains('aan'));
+// (niet met waitForFunction: een async functie geeft een belofte terug, en die telt als waar)
+for (let i = 0; i < 1200; i++) {
+  if (await page.evaluate(async () => (await import('/js/intro.js')).bezig())) break;
+  await page.waitForTimeout(500);
+}
 await page.waitForTimeout(700);
 const draait = await page.evaluate(async () => {
   const I = await import('/js/intro.js');
@@ -222,7 +233,7 @@ const draait = await page.evaluate(async () => {
     wapen: g.player.gun ? g.player.gun.visible : null };
 });
 ok('de intro draait en het spel staat nog stil', draait.bezig === true && draait.actief === false);
-ok('en de filmlaag staat in beeld', draait.laag === true);
+ok('en de filmlaag staat in beeld (al tijdens het voorbereiden: dan zwart)', draait.laag === true && zwartVooraf === true);
 ok('het wapen hangt niet in beeld', draait.wapen === false, `gun.visible = ${draait.wapen}`);
 
 // overslaan met een toets

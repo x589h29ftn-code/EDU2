@@ -52,7 +52,7 @@ const doos = (b, h, d) => new THREE.BoxGeometry(b, h, d);
  De grove uitvoering voor auto's op afstand (ronde van 25 sep 2026). Een
  geparkeerde auto is 5836 driehoeken, en de stapels van js/vehicles.js waren
  samen driekwart van alles in beeld: 3,2 tot 4,5 miljoen. Voorbij `VER_VANAF`
- meter tekent een stapel dezelfde auto met gewone dozen, banden van acht kanten
+ meter (eerst 45) tekent een stapel dezelfde auto met gewone dozen, banden van acht kanten
  en een velg zonder spaken. Dat zet `GROF` aan terwijl `geomsVer` het model
  bouwt; de maten blijven precies dezelfde.
 */
@@ -761,7 +761,9 @@ function geomsVer(kind) {
   GEO[k] = G;
   return G;
 }
-export const VER_VANAF = 45;
+// 45 m eerst; op verzoek verder weg (25 sep 2026: "de LOD pas op verdere afstand
+// inzetten"). Op zeventig meter is een auto zestig beeldpunten breed.
+export const VER_VANAF = 70;
 
 /*
  De materialen. Het glas is donkerder en gladder dan het was, zodat het de lucht

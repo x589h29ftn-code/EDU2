@@ -2685,6 +2685,14 @@ niet — dat doet het nu wel.
 `npm run autolodtest` meet het, `npm run autolodshots` en `npm run terugslagshots`
 maken de foto's.
 
+**Verder weg en zonder omklappen (25 sep).** Het fijne werk — tuinspul, de fijne
+boomkronen, goten en regenpijpen — blijft nu 1,4 keer zo ver staan, en een
+geparkeerde auto wordt pas op zeventig meter eenvoudiger. En wat verdwijnt of
+verschijnt klapt niet meer om: het lost in een halve seconde op in een fijn
+raster van beeldpunten, en een boom die van zijn fijne naar zijn grove kroon gaat
+laat die twee precies in elkaar overlopen. Er rijdt ook weer verkeer in de buurt:
+twaalf wijkauto's in plaats van zes, en ze komen naar waar jij bent.
+
 **De auto's.** De carrosserie heeft ronde randen, zodat de glans over de schouder
 en de neus loopt; de lak heeft een blanke laklaag over de kleur (de tweede,
 scherpe spiegeling die lak op lak doet lijken). De banden hebben een profiel met
@@ -3579,6 +3587,15 @@ niet iets wat alleen in een lopend filmpje bestaat. Daardoor is "waar staat de
 camera op seconde dertien" een vraag met een antwoord: de toets controleert de
 hele weg zonder dat er een minuut film langs hoeft, en de foto's hieronder zijn
 precies dát beeld.
+
+**Voorbereid en scherp (25 sep).** Vóór het filmpje begint, achter het zwarte
+scherm, maakt het spel eerst alle gevels en het reliëf af en tekent het elk stuk
+film één keer — dan hapert het niet bij elke nieuwe plek en staan de molen en de
+Poiesz er net zo mooi als de straat waar je begint. Tijdens het filmpje volgt de
+wereld de camera: de bomen, de tuinen en de auto's op afstand horen bij waar de
+camera is, niet bij waar Erik straks staat. En de tuinen flikkeren niet meer als
+je er van tweehonderd meter hoog op neerkijkt: het voorvlak van de camera schuift
+met de hoogte mee.
 
 ![Hoog boven de wijk](docs/screenshots/intro_lucht.png)
 
