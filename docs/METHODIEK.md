@@ -5772,8 +5772,15 @@ beelden een nieuwe houding. Eerste uitslag (26 sep): alles groen. Van de 1781
 geparkeerde auto's staan er op de Molenkrite **86 in de stapels (5 %)** in
 plaats van alle 1781 op schaal nul; de omgevingsmap bakt één keer bij de
 overgang naar de nacht en nul keer midden op de dag, met nul nieuwe
-programma's; in- en uitstappen 1,1 en 0,2 ms. *(De voetgangerscontrole en de
-winst in driehoeken uit `optimeer` komen hier nog bij.)*
+programma's; in- en uitstappen 1,1 en 0,2 ms. `npcs.update` kost in de proef 1,03 ms per beeld, was
+2,08 ms in de meting vooraf.
+
+Daarbij een fout in de proef zelf: de eerste versie mat vanaf de camera, en daar
+stond niemand binnen de honderdveertig meter. De regels voor dichtbij en
+middenafstand waren groen omdat ze nul mensen toetsten ("0 mensen, Infinity–
+-Infinity van 8"). Het meetpunt ligt nu bij een voetganger zelf, en een lege
+groep telt als fout. *(De winst in driehoeken uit `optimeer` komt hier nog
+bij.)*
 
 **Twee sessies samengevoegd (stap 85).** Op 26 sep 2026 bleek dat er in een oude
 sessie verder was gewerkt, op de tak `claude/gta-tinga-game-setup-lcm1jy`. Die stond
@@ -5831,6 +5838,20 @@ Twee-en-twintig commits, samengevoegd met een gewone merge; per onderwerp:
   vertaalt die achter het laadscherm, overdag en met de avondlampen: 22 shaders.
   Een materiaal waar het reliëf een kaart aan gaf is al eens vertaald, maar nog
   zonder die kaart; dat telt als nieuw (`__version`).
+- *Na het samenvoegen* kwam er op de oude tak nog één commit bij: de controle op
+  de voetgangers ver weg mat vanaf de camera, waar niemand in de banden stond, en
+  een lege groep telde als goed. Die tak zette het meetpunt daarom bij een
+  voetganger. Hier bleef dan telkens een van de groepen leeg: van de 130 mensen
+  liepen er op dat moment 18, en of er iemand in een band liep was geluk (gemeten:
+  één in de middenband, en die stond stil). Nu zet de proef zelf drie lopers per
+  band neer, op een wegvak op die afstand: 25–45, 85–115 en 160–185 m. De verre
+  band ligt hier onder 200 m, want daar voorbij heeft sinds stap 80 niemand een
+  lichaam. Het bijvullen staat tijdens de meting stil, anders verhuist
+  `vulBuurtAan` de neergezette mensen weer. En de proef tekent twee keer vóór hij
+  telt: `verdeelSlots` loopt vóór het lopen, dus wie net is neergezet krijgt pas
+  het beeld daarna een plek in de meshes (dat is ook waarom hij de eerste keer
+  toch nog niemand vond). Uitslag: 3, 3 en 4 mensen, met 8, 4 en 2 van de 8
+  beelden een nieuwe houding.
 
 **Wat nog niet af is (in volgorde).
 

@@ -276,12 +276,40 @@ ok(omg.programmas === 0, 'en dat wisselen vertaalt geen enkele shader opnieuw', 
 kop('de voetgangers ver weg');
 const voet = await page.evaluate(() => {
   const g = window.__game, N = g.npcs;
+  /*
+   Het meetpunt en de mensen eromheen zet de proef zelf neer. Vanaf de camera
+   stond er in de eerste versie niemand binnen de honderdveertig meter, en dan
+   toetsen twee van de drie regels niets. Een meetpunt bij een voetganger was
+   ook niet genoeg (samenvoegen, 26 sep 2026): van de 130 liepen er op dat moment
+   18, en of er dan iemand tussen 65 en 135 m liep was geluk. Dus drie lopers per
+   band, op een wegvak op die afstand: dichtbij, midden, en ver — tussen 145 en
+   200 m, want voorbij 200 m heeft sinds stap 80 niemand een lichaam.
+  */
   const cx = g.camera.position.x, cz = g.camera.position.z;
+  const vrij = N.people.filter(p => p.alive && !p.fietst && p.steek <= 0);
+  let v = 0;
+  for (const [van, tot] of [[25, 45], [85, 115], [160, 185]]) {
+    let gezet = 0;
+    for (const sg of N.segs) {
+      if (gezet >= 3 || v >= vrij.length) break;
+      const x = (sg.a[0] + sg.b[0]) / 2, z = (sg.a[1] + sg.b[1]) / 2, d = Math.hypot(x - cx, z - cz);
+      if (d < van || d > tot || Math.hypot(sg.b[0] - sg.a[0], sg.b[1] - sg.a[1]) < 6) continue;
+      const p = vrij[v++];
+      p.seg = sg; p.t = 0.5; p.pause = 0; p.paniek = 0; p.vNu = p.speed; p.getekend = false;
+      gezet++;
+    }
+  }
   const romp = N.meshes.romp.instanceMatrix.array;
   // (sinds stap 80 staat persoon i op instantie `slotVan[i]`, en zonder kijkkegel
   // blijven die plekken tijdens de meting dezelfde)
   const kijk = N.kijk; N.kijk = null;
+  // en het bijvullen staat stil: met het meetpunt in de drukste plek stuurde het
+  // de dichtstbijzijnde voorbij vijftig meter naar huis — precies de middengroep
+  const vul = N.vulBuurtAan; N.vulBuurtAan = () => {};
+  // twee keer: `verdeelSlots` loopt vóór het lopen, dus wie net is neergezet
+  // krijgt pas het beeld daarna een plek in de meshes
   N.update(1 / 60, 99, cx, cz);
+  N.update(1 / 60, 99.5, cx, cz);
   const plek = (i) => N.slotVan[i];
   const lees = (i) => { const j = plek(i); return j < 0 ? '' : romp.slice(j * 16, j * 16 + 16).join(','); };
   const levend = N.people.map((p, i) => i).filter(i => N.people[i].alive && N.slotVan[i] >= 0);
@@ -317,14 +345,14 @@ const voet = await page.evaluate(() => {
   let t0 = performance.now();
   for (let k = 0; k < 20; k++) N.update(1 / 60, 102 + k / 60, cx, cz);
   const ms = (performance.now() - t0) / 20;
-  N.kijk = kijk;
+  N.kijk = kijk; N.vulBuurtAan = vul;
   return { dichtbij: groep(0, 55), midden: groep(65, 135), ver: groep(145, 2000), verhuisd, ms: +ms.toFixed(2) };
 });
-ok(voet.dichtbij.n === 0 || voet.dichtbij.min >= 7, 'dichtbij krijgt iedereen elk beeld een nieuwe houding',
+ok(voet.dichtbij.n > 0 && voet.dichtbij.min >= 7, 'dichtbij krijgt iedereen elk beeld een nieuwe houding',
   `${voet.dichtbij.n} mensen, ${voet.dichtbij.min}–${voet.dichtbij.max} van 8`);
-ok(voet.midden.n === 0 || (voet.midden.min >= 3 && voet.midden.max <= 5), 'tussen zestig en honderdveertig meter om het beeld',
+ok(voet.midden.n > 0 && voet.midden.min >= 3 && voet.midden.max <= 5, 'tussen zestig en honderdveertig meter om het beeld',
   `${voet.midden.n} mensen, ${voet.midden.min}–${voet.midden.max} van 8`);
-ok(voet.ver.n === 0 || (voet.ver.min >= 1 && voet.ver.max <= 3), 'en verder weg om de vier beelden',
+ok(voet.ver.n > 0 && voet.ver.min >= 1 && voet.ver.max <= 3, 'en verder weg om de vier beelden',
   `${voet.ver.n} mensen, ${voet.ver.min}–${voet.ver.max} van 8`);
 ok(voet.verhuisd && voet.verhuisd.weg > 5 && voet.verhuisd.mis < 0.5, 'wie verhuist staat op zijn nieuwe plek meteen goed',
   voet.verhuisd ? `${voet.verhuisd.weg.toFixed(1)} m verzet, ${voet.verhuisd.mis.toFixed(2)} m naast zijn plek getekend` : 'niemand ver genoeg weg');
