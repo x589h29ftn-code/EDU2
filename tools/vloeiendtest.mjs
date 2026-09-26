@@ -335,7 +335,18 @@ ok(omg.programmas === 0, 'en dat wisselen vertaalt geen enkele shader opnieuw', 
 kop('de voetgangers ver weg');
 const voet = await page.evaluate(() => {
   const g = window.__game, N = g.npcs;
-  const cx = g.camera.position.x, cz = g.camera.position.z;
+  /*
+   Het meetpunt ligt bij een voetganger zelf, en wel bij degene met de meeste
+   anderen op middenafstand: vanaf de camera stond er in de eerste versie
+   niemand binnen de honderdveertig meter, en dan toetsen twee van de drie
+   regels niets.
+  */
+  const loper = N.people.filter(p => p.alive && p.vNu > 0.2 && !p.pause);
+  let cx = 0, cz = 0, best = -1;
+  for (const a of loper) {
+    const n = loper.filter(b => { const d = Math.hypot(b.x - a.x, b.z - a.z); return d > 70 && d < 130; }).length;
+    if (n > best) { best = n; cx = a.x; cz = a.z; }
+  }
   const romp = N.meshes.romp.instanceMatrix.array;
   const lees = (i) => romp.slice(i * 16, i * 16 + 16).join(',');
   const levend = N.people.map((p, i) => i).filter(i => N.people[i].alive);
@@ -370,11 +381,11 @@ const voet = await page.evaluate(() => {
   const ms = (performance.now() - t0) / 20;
   return { dichtbij: groep(0, 55), midden: groep(65, 135), ver: groep(145, 2000), verhuisd, ms: +ms.toFixed(2) };
 });
-ok(voet.dichtbij.n === 0 || voet.dichtbij.min >= 7, 'dichtbij krijgt iedereen elk beeld een nieuwe houding',
+ok(voet.dichtbij.n > 0 && voet.dichtbij.min >= 7, 'dichtbij krijgt iedereen elk beeld een nieuwe houding',
   `${voet.dichtbij.n} mensen, ${voet.dichtbij.min}–${voet.dichtbij.max} van 8`);
-ok(voet.midden.n === 0 || (voet.midden.min >= 3 && voet.midden.max <= 5), 'tussen zestig en honderdveertig meter om het beeld',
+ok(voet.midden.n > 0 && voet.midden.min >= 3 && voet.midden.max <= 5, 'tussen zestig en honderdveertig meter om het beeld',
   `${voet.midden.n} mensen, ${voet.midden.min}–${voet.midden.max} van 8`);
-ok(voet.ver.n === 0 || (voet.ver.min >= 1 && voet.ver.max <= 3), 'en verder weg om de vier beelden',
+ok(voet.ver.n > 0 && voet.ver.min >= 1 && voet.ver.max <= 3, 'en verder weg om de vier beelden',
   `${voet.ver.n} mensen, ${voet.ver.min}–${voet.ver.max} van 8`);
 ok(voet.verhuisd && voet.verhuisd.weg > 5 && voet.verhuisd.mis < 0.5, 'wie verhuist staat op zijn nieuwe plek meteen goed',
   voet.verhuisd ? `${voet.verhuisd.weg.toFixed(1)} m verzet, ${voet.verhuisd.mis.toFixed(2)} m naast zijn plek getekend` : 'niemand ver genoeg weg');

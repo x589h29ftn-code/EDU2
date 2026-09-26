@@ -5212,8 +5212,15 @@ beelden een nieuwe houding. Eerste uitslag (26 sep): alles groen. Van de 1781
 geparkeerde auto's staan er op de Molenkrite **86 in de stapels (5 %)** in
 plaats van alle 1781 op schaal nul; de omgevingsmap bakt één keer bij de
 overgang naar de nacht en nul keer midden op de dag, met nul nieuwe
-programma's; in- en uitstappen 1,1 en 0,2 ms. *(De voetgangerscontrole en de
-winst in driehoeken uit `optimeer` komen hier nog bij.)*
+programma's; in- en uitstappen 1,1 en 0,2 ms. `npcs.update` kost in de proef 1,03 ms per beeld, was
+2,08 ms in de meting vooraf.
+
+Daarbij een fout in de proef zelf: de eerste versie mat vanaf de camera, en daar
+stond niemand binnen de honderdveertig meter. De regels voor dichtbij en
+middenafstand waren groen omdat ze nul mensen toetsten ("0 mensen, Infinity–
+-Infinity van 8"). Het meetpunt ligt nu bij een voetganger zelf, en een lege
+groep telt als fout. *(De winst in driehoeken uit `optimeer` komt hier nog
+bij.)*
 
 **Wat nog niet af is (in volgorde).
 
