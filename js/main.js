@@ -1879,8 +1879,10 @@ function loop() {
       const naam = nu2 ? `${nu2.titel} — ${nu2.artiest}` : null;
       if (naam && naam !== laatsteRadio) { laatsteRadio = naam; hud.show(`♪ ${naam}`, 3.5); }
     } else laatsteRadio = null;
+    // het fijne werk per beeld een vijftiende, zie js/world.js
+    updateLOD(cx, cz, 1 / 15);
     lodKlok += dt;
-    if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz); vehicles.lod(cx, cz); }
+    if (lodKlok > 0.25) { lodKlok = 0; vehicles.lod(cx, cz); }
     hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);
   }
   if (!player.active && !window.__autoplay) {

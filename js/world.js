@@ -39,10 +39,27 @@ export function lodAan(obj, x, z, { tot = 0, vanaf = 0, straal = 0 } = {}) {
   });
 }
 
-// Zet het fijne werk aan of uit naar gelang de afstand tot de camera. Hoeft
-// niet elk beeld: een paar keer per seconde is ruim genoeg.
-export function updateLOD(camX, camZ) {
-  for (const g of lodGroepen) {
+/*
+ Zet het fijne werk aan of uit naar gelang de afstand tot de camera.
+
+ `deel` is welk stuk van de lijst er deze keer langs gaat. De hoofdlus liep de
+ hele lijst — elk pand met zijn goten en regenpijpen, elke tegel, elke boom —
+ elke kwart seconde in één keer door, en dat was met 3,7 ms het duurste
+ javascript van een beeld (npm run optimeer, 26 sep 2026). Het werk was niet
+ het probleem maar de piek: één beeld op de vijftien werd zoveel langer, en dat
+ voel je als een regelmatig tikje. Nu gaat er elk beeld een vijftiende door,
+ met een wijzer die rondloopt; in een kwart seconde is de lijst dus nog steeds
+ één keer helemaal gedaan. Zonder `deel` gaat alles in één keer, zoals de
+ proefgereedschappen en een teleport dat willen.
+*/
+let lodWijzer = 0;
+export function updateLOD(camX, camZ, deel = 1) {
+  const N = lodGroepen.length;
+  if (!N) return;
+  const stuk = deel >= 1 ? N : Math.max(1, Math.ceil(N * deel));
+  for (let k = 0; k < stuk; k++) {
+    const g = lodGroepen[lodWijzer];
+    lodWijzer = (lodWijzer + 1) % N;
     const tot = g.tot || LOD_AFSTAND;
     const dx = g.x - camX, dz = g.z - camZ;
     const d2 = dx * dx + dz * dz;

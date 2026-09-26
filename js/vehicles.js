@@ -113,7 +113,16 @@ export class Vehicles {
     });
     for (const k of Object.keys(this.stapels)) {
       this.stapels[k].stapel.klaar();
+      /*
+       De omhullende bol één keer uitrekenen, met álle auto's van de tegel op hun
+       plek. Straks worden alleen de auto's in de buurt getekend en schuift de
+       telling omlaag; three rekent de bol dan niet opnieuw uit, en dat is precies
+       wat we willen — een bol om de hele tegel is voor culling en voor een
+       kogel een veilige omhullende.
+      */
       for (const m of this.stapels[k].stapel.meshes) m.computeBoundingSphere();
+      this.stapels[k].slot = [];
+      this.herschik(this.stapels[k]);
     }
     // verkeer N7 (beide richtingen). Met de kaart uit de BGT zijn de twee
     // rijbanen van de N7 losse assen; elke as krijgt verkeer in één richting.
@@ -244,12 +253,52 @@ export class Vehicles {
     t._pos = null; t._dir = null;
   }
 
+  /*
+   ---------- de stapels compact houden ----------
+   Een geparkeerde auto heeft alleen een plek in zijn stapel als hij ook echt
+   getekend wordt: niet als hij zelf rijdt (dan heeft hij een eigen model), niet
+   als hij verborgen is (binnen, het bovenaanzicht) en niet als hij verder weg
+   staat dan het zicht van `lod`. Wie getekend wordt staat vooraan, en de stapel
+   tekent alleen dat stuk.
+
+   Dat scheelde de helft van alle driehoeken in beeld. Een instantie op schaal
+   nul — zoals het was — gaat nog steeds door de vertex shader; aan het begin van
+   de Molenkrite was dat 1,2 miljoen van de 2,65 miljoen driehoeken
+   (npm run optimeer, 26 sep 2026).
+
+   `car.inst.i` is daardoor niet meer vast: het is de plek van nú, of −1 als de
+   auto niet getekend wordt. Wie een kleur of matrix wil schrijven gaat via
+   `zetInstantie` of kijkt eerst of de plek ≥ 0 is. De kleur zelf staat op de
+   auto (`kleur`, of `kleurNu` voor een uitgebrand wrak), zodat hij bij het
+   herschikken mee kan.
+  */
+  wilSlot(car) {
+    return !car.mesh && car.zichtbaar !== false && car.getekend !== false;
+  }
+  herschik(stap) {
+    let n = 0;
+    for (const car of stap.autos) {
+      if (!car) continue;
+      car.inst.i = -1;
+      if (!this.wilSlot(car)) continue;
+      car.inst.i = n;
+      stap.slot[n] = car;
+      stap.stapel.zet(n, car.x, car.z, car.yaw, true);
+      stap.stapel.kleur(n, car.kleurNu ?? car.kleur);
+      n++;
+    }
+    stap.slot.length = n;
+    stap.stapel.teken(n);
+  }
+
   // De matrix van een geparkeerde auto in zijn stapel bijwerken.
   zetInstantie(car) {
     if (!car.inst) return;
     const stap = this.stapels[car.inst.sleutel];
-    const zichtbaar = car.zichtbaar !== false && car.getekend !== false;
-    stap.stapel.zet(car.inst.i, car.x, car.z, car.yaw, zichtbaar);
+    // moet hij erbij of eraf, dan de hele stapel opnieuw indelen
+    if (this.wilSlot(car) !== (car.inst.i >= 0)) { this.herschik(stap); return; }
+    if (car.inst.i < 0) return;
+    stap.stapel.zet(car.inst.i, car.x, car.z, car.yaw, true);
     stap.stapel.klaar();
   }
 
@@ -291,23 +340,24 @@ export class Vehicles {
         if (!car || car.mesh) continue;                    // deze rijdt, die heeft zijn eigen model
         const dx = car.x - camX, dz = car.z - camZ;
         const dichtbij = dx * dx + dz * dz < q;
-        const wil = dichtbij && car.zichtbaar !== false;
-        if (car.getekend === wil) continue;
-        car.getekend = wil;
-        stap.stapel.zet(car.inst.i, car.x, car.z, car.yaw, wil);
+        if (car.getekend === dichtbij) continue;
+        car.getekend = dichtbij;
         veranderd = true;
       }
-      if (veranderd) stap.stapel.klaar();
+      if (veranderd) this.herschik(stap);
     }
   }
 
   // Alle auto's aan of uit: binnen in een huis en in het bovenaanzicht hoort de
   // wijk leeg te zijn (zie js/main.js en js/editor.js).
   zichtbaarheid(aan) {
+    const geraakt = new Set();
     for (const c of this.cars) {
       if (c.mesh) c.mesh.visible = aan;
-      else if (c.zichtbaar !== aan) { c.zichtbaar = aan; c.getekend = aan; this.zetInstantie(c); }
+      else if (c.zichtbaar !== aan) { c.zichtbaar = aan; geraakt.add(c.inst.sleutel); }
     }
+    // per stapel één keer indelen: per auto was het honderdvijftig keer per stapel
+    for (const k of geraakt) this.herschik(this.stapels[k]);
     for (const t of this.traffic) t.mesh.visible = aan;
   }
 
@@ -437,9 +487,16 @@ export class Vehicles {
       const lak = lakVoor(kleur);
       car.mesh.traverse(o => { if (o.isMesh && o.userData.lak) o.material = lak; });
     }
+    /*
+     De stapel werd hier gezocht op `car.inst.soort`, maar sinds de indeling per
+     tegel heet een stapel `soort|tegel`: een geparkeerde auto overspuiten
+     veranderde dus nooit zijn kleur. Nu op de sleutel, en de kleur staat op de
+     auto zodat hij het herschikken overleeft.
+    */
     if (car.inst) {
-      const stap = this.stapels && this.stapels[car.inst.soort];
-      if (stap && stap.stapel) stap.stapel.kleur(car.inst.i, kleur);
+      car.kleurNu = null;
+      const stap = this.stapels && this.stapels[car.inst.sleutel];
+      if (stap && stap.stapel && car.inst.i >= 0) { stap.stapel.kleur(car.inst.i, kleur); stap.stapel.klaar(); }
     }
     return kleur;
   }
@@ -982,7 +1039,8 @@ export class Vehicles {
       // een geparkeerde auto zit in een stapel en heeft geen eigen materiaal:
       // daar gaat de kleur van de instantie op roetzwart
       const stap = this.stapels[car.inst.sleutel];
-      stap.stapel.kleur(car.inst.i, 0x1b1a18);
+      car.kleurNu = 0x1b1a18;
+      if (car.inst.i >= 0) stap.stapel.kleur(car.inst.i, 0x1b1a18);
       this.zetInstantie(car);
     }
     // vuurbal en rook, een paar seconden
@@ -1041,7 +1099,8 @@ export class Vehicles {
     if (car.lak) { for (const [o, m] of car.lak) o.material = m; car.lak = null; }
     if (car.inst) {
       const stap = this.stapels[car.inst.sleutel];
-      stap.stapel.kleur(car.inst.i, car.kleur);
+      car.kleurNu = null;
+      if (car.inst.i >= 0) stap.stapel.kleur(car.inst.i, car.kleur);
       this.zetInstantie(car);
     }
     return true;
@@ -1051,7 +1110,8 @@ export class Vehicles {
     // een geparkeerde auto zit in een stapel: het instantienummer wijst hem aan
     const sleutel = mesh && mesh.userData && mesh.userData.autoStapel;
     if (sleutel && this.stapels[sleutel] && instanceId != null) {
-      const car = this.stapels[sleutel].autos[instanceId];
+      // de plek in de stapel wisselt (zie `herschik`), dus via `slot`
+      const car = this.stapels[sleutel].slot[instanceId];
       // tien kogels tot hij op is; dat was vier, en dan ging een auto wel erg
       // makkelijk in vlammen op
       if (car) { car.hp -= 10; return car; }

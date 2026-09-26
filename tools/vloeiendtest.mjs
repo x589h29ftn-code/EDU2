@@ -218,6 +218,82 @@ ok(nacht.sprongD < 0.12 && nacht.sprongL < 0.12, 'allebei lopen ze geleidelijk, 
 ok(nacht.snachts < nacht.overdag * 0.6, "en de straat loopt 's nachts ook echt leeg",
   `${nacht.overdag} mensen overdag, ${nacht.snachts} 's nachts`);
 
+// ------------------------------------------------- de geparkeerde auto's
+/*
+ De stapels geparkeerde auto's tekenen alleen nog wie in de buurt staat: die
+ staan vooraan en `count` gaat omlaag (js/vehicles.js, `herschik`). Hier wordt
+ nagerekend dat de telling klopt met wat er binnen het zicht staat, dat een
+ kogel via het instantienummer nog steeds de goede auto raakt, dat verbergen en
+ terugzetten werkt, en dat overspuiten een geparkeerde auto echt van kleur doet
+ verschieten — dat deed het niet, want de stapel werd op de verkeerde sleutel
+ gezocht.
+*/
+kop("de geparkeerde auto's");
+const park = await page.evaluate(() => {
+  const g = window.__game, V = g.vehicles;
+  window.__zetNeer();
+  const cx = g.camera.position.x, cz = g.camera.position.z;
+  V.lod(cx, cz);
+  let getekend = 0, totaal = 0, verwacht = 0, fouteSlot = 0;
+  for (const k of Object.keys(V.stapels)) {
+    const st = V.stapels[k];
+    const n = st.stapel.meshes[0].count;
+    totaal += st.autos.length;
+    if (st.aan === false) continue;
+    getekend += n;
+    for (const c of st.autos) {
+      if (!c || c.mesh || c.zichtbaar === false) continue;
+      if (Math.hypot(c.x - cx, c.z - cz) < 170) verwacht++;
+    }
+    for (let i = 0; i < n; i++) if (!st.slot[i] || st.slot[i].inst.i !== i) fouteSlot++;
+  }
+  // een auto in beeld raken via zijn instantie, zoals een kogel dat doet
+  let raak = null;
+  for (const k of Object.keys(V.stapels)) {
+    const st = V.stapels[k];
+    if (st.aan === false || !st.slot.length) continue;
+    const doel = st.slot[0];
+    const hpVoor = doel.hp;
+    const terug = V.hit(st.stapel.meshes[0], 0);
+    raak = { goed: terug === doel, schade: hpVoor - doel.hp };
+    doel.hp = hpVoor;
+    break;
+  }
+  // overspuiten van een geparkeerde auto
+  let verf = null;
+  for (const k of Object.keys(V.stapels)) {
+    const st = V.stapels[k];
+    if (st.aan === false || !st.slot.length) continue;
+    const doel = st.slot[0], lak = st.stapel.meshes[0];
+    const oud = doel.kleur;
+    V.verf(doel, 0x2e7d32);
+    const a = lak.instanceColor.array, j = doel.inst.i * 3;
+    verf = { g: +a[j + 1].toFixed(2), r: +a[j].toFixed(2) };
+    V.verf(doel, oud);
+    break;
+  }
+  // verbergen en terug
+  V.zichtbaarheid(false);
+  let naVerbergen = 0;
+  for (const k of Object.keys(V.stapels)) naVerbergen += V.stapels[k].stapel.meshes[0].count;
+  V.zichtbaarheid(true);
+  V.lod(cx, cz);
+  let naTerug = 0;
+  for (const k of Object.keys(V.stapels)) if (V.stapels[k].aan !== false) naTerug += V.stapels[k].stapel.meshes[0].count;
+  return { getekend, totaal, verwacht, fouteSlot, raak, verf, naVerbergen, naTerug };
+});
+ok(park.getekend === park.verwacht, "de stapels tekenen precies de auto's binnen het zicht",
+  `${park.getekend} getekend, ${park.verwacht} binnen 170 m, ${park.totaal} in totaal`);
+ok(park.getekend < park.totaal * 0.25, "dat is een fractie van alle geparkeerde auto's",
+  `${Math.round(park.getekend / park.totaal * 100)}%`);
+ok(park.fouteSlot === 0, 'en elke plek in een stapel wijst naar zijn eigen auto', `${park.fouteSlot} mis`);
+ok(park.raak && park.raak.goed && park.raak.schade === 10, 'een kogel raakt via de instantie de goede auto',
+  park.raak ? `schade ${park.raak.schade}` : 'geen auto in beeld');
+ok(park.verf && park.verf.g > park.verf.r, 'overspuiten verandert de kleur van een geparkeerde auto',
+  park.verf ? `groen ${park.verf.g} tegen rood ${park.verf.r}` : 'geen auto in beeld');
+ok(park.naVerbergen === 0 && park.naTerug === park.getekend, 'verbergen en terugzetten werkt',
+  `${park.naVerbergen} na verbergen, ${park.naTerug} na terugzetten`);
+
 // ------------------------------------------ de omgevingsmap met de klok mee
 /*
  De omgevingsmap wordt opnieuw gebakken als de lucht wezenlijk verandert. Dat

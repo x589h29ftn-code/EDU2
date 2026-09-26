@@ -639,6 +639,17 @@ export function maakAutoStapel(kind, aantal) {
       for (const m of meshes) m.instanceMatrix.needsUpdate = true;
       if (lakMesh.instanceColor) lakMesh.instanceColor.needsUpdate = true;
     },
+    /*
+     Alleen de eerste `n` plekken tekenen. Een instantie op schaal nul gaat nog
+     steeds door de vertex shader, dus een stapel van honderdvijftig auto's
+     waarvan er twintig in de buurt staan kostte het werk van honderdvijftig.
+     js/vehicles.js zet de auto's die getekend worden vooraan (`herschik`) en
+     kort de stapel hier in.
+    */
+    teken(n) {
+      for (const m of meshes) { m.count = n; m.instanceMatrix.needsUpdate = true; }
+      if (lakMesh.instanceColor) lakMesh.instanceColor.needsUpdate = true;
+    },
   };
 }
 

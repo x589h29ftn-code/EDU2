@@ -194,7 +194,9 @@ const cpu = await page.evaluate(async () => {
   t('hud.drawMap', () => g.hud.drawMap(g.player, g.vehicles, g.npcs));
   t('hud.update (alles)', () => g.hud.update(0.016, g.player, g.vehicles, g.npcs, 'Molenkrite'));
   t('world.updateProps', () => W.updateProps(0.016, performance.now() / 1000));
-  t('world.updateLOD', () => W.updateLOD(g.camera));
+  // x en z, niet de camera zelf: dat gaf NaN-afstanden en zette alles uit
+  t('world.updateLOD (alles)', () => W.updateLOD(g.camera.position.x, g.camera.position.z));
+  t('world.updateLOD (1/15)', () => W.updateLOD(g.camera.position.x, g.camera.position.z, 1 / 15));
   t('resolveCollisions', () => W.resolveCollisions(g.player.pos, 0.35));
   return meet;
 });
