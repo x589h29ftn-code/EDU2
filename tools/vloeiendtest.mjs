@@ -218,6 +218,36 @@ ok(nacht.sprongD < 0.12 && nacht.sprongL < 0.12, 'allebei lopen ze geleidelijk, 
 ok(nacht.snachts < nacht.overdag * 0.6, "en de straat loopt 's nachts ook echt leeg",
   `${nacht.overdag} mensen overdag, ${nacht.snachts} 's nachts`);
 
+// ------------------------------------------ de omgevingsmap met de klok mee
+/*
+ De omgevingsmap wordt opnieuw gebakken als de lucht wezenlijk verandert. Dat
+ mag geen enkel materiaal laten hervertalen: het doel heeft dezelfde maat, dus
+ `envMapCubeUVHeight` blijft gelijk. En midden op de dag hoort er niet
+ voortdurend gebakken te worden.
+*/
+kop('de omgevingsmap');
+const omg = await page.evaluate(() => new Promise((klaar) => {
+  const g = window.__game;
+  g.sfeer.uur = 12;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const voor = { bak: g.__envBakken(), prog: g.renderer.info.programs.length, tex: g.scene.environment };
+    g.sfeer.uur = 12.25;                            // midden op de dag: geen nieuwe bak
+    const middag = g.__envBakken() - voor.bak;
+    g.sfeer.uur = 1;                                // 's nachts: wel
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      klaar({
+        middag, nacht: g.__envBakken() - voor.bak,
+        andereKaart: g.scene.environment !== voor.tex,
+        programmas: g.renderer.info.programs.length - voor.prog,
+      });
+      g.sfeer.uur = 12;
+    }));
+  }));
+}));
+ok(omg.middag === 0, 'midden op de dag wordt er niet opnieuw gebakken', `${omg.middag} keer`);
+ok(omg.nacht >= 1 && omg.andereKaart, "'s nachts krijgt de wijk een eigen omgevingsmap", `${omg.nacht} keer gebakken`);
+ok(omg.programmas === 0, 'en dat wisselen vertaalt geen enkele shader opnieuw', `${omg.programmas} nieuwe programma's`);
+
 kop('het oordeel');
 ok(dagKijk.programmas === 0 && dagLoop.programmas === 0,
   'overdag vertaalt three geen nieuwe shaders tijdens het spelen',

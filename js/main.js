@@ -204,22 +204,44 @@ function updateClouds(dt, camX, camZ) {
 // Omgevingslicht komt uit een environment map die uit de lucht zelf wordt
 // gerenderd; dat geeft baksteen, glas en lak veel natuurlijker aanzetten dan
 // een vlakke hemisphere light.
+/*
+ De omgevingsmap loopt mee met de klok. Hij werd één keer gebakken, uit de lucht
+ van half twee 's middags, en bleef daarna staan: 's avonds spiegelden ruiten,
+ lak en nat asfalt nog een blauwe middaglucht, en de hele wijk kreeg 's nachts
+ hetzelfde omgevingslicht als overdag (open punt uit stap 27). Nu deelt de
+ bakscène de uniforms van de echte lucht, en bakt js/sfeer.js hem opnieuw zodra
+ de lucht er wezenlijk anders uitziet — een stuk of twaalf keer tijdens de
+ schemering, en daartussen niet.
+
+ Opnieuw bakken geeft een doel van dezelfde maat, dus `envMapCubeUVHeight` blijft
+ gelijk en three hoeft geen enkel materiaal opnieuw te vertalen (zie de regel
+ over lichtbronnen in CLAUDE.md: dit is het soort wissel dat wél mag).
+*/
 const pmrem = new THREE.PMREMGenerator(renderer);
 pmrem.compileEquirectangularShader();
-{
-  const envScene = new THREE.Scene();
-  const envSky = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), skyMat.clone());
-  envScene.add(envSky);
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(400, 400),
-    new THREE.MeshBasicMaterial({ color: 0x5d7a46, side: THREE.DoubleSide }));
-  ground.rotation.x = -Math.PI / 2; ground.position.y = -6;
-  envScene.add(ground);
+const envScene = new THREE.Scene();
+const envSkyMat = skyMat.clone();
+envSkyMat.uniforms = skyUniforms;          // delen, niet kopiëren: altijd de lucht van nu
+envScene.add(new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), envSkyMat));
+const ENV_GROND = new THREE.Color(0x5d7a46);
+const envGrond = new THREE.Mesh(
+  new THREE.PlaneGeometry(400, 400),
+  new THREE.MeshBasicMaterial({ color: ENV_GROND.clone(), side: THREE.DoubleSide }));
+envGrond.rotation.x = -Math.PI / 2; envGrond.position.y = -6;
+envScene.add(envGrond);
+let envDoel = null;
+let envBakken = 0;             // hoe vaak er gebakken is, voor tools/vloeiendtest.mjs
+function bakOmgeving(licht = 1) {
+  // de grond onder de bol zakt mee met het daglicht, anders straalt er 's nachts
+  // een felgroen veld omhoog in elke ruit
+  envGrond.material.color.copy(ENV_GROND).multiplyScalar(Math.max(0.08, licht));
   const rt = pmrem.fromScene(envScene, 0, 0.1, 200);
   scene.environment = rt.texture;
-  envSky.geometry.dispose();
+  if (envDoel) envDoel.dispose();
+  envDoel = rt;
+  envBakken++;
 }
-pmrem.dispose();
+bakOmgeving();
 
 const hemi = new THREE.HemisphereLight(0xd2e2f6, 0x6e8154, 0.75);
 scene.add(hemi);
@@ -1546,7 +1568,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 // Sfeer: tijd van de dag, weer, wind, stromend water en straatverlichting
 const sfeer = initSfeer({
   scene, camera, renderer, sun, hemi, fill, skyUniforms, hud,
-  zonRichting: SUN_DIR,
+  zonRichting: SUN_DIR, bakOmgeving,
 });
 
 // Hoofdlus
@@ -1966,6 +1988,8 @@ window.__game = {
   __inslagen: () => inslagen.filter(o => o.t > 0).length,
   // en hoeveel bloedspatten; op een mens komt er bloed in plaats van stof
   __bloed: () => spatten.filter(o => o.t > 0).length,
+  // voor tools/vloeiendtest.mjs: hoe vaak de omgevingsmap gebakken is
+  __envBakken: () => envBakken,
 };
 
 // Bovenaanzicht (?boven=1&schaal=4[&plat=1]): het hele gebied recht van boven,

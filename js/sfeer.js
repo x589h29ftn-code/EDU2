@@ -175,8 +175,16 @@ export function initSfeer(ctx) {
   }
 
   // ---------- toepassen ----------
+  let laatsteBak = null;
   function pasToe() {
     const k = meng(uur);
+    /*
+     De omgevingsmap opnieuw laten bakken (js/main.js) als de lucht er wezenlijk
+     anders uitziet: het daglicht in twaalf treden, en het weer. Midden op de dag
+     en midden in de nacht verandert dat niet, dus dan wordt er niet gebakken;
+     tijdens de schemering een keer of twaalf.
+    */
+    const sleutel = `${weer}|${Math.round(k.kracht * 12)}|${Math.round(k.hemel * 12)}`;
     const nacht = k.kracht < 0.35;
     const bewolkt = weer !== 'helder';
     const demping = weer === 'regen' ? 0.42 : weer === 'bewolkt' ? 0.62 : 1;
@@ -257,6 +265,11 @@ export function initSfeer(ctx) {
     regen.visible = weer === 'regen';
     sterkte.value = weer === 'regen' ? 0.30 : weer === 'bewolkt' ? 0.22 : 0.16;
     ctx.onWeer && ctx.onWeer(weer, nacht);
+    // pas nu bakken: de luchtkleuren hierboven zijn net bijgewerkt
+    if (ctx.bakOmgeving && sleutel !== laatsteBak) {
+      laatsteBak = sleutel;
+      ctx.bakOmgeving(Math.min(1, 0.15 + k.kracht));
+    }
   }
 
   // ---------- per beeld ----------
