@@ -173,8 +173,10 @@ aantal shaders dat three erbij vertaalt — dat laatste hoort nul te zijn).
 ## 6b · De lopende ronde (stap 74): optimalisatie en kwaliteit
 
 Gevraagd: "neem de wereld verder door op optimalisatie en kwaliteit". Wat er
-in deze ronde veranderd is — **nog niet alles is door de proef gegaan**, dus
-begin met `npm run vloeiendtest` (en daarna `node tools/optimeer.mjs 8123`):
+in deze ronde veranderd is. `npm run vloeiendtest` was op 26 sep groen voor de
+auto's en de omgevingsmap (86 van 1781 geparkeerde auto's getekend); de
+voetgangerscontrole liep nog. Begin dus met `npm run vloeiendtest` en daarna
+`node tools/optimeer.mjs 8123`:
 
 | Wat | Waar | Proef |
 |---|---|---|

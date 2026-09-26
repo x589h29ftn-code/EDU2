@@ -5208,8 +5208,12 @@ Controles in `npm run vloeiendtest`: de stapels tekenen precies de auto's binnen
 schade, overspuiten verandert de instantiekleur, verbergen en terugzetten; de
 omgevingsmap bakt niet midden op de dag, wel 's nachts, zonder nieuwe
 programma's; en de voetgangers dichtbij/midden/ver krijgen 8, 4 en 2 van de 8
-beelden een nieuwe houding. *(De uitslag en de winst in getallen komen hier nog
-bij; de proef liep op het moment van schrijven.)*
+beelden een nieuwe houding. Eerste uitslag (26 sep): alles groen. Van de 1781
+geparkeerde auto's staan er op de Molenkrite **86 in de stapels (5 %)** in
+plaats van alle 1781 op schaal nul; de omgevingsmap bakt één keer bij de
+overgang naar de nacht en nul keer midden op de dag, met nul nieuwe
+programma's; in- en uitstappen 1,1 en 0,2 ms. *(De voetgangerscontrole en de
+winst in driehoeken uit `optimeer` komen hier nog bij.)*
 
 **Wat nog niet af is (in volgorde).
 
