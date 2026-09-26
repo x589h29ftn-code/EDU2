@@ -1680,7 +1680,9 @@ function buildTrees(scene) {
   if (normal.length) {
     // De kroon begint pas op ruim twee meter: anders loop je op het trottoir
     // met je hoofd door de bladeren en zie je in een screenshot alleen groen.
-    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 5.0, 6);
+    // Zonder deksels: de onderkant zit in de grond en de bovenkant in de kroon,
+    // en dat scheelt de helft van de driehoeken van elke stam.
+    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.28, 5.0, 6, 1, true);
     const leafGeo = new THREE.IcosahedronGeometry(2.2, 1);
     // de tweede, kleinere kroon zit boven op de eerste en is alleen een bobbel
     // in het silhouet: die mag met twintig vlakken toe in plaats van tachtig
@@ -1739,7 +1741,7 @@ function buildTrees(scene) {
 
   // populieren langs de parkpaden: hoge, rechte stam met smalle kroon
   if (tall.length) {
-    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.30, 5.4, 7);
+    const trunkGeo = new THREE.CylinderGeometry(0.16, 0.30, 5.4, 7, 1, true);
     const leafGeo = new THREE.IcosahedronGeometry(2.0, 1);
     const leafGeoGrof = new THREE.IcosahedronGeometry(2.0, 0);
     for (const groep of boomTegels(tall)) {

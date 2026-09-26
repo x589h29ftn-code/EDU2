@@ -281,6 +281,7 @@ export class NPCs {
    lopen.
   */
   verhuisNaarBuurt(p, cx, cz, DEKKING = 70, OPEN = 110, BUITEN = 205) {
+    p.getekend = false;         // op de nieuwe plek meteen tekenen
     /*
      Eerst goedkoop veertig plekken in de band prikken, dán pas zichtlijnen
      trekken — en hoogstens vijf. De oude volgorde trok er veertig, twee keer
@@ -398,6 +399,7 @@ export class NPCs {
 
   pickSegment(p, random = false) {
     if (random || !p.seg) {
+      p.getekend = false;
       const target = this.r() * this.total;
       let lo = 0, hi = this.weights.length - 1;
       while (lo < hi) { const mid = (lo + hi) >> 1; if (this.weights[mid] < target) lo = mid + 1; else hi = mid; }
@@ -484,9 +486,11 @@ export class NPCs {
      dus hij kantelt om de lengteas van het lichaam en niet om een wereldas.
     */
     const rol = H.rol || 0;
+    // de stand van het lichaam zelf is voor alle achttien delen dezelfde, dus
+    // die hoeft maar één keer uitgerekend
+    e.set(tilt, yaw, rol, 'YXZ'); w.setFromEuler(e);
     const zet = (mesh, nr, ox, oy, oz, hoek, extra = 0, zij = 0) => {
       e.set(tilt + hoek + extra, yaw, rol + zij, 'YXZ'); q.setFromEuler(e);
-      e.set(tilt, yaw, rol, 'YXZ'); w.setFromEuler(e);
       v.set(ox * h, oy * h, oz * h).applyQuaternion(w);
       m.compose(v.set(x + v.x, y + v.y, z + v.z), q, sc);
       mesh.setMatrixAt(nr, m);
@@ -532,6 +536,17 @@ export class NPCs {
   update(dt, time, camX = null, camZ = null) {
     if (camX !== null) this.vulBuurtAan(camX, camZ, dt);
     const m = this._m, q = this._q, e = this._e, v = this._v, sc = this._s;
+    /*
+     Ver weg hoeft niet elk beeld een nieuwe houding. Een lichaam is achttien
+     delen en elk deel een eigen matrix; bij honderddertig mensen was dat de
+     duurste post in de javascript van een beeld. Op zestig meter is iemand een
+     figuurtje van veertig beeldpunten: of zijn pas elk beeld of om het beeld
+     verspringt is niet te zien. Het lopen zelf (het wegvak, de botsingen) telt
+     wel elk beeld door, dus niemand raakt achter; alleen het tekenen van de
+     houding wordt verdeeld. Dichtbij, voor wie valt en voor wie net is
+     aangereden blijft het elk beeld.
+    */
+    this._beeld = (this._beeld || 0) + 1;
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
       // loopt hij, en hoe hard? de pas hangt daaraan
@@ -647,6 +662,12 @@ export class NPCs {
       }
 
       const h = p.height;
+      let overslaan = false;
+      if (camX !== null && p.alive && !p.smak && p.getekend) {
+        const d2 = (p.x - camX) ** 2 + (p.z - camZ) ** 2;
+        const elk = d2 > 140 * 140 ? 4 : d2 > 60 * 60 ? 2 : 1;
+        overslaan = elk > 1 && (i + this._beeld) % elk !== 0;
+      }
       /*
        En dan pas de wereld. Voetgangers liepen overal doorheen, en dat kwam niet
        door een fout in de botsingen maar doordat ze er nooit aan meededen: hun
@@ -665,6 +686,8 @@ export class NPCs {
         p.x = kx; p.z = kz;
       }
       // bijna overal nul; op het viaduct loopt de stoep meters omhoog
+      if (overslaan) continue;
+      p.getekend = true;
       const gy = grondHoogte(p.x, p.z);
       const dood = !p.alive;
       // omvallen: naar achteren kantelen en wegzakken

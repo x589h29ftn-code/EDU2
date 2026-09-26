@@ -324,6 +324,62 @@ ok(omg.middag === 0, 'midden op de dag wordt er niet opnieuw gebakken', `${omg.m
 ok(omg.nacht >= 1 && omg.andereKaart, "'s nachts krijgt de wijk een eigen omgevingsmap", `${omg.nacht} keer gebakken`);
 ok(omg.programmas === 0, 'en dat wisselen vertaalt geen enkele shader opnieuw', `${omg.programmas} nieuwe programma's`);
 
+// ------------------------------------------ de voetgangers ver weg
+/*
+ Ver weg krijgt een voetganger niet elk beeld een nieuwe houding: boven zestig
+ meter om het beeld, boven honderdveertig om de vier. Dichtbij wel elk beeld,
+ en wie verhuist wordt op zijn nieuwe plek meteen getekend. De proef roept
+ `npcs.update` zelf acht keer aan (in één evaluate draait de hoofdlus niet
+ mee) en telt per persoon hoe vaak zijn romp een andere matrix kreeg.
+*/
+kop('de voetgangers ver weg');
+const voet = await page.evaluate(() => {
+  const g = window.__game, N = g.npcs;
+  const cx = g.camera.position.x, cz = g.camera.position.z;
+  const romp = N.meshes.romp.instanceMatrix.array;
+  const lees = (i) => romp.slice(i * 16, i * 16 + 16).join(',');
+  const levend = N.people.map((p, i) => i).filter(i => N.people[i].alive);
+  const afstand = (i) => Math.hypot(N.people[i].x - cx, N.people[i].z - cz);
+  N.update(1 / 60, 100, cx, cz);                 // iedereen één keer getekend
+  const vorig = levend.map(lees), keer = levend.map(() => 0);
+  for (let k = 0; k < 8; k++) {
+    N.update(1 / 60, 100 + k / 60, cx, cz);
+    levend.forEach((i, j) => { const nu = lees(i); if (nu !== vorig[j]) keer[j]++; vorig[j] = nu; });
+  }
+  const groep = (van, tot) => {
+    const w = levend.map((i, j) => [afstand(i), keer[j], N.people[i]])
+      .filter(([d, , p]) => d >= van && d < tot && p.vNu > 0.2 && !p.pause);
+    return { n: w.length, min: Math.min(...w.map(x => x[1])), max: Math.max(...w.map(x => x[1])) };
+  };
+  // verhuizen: de nieuwe plek staat meteen in de matrix
+  // (iemand ver weg die dit beeld overgeslagen zou worden, op een ander stuk
+  // van zijn wegvak gezet — zoals een verhuizing dat doet)
+  const ver = levend.filter(i => afstand(i) > 145 && (i + N._beeld + 1) % 4 !== 0
+    && Math.hypot(N.people[i].seg.b[0] - N.people[i].seg.a[0], N.people[i].seg.b[1] - N.people[i].seg.a[1]) > 20);
+  let verhuisd = null;
+  if (ver.length) {
+    const i = ver[0], p = N.people[i];
+    const oudX = romp[i * 16 + 12], oudZ = romp[i * 16 + 14];
+    p.t = p.t < 0.5 ? p.t + 0.4 : p.t - 0.4; p.getekend = false;
+    N.update(1 / 60, 101, cx, cz);
+    verhuisd = { weg: Math.hypot(p.x - oudX, p.z - oudZ), mis: Math.hypot(romp[i * 16 + 12] - p.x, romp[i * 16 + 14] - p.z) };
+  }
+  // en wat het scheelt
+  let t0 = performance.now();
+  for (let k = 0; k < 20; k++) N.update(1 / 60, 102 + k / 60, cx, cz);
+  const ms = (performance.now() - t0) / 20;
+  return { dichtbij: groep(0, 55), midden: groep(65, 135), ver: groep(145, 2000), verhuisd, ms: +ms.toFixed(2) };
+});
+ok(voet.dichtbij.n === 0 || voet.dichtbij.min >= 7, 'dichtbij krijgt iedereen elk beeld een nieuwe houding',
+  `${voet.dichtbij.n} mensen, ${voet.dichtbij.min}–${voet.dichtbij.max} van 8`);
+ok(voet.midden.n === 0 || (voet.midden.min >= 3 && voet.midden.max <= 5), 'tussen zestig en honderdveertig meter om het beeld',
+  `${voet.midden.n} mensen, ${voet.midden.min}–${voet.midden.max} van 8`);
+ok(voet.ver.n === 0 || (voet.ver.min >= 1 && voet.ver.max <= 3), 'en verder weg om de vier beelden',
+  `${voet.ver.n} mensen, ${voet.ver.min}–${voet.ver.max} van 8`);
+ok(voet.verhuisd && voet.verhuisd.weg > 5 && voet.verhuisd.mis < 0.5, 'wie verhuist staat op zijn nieuwe plek meteen goed',
+  voet.verhuisd ? `${voet.verhuisd.weg.toFixed(1)} m verzet, ${voet.verhuisd.mis.toFixed(2)} m naast zijn plek getekend` : 'niemand ver genoeg weg');
+console.log(`  npcs.update: ${voet.ms} ms per beeld`);
+
 kop('het oordeel');
 ok(dagKijk.programmas === 0 && dagLoop.programmas === 0,
   'overdag vertaalt three geen nieuwe shaders tijdens het spelen',
