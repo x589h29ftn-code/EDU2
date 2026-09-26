@@ -197,7 +197,14 @@ export function lodVervagend() { return vervagend.size; }
  andere programma's), in een losse scène met de lampen van de echte. Loopt op de
  achtergrond (`compileAsync`), zodat het laden er niet op wacht.
 */
-export function lodVoorbereid(renderer, camera, scene) {
+/*
+ `avond(fn)`: js/main.js zet daarin de avondlampen aan, draait `fn` en zet ze
+ weer uit. Three bouwt een shader om het aantal lichtbronnen heen, dus zonder die
+ tweede ronde moesten de kopieën bij het eerste vervagen na zonsondergang nog
+ vertaald worden — precies de hapering die de avondstand bij het opstarten al
+ voorkomt (`warmDeAvondOp`).
+*/
+export function lodVoorbereid(renderer, camera, scene, avond = null) {
   const los = new THREE.Scene(), gehad = new Set(), kopie = [];
   for (const g of lodGroepen) for (const o of g.meshes) {
     const mats = Array.isArray(o.material) ? o.material : [o.material];
@@ -212,7 +219,67 @@ export function lodVoorbereid(renderer, camera, scene) {
       los.add(stand);
     }
   }
-  const klaar = () => { for (const k of kopie) terugInVoorraad(k); return kopie.length; };
+  const klaar = () => {
+    if (avond) { try { avond(() => renderer.compile(los, camera, scene)); } catch (e) { console.warn('LOD-avond voorvertalen mislukt', e); } }
+    for (const k of kopie) terugInVoorraad(k);
+    return kopie.length;
+  };
+  return (renderer.compileAsync ? renderer.compileAsync(los, camera, scene) : Promise.resolve(renderer.compile(los, camera, scene))).then(klaar, klaar);
+}
+
+/*
+ Elke soort materiaal vooraf vertalen, niet alleen wat er in het eerste beeld
+ staat (samenvoegen van de twee sessies, 26 sep 2026). `warmDeAvondOp` tekent één
+ beeld vanaf het beginpunt; wat daar niet in staat, vertaalt three pas als het
+ voor het eerst in beeld komt. `npm run vloeiendtest` vond er zo een bij het
+ rondkijken aan de Molenkrite: de naam op de spiegel van een boot, het enige
+ MeshBasicMaterial met een doorzichtige kaart dat daar in beeld kwam.
+
+ Er zijn ruim zestienhonderd materialen die na het eerste beeld nog nooit
+ getekend zijn, maar de meeste delen hun shader met een ander. Dus één stand-in
+ per soort, en een soort die al een vertaald materiaal heeft slaan we over. De
+ soort is wat three in zijn sleutel stopt: het type, welke kaarten, doorzichtig
+ of niet, de kleur per hoekpunt of per instantie, de kant, de mist, de eigen
+ defines en `onBeforeCompile`. Een soort te veel kost een shader die er toch zou
+ komen; een te weinig is alleen de oude toestand.
+*/
+export function soortenVoorbereid(renderer, camera, scene, avond = null) {
+  const P = renderer.properties;
+  const kaarten = ['map', 'alphaMap', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap',
+    'lightMap', 'bumpMap', 'displacementMap', 'envMap', 'specularMap', 'clearcoatNormalMap'];
+  const soort = (o, m) => [
+    m.type, kaarten.map(k => (m[k] ? 1 : 0)).join(''), m.map ? m.map.colorSpace : '',
+    m.transparent ? 1 : 0, m.alphaTest > 0 ? 1 : 0, m.vertexColors ? 1 : 0, m.side, m.flatShading ? 1 : 0,
+    m.fog ? 1 : 0, m.toneMapped ? 1 : 0, m.clearcoat > 0 ? 1 : 0, m.sheen > 0 ? 1 : 0, m.transmission > 0 ? 1 : 0,
+    JSON.stringify(m.defines || {}), m.customProgramCacheKey(),
+    o.isInstancedMesh ? 1 : 0, o.instanceColor ? 1 : 0, o.geometry.attributes.color ? 1 : 0,
+    o.geometry.attributes.uv ? 1 : 0, o.receiveShadow ? 1 : 0,
+  ].join('|');
+  const al = new Set(), nieuw = new Map();
+  scene.traverse(o => {
+    if (!o.isMesh || o.isSkinnedMesh || !o.geometry || !o.geometry.attributes.position) return;
+    for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
+      if (!m || m.isShaderMaterial) continue;
+      const s = soort(o, m);
+      // (een materiaal waar het reliëf een kaart aan gaf is wel eens vertaald,
+      // maar nog zonder die kaart: dat telt als nieuw)
+      const pm = P.get(m);
+      if (pm.currentProgram && pm.__version === m.version) { al.add(s); nieuw.delete(s); }
+      else if (!al.has(s) && !nieuw.has(s)) nieuw.set(s, { o, m });
+    }
+  });
+  const los = new THREE.Scene();
+  for (const { o, m } of nieuw.values()) {
+    const stand = o.isInstancedMesh ? new THREE.InstancedMesh(o.geometry, m, 1) : new THREE.Mesh(o.geometry, m);
+    if (o.instanceColor) stand.setColorAt(0, new THREE.Color(1, 1, 1));
+    stand.receiveShadow = o.receiveShadow; stand.frustumCulled = false;
+    los.add(stand);
+  }
+  const klaar = () => {
+    if (avond) { try { avond(() => renderer.compile(los, camera, scene)); } catch (e) { console.warn('soorten-avond voorvertalen mislukt', e); } }
+    return los.children.length;
+  };
+  if (!los.children.length) return Promise.resolve(0);
   return (renderer.compileAsync ? renderer.compileAsync(los, camera, scene) : Promise.resolve(renderer.compile(los, camera, scene))).then(klaar, klaar);
 }
 
@@ -330,6 +397,12 @@ function materials() {
   MAT.leaf2 = new THREE.MeshStandardMaterial({ color: 0x3f6b25, roughness: 1 });
   MAT.pole = new THREE.MeshStandardMaterial({ color: 0x7a7f86, roughness: 0.6, metalness: 0.6 });
   MAT.lamp = new THREE.MeshStandardMaterial({ color: 0xfff2c0, emissive: 0xffe9a0, emissiveIntensity: 0.6 });
+  /*
+   Dezelfde lamp, maar voor de palen die na middernacht uitgaan (ronde van 25 sep
+   2026). Een eigen materiaal: een instantie kan zijn eigen kleur hebben maar niet
+   zijn eigen gloed, dus de palen die kunnen doven staan in een eigen stapel.
+  */
+  MAT.lampNacht = MAT.lamp.clone();
   MAT.kliko = new THREE.MeshStandardMaterial({ color: 0x3a3f44, roughness: 0.7 });
   MAT.klikoLid = new THREE.MeshStandardMaterial({ color: 0x1f5fd0, roughness: 0.6 });
   MAT.white = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.8 });
@@ -2621,7 +2694,7 @@ export function waaitMee(m) { if (m && !extraBlad.includes(m)) extraBlad.push(m)
 // bladeren te laten waaien en de lantaarns 's avonds aan te doen.
 export function sfeerMaterialen() {
   return {
-    water: MAT.water, lamp: MAT.lamp, hedge: MAT.hedge,
+    water: MAT.water, lamp: MAT.lamp, lampNacht: MAT.lampNacht, hedge: MAT.hedge,
     /*
      Al het blad dat waait. Sinds stap 78 hebben de kronen eigen materialen
      (js/groen.js), en die stonden hier niet bij: de bomen waren doodstil

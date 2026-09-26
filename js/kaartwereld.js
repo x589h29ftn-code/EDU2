@@ -423,7 +423,7 @@ function materialen(MAT) {
   KM.dakpan = std(T.roofTiles('#4a3a33', 5));
   KM.dakpanRood = std(T.roofTiles('#7a3b2a', 6));
   KM.bitumen = std(T.bitumen());
-  KM.paal = MAT.pole; KM.lamp = MAT.lamp;
+  KM.paal = MAT.pole; KM.lamp = MAT.lamp; KM.lampNacht = MAT.lampNacht;
   // struiken: dezelfde bobbelige bol met bladdoek als de boomkronen (js/groen.js)
   KM.struik = kroonMat(0xe4eed4);
   KM.schutting = std(T.planks('#7a5f42'));
@@ -1970,11 +1970,21 @@ function poelDoek() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
-/** 's Nachts de plassen licht aan, met `sterkte` 0..1 (js/sfeer.js). */
-export function zetLichtpoelen(sterkte) {
+/*
+ 's Nachts de plassen licht aan, met `sterkte` 0..1 (js/sfeer.js), en `nacht`
+ voor de palen die na middernacht uitgaan: hun plas dooft mee, via de kleur per
+ instantie (die telt bij optellend mengen gewoon als helderheid).
+*/
+let poelNacht = -1;
+export function zetLichtpoelen(sterkte, nacht = 1) {
   if (!poelen) return;
   poelen.visible = sterkte > 0.01;
   poelen.material.opacity = 0.42 * sterkte;
+  if (Math.abs(nacht - poelNacht) < 0.01) return;
+  poelNacht = nacht;
+  const c = new THREE.Color();
+  for (const L of LANTAARNS) poelen.setColorAt(L.i, c.setScalar(L.nachtUit ? nacht : 1));
+  if (poelen.instanceColor) poelen.instanceColor.needsUpdate = true;
 }
 export function lichtpoelen() { return poelen; }
 const poelM = new THREE.Matrix4();
@@ -2011,10 +2021,20 @@ function bouwLantaarns(scene, W) {
     return tegels.get(k);
   };
   const plek = K.lantaarns.map(l => { const t = tegelVan(l.x, l.z); return { t, j: t.n++ }; });
+  /*
+   En per tegel twee stapels koppen: de palen die de hele nacht branden en de
+   palen die na middernacht uitgaan (ronde van 25 sep 2026, uit de andere
+   sessie). Twee stapels, omdat een instantie wel zijn eigen kleur kan hebben
+   maar niet zijn eigen gloed, en het doven zit in `emissiveIntensity`. In een
+   woonstraat gaan twee van de drie palen uit; langs de doorgaande wegen blijft
+   alles aan.
+  */
   for (const t of tegels.values()) {
     t.palen = new THREE.InstancedMesh(paalGeo, KM.paal, t.n);
     t.armen = new THREE.InstancedMesh(armGeo, KM.paal, t.n);
     t.koppen = new THREE.InstancedMesh(kopGeo, KM.lamp, t.n);
+    t.koppenNacht = new THREE.InstancedMesh(kopGeo, KM.lampNacht || KM.lamp, t.n);
+    t.nAan = 0; t.nUit = 0;
   }
   const m = new THREE.Matrix4();
   K.lantaarns.forEach((l, i) => {
@@ -2031,18 +2051,26 @@ function bouwLantaarns(scene, W) {
     const y = grondHoogte(l.x, l.z, -Infinity);
     m.makeRotationY(hoek); m.setPosition(l.x, y, l.z);
     const { t, j } = plek[i];
-    t.palen.setMatrixAt(j, m); t.armen.setMatrixAt(j, m); t.koppen.setMatrixAt(j, m);
-    W.lampPosities.push({ x: l.x + Math.cos(hoek) * 0.7, y: y + 5.1, z: l.z - Math.sin(hoek) * 0.7 });
+    const doorgaand = !!(best && /N7|Lemmerweg|Afrit|Oppenhuizerweg/.test(best.naam || best.name || ''));
+    const nachtUit = !doorgaand && (i % 3 !== 0);
+    const kopJ = nachtUit ? t.nUit++ : t.nAan++;
+    t.palen.setMatrixAt(j, m); t.armen.setMatrixAt(j, m);
+    (nachtUit ? t.koppenNacht : t.koppen).setMatrixAt(kopJ, m);
+    W.lampPosities.push({ x: l.x + Math.cos(hoek) * 0.7, y: y + 5.1, z: l.z - Math.sin(hoek) * 0.7, nachtUit });
     const doos = W.addCollider(l.x, l.z, 0.1, 0.1, 0, 5);
     LANTAARNS.push({ x: l.x, z: l.z, y, hoek, i, doos, om: false, t: 0, val: 0, richting: 0, lamp: W.lampPosities[W.lampPosities.length - 1],
-      tegel: plek[i].t, j: plek[i].j });
+      tegel: plek[i].t, j: plek[i].j, nachtUit, kopJ });
   });
   for (const t of tegels.values()) {
     const groep = new THREE.Group();
     t.palen.castShadow = true;
-    t.palen.userData.klasse = 'lantaarn'; t.armen.userData.klasse = 'lantaarn'; t.koppen.userData.klasse = 'lantaarnkop';
-    for (const s of [t.palen, t.armen, t.koppen]) s.computeBoundingSphere();
-    groep.add(t.palen, t.armen, t.koppen);
+    t.palen.userData.klasse = 'lantaarn'; t.armen.userData.klasse = 'lantaarn';
+    t.koppen.userData.klasse = 'lantaarnkop'; t.koppenNacht.userData.klasse = 'lantaarnkop';
+    t.koppen.count = t.nAan; t.koppenNacht.count = t.nUit;
+    for (const s of [t.palen, t.armen]) s.computeBoundingSphere();
+    // (de koppen staan op de palen, dus de bol van de palen past om allebei)
+    t.koppen.boundingSphere = t.palen.boundingSphere.clone(); t.koppenNacht.boundingSphere = t.palen.boundingSphere.clone();
+    groep.add(t.palen, t.armen, t.koppen, t.koppenNacht);
     scene.add(groep);
     // een paal is negen centimeter dik: op vijfhonderd meter minder dan een
     // beeldpunt; de kop gloeit 's nachts, dus ruim
@@ -2056,6 +2084,9 @@ function bouwLantaarns(scene, W) {
   poelen.renderOrder = 2; poelen.visible = false;
   poelen.raycast = () => {};
   for (const L of LANTAARNS) zetPoel(L, true);
+  // de kleur per instantie meteen aanmaken: komt hij er pas later bij, dan moet
+  // three de shader opnieuw vertalen — precies de hapering die we niet willen
+  { const wit = new THREE.Color(1, 1, 1); for (const L of LANTAARNS) poelen.setColorAt(L.i, wit); }
   poelen.computeBoundingSphere();
   scene.add(poelen);
 }
@@ -2071,10 +2102,14 @@ function zetLantaarn(L) {
   lampM.compose(lampPos.set(L.x, L.y, L.z), lampQ, lampSchaal);
   lampM.multiply(new THREE.Matrix4().makeRotationY(L.hoek));
   const t = L.tegel;
-  for (const s of [t.palen, t.armen, t.koppen]) {
+  for (const s of [t.palen, t.armen]) {
     s.setMatrixAt(L.j, lampM);
     s.instanceMatrix.needsUpdate = true;
   }
+  // de kop zit in een van de twee stapels, met zijn eigen nummer
+  const kop = L.nachtUit ? t.koppenNacht : t.koppen;
+  kop.setMatrixAt(L.kopJ, lampM);
+  kop.instanceMatrix.needsUpdate = true;
 }
 
 /*

@@ -174,8 +174,14 @@ export class Vehicles {
      alleen wie verder dan 520 m reed, en de wijkauto's reden bijna allemaal
      tussen 300 en 500 m rond: dan verhuisde er nooit een, en bleef het bij twee
      in de buurt.
+
+     En het doel hangt aan de klok (js/sfeer.js, `drukte`, uit de andere sessie
+     van 25 sep 2026): na half elf 's avonds rijdt er bijna niets meer, en tussen
+     vijf en half zeven komt het verkeer terug.
     */
-    const NABIJ = 260, VER = 300, DOEL = 7;
+    const NABIJ = 260, VER = 300;
+    const f = this.drukte === undefined ? 1 : this.drukte;
+    const DOEL = Math.max(1, Math.round(7 * f));
     this._vulKlok = (this._vulKlok || 0) + dt;
     if (this._vulKlok < 1) return;
     this._vulKlok = 0;
@@ -188,28 +194,68 @@ export class Vehicles {
       // niet wegtoveren wat je ziet rijden
       if (d > vd && (d > 600 || !zichtVrij(camX, camZ, t._pos.x, t._pos.y, 1.4))) { vd = d; verste = t; }
     }
+    /*
+     Rijden er te veel — het doel zakt 's avonds terwijl de auto's er al zijn —
+     dan gaat er telkens één weg: de dichtstbijzijnde die verder dan negentig
+     meter rijdt, naar een rijbaan ver buiten de buurt.
+    */
+    if (nabij > DOEL + 1) {
+      let weg = null, wd = Infinity;
+      for (const t of lokaal) {
+        const d = Math.hypot(t._pos.x - camX, t._pos.y - camZ);
+        if (d > 90 && d < wd) { wd = d; weg = t; }
+      }
+      if (weg) this.zetOpRijbaan(weg, camX, camZ, 420, 420, 1400);
+      return;
+    }
     if (nabij >= DOEL || !verste) return;
     // een rijbaan zoeken die in de band om de speler ligt; net als bij de
     // voetgangers mag het dichterbij als er een gebouw tussen staat
-    const DEKKING = 80, OPEN = 130, BUITEN = 250;
-    let beste = null, besteScore = -1;
+    const beste = this.kiesRijbaan(camX, camZ, 80, 130, 250);
+    if (!beste) return;
+    this.zetOp(verste, beste.pad, beste.k);
+  }
+
+  /*
+   Een plek op een rijbaan in de band om de speler. Net als bij de voetgangers:
+   eerst goedkoop dertig plekken prikken, dan van dichtbij naar ver hoogstens
+   vijf zichtlijnen trekken en stoppen bij de eerste die uit het zicht ligt
+   (andere sessie, 25 sep 2026: veertig zichtlijnen per verhuizing, alleen
+   terwijl je bewoog, was wat je als haperen bij lopen en rijden voelde).
+  */
+  kiesRijbaan(camX, camZ, DEKKING, OPEN, BUITEN) {
+    const kandidaten = [];
     for (let poging = 0; poging < 30; poging++) {
       const pad = this.rijbanen[Math.floor(Math.random() * this.rijbanen.length)];
       const k = Math.floor(Math.random() * pad.length);
       const q = pad[k];
       const d = Math.hypot(q.x - camX, q.y - camZ);
       if (d < DEKKING || d > BUITEN) continue;
-      const uitZicht = !zichtVrij(camX, camZ, q.x, q.y, 1.4);
-      if (!uitZicht && d < OPEN) continue;
-      const score = (uitZicht ? 1000 : 0) + (BUITEN - d);
-      if (score > besteScore) { besteScore = score; beste = { pad, k }; }
+      kandidaten.push({ pad, k, q, d });
     }
-    if (!beste) return;
-    verste.path = beste.pad;
-    verste.t = Math.max(0, Math.min(beste.pad.length - 1.001, beste.k));
-    verste.dir = Math.random() < 0.5 ? 1 : -1;
-    verste.snelheid = 0; verste.doel = verste.speed;
-    verste._pos = null; verste._dir = null;
+    kandidaten.sort((a, b) => a.d - b.d);
+    let stralen = 0;
+    for (const c of kandidaten) {
+      const uitZicht = c.d >= OPEN ? true : (stralen++ < 5 ? !zichtVrij(camX, camZ, c.q.x, c.q.y, 1.4) : false);
+      if (uitZicht) return c;
+    }
+    return null;
+  }
+
+  // een wijkauto op een rijbaan in een band om de speler zetten
+  zetOpRijbaan(t, camX, camZ, DEKKING, OPEN, BUITEN) {
+    const beste = this.kiesRijbaan(camX, camZ, DEKKING, OPEN, BUITEN);
+    if (!beste) return false;
+    this.zetOp(t, beste.pad, beste.k);
+    return true;
+  }
+
+  zetOp(t, pad, k) {
+    t.path = pad;
+    t.t = Math.max(0, Math.min(pad.length - 1.001, k));
+    t.dir = Math.random() < 0.5 ? 1 : -1;
+    t.snelheid = 0; t.doel = t.speed;
+    t._pos = null; t._dir = null;
   }
 
   // De matrix van een geparkeerde auto in zijn stapel bijwerken.

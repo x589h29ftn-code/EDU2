@@ -614,7 +614,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     return new THREE.MeshBasicMaterial({ map: texture(c, w / 1.2, d / 1.2), vertexColors: true, fog: false });
   };
 
-  const dozen = [];        // {x,z,hx,hz,h} – wordt in meldAan() bij de wereld aangemeld
+  const dozen = [];        // {x,z,hx,hz,h,muur} – wordt in meldAan() bij de wereld aangemeld
+  let bouwtWand = false;   // staat aan zolang wand() bezig is, zie doos()
 
   // ---------- bouwstenen ----------
   // Een doos in kamercoördinaten: x/z van..tot, y van..tot.
@@ -624,7 +625,13 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     const m = new THREE.Mesh(schaduw(new THREE.BoxGeometry(w, h, d)), mat);
     m.position.set(x0 + w / 2, y0 + h / 2, z0 + d / 2);
     groep.add(m);
-    if (botst) dozen.push({ x: m.position.x, z: m.position.z, hx: w / 2, hz: d / 2, h: y1 });
+    /*
+     `muur` zegt of deze doos bij de bouw hoort (een wand, een kozijn) of bij de
+     inrichting. De proef gebruikt dat om te zien of er meubels in elkaar staan:
+     een kast tegen een muur hoort te overlappen, twee kasten in elkaar niet
+     (melding 25 sep 2026).
+    */
+    if (botst) dozen.push({ x: m.position.x, z: m.position.z, hx: w / 2, hz: d / 2, h: y1, muur: bouwtWand });
     return m;
   }
   // Een vloer- of plafondvlak. De draai zit in de geometrie, want het licht in
@@ -645,6 +652,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
    muur onder een raam.
   */
   function wand({ as, bij, dik, van, tot, y0 = 0, y1 = HOOGTE, mat, gaten = [] }) {
+    bouwtWand = true;
     const stuk = (a, b, ya, yb) => {
       if (b - a < 0.005 || yb - ya < 0.005) return;
       if (as === 'x') doos(bij, bij + dik, a, b, ya, yb, mat, ya < 0.02);
@@ -661,6 +669,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       p = ht;
     }
     if (p < tot) stuk(p, tot, y0, y1);
+    bouwtWand = false;
   }
   // Een ruit met kozijn in een gat. Standaard dicht glas; `glas` kan op
   // MAT.ruitDoor gezet worden waar je wél naar buiten mag kijken (de tuin).
@@ -807,7 +816,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
          opengaat. Behalve de tuindeur: daar loop je doorheen, de tuin in.
         */
         if (!h.tuin) {
-          dozen.push({ x: (h.van + h.tot) / 2, z: bij + MUUR / 2, hx: (h.tot - h.van) / 2, hz: MUUR / 2, h: h.y1 });
+          dozen.push({ x: (h.van + h.tot) / 2, z: bij + MUUR / 2, hx: (h.tot - h.van) / 2, hz: MUUR / 2, h: h.y1, muur: true });
         } else {
           tuinDeur = { x: (h.van + h.tot) / 2, z: bij + MUUR / 2, breed: h.tot - h.van };
         }
@@ -848,7 +857,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       wand({ as: 'x', bij, dik: MUUR, van, tot, mat: MAT.muur, gaten });
       for (const h of gaten) {
         raam('x', bij, MUUR, h.van, h.tot, h.y0, h.y1);
-        dozen.push({ x: bij + MUUR / 2, z: (h.van + h.tot) / 2, hx: MUUR / 2, hz: (h.tot - h.van) / 2, h: h.y1 });
+        dozen.push({ x: bij + MUUR / 2, z: (h.van + h.tot) / 2, hx: MUUR / 2, hz: (h.tot - h.van) / 2, h: h.y1, muur: true });
         raamAantal++;
       }
     }
@@ -887,7 +896,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     k.position.set(MUUR + 0.2 + BINNENDEUR - 0.08, 1.04, HALD - 0.09);
     groep.add(k);
     // hij blijft dicht, dus je loopt er niet door
-    dozen.push({ x: MUUR + 0.2 + BINNENDEUR / 2, z: HALD + WAND / 2, hx: BINNENDEUR / 2, hz: WAND / 2, h: BINNENDEUR_H });
+    dozen.push({ x: MUUR + 0.2 + BINNENDEUR / 2, z: HALD + WAND / 2, hx: BINNENDEUR / 2, hz: WAND / 2, h: BINNENDEUR_H, muur: true });
   }
 
   // ---------- plinten ----------
@@ -1298,13 +1307,19 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   /*
    ---------- de grote plant in de hoek ----------
    Een pot met een stam en drie bossen blad, in de hoek bij het raam. Hij staat
-   in de weg zoals een echte kamerplant in de weg staat: er zit een botsdoos om
-   de pot, dus je loopt er niet dwars doorheen.
+   in de weg zoals een echte kamerplant in de weg staat.
+
+   De botsdoos zat alleen om de pot, en de bladeren steken er een stuk buiten:
+   die hangen op negentig centimeter tot anderhalve meter, precies op loophoogte,
+   en daar liep je dwars doorheen (melding 25 sep 2026). De doos loopt nu door
+   tot boven het blad en is zo breed als de bossen zelf.
   */
   {
     const px = BREED - MUUR - 0.42, pz = MUUR + 0.50;
     if (px > HAL.x1 + 0.6) {
-      doos(px - 0.22, px + 0.22, pz - 0.22, pz + 0.22, 0, 0.34, MAT.pot);
+      doos(px - 0.22, px + 0.22, pz - 0.22, pz + 0.22, 0, 0.34, MAT.pot, false);
+      // één doos om de hele plant, van de vloer tot boven het blad
+      dozen.push({ x: px, z: pz, hx: 0.30, hz: 0.30, h: 1.52 });
       doos(px - 0.19, px + 0.19, pz - 0.19, pz + 0.19, 0.32, 0.35, MAT.aarde, false);
       doos(px - 0.035, px + 0.035, pz - 0.035, pz + 0.035, 0.34, 1.05, MAT.stam, false);
       for (const [dx, dz, h, r] of [[0, 0, 1.28, 0.30], [0.22, 0.12, 1.05, 0.22], [-0.18, -0.14, 1.12, 0.20]]) {
@@ -2316,6 +2331,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     get groep() { return groep; },
     // de kijkdoos om de kamer heen (npm run huistest kijkt of er niets overlapt)
     get kijkdoos() { return buiten; },
+    // en de botsdozen zelf, zodat de proef kan zien of er meubels in elkaar staan
+    get botsdozen() { return dozen; },
     get plekken() {
       return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, keuken: KEUKEN, bank: zitPlek,
         tafel: wereld(TAFEL.x, TAFEL.z), stoel: tafelPlek, koelkast: koelPlek,

@@ -358,8 +358,21 @@ export class NPCs {
    tot vier mensen, want vanaf honderdtien meter moeten ze eerst nog naar je toe
    lopen.
   */
-  verhuisNaarBuurt(p, cx, cz, DEKKING = 70, OPEN = 110, BUITEN = 205) {
-    let beste = null, besteScore = -1;
+  verhuisNaarBuurt(p, cx, cz, DEKKING = 70, OPEN = 110, BUITEN = 205, STRALEN = 5) {
+    p.getekend = false;         // op de nieuwe plek meteen tekenen
+    /*
+     Eerst goedkoop veertig plekken in de band prikken, dán pas zichtlijnen
+     trekken — en hoogstens vijf. De oude volgorde trok er veertig, twee keer
+     per seconde, en alléén terwijl je liep of reed (want alleen dan raken er
+     mensen achter). Dat is precies het werk dat je als haperen voelde bij
+     bewegen terwijl rondkijken vloeiend bleef (melding 25 sep 2026).
+
+     De uitkomst blijft dezelfde. De beste plek is die met de hoogste score, en
+     die score is `uit het zicht` eerst en dan `zo dichtbij mogelijk`; loop je de
+     kandidaten van dichtbij naar ver af, dan is de eerste die uit het zicht ligt
+     meteen de winnaar en hoeft de rest niet meer gemeten te worden.
+    */
+    const kandidaten = [];
     for (let poging = 0; poging < 40; poging++) {
       const s = this.segs[Math.floor(this.r() * this.segs.length)];
       if (!s) break;
@@ -367,11 +380,15 @@ export class NPCs {
       const x = s.a[0] + (s.b[0] - s.a[0]) * t, z = s.a[1] + (s.b[1] - s.a[1]) * t;
       const d = Math.hypot(x - cx, z - cz);
       if (d < DEKKING || d > BUITEN) continue;
-      const uitZicht = !zichtVrij(cx, cz, x, z, 1.6);
-      if (!uitZicht && d < OPEN) continue;
-      // achter een gebouw gaat vóór, en daarvan de dichtstbijzijnde
-      const score = (uitZicht ? 1000 : 0) + (BUITEN - d);
-      if (score > besteScore) { besteScore = score; beste = { s, t }; }
+      kandidaten.push({ s, t, x, z, d });
+    }
+    kandidaten.sort((a, b) => a.d - b.d);
+    let beste = null, stralen = 0;
+    for (const k of kandidaten) {
+      // voorbij `OPEN` telt het toch als uit het zicht, en dan hoeft die
+      // zichtlijn — over honderden meters — niet eens getrokken te worden
+      const uitZicht = k.d >= OPEN ? true : (stralen++ < STRALEN ? !zichtVrij(cx, cz, k.x, k.z, 1.6) : false);
+      if (uitZicht) { beste = k; break; }
     }
     if (!beste) return false;
     p.seg = beste.s; p.t = beste.t;
@@ -395,7 +412,15 @@ export class NPCs {
    halve seconde later opnieuw.
   */
   vulBuurtAan(camX, camZ, dt) {
-    const DICHTBIJ = 100, NABIJ = 200, VER = 380, DOEL_DICHTBIJ = 4, DOEL = 18;
+    const DICHTBIJ = 100, NABIJ = 200, VER = 380;
+    /*
+     `drukte` komt uit js/sfeer.js en hangt aan de klok: 1 overdag, 0,16 midden
+     in de nacht, met een zachte overgang (verzoek 25 sep 2026). Het schaalt
+     alleen het doel; het verhuizen zelf gaat per halve seconde één of twee
+     mensen, dus de straat loopt geleidelijk leeg en niet in één beeld.
+    */
+    const f = this.drukte === undefined ? 1 : this.drukte;
+    const DOEL_DICHTBIJ = Math.max(1, Math.round(4 * f)), DOEL = Math.max(2, Math.round(18 * f));
     this._vulKlok = (this._vulKlok || 0) + dt;
     if (this._vulKlok < 0.5) return;
     this._vulKlok = 0;
@@ -405,6 +430,29 @@ export class NPCs {
       const d = Math.hypot(p.x - camX, p.z - camZ);
       if (d < DICHTBIJ) dichtbij++;
       if (d < NABIJ) nabij++;
+    }
+    /*
+     Staan er te veel — 's avonds loopt het doel terug terwijl de mensen er al
+     zijn — dan gaat er telkens één naar huis: de dichtstbijzijnde die uit het
+     zicht staat verhuist naar een wegvak ver buiten de wijk.
+    */
+    if (nabij > DOEL + 1) {
+      /*
+       Wie gaat er naar huis? De dichtstbijzijnde die al meer dan vijftig meter
+       verderop is. Een zichtlijn trekken naar iedereen zou honderd raycasts per
+       halve seconde kosten en dat is precies het soort werk dat het spel doet
+       haperen; op vijftig meter valt het verdwijnen toch niet op.
+      */
+      let weg = null, wd = Infinity;
+      for (const p of this.people) {
+        if (!p.alive || p.steek > 0 || p.paniek > 0) continue;
+        const d = Math.hypot(p.x - camX, p.z - camZ);
+        if (d > 50 && d < wd) { wd = d; weg = p; }
+      }
+      if (weg) this.verhuisNaarBuurt(weg, camX, camZ, 420, 420, 1200);
+      // (maar is de straat bij je leeg, dan vult de binnenste ring nog wel aan:
+      // rijdend kon het anders een halve minuut uitgestorven blijven)
+      if (dichtbij >= DOEL_DICHTBIJ) return;
     }
     if (dichtbij >= DOEL_DICHTBIJ && nabij >= DOEL) return;
     // wie het verst weg is verhuist; staat de straat leeg dan twee tegelijk
@@ -423,8 +471,15 @@ export class NPCs {
        IJlst, waar de straten breed en open zijn, de hele buurt leeg: het spel
        bleef de binnenste ring proberen en kwam nooit aan de buitenste toe.
       */
+      /*
+       De binnenste ring mag twaalf zichtlijnen trekken in plaats van vijf
+       (bevolkingtest bij het samenvoegen: met vijf bleef het rijdend over de
+       Wieken een keer helemaal leeg binnen 80 m, en stonden er na een minuut in
+       drie van de zes wijken geen twee mensen meer in je straat). Hij komt alleen
+       aan de beurt als er te weinig mensen vlak bij je zijn, dus zelden.
+      */
       const kort = dichtbij + n < DOEL_DICHTBIJ
-        && this.verhuisNaarBuurt(verste, camX, camZ, 45, Infinity, 105);
+        && this.verhuisNaarBuurt(verste, camX, camZ, 45, Infinity, 105, 12);
       if (!kort && nabij + n < DOEL) this.verhuisNaarBuurt(verste, camX, camZ);
     }
   }
@@ -489,6 +544,7 @@ export class NPCs {
 
   pickSegment(p, random = false) {
     if (random || !p.seg) {
+      p.getekend = false;
       const target = this.r() * this.total;
       let lo = 0, hi = this.weights.length - 1;
       while (lo < hi) { const mid = (lo + hi) >> 1; if (this.weights[mid] < target) lo = mid + 1; else hi = mid; }
@@ -575,9 +631,11 @@ export class NPCs {
      dus hij kantelt om de lengteas van het lichaam en niet om een wereldas.
     */
     const rol = H.rol || 0;
+    // de stand van het lichaam zelf is voor alle achttien delen dezelfde, dus
+    // die hoeft maar één keer uitgerekend
+    e.set(tilt, yaw, rol, 'YXZ'); w.setFromEuler(e);
     const zet = (mesh, nr, ox, oy, oz, hoek, extra = 0, zij = 0) => {
       e.set(tilt + hoek + extra, yaw, rol + zij, 'YXZ'); q.setFromEuler(e);
-      e.set(tilt, yaw, rol, 'YXZ'); w.setFromEuler(e);
       v.set(ox * h, oy * h, oz * h).applyQuaternion(w);
       m.compose(v.set(x + v.x, y + v.y, z + v.z), q, sc);
       mesh.setMatrixAt(nr, m);
@@ -624,6 +682,17 @@ export class NPCs {
     if (camX !== null) this.vulBuurtAan(camX, camZ, dt);
     this.verdeelSlots(camX, camZ);
     const m = this._m, q = this._q, e = this._e, v = this._v, sc = this._s;
+    /*
+     Ver weg hoeft niet elk beeld een nieuwe houding. Een lichaam is achttien
+     delen en elk deel een eigen matrix; bij honderddertig mensen was dat de
+     duurste post in de javascript van een beeld. Op zestig meter is iemand een
+     figuurtje van veertig beeldpunten: of zijn pas elk beeld of om het beeld
+     verspringt is niet te zien. Het lopen zelf (het wegvak, de botsingen) telt
+     wel elk beeld door, dus niemand raakt achter; alleen het tekenen van de
+     houding wordt verdeeld. Dichtbij, voor wie valt en voor wie net is
+     aangereden blijft het elk beeld.
+    */
+    this._beeld = (this._beeld || 0) + 1;
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
       // loopt hij, en hoe hard? de pas hangt daaraan
@@ -773,6 +842,15 @@ export class NPCs {
       if (j < 0) continue;
 
       const h = p.height;
+      let overslaan = false;
+      // (alleen als hij nog op dezelfde plek in de meshes staat als het vorige
+      // beeld: sinds `verdeelSlots` kan die plek wisselen, en dan zou er de
+      // houding van een ander blijven staan)
+      if (camX !== null && p.alive && !p.smak && p.getekend && p.slotVorig === j) {
+        const d2 = (p.x - camX) ** 2 + (p.z - camZ) ** 2;
+        const elk = d2 > 140 * 140 ? 4 : d2 > 60 * 60 ? 2 : 1;
+        overslaan = elk > 1 && (i + this._beeld) % elk !== 0;
+      }
       /*
        En dan pas de wereld. Voetgangers liepen overal doorheen, en dat kwam niet
        door een fout in de botsingen maar doordat ze er nooit aan meededen: hun
@@ -791,6 +869,8 @@ export class NPCs {
         p.x = kx; p.z = kz;
       }
       // bijna overal nul; op het viaduct loopt de stoep meters omhoog
+      if (overslaan) continue;
+      p.getekend = true; p.slotVorig = j;
       const gy = grondHoogte(p.x, p.z);
       const dood = !p.alive;
       // omvallen: naar achteren kantelen en wegzakken
@@ -884,7 +964,21 @@ export class NPCs {
     }
     if (this.hondBazen.length) { this.hond.instanceMatrix.needsUpdate = true; this.riem.instanceMatrix.needsUpdate = true; }
 
-    for (const def of DELEN) this.meshes[def.naam].instanceMatrix.needsUpdate = true;
+    /*
+     De omhullende bol weggooien (samenvoegen van de twee sessies, 26 sep 2026).
+     Three rekent hem bij de eerste raycast één keer uit en houdt hem dan vast; de
+     straal toetst eerst die bol en pas dan de instanties. Sinds stap 80 staan
+     alleen de mensen bij jou in de meshes, dus na een stukje lopen of rijden lag
+     niemand meer in de bol van het eerste schot en ging elke kogel langs iedereen
+     heen (npm run wapentest: acht schoten, nul raak, ook met de straal recht op
+     de romp). Leeg is goedkoop: hij wordt pas bij een schot opnieuw uitgerekend,
+     en tekenen gebruikt hem niet (`frustumCulled` staat uit).
+    */
+    for (const def of DELEN) {
+      const mm = this.meshes[def.naam];
+      mm.instanceMatrix.needsUpdate = true;
+      mm.boundingSphere = null;
+    }
     this.fiets.instanceMatrix.needsUpdate = true;
   }
 

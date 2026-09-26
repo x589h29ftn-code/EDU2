@@ -139,14 +139,43 @@ export function initSfeer(ctx) {
    beeld werd er langzamer van in plaats van sneller. Wat wel werkt is gewoon
    minder lampen, zie POOL hierboven.
   */
-  function zetLampen(camX, camZ, aan) {
+  /*
+   Het aantal zíchtbare lampen mag tijdens het spelen niet veranderen. Three
+   bouwt de shader van elk materiaal om het aantal lichtbronnen heen: gaat er
+   eentje aan of uit, dan wordt élk materiaal opnieuw vertaald. Dat kostte een
+   hapering van tientallen milliseconden, en omdat de palen om de paar tellen
+   in en uit de straal van vijfenveertig meter liepen gebeurde dat de hele tijd
+   dat je 's nachts liep of reed (melding 25 sep 2026). Alle drie de lampen
+   staan daarom 's nachts aan; een lamp die niets te verlichten heeft krijgt
+   sterkte nul en wordt onder de grond geparkeerd. Dan verandert het aantal nog
+   maar twee keer per etmaal: bij het invallen en bij het opkomen.
+  */
+  function zetLampen(camX, camZ, kracht) {
+    /*
+     De lampen komen in de scene zodra het begint te schemeren (kracht 0,45) maar
+     met sterkte nul; ze lichten pas op naarmate het donkerder wordt. Zo valt het
+     ene moment waarop het aantal lichtbronnen verandert — en three dus één keer
+     alles opnieuw vertaalt — samen met een beeld waarin je niets ziet gebeuren.
+     En het aangaan zelf is een overgang in plaats van een schakelaar.
+    */
+    const aan = kracht < 0.45;
+    const sterkte = Math.max(0, Math.min(1, (0.45 - kracht) / 0.20));
+    for (const l of lichten) if (l.visible !== aan) l.visible = aan;
     if (!aan) {
-      for (const l of lichten) if (l.visible) { l.visible = false; l.intensity = 0; }
+      for (const l of lichten) l.intensity = 0;
       return;
     }
-    // dichtstbijzijnde palen zoeken, niet elk beeld
+    /*
+     Na middernacht gaat een deel van de straatverlichting in de woonstraten uit
+     (verzoek 25 sep 2026). Welke palen dat zijn staat in de kaartwereld
+     (`nachtUit`); hoe ver het al is, zegt `lampenAan` hieronder. Het loopt
+     geleidelijk van 1 naar 0, dus je ziet de straat langzaam donkerder worden
+     in plaats van dat er een knop omgaat.
+    */
+    const f = lampFactor();
     const dichtbij = [];
     for (const p of lampPosities) {
+      if (p.nachtUit && f < 0.04) continue;
       const d2 = (p.x - camX) ** 2 + (p.z - camZ) ** 2;
       if (d2 < 45 * 45) dichtbij.push({ p, d2 });
     }
@@ -154,9 +183,15 @@ export function initSfeer(ctx) {
     for (let i = 0; i < POOL; i++) {
       const l = lichten[i];
       if (i < dichtbij.length) {
-        l.position.set(dichtbij[i].p.x, dichtbij[i].p.y, dichtbij[i].p.z);
-        l.visible = true; l.intensity = 11;
-      } else { l.visible = false; l.intensity = 0; }
+        const p = dichtbij[i].p;
+        l.position.set(p.x, p.y, p.z);
+        l.intensity = 11 * sterkte * (p.nachtUit ? f : 1);
+      } else {
+        // niets te verlichten: sterkte nul, en onder de grond zodat hij ook
+        // niets kán raken. Zichtbaar blijft hij, zie de uitleg hierboven.
+        l.position.set(camX, -60, camZ);
+        l.intensity = 0;
+      }
     }
   }
 
@@ -202,8 +237,15 @@ export function initSfeer(ctx) {
     const wil = scene.fog.far + 60;
     if (Math.abs(camera.far - wil) > 1) { camera.far = wil; camera.updateProjectionMatrix(); }
 
-    // lampen gloeien alleen als het donker is
-    mats.lamp.emissiveIntensity = nacht ? 2.4 : 0.15;
+    /*
+     De gloed van de lampkoppen loopt mee met dezelfde schemerkromme als de
+     lichtbronnen hierboven: van 0,15 overdag naar 2,4 als het echt donker is,
+     in plaats van een schakelaar op één uur. De palen die na middernacht uitgaan
+     hebben hun eigen materiaal, zodat ze los kunnen doven.
+    */
+    const donker = Math.max(0, Math.min(1, (0.45 - k.kracht) / 0.20));
+    mats.lamp.emissiveIntensity = 0.15 + 2.25 * donker;
+    if (mats.lampNacht) mats.lampNacht.emissiveIntensity = 0.15 + 2.25 * donker * lampFactor();
 
     // water: donkerder en doffer bij regen, spiegelend bij helder weer. De
     // kleur is die van het water zelf (donker groenblauw); het licht erop komt
@@ -226,7 +268,9 @@ export function initSfeer(ctx) {
     // hoe nacht het is, voor de verlichte ramen (js/licht.js)
     nachtUniform.value = Math.max(0, Math.min(1, (0.75 - k.kracht) / 0.55));
     // de plassen licht onder de palen en de lampen van wat rijdt gaan mee
-    zetLichtpoelen(nachtUniform.value);
+    // (met dezelfde schemerkromme als de koppen; de palen die na middernacht
+    // uitgaan doven hun plas mee)
+    zetLichtpoelen(donker, lampFactor());
     zetKoplampen(nachtUniform.value > 0.35);
 
     /*
@@ -285,7 +329,7 @@ export function initSfeer(ctx) {
     }
 
     lampKlok += dt;
-    if (lampKlok > 0.4) { lampKlok = 0; zetLampen(camX, camZ, meng(uur).kracht < 0.35); }
+    if (lampKlok > 0.4) { lampKlok = 0; zetLampen(camX, camZ, meng(uur).kracht); }
   }
 
   // ---------- bediening ----------
@@ -303,9 +347,41 @@ export function initSfeer(ctx) {
     }
   });
 
+  /*
+   ---------- hoe laat het is, en wat dat betekent ----------
+   Twee krommen die de rest van het spel gebruikt, allebei met een zachte
+   overgang (`soepel`) zodat er nergens een schakelaar omgaat.
+
+   `drukte`   hoeveel verkeer en voetgangers de wijk om je heen wil hebben.
+              Overdag vol; tussen half elf en half twaalf zakt het weg naar een
+              zesde, en tussen vijf en half zeven 's ochtends komt het terug
+              (verzoek 25 sep 2026).
+   `lampenAan` hoeveel van de straatverlichting in de woonstraten nog brandt.
+              Tot middernacht alles; in het uur daarna gaat het naar een derde,
+              en tegen zessen staat alles weer aan.
+  */
+  const soepel = (a, b, x) => {
+    const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+  function drukteFactor() {
+    if (uur >= 6.5 && uur < 22.5) return 1;
+    if (uur >= 22.5) return 1 - 0.84 * soepel(22.5, 23.5, uur);
+    if (uur < 5) return 0.16;
+    return 0.16 + 0.84 * soepel(5, 6.5, uur);
+  }
+  function lampFactor() {
+    if (uur >= 6) return 1;                       // vóór middernacht brandt alles
+    if (uur < 1) return 1 - 0.68 * soepel(0, 1, uur);
+    if (uur < 5) return 0.32;
+    return 0.32 + 0.68 * soepel(5, 6, uur);
+  }
+
   pasToe();
   return {
     update, pasToe,
+    get drukte() { return drukteFactor(); },
+    get lampenAan() { return lampFactor(); },
     get uur() { return uur; }, set uur(v) { uur = v % 24; pasToe(); },
     get weer() { return weer; }, set weer(v) { if (WEER.includes(v)) { weer = v; pasToe(); } },
     get nacht() { return meng(uur).kracht < 0.35; },

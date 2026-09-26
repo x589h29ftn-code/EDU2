@@ -21,8 +21,11 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 - **Alles in het Nederlands.** Code-commentaar, commitberichten, `README.md`,
   `docs/METHODIEK.md` en de uitvoer van de proeven. Ook de gesprekken in het
   spel.
-- **Ontwikkelen en pushen op de tak `claude/gta-tinga-game-setup-lcm1jy`.**
-  Nooit een andere tak zonder dat het gevraagd is.
+- **Ontwikkelen en pushen op de tak `claude/gta-tinga-veteran-mission-1aoypq`.**
+  Nooit een andere tak zonder dat het gevraagd is. Hier stond eerst
+  `claude/gta-tinga-game-setup-lcm1jy`; op die tak is tot 26 sep in een oude
+  sessie verder gewerkt vanaf de stand van 23 sep, en dat is in stap 85 hier
+  samengevoegd. Kijk bij twijfel eerst met `git log` op beide takken.
 - **Pushen als de gebruiker het zegt.** "push" betekent pushen, **"Build"**
   betekent de Windows-app bouwen: `windows.yml` via `workflow_dispatch` op de
   werktak.
@@ -76,6 +79,12 @@ Een paar dingen die niet vanzelf spreken:
   het adres, en zijn de ramen dichtgemaakt.
 - **NPC's leven op wegvakken.** `p.seg` en `p.t` bepalen x/z, elk beeld opnieuw.
   Een handmatig gezette positie overleeft één beeld.
+- **De wijk slaapt 's nachts** (stap 83). `sfeer.drukte` (1 overdag, 22:30→23:30
+  naar 0,16, 05:00→06:30 terug) schaalt het aantal mensen en auto's;
+  `sfeer.lampenAan` dooft na middernacht tweederde van de lantaarns in
+  woonstraten (per tegel twee stapels koppen, `MAT.lamp` en `MAT.lampNacht`, en
+  hun plas licht dooft mee). De drie straatlampen zijn een vaste pool in
+  js/sfeer.js (`zetLampen`): 's nachts altijd zichtbaar, alleen hun sterkte gaat.
 - **De plattegrond komt uit het grondvlak.** `plattegrond(pand)` en
   `banden(punten)` maken van een BAG-voetafdruk kamerbanden; de woonkamer is de
   eerste band over de volle diepte.
@@ -128,7 +137,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run schaduwtest` (de schaduwpas: bomen bij de
+De laatste die ertoe doen: `npm run vloeiendtest` (het aantal shaders dat three
+tijdens het spelen erbij vertaalt — hoort nul te zijn — en de nacht; stap 83–85),
+`npm run schaduwtest` (de schaduwpas: bomen bij de
 doos, lantaarns per tegel) en `npm run nachttest` (plassen licht, lampen van de
 auto's) met `nachtshots`, stap 82; `npm run lodtest` (LOD verder weg en vervagend,
 het voorvlak, de intro voorbereid en met de LOD mee, het verkeer; stap 81),
@@ -172,15 +183,40 @@ groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
 - **Een instantie is geen nummer meer.** Geparkeerde auto's en voetgangers
   staan compact in hun meshes (stap 80): instantie `j` is `stapel.nummer(mesh, j)`
   of `npcs.slotNaar[j]`. Een proef die iemand wil raken gebruikt `hitPersoon`.
+  En een instanced mesh waarvan de inhoud verschuift moet elk beeld
+  `boundingSphere = null` krijgen: three rekent die bol bij de eerste raycast
+  één keer uit, en daarna ging elke kogel langs de voetgangers (stap 85).
+- **Een nieuw soort materiaal wordt vooraf vertaald** door `soortenVoorbereid`
+  (js/world.js), achter het laadscherm. Een materiaal dat na het opstarten pas
+  gemaakt wordt valt daarbuiten; `npm run vloeiendtest` ziet dat als een nieuw
+  programma.
 - **De schaduwpas telt alleen met `shadowMap.needsUpdate = true`.** js/main.js
   zet `autoUpdate` uit; een meting of foto die de schaduw wil zien zet hem zelf.
   De bomen werpen hun schaduw via `werkSchaduwBomenBij` (rond de schaduwdoos),
   niet via hun tegels.
+- **Verander tijdens het spelen nooit het aantal zichtbare lichtbronnen** (stap 83).
+  Three vertaalt dan élk materiaal opnieuw. Regel met `intensity`, niet met
+  `visible`, en laat het aantal hoogstens bij zonsopkomst en zonsondergang
+  veranderen. Wat nieuwe materialen maakt (de kopieën van het vervagen) moet ook
+  met de avondlampen aan voorvertaald worden (`metAvondlampen`).
+- **Werk dat aan de positie van de speler hangt is verdacht.** Rondkijken en lopen
+  tekenen hetzelfde beeld; hapert alleen lopen, dan zit het in wat er bij het
+  bewegen gebeurt (verhuizen, zichtlijnen, lampen).
+- **`pgrep -f` en `pkill -f` vinden zichzelf.** Een wachtlus op een procesnaam
+  eindigt nooit, en `pkill -f` met zo'n patroon schiet de eigen shell af (exit 144).
+  Wacht op een regel in het log en stop processen op hun PID.
+- **Een zelfgemaakt wegvak heeft `w` en `walkOff` nodig**, anders staat een
+  voetganger op NaN. **Meerdere schoten achter elkaar vragen om een beeld
+  ertussen**: de terugslag wordt per beeld gedempt.
 - **Het wapen staat op laag 1** en wordt apart getekend (`tekenWapen`); een eigen
   render van de scène laat het dus weg, tenzij de camera die laag aanzet.
 - **Lege schermafdrukken** komen meestal doordat de camera niet bij de mensen
   staat of doordat NPC's hun positie uit `p.seg` herleiden; zet de camera en
   bevries npcs/voertuigen voor de foto.
+
+**Wacht op de gebruiker:** de wapenmelding ("kogels doen geen schade na in/uit de
+auto") is in de proef niet te reproduceren (`npm run wapentest`, sectie 5, groen).
+Gevraagd: welk wapen, eerste of derde persoon, zie je het schot, reageren mensen?
 
 ## 7 · Wat er nog open staat
 

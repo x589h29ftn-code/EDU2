@@ -155,6 +155,7 @@
     "lodtest": "node tools/lodtest.mjs",
     "nachttest": "node tools/nachttest.mjs",
     "nachtshots": "node tools/nachtshots.mjs",
-    "schaduwtest": "node tools/schaduwtest.mjs"
+    "schaduwtest": "node tools/schaduwtest.mjs",
+    "vloeiendtest": "node tools/vloeiendtest.mjs"
   }
 }

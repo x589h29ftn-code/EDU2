@@ -283,6 +283,84 @@ ok(ronde2.bbq && ronde2.bbq.bij && ronde2.bbq.opgelegd === 'op de barbecue'
   'op de barbecue braad je vlees en dat eet je op',
   ronde2.bbq ? `${ronde2.bbq.opgelegd} → ${ronde2.bbq.gaar} → ${ronde2.bbq.leven} leven` : 'geen');
 
+// ------------------------------------- staan er meubels in elkaar? (clipping)
+/*
+ Melding 25 sep 2026: "clipping bij objecten in de huisjes die je kan kopen".
+ Elk meubelstuk met een botsdoos wordt tegen elk ander gelegd; overlappen twee
+ grondvlakken meer dan twaalf centimeter in beide richtingen, dan staan ze in
+ elkaar. Muren, kozijnen en deuren tellen niet mee: daar hoort een kast juist
+ tegenaan te staan.
+*/
+kop('staat er niets in elkaar');
+const inelkaar = await page.evaluate(() => {
+  const g = window.__game;
+  const uit = [];
+  for (const w of g.woningen) {
+    const meubels = w.botsdozen.filter(d => !d.muur);
+    const paren = [];
+    for (let i = 0; i < meubels.length; i++) {
+      for (let j = i + 1; j < meubels.length; j++) {
+        const a = meubels[i], b = meubels[j];
+        const ox = Math.min(a.x + a.hx, b.x + b.hx) - Math.max(a.x - a.hx, b.x - b.hx);
+        const oz = Math.min(a.z + a.hz, b.z + b.hz) - Math.max(a.z - a.hz, b.z - b.hz);
+        if (ox > 0.12 && oz > 0.12) {
+          paren.push(`${ox.toFixed(2)}×${oz.toFixed(2)} m bij (${(a.x - w.plekken.nul.x).toFixed(1)}, ${(a.z - w.plekken.nul.z).toFixed(1)})`);
+        }
+      }
+    }
+    uit.push({ naam: w.naam, meubels: meubels.length, paren });
+  }
+  return uit;
+});
+for (const h of inelkaar) {
+  ok(h.paren.length === 0, `${h.naam}: geen meubels in elkaar`,
+    h.paren.length ? `${h.paren.length} paren, o.a. ${h.paren.slice(0, 3).join(' · ')}` : `${h.meubels} meubels`);
+}
+
+// ------------------------------ loop je ergens dwars doorheen? (ook clipping)
+/*
+ De andere helft van de melding: een meubelstuk zonder botsdoos loop je zo in.
+ Alles in de kamer dat groter is dan dertig bij dertig centimeter en op
+ loophoogte staat (tussen 35 cm en 1,20 m) hoort een botsdoos te hebben.
+ Platte dingen (het kleed), dingen boven je hoofd (de parasol, de lampenkap) en
+ dunne vlakken (het tv-beeld, de gordijnen) vallen er vanzelf buiten.
+*/
+kop('nergens dwars doorheen lopen');
+const doorheen = await page.evaluate(async () => {
+  const THREE = await import('/lib/three.module.js');
+  const g = window.__game;
+  const uit = [];
+  for (const w of g.woningen) {
+    const doos = new THREE.Box3();
+    const los = [];
+    for (const m of w.groep.children) {
+      if (!m.geometry) continue;
+      doos.setFromObject(m);
+      const bx = doos.max.x - doos.min.x, bz = doos.max.z - doos.min.z;
+      if (bx < 0.30 || bz < 0.30) continue;
+      if (doos.min.y > 1.20 || doos.max.y < 0.35) continue;
+      /*
+       Box3 geeft wereldmaten, de botsdozen staan in kamermaten (de groep staat
+       op NUL). Eerst gelijk rekenen, anders klopt er niets van de vergelijking.
+      */
+      const cx = (doos.min.x + doos.max.x) / 2 - w.plekken.nul.x;
+      const cz = (doos.min.z + doos.max.z) / 2 - w.plekken.nul.z;
+      const gedekt = w.botsdozen.some(d =>
+        Math.abs(d.x - cx) < d.hx + 0.05 && Math.abs(d.z - cz) < d.hz + 0.05 && d.h > 0.35);
+      if (!gedekt) {
+        los.push(`${bx.toFixed(2)}×${bz.toFixed(2)} m op (${cx.toFixed(1)}, ${cz.toFixed(1)})`
+          + ` h ${doos.min.y.toFixed(2)}–${doos.max.y.toFixed(2)}`);
+      }
+    }
+    uit.push({ naam: w.naam, los });
+  }
+  return uit;
+});
+for (const h of doorheen) {
+  ok(h.los.length === 0, `${h.naam}: alles waar je tegenaan loopt heeft een botsdoos`,
+    h.los.length ? `${h.los.length} zonder: ${h.los.slice(0, 5).join(' · ')}` : 'niets los');
+}
+
 // ------------------------------------------------------------- de missie
 kop('de missie: Mark belt, drie vlaggen op de kaart');
 const start = await page.evaluate(() => {

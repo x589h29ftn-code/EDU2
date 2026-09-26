@@ -1,6 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee } from './world.js';
+import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, soortenVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee } from './world.js';
 import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
@@ -21,7 +21,8 @@ import { initPolitieboot } from './politieboot.js';
 import { initVaart } from './vaart.js';
 import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
 import { geluid } from './audio.js';
-import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp } from './kaartwereld.js';
+import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen } from './kaartwereld.js';
+import { zetKoplampen } from './carmodel.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
@@ -283,7 +284,13 @@ function werkOmgevingBij(dt) {
   // ook bij ander weer: dan verandert de lucht zonder dat de zon beweegt
   const lucht = skyUniforms.mid.value;
   const anders = Math.abs(lucht.r - envLucht.r) + Math.abs(lucht.g - envLucht.g) + Math.abs(lucht.b - envLucht.b);
-  if (SUN_DIR.angleTo(envZon) > 0.035 || anders > 0.06) bakOmgeving();
+  /*
+   Pas bij zes graden zon (was twee): elke keer bakken is een piek in één beeld,
+   en midden op de dag verandert de lucht in een kwartier nauwelijks (vloeiendtest,
+   uit de andere sessie: "midden op de dag wordt er niet opnieuw gebakken"). De
+   kleur van de lucht blijft de tweede sleutel, dus de schemering bakt nog wel.
+  */
+  if (SUN_DIR.angleTo(envZon) > 0.105 || anders > 0.06) bakOmgeving();
 }
 
 const hemi = new THREE.HemisphereLight(0xd2e2f6, 0x6e8154, 0.75);
@@ -461,6 +468,7 @@ const RELIEF_AAN = !IS_TOUCH && new URLSearchParams(location.search).get('relief
  afgewerkt; `reliëfAf` doet de rest in één keer, voor de proeven.
 */
 let reliëf = null, reliëfT = 0, reliëfMs = 0;
+let lodBelofte = null;          // de vervaagshaders, zodra het reliëf af is (js/world.js)
 function reliëfAf() {
   if (!reliëf) return null;
   let r; do { r = reliëf.next(); } while (!r.done);
@@ -472,7 +480,10 @@ function meldReliëf(v) {
   console.log(`reliëf: ${v.normalen} normal maps en ${v.glans} roughness maps over ${v.materialen} materialen, en ${v.gevels} gevels, na het opstarten in ${Math.round(reliëfMs)} ms`);
   // nu de materialen af zijn: de shaders voor het vervagen van de LOD vooraf
   // vertalen (js/world.js), op de achtergrond
-  lodVoorbereid(renderer, camera, scene).then(n => console.log(`LOD: ${n} vervaagshaders klaargezet`));
+  lodBelofte = lodVoorbereid(renderer, camera, scene, metAvondlampen).then(n => { console.log(`LOD: ${n} vervaagshaders klaargezet, overdag en 's avonds`); return n; })
+    // en daarna één stand-in per soort materiaal die nog nergens vertaald is
+    // (js/world.js): anders vertaalt three hem pas als hij voor het eerst in beeld komt
+    .then(n => soortenVoorbereid(renderer, camera, scene, metAvondlampen).then(k => { console.log(`soorten: ${k} shaders vooraf vertaald`); return n; }, () => n));
 }
 /*
  De gevels en het reliëf komen ná het opstarten, maar welke materialen erbij
@@ -1417,6 +1428,39 @@ function zetKijkNpcs() {
   npcs.kijk = l > 0.3 ? { x: kijkNpcs.x / l, z: kijkNpcs.z / l } : null;
 }
 let voorbereiden = false;
+/*
+ Vóór het spelen alles klaarzetten wat anders tijdens het spelen vertaald moet
+ worden (samenvoegen van de twee sessies, 26 sep 2026). npm run vloeiendtest
+ vond acht nieuwe shaderprogramma's bij een stukje lopen overdag: de kopieën van
+ het LOD-vervagen, want die werden pas voorvertaald als het reliëf af was, en een
+ materiaal dat net zijn reliëf kreeg. Wie begon terwijl het reliëf nog bezig was,
+ kreeg die haperingen in het spel. Nu eerst het reliëf af (achter zwart, en de
+ hoofdlus tekent niet mee), dan de kopieën, en dan de avondstand nog een keer,
+ want het reliëf heeft de materialen veranderd. Staat alles al klaar — de
+ gewone gang, want het reliëf loopt tijdens het menu — dan kost dit niets.
+*/
+async function voorbereidSpel() {
+  if (reliëf) {
+    const laag = document.getElementById('intro'), zwart = document.getElementById('introzwart');
+    const wasAan = laag && laag.classList.contains('aan');
+    if (laag) laag.classList.add('aan');
+    if (zwart) { zwart.style.transition = 'none'; zwart.style.opacity = '1'; }
+    voorbereiden = true;
+    try {
+      while (reliëf) {
+        const grens = performance.now() + 150;
+        let r;
+        do { r = reliëf.next(); } while (!r.done && performance.now() < grens);
+        if (r.done) { reliëf = null; meldReliëf(r.value); }
+        await geefBeeldTerug();
+      }
+    } finally { voorbereiden = false; }
+    if (lodBelofte) await lodBelofte;
+    try { warmDeAvondOp(); } catch (e) { console.warn('avond voorverwarmen mislukt', e); }
+    if (laag && !wasAan) laag.classList.remove('aan');
+    if (zwart) { zwart.style.transition = ''; zwart.style.opacity = wasAan ? '1' : '0'; }
+  } else if (lodBelofte) await lodBelofte;
+}
 let lodFilmBij = null;              // waar de LOD tijdens het filmpje het laatst bijgewerkt is
 async function voorFilm() {
   if (!KAART || !beginpunt) return;
@@ -1424,17 +1468,12 @@ async function voorFilm() {
   if (laag) laag.classList.add('aan');
   if (zwart) { zwart.style.transition = 'none'; zwart.style.opacity = '1'; }
   const t0 = performance.now();
-  // de hoofdlus tekent zolang niet mee: het scherm is zwart, en elk beeld dat hij
-  // tussendoor tekende kostte meer dan het stuk reliëf ervoor (headless: veertig
-  // milliseconde reliëf, dan een seconde tekenen)
+  // eerst het reliëf en de shaders (`voorbereidSpel`); de hoofdlus tekent zolang
+  // niet mee: het scherm is zwart, en elk beeld dat hij tussendoor tekende kostte
+  // meer dan het stuk reliëf ervoor (headless: veertig milliseconde reliëf, dan
+  // een seconde tekenen)
+  await voorbereidSpel();
   voorbereiden = true;
-  while (reliëf) {
-    const grens = performance.now() + 150;
-    let r;
-    do { r = reliëf.next(); } while (!r.done && performance.now() < grens);
-    if (r.done) { reliëf = null; meldReliëf(r.value); }
-    await geefBeeldTerug();
-  }
   const totaal = intro.beeldOp(0, KAART, beginpunt).totaal;
   const zet = (t) => {
     const b = intro.beeldOp(t, KAART, beginpunt);
@@ -1483,6 +1522,9 @@ async function startGame(vervolg = false, metIntro = false) {
    en zou je in het sleepmodus-vangnet belanden.
   */
   if (touch) volledigScherm(); else vergrendelMuis();
+  // (ná het vastzetten van de muis: dat mag alleen vlak na de klik)
+  // met de intro doet `voorFilm` dit, achter het zwart van het filmpje
+  if (!(metIntro && !vervolg)) await voorbereidSpel();
   if (metIntro && !vervolg) {
     uitleg.reset();
     // Erik loopt zonder wapen rond tot hij bij het gezelschap staat
@@ -1807,6 +1849,25 @@ function loop() {
   }
   if (voorbereiden) return;           // de intro wordt klaargezet (`voorFilm`)
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
+  /*
+   De koplampspot staat 's nachts áltijd in de scene, ook als je te voet bent
+   (uit de andere sessie van 25 sep 2026). Hem aan- en uitzetten verandert het
+   aantal lichtbronnen, en dan vertaalt three élk materiaal opnieuw: dat was de
+   schok bij het in- en uitstappen, en 's nachts erger dan overdag. Nu verandert
+   het aantal nog twee keer per etmaal, en regelt de sterkte de rest.
+  */
+  const nachtNu = !!(sfeer && sfeer.nacht);
+  if (koplamp.visible !== nachtNu) koplamp.visible = nachtNu;
+  if (!player.inCar) koplamp.intensity = 0;
+  /*
+   Hoe druk het buiten is hangt aan de klok: na half elf 's avonds zakt het
+   verkeer en het aantal mensen op straat weg, en tussen vijf en half zeven
+   's ochtends komt het terug. js/npc.js en js/vehicles.js verhuizen mensen en
+   auto's naar je buurt; dit zegt er alleen hoeveel het er moeten zijn.
+  */
+  const drukteNu = sfeer ? sfeer.drukte : 1;
+  npcs.drukte = drukteNu;
+  vehicles.drukte = drukteNu;
   if (player.active || window.__autoplay) {
     player.update(dt);
     /*
@@ -1876,8 +1937,7 @@ function loop() {
         koplamp.target.updateMatrixWorld();
         // ook de sterkte is uitgemeten en niet op gevoel gekozen; zie hierboven
         koplamp.intensity = 300;
-        if (!koplamp.visible) koplamp.visible = true;
-      } else if (koplamp.visible) { koplamp.visible = false; koplamp.intensity = 0; }
+      } else koplamp.intensity = 0;
       /*
        Het interieur: alleen zichtbaar als je erin zit en vanuit je ogen kijkt.
        Met de camera over je schouder zou je door het dak heen tegen de
@@ -1917,8 +1977,8 @@ function loop() {
        achter de console, iets achter het midden van de kuip.
       */
       player.lastCarYaw = undefined;
-      // uit de auto: de koplampen gaan mee uit
-      if (koplamp.visible) { koplamp.visible = false; koplamp.intensity = 0; }
+      // uit de auto: de koplampen gaan mee uit (sterkte, niet `visible`: zie boven)
+      koplamp.intensity = 0;
       const boot = boten.inBoot;
       if (!derde.update(dt, boot)) {
         // vanuit je ogen sta je achter de console; js/boot.js heeft player.pos
@@ -1934,8 +1994,8 @@ function loop() {
       geluid.gier(0);
     } else {
       player.lastCarYaw = undefined;
-      // uit de auto: de koplampen gaan mee uit
-      if (koplamp.visible) { koplamp.visible = false; koplamp.intensity = 0; }
+      // uit de auto: de koplampen gaan mee uit (sterkte, niet `visible`: zie boven)
+      koplamp.intensity = 0;
       derde.update(dt, null);
       geluid.gier(0);
     }
@@ -2192,6 +2252,45 @@ function tekenWapen() {
   zetVoorvlak();
   renderer.autoClear = oudClear;
 }
+/*
+ De avondstand één keer vooraf laten vertalen (uit de andere sessie van 25 sep
+ 2026). Three bouwt de shader van elk materiaal om het aantal lichtbronnen heen.
+ Overdag zijn dat er nul extra, 's avonds drie puntlampen en een spot — en de
+ eerste keer dat die erbij komen moet élk materiaal opnieuw vertaald worden. Dat
+ is de schok bij het invallen van de avond. Hier gebeurt het één keer, achter het
+ laadscherm: de lampen aan, één keer tekenen, en weer uit. Echt tekenen, niet
+ `renderer.compile`: dat maakte in stap 27 varianten aan die niemand gebruikte.
+*/
+// `fn` draaien met de avondlampen aan, en ze daarna terug zoals ze stonden
+function metAvondlampen(fn) {
+  const lampen = scene.children.filter(o => o.isPointLight);
+  const stond = lampen.map(l => l.visible), spot = koplamp.visible, sterkte = koplamp.intensity;
+  for (const l of lampen) l.visible = true;
+  koplamp.visible = true; koplamp.intensity = 0;
+  /*
+   En wat alleen 's nachts in beeld komt: de plassen licht onder de palen en de
+   bundels van de koplampen (stap 82). Die waren overdag onzichtbaar en dus nooit
+   vertaald, en de eerste avond vertaalde three ze tijdens het spelen
+   (npm run vloeiendtest: twee nieuwe programma's bij het lopen, 's nachts).
+  */
+  const poel = lichtpoelen(), poelStond = poel ? poel.visible : false;
+  if (poel) poel.visible = true;
+  const wasNacht = !!(sfeerNu() && sfeerNu().nacht);
+  zetKoplampen(true);
+  try { fn(); } finally {
+    lampen.forEach((l, i) => { l.visible = stond[i]; });
+    koplamp.visible = spot; koplamp.intensity = sterkte;
+    if (poel) poel.visible = poelStond;
+    zetKoplampen(wasNacht);
+  }
+}
+// (sfeer bestaat pas verderop; bij het eerste voorverwarmen is het nog dag)
+function sfeerNu() { try { return sfeer; } catch { return null; } }
+function warmDeAvondOp() {
+  metAvondlampen(() => renderer.render(scene, camera));
+}
+try { warmDeAvondOp(); } catch (e) { console.warn('avond voorverwarmen mislukt', e); }
+
 opstartStap('het eerste beeld');
 loop();
 opstartStap('na het eerste beeld');
@@ -2216,7 +2315,7 @@ window.__game = {
   // de wapenpas en het voorvlak, voor tools/cliptest.mjs
   tekenWapen, cameraNear: CAMERA_NEAR,
   // het reliëf in één keer afmaken (de proeven), en hoever het is
-  reliëfAf, get reliëfBezig() { return !!reliëf; }, voorFilm, zetVoorvlak, get lodFilmBij() { return lodFilmBij; },
+  reliëfAf, get reliëfBezig() { return !!reliëf; }, voorFilm, voorbereidSpel, zetVoorvlak, __envBakken: () => envBakken, get lodFilmBij() { return lodFilmBij; },
   // licht (tools/lichttest.mjs): de omgeving opnieuw bakken en de schaduwdoos
   bakOmgeving, werkOmgevingBij, zetSchaduwDoos, get omgevingGebakken() { return envBakken; }, sun,
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },

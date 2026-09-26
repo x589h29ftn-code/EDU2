@@ -1861,6 +1861,23 @@ na de knal wegrent, het neergaan in de laatste etappe en daar weer beginnen, de
 mislukte missie na een schot op De Veteraan, de auto die afremt voor wie
 oversteekt, en de galm die binnen open gaat en buiten dicht.
 
+## De wijk gaat 's nachts slapen
+
+Tussen half elf en half twaalf 's avonds loopt het leeg: het verkeer en de
+voetgangers om je heen zakken naar **een zesde** van overdag, en tussen vijf en
+half zeven 's ochtends komt het weer terug. Het gaat geleidelijk — er verhuist
+telkens één iemand of één auto, dus je ziet de straat leeglopen in plaats van
+dat er mensen verdwijnen.
+
+Na **middernacht** dooft tweederde van de straatverlichting in de woonstraten;
+langs de doorgaande wegen blijft alles branden (en de plas licht onder een
+paal die uitgaat dooft mee). Ook dat loopt over een uur, en
+tegen zessen staat alles weer aan. De lampen zelf komen bij het schemeren
+langzaam op in plaats van in één keer.
+
+Handig om te weten: **`[`** en **`]`** zetten de klok een uur terug of vooruit en
+**`\`** laat hem lopen (een dag in vier minuten).
+
 ## Naar binnen bij Molenkrite 15
 
 Loop je naar de **voordeur van Molenkrite 15** en druk je op **E**, dan ga je naar binnen:

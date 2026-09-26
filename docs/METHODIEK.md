@@ -5636,6 +5636,202 @@ staan. De onderdelen liggen er al: js/interieur.js kan een woning van binnen
 bouwen uit het grondvlak, het verhaal kan panden aanwijzen met een M, en de
 opslag bewaart al waar je spullen staan.
 
+**Het haperen, en de nacht (stap 83).** *Gebouwd in een andere sessie, op de tak
+`claude/gta-tinga-game-setup-lcm1jy`, die nog op de stand van 23 sep stond (vóór
+missie 10); daar heette dit stap 73. Samengevoegd op 26 sep, zie stap 85.*
+Melding 25 sep 2026: "het beeld met de
+muis is prima, maar met lopen en rijden zie je lag; 's nachts ook, en bij in- en
+uitstappen." Dat onderscheid is de hele aanwijzing. Rondkijken en lopen tekenen
+hetzelfde beeld met dezelfde kosten; wat er anders is aan lopen, is het werk dat
+aan je pósitie hangt. Daar zaten twee dingen.
+
+*Het aantal lichtbronnen veranderde de hele tijd.* Three bouwt de shader van élk
+materiaal om het aantal zichtbare lichten heen: gaat er eentje aan of uit, dan
+wordt alles opnieuw vertaald. Dat gebeurde voortdurend. De drie straatlampen uit
+de pool van stap 27 gingen aan en uit zodra een paal binnen of buiten
+vijfenveertig meter kwam — dus om de paar meter dat je 's nachts liep of reed —
+en de koplampspot ging aan bij het instappen en uit bij het uitstappen. Nu staan
+de drie lampen 's nachts allemaal in de scene; een lamp zonder werk krijgt
+sterkte nul en wordt onder de grond geparkeerd. De spot staat 's nachts ook
+altijd in de scene, met sterkte nul als je niet rijdt. Het aantal verandert nog
+twee keer per etmaal, en die twee keer vallen samen met een beeld waarin je
+niets ziet gebeuren: de lampen komen bij zonkracht 0,45 in de scene met sterkte
+nul en lichten pas daarna op. Bovendien wordt de avondstand één keer achter het
+laadscherm voorgetekend — echt tekenen, niet `renderer.compile`, want dat maakte
+in stap 27 varianten aan die niemand gebruikte — zodat de programma's al in de
+cache zitten.
+
+*En veertig zichtlijnen per verhuizing.* Mensen en auto's verhuizen naar je
+buurt zodra je ze achter je laat (stap 36). Voor elke verhuizing werden veertig
+plekken geprikt en voor elk daarvan een zichtlijn getrokken, twee keer per
+seconde — en alleen terwijl je beweegt, want alleen dan raakt er iemand achter.
+Dat is precies het profiel van de klacht. De plekken worden nu eerst goedkoop
+verzameld en op afstand gesorteerd; daarna gaan er van dichtbij naar ver
+hoogstens vijf zichtlijnen uit en stopt het bij de eerste die uit het zicht
+ligt. De uitkomst is dezelfde, want de score is eerst "uit het zicht" en dan
+"zo dichtbij mogelijk", en dat is precies de volgorde waarin nu gezocht wordt.
+
+*Meten kon hier niet op de klok.* `npm run vloeiendtest` (nieuw) meet beeldtijden bij
+stilstaan, rondkijken, lopen en rijden, overdag en 's nachts. In de
+bouwcontainer duurt één beeld drieënhalve seconde, dus de absolute getallen
+zeggen niets; wat er wél uit komt is het aantal shaderprogramma's dat three
+erbij vertaalt, en dat hoort nul te zijn zodra de wereld er staat. Dat is de
+controle die blijft staan.
+
+*De wijk gaat slapen.* Verkeer en voetgangers zakken tussen 22:30 en 23:30 naar
+een zesde en komen tussen 05:00 en 06:30 terug (`sfeer.drukte`, een
+smoothstep-kromme). Het doelaantal schaalt mee, en wie te veel is verhuist naar
+buiten de wijk in plaats van te verdwijnen — één per halve seconde, dus de
+straat loopt leeg zoals hij ook volloopt. Na middernacht dooft tweederde van de
+straatverlichting in de woonstraten (`sfeer.lampenAan`); langs de doorgaande
+wegen blijft alles aan. Dat vroeg om twee stapels lantaarnkoppen met elk een
+eigen materiaal: een instantie kan zijn eigen kleur hebben maar niet zijn eigen
+gloed, en het doven zit in `emissiveIntensity`.
+
+*En de clipping in de woningen.* Twee controles erbij in `npm run huistest`.
+De eerste legt elk meubelstuk met een botsdoos tegen elk ander: overlappen twee
+grondvlakken meer dan twaalf centimeter in beide richtingen, dan staan ze in
+elkaar. Muren en kozijnen tellen niet mee — daar hoort een kast juist tegenaan —
+en daarvoor weet `doos()` sinds deze ronde of hij tijdens `wand()` gebouwd werd.
+Die controle was meteen groen: er staat nergens iets in elkaar.
+
+De tweede vond het wel. Alles in de kamer dat groter is dan dertig bij dertig
+centimeter en op loophoogte staat (tussen 35 cm en 1,20 m) hoort een botsdoos te
+hebben; platte dingen, dingen boven je hoofd en dunne vlakken vallen er vanzelf
+buiten. In alle vijf de woningen wees hij precies drie dingen aan, en steeds
+dezelfde: de drie bladbossen van de grote kamerplant. Die hangen op negentig
+centimeter tot anderhalve meter terwijl de doos alleen om de pot zat, en die is
+smaller — dus liep je door het blad heen. De plant heeft nu één doos van de vloer
+tot boven het blad.
+
+Ook die proef mat eerst de verkeerde dingen: `Box3.setFromObject` geeft
+wereldmaten en de botsdozen staan in kamermaten, dus leek er in elke woning
+drieëndertig dingen los te staan. Dezelfde les als bij de terugslag hieronder —
+een proef die te veel vindt heeft meestal zelf een fout.
+
+*De wapenmelding was de proef zelf.* "Kogels doen geen schade na een ritje in de
+auto" bleek in de proef te reproduceren, en de diagnose wees naar de proef: acht
+schoten achter elkaar zonder dat er een beeld tussen zat. `demptTerugslag` loopt
+per beeld, dus de terugslag stapelde op tot bijna elf graden en dan gaat de
+kogel op zes meter ruim een meter over het hoofd heen. Een tweede straal, met de
+hand recht op de romp gericht, raakte wél — dat was het bewijs. In het spel
+speelt het niet: `player.update` dempt elk beeld, ook terwijl je in een auto
+zit. De proef laat er nu een beeld overheen gaan en is groen; de melding uit het
+spel zelf is daarmee nog niet verklaard.
+
+**Optimalisatie en kwaliteit (stap 84).** *Ook uit die andere sessie (daar stap 74).
+Een deel ervan was hier al op een andere manier gebouwd: de compacte stapels
+geparkeerde auto's en de fout in `verf()` (stap 80), en de omgevingsmap met de
+klok mee (stap 75). Bij het samenvoegen bleef daarvan de uitvoering van hier
+staan; wat hieronder over `herschik` en `slot` staat is dus geschiedenis. De rest
+is overgenomen, zie stap 85.* Gevraagd: "neem de wereld verder door
+op optimalisatie en kwaliteit". Eerst gemeten met `node tools/optimeer.mjs`, dat
+per klasse uitzet en opnieuw tekent. Op de Molenkrite: 1624 draw calls en 2,65
+miljoen driehoeken, waarvan **1,2 miljoen van de geparkeerde auto's**, 350.000
+boomkronen, 143.000 boomstammen en 113.000 struiken. De gevels zijn het
+omgekeerde: 615 draw calls voor maar 29.000 driehoeken.
+
+*De geparkeerde auto's.* Ze staan per model in een stapel instanties, en een auto
+buiten de 170 meter of in de hand van de speler kreeg schaal nul. Dat ziet er
+goed uit, maar de GPU rekent nog steeds elk hoekpunt van elke instantie door —
+schaal nul is alleen een heel klein driehoekje. Nu zet `herschik` de auto's die
+getekend moeten worden vooraan in de stapel en krijgt de mesh `count` = dat
+aantal; `slot[i]` wijst terug naar de auto, zodat een kogel via `instanceId` nog
+steeds de goede raakt. Daarbij kwam een oude fout boven: `verf()` zocht de
+stapel op `car.inst.soort` in plaats van `sleutel`, dus overspuiten van een
+geparkeerde auto veranderde nooit iets aan zijn kleur.
+
+*De LOD-ronde verdeeld.* `updateLOD` liep om de kwart seconde alle groepen door.
+Dat is een piek eens in de vijftien beelden, en een piek is precies wat je als
+schok ziet. Nu loopt een wijzer elk beeld een vijftiende door: hetzelfde werk,
+zonder piek.
+
+*De omgevingsmap met de klok mee* (open punt 12, derde deel). De PMREM-map wordt
+opnieuw gebakken zodra zonkracht, hemel of weer een twaalfde verschuift, en
+altijd op hetzelfde doelformaat: dan blijft `envMapCubeUVHeight` gelijk en
+vertaalt three geen enkel materiaal opnieuw. De grond in de envscène wordt mee
+donkerder, anders spiegelen de ruiten 's nachts een middagweiland.
+
+*Stammen zonder deksels.* De onderkant zit in de grond en de bovenkant in de
+kroon; dat is de helft van de driehoeken van een stam.
+
+*Voetgangers ver weg.* `npcs.update` was de duurste javascript-post (2,1 ms per
+beeld): honderddertig lichamen van achttien delen, elk met twee
+quaternionen. De draai van het lichaam wordt nu één keer per persoon uitgerekend
+in plaats van per deel, en boven zestig meter krijgt iemand om het beeld een
+nieuwe houding, boven honderdveertig om de vier. Het lopen zelf telt wel elk
+beeld door. Wie verhuist krijgt `getekend = false` en wordt op zijn nieuwe plek
+meteen getekend.
+
+Controles in `npm run vloeiendtest`: de stapels tekenen precies de auto's binnen
+170 m, elk slot wijst naar zijn eigen auto, een kogel via de instantie doet 10
+schade, overspuiten verandert de instantiekleur, verbergen en terugzetten; de
+omgevingsmap bakt niet midden op de dag, wel 's nachts, zonder nieuwe
+programma's; en de voetgangers dichtbij/midden/ver krijgen 8, 4 en 2 van de 8
+beelden een nieuwe houding. Eerste uitslag (26 sep): alles groen. Van de 1781
+geparkeerde auto's staan er op de Molenkrite **86 in de stapels (5 %)** in
+plaats van alle 1781 op schaal nul; de omgevingsmap bakt één keer bij de
+overgang naar de nacht en nul keer midden op de dag, met nul nieuwe
+programma's; in- en uitstappen 1,1 en 0,2 ms. *(De voetgangerscontrole en de
+winst in driehoeken uit `optimeer` komen hier nog bij.)*
+
+**Twee sessies samengevoegd (stap 85).** Op 26 sep 2026 bleek dat er in een oude
+sessie verder was gewerkt, op de tak `claude/gta-tinga-game-setup-lcm1jy`. Die stond
+nog op 23 sep: vóór missie 10, de bende en de stappen 75 tot en met 82 van deze tak.
+Twee-en-twintig commits, samengevoegd met een gewone merge; per onderwerp:
+
+- *Overgenomen:* de drie straatlampen en de koplampspot 's nachts altijd in de scène
+  en alleen met hun sterkte geregeld (het aantal lichtbronnen veranderde bij elke
+  paal en bij elk in- en uitstappen, en dan vertaalt three élk materiaal opnieuw —
+  de hapering bij lopen, rijden en instappen); de gloed van de lampkoppen met de
+  schemering mee; de avondstand één keer voorgetekend achter het laadscherm
+  (`warmDeAvondOp`); de wijk die 's nachts leegloopt (`sfeer.drukte`) en de
+  straatverlichting die na middernacht voor tweederde uitgaat (`sfeer.lampenAan`);
+  hoogstens vijf zichtlijnen per verhuizing in plaats van veertig; de draai van een
+  lichaam één keer per persoon; een voetganger ver weg om het beeld of om de vier
+  een nieuwe houding; de doos om het blad van de kamerplant; `npm run vloeiendtest`
+  en de nieuwe controles in `huistest` en `wapentest`.
+- *Hier al gebouwd, deze uitvoering bleef:* de compacte stapels geparkeerde auto's
+  (stap 80, met een grove auto op afstand), de fout in `verf()`, de omgevingsmap
+  met de klok mee (stap 75), stammen zonder deksels (die had `stamGeo` al), en de
+  LOD-ronde (hier met vervagen; de verdeling over vijftien beelden is niet
+  overgenomen, want `updateLOD` kost hier 0,16 ms per keer).
+- *In elkaar gepast:* de lantaarns staan hier per tegel (stap 82), dus krijgt elke
+  tegel twee stapels koppen, en de plas licht van een paal die na middernacht uitgaat
+  dooft mee via de kleur per instantie — die bestaat vanaf het begin, want komt hij
+  er later bij dan moet three de shader opnieuw vertalen. Het overslaan van de
+  houding van een voetganger ver weg mag alleen als hij nog op dezelfde plek in de
+  meshes staat als het vorige beeld (`slotVorig`): sinds `verdeelSlots` kan die plek
+  wisselen, en dan bleef er de houding van een ander staan. De kopieën van het
+  vervagen worden ook met de avondlampen aan vooraf vertaald, anders hapert de
+  eerste overgang na zonsondergang. De omgevingsmap bakt pas bij zes graden zon in
+  plaats van twee. `vloeiendtest` las een voetganger en een auto op hun nummer;
+  dat gaat nu via `slotVan` en `nummer`, en het stuk over de auto's staat al in
+  `autolodtest`. Voor de binnenste ring worden de vijf zichtlijnen er twaalf:
+  met vijf bleef het rijdend over de Wieken een keer uitgestorven binnen 80 m en
+  stonden er na een minuut in drie van de zes wijken geen twee mensen meer in je
+  straat (`bevolkingtest`). Die ring komt alleen aan de beurt als er te weinig
+  mensen vlak bij je zijn. En wie naar huis gaat houdt het aanvullen dichtbij
+  niet meer tegen.
+- *Gevonden bij het samenvoegen:* de nieuwe controle in `wapentest` raakte geen
+  enkele voetganger, ook niet met de straal recht op de romp. Three rekent de
+  omhullende bol van een instanced mesh bij de eerste raycast één keer uit en
+  toetst daarna eerst die bol; sinds stap 80 staan alleen de mensen bij jou in de
+  meshes, dus na een stuk lopen lag niemand meer in de bol van het eerste schot.
+  De bol wordt nu elk beeld weggegooid (hij wordt pas bij een schot opnieuw
+  uitgerekend). In het spel ging een kogel dus na een stukje lopen of rijden
+  langs elke voetganger heen.
+- *Ook gevonden:* `vloeiendtest` zag overdag bij het rondkijken nog één nieuwe
+  shader. Eerst leek het het oude zebrapad uit `data.js`; gemeten (welk materiaal
+  hoort bij het nieuwe programma) was het de naam op de spiegel van een boot, een
+  MeshBasicMaterial met een doorzichtige kaart. `warmDeAvondOp` tekent alleen wat
+  vanaf het beginpunt in beeld staat. Van de ruim zestienhonderd materialen die
+  daarna nog nooit getekend zijn delen de meeste hun shader met een ander;
+  `soortenVoorbereid` (js/world.js) zet er één stand-in per soort neer en
+  vertaalt die achter het laadscherm, overdag en met de avondlampen: 22 shaders.
+  Een materiaal waar het reliëf een kaart aan gaf is al eens vertaald, maar nog
+  zonder die kaart; dat telt als nieuw (`__version`).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -5725,7 +5921,4 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
      104 m is 5,1 cm per texel; dat is te grof voor de rand van een dakkapel. Met
      twee of drie cascades (dichtbij fijn, ver grof) wordt dat een centimeter.
      CSM zit ook niet in de vendored three, dus dat is met de hand op te zetten.
-   - **de omgevingsreflectie met de klok mee.** De PMREM-map wordt één keer uit de
-     luchtshader gebakken en blijft daarna staan, dus bij zonsondergang spiegelen
-     de ruiten nog een middaglucht. Hem elke paar minuten spelletijd opnieuw
-     bakken kost ~40 ms; dat kan op een vast moment in de dag-nachtcyclus.
+   - ~~de omgevingsreflectie met de klok mee~~ — gedaan in stap 75.
