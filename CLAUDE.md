@@ -67,6 +67,11 @@ Een paar dingen die niet vanzelf spreken:
   het adres, en zijn de ramen dichtgemaakt.
 - **NPC's leven op wegvakken.** `p.seg` en `p.t` bepalen x/z, elk beeld opnieuw.
   Een handmatig gezette positie overleeft één beeld.
+- **De wijk slaapt 's nachts** (stap 73). `sfeer.drukte` (1 overdag, 22:30→23:30
+  naar 0,16, 05:00→06:30 terug) schaalt het aantal mensen en auto's;
+  `sfeer.lampenAan` dooft na middernacht tweederde van de lantaarns in
+  woonstraten (twee stapels koppen, `MAT.lamp` en `MAT.lampNacht`). De drie
+  straatlampen zijn een vaste pool in js/sfeer.js (`zetLampen`), nooit aan/uit.
 - **De plattegrond komt uit het grondvlak.** `plattegrond(pand)` en
   `banden(punten)` maken van een BAG-voetafdruk kamerbanden; de woonkamer is de
   eerste band over de volle diepte.
@@ -133,6 +138,16 @@ aantal shaders dat three erbij vertaalt — dat laatste hoort nul te zijn).
 - **Meerdere schoten achter elkaar vragen om een beeld ertussen.** De terugslag
   wordt in `player.update` gedempt; vuur je in één keer acht keer, dan stapelt hij
   op tot ruim tien graden en mis je alles.
+- **`pgrep -f` vindt zichzelf.** Een wachtlus als
+  `until ! pgrep -f "node tools/x.mjs"` staat zelf met die tekst in de
+  proceslijst en eindigt dus nooit; en `pkill -f` met zo'n patroon schiet de
+  eigen shell af (exit 144). Wacht op een regel in het log
+  (`until grep -q "het oordeel" log`) en stop processen op hun PID.
+- **Absolute tijden zeggen hier niets** (één beeld duurt ~3,5 s). Meet
+  aantallen: shaderprogramma's, draw calls, driehoeken, en de verhouding
+  tussen javascript-posten. `node tools/optimeer.mjs 8123` geeft per klasse
+  (auto's, bomen, gevels …) calls en driehoeken op vier standpunten, en de
+  kosten van de javascript per beeld.
 
 **Twee regels die uit stap 73 komen en overal gelden:**
 
@@ -142,6 +157,63 @@ aantal shaders dat three erbij vertaalt — dat laatste hoort nul te zijn).
 - **Werk dat aan de positie van de speler hangt is verdacht.** Rondkijken en
   lopen tekenen hetzelfde beeld; hapert alleen lopen, dan zit het in wat er bij
   het bewegen gebeurt (verhuizen, zichtlijnen, lampen).
+
+**En uit stap 74:**
+
+- **Een InstancedMesh met instanties op schaal nul kost nog steeds al zijn
+  hoekpunten.** De GPU rekent ze allemaal door. Zet wat je wilt tekenen vooraan
+  en regel het met `mesh.count` (de geparkeerde auto's doen dat nu:
+  `vehicles.herschik(stap)`). De boundingsphere één keer op het volle aantal
+  uitrekenen, anders valt de mesh verkeerd buiten beeld.
+- **Periodiek werk verdelen over de beelden.** `updateLOD(x, z, deel)` loopt
+  met een wijzer telkens een vijftiende van de groepen door in plaats van alles
+  om de kwart seconde; zo'n piek eens in de zoveel beelden is precies een
+  hapering.
+
+## 6b · De lopende ronde (stap 74): optimalisatie en kwaliteit
+
+Gevraagd: "neem de wereld verder door op optimalisatie en kwaliteit". Wat er
+in deze ronde veranderd is — **nog niet alles is door de proef gegaan**, dus
+begin met `npm run vloeiendtest` (en daarna `node tools/optimeer.mjs 8123`):
+
+| Wat | Waar | Proef |
+|---|---|---|
+| Omgevingsmap (PMREM) opnieuw gebakken als lucht of weer wezenlijk verandert; zelfde doelmaat, dus geen hervertaling | `bakOmgeving` in js/main.js, sleutel onderaan `pasToe()` in js/sfeer.js | vloeiendtest "de omgevingsmap" |
+| Geparkeerde auto's: alleen de getekende (≤170 m, zichtbaar, niet bestuurd) staan vooraan in de stapel, `count` = dat aantal. Was 1,2 miljoen driehoeken per beeld | `wilSlot`/`herschik`/`zetInstantie` in js/vehicles.js, `teken(n)` in js/carmodel.js | vloeiendtest "de geparkeerde auto's" |
+| Fout gevonden en hersteld: `verf()` zocht de stapel op `car.inst.soort` in plaats van `sleutel`, dus overspuiten van een geparkeerde auto deed niets | js/vehicles.js | idem |
+| LOD-ronde elk beeld een vijftiende in plaats van alles per 0,25 s | `updateLOD` in js/world.js, aanroep in js/main.js | optimeer |
+| Boomstammen zonder deksels (helft van hun driehoeken) | `buildTrees` in js/world.js | optimeer |
+| Voetgangers: houding boven 60 m om het beeld, boven 140 m om de vier; lichaamsdraai één keer per persoon i.p.v. per deel. `p.getekend = false` bij verhuizen dwingt tekenen af | `update`/`zetLichaam` in js/npc.js | vloeiendtest "de voetgangers ver weg" |
+
+Nog te doen in deze ronde: de proeven groen krijgen, meten wat het scheelt,
+het blok "stap 74" in `docs/METHODIEK.md` aanvullen met de getallen, en een
+foto van de Vang (open punt 14 — waarschijnlijk al opgelost door de
+GOOT_MIN-fix van 19 sep; alle zestien woningen daar hebben een 3D-model).
+Volgende kandidaten: de gevels (615 draw calls voor 29.000 driehoeken, dat
+vraagt een textuuratlas — eerst aan de gebruiker voorleggen) en de struiken.
+
+**Wacht op de gebruiker:**
+
+- **Missie 10 — nog geen keuze.** Voorgesteld: **"Een wederdienst"**. De
+  Veteraan (tot nu toe alleen een naam; Mark praat namens hem) belt voor het
+  eerst zelf, kort na de aankoop: *"Sleutelgeld is sleutelgeld. Maar een huis in
+  Tinga krijg je niet voor niets, broeder."* Etappes: (1) met een auto een
+  sporttas ophalen bij de RWZI, Buitenroede 1 — te voet zegt de man "waar is je
+  auto?"; (2) thuis de auto op je oprit, zonder sterren (aangehouden = tas kwijt,
+  etappe opnieuw), tas met E in het schuurtje; (3) op je bank zitten, beeld
+  doezelt weg, ochtend; (4) politieauto in de straat, Mark: "niet de voordeur
+  uit" — alleen in deze missie gaat een poort in de achterschutting open, achter
+  het achterpad staat een tweede auto; (5) afleveren bij de molen, De Veteraan
+  voor het eerst in beeld. Beloning: geld, en het schuurtje wordt je
+  **bergplaats** (wat je er neerlegt blijft liggen). Nieuw te bouwen: tas als
+  prop, poort in de schutting, overgang avond→ochtend, schuurtje als opslag, De
+  Veteraan als personage. Alternatieven: **"De inwijding"** (Mark en Johan
+  komen langs, bier bij de Poiesz, barbecue, iemand komt over de schutting) en
+  **"De verhuizing"** (bestelbus, drie ritten van de Wieken 29 naar je huis;
+  wild rijden = spul valt uit de laadbak).
+- **De wapenmelding** ("kogels doen geen schade na in/uit de auto") is in de
+  proef niet te reproduceren (`npm run wapentest`, sectie 5, groen). Gevraagd:
+  welk wapen, eerste of derde persoon, zie je het schot, reageren mensen?
 
 ## 7 · Wat er nog open staat
 
@@ -161,8 +233,8 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
 10. De overzichtsbladen `docs/screenshots/objecten.png` en `woningtypen.png`.
 11. Panden die nog het naamloze `spil`-type dragen (de school, de Ligger/Loper).
 12. Onder de zuilengang door kunnen lopen, en een deur de Poiesz in.
-13. Belichting: ambient occlusion, scherpere schaduw dichtbij, de
-    omgevingsreflectie met de klok mee.
+13. Belichting: ambient occlusion en scherpere schaduw dichtbij (de
+    omgevingsreflectie met de klok mee is in stap 74 gedaan).
 14. **Voorgevel de Vang**: alleen steen, geen deur of ramen (oude melding).
 
 ## 8 · Waar wat gedocumenteerd wordt

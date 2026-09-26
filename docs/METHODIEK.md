@@ -5164,6 +5164,53 @@ speelt het niet: `player.update` dempt elk beeld, ook terwijl je in een auto
 zit. De proef laat er nu een beeld overheen gaan en is groen; de melding uit het
 spel zelf is daarmee nog niet verklaard.
 
+**Optimalisatie en kwaliteit (stap 74).** Gevraagd: "neem de wereld verder door
+op optimalisatie en kwaliteit". Eerst gemeten met `node tools/optimeer.mjs`, dat
+per klasse uitzet en opnieuw tekent. Op de Molenkrite: 1624 draw calls en 2,65
+miljoen driehoeken, waarvan **1,2 miljoen van de geparkeerde auto's**, 350.000
+boomkronen, 143.000 boomstammen en 113.000 struiken. De gevels zijn het
+omgekeerde: 615 draw calls voor maar 29.000 driehoeken.
+
+*De geparkeerde auto's.* Ze staan per model in een stapel instanties, en een auto
+buiten de 170 meter of in de hand van de speler kreeg schaal nul. Dat ziet er
+goed uit, maar de GPU rekent nog steeds elk hoekpunt van elke instantie door —
+schaal nul is alleen een heel klein driehoekje. Nu zet `herschik` de auto's die
+getekend moeten worden vooraan in de stapel en krijgt de mesh `count` = dat
+aantal; `slot[i]` wijst terug naar de auto, zodat een kogel via `instanceId` nog
+steeds de goede raakt. Daarbij kwam een oude fout boven: `verf()` zocht de
+stapel op `car.inst.soort` in plaats van `sleutel`, dus overspuiten van een
+geparkeerde auto veranderde nooit iets aan zijn kleur.
+
+*De LOD-ronde verdeeld.* `updateLOD` liep om de kwart seconde alle groepen door.
+Dat is een piek eens in de vijftien beelden, en een piek is precies wat je als
+schok ziet. Nu loopt een wijzer elk beeld een vijftiende door: hetzelfde werk,
+zonder piek.
+
+*De omgevingsmap met de klok mee* (open punt 12, derde deel). De PMREM-map wordt
+opnieuw gebakken zodra zonkracht, hemel of weer een twaalfde verschuift, en
+altijd op hetzelfde doelformaat: dan blijft `envMapCubeUVHeight` gelijk en
+vertaalt three geen enkel materiaal opnieuw. De grond in de envscène wordt mee
+donkerder, anders spiegelen de ruiten 's nachts een middagweiland.
+
+*Stammen zonder deksels.* De onderkant zit in de grond en de bovenkant in de
+kroon; dat is de helft van de driehoeken van een stam.
+
+*Voetgangers ver weg.* `npcs.update` was de duurste javascript-post (2,1 ms per
+beeld): honderddertig lichamen van achttien delen, elk met twee
+quaternionen. De draai van het lichaam wordt nu één keer per persoon uitgerekend
+in plaats van per deel, en boven zestig meter krijgt iemand om het beeld een
+nieuwe houding, boven honderdveertig om de vier. Het lopen zelf telt wel elk
+beeld door. Wie verhuist krijgt `getekend = false` en wordt op zijn nieuwe plek
+meteen getekend.
+
+Controles in `npm run vloeiendtest`: de stapels tekenen precies de auto's binnen
+170 m, elk slot wijst naar zijn eigen auto, een kogel via de instantie doet 10
+schade, overspuiten verandert de instantiekleur, verbergen en terugzetten; de
+omgevingsmap bakt niet midden op de dag, wel 's nachts, zonder nieuwe
+programma's; en de voetgangers dichtbij/midden/ver krijgen 8, 4 en 2 van de 8
+beelden een nieuwe houding. *(De uitslag en de winst in getallen komen hier nog
+bij; de proef liep op het moment van schrijven.)*
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -5253,7 +5300,4 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
      104 m is 5,1 cm per texel; dat is te grof voor de rand van een dakkapel. Met
      twee of drie cascades (dichtbij fijn, ver grof) wordt dat een centimeter.
      CSM zit ook niet in de vendored three, dus dat is met de hand op te zetten.
-   - **de omgevingsreflectie met de klok mee.** De PMREM-map wordt één keer uit de
-     luchtshader gebakken en blijft daarna staan, dus bij zonsondergang spiegelen
-     de ruiten nog een middaglucht. Hem elke paar minuten spelletijd opnieuw
-     bakken kost ~40 ms; dat kan op een vast moment in de dag-nachtcyclus.
+   - ~~de omgevingsreflectie met de klok mee~~ — gedaan in stap 74.
