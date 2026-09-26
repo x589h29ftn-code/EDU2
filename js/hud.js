@@ -540,7 +540,7 @@ export class HUD {
     c.fillStyle = '#4c525c';
     for (const car of vehicles.cars) { if (nabij(car.x, car.z)) c.fillRect(car.x * scale - 2, car.z * scale - 2, 4, 4); }
     c.fillStyle = '#ffffff';
-    for (const p of npcs.people) if (p.alive && nabij(p.x, p.z)) { c.fillRect(p.x * scale - 1.5, p.z * scale - 1.5, 3, 3); }
+    for (const p of npcs.people) if (p.alive && !p.slaapt && nabij(p.x, p.z)) { c.fillRect(p.x * scale - 1.5, p.z * scale - 1.5, 3, 3); }
     // politie: blauwe stippen die knipperen, wagens wat groter (js/politie.js)
     if (this.politiePlekken && this.politiePlekken.length) {
       const aan = Math.floor(performance.now() / 350) % 2 === 0;

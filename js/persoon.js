@@ -13,7 +13,7 @@
 */
 import * as THREE from 'three';
 import { grondHoogte } from './viaduct.js';
-import { MAAT, DEEL, loopHouding, mikHouding, hurkHouding, lichaamMat } from './lichaam.js';
+import { MAAT, DEEL, loopHouding, mikHouding, hurkHouding, zitHouding, lichaamMat } from './lichaam.js';
 
 const SCHOUDER_X = 0.235;
 
@@ -231,7 +231,7 @@ export class Persoon {
   // mikt: geweer vooruit, dus beide armen naar voren
   // slaat: 0..1, een slag met de knuppel — eerst over de schouder naar achteren
   // uithalen, dan naar voren omlaag slaan (0 = geen slag)
-  update(dt, { loopt = false, zwaait = false, mikt = false, snelheid = 1.3, hurkt = 0, slaat = 0 } = {}) {
+  update(dt, { loopt = false, zwaait = false, mikt = false, snelheid = 1.3, hurkt = 0, slaat = 0, zit = 0 } = {}) {
     this.klok += dt;
     // hij loopt zelf rond, dus elk beeld opnieuw kijken waar de grond ligt
     this.grond = grondHoogte(this.groep.position.x, this.groep.position.z, this.groep.position.y + 0.9);
@@ -245,6 +245,7 @@ export class Persoon {
     // `klok` laat hem ademen en van been wisselen als hij stilstaat
     const H = loopHouding(this.stap, loopt, ren, this._h, this.klok);
     if (hurkt > 0) hurkHouding(H, hurkt);
+    if (zit > 0 && !loopt) zitHouding(H, zit);   // `zit` is de hoogte van de zitting
 
     if (mikt) {
       /*

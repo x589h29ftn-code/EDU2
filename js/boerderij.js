@@ -384,6 +384,31 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     TOONBANK_H, TOONBANK_H + 0.05, MAT.blad, false);
   // kassa op de bank
   doos(BANK.x1 - 0.9, BANK.x1 - 0.35, BANK.z0 + 0.15, BANK.z1 - 0.1, TOONBANK_H + 0.05, TOONBANK_H + 0.32, MAT.kassa, false);
+  /*
+   De C4 van missie 11 (verzoek 26 sep 2026): vier blokken op de toonbank, links
+   van de kassa, zolang ze voor je klaarliggen. Gebroken wit kneedwerk met een
+   zwarte band en een draadje eraan; `toonC4` zet ze aan en uit (js/verhaal.js).
+  */
+  const c4Groep = new THREE.Group();
+  {
+    const kneed = new THREE.MeshStandardMaterial({ color: 0xe6e0cc, roughness: 0.85 });
+    const band = new THREE.MeshStandardMaterial({ color: 0x1b1b1d, roughness: 0.6 });
+    const draad = new THREE.MeshStandardMaterial({ color: 0xc8401c, roughness: 0.5 });
+    const y = TOONBANK_H + 0.05;
+    for (let i = 0; i < 4; i++) {
+      const x = BANK.x0 + 0.55 + (i % 2) * 0.32, z = BANK.z0 + 0.22 + Math.floor(i / 2) * 0.24;
+      const blok = new THREE.Mesh(schaduw(new THREE.BoxGeometry(0.28, 0.06, 0.18)), kneed);
+      blok.position.set(x, y + 0.03, z);
+      const b = new THREE.Mesh(schaduw(new THREE.BoxGeometry(0.03, 0.065, 0.185)), band);
+      b.position.set(x + 0.06, y + 0.03, z);
+      const d = new THREE.Mesh(schaduw(new THREE.BoxGeometry(0.12, 0.012, 0.012)), draad);
+      d.position.set(x - 0.02, y + 0.066, z + 0.03);
+      c4Groep.add(blok, b, d);
+    }
+    c4Groep.visible = false;
+    groep.add(c4Groep);
+  }
+  function toonC4(aan) { c4Groep.visible = !!aan; }
   // rek met dozen munitie achter de bank
   const REK = { x0: BANK.x0, x1: BANK.x1, z: BANK.z1 + 1.5 };
   for (const y of [0.9, 1.5]) {
@@ -736,7 +761,9 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
   }
 
   return {
-    update, toets, binnen, meldAan, kaart, koop, koopWapen, koopLeven,
+    update, toets, binnen, meldAan, kaart, koop, koopWapen, koopLeven, bijToonbank, toonC4,
+    get c4Zichtbaar() { return c4Groep.visible; },
+    get verkoper() { return verkoper; },
     get schap() { return aanbod().map(a => ({ sleutel: a.sleutel, naam: a.naam, prijs: a.prijs })); },
     get inBezit() { return inBezit(); },
     get maten() {

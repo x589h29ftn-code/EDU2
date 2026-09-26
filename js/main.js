@@ -19,7 +19,7 @@ import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
 import { initPolitieboot } from './politieboot.js';
 import { initVaart } from './vaart.js';
-import { bewaarSpel, laadSpel, opslagInfo } from './opslag.js';
+import { bewaarSpel, laadSpel, opslagInfo, heeftOpslag, heeftCheckpoint, wisCheckpoint } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen } from './kaartwereld.js';
 import { zetKoplampen } from './carmodel.js';
@@ -69,6 +69,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 // hoofdlus onderaan dit bestand
 renderer.shadowMap.autoUpdate = false;
 let schaduwBeeld = 0;
+const schaduwVan = { x: 0, z: 0 };     // waar de speler het vorige beeld stond (zie de schaduwpas)
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.02;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -552,6 +553,23 @@ const verhaal = initVerhaal({
   // niets opgeslagen, dan zegt laadSpel false en begint de missie opnieuw.
   opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart }),
   /*
+   Het checkpoint na elke afgeronde missie, en de keuze na het neergaan (verzoek
+   26 sep 2026): terug naar dat checkpoint, of naar je eigen opslag. De politie
+   en de politieboot beginnen dan net als bij F9 zonder achtervolging.
+  */
+  checkpoint: () => bewaarSpel({ player, sfeer, vehicles, verhaal, boten, vaart, checkpoint: true,
+    straat: nearestRoadName(camera.position.x, camera.position.z) }),
+  naarCheckpoint: () => {
+    politie.reset(); if (politieboot) politieboot.reset();
+    return laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, checkpoint: true });
+  },
+  naarOpslag: () => {
+    politie.reset(); if (politieboot) politieboot.reset();
+    return laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart });
+  },
+  heeftCheckpoint, heeftOpslag,
+  vergrendel: () => { if (!touch) vergrendelMuis(); },
+  /*
    Twee dingen die het verhaal niet zelf kan: de camera terug naar de eerste
    persoon (bij het uitstappen op de waterzuivering) en de sterren eenmalig
    weghalen (na het afleveren van de vrachtwagen). Allebei als functie, want
@@ -579,6 +597,12 @@ const verhaal = initVerhaal({
   // de sloepen: missie 8 speelt zich grotendeels op het water af
   boten: () => boten,
   wieken: () => woningen[1] || null,
+  // missie 11: Mark binnen in Molenkrite 15, de C4 aan de toonbank van Tinga State,
+  // en een politieauto om te stelen (js/politie.js)
+  molenkrite: () => woningen[0] || null,
+  tingaState: () => boerderij || null,
+  gezocht: () => politie.gezocht,
+  parkeerPolitieAuto: (x, z, yaw) => politie.parkeerAuto(x, z, yaw),
   poiesz: () => (supermarkt && supermarkt.ingangen ? supermarkt : null),
   // de drie woningen van missie 9 (js/interieur.js)
   stekken: () => woningen.filter(w => w.stek),
@@ -640,11 +664,22 @@ function werkKaartvlaggenBij() {
 }
 werkKaartvlaggenBij();
 // Binnen wijst de HUD nog steeds de straat buiten aan (zie hud.kaartVanaf).
+/*
+ De straatnaam zelf pas opnieuw zoeken als je vier meter verder bent (melding 26
+ sep 2026: "het beeld hapert"). `nearestRoadName` loopt alle wegvakken van de
+ wereld af, en dat gebeurde elk beeld: gemeten 9 % van al het javascript tijdens
+ het rijden, meer dan de voetgangers en het verkeer samen.
+*/
+const straatBij = { x: Infinity, z: Infinity, naam: '' };
 function straatOf(x, z) {
   let k = null;
   for (const r of binnenruimtes) { k = r.kaart(x, z); if (k) break; }
   hud.kaartVanaf = k ? k.punt : null;
-  return k ? k.naam : nearestRoadName(x, z);
+  if (k) return k.naam;
+  if (Math.abs(x - straatBij.x) > 4 || Math.abs(z - straatBij.z) > 4) {
+    straatBij.x = x; straatBij.z = z; straatBij.naam = nearestRoadName(x, z);
+  }
+  return straatBij.naam;
 }
 // Camera over de schouder (V): handig met de auto, en te voet zie je jezelf
 // lopen. De hengel wordt ingekort zodra er een muur achter je staat.
@@ -1257,6 +1292,7 @@ const MISSIES = [
   { nr: 8, naam: 'sniper', titel: 'de deal bij de molen' },
   { nr: 9, naam: 'huis', titel: 'een eigen stek' },
   { nr: 10, naam: 'veteraan', titel: 'De Veteraan' },
+  { nr: 11, naam: 'politieauto', titel: 'de politieauto en de C4' },
 ];
 function startMissieLos(naam) {
   const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
@@ -1284,6 +1320,8 @@ window.addEventListener('keydown', e => {
   if (!player.active && !window.__autoplay) return;
   // op de toetscode en niet op de letter: shift+1 geeft op een Nederlands
   // toetsenbord een '!' en op een ander een '1'
+  // shift en het streepje achter de nul: missie 11
+  if (e.code === 'Minus' || e.code === 'NumpadSubtract') { e.preventDefault(); startMissieLos('11'); return; }
   const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();
@@ -1510,6 +1548,8 @@ async function voorFilm() {
 
 async function startGame(vervolg = false, metIntro = false) {
   if (vervolg) laadSpelNu();
+  // een nieuw spel begint zonder het checkpoint van een vorig spel
+  else wisCheckpoint();
   gepauzeerd = false;
   menu.verbergMenu();
   geluid.start();
@@ -2205,8 +2245,19 @@ function loop() {
    :29600). Wie dit wil meten moet `info.autoReset` uitzetten en zelf resetten,
    zoals tools/optimeer.mjs doet.
   */
+  /*
+   Maar niet als je rijdt of loopt (melding 26 sep 2026: "de schaduw van de auto
+   hapert"). Om het beeld bijwerken gaat goed voor wat stilstaat, maar je eigen
+   auto rijdt op vijftig per uur 23 cm per beeld, en zijn schaduw sprong dan om
+   het beeld mee. En een beeld met schaduwpas en een zonder wisselen elkaar af,
+   dus de beeldtijden ook: op een scherm van 60 Hz is dat schokken, ook als het
+   gemiddelde haalbaar is. Rijdend of lopend dus elk beeld; stilstaand om het
+   beeld, waar niemand het ziet.
+  */
   schaduwBeeld++;
-  renderer.shadowMap.needsUpdate = (schaduwBeeld & 1) === 0;
+  const beweegt = !!player.inCar || Math.hypot(player.pos.x - schaduwVan.x, player.pos.z - schaduwVan.z) > 0.01;
+  schaduwVan.x = player.pos.x; schaduwVan.z = player.pos.z;
+  renderer.shadowMap.needsUpdate = beweegt || (schaduwBeeld & 1) === 0;
   // de klap van een botsing, vlak voor het tekenen op de camera gezet
   if (kijker === camera) schokCamera(kijker, dt);
   vervaagLOD(dt);

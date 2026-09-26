@@ -156,6 +156,12 @@
     "nachttest": "node tools/nachttest.mjs",
     "nachtshots": "node tools/nachtshots.mjs",
     "schaduwtest": "node tools/schaduwtest.mjs",
-    "vloeiendtest": "node tools/vloeiendtest.mjs"
+    "vloeiendtest": "node tools/vloeiendtest.mjs",
+    "checkpointtest": "node tools/checkpointtest.mjs",
+    "haperingtest": "node tools/haperingtest.mjs",
+    "rijprofiel": "node tools/rijprofiel.mjs",
+    "plattegrondshots": "node tools/plattegrondshots.mjs",
+    "politieautotest": "node tools/politieautotest.mjs",
+    "politieautoshots": "node tools/politieautoshots.mjs"
   }
 }

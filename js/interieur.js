@@ -465,6 +465,51 @@ export function banden(punten) {
 }
 
 /*
+ Een grondvlak waarvan de voorste band niet de hele breedte heeft (melding 26 sep
+ 2026, Koningsspil 20). Daar begint het voorhuis 2,9 m rechts van de rest: de band
+ erachter is breder en er loopt aan de zijkant een strook van negen meter naar
+ achteren, een berging of garage. De kamer rekent vanaf x = 0 met de breedte van
+ het voorhuis, en nam de laatste band als aanbouw: de keuken stond los in de tuin,
+ drie meter achter het huis, en de koelkast was niet te halen.
+
+ Dus: alles bijsnijden tot de breedte van het voorhuis, wat dan smaller is dan
+ anderhalve meter weglaten, gelijke banden samenvoegen, en het omtrek opnieuw
+ maken uit de banden die aan elkaar vast zitten. De plattegrond schuift mee, zodat
+ de deur nog steeds in de voorgevel staat. Een grondvlak waar dit niet speelt
+ blijft precies zoals het was.
+*/
+export function rechtTrekken(plan, vakken) {
+  const v = vakken[0];
+  const scheef = v.x0 > 0.05 || vakken.some(b => b.x0 < v.x0 - 0.05 || b.x1 > v.x1 + 0.05);
+  if (!scheef) return { plan, vakken };
+  const X0 = v.x0, X1 = v.x1;
+  const nieuw = [];
+  for (const b of vakken) {
+    const x0 = Math.max(b.x0, X0), x1 = Math.min(b.x1, X1);
+    if (x1 - x0 < 1.5) continue;
+    const vorige = nieuw[nieuw.length - 1];
+    // alleen wat aansluit: een band die er los achter ligt hoort niet bij het huis
+    if (vorige && Math.abs(vorige.z1 - b.z0) > 0.05) break;
+    if (vorige && Math.abs(vorige.x0 - x0) < 0.05 && Math.abs(vorige.x1 - x1) < 0.05) { vorige.z1 = b.z1; continue; }
+    nieuw.push({ z0: b.z0, z1: b.z1, x0, x1 });
+  }
+  const banden2 = nieuw.map(b => ({ z0: b.z0, z1: b.z1, x0: b.x0 - X0, x1: b.x1 - X0 }));
+  // de omtrek: langs de rechterkant naar achteren, langs de linkerkant terug
+  const punten = [];
+  for (const b of banden2) { punten.push([b.x1, b.z0]); punten.push([b.x1, b.z1]); }
+  for (let i = banden2.length - 1; i >= 0; i--) { punten.push([banden2[i].x0, banden2[i].z1]); punten.push([banden2[i].x0, banden2[i].z0]); }
+  const schoon = punten.filter((q, i) => { const r = punten[(i + 1) % punten.length]; return Math.hypot(r[0] - q[0], r[1] - q[1]) > 0.01; });
+  return {
+    plan: {
+      ...plan, punten: schoon,
+      naarWereld: (x, z) => plan.naarWereld(x + X0, z),
+      naarKamer: (X, Z) => { const k = plan.naarKamer(X, Z); return { x: k.x - X0, z: k.z }; },
+    },
+    vakken: banden2,
+  };
+}
+
+/*
  ctx = { scene, player, sfeer, huis }
  `huis` is een regel uit WONINGEN hierboven. Levert null als er geen kaartdata
  is of het huisnummer er niet in staat; dan doet de voordeur gewoon niets.
@@ -475,9 +520,10 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   const pand = KAART.panden.find(p => p.straat === HUIS.straat && (p.nr || []).includes(HUIS.nr));
   if (!pand || !pand.voet || !pand.rect || !pand.front) return null;
 
-  const plan = plattegrond(pand);
-  const vakken = banden(plan.punten);
-  if (!vakken.length) return null;
+  const ruw = plattegrond(pand);
+  const ruwVakken = banden(ruw.punten);
+  if (!ruwVakken.length) return null;
+  const { plan, vakken } = rechtTrekken(ruw, ruwVakken);
   const voorhuis = vakken[0];
   const aanbouw = vakken.length > 1 ? vakken[vakken.length - 1] : null;
   const BREED = voorhuis.x1 - voorhuis.x0;
@@ -755,15 +801,28 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   const X_RUIMTE = (BREED - MUUR - 0.3) - (HAL.x1 + 0.3);           // langs de achterwand
   const ACHTERWAND = Z_RUIMTE < 2.6 && X_RUIMTE > Z_RUIMTE + 1.5;
   const BANK_RUIMTE = ACHTERWAND ? X_RUIMTE : Z_RUIMTE;
-  const BANK_LANG = Math.max(1.4, Math.min(3.20, BANK_RUIMTE - 0.2));
+  /*
+   De doorgang naar de keuken (melding 26 sep 2026: "de Wieken is heel krap, bank
+   voor de keuken"). In een smal huis met de aanbouw aan de kant van de bank liep
+   de bank tot een kwart meter voor de achterwand, en daar zit de opening naar de
+   keuken: er bleef 0,42 m over tussen de chaise longue en het dressoir, en de
+   koelkast was niet te halen. Ligt de keuken achter de bank, dan houdt de bank
+   KEUKEN_DOORGANG voor de achterwand op, en komt er geen chaise longue.
+  */
+  const KEUKEN_DOORGANG = 0.95;
+  const keukenAchterBank = !ACHTERWAND && !!aanbouw && aanbouw.x1 > BREED - MUUR - (BANK_DIEP + 2.0);
+  const BANK_EIND = keukenAchterBank ? voorhuis.z1 - MUUR - KEUKEN_DOORGANG : Infinity;
+  const BANK_LANG = Math.max(1.4, Math.min(3.20, BANK_RUIMTE - 0.2,
+    keukenAchterBank ? BANK_EIND - (HAL.z1 + 0.15) : Infinity));
   /*
    Waar de bank langs die wand begint. Tegen de rechterwand in het midden; tegen
    de achterwand juist aan de kant van de gang, want in zo'n brede kamer staat de
-   eettafel in het midden en wil je er niet tegenaan kijken.
+   eettafel in het midden en wil je er niet tegenaan kijken. Met de keuken achter
+   de bank schuift hij naar voren tot de doorgang vrij is.
   */
   const BANK_U0 = ACHTERWAND
     ? HAL.x1 + 0.3 + 0.2
-    : (HAL.z1 + 0.15) + (Z_RUIMTE - BANK_LANG) / 2;
+    : Math.min((HAL.z1 + 0.15) + (Z_RUIMTE - BANK_LANG) / 2, Math.max(HAL.z1 + 0.15, BANK_EIND - BANK_LANG));
   const BANK_U1 = BANK_U0 + BANK_LANG;
   const bankZ = ACHTERWAND ? voorhuis.z1 - MUUR - BANK_DIEP / 2 : (BANK_U0 + BANK_U1) / 2;
   const bankX = ACHTERWAND ? (BANK_U0 + BANK_U1) / 2 : BREED - MUUR - BANK_DIEP / 2;
@@ -950,7 +1009,11 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
    de gordijnen hangen.
   */
   const DWARS = ACHTERWAND ? voorhuis.z1 - 2 * MUUR - 0.3 : BREED - 2 * MUUR;
-  const HOEK_LANG = (DWARS > 3.4 && BANK_LANG > 2.0) ? Math.min(1.95, DWARS * 0.36) : 0;
+  // (niet als de keuken achter de bank ligt in een smalle kamer: in de Wieken 29,
+  // vijf meter breed, stond hij dan voor de opening; Zeskanter 16 is acht meter
+  // breed en daar past hij naast de doorgang)
+  const HOEK_LANG = (DWARS > 3.4 && BANK_LANG > 2.0 && !(keukenAchterBank && DWARS < 6))
+    ? Math.min(1.95, DWARS * 0.36) : 0;
   {
     const u0 = BANK_U0, u1 = BANK_U1;
     // de lange poot langs de wand
@@ -1106,8 +1169,15 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
      ondiepe woning korter werd en de keuken opschoof (melding 23 sep 2026).
     */
     const grens = aanbouw ? Infinity : KEUKEN.z0 - 0.35;
-    const achter = { van: bankZ + BANK_LANG / 2 + 0.2, tot: Math.min(voorhuis.z1 - MUUR - 0.15, grens) };
-    const voor = { van: HAL.z1 + 0.15, tot: Math.min(bankZ - BANK_LANG / 2 - 0.2, grens) };
+    /*
+     Tegen de linkerwand staat de tv, 1,7 m breed en midden voor de bank; wat er
+     voor of achter vrij is hangt aan de tv en niet aan de lengte van de bank. Met
+     de bank als maat bleef er in de Wieken 29 niets over en belandde het dressoir
+     tegen de achterwand, pal voor de keuken (melding 26 sep 2026).
+    */
+    const tvHalf = 0.85 + 0.25;
+    const achter = { van: bankZ + tvHalf, tot: Math.min(voorhuis.z1 - MUUR - 0.15, grens) };
+    const voor = { van: HAL.z1 + 0.15, tot: Math.min(bankZ - tvHalf, grens) };
     const ruimte = (achter.tot - achter.van) >= (voor.tot - voor.van) ? achter : voor;
     const lang = Math.min(1.45, ruimte.tot - ruimte.van - 0.1);
     if (!ACHTERWAND && lang >= 0.9) {
@@ -1119,9 +1189,15 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
      bij zeven) en gaat hij tegen de achterwand, dwars op de tv. Dezelfde kast,
      een kwartslag gedraaid.
     */
-    // tegen de achterwand, voorbij de bank en de boekenkast
-    const bvan = ACHTERWAND ? BANK_U1 + 2.3 : HAL.x1 + 0.3;
-    const btot = BREED - MUUR - 0.4;
+    // tegen de achterwand, voorbij de bank en de boekenkast — en niet voor de
+    // opening naar de aanbouw: daar loop je de keuken in
+    let bvan = ACHTERWAND ? BANK_U1 + 2.3 : HAL.x1 + 0.3;
+    let btot = BREED - MUUR - 0.4;
+    if (aanbouw && !ACHTERWAND) {
+      // het langste stuk wand links of rechts van de opening
+      const links = [bvan, Math.min(btot, aanbouw.x0 - 0.3)], rechts = [Math.max(bvan, aanbouw.x1 + 0.3), btot];
+      [bvan, btot] = (links[1] - links[0]) >= (rechts[1] - rechts[0]) ? links : rechts;
+    }
     const blang = Math.min(1.45, btot - bvan - 0.1);
     if (blang < 0.9) return null;
     const xm = (bvan + btot) / 2;
@@ -2335,6 +2411,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     get botsdozen() { return dozen; },
     get plekken() {
       return { nul: NUL, deurBuiten, deurBinnen: binnenDeur, stoep, keuken: KEUKEN, bank: zitPlek,
+        bankKijk: ACHTERWAND ? 0 : Math.PI / 2,    // wie op de bank zit kijkt naar de tv
         tafel: wereld(TAFEL.x, TAFEL.z), stoel: tafelPlek, koelkast: koelPlek,
         tuindeur: tuinDeur ? wereld(tuinDeur.x, tuinDeur.z) : null,
         terras: TUIN ? wereld((TUIN.x0 + TUIN.x1) / 2, DIEP + 1.5) : null,

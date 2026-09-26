@@ -397,6 +397,25 @@ export function maakGrasVeld(scene, opGras, hoogte = () => 0) {
   // een vaste, niet-willekeurige ruis per cel: dezelfde cel geeft altijd dezelfde pol
   const hash = (i, j, k) => { let h = Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(k, 2147483647); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
   let laatst = null;
+  /*
+   Ligt er gras in deze cel? Dat is een zoektocht in de vlakken van de kaart, en
+   bij elke drie meter verder werden alle 6400 cellen opnieuw gevraagd: rijdend
+   om de twee tienden van een seconde een piek van 11 tot 16 ms (headless,
+   melding 26 sep 2026: "het beeld hapert"). De grond verandert niet, dus het
+   antwoord wordt per cel onthouden (en de lijst opnieuw begonnen als hij te
+   groot wordt).
+  */
+  const grasCel = new Map();
+  const ligtGras = (i, j, px, pz) => {
+    const k = i * 100003 + j;
+    let g = grasCel.get(k);
+    if (g === undefined) {
+      if (grasCel.size > 400000) grasCel.clear();
+      g = !!opGras(px, pz);
+      grasCel.set(k, g);
+    }
+    return g;
+  };
   const veld = {
     mesh, aantal: 0, mat,
     update(x, z, dwing = false) {
@@ -409,7 +428,7 @@ export function maakGrasVeld(scene, opGras, hoogte = () => 0) {
         const px = (i + hash(i, j, 1)) * CEL, pz = (j + hash(i, j, 2)) * CEL;
         const d = Math.hypot(px - x, pz - z);
         if (d > STRAAL) continue;
-        if (!opGras(px, pz)) continue;
+        if (!ligtGras(i, j, px, pz)) continue;
         const rand = Math.min(1, (STRAAL - d) / 5);                 // aan de rand krimpen ze weg
         const h = (0.07 + hash(i, j, 3) * 0.07) * rand, b = (0.26 + hash(i, j, 4) * 0.18) * rand;
         q.setFromAxisAngle(Y, hash(i, j, 5) * Math.PI);

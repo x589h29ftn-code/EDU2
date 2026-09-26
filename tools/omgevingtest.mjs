@@ -154,6 +154,17 @@ const r = await page.evaluate(async () => {
   }
   L.raamSoortUniform.value = -1;
   uit.soorten.gewoon = telRaam(gewoon, donker);
+  // en om twee uur 's nachts: de wijk slaapt, de meeste ramen zijn donker
+  zet(s.x - vx * 6, s.z - vz * 6, s.yaw || 0, -0.05, 2);
+  uit.aandeel = { elf: 0, twee: L.aandeelUniform.value, ramen: g.sfeer.ramenAan };
+  const aan2 = L.nachtUniform.value;
+  const gewoon2 = beeld();
+  L.nachtUniform.value = 0;
+  const donker2 = beeld();
+  L.nachtUniform.value = aan2;
+  uit.soorten.twee = telRaam(gewoon2, donker2);
+  zet(s.x - vx * 6, s.z - vz * 6, s.yaw || 0, -0.05, 23);
+  uit.aandeel.elf = L.aandeelUniform.value;
   L.nachtUniform.value = 0;
 
   // ---- driehoeken
@@ -207,6 +218,10 @@ ok(r.warmNacht.warm - r.warmUit.warm > 0.004, 'en om elf uur brandt er echt lich
   ok(S.gewoon.r > S.gewoon.b && S.gewoon.lum < S.open.lum, 'en door elkaar: vooral warm, gemiddeld minder fel dan alles open',
     `helderheid ${S.gewoon.lum?.toFixed(0)} tegen ${S.open.lum?.toFixed(0)}`);
 }
+ok(r.aandeel.elf > 0.45 && r.aandeel.twee < 0.15, 'na middernacht gaan de meeste lampen in de woningen uit',
+  `om elf uur ${(r.aandeel.elf * 100).toFixed(0)} % van de ramen aan, om twee uur ${(r.aandeel.twee * 100).toFixed(0)} %`);
+ok(r.soorten.twee.deel > 0 && r.soorten.twee.deel < r.soorten.gewoon.deel * 0.5, 'en dat zie je: om twee uur minder dan de helft van het licht achter de ramen',
+  `${(r.soorten.twee.deel * 100).toFixed(2)} % van het beeld tegen ${(r.soorten.gewoon.deel * 100).toFixed(2)} % om elf uur`);
 ok(r.warmNacht.wit - r.warmUit.wit < 0.0005, 'en niet te fel: geen witte ramen',
   `${((r.warmNacht.wit - r.warmUit.wit) * 100).toFixed(3)} % witte beeldpunten erbij`);
 

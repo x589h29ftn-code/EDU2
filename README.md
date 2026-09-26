@@ -59,7 +59,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto of een boot |
 | 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, verband, wapens) |
 | F5 / F9 | spel opslaan / opgeslagen spel laden |
-| levensbalk | linksonder; leeg = je begint bij je laatste opgeslagen spel |
+| levensbalk | linksonder; leeg = neergegaan, en dan kies je: de missie opnieuw, het laatste checkpoint, of je eigen opslag |
 | portemonnee | rechtsonder; je begint met € 1000 (testfase) en verdient de rest met missies |
 | **V** | camera: vanuit je ogen of over je schouder (handig met de auto) |
 | **G** | scherpte: scherp, normaal of zuinig (blijft bewaard) |
@@ -94,6 +94,7 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + 8** | de deal bij de molen |
 | **shift + 9** | een eigen stek |
 | **shift + 0** | De Veteraan |
+| **shift + min** | de politieauto en de C4 |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
@@ -1354,8 +1355,8 @@ vrachtwagen met de lading op het erf.
 ![De bewaking bij de waterzuivering](docs/screenshots/rwzi_bewaking.png)
 
 Binnen het hek vallen ze je aan zodra ze je zien of je horen schieten, en dan loopt je **levensbalk**
-(linksonder) leeg. Ga je neer, dan begin je bij je laatst opgeslagen spel; is er niets opgeslagen,
-dan begint de missie opnieuw. Na elke missie is je leven weer vol.
+(linksonder) leeg. Ga je neer, dan kies je hoe je verder gaat (zie **Neergaan en het checkpoint**
+hieronder). Na elke missie is je leven weer vol.
 
 ![Vuurgevecht op het terrein](docs/screenshots/rwzi_vuurgevecht.png)
 
@@ -1643,9 +1644,13 @@ eerder dan jij. Na zijn praatje staan er **drie blauwe huisjes op de kaart**:
 |---|---|---|---|
 | De dure | **Zeskanter 16** | vrijstaand, 8,9 × 20,6 m | € 5.000 |
 | De verstandige | **Molenkrite 130c** | brede bungalow, 18,1 × 6,8 m | € 2.500 |
-| De gewone | **Koningsspil 20** | diep en rustig, 5,6 × 21,6 m | € 1.000 |
+| De gewone | **Koningsspil 20** | diep en rustig, 5,6 × 12,7 m | € 1.000 |
 
-Alle drie een stuk groter dan de Wieken 29 (5,4 × 14,1 m). Je loopt ze langs in
+Alle drie groter dan de Wieken 29 (62 m² vloer). Van Koningsspil 20 hoort een lange berging aan de
+zijkant bij het pand, maar die zit niet in het huis: tot en met 26 september stond de keuken daardoor
+los in de tuin, nu staat hij achter in de woonkamer.
+
+![Koningsspil 20 van bovenaf](docs/screenshots/plattegrond_koningsspil20.png) Je loopt ze langs in
 de volgorde die je zelf wilt; Mark staat er telkens eerder dan jij en zegt wat
 hij ervan vindt. Stap je een woning weer uit, dan zegt het spel meteen welke
 cijfers er nog over zijn — met adres en bedrag — en legt de navigatie alvast op
@@ -1793,6 +1798,47 @@ die rond de ingang blijft, en het vuurgevecht met een vaste loting: wie om de
 drieënhalve tel iemand raakt die hij kan zien haalt het, wie op het pad blijft
 staan niet. `npm run veteraanshots` maakt de vijf foto's hierboven.
 
+### 11 · De politieauto en de C4
+
+Dit keer **geen telefoon**. Een halve minuut na missie 10 staat er alleen een
+**M** op de kaart, bij de voordeur van **Molenkrite 15**. Mark staat niet buiten:
+hij zit binnen op de bank. Kom je binnen, dan begint hij vanzelf. *"We moeten het
+over De Veteraan hebben."* Zijn mannen hangen overal rond, in de wijk en langs de
+Lemmerweg. *"Het is niet meer veilig op straat. Dit kan gewoon niet, Erik. Hij
+moet uitgeschakeld worden."* En dan: *"Ik heb zitten broeden op een idee. Maar
+eerst moet je wat dingen voor me regelen."*
+
+![Mark op de bank in Molenkrite 15](docs/screenshots/politieauto_mark.png)
+
+**Eén: een politieauto.** Aan de Lemmerweg staat er een langs de kant (**P** op
+de kaart), blauw met een lichtbalk, op het stuk van de weg dat het dichtst bij
+de wijk ligt. De agenten zitten binnen aan de koffie. **Zodra je instapt heb je
+twee sterren**: *"Dat is al gezien. Twee sterren — wegwezen."* Zolang ze je
+zoeken gaat de missie niet verder; schud ze eerst af. De politieauto rijdt even
+hard als die van hen.
+
+**Twee: de C4.** Ben je ze kwijt, dan wijst een **T** je naar **Tinga State**.
+Op de toonbank liggen **vier blokken C4** klaar, wit met een zwarte band en een
+oranje draadje. Aan de balie staat *"E — de C4 ophalen"*, en de verkoper weet al
+wie je bent: *"Ha, jij bent de jongen van Mark. Mark had al gebeld. Verse C4
+voor jou. Vier stuks. Niet laten vallen."* Het kost niets.
+
+| ![De politieauto aan de Lemmerweg](docs/screenshots/politieauto_lemmerweg.png) | ![De C4 op de toonbank](docs/screenshots/politieauto_balie.png) |
+|---|---|
+| de politieauto langs de Lemmerweg | vier stuks C4 aan de balie van Tinga State |
+
+**Naar Mark.** De **M** staat weer bij Molenkrite 15. Zet de politieauto voor de
+deur (binnen twaalf meter) en sta stil, met de C4 bij je, en de missie is
+**geslaagd**: **€ 1.000**. Mark komt naar buiten — *"Een echte politieauto. Mooi.
+En de C4?"* — en vraagt je binnen te komen voor zijn plan.
+
+Rij je de politieauto kapot, dan is de missie mislukt en begin je opnieuw bij
+Mark. Een opgeslagen spel midden in de missie gaat verder waar je was, met de
+auto en de C4. **shift + min** start hem los.
+
+`npm run politieautotest` speelt de missie na, van de M na missie 10 tot de
+€ 1.000; `npm run politieautoshots` maakt de drie foto's hierboven.
+
 ### Na missie 10: de bende op straat
 
 De Veteraan heeft zich met zijn bende tegen je gekeerd, en dat merk je in de
@@ -1878,11 +1924,18 @@ oversteekt, en de galm die binnen open gaat en buiten dicht.
 
 ## De wijk gaat 's nachts slapen
 
-Tussen half elf en half twaalf 's avonds loopt het leeg: het verkeer en de
-voetgangers om je heen zakken naar **een zesde** van overdag, en tussen vijf en
-half zeven 's ochtends komt het weer terug. Het gaat geleidelijk — er verhuist
-telkens één iemand of één auto, dus je ziet de straat leeglopen in plaats van
-dat er mensen verdwijnen.
+Tussen half elf en half twaalf 's avonds loopt het leeg, en tussen vijf en half
+zeven 's ochtends komt het weer terug. Het meeste van de wijk gaat dan echt
+slapen, niet alleen de straat waar jij staat: om één uur zijn er van de 130
+voetgangers nog een stuk of twintig op straat en van de 26 auto's zeven à acht (op de doorgaande wegen
+blijft altijd een kwart rijden). Om je heen zijn dat een man of drie binnen
+tweehonderd meter en een paar auto's. Inslapen en wakker worden gebeurt alleen
+uit het zicht, dus je ziet niemand verdwijnen of opduiken.
+
+Ook in de huizen gaan de lampen uit: tot elf uur brandt er achter bijna de
+helft van de ramen licht, tussen elf en één gaat driekwart daarvan uit, en tot
+vijf uur 's ochtends is het op een enkel raam na donker. Het zijn elke nacht
+dezelfde ramen die het langst blijven branden.
 
 Na **middernacht** dooft tweederde van de straatverlichting in de woonstraten;
 langs de doorgaande wegen blijft alles branden (en de plas licht onder een
@@ -1892,6 +1945,23 @@ langzaam op in plaats van in één keer.
 
 Handig om te weten: **`[`** en **`]`** zetten de klok een uur terug of vooruit en
 **`\`** laat hem lopen (een dag in vier minuten).
+
+## Neergaan en het checkpoint
+
+Na elke afgeronde missie schrijft het spel een tel later vanzelf een
+**checkpoint** ("Checkpoint opgeslagen"). Dat staat los van je eigen opslag met
+F5: die wordt er nooit door overschreven.
+
+Ga je neer, dan krijg je een keuze, met de muis of met **1**, **2** en **3**:
+
+1. **de missie opnieuw**, vanaf het laatste herstelpunt van die missie (buiten
+   een missie: **hier weer opstaan**);
+2. **terug naar het laatste checkpoint** — waar je stond toen de laatste missie
+   klaar was, met alles wat je toen had;
+3. **je laatste opgeslagen spel** (F5).
+
+Een knop staat er alleen als er iets is om naar terug te gaan. Een nieuw spel
+begint zonder checkpoint. `npm run checkpointtest` toetst het geheel.
 
 ## Naar binnen bij Molenkrite 15
 
@@ -1953,6 +2023,12 @@ Ook achter de blauwe voordeur van **de Wieken 29** kun je naar binnen. Het is de
 Molenkrite 15 — een voorhuis met een aanbouw erachter — maar met de maten van dít pand uit de kaart:
 5,38 bij 14,07 m, met de keuken in de aanbouw en de gang aan de andere kant, want het grondvlak ligt
 gespiegeld.
+
+Het is een smal huis, en de keuken zit rechtsachter, achter de bank. Daarom staat daar een rechte
+bank zonder chaise longue, die een meter voor de achterwand ophoudt, en staat het dressoir met de
+radio achter de tv in plaats van voor de keuken: je loopt vrij de keuken in.
+
+![De Wieken 29 van bovenaf](docs/screenshots/plattegrond_wieken29.png)
 
 ![De voordeur van de Wieken 29](docs/screenshots/wieken29_voordeur.png)
 

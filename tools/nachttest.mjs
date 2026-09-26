@@ -135,6 +135,81 @@ ok(r.beeld.deel > 0.003 && r.beeld.erbij > 10, '\'s nachts is de straat onder de
 ok(r.beeld.warm > 3, 'warm van kleur', `rood ${r.beeld.warm.toFixed(0)} boven blauw`);
 ok(r.beeld.wit < 0.001, 'en nergens wit', `${(r.beeld.wit * 100).toFixed(3)} % witte beeldpunten erbij`);
 
+// ------------------------------------------ de wijk slaapt (26 sep 2026)
+/*
+ "Na 24:00 minder mensen en auto's op de weg." Alleen de buurt om je heen liep 's
+ nachts leeg; elders liep nog iedereen van overdag, en de doorgaande wegen reden
+ even druk door. Nu slaapt wie boven `drukte` zit, en dat gebeurt alleen uit het
+ zicht: verder dan 120 m, of verder dan 45 m en achter je (auto's: 180 m).
+*/
+const slaap = await page.evaluate(() => {
+  const g = window.__game, s = g.start, N = g.npcs, V = g.vehicles;
+  N.kijk = { x: 0, z: -1 };
+  const uit = {};
+  let inBeeld = 0, autoDichtbij = 0;
+  const wasSlaap = new Map(), wasAuto = new Map(), vorigeStand = new Map();
+  for (const [naam, uur] of [['middag', 12], ['nacht', 1], ['weer', 12]]) {
+    g.sfeer.uur = uur; g.sfeer.update(0.1, s.x, s.z);
+    N.drukte = g.sfeer.drukte; V.drukte = g.sfeer.drukte;
+    for (let t = 0; t < 90; t += 0.1) {
+      N.update(0.1, t, s.x, s.z);
+      V.updateTraffic(0.1, g.player, null, s.x, s.z);
+      // wie van stand wisselt: waar stond hij?
+      for (const p of N.people) {
+        const was = wasSlaap.get(p);
+        if (was !== undefined && was !== !!p.slaapt) {
+          /*
+           De plek op zijn wegvak, met de stoep erbij, en niet `p.x`: wie in dit
+           beeld "naar huis" verhuisd is (vulBuurtAan, alleen verder dan 50 m)
+           heeft in x en z nog zijn oude plek staan, en valt dan op zijn nieuwe
+           plek, honderden meters verderop, in slaap. Dat verdwijnen komt van het
+           verhuizen en niet van de slaap (meting bij stap 88).
+          */
+          // Wie wakker wordt loopt in hetzelfde beeld al verder, en kan aan het eind
+          // van zijn wegvak meteen naar de overkant wisselen (`side`, 35 %): de
+          // wissel besliste op de plek van het vorige beeld, waar hij sliep.
+          const st = was ? (vorigeStand.get(p) || p) : p;
+          const sg = st.seg, tt = Math.max(0, Math.min(1, st.t));
+          const ex = sg.b[0] - sg.a[0], ez = sg.b[1] - sg.a[1], el = Math.max(0.1, Math.hypot(ex, ez));
+          const off = (sg.walkOff || sg.w / 2 + 0.8) * (st.side || 0);
+          const dx = sg.a[0] + ex * tt - ez / el * off - s.x, dz = sg.a[1] + ez * tt + ex / el * off - s.z, d = Math.hypot(dx, dz);
+          // de kijkrichting is (0, -1): achter je is dz > 0
+          const achter = dz > 0;
+          // (twee meter marge, de ruime kant op: de wissel mag verder dan 120 m, of
+          // verder dan 45 m achter je; hier stond 47, en dat telde wie op 46 m
+          // achter je insliep als fout)
+          if (d <= 118 && !(d > 43 && achter)) inBeeld++;
+        }
+        wasSlaap.set(p, !!p.slaapt);
+        if (p.seg) vorigeStand.set(p, { seg: p.seg, t: p.t, side: p.side });
+      }
+      for (const a of V.traffic) {
+        const was = wasAuto.get(a);
+        if (was !== undefined && was !== !!a.slaapt && a._pos && !a.slaapt && Math.hypot(a._pos.x - s.x, a._pos.y - s.z) < 150) autoDichtbij++;
+        wasAuto.set(a, !!a.slaapt);
+      }
+    }
+    const wakker = N.people.filter(p => !p.slaapt).length;
+    const nabij = N.people.filter(p => !p.slaapt && p.alive && Math.hypot(p.x - s.x, p.z - s.z) < 200).length;
+    const autos = V.traffic.filter(a => !a.slaapt).length;
+    const autosNabij = V.traffic.filter(a => !a.slaapt && a._pos && Math.hypot(a._pos.x - s.x, a._pos.y - s.z) < 300).length;
+    uit[naam] = { wakker, nabij, autos, autosNabij, van: N.people.length, autoVan: V.traffic.length };
+  }
+  uit.inBeeld = inBeeld; uit.autoDichtbij = autoDichtbij;
+  N.drukte = 1; V.drukte = 1;
+  return uit;
+});
+kop('de wijk slaapt');
+ok(slaap.middag.wakker === slaap.middag.van && slaap.middag.autos === slaap.middag.autoVan, 'om twaalf uur is iedereen op straat',
+  `${slaap.middag.wakker} mensen, ${slaap.middag.autos} auto's; ${slaap.middag.nabij} binnen 200 m, ${slaap.middag.autosNabij} auto's binnen 300 m`);
+ok(slaap.nacht.wakker <= slaap.nacht.van * 0.25 && slaap.nacht.autos <= slaap.nacht.autoVan * 0.4,
+  'om één uur slaapt het grootste deel, ook buiten de buurt', `${slaap.nacht.wakker} van ${slaap.nacht.van} mensen wakker, ${slaap.nacht.autos} van ${slaap.nacht.autoVan} auto's`);
+ok(slaap.nacht.nabij <= 6 && slaap.nacht.autosNabij <= 3 && slaap.nacht.nabij < slaap.middag.nabij / 2,
+  'en om je heen is het stil', `${slaap.nacht.nabij} mensen binnen 200 m (overdag ${slaap.middag.nabij}), ${slaap.nacht.autosNabij} auto's binnen 300 m`);
+ok(slaap.weer.wakker === slaap.weer.van && slaap.weer.autos === slaap.weer.autoVan, 'en de volgende middag is iedereen er weer');
+ok(slaap.inBeeld === 0 && slaap.autoDichtbij === 0, 'niemand verdwijnt of verschijnt waar je het ziet',
+  `${slaap.inBeeld} mensen, ${slaap.autoDichtbij} auto's dichtbij van stand gewisseld`);
+
 console.log(`\n${fout ? fout + ' fout' : 'alles goed'}`);
 await browser.close();
 process.exit(fout ? 1 : 0);

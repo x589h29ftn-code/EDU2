@@ -79,8 +79,11 @@ Een paar dingen die niet vanzelf spreken:
   het adres, en zijn de ramen dichtgemaakt.
 - **NPC's leven op wegvakken.** `p.seg` en `p.t` bepalen x/z, elk beeld opnieuw.
   Een handmatig gezette positie overleeft één beeld.
-- **De wijk slaapt 's nachts** (stap 83). `sfeer.drukte` (1 overdag, 22:30→23:30
-  naar 0,16, 05:00→06:30 terug) schaalt het aantal mensen en auto's;
+- **De wijk slaapt 's nachts** (stap 83, 87). `sfeer.drukte` (1 overdag, 22:30→23:30
+  naar 0,16, 05:00→06:30 terug) schaalt het aantal mensen en auto's: wie boven
+  zijn vaste drempel zit krijgt `slaapt` (geen lichaam, geen update, geen getuige,
+  een auto ver buiten de wereld); dat wisselt alleen uit het zicht. Wie door
+  `npcs.people` of `vehicles.traffic` loopt, slaat slapers over;
   `sfeer.lampenAan` dooft na middernacht tweederde van de lantaarns in
   woonstraten (per tegel twee stapels koppen, `MAT.lamp` en `MAT.lampNacht`, en
   hun plas licht dooft mee). De drie straatlampen zijn een vaste pool in
@@ -108,7 +111,9 @@ Street View-link erbij.
 7. de bom bij de Poiesz — Duinterpen
 8. de deal bij de molen — sniper en boten
 9. **een eigen stek** — drie woningen kopen
-10. **De Veteraan** — de tas bij VV Sneek en de hinderlaag (laatst gebouwd)
+10. **De Veteraan** — de tas bij VV Sneek en de hinderlaag
+11. **de politieauto en de C4** — stelen aan de Lemmerweg, C4 bij Tinga State
+    (laatst gebouwd; Marks plan zelf komt in de volgende missie)
 
 Missie 9 in het kort: Mark belt, staat bij de Wieken 29, noemt drie adressen met
 bedrag (**1, 2 of 3** kiest en zet de navigatie), en je koopt er aan tafel een
@@ -126,6 +131,15 @@ je op. Daarna is hij weg,
 belt Mark (omleggen, te snel in de rangen, ga naar huis) en is het thuis — het
 gekochte huis — klaar voor € 250. **shift+0** start hem los.
 
+Missie 11 begint 25 s na missie 10, zonder telefoon: alleen een M bij Molenkrite
+15. Binnen zit Mark op de bank (`opDeBank`, `update(dt, { zit })`, de zithouding
+uit js/lichaam.js) en vraagt om een politieauto en C4. De auto staat aan de
+Lemmerweg (`politieautoPlek`, `politie.parkeerAuto`); instappen geeft twee
+sterren, en pas zonder sterren gaat de nav naar Tinga State. Daar liggen vier
+blokken C4 op de toonbank (`boerderij.toonC4`), E aan de balie: "Mark had al
+gebeld", gratis, `player.c4 = 4` (bewaard). Auto en C4 bij Molenkrite 15:
+€ 1.000, en Mark zegt dat hij binnen zijn plan vertelt. **shift+min** start hem los.
+
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
 achtervolgen, na een tijdje opgeven. Alleen buiten de missies om.
@@ -141,7 +155,13 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run vloeiendtest` (het aantal shaders dat three
+De laatste die ertoe doen: `npm run politieautotest` (missie 11, van de M tot de
+€ 1.000, en of Mark echt zit) met `politieautoshots` (drie foto's; stap 88);
+`npm run haperingtest` (de camera achter de auto, de
+buren van een wegvak, de schaduw elk beeld tijdens het rijden; stap 87) met
+`npm run rijprofiel` (geen proef: de zelftijd per functie terwijl je rijdt),
+`npm run checkpointtest` (het checkpoint na een missie en de keuze na het
+neergaan) en `npm run plattegrondshots` (woningen van bovenaf); `npm run vloeiendtest` (het aantal shaders dat three
 tijdens het spelen erbij vertaalt — hoort nul te zijn — en de nacht; stap 83–85),
 `npm run schaduwtest` (de schaduwpas: bomen bij de
 doos, lantaarns per tegel) en `npm run nachttest` (plassen licht, lampen van de
@@ -218,9 +238,11 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   staat of doordat NPC's hun positie uit `p.seg` herleiden; zet de camera en
   bevries npcs/voertuigen voor de foto.
 
-**Wacht op de gebruiker:** de wapenmelding ("kogels doen geen schade na in/uit de
-auto") is in de proef niet te reproduceren (`npm run wapentest`, sectie 5, groen).
-Gevraagd: welk wapen, eerste of derde persoon, zie je het schot, reageren mensen?
+**Wacht op de gebruiker:** de wapenmeldingen ("kogels doen geen schade na in/uit de
+auto", en op 26 sep "vanaf de auto schieten schiet ik niemand meer neer") zijn in de
+proef niet te reproduceren (`npm run wapentest`, ook vanuit de auto in beide camera's,
+groen). Gevraagd: welk wapen, eerste of derde persoon, stilstaand of rijdend, zie je
+het schot, reageren mensen?
 
 ## 7 · Wat er nog open staat
 
@@ -253,6 +275,14 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
 18. Voetgangers: sinds stap 80 geen lichaam verder dan 200 m, sinds stap 82 ook
     niet achter je (buiten 75° van de kijkrichting, verder dan 15 m). Een grove
     uitvoering op afstand is de volgende stap als het nodig is.
+19. Molenkrite 130c: de tuindeur staat achter de hoekbank (de bank staat daar
+    tegen de achterwand) en is niet te halen (`huistest`, de regel "tuindeur").
+20. Wat een beeld op de grafische kaart kost is headless niet te meten
+    (swiftshader). Sinds stap 87 loopt de schaduwpas rijdend elk beeld; hapert
+    het op een zwakke kaart nog, dan is een kleinere schaduwkaart de eerste stap.
+21. Een voetganger die aan het eind van zijn wegvak naar de overkant wisselt
+    (`p.side *= -1` in `pickSegment`, js/npc.js) springt in één beeld tien tot
+    twintig meter opzij. Hoort een oversteek te worden zoals `steek`.
 
 ## 8 · Waar wat gedocumenteerd wordt
 

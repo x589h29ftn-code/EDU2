@@ -67,9 +67,15 @@ export function grondAO(mat) {
  woonwijk om elf uur zijn, geen etalage.
 
    nachtUniform  0 overdag, 1 's nachts; js/sfeer.js zet hem
+   aandeelUniform  welk deel van de ramen brandt: 0,48 's avonds, en na
+                 middernacht minder, want de wijk gaat slapen (verzoek 26 sep
+                 2026); js/sfeer.js zet hem. Elk raam heeft een vaste
+                 toevalswaarde, dus het zijn dezelfde ramen die blijven branden
+                 en de rest gaat een voor een uit
    vakken        [breed, hoog] in vakken over de hele uv (huizen × 2, lagen)
 */
 export const nachtUniform = { value: 0 };
+export const aandeelUniform = { value: 0.48 };
 // de klok voor het flikkeren van een tv achter het raam; js/sfeer.js zet hem
 export const tijdUniform = { value: 0 };
 // alleen voor de proef: ≥ 0 zet elk brandend raam op dezelfde soort (0,2 open,
@@ -83,6 +89,7 @@ export function nachtRamen(mat, vakken = [2, 2]) {
   mat.onBeforeCompile = (shader, renderer) => {
     if (vorige) vorige(shader, renderer);
     shader.uniforms.uNacht = nachtUniform;
+    shader.uniforms.uRaamAandeel = aandeelUniform;
     shader.uniforms.uRaamTijd = tijdUniform;
     shader.uniforms.uRaamSoort = raamSoortUniform;
     shader.uniforms.uVakken = { value: new Float32Array(vakken) };
@@ -90,7 +97,7 @@ export function nachtRamen(mat, vakken = [2, 2]) {
       .replace('#include <common>', '#include <common>\nvarying vec3 vRaamW;\nattribute float wandId;\nvarying float vWand;')
       .replace('#include <project_vertex>', '#include <project_vertex>\n  vRaamW = (modelMatrix * vec4(transformed, 1.0)).xyz;\n  vWand = wandId;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uNacht;\nuniform float uRaamTijd;\nuniform float uRaamSoort;\nuniform vec2 uVakken;\nvarying vec3 vRaamW;\nvarying float vWand;\nfloat raamRuis(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }')
+      .replace('#include <common>', '#include <common>\nuniform float uNacht;\nuniform float uRaamAandeel;\nuniform float uRaamTijd;\nuniform float uRaamSoort;\nuniform vec2 uVakken;\nvarying vec3 vRaamW;\nvarying float vWand;\nfloat raamRuis(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
   #ifdef USE_MAP
   if (uNacht > 0.0) {
@@ -105,7 +112,7 @@ export function nachtRamen(mat, vakken = [2, 2]) {
     // uit de interpolatie tot een ander getal, en dan wordt het ruis per pixel)
     float wand = floor(vWand * 997.0 + 0.5);
     vec2 vak = floor(vMapUv * uVakken) + vec2(wand, floor(wand * 0.37)) + floor(vRaamW.xz / 3.0) * step(uVakken.x, 1.5);
-    float aan = step(raamRuis(vak), 0.48);
+    float aan = step(raamRuis(vak), uRaamAandeel);
     float soort = uRaamSoort >= 0.0 ? uRaamSoort : raamRuis(vak + 5.13);   // wat er achter dit raam gebeurt
     float tint = raamRuis(vak + 17.31);
     vec2 inVak = fract(vMapUv * uVakken);        // waar in het vak (0..1)

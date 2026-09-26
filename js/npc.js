@@ -319,6 +319,7 @@ export class NPCs {
     let k = 0, anders = false;
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
+      if (p.slaapt) { this.slotVan[i] = -1; continue; }
       const dx = p.x - camX, dz = p.z - camZ, d2 = dx * dx + dz * dz;
       if (camX !== null && d2 > q) { this.slotVan[i] = -1; continue; }
       if (camX !== null && this.kijk && d2 > DICHT * DICHT && (dx * kx + dz * kz) < KEGEL * Math.sqrt(d2)) { this.slotVan[i] = -1; continue; }
@@ -426,7 +427,7 @@ export class NPCs {
     this._vulKlok = 0;
     let dichtbij = 0, nabij = 0;
     for (const p of this.people) {
-      if (!p.alive) continue;
+      if (!p.alive || p.slaapt) continue;
       const d = Math.hypot(p.x - camX, p.z - camZ);
       if (d < DICHTBIJ) dichtbij++;
       if (d < NABIJ) nabij++;
@@ -445,7 +446,7 @@ export class NPCs {
       */
       let weg = null, wd = Infinity;
       for (const p of this.people) {
-        if (!p.alive || p.steek > 0 || p.paniek > 0) continue;
+        if (!p.alive || p.slaapt || p.steek > 0 || p.paniek > 0) continue;
         const d = Math.hypot(p.x - camX, p.z - camZ);
         if (d > 50 && d < wd) { wd = d; weg = p; }
       }
@@ -460,7 +461,7 @@ export class NPCs {
     for (let n = 0; n < aantal; n++) {
       let verste = null, vd = VER;
       for (const p of this.people) {
-        if (!p.alive || p.steek > 0) continue;
+        if (!p.alive || p.slaapt || p.steek > 0) continue;
         const d = Math.hypot(p.x - camX, p.z - camZ);
         if (d > vd) { vd = d; verste = p; }
       }
@@ -542,6 +543,41 @@ export class NPCs {
     return a + (b - a) * fr;
   }
 
+  buren(end, zonder) {
+    const C = 1.5;
+    if (!this._eindRooster || this._eindVoor !== this.segs.length) {
+      this._eindRooster = new Map();
+      this._eindVoor = this.segs.length;
+      for (const s of this.segs) for (const q of [s.a, s.b]) {
+        const k = Math.floor(q[0] / C) * 100003 + Math.floor(q[1] / C);
+        let l = this._eindRooster.get(k);
+        if (!l) this._eindRooster.set(k, l = []);
+        if (!l.includes(s)) l.push(s);
+      }
+      this._burenLijst = [];
+    }
+    const uit = this._burenLijst; uit.length = 0;
+    const i0 = Math.floor(end[0] / C), j0 = Math.floor(end[1] / C);
+    for (let i = i0 - 1; i <= i0 + 1; i++) for (let j = j0 - 1; j <= j0 + 1; j++) {
+      const l = this._eindRooster.get(i * 100003 + j);
+      if (!l) continue;
+      for (const s of l) {
+        if (s === zonder || uit.includes(s)) continue;
+        if (Math.hypot(s.a[0] - end[0], s.a[1] - end[1]) < 1.5 || Math.hypot(s.b[0] - end[0], s.b[1] - end[1]) < 1.5) uit.push(s);
+      }
+    }
+    // in de volgorde van de lijst, zoals `filter` ze gaf: de loting kiest daaruit
+    if (uit.length > 1) uit.sort((a, b) => this._volgorde(a) - this._volgorde(b));
+    return uit;
+  }
+  _volgorde(s) {
+    if (!this._index || this._indexVoor !== this.segs.length) {
+      this._index = new Map(this.segs.map((q, i) => [q, i]));
+      this._indexVoor = this.segs.length;
+    }
+    return this._index.get(s);
+  }
+
   pickSegment(p, random = false) {
     if (random || !p.seg) {
       p.getekend = false;
@@ -553,8 +589,15 @@ export class NPCs {
       return;
     }
     const end = p.dir > 0 ? p.seg.b : p.seg.a;
-    const cands = this.segs.filter(s => s !== p.seg &&
-      (Math.hypot(s.a[0] - end[0], s.a[1] - end[1]) < 1.5 || Math.hypot(s.b[0] - end[0], s.b[1] - end[1]) < 1.5));
+    /*
+     De wegvakken die hier beginnen of eindigen. Dit was een `filter` over álle
+     wegvakken van de wereld, voor elke voetganger die aan het eind van zijn stuk
+     kwam: gemeten het duurste stuk van de voetgangers, en elke keer een nieuwe
+     lijst voor de vuilnisman (melding 26 sep 2026: "het beeld hapert"). Nu een
+     rooster van de uiteinden, één keer gemaakt; de negen cellen rond het punt
+     bevatten alles binnen 1,5 m.
+    */
+    const cands = this.buren(end, p.seg);
     if (!cands.length) { p.dir *= -1; p.t = Math.max(0, Math.min(1, p.t)); return; }
     let s;
     if (p.paniek > 0 && p.bron) {
@@ -600,7 +643,7 @@ export class NPCs {
   paniek(x, z, straal = 26, duur = 9) {
     let n = 0;
     for (const p of this.people) {
-      if (!p.alive) continue;
+      if (!p.alive || p.slaapt) continue;
       const d = Math.hypot(p.x - x, p.z - z);
       if (d > straal) continue;
       const t = duur * (1 - 0.45 * d / straal);
@@ -693,8 +736,34 @@ export class NPCs {
      aangereden blijft het elk beeld.
     */
     this._beeld = (this._beeld || 0) + 1;
+    /*
+     's Nachts gaat het grootste deel van de wijk slapen (verzoek 26 sep 2026: "na
+     24:00 minder mensen op de weg"). `vulBuurtAan` liet alleen de buurt om je heen
+     leeglopen, één voor één; in een wijk waar je nog niet was liepen nog alle
+     mensen van overdag. Nu heeft ieder een vaste drempel (uit zijn nummer, niet
+     uit de loting, zodat de rest niet verschuift): boven `drukte` slaapt hij. Wie
+     slaapt krijgt geen lichaam en wordt niet bijgewerkt, wat ook rekenwerk
+     scheelt. Inslapen en wakker worden alleen uit het zicht: verder dan 120 m, of
+     verder dan 45 m en achter je.
+    */
+    const wakkerTot = this.drukte === undefined ? 1 : this.drukte;
+    const kx = this.kijk ? this.kijk.x : 0, kz = this.kijk ? this.kijk.z : 0;
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
+      if (p.slaap === undefined) p.slaap = ((i + 1) * 2654435761 % 4294967296) / 4294967296;
+      if (camX !== null && (p.slaap < wakkerTot) === !!p.slaapt && p.alive && !(p.paniek > 0) && !(p.steek > 0) && p.seg) {
+        // (de plek uit het wegvak zelf: wie net verhuisd is heeft in x en z nog
+        // zijn oude plek staan, en die kan honderden meters verderop liggen)
+        // Met de stoep erbij, zoals hieronder bij het lopen: de as van een brede
+        // weg ligt meters naast waar hij loopt.
+        const sg = p.seg, t = Math.max(0, Math.min(1, p.t));
+        const ex = sg.b[0] - sg.a[0], ez = sg.b[1] - sg.a[1], el = Math.max(0.1, Math.hypot(ex, ez));
+        const off = (sg.walkOff || sg.w / 2 + 0.8) * (p.side || 0);
+        const dx = sg.a[0] + ex * t - ez / el * off - camX, dz = sg.a[1] + ez * t + ex / el * off - camZ, d2 = dx * dx + dz * dz;
+        const achter = this.kijk ? (dx * kx + dz * kz) < 0 : false;
+        if (d2 > 120 * 120 || (d2 > 45 * 45 && achter)) p.slaapt = !p.slaapt;
+      }
+      if (p.slaapt) continue;
       // loopt hij, en hoe hard? de pas hangt daaraan
       let loopt = false, renDeel = 0;
       // paniek loopt af; de eerste tienden van een seconde staat hij nog stil
@@ -1030,7 +1099,7 @@ export class NPCs {
     let n = 0;
     const vaart = Math.min(1, Math.abs(snelheid) / 14);
     for (const p of this.people) {
-      if (!p.alive) continue;
+      if (!p.alive || p.slaapt) continue;
       const dx = p.x - x, dz = p.z - z;
       if (dx * dx + dz * dz > straal * straal) continue;
       p.alive = false; p.fall = 0; p.respawn = 22 + this.r() * 8;

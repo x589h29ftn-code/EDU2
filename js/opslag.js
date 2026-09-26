@@ -12,11 +12,18 @@
  aan de wijk kan overschrijven.
 */
 const SLEUTEL = 'tinga.spel.v1';
+/*
+ En een tweede plek: het checkpoint (verzoek 26 sep 2026: "na doodgaan altijd
+ optie geven om vanaf het laatste checkpoint, dus na de laatste missie, te
+ herstarten"). js/verhaal.js laat hem schrijven zodra er een missie afgerond is;
+ hij staat los van F5, zodat je eigen opslag er nooit door overschreven wordt.
+*/
+const CHECKPOINT = 'tinga.checkpoint.v1';
 const VERSIE = 1;
 
-function lees() {
+function lees(sleutel = SLEUTEL) {
   try {
-    const raw = localStorage.getItem(SLEUTEL);
+    const raw = localStorage.getItem(sleutel);
     if (!raw) return null;
     const d = JSON.parse(raw);
     return d && d.versie === VERSIE ? d : null;
@@ -24,6 +31,10 @@ function lees() {
 }
 
 export function heeftOpslag() { return lees() != null; }
+export function heeftCheckpoint() { return lees(CHECKPOINT) != null; }
+export function wisCheckpoint() {
+  try { localStorage.removeItem(CHECKPOINT); return true; } catch { return false; }
+}
 
 // Voor het startscherm: wanneer is er opgeslagen en waar stond je?
 export function opslagInfo() {
@@ -40,7 +51,7 @@ export function wisOpslag() {
  spel = { player, sfeer, vehicles, verhaal, straat }
  Geeft true als het opslaan gelukt is (localStorage kan vol of geblokkeerd zijn).
 */
-export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, straat = '' }) {
+export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, straat = '', checkpoint = false }) {
   const auto = player.inCar;
   const data = {
     versie: VERSIE,
@@ -55,6 +66,8 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
       wapens: (player.wapens || ['pistool']).slice(),
       wapen: player.wapenSoort,
       magazijnen: { ...(player.magazijnen || {}) },
+      // de C4 van missie 11
+      c4: player.c4 || 0,
     },
     auto: auto ? {
       index: vehicles ? vehicles.cars.indexOf(auto) : -1,
@@ -67,12 +80,12 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
     sfeer: sfeer ? { uur: sfeer.uur, weer: sfeer.weer, loopt: sfeer.loopt } : null,
     verhaal: verhaal ? verhaal.bewaar() : null,
   };
-  try { localStorage.setItem(SLEUTEL, JSON.stringify(data)); return true; } catch { return false; }
+  try { localStorage.setItem(checkpoint ? CHECKPOINT : SLEUTEL, JSON.stringify(data)); return true; } catch { return false; }
 }
 
 // Zet een opgeslagen spel terug. Geeft false als er niets (bruikbaars) staat.
-export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null }) {
-  const d = lees();
+export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, checkpoint = false }) {
+  const d = lees(checkpoint ? CHECKPOINT : SLEUTEL);
   if (!d || !d.speler) return false;
   const s = d.speler;
   player.pos.set(s.x, s.y || 0, s.z);
@@ -94,6 +107,7 @@ export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart
     if (typeof s.ammo === 'number') player.ammo = s.ammo;
   }
   if (typeof s.health === 'number') player.health = s.health;
+  player.c4 = typeof s.c4 === 'number' ? s.c4 : 0;
   player.reloading = 0;
 
   player.inCar = null;

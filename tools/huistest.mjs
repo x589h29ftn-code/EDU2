@@ -69,14 +69,18 @@ await page.evaluate(() => {
 // ------------------------------------------------------- de drie woningen
 kop('de drie woningen van De Veteraan');
 const huizen = await page.evaluate(() => {
+  const opp = (w) => w.maten.banden.reduce((t, b) => t + (b.x1 - b.x0) * (b.z1 - b.z0), 0);
   const g = window.__game;
   const wieken = g.woningen[1];
   return {
-    wieken: { naam: wieken.naam, opp: +(wieken.maten.breed * wieken.maten.diep).toFixed(0) },
+    // (het vloeroppervlak: de banden van de plattegrond bij elkaar, niet breedte
+    // maal diepte — dat is de doos eromheen, en de Wieken 29 is dan 76 m² in
+    // plaats van de 62 die hij heeft; stap 87)
+    wieken: { naam: wieken.naam, opp: +opp(wieken).toFixed(0) },
     lijst: window.__stek().map(w => ({
       naam: w.naam, prijs: w.prijs, soort: w.soort,
       breed: +w.maten.breed.toFixed(1), diep: +w.maten.diep.toFixed(1),
-      opp: +(w.maten.breed * w.maten.diep).toFixed(0),
+      opp: +opp(w).toFixed(0),
       katten: w.katten.length, tv: w.tvAan,
       tafel: !!w.plekken.tafel, koelkast: !!w.plekken.koelkast,
     })),
@@ -503,6 +507,64 @@ ok(koop.voor - koop.na === 2500, 'en het sleutelgeld gaat van je wallet',
 ok(!koop.aanbod, 'het aanbod is daarmee van tafel');
 ok(koop.vlaggen === 1 && /stek/i.test(koop.naam || ''),
   'en op de kaart blijft alleen je eigen stek staan', `${koop.vlaggen} vlag: ${koop.naam}`);
+
+// ------------------------------------ de doorgang: kom je overal bij? (26 sep 2026)
+/*
+ "De Wieken is heel krap, bank voor de keuken": tussen de chaise longue en het
+ dressoir bleef daar 0,42 m, en de koelkast was niet te halen. En in Koningsspil 20
+ stond de keuken los in de tuin. Nu met een overstroming over een rooster van vijf
+ centimeter, met de straal van de speler (0,35 m): vanaf de deurmat binnen moet
+ je in elke woning bij de koelkast, de stoel aan tafel en de radio kunnen komen.
+*/
+kop('de doorgang: kom je overal bij?');
+const doorgang = await page.evaluate(async () => {
+  const W = await import('/js/world.js');
+  const g = window.__game, uit = {};
+  for (const w of g.woningen) {
+    const P = w.plekken, van = P.deurBinnen;
+    const doelen = { koelkast: P.koelkast, stoel: P.stoel, radio: P.radio, tuindeur: P.tuindeur };
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (const p of [van, ...Object.values(doelen)].filter(Boolean)) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
+    x0 -= 3; x1 += 3; z0 -= 3; z1 += 3;
+    const S = 0.05, R = 0.35, NX = Math.ceil((x1 - x0) / S), NZ = Math.ceil((z1 - z0) / S);
+    const vrij = (i, j) => { const x = x0 + i * S, z = z0 + j * S; const [kx, kz] = W.resolveCollisions(x, z, R); return Math.hypot(kx - x, kz - z) < 0.01; };
+    const gezien = new Uint8Array(NX * NZ), wacht = [];
+    const st = [Math.round((van.x - x0) / S), Math.round((van.z - z0) / S)];
+    let begin = null;
+    for (let rr = 0; rr < 20 && !begin; rr++) for (let di = -rr; di <= rr && !begin; di++) for (let dj = -rr; dj <= rr && !begin; dj++) if (vrij(st[0] + di, st[1] + dj)) begin = [st[0] + di, st[1] + dj];
+    if (begin) { wacht.push(begin); gezien[begin[1] * NX + begin[0]] = 1; }
+    while (wacht.length) {
+      const [i, j] = wacht.pop();
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const a = i + di, c = j + dj;
+        if (a < 0 || c < 0 || a >= NX || c >= NZ || gezien[c * NX + a]) continue;
+        gezien[c * NX + a] = 2;
+        if (vrij(a, c)) { gezien[c * NX + a] = 1; wacht.push([a, c]); }
+      }
+    }
+    // binnen 0,8 m van het doel ligt een bereikbaar vakje (de stoel zelf is een
+    // meubel: je gaat er vanaf de zijkant op zitten)
+    const bij = (p) => {
+      if (!p) return null;
+      const ci = Math.round((p.x - x0) / S), cj = Math.round((p.z - z0) / S);
+      for (let di = -16; di <= 16; di++) for (let dj = -16; dj <= 16; dj++) {
+        const a = ci + di, c = cj + dj;
+        if (Math.hypot(di, dj) * S <= 0.8 && a >= 0 && c >= 0 && a < NX && c < NZ && gezien[c * NX + a] === 1) return true;
+      }
+      return false;
+    };
+    uit[w.naam] = Object.fromEntries(Object.entries(doelen).map(([k, p]) => [k, bij(p)]));
+    uit[w.naam].hoek = w.maten.bank.hoek;
+  }
+  return uit;
+});
+const naarBinnen = Object.entries(doorgang);
+ok(naarBinnen.every(([, d]) => d.koelkast && d.stoel && d.radio), 'in elke woning kom je van de voordeur bij de koelkast, de eettafel en de radio',
+  naarBinnen.map(([n, d]) => `${n}: ${['koelkast', 'stoel', 'radio'].filter(k => !d[k]).join('+') || 'alles'}`).join(' · '));
+ok(doorgang['de Wieken 29'] && doorgang['de Wieken 29'].koelkast && doorgang['de Wieken 29'].hoek === 0,
+  'in de Wieken 29 staat geen chaise longue meer voor de keuken', `chaise ${doorgang['de Wieken 29']?.hoek}`);
+ok(doorgang['Koningsspil 20'] && doorgang['Koningsspil 20'].tuindeur, 'in Koningsspil 20 staat de keuken in het huis, en kom je bij de tuindeur');
+console.log(`       tuindeur: ${naarBinnen.map(([n, d]) => `${n} ${d.tuindeur === null ? '-' : d.tuindeur ? 'ja' : 'NEE'}`).join(' · ')}`);
 
 console.log(`\n${fout ? fout + ' fout' : 'alles goed'}`);
 await browser.close();

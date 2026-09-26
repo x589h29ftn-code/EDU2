@@ -32,6 +32,9 @@ function zelfdeLaag(a, b) {
 // 240 m culde het iets beter maar kostte het ruim vijfhonderd draw calls extra,
 // en daar is een telefoon gevoeliger voor.
 const AUTOTEGEL = 480;
+// waar een slapende auto 's nachts staat: ver buiten de wereld (zie updateTraffic)
+const VER_WEG = Object.freeze(new THREE.Vector2(1e5, 1e5));
+const VER_WEG_R = Object.freeze(new THREE.Vector2(1, 0));
 const AUTOTEGEL_HALF = AUTOTEGEL * 0.71;   // halve diagonaal
 // het midden van de tegel uit een stapelsleutel "soort|i:j"
 function tegelMidden(sleutel) {
@@ -185,7 +188,7 @@ export class Vehicles {
     this._vulKlok = (this._vulKlok || 0) + dt;
     if (this._vulKlok < 1) return;
     this._vulKlok = 0;
-    const lokaal = this.traffic.filter(t => t.lokaal && t._pos);
+    const lokaal = this.traffic.filter(t => t.lokaal && t._pos && !t.slaapt);
     if (!lokaal.length) return;
     let nabij = 0, verste = null, vd = VER;
     for (const t of lokaal) {
@@ -322,6 +325,7 @@ export class Vehicles {
   // Alle auto's aan of uit: binnen in een huis en in het bovenaanzicht hoort de
   // wijk leeg te zijn (zie js/main.js en js/editor.js).
   zichtbaarheid(aan) {
+    this._verkeerAan = aan;
     for (const c of this.cars) {
       if (c.mesh) c.mesh.visible = aan;
       else if (c.zichtbaar !== aan) { c.zichtbaar = aan; c.getekend = aan; this.zetInstantie(c, false); }
@@ -336,7 +340,7 @@ export class Vehicles {
       this.lod(this._lodBij.x, this._lodBij.z, this._lodBij.zicht);
     }
     this.spoel();
-    for (const t of this.traffic) t.mesh.visible = aan;
+    for (const t of this.traffic) t.mesh.visible = aan && !t.slaapt;
   }
 
   // De instanced meshes zelf, om op te schieten (raycast) — zie js/main.js.
@@ -826,8 +830,41 @@ export class Vehicles {
   updateTraffic(dt, speler = null, voetgangers = null, camX = null, camZ = null) {
     if (camX !== null) this.vulBuurtAan(camX, camZ, dt);
     this.rolUit(dt);
+    /*
+     's Nachts gaat het meeste verkeer slapen (verzoek 26 sep 2026: "na 24:00
+     minder mensen en auto's op de weg"). Alleen het wijkverkeer rond de speler
+     zakte met de klok; het verkeer op de doorgaande wegen (de N7, de Lemmerweg)
+     reed de hele nacht even druk door, en in een wijk waar je nog niet was stond
+     het verkeer van overdag nog. Nu heeft elke auto een vaste drempel (uit zijn
+     nummer, niet uit de loting, zodat de rest van het verkeer niet verschuift):
+     boven `drukte` slaapt hij. Op de doorgaande weg blijft er altijd een kwart
+     rijden. Inslapen en wakker worden gebeurt alleen verder dan SLAAP_VER van de
+     camera, dus je ziet er geen verdwijnen of opduiken. Een slapende auto staat
+     onzichtbaar ver buiten de wereld: dan hoeft geen enkele botsing of kogel er
+     rekening mee te houden.
+    */
+    const f = this.drukte === undefined ? 1 : this.drukte;
+    const SLAAP_VER = 180;
+    for (let i = 0; i < this.traffic.length; i++) {
+      const t = this.traffic[i];
+      if (t.slaap === undefined) t.slaap = ((i + 1) * 2654435761 % 4294967296) / 4294967296;
+      const wakker = t.slaap < (t.lokaal ? f : Math.max(0.25, f));
+      if (camX === null || wakker === !t.slaapt) continue;
+      if (t._pos && !t.slaapt && Math.hypot(t._pos.x - camX, t._pos.y - camZ) < SLAAP_VER) continue;
+      if (t.slaapt) {
+        // wakker worden: op een rijbaan uit het zicht, net als het bijvullen
+        t.slaapt = false;
+        t.mesh.visible = this._verkeerAan !== false;
+        if (t.lokaal) this.zetOpRijbaan(t, camX, camZ, SLAAP_VER, SLAAP_VER, 600);
+      } else {
+        t.slaapt = true;
+        t.mesh.visible = false;
+        t.mesh.position.set(1e5 + i * 10, -50, 1e5);
+      }
+    }
     // eerst iedereen op zijn plek zetten, dan pas vooruitkijken
     for (const t of this.traffic) {
+      if (t.slaapt) { t._pos = VER_WEG; t._dir = VER_WEG_R; continue; }
       const n = t.path.length;
       const j0 = Math.floor(t.t), j1 = Math.min(n - 1, j0 + 1);
       const p = t.path[j0].clone().lerp(t.path[j1], t.t - j0);
@@ -850,6 +887,7 @@ export class Vehicles {
     for (const c of this.cars) if (c.mesh) metModel.push(c);
 
     for (const t of this.traffic) {
+      if (t.slaapt) continue;
       let vrij = KIJK;            // het dichtstbijzijnde obstakel binnen elf meter
       let vrijMens = MENS_KIJK;   // en de dichtstbijzijnde overstekende voetganger
 
@@ -912,7 +950,7 @@ export class Vehicles {
          en moet je zien aankomen (verzoek 22 sep 2026).
         */
         for (const v of voetgangers) {
-          if (!v.alive || !v.opWeg) continue;
+          if (!v.alive || !v.opWeg || v.slaapt) continue;
           inDeWeg(v.x, v.z, 0.1);
           const dx = v.x - t._pos.x, dz = v.z - t._pos.y;
           const langs = dx * t._dir.x + dz * t._dir.y;

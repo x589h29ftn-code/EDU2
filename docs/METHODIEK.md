@@ -5906,6 +5906,150 @@ veld op komen maar je bij de ingang opwachten.
   overstekende en het water) falen op de vorige commit precies zo; nagemeten in
   een losse worktree.
 
+**Haperen, de nacht, de Wieken en het checkpoint (stap 87).** Gemeld (26 sep 2026):
+het spel hapert nog, ook de schaduw van de auto, "de auto beweegt smooth maar de
+camera of het beeld is hakkerig" (downgraden mag); na 24:00 minder mensen, auto's
+en lampen in de woningen; vanuit de auto schiet je niemand neer; de Wieken 29 is
+heel krap, de bank staat voor de keuken; en na het neergaan altijd de keuze om
+vanaf het laatste checkpoint, na de laatste missie, verder te gaan.
+
+- *Het haperen, gemeten.* Met de profiler van Chrome terwijl de hoofdlus draait,
+  de auto rijdt en het tekenen uit staat (`npm run rijprofiel`). Drie dingen die
+  elk beeld de hele wereld afliepen:
+  - de camera achter de auto (`vrijeCamera`) keek bij élk beeld naar alle botsdozen
+    of er iets achter de auto staat: 81.686 dozen, gemeten 3,9 ms per keer
+    (headless), het duurste stuk van een beeld. Nu via het rooster van
+    `resolveCollisions`: 0,1 ms, en in 400 proeven precies hetzelfde antwoord;
+  - de straatnaam linksonder (`nearestRoadName`) over alle wegvakken, elk beeld:
+    9 % van al het javascript. Nu pas opnieuw na vier meter;
+  - een voetganger aan het eind van zijn wegvak deed een `filter` over alle 12.879
+    wegvakken, en maakte er elke keer een nieuwe lijst van voor de vuilnisman. Nu
+    een rooster van de uiteinden, in dezelfde volgorde, dus dezelfde loting.
+  Na de drie viel het javascript dat niet stilzit van 29 naar 20 % van de tijd, en
+  de vuilnisman van 623 naar 332 ms in een halve minuut.
+- *Wat je zag.* De camera schoot bij elke lantaarnpaal achter de auto een beeld
+  naar voren (inkorten gaat meteen, uitschuiven rustig): dunne dingen, smaller
+  dan zeventig centimeter, tellen niet meer. En de schaduwpas liep om het beeld:
+  de schaduw van je eigen auto, 23 cm per beeld op vijftig per uur, sprong dan
+  mee, en een beeld met schaduwpas en een zonder wisselden elkaar af — ongelijke
+  beeldtijden, en dat is op een scherm van 60 Hz schokken. Rijdend of lopend nu
+  elk beeld, stilstaand om het beeld. Het gras rond je zocht bij elke drie meter
+  voor 6400 cellen op of er gras ligt (pieken van 11 tot 16 ms); dat antwoord
+  wordt nu per cel onthouden.
+- *De nacht.* Gemeten stonden er om één uur 3 mensen binnen 200 m en 2 auto's
+  binnen 300 m — maar alleen waar je stond: `vulBuurtAan` stuurde de buurt één
+  voor één naar huis, elders liep iedereen van overdag nog, en het verkeer op de
+  doorgaande wegen reed de hele nacht door. Nu heeft iedereen een vaste drempel
+  (uit zijn nummer, zodat de loting van de rest niet verschuift): boven `drukte`
+  slaap je. Wie slaapt heeft geen lichaam, wordt niet bijgewerkt, is geen getuige
+  en staat niet op de kaart; een slapende auto staat onzichtbaar ver buiten de
+  wereld, zodat geen botsing of kogel er rekening mee hoeft te houden. Inslapen
+  en wakker worden alleen uit het zicht (mensen verder dan 120 m, of 45 m en
+  achter je; auto's verder dan 180 m). Om één uur zijn ruim twintig van de 130 mensen
+  en zeven à acht van de 26 auto's wakker; op de doorgaande weg blijft altijd een kwart rijden.
+- *De ramen.* Welk deel brandt is nu een uniform (`aandeelUniform`): tot elf uur
+  48 %, tussen elf en één gaat driekwart daarvan uit, tot vijf blijft 12 %.
+  Elk raam heeft een vaste waarde, dus het zijn dezelfde ramen die blijven branden.
+- *De Wieken 29.* Van bovenaf gefotografeerd (`npm run plattegrondshots`): in een
+  huis van 5,4 m breed met de keuken rechtsachter liep de bank tot een kwart
+  meter voor de achterwand, de chaise longue stond voor de keukenopening, en het
+  dressoir stond ertegenover tegen de achterwand, want naast de tv paste het niet
+  (de ruimte daar werd gemeten aan de lengte van de bank, niet aan de tv). Er
+  bleef 0,42 m over; de koelkast was met de straal van de speler niet te halen.
+  Nu houdt de bank 0,95 m voor de achterwand op als de keuken erachter ligt, gaat
+  de chaise longue weg in een kamer smaller dan zes meter, staat het dressoir
+  achter de tv, en nooit meer voor de opening naar de aanbouw.
+- *Koningsspil 20* (bij het meten gevonden): het voorhuis begint daar 2,9 m rechts
+  van de rest van het grondvlak, met een bredere band erachter en een strook van
+  negen meter aan de zijkant. De kamer nam die strook als aanbouw: de keuken
+  stond los in de tuin, drie meter achter het huis. `rechtTrekken` snijdt zo'n
+  grondvlak bij tot de breedte van het voorhuis en maakt de omtrek opnieuw; een
+  grondvlak waar het niet speelt blijft zoals het was. De vergelijking "groter dan
+  de Wieken 29" in `huistest` rekende breedte maal diepte (de doos eromheen, voor
+  de Wieken 76 m²); nu het vloeroppervlak, 62 tegen 71 m².
+- *Het checkpoint.* Een tweede opslagplek (`tinga.checkpoint.v1`), die een tel na
+  elke afgeronde missie geschreven wordt, los van F5; een geladen spel schrijft er
+  niet in, een nieuw spel wist hem. Na het neergaan staat er een keuze: de missie
+  opnieuw vanaf zijn herstelpunt (buiten een missie: hier weer opstaan), terug naar
+  het checkpoint, of je eigen opslag. Met de muis of met 1, 2 en 3; een proef
+  (`__autoplay`) krijgt geen keuze en gaat verder zoals voorheen.
+- *Schieten vanuit de auto.* Niet te reproduceren. Stilstaand en rijdend, in de
+  eerste en de derde persoon, links, rechts en vooruit: raak (het pistool heeft
+  één of twee kogels nodig). Een eerste meting leek anders, maar die richtte een
+  beeld te laat: de camera neemt de kijkrichting pas het volgende beeld over.
+  `wapentest` schiet nu vanuit de auto in beide camera's.
+- *Proeven.* Nieuw: `haperingtest` (de camera achter de auto hetzelfde als de lus
+  over alles, veertig keer sneller; dezelfde buren als het filter; de schaduw
+  rijdend elk beeld) en `checkpointtest`. Erbij: `huistest` (vanaf de deurmat bij
+  de koelkast, de eettafel en de radio in alle vijf woningen, met de straal van de
+  speler over een rooster van vijf centimeter), `nachttest` (de wijk slaapt, en
+  niemand wisselt in beeld), `omgevingtest` (de ramen om twee uur) en `wapentest`
+  (vanuit de auto). `vloeiendtest` telde de straat 's nachts met de slapers erbij
+  (die staan nog waar ze insliepen), en zette voor zijn meting mensen neer die nog
+  sliepen: die werden niet wakker, want dat doen ze alleen uit het zicht. Beide in
+  de proef rechtgezet. `missietest` (6, de muziek) en `verhaaltest` (2, de bank en
+  de tv in Molenkrite 15) falen zoals op de vorige commit.
+  Daarbij kwam er nog een aan het licht: de slaapwissel rekende de afstand tot de
+  camera met `p.x`, en die is voor iemand die slaapt de plek van het beeld waarin
+  hij insliep, en voor wie net verhuisd is de plek van vóór het verhuizen. Nu
+  met de plek op zijn wegvak (`p.seg`, `p.t`, en de stoep erbij). Daarna zag
+  `nachttest` vijf mensen op 65 tot 100 m in slaap vallen. Eerst gegokt dat het
+  aan de stoep lag; gemeten (een losse proef die van elke wissel beide plekken
+  opschreef) bleken het mensen die `vulBuurtAan` in datzelfde beeld "naar huis"
+  had gestuurd, 420 m of verder weg: de proef keek naar hun oude `p.x`. Dat
+  verdwijnen op meer dan 50 m komt van het verhuizen, dat er al was; de proef
+  meet nu de plek op het wegvak, waar ze ook getekend worden.
+  Daarna bleven er twee over, en die zaten in de proef zelf: de marge van twee
+  meter stond bij de grens van 45 m verkeerd om (47, zodat wie op 46 m achter je
+  insliep als fout telde; nu 43). En wie wakker wordt loopt in hetzelfde beeld
+  verder, en wisselt aan het eind van een wegvak in 35 % van de gevallen meteen
+  naar de overkant (`p.side *= -1` in `pickSegment`); de proef neemt voor hem
+  nu de plek van het vorige beeld. Die sprong naar de overkant is op zichzelf
+  een verspringing van tien tot twintig meter die je kunt zien; dat was er al
+  en staat bij de open punten.
+- *Nog open:* in Molenkrite 130c (achttien bij zeven, de bank tegen de
+  achterwand) staat de tuindeur achter de hoekbank en is hij niet te halen.
+
+**Missie 11: de politieauto en de C4 (stap 88).** Gevraagd (26 sep 2026): geen
+telefoontjes, alleen een M voor Mark in Molenkrite 15; een gesprek over het
+uitschakelen van De Veteraan; een politieauto stelen (twee sterren bij het
+instappen, eerst afschudden) en vier stuks C4 gratis ophalen aan de balie van
+Tinga State ("Mark had al gebeld", "Verse C4 voor jou"); bij Mark afleveren is
+geslaagd en € 1.000. Het plan zelf komt in de volgende ronde.
+
+- *Het begin.* Vijfentwintig tellen na missie 10 (`POL_WACHT`) zet het verhaal een
+  M bij de voordeur van Molenkrite 15 en verder niets. De fase `wacht` kijkt of je
+  binnen bent (`woning.binnen`); dan zet hij Mark neer bij `plekken.bank` en begint
+  het gesprek. Mark staat dus niet buiten zoals in de eerdere missies.
+- *De auto.* `politieautoPlek` zoekt het punt op de as van de Lemmerweg dat het
+  dichtst bij `thuis` ligt en schuift het naar de wijkkant, `max(0,8; b/2 − 1)` van
+  de as, tot hij vrij staat. `politie.parkeerAuto` maakt er een rijdbare hatchback
+  van met de lak, de lichtbalk en de topsnelheid van de politie. Een wrak of een
+  auto zonder leven is een mislukte missie.
+- *De sterren.* Instappen geeft `sterGeven(2)` en de fase `afschudden`; pas als
+  `politie.gezocht` weer onwaar is gaat de nav naar Tinga State.
+- *De C4.* Vier blokken in js/boerderij.js (`c4Groep`, standaard verborgen) liggen
+  op de toonbank zodra de fase `c4` is. Aan de balie (`bijToonbank`) zegt E eerst
+  de verkoper, en pas daarna gaan de blokken mee: `player.c4 = 4`, en die
+  wordt ook bewaard. In de proef ging dat eerst mis: de laatste zin van Erik stond
+  nog open, en de E klikte het gesprek door in plaats van de C4 te pakken. De proef
+  wacht nu tot de balk dicht is.
+- *Afleveren.* De auto binnen twaalf meter van de voordeur, stil, jij erin of
+  erbij, en vier stuks C4. Dan geslaagd, € 1.000, en Mark komt naar buiten met
+  "Kom binnen, dan vertel ik je mijn plan." `politieautoKlaar` gaat in de opslag;
+  een opslag midden in de missie hervat hem per fase (`hervatPolitieauto`).
+- *Proef en foto's.* `politieautotest` speelt het na, van de M tot de € 1.000,
+  met opslaan en laden, shift+min en de kapotte auto. `politieautoshots` maakt
+  drie foto's.
+- *Mark zat niet.* Op de eerste foto stond hij in de bank: het verhaal liet hem
+  "zitten" met de hurkhouding, op de vloer, en zijn voeten verdwenen in de
+  zitting (in missie 7 al net zo). Nu is er `zitHouding` in js/lichaam.js: de heup
+  op de zitting van 0,46 m, de bovenbenen haast waterpas vooruit, de onderbenen
+  iets schuin zodat de hak vóór de bank uitkomt, de voeten plat. `opDeBank` zet
+  hem een handbreed voor de zitplek en laat hem naar de tv kijken
+  (`plekken.bankKijk`). De proef meet het: heup 0,47 m, enkel op de vloer en meer
+  dan 0,52 m voor de zitplek, dus voorbij de voorkant van de bank.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -5996,3 +6140,8 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
      twee of drie cascades (dichtbij fijn, ver grof) wordt dat een centimeter.
      CSM zit ook niet in de vendored three, dus dat is met de hand op te zetten.
    - ~~de omgevingsreflectie met de klok mee~~ — gedaan in stap 75.
+13. **Voetgangers die naar de overkant springen.** Aan het eind van een wegvak
+    wisselt een voetganger in 35 % van de gevallen van stoep (`p.side *= -1` in
+    `pickSegment`), en dat gebeurt in één beeld: tien tot twintig meter opzij op
+    een brede weg. Gevonden bij stap 88 in `nachttest`; hoort een oversteek te
+    worden zoals `steek`.

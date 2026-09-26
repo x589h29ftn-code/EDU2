@@ -582,6 +582,26 @@ export function hurkHouding(uit, mate = 1) {
   return zak;
 }
 
+/*
+ Zitten, op een bank of een stoel van `zitting` hoog: de bovenbenen vooruit en
+ bijna waterpas, de onderbenen iets schuin naar voren zodat de hak vóór de
+ zitting uitkomt, de voeten plat en de handen op de knieën. Mark zat in missie 7
+ en 11 met de hurkhouding "op" de bank: zijn voeten stonden in de zitting.
+*/
+export function zitHouding(uit, zitting = 0.46) {
+  const heup = 1.50, knie = 1.20;
+  uit.heupL = uit.heupR = heup;
+  uit.knieL = uit.knieR = knie;
+  uit.enkelL = uit.enkelR = knie - heup;         // de voet plat op de vloer
+  uit.schouderL = uit.schouderR = 0.45;
+  uit.elleboogL = uit.elleboogR = 0.75;
+  uit.romp = -0.04; uit.rol = 0; uit.hoofd = 0.04;
+  uit.armZij = 0.10;
+  // de heup op de zitting; wat er van het been onder de knie hangt komt dan net
+  // op de vloer uit (0,46 − 0,39·cos 0,3 ≈ enkelhoogte)
+  uit.wip = zitting + 0.01 - MAAT.heup;
+}
+
 /** Houding voor wie met twee handen een wapen vooruit houdt. */
 export function mikHouding(uit = {}) {
   uit.schouderL = 1.42; uit.schouderR = 1.48;

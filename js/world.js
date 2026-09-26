@@ -2538,11 +2538,38 @@ const camKandidaten = [];
 export function vrijeCamera(px, py, pz, dx, dy, dz, maxD, marge = 0.35) {
   camKandidaten.length = 0;
   const bereik = maxD + 3;
-  for (const c of colliders) {
-    if (c.h < 0.6) continue;
-    if (Math.abs(c.cx - px) > bereik + c.hx || Math.abs(c.cz - pz) > bereik + c.hz) continue;
+  /*
+   Via het rooster van `resolveCollisions` (melding 26 sep 2026: "de camera
+   hapert"). Deze lus liep elk beeld door álle botsdozen — met de Lemmerweg en
+   IJlst erbij zesenvijftigduizend — om te zien of er iets achter je auto staat:
+   gemeten was `derde.update` het duurste stuk van een beeld, 5,4 ms gemiddeld en
+   pieken tot 14 ms (headless). Nu alleen de cellen rond de hengel. Een doos
+   staat in elke cel die hij (met een halve meter marge) raakt, dus wat hier binnen
+   `bereik` valt zit er altijd in; de stempel zorgt dat hij één keer telt.
+  */
+  if (rooster === null || roosterVoor !== colliders.length) bouwRooster();
+  stempel++;
+  const i0 = Math.floor((px - bereik) / CEL), i1 = Math.floor((px + bereik) / CEL);
+  const j0 = Math.floor((pz - bereik) / CEL), j1 = Math.floor((pz + bereik) / CEL);
+  const bekijk = (c) => {
+    if (c._st === stempel) return;
+    c._st = stempel;
+    if (c.h < 0.6) return;
+    /*
+     Dunne dingen tellen niet: een lantaarnpaal, een paaltje of een stam. Reed je
+     erlangs, dan schoot de camera een beeld lang naar voren en kwam hij daarna
+     rustig terug — dat schokken zag je bij elke paal langs de weg. De camera is
+     er in een oogwenk voorbij en een paal van twintig centimeter dekt niets af.
+    */
+    if (c.hx < 0.35 && c.hz < 0.35) return;
+    if (Math.abs(c.cx - px) > bereik + c.hx || Math.abs(c.cz - pz) > bereik + c.hz) return;
     camKandidaten.push(c);
+  };
+  for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+    const lijst = rooster.get(CELSLEUTEL(i, j));
+    if (lijst) for (const c of lijst) bekijk(c);
   }
+  for (const c of losseDozen) bekijk(c);
   if (!camKandidaten.length) return maxD;
   const stap = 0.25;
   for (let d = stap; d <= maxD; d += stap) {

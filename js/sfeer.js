@@ -6,7 +6,7 @@
 // vooruit, met Y wissel je van weertype.
 import * as THREE from 'three';
 import { sfeerMaterialen, lampPosities } from './world.js';
-import { nachtUniform, tijdUniform } from './licht.js';
+import { nachtUniform, tijdUniform, aandeelUniform } from './licht.js';
 import { zetKoplampen } from './carmodel.js';
 import { zetLichtpoelen } from './kaartwereld.js';
 
@@ -267,6 +267,8 @@ export function initSfeer(ctx) {
     }
     // hoe nacht het is, voor de verlichte ramen (js/licht.js)
     nachtUniform.value = Math.max(0, Math.min(1, (0.75 - k.kracht) / 0.55));
+    // en welk deel van de ramen nog brandt: na middernacht gaan de meeste uit
+    aandeelUniform.value = 0.48 * raamFactor();
     // de plassen licht onder de palen en de lampen van wat rijdt gaan mee
     // (met dezelfde schemerkromme als de koppen; de palen die na middernacht
     // uitgaan doven hun plas mee)
@@ -370,6 +372,19 @@ export function initSfeer(ctx) {
     if (uur < 5) return 0.16;
     return 0.16 + 0.84 * soepel(5, 6.5, uur);
   }
+  /*
+   De ramen (verzoek 26 sep 2026: "vanaf 24:00 minder lampen aan in de woningen,
+   dat meer mensen slapen"). Tot elf uur brandt bijna de helft, tussen elf en één
+   gaat driekwart daarvan uit, tot vijf uur blijft het een kwart, en tussen vijf
+   en zeven gaan ze weer aan voor wie vroeg op moet.
+  */
+  function raamFactor() {
+    if (uur >= 7 && uur < 23) return 1;
+    if (uur >= 23) return 1 - 0.75 * soepel(23, 25, uur);
+    if (uur < 1) return 1 - 0.75 * soepel(23, 25, uur + 24);
+    if (uur < 5) return 0.25;
+    return 0.25 + 0.75 * soepel(5, 7, uur);
+  }
   function lampFactor() {
     if (uur >= 6) return 1;                       // vóór middernacht brandt alles
     if (uur < 1) return 1 - 0.68 * soepel(0, 1, uur);
@@ -382,6 +397,7 @@ export function initSfeer(ctx) {
     update, pasToe,
     get drukte() { return drukteFactor(); },
     get lampenAan() { return lampFactor(); },
+    get ramenAan() { return raamFactor(); },
     get uur() { return uur; }, set uur(v) { uur = v % 24; pasToe(); },
     get weer() { return weer; }, set weer(v) { if (WEER.includes(v)) { weer = v; pasToe(); } },
     get nacht() { return meng(uur).kracht < 0.35; },

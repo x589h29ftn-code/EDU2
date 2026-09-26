@@ -470,7 +470,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     if (!M) return false;
     let getuigen = 0;
     for (const p of npcs.people) {
-      if (!p.alive) continue;
+      // (wie 's nachts slaapt ziet niets: js/npc.js)
+      if (!p.alive || p.slaapt) continue;
       const d = Math.hypot(p.x - x, p.z - z);
       if (d > M.straal) continue;
       if (d < 12 || zichtVrij(p.x, p.z, x, z, 1.5)) getuigen++;
@@ -680,6 +681,20 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     w.agenten.push(maakAgent(x, z, w), maakAgent(x, z, w));
     wagens.push(w);
     return w;
+  }
+
+  /*
+   Een geparkeerde politieauto die je kunt stelen (missie 11, verzoek 26 sep
+   2026). Dezelfde wagen als een eenheid — de blauwe hatchback met de lichtbalk
+   en de hogere topsnelheid — maar zonder agenten en zonder plek in `wagens`: hij
+   rijdt niet mee in een achtervolging en een kogel erin telt als een gewone auto.
+  */
+  function parkeerAuto(x, z, yaw) {
+    const car = vehicles.voegToe({ x, z, yaw, soort: 'hatch', kleur: 0x1b3a7a, driveable: true });
+    car.topSnelheid = POLITIE_TOP;
+    lichtbalk(car);
+    car.politieAuto = true;
+    return car;
   }
 
   /*
@@ -1581,7 +1596,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   }
 
   return {
-    misdaad, update, raak, raakWagen, raakHeli, wagenOp, doelen, hoorSchot, reset, aanrijden, zetSter,
+    misdaad, update, raak, raakWagen, raakHeli, wagenOp, doelen, hoorSchot, reset, aanrijden, zetSter, parkeerAuto,
     get ster() { return ster(); },
     get heat() { return heat; },
     get gezocht() { return ster() > 0; },

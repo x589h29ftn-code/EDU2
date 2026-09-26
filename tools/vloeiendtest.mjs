@@ -196,7 +196,8 @@ const nacht = await page.evaluate(() => {
     vorig = nu;
   }
   // en loopt de straat echt leeg? het verhuizen zestig keer laten draaien
-  const tel = (x, z) => g.npcs.people.filter(p => p.alive && Math.hypot(p.x - x, p.z - z) < 200).length;
+  // (wie slaapt telt niet: die staat nog waar hij insliep, maar zonder lichaam; stap 87)
+  const tel = (x, z) => g.npcs.people.filter(p => p.alive && !p.slaapt && Math.hypot(p.x - x, p.z - z) < 200).length;
   const px = g.player.pos.x, pz = g.player.pos.z;
   g.npcs.drukte = 1;
   for (let i = 0; i < 60; i++) { g.npcs.vulBuurtAan(px, pz, 1); g.npcs.update(0.05, i, px, pz); }
@@ -286,7 +287,11 @@ const voet = await page.evaluate(() => {
    200 m, want voorbij 200 m heeft sinds stap 80 niemand een lichaam.
   */
   const cx = g.camera.position.x, cz = g.camera.position.z;
+  // overdag: het stuk over de omgevingsmap laat de klok op de nacht staan, en dan
+  // gaat wie hier neergezet wordt meteen slapen (stap 87)
+  const drukteWas = N.drukte; N.drukte = 1;
   const vrij = N.people.filter(p => p.alive && !p.fietst && p.steek <= 0);
+  const neergezet = [];
   let v = 0;
   for (const [van, tot] of [[25, 45], [85, 115], [160, 185]]) {
     let gezet = 0;
@@ -295,8 +300,10 @@ const voet = await page.evaluate(() => {
       const x = (sg.a[0] + sg.b[0]) / 2, z = (sg.a[1] + sg.b[1]) / 2, d = Math.hypot(x - cx, z - cz);
       if (d < van || d > tot || Math.hypot(sg.b[0] - sg.a[0], sg.b[1] - sg.a[1]) < 6) continue;
       const p = vrij[v++];
-      p.seg = sg; p.t = 0.5; p.pause = 0; p.paniek = 0; p.vNu = p.speed; p.getekend = false;
-      gezet++;
+      // (wakker: na het stuk over de nacht kan hij nog slapen, en wakker worden doet
+      // hij alleen uit het zicht — js/npc.js, stap 87)
+      p.seg = sg; p.t = 0.5; p.pause = 0; p.paniek = 0; p.vNu = p.speed; p.getekend = false; p.slaapt = false;
+      gezet++; neergezet.push(p);
     }
   }
   const romp = N.meshes.romp.instanceMatrix.array;
@@ -345,9 +352,12 @@ const voet = await page.evaluate(() => {
   let t0 = performance.now();
   for (let k = 0; k < 20; k++) N.update(1 / 60, 102 + k / 60, cx, cz);
   const ms = (performance.now() - t0) / 20;
-  N.kijk = kijk; N.vulBuurtAan = vul;
-  return { dichtbij: groep(0, 55), midden: groep(65, 135), ver: groep(145, 2000), verhuisd, ms: +ms.toFixed(2) };
+  N.kijk = kijk; N.vulBuurtAan = vul; N.drukte = drukteWas;
+  // (en waarom een groep leeg blijft: de neergezette mensen zoals ze er nu bij staan)
+  const waarom = neergezet.map(p => { const i = N.people.indexOf(p); return `${afstand(i).toFixed(0)} m slot ${N.slotVan[i]} v ${(p.vNu || 0).toFixed(1)}${p.pause ? ' pauze' : ''}${p.steek > 0 ? ' steekt' : ''}${p.slaapt ? ' slaapt' : ''}${p.alive ? '' : ' neer'}`; });
+  return { dichtbij: groep(0, 55), midden: groep(65, 135), ver: groep(145, 2000), verhuisd, ms: +ms.toFixed(2), waarom };
 });
+if (!voet.dichtbij.n || !voet.midden.n || !voet.ver.n) console.log('       neergezet:', voet.waarom.join(' · '));
 ok(voet.dichtbij.n > 0 && voet.dichtbij.min >= 7, 'dichtbij krijgt iedereen elk beeld een nieuwe houding',
   `${voet.dichtbij.n} mensen, ${voet.dichtbij.min}–${voet.dichtbij.max} van 8`);
 ok(voet.midden.n > 0 && voet.midden.min >= 3 && voet.midden.max <= 5, 'tussen zestig en honderdveertig meter om het beeld',

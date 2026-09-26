@@ -410,6 +410,53 @@ const VET_MARK = [
 // de laatste regel noemt je eigen adres, dus die wordt pas bij het bellen gemaakt
 const vetNaarHuis = (naam) => zegtMark(`Ga naar huis, naar ${naam}. Ik ga nadenken over een plan om hem terug te pakken.`);
 
+/*
+ ---------- missie 11: de politieauto en de C4 ----------
+
+ Na missie 10 geen telefoontje (verzoek 26 sep 2026): er staat alleen een M op de
+ kaart, bij Molenkrite 15, en binnen zit Mark op de bank. Het is niet meer veilig
+ op straat en hij heeft een idee, maar eerst moet je twee dingen regelen: een
+ politieauto stelen, die aan de Lemmerweg staat, en vier stuks C4 ophalen bij de
+ balie van Tinga State. Instappen in de politieauto kost twee sterren; die moet
+ je eerst kwijt. De C4 is gratis — Mark had al gebeld. Breng je de auto en de C4
+ naar Molenkrite 15, dan is de missie geslaagd en krijg je € 1.000. Wat Mark
+ binnen over zijn plan vertelt is de volgende missie.
+*/
+const POL_WACHT = 25;               // zoveel tellen na missie 10 staat de M er
+const POL_STERREN = 2;              // wat instappen in een politieauto kost
+const POL_C4 = 4;                   // vier stuks
+const POL_THUIS = 12;               // zo dicht bij Molenkrite 15 moet de auto staan (m)
+const POL_BELONING = 1000;
+const zegtVerkoper = (tekst) => ({ wie: 'Verkoper', tekst });
+const POL_BINNEN = [
+  zegtMark('Kom binnen, broeder. Doe de deur maar achter je dicht.'),
+  zegtMark('We moeten het over De Veteraan hebben.'),
+  zegtErik('Die wil me dood hebben.'),
+  zegtMark('Zijn mannen hangen overal rond. In de wijk, langs de Lemmerweg. Het is niet meer veilig op straat.'),
+  zegtMark('Dit kan gewoon niet, Erik. Hij moet uitgeschakeld worden.'),
+  zegtErik('En hoe had je dat gedacht?'),
+  zegtMark('Ik heb zitten broeden op een idee. Maar eerst moet je wat dingen voor me regelen.'),
+  zegtMark('Eén: een politieauto. Aan de Lemmerweg staat er een langs de kant. De agenten zitten binnen aan de koffie.'),
+  zegtErik('Een politieauto stelen. Dat blijft niet onopgemerkt.'),
+  zegtMark('Nee. Dus schud ze eerst van je af, en kom dan pas verder.'),
+  zegtMark('Twee: explosieven. Bij Tinga State liggen vier stuks C4 voor je klaar, bij de balie. Ik heb al gebeld.'),
+  zegtMark('Breng ze allebei naar mij. Dan vertel ik je over mijn meesterplan.'),
+  zegtErik('Een meesterplan. Natuurlijk.'),
+];
+const POL_INGESTAPT = [zegtErik('Dat is al gezien. Twee sterren — wegwezen.')];
+const POL_KWIJT = [zegtErik('Kwijt. Nu de C4 bij Tinga State.')];
+const POL_BALIE = [
+  zegtVerkoper('Ha, jij bent de jongen van Mark. Mark had al gebeld.'),
+  zegtVerkoper('Verse C4 voor jou. Vier stuks. Niet laten vallen.'),
+  zegtErik('Wat krijg je van me?'),
+  zegtVerkoper('Niks. Mark en ik gaan ver terug.'),
+];
+const POL_KLAAR = [
+  zegtMark('Een echte politieauto. Mooi. En de C4?'),
+  zegtErik('Vier stuks, vers van de balie.'),
+  zegtMark('Dan kunnen we beginnen. Kom binnen, dan vertel ik je mijn plan.'),
+];
+
 // ---------- missie 6: de groene BX ----------
 const BX_AANKONDIGING = ['Nieuwe missies kunnen worden gestart door naar het '
   + '<b>M-symbool</b> op de minimap te gaan.'];
@@ -494,6 +541,18 @@ function voorPunt(p, meter) {
 // kijkrichting van a naar b in de conventie van de speler (yaw 0 = naar -Z)
 function kijkHoek(a, b) { return Math.atan2(-(b.x - a.x), -(b.z - a.z)); }
 function afst(a, b) { return Math.hypot(a.x - b.x, a.z - b.z); }
+
+// Iemand op de bank van een woning: op de zitting, een handbreed naar voren
+// zodat de hakken vóór de bank uitkomen, en naar de tv kijkend. Zijn houding
+// komt uit `update(dt, { zit: BANK_ZITTING })`.
+const BANK_ZITTING = 0.46;
+function opDeBank(persoon, plekken, naar) {
+  const bank = plekken && plekken.bank;
+  if (!bank) return false;
+  const k = plekken.bankKijk !== undefined ? plekken.bankKijk : kijkHoek(bank, naar);
+  persoon.zetNeer(bank.x - Math.sin(k) * 0.08, bank.z - Math.cos(k) * 0.08, k);
+  return true;
+}
 
 // Het poortstelsel van een omheind terrein: middelpunt, richting naar binnen en
 // een assenstelsel om plekken op het terrein in te kunnen geven.
@@ -586,6 +645,12 @@ export function initVerhaal(ctx) {
     stekken = null,
     // missie 10: na het gesprek met De Veteraan wordt het één uur 's nachts
     zetUur = null,
+    // het checkpoint na elke missie, en de keuze na het neergaan (js/main.js)
+    checkpoint = null, naarCheckpoint = null, naarOpslag = null,
+    heeftCheckpoint = () => false, heeftOpslag = () => false, vergrendel = null,
+    // missie 11 (js/main.js): Molenkrite 15 van binnen, Tinga State, of de politie je
+    // zoekt, en een politieauto om te stelen
+    molenkrite = null, tingaState = null, gezocht = () => false, parkeerPolitieAuto = null,
   } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
@@ -744,6 +809,9 @@ export function initVerhaal(ctx) {
   let bxPlek = null;             // het parkeervak bij de Poiesz in IJlst
   let bxGestolen = false;        // of de ster voor de diefstal al gegeven is
   let doodT = 0;                 // aftellen na het neergaan
+  let keuzeOpen = false;         // staat de keuze na het neergaan in beeld?
+  let vorigeMissie = null;       // om te zien wanneer een missie net klaar is
+  let checkpointT = 0;           // even later wordt het checkpoint geschreven
   // missie 5
   let johan = null;              // de Persoon van Johan
   let dief = null;               // js/dief.js
@@ -867,6 +935,7 @@ export function initVerhaal(ctx) {
     ruimBomOp();
     ruimSniperOp();
     ruimVeteraanOp();
+    ruimPolitieautoOp();
     punt = null;                      // een nieuwe missie, dus geen oud herstelpunt
     missie = naam;
     fase = 'wacht';
@@ -893,6 +962,7 @@ export function initVerhaal(ctx) {
     else if (naam === 'sniper') beginSniper();
     else if (naam === 'huis') beginHuis();
     else if (naam === 'veteraan') beginVeteraan();
+    else if (naam === 'politieauto') beginPolitieauto();
   }
 
   /*
@@ -1203,19 +1273,86 @@ export function initVerhaal(ctx) {
 
   // ---------- neergaan ----------
   function dood() {
-    if (doodT > 0) return;
+    if (doodT > 0 || keuzeOpen) return;
     doodT = 2.6;
     spanning = false; spanningUit = 0;
-    hud.melding('NEERGEGAAN', 'Je begint bij je laatste opgeslagen spel.', 3);
+    hud.melding('NEERGEGAAN', 'Kies hoe je verder gaat.', 3);
     player.active = false;
   }
+  /*
+   Na het neergaan een keuze (verzoek 26 sep 2026: "na doodgaan altijd optie
+   geven om vanaf het laatste checkpoint, dus na de laatste missie, te
+   herstarten"):
+     1  de missie opnieuw vanaf zijn herstelpunt (buiten een missie: hier weer
+        opstaan)
+     2  terug naar het checkpoint na de laatste afgeronde missie
+     3  je eigen opgeslagen spel (F5)
+   Met de muis of met 1, 2 en 3. Een proef (`window.__autoplay`) kiest meteen wat
+   er vóór deze keuze gebeurde: de eigen opslag, en anders de missie opnieuw.
+  */
+  const keuzeEl = document.getElementById('doodkeus');
   function naDeDood() {
     bendes.reset();
-    player.active = true;
     player.health = 100;
     hud.zetLeven(player.health);
-    const geladen = ctx.opnieuw && ctx.opnieuw();
-    if (!geladen) herstartMissie();
+    if (window.__autoplay || !keuzeEl) {
+      player.active = true;
+      const geladen = ctx.opnieuw && ctx.opnieuw();
+      if (!geladen) herstartMissie();
+      return;
+    }
+    toonKeuze();
+  }
+  function toonKeuze() {
+    keuzeOpen = true;
+    const inMissie = missie !== 'klaar';
+    const knoppen = keuzeEl.querySelectorAll('button');
+    const tekst = {
+      missie: inMissie ? 'De missie opnieuw, vanaf het laatste herstelpunt' : 'Hier weer opstaan',
+      checkpoint: 'Terug naar het laatste checkpoint (na de laatste missie)',
+      opslag: 'Je laatste opgeslagen spel (F5)',
+    };
+    const kan = { missie: true, checkpoint: heeftCheckpoint(), opslag: heeftOpslag() };
+    let nr = 0;
+    for (const k of knoppen) {
+      const soort = k.dataset.keuze;
+      k.hidden = !kan[soort];
+      if (!k.hidden) k.textContent = `${++nr} · ${tekst[soort]}`;
+      k.dataset.nr = k.hidden ? '' : String(nr);
+    }
+    keuzeEl.hidden = false;
+    if (document.exitPointerLock && document.pointerLockElement) document.exitPointerLock();
+  }
+  function kies(soort) {
+    if (!keuzeOpen) return;
+    keuzeOpen = false;
+    keuzeEl.hidden = true;
+    player.active = true;
+    hud.melding('', '', 0);
+    let gelukt = false;
+    if (soort === 'checkpoint' && naarCheckpoint) gelukt = naarCheckpoint();
+    else if (soort === 'opslag' && naarOpslag) gelukt = naarOpslag();
+    if (!gelukt) herstartMissie();
+    else {
+      // een geladen spel draait gewoon door: de missie van dat moment weer op gang
+      player.health = 100; hud.zetLeven(player.health);
+    }
+    if (vergrendel) vergrendel();
+  }
+  if (keuzeEl) {
+    keuzeEl.addEventListener('click', (e) => {
+      const k = e.target.closest('button');
+      if (k && !k.hidden) kies(k.dataset.keuze);
+    });
+    // 1, 2 en 3 zolang de keuze er staat; vóór de rest van het spel, want 1 tot en
+    // met 3 kiezen ook een woning in missie 9
+    window.addEventListener('keydown', (e) => {
+      if (!keuzeOpen) return;
+      const k = [...keuzeEl.querySelectorAll('button')].find(b => !b.hidden && b.dataset.nr === e.key);
+      if (!k) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      kies(k.dataset.keuze);
+    }, true);
   }
   // Geen opgeslagen spel: dan begint de missie zelf opnieuw.
   function herstartMissie() {
@@ -1231,6 +1368,7 @@ export function initVerhaal(ctx) {
     if (missie === 'sniper') { hervatSniper(punt && punt.missie === 'sniper' ? punt.fase : 'telefoon'); return; }
     if (missie === 'huis') { hervatHuis(punt && punt.missie === 'huis' ? punt.fase : 'telefoon'); return; }
     if (missie === 'veteraan') { hervatVeteraan(punt && punt.missie === 'veteraan' ? punt.fase : 'telefoon'); return; }
+    if (missie === 'politieauto') { hervatPolitieauto(punt && punt.missie === 'politieauto' ? punt.fase : 'wacht'); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -1291,6 +1429,8 @@ export function initVerhaal(ctx) {
   // ---------- E ----------
   function toets() {
     if (!balk.hidden) return verderInGesprek();
+    // missie 11: aan de balie van Tinga State de C4 ophalen, vóór het kopen daar
+    if (bijDeBalie()) return haalC4();
     if (missie === 'molenkrite' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND) {
       fase = 'gesprek';
       zeg(GESPREK1, () => { fase = 'loopt'; zetOpdracht('ga met Mark mee'); });
@@ -2276,8 +2416,7 @@ export function initVerhaal(ctx) {
     // -- binnen bij de Wieken: Mark zit op de bank en begint te praten
     if (fase === 'wacht') {
       if (!binnenHuis) return;
-      const bank = woning.plekken ? woning.plekken.bank : null;
-      if (bank) mark.zetNeer(bank.x, bank.z, kijkHoek(bank, { x: sp.x, z: sp.z }));
+      opDeBank(mark, woning.plekken, { x: sp.x, z: sp.z });
       markZichtbaar(true);
       fase = 'gesprek';
       hud.zetNavigatie(null); navDoel = null;
@@ -2296,8 +2435,8 @@ export function initVerhaal(ctx) {
       return;
     }
     if (fase === 'gesprek') {
-      // hij zit te praten: laat hem gehurkt op de bank zitten
-      mark.update(dt, { hurkt: 0.85 });
+      // hij zit te praten op de bank
+      mark.update(dt, { zit: BANK_ZITTING });
       return;
     }
 
@@ -3462,6 +3601,8 @@ export function initVerhaal(ctx) {
       missie = 'klaar';
       vetKlaar = true;
       tasBij = false;
+      // en even later staat er een M bij Molenkrite 15 (missie 11, zonder telefoon)
+      if (!polKlaar) { naMissieT = POL_WACHT; naMissieNaam = 'politieauto'; }
       zetOpdracht('');
       hud.zetNavigatie(null); navDoel = null;
       verdien(VET_BELONING);
@@ -3542,6 +3683,244 @@ export function initVerhaal(ctx) {
     naarHuis();
   }
 
+  /*
+   ---------- missie 11: de politieauto en de C4 ----------
+
+   Zes stappen: naar binnen bij Molenkrite 15 (de M), het gesprek met Mark op de
+   bank, de politieauto aan de Lemmerweg stelen, de politie afschudden, de C4
+   ophalen aan de balie van Tinga State, en alles naar Molenkrite 15 brengen.
+  */
+  let polAuto = null;            // de politieauto die je moet stelen
+  let polPunt = null;            // waar hij staat: { x, z, yaw }
+  let polKlaar = false;          // is deze missie ooit afgerond?
+  let polHint = false;           // staat "E — de C4 ophalen" in beeld?
+
+  /*
+   De plek: het stuk Lemmerweg dat het dichtst bij Molenkrite 15 ligt, aan de
+   kant van de rijbaan, in de rijrichting geparkeerd. Staat daar een botsdoos, dan
+   schuift hij een stukje op tot hij vrij staat.
+  */
+  function politieautoPlek() {
+    if (polPunt) return polPunt;
+    const doel = thuis;
+    let beste = null;
+    for (const as of KAART.wegassen || []) {
+      if (!as.drive || !/lemmerweg/i.test(as.naam || as.name || '')) continue;
+      for (let i = 1; i < as.pts.length; i++) {
+        const a = as.pts[i - 1], b = as.pts[i];
+        const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz;
+        if (L2 < 1) continue;
+        const t = Math.max(0.2, Math.min(0.8, ((doel.x - a[0]) * dx + (doel.z - a[1]) * dz) / L2));
+        const x = a[0] + dx * t, z = a[1] + dz * t, d = Math.hypot(x - doel.x, z - doel.z);
+        if (!beste || d < beste.d) { const L = Math.sqrt(L2); beste = { d, x, z, ux: dx / L, uz: dz / L, w: as.w || 5 }; }
+      }
+    }
+    if (!beste) {
+      const [x, z] = resolveCollisions(thuis.x + 20, thuis.z, 1.2);
+      polPunt = { x, z, yaw: 0 };
+      return polPunt;
+    }
+    // naar de kant van de wijk: dwars op de as, een halve breedte min een meter
+    let nx = -beste.uz, nz = beste.ux;
+    if ((doel.x - beste.x) * nx + (doel.z - beste.z) * nz < 0) { nx = -nx; nz = -nz; }
+    const zij = Math.max(0.8, beste.w / 2 - 1.0);
+    let x = beste.x + nx * zij, z = beste.z + nz * zij;
+    for (let k = 0; k < 8; k++) {
+      const [kx, kz] = resolveCollisions(x, z, 1.2);
+      if (Math.hypot(kx - x, kz - z) < 0.05) break;
+      x += beste.ux * 2; z += beste.uz * 2;
+    }
+    polPunt = { x, z, yaw: Math.atan2(-beste.ux, -beste.uz) };
+    return polPunt;
+  }
+
+  function zetPolitieautoNeer() {
+    const p = politieautoPlek();
+    if (polAuto && polAuto.mesh && (polAuto.hp || 0) > 0 && !polAuto.wrak) {
+      polAuto.x = p.x; polAuto.z = p.z; polAuto.yaw = p.yaw; polAuto.speed = 0;
+      polAuto.mesh.position.set(p.x, polAuto.mesh.position.y, p.z); polAuto.mesh.rotation.y = p.yaw;
+      polAuto.mesh.visible = true; polAuto.zichtbaar = true; polAuto.driveable = true;
+      return polAuto;
+    }
+    if (polAuto && polAuto.mesh) { polAuto.mesh.visible = false; polAuto.zichtbaar = false; polAuto.driveable = false; }
+    polAuto = parkeerPolitieAuto ? parkeerPolitieAuto(p.x, p.z, p.yaw) : vehicles.voegToe({ x: p.x, z: p.z, yaw: p.yaw, soort: 'hatch', kleur: 0x1b3a7a });
+    return polAuto;
+  }
+  function ruimPolitieautoOp() {
+    polHint = false;
+    toonC4(false);
+  }
+
+  function tingaDeur() {
+    const t = tingaState && tingaState();
+    const w = t && t.winkels ? t.winkels[0] : null;
+    return w ? { x: w.x, z: w.z } : null;
+  }
+  function molenkriteDeur() {
+    const m = molenkrite && molenkrite();
+    return m && m.plekken ? m.plekken.deurBuiten : thuis;
+  }
+
+  function beginPolitieauto() {
+    fase = 'wacht';
+    ruimPolitieautoOp();
+    markZichtbaar(false);          // hij zit binnen; buiten zie je hem niet
+    player.c4 = 0;
+    const d = molenkriteDeur();
+    zetOpdracht('ga naar binnen bij Molenkrite 15 — Mark wacht');
+    zetNavDoel(d.x, d.z, 'Molenkrite 15', 'M');
+  }
+  function naarPolitieauto() {
+    fase = 'stelen'; zetPunt(fase);
+    const a = zetPolitieautoNeer();
+    zetOpdracht('steel de politieauto aan de Lemmerweg');
+    zetNavDoel(a.x, a.z, 'politieauto · Lemmerweg', 'P');
+    spanning = true; spanningUit = 0;
+  }
+  function toonC4(aan) {
+    const t = tingaState && tingaState();
+    if (t && typeof t.toonC4 === 'function') t.toonC4(aan);
+  }
+  function naarDeC4() {
+    fase = 'c4'; zetPunt(fase);
+    toonC4(true);
+    zetOpdracht('haal de C4 op bij de balie van Tinga State');
+    const d = tingaDeur();
+    if (d) zetNavDoel(d.x, d.z, 'Tinga State', 'T');
+  }
+  function naarMark() {
+    fase = 'brengen'; zetPunt(fase);
+    zetOpdracht(`breng de politieauto en de C4 naar Molenkrite 15 (${player.c4 || 0} × C4 bij je)`);
+    zetNavDoel(thuis.x, thuis.z, 'Molenkrite 15', 'M');
+  }
+
+  // E aan de balie: de verkoper geeft je de C4
+  function haalC4() {
+    polHint = false;
+    praatEl.hidden = true;
+    fase = 'balie';
+    zeg(POL_BALIE, () => {
+      player.c4 = POL_C4;
+      toonC4(false);
+      geluid.neerzetten();
+      hud.melding('C4 opgehaald', `${POL_C4} stuks · gratis, Mark had al gebeld`, 4);
+      naarMark();
+    });
+    return true;
+  }
+  function bijDeBalie() {
+    if (missie !== 'politieauto' || fase !== 'c4' || player.inCar) return false;
+    const t = tingaState && tingaState();
+    return !!(t && typeof t.bijToonbank === 'function' && t.bijToonbank(player.pos.x, player.pos.z));
+  }
+
+  function werkPolitieautoBij(dt, sp) {
+    if (fase === 'klaar') return;
+    if (fase !== 'wacht' && fase !== 'gesprek' && fase !== 'balie') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+    }
+    // kapot is kapot: zonder politieauto valt er niets te brengen
+    if (polAuto && (fase === 'stelen' || fase === 'afschudden' || fase === 'c4' || fase === 'balie' || fase === 'brengen')
+      && ((polAuto.hp !== undefined && polAuto.hp <= 0) || polAuto.wrak)) {
+      mislukt('De politieauto is kapot.');
+      return;
+    }
+
+    // -- binnen bij Molenkrite 15: Mark zit op de bank en begint te praten
+    if (fase === 'wacht') {
+      const woning = molenkrite && molenkrite();
+      if (!woning || !woning.binnen || !woning.binnen(sp.x, sp.z)) return;
+      opDeBank(mark, woning.plekken, { x: sp.x, z: sp.z });
+      markZichtbaar(true);
+      fase = 'gesprek';
+      hud.zetNavigatie(null); navDoel = null;
+      zetOpdracht('');
+      zeg(POL_BINNEN, () => { markZichtbaar(false); naarPolitieauto(); });
+      return;
+    }
+    if (fase === 'gesprek') { mark.update(dt, { zit: BANK_ZITTING }); return; }
+
+    // -- de politieauto: instappen kost twee sterren
+    if (fase === 'stelen') {
+      if (!polAuto) zetPolitieautoNeer();
+      if (player.inCar !== polAuto) return;
+      fase = 'afschudden'; zetPunt(fase);
+      if (sterGeven) sterGeven(POL_STERREN, polAuto.x, polAuto.z);
+      hud.zetNavigatie(null); navDoel = null;
+      zetOpdracht(`schud de politie af (${POL_STERREN} sterren)`, true);
+      zeg(POL_INGESTAPT, null, { auto: 2.6 });
+      return;
+    }
+    if (fase === 'afschudden') {
+      if (gezocht()) return;
+      zeg(POL_KWIJT, null, { auto: 2.6 });
+      naarDeC4();
+      return;
+    }
+
+    // -- de balie van Tinga State
+    if (fase === 'c4') {
+      const bij = bijDeBalie();
+      const toon = bij && balk.hidden && (player.active || window.__autoplay);
+      if (toon) { praatEl.textContent = 'E — de C4 ophalen'; praatEl.hidden = false; }
+      else if (polHint) praatEl.hidden = true;
+      polHint = toon;
+      return;
+    }
+    if (fase === 'balie') return;
+
+    // -- alles naar Molenkrite 15: de auto op de stoep, en jij erbij
+    if (fase === 'brengen') {
+      if (!polAuto || (player.c4 || 0) < POL_C4 || !balk.hidden) return;
+      const autoBij = Math.hypot(polAuto.x - thuis.x, polAuto.z - thuis.z) < POL_THUIS;
+      const stil = Math.abs(polAuto.speed || 0) < 1.5;
+      const jijBij = player.inCar === polAuto || afst(sp, thuis) < POL_THUIS + 4;
+      if (!autoBij || !stil || !jijBij) return;
+      fase = 'klaar';
+      missie = 'klaar';
+      polKlaar = true;
+      zetOpdracht('');
+      hud.zetNavigatie(null); navDoel = null;
+      verdien(POL_BELONING);
+      spanningUit = 6;
+      hud.melding('MISSIE GESLAAGD – DE POLITIEAUTO EN DE C4',
+        `Beloning: + ${euro(POL_BELONING)} toegevoegd aan wallet`, 8);
+      // Mark komt naar buiten om te kijken
+      const [mx, mz] = resolveCollisions(thuis.x, thuis.z, 0.4);
+      mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, polAuto));
+      markZichtbaar(true);
+      zeg(POL_KLAAR);
+    }
+  }
+
+  /*
+   Missie 11 opnieuw opzetten. Tot en met het afschudden begin je weer bij het
+   stelen, met de auto terug aan de Lemmerweg; heb je de politie al af, dan staat
+   de auto voor Tinga State, en had je de C4 al, dan heb je die nog.
+  */
+  function hervatPolitieauto(f) {
+    beginPolitieauto();
+    if (f === 'wacht' || f === 'gesprek') return;
+    if (f === 'stelen' || f === 'afschudden') { naarPolitieauto(); return; }
+    // voor Tinga State, met de politie van je af
+    const d = tingaDeur();
+    const a = zetPolitieautoNeer();
+    if (d) {
+      const [x, z] = resolveCollisions(d.x + 4, d.z + 4, 1.2);
+      a.x = x; a.z = z; a.speed = 0;
+      if (a.mesh) a.mesh.position.set(x, a.mesh.position.y, z);
+      player.inCar = null;
+      const [px, pz] = resolveCollisions(d.x + 1.5, d.z + 1.5, 0.4);
+      player.pos.set(px, 0, pz);
+      player.applyCamera();
+    }
+    spanning = true; spanningUit = 0;
+    if (f === 'c4' || f === 'balie') { naarDeC4(); return; }
+    player.c4 = POL_C4;
+    naarMark();
+  }
+
   // ---------- per beeld ----------
   function update(dt) {
     // Het spannende deuntje loopt precies zolang de achtervolging duurt: het
@@ -3572,6 +3951,22 @@ export function initVerhaal(ctx) {
       doodT -= dt;
       if (doodT <= 0) naDeDood();
       return;
+    }
+    if (keuzeOpen) return;
+    /*
+     Het checkpoint: een missie die net klaar is (de missie springt op 'klaar')
+     wordt een tel later bewaard in een eigen opslagplek, zodat je na het neergaan
+     daar kunt beginnen. Een tel later, zodat de beloning en de volgende missie er
+     al in staan.
+    */
+    if (missie === 'klaar' && vorigeMissie !== null && vorigeMissie !== 'klaar') checkpointT = 1.0;
+    vorigeMissie = missie;
+    if (checkpointT > 0) {
+      checkpointT -= dt;
+      if (checkpointT <= 0 && checkpoint && player.health > 0) {
+        checkpoint();
+        hud.show('Checkpoint opgeslagen', 2);
+      }
     }
     if (misluktT > 0) {
       misluktT -= dt;
@@ -3654,8 +4049,11 @@ export function initVerhaal(ctx) {
       mark.update(dt, { zwaait: !naarAuto && (fase === 'wacht' || fase === 'wegbrengen') && dMark < ZWAAI_AFSTAND });
       hinder.opWeg = false;
     } else {
-      // in de latere missies staat hij te wachten en kijkt hij naar je
-      if (mark.groep.visible) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
+      // in de latere missies staat hij te wachten en kijkt hij naar je — behalve
+      // als hij op de bank zit (missie 7 en 11): dan houdt hij zijn houding
+      // en kijkt hij naar de tv
+      const opBank = (missie === 'bom' || missie === 'politieauto') && fase === 'gesprek';
+      if (mark.groep.visible && !opBank) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
       hinder.opWeg = false;
     }
     hinder.x = mark.groep.position.x;
@@ -3765,6 +4163,7 @@ export function initVerhaal(ctx) {
 
     // ---- missie 7: de bom ----
     if (missie === 'bom') werkBomBij(dt, sp);
+    if (missie === 'politieauto') werkPolitieautoBij(dt, sp);
     if (schutters) {
       const schade = schutters.update(dt, player, true);
       if (schade > 0 && player.active) {
@@ -3823,6 +4222,7 @@ export function initVerhaal(ctx) {
       // missie 10, en welke missie er nog moest beginnen: na het laden gaat de
       // telefoon dan alsnog
       veteraanKlaar: vetKlaar,
+      politieautoKlaar: polKlaar,
       volgende: naMissieT > 0 ? naMissieNaam : null,
     };
   }
@@ -3832,6 +4232,9 @@ export function initVerhaal(ctx) {
     gesprek = null; sluitBalk(); praatEl.hidden = true;
     doodT = 0;
     missie = s.missie || 'molenkrite';
+    // een geladen spel is geen net afgeronde missie: daar komt geen checkpoint bij
+    // (het volgende beeld neemt de missie over zoals herstel hem achterlaat)
+    vorigeMissie = null; checkpointT = 0;
     fase = s.fase || 'wacht';
     huisGekozen = s.huis || null;
     huisAanbod = !!s.aanbod;
@@ -3851,6 +4254,7 @@ export function initVerhaal(ctx) {
     huisGezien.clear();
     for (const n of s.gezien || []) huisGezien.add(n);
     vetKlaar = !!s.veteraanKlaar;
+    polKlaar = !!s.politieautoKlaar;
     if ((fase === 'gesprek' || fase === 'briefing') && missie !== 'veteraan') { fase = 'wacht'; missie = 'molenkrite'; }
     /*
      Missie 7 heeft een winkel vol losse toestand (de bende, de bom, de knal).
@@ -3965,6 +4369,8 @@ export function initVerhaal(ctx) {
       }
     } else if (missie === 'veteraan' && fase !== 'klaar') {
       hervatVeteraan(fase);
+    } else if (missie === 'politieauto' && fase !== 'klaar') {
+      hervatPolitieauto(fase);
     } else {
       zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
     }
@@ -3975,6 +4381,8 @@ export function initVerhaal(ctx) {
     */
     if (missie === 'klaar' && s.volgende) { naMissieNaam = s.volgende; naMissieT = 6; }
     else if (missie === 'klaar' && huisGekozen && !vetKlaar) { naMissieNaam = 'veteraan'; naMissieT = VET_WACHT; }
+    // een opslag na missie 10 van vóór missie 11: de M komt alsnog
+    else if (missie === 'klaar' && vetKlaar && !polKlaar) { naMissieNaam = 'politieauto'; naMissieT = 6; }
     hud.zetLeven(player.health);
   }
 
@@ -4028,6 +4436,12 @@ export function initVerhaal(ctx) {
     get schutters() { return schutters; },
     get schutterAutos() { return schutterAutos; },
     get zwart() { return zwart; },
+    get keuzeOpen() { return keuzeOpen; },
+    // missie 11
+    get politieauto() { return polAuto; },
+    get politieautoPlek() { return politieautoPlek(); },
+    get politieautoKlaar() { return polKlaar; },
+    kies,
     get ingang() { return ingang(); },
     // missie 8
     get deal() { return deal; },
