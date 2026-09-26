@@ -582,6 +582,8 @@ const verhaal = initVerhaal({
   poiesz: () => (supermarkt && supermarkt.ingangen ? supermarkt : null),
   // de drie woningen van missie 9 (js/interieur.js)
   stekken: () => woningen.filter(w => w.stek),
+  // missie 10: "Enkele uren later" is het één uur 's nachts (de sfeer komt verderop)
+  zetUur: (u) => { const sf = sfeerNu(); if (sf) sf.uur = u; },
   schokken: (kracht) => schok(kracht),
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },

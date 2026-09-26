@@ -309,6 +309,17 @@
      spel geen sprong is maar een doorkomst */
   #introzwart { position: absolute; inset: 0; background: #000; opacity: 1; transition: opacity .8s linear; }
 
+  /* ------------------------------------------------------- de overgang
+     Missie 10: na het gesprek bij het molentje gaat het beeld naar zwart en staat
+     er "Enkele uren later". js/verhaal.js zet de dekking elk beeld zelf, dus hier
+     staat geen css-overgang. Boven de hud en het gesprek, onder het menu. */
+  #overgang { position: absolute; inset: 0; background: #000; opacity: 0; visibility: hidden;
+              pointer-events: none; z-index: 6; }
+  #overgangtekst { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+                   width: 92vw; text-align: center; opacity: 0; color: #f4f0e2;
+                   font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+                   font-size: clamp(26px, 4.4vw, 54px); letter-spacing: 2px; }
+
   /* ------------------------------------------------------------- de uitleg
      Eenmalige uitleg op het moment dat je iets voor het eerst kunt doen: het
      wapen dat je krijgt, de radio in de auto. Een blokje onderin met de toetsen
@@ -396,6 +407,7 @@
   <div id="introover">Druk op een toets om over te slaan</div>
   <div id="introzwart"></div>
 </div>
+<div id="overgang"><div id="overgangtekst"></div></div>
 <div id="overlay"></div>
 <script type="module" src="./js/main.js"></script>
 </body>

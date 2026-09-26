@@ -46,6 +46,11 @@ export class Bewaking {
      looppad                              [[x, z], ...] uit js/looppad.js: de route die ze
                                           eerst afleggen voor ze recht op je af gaan
      overLaag                             botsdozen lager dan dit stappen ze overheen (m)
+     houden                               ze gaan naar het eind van hun post en blijven daar:
+                                          ze komen niet op je af, maar vuren als ze je zien
+                                          (missie 10: de bende die je bij de ingang opwacht).
+                                          `post.kijk` is dan het punt waar ze naar uitkijken,
+                                          `post.via` de punten waar ze eerst langs lopen
   */
   constructor(scene, posten, opties = {}) {
     this.scene = scene;
@@ -59,6 +64,7 @@ export class Bewaking {
     const pet = opties.pet ?? true;
     this.looppad = opties.looppad || null;
     this.overLaag = opties.overLaag || 0;
+    this.houden = !!opties.houden;
     this.wachters = posten.map((post, i) => {
       const kleur = kleuren[i % kleuren.length];
       const persoon = new Persoon({ ...kleur, huid: i % 2 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + (i % 3) * 0.02,
@@ -196,20 +202,27 @@ export class Bewaking {
         else if (w.staat === 'aanval') { w.staat = 'zoekt'; w.doel = [sp.x, sp.z]; }
       }
 
+      /*
+       Houden: eerst naar de eigen plek, en daar blijven. Wie je ziet draait naar
+       je toe en vuurt; wie je niet ziet kijkt naar het uitkijkpunt. Zoeken doen
+       ze niet: van hun plek komen ze niet af.
+      */
+      if (this.houden && (w.staat === 'aanval' || w.staat === 'zoekt')) {
+        const erIs = this.naarPlek(w, dt);
+        if (w.zicht) persoon.kijkNaar(sp.x, sp.z, dt, 7);
+        else if (erIs && w.post.kijk) persoon.draaiNaar(Math.atan2(-(w.post.kijk.x - pos.x), -(w.post.kijk.z - pos.z)), dt, 2);
+        persoon.update(dt, { loopt: !erIs, mikt: true, snelheid: REN });
+        if (w.staat === 'aanval') schade += this.schiet(w, dSp, dt);
+        continue;
+      }
+
       if (w.staat === 'aanval') {
         const dichtbij = dSp < this.dekking;
         const opPad = this.volgPad(w, dt, dSp);
         if (!opPad && !dichtbij) this.loopNaar(w, [sp.x, sp.z], dt, REN);
         persoon.kijkNaar(sp.x, sp.z, dt, 7);
         persoon.update(dt, { loopt: opPad || !dichtbij, mikt: true, snelheid: REN });
-        w.vuurT -= dt;
-        if (w.vuurT <= 0 && dSp < this.vuurbereik) {
-          w.vuurT = VUURTIJD * (0.8 + Math.random() * 0.5);
-          persoon.vuur();
-          geluid.schot();
-          const kans = Math.max(0.08, 0.55 - dSp * 0.012);
-          if (Math.random() < kans) schade += this.schade;
-        }
+        schade += this.schiet(w, dSp, dt);
         continue;
       }
 
@@ -241,6 +254,47 @@ export class Bewaking {
     return schade;
   }
 
+  /*
+   Houden: over `post.via` naar `post.b`, en daar precies op de plek (loopNaar
+   stopt op 0,6 m, en daar was het zicht op het pad soms net weg). Staat hij
+   twee tellen vast, dan slaat hij een tussenpunt over, of blijft hij bij het
+   eind staan waar hij staat. Levert true zodra hij er is.
+  */
+  naarPlek(w, dt) {
+    const pos = w.persoon.groep.position, via = w.post.via || [];
+    w.viaI = w.viaI || 0;
+    if (w.klaar) return true;
+    const doel = w.viaI < via.length ? via[w.viaI] : w.post.b;
+    const voor = { x: pos.x, z: pos.z };
+    if (this.loopNaar(w, doel, dt, REN)) {
+      w.vastT = 0;
+      if (w.viaI < via.length) { w.viaI++; return false; }
+      pos.x = w.post.b[0]; pos.z = w.post.b[1];
+      w.klaar = true;
+      return true;
+    }
+    if (Math.hypot(pos.x - voor.x, pos.z - voor.z) < REN * dt * 0.2) {
+      w.vastT = (w.vastT || 0) + dt;
+      if (w.vastT > 2) {
+        w.vastT = 0;
+        if (w.viaI < via.length) w.viaI++;
+        else { w.post.b = [pos.x, pos.z]; w.klaar = true; return true; }
+      }
+    } else w.vastT = 0;
+    return false;
+  }
+
+  // Eén man die vuurt als zijn tijd om is en je binnen bereik staat; geeft de schade.
+  schiet(w, dSp, dt) {
+    w.vuurT -= dt;
+    if (w.vuurT > 0 || dSp >= this.vuurbereik) return 0;
+    w.vuurT = VUURTIJD * (0.8 + Math.random() * 0.5);
+    w.persoon.vuur();
+    geluid.schot();
+    const kans = Math.max(0.08, 0.55 - dSp * 0.012);
+    return Math.random() < kans ? this.schade : 0;
+  }
+
   bewaar() {
     return {
       alarm: this.alarm,
@@ -270,6 +324,7 @@ export class Bewaking {
     this.alarm = false;
     for (const w of this.wachters) {
       w.staat = 'patrouille'; w.naarB = true; w.wacht = 0; w.doel = null; w.omT = 0; w.zicht = false; w.padI = 0;
+      w.viaI = 0; w.klaar = false;
       w.persoon.legNeer(0);
       w.persoon.zetNeer(w.post.a[0], w.post.a[1], Math.atan2(-(w.post.b[0] - w.post.a[0]), -(w.post.b[1] - w.post.a[1])));
     }

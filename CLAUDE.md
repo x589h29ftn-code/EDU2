@@ -117,8 +117,12 @@ de missie af en laat het aanbod staan.
 
 Missie 10 begint 45 s na het kopen: De Veteraan belt, staat met zijn hondje op
 het fietspad bij De Terpensmole, stuurt je om een tas voor de tribune van VV
-Sneek; bij het oppakken komen vier auto's met tien man naar het inritje aan de
-Molenkrite, die via een looproute om de kantine heen komen. Daarna is hij weg,
+Sneek. Dan zacht naar zwart, "Enkele uren later", en je staat om 01:00 voor je
+eigen huis (of de Wieken 29); dat regelt `werkZwartBij` in js/verhaal.js op
+`update(dt)`, met de laag `#overgang` in index.html. Bij het oppakken komen vier
+auto's met tien man naar het inritje aan de Molenkrite; die komen het veld niet
+op maar gaan rond de ingang staan (`ingang()`, Bewaking met `houden`) en wachten
+je op. Daarna is hij weg,
 belt Mark (omleggen, te snel in de rangen, ga naar huis) en is het thuis — het
 gekochte huis — klaar voor € 250. **shift+0** start hem los.
 
@@ -154,8 +158,8 @@ muurrichting, uitgerekte en afgekapte doeken; stap 76), `wapenechttest` en
 meet ook de ramen) met `gebouwshots` en
 `echtshots`; `npm run cliptest`, `opstarttest` en `lichttest`
 (clipping, opstarten en licht; stap 75), `npm run bendetest` (tweeëndertig controles, groen) en
-`npm run bendeshots` (twee foto's), `npm run veteraantest` (zevenenveertig controles,
-groen), `npm run veteraanshots` (drie foto's), `npm run huistest`
+`npm run bendeshots` (twee foto's), `npm run veteraantest` (tweeënzestig controles,
+groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
 (negenenzestig controles) en `npm run huisshots` (vijf foto's).
 
 **Valkuilen van deze omgeving — hier is veel tijd in gaan zitten:**

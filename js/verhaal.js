@@ -312,8 +312,11 @@ const HUIS_KLAAR = [
  staat met zijn hondje op het Sneekerpad, het fietspad tussen Sneek en IJlst,
  bij het kleine molentje: De Terpensmole, de spinnenkop uit `KAART.molens`. Hij
  bedankt je voor de molen in IJlst en stuurt je om een tas die bij de tribune
- van VV Sneek wordt afgeleverd. Pak je die op, dan rijden er vier auto's de weg
- voor het sportpark op en stappen er tien man uit. Na het vuurgevecht is De
+ van VV Sneek wordt afgeleverd. Dan wordt het zwart: "Enkele uren later" sta je
+ om één uur 's nachts voor je eigen huis (verzoek 26 sep 2026). Pak je de tas op,
+ dan rijden er vier auto's de weg voor het sportpark op en stappen er tien man
+ uit. Die komen het veld niet op: ze gaan rond de ingang staan en wachten je daar
+ op. Na het vuurgevecht is De
  Veteraan weg van het pad en belt Mark: hij heeft je laten omleggen. Thuis — in
  het huis dat je gekocht hebt — is de missie klaar.
 
@@ -334,17 +337,36 @@ const VET_LAAG = 0.7;               // wat lager is stapt de bende overheen: de 
 const VET_THUIS = 8;                // zo dicht bij je voordeur ben je thuis
 const VET_BELONING = 250;
 /*
+ De sprong naar de nacht. Na het gesprek gaat het beeld in anderhalve tel naar
+ zwart, staat er ruim drie tellen "Enkele uren later", en komt het in anderhalve
+ tel weer op — met jou voor de voordeur en de klok op één uur. De klok loopt in
+ dit spel niet vanzelf door (js/sfeer.js), dus het blijft nacht tot je hem zelf
+ verzet.
+*/
+const VET_UUR = 1;
+const VET_ZWART = [1.4, 3.4, 1.6];  // naar zwart, zwart met de tekst, weer terug (s)
+/*
+ Rond de ingang: de bende komt het terrein niet op maar gaat bij het begin van de
+ looproute staan (verzoek 26 sep 2026). Elke plek ligt binnen VET_INGANG meter
+ van de weg en heeft vrij zicht op het uitkijkpunt, VET_UITKIJK meter het pad
+ op: wie het terrein af wil loopt daar in hun vuur.
+*/
+const VET_INGANG = 14;              // zo ver van de weg staan ze hoogstens (m, langs het pad)
+const VET_UITKIJK = 50;             // hier kijken ze naar: zoveel meter het pad op (m)
+/*
  De bende. Tien man tegelijk met de schade van de bewaking (6 per treffer) is
- in tien tellen voorbij; met 3 en een dekkingsafstand van twintig meter blijven
- ze op afstand staan vuren en heb je tijd om ze een voor een neer te leggen.
- Ze zien je van verder dan de bewaking, want ze komen van de weg en de tribune
- staat negentig meter het terrein op. Nagerekend over vier lotingen: wie om de
- drieënhalve tel iemand raakt die hij kan zien houdt 46 tot 76 leven over, om
- de tweeënhalve tel 73 tot 91, en wie blijft staan gaat na een kleine vijftig
- tellen neer. tools/veteraantest.mjs toetst de eerste en de laatste.
+ in tien tellen voorbij; met 3 en een dekkingsafstand van twintig meter bleven
+ ze op afstand staan vuren en had je tijd om ze een voor een neer te leggen.
+ Sinds stap 86 komen ze niet meer op je af maar wachten ze rond de ingang, op
+ 36 tot 50 m van het pad naar buiten, waar ze met 8 tot 12 % per schot raken.
+ Met 3 per treffer kostte het gevecht daar nog maar 9 leven (veteraantest); met
+ 5 houdt wie om de drieënhalve tel iemand raakt die hij kan zien er weer een
+ flinke tik aan over, en gaat wie op het pad blijft staan binnen een minuut neer.
+ Ze zien je van verder dan de bewaking: de tribune staat negentig meter het
+ terrein op. tools/veteraantest.mjs toetst beide.
 */
 const VET_BENDE = {
-  schade: 3, zicht: 90, vuurbereik: 70, dekking: 20,
+  schade: 5, zicht: 90, vuurbereik: 70, dekking: 20,
   // over de reclameborden rond het veld (60 cm) springen ze heen, net als jij
   overLaag: VET_LAAG,
   vest: null, pet: 'om de beurt',
@@ -365,14 +387,16 @@ const VET_BRIEFING = [
   zegtVeteraan('Zonder jou had dit hondje geen baasje meer gehad. Dank je wel. Ik meen het.'),
   zegtErik('Johan zei al dat je wist wie het was.'),
   zegtVeteraan('Ik weet alles wat er in Tinga gebeurt. Daarom sta je hier.'),
-  zegtVeteraan('Vandaag wordt er een tas afgeleverd bij het voetbalveld van VV Sneek, hier in Tinga. Bij de tribune.'),
+  zegtVeteraan('Vannacht wordt er een tas afgeleverd bij het voetbalveld van VV Sneek, hier in Tinga. Bij de tribune.'),
   zegtErik('Wat zit erin?'),
   zegtVeteraan('Spul. Niks waar jij je druk om hoeft te maken.'),
-  zegtVeteraan('Niks aan de hand: gewoon meenemen en hier terugbrengen. Ik wacht op je.'),
-  zegtErik('Komt goed.'),
+  zegtVeteraan('Om één uur ligt hij er. Gewoon meenemen en hier terugbrengen. Ik wacht op je.'),
+  zegtErik('Komt goed. Dan ga ik eerst even naar huis.'),
 ];
 const VET_GEPAKT = [zegtErik('Die is zwaarder dan ik dacht.')];
 const VET_AUTOS_ZIEN = [zegtErik('Wat krijgen we nou... Vier auto\'s?!')];
+// ze komen het veld niet op: dat zie je, en dat zegt hij
+const VET_OPWACHTEN = [zegtErik('Ze blijven bij de ingang staan. Ze wachten tot ik naar buiten kom.')];
 const VET_NA_GEVECHT = [zegtErik('Dit was geen afleveradres. Dit was een hinderlaag.')];
 const VET_WEG = [zegtErik('Hé... waar is hij? Hij zou hier op me wachten.')];
 const VET_MARK = [
@@ -560,6 +584,8 @@ export function initVerhaal(ctx) {
     boten = null,
     // missie 9: de drie woningen waar je uit kunt kiezen (js/interieur.js)
     stekken = null,
+    // missie 10: na het gesprek met De Veteraan wordt het één uur 's nachts
+    zetUur = null,
   } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
@@ -568,6 +594,9 @@ export function initVerhaal(ctx) {
   const kopEl = document.getElementById('dialoogKop');
   const praatEl = document.getElementById('praat');
   const opdrachtEl = document.getElementById('opdracht');
+  // het zwart met "Enkele uren later" (index.html); in een losse proef kan het ontbreken
+  const overgangEl = document.getElementById('overgang');
+  const overgangTekst = document.getElementById('overgangtekst');
 
   const huis = pandVan(HUIS);
   const overkant = pandVan(OVERKANT);
@@ -2152,7 +2181,12 @@ export function initVerhaal(ctx) {
    en twee) en `bende` gaat door naar js/bewaking.js; zonder die twee is het de
    bende uit missie 7.
   */
-  function latenUitstappen(perAuto = null, bende = undefined) {
+  /*
+   `plekken` (missie 10): waar ze na het uitstappen gaan staan, [{ x, z }] met
+   `kijk` als het punt waar ze naar uitkijken. Zonder is het eind van hun post
+   vier meter van de auto af.
+  */
+  function latenUitstappen(perAuto = null, bende = undefined, plekken = null) {
     if (schutters || !aanrijders.length) return;
     const posten = [];
     for (const [k, a] of aanrijders.entries()) {
@@ -2164,7 +2198,9 @@ export function initVerhaal(ctx) {
         const px = a.auto.x + zx * 2.2 + Math.cos(a.auto.yaw) * langs;
         const pz = a.auto.z + zz * 2.2 - Math.sin(a.auto.yaw) * langs;
         const [mx, mz] = resolveCollisions(px, pz, 0.4);
-        posten.push({ a: [mx, mz], b: [mx + zx * 4, mz + zz * 4] });
+        const plek = plekken && plekken.lijst.length ? plekken.lijst[posten.length % plekken.lijst.length] : null;
+        posten.push(plek ? { a: [mx, mz], b: [plek.x, plek.z], kijk: plekken.kijk, via: plek.via }
+          : { a: [mx, mz], b: [mx + zx * 4, mz + zz * 4] });
       }
     }
     schutters = new Bewaking(scene, posten, bende);
@@ -2993,6 +3029,8 @@ export function initVerhaal(ctx) {
   let vetPunt = null;            // { x, z, langs, molen }
   let tribunePunt = null;        // { tas, yaw, veld, weg }
   let tasHint = false;           // staat "E — de tas pakken" in beeld?
+  let zwart = null;              // de overgang naar de nacht: { t, gesprongen }
+  let ingangPunt = null;         // { weg, kijk, lijst }: waar de bende gaat staan
 
   /*
    Zijn plek: het punt op het fietspad dat het dichtst bij De Terpensmole ligt.
@@ -3112,6 +3150,7 @@ export function initVerhaal(ctx) {
 
   function ruimVeteraanOp() {
     if (vet) vet.toon(false);
+    if (zwart) { zwart = null; zetZwart(0, 0); }
     if (tas) tas.toon(false);
     if (tasMerk) tasMerk.toon(false);
     tasBij = false;
@@ -3140,7 +3179,8 @@ export function initVerhaal(ctx) {
     fase = 'naar_tas'; zetPunt(fase);
     zorgVoorTas();
     const t = tribune();
-    zetOpdracht('haal de tas op bij de tribune van VV Sneek');
+    if (zetUur) zetUur(VET_UUR);
+    zetOpdracht('ga naar het voetbalveld van VV Sneek en haal de tas op bij de tribune');
     if (t) {
       tas.zet(t.tas.x, 0.12, t.tas.z, t.yaw);
       tas.toon(true);
@@ -3151,6 +3191,121 @@ export function initVerhaal(ctx) {
     // hij blijft niet op je wachten, al zie je dat pas als je terugkomt
     weg.vet = true;
     spanning = true; spanningUit = 0;
+  }
+
+  /*
+   ---------- de sprong naar de nacht ----------
+   Na het gesprek wordt het zwart, staat er "Enkele uren later", en sta je om één
+   uur 's nachts voor je eigen huis: het huis dat je gekocht hebt, of anders de
+   Wieken 29 (`thuisDoel`). De sprong zelf gebeurt als het beeld helemaal zwart
+   is, dus je ziet niets verspringen. De tijd loopt op `update(dt)` en niet op
+   een css-overgang, zodat een proef hem kan afspelen.
+  */
+  const glad = (x) => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
+  function zetZwart(dekking, tekst) {
+    if (overgangEl) {
+      overgangEl.style.opacity = dekking.toFixed(3);
+      overgangEl.style.visibility = dekking > 0.001 ? 'visible' : 'hidden';
+    }
+    if (overgangTekst) overgangTekst.style.opacity = tekst.toFixed(3);
+  }
+  function naarDeNacht() {
+    fase = 'overgang';
+    hud.zetNavigatie(null); navDoel = null;
+    zetOpdracht('');
+    if (overgangTekst) overgangTekst.textContent = 'Enkele uren later';
+    zwart = { t: 0, gesprongen: false };
+  }
+  function werkZwartBij(dt) {
+    if (!zwart) return;
+    const [uit, stil, op] = VET_ZWART;
+    zwart.t += dt;
+    const t = zwart.t;
+    if (!zwart.gesprongen && t >= uit) {
+      zwart.gesprongen = true;
+      springNaarHuis();
+      naarDeTas();
+    }
+    const dekking = t < uit ? glad(t / uit) : t < uit + stil ? 1 : 1 - glad((t - uit - stil) / op);
+    // de tekst komt pas als het zwart is, en is weg voor het beeld terugkomt
+    const tekst = Math.min(glad((t - uit - 0.2) / 0.7), glad((uit + stil - 0.2 - t) / 0.7));
+    zetZwart(dekking, tekst);
+    if (t >= uit + stil + op) { zwart = null; zetZwart(0, 0); }
+  }
+  function springNaarHuis() {
+    // De Veteraan is dan allang weg van het pad
+    if (vet) vet.toon(false);
+    weg.vet = false;
+    const t = thuisDoel();
+    if (!t) return;
+    const deur = t.deur, stoep = t.w.plekken.stoep || deur;
+    // reed je naar het molentje, dan staat je auto nu op je oprit
+    const auto = player.inCar;
+    if (auto) {
+      auto.speed = 0;
+      player.inCar = null;
+      if (eersteP) eersteP();
+      geluid.motorUit();
+      const o = t.w.plekken.oprit;
+      if (o) {
+        auto.x = o.x; auto.z = o.z; auto.yaw = o.yaw;
+        if (auto.mesh) { auto.mesh.position.set(o.x, auto.mesh.position.y, o.z); auto.mesh.rotation.y = o.yaw; }
+      }
+    }
+    const [px, pz] = resolveCollisions(stoep.x, stoep.z, 0.4);
+    player.pos.set(px, 0, pz);
+    player.yaw = kijkHoek(deur, stoep);          // de straat in
+    player.pitch = 0;
+    player.applyCamera();
+  }
+
+  /*
+   ---------- de bende bij de ingang ----------
+   Waar de tien man na het uitstappen gaan staan: rond het begin van de looproute
+   van de weg naar de tribune (js/looppad.js), dat is het inritje van het
+   clubparkeerterrein aan de Molenkrite. Plekken om de drie meter langs dat stuk
+   pad, met twee tot zeven meter opzij, zonder botsdoos, en alleen waar vrij zicht
+   is op het uitkijkpunt verderop het pad (dezelfde kijklijn als de schutters
+   zelf, `zichtVrij` op 1,2 m). Zo komen ze het veld niet op, maar loop je wel in
+   hun vuur als je het terrein af wilt.
+
+   Gemeten (26 sep 2026): het pad is 94 m en bijna recht; met het uitkijkpunt op
+   50 m hebben 14 van de 30 plekken er zicht op, op 36 tot 50 m. Daar raken ze met
+   8 tot 12 % per schot. Bij de tas, zo'n 90 m van de weg, staan ze buiten hun
+   vuurbereik van 70 m: daar ben je veilig, en naar buiten moet je langs hen.
+  */
+  function ingang() {
+    if (ingangPunt) return ingangPunt;
+    const t = tribune();
+    if (!t || !t.weg) return null;
+    const lijn = t.pad && t.pad.length > 1 ? t.pad.map(p => [p[0], p[1]])
+      : [[t.weg.x, t.weg.z], [t.tas.x, t.tas.z]];
+    if (Math.hypot(lijn[0][0] - t.weg.x, lijn[0][1] - t.weg.z) > 0.5) lijn.unshift([t.weg.x, t.weg.z]);
+    const k = opLijn(lijn, VET_UITKIJK);
+    const kijk = { x: k.x, z: k.z };
+    /*
+     Iedereen gaat door de ingang: eerst naar het pad net voorbij de weg (op de
+     weg zelf staat de eerste auto), dan naar het punt op het pad bij zijn plek,
+     en dan opzij. Een plek telt alleen als je hem vanaf dat punt in een rechte
+     lijn haalt: de eerste proef had er een achter een heg, en daar bleef er een
+     op vier meter van hangen, zonder zicht op het pad.
+    */
+    const poort = opLijn(lijn, 3);
+    const lijst = [], reserve = [];
+    for (let s = 2; s <= VET_INGANG; s += 3) {
+      const p = opLijn(lijn, s);
+      for (const zij of [-2.5, 2.5, -4.5, 4.5, -7, 7]) {
+        const [x, z] = resolveCollisions(p.x - p.uz * zij, p.z + p.ux * zij, 0.4);
+        if ([...lijst, ...reserve].some(q => Math.hypot(q.x - x, q.z - z) < 1.6)) continue;
+        if (!zichtVrij(p.x, p.z, x, z, 0.3)) continue;
+        const plek = { x, z, via: [[poort.x, poort.z], [p.x, p.z]] };
+        (zichtVrij(x, z, kijk.x, kijk.z, 1.2) ? lijst : reserve).push(plek);
+      }
+    }
+    // te weinig met zicht: dan de rest erbij, dan staan er een paar in de tweede rij
+    while (lijst.length < 10 && reserve.length) lijst.push(reserve.shift());
+    ingangPunt = { weg: { x: t.weg.x, z: t.weg.z }, kijk, lijst };
+    return ingangPunt;
   }
 
   // De vier auto's op de weg voor het sportpark.
@@ -3165,7 +3320,8 @@ export function initVerhaal(ctx) {
 
   function beginGevecht() {
     const t = tribune();
-    latenUitstappen(VET_MANNEN, { ...VET_BENDE, looppad: t ? t.pad : null });
+    // ze stappen uit en gaan rond de ingang staan: het veld komen ze niet op
+    latenUitstappen(VET_MANNEN, { ...VET_BENDE, houden: true }, ingang());
     fase = 'vuurgevecht'; zetPunt(fase);
     zetOpdracht(`schakel ze uit (${schutters ? schutters.aantal : 0} te gaan)`, true);
   }
@@ -3216,10 +3372,10 @@ export function initVerhaal(ctx) {
       fase = 'briefing';
       hud.zetNavigatie(null); navDoel = null;
       zetOpdracht('');
-      zeg(VET_BRIEFING, () => naarDeTas());
+      zeg(VET_BRIEFING, () => naarDeNacht());
       return;
     }
-    if (fase === 'briefing') return;
+    if (fase === 'briefing' || fase === 'overgang') return;
 
     // -- de tas bij de tribune: E pakt hem op (zie toets)
     if (fase === 'naar_tas') {
@@ -3248,6 +3404,7 @@ export function initVerhaal(ctx) {
       const stil = werkAanrijdersBij(dt, sp);
       if (!stil || !balk.hidden || !aanrijders.length) return;
       beginGevecht();
+      zeg(VET_OPWACHTEN, null, { auto: 3.4 });
       return;
     }
 
@@ -3348,11 +3505,12 @@ export function initVerhaal(ctx) {
     beginVeteraan();
     if (f === 'telefoon') return;
     vetT = 0;
-    if (f === 'naar_veteraan' || f === 'briefing') { naarVeteraan(); return; }
+    if (f === 'naar_veteraan' || f === 'briefing' || f === 'overgang') { naarVeteraan(); return; }
     // hij heeft je al gesproken en staat er niet meer
     if (vet) vet.toon(false);
     if (f === 'naar_tas') { naarDeTas(); if (vet) vet.toon(false); weg.vet = false; return; }
     tasBij = true;
+    if (zetUur) zetUur(VET_UUR);
     if (f === 'hinderlaag' || f === 'vuurgevecht') {
       /*
        Het vuurgevecht opnieuw, vanaf de tas en met de bende al uit de auto's:
@@ -3396,6 +3554,8 @@ export function initVerhaal(ctx) {
       if (spanningUit <= 0) spanning = false;
     }
     geluid.missiemuziek(spanning && doodT <= 0 && misluktT <= 0);
+    // de overgang naar de nacht in missie 10 loopt altijd door tot het beeld terug is
+    werkZwartBij(dt);
     // Mark die zelf begint (zie beginGesprek): even wachten tot het beeld staat
     // en de speler zijn handen aan de muis heeft, en dan praat hij.
     if (startPraatT > 0) {
@@ -3867,6 +4027,8 @@ export function initVerhaal(ctx) {
     get bx() { return bxAuto; },
     get schutters() { return schutters; },
     get schutterAutos() { return schutterAutos; },
+    get zwart() { return zwart; },
+    get ingang() { return ingang(); },
     // missie 8
     get deal() { return deal; },
     get snipPlek() { return zoekSnipPlek(); },

@@ -1734,20 +1734,34 @@ vanzelf: hij is geen man van grote woorden, maar in IJlst lag hij er bijna bij e
 jij hebt ze van hem af geschoten. *"Zonder jou had dit hondje geen baasje meer
 gehad."*
 
-En dan de klus. Er wordt vandaag een **tas afgeleverd bij het voetbalveld van VV
-Sneek**, bij de tribune. *"Niks aan de hand: gewoon meenemen en hier
-terugbrengen. Ik wacht op je."* De tas — een zwarte sporttas met een geel ruitje
+En dan de klus. Er wordt vannacht een **tas afgeleverd bij het voetbalveld van VV
+Sneek**, bij de tribune. *"Om één uur ligt hij er. Gewoon meenemen en hier
+terugbrengen. Ik wacht op je."*
+
+Dan gaat het beeld zacht naar zwart en staat er ***Enkele uren later***. Als het
+beeld terugkomt sta je **voor je eigen huis**, te voet, om **één uur 's nachts**:
+het huis dat je in missie 9 gekocht hebt, of de Wieken 29 als je er geen hebt.
+Reed je naar het molentje, dan staat je auto op je oprit. Het is donker, de
+straatlantaarns branden en de wijk slaapt.
+
+Nu naar het voetbalveld. De tas — een zwarte sporttas met een geel ruitje
 erboven — staat op de tegels vóór de tribune van het hoofdveld (**T** op de
 kaart); spring over de reclameborden en pak hem met **E**.
 
 Dat lijkt simpel. Maar zodra je hem hebt rijden er **vier auto's** de Molenkrite
 af naar het inritje van het clubparkeerterrein, aan de voorkant van het
-sportpark, en stappen er **tien man** uit. Ze komen om de kantine heen, springen
-over de borden en openen het vuur. Een hevig vuurgevecht: ze blijven op een
-meter of twintig staan en schieten, en wie blijft staan houdt het geen minuut
-vol. De tribune en de kantine zijn je dekking, en wat ze laten vallen — pistolen
-met kogels — kun je oprapen. Ga je neer, dan begin je opnieuw bij de tas, met de
+sportpark, en stappen er **tien man** uit. Ze komen het veld niet op. *"Ze blijven
+bij de ingang staan. Ze wachten tot ik naar buiten kom."* Ze gaan rond de ingang
+staan, elk op een plek met zicht op het pad naar buiten, en wachten je daar op.
+Bij de tas sta je buiten hun bereik; naar buiten moet je langs hen. Ze schieten
+zodra ze je zien, en wie op het pad blijft staan houdt het niet lang vol. De
+tribune en de kantine zijn je dekking, en wat ze laten vallen — pistolen met
+kogels — kun je oprapen. Ga je neer, dan begin je opnieuw bij de tas, met de
 bende al uit de auto's.
+
+| ![Enkele uren later](docs/screenshots/veteraan_uren.png) | ![Rond de ingang](docs/screenshots/veteraan_ingang.png) |
+|---|---|
+| na het gesprek: enkele uren later | ze wachten je op rond de ingang |
 
 ![De Veteraan en zijn hondje bij De Terpensmole](docs/screenshots/veteraan_molentje.png)
 
@@ -1765,7 +1779,7 @@ kaart wijst de voordeur aan, en de Wieken 29 telt niet meer. Sta je voor je deur
 
 | ![De tas voor de tribune](docs/screenshots/veteraan_tas.png) | ![De hinderlaag](docs/screenshots/veteraan_hinderlaag.png) |
 |---|---|
-| de tas voor de tribune van VV Sneek | vier auto's aan de voorkant, tien man |
+| de tas voor de tribune van VV Sneek, om één uur 's nachts | vier auto's aan de voorkant, tien man |
 
 Wie missie 9 afrondde door alle drie de woningen te bekijken zonder te kopen,
 krijgt het telefoontje pas als hij er alsnog een koopt: De Veteraan belt iemand
@@ -1773,10 +1787,11 @@ met een eigen stek. Een opgeslagen spel tussen het kopen en het telefoontje belt
 na het laden gewoon alsnog, en een opslag van vóór deze missie met een gekocht
 huis erin ook.
 
-`npm run veteraantest` (zevenenveertig controles) speelt de hele missie na, van
-het kopen tot de € 250, en rekent het vuurgevecht na met een vaste loting: wie
-om de drieënhalve tel iemand raakt die hij kan zien haalt het, wie niets doet
-niet. `npm run veteraanshots` maakt de drie foto's hierboven.
+`npm run veteraantest` speelt de hele missie na, van het kopen tot de € 250:
+het zwart zonder sprong, "Enkele uren later", je voordeur om één uur, de bende
+die rond de ingang blijft, en het vuurgevecht met een vaste loting: wie om de
+drieënhalve tel iemand raakt die hij kan zien haalt het, wie op het pad blijft
+staan niet. `npm run veteraanshots` maakt de vijf foto's hierboven.
 
 ### Na missie 10: de bende op straat
 

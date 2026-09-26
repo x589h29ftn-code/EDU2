@@ -9,18 +9,23 @@
  2. Hij staat met zijn hondje op het Sneekerpad bij het kleine molentje (De
     Terpensmole); bij hem begint het gesprek vanzelf: hij bedankt je voor de
     molen in IJlst en stuurt je om een tas bij de tribune van VV Sneek.
- 3. De tas staat voor de tribune, niet in een botsdoos, en E pakt hem op. Loop
-    je weg, dan is De Veteraan van het pad zodra je niet meer kijkt.
- 4. Dan rijden vier auto's over de weg voor het sportpark aan — óver de weg,
+ 3. Dan wordt het zwart, zacht en zonder sprong, met "Enkele uren later" op het
+    zwart; daarna sta je voor je eigen huis, te voet, om één uur 's nachts
+    (verzoek 26 sep 2026). Zonder gekocht huis is dat de Wieken 29.
+ 4. De tas staat voor de tribune, niet in een botsdoos, en E pakt hem op. De
+    Veteraan is dan allang van het pad.
+ 5. Dan rijden vier auto's over de weg voor het sportpark aan — óver de weg,
     niet door de gevels — en stappen er tien man uit, aan de kant van de
-    tribune.
- 5. Het vuurgevecht is te winnen en niet gratis: met een vaste loting haalt een
-    speler die om de drieënhalve tel iemand raakt die hij kan zien het, en een
-    speler die niets doet gaat neer — en begint dan opnieuw bij de tas, met de bende al uit de
-    auto's.
- 6. Terug bij het molentje is hij weg en belt Mark: omleggen, te snel in de
+    tribune. Ze komen het veld niet op: ze gaan rond de ingang staan, met zicht
+    op het pad naar buiten, en wachten je daar op. Bij de tas ben je buiten hun
+    bereik.
+ 6. Het vuurgevecht bij de ingang is te winnen en niet gratis: met een vaste
+    loting haalt een speler die om de drieënhalve tel iemand raakt die hij kan
+    zien het, en een speler die op het pad blijft staan gaat neer — en begint
+    dan opnieuw bij de tas, met de bende al uit de auto's.
+ 7. Terug bij het molentje is hij weg en belt Mark: omleggen, te snel in de
     rangen, ben je veilig, ga naar huis — met het adres dat je gekocht hebt.
- 7. Thuis levert € 250 op.
+ 8. Thuis levert € 250 op.
 
  En daaromheen: shift+0 start de missie los, een opgeslagen spel midden in de
  missie hervat hem, en een opslag tussen het kopen en het telefoontje laat de
@@ -207,14 +212,35 @@ const gesprek = await page.evaluate(() => {
   const g = window.__game;
   const p = g.verhaal.veteraanPlek;
   window.__zet(p.x + p.langs.x * 3.5, p.z + p.langs.z * 3.5);
+  g.sfeer.uur = 15;                           // het gesprek is overdag
   window.__stap(4);
   const regels = window.__gesprek();
+  window.__stap(1);
+  const faseNa = g.verhaal.fase;
+  // de overgang afspelen, om de 0,05 s: de dekking van het zwart en de tekst
+  const el = document.getElementById('overgang'), tk = document.getElementById('overgangtekst');
+  let max = 0, sprong = 0, vorig = +el.style.opacity || 0, tekst = '', tekstMax = 0, tijd = 0, zwartT = 0, tekstBijLicht = 0;
+  let schuttersInZwart = -1;
+  for (let i = 0; i < 400 && (g.verhaal.zwart || i < 2); i++) {
+    g.verhaal.update(0.05); tijd += 0.05;
+    const o = +el.style.opacity || 0, to = +tk.style.opacity || 0;
+    max = Math.max(max, o); sprong = Math.max(sprong, Math.abs(o - vorig)); vorig = o;
+    if (o > 0.999) { zwartT += 0.05; if (schuttersInZwart < 0 && g.verhaal.fase === 'naar_tas') schuttersInZwart = g.verhaal.schutters ? g.verhaal.schutters.aantal : 0; }
+    if (to > 0.05) { tekst = tk.textContent; if (o < 0.99) tekstBijLicht++; }
+    tekstMax = Math.max(tekstMax, to);
+  }
   window.__stap(4);
+  const huis = g.woningen.find(w => w.naam === g.verhaal.stek);
+  const st = huis.plekken.stoep;
+  const overgang = { faseNa, max, sprong, tekst, tekstMax, tekstBijLicht, tijd, zwartT, schuttersInZwart,
+    eind: +el.style.opacity || 0, zicht: el.style.visibility,
+    uur: g.sfeer.uur, nacht: g.sfeer.nacht, voorDeur: Math.hypot(g.player.pos.x - st.x, g.player.pos.z - st.z),
+    teVoet: !g.player.inCar, vetWeg: !g.verhaal.veteraan.veteraan.groep.visible, huis: huis.naam };
   const t = g.verhaal.tribune;
   const nav = g.hud.nav ? { letter: g.hud.nav.letter, doel: g.hud.nav.doel } : null;
   const tas = g.verhaal.tas;
   return {
-    regels, fase: g.verhaal.fase,
+    regels, fase: g.verhaal.fase, overgang,
     nav, navD: nav ? Math.hypot(nav.doel[0] - t.tas.x, nav.doel[1] - t.tas.z) : -1,
     tas: !!(tas && tas.zichtbaar),
     opdracht: document.getElementById('opdracht').textContent,
@@ -226,8 +252,22 @@ ok(gesprek.regels.length >= 6 && gesprek.regels[0].wie === 'De Veteraan', 'het g
 ok(/molen in IJlst/i.test(tekst) && /dank/i.test(tekst), 'hij bedankt je voor de molen in IJlst');
 ok(/voetbalveld/i.test(tekst) && /tribune/i.test(tekst) && /terugbrengen/i.test(tekst),
   'en stuurt je om de tas bij de tribune, en terug');
-ok(gesprek.fase === 'naar_tas' && gesprek.tas && gesprek.nav && gesprek.nav.letter === 'T' && gesprek.navD < 3,
-  'daarna staat de tas klaar en wijst de kaart erheen', `${gesprek.fase} · ${gesprek.opdracht}`);
+
+kop('enkele uren later');
+const og = gesprek.overgang;
+ok(og.faseNa === 'overgang', 'na het gesprek wordt het zwart', og.faseNa);
+ok(og.max > 0.999 && og.sprong < 0.08, 'zacht: helemaal zwart, en nergens een sprong',
+  `grootste stap ${og.sprong.toFixed(3)} per 0,05 s`);
+ok(og.tekst === 'Enkele uren later' && og.tekstMax > 0.99 && og.tekstBijLicht === 0,
+  '"Enkele uren later", alleen op het zwart', `${og.tekst} · ${og.zwartT.toFixed(1)} s zwart`);
+ok(og.eind === 0 && og.zicht === 'hidden' && og.tijd < 8, 'daarna komt het beeld weer terug', `na ${og.tijd.toFixed(1)} s`);
+ok(og.voorDeur < 1.5 && og.teVoet, 'je staat te voet voor je eigen huis', `${og.huis}, ${og.voorDeur.toFixed(2)} m van de stoep`);
+ok(og.uur === 1 && og.nacht, 'om één uur \'s nachts, in het donker', `${og.uur} uur`);
+ok(og.vetWeg, 'De Veteraan staat niet meer op het pad');
+ok(og.schuttersInZwart === 0, 'de bende is er nog niet: die komt pas na de tas');
+ok(gesprek.fase === 'naar_tas' && gesprek.tas && gesprek.nav && gesprek.nav.letter === 'T' && gesprek.navD < 3
+  && /voetbalveld/.test(gesprek.opdracht),
+  'dan naar het voetbalveld: de tas staat klaar en de kaart wijst erheen', `${gesprek.fase} · ${gesprek.opdracht}`);
 
 // ------------------------------------------------ opslaan midden in de missie
 kop('opslaan en laden');
@@ -286,7 +326,8 @@ const tas = await page.evaluate(async () => {
     return (t.tas.x - a.auto.x) * a.zij.x + (t.tas.z - a.auto.z) * a.zij.z > 0;
   });
   const afstand = autos.map(a => Math.hypot(a.x - t.tas.x, a.z - t.tas.z));
-  return { vetWeg, hint, na, buiten, stappen, autos: autos.length, stil: autos.every(a => a.speed < 0.1),
+  const zegt = window.__balkDicht() ? '' : document.getElementById('dialoogTekst').textContent;
+  return { vetWeg, hint, na, buiten, stappen, autos: autos.length, stil: autos.every(a => a.speed < 0.1), zegt,
     mannen: mannen.length, kant, afstand: [Math.min(...afstand), Math.max(...afstand)],
     fase: g.verhaal.fase, opdracht: document.getElementById('opdracht').textContent,
     vest: sch ? sch.wachters.some(w => w.persoon.groep.getObjectByName && false) : null };
@@ -304,6 +345,40 @@ ok(tas.mannen === 10 && tas.fase === 'vuurgevecht', 'en er stappen tien man uit'
 ok(tas.kant, 'aan de kant van de tribune');
 ok(/10 te gaan/.test(tas.opdracht), 'de opdracht telt ze af', tas.opdracht);
 
+kop('ze wachten je op bij de ingang');
+const ingang = await page.evaluate(async () => {
+  const { zichtVrij } = await import('/js/world.js');
+  const g = window.__game, ing = g.verhaal.ingang, sch = g.verhaal.schutters, t = g.verhaal.tribune;
+  // twintig tellen bij de tas blijven staan
+  g.player.health = 100;
+  // (hoe dicht komt iemand bij de tribune? de auto's staan tot 25 m langs de weg,
+  // dus de afstand tot de weg zegt niets; die tot de tas wel)
+  let dichtst = Infinity;
+  for (let i = 0; i < 200; i++) {
+    g.verhaal.update(0.1);
+    for (const w of sch.wachters) {
+      const p = w.persoon.groep.position;
+      dichtst = Math.min(dichtst, Math.hypot(p.x - t.tas.x, p.z - t.tas.z));
+    }
+  }
+  const pos = (w) => w.persoon.groep.position;
+  return {
+    n: sch.wachters.length, dichtst, lijst: ing.lijst.length,
+    plekVerst: Math.max(...sch.wachters.map(w => Math.hypot(w.post.b[0] - ing.weg.x, w.post.b[1] - ing.weg.z))),
+    opPlek: sch.wachters.filter(w => Math.hypot(pos(w).x - w.post.b[0], pos(w).z - w.post.b[1]) < 1).length,
+    zicht: sch.wachters.filter(w => zichtVrij(w.post.b[0], w.post.b[1], ing.kijk.x, ing.kijk.z, 1.2)).length,
+    dTas: Math.min(...sch.wachters.map(w => Math.hypot(w.post.b[0] - t.tas.x, w.post.b[1] - t.tas.z))),
+    leven: g.player.health, fase: g.verhaal.fase,
+  };
+});
+ok(/ingang/i.test(tas.zegt), 'Erik ziet het: ze blijven bij de ingang staan', tas.zegt || 'niets');
+ok(ingang.plekVerst < 16 && ingang.dichtst > ingang.dTas - 1, 'ze komen het veld niet op: elke plek ligt bij de weg, en niemand komt dichter bij de tribune',
+  `plekken tot ${ingang.plekVerst.toFixed(1)} m van de weg; dichtst bij de tas ${ingang.dichtst.toFixed(0)} m`);
+ok(ingang.opPlek === ingang.n, 'na twintig tellen staat iedereen op zijn plek rond de ingang', `${ingang.opPlek} van ${ingang.n}`);
+ok(ingang.zicht === ingang.n, 'en van elke plek kijk je het pad op, waar je langs moet', `${ingang.zicht} van ${ingang.n} (${ingang.lijst} plekken)`);
+ok(ingang.leven === 100 && ingang.dTas > 70, 'bij de tas sta je buiten hun bereik', `dichtstbij ${ingang.dTas.toFixed(0)} m, ${ingang.leven} leven`);
+ok(ingang.fase === 'vuurgevecht', 'en het gevecht wacht op jou', ingang.fase);
+
 // --------------------------------------------------------- het vuurgevecht
 kop('het vuurgevecht');
 // eerst niets doen: dan moet je neergaan, en daarna opnieuw beginnen bij de tas
@@ -311,6 +386,9 @@ const niets = await page.evaluate(() => {
   const g = window.__game;
   window.__loting(7);
   g.player.health = 100;
+  // op het pad naar buiten blijven staan, waar ze naar kijken
+  const ing = g.verhaal.ingang;
+  window.__zet(ing.kijk.x, ing.kijk.z);
   let t = 0;
   for (; t < 180 && g.player.health > 0; t += 0.1) g.verhaal.update(0.1);
   const neer = g.player.health <= 0;
@@ -321,7 +399,7 @@ const niets = await page.evaluate(() => {
   return { neer, t, fase: g.verhaal.fase, mannen: sch ? sch.aantal - sch.neer : 0,
     bijTas: Math.hypot(g.player.pos.x - tt.tas.x, g.player.pos.z - tt.tas.z), leven: g.player.health };
 });
-ok(niets.neer, 'wie niets doet gaat neer', `na ${niets.t.toFixed(0)} s`);
+ok(niets.neer, 'wie op het pad blijft staan gaat neer', `na ${niets.t.toFixed(0)} s`);
 ok(niets.fase === 'vuurgevecht' && niets.mannen === 10 && niets.bijTas < 2 && niets.leven === 100,
   'en begint opnieuw bij de tas, met de bende al uit de auto\'s',
   `${niets.fase}, ${niets.mannen} man, ${niets.bijTas.toFixed(1)} m van de tas`);
@@ -338,6 +416,9 @@ const winst = await page.evaluate(async () => {
   window.__loting(1);
   g.player.health = 100;
   const sch = g.verhaal.schutters;
+  // vanaf hetzelfde punt op het pad: daar zie je ze allemaal
+  const ing = g.verhaal.ingang;
+  window.__zet(ing.kijk.x, ing.kijk.z);
   let t = 0, volgende = 3.5, laagst = 100;
   for (; t < 150 && !sch.alleNeer && g.player.health > 0; t += 0.1) {
     g.verhaal.update(0.1);
@@ -412,6 +493,25 @@ ok(thuis.na === 250 && thuis.missie === 'klaar' && thuis.klaar, 'thuis: € 250 
   `+${thuis.na}`);
 ok(/geslaagd/i.test(thuis.melding) && /veteraan/i.test(thuis.melding), 'MISSIE GESLAAGD in beeld',
   thuis.melding.slice(0, 60));
+
+// ---------------------------------- zonder gekocht huis: dan de Wieken 29
+kop('zonder eigen huis');
+const wieken = await page.evaluate(() => {
+  const g = window.__game;
+  g.verhaal.herstel({ missie: 'veteraan', fase: 'naar_veteraan', geld: 0 });
+  window.__stap(4);
+  const p = g.verhaal.veteraanPlek;
+  window.__zet(p.x + p.langs.x * 3.5, p.z + p.langs.z * 3.5);
+  window.__stap(4);
+  window.__gesprek();
+  for (let i = 0; i < 400 && (g.verhaal.zwart || i < 2); i++) g.verhaal.update(0.05);
+  const t = g.verhaal.thuisDoel;
+  const st = t.w.plekken.stoep;
+  return { stek: g.verhaal.stek, naam: t.naam, d: Math.hypot(g.player.pos.x - st.x, g.player.pos.z - st.z),
+    fase: g.verhaal.fase, uur: g.sfeer.uur };
+});
+ok(!wieken.stek && /wieken 29/i.test(wieken.naam) && wieken.d < 1.5 && wieken.fase === 'naar_tas' && wieken.uur === 1,
+  'dan begin je voor de Wieken 29', `${wieken.naam}, ${wieken.d.toFixed(2)} m, ${wieken.fase}, ${wieken.uur} uur`);
 
 console.log(`\n${fout ? fout + ' fout' : 'alles goed'}`);
 await browser.close();

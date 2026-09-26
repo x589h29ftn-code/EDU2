@@ -3,9 +3,13 @@
 
    veteraan_molentje.png    De Veteraan met zijn hondje op het Sneekerpad, met
                             De Terpensmole achter hem
-   veteraan_tas.png         de tas voor de tribune van VV Sneek, met het gele ruitje
+   veteraan_uren.png        het zwart na het gesprek: "Enkele uren later"
+   veteraan_tas.png         de tas voor de tribune van VV Sneek, met het gele
+                            ruitje, om één uur 's nachts
    veteraan_hinderlaag.png  de vier auto's op de weg voor het sportpark en de
                             tien man die uitstappen
+   veteraan_ingang.png      en waar ze je opwachten: rond de ingang, gezien vanaf
+                            het pad naar buiten
 
  Gebruik: npm run server &   node tools/veteraanshots.mjs 8123 [map]
 */
@@ -118,11 +122,20 @@ const tas = await page.evaluate(() => {
   g.player.pos.set(p.x + p.langs.x * 3, 0, p.z + p.langs.z * 3);
   window.__stap(6);
   window.__klik();                         // het gesprek
-  window.__stap(6);
+  // de overgang tot midden in het zwart, als de tekst er vol staat
+  for (let i = 0; i < 80 && !(g.verhaal.zwart && g.verhaal.zwart.t > 2.6); i++) window.__stap(1, 0.05);
   const t = g.verhaal.tribune;
   return { tas: t.tas, veld: t.veld, weg: t.weg, fase: g.verhaal.fase };
 });
 console.log(`fase ${tas.fase}`);
+await bevries();
+await foto('veteraan_uren', 300);
+await ontdooi();
+// en de rest van de overgang afspelen
+await page.evaluate(() => {
+  const g = window.__game;
+  for (let i = 0; i < 200 && g.verhaal.zwart; i++) window.__stap(1, 0.05);
+});
 {
   // vanaf het veld, een meter of zeven voor de tas
   const dx = tas.veld.x - tas.tas.x, dz = tas.veld.z - tas.tas.z, l = Math.hypot(dx, dz) || 1;
@@ -168,6 +181,62 @@ console.log(`${bende.mannen} man · fase ${bende.fase} · camera ziet ${bende.be
   await page.evaluate(() => { const g = window.__game; g.player.health = 100; g.hud.zetLeven(100); });
   await bevries();
   await foto('veteraan_hinderlaag', 300);
+  await ontdooi();
+}
+
+// --------------------------------- ze wachten rond de ingang, gezien vanaf het pad
+const ingang = await page.evaluate(async () => {
+  const THREE = await import('three');
+  const { zichtVrij } = await import('/js/world.js');
+  const g = window.__game;
+  // vijftien tellen wachten tot iedereen op zijn plek staat — bij de tas, buiten
+  // hun bereik: naast ze (waar de vorige foto stond) ging je in die tijd neer, en
+  // dan begon het gevecht opnieuw met iedereen weer bij de auto's
+  const t = g.verhaal.tribune;
+  g.player.inCar = null; g.player.pos.set(t.tas.x + 0.8, 0, t.tas.z); g.player.health = 100;
+  window.__stap(300, 0.05);
+  const ing = g.verhaal.ingang;
+  const mannen = g.verhaal.schutters.wachters.map(w => w.persoon.groep.position);
+  const mx = mannen.reduce((a, p) => a + p.x, 0) / mannen.length;
+  const mz = mannen.reduce((a, p) => a + p.z, 0) / mannen.length;
+  /*
+   Op het pad naar buiten: het eerste punt vanaf 18 m van de weg waarvandaan je
+   ze alle tien ziet (gemeten met dezelfde kijklijn als de schutters). Een punt
+   op 22 m van het midden van de groep zag er nul: daar stond de heg tussen.
+  */
+  const pad = g.verhaal.tribune.pad;
+  const op = (s0) => {
+    let rest = s0;
+    for (let i = 1; i < pad.length; i++) {
+      const a = pad[i - 1], b = pad[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (rest <= L || i === pad.length - 1) { const t = Math.min(1, rest / (L || 1)); return { x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t }; }
+      rest -= L;
+    }
+  };
+  let beste = null;
+  for (let s0 = 18; s0 <= 50; s0 += 2) {
+    const c = op(s0);
+    const zien = mannen.filter(p => zichtVrij(c.x, c.z, p.x, p.z, 1.4)).length;
+    if (!beste || zien > beste.zien) beste = { ...c, zien, s0 };
+    if (zien === mannen.length) break;
+  }
+  return { cx: beste.x, cz: beste.z, s0: beste.s0, mx, mz, zien: beste.zien, n: mannen.length };
+});
+console.log(`camera op ${ingang.s0} m het pad op ziet ${ingang.zien} van ${ingang.n} man rond de ingang`);
+{
+  await kijk(ingang.cx, ingang.cz, ingang.mx, ingang.mz, 1.1);
+  // en tellen wat er echt in beeld staat
+  const inBeeld = await page.evaluate(async () => {
+    const THREE = await import('three');
+    const g = window.__game, cam = g.camera;
+    cam.updateMatrixWorld(true);
+    const fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    return g.verhaal.schutters.wachters.filter(w => fr.containsPoint(w.persoon.groep.position.clone().setY(1))).length;
+  });
+  console.log(`${inBeeld} van ${ingang.n} in beeld`);
+  await page.evaluate(() => { const g = window.__game; g.player.health = 100; g.hud.zetLeven(100); });
+  await bevries();
+  await foto('veteraan_ingang', 300);
   await ontdooi();
 }
 

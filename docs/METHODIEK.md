@@ -5853,6 +5853,59 @@ Twee-en-twintig commits, samengevoegd met een gewone merge; per onderwerp:
   toch nog niemand vond). Uitslag: 3, 3 en 4 mensen, met 8, 4 en 2 van de 8
   beelden een nieuwe houding.
 
+**Missie 10 bij nacht, en een bende die je opwacht (stap 86).** Gevraagd (26 sep
+2026): na het gesprek met De Veteraan bij het molentje even zacht naar zwart met
+"Enkele uren later", dan om één uur 's nachts voor je eigen huis beginnen (of de
+Wieken 29 zonder gekocht huis), en naar het voetbalveld. En daarna, na een
+verduidelijking: de mannen die na het pakken van de tas komen, moeten niet het
+veld op komen maar je bij de ingang opwachten.
+
+- *Het zwart.* Een eigen laag `#overgang` in index.html, boven de hud en het
+  gesprek, onder het menu. De dekking zet `werkZwartBij` in js/verhaal.js elk beeld
+  zelf, op `update(dt)` en niet met een css-overgang: zo speelt een proef hem af
+  zonder op de klok van de browser te wachten. Anderhalve tel naar zwart
+  (smoothstep), ruim drie tellen zwart met de tekst, anderhalve tel terug. De
+  sprong naar huis gebeurt als het beeld helemaal zwart is; reed je, dan staat je
+  auto op je oprit. De klok gaat via `zetUur` uit js/main.js op één uur, en omdat
+  de klok in dit spel niet vanzelf loopt blijft het nacht.
+- *Eerst verkeerd begrepen.* De eerste uitvoering zette de bende al bij de ingang
+  klaar als je aankwam, stil wachtend tot je de tas pakte. Dat was niet de vraag:
+  ze komen nog steeds pas na de tas aanrijden, alleen blijven ze daarna bij de
+  ingang. Die uitvoering is er weer uit.
+- *Rond de ingang.* `ingang()` kiest plekken om de drie meter langs de eerste
+  veertien meter van de looproute, twee tot zeven meter opzij, met vrij zicht op
+  een uitkijkpunt vijftig meter het pad op. Js/bewaking.js kreeg de optie `houden`:
+  naar de eigen plek en daar blijven, vuren wie je ziet, niet zoeken en niet op je
+  af komen. Gemeten: het pad is 94 m en bijna recht; op 50 m hebben 13 plekken
+  zicht, op 36 tot 50 m, waar ze met 8 tot 12 % per schot raken. Bij de tas, zo'n
+  90 m van de weg, sta je buiten hun vuurbereik van 70 m.
+- *Wat misging.* De eerste proef: één man bleef op vier meter van zijn plek
+  hangen (er stond een heg tussen hem en zijn plek) en een tweede stond 0,6 m
+  voor zijn plek, waar het zicht net weg was. `loopNaar` stopt op 0,6 m. Nu lopen
+  ze over de ingang en het punt op het pad bij hun plek (`post.via`), telt een
+  plek alleen als hij vanaf dat punt in een rechte lijn te halen is, en zetten ze
+  de laatste stap precies op de plek (`naarPlek`). Daarna stonden alle tien op
+  hun plek, alle tien met zicht op het pad. Maar toen was het gevecht te
+  makkelijk: vanaf het pad, op 36 tot 50 m, kostte het met 3 per treffer maar 9
+  leven. Met 5 per treffer gaat wie op het pad blijft staan binnen een minuut
+  neer en houdt wie om de drieënhalve tel raak schiet er een flinke tik aan over. En de controle "niemand verder dan
+  twintig meter van de weg" mat de portieren zelf: de vier auto's staan tot 25 m
+  langs de weg. De proef kijkt nu of iemand dichter bij de tribune komt dan zijn
+  plek.
+- *Proef.* `npm run veteraantest` meet het zwart (geen stap groter dan 0,08 per
+  0,05 s, helemaal zwart, de tekst alleen op het zwart), de voordeur, het uur,
+  dat de bende er in het zwart nog niet is, dat ze het veld niet op komen en op
+  hun plek staan met zicht op het pad, dat je bij de tas veilig bent, en het
+  vuurgevecht vanaf het pad. `npm run veteraanshots` maakt er `veteraan_uren` en
+  `veteraan_ingang` bij. Die laatste zag eerst niemand: de camera stond nog naast
+  de bende van de vorige foto, de speler ging in de vijftien tellen wachten neer,
+  en het gevecht begon opnieuw bij de auto's. Nu wacht de foto bij de tas, en
+  zoekt hij op het pad het eerste punt vanwaar hij ze alle tien ziet (18 m).
+- *Niet van deze ronde:* `missietest` (6, de muziek), `verhaaltest` (2, de bank
+  en de tv in Molenkrite 15) en `belevingtest` (2 à 3, remmen voor een
+  overstekende en het water) falen op de vorige commit precies zo; nagemeten in
+  een losse worktree.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
