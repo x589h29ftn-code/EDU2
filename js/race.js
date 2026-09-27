@@ -25,6 +25,7 @@
 */
 import * as THREE from 'three';
 import { Navigatie } from './navigatie.js';
+import { vlakOp } from './kaartwereld.js';
 
 // ---------- het parcours ----------
 export const RACE = {
@@ -50,6 +51,17 @@ export const RACE = {
    oostelijkste nemen ging bij z ≈ 900 de afrit naar het oosten op.)
   */
   hoofdweg: { z0: 440, z1: 1040, x0: 630, x1: 740, rij: 4 },
+  /*
+   Bijblijven: ligt de speler voor, dan rijden de tegenstanders tot tien procent
+   harder, ligt hij ver achter, dan tot zes procent zachter — per 900 m verschil
+   het hele stuk. Zo blijft het een race: wie foutloos rijdt wint, wie een ring mist
+   of tegen een paal rijdt niet meer vanzelf.
+  */
+  bijblijven: { per: 900, sneller: 0.10, zachter: 0.06 },
+  // uitwijken: zo dicht voor je (m) telt een auto als in de weg, en zo ver opzij (m)
+  uitwijken: { voor: 11, achter: 5, opzij: 2.1, wissel: 1.8 },
+  // de pijlen op de weg: zoveel, zo ver uit elkaar (m)
+  pijlen: { n: 34, af: 9 },
 };
 
 function inRing(x, z, r) {
@@ -90,18 +102,24 @@ function hoofdwegLijn(KAART) {
 
 /*
  De drie tegenstanders: top in m/s, dwarsversnelling in de bocht, optrekken, en
- hun plek opzij van de as (m, rechts positief). 42 m/s is 150 km/u: veel sneller
- dan elke gewone auto in dit spel (80), trager dan de Ferrari (200). Met 47 m/s
- (170) werd de Ferrari in de proef vierde: een speler moet dan foutloos door elke
- bocht, en dat is geen race meer maar een examen.
+ hun strook opzij van de as (m, rechts positief).
+
+ Eerst 47 m/s (170 km/u): toen reed de automaat van de proef nog over de
+ parallelweg met de paaltjes, en werd hij vierde. Daarna 42, 40 en 38: toen won
+ hij met acht seconden voorsprong, en de gebruiker vond dat te makkelijk (27 sep
+ 2026: "zorg dat de andere auto's de route goed kunnen rijden, dus niet dat je
+ gemakkelijk wint"). Nu scherper door de bochten en sneller op het rechte stuk, en
+ met `RACE.bijblijven`: wie ver voorligt krijgt ze weer in de nek.
 */
 export const TEGENSTANDERS = [
-  { naam: 'de zwarte Ferrari', soort: 'ferrari', kleur: 0x141518, top: 42, dwars: 8.5, trek: 7.0, opzij: -1.4 },
-  { naam: 'de witte Golf', soort: 'hatch', kleur: 0xe9eaec, top: 40, dwars: 8.0, trek: 6.4, opzij: -1.4 },
-  { naam: 'de blauwe BX', soort: 'bx', kleur: 0x1f4f9a, top: 38, dwars: 7.5, trek: 6.0, opzij: 1.4 },
+  { naam: 'de zwarte Ferrari', soort: 'ferrari', kleur: 0x141518, top: 50, dwars: 11, trek: 8.5, opzij: -1.2 },
+  { naam: 'de witte Golf', soort: 'hatch', kleur: 0xe9eaec, top: 47, dwars: 10, trek: 7.8, opzij: -1.2 },
+  { naam: 'de blauwe BX', soort: 'bx', kleur: 0x1f4f9a, top: 45, dwars: 9.5, trek: 7.2, opzij: 1.2 },
 ];
 // de speler staat tweede op de grid, rechts; om en om links en rechts
-const SPELER_VAK = 1, SPELER_OPZIJ = 1.4;
+const SPELER_VAK = 1, SPELER_OPZIJ = 1.2;
+// (stroken van ±1,2 m: twee auto's naast elkaar, en een halve meter tot de lantaarnpalen
+// aan de rand, die op zo'n 2,8 m van de as staan)
 
 function bouwLijn(KAART) {
   const nav = new Navigatie(KAART.wegassen);
@@ -221,8 +239,61 @@ export function initRace({ scene, vehicles, KAART }) {
   finish.visible = false;
   scene.add(finish);
 
+  /*
+   ---- de pijlen op de weg ----
+   Gele punthaken op het wegdek, de driehonderd meter vóór je, met een looplicht dat
+   in de rijrichting over de rij loopt (verzoek 27 sep 2026: "met bepaalde pijltjes
+   die licht geven aangeven hoe het loopt"). Eén InstancedMesh zonder licht (Basic),
+   dus ze zijn even fel bij dag en bij nacht.
+  */
+  const pijlVorm = new THREE.Shape();
+  pijlVorm.moveTo(-0.8, -0.45); pijlVorm.lineTo(0, 0.45); pijlVorm.lineTo(0.8, -0.45);
+  pijlVorm.lineTo(0.42, -0.45); pijlVorm.lineTo(0, -0.02); pijlVorm.lineTo(-0.42, -0.45);
+  pijlVorm.closePath();
+  const pijlGeo = new THREE.ShapeGeometry(pijlVorm);
+  pijlGeo.rotateX(-Math.PI / 2);                 // plat op de weg, de punt naar −z (vooruit)
+  // gewoon doorzichtig en niet optellend: optellend werd een pijl in de koplampbundel wit
+  const pijlMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, depthWrite: false,
+    polygonOffset: true, polygonOffsetFactor: -2 });
+  const pijlen = new THREE.InstancedMesh(pijlGeo, pijlMat, RACE.pijlen.n);
+  pijlen.frustumCulled = false; pijlen.renderOrder = 2; pijlen.visible = false;
+  const kleur = new THREE.Color(), mat4 = new THREE.Matrix4(), kwart = new THREE.Quaternion(), as = new THREE.Vector3(0, 1, 0);
+  /*
+   De vorm is 1,6 m breed; zo liggen ze 3,2 bij 2,5 m op de weg. Op ware grootte waren
+   ze vanaf de bestuurdersstoel, onder die platte hoek, na twintig meter een streepje.
+  */
+  const pos3 = new THREE.Vector3(), een = new THREE.Vector3(2, 1, 2.8), nul = new THREE.Vector3(0, 0, 0);
+  for (let i = 0; i < RACE.pijlen.n; i++) { pijlen.setMatrixAt(i, mat4.identity()); pijlen.setColorAt(i, kleur.setRGB(1, 0.7, 0.1)); }
+  scene.add(pijlen);
+  let pijlenAan = false, pijlT = 0;
+  function zetPijlen() {
+    pijlen.visible = pijlenAan;
+    if (!pijlenAan) return;
+    const L = lijnNu(), P = RACE.pijlen;
+    const s0 = Math.ceil((spelerS + 8) / P.af) * P.af;
+    for (let i = 0; i < P.n; i++) {
+      const s = s0 + i * P.af;
+      if (s > L.lengte - 10) { mat4.compose(pos3.set(0, -50, 0), kwart.identity(), nul); pijlen.setMatrixAt(i, mat4); continue; }
+      const p = punt(s);
+      kwart.setFromAxisAngle(as, p.yaw);
+      // op het hoogste vlak van de kaart ter plekke (een berm of stoep ligt op 0,12 m),
+      // zeven centimeter erboven
+      const v = vlakOp(p.x, p.z);
+      mat4.compose(pos3.set(p.x, (v ? v.y : 0) + 0.07, p.z), kwart, een);
+      pijlen.setMatrixAt(i, mat4);
+      // het looplicht: een golf die met vijf pijlen per seconde de weg op loopt
+      const golf = Math.max(0, Math.cos((s / P.af) * 0.7 - pijlT * 5));
+      // van donker amber naar felgeel
+      const licht = golf ** 4;
+      pijlen.setColorAt(i, kleur.setRGB(0.55 + 0.45 * licht, 0.30 + 0.60 * licht, 0.02 + 0.28 * licht));
+    }
+    pijlen.instanceMatrix.needsUpdate = true;
+    pijlen.instanceColor.needsUpdate = true;
+  }
+
   // ---- de tegenstanders: pas bij de eerste race neergezet, daarna hergebruikt ----
-  const rijders = TEGENSTANDERS.map(t => ({ ...t, car: null, s: 0, v: 0, prof: null, klaar: false, tijd: null }));
+  const rijders = TEGENSTANDERS.map(t => ({ ...t, car: null, s: 0, v: 0, u: t.opzij, uDoel: t.opzij, prof: null, klaar: false, tijd: null }));
+  let spelerV = 0, spelerU = 0;
   let cps = [];            // de s van elk controlepunt; de laatste is de finish
   let cpNu = 0;            // het eerstvolgende controlepunt van de speler
   let spelerS = 0, spelerI = 0;
@@ -282,7 +353,7 @@ export function initRace({ scene, vehicles, KAART }) {
     rijders.forEach((r, k) => {
       const vak = k < SPELER_VAK ? k : k + 1;   // de speler staat tweede
       r.s = RACE.startS - 4 - vak * RACE.vak;
-      r.v = 0; r.klaar = false; r.tijd = null;
+      r.v = 0; r.klaar = false; r.tijd = null; r.u = r.uDoel = r.opzij;
       if (!r.prof) r.prof = profiel(L, r);
       const p = punt(r.s, r.opzij);
       if (!r.car) {
@@ -308,9 +379,11 @@ export function initRace({ scene, vehicles, KAART }) {
   }
 
   function start() { loopt = true; klok = 0; zetRingen(); }
+  function toonPijlen(aan) { pijlenAan = !!aan; zetPijlen(); }
 
   function ruimOp() {
     loopt = false;
+    pijlenAan = false; pijlen.visible = false;
     for (const r of ringen) r.visible = false;
     finish.visible = false;
     for (const r of rijders) if (r.car) {
@@ -326,26 +399,48 @@ export function initRace({ scene, vehicles, KAART }) {
   function update(dt, sp) {
     const L = lijnNu();
     if (!L) return null;
-    for (const r of ringen) if (r.visible) r.scale.setScalar(1 + Math.sin(klok * 5) * 0.03);
+    for (const r of ringen) if (r.visible) r.scale.setScalar(1 + Math.sin(pijlT * 5) * 0.03);
+    pijlT += dt;
+    // de speler: langs de lijn, hoe hard, en hoe ver opzij van de as
+    const v = voortgang(sp.x, sp.z, spelerI);
+    if (dt > 0) spelerV += ((v.s - spelerS) / dt - spelerV) * Math.min(1, dt * 4);
+    spelerS = v.s; spelerI = v.i;
+    spelerU = (sp.x - L.x[v.i]) * -L.tz[v.i] + (sp.z - L.z[v.i]) * L.tx[v.i];
+    zetPijlen();
     if (!loopt) return stand();
     klok += dt;
+    const B = RACE.bijblijven, U = RACE.uitwijken;
     for (const r of rijders) {
       if (!r.car) continue;
       const i = Math.min(L.n - 1, Math.max(0, Math.round(r.s / RACE.stap)));
-      const doel = r.klaar ? 0 : r.prof[i];
+      // bijblijven: harder als de speler voorligt, zachter als hij ver achter zit
+      const verschil = Math.max(-B.zachter, Math.min(B.sneller, (spelerS - r.s) / B.per));
+      let doel = r.klaar ? 0 : r.prof[i] * (1 + verschil);
+      /*
+       Uitwijken. Wie vlak vóór hem op zijn strook rijdt (de speler of een andere
+       tegenstander) staat in de weg: dan naar de andere strook als die vrij is, en
+       anders erachter blijven met diens snelheid. Eerst reden ze gewoon door elkaar
+       en door de speler heen.
+      */
+      const anderen = [{ s: spelerS, u: spelerU, v: spelerV }, ...rijders.filter(q => q !== r && q.car).map(q => ({ s: q.s, u: q.u, v: q.v }))];
+      const inDeWeg = (u) => anderen.find(o => o.s - r.s > -U.achter && o.s - r.s < U.voor && Math.abs(o.u - u) < U.opzij);
+      const voor = anderen.find(o => o.s - r.s > 0 && o.s - r.s < U.voor && Math.abs(o.u - r.u) < U.opzij);
+      if (voor && !r.klaar) {
+        const ander = r.uDoel > 0 ? -Math.abs(r.opzij) : Math.abs(r.opzij);
+        if (!inDeWeg(ander)) r.uDoel = ander;
+        else doel = Math.min(doel, Math.max(0, voor.v - 0.5));
+      } else if (Math.abs(r.uDoel - r.opzij) > 0.01 && !inDeWeg(r.opzij)) r.uDoel = r.opzij;
+      r.u += Math.max(-U.wissel * dt, Math.min(U.wissel * dt, r.uDoel - r.u));
       const vorig = r.v;
-      if (r.v < doel) r.v = Math.min(doel, r.v + r.trek * (1 - r.v / (r.top + 8)) * dt * 1.6);
+      if (r.v < doel) r.v = Math.min(doel, r.v + r.trek * (1 - r.v / (r.top * (1 + B.sneller) + 8)) * dt * 1.6);
       else r.v = Math.max(doel, r.v - RACE.remmen * dt);
       r.s = Math.min(L.lengte + 60, r.s + r.v * dt);
       if (!r.klaar && r.s >= cps[cps.length - 1]) { r.klaar = true; r.tijd = klok; }
       const vorigeYaw = r.car.yaw;
-      const p = punt(Math.min(r.s, L.lengte), r.opzij);
+      const p = punt(Math.min(r.s, L.lengte), r.u);
       r.car.x = p.x; r.car.z = p.z; r.car.yaw = p.yaw; r.car.speed = r.v;
       vehicles.zetNeer(r.car, dt, vorigeYaw, { gas: r.v > vorig, rem: r.v < vorig - 0.02 });
     }
-    // de speler: langs de lijn, en door de ringen
-    const v = voortgang(sp.x, sp.z, spelerI);
-    spelerS = v.s; spelerI = v.i;
     if (spelerTijd == null && cpNu < cps.length) {
       const c = punt(cps[cpNu]);
       if (Math.hypot(sp.x - c.x, sp.z - c.z) < RACE.cpStraal) {
@@ -368,11 +463,14 @@ export function initRace({ scene, vehicles, KAART }) {
       else if (r.klaar || r.s > spelerS) voor++;
     }
     return { plek: voor + 1, van: rijders.length + 1, cp: cpNu, cps: cps.length, klaar, tijd: spelerTijd, klok,
-      eersteKlaar: rijders.some(r => r.klaar), afstand: spelerS };
+      eersteKlaar: rijders.some(r => r.klaar), afstand: spelerS, opzij: spelerU, vaart: spelerV,
+      // voorbij de eerstvolgende ring zonder erdoor te gaan: hoeveel meter
+      gemist: cpNu < cps.length ? Math.max(0, spelerS - cps[cpNu]) : 0 };
   }
 
   return {
-    klaarzetten, start, update, ruimOp, punt, voortgang, stand,
+    klaarzetten, start, update, ruimOp, punt, voortgang, stand, toonPijlen,
+    get pijlen() { return pijlen; },
     get lijn() { return lijnNu(); },
     get lengte() { const L = lijnNu(); return L ? L.lengte : 0; },
     get controlepunten() { return cps.slice(); },

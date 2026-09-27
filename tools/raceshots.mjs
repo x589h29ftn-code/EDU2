@@ -4,6 +4,7 @@
    race_ronald.png   Ronald voor zijn huis aan de Lemmerweg 80, bij de schuur
    race_grid.png     die nacht op de Lemmerweg bij de BP: de grid, De Boer en
                      Ronald langs de kant, zijn politieauto, de eerste ring
+   race_pijlen.png   na het startsein: de lichtpijlen op de Lemmerweg
    race_ring.png     onderweg: de zwarte Ferrari op weg naar een ring
    race_finish.png   de finish in IJlst, met De Boer, Ronald en de politieauto
 
@@ -123,10 +124,29 @@ await page.evaluate(() => {
 // --------------------------------------------------------------- onderweg
 await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
+  // (de camera van de foto haalde je uit de auto: weer erin, anders beginnen de
+  // pijlen bij de plek van de camera en niet bij jou)
+  const auto = v.race.auto;
+  g.player.inCar = auto; g.player.pos.set(auto.x, 0, auto.z);
   // (de foto verbergt de balk; het gesprek loopt nog, dus gewoon E tot het aftellen)
   document.getElementById('dialoog').hidden = false;
   for (let i = 0; i < 20 && v.fase === 'start'; i++) { g.praat(); window.__stap(2); }
   window.__stap(70);                      // het aftellen
+});
+// ------------------------------------------------- de pijlen op de weg
+{
+  const p = await page.evaluate(() => {
+    // (de camera van de vorige foto haalde je uit de auto: dus de auto van de race zelf)
+    const v = window.__game.verhaal, R = v.race.race, car = v.race.auto;
+    const q = R.voortgang(car.x, car.z);
+    return { a: R.punt(q.s - 9, 0.4), b: R.punt(q.s + 34, 0) };
+  });
+  await bevries();
+  await kamera(p.a.x, 3.4, p.a.z, p.b.x, 0, p.b.z);
+  await foto('race_pijlen');
+  await ontdooi();
+}
+await page.evaluate(() => {
   window.__stap(300);                     // vijftien tellen racen
 });
 {

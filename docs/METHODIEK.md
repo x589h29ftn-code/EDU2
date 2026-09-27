@@ -6298,6 +6298,46 @@ race van ongeveer de BP naar IJlst, met de finish in IJlst.
 - *Instappen* staat nu los in js/main.js (`stapInAuto`), zodat het verhaal je aan
   de start zelf in je Ferrari kan zetten.
 
+**De race: pijlen, sterkere tegenstanders, en verliezen (stap 94).** Gevraagd (27
+sep 2026): de route met oplichtende pijltjes aangeven, de tegenstanders de route goed
+laten rijden zodat je niet makkelijk wint, en bedenken wat er gebeurt als je niet
+wint.
+
+- *De pijlen.* Een InstancedMesh van 34 punthaken plat op de weg, om de negen meter
+  vanaf acht meter voor je, in amber dat met het looplicht felgeel wordt (eerst
+  optellend getekend, maar in de koplampbundel werd een pijl dan wit),
+  met een looplicht (een cosinusgolf die met vijf pijlen per seconde de weg op
+  loopt). Hij wordt bij het opstarten gemaakt met een kleur per pijl, zodat de shader
+  met instance-kleuren al vertaald is (`vloeiendtest`). Op de eerste foto waren ze er
+  niet, terwijl de proef ze wel op de goede plek vond. Van bovenaf gefotografeerd
+  (met een magenta kopie ernaast om te zien of er überhaupt iets getekend werd) bleek
+  waarom: de eerste lag onder de zwarte Ferrari, en de rest was 1,6 m breed, wat
+  vanaf de bestuurdersstoel onder die platte hoek na twintig meter een streepje is. En
+  op de foto begonnen ze bij de camera van de vorige foto in plaats van bij de auto.
+  Nu zijn ze 3,2 bij 2,5 m.
+- *Sterkere tegenstanders*: top 50, 47 en 45 m/s, scherper door de bochten, en
+  *bijblijven*: tot tien procent harder als de speler voorligt, tot zes procent
+  zachter als hij ver achter zit. En *uitwijken*: wie vlak voor hen op hun strook
+  rijdt, de speler of een andere tegenstander, daar gaan ze naast of blijven ze
+  achter. Eerst reden ze door elkaar en door de speler heen.
+- *Ijken met automaten.* Hoe hard een automaat een bocht in durft (m/s²) is de maat:
+  op 12 werd hij tweede (0,8 s achter de zwarte Ferrari), op 20 en 30 eerste. Met de
+  eerste versie van de automaat zeiden die getallen weinig: hij stuurde na de start naar
+  het midden van de weg, reed de koploper 1,2 m links van hem van achteren aan, en
+  stond daarna zeven tellen klem tussen die auto en een lantaarnpaal. Tien tot
+  vierentwintig botsingen per race, en een uitslag die per ronde verschilde. Nu
+  blijft hij aan de andere kant van de dichtstbijzijnde auto vóór hem: vier
+  botsingen, geen met een tegenstander. De proef rijdt een goede (22) en een slordige
+  (8): de goede wint met zes seconden, de slordige wordt vierde met de hele groep binnen
+  vier seconden.
+- *Verliezen* is niet meer gewoon opnieuw (dat liep via `mislukt`, en dat laadt de
+  opslag). De Boer komt verhaal halen, bij de finish of aan de telefoon: Ronalds schuld
+  (€ 1.500) is nu van jou. 1: nog een keer, dubbel of niks (verlies je weer, dan is de
+  schuld het dubbele); 2: betalen, en de missie is voorbij zonder beloning. De cijfers
+  gaan via `kiesHuis`, net als de woningen van missie 9.
+- *Onderweg*: een gemiste ring, de verkeerde kant op, uitgestapt (na twintig tellen
+  verloren) en je plek, allemaal in beeld.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

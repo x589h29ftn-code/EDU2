@@ -2029,23 +2029,50 @@ zijn uitleg telt hij af: drie, twee, één, **START!**
 Het parcours: de Lemmerweg af, over de rotonde en de hoofdweg naar het zuiden, dan
 anderhalve kilometer rechtdoor over de **Sudergoweg** en door De Sânhorst en De Kling
 naar de **finish in IJlst, bij de Poiesz**, samen 2,7 km. Onderweg hangen **gele ringen** over de weg: de eerstvolgende
-fel, die daarna flauw. Wie er niet door rijdt, telt niet. De minikaart wijst de weg
-en de opdrachtregel houdt je plek bij (*"2e van 4 · ring 5 van 9"*).
+fel, die daarna flauw. Wie er niet door rijdt, telt niet. Op het wegdek liggen
+**oplichtende pijlen**, de driehonderd meter vóór je, met een looplicht dat de
+rijrichting op loopt; de minikaart wijst de weg en de opdrachtregel houdt je plek bij
+(*"2e van 4 · ring 5 van 9"*).
+
+![De pijlen op de weg](docs/screenshots/race_pijlen.png)
 
 De drie tegenstanders (een zwarte Ferrari, een witte Golf en een blauwe BX) rijden
-rond de 150 km/u. Met de Ferrari haal je ze in; met een gewone auto niet.
+tot 180 km/u en nemen de bochten scherp. Ze wijken uit voor jou en voor elkaar, en
+ze blijven in de buurt: lig je ver voor, dan rijden ze iets harder, lig je ver
+achter, iets zachter. Met een gewone auto haal je ze niet in, en ook met de Ferrari
+moet je goed rijden: wie de bochten te voorzichtig neemt, of een paar keer tegen een
+paal rijdt, verliest.
+
+Onderweg zegt het scherm wat er misgaat:
 
 | | |
 |---|---|
-| gewonnen | stop bij De Boer bij de finish: de schuld is afgelost, **€ 2.000** voor jou, en *"Erik… Erik van Mark? Dan hebben wij binnenkort nog wat te bespreken."* |
-| verloren | tweede of later, of 45 seconden na de winnaar nog niet binnen: **opnieuw vanaf de start**, meteen weer 's nachts op de grid |
-| Ferrari total loss | ook opnieuw; heb je er geen meer, dan leent Ronald je er een |
+| een ring gemist | ***RING GEMIST***: terug, want zonder die ring telt de rest niet |
+| de verkeerde kant op | ***VERKEERDE KANT OP*** |
+| uitgestapt | *"Stap in — de race loopt!"*, en na twintig tellen is het verloren |
+| je plek verandert | *"2e!"* in beeld |
+
+**Gewonnen**: stop bij De Boer bij de finish. De schuld is afgelost, **€ 2.000** voor
+jou, en *"Erik… Erik van Mark? Dan hebben wij binnenkort nog wat te bespreken."*
+
+**Verloren** (tweede of later, 45 seconden na de winnaar nog niet binnen, twintig
+tellen uitgestapt, of de Ferrari total loss): De Boer komt verhaal halen. Bij de
+finish staat hij naast je, anders belt hij. *"Ronald is me € 1.500 schuldig. Dat is
+nu jouw probleem."* Dan kies je:
+
+| toets | wat |
+|---|---|
+| **1** | **nog een keer rijden, dubbel of niks**: je staat weer op de grid (*"Even later…"*). Win je, dan is alles weg en krijg je de € 2.000; verlies je weer, dan is de schuld het dubbele (€ 3.000, € 6.000, …) |
+| **2** | **de schuld betalen**: de missie is voorbij, zonder beloning. *"Verstandig. Ronald is van me af."* Heb je het geld niet, dan rij je toch nog een keer |
+
+Is je Ferrari total loss en heb je er geen meer, dan leent Ronald je er een.
 
 ![De finish in IJlst](docs/screenshots/race_finish.png)
 
 **shift + ]** start de missie los. `npm run racetest` speelt hem na, van het
 telefoontje tot de € 2.000, met een automaat die de Ferrari met het gewone rijgedrag
-over het parcours stuurt; `npm run raceshots` maakt de vier foto's.
+over het parcours stuurt, een goede en een slordige, en het verliezen met de keuze bij De
+Boer; `npm run raceshots` maakt de vijf foto's.
 
 ### Na missie 10: de bende op straat
 

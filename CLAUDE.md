@@ -173,8 +173,10 @@ Lemmerweg 80. Bij zijn schuur: De Boer, de races; geen Ferrari (`eigenFerrari`, 
 js/garage.js) dan een A bij het Autohuis en legt Ronald bij wat je tekortkomt. Gekocht:
 hij belt, "Die nacht…", 01:00 op de grid (`opDeStart`, `ctx.stapIn`), De Boer en Ronald
 langs de kant met zijn politieauto. Aftellen, de race (js/race.js), eerste bij de finish in
-IJlst: stoppen bij De Boer, € 2.000. Verloren: grijs en opnieuw op de grid (`raceVerloren`,
-niet via `mislukt`, dat de opslag laadt). **shift+]** start hem los.
+IJlst: stoppen bij De Boer, € 2.000. Lichtpijlen op de weg (`race.toonPijlen`); de tegenstanders
+blijven bij (`RACE.bijblijven`) en wijken uit. Verloren (`raceVerloren`, niet via `mislukt`, dat de
+opslag laadt): De Boer, dan 1 dubbel of niks of 2 de schuld betalen (`raceKeuze`, via `kiesHuis`).
+**shift+]** start hem los.
 
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
@@ -198,8 +200,8 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
 De laatste die ertoe doen: `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
-met een automaat die de Ferrari over het parcours rijdt; stap 93) met `raceshots` (vier
-foto's); `npm run garagetest` (de showroom aan de Lemmerweg: plek, glas, deur,
+met een automaat die de Ferrari over het parcours rijdt, goed en slordig, en het verliezen;
+stap 93–94) met `raceshots` (vijf foto's); `npm run garagetest` (de showroom aan de Lemmerweg: plek, glas, deur,
 kopen, Ferrari-model en topsnelheid, opslaan; stap 92) met `garageshots` (vier foto's); `npm run schrifttest` (het einde van missie 12 en
 missie 13; stap 91) met `schriftshots` (vier foto's); `npm run brugtest` (missie 12 van de M tot de € 5.000,
 met de dekking achter een auto gemeten, 65 controles; stap 89) met `brugshots` (zeven foto's);

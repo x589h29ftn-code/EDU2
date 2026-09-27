@@ -649,6 +649,30 @@ const RACE_UUR = 1.0;               // "Die nacht": één uur
 const RACE_PRIJS = 3000;            // wat een Ferrari bij het Autohuis kost
 const RACE_BELONING = 2000;
 const RACE_TE_LAAT = 45;            // zo lang na de eerste over de finish is het voorbij (s)
+const RACE_SCHULD = 1500;           // Ronalds schuld bij De Boer; na een verloren revanche het dubbele
+const RACE_UIT_MAX = 20;            // zo lang (s) mag je tijdens de race buiten je auto staan
+/*
+ Verliezen (verzoek 27 sep 2026: "wat als je niet wint, bedenk dat soort zaken
+ ook"). Dan is de race niet gewoon opnieuw: De Boer komt verhaal halen. Ronalds
+ schuld wordt van jou, en je kiest: 1, nog een keer rijden, dubbel of niks (verlies
+ je weer, dan is de schuld het dubbele), of 2, de schuld betalen. Betalen rondt de
+ missie af zonder beloning; heb je het geld niet, dan blijft alleen rijden over.
+*/
+const RACE_VERLOREN = (schuld) => [
+  zegtDeBoer('Verloren is verloren, jongen.'),
+  zegtDeBoer(`Ronald is me ${euro(schuld)} schuldig. Dat is nu jouw probleem.`),
+  zegtRonald('Erik, het spijt me…'),
+  zegtDeBoer('Of je rijdt nog een keer. Dubbel of niks: win je, dan is alles weg. Verlies je, dan is het het dubbele.'),
+  zegtDeBoer(`<b>1</b> — nog een keer rijden · <b>2</b> — ${euro(schuld)} betalen`),
+];
+const RACE_REVANCHE = [zegtDeBoer('Dat dacht ik al. Terug naar de start.')];
+const RACE_TE_ARM = (schuld) => [zegtDeBoer(`${euro(schuld)}? Dat heb je niet eens. Dan rij je nog een keer.`)];
+const RACE_BETAALD = [
+  zegtDeBoer('Verstandig. Ronald is van me af.'),
+  zegtRonald('Ik betaal je terug, Erik. Ooit.'),
+  zegtDeBoer('Wacht eens… Erik. Erik van Mark?'),
+  zegtDeBoer('Dan hebben wij binnenkort nog wat te bespreken.'),
+];
 const RACE_TELEFOON = [
   zegtRonald('Erik! Met Ronald. Lang niet gesproken, jongen.'),
   zegtErik('Ronald! Alles goed?'),
@@ -3379,6 +3403,8 @@ export function initVerhaal(ctx) {
    naar die woning; je mag onderweg van gedachten veranderen.
   */
   function kiesHuis(nr) {
+    // (na een verloren race in missie 14 gaan 1 en 2 over de keuze bij De Boer)
+    if (missie === 'race' && fase === 'keuze') return raceKeuze(nr);
     if (!huisAanbod || huisGekozen) return false;
     const lijst = stekLijst();
     const w = lijst[nr - 1];
@@ -5235,6 +5261,10 @@ export function initVerhaal(ctx) {
   let raceBijgelegd = false;
   let raceStandT = 0, raceNavT = 0;
   let raceUitslag = null;
+  let raceSchuld = RACE_SCHULD;    // wat Ronald De Boer schuldig is (dubbel na elke verloren revanche)
+  let raceRondes = 0;              // hoe vaak je al verloren hebt
+  let raceVerloor = null;          // waarom
+  let raceUitT = 0, raceKantT = 0, raceGemistCp = -1, raceVorigePlek = 0, raceLaatste = false;
 
   // Ronald voor zijn huis, bij de schuur, met zijn gezicht naar de weg
   function ronaldPlek() {
@@ -5263,11 +5293,13 @@ export function initVerhaal(ctx) {
       if (raceBoerAuto.mesh) { raceBoerAuto.mesh.visible = false; raceBoerAuto.mesh.position.set(1e5, 0, 1e5); }
     }
     raceAftel = 0; raceOverT = 0; raceTeLaatT = 0; raceVerplaatst = false; raceUitslag = null;
+    raceUitT = 0;
   }
 
   function beginRace() {
     fase = 'telefoon';
     ruimRaceOp();
+    raceSchuld = RACE_SCHULD; raceRondes = 0; raceVerloor = null;
     raceT = 1.2;
     markZichtbaar(false);
     zetOpdracht('neem de telefoon op');
@@ -5342,6 +5374,8 @@ export function initVerhaal(ctx) {
     hud.zetNavigatie(null); navDoel = null;
     zetOpdracht('luister naar De Boer');
     spanning = false;
+    race.toonPijlen(true);
+    raceUitT = 0; raceKantT = 0; raceGemistCp = -1; raceVorigePlek = 0; raceLaatste = false;
     zeg(RACE_START, aftellen);
   }
   function zetBoerAuto(q) {
@@ -5362,16 +5396,67 @@ export function initVerhaal(ctx) {
     raceTeLaatT = 0; raceStandT = 0; raceNavT = 0;
     hud.show('START!', 1.6);
   }
+  /*
+   Verloren. Eerst even VERLOREN in beeld, dan komt De Boer verhaal halen: bij de
+   finish staat hij naast je, en anders belt hij. Daarna de keuze (`raceKeuze`).
+  */
   function raceVerloren(reden) {
-    if (raceOverT > 0) return;
-    fase = 'verloren';
-    raceOverT = 3.4;
+    if (fase === 'verloren' || fase === 'keuze') return;
+    fase = 'verloren'; zetPunt('start');
+    raceVerloor = reden; raceRondes++;
+    raceOverT = 2.6;
     spanning = false; spanningUit = 0;
     gesprek = null; sluitBalk();
     zetOpdracht('');
-    hud.zetGrijs(true);
-    hud.melding('MISSIE MISLUKT', `${reden} Nog een keer, vanaf de start.`, 4);
-    player.active = false;
+    race.toonPijlen(false);
+    for (const r of race.ringen) r.visible = false;
+    hud.melding('VERLOREN', reden, 4);
+  }
+  function naVerlies(sp) {
+    // na een verloren revanche is de schuld het dubbele
+    if (raceRondes > 1) raceSchuld = RACE_SCHULD * 2 ** (raceRondes - 1);
+    const dichtbij = afst(sp, deBoer.groep.position) < 60 && deBoer.groep.visible;
+    if (!dichtbij) geluid.telefoon(1);
+    zeg(RACE_VERLOREN(raceSchuld), () => {
+      fase = 'keuze';
+      zetOpdracht(`1 — nog een keer rijden (dubbel of niks) · 2 — ${euro(raceSchuld)} betalen`);
+      hud.melding('WAT DOE JE?', `1 — nog een keer rijden · 2 — Ronalds schuld betalen (${euro(raceSchuld)})`, 8);
+    }, dichtbij ? {} : { wie: 'De Boer', telefoon: true, kop: KOPPEN.deboer });
+  }
+  // 1 of 2 na een verloren race (js/main.js stuurt de cijfers via `kiesHuis`)
+  function raceKeuze(nr) {
+    if (missie !== 'race' || fase !== 'keuze') return false;
+    if (nr === 1) {
+      fase = 'revanche';
+      zetOpdracht('');
+      zeg(RACE_REVANCHE, () => zwartMet('Even later…', opDeStart));
+      return true;
+    }
+    if (nr === 2) {
+      if (geld < raceSchuld) {
+        fase = 'revanche';
+        zetOpdracht('');
+        zeg(RACE_TE_ARM(raceSchuld), () => zwartMet('Even later…', opDeStart));
+        return true;
+      }
+      betaal(raceSchuld);
+      fase = 'afronding';
+      zetOpdracht('');
+      zeg(RACE_BETAALD, raceAfgekocht);
+      return true;
+    }
+    return false;
+  }
+  // de schuld betaald: de missie is voorbij, zonder beloning
+  function raceAfgekocht() {
+    const betaald = raceSchuld;
+    fase = 'klaar';
+    missie = 'klaar';
+    raceKlaar = true;
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+    hud.melding('MISSIE VOLTOOID – DE RACE', `Verloren, maar Ronald is van De Boer af: je betaalde ${euro(betaald)}.`, 8);
+    race.ruimOp();
   }
   function raceGeslaagd() {
     fase = 'klaar';
@@ -5399,7 +5484,13 @@ export function initVerhaal(ctx) {
     if (fase === 'klaar') return;
     if (raceOverT > 0) {
       raceOverT -= dt;
-      if (raceOverT <= 0) { hud.zetGrijs(false); player.active = true; opDeStart(); }
+      if (raceOverT <= 0) naVerlies(sp);
+      return;
+    }
+    if (fase === 'verloren' || fase === 'keuze' || fase === 'revanche' || fase === 'afronding') {
+      for (const p of [ronald, deBoer]) if (p.groep.visible) { p.kijkNaar(sp.x, sp.z, dt, 2); p.update(dt, {}); }
+      // de tegenstanders rijden na de finish nog uit
+      race.update(dt, sp);
       return;
     }
     if (fase === 'naarRonald' || fase === 'auto') {
@@ -5475,8 +5566,35 @@ export function initVerhaal(ctx) {
         zetBoerAuto(ea);
       }
       if (raceAuto && (raceAuto.wrak || (raceAuto.hp ?? 100) <= 0)) { raceVerloren('Je Ferrari is total loss.'); return; }
+      /*
+       Wat er onderweg mis kan gaan. Een ring gemist: dan telt de race niet door tot
+       je terug bent (de ring blijft staan). De verkeerde kant op. Uitgestapt: na
+       twintig tellen is het verloren. En je plek, zodra die verandert.
+      */
+      if (st.gemist > 35 && raceGemistCp !== st.cp) {
+        raceGemistCp = st.cp;
+        hud.melding('RING GEMIST', `Terug naar ring ${st.cp + 1}: zonder die ring telt het niet.`, 4);
+      }
+      if (raceKantT > 0) raceKantT -= dt;
+      if (player.inCar && raceKantT <= 0 && Math.abs(player.inCar.speed) > 6) {
+        const L = race.lijn, v = race.voortgang(sp.x, sp.z);
+        const vooruit = -Math.sin(player.inCar.yaw) * L.tx[v.i] - Math.cos(player.inCar.yaw) * L.tz[v.i];
+        if (vooruit * Math.sign(player.inCar.speed) < -0.4) { raceKantT = 2.5; hud.show('VERKEERDE KANT OP', 1.6); }
+      }
+      if (!player.inCar) {
+        raceUitT += dt;
+        if (Math.floor(raceUitT / 4) !== Math.floor((raceUitT - dt) / 4)) hud.show(`Stap in — de race loopt! (${Math.ceil(RACE_UIT_MAX - raceUitT)} s)`, 2.5);
+        if (raceUitT > RACE_UIT_MAX) { raceVerloren('Uitgestapt: dat rekent De Boer als verloren.'); return; }
+      } else raceUitT = 0;
+      if (st.plek !== raceVorigePlek) {
+        if (raceVorigePlek && st.plek < raceVorigePlek) hud.show(`${st.plek}e!`, 1.4);
+        else if (raceVorigePlek) hud.show(`${st.plek}e`, 1.4);
+        raceVorigePlek = st.plek;
+      }
+      if (!raceLaatste && st.cp === st.cps - 1) { raceLaatste = true; hud.show('LAATSTE STUK: DE FINISH!', 2.2); }
       if (st.klaar) {
         raceUitslag = { plek: st.plek, tijd: st.tijd };
+        race.toonPijlen(false);
         if (st.plek === 1) {
           fase = 'finish';
           spanningUit = 4;
@@ -5511,7 +5629,9 @@ export function initVerhaal(ctx) {
    weer; en vanaf de nacht sta je weer op de grid.
   */
   function hervatRace(f) {
+    const schuld = raceSchuld, rondes = raceRondes;
     beginRace();
+    raceSchuld = schuld; raceRondes = rondes;
     if (f === 'telefoon') return;
     if (f === 'naarRonald' || f === 'uitleg') { naarRonald(); return; }
     if (f === 'auto' || f === 'gekocht') { naarRonald(); ronald.groep.visible = false; raceBijgelegd = true; naarHetAutohuis(); zetPunt('auto'); return; }
@@ -5842,6 +5962,8 @@ export function initVerhaal(ctx) {
       veteraanKlaar: vetKlaar,
       politieautoKlaar: polKlaar,
       brugKlaar, schriftKlaar, raceKlaar,
+      // missie 14: wat Ronald De Boer nog schuldig is, en hoe vaak je verloor
+      raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
     };
   }
@@ -5877,6 +5999,8 @@ export function initVerhaal(ctx) {
     brugKlaar = !!s.brugKlaar;
     schriftKlaar = !!s.schriftKlaar;
     raceKlaar = !!s.raceKlaar;
+    raceSchuld = typeof s.raceSchuld === 'number' ? s.raceSchuld : RACE_SCHULD;
+    raceRondes = s.raceRondes || 0;
     // na missie 12 heeft de Dúvelsrak een gat
     if (brugSchade) {
       if (brugKlaar) { const g = brugP(BRUG_GAT, 0); brugSchade.zet(g.x, brug.hoogte, g.z, brug.noord); brugSchade.toon(true); }
@@ -6082,7 +6206,8 @@ export function initVerhaal(ctx) {
     get race() {
       return { klaar: raceKlaar, race, ronald, deBoer, auto: raceAuto, leen: raceLeen, boerAuto: raceBoerAuto,
         plek: racePlek, huis: ronaldPlek(), pand: !!racePandAanwezig(), uitslag: raceUitslag, overT: raceOverT,
-        verplaatst: raceVerplaatst, bijgelegd: raceBijgelegd, wachtT: naMissieNaam === 'race' ? naMissieT : 0 };
+        verplaatst: raceVerplaatst, bijgelegd: raceBijgelegd, wachtT: naMissieNaam === 'race' ? naMissieT : 0,
+        schuld: raceSchuld, rondes: raceRondes, verloor: raceVerloor, uitT: raceUitT };
     },
     get schutterAutos() { return schutterAutos; },
     get zwart() { return zwart; },
