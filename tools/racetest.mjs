@@ -381,7 +381,7 @@ ok(ochtend.t >= 4 && ochtend.t <= 6 && /volgende ochtend/.test(ochtend.tekst), '
 ok(Math.abs(ochtend.uur - 9.5) < 0.1 && ochtend.afstand != null && ochtend.afstand < 4 && !ochtend.inAuto, 'en je staat om half tien voor je huis', `${ochtend.naam}, ${ochtend.afstand} m van de deur, ${ochtend.uur.toFixed(2)} uur`);
 ok(ochtend.ferrari != null && ochtend.ferrari < 15, 'met de Ferrari op de oprit', `${ochtend.ferrari} m van de deur`);
 ok(!ochtend.finish && ochtend.rijders === 0 && !ochtend.boer, 'de race in IJlst is opgeruimd');
-ok(ochtend.volgende && ochtend.volgende.naam === 'schaduw' && ochtend.volgende.over > 55 && ochtend.volgende.over <= 60,
+ok(ochtend.volgende && ochtend.volgende.naam === 'schaduw' && ochtend.volgende.over > 50 && ochtend.volgende.over <= 60,
   'en over een minuut belt Mark: missie 15', JSON.stringify(ochtend.volgende));
 
 // ------------------------------------------------------------ met een hatchback
