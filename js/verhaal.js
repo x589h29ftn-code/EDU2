@@ -54,6 +54,7 @@ import { Dief } from './dief.js';
 import { euro, tekenKop } from './hud.js';
 import { brugAssen, maakDranghek, maakC4, maakSchade } from './brug.js';
 import { maakSchrift, maakLint } from './schrift.js';
+import { initRace } from './race.js';
 import { UNIFORM, zetZwaailamp } from './politie.js';
 import { Navigatie } from './navigatie.js';
 import { geluid } from './audio.js';
@@ -166,6 +167,9 @@ const KOPPEN = {
   mark: { huid: '#d9b48f', haar: '#4a3b2c', shirt: '#3c4148', stoppels: true },
   // olijfgroen uniform, pet en een volle grijze baard, net als op de kade
   veteraan: { huid: '#d9b48f', shirt: '#4a5236', pet: '#3c4230', baard: '#5a5148' },
+  // missie 14: Ronald in zijn blauwe overall, blond; De Boer in burger, grijzend
+  ronald: { huid: '#e0b893', haar: '#c9a66b', shirt: '#2d3f63', stoppels: true },
+  deboer: { huid: '#d6ab86', haar: '#8d8a84', shirt: '#4b4f55' },
 };
 // twee sprekers die elkaar afwisselen, dus twee hulpjes die een regel opmaken
 const zegtMark = (tekst) => ({ wie: 'Mark', kop: KOPPEN.mark, tekst });
@@ -625,6 +629,71 @@ const SCHRIFT_KLAAR = [
   zegtMark('Ga maar even. Ik laat van me horen.'),
 ];
 
+/*
+ ---------- missie 14: Ronald en de race naar IJlst ----------
+ Een minuut na het schrift belt Ronald, een oude vriend van Erik die aan de
+ Lemmerweg woont (nummer 80, het huis met de schuur). Hij heeft een schuld bij
+ brigadier De Boer, en die naam staat in het schrift. De Boer laat 's nachts
+ races rijden, van de BP aan de Lemmerweg tot bij de Poiesz in IJlst, en zet er
+ geld op in; wie hem iets schuldig is moet rijden. Met Ronalds BX win je het niet,
+ dus Erik rijdt voor hem, in een Ferrari van Autohuis Lemmerweg (js/garage.js).
+ Winnen lost de schuld af en levert € 2.000 op — en De Boer weet nu wie Erik is.
+ Het parcours en de tegenstanders staan in js/race.js.
+*/
+const zegtRonald = (tekst) => ({ wie: 'Ronald', kop: KOPPEN.ronald, tekst });
+const zegtDeBoer = (tekst) => ({ wie: 'De Boer', kop: KOPPEN.deboer, tekst });
+const RACE_HUIS = { straat: 'Lemmerweg', nr: '80' };
+const RACE_WACHT = 60;              // zoveel tellen na het schrift belt Ronald
+const RACE_PRAAT = 6;               // zo dicht bij Ronald begint hij te praten (m)
+const RACE_UUR = 1.0;               // "Die nacht": één uur
+const RACE_PRIJS = 3000;            // wat een Ferrari bij het Autohuis kost
+const RACE_BELONING = 2000;
+const RACE_TE_LAAT = 45;            // zo lang na de eerste over de finish is het voorbij (s)
+const RACE_TELEFOON = [
+  zegtRonald('Erik! Met Ronald. Lang niet gesproken, jongen.'),
+  zegtErik('Ronald! Alles goed?'),
+  zegtRonald('Eerlijk gezegd niet. Ik zit in de problemen. Kun je even langskomen?'),
+  zegtRonald('Ik woon nog steeds aan de Lemmerweg. Nummer 80, het huis met de schuur.'),
+  zegtErik('Ik kom eraan.'),
+];
+const RACE_UITLEG = [
+  zegtRonald('Fijn dat je er bent. Kom even bij de schuur staan.'),
+  zegtRonald('Ik heb een schuld bij een zekere De Boer. Brigadier De Boer.'),
+  zegtErik('De Boer… Die naam stond in het schrift van De Veteraan.'),
+  zegtRonald('Verbaast me niks. Hij laat \'s nachts races rijden, van de BP hier aan de Lemmerweg tot bij de Poiesz in IJlst.'),
+  zegtRonald('Hij zet er geld op in. En wie hem iets schuldig is, moet rijden. Vannacht ben ik aan de beurt.'),
+  zegtRonald('Win ik, dan is mijn schuld weg. Maar met mijn oude BX win ik het nooit. Die anderen rijden honderdvijftig.'),
+  zegtErik('Dan rij ik voor je.'),
+];
+const RACE_HEEFT_FERRARI = [
+  zegtRonald('Met die Ferrari van jou? Dan maken we een kans!'),
+  zegtRonald('Vannacht om één uur bij de BP. Kom niet te laat.'),
+];
+const RACE_GEEN_FERRARI = [
+  zegtRonald('Dan heb je wel een snelle auto nodig. Met een gewone auto haal je ze niet in.'),
+  zegtRonald('Bij Autohuis Lemmerweg, hier een stukje verderop, staan Ferrari\'s. Die halen er ruim tweehonderd.'),
+];
+const RACE_BIJLEGGEN = (n) => [zegtRonald(`En kom je geld tekort: ik heb je ${euro(n)} overgemaakt. Het is tenslotte mijn schuld.`)];
+const RACE_GEKOCHT = [
+  zegtRonald('Ik hoor dat je hem hebt? Mooi.'),
+  zegtRonald('Vannacht om één uur bij de BP. Kom niet te laat.'),
+];
+const RACE_START = [
+  zegtDeBoer('Dus jij rijdt voor Ronald?'),
+  zegtErik('Klopt.'),
+  zegtDeBoer('Van hier tot de Poiesz in IJlst. Door elke gele ring, anders telt het niet.'),
+  zegtDeBoer('Win je, dan is Ronald van me af. Verlies je, dan ga ik zijn huis tellen.'),
+  zegtRonald('Succes, Erik. Rustig in de bochten.'),
+  zegtDeBoer('Motoren aan.'),
+];
+const RACE_GEWONNEN = [
+  zegtDeBoer('Niet slecht, jongen. Niet slecht.'),
+  zegtDeBoer(`Ronald, je schuld is afgelost. En jij krijgt je deel: ${euro(RACE_BELONING)}.`),
+  zegtRonald('Erik, je bent een held! Ik sta bij je in het krijt.'),
+  zegtDeBoer('Wacht eens… Erik. Erik van Mark?'),
+  zegtDeBoer('Dan hebben wij binnenkort nog wat te bespreken.'),
+];
+
 // ---------- missie 6: de groene BX ----------
 const BX_AANKONDIGING = ['Nieuwe missies kunnen worden gestart door naar het '
   + '<b>M-symbool</b> op de minimap te gaan.'];
@@ -822,6 +891,8 @@ export function initVerhaal(ctx) {
     // missie 12 (js/main.js): de camera voor het filmbeeld, de politie die even
     // wacht en daarna van de Molenkrite-kant komt, en Erik in een politiepak
     camera = null, politieRust = null, stuurPolitie = null, zetPak = null, sterren = () => 0,
+    // missie 14 (js/main.js): de gekochte auto's van Autohuis Lemmerweg, en zelf in een auto stappen
+    garage = () => null, stapIn = null,
   } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
@@ -1109,6 +1180,7 @@ export function initVerhaal(ctx) {
     ruimPolitieautoOp();
     ruimBrugOp();
     ruimSchriftOp();
+    ruimRaceOp();
     punt = null;                      // een nieuwe missie, dus geen oud herstelpunt
     missie = naam;
     fase = 'wacht';
@@ -1138,6 +1210,7 @@ export function initVerhaal(ctx) {
     else if (naam === 'politieauto') beginPolitieauto();
     else if (naam === 'brug') beginBrug();
     else if (naam === 'schrift') beginSchrift();
+    else if (naam === 'race') beginRace();
   }
 
   /*
@@ -1546,6 +1619,7 @@ export function initVerhaal(ctx) {
     if (missie === 'politieauto') { hervatPolitieauto(punt && punt.missie === 'politieauto' ? punt.fase : 'wacht'); return; }
     if (missie === 'brug') { hervatBrug(punt && punt.missie === 'brug' ? punt.fase : 'wacht'); return; }
     if (missie === 'schrift') { hervatSchrift(punt && punt.missie === 'schrift' ? punt.fase : 'wacht'); return; }
+    if (missie === 'race') { hervatRace(punt && punt.missie === 'race' ? punt.fase : 'telefoon'); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -5028,6 +5102,8 @@ export function initVerhaal(ctx) {
     hud.melding('MISSIE GESLAAGD – HET SCHRIFT', `Beloning: + ${euro(SCHRIFT_BELONING)} toegevoegd aan wallet`, 8);
     if (schutters) { schutters.verwijder(); schutters = null; }
     for (const l of schriftLint) l.toon(false);
+    // een minuut later belt Ronald (missie 14)
+    if (!raceKlaar) { naMissieNaam = 'race'; naMissieT = RACE_WACHT; }
   }
 
   function werkSchriftBij(dt, sp) {
@@ -5124,6 +5200,333 @@ export function initVerhaal(ctx) {
     if (zetUur) zetUur(SCHRIFT_UUR);
     springNaarHuis();
     startMissie('schrift');
+  }
+
+  /*
+   ---------- missie 14: Ronald en de race naar IJlst ----------
+     telefoon    Ronald belt, een minuut na het schrift
+     naarRonald  een R op de kaart bij de Lemmerweg 80
+     uitleg      het gesprek bij zijn schuur
+     auto        geen Ferrari? Dan eerst naar Autohuis Lemmerweg
+     gekocht     Ronald belt nog even: vannacht om één uur
+     nacht       "Die nacht…"
+     start       bij de BP: De Boer, Ronald, drie tegenstanders op de grid
+     aftellen    drie, twee, één
+     race        door de gele ringen naar IJlst (js/race.js)
+     finish      gewonnen: stoppen bij De Boer bij de Poiesz
+     verloren    even grijs, dan weer op de grid
+  */
+  const race = initRace({ scene, vehicles, KAART });
+  const racePand = pandVan(RACE_HUIS);
+  const racePandAanwezig = () => racePand;
+  const ronald = new Persoon({ shirt: 0x2d3f63, broek: 0x2d3f63, huid: 0xe0b893, haar: 0xc9a66b });
+  const deBoer = new Persoon({ shirt: 0x4b4f55, broek: 0x23262b, huid: 0xd6ab86, haar: 0x8d8a84, hoogte: 1.02 });
+  for (const p of [ronald, deBoer]) { p.groep.visible = false; scene.add(p.groep); }
+  let raceKlaar = false;
+  let raceT = 0;                   // aftellen tot de telefoon gaat
+  let raceAuto = null;             // de auto waarin je de race rijdt
+  let raceLeen = null;             // een geleende Ferrari, als de jouwe een wrak is
+  let raceBoerAuto = null;         // de politieauto van De Boer
+  let racePlek = null;             // de plekken op en langs de grid (js/race.js)
+  let raceAftel = 0, raceTel = 0;
+  let raceOverT = 0;               // na een verloren race: even grijs, dan opnieuw
+  let raceTeLaatT = 0;
+  let raceVerplaatst = false;      // staan De Boer en Ronald al bij de finish?
+  let raceBijgelegd = false;
+  let raceStandT = 0, raceNavT = 0;
+  let raceUitslag = null;
+
+  // Ronald voor zijn huis, bij de schuur, met zijn gezicht naar de weg
+  function ronaldPlek() {
+    if (!racePand) return { x: 705, z: 890, yaw: 0, straat: { x: 700, z: 890 } };
+    const d = voorPunt(racePand, 3), straat = voorPunt(racePand, 14);
+    const [x, z] = resolveCollisions(d.x, d.z, 0.4);
+    return { x, z, straat, yaw: kijkHoek({ x, z }, straat) };
+  }
+  // de gekochte Ferrari die nog heel is (js/garage.js)
+  function eigenFerrari() {
+    const g = garage && garage();
+    if (!g) return null;
+    const e = g.eigen.find(e => e.soort === 'ferrari' && e.car && !e.car.wrak && !e.car.weg && (e.car.hp ?? 100) > 0);
+    return e ? e.car : null;
+  }
+  function autohuis() {
+    const g = garage && garage();
+    return g ? { x: g.deur.x - 2, z: g.deur.z } : { x: 766, z: 131.7 };
+  }
+
+  function ruimRaceOp() {
+    race.ruimOp();
+    for (const p of [ronald, deBoer]) p.groep.visible = false;
+    if (raceBoerAuto) {
+      raceBoerAuto.driveable = false; raceBoerAuto.x = raceBoerAuto.z = 1e5;
+      if (raceBoerAuto.mesh) { raceBoerAuto.mesh.visible = false; raceBoerAuto.mesh.position.set(1e5, 0, 1e5); }
+    }
+    raceAftel = 0; raceOverT = 0; raceTeLaatT = 0; raceVerplaatst = false; raceUitslag = null;
+  }
+
+  function beginRace() {
+    fase = 'telefoon';
+    ruimRaceOp();
+    raceT = 1.2;
+    markZichtbaar(false);
+    zetOpdracht('neem de telefoon op');
+    hud.zetNavigatie(null); navDoel = null;
+  }
+  function naarRonald() {
+    fase = 'naarRonald'; zetPunt(fase);
+    const r = ronaldPlek();
+    ronald.zetNeer(r.x, r.z, r.yaw);
+    ronald.groep.visible = true;
+    zetOpdracht('ga naar Ronald aan de Lemmerweg 80');
+    zetNavDoel(r.x, r.z, 'Ronald · Lemmerweg 80', 'R');
+  }
+  function naUitleg() {
+    if (eigenFerrari()) { zeg(RACE_HEEFT_FERRARI, naarDeRaceNacht); return; }
+    fase = 'auto'; zetPunt(fase);
+    // Ronald legt bij wat je tekortkomt: het is zijn schuld
+    const tekort = RACE_PRIJS - geld;
+    const regels = [...RACE_GEEN_FERRARI];
+    if (tekort > 0 && !raceBijgelegd) {
+      raceBijgelegd = true;
+      verdien(tekort);
+      regels.push(...RACE_BIJLEGGEN(tekort));
+    }
+    zeg(regels, naarHetAutohuis);
+  }
+  function naarHetAutohuis() {
+    fase = 'auto';
+    const a = autohuis();
+    zetOpdracht('koop een Ferrari bij Autohuis Lemmerweg');
+    zetNavDoel(a.x, a.z, 'Autohuis Lemmerweg', 'A');
+  }
+  function naarDeRaceNacht() {
+    fase = 'nacht';
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+    zwartMet('Die nacht…', opDeStart);
+  }
+
+  /*
+   De start, om één uur 's nachts op de Lemmerweg bij de BP. Je zit al in je
+   Ferrari, tweede op de grid; De Boer en Ronald staan langs de kant, zijn
+   politieauto erachter. Wie opnieuw moet (verloren, of neergegaan) begint hier.
+  */
+  function opDeStart() {
+    fase = 'start'; zetPunt(fase);
+    if (zetUur) zetUur(RACE_UUR);
+    if (sterrenWeg) sterrenWeg();
+    ruimRaceOp();
+    racePlek = race.klaarzetten();
+    if (!racePlek) return;
+    const p = racePlek.speler;
+    raceAuto = eigenFerrari();
+    if (!raceAuto) {
+      // is de jouwe een wrak (of heb je er nooit een gekocht): dan leent Ronald er een
+      if (!raceLeen || raceLeen.wrak) raceLeen = vehicles.voegToe({ x: p.x, z: p.z, yaw: p.yaw, soort: 'ferrari', kleur: 0xc40a12 });
+      raceAuto = raceLeen;
+    }
+    if (player.inCar && player.inCar !== raceAuto) { player.inCar.speed = 0; player.inCar = null; }
+    raceAuto.x = p.x; raceAuto.z = p.z; raceAuto.yaw = p.yaw; raceAuto.rij = p.yaw; raceAuto.speed = 0;
+    raceAuto.driveable = true; raceAuto.hp = Math.max(raceAuto.hp ?? 100, 100);
+    if (raceAuto.mesh) { raceAuto.mesh.visible = true; raceAuto.mesh.position.set(p.x, raceAuto.mesh.position.y, p.z); raceAuto.mesh.rotation.y = p.yaw; }
+    player.pos.set(p.x, 0, p.z);
+    if (stapIn) stapIn(raceAuto); else player.inCar = raceAuto;
+    // De Boer en Ronald langs de kant, de politieauto erachter
+    const k = racePlek.kant, ka = racePlek.kantAuto, st = racePlek.start;
+    deBoer.zetNeer(k.x, k.z, kijkHoek(k, st)); deBoer.groep.visible = true;
+    const [rx, rz] = resolveCollisions(k.x + k.tx * 2.2, k.z + k.tz * 2.2, 0.4);
+    ronald.zetNeer(rx, rz, kijkHoek({ x: rx, z: rz }, st)); ronald.groep.visible = true;
+    zetBoerAuto(ka);
+    markZichtbaar(false);
+    hud.zetNavigatie(null); navDoel = null;
+    zetOpdracht('luister naar De Boer');
+    spanning = false;
+    zeg(RACE_START, aftellen);
+  }
+  function zetBoerAuto(q) {
+    if (!raceBoerAuto) raceBoerAuto = parkeerPolitieAuto ? parkeerPolitieAuto(q.x, q.z, q.yaw) : vehicles.voegToe({ x: q.x, z: q.z, yaw: q.yaw, soort: 'hatch', kleur: 0x1b3a7a });
+    const a = raceBoerAuto;
+    a.x = q.x; a.z = q.z; a.yaw = q.yaw; a.speed = 0; a.driveable = false;
+    if (a.mesh) { a.mesh.visible = true; a.mesh.position.set(q.x, 0, q.z); a.mesh.rotation.y = q.yaw; }
+  }
+  function aftellen() {
+    fase = 'aftellen';
+    raceAftel = 3.0; raceTel = 4;
+    zetOpdracht('wacht op het startsein');
+  }
+  function raceStart() {
+    fase = 'race';
+    race.start();
+    spanning = true; spanningUit = 0;
+    raceTeLaatT = 0; raceStandT = 0; raceNavT = 0;
+    hud.show('START!', 1.6);
+  }
+  function raceVerloren(reden) {
+    if (raceOverT > 0) return;
+    fase = 'verloren';
+    raceOverT = 3.4;
+    spanning = false; spanningUit = 0;
+    gesprek = null; sluitBalk();
+    zetOpdracht('');
+    hud.zetGrijs(true);
+    hud.melding('MISSIE MISLUKT', `${reden} Nog een keer, vanaf de start.`, 4);
+    player.active = false;
+  }
+  function raceGeslaagd() {
+    fase = 'klaar';
+    missie = 'klaar';
+    raceKlaar = true;
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+    verdien(RACE_BELONING);
+    spanningUit = 6;
+    hud.melding('MISSIE GESLAAGD – DE RACE', `Beloning: + ${euro(RACE_BELONING)} toegevoegd aan wallet`, 8);
+    for (const r of race.ringen) r.visible = false;
+  }
+  // de weg die nog voor je ligt, voor de minikaart: om de twintig meter
+  function raceRoute(sp) {
+    const L = race.lijn;
+    if (!L) return null;
+    const v = race.voortgang(sp.x, sp.z);
+    const uit = [[sp.x, sp.z]];
+    for (let i = v.i; i < L.n; i += 10) uit.push([L.x[i], L.z[i]]);
+    uit.push([L.x[L.n - 1], L.z[L.n - 1]]);
+    return uit;
+  }
+
+  function werkRaceBij(dt, sp) {
+    if (fase === 'klaar') return;
+    if (raceOverT > 0) {
+      raceOverT -= dt;
+      if (raceOverT <= 0) { hud.zetGrijs(false); player.active = true; opDeStart(); }
+      return;
+    }
+    if (fase === 'naarRonald' || fase === 'auto') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+    }
+    for (const p of [ronald, deBoer]) {
+      if (!p.groep.visible) continue;
+      if (afst(sp, p.groep.position) < 25) p.kijkNaar(sp.x, sp.z, dt, 2);
+      p.update(dt, {});
+    }
+    const staat = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.5;
+    if (fase === 'telefoon') {
+      if (raceT > 0) {
+        raceT -= dt;
+        if (raceT <= 0) {
+          geluid.telefoon();
+          zeg(RACE_TELEFOON, () => {
+            naarRonald();
+            hud.melding('NIEUWE MISSIE – RONALD', 'Ronald woont aan de Lemmerweg 80. Er staat een R op de kaart.', 7);
+          }, { wie: 'Ronald', telefoon: true, kop: KOPPEN.ronald });
+        }
+      }
+      return;
+    }
+    if (fase === 'naarRonald') {
+      if (afst(sp, ronald.groep.position) < RACE_PRAAT && staat && balk.hidden) { fase = 'uitleg'; zeg(RACE_UITLEG, naUitleg); }
+      return;
+    }
+    if (fase === 'auto') {
+      // Ronald staat niet meer bij de schuur als je terugkomt: hij belt
+      if (ronald.groep.visible && afst(sp, ronald.groep.position) > 60) ronald.groep.visible = false;
+      if (eigenFerrari() && balk.hidden) {
+        fase = 'gekocht';
+        geluid.telefoon(1);
+        zeg(RACE_GEKOCHT, naarDeRaceNacht, { wie: 'Ronald', telefoon: true, kop: KOPPEN.ronald });
+      }
+      return;
+    }
+    // op de grid staat de auto stil tot het startsein
+    if ((fase === 'start' || fase === 'aftellen') && raceAuto) {
+      raceAuto.speed = 0;
+      if (racePlek) { raceAuto.x = racePlek.speler.x; raceAuto.z = racePlek.speler.z; raceAuto.yaw = racePlek.speler.yaw; }
+    }
+    if (fase === 'aftellen') {
+      raceAftel -= dt;
+      const tel = Math.ceil(raceAftel);
+      if (tel !== raceTel && tel > 0) { raceTel = tel; hud.show(String(tel), 0.9); geluid.neerzetten(); }
+      if (raceAftel <= 0) raceStart();
+    }
+    // (voor de start staat de klok stil; de ringen pulseren wel)
+    const st = race.update(fase === 'race' ? dt : 0, sp);
+    if (fase === 'race' && st) {
+      if (st.door) geluid.neerzetten();
+      raceStandT -= dt;
+      if (raceStandT <= 0) {
+        raceStandT = 0.25;
+        zetOpdracht(`race naar IJlst · ${st.plek}e van ${st.van} · ring ${Math.min(st.cp + 1, st.cps)} van ${st.cps}`);
+      }
+      raceNavT -= dt;
+      if (raceNavT <= 0) {
+        raceNavT = 1;
+        const cps = race.controlepunten, c = race.punt(cps[Math.min(st.cp, cps.length - 1)]);
+        hud.zetNavigatie({ route: raceRoute(sp), doel: [c.x, c.z], naam: st.cp >= cps.length - 1 ? 'finish · IJlst' : `ring ${st.cp + 1}`, letter: st.cp >= cps.length - 1 ? 'F' : 'R' });
+      }
+      // De Boer en Ronald rijden vooruit naar de finish, uit je zicht
+      if (!raceVerplaatst && racePlek && afst(sp, racePlek.start) > 150) {
+        raceVerplaatst = true;
+        const e = racePlek.eindKant, ea = racePlek.eindAuto, f = racePlek.eind;
+        deBoer.zetNeer(e.x, e.z, kijkHoek(e, f));
+        const [rx, rz] = resolveCollisions(e.x - e.tx * 2.2, e.z - e.tz * 2.2, 0.4);
+        ronald.zetNeer(rx, rz, kijkHoek({ x: rx, z: rz }, f));
+        zetBoerAuto(ea);
+      }
+      if (raceAuto && (raceAuto.wrak || (raceAuto.hp ?? 100) <= 0)) { raceVerloren('Je Ferrari is total loss.'); return; }
+      if (st.klaar) {
+        raceUitslag = { plek: st.plek, tijd: st.tijd };
+        if (st.plek === 1) {
+          fase = 'finish';
+          spanningUit = 4;
+          const m = Math.floor(st.tijd / 60), sec = Math.round(st.tijd % 60);
+          hud.melding('GEWONNEN!', `Als eerste in IJlst · ${m}:${String(sec).padStart(2, '0')}`, 5);
+          zetOpdracht('stop bij De Boer bij de Poiesz');
+          const d = deBoer.groep.position;
+          hud.zetNavigatie({ route: null, doel: [d.x, d.z], naam: 'De Boer', letter: 'B' });
+        } else {
+          raceVerloren(`Je werd ${st.plek}e.`);
+        }
+        return;
+      }
+      if (st.eersteKlaar) {
+        raceTeLaatT += dt;
+        if (raceTeLaatT > RACE_TE_LAAT) raceVerloren('De anderen zijn al lang in IJlst.');
+      }
+      return;
+    }
+    if (fase === 'finish') {
+      if (afst(sp, deBoer.groep.position) < 14 && staat && balk.hidden) {
+        fase = 'afronding';
+        zetOpdracht('');
+        hud.zetNavigatie(null); navDoel = null;
+        zeg(RACE_GEWONNEN, raceGeslaagd);
+      }
+    }
+  }
+  /*
+   Opnieuw na het neergaan of het laden. Tot het gesprek bij Ronald begin je weer
+   bij het telefoontje of de R; moest je nog een Ferrari halen, dan staat de A er
+   weer; en vanaf de nacht sta je weer op de grid.
+  */
+  function hervatRace(f) {
+    beginRace();
+    if (f === 'telefoon') return;
+    if (f === 'naarRonald' || f === 'uitleg') { naarRonald(); return; }
+    if (f === 'auto' || f === 'gekocht') { naarRonald(); ronald.groep.visible = false; raceBijgelegd = true; naarHetAutohuis(); zetPunt('auto'); return; }
+    opDeStart();
+  }
+  // na de race: De Boer, Ronald en de tegenstanders gaan weg als je een eind weg bent
+  function raceNaloop(sp) {
+    if (missie === 'race') return;
+    for (const p of [ronald, deBoer]) {
+      if (p.groep.visible && afst(sp, p.groep.position) > 60) p.groep.visible = false;
+    }
+    if (raceBoerAuto && raceBoerAuto.mesh && raceBoerAuto.mesh.visible && afst(sp, raceBoerAuto) > 80) {
+      raceBoerAuto.mesh.visible = false; raceBoerAuto.x = raceBoerAuto.z = 1e5; raceBoerAuto.mesh.position.set(1e5, 0, 1e5);
+    }
+    if (race.finish.visible && racePlek && afst(sp, racePlek.eind) > 150) race.ruimOp();
   }
 
   // ---------- per beeld ----------
@@ -5374,7 +5777,9 @@ export function initVerhaal(ctx) {
     if (missie === 'politieauto') werkPolitieautoBij(dt, sp);
     if (missie === 'brug') werkBrugBij(dt, sp);
     if (missie === 'schrift') werkSchriftBij(dt, sp);
+    if (missie === 'race') werkRaceBij(dt, sp);
     brugNaloop(sp, dt);
+    raceNaloop(sp);
     if (schutters) {
       const schade = schutters.update(dt, player, true);
       if (schade > 0 && player.active) {
@@ -5436,7 +5841,7 @@ export function initVerhaal(ctx) {
       // telefoon dan alsnog
       veteraanKlaar: vetKlaar,
       politieautoKlaar: polKlaar,
-      brugKlaar, schriftKlaar,
+      brugKlaar, schriftKlaar, raceKlaar,
       volgende: naMissieT > 0 ? naMissieNaam : null,
     };
   }
@@ -5471,6 +5876,7 @@ export function initVerhaal(ctx) {
     polKlaar = !!s.politieautoKlaar;
     brugKlaar = !!s.brugKlaar;
     schriftKlaar = !!s.schriftKlaar;
+    raceKlaar = !!s.raceKlaar;
     // na missie 12 heeft de Dúvelsrak een gat
     if (brugSchade) {
       if (brugKlaar) { const g = brugP(BRUG_GAT, 0); brugSchade.zet(g.x, brug.hoogte, g.z, brug.noord); brugSchade.toon(true); }
@@ -5596,6 +6002,8 @@ export function initVerhaal(ctx) {
       hervatBrug(fase);
     } else if (missie === 'schrift' && fase !== 'klaar') {
       hervatSchrift(fase);
+    } else if (missie === 'race' && fase !== 'klaar') {
+      hervatRace(fase);
     } else {
       zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
     }
@@ -5612,6 +6020,8 @@ export function initVerhaal(ctx) {
     else if (missie === 'klaar' && polKlaar && !brugKlaar) { naMissieNaam = 'brug'; naMissieT = 6; }
     // en na missie 12: Mark zit in Duinterpen
     else if (missie === 'klaar' && brugKlaar && !schriftKlaar) { naMissieNaam = 'schrift'; naMissieT = 6; }
+    // en na het schrift: Ronald belt
+    else if (missie === 'klaar' && schriftKlaar && !raceKlaar) { naMissieNaam = 'race'; naMissieT = 6; }
     hud.zetLeven(player.health);
   }
 
@@ -5667,6 +6077,12 @@ export function initVerhaal(ctx) {
     get schrift() {
       return { klaar: schriftKlaar, heeft: schriftHeeft, alarm: schriftAlarm, deur: schriftDeur(), kade: schriftKade(),
         boek: schriftBoek, lint: schriftLint, merk: schriftMerk, sloep: schriftSloep(), wachtT: brugNaT, pand: !!schriftPand };
+    },
+    // missie 14, voor tools/racetest.mjs
+    get race() {
+      return { klaar: raceKlaar, race, ronald, deBoer, auto: raceAuto, leen: raceLeen, boerAuto: raceBoerAuto,
+        plek: racePlek, huis: ronaldPlek(), pand: !!racePandAanwezig(), uitslag: raceUitslag, overT: raceOverT,
+        verplaatst: raceVerplaatst, bijgelegd: raceBijgelegd, wachtT: naMissieNaam === 'race' ? naMissieT : 0 };
     },
     get schutterAutos() { return schutterAutos; },
     get zwart() { return zwart; },

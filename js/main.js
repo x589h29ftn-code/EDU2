@@ -622,6 +622,9 @@ const verhaal = initVerhaal({
   stuurPolitie: (route, n, uitstel) => politie.stuurWagens(route, n, uitstel),
   zetPak: (pak) => { derde.pak = pak; },
   sterren: () => politie.ster,
+  // missie 14: de gekochte auto's (js/garage.js) en zelf in een auto stappen
+  garage: () => garage,
+  stapIn: (car) => { if (player.inCar !== car) { player.inCar = null; stapInAuto(car); } },
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
   bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {}, mislukt() {},
@@ -1180,28 +1183,34 @@ function toggleCar() {
     hud.show('Uitgestapt');
   } else {
     const car = vehicles.nearestDriveable(player.pos.x, player.pos.z);
-    if (car) {
-      vehicles.maakBestuurbaar(car);   // losse wielen, remlichten, verende carrosserie
-      player.inCar = car; player.carLook = 0;
-      /*
-       In de auto standaard de camera achter de auto: je ziet de neus, je
-       achterwielen en het stuk weg eromheen, en dat stuurt een stuk prettiger.
-       Hoe je te voet liep wordt onthouden, zodat je bij het uitstappen weer
-       door je eigen ogen kijkt als je zo liep.
-      */
-      derdeTeVoet = derde.aan;
-      if (!derde.aan) derde.wissel();
-      derde.achterAuto(car);
-      geluid.portier(); geluid.motorAan();
-      /*
-       Elke auto heeft zijn eigen radio. Stap je in een ándere auto, dan begint
-       een doorlopende zender ergens willekeurig in de uitzending; stap je weer
-       in dezelfde, dan loopt hij door waar hij was. Het logo komt kort in beeld.
-      */
-      toonZenderLogo(geluid.radioInstap(car.id ?? car.uuid ?? vehicles.cars.indexOf(car)));
-      hud.show('Ingestapt – W om te rijden · V voor de camera vanuit je ogen', 3);
-    }
+    if (car) stapInAuto(car);
   }
+}
+/*
+ Instappen in een bepaalde auto. Los van `toggleCar`, zodat het verhaal je ook
+ zelf in een auto kan zetten: aan de start van de race in missie 14 zit je al in
+ je Ferrari (js/verhaal.js).
+*/
+function stapInAuto(car) {
+  vehicles.maakBestuurbaar(car);   // losse wielen, remlichten, verende carrosserie
+  player.inCar = car; player.carLook = 0;
+  /*
+   In de auto standaard de camera achter de auto: je ziet de neus, je
+   achterwielen en het stuk weg eromheen, en dat stuurt een stuk prettiger.
+   Hoe je te voet liep wordt onthouden, zodat je bij het uitstappen weer
+   door je eigen ogen kijkt als je zo liep.
+  */
+  derdeTeVoet = derde.aan;
+  if (!derde.aan) derde.wissel();
+  derde.achterAuto(car);
+  geluid.portier(); geluid.motorAan();
+  /*
+   Elke auto heeft zijn eigen radio. Stap je in een ándere auto, dan begint
+   een doorlopende zender ergens willekeurig in de uitzending; stap je weer
+   in dezelfde, dan loopt hij door waar hij was. Het logo komt kort in beeld.
+  */
+  toonZenderLogo(geluid.radioInstap(car.id ?? car.uuid ?? vehicles.cars.indexOf(car)));
+  hud.show('Ingestapt – W om te rijden · V voor de camera vanuit je ogen', 3);
 }
 
 // Voetgangers aanrijden: js/vehicles.js roept dit aan voor drie punten langs de
@@ -1331,6 +1340,7 @@ const MISSIES = [
   { nr: 11, naam: 'politieauto', titel: 'de politieauto en de C4' },
   { nr: 12, naam: 'brug', titel: 'de Dúvelsrak' },
   { nr: 13, naam: 'schrift', titel: 'het schrift' },
+  { nr: 14, naam: 'race', titel: 'Ronald en de race naar IJlst' },
 ];
 function startMissieLos(naam) {
   const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
@@ -1364,6 +1374,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Equal' || e.code === 'NumpadAdd') { e.preventDefault(); startMissieLos('12'); return; }
   // en de toets rechts naast de P ([ op een Amerikaans toetsenbord): missie 13
   if (e.code === 'BracketLeft') { e.preventDefault(); startMissieLos('13'); return; }
+  // en de toets daarnaast (] op een Amerikaans toetsenbord): missie 14
+  if (e.code === 'BracketRight') { e.preventDefault(); startMissieLos('14'); return; }
   const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();

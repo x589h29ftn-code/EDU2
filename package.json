@@ -168,6 +168,8 @@
     "schrifttest": "node tools/schrifttest.mjs",
     "schriftshots": "node tools/schriftshots.mjs",
     "garagetest": "node tools/garagetest.mjs",
-    "garageshots": "node tools/garageshots.mjs"
+    "garageshots": "node tools/garageshots.mjs",
+    "racetest": "node tools/racetest.mjs",
+    "raceshots": "node tools/raceshots.mjs"
   }
 }

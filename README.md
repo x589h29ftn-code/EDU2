@@ -97,6 +97,7 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + min** | de politieauto en de C4 |
 | **shift + =** | de Dúvelsrak |
 | **shift + [** | het schrift (de toets rechts naast de P) |
+| **shift + ]** | Ronald en de race naar IJlst (de toets daarnaast) |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
@@ -1997,6 +1998,54 @@ de hele wijk stil."* **Geslaagd**: **€ 2.500**.
 
 **shift + [** start de missie los. `npm run schrifttest` speelt het na, vanaf het
 Tinga-bos in missie 12; `npm run schriftshots` maakt de vier foto's.
+
+### 14 · Ronald en de race naar IJlst
+
+Een minuut na het schrift gaat de telefoon: **Ronald**, een oude vriend van Erik.
+*"Ik zit in de problemen. Kun je even langskomen?"* Hij woont aan de **Lemmerweg
+80**, het huis met de schuur, en er staat een **R** op de kaart.
+
+Bij de schuur vertelt hij het: hij heeft een schuld bij **brigadier De Boer**, een
+naam die ook in het schrift van De Veteraan staat. De Boer laat 's nachts races
+rijden, van de **BP aan de Lemmerweg tot bij de Poiesz in IJlst**, en zet er geld
+op in. Wie hem iets schuldig is moet rijden, en vannacht is Ronald aan de beurt;
+met zijn oude BX wint hij het nooit. *"Dan rij ik voor je."*
+
+![Ronald aan de Lemmerweg](docs/screenshots/race_ronald.png)
+
+Heb je nog geen **Ferrari**, dan stuurt hij je naar **Autohuis Lemmerweg** (de
+**A** op de kaart), en kom je geld tekort, dan legt hij het verschil bij. Heb je er
+een gekocht, dan belt hij: *"Vannacht om één uur bij de BP."* Het wordt zwart:
+***Die nacht…***
+
+Om één uur zit je in je Ferrari op de grid op de Lemmerweg, tweede van vier. De
+Boer en Ronald staan langs de kant, met de politieauto van De Boer erachter. Na
+zijn uitleg telt hij af: drie, twee, één, **START!**
+
+| ![De grid bij de BP](docs/screenshots/race_grid.png) | ![Onderweg](docs/screenshots/race_ring.png) |
+|---|---|
+| die nacht op de Lemmerweg bij de BP | onderweg naar IJlst: door elke gele ring |
+
+Het parcours: de Lemmerweg af, over de rotonde en de hoofdweg naar het zuiden, dan
+anderhalve kilometer rechtdoor over de **Sudergoweg** en door De Sânhorst en De Kling
+naar de **finish in IJlst, bij de Poiesz**, samen 2,7 km. Onderweg hangen **gele ringen** over de weg: de eerstvolgende
+fel, die daarna flauw. Wie er niet door rijdt, telt niet. De minikaart wijst de weg
+en de opdrachtregel houdt je plek bij (*"2e van 4 · ring 5 van 9"*).
+
+De drie tegenstanders (een zwarte Ferrari, een witte Golf en een blauwe BX) rijden
+rond de 150 km/u. Met de Ferrari haal je ze in; met een gewone auto niet.
+
+| | |
+|---|---|
+| gewonnen | stop bij De Boer bij de finish: de schuld is afgelost, **€ 2.000** voor jou, en *"Erik… Erik van Mark? Dan hebben wij binnenkort nog wat te bespreken."* |
+| verloren | tweede of later, of 45 seconden na de winnaar nog niet binnen: **opnieuw vanaf de start**, meteen weer 's nachts op de grid |
+| Ferrari total loss | ook opnieuw; heb je er geen meer, dan leent Ronald je er een |
+
+![De finish in IJlst](docs/screenshots/race_finish.png)
+
+**shift + ]** start de missie los. `npm run racetest` speelt hem na, van het
+telefoontje tot de € 2.000, met een automaat die de Ferrari met het gewone rijgedrag
+over het parcours stuurt; `npm run raceshots` maakt de vier foto's.
 
 ### Na missie 10: de bende op straat
 

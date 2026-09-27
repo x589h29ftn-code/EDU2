@@ -6266,6 +6266,38 @@ voor € 250, met een hoge topsnelheid.
   gekochte auto's mee (js/opslag.js). Een auto die op de oprit al teruggezet is
   (js/verhaal.js) wordt niet dubbel neergezet.
 
+**Missie 14: Ronald en de race naar IJlst (stap 93).** Gevraagd (27 sep 2026):
+een volgende missie na het schrift, met Ronald als vriend van Erik die aan de
+Lemmerweg woont; hij belt een minuut na het schrift, met een R op de kaart; een
+race van ongeveer de BP naar IJlst, met de finish in IJlst.
+
+- *Het verhaal.* Ronald (Lemmerweg 80, het huis met de schuur) heeft een schuld
+  bij brigadier De Boer, een naam uit het schrift. De Boer laat 's nachts races
+  rijden en zet er geld op in; Erik rijdt voor Ronald, in een Ferrari van Autohuis
+  Lemmerweg (stap 92). Geen Ferrari: eerst naar de A, en Ronald legt bij wat je
+  tekortkomt. Gewonnen: € 2.000, en De Boer weet wie Erik is, het haakje voor de
+  volgende missie.
+- *Het parcours* (js/race.js) komt uit de routeplanner van de navigatie, om de twee
+  meter bemonsterd en gladgestreken. Twee dingen daaraan zijn gemeten en rechtgezet.
+  De routeplanner koos na de rotonde de smalle parallelweg ten westen van de
+  hoofdweg, omdat de hoofdweg (een rijbaan van zeven meter) in de kaart geen wegas
+  heeft; op die parallelweg zit een S-bocht met paaltjes over het fietspad. Dat stuk
+  loopt nu over de middellijn van de hoofdweg, per rij van vier meter gemeten uit het
+  rijbaanvlak van de BGT. De eerste versie nam per rij de oostelijkste strook, en
+  ging bij z ≈ 900 de afrit op (een lus, en een tegenstander die daar stapvoets
+  reed); nu wordt per rij de strook genomen die bij de vorige aansluit.
+- *De tegenstanders* rijden langs de lijn met een snelheid uit de bocht
+  (v = √(a/κ), met remmen voor de volgende bocht), niet met het rijgedrag van de
+  speler: ze raken nergens vast en rijden elke keer dezelfde race. Met een top van
+  47 m/s (170 km/u) werd de Ferrari van de proef vierde; nu 42, 40 en 38 m/s.
+- *De proef rijdt zelf.* Een automaat stuurt de Ferrari met W, S, A en D over het
+  parcours, met het gewone rijgedrag. Op een strook 1,4 m opzij van de as reed hij
+  tegen de lantaarnpalen aan de rand van de weg (1,4 m van die strook) en in de
+  S-bocht: veertien botsingen, elk driekwart van zijn vaart kwijt, en een uitslag die
+  per ronde verschilde. In het midden van de weg en over de hoofdweg niet meer.
+- *Instappen* staat nu los in js/main.js (`stapInAuto`), zodat het verhaal je aan
+  de start zelf in je Ferrari kan zetten.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -48,7 +48,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | Bestand | Waarvoor |
 |---|---|
 | `js/main.js` | de hoofdlus, de invoer, de mixer, alles aan elkaar |
-| `js/verhaal.js` | de dertien missies, Mark, de gesprekken, de opslag van het verhaal |
+| `js/verhaal.js` | de veertien missies, Mark, de gesprekken, de opslag van het verhaal |
 | `js/kaart.js` | **gegenereerd**: panden, wegen, water, straten uit de geodata |
 | `js/kaartwereld.js` | daar de wereld van bouwen (tegels, bomen, riet, auto's) |
 | `js/textures.js` | alle geveltextures, dakpannen, baksteen — op canvas |
@@ -71,6 +71,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/schrift.js` | missie 13: het schrift van De Veteraan en politielint |
 | `js/brug.js` | missie 12: het dek van de Dúvelsrak als assenstelsel (`brugAssen`), dranghekken, C4, de schade na de knal |
 | `js/garage.js` | Autohuis Lemmerweg: glazen showroom, Ferrari's en BX kopen, gekochte auto's in de opslag |
+| `js/race.js` | missie 14: het parcours van de BP naar IJlst (routeplanner + de hoofdweg uit de BGT), gele ringen, finish, tegenstanders langs de lijn |
 | `js/bouwvlak.js` | plekken waar het spel zelf bouwt (de showroom): daar geen bomen, struiken of gras |
 
 Een paar dingen die niet vanzelf spreken:
@@ -118,7 +119,8 @@ Street View-link erbij.
 10. **De Veteraan** — de tas bij VV Sneek en de hinderlaag
 11. **de politieauto en de C4** — stelen aan de Lemmerweg, C4 bij Tinga State
 12. **de Dúvelsrak** — de wegversperring met C4 op de brug, De Veteraan
-13. **het schrift** — Mark in Duinterpen, het schrift uit de sloep in IJlst (laatst gebouwd)
+13. **het schrift** — Mark in Duinterpen, het schrift uit de sloep in IJlst
+14. **Ronald en de race** — Lemmerweg 80, De Boer, de race van de BP naar IJlst (laatst gebouwd)
 
 Missie 9 in het kort: Mark belt, staat bij de Wieken 29, noemt drie adressen met
 bedrag (**1, 2 of 3** kiest en zet de navigatie), en je koopt er aan tafel een
@@ -166,6 +168,14 @@ gesprek vanzelf. Het schrift ligt in de sloep aan de IJlster ligplaats
 twee agenten (`Bewaking` in uniform; gezien = twee sterren). Terug bij Mark, niet
 met sterren: € 2.500. **shift+[** start hem los.
 
+Missie 14: een minuut na het schrift belt Ronald (`RACE_WACHT`), R op de kaart bij de
+Lemmerweg 80. Bij zijn schuur: De Boer, de races; geen Ferrari (`eigenFerrari`, uit
+js/garage.js) dan een A bij het Autohuis en legt Ronald bij wat je tekortkomt. Gekocht:
+hij belt, "Die nacht…", 01:00 op de grid (`opDeStart`, `ctx.stapIn`), De Boer en Ronald
+langs de kant met zijn politieauto. Aftellen, de race (js/race.js), eerste bij de finish in
+IJlst: stoppen bij De Boer, € 2.000. Verloren: grijs en opnieuw op de grid (`raceVerloren`,
+niet via `mislukt`, dat de opslag laadt). **shift+]** start hem los.
+
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
 achtervolgen, na een tijdje opgeven. Alleen buiten de missies om, en alleen tot
@@ -187,7 +197,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run garagetest` (de showroom aan de Lemmerweg: plek, glas, deur,
+De laatste die ertoe doen: `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
+met een automaat die de Ferrari over het parcours rijdt; stap 93) met `raceshots` (vier
+foto's); `npm run garagetest` (de showroom aan de Lemmerweg: plek, glas, deur,
 kopen, Ferrari-model en topsnelheid, opslaan; stap 92) met `garageshots` (vier foto's); `npm run schrifttest` (het einde van missie 12 en
 missie 13; stap 91) met `schriftshots` (vier foto's); `npm run brugtest` (missie 12 van de M tot de € 5.000,
 met de dekking achter een auto gemeten, 65 controles; stap 89) met `brugshots` (zeven foto's);
@@ -284,6 +296,10 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   waar je in zat op zijn index; voor een auto uit de showroom is dat `auto.eigen` en `garage.autoVan`.
   Topsnelheid en trek komen uit `RIJ[soort]` in `voegToe`, dus een auto die op de oprit teruggezet
   wordt is ook weer snel.
+- **Niet elke rijbaan heeft een wegas** (stap 93). De hoofdweg ten zuiden van de rotonde
+  bij de Lemmerweg is in de BGT een rijbaanvlak zonder as, dus de routeplanner
+  (js/navigatie.js) neemt de smalle parallelweg ernaast. Een route voor iets dat hard
+  moet (de race) altijd uittekenen en nameten; js/race.js meet dat stuk uit het vlak.
 - **js/verhaal.js is één groot bereik.** Een `function` met een naam die er al is
   overschrijft de andere stil (hoisting): in stap 89 namen `beginGevecht` en
   `naarDeC4` zo die van missie 10 en 11 over. `npm run brugtest` kijkt er nu naar.
