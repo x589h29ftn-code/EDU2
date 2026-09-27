@@ -48,7 +48,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | Bestand | Waarvoor |
 |---|---|
 | `js/main.js` | de hoofdlus, de invoer, de mixer, alles aan elkaar |
-| `js/verhaal.js` | de tien missies, Mark, de gesprekken, de opslag van het verhaal |
+| `js/verhaal.js` | de twaalf missies, Mark, de gesprekken, de opslag van het verhaal |
 | `js/kaart.js` | **gegenereerd**: panden, wegen, water, straten uit de geodata |
 | `js/kaartwereld.js` | daar de wereld van bouwen (tegels, bomen, riet, auto's) |
 | `js/textures.js` | alle geveltextures, dakpannen, baksteen — op canvas |
@@ -68,6 +68,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/lichaam.js` | maten, onderdelen en doeken van alle mensen; `lichaamMat`, `doekVoor` |
 | `js/groen.js` | bomen, struiken, gras: `bolGeo`, `stamGeo`, blad- en schorsdoek, `grasVariatie`, riet, `maakGrasVeld` (gras in 3D) |
 | `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`), verlichte ramen 's avonds (`nachtRamen`) |
+| `js/brug.js` | missie 12: het dek van de Dúvelsrak als assenstelsel (`brugAssen`), dranghekken, C4, de schade na de knal |
 
 Een paar dingen die niet vanzelf spreken:
 
@@ -113,7 +114,7 @@ Street View-link erbij.
 9. **een eigen stek** — drie woningen kopen
 10. **De Veteraan** — de tas bij VV Sneek en de hinderlaag
 11. **de politieauto en de C4** — stelen aan de Lemmerweg, C4 bij Tinga State
-    (laatst gebouwd; Marks plan zelf komt in de volgende missie)
+12. **de Dúvelsrak** — de wegversperring met C4 op de brug, De Veteraan (laatst gebouwd)
 
 Missie 9 in het kort: Mark belt, staat bij de Wieken 29, noemt drie adressen met
 bedrag (**1, 2 of 3** kiest en zet de navigatie), en je koopt er aan tafel een
@@ -140,6 +141,18 @@ blokken C4 op de toonbank (`boerderij.toonC4`), E aan de balie: "Mark had al
 gebeld", gratis, `player.c4 = 4` (bewaard). Auto en C4 bij Molenkrite 15:
 € 1.000, en Mark zegt dat hij binnen zijn plan vertelt. **shift+min** start hem los.
 
+Missie 12 begint als Mark na missie 11 uitgepraat is: weer een M, binnen het
+plan op de bank. De Dúvelsrak heet in de kaart "Viaduct Tinga" (het dek van 51 m
+op 5,6 m; `brugAssen` in js/brug.js, s vanaf de Tinga-kant, u opzij). Zwart
+("Die avond…", `zwartMet`), politiepak (`derde.pak`, eigen poppetjes `brugMark` en
+`brugJohan`), de politieauto dwars op het dek, drie dranghekken en vier C4 met E op
+gele markeringen, Mark kijkt naar 100 kogels en 100 leven, Johan komt. Zwart
+("Even later…"), het filmbeeld (`werkFilmBij` zet de camera; `body.film`), vier
+auto's van de Lemmerweg-kant, `Bewaking` met `rustig` en De Veteraan als wachter 0.
+E laat de C4 afgaan, het gevecht, vier van de achterkant (`voegToe`), vier sterren
+met `politie.rust` tot Mark uitgepraat is, dan `stuurWagens` van de Molenkrite-kant.
+Tinga-bos: € 5.000, en de brug houdt zijn gat. **shift+=** start hem los.
+
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
 achtervolgen, na een tijdje opgeven. Alleen buiten de missies om.
@@ -155,7 +168,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run politieautotest` (missie 11, van de M tot de
+De laatste die ertoe doen: `npm run brugtest` (missie 12 van de M tot de € 5.000,
+met de dekking achter een auto gemeten, 65 controles; stap 89) met `brugshots` (zeven foto's);
+`npm run politieautotest` (missie 11, van de M tot de
 € 1.000, en of Mark echt zit) met `politieautoshots` (drie foto's; stap 88);
 `npm run haperingtest` (de camera achter de auto, de
 buren van een wegvak, de schaduw elk beeld tijdens het rijden; stap 87) met
@@ -232,6 +247,18 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
 - **Een zelfgemaakt wegvak heeft `w` en `walkOff` nodig**, anders staat een
   voetganger op NaN. **Meerdere schoten achter elkaar vragen om een beeld
   ertussen**: de terugslag wordt per beeld gedempt.
+- **Auto's zijn dekking, maar geen botsdoos** (stap 89). `zichtVrij` vraagt js/vehicles.js
+  om `blokkeertZicht` (`zetZichtBlokker`): een auto houdt de kijklijn tegen, behalve
+  als een eindpunt erin staat. Vijanden raken met een dobbelsteen zodra ze je
+  zien; wie niet ziet, schiet niet.
+- **Een auto naar het dek verplaatsen: eerst de hoogte.** `vehicles.zetNeer` peilt
+  de grond vanaf `mesh.position.y`; een auto die van 0 m op het viaduct springt
+  komt onder het dek op de N7 uit. Zet `mesh.position.y` eerst op dekhoogte.
+- **js/verhaal.js is één groot bereik.** Een `function` met een naam die er al is
+  overschrijft de andere stil (hoisting): in stap 89 namen `beginGevecht` en
+  `naarDeC4` zo die van missie 10 en 11 over. `npm run brugtest` kijkt er nu naar.
+- **Een getter die een object teruggeeft is een momentopname** (`verhaal.brug`):
+  lees hem na elke stap opnieuw, anders toets je een oude stand.
 - **Het wapen staat op laag 1** en wordt apart getekend (`tekenWapen`); een eigen
   render van de scène laat het dus weg, tenzij de camera die laag aanzet.
 - **Lege schermafdrukken** komen meestal doordat de camera niet bij de mensen
@@ -283,6 +310,9 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
 21. Een voetganger die aan het eind van zijn wegvak naar de overkant wisselt
     (`p.side *= -1` in `pickSegment`, js/npc.js) springt in één beeld tien tot
     twintig meter opzij. Hoort een oversteek te worden zoals `steek`.
+22. `npm run bevolkingtest` is sinds stap 89 op één controle rood: rijdend over de
+    Wieken één meting van 22 zonder mensen binnen 80 m. Gezocht (METHODIEK, stap
+    89): het zit niet in één bestand, het neerzetten is chaotisch gevoelig.
 
 ## 8 · Waar wat gedocumenteerd wordt
 

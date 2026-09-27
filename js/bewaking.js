@@ -51,10 +51,17 @@ export class Bewaking {
                                           (missie 10: de bende die je bij de ingang opwacht).
                                           `post.kijk` is dan het punt waar ze naar uitkijken,
                                           `post.via` de punten waar ze eerst langs lopen
+     personen                             [Persoon | null]: een eigen lichaam voor post i
+                                          (missie 12: De Veteraan zelf, met baard en al);
+                                          hij krijgt er een pistool bij
+     rustig                               ze staan erbij en doen niets tot `rustig` weer
+                                          uit gaat of er op ze geschoten wordt (missie 12:
+                                          de lijfwachten bij de wegversperring)
   */
   constructor(scene, posten, opties = {}) {
     this.scene = scene;
     this.alarm = false;
+    this.rustig = !!opties.rustig;
     this.schade = opties.schade ?? SCHADE;
     this.zicht = opties.zicht ?? ZICHT;
     this.vuurbereik = opties.vuurbereik ?? VUURBEREIK;
@@ -65,11 +72,29 @@ export class Bewaking {
     this.looppad = opties.looppad || null;
     this.overLaag = opties.overLaag || 0;
     this.houden = !!opties.houden;
-    this.wachters = posten.map((post, i) => {
+    this.opties = { kleuren, vest, pet };
+    const personen = opties.personen || [];
+    this.wachters = [];
+    this.voegToe(posten, personen);
+  }
+
+  /*
+   Er komen er bij (missie 12: vier man die van de achterkant van de brug komen
+   als de eerste ploeg neer is). Dezelfde uitrusting als de rest.
+  */
+  voegToe(posten, personen = []) {
+    const { kleuren, vest, pet } = this.opties;
+    const scene = this.scene;
+    const begin = this.wachters.length;
+    const nieuw = posten.map((post, j) => {
+      const i = begin + j;
       const kleur = kleuren[i % kleuren.length];
-      const persoon = new Persoon({ ...kleur, huid: i % 2 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + (i % 3) * 0.02,
+      let persoon = personen[j] || null;
+      if (persoon) persoon.geefWapen('pistool');
+      else persoon = new Persoon({ ...kleur, huid: i % 2 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + (i % 3) * 0.02,
         wapen: true, pet: pet === 'om de beurt' ? i % 2 === 0 : !!pet, vest });
-      scene.add(persoon.groep);
+      if (!persoon.groep.parent) scene.add(persoon.groep);
+      persoon.groep.visible = true;
       const start = post.a;
       persoon.zetNeer(start[0], start[1], Math.atan2(-(post.b[0] - post.a[0]), -(post.b[1] - post.a[1])));
       return {
@@ -81,8 +106,11 @@ export class Bewaking {
         doel: null,               // waar hij naartoe loopt bij 'zoekt'
         padI: 0,                  // hoever hij op het looppad is
         omT: 0,
+        eigen: !!personen[j],     // een lichaam van buiten: niet weggooien bij verwijder
       };
     });
+    this.wachters.push(...nieuw);
+    return nieuw;
   }
 
   get aantal() { return this.wachters.length; }
@@ -115,6 +143,7 @@ export class Bewaking {
         w.staat = 'neer';
         w.omT = 0;
         this.alarm = true;      // de rest hoort hem vallen
+        this.rustig = false;    // en wie stond te wachten, wacht niet meer
         for (const ander of this.wachters) if (ander.staat === 'patrouille') ander.staat = 'zoekt';
         return true;
       }
@@ -172,6 +201,22 @@ export class Bewaking {
   update(dt, speler, opTerrein) {
     const sp = speler.inCar ? speler.inCar : speler.pos;
     let schade = 0;
+    /*
+     Rustig: ze staan bij hun post, kijken naar `post.kijk` en doen verder niets.
+     Een schot op een van hen maakt er een eind aan (zie `raak`).
+    */
+    if (this.rustig) {
+      for (const w of this.wachters) {
+        if (w.staat === 'neer') { if (w.omT < 1) { w.omT = Math.min(1, w.omT + dt * 1.8); w.persoon.legNeer(w.omT); } continue; }
+        // eerst van het portier naar de plek (post.b), daar kijken ze naar post.kijk
+        const erIs = w.rustKlaar || this.loopNaar(w, w.post.b, dt, LOOP);
+        if (erIs) w.rustKlaar = true;
+        const pos = w.persoon.groep.position, k = w.post.kijk;
+        if (erIs && k) w.persoon.draaiNaar(Math.atan2(-(k.x - pos.x), -(k.z - pos.z)), dt, 3);
+        w.persoon.update(dt, { loopt: !erIs, snelheid: LOOP });
+      }
+      return 0;
+    }
     for (const w of this.wachters) {
       const persoon = w.persoon;
       const pos = persoon.groep.position;
@@ -331,7 +376,11 @@ export class Bewaking {
   }
 
   verwijder() {
-    for (const w of this.wachters) this.scene.remove(w.persoon.groep);
+    for (const w of this.wachters) {
+      // een eigen lichaam (De Veteraan) blijft bestaan; alleen uit beeld en rechtop
+      if (w.eigen) { w.persoon.groep.visible = false; w.persoon.legNeer(0); continue; }
+      this.scene.remove(w.persoon.groep);
+    }
     this.wachters.length = 0;
   }
 }

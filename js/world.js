@@ -2520,8 +2520,21 @@ export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2) {
     }
   }
   for (const c of losseDozen) if (raaktDoos(c, x1, z1, x2, z2)) return false;
+  // de auto's (js/vehicles.js zet die toets hier neer): geen botsdoos, maar wel dekking
+  if (zichtBlokker && zichtBlokker(x1, z1, x2, z2, hoogte)) return false;
   return true;
 }
+
+/*
+ Auto's als dekking (missie 12, verzoek 27 sep 2026: "let wel op dat auto's
+ beschutting bieden voor kogels, check dit"). Een schutter of agent raakt je
+ met een worp van de dobbelsteen zodra hij je ziet, en dat zien kwam alleen uit
+ `zichtVrij`: de vaste botsdozen. Auto's staan daar niet in (ze bewegen, en
+ vehicles.js duwt je zelf uit ze weg), dus achter een auto stond je gewoon in het
+ schootsveld. js/vehicles.js geeft hier zijn eigen toets aan.
+*/
+let zichtBlokker = null;
+export function zetZichtBlokker(fn) { zichtBlokker = fn; }
 
 /*
  Hoe ver kan de camera achteruit voordat hij door een muur zakt? Loopt van het

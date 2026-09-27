@@ -182,7 +182,7 @@ const LEEG_AFSTAND = 45;
  alleen echter, het helpt ook spelen — een agent in het donkerblauw was tussen de
  voetgangers nauwelijks te onderscheiden.
 */
-const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c, vest: 0xd6dc46, schoen: 0x14161c };
+export const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c, vest: 0xd6dc46, schoen: 0x14161c };
 
 export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }) {
   let heat = 0;
@@ -692,7 +692,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   function parkeerAuto(x, z, yaw) {
     const car = vehicles.voegToe({ x, z, yaw, soort: 'hatch', kleur: 0x1b3a7a, driveable: true });
     car.topSnelheid = POLITIE_TOP;
-    lichtbalk(car);
+    // de lampen van de balk, zodat een missie ze kan laten knipperen (missie 12)
+    car.zwaailicht = lichtbalk(car);
     car.politieAuto = true;
     return car;
   }
@@ -1154,6 +1155,13 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   // ---------------------------------------------------------------- per beeld
   let zagJeVorigBeeld = false;
   let blokT = 0;               // wachttijd tot de volgende wegblokkade
+  /*
+   Rust (missie 12, verzoek 27 sep 2026: "politie schiet pas op je als Mark klaar
+   is met zijn dialoog"). De sterren staan er, maar er komt niemand bij, er
+   wordt niet geschoten, geen blokkade, geen helikopter, en de verdenking zakt
+   niet: de melding is net binnen en ze zijn nog onderweg.
+  */
+  let rust = false;
   function update(dt) {
     const s = ster();
     let schade = 0;
@@ -1205,7 +1213,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       if (meldWacht <= 0) { deelMeldingUit(); meldNieuw = false; }
     }
 
-    if (s > 0) vulAan(dt);
+    if (s > 0 && !rust) vulAan(dt);
     /*
      Wegblokkades: bij veel sterren komt er om de paar tellen een bij, tot het
      maximum. Zakt de verdenking, dan worden ze weer weggehaald — een straat die
@@ -1213,7 +1221,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
      wegversperring voor altijd.
     */
     blokT -= dt;
-    if (s >= BLOKKADE_STER && blokkades.length < BLOKKADE_MAX_AANTAL && blokT <= 0) {
+    if (!rust && s >= BLOKKADE_STER && blokkades.length < BLOKKADE_MAX_AANTAL && blokT <= 0) {
       blokT = zetBlokkade() ? 12 : 3;
     }
     if (s < BLOKKADE_STER) for (const b of [...blokkades]) {
@@ -1284,7 +1292,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         persoon.kijkNaar(mik.x, mik.z, dt, 7);
         persoon.update(dt, { loopt: !dichtbij && dMik > 1.5, mikt: true, snelheid: REN });
         a.vuurT -= dt;
-        if (a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht && schutters.has(a)) {
+        if (!rust && a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht && schutters.has(a)) {
           /*
            Wie een machinepistool heeft schiet korte salvo's: drie schoten kort
            achter elkaar in plaats van één, en hij is eerder weer aan de beurt.
@@ -1513,7 +1521,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
      ze alleen weten wat ze gezien hebben.
     */
     const heliZiet = heli.update(dt, {
-      aan: s >= HELI_STER,
+      aan: s >= HELI_STER && !rust,
       doel: anker(),
       donker: !!(sfeer && sfeer.nacht),
     });
@@ -1557,7 +1565,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       // dat een agent met een verouderde zichtvlag jouw huidige plek doorgeeft —
       // dan weten ze altijd waar je bent en kun je nooit ontsnappen.
       gezienT = 0;
-    } else if (s > 0) {
+    } else if (s > 0 && !rust) {
       gezienT += dt;
       const wachten = VERGETEN + s * 6;
       if (gezienT > wachten) heat = Math.max(0, heat - KOEL * dt);
@@ -1580,7 +1588,31 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     return schade;
   }
 
+  /*
+   Een paar wagens die vanaf een gekozen plek komen (missie 12: "twee
+   politieauto's komen van de Molenkrite-kant met sirenes naar de brug").
+   `route` is een reeks punten [[x, z], ...]: de eerste wagen begint op het
+   eerste punt, de volgende een eind erachter; ze rijden naar `laatstBekend` zoals
+   elke eenheid. `uitstel` houdt de gewone aanvulling zo lang tegen, zodat deze
+   er eerst zijn.
+  */
+  function stuurWagens(route, n = 2, uitstel = 14) {
+    const uit = [];
+    for (let i = 0; i < n && route.length; i++) {
+      const p = route[Math.min(route.length - 1, i)], q = route[Math.min(route.length - 1, i + 1)];
+      const yaw = Math.atan2(-(q[0] - p[0]), -(q[1] - p[1]));
+      // een kleine tien meter achter elkaar, terug langs de route
+      const r0 = route[0], r1 = route[1] || route[0];
+      const lx = r1[0] - r0[0], lz = r1[1] - r0[1], ll = Math.hypot(lx, lz) || 1;
+      const x = r0[0] - lx / ll * 9 * i, z = r0[1] - lz / ll * 9 * i;
+      uit.push(maakWagen(x, z, i === 0 ? yaw : Math.atan2(-lx, -lz)));
+    }
+    vulT = Math.max(vulT, uitstel);
+    return uit;
+  }
+
   function reset() {
+    rust = false;
     for (const w of [...wagens]) ruimWagen(w);
     // een lege wagen waar de speler in zit is van hem; die laten we staan
     for (const v of [...verlaten]) { if (player.inCar !== v.car) ruimVerlaten(v); }
@@ -1596,7 +1628,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   }
 
   return {
-    misdaad, update, raak, raakWagen, raakHeli, wagenOp, doelen, hoorSchot, reset, aanrijden, zetSter, parkeerAuto,
+    misdaad, update, raak, raakWagen, raakHeli, wagenOp, doelen, hoorSchot, reset, aanrijden, zetSter, parkeerAuto, stuurWagens,
+    get rust() { return rust; },
+    set rust(v) { rust = !!v; },
     get ster() { return ster(); },
     get heat() { return heat; },
     get gezocht() { return ster() > 0; },

@@ -95,6 +95,7 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + 9** | een eigen stek |
 | **shift + 0** | De Veteraan |
 | **shift + min** | de politieauto en de C4 |
+| **shift + =** | de Dúvelsrak |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
@@ -1838,6 +1839,88 @@ auto en de C4. **shift + min** start hem los.
 
 `npm run politieautotest` speelt de missie na, van de M na missie 10 tot de
 € 1.000; `npm run politieautoshots` maakt de drie foto's hierboven.
+
+### 12 · De Dúvelsrak
+
+Mark wacht binnen, en weer staat er alleen een **M** bij Molenkrite 15. Op de
+bank vertelt hij zijn plan. Johan hoorde van iemand dat De Veteraan vanavond naar
+de Spil gaat, en dan moet hij over de **Dúvelsrak**: de grote houten brug over de
+N7 bij Tinga. Daar zetten ze een **wegversperring** neer, met de politieauto die
+jij gestolen hebt. *"Het lijkt een gewone politiecontrole. De Veteraan heeft geen
+argwaan: hij denkt dat hij iedereen betaalt."* Achter op de brug ligt de C4.
+*"Boem! De Veteraan op het grasveld. Briljant!"* Maar eerst moet de versperring
+nog staan.
+
+Het beeld gaat zwart: ***Die avond…*** Jullie staan buiten voor Molenkrite 15,
+om half elf, allebei in **politiepak** (ook Erik, als je in de derde persoon
+speelt). De politieauto staat klaar en Mark rijdt mee. De **D** op de kaart wijst
+naar het eind van de brug aan de **kant van Tinga**.
+
+![Die avond: Mark in politiepak bij de politieauto](docs/screenshots/brug_avond.png)
+
+Zet de auto daar neer en hij komt dwars over de weg te staan, met het zwaailicht
+aan. Dan gaat het met **E op gele markeringen**, zoals bij de bom in missie 7:
+
+- **drie dranghekken** aan de Tinga-kant. De kant van de Lemmerweg blijft open,
+  want daar komt hij vandaan. Een hek is een schraag met rood-witte planken en
+  een oranje lamp; rij je er met een auto doorheen, dan gaat hij om;
+- **vier ladingen C4** achter op de brug, aan de kant van de Lemmerweg. Dat zijn
+  de vier stuks van de balie van Tinga State.
+
+Dan kijkt Mark wat je bij je hebt. Heb je minder dan **100 kogels** of minder
+dan **100 leven**, dan krijg je van hem een **machinegeweer en een pistool**, met
+150 kogels en een vol leven. Daarna komt **Johan** de helling op lopen, ook in
+pak: *"Dacht je dat ik dit ging missen? Ik help mee."*
+
+| ![De C4 achter op de brug](docs/screenshots/brug_c4.png) | ![De versperring](docs/screenshots/brug_versperring.png) |
+|---|---|
+| twee ladingen liggen er, twee markeringen nog | de versperring aan de Tinga-kant, Johan komt eraan |
+
+Weer zwart: ***Even later…*** En dan een **filmbeeld** met zwarte balken boven
+en onder. Vier auto's rijden vanaf de kant van de Lemmerweg rustig de brug op, met
+hun lampen aan: De Veteraan voorop en drie auto's met elk drie lijfwachten
+erachter. Ze stoppen voor de hekken. Voor hen is het een controle, dus niemand
+schiet. Met **E** sla je het filmbeeld over.
+
+![Het filmbeeld: de auto's van De Veteraan op de brug](docs/screenshots/brug_film.png)
+
+De Veteraan stapt uit en loopt naar de hekken. *"Wat is dit? Hebben jullie niet
+genoeg geld van mij gekregen om mij door te laten gaan?"* Mark: *"Rijbewijs en
+kentekenbewijs, meneer."* Dan herkent hij Erik: *"Wacht eens… Jou ken ik!"* Mark
+roept dat je de C4 moet laten afgaan: **E**.
+
+| ![De Veteraan bij de hekken](docs/screenshots/brug_veteraan.png) | ![Boem](docs/screenshots/brug_boem.png) |
+|---|---|
+| "Jou ken ik!" | de C4 gaat af, achter op de brug |
+
+Vier knallen kort na elkaar, en de **achterkant van de brug** is weg: een
+zwartgeblakerd gat, versplinterde planken, een geknakte leuning en vuur dat
+blijft branden. Maar De Veteraan en zijn mannen staan er nog, en dan begint het
+**vuurgevecht**. Mark (met een machinepistool) en Johan schieten mee. **Auto's
+zijn dekking**: wie achter een auto staat of zit, kan niet geraakt worden, en je
+kogels gaan ook niet door een auto heen. Schiet je al voordat de C4 afgaat, dan
+begint het gevecht meteen en kun je hem nog steeds met E laten afgaan.
+
+![Wat er van de achterkant over is](docs/screenshots/brug_gat.png)
+
+Zijn de tien neer, dan komen er nog **vier man van de achterkant**, de helling op
+in de verte. Liggen die ook, dan krijg je **vier sterren**. *"Shit, wat een
+chaos,"* zegt Mark. *"Mannen, de auto in en wegwezen. Op naar het Tinga-bos!"*
+Zolang hij praat komt er geen politie en wordt er niet geschoten. Daarna komen er
+eerst **twee politieauto's met sirenes van de Molenkrite-kant**; een tel of vijftien
+later gaat het zoals altijd bij vier sterren. De auto's van De Veteraan kun je nu
+ook nemen.
+
+In het **Tinga-bos** schud je ze af, net als in missie 7. Mark en Johan rijden
+mee. *"Tinga is weer van ons, broeders."* De missie is **geslaagd**: **€ 5.000**.
+De brug houdt zijn gat.
+
+Ga je neer in het gevecht, dan begin je opnieuw vlak voor *"Even later…"*, met
+alles klaargezet. Na het gevecht begin je bij het gat met de vier sterren.
+**shift + =** start de missie los.
+
+`npm run brugtest` speelt de hele missie na, met de dekking achter een auto
+gemeten. `npm run brugshots` maakt de zeven foto's hierboven.
 
 ### Na missie 10: de bende op straat
 

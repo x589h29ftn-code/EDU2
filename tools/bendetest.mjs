@@ -58,9 +58,14 @@ await page.evaluate(async () => {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   };
-  // na missie 10, met Koningsspil 20 als eigen huis
+  /*
+   Na missie 10, met Koningsspil 20 als eigen huis. Sinds missie 11 en 12 begint er
+   na missie 10 vanzelf een volgende (en tijdens een missie staat de bende er
+   niet), dus die twee staan hier ook als gedaan: anders begon missie 11 zes tellen
+   na het laden en was de straat leeg (stap 89).
+  */
   window.__naMissie10 = (klaar = true) => g.verhaal.herstel({ missie: 'klaar', fase: 'klaar',
-    huis: 'Koningsspil 20', veteraanKlaar: klaar, geld: 1000 });
+    huis: 'Koningsspil 20', veteraanKlaar: klaar, politieautoKlaar: klaar, brugKlaar: klaar, geld: 1000 });
   window.__loting(3);
 });
 

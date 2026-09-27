@@ -55,7 +55,7 @@
            pointer-events: none; background: rgba(5,8,14,.5); padding: 5px 7px; border-radius: 7px; }
   #wapenicoon { display: block; width: 168px; height: 56px; }
   /* gesprekken: een tekstbalk onderin het scherm, door te klikken met E */
-  #dialoog { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%);
+  #dialoog { position: absolute; left: 50%; bottom: 54px; transform: translateX(-50%); z-index: 5;
              width: min(760px, 88vw); box-sizing: border-box; padding: 10px 16px;
              background: rgba(8,14,24,.80); border-left: 4px solid #ffd400; border-radius: 8px;
              text-shadow: none; pointer-events: auto; cursor: pointer;
@@ -331,6 +331,15 @@
                    width: 92vw; text-align: center; opacity: 0; color: #f4f0e2;
                    font-family: Georgia, 'Times New Roman', serif; font-style: italic;
                    font-size: clamp(26px, 4.4vw, 54px); letter-spacing: 2px; }
+  /* ------------------------------------------------------- het filmbeeld
+     Missie 12: de auto's van De Veteraan rijden de Dúvelsrak op. Twee zwarte
+     balken schuiven boven en onder in beeld; js/verhaal.js zet hun hoogte. Onder
+     het gesprek, zodat de regels erover heen blijven staan. */
+  .filmbalk { position: absolute; left: 0; right: 0; height: 0; background: #000;
+              pointer-events: none; z-index: 4; }
+  #filmboven { top: 0; }
+  body.film #ui > *:not(#dialoog) { visibility: hidden !important; }
+  #filmonder { bottom: 0; }
 
   /* ------------------------------------------------------------- de uitleg
      Eenmalige uitleg op het moment dat je iets voor het eerst kunt doen: het
@@ -420,6 +429,7 @@
   <div id="introzwart"></div>
 </div>
 <div id="overgang"><div id="overgangtekst"></div></div>
+<div id="filmboven" class="filmbalk"></div><div id="filmonder" class="filmbalk"></div>
 <div id="doodkeus" hidden>
   <button data-keuze="missie"></button>
   <button data-keuze="checkpoint"></button>

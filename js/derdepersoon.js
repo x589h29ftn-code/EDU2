@@ -21,6 +21,7 @@
 import * as THREE from 'three';
 import { Persoon } from './persoon.js';
 import { vrijeCamera } from './world.js';
+import { UNIFORM } from './politie.js';
 
 // te voet: dicht op de rug. In een auto hangt de hengel aan de lengte van het
 // voertuig, zodat je bij een bakwagen van zeven meter niet in de laadbak kijkt.
@@ -30,9 +31,16 @@ const TE_VOET = { afstand: 3.6, hoog: 1.45, zij: 0.55, min: 1.1 };
 
 export function initDerdePersoon({ scene, camera, player }) {
   // Erik zelf: hetzelfde poppetje als de mensen in het verhaal.
-  const pop = new Persoon({ shirt: 0x2f4a6e, broek: 0x24303f, huid: 0xd9b48f, haar: 0x6b5a45, hoogte: 1.02 });
-  pop.groep.visible = false;
-  scene.add(pop.groep);
+  const gewoon = new Persoon({ shirt: 0x2f4a6e, broek: 0x24303f, huid: 0xd9b48f, haar: 0x6b5a45, hoogte: 1.02 });
+  /*
+   En Erik in een politiepak (missie 12: "Erik en Mark hebben de politiepakken
+   aangetrokken"). Een tweede poppetje en geen andere kleur op het eerste: de
+   materialen van js/lichaam.js worden per kleur gedeeld, dus omkleuren zou
+   iedereen in hetzelfde shirt mee veranderen.
+  */
+  const agent = new Persoon({ ...UNIFORM, huid: 0xd9b48f, haar: 0x6b5a45, hoogte: 1.02, pet: true });
+  let pop = gewoon;
+  for (const p of [gewoon, agent]) { p.groep.visible = false; scene.add(p.groep); }
 
   let aan = false;
   let afstand = 0;              // huidige, ingekorte hengellengte
@@ -144,6 +152,15 @@ export function initDerdePersoon({ scene, camera, player }) {
     // recht achter de auto gaan hangen (bij het instappen en bij het wisselen)
     achterAuto(car) { if (!car) return; player.yaw = car.yaw; player.pitch = -0.10; player.kijkT = 0; },
     get pop() { return pop; },
+    // 'politie' of iets anders: welk pak Erik aan heeft
+    get pak() { return pop === agent ? 'politie' : 'gewoon'; },
+    set pak(v) {
+      const nieuw = v === 'politie' ? agent : gewoon;
+      if (nieuw === pop) return;
+      nieuw.groep.visible = pop.groep.visible;
+      pop.groep.visible = false;
+      pop = nieuw;
+    },
     get afstand() { return afstand; },
   };
 }

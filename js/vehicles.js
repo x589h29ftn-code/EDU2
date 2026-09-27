@@ -1,6 +1,6 @@
 // Auto's: geparkeerd, bestuurbaar en verkeer op de N7 en in de wijk.
 import * as THREE from 'three';
-import { resolveCollisions, pointInWater, grondHoogte, zichtVrij, breekScheidingenBij } from './world.js';
+import { resolveCollisions, pointInWater, grondHoogte, zichtVrij, breekScheidingenBij, zetZichtBlokker } from './world.js';
 import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
 import { makeCar, maakAutoStapel, lakVoor, VER_VANAF } from './carmodel.js';
@@ -55,6 +55,8 @@ export const LAKKLEUREN = [
 
 export class Vehicles {
   constructor(scene, parkSpots) {
+    // de auto's zijn dekking voor wie op je schiet (zie `blokkeertZicht`)
+    zetZichtBlokker((x1, z1, x2, z2, h) => this.blokkeertZicht(x1, z1, x2, z2, h));
     this.scene = scene;
     this.cars = [];   // {mesh|inst,x,z,yaw,speed,driveable}
     this.knallen = [];   // lopende vuurballen van opgeblazen auto's
@@ -341,6 +343,52 @@ export class Vehicles {
     }
     this.spoel();
     for (const t of this.traffic) t.mesh.visible = aan && !t.slaapt;
+  }
+
+  /*
+   Dekking (missie 12): loopt de kijklijn van (x1, z1) naar (x2, z2) op `hoogte`
+   boven de grond door een auto? Een auto is hier een doos van zijn lengte, zijn
+   breedte en zijn dak (hatchback 4,30 × 1,78 × 1,40 m, bus 5,20 × 1,90 × 2,02, zie
+   js/carmodel.js). Staat een van de twee eindpunten ín de doos — je zit erin, of
+   de schutter staat ertegenaan — dan telt die auto niet: anders was je in een
+   auto onzichtbaar. Eerst een grove toets op de rechthoek om de lijn heen, dan
+   pas de doos zelf (de slab-toets, zoals `zichtVrij`).
+  */
+  blokkeertZicht(x1, z1, x2, z2, hoogte = 1.2) {
+    const minX = Math.min(x1, x2) - 3, maxX = Math.max(x1, x2) + 3;
+    const minZ = Math.min(z1, z2) - 3, maxZ = Math.max(z1, z2) + 3;
+    const doos = (x, z, yaw, soort) => {
+      if (x < minX || x > maxX || z < minZ || z > maxZ) return false;
+      const bus = soort === 'van', truck = soort === 'truck';
+      const dak = truck ? 3.0 : bus ? 2.02 : 1.40;
+      if (dak < hoogte) return false;
+      const hl = (truck ? 7.0 : bus ? 5.20 : 4.30) / 2, hb = (truck ? 2.35 : bus ? 1.90 : 1.78) / 2;
+      // breedte langs (cos, −sin), lengte langs (−sin, −cos): de neus wijst naar −z bij yaw 0
+      const c = Math.cos(yaw), sn = Math.sin(yaw);
+      const u0 = (x1 - x) * c - (z1 - z) * sn, v0 = -(x1 - x) * sn - (z1 - z) * c;
+      const u1 = (x2 - x) * c - (z2 - z) * sn, v1 = -(x2 - x) * sn - (z2 - z) * c;
+      const binnen = (u, v) => Math.abs(u) < hb + 0.2 && Math.abs(v) < hl + 0.2;
+      if (binnen(u0, v0) || binnen(u1, v1)) return false;
+      let t0 = 0, t1 = 1;
+      for (const [p0, e, h] of [[u0, u1 - u0, hb], [v0, v1 - v0, hl]]) {
+        if (Math.abs(e) < 1e-9) { if (p0 < -h || p0 > h) return false; continue; }
+        let a2 = (-h - p0) / e, b2 = (h - p0) / e;
+        if (a2 > b2) { const t = a2; a2 = b2; b2 = t; }
+        if (a2 > t0) t0 = a2;
+        if (b2 < t1) t1 = b2;
+        if (t0 > t1) return false;
+      }
+      return true;
+    };
+    for (const c of this.cars) {
+      if (!this.isZichtbaar(c)) continue;
+      if (doos(c.x, c.z, c.yaw, c.soort)) return true;
+    }
+    for (const t of this.traffic) {
+      if (t.slaapt || !t.mesh.visible) continue;
+      if (doos(t.mesh.position.x, t.mesh.position.z, t.mesh.rotation.y, t.soort)) return true;
+    }
+    return false;
   }
 
   // De instanced meshes zelf, om op te schieten (raycast) — zie js/main.js.

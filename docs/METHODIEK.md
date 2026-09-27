@@ -6050,6 +6050,97 @@ geslaagd en € 1.000. Het plan zelf komt in de volgende ronde.
   (`plekken.bankKijk`). De proef meet het: heup 0,47 m, enkel op de vloer en meer
   dan 0,52 m voor de zitplek, dus voorbij de voorkant van de bank.
 
+**Missie 12: de Dúvelsrak (stap 89).** Gevraagd (27 sep 2026): Mark vertelt
+binnen het plan (De Veteraan gaat naar de Spil, over de Dúvelsrak; een
+wegversperring met C4 die op een politiecontrole lijkt). Dan zwart, "die avond",
+in politiepak naar de brug, de auto aan de Tinga-kant, versperringen en vier C4
+met E op gele markeringen, Mark kijkt of je 100 kogels en 100 leven hebt. Johan
+komt helpen. Zwart, "even later", een filmbeeld van vier auto's die rustig van de
+Lemmerweg-kant de brug op rijden. De Veteraan herkent Erik, E laat de C4 afgaan,
+de achterkant van de brug is weg maar iedereen leeft nog. Het vuurgevecht, vier
+man van de achterkant, vier sterren. De politie schiet pas na Marks zinnen, eerst
+twee wagens met sirenes van de Molenkrite-kant. Afschudden in het Tinga-bos.
+"Let wel op dat auto's beschutting bieden voor kogels, check dit."
+
+- *De brug.* In de kaart heet hij "Viaduct Tinga" (data/stijl/omgeving.json): de
+  houten boogbrug over de N7, met een vlak dek van 51 m op 5,6 m hoogte, van
+  station 113 tot 170. js/brug.js maakt er een assenstelsel van (s langs het dek
+  vanaf de Tinga-kant, u opzij). Het dek zelf is geen los model maar gewoon
+  wegdek dat `grondHoogte` optilt: het kan niet echt stuk. "De achterkant gaat
+  kapot" is daarom wat er op het dek komt te liggen: een zwartgeblakerd gat
+  (een doek, het midden bijna zwart), versplinterde planken, een geknakte leuning,
+  vuur en rook die blijven. Geen extra lamp: het vuur is MeshBasicMaterial.
+- *Auto's als dekking.* Gemeten, niet aangenomen: een schutter of agent raakt je
+  met een dobbelsteen zodra hij je ziet, en dat zien kwam alleen uit `zichtVrij`.
+  Auto's zijn daar geen botsdoos, dus achter een auto stond je gewoon in het
+  schootsveld (en de opmerking in js/politie.js dat hurken achter een auto hielp,
+  klopte niet). Nu geeft js/vehicles.js via `zetZichtBlokker` een eigen toets
+  mee: elke auto is een doos van zijn lengte, breedte en dak, en een lijn die er
+  doorheen gaat is geblokkeerd. Staat een eindpunt ín de doos (je zit erin), dan
+  telt die auto niet. Jouw eigen kogels stopten al bij een auto (die zit in de
+  raycast). `brugtest` meet de dekking achter de politieauto op het dek: staand en
+  gehurkt geen zicht, een stap opzij wel.
+  Het raakt ook de oudere missies. Bij VV Sneek (missie 10) nemen de geparkeerde
+  auto's bij het inritje een deel van het zicht van de bende weg: met de vaste
+  loting van `veteraantest` raakten ze je nog twee keer in plaats van drie (90
+  leven over tegen 85), en "het kost je wat" viel om. De bende daar doet nu 6 per
+  treffer in plaats van 5. Missie 7 (`bomtest`) en de politie (`politietest`,
+  `helitest`) bleven groen.
+- *De politie wacht.* `politie.rust`: de sterren staan, maar er komt niemand bij,
+  er wordt niet geschoten, geen blokkade, geen helikopter, en de verdenking zakt
+  niet. `stuurWagens(route, n, uitstel)` zet de eerste twee wagens op een punt
+  van de Molenkrite 110 m voor de voet van de brug, en houdt de gewone aanvulling
+  zestien tellen tegen.
+- *Het filmbeeld.* Het verhaal draait ná alles wat de camera zet (js/main.js), dus
+  `werkFilmBij` zet hem daar zelf, met drie standpunten, en twee zwarte balken en
+  de HUD weg (`body.film`). De auto's volgen de stations van het viaduct vanaf 70 m
+  voorbij het dek: de voorste rijdt 83 m, bij 25 km/u met remmen dertien tellen.
+  Eerst was dat 125 m en kapte het filmbeeld (hoogstens 15 s) af voor ze er waren;
+  dat viel uit de rekensom bij het schrijven van de proef. E slaat het over.
+- *Rustig tot het afgaat.* `Bewaking` kreeg `rustig` (ze lopen van het portier
+  naar hun plek en kijken naar de hekken; een treffer of een schot maakt er een
+  eind aan), `personen` (De Veteraan zelf, met baard, als wachter 0) en
+  `voegToe` (de vier van de achterkant).
+- *Politiepak.* Mark en Johan zijn voor deze missie eigen poppetjes in het uniform
+  van js/politie.js; Erik heeft in js/derdepersoon.js een tweede poppetje
+  (`derde.pak`). Omkleuren kan niet: de materialen worden per kleur gedeeld.
+- *Wat de foto's vonden.* De proef was groen, en toch stond op de foto de
+  politieauto niet op de brug. Na het laden sprong hij van de Molenkrite (0 m) naar
+  het dek, en `zetNeer` peilt de grond vanaf de hoogte waar hij was: onder het dek
+  is dat de N7. De proef zette hem zelf op dekhoogte en zag het niet. Nu wordt hij
+  eerst op dekhoogte gezet, en de proef kijkt na het laden. En het tweede
+  standpunt van het filmbeeld stond buiten de leuning, op 1,2 m: je zag hout. Nu
+  binnen de leuning, en de proef kijkt of de voorste auto in beeld staat.
+- *De proef zelf.* `v.brug` is een momentopname; de eerste ronde las `film`,
+  `hekken` en `klaar` van een oude opname en gaf zeven fouten die er niet waren.
+  Twee echte: vier van de tien mannen stonden na de knal op "zoeken" in plaats van
+  "aanval" (dat is juist de dekking), en wie te voet naar het bos liep liet Mark
+  en Johan op de brug staan. Die komen nu mee.
+- *Een naam die er al was.* `veteraantest` viel om: in missie 10 stapte niemand
+  meer uit. js/verhaal.js is één groot bereik, en mijn `beginGevecht` (missie 12)
+  overschreef die van missie 10 zonder foutmelding; `naarDeC4` nam die van missie
+  11 over. Hernoemd (`brugGevecht`, `naarDeLadingen`), en `brugtest` telt nu de
+  dubbele functienamen in het bestand.
+- *De bende na missie 10.* `bendetest` zette de stand van "net na missie 10"
+  terug, en sinds stap 88 begint dan zes tellen later missie 11: tijdens een
+  missie staat de bende er niet, en dertien controles vielen om. Dat kwam niet uit
+  deze ronde; in stap 88 was `bendetest` niet opnieuw gedraaid. De proef zet nu
+  ook missie 11 en 12 op gedaan. In het spel zelf zie je de groepjes dus pas echt
+  na missie 12: tussen 10 en 11 zit maar een halve minuut, en tussen 11 en 12
+  een paar tellen.
+- *Nog rood: `bevolkingtest`, één controle.* Rijdend over de Wieken is er in één
+  van de 22 metingen niemand binnen 80 m (de reeks: …, 2, 1, 0, 3, …; gemiddeld
+  4,5 tegen 3,9 op de vorige commit). Op de vorige commit was het minimum 1.
+  Gezocht, niet geraden: zonder de autodekking (uitgezet na het laden) nog steeds
+  0; met de verhaal.js van de vorige commit nog steeds 0; met de vehicles.js en
+  world.js van de vorige commit minimum 2, maar dan valt een ándere controle om (3
+  van 6 wijken in plaats van 5). Het neerzetten van voetgangers is chaotisch
+  gevoelig voor elke verandering (de volgorde van de loting, en `zichtVrij` bij
+  het opstarten), en deze controle zat al op de rand: in eerdere rondes was het
+  minimum vaak 1. Een poging om bij een lege straat drie in plaats van twee
+  mensen te verhuizen maakte het gemiddelde lager (3,3) en het minimum niet
+  beter: teruggedraaid. Staat bij de open punten.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -6145,3 +6236,6 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
     `pickSegment`), en dat gebeurt in één beeld: tien tot twintig meter opzij op
     een brede weg. Gevonden bij stap 88 in `nachttest`; hoort een oversteek te
     worden zoals `steek`.
+14. **`bevolkingtest`: rijdend soms één meting zonder mensen binnen 80 m** (stap
+    89). De proef is chaotisch gevoelig voor elke verandering; zie het blok van
+    stap 89. Een neerzetten dat minder van de loting afhangt is de weg.

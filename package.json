@@ -162,6 +162,8 @@
     "rijprofiel": "node tools/rijprofiel.mjs",
     "plattegrondshots": "node tools/plattegrondshots.mjs",
     "politieautotest": "node tools/politieautotest.mjs",
-    "politieautoshots": "node tools/politieautoshots.mjs"
+    "politieautoshots": "node tools/politieautoshots.mjs",
+    "brugtest": "node tools/brugtest.mjs",
+    "brugshots": "node tools/brugshots.mjs"
   }
 }

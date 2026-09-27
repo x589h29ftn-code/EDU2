@@ -609,6 +609,17 @@ const verhaal = initVerhaal({
   // missie 10: "Enkele uren later" is het één uur 's nachts (de sfeer komt verderop)
   zetUur: (u) => { const sf = sfeerNu(); if (sf) sf.uur = u; },
   schokken: (kracht) => schok(kracht),
+  /*
+   Missie 12, de Dúvelsrak: het filmbeeld van de aanrijdende auto's zet zelf de
+   camera (het verhaal loopt ná alles wat hem anders zet), de politie wacht met
+   komen en schieten tot Mark uitgepraat is en stuurt dan twee wagens van de
+   Molenkrite-kant, en Erik draagt een politiepak (js/derdepersoon.js).
+  */
+  camera,
+  politieRust: (aan) => { politie.rust = aan; },
+  stuurPolitie: (route, n, uitstel) => politie.stuurWagens(route, n, uitstel),
+  zetPak: (pak) => { derde.pak = pak; },
+  sterren: () => politie.ster,
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
   bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {}, mislukt() {},
@@ -1293,6 +1304,7 @@ const MISSIES = [
   { nr: 9, naam: 'huis', titel: 'een eigen stek' },
   { nr: 10, naam: 'veteraan', titel: 'De Veteraan' },
   { nr: 11, naam: 'politieauto', titel: 'de politieauto en de C4' },
+  { nr: 12, naam: 'brug', titel: 'de Dúvelsrak' },
 ];
 function startMissieLos(naam) {
   const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
@@ -1322,6 +1334,8 @@ window.addEventListener('keydown', e => {
   // toetsenbord een '!' en op een ander een '1'
   // shift en het streepje achter de nul: missie 11
   if (e.code === 'Minus' || e.code === 'NumpadSubtract') { e.preventDefault(); startMissieLos('11'); return; }
+  // en de toets daarachter (= en +): missie 12
+  if (e.code === 'Equal' || e.code === 'NumpadAdd') { e.preventDefault(); startMissieLos('12'); return; }
   const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();
