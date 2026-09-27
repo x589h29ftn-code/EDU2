@@ -2,11 +2,11 @@
  Foto's van missie 14, Ronald en de race naar IJlst:
 
    race_ronald.png   Ronald voor zijn huis aan de Lemmerweg 80, bij de schuur
-   race_grid.png     die nacht op de Lemmerweg bij de BP: de grid, De Boer en
+   race_grid.png     die nacht op de Lemmerweg bij de BP: de grid, Bouwman en
                      Ronald langs de kant, zijn politieauto, de eerste ring
    race_pijlen.png   na het startsein: de lichtpijlen op de Lemmerweg
    race_ring.png     onderweg: de zwarte Ferrari op weg naar een ring
-   race_finish.png   de finish in IJlst, met De Boer, Ronald en de politieauto
+   race_finish.png   de finish in IJlst, met Bouwman, Ronald en de politieauto
 
  Gebruik: npm run server &   node tools/raceshots.mjs 8123 [map]
 */
@@ -112,7 +112,7 @@ await page.evaluate(() => {
     const pl = window.__game.verhaal.race.plek;
     return { k: pl.kant, s: pl.start, sp: pl.speler };
   });
-  // van voren, schuin over de grid terug: de auto's met hun lampen aan, De Boer en
+  // van voren, schuin over de grid terug: de auto's met hun lampen aan, Bouwman en
   // Ronald langs de kant, zijn politieauto erachter
   await bevries();
   const vx = p.s.x + p.s.tx * 16 - p.s.tz * 3, vz = p.s.z + p.s.tz * 16 + p.s.tx * 3;
@@ -169,7 +169,7 @@ await page.evaluate(() => {
 // ---------------------------------------------------------------- de finish
 await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, pl = v.race.plek;
-  // de speler een eind van de start, zodat De Boer en Ronald naar de finish gaan
+  // de speler een eind van de start, zodat Bouwman en Ronald naar de finish gaan
   const car = g.player.inCar;
   if (car) { car.x = pl.eind.x + pl.eind.tx * 12; car.z = pl.eind.z + pl.eind.tz * 12; car.yaw = pl.eind.yaw; car.speed = 0; car.mesh.position.set(car.x, 0, car.z); car.mesh.rotation.y = car.yaw; }
   window.__stap(3);

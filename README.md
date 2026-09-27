@@ -98,6 +98,7 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + =** | de Dúvelsrak |
 | **shift + [** | het schrift (de toets rechts naast de P) |
 | **shift + ]** | Ronald en de race naar IJlst (de toets daarnaast) |
+| **shift + \\** | Bouwman schaduwen (de toets daar weer rechts van; op een Europees toetsenbord ook **shift + <**) |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
@@ -2021,8 +2022,8 @@ Een minuut na het schrift gaat de telefoon: **Ronald**, een oude vriend van Erik
 *"Ik zit in de problemen. Kun je even langskomen?"* Hij woont aan de **Lemmerweg
 80**, het huis met de schuur, en er staat een **R** op de kaart.
 
-Bij de schuur vertelt hij het: hij heeft een schuld bij **brigadier De Boer**, een
-naam die ook in het schrift van De Veteraan staat. De Boer laat 's nachts races
+Bij de schuur vertelt hij het: hij heeft een schuld bij **brigadier Bouwman**, een
+naam die ook in het schrift van De Veteraan staat. Bouwman laat 's nachts races
 rijden, van de **BP aan de Lemmerweg tot bij de Poiesz in IJlst**, en zet er geld
 op in. Wie hem iets schuldig is moet rijden, en vannacht is Ronald aan de beurt;
 met zijn oude BX wint hij het nooit. *"Dan rij ik voor je."*
@@ -2035,7 +2036,7 @@ een gekocht, dan belt hij: *"Vannacht om één uur bij de BP."* Het wordt zwart:
 ***Die nacht…***
 
 Om één uur zit je in je Ferrari op de grid op de Lemmerweg, tweede van vier. De
-Boer en Ronald staan langs de kant, met de politieauto van De Boer erachter. Na
+Boer en Ronald staan langs de kant, met de politieauto van Bouwman erachter. Na
 zijn uitleg telt hij af: drie, twee, één, **START!**, met een korte piep op elke tel en
 een lange, hogere op START, zoals de lichten aan de start van een race. Zolang de race
 loopt rijdt er geen wijkverkeer over het parcours: wat er stond is al weg als het beeld
@@ -2077,11 +2078,11 @@ Onderweg zegt het scherm wat er misgaat:
 Druk je op **Esc**, dan staat de race stil tot je doorgaat: de klok, de tegenstanders en
 de twintig tellen buiten de auto.
 
-**Gewonnen**: stop bij De Boer bij de finish. De schuld is afgelost, **€ 2.000** voor
+**Gewonnen**: stop bij Bouwman bij de finish. De schuld is afgelost, **€ 2.000** voor
 jou, en *"Erik… Erik van Mark? Dan hebben wij binnenkort nog wat te bespreken."*
 
 **Verloren** (tweede of later, 45 seconden na de winnaar nog niet binnen, twintig
-tellen uitgestapt, of de Ferrari total loss): De Boer komt verhaal halen. Bij de
+tellen uitgestapt, of de Ferrari total loss): Bouwman komt verhaal halen. Bij de
 finish staat hij naast je, anders belt hij. *"Ronald is me € 1.500 schuldig. Dat is
 nu jouw probleem."* Dan kies je:
 
@@ -2103,6 +2104,74 @@ telefoontje tot de € 2.000, met een automaat die de Ferrari met het gewone rij
 over het parcours stuurt, een goede en een slordige, het verliezen met de keuze bij De
 Boer, de ring op de rotonde, de piepjes, het vrije parcours, het sturen, de pauze en de
 ochtend erna; `npm run raceshots` maakt de vijf foto's.
+
+### 15 · Bouwman schaduwen
+
+De ochtend na de race, een minuut nadat het licht weer aan is, belt **Mark**:
+*"Ronald vertelde me over vannacht."* Bouwman weet nu wie Erik is, en dat bevalt
+Mark niet. Er komt een **M** bij Molenkrite 15.
+
+Binnen zit Mark op de bank met het schrift van De Veteraan. Bladzijde achttien:
+*"B. — opslag aan het water. Dinsdag en vrijdag."* Het is vrijdag. Bouwman heeft de
+zaakjes van De Veteraan overgenomen, en Mark wil weten waar hij ze bewaart. Niet
+met de Ferrari, want die kent Bouwman nu: *"Mijn oude Golf staat bij het Autohuis,
+tegenover de BP. Daar tankt hij altijd."* Het wordt zwart: ***Die avond…***
+
+Om elf uur zit je in de grijze Golf op het voorterrein van het Autohuis, en aan de
+overkant staat de politieauto van Bouwman bij de pomp. Na een paar tellen rijdt hij
+weg, en dan volg je hem. Linksboven staat een **balk** die zegt hoe ver je achter
+hem zit, en op de kaart rijdt een **B** met hem mee:
+
+| | |
+|---|---|
+| dichter dan 22 m, drie tellen lang | hij ziet je: twee sterren, en de missie is mislukt |
+| in een rode Ferrari | dan ziet hij je al op 45 m |
+| hij staat stil | dan kijkt hij in zijn spiegel: blijf verder dan 40 m |
+| verder dan 170 m, vijf tellen lang | je bent hem kwijt, en de missie is mislukt |
+
+Bouwman rijdt rustig, en niet de kortste weg: eerst door Duinterpen, en daar stopt
+hij even bij **Parelmoervlinder 3**, het adres waar Mark in missie 13 ondergedoken zat.
+Hij weet het dus. Daarna gaat hij over de Stadsrondweg en de N7 naar een **loods aan
+het water**, samen 2,2 km. Zolang je hem volgt rijdt er geen wijkverkeer op zijn route. Mislukt het,
+dan begin je weer bij het Autohuis.
+
+![Achter Bouwman aan](docs/screenshots/schaduw_volgen.png)
+
+De loods staat op een grasveld tussen de weg en het brede water, voorbij de N7.
+Het is een loods van donkergroene damwand met een half open roldeur. Op het grind
+staan een bestelbus en een container, aan de kade ligt een sloep aan een steiger,
+en 's nachts brandt er licht. Bouwman stapt uit bij de bestelbus, en twee mannen van
+De Veteraan lopen heen en weer over het erf. Je moet er **drie foto's** maken, en
+bij elke foto staat een gele ruit. Ga erop staan, kijk naar wat je wilt fotograferen
+en druk op **E**:
+
+| | |
+|---|---|
+| achter de container | Bouwman met de twee mannen bij de bestelbus |
+| bij het raam in de oostgevel | het bord met de namen: Ronald, Johan, en Mark met een rode cirkel eromheen |
+| op de kade achter de loods | de boot waarmee ze het spul aanvoeren, de STAVOREN 7 |
+
+| ![De loods](docs/screenshots/schaduw_loods.png) | ![Het bord](docs/screenshots/schaduw_bord.png) |
+|---|---|
+| de loods aan het water, vanaf de weg | door het raam: het bord met de namen |
+| ![De boot](docs/screenshots/schaduw_boot.png) | ![Overdag](docs/screenshots/schaduw_dag.png) |
+| de kade met de STAVOREN 7 | de loods overdag |
+
+Alle drie de plekken liggen uit het zicht van de mannen, maar onderweg ernaartoe
+kunnen ze je zien. Ze letten op het erf, de loods en de kade, en niet op de weg
+erlangs: rijd je daar langs, dan ben je gewoon verkeer. **Zien ze je**, dan is het gedaan met stil blijven: ze gaan
+schieten, en Bouwman springt in zijn auto en gaat ervandoor. De foto's kun je dan
+alsnog maken.
+
+Terug bij Mark op de bank bekijkt hij de foto's: *"Hij wil ons niet pakken, Erik.
+Hij wil ons hebben. Net als De Veteraan."* Je krijgt **€ 1.500**, of de helft als de
+mannen je gezien hebben.
+
+**shift + \\** start de missie los. `npm run schaduwtest` speelt hem na: het
+telefoontje, het schrift, de route (over de rijbaan, geen keerpunt, geen sprong in
+hoogte, langs Parelmoervlinder 3), of de loods vrij staat, de fotoplekken buiten het zicht, een automaat die goed
+volgt, te dichtbij, te ver, de Ferrari, de foto's, en gezien worden. `npm run
+schaduwshots` maakt de vijf foto's.
 
 ### Na missie 10: de bende op straat
 

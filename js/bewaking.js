@@ -54,6 +54,8 @@ export class Bewaking {
      personen                             [Persoon | null]: een eigen lichaam voor post i
                                           (missie 12: De Veteraan zelf, met baard en al);
                                           hij krijgt er een pistool bij
+     terrein(x, z)                        waar ze op letten: alleen daar zien ze je (missie 15:
+                                          het erf van de loods, niet de weg erlangs)
      rustig                               ze staan erbij en doen niets tot `rustig` weer
                                           uit gaat of er op ze geschoten wordt (missie 12:
                                           de lijfwachten bij de wegversperring)
@@ -72,6 +74,7 @@ export class Bewaking {
     this.looppad = opties.looppad || null;
     this.overLaag = opties.overLaag || 0;
     this.houden = !!opties.houden;
+    this.terrein = opties.terrein || null;
     this.opties = { kleuren, vest, pet };
     const personen = opties.personen || [];
     this.wachters = [];
@@ -201,6 +204,7 @@ export class Bewaking {
   */
   update(dt, speler, opTerrein) {
     const sp = speler.inCar ? speler.inCar : speler.pos;
+    if (this.terrein) opTerrein = opTerrein && this.terrein(sp.x, sp.z);
     let schade = 0;
     /*
      Rustig: ze staan bij hun post, kijken naar `post.kijk` en doen verder niets.

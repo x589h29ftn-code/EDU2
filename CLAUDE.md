@@ -48,7 +48,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | Bestand | Waarvoor |
 |---|---|
 | `js/main.js` | de hoofdlus, de invoer, de mixer, alles aan elkaar |
-| `js/verhaal.js` | de veertien missies, Mark, de gesprekken, de opslag van het verhaal |
+| `js/verhaal.js` | de vijftien missies, Mark, de gesprekken, de opslag van het verhaal |
 | `js/kaart.js` | **gegenereerd**: panden, wegen, water, straten uit de geodata |
 | `js/kaartwereld.js` | daar de wereld van bouwen (tegels, bomen, riet, auto's) |
 | `js/textures.js` | alle geveltextures, dakpannen, baksteen — op canvas |
@@ -72,7 +72,8 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/brug.js` | missie 12: het dek van de Dúvelsrak als assenstelsel (`brugAssen`), dranghekken, C4, de schade na de knal |
 | `js/garage.js` | Autohuis Lemmerweg: glazen showroom, Ferrari's en BX kopen, gekochte auto's in de opslag |
 | `js/race.js` | missie 14: het parcours van de BP naar IJlst (routeplanner + de hoofdweg uit de BGT), gele ringen, finish, tegenstanders langs de lijn |
-| `js/bouwvlak.js` | plekken waar het spel zelf bouwt (de showroom): daar geen bomen, struiken of gras |
+| `js/bouwvlak.js` | plekken waar het spel zelf bouwt (de showroom, de loods): daar geen bomen, struiken of gras |
+| `js/schaduw.js` | missie 15: de route van Bouwman (BP → Duinterpen → N7), zijn rit met een stop, de loods aan het water met container, kade, steiger en boot, de fotoplekken |
 
 Een paar dingen die niet vanzelf spreken:
 
@@ -120,7 +121,8 @@ Street View-link erbij.
 11. **de politieauto en de C4** — stelen aan de Lemmerweg, C4 bij Tinga State
 12. **de Dúvelsrak** — de wegversperring met C4 op de brug, De Veteraan
 13. **het schrift** — Mark in Duinterpen, het schrift uit de sloep in IJlst
-14. **Ronald en de race** — Lemmerweg 80, De Boer, de race van de BP naar IJlst (laatst gebouwd)
+14. **Ronald en de race** — Lemmerweg 80, Bouwman, de race van de BP naar IJlst
+15. **Bouwman schaduwen** — Mark en het schrift, Bouwman volgen, foto's bij zijn loods (laatst gebouwd)
 
 Missie 9 in het kort: Mark belt, staat bij de Wieken 29, noemt drie adressen met
 bedrag (**1, 2 of 3** kiest en zet de navigatie), en je koopt er aan tafel een
@@ -169,17 +171,29 @@ twee agenten (`Bewaking` in uniform; gezien = twee sterren). Terug bij Mark, nie
 met sterren: € 2.500. **shift+[** start hem los.
 
 Missie 14: een minuut na het schrift belt Ronald (`RACE_WACHT`), R op de kaart bij de
-Lemmerweg 80. Bij zijn schuur: De Boer, de races; geen Ferrari (`eigenFerrari`, uit
+Lemmerweg 80. Bij zijn schuur: Bouwman, de races; geen Ferrari (`eigenFerrari`, uit
 js/garage.js) dan een A bij het Autohuis en legt Ronald bij wat je tekortkomt. Gekocht:
-hij belt, "Die nacht…", 01:00 op de grid (`opDeStart`, `ctx.stapIn`), De Boer en Ronald
+hij belt, "Die nacht…", 01:00 op de grid (`opDeStart`, `ctx.stapIn`), Bouwman en Ronald
 langs de kant met zijn politieauto. Aftellen, de race (js/race.js), eerste bij de finish in
-IJlst: stoppen bij De Boer, € 2.000. Lichtpijlen op de weg (`race.toonPijlen`); de tegenstanders
+IJlst: stoppen bij Bouwman, € 2.000. Lichtpijlen op de weg (`race.toonPijlen`); de tegenstanders
 blijven bij (`RACE.bijblijven`) en wijken uit. Verloren (`raceVerloren`, niet via `mislukt`, dat de
-opslag laadt): De Boer, dan 1 dubbel of niks of 2 de schuld betalen (`raceKeuze`, via `kiesHuis`).
+opslag laadt): Bouwman, dan 1 dubbel of niks of 2 de schuld betalen (`raceKeuze`, via `kiesHuis`).
 Een kleinere ring in de top van elke scherpe bocht (`RACE.bochtRing`; de eerste rotonde), piepjes
 bij het aftellen (`geluid.aftelPiep`), geen wijkverkeer op de route (`vehicles.vrijeZone =
 race.opRoute`, `maakVrij`). Na GESLAAGD of betalen vijf tellen, dan "De volgende ochtend"
 (`naDeRace`, `naarDeOchtend`: 09:30, `springNaarHuis`). **shift+]** start hem los.
+Tot stap 96 heette brigadier Bouwman "De Boer" (gevraagd: "net wat anders").
+
+Missie 15 (stap 96): een minuut na de ochtend belt Mark (`SCHADUW_WACHT`), M bij Molenkrite 15,
+binnen op de bank het schrift ("B. — opslag aan het water"). "Die avond…" om 23:00 in de grijze
+Golf van Mark op het voorterrein van het Autohuis; Bouwman (`raceBouwmanAuto`, `bouwman` uit missie
+14) bij de pomp van de BP. Hij rijdt de lijn uit js/schaduw.js (`rijd`, 2,2 km door Duinterpen, stop
+bij Parelmoervlinder 3); volgen met de balk `#schaduwbalk`: dichter dan 22 m (Ferrari 45, stilstaand 40) drie tellen =
+gezien, twee sterren, `mislukt`; verder dan 170 m vijf tellen = kwijt. Bij de loods
+(`LOODS` in js/bouwvlak.js, x 1396–1418, z −194…−182) drie foto's met E op een gele ruit, recht naar
+het onderwerp kijkend (`fotoHier`); de twee mannen zijn een `Bewaking` (`schaduwMannen`). Gezien bij de
+loods: Bouwman vlucht (`rit.vlucht`), Mark geeft de helft. Terug op de bank: € 1.500. **shift+\\**
+start hem los.
 
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
@@ -204,7 +218,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
+De laatste die ertoe doen: `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
+de route, de loods, een automaat die volgt, te dichtbij, te ver, de Ferrari, de foto's, gezien
+worden; stap 96) met `schaduwshots` (vijf foto's); `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
 met een automaat die de Ferrari over het parcours rijdt, goed en slordig, het verliezen, de ring
 op de rotonde, piepjes, vrij parcours, sturen, pauze en de ochtend erna; stap 93–95) met
 `raceshots` (vijf foto's); `npm run garagetest` (de showroom aan de Lemmerweg: plek, glas, deur,
@@ -316,6 +332,16 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
 - **Een geëxtrudeerde vorm is groter dan zijn profiel** (stap 95): de afronding
   (`bevelSize`) legt er rondom plaat omheen. Koplampen verdwenen daardoor in de romp van
   de Ferrari, en zijn wielkasten zijn vijf centimeter krapper dan getekend.
+- **Een melding blijft in de DOM staan** (`hud.melding`): alleen de doorzichtigheid gaat na
+  een paar tellen naar nul. Een proef die op `#missie` naar "MISLUKT" kijkt, ziet dat daarna voor
+  altijd; vang de melding zelf af (tools/schaduwtest.mjs `__misluktNu`).
+- **`raceNaloop` ruimt de auto van Bouwman op** zodra je buiten missie 14 ver weg bent. Een
+  missie die hem hergebruikt (15) moet daar uitgezonderd zijn, anders verdwijnt hij onder het volgen.
+- **De routeplanner kent geen hoogte** (stap 96). Het knooppunt van de Stadsrondweg op de
+  Dúvelsrak ligt 5,6 m hoog, maar de Stadsrondweg-Zuid oostwaarts en de N7 liggen eronder en
+  raken het dek in de plattegrond: een route reed van het dek zo die weg op. js/schaduw.js knipt
+  assen door waar ze onder een open dek lopen; meet een route voor iets dat hem rijdt altijd met
+  `grondHoogte` na (de lijn draagt `sprong`).
 - **js/verhaal.js is één groot bereik.** Een `function` met een naam die er al is
   overschrijft de andere stil (hoisting): in stap 89 namen `beginGevecht` en
   `naarDeC4` zo die van missie 10 en 11 over. `npm run brugtest` kijkt er nu naar.

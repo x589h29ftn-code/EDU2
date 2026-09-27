@@ -6272,10 +6272,10 @@ Lemmerweg woont; hij belt een minuut na het schrift, met een R op de kaart; een
 race van ongeveer de BP naar IJlst, met de finish in IJlst.
 
 - *Het verhaal.* Ronald (Lemmerweg 80, het huis met de schuur) heeft een schuld
-  bij brigadier De Boer, een naam uit het schrift. De Boer laat 's nachts races
+  bij brigadier Bouwman, een naam uit het schrift. Bouwman laat 's nachts races
   rijden en zet er geld op in; Erik rijdt voor Ronald, in een Ferrari van Autohuis
   Lemmerweg (stap 92). Geen Ferrari: eerst naar de A, en Ronald legt bij wat je
-  tekortkomt. Gewonnen: € 2.000, en De Boer weet wie Erik is, het haakje voor de
+  tekortkomt. Gewonnen: € 2.000, en Bouwman weet wie Erik is, het haakje voor de
   volgende missie.
 - *Het parcours* (js/race.js) komt uit de routeplanner van de navigatie, om de twee
   meter bemonsterd en gladgestreken. Twee dingen daaraan zijn gemeten en rechtgezet.
@@ -6331,7 +6331,7 @@ wint.
   (8): de goede wint met zes seconden, de slordige wordt vierde met de hele groep binnen
   vier seconden.
 - *Verliezen* is niet meer gewoon opnieuw (dat liep via `mislukt`, en dat laadt de
-  opslag). De Boer komt verhaal halen, bij de finish of aan de telefoon: Ronalds schuld
+  opslag). Bouwman komt verhaal halen, bij de finish of aan de telefoon: Ronalds schuld
   (€ 1.500) is nu van jou. 1: nog een keer, dubbel of niks (verlies je weer, dan is de
   schuld het dubbele); 2: betalen, en de missie is voorbij zonder beloning. De cijfers
   gaan via `kiesHuis`, net als de woningen van missie 9.
@@ -6391,6 +6391,69 @@ door, na de race zwart en weer licht bij je huis, en meer afwisseling in de miss
 - *De missiemuziek* prikt tien plekken en neemt die het verst van de vorige vijf
   beginpunten; en na twee à drie minuten springt hij in een lange missie naar een
   ander stuk (`MISSIE_WISSEL`), met een fade.
+
+**Missie 15: Bouwman schaduwen, en De Boer heet Bouwman (stap 96).** Gevraagd (27
+sep 2026): "Bouw missie 15 en verander de voorgaande missie en komende De Boer naar
+Bouwman. Net wat anders." Het ontwerp stond in het gesprek ervoor (volgen, foto's bij een
+loods, op weg naar een finale met Bouwman als tegenstander).
+
+- *De naam.* Overal waar de brigadier stond: de gesprekken, `zegtBouwman`,
+  `KOPPEN.bouwman`, `raceBouwmanAuto`, de proeven, README, CLAUDE.md en de blokken van
+  stap 93–95 hieronder. De boer van de boerderij (missie 4) heet nog steeds zo: alleen
+  "De Boer" met een hoofdletter was de brigadier.
+- *De plek van de loods* is uit de kaart gezocht, net als de showroom. De eerste keus
+  (x 1315, z −329) viel af: een grasveld aan een sloot, maar rondom door water van de
+  weg afgesneden, dus Bouwman kon er niet komen. De zoektocht eiste daarna ook dat de
+  rechte lijn naar de weg geen water, pand of steiger raakt. Het werd een veld tussen
+  de weg ten zuiden van de stad en het brede water eronder (x 1396–1418, z −194…−182):
+  geen pand binnen zeventig meter, en van de weg over het fietspad bereikbaar.
+- *De route* is de routeplanner over de rijbanen alleen, via een tussenpunt. Het
+  tussenpunt zelf gaat eruit, anders rijdt hij een stukje naar de naaste knoop en weer
+  terug. Hij rijdt 45 km/u in de wijk en 75 op de Stadsrondweg en de N7 (per monster
+  de naam van de weg eronder); vijf minuten op 40 en 68 km/u was te lang.
+- *Eerst door Tinga, langs Molenkrite 15* (2,9 km, grootste draai 97°). De stop stond
+  eerst 97 m van het huis: `KAART.start` is waar het spel begint, niet de voordeur. En
+  de proef vond een sprong van 5,6 m in één stap: de route kwam over de Molenkrite op
+  het dek van de Dúvelsrak en sloeg op het knooppunt af naar de Stadsrondweg-Zuid
+  oostwaarts, die op de grond ligt maar in de plattegrond het dek raakt. De
+  routeplanner knoopt assen aan elkaar die binnen vijf meter van elkaar liggen en kent
+  geen hoogte. Nu knipt js/schaduw.js een stuk as eruit dat helemaal boven een open dek
+  ligt en aan geen van beide kanten op het talud aansluit (een weg eronder), en meet de
+  lijn zijn grootste sprong (`grondHoogte`, gepeild zoals `zetNeer`).
+- *Daarna door Duinterpen.* Zonder die valse verbinding keert elke route door Tinga
+  ergens om (180°). De routes zonder keerpunt gaan door Duinterpen, over de
+  Parelmoervlinder: 2,2 km, grootste draai 98°, tien meter langs nummer 3. Daar zat
+  Mark in missie 13, dus Bouwman stopt nu daar: hij weet het.
+- *Volgen.* Dichter dan 22 m, drie tellen: gezien (in een Ferrari 45 m, en als hij
+  stilstaat 40). Verder dan 170 m, vijf tellen: kwijt. Beide via `mislukt`, en het
+  herstelpunt is het Autohuis. De balk linksboven laat de drie zones zien, met een
+  wijzer.
+- *De automaat van de proef* raakte hem eerst na 1 km kwijt. De route rijdt een rondje
+  door Tinga over straten waar hij al langs kwam, en `voortgang` zocht 240 m vooruit en
+  sprong naar het latere stuk: de automaat dacht dat hij vóór Bouwman reed en ging
+  stilstaan. Nu zoekt hij alleen vlak voor zijn vorige plek.
+- *Een auto die stilstaat voor jou.* Daarna liep de automaat vast in Duinterpen, van 16
+  naar 0,3 m/s in één tel, op de lijn. Geen botsdoos (langs de hele lijn nagemeten): het
+  was een wijkauto die voor de speler bleef wachten, en `botsAutos` houdt je daar tegen.
+  Bouwman reed er kinematisch doorheen. Nu is zijn route een `vrijeZone` zolang je hem
+  volgt, net als het parcours van de race, en stuurt de automaat bij vastlopen even
+  achteruit en eromheen, zoals een speler doet.
+- *De foto's* moeten recht naar het onderwerp (binnen 0,9 rad), op een gele ruit. De
+  drie ruiten liggen achter de container, om de hoek bij het raam en achter de loods;
+  de proef trekt de zichtlijnen van beide posten (eind, midden, eind) en vindt er geen.
+- *De weg langs het erf.* Op de eerste foto van de loods vanaf de weg stond al
+  "gezien": de weg ligt negentien meter van de post van de tweede man, en die zag alles
+  binnen 28 m. Wie Bouwman tot de loods volgde, was dus altijd gezien. `Bewaking` kreeg
+  een optie `terrein(x, z)`: alleen daar kijken ze (het erf, de loods en de kade, tot aan
+  het fietspad), net als de bewaking bij de waterzuivering alleen binnen het hek.
+- *Gezien bij de loods*: Bouwman rijdt dezelfde lijn terug, aan de andere kant van de
+  weg, en Mark geeft de helft.
+- *De melding blijft staan.* De proef keek op `#missie` of er MISLUKT stond, maar die
+  tekst blijft na de melding in het element staan (alleen de doorzichtigheid gaat
+  naar nul): na de eerste mislukking was alles daarna ook "mislukt". Nu vangt de proef
+  `hud.melding` zelf af.
+- *Opgeruimd door de race.* `raceNaloop` haalt de auto van Bouwman weg als je buiten
+  missie 14 ver weg bent; in missie 15 rijdt hij die auto zelf, dus daar niet.
 
 **Wat nog niet af is (in volgorde).
 

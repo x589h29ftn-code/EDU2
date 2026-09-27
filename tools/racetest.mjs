@@ -5,14 +5,14 @@
 
  1. Een minuut na het schrift belt Ronald, en er komt een R op de kaart bij de
     Lemmerweg 80.
- 2. Bij Ronald: De Boer, de races, met een BX win je het niet. Geen Ferrari: dan
+ 2. Bij Ronald: Bouwman, de races, met een BX win je het niet. Geen Ferrari: dan
     naar Autohuis Lemmerweg (A), en Ronald legt bij wat je tekortkomt.
  3. Gekocht: Ronald belt, "Die nacht…", en om één uur zit je in je Ferrari op de
-    grid op de Lemmerweg bij de BP, met De Boer en Ronald langs de kant.
+    grid op de Lemmerweg bij de BP, met Bouwman en Ronald langs de kant.
  4. Het parcours ligt op de rijbaan van de BP tot bij de Poiesz in IJlst; de
     tegenstanders rijden het echt, en blijven op de weg.
  5. Met de Ferrari win je het (hier gereden door een automaat op het rijgedrag
-    van de speler); De Boer betaalt € 2.000. Met een gewone auto verlies je, en
+    van de speler); Bouwman betaalt € 2.000. Met een gewone auto verlies je, en
     begin je weer aan de start.
  6. Opslaan en laden midden in de race, en shift+] start hem los.
 
@@ -195,7 +195,7 @@ const uitleg = await page.evaluate(() => {
   return { regels, fase: v.fase, geld: v.geld, nav, garage: { x: a.x, z: a.z } };
 });
 const uitlegTekst = uitleg.regels.map(r => r.tekst).join(' ');
-ok(/De Boer/.test(uitlegTekst) && /schrift/.test(uitlegTekst) && /BP/.test(uitlegTekst) && /IJlst/.test(uitlegTekst), 'Ronald vertelt over De Boer en de races van de BP naar IJlst');
+ok(/Bouwman/.test(uitlegTekst) && /schrift/.test(uitlegTekst) && /BP/.test(uitlegTekst) && /IJlst/.test(uitlegTekst), 'Ronald vertelt over Bouwman en de races van de BP naar IJlst');
 ok(/BX/.test(uitlegTekst) && /rij ik voor je/.test(uitlegTekst), 'met zijn BX wint hij het niet, dus Erik rijdt');
 ok(uitleg.fase === 'auto' && /Autohuis/.test(uitlegTekst), 'geen Ferrari: naar Autohuis Lemmerweg', uitleg.fase);
 ok(uitleg.geld === 3000 && /overgemaakt/.test(uitlegTekst), 'Ronald legt de € 2.000 bij die je tekortkomt', `€ ${uitleg.geld}`);
@@ -218,9 +218,9 @@ const nacht = await page.evaluate(() => {
   return { tel, regels, zwart, fase: v.fase, uur: g.sfeer.uur,
     inAuto: auto ? { soort: auto.soort, eigen: G.idVan(auto), x: auto.x, z: auto.z } : null,
     speler: pl && pl.speler, start: pl && pl.start,
-    boer: { zichtbaar: R.deBoer.groep.visible, x: R.deBoer.groep.position.x, z: R.deBoer.groep.position.z },
+    boer: { zichtbaar: R.bouwman.groep.visible, x: R.bouwman.groep.position.x, z: R.bouwman.groep.position.z },
     ronald: { zichtbaar: R.ronald.groep.visible, x: R.ronald.groep.position.x, z: R.ronald.groep.position.z },
-    politie: R.boerAuto ? { x: R.boerAuto.x, z: R.boerAuto.z, politie: !!R.boerAuto.politieAuto, zichtbaar: R.boerAuto.mesh.visible } : null,
+    politie: R.bouwmanAuto ? { x: R.bouwmanAuto.x, z: R.bouwmanAuto.z, politie: !!R.bouwmanAuto.politieAuto, zichtbaar: R.bouwmanAuto.mesh.visible } : null,
     rijders: R.race.rijders.map(r => ({ soort: r.soort, x: r.car.x, z: r.car.z, zichtbaar: r.car.mesh.visible })),
     balk: !window.__balkDicht(), wie: document.getElementById('dialoogNaam').textContent };
 });
@@ -232,11 +232,11 @@ ok(nacht.inAuto && nacht.inAuto.soort === 'ferrari' && nacht.inAuto.eigen != nul
 const bp = { x: 716, z: 152 };
 ok(nacht.start && Math.hypot(nacht.start.x - bp.x, nacht.start.z - bp.z) < 120, 'de start is op de Lemmerweg bij de BP', nacht.start && `${nacht.start.x.toFixed(0)}, ${nacht.start.z.toFixed(0)}`);
 ok(nacht.boer.zichtbaar && nacht.ronald.zichtbaar && Math.hypot(nacht.boer.x - nacht.start.x, nacht.boer.z - nacht.start.z) < 15,
-  'De Boer en Ronald staan langs de kant');
-ok(nacht.politie && nacht.politie.politie && nacht.politie.zichtbaar && Math.hypot(nacht.politie.x - nacht.start.x, nacht.politie.z - nacht.start.z) < 20, 'met de politieauto van De Boer erachter');
+  'Bouwman en Ronald staan langs de kant');
+ok(nacht.politie && nacht.politie.politie && nacht.politie.zichtbaar && Math.hypot(nacht.politie.x - nacht.start.x, nacht.politie.z - nacht.start.z) < 20, 'met de politieauto van Bouwman erachter');
 ok(nacht.rijders.length === 3 && nacht.rijders.every(r => r.zichtbaar) && nacht.rijders.every(r => Math.hypot(r.x - nacht.start.x, r.z - nacht.start.z) < 45),
   'drie tegenstanders op de grid', nacht.rijders.map(r => r.soort).join(', '));
-ok(nacht.balk && nacht.wie === 'De Boer', 'De Boer neemt het woord');
+ok(nacht.balk && nacht.wie === 'Bouwman', 'Bouwman neemt het woord');
 const verkeer = await page.evaluate(() => {
   const g = window.__game, V = g.vehicles, R = g.verhaal.race.race;
   const wijk = V.traffic.filter(q => q.lokaal && q._pos && !q.slaapt);
@@ -312,7 +312,7 @@ const start = await page.evaluate(() => {
   return { piep, regels: regels.length, af, stil, fase: v.fase, ringen: R.ringen.filter(r => r.visible).length, finish: R.finish.visible,
     vooruit: R.rijders.map((r, i) => Math.round(r.s - s0[i])) };
 });
-ok(start.af === 'aftellen' && start.stil === 0, 'na De Boer: aftellen, en je staat stil', `${start.af}`);
+ok(start.af === 'aftellen' && start.stil === 0, 'na Bouwman: aftellen, en je staat stil', `${start.af}`);
 ok(start.piep.join() === 'false,false,false,true', 'drie korte piepjes en een lange op START', start.piep.map(s => s ? 'lang' : 'kort').join(', '));
 ok(start.fase === 'race' && start.ringen === 2 && start.finish, 'START: de ringen en de finishboog staan er');
 ok(start.vooruit.every(d => d > 5), 'de tegenstanders rijden weg', start.vooruit.join(', ') + ' m in een seconde');
@@ -347,7 +347,7 @@ const tweede = await page.evaluate(() => {
 ok(tweede != null && tweede - rit.uitslag.tijd < 8, 'maar niet makkelijk: de eerste tegenstander komt vlak achter je binnen', `${rit.uitslag.tijd.toFixed(1)} s tegen ${tweede && tweede.toFixed(1)} s`);
 ok(/GEWONNEN/.test(rit.melding), 'GEWONNEN!', rit.melding.slice(0, 50));
 const eind = await page.evaluate(() => {
-  const g = window.__game, v = g.verhaal, d = v.race.deBoer.groep.position;
+  const g = window.__game, v = g.verhaal, d = v.race.bouwman.groep.position;
   const car = g.player.inCar;
   car.speed = 0; car.x = d.x + 6; car.z = d.z; car.mesh.position.set(car.x, 0, car.z);
   const geld = v.geld;
@@ -357,7 +357,7 @@ const eind = await page.evaluate(() => {
   return { regels, missie: v.missie, klaar: v.race.klaar, geld: v.geld - geld, melding: document.getElementById('missie').textContent };
 });
 const eindTekst = eind.regels.map(r => r.tekst).join(' ');
-ok(/schuld is afgelost/.test(eindTekst) && /Erik van Mark/.test(eindTekst), 'De Boer: de schuld is afgelost… "Erik van Mark?"');
+ok(/schuld is afgelost/.test(eindTekst) && /Erik van Mark/.test(eindTekst), 'Bouwman: de schuld is afgelost… "Erik van Mark?"');
 ok(eind.missie === 'klaar' && eind.klaar && eind.geld === 2000 && /GESLAAGD/.test(eind.melding), 'geslaagd: € 2.000', eind.melding.slice(0, 40));
 const ochtend = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
@@ -374,13 +374,15 @@ const ochtend = await page.evaluate(() => {
     afstand: d ? +Math.hypot(g.player.pos.x - d.deur.x, g.player.pos.z - d.deur.z).toFixed(1) : null,
     inAuto: !!auto, ferrari: f && d ? +Math.hypot(f.x - d.deur.x, f.z - d.deur.z).toFixed(1) : null,
     finish: v.race.race.finish.visible, rijders: v.race.race.rijders.filter(q => q.car && q.car.mesh.visible).length,
-    boer: v.race.deBoer.groep.visible };
+    boer: v.race.bouwman.groep.visible, volgende: v.volgendeMissie };
 });
 ok(ochtend.zone, 'na de race mag het verkeer weer over de route');
 ok(ochtend.t >= 4 && ochtend.t <= 6 && /volgende ochtend/.test(ochtend.tekst), 'vijf tellen later wordt het zwart: "De volgende ochtend"', `${ochtend.t} s, "${ochtend.tekst}"`);
 ok(Math.abs(ochtend.uur - 9.5) < 0.1 && ochtend.afstand != null && ochtend.afstand < 4 && !ochtend.inAuto, 'en je staat om half tien voor je huis', `${ochtend.naam}, ${ochtend.afstand} m van de deur, ${ochtend.uur.toFixed(2)} uur`);
 ok(ochtend.ferrari != null && ochtend.ferrari < 15, 'met de Ferrari op de oprit', `${ochtend.ferrari} m van de deur`);
 ok(!ochtend.finish && ochtend.rijders === 0 && !ochtend.boer, 'de race in IJlst is opgeruimd');
+ok(ochtend.volgende && ochtend.volgende.naam === 'schaduw' && ochtend.volgende.over > 55 && ochtend.volgende.over <= 60,
+  'en over een minuut belt Mark: missie 15', JSON.stringify(ochtend.volgende));
 
 // ------------------------------------------------------------ met een hatchback
 kop('een slordige rit: verloren');
@@ -395,7 +397,7 @@ const slordig = await page.evaluate(() => {
   window.__stap(61);
   const r = window.__rij(g.player.inCar, 200, window.__SLORDIG);
   const na = { fase: v.fase, melding: document.getElementById('missie').textContent, uitslag: v.race.uitslag };
-  // even VERLOREN, dan De Boer
+  // even VERLOREN, dan Bouwman
   for (let i = 0; i < 60 && window.__balkDicht(); i++) v.update(0.05);
   const regels = window.__gesprek();
   return { opStart, r, na, regels, fase: v.fase, schuld: v.race.schuld, opdracht: document.getElementById('opdracht') ? document.getElementById('opdracht').textContent : '',
@@ -405,7 +407,7 @@ ok(slordig.opStart === 'start', 'na het laden midden in de race sta je weer op d
 ok(slordig.na.fase === 'verloren' && /VERLOREN/.test(slordig.na.melding), 'wie de bochten te voorzichtig neemt, verliest ook met de Ferrari',
   `${slordig.r.t} s, ${JSON.stringify(slordig.na.uitslag)}, de anderen: ${slordig.tegen.join(', ')}`);
 const slordigTekst = slordig.regels.map(r => r.tekst).join(' ');
-ok(slordig.regels.some(r => r.wie === 'De Boer') && /schuldig/.test(slordigTekst) && /Dubbel of niks/.test(slordigTekst), 'De Boer komt verhaal halen: de schuld is nu van jou, of dubbel of niks');
+ok(slordig.regels.some(r => r.wie === 'Bouwman') && /schuldig/.test(slordigTekst) && /Dubbel of niks/.test(slordigTekst), 'Bouwman komt verhaal halen: de schuld is nu van jou, of dubbel of niks');
 ok(slordig.fase === 'keuze' && slordig.schuld === 1500, 'de keuze: 1 nog een keer, 2 € 1.500 betalen', `${slordig.fase}, € ${slordig.schuld}`);
 
 kop('revanche, en weer verloren');
@@ -440,7 +442,7 @@ ok(revanche.na1 === 'revanche' && revanche.opStart.fase === 'start' && revanche.
 ok(/RING GEMIST/.test(revanche.gemist), 'een ring gemist: dat zegt het scherm', revanche.gemist.slice(0, 60));
 ok(revanche.halverwege.fase === 'race' && /Stap in/.test(revanche.halverwege.bericht), 'uitgestapt: "Stap in — de race loopt!"', revanche.halverwege.bericht);
 ok(revanche.verloren.fase === 'verloren' || revanche.verloren.fase === 'keuze', 'na twintig tellen buiten de auto is het verloren', JSON.stringify(revanche.verloren));
-ok(revanche.telefoon && revanche.fase === 'keuze' && revanche.schuld === 3000, 'De Boer belt: dubbel of niks, nu € 3.000', `${revanche.fase}, € ${revanche.schuld}`);
+ok(revanche.telefoon && revanche.fase === 'keuze' && revanche.schuld === 3000, 'Bouwman belt: dubbel of niks, nu € 3.000', `${revanche.fase}, € ${revanche.schuld}`);
 
 kop('betalen');
 const betalen = await page.evaluate(() => {

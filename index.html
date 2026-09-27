@@ -91,6 +91,20 @@
   #opdracht { position: absolute; left: 24px; top: 42px; font-size: 14px; font-weight: 700; color: #ffd400; }
   /* rood knipperend doel, bijvoorbeeld "schiet hem NIET neer" */
   #opdracht.rood { color: #ff5a44; animation: knipper 1s steps(1, end) infinite; }
+  /* missie 15: hoe ver je achter Bouwman zit. Rood te dichtbij, groen goed, rood te ver */
+  #schaduwbalk { position: absolute; left: 24px; top: 66px; width: 300px; font-size: 12px; font-weight: 700; color: #fff;
+                 text-shadow: 0 1px 3px rgba(0,0,0,.9); --dicht: 11%; --ver: 85%; --nu: 30%; }
+  #schaduwbalk .spoor { position: relative; height: 10px; border-radius: 5px; overflow: visible;
+                 background: linear-gradient(90deg, #c8321e 0 var(--dicht), #3fae4a var(--dicht) var(--ver), #c8321e var(--ver) 100%);
+                 box-shadow: 0 0 0 2px rgba(0,0,0,.55); }
+  #schaduwbalk .wijzer { position: absolute; top: -5px; left: var(--nu); width: 4px; height: 20px; margin-left: -2px;
+                 background: #fff; border-radius: 2px; box-shadow: 0 0 4px rgba(0,0,0,.9); }
+  #schaduwbalk .tekst { margin-top: 7px; }
+  #schaduwbalk.fout .tekst { color: #ff6a50; }
+  /* de flits van een foto */
+  #fotoflits { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+  #fotoflits.aan { animation: fotoflits .45s ease-out; }
+  @keyframes fotoflits { 0% { opacity: .85; } 100% { opacity: 0; } }
   @keyframes knipper { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .25; } }
   /* portemonnee */
   #geld { position: absolute; right: 24px; bottom: 205px; font-size: 20px; font-weight: 700; color: #ffd400; }
@@ -378,6 +392,8 @@
   <div id="raakflits"></div>
   <div id="dronken"></div>
   <div id="opdracht" hidden></div>
+  <div id="schaduwbalk" hidden><div class="spoor"><div class="wijzer"></div></div><div class="tekst"></div></div>
+  <div id="fotoflits"></div>
   <div id="leven"><div id="levenbalk"></div></div>
   <div id="levenlabel">100</div>
   <div id="geld" hidden></div>

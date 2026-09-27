@@ -2,7 +2,7 @@
  Bouwvlakken: plekken waar het spel zelf iets neerzet dat niet in de BGT of de
  3D BAG staat. Daar hoort geen boom, struik of pol gras dwars doorheen te groeien.
 
- Er is er één: Autohuis Lemmerweg (js/garage.js), op het grasveld aan de
+ Er zijn er twee. Autohuis Lemmerweg (js/garage.js), op het grasveld aan de
  oostkant van de Lemmerweg, tegenover BP en tegen Duinterpen aan. De plek is
  gekozen uit de kaart zelf (ronde van 27 sep 2026, `npm run garagetest` rekent
  hem na):
@@ -20,6 +20,25 @@
  Dit bestand heeft geen afhankelijkheden, zodat js/kaartwereld.js en
  js/main.js het kunnen lezen zonder dat er een kring van imports ontstaat.
 */
+
+/*
+ En de loods van Bouwman (missie 15, js/schaduw.js): op het grasveld tussen de weg
+ langs de zuidkant van de stad en het brede water daaronder, oost van de N7-afrit.
+ Ook uit de kaart gekozen (27 sep 2026): geen pand binnen zeventig meter, geen
+ rijbaan of water op het erf, en van de weg over het gras bereikbaar zonder sloot.
+ Het water begint op z ≈ −169 (bij x 1410); de weg ligt op z ≈ −213, met het fietspad
+ ertussen op z ≈ −210 tot −206.
+*/
+export const LOODS = {
+  // de loods zelf: de roldeur in de noordgevel kijkt naar het erf
+  x0: 1396, x1: 1418, z0: -194, z1: -182,
+  // het grind van het erf tussen de loods en het fietspad
+  erf: { x0: 1383, x1: 1424, z0: -205.5, z1: -194 },
+  // het stukje oprit tussen de weg en het fietspad
+  oprit: { x0: 1409, x1: 1415, z0: -213, z1: -210.2 },
+  // de kade tussen de loods en het water
+  kade: { x0: 1394, x1: 1421, z0: -182, z1: -171.5 },
+};
 
 export const GARAGE = {
   // het gebouw: de glazen gevel op x0 kijkt naar de Lemmerweg (west)
@@ -39,8 +58,9 @@ function inRechthoek(x, z, r, m = 0) {
 
 /** Ligt (x, z) op een bouwvlak? Daar groeit niets. */
 export function inBouwvlak(x, z) {
-  const G = GARAGE;
-  return inRechthoek(x, z, G, MARGE) || inRechthoek(x, z, G.voor, 0.5) || inRechthoek(x, z, G.inrit, 0.5);
+  const G = GARAGE, L = LOODS;
+  return inRechthoek(x, z, G, MARGE) || inRechthoek(x, z, G.voor, 0.5) || inRechthoek(x, z, G.inrit, 0.5)
+    || inRechthoek(x, z, L, MARGE) || inRechthoek(x, z, L.erf, 1) || inRechthoek(x, z, L.oprit, 0.5) || inRechthoek(x, z, L.kade, 0.5);
 }
 
 /*
@@ -49,6 +69,8 @@ export function inBouwvlak(x, z) {
  de glazen gevel er niet meer door (de eerste foto, garage_buiten.png).
 */
 export function gemaaid(x, z) {
-  const G = GARAGE;
-  return x > G.inrit.x0 && x < G.voor.x1 && z > G.inrit.z0 - 1 && z < G.voor.z1 + 1;
+  const G = GARAGE, K = LOODS.kade;
+  if (x > G.inrit.x0 && x < G.voor.x1 && z > G.inrit.z0 - 1 && z < G.voor.z1 + 1) return true;
+  // en langs de kade van de loods, waar de steiger het water in loopt en de boot ligt
+  return x > K.x0 - 2 && x < K.x1 + 2 && z > K.z0 && z < K.z1 + 14;
 }

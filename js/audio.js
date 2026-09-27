@@ -340,6 +340,12 @@ export const geluid = {
     }
   },
 
+  // de sluiter van de telefoon (missie 15): twee korte tikjes vlak na elkaar
+  fotoKlik() {
+    toon({ freq: 2400, duur: 0.035, volume: 0.10, golf: 'square' });
+    toon({ freq: 1600, duur: 0.05, volume: 0.08, golf: 'square', vertraag: 0.07 });
+  },
+
   /*
    Spannend deuntje bij de achtervolging van de dief (js/verhaal.js). Een
    jachtende achtstenbas in d-klein, een dreigende halve toon erboven en een

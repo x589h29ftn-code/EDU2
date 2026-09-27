@@ -1341,6 +1341,7 @@ const MISSIES = [
   { nr: 12, naam: 'brug', titel: 'de Dúvelsrak' },
   { nr: 13, naam: 'schrift', titel: 'het schrift' },
   { nr: 14, naam: 'race', titel: 'Ronald en de race naar IJlst' },
+  { nr: 15, naam: 'schaduw', titel: 'Bouwman schaduwen' },
 ];
 function startMissieLos(naam) {
   const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
@@ -1376,6 +1377,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'BracketLeft') { e.preventDefault(); startMissieLos('13'); return; }
   // en de toets daarnaast (] op een Amerikaans toetsenbord): missie 14
   if (e.code === 'BracketRight') { e.preventDefault(); startMissieLos('14'); return; }
+  // en de toets rechts daarvan (\ op een Amerikaans toetsenbord, < > op een Europees): missie 15
+  if (e.code === 'Backslash' || e.code === 'IntlBackslash') { e.preventDefault(); startMissieLos('15'); return; }
   const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();

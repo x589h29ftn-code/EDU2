@@ -171,6 +171,8 @@
     "garageshots": "node tools/garageshots.mjs",
     "racetest": "node tools/racetest.mjs",
     "raceshots": "node tools/raceshots.mjs",
-    "ferrarishots": "node tools/ferrarishots.mjs"
+    "ferrarishots": "node tools/ferrarishots.mjs",
+    "schaduwtest": "node tools/schaduwtest.mjs",
+    "schaduwshots": "node tools/schaduwshots.mjs"
   }
 }
