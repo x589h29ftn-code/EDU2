@@ -401,6 +401,11 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
 22. `npm run bevolkingtest` is sinds stap 89 op één controle rood: rijdend over de
     Wieken één meting van 22 zonder mensen binnen 80 m. Gezocht (METHODIEK, stap
     89): het zit niet in één bestand, het neerzetten is chaotisch gevoelig.
+23. `npm run missietest` is in deze container rood op alles waar de muziek echt moet
+    spelen (zes controles, en de twee van stap 95 over de wissel): na 1,4 s staat het
+    volume op 0,004. Met audio.js van vóór stap 95 precies dezelfde zes (27 sep 2026,
+    nagemeten); het ligt aan het afspelen in deze omgeving, niet aan de code. Op een
+    machine met geluid opnieuw draaien.
 
 ## 8 · Waar wat gedocumenteerd wordt
 

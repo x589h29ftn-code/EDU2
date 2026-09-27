@@ -6452,6 +6452,10 @@ loods, op weg naar een finale met Bouwman als tegenstander).
   tekst blijft na de melding in het element staan (alleen de doorzichtigheid gaat
   naar nul): na de eerste mislukking was alles daarna ook "mislukt". Nu vangt de proef
   `hud.melding` zelf af.
+- *De missiemuziek.* `npm run missietest` is hier rood op alles waar de muziek echt
+  moet spelen: na 1,4 s staat het volume op 0,004 en de speler loopt niet. Met audio.js
+  en missietest.mjs van vóór stap 95 zijn het dezelfde zes controles, dus het ligt aan het
+  afspelen in deze container en niet aan de wissel van stap 95. Open punt 23.
 - *Opgeruimd door de race.* `raceNaloop` haalt de auto van Bouwman weg als je buiten
   missie 14 ver weg bent; in missie 15 rijdt hij die auto zelf, dus daar niet.
 
