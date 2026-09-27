@@ -176,7 +176,10 @@ langs de kant met zijn politieauto. Aftellen, de race (js/race.js), eerste bij d
 IJlst: stoppen bij De Boer, € 2.000. Lichtpijlen op de weg (`race.toonPijlen`); de tegenstanders
 blijven bij (`RACE.bijblijven`) en wijken uit. Verloren (`raceVerloren`, niet via `mislukt`, dat de
 opslag laadt): De Boer, dan 1 dubbel of niks of 2 de schuld betalen (`raceKeuze`, via `kiesHuis`).
-**shift+]** start hem los.
+Een kleinere ring in de top van elke scherpe bocht (`RACE.bochtRing`; de eerste rotonde), piepjes
+bij het aftellen (`geluid.aftelPiep`), geen wijkverkeer op de route (`vehicles.vrijeZone =
+race.opRoute`, `maakVrij`). Na GESLAAGD of betalen vijf tellen, dan "De volgende ochtend"
+(`naDeRace`, `naarDeOchtend`: 09:30, `springNaarHuis`). **shift+]** start hem los.
 
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
@@ -186,7 +189,9 @@ missie 12: met De Veteraan dood valt zijn bende uit elkaar (`!brugKlaar`).
 Buiten de missies: **Autohuis Lemmerweg** (js/garage.js), de glazen showroom tegenover BP. E naast
 een auto koopt hem: rode of gele Ferrari € 3.000 (soort `ferrari`, `RIJ` in js/vehicles.js: ruim
 200 km/u), rode BX € 250. Hij staat dan op het voorterrein; de opslag neemt gekochte auto's mee
-(`garage.bewaar`/`herstel`, `auto.eigen` in js/opslag.js).
+(`garage.bewaar`/`herstel`, `auto.eigen` in js/opslag.js). De Ferrari is een eigen model
+(`sportGeoms` in js/carmodel.js, een geëxtrudeerd zijprofiel), geen `autoGeoms` met andere maten.
+Sturen is op snelheid begrensd door de grip (`STUUR_GRIP` in js/vehicles.js, 26 m/s²).
 
 De drie woningen: **Zeskanter 16** (€ 5.000), **Molenkrite 130c** (€ 2.500),
 **Koningsspil 20** (€ 1.000). Binnen: hoekbank met tv, eettafel om aan te zitten,
@@ -200,9 +205,12 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
 De laatste die ertoe doen: `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
-met een automaat die de Ferrari over het parcours rijdt, goed en slordig, en het verliezen;
-stap 93–94) met `raceshots` (vijf foto's); `npm run garagetest` (de showroom aan de Lemmerweg: plek, glas, deur,
-kopen, Ferrari-model en topsnelheid, opslaan; stap 92) met `garageshots` (vier foto's); `npm run schrifttest` (het einde van missie 12 en
+met een automaat die de Ferrari over het parcours rijdt, goed en slordig, het verliezen, de ring
+op de rotonde, piepjes, vrij parcours, sturen, pauze en de ochtend erna; stap 93–95) met
+`raceshots` (vijf foto's); `npm run garagetest` (de showroom aan de Lemmerweg: plek, glas, deur,
+kopen, Ferrari-model en topsnelheid, opslaan; stap 92, 95) met `garageshots` (vier foto's) en
+`ferrarishots` (het model los, drie foto's in een paar seconden); `npm run missietest` (ook de
+wissel van de missiemuziek); `npm run schrifttest` (het einde van missie 12 en
 missie 13; stap 91) met `schriftshots` (vier foto's); `npm run brugtest` (missie 12 van de M tot de € 5.000,
 met de dekking achter een auto gemeten, 65 controles; stap 89) met `brugshots` (zeven foto's);
 `npm run politieautotest` (missie 11, van de M tot de
@@ -302,6 +310,12 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   bij de Lemmerweg is in de BGT een rijbaanvlak zonder as, dus de routeplanner
   (js/navigatie.js) neemt de smalle parallelweg ernaast. Een route voor iets dat hard
   moet (de race) altijd uittekenen en nameten; js/race.js meet dat stuk uit het vlak.
+- **De hoofdlus roept `verhaal.update` ook aan als het spel stilstaat** (het zwart en het
+  filmbeeld op het startscherm), maar niet in het pauzemenu (`gepauzeerd`, stap 95). Wat
+  in een missie met de tijd loopt, hoort daar dus in; een eigen timer in js/main.js niet.
+- **Een geëxtrudeerde vorm is groter dan zijn profiel** (stap 95): de afronding
+  (`bevelSize`) legt er rondom plaat omheen. Koplampen verdwenen daardoor in de romp van
+  de Ferrari, en zijn wielkasten zijn vijf centimeter krapper dan getekend.
 - **js/verhaal.js is één groot bereik.** Een `function` met een naam die er al is
   overschrijft de andere stil (hoisting): in stap 89 namen `beginGevecht` en
   `naarDeC4` zo die van missie 10 en 11 over. `npm run brugtest` kijkt er nu naar.

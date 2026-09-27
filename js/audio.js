@@ -32,6 +32,10 @@ let lijstGeladen = false;
 let missieLijst = [];        // de spanningsmuziek uit audio/missie/
 let missieGeladen = false;
 let missiePlek = -1;         // waar het vorige fragment begon (seconden), om niet te herhalen
+// en de vier fragmenten daarvoor: een nieuw begin ligt zo ver mogelijk van al die plekken af
+const missiePlekken = [];
+// zo lang (s) speelt een fragment voor het zacht naar een ander stuk van het nummer overgaat
+const MISSIE_WISSEL = 140, MISSIE_WISSEL_EXTRA = 70;
 /*
  Zet je zelf een zender op, dan gaat de radio vóór de missiemuziek (verzoek
  21 sep 2026). Dat blijft zo zolang je in die auto zit; stap je uit, dan neemt
@@ -319,6 +323,20 @@ export const geluid = {
       for (let i = 0; i < 8; i++) {
         toon({ freq: i % 2 ? 1560 : 1180, duur: 0.055, volume: 0.13, golf: 'square', vertraag: t0 + i * 0.06 });
       }
+    }
+  },
+
+  /*
+   Het aftellen voor de race (missie 14): een korte piep op drie, twee en één,
+   en op START een lange, een octaaf hoger — zoals de lichten aan de start van
+   een race.
+  */
+  aftelPiep(start = false) {
+    if (start) {
+      toon({ freq: 1320, duur: 0.7, volume: 0.15, golf: 'square' });
+      toon({ freq: 660, duur: 0.7, volume: 0.06, golf: 'square' });
+    } else {
+      toon({ freq: 660, duur: 0.2, volume: 0.15, golf: 'square' });
     }
   },
 
@@ -873,10 +891,17 @@ export const geluid = {
           // een fragment van een minuut of wat, ruim binnen de randen van het bestand
           const stuk = Math.min(m.nummer.fragment || 75, Math.max(20, duur - 20));
           const ruimte = Math.max(1, duur - stuk - 10);
-          let plek = 5 + Math.random() * ruimte;
-          // niet twee keer achter elkaar hetzelfde stuk: minstens twee minuten verderop
-          if (missiePlek >= 0 && ruimte > 260 && Math.abs(plek - missiePlek) < 120) {
-            plek = (missiePlek + 120 + Math.random() * (ruimte - 240)) % ruimte + 5;
+          /*
+           Tien willekeurige plekken, en daarvan die het verst van de vorige vijf
+           beginpunten ligt (verzoek 27 sep 2026: "meer randomness in de
+           missiemuziek, door op andere punten te beginnen"). Eén willekeurige
+           plek viel vaak dicht bij een eerdere, en dan klinkt het hetzelfde.
+          */
+          let plek = 5 + Math.random() * ruimte, beste = -1;
+          for (let k = 0; k < 10; k++) {
+            const p = 5 + Math.random() * ruimte;
+            const af = missiePlekken.length ? Math.min(...missiePlekken.map(q => Math.abs(q - p))) : Infinity;
+            if (af > beste) { beste = af; plek = p; }
           }
           return plek;
         };
@@ -886,10 +911,13 @@ export const geluid = {
             if (plek < 0) return;
             m.wil = plek;
             missiePlek = plek;
+            missiePlekken.push(plek); if (missiePlekken.length > 5) missiePlekken.shift();
+            m.wisselNa = nu() + MISSIE_WISSEL + Math.random() * MISSIE_WISSEL_EXTRA;
           }
           try { m.el.currentTime = m.wil; } catch { /* nog niet te zetten: straks weer */ }
         };
         m.wil = -1;
+        m.zetPlek = zetPlek;               // (ook voor de wissel halverwege, hieronder)
         zetPlek();
         /*
          En daarna nog een keer, zodra de speler iets nieuws weet. `loadedmetadata`
@@ -913,6 +941,20 @@ export const geluid = {
        maar je hoort hem niet meer. Twee nummers door elkaar is geen spanning.
       */
       const opzij = radioVoor && bronnen.muziek && bronnen.muziek.aan;
+      /*
+       Een lange missie hoort niet één stuk van het nummer te zijn: na twee à drie
+       minuten zakt hij in een seconde weg, springt naar een ander stuk (zo ver
+       mogelijk van de vorige) en zwelt daar weer aan.
+      */
+      if (m.wisselNa && nu() > m.wisselNa && !m.wissel && isFinite(m.el.duration)) {
+        m.wissel = nu() + 1.2;
+        m.gain.gain.setTargetAtTime(0, nu(), 0.3);
+      }
+      if (m.wissel) {
+        if (nu() < m.wissel) return true;
+        m.wissel = 0; m.wil = -1;
+        if (m.zetPlek) m.zetPlek();
+      }
       m.gain.gain.setTargetAtTime(opzij ? 0 : MISSIE_VOL, nu(), opzij ? 0.6 : 0.7);
     } else if (m.speelt) {
       m.speelt = false;
@@ -949,8 +991,12 @@ export const geluid = {
       aan: !!m.aan, volume: +m.gain.gain.value.toFixed(4),
       bron: (m.el.src || '').split('/').pop(), tijd: +m.el.currentTime.toFixed(2),
       plek: m.wil >= 0 ? +m.wil.toFixed(2) : null,
-      duur: isFinite(m.el.duration) ? +m.el.duration.toFixed(0) : null };
+      duur: isFinite(m.el.duration) ? +m.el.duration.toFixed(0) : null,
+      // over hoeveel seconden (audioklok) hij naar een ander stuk springt, en de vorige beginpunten
+      wisselOver: m.wisselNa ? +(m.wisselNa - nu()).toFixed(1) : null, plekken: missiePlekken.map(q => Math.round(q)) };
   },
+  // voor tools/missietest.mjs: de wissel naar een ander stuk over `s` seconden
+  missieWissel(s = 0) { const m = bronnen.missie; if (m && m.wisselNa) m.wisselNa = nu() + s; },
 
   /*
    De autoradio. Een rockdeuntje uit de speakers in het portier: een vervormde

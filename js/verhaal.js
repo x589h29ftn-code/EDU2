@@ -651,6 +651,8 @@ const RACE_BELONING = 2000;
 const RACE_TE_LAAT = 45;            // zo lang na de eerste over de finish is het voorbij (s)
 const RACE_SCHULD = 1500;           // Ronalds schuld bij De Boer; na een verloren revanche het dubbele
 const RACE_UIT_MAX = 20;            // zo lang (s) mag je tijdens de race buiten je auto staan
+const RACE_NA = 5;                  // zoveel tellen na de uitslag wordt het zwart
+const RACE_OCHTEND = 9.5;           // "De volgende ochtend": half tien
 /*
  Verliezen (verzoek 27 sep 2026: "wat als je niet wint, bedenk dat soort zaken
  ook"). Dan is de race niet gewoon opnieuw: De Boer komt verhaal halen. Ronalds
@@ -5261,6 +5263,7 @@ export function initVerhaal(ctx) {
   let raceBijgelegd = false;
   let raceStandT = 0, raceNavT = 0;
   let raceUitslag = null;
+  let raceNaT = 0;                 // na de race: de tellen tot het zwart
   let raceSchuld = RACE_SCHULD;    // wat Ronald De Boer schuldig is (dubbel na elke verloren revanche)
   let raceRondes = 0;              // hoe vaak je al verloren hebt
   let raceVerloor = null;          // waarom
@@ -5294,12 +5297,13 @@ export function initVerhaal(ctx) {
     }
     raceAftel = 0; raceOverT = 0; raceTeLaatT = 0; raceVerplaatst = false; raceUitslag = null;
     raceUitT = 0;
+    vehicles.vrijeZone = null;
   }
 
   function beginRace() {
     fase = 'telefoon';
     ruimRaceOp();
-    raceSchuld = RACE_SCHULD; raceRondes = 0; raceVerloor = null;
+    raceSchuld = RACE_SCHULD; raceRondes = 0; raceVerloor = null; raceNaT = 0;
     raceT = 1.2;
     markZichtbaar(false);
     zetOpdracht('neem de telefoon op');
@@ -5351,6 +5355,14 @@ export function initVerhaal(ctx) {
     ruimRaceOp();
     racePlek = race.klaarzetten();
     if (!racePlek) return;
+    /*
+     Het gewone verkeer blijft even van de route af (verzoek 27 sep 2026: "zorg dat
+     op de route normaal verkeer er even tijdelijk niet is, daarna wel weer"). Wat
+     er nu rijdt verhuist meteen (het beeld is zwart), en tot de race voorbij is
+     kiest geen auto een plek op de route (js/vehicles.js, `vrijeZone`).
+    */
+    vehicles.vrijeZone = race.opRoute;
+    if (vehicles.maakVrij) vehicles.maakVrij(racePlek.start.x, racePlek.start.z);
     const p = racePlek.speler;
     raceAuto = eigenFerrari();
     if (!raceAuto) {
@@ -5395,6 +5407,7 @@ export function initVerhaal(ctx) {
     spanning = true; spanningUit = 0;
     raceTeLaatT = 0; raceStandT = 0; raceNavT = 0;
     hud.show('START!', 1.6);
+    if (geluid.aftelPiep) geluid.aftelPiep(true);
   }
   /*
    Verloren. Eerst even VERLOREN in beeld, dan komt De Boer verhaal halen: bij de
@@ -5456,7 +5469,7 @@ export function initVerhaal(ctx) {
     zetOpdracht('');
     hud.zetNavigatie(null); navDoel = null;
     hud.melding('MISSIE VOLTOOID – DE RACE', `Verloren, maar Ronald is van De Boer af: je betaalde ${euro(betaald)}.`, 8);
-    race.ruimOp();
+    naDeRace();
   }
   function raceGeslaagd() {
     fase = 'klaar';
@@ -5468,6 +5481,26 @@ export function initVerhaal(ctx) {
     spanningUit = 6;
     hud.melding('MISSIE GESLAAGD – DE RACE', `Beloning: + ${euro(RACE_BELONING)} toegevoegd aan wallet`, 8);
     for (const r of race.ringen) r.visible = false;
+    naDeRace();
+  }
+  /*
+   Na de race: nog vijf tellen in IJlst, dan zwart, "De volgende ochtend", en je
+   staat voor je eigen huis (of de Wieken 29). Het verkeer mag weer over de route.
+  */
+  function naDeRace() {
+    vehicles.vrijeZone = null;
+    race.toonPijlen(false);
+    raceNaT = RACE_NA;
+  }
+  function naarDeOchtend() {
+    race.ruimOp();
+    for (const p of [ronald, deBoer]) p.groep.visible = false;
+    if (raceBoerAuto) {
+      raceBoerAuto.x = raceBoerAuto.z = 1e5;
+      if (raceBoerAuto.mesh) { raceBoerAuto.mesh.visible = false; raceBoerAuto.mesh.position.set(1e5, 0, 1e5); }
+    }
+    if (zetUur) zetUur(RACE_OCHTEND);
+    springNaarHuis();
   }
   // de weg die nog voor je ligt, voor de minikaart: om de twintig meter
   function raceRoute(sp) {
@@ -5538,7 +5571,8 @@ export function initVerhaal(ctx) {
     if (fase === 'aftellen') {
       raceAftel -= dt;
       const tel = Math.ceil(raceAftel);
-      if (tel !== raceTel && tel > 0) { raceTel = tel; hud.show(String(tel), 0.9); geluid.neerzetten(); }
+      // drie korte piepjes en een lange op START, zoals aan de start van een race
+      if (tel !== raceTel && tel > 0) { raceTel = tel; hud.show(String(tel), 0.9); if (geluid.aftelPiep) geluid.aftelPiep(); }
       if (raceAftel <= 0) raceStart();
     }
     // (voor de start staat de klok stil; de ringen pulseren wel)
@@ -5576,6 +5610,8 @@ export function initVerhaal(ctx) {
         hud.melding('RING GEMIST', `Terug naar ring ${st.cp + 1}: zonder die ring telt het niet.`, 4);
       }
       if (raceKantT > 0) raceKantT -= dt;
+      // ver van de route af (een stuk afgesneden, of verdwaald)
+      if (raceKantT <= 0 && race.voortgang(sp.x, sp.z).af > 22) { raceKantT = 3; hud.show('TERUG NAAR DE ROUTE', 1.8); }
       if (player.inCar && raceKantT <= 0 && Math.abs(player.inCar.speed) > 6) {
         const L = race.lijn, v = race.voortgang(sp.x, sp.z);
         const vooruit = -Math.sin(player.inCar.yaw) * L.tx[v.i] - Math.cos(player.inCar.yaw) * L.tz[v.i];
@@ -5638,7 +5674,11 @@ export function initVerhaal(ctx) {
     opDeStart();
   }
   // na de race: De Boer, Ronald en de tegenstanders gaan weg als je een eind weg bent
-  function raceNaloop(sp) {
+  function raceNaloop(sp, dt) {
+    if (raceNaT > 0) {
+      raceNaT -= dt;
+      if (raceNaT <= 0) zwartMet('De volgende ochtend', naarDeOchtend);
+    }
     if (missie === 'race') return;
     for (const p of [ronald, deBoer]) {
       if (p.groep.visible && afst(sp, p.groep.position) > 60) p.groep.visible = false;
@@ -5899,7 +5939,7 @@ export function initVerhaal(ctx) {
     if (missie === 'schrift') werkSchriftBij(dt, sp);
     if (missie === 'race') werkRaceBij(dt, sp);
     brugNaloop(sp, dt);
-    raceNaloop(sp);
+    raceNaloop(sp, dt);
     if (schutters) {
       const schade = schutters.update(dt, player, true);
       if (schade > 0 && player.active) {

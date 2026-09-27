@@ -15,6 +15,11 @@
     van de speler); De Boer betaalt € 2.000. Met een gewone auto verlies je, en
     begin je weer aan de start.
  6. Opslaan en laden midden in de race, en shift+] start hem los.
+
+ En de ronde van stap 95 (melding 27 sep 2026): een ring in de top van de eerste
+ rotonde (afsnijden telt niet), piepjes bij het aftellen, geen wijkverkeer op de
+ route, rustiger sturen op snelheid, de race staat stil in het pauzemenu, en na
+ afloop "De volgende ochtend" voor je eigen huis.
 */
 import { chromium } from 'playwright';
 
@@ -232,6 +237,28 @@ ok(nacht.politie && nacht.politie.politie && nacht.politie.zichtbaar && Math.hyp
 ok(nacht.rijders.length === 3 && nacht.rijders.every(r => r.zichtbaar) && nacht.rijders.every(r => Math.hypot(r.x - nacht.start.x, r.z - nacht.start.z) < 45),
   'drie tegenstanders op de grid', nacht.rijders.map(r => r.soort).join(', '));
 ok(nacht.balk && nacht.wie === 'De Boer', 'De Boer neemt het woord');
+const verkeer = await page.evaluate(() => {
+  const g = window.__game, V = g.vehicles, R = g.verhaal.race.race;
+  const wijk = V.traffic.filter(q => q.lokaal && q._pos && !q.slaapt);
+  const opRoute = wijk.filter(q => R.opRoute(q._pos.x, q._pos.y)).length;
+  // en een nieuwe plek voor een wijkauto kiest nooit de route
+  let gekozen = 0, fout = 0;
+  const sp = g.player.inCar;
+  for (let i = 0; i < 40; i++) {
+    const c = V.kiesRijbaan(sp.x, sp.z, 60, 60, 900);
+    if (!c) continue;
+    gekozen++;
+    if (R.opRoute(c.q.x, c.q.y)) fout++;
+  }
+  // de route zelf: ligt de lijn in de zone?
+  const L = R.lijn;
+  let dekt = 0, n = 0;
+  for (let i = 0; i < L.n; i += 10) { n++; if (R.opRoute(L.x[i], L.z[i])) dekt++; }
+  return { zone: typeof V.vrijeZone === 'function', wijk: wijk.length, opRoute, gekozen, fout, dekt, n };
+});
+ok(verkeer.zone && verkeer.dekt === verkeer.n, 'de route is een vrije zone voor het verkeer', `${verkeer.dekt} van ${verkeer.n} punten van de lijn`);
+ok(verkeer.opRoute === 0, 'geen wijkauto op de route', `${verkeer.opRoute} van ${verkeer.wijk} wakkere wijkauto's`);
+ok(verkeer.gekozen > 5 && verkeer.fout === 0, 'en er komt er ook geen bij', `${verkeer.fout} van ${verkeer.gekozen} nieuwe plekken op de route`);
 
 // ------------------------------------------------------------- het parcours
 kop('het parcours');
@@ -242,11 +269,26 @@ const parcours = await page.evaluate(async () => {
   for (let i = 0; i < L.n; i += 4) { n++; const v = K.vlakOp(L.x[i], L.z[i]); if (v && (v.k === 'rijbaan' || v.k === 'autoweg' || v.k === 'brug')) rijbaan++; }
   const eind = R.punt(L.lengte);
   const poiesz = g.supermarkt && g.supermarkt.ingangen ? g.supermarkt.ingangen[0].deur : null;
-  return { lengte: Math.round(L.lengte), rijbaan, n, cps: R.controlepunten.length, eind: { x: eind.x, z: eind.z },
+  // de bochtringen, en de eerste rotonde (zo'n 200 m na de start): hoe ver ligt de
+  // rechte lijn tussen in- en uitrit van het hart van de ring?
+  const bocht = R.bochtRingen.map(s => Math.round(s));
+  const rs = R.bochtRingen.find(s => s > 120 && s < 320);
+  let rotonde = null;
+  if (rs != null) {
+    const c = R.punt(rs), a = R.punt(rs - 30), b = R.punt(rs + 30);
+    const abx = b.x - a.x, abz = b.z - a.z, l2 = abx * abx + abz * abz;
+    const f = Math.max(0, Math.min(1, ((c.x - a.x) * abx + (c.z - a.z) * abz) / l2));
+    const koorde = Math.hypot(a.x + abx * f - c.x, a.z + abz * f - c.z);
+    rotonde = { s: Math.round(rs), koorde: +koorde.toFixed(1), straal: 8 };
+  }
+  return { lengte: Math.round(L.lengte), rijbaan, n, cps: R.controlepunten.length, eind: { x: eind.x, z: eind.z }, bocht, rotonde,
     poiesz: poiesz ? { x: poiesz.x, z: poiesz.z } : null };
 });
 ok(parcours.lengte > 2000 && parcours.lengte < 3500, 'van de BP naar IJlst', `${parcours.lengte} m`);
 ok(parcours.rijbaan / parcours.n > 0.95, 'over de rijbaan', `${parcours.rijbaan} van ${parcours.n}`);
+ok(parcours.rotonde, 'een ring in de top van de eerste rotonde', parcours.rotonde ? `op ${parcours.rotonde.s} m, straal ${parcours.rotonde.straal} m` : JSON.stringify(parcours.bocht));
+ok(parcours.rotonde && parcours.rotonde.koorde > parcours.rotonde.straal + 2, 'wie rechtdoor over het eiland rijdt, mist hem',
+  parcours.rotonde && `de rechte lijn erlangs ligt ${parcours.rotonde.koorde} m van het hart van de ring`);
 ok(parcours.cps >= 6, 'met controlepunten onderweg', `${parcours.cps} ringen, de laatste is de finish`);
 ok(!parcours.poiesz || Math.hypot(parcours.eind.x - parcours.poiesz.x, parcours.eind.z - parcours.poiesz.z) < 350, 'de finish is in IJlst, op de Sudergoweg bij de Poiesz',
   parcours.poiesz ? `${Math.round(Math.hypot(parcours.eind.x - parcours.poiesz.x, parcours.eind.z - parcours.poiesz.z))} m van de deur` : 'geen Poiesz');
@@ -255,6 +297,9 @@ ok(!parcours.poiesz || Math.hypot(parcours.eind.x - parcours.poiesz.x, parcours.
 kop('de race met de Ferrari');
 const start = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
+  // de piepjes tellen (js/audio.js `aftelPiep`)
+  const piep = [], echt = g.geluid.aftelPiep;
+  g.geluid.aftelPiep = (s) => { piep.push(!!s); echt.call(g.geluid, s); };
   const regels = window.__gesprek();
   const af = v.fase;
   window.__stap(20);                 // één seconde: je staat nog stil
@@ -263,10 +308,12 @@ const start = await page.evaluate(() => {
   const R = v.race.race;
   const s0 = R.rijders.map(r => r.s);
   window.__stap(20);
-  return { regels: regels.length, af, stil, fase: v.fase, ringen: R.ringen.filter(r => r.visible).length, finish: R.finish.visible,
+  g.geluid.aftelPiep = echt;
+  return { piep, regels: regels.length, af, stil, fase: v.fase, ringen: R.ringen.filter(r => r.visible).length, finish: R.finish.visible,
     vooruit: R.rijders.map((r, i) => Math.round(r.s - s0[i])) };
 });
 ok(start.af === 'aftellen' && start.stil === 0, 'na De Boer: aftellen, en je staat stil', `${start.af}`);
+ok(start.piep.join() === 'false,false,false,true', 'drie korte piepjes en een lange op START', start.piep.map(s => s ? 'lang' : 'kort').join(', '));
 ok(start.fase === 'race' && start.ringen === 2 && start.finish, 'START: de ringen en de finishboog staan er');
 ok(start.vooruit.every(d => d > 5), 'de tegenstanders rijden weg', start.vooruit.join(', ') + ' m in een seconde');
 const rit = await page.evaluate(() => {
@@ -312,6 +359,28 @@ const eind = await page.evaluate(() => {
 const eindTekst = eind.regels.map(r => r.tekst).join(' ');
 ok(/schuld is afgelost/.test(eindTekst) && /Erik van Mark/.test(eindTekst), 'De Boer: de schuld is afgelost… "Erik van Mark?"');
 ok(eind.missie === 'klaar' && eind.klaar && eind.geld === 2000 && /GESLAAGD/.test(eind.melding), 'geslaagd: € 2.000', eind.melding.slice(0, 40));
+const ochtend = await page.evaluate(() => {
+  const g = window.__game, v = g.verhaal;
+  const zone = g.vehicles.vrijeZone;
+  let t = 0;
+  while (!v.zwart && t < 12) { v.update(0.05); t += 0.05; }
+  const tekst = document.getElementById('overgangtekst') ? document.getElementById('overgangtekst').textContent : '';
+  window.__zwartUit();
+  window.__stap(2);
+  const d = v.thuisDoel, auto = g.player.inCar;
+  const eigen = g.garage.eigen.find(e => e.soort === 'ferrari');
+  const f = eigen && eigen.car;
+  return { zone: zone == null, t: +t.toFixed(1), tekst, uur: g.sfeer.uur, naam: d && d.naam,
+    afstand: d ? +Math.hypot(g.player.pos.x - d.deur.x, g.player.pos.z - d.deur.z).toFixed(1) : null,
+    inAuto: !!auto, ferrari: f && d ? +Math.hypot(f.x - d.deur.x, f.z - d.deur.z).toFixed(1) : null,
+    finish: v.race.race.finish.visible, rijders: v.race.race.rijders.filter(q => q.car && q.car.mesh.visible).length,
+    boer: v.race.deBoer.groep.visible };
+});
+ok(ochtend.zone, 'na de race mag het verkeer weer over de route');
+ok(ochtend.t >= 4 && ochtend.t <= 6 && /volgende ochtend/.test(ochtend.tekst), 'vijf tellen later wordt het zwart: "De volgende ochtend"', `${ochtend.t} s, "${ochtend.tekst}"`);
+ok(Math.abs(ochtend.uur - 9.5) < 0.1 && ochtend.afstand != null && ochtend.afstand < 4 && !ochtend.inAuto, 'en je staat om half tien voor je huis', `${ochtend.naam}, ${ochtend.afstand} m van de deur, ${ochtend.uur.toFixed(2)} uur`);
+ok(ochtend.ferrari != null && ochtend.ferrari < 15, 'met de Ferrari op de oprit', `${ochtend.ferrari} m van de deur`);
+ok(!ochtend.finish && ochtend.rijders === 0 && !ochtend.boer, 'de race in IJlst is opgeruimd');
 
 // ------------------------------------------------------------ met een hatchback
 kop('een slordige rit: verloren');
@@ -387,6 +456,52 @@ const betalen = await page.evaluate(() => {
 ok(betalen.geld === 2000 && betalen.regels.some(r => /Verstandig/.test(r.tekst)) && betalen.regels.some(r => /Erik van Mark/.test(r.tekst)), '2: € 3.000 betaald, "Verstandig. Ronald is van me af."', `nog € ${betalen.geld}`);
 ok(betalen.missie === 'klaar' && betalen.klaar && /VOLTOOID/.test(betalen.melding), 'de missie is voorbij, zonder beloning', betalen.melding.slice(0, 50));
 ok(!betalen.pijlen, 'en de pijlen zijn weg');
+
+kop('sturen op snelheid');
+const stuur = await page.evaluate(() => {
+  const V = window.__game.vehicles;
+  // op een lege vlakte buiten de kaart; de snelheid vast, alleen het stuur
+  const meet = (v0, tik) => {
+    const car = V.voegToe({ x: 4000 + Math.random(), z: 4000, yaw: 0, soort: 'ferrari', kleur: 0xc40a12 });
+    car.speed = v0; car.steer = 0;
+    const dt = 1 / 60, y0 = car.yaw;
+    for (let i = 0; i < 60; i++) { car.speed = v0; V.drive(car, { KeyA: i * dt < tik }, dt); }
+    const draai = car.yaw - y0;
+    car.driveable = false; car.mesh.visible = false; car.x = car.z = 1e5; car.mesh.position.set(1e5, 0, 1e5);
+    return +draai.toFixed(3);
+  };
+  return { vol50: meet(50, 1), tik50: meet(50, 0.1), vol10: meet(10, 1) };
+});
+ok(stuur.vol50 * 50 < 28, 'op 180 km/u vol naar links: niet harder dan de banden houden', `${(stuur.vol50 * 50).toFixed(1)} m/s² dwars, ${stuur.vol50} rad in een seconde`);
+ok(stuur.tik50 < 0.08, 'en een tikje van een tiende seconde is een kleine koerswijziging', `${(stuur.tik50 * 180 / Math.PI).toFixed(1)}°`);
+ok(stuur.vol10 > 0.8, 'maar langzaam stuurt hij nog gewoon', `${stuur.vol10} rad in een seconde op 36 km/u`);
+
+kop('pauze');
+const pauze = await page.evaluate(async () => {
+  const g = window.__game, v = g.verhaal;
+  const s = v.bewaar(); s.missie = 'race'; s.fase = 'race';
+  v.herstel(s);
+  window.__stap(2);
+  window.__gesprek();
+  window.__stap(61);
+  const fase = v.fase, R = v.race.race;
+  // de hoofdlus zelf laten lopen: eerst gewoon, dan in het pauzemenu
+  const wacht = (ms) => new Promise(r => setTimeout(r, ms));
+  const beeld = () => g.renderer.info.render.frame;
+  const tot = async (n) => { const b = beeld(); for (let i = 0; i < 60 && beeld() - b < n; i++) await wacht(500); return beeld() - b; };
+  window.__autoplay = false; g.player.active = true;
+  const k0 = R.stand().klok;
+  const b0 = await tot(3);
+  const k1 = R.stand().klok;
+  g.pauzeer();
+  const k2 = R.stand().klok;
+  const b1 = await tot(3);
+  const k3 = R.stand().klok;
+  window.__autoplay = true;
+  return { fase, loopt: { beelden: b0, klok: +(k1 - k0).toFixed(2) }, pauze: { beelden: b1, klok: +(k3 - k2).toFixed(2) } };
+});
+ok(pauze.fase === 'race' && pauze.loopt.beelden >= 3 && pauze.loopt.klok > 0, 'zonder pauze loopt de race met de hoofdlus mee', JSON.stringify(pauze.loopt));
+ok(pauze.pauze.beelden >= 3 && pauze.pauze.klok === 0, 'in het pauzemenu staat de klok van de race stil', JSON.stringify(pauze.pauze));
 
 kop('los te starten');
 const los = await page.evaluate(() => {

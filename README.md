@@ -619,6 +619,19 @@ showroom blijft staan, dus je kunt er meer kopen.
 Wat je koopt is van jou en blijft van jou: opslaan en laden neemt hem mee, waar hij ook staat, en
 ook als je erin zit. Een wrak is niet meer van jou. De Ferrari heeft een eigen teller tot 320 km/u.
 
+De Ferrari is een eigen model, geen gewone auto met andere maten: een gegoten, afgeronde romp met
+een lage neus en brede heupen, de wielkasten uit de flanken gesneden, een glazen koepel, een
+vleugel op twee steunen achterop, luchthappers in de flanken, vier ronde achterlichten in een
+zwart paneel, een diffusor met vier uitlaten en donkere velgen.
+
+| Van voren | Van achteren | Van opzij |
+|---|---|---|
+| ![voor](docs/screenshots/ferrari_voor.png) | ![achter](docs/screenshots/ferrari_achter.png) | ![zij](docs/screenshots/ferrari_zij.png) |
+
+**Sturen op snelheid.** Op hoge snelheid stuurt elke auto rustiger: het stuur gaat nooit verder
+dan de banden kunnen houden. Onder de 55 km/u merk je daar niets van. Op 180 km/u is een tikje
+op A of D nu een paar graden koerswijziging, en geen draai de berm in.
+
 De showroom staat niet in de BGT of de 3D BAG, want hij bestaat niet; de plek wel: het grasveld
 tussen de Lemmerweg, het fietspad naar Duinterpen, de sloot en de vijver. Daar staat geen pand,
 geen weg en geen water, en de twee bomen die er stonden zijn weg. 's Avonds brandt binnen het
@@ -629,8 +642,9 @@ licht en licht de naam op.
 | ![buiten](docs/screenshots/garage_buiten.png) | ![binnen](docs/screenshots/garage_binnen.png) | ![Ferrari](docs/screenshots/garage_ferrari.png) | ![avond](docs/screenshots/garage_avond.png) |
 
 `npm run garagetest` toetst het: de plek (geen pand, water of rijbaan, geen bomen), het glas en de
-muren, de deur, het kopen met en zonder geld, het model en de topsnelheid, en opslaan en laden.
-`npm run garageshots` maakt de foto's.
+muren, de deur, het kopen met en zonder geld, het model (de gegoten romp, de wielkasten, de
+neus en de vleugel) en de topsnelheid, en opslaan en laden. `npm run garageshots` maakt de
+foto's; `npm run ferrarishots` maakt de drie foto's van het model alleen, in een paar seconden.
 
 ## Tennispark Molenkrite
 
@@ -934,8 +948,10 @@ Onder de spannende delen van een missie loopt muziek uit `audio/missie/`
   eronder weg naar 0,08 — je hoort de radio nog, maar hij dringt niet meer voor.
 - **elke keer een ander fragment.** Het aangeleverde nummer duurt drie kwartier;
   zou hij steeds bij nul beginnen, dan hoorde je bij elke missie precies
-  hetzelfde stuk. Het spel springt naar een willekeurige plek, en een nieuwe
-  moet minstens twee minuten van de vorige liggen. Dat springen vraagt wel een
+  hetzelfde stuk. Het spel prikt tien willekeurige plekken en neemt die het
+  verst van de vorige vijf beginpunten ligt (verzoek 27 sep 2026: "meer
+  randomness"). En een lange missie is niet één stuk: na twee à drie minuten
+  zakt hij in een seconde weg en zwelt hij op een ander stuk weer aan. Dat springen vraagt wel een
   server die Range-verzoeken kent — `tools/server.mjs`, GitHub Pages en de
   Electron-schil doen dat, `python3 -m http.server` niet.
 - **hij zwelt aan en dooft uit.** Twee seconden aan, tweeënhalve seconde uit, en
@@ -2020,7 +2036,10 @@ een gekocht, dan belt hij: *"Vannacht om één uur bij de BP."* Het wordt zwart:
 
 Om één uur zit je in je Ferrari op de grid op de Lemmerweg, tweede van vier. De
 Boer en Ronald staan langs de kant, met de politieauto van De Boer erachter. Na
-zijn uitleg telt hij af: drie, twee, één, **START!**
+zijn uitleg telt hij af: drie, twee, één, **START!**, met een korte piep op elke tel en
+een lange, hogere op START, zoals de lichten aan de start van een race. Zolang de race
+loopt rijdt er geen wijkverkeer over het parcours: wat er stond is al weg als het beeld
+terugkomt, en er komt geen nieuwe auto op de route bij. Na de race rijden ze er weer.
 
 | ![De grid bij de BP](docs/screenshots/race_grid.png) | ![Onderweg](docs/screenshots/race_ring.png) |
 |---|---|
@@ -2029,7 +2048,9 @@ zijn uitleg telt hij af: drie, twee, één, **START!**
 Het parcours: de Lemmerweg af, over de rotonde en de hoofdweg naar het zuiden, dan
 anderhalve kilometer rechtdoor over de **Sudergoweg** en door De Sânhorst en De Kling
 naar de **finish in IJlst, bij de Poiesz**, samen 2,7 km. Onderweg hangen **gele ringen** over de weg: de eerstvolgende
-fel, die daarna flauw. Wie er niet door rijdt, telt niet. Op het wegdek liggen
+fel, die daarna flauw. Wie er niet door rijdt, telt niet. In de top van de scherpe
+bochten hangt een kleinere ring, ook op de **eerste rotonde**: wie rechtdoor over het
+eiland snijdt, mist hem en moet terug. Op het wegdek liggen
 **oplichtende pijlen**, de driehonderd meter vóór je, met een looplicht dat de
 rijrichting op loopt; de minikaart wijst de weg en de opdrachtregel houdt je plek bij
 (*"2e van 4 · ring 5 van 9"*).
@@ -2037,7 +2058,7 @@ rijrichting op loopt; de minikaart wijst de weg en de opdrachtregel houdt je ple
 ![De pijlen op de weg](docs/screenshots/race_pijlen.png)
 
 De drie tegenstanders (een zwarte Ferrari, een witte Golf en een blauwe BX) rijden
-tot 180 km/u en nemen de bochten scherp. Ze wijken uit voor jou en voor elkaar, en
+tot 190 km/u en nemen de bochten scherp. Ze wijken uit voor jou en voor elkaar, en
 ze blijven in de buurt: lig je ver voor, dan rijden ze iets harder, lig je ver
 achter, iets zachter. Met een gewone auto haal je ze niet in, en ook met de Ferrari
 moet je goed rijden: wie de bochten te voorzichtig neemt, of een paar keer tegen een
@@ -2051,6 +2072,10 @@ Onderweg zegt het scherm wat er misgaat:
 | de verkeerde kant op | ***VERKEERDE KANT OP*** |
 | uitgestapt | *"Stap in — de race loopt!"*, en na twintig tellen is het verloren |
 | je plek verandert | *"2e!"* in beeld |
+| ver van de route | ***TERUG NAAR DE ROUTE*** |
+
+Druk je op **Esc**, dan staat de race stil tot je doorgaat: de klok, de tegenstanders en
+de twintig tellen buiten de auto.
 
 **Gewonnen**: stop bij De Boer bij de finish. De schuld is afgelost, **€ 2.000** voor
 jou, en *"Erik… Erik van Mark? Dan hebben wij binnenkort nog wat te bespreken."*
@@ -2069,10 +2094,15 @@ Is je Ferrari total loss en heb je er geen meer, dan leent Ronald je er een.
 
 ![De finish in IJlst](docs/screenshots/race_finish.png)
 
+Is het voorbij (gewonnen, of de schuld betaald), dan sta je nog vijf tellen in IJlst.
+Dan wordt het zwart, ***De volgende ochtend***, en om half tien sta je voor je eigen
+huis (of de Wieken 29 als je er nog geen hebt gekocht), met de Ferrari op de oprit.
+
 **shift + ]** start de missie los. `npm run racetest` speelt hem na, van het
 telefoontje tot de € 2.000, met een automaat die de Ferrari met het gewone rijgedrag
-over het parcours stuurt, een goede en een slordige, en het verliezen met de keuze bij De
-Boer; `npm run raceshots` maakt de vijf foto's.
+over het parcours stuurt, een goede en een slordige, het verliezen met de keuze bij De
+Boer, de ring op de rotonde, de piepjes, het vrije parcours, het sturen, de pauze en de
+ochtend erna; `npm run raceshots` maakt de vijf foto's.
 
 ### Na missie 10: de bende op straat
 

@@ -59,9 +59,20 @@ export const RACE = {
   */
   bijblijven: { per: 900, sneller: 0.10, zachter: 0.06 },
   // uitwijken: zo dicht voor je (m) telt een auto als in de weg, en zo ver opzij (m)
-  uitwijken: { voor: 11, achter: 5, opzij: 2.1, wissel: 1.8 },
+  uitwijken: { voor: 11, achter: 5, opzij: 2.1, wissel: 1.8, naast: 2.0, lengte: 4.8 },
   // de pijlen op de weg: zoveel, zo ver uit elkaar (m)
   pijlen: { n: 34, af: 9 },
+  /*
+   Ringen in de bochten. Met alleen een ring om de driehonderd meter kon je de
+   eerste rotonde recht over het middeneiland nemen (melding 27 sep 2026: "bij de
+   1e rotonde sneed ik af en dat kon gewoon"). Nu hangt er ook een ring in de top
+   van elke bocht waar de weg over zestig meter meer dan zestig graden draait: op
+   een rotonde ligt die op de rijbaan rond het eiland, twintig meter van het
+   midden, dus wie rechtdoor steekt mist hem.
+  */
+  bochtRing: { draai: 1.05, venster: 15, straal: 8, afstand: 70 },
+  // zo ver (m) van de route telt als ernaast (het verkeer blijft er even weg)
+  route: { breed: 14, cel: 10 },
 };
 
 function inRing(x, z, r) {
@@ -112,9 +123,10 @@ function hoofdwegLijn(KAART) {
  met `RACE.bijblijven`: wie ver voorligt krijgt ze weer in de nek.
 */
 export const TEGENSTANDERS = [
-  { naam: 'de zwarte Ferrari', soort: 'ferrari', kleur: 0x141518, top: 50, dwars: 11, trek: 8.5, opzij: -1.2 },
-  { naam: 'de witte Golf', soort: 'hatch', kleur: 0xe9eaec, top: 47, dwars: 10, trek: 7.8, opzij: -1.2 },
-  { naam: 'de blauwe BX', soort: 'bx', kleur: 0x1f4f9a, top: 45, dwars: 9.5, trek: 7.2, opzij: 1.2 },
+  // (nog iets harder na de eerste ritten van de gebruiker: "andere auto's mogen iets sneller")
+  { naam: 'de zwarte Ferrari', soort: 'ferrari', kleur: 0x141518, top: 53, dwars: 12, trek: 9.0, opzij: -1.2 },
+  { naam: 'de witte Golf', soort: 'hatch', kleur: 0xe9eaec, top: 50, dwars: 11, trek: 8.3, opzij: -1.2 },
+  { naam: 'de blauwe BX', soort: 'bx', kleur: 0x1f4f9a, top: 48, dwars: 10.5, trek: 7.7, opzij: 1.2 },
 ];
 // de speler staat tweede op de grid, rechts; om en om links en rechts
 const SPELER_VAK = 1, SPELER_OPZIJ = 1.2;
@@ -295,6 +307,7 @@ export function initRace({ scene, vehicles, KAART }) {
   const rijders = TEGENSTANDERS.map(t => ({ ...t, car: null, s: 0, v: 0, u: t.opzij, uDoel: t.opzij, prof: null, klaar: false, tijd: null }));
   let spelerV = 0, spelerU = 0;
   let cps = [];            // de s van elk controlepunt; de laatste is de finish
+  let bochtCps = new Set(); // welke daarvan in de top van een bocht hangen (kleinere straal)
   let cpNu = 0;            // het eerstvolgende controlepunt van de speler
   let spelerS = 0, spelerI = 0;
   let loopt = false, klok = 0, spelerTijd = null;
@@ -312,6 +325,24 @@ export function initRace({ scene, vehicles, KAART }) {
     const tx = L.tx[a], tz = L.tz[a];
     // rechts van de rijrichting: (−tz, tx) in dit assenstelsel (+x oost, +z zuid)
     return { x: x - tz * u, z: z + tx * u, tx, tz, i: a, yaw: Math.atan2(-tx, -tz) };
+  }
+
+  // ligt (x, z) op of vlak naast de route? Een rooster van cellen van tien meter, één keer
+  let routeCellen = null;
+  function opRoute(x, z) {
+    const L = lijnNu();
+    if (!L) return false;
+    const C = RACE.route.cel;
+    if (!routeCellen) {
+      routeCellen = new Set();
+      const r = Math.ceil(RACE.route.breed / C);
+      for (let i = 0; i < L.n; i += 2) {
+        const ci = Math.floor(L.x[i] / C), cj = Math.floor(L.z[i] / C);
+        for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) routeCellen.add((ci + a) * 100003 + (cj + b));
+      }
+    }
+    if (!routeCellen.has(Math.floor(x / C) * 100003 + Math.floor(z / C))) return false;
+    return voortgang(x, z).af < RACE.route.breed;
   }
 
   // waar ben je langs de lijn? Gezocht rond de vorige plek, zodat een lus in de weg niet verwart
@@ -348,6 +379,25 @@ export function initRace({ scene, vehicles, KAART }) {
     if (!L) return null;
     cps = [];
     for (let s = RACE.startS + RACE.cpElke; s < L.lengte - RACE.cpElke * 0.5; s += RACE.cpElke) cps.push(s);
+    // en een ring in de top van elke scherpe bocht (zie RACE.bochtRing)
+    bochtCps = new Set();
+    const B = RACE.bochtRing;
+    const draai = (i) => {
+      const a = Math.max(0, i - B.venster), b = Math.min(L.n - 1, i + B.venster);
+      let d = Math.atan2(L.tz[b], L.tx[b]) - Math.atan2(L.tz[a], L.tx[a]);
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return Math.abs(d);
+    };
+    for (let i = B.venster; i < L.n - B.venster; i++) {
+      const d = draai(i);
+      if (d < B.draai || d < draai(i - 1) || d < draai(i + 1)) continue;   // alleen de top
+      const s = L.s[i];
+      if (s < RACE.startS + 30 || s > L.lengte - 40) continue;
+      if (cps.some(c => Math.abs(c - s) < B.afstand)) continue;
+      cps.push(s); bochtCps.add(s);
+    }
+    cps.sort((a, b) => a - b);
     cps.push(L.lengte - 8);                      // de finish
     cpNu = 0; loopt = false; klok = 0; spelerTijd = null;
     rijders.forEach((r, k) => {
@@ -434,8 +484,29 @@ export function initRace({ scene, vehicles, KAART }) {
       const vorig = r.v;
       if (r.v < doel) r.v = Math.min(doel, r.v + r.trek * (1 - r.v / (r.top * (1 + B.sneller) + 8)) * dt * 1.6);
       else r.v = Math.max(doel, r.v - RACE.remmen * dt);
+      r.vorig = vorig;
       r.s = Math.min(L.lengte + 60, r.s + r.v * dt);
       if (!r.klaar && r.s >= cps[cps.length - 1]) { r.klaar = true; r.tijd = klok; }
+    }
+    /*
+     En nooit door elkaar heen (stap 95). Met de snellere tegenstanders haalde een
+     auto er soms een in terwijl die net van strook wisselde: negen beelden per race
+     reden ze door elkaar. Wie dan binnen een autolengte achter een ander op
+     dezelfde strook zit, blijft daar, met diens snelheid. (Wie al binnen is, staat
+     zestig meter na de streep stil; de volgende komt daar een autolengte achter te
+     staan, nog steeds voorbij de streep.)
+    */
+    const opVolgorde = rijders.filter(q => q.car).sort((a, b) => b.s - a.s);
+    for (let a = 1; a < opVolgorde.length; a++) {
+      const r = opVolgorde[a];
+      for (let b = 0; b < a; b++) {
+        const q = opVolgorde[b];
+        if (Math.abs(q.u - r.u) < U.naast && q.s - r.s < U.lengte) { r.s = q.s - U.lengte; r.v = Math.min(r.v, q.v); }
+      }
+    }
+    for (const r of rijders) {
+      if (!r.car) continue;
+      const vorig = r.vorig ?? r.v;
       const vorigeYaw = r.car.yaw;
       const p = punt(Math.min(r.s, L.lengte), r.u);
       r.car.x = p.x; r.car.z = p.z; r.car.yaw = p.yaw; r.car.speed = r.v;
@@ -443,7 +514,8 @@ export function initRace({ scene, vehicles, KAART }) {
     }
     if (spelerTijd == null && cpNu < cps.length) {
       const c = punt(cps[cpNu]);
-      if (Math.hypot(sp.x - c.x, sp.z - c.z) < RACE.cpStraal) {
+      const straal = bochtCps.has(cps[cpNu]) ? RACE.bochtRing.straal : RACE.cpStraal;
+      if (Math.hypot(sp.x - c.x, sp.z - c.z) < straal) {
         cpNu++;
         if (cpNu >= cps.length) spelerTijd = klok;
         zetRingen();
@@ -469,7 +541,8 @@ export function initRace({ scene, vehicles, KAART }) {
   }
 
   return {
-    klaarzetten, start, update, ruimOp, punt, voortgang, stand, toonPijlen,
+    klaarzetten, start, update, ruimOp, punt, voortgang, stand, toonPijlen, opRoute,
+    get bochtRingen() { return [...bochtCps]; },
     get pijlen() { return pijlen; },
     get lijn() { return lijnNu(); },
     get lengte() { const L = lijnNu(); return L ? L.lengte : 0; },

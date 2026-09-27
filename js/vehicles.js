@@ -55,6 +55,9 @@ function tegelMidden(sleutel) {
  de Ferrari uit de showroom op 56 m/s, ruim 200 km/u (js/garage.js;
  `npm run garagetest` meet het).
 */
+// hoeveel dwarsversnelling (m/s²) het stuur hooguit vraagt, zie `drive`
+const STUUR_GRIP = 26;
+
 export const RIJ = {
   hatch: { top: 24, trek: 1 },
   van: { top: 24, trek: 1 },
@@ -207,6 +210,18 @@ export class Vehicles {
     this._vulKlok = 0;
     const lokaal = this.traffic.filter(t => t.lokaal && t._pos && !t.slaapt);
     if (!lokaal.length) return;
+    /*
+     Een zone die vrij moet blijven: de route van de race in missie 14
+     (`vrijeZone`, js/race.js). Wie daar rijdt en niet in beeld is, verhuist;
+     wie je ziet rijden mag doorrijden, anders verdwijnt hij voor je ogen.
+    */
+    if (this.vrijeZone) {
+      for (const t of lokaal) {
+        if (!this.vrijeZone(t._pos.x, t._pos.y)) continue;
+        const d = Math.hypot(t._pos.x - camX, t._pos.y - camZ);
+        if (d > 70 || !zichtVrij(camX, camZ, t._pos.x, t._pos.y, 1.4)) this.zetOpRijbaan(t, camX, camZ, 300, 300, 1400);
+      }
+    }
     let nabij = 0, verste = null, vd = VER;
     for (const t of lokaal) {
       const d = Math.hypot(t._pos.x - camX, t._pos.y - camZ);
@@ -251,6 +266,7 @@ export class Vehicles {
       const q = pad[k];
       const d = Math.hypot(q.x - camX, q.y - camZ);
       if (d < DEKKING || d > BUITEN) continue;
+      if (this.vrijeZone && this.vrijeZone(q.x, q.y)) continue;      // niet op de route van de race
       kandidaten.push({ pad, k, q, d });
     }
     kandidaten.sort((a, b) => a.d - b.d);
@@ -260,6 +276,20 @@ export class Vehicles {
       if (uitZicht) return c;
     }
     return null;
+  }
+
+  /*
+   Alles wat in de vrije zone rijdt meteen elders neerzetten, ook wat je ziet:
+   voor als het beeld zwart is (de start van de race). Levert hoeveel er verhuisden.
+  */
+  maakVrij(camX, camZ) {
+    if (!this.vrijeZone) return 0;
+    let n = 0;
+    for (const t of this.traffic) {
+      if (!t.lokaal || !t._pos || t.slaapt || !this.vrijeZone(t._pos.x, t._pos.y)) continue;
+      if (this.zetOpRijbaan(t, camX, camZ, 300, 300, 1400)) n++;
+    }
+    return n;
   }
 
   // een wijkauto op een rijbaan in een band om de speler zetten
@@ -584,7 +614,16 @@ export class Vehicles {
     let doel = 0;
     if (keys.KeyA) doel = 1;
     if (keys.KeyD) doel = -1;
-    const maxStuur = 0.60 * (0.26 + 0.74 / (1 + Math.abs(car.speed) / 8));
+    /*
+     En begrensd door de grip: een auto kan niet harder de bocht om dan zijn banden
+     houden (v²·tan(stuur)/wielbasis ≤ GRIP). Onder de 55 km/u maakt dat niets uit;
+     daarboven wordt het stuur steeds rustiger. Zonder dit gaf de Ferrari op 200 km/u
+     bij een tikje op A of D een draai van bijna vier radialen per seconde: "een klein
+     tikje naar links of rechts, grote gevolgen" (melding 27 sep 2026).
+    */
+    const vv = car.speed * car.speed;
+    const maxStuur = Math.min(0.60 * (0.26 + 0.74 / (1 + Math.abs(car.speed) / 8)),
+      Math.atan(STUUR_GRIP * wielbasis / Math.max(1, vv)));
     car.steer += (doel * maxStuur - car.steer) * Math.min(1, dt * 8);
 
     // ---- motor, rem en rolweerstand ----

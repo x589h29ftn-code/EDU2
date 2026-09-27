@@ -170,6 +170,7 @@
     "garagetest": "node tools/garagetest.mjs",
     "garageshots": "node tools/garageshots.mjs",
     "racetest": "node tools/racetest.mjs",
-    "raceshots": "node tools/raceshots.mjs"
+    "raceshots": "node tools/raceshots.mjs",
+    "ferrarishots": "node tools/ferrarishots.mjs"
   }
 }

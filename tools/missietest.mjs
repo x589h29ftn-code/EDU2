@@ -93,13 +93,31 @@ const fragment = await page.evaluate(async () => {
     for (let i = 0; i < 40; i++) { geluid.missiemuziek(false); await wacht(90); }
     stil = geluid.missieStand();
   }
-  return { plekken, aanzwellen, stil, duur: geluid.missieStand().duur };
+  // de wissel halverwege een lange missie (stap 95): eerst de klok, dan meteen laten gaan
+  geluid.missiemuziek(true);
+  await wacht(1400);
+  const a = geluid.missieStand();
+  const wissel = { over: a.wisselOver, voor: a.plek };
+  geluid.missieWissel(0);
+  for (let i = 0; i < 80 && geluid.missieStand().plek === wissel.voor; i++) { geluid.missiemuziek(true); await wacht(100); }
+  wissel.na = geluid.missieStand().plek;
+  const historie = geluid.missieStand().plekken;
+  let afstand = Infinity;
+  for (let i = 0; i < historie.length; i++) for (let j = 0; j < i; j++) afstand = Math.min(afstand, Math.abs(historie[i] - historie[j]));
+  geluid.missiemuziek(false);
+  for (let i = 0; i < 40; i++) { geluid.missiemuziek(false); await wacht(90); }
+  return { plekken, aanzwellen, stil, duur: geluid.missieStand().duur, wissel, historie, afstand };
 });
 ok(fragment.plekken.every(t => t > 0), 'de muziek loopt als hij aanstaat',
   fragment.plekken.map(t => `${t}s`).join(' · '));
 ok(new Set(fragment.plekken.map(t => Math.round(t / 30))).size >= 2,
   'en hij begint niet elke keer op dezelfde plek in het nummer',
   `${fragment.plekken.map(t => Math.round(t)).join('s, ')}s van ${fragment.duur}s`);
+ok(fragment.wissel && fragment.wissel.over > 130 && fragment.wissel.over < 215,
+  'na twee à drie minuten springt hij naar een ander stuk', fragment.wissel && `over ${fragment.wissel.over} s`);
+ok(fragment.wissel && fragment.wissel.na != null && Math.abs(fragment.wissel.na - fragment.wissel.voor) > 60,
+  'en dat stuk ligt een eind verderop', fragment.wissel && `van ${fragment.wissel.voor} s naar ${fragment.wissel.na} s`);
+ok(fragment.afstand > 60, 'elk nieuw begin ligt ver van de vorige', `beginpunten ${fragment.historie.join(', ')} s, de dichtste twee ${fragment.afstand} s uit elkaar`);
 ok(fragment.aanzwellen > 0.02 && fragment.aanzwellen < 0.30,
   'hij zwelt aan en valt niet met volle kracht in', `na 1,4 s op ${fragment.aanzwellen}`);
 ok(fragment.stil && !fragment.stil.speelt && fragment.stil.volume < 0.01,

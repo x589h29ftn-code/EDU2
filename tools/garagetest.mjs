@@ -248,6 +248,49 @@ ok(fm.dak < 1.25 && fm.W >= 1.9 && fm.L > 4.4 && fm.L < 4.8, 'de Ferrari is laag
 ok(fm.doorBand.length === 0, 'geen onderdeel dwars door een band', fm.doorBand.join(', ') || `${fm.delen} onderdelen`);
 ok(fm.los.length === 0, 'niets hangt los', fm.los.join(', ') || `${fm.delen} onderdelen`);
 
+// de vorm zelf (stap 95): een gegoten romp in plaats van dozen, wielkasten eruit,
+// een lage neus en een vleugel achterop
+const vorm = await page.evaluate(async () => {
+  const THREE = await import('three');
+  const { autoVorm } = await import('/js/carmodel.js');
+  // welk deel van het oppervlak van de lak schuin staat (geen zijde van een doos)
+  const schuinDeel = (g) => {
+    const P = g.attributes.position, I = g.index, n = I ? I.count : P.count;
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    let tot = 0, schuin = 0;
+    for (let i = 0; i < n; i += 3) {
+      const [i0, i1, i2] = I ? [I.getX(i), I.getX(i + 1), I.getX(i + 2)] : [i, i + 1, i + 2];
+      a.fromBufferAttribute(P, i0); b.fromBufferAttribute(P, i1); c.fromBufferAttribute(P, i2);
+      const k = b.sub(a).cross(c.sub(a)), opp = k.length() / 2;
+      if (!opp) continue;
+      k.normalize(); tot += opp;
+      if (Math.max(Math.abs(k.x), Math.abs(k.y), Math.abs(k.z)) < 0.97) schuin += opp;
+    }
+    return schuin / tot;
+  };
+  const meet = (soort) => {
+    const V = autoVorm(soort), p = V.lak.attributes.position;
+    const drie = (V.lak.index ? V.lak.index.count : p.count) / 3;
+    // lucht: de kleinste afstand van de lak tot de as, min de straal van de band
+    let lucht = Infinity, neus = 0, vleugel = { x0: 0, x1: 0, n: 0 };
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      for (const w of V.wielen) {
+        if (Math.abs(x - w.x) < 0.125) lucht = Math.min(lucht, Math.hypot(y - V.R, z - w.z) - V.R);
+      }
+      if (z < -2.0) neus = Math.max(neus, y);
+      if (y > 1.12 && z > 1.9) { vleugel.n++; vleugel.x0 = Math.min(vleugel.x0, x); vleugel.x1 = Math.max(vleugel.x1, x); }
+    }
+    return { drie: Math.round(drie), schuin: +schuinDeel(V.lak).toFixed(2), lucht: +(lucht * 100).toFixed(1), neus: +neus.toFixed(2), vleugel: +(vleugel.x1 - vleugel.x0).toFixed(2), vn: vleugel.n };
+  };
+  return { ferrari: meet('ferrari'), hatch: meet('hatch') };
+});
+ok(vorm.ferrari.drie > 2.5 * vorm.hatch.drie && vorm.ferrari.schuin > 1.4 * vorm.hatch.schuin, 'de romp is gegoten en afgerond',
+  `${vorm.ferrari.drie} driehoeken lak, ${Math.round(vorm.ferrari.schuin * 100)} % schuin (hatchback ${vorm.hatch.drie}, ${Math.round(vorm.hatch.schuin * 100)} %)`);
+ok(vorm.ferrari.lucht > 0.5, 'de wielkasten zijn uit de romp gesneden: geen lak in een wiel', `${vorm.ferrari.lucht} cm lucht boven de band`);
+ok(vorm.ferrari.neus < 0.78 && vorm.ferrari.neus < vorm.hatch.neus - 0.15, 'een lage neus', `de neus reikt tot ${vorm.ferrari.neus} m (hatchback ${vorm.hatch.neus})`);
+ok(vorm.ferrari.vleugel > 1.6, 'een vleugel over de hele breedte achterop', `${vorm.ferrari.vleugel} m breed, ${vorm.ferrari.vn} hoekpunten`);
+
 const snel = await page.evaluate(() => {
   const g = window.__game, V = g.vehicles;
   // op een lege vlakte buiten de kaart, waar niets in de weg staat

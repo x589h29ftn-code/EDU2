@@ -2276,7 +2276,12 @@ function loop() {
     zetKijkNpcs();
     npcs.update(dt, time, camera.position.x, camera.position.z);
     vehicles.updateTraffic(dt, player, opDeWeg, camera.position.x, camera.position.z);
-    verhaal.update(dt);
+    /*
+     Het verhaal loopt door op het startscherm (het zwart, het filmbeeld), maar niet
+     in het pauzemenu: daar reed de race van missie 14 gewoon verder terwijl je in
+     het menu stond (melding 27 sep 2026).
+    */
+    if (!gepauzeerd) verhaal.update(dt);
     hud.update(dt, player, vehicles, npcs, straatOf(camera.position.x, camera.position.z), verhaal.aanspreekbaar);
   }
   // De luchtbol meeschuiven met de camera. Hij heeft een straal van 1000 m en

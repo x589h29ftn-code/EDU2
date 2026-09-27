@@ -6338,6 +6338,60 @@ wint.
 - *Onderweg*: een gemiste ring, de verkeerde kant op, uitgestapt (na twintig tellen
   verloren) en je plek, allemaal in beeld.
 
+**De race bijgeschaafd, een echte Ferrari, en rustiger sturen (stap 95).** Gemeld (27 sep
+2026) na het spelen: bij de eerste rotonde kon je afsnijden, de tegenstanders mogen iets
+sneller, piepjes bij het aftellen, geen gewoon verkeer op de route, het Ferrarimodel is
+saai, op snelheid heeft een tikje sturen grote gevolgen, met Esc in het menu reed de race
+door, na de race zwart en weer licht bij je huis, en meer afwisseling in de missiemuziek.
+
+- *Afsnijden.* De ringen hingen om de driehonderd meter; de eerste stond ná de rotonde,
+  dus rechtdoor over het eiland kostte niets. Nu komt er ook een ring in de top van
+  elke scherpe bocht (`RACE.bochtRing`: meer dan 60° draaien over zestig meter, het
+  punt waar dat het grootst is, niet binnen zeventig meter van een andere ring), met
+  een kleinere straal van 8 m. Op de eerste rotonde hangt hij 200 m na de start; de
+  rechte lijn tussen in- en uitrit ligt 15,8 m van zijn hart. Wie afsnijdt krijgt
+  RING GEMIST, en wie ver van de route raakt TERUG NAAR DE ROUTE.
+- *Sneller*: top 53, 50 en 48 m/s (was 50, 47, 45), en harder optrekken. Daarmee
+  haalde een tegenstander er soms een in terwijl die net van strook wisselde: negen
+  beelden per race reden ze door elkaar. Uitwijken alleen was niet genoeg (een auto
+  die al halverwege de wissel is, remt niet op tijd); nu is er ook een harde regel:
+  wie binnen een autolengte achter een ander op dezelfde strook zit, blijft daar, met
+  diens snelheid. Dat hielp ook bij de streep, waar alle finishers op zestig meter
+  voorbij het einde op één punt bleven staan.
+- *Piepjes*: `geluid.aftelPiep()`, een blokgolf van 660 Hz op drie, twee en één, en op
+  START 1320 Hz met 660 eronder, een halve seconde langer.
+- *Geen verkeer op de route.* js/race.js zet een raster van cellen van 10 m om de lijn
+  (14 m breed, `opRoute`), en js/vehicles.js krijgt dat als `vrijeZone`. Achter het
+  zwart van "Die nacht…" verhuist `maakVrij` alles wat erin rijdt; daarna verhuist
+  `vulBuurtAan` wie erin komt en niet in beeld is, en `kiesRijbaan` kiest er geen
+  nieuwe plek meer. Na de race gaat de zone weg.
+- *Sturen.* `drive` gaf de Ferrari op 200 km/u bij een tikje op A of D een draai van
+  bijna vier radialen per seconde: de stuurhoek nam wel af met de snelheid, maar niet
+  genoeg voor 55 m/s. Nu is hij ook begrensd door de grip: v²·tan(stuur)/wielbasis ≤
+  26 m/s² (`STUUR_GRIP`). Onder de 55 km/u verandert er niets. Gemeten op 180 km/u:
+  vol naar links 23 m/s² dwars, een tikje van een tiende seconde 3°; op 36 km/u nog
+  1,16 rad in een seconde.
+- *Pauze.* De race liep door in het menu, omdat de hoofdlus in zijn stil-tak
+  `verhaal.update` bleef aanroepen (dat moet voor het zwart en het filmbeeld op het
+  startscherm). Nu niet als je gepauzeerd bent. De proef laat de hoofdlus zelf lopen:
+  vier beelden gewoon (de klok liep 0,2 s), drie in het pauzemenu (0 s).
+- *De ochtend erna.* Vijf tellen na GESLAAGD of het betalen wordt het zwart, "De
+  volgende ochtend", en om half tien sta je voor je eigen huis of de Wieken 29, met de
+  Ferrari op de oprit (`springNaarHuis`, net als na missie 10).
+- *De Ferrari* is een eigen model (`sportGeoms` in js/carmodel.js): een zijprofiel met
+  wielkasten dat over de breedte geëxtrudeerd wordt, met een taillering in lengte en
+  hoogte en gemiddelde normalen; een glazen koepel met dak en stijlen, een vleugel op
+  twee steunen, luchthappers, vier ronde achterlichten, een diffusor, vier uitlaten en
+  donkere velgen. Eerst zaten de koplampen in de romp: de afronding van de extrusie
+  legt er vijf centimeter omheen. Dezelfde afronding maakt de wielkasten kleiner dan
+  getekend; de proef meet de lucht boven de band (ruim een centimeter). De oude
+  proef "niets hangt los" rekende met dozen die de romp benaderen; die zijn er nu ook
+  voor de spatborden en de koepel. `npm run ferrarishots` fotografeert het model los,
+  in een paar seconden in plaats van een half uur.
+- *De missiemuziek* prikt tien plekken en neemt die het verst van de vorige vijf
+  beginpunten; en na twee à drie minuten springt hij in een lange missie naar een
+  ander stuk (`MISSIE_WISSEL`), met een fade.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
