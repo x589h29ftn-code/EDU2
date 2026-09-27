@@ -68,7 +68,7 @@ function materialen() {
  draaien — dan hoeft er geen doek per beeld naar de kaart en loopt de naald
  vloeiend mee.
 */
-function klokDoek() {
+function klokDoek(maxKmu = 160) {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 256;
   const g = c.getContext('2d');
@@ -99,7 +99,7 @@ function klokDoek() {
     }
     g.restore();
   };
-  plaat(128, 8, 20);        // snelheidsmeter 0-160 km/u
+  plaat(128, 8, maxKmu / 8); // snelheidsmeter 0-160 km/u, bij de Ferrari 0-320
   plaat(384, 8, 1);         // toerenteller 0-8 (× 1000)
   g.fillStyle = '#9aa0a8';
   g.font = '600 15px system-ui, sans-serif';
@@ -130,6 +130,9 @@ function doos(groep, mat, b, h, d, x, y, z, rx = 0) {
 export function maakAutoBinnen(maat) {
   const M = materialen();
   if (!M.klok) M.klok = new THREE.MeshBasicMaterial({ map: klokDoek(), side: THREE.DoubleSide });
+  // de Ferrari (js/garage.js) rijdt ruim 200: zijn teller loopt tot 320
+  if (maat.sport && !M.klokSport) M.klokSport = new THREE.MeshBasicMaterial({ map: klokDoek(320), side: THREE.DoubleSide });
+  const maxKmu = maat.sport ? 320 : 160;
   const { W, dakY, schouderY, cabZ, cabL, dorpelY } = maat;
   const groep = new THREE.Group();
 
@@ -185,7 +188,7 @@ export function maakAutoBinnen(maat) {
   doos(groep, M.zwart, 0.035, 0.035, 0.24, 0.02, vloerY + 0.24, cabZ - 0.12, -0.35);
 
   // -------------------------------------------------------------- klokken
-  const klok = new THREE.Mesh(new THREE.PlaneGeometry(0.30, 0.15), M.klok);
+  const klok = new THREE.Mesh(new THREE.PlaneGeometry(0.30, 0.15), maat.sport ? M.klokSport : M.klok);
   klok.position.set(stuurX, schouderY + 0.035, dashAchter + 0.012);
   klok.rotation.x = -0.30;
   groep.add(klok);
@@ -272,7 +275,7 @@ export function maakAutoBinnen(maat) {
     // de toerenteller volgt de motor: hoger verzet, lagere toeren
     const toeren = top > 0 ? 0.12 + 0.75 * ((kmu / top) % 0.34) / 0.34 : 0.12;
     const soepel = Math.min(1, dt * 8);
-    getoondeSnelheid += (Math.min(1, kmu / 160) - getoondeSnelheid) * soepel;
+    getoondeSnelheid += (Math.min(1, kmu / maxKmu) - getoondeSnelheid) * soepel;
     getoondeToeren += (toeren - getoondeToeren) * soepel;
     // de naald staat in het vlak van de klok, dus hij draait om zijn z-as
     naalden[0].rotation.z = -hoekVan(getoondeSnelheid) + Math.PI / 2;

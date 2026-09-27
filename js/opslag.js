@@ -51,7 +51,7 @@ export function wisOpslag() {
  spel = { player, sfeer, vehicles, verhaal, straat }
  Geeft true als het opslaan gelukt is (localStorage kan vol of geblokkeerd zijn).
 */
-export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, straat = '', checkpoint = false }) {
+export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, garage = null, straat = '', checkpoint = false }) {
   const auto = player.inCar;
   const data = {
     versie: VERSIE,
@@ -72,7 +72,11 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
     auto: auto ? {
       index: vehicles ? vehicles.cars.indexOf(auto) : -1,
       x: auto.x, z: auto.z, yaw: auto.yaw,
+      // een gekochte auto (js/garage.js) staat niet op een vaste plek in de lijst
+      eigen: garage ? garage.idVan(auto) : null,
     } : null,
+    // de auto's die je bij Autohuis Lemmerweg gekocht hebt, en waar ze staan
+    garage: garage ? garage.bewaar() : null,
     // de sloepen: waar ze liggen en of jij aan het roer stond (js/boot.js)
     boten: boten ? boten.bewaar() : null,
     // en hoe ver de lading over het water is (js/vaart.js)
@@ -84,7 +88,7 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
 }
 
 // Zet een opgeslagen spel terug. Geeft false als er niets (bruikbaars) staat.
-export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, checkpoint = false }) {
+export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, garage = null, checkpoint = false }) {
   const d = lees(checkpoint ? CHECKPOINT : SLEUTEL);
   if (!d || !d.speler) return false;
   const s = d.speler;
@@ -120,9 +124,11 @@ export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart
   // Eerst het verhaal: dat zet de auto en de vrachtwagen van de missies terug
   // (en maakt ze desnoods opnieuw), zodat de stoel hieronder bestaat.
   if (verhaal) verhaal.herstel(d.verhaal);
+  // daarna de gekochte auto's: staat er een al op de oprit, dan is dat die (js/garage.js)
+  if (garage) garage.herstel(d.garage || []);
 
   if (d.auto && vehicles) {
-    const auto = vehicles.cars[d.auto.index];
+    const auto = (garage && d.auto.eigen != null) ? garage.autoVan(d.auto.eigen) : vehicles.cars[d.auto.index];
     if (auto) {
       auto.x = d.auto.x; auto.z = d.auto.z; auto.yaw = d.auto.yaw; auto.speed = 0;
       vehicles.maakBestuurbaar(auto);

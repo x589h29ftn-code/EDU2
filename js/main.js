@@ -13,6 +13,8 @@ import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur, WONINGEN } from './interieur.js';
 import { initBoerderij } from './boerderij.js';
 import { initSpuiterij } from './spuiterij.js';
+import { initGarage } from './garage.js';
+import { inBouwvlak } from './bouwvlak.js';
 import { initBoten } from './boot.js';
 import { initSupermarkt } from './supermarkt.js';
 import { initDerdePersoon } from './derdepersoon.js';
@@ -551,21 +553,21 @@ const verhaal = initVerhaal({
   scene, player, hud, vehicles,
   // Ga je neer, dan begint het verhaal bij het laatst opgeslagen spel; is er
   // niets opgeslagen, dan zegt laadSpel false en begint de missie opnieuw.
-  opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart }),
+  opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, garage }),
   /*
    Het checkpoint na elke afgeronde missie, en de keuze na het neergaan (verzoek
    26 sep 2026): terug naar dat checkpoint, of naar je eigen opslag. De politie
    en de politieboot beginnen dan net als bij F9 zonder achtervolging.
   */
-  checkpoint: () => bewaarSpel({ player, sfeer, vehicles, verhaal, boten, vaart, checkpoint: true,
+  checkpoint: () => bewaarSpel({ player, sfeer, vehicles, verhaal, boten, vaart, garage, checkpoint: true,
     straat: nearestRoadName(camera.position.x, camera.position.z) }),
   naarCheckpoint: () => {
     politie.reset(); if (politieboot) politieboot.reset();
-    return laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, checkpoint: true });
+    return laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, garage, checkpoint: true });
   },
   naarOpslag: () => {
     politie.reset(); if (politieboot) politieboot.reset();
-    return laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart });
+    return laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, garage });
   },
   heeftCheckpoint, heeftOpslag,
   vergrendel: () => { if (!touch) vergrendelMuis(); },
@@ -639,7 +641,7 @@ const LEEG = {
  sfeermodule wordt verderop pas gemaakt, dus hij gaat als kijkvenster mee: de
  kamers vragen alleen of het buiten donker is, en dat pas als de lus draait.
 */
-const dagKlok = { get nacht() { return sfeer ? sfeer.nacht : false; } };
+const dagKlok = { get nacht() { return sfeer ? sfeer.nacht : false; }, get ramenAan() { return sfeer ? sfeer.ramenAan : 0; } };
 await adem('woningen van binnen', 0.988);
 const woningen = WONINGEN.map(h => initInterieur({ scene, player, sfeer: dagKlok, hud, huis: h })).filter(Boolean);
 const interieur = woningen[0] || LEEG;
@@ -665,13 +667,14 @@ const inTuin = (x, z) => binnenruimtes.some(r => r.tuin && r.tuin(x, z));
  nergens sneller van maken.
 */
 const vasteWinkels = binnenruimtes.flatMap(r => r.winkels || []);
+let extraWinkels = [];          // de showroom aan de Lemmerweg, die komt hieronder pas
 let winkelsNu = '';
 function werkKaartvlaggenBij() {
   const huizen = verhaal.huisMarkeringen ? verhaal.huisMarkeringen() : [];
   const sleutel = huizen.map(h => `${h.naam}@${h.x.toFixed(0)},${h.z.toFixed(0)}`).join('|');
   if (sleutel === winkelsNu) return;
   winkelsNu = sleutel;
-  hud.zetWinkels([...vasteWinkels, ...huizen]);
+  hud.zetWinkels([...vasteWinkels, ...extraWinkels, ...huizen]);
 }
 werkKaartvlaggenBij();
 // Binnen wijst de HUD nog steeds de straat buiten aan (zie hud.kaartVanaf).
@@ -707,6 +710,13 @@ const politie = initPolitie({ scene, player, npcs, vehicles, hud, sfeer: dagKlok
  een overspuiting wist de sterren.
 */
 const spuiterij = initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }) || null;
+
+/*
+ En aan de overkant van de Lemmerweg: Autohuis Lemmerweg, de glazen showroom
+ met de Ferrari's en de BX (js/garage.js, de plek in js/bouwvlak.js).
+*/
+const garage = (KAART && !BOVEN) ? initGarage({ scene, player, vehicles, hud, verhaal, sfeer: dagKlok }) : null;
+if (garage) { extraWinkels = garage.winkels; winkelsNu = null; werkKaartvlaggenBij(); }
 
 /*
  De twee sloepen op het water (js/boot.js): één aan de Geeuwkade achter de
@@ -1233,6 +1243,7 @@ function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
   if (verhaal.toets()) return;
   for (const r of binnenruimtes) if (r.toets()) return;
+  if (garage && garage.toets()) return;       // een auto kopen in de showroom
   if (toggleBoot()) return;
   toggleCar();
 }
@@ -1800,7 +1811,7 @@ let gepauzeerd = false;
 
 function bewaarSpelNu() {
   const gelukt = bewaarSpel({
-    player, sfeer, vehicles, verhaal, boten, vaart,
+    player, sfeer, vehicles, verhaal, boten, vaart, garage,
     straat: nearestRoadName(camera.position.x, camera.position.z),
   });
   hud.show(gelukt ? 'Spel opgeslagen' : 'Opslaan lukte niet', 2);
@@ -1809,7 +1820,7 @@ function bewaarSpelNu() {
 function laadSpelNu() {
   politie.reset();          // een opgeslagen spel begint zonder achtervolging
   if (politieboot) politieboot.reset();
-  const gelukt = laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart });
+  const gelukt = laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, garage });
   hud.show(gelukt ? 'Spel geladen' : 'Er is nog geen opgeslagen spel', 2.5);
   return gelukt;
 }
@@ -1877,7 +1888,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 250));
  moet vóór initSfeer bestaan.
 */
 const grasVeld = (KAART && !BOVEN) ? maakGrasVeld(scene,
-  (x, z) => { const v = vlakOp(x, z); return !!(v && (v.m === 'gras' || v.m === 'bodembedekker')); },
+  (x, z) => { const v = vlakOp(x, z); return !!(v && (v.m === 'gras' || v.m === 'bodembedekker')) && !inBouwvlak(x, z); },
   (x, z) => { const v = vlakOp(x, z); return v ? v.y : 0; }) : null;
 if (grasVeld) waaitMee(grasVeld.mat);
 
@@ -2104,6 +2115,7 @@ function loop() {
     verhaal.update(dt);
     for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
     if (spuiterij) spuiterij.update(dt);      // de roldeuren van de wasboxen
+    if (garage) garage.update(dt, verhaal.aanspreekbaar);   // de showroom aan de Lemmerweg
     /*
      De politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte.
      Binnen loopt de politie niet mee: je staat dan in een andere ruimte. Maar
@@ -2408,7 +2420,7 @@ window.__game = {
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
-  geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij, boten, politieboot, vaart,
+  geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij, garage, boten, politieboot, vaart,
   raakLantaarn, werkLantaarnsBij, lantaarnsOm, buit,
   // het beginpunt van de speler, voor de intro en de fotogereedschappen
   start: beginpunt, intro, uitleg,

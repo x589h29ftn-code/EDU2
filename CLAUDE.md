@@ -70,6 +70,8 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`), verlichte ramen 's avonds (`nachtRamen`) |
 | `js/schrift.js` | missie 13: het schrift van De Veteraan en politielint |
 | `js/brug.js` | missie 12: het dek van de Dúvelsrak als assenstelsel (`brugAssen`), dranghekken, C4, de schade na de knal |
+| `js/garage.js` | Autohuis Lemmerweg: glazen showroom, Ferrari's en BX kopen, gekochte auto's in de opslag |
+| `js/bouwvlak.js` | plekken waar het spel zelf bouwt (de showroom): daar geen bomen, struiken of gras |
 
 Een paar dingen die niet vanzelf spreken:
 
@@ -169,6 +171,11 @@ langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
 achtervolgen, na een tijdje opgeven. Alleen buiten de missies om, en alleen tot
 missie 12: met De Veteraan dood valt zijn bende uit elkaar (`!brugKlaar`).
 
+Buiten de missies: **Autohuis Lemmerweg** (js/garage.js), de glazen showroom tegenover BP. E naast
+een auto koopt hem: rode of gele Ferrari € 3.000 (soort `ferrari`, `RIJ` in js/vehicles.js: ruim
+200 km/u), rode BX € 250. Hij staat dan op het voorterrein; de opslag neemt gekochte auto's mee
+(`garage.bewaar`/`herstel`, `auto.eigen` in js/opslag.js).
+
 De drie woningen: **Zeskanter 16** (€ 5.000), **Molenkrite 130c** (€ 2.500),
 **Koningsspil 20** (€ 1.000). Binnen: hoekbank met tv, eettafel om aan te zitten,
 keuken met koelkast (bier = leven), twee katten, dichte ramen, tuin met terras,
@@ -180,7 +187,8 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run schrifttest` (het einde van missie 12 en
+De laatste die ertoe doen: `npm run garagetest` (de showroom aan de Lemmerweg: plek, glas, deur,
+kopen, Ferrari-model en topsnelheid, opslaan; stap 92) met `garageshots` (vier foto's); `npm run schrifttest` (het einde van missie 12 en
 missie 13; stap 91) met `schriftshots` (vier foto's); `npm run brugtest` (missie 12 van de M tot de € 5.000,
 met de dekking achter een auto gemeten, 65 controles; stap 89) met `brugshots` (zeven foto's);
 `npm run politieautotest` (missie 11, van de M tot de
@@ -272,6 +280,10 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
 - **Een auto naar het dek verplaatsen: eerst de hoogte.** `vehicles.zetNeer` peilt
   de grond vanaf `mesh.position.y`; een auto die van 0 m op het viaduct springt
   komt onder het dek op de N7 uit. Zet `mesh.position.y` eerst op dekhoogte.
+- **Een gekochte auto heeft geen vaste plek in `vehicles.cars`** (stap 92). De opslag zoekt de auto
+  waar je in zat op zijn index; voor een auto uit de showroom is dat `auto.eigen` en `garage.autoVan`.
+  Topsnelheid en trek komen uit `RIJ[soort]` in `voegToe`, dus een auto die op de oprit teruggezet
+  wordt is ook weer snel.
 - **js/verhaal.js is één groot bereik.** Een `function` met een naam die er al is
   overschrijft de andere stil (hoisting): in stap 89 namen `beginGevecht` en
   `naarDeC4` zo die van missie 10 en 11 over. `npm run brugtest` kijkt er nu naar.

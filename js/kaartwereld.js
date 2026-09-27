@@ -22,6 +22,7 @@ import { bouwTankstations } from './tankstation.js';
 import { bouwTennisparken } from './tennis.js';
 import { bouwZuilengangen } from './zuilengang.js';
 import { bouwAfsluitingen } from './afsluiting.js';
+import { inBouwvlak } from './bouwvlak.js';
 
 /*
  De buitennormaal van een muurvlak, voor een pand dat uit zijn grondvlak wordt
@@ -142,6 +143,8 @@ export function inPand(x, z) {
 /** Staat (x, z) in een pand of op een rijbaan? Daar hoort geen boom of struik. */
 export function geenGroen(x, z) {
   if (inPand(x, z)) return true;
+  // en ook niet waar het spel zelf bouwt: de showroom aan de Lemmerweg (js/bouwvlak.js)
+  if (inBouwvlak(x, z)) return true;
   const v = vlakOp(x, z);
   return !!(v && v.k === 'rijbaan');
 }

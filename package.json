@@ -166,6 +166,8 @@
     "brugtest": "node tools/brugtest.mjs",
     "brugshots": "node tools/brugshots.mjs",
     "schrifttest": "node tools/schrifttest.mjs",
-    "schriftshots": "node tools/schriftshots.mjs"
+    "schriftshots": "node tools/schriftshots.mjs",
+    "garagetest": "node tools/garagetest.mjs",
+    "garageshots": "node tools/garageshots.mjs"
   }
 }

@@ -6221,6 +6221,51 @@ met een verhaal dat haalbaar is.
 - *Geen loting bij het opstarten.* Het politielint kreeg een vaste fase in plaats
   van `Math.random()`, net als de dranghekken (zie de bevolking in stap 89).
 
+**Autohuis Lemmerweg: een showroom met Ferrari's (stap 92).** Gevraagd (27 sep
+2026): aan de Lemmerweg of in Duinterpen een plek voor een autogarage, "mooie
+glazen met auto's binnen", een rode of gele Ferrari voor € 3.000 en een rode BX
+voor € 250, met een hoge topsnelheid.
+
+- *De plek, gemeten.* Een raster van de kaart (panden, vlakken, bomen) langs alle
+  rijbanen van de Lemmerweg en de Keizersmantel, op zoek naar 26 × 16 m zonder
+  pand, rijbaan, water of boom. Wat overbleef bij Tinga: het grasveld aan de
+  oostkant van de Lemmerweg, tegenover BP, tussen het fietspad naar Duinterpen
+  (z ≈ 97–106), de sloot langs de weg (x ≈ 757–763, pas vanaf z ≈ 116) en de
+  vijver. Er stonden zes losse bomen op; twee vallen weg (js/bouwvlak.js, en
+  `geenGroen` in js/kaartwereld.js kijkt ernaar, net als het gras in 3D). De inrit
+  ligt ten noorden van waar de sloot begint, recht tegenover de zijweg naar BP;
+  zo hoeft hij niet over water. Het gebouw zelf staat niet in de BGT of de 3D BAG
+  (het bestaat niet), de plek en alles eromheen wel.
+- *Het gebouw.* Glas van de vloer tot het plafond in de voorgevel en de voorste
+  twaalf meter van de zijgevels, met aluminium stijlen om de 2,6 m, een luifel
+  met de naam in een zwarte band, en een schuifdeur die alleen voor wie te voet
+  is opengaat. Het glas schrijft geen diepte (`depthWrite: false`), anders
+  verdwijnen de auto's erachter. De muren zijn botsdozen van 4,2 m, want een auto
+  negeert alles onder de 3,5 m (zoals bij de wasboxen).
+- *De Ferrari.* Geen eigen model maar de maten van een sportwagen in de opbouw van
+  js/carmodel.js: 4,56 × 1,95 m, het dak op 1,17 m, grotere wielen, een platte
+  voorruit van 57°, geen B-stijl, ronde achterlichten, vier uitlaten. Twee dingen
+  gingen daarbij mis. De stijlen waren balken van vaste lengte, en bij zo'n platte
+  ruit reikten ze maar tot halverwege het dak: nu volgt hun lengte de hoek. En de
+  flank lag even laag als bij een hatchback terwijl de wielen groter zijn: hij
+  liep dwars door de banden (dezelfde meting als de rijtest). Hij begint nu boven
+  de band.
+- *De topsnelheid.* `RIJ` in js/vehicles.js: top en trek per soort. Door de
+  luchtweerstand haalt een auto zijn top nooit; de Ferrari (top 70, trek 1,9)
+  komt op 200 km/u en is in ongeveer 2 s op 100, een hatchback en de BX blijven
+  rond de 80. De teller in de Ferrari loopt tot 320.
+- *Kopen.* E naast een auto, of voor zijn prijsbordje. Eerst werd alleen vanaf het
+  hart van de auto gemeten, en het bordje staat bijna vier meter verder: wie
+  ervoor stond kreeg geen balk, en E stapte in een andere auto. En daaronder zat
+  nog een: in de lijst van de auto's overschreef het bordje als mesh de plek van
+  het bordje (`bord: { x, z }`), dus alles wat ermee rekende kwam op NaN uit. De
+  gekochte auto komt op het voorterrein; de auto in de showroom blijft staan.
+- *Opslaan.* Een gekochte auto hoort van jou te blijven. De opslag zocht de auto
+  waar je in zat op zijn nummer in `vehicles.cars`, en een gekochte auto heeft
+  geen vast nummer. Nu heeft hij `eigen`, en `garage.bewaar`/`herstel` nemen alle
+  gekochte auto's mee (js/opslag.js). Een auto die op de oprit al teruggezet is
+  (js/verhaal.js) wordt niet dubbel neergezet.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

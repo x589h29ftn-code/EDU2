@@ -5,6 +5,7 @@ import { ROADS, HIGHWAY, WATER, WATERWAYS, WOODS, GRASS, ROWS, PROPS, PARKS, PAR
 import { maakProp, PROP_TYPES } from './props.js';
 import * as T from './textures.js';
 import { rng } from './textures.js';
+import { gemaaid } from './bouwvlak.js';
 import { KAART, bouwKaartWereld, bouwKaartWereldStap, ondergrondKaart, kaartStand, vlakOp, geenGroen, kaartTelling, kaartBladMaterialen } from './kaartwereld.js';
 import { draaiMolens } from './molen.js';
 export { grondHoogte, opViaduct, onderBrug } from './viaduct.js';
@@ -1835,6 +1836,9 @@ function buildReeds(scene) {
         if (nearBuilding(p, 1.0)) continue;
         // een bos stengels van 1,1 tot 1,9 m hoog en 0,7 tot 1,2 m breed (js/groen.js)
         const h = 1.1 + r() * 0.8, b = 0.7 + r() * 0.5, draai = r() * Math.PI;
+        // de sloot voor de showroom is gemaaid (js/bouwvlak.js); ná de loting, zodat
+        // de rest van het riet precies blijft staan waar het stond
+        if (gemaaid(p.x, p.y)) continue;
         const k = `${Math.floor(p.x / BOOMTEGEL)}:${Math.floor(p.y / BOOMTEGEL)}`;
         if (!perTegel.has(k)) perTegel.set(k, []);
         perTegel.get(k).push({ x: p.x, z: p.y, h, b, draai });

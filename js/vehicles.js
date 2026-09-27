@@ -48,6 +48,21 @@ function tegelMidden(sleutel) {
  hier en daar iets anders; de felle kleuren blijven erbij maar zijn nu de
  uitzondering, en er staat ook wat verschoten en stoffig tussen.
 */
+/*
+ Topsnelheid (m/s) en trekkracht per soort. `trek` vermenigvuldigt het gas van
+ `drive`; de luchtweerstand is voor iedereen gelijk. Daardoor haalt een auto zijn
+ `top` nooit helemaal: de hatchback en de BX komen op ongeveer 22 m/s (80 km/u),
+ de Ferrari uit de showroom op 56 m/s, ruim 200 km/u (js/garage.js;
+ `npm run garagetest` meet het).
+*/
+export const RIJ = {
+  hatch: { top: 24, trek: 1 },
+  van: { top: 24, trek: 1 },
+  bx: { top: 24, trek: 1 },
+  truck: { top: 16, trek: 1 },
+  ferrari: { top: 70, trek: 1.9 },
+};
+
 export const LAKKLEUREN = [
   0x1c1e24, 0x2b2f36, 0x8a8d93, 0xa8abb0, 0xd8d9dc, 0xc9c1a8, 0x5b6470, 0x6e737a,
   0x2a3f8f, 0x2f4a6e, 0x9c1f1f, 0x7a3b2a, 0x2f6b3a, 0x3e3a36, 0xffffff, 0xb9a98c,
@@ -468,13 +483,14 @@ export class Vehicles {
     mesh.position.set(x, 0, z); mesh.rotation.y = yaw;
     this.scene.add(mesh);
     const truck = soort === 'truck';
+    const rij = RIJ[soort] || RIJ.hatch;
     const car = {
       mesh, x, z, yaw, speed: 0, steer: 0, driveable, hp: 100, soort, kleur,
-      as: truck ? 2.6 : 1.4, botsRadius: truck ? 1.15 : 0.95,
+      as: truck ? 2.6 : 1.4, botsRadius: truck ? 1.15 : (soort === 'ferrari' ? 1.0 : 0.95),
       instap: truck ? 2.4 : 1.2,
       stoel: null,          // het oogpunt komt uit het model (userData.oog)
-      topSnelheid: truck ? 16 : 24,
-      breedte: truck ? 2.35 : 1.78,
+      topSnelheid: rij.top, trek: rij.trek,
+      breedte: truck ? 2.35 : (soort === 'ferrari' ? 1.95 : 1.78),
     };
     this.cars.push(car);
     return car;
@@ -574,7 +590,7 @@ export class Vehicles {
     // ---- motor, rem en rolweerstand ----
     const v = car.speed;
     if (gas && v < -0.4) car.speed += 18 * dt;                       // eerst afremmen
-    else if (gas) car.speed += 9.5 * (1 - Math.max(0, v) / top) * dt;
+    else if (gas) car.speed += 9.5 * (car.trek || 1) * (1 - Math.max(0, v) / top) * dt;
     else if (rem && v > 0.4) car.speed -= 15 * dt;                   // remmen
     else if (rem) car.speed -= 6 * dt;                               // achteruit
     else car.speed -= Math.sign(v) * Math.min(Math.abs(v), 2.4 * dt); // motorrem

@@ -595,6 +595,42 @@ doorrijhoogte van de luifel of de maten van de deel bij Tinga State.
 `npm run spuittest` toetst het (zesentwintig controles: de boxen, de roldeur, de politie ernaast, het
 overspuiten, en dat het niet in herhaling valt), `npm run spuitshots` maakt de foto's hierboven.
 
+## Autohuis Lemmerweg: een Ferrari kopen
+
+Aan de overkant van de Lemmerweg, tegenover BP, staat **Autohuis Lemmerweg**: een showroom met
+glazen gevels, tegen Duinterpen aan. Je komt er via de inrit recht tegenover de zijweg naar BP; op
+de kaart staat hij als winkeltje met *auto's* eronder, en aan de weg staat een zuil met de naam.
+
+Loop je op de glazen deur af, dan schuift hij open (in een auto niet: het is geen doorrijroute).
+Binnen staan drie auto's:
+
+| auto | prijs | topsnelheid |
+|---|---|---|
+| rode Ferrari, op de draaischijf recht tegenover de deur | € 3.000 | ruim 200 km/u, 0–100 in ongeveer 2 s |
+| gele Ferrari | € 3.000 | ruim 200 km/u |
+| rode Citroën BX | € 250 | rond de 80 km/u, net als de rest |
+
+Ga naast een auto staan: de balk zegt **E — rode Ferrari kopen (€ 3.000)**. Heb je het geld, dan
+staat hij buiten op het voorterrein met de sleutels erin, en zegt Sjoerd achter de balie dat je
+rustig aan moet doen op de Lemmerweg. Te weinig geld: dan zegt hij wat hij kost. De auto in de
+showroom blijft staan, dus je kunt er meer kopen.
+
+Wat je koopt is van jou en blijft van jou: opslaan en laden neemt hem mee, waar hij ook staat, en
+ook als je erin zit. Een wrak is niet meer van jou. De Ferrari heeft een eigen teller tot 320 km/u.
+
+De showroom staat niet in de BGT of de 3D BAG, want hij bestaat niet; de plek wel: het grasveld
+tussen de Lemmerweg, het fietspad naar Duinterpen, de sloot en de vijver. Daar staat geen pand,
+geen weg en geen water, en de twee bomen die er stonden zijn weg. 's Avonds brandt binnen het
+licht en licht de naam op.
+
+| Vanaf de weg | Binnen | De gekochte Ferrari | 's Avonds |
+|---|---|---|---|
+| ![buiten](docs/screenshots/garage_buiten.png) | ![binnen](docs/screenshots/garage_binnen.png) | ![Ferrari](docs/screenshots/garage_ferrari.png) | ![avond](docs/screenshots/garage_avond.png) |
+
+`npm run garagetest` toetst het: de plek (geen pand, water of rijbaan, geen bomen), het glas en de
+muren, de deur, het kopen met en zonder geld, het model en de topsnelheid, en opslaan en laden.
+`npm run garageshots` maakt de foto's.
+
 ## Tennispark Molenkrite
 
 Naast het sportpark, bij Molenkrite 130, liggen tien gravelbanen: roodbruin gravel met witte belijning,
