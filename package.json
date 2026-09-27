@@ -164,6 +164,8 @@
     "politieautotest": "node tools/politieautotest.mjs",
     "politieautoshots": "node tools/politieautoshots.mjs",
     "brugtest": "node tools/brugtest.mjs",
-    "brugshots": "node tools/brugshots.mjs"
+    "brugshots": "node tools/brugshots.mjs",
+    "schrifttest": "node tools/schrifttest.mjs",
+    "schriftshots": "node tools/schriftshots.mjs"
   }
 }

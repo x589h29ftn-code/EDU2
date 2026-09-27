@@ -48,7 +48,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | Bestand | Waarvoor |
 |---|---|
 | `js/main.js` | de hoofdlus, de invoer, de mixer, alles aan elkaar |
-| `js/verhaal.js` | de twaalf missies, Mark, de gesprekken, de opslag van het verhaal |
+| `js/verhaal.js` | de dertien missies, Mark, de gesprekken, de opslag van het verhaal |
 | `js/kaart.js` | **gegenereerd**: panden, wegen, water, straten uit de geodata |
 | `js/kaartwereld.js` | daar de wereld van bouwen (tegels, bomen, riet, auto's) |
 | `js/textures.js` | alle geveltextures, dakpannen, baksteen — op canvas |
@@ -68,6 +68,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/lichaam.js` | maten, onderdelen en doeken van alle mensen; `lichaamMat`, `doekVoor` |
 | `js/groen.js` | bomen, struiken, gras: `bolGeo`, `stamGeo`, blad- en schorsdoek, `grasVariatie`, riet, `maakGrasVeld` (gras in 3D) |
 | `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`), verlichte ramen 's avonds (`nachtRamen`) |
+| `js/schrift.js` | missie 13: het schrift van De Veteraan en politielint |
 | `js/brug.js` | missie 12: het dek van de Dúvelsrak als assenstelsel (`brugAssen`), dranghekken, C4, de schade na de knal |
 
 Een paar dingen die niet vanzelf spreken:
@@ -114,7 +115,8 @@ Street View-link erbij.
 9. **een eigen stek** — drie woningen kopen
 10. **De Veteraan** — de tas bij VV Sneek en de hinderlaag
 11. **de politieauto en de C4** — stelen aan de Lemmerweg, C4 bij Tinga State
-12. **de Dúvelsrak** — de wegversperring met C4 op de brug, De Veteraan (laatst gebouwd)
+12. **de Dúvelsrak** — de wegversperring met C4 op de brug, De Veteraan
+13. **het schrift** — Mark in Duinterpen, het schrift uit de sloep in IJlst (laatst gebouwd)
 
 Missie 9 in het kort: Mark belt, staat bij de Wieken 29, noemt drie adressen met
 bedrag (**1, 2 of 3** kiest en zet de navigatie), en je koopt er aan tafel een
@@ -153,6 +155,15 @@ E laat de C4 afgaan, het gevecht, vier van de achterkant (`voegToe`), vier sterr
 met `politie.rust` tot Mark uitgepraat is, dan `stuurWagens` van de Molenkrite-kant.
 Tinga-bos: € 5.000, en de brug houdt zijn gat. **shift+=** start hem los.
 
+Missie 13 (bedacht bij het verzoek "bedenk een verhaal dat haalbaar is"): in het
+bos zegt Mark dat ze op de achtergrond blijven; vijf tellen na MISSIE GESLAAGD
+zwart ("Een paar dagen later", `naarDeMiddag`: 14:30, voor je eigen huis). Mark
+staat voor Parelmoervlinder 3 in Duinterpen (`SCHRIFT_HUIS`), bij hem begint het
+gesprek vanzelf. Het schrift ligt in de sloep aan de IJlster ligplaats
+(`boten().ruw(1)`, op het kussen van een bank), met politielint (js/schrift.js) en
+twee agenten (`Bewaking` in uniform; gezien = twee sterren). Terug bij Mark, niet
+met sterren: € 2.500. **shift+[** start hem los.
+
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
 achtervolgen, na een tijdje opgeven. Alleen buiten de missies om, en alleen tot
@@ -169,7 +180,8 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run brugtest` (missie 12 van de M tot de € 5.000,
+De laatste die ertoe doen: `npm run schrifttest` (het einde van missie 12 en
+missie 13; stap 91) met `schriftshots` (vier foto's); `npm run brugtest` (missie 12 van de M tot de € 5.000,
 met de dekking achter een auto gemeten, 65 controles; stap 89) met `brugshots` (zeven foto's);
 `npm run politieautotest` (missie 11, van de M tot de
 € 1.000, en of Mark echt zit) met `politieautoshots` (drie foto's; stap 88);

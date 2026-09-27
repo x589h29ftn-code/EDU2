@@ -53,6 +53,7 @@ import { initPolitieboot } from './politieboot.js';
 import { Dief } from './dief.js';
 import { euro, tekenKop } from './hud.js';
 import { brugAssen, maakDranghek, maakC4, maakSchade } from './brug.js';
+import { maakSchrift, maakLint } from './schrift.js';
 import { UNIFORM, zetZwaailamp } from './politie.js';
 import { Navigatie } from './navigatie.js';
 import { geluid } from './audio.js';
@@ -571,6 +572,57 @@ const BRUG_BOS = [
   zegtJohan('En De Veteraan is geschiedenis.'),
   zegtMark('Tinga is weer van ons, broeders. Hier legt niemand ons meer om.'),
   zegtErik('Wat een nacht.'),
+  // (verzoek 27 sep 2026: ze verstoppen zich, en Mark laat later van zich horen)
+  zegtMark('Oké. We moeten even op de achtergrond blijven, totdat de rust terug is in de wijk.'),
+  zegtMark('Johan, jij gaat een paar dagen naar je zus. Erik, jij houdt je koest.'),
+  zegtMark('Zoek me later weer op.'),
+];
+
+/*
+ ---------- missie 13: het schrift ----------
+ Bedacht bij het verzoek van 27 sep 2026 ("bedenk een verhaal dat haalbaar is").
+ Een paar dagen na de Dúvelsrak zit Mark ondergedoken bij een neef in Duinterpen.
+ De Veteraan hield een schrift bij van iedereen die hij betaalde: agenten, de man
+ van de gemeente, en ook Mark en Erik. Het ligt in zijn sloep in IJlst, en de
+ politie heeft de kade al met lint afgezet. Twee agenten lopen er rond: ongezien
+ blijven kan, en gezien worden kost twee sterren. Het schrift gaat naar Mark,
+ maar niet met de politie achter je aan. Hij bladert, ziet de namen van agenten,
+ en weet wat het waard is.
+*/
+const SCHRIFT_HUIS = { straat: 'Parelmoervlinder', nr: '3' };
+const SCHRIFT_NA_BOS = 5;           // zoveel tellen na MISSIE GESLAAGD gaat het beeld zwart
+const SCHRIFT_UUR = 14.5;           // "een paar dagen later": half drie 's middags
+const SCHRIFT_PRAAT = 6;            // zo dicht bij Mark begint hij te praten (m)
+const SCHRIFT_BOOT = 1;             // de sloep aan de ligplaats in IJlst (js/boot.js)
+const SCHRIFT_BEREIK = 2.6;         // zo dicht bij de markering op de kade voor E (m)
+const SCHRIFT_STERREN = 2;
+const SCHRIFT_BELONING = 2500;
+// twee agenten in uniform (js/politie.js), zoals de bewaking: ze lopen hun rondje
+// en zien je op dertig meter recht voor zich
+const SCHRIFT_AGENTEN = { schade: 5, zicht: 30, vuurbereik: 36, dekking: 10, vest: UNIFORM.vest, pet: true,
+  kleuren: [{ shirt: UNIFORM.shirt, broek: UNIFORM.broek }] };
+const SCHRIFT_BRIEFING = [
+  zegtMark('Daar ben je. Niemand zoekt ons in Duinterpen.'),
+  zegtErik('Waarom hier?'),
+  zegtMark('Een neef van me woont hier. Rustige straat, geen vragen.'),
+  zegtMark('Maar er is een probleem. De Veteraan hield een schrift bij.'),
+  zegtMark('Wie hij betaalde, hoeveel en wanneer. Agenten. De man van de gemeente.'),
+  zegtErik('En wij.'),
+  zegtMark('En wij. Als de recherche dat vindt, zijn we er allemaal geweest.'),
+  zegtMark('Het ligt in zijn sloep in IJlst. Daar deed hij altijd zijn zaken.'),
+  zegtErik('En als daar al politie is?'),
+  zegtMark('Dan zorg je dat ze je niet zien. Breng het hierheen. En neem de politie niet mee.'),
+];
+const SCHRIFT_GEZIEN = [zegtErik('Shit, ze hebben me gezien!')];
+const SCHRIFT_GEPAKT = [zegtErik('Hebbes. Een zwart schrift met een rood elastiek.')];
+const SCHRIFT_NIET_MEE = [zegtMark('Niet met de politie achter je aan! Eerst kwijtraken.')];
+const SCHRIFT_KLAAR = [
+  zegtMark('Laat zien.'),
+  zegtMark('Bladzijde zeventien. "Mark, vijfduizend. De jongen, vijfentwintighonderd." Dat zijn wij.'),
+  zegtMark('En kijk eens: Hoekstra, De Vries, Bakker. Allemaal agenten. En de man van de gemeente.'),
+  zegtErik('Moet het de barbecue in?'),
+  zegtMark('Ben je gek. Dit schrift is goud waard, broeder. Hiermee kopen we de hele wijk stil.'),
+  zegtMark('Ga maar even. Ik laat van me horen.'),
 ];
 
 // ---------- missie 6: de groene BX ----------
@@ -1056,6 +1108,7 @@ export function initVerhaal(ctx) {
     ruimVeteraanOp();
     ruimPolitieautoOp();
     ruimBrugOp();
+    ruimSchriftOp();
     punt = null;                      // een nieuwe missie, dus geen oud herstelpunt
     missie = naam;
     fase = 'wacht';
@@ -1084,6 +1137,7 @@ export function initVerhaal(ctx) {
     else if (naam === 'veteraan') beginVeteraan();
     else if (naam === 'politieauto') beginPolitieauto();
     else if (naam === 'brug') beginBrug();
+    else if (naam === 'schrift') beginSchrift();
   }
 
   /*
@@ -1491,6 +1545,7 @@ export function initVerhaal(ctx) {
     if (missie === 'veteraan') { hervatVeteraan(punt && punt.missie === 'veteraan' ? punt.fase : 'telefoon'); return; }
     if (missie === 'politieauto') { hervatPolitieauto(punt && punt.missie === 'politieauto' ? punt.fase : 'wacht'); return; }
     if (missie === 'brug') { hervatBrug(punt && punt.missie === 'brug' ? punt.fase : 'wacht'); return; }
+    if (missie === 'schrift') { hervatSchrift(punt && punt.missie === 'schrift' ? punt.fase : 'wacht'); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -1555,6 +1610,8 @@ export function initVerhaal(ctx) {
     if (bijDeBalie()) return haalC4();
     // missie 12: een dranghek, een lading C4, of de knal zelf
     if (brugToets()) return true;
+    // missie 13: het schrift uit de sloep
+    if (bijDeSloep()) return pakSchrift();
     if (missie === 'molenkrite' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND) {
       fase = 'gesprek';
       zeg(GESPREK1, () => { fase = 'loopt'; zetOpdracht('ga met Mark mee'); });
@@ -4130,6 +4187,7 @@ export function initVerhaal(ctx) {
   }
 
   function ruimBrugOp() {
+    brugNaT = 0;                     // (begint er een andere missie, dan geen "paar dagen later")
     if (schutters) { schutters.verwijder(); schutters = null; }
     gevallen.clear();
     brugHint = false;
@@ -4551,6 +4609,8 @@ export function initVerhaal(ctx) {
     hud.melding('MISSIE GESLAAGD – DE DÚVELSRAK', `Beloning: + ${euro(BRUG_BELONING)} toegevoegd aan wallet`, 8);
     for (const h of brugHekken) h.toon(false);
     if (zetPak) zetPak('gewoon');
+    // en na een paar tellen: "Een paar dagen later" (missie 13)
+    if (!schriftKlaar) brugNaT = SCHRIFT_NA_BOS;
   }
 
   // Mark of Johan schiet: de dichtstbijzijnde die hij kan zien, niet door een auto heen.
@@ -4844,15 +4904,226 @@ export function initVerhaal(ctx) {
   }
 
   /*
-   Na de missie: Mark en Johan blijven bij het bos staan tot je een eind weg bent,
-   en de brug houdt zijn gat.
+   ---------- missie 13: het schrift ----------
+     wacht       een M bij Parelmoervlinder 3 in Duinterpen; Mark staat voor de deur
+     naarIJlst   naar de sloep in IJlst; lint op de kade, twee agenten
+     terug       met het schrift naar Mark (zonder politie achter je)
+     afronding   Mark bladert
   */
-  function brugNaloop(sp) {
+  const schriftPand = pandVan(SCHRIFT_HUIS);
+  let schriftKlaar = false;
+  let schriftAlarm = false;        // hebben de agenten je gezien? dan twee sterren
+  let schriftHint = false;
+  let schriftHeeft = false;        // heb je het schrift?
+  let schriftNietMeeT = 0;         // "niet met de politie" niet elk beeld opnieuw
+  let brugNaT = 0;                 // na missie 12: de pauze tot het zwart
+  const schriftBoek = maakSchrift(scene);
+  const schriftLint = [0, 1, 2].map(() => maakLint(scene));
+  const schriftMerk = maakMarkering(scene);
+
+  // Mark voor de deur van zijn schuiladres, met zijn gezicht naar de straat
+  function schriftDeur() {
+    if (!schriftPand) return { x: thuis.x, z: thuis.z, straat: thuis };
+    const d = voorPunt(schriftPand, 2.5), straat = voorPunt(schriftPand, 12);
+    const [x, z] = resolveCollisions(d.x, d.z, 0.4);
+    return { x, z, straat };
+  }
+  function schriftSloep() {
+    const b = boten && boten();
+    return b && b.ruw ? b.ruw(SCHRIFT_BOOT) : null;
+  }
+  // de kade bij de sloep: de wal van de ligplaats, en de richting van de wal naar het water
+  function schriftKade() {
+    const L = LIGPLAATSEN[SCHRIFT_BOOT];
+    const w = L.wal, dx = L.x - w.x, dz = L.z - w.z, l = Math.hypot(dx, dz) || 1;
+    return { x: w.x, z: w.z, nx: dx / l, nz: dz / l, lx: -dz / l, lz: dx / l };
+  }
+
+  function ruimSchriftOp() {
+    schriftHint = false;
+    schriftBoek.toon(false);
+    for (const l of schriftLint) l.toon(false);
+    schriftMerk.toon(false);
+    schriftAlarm = false; schriftHeeft = false; schriftNietMeeT = 0;
+  }
+
+  function beginSchrift() {
+    fase = 'wacht';
+    ruimSchriftOp();
+    const d = schriftDeur();
+    mark.bergWapen();
+    mark.zetNeer(d.x, d.z, kijkHoek(d, d.straat));
+    markZichtbaar(true);
+    zetOpdracht('zoek Mark op: hij zit ondergedoken in Duinterpen');
+    zetNavDoel(d.x, d.z, 'Mark · Duinterpen', 'M');
+  }
+
+  // De sloep, het lint, het schrift en de twee agenten op de kade in IJlst
+  function naarIJlst() {
+    fase = 'naarIJlst'; zetPunt(fase);
+    spanning = true; spanningUit = 0;
+    const b = boten && boten();
+    if (b && b.naarLigplaats && !b.inBoot) b.naarLigplaats(SCHRIFT_BOOT);
+    const sloep = schriftSloep();
+    /*
+     Het schrift ligt op het kussen van een bank in de sloep. Het kussen wordt in
+     het model zelf opgezocht (een doos van 0,42 m, js/boot.js `doft`): met een
+     geschatte hoogte lag het eerst onzichtbaar in de romp (schriftshots).
+    */
+    let kussen = null;
+    if (sloep && sloep.mesh) sloep.mesh.traverse(o => {
+      const p = o.geometry && o.geometry.parameters;
+      if (o.isMesh && p && Math.abs(p.width - 0.42) < 1e-6 && Math.abs(p.height - 0.075) < 1e-6 && (!kussen || o.position.x > kussen.position.x)) kussen = o;
+    });
+    if (kussen) schriftBoek.zet(kussen.position.x, kussen.position.y + 0.0375, kussen.position.z + 0.15, 0.5, kussen.parent);
+    else { const k = schriftKade(); schriftBoek.zet(k.x + k.nx * 2, 0.3, k.z + k.nz * 2); }
+    schriftBoek.toon(true);
+    const k = schriftKade(), y = 0;
+    const p = (l, n) => ({ x: k.x + k.lx * l + k.nx * n, z: k.z + k.lz * l + k.nz * n });
+    // lint: langs de kade, en aan beide kanten een stuk de wal op
+    schriftLint[0].span(p(-5, -1.2), p(5, -1.2), y);
+    schriftLint[1].span(p(-5, -1.2), p(-5, -4.5), y);
+    schriftLint[2].span(p(5, -1.2), p(5, -4.5), y);
+    for (const l of schriftLint) l.toon(true);
+    const m = p(0, -0.6);
+    schriftMerk.zet(m.x, y, m.z); schriftMerk.toon(true);
+    // de twee agenten: heen en weer langs de kade, elk aan een kant van het lint
+    if (schutters) { schutters.verwijder(); schutters = null; }
+    gevallen.clear();
+    const a1 = p(-12, -3), b1 = p(-3, -3), a2 = p(12, -3.5), b2 = p(3, -3.5);
+    schutters = new Bewaking(scene, [{ a: [a1.x, a1.z], b: [b1.x, b1.z] }, { a: [a2.x, a2.z], b: [b2.x, b2.z] }], SCHRIFT_AGENTEN);
+    schriftAlarm = false;
+    zetOpdracht('haal het schrift uit de sloep van De Veteraan in IJlst');
+    zetNavDoel(m.x, m.z, 'de sloep · IJlst', 'S');
+  }
+  function pakSchrift() {
+    schriftHeeft = true;
+    schriftHint = false; praatEl.hidden = true;
+    schriftBoek.toon(false);
+    schriftMerk.toon(false);
+    geluid.neerzetten();
+    zeg(SCHRIFT_GEPAKT, null, { auto: 2.4 });
+    naarMarkMetSchrift();
+    return true;
+  }
+  function naarMarkMetSchrift() {
+    fase = 'terug'; zetPunt(fase);
+    const d = schriftDeur();
+    zetOpdracht('breng het schrift naar Mark in Duinterpen — zonder de politie achter je');
+    zetNavDoel(d.x, d.z, 'Mark · Duinterpen', 'M');
+  }
+  function bijDeSloep() {
+    if (missie !== 'schrift' || fase !== 'naarIJlst' || player.inCar || !schriftMerk.zichtbaar) return false;
+    const m = schriftMerk.groep.position, sp = spelerPunt();
+    return Math.hypot(m.x - sp.x, m.z - sp.z) < SCHRIFT_BEREIK;
+  }
+  function schriftGeslaagd() {
+    fase = 'klaar';
+    missie = 'klaar';
+    schriftKlaar = true;
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+    verdien(SCHRIFT_BELONING);
+    spanningUit = 6;
+    hud.melding('MISSIE GESLAAGD – HET SCHRIFT', `Beloning: + ${euro(SCHRIFT_BELONING)} toegevoegd aan wallet`, 8);
+    if (schutters) { schutters.verwijder(); schutters = null; }
+    for (const l of schriftLint) l.toon(false);
+  }
+
+  function werkSchriftBij(dt, sp) {
+    if (fase === 'klaar') return;
+    if (fase !== 'wacht' && fase !== 'afronding') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+    }
+    for (const l of schriftLint) l.update(dt);
+    schriftMerk.update(dt);
+    // Mark wacht voor de deur en kijkt je aan als je eraan komt
+    if (mark.groep.visible) {
+      if (afst(sp, mark.groep.position) < 20) mark.kijkNaar(sp.x, sp.z, dt, 2);
+      mark.update(dt, {});
+    }
+    // gezien door de agenten: twee sterren, en ze schieten
+    if (schutters && schutters.alarm && !schriftAlarm && (fase === 'naarIJlst' || fase === 'terug')) {
+      schriftAlarm = true;
+      const q = schutters.wachters[0].persoon.groep.position;
+      if (sterGeven) sterGeven(SCHRIFT_STERREN, q.x, q.z);
+      // (ook als er nog een regel van Erik staat: dit gaat voor)
+      if (balk.hidden || (gesprek && gesprek.auto)) zeg(SCHRIFT_GEZIEN, null, { auto: 2.2 });
+    }
+    // de E-regel bij de sloep
+    const bij = bijDeSloep() && balk.hidden && (player.active || window.__autoplay);
+    if (bij) { praatEl.textContent = 'E — in de sloep zoeken'; praatEl.hidden = false; }
+    else if (schriftHint) praatEl.hidden = true;
+    schriftHint = bij;
+
+    const dMark = afst(sp, mark.groep.position);
+    const staat = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.5;
+    if (fase === 'wacht') {
+      if (dMark < SCHRIFT_PRAAT && staat && balk.hidden) { fase = 'briefing'; zeg(SCHRIFT_BRIEFING, naarIJlst); }
+      return;
+    }
+    if (fase === 'terug') {
+      if (schriftNietMeeT > 0) schriftNietMeeT -= dt;
+      if (dMark > SCHRIFT_PRAAT || !staat || !balk.hidden) return;
+      if (gezocht()) {
+        if (schriftNietMeeT <= 0) { schriftNietMeeT = 8; zeg(SCHRIFT_NIET_MEE, null, { auto: 2.6 }); }
+        return;
+      }
+      fase = 'afronding';
+      hud.zetNavigatie(null); navDoel = null;
+      zetOpdracht('');
+      zeg(SCHRIFT_KLAAR, schriftGeslaagd);
+    }
+  }
+
+  /*
+   Opnieuw na het neergaan of het laden: tot je het schrift hebt begin je weer
+   bij Mark, met de kade zoals hij was; had je het al, dan sta je ermee op de
+   wal in IJlst, een eind bij de agenten vandaan.
+  */
+  function hervatSchrift(f) {
+    beginSchrift();
+    if (f === 'wacht' || f === 'briefing') return;
+    const d = schriftDeur();
+    naarIJlst();
+    if (f === 'naarIJlst') {
+      player.inCar = null;
+      const [px, pz] = resolveCollisions(d.x + 2, d.z + 2, 0.4);
+      player.pos.set(px, 0, pz); player.applyCamera();
+      return;
+    }
+    schriftHeeft = true;
+    schriftBoek.toon(false); schriftMerk.toon(false);
+    const k = schriftKade();
+    const [px, pz] = resolveCollisions(k.x - k.nx * 40, k.z - k.nz * 40, 0.4);
+    player.inCar = null; player.pos.set(px, 0, pz); player.applyCamera();
+    naarMarkMetSchrift();
+  }
+
+  /*
+   Na de missie: Mark en Johan blijven bij het bos staan tot je een eind weg bent,
+   en de brug houdt zijn gat. En na de paar tellen van MISSIE GESLAAGD wordt het
+   zwart: "Een paar dagen later", het is middag, je staat voor je eigen huis, en
+   Mark zit in Duinterpen (missie 13).
+  */
+  function brugNaloop(sp, dt) {
+    if (brugNaT > 0) {
+      brugNaT -= dt;
+      if (brugNaT <= 0) zwartMet('Een paar dagen later', naarDeMiddag);
+    }
     if (missie === 'brug') return;
     for (const p of [brugMark, brugJohan]) {
       if (p.groep.visible && Math.hypot(p.groep.position.x - sp.x, p.groep.position.z - sp.z) > 35) p.groep.visible = false;
     }
-    if (brugSchade && brugSchade.zichtbaar) brugSchade.update(0.016);
+    if (brugSchade && brugSchade.zichtbaar) brugSchade.update(dt);
+  }
+  // in het zwart: de middag, thuis, en Mark in Duinterpen
+  function naarDeMiddag() {
+    for (const p of [brugMark, brugJohan]) p.groep.visible = false;
+    if (zetUur) zetUur(SCHRIFT_UUR);
+    springNaarHuis();
+    startMissie('schrift');
   }
 
   // ---------- per beeld ----------
@@ -4988,7 +5259,8 @@ export function initVerhaal(ctx) {
       // in de latere missies staat hij te wachten en kijkt hij naar je — behalve
       // als hij op de bank zit (missie 7 en 11): dan houdt hij zijn houding
       // en kijkt hij naar de tv
-      const opBank = ((missie === 'bom' || missie === 'politieauto') && fase === 'gesprek') || (missie === 'brug' && fase === 'plan');
+      const opBank = ((missie === 'bom' || missie === 'politieauto') && fase === 'gesprek') || (missie === 'brug' && fase === 'plan')
+        || missie === 'schrift';        // (missie 13 werkt Mark zelf bij)
       if (mark.groep.visible && !opBank) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
       hinder.opWeg = false;
     }
@@ -5101,7 +5373,8 @@ export function initVerhaal(ctx) {
     if (missie === 'bom') werkBomBij(dt, sp);
     if (missie === 'politieauto') werkPolitieautoBij(dt, sp);
     if (missie === 'brug') werkBrugBij(dt, sp);
-    brugNaloop(sp);
+    if (missie === 'schrift') werkSchriftBij(dt, sp);
+    brugNaloop(sp, dt);
     if (schutters) {
       const schade = schutters.update(dt, player, true);
       if (schade > 0 && player.active) {
@@ -5163,7 +5436,7 @@ export function initVerhaal(ctx) {
       // telefoon dan alsnog
       veteraanKlaar: vetKlaar,
       politieautoKlaar: polKlaar,
-      brugKlaar,
+      brugKlaar, schriftKlaar,
       volgende: naMissieT > 0 ? naMissieNaam : null,
     };
   }
@@ -5197,6 +5470,7 @@ export function initVerhaal(ctx) {
     vetKlaar = !!s.veteraanKlaar;
     polKlaar = !!s.politieautoKlaar;
     brugKlaar = !!s.brugKlaar;
+    schriftKlaar = !!s.schriftKlaar;
     // na missie 12 heeft de Dúvelsrak een gat
     if (brugSchade) {
       if (brugKlaar) { const g = brugP(BRUG_GAT, 0); brugSchade.zet(g.x, brug.hoogte, g.z, brug.noord); brugSchade.toon(true); }
@@ -5320,6 +5594,8 @@ export function initVerhaal(ctx) {
       hervatPolitieauto(fase);
     } else if (missie === 'brug' && fase !== 'klaar') {
       hervatBrug(fase);
+    } else if (missie === 'schrift' && fase !== 'klaar') {
+      hervatSchrift(fase);
     } else {
       zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
     }
@@ -5334,6 +5610,8 @@ export function initVerhaal(ctx) {
     else if (missie === 'klaar' && vetKlaar && !polKlaar) { naMissieNaam = 'politieauto'; naMissieT = 6; }
     // en na missie 11 van vóór missie 12: Mark wacht binnen met zijn plan
     else if (missie === 'klaar' && polKlaar && !brugKlaar) { naMissieNaam = 'brug'; naMissieT = 6; }
+    // en na missie 12: Mark zit in Duinterpen
+    else if (missie === 'klaar' && brugKlaar && !schriftKlaar) { naMissieNaam = 'schrift'; naMissieT = 6; }
     hud.zetLeven(player.health);
   }
 
@@ -5385,6 +5663,11 @@ export function initVerhaal(ctx) {
     get auto() { return vluchtauto; },
     get bx() { return bxAuto; },
     get schutters() { return schutters; },
+    // missie 13, voor tools/schrifttest.mjs
+    get schrift() {
+      return { klaar: schriftKlaar, heeft: schriftHeeft, alarm: schriftAlarm, deur: schriftDeur(), kade: schriftKade(),
+        boek: schriftBoek, lint: schriftLint, merk: schriftMerk, sloep: schriftSloep(), wachtT: brugNaT, pand: !!schriftPand };
+    },
     get schutterAutos() { return schutterAutos; },
     get zwart() { return zwart; },
     get keuzeOpen() { return keuzeOpen; },

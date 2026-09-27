@@ -96,6 +96,7 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + 0** | De Veteraan |
 | **shift + min** | de politieauto en de C4 |
 | **shift + =** | de Dúvelsrak |
+| **shift + [** | het schrift (de toets rechts naast de P) |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
@@ -1916,8 +1917,10 @@ later gaat het zoals altijd bij vier sterren. De auto's van De Veteraan kun je n
 ook nemen.
 
 In het **Tinga-bos** schud je ze af, net als in missie 7. Mark en Johan rijden
-mee. *"Tinga is weer van ons, broeders."* De missie is **geslaagd**: **€ 5.000**.
-De brug houdt zijn gat.
+mee. *"Tinga is weer van ons, broeders."* En dan: *"Oké. We moeten even op de
+achtergrond blijven, totdat de rust terug is in de wijk. Zoek me later weer op."*
+De missie is **geslaagd**: **€ 5.000**. De brug houdt zijn gat, en de bende van De
+Veteraan is uit de straten verdwenen.
 
 Ga je neer in het gevecht, dan begin je opnieuw vlak voor *"Even later…"*, met
 alles klaargezet. Na het gevecht begin je bij het gat met de vier sterren.
@@ -1925,6 +1928,39 @@ alles klaargezet. Na het gevecht begin je bij het gat met de vier sterren.
 
 `npm run brugtest` speelt de hele missie na, met de dekking achter een auto
 gemeten. `npm run brugshots` maakt de zeven foto's hierboven.
+
+### 13 · Het schrift
+
+Een paar tellen na MISSIE GESLAAGD gaat het beeld zwart: ***Een paar dagen
+later***. Het is middag, je staat voor je eigen huis, en de **M** staat in
+**Duinterpen**: Mark zit ondergedoken bij een neef aan de **Parelmoervlinder 3** en
+staat voor de deur. Kom je bij hem, dan begint hij vanzelf. De Veteraan hield een
+**schrift** bij: wie hij betaalde, hoeveel en wanneer. Agenten, de man van de
+gemeente, en ook zij tweeën. *"Als de recherche dat vindt, zijn we er allemaal
+geweest."* Het ligt in de sloep van De Veteraan in **IJlst**.
+
+| ![Mark in Duinterpen](docs/screenshots/schrift_mark.png) | ![De kade in IJlst](docs/screenshots/schrift_kade.png) |
+|---|---|
+| een paar dagen later: Mark voor de deur in Duinterpen | de kade in IJlst: lint, agenten, de sloep |
+
+De **S** op de kaart wijst naar de sloep. De politie heeft de kade al met rood-wit
+**politielint** afgezet, en er lopen **twee agenten** heen en weer. Blijf uit hun
+zicht: ze zien je op dertig meter recht voor zich. Zien ze je toch, dan krijg je
+**twee sterren** en schieten ze. Het schrift ligt op de bank van de sloep; bij de
+gele markering op de kade pak je het met **E**.
+
+![Het schrift in de sloep](docs/screenshots/schrift_boek.png)
+
+Breng het naar Mark, maar **niet met de politie achter je aan**: dan stuurt hij je
+weg om ze eerst kwijt te raken. Ben je alleen, dan bladert hij: *"Bladzijde
+zeventien. 'Mark, vijfduizend. De jongen, vijfentwintighonderd.' Dat zijn wij."* En
+een rij namen van agenten. *"Dit schrift is goud waard, broeder. Hiermee kopen we
+de hele wijk stil."* **Geslaagd**: **€ 2.500**.
+
+![Mark met het schrift](docs/screenshots/schrift_eind.png)
+
+**shift + [** start de missie los. `npm run schrifttest` speelt het na, vanaf het
+Tinga-bos in missie 12; `npm run schriftshots` maakt de vier foto's.
 
 ### Na missie 10: de bende op straat
 

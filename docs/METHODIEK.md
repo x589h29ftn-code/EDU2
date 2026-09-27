@@ -6191,6 +6191,36 @@ licht geven.
   stapt uit op het dek, kijkt waar Johan staat, of de pijler zicht en lopen
   tegenhoudt, of de buit op het dek ligt, naar het schietslot en naar de gloed.
 
+**Na de Dúvelsrak, en missie 13: het schrift (stap 91).** Gevraagd (27 sep 2026):
+in het Tinga-bos zegt Mark dat ze op de achtergrond moeten blijven tot de rust
+terug is, "zoek me later weer op"; daarna zwart, middag, en Mark met een M voor de
+deur van een huis in Duinterpen (niet binnen); bij hem begint de volgende missie,
+met een verhaal dat haalbaar is.
+
+- *Het verhaal.* Gekozen omdat het alleen gebruikt wat het spel al kan: een
+  gesprek voor een deur (missie 6), een gele markering (missie 7), een sloep en
+  een ligplaats (missie 8), schutters die rondlopen en alarm slaan (missie 3),
+  sterren en afschudden. De Veteraan hield een schrift bij van wie hij betaalde;
+  daar staan Mark en Erik in, en agenten. Het ligt in zijn sloep in IJlst, de
+  politie heeft de kade afgezet. Het einde laat ruimte: met de namen van de
+  agenten kan Mark de wijk stil kopen.
+- *Van het bos naar de middag.* `brugGeslaagd` zet een wachttijd van vijf tellen
+  (MISSIE GESLAAGD staat dan in beeld), daarna `zwartMet('Een paar dagen later',
+  naarDeMiddag)`: 14:30, voor je eigen huis (`springNaarHuis` uit missie 10), en
+  `startMissie('schrift')`. Een andere missie die intussen begint, zet de
+  wachttijd op nul.
+- *Het schrift in de sloep.* Eerst op een geschatte hoogte aan het model gehangen,
+  en op de foto was het er niet: het lag in de romp. Nu wordt het kussen van een
+  bank in het model opgezocht (de doos van 0,42 m uit `doft` in js/boot.js), en
+  ligt het daarop. De proef kijkt of het aan de sloep hangt.
+- *De agenten.* `Bewaking` in het uniform van js/politie.js, heen en weer langs
+  de kade. Het verhaal geeft ze `opTerrein`, dus ze zien je op dertig meter recht
+  voor zich; zodra `alarm` aan gaat komen er twee sterren bij. Eriks regel
+  daarover ging eerst verloren als zijn vorige regel ("Hebbes") nog in beeld
+  stond: een melding die zichzelf wegklikt gaat nu voor.
+- *Geen loting bij het opstarten.* Het politielint kreeg een vaste fase in plaats
+  van `Math.random()`, net als de dranghekken (zie de bevolking in stap 89).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

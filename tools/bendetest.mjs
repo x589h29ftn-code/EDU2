@@ -172,6 +172,13 @@ kop('te dichtbij');
 const aanval = await page.evaluate(async () => {
   const { zichtVrij } = await import('/js/world.js');
   const g = window.__game, b = g.verhaal.bendes;
+  /*
+   De loting opnieuw vast, hier: de hoofdlus trekt tussen twee delen van de proef
+   door zelf ook uit Math.random, en dan gaf dit gevecht per ronde een andere
+   uitkomst (23 tot 44 tellen; stap 91). Binnen één evaluate loopt de hoofdlus
+   niet, dus vanaf hier is het elke keer hetzelfde gevecht.
+  */
+  window.__loting(3);
   // vanaf hier alleen de groepjes die de proef zelf neerzet
   b.opduiken = false;
   /*
