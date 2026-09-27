@@ -1925,7 +1925,8 @@ gemeten. `npm run brugshots` maakt de zeven foto's hierboven.
 ### Na missie 10: de bende op straat
 
 De Veteraan heeft zich met zijn bende tegen je gekeerd, en dat merk je in de
-wijk. Op willekeurige plekken in **Tinga en langs de Lemmerweg** hangen
+wijk, tot hij in missie 12 op de Dúvelsrak sterft: daarna valt zijn bende uit
+elkaar en is de straat weer rustig. Op willekeurige plekken in **Tinga en langs de Lemmerweg** hangen
 **groepjes van twee tot vier man** rond op de stoep, in trainingspakken en
 hoodies, sommigen met een pet. Er staan er nooit meer dan drie tegelijk in je
 buurt, ze verschijnen op zestig tot tweehonderdveertig meter en nooit waar je

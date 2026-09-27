@@ -61,7 +61,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/hud.js` | minimap, grote kaart, meldingen, vlaggen |
 | `js/bewaking.js` | schutters: bewaking, de bende van missie 7 en 10 (met opties) |
 | `js/looppad.js` | een looproute te voet om hekken en gebouwen heen (A*) |
-| `js/bendes.js` | na missie 10: groepjes van De Veteraan op straat in Tinga en langs de Lemmerweg |
+| `js/bendes.js` | van missie 10 tot 12: groepjes van De Veteraan op straat in Tinga en langs de Lemmerweg |
 | `js/deal.js` | missie 8, en `maakVeteraan()`: De Veteraan met zijn hondje |
 | `js/wapen.js` | het wapen in je hand: afgeronde delen, eigen doeken, veer-terugslag, hulzen, grendel |
 | `js/carmodel.js` | automodellen (gedeelde geometrie, instanced), lak met clearcoat, kenteken |
@@ -155,7 +155,8 @@ Tinga-bos: € 5.000, en de brug houdt zijn gat. **shift+=** start hem los.
 
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
-achtervolgen, na een tijdje opgeven. Alleen buiten de missies om.
+achtervolgen, na een tijdje opgeven. Alleen buiten de missies om, en alleen tot
+missie 12: met De Veteraan dood valt zijn bende uit elkaar (`!brugKlaar`).
 
 De drie woningen: **Zeskanter 16** (€ 5.000), **Molenkrite 130c** (€ 2.500),
 **Koningsspil 20** (€ 1.000). Binnen: hoekbank met tv, eettafel om aan te zitten,

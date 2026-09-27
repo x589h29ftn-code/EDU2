@@ -5091,7 +5091,9 @@ export function initVerhaal(ctx) {
 
     // ---- na missie 10: de bende op straat ----
     {
-      const schade = bendes.update(dt, vetKlaar && missie === 'klaar');
+      // van missie 10 tot De Veteraan dood is (missie 12): daarna valt zijn bende
+      // uit elkaar (verzoek 27 sep 2026)
+      const schade = bendes.update(dt, vetKlaar && !brugKlaar && missie === 'klaar');
       if (schade > 0 && player.active) {
         player.health = Math.max(0, player.health - schade);
         hud.zetLeven(player.health);
@@ -5447,6 +5449,8 @@ export function initVerhaal(ctx) {
     get bendes() { return bendes; },
     get aanrijders() { return aanrijders; },
     get volgendeMissie() { return naMissieT > 0 ? { naam: naMissieNaam, over: naMissieT } : null; },
+    // testhaak (tools/bendetest.mjs): de volgende missie niet vanzelf laten beginnen
+    __geenVolgende() { naMissieT = 0; },
     // testhaak (tools/introtest.mjs): het moment waarop Erik zijn wapen krijgt
     __geefWapen: geefWapen,
     /*

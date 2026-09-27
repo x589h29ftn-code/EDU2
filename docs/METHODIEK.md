@@ -6124,10 +6124,15 @@ twee wagens met sirenes van de Molenkrite-kant. Afschudden in het Tinga-bos.
 - *De bende na missie 10.* `bendetest` zette de stand van "net na missie 10"
   terug, en sinds stap 88 begint dan zes tellen later missie 11: tijdens een
   missie staat de bende er niet, en dertien controles vielen om. Dat kwam niet uit
-  deze ronde; in stap 88 was `bendetest` niet opnieuw gedraaid. De proef zet nu
-  ook missie 11 en 12 op gedaan. In het spel zelf zie je de groepjes dus pas echt
-  na missie 12: tussen 10 en 11 zit maar een halve minuut, en tussen 11 en 12
-  een paar tellen.
+  deze ronde; in stap 88 was `bendetest` niet opnieuw gedraaid. In het spel zie
+  je de groepjes daardoor alleen kort: tussen missie 10 en 11 zit een halve
+  minuut, tussen 11 en 12 een paar tellen, en na missie 12 zijn ze weg (zie
+  hieronder).
+- *En daarna geen bende meer* (gevraagd na de eerste versie): met De Veteraan dood
+  valt zijn bende uit elkaar. `bendes.update` loopt alleen nog van missie 10 tot
+  missie 12 (`!brugKlaar`). `bendetest` zet de volgende missie nu stil in plaats
+  van missie 11 en 12 als gedaan te markeren (`__geenVolgende`), en kijkt of er na
+  missie 12 geen groepje meer staat, ook een minuut later niet.
 - *Nog rood: `bevolkingtest`, één controle.* Rijdend over de Wieken is er in één
   van de 22 metingen niemand binnen 80 m (de reeks: …, 2, 1, 0, 3, …; gemiddeld
   4,5 tegen 3,9 op de vorige commit). Op de vorige commit was het minimum 1.

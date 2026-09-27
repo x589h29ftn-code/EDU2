@@ -61,11 +61,15 @@ await page.evaluate(async () => {
   /*
    Na missie 10, met Koningsspil 20 als eigen huis. Sinds missie 11 en 12 begint er
    na missie 10 vanzelf een volgende (en tijdens een missie staat de bende er
-   niet), dus die twee staan hier ook als gedaan: anders begon missie 11 zes tellen
-   na het laden en was de straat leeg (stap 89).
+   niet); die zetten we hier stil, anders begon missie 11 zes tellen na het laden
+   en was de straat leeg (stap 89). Missie 12 is nog niet gedaan: daarna is De
+   Veteraan dood en is zijn bende weg.
   */
-  window.__naMissie10 = (klaar = true) => g.verhaal.herstel({ missie: 'klaar', fase: 'klaar',
-    huis: 'Koningsspil 20', veteraanKlaar: klaar, politieautoKlaar: klaar, brugKlaar: klaar, geld: 1000 });
+  window.__naMissie10 = (klaar = true, brug = false) => {
+    g.verhaal.herstel({ missie: 'klaar', fase: 'klaar', huis: 'Koningsspil 20', veteraanKlaar: klaar,
+      politieautoKlaar: klaar, brugKlaar: brug, geld: 1000 });
+    g.verhaal.__geenVolgende();
+  };
   window.__loting(3);
 });
 
@@ -336,6 +340,31 @@ ok(dood.t < 20, 'ze kunnen je neerleggen', `na ${dood.t.toFixed(1)} s`);
 ok(dood.bijDeur < 3 && dood.leven === 100, 'en je wordt wakker voor je eigen voordeur', `${dood.bijDeur.toFixed(1)} m`);
 ok(dood.groepjes === 0, 'zonder de bende die je neerlegde ernaast');
 ok(dood.tijdensMissie === 0 && dood.tijdensMissieLater === 0, 'tijdens een missie staan ze er niet');
+
+// -------------------------------------------- na missie 12: De Veteraan is dood
+kop('na missie 12');
+const na12 = await page.evaluate(async () => {
+  const { KAART } = await import('/js/kaart.js');
+  const g = window.__game, b = g.verhaal.bendes;
+  // op dezelfde plek als bij "pas na missie 10", met vol leven
+  const huis = KAART.panden.find(p => p.straat === 'Molenkrite' && (p.nr || []).includes('15'));
+  window.__zet(huis.rect.cx + 12, huis.rect.cz + 12);
+  g.player.health = 100; g.player.active = true;
+  b.opduiken = true;               // (eerdere delen van de proef zetten dit uit)
+  window.__naMissie10(true);
+  let voor = 0;
+  for (let i = 0; i < 600 && !voor; i++) { g.verhaal.update(0.1); voor = b.groepen.length; }
+  // en dan is missie 12 gedaan: dezelfde stand, maar met De Veteraan dood
+  window.__naMissie10(true, true);
+  window.__stap(4, 0.1);
+  const meteen = b.groepen.length;
+  let later = 0;
+  for (let i = 0; i < 600; i++) { g.verhaal.update(0.1); later = Math.max(later, b.groepen.length); }
+  return { voor, meteen, later, volgende: g.verhaal.volgendeMissie };
+});
+ok(na12.voor > 0, 'vóór missie 12 hangen ze er', `${na12.voor} groepjes`);
+ok(na12.meteen === 0 && na12.later === 0, 'na missie 12 is De Veteraan dood en zijn bende weg, ook een minuut later',
+  `${na12.meteen} → ${na12.later}`);
 
 console.log(`\n${fout ? fout + ' fout' : 'alles goed'}`);
 await browser.close();
