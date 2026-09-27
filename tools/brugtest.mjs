@@ -156,7 +156,9 @@ const plan = await page.evaluate(() => {
     buiten: Math.hypot(sp.x - deur.x, sp.z - deur.z), auto: a ? Math.hypot(a.x - sp.x, a.z - sp.z) : -1,
     markPak: window.__inPak(b.mark), markZicht: b.mark.groep.visible, pak: g.derde.pak,
     nav, navD: nav ? Math.hypot(nav.x - b.autoPlek.x, nav.z - b.autoPlek.z) : -1,
-    opdracht: document.getElementById('opdracht').textContent };
+    opdracht: document.getElementById('opdracht').textContent,
+    // de gele markering op de plek van de auto (melding 27 sep 2026: "geef aan waar de auto moet staan")
+    autoMerk: (() => { const m = b.autoMerk; return m && m.zichtbaar ? Math.hypot(m.groep.position.x - b.autoPlek.x, m.groep.position.z - b.autoPlek.z) : -1; })() };
 });
 const planTekst = plan.regels.map(r => r.tekst).join(' ');
 ok(plan.opBank < 0.8 && plan.regels[0] && plan.regels[0].wie === 'Mark', 'Mark zit op de bank en begint vanzelf', `${plan.regels.length} regels`);
@@ -173,6 +175,29 @@ ok(plan.markZicht && plan.markPak && plan.pak === 'politie', 'Mark en Erik in po
 ok(plan.auto > 0 && plan.auto < 30, 'de politieauto staat erbij', `${plan.auto.toFixed(1)} m`);
 ok(plan.nav && plan.nav.letter === 'D' && plan.navD < 3 && /Dúvelsrak/.test(plan.opdracht),
   'de kaart wijst naar de Dúvelsrak, aan de kant van Tinga', plan.opdracht);
+ok(plan.autoMerk >= 0 && plan.autoMerk < 0.1, 'en een gele markering op de plek waar de auto moet komen', `${plan.autoMerk.toFixed(2)} m`);
+
+/*
+ Wat er op het dek staat, van boven af bekeken. Midden op de brug liep de leuning
+ schuin dwars over de weg, op 1,36 m: de as van het viaduct liep daar een paar
+ centimeter terug, en de normaal klapte om (melding 27 sep 2026, "een houten
+ balk overdwars").
+*/
+const dek = await page.evaluate(async () => {
+  const THREE = await import('/lib/three.module.js');
+  const g = window.__game, b = g.verhaal.brug, A = b.assen;
+  const rc = new THREE.Raycaster(), neer = new THREE.Vector3(0, -1, 0);
+  const hout = [];
+  for (let s = 0; s <= A.L; s += 0.1) for (const u of [-3, -1, 1, 3]) {
+    const p = b.punt(s, u);
+    rc.set(new THREE.Vector3(p.x, A.hoogte + 4, p.z), neer); rc.far = 6;
+    const q = rc.intersectObjects(g.scene.children, true).find(h => h.object.visible !== false);
+    if (q && q.point.y > A.hoogte + 0.3 && q.point.y < A.hoogte + 3 && q.object.material && q.object.material.color
+      && q.object.material.color.getHexString() === '8d6f4c') hout.push(`s${s.toFixed(1)}/u${u}`);
+  }
+  return { hout };
+});
+ok(dek.hout.length === 0, 'geen houten balk of leuning dwars over het dek', dek.hout.slice(0, 6).join(' ') || 'vrij');
 
 // --------------------------------------------------------- op de brug
 kop('de versperring');
@@ -199,6 +224,28 @@ ok(brug.regels.some(r => /dranghekken/.test(r.tekst)) && brug.regels.some(r => /
   'Mark: hekken aan onze kant, de Lemmerweg-kant open');
 ok(brug.merken === 3 && brug.opMerk, 'drie gele markeringen voor de hekken', `${brug.merken}`);
 ok(brug.markOpBrug && brug.knipper > 0, 'Mark staat bij de auto, het zwaailicht is aan');
+
+const uitstap = await page.evaluate(() => {
+  // uitstappen op het dek: je staat erop, niet eronder op de N7 (melding 27 sep 2026)
+  const g = window.__game, v = g.verhaal, b = v.brug, a = v.politieauto;
+  g.player.inCar = a;
+  g.toggleCar();
+  const p = g.player.pos;
+  const uit = { y: p.y, opDek: b.assen.opDek(p.x, p.z, 3), inAuto: !!g.player.inCar, merk: b.autoMerk.zichtbaar };
+  // en het zwaailicht is 's avonds meer dan een blauw blokje: een gloed en een plas licht
+  let gloed = 0, plas = 0;
+  for (let i = 0; i < 30; i++) {
+    v.update(0.05);
+    gloed = Math.max(gloed, a.zwaailicht.links.userData.gloed.opacity, a.zwaailicht.rechts.userData.gloed.opacity);
+    plas = Math.max(plas, a.zwaailicht.links.userData.plas.opacity);
+  }
+  uit.gloed = gloed; uit.plas = plas;
+  return uit;
+});
+ok(!uitstap.inAuto && uitstap.opDek && uitstap.y > 5, 'uitstappen op het dek: je staat op de brug, niet eronder', `${uitstap.y.toFixed(2)} m hoog`);
+ok(!uitstap.merk, 'de markering voor de auto is weg zodra hij staat');
+ok(uitstap.gloed > 0.9 && uitstap.plas > 0.5, 'het zwaailicht gloeit, en werpt blauw licht op de weg',
+  `gloed ${uitstap.gloed.toFixed(2)}, plas ${uitstap.plas.toFixed(2)}`);
 
 const hekken = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, b = v.brug, y = b.assen.hoogte;
@@ -297,11 +344,15 @@ const johan = await page.evaluate(() => {
   for (let i = 0; i < 600 && window.__balkDicht(); i++) v.update(0.05);
   const j1 = b.johan.groep.position.clone();
   const pak = window.__inPak(b.johan);
+  const johanY = j1.y, johanOp = b.assen.opDek(j1.x, j1.z);
   regels = window.__gesprek();
   const zwart = window.__zwart();
-  return { liep: Math.hypot(j1.x - j0.x, j1.z - j0.z), pak, regels, zwart, fase: v.fase };
+  return { liep: Math.hypot(j1.x - j0.x, j1.z - j0.z), pak, regels, zwart, fase: v.fase, johanY, johanOp, j0Y: j0.y };
 });
 ok(johan.liep > 15 && johan.pak, 'Johan komt de helling op lopen, in politiepak', `${johan.liep.toFixed(1)} m gelopen`);
+// (hij begon naast de oprit, op maaiveld, en liep onder het dek door: je zag hem niet)
+ok(johan.j0Y > 3 && johan.johanOp && johan.johanY > 5, 'over de oprit, en hij staat óp het dek',
+  `begon op ${johan.j0Y.toFixed(1)} m, staat op ${johan.johanY.toFixed(2)} m`);
 ok(johan.regels.some(r => r.wie === 'Johan' && /help mee/.test(r.tekst)), 'hij zegt dat hij meehelpt');
 ok(johan.zwart.max > 0.99 && /Even later/.test(johan.zwart.tekst), 'zwart: "Even later…"', johan.zwart.tekst);
 
@@ -336,6 +387,7 @@ const film = await page.evaluate(() => {
     }
   }
   uit.duur = standen.length;
+  uit.slotFilm = g.player.vuurSlot;
   uit.standen = standen;
   uit.maxV = maxV;
   uit.stop = b.konvooi.map(a => b.assen.lokaal(a.x, a.z).s);
@@ -366,10 +418,14 @@ const stop = await page.evaluate(() => {
   const leven = pl.health;
   for (let i = 0; i < 200 && window.__balkDicht(); i++) v.update(0.05);
   const vet = b.veteraan.veteraan.groep.position;
-  const uit = { aantal: s ? s.aantal : 0, rustig: s ? s.rustig : false, vetZicht: b.veteraan.veteraan.groep.visible,
+  const slotStop = g.player.vuurSlot;
+  const uit = { slotStop, aantal: s ? s.aantal : 0, rustig: s ? s.rustig : false, vetZicht: b.veteraan.veteraan.groep.visible,
     vetS: b.assen.lokaal(vet.x, vet.z).s, hond: b.veteraan.hond.visible, leven: pl.health - leven };
+  // halverwege zijn verhaal kun je nog niet schieten
+  uit.slotPraat = g.player.vuurSlot && !g.player.magSchieten();
   uit.regels = window.__gesprek();
   window.__stap(3);
+  uit.slotNa = g.player.vuurSlot;
   uit.hint = window.__hint();
   uit.fase = v.fase;
   uit.nogRustig = s.rustig;
@@ -379,6 +435,7 @@ const vetTekst = stop.regels.map(r => r.tekst).join(' ');
 ok(stop.aantal === 10 && stop.rustig && stop.vetZicht && !stop.hond, 'De Veteraan en negen man stappen uit (het hondje is thuis)', `${stop.aantal}`);
 ok(stop.vetS > 7 && stop.vetS < 10, 'De Veteraan loopt naar de hekken', `op ${stop.vetS.toFixed(1)} m`);
 ok(stop.leven === 0 && stop.nogRustig, 'ze zien jullie niet als vijand: er wordt niet geschoten');
+ok(film.slotFilm && stop.slotStop && stop.slotPraat && !stop.slotNa, 'en jij kunt pas schieten als De Veteraan uitgepraat is');
 ok(/niet genoeg geld van mij/.test(vetTekst) && /door te laten gaan/.test(vetTekst) && /Jou ken ik/.test(vetTekst),
   '"Hebben jullie niet genoeg geld van mij gekregen…" en "Jou ken ik!"');
 ok(stop.regels.some(r => r.wie === 'Mark' && /C4 afgaan/.test(r.tekst)) && /C4 laten afgaan/.test(stop.hint) && stop.fase === 'ontsteken',
@@ -427,6 +484,22 @@ ok(!dekking.achter && !dekking.gehurkt, 'achter de auto zien ze je niet, staand 
 ok(dekking.naast, 'een stap ernaast wel');
 ok(!dekking.inAuto, 'in de auto zelf ben je niet onzichtbaar');
 
+const pijler = await page.evaluate(() => {
+  /*
+   De pijler onder het dek is een botsdoos van 0 tot 4,7 m, dwars over de hele
+   breedte (s = 30,8). Wie erboven staat en zijn hoogte meegeeft, kijkt en loopt
+   er overheen; zonder hoogte stond hij als een muur midden op het dek, en de
+   mannen bij de achterste auto's zaten erachter vast (stap 90).
+  */
+  const g = window.__game, W = window.__W, b = g.verhaal.brug, y = b.assen.hoogte;
+  const a = b.punt(34, -2), c = b.punt(26, -2), m = b.punt(30.8, -2);
+  const [kx, kz] = W.resolveCollisions(m.x, m.z, 0.34, 0, y);
+  return { met: W.zichtVrij(a.x, a.z, c.x, c.z, 1.2, y), zonder: W.zichtVrij(a.x, a.z, c.x, c.z, 1.2),
+    lopen: Math.hypot(kx - m.x, kz - m.z) };
+});
+ok(pijler.met && pijler.lopen < 0.01, 'de pijler onder het dek houdt op het dek zicht en lopen niet tegen',
+  `zonder hoogte: ${pijler.zonder ? 'vrij' : 'een muur'}`);
+
 const gevecht = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, b = v.brug, s = v.schutters;
   // De Veteraan is een doel zoals de rest (tenzij Mark of Johan hem al raakte)
@@ -444,6 +517,9 @@ const gevecht = await page.evaluate(() => {
     aanval: nieuw.filter(w => w.staat === 'aanval').length, regel: document.getElementById('dialoogTekst').textContent };
   for (const w of nieuw) v.raak(w.persoon.groep);
   window.__stap(3);
+  // wat ze lieten vallen ligt op het dek, niet beneden op de N7
+  const buit = g.buit.dingen.filter(d => d.soort === 'pistool' && b.assen.opDek(d.groep.position.x, d.groep.position.z, 2));
+  uit.buit = buit.length; uit.buitLaag = buit.filter(d => d.groep.position.y < b.assen.hoogte).length;
   for (let i = 0; i < 100 && !window.__balkDicht() && v.fase !== 'chaos'; i++) v.update(0.1);
   window.__stap(3);
   uit.faseNa = v.fase;
@@ -469,6 +545,7 @@ const gevecht = await page.evaluate(() => {
 ok(gevecht.vetDoel && gevecht.nogEen <= 1 && gevecht.aantal === 14 && gevecht.fase === 'versterking',
   'De Veteraan is ook raak te schieten; de eerste ploeg neer: er komen er vier bij', `${gevecht.aantal} man in totaal`);
 ok(gevecht.achter.every(d => d > 20) && gevecht.aanval === 4, 'van de achterkant, in de verte', gevecht.achter.map(d => `+${d.toFixed(0)} m`).join(', '));
+ok(gevecht.buit > 0 && gevecht.buitLaag === 0, 'hun pistolen liggen op het dek', `${gevecht.buit} op het dek, ${gevecht.buitLaag} eronder`);
 ok(gevecht.faseNa === 'chaos' && gevecht.ster === 4, 'daarna vier sterren');
 ok(gevecht.rust && gevecht.eenheden.wagens === 0 && gevecht.eenheden.voet === 0, 'maar zolang Mark praat komt er geen politie', JSON.stringify(gevecht.eenheden));
 ok(gevecht.regels.some(r => /Shit, wat een chaos/.test(r.tekst)) && gevecht.regels.some(r => /de auto in en wegwezen/.test(r.tekst) && /Tinga-bos/.test(r.tekst)),

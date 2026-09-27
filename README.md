@@ -1854,7 +1854,8 @@ nog staan.
 Het beeld gaat zwart: ***Die avond…*** Jullie staan buiten voor Molenkrite 15,
 om half elf, allebei in **politiepak** (ook Erik, als je in de derde persoon
 speelt). De politieauto staat klaar en Mark rijdt mee. De **D** op de kaart wijst
-naar het eind van de brug aan de **kant van Tinga**.
+naar het eind van de brug aan de **kant van Tinga**, en daar wijst een **gele
+markering** de plek aan waar de auto moet komen.
 
 ![Die avond: Mark in politiepak bij de politieauto](docs/screenshots/brug_avond.png)
 
@@ -1880,7 +1881,8 @@ Weer zwart: ***Even later…*** En dan een **filmbeeld** met zwarte balken boven
 en onder. Vier auto's rijden vanaf de kant van de Lemmerweg rustig de brug op, met
 hun lampen aan: De Veteraan voorop en drie auto's met elk drie lijfwachten
 erachter. Ze stoppen voor de hekken. Voor hen is het een controle, dus niemand
-schiet. Met **E** sla je het filmbeeld over.
+schiet, en jij ook niet: tot De Veteraan uitgepraat is werkt je wapen niet. Met
+**E** sla je het filmbeeld over.
 
 ![Het filmbeeld: de auto's van De Veteraan op de brug](docs/screenshots/brug_film.png)
 
@@ -1896,7 +1898,9 @@ roept dat je de C4 moet laten afgaan: **E**.
 Vier knallen kort na elkaar, en de **achterkant van de brug** is weg: een
 zwartgeblakerd gat, versplinterde planken, een geknakte leuning en vuur dat
 blijft branden. Maar De Veteraan en zijn mannen staan er nog, en dan begint het
-**vuurgevecht**. Mark (met een machinepistool) en Johan schieten mee. **Auto's
+**vuurgevecht**. Mark (met een machinepistool) en Johan schieten mee. Het
+zwaailicht van de politieauto gloeit in het donker en zet de weg om de auto om
+beurten in blauw licht; dat doen alle politieauto's in het spel. **Auto's
 zijn dekking**: wie achter een auto staat of zit, kan niet geraakt worden, en je
 kogels gaan ook niet door een auto heen. Schiet je al voordat de C4 afgaat, dan
 begint het gevecht meteen en kun je hem nog steeds met E laten afgaan.

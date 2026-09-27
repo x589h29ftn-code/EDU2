@@ -252,6 +252,11 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   om `blokkeertZicht` (`zetZichtBlokker`): een auto houdt de kijklijn tegen, behalve
   als een eindpunt erin staat. Vijanden raken met een dobbelsteen zodra ze je
   zien; wie niet ziet, schiet niet.
+- **Op het viaduct telt de hoogte altijd mee** (stap 90). `grondHoogte(x, z, y)` geeft
+  onder het dek het maaiveld; wie iets neerzet met y = 0 of `-Infinity` (uitstappen,
+  buit, een startpunt naast de oprit) zet het op de N7. Geef ook `resolveCollisions`
+  en `zichtVrij(…, grondY)` de hoogte mee: de pijler onder het dek is een doos van 0
+  tot 4,7 m over de hele breedte. Plekken voorbij de einden van het dek: `langsAs`.
 - **Een auto naar het dek verplaatsen: eerst de hoogte.** `vehicles.zetNeer` peilt
   de grond vanaf `mesh.position.y`; een auto die van 0 m op het viaduct springt
   komt onder het dek op de N7 uit. Zet `mesh.position.y` eerst op dekhoogte.

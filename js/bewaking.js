@@ -164,7 +164,8 @@ export class Bewaking {
       const c = Math.cos(draai), s = Math.sin(draai);
       const rx = dx * c - dz * s, rz = dx * s + dz * c;
       const nx = pos.x + rx * stap, nz = pos.z + rz * stap;
-      const [kx, kz] = resolveCollisions(nx, nz, 0.34, this.overLaag);
+      // met de hoogte erbij: op het viaduct telt de pijler onder het dek niet (stap 90)
+      const [kx, kz] = resolveCollisions(nx, nz, 0.34, this.overLaag, pos.y);
       if (Math.hypot(kx - nx, kz - nz) < 0.02) {
         pos.x = kx; pos.z = kz;
         w.persoon.draaiNaar(Math.atan2(-rx, -rz), dt, 6);
@@ -239,7 +240,7 @@ export class Bewaking {
           while (d > Math.PI) d -= Math.PI * 2;
           while (d < -Math.PI) d += Math.PI * 2;
           if (Math.abs(d) < GEZICHTSVELD || this.alarm) {
-            zien = zichtVrij(pos.x, pos.z, sp.x, sp.z, 1.2);
+            zien = zichtVrij(pos.x, pos.z, sp.x, sp.z, 1.2, persoon.grond);
           }
         }
         w.zicht = zien;

@@ -586,7 +586,7 @@ const verhaal = initVerhaal({
    de camerabeving van de knal.
   */
   // wat een neergeschoten schutter laat liggen (js/buit.js)
-  laatVallen: (soort, x, z, waarde) => buit.laatVallen(soort, x, z, waarde),
+  laatVallen: (soort, x, z, waarde, y) => buit.laatVallen(soort, x, z, waarde, y),
   /*
    De buurt laten schrikken. Een autoknal en elk schot doen dit al (zie
    `PANIEK_KLAP` hierboven); de bom in de Poiesz en het vuurgevecht dat erop
@@ -738,7 +738,8 @@ const vaart = initVaart({ scene, player, hud, boten, politie, verhaal });
  voetganger, munitie van een agent. Het ligt er echt en je pakt het op door er
  langs te lopen.
 */
-const buit = maakBuit(scene, (x, z) => grondHoogte(x, z, -Infinity));
+// (met de hoogte van wie het liet vallen: op het viaduct blijft het dan op het dek)
+const buit = maakBuit(scene, (x, z, y = null) => grondHoogte(x, z, y == null ? -Infinity : y + 0.9));
 
 // Het verkeer moet ook voor de buurman remmen als hij oversteekt. De lijst met
 // voetgangers heeft een vaste lengte, dus die zetten we één keer klaar.
@@ -1044,14 +1045,14 @@ player.shootCb = (camOrigin, camDir) => {
       if (raakMens.neer) {
         politie.misdaad('neergeschoten', h.point.x, h.point.z);
         // wat iemand op zak had: vaak niets, hooguit een tientje (js/buit.js)
-        buit.laatVallen('geld', h.point.x, h.point.z, zakgeld());
+        buit.laatVallen('geld', h.point.x, h.point.z, zakgeld(), h.point.y - 1);
       }
     } else if ((raakAgent = politie.raak(h.object, nodig))) {
       geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
       bloedBij(h.point, dir, raakAgent);
       // een agent draagt munitie bij zich: drie tot vijftien kogels, en die
       // passen in elk wapen
-      if (raakAgent.neer) buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie());
+      if (raakAgent.neer) buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie(), h.point.y - 1);
     }
     /*
      De helikopter. Twintig kogels en hij gaat tollend naar beneden
@@ -1150,8 +1151,21 @@ function toggleCar() {
     // buiten weer door je eigen ogen, als je te voet zo liep
     if (derde.aan && !derdeTeVoet) derde.wissel();
     vehicles.ruiten(car, true);          // buiten hoort het glas er weer in
-    const side = new THREE.Vector3(Math.cos(car.yaw), 0, -Math.sin(car.yaw)).multiplyScalar(-1.6);
-    player.pos.set(car.x + side.x, 0, car.z + side.z); player.yaw = car.yaw; player.pitch = 0;
+    /*
+     Naast de auto, op de hoogte van de auto. Hier stond y = 0: op het viaduct
+     peilde de grond dan vanaf onder het dek, en je stond ineens beneden op de N7
+     (melding 27 sep 2026, missie 12). Eerst links (het portier), en is daar geen
+     grond op die hoogte (buiten de leuning), dan rechts, voor of achter.
+    */
+    const autoY = car.mesh ? car.mesh.position.y : 0;
+    const zijX = Math.cos(car.yaw), zijZ = -Math.sin(car.yaw), voorX = -Math.sin(car.yaw), voorZ = -Math.cos(car.yaw);
+    let uit = null;
+    for (const [a, b] of [[-1.6, 0], [1.6, 0], [0, 3.2], [0, -3.2]]) {
+      const x = car.x + zijX * a + voorX * b, z = car.z + zijZ * a + voorZ * b;
+      if (Math.abs(grondHoogte(x, z, autoY + 0.9) - autoY) < 0.8) { uit = { x, z }; break; }
+    }
+    if (!uit) uit = { x: car.x - zijX * 1.6, z: car.z - zijZ * 1.6 };
+    player.pos.set(uit.x, grondHoogte(uit.x, uit.z, autoY + 0.9), uit.z); player.yaw = car.yaw; player.pitch = 0;
     geluid.portier(); geluid.motorUit();
     hud.show('Uitgestapt');
   } else {

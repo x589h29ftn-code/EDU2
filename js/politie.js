@@ -182,6 +182,65 @@ const LEEG_AFSTAND = 45;
  alleen echter, het helpt ook spelen — een agent in het donkerblauw was tussen de
  voetgangers nauwelijks te onderscheiden.
 */
+/*
+ Het zwaailicht in het donker (verzoek 27 sep 2026: "de lampen wat meer kleur- en
+ lichteffect in het donker"). Geen echte lampen: een lichtbron erbij laat three
+ elk materiaal opnieuw vertalen (stap 83). Dus rond elke lamp een gloed van drie
+ gekruiste vlakken, en op straat aan die kant een blauwe plas licht; allebei
+ additief, en 's nachts veel feller dan overdag. `zetZwaailamp` zet een lamp met
+ zijn gloed en zijn plas in één keer, ook voor de politieauto van missie 12
+ (js/verhaal.js).
+*/
+let gloedDoek = null, plasDoek = null;
+function rondDoek(stops) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  for (const [t, kleur] of stops) gr.addColorStop(t, kleur);
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function gloedKaart() {
+  return gloedDoek || (gloedDoek = rondDoek([[0, 'rgba(235,242,255,1)'], [0.18, 'rgba(120,165,255,0.95)'],
+    [0.45, 'rgba(40,95,255,0.45)'], [1, 'rgba(20,60,255,0)']]));
+}
+function plasKaart() {
+  return plasDoek || (plasDoek = rondDoek([[0, 'rgba(90,140,255,0.9)'], [0.5, 'rgba(40,90,255,0.35)'], [1, 'rgba(20,60,255,0)']]));
+}
+const GLOED_GEO = new THREE.PlaneGeometry(1.5, 1.5);
+const PLAS_GEO = new THREE.PlaneGeometry(7, 7).rotateX(-Math.PI / 2);
+function gloedMat(kaart, dubbel) {
+  return new THREE.MeshBasicMaterial({ map: kaart, transparent: true, opacity: 0, depthWrite: false,
+    blending: THREE.AdditiveBlending, side: dubbel ? THREE.DoubleSide : THREE.FrontSide,
+    polygonOffset: !dubbel, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+}
+// de gloed om een lamp en de plas op straat aan diezelfde kant; aan `lamp` gehangen
+function maakGloed(lamp, balk, kant) {
+  const gloed = new THREE.Group(), mat = gloedMat(gloedKaart(), true);
+  for (const [rx, ry] of [[0, 0], [0, Math.PI / 2], [-Math.PI / 2, 0]]) {
+    const m = new THREE.Mesh(GLOED_GEO, mat);
+    m.rotation.set(rx, ry, 0);
+    m.raycast = () => {};                 // licht is geen doel
+    m.renderOrder = 3;
+    gloed.add(m);
+  }
+  lamp.add(gloed);
+  const plas = new THREE.Mesh(PLAS_GEO, gloedMat(plasKaart(), false));
+  plas.position.set(kant * 1.4, 0.07, 0.1);
+  plas.raycast = () => {};
+  plas.renderOrder = 2;
+  balk.add(plas);
+  lamp.userData.gloed = mat;
+  lamp.userData.plas = plas.material;
+}
+/** Eén lamp van een zwaailicht: `sterk` 0 (uit) tot 1 (vol), `nacht` of het donker is. */
+export function zetZwaailamp(lamp, sterk, nacht = false) {
+  lamp.material.emissiveIntensity = 0.15 + sterk * (nacht ? 4.2 : 3.05);
+  const u = lamp.userData;
+  if (u.gloed) u.gloed.opacity = sterk * (nacht ? 1 : 0.3);
+  if (u.plas) u.plas.opacity = sterk * (nacht ? 0.8 : 0.08);
+}
+
 export const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c, vest: 0xd6dc46, schoen: 0x14161c };
 
 export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }) {
@@ -657,8 +716,19 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     const rechts = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.12, 0.18), lampMat(0x2b6bff));
     links.position.set(-0.24, 1.53, 0.1); rechts.position.set(0.24, 1.53, 0.1);
     balk.add(voet, links, rechts);
+    maakGloed(links, balk, -1);
+    maakGloed(rechts, balk, 1);
     car.mesh.add(balk);
     return { balk, links, rechts };
+  }
+  const donker = () => !!(sfeer && sfeer.nacht);
+  // een gloed en een plas vooraf in de scène, verborgen: dan worden hun shaders
+  // achter het laadscherm vertaald en hapert de eerste politieauto niet
+  {
+    const proef = new THREE.Group(), lamp = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), new THREE.MeshStandardMaterial({ color: 0x2b6bff, emissive: 0x2b6bff }));
+    proef.add(lamp); maakGloed(lamp, proef, 1);
+    proef.visible = false; proef.position.set(0, -500, 0);
+    scene.add(proef);
   }
 
   /*
@@ -1231,8 +1301,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     for (const b of blokkades) for (const c of b.cars) {
       c.knipper += dt;
       const aan = Math.floor(c.knipper * 4) % 2 === 0;
-      c.links.material.emissiveIntensity = aan ? 3.2 : 0.15;
-      c.rechts.material.emissiveIntensity = aan ? 0.15 : 3.2;
+      zetZwaailamp(c.links, aan ? 1 : 0, donker());
+      zetZwaailamp(c.rechts, aan ? 0 : 1, donker());
     }
 
     let iemandZiet = false;
@@ -1397,8 +1467,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       // zwaailicht: de twee lampen om beurten, twee keer per seconde
       w.knipper += dt;
       const aanLinks = Math.floor(w.knipper * 4) % 2 === 0;
-      w.links.material.emissiveIntensity = aanLinks ? 3.2 : 0.15;
-      w.rechts.material.emissiveIntensity = aanLinks ? 0.15 : 3.2;
+      zetZwaailamp(w.links, aanLinks ? 1 : 0, donker());
+      zetZwaailamp(w.rechts, aanLinks ? 0 : 1, donker());
       if (dichtsteSirene === null || dSp < dichtsteSirene) dichtsteSirene = dSp;
 
       const ziet = zietSpeler({ x: car.x, z: car.z }, car.yaw, dSp < 30);
@@ -1500,8 +1570,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       if (v.car.mesh && v.balk.parent !== v.car.mesh) v.car.mesh.add(v.balk);
       v.knipper += dt;
       const links = Math.floor(v.knipper * 4) % 2 === 0;
-      v.links.material.emissiveIntensity = gestolen ? 0.12 : (links ? 3.2 : 0.15);
-      v.rechts.material.emissiveIntensity = gestolen ? 0.12 : (links ? 0.15 : 3.2);
+      zetZwaailamp(v.links, gestolen ? 0 : (links ? 1 : 0), donker());
+      zetZwaailamp(v.rechts, gestolen ? 0 : (links ? 0 : 1), donker());
       if (gestolen) { verlaten.splice(i, 1); continue; }
       v.t += dt;
       const dLeeg = Math.hypot(sp.x - v.car.x, sp.z - v.car.z);

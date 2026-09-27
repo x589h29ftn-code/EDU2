@@ -2449,7 +2449,7 @@ export function buildWorld(scene) {
  losse dozen (die bewegen, zoals de poort in js/verhaal.js) staan niet in het
  rooster en gaan er elke stap los bij.
 */
-export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2) {
+export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2, grondY = null) {
   const dx = x2 - x1, dz = z2 - z1;
   const L = Math.hypot(dx, dz);
   if (L < 1) return true;
@@ -2469,8 +2469,19 @@ export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2) {
    assenstelsel van de doos). Dat is exact — een plank van een millimeter zou hij
    ook vinden — en het kost juist mínder werk dan dertig punten proeven.
   */
+  /*
+   `grondY` (stap 90): de hoogte van de grond onder wie kijkt. Zonder telt alleen
+   of een doos hoger is dan de kijklijn boven zijn eigen voet, en dan stond de
+   pijler onder het dek van de Dúvelsrak (0 tot 4,7 m) als een muur midden op het
+   dek: wie erboven stond keek er niet overheen. Met `grondY` telt de doos alleen
+   als de kijklijn tussen zijn onder- en bovenkant loopt.
+  */
+  const lijnY = grondY == null ? null : grondY + hoogte;
   const raaktDoos = (c, ax, az, bx, bz) => {
-    if (c.h < hoogte) return false;
+    if (lijnY != null) {
+      const onder = c.y0 != null ? c.y0 : 0;
+      if (lijnY < onder || lijnY > onder + c.h) return false;
+    } else if (c.h < hoogte) return false;
     // het lijnstuk naar het assenstelsel van de doos
     const ux = ax - c.cx, uz = az - c.cz, vx = bx - c.cx, vz = bz - c.cz;
     const p0x = ux * c.cos - uz * c.sin, p0z = ux * c.sin + uz * c.cos;

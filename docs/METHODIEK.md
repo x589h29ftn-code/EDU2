@@ -6146,6 +6146,51 @@ twee wagens met sirenes van de Molenkrite-kant. Afschudden in het Tinga-bos.
   mensen te verhuizen maakte het gemiddelde lager (3,3) en het minimum niet
   beter: teruggedraaid. Staat bij de open punten.
 
+**De Dúvelsrak na de eerste keer spelen (stap 90).** Gemeld (27 sep 2026): bij
+uitstappen op de brug beland je soms eronder op de weg; geef aan waar de auto moet
+staan, net als de C4; midden op de brug ligt een houten balk dwars over de weg;
+als De Veteraan komt mag je nog niet schieten; Johan zie je niet; lijfwachten
+kwamen onder de brug terecht; en de zwaailichten mogen in het donker meer kleur en
+licht geven.
+
+- *Onder de brug.* Het dek is geen vloer maar een hoogte die `grondHoogte`
+  teruggeeft, en die hangt af van waar je bent: wie lager dan 1,2 m onder het dek
+  staat, staat eronder. Drie dingen gaven zo'n lage hoogte mee. Uitstappen zette
+  je op y = 0 (`toggleCar`), dus op de N7. Nu kom je op de hoogte van de auto, aan
+  de kant waar op die hoogte grond is (links, rechts, voor of achter). Johan begon
+  24 m voor het dek, recht doorgerekend langs het dek, en dat lag vier meter naast
+  de oprit op maaiveld: hij liep onder het dek door naar zijn plek. Nu volgt
+  `langsAs` de stations van de helling. En de buit viel op het maaiveld
+  (`grondHoogte(x, z, -Infinity)`, met het commentaar "ook op een viaduct"): een
+  pistool van een lijfwacht lag beneden op de N7. Nu krijgt het de hoogte mee van
+  wie het liet vallen. Dat de lijfwachten zelf onder het dek belandden kon ik niet
+  nadoen: in veertig tellen gevecht kwam er niemand onder de 4 m. Wat je zag waren
+  waarschijnlijk hun pistolen, of Johan.
+- *De balk.* Van boven gemeten, niet gezocht: op s = 22,9 lag er over de hele
+  breedte hout op 1,36 m, de bovenste regel van de leuning. De as van het viaduct
+  loopt daar (station 139 tot 141) één en drie centimeter terug, waar in de kaart
+  twee wegassen aansluiten. De richting kwam uit de twee buren van een station,
+  draaide daar om, de normaal klapte naar de overkant, en de leuning liep schuin
+  dwars over het dek. Nu komt de richting uit minstens anderhalve meter as.
+- *Een onzichtbare muur.* Bij het zoeken gevonden: de pijler onder het dek is een
+  botsdoos van 0 tot 4,7 m, dwars over de hele breedte. `resolveCollisions` kent
+  een hoogte, maar `Bewaking` gaf die niet mee, en `zichtVrij` kende er geen: de
+  lijfwachten bij de achterste auto's stonden vast tegen de pijler, en niemand
+  keek eroverheen. Nu geven `Bewaking` en Mark en Johan hun hoogte mee
+  (`zichtVrij(…, grondY)`), en telt een doos alleen als de kijklijn tussen zijn
+  onder- en bovenkant loopt.
+- *De plek van de auto.* Een gele markering, zoals bij de C4.
+- *Niet schieten.* `player.vuurSlot` staat aan van het filmbeeld tot de laatste
+  regel van De Veteraan; daarna mag het, en een schot begint dan het gevecht.
+- *Het zwaailicht.* Geen echte lampen (die laten three alles opnieuw vertalen, stap
+  83): rond elke lamp een gloed van drie gekruiste vlakken en op straat een blauwe
+  plas licht, allebei additief en 's nachts vol, overdag zwak. `zetZwaailamp` in
+  js/politie.js doet het voor elke politieauto; een gloed en een plas staan
+  verborgen in de scène, zodat hun shaders achter het laadscherm vertaald worden.
+- *Proef.* `brugtest` kijkt nu van boven over het hele dek of er hout dwars ligt,
+  stapt uit op het dek, kijkt waar Johan staat, of de pijler zicht en lopen
+  tegenhoudt, of de buit op het dek ligt, naar het schietslot en naar de gloed.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

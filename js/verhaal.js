@@ -53,7 +53,7 @@ import { initPolitieboot } from './politieboot.js';
 import { Dief } from './dief.js';
 import { euro, tekenKop } from './hud.js';
 import { brugAssen, maakDranghek, maakC4, maakSchade } from './brug.js';
-import { UNIFORM } from './politie.js';
+import { UNIFORM, zetZwaailamp } from './politie.js';
 import { Navigatie } from './navigatie.js';
 import { geluid } from './audio.js';
 import * as uitleg from './uitleg.js';
@@ -2497,7 +2497,7 @@ export function initVerhaal(ctx) {
       gevallen.add(w);
       const p = w.persoon.groep.position;
       laatVallen('pistool', p.x, p.z, BOM_BUIT_KOGELS[0]
-        + Math.floor(Math.random() * (BOM_BUIT_KOGELS[1] - BOM_BUIT_KOGELS[0] + 1)));
+        + Math.floor(Math.random() * (BOM_BUIT_KOGELS[1] - BOM_BUIT_KOGELS[0] + 1)), w.persoon.grond);
     }
   }
 
@@ -4105,6 +4105,9 @@ export function initVerhaal(ctx) {
   const brugHekken = brug ? BRUG_HEKKEN.map(() => maakDranghek(scene)) : [];
   const brugBlokken = brug ? BRUG_C4.map(() => maakC4(scene)) : [];
   const brugMerken = brug ? BRUG_C4.map(() => maakMarkering(scene)) : [];
+  // en een voor de plek van de politieauto: net als bij de C4 zie je waar hij moet komen
+  const brugAutoMerk = brug ? maakMarkering(scene) : null;
+  let brugSlot = false;            // schieten mag nog niet: De Veteraan is aan het woord
   const brugSchade = brug ? maakSchade(scene) : null;
   const filmBoven = document.getElementById('filmboven');
   const filmOnder = document.getElementById('filmonder');
@@ -4135,6 +4138,8 @@ export function initVerhaal(ctx) {
     for (const h of brugHekken) h.toon(false);
     for (const b of brugBlokken) b.toon(false);
     for (const m of brugMerken) m.toon(false);
+    if (brugAutoMerk) brugAutoMerk.toon(false);
+    schietSlot(false);
     if (brugSchade && !brugKlaar) brugSchade.toon(false);
     for (const k of brugKonvooi) if (k.auto && k.auto.mesh) { k.auto.mesh.visible = false; k.auto.zichtbaar = false; k.auto.driveable = false; }
     brugKonvooi = [];
@@ -4220,6 +4225,8 @@ export function initVerhaal(ctx) {
     fase = 'naarBrug'; zetPunt(fase);
     spanning = true; spanningUit = 0;
     const doel = brugP(BRUG_AUTO[0], BRUG_AUTO[1]);
+    brugAutoMerk.zet(doel.x, brug.hoogte, doel.z);
+    brugAutoMerk.toon(true);
     const nav = () => {
       zetOpdracht('rij de politieauto naar de Dúvelsrak, aan de kant van Tinga');
       zetNavDoel(doel.x, doel.z, 'de Dúvelsrak', 'D');
@@ -4239,6 +4246,7 @@ export function initVerhaal(ctx) {
     */
     if (polAuto.mesh) { polAuto.mesh.position.set(q.x, brug.hoogte, q.z); polAuto.mesh.rotation.y = yaw; }
     vehicles.zetNeer(polAuto, 0, yaw);
+    brugAutoMerk.toon(false);
     zetOpBrug(brugMark, BRUG_POST_MARK);
     hud.zetNavigatie(null); navDoel = null;
     fase = 'versperren'; zetPunt(fase);
@@ -4296,8 +4304,10 @@ export function initVerhaal(ctx) {
   }
   function naarJohan() {
     fase = 'johan';
-    // hij komt van de Tinga-kant de helling op lopen
-    zetOpBrug(brugJohan, [-24, 2.2], brug.noord);
+    // hij komt van de Tinga-kant de helling op lopen, over de oprit zelf
+    const j = brug.langsAs(-24, 1.2);
+    brugJohan.zetNeer(j.x, j.z, brug.noord);
+    brugJohan.groep.visible = true;
     brugJohanLoopt = true;
     zetOpdracht('wacht op Johan');
   }
@@ -4305,6 +4315,17 @@ export function initVerhaal(ctx) {
     fase = 'klaarstaan'; zetPunt(fase);
     zetOpdracht('');
     zwartMet('Even later…', beginFilm);
+  }
+
+  /*
+   Niet schieten zolang De Veteraan eraan komt en praat (melding 27 sep 2026: "laat
+   eerst het dialoog afspelen"). Van het filmbeeld tot zijn laatste regel staat
+   het slot erop; daarna mag het, en een schot begint dan het gevecht.
+  */
+  function schietSlot(aan) {
+    if (aan === brugSlot) return;
+    brugSlot = aan;
+    player.vuurSlot = aan;
   }
 
   // ---- het filmbeeld ----
@@ -4334,6 +4355,7 @@ export function initVerhaal(ctx) {
       return { auto, lijn, a, eind, v: BRUG_V, stil: false };
     });
     brugFilm = { t: 0 };
+    schietSlot(true);
     fase = 'film';
     zetOpdracht('');
     hud.zetNavigatie(null); navDoel = null;
@@ -4455,6 +4477,7 @@ export function initVerhaal(ctx) {
     return true;
   }
   function brugGevecht() {
+    schietSlot(false);
     fase = 'gevecht';
     zetOpdracht('');
     if (schutters) {
@@ -4541,7 +4564,7 @@ export function initVerhaal(ctx) {
       for (const w of schutters.wachters) {
         if (w.staat === 'neer') continue;
         const q = w.persoon.groep.position, d = Math.hypot(q.x - mp.x, q.z - mp.z);
-        if (d < dBest && zichtVrij(mp.x, mp.z, q.x, q.z, 1.2)) { dBest = d; st.doel = w; }
+        if (d < dBest && zichtVrij(mp.x, mp.z, q.x, q.z, 1.2, p.grond)) { dBest = d; st.doel = w; }
       }
     }
     if (!st.doel) { p.update(dt, { mikt: true }); return; }
@@ -4631,6 +4654,7 @@ export function initVerhaal(ctx) {
       return;
     }
     for (const m of brugMerken) m.update(dt);
+    if (brugAutoMerk) brugAutoMerk.update(dt);
     for (const h of brugHekken) {
       h.update(dt);
       // wie er met een auto tegenaan rijdt, gooit hem om
@@ -4651,8 +4675,9 @@ export function initVerhaal(ctx) {
     if (polAuto && polAuto.zwaailicht && fase !== 'wacht' && fase !== 'plan' && fase !== 'naarBrug') {
       brugKnipper += dt;
       const aan = (brugKnipper % 0.7) < 0.35;
-      polAuto.zwaailicht.links.material.emissiveIntensity = aan ? 3.2 : 0.25;
-      polAuto.zwaailicht.rechts.material.emissiveIntensity = aan ? 0.25 : 3.2;
+      // (missie 12 speelt 's avonds: de gloed en de plas op straat vol aan)
+      zetZwaailamp(polAuto.zwaailicht.links, aan ? 1 : 0, true);
+      zetZwaailamp(polAuto.zwaailicht.rechts, aan ? 0 : 1, true);
     }
     brugHintBij(sp);
 
@@ -4726,7 +4751,7 @@ export function initVerhaal(ctx) {
         brugVertraag -= dt;
         if (brugVertraag <= 0 && balk.hidden) {
           fase = 'ontsteken';
-          zeg(BRUG_VETERAAN, () => zetOpdracht('laat de C4 afgaan', true));
+          zeg(BRUG_VETERAAN, () => { schietSlot(false); zetOpdracht('laat de C4 afgaan', true); });
           zetPunt('klaarstaan');
         }
       }
@@ -5372,7 +5397,7 @@ export function initVerhaal(ctx) {
       return brug && {
         assen: brug, klaar: brugKlaar, ontploft: brugOntploft, film: !!brugFilm, filmT: brugFilm ? brugFilm.t : 0,
         hekken: brugHekGezet.slice(), c4: brugC4Gezet.slice(),
-        hekStukken: brugHekken, blokken: brugBlokken, merken: brugMerken, schade: brugSchade,
+        hekStukken: brugHekken, blokken: brugBlokken, merken: brugMerken, schade: brugSchade, autoMerk: brugAutoMerk,
         konvooi: brugKonvooi.map(k => k.auto), mark: brugMark, johan: brugJohan, veteraan: brugVet,
         knallen: brugKnallen.length, politieRoute: politieVanMolenkrite(),
         punt: (s, u) => brugP(s, u), autoPlek: brugP(BRUG_AUTO[0], BRUG_AUTO[1]),

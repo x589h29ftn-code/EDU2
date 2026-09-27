@@ -38,7 +38,18 @@ export function zetViaducten(lijst) {
     // richting en booglengte per station; links van de rijrichting is +n
     const nrm = [], sAf = [0];
     for (let i = 0; i < n; i++) {
-      const a = as[Math.max(0, i - 1)], b = as[Math.min(n - 1, i + 1)];
+      /*
+       De richting over minstens anderhalve meter as. Waar twee wegassen in de kaart
+       op elkaar aansluiten kan de as een paar centimeter teruglopen (Viaduct
+       Tinga, station 139–141: 1 en 3 cm). Met alleen de twee buren draaide de
+       richting daar om, klapte de normaal naar de overkant, en liep de leuning
+       midden op het dek schuin dwars over de weg (melding 27 sep 2026: "een houten
+       balk overdwars").
+      */
+      let j0 = i - 1, j1 = i + 1;
+      const lengte = () => Math.hypot(as[Math.min(n - 1, j1)][0] - as[Math.max(0, j0)][0], as[Math.min(n - 1, j1)][1] - as[Math.max(0, j0)][1]);
+      while (lengte() < 1.5 && (j0 > 0 || j1 < n - 1)) { j0--; j1++; }
+      const a = as[Math.max(0, j0)], b = as[Math.min(n - 1, j1)];
       const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1;
       nrm.push([-dz / L, dx / L]);
       if (i) sAf.push(sAf[i - 1] + Math.hypot(as[i][0] - as[i - 1][0], as[i][1] - as[i - 1][1]));

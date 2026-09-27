@@ -72,10 +72,40 @@ export function brugAssen(KAART, tinga) {
     const q = p(sTot); pts.push([q.x, q.z]);
     return naastAs(pts, u);
   }
+  /*
+   Een plek op `s` meter langs de as, ook voorbij de einden van het dek: dan
+   langs de stations van de helling, niet recht door. Rechtdoor gerekend kwam je
+   24 m voor het dek al vier meter naast de oprit uit, naast de dijk op maaiveld,
+   en Johan liep zo onder het dek door naar zijn plek (stap 90).
+  */
+  function langsAs(s, u = 0) {
+    if (s >= 0 && s <= L) return p(s, u);
+    const st = v.as;
+    const naarTinga = s < 0;
+    const begin = naarTinga ? (omgekeerd ? v.dekTot : v.dekVan) : (omgekeerd ? v.dekVan : v.dekTot);
+    const stap = (naarTinga !== omgekeerd) ? -1 : 1;
+    const nodig = naarTinga ? -s : s - L;
+    let k = begin, af = 0;
+    while (k + stap >= 0 && k + stap < st.length) {
+      const a = st[k], b = st[k + stap];
+      const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (af + d >= nodig && d > 1e-6) {
+        const t = (nodig - af) / d;
+        const x = a[0] + (b[0] - a[0]) * t, z = a[1] + (b[1] - a[1]) * t;
+        // opzij: dezelfde kant op als op het dek (rechts als je naar de Lemmerweg kijkt)
+        let rx = -(b[1] - a[1]) / d, rz = (b[0] - a[0]) / d;
+        if (rx * r.x + rz * r.z < 0) { rx = -rx; rz = -rz; }
+        return { x: x + rx * u, z: z + rz * u };
+      }
+      af += d; k += stap;
+    }
+    const q = st[k];
+    return { x: q[0] + r.x * u, z: q[1] + r.z * u };
+  }
   // de voet van het viaduct aan de Tinga-kant, waar de helling op maaiveld begint
   const vt = omgekeerd ? v.as[v.as.length - 1] : v.as[0];
   const voetTinga = { x: vt[0], z: vt[1] };
-  return { v, L, f, r, hoogte, breed, p, noord, zuid: noord + Math.PI, vanLemmerweg, voetTinga,
+  return { v, L, f, r, hoogte, breed, p, langsAs, noord, zuid: noord + Math.PI, vanLemmerweg, voetTinga,
     // ligt (x, z) op het dek, met `marge` meter speling in de lengte?
     opDek(x, z, marge = 0) {
       const dx = x - A[0], dz = z - A[1];

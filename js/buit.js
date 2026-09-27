@@ -108,10 +108,12 @@ export function maakBuit(scene, maaiveld = () => 0) {
    * kogels dat er nog in zit. Levert het ding terug, of null als er niets viel
    * (waarde nul).
    */
-  function laatVallen(soort, x, z, waarde) {
+  function laatVallen(soort, x, z, waarde, hoogte = null) {
     if (!(waarde > 0)) return null;
     const groep = soort === 'geld' ? geldVorm(M) : soort === 'pistool' ? pistoolVorm(M) : kogelVorm(M);
-    const y = maaiveld(x, z);
+    // `hoogte`: waar het vandaan valt. Zonder is het het maaiveld, en een pistool
+    // van iemand op het viaduct lag dan beneden op de N7 (stap 90)
+    const y = maaiveld(x, z, hoogte);
     groep.position.set(x, y + HOOG, z);
     groep.scale.setScalar(SCHAAL);
     groep.userData.buit = soort;
