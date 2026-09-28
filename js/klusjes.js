@@ -662,7 +662,14 @@ export function initKlusjes({ scene, player, vehicles, hud, KAART, api }) {
     __soort(s) { vastSoort = s; },
     __plek: () => stoepPlek(),
     __vak: () => metStraat(kantPlek()),
-    __nieuwAanbod() { haalAanbodWeg(); wachtT = 0; return maakAanbod(); },
+    // (de vorige opdrachtgever gaat meteen weg: in de proef sta je er vaak nog naast)
+    __nieuwAanbod() {
+      if (aanbod) gevers[aanbod.wie].groep.visible = false;
+      haalAanbodWeg();
+      wegNaT = wegNaT.filter(p => p.groep.visible);
+      wachtT = 0;
+      return maakAanbod();
+    },
     __zetAanbodBij(x, z) {
       if (!aanbod) return false;
       const p = gevers[aanbod.wie];

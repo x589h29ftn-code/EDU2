@@ -84,7 +84,9 @@ await page.evaluate(async () => {
 {
   const p = await page.evaluate(() => {
     const g = window.__game, v = g.verhaal, kl = v.klusjes;
-    // tot Mark het aanbod doet (Johan kan ook: we willen Mark op de foto)
+    // tot Mark het aanbod doet (Johan kan ook: we willen Mark op de foto); het poppetje van
+    // Mark voor Molenkrite 15 hoort bij het verhaal, dan geeft Johan de klus
+    v.mark.groep.visible = false;
     for (let i = 0; i < 10; i++) { kl.__soort('tas'); kl.__nieuwAanbod(); if (kl.aanbod && kl.aanbod.wie === 'mark') break; }
     const a = kl.aanbod;
     // camera: zeven meter verderop langs de stoep, op ooghoogte, naar hem toe
