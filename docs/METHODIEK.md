@@ -6613,10 +6613,10 @@ helemaal uit, mag grimmig, en bedenk filmbeelden zoals bij De Veteraan op de bru
   drie sterren, de Wieken 29, Bouwman belt, 1 ruilen of 2 hinderlaag, "Die nacht…" op de Dúvelsrak.
 - *Vier filmbeelden*, zoals `werkFilmBij` in missie 12: `werkInvalFilmBij` zet elk beeld de camera,
   toont de filmbalken en houdt de speler (of zijn auto) vast: de inval (twee politieauto's met
-  knipperend zwaailicht en een zwart busje rijden de Molenkrite in, eerst van opzij, dan van achter
+  knipperend zwaailicht en een zwart busje rijden de Molenkrite in, eerst van opzij, dan laag naast
   je auto), de brug (Bouwman rijdt de helling op tot midden op het dek, in drie standpunten, en
-  stapt uit), het dak (vanaf de plek van Mark, twee schoten) en de crash (van opzij: de auto de
-  berm in, Bouwman rent weg).
+  stapt uit), het dak (vanaf de plek van Mark, twee schoten) en de crash (schuin van voren: de auto
+  de berm in, Bouwman rent weg).
 - *De vlucht* rijdt over een lijn uit js/inval.js: een halve draai op het dek (hij kwam van de
   Lemmerweg en staat met zijn neus naar Tinga), de helling af aan de Lemmerweg-kant en over de weg
   naar de dichtstbijzijnde rotonde, en daar voorbij. De routeplanner kent het dek niet; die stukken
@@ -6624,6 +6624,23 @@ helemaal uit, mag grimmig, en bedenk filmbeelden zoals bij De Veteraan op de bru
   missie 15, die er nu ook zo uit komt).
 - *Rammen*: dichter dan 3,6 m met meer dan 4 m/s telt als een klap, boven 60 km/u als drie.
 - *Keuze* via `kiesHuis`, net als de race; `schriftKwijt` gaat mee in de opslag, voor de finale.
+- *Wat er in de proef misging* (`npm run invaltest`, 52 controles, vijf rondes):
+  - Het filmbeeld begon niet: je auto stond 13,9 m van Mark, en hij stapte alleen in binnen 14 m.
+    Nu rent Mark naar elke auto binnen 30 m waar je in zit (`loopt`), stapt in, en dan pas begint
+    het filmbeeld.
+  - `vehicles.zetNeer` viel om op een geparkeerde auto: een instantie heeft geen eigen `mesh`. De
+    proef zette de speler er rechtstreeks in; instappen met E roept `maakBestuurbaar` aan, en dat
+    doet de proef nu ook. `opDeBrugNacht` doet het zelf als de auto nog geen model heeft.
+  - Het konvooi haalde de deur niet binnen het filmbeeld (nog 41 m na acht tellen): het begint nu
+    115 m de straat in (was 150) en rijdt tot 14 m/s; het filmbeeld duurt hoogstens tien tellen.
+  - Op de brug stond je wapen nog in je hand van overdag, dus liep de klok van "wapen weg" al: de
+    missie mislukte op het moment dat de proef het wapen trok. "Die nacht…" begint nu met het wapen
+    weg (`player.wapenUit`): trekken is een keus.
+  - Laden binnen vijf tellen na MISSIE GESLAAGD: de ochtend (`invalNaT`) liep nog en sprong midden
+    in de herstarte missie. `beginInval` zet hem op nul.
+  - De foto's: van achter je auto dekte een busje het konvooi af, en bij de crash stond jouw auto
+    tussen de camera en die van Bouwman; beide standpunten zijn verplaatst. `invalshots` bewaart de
+    laatste camera van een filmbeeld, voor als het net afgelopen is.
 
 **Wat nog niet af is (in volgorde).
 

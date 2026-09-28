@@ -175,6 +175,7 @@ kop('de inval');
 const inval = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
   const a = window.__auto;
+  g.vehicles.maakBestuurbaar(a);   // zoals instappen met E: een eigen model met wielen
   g.player.inCar = a; g.player.pos.set(a.x, 0, a.z);
   // Mark rent naar de auto en stapt in
   for (let i = 0; i < 200 && !v.inval.film; i++) window.__stap(1);
@@ -182,12 +183,14 @@ const inval = await page.evaluate(() => {
   const film = v.inval.film, filmBalk = document.body.classList.contains('film');
   const konvooi = v.inval.konvooi;
   const voor = { x: a.x, z: a.z };
-  const d0 = konvooi.length ? Math.hypot(konvooi[0].x - voor.x, konvooi[0].z - voor.z) : null;
+  // waar ze heen rijden: het eind van de route, de rijbaan voor de deur van Molenkrite 15
+  const rp = v.inval.route && v.inval.route.pts, eind = rp ? { x: rp[rp.length - 1][0], z: rp[rp.length - 1][1] } : voor;
+  const d0 = konvooi.length ? Math.hypot(konvooi[0].x - eind.x, konvooi[0].z - eind.z) : null;
   // tijdens het filmbeeld staat de auto stil, ook als je gas geeft
   a.x += 3; window.__stap(1);
   const stil = Math.hypot(a.x - voor.x, a.z - voor.z) < 0.01;
   window.__stap(Math.ceil(9 / 0.05));
-  const d1 = konvooi.length ? Math.hypot(konvooi[0].x - voor.x, konvooi[0].z - voor.z) : null;
+  const d1 = konvooi.length ? Math.hypot(konvooi[0].x - eind.x, konvooi[0].z - eind.z) : null;
   window.__klik();
   return { film, filmBalk, n: konvooi.length, politie: konvooi.filter(c => c.zwaailicht).length, d0, d1, stil,
     fase: v.fase, sterren: g.politie.ster, wagens: g.politie.eenheden.wagens, filmNa: document.body.classList.contains('film') };
@@ -195,7 +198,7 @@ const inval = await page.evaluate(() => {
 ok(inval.film === 'inval' && inval.filmBalk, 'Mark stapt in: het filmbeeld begint', String(inval.film));
 ok(inval.n === 3 && inval.politie === 2, 'twee politieauto\'s en een busje', `${inval.n} auto's, ${inval.politie} met zwaailicht`);
 ok(inval.stil, 'je auto staat stil zolang het filmbeeld loopt');
-ok(inval.d0 != null && inval.d1 < inval.d0 && inval.d1 < 30, 'ze rijden de straat in tot voor de deur', `${inval.d0 && inval.d0.toFixed(0)} → ${inval.d1 && inval.d1.toFixed(0)} m`);
+ok(inval.d0 != null && inval.d1 < inval.d0 && inval.d1 < 14, 'ze rijden de straat in tot voor de deur', `${inval.d0 && inval.d0.toFixed(0)} → ${inval.d1 && inval.d1.toFixed(0)} m`);
 ok(inval.fase === 'afschudden' && inval.sterren >= 3 && !inval.filmNa, 'daarna drie sterren', `${inval.fase}, ${inval.sterren} sterren`);
 ok(inval.wagens >= 2, 'en wagens erachteraan', `${inval.wagens}`);
 
@@ -256,7 +259,7 @@ const wapen = await page.evaluate(() => {
   window.__stap(10); window.__klik();
   return na2;
 });
-ok(!wapen.mislukt && wapen.fase === 'ruilLopen' && wapen.wapenT > 1, 'wapen in je hand: Bouwman roept, en je krijgt even de tijd', `${wapen.wapenT.toFixed(1)} s`);
+ok(!wapen.mislukt && wapen.fase === 'ruilLopen' && wapen.wapenT > 1, 'wapen in je hand: Bouwman roept, en je krijgt even de tijd', `${wapen.fase}, ${wapen.wapenT.toFixed(1)} s${wapen.mislukt ? ', mislukt' : ''}`);
 const nu = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, I = v.inval;
   const r = I.brugPunt(I.S.ruit, 0);
@@ -304,7 +307,7 @@ const ram = await page.evaluate(() => {
   // jij in een auto vlak achter hem, op volle snelheid
   const a = I.golf || window.__auto;
   const vx = -Math.sin(car.yaw), vz = -Math.cos(car.yaw);
-  window.__zetAuto(a, car.x - vx * 2.8, car.z - vz * 2.8, car.yaw, car.mesh.position.y);
+  window.__zetAuto(a, car.x - vx * 2.2, car.z - vz * 2.2, car.yaw, car.mesh.position.y);
   a.driveable = true; g.player.inCar = a;
   a.speed = 20;
   window.__stap(1);
@@ -402,7 +405,7 @@ const ontsnapt = await page.evaluate(() => {
   window.__stap(4); window.__klik();
   return { achter, gehaald, telefoon: v.inval.telefoon, verdiend: v.geld - geld0 };
 });
-ok(ontsnapt.achter === 'achtervolging' && ontsnapt.gehaald && !ontsnapt.telefoon, 'je laat hem gaan: hij is weg, zonder telefoon');
+ok(ontsnapt.achter === 'achtervolging' && ontsnapt.gehaald && !ontsnapt.telefoon, 'je laat hem gaan: hij is weg, zonder telefoon', `${ontsnapt.achter}, ${ontsnapt.gehaald}, ${ontsnapt.telefoon}`);
 ok(ontsnapt.verdiend === 2000, 'dan € 2.000', `+ € ${ontsnapt.verdiend}`);
 const mis = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
@@ -447,7 +450,7 @@ const mis = await page.evaluate(() => {
     const sp = g.player.pos;
     let auto = null, ad = Infinity;
     for (const c of g.vehicles.cars) { if (!c.driveable || c.wrak) continue; const dd = Math.hypot(c.x - sp.x, c.z - sp.z); if (dd < ad) { ad = dd; auto = c; } }
-    g.player.inCar = auto; window.__stap(2);
+    g.vehicles.maakBestuurbaar(auto); g.player.inCar = auto; window.__stap(2);
     for (let i = 0; i < 200 && !v.inval.film; i++) window.__stap(1);
     window.__stap(Math.ceil(9 / 0.05)); window.__klik();
     uit.wrakFase = v.fase;

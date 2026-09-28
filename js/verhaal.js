@@ -6503,6 +6503,7 @@ export function initVerhaal(ctx) {
     invalBinnenGezegd = false;
     invalKeus = 0; invalTelefoon = false;
     invalT = 1.2;
+    invalNaT = 0;          // laden vlak na MISSIE GESLAAGD: geen ochtend die er later nog tussen springt
     markZichtbaar(false);
     zetOpdracht('neem de telefoon op');
     hud.zetNavigatie(null); navDoel = null;
@@ -6609,7 +6610,7 @@ export function initVerhaal(ctx) {
     for (const k of invalKonvooi) {
       if (k.stil) continue;
       const rest = k.eind - k.a;
-      k.v = Math.min(11, Math.sqrt(2 * 4.2 * Math.max(0, rest)));
+      k.v = Math.min(14, Math.sqrt(2 * 4.6 * Math.max(0, rest)));
       k.a += Math.min(rest, Math.max(k.v, 0.4) * dt);
       const p = opLijn(k.lijn, k.a);
       const car = k.auto, vorige = car.yaw;
@@ -6680,6 +6681,7 @@ export function initVerhaal(ctx) {
     if (klokLoopt) { invalKlokWas = klokLoopt(); klokLoopt(false); }
     if (sterrenWeg) sterrenWeg();
     markZichtbaar(false);            // hij ligt op zijn dak (of zit thuis)
+    player.wapenUit = true;          // je komt aan met je wapen weg: trekken is een keus
     // jouw auto aan de Tinga-kant van het dek
     let auto = player.inCar || invalGolf;
     if (player.inCar) { player.inCar.speed = 0; player.inCar = null; if (eersteP) eersteP(); geluid.motorUit(); }
@@ -6687,6 +6689,7 @@ export function initVerhaal(ctx) {
     const q = invalP(INVAL_S.erikAuto[0], INVAL_S.erikAuto[1]);
     auto.x = q.x; auto.z = q.z; auto.yaw = brug.noord; auto.rij = brug.noord; auto.speed = 0;
     auto.driveable = true; auto.zichtbaar = true;
+    if (!auto.mesh && vehicles.maakBestuurbaar) vehicles.maakBestuurbaar(auto);   // een geparkeerde instantie heeft geen eigen model
     if (auto.mesh) { auto.mesh.visible = true; auto.mesh.position.set(q.x, brug.hoogte, q.z); auto.mesh.rotation.y = brug.noord; }
     vehicles.zetNeer(auto, 0, brug.noord);
     const e = invalP(INVAL_S.erik, -1.0);
@@ -6964,10 +6967,11 @@ export function initVerhaal(ctx) {
         } else {
           const a = f.vast.auto || { x: f.vast.x, z: f.vast.z, yaw: player.yaw };
           const vx = -Math.sin(a.yaw), vz = -Math.cos(a.yaw);
-          pos = [a.x - vx * 6.5 + vz * 1.5, 3.3, a.z - vz * 6.5 - vx * 1.5]; kijk = [leider.x, 1.0, leider.z];
+          // laag naast je auto, niet erachter: een busje zou alles afdekken
+          pos = [a.x - vx * 2.5 + vz * 3.6, 1.8, a.z - vz * 2.5 - vx * 3.6]; kijk = [leider.x, 1.0, leider.z];
         }
       }
-      if ((stil && t > 5.2) || t > 8) eindeInvalFilm();
+      if ((stil && t > 5.2) || t > 10) eindeInvalFilm();
     } else if (f.soort === 'brug') {
       const stil = werkBouwmanAanrijBij(dt);
       const car = raceBouwmanAuto;
@@ -7015,8 +7019,9 @@ export function initVerhaal(ctx) {
         zeg(INVAL_CRASH, null, { auto: 2.0 });
       }
       werkLoperBij(dt);
-      pos = [c.van.x - c.voor.x * 9 - c.zij.x * 7, 2.6, c.van.z - c.voor.z * 9 - c.zij.z * 7];
-      kijk = [car.x + c.zij.x * 6, 1.0, car.z + c.zij.z * 6];
+      // van voren, schuin: jouw auto staat erachter en dekt hem dan niet af
+      pos = [c.van.x + c.voor.x * 15 - c.zij.x * 3, 3.0, c.van.z + c.voor.z * 15 - c.zij.z * 3];
+      kijk = [car.x + c.zij.x * 3, 0.8, car.z + c.zij.z * 3];
       if (t > 4.2) eindeCrashFilm();
     }
     if (pos && kijk) f.cam = { pos, kijk };        // (voor tools/invalshots.mjs)

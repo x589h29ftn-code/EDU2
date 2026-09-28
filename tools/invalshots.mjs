@@ -67,7 +67,7 @@ const kamera = (x, y, z, kx, ky, kz) => page.evaluate(async ({ x, y, z, kx, ky, 
 }, { x, y, z, kx, ky, kz });
 // het filmbeeld: waar het verhaal de camera zette
 const filmFoto = async (naam) => {
-  const c = await page.evaluate(() => window.__game.verhaal.inval.filmCam);
+  const c = await page.evaluate(() => { const c = window.__game.verhaal.inval.filmCam || window.__cam; window.__cam = null; return c; });
   await bevries();
   if (c) await kamera(c.pos[0], c.pos[1], c.pos[2], c.kijk[0], c.kijk[1], c.kijk[2]);
   await page.evaluate(() => document.body.classList.add('film'));
@@ -81,7 +81,8 @@ await page.evaluate(() => {
   document.getElementById('overlay').style.display = 'none';
   g.reliëfAf();
   window.__autoplay = false; g.player.active = false;
-  window.__stap = (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) { g.player.health = 100; (v.__echteUpdate || v.update).call(v, dt); } };
+  // (de laatste camera van een filmbeeld blijft bewaard, ook als het net afgelopen is)
+  window.__stap = (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) { g.player.health = 100; (v.__echteUpdate || v.update).call(v, dt); if (v.inval.filmCam) window.__cam = v.inval.filmCam; } };
   window.__klik = (max = 60) => { for (let i = 0; i < max && !document.getElementById('dialoog').hidden; i++) { v.toets(); window.__stap(1); } };
   window.__tot = (fase, maxS = 30) => { for (let t = 0; t < maxS && v.fase !== fase; t += 0.05) { window.__stap(1); if (!document.getElementById('dialoog').hidden) v.toets(); } return v.fase === fase; };
   window.__zet = (x, z, y = 0) => { if (g.player.inCar) { g.player.inCar.speed = 0; g.player.inCar = null; } g.player.pos.set(x, y, z); g.player.applyCamera(); };
@@ -102,11 +103,11 @@ await page.evaluate(() => {
   const sp = g.player.pos;
   let auto = null, ad = Infinity;
   for (const c of g.vehicles.cars) { if (!c.driveable || c.wrak) continue; const dd = Math.hypot(c.x - sp.x, c.z - sp.z); if (dd < ad) { ad = dd; auto = c; } }
-  g.player.inCar = auto; window.__auto = auto;
+  g.vehicles.maakBestuurbaar(auto); g.player.inCar = auto; window.__auto = auto;
   window.__stap(2);
   for (let i = 0; i < 200 && !v.inval.film; i++) window.__stap(1);
   // tot het tweede standpunt, de politie vlak voor de deur
-  for (let i = 0; i < 200 && v.inval.film === 'inval' && v.inval.filmT < 4.6; i++) window.__stap(1);
+  for (let i = 0; i < 200 && v.inval.film === 'inval' && v.inval.filmT < 6.6; i++) window.__stap(1);
 });
 await filmFoto('inval_straat');
 
@@ -114,7 +115,7 @@ await filmFoto('inval_straat');
 await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
   window.__opFase('brugFilm', 2);
-  for (let i = 0; i < 400 && v.inval.film === 'brug' && v.inval.filmT < 6.5; i++) window.__stap(1);
+  for (let i = 0; i < 400 && v.inval.film === 'brug' && v.inval.filmT < 8.2; i++) window.__stap(1);
 });
 await filmFoto('inval_brug');
 
@@ -155,7 +156,7 @@ await page.evaluate(() => {
   window.__stap(Math.ceil(9 / 0.05));
   const I = v.inval, car = I.auto, a = window.__auto;
   const vx = -Math.sin(car.yaw), vz = -Math.cos(car.yaw);
-  a.x = car.x - vx * 2.8; a.z = car.z - vz * 2.8; a.yaw = car.yaw;
+  a.x = car.x - vx * 2.2; a.z = car.z - vz * 2.2; a.yaw = car.yaw;
   if (a.mesh) a.mesh.position.set(a.x, car.mesh.position.y, a.z);
   a.driveable = true; g.player.inCar = a; a.speed = 20;
   window.__stap(1);

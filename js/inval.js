@@ -25,7 +25,7 @@ export const INVAL = {
   rotondeMax: 1500,      // …tot zo ver van de voet van de helling (m)
   voorbij: 260,          // en daarna rijdt hij nog zoveel meter door (m)
   // de inval
-  invalVan: 150,         // zoveel meter de straat in beginnen de auto's (m)
+  invalVan: 115,         // zoveel meter de straat in beginnen de auto's (m): in acht tellen voor de deur
 };
 
 // een punt op de lijn, `u` meter rechts van de rijrichting, met de raaklijn ertussen door
