@@ -7060,8 +7060,14 @@ export function initVerhaal(ctx) {
     }
     if (fase === 'naarBuiten') { if (!binnen) buitenMetMark(); return; }
     if (fase === 'instappen') {
+      // zit je in een auto, dan rent Mark erheen en stapt in; dan begint het filmbeeld
+      if (invalLoper && invalLoper.p === mark) { werkLoperBij(dt); return; }
       if (mark.groep.visible) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
-      if (player.inCar && afst(player.inCar, mark.groep.position) < 14) { markZichtbaar(false); startInvalFilm(); }
+      if (player.inCar && afst(player.inCar, mark.groep.position) < 30) {
+        const a = player.inCar;
+        const naast = { x: a.x + Math.cos(a.yaw) * 1.6, z: a.z - Math.sin(a.yaw) * 1.6 };
+        loopt(mark, naast, 4.8, () => { markZichtbaar(false); geluid.portier(); startInvalFilm(); });
+      }
       return;
     }
     if (fase === 'afschudden' || fase === 'naarWieken') {

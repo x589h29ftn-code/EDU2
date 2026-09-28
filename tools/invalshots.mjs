@@ -104,6 +104,7 @@ await page.evaluate(() => {
   for (const c of g.vehicles.cars) { if (!c.driveable || c.wrak) continue; const dd = Math.hypot(c.x - sp.x, c.z - sp.z); if (dd < ad) { ad = dd; auto = c; } }
   g.player.inCar = auto; window.__auto = auto;
   window.__stap(2);
+  for (let i = 0; i < 200 && !v.inval.film; i++) window.__stap(1);
   // tot het tweede standpunt, de politie vlak voor de deur
   for (let i = 0; i < 200 && v.inval.film === 'inval' && v.inval.filmT < 4.6; i++) window.__stap(1);
 });

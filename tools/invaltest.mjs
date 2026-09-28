@@ -176,7 +176,9 @@ const inval = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
   const a = window.__auto;
   g.player.inCar = a; g.player.pos.set(a.x, 0, a.z);
-  window.__stap(3);
+  // Mark rent naar de auto en stapt in
+  for (let i = 0; i < 200 && !v.inval.film; i++) window.__stap(1);
+  window.__stap(2);
   const film = v.inval.film, filmBalk = document.body.classList.contains('film');
   const konvooi = v.inval.konvooi;
   const voor = { x: a.x, z: a.z };
@@ -446,6 +448,7 @@ const mis = await page.evaluate(() => {
     let auto = null, ad = Infinity;
     for (const c of g.vehicles.cars) { if (!c.driveable || c.wrak) continue; const dd = Math.hypot(c.x - sp.x, c.z - sp.z); if (dd < ad) { ad = dd; auto = c; } }
     g.player.inCar = auto; window.__stap(2);
+    for (let i = 0; i < 200 && !v.inval.film; i++) window.__stap(1);
     window.__stap(Math.ceil(9 / 0.05)); window.__klik();
     uit.wrakFase = v.fase;
     g.vehicles.laatOntploffen(auto);
