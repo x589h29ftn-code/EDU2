@@ -64,14 +64,21 @@ await page.evaluate(async () => {
   window.__autoplay = false; g.player.active = false;
   // alle verkeer weg, behalve de auto die op de foto moet
   for (const t of V.traffic) { t.slaapt = true; t.mesh.visible = false; }
+  // een lijn als buisje van twaalf centimeter: een lijn van één pixel is op de foto niet te zien
   const lijn = (pts, kleur, y = 0.45) => {
-    const geo = new THREE.BufferGeometry().setFromPoints(pts.map(p => new THREE.Vector3(p.x, y, p.z)));
-    const m = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: kleur, depthTest: false }));
+    const v = pts.map(p => new THREE.Vector3(p.x, y, p.z));
+    const curve = v.length === 2 ? new THREE.LineCurve3(v[0], v[1]) : new THREE.CatmullRomCurve3(v);
+    const m = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(2, v.length * 3), 0.12, 6, false),
+      new THREE.MeshBasicMaterial({ color: kleur, depthTest: false }));
     m.renderOrder = 10;
     g.scene.add(m);
-    // en een tweede, net iets verschoven: een lijn van één pixel is op de foto niet te zien
-    const m2 = m.clone(); m2.position.x += 0.06; m2.position.z += 0.06; g.scene.add(m2);
   };
+  window.__lijn = lijn;
+  // het blad van de bomen weg, anders zie je de bocht niet (de stammen blijven)
+  const W = await import('/js/world.js');
+  const blad = new Set(W.sfeerMaterialen().blad);
+  window.__verstopt = [];
+  g.scene.traverse(o => { if (o.isMesh && o.visible && blad.has(o.material)) { o.visible = false; window.__verstopt.push(o); } });
   // dezelfde keus als tools/bochtentest.mjs: een bocht onder 4,5 m/s met een rechte aanloop
   let keus = null;
   for (const pts of V.rijbanen) {
@@ -109,7 +116,7 @@ await page.evaluate(async () => {
 });
 {
   const b = await page.evaluate(() => window.__bocht);
-  await kamera(b.x + 14, 26, b.z + 20, b.x, 0, b.z);
+  await kamera(b.x + 3, 24, b.z + 7, b.x, 0, b.z);
   await foto('bocht_lijn');
 }
 
@@ -134,10 +141,8 @@ await page.evaluate(async () => {
     const a = Math.PI * f;
     spoor.push(new THREE.Vector3(k.cx + k.ux * Math.cos(a) + k.vx * Math.sin(a), 0.5, k.cz + k.uz * Math.cos(a) + k.vz * Math.sin(a)));
   }
-  const geo = new THREE.BufferGeometry().setFromPoints(spoor);
-  const m = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x39d353, depthTest: false }));
-  m.renderOrder = 10; g.scene.add(m);
-  const m2 = m.clone(); m2.position.x += 0.06; g.scene.add(m2);
+  window.__lijn(spoor.map(p => ({ x: p.x, z: p.z })), 0x39d353, 0.5);
+  for (const o of window.__verstopt) o.visible = true;
   window.__keer = { x: k.cx, z: k.cz };
 });
 {

@@ -115,8 +115,12 @@ export function gladPad(pts) {
     const k = Math.max(krom[Math.max(0, i - 1)], krom[Math.min(n - 2, i)]);
     vmax[i] = k > 1e-4 ? Math.sqrt(PAD.dwars / k) : 99;
   }
+  // de afstand langs de lijn: in een bocht liggen de monsters na het gladstrijken dichter dan twee meter
+  const lang = new Float32Array(n);
+  for (let i = 1; i < n; i++) lang[i] = lang[i - 1] + p[i].distanceTo(p[i - 1]);
   p.raak = { tx, tz };
   p.vmax = vmax;
+  p.lang = lang;
   pts._glad = p;
   return p;
 }
@@ -1194,8 +1198,12 @@ export class Vehicles {
           t.keer = { cx: E.x, cz: E.y, ux, uz, vx: pl.dx * L, vz: pl.dz * L, f: 0 };
           t.dir = eind > 0 ? -1 : 1;
           t.t = eind > 0 ? n - 1.001 : 0.001;
-        } else if (t.t >= n - 1) { if (t.bounce) { t.dir = -1; t.t = n - 1.001; } else t.t = 0; }
-        else if (t.t <= 0) { if (t.bounce) { t.dir = 1; t.t = 0.001; } else t.t = n - 1.001; }
+        } else if (t.t >= n - 1 || t.t <= 0) {
+          if (t.t >= n - 1) { if (t.bounce) { t.dir = -1; t.t = n - 1.001; } else t.t = 0; }
+          else if (t.bounce) { t.dir = 1; t.t = 0.001; } else t.t = n - 1.001;
+          // de N7 begint weer vooraan: niet met 25 m/s de bocht in die daar ligt
+          t.snelheid = Math.min(t.snelheid, this.bochtSnelheid(t));
+        }
       }
 
       const pl = this.plekOpPad(t);
@@ -1228,8 +1236,11 @@ export class Vehicles {
     const x = P[j0].x + (P[j1].x - P[j0].x) * f, z = P[j0].y + (P[j1].y - P[j0].y) * f;
     let dx, dz;
     if (P.raak) {
-      dx = P.raak.tx[j0] + (P.raak.tx[j1] - P.raak.tx[j0]) * f;
-      dz = P.raak.tz[j0] + (P.raak.tz[j1] - P.raak.tz[j0]) * f;
+      // over de hoek, niet over de vector: dan draait hij over het hele stuk even snel
+      const a0 = Math.atan2(P.raak.tz[j0], P.raak.tx[j0]);
+      let da = Math.atan2(P.raak.tz[j1], P.raak.tx[j1]) - a0;
+      if (da > Math.PI) da -= 2 * Math.PI; else if (da < -Math.PI) da += 2 * Math.PI;
+      dx = Math.cos(a0 + da * f); dz = Math.sin(a0 + da * f);
     } else { dx = P[j1].x - P[j0].x; dz = P[j1].y - P[j0].y; }
     const l = Math.hypot(dx, dz) || 1;
     dx = dx / l * t.dir; dz = dz / l * t.dir;
@@ -1247,21 +1258,25 @@ export class Vehicles {
     if (t.keer) return 3;
     if (!P || !P.vmax) return Infinity;
     const n = P.length, B = PAD.remmen;
-    let beste = Infinity;
+    // het monster waar hij net voorbij is telt ook: daar zit hij nog in de bocht
+    const achter = t.dir > 0 ? Math.floor(t.t) : Math.ceil(t.t);
+    let beste = achter >= 0 && achter < n && P.vmax[achter] < 99 ? P.vmax[achter] : Infinity;
     const i0 = t.dir > 0 ? Math.ceil(t.t) : Math.floor(t.t);
+    const j = Math.max(0, Math.min(n - 2, Math.floor(t.t)));
+    const hier = P.lang[j] + (P.lang[j + 1] - P.lang[j]) * Math.max(0, Math.min(1, t.t - j));
     // zo ver als hij nodig heeft om tot stilstand te remmen: op de N7 (25 m/s) ruim honderd meter
     const v = Math.abs(t.snelheid || 0), vooruit = Math.min(240, Math.max(PAD.vooruit, v * v / (2 * B) + 12));
     for (let k = 0; k * PAD.stap <= vooruit; k++) {
       const i = i0 + k * t.dir;
-      const d = Math.abs(i - t.t) * PAD.stap;
       if (i < 0 || i > n - 1) {
         // drie meter per seconde óp het eindpunt, niet een monster verder
-        const dEind = Math.abs((t.dir > 0 ? n - 1 : 0) - t.t) * PAD.stap;
+        const dEind = Math.abs(P.lang[t.dir > 0 ? n - 1 : 0] - hier);
         if (t.bounce) beste = Math.min(beste, Math.sqrt(9 + 2 * B * dEind));
         break;
       }
       const vb = P.vmax[i];
       if (vb >= 99) continue;
+      const d = Math.abs(P.lang[i] - hier);
       const mag = Math.sqrt(vb * vb + 2 * B * d);
       if (mag < beste) beste = mag;
     }

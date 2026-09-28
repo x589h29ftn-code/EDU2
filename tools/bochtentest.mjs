@@ -110,8 +110,10 @@ const rit = await page.evaluate(() => {
       if (draai > uit.maxDraai) { uit.maxDraai = draai; uit.maxDraaiWaar = `${Math.round(p.x)},${Math.round(p.z)} op ${v.toFixed(1)} m/s`; }
       const dwars = draai * v;
       if (dwars > uit.maxDwars) { uit.maxDwars = dwars; uit.maxDwarsWaar = `${Math.round(p.x)},${Math.round(p.z)}${t.haast > 0 ? ' (haast)' : ''}`; }
-      const i0 = Math.max(0, Math.min(t.path.length - 1, Math.round(t.t)));
-      if (!(t.haast > 0) && t.path.vmax && v > t.path.vmax[i0] + 0.6) uit.teHard++;
+      // op het stuk tussen twee monsters geldt de ruimste van de twee: de strengste is de bocht die nog komt
+      const j0 = Math.max(0, Math.min(t.path.length - 2, Math.floor(t.t)));
+      const vm = t.path.vmax ? Math.max(t.path.vmax[j0], t.path.vmax[j0 + 1]) : Infinity;
+      if (!(t.haast > 0) && v > vm + 0.4) uit.teHard++;
     });
   }
   uit.rijdend = V.traffic.filter(t => !t.slaapt).length;
@@ -182,22 +184,23 @@ const keer = await page.evaluate(() => {
   const hoek = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
   let o = { x: t.mesh.position.x, z: t.mesh.position.z, yaw: t.mesh.rotation.y };
   const yaw0 = o.yaw;
-  let gezien = false, klaar = false, maxDraai = 0, maxSprong = 0, vKeer = 0, draaiTot = 0;
+  let yawKeer = yaw0, gezien = false, klaar = false, maxDraai = 0, maxSprong = 0, vKeer = 0, draaiTot = 0;
   for (let stap = 0; stap < 600 && !klaar; stap++) {
     V.updateTraffic(dt);
     const p = { x: t.mesh.position.x, z: t.mesh.position.z, yaw: t.mesh.rotation.y };
     const d = hoek(p.yaw - o.yaw);
     maxDraai = Math.max(maxDraai, Math.abs(d) / dt);
     maxSprong = Math.max(maxSprong, Math.hypot(p.x - o.x, p.z - o.z) - Math.abs(t.snelheid) * dt * 1.02 - 0.02);
+    if (t.keer && !gezien) yawKeer = o.yaw;       // de richting waarmee hij aan het keren begint
     if (t.keer) { gezien = true; vKeer = Math.max(vKeer, t.snelheid); draaiTot += d; }
     if (gezien && !t.keer) klaar = true;
     o = p;
   }
   for (const q of slapers) q.slaapt = false;
-  return { gezien, klaar, maxDraai, maxSprong, vKeer, draaiTot, dir: t.dir, omgedraaid: Math.abs(hoek(o.yaw - yaw0)) };
+  return { gezien, klaar, maxDraai, maxSprong, vKeer, draaiTot, dir: t.dir, omgedraaid: Math.abs(hoek(o.yaw - yawKeer)) };
 });
 ok(keer.gezien && keer.klaar, 'hij keert met een halve cirkel en rijdt terug', `richting nu ${keer.dir}, ${Math.abs(keer.draaiTot).toFixed(2)} rad gedraaid tijdens het keren`);
-ok(keer.omgedraaid > 2.9, 'en rijdt daarna de andere kant op', `${keer.omgedraaid.toFixed(2)} rad t.o.v. ervoor`);
+ok(keer.omgedraaid > 2.9, 'en rijdt daarna de andere kant op', `${keer.omgedraaid.toFixed(2)} rad t.o.v. het begin van het keren`);
 ok(keer.maxDraai < 3, 'geen halve draai in één beeld (hoogstens 3 rad/s)', `${keer.maxDraai.toFixed(2)} rad/s`);
 ok(keer.maxSprong < 0.08, 'en geen sprong naar de andere strook', `${keer.maxSprong.toFixed(3)} m te veel`);
 ok(keer.vKeer <= 3.3, 'stapvoets gekeerd', `${keer.vKeer.toFixed(1)} m/s`);

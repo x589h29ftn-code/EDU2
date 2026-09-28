@@ -6522,6 +6522,19 @@ die door AI bestuurd worden ook bochten soepeler laten nemen?"
   versie keek vast 45 m vooruit, en toen reed het verkeer op de N7 met 18,9 m/s²
   dwarsversnelling door een bocht: sommige assen die "N7" heten lopen aan het eind een
   op- of afrit in, met een bocht van 7 m/s, en op 25 m/s heb je daar 110 m voor nodig.
+  Daarna nog drie dingen, alle drie gevonden door het verkeer in node na te spelen (de
+  functies uit js/vehicles.js los geladen, alle assen, beide kanten, beide stroken; dat
+  duurt seconden, de proef in de browser een kwartier):
+  - de afstand tot een bocht telde als monsters × 2 m, maar het gladstrijken trekt de
+    monsters in een bocht naar elkaar toe: de bocht leek verder weg dan hij was. Nu met
+    de echte lengte langs de lijn (`lang`);
+  - een N7-auto die aan het eind van zijn as vooraan terugkomt (zo was het al) nam zijn
+    25 m/s mee de bocht in waar de as begint: 11,9 m/s² dwars. Nu begint hij daar op de
+    bochtsnelheid;
+  - de raaklijn tussen twee monsters werd als vector geïnterpoleerd; die draait halverwege
+    11 % sneller dan aan de randen. Nu over de hoek.
+  Nagespeeld daarna: hoogstens 1,21 rad/s draaien (de N7 bij de afrit, op 2,2 m/s) en
+  2,9 m/s² dwars (het Wilgeroosje, op 7,9 m/s).
 - *Keren* (`keer`): aan het eind van de as een halve cirkel om het eindpunt, van zijn
   strook naar de andere, op drie meter per seconde.
 - *Politie*: `drive` neemt naast A en D ook `keys.stuur` (−1…1); js/politie.js stuurt met
