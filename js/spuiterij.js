@@ -60,7 +60,7 @@ const OPEN_HOEK = 0.62;         // en alleen als je er zo'n beetje naartoe rijdt
 const DEUR_TIJD = 1.5;          // seconden voor de deur helemaal open of dicht is
 const BLAUW_STRAAL = 26;        // staat er politie binnen deze straal? dan niet
 const SPUITEN = 4.2;            // hoe lang het overspuiten duurt (s)
-const PRIJS_PER_STER = 100;     // 1 ster € 100, 5 sterren € 500
+export const PRIJS_PER_STER = 100;     // 1 ster € 100, 5 sterren € 500
 
 // ---------- materialen ----------
 let MAT = null;
@@ -485,6 +485,11 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
   return {
     update,
     get bezig() { return !!bezig; },
+    // het speldje op de kaart (js/hud.js): voor de middelste box
+    get winkels() {
+      const b = boxen[Math.floor(boxen.length / 2)];
+      return b ? [{ x: b.deurX, z: b.deurZ, naam: 'BP wasbox', wat: 'overspuiten' }] : [];
+    },
     get boxen() {
       return boxen.map(b => ({
         i: b.i, staat: b.staat, open: +b.open.toFixed(3),

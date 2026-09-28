@@ -58,7 +58,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/vehicles.js` | geparkeerde auto's, verkeer (over `gladPad`: gladde lijn, remmen voor de bocht, keren), rijgedrag, `voegToe()` |
 | `js/npc.js` | voetgangers en fietsers op wegvakken |
 | `js/audio.js` | alles synthetisch, plus de mp3-radio; `autoradio(actief, sterkte)` |
-| `js/hud.js` | minimap, grote kaart, meldingen, vlaggen |
+| `js/hud.js` | minimap, grote kaart met legenda (`zetLegenda`, iconen per soort in `HUD.PICTO`), meldingen, vlaggen |
 | `js/bewaking.js` | schutters: bewaking, de bende van missie 7 en 10 (met opties) |
 | `js/looppad.js` | een looproute te voet om hekken en gebouwen heen (A*) |
 | `js/bendes.js` | van missie 10 tot 12: groepjes van De Veteraan op straat in Tinga en langs de Lemmerweg |
@@ -233,7 +233,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
+De laatste die ertoe doen: `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
 de route, de loods, een automaat die volgt, te dichtbij, te ver, de Ferrari, de foto's, gezien
 worden; stap 96) met `schaduwshots` (vijf foto's); `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
 met een automaat die de Ferrari over het parcours rijdt, goed en slordig, het verliezen, de ring
@@ -371,6 +371,9 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   een monster, gladgestreken, met `raak` en `vmax`. `t.t` is een index in die gladde lijn, niet in
   de as; wie een auto op een as zet gebruikt `zetOp` (die zoekt het monster erbij). Een computer-
   bestuurder die `drive` gebruikt stuurt met `keys.stuur` (−1…1), niet met A/D: dat slingert.
+- **Een nieuwe winkel of plek op de kaart** (stap 100) levert `winkels` met een `wat` dat in
+  `HUD.PICTO` en `HUD.PICTO_KLEUR` staat, en een regel in de legenda (js/main.js, `zetLegenda`)
+  met zijn bedragen uit de module zelf; `npm run legendatest` kijkt of elk speldje een icoon heeft.
 - **Een nieuwe missie met een wachtfase hoort in `KLUS_WACHT`** (stap 99), anders komt er
   daar geen klus; en een nieuwe `werk…Bij` van een missie die op je kan wachten hoort achter
   `!wachtOpKlus`, anders gaat hij tijdens een klus gewoon door.

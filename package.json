@@ -177,6 +177,7 @@
     "bochtentest": "node tools/bochtentest.mjs",
     "bochtenshots": "node tools/bochtenshots.mjs",
     "klusjestest": "node tools/klusjestest.mjs",
-    "klusjesshots": "node tools/klusjesshots.mjs"
+    "klusjesshots": "node tools/klusjesshots.mjs",
+    "legendatest": "node tools/legendatest.mjs"
   }
 }

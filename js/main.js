@@ -5,18 +5,19 @@ import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
 import { NPCs } from './npc.js';
-import { HUD } from './hud.js';
+import { HUD, euro } from './hud.js';
 import { isTouchDevice, initTouchControls } from './touch.js';
 import { START, toWorld, ROWS, PROPS } from './data.js';
 import { initSfeer } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur, WONINGEN } from './interieur.js';
-import { initBoerderij } from './boerderij.js';
-import { initSpuiterij } from './spuiterij.js';
-import { initGarage } from './garage.js';
+import { initBoerderij, MUNITIE, EHBO, PISTOOL, MITRAILLEUR, SNIPER } from './boerderij.js';
+import { initSpuiterij, PRIJS_PER_STER } from './spuiterij.js';
+import { initGarage, TE_KOOP, NAAM as AUTOHUIS } from './garage.js';
 import { inBouwvlak } from './bouwvlak.js';
 import { initBoten } from './boot.js';
-import { initSupermarkt } from './supermarkt.js';
+import { initSupermarkt, BIER } from './supermarkt.js';
+import { KLUS } from './klusjes.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
 import { initPolitieboot } from './politieboot.js';
@@ -721,7 +722,29 @@ const spuiterij = initSpuiterij({ scene, player, vehicles, hud, verhaal, politie
  met de Ferrari's en de BX (js/garage.js, de plek in js/bouwvlak.js).
 */
 const garage = (KAART && !BOVEN) ? initGarage({ scene, player, vehicles, hud, verhaal, sfeer: dagKlok }) : null;
-if (garage) { extraWinkels = garage.winkels; winkelsNu = null; werkKaartvlaggenBij(); }
+// (en de wasbox achter de BP, die stond nog niet op de kaart)
+extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : [])];
+winkelsNu = null; werkKaartvlaggenBij();
+
+/*
+ De legenda onderaan de grote kaart (js/hud.js, stap 100: "een legenda voor oa Tinga
+ State en wat je er kan, met icoon"). De bedragen komen uit de modules zelf, zodat de
+ legenda meeverandert als er een prijs verandert; tools/legendatest.mjs meet dat na.
+*/
+{
+  const ferrari = TE_KOOP.find(a => a.soort === 'ferrari'), bx = TE_KOOP.find(a => a.soort === 'bx');
+  const wapenVanaf = Math.min(PISTOOL.prijs, MITRAILLEUR.prijs, SNIPER.prijs);
+  hud.zetLegenda([
+    { wat: 'munitie', naam: 'Tinga State', uitleg: `munitie ${euro(MUNITIE.prijs)}, verband ${euro(EHBO.prijs)}, wapens vanaf ${euro(wapenVanaf)}` },
+    { wat: 'bier', naam: 'Poiesz', uitleg: `bier ${euro(BIER.prijs)}: elk flesje ${BIER.leven} leven` },
+    { wat: "auto's", naam: AUTOHUIS, uitleg: `Ferrari ${euro(ferrari.prijs)}, BX ${euro(bx.prijs)}` },
+    { wat: 'overspuiten', naam: 'BP wasbox', uitleg: `overspuiten: de sterren kwijt, ${euro(PRIJS_PER_STER)} per ster` },
+    { wat: 'huis', naam: 'je huis', uitleg: 'bier in de koelkast, barbecue, radio, je auto op de oprit' },
+    { wat: 'klus', naam: 'klusje', uitleg: `Mark of Johan: ${euro(KLUS.loon.tas[0])} tot ${euro(KLUS.loon.omleggen[1])}` },
+    { wat: 'missie', naam: 'missie', uitleg: 'de gele ruit (M, J, R…): daar gaat het verhaal verder' },
+    { wat: 'politie', naam: 'politie', uitleg: 'blauw: daar zoeken ze je' },
+  ]);
+}
 
 /*
  De twee sloepen op het water (js/boot.js): één aan de Geeuwkade achter de

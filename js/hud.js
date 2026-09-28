@@ -254,7 +254,8 @@ export class HUD {
    Winkels op de kaart: [{ x, z, naam }]. Op dit moment is dat alleen de
    munitiewinkel in de boerderij Tinga State (js/boerderij.js).
   */
-  zetWinkels(lijst) { this.winkels = lijst || []; }
+  // (het vaste deel van de grote kaart moet dan opnieuw: daar staan de speldjes in)
+  zetWinkels(lijst) { this.winkels = lijst || []; this._vastSleutel = null; }
 
   /*
    Het winkeltje: een amberkleurig schildje met een patroon erin, getekend in
@@ -309,6 +310,11 @@ export class HUD {
    op je wacht en een klus kunnen allebei op de kaart staan.
   */
   zetKlus(k) { this.klus = k || null; }
+  /*
+   De legenda onderaan de grote kaart: [{ wat, naam, uitleg }]. js/main.js stelt hem samen
+   met de prijzen uit de modules zelf, zodat wat er staat klopt met wat het kost.
+  */
+  zetLegenda(lijst) { this.legenda = lijst || []; }
   static tekenKlus(c, r = 10) {
     c.beginPath();
     c.moveTo(0, r * 1.25);
@@ -321,6 +327,26 @@ export class HUD {
     c.font = `bold ${(r * 1.25).toFixed(1)}px sans-serif`;
     c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText('K', 0, -r * 0.08);
+  }
+
+  /*
+   Eén icoon per soort plek (stap 100, "een legenda onderaan de grote kaart"). Alle winkels
+   droegen hetzelfde oranje speldje met een patroon erin, ook de supermarkt en het
+   autohuis; nu heeft elke soort een eigen kleur en een eigen tekentje, en de legenda
+   gebruikt precies dezelfde tekening. `wat` is wat de plek levert (zie `winkels` in
+   js/boerderij.js, js/supermarkt.js, js/garage.js en js/spuiterij.js).
+  */
+  static speld(c, r, kleur, rand) {
+    c.beginPath();
+    c.moveTo(0, r * 1.25);
+    c.lineTo(-r * 0.72, r * 0.35);
+    c.arc(0, -r * 0.1, r, Math.PI * 0.78, Math.PI * 0.22, false);
+    c.closePath();
+    c.fillStyle = kleur; c.fill();
+    c.strokeStyle = rand; c.lineWidth = 1.4; c.stroke();
+  }
+  static tekenPictogram(c, wat, r = 9) {
+    (HUD.PICTO[wat] || HUD.PICTO.munitie)(c, r);
   }
 
   // Mislukte missie: het beeld vaagt naar grijs.
@@ -577,7 +603,7 @@ export class HUD {
       c.save();
       c.translate(w.x * scale, w.z * scale);
       c.rotate(-this._kaartRot);
-      if (w.wat === 'huis') HUD.tekenHuis(c, 9); else HUD.tekenWinkel(c, 9);
+      HUD.tekenPictogram(c, w.wat, 9);
       c.restore();
     }
     // de klus: ook buiten de kaartrand, op de rand van het rondje, zodat je weet welke kant op
@@ -643,29 +669,50 @@ HUD.prototype.bigVast = function (W, H, minX, maxX, minZ, maxZ, scale) {
   }
   this._kaartRot = 0;
   this.tekenRoute(c, 1, 2.5 / scale);
-  // winkels met hun naam; hier staat noorden boven, dus geen tegendraai
-  for (const w of (this.winkels || [])) {
-    c.save();
-    c.translate(w.x, w.z);
-    c.scale(1 / scale, 1 / scale);
-    if (w.wat === 'huis') HUD.tekenHuis(c, 9); else HUD.tekenWinkel(c, 9);
-    c.textAlign = 'center';
-    c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
-    if (w.naam) {
-      c.font = 'bold 12px sans-serif';
-      c.strokeText(w.naam, 0, -16); c.fillStyle = '#f5e6c0'; c.fillText(w.naam, 0, -16);
-    }
-    if (w.wat) {
-      c.font = 'bold 11px sans-serif';
-      c.strokeText(w.wat, 0, 24); c.fillStyle = '#f2b632'; c.fillText(w.wat, 0, 24);
-    }
-    c.restore();
-  }
   c.restore();
   // straatnamen staan in schermcoördinaten
   c.save(); c.translate(W / 2, H / 2); c.translate(-(minX + maxX) / 2 * scale, -(minZ + maxZ) / 2 * scale);
   this.drawLabels(c, scale, 0, 0);
   c.restore();
+  /*
+   De winkels met hun naam, bovenop de straatnamen; hier staat noorden boven, dus geen
+   tegendraai. Op deze schaal is een meter een kwart beeldpunt: het autohuis en de wasbox
+   aan weerskanten van de Lemmerweg vielen over elkaar. Een speldje dat te dicht bij een
+   ander komt schuift op (onder, boven, opzij) met een lijntje naar zijn echte plek.
+  */
+  const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
+  const PLEK = [[0, 0], [0, 46], [0, -46], [70, 0], [-70, 0], [70, 46], [-70, 46], [70, -46], [-70, -46], [0, 92]];
+  const geplaatst = [];
+  for (const w of (this.winkels || [])) {
+    const tx = W / 2 + (w.x - cx) * scale, ty = H / 2 + (w.z - cz) * scale;
+    let px = tx, py = ty;
+    for (const [dx, dy] of PLEK) {
+      px = tx + dx; py = ty + dy;
+      if (geplaatst.every(q => Math.abs(q.x - px) > 64 || Math.abs(q.y - py) > 40)) break;
+    }
+    geplaatst.push({ x: px, y: py, echt: { x: tx, y: ty }, wat: w.wat, naam: w.naam });
+  }
+  for (const q of geplaatst) {
+    if (q.x === q.echt.x && q.y === q.echt.y) continue;
+    c.strokeStyle = 'rgba(245,230,192,0.85)'; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(q.echt.x, q.echt.y); c.lineTo(q.x, q.y + 11); c.stroke();
+    c.fillStyle = '#f5e6c0';
+    c.beginPath(); c.arc(q.echt.x, q.echt.y, 2.5, 0, Math.PI * 2); c.fill();
+  }
+  for (const q of geplaatst) {
+    c.save();
+    c.translate(q.x, q.y);
+    HUD.tekenPictogram(c, q.wat, 9);
+    c.textAlign = 'center';
+    c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
+    if (q.naam) {
+      c.font = 'bold 12px sans-serif';
+      c.strokeText(q.naam, 0, -16); c.fillStyle = '#f5e6c0'; c.fillText(q.naam, 0, -16);
+    }
+    c.restore();
+  }
+  // voor de proef: waar elk speldje op de grote kaart staat
+  this._bigPins = geplaatst;
   c.fillStyle = '#fff'; c.font = 'bold 16px sans-serif'; c.textAlign = 'left';
   const sluit = document.body.classList.contains('touch') ? 'tik weer op de kaartknop' : 'M om te sluiten';
   c.fillText(`TINGA · SNEEK — kaart (${sluit}, noorden boven)`, 16, 26);
@@ -746,12 +793,156 @@ HUD.prototype.drawBig = function (player, vehicles) {
    of waar een object moet staan. Op de telefoon is er geen toetsenbord, dus hier
    staat hij gewoon te lezen; op de pc zet K hem ook op het klembord.
   */
+  // de legenda als laatste: anders tekenen de auto's en de politie eroverheen
+  this.tekenLegenda(c, W, H);
+  // (en het vakje met je plek erboven)
+  const plekY = this.legendaBand(W, H).y - 30;
   c.font = 'bold 14px monospace';
-  c.fillStyle = 'rgba(8,14,24,0.85)'; c.fillRect(12, H - 34, 232, 24);
+  c.fillStyle = 'rgba(8,14,24,0.85)'; c.fillRect(12, plekY, 232, 24);
   c.fillStyle = '#ffd400';
-  c.fillText(`plek  ${px.toFixed(1)} , ${pz.toFixed(1)}`, 20, H - 17);
+  c.textAlign = 'left';
+  c.fillText(`plek  ${px.toFixed(1)} , ${pz.toFixed(1)}`, 20, plekY + 17);
 };
 
+
+/*
+ De legenda (stap 100): een band onderaan de grote kaart met per soort plek het icoon, de
+ naam en wat je er kunt. Vier kolommen op een breed scherm, twee op een smal. De vakken
+ komen uit `legendaVakken`, zodat de proef (tools/legendatest.mjs) ze kan nameten.
+*/
+const LEG = { rij: 46, marge: 12, onder: 8 };
+const legendaKolommen = (W) => (W >= 860 ? 4 : 2);
+HUD.prototype.legendaBand = function (W, H) {
+  const n = (this.legenda || []).length;
+  if (!n) return { x: LEG.marge, y: H - LEG.onder, w: W - LEG.marge * 2, h: 0 };
+  const h = Math.ceil(n / legendaKolommen(W)) * LEG.rij + 12;
+  return { x: LEG.marge, y: H - LEG.onder - h, w: W - LEG.marge * 2, h };
+};
+HUD.prototype.legendaVakken = function (W, H) {
+  const lijst = this.legenda || [];
+  if (!lijst.length) return [];
+  const kol = legendaKolommen(W);
+  const band = this.legendaBand(W, H);
+  const bw = (band.w - 12) / kol;
+  return lijst.map((l, i) => ({
+    ...l,
+    x: band.x + 6 + (i % kol) * bw, y: band.y + 6 + Math.floor(i / kol) * LEG.rij,
+    w: bw, h: LEG.rij,
+  }));
+};
+// een tekst die niet breder mag dan `max`: dan eraf tot hij past, met een beletselteken
+function pasIn(c, tekst, max) {
+  if (c.measureText(tekst).width <= max) return tekst;
+  let t = tekst;
+  while (t.length > 1 && c.measureText(`${t}…`).width > max) t = t.slice(0, -1);
+  return `${t}…`;
+}
+// over hoogstens `regels` regels van `max` breed, op de woorden; wat dan nog over is gaat eraf
+function breek(c, tekst, max, regels = 2) {
+  const woorden = tekst.split(' ');
+  const uit = [];
+  let regel = '';
+  for (const w of woorden) {
+    const proef = regel ? `${regel} ${w}` : w;
+    if (c.measureText(proef).width <= max || !regel) regel = proef;
+    else { uit.push(regel); regel = w; }
+  }
+  if (regel) uit.push(regel);
+  if (uit.length <= regels) return uit;
+  const kort = uit.slice(0, regels);
+  kort[regels - 1] = pasIn(c, uit.slice(regels - 1).join(' '), max);
+  return kort;
+}
+HUD.prototype.tekenLegenda = function (c, W, H) {
+  const vakken = this.legendaVakken(W, H);
+  if (!vakken.length) return;
+  const band = this.legendaBand(W, H);
+  let afgekapt = 0;
+  c.save();
+  c.fillStyle = 'rgba(8,14,24,0.9)';
+  c.fillRect(band.x, band.y, band.w, band.h);
+  c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 1;
+  c.strokeRect(band.x + 0.5, band.y + 0.5, band.w - 1, band.h - 1);
+  for (const v of vakken) {
+    c.save();
+    c.translate(v.x + 16, v.y + 16);
+    HUD.tekenPictogram(c, v.wat, 9);
+    c.restore();
+    c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+    c.font = 'bold 12px sans-serif'; c.fillStyle = '#f5e6c0';
+    const naam = pasIn(c, v.naam, v.w - 40);
+    c.fillText(naam, v.x + 32, v.y + 13);
+    c.font = '11px sans-serif'; c.fillStyle = '#c3cfdb';
+    const regels = breek(c, v.uitleg, v.w - 40);
+    regels.forEach((t, j) => c.fillText(t, v.x + 32, v.y + 27 + j * 12));
+    // wat er niet paste: de proef wil dat dat nul is
+    if (naam !== v.naam || regels.some(t => t.endsWith('…'))) afgekapt++;
+  }
+  this._legendaAfgekapt = afgekapt;
+  c.restore();
+};
+
+/*
+ De tekeningen per soort. De kleur van het speldje staat apart (`PICTO_KLEUR`), zodat de
+ proef op de kaart kan nameten of het goede icoon er staat.
+*/
+HUD.PICTO_KLEUR = {
+  munitie: '#f2b632', bier: '#35b5b0', "auto's": '#e2433b', overspuiten: '#b06be0',
+  huis: '#5ea8e6', klus: '#39d353', missie: '#ffd400', politie: '#3d8bff',
+};
+HUD.PICTO = {
+  munitie: (c, r) => HUD.tekenWinkel(c, r),
+  huis: (c, r) => HUD.tekenHuis(c, r),
+  klus: (c, r) => HUD.tekenKlus(c, r),
+  // de supermarkt: een glas bier met een oor
+  bier: (c, r) => {
+    HUD.speld(c, r, HUD.PICTO_KLEUR.bier, '#0c2c2a');
+    c.fillStyle = '#fdf6d8';
+    c.fillRect(-r * 0.32, -r * 0.55, r * 0.52, r * 0.72);
+    c.strokeStyle = '#fdf6d8'; c.lineWidth = r * 0.14;
+    c.beginPath(); c.arc(r * 0.24, -r * 0.2, r * 0.2, -Math.PI / 2, Math.PI / 2); c.stroke();
+    c.fillStyle = '#0c2c2a';
+    c.fillRect(-r * 0.32, -r * 0.55, r * 0.52, r * 0.14);
+  },
+  // het autohuis: een autootje van opzij
+  "auto's": (c, r) => {
+    HUD.speld(c, r, HUD.PICTO_KLEUR["auto's"], '#3a0d0b');
+    c.fillStyle = '#fff4f0';
+    c.fillRect(-r * 0.6, -r * 0.18, r * 1.2, r * 0.36);
+    c.fillRect(-r * 0.3, -r * 0.46, r * 0.6, r * 0.3);
+    c.fillStyle = '#3a0d0b';
+    c.beginPath(); c.arc(-r * 0.32, r * 0.2, r * 0.16, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(r * 0.32, r * 0.2, r * 0.16, 0, Math.PI * 2); c.fill();
+  },
+  // de wasbox: een spuitbus met een wolkje
+  overspuiten: (c, r) => {
+    HUD.speld(c, r, HUD.PICTO_KLEUR.overspuiten, '#26103a');
+    c.fillStyle = '#f7efff';
+    c.fillRect(-r * 0.36, -r * 0.34, r * 0.4, r * 0.72);
+    c.fillRect(-r * 0.26, -r * 0.54, r * 0.2, r * 0.2);
+    for (const [dx, dy] of [[0.3, -0.5], [0.48, -0.36], [0.34, -0.2], [0.56, -0.58]]) {
+      c.beginPath(); c.arc(dx * r, dy * r, r * 0.08, 0, Math.PI * 2); c.fill();
+    }
+  },
+  // een missie: de gele ruit met een letter, zoals de vlag van de navigatie
+  missie: (c, r) => {
+    const v = r * 0.26;
+    c.beginPath();
+    c.moveTo(0, -v * 3.2); c.lineTo(v * 2.4, 0); c.lineTo(0, v * 3.2); c.lineTo(-v * 2.4, 0);
+    c.closePath();
+    c.fillStyle = HUD.PICTO_KLEUR.missie; c.fill();
+    c.strokeStyle = '#1a1a1a'; c.lineWidth = 1.4; c.stroke();
+    c.fillStyle = '#1a1a1a'; c.font = `bold ${(r * 0.95).toFixed(1)}px sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('M', 0, 0.5);
+  },
+  // de politie: de blauwe stip die knippert als ze je zoeken
+  politie: (c, r) => {
+    c.beginPath(); c.arc(0, 0, r * 0.55, 0, Math.PI * 2);
+    c.fillStyle = HUD.PICTO_KLEUR.politie; c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.2; c.stroke();
+  },
+};
 
 // Bedrag in euro's, met een punt als duizendscheiding: € 1.000
 export function euro(bedrag) {

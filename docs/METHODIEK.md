@@ -6578,6 +6578,31 @@ zwaarte; niet overlappen met een missie, en niet op de randen van het gebied.
 - `npm run klusjestest` meet het (plekken, aanbod, alle vier de soorten, de wachtende missie, de
   pauze, afbreken, mislukken, laden, de beloning); `npm run klusjesshots` maakt vier foto's.
 
+**Een legenda onderaan de grote kaart (stap 100).** Gevraagd (28 sep 2026): "zorg dat je in de
+grote map onderaan een legenda maakt voor oa Tinga State en wat je er kan met icoon, garage, BP
+spuiterij, je huis ed, klusje icoon".
+
+- *Eén icoon voor alles.* Tinga State, de twee supermarkten en het autohuis droegen hetzelfde
+  oranje speldje met een patroon; alleen het huis was anders. Nu heeft elke soort een eigen kleur
+  en tekentje (`HUD.PICTO`, `HUD.PICTO_KLEUR` in js/hud.js), en de legenda tekent met precies
+  dezelfde functie. De wasbox bij de BP stond helemaal niet op de kaart; js/spuiterij.js levert nu
+  ook `winkels`.
+- *De bedragen komen uit de modules.* js/main.js stelt de legenda samen uit `MUNITIE`, `EHBO`, de
+  wapens, `BIER`, `TE_KOOP`, `PRIJS_PER_STER` en `KLUS.loon`; de proef zoekt ze in de tekst terug.
+- *Over elkaar.* Op de grote kaart is een meter een kwart beeldpunt: het autohuis en de wasbox,
+  45 m uit elkaar aan weerskanten van de Lemmerweg, vielen over elkaar. Een speldje dat te dicht bij
+  een ander komt schuift op, met een lijntje naar zijn echte plek. De speldjes staan nu ook bóven de
+  straatnamen.
+- *De legenda als laatste.* In het vaste (eenmaal getekende) deel van de kaart tekenden de auto's
+  en de politie er elk beeld overheen; nu komt hij na alles, met het vakje van je plek erboven.
+- *Afgekapt.* De uitleg past niet altijd op één regel (Tinga State); hij breekt over twee regels, en
+  wat dan nog niet past krijgt een beletselteken. De HUD telt dat (`_legendaAfgekapt`); de proef
+  wil nul, ook in twee kolommen op een smal scherm.
+- *Een oude fout erbij.* `zetWinkels` liet het vaste deel van de grote kaart staan: de drie te koop
+  staande woningen van missie 9 verschenen daar pas als het venster van maat veranderde. Nu tekent
+  hij opnieuw.
+- `npm run legendatest` meet het en maakt `docs/screenshots/legenda.png`.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

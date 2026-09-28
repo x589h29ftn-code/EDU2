@@ -2631,7 +2631,8 @@ de beloning van Johan aan het eind van het verhaal is € 500 (zie [Het verhaal]
 staat rechtsonder in beeld en gaat mee in de opslag.
 
 De winkel is te vinden zonder ernaar te zoeken: op de minikaart én op de grote kaart (**M**) staat een
-amberkleurig speldje met een patroon erin, op de plek van de schuurdeur. Op de minikaart draait het
+amberkleurig speldje met een patroon erin, op de plek van de schuurdeur. (Elke soort plek heeft zijn eigen
+speldje, zie [De kaart: iconen en de legenda](#de-kaart-iconen-en-de-legenda).) Op de minikaart draait het
 icoontje niet mee met de kaart, zodat het altijd rechtop staat; op de grote kaart staat de naam
 erbij.
 
@@ -3321,6 +3322,33 @@ dan dat.
 | acht uur 's ochtends | half acht 's avonds | elf uur: licht achter de ramen |
 
 `npm run lichtshots` maakt deze drie foto's.
+
+## De kaart: iconen en de legenda
+
+Op de minikaart en de grote kaart (**M**) heeft elke soort plek een eigen speldje, en onderaan de
+grote kaart staat een legenda met wat je er kunt:
+
+| Icoon | Plek | Wat je er kunt |
+|---|---|---|
+| oranje, patroon | **Tinga State** | munitie € 50, verband € 25, wapens vanaf € 150 |
+| turkoois, glas | **Poiesz** (IJlst en Duinterpen) | bier € 5: elk flesje 10 leven |
+| rood, autootje | **Autohuis Lemmerweg** | Ferrari € 3.000, BX € 250 |
+| paars, spuitbus | **BP wasbox** | overspuiten: de sterren kwijt, € 100 per ster |
+| blauw, huisje | **je huis** (en in missie 9 de drie te koop) | bier in de koelkast, barbecue, radio, je auto op de oprit |
+| groen, K | **klusje** | Mark of Johan: € 250 tot € 1.000 |
+| gele ruit | **missie** (M, J, R…) | daar gaat het verhaal verder |
+| blauwe stip | **politie** | daar zoeken ze je |
+
+De bedragen komen uit het spel zelf: gaat er een prijs omhoog, dan staat dat ook in de legenda. De
+wasbox bij de BP stond nog niet op de kaart; die heeft nu zijn eigen speldje. Liggen twee plekken
+vlak bij elkaar, zoals het autohuis en de BP aan weerskanten van de Lemmerweg, dan schuift het
+ene speldje een stukje op met een lijntje naar zijn echte plek. Op een smal scherm staat de legenda
+in twee kolommen.
+
+![De grote kaart met de legenda onderaan](docs/screenshots/legenda.png)
+
+`npm run legendatest` toetst het: de acht regels, de bedragen tegen de modules, elk icoon in zijn
+eigen kleur op de kaart, niets afgekapt, geen speldjes over elkaar, en het smalle scherm.
 
 ## Opslaan en laden
 
