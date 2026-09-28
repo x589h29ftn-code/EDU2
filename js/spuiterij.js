@@ -329,6 +329,7 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
     if (eigen != null) return eigen;
     return Math.max(1, sterren) * PRIJS_PER_STER;
   };
+  const prijsTekst = (sterren) => { const p = prijsVoor(sterren); return p > 0 ? `€ ${p}` : 'op rekening'; };
 
   // ---------- per beeld ----------
   let bezig = null;          // de box waar op dit moment iets gebeurt
@@ -379,7 +380,7 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
               wilHint = 'De politie staat ernaast — de deur blijft dicht';
             } else {
               const sterren = politie ? politie.ster : 0;
-              wilHint = `Overspuiten € ${prijsVoor(sterren)}${sterren ? ` — ${sterren} ster${sterren > 1 ? 'ren' : ''} kwijt` : ''}`;
+              wilHint = `Overspuiten ${prijsTekst(sterren)}${sterren ? ` — ${sterren} ster${sterren > 1 ? 'ren' : ''} kwijt` : ''}`;
               box.staat = 'gaatOpen';
               geluid.roldeur();
             }
@@ -390,7 +391,7 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
         if (box.open >= 1) { box.staat = 'open'; box.t = 0; }
         if (auto && dAuto < OPEN_AFSTAND) {
           const sterren = politie ? politie.ster : 0;
-          wilHint = `Rij naar binnen — overspuiten € ${prijsVoor(sterren)}`;
+          wilHint = `Rij naar binnen — overspuiten ${prijsTekst(sterren)}`;
         }
       } else if (box.staat === 'open') {
         box.t += dt;
@@ -417,7 +418,7 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
           geluid.roldeur();
         } else if (!binnen && auto && dAuto < OPEN_AFSTAND) {
           const sterren = politie ? politie.ster : 0;
-          wilHint = `Rij naar binnen — overspuiten € ${prijsVoor(sterren)}`;
+          wilHint = `Rij naar binnen — overspuiten ${prijsTekst(sterren)}`;
         }
       } else if (box.staat === 'gaatDicht' || box.staat === 'gaatDichtLeeg') {
         zetDeur(box, Math.max(0, box.open - dt / DEUR_TIJD));
@@ -428,7 +429,7 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
       } else if (box.staat === 'spuiten') {
         box.t += dt;
         const sterren = politie ? politie.ster : 0;
-        wilHint = `Overspuiten… (€ ${prijsVoor(sterren)})`;
+        wilHint = `Overspuiten… (${prijsTekst(sterren)})`;
         /*
          Stilstaan terwijl het gebeurt. De motor uitzetten zou logisch zijn,
          maar dan hoor je hem ook niet meer aanslaan; afremmen tot nul is
@@ -461,7 +462,8 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
   function klaarMet(box) {
     const sterren = politie ? politie.ster : 0;
     const prijs = prijsVoor(sterren, box.auto || player.inCar);
-    if (!verhaal || !verhaal.betaal || !verhaal.betaal(prijs)) {
+    // een klusauto (js/klusjes.js) gaat op rekening: prijs nul, dan hoeft er niets betaald
+    if (prijs > 0 && (!verhaal || !verhaal.betaal || !verhaal.betaal(prijs))) {
       if (hud) hud.melding('Te weinig geld', `Overspuiten kost € ${prijs}.`, 3);
       return;
     }
@@ -472,9 +474,10 @@ export function initSpuiterij({ scene, player, vehicles, hud, verhaal, politie }
     }
     if (politie && politie.vergeet) politie.vergeet();
     if (hud) {
+      const betaald = prijs > 0 ? `€ ${prijs} betaald` : 'Op rekening';
       hud.melding('Overgespoten', sterren
-        ? `€ ${prijs} betaald. Ze zoeken een auto in een andere kleur.`
-        : `€ ${prijs} betaald voor een nieuwe kleur.`, 4);
+        ? `${betaald}. Ze zoeken een auto in een andere kleur.`
+        : `${betaald} voor een nieuwe kleur.`, 4);
     }
     geluid.spuitbus();
   }

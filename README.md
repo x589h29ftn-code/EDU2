@@ -2187,6 +2187,35 @@ hoogte, langs Parelmoervlinder 3), of de loods vrij staat, de fotoplekken buiten
 volgt, te dichtbij, te ver, de Ferrari, de foto's, en gezien worden. `npm run
 schaduwshots` maakt de vijf foto's.
 
+### Klusjes tussendoor
+
+Tussen twee missies door kun je bijverdienen. Na een paar tellen staat er ergens in de stad
+iemand op de stoep, **Mark of Johan**, met een groen speldje **K** op de kaart. Waar precies is
+elke keer anders, maar nooit op de rand van de wereld en nooit bij iets van het verhaal. Loop
+naar hem toe en druk **E**: hij vertelt wat er moet gebeuren.
+
+![Mark op de stoep met een klus, en de K op de minikaart](docs/screenshots/klus_aanbod.png)
+
+| Klus | Wat | Beloning |
+|---|---|---|
+| **De tas** | een tas naar iemand aan de andere kant van de stad brengen; onderweg zit soms de politie achter je aan (een ster), of wacht er een groepje bij de overdracht | € 250 – 500 |
+| **De auto** | een auto naar de andere kant van de stad brengen en bij een groene ruit langs de stoep neerzetten, heel; soms staat hij als gestolen opgegeven (twee sterren) | € 400 – 650 |
+| **Overspuiten** | een auto stelen (een ster), laten overspuiten in de wasbox achter de BP — dat staat op rekening — en ergens langs de stoep neerzetten | € 550 – 750 |
+| **Omleggen** | iemand op straat neerleggen, soms met een lijfwacht erbij; daarna drie sterren afschudden | € 750, met lijfwacht € 1.000 |
+
+Een tas geef je pas af, en een auto zet je pas neer, als de politie je kwijt is. Is het gelukt,
+dan belt hij en staat het geld erop, en het spel schrijft een checkpoint. Mislukt het (de auto
+total loss) of breek je hem af met **X**, dan verdien je niets en staat er even later een nieuwe.
+
+Een klus kan tussen twee missies, en ook als een missie onder zijn **M** op je wacht: zo kun je
+bij missie 9 geld opbouwen voor een huis. Zolang de klus loopt wacht het verhaal: er komt geen
+telefoontje en de M doet niets. Daarna staan de M en de opdracht van de missie weer in beeld.
+Tijdens een missie die al loopt komt er geen klus.
+
+![De grote kaart met het speldje van de klus](docs/screenshots/klus_kaart.png)
+
+![Het doelwit in zijn grijze jasje, met zijn lijfwacht](docs/screenshots/klus_omleggen.png)
+
 ### Na missie 10: de bende op straat
 
 De Veteraan heeft zich met zijn bende tegen je gekeerd, en dat merk je in de

@@ -338,7 +338,8 @@ export function initBendes({ scene, player, laatVallen = null, paniek = null, ui
    Eén beeld. `actief` is false tijdens een missie en tot missie 10 voorbij is;
    dan verdwijnen de groepjes. Levert de schade aan de speler dit beeld.
   */
-  function update(dt, actief) {
+  // `erbij`: of er vanzelf groepjes bij mogen komen (niet als alleen een klus er een neerzette)
+  function update(dt, actief, erbij = true) {
     const sp = spelerPunt();
     if (!actief) {
       if (groepen.length) for (const g of [...groepen]) verwijder(g);
@@ -347,7 +348,7 @@ export function initBendes({ scene, player, laatVallen = null, paniek = null, ui
     zoekT -= dt;
     if (zoekT <= 0) {
       zoekT = ZOEK_T;
-      if (opduiken) misschienErbij(sp);
+      if (opduiken && erbij) misschienErbij(sp);
       // wat ver weg is en uit zicht, of helemaal neer ligt en uit zicht, gaat weg
       for (const g of [...groepen]) {
         const d = afst(sp, g.plek);

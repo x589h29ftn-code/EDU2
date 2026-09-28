@@ -73,6 +73,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/garage.js` | Autohuis Lemmerweg: glazen showroom, Ferrari's en BX kopen, gekochte auto's in de opslag |
 | `js/race.js` | missie 14: het parcours van de BP naar IJlst (routeplanner + de hoofdweg uit de BGT), gele ringen, finish, tegenstanders langs de lijn |
 | `js/bouwvlak.js` | plekken waar het spel zelf bouwt (de showroom, de loods): daar geen bomen, struiken of gras |
+| `js/klusjes.js` | klusjes tussen de missies door: Mark of Johan met een K op de kaart, tas, auto, overspuiten, omleggen (€ 250–1000) |
 | `js/schaduw.js` | missie 15: de route van Bouwman (BP → Duinterpen → N7), zijn rit met een stop, de loods aan het water met container, kade, steiger en boot, de fotoplekken |
 
 Een paar dingen die niet vanzelf spreken:
@@ -197,6 +198,18 @@ maar even slapen", zwart, "De volgende ochtend" (`wakkerBijMark`: 10:00, voor de
 avond…" tot de ochtend staat de klok stil (`klokLoopt` in de ctx). Rotondes neemt hij tegen de klok
 in (`rotondes`, `eenrichtingRotondes` in js/schaduw.js). **shift+\\** start hem los.
 
+**Klusjes** (stap 99, js/klusjes.js): tussen de missies door, en als een missie onder zijn M
+op je wacht (`KLUS_WACHT` in js/verhaal.js: de fase waarin nog niets begonnen is, ook missie 9
+zolang je geen huis hebt), staat na KLUS.wacht tellen Mark of Johan op een willekeurige stoep met
+een groen speldje K (`hud.zetKlus`). E: tas (€ 250–500, onderweg soms een ster of een groepje via
+`bendes.zetGroep`), auto (€ 400–650, soms twee sterren), overspuiten (€ 550–750, stelen = een
+ster, de wasbox op rekening via `spuitPrijs`), omleggen (€ 750, met lijfwacht € 1.000, daarna
+drie sterren). Plekken: stoep langs een gewone straat of een lege parkeerplek, KLUS.rand (350 m)
+van de rand, KLUS.bezet van `api.bezet`, over de weg bereikbaar. Tijdens een klus wacht het
+verhaal (`wachtOpKlus`: de pauze telt niet af, de werk…Bij van een wachtende missie draait niet,
+E gaat niet naar de missie), daarna zet `pauzeerVoorKlus(false)` de M en de opdracht terug.
+Geslaagd: telefoon, geld, checkpoint. X breekt af; laden en `startMissie` ruimen op (`reset`).
+
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
 achtervolgen, na een tijdje opgeven. Alleen buiten de missies om, en alleen tot
@@ -220,7 +233,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
+De laatste die ertoe doen: `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
 de route, de loods, een automaat die volgt, te dichtbij, te ver, de Ferrari, de foto's, gezien
 worden; stap 96) met `schaduwshots` (vijf foto's); `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
 met een automaat die de Ferrari over het parcours rijdt, goed en slordig, het verliezen, de ring
@@ -358,6 +371,9 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   een monster, gladgestreken, met `raak` en `vmax`. `t.t` is een index in die gladde lijn, niet in
   de as; wie een auto op een as zet gebruikt `zetOp` (die zoekt het monster erbij). Een computer-
   bestuurder die `drive` gebruikt stuurt met `keys.stuur` (−1…1), niet met A/D: dat slingert.
+- **Een nieuwe missie met een wachtfase hoort in `KLUS_WACHT`** (stap 99), anders komt er
+  daar geen klus; en een nieuwe `werk…Bij` van een missie die op je kan wachten hoort achter
+  `!wachtOpKlus`, anders gaat hij tijdens een klus gewoon door.
 - **js/verhaal.js is één groot bereik.** Een `function` met een naam die er al is
   overschrijft de andere stil (hoisting): in stap 89 namen `beginGevecht` en
   `naarDeC4` zo die van missie 10 en 11 over. `npm run brugtest` kijkt er nu naar.

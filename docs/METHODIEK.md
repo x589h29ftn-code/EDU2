@@ -6544,6 +6544,40 @@ die door AI bestuurd worden ook bochten soepeler laten nemen?"
 - `npm run bochtentest` meet het, `npm run bochtenshots` maakt twee foto's
   (`bocht_lijn.png`, `bocht_keren.png`).
 
+**Klusjes tussen de missies door (stap 99).** Gevraagd (28 sep 2026): optionele klusjes om
+geld te verdienen, tussen elke missie door, zodat je vóór de huismissie geld kunt opbouwen:
+een drugstas of een auto van A naar B met politie of een bende op je af, een auto overspuiten
+en ergens neerzetten, iemand omleggen en drie sterren afschudden; € 250 tot € 1.000 naar
+zwaarte; niet overlappen met een missie, en niet op de randen van het gebied.
+
+- *Wanneer.* Tussen twee missies (`missie === 'klaar'`), en ook als een missie onder zijn M op
+  je wacht: `KLUS_WACHT` in js/verhaal.js noemt per missie de fase waarin nog niets begonnen
+  is (missie 6 `wacht`, missie 9 `naar_mark` en `kiezen`, missie 14 `naarRonald`, …). Alleen de
+  pauze was te kort: na missie 4 belt Johan na vijf tellen, en missie 9 — waar het geld voor
+  nodig is — staat juist in een wachtfase tot je een huis koopt.
+- *Niet overlappen.* Zolang er een klus loopt telt de pauze tot de volgende missie niet af, en
+  draait de `werk…Bij` van een wachtende missie niet (`wachtOpKlus`); E gaat niet naar de
+  missie. De klus neemt de navigatie en de opdrachtregel over; `pauzeerVoorKlus` onthoudt wat
+  er stond en zet het daarna terug. Een klus begint nooit tijdens een missie die loopt, en
+  `startMissie` en het laden ruimen er een op.
+- *Waar.* Een stoep langs een gewone straat (geen N7, afrit of viaduct, geen water, geen
+  bouwvlak), 350 m van de rand van de wereld en 160 m van wat het verhaal heeft staan (Mark,
+  Johan, de M, Molenkrite 15), en over de weg te bereiken in hoogstens 2,4 km. Wie de klus
+  geeft: Johan pas als je hem kent, en niet wie er voor het verhaal al ergens staat (bij
+  missie 6 wacht Mark bij Tinga State, dan komt de klus van Johan).
+- *Parkeervakken bestaan niet leeg.* De eerste versie zette een klusauto neer en haalde hem op
+  in een vak uit `KAART.parkeerplekken`: de proef vond er nul vrije. Er staan 1781 geparkeerde
+  auto's op 1755 vakken. Nu staat de auto langs de stoeprand (`kantPlek`: op de weg, geen auto
+  binnen vier meter, geen paal), en de auto die je ophaalt staat in de straat van de
+  opdrachtgever zelf, een paar meter verderop.
+- *De bende.* js/bendes.js haalt alle groepjes in één keer weg zodra hij niet meer actief is,
+  ook wat je ziet. Een groepje van een klus houdt hem daarom actief tot je 160 m van die plek
+  bent, en daar komen geen andere groepjes bij (`update(dt, actief, erbij)`).
+- *Overspuiten op rekening.* `spuitPrijs` geeft nul voor de klusauto; js/spuiterij.js betaalt dan
+  niets ("op rekening"), want `betaal(0)` gaf nee en dan ging de deur niet open.
+- `npm run klusjestest` meet het (plekken, aanbod, alle vier de soorten, de wachtende missie, de
+  pauze, afbreken, mislukken, laden, de beloning); `npm run klusjesshots` maakt vier foto's.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

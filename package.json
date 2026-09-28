@@ -175,6 +175,8 @@
     "schaduwtest": "node tools/schaduwtest.mjs",
     "schaduwshots": "node tools/schaduwshots.mjs",
     "bochtentest": "node tools/bochtentest.mjs",
-    "bochtenshots": "node tools/bochtenshots.mjs"
+    "bochtenshots": "node tools/bochtenshots.mjs",
+    "klusjestest": "node tools/klusjestest.mjs",
+    "klusjesshots": "node tools/klusjesshots.mjs"
   }
 }

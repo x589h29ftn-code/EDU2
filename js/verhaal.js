@@ -56,6 +56,7 @@ import { brugAssen, maakDranghek, maakC4, maakSchade } from './brug.js';
 import { maakSchrift, maakLint } from './schrift.js';
 import { initRace } from './race.js';
 import { initSchaduw } from './schaduw.js';
+import { initKlusjes } from './klusjes.js';
 import { UNIFORM, zetZwaailamp } from './politie.js';
 import { Navigatie } from './navigatie.js';
 import { geluid } from './audio.js';
@@ -1163,6 +1164,87 @@ export function initVerhaal(ctx) {
   let johanNaarB = true, johanWacht = 0;
   const hinder = { alive: true, opWeg: false, x: thuis.x, z: thuis.z };
 
+  /*
+   ---------- klusjes (js/klusjes.js, stap 99) ----------
+   Tussen de missies door: Mark of Johan op een willekeurige stoep met een klus. Een
+   klus mag als het verhaal vrij is: tussen twee missies, of een missie die onder zijn
+   M op je wacht (KLUS_WACHT: de fase waarin nog niets begonnen is). Zolang er een klus
+   loopt wacht het verhaal: de pauze tot de volgende missie telt niet af, en de missie
+   die op je wacht doet niets (zie `update` en `toets`). Daarna staan zijn opdracht en
+   zijn M weer in beeld.
+  */
+  const KLUS_WACHT = {
+    johan: ['naar_johan'], bx: ['wacht'], bom: ['wacht'], huis: ['naar_mark', 'kiezen'],
+    veteraan: ['naar_veteraan'], politieauto: ['wacht'], brug: ['wacht'], schrift: ['wacht'],
+    race: ['naarRonald'], schaduw: ['naarMark'],
+  };
+  const VOOR_JOHAN = ['molenkrite', 'rijden', 'bewaking', 'afleveren'];
+  let klusPauze = null;          // wat het verhaal in beeld had toen de klus begon
+  function vrijVoorKlus() {
+    if (doodT > 0 || misluktT > 0 || keuzeOpen || zwart || player.health <= 0) return false;
+    if (missie === 'klaar') return true;
+    return (KLUS_WACHT[missie] || []).includes(fase);
+  }
+  function pauzeerVoorKlus(aan) {
+    if (aan) {
+      if (klusPauze) return;
+      klusPauze = {
+        navDoel: navDoel ? { ...navDoel } : null,
+        nav: hud.nav || null,
+        opdracht: opdrachtEl.hidden ? '' : opdrachtEl.textContent.replace(/^Opdracht: /, ''),
+        rood: opdrachtEl.classList.contains('rood'),
+      };
+      return;
+    }
+    const b = klusPauze;
+    klusPauze = null;
+    if (!b) return;
+    zetOpdracht(b.opdracht, b.rood);
+    if (b.navDoel) zetNavDoel(b.navDoel.x, b.navDoel.z, b.navDoel.naam, b.navDoel.letter);
+    else { navDoel = null; hud.zetNavigatie(b.nav); }
+  }
+  const klusjes = initKlusjes({
+    scene, player, vehicles, hud, KAART,
+    api: {
+      vrij: vrijVoorKlus,
+      pauzeer: pauzeerVoorKlus,
+      zeg: (regels, na = null, opties = {}) => zeg(regels, na, opties),
+      balkDicht: () => balk.hidden,
+      praat: (tekst) => { if (tekst) { praatEl.textContent = tekst; praatEl.hidden = false; } else praatEl.hidden = true; },
+      zetOpdracht: (tekst, rood = false) => zetOpdracht(tekst, rood),
+      melding: (k, o, t) => hud.melding(k, o, t),
+      telefoon: () => geluid.telefoon(),
+      nav: (x, z, naam, letter) => zetNavDoel(x, z, naam, letter),
+      navBij: () => werkNavBij(),
+      navUit: () => { navDoel = null; hud.zetNavigatie(null); },
+      route: (a, b) => {
+        if (!navigatie) navigatie = new Navigatie(KAART.wegassen);
+        return navigatie.route([a.x, a.z], [b.x, b.z]);
+      },
+      verdien: (n) => verdien(n),
+      sterren: () => sterren(),
+      sterGeven: (n, x, z) => { if (sterGeven) sterGeven(n, x, z); },
+      bende: { zetGroep: (x, z, n) => bendes.zetGroep(x, z, n) },
+      checkpoint: () => { if (checkpoint && player.health > 0) { checkpoint(); hud.show('Checkpoint opgeslagen', 2); } },
+      spelerPunt: () => spelerPunt(),
+      KOPPEN,
+      // Johan ken je vanaf zijn telefoontje in missie 5
+      johanBekend: () => !VOOR_JOHAN.includes(missie) && !(missie === 'johan' && fase === 'telefoon')
+        && !(missie === 'klaar' && naMissieNaam === 'johan' && naMissieT > 0),
+      // staat hij al ergens voor het verhaal? dan geeft de ander de klus
+      inBeeld: (wie) => (wie === 'mark' ? mark.groep.visible : !!(johan && johan.groep.visible)),
+      // waar het verhaal iets heeft staan: daar komt geen klus
+      bezet: () => {
+        const uit = [{ x: thuis.x, z: thuis.z }];
+        if (navDoel && !klusPauze) uit.push({ x: navDoel.x, z: navDoel.z });
+        if (klusPauze && klusPauze.navDoel) uit.push({ x: klusPauze.navDoel.x, z: klusPauze.navDoel.z });
+        if (mark.groep.visible) uit.push({ x: mark.groep.position.x, z: mark.groep.position.z });
+        if (johan && johan.groep.visible) uit.push({ x: johan.groep.position.x, z: johan.groep.position.z });
+        return uit;
+      },
+    },
+  });
+
   // ---------- tekstbalk ----------
   /*
    Een regel is een tekst met een spreker, en soms met een portretje ernaast en
@@ -1265,6 +1347,7 @@ export function initVerhaal(ctx) {
    de wereld had gezet.
   */
   function startMissie(naam) {
+    klusjes.reset(); klusPauze = null;
     gesprek = null; sluitBalk();
     zetOpdracht('');
     hud.zetNavigatie(null); navDoel = null;
@@ -1780,6 +1863,10 @@ export function initVerhaal(ctx) {
   // ---------- E ----------
   function toets() {
     if (!balk.hidden) return verderInGesprek();
+    // een klus (js/klusjes.js): aannemen, of de tas afgeven; en zolang er een loopt doet
+    // de missie die onder zijn M op je wacht niets
+    if (klusjes.toets()) return true;
+    if (klusjes.bezig && missie !== 'klaar') return false;
     // missie 11: aan de balie van Tinga State de C4 ophalen, vóór het kopen daar
     if (bijDeBalie()) return haalC4();
     // missie 12: een dranghek, een lading C4, of de knal zelf
@@ -1867,6 +1954,8 @@ export function initVerhaal(ctx) {
     if (schutters) uit.push(...schutters.doelen());
     // de groepjes van De Veteraan op straat
     uit.push(...bendes.doelen());
+    // wie je voor een klus moet omleggen, en zijn lijfwacht
+    uit.push(...klusjes.doelen());
     // en de maffia op de kade plus de waterpolitie uit missie 8
     if (deal) uit.push(...deal.doelen());
     for (const b of snipBoten) uit.push(...b.doelen());
@@ -1876,6 +1965,7 @@ export function initVerhaal(ctx) {
   }
 
   function raak(obj) {
+    if (klusjes.raak(obj)) return true;
     // de zes man bij de Poiesz: die mogen juist wel
     if (schutters && schutters.raak(obj)) return true;
     // en de bende op straat na missie 10: die begon zelf
@@ -1942,6 +2032,7 @@ export function initVerhaal(ctx) {
   function schotGehoord(x, z) {
     if (bewaking) bewaking.hoorSchot(x, z);
     bendes.hoorSchot(x, z);
+    klusjes.hoorSchot(x, z);
     // missie 12: wie bij de hekken schiet voor de knal, begint het gevecht zelf
     if (missie === 'brug' && schutters && schutters.rustig && (fase === 'stop' || fase === 'ontsteken')) {
       const v = schutters.wachters[0] && schutters.wachters[0].persoon.groep.position;
@@ -6196,8 +6287,8 @@ export function initVerhaal(ctx) {
       if (misluktT <= 0) naDeMislukking();
       return;
     }
-    // pauze tussen twee missies: na de boerderij belt Johan
-    if (naMissieT > 0) {
+    // pauze tussen twee missies: na de boerderij belt Johan (niet tijdens een klus)
+    if (naMissieT > 0 && !klusjes.bezig) {
       naMissieT -= dt;
       if (naMissieT <= 0) startMissie(naMissieNaam);
     }
@@ -6360,16 +6451,19 @@ export function initVerhaal(ctx) {
       }
     }
 
+    // een missie die onder zijn M op je wacht, wacht ook tijdens een klus (js/klusjes.js)
+    const wachtOpKlus = klusjes.bezig && missie !== 'klaar';
+
     // ---- missie 5: Johan en de dief ----
-    if (missie === 'johan') werkJohanBij(dt, sp);
+    if (missie === 'johan' && !wachtOpKlus) werkJohanBij(dt, sp);
 
     // ---- missie 6: de groene BX ----
-    if (missie === 'bx') werkBXBij(dt, sp);
+    if (missie === 'bx' && !wachtOpKlus) werkBXBij(dt, sp);
 
     // ---- missie 8: de deal bij de molen ----
     if (missie === 'sniper') werkSniperBij(dt, sp);
-    if (missie === 'veteraan') werkVeteraanBij(dt, sp);
-    if (missie === 'huis') werkHuisBij(dt, sp);
+    if (missie === 'veteraan' && !wachtOpKlus) werkVeteraanBij(dt, sp);
+    if (missie === 'huis') { if (!wachtOpKlus) werkHuisBij(dt, sp); }
     // de koopregel blijft ook staan als de missie al voorbij is en het aanbod nog loopt
     else koopHint(sp);
     werkStallingBij();
@@ -6386,12 +6480,14 @@ export function initVerhaal(ctx) {
     }
 
     // ---- missie 7: de bom ----
-    if (missie === 'bom') werkBomBij(dt, sp);
-    if (missie === 'politieauto') werkPolitieautoBij(dt, sp);
-    if (missie === 'brug') werkBrugBij(dt, sp);
-    if (missie === 'schrift') werkSchriftBij(dt, sp);
-    if (missie === 'race') werkRaceBij(dt, sp);
-    if (missie === 'schaduw') werkSchaduwBij(dt, sp);
+    if (!wachtOpKlus) {
+      if (missie === 'bom') werkBomBij(dt, sp);
+      if (missie === 'politieauto') werkPolitieautoBij(dt, sp);
+      if (missie === 'brug') werkBrugBij(dt, sp);
+      if (missie === 'schrift') werkSchriftBij(dt, sp);
+      if (missie === 'race') werkRaceBij(dt, sp);
+      if (missie === 'schaduw') werkSchaduwBij(dt, sp);
+    }
     brugNaloop(sp, dt);
     raceNaloop(sp, dt);
     if (schutters) {
@@ -6410,7 +6506,19 @@ export function initVerhaal(ctx) {
     {
       // van missie 10 tot De Veteraan dood is (missie 12): daarna valt zijn bende
       // uit elkaar (verzoek 27 sep 2026)
-      const schade = bendes.update(dt, vetKlaar && !brugKlaar && missie === 'klaar');
+      // en een groepje dat bij een klus op je wacht (js/klusjes.js): dan geen nieuwe erbij
+      const verhaalBende = vetKlaar && !brugKlaar && missie === 'klaar';
+      const schade = bendes.update(dt, verhaalBende || klusjes.bende, verhaalBende);
+      if (schade > 0 && player.active) {
+        player.health = Math.max(0, player.health - schade);
+        hud.zetLeven(player.health);
+        hud.flits();
+        if (player.health <= 0) dood();
+      }
+    }
+    // ---- een klus ----
+    {
+      const schade = klusjes.update(dt);
       if (schade > 0 && player.active) {
         player.health = Math.max(0, player.health - schade);
         hud.zetLeven(player.health);
@@ -6465,6 +6573,8 @@ export function initVerhaal(ctx) {
   }
 
   function herstel(s) {
+    // een opgeslagen spel begint zonder klus
+    klusjes.reset(); klusPauze = null;
     if (!s) return;
     gesprek = null; sluitBalk(); praatEl.hidden = true;
     doodT = 0;
@@ -6676,7 +6786,10 @@ export function initVerhaal(ctx) {
      meegaf. Levert null als het om een gewone auto gaat, en dan telt de prijs
      van de spuiterij zelf.
     */
-    spuitPrijs: (auto) => (missie === 'bx' && auto && auto === bxAuto ? BX_SPUIT : null),
+    spuitPrijs: (auto) => (missie === 'bx' && auto && auto === bxAuto ? BX_SPUIT : klusjes.spuitPrijs(auto)),
+    // de klusjes (js/klusjes.js): X breekt er een af
+    klusAfbreken: () => klusjes.afbreken(),
+    get klusjes() { return klusjes; },
     /*
      Twee haakjes voor een missie die buiten dit bestand draait (js/vaart.js, de
      lading over het water): de opdrachtregel in beeld en de gespreksbalk. Ze

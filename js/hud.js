@@ -303,6 +303,26 @@ export class HUD {
     c.fillRect(-r * 0.30, -r * 0.16, r * 0.60, r * 0.42);
   }
 
+  /*
+   Een klus (js/klusjes.js, stap 99): een groen speldje met een K, waar Mark of Johan
+   staat te wachten. Het staat los van de missievlag, want een missie die onder zijn M
+   op je wacht en een klus kunnen allebei op de kaart staan.
+  */
+  zetKlus(k) { this.klus = k || null; }
+  static tekenKlus(c, r = 10) {
+    c.beginPath();
+    c.moveTo(0, r * 1.25);
+    c.lineTo(-r * 0.72, r * 0.35);
+    c.arc(0, -r * 0.1, r, Math.PI * 0.78, Math.PI * 0.22, false);
+    c.closePath();
+    c.fillStyle = '#39d353'; c.fill();
+    c.strokeStyle = '#0d2a12'; c.lineWidth = 1.4; c.stroke();
+    c.fillStyle = '#0d2a12';
+    c.font = `bold ${(r * 1.25).toFixed(1)}px sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('K', 0, -r * 0.08);
+  }
+
   // Mislukte missie: het beeld vaagt naar grijs.
   zetGrijs(aan) { document.body.classList.toggle('mislukt', !!aan); }
 
@@ -560,6 +580,18 @@ export class HUD {
       if (w.wat === 'huis') HUD.tekenHuis(c, 9); else HUD.tekenWinkel(c, 9);
       c.restore();
     }
+    // de klus: ook buiten de kaartrand, op de rand van het rondje, zodat je weet welke kant op
+    if (this.klus) {
+      let kx = this.klus.x * scale, kz = this.klus.z * scale;
+      const dx = this.klus.x - px, dz = this.klus.z - pz, d = Math.hypot(dx, dz);
+      const rand = R * 0.86;
+      if (d > rand) { kx = (px + dx / d * rand) * scale; kz = (pz + dz / d * rand) * scale; }
+      c.save();
+      c.translate(kx, kz);
+      c.rotate(-this._kaartRot);
+      HUD.tekenKlus(c, 9);
+      c.restore();
+    }
     // `rot` bepaalt alleen of een straatnaam omgeklapt moet om leesbaar te
     // blijven, dus die moet dezelfde draai zijn als de kaart zelf
     this.drawLabels(c, scale, this._kaartRot, 40, { x: px, z: pz, R });
@@ -670,6 +702,19 @@ HUD.prototype.drawBig = function (player, vehicles) {
     for (const p of this.politiePlekken) {
       c.beginPath(); c.arc(p.x, p.z, (p.wagen ? 5.5 : 4) / scale, 0, Math.PI * 2); c.fill(); c.stroke();
     }
+  }
+  // de klus (js/klusjes.js): het groene speldje met zijn opdrachtgever erbij
+  if (this.klus) {
+    c.save();
+    c.translate(this.klus.x, this.klus.z);
+    c.scale(1 / scale, 1 / scale);
+    HUD.tekenKlus(c, 11);
+    c.textAlign = 'center';
+    c.font = 'bold 12px sans-serif';
+    c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
+    const wie = this.klus.wie === 'johan' ? 'klus · Johan' : 'klus · Mark';
+    c.strokeText(wie, 0, -18); c.fillStyle = '#9ff0a8'; c.fillText(wie, 0, -18);
+    c.restore();
   }
   const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);
   const pz = this.kaartVanaf ? this.kaartVanaf.z : (player.inCar ? player.inCar.z : player.pos.z);

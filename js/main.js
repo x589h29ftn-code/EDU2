@@ -1250,6 +1250,16 @@ window.addEventListener('keydown', e => {
 // E doet vier dingen, in deze volgorde: een gesprek doorklikken, iemand
 // aanspreken die naast je staat, door de voordeur van Molenkrite 15 gaan, en
 // anders in- of uitstappen bij een auto.
+/*
+ X: een klus afbreken (js/klusjes.js). Een klus zet het verhaal stil tot hij klaar is;
+ wie toch liever met de missie verder wil, laat hem hiermee lopen.
+*/
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyX' || e.ctrlKey || e.metaKey || e.repeat) return;
+  if (!player.active && !window.__autoplay) return;
+  if (verhaal && verhaal.klusAfbreken) verhaal.klusAfbreken();
+});
+
 function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
   if (verhaal.toets()) return;
