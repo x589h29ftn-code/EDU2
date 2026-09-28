@@ -379,7 +379,8 @@ export function initKlusjes({ scene, player, vehicles, hud, KAART, api }) {
       ontvanger.zetNeer(k.doel.x, k.doel.z, k.doel.yaw + Math.PI);
       ontvanger.groep.visible = true;
       k.ontvanger = ontvanger;
-      merk.zet(k.doel.x, 0, k.doel.z); merk.toon(true);
+      // de ruit naast hem, niet op zijn hoofd
+      merk.zet(k.doel.x + k.doel.langs.x * 1.6, 0, k.doel.z + k.doel.langs.z * 1.6); merk.toon(true);
       api.nav(k.doel.x, k.doel.z, `klus · ${k.doel.straat}`, 'K');
       api.zetOpdracht(`breng de tas naar ${deStraat(k.doel.straat)} · X: afbreken`);
       api.melding('KLUS', `De tas naar ${deStraat(k.doel.straat)} · ${euro(k.loon)}`, 5);
