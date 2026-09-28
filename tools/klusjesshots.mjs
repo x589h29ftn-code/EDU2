@@ -28,6 +28,8 @@ const foto = async (naam, { wacht = 1500 } = {}) => {
   await page.evaluate(() => {
     const g = window.__game;
     g.hud.msgT = 0; g.hud.msg.style.transition = 'none'; g.hud.msg.style.opacity = 0;
+    // en de melding midden in beeld ("KLUS"): die staat er alleen de eerste tellen
+    g.hud.missieT = 0; g.hud.missieEl.style.transition = 'none'; g.hud.missieEl.style.opacity = 0;
     document.getElementById('dialoog').hidden = true;
     const h = document.getElementById('hint'); if (h) { h.textContent = ''; h.style.visibility = 'hidden'; }
     const u = document.getElementById('uitleg'); if (u) u.style.visibility = 'hidden';
@@ -109,7 +111,8 @@ await page.evaluate(async () => {
   const p = await page.evaluate(() => {
     const k = window.__neemAan('tas');
     const d = k.doel;
-    return { d, cam: { x: d.x + d.langs.x * 7 + Math.sin(d.yaw) * 3, z: d.z + d.langs.z * 7 + Math.cos(d.yaw) * 3 } };
+    // `yaw` wijst van de straat af (de tuinen in): de camera staat aan de straatkant
+    return { d, cam: { x: d.x + d.langs.x * 5 - Math.sin(d.yaw) * 2.5, z: d.z + d.langs.z * 5 - Math.cos(d.yaw) * 2.5 } };
   });
   await page.evaluate(({ cam }) => { window.__zet(cam.x, cam.z); window.__stap(4); document.getElementById('dialoog').hidden = true; }, p);
   await kamera(p.cam.x, 1.7, p.cam.z, p.d.x, 1.0, p.d.z);
@@ -132,7 +135,7 @@ await page.evaluate(async () => {
     window.__stap(20);
     const w = k.bewaking.wachters[0].persoon.groep.position;
     const d = k.doel;
-    return { w: { x: w.x, z: w.z }, cam: { x: w.x + d.langs.x * 11 + Math.sin(d.yaw) * 4, z: w.z + d.langs.z * 11 + Math.cos(d.yaw) * 4 } };
+    return { w: { x: w.x, z: w.z }, cam: { x: w.x + d.langs.x * 6.5 - Math.sin(d.yaw) * 3, z: w.z + d.langs.z * 6.5 - Math.cos(d.yaw) * 3 } };
   });
   await page.evaluate(() => {
     // bevriezen: anders lopen ze uit beeld terwijl de foto gemaakt wordt

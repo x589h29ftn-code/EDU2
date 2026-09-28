@@ -403,7 +403,8 @@ export function initKlusjes({ scene, player, vehicles, hud, KAART, api }) {
       }
       k.bewaking = new Bewaking(scene, posten, {
         vest: null, pet: 'om de beurt', schade: 4, zicht: 24, vuurbereik: 28, dekking: 8,
-        kleuren: [{ shirt: 0x3a3f47, broek: 0x23262b }, { shirt: 0x1f2328, broek: 0x1a1c20 }],
+        // het doelwit in een grijs jasje (zo staat het in de opdracht), de lijfwacht in het donker
+        kleuren: [{ shirt: 0x767b82, broek: 0x2a2d33 }, { shirt: 0x1f2328, broek: 0x1a1c20 }],
       });
       api.nav(a.x, a.z, `klus · ${deStraat(k.straat)}`, 'K');
       api.zetOpdracht(`leg de man in het grijze jasje om, aan ${deStraat(k.straat)} · X: afbreken`);
