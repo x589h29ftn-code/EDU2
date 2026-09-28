@@ -2203,6 +2203,8 @@ naar hem toe en druk **E**: hij vertelt wat er moet gebeuren.
 | **Overspuiten** | een auto stelen (een ster), laten overspuiten in de wasbox achter de BP — dat staat op rekening — en ergens langs de stoep neerzetten | € 550 – 750 |
 | **Omleggen** | iemand op straat neerleggen, soms met een lijfwacht erbij; daarna drie sterren afschudden | € 750, met lijfwacht € 1.000 |
 
+![De ontvanger van de tas, naast de groene ruit waar je aflevert](docs/screenshots/klus_tas.png)
+
 Een tas geef je pas af, en een auto zet je pas neer, als de politie je kwijt is. Is het gelukt,
 dan belt hij en staat het geld erop, en het spel schrijft een checkpoint. Mislukt het (de auto
 total loss) of breek je hem af met **X**, dan verdien je niets en staat er even later een nieuwe.
