@@ -58,6 +58,69 @@ function tegelMidden(sleutel) {
 // hoeveel dwarsversnelling (m/s²) het stuur hooguit vraagt, zie `drive`
 const STUUR_GRIP = 26;
 
+/*
+ Een wegas om over te rijden, gladgestreken (stap 98, "kan je auto's die door AI
+ bestuurd worden ook bochten soepeler laten nemen?"). Het verkeer reed recht over
+ de hoekpunten van de BGT-as: in één beeld een halve draai, en op de strook
+ opzij van de as een sprong naar buiten in elke knik. Nu om de twee meter een
+ monster, drie keer een voortschrijdend gemiddelde over vijf monsters (de
+ uiteinden blijven staan), per monster de raaklijn en hoe hard je daar door de
+ bocht kunt: v = √(a / κ). Eén keer per as, onthouden op de as zelf.
+*/
+const PAD = { stap: 2, glad: 2, passen: 3, dwars: 2.6, remmen: 2.8, vooruit: 45 };   // m, monsters, keer, m/s², m/s², m
+export function gladPad(pts) {
+  if (!pts || pts.length < 2) return pts;
+  if (pts._glad) return pts._glad;
+  if (pts.raak) return pts;                    // is al glad
+  // herbemonsteren om de PAD.stap meter
+  const ruw = [pts[0].clone()];
+  let nodig = PAD.stap;                        // hoe ver het volgende monster nog is
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    const l = a.distanceTo(b);
+    let s = nodig;
+    while (s <= l) { ruw.push(a.clone().lerp(b, s / l)); s += PAD.stap; }
+    nodig = s - l;
+  }
+  const eind = pts[pts.length - 1];
+  if (ruw.length > 1 && ruw[ruw.length - 1].distanceTo(eind) < 0.6) ruw[ruw.length - 1] = eind.clone();
+  else ruw.push(eind.clone());
+  const n = ruw.length;
+  let p = ruw;
+  for (let pas = 0; pas < PAD.passen; pas++) {
+    const q = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const h = Math.min(PAD.glad, i, n - 1 - i);
+      let x = 0, z = 0;
+      for (let j = i - h; j <= i + h; j++) { x += p[j].x; z += p[j].y; }
+      q[i] = new THREE.Vector2(x / (2 * h + 1), z / (2 * h + 1));
+    }
+    p = q;
+  }
+  const tx = new Float32Array(n), tz = new Float32Array(n), vmax = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = p[Math.max(0, i - 1)], b = p[Math.min(n - 1, i + 1)];
+    const l = Math.max(1e-6, a.distanceTo(b));
+    tx[i] = (b.x - a.x) / l; tz[i] = (b.y - a.y) / l;
+  }
+  // kromming per stuk: hoeveel de raaklijn van het ene monster naar het volgende draait
+  const krom = new Float32Array(Math.max(1, n - 1));
+  for (let i = 0; i < n - 1; i++) {
+    const kruis = tx[i] * tz[i + 1] - tz[i] * tx[i + 1], punt = tx[i] * tx[i + 1] + tz[i] * tz[i + 1];
+    krom[i] = Math.abs(Math.atan2(kruis, punt)) / Math.max(0.5, p[i].distanceTo(p[i + 1]));
+  }
+  // en per monster de scherpste van de twee stukken ernaast: tussen twee monsters draait
+  // de neus met die van het stuk, niet met het gemiddelde
+  for (let i = 0; i < n; i++) {
+    const k = Math.max(krom[Math.max(0, i - 1)], krom[Math.min(n - 2, i)]);
+    vmax[i] = k > 1e-4 ? Math.sqrt(PAD.dwars / k) : 99;
+  }
+  p.raak = { tx, tz };
+  p.vmax = vmax;
+  pts._glad = p;
+  return p;
+}
+
 export const RIJ = {
   hatch: { top: 24, trek: 1 },
   van: { top: 24, trek: 1 },
@@ -141,14 +204,14 @@ export class Vehicles {
     // verkeer N7 (beide richtingen). Met de kaart uit de BGT zijn de twee
     // rijbanen van de N7 losse assen; elke as krijgt verkeer in één richting.
     const n7 = KAART ? KAART.wegassen.filter(w => w.naam === 'N7' && w.w > 6 && w.lengte > 150).map(w => w.pts.map(p => new THREE.Vector2(p[0], p[1]))) : [];
-    const hp = n7.length ? null : HIGHWAY.pts.map(p => { const [x, z] = toWorld(p[0], p[1]); return new THREE.Vector2(x, z); });
+    const hp = n7.length ? null : gladPad(HIGHWAY.pts.map(p => { const [x, z] = toWorld(p[0], p[1]); return new THREE.Vector2(x, z); }));
     for (let i = 0; i < 14; i++) {
       const dir = i % 2 ? 1 : -1;
       const lane = (i % 4 < 2) ? 2.1 : 6.2;
       const mesh = makeCar(LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)], r() < 0.3 ? 'van' : 'hatch');
       scene.add(mesh);
       if (n7.length) {
-        const path = n7[i % n7.length];
+        const path = gladPad(n7[i % n7.length]);
         this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: (i % n7.length) ? -1 : 1, lane: (i % 4 < 2) ? 1.6 : -1.6, speed: 22 + r() * 8, y: 0.1 });
       } else this.traffic.push({ mesh, path: hp, t: r() * (hp.length - 1), dir, lane, speed: 22 + r() * 8, y: 0.6 });
     }
@@ -165,7 +228,7 @@ export class Vehicles {
     */
     for (let i = 0; i < 12 && local.length; i++) {
       const rd = local[i % local.length];
-      const path = rd.pts;
+      const path = gladPad(rd.pts);
       const mesh = makeCar(LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)]);
       scene.add(mesh);
       // `lokaal` merkt de wijkauto's, zodat `vulBuurtAan` ze kan laten meeverhuizen
@@ -301,8 +364,13 @@ export class Vehicles {
   }
 
   zetOp(t, pad, k) {
-    t.path = pad;
-    t.t = Math.max(0, Math.min(pad.length - 1.001, k));
+    // de gladde versie van de as; het monster dat het dichtst bij hoekpunt k ligt
+    const g = gladPad(pad), q = pad[Math.max(0, Math.min(pad.length - 1, Math.round(k)))];
+    let beste = 0, bd = Infinity;
+    for (let i = 0; i < g.length; i++) { const d = g[i].distanceToSquared(q); if (d < bd) { bd = d; beste = i; } }
+    t.path = g;
+    t.t = Math.max(0, Math.min(g.length - 1.001, beste));
+    t.keer = null;
     t.dir = Math.random() < 0.5 ? 1 : -1;
     t.snelheid = 0; t.doel = t.speed;
     t._pos = null; t._dir = null;
@@ -614,6 +682,9 @@ export class Vehicles {
     let doel = 0;
     if (keys.KeyA) doel = 1;
     if (keys.KeyD) doel = -1;
+    // een bestuurder van de computer stuurt niet met aan of uit maar met een stand
+    // tussen −1 en 1 (js/politie.js, stap 98): anders slingert hij over de weg
+    if (typeof keys.stuur === 'number') doel = Math.max(-1, Math.min(1, keys.stuur));
     /*
      En begrensd door de grip: een auto kan niet harder de bocht om dan zijn banden
      houden (v²·tan(stuur)/wielbasis ≤ GRIP). Onder de 55 km/u maakt dat niets uit;
@@ -980,14 +1051,14 @@ export class Vehicles {
     // eerst iedereen op zijn plek zetten, dan pas vooruitkijken
     for (const t of this.traffic) {
       if (t.slaapt) { t._pos = VER_WEG; t._dir = VER_WEG_R; continue; }
-      const n = t.path.length;
-      const j0 = Math.floor(t.t), j1 = Math.min(n - 1, j0 + 1);
-      const p = t.path[j0].clone().lerp(t.path[j1], t.t - j0);
-      const d = t.path[j1].clone().sub(t.path[j0]).normalize().multiplyScalar(t.dir);
-      const nrm = new THREE.Vector2(-d.y, d.x);
-      t._pos = new THREE.Vector2(p.x + nrm.x * t.lane, p.y + nrm.y * t.lane);
-      t._dir = d;
-      if (t.snelheid === undefined) { t.snelheid = t.speed; t.doel = t.speed; }
+      const pl = this.plekOpPad(t);
+      t._pos = new THREE.Vector2(pl.x, pl.z);
+      t._dir = new THREE.Vector2(pl.dx, pl.dz);
+      if (t.snelheid === undefined) {
+        // wie vlak voor een bocht begint, begint op de snelheid van die bocht
+        t.snelheid = t.speed;
+        t.snelheid = t.doel = Math.min(t.speed, this.bochtSnelheid(t));
+      }
     }
 
     const KIJK = 11;          // meter vooruitkijken
@@ -1092,6 +1163,10 @@ export class Vehicles {
       const doelMens = vrijMens >= MENS_KIJK ? basis
         : Math.max(0, basis * (vrijMens - 5) / (MENS_KIJK - 5));
       t.doel = Math.min(doelAuto, doelMens);
+      // en niet harder de bocht door dan de banden houden, op tijd ervoor remmen (stap 98);
+      // wie haast heeft neemt hem wat scherper
+      t.bocht = this.bochtSnelheid(t) * (t.haast > 0 ? 1.3 : 1);
+      t.doel = Math.min(t.doel, t.bocht);
       // achteruit gaat voor: dan kijkt hij niet vooruit maar wil hij er weg
       if (t.achteruit > 0) t.doel = -3.2;
       // remmen gaat harder dan optrekken, en wie achteruit wil harder dan dat
@@ -1099,24 +1174,98 @@ export class Vehicles {
       t.snelheid += Math.max(-versnelling * dt, Math.min(versnelling * dt, t.doel - t.snelheid));
 
       const n = t.path.length;
-      const j0 = Math.floor(t.t), j1 = Math.min(n - 1, j0 + 1);
-      const segLen = Math.max(0.01, t.path[j0].distanceTo(t.path[j1]));
-      t.t += t.dir * (t.snelheid * dt) / segLen;
-      if (t.t >= n - 1) { if (t.bounce) { t.dir = -1; t.t = n - 1.001; } else t.t = 0; }
-      if (t.t <= 0) { if (t.bounce) { t.dir = 1; t.t = 0.001; } else t.t = n - 1.001; }
+      if (t.keer) {
+        // midden in het keren aan het eind van de straat: een halve cirkel
+        t.keer.f += Math.abs(t.snelheid) * dt / (Math.PI * Math.max(0.5, Math.abs(t.lane)));
+        if (t.keer.f >= 1) t.keer = null;
+      } else {
+        const j0 = Math.floor(t.t), j1 = Math.min(n - 1, j0 + 1);
+        const segLen = Math.max(0.01, t.path[j0].distanceTo(t.path[j1]));
+        t.t += t.dir * (t.snelheid * dt) / segLen;
+        /*
+         Het eind van de as. Een wijkauto keerde daar in één beeld om: een halve draai
+         en een sprong van twee stroken opzij. Nu rijdt hij een halve cirkel om het
+         eindpunt heen, van zijn strook naar de andere (`keer`, stap 98).
+        */
+        const eind = t.t >= n - 1 ? n - 1 : t.t <= 0 ? 0 : -1;
+        if (eind >= 0 && t.bounce && t.snelheid > 0) {
+          const pl = this.plekOpPad(t), E = t.path[eind];
+          const ux = pl.x - E.x, uz = pl.z - E.y, L = Math.hypot(ux, uz) || 1;
+          t.keer = { cx: E.x, cz: E.y, ux, uz, vx: pl.dx * L, vz: pl.dz * L, f: 0 };
+          t.dir = eind > 0 ? -1 : 1;
+          t.t = eind > 0 ? n - 1.001 : 0.001;
+        } else if (t.t >= n - 1) { if (t.bounce) { t.dir = -1; t.t = n - 1.001; } else t.t = 0; }
+        else if (t.t <= 0) { if (t.bounce) { t.dir = 1; t.t = 0.001; } else t.t = n - 1.001; }
+      }
 
-      const k0 = Math.floor(t.t), k1 = Math.min(n - 1, k0 + 1);
-      const p2 = t.path[k0].clone().lerp(t.path[k1], t.t - k0);
-      const d2 = t.path[k1].clone().sub(t.path[k0]).normalize().multiplyScalar(t.dir);
-      const nrm2 = new THREE.Vector2(-d2.y, d2.x).multiplyScalar(t.lane);
-      const tx = p2.x + nrm2.x, tz = p2.y + nrm2.y;
+      const pl = this.plekOpPad(t);
+      const tx = pl.x, tz = pl.z;
       const ty = t.y + grondHoogte(tx, tz, t.mesh.position.y + 0.9);
       t.mesh.position.set(tx, ty, tz);
       t.mesh.rotation.order = 'YXZ';
-      t.mesh.rotation.y = Math.atan2(-d2.x, -d2.y);
+      t.mesh.rotation.y = Math.atan2(-pl.dx, -pl.dz);
       t.mesh.rotation.x = helling(tx, tz, t.mesh.rotation.y, ty - t.y);
       if (t.remlicht) t.remlicht.visible = t.doel < t.speed * 0.6;
     }
+  }
+
+  /*
+   Waar een rijdende auto staat en waar hij heen kijkt. Ook de raaklijn loopt
+   tussen twee monsters door (stap 98), anders draait hij om de twee meter met
+   een schokje; de strook ligt links of rechts van die raaklijn, dus ook die
+   schuift vloeiend mee. Tijdens het keren (`keer`) een halve cirkel om het eind.
+  */
+  plekOpPad(t) {
+    if (t.keer) {
+      const k = t.keer, a = Math.PI * Math.min(1, k.f), c = Math.cos(a), s = Math.sin(a);
+      let dx = -k.ux * s + k.vx * c, dz = -k.uz * s + k.vz * c;
+      const l = Math.hypot(dx, dz) || 1;
+      return { x: k.cx + k.ux * c + k.vx * s, z: k.cz + k.uz * c + k.vz * s, dx: dx / l, dz: dz / l };
+    }
+    const P = t.path, n = P.length;
+    const j0 = Math.max(0, Math.min(n - 2, Math.floor(t.t))), j1 = j0 + 1;
+    const f = Math.max(0, Math.min(1, t.t - j0));
+    const x = P[j0].x + (P[j1].x - P[j0].x) * f, z = P[j0].y + (P[j1].y - P[j0].y) * f;
+    let dx, dz;
+    if (P.raak) {
+      dx = P.raak.tx[j0] + (P.raak.tx[j1] - P.raak.tx[j0]) * f;
+      dz = P.raak.tz[j0] + (P.raak.tz[j1] - P.raak.tz[j0]) * f;
+    } else { dx = P[j1].x - P[j0].x; dz = P[j1].y - P[j0].y; }
+    const l = Math.hypot(dx, dz) || 1;
+    dx = dx / l * t.dir; dz = dz / l * t.dir;
+    return { x: x - dz * t.lane, z: z + dx * t.lane, dx, dz };
+  }
+
+  /*
+   Hoe hard deze auto nu mag om de bochten vóór hem te halen: per monster tot
+   PAD.vooruit meter verder de bochtsnelheid, plus wat hij tot daar kan
+   afremmen (v² = vb² + 2·a·d). Het eind van een as waar hij keert telt als een
+   bocht van drie meter per seconde.
+  */
+  bochtSnelheid(t) {
+    const P = t.path;
+    if (t.keer) return 3;
+    if (!P || !P.vmax) return Infinity;
+    const n = P.length, B = PAD.remmen;
+    let beste = Infinity;
+    const i0 = t.dir > 0 ? Math.ceil(t.t) : Math.floor(t.t);
+    // zo ver als hij nodig heeft om tot stilstand te remmen: op de N7 (25 m/s) ruim honderd meter
+    const v = Math.abs(t.snelheid || 0), vooruit = Math.min(240, Math.max(PAD.vooruit, v * v / (2 * B) + 12));
+    for (let k = 0; k * PAD.stap <= vooruit; k++) {
+      const i = i0 + k * t.dir;
+      const d = Math.abs(i - t.t) * PAD.stap;
+      if (i < 0 || i > n - 1) {
+        // drie meter per seconde óp het eindpunt, niet een monster verder
+        const dEind = Math.abs((t.dir > 0 ? n - 1 : 0) - t.t) * PAD.stap;
+        if (t.bounce) beste = Math.min(beste, Math.sqrt(9 + 2 * B * dEind));
+        break;
+      }
+      const vb = P.vmax[i];
+      if (vb >= 99) continue;
+      const mag = Math.sqrt(vb * vb + 2 * B * d);
+      if (mag < beste) beste = mag;
+    }
+    return beste;
   }
 
   /*

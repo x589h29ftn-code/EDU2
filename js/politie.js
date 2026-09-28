@@ -39,6 +39,7 @@ const MISDADEN = {
 };
 const STERREN = [30, 80, 150, 240, 350];   // heat-drempels voor 1 t/m 5 sterren
 const MAX_HEAT = 420;
+const STUUR_P = 2;        // stuurstand per radiaal koersfout van een surveillancewagen (vol vanaf 0,5)
 const VERGETEN = 18;      // seconden uit het zicht voor de eerste ster wegvalt
 const KOEL = 26;          // heat per seconde die eraf gaat als niemand je ziet
 
@@ -1015,8 +1016,13 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       vehicles.drive(car, keys, dt);
       return eind;
     }
-    if (d > 0.06) keys.KeyA = true;
-    else if (d < -0.06) keys.KeyD = true;
+    /*
+     Sturen naar verhouding (stap 98). Met A of D, aan of uit bij zes honderdste
+     radiaal, slingerde de wagen: vol het stuur in, voorbij de lijn, vol de andere
+     kant op. Nu staat het stuur zoveel om als hij van zijn lijn af zit, en vol
+     vanaf een halve radiaal.
+    */
+    keys.stuur = Math.max(-1, Math.min(1, d * STUUR_P));
     // hoe scherper de bocht en hoe dichter bij het doel, hoe langzamer
     const wens = Math.min(haast, 4 + eind * 0.5) * Math.max(0.25, 1 - Math.abs(d) * 0.7);
     if (car.speed < wens) keys.KeyW = true;

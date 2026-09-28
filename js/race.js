@@ -322,7 +322,9 @@ export function initRace({ scene, vehicles, KAART }) {
     while (b - a > 1) { const m = (a + b) >> 1; if (L.s[m] <= s) a = m; else b = m; }
     const f = L.s[b] > L.s[a] ? (s - L.s[a]) / (L.s[b] - L.s[a]) : 0;
     const x = L.x[a] + (L.x[b] - L.x[a]) * f, z = L.z[a] + (L.z[b] - L.z[a]) * f;
-    const tx = L.tx[a], tz = L.tz[a];
+    // ook de raaklijn tussen de twee monsters in (stap 98): anders draait de neus om de twee meter met een schokje
+    const rx = L.tx[a] + (L.tx[b] - L.tx[a]) * f, rz = L.tz[a] + (L.tz[b] - L.tz[a]) * f;
+    const rl = Math.hypot(rx, rz) || 1, tx = rx / rl, tz = rz / rl;
     // rechts van de rijrichting: (−tz, tx) in dit assenstelsel (+x oost, +z zuid)
     return { x: x - tz * u, z: z + tx * u, tx, tz, i: a, yaw: Math.atan2(-tx, -tz) };
   }

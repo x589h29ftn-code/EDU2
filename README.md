@@ -226,6 +226,16 @@ verkeer stond niet in de doelenlijst van je kogels — dan geeft hij juist gas: 
 bijna twee keer zo hard, tot hij de straat uit is. De auto zelf gaat niet in vlammen op; hij rijdt op
 een vaste baan, en een wrak midden op de N7 sluit de rij erachter op.
 
+**Het verkeer neemt de bocht zoals een bestuurder dat doet.** Eerst reed het recht over de knikken
+van de wegas: in één beeld een halve draai, en op zijn rijstrook een sprong naar buiten in elke
+knik. Nu rijdt het over een gladgestreken lijn, remt het vóór een scherpe bocht rustig af tot hij
+de bocht houdt, en trekt het er daarna weer op. Aan het eind van een straat keert een wijkauto met
+een halve cirkel naar de andere strook, in plaats van zich ter plekke om te draaien. De politie stuurt
+naar verhouding in plaats van vol naar links of rechts, en slingert daardoor niet meer over de weg;
+Bouwman en de tegenstanders in de race draaien hun neus ook tussen de meetpunten van hun lijn door.
+
+![Een scherpe bocht van boven: rood de oude lijn met een sprong in elke knik, groen de gladde](docs/screenshots/bocht_lijn.png)
+
 De motor heeft een **versnellingsbak** van vijf verzetten. Binnen een verzet lopen de toeren op, bij
 het schakelen valt het gas even weg en beginnen ze weer onderaan — daardoor klinkt het niet meer
 alsof je de hele wijk in zijn één doorkomt. Achteruit is één laag verzet dat hoog opjankt. En zodra

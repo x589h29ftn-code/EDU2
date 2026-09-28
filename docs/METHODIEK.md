@@ -6497,6 +6497,40 @@ sneller, en hij nam rotondes linksom in plaats van rechtsom.
   doorgaande op de N7 (`vehicles.zoneSlaapt`), en dat mag al vanaf dertig meter van de
   camera; de wijkauto's verhuizen zoals in stap 96.
 
+**Auto's van de computer door de bocht (stap 98).** Gevraagd (28 sep 2026): "kan je auto's
+die door AI bestuurd worden ook bochten soepeler laten nemen?"
+
+- *Wat er gebeurde.* Het verkeer (js/vehicles.js) reed over de BGT-as zoals die is: een
+  lijn met knikken. De neus stond per stuk recht, dus in een knik draaide hij in één beeld
+  om; en de strook ligt opzij van dat stuk, dus in elke knik sprong de auto naar buiten.
+  Harder of zachter door de bocht deed hij niet: de snelheid hing alleen aan wat er vóór
+  hem stond. Aan het eind van een straat keerde een wijkauto in één beeld om, met een
+  sprong van twee stroken opzij. De politie stuurde met A of D, aan of uit vanaf zes
+  honderdste radiaal koersfout, en slingerde daardoor. Bouwman en de tegenstanders in de
+  race rijden al over een gladde lijn met een snelheid per bocht, maar hun neus draaide per
+  monster van twee meter met een schokje.
+- *Gladde lijn* (`gladPad`): elke as om de twee meter bemonsterd, drie keer een
+  voortschrijdend gemiddelde over vijf monsters, de uiteinden vast. Per monster de
+  raaklijn en een bochtsnelheid v = √(2,6 / κ), κ van het scherpste stuk ernaast. De lijn
+  wordt één keer per as gemaakt en op de as onthouden (`_glad`); een wijkauto die verhuist
+  krijgt hem pas dan. Gemeten over 371 assen: hoogstens 2,15 m van de as (de Kling, in een
+  haarspeld), 0,7 % van de monsters verder dan anderhalve meter.
+- *Rijden* (`plekOpPad`): ook de raaklijn loopt tussen twee monsters door, en de strook
+  ligt opzij van die raaklijn: de neus draait vloeiend en de auto schuift niet meer opzij.
+- *Remmen* (`bochtSnelheid`): per monster vooruit de bochtsnelheid plus wat hij tot daar
+  kan afremmen (2,8 m/s²), zo ver vooruit als hij nodig heeft om stil te staan. De eerste
+  versie keek vast 45 m vooruit, en toen reed het verkeer op de N7 met 18,9 m/s²
+  dwarsversnelling door een bocht: sommige assen die "N7" heten lopen aan het eind een
+  op- of afrit in, met een bocht van 7 m/s, en op 25 m/s heb je daar 110 m voor nodig.
+- *Keren* (`keer`): aan het eind van de as een halve cirkel om het eindpunt, van zijn
+  strook naar de andere, op drie meter per seconde.
+- *Politie*: `drive` neemt naast A en D ook `keys.stuur` (−1…1); js/politie.js stuurt met
+  twee keer de koersfout, vol vanaf een halve radiaal.
+- *Race en Bouwman*: `punt` in js/race.js en js/schaduw.js neemt ook de raaklijn tussen
+  twee monsters in.
+- `npm run bochtentest` meet het, `npm run bochtenshots` maakt twee foto's
+  (`bocht_lijn.png`, `bocht_keren.png`).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
