@@ -39,10 +39,10 @@ export const SCHADUW = {
   erfIn: [[1412, -208.5], [1408.5, -203.5], [1403.5, -201], [1399.5, -200.4]],
   stap: 2,                      // bemonstering van de lijn (m)
   glad: 3,                      // gladstrijken over zoveel monsters naar elke kant
-  stad: 12.5,                   // m/s binnen de bebouwing (45 km/u)
-  snelweg: 21,                  // op de Stadsrondweg en de N7 (75 km/u)
-  dwars: 3.8,                   // m/s² dwars door een bocht: hij rijdt rustig
-  optrek: 2.0,                  // m/s²
+  stad: 14.5,                   // m/s binnen de bebouwing (52 km/u; verzoek 28 sep: "wat sneller")
+  snelweg: 22.5,                // op de Stadsrondweg en de N7 (81 km/u; de Golf haalt 86)
+  dwars: 4.6,                   // m/s² dwars door een bocht
+  optrek: 2.6,                  // m/s²
   remmen: 3.0,                  // m/s², waarmee het profiel voor een bocht of stop afremt
   rechts: 1.5,                  // zover rechts van de as rijdt hij (m)
   stopT: 7,                     // zo lang staat hij stil bij Parelmoervlinder 3 (s)
@@ -234,6 +234,52 @@ function materialen() {
 }
 
 /*
+ Rotondes (verzoek 28 sep 2026: "hij neemt rotondes linksom in plaats van rechtsom
+ zoals het hoort"). De BGT kent geen rotonde en de routeplanner geen rijrichting: hij
+ nam gewoon de korte kant, met de klok mee. Een rotonde herken je aan een rijbaanvlak
+ met een rond gat, het middeneiland (de pompeilanden van een tankstation niet). Op de
+ ring mag je dan maar één kant op: met het eiland aan je linkerhand.
+*/
+export function rotondes(KAART) {
+  const uit = [];
+  const tank = (KAART.tankstations || []).map(t => [t.cx, t.cz]);
+  for (const v of KAART.vlakken || []) {
+    if (v.k !== 'rijbaan' || !v.r || v.r.length < 2) continue;
+    for (const gat of v.r.slice(1)) {
+      let cx = 0, cz = 0;
+      for (const [x, z] of gat) { cx += x; cz += z; }
+      cx /= gat.length; cz /= gat.length;
+      const rs = gat.map(([x, z]) => Math.hypot(x - cx, z - cz));
+      const r = rs.reduce((a, b) => a + b, 0) / rs.length;
+      if (r < 3 || r > 30 || Math.max(...rs) - Math.min(...rs) > r * 0.5) continue;
+      if (tank.some(([x, z]) => Math.hypot(x - cx, z - cz) < 25)) continue;
+      uit.push({ x: cx, z: cz, r });
+    }
+  }
+  return uit;
+}
+function eenrichtingRotondes(nav, KAART) {
+  for (const o of rotondes(KAART)) {
+    const binnen = (p) => { const d = Math.hypot(p[0] - o.x, p[1] - o.z); return d > o.r - 1 && d < o.r + 9; };
+    for (let a = 0; a < nav.punten.length; a++) {
+      const A = nav.punten[a];
+      if (!binnen(A)) continue;
+      nav.bogen[a] = nav.bogen[a].filter(e => {
+        const B = nav.punten[e.naar];
+        if (!binnen(B)) return true;
+        // van A naar B: ligt het eiland links? links van (dx, dz) is (dz, −dx).
+        // Alleen wat langs de ring loopt: een in- of uitrit wijst naar het midden, die blijft twee kanten op
+        const dx = B[0] - A[0], dz = B[1] - A[1], l = Math.hypot(dx, dz) || 1;
+        const rx = o.x - A[0], rz = o.z - A[1], rl = Math.hypot(rx, rz) || 1;
+        const kruis = (rx * dz + rz * -dx) / (l * rl);
+        if (Math.abs(kruis) < 0.6) return true;
+        return kruis > 0;
+      });
+    }
+  }
+}
+
+/*
  De lijn van Bouwman: dezelfde aanpak als de race (js/race.js `bouwLijn`). De
  routeplanner over de rijbanen alleen (zonder fietspaden), om de twee meter
  bemonsterd, gladgestreken; per monster de toegestane snelheid (de Stadsrondweg en
@@ -274,6 +320,7 @@ export function bouwLijn(KAART, via = SCHADUW.via) {
     if (stuk.length > 1) assen.push({ ...w, pts: stuk });
   }
   const nav = new Navigatie(assen);
+  eenrichtingRotondes(nav, KAART);
   const a = nav.route(SCHADUW.van, via), b = nav.route(via, SCHADUW.weg);
   if (!a || !b) return null;
   // het tussenpunt zelf eruit: dan geen stukje naar de naaste knoop en weer terug
@@ -527,10 +574,52 @@ export function initSchaduw({ scene, vehicles, KAART, stopBij = null }) {
     return { x: x - tz * u, z: z + tx * u, tx, tz, i: a, yaw: Math.atan2(-tx, -tz) };
   }
   // hoe ver rechts: de rijstrook, behalve op het plein van de BP en op het erf
+  /*
+   Om geparkeerde auto's heen (stap 97). Op de Parelmoervlinder en de Bacchante staan
+   ze langs de stoeprand, precies op de strook waar hij rechts van de as rijdt: hij
+   ging er dwars doorheen, en wie hem volgde botste ertegen. Per monster de meest
+   rechtse strook die vrij is (js/vehicles.js `botsAutos`, met de maat van een auto),
+   dan twintig meter vooruit en achteruit de kleinste (zodat hij op tijd uitwijkt) en
+   gladgestreken. De geparkeerde auto's staan pas als de wereld er is, dus dit gebeurt
+   bij de eerste rit.
+  */
+  let uVrij = null;
+  function vrijeStroken() {
+    const L = lijnNu();
+    const ruw = new Float32Array(L.n);
+    for (let i = 0; i < L.n; i++) {
+      const tx = L.tx[i], tz = L.tz[i], yaw = Math.atan2(-tx, -tz);
+      const nep = { as: 1.4, botsRadius: 1.0, yaw, speed: 10, mesh: { position: { y: 0 } } };
+      let u = L.baan[i];
+      if (vehicles.botsAutos) {
+        for (let k = 0; k <= 12; k++) {
+          const probeer = L.baan[i] - k * 0.3;
+          const x = L.x[i] - tz * probeer, z = L.z[i] + tx * probeer;
+          // (alleen de geparkeerde auto's tellen: het verkeer rijdt en slaapt op zijn route)
+          const blik = vehicles.botsAutos(nep, x, z, true);
+          if (!blik.raak) { u = probeer; break; }
+        }
+      }
+      ruw[i] = u;
+    }
+    const min = new Float32Array(L.n), uit = new Float32Array(L.n);
+    for (let i = 0; i < L.n; i++) {
+      let m = Infinity;
+      for (let j = Math.max(0, i - 10); j <= Math.min(L.n - 1, i + 10); j++) m = Math.min(m, ruw[j]);
+      min[i] = m;
+    }
+    for (let i = 0; i < L.n; i++) {
+      let som = 0, n = 0;
+      for (let j = Math.max(0, i - 5); j <= Math.min(L.n - 1, i + 5); j++) { som += min[j]; n++; }
+      uit[i] = som / n;
+    }
+    return uit;
+  }
   function opzij(s) {
     const L = lijnNu(), p = punt(s);
+    if (!uVrij) uVrij = vrijeStroken();
     const rand = Math.min(1, s / 20, (L.lengte - 40 - s) / 20);
-    return L.baan[p.i] * Math.max(0, rand);
+    return uVrij[p.i] * Math.max(0, rand);
   }
 
   /*

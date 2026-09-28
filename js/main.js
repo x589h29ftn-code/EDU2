@@ -610,6 +610,8 @@ const verhaal = initVerhaal({
   stekken: () => woningen.filter(w => w.stek),
   // missie 10: "Enkele uren later" is het één uur 's nachts (de sfeer komt verderop)
   zetUur: (u) => { const sf = sfeerNu(); if (sf) sf.uur = u; },
+  // loopt de klok (sfeer.loopt)? Met een waarde: aan- of uitzetten
+  klokLoopt: (v) => { const sf = sfeerNu(); if (!sf) return false; if (v !== undefined) sf.loopt = !!v; return sf.loopt; },
   schokken: (kracht) => schok(kracht),
   /*
    Missie 12, de Dúvelsrak: het filmbeeld van de aanrijdende auto's zet zelf de

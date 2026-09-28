@@ -88,7 +88,7 @@ await page.evaluate(async () => {
   window.__volg = (maxT = 420, gap = 55, dt = 0.1) => {
     const v = g.verhaal, S = v.schaduw.wereld, L = S.lijn, V = g.vehicles, car = g.player.inCar;
     let i = Math.max(0, Math.round((v.schaduw.rit.s - gap) / 2)), t = 0, dMin = Infinity, dMax = 0, stop = null, sprong = 0, vorigeY = null;
-    let balk = null, marker = null, meestS = 0, spoorT = 0, vastT = 0, omT = 0;
+    let balk = null, marker = null, meestS = 0, spoorT = 0, vastT = 0, omT = 0, zoneAuto = 0;
     const spoor = [];
     const keys = {};
     while (t < maxT) {
@@ -125,6 +125,11 @@ await page.evaluate(async () => {
       if (rit.wacht > 0 && !stop) stop = { x: b.x, z: b.z, s: rit.s };
       if (b.mesh) { const y = b.mesh.position.y; if (vorigeY != null) sprong = Math.max(sprong, Math.abs(y - vorigeY)); vorigeY = y; }
       meestS = Math.max(meestS, rit.s);
+      // wakkere auto's op zijn route, verder dan 35 m van je af (daaronder mogen ze niet verdwijnen)
+      if (Math.round(t / dt) % 20 === 0) {
+        const n = V.traffic.filter(q => !q.slaapt && q._pos && S.opRoute(q._pos.x, q._pos.y) && Math.hypot(q._pos.x - car.x, q._pos.y - car.z) > 35).length;
+        zoneAuto = Math.max(zoneAuto, n);
+      }
       spoorT += dt;
       if (spoorT >= 1) {
         spoorT = 0;
@@ -141,7 +146,7 @@ await page.evaluate(async () => {
       t += dt;
     }
     return { t: +t.toFixed(1), fase: v.fase, dMin: +dMin.toFixed(1), dMax: +dMax.toFixed(1), stop, sprong: +sprong.toFixed(2),
-      balk, marker, mislukt: window.__mislukt(), meestS: Math.round(meestS), spoor };
+      balk, marker, mislukt: window.__mislukt(), meestS: Math.round(meestS), spoor, zoneAuto };
   };
 });
 
@@ -212,6 +217,7 @@ const route = await page.evaluate(async () => {
   const K = await import('/js/kaartwereld.js');
   const W = await import('/js/world.js');
   const { LOODS } = await import('/js/bouwvlak.js');
+  const { rotondes } = await import('/js/schaduw.js');
   const g = window.__game, v = g.verhaal, S = v.schaduw.wereld, L = S.lijn;
   let rijbaan = 0, n = 0, draai = 0;
   for (let i = 0; i < L.n; i += 3) {
@@ -248,13 +254,38 @@ const route = await page.evaluate(async () => {
   // en van de weg af zie je de roldeur wel (anders valt er niets te ontdekken)
   const deurZicht = W.zichtVrij(1405, -214, S.loods.deur.x, S.loods.deur.z + 1.2, 1.5);
   // het bord is door het raam te zien: niets tussen de fotoplek en het bord behalve het glas
-  return { sprongLijn: +L.sprong.toFixed(2), lengte: Math.round(L.lengte), rijbaan, n, draai: Math.round(draai * 180 / Math.PI), langs15: +langs15.toFixed(1),
+  // de rotondes op zijn route: tegen de klok in, met het eiland links (links van de rijrichting is (tz, −tx))
+  const rot = [];
+  for (const o of rotondes(K.KAART)) {
+    let som = 0, n = 0;
+    for (let i = 0; i < L.n; i++) {
+      const dx = L.x[i] - o.x, dz = L.z[i] - o.z;
+      if (Math.hypot(dx, dz) > o.r + 9) continue;
+      som += -dx * L.tz[i] + -dz * -L.tx[i]; n++;
+    }
+    if (n) rot.push({ x: Math.round(o.x), z: Math.round(o.z), links: som > 0 });
+  }
+  // past er langs zijn hele strook een auto? Geen botsdoos, geen water, geen geparkeerde auto
+  const vast = [];
+  for (let s = 20; s < L.lengte - 30; s += 2) {
+    const p = S.punt(s, S.opzij(s)), fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
+    let raak = W.pointInWater(p.x, p.z);
+    for (const off of [-1.4, 0, 1.4]) {
+      const px = p.x + fx * off, pz = p.z + fz * off, [rx, rz] = W.resolveCollisions(px, pz, 0.95, 3.5, 0);
+      if (Math.hypot(rx - px, rz - pz) > 0.05) raak = true;
+    }
+    if (g.vehicles.botsAutos({ as: 1.4, botsRadius: 0.95, yaw: p.yaw, speed: 10, mesh: { position: { y: 0 } } }, p.x, p.z, true).raak) raak = true;
+    if (raak) vast.push(Math.round(s));
+  }
+  return { vast, rot, sprongLijn: +L.sprong.toFixed(2), lengte: Math.round(L.lengte), rijbaan, n, draai: Math.round(draai * 180 / Math.PI), langs15: +langs15.toFixed(1),
     stopBij: +Math.hypot(stop.x - thuis.x, stop.z - thuis.z).toFixed(1), namen: [...new Set(L.naam.filter(Boolean))],
     slecht, panden, eind, erf: E, zicht, deurZicht, snel: +(Array.from(L.vmax).filter(x => x > 15).length / L.n).toFixed(2) };
 });
 ok(route.lengte > 1800 && route.lengte < 3000, 'van de BP naar de loods, ruim twee kilometer', `${route.lengte} m`);
 ok(route.rijbaan / route.n > 0.93, 'over de rijbaan', `${route.rijbaan} van ${route.n}`);
 ok(route.draai < 120, 'zonder keerpunt: hooguit een gewone kruising', `grootste draai ${route.draai}° over twaalf meter`);
+ok(route.rot.length >= 1 && route.rot.every(o => o.links), 'rotondes rechtsom, zoals het hoort: tegen de klok in, het eiland links', route.rot.map(o => `${o.x},${o.z} ${o.links ? 'goed' : 'FOUT'}`).join(' · '));
+ok(route.vast.length === 0, 'zijn strook is vrij: geen botsdoos, geen water en geen geparkeerde auto (om die heen)', route.vast.slice(0, 8).join(', ') || 'overal vrij');
 ok(route.sprongLijn < 0.5, 'en nergens van een dek af: de hoogte loopt geleidelijk', `grootste sprong ${route.sprongLijn} m tussen twee monsters`);
 ok(route.langs15 < 20 && route.stopBij < 20, 'langs Parelmoervlinder 3, en daar stopt hij', `${route.langs15} m langs het huis, stop op ${route.stopBij} m`);
 ok(route.namen.includes('N7') && route.namen.includes('Parelmoervlinder') && route.snel > 0.08, 'door Duinterpen en over de N7', `${Math.round(route.snel * 100)} % over de snelle weg · ${route.namen.join(', ')}`);
@@ -267,20 +298,25 @@ ok(route.deurZicht, 'en van de weg zie je de roldeur');
 kop('volgen');
 const volg = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
+  const klokBijStart = { loopt: g.sfeer.loopt };
+  g.sfeer.loopt = true;                          // (zoals met \ of het oude shift+\)
   window.__stap(130);                           // zes tellen: dan rijdt hij weg
   const weg = v.fase;
+  const klokNa = { loopt: g.sfeer.loopt };
   // de automaat pakt hem op zestig meter achter hem op (de Golf rijdt eerst van het voorterrein)
   for (let i = 0; i < 400 && v.schaduw.rit.s < 70 && !window.__mislukt(); i++) v.update(0.05);
   window.__achter(g.player.inCar, 55);
   const r = window.__volg(480, 55);
   const sch = v.schaduw, b = sch.auto;
-  return { weg, ...r, persoon: sch.bouwman.groep.visible, pDus: Math.hypot(sch.bouwman.groep.position.x - sch.wereld.bus.x, sch.bouwman.groep.position.z - sch.wereld.bus.z),
+  return { weg, klokBijStart, klokNa, uurBijLoods: +g.sfeer.uur.toFixed(2), ...r, persoon: sch.bouwman.groep.visible, pDus: Math.hypot(sch.bouwman.groep.position.x - sch.wereld.bus.x, sch.bouwman.groep.position.z - sch.wereld.bus.z),
     auto: { x: b.x, z: b.z }, merken: sch.merken.filter(m => m.zichtbaar).length, opdracht: document.getElementById('opdracht').textContent,
     balkWeg: document.getElementById('schaduwbalk').hidden, gezien: sch.gezien, thuis: v.schrift.deur, zoneWeg: g.vehicles.vrijeZone == null };
 });
 ok(volg.weg === 'volgen', 'na zes tellen rijdt Bouwman weg');
+ok(!volg.klokBijStart.loopt && !volg.klokNa.loopt && Math.abs(volg.uurBijLoods - 23) < 0.05, 'de hele nacht donker: de klok staat stil, ook als je hem aanzet', `${volg.uurBijLoods} uur bij de loods`);
 ok(!volg.mislukt && volg.fase === 'loods', 'goed gevolgd: tot aan de loods', `${volg.t} s, fase ${volg.fase}, tot s = ${volg.meestS}`);
 if (volg.mislukt || volg.fase !== 'loods') console.log('   spoor:', volg.spoor.map(q => JSON.stringify(q)).join('\n          '));
+ok(volg.zoneAuto === 0, 'onderweg geen verkeer op zijn route: ook de N7 slaapt zolang je hem volgt', `hoogstens ${volg.zoneAuto} auto's`);
 ok(volg.dMin > 22 && volg.dMax < 170, 'nooit te dichtbij en nooit kwijt', `tussen ${volg.dMin} en ${volg.dMax} m`);
 ok(volg.stop && Math.hypot(volg.stop.x - volg.thuis.x, volg.stop.z - volg.thuis.z) < 22, 'onderweg stopt hij bij Parelmoervlinder 3', volg.stop && `${Math.round(Math.hypot(volg.stop.x - volg.thuis.x, volg.stop.z - volg.thuis.z))} m van het huis`);
 ok(volg.sprong < 0.5, 'de politieauto blijft op de weg (geen sprong in hoogte)', `grootste sprong ${volg.sprong} m per stap`);
@@ -335,14 +371,19 @@ const klaar = await page.evaluate(() => {
   window.__zet(w.plekken.deurBinnen.x, w.plekken.deurBinnen.z);
   window.__stap(3);
   const regels = window.__gesprek();
+  const zwart = !!v.zwart, tekst = document.getElementById('overgangtekst').textContent;
+  window.__zwartUit();
   window.__stap(3);
-  const sch = v.schaduw;
-  return { regels, geld: v.geld - geld, missie: v.missie, klaar: sch.klaar, melding: document.getElementById('missie').textContent,
+  const sch = v.schaduw, d = w.plekken.deurBuiten;
+  return { regels, zwart, tekst, uur: g.sfeer.uur, loopt: g.sfeer.loopt, buiten: +Math.hypot(g.player.pos.x - d.x, g.player.pos.z - d.z).toFixed(1),
+    geld: v.geld - geld, missie: v.missie, klaar: sch.klaar, melding: document.getElementById('missie').textContent,
     mannen: !!sch.mannen, bus: sch.bus ? sch.bus.mesh.visible : false, auto: sch.auto ? sch.auto.mesh.visible : false,
     bewaard: v.bewaar().schaduwKlaar };
 });
 const klaarTekst = klaar.regels.map(r => r.tekst).join(' ');
 ok(/Ronald\. Johan\. En ik/.test(klaarTekst) && /Hij wil ons hebben/.test(klaarTekst), 'Mark ziet zijn naam op het bord: "Hij wil ons hebben"');
+ok(/Blijf hier maar even slapen/.test(klaarTekst) && klaar.zwart && /volgende ochtend/.test(klaar.tekst), '"Blijf hier maar even slapen", en zwart: "De volgende ochtend"', klaar.tekst);
+ok(Math.abs(klaar.uur - 10) < 0.05 && klaar.buiten < 6 && !klaar.loopt, 'om tien uur sta je voor de deur van Molenkrite 15, en de klok staat weer zoals hij stond', `${klaar.uur} uur, ${klaar.buiten} m van de deur`);
 ok(klaar.missie === 'klaar' && klaar.klaar && klaar.geld === 1500 && /GESLAAGD/.test(klaar.melding), 'geslaagd: € 1.500', klaar.melding.slice(0, 50));
 ok(!klaar.mannen && !klaar.bus && !klaar.auto, 'Bouwman, zijn mannen en de bus zijn weg bij de loods');
 ok(klaar.bewaard === true, 'en het opgeslagen spel weet dat de missie af is');
@@ -445,6 +486,7 @@ const helft = await page.evaluate(() => {
   window.__zet(woning.plekken.deurBinnen.x, woning.plekken.deurBinnen.z);
   window.__stap(3);
   const regels = window.__gesprek();
+  window.__zwartUit();
   window.__stap(3);
   return { opLoods, gezien, weg: +weg.toFixed(1), fase, geld: v.geld - geld, regels: regels.map(r => r.tekst).join(' '), klaar: v.schaduw.klaar };
 });
@@ -458,12 +500,15 @@ ok(helft.klaar && helft.geld === 750 && /helft/.test(helft.regels), 'Mark geeft 
 kop('los te starten');
 const los = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
+  const klok = { loopt: g.sfeer.loopt, uur: g.sfeer.uur };
   window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backslash', key: '\\', shiftKey: true, bubbles: true }));
   window.__stap(2);
-  return { missie: v.missie, fase: v.fase, merken: v.schaduw.merken.filter(m => m.zichtbaar).length, mannen: !!v.schaduw.mannen };
+  const naKlok = { loopt: g.sfeer.loopt, uur: g.sfeer.uur };
+  return { missie: v.missie, fase: v.fase, merken: v.schaduw.merken.filter(m => m.zichtbaar).length, mannen: !!v.schaduw.mannen, klok, naKlok };
 });
 ok(los.missie === 'schaduw' && los.fase === 'telefoon', 'shift+\\ begint missie 15 met het telefoontje', JSON.stringify(los));
 ok(los.merken === 0 && !los.mannen, 'en de loods van daarnet is leeg');
+ok(los.naKlok.loopt === los.klok.loopt && Math.abs(los.naKlok.uur - los.klok.uur) < 0.01, 'en shift+\\ zet de klok niet meer aan (dat deed hij wel: in missie 15 werd het licht)', JSON.stringify(los.naKlok));
 
 console.log(`\n${fout ? fout + ' fout' : 'alles goed'}`);
 await browser.close();

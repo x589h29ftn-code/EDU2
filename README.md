@@ -2118,7 +2118,8 @@ met de Ferrari, want die kent Bouwman nu: *"Mijn oude Golf staat bij het Autohui
 tegenover de BP. Daar tankt hij altijd."* Het wordt zwart: ***Die avond…***
 
 Om elf uur zit je in de grijze Golf op het voorterrein van het Autohuis, en aan de
-overkant staat de politieauto van Bouwman bij de pomp. Na een paar tellen rijdt hij
+overkant staat de politieauto van Bouwman bij de pomp. De hele missie blijft het nacht:
+de klok staat stil tot de volgende ochtend. Na een paar tellen rijdt hij
 weg, en dan volg je hem. Linksboven staat een **balk** die zegt hoe ver je achter
 hem zit, en op de kaart rijdt een **B** met hem mee:
 
@@ -2129,7 +2130,8 @@ hem zit, en op de kaart rijdt een **B** met hem mee:
 | hij staat stil | dan kijkt hij in zijn spiegel: blijf verder dan 40 m |
 | verder dan 170 m, vijf tellen lang | je bent hem kwijt, en de missie is mislukt |
 
-Bouwman rijdt rustig, en niet de kortste weg: eerst door Duinterpen, en daar stopt
+Bouwman rijdt zo'n 50 km/u in de wijk en 80 op de N7, en rotondes neemt hij zoals het
+hoort: rechtsom erop, tegen de klok in. Hij neemt niet de kortste weg: eerst door Duinterpen, en daar stopt
 hij even bij **Parelmoervlinder 3**, het adres waar Mark in missie 13 ondergedoken zat.
 Hij weet het dus. Daarna gaat hij over de Stadsrondweg en de N7 naar een **loods aan
 het water**, samen 2,2 km. Zolang je hem volgt rijdt er geen wijkverkeer op zijn route. Mislukt het,
@@ -2165,7 +2167,9 @@ alsnog maken.
 
 Terug bij Mark op de bank bekijkt hij de foto's: *"Hij wil ons niet pakken, Erik.
 Hij wil ons hebben. Net als De Veteraan."* Je krijgt **€ 1.500**, of de helft als de
-mannen je gezien hebben.
+mannen je gezien hebben. *"En het is laat. Blijf hier maar even slapen, voor de
+zekerheid."* Het wordt zwart, ***De volgende ochtend***, en om tien uur sta je voor de
+deur van Molenkrite 15.
 
 **shift + \\** start de missie los. `npm run schaduwtest` speelt hem na: het
 telefoontje, het schrift, de route (over de rijbaan, geen keerpunt, geen sprong in

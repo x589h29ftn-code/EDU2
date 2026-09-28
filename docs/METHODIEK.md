@@ -6459,6 +6459,44 @@ loods, op weg naar een finale met Bouwman als tegenstander).
 - *Opgeruimd door de race.* `raceNaloop` haalt de auto van Bouwman weg als je buiten
   missie 14 ver weg bent; in missie 15 rijdt hij die auto zelf, dus daar niet.
 
+**Missie 15: de nacht blijft nacht, slapen bij Mark, sneller en rechtsom (stap 97).**
+Gevraagd (28 sep 2026): tijdens missie 15 gewoon donker en geen dag-nachtritme; na het
+gesprek met Mark zwart en overdag verder ("blijf hier maar even slapen"); Bouwman wat
+sneller, en hij nam rotondes linksom in plaats van rechtsom.
+
+- *Waarom het licht werd.* js/sfeer.js zet met \\ de klok aan (een dag in vier minuten)
+  en schuift met [ en ] een uur op, en keek niet naar shift. Maar shift+[, shift+] en
+  shift+\\ zijn de missies 13, 14 en 15: wie missie 15 met shift+\\ startte, zette de klok
+  aan het lopen. Nu laat sfeer.js die drie met shift liggen. En van "Die avond…" tot de
+  ochtend houdt js/verhaal.js de klok stil (`klokLoopt` in de ctx), ook als iemand hem met
+  \\ aanzet; daarna loopt hij weer zoals hij liep.
+- *Slapen bij Mark.* Na de foto's: "En het is laat. Blijf hier maar even slapen, voor de
+  zekerheid." Zwart, "De volgende ochtend", tien uur, voor de deur van Molenkrite 15, en
+  dan pas MISSIE GESLAAGD.
+- *Sneller*: 52 km/u in de wijk en 81 op de N7 (was 45 en 75); de Golf haalt 86.
+- *Rotondes.* Gemeten langs zijn route: drie rotondes, alle drie met het eiland rechts,
+  dus met de klok mee. De BGT kent geen rotonde en de routeplanner geen rijrichting. Nu
+  herkent js/schaduw.js een rotonde aan een rijbaanvlak met een rond gat (het
+  middeneiland; de pompeilanden van de BP niet) en haalt op de ring de verkeerde richting
+  uit de routeplanner. De eerste poging deed dat met alles binnen negen meter van de ring,
+  ook met de in- en uitritten: een uitrit werd zo eenrichting de verkeerde kant op, en de
+  route ging de rotonde rond, de weg af en keerde op de andere rijbaan (140°). Nu alleen de
+  stukken die langs de ring lopen. De route is nu 2,3 km en gaat over twee rotondes, beide
+  goed; de grootste draai is 97° (de oprit van de loods). De race gaat al goed over zijn
+  rotonde (hij rijdt er rechtdoor).
+- *Door geparkeerde auto's heen.* Sneller en over de nieuwe route liep de automaat van de
+  proef twee keer vast, telkens op dezelfde plek en tot op het getal hetzelfde, ook nadat
+  al het verkeer op zijn route sliep. Langs de lijn nagemeten: geen botsdoos, geen water,
+  maar wel `botsAutos`: op de Parelmoervlinder en de Bacchante staan geparkeerde auto's
+  langs de stoeprand, precies op de strook waar hij 1,3 m rechts van de as reed (de eerste
+  meting zag ze niet: ze hebben als instantie geen eigen mesh, en daar filterde die op). Nu
+  kiest js/schaduw.js per monster de meest rechtse vrije strook, twintig meter vooruit en
+  achteruit de kleinste, gladgestreken: hij wijkt op tijd uit. `botsAutos` kreeg daarvoor
+  `alleenGeparkeerd` (zonder verkeer en zonder wat niet te besturen is).
+- *Verkeer op zijn route.* Zolang je hem volgt slaapt al het verkeer op zijn route, ook het
+  doorgaande op de N7 (`vehicles.zoneSlaapt`), en dat mag al vanaf dertig meter van de
+  camera; de wijkauto's verhuizen zoals in stap 96.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

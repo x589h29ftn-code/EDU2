@@ -746,18 +746,20 @@ export class Vehicles {
 
    Geeft de vrijgeduwde plek terug plus `raak`: hoeveel meter er overlapte.
   */
-  botsAutos(car, cx, cz) {
+  // `alleenGeparkeerd`: zonder het verkeer en zonder wat niet te besturen is (js/schaduw.js)
+  botsAutos(car, cx, cz, alleenGeparkeerd = false) {
     const as = car.as || 1.4, radius = car.botsRadius || 0.95;
     const fx = -Math.sin(car.yaw), fz = -Math.cos(car.yaw);
     const buurt = [];
     const y = car.mesh ? car.mesh.position.y : 0;
     for (const c of this.cars) {
       if (c === car || !this.isZichtbaar(c)) continue;
+      if (alleenGeparkeerd && c.driveable === false) continue;
       if (Math.abs(c.x - cx) > 12 || Math.abs(c.z - cz) > 12) continue;
       if (!zelfdeLaag(y, c.mesh ? c.mesh.position.y : 0)) continue;
       buurt.push({ x: c.x, z: c.z, yaw: c.yaw, as: c.as || 1.4, r: c.botsRadius || 0.95, auto: c });
     }
-    for (const t of this.traffic) {
+    for (const t of alleenGeparkeerd ? [] : this.traffic) {
       const p = t.mesh.position;
       if (Math.abs(p.x - cx) > 12 || Math.abs(p.z - cz) > 12) continue;
       if (!zelfdeLaag(y, p.y)) continue;
@@ -951,11 +953,21 @@ export class Vehicles {
     for (let i = 0; i < this.traffic.length; i++) {
       const t = this.traffic[i];
       if (t.slaap === undefined) t.slaap = ((i + 1) * 2654435761 % 4294967296) / 4294967296;
-      const wakker = t.slaap < (t.lokaal ? f : Math.max(0.25, f));
+      let wakker = t.slaap < (t.lokaal ? f : Math.max(0.25, f));
+      /*
+       `zoneSlaapt` (missie 15): alles wat op de vrije zone rijdt slaapt, ook het doorgaande
+       verkeer op de N7, en dat mag al op dertig meter van de camera. Bouwman rijdt langs een
+       lijn en gaat door elke auto heen, en een auto die in beeld de route op reed hield de
+       speler tegen (stap 97).
+      */
+      const zone = this.zoneSlaapt && this.vrijeZone && t._pos && !t.slaapt && this.vrijeZone(t._pos.x, t._pos.y);
+      if (zone) wakker = false;
       if (camX === null || wakker === !t.slaapt) continue;
-      if (t._pos && !t.slaapt && Math.hypot(t._pos.x - camX, t._pos.y - camZ) < SLAAP_VER) continue;
+      if (t._pos && !t.slaapt && Math.hypot(t._pos.x - camX, t._pos.y - camZ) < (zone ? 30 : SLAAP_VER)) continue;
       if (t.slaapt) {
         // wakker worden: op een rijbaan uit het zicht, net als het bijvullen
+        // (maar niet zolang de zone slaapt: dan zou hij er zo weer op kunnen staan)
+        if (this.zoneSlaapt && this.vrijeZone && !t.lokaal) continue;
         t.slaapt = false;
         t.mesh.visible = this._verkeerAan !== false;
         if (t.lokaal) this.zetOpRijbaan(t, camX, camZ, SLAAP_VER, SLAAP_VER, 600);

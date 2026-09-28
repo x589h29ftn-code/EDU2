@@ -337,6 +337,12 @@ export function initSfeer(ctx) {
   // ---------- bediening ----------
   window.addEventListener('keydown', e => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    /*
+     Met shift zijn [, ] en \ de missies 13, 14 en 15 (js/main.js). Zonder deze regel
+     schoof shift+] de klok ook een uur op, en zette shift+\ hem aan het lopen: in
+     missie 15 werd het dan midden in de nacht licht (melding 28 sep 2026).
+    */
+    if (e.shiftKey && (e.code === 'BracketLeft' || e.code === 'BracketRight' || e.code === 'Backslash')) return;
     if (e.code === 'KeyY') {
       weer = WEER[(WEER.indexOf(weer) + 1) % WEER.length];
       pasToe(); hud.show(`Weer: ${weer}`, 2);

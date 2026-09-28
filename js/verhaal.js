@@ -731,7 +731,8 @@ const RACE_GEWONNEN = [
  helft als ze je gezien hebben (verzoek 27 sep 2026, "net wat anders").
 */
 const SCHADUW_WACHT = 60;           // zoveel seconden na de ochtend belt Mark
-const SCHADUW_UUR = 23;             // "Die avond…"
+const SCHADUW_UUR = 23;             // "Die avond…": en de klok staat stil tot de ochtend
+const SCHADUW_OCHTEND = 10;         // "De volgende ochtend": je slaapt bij Mark
 const SCHADUW_DICHT = 22;           // dichterbij dan dit ziet Bouwman je (m)…
 const SCHADUW_DICHT_FERRARI = 45;   // …en een rode Ferrari ziet hij van veel verder
 const SCHADUW_DICHT_STIL = 40;      // staat hij stil, dan kijkt hij in zijn spiegel
@@ -786,6 +787,8 @@ const SCHADUW_KLAAR = (gezien) => [
     zegtMark(`Hier, voor vanavond: ${euro(SCHADUW_BELONING)}.`),
   ]),
   zegtMark('Blijf de komende dagen uit de buurt van die loods.'),
+  zegtMark('En het is laat. Blijf hier maar even slapen, voor de zekerheid.'),
+  zegtErik('Graag.'),
 ];
 
 // ---------- missie 6: de groene BX ----------
@@ -975,7 +978,7 @@ export function initVerhaal(ctx) {
     // missie 9: de drie woningen waar je uit kunt kiezen (js/interieur.js)
     stekken = null,
     // missie 10: na het gesprek met De Veteraan wordt het één uur 's nachts
-    zetUur = null,
+    zetUur = null, klokLoopt = null,
     // het checkpoint na elke missie, en de keuze na het neergaan (js/main.js)
     checkpoint = null, naarCheckpoint = null, naarOpslag = null,
     heeftCheckpoint = () => false, heeftOpslag = () => false, vergrendel = null,
@@ -3174,7 +3177,7 @@ export function initVerhaal(ctx) {
     player.pos.set(kx, 0, kz);
     player.applyCamera();
     if (johan) johan.groep.visible = false;
-    if (f === 'terug' || f === 'afronding') {
+    if (f === 'terug' || f === 'afronding' || f === 'slapen') {
       fase = 'terug';
       zetOpdracht('terug naar de kade aan de Geeuw');
       zetNavDoel(kade.x, kade.z, 'Geeuwkade', 'M');
@@ -5790,6 +5793,7 @@ export function initVerhaal(ctx) {
   let schaduwT = 0, schaduwDichtT = 0, schaduwVerT = 0, schaduwMarkT = 0, schaduwMeldT = 0;
   let schaduwStopGezegd = false, schaduwHint = false;
   let schaduwAfstand = null;       // de laatst gemeten afstand tot Bouwman (m)
+  let schaduwKlokWas = null;       // liep de klok voor "Die avond…"? Dan loopt hij na de ochtend weer
   const schaduwMerk = schaduw.fotos.map(() => maakMarkering(scene));
   const schaduwBalk = document.getElementById('schaduwbalk');
   const schaduwFlits = document.getElementById('fotoflits');
@@ -5809,6 +5813,9 @@ export function initVerhaal(ctx) {
     if (schaduwBus && schaduwBus.mesh) { schaduwBus.mesh.visible = false; schaduwBus.x = schaduwBus.z = 1e5; schaduwBus.mesh.position.set(1e5, 0, 1e5); }
     schaduwDichtT = 0; schaduwVerT = 0; schaduwStopGezegd = false; schaduwAfstand = null;
     if (vehicles.vrijeZone === schaduw.opRoute) vehicles.vrijeZone = null;
+    vehicles.zoneSlaapt = false;
+    if (schaduwKlokWas !== null && klokLoopt) klokLoopt(schaduwKlokWas);
+    schaduwKlokWas = null;
   }
   function beginSchaduw() {
     fase = 'telefoon';
@@ -5845,6 +5852,11 @@ export function initVerhaal(ctx) {
     if (zetUur) zetUur(SCHADUW_UUR);
     if (sterrenWeg) sterrenWeg();
     ruimSchaduwOp();
+    /*
+     De hele nacht donker (verzoek 28 sep 2026: "laat het tijdens missie 15 gewoon
+     donker zijn en geen dag-nachtritme"): de klok staat stil tot de volgende ochtend.
+    */
+    if (klokLoopt) { schaduwKlokWas = klokLoopt(); klokLoopt(false); }
     schaduwRit = schaduw.nieuweRit();
     const car = bouwmanAuto();
     zetBouwmanAuto({ ...schaduw.punt(0), yaw: schaduw.punt(0).yaw });
@@ -5873,6 +5885,7 @@ export function initVerhaal(ctx) {
     schutters = schaduwMannen = new Bewaking(scene, schaduw.posten, { ...SCHADUW_MANNEN, terrein: schaduw.opHetErf });
     // geen wijkverkeer op zijn route zolang je hem volgt (het beeld is nu zwart: wat er rijdt verhuist)
     vehicles.vrijeZone = schaduw.opRoute;
+    vehicles.zoneSlaapt = true;
     if (vehicles.maakVrij) vehicles.maakVrij(G.x, G.z);
     schaduwT = 6;
     spanning = true; spanningUit = 0;
@@ -5883,6 +5896,7 @@ export function initVerhaal(ctx) {
   function aanDeLoods() {
     fase = 'loods'; zetPunt(fase);
     if (vehicles.vrijeZone === schaduw.opRoute) vehicles.vrijeZone = null;
+    vehicles.zoneSlaapt = false;
     const st = schaduw.bouwmanStaat;
     if (!schaduwGezien) {
       bouwman.zetNeer(st.x, st.z, kijkHoek(st, schaduw.bus));
@@ -5950,6 +5964,28 @@ export function initVerhaal(ctx) {
     zetFotoOpdracht();
     return true;
   }
+  /*
+   "Blijf hier maar even slapen": zwart, "De volgende ochtend", en je staat om tien
+   uur voor de deur van Molenkrite 15, met MISSIE GESLAAGD. De klok loopt dan weer
+   zoals hij liep voor "Die avond…".
+  */
+  function wakkerBijMark() {
+    fase = 'slapen';
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+    zwartMet('De volgende ochtend', () => {
+      if (zetUur) zetUur(SCHADUW_OCHTEND);
+      const w = molenkrite && molenkrite();
+      const d = molenkriteDeur(), stoep = (w && w.plekken && w.plekken.stoep) || d;
+      player.inCar = null;
+      const [px, pz] = resolveCollisions(stoep.x, stoep.z, 0.4);
+      player.pos.set(px, 0, pz);
+      player.yaw = kijkHoek(d, stoep);
+      player.pitch = 0;
+      player.applyCamera();
+      schaduwGeslaagd();
+    });
+  }
   function schaduwGeslaagd() {
     const beloning = schaduwGezien ? SCHADUW_BELONING / 2 : SCHADUW_BELONING;
     fase = 'klaar';
@@ -5998,6 +6034,7 @@ export function initVerhaal(ctx) {
       return;
     }
     if (fase === 'naarMark' || fase === 'terug') {
+      if (fase === 'terug' && klokLoopt && klokLoopt()) klokLoopt(false);     // het is nog steeds nacht
       navKlok += dt;
       if (navKlok > 2) { navKlok = 0; werkNavBij(); }
       const woning = molenkrite && molenkrite();
@@ -6007,10 +6044,12 @@ export function initVerhaal(ctx) {
       hud.zetNavigatie(null); navDoel = null;
       zetOpdracht('');
       if (fase === 'naarMark') { fase = 'gesprek'; zeg(SCHADUW_BINNEN, naarDeAvond); }
-      else { fase = 'afronding'; zeg(SCHADUW_KLAAR(schaduwGezien), schaduwGeslaagd); }
+      else { fase = 'afronding'; zeg(SCHADUW_KLAAR(schaduwGezien), wakkerBijMark); }
       return;
     }
-    if (fase === 'gesprek' || fase === 'afronding') { mark.update(dt, { zit: BANK_ZITTING }); return; }
+    // de nacht blijft nacht, ook als iemand de klok aanzet
+    if (fase !== 'gesprek' && klokLoopt && klokLoopt()) klokLoopt(false);
+    if (fase === 'gesprek' || fase === 'afronding' || fase === 'slapen') { mark.update(dt, { zit: BANK_ZITTING }); return; }
     if (fase === 'avond') return;
 
     // ---- de rit van Bouwman, en of hij je ziet ----
@@ -6086,7 +6125,7 @@ export function initVerhaal(ctx) {
     beginSchaduw();
     if (f === 'telefoon') return;
     if (f === 'naarMark' || f === 'gesprek') { naarMarkSchaduw(); return; }
-    if (f === 'terug' || f === 'afronding') { schaduwFotos = [true, true, true]; schaduwGezien = gezien; naarMarkMetFotos(); return; }
+    if (f === 'terug' || f === 'afronding' || f === 'slapen') { schaduwFotos = [true, true, true]; schaduwGezien = gezien; naarMarkMetFotos(); return; }
     opDeWacht();
     if (f !== 'loods') return;
     schaduwFotos = fotos; schaduwGezien = gezien;

@@ -192,8 +192,10 @@ bij Parelmoervlinder 3); volgen met de balk `#schaduwbalk`: dichter dan 22 m (Fe
 gezien, twee sterren, `mislukt`; verder dan 170 m vijf tellen = kwijt. Bij de loods
 (`LOODS` in js/bouwvlak.js, x 1396–1418, z −194…−182) drie foto's met E op een gele ruit, recht naar
 het onderwerp kijkend (`fotoHier`); de twee mannen zijn een `Bewaking` (`schaduwMannen`). Gezien bij de
-loods: Bouwman vlucht (`rit.vlucht`), Mark geeft de helft. Terug op de bank: € 1.500. **shift+\\**
-start hem los.
+loods: Bouwman vlucht (`rit.vlucht`), Mark geeft de helft. Terug op de bank: € 1.500, "blijf hier
+maar even slapen", zwart, "De volgende ochtend" (`wakkerBijMark`: 10:00, voor de deur). Van "Die
+avond…" tot de ochtend staat de klok stil (`klokLoopt` in de ctx). Rotondes neemt hij tegen de klok
+in (`rotondes`, `eenrichtingRotondes` in js/schaduw.js). **shift+\\** start hem los.
 
 Daarna hangen er groepjes van twee tot vier man van De Veteraan rond in Tinga en
 langs de Lemmerweg (js/bendes.js): knuppel of pistool, aanvallen binnen 13 m,
@@ -337,6 +339,16 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   altijd; vang de melding zelf af (tools/schaduwtest.mjs `__misluktNu`).
 - **`raceNaloop` ruimt de auto van Bouwman op** zodra je buiten missie 14 ver weg bent. Een
   missie die hem hergebruikt (15) moet daar uitgezonderd zijn, anders verdwijnt hij onder het volgen.
+- **Shift met [, ] of \\ is een missie**, niet de klok (stap 97). js/sfeer.js zette met
+  \\ de klok aan en schoof met [ en ] een uur op, ook met shift erbij: missie 15 starten zette
+  de dag in vier minuten aan het lopen. Een nieuwe sneltoets: kijk of sfeer.js hem niet ook pakt.
+- **Een instantie heeft geen mesh**: geparkeerde auto's staan in `vehicles.cars` maar zonder
+  eigen `mesh`; wie op `c.mesh.visible` filtert ziet ze niet, `botsAutos` wel (stap 97: Bouwman
+  reed door geparkeerde auto's heen, en de speler erachter botste ertegen).
+- **De routeplanner kent geen rijrichting** (stap 97): rotondes nam hij de korte kant, met de
+  klok mee. js/schaduw.js herkent rotondes aan een rijbaanvlak met een rond gat en geeft de ring
+  één richting (alleen de stukken langs de ring; een in- of uitrit blijft twee kanten op, anders
+  werd een uitrit doodlopend). De race gaat al goed over zijn rotonde.
 - **De routeplanner kent geen hoogte** (stap 96). Het knooppunt van de Stadsrondweg op de
   Dúvelsrak ligt 5,6 m hoog, maar de Stadsrondweg-Zuid oostwaarts en de N7 liggen eronder en
   raken het dek in de plattegrond: een route reed van het dek zo die weg op. js/schaduw.js knipt
