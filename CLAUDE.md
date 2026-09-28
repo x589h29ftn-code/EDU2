@@ -48,7 +48,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | Bestand | Waarvoor |
 |---|---|
 | `js/main.js` | de hoofdlus, de invoer, de mixer, alles aan elkaar |
-| `js/verhaal.js` | de vijftien missies, Mark, de gesprekken, de opslag van het verhaal |
+| `js/verhaal.js` | de zestien missies, Mark, de gesprekken, de opslag van het verhaal |
 | `js/kaart.js` | **gegenereerd**: panden, wegen, water, straten uit de geodata |
 | `js/kaartwereld.js` | daar de wereld van bouwen (tegels, bomen, riet, auto's) |
 | `js/textures.js` | alle geveltextures, dakpannen, baksteen — op canvas |
@@ -73,6 +73,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/garage.js` | Autohuis Lemmerweg: glazen showroom, Ferrari's en BX kopen, gekochte auto's in de opslag |
 | `js/race.js` | missie 14: het parcours van de BP naar IJlst (routeplanner + de hoofdweg uit de BGT), gele ringen, finish, tegenstanders langs de lijn |
 | `js/bouwvlak.js` | plekken waar het spel zelf bouwt (de showroom, de loods): daar geen bomen, struiken of gras |
+| `js/inval.js` | missie 16: de route van de inval over de Molenkrite, de vlucht van Bouwman van de Dúvelsrak naar een rotonde (`vluchtLijn`, `rijdVlucht`); de lijnen via `lijnDoor` uit js/schaduw.js |
 | `js/klusjes.js` | klusjes tussen de missies door: Mark of Johan met een K op de kaart, tas, auto, overspuiten, omleggen (€ 250–1000) |
 | `js/schaduw.js` | missie 15: de route van Bouwman (BP → Duinterpen → N7), zijn rit met een stop, de loods aan het water met container, kade, steiger en boot, de fotoplekken |
 
@@ -123,7 +124,8 @@ Street View-link erbij.
 12. **de Dúvelsrak** — de wegversperring met C4 op de brug, De Veteraan
 13. **het schrift** — Mark in Duinterpen, het schrift uit de sloep in IJlst
 14. **Ronald en de race** — Lemmerweg 80, Bouwman, de race van de BP naar IJlst
-15. **Bouwman schaduwen** — Mark en het schrift, Bouwman volgen, foto's bij zijn loods (laatst gebouwd)
+15. **Bouwman schaduwen** — Mark en het schrift, Bouwman volgen, foto's bij zijn loods
+16. **De inval** — drie minuten om Mark weg te halen, de ruil op de Dúvelsrak, Ronald is ??? (laatst gebouwd)
 
 Missie 9 in het kort: Mark belt, staat bij de Wieken 29, noemt drie adressen met
 bedrag (**1, 2 of 3** kiest en zet de navigatie), en je koopt er aan tafel een
@@ -198,6 +200,19 @@ maar even slapen", zwart, "De volgende ochtend" (`wakkerBijMark`: 10:00, voor de
 avond…" tot de ochtend staat de klok stil (`klokLoopt` in de ctx). Rotondes neemt hij tegen de klok
 in (`rotondes`, `eenrichtingRotondes` in js/schaduw.js). **shift+\\** start hem los.
 
+Missie 16 (stap 101): een minuut na de ochtend bij Mark belt Johan (`INVAL_WACHT`), een inval op
+Molenkrite 15. De balk `#schaduwbalk` telt drie minuten af (`INVAL_TIJD`); binnen E bij de bank (schrift)
+en de radio op het dressoir (foto's), Mark gaat mee naar buiten en stapt in (anders de Golf van Mark voor
+de deur, `plekVoorDeDeur`). Dan het filmbeeld `invalFilm.soort === 'inval'` (twee politieauto's met
+`zwaailicht` en een zwart busje over `invalRoute` uit js/inval.js), drie sterren en `stuurPolitie`.
+Afgeschud: de Wieken 29, Bouwman belt, 1 of 2 via `kiesHuis` (`invalKeuze`). "Die nacht…" (01:00, klok
+stil): filmbeeld `brug` (de auto van Bouwman over `brug.vanLemmerweg` tot s = 34), zijn twee mannen als
+`Bewaking` met `rustig` in `schutters`; wapen weg binnen 40 m, E op de ruit (s = 18): de tas. Bij 1:
+`schriftKwijt`, Johan vrij, Bouwman rijdt weg, € 1.000. Bij 2: filmbeeld `nu` vanaf het dak, twee man
+neer, `vluchtLijn` (een draai op het dek, de helling af, naar de rotonde), ram hem (drie klappen of één
+boven 60 km/u): filmbeeld `crash`, E bij zijn auto: de telefoon ("— R."), € 3.000; kwijt € 2.000.
+Daarna "De volgende ochtend" (09:30, `invalOchtend`). **shift+;** start hem los.
+
 **Klusjes** (stap 99, js/klusjes.js): tussen de missies door, en als een missie onder zijn M
 op je wacht (`KLUS_WACHT` in js/verhaal.js: de fase waarin nog niets begonnen is, ook missie 9
 zolang je geen huis hebt), staat na KLUS.wacht tellen Mark of Johan op een willekeurige stoep met
@@ -233,7 +248,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
+De laatste die ertoe doen: `npm run invaltest` (missie 16 van Johan aan de lijn tot de ochtend: de drie minuten en te laat, leeghalen, de inval en zijn filmbeeld, de Wieken, beide keuzes, de hinderlaag met de vlucht over het dek en de rotonde, rammen, de crash, de telefoon, ontsnappen, Johan geraakt, wapen niet weg, de auto total loss, opslaan; stap 101) met `invalshots` (vijf foto's, vier filmbeelden); `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
 de route, de loods, een automaat die volgt, te dichtbij, te ver, de Ferrari, de foto's, gezien
 worden; stap 96) met `schaduwshots` (vijf foto's); `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
 met een automaat die de Ferrari over het parcours rijdt, goed en slordig, het verliezen, de ring
@@ -371,6 +386,9 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   een monster, gladgestreken, met `raak` en `vmax`. `t.t` is een index in die gladde lijn, niet in
   de as; wie een auto op een as zet gebruikt `zetOp` (die zoekt het monster erbij). Een computer-
   bestuurder die `drive` gebruikt stuurt met `keys.stuur` (−1…1), niet met A/D: dat slingert.
+- **Een filmbeeld van missie 16 zet zijn camera elk beeld** (`werkInvalFilmBij`, vóór de vroege returns
+  van `update`) en houdt de speler of zijn auto vast (`invalFilm.vast`). Een foto van een filmbeeld leest
+  `verhaal.inval.filmCam` en zet de camera via de speler (tools/invalshots.mjs), net als bij missie 12.
 - **Een nieuwe winkel of plek op de kaart** (stap 100) levert `winkels` met een `wat` dat in
   `HUD.PICTO` en `HUD.PICTO_KLEUR` staat, en een regel in de legenda (js/main.js, `zetLegenda`)
   met zijn bedragen uit de module zelf; `npm run legendatest` kijkt of elk speldje een icoon heeft.

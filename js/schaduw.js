@@ -286,6 +286,35 @@ function eenrichtingRotondes(nav, KAART) {
  de N7 harder dan de wijk) en hoe ver rechts de rijstrook ligt.
 */
 export function bouwLijn(KAART, via = SCHADUW.via) {
+  const { rij, nav } = rijNav(KAART);
+  const a = nav.route(SCHADUW.van, via), b = nav.route(via, SCHADUW.weg);
+  if (!a || !b) return null;
+  // het tussenpunt zelf eruit: dan geen stukje naar de naaste knoop en weer terug
+  return lijnUitPunten([...a.slice(0, -1), ...b.slice(2), ...SCHADUW.erfIn], rij);
+}
+
+/*
+ Een lijn om over te rijden door een reeks punten, over de weg (stap 101, missie 16: de
+ vlucht van Bouwman van de Dúvelsrak naar de rotonde). `kop` gaat er vooraf (een stuk
+ over het brugdek, dat de routeplanner niet kent), `staart` erachter. Zelfde routeplanner,
+ zelfde bemonstering en zelfde snelheden als de lijn van missie 15.
+*/
+export function lijnDoor(KAART, punten, { kop = [], staart = [] } = {}) {
+  const { rij, nav } = rijNav(KAART);
+  const ruw = [...kop];
+  for (let i = 1; i < punten.length; i++) {
+    const r = nav.route(punten[i - 1], punten[i]);
+    if (!r) return null;
+    ruw.push(...(i === 1 ? r : r.slice(1)));
+  }
+  ruw.push(...staart);
+  return lijnUitPunten(ruw, rij);
+}
+
+// de rijbaanassen, doorgeknipt waar ze onder een brugdek lopen, en de routeplanner erover
+let rijNavVan = null;
+function rijNav(KAART) {
+  if (rijNavVan && rijNavVan.KAART === KAART) return rijNavVan;
   const rij = KAART.wegassen.filter(w => w.drive);
   /*
    Wegen die onder een brugdek door lopen, daar doorgeknipt (stap 96). Het knooppunt
@@ -321,10 +350,12 @@ export function bouwLijn(KAART, via = SCHADUW.via) {
   }
   const nav = new Navigatie(assen);
   eenrichtingRotondes(nav, KAART);
-  const a = nav.route(SCHADUW.van, via), b = nav.route(via, SCHADUW.weg);
-  if (!a || !b) return null;
-  // het tussenpunt zelf eruit: dan geen stukje naar de naaste knoop en weer terug
-  const ruw = [...a.slice(0, -1), ...b.slice(2), ...SCHADUW.erfIn];
+  rijNavVan = { KAART, rij, nav };
+  return rijNavVan;
+}
+
+// van ruwe punten een bemonsterde, gladde lijn met raaklijn, kromming, snelheid en strook
+function lijnUitPunten(ruw, rij) {
   const p = [ruw[0]];
   for (const q of ruw) if (Math.hypot(q[0] - p[p.length - 1][0], q[1] - p[p.length - 1][1]) > 0.5) p.push(q);
   const mon = [];

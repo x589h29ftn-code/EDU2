@@ -6603,6 +6603,28 @@ spuiterij, je huis ed, klusje icoon".
   hij opnieuw.
 - `npm run legendatest` meet het en maakt `docs/screenshots/legenda.png`.
 
+**Missie 16: De inval (stap 101).** Voorgesteld in drie rondes (28 sep 2026): eerst een inval met
+daarna een inbraak in de loods en een vlucht over het water ("tweede deel minder sterk": die twee
+hadden we al in missie 15, 8 en 13), toen drie richtingen, en gekozen: "gebruik A, werk het dialoog
+helemaal uit, mag grimmig, en bedenk filmbeelden zoals bij De Veteraan op de brug".
+
+- *Het verloop* staat per fase boven het blok in js/verhaal.js. Drie minuten voor de inval (de balk
+  van missie 15 als klok), het schrift en de foto's binnen, Mark mee, het filmbeeld van de inval,
+  drie sterren, de Wieken 29, Bouwman belt, 1 ruilen of 2 hinderlaag, "Die nacht…" op de Dúvelsrak.
+- *Vier filmbeelden*, zoals `werkFilmBij` in missie 12: `werkInvalFilmBij` zet elk beeld de camera,
+  toont de filmbalken en houdt de speler (of zijn auto) vast: de inval (twee politieauto's met
+  knipperend zwaailicht en een zwart busje rijden de Molenkrite in, eerst van opzij, dan van achter
+  je auto), de brug (Bouwman rijdt de helling op tot midden op het dek, in drie standpunten, en
+  stapt uit), het dak (vanaf de plek van Mark, twee schoten) en de crash (van opzij: de auto de
+  berm in, Bouwman rent weg).
+- *De vlucht* rijdt over een lijn uit js/inval.js: een halve draai op het dek (hij kwam van de
+  Lemmerweg en staat met zijn neus naar Tinga), de helling af aan de Lemmerweg-kant en over de weg
+  naar de dichtstbijzijnde rotonde, en daar voorbij. De routeplanner kent het dek niet; die stukken
+  gaan er als `kop` voor (`lijnDoor`, nieuw in js/schaduw.js: dezelfde binnenkant als de lijn van
+  missie 15, die er nu ook zo uit komt).
+- *Rammen*: dichter dan 3,6 m met meer dan 4 m/s telt als een klap, boven 60 km/u als drie.
+- *Keuze* via `kiesHuis`, net als de race; `schriftKwijt` gaat mee in de opslag, voor de finale.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

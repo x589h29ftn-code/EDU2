@@ -178,6 +178,8 @@
     "bochtenshots": "node tools/bochtenshots.mjs",
     "klusjestest": "node tools/klusjestest.mjs",
     "klusjesshots": "node tools/klusjesshots.mjs",
-    "legendatest": "node tools/legendatest.mjs"
+    "legendatest": "node tools/legendatest.mjs",
+    "invaltest": "node tools/invaltest.mjs",
+    "invalshots": "node tools/invalshots.mjs"
   }
 }

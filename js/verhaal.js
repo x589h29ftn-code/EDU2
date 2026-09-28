@@ -57,6 +57,8 @@ import { maakSchrift, maakLint } from './schrift.js';
 import { initRace } from './race.js';
 import { initSchaduw } from './schaduw.js';
 import { initKlusjes } from './klusjes.js';
+import { grondHoogte } from './viaduct.js';
+import { INVAL, vluchtLijn, nieuweVlucht, rijdVlucht, invalRoute as invalRouteJs } from './inval.js';
 import { UNIFORM, zetZwaailamp } from './politie.js';
 import { Navigatie } from './navigatie.js';
 import { geluid } from './audio.js';
@@ -792,6 +794,135 @@ const SCHADUW_KLAAR = (gezien) => [
   zegtErik('Graag.'),
 ];
 
+/*
+ ---------- missie 16: De inval ----------
+ Verzoek 28 sep 2026 ("gebruik A, werk het dialoog en de missie helemaal uit", "mag grimmig",
+ met filmbeelden zoals op de brug). De ochtend na missie 15 belt Johan: Bouwman heeft een
+ bevel voor Molenkrite 15. Drie minuten om het schrift en de foto's te pakken en Mark mee te
+ nemen; dan de inval (filmbeeld), drie sterren. Bij de Wieken 29 belt Bouwman: hij heeft Johan.
+ Het schrift tegen Johan, vannacht op de Dúvelsrak. Jij kiest: 1 ruilen of 2 een hinderlaag
+ met Mark op een dak. Bij 2 ram je Bouwman daarna van de weg en vind je zijn telefoon: ???
+ is Ronald. Bij 1 hoort Johan het in de auto.
+*/
+const INVAL_WACHT = 60;             // zoveel seconden na de ochtend bij Mark belt Johan
+const INVAL_TIJD = 180;             // drie minuten voor ze voor de deur staan (s)
+const INVAL_STERREN = 3;
+const INVAL_NACHT = 1;              // "Die nacht…": één uur, en de klok staat stil
+const INVAL_OCHTEND = 9.5;          // "De volgende ochtend"
+const INVAL_RUIT = 1.8;             // zo dicht bij een gele ruit voor E (m)
+const INVAL_WAPEN = 40;             // dichter dan dit bij het midden: wapen weg (m)
+const INVAL_WAPEN_T = 3;            // zo lang mag je het nog vasthouden (s)
+const INVAL_ACHTERUIT = 4;          // "Vijf stappen": zoveel meter van de tas af (m)
+const INVAL_KLAPPEN = 3;            // zoveel klappen, of één harde…
+const INVAL_HARD = 16.7;            // …boven 60 km/u (m/s)
+const INVAL_KWIJT = 250;            // verder dan dit bij hem vandaan (m)…
+const INVAL_KWIJT_T = 5;            // …zo lang, en hij is weg
+const INVAL_BELONING = { ruil: 1000, hinderlaag: 3000, kwijt: 2000 };
+// op de Dúvelsrak, als (s, u): s vanaf de Tinga-kant, u rechts als je naar de Lemmerweg kijkt
+const INVAL_S = { erik: 3, auto: 34, johan: 30.6, bouwman: 37.2, ruit: 18, erikAuto: [0.5, 2.6] };
+const INVAL_MANNEN = { schade: 5, zicht: 60, vuurbereik: 50, dekking: 10, vest: null, pet: false,
+  kleuren: [{ shirt: 0x2a2c30, broek: 0x1e2024 }, { shirt: 0x3b3328, broek: 0x23262b }] };
+const telLijn = (r) => ({ ...r, telefoon: true });
+
+const INVAL_TELEFOON = [
+  telLijn(zegtJohan('Erik. Ben je nog bij Mark?')),
+  zegtErik('Ik sta voor de deur. Hoezo?'),
+  telLijn(zegtJohan('Bouwman heeft vanochtend een bevel laten tekenen. Molenkrite 15. Ze zijn al onderweg.')),
+  telLijn(zegtJohan('Drie minuten, hooguit. Haal Mark daar weg. En dat schrift, en die foto\'s. Als ze dat vinden, zijn we alle drie klaar.')),
+  zegtErik('En jij?'),
+  telLijn(zegtJohan('Ik red me wel. Gaan, nu.')),
+];
+const INVAL_BINNEN = [
+  zegtMark('Wat is er?'),
+  zegtErik('Inval. Johan belde. We moeten weg.'),
+  zegtMark('Dan pak jij het schrift en de foto\'s. Ik haal mijn tas.'),
+];
+const INVAL_SCHRIFT = [zegtErik('Het schrift.')];
+const INVAL_FOTOS = [zegtErik('Foto\'s ook.')];
+const INVAL_WEG = [zegtMark('Jouw auto. Ik rij niet, ik moet kunnen kijken.')];
+const INVAL_TE_LAAT = [telLijn(zegtMark('Ze hebben me, Erik. Blijf weg van het huis.'))];
+const INVAL_DAAR = [zegtMark('Daar zijn ze. Rijden, rijden!')];
+const INVAL_ONDERWEG = [
+  zegtMark('Niet naar de Lemmerweg. Daar staan ze het eerst.'),
+  zegtMark('Bouwman staat er zelf niet bij. Die laat anderen het vuile werk doen.'),
+];
+const INVAL_KLAP = [zegtMark('Dat was dichtbij.'), zegtMark('Zet \'m door, Erik.')];
+const INVAL_KWIJTGERAAKT = [zegtMark('We zijn ze kwijt. De Wieken 29. Daar kent niemand me meer.')];
+const INVAL_BOUWMAN_BELT = [
+  telLijn(zegtBouwman('Goedemorgen, Mark. Je bent op tijd weggekomen. Knap.')),
+  zegtMark('Wat wil je, Bouwman.'),
+  telLijn(zegtBouwman('Wat jij hebt. Dat schrift. En die foto\'s die jullie bij mijn loods maakten. Ja, dat weet ik ook.')),
+  telLijn(zegtBouwman('Je vriend Johan was minder snel dan jij. Hij zit hier naast me. Zeg eens wat, Johan.')),
+  telLijn(zegtJohan('Niet doen, Mark. Hij…')),
+  telLijn(zegtBouwman('Genoeg. Vannacht om één uur, op de Dúvelsrak. Het schrift tegen Johan.')),
+  telLijn(zegtBouwman('Kom je met de politie, of kom je niet, dan zoeken ze morgen twee man in de Geeuw.')),
+  zegtMark('Hij is ons een stap voor. Hoe wist hij van de foto\'s?'),
+  zegtErik('Iemand praat.'),
+  zegtMark('Ja. Maar eerst Johan.'),
+  zegtMark('Luister. We kunnen doen wat hij zegt: het schrift geven, Johan halen, en daarna opnieuw beginnen. Dan heeft hij het bewijs, maar leeft Johan.'),
+  zegtMark('Of we doen het slim. Ik lig op een dak aan de Tinga-kant, met de sniper. Jij loopt met een lege tas naar het midden. Op mijn teken gaan zijn twee mannen neer, en dan is Bouwman van ons.'),
+  zegtMark('Het is jouw keus. Jij moet daar lopen.'),
+];
+const INVAL_KEUS_RUIL = [zegtMark('Goed. Johan eerst. Het schrift is maar papier.')];
+const INVAL_KEUS_HINDERLAAG = [
+  zegtMark('Dacht ik al.'),
+  zegtMark('Blijf in het midden staan en kijk naar mij. Als ik "nu" zeg, laat je je vallen.'),
+];
+const INVAL_BRUG_ROEP = [
+  zegtBouwman('Erik! Alleen jij? Waar is Mark?'),
+  zegtErik('Die zit thuis met zijn handen in zijn haar. Waar dacht je?'),
+  zegtBouwman('Wapen weg. Loop naar het midden, tas op de grond.'),
+];
+const INVAL_WAPEN_WEG = [zegtBouwman('Wapen weg, zei ik!')];
+const INVAL_ACHTERUIT_ZEG = [zegtBouwman('Achteruit. Vijf stappen.')];
+const INVAL_BRAAF = [
+  zegtBouwman('Het schrift. En de foto\'s. Braaf.'),
+  zegtBouwman('Laat hem gaan.'),
+];
+const INVAL_GROETEN = [zegtBouwman('Doe Mark de groeten. Ik zie hem snel.')];
+const INVAL_JOHAN_VRIJ = [
+  zegtJohan('Dank je, man. Ik dacht echt dat het klaar was.'),
+  zegtErik('Ben je oké?'),
+  zegtJohan('Ik leef. Maar luister: in de auto belde hij met iemand. "Ze zaten op Molenkrite 15, precies zoals je zei."'),
+  zegtJohan('Hij noemde hem bij zijn naam.'),
+  zegtErik('Wie?'),
+  zegtJohan('Ronald.'),
+];
+const INVAL_LEEG = [zegtBouwman('Leeg? Jij klein…')];
+const INVAL_NU = [telLijn(zegtMark('Nu!'))];
+const INVAL_ERVANDOOR = [
+  zegtJohan('Hij gaat ervandoor!'),
+  telLijn(zegtMark('Achter hem aan, Erik! Johan is veilig, ik haal hem.')),
+];
+const INVAL_ROTONDE = [telLijn(zegtMark('Hij gaat naar de rotonde. Duw \'m eraf!'))];
+const INVAL_CRASH = [zegtBouwman('Dit is niet voorbij, Erik!')];
+const INVAL_TELEFOON_BOUWMAN = [
+  zegtErik('Zijn telefoon.'),
+  zegtErik('"Ze zitten op Molenkrite 15. Kom vandaag, morgen zijn ze weg." — R.'),
+  zegtErik('Mark. Ik weet wie ??? is.'),
+  telLijn(zegtMark('Zeg het.')),
+  zegtErik('Ronald.'),
+  telLijn(zegtMark('… Dan heeft hij ons de hele tijd verkocht. Kom naar de Wieken. Johan is bij me.')),
+];
+const INVAL_KWIJT_BOUWMAN = [telLijn(zegtMark('We zijn hem kwijt. Kom terug, we hebben Johan tenminste.'))];
+const INVAL_AFRONDING = (keus, telefoon) => keus === 1 ? [
+  zegtMark('Hij heeft het schrift. Dat is het enige wat we op hem hadden.'),
+  zegtJohan('Maar we weten nu van Ronald.'),
+  zegtMark('Ja. En Ronald weet niet dat wij het weten. Dat is ook wat waard.'),
+  zegtMark(`Hier, voor vannacht: ${euro(INVAL_BELONING.ruil)}. Ga slapen. Morgen gaan we het hem vragen.`),
+] : telefoon ? [
+  zegtJohan('Ik dacht dat je gek was, Erik. Lopen met een lege tas.'),
+  zegtMark('Hij liep precies waar ik zei. En het schrift hebben we nog.'),
+  zegtMark('Bouwman heeft geen mannen meer, geen schrift en geen telefoon. Wat hij nog heeft is Ronald.'),
+  zegtMark(`Hier: ${euro(INVAL_BELONING.hinderlaag)}. Dit heb je verdiend. Morgen gaan we Ronald vragen waarom.`),
+] : [
+  zegtJohan('Ik dacht dat je gek was, Erik. Lopen met een lege tas.'),
+  zegtJohan('En luister: in de auto belde hij met iemand. "Ze zaten op Molenkrite 15, precies zoals je zei." Ronald.'),
+  zegtMark('Ronald. Dan heeft hij ons de hele tijd verkocht.'),
+  zegtMark(`Bouwman is weg, maar zijn mannen liggen op de brug en het schrift hebben we nog. Hier: ${euro(INVAL_BELONING.kwijt)}.`),
+  zegtMark('Morgen gaan we Ronald vragen waarom.'),
+];
+
 // ---------- missie 6: de groene BX ----------
 const BX_AANKONDIGING = ['Nieuwe missies kunnen worden gestart door naar het '
   + '<b>M-symbool</b> op de minimap te gaan.'];
@@ -1362,6 +1493,7 @@ export function initVerhaal(ctx) {
     ruimSchriftOp();
     ruimRaceOp();
     ruimSchaduwOp();
+    ruimInvalOp();
     punt = null;                      // een nieuwe missie, dus geen oud herstelpunt
     missie = naam;
     fase = 'wacht';
@@ -1393,6 +1525,7 @@ export function initVerhaal(ctx) {
     else if (naam === 'schrift') beginSchrift();
     else if (naam === 'race') beginRace();
     else if (naam === 'schaduw') beginSchaduw();
+    else if (naam === 'inval') beginInval();
   }
 
   /*
@@ -1803,6 +1936,7 @@ export function initVerhaal(ctx) {
     if (missie === 'schrift') { hervatSchrift(punt && punt.missie === 'schrift' ? punt.fase : 'wacht'); return; }
     if (missie === 'race') { hervatRace(punt && punt.missie === 'race' ? punt.fase : 'telefoon'); return; }
     if (missie === 'schaduw') { hervatSchaduw(punt && punt.missie === 'schaduw' ? punt.fase : 'telefoon'); return; }
+    if (missie === 'inval') { hervatInval(punt && punt.missie === 'inval' ? punt.fase : 'telefoon'); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -1875,6 +2009,8 @@ export function initVerhaal(ctx) {
     if (bijDeSloep()) return pakSchrift();
     // missie 15: een foto bij de loods
     if (schaduwToets()) return true;
+    // missie 16: het schrift, de foto's, de tas op de brug, de auto van Bouwman
+    if (invalToets()) return true;
     if (missie === 'molenkrite' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND) {
       fase = 'gesprek';
       zeg(GESPREK1, () => { fase = 'loopt'; zetOpdracht('ga met Mark mee'); });
@@ -2033,6 +2169,7 @@ export function initVerhaal(ctx) {
     if (bewaking) bewaking.hoorSchot(x, z);
     bendes.hoorSchot(x, z);
     klusjes.hoorSchot(x, z);
+    invalSchot(x, z);
     // missie 12: wie bij de hekken schiet voor de knal, begint het gevecht zelf
     if (missie === 'brug' && schutters && schutters.rustig && (fase === 'stop' || fase === 'ontsteken')) {
       const v = schutters.wachters[0] && schutters.wachters[0].persoon.groep.position;
@@ -3574,6 +3711,8 @@ export function initVerhaal(ctx) {
   function kiesHuis(nr) {
     // (na een verloren race in missie 14 gaan 1 en 2 over de keuze bij Bouwman)
     if (missie === 'race' && fase === 'keuze') return raceKeuze(nr);
+    // (en in missie 16 over de ruil op de brug)
+    if (missie === 'inval' && fase === 'keuze') return invalKeuze(nr);
     if (!huisAanbod || huisGekozen) return false;
     const lijst = stekLijst();
     const w = lijst[nr - 1];
@@ -5849,7 +5988,7 @@ export function initVerhaal(ctx) {
       if (raceNaT <= 0) zwartMet('De volgende ochtend', naarDeOchtend);
     }
     // (in missie 15 rijdt Bouwman zijn politieauto zelf: die hoort dan niet weg te gaan)
-    if (missie === 'race' || missie === 'schaduw') return;
+    if (missie === 'race' || missie === 'schaduw' || missie === 'inval') return;
     for (const p of [ronald, bouwman]) {
       if (p.groep.visible && afst(sp, p.groep.position) > 60) p.groep.visible = false;
     }
@@ -6092,6 +6231,8 @@ export function initVerhaal(ctx) {
     ruimSchaduwOp();
     bouwman.groep.visible = false;
     if (raceBouwmanAuto && raceBouwmanAuto.mesh) { raceBouwmanAuto.mesh.visible = false; raceBouwmanAuto.x = raceBouwmanAuto.z = 1e5; raceBouwmanAuto.mesh.position.set(1e5, 0, 1e5); }
+    // een minuut later belt Johan (missie 16)
+    if (!invalKlaar) { naMissieNaam = 'inval'; naMissieT = INVAL_WACHT; }
   }
 
   // de balk die zegt hoe ver je achter hem zit: rood te dichtbij, groen goed, rood te ver
@@ -6233,6 +6374,836 @@ export function initVerhaal(ctx) {
     if (schaduwGezien) bouwmanVlucht();
   }
 
+  /*
+   ---------- missie 16: De inval ----------
+     telefoon      Johan belt, een minuut na de ochtend bij Mark
+     leeghalen     drie minuten: het schrift (bij de bank) en de foto's (op het dressoir)
+     naarBuiten    Mark gaat mee naar buiten
+     instappen     in je auto (of de Golf van Mark voor de deur); de tijd loopt door
+     invalFilm     het filmbeeld: twee politieauto's en een zwart busje draaien de straat in
+     afschudden    drie sterren, Mark praat
+     naarWieken    naar de Wieken 29
+     bouwmanBelt   Bouwman belt: Johan tegen het schrift
+     keuze         1 ruilen · 2 hinderlaag
+     nacht         "Die nacht…"
+     brugFilm      het filmbeeld: Bouwman rijdt de Dúvelsrak op
+     ruilLopen     wapen weg, naar de gele ruit, E: de tas neer
+     achteruit     vijf stappen terug
+     ophalen       een van de mannen haalt de tas
+     kijken        Bouwman kijkt erin
+     vrij          (1) Johan loopt naar je toe, Bouwman rijdt weg
+     nuFilm        (2) "Nu!": Mark op het dak, twee schoten
+     achtervolging (2) ram Bouwman van de weg
+     crashFilm     (2) hij vliegt de berm in en rent weg
+     doorzoeken    (2) zijn telefoon: "— R."
+     naarWiekenB   terug naar Mark
+     afronding     het einde, en "De volgende ochtend"
+   Bouwman en zijn politieauto zijn die uit missie 14 en 15 (`bouwman`, `raceBouwmanAuto`).
+   De lijnen over de weg staan in js/inval.js.
+  */
+  let invalKlaar = false;
+  let invalKeus = 0;               // 1 ruilen, 2 hinderlaag
+  let invalTelefoon = false;       // de telefoon van Bouwman gevonden
+  let schriftKwijt = false;        // na de ruil heeft Bouwman het schrift (de finale wordt zwaarder)
+  let invalT = 0, invalKlok = 0, invalMeldT = 0, invalMeldI = 0, invalNaT = 0;
+  let invalHeeft = { schrift: false, fotos: false };
+  let invalBinnenGezegd = false;
+  let invalGolf = null;            // de Golf van Mark voor de deur, als je zelf geen auto hebt
+  let invalRoute = null;           // { pts, lengte }: de Molenkrite in, naar de voordeur
+  let invalKonvooi = [];           // { auto, lijn, a, eind, v, stil, politie }
+  let invalFilm = null;            // { soort, t, vast }
+  let invalMannen = null;          // de twee mannen van Bouwman op de brug (`schutters`)
+  let invalVlucht = null;          // de vlucht van Bouwman (js/inval.js)
+  let invalVluchtLijn = null, invalRotonde = null;
+  let invalKlappen = 0, invalKlapT = 0, invalKwijtT = 0, invalRotondeGezegd = false;
+  let invalWapenT = 0, invalWapenGezegd = false;
+  let invalLoper = null;           // wie er loopt: { p, naar, v, na }
+  let invalCrash = null;           // { t, van, zij, yaw }
+  let invalKlokWas = null;
+  const invalJohan = new Persoon({ shirt: 0x3d6b3a, broek: 0x2b3542, huid: 0xd3a273, haar: 0x3a2a1c, hoogte: 1.05 });
+  invalJohan.groep.visible = false; scene.add(invalJohan.groep);
+  const invalTas = maakTas(scene); invalTas.toon(false);
+  const invalMerken = [maakMarkering(scene), maakMarkering(scene)];
+  const invalMerkPlek = [null, null];          // (een markering zegt zelf niet waar hij staat)
+  for (const m of invalMerken) m.toon(false);
+  function zetInvalMerk(i, x, y, z) { invalMerken[i].zet(x, y, z); invalMerken[i].toon(true); invalMerkPlek[i] = { x, z }; }
+  let invalHint = false;
+  // een E-regel van deze missie in beeld, of weer weg
+  function invalPraat(tekst) {
+    if (tekst) { praatEl.textContent = tekst; praatEl.hidden = false; invalHint = true; }
+    else if (invalHint) { praatEl.hidden = true; invalHint = false; }
+  }
+  const invalBalk = document.getElementById('schaduwbalk');
+  const invalP = (s, u = 0) => brug.p(s, u);
+
+  function wiekenDeur() {
+    const pand = pandVan(HUIS_THUIS);
+    return pand ? voorPunt(pand, 5.5) : thuis;
+  }
+  // waar een auto voor Molenkrite 15 staat: op de rijbaan aan de kant van het huis
+  function plekVoorDeDeur() {
+    let beste = null;
+    for (const as of KAART.wegassen || []) {
+      if (!as.drive) continue;
+      for (let i = 1; i < as.pts.length; i++) {
+        const a = as.pts[i - 1], b = as.pts[i];
+        const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz;
+        if (L2 < 1) continue;
+        const t = Math.max(0, Math.min(1, ((thuis.x - a[0]) * dx + (thuis.z - a[1]) * dz) / L2));
+        const x = a[0] + dx * t, z = a[1] + dz * t, d = Math.hypot(x - thuis.x, z - thuis.z);
+        if (!beste || d < beste.d) { const L = Math.sqrt(L2); beste = { d, x, z, ux: dx / L, uz: dz / L, w: as.w || 5 }; }
+      }
+    }
+    if (!beste) return { x: thuis.x, z: thuis.z, yaw: 0, as: { x: thuis.x, z: thuis.z } };
+    let nx = -beste.uz, nz = beste.ux;
+    if ((thuis.x - beste.x) * nx + (thuis.z - beste.z) * nz < 0) { nx = -nx; nz = -nz; }
+    const zij = Math.max(0.8, beste.w / 2 - 1.0);
+    const [px, pz] = resolveCollisions(beste.x + nx * zij, beste.z + nz * zij, 1.2);
+    return { x: px, z: pz, yaw: Math.atan2(-beste.ux, -beste.uz), as: { x: beste.x, z: beste.z } };
+  }
+  function zetInvalBalk(tekst, deel, fout) {
+    if (!invalBalk) return;
+    invalBalk.hidden = false;
+    invalBalk.style.setProperty('--dicht', '16.7%');
+    invalBalk.style.setProperty('--ver', '100%');
+    invalBalk.style.setProperty('--nu', `${Math.max(0, Math.min(100, deel * 100)).toFixed(1)}%`);
+    const t = invalBalk.querySelector('.tekst');
+    if (t) t.textContent = tekst;
+    invalBalk.classList.toggle('fout', !!fout);
+  }
+  function verstopAuto(a) {
+    if (!a) return;
+    a.speed = 0; a.driveable = false; a.zichtbaar = false;
+    if (a.mesh) { a.mesh.visible = false; a.mesh.position.set(1e5, 0, 1e5); }
+    a.x = a.z = 1e5;
+  }
+  function ruimInvalOp() {
+    for (const m of invalMerken) m.toon(false);
+    invalMerkPlek[0] = invalMerkPlek[1] = null;
+    invalPraat(null);
+    invalTas.toon(false);
+    invalJohan.groep.visible = false;
+    if (invalBalk) invalBalk.hidden = true;
+    for (const k of invalKonvooi) verstopAuto(k.auto);
+    invalKonvooi = [];
+    if (invalFilm) { invalFilm = null; toonFilmbalken(0); }
+    if (invalMannen && schutters === invalMannen) { schutters.verwijder(); schutters = null; }
+    invalMannen = null;
+    invalVlucht = null; invalLoper = null; invalCrash = null;
+    invalKlappen = 0; invalKlapT = 0; invalKwijtT = 0; invalRotondeGezegd = false;
+    invalWapenT = 0; invalWapenGezegd = false;
+    if (invalKlokWas !== null && klokLoopt) klokLoopt(invalKlokWas);
+    invalKlokWas = null;
+    schietSlot(false);
+  }
+  function beginInval() {
+    fase = 'telefoon';
+    ruimInvalOp();
+    invalHeeft = { schrift: false, fotos: false };
+    invalBinnenGezegd = false;
+    invalKeus = 0; invalTelefoon = false;
+    invalT = 1.2;
+    markZichtbaar(false);
+    zetOpdracht('neem de telefoon op');
+    hud.zetNavigatie(null); navDoel = null;
+  }
+  // na het neergaan of het laden: je staat weer voor de deur van Molenkrite 15
+  function voorMolenkrite15() {
+    const w = molenkrite && molenkrite();
+    const d = molenkriteDeur(), stoep = (w && w.plekken && w.plekken.stoep) || d;
+    if (player.inCar) { player.inCar.speed = 0; player.inCar = null; if (eersteP) eersteP(); }
+    const [px, pz] = resolveCollisions(stoep.x, stoep.z, 0.4);
+    player.pos.set(px, 0, pz);
+    player.yaw = kijkHoek(d, stoep); player.pitch = 0;
+    player.applyCamera();
+  }
+
+  // ---- de drie minuten ----
+  function startLeeghalen() {
+    fase = 'leeghalen'; zetPunt('telefoon');
+    invalKlok = INVAL_TIJD;
+    spanning = true; spanningUit = 0;
+    const w = molenkrite && molenkrite();
+    if (w && w.plekken) {
+      opDeBank(mark, w.plekken, thuis);
+      markZichtbaar(true);
+      const b = w.plekken.bank, r = w.plekken.radio || w.plekken.tafel;
+      if (b) zetInvalMerk(0, b.x, 0.14, b.z);
+      if (r) zetInvalMerk(1, r.x, 0.14, r.z);
+    }
+    const d = molenkriteDeur();
+    zetOpdracht('haal het schrift en de foto\'s, en Mark');
+    zetNavDoel(d.x, d.z, 'Molenkrite 15', 'M');
+    hud.melding('MISSIE 16 · DE INVAL', 'Drie minuten. Het schrift, de foto\'s, en Mark.', 6);
+  }
+  function invalHier() {
+    // welke ruit binnen: 0 het schrift, 1 de foto's
+    if (missie !== 'inval' || fase !== 'leeghalen' || player.inCar) return -1;
+    const sp = spelerPunt();
+    for (let i = 0; i < 2; i++) {
+      if (i === 0 ? invalHeeft.schrift : invalHeeft.fotos) continue;
+      const q = invalMerkPlek[i];
+      if (!invalMerken[i].zichtbaar || !q) continue;
+      if (Math.hypot(sp.x - q.x, sp.z - q.z) < INVAL_RUIT) return i;
+    }
+    return -1;
+  }
+  function naarBuiten() {
+    fase = 'naarBuiten';
+    markZichtbaar(false);          // hij pakt zijn tas en loopt voor je uit
+    zetOpdracht('naar buiten: Mark gaat mee');
+    zeg(INVAL_WEG, null, { auto: 2.4 });
+  }
+  function buitenMetMark() {
+    fase = 'instappen';
+    const sp = spelerPunt();
+    const [mx, mz] = resolveCollisions(sp.x + 1.6, sp.z + 1.2, 0.4);
+    mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, sp));
+    markZichtbaar(true);
+    // een auto voor de deur: die van jou als hij in de buurt staat, anders de Golf van Mark
+    const eigen = vehicles.nearestDriveable ? vehicles.nearestDriveable(sp.x, sp.z) : null;
+    if (!eigen || Math.hypot(eigen.x - sp.x, eigen.z - sp.z) > 35) {
+      const v = plekVoorDeDeur();
+      if (!invalGolf || invalGolf.wrak) invalGolf = vehicles.voegToe({ x: v.x, z: v.z, yaw: v.yaw, soort: 'hatch', kleur: 0x6b7178 });
+      const g = invalGolf;
+      g.x = v.x; g.z = v.z; g.yaw = v.yaw; g.rij = v.yaw; g.speed = 0; g.driveable = true; g.zichtbaar = true;
+      if (g.mesh) { g.mesh.visible = true; g.mesh.position.set(v.x, g.mesh.position.y, v.z); g.mesh.rotation.y = v.yaw; }
+    }
+    zetOpdracht('stap in je auto — Mark rijdt mee');
+  }
+
+  // ---- het filmbeeld van de inval ----
+  function startInvalFilm() {
+    fase = 'invalFilm';
+    if (invalBalk) invalBalk.hidden = true;
+    const auto = player.inCar;
+    const voor = plekVoorDeDeur();
+    const route = invalRouteVan(voor);
+    invalRoute = route;
+    for (const k of invalKonvooi) verstopAuto(k.auto);
+    invalKonvooi = [];
+    if (route) {
+      const L = route.lengte;
+      const soorten = ['politie', 'politie', 'bus'];
+      invalKonvooi = soorten.map((soort, i) => {
+        const a = (soorten.length - 1 - i) * 10;
+        const eind = Math.max(a + 5, L - 8 - i * 11);
+        const p = opLijn(route.pts, a);
+        const yaw = Math.atan2(-p.ux, -p.uz);
+        const car = soort === 'politie' && parkeerPolitieAuto ? parkeerPolitieAuto(p.x, p.z, yaw)
+          : vehicles.voegToe({ x: p.x, z: p.z, yaw, soort: 'van', kleur: 0x111214, driveable: false });
+        car.driveable = false;
+        vehicles.zetNeer(car, 0, yaw);
+        return { auto: car, lijn: route.pts, a, eind, v: 9, stil: false, politie: soort === 'politie' };
+      });
+    }
+    invalFilm = { soort: 'inval', t: 0, vast: auto ? { x: auto.x, z: auto.z, yaw: auto.yaw, auto } : { x: player.pos.x, z: player.pos.z } };
+    schietSlot(true);
+    zetOpdracht('');
+  }
+  function invalRouteVan(voor) {
+    return invalRouteJs(KAART, voor);
+  }
+  function werkInvalKonvooiBij(dt) {
+    let stil = true;
+    for (const k of invalKonvooi) {
+      if (k.stil) continue;
+      const rest = k.eind - k.a;
+      k.v = Math.min(11, Math.sqrt(2 * 4.2 * Math.max(0, rest)));
+      k.a += Math.min(rest, Math.max(k.v, 0.4) * dt);
+      const p = opLijn(k.lijn, k.a);
+      const car = k.auto, vorige = car.yaw;
+      car.x = p.x; car.z = p.z; car.yaw = Math.atan2(-p.ux, -p.uz); car.speed = k.v;
+      vehicles.zetNeer(car, dt, vorige);
+      if (k.eind - k.a < 0.05) { k.stil = true; car.speed = 0; } else stil = false;
+    }
+    // de zwaailichten knipperen
+    const aan = Math.floor(performance.now() / 260) % 2 === 0;
+    for (const k of invalKonvooi) {
+      const z = k.politie && k.auto.zwaailicht;
+      if (z) { zetZwaailamp(z.links, aan ? 1 : 0, false); zetZwaailamp(z.rechts, aan ? 0 : 1, false); }
+    }
+    return stil;
+  }
+  function eindeInvalFilm() {
+    invalFilm = null;
+    toonFilmbalken(0);
+    schietSlot(false);
+    player.applyCamera();
+    fase = 'afschudden';
+    if (sterGeven) sterGeven(INVAL_STERREN, thuis.x, thuis.z);
+    if (stuurPolitie && invalRoute) stuurPolitie(invalRoute.pts, 2, 5);
+    zeg(INVAL_DAAR, null, { auto: 2.2 });
+    zetOpdracht('raak de politie kwijt — Mark zit naast je');
+    hud.zetNavigatie(null); navDoel = null;
+    invalT = 0; invalMeldT = 9; invalMeldI = 0;
+  }
+
+  // ---- de Wieken en de keuze ----
+  function naarDeWiekenMetMark() {
+    fase = 'naarWieken'; zetPunt(fase);
+    const d = wiekenDeur();
+    zetOpdracht('rij naar de Wieken 29');
+    zetNavDoel(d.x, d.z, 'de Wieken 29', 'M');
+  }
+  function bouwmanBelt() {
+    fase = 'bouwmanBelt';
+    const sp = spelerPunt();
+    if (player.inCar) { player.inCar.speed = 0; }
+    const [mx, mz] = resolveCollisions(sp.x + 2.2, sp.z + 1.4, 0.4);
+    mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, sp));
+    markZichtbaar(true);
+    hud.zetNavigatie(null); navDoel = null;
+    zetOpdracht('');
+    geluid.telefoon();
+    zeg(INVAL_BOUWMAN_BELT, () => {
+      fase = 'keuze';
+      zetOpdracht('1 — het schrift ruilen tegen Johan · 2 — een hinderlaag met Mark op het dak');
+      hud.melding('WAT DOE JE?', '1 — ruilen · 2 — hinderlaag', 10);
+    });
+  }
+  // 1 of 2 (js/main.js stuurt de cijfers via `kiesHuis`)
+  function invalKeuze(nr) {
+    if (missie !== 'inval' || fase !== 'keuze' || (nr !== 1 && nr !== 2)) return false;
+    invalKeus = nr;
+    fase = 'nacht';
+    zetOpdracht('');
+    zeg(nr === 1 ? INVAL_KEUS_RUIL : INVAL_KEUS_HINDERLAAG, () => zwartMet('Die nacht…', opDeBrugNacht));
+    return true;
+  }
+
+  // ---- die nacht op de Dúvelsrak ----
+  function opDeBrugNacht() {
+    ruimInvalOp();
+    fase = 'brugFilm'; zetPunt('brug');
+    if (zetUur) zetUur(INVAL_NACHT);
+    if (klokLoopt) { invalKlokWas = klokLoopt(); klokLoopt(false); }
+    if (sterrenWeg) sterrenWeg();
+    markZichtbaar(false);            // hij ligt op zijn dak (of zit thuis)
+    // jouw auto aan de Tinga-kant van het dek
+    let auto = player.inCar || invalGolf;
+    if (player.inCar) { player.inCar.speed = 0; player.inCar = null; if (eersteP) eersteP(); geluid.motorUit(); }
+    if (!auto || auto.wrak) auto = invalGolf = vehicles.voegToe({ x: 0, z: 0, yaw: 0, soort: 'hatch', kleur: 0x6b7178 });
+    const q = invalP(INVAL_S.erikAuto[0], INVAL_S.erikAuto[1]);
+    auto.x = q.x; auto.z = q.z; auto.yaw = brug.noord; auto.rij = brug.noord; auto.speed = 0;
+    auto.driveable = true; auto.zichtbaar = true;
+    if (auto.mesh) { auto.mesh.visible = true; auto.mesh.position.set(q.x, brug.hoogte, q.z); auto.mesh.rotation.y = brug.noord; }
+    vehicles.zetNeer(auto, 0, brug.noord);
+    const e = invalP(INVAL_S.erik, -1.0);
+    player.pos.set(e.x, brug.hoogte, e.z);
+    player.yaw = brug.noord; player.pitch = 0;
+    player.applyCamera();
+    // Bouwman komt van de Lemmerweg de helling op
+    const lijn = brug.vanLemmerweg(BRUG_HELLING, INVAL_S.auto, -INVAL.draai);
+    const p = opLijn(lijn, 0);
+    zetBouwmanAuto({ x: p.x, z: p.z, yaw: Math.atan2(-p.ux, -p.uz) });
+    const car = raceBouwmanAuto;
+    if (car.mesh) car.mesh.position.y = grondHoogte(p.x, p.z, Infinity);
+    vehicles.zetNeer(car, 0, car.yaw);
+    invalKonvooi = [{ auto: car, lijn, a: 0, eind: lijnLengte(lijn), v: 8, stil: false, bouwman: true }];
+    bouwman.groep.visible = false;
+    invalJohan.groep.visible = false;
+    spanning = true; spanningUit = 0;
+    invalFilm = { soort: 'brug', t: 0, vast: { x: e.x, z: e.z } };
+    schietSlot(true);
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+  }
+  function werkBouwmanAanrijBij(dt) {
+    const k = invalKonvooi[0];
+    if (!k || k.stil) return true;
+    const rest = k.eind - k.a;
+    k.v = Math.min(8, Math.sqrt(2 * 3.4 * Math.max(0, rest)));
+    k.a += Math.min(rest, Math.max(k.v, 0.4) * dt);
+    const p = opLijn(k.lijn, k.a);
+    const car = k.auto, vorige = car.yaw;
+    car.x = p.x; car.z = p.z; car.yaw = Math.atan2(-p.ux, -p.uz); car.speed = k.v;
+    vehicles.zetNeer(car, dt, vorige);
+    if (k.eind - k.a < 0.05) { k.stil = true; car.speed = 0; }
+    return k.stil;
+  }
+  // ze stappen uit: Johan voor de auto, Bouwman erachter, twee man ernaast
+  function uitstappenOpDeBrug() {
+    const j = invalP(INVAL_S.johan, -1.6), b = invalP(INVAL_S.bouwman, -1.0);
+    invalJohan.zetNeer(j.x, j.z, brug.zuid); invalJohan.groep.visible = true;
+    bouwman.zetNeer(b.x, b.z, brug.zuid); bouwman.groep.visible = true;
+    if (schutters) { schutters.verwijder(); schutters = null; }
+    gevallen.clear();
+    const kijk = invalP(INVAL_S.erik, 0);
+    const posten = [-4.2, 2.4].map(u => {
+      const a = invalP(INVAL_S.johan + 0.8, u), c = invalP(INVAL_S.johan + 1.2, u);
+      return { a: [a.x, a.z], b: [c.x, c.z], kijk };
+    });
+    schutters = invalMannen = new Bewaking(scene, posten, { ...INVAL_MANNEN, rustig: true });
+  }
+  function eindeBrugFilm() {
+    invalFilm = null;
+    toonFilmbalken(0);
+    schietSlot(false);
+    player.yaw = brug.noord; player.pitch = 0;
+    player.applyCamera();
+    fase = 'ruilLopen'; zetPunt('brug');
+    const r = invalP(INVAL_S.ruit, 0);
+    zetInvalMerk(0, r.x, brug.hoogte + 0.14, r.z);
+    invalWapenT = 0; invalWapenGezegd = false;
+    zeg(INVAL_BRUG_ROEP, () => zetOpdracht('wapen weg (H), en loop naar de gele ruit in het midden'));
+  }
+  function heeftWapenInHand() { return !player.wapenUit && !player.inCar && (player.wapens || []).length > 0; }
+  function zetTasNeer() {
+    const r = invalP(INVAL_S.ruit, 0);
+    invalTas.zet(r.x, brug.hoogte, r.z, brug.noord); invalTas.toon(true);
+    invalMerken[0].toon(false);
+    invalPraat(null);
+    fase = 'achteruit'; invalT = 0;
+    zetOpdracht('vijf stappen achteruit');
+    zeg(INVAL_ACHTERUIT_ZEG, null, { auto: 2.2 });
+  }
+  // iemand loopt naar een punt (een man naar de tas, Johan naar jou, Bouwman het weiland in)
+  function loopt(p, naar, v, na) { invalLoper = { p, naar, v, na }; }
+  function werkLoperBij(dt) {
+    const l = invalLoper;
+    if (!l) return;
+    const pos = l.p.groep.position;
+    const dx = l.naar.x - pos.x, dz = l.naar.z - pos.z, d = Math.hypot(dx, dz);
+    if (d < 0.4) { invalLoper = null; l.p.update(dt, {}); if (l.na) l.na(); return; }
+    const stap = Math.min(d, l.v * dt);
+    pos.x += dx / d * stap; pos.z += dz / d * stap;
+    l.p.draaiNaar ? l.p.draaiNaar(Math.atan2(-dx, -dz), dt, 8) : l.p.kijkNaar(l.naar.x, l.naar.z, dt, 8);
+    l.p.update(dt, { loopt: true, snelheid: l.v });
+  }
+  function tasOphalen() {
+    fase = 'ophalen';
+    const man = invalMannen && invalMannen.wachters[0];
+    if (!man || man.staat === 'neer') { tasBekeken(); return; }
+    const r = invalP(INVAL_S.ruit, 0.6), terug = { x: man.persoon.groep.position.x, z: man.persoon.groep.position.z };
+    zetOpdracht('');
+    loopt(man.persoon, r, 1.7, () => {
+      invalTas.toon(false);
+      loopt(man.persoon, terug, 1.7, tasBekeken);
+    });
+  }
+  function tasBekeken() {
+    fase = 'kijken';
+    if (invalKeus === 1) {
+      schriftKwijt = true;
+      zeg(INVAL_BRAAF, johanVrij);
+    } else {
+      zeg(INVAL_LEEG, null, { auto: 1.4 });
+      invalT = 1.4;
+    }
+  }
+  // (1) Johan loopt naar je toe, Bouwman en de mannen stappen in en rijden weg
+  function johanVrij() {
+    fase = 'vrij';
+    const sp = spelerPunt();
+    loopt(invalJohan, { x: sp.x + 1.2, z: sp.z + 0.6 }, 1.5, () => {
+      invalJohan.kijkNaar(sp.x, sp.z, 0.1, 99);
+      zeg(INVAL_JOHAN_VRIJ, () => naarWiekenB());
+    });
+    invalT = 2.6;           // dan stappen ze in
+  }
+  function bouwmanRijdtWeg() {
+    bouwman.groep.visible = false;
+    if (invalMannen) for (const w of invalMannen.wachters) w.persoon.groep.visible = false;
+    const v = vluchtLijn(KAART, brug, INVAL_S.auto);
+    if (v) { invalVluchtLijn = v.lijn; invalRotonde = v.rotonde; invalVlucht = nieuweVlucht(v.lijn); }
+    zeg(INVAL_GROETEN, null, { auto: 2.4 });
+  }
+  // (2) "Nu!": het filmbeeld vanaf het dak van Mark
+  function startNu() {
+    if (fase === 'nuFilm' || fase === 'achtervolging') return;
+    invalLoper = null;
+    fase = 'nuFilm';
+    gesprek = null; sluitBalk();
+    zeg(INVAL_NU, null, { auto: 1.2 });
+    invalFilm = { soort: 'nu', t: 0, vast: { x: player.pos.x, z: player.pos.z }, schoten: 0 };
+    schietSlot(true);
+  }
+  function startAchtervolging() {
+    invalFilm = null;
+    toonFilmbalken(0);
+    schietSlot(false);
+    player.applyCamera();
+    fase = 'achtervolging'; zetPunt('brug');
+    bouwman.groep.visible = false;
+    const v = vluchtLijn(KAART, brug, INVAL_S.auto);
+    if (!v) { bouwmanKwijt(); return; }
+    invalVluchtLijn = v.lijn; invalRotonde = v.rotonde; invalVlucht = nieuweVlucht(v.lijn);
+    invalKlappen = 0; invalKlapT = 0; invalKwijtT = 0; invalRotondeGezegd = false;
+    zeg(INVAL_ERVANDOOR, null, { auto: 2.4 });
+    zetOpdracht('ram de auto van Bouwman van de weg');
+  }
+  function crash() {
+    fase = 'crashFilm';
+    const car = raceBouwmanAuto;
+    invalVlucht.gecrasht = true;
+    const tx = -Math.sin(car.yaw), tz = -Math.cos(car.yaw);
+    invalCrash = { t: 0, van: { x: car.x, z: car.z }, zij: { x: -tz, z: tx }, voor: { x: tx, z: tz }, yaw: car.yaw, gerend: false };
+    invalFilm = { soort: 'crash', t: 0, vast: player.inCar ? { x: player.inCar.x, z: player.inCar.z, yaw: player.inCar.yaw, auto: player.inCar } : { x: player.pos.x, z: player.pos.z } };
+    if (invalBalk) invalBalk.hidden = true;
+    if (schokken) schokken(0.6);
+    geluid.klap();
+    zetOpdracht('');
+  }
+  function eindeCrashFilm() {
+    invalFilm = null;
+    toonFilmbalken(0);
+    player.applyCamera();
+    bouwman.groep.visible = false;
+    invalLoper = null;
+    fase = 'doorzoeken';
+    const car = raceBouwmanAuto;
+    zetInvalMerk(1, car.x + invalCrash.zij.x * 1.6, 0.14, car.z + invalCrash.zij.z * 1.6);
+    zetOpdracht('doorzoek zijn auto');
+    zetMarker(car.x, car.z, 'B');
+  }
+  function bouwmanKwijt() {
+    fase = 'kwijtZeg';
+    if (invalBalk) invalBalk.hidden = true;
+    verstopAuto(raceBouwmanAuto);
+    invalVlucht = null;
+    zeg(INVAL_KWIJT_BOUWMAN, naarWiekenB);
+  }
+  function naarWiekenB() {
+    fase = 'naarWiekenB'; zetPunt(fase);
+    for (const m of invalMerken) m.toon(false);
+    if (invalBalk) invalBalk.hidden = true;
+    // Mark staat voor de deur aan de Wieken; bij de hinderlaag heeft hij Johan al opgehaald
+    const d = wiekenDeur();
+    const [mx, mz] = resolveCollisions(d.x, d.z, 0.4);
+    mark.zetNeer(mx, mz, mark.yaw);
+    markZichtbaar(true);
+    if (invalKeus === 2) {
+      const [jx, jz] = resolveCollisions(mx + 1.4, mz + 0.6, 0.4);
+      invalJohan.zetNeer(jx, jz, invalJohan.yaw); invalJohan.groep.visible = true;
+    }
+    zetOpdracht(invalKeus === 1 ? 'breng Johan naar Mark, de Wieken 29' : 'naar Mark en Johan, de Wieken 29');
+    zetNavDoel(d.x, d.z, 'de Wieken 29', 'M');
+  }
+  function invalGeslaagd() {
+    const beloning = invalKeus === 1 ? INVAL_BELONING.ruil : invalTelefoon ? INVAL_BELONING.hinderlaag : INVAL_BELONING.kwijt;
+    fase = 'klaar';
+    missie = 'klaar';
+    invalKlaar = true;
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+    verdien(beloning);
+    spanningUit = 6;
+    hud.melding('MISSIE GESLAAGD – DE INVAL', `Beloning: + ${euro(beloning)} toegevoegd aan wallet`, 8);
+    invalNaT = 5;
+  }
+  function invalOchtend() {
+    ruimInvalOp();
+    markZichtbaar(false);
+    bouwman.groep.visible = false;
+    verstopAuto(raceBouwmanAuto);
+    if (zetUur) zetUur(INVAL_OCHTEND);
+    springNaarHuis();
+  }
+  function invalNaloop(dt) {
+    if (invalNaT > 0) {
+      invalNaT -= dt;
+      if (invalNaT <= 0) zwartMet('De volgende ochtend', invalOchtend);
+    }
+  }
+
+  // ---- E en schoten ----
+  function invalToets() {
+    if (missie !== 'inval') return false;
+    const sp = spelerPunt();
+    const i = invalHier();
+    if (i >= 0) {
+      if (i === 0) { invalHeeft.schrift = true; zeg(INVAL_SCHRIFT, null, { auto: 1.4 }); }
+      else { invalHeeft.fotos = true; zeg(INVAL_FOTOS, null, { auto: 1.4 }); }
+      invalMerken[i].toon(false);
+      invalPraat(null);
+      geluid.neerzetten();
+      if (invalHeeft.schrift && invalHeeft.fotos) naarBuiten();
+      return true;
+    }
+    if (fase === 'ruilLopen' && !player.inCar) {
+      const r = invalP(INVAL_S.ruit, 0);
+      if (Math.hypot(sp.x - r.x, sp.z - r.z) < INVAL_RUIT + 0.4) { zetTasNeer(); return true; }
+    }
+    if (fase === 'doorzoeken' && !player.inCar && raceBouwmanAuto && afst(sp, raceBouwmanAuto) < 3.6) {
+      invalTelefoon = true;
+      invalMerken[1].toon(false);
+      invalPraat(null);
+      zeg(INVAL_TELEFOON_BOUWMAN, naarWiekenB);
+      return true;
+    }
+    return false;
+  }
+  function invalSchot() {
+    if (missie !== 'inval') return;
+    if (!['ruilLopen', 'achteruit', 'ophalen', 'kijken'].includes(fase)) return;
+    if (invalKeus === 1) mislukt('Johan is geraakt.');
+    else startNu();
+  }
+
+  // ---- het filmbeeld, elk beeld (ook als het spel verder stilstaat) ----
+  function werkInvalFilmBij(dt) {
+    const f = invalFilm;
+    if (!f) return;
+    f.t += dt;
+    const t = f.t;
+    toonFilmbalken(Math.min(1, t / 0.6));
+    // jij staat (of rijdt) niet door zolang het filmbeeld loopt
+    if (f.vast.auto) { const a = f.vast.auto; a.speed = 0; a.x = f.vast.x; a.z = f.vast.z; a.yaw = f.vast.yaw; }
+    else { player.pos.x = f.vast.x; player.pos.z = f.vast.z; }
+    if (player.gun) player.gun.visible = false;
+    let pos = null, kijk = null;
+    if (f.soort === 'inval') {
+      const stil = werkInvalKonvooiBij(dt);
+      const leider = invalKonvooi[0] ? invalKonvooi[0].auto : null;       // de voorste
+      const r = invalRoute;
+      if (r && leider) {
+        if (t < 3.4) {
+          const q = opLijn(r.pts, Math.max(0, r.lengte - 42));
+          pos = [q.x - q.uz * 3.2, 2.1, q.z + q.ux * 3.2]; kijk = [leider.x, 1.0, leider.z];
+        } else {
+          const a = f.vast.auto || { x: f.vast.x, z: f.vast.z, yaw: player.yaw };
+          const vx = -Math.sin(a.yaw), vz = -Math.cos(a.yaw);
+          pos = [a.x - vx * 6.5 + vz * 1.5, 3.3, a.z - vz * 6.5 - vx * 1.5]; kijk = [leider.x, 1.0, leider.z];
+        }
+      }
+      if ((stil && t > 5.2) || t > 8) eindeInvalFilm();
+    } else if (f.soort === 'brug') {
+      const stil = werkBouwmanAanrijBij(dt);
+      const car = raceBouwmanAuto;
+      const cy = (car.mesh ? car.mesh.position.y : brug.hoogte) + 0.9;
+      if (t < 4.5) {
+        const q = invalP(-2.5, 3.8);
+        pos = [q.x, brug.hoogte + 1.6, q.z]; kijk = [car.x, cy, car.z];
+      } else if (t < 8.5) {
+        const q = invalP(24, 4.2);
+        pos = [q.x, brug.hoogte + 1.5, q.z]; kijk = [car.x, cy, car.z];
+      } else {
+        const q = invalP(INVAL_S.johan - 6, 2.2), k = invalP(INVAL_S.johan, -1.4);
+        pos = [q.x, brug.hoogte + 1.7, q.z]; kijk = [k.x, brug.hoogte + 1.2, k.z];
+      }
+      if (stil && !f.uit) { f.uit = true; f.uitT = t; uitstappenOpDeBrug(); }
+      if (f.uit) { bouwman.update(dt, {}); invalJohan.update(dt, {}); }
+      if ((f.uit && t - f.uitT > 3.2) || t > 16) eindeBrugFilm();
+    } else if (f.soort === 'nu') {
+      // vanaf het dak van Mark, aan de Tinga-kant: over het dek naar de twee mannen
+      const q = brug.langsAs(-16, 10);
+      const m = invalMannen && invalMannen.wachters[0] ? invalMannen.wachters[0].persoon.groep.position : invalP(INVAL_S.johan, 0);
+      pos = [q.x, brug.hoogte + 5.5, q.z]; kijk = [m.x, brug.hoogte + 1.0, m.z];
+      const raakMan = (i) => {
+        const w = invalMannen && invalMannen.wachters[i];
+        if (w && w.staat !== 'neer') { invalMannen.raak(w.persoon.groep); geluid.schot(60); }
+      };
+      if (t > 0.7 && f.schoten < 1) { f.schoten = 1; raakMan(0); }
+      if (t > 1.5 && f.schoten < 2) { f.schoten = 2; raakMan(1); }
+      if (t > 2.0 && bouwman.groep.visible) bouwman.groep.visible = false;
+      invalJohan.update(dt, { hurkt: 1 });
+      if (t > 3.0) startAchtervolging();
+    } else if (f.soort === 'crash') {
+      const c = invalCrash, car = raceBouwmanAuto;
+      const g = Math.min(1, t / 1.3), e = 1 - (1 - g) * (1 - g);
+      car.x = c.van.x + c.zij.x * 7 * e + c.voor.x * 5 * e;
+      car.z = c.van.z + c.zij.z * 7 * e + c.voor.z * 5 * e;
+      car.yaw = c.yaw - 1.1 * e; car.speed = 0;
+      vehicles.zetNeer(car, dt, car.yaw);
+      if (t > 1.4 && !c.gerend) {
+        c.gerend = true;
+        const [bx, bz] = resolveCollisions(car.x + c.zij.x * 1.6, car.z + c.zij.z * 1.6, 0.4);
+        bouwman.zetNeer(bx, bz, Math.atan2(-c.zij.x, -c.zij.z));
+        bouwman.groep.visible = true;
+        loopt(bouwman, { x: bx + c.zij.x * 60, z: bz + c.zij.z * 60 }, 5.2, null);
+        zeg(INVAL_CRASH, null, { auto: 2.0 });
+      }
+      werkLoperBij(dt);
+      pos = [c.van.x - c.voor.x * 9 - c.zij.x * 7, 2.6, c.van.z - c.voor.z * 9 - c.zij.z * 7];
+      kijk = [car.x + c.zij.x * 6, 1.0, car.z + c.zij.z * 6];
+      if (t > 4.2) eindeCrashFilm();
+    }
+    if (pos && kijk) f.cam = { pos, kijk };        // (voor tools/invalshots.mjs)
+    if (camera && pos && kijk && invalFilm) {
+      camera.position.set(pos[0], pos[1], pos[2]);
+      camera.lookAt(kijk[0], kijk[1], kijk[2]);
+    }
+  }
+
+  // ---- elk beeld, tijdens de missie ----
+  function werkInvalBij(dt, sp) {
+    if (fase === 'klaar' || invalFilm) return;
+    if (fase === 'telefoon') {
+      if (invalT > 0) {
+        invalT -= dt;
+        if (invalT <= 0) {
+          geluid.telefoon();
+          zeg(INVAL_TELEFOON, startLeeghalen, { wie: 'Johan', telefoon: true, kop: KOPPEN.johan });
+        }
+      }
+      return;
+    }
+    // de drie minuten lopen tot Mark naast je in de auto zit
+    if (fase === 'leeghalen' || fase === 'naarBuiten' || fase === 'instappen') {
+      invalKlok -= dt;
+      const m = Math.max(0, Math.ceil(invalKlok));
+      zetInvalBalk(`Inval over ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`, invalKlok / INVAL_TIJD, invalKlok < 30);
+      if (invalKlok <= 0) { if (invalBalk) invalBalk.hidden = true; mislukt('Te laat: Mark is opgepakt. "Ze hebben me, Erik."'); return; }
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+    }
+    const woning = molenkrite && molenkrite();
+    const binnen = !!(woning && woning.binnen && woning.binnen(sp.x, sp.z));
+    if (fase === 'leeghalen') {
+      if (mark.groep.visible) mark.update(dt, { zit: BANK_ZITTING });
+      for (const mm of invalMerken) if (mm.zichtbaar) mm.update(dt);
+      if (binnen && !invalBinnenGezegd && balk.hidden) { invalBinnenGezegd = true; zeg(INVAL_BINNEN, null, { auto: 2.4 }); }
+      const i = invalHier();
+      invalPraat(i >= 0 && balk.hidden ? (i === 0 ? 'E — het schrift pakken' : 'E — de foto\'s pakken') : null);
+      return;
+    }
+    if (fase === 'naarBuiten') { if (!binnen) buitenMetMark(); return; }
+    if (fase === 'instappen') {
+      if (mark.groep.visible) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
+      if (player.inCar && afst(player.inCar, mark.groep.position) < 14) { markZichtbaar(false); startInvalFilm(); }
+      return;
+    }
+    if (fase === 'afschudden' || fase === 'naarWieken') {
+      if (player.inCar && player.inCar.wrak) { mislukt('Mark is geraakt.'); return; }
+      if (fase === 'afschudden') {
+        werkInvalKonvooiBij(0);
+        invalT += dt;
+        invalMeldT -= dt;
+        if (invalMeldT <= 0 && invalMeldI < INVAL_ONDERWEG.length && balk.hidden) { zeg([INVAL_ONDERWEG[invalMeldI++]], null, { auto: 3.2 }); invalMeldT = 9; }
+        if (invalT > 4 && sterren() === 0 && balk.hidden) { zeg(INVAL_KWIJTGERAAKT, null, { auto: 3 }); naarDeWiekenMetMark(); }
+        return;
+      }
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+      const d = wiekenDeur();
+      const stil = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.2;
+      if (afst(sp, d) < 14 && stil && balk.hidden) bouwmanBelt();
+      return;
+    }
+    if (fase === 'bouwmanBelt' || fase === 'keuze') {
+      if (mark.groep.visible) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
+      return;
+    }
+    // ---- op de brug ----
+    if (fase === 'ruilLopen' || fase === 'achteruit' || fase === 'ophalen' || fase === 'kijken' || fase === 'vrij') {
+      if (bouwman.groep.visible) { bouwman.kijkNaar(sp.x, sp.z, dt, 2); bouwman.update(dt, {}); }
+      if (invalJohan.groep.visible && (!invalLoper || invalLoper.p !== invalJohan)) invalJohan.update(dt, {});
+      werkLoperBij(dt);
+      if (invalMerken[0].zichtbaar) invalMerken[0].update(dt);
+      const r = invalP(INVAL_S.ruit, 0);
+      const dR = Math.hypot(sp.x - r.x, sp.z - r.z);
+      // wapen weg, zolang Bouwman nog kijkt
+      if (fase !== 'vrij' && heeftWapenInHand() && dR < INVAL_WAPEN) {
+        invalWapenT += dt;
+        if (!invalWapenGezegd && invalWapenT > 0.6 && balk.hidden) { invalWapenGezegd = true; zeg(INVAL_WAPEN_WEG, null, { auto: 1.8 }); }
+        if (invalWapenT > INVAL_WAPEN_T + 0.6) { mislukt('Bouwman vertrouwt het niet. Hij rijdt weg, met Johan.'); return; }
+      } else invalWapenT = Math.max(0, invalWapenT - dt);
+      if (fase === 'ruilLopen') {
+        const bij = dR < INVAL_RUIT + 0.4 && !player.inCar && balk.hidden;
+        invalPraat(bij ? 'E — tas neerzetten' : null);
+        return;
+      }
+      if (fase === 'achteruit') {
+        invalT += dt;
+        if (dR >= INVAL_ACHTERUIT || invalT > 6) tasOphalen();
+        return;
+      }
+      if (fase === 'kijken' && invalKeus === 2 && invalT > 0) { invalT -= dt; if (invalT <= 0) startNu(); return; }
+      if (fase === 'vrij') {
+        if (invalT > 0) { invalT -= dt; if (invalT <= 0) bouwmanRijdtWeg(); }
+        if (invalVlucht && raceBouwmanAuto) {
+          rijdVlucht(invalVlucht, invalVluchtLijn, raceBouwmanAuto, vehicles, dt);
+          if (invalVlucht.s > 120) { verstopAuto(raceBouwmanAuto); invalVlucht = null; }
+        }
+      }
+      return;
+    }
+    if (fase === 'achtervolging') {
+      const car = raceBouwmanAuto;
+      rijdVlucht(invalVlucht, invalVluchtLijn, car, vehicles, dt);
+      const d = afst(sp, car);
+      zetMarker(car.x, car.z, 'B');
+      zetInvalBalk(`Bouwman · ${invalKlappen} van ${INVAL_KLAPPEN} klappen · ${Math.round(d)} m`, invalKlappen / INVAL_KLAPPEN, d > INVAL_KWIJT * 0.7);
+      invalKlapT -= dt;
+      if (player.inCar && d < 3.6 && invalKlapT <= 0) {
+        const v = Math.abs(player.inCar.speed || 0);
+        if (v > 4) {
+          invalKlapT = 0.9;
+          invalKlappen += v > INVAL_HARD ? INVAL_KLAPPEN : 1;
+          geluid.klap();
+          if (schokken) schokken(0.25);
+          if (invalKlappen < INVAL_KLAPPEN && balk.hidden) zeg([INVAL_KLAP[invalKlappen % INVAL_KLAP.length]].map(telLijn), null, { auto: 1.6 });
+        }
+      }
+      if (invalKlappen >= INVAL_KLAPPEN) { crash(); return; }
+      if (!invalRotondeGezegd && invalRotonde && Math.hypot(car.x - invalRotonde.x, car.z - invalRotonde.z) < 140 && balk.hidden) {
+        invalRotondeGezegd = true; zeg(INVAL_ROTONDE, null, { auto: 2.2 });
+      }
+      if (d > INVAL_KWIJT) invalKwijtT += dt; else invalKwijtT = 0;
+      if (invalKwijtT > INVAL_KWIJT_T || invalVlucht.klaar) bouwmanKwijt();
+      return;
+    }
+    if (fase === 'doorzoeken') {
+      if (invalMerken[1].zichtbaar) invalMerken[1].update(dt);
+      const bij = raceBouwmanAuto && !player.inCar && afst(sp, raceBouwmanAuto) < 3.6 && balk.hidden;
+      invalPraat(bij ? 'E — zijn auto doorzoeken' : null);
+      return;
+    }
+    if (fase === 'naarWiekenB') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+      if (invalKeus === 1) {
+        // Johan loopt mee, of zit naast je in de auto
+        if (player.inCar) invalJohan.groep.visible = false;
+        else if (!invalJohan.groep.visible) { const [jx, jz] = resolveCollisions(sp.x + 1.2, sp.z + 1.0, 0.4); invalJohan.zetNeer(jx, jz, player.yaw); invalJohan.groep.visible = true; }
+        else if (afst(sp, invalJohan.groep.position) > 2.4) { const p = invalJohan.groep.position; const dx = sp.x - p.x, dz = sp.z - p.z, l = Math.hypot(dx, dz); p.x += dx / l * Math.min(l - 2, 3.4 * dt); p.z += dz / l * Math.min(l - 2, 3.4 * dt); invalJohan.kijkNaar(sp.x, sp.z, dt, 6); invalJohan.update(dt, { loopt: true, snelheid: 3.4 }); }
+        else invalJohan.update(dt, {});
+      }
+      if (mark.groep.visible) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
+      const stil = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.2;
+      if (afst(sp, mark.groep.position) < 12 && stil && balk.hidden) {
+        fase = 'afronding';
+        hud.zetNavigatie(null); navDoel = null;
+        zetOpdracht('');
+        if (invalKeus === 1 && !invalJohan.groep.visible) {
+          const m = mark.groep.position;
+          const [jx, jz] = resolveCollisions(m.x + 1.4, m.z + 0.6, 0.4);
+          invalJohan.zetNeer(jx, jz, invalJohan.yaw); invalJohan.groep.visible = true;
+        }
+        zeg(INVAL_AFRONDING(invalKeus, invalTelefoon), invalGeslaagd);
+      }
+      return;
+    }
+    if (fase === 'afronding') {
+      if (mark.groep.visible) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
+      if (invalJohan.groep.visible) { invalJohan.kijkNaar(sp.x, sp.z, dt, 2); invalJohan.update(dt, {}); }
+    }
+  }
+
+  /*
+   Opnieuw na het neergaan, een mislukking of het laden. Tot de Wieken begint het weer bij
+   het telefoontje, voor de deur van Molenkrite 15; bij de Wieken staat Mark weer naast je en
+   belt Bouwman opnieuw; op de brug begint "die nacht" weer, met dezelfde keuze.
+  */
+  function hervatInval(f) {
+    const keus = invalKeus, tel = invalTelefoon, kwijt = schriftKwijt;
+    beginInval();
+    if (['telefoon', 'leeghalen', 'naarBuiten', 'instappen', 'invalFilm', 'afschudden'].includes(f)) { voorMolenkrite15(); return; }
+    invalKeus = keus; invalTelefoon = tel; schriftKwijt = kwijt;
+    if (['naarWieken', 'bouwmanBelt', 'keuze', 'nacht'].includes(f) || !invalKeus) {
+      const d = wiekenDeur();
+      if (player.inCar) { player.inCar.speed = 0; player.inCar = null; if (eersteP) eersteP(); }
+      const [px, pz] = resolveCollisions(d.x, d.z, 0.4);
+      player.pos.set(px, 0, pz); player.applyCamera();
+      naarDeWiekenMetMark();
+      return;
+    }
+    if (f === 'naarWiekenB' || f === 'afronding') { naarWiekenB(); return; }
+    schriftKwijt = false;
+    opDeBrugNacht();
+  }
+
   // ---------- per beeld ----------
   function update(dt) {
     // Het spannende deuntje loopt precies zolang de achtervolging duurt: het
@@ -6249,6 +7220,8 @@ export function initVerhaal(ctx) {
     werkZwartBij(dt);
     // missie 12: het filmbeeld van de auto's op de brug zet zelf de camera
     werkFilmBij(dt);
+    // missie 16: de filmbeelden van de inval, de brug, het dak en de crash
+    werkInvalFilmBij(dt);
     // Mark die zelf begint (zie beginGesprek): even wachten tot het beeld staat
     // en de speler zijn handen aan de muis heeft, en dan praat hij.
     if (startPraatT > 0) {
@@ -6367,7 +7340,7 @@ export function initVerhaal(ctx) {
       // als hij op de bank zit (missie 7 en 11): dan houdt hij zijn houding
       // en kijkt hij naar de tv
       const opBank = ((missie === 'bom' || missie === 'politieauto') && fase === 'gesprek') || (missie === 'brug' && fase === 'plan')
-        || missie === 'schrift';        // (missie 13 werkt Mark zelf bij)
+        || missie === 'schrift' || missie === 'inval';   // (missie 13 en 16 werken Mark zelf bij)
       if (mark.groep.visible && !opBank) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
       hinder.opWeg = false;
     }
@@ -6487,9 +7460,11 @@ export function initVerhaal(ctx) {
       if (missie === 'schrift') werkSchriftBij(dt, sp);
       if (missie === 'race') werkRaceBij(dt, sp);
       if (missie === 'schaduw') werkSchaduwBij(dt, sp);
+      if (missie === 'inval') werkInvalBij(dt, sp);
     }
     brugNaloop(sp, dt);
     raceNaloop(sp, dt);
+    invalNaloop(dt);
     if (schutters) {
       const schade = schutters.update(dt, player, true);
       if (schade > 0 && player.active) {
@@ -6566,6 +7541,8 @@ export function initVerhaal(ctx) {
       brugKlaar, schriftKlaar, raceKlaar, schaduwKlaar,
       // missie 15: welke foto's je al hebt, en of de mannen je zagen
       schaduwFotos: schaduwFotos.slice(), schaduwGezien,
+      // missie 16: afgerond, welke keuze, de telefoon van Bouwman, en of hij het schrift heeft
+      invalKlaar, invalKeus, invalTelefoon, schriftKwijt,
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
       raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
@@ -6608,6 +7585,10 @@ export function initVerhaal(ctx) {
     schaduwKlaar = !!s.schaduwKlaar;
     schaduwFotos = Array.isArray(s.schaduwFotos) ? s.schaduwFotos.slice(0, 3).map(Boolean) : [false, false, false];
     schaduwGezien = !!s.schaduwGezien;
+    invalKlaar = !!s.invalKlaar;
+    invalKeus = s.invalKeus === 1 || s.invalKeus === 2 ? s.invalKeus : 0;
+    invalTelefoon = !!s.invalTelefoon;
+    schriftKwijt = !!s.schriftKwijt;
     raceSchuld = typeof s.raceSchuld === 'number' ? s.raceSchuld : RACE_SCHULD;
     raceRondes = s.raceRondes || 0;
     // na missie 12 heeft de Dúvelsrak een gat
@@ -6739,6 +7720,8 @@ export function initVerhaal(ctx) {
       hervatRace(fase);
     } else if (missie === 'schaduw' && fase !== 'klaar') {
       hervatSchaduw(fase);
+    } else if (missie === 'inval' && fase !== 'klaar') {
+      hervatInval(fase);
     } else {
       zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
     }
@@ -6759,6 +7742,8 @@ export function initVerhaal(ctx) {
     else if (missie === 'klaar' && schriftKlaar && !raceKlaar) { naMissieNaam = 'race'; naMissieT = 6; }
     // en na de race: Mark belt over Bouwman
     else if (missie === 'klaar' && raceKlaar && !schaduwKlaar) { naMissieNaam = 'schaduw'; naMissieT = 6; }
+    // en na het schaduwen: Johan belt over de inval
+    else if (missie === 'klaar' && schaduwKlaar && !invalKlaar) { naMissieNaam = 'inval'; naMissieT = 6; }
     hud.zetLeven(player.health);
   }
 
@@ -6824,6 +7809,18 @@ export function initVerhaal(ctx) {
         plek: racePlek, huis: ronaldPlek(), pand: !!racePandAanwezig(), uitslag: raceUitslag, overT: raceOverT,
         verplaatst: raceVerplaatst, bijgelegd: raceBijgelegd, wachtT: naMissieNaam === 'race' ? naMissieT : 0,
         schuld: raceSchuld, rondes: raceRondes, verloor: raceVerloor, uitT: raceUitT };
+    },
+    // missie 16, voor tools/invaltest.mjs
+    get inval() {
+      return { klaar: invalKlaar, keus: invalKeus, telefoon: invalTelefoon, schriftKwijt, heeft: { ...invalHeeft },
+        klok: invalKlok, film: invalFilm ? invalFilm.soort : null, filmT: invalFilm ? invalFilm.t : 0,
+        filmCam: invalFilm && invalFilm.cam ? { pos: invalFilm.cam.pos.slice(), kijk: invalFilm.cam.kijk.slice() } : null,
+        konvooi: invalKonvooi.map(k => k.auto), mannen: invalMannen, johan: invalJohan, tas: invalTas,
+        vlucht: invalVlucht, lijn: invalVluchtLijn, rotonde: invalRotonde, klappen: invalKlappen, kwijtT: invalKwijtT,
+        auto: raceBouwmanAuto, bouwman, golf: invalGolf, route: invalRoute, merkPlek: invalMerkPlek.map(p => p && { ...p }),
+        merkZichtbaar: invalMerken.map(m => m.zichtbaar), wiekenDeur: wiekenDeur(), brugPunt: (s2, u) => invalP(s2, u),
+        S: INVAL_S, tijd: INVAL_TIJD, beloning: INVAL_BELONING, wachtT: naMissieNaam === 'inval' ? naMissieT : 0,
+        wapenT: invalWapenT };
     },
     // missie 15, voor tools/schaduwtest.mjs
     get schaduw() {

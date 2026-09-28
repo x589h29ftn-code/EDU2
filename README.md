@@ -2187,6 +2187,44 @@ hoogte, langs Parelmoervlinder 3), of de loods vrij staat, de fotoplekken buiten
 volgt, te dichtbij, te ver, de Ferrari, de foto's, en gezien worden. `npm run
 schaduwshots` maakt de vijf foto's.
 
+### 16 · De inval
+
+De ochtend na het schaduwen, een minuut nadat je bij Mark wakker bent geworden, belt **Johan**:
+Bouwman heeft een bevel laten tekenen voor Molenkrite 15, en ze zijn al onderweg. Linksboven loopt
+een balk af: **drie minuten**. Binnen pak je met **E** het schrift bij de bank en de foto's op het
+dressoir (twee gele ruiten); Mark loopt mee naar buiten, en stapt bij je in. Heb je geen auto voor
+de deur, dan staat de grijze Golf van Mark er. Te laat, en Mark is opgepakt.
+
+Zodra Mark instapt, **het filmbeeld**: twee politieauto's met zwaailicht en een zwart busje draaien
+de Molenkrite in en rijden door tot voor de deur. Daarna heb je **drie sterren**, met wagens achter je
+aan, en Mark praat onderweg. Afgeschud: naar de Wieken 29. Daar belt **Bouwman**: hij heeft Johan. Het
+schrift tegen Johan, vannacht om één uur op de Dúvelsrak. Mark legt twee plannen voor, en jij kiest:
+
+- **1 — ruilen.** Je zet de tas met het schrift en de foto's in het midden neer, loopt vijf stappen
+  achteruit, en een van zijn mannen haalt hem. Johan is vrij; Bouwman rijdt weg met het schrift.
+  In de auto hoorde Johan hem bellen met iemand: **Ronald**. € 1.000, maar het schrift ben je kwijt.
+- **2 — hinderlaag.** Mark ligt met de sniper op een dak aan de Tinga-kant, en jij loopt met een lege
+  tas. Bouwman ritst hem open, en Mark roept **"Nu!"**: twee schoten, twee man neer. Bouwman springt
+  in zijn auto en vlucht, over het dek, de helling af en naar de rotonde. Jij erachteraan: drie
+  klappen, of één harde boven 60 km/u, en hij vliegt de berm in en rent het weiland in. In zijn auto
+  ligt zijn telefoon, met het bericht van **"R."**. € 3.000 — of € 2.000 als je hem laat ontsnappen.
+
+"Die nacht…" op de brug begint met **een filmbeeld**: de politieauto van Bouwman rijdt de helling op
+tot midden op het dek, met zijn koplampen naar je toe, en Johan wordt voor de auto gezet. Houd je je
+wapen in de hand als je naar het midden loopt, dan roept Bouwman "Wapen weg!", en na drie tellen
+vertrouwt hij het niet meer. Schiet je tijdens de ruil, dan raken ze Johan. De klok staat stil van
+"Die nacht…" tot "De volgende ochtend". **shift+;** (de toets naast de L) start hem los.
+
+![Het filmbeeld van de inval: de politie draait de Molenkrite in](docs/screenshots/inval_straat.png)
+
+![Die nacht op de Dúvelsrak: Bouwman rijdt het dek op](docs/screenshots/inval_brug.png)
+
+![De ruil: Johan voor de auto, Bouwman en zijn mannen, de tas op de gele ruit](docs/screenshots/inval_ruil.png)
+
+![Nu! — vanaf het dak van Mark](docs/screenshots/inval_dak.png)
+
+![Bouwman in de berm](docs/screenshots/inval_crash.png)
+
 ### Klusjes tussendoor
 
 Tussen twee missies door kun je bijverdienen. Na een paar tellen staat er ergens in de stad
