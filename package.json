@@ -183,6 +183,7 @@
     "overgangtest": "node tools/overgangtest.mjs",
     "ronaldtest": "node tools/ronaldtest.mjs",
     "ronaldshots": "node tools/ronaldshots.mjs",
+    "kaartdoeltest": "node tools/kaartdoeltest.mjs",
     "invalshots": "node tools/invalshots.mjs"
   }
 }

@@ -3437,6 +3437,39 @@ in twee kolommen.
 `npm run legendatest` toetst het: de acht regels, de bedragen tegen de modules, elk icoon in zijn
 eigen kleur op de kaart, niets afgekapt, geen speldjes over elkaar, en het smalle scherm.
 
+### Altijd in zicht, en zelf een doel kiezen
+
+**Op de minikaart** blijven de bijzondere plekken in beeld, net als de K al deed. Ligt een plek
+buiten het rondje, dan staat zijn speldje op de rand, in zijn richting. Dat geldt voor de winkels,
+je huis, de klus, de gele vlag van de missie en je eigen doel. Op de rand is een speldje iets
+kleiner; kom je dichterbij, dan schuift het naar zijn echte plek.
+
+**Op de grote kaart** (tweemaal **M**) klik je waar je heen wilt. Er komt een **paarse route**
+naartoe, over de weg: rijbanen gaan voor paden. Klik je vlak bij een speldje, dan wordt dat het
+doel, met zijn naam ("Tinga State", "Poiesz IJlst"). Je kunt ook klikken bij de klus of bij de vlag
+van de missie. De route loopt met je mee en wordt na elke paar meter opnieuw uitgerekend. Rijd je
+een verkeerde straat in, dan wijst hij de nieuwe weg. Bij aankomst gaat hij uit. **Nog eens op het
+doel klikken** of de **rechtermuisknop** haalt hem eerder weg.
+
+Een route van een missie blijft blauw en staat er gewoon naast. Terwijl de kaart open is, beweegt
+de muis een kruisje over de kaart en schiet je dus niet. Op een aanraakscherm tik je op de kaart.
+
+| ![Een eigen doel](docs/screenshots/kaart_doel.png) | ![Op de rand](docs/screenshots/kaart_rand.png) |
+|---|---|
+| de grote kaart: een paarse route naar de Poiesz in IJlst | de minikaart: de K, de winkels en de route op de rand |
+
+`npm run kaartdoeltest` toetst het: de plekken op de rand (in meters en in de pixels), het
+aanwijzen, een speldje, weghalen, de route over de weg en onderweg bijgewerkt, aankomen, en dat
+een klik op de kaart geen schot is.
+
+### Ondertitels in een filmbeeld
+
+In een filmbeeld staat het gesprek als **ondertitel** in de zwarte balk onderin: witte letters op
+een dichte achtergrond, zonder het portretje. De zwarte balk schoof eerst óver het gesprek heen,
+zodat je alleen de naam nog zag.
+
+![Een ondertitel in de balk](docs/screenshots/film_dialoog.png)
+
 ## Opslaan en laden
 
 Er is één opslagplek, in de browser (de Windows-app draait dezelfde pagina en gebruikt dezelfde).

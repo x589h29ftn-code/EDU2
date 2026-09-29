@@ -35,6 +35,7 @@ import * as menu from './menu.js';
 import * as intro from './intro.js';
 import * as uitleg from './uitleg.js';
 import { maakPandWijzer, pandRegel } from './pandwijzer.js';
+import { Navigatie } from './navigatie.js';
 
 const canvas = document.getElementById('game');
 const IS_TOUCH = isTouchDevice();
@@ -546,6 +547,58 @@ vehicles.opClaxon = (x, z) => geluid.claxon(Math.hypot(player.pos.x - x, player.
 const npcs = new NPCs(scene, world.roadSegments, 130);
 player.applyCamera();   // meteen op ooghoogte op de Molenkrite, ook voor het startscherm
 const hud = new HUD();
+/*
+ ---------- een eigen doel op de grote kaart (stap 104) ----------
+ Klik op de grote kaart: een paarse route daarheen, naast wat een missie laat zien. Hij rekent
+ opnieuw zodra je een meter of zes verder bent (over het wegennet van js/navigatie.js, dat de
+ rijbaan liever neemt dan een pad), en bij aankomst gaat hij vanzelf uit. De muis werkt dan op
+ de kaart (`player.kaartMuis`), niet op rondkijken en schieten.
+*/
+const EIGEN = { opnieuw: 6, klok: 0.8, aankomst: 18 };
+let eigenDoel = null, eigenNav = null, eigenVanaf = null, eigenKlok = 0;
+function eigenPlek() {
+  if (hud.kaartVanaf) return { x: hud.kaartVanaf.x, z: hud.kaartVanaf.z };
+  return player.inCar ? { x: player.inCar.x, z: player.inCar.z } : { x: player.pos.x, z: player.pos.z };
+}
+function werkEigenDoelBij(dt, nu = false) {
+  if (!eigenDoel) return;
+  eigenKlok -= dt;
+  if (!nu && eigenKlok > 0) return;
+  eigenKlok = EIGEN.klok;
+  const p = eigenPlek();
+  if (Math.hypot(p.x - eigenDoel.x, p.z - eigenDoel.z) < EIGEN.aankomst) {
+    hud.melding('Aangekomen', eigenDoel.naam, 3);
+    eigenDoel = null; hud.zetEigenNav(null);
+    return;
+  }
+  if (!nu && eigenVanaf && Math.hypot(p.x - eigenVanaf.x, p.z - eigenVanaf.z) < EIGEN.opnieuw) return;
+  eigenVanaf = { x: p.x, z: p.z };
+  if (!eigenNav) eigenNav = new Navigatie(KAART ? KAART.wegassen : []);
+  const route = eigenNav.route([p.x, p.z], [eigenDoel.x, eigenDoel.z]);
+  hud.zetEigenNav({ route, doel: [eigenDoel.x, eigenDoel.z], naam: eigenDoel.naam });
+}
+hud.onEigenDoel = (d) => {
+  if (!d) {
+    if (eigenDoel) hud.melding('Navigatie uit', '', 2);
+    eigenDoel = null; hud.zetEigenNav(null);
+    return;
+  }
+  eigenDoel = { x: d.x, z: d.z, naam: d.naam || nearestRoadName(d.x, d.z) || 'eigen doel' };
+  eigenVanaf = null;
+  werkEigenDoelBij(0, true);
+  hud.melding('Navigatie', eigenDoel.naam, 2.5);
+};
+// de muis op de kaart zolang die open is (js/player.js vraagt hierom)
+const kaartMuis = {
+  beweeg(dx, dy, e) {
+    if (document.pointerLockElement) hud.kaartMuis(dx, dy);
+    else hud.kaartCursor = hud.bigVanClient(e.clientX, e.clientY);
+  },
+  klik(knop, e) {
+    const q = document.pointerLockElement ? hud.kaartCursor : hud.bigVanClient(e.clientX, e.clientY);
+    if (q) hud.kaartKlik(q.x, q.y, knop);
+  },
+};
 await adem('het verhaal', 0.984);
 // Het verhaal: broer Mark voor Molenkrite 15, het gezelschap schuin tegenover,
 // de rit naar de waterzuivering, de bewaking en het afleveren bij de boerderij.
@@ -2287,6 +2340,10 @@ function loop() {
     } else laatsteRadio = null;
     lodKlok += dt;
     if (lodKlok > 0.25) { lodKlok = 0; updateLOD(cx, cz, { zacht: true }); vehicles.lod(cx, cz); if (grasVeld) grasVeld.update(cx, cz); }
+    werkEigenDoelBij(dt);
+    // open kaart: de muis is van de kaart; dicht: weer van het rondkijken
+    player.kaartMuis = hud.bigOpen ? kaartMuis : null;
+    if (!hud.bigOpen) hud.kaartCursor = null;
     hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);
   }
   if (!player.active && !window.__autoplay) {
@@ -2469,6 +2526,8 @@ opstartStap('na het eerste beeld');
 // Testhaak voor automatische screenshots
 opstartStap('klaar');
 window.__game = {
+  // voor tools/kaartdoeltest.mjs: het eigen doel en zijn bijwerken
+  get eigenDoel() { return eigenDoel; }, werkEigenDoelBij, kaartMuis,
   // de wapenpas en het voorvlak, voor tools/cliptest.mjs
   tekenWapen, cameraNear: CAMERA_NEAR,
   // het reliëf in één keer afmaken (de proeven), en hoever het is

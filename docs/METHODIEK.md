@@ -6701,6 +6701,34 @@ overleven, worst akkoord. Werk het uit met cinematics."
 - Proeven: `ronaldtest` 51 controles groen; `invaltest`, `overgangtest` (ook op dubbele namen) en
   `vloeiendtest` opnieuw gedraaid.
 
+
+**Ondertitels, de rand van de minikaart en een eigen doel (stap 104).** Gevraagd: "tijdens een
+cutscene zie je de dialoog wat minder goed; de K zie je altijd, doe dit ook voor andere bijzondere
+plekken; op de grote kaart een plek aanwijzen voor navigatie en uitzetten, de meest logische weg,
+steeds updaten."
+
+- *De dialoog in een filmbeeld.* Het lag niet aan de kleur. De zwarte filmbalken (z-index 4) lagen
+  óver het gesprek, want `#ui` is `position: fixed`, dus een eigen laag, en zonder z-index lag die
+  op 0. De z-index 5 van `#dialoog` gold alleen daarbinnen. Op de eerste foto van de proef stond
+  alleen "RONALD" nog in beeld. Nu staat `#ui` op 5. In een filmbeeld is het gesprek ondertiteling
+  in de balk: dicht zwart, witte letters, geen kopje. De proef meet het contrast (19,5, was 10,7)
+  en met `elementFromPoint` of er niets overheen ligt. Dat laatste had de eerste ronde van de proef
+  niet, en daardoor was die eerst groen terwijl de foto het niet was.
+- *De rand van de minikaart.* `opRand` zet alles wat verder ligt dan (W/2 − 16) / schaal meter op
+  die afstand in zijn richting: de winkels, de klus (die had het al, op 0,86 × een maat die net over
+  de rand viel), de missievlag (`tekenRoute` met `klem`) en het eigen doel. De proef meet de
+  plekken in meters en zoekt de gele en paarse beeldpunten op de rand.
+- *Een eigen doel.* Klikken op de grote kaart, met snappen op een speldje binnen 20 px (ook een
+  opzij geschoven speldje), weghalen op het doel of met de rechterknop, en niet in de legenda.
+  js/main.js rekent de route over `Navigatie` (rijbaan voor pad), opnieuw na 6 m, en haalt het doel
+  weg binnen 18 m. De muis is van de kaart zolang die open is (`player.kaartMuis`): met een
+  vergrendelde muis beweegt een kruisje, zonder vergrendeling telt de plek van de klik, en op een
+  aanraakscherm `pointerdown` op het doek.
+- *Wat er misging:* de controle "over het wegennet" telde het eerste punt van de route mee, en dat is
+  waar je zelf staat, niet op een as.
+- Proeven: `kaartdoeltest` 22 controles groen; `legendatest`, `klusjestest`, `ronaldtest` en
+  `checkpointtest` opnieuw gedraaid.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -8,7 +8,10 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   body.touch { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
   #game { display: block; width: 100vw; height: 100vh; touch-action: none; }
-  #ui { position: fixed; inset: 0; pointer-events: none; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+  /* z-index 5: boven de filmbalken (4), onder het zwart van de overgang (6), de keuze na het neergaan (7)
+     en het menu (20). `position: fixed` maakt #ui een eigen laag; zonder z-index lag die op 0 en
+     schoven de filmbalken óver het gesprek heen, ook al had #dialoog zelf z-index 5 (stap 104). */
+  #ui { position: fixed; inset: 0; pointer-events: none; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); z-index: 5; }
   #crosshair { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; }
   /* Het beeld van de kijker op de sniper. Het zwart eromheen is één laag met
      een rond gat er middenin; dat gat is geen apart element maar een
@@ -353,6 +356,16 @@
               pointer-events: none; z-index: 4; }
   #filmboven { top: 0; }
   body.film #ui > *:not(#dialoog) { visibility: hidden !important; }
+  /* In een filmbeeld is het gesprek ondertiteling: onderin, in de zwarte balk, op een dichte
+     achtergrond en zonder kopje. De gewone balk stond half over het beeld met 80 % dekking,
+     en over een verlicht erf of de koplampen van een auto was hij slecht te lezen (stap 104). */
+  body.film #dialoog { left: 50%; transform: translateX(-50%); bottom: 1.2vh; width: min(920px, 94vw);
+                       background: rgba(0,0,0,.95); border-left: none; border-radius: 4px;
+                       padding: 6px 16px; justify-content: center; text-align: center; }
+  body.film #dialoogKop { display: none; }
+  body.film #dialoogNaam { font-size: 13px; }
+  body.film #dialoogTekst { font-size: 20px; color: #fff; text-shadow: 0 1px 2px #000; margin-top: 1px; }
+  body.film #dialoogVerder { display: none; }
   #filmonder { bottom: 0; }
 
   /* ------------------------------------------------------------- de uitleg

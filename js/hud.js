@@ -59,6 +59,22 @@ export class HUD {
     */
     this.kaartStand = 0;
     window.addEventListener('keydown', e => { if (e.code === 'KeyM') this.kaartStap(); });
+    /*
+     Een eigen doel op de grote kaart (stap 104): klik ergens, en er komt een paarse route
+     naartoe, naast de route van een missie. Nog eens op het doel klikken of de rechterknop
+     haalt hem weg. Met een vergrendelde muis beweegt de muis een kruisje over de kaart
+     (js/player.js stuurt hem dan hierheen in plaats van naar het rondkijken en schieten);
+     op een aanraakscherm tik je gewoon op de kaart. js/main.js rekent de route uit.
+    */
+    this.eigen = null;               // { route, doel: [x, z], naam }
+    this.kaartCursor = null;         // { x, y } in beeldpunten van het doek van de grote kaart
+    this.onEigenDoel = null;         // (doel | null) => void, gezet door js/main.js
+    this.big.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'touch' || !this.bigOpen) return;
+      const q = this.bigVanClient(e.clientX, e.clientY);
+      this.kaartKlik(q.x, q.y, 0);
+      e.preventDefault();
+    });
     window.addEventListener('resize', () => this.zetMinimap(this.kaartStand === 1));
     // labelposities: per straatnaam het langste stuk
     this.labels = [];
@@ -357,10 +373,66 @@ export class HUD {
    doel = de bestemming, naam = wat er bij de vlag staat. null zet hem uit.
   */
   zetNavigatie(nav) { this.nav = nav || null; }
+  // het eigen doel: { route, doel, naam } of null (zie de constructor)
+  zetEigenNav(n) { this.eigen = n || null; }
+  // van een plek op het scherm (clientX/Y) naar beeldpunten van het doek van de grote kaart
+  bigVanClient(cx, cy) {
+    const r = this.big.getBoundingClientRect();
+    return { x: (cx - r.left) * this.big.width / (r.width || 1), y: (cy - r.top) * this.big.height / (r.height || 1) };
+  }
+  bigNaarWereld(x, y) {
+    const t = this._bigT;
+    return t ? { x: t.cx + (x - t.W / 2) / t.scale, z: t.cz + (y - t.H / 2) / t.scale } : null;
+  }
+  wereldNaarBig(x, z) {
+    const t = this._bigT;
+    return t ? { x: t.W / 2 + (x - t.cx) * t.scale, y: t.H / 2 + (z - t.cz) * t.scale } : null;
+  }
+  // het kruisje over de kaart bewegen (met een vergrendelde muis)
+  kaartMuis(dx, dy) {
+    const t = this._bigT;
+    if (!t) return;
+    if (!this.kaartCursor) this.kaartCursor = { x: t.W / 2, y: t.H / 2 };
+    this.kaartCursor.x = Math.max(0, Math.min(t.W, this.kaartCursor.x + dx));
+    this.kaartCursor.y = Math.max(0, Math.min(t.H, this.kaartCursor.y + dy));
+  }
+  /*
+   Een klik op de grote kaart (in beeldpunten van het doek). Rechts, of op het doel zelf: weg.
+   Vlak bij een speldje (een winkel, je huis, de klus, de missievlag): dáár heen, met zijn naam.
+   Anders precies waar je klikt; js/main.js zoekt er de weg bij. Geeft het nieuwe doel terug.
+  */
+  kaartKlik(x, y, knop = 0) {
+    const t = this._bigT;
+    if (!t) return null;
+    const meld = (d) => { if (this.onEigenDoel) this.onEigenDoel(d); return d; };
+    if (knop === 2) return this.eigen ? meld(null) : null;
+    if (this.eigen) {
+      const q = this.wereldNaarBig(this.eigen.doel[0], this.eigen.doel[1]);
+      if (Math.hypot(q.x - x, q.y - y) < 16) return meld(null);
+    }
+    // de legenda en de balk met je plek zijn geen kaart
+    const band = this.legendaBand ? this.legendaBand(t.W, t.H) : null;
+    if (band && y >= band.y) return null;
+    const kandidaten = [];
+    for (const q of this._bigPins || []) kandidaten.push({ x: q.echt.x, y: q.echt.y, sx: q.x, sy: q.y, naam: q.naam });
+    if (this.klus) { const q = this.wereldNaarBig(this.klus.x, this.klus.z); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: 'de klus' }); }
+    if (this.nav && this.nav.doel) { const q = this.wereldNaarBig(this.nav.doel[0], this.nav.doel[1]); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: this.nav.naam || 'het doel van de missie' }); }
+    let beste = null;
+    for (const k of kandidaten) {
+      // (een speldje dat opzij geschoven is telt ook op de plek waar het getekend staat)
+      const d = Math.min(Math.hypot(k.x - x, k.y - y), Math.hypot(k.sx - x, k.sy - y));
+      if (d < 20 && (!beste || d < beste.d)) beste = { d, k };
+    }
+    const w = beste ? this.bigNaarWereld(beste.k.x, beste.k.y) : this.bigNaarWereld(x, y);
+    return meld({ x: w.x, z: w.z, naam: beste ? beste.k.naam : null });
+  }
 
-  tekenRoute(c, scale, dikte) {
+  tekenRoute(c, scale, dikte, klem = null) {
     if (!this.nav) return;
-    const { route, doel } = this.nav;
+    const { route } = this.nav;
+    let doel = this.nav.doel;
+    // (op de minikaart: een doel buiten het rondje staat op de rand, zie `drawMap`)
+    if (doel && klem) { const q = klem(doel[0], doel[1]); doel = [q.x, q.z]; }
     if (route && route.length > 1) {
       c.save();
       c.lineCap = 'round'; c.lineJoin = 'round';
@@ -402,6 +474,36 @@ export class HUD {
       }
       c.restore();
     }
+  }
+  /*
+   Het eigen doel: een paarse route en een paars speldje met een witte stip. Paars, zodat hij
+   niet te verwarren is met de blauwe route en de gele vlag van een missie.
+  */
+  tekenEigen(c, scale, dikte, klem = null) {
+    if (!this.eigen) return;
+    const { route } = this.eigen;
+    let doel = this.eigen.doel;
+    if (route && route.length > 1) {
+      c.save();
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = dikte * 1.9;
+      c.beginPath();
+      route.forEach((p, i) => { const x = p[0] * scale, z = p[1] * scale; i ? c.lineTo(x, z) : c.moveTo(x, z); });
+      c.stroke();
+      c.strokeStyle = '#d65cff'; c.lineWidth = dikte;
+      c.stroke();
+      c.restore();
+    }
+    if (!doel) return;
+    if (klem) { const q = klem(doel[0], doel[1]); doel = [q.x, q.z]; }
+    c.save();
+    c.translate(doel[0] * scale, doel[1] * scale);
+    c.rotate(-(this._kaartRot || 0));
+    const r = dikte * 3;
+    c.scale(r / 9, r / 9);
+    HUD.speld(c, 9, '#d65cff', '#2a0b33');
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(0, -1, 3.2, 0, Math.PI * 2); c.fill();
+    c.restore();
   }
   /*
    Hoe groot is de minikaart in de twee standen? Op een telefoon is 360 het
@@ -581,7 +683,19 @@ export class HUD {
       c.strokeStyle = s.drive ? '#d9d6cf' : '#b9a58a'; c.lineWidth = Math.max(2, s.w * scale);
       c.beginPath(); c.moveTo(s.a[0] * scale, s.a[1] * scale); c.lineTo(s.b[0] * scale, s.b[1] * scale); c.stroke();
     }
-    this.tekenRoute(c, scale, 3);
+    /*
+     Bijzondere plekken buiten het rondje staan op de rand, in hun richting (stap 104, "de K
+     zie je altijd, doe dat ook voor andere bijzondere plekken"): de winkels, je huis, de
+     klus, de vlag van de missie en je eigen doel. Een speldje van één beeldpunt of vijftien
+     van de rand steekt er niet half af.
+    */
+    const randR = (W / 2 - 16) / scale;
+    const opRand = (x, z) => {
+      const dx = x - px, dz = z - pz, d = Math.hypot(dx, dz);
+      return d <= randR ? { x, z, rand: false } : { x: px + dx / d * randR, z: pz + dz / d * randR, rand: true };
+    };
+    this.tekenRoute(c, scale, 3, opRand);
+    this.tekenEigen(c, scale, 3, opRand);
     // auto's — grijs, want blauw is voortaan van de politie alleen
     c.fillStyle = '#4c525c';
     for (const car of vehicles.cars) { if (nabij(car.x, car.z)) c.fillRect(car.x * scale - 2, car.z * scale - 2, 4, 4); }
@@ -597,27 +711,31 @@ export class HUD {
         c.beginPath(); c.arc(p.x * scale, p.z * scale, r, 0, Math.PI * 2); c.fill();
       }
     }
-    // winkels: het icoontje draait niet mee, anders staat hij op zijn kop
+    // winkels: het icoontje draait niet mee, anders staat hij op zijn kop; buiten het
+    // rondje wat kleiner op de rand
+    const opKaart = [];
     for (const w of (this.winkels || [])) {
-      if (!nabij(w.x, w.z)) continue;
+      const q = opRand(w.x, w.z);
+      opKaart.push({ wat: w.wat, ...q });
       c.save();
-      c.translate(w.x * scale, w.z * scale);
+      c.translate(q.x * scale, q.z * scale);
       c.rotate(-this._kaartRot);
+      if (q.rand) { c.globalAlpha = 0.92; c.scale(0.8, 0.8); }
       HUD.tekenPictogram(c, w.wat, 9);
       c.restore();
     }
     // de klus: ook buiten de kaartrand, op de rand van het rondje, zodat je weet welke kant op
     if (this.klus) {
-      let kx = this.klus.x * scale, kz = this.klus.z * scale;
-      const dx = this.klus.x - px, dz = this.klus.z - pz, d = Math.hypot(dx, dz);
-      const rand = R * 0.86;
-      if (d > rand) { kx = (px + dx / d * rand) * scale; kz = (pz + dz / d * rand) * scale; }
+      const q = opRand(this.klus.x, this.klus.z);
+      opKaart.push({ wat: 'klus', ...q });
       c.save();
-      c.translate(kx, kz);
+      c.translate(q.x * scale, q.z * scale);
       c.rotate(-this._kaartRot);
       HUD.tekenKlus(c, 9);
       c.restore();
     }
+    // (voor tools/kaartdoeltest.mjs: waar elke plek op de minikaart staat, in meters)
+    this._miniPlekken = opKaart; this._miniRand = randR;
     // `rot` bepaalt alleen of een straatnaam omgeklapt moet om leesbaar te
     // blijven, dus die moet dezelfde draai zijn als de kaart zelf
     this.drawLabels(c, scale, this._kaartRot, 40, { x: px, z: pz, R });
@@ -731,7 +849,11 @@ HUD.prototype.drawBig = function (player, vehicles) {
   const scale = Math.min(W / (maxX - minX), H / (maxZ - minZ));
   c.clearRect(0, 0, W, H);
   c.drawImage(this.bigVast(W, H, minX, maxX, minZ, maxZ, scale), 0, 0);
+  // (voor klikken op de kaart: van beeldpunten naar meters en terug)
+  this._bigT = { W, H, scale, cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2 };
   c.save(); c.translate(W / 2, H / 2); c.scale(scale, scale); c.translate(-(minX + maxX) / 2, -(minZ + maxZ) / 2);
+  // het eigen doel: bij elk beeld, want de route loopt met je mee
+  this.tekenEigen(c, 1, 2.5 / scale);
   // De 1781 auto's als één pad: 1781 losse fillRects zijn evenzoveel opdrachten
   // aan de tekenlaag, en dat telt op bij een kaart die elk beeld gevuld wordt.
   c.fillStyle = '#4c525c';
@@ -793,6 +915,22 @@ HUD.prototype.drawBig = function (player, vehicles) {
    of waar een object moet staan. Op de telefoon is er geen toetsenbord, dus hier
    staat hij gewoon te lezen; op de pc zet K hem ook op het klembord.
   */
+  // uitleg bij het aanwijzen, rechtsboven
+  c.font = 'bold 13px sans-serif'; c.textAlign = 'right';
+  const uitleg = this.eigen ? `navigatie: ${this.eigen.naam || 'eigen doel'} · klik op het doel of rechts: weg`
+    : 'klik op de kaart: navigatie daarheen';
+  c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.9)';
+  c.strokeText(uitleg, W - 16, 26); c.fillStyle = this.eigen ? '#e9b3ff' : '#f5e6c0'; c.fillText(uitleg, W - 16, 26);
+  // het kruisje (met een vergrendelde muis: de muis beweegt het over de kaart)
+  if (this.kaartCursor && document.pointerLockElement) {
+    const q = this.kaartCursor;
+    c.save();
+    c.strokeStyle = 'rgba(8,14,24,0.9)'; c.lineWidth = 4;
+    c.beginPath(); c.moveTo(q.x - 11, q.y); c.lineTo(q.x + 11, q.y); c.moveTo(q.x, q.y - 11); c.lineTo(q.x, q.y + 11); c.stroke();
+    c.strokeStyle = '#ffffff'; c.lineWidth = 2; c.stroke();
+    c.beginPath(); c.arc(q.x, q.y, 6, 0, Math.PI * 2); c.stroke();
+    c.restore();
+  }
   // de legenda als laatste: anders tekenen de auto's en de politie eroverheen
   this.tekenLegenda(c, W, H);
   // (en het vakje met je plek erboven)

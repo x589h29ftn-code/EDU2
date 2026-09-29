@@ -419,6 +419,11 @@ export class Player {
     // kijk je rond door met de linkerknop ingedrukt te slepen.
     document.addEventListener('mousemove', e => {
       if (!this.active) return;
+      /*
+       De grote kaart is open (stap 104): de muis beweegt dan het kruisje over de kaart en een
+       klik zet een doel, in plaats van rondkijken en schieten. js/main.js zet `kaartMuis`.
+      */
+      if (this.kaartMuis) { this.kaartMuis.beweeg(e.movementX, e.movementY, e); return; }
       if (!this.pointerLocked && !this.dragging) return;
       // aangeslagen kijk je rustiger rond: de muis wordt trager naarmate je
       // verder over het vizier kijkt, precies zoals de beeldhoek smaller wordt
@@ -449,6 +454,7 @@ export class Player {
     document.addEventListener('contextmenu', e => { if (this.active) e.preventDefault(); });
     document.addEventListener('mousedown', e => {
       if (!this.active) return;
+      if (this.kaartMuis) { this.kaartMuis.klik(e.button, e); e.preventDefault(); return; }
       if (e.button === 2) { this.richten(true); e.preventDefault(); return; }
       if (e.button !== 0) return;
       if (this.pointerLocked) { this.vuurAan = true; this.shoot(); return; }
@@ -456,6 +462,7 @@ export class Player {
     });
     document.addEventListener('mouseup', e => {
       if (!this.active) return;
+      if (this.kaartMuis) { if (e.button === 2) this.richten(false); this.vuurAan = false; this.dragging = false; return; }
       if (e.button === 2) { this.richten(false); return; }
       if (e.button !== 0) return;
       this.vuurAan = false;
