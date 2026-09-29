@@ -403,6 +403,20 @@ export const geluid = {
     }
   },
 
+  /*
+   Een grote waakhond (missie 17): twee, drie keer kort en laag, met een raspje
+   erbovenop. Dichterbij is harder; de hondjes in de wijk (`sfeerGeluid('hond')`)
+   zijn kleiner en veel zachter.
+  */
+  blaf(afstand = 4) {
+    const v = Math.max(0.15, Math.min(1, 6 / Math.max(1, afstand)));
+    for (let i = 0, n = 2 + Math.floor(Math.random() * 2); i < n; i++) {
+      const na = i * (0.26 + Math.random() * 0.1);
+      toon({ freq: 210 + Math.random() * 50, naar: 110, duur: 0.16, volume: 0.13 * v, golf: 'sawtooth', vertraag: na });
+      tik({ freq: 900, q: 1.0, duur: 0.12, volume: 0.11 * v, val: 0.35, vertraag: na });
+    }
+  },
+
   klap() {   // blik: auto geraakt
     tik({ freq: 1200, q: 1.1, duur: 0.16, volume: 0.3, val: 0.2 });
     toon({ freq: 320, naar: 180, duur: 0.2, volume: 0.12, golf: 'triangle' });

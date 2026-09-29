@@ -1378,6 +1378,7 @@ const MISSIES = [
   { nr: 14, naam: 'race', titel: 'Ronald en de race naar IJlst' },
   { nr: 15, naam: 'schaduw', titel: 'Bouwman schaduwen' },
   { nr: 16, naam: 'inval', titel: 'De inval' },
+  { nr: 17, naam: 'ronald', titel: 'Wie is R.' },
 ];
 function startMissieLos(naam) {
   const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
@@ -1417,6 +1418,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Backslash' || e.code === 'IntlBackslash') { e.preventDefault(); startMissieLos('15'); return; }
   // en de toets rechts naast de L (; op een Amerikaans toetsenbord, + op een Nederlands): missie 16
   if (e.code === 'Semicolon') { e.preventDefault(); startMissieLos('16'); return; }
+  // en de toets daarnaast (' op een Amerikaans toetsenbord): missie 17
+  if (e.code === 'Quote') { e.preventDefault(); startMissieLos('17'); return; }
   const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();

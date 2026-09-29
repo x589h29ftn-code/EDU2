@@ -181,6 +181,8 @@
     "legendatest": "node tools/legendatest.mjs",
     "invaltest": "node tools/invaltest.mjs",
     "overgangtest": "node tools/overgangtest.mjs",
+    "ronaldtest": "node tools/ronaldtest.mjs",
+    "ronaldshots": "node tools/ronaldshots.mjs",
     "invalshots": "node tools/invalshots.mjs"
   }
 }

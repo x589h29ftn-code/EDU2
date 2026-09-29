@@ -6672,6 +6672,35 @@ jij belangrijk acht", na een lijstje van wat ik onderweg zag.
   komt), `schaduwpastest` (terug), `brugtest` 74, `schrifttest` 25, `racetest` 72, `schaduwtest` 66,
   `invaltest` 52: alle groen. Geen foto's: er is niets nieuws te zien.
 
+
+**Missie 17: Wie is R. (stap 103).** Voorgesteld na "bedenk de volgende missie"; gekozen: "Ronald moet
+overleven, worst akkoord. Werk het uit met cinematics."
+
+- *Het erf* (js/schuur.js) staat in het assenstelsel van het huis aan de Lemmerweg 80: `v` naar de
+  straat, `s` naar de schuur. De plekken zijn eerst van een bovenaanzicht en de BGT gemeten: het huis
+  kijkt naar het westen, naar de weg Tinga; aan de noordoostkant loopt een sloot schuin langs het erf.
+  De hond stond in de eerste opzet in die sloot. Hij staat nu achter het huis.
+- *Argwaan in plaats van afstand.* De balk van missie 15 laat zien hoe verdacht je bent. De kegel van
+  de camera telt alleen als de lijn vrij is (`zichtVrij`, vanaf een halve meter voor de muur), dus
+  achter de caravan ben je veilig.
+- *Filmbeelden*: de koplampen (vanuit de caravandeur, dan Ronald of bij alarm de drie auto's), en aan
+  het water (Bouwman belt Ronald).
+- *Wat er misging*:
+  - Ronald reed 1,3 km om, en kwam in het filmbeeld nooit aan, dus er kwamen geen mannen. De weg Tinga
+    sluit in de kaart niet aan op de Lemmerweg. De route is nu met de hand gemaakt (Lemmerweg, de
+    aansluiting, de Tinga, de oprit) en gladgestreken (`gladLijn`). De proef meet de knik per meter.
+    `eindeKoplampen` zet de auto's alsnog neer als een filmbeeld te lang duurt.
+  - "Soms door de kegel, soms vrij" was eerst gemeten op een rechte lijn van de Golf naar de deur. Die
+    lijn liep door het huis, waar de camera niets ziet. Nu gemeten zoals je loopt: over de weg, de
+    oprit op, langs het huis, met de kegel die meedraait (8 van de 40 vertrekmomenten vrij).
+  - De kegel was op de foto niet te zien. Gemeten met een straal naar beneden: het erf ligt op 12 cm,
+    de kegel lag op 7. De hond zakte er een derde in. Nu komt de hoogte uit de kaartvlakken.
+  - Het filmbeeld aan het water begon terwijl het zwart er nog vijf tellen overheen lag. Nu met een
+    korter zwart (`LOODS_ZWART`) en een filmbeeld dat pas telt als het beeld terug is.
+  - In de getter voor de proef stond `weg` twee keer (Ronald weg, en de weg Tinga): de laatste won.
+- Proeven: `ronaldtest` 51 controles groen; `invaltest`, `overgangtest` (ook op dubbele namen) en
+  `vloeiendtest` opnieuw gedraaid.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

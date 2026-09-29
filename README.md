@@ -2225,6 +2225,55 @@ vertrouwt hij het niet meer. Schiet je tijdens de ruil, dan raken ze Johan. De k
 
 ![Bouwman in de berm](docs/screenshots/inval_crash.png)
 
+### 17 · Wie is R.
+
+Een minuut na die ochtend belt **Mark**: niet naar Molenkrite 15. Daar hangt politielint voor de deur.
+Hij zit bij de **Wieken 29** (een M op de kaart). Binnen zit hij op de bank, Johan staat bij de tafel,
+en ze leggen het uit. **Ronald** heeft ze verkocht, en vannacht zit hij bij Bouwman aan het water.
+Zijn erf aan de Lemmerweg 80 is dus leeg, op een camera en een hond na. In de caravan naast zijn
+huis staat zijn kluis. Heeft Bouwman het schrift, omdat je in missie 16 ruilde, dan denkt Mark dat
+het bij Ronald ligt.
+
+In de koelkast van de Wieken ligt **worst**: **E** neemt hem mee, als je wilt. Loop naar buiten, en het
+wordt ***Die nacht…***: één uur, en je staat naast de Golf van Mark aan de weg voor het huis.
+
+- **De camera** hangt op de hoek van het huis en zwaait langzaam over de oprit en de voortuin. Waar
+  hij kijkt ligt een zwakke gele kegel op de grond. Sta je daarin, en niet achter de caravan, dan
+  loopt de balk linksboven (**argwaan**) snel vol.
+- **De hond** zit aan een ketting achter het huis. Kom je te dicht bij, dan blaft hij en loopt de
+  argwaan langzaam op. Met de worst: **E** op een meter of negen, en hij eet en is stil.
+- **De kluis**: **E** bij de deur van de caravan, en blijven staan. Loop je weg, dan ben je niet kwijt wat
+  je al had. Erin: geld, een sleutel met het label *container 3*, een schriftje met datums
+  (*elke zaterdag, "B."*), en, na de ruil, het schrift van De Veteraan.
+
+Dan komt Ronald thuis, **een filmbeeld**: koplampen over het erf, zijn oude BX de oprit op, en hij
+stapt uit met zijn jachtgeweer.
+
+- **Stil gebleven.** Hij praat. Veertigduizend schuld van drie jaar races, die Bouwman opkocht.
+  Sindsdien is hij van hem. *"Mark had nog nooit iemand iets geweigerd. Daarom was hij makkelijk."*
+  Zaterdag haalt Bouwman alles weg uit de loods, 's nachts, met de boot. Je krijgt zijn telefoon, en
+  terug bij de Wieken **€ 2.500**.
+- **Gezien** (de balk vol, of een schot op het erf). Achter Ronald draaien twee auto's van Bouwman de
+  weg op, met vier man. *"Ik heb ze niet gebeld, ik zweer het!"* Ronald rent de weg af. Daarna vecht je
+  je naar de Golf, of je rijdt weg. Thuiskomen gaat pas zonder sterren: **€ 1.500**.
+
+Ronald overleeft het in allebei de gevallen: hij is geen doelwit, en tijdens het gesprek kun je niet
+schieten. Na MISSIE GESLAAGD volgt ***Aan het water…***, **een filmbeeld** bij de loods: Bouwman belt
+Ronald. *"…Hij neemt niet op. Dan doen we het zaterdag zonder hem."* Daarna ***De volgende ochtend***.
+**shift+'** (de toets rechts naast de ;) start de missie los.
+
+| ![Het plan](docs/screenshots/ronald_plan.png) | ![Het erf](docs/screenshots/ronald_erf.png) |
+|---|---|
+| binnen aan de Wieken 29: Mark op de bank, Johan bij de tafel | het erf om één uur: de caravan, de kegel van de camera |
+| ![De koplampen](docs/screenshots/ronald_koplampen.png) | ![Het geweer](docs/screenshots/ronald_geweer.png) |
+| het filmbeeld: Ronald rijdt de oprit op | Ronald met zijn jachtgeweer |
+| ![Gezien](docs/screenshots/ronald_gevecht.png) | ![Aan het water](docs/screenshots/ronald_loods.png) |
+| gezien: de mannen van Bouwman op de weg | aan het water: Bouwman belt Ronald |
+
+`npm run ronaldtest` speelt hem na, en meet het erf: de kraakplek nooit in de kegel, de weg ernaartoe
+op het goede moment wel vrij, de kegel boven de grond, de hond. Daarna beide afloopen, en het
+neergaan en laden. `npm run ronaldshots` maakt de zes foto's.
+
 ### Klusjes tussendoor
 
 Tussen twee missies door kun je bijverdienen. Na een paar tellen staat er ergens in de stad
