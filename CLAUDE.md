@@ -248,7 +248,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run invaltest` (missie 16 van Johan aan de lijn tot de ochtend: de drie minuten en te laat, leeghalen, de inval en zijn filmbeeld, de Wieken, beide keuzes, de hinderlaag met de vlucht over het dek en de rotonde, rammen, de crash, de telefoon, ontsnappen, Johan geraakt, wapen niet weg, de auto total loss, opslaan; stap 101) met `invalshots` (vijf foto's, vier filmbeelden); `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
+De laatste die ertoe doen: `npm run overgangtest` (laden of een nieuwe missie tijdens het klokje en het zwart na missie 12, 14 en 16, met een tegenproef; `zetNeer` op een geparkeerde auto; missie 16 in zo'n auto; en vooraf, zonder browser, geen functienaam twee keer in js/verhaal.js en js/main.js; stap 102); `npm run invaltest` (missie 16 van Johan aan de lijn tot de ochtend: de drie minuten en te laat, leeghalen, de inval en zijn filmbeeld, de Wieken, beide keuzes, de hinderlaag met de vlucht over het dek en de rotonde, rammen, de crash, de telefoon, ontsnappen, Johan geraakt, wapen niet weg, de auto total loss, opslaan; stap 101) met `invalshots` (vijf foto's, vier filmbeelden); `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
 de route, de loods, een automaat die volgt, te dichtbij, te ver, de Ferrari, de foto's, gezien
 worden; stap 96) met `schaduwshots` (vijf foto's); `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
 met een automaat die de Ferrari over het parcours rijdt, goed en slordig, het verliezen, de ring
@@ -267,8 +267,8 @@ buren van een wegvak, de schaduw elk beeld tijdens het rijden; stap 87) met
 `npm run checkpointtest` (het checkpoint na een missie en de keuze na het
 neergaan) en `npm run plattegrondshots` (woningen van bovenaf); `npm run vloeiendtest` (het aantal shaders dat three
 tijdens het spelen erbij vertaalt — hoort nul te zijn — en de nacht; stap 83–85),
-`npm run schaduwtest` (de schaduwpas: bomen bij de
-doos, lantaarns per tegel) en `npm run nachttest` (plassen licht, lampen van de
+`npm run schaduwpastest` (de schaduwpas: bomen bij de
+doos, lantaarns per tegel; tot stap 102 overschreven door die van missie 15) en `npm run nachttest` (plassen licht, lampen van de
 auto's) met `nachtshots`, stap 82; `npm run lodtest` (LOD verder weg en vervagend,
 het voorvlak, de intro voorbereid en met de LOD mee, het verkeer; stap 81),
 `npm run autolodtest` (geparkeerde auto's en
@@ -372,7 +372,8 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   de dag in vier minuten aan het lopen. Een nieuwe sneltoets: kijk of sfeer.js hem niet ook pakt.
 - **Een instantie heeft geen mesh**: geparkeerde auto's staan in `vehicles.cars` maar zonder
   eigen `mesh`; wie op `c.mesh.visible` filtert ziet ze niet, `botsAutos` wel (stap 97: Bouwman
-  reed door geparkeerde auto's heen, en de speler erachter botste ertegen).
+  reed door geparkeerde auto's heen, en de speler erachter botste ertegen). `vehicles.zetNeer` geeft
+  zo'n auto sinds stap 102 zelf het losse model (`maakBestuurbaar`); daarvoor viel hij erop om.
 - **De routeplanner kent geen rijrichting** (stap 97): rotondes nam hij de korte kant, met de
   klok mee. js/schaduw.js herkent rotondes aan een rijbaanvlak met een rond gat en geeft de ring
   één richting (alleen de stukken langs de ring; een in- of uitrit blijft twee kanten op, anders
@@ -397,7 +398,11 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   `!wachtOpKlus`, anders gaat hij tijdens een klus gewoon door.
 - **js/verhaal.js is één groot bereik.** Een `function` met een naam die er al is
   overschrijft de andere stil (hoisting): in stap 89 namen `beginGevecht` en
-  `naarDeC4` zo die van missie 10 en 11 over. `npm run brugtest` kijkt er nu naar.
+  `naarDeC4` zo die van missie 10 en 11 over, en van stap 96 tot 102 reed missie 12 na het plan de
+  avond van missie 15 in (`naarDeAvond`). `npm run overgangtest` kijkt er vooraf naar, zonder browser.
+- **Een klokje na een missie** (`brugNaT`, `raceNaT`, `invalNaT`) en het zwart erna horen bij het
+  laden en bij een nieuwe missie weg: `stopNaloop` (stap 102). Een nieuwe missie met zo'n klokje
+  zet het daar bij, anders springt zijn ochtend in de volgende.
 - **Een getter die een object teruggeeft is een momentopname** (`verhaal.brug`):
   lees hem na elke stap opnieuw, anders toets je een oude stand.
 - **Het wapen staat op laag 1** en wordt apart getekend (`tekenWapen`); een eigen

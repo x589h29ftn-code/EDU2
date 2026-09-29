@@ -1485,6 +1485,7 @@ export function initVerhaal(ctx) {
     markDoel = null; markNa = null;
     spanning = false; spanningUit = 0;
     naMissieT = 0;
+    stopNaloop();
     ruimBomOp();
     ruimSniperOp();
     ruimVeteraanOp();
@@ -3956,6 +3957,16 @@ export function initVerhaal(ctx) {
     if (overgangTekst) overgangTekst.textContent = tekst;
     zwart = { t: 0, gesprongen: false, bijZwart, tijden };
   }
+  /*
+   Na missie 12, 14 en 16 telt een klokje een paar tellen af tot het zwart ("Een paar dagen
+   later", "De volgende ochtend"), en dat zwart springt halverwege naar een andere tijd en plek.
+   Laden of een nieuwe missie maakt dat allemaal ongedaan: anders sprong de ochtend van de vorige
+   missie midden in de geladen (stap 101, gevonden bij missie 16; `npm run overgangtest`).
+  */
+  function stopNaloop() {
+    brugNaT = 0; raceNaT = 0; invalNaT = 0;
+    if (zwart) { zwart = null; zetZwart(0, 0); }
+  }
   function werkZwartBij(dt) {
     if (!zwart) return;
     const [uit, stil, op] = zwart.tijden || VET_ZWART;
@@ -6064,7 +6075,8 @@ export function initVerhaal(ctx) {
     zetOpdracht('ga naar Mark in Molenkrite 15');
     zetNavDoel(d.x, d.z, 'Molenkrite 15', 'M');
   }
-  function naarDeAvond() {
+  // (niet `naarDeAvond`: zo heet die van missie 12, en in één bereik won deze stil — stap 96 tot 102)
+  function naarDeSchaduwAvond() {
     fase = 'avond';
     markZichtbaar(false);
     zetOpdracht('');
@@ -6275,7 +6287,7 @@ export function initVerhaal(ctx) {
       markZichtbaar(true);
       hud.zetNavigatie(null); navDoel = null;
       zetOpdracht('');
-      if (fase === 'naarMark') { fase = 'gesprek'; zeg(SCHADUW_BINNEN, naarDeAvond); }
+      if (fase === 'naarMark') { fase = 'gesprek'; zeg(SCHADUW_BINNEN, naarDeSchaduwAvond); }
       else { fase = 'afronding'; zeg(SCHADUW_KLAAR(schaduwGezien), wakkerBijMark); }
       return;
     }
@@ -7564,6 +7576,7 @@ export function initVerhaal(ctx) {
     // een opgeslagen spel begint zonder klus
     klusjes.reset(); klusPauze = null;
     if (!s) return;
+    stopNaloop();
     gesprek = null; sluitBalk(); praatEl.hidden = true;
     doodT = 0;
     missie = s.missie || 'molenkrite';
@@ -7822,6 +7835,11 @@ export function initVerhaal(ctx) {
         schuld: raceSchuld, rondes: raceRondes, verloor: raceVerloor, uitT: raceUitT };
     },
     // missie 16, voor tools/invaltest.mjs
+    // de klokjes na missie 12, 14 en 16 en het zwart, voor tools/overgangtest.mjs
+    get naloop() { return { brug: brugNaT, race: raceNaT, inval: invalNaT, zwart: !!zwart }; },
+    zetNaloop(soort, t) {
+      if (soort === 'brug') brugNaT = t; else if (soort === 'race') raceNaT = t; else if (soort === 'inval') invalNaT = t;
+    },
     get inval() {
       return { klaar: invalKlaar, keus: invalKeus, telefoon: invalTelefoon, schriftKwijt, heeft: { ...invalHeeft },
         klok: invalKlok, film: invalFilm ? invalFilm.soort : null, filmT: invalFilm ? invalFilm.t : 0,

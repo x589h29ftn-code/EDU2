@@ -155,7 +155,7 @@
     "lodtest": "node tools/lodtest.mjs",
     "nachttest": "node tools/nachttest.mjs",
     "nachtshots": "node tools/nachtshots.mjs",
-    "schaduwtest": "node tools/schaduwtest.mjs",
+    "schaduwpastest": "node tools/schaduwpastest.mjs",
     "vloeiendtest": "node tools/vloeiendtest.mjs",
     "checkpointtest": "node tools/checkpointtest.mjs",
     "haperingtest": "node tools/haperingtest.mjs",
@@ -180,6 +180,7 @@
     "klusjesshots": "node tools/klusjesshots.mjs",
     "legendatest": "node tools/legendatest.mjs",
     "invaltest": "node tools/invaltest.mjs",
+    "overgangtest": "node tools/overgangtest.mjs",
     "invalshots": "node tools/invalshots.mjs"
   }
 }

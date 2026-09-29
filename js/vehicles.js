@@ -938,6 +938,13 @@ export class Vehicles {
 
   // De auto op zijn plek zetten en het model laten meebewegen.
   zetNeer(car, dt, vorigeYaw, invoer = {}) {
+    /*
+     Een geparkeerde auto in de stapel heeft geen eigen model. Wie er een verplaatst (een missie
+     die hem ergens neerzet, een proef die de speler erin zet) krijgt hier het losse model, zoals
+     bij instappen met E; anders viel dit om op `mesh.position` (stap 101). Op het viaduct: eerst
+     `maakBestuurbaar` en de hoogte zetten, want het nieuwe model staat op 0 m.
+    */
+    if (!car.mesh) this.maakBestuurbaar(car);
     const m = car.mesh;
     /*
      Bijna overal is de grond nul, behalve op het viaduct. Daar tilt

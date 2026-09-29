@@ -6642,6 +6642,36 @@ helemaal uit, mag grimmig, en bedenk filmbeelden zoals bij De Veteraan op de bru
     tussen de camera en die van Bouwman; beide standpunten zijn verplaatst. `invalshots` bewaart de
     laatste camera van een filmbeeld, voor als het net afgelopen is.
 
+
+**Overgangen, en een missie die de andere overschreef (stap 102).** Gevraagd: "pak de punten op die
+jij belangrijk acht", na een lijstje van wat ik onderweg zag.
+
+- *Missie 12 reed na het plan de avond van missie 15 in.* js/verhaal.js is één bereik, en missie 15
+  (stap 96) kreeg een `function naarDeAvond` terwijl missie 12 er al een had: de laatste wint stil.
+  Na "Die avond…" in missie 12 zette het spel dus de Golf van Mark bij het Autohuis klaar in plaats
+  van de politieauto voor de deur. Gevonden omdat `npm run schrifttest` omviel (`polAuto` was null
+  in `opDeBrug`); `brugtest` kijkt al naar dubbele namen, maar was na stap 96 niet meer gedraaid.
+  Die van missie 15 heet nu `naarDeSchaduwAvond`, en `npm run overgangtest` leest vooraf
+  js/verhaal.js en js/main.js op dubbele functienamen, zonder browser.
+- *De proef van de schaduwpas (stap 82) bestond niet meer.* Missie 15 nam in stap 96 de naam
+  `schaduwtest` én het bestand over; `package.json` had de sleutel twee keer. Uit git teruggehaald
+  als `npm run schaduwpastest` (tools/schaduwpastest.mjs), en groen: 10 controles.
+- *Een klokje na een missie liep door een lading heen.* Na missie 12, 14 en 16 telt `brugNaT`,
+  `raceNaT` of `invalNaT` af tot een zwart dat halverwege de klok verzet en je naar huis zet. Bij
+  missie 16 sprong die ochtend in een herstarte missie. `stopNaloop` zet de drie klokjes op nul en
+  breekt een lopend zwart af; `herstel` en `startMissie` roepen hem aan. Missie 12 deed dat al bij
+  een nieuwe missie (`ruimBrugOp`), missie 14 alleen bij het begin van een nieuwe race.
+- *`vehicles.zetNeer` op een geparkeerde auto uit de stapel* viel om op `mesh.position`. Nu krijgt
+  zo'n auto daar het losse model (`maakBestuurbaar`), zoals bij instappen met E.
+- *Wapen over een zwarte overgang*: nagekeken, alleen missie 16 kijkt of je wapen in je hand is
+  (`heeftWapenInHand`), en die begint "Die nacht…" sinds stap 101 met het wapen weg.
+- Niet gedaan: de nachtkleur van het wegdek op de Dúvelsrak (fel blauw asfalt, paarse fietsstroken)
+  en de bomen die in de Molenkrite allemaal dezelfde bol zijn. Allebei zichtbaar, maar het licht
+  's nachts raakt elke nachtfoto en `nachttest`; dat is een ronde op zich.
+- Proeven: `overgangtest` (nieuw, 19 controles, met een tegenproef dat de ochtend zonder laden wél
+  komt), `schaduwpastest` (terug), `brugtest` 74, `schrifttest` 25, `racetest` 72, `schaduwtest` 66,
+  `invaltest` 52: alle groen. Geen foto's: er is niets nieuws te zien.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
