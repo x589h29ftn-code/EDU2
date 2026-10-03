@@ -501,8 +501,10 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
     nagemeten); het ligt aan het afspelen in deze omgeving, niet aan de code. Op een
     machine met geluid opnieuw draaien.
 24. **Missie 18, De uitzending** (de laatste): het ontwerp staat in `docs/ONTWERP_MISSIE_18.md`,
-    het fragment in `audio/radio/uitzending.mp3` (40,2 s). Wacht op antwoord op drie vragen
-    (de studio of het treinstation, wat er met Bouwman gebeurt, de tekst voor de ondertitels).
+    het fragment in `audio/radio/uitzending.mp3` (40,2 s). Wacht op antwoord op vier vragen
+    (de studio of het treinstation, wat er met Bouwman gebeurt, de tekst voor de ondertitels,
+    Erik in de deur of aan de sleds). Erin sinds 3 okt: een helikopter 's avonds boven de vaart en
+    Tinga, Erik in de open deur met zoeklicht en sniper, Bouwman eerst per boot, daarna per auto.
 
 ## 8 · Waar wat gedocumenteerd wordt
 
