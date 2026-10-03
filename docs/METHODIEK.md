@@ -7003,6 +7003,48 @@ een speler die andere dingen doet?"
 
 **Proeven**: `wedstrijdtest` (nieuw) is groen. Foto's: `wedstrijdshots` (drie).
 
+**De ambulance, en het nieuws op Radio Tinga (stap 112).** Gevraagd, met twee foto's van een Nederlandse
+ambulance: "Radio Tinga die schietpartij e.d. doorgeeft, goed idee. Ambulance ook bouwen, kan mensen
+reviven. Incl. sirenes en lampen in de nacht. Laat hem random af en toe komen bij doden, dus niet
+oneindig veel en altijd."
+
+**De ambulance** (js/ambulance.js)
+- *Het model*: het busje uit js/carmodel.js in geel. Daaroverheen doeken op de flanken (de blokken,
+  AMBULANCE, 112, de ster van het leven) en achterop, en een lichtbalk met vier lampen die de gloed
+  en de plas van de politie krijgen (`maakGloed` is nu geëxporteerd). Er komen geen lichtbronnen bij,
+  en `vloeiendtest` blijft op nul nieuwe programma's.
+- *Wanneer*: met kans 0,4, alleen als er geen andere onderweg is, met twee minuten rust na de vorige,
+  en niet bij drie sterren of meer.
+- *De patiënt*: een voetganger blijft liggen doordat zijn opstaanteller op wacht gaat. Bij de wedstrijd
+  en het tuinfeest geeft de melding een `herstel` mee.
+- *De rit*: zoals de vlucht van Bouwman, met `lijnDoor` en `rijdVlucht`, op 16 m/s, van 300 tot
+  480 m weg. Gemeten: 391 m van de patiënt, 426 m van de speler, 554 m over de weg, er na 47 s.
+- *Het verdwijnen*: alleen uit beeld, met een frustumtest in js/main.js (`inBeeld`).
+
+**Het nieuws** (js/nieuws.js)
+- Meldingen uit js/main.js: schieten, aanrijden, `autoOntploft`, drie sterren, de ambulance, en de
+  wedstrijd (gestaakt, of de uitslag om drie uur).
+- Elk bericht wacht 12 s en is 5 minuten houdbaar; per soort hooguit eens in de 2,5 minuut.
+- Alleen als je naar Radio Tinga luistert: dan een jingle, de muziek op 30 % en de tekst in beeld.
+
+**Wat er misging**
+- *Twee rare regels* die de plassen licht van de lampen "naar de straat" zetten: overbodig, want
+  `maakGloed` hangt ze al op 7 cm aan de balk. Ze zijn eruit.
+- *De foto's*: eerst alleen lucht, terwijl de proef groen was. Het fotoscript fotografeerde terwijl
+  `reliëfAf()` nog bezig was; nu wacht het daarop.
+- Daarna een geel busje *zonder* uitmonstering of lichtbalk. De maten kwamen uit
+  `Box3.setFromObject`, en dat meet in de wereld. Het busje stond geparkeerd op 1e5, dus de doeken en de
+  lampen hingen honderd kilometer achter de wagen. De proef telde ze wel, maar keek niet wáár ze
+  hingen. Nu wordt er in de oorsprong gemeten, en `ambulancetest` controleert dat alles binnen vier
+  meter van de wagen hangt.
+- *Een lege rit in de proef*: van zes vertrekpunten die bijna hetzelfde waren gekozen, gaf geen enkel
+  een route. Nu kiest hij elke poging een ander punt (niet binnen 40 m van een vorige) en steeds
+  losser, tot twaalf keer.
+- *De hoogte*: de ambulance kiest alleen een weg op de hoogte van de patiënt (het bovenste vlak, zoals
+  de voetgangers). Anders kon hij op het dek van het viaduct stoppen, met de patiënt eronder.
+
+**Proeven**: `ambulancetest` (nieuw) is groen. `wedstrijdtest` en `vloeiendtest` zijn opnieuw gedraaid.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -193,6 +193,9 @@
     "wedstrijdshots": "node tools/wedstrijdshots.mjs",
     "ambulancetest": "node tools/ambulancetest.mjs",
     "ambulanceshots": "node tools/ambulanceshots.mjs",
+    "buurttest": "node tools/buurttest.mjs",
+    "buurtshots": "node tools/buurtshots.mjs",
+    "geldracetest": "node tools/geldracetest.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",
     "tempotest": "node tools/tempotest.mjs"

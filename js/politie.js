@@ -216,7 +216,8 @@ function gloedMat(kaart, dubbel) {
     polygonOffset: !dubbel, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 }
 // de gloed om een lamp en de plas op straat aan diezelfde kant; aan `lamp` gehangen
-function maakGloed(lamp, balk, kant) {
+// (ook voor de ambulance, js/ambulance.js)
+export function maakGloed(lamp, balk, kant) {
   const gloed = new THREE.Group(), mat = gloedMat(gloedKaart(), true);
   for (const [rx, ry] of [[0, 0], [0, Math.PI / 2], [-Math.PI / 2, 0]]) {
     const m = new THREE.Mesh(GLOED_GEO, mat);

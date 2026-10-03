@@ -79,6 +79,8 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/studio.js` | missie 18: Radio Tinga aan de Tinga — de zendmast op het dak, de zuil, ON AIR, en de studio als binnenruimte naar een foto (gebogen bureau, schermen, mengpanelen met usb-poort en schuif, de dj Sjors); `plekken`, `bijTafel`, `zetUsb`, `zetSchuif`, `zetOnAir`, `zetSlot` |
 | `js/rondvlucht.js` | missie 18, de avond: de heli van Wiebe (model uit js/helikopter.js, `bouwHeli`), Erik in de open deur, de buitencamera (`camera`, `begrens`), rustig volgen (`volg`: afstand en deur naar het doel, `RONDVLUCHT.versnel`), `landNaar`, het zoeklicht als kegel (`richtLicht`) |
 | `js/wedstrijd.js` | de wedstrijd op het hoofdveld van VV Sneek, elke dag 12–15 uur: twee elftallen (4-4-2), keepers, scheids, publiek (tribune in houders), de bal; komen en gaan alleen uit beeld (`zieJe`); `aanrijden`, `raak`, `slachtoffers`; js/main.js `werkWedstrijdBij` met `wedDag` |
+| `js/ambulance.js` | de ambulance (stap 112): het busje ('van') in geel met doeken, een lichtbalk met `maakGloed` uit js/politie.js, twee verpleegkundigen; `melding(x, z, wie)` met kans `AMB.kans` en rust `AMB.rust`, de rit over `lijnDoor`/`rijdVlucht`, knielen, `herstel` of een voetganger weer `alive`; js/main.js `ambulanceMelding` |
+| `js/nieuws.js` | het nieuws op Radio Tinga (stap 112): `meld(soort, x, z)` uit js/main.js, na `NIEUWS.vertraag` voorgelezen als je naar Radio Tinga luistert (`update(dt, luistert)`), met de straat (`nearestRoadName`) en de muziek zachter (`demp`) |
 | `js/schaduw.js` | missie 15: de route van Bouwman (BP → Duinterpen → N7), zijn rit met een stop, de loods aan het water met container, kade, steiger en boot, de fotoplekken |
 
 Een paar dingen die niet vanzelf spreken:
@@ -301,7 +303,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run wedstrijdtest` (de terugslag van de sniper tegen de oude, de wedstrijd bij VV Sneek: komen en gaan
+De laatste die ertoe doen: `npm run ambulancetest` (de ambulance: het model, de rit met zwaailicht en sirene, knielen en
+reanimeren, weg en verdwijnen, de rust, de nacht, de kans over 200 keer, een speler bij VV Sneek, stukgeschoten; en het nieuws
+op Radio Tinga; stap 112) met `ambulanceshots` (drie foto's); `npm run wedstrijdtest` (de terugslag van de sniper tegen de oude, de wedstrijd bij VV Sneek: komen en gaan
 uit beeld, tien minuten spelen, een doelpunt, het publiek, aanrijden, een kogel, de borden; stap 111) met `wedstrijdshots`
 (drie foto's); `npm run avondtest` (missie 18, de avond: de lijnen, de heli elke tiende seconde — boven
 de daken, van de rand, naast Bouwman met de deur naar hem, rustig, de camera buiten de romp —, echte schoten uit de

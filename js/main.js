@@ -19,6 +19,8 @@ import { initBoten } from './boot.js';
 import { initSupermarkt, BIER } from './supermarkt.js';
 import { initStudio } from './studio.js';
 import { maakWedstrijd } from './wedstrijd.js';
+import { initAmbulance } from './ambulance.js';
+import { maakNieuws } from './nieuws.js';
 import { KLUS } from './klusjes.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
@@ -787,12 +789,52 @@ const garage = (KAART && !BOVEN) ? initGarage({ scene, player, vehicles, hud, ve
  `wedDag` telt de dagen: een nieuwe dag mag weer een wedstrijd.
 */
 const wedstrijd = (KAART && !BOVEN && KAART.sportvelden) ? maakWedstrijd({ scene, veld: KAART.sportvelden.find(v => v.hoofd) }) : null;
-let wedDag = 0, wedUur = null;
+let wedDag = 0, wedUur = null, wedWas = { aanwezig: false, gestaakt: false };
 function werkWedstrijdBij(dt) {
   if (!wedstrijd || !sfeer) return;
   if (wedUur !== null && sfeer.uur < wedUur - 12) wedDag++;    // over middernacht
   wedUur = sfeer.uur;
   wedstrijd.update(dt, { uur: sfeer.uur, dag: wedDag, camera, x: player.pos.x, z: player.pos.z });
+  // voor het nieuws: gestaakt, of afgelopen om drie uur (stap 112)
+  if (nieuws) {
+    if (wedstrijd.gestaakt && !wedWas.gestaakt) nieuws.meld('gestaakt');
+    if (wedWas.aanwezig && !wedWas.gestaakt && sfeer.uur >= 15 && !wedWas.uitslag) {
+      const [thuis, uit] = wedstrijd.stand;
+      nieuws.meld('uitslag', null, null, { thuis, uit });
+      wedWas.uitslag = true;
+    }
+    if (sfeer.uur < 15) wedWas.uitslag = false;
+  }
+  wedWas.aanwezig = wedstrijd.aanwezig; wedWas.gestaakt = wedstrijd.gestaakt;
+}
+
+/*
+ De ambulance en het nieuws op Radio Tinga (stap 112, js/ambulance.js en js/nieuws.js). Gaat er
+ iemand neer, dan komt er soms een ambulance (`ambulanceMelding`); wat er gebeurt, komt een poosje
+ later op Radio Tinga als je ernaar luistert.
+*/
+const ambulance = (KAART && !BOVEN) ? initAmbulance({ scene, vehicles, KAART, npcs, sfeer: dagKlok }) : null;
+const nieuws = maakNieuws({ hud, geluid, straatVan: (x, z) => nearestRoadName(x, z) });
+function ambulanceMelding(x, z, wie = null) {
+  if (!ambulance || politie.ster >= 3) return false;
+  const komt = ambulance.melding(x, z, wie, { x: player.pos.x, z: player.pos.z });
+  if (komt) nieuws.meld('ambulance', x, z);
+  return komt;
+}
+// een slachtoffer op het veld van VV Sneek: dat staat weer op via de wedstrijd
+function wedstrijdSlachtoffer() {
+  const s = wedstrijd && wedstrijd.slachtoffers[wedstrijd.slachtoffers.length - 1];
+  return s ? { persoon: s.persoon, herstel: () => wedstrijd.herstel(s.persoon) } : null;
+}
+// ligt (x, z) in beeld? (de ambulance verdwijnt alleen uit beeld)
+const _frustum = new THREE.Frustum(), _pm = new THREE.Matrix4(), _bol = new THREE.Sphere(new THREE.Vector3(), 5);
+function inBeeld(x, z) {
+  if (Math.hypot(x - camera.position.x, z - camera.position.z) > 400) return false;
+  camera.updateMatrixWorld();
+  _pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  _frustum.setFromProjectionMatrix(_pm);
+  _bol.center.set(x, 1.5, z);
+  return _frustum.intersectsSphere(_bol);
 }
 // (en de wasbox achter de BP, die stond nog niet op de kaart)
 extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : [])];
@@ -1157,6 +1199,8 @@ player.shootCb = (camOrigin, camDir) => {
       bloedBij(h.point, dir, raakMens);
       if (raakMens.neer) {
         politie.misdaad('neergeschoten', h.point.x, h.point.z);
+        nieuws.meld('schietpartij', h.point.x, h.point.z);
+        ambulanceMelding(raakMens.x ?? h.point.x, raakMens.z ?? h.point.z);
         // wat iemand op zak had: vaak niets, hooguit een tientje (js/buit.js)
         buit.laatVallen('geld', h.point.x, h.point.z, zakgeld(), h.point.y - 1);
       }
@@ -1195,6 +1239,8 @@ player.shootCb = (camOrigin, camDir) => {
       geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
       bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
       politie.misdaad('neergeschoten', h.point.x, h.point.z);
+      nieuws.meld('schietpartij', h.point.x, h.point.z);
+      ambulanceMelding(h.point.x, h.point.z, wedstrijdSlachtoffer());
       raakVerhaal = true;
     }
     // (de sniper legt ook een taaie bodyguard in één keer neer: stap 110)
@@ -1239,6 +1285,7 @@ player.shootCb = (camOrigin, camDir) => {
 */
 function autoOntploft(car) {
   const d = Math.hypot(player.pos.x - car.x, player.pos.z - car.z);
+  nieuws.meld('explosie', car.x, car.z);            // Radio Tinga (stap 112)
   geluid.explosie(d);
   geluid.glas();
   npcs.paniek(car.x, car.z, 34);
@@ -1338,6 +1385,8 @@ function aanrijden(x, z, straal, snelheid) {
     geluid.klap();
     geluid.kreet('pijn', Math.hypot(player.pos.x - x, player.pos.z - z));
     politie.misdaad('aangereden', x, z);
+    nieuws.meld('aanrijding', x, z);
+    ambulanceMelding(x, z, wedstrijdSlachtoffer());
     schok(0.45 + Math.min(0.5, snelheid / 26));
   }
   const n = npcs.aanrijden(x, z, straal, snelheid);
@@ -1346,6 +1395,8 @@ function aanrijden(x, z, straal, snelheid) {
     geluid.kreet('pijn', Math.hypot(player.pos.x - x, player.pos.z - z));
     npcs.paniek(x, z, PANIEK_KLAP);   // wie het ziet gebeuren rent weg
     politie.misdaad('aangereden', x, z);
+    nieuws.meld('aanrijding', x, z);
+    ambulanceMelding(x, z);
     schok(0.45 + Math.min(0.5, snelheid / 26));
   }
   return n + w;      // (ook een speler op het veld van VV Sneek is een klap voor de auto)
@@ -2278,6 +2329,8 @@ function loop() {
     if (spuiterij) spuiterij.update(dt);      // de roldeuren van de wasboxen
     if (garage) garage.update(dt, verhaal.aanspreekbaar);   // de showroom aan de Lemmerweg
     werkWedstrijdBij(dt);                                    // de wedstrijd bij VV Sneek
+    if (ambulance) ambulance.update(dt, player.pos, inBeeld);  // de ambulance (stap 112)
+    if (politie.ster >= 3) nieuws.meld('achtervolging', player.pos.x, player.pos.z);
     /*
      De politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte.
      Binnen loopt de politie niet mee: je staat dan in een andere ruimte. Maar
@@ -2380,7 +2433,10 @@ function loop() {
     const radioHier = !!player.inCar || radioSterk > 0;
     if (radioSterk > 0 && !stekRadio) { geluid.zetZender('Spannenburg'); stekRadio = true; }
     if (radioSterk <= 0) stekRadio = false;
-    geluid.autoradio(radioHier, player.inCar ? 1 : radioSterk);
+    // het nieuws op Radio Tinga: alleen als je naar Radio Tinga luistert, en dan even zachter
+    const opTinga = radioHier && ((geluid.radioZender() || {}).logo === 'tinga');
+    nieuws.update(dt, opTinga);
+    geluid.autoradio(radioHier, (player.inCar ? 1 : radioSterk) * nieuws.demp);
     werkKaartvlaggenBij();
     /*
      Titel van het nummer in het balkje, net als een autoradio die het
@@ -2590,7 +2646,7 @@ window.__game = {
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   grasVeld, wolken: clouds,
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, studio, derde, politie,
-  wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij,
+  wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, ambulance, nieuws, ambulanceMelding, inBeeld,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,

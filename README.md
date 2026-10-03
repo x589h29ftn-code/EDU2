@@ -984,6 +984,52 @@ bestand er niet, dan valt hij terug op `nummers.json`, en anders op het gesynthe
 Wat er nu in staat zijn plaatshouders waarop rechten rusten; voor een openbare versie hoort daar eigen of
 rechtenvrij werk te staan.
 
+### Nieuws op Radio Tinga
+
+Wat er in de wijk gebeurt, komt op **Radio Tinga**:
+- een schietpartij, een aanrijding of een knal;
+- een achtervolging met drie sterren of meer;
+- een ambulance die uitrukt;
+- de uitslag van VV Sneek, of dat de wedstrijd gestaakt is.
+
+Zo'n bericht komt niet meteen, want zo snel is geen redactie. Na een tel of twaalf, als je in de auto
+naar Radio Tinga luistert, klinkt het jingletje, gaat de muziek even zachter en staat het bericht in
+beeld, met de straat erin: *"Schietpartij aan de Jurjen Hoomansstraat: er is iemand geraakt. De dader
+is nog voortvluchtig."* Dezelfde soort komt niet twee keer kort na elkaar, en na vijf minuten is het
+geen nieuws meer.
+
+## De ambulance
+
+Gaat er iemand neer (een voetganger, een speler bij VV Sneek, een gast op een tuinfeest), dan komt er
+soms een **ambulance**. Niet altijd: ongeveer vier van de tien keer, één tegelijk, en daarna duurt het
+minstens twee minuten voor er weer een kan komen. Bij drie sterren of meer blijft hij weg.
+
+- Hij is geel met rood-blauwe blokken langs de flanken, AMBULANCE, het nummer 112 en de blauwe ster
+  van het leven, met schuine strepen op de achterdeuren, zoals op de foto's van een echte.
+- Hij begint ver weg (300 tot 480 m), op een weg die je niet ziet, en rijdt over de weg met
+  **zwaailicht en sirene**. 's Nachts zijn de lampen veel feller en geven ze blauw licht op straat.
+- Bij de patiënt stappen twee verpleegkundigen uit. Ze lopen ernaartoe, **knielen** acht tellen, en
+  dan staat de patiënt weer op en loopt verder.
+- Daarna rijdt hij rustig weg, zonder zwaailicht, en verdwijnt hij als je hem niet meer ziet.
+- Schiet je hem stuk, dan is het voorbij.
+
+| Bij de patiënt | Van achteren | 's Nachts onderweg |
+|---|---|---|
+| ![Overdag](docs/screenshots/ambulance_dag.png) | ![Achter](docs/screenshots/ambulance_achter.png) | ![Nacht](docs/screenshots/ambulance_nacht.png) |
+
+`npm run ambulancetest` rijdt hem na:
+- het model;
+- de rit erheen, vanaf waar hij begint, op de weg, met zwaailicht en sirene;
+- de bemanning die knielt en de patiënt die opstaat;
+- weggaan en verdwijnen, en de pauze daarna;
+- de nacht;
+- de kans, gemeten over tweehonderd keer;
+- een aangereden speler bij VV Sneek;
+- stukgeschoten;
+- het nieuws op Radio Tinga.
+
+`npm run ambulanceshots` maakt de foto's.
+
 ## Muziek onder een missie
 
 Onder de spannende delen van een missie loopt muziek uit `audio/missie/`

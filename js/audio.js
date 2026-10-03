@@ -1386,6 +1386,40 @@ export const geluid = {
     toon({ freq: 1046, duur: 0.5, volume: 0.09, golf: 'triangle', vertraag: 0.44 });
   },
 
+  /*
+   Een feestje in een tuin (stap 113, js/leven.js): elke tel een tik van de beat. Op de tel een lage
+   bonk, tussendoor een bastoon en een tikje hihat. Zachter met de afstand, onhoorbaar verder dan
+   80 m; `tel` telt de maten zodat de bas loopt.
+  */
+  feestTik(afstand = 0, tel = 0) {
+    if (!aan) return;
+    const v = Math.max(0, 1 - afstand / 80) ** 2;
+    if (v < 0.01) return;
+    toon({ freq: 120, naar: 48, duur: 0.18, volume: 0.22 * v, golf: 'sine' });
+    const bas = [55, 55, 65, 49][Math.floor(tel / 2) % 4];
+    toon({ freq: bas, duur: 0.22, volume: 0.1 * v, golf: 'triangle', vertraag: 0.25 });
+    tik({ freq: 8000, q: 1, duur: 0.04, volume: 0.03 * v, type: 'highpass', vertraag: 0.25 });
+  },
+  /*
+   De brommer van de pizzabezorger (stap 113): een zaagtand van een eencilinder tweetakt door een
+   laagdoorlaat, met de toon die met de snelheid meegaat. Eén bron; `null` zet hem uit.
+  */
+  brommer(afstand, snelheid = 8) {
+    if (!aan) return;
+    if (!bronnen.brommer) {
+      if (afstand == null) return;
+      const g = ctx.createGain(); g.gain.value = 0;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; f.Q.value = 2;
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 90;
+      o.connect(f); f.connect(g); g.connect(hoofd); o.start();
+      bronnen.brommer = { gain: g, o };
+    }
+    const b = bronnen.brommer;
+    const v = afstand == null ? 0 : Math.max(0, 1 - afstand / 90) ** 2;
+    b.gain.gain.setTargetAtTime(v * 0.07, nu(), 0.2);
+    b.o.frequency.setTargetAtTime(70 + snelheid * 9, nu(), 0.3);
+  },
+
   sirene(afstand) {
     if (!aan) return;
     const nuT = ctx ? ctx.currentTime : 0;

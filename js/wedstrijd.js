@@ -509,6 +509,17 @@ export function maakWedstrijd({ scene, veld }) {
       const q = s.houder ? s.houder.position : s.p.groep.position;
       return valt(s, q.x, q.z, 'neergeschoten');
     },
+    // de ambulance (js/ambulance.js): wie er lag staat op en loopt het veld af
+    herstel(persoon) {
+      const s = allen().find(a => a.p === persoon);
+      if (!s || !s.neer) return false;
+      s.neer = false; s.omT = 0; s.p.legNeer(0);
+      s.vlucht = null;
+      const q = s.houder ? s.houder.position : s.p.groep.position;
+      vlucht(s, 0, { x: V.cx, z: V.cz });
+      st.slachtoffers = st.slachtoffers.filter(o => o.persoon !== persoon);
+      return { x: q.x, z: q.z };
+    },
     // voor de proeven
     begin, weg, stelOp, schop: (snelU, snelV) => { bal.vu = snelU; bal.vv = snelV; },
   };
