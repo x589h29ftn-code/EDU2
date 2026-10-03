@@ -6788,7 +6788,8 @@ terechtkomen, lijkt geen collision tijdens rammen; laat de speler beginnen met 2
 - Proeven: `vierpuntentest` (nieuw, 17 controles groen; eerst per ongeluk over de oude `puntentest`
   van 13 sep heen geschreven, die is teruggezet); `racetest` en `schaduwtest` opnieuw, want hun automaat stuurt de
   Ferrari met A en D (de racetest meet de dwarsversnelling nu tegen `car.grip`); `invaltest` opnieuw
-  voor de klap. `racetest` en `invaltest` groen; ook `wapentest` en `politietest` (stap 105).
+  voor de klap. `racetest`, `invaltest`, `schaduwtest` en de oude `puntentest` groen; ook `wapentest` en
+  `politietest` (stap 105).
 
 **Wat nog niet af is (in volgorde).
 
