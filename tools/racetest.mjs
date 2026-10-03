@@ -143,7 +143,7 @@ await page.evaluate(async () => {
 });
 
 // --------------------------------------------------------- na het schrift
-kop('een minuut na het schrift belt Ronald');
+kop('na de tussenpoos na het schrift belt Ronald');
 const bel = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
   v.startMissie('schrift');
@@ -157,9 +157,9 @@ const bel = await page.evaluate(() => {
   window.__stap(3);
   window.__gesprek();
   window.__stap(2);
-  const na = { missie: v.missie, klaar: v.schrift.klaar, wachtT: v.race.wachtT };
-  // 55 seconden: nog niets
-  for (let i = 0; i < 550; i++) v.update(0.1);
+  const na = { missie: v.missie, klaar: v.schrift.klaar, wachtT: v.race.wachtT, poos: v.tussenpoos };
+  // vijf tellen voor het eind van de tussenpoos (stap 108: 150 s, was 60): nog niets
+  for (let i = 0; i < (v.tussenpoos - 5) * 10; i++) v.update(0.1);
   const na55 = { missie: v.missie };
   for (let i = 0; i < 80; i++) v.update(0.1);
   const telefoon = { missie: v.missie, fase: v.fase, balk: !window.__balkDicht(),
@@ -171,9 +171,9 @@ const bel = await page.evaluate(() => {
     melding: document.getElementById('missie').textContent,
     ronald: { zichtbaar: v.race.ronald.groep.visible, x: v.race.ronald.groep.position.x, z: v.race.ronald.groep.position.z } };
 });
-ok(bel.na.missie === 'klaar' && bel.na.klaar && Math.abs(bel.na.wachtT - 60) < 1, 'het schrift is geslaagd, en over een minuut belt Ronald', JSON.stringify(bel.na));
-ok(bel.na55.missie === 'klaar', 'na 55 seconden nog niet');
-ok(bel.telefoon.missie === 'race' && bel.telefoon.balk && bel.telefoon.telefoon, 'na een minuut gaat de telefoon', JSON.stringify(bel.telefoon));
+ok(bel.na.missie === 'klaar' && bel.na.klaar && Math.abs(bel.na.wachtT - bel.na.poos) < 1, 'het schrift is geslaagd, en na de tussenpoos belt Ronald', JSON.stringify(bel.na));
+ok(bel.na55.missie === 'klaar', 'vijf tellen ervoor nog niet');
+ok(bel.telefoon.missie === 'race' && bel.telefoon.balk && bel.telefoon.telefoon, 'en dan gaat de telefoon', JSON.stringify(bel.telefoon));
 const belTekst = bel.regels.map(r => r.tekst).join(' ');
 ok(bel.regels.some(r => r.wie === 'Ronald') && /Lemmerweg/.test(belTekst) && /80/.test(belTekst), 'Ronald: hij woont aan de Lemmerweg 80', belTekst.slice(0, 90));
 ok(bel.pand, 'de Lemmerweg 80 staat in de kaart');
@@ -374,15 +374,15 @@ const ochtend = await page.evaluate(() => {
     afstand: d ? +Math.hypot(g.player.pos.x - d.deur.x, g.player.pos.z - d.deur.z).toFixed(1) : null,
     inAuto: !!auto, ferrari: f && d ? +Math.hypot(f.x - d.deur.x, f.z - d.deur.z).toFixed(1) : null,
     finish: v.race.race.finish.visible, rijders: v.race.race.rijders.filter(q => q.car && q.car.mesh.visible).length,
-    boer: v.race.bouwman.groep.visible, volgende: v.volgendeMissie };
+    boer: v.race.bouwman.groep.visible, volgende: v.volgendeMissie, poos: v.tussenpoos };
 });
 ok(ochtend.zone, 'na de race mag het verkeer weer over de route');
 ok(ochtend.t >= 4 && ochtend.t <= 6 && /volgende ochtend/.test(ochtend.tekst), 'vijf tellen later wordt het zwart: "De volgende ochtend"', `${ochtend.t} s, "${ochtend.tekst}"`);
 ok(Math.abs(ochtend.uur - 9.5) < 0.1 && ochtend.afstand != null && ochtend.afstand < 4 && !ochtend.inAuto, 'en je staat om half tien voor je huis', `${ochtend.naam}, ${ochtend.afstand} m van de deur, ${ochtend.uur.toFixed(2)} uur`);
 ok(ochtend.ferrari != null && ochtend.ferrari < 15, 'met de Ferrari op de oprit', `${ochtend.ferrari} m van de deur`);
 ok(!ochtend.finish && ochtend.rijders === 0 && !ochtend.boer, 'de race in IJlst is opgeruimd');
-ok(ochtend.volgende && ochtend.volgende.naam === 'schaduw' && ochtend.volgende.over > 50 && ochtend.volgende.over <= 60,
-  'en over een minuut belt Mark: missie 15', JSON.stringify(ochtend.volgende));
+ok(ochtend.volgende && ochtend.volgende.naam === 'schaduw' && ochtend.volgende.over > ochtend.poos - 10 && ochtend.volgende.over <= ochtend.poos,
+  'en na de tussenpoos belt Mark: missie 15', JSON.stringify(ochtend.volgende));
 
 // ------------------------------------------------------------ met een hatchback
 kop('een slordige rit: verloren');

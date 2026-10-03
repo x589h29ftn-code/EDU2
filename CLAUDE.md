@@ -136,7 +136,7 @@ bedrag (**1, 2 of 3** kiest en zet de navigatie), en je koopt er aan tafel een
 met E. Te weinig geld houdt het aanbod open; alle drie bekeken zonder kopen rondt
 de missie af en laat het aanbod staan.
 
-Missie 10 begint 45 s na het kopen: De Veteraan belt, staat met zijn hondje op
+Missie 10 begint een tussenpoos (`TUSSENPOOS`, 150 s) na het kopen: De Veteraan belt, staat met zijn hondje op
 het fietspad bij De Terpensmole, stuurt je om een tas voor de tribune van VV
 Sneek. Dan zacht naar zwart, "Enkele uren later", en je staat om 01:00 voor je
 eigen huis (of de Wieken 29); dat regelt `werkZwartBij` in js/verhaal.js op
@@ -177,7 +177,7 @@ gesprek vanzelf. Het schrift ligt in de sloep aan de IJlster ligplaats
 twee agenten (`Bewaking` in uniform; gezien = twee sterren). Terug bij Mark, niet
 met sterren: € 2.500. **shift+[** start hem los.
 
-Missie 14: een minuut na het schrift belt Ronald (`RACE_WACHT`), R op de kaart bij de
+Missie 14: een tussenpoos na het schrift belt Ronald (`RACE_WACHT`), R op de kaart bij de
 Lemmerweg 80. Bij zijn schuur: Bouwman, de races; geen Ferrari (`eigenFerrari`, uit
 js/garage.js) dan een A bij het Autohuis en legt Ronald bij wat je tekortkomt. Gekocht:
 hij belt, "Die nacht…", 01:00 op de grid (`opDeStart`, `ctx.stapIn`), Bouwman en Ronald
@@ -191,7 +191,7 @@ race.opRoute`, `maakVrij`). Na GESLAAGD of betalen vijf tellen, dan "De volgende
 (`naDeRace`, `naarDeOchtend`: 09:30, `springNaarHuis`). **shift+]** start hem los.
 Tot stap 96 heette brigadier Bouwman "De Boer" (gevraagd: "net wat anders").
 
-Missie 15 (stap 96): een minuut na de ochtend belt Mark (`SCHADUW_WACHT`), M bij Molenkrite 15,
+Missie 15 (stap 96): een tussenpoos na de ochtend belt Mark (`SCHADUW_WACHT`), M bij Molenkrite 15,
 binnen op de bank het schrift ("B. — opslag aan het water"). "Die avond…" om 23:00 in de grijze
 Golf van Mark op het voorterrein van het Autohuis; Bouwman (`raceBouwmanAuto`, `bouwman` uit missie
 14) bij de pomp van de BP. Hij rijdt de lijn uit js/schaduw.js (`rijd`, 2,2 km door Duinterpen, stop
@@ -204,7 +204,7 @@ maar even slapen", zwart, "De volgende ochtend" (`wakkerBijMark`: 10:00, voor de
 avond…" tot de ochtend staat de klok stil (`klokLoopt` in de ctx). Rotondes neemt hij tegen de klok
 in (`rotondes`, `eenrichtingRotondes` in js/schaduw.js). **shift+\\** start hem los.
 
-Missie 16 (stap 101): een minuut na de ochtend bij Mark belt Johan (`INVAL_WACHT`), een inval op
+Missie 16 (stap 101): een tussenpoos na de ochtend bij Mark belt Johan (`INVAL_WACHT`), een inval op
 Molenkrite 15. De balk `#schaduwbalk` telt drie minuten af (`INVAL_TIJD`); binnen E bij de bank (schrift)
 en de radio op het dressoir (foto's), Mark gaat mee naar buiten en stapt in (anders de Golf van Mark voor
 de deur, `plekVoorDeDeur`). Dan het filmbeeld `invalFilm.soort === 'inval'` (twee politieauto's met
@@ -217,7 +217,7 @@ neer, `vluchtLijn` (een draai op het dek, de helling af, naar de rotonde), ram h
 boven 60 km/u): filmbeeld `crash`, E bij zijn auto: de telefoon ("— R."), € 3.000; kwijt € 2.000.
 Daarna "De volgende ochtend" (09:30, `invalOchtend`). **shift+;** start hem los.
 
-Missie 17 (stap 103): een minuut na de ochtend belt Mark (`RONALD_WACHT`); voor Molenkrite 15 hangt
+Missie 17 (stap 103): een tussenpoos na de ochtend belt Mark (`RONALD_WACHT`); voor Molenkrite 15 hangt
 lint (`molenLint`, zolang `invalKlaar`). M bij de Wieken 29, binnen Mark op de bank en Johan (`invalJohan`)
 bij de tafel; E bij de koelkast (`ronaldBijKoelkast`, ook in `aanspreekbaar`) geeft de worst. Naar buiten:
 "Die nacht…" (01:00, klok stil), naast de Golf van Mark aan de weg Tinga (`golfPlek`). Het erf staat in
@@ -231,7 +231,7 @@ Daarna "Aan het water…" (`LOODS_ZWART`) en het filmbeeld `loods` (Bouwman bij 
 "De volgende ochtend". Opslag: `ronaldKlaar`, `ronaldPraatte`, `ronaldWeg`, `ronaldSchrift` (het schrift
 terug na de ruil), `erfHeeftWorst`. **shift+'** start hem los.
 
-Missie 18 (stap 107, de laatste): een minuut na de ochtend van missie 17 belt Mark (`UITZENDING_WACHT`), M bij
+Missie 18 (stap 107, de laatste): een tussenpoos na de ochtend van missie 17 belt Mark (`UITZENDING_WACHT`), M bij
 de Wieken 29, binnen Mark op de bank en Johan met de usb-stick. Naar buiten: "Zondagochtend" (07:45,
 `naarDeStudio`, thuis). Radio Tinga staat in js/studio.js: het pand van type `zorg` aan het voetpad Tinga
 (de auto parkeer je aan de Molenkrite, ~40 m), de deur op de gevel het dichtst bij de Tinga, de mast op
@@ -245,6 +245,10 @@ stil), de titelrol (`#titelrol`, z-index 7 en buiten `#ui`, E slaat over) en `na
 volgende missie, `geluid.zetHerhaling(true)` (het fragment in de lijst van Radio Tinga). Opslag:
 `uitzendingKlaar`. **shift+/** start hem los. Het stuk met de helikopter uit het ontwerp
 (`docs/ONTWERP_MISSIE_18.md`) is nog niet gebouwd; het hoort tussen het plan en "Zondagochtend".
+
+**De tussenpoos** (stap 108): elke missie die met de telefoon begint, belt `TUSSENPOOS` (150 s) na de
+vorige; die telt niet af tijdens een klus. Een nieuwe missie gebruikt die ook, en hoort met zijn
+wachtfase in `KLUS_WACHT`; `npm run tempotest` controleert beide.
 
 **Klusjes** (stap 99, js/klusjes.js): tussen de missies door, en als een missie onder zijn M
 op je wacht (`KLUS_WACHT` in js/verhaal.js: de fase waarin nog niets begonnen is, ook missie 9
@@ -282,7 +286,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run uitzendingtest` (missie 18 van het telefoontje tot vrij spelen: de studio gemeten — de ingang aan de Tinga, de mast op het dak, de weg van de deur naar de tafel —, het fragment van 40,2 s, de deur dicht tot Johan belt, de stick en de schuif, de montage zonder camera in een muur, het einde, de titelrol, te laat, de opslag; stap 107) met `uitzendingshots` (zes foto's); `npm run vierpuntentest` (het sturen van de Ferrari gemeten tegen het oude, het schap van Tinga State met `getComputedStyle` en geen enkel hidden-element in beeld, de schuif van Bouwman na de klap tegen echte schuurtjes, 200 kogels bij een nieuw spel; stap 106); `npm run schottest` (het schot als opname: laden, vanaf de knal, per wapen, op afstand, afkappen in een salvo; doorschieten met en zonder vergrendelde muis en op de vuurknop, het pistool en de sniper één per klik, de keuze in het menu; stap 105); `npm run kaartdoeltest` (ondertitels in een filmbeeld: in de balk, contrast, niets eroverheen; plekken op de rand van de minikaart; een eigen doel op de grote kaart aanwijzen, bij een speldje, weghalen, de route over de weg en bijgewerkt, aankomen, geen schot; maakt drie foto's; stap 104); `npm run ronaldtest` (missie 17: het lint, het plan, de worst, het erf gemeten — kraakplek nooit in de kegel, de weg ernaartoe lopend soms vrij, de kegel boven de grond, niets in het water, de route van Ronald zonder knik —, sluipen, beide afloopen met de filmbeelden, het neergaan, de opslag; stap 103) met `ronaldshots` (zes foto's); `npm run overgangtest` (laden of een nieuwe missie tijdens het klokje en het zwart na missie 12, 14 en 16, met een tegenproef; `zetNeer` op een geparkeerde auto; missie 16 in zo'n auto; en vooraf, zonder browser, geen functienaam twee keer in js/verhaal.js en js/main.js; stap 102); `npm run invaltest` (missie 16 van Johan aan de lijn tot de ochtend: de drie minuten en te laat, leeghalen, de inval en zijn filmbeeld, de Wieken, beide keuzes, de hinderlaag met de vlucht over het dek en de rotonde, rammen, de crash, de telefoon, ontsnappen, Johan geraakt, wapen niet weg, de auto total loss, opslaan; stap 101) met `invalshots` (vijf foto's, vier filmbeelden); `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
+De laatste die ertoe doen: `npm run tempotest` (de tussenpoos tussen de missies: in de code, het eerste klusaanbod en de rijtijd ernaartoe, stilstaan tijdens een klus, en per missie of hij na het telefoontje op je wacht; stap 108); `npm run uitzendingtest` (missie 18 van het telefoontje tot vrij spelen: de studio gemeten — de ingang aan de Tinga, de mast op het dak, de weg van de deur naar de tafel —, het fragment van 40,2 s, de deur dicht tot Johan belt, de stick en de schuif, de montage zonder camera in een muur, het einde, de titelrol, te laat, de opslag; stap 107) met `uitzendingshots` (zes foto's); `npm run vierpuntentest` (het sturen van de Ferrari gemeten tegen het oude, het schap van Tinga State met `getComputedStyle` en geen enkel hidden-element in beeld, de schuif van Bouwman na de klap tegen echte schuurtjes, 200 kogels bij een nieuw spel; stap 106); `npm run schottest` (het schot als opname: laden, vanaf de knal, per wapen, op afstand, afkappen in een salvo; doorschieten met en zonder vergrendelde muis en op de vuurknop, het pistool en de sniper één per klik, de keuze in het menu; stap 105); `npm run kaartdoeltest` (ondertitels in een filmbeeld: in de balk, contrast, niets eroverheen; plekken op de rand van de minikaart; een eigen doel op de grote kaart aanwijzen, bij een speldje, weghalen, de route over de weg en bijgewerkt, aankomen, geen schot; maakt drie foto's; stap 104); `npm run ronaldtest` (missie 17: het lint, het plan, de worst, het erf gemeten — kraakplek nooit in de kegel, de weg ernaartoe lopend soms vrij, de kegel boven de grond, niets in het water, de route van Ronald zonder knik —, sluipen, beide afloopen met de filmbeelden, het neergaan, de opslag; stap 103) met `ronaldshots` (zes foto's); `npm run overgangtest` (laden of een nieuwe missie tijdens het klokje en het zwart na missie 12, 14 en 16, met een tegenproef; `zetNeer` op een geparkeerde auto; missie 16 in zo'n auto; en vooraf, zonder browser, geen functienaam twee keer in js/verhaal.js en js/main.js; stap 102); `npm run invaltest` (missie 16 van Johan aan de lijn tot de ochtend: de drie minuten en te laat, leeghalen, de inval en zijn filmbeeld, de Wieken, beide keuzes, de hinderlaag met de vlucht over het dek en de rotonde, rammen, de crash, de telefoon, ontsnappen, Johan geraakt, wapen niet weg, de auto total loss, opslaan; stap 101) met `invalshots` (vijf foto's, vier filmbeelden); `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
 de route, de loods, een automaat die volgt, te dichtbij, te ver, de Ferrari, de foto's, gezien
 worden; stap 96) met `schaduwshots` (vijf foto's); `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
 met een automaat die de Ferrari over het parcours rijdt, goed en slordig, het verliezen, de ring

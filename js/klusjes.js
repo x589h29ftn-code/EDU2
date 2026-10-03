@@ -577,7 +577,8 @@ export function initKlusjes({ scene, player, vehicles, hud, KAART, api }) {
       else bw.update(dt, player, false);
     }
     if (!klus) {
-      if (!api.vrij()) { if (aanbod) haalAanbodWeg(); wachtT = Math.max(wachtT, KLUS.wacht); return 0; }
+      // niet vrij: het aanbod weg, behalve tijdens het telefoontje van een missie die daarna op je wacht (api.houd)
+      if (!api.vrij()) { if (aanbod && !(api.houd && api.houd())) haalAanbodWeg(); wachtT = Math.max(wachtT, KLUS.wacht); return 0; }
       if (!aanbod) {
         wachtT -= dt;
         if (wachtT <= 0) { if (!maakAanbod()) wachtT = 4; }
@@ -622,7 +623,9 @@ export function initKlusjes({ scene, player, vehicles, hud, KAART, api }) {
     return false;
   }
 
-  function reset() {
+  // `aanbodHouden`: een missie die vanzelf begint (na de tussenpoos) laat een klaarstaand aanbod liggen
+  function reset({ aanbodHouden = false } = {}) {
+    if (aanbodHouden && !klus && aanbod) return;
     if (klus) ruimKlusOp(klus, { direct: true });
     for (const bw of oudeBewaking) bw.verwijder();
     oudeBewaking = [];

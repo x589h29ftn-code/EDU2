@@ -205,7 +205,16 @@ const MISLUKT_SCHOT = 'Johan zei nog zo: geen wouten op ons dak!';
  ontmoeting bij houtzaagmolen De Rat in de gaten, en als die misgaat schiet je
  de maffia neer. Daarna terug, met drie waterpolitieboten achter je aan.
 */
-const SNIP_WACHT = 60;                                // zoveel seconden na de bom belt Johan
+/*
+ De tussenpoos tussen twee missies (stap 108, gevraagd op 3 okt 2026: "check of de missies elkaar
+ niet te snel opvolgen; is er genoeg ruimte voor de klusjes tussendoor, of is het missie na missie?").
+ Het was 25 tot 60 s tot de volgende telefoon, en een klus verschijnt pas na 12 s op 220–850 m: te voet
+ haalde je hem zelden voor de telefoon ging. Nu twee en een halve minuut. Tijdens een klus telt hij niet
+ af (`!klusjes.bezig`), dus de telefoon onderbreekt nooit een klus; en de meeste missies wachten daarna
+ nog onder hun M (KLUS_WACHT), waar ook weer klusjes komen. `npm run tempotest` meet het.
+*/
+const TUSSENPOOS = 150;
+const SNIP_WACHT = TUSSENPOOS;                        // zoveel seconden na de bom belt Johan
 const SNIP_WINKEL = { straat: 'Molenkrite', nr: '115' };  // Tinga State
 const SNIP_RING = 15;                                 // straal van de gele cirkel op het water
 const SNIP_VER = [46, 78];                            // zo ver van de molen mag de boot liggen
@@ -282,7 +291,7 @@ const SNIP_KLAAR = [
 
  De woningen zelf staan in js/interieur.js — daar komen ook de prijzen vandaan.
 */
-const HUIS_WACHT = 55;              // zoveel seconden na de deal belt Mark
+const HUIS_WACHT = TUSSENPOOS;      // zoveel seconden na de deal belt Mark
 const HUIS_THUIS = { straat: 'de Wieken', nr: '29' };   // daar staat hij te wachten
 const HUIS_DICHTBIJ = 55;           // zo dicht bij een woning staat Mark er ook
 const HUIS_TELEFOON = [
@@ -336,7 +345,7 @@ const HUIS_KLAAR = [
  fietspad ernaast uit de wegassen, de tribune uit `KAART.sportvelden` en de weg
  voor het terrein uit het wegennet van de navigatie.
 */
-const VET_WACHT = 45;               // zoveel seconden na het kopen belt hij
+const VET_WACHT = TUSSENPOOS;       // zoveel seconden na het kopen belt hij
 const VET_MOLEN = /terpensmole/i;   // het kleine molentje aan het Sneekerpad
 const VET_PAD = 40;                 // zo dicht bij de molen moet het fietspad liggen (m)
 const VET_LEEG = 16;                // zo dicht bij zijn plek merk je dat hij weg is
@@ -648,7 +657,7 @@ const SCHRIFT_KLAAR = [
 const zegtRonald = (tekst) => ({ wie: 'Ronald', kop: KOPPEN.ronald, tekst });
 const zegtBouwman = (tekst) => ({ wie: 'Bouwman', kop: KOPPEN.bouwman, tekst });
 const RACE_HUIS = { straat: 'Lemmerweg', nr: '80' };
-const RACE_WACHT = 60;              // zoveel tellen na het schrift belt Ronald
+const RACE_WACHT = TUSSENPOOS;      // zoveel tellen na het schrift belt Ronald
 const RACE_PRAAT = 6;               // zo dicht bij Ronald begint hij te praten (m)
 const RACE_UUR = 1.0;               // "Die nacht": één uur
 const RACE_PRIJS = 3000;            // wat een Ferrari bij het Autohuis kost
@@ -734,7 +743,7 @@ const RACE_GEWONNEN = [
  je drie foto's zonder dat de twee mannen je zien. Terug bij Mark: € 1.500, of de
  helft als ze je gezien hebben (verzoek 27 sep 2026, "net wat anders").
 */
-const SCHADUW_WACHT = 60;           // zoveel seconden na de ochtend belt Mark
+const SCHADUW_WACHT = TUSSENPOOS;   // zoveel seconden na de ochtend belt Mark
 const SCHADUW_UUR = 23;             // "Die avond…": en de klok staat stil tot de ochtend
 const SCHADUW_OCHTEND = 10;         // "De volgende ochtend": je slaapt bij Mark
 const SCHADUW_DICHT = 22;           // dichterbij dan dit ziet Bouwman je (m)…
@@ -805,7 +814,7 @@ const SCHADUW_KLAAR = (gezien) => [
  met Mark op een dak. Bij 2 ram je Bouwman daarna van de weg en vind je zijn telefoon: ???
  is Ronald. Bij 1 hoort Johan het in de auto.
 */
-const INVAL_WACHT = 60;             // zoveel seconden na de ochtend bij Mark belt Johan
+const INVAL_WACHT = TUSSENPOOS;     // zoveel seconden na de ochtend bij Mark belt Johan
 const INVAL_TIJD = 180;             // drie minuten voor ze voor de deur staan (s)
 const INVAL_STERREN = 3;
 const INVAL_NACHT = 1;              // "Die nacht…": één uur, en de klok staat stil
@@ -934,7 +943,7 @@ const INVAL_AFRONDING = (keus, telefoon) => keus === 1 ? [
  Ronald rent weg. Ronald overleeft het allebei. Daarna het filmbeeld aan het water: Bouwman belt
  Ronald, en die neemt niet op.
 */
-const RONALD_WACHT = 60;              // tellen na de ochtend van missie 16 tot Mark belt
+const RONALD_WACHT = TUSSENPOOS;      // tellen na de ochtend van missie 16 tot Mark belt
 const RONALD_NACHT = 1;               // "Die nacht…": één uur
 const RONALD_OCHTEND = 9.5;           // en de volgende ochtend half tien
 const RONALD_BELONING = { stil: 2500, alarm: 1500 };
@@ -1040,7 +1049,7 @@ const RONALD_LOODS = (stil) => stil ? [
  met een foto van een radiostudio: "zoek een plek hiervoor en maak dit; bedenk tot slot een goed
  einde en dan kan Erik het spel gewoon vrij spelen."
 */
-const UITZENDING_WACHT = 60;            // tellen na de ochtend van missie 17 tot Mark belt
+const UITZENDING_WACHT = TUSSENPOOS;    // tellen na de ochtend van missie 17 tot Mark belt
 const UITZENDING_OCHTEND = 7.75;        // zondagochtend, kwart voor acht
 const UITZENDING_TIJD = 60;             // zo lang houdt Johan de dj bij de koffie
 const UITZENDING_BELONING = 10000;
@@ -1473,9 +1482,17 @@ export function initVerhaal(ctx) {
   */
   const KLUS_WACHT = {
     johan: ['naar_johan'], bx: ['wacht'], bom: ['wacht'], huis: ['naar_mark', 'kiezen'],
+    // missie 8: een sniper kopen en naar Johan aan de Geeuw is nog niets; de deal begint pas bij hem (stap 108)
+    sniper: ['kopen', 'naar_johan'],
     veteraan: ['naar_veteraan'], politieauto: ['wacht'], brug: ['wacht'], schrift: ['wacht'],
     race: ['naarRonald'], schaduw: ['naarMark'], ronald: ['naarWieken'], uitzending: ['naarWieken'],
   };
+  /*
+   Een klus die al klaarstaat, blijft staan als de telefoon gaat (stap 108), bij de missies die daarna
+   op je wachten: anders verdween hij net als je ernaartoe reed. Er komt tijdens het bellen geen nieuwe
+   bij, en bij De inval verdwijnt hij wel: daar begint de haast meteen.
+  */
+  const KLUS_DOOR_BELLEN = new Set(['huis', 'sniper', 'veteraan', 'race', 'schaduw', 'ronald', 'uitzending']);
   const VOOR_JOHAN = ['molenkrite', 'rijden', 'bewaking', 'afleveren'];
   let klusPauze = null;          // wat het verhaal in beeld had toen de klus begon
   function vrijVoorKlus() {
@@ -1505,6 +1522,7 @@ export function initVerhaal(ctx) {
     scene, player, vehicles, hud, KAART,
     api: {
       vrij: vrijVoorKlus,
+      houd: () => fase === 'telefoon' && KLUS_DOOR_BELLEN.has(missie),
       pauzeer: pauzeerVoorKlus,
       zeg: (regels, na = null, opties = {}) => zeg(regels, na, opties),
       balkDicht: () => balk.hidden,
@@ -1644,8 +1662,9 @@ export function initVerhaal(ctx) {
    dat nog openstaat, de opdrachtregel, de vlag op de kaart, en wat missie 7 in
    de wereld had gezet.
   */
-  function startMissie(naam) {
-    klusjes.reset(); klusPauze = null;
+  function startMissie(naam, { vanzelf = false } = {}) {
+    // na de tussenpoos (`vanzelf`) blijft een klus die klaarstaat liggen; met een sneltoets of na het laden niet
+    klusjes.reset({ aanbodHouden: vanzelf }); klusPauze = null;
     gesprek = null; sluitBalk();
     zetOpdracht('');
     hud.zetNavigatie(null); navDoel = null;
@@ -8581,7 +8600,8 @@ export function initVerhaal(ctx) {
       spanningUit -= dt;
       if (spanningUit <= 0) spanning = false;
     }
-    geluid.missiemuziek(spanning && doodT <= 0 && misluktT <= 0);
+    // (en niet tijdens een klus: missie 8 zet de muziek al aan bij het telefoontje, stap 108)
+    geluid.missiemuziek(spanning && doodT <= 0 && misluktT <= 0 && !(klusjes.bezig && missie !== 'klaar'));
     // de overgang naar de nacht in missie 10 loopt altijd door tot het beeld terug is
     werkZwartBij(dt);
     // missie 12: het filmbeeld van de auto's op de brug zet zelf de camera
@@ -8633,7 +8653,7 @@ export function initVerhaal(ctx) {
     // pauze tussen twee missies: na de boerderij belt Johan (niet tijdens een klus)
     if (naMissieT > 0 && !klusjes.bezig) {
       naMissieT -= dt;
-      if (naMissieT <= 0) startMissie(naMissieNaam);
+      if (naMissieT <= 0) startMissie(naMissieNaam, { vanzelf: true });
     }
     // een regel die zichzelf wegklikt (wat er tijdens het rennen geroepen wordt)
     if (gesprek && gesprek.auto) {
@@ -8804,7 +8824,8 @@ export function initVerhaal(ctx) {
     if (missie === 'bx' && !wachtOpKlus) werkBXBij(dt, sp);
 
     // ---- missie 8: de deal bij de molen ----
-    if (missie === 'sniper') werkSniperBij(dt, sp);
+    // (missie 8 wacht op je tijdens een klus, zolang je de sniper nog moet kopen of naar Johan moet: stap 108)
+    if (missie === 'sniper' && !wachtOpKlus) werkSniperBij(dt, sp);
     if (missie === 'veteraan' && !wachtOpKlus) werkVeteraanBij(dt, sp);
     if (missie === 'huis') { if (!wachtOpKlus) werkHuisBij(dt, sp); }
     // de koopregel blijft ook staan als de missie al voorbij is en het aanbod nog loopt
@@ -9167,6 +9188,10 @@ export function initVerhaal(ctx) {
     // de klusjes (js/klusjes.js): X breekt er een af
     klusAfbreken: () => klusjes.afbreken(),
     get klusjes() { return klusjes; },
+    // (voor tools/tempotest.mjs) de tussenpoos tussen twee missies, en of er nu een klus mag
+    tussenpoos: TUSSENPOOS,
+    get klusVrij() { return vrijVoorKlus(); },
+    klusWacht: KLUS_WACHT,
     /*
      Twee haakjes voor een missie die buiten dit bestand draait (js/vaart.js, de
      lading over het water): de opdrachtregel in beeld en de gespreksbalk. Ze

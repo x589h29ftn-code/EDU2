@@ -1669,7 +1669,7 @@ Marks waarschuwing uitstappen. `npm run bomshots` maakt de foto's hierboven.
 
 ### 8 · De deal bij de molen
 
-Een minuut na de bom gaat de telefoon. Johan, met een boodschap die hij eerst
+Een paar minuten na de bom gaat de telefoon. Johan, met een boodschap die hij eerst
 op Telegram had gezet: *"Ik heb iemand nodig met steady handjes. Die van mij
 trillen te veel, en ik weet dat jij om kan gaan met snipers. Koop er eentje bij
 de Tinga State en kom naar mij toe, achter de waterzuivering aan de Geeuw.
@@ -1721,7 +1721,7 @@ als het misgaat.
 
 ### 9 · Een eigen stek
 
-Een minuut na de deal bij de molen belt Mark. Het geld loopt door, en De
+Een paar minuten na de deal bij de molen belt Mark. Het geld loopt door, en De
 Veteraan heeft drie panden in de wijk waar hij over gaat: sleutelgeld eenmalig,
 daarna een huur waar je om moet lachen. *"Jij woont nog steeds in dat hok. Kom
 even naar de Wieken, dan lopen we ze langs."*
@@ -2054,7 +2054,7 @@ Tinga-bos in missie 12; `npm run schriftshots` maakt de vier foto's.
 
 ### 14 · Ronald en de race naar IJlst
 
-Een minuut na het schrift gaat de telefoon: **Ronald**, een oude vriend van Erik.
+Een paar minuten na het schrift gaat de telefoon: **Ronald**, een oude vriend van Erik.
 *"Ik zit in de problemen. Kun je even langskomen?"* Hij woont aan de **Lemmerweg
 80**, het huis met de schuur, en er staat een **R** op de kaart.
 
@@ -2143,7 +2143,7 @@ ochtend erna; `npm run raceshots` maakt de vijf foto's.
 
 ### 15 · Bouwman schaduwen
 
-De ochtend na de race, een minuut nadat het licht weer aan is, belt **Mark**:
+De ochtend na de race, een paar minuten nadat het licht weer aan is, belt **Mark**:
 *"Ronald vertelde me over vannacht."* Bouwman weet nu wie Erik is, en dat bevalt
 Mark niet. Er komt een **M** bij Molenkrite 15.
 
@@ -2215,7 +2215,7 @@ schaduwshots` maakt de vijf foto's.
 
 ### 16 · De inval
 
-De ochtend na het schaduwen, een minuut nadat je bij Mark wakker bent geworden, belt **Johan**:
+De ochtend na het schaduwen, een paar minuten nadat je bij Mark wakker bent geworden, belt **Johan**:
 Bouwman heeft een bevel laten tekenen voor Molenkrite 15, en ze zijn al onderweg. Linksboven loopt
 een balk af: **drie minuten**. Binnen pak je met **E** het schrift bij de bank en de foto's op het
 dressoir (twee gele ruiten); Mark loopt mee naar buiten, en stapt bij je in. Heb je geen auto voor
@@ -2255,7 +2255,7 @@ vertrouwt hij het niet meer. Schiet je tijdens de ruil, dan raken ze Johan. De k
 
 ### 17 · Wie is R.
 
-Een minuut na die ochtend belt **Mark**: niet naar Molenkrite 15. Daar hangt politielint voor de deur.
+Een paar minuten na die ochtend belt **Mark**: niet naar Molenkrite 15. Daar hangt politielint voor de deur.
 Hij zit bij de **Wieken 29** (een M op de kaart). Binnen zit hij op de bank, Johan staat bij de tafel,
 en ze leggen het uit. **Ronald** heeft ze verkocht, en vannacht zit hij bij Bouwman aan het water.
 Zijn erf aan de Lemmerweg 80 is dus leeg, op een camera en een hond na. In de caravan naast zijn
@@ -2304,7 +2304,7 @@ neergaan en laden. `npm run ronaldshots` maakt de zes foto's.
 
 ### 18 · De uitzending
 
-De laatste missie. Een minuut na de ochtend van missie 17 belt **Mark**: *"Kom naar de Wieken. Johan
+De laatste missie. Een paar minuten na de ochtend van missie 17 belt **Mark**: *"Kom naar de Wieken. Johan
 heeft iets, en dan zijn we klaar."* Binnen aan de Wieken 29 houdt Johan een **usb-stick** omhoog, met
 veertig seconden erop. Morgenochtend om acht uur luistert half Sneek naar **Radio Tinga**, het
 ochtendprogramma van Sjors. *"De Veteraan ligt onder de grond. Bouwman is verleden tijd. Er zit
@@ -2356,6 +2356,13 @@ zoeklicht. Dat stuk komt tussen het plan en *Zondagochtend* als de vragen in dat
 zijn.
 
 ### Klusjes tussendoor
+
+**Tijd tussen de missies.** Na een missie duurt het **twee en een halve minuut** voor de volgende
+belt (stap 108; dat was een minuut of minder). Binnen een paar tellen staat er al een klus klaar, dus
+je hebt ruim de tijd om erheen te rijden. Zolang je met een klus bezig bent, telt die tijd niet af:
+de telefoon gaat nooit midden in een klus. En de meeste missies wachten daarna nog onder hun letter
+op de kaart, tot jij komt; in die tijd komen er gewoon weer klusjes. Alleen **De inval** (missie 16)
+begint meteen als Johan belt: dan staat er haast op.
 
 Tussen twee missies door kun je bijverdienen. Na een paar tellen staat er ergens in de stad
 iemand op de stoep, **Mark of Johan**, met een groen speldje **K** op de kaart. Waar precies is

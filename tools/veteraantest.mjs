@@ -192,8 +192,9 @@ const koop = await page.evaluate(() => {
     geld: g.verhaal.geld,
   };
 });
+const g_poos = await page.evaluate(() => window.__game.verhaal.tussenpoos);
 ok(koop.stek === 'Koningsspil 20', 'het huis is gekocht', String(koop.stek));
-ok(koop.volgende && koop.volgende.naam === 'veteraan' && koop.volgende.over <= 45.01,
+ok(koop.volgende && koop.volgende.naam === 'veteraan' && koop.volgende.over <= g_poos + 0.01,
   'en daarna staat missie 10 klaar', koop.volgende ? `over ${koop.volgende.over.toFixed(0)} s` : 'niets');
 ok(koop.opslagVolgende === 'veteraan' && koop.naLaden && koop.naLaden.naam === 'veteraan',
   'ook na opslaan en laden in de tussentijd', JSON.stringify(koop.naLaden));

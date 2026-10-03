@@ -6845,6 +6845,33 @@ staat als `audio/radio/uitzending.mp3`: 40,2 s volgens de mp3-frames, 40,14 s vo
 - Proeven: `uitzendingtest` (nieuw) groen; `overgangtest` en `vloeiendtest` opnieuw. Foto's:
   `uitzendingshots` (zes).
 
+**Het tempo tussen de missies (stap 108).** Gevraagd: "check of de missies elkaar niet te snel opvolgen;
+is er genoeg ruimte voor de andere klusjes tussendoor, of is het missie na missie?"
+
+- *Gemeten, vooraf*: na een missie ging de telefoon voor de volgende na 25 tot 60 s (na missie 11 en
+  12 na 4 tot 25 s, maar dan staat er alleen een M). Een klus verschijnt 12 s na een missie, op 220
+  tot 850 m hemelsbreed. Met de omwegen van de straten is dat bij 8 m/s rijden 40 tot 150 s: de verre
+  helft haalde je niet voor de telefoon ging. Bovendien verdween het aanbod op het moment dat de
+  telefoon ging, ook als de missie daarna gewoon onder zijn M bleef wachten. Missie 8 (de sniper) liet
+  helemaal geen klus toe tot hij af was, en missie 16 (de inval) begint meteen met drie minuten.
+- *Nu*: één `TUSSENPOOS` van 150 s voor elke missie die met de telefoon begint. Die telt niet af tijdens
+  een klus (dat deed hij al): de telefoon onderbreekt nooit een klus. Een klus die klaarstaat, blijft
+  door het telefoontje heen staan bij de missies die daarna op je wachten (`KLUS_DOOR_BELLEN`,
+  `api.houd`, `reset({ aanbodHouden })` als een missie vanzelf begint). Tijdens het bellen komt er geen
+  nieuwe bij. Missie 8 wacht op je zolang je de sniper nog moet kopen of naar Johan moet (`KLUS_WACHT`,
+  en `werkSniperBij` achter `!wachtOpKlus`). De missiemuziek speelt niet tijdens een klus. De inval
+  blijft zoals hij is: Johan belt en dan is er haast.
+- *De proef* (`npm run tempotest`) leest de pauzes uit de code. Hij meet een echte overgang (na het
+  schrift: 150 s tot Ronald, het eerste aanbod na 11,9 s op 615 tot 758 m, ongeveer 110 tot 135 s
+  rijden). Hij controleert dat het aanbod blijft staan als de telefoon gaat, en dat anderhalve minuut
+  klus de pauze stil zet. Per missie kijkt hij of die na het telefoontje onder zijn letter wacht en er
+  binnen 8 tot 9 s een klus komt: twaalf van de dertien; de inval begint bewust meteen.
+- Eerst stond 'telefoon' zelf in `KLUS_WACHT`. Dan kwamen er tijdens het bellen nieuwe klusjes, en
+  klusjestest ("tijdens een missie die loopt geen klus — sniper/telefoon") was rood. Bovendien gooide
+  `startMissie` het aanbod toch weg met `klusjes.reset()`.
+- Aangepast in andere proeven: racetest en veteraantest rekenden met 60 en 45 s, en lezen nu
+  `verhaal.tussenpoos`. Groen: `tempotest`, `klusjestest`, `racetest`, `veteraantest`.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

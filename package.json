@@ -188,6 +188,7 @@
     "invalshots": "node tools/invalshots.mjs",
     "vierpuntentest": "node tools/vierpuntentest.mjs",
     "uitzendingtest": "node tools/uitzendingtest.mjs",
-    "uitzendingshots": "node tools/uitzendingshots.mjs"
+    "uitzendingshots": "node tools/uitzendingshots.mjs",
+    "tempotest": "node tools/tempotest.mjs"
   }
 }
