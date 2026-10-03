@@ -1,4 +1,10 @@
-# Missie 18 — De uitzending (ontwerp, 3 okt 2026, nog niet gebouwd)
+# Missie 18 — De uitzending (ontwerp, 3 okt 2026)
+
+**Stand (stap 107):** gebouwd zijn het telefoontje, het plan, Radio Tinga (js/studio.js, naar de foto
+van een radiostudio die de gebruiker stuurde), de stick en de schuif, de montage, het einde met de
+titelrol en vrij spelen. Vraag 1 is beantwoord: het is de studio van Radio Tinga. **Nog niet gebouwd:**
+stap 2 hieronder, de avond bij de loods met de helikopter. Die komt tussen het plan en
+"Zondagochtend" zodra vraag 2 en 4 beantwoord zijn.
 
 Gevraagd: "Erik en Mark voeren op het laatst een usb-stick in bij radiozender Tinga in Sneek, op het
 station, en dan speelt hij een fragment af waarin zogenaamd aan iedereen in Sneek gezegd wordt dat
@@ -119,7 +125,7 @@ het filmbeeld bij de loods zegt Bouwman: "Zaterdag is alles weg. En zij ook."
 
 ## Open vragen aan de gebruiker
 
-1. **"Op het station"** lees ik als de studio van Radio Tinga (de zender heet in het spel al zo). Het
+1. *(beantwoord: de studio van Radio Tinga)* **"Op het station"** lees ik als de studio van Radio Tinga (de zender heet in het spel al zo). Het
    treinstation van Sneek ligt buiten de kaart: geschat een halve kilometer voorbij de noordrand
    (z0 = −789), ten noordoosten van Tinga. Daar kan het dus niet zonder de kaart te vergroten.
 2. **Bouwman**: gearresteerd in het licht van het zoeklicht, zoals hierboven? Dat past bij de heli:

@@ -48,7 +48,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | Bestand | Waarvoor |
 |---|---|
 | `js/main.js` | de hoofdlus, de invoer, de mixer, alles aan elkaar |
-| `js/verhaal.js` | de zeventien missies, Mark, de gesprekken, de opslag van het verhaal |
+| `js/verhaal.js` | de achttien missies, Mark, de gesprekken, de opslag van het verhaal |
 | `js/kaart.js` | **gegenereerd**: panden, wegen, water, straten uit de geodata |
 | `js/kaartwereld.js` | daar de wereld van bouwen (tegels, bomen, riet, auto's) |
 | `js/textures.js` | alle geveltextures, dakpannen, baksteen — op canvas |
@@ -76,6 +76,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/inval.js` | missie 16: de route van de inval over de Molenkrite, de vlucht van Bouwman van de Dúvelsrak naar een rotonde (`vluchtLijn`, `rijdVlucht`), de schuif na de klap met botsing (`crashSchuif`, `renVrij`); de lijnen via `lijnDoor` uit js/schaduw.js |
 | `js/schuur.js` | missie 17: het erf van Ronald aan de Lemmerweg 80 in het assenstelsel van het huis (`erfAssen`): caravan met kluis, de zwaaiende camera met zijn kegel (`kegelRaakt`), de hond aan de ketting, de worst; de hoogte uit de kaartvlakken (`grondPeiler`) |
 | `js/klusjes.js` | klusjes tussen de missies door: Mark of Johan met een K op de kaart, tas, auto, overspuiten, omleggen (€ 250–1000) |
+| `js/studio.js` | missie 18: Radio Tinga aan de Tinga — de zendmast op het dak, de zuil, ON AIR, en de studio als binnenruimte naar een foto (gebogen bureau, schermen, mengpanelen met usb-poort en schuif, de dj Sjors); `plekken`, `bijTafel`, `zetUsb`, `zetSchuif`, `zetOnAir`, `zetSlot` |
 | `js/schaduw.js` | missie 15: de route van Bouwman (BP → Duinterpen → N7), zijn rit met een stop, de loods aan het water met container, kade, steiger en boot, de fotoplekken |
 
 Een paar dingen die niet vanzelf spreken:
@@ -127,7 +128,8 @@ Street View-link erbij.
 14. **Ronald en de race** — Lemmerweg 80, Bouwman, de race van de BP naar IJlst
 15. **Bouwman schaduwen** — Mark en het schrift, Bouwman volgen, foto's bij zijn loods
 16. **De inval** — drie minuten om Mark weg te halen, de ruil op de Dúvelsrak, Ronald is ???
-17. **Wie is R.** — het erf van Ronald 's nachts: camera, hond, de kluis in de caravan, Ronald met zijn geweer (laatst gebouwd)
+17. **Wie is R.** — het erf van Ronald 's nachts: camera, hond, de kluis in de caravan, Ronald met zijn geweer
+18. **De uitzending** — de usb-stick bij Radio Tinga, het fragment over heel Sneek, het einde en vrij spelen (laatst gebouwd)
 
 Missie 9 in het kort: Mark belt, staat bij de Wieken 29, noemt drie adressen met
 bedrag (**1, 2 of 3** kiest en zet de navigatie), en je koopt er aan tafel een
@@ -229,6 +231,21 @@ Daarna "Aan het water…" (`LOODS_ZWART`) en het filmbeeld `loods` (Bouwman bij 
 "De volgende ochtend". Opslag: `ronaldKlaar`, `ronaldPraatte`, `ronaldWeg`, `ronaldSchrift` (het schrift
 terug na de ruil), `erfHeeftWorst`. **shift+'** start hem los.
 
+Missie 18 (stap 107, de laatste): een minuut na de ochtend van missie 17 belt Mark (`UITZENDING_WACHT`), M bij
+de Wieken 29, binnen Mark op de bank en Johan met de usb-stick. Naar buiten: "Zondagochtend" (07:45,
+`naarDeStudio`, thuis). Radio Tinga staat in js/studio.js: het pand van type `zorg` aan het voetpad Tinga
+(de auto parkeer je aan de Molenkrite, ~40 m), de deur op de gevel het dichtst bij de Tinga, de mast op
+het dak; binnen een losse kamer (`NUL` = gebied + (640, 1250)). Johan wacht bij de ingang; de deur zit
+dicht (`zetSlot`) tot hij belt; dan `UITZENDING_TIJD` (60 s) in `#schaduwbalk`, E aan de tafel
+(`bijTafel`) de stick, E de schuif: het filmbeeld `uitzFilm` met `montageShots` (zeven shots over
+de stad, buiten de botsdozen uit geduwd, elk met een `vast` voor de LOD) zolang `audio/radio/uitzending.mp3`
+duurt (`geluid.uitzending`, 40,2 s; autoradio, huisradio en missiemuziek zwijgen eronder). Te laat:
+Sjors komt terug, `mislukt`. Buiten Mark en Johan, € 10.000, "Die avond…" (`startEindFilm`, 20:30, klok
+stil), de titelrol (`#titelrol`, z-index 7 en buiten `#ui`, E slaat over) en `naDeTitelrol`: `missie = 'klaar'`, geen
+volgende missie, `geluid.zetHerhaling(true)` (het fragment in de lijst van Radio Tinga). Opslag:
+`uitzendingKlaar`. **shift+/** start hem los. Het stuk met de helikopter uit het ontwerp
+(`docs/ONTWERP_MISSIE_18.md`) is nog niet gebouwd; het hoort tussen het plan en "Zondagochtend".
+
 **Klusjes** (stap 99, js/klusjes.js): tussen de missies door, en als een missie onder zijn M
 op je wacht (`KLUS_WACHT` in js/verhaal.js: de fase waarin nog niets begonnen is, ook missie 9
 zolang je geen huis hebt), staat na KLUS.wacht tellen Mark of Johan op een willekeurige stoep met
@@ -265,7 +282,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run vierpuntentest` (het sturen van de Ferrari gemeten tegen het oude, het schap van Tinga State met `getComputedStyle` en geen enkel hidden-element in beeld, de schuif van Bouwman na de klap tegen echte schuurtjes, 200 kogels bij een nieuw spel; stap 106); `npm run schottest` (het schot als opname: laden, vanaf de knal, per wapen, op afstand, afkappen in een salvo; doorschieten met en zonder vergrendelde muis en op de vuurknop, het pistool en de sniper één per klik, de keuze in het menu; stap 105); `npm run kaartdoeltest` (ondertitels in een filmbeeld: in de balk, contrast, niets eroverheen; plekken op de rand van de minikaart; een eigen doel op de grote kaart aanwijzen, bij een speldje, weghalen, de route over de weg en bijgewerkt, aankomen, geen schot; maakt drie foto's; stap 104); `npm run ronaldtest` (missie 17: het lint, het plan, de worst, het erf gemeten — kraakplek nooit in de kegel, de weg ernaartoe lopend soms vrij, de kegel boven de grond, niets in het water, de route van Ronald zonder knik —, sluipen, beide afloopen met de filmbeelden, het neergaan, de opslag; stap 103) met `ronaldshots` (zes foto's); `npm run overgangtest` (laden of een nieuwe missie tijdens het klokje en het zwart na missie 12, 14 en 16, met een tegenproef; `zetNeer` op een geparkeerde auto; missie 16 in zo'n auto; en vooraf, zonder browser, geen functienaam twee keer in js/verhaal.js en js/main.js; stap 102); `npm run invaltest` (missie 16 van Johan aan de lijn tot de ochtend: de drie minuten en te laat, leeghalen, de inval en zijn filmbeeld, de Wieken, beide keuzes, de hinderlaag met de vlucht over het dek en de rotonde, rammen, de crash, de telefoon, ontsnappen, Johan geraakt, wapen niet weg, de auto total loss, opslaan; stap 101) met `invalshots` (vijf foto's, vier filmbeelden); `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
+De laatste die ertoe doen: `npm run uitzendingtest` (missie 18 van het telefoontje tot vrij spelen: de studio gemeten — de ingang aan de Tinga, de mast op het dak, de weg van de deur naar de tafel —, het fragment van 40,2 s, de deur dicht tot Johan belt, de stick en de schuif, de montage zonder camera in een muur, het einde, de titelrol, te laat, de opslag; stap 107) met `uitzendingshots` (zes foto's); `npm run vierpuntentest` (het sturen van de Ferrari gemeten tegen het oude, het schap van Tinga State met `getComputedStyle` en geen enkel hidden-element in beeld, de schuif van Bouwman na de klap tegen echte schuurtjes, 200 kogels bij een nieuw spel; stap 106); `npm run schottest` (het schot als opname: laden, vanaf de knal, per wapen, op afstand, afkappen in een salvo; doorschieten met en zonder vergrendelde muis en op de vuurknop, het pistool en de sniper één per klik, de keuze in het menu; stap 105); `npm run kaartdoeltest` (ondertitels in een filmbeeld: in de balk, contrast, niets eroverheen; plekken op de rand van de minikaart; een eigen doel op de grote kaart aanwijzen, bij een speldje, weghalen, de route over de weg en bijgewerkt, aankomen, geen schot; maakt drie foto's; stap 104); `npm run ronaldtest` (missie 17: het lint, het plan, de worst, het erf gemeten — kraakplek nooit in de kegel, de weg ernaartoe lopend soms vrij, de kegel boven de grond, niets in het water, de route van Ronald zonder knik —, sluipen, beide afloopen met de filmbeelden, het neergaan, de opslag; stap 103) met `ronaldshots` (zes foto's); `npm run overgangtest` (laden of een nieuwe missie tijdens het klokje en het zwart na missie 12, 14 en 16, met een tegenproef; `zetNeer` op een geparkeerde auto; missie 16 in zo'n auto; en vooraf, zonder browser, geen functienaam twee keer in js/verhaal.js en js/main.js; stap 102); `npm run invaltest` (missie 16 van Johan aan de lijn tot de ochtend: de drie minuten en te laat, leeghalen, de inval en zijn filmbeeld, de Wieken, beide keuzes, de hinderlaag met de vlucht over het dek en de rotonde, rammen, de crash, de telefoon, ontsnappen, Johan geraakt, wapen niet weg, de auto total loss, opslaan; stap 101) met `invalshots` (vijf foto's, vier filmbeelden); `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
 de route, de loods, een automaat die volgt, te dichtbij, te ver, de Ferrari, de foto's, gezien
 worden; stap 96) met `schaduwshots` (vijf foto's); `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
 met een automaat die de Ferrari over het parcours rijdt, goed en slordig, het verliezen, de ring
@@ -408,6 +425,12 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   vlakken in de kaart). Iets plats op de grond (de kegel van missie 17) lag op 7 cm dus ónder het erf;
   js/schuur.js peilt de hoogte uit de vlakken (`grondPeiler`), en tools/ronaldtest.mjs meet het na met
   een straal recht naar beneden.
+- **Een straatnaam is niet altijd een rijweg** (stap 107). "Tinga" is bij het pand van Radio Tinga een
+  voetpad (`drive: false`); de rijweg met die naam ligt 75 m verder. Wie een plek "aan de X" zoekt,
+  kijkt naar alle assen met die naam, en apart naar de dichtstbijzijnde weg voor auto's.
+- **Een camera in een filmbeeld buiten kan in een schuurtje staan** (stap 107): Molenkrite 15 plus
+  (14, 8) m was een tuinhuis. Zet hem op of langs de weg (`plekVoorDeDeur`), duw hem de botsdozen uit,
+  en meet in de proef elk beeld (onder de 6 m; daarboven hangt hij boven de daken).
 - **Kijk of een proefnaam al bestaat** (stap 106): `tools/puntentest.mjs` van 13 sep werd bijna
   overschreven door een nieuwe proef met dezelfde naam. Eerst `ls tools/` en `grep` in package.json.
 - **`hidden` is niet hetzelfde als weg** (stap 106). Een id-selector met `display` (`#schap { display:
@@ -500,11 +523,11 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
     volume op 0,004. Met audio.js van vóór stap 95 precies dezelfde zes (27 sep 2026,
     nagemeten); het ligt aan het afspelen in deze omgeving, niet aan de code. Op een
     machine met geluid opnieuw draaien.
-24. **Missie 18, De uitzending** (de laatste): het ontwerp staat in `docs/ONTWERP_MISSIE_18.md`,
-    het fragment in `audio/radio/uitzending.mp3` (40,2 s). Wacht op antwoord op vier vragen
-    (de studio of het treinstation, wat er met Bouwman gebeurt, de tekst voor de ondertitels,
-    Erik in de deur of aan de sleds). Erin sinds 3 okt: een helikopter 's avonds boven de vaart en
-    Tinga, Erik in de open deur met zoeklicht en sniper, Bouwman eerst per boot, daarna per auto.
+24. **Missie 18, De uitzending**: de studio, de uitzending en het einde staan er (stap 107). Nog
+    open uit het ontwerp (`docs/ONTWERP_MISSIE_18.md`): de avond bij de loods en de helikopter
+    (Erik in de open deur met zoeklicht en sniper, Bouwman per boot en dan per auto), tussen het plan
+    en "Zondagochtend". Wacht op antwoord: wat er met Bouwman gebeurt, Erik in de deur of aan de
+    sleds, en de tekst van het fragment voor ondertitels (de mp3 is niet te beluisteren).
 
 ## 8 · Waar wat gedocumenteerd wordt
 

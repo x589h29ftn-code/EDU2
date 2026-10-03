@@ -2302,6 +2302,59 @@ Ronald. *"…Hij neemt niet op. Dan doen we het zaterdag zonder hem."* Daarna **
 op het goede moment wel vrij, de kegel boven de grond, de hond. Daarna beide afloopen, en het
 neergaan en laden. `npm run ronaldshots` maakt de zes foto's.
 
+### 18 · De uitzending
+
+De laatste missie. Een minuut na de ochtend van missie 17 belt **Mark**: *"Kom naar de Wieken. Johan
+heeft iets, en dan zijn we klaar."* Binnen aan de Wieken 29 houdt Johan een **usb-stick** omhoog, met
+veertig seconden erop. Morgenochtend om acht uur luistert half Sneek naar **Radio Tinga**, het
+ochtendprogramma van Sjors. *"De Veteraan ligt onder de grond. Bouwman is verleden tijd. Er zit
+niemand meer boven ons."* Alleen weet de stad dat nog niet.
+
+Loop naar buiten: ***Zondagochtend***, kwart voor acht, en je staat voor je eigen huis. Radio Tinga
+zit in het lage pand aan de **Tinga**, met een rood-witte **zendmast** op het dak die je van ver over
+de daken ziet, een blauwe zuil met het merk naast de ingang en een ON AIR-bord boven de deur. Met de
+auto parkeer je aan de Molenkrite en loop je het pad op.
+
+- **Johan** wacht bij de ingang. Hij zat bij Sjors in de klas, gaat met koffie naar binnen en houdt
+  hem in de keuken aan de praat. Tot hij belt zit de deur dicht.
+- *"Nu."* Je hebt **één minuut** (de balk linksboven). Binnen is de studio leeg: het gebogen witte
+  bureau met de zwarte rand, vijf schermen, twee mengpanelen, de microfoons aan hun arm en de
+  luidsprekers aan het plafond.
+- Ga achter de stoel staan: **E** steekt de stick in het mengpaneel, **E** zet de **rode schuif**
+  omhoog. ON AIR gaat branden.
+- Dan **een filmbeeld** van veertig seconden, zo lang als het fragment: het bureau, de mast boven het
+  dak, de BP aan de Lemmerweg, het gat in de Dúvelsrak, het huis van Ronald, Molenkrite 15 met het lint,
+  en hoog over Tinga terug naar de mast. Zolang het fragment speelt zwijgen de autoradio, de radio in
+  huis en de missiemuziek.
+- Sjors staat in de deur met zijn koffie: *"Wat… wat draait er nou?"* Ben je te laat, dan staat hij
+  er eerder, en mislukt de missie.
+
+Buiten staan Mark en Johan. Op de Lemmerweg wordt getoeterd. **€ 10.000**, MISSIE GESLAAGD, en dan
+***Die avond…***: een laatste filmbeeld voor de Wieken 29 bij zonsondergang. *"Op Tinga."* De camera
+stijgt op over de daken naar het rode lampje van de mast, en dan rolt **de titelrol**. **E** slaat hem
+over.
+
+Daarna speel je **vrij** verder: er belt geen missie meer, maar de klusjes, de Ferrari, de winkels en
+de stad blijven. Radio Tinga zendt het fragment voortaan af en toe opnieuw uit, tussen de nummers
+door. **shift+/** (de toets rechts onderin, naast de punt) start de missie los.
+
+| ![De studio](docs/screenshots/studio_binnen.png) | ![De tafel](docs/screenshots/studio_tafel.png) |
+|---|---|
+| de studio van Radio Tinga, naar de foto van een echte radiostudio | de stick in het mengpaneel, de rode schuif omhoog |
+| ![Radio Tinga](docs/screenshots/studio_buiten.png) | ![De mast](docs/screenshots/uitzending_mast.png) |
+| het pand aan de Tinga, de zuil en de zendmast | het laatste shot van de montage: over Tinga naar de mast |
+| ![Het einde](docs/screenshots/uitzending_einde.png) | ![De titelrol](docs/screenshots/uitzending_titelrol.png) |
+| die avond, voor de Wieken 29 | de titelrol |
+
+`npm run uitzendingtest` speelt de missie na, van het telefoontje tot vrij spelen, en meet de studio:
+de ingang aan de Tinga, de mast op het dak, een vrije weg van de deur naar de tafel, en geen camera
+in een muur. `npm run uitzendingshots` maakt de zes foto's.
+
+**Nog open: de helikopter.** Het ontwerp in `docs/ONTWERP_MISSIE_18.md` heeft een avond vóór de
+uitzending: de loods aan het water, Bouwman die vlucht, Erik in de open deur van een heli met een
+zoeklicht. Dat stuk komt tussen het plan en *Zondagochtend* als de vragen in dat bestand beantwoord
+zijn.
+
 ### Klusjes tussendoor
 
 Tussen twee missies door kun je bijverdienen. Na een paar tellen staat er ergens in de stad

@@ -186,6 +186,8 @@
     "kaartdoeltest": "node tools/kaartdoeltest.mjs",
     "schottest": "node tools/schottest.mjs",
     "invalshots": "node tools/invalshots.mjs",
-    "vierpuntentest": "node tools/vierpuntentest.mjs"
+    "vierpuntentest": "node tools/vierpuntentest.mjs",
+    "uitzendingtest": "node tools/uitzendingtest.mjs",
+    "uitzendingshots": "node tools/uitzendingshots.mjs"
   }
 }

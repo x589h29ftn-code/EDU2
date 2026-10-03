@@ -17,6 +17,7 @@ import { initGarage, TE_KOOP, NAAM as AUTOHUIS } from './garage.js';
 import { inBouwvlak } from './bouwvlak.js';
 import { initBoten } from './boot.js';
 import { initSupermarkt, BIER } from './supermarkt.js';
+import { initStudio } from './studio.js';
 import { KLUS } from './klusjes.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
@@ -660,6 +661,8 @@ const verhaal = initVerhaal({
   gezocht: () => politie.gezocht,
   parkeerPolitieAuto: (x, z, yaw) => politie.parkeerAuto(x, z, yaw),
   poiesz: () => (supermarkt && supermarkt.ingangen ? supermarkt : null),
+  // missie 18: de studio van Radio Tinga (js/studio.js)
+  studio: () => (studio && studio.plekken ? studio : null),
   // de drie woningen van missie 9 (js/interieur.js)
   stekken: () => woningen.filter(w => w.stek),
   // missie 10: "Enkele uren later" is het één uur 's nachts (de sfeer komt verderop)
@@ -712,9 +715,12 @@ const boerderij = initBoerderij({ scene, player, hud, verhaal }) || LEEG;
 // (js/supermarkt.js).
 await adem('de supermarkt', 0.996);
 const supermarkt = initSupermarkt({ scene, player, hud, verhaal }) || LEEG;
+// en de studio van Radio Tinga aan de weg Tinga, met de zendmast op het dak (missie 18, js/studio.js)
+await adem('de studio', 0.997);
+const studio = initStudio({ scene, player, hud }) || LEEG;
 opstartStap('de rest van de opzet');
 // Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
-const binnenruimtes = [...woningen, boerderij, supermarkt];
+const binnenruimtes = [...woningen, boerderij, supermarkt, studio];
 const ergensBinnen = (x, z) => binnenruimtes.some(r => r.binnen(x, z));
 // en sta je in de tuin van een van de woningen? Dan ben je buiten (js/interieur.js)
 const inTuin = (x, z) => binnenruimtes.some(r => r.tuin && r.tuin(x, z));
@@ -1432,6 +1438,7 @@ const MISSIES = [
   { nr: 15, naam: 'schaduw', titel: 'Bouwman schaduwen' },
   { nr: 16, naam: 'inval', titel: 'De inval' },
   { nr: 17, naam: 'ronald', titel: 'Wie is R.' },
+  { nr: 18, naam: 'uitzending', titel: 'De uitzending' },
 ];
 function startMissieLos(naam) {
   const m = MISSIES.find(x => x.naam === naam || String(x.nr) === String(naam));
@@ -1473,6 +1480,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Semicolon') { e.preventDefault(); startMissieLos('16'); return; }
   // en de toets daarnaast (' op een Amerikaans toetsenbord): missie 17
   if (e.code === 'Quote') { e.preventDefault(); startMissieLos('17'); return; }
+  // en de toets rechts onderin naast de punt (/ op een Amerikaans toetsenbord, - op een Nederlands): missie 18
+  if (e.code === 'Slash' || e.code === 'NumpadDivide') { e.preventDefault(); startMissieLos('18'); return; }
   const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();
@@ -2547,7 +2556,7 @@ window.__game = {
   bakOmgeving, werkOmgevingBij, zetSchaduwDoos, get omgevingGebakken() { return envBakken; }, sun,
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   grasVeld, wolken: clouds,
-  scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, derde, politie,
+  scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, studio, derde, politie,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,

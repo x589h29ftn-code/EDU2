@@ -6791,6 +6791,60 @@ terechtkomen, lijkt geen collision tijdens rammen; laat de speler beginnen met 2
   voor de klap. `racetest`, `invaltest`, `schaduwtest` en de oude `puntentest` groen; ook `wapentest` en
   `politietest` (stap 105).
 
+**Missie 18, De uitzending: Radio Tinga en het einde (stap 107).** Gevraagd op 3 okt 2026, met een foto
+van een radiostudio: "De studio van Tinga, zoek een plek hiervoor en maak dit. Zorg voor interieur met
+dj-spullen voor een radiozender waar je met E de usb-stick in doet en dan speelt het af. Bedenk tot slot
+een goed einde, en dan kan Erik het spel gewoon vrij spelen." Het fragment (Birthday_Announcement_Broadcast.mp3)
+staat als `audio/radio/uitzending.mp3`: 40,2 s volgens de mp3-frames, 40,14 s volgens `decodeAudioData`,
+één kanaal.
+
+- *De plek*: het pand van type `zorg` aan de Tinga (1996, plat dak op 4,1 m). Radio Tinga aan de Tinga.
+  Buiten (js/studio.js): een rood-witte vakwerkmast van 18 m op het dak met twee schotels en een rood
+  knipperlampje (een gloeiend bolletje, geen lichtbron: het aantal lampen mag niet veranderen), een
+  blauwe zuil met het merk, en een ON AIR-bord boven de ingang.
+- *De ingang* kostte drie rondes. Eerst kwam hij midden op de voorgevel uit de kaart (`pand.front`).
+  De proef zei "Molenkrite, 41 m": de dichtstbijzijnde weg voor auto's. Dat leek op een verkeerde
+  gevel, maar de Tinga is hier een voetpad (`drive: false`), het adres van het pand; de rijweg met die
+  naam ligt 75 m verder. Daarna de gevel die het dichtst bij een as met de naam Tinga lag. Dat pad
+  loopt echter deels onder het pand door, en de normaal "naar het pad" wees dan naar binnen: de
+  stoep kwam in een andere doos (0,76 m geduwd) en de zuil in het pand. Nu: elke gevel van minstens
+  4 m, de normaal naar buiten uit de draairichting van het grondvlak, drie plekken per gevel. De
+  stoep en de plek voor de deur moeten vrij zijn en buiten het pand liggen. Van wat overblijft wint
+  de stoep die het dichtst bij de Tinga ligt (0,4 m). De zuil kiest een kant waar hij vrij staat.
+- *Binnen*, naar de foto: een losse kamer van 8,4 bij 7,2 m buiten de kaart (`NUL` = gebied + (640,
+  1250), ver van de woningen, de boerderij en de Poiesz). Een gebogen bureau als ringstuk om de stoel
+  (`ExtrudeGeometry` van een ringsector, een kwartslag om x gedraaid: de y van de vorm wordt de z van de
+  kamer). Wit blad, zwarte rand, zwarte voet. Botsing met acht gedraaide doosjes langs de boog; die
+  stonden eerst op de hoekpunten in plaats van de middens en staken dan een halve stap voorbij het eind.
+  Vijf schermen op de achterrand, twee mengpanelen (los, want de schuif en de usb-stick bewegen),
+  toetsenborden, studiomonitors, twee microfoons aan een arm, twee luidsprekers aan het plafond, een rek
+  met een signaalpaal, ramen met dichte lamellen, een glazen wand naar een donkere regiekamer, het merk
+  staand en blauw op de wand, en de dj Sjors op zijn stoel. Alles op canvas; het licht in de vlakken.
+- *De missie*: telefoon, het plan aan de Wieken (Johan met de stick), "Zondagochtend" (07:45), Johan bij
+  de ingang (de deur zit dicht met `zetSlot` tot hij belt), een minuut in de balk, E de stick, E de
+  schuif, ON AIR. Daarna het filmbeeld: zeven shots zo lang als het fragment, elk met een eigen `vast`
+  voor de speler zodat de wereld daar in de fijne uitvoering staat. De shots zijn het bureau, de mast,
+  de BP, het gat in de Dúvelsrak, Lemmerweg 80, Molenkrite 15 en hoog over Tinga. Autoradio, huisradio
+  en missiemuziek zwijgen zolang `geluid.uitzending` speelt. Dan Sjors met zijn koffie, buiten Mark en
+  Johan met claxons op de achtergrond, € 10.000, "Die avond…" (20:30) voor de Wieken 29. De camera stijgt
+  op naar het rode lampje van de mast, de titelrol (`#titelrol`, z-index 7 boven het zwart, E slaat
+  over), en `missie = 'klaar'` zonder volgende missie. Radio Tinga zendt het fragment voortaan af en
+  toe opnieuw uit (`zetHerhaling`, ook na het laden).
+- *Camera's in een schuurtje*: de proef mat elk beeld van de montage. Het shot van Molenkrite 15 (het
+  huis plus 14 en 8 m) stond in een tuinhuis; nu staat het langs de weg (`plekVoorDeDeur`). Alle shots
+  buiten onder de 6 m worden de botsdozen uit geduwd. Het shot boven de Dúvelsrak hangt op 11 m en telde
+  eerst mee, omdat `resolveCollisions` zonder hoogte de pijler onder het dek vindt.
+- *De titelrol lag eerst onder het zwart*: hij stond in `#ui`, en dat is één laag met z-index 5 (stap 104),
+  dus zijn eigen z-index 7 gold alleen daarbinnen en de overgang (6) lag erover: de eerste vier tellen
+  grijs, gezien op de foto. Nu staat hij buiten `#ui`, en de proef kijkt met `elementFromPoint`.
+- *Wat er misging in de proef*: de hints aan de tafel verschijnen alleen voor een actieve speler
+  (`player.active`), en Johan staat zo dicht bij de deur dat wie de deur probeert eerst met hem praat.
+  De proef controleert de dichte deur nu ná het gesprek.
+- Nog niet gebouwd: de avond bij de loods en de helikopter uit het ontwerp
+  (`docs/ONTWERP_MISSIE_18.md`), tussen het plan en "Zondagochtend"; dat wacht op twee antwoorden.
+- Proeven: `uitzendingtest` (nieuw) groen; `overgangtest` en `vloeiendtest` opnieuw. Foto's:
+  `uitzendingshots` (zes).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

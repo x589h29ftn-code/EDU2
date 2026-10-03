@@ -84,6 +84,16 @@
   /* `display: flex` hierboven wint van het hidden-attribuut: zonder deze regel bleef het
      schap na een bezoek altijd onderin staan (melding 3 okt 2026, stap 106) */
   #schap[hidden] { display: none; }
+  /* De titelrol aan het einde van missie 18 (js/verhaal.js): zwart, met de namen die omhoog schuiven.
+     Boven de overgang (6), want hij komt als het beeld al zwart is. */
+  #titelrol { position: fixed; inset: 0; background: #000; color: #f2f2ee; z-index: 7; overflow: hidden;
+              font-family: Arial, sans-serif; text-align: center; }
+  #titelrol[hidden] { display: none; }
+  #titelrol .rol { position: absolute; left: 0; right: 0; top: 0; }
+  #titelrol h1 { font-size: 64px; letter-spacing: 12px; margin: 0 0 6px; }
+  #titelrol h2 { font-size: 34px; margin: 18px 0 6px; color: #ffd400; }
+  #titelrol p { font-size: 22px; margin: 8px 0; }
+  #titelrol .klein { font-size: 16px; color: #b9bcc2; }
   #schap .kaart { width: 118px; background: rgba(8,14,24,.72); border: 1px solid rgba(255,255,255,.16);
                   border-radius: 8px; padding: 7px 7px 6px; text-align: center; }
   #schap .kaart.bezit { opacity: .42; }
@@ -461,6 +471,8 @@
   <div id="introzwart"></div>
 </div>
 <div id="overgang"><div id="overgangtekst"></div></div>
+<!-- de titelrol van missie 18: buiten #ui (z-index 5), anders ligt hij onder de overgang (6) -->
+<div id="titelrol" hidden><div class="rol"></div></div>
 <div id="filmboven" class="filmbalk"></div><div id="filmonder" class="filmbalk"></div>
 <div id="doodkeus" hidden>
   <button data-keuze="missie"></button>

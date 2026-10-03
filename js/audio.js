@@ -57,6 +57,15 @@ let laatsteSchot = null;          // (voor tools/schottest.mjs)
 const schotLevend = new Set();    // alle stemmen die nog klinken (ook voor de proef: per bron tellen)
 let schotTeller = 0;
 /*
+ De uitzending van missie 18 (stap 107): audio/radio/uitzending.mp3, het fragment dat de gebruiker
+ aanleverde (40,2 s). Gedecodeerd, net als het schot, want het verhaal wil weten hoe lang hij duurt en
+ de proef of hij speelt. Zolang hij loopt zwijgen de autoradio, de huisradio en de missiemuziek.
+*/
+let uitzendBuf = null, uitzendLaden = null, uitzendBron = null, uitzendBegon = 0, uitzendWil = false;
+let uitzendingNu = false;
+let herhaling = false;             // na missie 18 zendt Radio Tinga het fragment af en toe opnieuw uit
+const HERHALING = { bestand: 'uitzending.mp3', titel: 'Een mededeling van Erik en Mark', artiest: 'Radio Tinga' };
+/*
  Per wapen: de afspeelsnelheid (hoger = korter en feller, lager = dieper en voller) en het volume.
  Een volgend schot binnen `kap` seconden kapt de naklank van het vorige af: zo blijft een salvo van het
  machinegeweer twaalf losse knallen per seconde in plaats van één opgestapelde brij, en klinkt
@@ -230,6 +239,67 @@ export const geluid = {
     return schotLaden;
   },
   zetSchotSoort(soort) { schotSoort = soort === 'gemaakt' ? 'gemaakt' : 'opname'; },
+
+  // ---------- de uitzending (missie 18) ----------
+  laadUitzending(url = 'audio/radio/uitzending.mp3') {
+    if (uitzendLaden || !ctx) return uitzendLaden;
+    uitzendLaden = (async () => {
+      try {
+        const r = await fetch(url, { cache: 'force-cache' });
+        if (!r.ok) return null;
+        uitzendBuf = await ctx.decodeAudioData(await r.arrayBuffer());
+        // was hij al gevraagd terwijl hij nog laadde, dan begint hij nu
+        if (uitzendWil && !uitzendBron) this.uitzending(true);
+        return uitzendBuf;
+      } catch { return null; }
+    })();
+    return uitzendLaden;
+  },
+  /*
+   Aan: vanaf het begin, door een radiofilter (de studiomonitors, en zo klinkt hij straks ook in
+   de auto). Uit: meteen weg. Nog niet geladen: hij begint zodra het bestand binnen is.
+  */
+  uitzending(aanzetten) {
+    uitzendWil = !!aanzetten;
+    if (!aanzetten) {
+      if (uitzendBron) { try { uitzendBron.src.stop(); } catch { /* al gestopt */ } }
+      uitzendBron = null; uitzendingNu = false;
+      return false;
+    }
+    if (!aan || !ctx) return false;
+    if (!uitzendBuf) { this.laadUitzending(); return false; }
+    if (uitzendBron) return true;
+    const src = ctx.createBufferSource(); src.buffer = uitzendBuf;
+    const hi = ctx.createBiquadFilter(); hi.type = 'highpass'; hi.frequency.value = 110;
+    const lo = ctx.createBiquadFilter(); lo.type = 'lowpass'; lo.frequency.value = 7000;
+    const g = ctx.createGain(); g.gain.value = 0.9;
+    src.connect(hi); hi.connect(lo); lo.connect(g); g.connect(hoofd);
+    src.onended = () => { if (uitzendBron && uitzendBron.src === src) { uitzendBron = null; uitzendingNu = false; uitzendWil = false; } };
+    src.start();
+    uitzendBron = { src, gain: g };
+    uitzendBegon = nu(); uitzendingNu = true;
+    return true;
+  },
+  // (voor het verhaal en tools/uitzendingtest.mjs)
+  uitzendingStand() {
+    return { geladen: !!uitzendBuf, duur: uitzendBuf ? uitzendBuf.duration : 0, speelt: !!uitzendBron,
+      tijd: uitzendBron ? nu() - uitzendBegon : 0, wil: uitzendWil, herhaling,
+      gedempt: uitzendingNu, kanaal: uitzendBuf ? uitzendBuf.numberOfChannels : 0 };
+  },
+  /*
+   Na missie 18 staat het fragment in de afspeellijst van Radio Tinga, tussen de nummers door. Werkt
+   ook als de zenders nog niet geladen zijn: `laadRadio` kijkt er dan zelf naar.
+  */
+  zetHerhaling(v) {
+    herhaling = !!v;
+    const z = zenders.find(q => /tinga/i.test(q.naam || ''));
+    if (!z) return herhaling;
+    const i = z.nummers.findIndex(n => n.bestand === HERHALING.bestand);
+    if (herhaling && i < 0) z.nummers.push({ ...HERHALING, url: 'audio/radio/' + HERHALING.bestand });
+    if (!herhaling && i >= 0) z.nummers.splice(i, 1);
+    if (zenders[zenderNu] === z) radioLijst = z.nummers;
+    return herhaling;
+  },
   get schotSoort() { return schotSoort; },
   // (voor tools/schottest.mjs)
   schotStand(bron = null) {
@@ -760,6 +830,7 @@ export const geluid = {
     }
     zenderStand = zenders.map(() => null);
     radioLijst = zenders.length ? zenders[zenderNu].nummers : [];
+    if (herhaling) this.zetHerhaling(true);
     return radioLijst;
   },
 
@@ -883,7 +954,8 @@ export const geluid = {
     */
     const onder = (bronnen.jacht && bronnen.jacht.actief)
       || (bronnen.missie && bronnen.missie.aan && !radioVoor);
-    const doel = actief ? (onder ? 0.08 : 0.32) * sterkte : 0;
+    // onder de uitzending van missie 18 zwijgt de radio
+    const doel = actief && !uitzendingNu ? (onder ? 0.08 : 0.32) * sterkte : 0;
     m.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (actief) {
       if (!m.nummer) {
@@ -963,6 +1035,7 @@ export const geluid = {
    hieronder: twee nummers door elkaar is geen spanning maar drukte.
   */
   missiemuziek(actief) {
+    if (uitzendingNu) actief = false;            // onder de uitzending van missie 18
     if (!aan || !missieLijst.length) return false;
     if (!bronnen.missie) {
       if (!actief) return true;
@@ -1150,7 +1223,7 @@ export const geluid = {
     // achtergrondniveau; onder het jachtdeuntje en onder de missiemuziek zachter
     const zacht = (bronnen.jacht && bronnen.jacht.actief)
       || (bronnen.missie && bronnen.missie.aan && !radioVoor);
-    const doel = actief ? (zacht ? 0.07 : 0.20) * sterkte : 0;
+    const doel = actief && !uitzendingNu ? (zacht ? 0.07 : 0.20) * sterkte : 0;
     rr.gain.gain.setTargetAtTime(doel, nu(), actief ? 0.5 : 0.35);
     if (!actief) { rr.maat = 0; return; }
 
@@ -1214,7 +1287,7 @@ export const geluid = {
     }
     const rd = bronnen.radio;
     // hoorbaar tot een meter of 35, daarbinnen vloeiend luider
-    const v = afstand == null ? 0 : Math.max(0, 1 - afstand / 35) ** 2;
+    const v = afstand == null || uitzendingNu ? 0 : Math.max(0, 1 - afstand / 35) ** 2;
     rd.gain.gain.setTargetAtTime(v * 0.5, nu(), 0.3);
     if (v <= 0.001) return;
 

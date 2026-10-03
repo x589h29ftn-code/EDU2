@@ -1032,6 +1032,62 @@ const RONALD_LOODS = (stil) => stil ? [
   zegtBouwman('Maakt niet uit. Zaterdag is alles weg. En zij ook.'),
 ];
 
+// ---------- missie 18: de uitzending (stap 107) ----------
+/*
+ De laatste missie. Gevraagd: "Erik en Mark voeren op het laatst een usb-stick in bij radiozender
+ Tinga in Sneek, en dan speelt hij een fragment af waarin zogenaamd aan iedereen in Sneek gezegd
+ wordt dat Erik en Mark de drugs regelen. De Veteraan en Bouwman zijn verleden tijd." En op 3 okt,
+ met een foto van een radiostudio: "zoek een plek hiervoor en maak dit; bedenk tot slot een goed
+ einde en dan kan Erik het spel gewoon vrij spelen."
+*/
+const UITZENDING_WACHT = 60;            // tellen na de ochtend van missie 17 tot Mark belt
+const UITZENDING_OCHTEND = 7.75;        // zondagochtend, kwart voor acht
+const UITZENDING_TIJD = 60;             // zo lang houdt Johan de dj bij de koffie
+const UITZENDING_BELONING = 10000;
+const UITZENDING_AVOND = 20.5;          // het einde: half negen 's avonds, de zon gaat onder
+const UITZENDING_DUUR = 40.2;           // het fragment (gemeten aan de mp3-frames); de mp3 zelf wint als hij geladen is
+const zegtSjors = (tekst) => ({ wie: 'Sjors', kop: { huid: '#e2b896', haar: '#3b2a1c', shirt: '#1d2a44' }, tekst });
+const UITZENDING_TELEFOON = [
+  telLijn(zegtMark('Erik. Kom naar de Wieken. Johan heeft iets, en dan zijn we klaar.')),
+];
+const UITZENDING_PLAN = [
+  zegtJohan('Kijk.'),
+  zegtErik('Een usb-stick.'),
+  zegtJohan('Veertig seconden. Opgenomen in mijn schuur, met de tekst van Mark.'),
+  zegtMark('Morgenochtend om acht uur luistert half Sneek naar Radio Tinga. Het ochtendprogramma van Sjors.'),
+  zegtMark('De Veteraan ligt onder de grond. Bouwman is verleden tijd. Er zit niemand meer boven ons.'),
+  zegtMark('Alleen weet nog niemand dat. Dat moet de hele stad één keer horen, en dan hoeven we het nooit meer te zeggen.'),
+  zegtErik('En Sjors laat ons zomaar zijn studio in?'),
+  zegtJohan('Sjors zat bij mij in de klas. Ik neem koffie mee en hou hem in de keuken aan de praat. Eén minuut.'),
+  zegtJohan('Stick in het mengpaneel, de rode schuif omhoog, en weg.'),
+  zegtMark('Radio Tinga, aan de Tinga. Je ziet de mast vanaf de weg. Slaap lekker, broer.'),
+];
+const UITZENDING_BIJ_DE_DEUR = [
+  zegtJohan('Daar ben je. Sjors zit al te draaien.'),
+  zegtJohan('Ik ga naar binnen. Als ik hem in de keuken heb, bel ik. Dan heb je een minuut.'),
+];
+const UITZENDING_NU = [telLijn(zegtJohan('Nu. Hij staat bij de koffie.'))];
+const UITZENDING_USB = [zegtErik('Erin.')];
+const UITZENDING_OMHOOG = [zegtErik('En omhoog.')];
+const UITZENDING_OP_DE_RADIO = [{ wie: 'Radio Tinga', tekst: `♪ ${'87.9 FM'} · een mededeling voor heel Sneek` }];
+const UITZENDING_TERUG = [
+  zegtSjors('Wat… wat draait er nou?'),
+  zegtErik('Een mededeling, Sjors. Je koffie wordt koud.'),
+];
+const UITZENDING_TE_LAAT = [zegtSjors('Hé! Wie ben jij? Wat doe je aan mijn tafel?')];
+const UITZENDING_BUITEN = [
+  zegtMark('Hoor je dat? Ze staan op de Lemmerweg te toeteren.'),
+  zegtJohan('Sjors geeft me nooit meer koffie.'),
+  zegtMark('Laat maar. Vanaf vandaag betaalt niemand in Tinga nog voor zijn koffie dan wij.'),
+  zegtMark(`Hier, ${euro(UITZENDING_BELONING)}. Je deel van de container. Vanavond bij mij, aan de Wieken.`),
+];
+const UITZENDING_EINDE = [
+  zegtMark('Weet je nog, de Molenkrite? Een krat bier, een radiootje in de voortuin, en De Veteraan die ons een klusje gaf.'),
+  zegtErik('En nu luistert heel Sneek naar ons.'),
+  zegtJohan('Op Tinga.'),
+  zegtMark('Op Tinga. Vanaf nu is het van ons.'),
+];
+
 // ---------- missie 6: de groene BX ----------
 const BX_AANKONDIGING = ['Nieuwe missies kunnen worden gestart door naar het '
   + '<b>M-symbool</b> op de minimap te gaan.'];
@@ -1231,6 +1287,8 @@ export function initVerhaal(ctx) {
     camera = null, politieRust = null, stuurPolitie = null, zetPak = null, sterren = () => 0,
     // missie 14 (js/main.js): de gekochte auto's van Autohuis Lemmerweg, en zelf in een auto stappen
     garage = () => null, stapIn = null,
+    // missie 18 (js/main.js): de studio van Radio Tinga (js/studio.js)
+    studio = () => null,
   } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
@@ -1416,7 +1474,7 @@ export function initVerhaal(ctx) {
   const KLUS_WACHT = {
     johan: ['naar_johan'], bx: ['wacht'], bom: ['wacht'], huis: ['naar_mark', 'kiezen'],
     veteraan: ['naar_veteraan'], politieauto: ['wacht'], brug: ['wacht'], schrift: ['wacht'],
-    race: ['naarRonald'], schaduw: ['naarMark'], ronald: ['naarWieken'],
+    race: ['naarRonald'], schaduw: ['naarMark'], ronald: ['naarWieken'], uitzending: ['naarWieken'],
   };
   const VOOR_JOHAN = ['molenkrite', 'rijden', 'bewaking', 'afleveren'];
   let klusPauze = null;          // wat het verhaal in beeld had toen de klus begon
@@ -1605,6 +1663,7 @@ export function initVerhaal(ctx) {
     ruimSchaduwOp();
     ruimInvalOp();
     ruimRonaldOp();
+    ruimUitzendingOp();
     punt = null;                      // een nieuwe missie, dus geen oud herstelpunt
     missie = naam;
     fase = 'wacht';
@@ -1638,6 +1697,7 @@ export function initVerhaal(ctx) {
     else if (naam === 'schaduw') beginSchaduw();
     else if (naam === 'inval') beginInval();
     else if (naam === 'ronald') beginRonald();
+    else if (naam === 'uitzending') beginUitzending();
   }
 
   /*
@@ -2050,6 +2110,7 @@ export function initVerhaal(ctx) {
     if (missie === 'schaduw') { hervatSchaduw(punt && punt.missie === 'schaduw' ? punt.fase : 'telefoon'); return; }
     if (missie === 'inval') { hervatInval(punt && punt.missie === 'inval' ? punt.fase : 'telefoon'); return; }
     if (missie === 'ronald') { hervatRonald(punt && punt.missie === 'ronald' ? punt.fase : 'telefoon'); return; }
+    if (missie === 'uitzending') { hervatUitzending(punt && punt.missie === 'uitzending' ? punt.fase : 'telefoon'); return; }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -2126,6 +2187,8 @@ export function initVerhaal(ctx) {
     if (invalToets()) return true;
     // missie 17: de worst, en de kluis in de caravan
     if (ronaldToets()) return true;
+    // missie 18: de usb-stick en de schuif in de studio van Radio Tinga, of de titelrol wegklikken
+    if (uitzendingToets()) return true;
     if (missie === 'molenkrite' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND) {
       fase = 'gesprek';
       zeg(GESPREK1, () => { fase = 'loopt'; zetOpdracht('ga met Mark mee'); });
@@ -4083,6 +4146,10 @@ export function initVerhaal(ctx) {
     if (zwart) { zwart = null; zetZwart(0, 0); }
     // (en het filmbeeld aan het water na missie 17, dat daarna in het zwart gaat)
     if (ronaldFilm && ronaldFilm.soort === 'loods') { ronaldFilm = null; toonFilmbalken(0); schietSlot(false); }
+    // (en na missie 18: het klokje naar de avond, het filmbeeld van het einde en de titelrol)
+    uitzNaT = 0;
+    if (titelrol) sluitTitelrol();
+    if (uitzFilm && uitzFilm.soort === 'einde') { uitzFilm = null; toonFilmbalken(0); schietSlot(false); }
   }
   function werkZwartBij(dt) {
     if (!zwart) return;
@@ -7791,6 +7858,8 @@ export function initVerhaal(ctx) {
     verstopAuto(raceBouwmanAuto);
     if (zetUur) zetUur(RONALD_OCHTEND);
     springNaarHuis();
+    // een minuut later belt Mark (missie 18)
+    if (!uitzendingKlaar) { naMissieNaam = 'uitzending'; naMissieT = UITZENDING_WACHT; }
   }
   function ronaldNaloop(dt) {
     if (ronaldNaT > 0) {
@@ -8037,6 +8106,470 @@ export function initVerhaal(ctx) {
     naarDeGolf();
   }
 
+  /*
+   ---- missie 18: de uitzending (stap 107) ----
+   Een minuut na de ochtend van missie 17 belt Mark. Fases:
+     telefoon    Mark aan de lijn
+     naarWieken  de M bij de Wieken 29
+     plan        Mark op de bank, Johan met de usb-stick aan tafel
+     klaarmaken  naar buiten: dan "Zondagochtend"
+     naarStudio  kwart voor acht, naar Radio Tinga aan de Tinga; Johan wacht bij de ingang
+     wachten     Johan is naar binnen, en belt zodra hij de dj in de keuken heeft
+     binnen      een minuut (de balk): de studio in, E de stick erin, E de schuif omhoog
+     uitzending  het filmbeeld: het fragment over heel Sneek (js/studio.js, geluid.uitzending)
+     terug       Sjors komt binnen met zijn koffie
+     naarBuiten  naar buiten, waar Mark en Johan staan
+     buiten      het gesprek, MISSIE GESLAAGD, en dan "Die avond…"
+     einde       het filmbeeld voor de Wieken 29 bij zonsondergang, de titelrol, en vrij spelen
+   De studio zelf (het bureau, de mengpanelen, de mast) staat in js/studio.js.
+  */
+  let uitzendingKlaar = false;
+  let uitzT = 0, uitzKlok = 0, uitzNaT = 0, uitzKlokWas = null;
+  let uitzFilm = null;             // { soort: 'uitzending' | 'terug' | 'einde', t, shots, cam, vast }
+  let uitzSjorsGezien = false;
+  const titelrolEl = document.getElementById('titelrol');
+  let titelrol = null;             // { t, duur } zolang de titelrol loopt
+
+  function ruimUitzendingOp() {
+    const st = studio && studio();
+    if (st) {
+      st.zetSlot(null); st.zetTafelHint(null); st.zetUsb(false); st.zetSchuif(0); st.zetOnAir(false);
+      st.djAanTafel();
+    }
+    geluid.uitzending(false);
+    if (invalBalk) invalBalk.hidden = true;
+    if (uitzFilm) { uitzFilm = null; toonFilmbalken(0); }
+    if (missie === 'uitzending') { invalJohan.groep.visible = false; markZichtbaar(false); }
+    if (uitzKlokWas !== null && klokLoopt) klokLoopt(uitzKlokWas);
+    uitzKlokWas = null;
+    uitzKlok = 0; uitzT = 0; uitzSjorsGezien = false;
+    sluitTitelrol();
+    schietSlot(false);
+  }
+  function beginUitzending() {
+    fase = 'telefoon';
+    ruimUitzendingOp();
+    uitzT = 1.2; uitzNaT = 0;
+    markZichtbaar(false);
+    zetOpdracht('neem de telefoon op');
+    hud.zetNavigatie(null); navDoel = null;
+  }
+  function naarDeWiekenUitzending() {
+    fase = 'naarWieken'; zetPunt(fase);
+    const d = wiekenDeur();
+    zetOpdracht('naar Mark aan de Wieken 29');
+    zetNavDoel(d.x, d.z, 'de Wieken 29', 'M');
+  }
+  function uitzendingPlan(w, sp) {
+    fase = 'plan';
+    opDeBank(mark, w.plekken, sp);
+    markZichtbaar(true);
+    const t = w.plekken.tafel;
+    if (t) {
+      const [jx, jz] = resolveCollisions(t.x + 0.7, t.z + 0.4, 0.35);
+      invalJohan.zetNeer(jx, jz, kijkHoek({ x: jx, z: jz }, sp)); invalJohan.groep.visible = true;
+    }
+    hud.zetNavigatie(null); navDoel = null;
+    zetOpdracht('');
+    // het fragment alvast inladen: het moet er zijn als de schuif omhoog gaat
+    geluid.laadUitzending();
+    zeg(UITZENDING_PLAN, () => {
+      fase = 'klaarmaken';
+      zetOpdracht('naar buiten');
+      hud.melding('MISSIE 18 · DE UITZENDING', 'Zondagochtend, Radio Tinga aan de Tinga.', 6);
+    });
+  }
+  // de plek bij de ingang waar Johan staat te wachten, naast de zuil
+  function johanBijDeIngang() {
+    const st = studio && studio();
+    if (!st) return null;
+    const p = st.plekken, d = p.deurBuiten;
+    return { x: d.x + p.f[0] * 2.0 + p.r[0] * 1.6, z: d.z + p.f[1] * 2.0 + p.r[1] * 1.6 };
+  }
+  function naarDeStudio() {
+    const st = studio && studio();
+    ruimUitzendingOp();
+    fase = 'naarStudio'; zetPunt(fase);
+    markZichtbaar(false);
+    if (zetUur) zetUur(UITZENDING_OCHTEND);
+    springNaarHuis();
+    geluid.laadUitzending();
+    if (!st) { zetOpdracht('Radio Tinga staat niet in deze kaart'); return; }
+    st.zetSlot('Johan staat bij de ingang. Eerst even met hem praten.');
+    const j = johanBijDeIngang();
+    const [jx, jz] = resolveCollisions(j.x, j.z, 0.4);
+    invalJohan.zetNeer(jx, jz, kijkHoek({ x: jx, z: jz }, st.plekken.stoep));
+    invalJohan.groep.visible = true;
+    zetOpdracht('naar Radio Tinga aan de Tinga, Johan wacht bij de ingang');
+    zetNavDoel(st.plekken.stoep.x, st.plekken.stoep.z, 'Radio Tinga', 'M');
+  }
+  function johanGaatNaarBinnen() {
+    const st = studio();
+    fase = 'wachten';
+    hud.zetNavigatie(null); navDoel = null;
+    zetOpdracht('wacht op Johan');
+    st.zetSlot('Wacht tot Johan belt: hij moet Sjors eerst in de keuken hebben.');
+    loopt(invalJohan, st.plekken.deurBuiten, 1.4, () => { invalJohan.groep.visible = false; });
+    uitzT = 6;
+  }
+  function deMinuutBegint() {
+    const st = studio();
+    fase = 'binnen';
+    geluid.telefoon(1);
+    zeg(UITZENDING_NU, null, { auto: 2.0 });
+    st.zetSlot(null);
+    // de dj staat in de keuken met Johan: zijn stoel is leeg
+    st.djStaat(); st.dj.groep.visible = false;
+    uitzKlok = UITZENDING_TIJD;
+    zetOpdracht('de studio in: de stick in het mengpaneel');
+  }
+  function sjorsKomtTerug() {
+    const st = studio();
+    fase = 'betrapt';
+    st.zetTafelHint(null);
+    if (invalBalk) invalBalk.hidden = true;
+    const k = st.plekken.koffieDeur;
+    st.dj.zetNeer(k.x, k.z + 0.5, Math.PI); st.dj.groep.visible = true;
+    zeg(UITZENDING_TE_LAAT, () => mislukt('Sjors kwam terug van de koffie.'), { auto: 2.4 });
+  }
+  // E aan de tafel: eerst de stick, dan de schuif
+  function uitzendingToets() {
+    if (missie !== 'uitzending' || !balk.hidden) return false;
+    if (titelrol) { sluitTitelrol(); naDeTitelrol(); return true; }
+    if (fase !== 'binnen') return false;
+    const st = studio && studio();
+    if (!st || !st.bijTafel(player.pos.x, player.pos.z)) return false;
+    if (!st.usb) {
+      st.zetUsb(true);
+      geluid.leegKlik();
+      zeg(UITZENDING_USB, null, { auto: 1.0 });
+      zetOpdracht('de rode schuif omhoog');
+      return true;
+    }
+    startUitzending();
+    return true;
+  }
+
+  // ---- het filmbeeld: het fragment gaat de lucht in ----
+  function middenVan(ring) {
+    let x = 0, z = 0, n = 0;
+    const loop = (r) => { if (typeof r[0] === 'number') { x += r[0]; z += r[1]; n++; } else for (const q of r) loop(q); };
+    loop(ring);
+    return n ? { x: x / n, z: z / n } : null;
+  }
+  // de shots van de montage: elk met een camera die langzaam beweegt, en een plek voor de speler
+  // in de buurt (onzichtbaar), zodat de wereld daar in de fijne uitvoering staat
+  function montageShots(st) {
+    const P = st.plekken, N = P.nul, shots = [];
+    const S = st.maten, C = { x: N.x + S.stoel.x, z: N.z + S.stoel.z };
+    const tafel = P.tafel;
+    // 1. de schuif omhoog en het ON AIR-bord: in de studio, naast de stoel
+    const pan = new THREE.Vector3(); st.panelen[0].getWorldPosition(pan);
+    shots.push({ van: [C.x - 1.0, 1.3, C.z - 0.8], naar: [C.x - 0.8, 1.2, C.z - 0.6], kijk: [pan.x, 0.85, pan.z], vast: tafel, binnen: true });
+    // 2. de mast boven het dak, vanaf de Tinga
+    const d = P.deurBuiten, f = P.f, r = P.r;
+    const m = P.mast;
+    const v2 = { x: d.x + f[0] * 30 + r[0] * 14, z: d.z + f[1] * 30 + r[1] * 14 };
+    shots.push({ van: [v2.x, 1.7, v2.z], naar: [v2.x - r[0] * 4, 2.2, v2.z - r[1] * 4], kijk: [m.x, m.top - 6, m.z], vast: v2, kijkVan: [m.x, m.voet + 3, m.z] });
+    // 3. de BP aan de Lemmerweg: een auto bij de pomp
+    const bp = (KAART.tankstations || [])[0];
+    const bpM = bp && bp.ring ? middenVan(bp.ring) : null;
+    if (bpM) shots.push({ van: [bpM.x - 22, 3.2, bpM.z + 14], naar: [bpM.x - 18, 2.6, bpM.z + 10], kijk: [bpM.x, 1.2, bpM.z], vast: { x: bpM.x - 26, z: bpM.z + 18 } });
+    // 4. de Dúvelsrak met het gat
+    if (brug && brugKlaar) {
+      const g = brugP(BRUG_GAT, 0), z1 = brugP(BRUG_GAT - 32, 14), z2 = brugP(BRUG_GAT - 26, 12);
+      shots.push({ van: [z1.x, brug.hoogte + 6, z1.z], naar: [z2.x, brug.hoogte + 5, z2.z], kijk: [g.x, brug.hoogte, g.z], vast: z1 });
+    }
+    // 5. de Lemmerweg 80: het huis van Ronald
+    if (racePand) {
+      const c = { x: racePand.rect.cx, z: racePand.rect.cz }, fr = racePand.front || [0, 1];
+      const v5 = { x: c.x + fr[0] * 22 + fr[1] * 6, z: c.z + fr[1] * 22 - fr[0] * 6 };
+      shots.push({ van: [v5.x, 1.8, v5.z], naar: [v5.x - fr[1] * 3, 1.8, v5.z + fr[0] * 3], kijk: [c.x, 2.2, c.z], vast: v5 });
+    }
+    // 6. Molenkrite 15, waar het begon (met het lint ervoor): vanaf de straat voor het huis
+    {
+      const vd = plekVoorDeDeur(), lx = -Math.sin(vd.yaw), lz = -Math.cos(vd.yaw);
+      const v6 = { x: vd.x + lx * 9, z: vd.z + lz * 9 };
+      shots.push({ van: [v6.x, 1.7, v6.z], naar: [v6.x - lx * 3, 1.7, v6.z - lz * 3], kijk: [thuis.x, 1.6, thuis.z], vast: v6 });
+    }
+    // 7. hoog over Tinga, naar de mast met zijn rode lampje
+    {
+      const v7 = { x: m.x - 160, z: m.z + 120 };
+      shots.push({ van: [v7.x, 70, v7.z], naar: [v7.x + 40, 58, v7.z - 30], kijk: [m.x, m.top, m.z], vast: { x: m.x - 60, z: m.z + 45 } });
+    }
+    /*
+     Een camera laag bij de grond hoort niet in een gebouw of een schuurtje te staan: het begin en
+     het eind van elk shot buiten worden de botsdozen uit geduwd (tools/uitzendingtest.mjs meet het).
+    */
+    for (const sh of shots) {
+      if (sh.binnen) continue;
+      for (const p of [sh.van, sh.naar]) {
+        if (p[1] > 6) continue;                    // hoger dan de daken (de Dúvelsrak, over Tinga)
+        const [x, z] = resolveCollisions(p[0], p[2], 0.6);
+        p[0] = x; p[2] = z;
+      }
+    }
+    return shots;
+  }
+  function startUitzending() {
+    const st = studio();
+    fase = 'uitzending'; zetPunt('naarStudio');
+    st.zetTafelHint(null);
+    st.zetSchuif(1); st.zetOnAir(true);
+    if (invalBalk) invalBalk.hidden = true;
+    zetOpdracht('');
+    zeg(UITZENDING_OMHOOG, null, { auto: 0.9 });
+    geluid.uitzending(true);
+    const duur = geluid.uitzendingStand().duur || UITZENDING_DUUR;
+    const shots = montageShots(st);
+    uitzFilm = { soort: 'uitzending', t: 0, shots, duur, per: duur / shots.length, terug: { x: player.pos.x, z: player.pos.z }, gezegd: false };
+    schietSlot(true);
+  }
+  function eindeUitzending() {
+    const st = studio();
+    geluid.uitzending(false);
+    // terug in de studio, achter de stoel; Sjors staat in de deur van de keuken
+    const t = st.plekken.tafel, k = st.plekken.koffieDeur;
+    player.pos.set(t.x, 0, t.z);
+    st.dj.zetNeer(k.x, k.z + 0.6, Math.PI); st.dj.groep.visible = true;
+    fase = 'terug';
+    uitzFilm = { soort: 'terug', t: 0, vast: { x: t.x, z: t.z } };
+    zeg(UITZENDING_TERUG, null, { auto: 2.2 });
+  }
+  function naDeUitzending() {
+    const st = studio();
+    uitzFilm = null; toonFilmbalken(0); schietSlot(false);
+    player.applyCamera();
+    fase = 'naarBuiten';
+    zetOpdracht('naar buiten');
+    // Sjors loopt naar zijn stoel en gaat weer zitten
+    loopt(st.dj, st.plekken.stoel, 1.1, () => st.djAanTafel());
+    // Mark en Johan staan buiten bij de zuil
+    const j = johanBijDeIngang(), P = st.plekken;
+    const [jx, jz] = resolveCollisions(j.x, j.z, 0.4);
+    invalJohan.zetNeer(jx, jz, kijkHoek({ x: jx, z: jz }, P.stoep)); invalJohan.groep.visible = true;
+    const [mx, mz] = resolveCollisions(j.x + P.r[0] * 1.3, j.z + P.r[1] * 1.3, 0.4);
+    mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, P.stoep)); markZichtbaar(true);
+  }
+  function uitzendingBuiten() {
+    fase = 'buiten';
+    zetOpdracht('');
+    // de stad reageert: claxons over de Lemmerweg en de Tinga
+    for (const [d, na] of [[60, 0.4], [120, 1.6], [90, 2.7], [150, 3.5]]) setTimeout(() => geluid.claxon && geluid.claxon(d), na * 1000);
+    zeg(UITZENDING_BUITEN, uitzendingGeslaagd);
+  }
+  function uitzendingGeslaagd() {
+    fase = 'avond';
+    uitzendingKlaar = true;
+    verdien(UITZENDING_BELONING);
+    spanningUit = 6;
+    geluid.zetHerhaling(true);
+    hud.melding('MISSIE GESLAAGD – DE UITZENDING', `Beloning: + ${euro(UITZENDING_BELONING)} toegevoegd aan wallet`, 8);
+    uitzNaT = 5;
+  }
+  // ---- het einde: voor de Wieken 29 bij zonsondergang ----
+  function startEindFilm() {
+    markZichtbaar(false); invalJohan.groep.visible = false;
+    if (zetUur) zetUur(UITZENDING_AVOND);
+    if (klokLoopt) { if (uitzKlokWas === null) uitzKlokWas = klokLoopt(); klokLoopt(false); }
+    springNaarHuis();
+    const w = wieken && wieken();
+    const d = wiekenDeur();
+    const st = (w && w.plekken && w.plekken.stoep) || d;
+    // de drie op de stoep, een kring, met de straat achter zich
+    const u = { x: st.x - d.x, z: st.z - d.z }, L = Math.hypot(u.x, u.z) || 1;
+    const ux = u.x / L, uz = u.z / L, zx = -uz, zz = ux;
+    const midden = { x: st.x + ux * 1.2, z: st.z + uz * 1.2 };
+    const plek = (a, b) => { const [x, z] = resolveCollisions(midden.x + ux * a + zx * b, midden.z + uz * a + zz * b, 0.35); return { x, z }; };
+    const pm = plek(0.6, -0.9), pj = plek(0.6, 0.9), pe = plek(-0.5, 0);
+    mark.zetNeer(pm.x, pm.z, kijkHoek(pm, midden)); markZichtbaar(true);
+    invalJohan.zetNeer(pj.x, pj.z, kijkHoek(pj, midden)); invalJohan.groep.visible = true;
+    if (player.inCar) { player.inCar.speed = 0; player.inCar = null; if (eersteP) eersteP(); geluid.motorUit(); }
+    player.pos.set(pe.x, 0, pe.z); player.yaw = kijkHoek(pe, midden); player.applyCamera();
+    fase = 'einde';
+    uitzFilm = { soort: 'einde', t: 0, vast: pe, midden, ux, uz, zx, zz, gezegd: false };
+    schietSlot(true);
+  }
+  function openTitelrol() {
+    if (!titelrolEl) { naDeTitelrol(); return; }
+    const rol = titelrolEl.querySelector('.rol');
+    if (rol) {
+      rol.innerHTML = [
+        '<h1>TINGA</h1>', '<p class="klein">een verhaal uit Sneek</p>', '<br>',
+        '<p>Erik</p>', '<p>Mark, zijn broer</p>', '<p>Johan</p>', '<p>Ronald</p>', '<p>Sjors, Radio Tinga 87.9 FM</p>', '<br>',
+        '<p class="klein">De Veteraan †</p>', '<p class="klein">Bouwman — verleden tijd</p>', '<br>',
+        `<p>achttien missies</p>`, `<p>${euro(geld)} op zak</p>`, '<br>',
+        '<p class="klein">de wijk uit de BGT en de 3D BAG</p>', '<p class="klein">gebouwd met Three.js</p>', '<br>',
+        '<h2>Tinga is van jou.</h2>', '<p class="klein">Speel vrij verder: klusjes, de Ferrari, de radio.</p>',
+      ].join('');
+    }
+    titelrolEl.hidden = false;
+    titelrol = { t: 0, duur: 22 };
+    zetTitelrol(0);
+  }
+  function zetTitelrol(f) {
+    const rol = titelrolEl && titelrolEl.querySelector('.rol');
+    if (rol) rol.style.transform = `translateY(${(1 - f) * 100 - f * 100}%)`;
+  }
+  function sluitTitelrol() {
+    if (titelrolEl) titelrolEl.hidden = true;
+    titelrol = null;
+  }
+  function naDeTitelrol() {
+    // vrij spelen: de avond loopt weer, en er wacht geen missie meer
+    uitzFilm = null; toonFilmbalken(0); schietSlot(false);
+    markZichtbaar(false); invalJohan.groep.visible = false;
+    if (uitzKlokWas !== null && klokLoopt) klokLoopt(uitzKlokWas || true);
+    uitzKlokWas = null;
+    if (klokLoopt) klokLoopt(true);
+    fase = 'klaar';
+    missie = 'klaar';
+    springNaarHuis();
+    player.applyCamera();
+    zetOpdracht('');
+    hud.melding('VRIJ SPELEN', 'Tinga is van jou. Klusjes, de Ferrari, de radio: doe wat je wilt.', 8);
+  }
+  function uitzendingNaloop(dt) {
+    if (uitzNaT > 0) {
+      uitzNaT -= dt;
+      if (uitzNaT <= 0) zwartMet('Die avond…', startEindFilm);
+    }
+    if (titelrol) {
+      titelrol.t += dt;
+      zetTitelrol(Math.min(1, titelrol.t / titelrol.duur));
+      if (titelrol.t >= titelrol.duur) { sluitTitelrol(); naDeTitelrol(); }
+    }
+  }
+
+  function werkUitzendingFilmBij(dt) {
+    const f = uitzFilm;
+    if (!f) return;
+    f.t += dt;
+    const t = f.t;
+    toonFilmbalken(Math.min(1, t / 0.6));
+    if (player.gun) player.gun.visible = false;
+    let pos = null, kijk = null;
+    if (f.soort === 'uitzending') {
+      const i = Math.min(f.shots.length - 1, Math.floor(t / f.per));
+      const sh = f.shots[i], u = (t - i * f.per) / f.per;
+      f.shot = i;
+      player.pos.x = sh.vast.x; player.pos.z = sh.vast.z;
+      pos = sh.van.map((v, k) => v + (sh.naar[k] - v) * u);
+      const kv = sh.kijkVan || sh.kijk;
+      kijk = kv.map((v, k) => v + (sh.kijk[k] - v) * u);
+      if (!f.gezegd && t > 1.2) { f.gezegd = true; zeg(UITZENDING_OP_DE_RADIO, null, { auto: 4.5 }); }
+      if (t >= f.duur) { eindeUitzending(); return; }
+    } else if (f.soort === 'terug') {
+      const st = studio();
+      player.pos.x = f.vast.x; player.pos.z = f.vast.z;
+      const dj = st.dj.groep.position;
+      st.dj.kijkNaar(player.pos.x, player.pos.z, dt, 3); st.dj.update(dt, {});
+      pos = [f.vast.x + 0.4, 1.6, f.vast.z - 0.6]; kijk = [dj.x, 1.5, dj.z];
+      if (t > 5.0 && balk.hidden) naDeUitzending();
+    } else if (f.soort === 'einde') {
+      player.pos.x = f.vast.x; player.pos.z = f.vast.z;
+      mark.update(dt, {}); invalJohan.update(dt, {});
+      const m = f.midden;
+      if (!f.gezegd && t > 0.8) { f.gezegd = true; zeg(UITZENDING_EINDE, null, { auto: 2.8 }); }
+      if (t < 12) {
+        // laag, van opzij: de drie in een kring op de stoep
+        const a = Math.min(1, t / 12);
+        pos = [m.x - f.ux * 5.5 + f.zx * (4 - a * 2), 1.5 + a * 0.4, m.z - f.uz * 5.5 + f.zz * (4 - a * 2)];
+        kijk = [m.x, 1.45, m.z];
+      } else {
+        // en dan omhoog, over de daken, naar de mast van Radio Tinga met zijn rode lampje
+        const st = studio && studio(), mast = st ? st.plekken.mast : { x: m.x + 200, z: m.z, top: 25 };
+        const a = Math.min(1, (t - 12) / 9), e = a * a * (3 - 2 * a);
+        pos = [m.x - f.ux * 5.5 * (1 - e), 1.9 + e * 75, m.z - f.uz * 5.5 * (1 - e)];
+        kijk = [m.x + (mast.x - m.x) * e, 1.45 + (mast.top - 1.45) * e, m.z + (mast.z - m.z) * e];
+      }
+      if (t > 21 && !f.zwart) { f.zwart = true; zwartMet('', () => { uitzFilm = null; toonFilmbalken(0); openTitelrol(); }); }
+    }
+    if (pos && kijk) f.cam = { pos, kijk };        // (voor tools/uitzendingshots.mjs)
+    if (camera && pos && kijk && uitzFilm) {
+      camera.position.set(pos[0], pos[1], pos[2]);
+      camera.lookAt(kijk[0], kijk[1], kijk[2]);
+    }
+  }
+
+  // ---- elk beeld, tijdens de missie ----
+  function werkUitzendingBij(dt, sp) {
+    if (uitzFilm || fase === 'klaar' || fase === 'einde') return;
+    const st = studio && studio();
+    if (fase === 'telefoon') {
+      if (uitzT > 0) {
+        uitzT -= dt;
+        if (uitzT <= 0) { geluid.telefoon(); zeg(UITZENDING_TELEFOON, naarDeWiekenUitzending, { wie: 'Mark', telefoon: true, kop: KOPPEN.mark }); }
+      }
+      return;
+    }
+    const w = wieken && wieken();
+    const binnenW = !!(w && w.binnen && w.binnen(sp.x, sp.z));
+    if (fase === 'naarWieken') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+      if (binnenW && balk.hidden && w.plekken) uitzendingPlan(w, sp);
+      return;
+    }
+    if (fase === 'plan' || fase === 'klaarmaken') {
+      if (mark.groep.visible) mark.update(dt, { zit: BANK_ZITTING });
+      if (invalJohan.groep.visible) { invalJohan.kijkNaar(sp.x, sp.z, dt, 2); invalJohan.update(dt, {}); }
+      if (fase === 'klaarmaken' && !binnenW && balk.hidden) {
+        fase = 'nacht';
+        zetOpdracht('');
+        zwartMet('Zondagochtend', naarDeStudio);
+      }
+      return;
+    }
+    if (fase === 'nacht' || !st) return;
+    if (fase === 'naarStudio') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+      if (invalJohan.groep.visible) { invalJohan.kijkNaar(sp.x, sp.z, dt, 2); invalJohan.update(dt, {}); }
+      if (!player.inCar && balk.hidden && afst(sp, invalJohan.groep.position) < 5) {
+        zeg(UITZENDING_BIJ_DE_DEUR, johanGaatNaarBinnen);
+      }
+      return;
+    }
+    if (fase === 'wachten') {
+      werkLoperBij(dt);
+      if (uitzT > 0) { uitzT -= dt; if (uitzT <= 0) deMinuutBegint(); }
+      return;
+    }
+    if (fase === 'binnen') {
+      uitzKlok -= dt;
+      zetInvalBalk(`Sjors bij de koffie · ${Math.max(0, Math.ceil(uitzKlok))} s`, Math.max(0, uitzKlok) / UITZENDING_TIJD, uitzKlok < 15);
+      const hier = st.binnen(sp.x, sp.z);
+      st.zetTafelHint(hier && balk.hidden ? (st.usb ? 'E — de rode schuif omhoog' : 'E — de usb-stick in het mengpaneel') : null);
+      if (hier && !st.usb) zetOpdracht('de stick in het mengpaneel');
+      if (uitzKlok <= 0) sjorsKomtTerug();
+      return;
+    }
+    if (fase === 'naarBuiten') {
+      werkLoperBij(dt);
+      if (mark.groep.visible) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
+      if (invalJohan.groep.visible) { invalJohan.kijkNaar(sp.x, sp.z, dt, 2); invalJohan.update(dt, {}); }
+      if (!st.binnen(sp.x, sp.z) && balk.hidden && afst(sp, invalJohan.groep.position) < 9) uitzendingBuiten();
+      return;
+    }
+    if (fase === 'buiten' || fase === 'avond') {
+      if (mark.groep.visible) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
+      if (invalJohan.groep.visible) { invalJohan.kijkNaar(sp.x, sp.z, dt, 2); invalJohan.update(dt, {}); }
+    }
+  }
+  /*
+   Opnieuw na het neergaan, een mislukking of het laden. Tot "Zondagochtend" begin je bij de M aan
+   de Wieken; daarna opnieuw op zondagochtend thuis, met Johan bij de ingang. Na de uitzending is
+   er niets meer te verliezen: dan ga je door naar de avond.
+  */
+  function hervatUitzending(f) {
+    beginUitzending();
+    if (f === 'telefoon') return;
+    if (['naarWieken', 'plan', 'klaarmaken', 'nacht'].includes(f)) { naarDeWiekenUitzending(); return; }
+    if (['naarBuiten', 'buiten', 'avond', 'einde', 'terug'].includes(f) && uitzendingKlaar) { startEindFilm(); return; }
+    naarDeStudio();
+  }
+
   // ---------- per beeld ----------
   function update(dt) {
     // Het spannende deuntje loopt precies zolang de achtervolging duurt: het
@@ -8057,6 +8590,8 @@ export function initVerhaal(ctx) {
     werkInvalFilmBij(dt);
     // missie 17: Ronald komt thuis, en Bouwman aan het water
     werkRonaldFilmBij(dt);
+    // missie 18: de montage van de uitzending, Sjors met zijn koffie, en het einde
+    werkUitzendingFilmBij(dt);
     // Mark die zelf begint (zie beginGesprek): even wachten tot het beeld staat
     // en de speler zijn handen aan de muis heeft, en dan praat hij.
     if (startPraatT > 0) {
@@ -8175,7 +8710,7 @@ export function initVerhaal(ctx) {
       // als hij op de bank zit (missie 7 en 11): dan houdt hij zijn houding
       // en kijkt hij naar de tv
       const opBank = ((missie === 'bom' || missie === 'politieauto') && fase === 'gesprek') || (missie === 'brug' && fase === 'plan')
-        || missie === 'schrift' || missie === 'inval' || missie === 'ronald';   // (missie 13, 16 en 17 werken Mark zelf bij)
+        || missie === 'schrift' || missie === 'inval' || missie === 'ronald' || missie === 'uitzending';   // (missie 13, 16, 17 en 18 werken Mark zelf bij)
       if (mark.groep.visible && !opBank) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
       hinder.opWeg = false;
     }
@@ -8297,11 +8832,13 @@ export function initVerhaal(ctx) {
       if (missie === 'schaduw') werkSchaduwBij(dt, sp);
       if (missie === 'inval') werkInvalBij(dt, sp);
       if (missie === 'ronald') werkRonaldBij(dt, sp);
+      if (missie === 'uitzending') werkUitzendingBij(dt, sp);
     }
     brugNaloop(sp, dt);
     raceNaloop(sp, dt);
     invalNaloop(dt);
     ronaldNaloop(dt);
+    uitzendingNaloop(dt);
     if (schutters) {
       const schade = schutters.update(dt, player, true);
       if (schade > 0 && player.active) {
@@ -8381,6 +8918,8 @@ export function initVerhaal(ctx) {
       // missie 16: afgerond, welke keuze, de telefoon van Bouwman, en of hij het schrift heeft
       invalKlaar, invalKeus, invalTelefoon, schriftKwijt,
       ronaldKlaar, ronaldPraatte, ronaldWeg, ronaldSchrift, erfHeeftWorst,
+      // missie 18: de laatste; daarna zendt Radio Tinga het fragment af en toe opnieuw uit
+      uitzendingKlaar,
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
       raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
@@ -8432,6 +8971,8 @@ export function initVerhaal(ctx) {
     ronaldWeg = !!s.ronaldWeg;
     ronaldSchrift = !!s.ronaldSchrift;
     erfHeeftWorst = !!s.erfHeeftWorst;
+    uitzendingKlaar = !!s.uitzendingKlaar;
+    geluid.zetHerhaling(uitzendingKlaar);
     schriftKwijt = !!s.schriftKwijt;
     raceSchuld = typeof s.raceSchuld === 'number' ? s.raceSchuld : RACE_SCHULD;
     raceRondes = s.raceRondes || 0;
@@ -8568,6 +9109,8 @@ export function initVerhaal(ctx) {
       hervatInval(fase);
     } else if (missie === 'ronald' && fase !== 'klaar') {
       hervatRonald(fase);
+    } else if (missie === 'uitzending' && fase !== 'klaar') {
+      hervatUitzending(fase);
     } else {
       zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
     }
@@ -8591,6 +9134,8 @@ export function initVerhaal(ctx) {
     // en na het schaduwen: Johan belt over de inval
     else if (missie === 'klaar' && schaduwKlaar && !invalKlaar) { naMissieNaam = 'inval'; naMissieT = 6; }
     else if (missie === 'klaar' && invalKlaar && !ronaldKlaar) { naMissieNaam = 'ronald'; naMissieT = 6; }
+    // en na Wie is R.: Mark belt voor de uitzending
+    else if (missie === 'klaar' && ronaldKlaar && !uitzendingKlaar) { naMissieNaam = 'uitzending'; naMissieT = 6; }
     hud.zetLeven(player.health);
   }
 
@@ -8673,6 +9218,16 @@ export function initVerhaal(ctx) {
         merkZichtbaar: invalMerken.map(m => m.zichtbaar), wiekenDeur: wiekenDeur(), brugPunt: (s2, u) => invalP(s2, u),
         S: INVAL_S, tijd: INVAL_TIJD, beloning: INVAL_BELONING, wachtT: naMissieNaam === 'inval' ? naMissieT : 0,
         wapenT: invalWapenT };
+    },
+    // missie 18, voor tools/uitzendingtest.mjs
+    get uitzending() {
+      return { klaar: uitzendingKlaar, klok: uitzKlok, tijd: UITZENDING_TIJD, beloning: UITZENDING_BELONING,
+        film: uitzFilm ? uitzFilm.soort : null, filmT: uitzFilm ? uitzFilm.t : 0, shot: uitzFilm ? uitzFilm.shot : null,
+        shots: uitzFilm && uitzFilm.shots ? uitzFilm.shots.length : 0, duur: uitzFilm ? uitzFilm.duur : 0,
+        filmCam: uitzFilm && uitzFilm.cam ? { pos: uitzFilm.cam.pos.slice(), kijk: uitzFilm.cam.kijk.slice() } : null,
+        titelrol: titelrol ? { t: titelrol.t, duur: titelrol.duur } : null,
+        johan: invalJohan, mark, studio: studio && studio(), naT: uitzNaT,
+        wachtT: naMissieNaam === 'uitzending' ? naMissieT : 0, ochtend: UITZENDING_OCHTEND, avond: UITZENDING_AVOND };
     },
     // missie 17, voor tools/ronaldtest.mjs
     get ronald() {
