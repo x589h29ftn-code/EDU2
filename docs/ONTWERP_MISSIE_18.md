@@ -128,11 +128,43 @@ het filmbeeld bij de loods zegt Bouwman: "Zaterdag is alles weg. En zij ook."
 1. *(beantwoord: de studio van Radio Tinga)* **"Op het station"** lees ik als de studio van Radio Tinga (de zender heet in het spel al zo). Het
    treinstation van Sneek ligt buiten de kaart: geschat een halve kilometer voorbij de noordrand
    (z0 = −789), ten noordoosten van Tinga. Daar kan het dus niet zonder de kaart te vergroten.
-2. **Bouwman**: gearresteerd in het licht van het zoeklicht, zoals hierboven? Dat past bij de heli:
-   hij is "verleden tijd" zonder dat Erik en Mark een agent doodschieten. Of schiet Erik hem vanuit
-   de heli neer?
-4. **De helikopter**: zit Erik zoals hierboven in de deur, met de buitencamera als keuze? Of wil je
-   dat hij de hele tijd aan de sleds hangt?
-3. **De tekst van het fragment**: ik kan de mp3 niet beluisteren. Voor ondertitels tijdens de
-   uitzending is de tekst nodig. Anders loopt het fragment zonder ondertitel, met alleen
-   "♪ Radio Tinga".
+2. *(beantwoord op 3 okt: "Schiet hem neer na een achtervolging met de helikopter")* **Bouwman**:
+   gearresteerd in het licht van het zoeklicht, of neergeschoten?
+4. *(beantwoord: "Erik zit in de deur met buitencamera, dus je ziet de binnenkant van de heli niet")*
+   **De helikopter**: in de deur, of aan de sleds?
+3. *(beantwoord: "de tekst van het fragment is juist het einde: dat Erik en Mark de eigenaren van de
+   drugshandel in Tinga zijn, en Erik gefeliciteerd met je verjaardag (in het echt)")* **De tekst van
+   het fragment**, voor de ondertitels.
+
+## Zo is het gebouwd (stap 109)
+
+Het antwoord van 3 okt: *"Schiet hem neer na een achtervolging met de helikopter. Erik zit in de deur met
+buitencamera, dus je ziet niet de binnenkant van de heli. Vlieg rustig, niet te druk. Je volgt, en je
+moet op Bouwman schieten, maar hij komt eerst wel weg. Je landt ergens en pakt een auto die klaarstaat
+voor de laatste chase. Die eindigt in een vuurgevecht tussen Johan, Erik en Mark en Bouwman met
+bodyguards. Daarna nog politie achter je aan: bedenk daar een spetterend einde mee."*
+
+Dat verandert het verloop hierboven: geen boot over de vaart en geen arrestatie. Zo loopt het nu,
+tussen het plan en "Zondagochtend":
+
+1. **Die avond…** (22:30, de klok stil). Erik zit in de open deur van de heli van Wiebe
+   (js/rondvlucht.js), boven de loods. Bouwman stapt in zijn politieauto en rijdt naar de BP (lijn A,
+   1078 m over de weg, `lijnDoor`).
+   - **Volgen.** Wiebe hangt 28 m van hem af, aan de kant waar hij al is, en draait de open deur naar hem
+     toe. De heli vliegt op 34 m boven de grond, nooit harder dan 21 m/s en met hooguit 4,5 m/s² erbij.
+   - **De camera** hangt buiten de deur, schuin achter Erik: geen binnenkant.
+   - **Schieten** telt treffers, maar de auto gaat in dit stuk niet stuk.
+2. **De luifel.** Onder de luifel van de BP stapt hij over op een tweede auto. Wiebe landt op een vrije
+   plek bij het Autohuis (`landPlek`: een cirkel van 5 m zonder botsdozen).
+3. **De auto.** Bij het Autohuis staat een zwarte Ferrari klaar, met Mark en Johan erbij. Bouwman rijdt
+   terug naar de loods, naar zijn boot (lijn B). Ben je verder dan 300 m, tien tellen lang, dan is hij
+   weg en mislukt de missie.
+4. **Het vuurgevecht.** Bij de loods staan Bouwman en vier man (`Bewaking`, vijf posten). Mark en Johan
+   stappen uit en raken om de 7 à 11 s een bodyguard; Bouwman laten ze voor Erik.
+5. **De politie.** Vier sterren, en de navigatie naar de Dúvelsrak.
+6. **Het spetterende einde.** Over het dek gooit Johan zijn laatste blok C4 uit het raam, een filmbeeld:
+   de knal achter de auto, de eerste politieauto draait dwars, de tweede staat erachter stil, en de sterren
+   zijn weg. Raak je de politie op een andere manier kwijt, dan gaat het ook verder: "Zondagochtend".
+
+De ondertitels van het fragment staan in `UITZENDING_ONDERTITELS`, en de titelrol eindigt met
+"Gefeliciteerd met je verjaardag, Erik!". Proef: `npm run avondtest`; foto's: `npm run avondshots`.

@@ -2307,10 +2307,29 @@ neergaan en laden. `npm run ronaldshots` maakt de zes foto's.
 De laatste missie. Een paar minuten na de ochtend van missie 17 belt **Mark**: *"Kom naar de Wieken. Johan
 heeft iets, en dan zijn we klaar."* Binnen aan de Wieken 29 houdt Johan een **usb-stick** omhoog, met
 veertig seconden erop. Morgenochtend om acht uur luistert half Sneek naar **Radio Tinga**, het
-ochtendprogramma van Sjors. *"De Veteraan ligt onder de grond. Bouwman is verleden tijd. Er zit
-niemand meer boven ons."* Alleen weet de stad dat nog niet.
+ochtendprogramma van Sjors. Maar eerst Bouwman: vanavond haalt hij zijn spullen uit de loods aan het water.
+Johan kent Wiebe, die rondvluchten boven de meren vliegt.
 
-Loop naar buiten: ***Zondagochtend***, kwart voor acht, en je staat voor je eigen huis. Radio Tinga
+**Die avond…** (half elf, de klok staat stil) zit je in de open zijdeur van de witte heli van **Wiebe**,
+boven de loods. Bouwman ziet de heli en rijdt weg.
+
+- **De buitencamera.** Je kijkt van buiten de heli, schuin achter Erik: de deurpost, de sleds, en onder
+  je Tinga met de straatlantaarns. Rondkijken gaat zo ver als de deur open is.
+- **Wiebe vliegt rustig**, op 34 m boven de grond (ruim boven elk dak), naast Bouwman en met de deur
+  naar hem toe. Het zoeklicht staat op zijn politieauto.
+- **Schieten** raakt, je ziet het in de balk ("Bouwman · 3 treffers"), maar hij stopt niet. Bij de
+  **BP** duikt hij onder de luifel en stapt over in een tweede auto.
+- Wiebe zet je neer bij het **Autohuis**. Daar staan **Mark en Johan** bij een **zwarte Ferrari**.
+- **De achtervolging**: Bouwman gaat terug naar zijn loods, naar zijn boot. Blijf erbij: verder dan
+  300 m, tien tellen lang, en hij is weg (missie mislukt).
+- **Bij de loods**: Bouwman en vier bodyguards. Mark en Johan stappen met je uit en schieten mee op de
+  mannen, maar **Bouwman is voor jou**.
+- Dan **zwaailichten**: vier sterren. *"Naar de Dúvelsrak. Johan, heb je dat laatste blok nog?"*
+  *"Altijd."* Rijd over het dek en Johan gooit zijn **laatste C4** uit het raam: een filmbeeld van de
+  knal achter je, en de politie die er vol in de remmen voor staat. De sterren zijn weg. (Raak je ze
+  op een andere manier kwijt, dan is het ook goed.)
+
+Daarna ***Zondagochtend***, kwart voor acht, en je staat voor je eigen huis. Radio Tinga
 zit in het lage pand aan de **Tinga**, met een rood-witte **zendmast** op het dak die je van ver over
 de daken ziet, een blauwe zuil met het merk naast de ingang en een ON AIR-bord boven de deur. Met de
 auto parkeer je aan de Molenkrite en loop je het pad op.
@@ -2325,14 +2344,16 @@ auto parkeer je aan de Molenkrite en loop je het pad op.
 - Dan **een filmbeeld** van veertig seconden, zo lang als het fragment: het bureau, de mast boven het
   dak, de BP aan de Lemmerweg, het gat in de Dúvelsrak, het huis van Ronald, Molenkrite 15 met het lint,
   en hoog over Tinga terug naar de mast. Zolang het fragment speelt zwijgen de autoradio, de radio in
-  huis en de missiemuziek.
+  huis en de missiemuziek. Onder in beeld lees je mee: *"Erik en Mark zijn vanaf vandaag de eigenaren
+  van de drugshandel in Tinga…"* en aan het eind *"…en Erik: van harte gefeliciteerd met je
+  verjaardag!"* (dat laatste is echt: het spel is een verjaardagscadeau).
 - Sjors staat in de deur met zijn koffie: *"Wat… wat draait er nou?"* Ben je te laat, dan staat hij
   er eerder, en mislukt de missie.
 
 Buiten staan Mark en Johan. Op de Lemmerweg wordt getoeterd. **€ 10.000**, MISSIE GESLAAGD, en dan
 ***Die avond…***: een laatste filmbeeld voor de Wieken 29 bij zonsondergang. *"Op Tinga."* De camera
 stijgt op over de daken naar het rode lampje van de mast, en dan rolt **de titelrol**. **E** slaat hem
-over.
+over. Hij eindigt met *Gefeliciteerd met je verjaardag, Erik!*
 
 Daarna speel je **vrij** verder: er belt geen missie meer, maar de klusjes, de Ferrari, de winkels en
 de stad blijven. Radio Tinga zendt het fragment voortaan af en toe opnieuw uit, tussen de nummers
@@ -2350,10 +2371,18 @@ door. **shift+/** (de toets rechts onderin, naast de punt) start de missie los.
 de ingang aan de Tinga, de mast op het dak, een vrije weg van de deur naar de tafel, en geen camera
 in een muur. `npm run uitzendingshots` maakt de zes foto's.
 
-**Nog open: de helikopter.** Het ontwerp in `docs/ONTWERP_MISSIE_18.md` heeft een avond vóór de
-uitzending: de loods aan het water, Bouwman die vlucht, Erik in de open deur van een heli met een
-zoeklicht. Dat stuk komt tussen het plan en *Zondagochtend* als de vragen in dat bestand beantwoord
-zijn.
+| ![Uit de deur](docs/screenshots/avond_deur.png) | ![De heli](docs/screenshots/avond_heli.png) |
+|---|---|
+| die avond, uit de deur van de heli: het zoeklicht op Bouwman | de heli van Wiebe, Erik in de open deur |
+| ![Geland](docs/screenshots/avond_landing.png) | ![De loods](docs/screenshots/avond_loods.png) |
+| geland bij het Autohuis: de zwarte Ferrari, Mark en Johan | het vuurgevecht bij de loods |
+| ![De Dúvelsrak](docs/screenshots/avond_brug.png) | |
+| de laatste C4 op de Dúvelsrak | |
+
+`npm run avondtest` speelt de avond na en meet de heli elke tiende seconde: boven de daken, ver van de
+rand, naast Bouwman met de deur naar hem toe, nooit harder dan 21 m/s en nooit meer dan 4,5 m/s² erbij,
+de camera buiten de romp. Hij schiet echt uit de deur, landt, rijdt de achtervolging, raakt Bouwman kwijt,
+het gevecht, de politie en de brug, en hervat elke fase opnieuw. `npm run avondshots` maakt de vijf foto's.
 
 ### Klusjes tussendoor
 

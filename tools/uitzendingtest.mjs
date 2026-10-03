@@ -8,7 +8,8 @@
     zuil vrij van de deur; binnen het bureau met vijf schermen, twee mengpanelen en twee
     microfoons, de dj op zijn stoel, en een vrije weg van de deur naar de tafel.
  3. Het fragment: audio/radio/uitzending.mp3 laadt en duurt 40,2 s.
- 4. Mark belt; de M bij de Wieken 29; binnen het plan met Mark en Johan; naar buiten: zondagochtend.
+ 4. Mark belt; de M bij de Wieken 29; binnen het plan met Mark en Johan; naar buiten: "Die avond…" (de
+    avond zelf staat in tools/avondtest.mjs), en daarna zondagochtend.
  5. Bij Radio Tinga: de deur zit dicht tot Johan gebeld heeft; dan een minuut, de dj weg.
  6. Binnen: E de stick erin, E de schuif omhoog; ON AIR; de montage met het fragment (zeven shots,
     geen camera in een muur); de radio en de muziek zwijgen eronder; Sjors komt terug.
@@ -184,20 +185,28 @@ const plan = await page.evaluate(() => {
     v.toets(); window.__stap(1);
   }
   const fase3 = v.fase;
-  // naar buiten: dan wordt het zondagochtend
+  // naar buiten: eerst de avond (de heli, Bouwman: tools/avondtest.mjs), dan zondagochtend
   const s = w.plekken.stoep;
   window.__zet(s.x, s.z);
-  const ochtend = window.__tot('naarStudio', 12);
-  return { naam, tel, fase1, nav, fase2, markZit, johan, namen: [...namen], fase3, ochtend, uur: g.sfeer.uur,
+  const avond = window.__tot('heliStart', 12);
+  const avondUur = g.sfeer.uur;
+  // de avond overslaan: verder bij zondagochtend
+  const s2 = v.bewaar(); s2.missie = 'uitzending'; s2.fase = 'naarStudio';
+  v.herstel(s2);
+  window.__stap(2);
+  const ochtend = v.fase === 'naarStudio';
+  return { naam, tel, fase1, nav, fase2, markZit, johan, namen: [...namen], fase3, ochtend, avond, avondUur, uur: g.sfeer.uur,
+    zit: g.player.zit, heli: v.avond.heli.zichtbaar,
     stick: tekst.some(t => /usb|stick/i.test(t)) || tekst.some(t => /Veertig seconden/.test(t)),
-    veteraan: tekst.some(t => /Veteraan/.test(t)) && tekst.some(t => /Bouwman is verleden tijd/.test(t)) };
+    heliPlan: tekst.some(t => /heli/.test(t)) && tekst.some(t => /Bouwman/.test(t)) };
 });
 ok(plan.tel && plan.naam === 'Mark', 'Mark belt', plan.naam);
 ok(plan.fase1 === 'naarWieken' && plan.nav === 'M', 'een M bij de Wieken 29', `${plan.fase1}, ${plan.nav}`);
 ok(plan.fase2 === 'plan' && plan.markZit && plan.johan, 'binnen: Mark op de bank, Johan aan tafel', plan.fase2);
 ok(plan.namen.includes('Mark') && plan.namen.includes('Johan') && plan.fase3 === 'klaarmaken', 'het plan, met Mark en Johan', plan.fase3);
-ok(plan.stick && plan.veteraan, 'de usb-stick, en: De Veteraan en Bouwman zijn verleden tijd');
-ok(plan.ochtend && Math.abs(plan.uur - 7.75) < 0.1, 'naar buiten: zondagochtend, kwart voor acht', `uur ${plan.uur.toFixed(2)}`);
+ok(plan.stick && plan.heliPlan, 'het plan: vanavond Bouwman, met een heli, en de usb-stick voor morgen');
+ok(plan.avond && Math.abs(plan.avondUur - 22.5) < 0.1, 'naar buiten: "Die avond…", half elf, de heli', `uur ${plan.avondUur.toFixed(2)}`);
+ok(plan.ochtend && Math.abs(plan.uur - 7.75) < 0.1 && !plan.zit && !plan.heli, 'en daarna zondagochtend, kwart voor acht (de heli weg, niet meer zitten)', `uur ${plan.uur.toFixed(2)}`);
 
 // ------------------------------------------------------------------ 5. bij Radio Tinga
 kop('bij Radio Tinga');
@@ -226,7 +235,7 @@ const deur = await page.evaluate(() => {
 ok(deur.nav === 'M', 'de navigatie naar Radio Tinga');
 ok(deur.johanBijDeur < 4, 'Johan wacht bij de ingang', `${deur.johanBijDeur.toFixed(1)} m van de deur`);
 ok(deur.dicht, 'de deur zit dicht zolang Johan niet gebeld heeft');
-ok(deur.praat === 'Johan' && deur.fase1 === 'wachten', 'Johan legt het uit en gaat naar binnen', `${deur.praat}, ${deur.fase1}`);
+ok(deur.praat === 'Johan' && deur.fase1 === 'wachten', 'Johan legt het uit ("Bouwman is verleden tijd") en gaat naar binnen', `${deur.praat}, ${deur.fase1}`);
 ok(deur.gebeld && /Nu/.test(deur.tekst) && deur.johanWeg, 'Johan belt: "Nu."', deur.tekst);
 ok(deur.klok > 50 && deur.balk && deur.djWeg, 'een minuut in de balk, en de stoel van de dj is leeg', `${deur.klok.toFixed(1)} s`);
 

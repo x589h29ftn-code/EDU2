@@ -72,9 +72,10 @@ function mat(kleur, ruw = 0.55, metaal = 0.15) {
  Het toestel. De romp ligt met de neus op −z, net als de auto's, zodat "vooruit"
  overal in het spel hetzelfde betekent.
 */
-function bouwHeli() {
+// (ook voor de rondvluchtheli van missie 18, js/rondvlucht.js: andere kleuren, stap 109)
+export function bouwHeli({ romp = WIT, streep = BLAUW } = {}) {
   const groep = new THREE.Group();
-  const wit = mat(WIT, 0.5), blauw = mat(BLAUW, 0.5), donker = mat(DONKER, 0.7, 0.3);
+  const wit = mat(romp, 0.5), blauw = mat(streep, 0.5), donker = mat(DONKER, 0.7, 0.3);
   const glas = new THREE.MeshStandardMaterial({ color: GLAS, roughness: 0.15, metalness: 0.6 });
 
   const doos = (m, b, h, d, x, y, z) => {

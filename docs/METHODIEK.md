@@ -6872,6 +6872,48 @@ is er genoeg ruimte voor de andere klusjes tussendoor, of is het missie na missi
 - Aangepast in andere proeven: racetest en veteraantest rekenden met 60 en 45 s, en lezen nu
   `verhaal.tussenpoos`. Groen: `tempotest`, `klusjestest`, `racetest`, `veteraantest`.
 
+**Missie 18, de avond (stap 109).** Gevraagd: "Schiet hem neer na een achtervolging met de helikopter. Erik
+zit in de deur met buitencamera, dus je ziet niet de binnenkant van de heli. Vlieg rustig, niet te druk. Je
+volgt en je moet op Bouwman schieten, maar hij komt eerst wel weg. Je landt ergens en pakt een auto die
+klaarstaat voor de laatste chase. Die eindigt in een vuurgevecht tussen Johan, Erik en Mark en Bouwman met
+bodyguards. Daarna nog politie achter je aan: bedenk daar een spetterend einde mee. De tekst van het
+fragment is juist het einde: dat Erik en Mark de eigenaren van de drugshandel in Tinga zijn, en Erik
+gefeliciteerd met je verjaardag (in het echt)."
+
+- *Gebouwd*:
+  - js/rondvlucht.js, de heli van Wiebe. Het model komt uit js/helikopter.js (`bouwHeli` met eigen
+    kleuren), met een open deur. Erik en Wiebe zitten in een houdergroep: `Persoon.update` zet de hoogte
+    elk beeld op de grond, en zonder houder zaten ze 34 m onder hun stoel.
+  - In js/verhaal.js de fases van `heliStart` tot `naBrug`, tussen het plan en "Zondagochtend". De speler
+    zit (`player.zit`), en `werkDeurBij` zet elk beeld zijn positie op de buitencamera. Zo komt een kogel
+    uit `player.shoot()` echt uit de deur. `fly` kon niet: dat slaat het schieten over.
+  - Lijn A (loods → BP) en lijn B (terug) gaan via `lijnDoor` over de weg en rijden met `rijdVlucht`
+    uit js/inval.js. Het gevecht is een `Bewaking` met Bouwman als wachter 0. De brug is een eigen
+    filmbeeld met het dek als assenstelsel.
+  - De ondertitels van het fragment en de laatste regel van de titelrol.
+- *Wat er misging*:
+  - **Rustig vliegen.** Eerst hing de plek van de heli rechts van de rijrichting van Bouwman. In een
+    haakse bocht zwaaide die plek in één beeld veertig meter om, en de heli trok met 67 m/s² bij (de
+    proef: "geen schok"). Daarna hing de plek aan de eigen kop van de heli, die traag draait: toen raakte
+    hij in de bochten 125 m achter, met de deur de verkeerde kant op (cos −1). Nu hangt de plek aan de
+    richting waarin de heli al staat, op 28 m afstand. Hij draait zijn deur naar het doel, met hooguit
+    4,5 m/s² erbij. Gemeten over de hele rit: 24,8 tot 32,9 m van Bouwman, deur cos 1,00, hoogstens
+    13,6 m/s, steeds minstens 32 m boven het hoogste dak in de buurt.
+  - **De auto van Bouwman was onzichtbaar.** `raceNaloop` verstopt hem verder dan 80 m buiten missie
+    14 tot 17, en missie 18 stond niet in de uitzonderingen. Dezelfde valkuil als in stap 96.
+  - **Nul treffers uit veertig schoten**, terwijl de richting tot op de honderdste klopte. Headless
+    tekent de lus niet, dus de wereldmatrix van de rijdende auto stond nog op zijn vorige plek. De proef
+    roept nu `scene.updateMatrixWorld(true)` aan voor het schot: 40 uit 40. In het spel doet de render
+    dat elk beeld.
+  - **Schieten gaf sterren.** De schoten uit de heli en bij de loods riepen de politie al vóór het
+    gevecht. Tot `politieKomt` blijven de sterren op nul (`AVOND_ZONDER_STERREN`).
+  - **Mark en Johan te goed.** In 30 s hadden ze alle vier de bodyguards neer. Ze raken nu om de 7 tot
+    11 s een man (3 in 30 s), en Bouwman nooit.
+  - **Dubbele namen.** `startAchtervolging` en `eindeBrugFilm` bestonden al in missie 16 en zouden die
+    stil overschreven hebben (zie stap 102). Ze heten nu `startAvondAchtervolging` en `eindeAvondBrug`.
+- *Proeven*: `avondtest` (nieuw) is groen. `uitzendingtest` springt na "Die avond…" naar zondagochtend.
+  `overgangtest` (dubbele namen) en `vloeiendtest` zijn opnieuw gedraaid. Foto's: `avondshots` (vijf).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
