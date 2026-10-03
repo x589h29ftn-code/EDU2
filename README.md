@@ -285,7 +285,8 @@ Je hebt er twee: het pistool waar je mee begint, en een **machinegeweer** dat je
 aan de toonbank bij Tinga State (toets **F**, waar **E** een doos kogels koopt). Met het **scrollwiel**
 wissel je ertussen; het icoon van het wapen dat je pakt staat twee tellen rechtsonder in beeld. Het
 magazijn blijft in het wapen zitten dat je weglegt, en de voorraad kogels is voor allebei dezelfde —
-een doos van Tinga State, of de munitie van een neergeschoten agent, past dus altijd.
+een doos van Tinga State, of de munitie van een neergeschoten agent, past dus altijd. Een nieuw spel
+begint met **12 kogels in het pistool en 200 in reserve**.
 
 | | pistool | machinegeweer |
 |---|---|---|
@@ -294,6 +295,25 @@ een doos van Tinga State, of de munitie van een neergeschoten agent, past dus al
 | nauwkeurig | precies waar je kijkt | een fractie ernaast — harder, maar slordiger |
 | herladen | 1,55 s | 2,05 s |
 | prijs | je begint ermee | € 500 |
+
+### Het schot, en doorschieten
+
+Een schot klinkt als een **opname** (`audio/wapen/schot.mp3`). Het spel speelt hem vanaf de knal zelf,
+zonder de tiende seconde stilte waarmee het bestand begint. Per wapen klinkt hij anders: het pistool
+zoals hij is, de **sniper** lager en voller, het **machinegeweer** iets hoger en feller. Van ver weg is
+een schot zachter en doffer. In een salvo kapt elk schot de naklank van het vorige af: je hoort
+twaalf losse knallen per seconde, en het laatste klinkt helemaal uit. Wie het oude, gemaakte schot
+liever heeft: **Esc → Instellingen → Schotgeluid**.
+
+Het machinegeweer **schiet door zolang je de knop ingedrukt houdt**. Dat werkte alleen met een
+vergrendelde muis. Zonder vergrendeling, als je rondkijkt door te slepen, schoot hij pas bij het
+loslaten, één keer. Nu vuurt hij ook dan zolang je drukt, en slepen kijkt ondertussen rond. Op een
+aanraakscherm vuurt de vuurknop door zolang je hem vasthoudt. Het pistool en de sniper blijven één
+schot per klik.
+
+`npm run schottest` toetst het: de opname en waar de knal begint, de klank per wapen en op afstand,
+het afkappen in een salvo, doorschieten met en zonder vergrendelde muis en op de vuurknop, één
+schot per klik voor het pistool en de sniper, en de keuze in het menu.
 
 ### Over het vizier richten (rechtermuisknop)
 
@@ -629,6 +649,12 @@ showroom blijft staan, dus je kunt er meer kopen.
 
 Wat je koopt is van jou en blijft van jou: opslaan en laden neemt hem mee, waar hij ook staat, en
 ook als je erin zit. Een wrak is niet meer van jou. De Ferrari heeft een eigen teller tot 320 km/u.
+
+**Sturen.** De Ferrari heeft meer grip dan een gewone auto: hij draait op 120 km/u ruim anderhalf keer
+zo snel de bocht om als de hatchback het op die snelheid zou kunnen, en op 200 km/u nog altijd een
+flinke bocht. Met **A** of **D** komt het stuur op snelheid geleidelijk op, in een derde seconde op
+200 km/u. Een tikje geeft dus een kleine koerscorrectie en vasthouden een echte bocht, en loslaten
+zet het stuur meteen recht. `npm run puntentest` meet het.
 
 De Ferrari is een eigen model, geen gewone auto met andere maten: een gegoten, afgeronde romp met
 een lage neus en brede heupen, de wielkasten uit de flanken gesneden, een glazen koepel, een
@@ -2206,7 +2232,9 @@ schrift tegen Johan, vannacht om één uur op de Dúvelsrak. Mark legt twee plan
 - **2 — hinderlaag.** Mark ligt met de sniper op een dak aan de Tinga-kant, en jij loopt met een lege
   tas. Bouwman ritst hem open, en Mark roept **"Nu!"**: twee schoten, twee man neer. Bouwman springt
   in zijn auto en vlucht, over het dek, de helling af en naar de rotonde. Jij erachteraan: drie
-  klappen, of één harde boven 60 km/u, en hij vliegt de berm in en rent het weiland in. In zijn auto
+  klappen, of één harde boven 60 km/u, en hij vliegt de berm in en rent het weiland in. Staat er een
+  schuur, muur of schutting in de weg, dan schuift zijn auto tot ertegenaan of de andere kant op, en
+  rent hij een vrije kant op (stap 106; daarvoor schoof hij er soms dwars doorheen). In zijn auto
   ligt zijn telefoon, met het bericht van **"R."**. € 3.000 — of € 2.000 als je hem laat ontsnappen.
 
 "Die nacht…" op de brug begint met **een filmbeeld**: de politieauto van Bouwman rijdt de helling op
@@ -2688,7 +2716,8 @@ achterin liggen hooibalen.
 
 Aan de toonbank staat een verkoper met een **schap**. Wat er ligt staat als een rij kaartjes onderin
 beeld, met per artikel een getekend plaatje, het nummer in een geel blokje en de prijs eronder — de
-drie dingen die je aan een toonbank nodig hebt. Je koopt het met de **cijfertoets** van dat nummer
+drie dingen die je aan een toonbank nodig hebt. Loop je van de toonbank weg, dan verdwijnt het
+schap. Tot stap 106 bleef het in beeld staan, ook buiten. Je koopt het met de **cijfertoets** van dat nummer
 (**E** pakt het eerste, de kogels):
 
 | | artikel | prijs | |

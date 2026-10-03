@@ -13,6 +13,7 @@
  voor elke bocht op tijd afremt.
 */
 import { lijnDoor, rotondes } from './schaduw.js';
+import { resolveCollisions, pointInWater } from './world.js';
 
 export const INVAL = {
   // de vlucht
@@ -135,4 +136,41 @@ export function invalRoute(KAART, voor) {
   for (let i = 0; i < L.n; i += 2) pts.push([L.x[i], L.z[i]]);
   pts.push([L.x[L.n - 1], L.z[L.n - 1]]);
   return { pts, lengte: L.lengte };
+}
+
+/*
+ De schuif na de klap, met botsing (stap 106). Tot dan schoof de auto van Bouwman in 1,3 s
+ zeven meter opzij en vijf vooruit, dwars door alles heen: "als Bouwman geramd wordt kan hij
+ soms in een hokje van een huis terechtkomen, lijkt geen collision" (melding 3 okt 2026). Nu
+ loopt de schuif in stapjes van 2 % langs dezelfde baan, met de drie cirkels van
+ vehicles.drive, en houdt op bij de laatste stap waarop geen muur, schuur of schutting raakt
+ en hij niet in het water staat. Geeft het deel van de baan dat vrij is (0…1).
+*/
+export function crashSchuif(car, c, kant) {
+  const as = car.as || 1.4, r = car.botsRadius || 0.95, y = car.mesh ? car.mesh.position.y : 0;
+  let vrij = 0;
+  for (let e = 0.02; e <= 1.0001; e += 0.02) {
+    const x = c.van.x + (c.zij.x * 7 * kant + c.voor.x * 5) * e;
+    const z = c.van.z + (c.zij.z * 7 * kant + c.voor.z * 5) * e;
+    const yaw = c.yaw - 1.1 * kant * e, fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    if (pointInWater(x, z)) break;
+    let raakt = false;
+    for (const off of [-as, 0, as]) {
+      const px = x + fx * off, pz = z + fz * off;
+      const [rx, rz] = resolveCollisions(px, pz, r, 3.5, y);
+      if (Math.abs(rx - px) + Math.abs(rz - pz) > 0.01) { raakt = true; break; }
+    }
+    if (raakt) break;
+    vrij = e;
+  }
+  return vrij;
+}
+// hoe ver iemand van 0,4 m breed vanaf (x, z) in richting (dx, dz) kan rennen, tot `max`
+export function renVrij(x, z, dx, dz, max) {
+  for (let d = 0.5; d <= max; d += 0.5) {
+    const px = x + dx * d, pz = z + dz * d;
+    const [rx, rz] = resolveCollisions(px, pz, 0.4);
+    if (Math.abs(rx - px) + Math.abs(rz - pz) > 0.01 || pointInWater(px, pz)) return d - 0.5;
+  }
+  return max;
 }

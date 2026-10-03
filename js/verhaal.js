@@ -58,7 +58,7 @@ import { initRace } from './race.js';
 import { initSchaduw } from './schaduw.js';
 import { initKlusjes } from './klusjes.js';
 import { grondHoogte } from './viaduct.js';
-import { INVAL, vluchtLijn, nieuweVlucht, rijdVlucht, invalRoute as invalRouteJs } from './inval.js';
+import { INVAL, vluchtLijn, nieuweVlucht, rijdVlucht, invalRoute as invalRouteJs, crashSchuif, renVrij } from './inval.js';
 import { maakErf, ERF } from './schuur.js';
 import { UNIFORM, zetZwaailamp } from './politie.js';
 import { Navigatie } from './navigatie.js';
@@ -6971,6 +6971,11 @@ export function initVerhaal(ctx) {
     invalVlucht.gecrasht = true;
     const tx = -Math.sin(car.yaw), tz = -Math.cos(car.yaw);
     invalCrash = { t: 0, van: { x: car.x, z: car.z }, zij: { x: -tz, z: tx }, voor: { x: tx, z: tz }, yaw: car.yaw, gerend: false };
+    // welke kant opzij, en hoe ver hij komt voor hij ergens tegenaan schuift
+    const links = crashSchuif(car, invalCrash, 1), rechts = crashSchuif(car, invalCrash, -1);
+    invalCrash.kant = rechts > links + 0.05 ? -1 : 1;
+    invalCrash.ver = Math.max(links, rechts);
+    invalCrash.zij = { x: invalCrash.zij.x * invalCrash.kant, z: invalCrash.zij.z * invalCrash.kant };
     invalFilm = { soort: 'crash', t: 0, vast: player.inCar ? { x: player.inCar.x, z: player.inCar.z, yaw: player.inCar.yaw, auto: player.inCar } : { x: player.pos.x, z: player.pos.z } };
     if (invalBalk) invalBalk.hidden = true;
     if (schokken) schokken(0.6);
@@ -6985,7 +6990,8 @@ export function initVerhaal(ctx) {
     invalLoper = null;
     fase = 'doorzoeken';
     const car = raceBouwmanAuto;
-    zetInvalMerk(1, car.x + invalCrash.zij.x * 1.6, 0.14, car.z + invalCrash.zij.z * 1.6);
+    const [mx, mz] = resolveCollisions(car.x + invalCrash.zij.x * 1.6, car.z + invalCrash.zij.z * 1.6, 0.4);
+    zetInvalMerk(1, mx, 0.14, mz);
     zetOpdracht('doorzoek zijn auto');
     zetMarker(car.x, car.z, 'B');
   }
@@ -7136,17 +7142,28 @@ export function initVerhaal(ctx) {
       if (t > 3.0) startAchtervolging();
     } else if (f.soort === 'crash') {
       const c = invalCrash, car = raceBouwmanAuto;
-      const g = Math.min(1, t / 1.3), e = 1 - (1 - g) * (1 - g);
+      // tot waar de schuif vrij is (crashSchuif); `zij` wijst al naar de gekozen kant
+      const g = Math.min(1, t / 1.3), e = (1 - (1 - g) * (1 - g)) * c.ver;
       car.x = c.van.x + c.zij.x * 7 * e + c.voor.x * 5 * e;
       car.z = c.van.z + c.zij.z * 7 * e + c.voor.z * 5 * e;
-      car.yaw = c.yaw - 1.1 * e; car.speed = 0;
+      car.yaw = c.yaw - 1.1 * c.kant * e; car.speed = 0;
       vehicles.zetNeer(car, dt, car.yaw);
       if (t > 1.4 && !c.gerend) {
         c.gerend = true;
-        const [bx, bz] = resolveCollisions(car.x + c.zij.x * 1.6, car.z + c.zij.z * 1.6, 0.4);
-        bouwman.zetNeer(bx, bz, Math.atan2(-c.zij.x, -c.zij.z));
+        // hij stapt uit aan de kant waar ruimte is, en rent een kant op die vrij is
+        let uit = c.zij;
+        if (renVrij(car.x, car.z, uit.x, uit.z, 2.2) < 2) uit = { x: -c.zij.x, z: -c.zij.z };
+        const [bx, bz] = resolveCollisions(car.x + uit.x * 1.6, car.z + uit.z * 1.6, 0.4);
+        let ren = null, best = -1;
+        for (const k of [uit, c.voor, { x: -c.voor.x, z: -c.voor.z }, { x: -uit.x, z: -uit.z }]) {
+          const d = renVrij(bx, bz, k.x, k.z, 16);
+          if (d > best + 0.01) { best = d; ren = k; }
+          if (d >= 16) break;
+        }
+        c.ren = { x: ren.x, z: ren.z, ver: best };
+        bouwman.zetNeer(bx, bz, Math.atan2(-ren.x, -ren.z));
         bouwman.groep.visible = true;
-        loopt(bouwman, { x: bx + c.zij.x * 60, z: bz + c.zij.z * 60 }, 5.2, null);
+        loopt(bouwman, { x: bx + ren.x * best, z: bz + ren.z * best }, 5.2, null);
         zeg(INVAL_CRASH, null, { auto: 2.0 });
       }
       werkLoperBij(dt);

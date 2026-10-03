@@ -32,7 +32,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 - **Geen afbeeldingsbestanden in het spel.** Elke textuur wordt op een canvas
   getekend (`js/textures.js` en de doek-functies boven in de modules). Bewuste
   uitzonderingen: de mp3's onder `audio/` en de laadschermen onder
-  `beeld/laadscherm/`.
+  `beeld/laadscherm/`, en sinds stap 105 het schot (`audio/wapen/schot.mp3`).
 - **`js/kaart.js` is gegenereerd** door `npm run geo:genereer` uit de geodata.
   Nooit met de hand aanpassen. Geometrie komt uit BGT en 3D BAG; foto's mogen
   alleen kleur, detail en indeling bepalen.
@@ -57,7 +57,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/politie.js` | sterren, onderscheppen, wegversperring, helikopter |
 | `js/vehicles.js` | geparkeerde auto's, verkeer (over `gladPad`: gladde lijn, remmen voor de bocht, keren), rijgedrag, `voegToe()` |
 | `js/npc.js` | voetgangers en fietsers op wegvakken |
-| `js/audio.js` | alles synthetisch, plus de mp3-radio; `autoradio(actief, sterkte)` |
+| `js/audio.js` | alles synthetisch, plus de mp3-radio (`autoradio(actief, sterkte)`) en het schot als opname (`schot(afstand, { wapen, bron })`, `SCHOT` per wapen, afkappen per bron, `zetSchotSoort`) |
 | `js/hud.js` | minimap (bijzondere plekken op de rand: `opRand` in `drawMap`), grote kaart met legenda (`zetLegenda`, iconen per soort in `HUD.PICTO`) en een eigen doel (`kaartKlik`, `zetEigenNav`, paars), meldingen, vlaggen |
 | `js/bewaking.js` | schutters: bewaking, de bende van missie 7 en 10 (met opties) |
 | `js/looppad.js` | een looproute te voet om hekken en gebouwen heen (A*) |
@@ -73,7 +73,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/garage.js` | Autohuis Lemmerweg: glazen showroom, Ferrari's en BX kopen, gekochte auto's in de opslag |
 | `js/race.js` | missie 14: het parcours van de BP naar IJlst (routeplanner + de hoofdweg uit de BGT), gele ringen, finish, tegenstanders langs de lijn |
 | `js/bouwvlak.js` | plekken waar het spel zelf bouwt (de showroom, de loods): daar geen bomen, struiken of gras |
-| `js/inval.js` | missie 16: de route van de inval over de Molenkrite, de vlucht van Bouwman van de Dúvelsrak naar een rotonde (`vluchtLijn`, `rijdVlucht`); de lijnen via `lijnDoor` uit js/schaduw.js |
+| `js/inval.js` | missie 16: de route van de inval over de Molenkrite, de vlucht van Bouwman van de Dúvelsrak naar een rotonde (`vluchtLijn`, `rijdVlucht`), de schuif na de klap met botsing (`crashSchuif`, `renVrij`); de lijnen via `lijnDoor` uit js/schaduw.js |
 | `js/schuur.js` | missie 17: het erf van Ronald aan de Lemmerweg 80 in het assenstelsel van het huis (`erfAssen`): caravan met kluis, de zwaaiende camera met zijn kegel (`kegelRaakt`), de hond aan de ketting, de worst; de hoogte uit de kaartvlakken (`grondPeiler`) |
 | `js/klusjes.js` | klusjes tussen de missies door: Mark of Johan met een K op de kaart, tas, auto, overspuiten, omleggen (€ 250–1000) |
 | `js/schaduw.js` | missie 15: de route van Bouwman (BP → Duinterpen → N7), zijn rit met een stop, de loods aan het water met container, kade, steiger en boot, de fotoplekken |
@@ -251,7 +251,8 @@ een auto koopt hem: rode of gele Ferrari € 3.000 (soort `ferrari`, `RIJ` in js
 200 km/u), rode BX € 250. Hij staat dan op het voorterrein; de opslag neemt gekochte auto's mee
 (`garage.bewaar`/`herstel`, `auto.eigen` in js/opslag.js). De Ferrari is een eigen model
 (`sportGeoms` in js/carmodel.js, een geëxtrudeerd zijprofiel), geen `autoGeoms` met andere maten.
-Sturen is op snelheid begrensd door de grip (`STUUR_GRIP` in js/vehicles.js, 26 m/s²).
+Sturen is op snelheid begrensd door de grip (`STUUR_GRIP` in js/vehicles.js, 26 m/s²; de Ferrari
+50 via `RIJ.ferrari.grip`, en met de toetsen bouwt het stuur op snelheid in 0,3 s op, stap 106).
 
 De drie woningen: **Zeskanter 16** (€ 5.000), **Molenkrite 130c** (€ 2.500),
 **Koningsspil 20** (€ 1.000). Binnen: hoekbank met tv, eettafel om aan te zitten,
@@ -264,7 +265,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run kaartdoeltest` (ondertitels in een filmbeeld: in de balk, contrast, niets eroverheen; plekken op de rand van de minikaart; een eigen doel op de grote kaart aanwijzen, bij een speldje, weghalen, de route over de weg en bijgewerkt, aankomen, geen schot; maakt drie foto's; stap 104); `npm run ronaldtest` (missie 17: het lint, het plan, de worst, het erf gemeten — kraakplek nooit in de kegel, de weg ernaartoe lopend soms vrij, de kegel boven de grond, niets in het water, de route van Ronald zonder knik —, sluipen, beide afloopen met de filmbeelden, het neergaan, de opslag; stap 103) met `ronaldshots` (zes foto's); `npm run overgangtest` (laden of een nieuwe missie tijdens het klokje en het zwart na missie 12, 14 en 16, met een tegenproef; `zetNeer` op een geparkeerde auto; missie 16 in zo'n auto; en vooraf, zonder browser, geen functienaam twee keer in js/verhaal.js en js/main.js; stap 102); `npm run invaltest` (missie 16 van Johan aan de lijn tot de ochtend: de drie minuten en te laat, leeghalen, de inval en zijn filmbeeld, de Wieken, beide keuzes, de hinderlaag met de vlucht over het dek en de rotonde, rammen, de crash, de telefoon, ontsnappen, Johan geraakt, wapen niet weg, de auto total loss, opslaan; stap 101) met `invalshots` (vijf foto's, vier filmbeelden); `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
+De laatste die ertoe doen: `npm run puntentest` (het sturen van de Ferrari gemeten tegen het oude, het schap van Tinga State met `getComputedStyle` en geen enkel hidden-element in beeld, de schuif van Bouwman na de klap tegen echte schuurtjes, 200 kogels bij een nieuw spel; stap 106); `npm run schottest` (het schot als opname: laden, vanaf de knal, per wapen, op afstand, afkappen in een salvo; doorschieten met en zonder vergrendelde muis en op de vuurknop, het pistool en de sniper één per klik, de keuze in het menu; stap 105); `npm run kaartdoeltest` (ondertitels in een filmbeeld: in de balk, contrast, niets eroverheen; plekken op de rand van de minikaart; een eigen doel op de grote kaart aanwijzen, bij een speldje, weghalen, de route over de weg en bijgewerkt, aankomen, geen schot; maakt drie foto's; stap 104); `npm run ronaldtest` (missie 17: het lint, het plan, de worst, het erf gemeten — kraakplek nooit in de kegel, de weg ernaartoe lopend soms vrij, de kegel boven de grond, niets in het water, de route van Ronald zonder knik —, sluipen, beide afloopen met de filmbeelden, het neergaan, de opslag; stap 103) met `ronaldshots` (zes foto's); `npm run overgangtest` (laden of een nieuwe missie tijdens het klokje en het zwart na missie 12, 14 en 16, met een tegenproef; `zetNeer` op een geparkeerde auto; missie 16 in zo'n auto; en vooraf, zonder browser, geen functienaam twee keer in js/verhaal.js en js/main.js; stap 102); `npm run invaltest` (missie 16 van Johan aan de lijn tot de ochtend: de drie minuten en te laat, leeghalen, de inval en zijn filmbeeld, de Wieken, beide keuzes, de hinderlaag met de vlucht over het dek en de rotonde, rammen, de crash, de telefoon, ontsnappen, Johan geraakt, wapen niet weg, de auto total loss, opslaan; stap 101) met `invalshots` (vijf foto's, vier filmbeelden); `npm run legendatest` (de legenda onderaan de grote kaart: acht regels, de bedragen tegen de modules, elk icoon in zijn kleur, niets afgekapt, geen speldjes over elkaar, smal scherm; maakt ook de foto; stap 100); `npm run klusjestest` (de klusjes: plekken binnen de rand, het aanbod, alle vier de soorten van aannemen tot betaald, een wachtende missie die stil staat en terugkomt, de pauze die niet aftelt, afbreken, mislukken, laden, de beloning; stap 99) met `klusjesshots` (vier foto's); `npm run bochtentest` (het verkeer, de politie en de lijnen van race en Bouwman door de bocht: gladde lijn, geen draai of sprong in één beeld, dwarsversnelling, remmen voor een scherpe bocht, keren; stap 98) met `bochtenshots` (twee foto's); `npm run schaduwtest` (missie 15 van het telefoontje tot de € 1.500:
 de route, de loods, een automaat die volgt, te dichtbij, te ver, de Ferrari, de foto's, gezien
 worden; stap 96) met `schaduwshots` (vijf foto's); `npm run racetest` (missie 14 van het telefoontje tot de € 2.000,
 met een automaat die de Ferrari over het parcours rijdt, goed en slordig, het verliezen, de ring
@@ -407,6 +408,13 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   vlakken in de kaart). Iets plats op de grond (de kegel van missie 17) lag op 7 cm dus ónder het erf;
   js/schuur.js peilt de hoogte uit de vlakken (`grondPeiler`), en tools/ronaldtest.mjs meet het na met
   een straal recht naar beneden.
+- **`hidden` is niet hetzelfde als weg** (stap 106). Een id-selector met `display` (`#schap { display:
+  flex }`) wint van de browserregel voor `[hidden]`: het schap stond na een bezoek aan Tinga State
+  altijd in beeld, terwijl de proef `.hidden === true` zag. Geef zo'n element een eigen
+  `#naam[hidden] { display: none }`, en meet in een proef met `getComputedStyle`.
+- **Doorschieten hangt aan `player.vuurAan`** (stap 105). Dat ging alleen aan met een vergrendelde muis;
+  slepen (geen vergrendeling) en de vuurknop op een aanraakscherm schoten één keer. Een nieuwe manier
+  van vuren zet `vuurAan` aan en uit; `update` doet het doorschieten voor elk wapen met `auto`.
 - **`position: fixed` maakt een eigen laag** (stap 104). `#ui` had geen z-index, dus lag hij op 0 en
   schoven de filmbalken (4) over het gesprek heen, ook al had `#dialoog` zelf z-index 5. Nu is `#ui`
   5; een nieuwe laag boven of onder de hud hoort tussen de filmbalken (4) en de overgang (6).
@@ -490,6 +498,9 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
     volume op 0,004. Met audio.js van vóór stap 95 precies dezelfde zes (27 sep 2026,
     nagemeten); het ligt aan het afspelen in deze omgeving, niet aan de code. Op een
     machine met geluid opnieuw draaien.
+24. **Missie 18, De uitzending** (de laatste): het ontwerp staat in `docs/ONTWERP_MISSIE_18.md`,
+    het fragment in `audio/radio/uitzending.mp3` (40,2 s). Wacht op antwoord op drie vragen
+    (de studio of het treinstation, wat er met Bouwman gebeurt, de tekst voor de ondertitels).
 
 ## 8 · Waar wat gedocumenteerd wordt
 

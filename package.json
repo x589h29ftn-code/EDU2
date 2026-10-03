@@ -184,6 +184,7 @@
     "ronaldtest": "node tools/ronaldtest.mjs",
     "ronaldshots": "node tools/ronaldshots.mjs",
     "kaartdoeltest": "node tools/kaartdoeltest.mjs",
+    "schottest": "node tools/schottest.mjs",
     "invalshots": "node tools/invalshots.mjs"
   }
 }

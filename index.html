@@ -81,6 +81,9 @@
      al hebt staat er grijs bij, zodat je ziet dát de verkoper het voert. */
   #schap { position: absolute; left: 50%; bottom: 58px; transform: translateX(-50%);
            display: flex; gap: 10px; align-items: flex-end; }
+  /* `display: flex` hierboven wint van het hidden-attribuut: zonder deze regel bleef het
+     schap na een bezoek altijd onderin staan (melding 3 okt 2026, stap 106) */
+  #schap[hidden] { display: none; }
   #schap .kaart { width: 118px; background: rgba(8,14,24,.72); border: 1px solid rgba(255,255,255,.16);
                   border-radius: 8px; padding: 7px 7px 6px; text-align: center; }
   #schap .kaart.bezit { opacity: .42; }

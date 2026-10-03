@@ -45,6 +45,30 @@ let radioVoor = false;
 // wie claimt de sirene, en tot wanneer (zie `sirene` verderop)
 let sireneD = 1e9, sireneT = 0;
 let galm = null;               // de galmtak naast de droge (zie `start`)
+/*
+ Het schot als opname (stap 105, audio/wapen/schot.mp3, aangeleverd 1 okt 2026). Het bestand begint
+ met 80 ms stilte (de vertraging van de mp3 plus wat lucht); bij het laden zoeken we waar de knal
+ begint en spelen we vanaf daar, anders hoor je je schot pas een tiende seconde na de klik.
+ `schotSoort` is 'opname' of 'gemaakt' (het oude, gesynthetiseerde schot), te kiezen in het menu.
+*/
+let schotBuf = null, schotBegin = 0, schotSoort = 'opname', schotLaden = null;
+const schotStemmen = new Map();   // per bron de laatste stem, om die af te kappen bij het volgende schot
+let laatsteSchot = null;          // (voor tools/schottest.mjs)
+const schotLevend = new Set();    // alle stemmen die nog klinken (ook voor de proef: per bron tellen)
+let schotTeller = 0;
+/*
+ Per wapen: de afspeelsnelheid (hoger = korter en feller, lager = dieper en voller) en het volume.
+ Een volgend schot binnen `kap` seconden kapt de naklank van het vorige af: zo blijft een salvo van het
+ machinegeweer twaalf losse knallen per seconde in plaats van één opgestapelde brij, en klinkt
+ alleen het laatste helemaal uit.
+*/
+const SCHOT = {
+  pistool: { rate: 1.0, vol: 1.15 },
+  mitrailleur: { rate: 1.08, vol: 0.9 },
+  sniper: { rate: 0.8, vol: 1.35 },
+  ander: { rate: 1.0, vol: 1.0 },
+};
+const SCHOT_KAP = 0.6;
 const MISSIE_VOL = 0.26;     // spanningsmuziek: onder de radio (0,32) en boven de motor
 let vogelKlok = 0, krekelKlok = 0, molenKlok = 0;
 let laatsteSfeer = null;     // welk omgevingsgeluid er het laatst klonk
@@ -180,6 +204,39 @@ export const geluid = {
     */
     bronnen.water = ruisLaag('bandpass', 700, 1.1, 0.0);
     window.__geluid = true;
+    this.laadSchot();
+  },
+
+  // het schot als opname: één keer ophalen en ontleden; mislukt het, dan blijft het gemaakte schot
+  laadSchot(url = 'audio/wapen/schot.mp3') {
+    if (schotLaden || !ctx) return schotLaden;
+    schotLaden = (async () => {
+      try {
+        const r = await fetch(url, { cache: 'force-cache' });
+        if (!r.ok) return null;
+        const buf = await ctx.decodeAudioData(await r.arrayBuffer());
+        // waar begint de knal: het eerste stukje van 5 ms boven −30 dB van de piek, en dan 4 ms ervoor
+        const d = buf.getChannelData(0), N = Math.max(1, Math.round(buf.sampleRate * 0.005));
+        let piek = 0; for (let i = 0; i < d.length; i++) piek = Math.max(piek, Math.abs(d[i]));
+        let begin = 0;
+        for (let i = 0; i < d.length; i += N) {
+          let som = 0; for (let j = i; j < Math.min(d.length, i + N); j++) som += d[j] * d[j];
+          if (Math.sqrt(som / N) > piek * 0.0316) { begin = Math.max(0, i / buf.sampleRate - 0.004); break; }
+        }
+        schotBuf = buf; schotBegin = begin;
+        return buf;
+      } catch { return null; }
+    })();
+    return schotLaden;
+  },
+  zetSchotSoort(soort) { schotSoort = soort === 'gemaakt' ? 'gemaakt' : 'opname'; },
+  get schotSoort() { return schotSoort; },
+  // (voor tools/schottest.mjs)
+  schotStand(bron = null) {
+    let stemmen = 0;
+    for (const v of schotLevend) if (v.speelt && (bron === null || v.bron === bron)) stemmen++;
+    return { geladen: !!schotBuf, begin: schotBegin, duur: schotBuf ? schotBuf.duration : 0, soort: schotSoort,
+      laatste: laatsteSchot, teller: schotTeller, stemmen };
   },
 
   // hoofdvolume; de U-toets in main.js zet het geluid hiermee uit en aan
@@ -212,10 +269,43 @@ export const geluid = {
    Elk schot krijgt wat toonhoogte- en tijdverschil mee, anders klinkt een serie
    als een kopieermachine. En vlak erna tikt de huls op de stoep.
   */
-  schot(afstand = 0) {
+  schot(afstand = 0, { wapen = 'ander', bron = 'ander' } = {}) {
     if (!aan) return;
+    schotTeller++;
     const v = 0.92 + Math.random() * 0.16;
     const t0 = nu();
+    if (schotBuf && schotSoort === 'opname') {
+      /*
+       De opname. Van ver weg zachter (dezelfde lijn als het gemaakte schot hieronder) en doffer:
+       een laagdoorlaat die van 12 kHz vlakbij naar 1,4 kHz op tachtig meter zakt.
+      */
+      const W = SCHOT[wapen] || SCHOT.ander;
+      const k = Math.max(0.12, 1 - afstand / 80);
+      const src = ctx.createBufferSource(); src.buffer = schotBuf;
+      const rate = W.rate * (0.96 + Math.random() * 0.08);
+      src.playbackRate.value = rate;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+      lp.frequency.value = 12000 - Math.min(1, afstand / 80) * 10600;
+      const g = ctx.createGain(); g.gain.value = W.vol * k;
+      src.connect(lp); lp.connect(g); g.connect(hoofd);
+      const vorig = schotStemmen.get(bron);
+      if (vorig && vorig.speelt && t0 - vorig.t < SCHOT_KAP) {
+        vorig.g.gain.cancelScheduledValues(t0);
+        vorig.g.gain.setValueAtTime(vorig.g.gain.value, t0);
+        vorig.g.gain.linearRampToValueAtTime(0, t0 + 0.025);
+        try { vorig.src.stop(t0 + 0.03); } catch { /* al gestopt */ }
+        vorig.speelt = false; schotLevend.delete(vorig);
+      }
+      const stem = { src, g, t: t0, speelt: true, bron };
+      schotLevend.add(stem);
+      src.onended = () => { stem.speelt = false; schotLevend.delete(stem); };
+      schotStemmen.set(bron, stem);
+      src.start(t0, schotBegin);
+      laatsteSchot = { wapen, bron, rate, offset: schotBegin, gain: W.vol * k, lp: lp.frequency.value, opname: true };
+      if (afstand < 25) setTimeout(() => { toon({ freq: 3200, naar: 2100, duur: 0.07, volume: 0.05 }); }, 260);
+      return;
+    }
+    laatsteSchot = { wapen, bron, opname: false };
     /*
      Een schot van ver weg is zachter en doffer. Tot nu toe stond elk schot even
      hard, want er werd alleen vlakbij geschoten; bij de deal aan de molen

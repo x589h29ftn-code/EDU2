@@ -12,6 +12,8 @@ import { hurkHouding } from './lichaam.js';
 */
 export const HURK_ZAK = hurkHouding({}, 1);
 
+// de reserve kogels bij een nieuw spel (stap 106)
+export const START_RESERVE = 200;
 
 /*
  De twee wapens. Het pistool heb je vanaf het begin; het machinegeweer koop je
@@ -141,7 +143,8 @@ export class Player {
     this.magazijnen = { pistool: 12, mitrailleur: 0, sniper: 0 };
     // de stand van de kijker, per wapen (zie `zoom`)
     this.zoomPer = {};
-    this.ammo = 12; this.reserve = 60; this.reloading = 0;
+    // 200 kogels in reserve bij het begin, "voor het gemak" (verzoek 3 okt 2026, stap 106; was 60)
+    this.ammo = 12; this.reserve = START_RESERVE; this.reloading = 0;
     this.vuurAan = false;       // trekker ingedrukt (voor het automatische vuur)
     this.vuurKlok = 0;          // tijd tot het volgende schot mag
     /*
@@ -459,16 +462,25 @@ export class Player {
       if (e.button !== 0) return;
       if (this.pointerLocked) { this.vuurAan = true; this.shoot(); return; }
       this.dragging = true; this.dragDist = 0;
+      /*
+       Zonder vergrendelde muis (slepen om rond te kijken) gaf ingedrukt houden alleen slepen, en
+       schoot je pas bij het loslaten, één keer: het machinegeweer was zo geen automaat (stap 105).
+       Een automatisch wapen vuurt nu meteen en zolang de knop ingedrukt is; slepen kijkt
+       ondertussen rond, zodat je richt terwijl je schiet. Het pistool en de sniper blijven
+       schieten bij een korte klik zonder slepen.
+      */
+      if (this.wapenInfo.auto) { this.vuurAan = true; this.shoot(); }
     });
     document.addEventListener('mouseup', e => {
       if (!this.active) return;
       if (this.kaartMuis) { if (e.button === 2) this.richten(false); this.vuurAan = false; this.dragging = false; return; }
       if (e.button === 2) { this.richten(false); return; }
       if (e.button !== 0) return;
+      const automaat = this.vuurAan && this.wapenInfo.auto;
       this.vuurAan = false;
       if (this.pointerLocked) return;
-      // een korte klik zonder slepen is een schot
-      if (this.dragDist < 8) this.shoot();
+      // een korte klik zonder slepen is een schot (een automaat schoot al bij het indrukken)
+      if (this.dragDist < 8 && !automaat) this.shoot();
       this.dragging = false;
     });
     /*
@@ -587,7 +599,8 @@ export class Player {
     this.kickPitch += (0.026 + Math.random() * 0.010) * W.kick * mikF.kick;
     this.kickYaw += (Math.random() - 0.5) * 0.014 * W.kick * mikF.kick;
     if (this.wapen) this.wapen.vuur();
-    geluid.schot();
+    this.schoten = (this.schoten || 0) + 1;      // (voor tools/schottest.mjs)
+    geluid.schot(0, { wapen: this.wapenSoort, bron: 'speler' });
     const dir = new THREE.Vector3(); this.camera.getWorldDirection(dir);
     // het machinegeweer schiet slordiger: de kogel gaat een fractie naast de
     // richting waar je in kijkt

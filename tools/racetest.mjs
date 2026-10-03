@@ -469,12 +469,15 @@ const stuur = await page.evaluate(() => {
     const dt = 1 / 60, y0 = car.yaw;
     for (let i = 0; i < 60; i++) { car.speed = v0; V.drive(car, { KeyA: i * dt < tik }, dt); }
     const draai = car.yaw - y0;
+    grip = car.grip;
     car.driveable = false; car.mesh.visible = false; car.x = car.z = 1e5; car.mesh.position.set(1e5, 0, 1e5);
     return +draai.toFixed(3);
   };
-  return { vol50: meet(50, 1), tik50: meet(50, 0.1), vol10: meet(10, 1) };
+  let grip = 0;
+  return { vol50: meet(50, 1), tik50: meet(50, 0.1), vol10: meet(10, 1), grip };
 });
-ok(stuur.vol50 * 50 < 28, 'op 180 km/u vol naar links: niet harder dan de banden houden', `${(stuur.vol50 * 50).toFixed(1)} m/s² dwars, ${stuur.vol50} rad in een seconde`);
+// de grip van de Ferrari is sinds stap 106 50 m/s² (RIJ in js/vehicles.js), was 26
+ok(stuur.vol50 * 50 < stuur.grip + 2, 'op 180 km/u vol naar links: niet harder dan de banden houden', `${(stuur.vol50 * 50).toFixed(1)} m/s² dwars (grip ${stuur.grip}), ${stuur.vol50} rad in een seconde`);
 ok(stuur.tik50 < 0.08, 'en een tikje van een tiende seconde is een kleine koerswijziging', `${(stuur.tik50 * 180 / Math.PI).toFixed(1)}°`);
 ok(stuur.vol10 > 0.8, 'maar langzaam stuurt hij nog gewoon', `${stuur.vol10} rad in een seconde op 36 km/u`);
 

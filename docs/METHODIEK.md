@@ -6729,6 +6729,66 @@ steeds updaten."
 - Proeven: `kaartdoeltest` 22 controles groen; `legendatest`, `klusjestest`, `ronaldtest` en
   `checkpointtest` opnieuw gedraaid.
 
+
+**Het schot als opname, en het machinegeweer als automaat (stap 105).** Gevraagd, met een
+aangeleverde Gunshot.mp3: "test eens hoe dit geluidje als geweerschot klinkt voor de wapens; voor de
+machinegeweer even zien hoe je dat automatisch maakt."
+
+- *Eerst gemeten* (in de browser, `decodeAudioData`, want hier staat geen ffmpeg): 1,056 s stereo,
+  de knal begint na 80 ms stilte (de vertraging van de mp3 en wat lucht), de piek ligt op 0,16 s,
+  na 0,25 s is hij 20 dB zachter en na 0,46 s 40 dB. Vanaf het begin afspelen gaf dus een tiende
+  seconde vertraging op elke klik. `laadSchot` zoekt bij het laden het eerste stukje van 5 ms boven
+  −30 dB (81 ms) en speelt vanaf 4 ms daarvoor.
+- *Per wapen* (`SCHOT` in js/audio.js): de afspeelsnelheid en het volume. De sniper op 0,8 (lager,
+  langer), het machinegeweer op 1,08, met elk schot ±4 % verschil. Op afstand dezelfde verzwakking
+  als het gemaakte schot, met een laagdoorlaat van 12 kHz naar 1,4 kHz op 80 m. Het gemaakte schot
+  blijft als terugval (nog niet geladen) en als keuze in het menu.
+- *Een salvo*: twaalf schoten per seconde van een opname van een seconde stapelen tot een brij. Elk
+  schot kapt daarom de stem van dezelfde bron af (25 ms naar nul), behalve het laatste.
+- *Doorschieten bestond al* (`auto: true`, `tempo` 0,085, `vuurAan` in `update`), maar alleen met een
+  vergrendelde muis. Zonder vergrendeling werd ingedrukt houden slepen en schoot je pas bij het
+  loslaten; de vuurknop op een aanraakscherm schoot één keer per tik. Allebei gemeten in de proef:
+  nu elf schoten in een seconde, en nul erna.
+- *Wat er misging in de proef*: de controle op afkappen telde de stemmen van alle bronnen bij elkaar
+  (die van de controles ervoor klonken nog, want headless loopt de audioklok traag). Nu per bron.
+- Geen foto's: het is geluid. Proeven: `schottest` 13 controles groen; `wapentest` en `politietest`
+  opnieuw gedraaid.
+
+**Vier punten: sturen, het schap, de klap van Bouwman, 200 kogels (stap 106).** Gevraagd op 3 okt
+2026: "de Ferrari draait nu wel heel lastig links en rechts; bij de Tinga State verdwijnt het overzicht
+van de wapens niet als je wegloopt; als Bouwman geramd wordt kan hij soms in een hokje van een huis
+terechtkomen, lijkt geen collision tijdens rammen; laat de speler beginnen met 200 kogels."
+
+- *Het schap* was een fout die de proef niet kon zien. `#schap { display: flex }` in index.html wint
+  van het hidden-attribuut: de standaardregel `[hidden] { display: none }` van de browser weegt
+  minder zwaar dan een id-selector. Het schap was dus nooit verborgen. tools/meldtest.mjs keek naar
+  `.hidden`, dat netjes op true stond, en was groen. Nu staat er `#schap[hidden] { display: none }`,
+  en tools/puntentest.mjs kijkt naar `getComputedStyle` en de grootte op het scherm. Ook loopt de
+  proef de hele pagina na: geen enkel element met hidden mag toch in beeld staan (13 nagekeken). De
+  andere elementen met een eigen display (`#dialoog`, `#scope`, het menu) hadden die regel al.
+- *De Ferrari*: sinds stap 95 begrenst de grip het stuur (v²·tan(stuur)/wielbasis ≤ 26 m/s²). Voor een
+  hatchback die 80 km/u haalt is dat genoeg. De Ferrari rijdt twee keer zo hard, en daar draaide hij
+  op 200 km/u nog maar 0,47 rad/s. Gemeten, één seconde vol naar links: op 120 km/u 0,7 rad en op
+  200 km/u 0,4 rad. Nu heeft hij zijn eigen grip (`RIJ.ferrari.grip` 50, `car.grip`): 1,18 rad op 120 km/u en 0,65 rad op
+  200 km/u, en een tikje van een tiende seconde op 200 km/u geeft 2,5° (was 2,7°). Daarbij komt het
+  stuur met de toetsen op snelheid geleidelijk op: 8/(1 + v/40) per seconde, dus in 0,3 s op
+  200 km/u. Zo blijft een tikje klein, waar stap 95 juist over ging. Loslaten zet het stuur meteen
+  recht, met het oude tempo, anders loopt een tikje na. Een eerste poging met grip 45 en een opbouw
+  in een halve seconde won op 200 km/u bijna niets: de trage opbouw at de extra grip op. Een
+  computerbestuurder (`keys.stuur`) houdt het snelle tempo, zodat de politie en de race niet
+  veranderen. De hatchback houdt 26.
+- *De klap van Bouwman*: na het rammen schoof zijn auto in 1,3 s zeven meter opzij en vijf vooruit,
+  zonder enige botsing. `crashSchuif` in js/inval.js loopt die baan nu in stappen van 2 % af met de
+  drie cirkels van `drive`, en stopt bij de laatste vrije stap (ook niet het water in). Hij kiest de
+  kant met de meeste ruimte. Bouwman stapt uit aan een vrije kant en rent de richting op die het
+  verst vrij is, tot 16 m (`renVrij`); hij rende eerst 60 m recht weg, door alles heen. De proef
+  zoekt in de echte wereld acht plekken naast een schuurtje waar de oude schuif erdoorheen ging, en
+  meet de nieuwe baan om de 0,5 %: diepste overlap 0 cm.
+- *200 kogels*: `START_RESERVE` in js/player.js (was 60). Een geladen spel houdt zijn eigen stand.
+- Proeven: `puntentest` (nieuw, 17 controles groen); `racetest` en `schaduwtest` opnieuw, want hun automaat stuurt de
+  Ferrari met A en D (de racetest meet de dwarsversnelling nu tegen `car.grip`); `invaltest` opnieuw
+  voor de klap. `racetest` en `invaltest` groen; ook `wapentest` en `politietest` (stap 105).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

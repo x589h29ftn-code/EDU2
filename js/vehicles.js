@@ -130,7 +130,14 @@ export const RIJ = {
   van: { top: 24, trek: 1 },
   bx: { top: 24, trek: 1 },
   truck: { top: 16, trek: 1 },
-  ferrari: { top: 70, trek: 1.9 },
+  /*
+   `grip`: hoeveel dwarsversnelling het stuur van deze auto hooguit vraagt (zie `drive`).
+   De Ferrari had dezelfde 26 m/s² als een hatchback, en omdat hij twee keer zo hard gaat
+   draaide hij op 200 km/u nog maar een halve radiaal per seconde: "de Ferrari draait nu wel
+   heel lastig links en rechts" (melding 3 okt 2026, stap 106). Met 50 draait hij op 120 km/u
+   1,5 en op 200 km/u 0,9 rad/s.
+  */
+  ferrari: { top: 70, trek: 1.9, grip: 50 },
 };
 
 export const LAKKLEUREN = [
@@ -591,7 +598,7 @@ export class Vehicles {
       as: truck ? 2.6 : 1.4, botsRadius: truck ? 1.15 : (soort === 'ferrari' ? 1.0 : 0.95),
       instap: truck ? 2.4 : 1.2,
       stoel: null,          // het oogpunt komt uit het model (userData.oog)
-      topSnelheid: rij.top, trek: rij.trek,
+      topSnelheid: rij.top, trek: rij.trek, grip: rij.grip || STUUR_GRIP,
       breedte: truck ? 2.35 : (soort === 'ferrari' ? 1.95 : 1.78),
     };
     this.cars.push(car);
@@ -698,8 +705,18 @@ export class Vehicles {
     */
     const vv = car.speed * car.speed;
     const maxStuur = Math.min(0.60 * (0.26 + 0.74 / (1 + Math.abs(car.speed) / 8)),
-      Math.atan(STUUR_GRIP * wielbasis / Math.max(1, vv)));
-    car.steer += (doel * maxStuur - car.steer) * Math.min(1, dt * 8);
+      Math.atan((car.grip || STUUR_GRIP) * wielbasis / Math.max(1, vv)));
+    /*
+     Met de toetsen bouwt de uitslag op snelheid trager op (stap 106): A of D is aan of uit,
+     en met de ruimere grip van de Ferrari gaf een tikje anders weer een ruk. Vasthouden haalt
+     wel de volle uitslag, in een derde seconde op 200 km/u. Loslaten gaat wel meteen terug
+     naar het midden, anders loopt een tikje nog lang na. Een bestuurder van de computer
+     (keys.stuur) stuurt zelf geleidelijk en houdt het snelle tempo.
+    */
+    const naar = doel * maxStuur;
+    const opbouwen = Math.abs(naar) > Math.abs(car.steer) && naar * car.steer >= 0;
+    const tempo = typeof keys.stuur === 'number' || !opbouwen ? 8 : 8 / (1 + Math.abs(car.speed) / 40);
+    car.steer += (naar - car.steer) * Math.min(1, dt * tempo);
 
     // ---- motor, rem en rolweerstand ----
     const v = car.speed;

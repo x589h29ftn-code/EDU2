@@ -1951,6 +1951,7 @@ window.addEventListener('keydown', e => {
  naam, wat er nu staat, en wat er gebeurt als je erop klikt.
 */
 const WEER_RIJ = ['helder', 'bewolkt', 'regen'];
+try { geluid.zetSchotSoort(localStorage.getItem('tinga.schot') || 'opname'); } catch { /* geen opslag */ }
 menu.zetInstellingen(() => [
   {
     id: 'scherpte', naam: 'Scherpte',
@@ -1963,6 +1964,16 @@ menu.zetInstellingen(() => [
     },
   },
   { id: 'geluid', naam: 'Geluid', waarde: () => (stil ? 'uit' : 'aan'), volgende: () => { stil = !stil; geluid.demp(stil); menu.zetGeluid(!stil); } },
+  // het schot: de opname uit audio/wapen/schot.mp3, of het oude gemaakte geluid (stap 105), om te vergelijken
+  {
+    id: 'schot', naam: 'Schotgeluid', waarde: () => (geluid.schotSoort === 'opname' ? 'opname' : 'gemaakt'),
+    volgende: () => {
+      const nieuw = geluid.schotSoort === 'opname' ? 'gemaakt' : 'opname';
+      geluid.zetSchotSoort(nieuw);
+      try { localStorage.setItem('tinga.schot', nieuw); } catch { /* geen opslag: dan alleen voor nu */ }
+      geluid.schot(0, { wapen: player.wapenSoort, bron: 'menu' });    // meteen horen hoe hij klinkt
+    },
+  },
   {
     id: 'weer', naam: 'Weer', waarde: () => sfeer.weer,
     volgende: () => { sfeer.weer = WEER_RIJ[(WEER_RIJ.indexOf(sfeer.weer) + 1) % WEER_RIJ.length]; },

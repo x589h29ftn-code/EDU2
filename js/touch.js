@@ -147,7 +147,8 @@ export function initTouchControls(player, opts = {}) {
     });
   }
 
-  button('tfire', () => player.shoot());
+  // de vuurknop: ingedrukt houden is doorschieten met het machinegeweer (stap 105; eerst één schot per tik)
+  button('tfire', () => { player.vuurAan = true; player.shoot(); }, () => { player.vuurAan = false; });
   // springen meteen uitvoeren: een korte tik zou anders tussen twee beelden
   // door vallen. Space blijft ingedrukt voor de handrem in de auto.
   button('tjump', () => { player.keys.Space = true; player.jump(); }, () => { player.keys.Space = false; });

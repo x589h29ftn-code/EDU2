@@ -1378,8 +1378,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
           const salvo = a.mp ? 3 : 1;
           a.vuurT = (a.mp ? VUURTIJD * 0.85 : VUURTIJD) * (0.8 + Math.random() * 0.6);
           persoon.vuur();
-          geluid.schot();
-          if (a.mp) for (let k = 1; k < salvo; k++) setTimeout(() => geluid.schot(), k * 85);
+          const soort = { wapen: a.mp ? 'mitrailleur' : 'ander', bron: 'politie' };
+          geluid.schot(0, soort);
+          if (a.mp) for (let k = 1; k < salvo; k++) setTimeout(() => geluid.schot(0, soort), k * 85);
           /*
            Hoe vaak een agent raak schiet. Dit was 0,5 min 1,1 % per meter, met
            een bodem van 10 %: op tien meter raakte hij vier van de tien keer en
