@@ -8,7 +8,7 @@
     zuil vrij van de deur; binnen het bureau met vijf schermen, twee mengpanelen en twee
     microfoons, de dj op zijn stoel, en een vrije weg van de deur naar de tafel.
  3. Het fragment: audio/radio/uitzending.mp3 laadt en duurt 40,2 s.
- 4. Mark belt; de M bij de Wieken 29; binnen het plan met Mark en Johan; naar buiten: "Die avond…" (de
+ 4. Mark belt; de M bij de Wieken 29; binnen het plan met Mark en Johan; naar buiten: "Die nacht…" (de
     avond zelf staat in tools/avondtest.mjs), en daarna zondagochtend.
  5. Bij Radio Tinga: de deur zit dicht tot Johan gebeld heeft; dan een minuut, de dj weg.
  6. Binnen: E de stick erin, E de schuif omhoog; ON AIR; de montage met het fragment (zeven shots,
@@ -205,7 +205,7 @@ ok(plan.fase1 === 'naarWieken' && plan.nav === 'M', 'een M bij de Wieken 29', `$
 ok(plan.fase2 === 'plan' && plan.markZit && plan.johan, 'binnen: Mark op de bank, Johan aan tafel', plan.fase2);
 ok(plan.namen.includes('Mark') && plan.namen.includes('Johan') && plan.fase3 === 'klaarmaken', 'het plan, met Mark en Johan', plan.fase3);
 ok(plan.stick && plan.heliPlan, 'het plan: vanavond Bouwman, met een heli, en de usb-stick voor morgen');
-ok(plan.avond && Math.abs(plan.avondUur - 22.5) < 0.1, 'naar buiten: "Die avond…", half elf, de heli', `uur ${plan.avondUur.toFixed(2)}`);
+ok(plan.avond && Math.abs(plan.avondUur - 1) < 0.1, 'naar buiten: "Die nacht…", één uur, de heli', `uur ${plan.avondUur.toFixed(2)}`);
 ok(plan.ochtend && Math.abs(plan.uur - 7.75) < 0.1 && !plan.zit && !plan.heli, 'en daarna zondagochtend, kwart voor acht (de heli weg, niet meer zitten)', `uur ${plan.uur.toFixed(2)}`);
 
 // ------------------------------------------------------------------ 5. bij Radio Tinga

@@ -147,7 +147,7 @@ bodyguards. Daarna nog politie achter je aan: bedenk daar een spetterend einde m
 Dat verandert het verloop hierboven: geen boot over de vaart en geen arrestatie. Zo loopt het nu,
 tussen het plan en "Zondagochtend":
 
-1. **Die avond…** (22:30, de klok stil). Erik zit in de open deur van de heli van Wiebe
+1. **Die nacht…** (01:00, de klok stil; tot stap 110 was het half elf). Erik zit in de open deur van de heli van Wiebe
    (js/rondvlucht.js), boven de loods. Bouwman stapt in zijn politieauto en rijdt naar de BP (lijn A,
    1078 m over de weg, `lijnDoor`).
    - **Volgen.** Wiebe hangt 28 m van hem af, aan de kant waar hij al is, en draait de open deur naar hem
@@ -159,8 +159,9 @@ tussen het plan en "Zondagochtend":
 3. **De auto.** Bij het Autohuis staat een zwarte Ferrari klaar, met Mark en Johan erbij. Bouwman rijdt
    terug naar de loods, naar zijn boot (lijn B). Ben je verder dan 300 m, tien tellen lang, dan is hij
    weg en mislukt de missie.
-4. **Het vuurgevecht.** Bij de loods staan Bouwman en vier man (`Bewaking`, vijf posten). Mark en Johan
-   stappen uit en raken om de 7 à 11 s een bodyguard; Bouwman laten ze voor Erik.
+4. **Het vuurgevecht.** Bij de loods staan Bouwman en vier man (`Bewaking`, vijf posten). Sinds stap 110
+   kunnen de bodyguards drie treffers hebben en Bouwman twee, en twee bodyguards hebben een machinegeweer.
+   Mark en Johan stappen uit en raken om de 3,5 à 5,5 s een bodyguard; Bouwman laten ze voor Erik.
 5. **De politie.** Vier sterren, en de navigatie naar de Dúvelsrak.
 6. **Het spetterende einde.** Over het dek gooit Johan zijn laatste blok C4 uit het raam, een filmbeeld:
    de knal achter de auto, de eerste politieauto draait dwars, de tweede staat erachter stil, en de sterren

@@ -5,15 +5,19 @@
    node tools/server.mjs 8123 &   node tools/avondtest.mjs [poort]   (npm run avondtest)
 
  1. De lijnen: van de loods naar de BP (A) en terug (B), over de weg en zonder sprong in de hoogte.
- 2. De heli: half elf, de klok stil, Erik in de deur (de speler zit). Elke tiende seconde van de rit:
+ 2. De heli: 01:00, de klok stil, Erik in de deur (de speler zit). Elke tiende seconde van de rit:
     boven de daken, ruim van de rand van de wereld, rechts naast Bouwman met de open deur naar hem toe,
     rustig (nooit harder dan vmax, geen schok), de buitencamera buiten de romp en de blik begrensd.
  3. Echte schoten uit de deur raken zijn auto en tellen, maar hij komt weg: onder de luifel, en Wiebe
     landt op een vrije plek bij het Autohuis.
  4. De auto staat klaar, Mark en Johan ernaast; instappen begint de achtervolging over B.
  5. Kwijtraken: verder dan AVOND_KWIJT, tien tellen, dan mislukt.
- 6. Bij de loods: Bouwman en vier man; Mark en Johan stappen uit en schieten mee (niet op Bouwman);
-    Bouwman neer, iedereen neer, dan de politie: vier sterren en de nav naar de Dúvelsrak.
+ 6. Bij de loods: Bouwman en vier man, niet neer met één kogel, twee met een machinegeweer (salvo's);
+    een echt schot met het pistool kost één leven, de sniper legt hem neer. Je komt in een andere auto
+    dan de Ferrari: Mark en Johan stappen naast jou uit en schieten mee (niet op Bouwman); Bouwman neer,
+    iedereen neer, dan de politie: vier sterren en de nav naar de Dúvelsrak.
+ Ook (stap 110): in de heli doen E en V niets, Johan geeft kogels als je ze niet hebt, en opnieuw na het
+ neergaan bij de loods begin je bij de loods.
  7. Op het dek: het filmbeeld. Johan gooit de C4, de knal, de politie staat ervoor stil, de sterren weg,
     elk beeld de camera boven het dek; daarna "Zondagochtend".
  8. De politie op een andere manier kwijt: ook "Zondagochtend".
@@ -157,7 +161,7 @@ const heli = await page.evaluate(() => {
     vmax: 21, deurHoek: 1.75, pitch: g.player.pitch };
 });
 ok(heli.start.fase === 'heliStart' && heli.start.zichtbaar && heli.start.zit && heli.start.erik, 'Die avond: de heli, Erik zit in de deur', heli.start.fase);
-ok(Math.abs(heli.start.uur - 22.5) < 0.05 && Math.abs(heli.uurEind - 22.5) < 0.05, 'half elf, en de klok staat stil', `${r1(heli.start.uur)} → ${r1(heli.uurEind)}`);
+ok(Math.abs(heli.start.uur - 1) < 0.05 && Math.abs(heli.uurEind - 1) < 0.05, 'één uur \'s nachts, en de klok staat stil', `${r1(heli.start.uur)} → ${r1(heli.uurEind)}`);
 ok(heli.n > 300 && heli.fase !== 'heli', 'de hele rit gevolgd, tot de BP', `${heli.n} metingen, nu ${heli.fase}`);
 ok(heli.minBoven > 5, 'boven de daken', `minstens ${r1(heli.minBoven)} m boven het hoogste dak in de buurt`);
 ok(heli.minRand > 150, 'ruim van de rand van de wereld', `${r1(heli.minRand)} m`);
@@ -173,6 +177,16 @@ const raak = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, P = g.player;
   window.__bij('heliStart');
   window.__klik();
+  // E en V in de heli: niet instappen, en de buitencamera blijft
+  P.inCar = null;
+  const eSlik = v.toets();
+  const eAuto = !!P.inCar;
+  P.active = true; g.wisselCamera(); P.active = false;
+  window.__stap(2);
+  const derdeAan = g.derde.aan;
+  const camNaV = v.avond.filmCam, hNaV = v.avond.heli.pos;
+  const camBijHeli = camNaV ? Math.hypot(camNaV.pos[0] - hNaV.x, camNaV.pos[2] - hNaV.z) : 99;
+  if (g.derde.aan) g.derde.wissel();
   // naar de helft van de rit
   for (let t = 0; t < 60 && !(v.avond.rit && v.avond.rit.s > 250); t += 0.1) window.__stap(1, 0.1);
   P.ammo = 200; P.reloading = 0;
@@ -193,6 +207,7 @@ const raak = await page.evaluate(() => {
     window.__stap(1, 0.05);
   }
   const treffers = v.avond.treffers;
+  P.reserve = 3;                     // bijna door de kogels heen: Johan geeft er bij de auto
   // de rest van de rit
   for (let t = 0; t < 150 && v.fase === 'heli'; t += 0.1) window.__stap(1, 0.1);
   const luifel = v.fase;
@@ -203,8 +218,11 @@ const raak = await page.evaluate(() => {
   const garage = typeof g.garage === 'function' ? g.garage() : g.garage;
   const af = garage && garage.plekken && garage.plekken.aflever;
   return { schoten, treffers, luifel, fase: v.fase, landT, vrij: Math.hypot(rx - L.x, rz - L.z), dAutohuis: af ? Math.hypot(L.x - af[0].x, L.z - af[0].z) : null,
-    hY: h.pos.y - window.__W.grondHoogte(h.pos.x, h.pos.z), zit: P.zit };
+    hY: h.pos.y - window.__W.grondHoogte(h.pos.x, h.pos.z), zit: P.zit, eSlik, eAuto, derdeAan, camBijHeli, reserve: P.reserve };
 });
+ok(raak.eSlik && !raak.eAuto, 'in de heli doet E niets (geen auto 34 m lager instappen)');
+ok(!raak.derdeAan && raak.camBijHeli < 8, 'V in de heli: de buitencamera blijft bij de deur', `${r1(raak.camBijHeli)} m van de heli`);
+ok(raak.reserve >= 120, 'zonder kogels: Johan geeft je een doos bij de auto', `${raak.reserve} in reserve`);
 ok(raak.treffers >= 3, 'schoten uit de deur raken zijn auto', `${raak.treffers} treffers uit ${raak.schoten} schoten`);
 ok(raak.luifel === 'luifel' || raak.luifel === 'landen' || raak.luifel === 'naarAuto', 'maar hij komt weg: onder de luifel van de BP', raak.luifel);
 ok(raak.fase === 'naarAuto' && raak.hY < 2 && !raak.zit, 'Wiebe landt, Erik stapt uit', `${raak.fase}, ${r1(raak.hY)} m, na ${r1(raak.landT)} s`);
@@ -277,9 +295,13 @@ const gev = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, P = g.player;
   window.__bij('achtervolging');
   window.__klik();
-  const a = v.avond, auto = a.auto;
-  P.inCar = auto;
+  // niet de Ferrari: een andere auto ernaast
+  const fer = v.avond.auto;
+  const anders = g.vehicles.voegToe({ x: fer.x + 4, z: fer.z, yaw: fer.yaw, soort: 'hatch', kleur: 0x8a8f96 });
+  P.inCar = anders;
   window.__stap(2);
+  const a = v.avond, auto = v.avond.auto;
+  const andersGenomen = auto === anders;
   // in één keer naar het eind van B: de rit klaar
   const B = a.B;
   for (let t = 0; t < 200 && v.fase === 'achtervolging'; t += 0.1) {
@@ -289,7 +311,15 @@ const gev = await page.evaluate(() => {
     if (!document.getElementById('dialoog').hidden) v.toets();
   }
   const W = v.avond.mannen;
-  const begin = { fase: v.fase, aantal: W ? W.wachters.length : 0, bouwman: W && W.wachters[0].persoon === v.avond.bouwman, zichtbaar: v.avond.bouwman.groep.visible };
+  const begin = { fase: v.fase, aantal: W ? W.wachters.length : 0, bouwman: W && W.wachters[0].persoon === v.avond.bouwman, zichtbaar: v.avond.bouwman.groep.visible,
+    leven: W ? W.wachters.map(w => w.leven) : [], mg: W ? W.wachters.filter(w => w.mg && w.persoon.wapenSoort === 'mp').length : 0 };
+  // het machinegeweer schiet in salvo's: acht tellen schieten, geteld per man
+  const telVuur = (w) => { let n = 0; const echt = w.persoon.vuur.bind(w.persoon); w.persoon.vuur = () => { n++; return echt(); }; return () => { w.persoon.vuur = echt; return n; }; };
+  const wMg = W.wachters.find(w => w.mg), wPi = W.wachters.find((w, i) => i > 0 && !w.mg);
+  const stopMg = telVuur(wMg), stopPi = telVuur(wPi);
+  let schadeMg = 0, schadePi = 0;
+  for (let i = 0; i < 80; i++) { schadeMg += W.schiet(wMg, 10, 0.1); schadePi += W.schiet(wPi, 10, 0.1); }
+  const vuurMg = stopMg(), vuurPi = stopPi();
   window.__klik();
   // uitstappen, een eindje van de loods af
   const lo = v.schaduw.wereld.bouwmanStaat;
@@ -297,11 +327,30 @@ const gev = await page.evaluate(() => {
   const [sx, sz] = window.__W.resolveCollisions(lo.x - 30, lo.z - 22, 0.4);
   P.pos.set(sx, window.__W.grondHoogte(sx, sz), sz);
   window.__stap(2);
-  const hulp = { mark: v.avond.mark.groep.visible, johan: v.avond.johan.groep.visible };
+  const hulp = { mark: v.avond.mark.groep.visible, johan: v.avond.johan.groep.visible,
+    dMark: Math.hypot(v.avond.mark.groep.position.x - P.pos.x, v.avond.mark.groep.position.z - P.pos.z) };
   // dertig tellen: Mark en Johan halen er een paar neer, Bouwman niet
   for (let t = 0; t < 30 && v.fase === 'gevecht'; t += 0.1) { window.__stap(1, 0.1); if (!document.getElementById('dialoog').hidden) v.toets(); }
   const neerHulp = W.wachters.filter((w, i) => i > 0 && w.staat === 'neer').length;
   const bouwmanStaat = W.wachters[0].staat;
+  // een echt schot met het pistool op een bodyguard die nog staat: één leven eraf, hij blijft staan
+  let pistool = null;
+  const doel = W.wachters.find((w, i) => i > 0 && w.staat !== 'neer' && w.leven >= 2);
+  if (doel) {
+    const q = doel.persoon.groep.position, voor = doel.leven;
+    const [px, pz] = window.__W.resolveCollisions(q.x + 6, q.z + 2, 0.4);
+    P.pos.set(px, window.__W.grondHoogte(px, pz), pz);
+    const oog = { x: px, y: P.pos.y + P.eye, z: pz };
+    const dx = q.x - oog.x, dy = q.y + 1.2 - oog.y, dz = q.z - oog.z;
+    P.yaw = Math.atan2(-dx, -dz); P.pitch = Math.atan2(dy, Math.hypot(dx, dz));
+    P.applyCamera(); P.vuurKlok = 0; P.reloading = 0; P.ammo = Math.max(P.ammo, 5); P.kickPitch = 0; P.kickYaw = 0;
+    g.scene.updateMatrixWorld(true);
+    P.shoot();
+    pistool = { voor, na: doel.leven, staat: doel.staat, wapen: P.wapenSoort };
+  }
+  // de sniper: in één keer
+  const doel2 = W.wachters.find((w, i) => i > 0 && w.staat !== 'neer' && w.leven >= 2 && w !== doel);
+  const sniper = doel2 ? (W.raak(doel2.persoon.groep, 99), doel2.staat) : null;
   // Bouwman: de speler raakt hem
   for (let i = 0; i < 12 && W.wachters[0].staat !== 'neer'; i++) { W.raak(v.avond.bouwman.groep); window.__stap(1); }
   window.__stap(4);
@@ -312,11 +361,17 @@ const gev = await page.evaluate(() => {
   const komt = v.fase;
   window.__klik();
   window.__stap(4);
-  return { begin, hulp, neerHulp, bouwmanStaat, bouwmanNeer: W.wachters[0].staat === 'neer', zin, open, komt, fase: v.fase,
+  return { andersGenomen, vuurMg, vuurPi, schadeMg, schadePi, pistool, sniper, begin, hulp, neerHulp, bouwmanStaat, bouwmanNeer: W.wachters[0].staat === 'neer', zin, open, komt, fase: v.fase,
     sterren: g.politie.ster, nav: g.hud.nav && g.hud.nav.letter, inAuto: !!P.inCar };
 });
 ok(gev.begin.fase === 'gevecht' && gev.begin.aantal === 5 && gev.begin.bouwman && gev.begin.zichtbaar, 'bij de loods: Bouwman en vier man', `${gev.begin.fase}, ${gev.begin.aantal}`);
-ok(gev.hulp.mark && gev.hulp.johan, 'uitstappen: Mark en Johan stappen ook uit');
+ok(gev.andersGenomen, 'in een andere auto dan de Ferrari: de achtervolging gaat met die auto');
+ok(gev.begin.leven.join(',') === '2,3,3,3,3', 'niet neer met één kogel: Bouwman twee treffers, zijn mannen drie', gev.begin.leven.join(', '));
+ok(gev.begin.mg >= 2, 'twee bodyguards met een machinegeweer', `${gev.begin.mg}`);
+ok(gev.vuurMg >= gev.vuurPi * 3 && gev.schadeMg > 0, 'het machinegeweer schiet in salvo\'s', `${gev.vuurMg} kogels tegen ${gev.vuurPi} met het pistool in 8 s; schade ${gev.schadeMg} tegen ${gev.schadePi}`);
+ok(gev.pistool && gev.pistool.na === gev.pistool.voor - 1 && gev.pistool.staat !== 'neer', 'een echt schot met het pistool: één leven eraf, hij staat nog', JSON.stringify(gev.pistool));
+ok(gev.sniper === 'neer', 'de sniper legt hem in één keer neer', String(gev.sniper));
+ok(gev.hulp.mark && gev.hulp.johan && gev.hulp.dMark < 6, 'uitstappen: Mark en Johan stappen naast jou uit', `Mark op ${r1(gev.hulp.dMark)} m`);
 ok(gev.neerHulp >= 2 && gev.bouwmanStaat !== 'neer', 'Mark en Johan halen er mannen neer, Bouwman laten ze voor jou', `${gev.neerHulp} neer, Bouwman ${gev.bouwmanStaat}`);
 ok(gev.bouwmanNeer && gev.open && /Bouwman|Dat was/.test(gev.zin), 'Bouwman neer: iemand zegt het', gev.zin.slice(0, 60));
 ok(gev.komt === 'politieKomt' || gev.komt === 'politie', 'iedereen neer: sirenes', gev.komt);
@@ -389,7 +444,9 @@ const opnieuw = await page.evaluate(() => {
   const uit = {};
   for (const f of ['nacht', 'heli', 'luifel', 'landen', 'naarAuto', 'gevecht', 'politieKomt', 'brugFilm']) {
     window.__bij(f);
-    uit[f] = { fase: v.fase, zit: g.player.zit, heli: v.avond.heli.zichtbaar, sterren: g.politie.ster };
+    const Wm = v.avond.mannen;
+    uit[f] = { fase: v.fase, zit: g.player.zit, heli: v.avond.heli.zichtbaar, sterren: g.politie.ster, inAuto: !!g.player.inCar,
+      staan: Wm ? Wm.wachters.filter(w => w.staat !== 'neer').length : 0, bouwman: Wm ? Wm.wachters[0].staat : null };
     window.__klik();
   }
   // en weg uit de missie: de heli verdwijnt
@@ -399,7 +456,9 @@ const opnieuw = await page.evaluate(() => {
   return uit;
 });
 for (const f of ['nacht', 'heli', 'luifel', 'landen']) ok(opnieuw[f].fase === 'heliStart' && opnieuw[f].zit && opnieuw[f].heli, `${f}: opnieuw in de heli`, opnieuw[f].fase);
-for (const f of ['naarAuto', 'gevecht']) ok(opnieuw[f].fase === 'naarAuto' && !opnieuw[f].zit, `${f}: opnieuw bij de auto`, opnieuw[f].fase);
+ok(opnieuw.naarAuto.fase === 'naarAuto' && !opnieuw.naarAuto.zit, 'naarAuto: opnieuw bij de auto', opnieuw.naarAuto.fase);
+ok(opnieuw.gevecht.fase === 'gevecht' && opnieuw.gevecht.inAuto && opnieuw.gevecht.staan === 5 && opnieuw.gevecht.bouwman !== 'neer',
+  'gevecht: opnieuw bij de loods, niet de hele achtervolging over', `${opnieuw.gevecht.fase}, ${opnieuw.gevecht.staan} man, Bouwman ${opnieuw.gevecht.bouwman}`);
 for (const f of ['politieKomt', 'brugFilm']) ok(opnieuw[f].fase === 'politie' && opnieuw[f].sterren === 4, `${f}: opnieuw met de politie achter je aan`, opnieuw[f].fase);
 ok(!opnieuw.weg.heli && !opnieuw.weg.zit, 'laden buiten de missie: geen heli, niet meer zitten');
 

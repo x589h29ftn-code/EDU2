@@ -2307,10 +2307,10 @@ neergaan en laden. `npm run ronaldshots` maakt de zes foto's.
 De laatste missie. Een paar minuten na de ochtend van missie 17 belt **Mark**: *"Kom naar de Wieken. Johan
 heeft iets, en dan zijn we klaar."* Binnen aan de Wieken 29 houdt Johan een **usb-stick** omhoog, met
 veertig seconden erop. Morgenochtend om acht uur luistert half Sneek naar **Radio Tinga**, het
-ochtendprogramma van Sjors. Maar eerst Bouwman: vanavond haalt hij zijn spullen uit de loods aan het water.
+ochtendprogramma van Sjors. Maar eerst Bouwman: vannacht haalt hij zijn spullen uit de loods aan het water.
 Johan kent Wiebe, die rondvluchten boven de meren vliegt.
 
-**Die avond…** (half elf, de klok staat stil) zit je in de open zijdeur van de witte heli van **Wiebe**,
+**Die nacht…** (één uur, de klok staat stil) zit je in de open zijdeur van de witte heli van **Wiebe**,
 boven de loods. Bouwman ziet de heli en rijdt weg.
 
 - **De buitencamera.** Je kijkt van buiten de heli, schuin achter Erik: de deurpost, de sleds, en onder
@@ -2322,8 +2322,11 @@ boven de loods. Bouwman ziet de heli en rijdt weg.
 - Wiebe zet je neer bij het **Autohuis**. Daar staan **Mark en Johan** bij een **zwarte Ferrari**.
 - **De achtervolging**: Bouwman gaat terug naar zijn loods, naar zijn boot. Blijf erbij: verder dan
   300 m, tien tellen lang, en hij is weg (missie mislukt).
-- **Bij de loods**: Bouwman en vier bodyguards. Mark en Johan stappen met je uit en schieten mee op de
-  mannen, maar **Bouwman is voor jou**.
+- **Bij de loods**: Bouwman en vier bodyguards. Ze gaan niet neer met één kogel (de bodyguards drie
+  treffers, Bouwman twee; met de sniper wel in één keer), en twee hebben een **machinegeweer** dat in
+  salvo's schiet. Zoek dekking. Mark en Johan stappen met je uit en schieten mee op de mannen, maar
+  **Bouwman is voor jou**. Ga je neer, dan begin je opnieuw bij de loods. Weinig kogels? Johan geeft je
+  bij de auto een doos.
 - Dan **zwaailichten**: vier sterren. *"Naar de Dúvelsrak. Johan, heb je dat laatste blok nog?"*
   *"Altijd."* Rijd over het dek en Johan gooit zijn **laatste C4** uit het raam: een filmbeeld van de
   knal achter je, en de politie die er vol in de remmen voor staat. De sterren zijn weg. (Raak je ze
@@ -2373,7 +2376,7 @@ in een muur. `npm run uitzendingshots` maakt de zes foto's.
 
 | ![Uit de deur](docs/screenshots/avond_deur.png) | ![De heli](docs/screenshots/avond_heli.png) |
 |---|---|
-| die avond, uit de deur van de heli: het zoeklicht op Bouwman | de heli van Wiebe, Erik in de open deur |
+| die nacht, uit de deur van de heli: het zoeklicht op Bouwman | de heli van Wiebe, Erik in de open deur |
 | ![Geland](docs/screenshots/avond_landing.png) | ![De loods](docs/screenshots/avond_loods.png) |
 | geland bij het Autohuis: de zwarte Ferrari, Mark en Johan | het vuurgevecht bij de loods |
 | ![De Dúvelsrak](docs/screenshots/avond_brug.png) | |

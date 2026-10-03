@@ -1061,8 +1061,8 @@ const UITZENDING_TELEFOON = [
   telLijn(zegtMark('Erik. Kom naar de Wieken. Johan heeft iets, en dan zijn we klaar.')),
 ];
 const UITZENDING_PLAN = [
-  zegtMark('Het is zaterdag. Vanavond haalt Bouwman alles weg uit zijn loods, en dan is hij weg.'),
-  zegtJohan('Niet als wij hem eerst hebben. Mijn kennis Wiebe vliegt rondvluchten boven de meren. Hij heeft vanavond een heli vrij.'),
+  zegtMark('Het is zaterdag. Vannacht om één uur haalt Bouwman alles weg uit zijn loods, en dan is hij weg.'),
+  zegtJohan('Niet als wij hem eerst hebben. Mijn kennis Wiebe vliegt rondvluchten boven de meren. Hij heeft vannacht een heli vrij.'),
   zegtErik('Een heli.'),
   zegtMark('Jij zit in de deur, met een geweer. Johan en ik staan beneden met een auto klaar, bij het Autohuis.'),
   zegtJohan('En als het voorbij is, dit.'),
@@ -1072,12 +1072,15 @@ const UITZENDING_PLAN = [
   zegtMark('Eerst Bouwman. Wiebe pikt je op. Ga.'),
 ];
 // ---- de avond: de heli, de achtervolging, de loods, de politie (stap 109) ----
-const AVOND_UUR = 22.5;
+const AVOND_UUR = 1;                    // 01:00 's nachts (stap 110; was half elf)
 const AVOND_KWIJT = 300;                // verder dan dit achter Bouwman (m)…
 const AVOND_KWIJT_T = 10;               // …zo lang, en hij is weg
 const AVOND_HELI_TOP = 13.5;            // m/s: Bouwman met de heli boven zich
 const AVOND_VLUCHT_TOP = 19;            // m/s: Bouwman op weg naar zijn boot
 const AVOND_STERREN = 4;
+const AVOND_LEVEN = [2, 3, 3, 3, 3];    // treffers per man bij de loods: Bouwman, en zijn vier bodyguards
+const AVOND_MG = [1, 2];                // de posten met een machinegeweer
+const AVOND_KOGELS = 120;               // zoveel reserve geeft Johan je bij de auto, als je minder hebt
 const zegtWiebe = (tekst) => ({ wie: 'Wiebe', kop: { huid: '#e0b48e', haar: '#9a8a72', shirt: '#3b3f46' }, tekst });
 const AVOND_HELI = [
   zegtWiebe('Daar is zijn loods. Ik blijf naast hem, met de deur naar hem toe. Rustig aan.'),
@@ -2240,6 +2243,8 @@ export function initVerhaal(ctx) {
   // ---------- E ----------
   function toets() {
     if (!balk.hidden) return verderInGesprek();
+    // in de heli en in het filmbeeld op de brug doet E niets: geen auto 34 m lager instappen (stap 110)
+    if (missie === 'uitzending' && AVOND_VAST.includes(fase)) return true;
     // een klus (js/klusjes.js): aannemen, of de tas afgeven; en zolang er een loopt doet
     // de missie die onder zijn M op je wacht niets
     if (klusjes.toets()) return true;
@@ -2347,10 +2352,10 @@ export function initVerhaal(ctx) {
     return uit;
   }
 
-  function raak(obj) {
+  function raak(obj, kracht = 1) {
     if (klusjes.raak(obj)) return true;
-    // de zes man bij de Poiesz: die mogen juist wel
-    if (schutters && schutters.raak(obj)) return true;
+    // de zes man bij de Poiesz: die mogen juist wel (kracht: zie Bewaking.raak)
+    if (schutters && schutters.raak(obj, kracht)) return true;
     // en de bende op straat na missie 10: die begon zelf
     if (bendes.raak(obj)) return true;
     /*
@@ -8594,7 +8599,7 @@ export function initVerhaal(ctx) {
       if (fase === 'klaarmaken' && !binnenW && balk.hidden) {
         fase = 'nacht';
         zetOpdracht('');
-        zwartMet('Die avond…', startAvond);
+        zwartMet('Die nacht…', startAvond);
       }
       return;
     }
@@ -8670,6 +8675,7 @@ export function initVerhaal(ctx) {
      brugFilm / naBrug  het filmbeeld: Johan gooit zijn laatste C4 achter de auto op het dek, de politie
                         staat voor het vuur; daarna "Zondagochtend"
   */
+  const AVOND_VAST = ['heliStart', 'heli', 'luifel', 'landen', 'brugFilm'];
   const AVOND_ZONDER_STERREN = ['heliStart', 'heli', 'luifel', 'landen', 'naarAuto', 'achtervolging', 'gevecht'];
   let avondHeli = null;                       // de heli van Wiebe (js/rondvlucht.js), bij het opstarten gemaakt
   let avondA = null, avondB = null;           // de lijnen: van de loods naar de BP, en van de BP terug
@@ -8758,6 +8764,8 @@ export function initVerhaal(ctx) {
   // de speler zit in de deur: positie en camera elk beeld uit de heli
   function werkDeurBij(dt) {
     const h = avondHeli;
+    // (V zou de camera achter je poppetje zetten, hoog in de lucht naast de heli)
+    if (eersteP) eersteP();
     h.update(dt);
     const blik = h.begrens({ yaw: player.yaw, pitch: player.pitch });
     player.yaw = blik.yaw; player.pitch = blik.pitch;
@@ -8854,12 +8862,17 @@ export function initVerhaal(ctx) {
     const [jx, jz] = resolveCollisions(ap.x + 2.4, ap.z + 1.2, 0.4);
     invalJohan.zetNeer(jx, jz, kijkHoek({ x: jx, z: jz }, player.pos)); invalJohan.groep.visible = true;
     spanning = true; spanningUit = 0;
+    // zonder kogels is het gevecht bij de loods niet te doen: Johan heeft een doos bij zich
+    if (player.reserve < AVOND_KOGELS) { player.reserve = AVOND_KOGELS; hud.show('Johan geeft je een doos kogels', 2.4); }
     zetOpdracht('stap in de zwarte Ferrari');
     zetNavDoel(avondAuto.x, avondAuto.z, 'de auto', 'M');
     zeg(AVOND_INSTAPPEN, null, { auto: 2.4 });
   }
   function startAvondAchtervolging() {
     fase = 'achtervolging';
+    // de auto waar je in zit, ook als je een andere hebt genomen dan de Ferrari: daar stappen
+    // Mark en Johan straks bij de loods uit
+    if (player.inCar) avondAuto = player.inCar;
     hud.zetNavigatie(null); navDoel = null;
     markZichtbaar(false); invalJohan.groep.visible = false;   // ze zitten bij jou in de auto
     if (avondHeli) avondHeli.toon(false);
@@ -8901,10 +8914,12 @@ export function initVerhaal(ctx) {
     if (invalBalk) invalBalk.hidden = true;
     avondRit = null;
     a.speed = 0;
+    bouwman.legNeer(0);                        // (opnieuw na het neergaan lag hij nog)
     bouwman.zetNeer(a.x, a.z, 0); bouwman.groep.visible = true;
     if (schutters) schutters.verwijder();
+    // de bodyguards gaan niet neer met één kogel, en twee hebben een machinegeweer (stap 110)
     schutters = avondMannen = new Bewaking(scene, AVOND_POSTEN.map(([p, q]) => ({ a: p, b: q })),
-      { ...INVAL_MANNEN, personen: [bouwman] });
+      { ...INVAL_MANNEN, personen: [bouwman], leven: AVOND_LEVEN, mg: AVOND_MG });
     avondHulpT = 4;
     avondNeerGezegd = false;
     zetOpdracht('schiet Bouwman neer');
@@ -8913,7 +8928,8 @@ export function initVerhaal(ctx) {
   function hulpBijDeLoods(sp) {
     // Mark en Johan stappen uit zodra jij uitstapt, naast de auto
     if (!player.inCar && !mark.groep.visible) {
-      const c = avondAuto || { x: sp.x, z: sp.z, yaw: 0 };
+      // naast de auto als die er staat, anders naast jou (wie te voet komt, of zijn auto verderop liet staan)
+      const c = avondAuto && Math.hypot(avondAuto.x - sp.x, avondAuto.z - sp.z) < 25 ? avondAuto : { x: sp.x, z: sp.z };
       const [mx, mz] = resolveCollisions(c.x + 2.0, c.z + 1.0, 0.4);
       mark.zetNeer(mx, mz, 0); markZichtbaar(true); mark.geefWapen('pistool');
       const [jx, jz] = resolveCollisions(c.x - 2.0, c.z + 1.0, 0.4);
@@ -8929,10 +8945,12 @@ export function initVerhaal(ctx) {
     avondHulpT -= dt;
     const dLoods = Math.hypot(sp.x - lo.x, sp.z - lo.z);
     if (avondHulpT <= 0 && dLoods < 90) {
-      avondHulpT = 7 + Math.random() * 4;
+      avondHulpT = 3.5 + Math.random() * 2;    // (één treffer van de drie; stap 110)
       const levend = W.wachters.filter((w, i) => i > 0 && w.staat !== 'neer');
       if (levend.length) {
-        const w = levend[Math.floor(Math.random() * levend.length)];
+        // samen op één man: wie al het meest geraakt is (met drie levens per man kwam er anders in
+        // dertig tellen niemand neer, stap 110)
+        const w = levend.reduce((a, b) => ((b.leven ?? 1) < (a.leven ?? 1) ? b : a));
         const wie = Math.random() < 0.5 ? mark : invalJohan;
         if (wie.groep.visible) { wie.kijkNaar(w.persoon.groep.position.x, w.persoon.groep.position.z, 1, 99); wie.vuur && wie.vuur(); }
         W.raak(w.persoon.groep);
@@ -8956,19 +8974,38 @@ export function initVerhaal(ctx) {
     for (const p of [mark, invalJohan]) p.bergWapen && p.bergWapen();
     zeg(AVOND_POLITIE, startPolitie);
   }
-  // opnieuw na het neergaan met de politie achter je aan: in de auto bij de loods, Bouwman ligt
-  function startPolitieOpnieuw() {
+  // in de zwarte Ferrari op lijn B, `terug` monsters voor het eind (bij de loods), en instappen
+  function autoBijDeLoods(terug) {
     if (zetUur) zetUur(AVOND_UUR);
     if (klokLoopt) { if (uitzKlokWas === null) uitzKlokWas = klokLoopt(); klokLoopt(false); }
-    if (!avondLijnen()) { naarDeStudio(); return; }
-    const b = avondB, i = Math.max(0, b.n - 20);
+    if (!avondLijnen()) return false;
+    const b = avondB, i = Math.max(0, b.n - terug);
     const yaw = Math.atan2(-b.tx[i], -b.tz[i]);
     if (!avondAuto || avondAuto.wrak) avondAuto = vehicles.voegToe({ x: b.x[i], z: b.z[i], yaw, soort: 'ferrari', kleur: 0x16171b });
     avondAuto.x = b.x[i]; avondAuto.z = b.z[i]; avondAuto.yaw = yaw; avondAuto.speed = 0; avondAuto.driveable = true;
     if (avondAuto.mesh) { avondAuto.mesh.visible = true; avondAuto.mesh.position.set(b.x[i], 0, b.z[i]); avondAuto.mesh.rotation.y = yaw; }
     vehicles.zetNeer(avondAuto, 0, yaw);
     if (stapIn) stapIn(avondAuto);
+    return true;
+  }
+  // opnieuw na het neergaan met de politie achter je aan: in de auto bij de loods, Bouwman ligt
+  function startPolitieOpnieuw() {
+    if (!autoBijDeLoods(20)) { naarDeStudio(); return; }
     startPolitie();
+  }
+  // opnieuw na het neergaan bij de loods: daar weer aankomen, de tweede auto van Bouwman voor de deur
+  function startGevechtOpnieuw() {
+    if (!autoBijDeLoods(30)) { naarDeStudio(); return; }
+    markZichtbaar(false); invalJohan.groep.visible = false;
+    if (avondHeli) avondHeli.toon(false);
+    const b = avondB, j = b.n - 1;
+    if (!avondTweede || avondTweede.wrak) avondTweede = vehicles.voegToe({ x: b.x[j], z: b.z[j], yaw: 0, soort: 'hatch', kleur: 0x2b2f36, driveable: false });
+    const yaw = Math.atan2(-b.tx[j], -b.tz[j]);
+    avondTweede.x = b.x[j]; avondTweede.z = b.z[j]; avondTweede.yaw = yaw; avondTweede.speed = 0; avondTweede.driveable = false;
+    if (avondTweede.mesh) { avondTweede.mesh.visible = true; avondTweede.mesh.position.set(b.x[j], 0, b.z[j]); avondTweede.mesh.rotation.y = yaw; }
+    vehicles.zetNeer(avondTweede, 0, yaw);
+    avondRit = { auto: avondTweede };
+    startGevecht();
   }
   function startPolitie() {
     fase = 'politie';
@@ -9127,7 +9164,8 @@ export function initVerhaal(ctx) {
     if (['naarWieken', 'plan', 'klaarmaken'].includes(f)) { naarDeWiekenUitzending(); return; }
     // de avond: de heli opnieuw, of bij de auto, of met de politie achter je aan
     if (['nacht', 'heliStart', 'heli', 'luifel', 'landen'].includes(f)) { startAvond(); return; }
-    if (['naarAuto', 'achtervolging', 'gevecht'].includes(f)) { naLanden(); return; }
+    if (['naarAuto', 'achtervolging'].includes(f)) { naLanden(); return; }
+    if (f === 'gevecht') { startGevechtOpnieuw(); return; }
     if (['politieKomt', 'politie', 'brugFilm', 'naBrug'].includes(f)) { startPolitieOpnieuw(); return; }
     if (['naarBuiten', 'buiten', 'avond', 'einde', 'terug'].includes(f) && uitzendingKlaar) { startEindFilm(); return; }
     naarDeStudio();

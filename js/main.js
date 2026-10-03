@@ -1174,7 +1174,8 @@ player.shootCb = (camOrigin, camDir) => {
       geluid.klap();
       politie.misdaad('schot', h.point.x, h.point.z);
     }
-    else if ((raakVerhaal = verhaal.raak(h.object))) {
+    // (de sniper legt ook een taaie bodyguard in één keer neer: stap 110)
+    else if ((raakVerhaal = verhaal.raak(h.object, player.wapenSoort === 'sniper' ? 99 : 1))) {
       geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
       bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
     }

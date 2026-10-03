@@ -6914,6 +6914,54 @@ gefeliciteerd met je verjaardag (in het echt)."
 - *Proeven*: `avondtest` (nieuw) is groen. `uitzendingtest` springt na "Die avond…" naar zondagochtend.
   `overgangtest` (dubbele namen) en `vloeiendtest` zijn opnieuw gedraaid. Foto's: `avondshots` (vijf).
 
+**Missie 18: taaiere bodyguards, 01:00, en wat een speler anders kan doen (stap 110).** Gevraagd: "De
+bodyguards moeten niet neergaan met 1 schot, maak het dus wat lastiger, en minimaal twee hebben een
+machinegeweer. Maak het tijdstip 01:00 's nachts. Check nogmaals de missie: zijn er risico's op foutjes, of
+een speler die andere dingen doet?"
+
+- *Bewaking*: twee nieuwe opties, `leven` (een getal, of één per post) en `mg` (de posten met een
+  machinegeweer). Zonder die opties gedraagt elke groep zich zoals voorheen.
+  - Een treffer kost één leven. Wie nog leven over heeft, valt niet en kijkt meteen om zich heen. Hij
+    schiet pas terug als hij je ziet.
+  - De sniper kost alles: main.js geeft de kracht mee aan `verhaal.raak` en `Bewaking.raak`.
+  - Het machinegeweer schiet salvo's van vijf kogels, 0,11 s na elkaar. Per kogel is de kans op raak 70 %
+    en de schade 60 % van een pistoolschot.
+  - Bij de loods: Bouwman 2 levens, zijn mannen 3, twee machinegeweren. Gemeten over 8 s schieten: 15
+    kogels uit het machinegeweer tegen 4 uit een pistool.
+- *Mark en Johan* schoten eerst op een willekeurige man. Met drie levens per man ging er zo in 30 s
+  niemand neer (de proef: 0). Nu richten ze samen op wie al het meest geraakt is, om de 3,5 tot 5,5 s:
+  2 neer in 30 s, Bouwman blijft voor jou.
+- *01:00*: "Die nacht…", `AVOND_UUR` = 1, en het plan zegt "vannacht".
+- *Nagelopen: wat kan een speler anders doen?* Wat ik vond:
+  - **E in de heli.** De positie van de speler hangt 34 m hoog, en E zocht een auto alleen op x/z.
+    E doet nu niets in de heli en in het filmbeeld op de brug (`AVOND_VAST`).
+  - **V in de heli** zette de camera achter het poppetje van Erik, naast de heli in de lucht.
+    `werkDeurBij` houdt de eerste persoon vast.
+  - **Een andere auto dan de Ferrari.** De achtervolging begon gewoon, maar Mark en Johan stapten bij
+    de loods uit naast de Ferrari, die nog bij het Autohuis stond. Nu wordt de auto waarin je zit
+    `avondAuto`. Ze stappen uit naast de auto als die binnen 25 m staat, en anders naast jou.
+  - **Geen kogels.** Het gevecht is dan niet te doen. Bij de auto vult Johan je reserve aan tot 120.
+  - **Neer in het gevecht.** Dan moest je de heli niet opnieuw, maar wel de hele achtervolging over.
+    Nu begin je bij de loods (`startGevechtOpnieuw`, met `autoBijDeLoods` dat ook de politie gebruikt).
+    Bouwman lag daar nog van de vorige keer: hij wordt eerst rechtop gezet (`legNeer(0)`).
+  - **Gecontroleerd en in orde:**
+    - Laden of een nieuwe missie midden in de heli: `stopNaloop` en `ruimAvondOp`.
+    - Sterren uit de heli: `AVOND_ZONDER_STERREN`.
+    - Te voet of zonder auto naar de brug: geen filmbeeld, en de politie op een andere manier kwijtraken
+      gaat ook.
+    - De brug vanaf de Lemmerweg-kant: het startraam en `langsAs` voorbij het dek.
+- *Proeven*: `avondtest` uitgebreid en groen:
+  - 01:00;
+  - E en V in de heli;
+  - kogels;
+  - een andere auto;
+  - de levens per man en de twee machinegeweren met hun salvo's;
+  - een echt pistoolschot (één leven eraf, hij blijft staan) en de sniper (in één keer);
+  - Mark naast jou;
+  - opnieuw bij de loods.
+
+  Ook `uitzendingtest` (01:00) en `overgangtest` zijn groen. Foto's: `avondshots` om 01:00.
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

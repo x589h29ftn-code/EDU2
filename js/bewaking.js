@@ -20,6 +20,9 @@ const LOOP = 1.3;          // patrouilletempo (m/s)
 const REN = 3.2;           // als het alarm af is (m/s)
 const DEKKING = 9;         // op zoveel meter blijven ze staan en vuren
 const VUURTIJD = 1.7;      // seconden tussen twee schoten
+const MG_SALVO = 5;        // het machinegeweer: kogels per salvo…
+const MG_TEMPO = 0.11;     // …zo snel achter elkaar (s)…
+const MG_SCHADE = 0.6;     // …en per kogel dit deel van de gewone schade
 const VUURBEREIK = 42;     // verder dan dit vuren ze niet
 const SCHADE = 6;          // levenspunten per treffer
 
@@ -75,6 +78,14 @@ export class Bewaking {
     this.overLaag = opties.overLaag || 0;
     this.houden = !!opties.houden;
     this.terrein = opties.terrein || null;
+    /*
+     Taaier volk (stap 110, de bodyguards van Bouwman): `leven` is hoeveel treffers iemand kan
+     hebben (een getal, of één per post), `mg` de posten met een machinegeweer. Die schieten in
+     salvo's van MG_SALVO kogels en doen per kogel minder (MG_SCHADE van `schade`). Zonder deze
+     opties gaat iedereen met één treffer neer, zoals altijd.
+    */
+    this.leven = opties.leven ?? 1;
+    this.mg = opties.mg || [];
     this.opties = { kleuren, vest, pet };
     const personen = opties.personen || [];
     this.wachters = [];
@@ -92,10 +103,12 @@ export class Bewaking {
     const nieuw = posten.map((post, j) => {
       const i = begin + j;
       const kleur = kleuren[i % kleuren.length];
+      const mg = this.mg.includes(i);
       let persoon = personen[j] || null;
       if (persoon) persoon.geefWapen('pistool');
       else persoon = new Persoon({ ...kleur, huid: i % 2 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + (i % 3) * 0.02,
-        wapen: true, pet: pet === 'om de beurt' ? i % 2 === 0 : !!pet, vest });
+        wapen: mg ? 'mp' : true, pet: pet === 'om de beurt' ? i % 2 === 0 : !!pet, vest });
+      const leven = Array.isArray(this.leven) ? (this.leven[i] ?? 1) : this.leven;
       if (!persoon.groep.parent) scene.add(persoon.groep);
       persoon.groep.visible = true;
       const start = post.a;
@@ -109,6 +122,7 @@ export class Bewaking {
         doel: null,               // waar hij naartoe loopt bij 'zoekt'
         padI: 0,                  // hoever hij op het looppad is
         omT: 0,
+        leven, mg, salvo: 0,
         eigen: !!personen[j],     // een lichaam van buiten: niet weggooien bij verwijder
       };
     });
@@ -136,13 +150,25 @@ export class Bewaking {
     return gehoord;
   }
 
-  // obj = de geraakte mesh; loop omhoog tot we een bewaker vinden.
-  raak(obj) {
+  /*
+   obj = de geraakte mesh; loop omhoog tot we een bewaker vinden. `kracht` is hoeveel van zijn
+   leven een treffer kost (de sniper: alles). Wie nog leven over heeft gaat niet neer, maar
+   kijkt meteen om zich heen.
+  */
+  raak(obj, kracht = 1) {
     let p = obj;
     while (p) {
       const w = this.wachters.find(q => q.persoon.groep === p);
       if (w) {
         if (w.staat === 'neer') return false;
+        w.leven = (w.leven ?? 1) - kracht;
+        if (w.leven > 0) {
+          this.alarm = true; this.rustig = false;
+          // (alleen wie je ziet schiet terug: hij kijkt meteen om zich heen, met het alarm rondom)
+          w.kijkT = 0;
+          for (const ander of this.wachters) if (ander.staat === 'patrouille') ander.staat = 'zoekt';
+          return true;
+        }
         w.staat = 'neer';
         w.omT = 0;
         this.alarm = true;      // de rest hoort hem vallen
@@ -338,10 +364,18 @@ export class Bewaking {
   schiet(w, dSp, dt) {
     w.vuurT -= dt;
     if (w.vuurT > 0 || dSp >= this.vuurbereik) return 0;
-    w.vuurT = VUURTIJD * (0.8 + Math.random() * 0.5);
-    w.persoon.vuur();
-    geluid.schot();
     const kans = Math.max(0.08, 0.55 - dSp * 0.012);
+    w.persoon.vuur();
+    if (w.mg) {
+      // het machinegeweer: een salvo, dan even stil; per kogel minder raak en minder hard
+      w.salvo = (w.salvo || 0) + 1;
+      if (w.salvo >= MG_SALVO) { w.salvo = 0; w.vuurT = VUURTIJD * (0.9 + Math.random() * 0.5); }
+      else w.vuurT = MG_TEMPO;
+      geluid.schot(0, { wapen: 'mitrailleur', bron: 'mg' + w.i });
+      return Math.random() < kans * 0.7 ? Math.max(1, Math.round(this.schade * MG_SCHADE)) : 0;
+    }
+    w.vuurT = VUURTIJD * (0.8 + Math.random() * 0.5);
+    geluid.schot();
     return Math.random() < kans ? this.schade : 0;
   }
 
