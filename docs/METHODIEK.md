@@ -6763,7 +6763,7 @@ terechtkomen, lijkt geen collision tijdens rammen; laat de speler beginnen met 2
   van het hidden-attribuut: de standaardregel `[hidden] { display: none }` van de browser weegt
   minder zwaar dan een id-selector. Het schap was dus nooit verborgen. tools/meldtest.mjs keek naar
   `.hidden`, dat netjes op true stond, en was groen. Nu staat er `#schap[hidden] { display: none }`,
-  en tools/puntentest.mjs kijkt naar `getComputedStyle` en de grootte op het scherm. Ook loopt de
+  en tools/vierpuntentest.mjs kijkt naar `getComputedStyle` en de grootte op het scherm. Ook loopt de
   proef de hele pagina na: geen enkel element met hidden mag toch in beeld staan (13 nagekeken). De
   andere elementen met een eigen display (`#dialoog`, `#scope`, het menu) hadden die regel al.
 - *De Ferrari*: sinds stap 95 begrenst de grip het stuur (v²·tan(stuur)/wielbasis ≤ 26 m/s²). Voor een
@@ -6785,7 +6785,8 @@ terechtkomen, lijkt geen collision tijdens rammen; laat de speler beginnen met 2
   zoekt in de echte wereld acht plekken naast een schuurtje waar de oude schuif erdoorheen ging, en
   meet de nieuwe baan om de 0,5 %: diepste overlap 0 cm.
 - *200 kogels*: `START_RESERVE` in js/player.js (was 60). Een geladen spel houdt zijn eigen stand.
-- Proeven: `puntentest` (nieuw, 17 controles groen); `racetest` en `schaduwtest` opnieuw, want hun automaat stuurt de
+- Proeven: `vierpuntentest` (nieuw, 17 controles groen; eerst per ongeluk over de oude `puntentest`
+  van 13 sep heen geschreven, die is teruggezet); `racetest` en `schaduwtest` opnieuw, want hun automaat stuurt de
   Ferrari met A en D (de racetest meet de dwarsversnelling nu tegen `car.grip`); `invaltest` opnieuw
   voor de klap. `racetest` en `invaltest` groen; ook `wapentest` en `politietest` (stap 105).
 

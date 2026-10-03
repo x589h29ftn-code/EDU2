@@ -654,7 +654,7 @@ ook als je erin zit. Een wrak is niet meer van jou. De Ferrari heeft een eigen t
 zo snel de bocht om als de hatchback het op die snelheid zou kunnen, en op 200 km/u nog altijd een
 flinke bocht. Met **A** of **D** komt het stuur op snelheid geleidelijk op, in een derde seconde op
 200 km/u. Een tikje geeft dus een kleine koerscorrectie en vasthouden een echte bocht, en loslaten
-zet het stuur meteen recht. `npm run puntentest` meet het.
+zet het stuur meteen recht. `npm run vierpuntentest` meet het.
 
 De Ferrari is een eigen model, geen gewone auto met andere maten: een gegoten, afgeronde romp met
 een lage neus en brede heupen, de wielkasten uit de flanken gesneden, een glazen koepel, een
