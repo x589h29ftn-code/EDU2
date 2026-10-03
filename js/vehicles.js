@@ -130,6 +130,7 @@ export const RIJ = {
   van: { top: 24, trek: 1 },
   bx: { top: 24, trek: 1 },
   truck: { top: 16, trek: 1 },
+  ambulance: { top: 24, trek: 1 },
   /*
    `grip`: hoeveel dwarsversnelling het stuur van deze auto hooguit vraagt (zie `drive`).
    De Ferrari had dezelfde 26 m/s² als een hatchback, en omdat hij twee keer zo hard gaat
@@ -483,10 +484,10 @@ export class Vehicles {
     const minZ = Math.min(z1, z2) - 3, maxZ = Math.max(z1, z2) + 3;
     const doos = (x, z, yaw, soort) => {
       if (x < minX || x > maxX || z < minZ || z > maxZ) return false;
-      const bus = soort === 'van', truck = soort === 'truck';
-      const dak = truck ? 3.0 : bus ? 2.02 : 1.40;
+      const bus = soort === 'van', truck = soort === 'truck', amb = soort === 'ambulance';
+      const dak = truck ? 3.0 : amb ? 2.7 : bus ? 2.02 : 1.40;
       if (dak < hoogte) return false;
-      const hl = (truck ? 7.0 : bus ? 5.20 : 4.30) / 2, hb = (truck ? 2.35 : bus ? 1.90 : 1.78) / 2;
+      const hl = (truck ? 7.0 : amb ? 5.95 : bus ? 5.20 : 4.30) / 2, hb = (truck ? 2.35 : amb ? 2.04 : bus ? 1.90 : 1.78) / 2;
       // breedte langs (cos, −sin), lengte langs (−sin, −cos): de neus wijst naar −z bij yaw 0
       const c = Math.cos(yaw), sn = Math.sin(yaw);
       const u0 = (x1 - x) * c - (z1 - z) * sn, v0 = -(x1 - x) * sn - (z1 - z) * c;
@@ -592,14 +593,16 @@ export class Vehicles {
     mesh.position.set(x, 0, z); mesh.rotation.y = yaw;
     this.scene.add(mesh);
     const truck = soort === 'truck';
+    // (de ambulance van stap 116 is een eigen model: zes meter lang en twee breed)
+    const amb = soort === 'ambulance';
     const rij = RIJ[soort] || RIJ.hatch;
     const car = {
       mesh, x, z, yaw, speed: 0, steer: 0, driveable, hp: 100, soort, kleur,
-      as: truck ? 2.6 : 1.4, botsRadius: truck ? 1.15 : (soort === 'ferrari' ? 1.0 : 0.95),
-      instap: truck ? 2.4 : 1.2,
+      as: truck ? 2.6 : amb ? 1.95 : 1.4, botsRadius: truck ? 1.15 : amb ? 1.05 : (soort === 'ferrari' ? 1.0 : 0.95),
+      instap: truck || amb ? 2.4 : 1.2,
       stoel: null,          // het oogpunt komt uit het model (userData.oog)
       topSnelheid: rij.top, trek: rij.trek, grip: rij.grip || STUUR_GRIP,
-      breedte: truck ? 2.35 : (soort === 'ferrari' ? 1.95 : 1.78),
+      breedte: truck ? 2.35 : amb ? 2.04 : (soort === 'ferrari' ? 1.95 : 1.78),
     };
     this.cars.push(car);
     return car;

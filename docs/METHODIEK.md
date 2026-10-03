@@ -7145,6 +7145,56 @@ de wedstrijd speelt."
 
 **Proeven**: `uitjetest` (nieuw) is groen. Foto's: `uitjeshots` (twee).
 
+**Een eigen ambulance, en zachte ramen 's avonds (stap 116).** Gevraagd, met twee foto's van een
+ambulance en een van een gevel: "Maak een echt nieuw 3D-model van de ambulance dat er meer op lijkt,
+niet hergebruiken van een huidig model. Bij ramen die in de avond en nacht licht geven zie je rare
+pixels: maak dat smoother. Zie je nog kleine foutjes, los ze dan direct op."
+
+**De ambulance** (js/carmodel.js `ambulanceGeoms`, soort 'ambulance')
+- *Het model* is gemaakt zoals de Ferrari: één zijprofiel, over de breedte geëxtrudeerd (`uitProfiel`
+  en `glad` staan nu boven `sportGeoms`, zodat beide ze gebruiken). Het profiel heeft een korte schuine
+  motorkap, een steile voorruit, en dan de hoge opbouw die over de cabine heen komt. De wielkasten
+  zitten erin. Gemeten: 5,95 × 2,04 × 2,72 m, de bodem op 0,24 m. Het oude model was het busje van de
+  wijk: 5,2 × 1,9 × 2,0.
+- *Glas*: de voorruit, de portierramen met een schuine voorkant, een donkere ruit hoog achter in de flank
+  en twee ruitjes in de achterdeuren.
+- *Zwart en chroom*: de grille met lamellen, de spiegels op armen, de naden van de portieren en de
+  schuifdeur, de ringen om de wielen en een opstap onder de schuifdeur.
+- *De beplakking* zit niet in de lak maar op doorzichtige doeken op de vlakke zijden (`maat.amb` zegt waar
+  die liggen):
+  - langs de flanken de schuine blokken, rood boven en blauw onder, met de wielkasten en ruiten
+    uitgespaard;
+  - achter in de flank AMBULANCE, Fryslân, 112 en de ster van het leven op de ruit;
+  - op de motorkap AMBULANCE in spiegelschrift;
+  - op de achterdeuren rode punten naar boven.
+- *De lampen*: zes blauwe zwaailichten, twee voor op het dak, twee achter en twee in de grille. Alleen
+  die op het dak geven licht op straat. `js/vehicles.js` kent zijn maten voor botsen en zicht.
+
+**De ramen** (js/licht.js `nachtRamen`)
+- *Wat er misging*: het masker van wat glas is keek per texel naar de kleur van het doek, met harde
+  drempels (`step`). Van dichtbij brandde dan elke texel net over de drempel wel en die ernaast niet: een
+  rafelige vlek met trapjes, zoals op de foto. De lichtere weerspiegeling onderin het glas viel er ook
+  buiten.
+- *Nu* komt het masker uit een vervaagde mip van hetzelfde doek (`RAAM_ZACHT.mip`), met zachte drempels
+  (`smoothstep`). Ook het lichtere glas telt mee. Achter een brandend raam wordt het doek gedempt, zodat
+  het patroon er niet doorheen prikt.
+- *Gemeten* met `ramentest`, op dezelfde gevel, met elk raam aan, oud (`raamZachtUniform` 0) tegen nieuw:
+  - op 7 m: harde sprongen tussen buurpixels van 11,3 naar 5,3 %, de rand per oppervlak licht van 16,7
+    naar 11,8 %, bij 85 % van het licht;
+  - op 14 m: sprongen van 17,0 naar 9,3 %, rand van 26,1 naar 15,8 %, bij 72 % van het licht (het
+    gedempte doek telt mee);
+  - overdag verandert er niets.
+
+**Wat er misging**
+- *Een strook achterop*: de rode strepen op de achterdeuren liepen in beide richtingen over de hele
+  breedte en werden een ruitjespatroon. Nu heeft elke deur zijn eigen richting. Het doek lag ook over de
+  kentekenplaat; nu begint het erboven, en `ambulancetest` meet dat.
+- *De eerste ramentest* vond geen gevel: een straal vanaf het startpunt raakte niets bruikbaars. Nu zoekt
+  hij een grote rechtopstaande driehoek van een voorgevel, met een vrije plek ervoor en vrij zicht erop.
+
+**Proeven**: `ramentest` (nieuw), `ambulancetest`, `omgevingtest` en `vloeiendtest` zijn groen. Foto's:
+`ambulanceshots` (nu vier, met het model schuin van voren) en de twee van `ramentest`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

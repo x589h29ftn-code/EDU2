@@ -198,6 +198,7 @@
     "geldracetest": "node tools/geldracetest.mjs",
     "uitjetest": "node tools/uitjetest.mjs",
     "uitjeshots": "node tools/uitjeshots.mjs",
+    "ramentest": "node tools/ramentest.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",
     "tempotest": "node tools/tempotest.mjs"

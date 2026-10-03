@@ -738,7 +738,7 @@ export function autoOnderdelen(kind) {
       b: p.width, h: p.height, d: p.depth, rx: d.rx || 0 });
   }
   return { dozen, wielen: G.wielen.map(w => ({ x: w.x, z: w.z })), R: G.R, L: G.L, W: G.W,
-    bandBreed: kind === 'truck' ? 0.30 : kind === 'ferrari' ? 0.25 : 0.22 };
+    bandBreed: kind === 'truck' ? 0.30 : kind === 'ferrari' ? 0.25 : kind === 'ambulance' ? 0.24 : 0.22 };
 }
 
 /*
@@ -763,6 +763,38 @@ export function autoOnderdelen(kind) {
  de cabine) levert hij net als `autoGeoms`. `delen` bevat de dozen, plus drie dozen
  die de romp benaderen, zodat de proef kan narekenen dat niets door een band loopt.
 */
+// een zijprofiel (in z, y) over de breedte extruderen, getailleerd en glad (de Ferrari en de ambulance)
+function uitProfiel(vorm, breed, taille, bevel = 0.05) {
+  const g = new THREE.ExtrudeGeometry(vorm, { depth: breed - 2 * bevel, bevelEnabled: true, bevelThickness: bevel,
+    bevelSize: bevel * 0.8, bevelSegments: 3, curveSegments: 14, steps: 1 });
+  const P = g.attributes.position;
+  for (let i = 0; i < P.count; i++) {
+    const a = P.getX(i), b = P.getY(i), c = P.getZ(i);
+    // vorm-x is de lengte, vorm-y de hoogte, de extrusie de breedte (een echte draaiing)
+    const x = (breed / 2 - bevel) - c;
+    P.setXYZ(i, x * taille(a, b), b, a);
+  }
+  g.computeVertexNormals();
+  glad(g);
+  return g;
+}
+// de normalen per plek middelen: dan loopt het licht over de ronding in plaats van in vlakjes
+function glad(g) {
+  const P = g.attributes.position, N = g.attributes.normal, som = new Map();
+  const sleutel = (i) => `${Math.round(P.getX(i) * 500)}|${Math.round(P.getY(i) * 500)}|${Math.round(P.getZ(i) * 500)}`;
+  for (let i = 0; i < P.count; i++) {
+    const k = sleutel(i), n = som.get(k) || [0, 0, 0];
+    n[0] += N.getX(i); n[1] += N.getY(i); n[2] += N.getZ(i);
+    som.set(k, n);
+  }
+  for (let i = 0; i < P.count; i++) {
+    const n = som.get(sleutel(i)), l = Math.hypot(n[0], n[1], n[2]) || 1;
+    // alleen middelen waar de vlakken ongeveer dezelfde kant op kijken (geen harde knik weg)
+    const eigen = [N.getX(i), N.getY(i), N.getZ(i)];
+    if ((eigen[0] * n[0] + eigen[1] * n[1] + eigen[2] * n[2]) / l > 0.55) N.setXYZ(i, n[0] / l, n[1] / l, n[2] / l);
+  }
+}
+
 function sportGeoms() {
   const L = 4.56, W = 1.98, R = 0.35;
   const wielVoor = -1.37, wielAchter = 1.40;
@@ -778,37 +810,7 @@ function sportGeoms() {
   const inTrek = (y) => (y > 0.66 ? 1 - (y - 0.66) * 0.5 : 1) * (y < 0.38 ? 0.97 : 1);
   const breedte = (z, y) => (W / 2) * plan(z) * inTrek(y);
 
-  // een zijprofiel (in z, y) over de breedte extruderen, getailleerd en glad
-  function uitProfiel(vorm, breed, taille, bevel = 0.05) {
-    const g = new THREE.ExtrudeGeometry(vorm, { depth: breed - 2 * bevel, bevelEnabled: true, bevelThickness: bevel,
-      bevelSize: bevel * 0.8, bevelSegments: 3, curveSegments: 14, steps: 1 });
-    const P = g.attributes.position;
-    for (let i = 0; i < P.count; i++) {
-      const a = P.getX(i), b = P.getY(i), c = P.getZ(i);
-      // vorm-x is de lengte, vorm-y de hoogte, de extrusie de breedte (een echte draaiing)
-      const x = (breed / 2 - bevel) - c;
-      P.setXYZ(i, x * taille(a, b), b, a);
-    }
-    g.computeVertexNormals();
-    glad(g);
-    return g;
-  }
-  // de normalen per plek middelen: dan loopt het licht over de ronding in plaats van in vlakjes
-  function glad(g) {
-    const P = g.attributes.position, N = g.attributes.normal, som = new Map();
-    const sleutel = (i) => `${Math.round(P.getX(i) * 500)}|${Math.round(P.getY(i) * 500)}|${Math.round(P.getZ(i) * 500)}`;
-    for (let i = 0; i < P.count; i++) {
-      const k = sleutel(i), n = som.get(k) || [0, 0, 0];
-      n[0] += N.getX(i); n[1] += N.getY(i); n[2] += N.getZ(i);
-      som.set(k, n);
-    }
-    for (let i = 0; i < P.count; i++) {
-      const n = som.get(sleutel(i)), l = Math.hypot(n[0], n[1], n[2]) || 1;
-      // alleen middelen waar de vlakken ongeveer dezelfde kant op kijken (geen harde knik weg)
-      const eigen = [N.getX(i), N.getY(i), N.getZ(i)];
-      if ((eigen[0] * n[0] + eigen[1] * n[1] + eigen[2] * n[2]) / l > 0.55) N.setXYZ(i, n[0] / l, n[1] / l, n[2] / l);
-    }
-  }
+  // (`uitProfiel` en `glad` staan boven `sportGeoms`: de ambulance gebruikt ze ook)
 
   // ---- de romp ----
   const romp = new THREE.Shape();
@@ -937,9 +939,153 @@ function sportGeoms() {
     head, tail: merge(achter), rem, achteruit, plate, wielGeo, hubGeo, wielen, R, L, W, oog, delen, maat };
 }
 
+/*
+ De ambulance (stap 116). Gevraagd met twee foto's (een MAN TGE en een Mercedes Sprinter, allebei
+ met hoog dak): "maak een echt nieuw 3D-model van de ambulance dat er meer op lijkt, niet hergebruiken
+ van een huidig model". Tot dan was het het busje ('van') in geel, met doeken eroverheen.
+
+   - Eén zijprofiel over de breedte geëxtrudeerd, zoals de Ferrari (`uitProfiel`): een korte, schuin
+     aflopende motorkap, een steile voorruit, en dan de hoge opbouw van de bestelbus die vóór de
+     cabine over de voorruit heen komt (daar zit de lichtbalk) en achter recht afgesneden is. De
+     wielkasten zitten in het profiel. In bovenaanzicht is alleen de neus iets smaller, en naar het
+     dak toe loopt hij een fractie in.
+   - Glas: de voorruit, de portierramen (met de schuine voorkant van de A-stijl), een donkere ruit
+     hoog achter in de flank en twee ruitjes in de achterdeuren.
+   - Zwart: de grille, het onderste deel van de bumper, de spiegels op hun armen, de naden van de
+     portieren en de schuifdeur, de ringen om de wielen. Een opstap in chroom onder de schuifdeur.
+   - Koplampen schuin in de hoeken van de neus, hoge smalle achterlichten in de hoeken achter.
+
+ De beplakking (de blokken, AMBULANCE, de ster van het leven) en de zwaailichten zet js/ambulance.js
+ erop, op de vlakke zijden van dit model; `maat.amb` zegt waar die zijden liggen.
+*/
+function ambulanceGeoms() {
+  const W = 2.04, R = 0.37;
+  const wielVoor = -1.80, wielAchter = 1.86;
+  const wielX = W / 2 - 0.17;
+  const bevel = 0.07, rand = bevel * 0.8;          // de afronding legt `rand` plaat om het profiel
+  const voorZ = -2.92, achterZ = 2.92, dakY = 2.66;  // in het profiel; de buitenkant ligt `rand` verder
+  const L = (achterZ - voorZ) + 2 * rand;
+  const smooth = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  const plan = (z) => (z < -2.50 ? 0.90 + 0.10 * smooth((z - voorZ) / 0.42) : 1);
+  const inTrek = (y) => (y > 2.25 ? 1 - (y - 2.25) * 0.08 : 1);
+
+  // ---- de romp ----
+  const romp = new THREE.Shape();
+  romp.moveTo(voorZ + 0.06, 0.30);
+  romp.lineTo(voorZ, 0.42);
+  romp.lineTo(voorZ, 0.76);                                                   // de bumper en de grille
+  romp.splineThru([new THREE.Vector2(voorZ + 0.05, 0.94), new THREE.Vector2(voorZ + 0.18, 1.03),
+    new THREE.Vector2(-2.40, 1.12), new THREE.Vector2(-2.04, 1.20)]);       // de motorkap
+  romp.lineTo(-1.98, 1.25);
+  romp.lineTo(-1.37, 2.06);                                                   // de voorruit
+  romp.lineTo(-1.35, 2.20);
+  romp.splineThru([new THREE.Vector2(-1.30, 2.42), new THREE.Vector2(-1.17, 2.59), new THREE.Vector2(-0.95, dakY)]);   // de opbouw over de cabine
+  romp.lineTo(achterZ - 0.12, dakY);
+  romp.quadraticCurveTo(achterZ, dakY, achterZ, dakY - 0.12);
+  romp.lineTo(achterZ, 0.48);
+  romp.lineTo(achterZ - 0.07, 0.30);
+  const kast = 0.48;
+  romp.lineTo(wielAchter + kast + 0.02, 0.30);
+  romp.absarc(wielAchter, R, kast, -0.05, Math.PI + 0.05, false);
+  romp.lineTo(wielVoor + kast + 0.02, 0.30);
+  romp.absarc(wielVoor, R, kast, -0.05, Math.PI + 0.05, false);
+  romp.lineTo(voorZ + 0.06, 0.30);
+  const rompGeo = uitProfiel(romp, W, (z, y) => plan(z) * inTrek(y), bevel);
+
+  const zijX = W / 2;                                // de vlakke zijkant (tussen neus en dak)
+  const voorV = voorZ - rand, achterV = achterZ + rand;   // de buitenkant voor en achter
+  // de voorruit: van de onderkant van de ruit tot onder de opbouw, een fractie buiten het plaatwerk
+  const ruitA = { z: -1.98, y: 1.25 }, ruitB = { z: -1.37, y: 2.06 };
+  const ruitLen = Math.hypot(ruitB.z - ruitA.z, ruitB.y - ruitA.y), ruitHoek = -Math.atan2(ruitB.y - ruitA.y, ruitB.z - ruitA.z);
+  const ruitN = { z: -(ruitB.y - ruitA.y) / ruitLen, y: (ruitB.z - ruitA.z) / ruitLen };
+  const glas = [{ geo: rdoos(W - 0.30, 0.03, ruitLen - 0.10, 0.012), y: (ruitA.y + ruitB.y) / 2 + ruitN.y * (rand + 0.012),
+    z: (ruitA.z + ruitB.z) / 2 + ruitN.z * (rand + 0.012), rx: ruitHoek }];
+  // een vlak raam op de zijkant: een vorm in (z, y), dun geëxtrudeerd naar buiten
+  const zijRaam = (punten, sx) => {
+    const v = new THREE.Shape(punten.map(([z, y]) => new THREE.Vector2(z, y)));
+    const g = new THREE.ExtrudeGeometry(v, { depth: 0.02, bevelEnabled: false });
+    g.rotateY(-Math.PI / 2);                         // vorm-x wordt z, de dikte wordt −x
+    g.translate(sx > 0 ? zijX + 0.02 : -zijX, 0, 0);
+    return { geo: g };
+  };
+  for (const sx of [-1, 1]) {
+    // het portierraam, met de schuine voorkant langs de A-stijl
+    glas.push(zijRaam([[-1.86, 1.36], [-1.00, 1.36], [-1.00, 2.04], [-1.40, 2.04], [-1.88, 1.42]], sx));
+    // hoog achter in de flank: de donkere ruit van de patiëntenruimte
+    glas.push(zijRaam([[1.22, 1.74], [2.58, 1.74], [2.58, 2.36], [1.22, 2.36]], sx));
+  }
+  // de ruitjes in de achterdeuren
+  for (const sx of [-1, 1]) glas.push({ geo: doos(0.62, 0.50, 0.02), x: sx * 0.44, y: 2.02, z: achterV + 0.01 });
+
+  const lak = [{ geo: rompGeo }];
+  const zwartVast = [
+    { geo: rdoos(1.06, 0.30, 0.05, 0.02), y: 0.80, z: voorV - 0.01 },          // de grille
+    { geo: doos(1.62, 0.12, 0.05), y: 0.47, z: voorV - 0.005 },                 // onder in de bumper
+    { geo: doos(W - 0.30, 0.04, 0.04), y: 0.30, z: achterV + 0.01 },            // de achterbumper (een rubber rand)
+    { geo: doos(0.012, 1.48, 0.012), y: 1.20, z: achterV + 0.006 },             // de naad tussen de achterdeuren
+  ];
+  // de lamellen in de grille
+  for (const y of [0.74, 0.80, 0.86]) zwartVast.push({ geo: doos(0.98, 0.012, 0.012), y, z: voorV - 0.04 });
+  for (const sx of [-1, 1]) {
+    // de spiegels: een arm en een hoge kap, zoals op een bestelbus
+    zwartVast.push({ geo: doos(0.26, 0.04, 0.05), x: sx * (zijX + 0.12), y: 1.62, z: -1.78 });
+    zwartVast.push({ geo: rdoos(0.09, 0.40, 0.22, 0.03), x: sx * (zijX + 0.26), y: 1.70, z: -1.78 });
+    // de naden: achter het portier, en de schuifdeur (rechts) of het vaste paneel
+    for (const z of [-0.98, sx > 0 ? 0.42 : 1.10]) zwartVast.push({ geo: doos(0.012, 1.80, 0.012), x: sx * (zijX + 0.004), y: 1.30, z });
+    // de rail van de schuifdeur, onder de ruit
+    if (sx > 0) zwartVast.push({ geo: doos(0.02, 0.03, 1.36), x: zijX + 0.008, y: 1.70, z: 0.38 + 0.68 });
+  }
+  // achter de wielkasten dicht: anders kijk je dwars door de wagen naar het andere wiel
+  for (const z of [wielVoor, wielAchter]) zwartVast.push({ geo: doos(W - 0.66, 0.50, 0.96), y: 0.56, z });
+  const kastGeo = wielkast(R + 0.03);
+  const wielen = [
+    { x: -wielX, z: wielVoor, stuur: true }, { x: wielX, z: wielVoor, stuur: true },
+    { x: -wielX, z: wielAchter }, { x: wielX, z: wielAchter },
+  ];
+  for (const w of wielen) zwartVast.push({ geo: kastGeo, x: Math.sign(w.x) * (zijX - 0.02), y: R, z: w.z });
+
+  // een opstap in chroom onder de schuifdeur (rechts), en de handgrepen
+  const chroomVast = [{ geo: rdoos(0.06, 0.04, 1.30, 0.015), x: zijX + 0.03, y: 0.40, z: -0.30 }];
+  for (const sx of [-1, 1]) chroomVast.push({ geo: rdoos(0.03, 0.04, 0.20, 0.012), x: sx * (zijX + 0.012), y: 1.18, z: -1.18 });
+
+  // koplampen schuin in de hoeken van de neus, achterlichten hoog en smal in de hoeken achter
+  const head = merge([-1, 1].map(sx => ({ geo: rdoos(0.40, 0.15, 0.10, 0.03), x: sx * 0.70, y: 0.95, z: voorV + 0.03, ry: sx * 0.18 })));
+  const achter = [-1, 1].map(sx => ({ geo: doos(0.14, 0.64, 0.03), x: sx * (zijX - 0.10), y: 0.92, z: achterV + 0.012 }));
+  const tail = merge(achter);
+  const rem = merge(achter.map(a => ({ ...a, z: a.z + 0.006 })));
+  const achteruit = merge([-1, 1].map(sx => ({ geo: doos(0.12, 0.06, 0.03), x: sx * (zijX - 0.10), y: 0.55, z: achterV + 0.012 })));
+  const plate = merge([
+    { geo: doos(0.52, 0.11, 0.02), y: 0.55, z: voorV - 0.012 },
+    { geo: doos(0.52, 0.11, 0.02), y: 0.62, z: achterV + 0.014 },
+  ]);
+  const wielGeo = bandGeo(R, 0.24);
+  const hubGeo = naafGeo(R);
+
+  // de maten voor het interieur (js/autobinnen.js); de bestuurder zit hoog, zoals in een bus
+  const schouderY = 1.34, cabDak = 2.04, cabZ = -1.42, cabL = 1.20;
+  const oog = { x: -(W / 2 - 0.56), y: 1.86, z: -1.30 };
+  const maat = { L, W, R, dakY: cabDak, schouderY, flankY: 1.0, dorpelY: 0.62, cabZ, cabL, aHoek: 0.65, stijlH: cabDak - schouderY, oog, bus: true,
+    // voor js/ambulance.js: waar de vlakke zijden, het dak, de motorkap en de achterdeuren liggen
+    amb: { zijX, voorZ: voorV, achterZ: achterV, dakY: dakY + rand, dakVoorZ: -0.95, kapA: { z: voorZ + 0.18, y: 1.03 + rand }, kapB: { z: -2.04, y: 1.20 + rand },
+      wielVoor, wielAchter, R, kast: kast - rand, raamAchter: { z0: 1.22, z1: 2.58, y0: 1.74, y1: 2.36 }, portier: { z0: -1.88, z1: -1.00, y0: 1.36, y1: 2.04 },
+      deurRaam: { y0: 1.77, y1: 2.27 }, achterlicht: { x: zijX - 0.10, b: 0.14, y0: 0.60, y1: 1.24 } } };
+
+  const delen = [
+    // dozen die de romp benaderen, voor de proef (tussen de wielkasten door)
+    { geo: doos(W - 0.1, 0.62, 0.95), y: 0.73, z: -2.45, groep: 'lak' },
+    { geo: doos(W - 0.1, 1.75, 2.80), y: 1.55, z: 0.03, groep: 'lak' },
+    { geo: doos(W - 0.1, 1.80, 0.55), y: 1.50, z: 2.62, groep: 'lak' },
+    ...zwartVast.filter(d => d.geo !== kastGeo && d.geo.type === 'BoxGeometry' && d.geo.parameters.height > 0.02 && d.geo.parameters.width > 0.015).map(d => ({ ...d, groep: 'zwart' })),
+  ];
+  return { paint: merge(lak), glass: merge(glas), zwartVast, chroomVast,
+    head, tail, rem, achteruit, plate, wielGeo, hubGeo, wielen, R, L, W, oog, delen, maat };
+}
+
+const MODEL = (kind) => kind === 'truck' ? truckGeoms() : kind === 'ferrari' ? sportGeoms() : kind === 'ambulance' ? ambulanceGeoms() : autoGeoms(kind);
+
 function geoms(kind) {
   if (GEO[kind]) return GEO[kind];
-  const G = kind === 'truck' ? truckGeoms() : kind === 'ferrari' ? sportGeoms() : autoGeoms(kind);
+  const G = MODEL(kind);
   // twee uitvoeringen van zwart en chroom: met en zonder de wielen erin
   const banden = G.wielen.map(w => ({ geo: G.wielGeo, x: w.x, y: G.R, z: w.z }));
   const naven = G.wielen.map(w => ({ geo: G.hubGeo, x: w.x, y: G.R, z: w.z }));
@@ -957,7 +1103,7 @@ function geomsVer(kind) {
   if (GEO[k]) return GEO[k];
   GROF = true;
   let G;
-  try { G = kind === 'truck' ? truckGeoms() : kind === 'ferrari' ? sportGeoms() : autoGeoms(kind); } finally { GROF = false; }
+  try { G = MODEL(kind); } finally { GROF = false; }
   G.black = merge([...G.zwartVast, ...G.wielen.map(w => ({ geo: G.wielGeo, x: w.x, y: G.R, z: w.z }))]);
   G.chrome = merge([...G.chroomVast, ...G.wielen.map(w => ({ geo: G.hubGeo, x: w.x, y: G.R, z: w.z }))]);
   GEO[k] = G;
@@ -1180,7 +1326,7 @@ export function maakAutoStapel(kind, aantal) {
 
 /*
  color    lakkleur
- kind     'hatch', 'van' of 'truck'
+ kind     'hatch', 'van', 'truck', 'ferrari' of 'ambulance'
  animatie losse wielen, een kantelende carrosserie en rem- en
           achteruitrijlichten; alleen voor een auto die echt rijdt
 */

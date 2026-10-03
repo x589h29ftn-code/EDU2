@@ -2,6 +2,7 @@
  Foto's van de ambulance (stap 112):
 
    ambulance_dag.png     overdag: de ambulance op straat, de bemanning geknield bij iemand die ligt
+   ambulance_model.png   het eigen model (stap 116), schuin van voren
    ambulance_nacht.png   's nachts onderweg: de blauwe zwaailichten en hun licht op straat
    ambulance_achter.png  van achteren: de schuine strepen op de deuren
 
@@ -83,6 +84,14 @@ await page.evaluate(async () => {
   // de update van de ambulance even stil (de bemanning blijft geknield)
   await page.evaluate(() => { const a = window.__game.ambulance; a.__u = a.update; a.update = () => {}; });
   await foto('ambulance_dag');
+}
+// ------------------------------------------------------ het model, schuin van voren (zoals de foto van de melding)
+{
+  const q = await page.evaluate(() => window.__a);
+  const fx = -Math.sin(q.yaw), fz = -Math.cos(q.yaw);     // vooruit
+  const rx = Math.cos(q.yaw), rz = -Math.sin(q.yaw);      // rechts
+  await kamera(q.x + fx * 6.5 - rx * 4.2, 1.5, q.z + fz * 6.5 - rz * 4.2, q.x - fx * 0.3, 1.2, q.z - fz * 0.3);
+  await foto('ambulance_model');
 }
 // ------------------------------------------------------ van achteren
 {

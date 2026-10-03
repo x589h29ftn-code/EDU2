@@ -64,10 +64,10 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/bendes.js` | van missie 10 tot 12: groepjes van De Veteraan op straat in Tinga en langs de Lemmerweg |
 | `js/deal.js` | missie 8, en `maakVeteraan()`: De Veteraan met zijn hondje |
 | `js/wapen.js` | het wapen in je hand: afgeronde delen, eigen doeken, veer-terugslag, hulzen, grendel |
-| `js/carmodel.js` | automodellen (gedeelde geometrie, instanced), lak met clearcoat, kenteken |
+| `js/carmodel.js` | automodellen (gedeelde geometrie, instanced), lak met clearcoat, kenteken; eigen modellen via een geëxtrudeerd zijprofiel (`uitProfiel`): de Ferrari (`sportGeoms`) en de ambulance (`ambulanceGeoms`) |
 | `js/lichaam.js` | maten, onderdelen en doeken van alle mensen; `lichaamMat`, `doekVoor` |
 | `js/groen.js` | bomen, struiken, gras: `bolGeo`, `stamGeo`, blad- en schorsdoek, `grasVariatie`, riet, `maakGrasVeld` (gras in 3D) |
-| `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`), verlichte ramen 's avonds (`nachtRamen`) |
+| `js/licht.js` | omgevingsschaduw aan de voet van de muren (`grondAO`), verlichte ramen 's avonds (`nachtRamen`; het masker uit een vervaagde mip met zachte drempels, `RAAM_ZACHT`, stap 116) |
 | `js/schrift.js` | missie 13: het schrift van De Veteraan en politielint |
 | `js/brug.js` | missie 12: het dek van de Dúvelsrak als assenstelsel (`brugAssen`), dranghekken, C4, de schade na de knal |
 | `js/garage.js` | Autohuis Lemmerweg: glazen showroom, Ferrari's en BX kopen, gekochte auto's in de opslag |
@@ -79,7 +79,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/studio.js` | missie 18: Radio Tinga aan de Tinga — de zendmast op het dak, de zuil, ON AIR, en de studio als binnenruimte naar een foto (gebogen bureau, schermen, mengpanelen met usb-poort en schuif, de dj Sjors); `plekken`, `bijTafel`, `zetUsb`, `zetSchuif`, `zetOnAir`, `zetSlot` |
 | `js/rondvlucht.js` | missie 18, de avond: de heli van Wiebe (model uit js/helikopter.js, `bouwHeli`), Erik in de open deur, de buitencamera (`camera`, `begrens`), rustig volgen (`volg`: afstand en deur naar het doel, `RONDVLUCHT.versnel`), `landNaar`, het zoeklicht als kegel (`richtLicht`) |
 | `js/wedstrijd.js` | de wedstrijd op het hoofdveld van VV Sneek, elke dag 12–15 uur: twee elftallen (4-4-2), keepers, scheids, publiek (tribune in houders), de bal; komen en gaan alleen uit beeld (`zieJe`); `aanrijden`, `raak`, `slachtoffers`; js/main.js `werkWedstrijdBij` met `wedDag` |
-| `js/ambulance.js` | de ambulance (stap 112): het busje ('van') in geel met doeken, een lichtbalk met `maakGloed` uit js/politie.js, twee verpleegkundigen; `melding(x, z, wie)` met kans `AMB.kans` en rust `AMB.rust`, de rit over `lijnDoor`/`rijdVlucht`, knielen, `herstel` of een voetganger weer `alive`; js/main.js `ambulanceMelding` |
+| `js/ambulance.js` | de ambulance (stap 112): sinds stap 116 een eigen model (`ambulanceGeoms` in js/carmodel.js, soort 'ambulance', `maat.amb` zegt waar de zijden liggen) met de beplakking als doorzichtige doeken (`zijDoek`, `kapDoek`, `achterDoek`), zes zwaailichten met `maakGloed` uit js/politie.js, twee verpleegkundigen; `melding(x, z, wie)` met kans `AMB.kans` en rust `AMB.rust`, de rit over `lijnDoor`/`rijdVlucht`, knielen, `herstel` of een voetganger weer `alive`; js/main.js `ambulanceMelding` |
 | `js/nieuws.js` | het nieuws op Radio Tinga (stap 112): `meld(soort, x, z)` uit js/main.js, na `NIEUWS.vertraag` voorgelezen als je naar Radio Tinga luistert (`update(dt, luistert)`), met de straat (`nearestRoadName`) en de muziek zachter (`demp`) |
 | `js/leven.js` | stap 113: het tuinfeest (`FEEST`: kans per 45 s, een tegelvlak uit `tuinvlakken`, gasten, lampionnen, `geluid.feestTik`), de pizzascooter (`PIZZA`: Pizzeria Sneek of Cappadocia, over `lijnDoor` naar een adres uit `huisnummers`, `geluid.brommer`) en de plezierboot op de Geeuw (`BOOT`, `bouwSloep`, `vaarRoute(…, { dun: 1 })`); `doelen`, `raak`, `aanrijden`, `schrik` vanuit js/main.js |
 | `js/schaduw.js` | missie 15: de route van Bouwman (BP → Duinterpen → N7), zijn rit met een stop, de loods aan het water met container, kade, steiger en boot, de fotoplekken |
@@ -320,7 +320,8 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run uitjetest` (na het einde de M bij Molenkrite 15: de keuze, de wedstrijd op het
+De laatste die ertoe doen: `npm run ramentest` (de ramen 's avonds van dichtbij, oud tegen nieuw op dezelfde gevel: evenveel licht,
+minder harde sprongen, een kortere rand; maakt ramen_oud.png en ramen_nieuw.png; stap 116); `npm run uitjetest` (na het einde de M bij Molenkrite 15: de keuze, de wedstrijd op het
 juiste uur, de kijkplek gemeten, Mark die naar de lijn loopt, bier, juichen, het einde, de bank, laden; stap 115) met
 `uitjeshots` (twee foto's); `npm run geldracetest` (racen voor geld na missie 14: de tip van Ronald vóór missie 15, de balie,
 te weinig geld, winnen en verliezen, de missie die wacht, opslaan; stap 114); `npm run buurttest` (het tuinfeest, de pizzascooter

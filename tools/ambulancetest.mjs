@@ -3,7 +3,8 @@
 
    node tools/server.mjs 8123 &   node tools/ambulancetest.mjs [poort]   (npm run ambulancetest)
 
- 1. Het model: het busje in ambulancegeel, de doeken op de flanken en achterop, vier blauwe lampen.
+ 1. Het model: een eigen model (stap 116) met de maten van een ambulance met hoog dak, beplakt op
+    de flanken, de motorkap en de achterdeuren, zes blauwe lampen.
  2. Een voetganger neergeschoten: de ambulance komt (met de kans op 1 gezet). Hij begint ver weg en
     niet bij de speler, de patiënt blijft liggen, en hij rijdt over de weg met zwaailicht en sirene,
     op de grond, niet harder dan zijn top.
@@ -72,10 +73,36 @@ const model = await page.evaluate(() => {
     const p = o.getWorldPosition(new m.position.constructor()).applyMatrix4(inv);
     if (Math.hypot(p.x, p.z) > 4 || p.y < 0 || p.y > 3.5) ver++;
   });
-  return { soort: a.auto.soort, kleur: a.auto.kleur, doeken, lampen, ver, verborgen: !m.visible, fase: a.fase, bemanning: a.bemanning.length };
+  /*
+   Het eigen model (stap 116): gemeten in de oorsprong, alleen de lak. Een MAN TGE of Sprinter met
+   hoog dak is zes meter lang, twee breed en 2,7 hoog; het busje van de wijk is 5,2 bij 1,9 bij 2,0.
+  */
+  const lakMesh = []; m.traverse(o => { if (o.isMesh && o.userData.lak) lakMesh.push(o); });
+  const geo = lakMesh[0] && lakMesh[0].geometry;
+  geo && geo.computeBoundingBox();
+  const bb = geo ? geo.boundingBox : null;
+  // de wielen in hun kast: de bovenkant van de band onder de rand van de wielkast
+  const wiel = (m.userData.wielen || []).map(w => w.groep.position);
+  // de beplakking op de zijkant: hoe ver van het plaatwerk
+  const zij = [];
+  m.traverse(o => { if (o.isMesh && o.userData.beplakking && Math.abs(o.rotation.y) > 1) zij.push(Math.abs(o.position.x)); });
+  // het doek op de achterdeuren: boven de kentekenplaat (0,565–0,675 m), onder de ruitjes (vanaf 1,77 m)
+  let achter = null;
+  m.traverse(o => { if (o.isMesh && o.userData.beplakking && Math.abs(o.rotation.y) < 0.1 && Math.abs(o.rotation.x) < 0.1 && o.position.z > 2) achter = { onder: o.position.y - o.geometry.parameters.height / 2, boven: o.position.y + o.geometry.parameters.height / 2 }; });
+  const plassen = [];
+  m.traverse(o => { if (o.isMesh && o.material && o.material.emissive && o.material.color && o.material.color.getHex() === 0x2b6bff) plassen.push(!!o.userData.plas); });
+  return { soort: a.auto.soort, kleur: a.auto.kleur, doeken, lampen, ver, verborgen: !m.visible, fase: a.fase, bemanning: a.bemanning.length,
+    lang: bb ? bb.max.z - bb.min.z : 0, breed: bb ? bb.max.x - bb.min.x : 0, hoog: bb ? bb.max.y : 0, onder: bb ? bb.min.y : 0,
+    wielen: wiel.length, wielY: wiel.length ? wiel[0].y : 0, zij, achter, plassen: plassen.filter(Boolean).length, botsing: a.auto.as, breedte: a.auto.breedte };
 });
-ok(!model.geen && model.soort === 'van' && model.kleur === 0xe6dd18, 'een busje in ambulancegeel', `${model.soort}`);
-ok(model.doeken >= 3 && model.lampen === 4, 'de doeken op beide flanken en achterop, vier blauwe lampen', `${model.doeken} doeken, ${model.lampen} lampen`);
+ok(!model.geen && model.soort === 'ambulance' && model.kleur === 0xe6dd18, 'een eigen model in ambulancegeel, niet het busje van de wijk', `${model.soort}`);
+ok(model.lang > 5.8 && model.lang < 6.1 && model.breed > 1.95 && model.breed < 2.15 && model.hoog > 2.6 && model.hoog < 2.8,
+  'met de maten van een MAN TGE of Sprinter met hoog dak', `${r1(model.lang)} × ${r1(model.breed)} × ${r1(model.hoog)} m`);
+ok(model.wielen === 4 && model.onder > 0.15 && model.onder < 0.3, 'op vier wielen, met de bodem vrij van de straat', `bodem op ${model.onder.toFixed(2)} m`);
+ok(model.zij.length === 2 && model.zij.every(x => x > 1.02 && x < 1.06), 'de beplakking ligt op de zijkant, niet ernaast', model.zij.map(x => x.toFixed(3)).join(', '));
+ok(model.achter && model.achter.onder > 0.68 && model.achter.boven < 1.77, 'achterop tussen het kenteken en de ruitjes', model.achter ? `${model.achter.onder.toFixed(2)}–${model.achter.boven.toFixed(2)} m` : 'geen');
+ok(model.doeken >= 4 && model.lampen === 6 && model.plassen === 4, 'flanken, motorkap en achterdeuren beplakt; zes blauwe lampen, vier met licht op straat', `${model.doeken} doeken, ${model.lampen} lampen`);
+ok(model.botsing > 1.8 && model.breedte > 2, 'en hij botst als iets van zes meter', `as ${model.botsing}, breedte ${model.breedte}`);
 ok(model.ver === 0, 'en die hangen op de wagen, niet ergens anders', `${model.ver} te ver weg`);
 ok(model.verborgen && model.fase === 'vrij' && model.bemanning === 2, 'hij wacht buiten beeld, met twee man bemanning');
 

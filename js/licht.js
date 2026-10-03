@@ -81,6 +81,15 @@ export const tijdUniform = { value: 0 };
 // alleen voor de proef: ≥ 0 zet elk brandend raam op dezelfde soort (0,2 open,
 // 0,6 gordijn dicht, 0,97 tv), zodat elke soort apart te meten is; -1 is gewoon
 export const raamSoortUniform = { value: -1 };
+/*
+ Zacht (stap 116). Welk deel van het doek glas is, keek eerst per texel naar de kleur, met harde
+ drempels: elke texel net over de drempel brandde, die ernaast niet. Van dichtbij werd een raam
+ dan een rafelige vlek met trapjes (melding met foto, 3 okt 2026). Nu komt het masker uit een
+ vervaagde mip van hetzelfde doek (`RAAM_ZACHT.mip` stappen grover) en lopen de drempels zacht
+ af. 1 is zacht; 0 alleen voor de proef (tools/ramentest.mjs), om oud en nieuw te meten.
+*/
+export const RAAM_ZACHT = { mip: 2.6, licht: 0.64 };
+export const raamZachtUniform = { value: 1 };
 
 export function nachtRamen(mat, vakken = [2, 2]) {
   if (!mat || mat.userData.nachtRamen) return mat;
@@ -92,19 +101,30 @@ export function nachtRamen(mat, vakken = [2, 2]) {
     shader.uniforms.uRaamAandeel = aandeelUniform;
     shader.uniforms.uRaamTijd = tijdUniform;
     shader.uniforms.uRaamSoort = raamSoortUniform;
+    shader.uniforms.uRaamZacht = raamZachtUniform;
     shader.uniforms.uVakken = { value: new Float32Array(vakken) };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vRaamW;\nattribute float wandId;\nvarying float vWand;')
       .replace('#include <project_vertex>', '#include <project_vertex>\n  vRaamW = (modelMatrix * vec4(transformed, 1.0)).xyz;\n  vWand = wandId;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uNacht;\nuniform float uRaamAandeel;\nuniform float uRaamTijd;\nuniform float uRaamSoort;\nuniform vec2 uVakken;\nvarying vec3 vRaamW;\nvarying float vWand;\nfloat raamRuis(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }')
+      .replace('#include <common>', '#include <common>\nuniform float uNacht;\nuniform float uRaamAandeel;\nuniform float uRaamTijd;\nuniform float uRaamSoort;\nuniform float uRaamZacht;\nuniform vec2 uVakken;\nvarying vec3 vRaamW;\nvarying float vWand;\nfloat raamRuis(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
   #ifdef USE_MAP
   if (uNacht > 0.0) {
     vec3 c = diffuseColor.rgb;
     float lum = dot(c, vec3(0.3, 0.55, 0.15));
     // glas: blauwer dan rood, niet verzadigd (groen dicht bij blauw), en donker
-    float glas = step(0.012, c.b - c.r) * step(c.b * 0.62, c.g) * step(lum, 0.40);
+    float hard = step(0.012, c.b - c.r) * step(c.b * 0.62, c.g) * step(lum, 0.40);
+    // hetzelfde, maar op een vervaagde mip en met zachte drempels (zie RAAM_ZACHT)
+    vec3 cz = texture2D(map, vMapUv, ${RAAM_ZACHT.mip.toFixed(2)}).rgb * diffuse;
+    #ifdef USE_COLOR
+    cz *= vColor.rgb;
+    #endif
+    float lumZ = dot(cz, vec3(0.3, 0.55, 0.15));
+    // (ook het lichtere glas telt: de weerspiegeling in het doek viel er eerst buiten en liet gaten)
+    float zacht = smoothstep(-0.004, 0.03, cz.b - cz.r) * smoothstep(-0.05, 0.03, cz.g - cz.b * 0.62)
+      * (1.0 - smoothstep(${(RAAM_ZACHT.licht - 0.08).toFixed(2)}, ${RAAM_ZACHT.licht.toFixed(2)}, lumZ));
+    float glas = mix(hard, zacht, uRaamZacht);
     // het vak op de gevel, plus het nummer van het muurvlak (elke woning in een
     // rij is een eigen vlak met dezelfde vakken), plus voor een dakkapel (één
     // vak) de plek in de wereld
@@ -123,13 +143,16 @@ export function nachtRamen(mat, vakken = [2, 2]) {
     float plooi = 0.78 + 0.22 * sin(inVak.x * 60.0 + tint * 6.0);
     vec3 dicht = stof * 0.38 * plooi;
     // half dicht: een deel van het vak gordijn, de rest open
-    float deel = step(inVak.x, 0.25 + 0.5 * raamRuis(vak + 9.1));
+    float rand = 0.25 + 0.5 * raamRuis(vak + 9.1);
+    float deel = mix(step(inVak.x, rand), 1.0 - smoothstep(rand - 0.015, rand + 0.015, inVak.x), uRaamZacht);
     // een tv: koel blauw dat langzaam flikkert
     float tv = 0.30 + 0.10 * sin(uRaamTijd * 3.1 + tint * 20.0) + 0.06 * sin(uRaamTijd * 7.3 + tint * 11.0);
     vec3 scherm = vec3(0.35, 0.50, 0.95) * tv;
     vec3 licht = soort < 0.42 ? open : soort < 0.74 ? dicht : soort < 0.95 ? mix(open, dicht, deel) : scherm;
     // gedempt: sfeer, geen etalage (en te fel maakt de tonemapping er wit van)
     totalEmissiveRadiance += licht * glas * aan * uNacht * 0.75;
+    // achter een brandend raam het doek gedempt: anders prikt de weerspiegeling erdoorheen
+    diffuseColor.rgb *= 1.0 - 0.55 * glas * aan * uNacht * uRaamZacht;
   }
   #endif`);
   };

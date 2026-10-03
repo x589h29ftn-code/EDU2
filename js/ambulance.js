@@ -22,6 +22,7 @@ import * as THREE from 'three';
 import { Persoon } from './persoon.js';
 import { grondHoogte } from './world.js';
 import { maakGloed, zetZwaailamp } from './politie.js';
+import { autoMaat } from './carmodel.js';
 import { lijnDoor } from './schaduw.js';
 import { profiel, rijdVlucht } from './inval.js';
 import { geluid } from './audio.js';
@@ -39,117 +40,196 @@ export const AMB = {
   geel: 0xe6dd18,
 };
 
-// ---- de doeken ----
-function sterVanHetLeven(g, x, y, r, kleur) {
-  g.save(); g.translate(x, y); g.fillStyle = kleur;
-  for (let i = 0; i < 3; i++) { g.save(); g.rotate(i * Math.PI / 3); g.fillRect(-r * 0.22, -r, r * 0.44, r * 2); g.restore(); }
-  g.fillStyle = '#ffffff'; g.fillRect(-r * 0.05, -r * 0.7, r * 0.1, r * 1.4);
+// ---- de doeken (stap 116: op het eigen model, js/carmodel.js `ambulanceGeoms`) ----
+const GEEL = '#e6dd18', ROOD = '#d4202a', BLAUW = '#1d4fb4';
+function sterVanHetLeven(g, x, y, r, kleur, rand = null) {
+  g.save(); g.translate(x, y);
+  for (const [k, extra] of rand ? [[rand, r * 0.12], [kleur, 0]] : [[kleur, 0]]) {
+    g.fillStyle = k;
+    for (let i = 0; i < 3; i++) { g.save(); g.rotate(i * Math.PI / 3); g.fillRect(-r * 0.22 - extra, -r - extra, r * 0.44 + 2 * extra, r * 2 + 2 * extra); g.restore(); }
+  }
+  // de esculaap: een staf met een slang eromheen
+  g.fillStyle = '#ffffff'; g.fillRect(-r * 0.05, -r * 0.72, r * 0.10, r * 1.44);
+  g.strokeStyle = '#ffffff'; g.lineWidth = r * 0.07; g.beginPath();
+  for (let t = 0; t <= 1.001; t += 0.05) { const yy = -r * 0.55 + t * r * 1.1, xx = Math.sin(t * Math.PI * 3) * r * 0.16; t ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }
+  g.stroke();
   g.restore();
 }
-function flankDoek(spiegel) {
-  const c = document.createElement('canvas'); c.width = 1024; c.height = 256;
+const doek = (c, aniso = 8) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso; return t; };
+// het zijprofiel van het model (in z, y), net binnen de rand: daarbuiten mag de beplakking niet komen
+const PROFIEL = [[-2.52, 0.30], [-2.52, 1.09], [-2.40, 1.12], [-2.04, 1.20], [-1.98, 1.25], [-1.37, 2.06], [-1.35, 2.20], [-1.30, 2.42],
+  [-1.17, 2.59], [-0.95, 2.64], [2.80, 2.64], [2.90, 2.54], [2.90, 0.30]];
+const ZIJ = { z0: -2.95, z1: 2.95, y0: 0.30, y1: 2.66, b: 2048, h: 816 };
+/*
+ Een flank. Het doek is de hele zijkant (z van −2,95 tot 2,95, y van 0,30 tot 2,66) en doorzichtig
+ waar geen beplakking zit, zodat het geel de lak van het model is. `kant` +1 is rechts: daar zit de
+ neus links op het doek niet, maar rechts (zie de draaiing in `initAmbulance`).
+*/
+function zijDoek(kant, m) {
+  const c = document.createElement('canvas'); c.width = ZIJ.b; c.height = ZIJ.h;
   const g = c.getContext('2d');
-  if (spiegel) { g.translate(1024, 0); g.scale(-1, 1); }
-  g.fillStyle = '#e6dd18'; g.fillRect(0, 0, 1024, 256);
-  // onderaan twee rijen schuine blokken, rood en blauw om en om, met geel ertussen
-  const blok = 64;
-  for (let rij = 0; rij < 2; rij++) {
-    for (let i = -2; i < 20; i++) {
-      const x = i * blok + (rij ? blok / 2 : 0), y = 150 + rij * 48;
-      g.fillStyle = (i + rij) % 2 ? '#1d4fb4' : '#d4202a';
-      g.beginPath(); g.moveTo(x, y); g.lineTo(x + blok * 0.8, y); g.lineTo(x + blok * 0.8 + 22, y + 48); g.lineTo(x + 22, y + 48); g.closePath(); g.fill();
+  const X = (z) => (kant > 0 ? (ZIJ.z1 - z) : (z - ZIJ.z0)) / (ZIJ.z1 - ZIJ.z0) * ZIJ.b;
+  const Y = (y) => (ZIJ.y1 - y) / (ZIJ.y1 - ZIJ.y0) * ZIJ.h;
+  const M = ZIJ.b / (ZIJ.z1 - ZIJ.z0);                    // beeldpunten per meter
+  const veelhoek = (pts) => { g.beginPath(); pts.forEach(([z, y], i) => (i ? g.lineTo(X(z), Y(y)) : g.moveTo(X(z), Y(y)))); g.closePath(); };
+  g.save();
+  veelhoek(PROFIEL); g.clip();
+  /*
+   De blokken (de "battenburg" van de foto's): schuine banen die met hun bovenkant naar voren
+   leunen, onder blauw en boven rood, met geel ertussen. Van het voorspatbord tot vóór het
+   achterwiel, en daar schuin afgesneden.
+  */
+  const yb = 0.50, ym = 0.92, yt = 1.34, leun = 0.42, baan = 0.27;
+  const zEind = 0.95;
+  for (let zb = -2.9; zb < zEind + leun; zb += baan * 2) {
+    const op = (y) => (y - yb) / (yt - yb) * leun;      // hoeveel de baan op hoogte y naar voren schuift
+    for (const [y0, y1, kleur] of [[yb, ym, BLAUW], [ym, yt, ROOD]]) {
+      veelhoek([[zb - op(y0), y0], [zb + baan - op(y0), y0], [zb + baan - op(y1), y1], [zb - op(y1), y1]]);
+      g.fillStyle = kleur; g.fill();
     }
   }
-  // een dunne retroreflecterende rand erboven
-  g.fillStyle = '#c9c214'; g.fillRect(0, 140, 1024, 8);
-  if (spiegel) { g.setTransform(1, 0, 0, 1, 0, 0); }
-  // de letters staan altijd goed leesbaar, ook op de linkerflank
-  g.fillStyle = '#1d4fb4';
-  g.font = 'bold 74px Arial, Helvetica, sans-serif';
-  g.textBaseline = 'middle';
-  g.fillText('AMBULANCE', spiegel ? 330 : 300, 82);
-  sterVanHetLeven(g, spiegel ? 160 : 860, 74, 46, '#1d4fb4');
-  g.font = 'bold 34px Arial, Helvetica, sans-serif';
-  g.fillText('112', spiegel ? 800 : 160, 84);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
-  return t;
+  // de band houdt schuin op, en een dunne retroreflecterende rand eromheen
+  g.globalCompositeOperation = 'destination-out';
+  veelhoek([[zEind, yb - 0.01], [3.2, yb - 0.01], [3.2, yt + 0.01], [zEind - leun, yt + 0.01]]); g.fill();
+  veelhoek([[-3.2, 0], [3.2, 0], [3.2, yb], [-3.2, yb]]); g.fill();
+  veelhoek([[-3.2, yt], [3.2, yt], [3.2, 3], [-3.2, 3]]); g.fill();
+  g.globalCompositeOperation = 'source-over';
+  g.strokeStyle = '#c4bd12'; g.lineWidth = 0.025 * M; g.setLineDash([0.05 * M, 0.03 * M]);
+  g.beginPath(); g.moveTo(X(-2.52), Y(yt + 0.02)); g.lineTo(X(zEind - leun), Y(yt + 0.02)); g.lineTo(X(zEind), Y(yb - 0.02)); g.lineTo(X(-2.52), Y(yb - 0.02)); g.stroke();
+  g.setLineDash([]);
+  // AMBULANCE en de regio, achter in de flank boven het achterwiel
+  g.fillStyle = BLAUW; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `bold ${Math.round(0.25 * M)}px Arial, Helvetica, sans-serif`;
+  g.fillText('AMBULANCE', X(1.78), Y(1.56));
+  g.font = `bold ${Math.round(0.11 * M)}px Arial, Helvetica, sans-serif`;
+  g.fillText('Fryslân', X(1.78), Y(1.35));
+  g.font = `bold ${Math.round(0.13 * M)}px Arial, Helvetica, sans-serif`;
+  g.fillText('02-115', X(1.95), Y(2.50));
+  // 112 in rood en blauw, achter het achterwiel
+  g.font = `bold ${Math.round(0.15 * M)}px Arial, Helvetica, sans-serif`;
+  g.fillStyle = ROOD; g.fillText('1', X(2.48), Y(1.12));
+  g.fillStyle = BLAUW; g.fillText('12', X(2.66), Y(1.12));
+  // het logo van de dienst, hoog op de schuifdeur of het paneel
+  g.fillStyle = BLAUW; g.font = `bold ${Math.round(0.085 * M)}px Arial, Helvetica, sans-serif`;
+  g.fillText('Ambulancezorg', X(-0.28), Y(2.02));
+  g.fillText('Fryslân', X(-0.28), Y(1.91));
+  sterVanHetLeven(g, X(-0.72), Y(1.965), 0.10 * M, BLAUW);
+  // de wielkasten en de ruiten vrij: daar zit geen plaat (en geen doek)
+  g.globalCompositeOperation = 'destination-out';
+  for (const z of [m.wielVoor, m.wielAchter]) { g.beginPath(); g.arc(X(z), Y(m.R), (m.kast + 0.04) * M, 0, Math.PI * 2); g.fill(); }
+  const P = m.portier, A = m.raamAchter;
+  veelhoek([[P.z0 + 0.02, P.y0], [P.z1, P.y0], [P.z1, P.y1], [-1.40, P.y1], [P.z0, P.y0 + 0.06]]); g.fill();
+  veelhoek([[A.z0, A.y0], [A.z1, A.y0], [A.z1, A.y1], [A.z0, A.y1]]); g.fill();
+  g.globalCompositeOperation = 'source-over';
+  g.restore();
+  // de ster van het leven op de donkere ruit achterin (het doek ligt over het glas heen)
+  sterVanHetLeven(g, X((A.z0 + A.z1) / 2 + 0.25), Y((A.y0 + A.y1) / 2), 0.22 * M, BLAUW, '#ffffff');
+  return doek(c);
 }
-function achterDoek() {
-  const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+/*
+ De motorkap: langs de voorrand de blokken in rood en blauw, en AMBULANCE in spiegelschrift (dan
+ lees je het in je binnenspiegel). Het doek ligt plat op de kap met de bovenrand aan de neus, dus
+ voor wie ervoor staat is het een halve slag gedraaid: spiegelschrift is dan alleen omgeklapt.
+*/
+function kapDoek() {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
   const g = c.getContext('2d');
-  g.fillStyle = '#e6dd18'; g.fillRect(0, 0, 256, 256);
-  // schuine strepen, rood op geel, naar het midden toe (de chevrons achterop)
-  g.fillStyle = '#d4202a';
-  for (let i = -6; i < 10; i++) {
-    for (const kant of [-1, 1]) {
-      g.beginPath();
-      const x = 128 + kant * (i * 36);
-      g.moveTo(x, 256); g.lineTo(x + kant * 18, 256); g.lineTo(x + kant * 18 - kant * 128, 128); g.lineTo(x - kant * 128, 128);
-      g.closePath(); g.fill();
-    }
+  const blok = 64;
+  for (let i = -2; i < 20; i++) {
+    const x = i * blok;
+    g.fillStyle = i % 2 ? BLAUW : ROOD;
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x + blok * 0.55, 0); g.lineTo(x + blok * 0.55 + 40, 96); g.lineTo(x + 40, 96); g.closePath(); g.fill();
   }
-  g.fillStyle = '#e6dd18'; g.fillRect(0, 0, 256, 128);
-  g.fillStyle = '#1d4fb4'; g.font = 'bold 40px Arial, Helvetica, sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'center';
-  g.fillText('AMBULANCE', 128, 70);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+  g.save(); g.translate(512, 300); g.scale(1, -1);
+  g.fillStyle = BLAUW; g.font = 'bold 118px Arial, Helvetica, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('AMBULANCE', 0, 0);
+  g.restore();
+  return doek(c);
+}
+// de achterdeuren: rood-gele punten naar boven, en AMBULANCE erboven
+function achterDoek() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 384;
+  const g = c.getContext('2d');
+  // per deur één richting, zodat de strepen in het midden een punt maken (eerst liepen beide
+  // richtingen over de hele breedte en werd het een ruitjespatroon)
+  for (const kant of [-1, 1]) {
+    g.save();
+    g.beginPath(); g.rect(kant < 0 ? 0 : 256, 150, 256, 234); g.clip();
+    for (let i = -8; i < 12; i++) {
+      const x = 256 + kant * i * 56;
+      g.fillStyle = ROOD;
+      g.beginPath(); g.moveTo(x, 384); g.lineTo(x + kant * 28, 384); g.lineTo(x + kant * 28 - kant * 234, 150); g.lineTo(x - kant * 234, 150); g.closePath(); g.fill();
+    }
+    g.restore();
+  }
+  g.fillStyle = BLAUW; g.font = 'bold 64px Arial, Helvetica, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('AMBULANCE', 256, 80);
+  // de naad tussen de deuren loopt erdoorheen
+  g.fillStyle = '#20232a'; g.fillRect(254, 0, 4, 384);
+  return doek(c, 4);
 }
 
 export function initAmbulance({ scene, vehicles, KAART, npcs = null, sfeer = null }) {
   if (!vehicles || !KAART) return null;
-  // ---- het model ----
-  const auto = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'van', kleur: AMB.geel, driveable: false });
+  // ---- het model: een eigen model in js/carmodel.js (stap 116), geen geel busje meer ----
+  const auto = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'ambulance', kleur: AMB.geel, driveable: false });
   auto.ambulance = true;
   const mesh = auto.mesh;
-  /*
-   De maten van het model, gemeten in de oorsprong. `setFromObject` meet in de wereld, en het busje
-   staat geparkeerd op 1e5: zo kwamen de doeken en de lichtbalk honderd kilometer achter de wagen te
-   hangen (de foto's van stap 112 waren een gele bus zonder iets erop).
-  */
-  mesh.position.set(0, 0, 0); mesh.rotation.set(0, 0, 0); mesh.updateMatrixWorld(true);
-  // en alleen de carrosserie (de lak): het hele model telt ook de bundels van de koplampen mee, en
-  // dan hingen de doeken een meter naast en achter de wagen
-  let romp = null;
-  mesh.traverse(o => { if (!romp && o.isMesh && o.userData.lak) romp = o; });
-  const doos = romp ? new THREE.Box3().setFromObject(romp) : new THREE.Box3().setFromObject(mesh);
-  const L = doos.max.z - doos.min.z, B = doos.max.x - doos.min.x, H = doos.max.y - doos.min.y;
-  const z0 = (doos.max.z + doos.min.z) / 2;
-  // de flanken: een band van de dorpel tot onder de ruiten
-  const flankH = Math.min(0.85, H * 0.38), flankY = 0.36 + flankH / 2;
+  const maat = autoMaat('ambulance'), m = maat.amb;
+  const L = maat.L;
+  // de beplakking hangt in de carrosseriegroep (die helt over in de bocht), en is geen doel
+  const bak = mesh.userData.bak || mesh;
+  const sticker = (map, b, h) => {
+    const d = new THREE.Mesh(new THREE.PlaneGeometry(b, h),
+      new THREE.MeshStandardMaterial({ map, transparent: true, alphaTest: 0.35, roughness: 0.45, polygonOffset: true, polygonOffsetFactor: -2 }));
+    d.raycast = () => {};
+    d.userData.beplakking = true;
+    bak.add(d);
+    return d;
+  };
   for (const kant of [-1, 1]) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(L * 0.9, flankH),
-      new THREE.MeshStandardMaterial({ map: flankDoek(kant < 0), roughness: 0.45, polygonOffset: true, polygonOffsetFactor: -2 }));
-    m.rotation.y = kant * Math.PI / 2;
-    m.position.set(kant * (B / 2 + 0.012), flankY, z0);
-    m.raycast = () => {};
-    mesh.add(m);
+    const d = sticker(zijDoek(kant, m), ZIJ.z1 - ZIJ.z0, ZIJ.y1 - ZIJ.y0);
+    d.rotation.y = kant * Math.PI / 2;
+    d.position.set(kant * (m.zijX + 0.025), (ZIJ.y0 + ZIJ.y1) / 2, (ZIJ.z0 + ZIJ.z1) / 2);
   }
   {
-    // achterop: het busje kijkt naar −z, dus achter is +z
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(B * 0.86, flankH * 1.25),
-      new THREE.MeshStandardMaterial({ map: achterDoek(), roughness: 0.45, polygonOffset: true, polygonOffsetFactor: -2 }));
-    m.position.set(0, flankY + 0.05, doos.max.z + 0.012);
-    m.raycast = () => {};
-    mesh.add(m);
+    // de motorkap: plat op de schuine kap, met de bovenrand van het doek aan de neus
+    const a = m.kapA, b = m.kapB, lang = Math.hypot(b.z - a.z, b.y - a.y), hoek = Math.atan2(b.y - a.y, b.z - a.z);
+    const d = sticker(kapDoek(), m.zijX * 2 * 0.80, lang * 0.92);
+    d.rotation.x = -Math.PI / 2 - hoek;
+    d.position.set(0, (a.y + b.y) / 2 + 0.02, (a.z + b.z) / 2);
   }
-  // de lichtbalk: voor en achter op het dak twee blauwe lampen
+  {
+    // (boven de kentekenplaat, die op 0,62 m hangt: eerst lag het doek eroverheen)
+    const d = sticker(achterDoek(), (m.achterlicht.x - m.achterlicht.b / 2 - 0.02) * 2, 1.0);
+    d.position.set(0, 1.23, m.achterZ + 0.02);
+  }
+  /*
+   De zwaailichten: een witte balk vóór op het dak met aan elke kant een blauwe kap, twee op de
+   achterhoeken van het dak, en twee knipperlichten in de grille. Allemaal met de gloed van de
+   politie (`maakGloed`); de plas licht op straat alleen van die op het dak.
+  */
   const lampen = [];
   const balk = new THREE.Group();
-  const lampMat = () => new THREE.MeshStandardMaterial({ color: 0x2b6bff, emissive: 0x2b6bff, emissiveIntensity: 0.15 });
-  for (const [zz, breed] of [[doos.min.z + 0.55, 0.95], [doos.max.z - 0.25, 0.7]]) {
-    const voet = new THREE.Mesh(new THREE.BoxGeometry(breed + 0.1, 0.06, 0.22), new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.6 }));
-    voet.position.set(0, doos.max.y + 0.03, zz);
-    balk.add(voet);
-    for (const kant of [-1, 1]) {
-      const l = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.18), lampMat());
-      l.position.set(kant * breed * 0.3, doos.max.y + 0.12, zz);
-      balk.add(l);
-      maakGloed(l, balk, kant);
-      lampen.push(l);
-    }
-  }
+  const lampMat = () => new THREE.MeshStandardMaterial({ color: 0x2b6bff, emissive: 0x2b6bff, emissiveIntensity: 0.15, roughness: 0.25 });
+  const wit = new THREE.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.5 });
+  const huis = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.12, 0.30), wit);
+  huis.position.set(0, m.dakY + 0.06, m.dakVoorZ + 0.12);
+  balk.add(huis);
+  const lamp = (x, y, z, b, h, d, plas) => {
+    const l = new THREE.Mesh(new THREE.BoxGeometry(b, h, d), lampMat());
+    l.position.set(x, y, z);
+    balk.add(l);
+    maakGloed(l, balk, Math.sign(x) || 1);
+    if (!plas) { const p = balk.children[balk.children.length - 1]; balk.remove(p); delete l.userData.plas; }
+    lampen.push(l);
+    return l;
+  };
+  for (const sx of [-1, 1]) lamp(sx * 0.70, m.dakY + 0.15, m.dakVoorZ + 0.12, 0.30, 0.13, 0.26, true);
+  for (const sx of [-1, 1]) lamp(sx * 0.78, m.dakY + 0.08, m.achterZ - 0.18, 0.22, 0.13, 0.18, true);
+  for (const sx of [-1, 1]) lamp(sx * 0.30, 0.80, m.voorZ - 0.05, 0.16, 0.07, 0.03, false);
   // (de plassen licht van `maakGloed` hangen aan de balk op 7 cm: de balk zelf staat op de grond van de wagen)
-  mesh.add(balk);
+  bak.add(balk);
 
   // ---- de bemanning ----
   const kleding = { shirt: 0xc9d52c, broek: 0x1e2b45, schoen: 0x15171b };

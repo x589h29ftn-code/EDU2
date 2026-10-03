@@ -1004,8 +1004,13 @@ Gaat er iemand neer (een voetganger, een speler bij VV Sneek, een gast op een tu
 soms een **ambulance**. Niet altijd: ongeveer vier van de tien keer, één tegelijk, en daarna duurt het
 minstens twee minuten voor er weer een kan komen. Bij drie sterren of meer blijft hij weg.
 
-- Hij is geel met rood-blauwe blokken langs de flanken, AMBULANCE, het nummer 112 en de blauwe ster
-  van het leven, met schuine strepen op de achterdeuren, zoals op de foto's van een echte.
+- Hij is een **eigen model**, naar de foto's van een MAN TGE en een Mercedes Sprinter: zes meter lang,
+  met een korte schuine motorkap, een steile voorruit en het hoge dak van een ambulance. De opbouw
+  steekt over de cabine heen, met daarop de lichtbalk.
+  - Langs de flanken lopen de schuine blokken: rood boven, blauw onder, met geel ertussen.
+  - Achter in de flank staan AMBULANCE en Fryslân, en de ster van het leven op de donkere ruit.
+  - Op de motorkap staat AMBULANCE in spiegelschrift. Op de achterdeuren zitten rode punten.
+  - Hij heeft zes blauwe zwaailichten: twee voor op het dak, twee achter op het dak en twee in de grille.
 - Hij begint ver weg (300 tot 480 m), op een weg die je niet ziet, en rijdt over de weg met
   **zwaailicht en sirene**. 's Nachts zijn de lampen veel feller en geven ze blauw licht op straat.
 - Bij de patiënt stappen twee verpleegkundigen uit. Ze lopen ernaartoe, **knielen** acht tellen, en
@@ -1013,12 +1018,14 @@ minstens twee minuten voor er weer een kan komen. Bij drie sterren of meer blijf
 - Daarna rijdt hij rustig weg, zonder zwaailicht, en verdwijnt hij als je hem niet meer ziet.
 - Schiet je hem stuk, dan is het voorbij.
 
-| Bij de patiënt | Van achteren | 's Nachts onderweg |
-|---|---|---|
-| ![Overdag](docs/screenshots/ambulance_dag.png) | ![Achter](docs/screenshots/ambulance_achter.png) | ![Nacht](docs/screenshots/ambulance_nacht.png) |
+| Het model | Bij de patiënt |
+|---|---|
+| ![Het model](docs/screenshots/ambulance_model.png) | ![Overdag](docs/screenshots/ambulance_dag.png) |
+| **Van achteren** | **'s Nachts onderweg** |
+| ![Achter](docs/screenshots/ambulance_achter.png) | ![Nacht](docs/screenshots/ambulance_nacht.png) |
 
 `npm run ambulancetest` rijdt hem na:
-- het model;
+- het model: de maten van een ambulance met hoog dak, de beplakking op de zijkant, de zes lampen;
 - de rit erheen, vanaf waar hij begint, op de weg, met zwaailicht en sirene;
 - de bemanning die knielt en de patiënt die opstaat;
 - weggaan en verdwijnen, en de pauze daarna;
@@ -3696,6 +3703,10 @@ omgevingtest` meet het na, `npm run omgevingshots` maakt de foto's.
   roodachtig of beige licht door de stof, met plooien), is het half dicht, of
   flikkert er blauw een tv. En de wolken kleuren mee: bij zonsondergang roze, 's
   nachts donker in plaats van spierwit tegen een zwarte lucht.
+- Een brandend raam heeft **zachte randen** (stap 116). Van dichtbij was het eerst een rafelige vlek met
+  trapjes: het spel keek per beeldpunt van de gevel of daar glas zat. Nu kijkt het naar een vervaagde
+  versie van de gevel, en lopen de randen zacht af. `npm run ramentest` meet het op dezelfde gevel, oud
+  tegen nieuw, op 7 en 14 m.
 
 Voor de pc: op de drie vaste meetplekken staan er niet meer driehoeken in beeld
 dan vóór deze ronde. Het gras kost er ongeveer 50.000 bij; het riet scheelt meer
@@ -3709,7 +3720,11 @@ dan dat.
 |---|---|---|
 | acht uur 's ochtends | half acht 's avonds | elf uur: licht achter de ramen |
 
-`npm run lichtshots` maakt deze drie foto's.
+| ![Eerst](docs/screenshots/ramen_oud.png) | ![Nu](docs/screenshots/ramen_nieuw.png) |
+|---|---|
+| eerst: rafelige vlekken met trapjes | nu: zachte randen |
+
+`npm run lichtshots` maakt deze drie foto's; `npm run ramentest` de twee van de ramen.
 
 ## De kaart: iconen en de legenda
 
