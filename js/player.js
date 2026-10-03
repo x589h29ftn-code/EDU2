@@ -48,10 +48,13 @@ export const WAPENS = {
    ertussenin te zetten. De andere twee wapens hebben `scope` niet en houden de
    gewone aanslag over het vizier (MIK_FOV, een kwart eraf).
 
-   Terugslag 2,6: harder dan het pistool, want je schiet een patroon af waar een
-   pistool er vijf van in past. Spreiding nul — hij is nauwkeurig, alleen traag.
+   Terugslag 4,0 (was 2,6 tot stap 111: "voelt vrij zwak"): harder dan het pistool, want je schiet
+   een patroon af waar een pistool er vijf van in past. Over de kijker blijft er 60 % van over
+   (`mikKick`; de andere wapens 42 %): een zwaar geweer schopt ook als je goed in de aanslag ligt.
+   En hij zakt trager terug (`herstel` 5 per seconde, de rest 9), zodat je de klap ziet. Spreiding
+   nul — hij is nauwkeurig, alleen traag.
   */
-  sniper: { naam: 'Sniper', mag: 5, auto: false, tempo: 0.95, spreiding: 0, kick: 2.6, dodelijk: 1,
+  sniper: { naam: 'Sniper', mag: 5, auto: false, tempo: 0.95, spreiding: 0, kick: 4.0, mikKick: 0.6, herstel: 5, dodelijk: 1,
     scope: { min: 4, max: 12, stap: 1.6 } },
 };
 
@@ -403,7 +406,10 @@ export class Player {
 
   // Hoe nauwkeurig het wapen in je hand op dit moment is: over het vizier gaat
   // de kogel vrijwel waar je kijkt en houd je de terugslag beter in bedwang.
-  get mikFactor() { return { kick: 1 - (1 - MIK_KICK) * this.mik, spreiding: 1 - (1 - MIK_SPREID) * this.mik }; }
+  get mikFactor() {
+    const mk = this.wapenInfo.mikKick ?? MIK_KICK;
+    return { kick: 1 - (1 - mk) * this.mik, spreiding: 1 - (1 - MIK_SPREID) * this.mik };
+  }
 
   bindInput() {
     window.addEventListener('keydown', e => {
@@ -685,7 +691,7 @@ export class Player {
 
   // De terugslag zakt terug naar nul; hoe verder hij nog uitstaat, hoe sneller.
   demptTerugslag(dt) {
-    const f = Math.exp(-dt * 9);
+    const f = Math.exp(-dt * (this.wapenInfo.herstel ?? 9));
     this.kickPitch *= f; this.kickYaw *= f;
     const volg = 1 - Math.exp(-dt * 40);
     this.zicht.pitch += (this.kickPitch - this.zicht.pitch) * volg;

@@ -78,6 +78,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/klusjes.js` | klusjes tussen de missies door: Mark of Johan met een K op de kaart, tas, auto, overspuiten, omleggen (€ 250–1000) |
 | `js/studio.js` | missie 18: Radio Tinga aan de Tinga — de zendmast op het dak, de zuil, ON AIR, en de studio als binnenruimte naar een foto (gebogen bureau, schermen, mengpanelen met usb-poort en schuif, de dj Sjors); `plekken`, `bijTafel`, `zetUsb`, `zetSchuif`, `zetOnAir`, `zetSlot` |
 | `js/rondvlucht.js` | missie 18, de avond: de heli van Wiebe (model uit js/helikopter.js, `bouwHeli`), Erik in de open deur, de buitencamera (`camera`, `begrens`), rustig volgen (`volg`: afstand en deur naar het doel, `RONDVLUCHT.versnel`), `landNaar`, het zoeklicht als kegel (`richtLicht`) |
+| `js/wedstrijd.js` | de wedstrijd op het hoofdveld van VV Sneek, elke dag 12–15 uur: twee elftallen (4-4-2), keepers, scheids, publiek (tribune in houders), de bal; komen en gaan alleen uit beeld (`zieJe`); `aanrijden`, `raak`, `slachtoffers`; js/main.js `werkWedstrijdBij` met `wedDag` |
 | `js/schaduw.js` | missie 15: de route van Bouwman (BP → Duinterpen → N7), zijn rit met een stop, de loods aan het water met container, kade, steiger en boot, de fotoplekken |
 
 Een paar dingen die niet vanzelf spreken:
@@ -300,7 +301,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run avondtest` (missie 18, de avond: de lijnen, de heli elke tiende seconde — boven
+De laatste die ertoe doen: `npm run wedstrijdtest` (de terugslag van de sniper tegen de oude, de wedstrijd bij VV Sneek: komen en gaan
+uit beeld, tien minuten spelen, een doelpunt, het publiek, aanrijden, een kogel, de borden; stap 111) met `wedstrijdshots`
+(drie foto's); `npm run avondtest` (missie 18, de avond: de lijnen, de heli elke tiende seconde — boven
 de daken, van de rand, naast Bouwman met de deur naar hem, rustig, de camera buiten de romp —, echte schoten uit de
 deur, de luifel en het landen, de auto, de achtervolging en kwijtraken, het gevecht, de politie, het filmbeeld op de
 brug, Zondagochtend, opnieuw per fase; stap 109) met `avondshots` (vijf foto's; stap 110 erbij: 01:00, taaie bodyguards en machinegeweren, een echt pistoolschot,
@@ -427,6 +430,11 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
 - **Een kogel in een proef raakt alleen wat zijn wereldmatrix heeft bijgewerkt** (stap 109). Headless tekent
   de lus niet, dus een auto die verplaatst is staat voor de straal nog op zijn oude plek: roep
   `scene.updateMatrixWorld(true)` aan vóór `player.shoot()` (tools/avondtest.mjs).
+- **Auto's rijden door alles lager dan 3,5 m** (`resolveCollisions(…, 3.5, …)` in js/vehicles.js): borden, hekken
+  en heggen houden een auto niet tegen, ook al zei de README tot stap 111 van wel. Wie iets "auto-dicht" wil, maakt de
+  doos hoger.
+- **`player.wapenSoort` is een getter** (`wapens[wapenNr]`): een proef die een wapen wil kiezen zet `wapens` en
+  `wapenNr`, anders schiet hij stil met het pistool (stap 111).
 - **Shift met [, ] of \\ is een missie**, niet de klok (stap 97). js/sfeer.js zette met
   \\ de klok aan en schoof met [ en ] een uur op, ook met shift erbij: missie 15 starten zette
   de dag in vier minuten aan het lopen. Een nieuwe sneltoets: kijk of sfeer.js hem niet ook pakt.

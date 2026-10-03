@@ -760,7 +760,8 @@ function maakWapen(geluid, soort = 'pistool') {
       mee omhoog.
   */
   const VEER = { k: 420, c: 27 };
-  const KICK = SNIPER ? { z: 3.0, x: 15, y: 1.6 } : SMG ? { z: 0.9, x: 4.5, y: 1.1 } : { z: 0.9, x: 8.2, y: 0.9 };
+  // (de sniper: harder sinds stap 111, de kolf komt echt in je schouder)
+  const KICK = SNIPER ? { z: 4.0, x: 18, y: 2.0 } : SMG ? { z: 0.9, x: 4.5, y: 1.1 } : { z: 0.9, x: 8.2, y: 0.9 };
   const veer = { z: 0, vz: 0, x: 0, vx: 0, y: 0, vy: 0 };
   const PIEK_X = KICK.x / 41;                      // ongeveer de hoogste uitslag
   // het draaipunt van de terugslag: de pols, achter en onder de greep

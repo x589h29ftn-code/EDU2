@@ -296,6 +296,15 @@ begint met **12 kogels in het pistool en 200 in reserve**.
 | herladen | 1,55 s | 2,05 s |
 | prijs | je begint ermee | € 500 |
 
+### De terugslag van de sniper
+
+De sniper **schopt** (stap 111: "voelt vrij zwak"):
+- per schot loopt het beeld uit de heup ruim 7° omhoog, tegen 1,7° bij het pistool;
+- door de kijker blijft daar 4° van over. Dat was 1,9°: een zwaar geweer schopt ook als je goed in de
+  aanslag ligt;
+- het zakt trager terug, zodat je de klap echt ziet;
+- het hele beeld schudt even, en de kolf komt harder in je schouder.
+
 ### Het schot, en doorschieten
 
 Een schot klinkt als een **opname** (`audio/wapen/schot.mp3`). Het spel speelt hem vanaf de knal zelf,
@@ -2759,7 +2768,8 @@ staat een vlaggenmast met de clubvlag.
 
 **Je kunt het veld op.** Bij de middenlijn zit een opening in het hek, en over de reclameborden heen
 spring je: ze zijn 90 cm hoog en een sprong komt tot 88, dus hun botsingsdoos telt maar tot 60 cm.
-Lopend houden ze je nog steeds tegen, en auto's ook — die geven geen hoogte mee.
+Lopend houden ze je nog steeds tegen. Een auto niet: auto's rijden door alles heen wat lager is dan
+3,5 m (dat stond hier eerst verkeerd; nagemeten in stap 111).
 
 Langs de lijn hangt **Radio Spannenburg** — *It hert fan De Fryske Marren* — de lokale omroep die de
 club sponsort. Zijn bord komt om de vijf borden terug, dus je ziet het rond het hele veld, aan alle
@@ -2770,6 +2780,40 @@ logo op een canvas getekend, hart en al.
 
 Je kunt het veld op lopen — er staat niets in de weg — maar door de reclameborden, de ballenvanger
 en het hek heen niet.
+
+### De wedstrijd (elke dag van 12:00 tot 15:00)
+
+Elke dag tussen twaalf en drie speelt **VV Sneek Wit Zwart** op het hoofdveld: wit met zwarte broeken,
+tegen een tegenstander in rood. Er staan elf man per ploeg in een 4-4-2, met de keepers in groen en
+geel, en een scheidsrechter in het zwart. Op de tribune zitten veertien toeschouwers, en aan de
+overkant staan er zes langs de lijn.
+
+- **Er wordt echt gespeeld.** Iedereen heeft een plek in de opstelling, en die schuift mee met de bal.
+  Wie het dichtst bij de bal staat gaat erop af. Dicht bij het doel wordt er geschoten; verder weg
+  speelt hij over naar een ploeggenoot die vóór hem staat, soms met een boogbal. De bal rolt, stuitert
+  en gaat uit: over de zijlijn volgt een inworp, achter het doel een doeltrap. De keeper pakt niet
+  alles. Bij een doelpunt fluit de scheidsrechter, gaan de armen op de tribune omhoog, juicht het
+  publiek, en volgt een aftrap vanaf de middenstip.
+- **Ze komen en gaan als je niet kijkt.** Sta je om twaalf uur naar het veld te kijken, dan begint
+  het pas als je even wegkijkt. Na drie uur speelt het door zolang je kijkt. Zo verdwijnt er nooit
+  iemand voor je neus.
+- **Aanrijden en schieten.** Rijd je het veld op (door de borden heen), dan gaat wie je raakt neer. Een
+  kogel doet hetzelfde. De scheidsrechter fluit de wedstrijd af en iedereen rent weg; wie geraakt is
+  blijft liggen. Het kost een ster.
+
+| Het hoofdveld om één uur | Bij de bal | De tribune |
+|---|---|---|
+| ![Overzicht](docs/screenshots/wedstrijd_overzicht.png) | ![Bij de bal](docs/screenshots/wedstrijd_bal.png) | ![Tribune](docs/screenshots/wedstrijd_tribune.png) |
+
+`npm run wedstrijdtest` meet het:
+- komen en gaan: niet om elf uur, en alleen als je niet kijkt;
+- tien minuten spelen: de bal gaat rond, er wordt overgespeeld en geschoten, iedereen blijft op het
+  veld, de keepers bij hun doel;
+- een doelpunt, met gejuich en een aftrap;
+- het publiek op de treden;
+- aanrijden, een kogel, en of een auto door de borden komt.
+
+`npm run wedstrijdshots` maakt de drie foto's.
 
 ## De volkstuinen achter de Wieken
 

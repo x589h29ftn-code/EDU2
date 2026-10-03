@@ -18,6 +18,7 @@ import { inBouwvlak } from './bouwvlak.js';
 import { initBoten } from './boot.js';
 import { initSupermarkt, BIER } from './supermarkt.js';
 import { initStudio } from './studio.js';
+import { maakWedstrijd } from './wedstrijd.js';
 import { KLUS } from './klusjes.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
@@ -781,6 +782,18 @@ const spuiterij = initSpuiterij({ scene, player, vehicles, hud, verhaal, politie
  met de Ferrari's en de BX (js/garage.js, de plek in js/bouwvlak.js).
 */
 const garage = (KAART && !BOVEN) ? initGarage({ scene, player, vehicles, hud, verhaal, sfeer: dagKlok }) : null;
+/*
+ Een wedstrijd op het hoofdveld van VV Sneek, elke dag van twaalf tot drie (js/wedstrijd.js, stap 111).
+ `wedDag` telt de dagen: een nieuwe dag mag weer een wedstrijd.
+*/
+const wedstrijd = (KAART && !BOVEN && KAART.sportvelden) ? maakWedstrijd({ scene, veld: KAART.sportvelden.find(v => v.hoofd) }) : null;
+let wedDag = 0, wedUur = null;
+function werkWedstrijdBij(dt) {
+  if (!wedstrijd || !sfeer) return;
+  if (wedUur !== null && sfeer.uur < wedUur - 12) wedDag++;    // over middernacht
+  wedUur = sfeer.uur;
+  wedstrijd.update(dt, { uur: sfeer.uur, dag: wedDag, camera, x: player.pos.x, z: player.pos.z });
+}
 // (en de wasbox achter de BP, die stond nog niet op de kaart)
 extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : [])];
 winkelsNu = null; werkKaartvlaggenBij();
@@ -1092,6 +1105,8 @@ player.shootCb = (camOrigin, camDir) => {
   // in de derde persoon komt de kogel uit de schouder van je poppetje en niet
   // uit de camera, anders schiet je langs jezelf heen
   const { origin, dir } = derde.mikpunt(camOrigin, camDir);
+  // de sniper schudt het hele beeld even (stap 111: de terugslag "voelt vrij zwak")
+  if (player.wapenSoort === 'sniper') schok(0.35);
   verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
   politie.hoorSchot(origin.x, origin.z);         // en de politie ook
   /*
@@ -1117,6 +1132,7 @@ player.shootCb = (camOrigin, camDir) => {
   */
   const eigen = player.inCar && player.inCar.mesh ? player.inCar.mesh : null;
   const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
+    ...(wedstrijd ? wedstrijd.doelen() : []),
     ...(politieboot ? politieboot.doelen() : [])].filter(o => !eigen || o !== eigen);
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
@@ -1173,6 +1189,13 @@ player.shootCb = (camOrigin, camDir) => {
     else if (politieboot && politieboot.raak(h.object)) {
       geluid.klap();
       politie.misdaad('schot', h.point.x, h.point.z);
+    }
+    // op het veld van VV Sneek: een speler of iemand van het publiek (stap 111)
+    else if (wedstrijd && wedstrijd.raak(h.object)) {
+      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
+      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+      politie.misdaad('neergeschoten', h.point.x, h.point.z);
+      raakVerhaal = true;
     }
     // (de sniper legt ook een taaie bodyguard in één keer neer: stap 110)
     else if ((raakVerhaal = verhaal.raak(h.object, player.wapenSoort === 'sniper' ? 99 : 1))) {
@@ -1309,6 +1332,14 @@ function aanrijden(x, z, straal, snelheid) {
     npcs.paniek(x, z, PANIEK_KLAP);
     schok(0.5 + Math.min(0.5, snelheid / 26));
   }
+  // de spelers en het publiek bij VV Sneek (stap 111)
+  const w = wedstrijd ? wedstrijd.aanrijden(x, z, straal, snelheid) : 0;
+  if (w) {
+    geluid.klap();
+    geluid.kreet('pijn', Math.hypot(player.pos.x - x, player.pos.z - z));
+    politie.misdaad('aangereden', x, z);
+    schok(0.45 + Math.min(0.5, snelheid / 26));
+  }
   const n = npcs.aanrijden(x, z, straal, snelheid);
   if (n) {
     geluid.klap();
@@ -1317,7 +1348,7 @@ function aanrijden(x, z, straal, snelheid) {
     politie.misdaad('aangereden', x, z);
     schok(0.45 + Math.min(0.5, snelheid / 26));
   }
-  return n;
+  return n + w;      // (ook een speler op het veld van VV Sneek is een klap voor de auto)
 }
 
 // Camera wisselen tussen eerste en derde persoon.
@@ -2246,6 +2277,7 @@ function loop() {
     for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
     if (spuiterij) spuiterij.update(dt);      // de roldeuren van de wasboxen
     if (garage) garage.update(dt, verhaal.aanspreekbaar);   // de showroom aan de Lemmerweg
+    werkWedstrijdBij(dt);                                    // de wedstrijd bij VV Sneek
     /*
      De politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte.
      Binnen loopt de politie niet mee: je staat dan in een andere ruimte. Maar
@@ -2558,6 +2590,7 @@ window.__game = {
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   grasVeld, wolken: clouds,
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, studio, derde, politie,
+  wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,

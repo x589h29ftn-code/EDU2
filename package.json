@@ -189,6 +189,10 @@
     "vierpuntentest": "node tools/vierpuntentest.mjs",
     "uitzendingtest": "node tools/uitzendingtest.mjs",
     "avondtest": "node tools/avondtest.mjs",
+    "wedstrijdtest": "node tools/wedstrijdtest.mjs",
+    "wedstrijdshots": "node tools/wedstrijdshots.mjs",
+    "ambulancetest": "node tools/ambulancetest.mjs",
+    "ambulanceshots": "node tools/ambulanceshots.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",
     "tempotest": "node tools/tempotest.mjs"

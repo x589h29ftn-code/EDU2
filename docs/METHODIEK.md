@@ -6962,6 +6962,47 @@ een speler die andere dingen doet?"
 
   Ook `uitzendingtest` (01:00) en `overgangtest` zijn groen. Foto's: `avondshots` om 01:00.
 
+**De sniper, en de wedstrijd bij VV Sneek (stap 111).** Gevraagd:
+- "Geef de sniper meer recoil, voelt nu vrij zwak."
+- "Zet standaard een wedstrijd bij VV Sneek op het hoofdveld tussen 12:00 en 15:00 op een dag. Daarna
+  zijn de mensen weg, bijvoorbeeld als de speler het niet ziet, zodat ze niet ineens verdwijnen. De
+  spelers kunnen aangereden worden en spelen met een bal."
+
+**De sniper**
+- `kick` 2,6 → 4,0.
+- Een eigen `mikKick` van 0,6 (was voor alle wapens 0,42 door de kijker).
+- `herstel` 5 in plaats van 9 per seconde.
+- In js/main.js een `schok(0,35)` per schot, en in js/wapen.js een hardere veer.
+- Gemeten per schot: door de kijker 4,2° (was 1,9°), uit de heup 7,2° (was 4,6°; het pistool 1,7°).
+  Na een kwart seconde is er nog 29 % van over, na een seconde niets.
+
+**De wedstrijd** (js/wedstrijd.js)
+- Twee elftallen in een 4-4-2 op het veld uit de kaart (u langs, v dwars). De opstelling schuift mee
+  met de bal.
+- Per ploeg gaat de dichtstbijzijnde erop af. Wie de bal heeft, schiet (onder 20 m van het doel),
+  speelt over naar voren (soms met een boogbal) of dribbelt.
+- De bal heeft wrijving, stuitert, en gaat uit voor een inworp of een doeltrap. Een doelpunt geeft
+  gejuich en een fluitje (js/audio.js `fluit`, `juich`).
+- Publiek op de treden van de tribune, in een houder op de hoogte van de trede: een `Persoon` zet zijn
+  eigen hoogte op de grond, net als in de heli. Een paar staan langs de lijn.
+- Komen en gaan alleen als je het veld niet ziet: een bol om het veld tegen het frustum van de
+  camera, en binnen 260 m.
+
+**Wat er misging (gemeten met `wedstrijdtest`)**
+- *Een doelpunt telde elk beeld opnieuw* (0-0 werd 6-0): `balUit` liep ook tijdens de pauze na het
+  doelpunt. Daarna rolde de bal 9 m door, het net uit; nu blijft hij erin liggen.
+- *Doelpunten*: eerst 0 uit 11 schoten (de keeper pakte alles), toen 7 in tien minuten. Nu pakt de
+  keeper 80 % van wat hij kan halen, en de schoten zijn minder zuiver: 0 tot 4 in tien minuten.
+- *Een gestaakte wedstrijd verdween zodra je even wegkeek*, en daarmee wie er lag. De ambulance (stap
+  112) heeft die nodig. Nu ruimt hij pas op na 90 s, of als je ver weg bent.
+- *`aanrijden` in js/main.js gaf alleen de voetgangers terug.* Nu ook de spelers: dan voelt de auto
+  de klap.
+- *De README zei dat de borden een auto tegenhouden.* Auto's geven 3,5 m mee aan `resolveCollisions`
+  en rijden door alles wat lager is. Dat is nu rechtgezet.
+- *In de proef schoot de sniper als een pistool.* `wapenSoort` is een getter over `wapens[wapenNr]`.
+
+**Proeven**: `wedstrijdtest` (nieuw) is groen. Foto's: `wedstrijdshots` (drie).
+
 **Wat nog niet af is (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

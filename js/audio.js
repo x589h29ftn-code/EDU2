@@ -1339,6 +1339,53 @@ export const geluid = {
    kwart seconde staan; alleen een claim die dichterbij is haalt hem eraf, en
    `null` pas als de laatste claim verlopen is.
   */
+  /*
+   De scheidsrechter (stap 111, js/wedstrijd.js): een fluitje is een hoge toon met een triller erin
+   (het balletje in de fluit). Kort voor een inworp, lang en twee keer bij een doelpunt of als het
+   spel stilgelegd wordt. Zachter met de afstand, onhoorbaar verder dan 220 m.
+  */
+  fluit(afstand = 0, lang = false) {
+    if (!aan) return;
+    const v = Math.max(0, 1 - afstand / 220) ** 2;
+    if (v < 0.01) return;
+    const keren = lang ? 2 : 1;
+    for (let k = 0; k < keren; k++) {
+      const duur = lang ? 0.55 : 0.22, t0 = k * 0.7;
+      for (let i = 0; i < Math.round(duur / 0.03); i++) {
+        toon({ freq: i % 2 ? 2950 : 3150, duur: 0.035, volume: 0.09 * v, golf: 'sine', vertraag: t0 + i * 0.03 });
+      }
+    }
+  },
+  /*
+   Gejuich van het publiek: ruis door een bandfilter rond de stem (een kilohertz), die in een halve
+   seconde opkomt en in twee seconden wegzakt, met daaronder een lagere laag voor de mannenstemmen.
+  */
+  juich(afstand = 0) {
+    if (!aan) return;
+    const v = Math.max(0, 1 - afstand / 260) ** 2;
+    if (v < 0.01) return;
+    for (const [freq, q, vol] of [[1100, 0.9, 0.16], [480, 1.2, 0.1]]) {
+      const src = ctx.createBufferSource(); src.buffer = ruisBuffer(3);
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+      const g = ctx.createGain(); const t = nu();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol * v, t + 0.5);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
+      src.connect(f); f.connect(g); g.connect(hoofd);
+      src.start(t); src.stop(t + 3);
+    }
+  },
+
+  /*
+   Het nieuwsjingletje van Radio Tinga (stap 112, js/nieuws.js): drie oplopende tonen en een lange
+   erachteraan, als een tune voor het nieuws.
+  */
+  nieuwsJingle() {
+    if (!aan) return;
+    [[523, 0], [659, 0.14], [784, 0.28]].forEach(([f, t]) => toon({ freq: f, duur: 0.16, volume: 0.1, golf: 'triangle', vertraag: t }));
+    toon({ freq: 1046, duur: 0.5, volume: 0.09, golf: 'triangle', vertraag: 0.44 });
+  },
+
   sirene(afstand) {
     if (!aan) return;
     const nuT = ctx ? ctx.currentTime : 0;
