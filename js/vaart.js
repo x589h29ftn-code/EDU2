@@ -70,7 +70,7 @@ const AFGELEVERD = [
  route; grover en de vaart valt tussen twee roosterpunten door.
 */
 const CEL = 6;
-export function vaarRoute(van, naar) {
+export function vaarRoute(van, naar, { dun = 10 } = {}) {
   /*
    Het rooster als vlakke getallenrij in plaats van een Map met tekstsleutels.
    Dat leek overdreven en is het niet: de eerste versie zette per cel een sleutel
@@ -123,7 +123,9 @@ export function vaarRoute(van, naar) {
   pad.reverse();
   // uitdunnen: elk tiende punt plus het eind, anders staat er een lijn van
   // vierhonderd knikjes op de kaart
-  const uit = pad.filter((_, i) => i % 10 === 0);
+  // (`dun` 1 houdt elk punt: de plezierboot van js/leven.js vaart over de lijn zelf, en met elk tiende
+  // punt sneed hij de bochten af over de wal)
+  const uit = pad.filter((_, i) => i % dun === 0);
   if (uit[uit.length - 1] !== pad[pad.length - 1]) uit.push(pad[pad.length - 1]);
   return uit;
 }

@@ -834,6 +834,34 @@ const INVAL_S = { erik: 3, auto: 34, johan: 30.6, bouwman: 37.2, ruit: 18, erikA
 const INVAL_MANNEN = { schade: 5, zicht: 60, vuurbereik: 50, dekking: 10, vest: null, pet: false,
   kleuren: [{ shirt: 0x2a2c30, broek: 0x1e2024 }, { shirt: 0x3b3328, broek: 0x23262b }] };
 const telLijn = (r) => ({ ...r, telefoon: true });
+const telLijnR = (tekst) => ({ ...zegtRonald(tekst), telefoon: true });
+/*
+ Racen voor geld (stap 114). Gevraagd op 3 okt 2026: "zet op dat je na de race-missie ook kan racen
+ voor geld op de route die we al hadden. Kan je inkopen bij de autobedrijf-balie; geef dit na de race
+ ook aan voor de nieuwe missie begint." Sjoerd aan de balie van het Autohuis neemt de inleg aan; dan
+ "Die nacht…" op de grid bij de BP, dezelfde race naar IJlst. Eerste: het dubbele terug.
+*/
+const GELDRACE_INLEG = [500, 1000, 2500];
+const GELDRACE_BALIE = 2.8;           // m van de balie: zo dicht moet je bij Sjoerd staan
+const GELDRACE_NA = 8;                // s na de finish: dan is het weer vrij spelen
+const GELDRACE_TIP = 8;               // s na de ochtend na missie 14: Ronald belt over het racen
+const zegtSjoerd = (tekst) => ({ wie: 'Sjoerd', kop: { huid: '#d9b48f', haar: '#6b5a48', shirt: '#2a2f3a' }, tekst });
+const GELDRACE_AANBOD = [
+  zegtSjoerd('Ronald zei al dat je zou komen. Hij regelt het, ik houd de pot.'),
+  zegtSjoerd('Vannacht om één uur bij de BP, het parcours naar IJlst. Eerste bij de Poiesz krijgt de inleg dubbel terug.'),
+  zegtSjoerd(`Hoeveel leg je in? 1 — ${euro(GELDRACE_INLEG[0])} · 2 — ${euro(GELDRACE_INLEG[1])} · 3 — ${euro(GELDRACE_INLEG[2])}.`),
+];
+const GELDRACE_TE_ARM = (b) => [zegtSjoerd(`Daar heb je niet genoeg voor: ${euro(b)}. Kies wat lagers.`)];
+const GELDRACE_START = [
+  zegtRonald('Inleg is binnen. Eerste in IJlst pakt alles.'),
+  zegtRonald('Door elke gele ring, anders telt het niet. Motoren aan.'),
+];
+const GELDRACE_TELEFOON = [
+  telLijnR('Erik, met Ronald. Bouwman wil niet meer, maar ik ken een stel jongens met snelle auto\'s.'),
+  telLijnR('Zin om te racen voor geld? Bij Sjoerd aan de balie van het Autohuis leg je in.'),
+  telLijnR('Zelfde route, van de BP naar IJlst. Win je, dan krijg je het dubbele terug.'),
+];
+
 
 const INVAL_TELEFOON = [
   telLijn(zegtJohan('Erik. Ben je nog bij Mark?')),
@@ -1716,6 +1744,7 @@ export function initVerhaal(ctx) {
    de wereld had gezet.
   */
   function startMissie(naam, { vanzelf = false } = {}) {
+    geldInleg = 0; geldKiezen = false; geldNaT = 0;
     // na de tussenpoos (`vanzelf`) blijft een klus die klaarstaat liggen; met een sneltoets of na het laden niet
     klusjes.reset({ aanbodHouden: vanzelf }); klusPauze = null;
     gesprek = null; sluitBalk();
@@ -2263,6 +2292,8 @@ export function initVerhaal(ctx) {
     if (ronaldToets()) return true;
     // missie 18: de usb-stick en de schuif in de studio van Radio Tinga, of de titelrol wegklikken
     if (uitzendingToets()) return true;
+    // racen voor geld: bij Sjoerd aan de balie van het Autohuis (stap 114)
+    if (geldraceToets()) return true;
     if (missie === 'molenkrite' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND) {
       fase = 'gesprek';
       zeg(GESPREK1, () => { fase = 'loopt'; zetOpdracht('ga met Mark mee'); });
@@ -3962,6 +3993,8 @@ export function initVerhaal(ctx) {
    naar die woning; je mag onderweg van gedachten veranderen.
   */
   function kiesHuis(nr) {
+    // (racen voor geld: 1, 2 of 3 is de inleg)
+    if (geldKiezen) return geldKeuze(nr);
     // (na een verloren race in missie 14 gaan 1 en 2 over de keuze bij Bouwman)
     if (missie === 'race' && fase === 'keuze') return raceKeuze(nr);
     // (en in missie 16 over de ruil op de brug)
@@ -5865,6 +5898,9 @@ export function initVerhaal(ctx) {
     return g ? { x: g.deur.x - 2, z: g.deur.z } : { x: 766, z: 131.7 };
   }
 
+  // racen voor geld (stap 114): de inleg van de race die nu loopt (0: geen), en of er gekozen wordt
+  let geldInleg = 0, geldKiezen = false, geldNaT = 0, geldTipT = 0, geldTipGehad = false, geldHintT = 0;
+  let geldUitslagen = [];
   function ruimRaceOp() {
     race.ruimOp();
     for (const p of [ronald, bouwman]) p.groep.visible = false;
@@ -5959,13 +5995,19 @@ export function initVerhaal(ctx) {
     const [rx, rz] = resolveCollisions(k.x + k.tx * 2.2, k.z + k.tz * 2.2, 0.4);
     ronald.zetNeer(rx, rz, kijkHoek({ x: rx, z: rz }, st)); ronald.groep.visible = true;
     zetBouwmanAuto(ka);
+    // racen voor geld: Bouwman is er niet bij (na missie 18 is hij er niet eens meer), Ronald regelt het
+    if (geldInleg) {
+      bouwman.groep.visible = false;
+      raceBouwmanAuto.x = raceBouwmanAuto.z = 1e5;
+      if (raceBouwmanAuto.mesh) { raceBouwmanAuto.mesh.visible = false; raceBouwmanAuto.mesh.position.set(1e5, 0, 1e5); }
+    }
     markZichtbaar(false);
     hud.zetNavigatie(null); navDoel = null;
-    zetOpdracht('luister naar Bouwman');
+    zetOpdracht(geldInleg ? 'luister naar Ronald' : 'luister naar Bouwman');
     spanning = false;
     race.toonPijlen(true);
     raceUitT = 0; raceKantT = 0; raceGemistCp = -1; raceVorigePlek = 0; raceLaatste = false;
-    zeg(RACE_START, aftellen);
+    zeg(geldInleg ? GELDRACE_START : RACE_START, aftellen);
   }
   function zetBouwmanAuto(q) {
     if (!raceBouwmanAuto) raceBouwmanAuto = parkeerPolitieAuto ? parkeerPolitieAuto(q.x, q.z, q.yaw) : vehicles.voegToe({ x: q.x, z: q.z, yaw: q.yaw, soort: 'hatch', kleur: 0x1b3a7a });
@@ -5991,6 +6033,7 @@ export function initVerhaal(ctx) {
    finish staat hij naast je, en anders belt hij. Daarna de keuze (`raceKeuze`).
   */
   function raceVerloren(reden) {
+    if (geldInleg) { geldVerloren(reden); return; }
     if (fase === 'verloren' || fase === 'keuze') return;
     fase = 'verloren'; zetPunt('start');
     raceVerloor = reden; raceRondes++;
@@ -6078,6 +6121,8 @@ export function initVerhaal(ctx) {
     }
     if (zetUur) zetUur(RACE_OCHTEND);
     springNaarHuis();
+    // eerst belt Ronald over het racen voor geld (stap 114: "geef dit aan voor de nieuwe missie begint")
+    if (!geldTipGehad) { geldTipGehad = true; geldTipT = GELDRACE_TIP; }
     // een minuut later belt Mark (missie 15)
     if (!schaduwKlaar && missie === 'klaar') { naMissieNaam = 'schaduw'; naMissieT = SCHADUW_WACHT; }
   }
@@ -6094,6 +6139,14 @@ export function initVerhaal(ctx) {
 
   function werkRaceBij(dt, sp) {
     if (fase === 'klaar') return;
+    // na een geldrace: de anderen rijden nog uit, Ronald staat bij de finish, en dan vrij spelen
+    if (fase === 'geldKlaar') {
+      race.update(dt, sp);
+      if (ronald.groep.visible) { ronald.kijkNaar(sp.x, sp.z, dt, 2); ronald.update(dt, {}); }
+      geldNaT -= dt;
+      if (geldNaT <= 0) { missie = 'klaar'; fase = 'klaar'; vehicles.vrijeZone = null; }
+      return;
+    }
     if (raceOverT > 0) {
       raceOverT -= dt;
       if (raceOverT <= 0) naVerlies(sp);
@@ -6173,10 +6226,10 @@ export function initVerhaal(ctx) {
       if (!raceVerplaatst && racePlek && afst(sp, racePlek.start) > 150) {
         raceVerplaatst = true;
         const e = racePlek.eindKant, ea = racePlek.eindAuto, f = racePlek.eind;
-        bouwman.zetNeer(e.x, e.z, kijkHoek(e, f));
+        if (!geldInleg) bouwman.zetNeer(e.x, e.z, kijkHoek(e, f));
         const [rx, rz] = resolveCollisions(e.x - e.tx * 2.2, e.z - e.tz * 2.2, 0.4);
         ronald.zetNeer(rx, rz, kijkHoek({ x: rx, z: rz }, f));
-        zetBouwmanAuto(ea);
+        if (!geldInleg) zetBouwmanAuto(ea);
       }
       if (raceAuto && (raceAuto.wrak || (raceAuto.hp ?? 100) <= 0)) { raceVerloren('Je Ferrari is total loss.'); return; }
       /*
@@ -6210,6 +6263,7 @@ export function initVerhaal(ctx) {
       if (st.klaar) {
         raceUitslag = { plek: st.plek, tijd: st.tijd };
         race.toonPijlen(false);
+        if (geldInleg) { geldUitslag(st); return; }
         if (st.plek === 1) {
           fase = 'finish';
           spanningUit = 4;
@@ -6238,6 +6292,81 @@ export function initVerhaal(ctx) {
       }
     }
   }
+  // ---- racen voor geld (stap 114) ----
+  // E bij de balie van het Autohuis: Sjoerd biedt de race aan (na missie 14, buiten de missies om)
+  function geldBijDeBalie(sp) {
+    const g = garage && garage(), b = g && g.plekken && g.plekken.balie;
+    return !!(b && afst(sp, b) < GELDRACE_BALIE);
+  }
+  function geldraceToets() {
+    if (!raceKlaar || geldInleg || geldKiezen || missie !== 'klaar' || player.inCar || klusjes.bezig) return false;
+    if (!geldBijDeBalie(spelerPunt())) return false;
+    zeg(GELDRACE_AANBOD, () => {
+      geldKiezen = true;
+      zetOpdracht(`kies je inleg: 1 — ${euro(GELDRACE_INLEG[0])} · 2 — ${euro(GELDRACE_INLEG[1])} · 3 — ${euro(GELDRACE_INLEG[2])}`);
+      hud.melding('RACEN VOOR GELD', `1 — ${euro(GELDRACE_INLEG[0])} · 2 — ${euro(GELDRACE_INLEG[1])} · 3 — ${euro(GELDRACE_INLEG[2])}. Win en je krijgt het dubbele.`, 8);
+    });
+    return true;
+  }
+  function geldKeuze(nr) {
+    const inleg = GELDRACE_INLEG[nr - 1];
+    if (!inleg) return false;
+    if (geld < inleg) { zeg(GELDRACE_TE_ARM(inleg)); return true; }
+    geldKiezen = false;
+    betaal(inleg);
+    geldInleg = inleg;
+    missie = 'race'; fase = 'nacht';
+    zetOpdracht('');
+    hud.melding('INLEG BETAALD', `${euro(inleg)} in de pot. Vannacht om één uur bij de BP.`, 4);
+    zwartMet('Die nacht…', opDeStart);
+    return true;
+  }
+  function geldUitslag(st) {
+    if (st.plek === 1) {
+      const winst = geldInleg * 2;
+      verdien(winst);
+      const m = Math.floor(st.tijd / 60), sec = Math.round(st.tijd % 60);
+      hud.melding('GEWONNEN!', `Als eerste in IJlst · ${m}:${String(sec).padStart(2, '0')} · + ${euro(winst)}`, 6);
+      geldUitslagen.push({ plek: 1, inleg: geldInleg, winst });
+      geldKlaar();
+    } else geldVerloren(`Je werd ${st.plek}e.`);
+  }
+  function geldVerloren(reden) {
+    // (Bouwman is er bij een geldrace niet bij)
+    reden = String(reden).replace('dat rekent Bouwman als verloren', 'dat telt als verloren');
+    hud.melding('VERLOREN', `${reden} Je inleg van ${euro(geldInleg)} is weg.`, 6);
+    geldUitslagen.push({ plek: raceUitslag ? raceUitslag.plek : 0, inleg: geldInleg, winst: 0, reden });
+    geldKlaar();
+  }
+  function geldKlaar() {
+    geldInleg = 0;
+    fase = 'geldKlaar';
+    geldNaT = GELDRACE_NA;
+    spanning = false; spanningUit = 4;
+    race.toonPijlen(false);
+    for (const r of race.ringen) r.visible = false;
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+  }
+  // de tip na missie 14, en "E" bij de balie
+  function werkGeldraceBij(dt, sp) {
+    if (geldTipT > 0 && missie === 'klaar' && balk.hidden && !klusjes.bezig) {
+      geldTipT -= dt;
+      if (geldTipT <= 0) {
+        geluid.telefoon();
+        zeg(GELDRACE_TELEFOON, () => hud.melding('NIEUW: RACEN VOOR GELD',
+          `Bij Sjoerd aan de balie van Autohuis Lemmerweg leg je in: ${euro(GELDRACE_INLEG[0])}, ${euro(GELDRACE_INLEG[1])} of ${euro(GELDRACE_INLEG[2])}. Win en je krijgt het dubbele.`, 9),
+          { wie: 'Ronald', telefoon: true, kop: KOPPEN.ronald });
+      }
+    }
+    if (raceKlaar && missie === 'klaar' && !geldKiezen && !player.inCar && balk.hidden) {
+      geldHintT -= dt;
+      if (geldHintT <= 0 && geldBijDeBalie(sp)) { geldHintT = 2.5; hud.show('E — bij Sjoerd: racen voor geld', 2.4); }
+    }
+    // weggelopen bij de balie zonder te kiezen: dan geen keuze meer open
+    if (geldKiezen && !geldBijDeBalie(sp) && afst(sp, (garage() || { plekken: { balie: sp } }).plekken.balie) > 12) { geldKiezen = false; zetOpdracht(''); }
+  }
+
   /*
    Opnieuw na het neergaan of het laden. Tot het gesprek bij Ronald begin je weer
    bij het telefoontje of de R; moest je nog een Ferrari halen, dan staat de A er
@@ -9233,7 +9362,7 @@ export function initVerhaal(ctx) {
       return;
     }
     // pauze tussen twee missies: na de boerderij belt Johan (niet tijdens een klus)
-    if (naMissieT > 0 && !klusjes.bezig) {
+    if (naMissieT > 0 && !klusjes.bezig && !geldInleg && fase !== 'geldKlaar') {
       naMissieT -= dt;
       if (naMissieT <= 0) startMissie(naMissieNaam, { vanzelf: true });
     }
@@ -9431,6 +9560,7 @@ export function initVerhaal(ctx) {
       if (missie === 'politieauto') werkPolitieautoBij(dt, sp);
       if (missie === 'brug') werkBrugBij(dt, sp);
       if (missie === 'schrift') werkSchriftBij(dt, sp);
+      werkGeldraceBij(dt, sp);              // racen voor geld (stap 114)
       if (missie === 'race') werkRaceBij(dt, sp);
       if (missie === 'schaduw') werkSchaduwBij(dt, sp);
       if (missie === 'inval') werkInvalBij(dt, sp);
@@ -9496,7 +9626,8 @@ export function initVerhaal(ctx) {
   // ---------- opslaan en laden ----------
   function bewaar() {
     return {
-      missie, fase,
+      // (een geldrace bewaart als vrij spelen: wie laadt, begint niet aan de race van missie 14)
+      missie: geldInleg || fase === 'geldKlaar' ? 'klaar' : missie, fase: geldInleg || fase === 'geldKlaar' ? 'klaar' : fase,
       mark: { x: mark.groep.position.x, z: mark.groep.position.z, yaw: mark.yaw, zichtbaar: mark.groep.visible },
       om: [...omgevallen],
       poortOpen,
@@ -9530,6 +9661,7 @@ export function initVerhaal(ctx) {
   }
 
   function herstel(s) {
+    geldInleg = 0; geldKiezen = false; geldNaT = 0;
     // een opgeslagen spel begint zonder klus
     klusjes.reset(); klusPauze = null;
     if (!s) return;
@@ -9837,6 +9969,13 @@ export function initVerhaal(ctx) {
         bouwman, mark, johan: invalJohan, posten: AVOND_POSTEN, uur: AVOND_UUR, kwijt: AVOND_KWIJT, kwijtTijd: AVOND_KWIJT_T,
         lijnen: () => avondLijnen(), opHetDek: (x, z) => opHetDek(x, z), brugAssen: brug,
       };
+    },
+    // racen voor geld, voor tools/geldracetest.mjs
+    get geldrace() {
+      return { inleg: geldInleg, kiezen: geldKiezen, tipT: geldTipT, tipGehad: geldTipGehad, uitslagen: geldUitslagen.slice(),
+        INLEG: GELDRACE_INLEG, naT: geldNaT, bijBalie: () => geldBijDeBalie(spelerPunt()),
+        // (de ochtend na missie 14, zoals `naDeRace` die opent: voor de proef)
+        ochtendNaRace: () => naarDeOchtend() };
     },
     // missie 18, voor tools/uitzendingtest.mjs
     get uitzending() {

@@ -7045,7 +7045,74 @@ oneindig veel en altijd."
 
 **Proeven**: `ambulancetest` (nieuw) is groen. `wedstrijdtest` en `vloeiendtest` zijn opnieuw gedraaid.
 
-**Wat nog niet af is (in volgorde).
+**De buurt leeft: een tuinfeest, de pizzascooter, de plezierboot (stap 113).** Gevraagd, uit hetzelfde
+verzoek: "Voeg random her en der een feestje in de tuin (heel toevallig, niet vaak), een pizzascooter van
+Pizzeria Sneek of Cappadocia, een plezierboot op de Geeuw."
+
+Alles staat in één nieuwe module, js/leven.js, die js/main.js elk beeld bijwerkt met de plek van de speler,
+`inBeeld` en het uur. Geen lichtbronnen en geen afbeeldingen: de doeken (de pizzadoos, de vlag) worden op een
+canvas getekend.
+
+- *Het tuinfeest* (`FEEST`): tussen 15:00 en 01:30, eens in de 45 s een dobbelsteen van 7 %, in een tuin van
+  110 tot 280 m bij je vandaan die niet in beeld is. Een tafel met flessen, een kring lampionnen en acht gasten
+  die staan te praten of dansen. Na tien minuten, of als je weg bent, ruimt hij op — ook dat alleen uit beeld.
+  Een schot of een ontploffing in de buurt (`leven.schrik`) jaagt ze hun huis in; wie geraakt wordt gaat neer
+  en kan door de ambulance van stap 112 worden opgehaald (`raak` geeft een `herstel` mee).
+- *De pizzascooter* (`PIZZA`): rond lunch en avondeten, eens in de 2,5 tot 5,5 minuut. Een witte scooter met
+  een box achterop, het doek van Pizzeria Sneek of van Cappadocia, en een bezorger met een rode pet. Hij rijdt
+  van 280–420 m weg over de weg naar een adres, stapt af, loopt met de doos naar de deur, wacht, en rijdt
+  terug. Hij is aan te rijden (dan valt hij om) en neer te schieten.
+- *De plezierboot* (`BOOT`): de sloep "Zondagskind" met vier man en een Nederlandse vlag vaart van 10 tot 20
+  uur rustig (4 m/s) heen en weer tussen de Geeuwkade en IJlst, ligt aan het eind even stil, en ligt 's avonds
+  aan de kade.
+
+**Wat er misging**
+- *Gasten die vastzaten*: wie wegrende uit de tuin liep tegen de schutting. Nu gaat wie 0,8 s vast staat het
+  huis in (`binnen`, onzichtbaar en geen doelwit meer).
+- *De boot sneed de bochten af*: met `vaarRoute` van js/vaart.js (één punt per tien meter) lag een deel van de
+  route op de kant. `vaarRoute` heeft een optie `dun` gekregen; met één meter ligt geen enkel punt van de 251
+  op het droge, en de proef meet elk punt.
+- *De pizzascooter in de proef*: soms geen route, of een rit die niet terugkwam. Nu probeert hij vijf adressen
+  met elk zes vertrekpunten (niet dicht bij een vorige), rijdt hij terug naar waar hij begon, en blijft hij
+  staan als de terugweg niet lukt.
+- *De mensen op de boot stonden* op de foto. Twee fouten: ze kregen hun zithouding pas binnen 150 m, en daarna
+  werd hun hoogte tussen −0,2 en 0,2 m geklemd. `Persoon.update` zet y op de grond plus de wip van de
+  zithouding (−0,47); geklemd bleef de heup 30 cm boven de bank. Nu blijft alleen de wip over (`zitAanBoord`,
+  en hetzelfde voor de bezorger op zijn zadel), vanaf het begin. `buurttest` meet de kruin: 1,45 m boven de
+  boot, was 1,7.
+- *De bezorger kwam niet bij de deur*: hij bleef elf tot dertien meter van het adres staan. Het adrespunt uit
+  de BGT is de plek van het huisnummer op de kaart, midden in het pand. Nu loopt hij naar het punt van de
+  pandomtrek dat het dichtst bij zijn scooter ligt (`deurVan`), over een looproute om heggen en schuttingen
+  heen (`zoekLooppad`), en dezelfde route terug.
+
+**Proeven**: `buurttest` (nieuw) is groen. Foto's: `buurtshots` (drie).
+
+**Racen voor geld (stap 114).** Gevraagd: "Zet erop dat je na de race-missie ook kan racen voor geld op de
+route die we al hadden. Kan je inkopen bij de balie van het autobedrijf, geef dit na de race ook aan voor de
+nieuwe missie begint."
+
+- *De balie*: na missie 14 staat Sjoerd achter de balie van het Autohuis. E binnen 2,8 m: hij biedt drie
+  inleggen aan, 1, 2 of 3 kiest (€ 500, € 1.000, € 2.500) via `kiesHuis`. Te weinig geld: niets betaald, de
+  keuze blijft open. Weglopen breekt het aanbod af.
+- *De race*: hetzelfde parcours en dezelfde tegenstanders als missie 14, "Die nacht…" op de grid, Ronald langs
+  de kant maar Bouwman niet (die is er na missie 18 niet eens meer). Eerste in IJlst: het dubbele terug.
+  Anders, of uitgestapt of total loss: de inleg is weg (`geldVerloren`, niet via `mislukt`, dat de opslag
+  laadt). Acht tellen later is het weer vrij spelen.
+- *Gezegd vóór de volgende missie*: acht tellen na de ochtend na missie 14 belt Ronald erover
+  (`GELDRACE_TIP`), ruim vóór het telefoontje van missie 15 (de tussenpoos van stap 108).
+- *Het verhaal wacht*: zolang je racet telt de tussenpoos van de volgende missie niet af.
+- *Opslaan* tijdens een geldrace bewaart vrij spelen; laden zet de race uit.
+
+**Wat er misging**
+- De melding bij uitstappen kwam van missie 14 en zei "dat rekent Bouwman als verloren". Bij een geldrace
+  staat er nu "dat telt als verloren".
+- *Winnen in de proef gaf € 0*: de proef schoof de auto over de lijn met `s / 2` als index, maar de monsters
+  van de gladde lijn liggen niet precies om de twee meter. De auto bleef acht meter voor de finish hangen tot
+  "De anderen zijn al lang in IJlst". De proef gebruikt nu `race.punt(s)`; in het spel zelf was er niets mis.
+
+**Proeven**: `geldracetest` (nieuw) is groen.
+
+**Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
 twee af: IJlst staat er (stap 22) en de politie is bijgewerkt (stap 24). Wat er

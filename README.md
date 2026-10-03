@@ -1030,6 +1030,34 @@ minstens twee minuten voor er weer een kan komen. Bij drie sterren of meer blijf
 
 `npm run ambulanceshots` maakt de foto's.
 
+## De buurt leeft: een feestje, de pizzabezorger en een plezierboot
+
+- **Een feestje in een tuin.** Heel af en toe, 's middags en 's avonds (van drie uur tot half twee),
+  is er ergens in de wijk een tuinfeest: zeven, acht man rond een tafel met drank, gekleurde
+  lampionnen die 's avonds gloeien, en muziek die je tot een meter of tachtig hoort. Het verschijnt en
+  verdwijnt alleen als je niet kijkt. Schiet je in de buurt, dan rent iedereen weg, en wie tegen de
+  schutting vastloopt, rent het huis in.
+- **De pizzabezorger.** Rond lunch- en etenstijd komt er om de paar minuten een scooter van
+  **Pizzeria Sneek** (een witte doos met een rood-wit-groene band) of **Cappadocia** (donkerblauw met
+  goud). Hij rijdt over de weg naar een adres bij jou in de buurt, zet de scooter neer, loopt met de
+  doos naar de deur, komt terug en rijdt weer weg. Je hoort de brommer. Rijd je hem aan, dan valt hij
+  om.
+- **Een plezierboot op de Geeuw.** Overdag vaart de *Zondagskind*, een sloep met vier man en een
+  Nederlandse vlag achterop, rustig heen en weer over de Geeuw tussen de Geeuwkade en IJlst. Aan elk
+  eind ligt hij even stil, en 's avonds ligt hij aan de Geeuwkade.
+
+| Een tuinfeest 's avonds | De pizzabezorger | De plezierboot |
+|---|---|---|
+| ![Feest](docs/screenshots/buurt_feest.png) | ![Pizza](docs/screenshots/buurt_pizza.png) | ![Boot](docs/screenshots/buurt_boot.png) |
+
+`npm run buurttest` meet het:
+- het feest: hoe vaak het komt, alleen op tijd, iedereen vrij van muren en water, de muziek op
+  afstand, de lampionnen, wegrennen, aanrijden en de ambulance;
+- de scooter: alleen rond etenstijd, ver weg beginnen, op de grond, de deur, beide merken, omvallen;
+- de boot: elk punt van de route op het water, de snelheid, keren, 's avonds aan de kade.
+
+`npm run buurtshots` maakt de foto's.
+
 ## Muziek onder een missie
 
 Onder de spannende delen van een missie loopt muziek uit `audio/missie/`
@@ -2195,6 +2223,29 @@ telefoontje tot de € 2.000, met een automaat die de Ferrari met het gewone rij
 over het parcours stuurt, een goede en een slordige, het verliezen met de keuze bij De
 Boer, de ring op de rotonde, de piepjes, het vrije parcours, het sturen, de pauze en de
 ochtend erna; `npm run raceshots` maakt de vijf foto's.
+
+#### Racen voor geld (na missie 14)
+
+Na de race belt Ronald nog voordat de volgende missie begint: *"Zin om te racen voor geld? Bij Sjoerd
+aan de balie van het Autohuis leg je in."*
+
+- Ga naar **Sjoerd achter de balie** van Autohuis Lemmerweg. Er staat een hint in beeld; druk op **E**.
+- Kies je inleg met **1** (€ 500), **2** (€ 1.000) of **3** (€ 2.500). Heb je te weinig, dan kies je
+  iets lagers.
+- Dan ***Die nacht…***, op de grid bij de BP, met Ronald langs de kant. Bouwman is er niet bij.
+- Het is dezelfde race naar IJlst: elke gele ring, dezelfde tegenstanders.
+- **Eerste: het dubbele terug.** Verlies je (een andere plek, total loss, te lang uitgestapt), dan ben
+  je je inleg kwijt.
+- Daarna speel je gewoon verder. De volgende missie wacht zolang je racet. Wie opslaat tijdens een
+  geldrace, laadt in vrij spelen.
+
+`npm run geldracetest` speelt het na:
+- de tip na missie 14, vóór de volgende missie;
+- de balie, met hint en keuze, en dat Sjoerd vóór missie 14 niets aanbiedt;
+- te weinig geld;
+- winnen (het dubbele) en verliezen (de inleg weg);
+- de missie die wacht;
+- opslaan tijdens een race.
 
 ### 15 · Bouwman schaduwen
 

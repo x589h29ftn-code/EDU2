@@ -21,6 +21,7 @@ import { initStudio } from './studio.js';
 import { maakWedstrijd } from './wedstrijd.js';
 import { initAmbulance } from './ambulance.js';
 import { maakNieuws } from './nieuws.js';
+import { initLeven } from './leven.js';
 import { KLUS } from './klusjes.js';
 import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
@@ -815,6 +816,8 @@ function werkWedstrijdBij(dt) {
 */
 const ambulance = (KAART && !BOVEN) ? initAmbulance({ scene, vehicles, KAART, npcs, sfeer: dagKlok }) : null;
 const nieuws = maakNieuws({ hud, geluid, straatVan: (x, z) => nearestRoadName(x, z) });
+// een feestje in een tuin, de pizzascooter en de plezierboot op de Geeuw (stap 113, js/leven.js)
+const leven = (KAART && !BOVEN) ? initLeven({ scene, KAART, sfeer: dagKlok }) : null;
 function ambulanceMelding(x, z, wie = null) {
   if (!ambulance || politie.ster >= 3) return false;
   const komt = ambulance.melding(x, z, wie, { x: player.pos.x, z: player.pos.z });
@@ -1147,6 +1150,8 @@ player.shootCb = (camOrigin, camDir) => {
   // in de derde persoon komt de kogel uit de schouder van je poppetje en niet
   // uit de camera, anders schiet je langs jezelf heen
   const { origin, dir } = derde.mikpunt(camOrigin, camDir);
+  // wie op een tuinfeest staat schrikt van een schot in de buurt (stap 113)
+  if (leven) leven.schrik(origin.x, origin.z);
   // de sniper schudt het hele beeld even (stap 111: de terugslag "voelt vrij zwak")
   if (player.wapenSoort === 'sniper') schok(0.35);
   verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
@@ -1174,7 +1179,7 @@ player.shootCb = (camOrigin, camDir) => {
   */
   const eigen = player.inCar && player.inCar.mesh ? player.inCar.mesh : null;
   const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
-    ...(wedstrijd ? wedstrijd.doelen() : []),
+    ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []),
     ...(politieboot ? politieboot.doelen() : [])].filter(o => !eigen || o !== eigen);
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
@@ -1192,7 +1197,7 @@ player.shootCb = (camOrigin, camDir) => {
     */
     const nodig = player.kogelsNodig();
     const raakMens = npcs.hit(h.object, h.instanceId, nodig);
-    let raakAgent = null, raakVerhaal = false;
+    let raakAgent = null, raakVerhaal = false, raakLeven = null;
     if (raakMens) {
       geluid.raak();
       geluid.kreet('pijn', afstandTot(h.point));
@@ -1243,6 +1248,15 @@ player.shootCb = (camOrigin, camDir) => {
       ambulanceMelding(h.point.x, h.point.z, wedstrijdSlachtoffer());
       raakVerhaal = true;
     }
+    // een gast op een tuinfeest, of de pizzabezorger (stap 113)
+    else if (leven && (raakLeven = leven.raak(h.object))) {
+      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
+      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+      politie.misdaad('neergeschoten', h.point.x, h.point.z);
+      nieuws.meld('schietpartij', h.point.x, h.point.z);
+      if (raakLeven.herstel) ambulanceMelding(raakLeven.x, raakLeven.z, { herstel: raakLeven.herstel });
+      raakVerhaal = true;
+    }
     // (de sniper legt ook een taaie bodyguard in één keer neer: stap 110)
     else if ((raakVerhaal = verhaal.raak(h.object, player.wapenSoort === 'sniper' ? 99 : 1))) {
       geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
@@ -1286,6 +1300,7 @@ player.shootCb = (camOrigin, camDir) => {
 function autoOntploft(car) {
   const d = Math.hypot(player.pos.x - car.x, player.pos.z - car.z);
   nieuws.meld('explosie', car.x, car.z);            // Radio Tinga (stap 112)
+  if (leven) leven.schrik(car.x, car.z);
   geluid.explosie(d);
   geluid.glas();
   npcs.paniek(car.x, car.z, 34);
@@ -1389,6 +1404,15 @@ function aanrijden(x, z, straal, snelheid) {
     ambulanceMelding(x, z, wedstrijdSlachtoffer());
     schok(0.45 + Math.min(0.5, snelheid / 26));
   }
+  // gasten op een tuinfeest en de pizzabezorger (stap 113)
+  const l = leven ? leven.aanrijden(x, z, straal, snelheid) : 0;
+  if (l) {
+    geluid.klap();
+    geluid.kreet('pijn', Math.hypot(player.pos.x - x, player.pos.z - z));
+    politie.misdaad('aangereden', x, z);
+    nieuws.meld('aanrijding', x, z);
+    schok(0.4 + Math.min(0.5, snelheid / 26));
+  }
   const n = npcs.aanrijden(x, z, straal, snelheid);
   if (n) {
     geluid.klap();
@@ -1399,7 +1423,7 @@ function aanrijden(x, z, straal, snelheid) {
     ambulanceMelding(x, z);
     schok(0.45 + Math.min(0.5, snelheid / 26));
   }
-  return n + w;      // (ook een speler op het veld van VV Sneek is een klap voor de auto)
+  return n + w + l;  // (ook een speler op het veld van VV Sneek of een feestganger is een klap voor de auto)
 }
 
 // Camera wisselen tussen eerste en derde persoon.
@@ -2330,6 +2354,7 @@ function loop() {
     if (garage) garage.update(dt, verhaal.aanspreekbaar);   // de showroom aan de Lemmerweg
     werkWedstrijdBij(dt);                                    // de wedstrijd bij VV Sneek
     if (ambulance) ambulance.update(dt, player.pos, inBeeld);  // de ambulance (stap 112)
+    if (leven) leven.update(dt, player.pos, inBeeld, sfeer.uur);   // feestje, pizzascooter, plezierboot (stap 113)
     if (politie.ster >= 3) nieuws.meld('achtervolging', player.pos.x, player.pos.z);
     /*
      De politie loopt alleen buiten rond; binnen sta je stil in een andere ruimte.
@@ -2646,7 +2671,7 @@ window.__game = {
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   grasVeld, wolken: clouds,
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, studio, derde, politie,
-  wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, ambulance, nieuws, ambulanceMelding, inBeeld,
+  wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, ambulance, nieuws, ambulanceMelding, inBeeld, leven,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,

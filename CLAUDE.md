@@ -81,6 +81,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/wedstrijd.js` | de wedstrijd op het hoofdveld van VV Sneek, elke dag 12–15 uur: twee elftallen (4-4-2), keepers, scheids, publiek (tribune in houders), de bal; komen en gaan alleen uit beeld (`zieJe`); `aanrijden`, `raak`, `slachtoffers`; js/main.js `werkWedstrijdBij` met `wedDag` |
 | `js/ambulance.js` | de ambulance (stap 112): het busje ('van') in geel met doeken, een lichtbalk met `maakGloed` uit js/politie.js, twee verpleegkundigen; `melding(x, z, wie)` met kans `AMB.kans` en rust `AMB.rust`, de rit over `lijnDoor`/`rijdVlucht`, knielen, `herstel` of een voetganger weer `alive`; js/main.js `ambulanceMelding` |
 | `js/nieuws.js` | het nieuws op Radio Tinga (stap 112): `meld(soort, x, z)` uit js/main.js, na `NIEUWS.vertraag` voorgelezen als je naar Radio Tinga luistert (`update(dt, luistert)`), met de straat (`nearestRoadName`) en de muziek zachter (`demp`) |
+| `js/leven.js` | stap 113: het tuinfeest (`FEEST`: kans per 45 s, een tegelvlak uit `tuinvlakken`, gasten, lampionnen, `geluid.feestTik`), de pizzascooter (`PIZZA`: Pizzeria Sneek of Cappadocia, over `lijnDoor` naar een adres uit `huisnummers`, `geluid.brommer`) en de plezierboot op de Geeuw (`BOOT`, `bouwSloep`, `vaarRoute(…, { dun: 1 })`); `doelen`, `raak`, `aanrijden`, `schrik` vanuit js/main.js |
 | `js/schaduw.js` | missie 15: de route van Bouwman (BP → Duinterpen → N7), zijn rit met een stop, de loods aan het water met container, kade, steiger en boot, de fotoplekken |
 
 Een paar dingen die niet vanzelf spreken:
@@ -193,6 +194,11 @@ Een kleinere ring in de top van elke scherpe bocht (`RACE.bochtRing`; de eerste 
 bij het aftellen (`geluid.aftelPiep`), geen wijkverkeer op de route (`vehicles.vrijeZone =
 race.opRoute`, `maakVrij`). Na GESLAAGD of betalen vijf tellen, dan "De volgende ochtend"
 (`naDeRace`, `naarDeOchtend`: 09:30, `springNaarHuis`). **shift+]** start hem los.
+Daarna **racen voor geld** (stap 114): Ronald belt `GELDRACE_TIP` s na de ochtend (vóór missie 15); E bij Sjoerd aan de balie
+(`geldraceToets`, `garage().plekken.balie`), 1/2/3 via `kiesHuis` → `geldKeuze` (`GELDRACE_INLEG` 500/1000/2500), dan
+`missie = 'race'` met `geldInleg`: dezelfde `opDeStart` en race zonder Bouwman, `geldUitslag`/`geldVerloren` in plaats van
+het verhaal, `geldKlaar` → fase `geldKlaar` → vrij spelen. De tussenpoos staat stil zolang `geldInleg`; `bewaar` slaat een
+geldrace op als vrij spelen.
 Tot stap 96 heette brigadier Bouwman "De Boer" (gevraagd: "net wat anders").
 
 Missie 15 (stap 96): een tussenpoos na de ochtend belt Mark (`SCHADUW_WACHT`), M bij Molenkrite 15,
@@ -303,7 +309,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run ambulancetest` (de ambulance: het model, de rit met zwaailicht en sirene, knielen en
+De laatste die ertoe doen: `npm run geldracetest` (racen voor geld na missie 14: de tip van Ronald vóór missie 15, de balie,
+te weinig geld, winnen en verliezen, de missie die wacht, opslaan; stap 114); `npm run buurttest` (het tuinfeest, de pizzascooter
+en de plezierboot; stap 113) met `buurtshots` (drie foto's); `npm run ambulancetest` (de ambulance: het model, de rit met zwaailicht en sirene, knielen en
 reanimeren, weg en verdwijnen, de rust, de nacht, de kans over 200 keer, een speler bij VV Sneek, stukgeschoten; en het nieuws
 op Radio Tinga; stap 112) met `ambulanceshots` (drie foto's); `npm run wedstrijdtest` (de terugslag van de sniper tegen de oude, de wedstrijd bij VV Sneek: komen en gaan
 uit beeld, tien minuten spelen, een doelpunt, het publiek, aanrijden, een kogel, de borden; stap 111) met `wedstrijdshots`
