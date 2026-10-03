@@ -862,6 +862,57 @@ const GELDRACE_TELEFOON = [
   telLijnR('Zelfde route, van de BP naar IJlst. Win je, dan krijg je het dubbele terug.'),
 ];
 
+/*
+ ---------- na het einde: een middag met Mark (stap 115) ----------
+ Gevraagd op 3 okt 2026: "Voeg nadat alle missies voorbij zijn nog wel een M toe op Molenkrite 15,
+ je kan dan overdag met Mark naar de voetbalwedstrijd en daar aan de zijlijn kijken en bier drinken.
+ Als je bij Mark bent en je zegt ja tegen wedstrijd of op de bank zitten en chillen; kies je voor de
+ wedstrijd, dan ga je met de auto op het juiste tijdstip erheen dat de wedstrijd speelt."
+*/
+const UITJE_WACHT = 20;               // s na de titelrol (of na het laden): dan staat de M er
+const UITJE_OPNIEUW = 90;             // s na een uitje: dan staat hij er weer
+const UITJE_AFTRAP = 12.2;            // "Die middag…": tien over twaalf, de wedstrijd (js/wedstrijd.js) loopt
+const UITJE_LIJN = { l: 8, d: 1.1, naast: 0.9 };   // de kijkplek voor de tribune (m langs en vóór de tribune)
+const UITJE_PARKEER = 45;             // zo dicht bij het clubparkeerterrein ben je er (m)
+const UITJE_BIJ = 1.8;                // zo dicht bij de kijkplek sta je aan de lijn (m)
+const UITJE_KIJK = 150;               // s aan de lijn, dan is het mooi geweest
+const UITJE_WEG = 70;                 // verder van de kijkplek: je gaat weg
+const UITJE_UREN = 3;                 // op de bank: zo veel later
+const UITJE_BIER = { leven: 12, dronkenVanaf: 3, perFlesje: 0.34, max: 6, bereik: 3 };
+const UITJE_BINNEN = [
+  zegtMark('Erik. Het is voorbij, man. Geen Bouwman meer, geen Veteraan.'),
+  zegtMark('Zin om vanmiddag naar de wedstrijd bij VV Sneek te gaan? Of blijven we gewoon hier op de bank hangen?'),
+];
+const UITJE_NAAR_WEDSTRIJD = [zegtMark('Mooi! Om twaalf uur is de aftrap. We gaan met de Golf, ik neem bier mee.')];
+const UITJE_ER_IS_ER_EEN = [zegtMark('Ze zijn al begonnen! Kom, met de Golf zijn we er zo.')];
+const UITJE_NAAR_BANK = [
+  zegtMark('Ook goed. Voetbal op tv, voeten op tafel.'),
+  zegtMark('Er staat bier in de koelkast. Ga zitten.'),
+];
+const UITJE_GEEN_WEDSTRIJD = [zegtMark('Vandaag spelen ze niet. Dan maar de bank.')];
+const UITJE_INSTAPPEN = [zegtMark('Rij jij maar. Naar het sportpark, het clubparkeerterrein aan de Molenkrite.')];
+const UITJE_AANGEKOMEN = [zegtMark('Kom, we gaan voor de tribune staan. Vlak langs de lijn.')];
+const UITJE_AAN_DE_LIJN = [zegtMark('Hier staan we goed. Biertje? Ik heb er genoeg bij me.')];
+const UITJE_PRAAT = [
+  'Kijk die linksback nou. Die staat te slapen.',
+  'Scheids! Dat was buitenspel!',
+  'Vroeger stond ik hier elke zaterdag. Met mijn vader.',
+  'Weet je nog, die nacht op de Dúvelsrak? Dit is beter.',
+  'Die nummer negen kan er helemaal niks van.',
+  'Hoor je dat publiek? Dat is Sneek, man.',
+  'Volgend jaar gaan we een seizoenkaart halen. Jij en ik.',
+];
+const UITJE_GOAL_THUIS = ['JAAA! Sneek!', 'Wat een goal! Zag je dat?', 'Daar is hij! Proost!'];
+const UITJE_GOAL_UIT = ['Ach nee. Wie stond daar te dekken?', 'Dat was hands, scheids!', 'Kom op, Sneek!'];
+const UITJE_GENOEG = [zegtMark('Ho, rustig aan. Eén is gezellig, zes is genoeg.')];
+const UITJE_MOOI = [
+  zegtMark('Mooi geweest. Ik loop wel naar huis, het is om de hoek.'),
+  zegtMark('Dank je, Erik. Dit had ik nodig.'),
+];
+const UITJE_VERTREK = [zegtMark('Ga je al? Ik blijf nog even kijken.')];
+const UITJE_GESTAAKT = [zegtMark('Ben je gek geworden?! Wegwezen hier!')];
+const UITJE_BANK_LATER = [zegtMark('Lekker gechilld. Kom gauw weer langs, Erik.')];
+
 
 const INVAL_TELEFOON = [
   telLijn(zegtJohan('Erik. Ben je nog bij Mark?')),
@@ -1379,6 +1430,8 @@ export function initVerhaal(ctx) {
     garage = () => null, stapIn = null,
     // missie 18 (js/main.js): de studio van Radio Tinga (js/studio.js)
     studio = () => null,
+    // stap 115 (js/main.js): de wedstrijd bij VV Sneek, hem klaarzetten, en hoe laat het is
+    wedstrijd = () => null, wedstrijdKlaar = null, uurNu = null,
   } = ctx;
   const balk = document.getElementById('dialoog');
   const naamEl = document.getElementById('dialoogNaam');
@@ -1546,6 +1599,9 @@ export function initVerhaal(ctx) {
   let telefoonT = 0;             // aftellen tot de telefoon opgenomen is
   let naMissieT = 0;             // pauze tussen twee missies
   let misluktT = 0;              // aftellen na een mislukte missie
+  // na het einde: een middag met Mark (stap 115; de rest staat bij racen voor geld)
+  const uitje = { fase: 'uit', t: 0, golf: null, klokWas: null, pad: null, padI: 0, kijkT: 0, praatT: 0, praatI: 0,
+    stand: null, flesjes: 0, juichT: 0, hint: false, keer: 0, keuzes: [], plek: null, merk: null };
   let envelop = null;            // {obj, t} – de envelop die de dief weggooit
   let geld = START_GELD;         // portemonnee; ruim gevuld zolang het spel in de testfase zit
   let buit = 0;                  // geld dat nog afgeleverd moet worden
@@ -1578,6 +1634,7 @@ export function initVerhaal(ctx) {
   let klusPauze = null;          // wat het verhaal in beeld had toen de klus begon
   function vrijVoorKlus() {
     if (doodT > 0 || misluktT > 0 || keuzeOpen || zwart || player.health <= 0) return false;
+    if (uitjeBezig()) return false;
     if (missie === 'klaar') return true;
     return (KLUS_WACHT[missie] || []).includes(fase);
   }
@@ -2294,6 +2351,8 @@ export function initVerhaal(ctx) {
     if (uitzendingToets()) return true;
     // racen voor geld: bij Sjoerd aan de balie van het Autohuis (stap 114)
     if (geldraceToets()) return true;
+    // na het einde: een biertje van Mark aan de lijn bij VV Sneek (stap 115)
+    if (uitjeToets()) return true;
     if (missie === 'molenkrite' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND) {
       fase = 'gesprek';
       zeg(GESPREK1, () => { fase = 'loopt'; zetOpdracht('ga met Mark mee'); });
@@ -3993,6 +4052,8 @@ export function initVerhaal(ctx) {
    naar die woning; je mag onderweg van gedachten veranderen.
   */
   function kiesHuis(nr) {
+    // (na het einde: 1 de wedstrijd met Mark, 2 de bank)
+    if (uitje.fase === 'keuze') return uitjeKeuze(nr);
     // (racen voor geld: 1, 2 of 3 is de inleg)
     if (geldKiezen) return geldKeuze(nr);
     // (na een verloren race in missie 14 gaan 1 en 2 over de keuze bij Bouwman)
@@ -4256,6 +4317,8 @@ export function initVerhaal(ctx) {
     // (en na missie 18: het klokje naar de avond, het filmbeeld van het einde en de titelrol)
     uitzNaT = 0;
     if (titelrol) sluitTitelrol();
+    // (en een uitje met Mark na het einde)
+    ruimUitjeOp();
     // (en laden in de lucht: de heli weg, en niet meer zitten)
     if (avondHeli && avondHeli.zichtbaar) { ruimAvondOp(); player.zit = false; }
     if (uitzFilm && uitzFilm.soort === 'einde') { uitzFilm = null; toonFilmbalken(0); schietSlot(false); }
@@ -6368,6 +6431,281 @@ export function initVerhaal(ctx) {
   }
 
   /*
+   ---------- na het einde: een middag met Mark (stap 115) ----------
+     rust       na de titelrol (of een vorig uitje) een poos niets
+     wacht      een M (een vlag zonder route) bij Molenkrite 15; binnen zit Mark op de bank
+     gesprek    "de wedstrijd of de bank?"
+     keuze      1 — de wedstrijd bij VV Sneek · 2 — op de bank chillen
+     rijden     "Die middag…" (of "Even later…" als hij al loopt): in de Golf van Mark voor de
+                deur, Mark naast je, de klok stil op een uur dat er gespeeld wordt; naar het
+                clubparkeerterrein aan de Molenkrite
+     lopen      Mark stapt uit en loopt (js/looppad.js) naar de lijn voor de tribune
+     kijken     naast Mark aan de lijn: E is een biertje, Mark praat mee en juicht bij een doelpunt
+     bank       naast Mark op de bank, en "Een paar uur later…"
+     na         Mark blijft nog (aan de lijn of op de bank) tot je een eind weg bent
+   Het is geen missie: `missie` blijft 'klaar', zodat de geldrace, de klusjes en de rest van vrij
+   spelen doorgaan. Een klus begint niet zolang het uitje loopt.
+  */
+  // (de stand van het uitje staat bovenaan, bij `doodT`: stopNaloop en vrijVoorKlus lezen hem al eerder)
+  function uitjeHint(tekst) {
+    if (tekst) { praatEl.textContent = tekst; praatEl.hidden = false; uitje.hint = true; }
+    else if (uitje.hint) { praatEl.hidden = true; uitje.hint = false; }
+  }
+  // na het einde mag het, en alleen als er verder niets loopt
+  function uitjeVrij() {
+    return missie === 'klaar' && fase === 'klaar' && uitzendingKlaar && !klusjes.bezig && !geldInleg && !geldKiezen
+      && !zwart && doodT <= 0 && misluktT <= 0 && !keuzeOpen && !titelrol;
+  }
+  // loopt er een uitje (dan geen klus)?
+  function uitjeBezig() { return !['uit', 'rust', 'wacht'].includes(uitje.fase); }
+  // de kijkplek voor de tribune van het hoofdveld (de maten van js/sportveld.js), en die van Mark ernaast
+  function uitjePlek() {
+    if (uitje.plek) return uitje.plek;
+    const v = (KAART.sportvelden || []).find(q => q.hoofd && q.tribune);
+    if (!v) return null;
+    const T = v.tribune, ax = Math.cos(T.hoek), az = Math.sin(T.hoek), nx = -az * T.kant, nz = ax * T.kant;
+    const punt = (l, d) => ({ x: T.vx + ax * l - nx * d, z: T.vz + az * l - nz * d });
+    const t = tribune();
+    uitje.plek = {
+      jij: punt(UITJE_LIJN.l, T.diep + UITJE_LIJN.d),
+      mark: punt(UITJE_LIJN.l + UITJE_LIJN.naast, T.diep + UITJE_LIJN.d),
+      veld: { x: v.cx, z: v.cz },
+      parkeer: t && t.weg ? t.weg : punt(0, -12),
+    };
+    return uitje.plek;
+  }
+  function ruimUitjeOp() {
+    if (uitje.klokWas !== null && klokLoopt) klokLoopt(uitje.klokWas);
+    uitje.klokWas = null;
+    if (uitje.merk) uitje.merk.toon(false);
+    uitjeHint(null);
+    if (uitjeBezig() || uitje.fase === 'na') markZichtbaar(false);
+    if (navDoel && navDoel.letter === 'V') { navDoel = null; hud.zetNavigatie(null); }
+    uitje.fase = uitzendingKlaar ? 'rust' : 'uit';
+    uitje.t = UITJE_WACHT;
+    uitje.pad = null;
+  }
+  // de M bij Molenkrite 15: alleen een vlag, geen route (vrij spelen hoort geen navigatie te hebben)
+  function zetUitjeVlag() {
+    const d = molenkriteDeur();
+    zetMarker(d.x, d.z, 'M');
+  }
+  function uitjeKeuze(nr) {
+    if (uitje.fase !== 'keuze' || (nr !== 1 && nr !== 2)) return false;
+    zetOpdracht('');
+    uitje.keuzes.push(nr);
+    const w = wedstrijd && wedstrijd();
+    if (nr === 1 && w) {
+      uitje.fase = 'naarAuto';
+      // speelt hij nu al (en niet bijna afgelopen), dan meteen; anders "Die middag…" om tien over twaalf
+      const uur = uurNu ? uurNu() : 12;
+      const loopt = w.aanwezig && !w.gestaakt && uur >= 12 && uur < 14.5;
+      // (na twaalven, en hij loopt niet (meer): dan de volgende middag)
+      const morgen = !loopt && uur >= 12;
+      zeg(loopt ? UITJE_ER_IS_ER_EEN : UITJE_NAAR_WEDSTRIJD,
+        () => zwartMet(loopt ? 'Even later…' : morgen ? 'De volgende middag…' : 'Die middag…', () => uitjeNaarDeWedstrijd(!loopt, morgen)));
+      return true;
+    }
+    uitje.fase = 'bank';
+    zeg(nr === 1 ? [...UITJE_GEEN_WEDSTRIJD, UITJE_NAAR_BANK[1]] : UITJE_NAAR_BANK, uitjeOpDeBank);
+    return true;
+  }
+  // "Die middag…": in de Golf van Mark voor de deur, de klok stil, de wedstrijd klaar
+  function uitjeNaarDeWedstrijd(verzetten, morgen = false) {
+    if (verzetten && zetUur) zetUur(UITJE_AFTRAP);
+    if (wedstrijdKlaar) wedstrijdKlaar(morgen);
+    if (klokLoopt && uitje.klokWas === null) { uitje.klokWas = klokLoopt(); klokLoopt(false); }
+    if (player.zit) { player.zit = false; player.eye = player.eyeStaand; }
+    const v = plekVoorDeDeur();
+    if (!uitje.golf || uitje.golf.wrak) uitje.golf = vehicles.voegToe({ x: v.x, z: v.z, yaw: v.yaw, soort: 'hatch', kleur: 0x6b7178 });
+    const a = uitje.golf;
+    a.x = v.x; a.z = v.z; a.yaw = v.yaw; a.speed = 0; a.driveable = true; a.zichtbaar = true;
+    if (a.mesh) { a.mesh.visible = true; a.mesh.position.set(v.x, grondHoogte(v.x, v.z), v.z); a.mesh.rotation.y = v.yaw; }
+    player.pos.set(v.x, 0, v.z);
+    if (stapIn) stapIn(a);
+    player.applyCamera();
+    markZichtbaar(false);                       // hij zit naast je
+    uitje.fase = 'rijden';
+    const p = uitjePlek();
+    zetOpdracht('rij met Mark naar VV Sneek');
+    if (p) zetNavDoel(p.parkeer.x, p.parkeer.z, 'VV Sneek · clubparkeerterrein', 'V');
+    zeg(UITJE_INSTAPPEN, null, { auto: 3.4 });
+  }
+  // aangekomen: Mark stapt uit en loopt naar de lijn
+  function uitjeUitstappen(sp) {
+    const p = uitjePlek();
+    const a = player.inCar;
+    const van = a ? { x: a.x + Math.cos(a.yaw) * 1.6, z: a.z - Math.sin(a.yaw) * 1.6 } : { x: sp.x + 1.2, z: sp.z + 0.8 };
+    const [mx, mz] = resolveCollisions(van.x, van.z, 0.4);
+    mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, p.mark));
+    markZichtbaar(true);
+    geluid.portier();
+    uitje.pad = zoekLooppad({ x: mx, z: mz }, p.mark, { laag: VET_LAAG }) || [[mx, mz], [p.mark.x, p.mark.z]];
+    uitje.padI = 1;
+    uitje.fase = 'lopen';
+    if (!uitje.merk) uitje.merk = maakMarkering(scene);
+    uitje.merk.zet(p.jij.x, grondHoogte(p.jij.x, p.jij.z) + 0.02, p.jij.z);
+    uitje.merk.toon(true);
+    navDoel = null;
+    zetMarker(p.jij.x, p.jij.z, 'V');
+    zetOpdracht('ga met Mark aan de lijn staan, voor de tribune');
+    zeg(UITJE_AANGEKOMEN, null, { auto: 3 });
+  }
+  // Mark loopt zijn pad af; geeft true als hij er is
+  function uitjeMarkLoopt(dt) {
+    const pad = uitje.pad;
+    if (!pad || uitje.padI >= pad.length) return true;
+    const [x, z] = pad[uitje.padI];
+    const pos = mark.groep.position, dx = x - pos.x, dz = z - pos.z, d = Math.hypot(dx, dz);
+    if (d < 0.35) { uitje.padI++; return uitje.padI >= pad.length; }
+    const stap = Math.min(d, 1.45 * dt);
+    pos.x += dx / d * stap; pos.z += dz / d * stap;
+    mark.draaiNaar(Math.atan2(-dx, -dz), dt, 8);
+    mark.update(dt, { loopt: true, snelheid: 1.45 });
+    return false;
+  }
+  function uitjeBier() {
+    if (uitje.flesjes >= UITJE_BIER.max) { zeg(UITJE_GENOEG, null, { auto: 2.6 }); return true; }
+    uitje.flesjes++;
+    player.health = Math.min(100, player.health + UITJE_BIER.leven);
+    hud.zetLeven(player.health);
+    if (uitje.flesjes >= UITJE_BIER.dronkenVanaf) {
+      player.dronken = Math.min(1, (player.dronken || 0) + UITJE_BIER.perFlesje);
+      hud.melding(`Biertje ${uitje.flesjes}`, 'Van Mark. Je begint het te voelen.', 2.5);
+    } else hud.melding('Biertje', `Van Mark · ${UITJE_BIER.leven} leven erbij.`, 2.5);
+    geluid.neerzetten && geluid.neerzetten();
+    return true;
+  }
+  function uitjeToets() {
+    if (uitje.fase !== 'kijken' || player.inCar) return false;
+    const p = uitjePlek();
+    if (!p || afst(spelerPunt(), p.jij) > UITJE_BIER.bereik) return false;
+    return uitjeBier();
+  }
+  // een regel van Mark die zichzelf wegklikt
+  function markRoept(tekst) { if (balk.hidden) zeg([zegtMark(tekst)], null, { auto: 3.2 }); }
+  function uitjeEinde(regels) {
+    if (uitje.klokWas !== null && klokLoopt) klokLoopt(uitje.klokWas);
+    uitje.klokWas = null;
+    if (uitje.merk) uitje.merk.toon(false);
+    uitjeHint(null);
+    zetOpdracht('');
+    navDoel = null; hud.zetNavigatie(null);
+    uitje.fase = 'na';
+    uitje.keer++;
+    if (regels) zeg(regels, null, regels.length === 1 ? { auto: 3 } : {});
+  }
+  // op de bank: jij gaat zitten, Mark schuift op; "Een paar uur later…"
+  function uitjeOpDeBank() {
+    const w = molenkrite && molenkrite();
+    if (w && w.gaZitten) w.gaZitten();
+    const b = w && w.plekken && w.plekken.bank;
+    if (b) {
+      const k = w.plekken.bankKijk !== undefined ? w.plekken.bankKijk : mark.groep.rotation.y;
+      // een plek opzij langs de bank (de bank loopt dwars op de kijkrichting)
+      mark.zetNeer(b.x + Math.cos(k) * 0.8 - Math.sin(k) * 0.08, b.z - Math.sin(k) * 0.8 - Math.cos(k) * 0.08, k);
+    }
+    zwartMet('Een paar uur later…', () => {
+      const uur = uurNu ? uurNu() : 12;
+      if (zetUur) zetUur((uur + UITJE_UREN) % 24);
+      player.health = 100; hud.zetLeven(player.health);
+      uitjeEinde(UITJE_BANK_LATER);
+    });
+  }
+  function werkUitjeBij(dt, sp) {
+    if (uitje.fase === 'uit') { if (uitzendingKlaar && missie === 'klaar') { uitje.fase = 'rust'; uitje.t = UITJE_WACHT; } return; }
+    if (uitje.fase === 'rust') {
+      if (uitjeVrij()) uitje.t -= dt;
+      if (uitje.t <= 0) uitje.fase = 'wacht';
+      return;
+    }
+    const woning = molenkrite && molenkrite();
+    const binnen = !!(woning && woning.binnen && woning.binnen(sp.x, sp.z));
+    if (uitje.fase === 'wacht') {
+      if (!uitjeVrij()) return;
+      // de vlag (na een klus of een geldrace kan de navigatie leeg zijn)
+      uitje.t -= dt;
+      if (uitje.t <= 0) { uitje.t = 1; if (!hud.nav && !navDoel && !klusPauze) zetUitjeVlag(); }
+      if (!binnen || !balk.hidden) return;
+      opDeBank(mark, woning.plekken, { x: sp.x, z: sp.z });
+      markZichtbaar(true);
+      hud.zetNavigatie(null); navDoel = null;
+      uitje.fase = 'gesprek';
+      uitje.flesjes = 0;
+      zeg(UITJE_BINNEN, () => {
+        uitje.fase = 'keuze';
+        zetOpdracht('1 — naar de wedstrijd bij VV Sneek · 2 — op de bank chillen');
+        hud.melding('WAT GAAN JULLIE DOEN?', '1 — de wedstrijd · 2 — de bank', 10);
+      });
+      return;
+    }
+    if (uitje.fase === 'gesprek' || uitje.fase === 'keuze' || uitje.fase === 'bank' || uitje.fase === 'naarAuto') {
+      if (mark.groep.visible) mark.update(dt, { zit: BANK_ZITTING });
+      // de keuze open laten staan en het huis uit lopen: dan blijft Mark zitten, en de M komt terug
+      if (uitje.fase === 'keuze' && !binnen) { zetOpdracht(''); markZichtbaar(false); uitje.fase = 'wacht'; uitje.t = 0; }
+      return;
+    }
+    const p = uitjePlek();
+    const w = wedstrijd && wedstrijd();
+    if (uitje.fase === 'rijden') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+      const stil = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.5;
+      const bij = afst(sp, p.parkeer) < UITJE_PARKEER || afst(sp, p.jij) < 60;
+      if (bij && stil && balk.hidden) uitjeUitstappen(sp);
+      return;
+    }
+    if (w && w.gestaakt && (uitje.fase === 'lopen' || uitje.fase === 'kijken')) { uitjeEinde(UITJE_GESTAAKT); return; }
+    if (uitje.fase === 'lopen' || uitje.fase === 'kijken') {
+      if (uitje.merk) uitje.merk.update(dt);
+      const thuisVoor = uitjeMarkLoopt(dt);
+      if (thuisVoor) {
+        // naar de bal kijken
+        const bal = w && w.aanwezig ? w.balWereld : p.veld;
+        mark.kijkNaar(bal.x, bal.z, dt, 3);
+        mark.update(dt, { zwaait: uitje.juichT > 0 });
+      }
+      if (uitje.juichT > 0) uitje.juichT -= dt;
+      const dJij = afst(sp, p.jij);
+      if (uitje.fase === 'lopen') {
+        if (dJij < UITJE_BIJ && !player.inCar) {
+          uitje.fase = 'kijken'; uitje.kijkT = 0; uitje.praatT = 14; uitje.stand = w ? w.stand : null;
+          if (uitje.merk) uitje.merk.toon(false);
+          hud.zetNavigatie(null);
+          zetOpdracht('kijk de wedstrijd met Mark · E — een biertje');
+          zeg(UITJE_AAN_DE_LIJN, null, { auto: 3 });
+        } else if (dJij > UITJE_WEG * 2) uitjeEinde(UITJE_VERTREK);
+        return;
+      }
+      // kijken
+      uitje.kijkT += dt;
+      uitjeHint(dJij < UITJE_BIER.bereik && !player.inCar && balk.hidden ? 'E — een biertje van Mark' : null);
+      if (w && uitje.stand) {
+        const nu = w.stand;
+        if (nu[0] > uitje.stand[0]) { uitje.juichT = 2.5; markRoept(UITJE_GOAL_THUIS[(nu[0] - 1) % UITJE_GOAL_THUIS.length] + ` ${nu[0]}-${nu[1]}!`); uitje.praatT = 12; }
+        else if (nu[1] > uitje.stand[1]) { markRoept(UITJE_GOAL_UIT[(nu[1] - 1) % UITJE_GOAL_UIT.length] + ` ${nu[0]}-${nu[1]}.`); uitje.praatT = 12; }
+        uitje.stand = nu;
+      }
+      uitje.praatT -= dt;
+      if (uitje.praatT <= 0) { uitje.praatT = 22 + Math.random() * 12; markRoept(UITJE_PRAAT[uitje.praatI++ % UITJE_PRAAT.length]); }
+      if (dJij > UITJE_WEG) { uitjeEinde(UITJE_VERTREK); return; }
+      if (uitje.kijkT > UITJE_KIJK && balk.hidden) uitjeEinde(UITJE_MOOI);
+      return;
+    }
+    if (uitje.fase === 'na') {
+      // Mark blijft nog even; ben je een eind weg, dan is hij naar huis
+      const pos = mark.groep.position;
+      if (mark.groep.visible) {
+        if (binnen) mark.update(dt, { zit: BANK_ZITTING });
+        else if (w && w.aanwezig) { const bal = w.balWereld; mark.kijkNaar(bal.x, bal.z, dt, 3); mark.update(dt, {}); }
+        else mark.update(dt, {});
+      }
+      const weg = binnen ? false : (woning && woning.binnen && woning.binnen(pos.x, pos.z)) ? true : afst(sp, pos) > 120;
+      if (weg && balk.hidden) { markZichtbaar(false); uitje.fase = 'rust'; uitje.t = UITJE_OPNIEUW; }
+    }
+  }
+
+  /*
    Opnieuw na het neergaan of het laden. Tot het gesprek bij Ronald begin je weer
    bij het telefoontje of de R; moest je nog een Ferrari halen, dan staat de A er
    weer; en vanaf de nacht sta je weer op de grid.
@@ -7680,7 +8018,8 @@ export function initVerhaal(ctx) {
   }
   // na de inval hangt er lint voor de deur van Molenkrite 15
   function zetMolenLint() {
-    const aan = invalKlaar && !!(molenkrite && molenkrite());
+    // (na het einde woont Mark er weer: dan is het lint weg, stap 115)
+    const aan = invalKlaar && !uitzendingKlaar && !!(molenkrite && molenkrite());
     if (aan) {
       const w = molenkrite(), d = w.plekken && w.plekken.deurBuiten, st = w.plekken && w.plekken.stoep;
       if (!d || !st) { molenLint.toon(false); return; }
@@ -8074,7 +8413,7 @@ export function initVerhaal(ctx) {
     }
     // het lint voor Molenkrite 15 (een keer per seconde nagekeken: het huis bestaat pas na het opstarten)
     molenLintKlok -= dt;
-    if (molenLintKlok <= 0) { molenLintKlok = 1; if (molenLint.zichtbaar !== (invalKlaar && !!(molenkrite && molenkrite()))) zetMolenLint(); }
+    if (molenLintKlok <= 0) { molenLintKlok = 1; if (molenLint.zichtbaar !== (invalKlaar && !uitzendingKlaar && !!(molenkrite && molenkrite()))) zetMolenLint(); }
     if (molenLint.zichtbaar) molenLint.update(dt);
   }
 
@@ -9561,6 +9900,7 @@ export function initVerhaal(ctx) {
       if (missie === 'brug') werkBrugBij(dt, sp);
       if (missie === 'schrift') werkSchriftBij(dt, sp);
       werkGeldraceBij(dt, sp);              // racen voor geld (stap 114)
+      werkUitjeBij(dt, sp);                 // na het einde: een middag met Mark (stap 115)
       if (missie === 'race') werkRaceBij(dt, sp);
       if (missie === 'schaduw') werkSchaduwBij(dt, sp);
       if (missie === 'inval') werkInvalBij(dt, sp);
@@ -9976,6 +10316,15 @@ export function initVerhaal(ctx) {
         INLEG: GELDRACE_INLEG, naT: geldNaT, bijBalie: () => geldBijDeBalie(spelerPunt()),
         // (de ochtend na missie 14, zoals `naDeRace` die opent: voor de proef)
         ochtendNaRace: () => naarDeOchtend() };
+    },
+    // stap 115, voor tools/uitjetest.mjs: het uitje met Mark na het einde (een momentopname)
+    get uitje() {
+      return { fase: uitje.fase, t: uitje.t, flesjes: uitje.flesjes, kijkT: uitje.kijkT, keer: uitje.keer, keuzes: uitje.keuzes.slice(),
+        golf: uitje.golf, plek: uitjePlek(), pad: uitje.pad, padI: uitje.padI, klokWas: uitje.klokWas, stand: uitje.stand,
+        mark, vrij: uitjeVrij(), bezig: uitjeBezig(), lint: molenLint.zichtbaar,
+        KIJK: UITJE_KIJK, WEG: UITJE_WEG, AFTRAP: UITJE_AFTRAP, BIER: UITJE_BIER, OPNIEUW: UITJE_OPNIEUW, WACHT: UITJE_WACHT,
+        // (de proef zet de kijktijd vooruit)
+        zetKijkT: (t) => { uitje.kijkT = t; } };
     },
     // missie 18, voor tools/uitzendingtest.mjs
     get uitzending() {

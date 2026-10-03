@@ -7112,6 +7112,39 @@ nieuwe missie begint."
 
 **Proeven**: `geldracetest` (nieuw) is groen.
 
+**Na het einde: een middag met Mark (stap 115).** Gevraagd: "Voeg nadat alle missies voorbij zijn nog
+wel een M toe op Molenkrite 15. Je kan dan overdag met Mark naar de voetbalwedstrijd en daar aan de
+zijlijn kijken en bier drinken. Als je bij Mark bent zeg je ja tegen de wedstrijd of tegen op de bank
+zitten en chillen. Kies je voor de wedstrijd, dan ga je met de auto op het juiste tijdstip erheen dat
+de wedstrijd speelt."
+
+- *Geen missie.* Een nieuwe `missie` had alles stilgezet wat op `missie === 'klaar'` leunt: de geldrace,
+  de bende-regels, de klusjes, het checkpoint. Het is een `uitje` naast vrij spelen, met eigen fases
+  (`rust`, `wacht`, `gesprek`, `keuze`, `rijden`, `lopen`, `kijken`, `bank`, `na`). Zolang het loopt,
+  geeft `vrijVoorKlus` geen klus.
+- *De M* is een vlag zonder route (`zetMarker`). In vrij spelen hoort er geen navigatielijn op de kaart.
+  Na een klus of een geldrace is de navigatie leeg; dan zet het uitje de vlag elke seconde terug.
+- *Het lint* van de inval hing er tot nu toe voor altijd. Na het einde woont Mark er weer, dus het lint
+  hangt alleen nog zolang `invalKlaar` en nog niet `uitzendingKlaar`.
+- *Het juiste tijdstip.* De klok loopt na de titelrol (een dag in vier minuten). Van twaalf tot drie zou
+  dan een halve minuut zijn. Daarom zet het zwart de klok op 12:12 en zet hem stil tot het uitje voorbij
+  is. De wedstrijd begint alleen uit beeld, en maar één keer per dag (`wedDag`). Een sprong van vier uur
+  's middags naar twaalf uur is een nieuwe dag, dus js/main.js telt die dag zelf op en zet de wedstrijd
+  klaar (`wedstrijdKlaar`), in het zwart.
+- *De kijkplek* staat voor de tribune, waar in missie 10 de tas stond (`tribune()`), maar 12 m van de
+  middenlijn. Gemeten in de maten van js/sportveld.js: de reclameborden staan 1,6 m achter de zijlijn, de
+  voorkant van de tribune 1,8 m. Je staat er 0,7 m achter de lijn.
+- *Mark* loopt van de auto over `zoekLooppad` (met `VET_LAAG`: over de borden heen) naar zijn plek, kijkt
+  naar de bal, juicht als `wedstrijd.stand` verandert en praat om de 22 tot 34 s. Het bier is dat van de
+  koelkast (12 leven, vanaf het derde de waas), tot zes.
+
+**Wat er misging**
+- *De proef zag de gesprekken niet.* Een MutationObserver op de balk meldt pas iets als de synchrone
+  `evaluate` voorbij is, en dan is de regel al weg. Acht controles waren daardoor rood, terwijl alles in het
+  spel goed ging. De proef leest de balk nu na elke stap.
+
+**Proeven**: `uitjetest` (nieuw) is groen. Foto's: `uitjeshots` (twee).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -2493,6 +2493,45 @@ rand, naast Bouwman met de deur naar hem toe, nooit harder dan 21 m/s en nooit m
 de camera buiten de romp. Hij schiet echt uit de deur, landt, rijdt de achtervolging, raakt Bouwman kwijt,
 het gevecht, de politie en de brug, en hervat elke fase opnieuw. `npm run avondshots` maakt de vijf foto's.
 
+#### Na het einde: een middag met Mark
+
+Als alle missies voorbij zijn, staat er na een poosje weer een **M** bij **Molenkrite 15**. Het is
+alleen een vlag op de kaart, zonder route. Het lint van de inval is weg: Mark woont er weer. Binnen zit
+hij op de bank: *"Zin om vanmiddag naar de wedstrijd bij VV Sneek te gaan? Of blijven we gewoon hier op
+de bank hangen?"*
+
+- **1 — de wedstrijd.** Dan ***Die middag…***: tien over twaalf, en de klok staat even stil. Was de
+  wedstrijd van vandaag al geweest, dan wordt het ***De volgende middag…***. Speelt hij op dat moment al,
+  dan alleen ***Even later…***.
+  - Je zit in de grijze Golf van Mark voor de deur, met Mark naast je. De navigatie (een V) wijst naar
+    het clubparkeerterrein aan de Molenkrite.
+  - Daar stapt Mark uit en loopt naar de lijn voor de tribune. Ga naast hem staan, op de gele ruit.
+  - Met **E** geeft Mark je een biertje: 12 leven erbij. Vanaf het derde voel je het, na zes is het genoeg.
+  - Mark praat mee en juicht bij een doelpunt, met de stand erbij.
+  - Na een paar minuten is het mooi geweest. Loop je eerder weg, dan blijft hij nog even kijken. Leg je
+    de wedstrijd stil (aanrijden, schieten), dan is hij er klaar mee.
+- **2 — de bank.** Je gaat naast Mark zitten. Dan ***Een paar uur later…***: drie uur verder, en je
+  leven is vol.
+
+Daarna is het weer vrij spelen. Mark gaat naar huis zodra je een eind weg bent, en na anderhalve minuut
+staat de M er weer. Zolang het uitje loopt, komt er geen klus. Het is geen missie: de geldrace, de klusjes
+en de rest gaan gewoon door.
+
+| ![Op de bank](docs/screenshots/uitje_bank.png) | ![Aan de lijn](docs/screenshots/uitje_lijn.png) |
+|---|---|
+| Molenkrite 15: de wedstrijd of de bank? | aan de lijn bij VV Sneek, voor de tribune |
+
+`npm run uitjetest` speelt het na:
+- geen M vóór het einde, wel daarna, en het lint weg;
+- het gesprek en de keuze;
+- de wedstrijd 's ochtends gekozen: het uur, de klok, de wedstrijd, de Golf en de navigatie;
+- de kijkplek gemeten: tussen de zijlijn en de reclameborden, vrij van botsdozen, te voet te halen;
+- aankomen, Mark die naar de lijn loopt, het bier en een doelpunt;
+- het einde, de M die terugkomt, weglopen en een gestaakte wedstrijd;
+- de volgende middag, de bank, de keuze open laten, laden tijdens de rit, en de geldrace die blijft werken.
+
+`npm run uitjeshots` maakt de twee foto's.
+
 ### Klusjes tussendoor
 
 **Tijd tussen de missies.** Na een missie duurt het **twee en een halve minuut** voor de volgende

@@ -228,7 +228,7 @@ boven 60 km/u): filmbeeld `crash`, E bij zijn auto: de telefoon ("— R."), € 
 Daarna "De volgende ochtend" (09:30, `invalOchtend`). **shift+;** start hem los.
 
 Missie 17 (stap 103): een tussenpoos na de ochtend belt Mark (`RONALD_WACHT`); voor Molenkrite 15 hangt
-lint (`molenLint`, zolang `invalKlaar`). M bij de Wieken 29, binnen Mark op de bank en Johan (`invalJohan`)
+lint (`molenLint`, zolang `invalKlaar` en nog niet `uitzendingKlaar`). M bij de Wieken 29, binnen Mark op de bank en Johan (`invalJohan`)
 bij de tafel; E bij de koelkast (`ronaldBijKoelkast`, ook in `aanspreekbaar`) geeft de worst. Naar buiten:
 "Die nacht…" (01:00, klok stil), naast de Golf van Mark aan de weg Tinga (`golfPlek`). Het erf staat in
 js/schuur.js: argwaan in `#schaduwbalk` (kegel 0,55/s, blaffen 0,09/s, zakt 0,04/s; vol of een schot =
@@ -268,6 +268,17 @@ volgende missie, `geluid.zetHerhaling(true)` (het fragment in de lijst van Radio
 `uitzendingKlaar`. **shift+/** start hem los. De ondertitels van het fragment (`UITZENDING_ONDERTITELS`): Erik en
 Mark de eigenaren van de drugshandel in Tinga, en "Erik: van harte gefeliciteerd met je verjaardag" (echt: het
 spel is een cadeau); de titelrol eindigt daar ook mee.
+
+**Na het einde: een middag met Mark** (stap 115, het `uitje` in js/verhaal.js, geen missie: `missie` blijft
+'klaar'). `UITJE_WACHT` na de titelrol (en `UITJE_OPNIEUW` na een uitje) een M-vlag zonder route (`zetMarker`)
+bij Molenkrite 15; het lint is weg zodra `uitzendingKlaar`. Binnen Mark op de bank, 1/2 via `kiesHuis` →
+`uitjeKeuze`. 1: "Die middag…" (`UITJE_AFTRAP` 12:12, klok stil; "De volgende middag…" na twaalven, "Even
+later…" als hij al loopt), `ctx.wedstrijdKlaar(morgen)` in js/main.js zet de wedstrijd klaar (`wedDag`), de
+Golf van Mark voor de deur (`plekVoorDeDeur`, `stapIn`), nav V naar `tribune().weg`; daar loopt Mark over
+`zoekLooppad` naar `uitjePlek()` (voor de tribune, `UITJE_LIJN`: tussen de zijlijn en de borden), E = bier
+(`UITJE_BIER`), juichen op `wedstrijd.stand`, na `UITJE_KIJK` of verder dan `UITJE_WEG` of gestaakt: `uitjeEinde`.
+2: `gaZitten`, "Een paar uur later…" (+3 uur). Tijdens het uitje geen klus (`uitjeBezig` in `vrijVoorKlus`);
+laden ruimt op (`ruimUitjeOp` in `stopNaloop`).
 
 **De tussenpoos** (stap 108): elke missie die met de telefoon begint, belt `TUSSENPOOS` (150 s) na de
 vorige; die telt niet af tijdens een klus. Een nieuwe missie gebruikt die ook, en hoort met zijn
@@ -309,7 +320,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run geldracetest` (racen voor geld na missie 14: de tip van Ronald vóór missie 15, de balie,
+De laatste die ertoe doen: `npm run uitjetest` (na het einde de M bij Molenkrite 15: de keuze, de wedstrijd op het
+juiste uur, de kijkplek gemeten, Mark die naar de lijn loopt, bier, juichen, het einde, de bank, laden; stap 115) met
+`uitjeshots` (twee foto's); `npm run geldracetest` (racen voor geld na missie 14: de tip van Ronald vóór missie 15, de balie,
 te weinig geld, winnen en verliezen, de missie die wacht, opslaan; stap 114); `npm run buurttest` (het tuinfeest, de pizzascooter
 en de plezierboot; stap 113) met `buurtshots` (drie foto's); `npm run ambulancetest` (de ambulance: het model, de rit met zwaailicht en sirene, knielen en
 reanimeren, weg en verdwijnen, de rust, de nacht, de kans over 200 keer, een speler bij VV Sneek, stukgeschoten; en het nieuws

@@ -688,6 +688,23 @@ const verhaal = initVerhaal({
   // missie 14: de gekochte auto's (js/garage.js) en zelf in een auto stappen
   garage: () => garage,
   stapIn: (car) => { if (player.inCar !== car) { player.inCar = null; stapInAuto(car); } },
+  /*
+   Stap 115: na het einde met Mark naar de wedstrijd bij VV Sneek (js/wedstrijd.js). Het verhaal
+   zet de klok in het zwart op een uur dat er gespeeld wordt; dan moet de wedstrijd er ook zijn,
+   ook als hij vandaag al geweest is (`nieuweDag`) of gestaakt werd. Dat gebeurt in het zwart,
+   dus er verschijnt niemand waar je bij staat.
+  */
+  wedstrijd: () => wedstrijd,
+  wedstrijdKlaar: (nieuweDag = false) => {
+    if (!wedstrijd) return false;
+    if (nieuweDag) wedDag++;
+    if (!wedstrijd.aanwezig || wedstrijd.gestaakt) wedstrijd.begin();
+    wedstrijd.st.dag = wedDag;
+    wedUur = sfeerNu() ? sfeerNu().uur : wedUur;
+    wedWas = { aanwezig: true, gestaakt: false };
+    return true;
+  },
+  uurNu: () => (sfeerNu() ? sfeerNu().uur : 12),
 }) || {
   update() {}, toets() { return false; }, doelen() { return []; }, raak() { return false; },
   bewaar() { return null; }, herstel() {}, meldAan() {}, schotGehoord() {}, dood() {}, mislukt() {},
