@@ -48,7 +48,8 @@ await page.evaluate(async () => {
   g.hud.show = (t, d) => { window.__toon.push(t); return show(t, d); };
   window.__stap = (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) { g.player.health = 100; v.update(dt); } };
   window.__opslag = () => localStorage.getItem('tinga.spel.v1');
-  window.__zie = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && getComputedStyle(e).display !== 'none'; };
+  // (checkVisibility: ook een knop in een verborgen menu telt als weg)
+  window.__zie = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && e.checkVisibility(); };
   window.__menuNu = () => window.__menu.toonMenu({ heeftOpslag: !!window.__opsl.opslagInfo(), opslag: window.__opsl.opslagInfo(), staat: window.__opsl.opslagStaat() });
 });
 const klik = (id) => page.evaluate((id) => document.getElementById(id).click(), id);
