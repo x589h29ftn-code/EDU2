@@ -1626,6 +1626,7 @@ export function initVerhaal(ctx) {
   let bxAuto = null;             // de Citroën BX zelf
   let bxPlek = null;             // het parkeervak bij de Poiesz in IJlst
   let bxGestolen = false;        // of de ster voor de diefstal al gegeven is
+  let bxStart = null;            // waar hij bij VV Sneek stond (stap 120: opnieuw beginnen zet hem daar terug)
   let doodT = 0;                 // aftellen na het neergaan
   let keuzeOpen = false;         // staat de keuze na het neergaan in beeld?
   let vorigeMissie = null;       // om te zien wanneer een missie net klaar is
@@ -1923,6 +1924,8 @@ export function initVerhaal(ctx) {
     ruimRonaldOp();
     ruimUitzendingOp();
     punt = null;                      // een nieuwe missie, dus geen oud herstelpunt
+    // wat na missie 6 uit het zicht mocht verdwijnen, verdwijnt niet in een volgende missie (stap 120)
+    weg.mark = false; weg.bx = false;
     missie = naam;
     fase = 'wacht';
     player.health = 100;              // na elke missie is je leven weer vol
@@ -1969,6 +1972,8 @@ export function initVerhaal(ctx) {
   function beginBX() {
     fase = 'wacht';
     bxGestolen = false;
+    // een BX van een vorige poging (of van na missie 6): heel, groen en terug op zijn plek bij VV Sneek
+    if (bxAuto) { bxHeel(bxStart); if (bxAuto.kleur !== BX_GROEN) vehicles.verf(bxAuto, BX_GROEN); }
     const pand = pandVan(BX_HUIS);
     const bij = pand ? voorPunt(pand, 7.5) : { x: player.pos.x + 6, z: player.pos.z };
     const [mx, mz] = resolveCollisions(bij.x, bij.z, 0.4);
@@ -1991,6 +1996,9 @@ export function initVerhaal(ctx) {
     if (f === 'wacht' || f === 'briefing' || !bxAuto) { beginBX(); return; }
     spanning = true; spanningUit = 0;
     markZichtbaar(false);
+    // uitgebrand: een nieuwe poging met dezelfde BX, heel en groen bij VV Sneek (stap 120)
+    if (bxAuto.wrak) { bxHeel(bxStart); vehicles.verf(bxAuto, BX_GROEN); bxGestolen = false; f = 'ophalen'; }
+    else if (!vehicles.isZichtbaar(bxAuto)) bxHeel();
     if (f === 'ophalen') {
       fase = 'ophalen';
       zetOpdracht('haal de groene Citroën BX op bij VV Sneek');
@@ -2056,7 +2064,7 @@ export function initVerhaal(ctx) {
   function geparkeerdBij(x, z, straal) {
     let beste = null;
     for (const c of vehicles.cars) {
-      if (c === bxAuto || !c.inst || c.zichtbaar === false) continue;
+      if (c === bxAuto || !c.inst || c.zichtbaar === false || c.wrak) continue;
       const d = Math.hypot(c.x - x, c.z - z);
       if (d > straal) continue;
       if (!beste || d < beste.d) beste = { c, d };
@@ -2076,17 +2084,43 @@ export function initVerhaal(ctx) {
     const veld = sportveldVan(BX_VELD);
     const staander = veld ? geparkeerdBij(veld.x, veld.z, 260) : null;
     if (staander) {
-      staander.soort = 'bx';
-      vehicles.verf(staander, BX_GROEN);
-      vehicles.maakBestuurbaar(staander);
-      bxAuto = staander;
+      maakBX(staander);
       return bxAuto;
     }
     // geen geparkeerde auto in de buurt (een kale kaart): dan toch maar een nieuwe
     const vak = veld ? parkeerBij(veld.x, veld.z, 260) : null;
     const plek = vak || { x: player.pos.x + 8, z: player.pos.z + 8, yaw: 0 };
     bxAuto = vehicles.voegToe({ x: plek.x, z: plek.z, yaw: plek.yaw, soort: 'bx', kleur: BX_GROEN });
+    bxStart = { x: bxAuto.x, z: bxAuto.z, yaw: bxAuto.yaw };
     return bxAuto;
+  }
+  // een geparkeerde auto tot de BX maken (ook na het laden in een nieuwe sessie: dezelfde auto, stap 120)
+  function maakBX(c) {
+    c.soort = 'bx';
+    vehicles.verf(c, BX_GROEN);
+    vehicles.maakBestuurbaar(c);
+    bxAuto = c;
+    bxStart = { x: c.x, z: c.z, yaw: c.yaw };
+    return c;
+  }
+  /*
+   De BX weer heel, zichtbaar en bestuurbaar, eventueel op een plek (stap 120). Na missie 6 is hij
+   onzichtbaar (`ruimOpUitZicht`), en na een knal een wrak; wie dan opnieuw begint of een oudere opslag
+   laadt, kreeg die onzichtbare of uitgebrande auto terug en kon niet verder.
+  */
+  function bxHeel(plek = null) {
+    const c = bxAuto;
+    if (!c) return null;
+    if (c.wrak) {
+      c.wrak = false; c.wrakT = 0;
+      if (c.lak) { for (const [o, m] of c.lak) o.material = m; c.lak = null; }
+    }
+    c.hp = 100; c.speed = 0; c.driveable = true;
+    if (plek) { c.x = plek.x; c.z = plek.z; c.yaw = plek.yaw; c.rij = plek.yaw; }
+    if (c.mesh) { c.mesh.visible = true; c.mesh.position.set(c.x, 0, c.z); c.mesh.rotation.y = c.yaw; }
+    else c.zichtbaar = true;
+    weg.bx = false;
+    return c;
   }
 
   // Waar hij afgeleverd moet worden: het vak naast de Poiesz in IJlst.
@@ -2336,6 +2370,12 @@ export function initVerhaal(ctx) {
   function dood() {
     if (doodT > 0 || keuzeOpen) return;
     doodT = 2.6;
+    /*
+     Een gesprek gaat dicht (stap 120). Het bleef na het opnieuw beginnen in beeld staan, hield elke
+     `balk.hidden` tegen (en dus opslaan), en zijn vervolg kon nog lopen: neergaan tijdens het gesprek na
+     de bom (missie 7) liet daarna de bende aanrijden terwijl je weer voor de Poiesz stond.
+    */
+    gesprek = null; sluitBalk();
     spanning = false; spanningUit = 0;
     hud.melding('NEERGEGAAN', 'Kies hoe je verder gaat.', 3);
     player.active = false;
@@ -2437,6 +2477,19 @@ export function initVerhaal(ctx) {
     if (missie === 'inval') { hervatInval(punt && punt.missie === 'inval' ? punt.fase : 'telefoon'); return; }
     if (missie === 'ronald') { hervatRonald(punt && punt.missie === 'ronald' ? punt.fase : 'telefoon'); return; }
     if (missie === 'uitzending') { hervatUitzending(punt && punt.missie === 'uitzending' ? punt.fase : 'telefoon'); return; }
+    /*
+     Missie 6 had hier geen tak (stap 120): je stond na het neergaan voor Molenkrite 15 met dezelfde
+     opdracht, en een uitgebrande BX bleef een minuut lang een wrak. Nu sta je naast de BX; is die
+     uitgebrand, dan begin je bij VV Sneek met een hele, groene.
+    */
+    if (missie === 'bx') {
+      player.inCar = null;
+      hervatBX(fase);
+      const bij = bxAuto && fase !== 'wacht' ? { x: bxAuto.x + 3, z: bxAuto.z + 3 } : verhaalStart();
+      const [px, pz] = resolveCollisions(bij.x, bij.z, 0.4);
+      player.pos.set(px, 0, pz); player.applyCamera();
+      return;
+    }
     if (missie === 'bewaking' && poort) {
       if (bewaking) bewaking.reset();
       const buiten = poort.punt(-14, 3);
@@ -3108,6 +3161,7 @@ export function initVerhaal(ctx) {
       zeg(SNIP_KLAAR, () => {
         verdien(SNIP_BELONING);
         missie = 'klaar'; fase = 'klaar';
+        zetOpdracht('');               // (de opdracht bleef staan tot het volgende telefoontje, stap 120)
         spanningUit = 6;
         ruimSniperOp();
         hud.melding('MISSIE VOLTOOID – DE DEAL BIJ DE MOLEN',
@@ -3176,7 +3230,17 @@ export function initVerhaal(ctx) {
     aanrijders = [];
     gevallen.clear();
     mark.bergWapen();
-    for (const a of schutterAutos) if (a && a.mesh) { a.mesh.visible = false; a.zichtbaar = false; a.driveable = false; }
+    /*
+     De drie auto's van de bende echt weg, niet alleen verborgen (stap 120): elke nieuwe poging zette er
+     drie bij in `vehicles.cars`, en die liepen allemaal mee in elke lus over de auto's. Zit je er zelf
+     in, dan blijft die ene staan.
+    */
+    for (const a of schutterAutos) {
+      if (!a) continue;
+      if (player.inCar === a) { a.driveable = true; continue; }
+      if (vehicles.verwijder) vehicles.verwijder(a);
+      else if (a.mesh) { a.mesh.visible = false; a.zichtbaar = false; a.driveable = false; }
+    }
     schutterAutos = [];
     if (bomMerk) bomMerk.toon(false);
     if (bomPakket) bomPakket.toon(false);
@@ -3915,16 +3979,40 @@ export function initVerhaal(ctx) {
     }
     // vanaf hier ben je bijgepraat: terug naar de kade en opnieuw uitvaren
     player.inCar = null;
+    if (johan) johan.groep.visible = false;
+    /*
+     De sloep (stap 120). Stond je aan het roer, dan zette js/boot.js je elk beeld terug aan boord en
+     hielp het verplaatsen van de speler niet; stond je op de kant, dan lag de sloep nog bij de molen
+     terwijl jij aan de Geeuwkade stond. Eerst van boord (`herstel(null)` doet alleen dat).
+    */
+    const B = boten && boten();
+    const sloep = B ? B.ruw(0) : null;
+    if (B && B.inBoot) B.herstel(null);
+    /*
+     Terug, met de waterpolitie achter je aan. Dat herstelpunt zette je aan de kade, zonder boten: de
+     politie kwam nooit, `snipGezien` werd nooit waar en de missie was niet meer af te maken. Nu begin je
+     waar het terugvaren begon: in de sloep bij de molen, en de drie boten komen weer.
+    */
+    if (f === 'terug' || f === 'afronding' || f === 'slapen') {
+      const plek = zoekSnipPlek();
+      if (B && sloep && plek && B.verplaats(sloep, plek.boot.x, plek.boot.z) && B.stapIn(sloep)) {
+        player.pos.set(sloep.x, 0, sloep.z);
+      } else {
+        if (B) B.naarLigplaats(0);
+        const [kx, kz] = resolveCollisions(kade.x, kade.z, 0.4);
+        player.pos.set(kx, 0, kz);
+      }
+      player.applyCamera();
+      fase = 'terug'; zetPunt(fase);
+      zetOpdracht('terug naar de kade aan de Geeuw');
+      zetNavDoel(kade.x, kade.z, 'Geeuwkade', 'M');
+      maakWaterpolitie();
+      return;
+    }
+    if (B) B.naarLigplaats(0);
     const [kx, kz] = resolveCollisions(kade.x, kade.z, 0.4);
     player.pos.set(kx, 0, kz);
     player.applyCamera();
-    if (johan) johan.groep.visible = false;
-    if (f === 'terug' || f === 'afronding' || f === 'slapen') {
-      fase = 'terug';
-      zetOpdracht('terug naar de kade aan de Geeuw');
-      zetNavDoel(kade.x, kade.z, 'Geeuwkade', 'M');
-      return;
-    }
     fase = 'varen';
     const plek = zoekSnipPlek();
     zetOpdracht('vaar met de sloep naar de molen in IJlst en blijf in de gele cirkel');
@@ -4048,10 +4136,12 @@ export function initVerhaal(ctx) {
     huisGekozen = w.naam;
     huisAanbod = false;
     praatEl.hidden = true;
-    hud.zetNavigatie(null); navDoel = null;
+    // (tijdens een klus is de route van de klus, stap 120)
+    if (!klusjes.bezig) { hud.zetNavigatie(null); navDoel = null; }
     markZichtbaar(false);
     zeg(HUIS_KLAAR, () => {
       missie = 'klaar'; fase = 'klaar';
+      zetOpdracht('');               // (de opdracht bleef staan tot het volgende telefoontje, stap 120)
       spanningUit = 6;
       hud.melding('MISSIE VOLTOOID – EEN EIGEN STEK',
         `${w.naam} is van jou · ${euro(w.prijs)} sleutelgeld betaald`, 8);
@@ -4232,6 +4322,8 @@ export function initVerhaal(ctx) {
     // (en in missie 16 over de ruil op de brug)
     if (missie === 'inval' && fase === 'keuze') return invalKeuze(nr);
     if (!huisAanbod || huisGekozen) return false;
+    // tijdens een klus niet: 1, 2 of 3 verving dan het doel en de opdracht van de klus (stap 120)
+    if (klusjes.bezig) return false;
     const lijst = stekLijst();
     const w = lijst[nr - 1];
     if (!w) return false;
@@ -4245,7 +4337,10 @@ export function initVerhaal(ctx) {
 
   // Ga je neer tijdens het kiezen, dan sta je weer bij Mark voor de deur.
   function hervatHuis(f) {
+    // welke woningen je al gezien had blijft staan (stap 120: `beginHuis` gooide dat na het laden weg)
+    const gezien = [...huisGezien];
     beginHuis();
+    for (const n of gezien) huisGezien.add(n);
     if (f === 'telefoon') return;
     huisT = 0;
     if (f === 'naar_mark') {
@@ -9967,7 +10062,8 @@ export function initVerhaal(ctx) {
       // als hij op de bank zit (missie 7 en 11): dan houdt hij zijn houding
       // en kijkt hij naar de tv
       const opBank = ((missie === 'bom' || missie === 'politieauto') && fase === 'gesprek') || (missie === 'brug' && fase === 'plan')
-        || missie === 'schrift' || missie === 'inval' || missie === 'ronald' || missie === 'uitzending';   // (missie 13, 16, 17 en 18 werken Mark zelf bij)
+        || missie === 'schrift' || missie === 'inval' || missie === 'ronald' || missie === 'uitzending'   // (missie 13, 16, 17 en 18 werken Mark zelf bij)
+        || (missie === 'bom' && fase === 'vuurgevecht' && !!schutters && !schutters.alleNeer);   // (in het vuurgevecht doet `markVuurt` het, stap 120)
       if (mark.groep.visible && !opBank) { mark.kijkNaar(sp.x, sp.z, dt, 2); mark.update(dt, {}); }
       hinder.opWeg = false;
     }
@@ -10187,6 +10283,8 @@ export function initVerhaal(ctx) {
       missie: geldInleg || fase === 'geldKlaar' ? 'klaar' : missie, fase: geldInleg || fase === 'geldKlaar' ? 'klaar' : fase,
       mark: { x: mark.groep.position.x, z: mark.groep.position.z, yaw: mark.yaw, zichtbaar: mark.groep.visible },
       om: [...omgevallen],
+      // het herstelpunt voor na het neergaan (stap 120; tot dan begon een missie na het laden bij de telefoon)
+      punt: punt && punt.missie === missie ? { ...punt } : null,
       poortOpen,
       bewaking: bewaking ? bewaking.bewaar() : null,
       truck: truck ? { x: truck.x, z: truck.z, yaw: truck.yaw, driveable: truck.driveable } : null,
@@ -10196,7 +10294,10 @@ export function initVerhaal(ctx) {
       geld, buit,
       johan: johan ? { x: johan.groep.position.x, z: johan.groep.position.z, yaw: johan.yaw } : null,
       dief: dief ? dief.bewaar() : null,
-      bx: bxAuto ? { x: bxAuto.x, z: bxAuto.z, yaw: bxAuto.yaw, kleur: bxAuto.kleur, gestolen: bxGestolen } : null,
+      // (index: welke geparkeerde auto de BX is, zodat een nieuwe sessie dezelfde auto ombouwt; weg: na missie 6
+      //  weggereden; start: zijn plek bij VV Sneek; stap 120)
+      bx: bxAuto ? { x: bxAuto.x, z: bxAuto.z, yaw: bxAuto.yaw, kleur: bxAuto.kleur, gestolen: bxGestolen,
+        index: vehicles.cars.indexOf(bxAuto), weg: !vehicles.isZichtbaar(bxAuto), start: bxStart } : null,
       // missie 9: het huis dat je gekocht hebt blijft van jou, en een aanbod dat
       // nog openstaat ook
       huis: huisGekozen, aanbod: huisAanbod, gezien: [...huisGezien], gestald,
@@ -10226,6 +10327,14 @@ export function initVerhaal(ctx) {
     stopNaloop();
     gesprek = null; sluitBalk(); praatEl.hidden = true;
     doodT = 0;
+    /*
+     Wat een andere missie in de wereld zette eerst weg (stap 120). Laadde je midden in missie 7, 8 of 10
+     een opslag van een andere missie, dan bleven de bende (die bleef schieten), de deal en de waterpolitie
+     staan, en na het meekijken door de kijker kon je de hele volgende missie niet meer schieten
+     (`vuurSlot`). De missie die geladen wordt, bouwt het hieronder zelf weer op.
+    */
+    ruimBomOp(); ruimSniperOp(); ruimVeteraanOp();
+    weg.mark = false; weg.bx = false;
     missie = s.missie || 'molenkrite';
     // een geladen spel is geen net afgeronde missie: daar komt geen checkpoint bij
     // (het volgende beeld neemt de missie over zoals herstel hem achterlaat)
@@ -10327,12 +10436,25 @@ export function initVerhaal(ctx) {
     */
     if (s.bx) {
       bxGestolen = !!s.bx.gestolen;
-      if (!bxAuto) bxAuto = vehicles.voegToe({ x: s.bx.x, z: s.bx.z, yaw: s.bx.yaw, soort: 'bx', kleur: s.bx.kleur ?? BX_GROEN });
-      else {
-        bxAuto.x = s.bx.x; bxAuto.z = s.bx.z; bxAuto.yaw = s.bx.yaw; bxAuto.speed = 0;
-        bxAuto.mesh.position.set(s.bx.x, 0, s.bx.z); bxAuto.mesh.rotation.y = s.bx.yaw;
+      /*
+       In een nieuwe sessie is de BX er nog niet. Hij was een geparkeerde auto die tot BX werd omgebouwd, en
+       die staat dan weer gewoon op zijn vak: bouw díe om (stap 120). Een losse nieuwe auto ernaast gaf twee
+       auto's door elkaar, en js/opslag.js zette je dan in de gewone (hij zoekt de auto op zijn index).
+      */
+      if (!bxAuto) {
+        const oud = Number.isInteger(s.bx.index) && s.bx.index >= 0 ? vehicles.cars[s.bx.index] : null;
+        if (oud && oud.inst && !oud.wrak) maakBX(oud);
+        else { bxAuto = vehicles.voegToe({ x: s.bx.x, z: s.bx.z, yaw: s.bx.yaw, soort: 'bx', kleur: s.bx.kleur ?? BX_GROEN }); bxStart = { x: s.bx.x, z: s.bx.z, yaw: s.bx.yaw }; }
       }
+      if (s.bx.start) bxStart = s.bx.start;
+      // heel of niet, en weg of niet, zoals bij het opslaan
+      bxHeel({ x: s.bx.x, z: s.bx.z, yaw: s.bx.yaw });
       if (bxAuto.kleur !== (s.bx.kleur ?? BX_GROEN)) vehicles.verf(bxAuto, s.bx.kleur ?? BX_GROEN);
+      if (s.bx.weg) {
+        if (bxAuto.mesh) bxAuto.mesh.visible = false;
+        bxAuto.zichtbaar = false; bxAuto.driveable = false;
+      }
+      // (een uitgebrande BX komt heel terug: een knal bij het laden zou je raken)
     }
     if (s.truck) {
       if (!truck) truck = vehicles.voegToe({ x: s.truck.x, z: s.truck.z, yaw: s.truck.yaw, soort: 'truck', kleur: 0xdedede, driveable: !!s.truck.driveable });
@@ -10458,8 +10580,11 @@ export function initVerhaal(ctx) {
     // en na Wie is R.: Mark belt voor de uitzending
     else if (missie === 'klaar' && ronaldKlaar && !uitzendingKlaar) { naMissieNaam = 'uitzending'; naMissieT = 6; }
     // en wat na een weggevallen gesprek moest komen (zie boven), of missie 7 opnieuw
-    if (doorNaar === 'bom') beginBom();
+    if (doorNaar === 'bom') { beginBom(); spanning = false; }   // (bij de M: nog geen muziek, stap 120)
     else if (doorNaar) startMissie(doorNaar);
+    // het herstelpunt uit de opslag, of anders de fase waar je nu bent (stap 120: een oud punt bleef staan)
+    if (!doorNaar) punt = s.punt && s.punt.missie === missie ? { ...s.punt } : null;
+    if (!punt && missie !== 'klaar' && fase !== 'klaar') zetPunt(fase);
     hud.zetLeven(player.health);
   }
 
@@ -10501,7 +10626,8 @@ export function initVerhaal(ctx) {
       if (geldKiezen) return GELDRACE_INLEG.map(euro);
       if (missie === 'race' && fase === 'keuze') return ['nog een keer, dubbel of niks', `${euro(raceSchuld)} betalen`];
       if (missie === 'inval' && fase === 'keuze') return ['ruilen', 'hinderlaag'];
-      if (missie === 'huis' && huisAanbod && !huisGekozen) return stekLijst().map(w => `${w.naam} · ${euro(w.prijs)}`);
+      // (ook na missie 9 zolang het aanbod openstaat, net als de toetsen; niet tijdens een klus; stap 120)
+      if (huisAanbod && !huisGekozen && !klusjes.bezig) return stekLijst().map(w => `${w.naam} · ${euro(w.prijs)}`);
       return null;
     },
     /*
@@ -10736,5 +10862,11 @@ export function initVerhaal(ctx) {
     get rijPraat() { return { i: rijPraatI, t: rijPraatT, zinnen: RIJDEN_ONDERWEG.length }; },
     get aflever() { return { alarm: afleverAlarm, wacht: afleverWacht, plek: boerderijPlek(), beloning: AFLEVER_BELONING }; },
     get vluchtauto() { return vluchtauto; },
+    // (voor tools/nalooptest.mjs, stap 120)
+    __bx: { zetNeer: () => zetBXNeer(), get start() { return bxStart; } },
+    __herstartMissie: () => herstartMissie(),
+    get spanning() { return spanning; },
+    get punt() { return punt ? { ...punt } : null; },
+    get huisGezien() { return [...huisGezien]; },
   };
 }

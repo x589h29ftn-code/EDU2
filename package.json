@@ -202,6 +202,7 @@
     "opslagtest": "node tools/opslagtest.mjs",
     "opzettest": "node tools/opzettest.mjs",
     "beginmissietest": "node tools/beginmissietest.mjs",
+    "nalooptest": "node tools/nalooptest.mjs",
     "beginmissieshots": "node tools/beginmissieshots.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",

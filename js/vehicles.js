@@ -1404,6 +1404,19 @@ export class Vehicles {
     }
   }
 
+  /*
+   Een auto die het verhaal neerzette weer weghalen (stap 120: de auto's van de bende in missie 7). Alleen
+   een losse auto, geen geparkeerde instantie; die horen bij hun vak.
+  */
+  verwijder(car) {
+    if (!car || car.inst) return false;
+    const i = this.cars.indexOf(car);
+    if (i < 0) return false;
+    this.cars.splice(i, 1);
+    if (car.mesh) this.scene.remove(car.mesh);
+    return true;
+  }
+
   // Een uitgebrand wrak weer een gewone auto maken, op zijn eigen parkeerplek.
   herstelWrak(car) {
     car.wrak = false; car.wrakT = 0;

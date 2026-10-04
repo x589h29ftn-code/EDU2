@@ -1538,7 +1538,8 @@ window.addEventListener('keydown', e => {
   if (!boerderij.toets) return;
   if (e.code === 'KeyF') { boerderij.toets('F'); return; }
   const cijfer = /^Digit([1-9])$/.exec(e.code) || /^Numpad([1-9])$/.exec(e.code);
-  if (cijfer) boerderij.toets(cijfer[1]);
+  // kocht je iets aan de toonbank, dan is die toets op: niet ook een huis kiezen (missie 9, stap 120)
+  if (cijfer && boerderij.toets(cijfer[1])) e.stopImmediatePropagation();
 });
 
 /*

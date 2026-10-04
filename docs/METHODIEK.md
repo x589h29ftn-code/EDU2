@@ -7349,6 +7349,50 @@ klikt het gesprek door.
 **Proeven**: `beginmissietest` (nieuw) en `introtest` groen; `verhaaltest` op twee oude controles na;
 foto's met `beginmissieshots` (nieuw).
 
+**Missie 6 tot 10 nagelopen (stap 120).** Gevraagd op 4 okt 2026: "check nu de volgende 5 missies op
+foutjes, bugs ed". Twee helpers lazen de code van missie 6–7 en 8–10; elke bevinding is in de code nagelopen
+voordat er iets veranderde, en de bestaande proeven (`bxtest`, `bomtest`, `dealtest`, `huistest`,
+`veteraantest`) draaiden ernaast.
+
+**Wat er mis was, en wat het nu doet**
+- *Missie 8 was na een herstart in 'terug' niet meer af te maken.* `hervatSniper` zette je aan de kade zonder
+  politieboten, en de missie wacht tot die er zijn geweest (`snipGezien`). Nu begin je in de sloep bij de molen
+  en komen de drie boten weer. In de andere fases ging de speler naar de kade terwijl js/boot.js je elk beeld
+  terug aan boord zette, of lag de sloep nog bij de molen: eerst van boord (`herstel(null)` in js/boot.js),
+  dan de sloep naar zijn ligplaats (`naarLigplaats(0)`).
+- *Missie 6 had geen tak in `herstartMissie`*: na het neergaan stond je voor Molenkrite 15 met dezelfde
+  opdracht en zonder muziek, en een uitgebrande BX bleef een minuut een wrak. Nu sta je naast de BX; is hij
+  uitgebrand, dan is hij heel, groen en terug bij VV Sneek (`bxHeel`, `bxStart`).
+- *De BX van een vorige poging kwam onzichtbaar terug.* Na missie 6 verdwijnt hij uit het zicht; wie daarna
+  een opslag van missie 6 laadde of opnieuw begon, kreeg die onzichtbare, onbestuurbare auto. `beginBX`,
+  `hervatBX` en `herstel` maken hem nu heel en zichtbaar (of juist weg, als hij in de opslag weg was).
+- *Missie 6 laden in een nieuwe sessie* zette een tweede BX naast de geparkeerde auto die de BX was, en
+  js/opslag.js zette je in die gewone auto (hij zoekt op index). De opslag kent nu de index van de BX
+  (`bx.index`), en `herstel` bouwt díe auto om (`maakBX`).
+- *Laden liet een andere missie in de wereld staan*: de bende van missie 7 of 10 (die bleef schieten), de deal
+  en de waterpolitie van missie 8, en na het meekijken door de kijker het schietslot (`vuurSlot`) voor de hele
+  volgende missie. `herstel` ruimt dat nu eerst op (`ruimBomOp`, `ruimSniperOp`, `ruimVeteraanOp`).
+- *Het herstelpunt (`punt`) zat niet in de opslag en bleef staan na laden*: na het laden begon een missie bij
+  het neergaan weer bij de telefoon, of juist bij een oud punt verderop. Het staat nu in de opslag; zonder
+  punt is het de fase waarin je laadde.
+- *Een gesprek bleef open na het neergaan*, en zijn vervolg kon nog lopen (neergaan tijdens het gesprek na de
+  bom liet de bende alsnog aanrijden). `dood` sluit het gesprek.
+- *Missie 7*: laden bij de M speelde spanningsmuziek; elke poging liet drie verborgen auto's achter in
+  `vehicles.cars` (nu `vehicles.verwijder`); Mark kreeg in het vuurgevecht twee updates per beeld.
+- *Missie 6 na de missie*: de vlaggen "weg zodra je niet kijkt" (`weg.mark`, `weg.bx`) liepen door in missie 7,
+  waar Mark dan midden in een scène verdween. `startMissie` en `herstel` zetten ze uit.
+- *Missie 8 en 9*: de opdracht bleef na MISSIE VOLTOOID staan tot het volgende telefoontje.
+- *Missie 9*: de gezien-lijst verdween na het laden (`hervatHuis` → `beginHuis`); 1, 2 of 3 koos tijdens een
+  klus een huis en verving de klus; een cijfer aan de toonbank van Tinga State kocht iets én koos een huis
+  (js/main.js stopt de toets nu als de toonbank hem gebruikt); na de missie, met het aanbod nog open, kreeg
+  een aanraakscherm geen knoppen; kopen tijdens een klus haalde de route van de klus weg.
+- *De BX* kon een uitgebrande geparkeerde auto worden (`geparkeerdBij` slaat wrakken nu over).
+
+**Niet veranderd**: de gevonden punten bij missie 10 zelf kwamen allemaal neer op het opruimen bij laden en het
+herstelpunt (hierboven). `dealtest`, `huistest` en `veteraantest` draaiden op de nieuwe code.
+
+**Proeven**: `nalooptest` (nieuw); `bxtest`, `bomtest`, `opslagtest` en `checkpointtest` opnieuw.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
