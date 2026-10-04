@@ -7515,7 +7515,9 @@ draaiden eerst op de oude code (alle vijf groen); twee helpers lazen 16–17 en 
   het aanbod van missie 9 nog open stonden de drie knoppen ook midden in elke andere missie in beeld. Nu alleen
   in missie 9 en in vrij spelen.
 
-**Proeven**: `zespuntentest` (nieuw); PROEVEN_HIER. **Foto's**: `zespuntenshots` (drie: het mes, de GTI, het menu). Een foto van een bewaker met het nieuwe geweer
+**Proeven**: `zespuntentest` (nieuw, groen); `wapentest` (die na de lege klik nu het mes pakt: de proef zet daarna
+het pistool terug en controleert het mes), `schottest`, `garagetest`, `legendatest` (met de nieuwe legenda-foto),
+`vloeiendtest` (0 nieuwe programma's), `opzettest`, `cliptest` en `nalooptest` opnieuw. **Foto's**: `zespuntenshots` (drie: het mes, de GTI, het menu). Een foto van een bewaker met het nieuwe geweer
 lukte niet: de hoofdlus zette de camera elke keer terug achter het poppetje van de speler; de wapens zijn in de
 proef gemeten (vorm, lengte, gedeeld).
 
