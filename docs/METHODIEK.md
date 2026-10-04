@@ -7503,8 +7503,10 @@ draaiden eerst op de oude code (alle vijf groen); twee helpers lazen 16–17 en 
   uit js/wapen.js geëxporteerd), ronde lopen, een houten kolf, glimmend staal. Eén geometrie per soort en per
   materiaal, gedeeld door iedereen die hem vasthoudt; de oude bouwde per persoon vijf losse blokjes.
 - *Oversteken* (open punt 21): `pickSegment` in js/npc.js zette `p.side *= -1`, en dan sprong een voetganger
-  in één beeld tien tot twintig meter opzij. Nu begint hij daar een oversteek (`steek`), alleen over een rijweg
-  en als `magOversteken` het toelaat.
+  in één beeld naar de overkant. Nu begint hij daar een oversteek (`steek`), alleen over een rijweg en als
+  `magOversteken` het toelaat; langs een voetpad blijft hij aan zijn kant. Gemeten: in de kaart van nu lopen de
+  voetgangers over de assen van voetpaden (0,3 m opzij), dus de sprong was daar 0,6 m; de tien tot twintig
+  meter uit het open punt hoorde bij de straten met stoep van de oude kaart.
 - *Missie opnieuw* (js/verhaal.js `herspeelbaar`, `herspeel`, `herspeelNaam`; js/menu.js): na het einde een
   knop in het pauzemenu met missie 2–18 zonder 9. Wil het verhaal na de herspeelde missie de volgende beginnen
   (missie 1–4 lopen direct in elkaar door, de rest via het telefoontje of het zwart), dan vangt `startMissie`

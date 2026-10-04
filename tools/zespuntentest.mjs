@@ -172,9 +172,12 @@ kop('voetgangers steken over');
 const steek = await page.evaluate(() => {
   const g = window.__game, N = g.npcs;
   // iemand aan het eind van een stuk stoep langs een rijweg, steeds opnieuw
+  // (in de kaart van nu lopen voetgangers over de assen van voetpaden; een rijweg met stoep is er zelden)
   const p = N.people.find(q => q.alive && q.seg);
-  const seg0 = (N.segs || []).find(q => q.drive && N.buren(q.b, q).some(c => c.drive));
-  if (!p || !seg0) return { geen: !p ? 'persoon' : 'rijweg' };
+  const seg0 = (N.segs || []).find(q => q.drive && N.buren(q.b, q).some(c => c.drive))
+    || (N.segs || []).find(q => N.buren(q.b, q).length > 1);
+  if (!p || !seg0) return { geen: !p ? 'persoon' : 'wegvak' };
+  const rijweg = !!seg0.drive;
   const magWas = N.magOversteken;
   N.magOversteken = null;               // (geen verkeer: dan mag hij altijd)
   let sprong = 0, over = 0, n = 0;
@@ -188,10 +191,10 @@ const steek = await page.evaluate(() => {
   }
   N.magOversteken = magWas;
   p.steek = 0;
-  return { sprong, over, n };
+  return { sprong, over, n, rijweg };
 });
 ok(steek && steek.sprong === 0, 'nooit meer in één beeld naar de overkant', JSON.stringify(steek));
-ok(steek && steek.over > 20, 'maar wel oversteken, over de rijweg', JSON.stringify(steek));
+ok(steek && (steek.rijweg ? steek.over > 20 : steek.over === 0), 'oversteken alleen over een rijweg', JSON.stringify(steek));
 
 // ------------------------------------------------------------------ 6. missie opnieuw
 kop('missie opnieuw na het einde');
