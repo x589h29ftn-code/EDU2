@@ -7478,7 +7478,8 @@ export function initVerhaal(ctx) {
   let invalT = 0, invalKlok = 0, invalMeldT = 0, invalMeldI = 0, invalNaT = 0;
   let invalHeeft = { schrift: false, fotos: false };
   let invalBinnenGezegd = false;
-  let invalGolf = null;            // de Golf van Mark voor de deur, als je zelf geen auto hebt
+  let invalGolf = null;
+  let invalBrugAuto = null;        // de auto waarmee je op het dek stond (stap 122)            // de Golf van Mark voor de deur, als je zelf geen auto hebt
   let invalRoute = null;           // { pts, lengte }: de Molenkrite in, naar de voordeur
   let invalKonvooi = [];           // { auto, lijn, a, eind, v, stil, politie }
   let invalFilm = null;            // { soort, t, vast }
@@ -7547,6 +7548,13 @@ export function initVerhaal(ctx) {
     if (a.mesh) { a.mesh.visible = false; a.mesh.position.set(1e5, 0, 1e5); }
     a.x = a.z = 1e5;
   }
+  // de auto's van de inval echt weg (stap 122: elke poging zette er drie bij); die van Bouwman blijft bestaan
+  function ruimKonvooiOp() {
+    for (const k of invalKonvooi) {
+      if (k.auto === player.inCar) continue;
+      if (k.auto === raceBouwmanAuto || !vehicles.verwijder(k.auto)) verstopAuto(k.auto);
+    }
+  }
   function ruimInvalOp() {
     for (const m of invalMerken) m.toon(false);
     invalMerkPlek[0] = invalMerkPlek[1] = null;
@@ -7554,7 +7562,7 @@ export function initVerhaal(ctx) {
     invalTas.toon(false);
     invalJohan.groep.visible = false;
     if (invalBalk) invalBalk.hidden = true;
-    for (const k of invalKonvooi) verstopAuto(k.auto);
+    ruimKonvooiOp();
     invalKonvooi = [];
     if (invalFilm) { invalFilm = null; toonFilmbalken(0); }
     if (invalMannen && schutters === invalMannen) { schutters.verwijder(); schutters = null; }
@@ -7635,7 +7643,7 @@ export function initVerhaal(ctx) {
     const eigen = vehicles.nearestDriveable ? vehicles.nearestDriveable(sp.x, sp.z) : null;
     if (!eigen || Math.hypot(eigen.x - sp.x, eigen.z - sp.z) > 35) {
       const v = plekVoorDeDeur();
-      if (!invalGolf || invalGolf.wrak) invalGolf = vehicles.voegToe({ x: v.x, z: v.z, yaw: v.yaw, soort: 'hatch', kleur: 0x6b7178 });
+      if (!invalGolf || invalGolf.wrak) invalGolf = vervangAuto(invalGolf, { x: v.x, z: v.z, yaw: v.yaw, soort: 'hatch', kleur: 0x6b7178 });
       const g = invalGolf;
       g.x = v.x; g.z = v.z; g.yaw = v.yaw; g.rij = v.yaw; g.speed = 0; g.driveable = true; g.zichtbaar = true;
       if (g.mesh) { g.mesh.visible = true; g.mesh.position.set(v.x, g.mesh.position.y, v.z); g.mesh.rotation.y = v.yaw; }
@@ -7651,7 +7659,7 @@ export function initVerhaal(ctx) {
     const voor = plekVoorDeDeur();
     const route = invalRouteVan(voor);
     invalRoute = route;
-    for (const k of invalKonvooi) verstopAuto(k.auto);
+    ruimKonvooiOp();
     invalKonvooi = [];
     if (route) {
       const L = route.lengte;
@@ -7753,9 +7761,11 @@ export function initVerhaal(ctx) {
     markZichtbaar(false);            // hij ligt op zijn dak (of zit thuis)
     player.wapenUit = true;          // je komt aan met je wapen weg: trekken is een keus
     // jouw auto aan de Tinga-kant van het dek
-    let auto = player.inCar || invalGolf;
+    // (stap 122: na een mislukte ruil, te voet, kwam de Golf op de plek van je eigen auto die er nog stond)
+    let auto = player.inCar || (invalBrugAuto && !invalBrugAuto.wrak && vehicles.cars.includes(invalBrugAuto) ? invalBrugAuto : null) || invalGolf;
     if (player.inCar) { player.inCar.speed = 0; player.inCar = null; if (eersteP) eersteP(); geluid.motorUit(); }
-    if (!auto || auto.wrak) auto = invalGolf = vehicles.voegToe({ x: 0, z: 0, yaw: 0, soort: 'hatch', kleur: 0x6b7178 });
+    if (!auto || auto.wrak) auto = invalGolf = vervangAuto(auto && auto === invalGolf ? auto : null, { x: 0, z: 0, yaw: 0, soort: 'hatch', kleur: 0x6b7178 });
+    invalBrugAuto = auto;
     const q = invalP(INVAL_S.erikAuto[0], INVAL_S.erikAuto[1]);
     auto.x = q.x; auto.z = q.z; auto.yaw = brug.noord; auto.rij = brug.noord; auto.speed = 0;
     auto.driveable = true; auto.zichtbaar = true;
@@ -8329,6 +8339,7 @@ export function initVerhaal(ctx) {
   let ronaldSchrift = false;       // het schrift van De Veteraan lag in zijn kluis (na de ruil)
   let ronaldT = 0, ronaldNaT = 0, ronaldKlokWas = null;
   let erfArgwaan = 0, erfAlarm = false, erfKraak = 0, erfHeeftWorst = false, erfBuit = false;
+  let erfWorstGehad = false;       // ooit uit de koelkast gepakt: na neergaan of laden krijg je hem terug (stap 122)
   let erfBlafGezegd = false, erfKraakGezegd = false, erfSterren = false, erfNavT = 0;
   let ronaldFilm = null;           // { soort, t, vast, cam, uitT }
   let ronaldAuto = null, ronaldGolf = null;
@@ -8466,7 +8477,7 @@ export function initVerhaal(ctx) {
     if (erf) { erf.toon(false); erf.reset(); }
     erfHint(null);
     if (invalBalk) invalBalk.hidden = true;
-    for (const k of erfRit) if (k.auto !== ronaldAuto) verstopAuto(k.auto);
+    for (const k of erfRit) if (k.auto !== ronaldAuto && k.auto !== player.inCar && !vehicles.verwijder(k.auto)) verstopAuto(k.auto);
     erfRit = []; erfWagens = [];
     verstopAuto(ronaldAuto);
     if (erfMannen && schutters === erfMannen) { schutters.verwijder(); schutters = null; }
@@ -8483,7 +8494,7 @@ export function initVerhaal(ctx) {
   function beginRonald() {
     fase = 'telefoon';
     ruimRonaldOp();
-    ronaldPraatte = false; ronaldWeg = false; ronaldSchrift = false; erfHeeftWorst = false;
+    ronaldPraatte = false; ronaldWeg = false; ronaldSchrift = false; erfHeeftWorst = false; erfWorstGehad = false;
     ronaldT = 1.2; ronaldNaT = 0;
     markZichtbaar(false);
     zetOpdracht('neem de telefoon op');
@@ -8533,7 +8544,7 @@ export function initVerhaal(ctx) {
     erfArgwaan = 0; erfAlarm = false; erfKraak = 0; erfBuit = false; erfBlafGezegd = false; erfKraakGezegd = false; erfSterren = false;
     // de Golf van Mark aan de weg, en jij ernaast op de stoep
     const g = golfPlek();
-    if (!ronaldGolf || ronaldGolf.wrak) ronaldGolf = vehicles.voegToe({ x: g.x, z: g.z, yaw: g.yaw, soort: 'hatch', kleur: 0x6b7178 });
+    if (!ronaldGolf || ronaldGolf.wrak) ronaldGolf = vervangAuto(ronaldGolf, { x: g.x, z: g.z, yaw: g.yaw, soort: 'hatch', kleur: 0x6b7178 });
     const a = ronaldGolf;
     a.x = g.x; a.z = g.z; a.yaw = g.yaw; a.rij = g.yaw; a.speed = 0; a.driveable = true; a.zichtbaar = true;
     if (a.mesh) { a.mesh.visible = true; a.mesh.position.set(g.x, 0, g.z); a.mesh.rotation.y = g.yaw; }
@@ -8571,7 +8582,7 @@ export function initVerhaal(ctx) {
     return Math.hypot(sp.x - erf.anker.x, sp.z - erf.anker.z) < ERF.gooi;
   }
   function kluisOpen() {
-    fase = 'buit'; erfBuit = true;
+    fase = 'buit'; erfBuit = true; zetPunt('naKluis');
     if (schriftKwijt) { ronaldSchrift = true; schriftKwijt = false; }
     erfHint(null);
     if (invalBalk) invalBalk.hidden = true;
@@ -8587,7 +8598,7 @@ export function initVerhaal(ctx) {
     erfRit = []; erfWagens = [];
     if (R) {
       const L = R.lengte, p0 = opLijn(R.pts, 0), yaw = Math.atan2(-p0.ux, -p0.uz);
-      if (!ronaldAuto || ronaldAuto.wrak) ronaldAuto = vehicles.voegToe({ x: p0.x, z: p0.z, yaw, soort: 'bx', kleur: 0x7a2a22, driveable: false });
+      if (!ronaldAuto || ronaldAuto.wrak) ronaldAuto = vervangAuto(ronaldAuto, { x: p0.x, z: p0.z, yaw, soort: 'bx', kleur: 0x7a2a22, driveable: false });
       const a = ronaldAuto;
       a.driveable = false; a.zichtbaar = true; if (a.mesh) a.mesh.visible = true;
       erfRit.push({ auto: a, lijn: R.pts, a: 0, eind: L, stil: false });
@@ -8803,7 +8814,7 @@ export function initVerhaal(ctx) {
   function ronaldToets() {
     if (missie !== 'ronald' || !balk.hidden) return false;
     if (ronaldBijKoelkast()) {
-      erfHeeftWorst = true;
+      erfHeeftWorst = true; erfWorstGehad = true;
       erfHint(null);
       hud.melding('Uit de koelkast', 'Een worst. Voor de hond van Ronald.', 3);
       zeg(RONALD_WORST, null, { auto: 1.6 });
@@ -8964,8 +8975,11 @@ export function initVerhaal(ctx) {
    sta je weer bij de Golf, met wat je hebt.
   */
   function hervatRonald(f) {
-    const praatte = ronaldPraatte, weg = ronaldWeg, schrift = ronaldSchrift, worst = erfHeeftWorst, buit = erfBuit;
+    // (na de kluis zet kluisOpen het punt 'naKluis'; tot stap 122 begon neergaan daarna het hele erf opnieuw)
+    const praatte = ronaldPraatte, weg = ronaldWeg, schrift = ronaldSchrift, worst = erfHeeftWorst || erfWorstGehad,
+      gehad = erfWorstGehad, buit = erfBuit || f === 'naKluis';
     beginRonald();
+    erfWorstGehad = gehad;
     if (f === 'telefoon') return;
     if (['naarWieken', 'plan', 'klaarmaken', 'nacht'].includes(f)) { naarDeWiekenRonald(); return; }
     erfHeeftWorst = worst; ronaldSchrift = schrift;
@@ -10407,7 +10421,7 @@ export function initVerhaal(ctx) {
       schaduwFotos: schaduwFotos.slice(), schaduwGezien,
       // missie 16: afgerond, welke keuze, de telefoon van Bouwman, en of hij het schrift heeft
       invalKlaar, invalKeus, invalTelefoon, schriftKwijt,
-      ronaldKlaar, ronaldPraatte, ronaldWeg, ronaldSchrift, erfHeeftWorst,
+      ronaldKlaar, ronaldPraatte, ronaldWeg, ronaldSchrift, erfHeeftWorst, erfWorstGehad,
       // missie 18: de laatste; daarna zendt Radio Tinga het fragment af en toe opnieuw uit
       uitzendingKlaar,
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
@@ -10424,6 +10438,7 @@ export function initVerhaal(ctx) {
     if (!s) return;
     // (de klok komt uit de opslag: een opruimer zet hem niet terug naar zijn stand van vóór een missie, stap 122)
     uitje.klokWas = null; uitzKlokWas = null;
+    posVoorHerstel = { x: player.pos.x, z: player.pos.z };
     stopNaloop();
     gesprek = null; sluitBalk(); praatEl.hidden = true;
     doodT = 0;
@@ -10452,6 +10467,11 @@ export function initVerhaal(ctx) {
      met Johan ervoor, en de politieauto's en de C4 op de Dúvelsrak.
     */
     ruimUitzendingOp();
+    // en missie 16 en 17 (stap 122): hun filmbeelden liepen over het geladen spel door en schreven aan het
+    // eind in de geladen missie (schutters weg, drie sterren, vier man op het erf); het erf, de auto's van de
+    // inval, Johan en de ruiten op het dek bleven staan. Hun klokje eerst leeg, net als dat van missie 15.
+    invalKlokWas = null; ronaldKlokWas = null;
+    ruimInvalOp(); ruimRonaldOp();
     // de voortgang op de brug (welke hekken en welke C4 al liggen); hervatBrug zet ze terug
     if (s.brugGezet && s.missie === 'brug') {
       (s.brugGezet.hekken || []).forEach((v, i) => { if (i < brugHekGezet.length) brugHekGezet[i] = !!v; });
@@ -10496,6 +10516,7 @@ export function initVerhaal(ctx) {
     ronaldWeg = !!s.ronaldWeg;
     ronaldSchrift = !!s.ronaldSchrift;
     erfHeeftWorst = !!s.erfHeeftWorst;
+    erfWorstGehad = !!s.erfWorstGehad || erfHeeftWorst;
     uitzendingKlaar = !!s.uitzendingKlaar;
     geluid.zetHerhaling(uitzendingKlaar);
     schriftKwijt = !!s.schriftKwijt;
@@ -10711,7 +10732,9 @@ export function initVerhaal(ctx) {
     hud.zetLeven(player.health);
     // zette de missie je zelf in een auto (de grid, de Golf van Mark), dan houdt naLaden je daar
     geladenIn = player.inCar ? { car: player.inCar, x: player.inCar.x, z: player.inCar.z, yaw: player.inCar.yaw } : null;
-    geladenTeVoet = player.inCar ? null : { x: player.pos.x, y: player.pos.y, z: player.pos.z };
+    // (alleen als hervat… je echt verplaatste: anders mag js/opslag.js je in je auto zetten)
+    const verzet = Math.hypot(player.pos.x - posVoorHerstel.x, player.pos.z - posVoorHerstel.z) > 2;
+    geladenTeVoet = player.inCar || !verzet ? null : { x: player.pos.x, y: player.pos.y, z: player.pos.z };
   }
 
   /*
@@ -10721,13 +10744,16 @@ export function initVerhaal(ctx) {
    terwijl de race bij de BP op je wachtte, en in een nieuwe sessie stond er ook nog een geleende Ferrari
    op de grid (je eigen Ferrari bestaat pas na garage.herstel). Geeft true als het verhaal de stoel koos.
   */
-  let geladenIn = null, geladenTeVoet = null;
+  let geladenIn = null, geladenTeVoet = null, posVoorHerstel = { x: 0, z: 0 };
   function naLaden() {
     const g = geladenIn;
     geladenIn = null;
     if (missie === 'race' && fase === 'start' && !geldInleg) { opDeStart(); return true; }
-    // missie 18 na de landing: te voet bij Mark en Johan, niet in de auto van het opslaan (stap 122)
-    if (missie === 'uitzending' && fase === 'naarAuto' && geladenTeVoet) {
+    /*
+     Missie 16, 17 en 18: zette hervat… je zelf ergens neer (voor Molenkrite 15, op het dek, bij het erf,
+     na de landing), dan sta je daar te voet, niet in de auto op de plek van het opslaan (stap 122).
+    */
+    if (['inval', 'ronald', 'uitzending'].includes(missie) && fase !== 'klaar' && geladenTeVoet) {
       if (player.inCar) { player.inCar.speed = 0; player.inCar = null; }
       player.pos.set(geladenTeVoet.x, geladenTeVoet.y, geladenTeVoet.z);
       return true;
@@ -10751,6 +10777,11 @@ export function initVerhaal(ctx) {
     if (!balk.hidden || gesprek) return 'tijdens een gesprek';
     if (zwart || titelrol || document.body.classList.contains('film')) return 'tijdens een filmbeeld';
     if (doodT > 0 || misluktT > 0 || keuzeOpen || player.health <= 0) return 'nu even niet';
+    /*
+     Net na een missie, tot het zwart en de ochtend (stap 122): het checkpoint werd een tel na GESLAAGD
+     geschreven, en na het laden was het nog 01:00, met de klok stil en zonder "De volgende ochtend".
+    */
+    if (brugNaT > 0 || raceNaT > 0 || invalNaT > 0 || ronaldNaT > 0 || uitzNaT > 0) return 'nu even niet';
     return null;
   }
 

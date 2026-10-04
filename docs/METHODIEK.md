@@ -7439,6 +7439,49 @@ mag nog (na het laden belt de volgende missie dan zonder de ochtend ervoor).
 `geldracetest`, `tempotest`, `overgangtest`, `opslagtest`, `checkpointtest` en `nalooptest` opnieuw, alle groen. De
 eerste ronde van `naloop2test` vond zelf nog een fout: `ruimVeteraanOp` knipte het zwart ook weg.
 
+**Missie 16 tot 18 en het uitje nagelopen (stap 122).** Gevraagd op 4 okt 2026: "neem ook de volgende 5 door".
+Na missie 15 zijn er nog drie missies; met de avond en de studio van missie 18 apart en de middag met Mark na
+het einde zijn het vijf onderdelen. `invaltest`, `ronaldtest`, `avondtest`, `uitzendingtest` en `uitjetest`
+draaiden eerst op de oude code (alle vijf groen); twee helpers lazen 16–17 en 18 met het uitje.
+
+**Wat er mis was, en wat het nu doet**
+- *Laden tijdens een filmbeeld van missie 16, 17 of 18 liet dat filmbeeld doorlopen over het geladen spel.*
+  Bij de montage sprong de camera nog veertig tellen mee en speelde het fragment door; daarna stond je in de
+  studio midden in een andere missie. Het filmbeeld op het dek van missie 16 verwijderde aan zijn eind de
+  schutters van de geladen missie en zette die van Bouwman neer; dat van de inval gaf drie sterren; dat van het
+  erf zette vier man neer die gingen schieten. `herstel` ruimt nu ook missie 16, 17 en 18 op (`ruimInvalOp`,
+  `ruimRonaldOp`, `ruimUitzendingOp`), met hun klokjes en dat van het uitje eerst leeg: js/opslag.js heeft de
+  klok dan al gezet.
+- *Na het einde liet een oude opslag Radio Tinga op slot*, met Johan voor de deur, en de politieauto's en de
+  C4 op de Dúvelsrak; het erf van Ronald bleef staan, met botsdozen, en de auto's van de inval aan de Molenkrite.
+  Ook dat ruimt `herstel` nu op.
+- *Na het laden zat je in de auto van het opslaan, niet waar de missie je neerzette*: op het dek van missie 16
+  wachtten Bouwman en Johan terwijl jij kilometers verderop in je auto zat, en na de landing in missie 18 zat je
+  in de Ferrari terwijl Mark en Johan bij het Autohuis stonden. `naLaden` zet je bij missie 16–18 te voet neer
+  als `hervat…` je verplaatste (meer dan twee meter).
+- *Herstelpunten.* Neergaan bij de loods in missie 18 begon de hele achtervolging opnieuw (nu het gevecht, met
+  muziek); na de montage begon de minuut en de montage opnieuw (nu sta je buiten bij Mark en Johan, met de
+  stick erin); na de kluis in missie 17 begon het erf opnieuw (nu de Golf, `naKluis`).
+- *Neergaan in het filmbeeld op de brug* liet de filmbalken staan: half beeld, en opslaan kon niet meer.
+- *De gegooide worst* was na neergaan of laden weg, en de hond blafte weer. `erfWorstGehad` onthoudt dat je
+  hem gepakt had, ook in de opslag.
+- *Auto's stapelden* bij elke poging: de inval (drie), de wagens op het erf (twee), de politie op de brug,
+  en elk vervangen wrak. Nu gaan ze echt weg (`vervangAuto`, `ruimKonvooiOp`); die van Bouwman blijft.
+- *Op het dek na een mislukte ruil* kwam de Golf op de plek van je eigen auto, die er nog stond
+  (`invalBrugAuto`).
+- *Het uitje kon blijven hangen*: weglopen van de Golf of neergaan tijdens de rit liet het op 'rijden' staan,
+  met de klok stil op 12:12, en daarna geen klus en geen nieuwe M meer. Weglopen (150 m, `UITJE_LOS`) en
+  neergaan zetten het nu terug.
+- *Het checkpoint na een missie* werd een tel na GESLAAGD geschreven, vóór het zwart en de ochtend: na het
+  laden was het 01:00, de klok stil, en "De volgende ochtend" kwam niet. Zolang zo'n klokje loopt kan er niet
+  opgeslagen worden, en het checkpoint wacht.
+
+**Niet veranderd**: de klok die de speler zelf aanzette (`\` in js/sfeer.js) blijft in een nieuwe sessie na de
+avond van missie 18 stil tot de titelrol, omdat de opslag uit de avond hem stil bewaarde. Dat is zo zeldzaam
+dat een eigen veld in de opslag niet de moeite was.
+
+**Proeven**: `naloop3test` (nieuw); PROEVEN_HIER.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

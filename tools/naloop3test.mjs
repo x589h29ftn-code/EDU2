@@ -9,6 +9,10 @@
  3. Missie 18: neergaan bij de loods begint bij de loods, met muziek; neergaan in het filmbeeld op de brug
     laat geen filmbalken staan.
  4. Het uitje: weglopen van de Golf of neergaan tijdens de rit zet het uitje terug, met de klok weer aan.
+ 5. Missie 16: laden tijdens het filmbeeld op het dek stopt het (geen schutters, geen sterren in het geladen
+    spel); herhalen stapelt geen auto's; laden midden op het dek zet je te voet op het dek, niet in je auto.
+ 6. Missie 17: laden ruimt het erf op; de worst komt terug na neergaan; na de kluis begin je bij de Golf.
+ 7. Net na een missie (tot de ochtend) kan er niet opgeslagen worden: het checkpoint wacht erop.
 */
 import { chromium } from 'playwright';
 
@@ -212,6 +216,92 @@ ok(uitje.rit1.fase === 'rijden' && !uitje.rit1.loopt, 'in de Golf naar VV Sneek,
 ok(uitje.weg.fase === 'rust' && uitje.weg.loopt && !uitje.weg.bezig, 'weglopen van de Golf: het uitje is voorbij, de klok loopt weer', JSON.stringify(uitje.weg));
 ok(uitje.rit2.fase === 'rijden', 'nog een keer de rit', JSON.stringify(uitje.rit2));
 ok(uitje.neer.fase === 'rust' && uitje.neer.loopt && !uitje.neer.bezig, 'neergaan tijdens de rit: ook voorbij, de klok loopt weer', JSON.stringify(uitje.neer));
+
+// ------------------------------------------------------------------ 5. missie 16
+kop('missie 16: het filmbeeld op het dek, laden, auto\'s');
+const m16 = await page.evaluate(() => {
+  const g = window.__game, v = g.verhaal, P = g.player, V = g.vehicles;
+  const inval = (fase, extra = {}) => window.__laad({ missie: 'inval', fase, punt: null, huis: 'Koningsspil 20', veteraanKlaar: true,
+    politieautoKlaar: true, brugKlaar: true, schriftKlaar: true, raceKlaar: true, schaduwKlaar: true, invalKlaar: false, invalKeus: 1,
+    ronaldKlaar: false, uitzendingKlaar: false, ...extra });
+  const uit = {};
+  inval('brugFilm');
+  uit.film = v.inval.film;
+  // F9 naar vrij spelen na missie 17, tijdens het filmbeeld
+  window.__na17(); v.__geenVolgende();
+  window.__stap(400);
+  uit.naLaden = { film: v.inval.film, klasse: document.body.classList.contains('film'), missie: v.missie, fase: v.fase,
+    mannen: !!v.inval.mannen, sterren: g.politie.ster, johan: v.inval.johan.groep.visible };
+  // vaker achter elkaar: geen auto's erbij
+  const voor = V.cars.length;
+  for (let i = 0; i < 3; i++) { inval('brugFilm'); window.__na17(); v.__geenVolgende(); }
+  uit.groei = V.cars.length - voor;
+  // midden op het dek opgeslagen, in een auto ver weg, en geladen
+  inval('brugFilm');
+  for (let t = 0; t < 30 && v.fase === 'brugFilm'; t += 0.05) { window.__stap(1); if (!window.__dicht()) v.toets(); }
+  window.__klik();
+  uit.fase = v.fase;
+  const dek = v.inval.brugPunt(18, 0);
+  const ver = V.voegToe({ x: dek.x + 300, z: dek.z, yaw: 0, soort: 'hatch', kleur: 0x335577 });
+  P.inCar = ver; P.pos.set(ver.x, 0, ver.z);
+  P.active = true;
+  uit.reden = v.waaromNietOpslaan();
+  g.opslaan();
+  g.laden();
+  P.active = false;
+  uit.geladen = { fase: v.fase, inAuto: !!P.inCar, dDek: Math.hypot(P.pos.x - dek.x, P.pos.z - dek.z) };
+  return uit;
+});
+ok(m16.film === 'brug', 'het filmbeeld op het dek loopt', m16.film);
+ok(!m16.naLaden.film && !m16.naLaden.klasse, 'na het laden geen filmbeeld meer', JSON.stringify(m16.naLaden));
+ok(m16.naLaden.missie === 'klaar' && !m16.naLaden.mannen && m16.naLaden.sterren === 0 && !m16.naLaden.johan,
+  'en het geladen spel krijgt geen mannen, sterren of Johan op het dek', JSON.stringify(m16.naLaden));
+ok(m16.groei <= 1, 'drie keer laden stapelt geen auto\'s', `${m16.groei} erbij`);
+ok(m16.reden === null, 'midden op het dek mag je opslaan', String(m16.reden));
+ok(!m16.geladen.inAuto && m16.geladen.dDek < 40, 'na het laden te voet op het dek, niet in de auto ver weg', JSON.stringify(m16.geladen));
+
+// ------------------------------------------------------------------ 6. missie 17
+kop('missie 17: het erf, de worst, na de kluis');
+const m17 = await page.evaluate(() => {
+  const g = window.__game, v = g.verhaal;
+  const ronald = (fase, extra = {}) => window.__laad({ missie: 'ronald', fase, huis: 'Koningsspil 20', veteraanKlaar: true,
+    politieautoKlaar: true, brugKlaar: true, schriftKlaar: true, raceKlaar: true, schaduwKlaar: true, invalKlaar: true, invalKeus: 2,
+    invalTelefoon: true, ronaldKlaar: false, uitzendingKlaar: false, ...extra });
+  const uit = {};
+  ronald('sluipen', { punt: null, erfHeeftWorst: false, erfWorstGehad: true });
+  uit.erf = v.ronald.erf.zichtbaar;
+  uit.worst = v.ronald.worst;
+  uit.bewaard = v.bewaar().erfWorstGehad;
+  // neergaan na het gooien: de worst terug
+  v.__herstartMissie(); window.__stap(2);
+  uit.worstNaNeer = v.ronald.worst;
+  // na de kluis neergaan: bij de Golf, niet weer sluipen
+  ronald('koplampen', { punt: { missie: 'ronald', fase: 'naKluis' }, ronaldPraatte: false, ronaldWeg: true });
+  v.__herstartMissie(); window.__stap(2);
+  uit.naKluis = v.fase;
+  // laden van vrij spelen: het erf is weg
+  window.__na17(); v.__geenVolgende();
+  uit.erfNa = v.ronald.erf.zichtbaar;
+  return uit;
+});
+ok(m17.erf && m17.worst, 'opnieuw op het erf met de worst die je al had', JSON.stringify(m17));
+ok(m17.bewaard === true, 'de opslag weet dat je de worst had', String(m17.bewaard));
+ok(m17.worstNaNeer, 'na neergaan heb je hem weer', String(m17.worstNaNeer));
+ok(m17.naKluis === 'naarGolf', 'na de kluis neergaan: bij de Golf, niet weer sluipen', m17.naKluis);
+ok(!m17.erfNa, 'laden van een andere stand ruimt het erf op', String(m17.erfNa));
+
+// ------------------------------------------------------------------ 7. net na een missie
+kop('net na een missie niet opslaan');
+const na = await page.evaluate(() => {
+  const g = window.__game, v = g.verhaal;
+  window.__na17(); v.__geenVolgende();
+  const vrij = v.waaromNietOpslaan();
+  v.zetNaloop('inval', 3);
+  const tijdens = v.waaromNietOpslaan();
+  window.__stap(120);
+  return { vrij, tijdens };
+});
+ok(na.vrij === null && na.tijdens, 'tijdens de tellen na een missie wacht opslaan (en het checkpoint)', JSON.stringify(na));
 
 await browser.close();
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');
