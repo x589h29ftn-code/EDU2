@@ -1607,7 +1607,7 @@ Daar moet je hem te voet achterna.
  Onder de achtervolging loopt een **spannend deuntje**: een
 jachtende achtstenbas in d-klein met een dreigende halve toon erboven, die aanzwelt zodra hij het op
 een lopen zet en uitdooft als je hem hebt (of als je hem neerschiet). Schiet je hem neer, dan vaagt
-het beeld naar grijs met **MISSIE MISLUKT** en begin je bij je laatste opgeslagen spel.
+het beeld naar grijs met **MISSIE MISLUKT** en begint de missie opnieuw (je eigen opslag laad je met F9).
 
 ![De achtervolging](docs/screenshots/dief_achtervolging.png)
 

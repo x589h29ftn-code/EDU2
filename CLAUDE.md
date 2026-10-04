@@ -599,6 +599,9 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
     buitencamera). De ondertitels zijn samengevat uit de opdracht, niet woordelijk uit de mp3.
 25. Een `Bewaking` heeft geen vluchtgedrag: de man die in missie 1 opspringt schiet terug; wie wil dat er een
     wegrent, bouwt dat in js/bewaking.js (stap 119 koos terugschieten).
+26. `npm run verhaaltest` is rood op twee controles van de woonkamer van Molenkrite 15 (de bank 2,10 × 0,90 m
+    met zitting op 44 cm, en de tv als 55-inch op ooghoogte). Op de stand van stap 116 precies dezelfde twee
+    (4 okt 2026 nagemeten); js/interieur.js is sinds stap 87 niet veranderd. De proef of de maten nalopen.
 
 ## 8 · Waar wat gedocumenteerd wordt
 

@@ -7340,8 +7340,14 @@ klikt het gesprek door.
   niet: wie het verst weg zit heeft de tafel en de stoelen (1,35 m) tussen zich en jou, en `Bewaking` keek
   op 1,2 m; nu is er de optie `oog` (1,6 m voor hem).
 
-**Proeven**: `beginmissietest` (nieuw) en `introtest` groen, `verhaaltest` opnieuw; foto's met
-`beginmissieshots` (nieuw).
+- `verhaaltest` was sinds stap 118 niet meer gedraaid en verwachtte nog dat een mislukte missie je opslag
+  laadt: de proef laadt nu zelf met F9 en toetst de melding. Het geld na missie 5 is € 2.000 (de € 500 van
+  Mark bij de boerderij). En "je ziet Johan vanaf de straat" telt een auto op de zichtlijn als verkeer: dat
+  was op stap 116 ook al rood. Twee controles van de woonkamer (de bank en de tv) waren op stap 116 al rood
+  en zijn dat nog (open punt).
+
+**Proeven**: `beginmissietest` (nieuw) en `introtest` groen; `verhaaltest` op twee oude controles na;
+foto's met `beginmissieshots` (nieuw).
 
 **Wat nog niet af is** (in volgorde).
 
