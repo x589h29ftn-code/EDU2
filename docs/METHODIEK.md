@@ -7481,7 +7481,8 @@ draaiden eerst op de oude code (alle vijf groen); twee helpers lazen 16–17 en 
   vóór die missie liep (`klokWas`), en `herstel` zet hem zo terug; de hervatte missie zet hem zelf weer stil.
   Gevonden door `uitjetest`, nadat de eerste versie van deze ronde de klokjes bij het laden leegmaakte.
 
-**Proeven**: `naloop3test` (nieuw); PROEVEN_HIER.
+**Proeven**: `naloop3test` (nieuw, groen); `invaltest`, `ronaldtest`, `avondtest`, `uitzendingtest`, `uitjetest`,
+`checkpointtest`, `overgangtest`, `opslagtest` en `naloop2test` opnieuw, alle groen.
 
 **Wat nog niet af is** (in volgorde).
 
