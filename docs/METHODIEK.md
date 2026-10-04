@@ -7435,7 +7435,9 @@ de code nagelopen voordat er iets veranderde.
 geleende Ferrari blijft na een race van jou; opslaan in de paar tellen tussen MISSIE GESLAAGD en het zwart
 mag nog (na het laden belt de volgende missie dan zonder de ochtend ervoor).
 
-**Proeven**: `naloop2test` (nieuw); PROEVEN_HIER.
+**Proeven**: `naloop2test` (nieuw, groen); `politieautotest`, `brugtest`, `schrifttest`, `racetest`, `schaduwtest`,
+`geldracetest`, `tempotest`, `overgangtest`, `opslagtest`, `checkpointtest` en `nalooptest` opnieuw, alle groen. De
+eerste ronde van `naloop2test` vond zelf nog een fout: `ruimVeteraanOp` knipte het zwart ook weg.
 
 **Wat nog niet af is** (in volgorde).
 
