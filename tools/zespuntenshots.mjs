@@ -88,7 +88,8 @@ if (doe('wapen')) {
     // de bewakers bevroren, en van voren schuin op de eerste
     const d = v.doelen()[0];
     const q = d.getWorldPosition(new THREE.Vector3());
-    const voor = d.getWorldDirection(new THREE.Vector3());
+    // (de voorkant van een poppetje is −z van zijn groep; getWorldDirection geeft +z)
+    const voor = d.getWorldDirection(new THREE.Vector3()).negate();
     const zij = new THREE.Vector3(-voor.z, 0, voor.x);
     window.__cam({ x: q.x + voor.x * 2.0 + zij.x * 0.9, y: 1.5, z: q.z + voor.z * 2.0 + zij.z * 0.9 }, { x: q.x, y: 1.1, z: q.z });
   });
