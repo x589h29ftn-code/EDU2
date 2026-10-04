@@ -7476,9 +7476,10 @@ draaiden eerst op de oude code (alle vijf groen); twee helpers lazen 16–17 en 
   laden was het 01:00, de klok stil, en "De volgende ochtend" kwam niet. Zolang zo'n klokje loopt kan er niet
   opgeslagen worden, en het checkpoint wacht.
 
-**Niet veranderd**: de klok die de speler zelf aanzette (`\` in js/sfeer.js) blijft in een nieuwe sessie na de
-avond van missie 18 stil tot de titelrol, omdat de opslag uit de avond hem stil bewaarde. Dat is zo zeldzaam
-dat een eigen veld in de opslag niet de moeite was.
+- *Een opslag terwijl een missie de klok stilzet* bewaarde die klok stil, en na het laden zette niets hem weer
+  aan (na laden tijdens de rit naar VV Sneek bleef het voor altijd 12:12). De opslag bewaart nu ook hoe de klok
+  vóór die missie liep (`klokWas`), en `herstel` zet hem zo terug; de hervatte missie zet hem zelf weer stil.
+  Gevonden door `uitjetest`, nadat de eerste versie van deze ronde de klokjes bij het laden leegmaakte.
 
 **Proeven**: `naloop3test` (nieuw); PROEVEN_HIER.
 

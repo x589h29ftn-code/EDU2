@@ -10427,6 +10427,8 @@ export function initVerhaal(ctx) {
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
       raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
+      // liep de klok voordat een missie (of het uitje) hem stilzette? De opslag bewaart hem stil (stap 122)
+      klokWas: [schaduwKlokWas, invalKlokWas, ronaldKlokWas, uitzKlokWas, uitje.klokWas].find(k => k !== null) ?? null,
     };
   }
 
@@ -10438,6 +10440,12 @@ export function initVerhaal(ctx) {
     if (!s) return;
     // (de klok komt uit de opslag: een opruimer zet hem niet terug naar zijn stand van vóór een missie, stap 122)
     uitje.klokWas = null; uitzKlokWas = null;
+    /*
+     Was de klok bij het opslaan door een missie stilgezet, dan bewaarde de opslag hem stil, en zette niets
+     hem daarna weer aan (stap 122: na laden tijdens de rit naar VV Sneek bleef het voor altijd 12:12). Zet hem
+     terug zoals hij vóór die missie liep; de missie die nu hervat, zet hem zelf weer stil en onthoudt dit.
+    */
+    if (typeof s.klokWas === 'boolean' && klokLoopt) klokLoopt(s.klokWas);
     posVoorHerstel = { x: player.pos.x, z: player.pos.z };
     stopNaloop();
     gesprek = null; sluitBalk(); praatEl.hidden = true;
