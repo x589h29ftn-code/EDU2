@@ -143,14 +143,15 @@ const m8 = await page.evaluate(() => {
   uit.aanBoord = B.inBoot === sloep;
   uit.bijMolen = plek ? Math.hypot(sloep.x - plek.boot.x, sloep.z - plek.boot.z) : -1;
   uit.punt = v.punt && v.punt.fase;
-  let politie = '';
-  for (let i = 0; i < 400 && !/waterpolitie/.test(politie); i++) { window.__stap(1, 0.05); politie = window.__opdracht(); }
-  uit.politie = politie;
+  // (de opdracht noemt de waterpolitie meteen; wachten tot er echt een boot op het water is)
+  for (let i = 0; i < 400 && !v.snipBoten.some(b => b.actief); i++) window.__stap(1, 0.05);
+  uit.politie = window.__opdracht();
   uit.actief = v.snipBoten.filter(b => b.actief).length;
   // een andere missie laden ruimt het op, ook het schietslot van het meekijken
   P.vuurSlot = true;
   window.__laad({ missie: 'johan', fase: 'naar_kruirad' });
-  uit.naLaden = { boten: v.snipBoten.length, vuurSlot: P.vuurSlot, aanBoord: !!B.inBoot };
+  // (van boord gaan doet js/opslag.js bij echt laden, via `boten.herstel`; deze proef laadt alleen het verhaal)
+  uit.naLaden = { boten: v.snipBoten.length, vuurSlot: P.vuurSlot };
   // het herstelpunt uit de opslag, en geen oud punt
   window.__laad({ missie: 'sniper', fase: 'varen', punt: { missie: 'sniper', fase: 'vuurgevecht' } });
   uit.puntUitOpslag = v.punt && v.punt.fase;
@@ -162,7 +163,7 @@ ok(m8.fase === 'terug' && m8.punt === 'terug', 'opnieuw vanaf terug', `${m8.fase
 ok(m8.aanBoord && m8.bijMolen >= 0 && m8.bijMolen < 3, 'in de sloep bij de molen', `${m8.bijMolen.toFixed(1)} m van de plek`);
 ok(m8.boten === 3, 'met drie politieboten', String(m8.boten));
 ok(/waterpolitie/.test(m8.politie) && m8.actief > 0, 'die ook echt komen', `${m8.actief} actief · ${m8.politie}`);
-ok(m8.naLaden.boten === 0 && !m8.naLaden.vuurSlot && !m8.naLaden.aanBoord, 'een andere missie laden ruimt de boten en het schietslot op', JSON.stringify(m8.naLaden));
+ok(m8.naLaden.boten === 0 && !m8.naLaden.vuurSlot, 'een andere missie laden ruimt de boten en het schietslot op', JSON.stringify(m8.naLaden));
 ok(m8.puntUitOpslag === 'vuurgevecht', 'het herstelpunt komt uit de opslag', String(m8.puntUitOpslag));
 ok(m8.puntZonder === 'varen', 'zonder punt in de opslag: de fase van nu, geen oud punt', String(m8.puntZonder));
 
