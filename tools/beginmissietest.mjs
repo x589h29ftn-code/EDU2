@@ -93,8 +93,13 @@ const m1 = await page.evaluate(async () => {
   uit.zin = window.__zin();
   uit.doelenNa = v.doelen().length;
   uit.persoonDoel = v.doelen().includes(w.persoon.groep);
-  // tien tellen: schiet hij terug?
+  // tien tellen: schiet hij terug? (de schoten tellen; of een schot raakt is een dobbelsteen)
+  let schoten = 0;
+  const vuur = w.persoon.vuur.bind(w.persoon);
+  w.persoon.vuur = (...a) => { schoten++; return vuur(...a); };
   for (let i = 0; i < 200; i++) { v.update(0.05); g.scene.updateMatrixWorld(); }
+  uit.schoten = schoten;
+  uit.schade = O.groep.schade;
   uit.leven = P.health;
   P.health = 100;
   // hem raken, en de rest
@@ -120,7 +125,8 @@ if (m1.opspringer) {
   ok(m1.staat === 'aanval', 'en valt meteen aan', m1.staat);
   ok(/blaffer/.test(m1.zin), 'Mark waarschuwt', m1.zin);
   ok(m1.doelenNa === 3 && m1.persoonDoel, 'drie doelen over, waaronder hij', String(m1.doelenNa));
-  ok(m1.leven < 100 && m1.leven > 40, 'hij schiet terug, maar zwak', `leven ${m1.leven}`);
+  ok(m1.schoten >= 3, 'hij schiet terug', `${m1.schoten} schoten in 10 s`);
+  ok(m1.schade <= 5 && m1.leven > 40, 'maar zwak', `${m1.schade} per treffer, leven na 10 s ${m1.leven}`);
   ok(m1.hijNeer && m1.naHem === 2, 'één treffer en hij ligt; hij telt als een van de vier', `${m1.naHem} doelen over`);
   ok(m1.fase === 'briefing', 'alle vier neer: de briefing', m1.fase);
   ok(m1.terug.prop && !m1.terug.stoel && !m1.terug.lijf && !m1.terug.opspringer, 'opnieuw beginnen: hij zit weer op zijn stoel', JSON.stringify(m1.terug));
@@ -305,37 +311,31 @@ const heli = await page.evaluate(async () => {
   G.start();
   const wacht = (ms) => new Promise(r => setTimeout(r, ms));
   const uit = {};
-  // los: aan, aanzwellen
-  G.heliMuziek(true);
-  const st0 = G.heliMuziekStand();
-  uit.bestand = st0 && st0.bestand;
-  const vols = [];
-  for (let i = 0; i < 12; i++) { await wacht(400); G.heliMuziek(true); vols.push(G.heliMuziekStand().volume); }
-  uit.aan = vols;
-  // de missiemuziek zwijgt eronder
-  G.missiemuziek(true);
-  await wacht(600);
-  const s = G.stand ? G.stand() : {};
-  uit.missie = s.missie;
-  G.missiemuziek(false);
-  // uit: rustig weg
-  const voor = G.heliMuziekStand().volume;
-  G.heliMuziek(false);
-  const uitVols = [];
-  for (let i = 0; i < 10; i++) { await wacht(400); G.heliMuziek(false); uitVols.push(G.heliMuziekStand().volume); }
-  uit.voor = voor; uit.uit = uitVols;
-  uit.nogAan = G.heliMuziekStand().aan;
-  // in het verhaal: in de heli aan, bij de auto uit
+  /*
+   Via het verhaal zelf: de hoofdlus roept `verhaal.update` ook headless aan, en die zet het muziekje elk
+   beeld aan of uit. Losse aanroepen van `heliMuziek` zouden daar tegenin werken.
+  */
+  const stand = () => G.heliMuziekStand() || { aan: false, volume: 0 };
   v.__startMissie('uitzending');
   window.__stap(2);
   window.__laad({ missie: 'uitzending', fase: 'heli' });
-  window.__stap(10);
   uit.verhaalFase = v.fase;
-  uit.inHeli = G.heliMuziekStand().aan;
+  const vols = [];
+  for (let i = 0; i < 12; i++) { await wacht(400); v.update(0.05); vols.push(stand().volume); }
+  uit.aan = vols;
+  uit.inHeli = stand().aan;
+  uit.bestand = stand().bestand;
+  const st = G.stand ? G.stand() : {};
+  uit.missie = st.missie;
+  // uit de heli: rustig weg
+  const voor = stand().volume;
   window.__laad({ missie: 'uitzending', fase: 'naarAuto' });
-  window.__stap(10);
   uit.naHeliFase = v.fase;
-  uit.naHeli = G.heliMuziekStand().aan;
+  const uitVols = [];
+  for (let i = 0; i < 10; i++) { await wacht(400); v.update(0.05); uitVols.push(stand().volume); }
+  uit.voor = voor; uit.uit = uitVols;
+  uit.naHeli = stand().aan;
+  uit.nogAan = uit.naHeli;
   v.__startMissie('molenkrite');
   window.__stap(2);
   return uit;
