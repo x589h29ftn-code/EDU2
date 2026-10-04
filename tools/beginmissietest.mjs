@@ -313,42 +313,56 @@ const heli = await page.evaluate(async () => {
   const uit = {};
   /*
    Via het verhaal zelf: de hoofdlus roept `verhaal.update` ook headless aan, en die zet het muziekje elk
-   beeld aan of uit. Losse aanroepen van `heliMuziek` zouden daar tegenin werken.
+   beeld aan of uit. En niet op echte tijd: in deze container lopen de audioklok en het mp3-element veel
+   sneller dan de klok aan de muur (het nummer van 65 s was in een paar tellen op). Dus de proef leest wat
+   er gepland is (`ramps`: van, naar, hoe lang in audiotijd) en kijkt pas daarna naar het geluid zelf.
   */
-  const stand = () => G.heliMuziekStand() || { aan: false, volume: 0 };
+  const stand = () => G.heliMuziekStand() || { aan: false, volume: 0, ramps: [] };
   v.__startMissie('uitzending');
   window.__stap(2);
   window.__laad({ missie: 'uitzending', fase: 'heli' });
+  v.update(0.05);
+  const s1 = stand();
   uit.verhaalFase = v.fase;
-  const vols = [];
-  for (let i = 0; i < 12; i++) { await wacht(400); v.update(0.05); vols.push(stand().volume); }
-  uit.aan = vols;
-  uit.inHeli = stand().aan;
-  uit.bestand = stand().bestand;
+  uit.inHeli = s1.aan;
+  uit.bestand = s1.bestand;
+  uit.rampIn = s1.ramps[s1.ramps.length - 1] || null;
   const st = G.stand ? G.stand() : {};
   uit.missie = st.missie;
-  // uit de heli: rustig weg
-  const voor = stand().volume;
+  // meteen weer uit de heli
   window.__laad({ missie: 'uitzending', fase: 'naarAuto' });
+  v.update(0.05);
+  const s2 = stand();
   uit.naHeliFase = v.fase;
-  const uitVols = [];
-  for (let i = 0; i < 10; i++) { await wacht(400); v.update(0.05); uitVols.push(stand().volume); }
-  uit.voor = voor; uit.uit = uitVols;
-  uit.naHeli = stand().aan;
-  uit.nogAan = uit.naHeli;
+  uit.naHeli = s2.aan;
+  uit.rampUit = s2.ramps[s2.ramps.length - 1] || null;
+  uit.pauzeMeteen = s2.pauze;
+  // na de fade: op pauze
+  for (let i = 0; i < 40 && !stand().pauze; i++) { await wacht(400); v.update(0.05); }
+  uit.pauzeLater = stand().pauze;
+  // het nummer is bijna op terwijl je nog in de heli zit: ook dan rustig weg
+  window.__laad({ missie: 'uitzending', fase: 'heli' });
+  let s3 = stand();
+  for (let i = 0; i < 240 && !(s3.ramps.length && s3.ramps[s3.ramps.length - 1].waarom === 'einde') && !s3.pauze; i++) {
+    await wacht(400); v.update(0.05); s3 = stand();
+  }
+  uit.rampEinde = s3.ramps[s3.ramps.length - 1] || null;
+  uit.eindeAan = s3.aan;
+  uit.keer = s3.keer;
   v.__startMissie('molenkrite');
   window.__stap(2);
   return uit;
 });
 ok(heli.bestand === 'audio/intro/intro.mp3', 'het muziekje van de intro', heli.bestand);
-const stijgt = heli.aan.every((x, i) => i === 0 || x >= heli.aan[i - 1] - 1e-3) && heli.aan[heli.aan.length - 1] > heli.aan[0];
-ok(stijgt && heli.aan[0] < 0.25, 'het zwelt aan (fade in)', heli.aan.map(x => x.toFixed(2)).join(' '));
+ok(heli.inHeli, 'aan zolang Erik in de heli zit', heli.verhaalFase);
+const R = (r) => (r ? `${r.van} → ${r.naar} in ${r.duur} s (${r.waarom})` : 'geen');
+ok(heli.rampIn && heli.rampIn.van === 0 && heli.rampIn.naar > 0.3 && heli.rampIn.duur >= 3, 'het zwelt aan (fade in)', R(heli.rampIn));
 ok(heli.missie == null || heli.missie < 0.01, 'de missiemuziek zwijgt eronder', String(heli.missie));
-const daalt = heli.uit.every((x, i) => i === 0 || x <= heli.uit[i - 1] + 1e-3) && heli.uit[heli.uit.length - 1] < heli.voor;
-ok(daalt && !heli.nogAan, 'uit: rustig weg (fade out)', `${heli.voor.toFixed(2)} → ${heli.uit.map(x => x.toFixed(2)).join(' ')}`);
-ok(heli.uit[0] > heli.voor * 0.5, 'en niet in één keer', `na 0,4 s nog ${heli.uit[0].toFixed(2)} van ${heli.voor.toFixed(2)}`);
-ok(heli.inHeli, 'in het verhaal: aan zolang Erik in de heli zit', heli.verhaalFase);
-ok(!heli.naHeli, 'en uit als hij eruit is', heli.naHeliFase);
+ok(!heli.naHeli, 'uit als hij eruit is', heli.naHeliFase);
+ok(heli.rampUit && heli.rampUit.naar === 0 && heli.rampUit.duur >= 6, 'rustig weg (fade out)', R(heli.rampUit));
+ok(!heli.pauzeMeteen && heli.pauzeLater, 'het nummer stopt pas na de fade', `meteen: ${heli.pauzeMeteen ? 'stil' : 'speelt'}, later: ${heli.pauzeLater ? 'stil' : 'speelt'}`);
+ok(heli.rampEinde && heli.rampEinde.waarom === 'einde' && heli.rampEinde.naar === 0 && heli.eindeAan, 'is het nummer bijna op, dan ook rustig uit', R(heli.rampEinde));
+ok(heli.keer === 2, 'opnieuw in de heli: weer vanaf het begin', `${heli.keer} keer`);
 
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');
 await browser.close();

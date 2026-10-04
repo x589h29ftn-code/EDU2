@@ -1056,13 +1056,15 @@ export const geluid = {
       let bron = null;
       try { bron = ctx.createMediaElementSource(el); } catch { return false; }
       bron.connect(g); g.connect(hoofd);
-      bronnen.heliMuz = { el, gain: g, aan: false, speelt: false, uitT: 0, stuk: false, keer: 0 };
+      bronnen.heliMuz = { el, gain: g, aan: false, speelt: false, uitT: 0, stuk: false, keer: 0, ramps: [] };
       el.addEventListener('error', () => { bronnen.heliMuz.stuk = true; });
       el.addEventListener('ended', () => { bronnen.heliMuz.speelt = false; });
     }
     const h = bronnen.heliMuz;
     if (h.stuk) return false;
     const t = nu();
+    // (de proef leest wat er gepland is: in deze container lopen de audioklok en het element niet op echte tijd)
+    const plan = (van, naar, duur, waarom) => { h.ramps.push({ van: +van.toFixed(3), naar, duur: +duur.toFixed(2), waarom }); if (h.ramps.length > 8) h.ramps.shift(); };
     if (actief && !h.aan) {
       // instappen: vooraan beginnen, aanzwellen
       h.aan = true; h.speelt = true; h.uitT = 0; h.keer++;
@@ -1071,18 +1073,21 @@ export const geluid = {
       h.gain.gain.cancelScheduledValues(t);
       h.gain.gain.setValueAtTime(0, t);
       h.gain.gain.linearRampToValueAtTime(HELI_MUZIEK.vol, t + HELI_MUZIEK.in);
+      plan(0, HELI_MUZIEK.vol, HELI_MUZIEK.in, 'in');
     } else if (!actief && h.aan) {
       // uitstappen: rustig weg, en pas daarna op pauze
       h.aan = false;
       h.gain.gain.cancelScheduledValues(t);
       h.gain.gain.setValueAtTime(h.gain.gain.value, t);
       h.gain.gain.linearRampToValueAtTime(0, t + HELI_MUZIEK.uit);
+      plan(h.gain.gain.value, 0, HELI_MUZIEK.uit, 'uit');
       h.uitT = t + HELI_MUZIEK.uit;
     } else if (actief && h.speelt && !h.uitT && h.el.duration && h.el.duration - h.el.currentTime < HELI_MUZIEK.uit) {
       // het nummer is bijna op: ook dan rustig uit
       h.gain.gain.cancelScheduledValues(t);
       h.gain.gain.setValueAtTime(h.gain.gain.value, t);
       h.gain.gain.linearRampToValueAtTime(0, t + Math.max(1, h.el.duration - h.el.currentTime));
+      plan(h.gain.gain.value, 0, Math.max(1, h.el.duration - h.el.currentTime), 'einde');
       h.uitT = t + HELI_MUZIEK.uit;
     }
     if (!h.aan && h.uitT && t > h.uitT && !h.el.paused) { h.el.pause(); h.speelt = false; }
@@ -1092,7 +1097,7 @@ export const geluid = {
   heliMuziekStand() {
     const h = bronnen.heliMuz;
     return h ? { aan: h.aan, speelt: h.speelt && !h.el.paused, volume: +h.gain.gain.value.toFixed(3), tijd: +h.el.currentTime.toFixed(2),
-      bestand: HELI_MUZIEK.url, keer: h.keer, stuk: h.stuk } : null;
+      bestand: HELI_MUZIEK.url, keer: h.keer, stuk: h.stuk, ramps: h.ramps.slice(), duur: h.el.duration || 0, pauze: h.el.paused } : null;
   },
 
   missiemuziek(actief) {
