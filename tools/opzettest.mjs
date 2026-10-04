@@ -211,7 +211,7 @@ const cp = await page.evaluate(async () => {
   window.__stap(40);
   const bron = await (await fetch('/js/verhaal.js')).text();
   return { cp: !!localStorage.getItem('tinga.checkpoint.v1'), gehad: window.__uitleg.gehadHebben(),
-    tekst: document.getElementById('uitleg').innerText, engels: /MISSION COMPLETED/.test(bron), nl: /MISSIE VOLTOOID/.test(bron) };
+    tekst: document.getElementById('uitleg').innerText, engels: /['"`]MISSION COMPLETED/.test(bron), nl: /MISSIE VOLTOOID/.test(bron) };
 });
 ok(cp.cp, 'bij het begin van missie 2 een checkpoint');
 ok(cp.gehad.includes('opslaan') && /F5/.test(cp.tekst) && /F9/.test(cp.tekst), 'en de uitleg over opslaan', cp.tekst.replace(/\s+/g, ' ').slice(0, 120));

@@ -19,7 +19,7 @@
     Ga je neer, dan begin je bij je laatste opgeslagen spel. Zijn alle vijf uit
     geschakeld, dan gaat de schuifpoort open en mag je de vrachtwagen pakken.
  4. afleveren   – rij de vrachtwagen naar de boerderij in de zuidwesthoek van
-    het gebied. Daar staat MISSION COMPLETED in beeld.
+    het gebied. Daar staat MISSIE VOLTOOID in beeld.
  5. johan       – meteen daarna gaat de telefoon: Johan van Kruirad 62 is
     bestolen. Bij zijn oprit krijg je de briefing, in De Wieken spoor je de dief
     op (felrood shirt, gele broek, wit petje), en dan is het rennen: hem
@@ -1561,7 +1561,7 @@ export function initVerhaal(ctx) {
   /*
    De spanningsmuziek (audio/missie/, zie geluid.missiemuziek). Hij staat aan
    vanaf het moment dat je in de auto stapt naar de waterzuivering, door de
-   bewaking en de rit met de vrachtwagen heen, tot even na MISSION COMPLETED —
+   bewaking en de rit met de vrachtwagen heen, tot even na MISSIE VOLTOOID —
    en verder nergens. `spanningUit` is het uitlopen aan het eind; neergaan of
    een mislukte missie zet hem meteen af.
   */
@@ -2076,7 +2076,7 @@ export function initVerhaal(ctx) {
     markZichtbaar(false);
   }
 
-  // Missie 4 klaar: MISSION COMPLETED in beeld, en een paar seconden later gaat
+  // Missie 4 klaar: MISSIE VOLTOOID in beeld, en een paar seconden later gaat
   // de telefoon voor de volgende klus.
   function missieVoltooid() {
     if (fase === 'klaar') return;      // niet elk beeld opnieuw
@@ -9675,7 +9675,7 @@ export function initVerhaal(ctx) {
     // stopt als je hem pakt, als je hem neerschiet en als je neergaat.
     geluid.jacht(missie === 'johan' && fase === 'achtervolging' && doodT <= 0 && misluktT <= 0);
     // En de muziek onder de missie: die loopt nog een paar tellen door over
-    // MISSION COMPLETED heen en dooft daarna uit (zie geluid.missiemuziek).
+    // MISSIE VOLTOOID heen en dooft daarna uit (zie geluid.missiemuziek).
     if (spanningUit > 0) {
       spanningUit -= dt;
       if (spanningUit <= 0) spanning = false;
