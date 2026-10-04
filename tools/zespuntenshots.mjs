@@ -14,7 +14,7 @@ import { mkdirSync } from 'node:fs';
 const poort = process.argv[2] || '8123';
 const map = process.argv[3] || 'docs/screenshots';
 const alleen = process.argv[4] || null;
-const doe = (naam) => !alleen || naam.startsWith(alleen);
+const doe = (naam) => !alleen || alleen.split(',').some(a => naam.startsWith(a));
 mkdirSync(map, { recursive: true });
 
 const browser = await chromium.launch({
@@ -64,8 +64,7 @@ if (doe('mes')) {
     if (!P.wapens.includes('mes')) P.wapens.push('mes');
     P.zetWapen('mes');
     P.active = true;
-    P.wapen.vuur();
-    P.wapen.update(0.09, {});
+    // in rust, net voor een steek: het lemmet naar voren
   });
   await foto('mes_in_hand');
   await page.evaluate(() => { window.__game.player.active = false; });
@@ -86,9 +85,12 @@ if (doe('wapen')) {
     const THREE = await import('three');
     const g = window.__game, v = g.verhaal;
     v.__startMissie('bewaking'); window.__stap(4);
+    // de bewakers bevroren, en van voren schuin op de eerste
     const d = v.doelen()[0];
     const q = d.getWorldPosition(new THREE.Vector3());
-    window.__cam({ x: q.x + 2.2, y: 1.55, z: q.z + 1.2 }, { x: q.x, y: 1.15, z: q.z });
+    const voor = d.getWorldDirection(new THREE.Vector3());
+    const zij = new THREE.Vector3(-voor.z, 0, voor.x);
+    window.__cam({ x: q.x + voor.x * 2.0 + zij.x * 0.9, y: 1.5, z: q.z + voor.z * 2.0 + zij.z * 0.9 }, { x: q.x, y: 1.1, z: q.z });
   });
   await foto('wapen_bewaker');
 }

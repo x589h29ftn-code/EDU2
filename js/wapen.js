@@ -1158,14 +1158,15 @@ export function maakMes(geluid) {
 
   const aB = bak();
   const pols = rondeDoosGeo(0.052, 0.056, 0.070, 0.019, 2);
-  pols.rotateY(0.22); pols.rotateX(-0.20); pols.translate(0.028, -0.010, 0.135);
+  pols.rotateY(0.22); pols.rotateX(-0.30); pols.translate(0.030, -0.030, 0.130);
   vorm(aB, pols, huid);
+  // de onderarm loopt schuin naar de rechteronderhoek uit beeld, net als bij het pistool
   const mouw = buisGeo(0.038, 0.043, 0.44, 0, 0, 0, 16);
-  mouw.rotateZ(0.06); mouw.rotateY(0.34); mouw.rotateX(-0.20); mouw.translate(0.100, -0.060, 0.360);
+  mouw.rotateZ(0.06); mouw.rotateY(0.34); mouw.rotateX(-0.42); mouw.translate(0.105, -0.135, 0.330);
   vorm(aB, mouw, stof);
   groep.add(bouw(aB, new THREE.Group()));
 
-  const RUST = { x: 0.17, y: -0.15, z: -0.40 };
+  const RUST = { x: 0.19, y: -0.185, z: -0.44 };
   groep.position.set(RUST.x, RUST.y, RUST.z);
   let steekT = 0, terugslag = 0;
 
