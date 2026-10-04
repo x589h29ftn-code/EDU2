@@ -136,6 +136,8 @@ const avond = await page.evaluate(() => {
   window.__klik();
   const auto = v.avond.auto;
   P.inCar = auto;
+  // (instappen: dan begint de achtervolging)
+  for (let t = 0; t < 4 && v.fase !== 'achtervolging'; t += 0.05) { window.__stap(1); if (!window.__dicht()) v.toets(); }
   for (let t = 0; t < 200 && v.fase === 'achtervolging'; t += 0.1) {
     const r = v.avond.rit;
     if (r) { auto.x = r.x; auto.z = r.z; P.pos.set(r.x, 0, r.z); }
