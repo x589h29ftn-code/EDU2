@@ -175,17 +175,23 @@ ok(npcw.geweer.punten > 500, 'geen blokjes meer: afgeronde randen', `${npcw.gewe
 kop('voetgangers steken over');
 const steek = await page.evaluate(() => {
   const g = window.__game, N = g.npcs;
-  const p = N.people.find(q => q.alive && !q.slaapt && q.seg && q.seg.drive);
-  if (!p) return null;
+  // iemand aan het eind van een stuk stoep langs een rijweg, steeds opnieuw
+  const p = N.people.find(q => q.alive && q.seg);
+  const seg0 = (N.segs || []).find(q => q.drive && N.buren(q.b, q).some(c => c.drive));
+  if (!p || !seg0) return { geen: !p ? 'persoon' : 'rijweg' };
+  const magWas = N.magOversteken;
+  N.magOversteken = null;               // (geen verkeer: dan mag hij altijd)
   let sprong = 0, over = 0, n = 0;
   for (let i = 0; i < 400; i++) {
-    p.paniek = 0; p.steek = 0;
+    p.seg = seg0; p.t = 1; p.dir = 1; p.paniek = 0; p.steek = 0;
     const zij = p.side;
     N.pickSegment(p);
     n++;
     if (p.side !== zij && !(p.steek > 0)) sprong++;
     if (p.steek > 0) over++;
   }
+  N.magOversteken = magWas;
+  p.steek = 0;
   return { sprong, over, n };
 });
 ok(steek && steek.sprong === 0, 'nooit meer in één beeld naar de overkant', JSON.stringify(steek));
