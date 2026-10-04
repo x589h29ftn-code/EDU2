@@ -7285,8 +7285,8 @@ Spannenburg op de borden, niet langer dan nu; het muziekje van de intro in de he
 fade in en rustige fade out; en ronde 3 van de steekproef, de speelelementen van missie 1 tot 5.
 
 **De intro**
-- Beeld 9 (`js/intro.js`) is nu een **kraan** (`soort: 'kraan'`): van 2,4 m op het gras, schuin voor een
-  bord van Radio Spannenburg aan de overkant van de tribune, in 6,0 s naar 26 m boven de middenlijn.
+- Beeld 9 (`js/intro.js`) is nu een **kraan** (`soort: 'kraan'`): van 2,3 m op het gras, acht meter schuin
+  voor een bord van Radio Spannenburg aan de overkant van de tribune, in 6,0 s naar 26 m boven de middenlijn.
   De andere beelden draaien om een punt (`omheen`) of vliegen erop af (het viaduct); deze trekt terug en
   stijgt, en kijkt de hele tijd dezelfde kant op.
 - De Spannenburg-borden stonden er al (om de vijf borden, `SPANNENBURG_STAP`). Waar ze staan rekende
@@ -7331,7 +7331,17 @@ fade in en rustige fade out; en ronde 3 van de steekproef, de speelelementen van
 komt er eerst het alarm (de wagen staat ver van de poort): de proef klikt dat weg, haalt de ster weg en
 klikt het gesprek door.
 
-**Proeven**: `beginmissietest` (nieuw) en `introtest`; foto's met `beginmissieshots` (nieuw).
+- De eerste foto (`intro_voetbal_begin.png`) liet het bord als een strookje zien, vijftien meter verderop
+  tussen gras en bomen: het begin staat nu op acht meter.
+- Twee dingen uit het meten: `bronnen.heli` in js/audio.js was al het geluid van de politiehelikopter (het
+  muziekje heet nu `heliMuz`; de eerste proef gaf honderden paginafouten), en in deze container lopen de
+  audioklok en een mp3-element veel sneller dan de klok aan de muur (65 s muziek in een paar tellen), dus
+  `heliMuziekStand().ramps` zegt wat er gepland is en de proef toetst dat. De man in missie 1 zag je eerst
+  niet: wie het verst weg zit heeft de tafel en de stoelen (1,35 m) tussen zich en jou, en `Bewaking` keek
+  op 1,2 m; nu is er de optie `oog` (1,6 m voor hem).
+
+**Proeven**: `beginmissietest` (nieuw) en `introtest` groen, `verhaaltest` opnieuw; foto's met
+`beginmissieshots` (nieuw).
 
 **Wat nog niet af is** (in volgorde).
 

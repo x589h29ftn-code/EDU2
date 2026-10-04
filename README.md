@@ -4599,7 +4599,7 @@ viaduct. Welke weg dat is wordt opgezocht en niet ingetypt: het langste stuk
 rijbaan binnen zeventig meter van het hoogste punt dat dwárs op het dek ligt.
 
 **Beeld 9 is het voetbalveld** (stap 119; tot dan de Poiesz in IJlst). Weer een andere beweging: een kraan
-die terugtrekt. Hij begint op het gras, 2,4 meter hoog en dus boven de hoofden van de spelers, schuin voor
+die terugtrekt. Hij begint op het gras, 2,3 meter hoog en dus boven de hoofden van de spelers, acht meter schuin voor
 een bord van **Radio Spannenburg** aan de overkant van de tribune, en trekt dan in zes seconden achteruit
 en omhoog tot 26 meter boven de middenlijn, met de wedstrijd voor je. Hij kijkt de hele tijd dezelfde kant
 op, dus er zit geen zwaai in. Tijdens het filmpje speelt er altijd een wedstrijd, ook als het buiten de

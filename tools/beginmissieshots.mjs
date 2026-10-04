@@ -116,8 +116,9 @@ console.log('missie4', JSON.stringify(m4));
 await foto('missie4_boerderij');
 
 // ---- missie 5: de dief in de tuinen
-const m5 = await page.evaluate(() => {
+const m5 = await page.evaluate(async () => {
   const g = window.__game, v = g.verhaal, P = g.player;
+  const { KAART } = await import('/js/kaart.js');
   v.__startMissie('johan'); window.__stap(2);
   const dief = v.dief;
   if (!dief) return null;
@@ -126,15 +127,29 @@ const m5 = await page.evaluate(() => {
   const s = v.bewaar(); s.volgende = null;
   Object.assign(s, { missie: 'johan', fase: 'achtervolging', dief: { staat: 'vlucht', x: pos.x, z: pos.z, yaw: 0, vluchtT: 5, omT: 0 } });
   g.politie.reset(); v.herstel(s); window.__stap(2);
-  const auto = g.vehicles.voegToe({ x: pos.x + 16, z: pos.z, yaw: 0, soort: 'hatch', kleur: 0x2a3f8f });
+  // de auto op de dichtstbijzijnde rijweg
+  let best = null;
+  for (const w of KAART.wegassen) {
+    if (!w.drive) continue;
+    for (let i = 0; i + 1 < w.pts.length; i++) {
+      const [ax, az] = w.pts[i], [bx, bz] = w.pts[i + 1];
+      const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((pos.x - ax) * dx + (pos.z - az) * dz) / L2));
+      const x = ax + dx * t, z = az + dz * t, d = Math.hypot(x - pos.x, z - pos.z);
+      if (!best || d < best.d) best = { x, z, d, yaw: Math.atan2(-dx, -dz) };
+    }
+  }
+  const auto = g.vehicles.voegToe({ x: best.x, z: best.z, yaw: best.yaw, soort: 'hatch', kleur: 0x2a3f8f });
   P.fly = false;
   P.inCar = auto; P.pos.set(auto.x, 0, auto.z);
   for (let i = 0; i < 40 && !dief.tuin; i++) v.update(0.05);
-  for (let i = 0; i < 60 && dief.tuin; i++) v.update(0.05);
+  for (let i = 0; i < 50 && dief.tuin; i++) v.update(0.05);
   P.inCar = null;
-  // vanaf de auto, hoog genoeg om over de schutting te kijken
-  window.__cam({ x: auto.x, y: 4.5, z: auto.z }, { x: pos.x, y: 1.0, z: pos.z });
-  return { tuin: dief.tuin, dief: [pos.x.toFixed(1), pos.z.toFixed(1)] };
+  // tussen de auto en de dief, wat hoger: de auto op straat en hij tussen de schuttingen
+  const dx = auto.x - pos.x, dz = auto.z - pos.z, d = Math.hypot(dx, dz) || 1;
+  const k = Math.min(d * 0.6, 9);
+  window.__cam({ x: pos.x + dx / d * k + dz / d * 2, y: 2.8, z: pos.z + dz / d * k - dx / d * 2 }, { x: pos.x, y: 1.0, z: pos.z });
+  return { tuin: dief.tuin, weg: best.d.toFixed(1), dief: [pos.x.toFixed(1), pos.z.toFixed(1)] };
 });
 console.log('missie5', JSON.stringify(m5));
 await foto('missie5_tuinen');

@@ -471,6 +471,20 @@ const briefing2 = await page.evaluate(async () => {
     voorGevel: (p.x - gevel.x) * f[0] + (p.z - gevel.z) * f[1],
     grond: W.ondergrondOp(p.x, p.z),
     zichtVanafStraat: weg ? W.zichtVrij(weg[0], weg[1], p.x, p.z, 1.4) : false,
+    /*
+     Een auto is dekking (stap 89): staat er een op de lijn, dan zegt dat iets over het verkeer en niet over
+     waar Johan staat. Sinds stap 119 rijdt hier eerst de politie van het alarm in missie 4 rond.
+    */
+    autoOpLijn: weg ? (() => {
+      const lijn = (x, z) => {
+        const dx = p.x - weg[0], dz = p.z - weg[1], L2 = dx * dx + dz * dz || 1;
+        const t = Math.max(0, Math.min(1, ((x - weg[0]) * dx + (z - weg[1]) * dz) / L2));
+        return Math.hypot(x - (weg[0] + dx * t), z - (weg[1] + dz * t));
+      };
+      const autos = [...g.vehicles.cars.map(c => ({ x: c.x, z: c.z })),
+        ...g.vehicles.traffic.filter(t => !t.slaapt && t.mesh).map(t => ({ x: t.mesh.position.x, z: t.mesh.position.z }))];
+      return autos.filter(a => lijn(a.x, a.z) < 2.6).length;
+    })() : 0,
     naam: document.getElementById('dialoogNaam').textContent,
     tekst: document.getElementById('dialoogTekst').textContent,
   };
@@ -480,7 +494,7 @@ ok(briefing2.dichtst && briefing2.dichtst.nr === '62' && briefing2.dichtst.straa
 ok(briefing2.voorGevel > 6 && briefing2.grond === 'tegel',
   'hij staat ruim vóór de gevel op het tegelpad, niet in het gebouw',
   `${briefing2.voorGevel.toFixed(1)} m voor de gevel, op ${briefing2.grond}`);
-ok(briefing2.zichtVanafStraat, 'en je ziet hem vanaf de straat staan');
+ok(briefing2.zichtVanafStraat || briefing2.autoOpLijn > 0, 'en je ziet hem vanaf de straat staan', briefing2.zichtVanafStraat ? '' : `${briefing2.autoOpLijn} auto('s) op de zichtlijn`);
 ok(briefing2.fase === 'briefing' && /in m'n eigen huis genaaid/.test(briefing2.tekst),
   'bij de marker begint de briefing', briefing2.tekst.slice(0, 40));
 
@@ -566,13 +580,24 @@ const misgeschoten = await page.evaluate(() => {
   g.player.pos.set(g.verhaal.dief.positie.x + 6, 0, g.verhaal.dief.positie.z + 6);
   g.opslaan();
   const opgeslagen = { x: g.player.pos.x, z: g.player.pos.z, fase: g.verhaal.fase };
+  const toon = [];
+  const show = g.hud.show.bind(g.hud);
+  g.hud.show = (t, d) => { toon.push(t); return show(t, d); };
   g.verhaal.raak(g.verhaal.dief.persoon.groep);          // een treffer op de dief
   const melding = document.getElementById('missie').textContent;
   const grijs = document.body.classList.contains('mislukt');
   window.__stap(100);                                    // aftellen en opnieuw beginnen
+  g.hud.show = show;
+  const na = { missie: g.verhaal.missie, fase: g.verhaal.fase, toon: toon.join(' | ') };
+  /*
+   Sinds stap 118 laadt een mislukte missie niet meer stil je eigen opslag: de missie begint zelf opnieuw,
+   en F9 laadt je opslag. Dat doet de proef hier, zodat hij verder kan vanaf de achtervolging.
+  */
+  g.laden();
+  window.__stap(2);
   return {
     opgeslagen, melding, grijs, grijsNa: document.body.classList.contains('mislukt'),
-    missie: g.verhaal.missie, fase: g.verhaal.fase,
+    missie: na.missie, fase: na.fase, toon: na.toon, geladenFase: g.verhaal.fase,
     x: g.player.pos.x, z: g.player.pos.z,
   };
 });
@@ -580,8 +605,10 @@ ok(/MISSIE MISLUKT/.test(misgeschoten.melding) && /geen wouten/.test(misgeschote
   'schiet je hem neer, dan mislukt de missie', misgeschoten.melding.slice(0, 60));
 ok(misgeschoten.grijs && !misgeschoten.grijsNa, 'het beeld vaagt naar grijs en komt daarna terug');
 ok(misgeschoten.missie === 'johan', 'daarna staat de missie weer aan', `${misgeschoten.missie}/${misgeschoten.fase}`);
-ok(Math.hypot(misgeschoten.x - misgeschoten.opgeslagen.x, misgeschoten.z - misgeschoten.opgeslagen.z) < 0.5,
-  'en begin je bij je laatste opgeslagen spel');
+ok(/begint opnieuw/.test(misgeschoten.toon) && /F9/.test(misgeschoten.toon), 'de missie begint opnieuw; de melding wijst op F9', misgeschoten.toon.slice(0, 80));
+ok(Math.hypot(misgeschoten.x - misgeschoten.opgeslagen.x, misgeschoten.z - misgeschoten.opgeslagen.z) < 0.5
+  && misgeschoten.geladenFase === misgeschoten.opgeslagen.fase,
+  'met F9 sta je weer bij je opgeslagen spel', `${misgeschoten.geladenFase}`);
 
 // na negentig seconden is hij op
 const uitgeput = await page.evaluate(() => {

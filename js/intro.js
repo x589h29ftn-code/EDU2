@@ -311,7 +311,7 @@ function maakBeelden(KAART, start) {
    en dit beeld duurt precies zo lang: het filmpje blijft gelijk met de muziek).
 
    Een ander soort beeld dan de rest: geen zwenk om een punt en geen vlucht erop af, maar een kraan die
-   terugtrekt. Hij begint op het gras, boven de hoofden van de spelers, recht voor een bord van Radio
+   terugtrekt. Hij begint op het gras, boven de hoofden van de spelers, acht meter voor een bord van Radio
    Spannenburg (een kwart van loodrecht, anders lees je het niet), en trekt dan achteruit en omhoog over
    het veld tot de hele wedstrijd in beeld is, met de borden aan de overkant. Hij kijkt de hele tijd
    dezelfde kant op, dus er zit geen zwaai in. js/main.js laat de wedstrijd tijdens de intro spelen.
@@ -319,12 +319,13 @@ function maakBeelden(KAART, start) {
   if (P.voetbal && P.voetbal.bord) {
     const F = P.voetbal, b = F.bord, s = F.s;
     // van een kwart voor het bord tot boven de middenlijn aan de kant van de tribune, met het veld voor je
-    const van = F.w(b.u - 6.4, s * (F.hb - 12)), naar = F.w(0, -s * (F.hb - 6));
+    // (acht meter van het bord: op vijftien meter was het een strookje tussen gras en bomen)
+    const van = F.w(b.u - 3.4, s * (F.hb - 5.5)), naar = F.w(0, -s * (F.hb - 6));
     const kVan = F.w(b.u, s * (F.hb + 1.6)), kNaar = F.w(0, s * F.hb * 0.4);
     rij.push({
       duur: 6.0, ease: soepel, soort: 'kraan',
-      van: { x: van.x, y: 2.4, z: van.z }, naar: { x: naar.x, y: 26, z: naar.z },
-      kijkVan: { x: kVan.x, y: 0.6, z: kVan.z }, kijkNaar: { x: kNaar.x, y: 0, z: kNaar.z },
+      van: { x: van.x, y: 2.3, z: van.z }, naar: { x: naar.x, y: 26, z: naar.z },
+      kijkVan: { x: kVan.x, y: 0.45, z: kVan.z }, kijkNaar: { x: kNaar.x, y: 0, z: kNaar.z },
     });
   } else if (P.poiesz) rij.push(omheen(P.poiesz, { basis: P.poiesz.hoek, straal: 48, hoogte: 13, van: 0.35, tot: -0.25, kijkY: 4, duur: 6.0 }));
 

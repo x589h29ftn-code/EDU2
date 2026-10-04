@@ -232,7 +232,7 @@ if (!veld.geen && !veld.geenBeeld) {
   ok('het begint laag en eindigt hoog: een kraan', veld.y0 < 3 && veld.y1 > 20, `${veld.y0.toFixed(1)} → ${veld.y1.toFixed(1)} m`);
   ok('altijd boven de hoofden van de spelers', veld.laagst > 2.2, `${veld.laagst.toFixed(2)} m`);
   ok('zonder zwaai: de kijkrichting draait weinig', veld.draai < 60, `${veld.draai.toFixed(0)}°`);
-  ok('bij het begin het bord van Radio Spannenburg in beeld, van voren', veld.bordIn && veld.bordAfstand < 16 && veld.schuin < 55,
+  ok('bij het begin het bord van Radio Spannenburg in beeld, van voren', veld.bordIn && veld.bordAfstand < 10 && veld.schuin < 55,
     `${veld.bordAfstand.toFixed(1)} m, ${veld.schuin.toFixed(0)}° uit het midden`);
   ok('aan het eind de wedstrijd in beeld: het midden en de overkant tot in de hoeken', veld.veldIn >= 3, `${veld.veldIn} van 5 punten`);
   ok('tijdens de film speelt er een wedstrijd, ook om acht uur \'s avonds', veld.aanwezig && veld.zichtbaar, `aanwezig ${veld.aanwezig}, zichtbaar ${veld.zichtbaar}`);
