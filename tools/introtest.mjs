@@ -214,8 +214,12 @@ const veld = await page.evaluate(async () => {
     zet((t0 + t1) / 2);
     for (let i = 0; i < 10; i++) g.wedstrijdInFilm(0.1);
     aanwezig = W.aanwezig; zichtbaar = W.groep.visible;
-    zet((t0 + t1) / 2);
-    spelers = W.spelers.filter(s => { const q = s.p.groep.position; return inBeeld(q.x, q.y + 1, q.z); }).length;
+    // op vijf momenten van het beeld: hoeveel spelers staan er in beeld (het meeste telt)
+    for (const u of [0.2, 0.4, 0.6, 0.8, 1]) {
+      zet(t0 + (t1 - t0) * u);
+      const n = W.spelers.filter(s => { const q = s.p.groep.position; return inBeeld(q.x, q.y + 1, q.z); }).length;
+      spelers = Math.max(spelers, n);
+    }
     g.sfeer.uur = uurWas;
   }
   return { totaal, duur: t1 - t0, y0: b0.pos.y, y1: b1.pos.y, bordIn, bordAfstand, schuin, laagst, draai: draai * 180 / Math.PI,
