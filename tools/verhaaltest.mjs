@@ -380,6 +380,16 @@ const afgeleverd = await page.evaluate(() => {
   truck.mesh.position.set(truck.x, 0, truck.z);
   g.player.pos.set(truck.x, 0, truck.z);
   window.__stap(20);
+  /*
+   Sinds stap 119 belt de bewaking de politie zodra je met de vrachtwagen van het terrein af bent, en wacht
+   Mark bij de boerderij niet op zwaailichten: eerst de sterren weg, dan het gesprek, dan € 500.
+  */
+  const dicht = () => document.getElementById('dialoog').hidden;
+  for (let i = 0; i < 6 && !dicht(); i++) { g.verhaal.toets(); window.__stap(2); }
+  if (g.politie && g.politie.reset) g.politie.reset();
+  window.__stap(10);
+  for (let i = 0; i < 10 && !dicht(); i++) { g.verhaal.toets(); window.__stap(2); }
+  window.__stap(10);
   return {
     missie: g.verhaal.missie, fase: g.verhaal.fase,
     melding: document.getElementById('missie').textContent,

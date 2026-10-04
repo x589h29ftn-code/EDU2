@@ -84,6 +84,8 @@ const filmbeeld = async (naam, t) => {
     W.updateLOD(b.pos.x, b.pos.z); g.vehicles.lod(b.pos.x, b.pos.z);
     if (g.grasVeld) g.grasVeld.update(b.pos.x, b.pos.z, true);
     g.zetSchaduwDoos(b.kijk.x, b.kijk.z);
+    // de wedstrijd bij VV Sneek speelt in de film (stap 119)
+    if (g.wedstrijdInFilm) for (let i = 0; i < 10; i++) g.wedstrijdInFilm(0.05);
     document.getElementById('ui').style.display = 'none';
     // de filmlaag met de balken en de titel erbij
     const laag = document.getElementById('intro');
@@ -127,7 +129,7 @@ const momenten = await page.evaluate(async () => {
   return midden;
 });
 const namen = ['intro_lucht', 'intro_molenkrite', 'intro_jumbo', 'intro_bosje', 'intro_viaduct',
-  'intro_rwzi', 'intro_geeuw', 'intro_molen', 'intro_poiesz', 'intro_erik'];
+  'intro_rwzi', 'intro_geeuw', 'intro_molen', 'intro_voetbal', 'intro_erik'];
 for (let i = 0; i < momenten.length; i++) {
   await filmbeeld(namen[i] || `intro_${i}`, momenten[i]);
 }

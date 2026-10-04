@@ -201,6 +201,8 @@
     "ramentest": "node tools/ramentest.mjs",
     "opslagtest": "node tools/opslagtest.mjs",
     "opzettest": "node tools/opzettest.mjs",
+    "beginmissietest": "node tools/beginmissietest.mjs",
+    "beginmissieshots": "node tools/beginmissieshots.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",
     "tempotest": "node tools/tempotest.mjs"

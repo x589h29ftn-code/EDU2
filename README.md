@@ -1518,6 +1518,13 @@ Daarna loopt hij de Molenkrite over naar het gezelschap dat schuin tegenover, in
 
 ![De opdracht](docs/screenshots/molenkrite15_bevel.png)
 
+**Ze laten zich niet allemaal zomaar omleggen** (stap 119). Na je eerste treffer springt de man die het
+verst van je af zit op, laat een lege tuinstoel achter en trekt een pistool. Mark roept *"Kijk uit, die
+gele heeft een blaffer!"* (of rode, blauwe, groene). Hij schiet terug, zwak (het is je eerste keer
+schieten), en één treffer legt hem neer; hij telt als een van de vier.
+
+![De man die opspringt](docs/screenshots/missie1_opspringer.png)
+
 ### 2 · Naar de waterzuivering
 
 Als alle vier neer zijn vertelt Mark wat hij van De Veteraan gehoord heeft: bij de waterzuivering is
@@ -1526,6 +1533,9 @@ kaart (**M**) wijzen de route naar de rioolwaterzuivering aan de Buitenroede: ee
 straten en een gele vlag op de bestemming.
 
 ![De route op de kaart](docs/screenshots/kaart_route.png)
+
+Onderweg praat Mark (stap 119): om de tien tellen een zin over wat er komen gaat, de vrachtwagen, de
+bewaking ("betaald, niet trouw"), de boerderij. Vlak bij de poort houdt hij zijn mond.
 
 ### 3 · De bewaking
 
@@ -1547,8 +1557,14 @@ hieronder). Na elke missie is je leven weer vol.
 ### 4 · Afleveren bij de boerderij
 
 Liggen alle vijf neer, dan schuift de poort open en kun je de vrachtwagen pakken en het terrein
-afrijden. De kaart navigeert dan naar de boerderij in de zuidwesthoek van het gebied. Zet de wagen
-bij de schuur en de klus is klaar:
+afrijden. De kaart navigeert dan naar de boerderij in de zuidwesthoek van het gebied.
+
+**Alarm, en Mark bij de boerderij** (stap 119). Ben je met de vrachtwagen 110 meter van de poort, dan
+heeft de bewaking de politie gebeld: één ster, en Mark belt het door. Hij wacht bij de boerderij, voor
+de schuur, maar *"niet met die zwaailichten hierheen"*: met een ster lever je niet af, dus eerst kwijtraken
+(of overspuiten). Zonder sterren zet je de wagen bij de schuur, Mark praat en geeft je **€ 500**:
+
+![Mark wacht bij de boerderij](docs/screenshots/missie4_boerderij.png)
 
 ![Mission completed](docs/screenshots/boerderij_afgeleverd.png)
 
@@ -1581,8 +1597,14 @@ rennen:
 
 ![De dief van De Wieken 27](docs/screenshots/dief_wieken.png)
 
-Hij rent net iets langzamer dan je sprint (shift), dus je loopt hem langzaam in — en na anderhalve
-minuut is hij op en wankelt hij verder. Onder de achtervolging loopt een **spannend deuntje**: een
+Hij rent langzamer dan je sprint (shift; 6,7 tegen 7,5 m/s), dus je loopt hem in — en na anderhalve
+minuut is hij op en wankelt hij verder. **Met een auto achter hem aan duikt hij de tuinen in** (stap 119):
+naar een achterpad of voetpad minstens zes meter van de rijweg, over een looproute om de huizen heen en
+over lage schuttingen en heggen. *"Met je bak achter me aan?! Kom maar door de tuinen dan, eikel!"*
+Daar moet je hem te voet achterna.
+
+![De dief in de tuinen](docs/screenshots/missie5_tuinen.png)
+ Onder de achtervolging loopt een **spannend deuntje**: een
 jachtende achtstenbas in d-klein met een dreigende halve toon erboven, die aanzwelt zodra hij het op
 een lopen zet en uitdooft als je hem hebt (of als je hem neerschiet). Schiet je hem neer, dan vaagt
 het beeld naar grijs met **MISSIE MISLUKT** en begin je bij je laatste opgeslagen spel.
@@ -2432,6 +2454,9 @@ boven de loods. Bouwman ziet de heli en rijdt weg.
   je Tinga met de straatlantaarns. Rondkijken gaat zo ver als de deur open is.
 - **Wiebe vliegt rustig**, op 34 m boven de grond (ruim boven elk dak), naast Bouwman en met de deur
   naar hem toe. Het zoeklicht staat op zijn politieauto.
+- **Het muziekje van de intro** speelt in de heli (stap 119): het zwelt in vier seconden aan als je in de
+  deur zit, en dooft in zeven seconden rustig uit als je bij het Autohuis uitstapt (of als het nummer
+  bijna op is). De spanningsmuziek van de missie zwijgt zolang.
 - **Schieten** raakt, je ziet het in de balk ("Bouwman · 3 treffers"), maar hij stopt niet. Bij de
   **BP** duikt hij onder de luifel en stapt over in een tweede auto.
 - Wiebe zet je neer bij het **Autohuis**. Daar staan **Mark en Johan** bij een **zwarte Ferrari**.
@@ -4534,7 +4559,8 @@ zijn.
 
 Een nieuw spel begint met een filmpje van **65 seconden**, precies zo lang als
 het muziekje eronder (`audio/intro/intro.mp3`, dat aan het eind uitfadet). Tien
-rustige beelden, elk een seconde of zeven:
+rustige beelden, elk een seconde of zeven (hetzelfde muziekje komt nog één keer terug: in de heli van
+missie 18):
 
 | # | Wat je ziet |
 |---|---|
@@ -4546,7 +4572,7 @@ rustige beelden, elk een seconde of zeven:
 | 6 | de waterzuivering met zijn bassins |
 | 7 | de Geeuw door IJlst |
 | 8 | houtzaagmolen De Rat aan het Sneekerpad |
-| 9 | de Poiesz in IJlst, laag langs de pui |
+| 9 | het hoofdveld van VV Sneek, waar de wedstrijd speelt: een kraan die bij een bord van Radio Spannenburg begint en omhoog over het veld trekt |
 | 10 | de daling naar het standpunt waar je begint |
 
 Daaroverheen de titels, met een fade: **RED EAGLE PRODUCTIONS** (acht seconden)
@@ -4571,6 +4597,16 @@ meter hoogte. De boog van het Viaduct Tinga staat dan dwars in beeld — langs h
 dek zelf zie je alleen asfalt dat wat oploopt, en dat leest niet als een
 viaduct. Welke weg dat is wordt opgezocht en niet ingetypt: het langste stuk
 rijbaan binnen zeventig meter van het hoogste punt dat dwárs op het dek ligt.
+
+**Beeld 9 is het voetbalveld** (stap 119; tot dan de Poiesz in IJlst). Weer een andere beweging: een kraan
+die terugtrekt. Hij begint op het gras, 2,4 meter hoog en dus boven de hoofden van de spelers, schuin voor
+een bord van **Radio Spannenburg** aan de overkant van de tribune, en trekt dan in zes seconden achteruit
+en omhoog tot 26 meter boven de middenlijn, met de wedstrijd voor je. Hij kijkt de hele tijd dezelfde kant
+op, dus er zit geen zwaai in. Tijdens het filmpje speelt er altijd een wedstrijd, ook als het buiten de
+speeltijd valt (`wedstrijdInFilm` in js/main.js). Het beeld duurt even lang als dat van de Poiesz, dus de
+film blijft 65,3 seconden, gelijk met de muziek. Welk bord het is wordt opgezocht (`bordPlekken` in
+js/sportveld.js): het bord van Radio Spannenburg aan de overkant dat het dichtst bij een derde van de
+halve lengte staat.
 
 **Niet door daken en kruinen heen.** Alles wat van boven gefilmd wordt zit op
 minstens 24 meter, hoger dan de bomen (18 m), de molen (20,7 m) en de hoogste
@@ -4603,7 +4639,9 @@ met de hoogte mee.
 
 ![Houtzaagmolen De Rat](docs/screenshots/intro_molen.png)
 
-![De Poiesz in IJlst](docs/screenshots/intro_poiesz.png)
+![Het begin van het beeld bij VV Sneek: een bord van Radio Spannenburg](docs/screenshots/intro_voetbal_begin.png)
+
+![En het eind: boven de middenlijn](docs/screenshots/intro_voetbal_eind.png)
 
 ### Erik heeft nog geen wapen
 

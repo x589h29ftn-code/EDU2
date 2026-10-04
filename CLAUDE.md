@@ -57,7 +57,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/politie.js` | sterren, onderscheppen, wegversperring, helikopter |
 | `js/vehicles.js` | geparkeerde auto's, verkeer (over `gladPad`: gladde lijn, remmen voor de bocht, keren), rijgedrag, `voegToe()` |
 | `js/npc.js` | voetgangers en fietsers op wegvakken |
-| `js/audio.js` | alles synthetisch, plus de mp3-radio (`autoradio(actief, sterkte)`) en het schot als opname (`schot(afstand, { wapen, bron })`, `SCHOT` per wapen, afkappen per bron, `zetSchotSoort`) |
+| `js/audio.js` | alles synthetisch, plus het muziekje van de intro in de heli van missie 18 (`heliMuziek(actief)`, `HELI_MUZIEK`: 4 s aanzwellen, 7 s uit, stap 119), de mp3-radio (`autoradio(actief, sterkte)`) en het schot als opname (`schot(afstand, { wapen, bron })`, `SCHOT` per wapen, afkappen per bron, `zetSchotSoort`) |
 | `js/hud.js` | minimap (bijzondere plekken op de rand: `opRand` in `drawMap`), grote kaart met legenda (`zetLegenda`, iconen per soort in `HUD.PICTO`) en een eigen doel (`kaartKlik`, `zetEigenNav`, paars), meldingen, vlaggen |
 | `js/bewaking.js` | schutters: bewaking, de bende van missie 7 en 10 (met opties; `leven` en `mg` sinds stap 110: taaier volk en machinegeweren in salvo's) |
 | `js/looppad.js` | een looproute te voet om hekken en gebouwen heen (A*) |
@@ -78,7 +78,8 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
 | `js/klusjes.js` | klusjes tussen de missies door: Mark of Johan met een K op de kaart, tas, auto, overspuiten, omleggen (€ 250–1000) |
 | `js/studio.js` | missie 18: Radio Tinga aan de Tinga — de zendmast op het dak, de zuil, ON AIR, en de studio als binnenruimte naar een foto (gebogen bureau, schermen, mengpanelen met usb-poort en schuif, de dj Sjors); `plekken`, `bijTafel`, `zetUsb`, `zetSchuif`, `zetOnAir`, `zetSlot` |
 | `js/rondvlucht.js` | missie 18, de avond: de heli van Wiebe (model uit js/helikopter.js, `bouwHeli`), Erik in de open deur, de buitencamera (`camera`, `begrens`), rustig volgen (`volg`: afstand en deur naar het doel, `RONDVLUCHT.versnel`), `landNaar`, het zoeklicht als kegel (`richtLicht`) |
-| `js/wedstrijd.js` | de wedstrijd op het hoofdveld van VV Sneek, elke dag 12–15 uur: twee elftallen (4-4-2), keepers, scheids, publiek (tribune in houders), de bal; komen en gaan alleen uit beeld (`zieJe`); `aanrijden`, `raak`, `slachtoffers`; js/main.js `werkWedstrijdBij` met `wedDag` |
+| `js/intro.js` | het filmpje bij een nieuw spel: tien beelden via `beeldOp(t)` (de camera op seconde t, met `soort`), plekken uit de kaart (`zoekPlekken`; sinds stap 119 `voetbal`: het hoofdveld met een bord van Radio Spannenburg, `bordPlekken` uit js/sportveld.js), 65,3 s gelijk met `audio/intro/intro.mp3` |
+| `js/wedstrijd.js` | de wedstrijd op het hoofdveld van VV Sneek, elke dag 12–15 uur: twee elftallen (4-4-2), keepers, scheids, publiek (tribune in houders), de bal; komen en gaan alleen uit beeld (`zieJe`); `aanrijden`, `raak`, `slachtoffers`; js/main.js `werkWedstrijdBij` met `wedDag`, en tijdens de intro `wedstrijdInFilm` (altijd een wedstrijd, gerekend vanaf de camera) |
 | `js/ambulance.js` | de ambulance (stap 112): sinds stap 116 een eigen model (`ambulanceGeoms` in js/carmodel.js, soort 'ambulance', `maat.amb` zegt waar de zijden liggen) met de beplakking als doorzichtige doeken (`zijDoek`, `kapDoek`, `achterDoek`), zes zwaailichten met `maakGloed` uit js/politie.js, twee verpleegkundigen; `melding(x, z, wie)` met kans `AMB.kans` en rust `AMB.rust`, de rit over `lijnDoor`/`rijdVlucht`, knielen, `herstel` of een voetganger weer `alive`; js/main.js `ambulanceMelding` |
 | `js/nieuws.js` | het nieuws op Radio Tinga (stap 112): `meld(soort, x, z)` uit js/main.js, na `NIEUWS.vertraag` voorgelezen als je naar Radio Tinga luistert (`update(dt, luistert)`), met de straat (`nearestRoadName`) en de muziek zachter (`demp`) |
 | `js/leven.js` | stap 113: het tuinfeest (`FEEST`: kans per 45 s, een tegelvlak uit `tuinvlakken`, gasten, lampionnen, `geluid.feestTik`), de pizzascooter (`PIZZA`: Pizzeria Sneek of Cappadocia, over `lijnDoor` naar een adres uit `huisnummers`, `geluid.brommer`) en de plezierboot op de Geeuw (`BOOT`, `bouwSloep`, `vaarRoute(…, { dun: 1 })`); `doelen`, `raak`, `aanrijden`, `schrik` vanuit js/main.js |
@@ -117,11 +118,11 @@ Street View-link erbij.
 
 ## 5 · De missies
 
-1. Molenkrite 15 — kennismaking met Mark
-2. naar de waterzuivering — rijden
+1. Molenkrite 15 — kennismaking met Mark (sinds stap 119 springt er na de eerste treffer een op en schiet terug: `springOp`, een `Bewaking` van één man)
+2. naar de waterzuivering — rijden (Mark praat onderweg: `RIJDEN_ONDERWEG`)
 3. de bewaking
-4. afleveren bij de boerderij — vrachtwagen
-5. het telefoontje van Johan — achtervolging te voet
+4. afleveren bij de boerderij — vrachtwagen (110 m van de poort een ster, `AFLEVER_ALARM`; Mark wacht bij de schuur, `markBijDeBoerderij`; zonder sterren € 500)
+5. het telefoontje van Johan — achtervolging te voet (de dief 6,7 m/s; met een auto achter hem aan de tuinen in: `TUIN` en `kiesTuin` in js/dief.js, `tuinPuntenBij` in js/verhaal.js)
 6. de groene BX — stelen en overspuiten
 7. de bom bij de Poiesz — Duinterpen
 8. de deal bij de molen — sniper en boten
@@ -320,7 +321,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run opzettest` (de opzet voor een nieuwe speler: de besturing in het menu, Spel laden met datum, een onleesbare opslag, Start spel vraagt eerst, Opslaan in de pauze, een ander tabblad pauzeert, keuzeknoppen voor een aanraakscherm, een mislukte missie laadt niet je opslag, de uitleg bij het eerste checkpoint, geen voorwerpen in de rijbaan, geen 404; stap 118); `npm run opslagtest` (F5 niet in het menu, een gesprek of een filmbeeld; laden midden in een
+De laatste die ertoe doen: `npm run beginmissietest` (stap 119: missie 1 de man die opspringt en terugschiet, missie 2 Mark praat onderweg, missie 4 alarm, Mark bij de boerderij en € 500, missie 5 de dief langzamer te voet en de tuinen in voor een auto, het muziekje van de intro in de heli van missie 18 met fade in en fade out) met `beginmissieshots` (vijf foto's), en `npm run introtest` (sinds stap 119 ook het beeld bij VV Sneek: even lang als de Poiesz ervoor, een kraan, het bord van Radio Spannenburg, de wedstrijd in de film); `npm run opzettest` (de opzet voor een nieuwe speler: de besturing in het menu, Spel laden met datum, een onleesbare opslag, Start spel vraagt eerst, Opslaan in de pauze, een ander tabblad pauzeert, keuzeknoppen voor een aanraakscherm, een mislukte missie laadt niet je opslag, de uitleg bij het eerste checkpoint, geen voorwerpen in de rijbaan, geen 404; stap 118); `npm run opslagtest` (F5 niet in het menu, een gesprek of een filmbeeld; laden midden in een
 gesprek per missie, doorschuiven na missie 1–3, Johan na missie 4, missie 6, 8 en 9 midden, het geld van missie 7, checkpoints
 bij het begin van missie 2–6 en niet in een gesprek, een klus vóór missie 6, Doorgaan, shift + cijfer, blur; stap 117); `npm run ramentest` (de ramen 's avonds van dichtbij, oud tegen nieuw op dezelfde gevel: evenveel licht,
 minder harde sprongen, een kortere rand; maakt ramen_oud.png en ramen_nieuw.png; stap 116); `npm run uitjetest` (na het einde de M bij Molenkrite 15: de keuze, de wedstrijd op het
@@ -596,6 +597,8 @@ Kort; de volledige lijst met uitleg staat onderaan `docs/METHODIEK.md`.
 24. **Missie 18** staat er helemaal (stap 107 en 109). Uit het oude ontwerp niet gebouwd: de boot van
     Bouwman over de vaart en een wisseltoets tussen de deur en van buiten (de gebruiker koos de
     buitencamera). De ondertitels zijn samengevat uit de opdracht, niet woordelijk uit de mp3.
+25. Een `Bewaking` heeft geen vluchtgedrag: de man die in missie 1 opspringt schiet terug; wie wil dat er een
+    wegrent, bouwt dat in js/bewaking.js (stap 119 koos terugschieten).
 
 ## 8 · Waar wat gedocumenteerd wordt
 

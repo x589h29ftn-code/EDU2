@@ -9,14 +9,27 @@
  hij op en wankelt hij verder op wandeltempo. Kom je dan binnen armlengte, dan
  heb je hem.
 
+ Stap 119 (ronde 3 van de steekproef: "met een auto is het meteen voorbij"): te voet is hij iets
+ langzamer dan tot dan (6,7 tegen 7,3 m/s, zodat je hem in een kwart minuut inhaalt in plaats van in
+ een minuut), en komt er een auto op hem af, dan duikt hij de tuinen en steegjes in: naar een punt op
+ een voetpad ver van de rijweg (`tuinPunten`, uit js/verhaal.js), over een looproute om de huizen heen
+ (js/looppad.js), en over lage hekken en heggen heen (`TUIN_LAAG`). Daar moet je hem te voet achterna.
+
  De vluchtroutes komen uit js/navigatie.js: de graaf van alle wegassen en
  padassen uit de kaart. Hij kiest steeds een knoop ver weg, van jou af.
 */
 import { Persoon } from './persoon.js';
 import { resolveCollisions, zichtVrij } from './world.js';
+import { zoekLooppad } from './looppad.js';
 
 const SLENTER = 1.05;      // m/s over het trottoir
-const VLUCHT = 7.3;        // m/s — net iets minder dan de sprint van de speler (7,5)
+const VLUCHT = 6.7;        // m/s — minder dan de sprint van de speler (7,5); tot stap 119 7,3
+export const TUIN = {
+  auto: 32,                // m: een auto dichterbij dan dit, dan de tuinen in
+  van: 22, tot: 95,        // m: zo ver weg ligt het punt waar hij naartoe duikt
+  laag: 1.3,               // m: lagere hekken en heggen klimt hij over
+  rust: 4,                 // s na een tuinroute voor hij er weer een kiest
+};
 const UITGEPUT = 1.75;     // m/s als hij op is
 const OP_NA = 90;          // na zoveel seconden rennen is hij op
 const ZIET_JE = 15;        // op deze afstand kijkt hij om
@@ -28,8 +41,13 @@ export class Dief {
    post: {a:[x,z], b:[x,z]} – het stukje trottoir waar hij heen en weer slentert
    navigatie: js/navigatie.js, voor de vluchtroutes
   */
-  constructor(scene, { post, navigatie }) {
+  constructor(scene, { post, navigatie, tuinPunten = [] }) {
     this.scene = scene;
+    this.tuinPunten = tuinPunten;   // voetpaden ver van de rijweg (stap 119)
+    this.tuin = false;               // op een route door de tuinen
+    this.laag = 0;                   // botsdozen lager dan dit klimt hij over
+    this.tuinRust = 0;
+    this.tuinKeer = 0;
     this.post = post;
     this.nav = navigatie;
     this.persoon = new Persoon({
@@ -104,6 +122,33 @@ export class Dief {
     this.kiesT = 5 + Math.random() * 3;
   }
 
+  /*
+   De tuinen in: een punt op een voetpad, van de auto af, met een looproute erheen. Geeft true als het
+   lukt; dan loopt hij die route helemaal af voor hij weer over de straat kiest.
+  */
+  kiesTuin(auto) {
+    const pos = this.positie;
+    let wegX = pos.x - auto.x, wegZ = pos.z - auto.z;
+    const L = Math.hypot(wegX, wegZ) || 1;
+    wegX /= L; wegZ /= L;
+    const kandidaten = [];
+    for (const q of this.tuinPunten) {
+      const d = Math.hypot(q[0] - pos.x, q[1] - pos.z);
+      if (d < TUIN.van || d > TUIN.tot) continue;
+      kandidaten.push({ q, score: ((q[0] - pos.x) / d) * wegX + ((q[1] - pos.z) / d) * wegZ - d / 200 + Math.random() * 0.3 });
+    }
+    kandidaten.sort((a, b) => b.score - a.score);
+    for (const { q } of kandidaten.slice(0, 4)) {
+      const pad = zoekLooppad({ x: pos.x, z: pos.z }, { x: q[0], z: q[1] }, { laag: TUIN.laag });
+      if (pad && pad.length >= 2) {
+        this.route = pad; this.routeIdx = 1; this.tuin = true; this.laag = TUIN.laag; this.tuinKeer++;
+        return true;
+      }
+    }
+    this.tuinRust = TUIN.rust;
+    return false;
+  }
+
   // Lopen naar een punt; probeert er schuin langs als er iets in de weg staat.
   stap(doel, dt, snelheid) {
     const pos = this.positie;
@@ -116,14 +161,14 @@ export class Dief {
       const c = Math.cos(draai), si = Math.sin(draai);
       const rx = dx * c - dz * si, rz = dx * si + dz * c;
       const nx = pos.x + rx * s, nz = pos.z + rz * s;
-      const [kx, kz] = resolveCollisions(nx, nz, 0.32);
+      const [kx, kz] = resolveCollisions(nx, nz, 0.32, this.laag);
       if (Math.hypot(kx - nx, kz - nz) < 0.02) {
         pos.x = kx; pos.z = kz;
         this.persoon.draaiNaar(Math.atan2(-rx, -rz), dt, 8);
         return false;
       }
     }
-    const [kx, kz] = resolveCollisions(pos.x + dx * s, pos.z + dz * s, 0.32);
+    const [kx, kz] = resolveCollisions(pos.x + dx * s, pos.z + dz * s, 0.32, this.laag);
     pos.x = kx; pos.z = kz;
     return false;
   }
@@ -167,8 +212,15 @@ export class Dief {
     }
     const snelheid = rennen ? VLUCHT : UITGEPUT;
     this.kiesT -= dt;
+    this.tuinRust = Math.max(0, this.tuinRust - dt);
     const dichtbij = this.afstandTot(sp) < 9;
-    if (!this.route || this.routeIdx >= this.route.length || (this.kiesT <= 0 && dichtbij)) this.kiesRoute(sp);
+    // klaar met de tuinroute: weer gewoon over de straat
+    if (this.tuin && (!this.route || this.routeIdx >= this.route.length)) { this.tuin = false; this.laag = 0; this.tuinRust = TUIN.rust; }
+    // een auto komt eraan: de tuinen in (stap 119)
+    if (!this.tuin && rennen && speler.inCar && this.tuinRust <= 0 && this.tuinPunten.length && this.afstandTot(sp) < TUIN.auto) {
+      if (this.kiesTuin(sp)) melding = 'tuin';
+    }
+    if (!this.tuin && (!this.route || this.routeIdx >= this.route.length || (this.kiesT <= 0 && dichtbij))) this.kiesRoute(sp);
     if (this.route && this.routeIdx < this.route.length) {
       if (this.stap(this.route[this.routeIdx], dt, snelheid)) this.routeIdx++;
     } else {
@@ -195,6 +247,7 @@ export class Dief {
     this.persoon.zetNeer(s.x, s.z, s.yaw || 0);
     this.vluchtT = s.vluchtT || 0;
     this.route = null; this.routeIdx = 0; this.kiesT = 0; this.wacht = 0;
+    this.tuin = false; this.laag = 0; this.tuinRust = 0;
     this.omT = this.staat === 'gepakt' ? 1 : 0;
     this.persoon.legNeer(this.omT);
     this.persoon.groep.rotation.z = 0;
@@ -203,6 +256,7 @@ export class Dief {
   reset() {
     this.staat = 'slentert';
     this.naarB = true; this.wacht = 0; this.vluchtT = 0; this.route = null; this.routeIdx = 0; this.omT = 0;
+    this.tuin = false; this.laag = 0; this.tuinRust = 0; this.tuinKeer = 0;
     this.persoon.legNeer(0);
     this.persoon.groep.rotation.z = 0;
     this.persoon.zetNeer(this.post.a[0], this.post.a[1],

@@ -114,7 +114,7 @@ ok('even lang als het muziekje eronder',
   weg.duurMuziek == null ? 'muziekduur niet te lezen' : `film ${weg.totaal.toFixed(1)} s, muziek ${weg.duurMuziek.toFixed(1)} s`);
 for (const [naam, sleutel] of [['de Molenkrite', 'molenkrite'], ['de Jumbo', 'jumbo'], ['het Tinga-bosje', 'bosje'],
   ['het Viaduct Tinga', 'viaduct'], ['de waterzuivering', 'rwzi'], ['de Geeuw', 'geeuw'], ['de molen', 'molen'],
-  ['het Sneekerpad', 'sneekerpad'], ['de Poiesz in IJlst', 'poiesz']]) {
+  ['het Sneekerpad', 'sneekerpad'], ['het hoofdveld van VV Sneek', 'voetbal']]) {
   const p = weg.plekken[sleutel];
   ok(`${naam} is in de kaart gevonden`, !!p, p ? `(${p.x}, ${p.z})` : 'niet gevonden');
 }
@@ -159,6 +159,80 @@ if (viaduct) {
   ok('en zakt daarbij, maar blijft boven het dek',
     viaduct.yTot < viaduct.yVan && viaduct.laagst > viaduct.dek + 0.8,
     `${viaduct.yVan.toFixed(1)} → ${viaduct.yTot.toFixed(1)} m boven een dek van ${viaduct.dek.toFixed(1)} m`);
+}
+
+/*
+ Stap 119: het voorlaatste beeld is het hoofdveld van VV Sneek in plaats van de Poiesz. Een kraan die
+ terugtrekt: laag voor een bord van Radio Spannenburg, dan omhoog over het veld. Even lang als het beeld
+ van de Poiesz (6,0 s), dus de film blijft 65,3 s, net als de muziek.
+*/
+console.log('\nhet voetbalveld (stap 119)');
+const veld = await page.evaluate(async () => {
+  const THREE = await import('three');
+  const I = await import('/js/intro.js');
+  const { KAART } = await import('/js/kaart.js');
+  const g = window.__game, start = g.start, cam = g.camera;
+  const P = I.zoekPlekken(KAART, start);
+  const totaal = I.beeldOp(0, KAART, start).totaal;
+  const F = P.voetbal;
+  if (!F || !F.bord) return { geen: true, totaal };
+  let t0 = null, t1 = null;
+  for (let t = 0; t < totaal; t += 0.05) if (I.beeldOp(t, KAART, start).soort === 'kraan') { if (t0 === null) t0 = t; t1 = t; }
+  if (t0 === null) return { geenBeeld: true, totaal };
+  const zet = (t) => { const b = I.beeldOp(t, KAART, start); cam.position.set(b.pos.x, b.pos.y, b.pos.z); cam.lookAt(b.kijk.x, b.kijk.y, b.kijk.z); cam.updateMatrixWorld(); cam.updateProjectionMatrix(); return b; };
+  const fr = new THREE.Frustum(), m = new THREE.Matrix4();
+  const inBeeld = (x, y, z) => { m.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); fr.setFromProjectionMatrix(m); return fr.containsPoint(new THREE.Vector3(x, y, z)); };
+  const bw = F.w(F.bord.u, F.bord.v);
+  // het begin: het bord van Radio Spannenburg in beeld, dichtbij, en niet te schuin
+  const b0 = zet(t0 + 0.02);
+  const bordIn = inBeeld(bw.x, 0.55, bw.z);
+  const bordAfstand = Math.hypot(bw.x - b0.pos.x, bw.z - b0.pos.z);
+  // de voorkant van het bord kijkt naar het veld (normaal -s langs v), de camera moet daarvoor staan
+  const nx = -F.s * -Math.sin(F.veld.hoek), nz = -F.s * Math.cos(F.veld.hoek);
+  const rx = (b0.pos.x - bw.x) / (bordAfstand || 1), rz = (b0.pos.z - bw.z) / (bordAfstand || 1);
+  const schuin = Math.acos(Math.max(-1, Math.min(1, rx * nx + rz * nz))) * 180 / Math.PI;
+  // onderweg: laagste punt, en hoe ver de kijkrichting draait
+  let laagst = Infinity, yaw0 = null, draai = 0;
+  for (let t = t0; t <= t1; t += 0.1) {
+    const b = I.beeldOp(t, KAART, start);
+    laagst = Math.min(laagst, b.pos.y);
+    const yaw = Math.atan2(b.kijk.x - b.pos.x, b.kijk.z - b.pos.z);
+    if (yaw0 === null) yaw0 = yaw;
+    draai = Math.max(draai, Math.abs(((yaw - yaw0 + Math.PI * 3) % (Math.PI * 2)) - Math.PI));
+  }
+  // het eind: hoog, en het veld in beeld (het midden en de vier hoeken)
+  const b1 = zet(t1);
+  const hoeken = [[0, 0], [F.hl, F.hb], [F.hl, -F.hb], [-F.hl, F.hb], [-F.hl, -F.hb]].map(([u, v]) => F.w(u, v));
+  const veldIn = hoeken.filter(h => inBeeld(h.x, 0, h.z)).length;
+  // de wedstrijd speelt tijdens de film, ook buiten de speeltijd
+  const W = g.wedstrijd;
+  let spelers = 0, aanwezig = false, zichtbaar = false;
+  if (W) {
+    W.weg();
+    const uurWas = g.sfeer.uur;
+    g.sfeer.uur = 20;
+    zet((t0 + t1) / 2);
+    for (let i = 0; i < 10; i++) g.wedstrijdInFilm(0.1);
+    aanwezig = W.aanwezig; zichtbaar = W.groep.visible;
+    zet((t0 + t1) / 2);
+    spelers = W.spelers.filter(s => { const q = s.p.groep.position; return inBeeld(q.x, q.y + 1, q.z); }).length;
+    g.sfeer.uur = uurWas;
+  }
+  return { totaal, duur: t1 - t0, y0: b0.pos.y, y1: b1.pos.y, bordIn, bordAfstand, schuin, laagst, draai: draai * 180 / Math.PI,
+    veldIn, aanwezig, zichtbaar, spelers, bord: { u: F.bord.u, v: F.bord.v } };
+});
+ok('het voetbalveld en een bord van Radio Spannenburg gevonden', !veld.geen && !veld.geenBeeld, JSON.stringify(veld.bord || veld));
+if (!veld.geen && !veld.geenBeeld) {
+  ok('de film is niet langer dan hij was (65,3 s)', veld.totaal <= 65.3 + 1e-6, `${veld.totaal.toFixed(2)} s`);
+  ok('het beeld van het veld duurt zo lang als dat van de Poiesz (6,0 s)', Math.abs(veld.duur - 6.0) < 0.15, `${veld.duur.toFixed(2)} s`);
+  ok('het begint laag en eindigt hoog: een kraan', veld.y0 < 3 && veld.y1 > 20, `${veld.y0.toFixed(1)} → ${veld.y1.toFixed(1)} m`);
+  ok('altijd boven de hoofden van de spelers', veld.laagst > 2.2, `${veld.laagst.toFixed(2)} m`);
+  ok('zonder zwaai: de kijkrichting draait weinig', veld.draai < 60, `${veld.draai.toFixed(0)}°`);
+  ok('bij het begin het bord van Radio Spannenburg in beeld, van voren', veld.bordIn && veld.bordAfstand < 16 && veld.schuin < 55,
+    `${veld.bordAfstand.toFixed(1)} m, ${veld.schuin.toFixed(0)}° uit het midden`);
+  ok('aan het eind de wedstrijd in beeld: het midden en de overkant tot in de hoeken', veld.veldIn >= 3, `${veld.veldIn} van 5 punten`);
+  ok('tijdens de film speelt er een wedstrijd, ook om acht uur \'s avonds', veld.aanwezig && veld.zichtbaar, `aanwezig ${veld.aanwezig}, zichtbaar ${veld.zichtbaar}`);
+  ok('met spelers in beeld', veld.spelers >= 10, `${veld.spelers} van 22`);
 }
 
 ok('de camera vliegt nergens door een pand heen', weg.doorPand === 0, `${weg.doorPand} momenten`);

@@ -59,6 +59,8 @@ export class Bewaking {
                                           hij krijgt er een pistool bij
      terrein(x, z)                        waar ze op letten: alleen daar zien ze je (missie 15:
                                           het erf van de loods, niet de weg erlangs)
+     oog                                  de hoogte van hun kijklijn (standaard 1,2 m); missie 1:
+                                          1,6, de man die opspringt kijkt over de tafel en de stoelen
      rustig                               ze staan erbij en doen niets tot `rustig` weer
                                           uit gaat of er op ze geschoten wordt (missie 12:
                                           de lijfwachten bij de wegversperring)
@@ -78,6 +80,8 @@ export class Bewaking {
     this.overLaag = opties.overLaag || 0;
     this.houden = !!opties.houden;
     this.terrein = opties.terrein || null;
+    // de hoogte van de kijklijn (m): 1,2 is gebukt achter dekking; wie rechtop staat kijkt over een tafel (stap 119)
+    this.oog = opties.oog ?? 1.2;
     /*
      Taaier volk (stap 110, de bodyguards van Bouwman): `leven` is hoeveel treffers iemand kan
      hebben (een getal, of één per post), `mg` de posten met een machinegeweer. Die schieten in
@@ -270,7 +274,7 @@ export class Bewaking {
           while (d > Math.PI) d -= Math.PI * 2;
           while (d < -Math.PI) d += Math.PI * 2;
           if (Math.abs(d) < GEZICHTSVELD || this.alarm) {
-            zien = zichtVrij(pos.x, pos.z, sp.x, sp.z, 1.2, persoon.grond);
+            zien = zichtVrij(pos.x, pos.z, sp.x, sp.z, this.oog, persoon.grond);
           }
         }
         w.zicht = zien;

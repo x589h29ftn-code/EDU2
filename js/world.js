@@ -1085,6 +1085,8 @@ function roadClearance(px, pz) {
   return best;
 }
 // Ruimte tot aan de rijbaan-as van de dichtstbijzijnde weg (voor de diepte van de voortuin)
+// (en voor de dief van missie 5: waar een auto niet komt, stap 119)
+export function afstandTotRijweg(px, pz) { return distToNearestRoadEdge(px, pz); }
 function distToNearestRoadEdge(px, pz) {
   let best = 1e9;
   for (const sgm of roadSegments) {

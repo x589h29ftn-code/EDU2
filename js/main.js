@@ -18,7 +18,7 @@ import { inBouwvlak } from './bouwvlak.js';
 import { initBoten } from './boot.js';
 import { initSupermarkt, BIER } from './supermarkt.js';
 import { initStudio } from './studio.js';
-import { maakWedstrijd } from './wedstrijd.js';
+import { maakWedstrijd, WEDSTRIJD } from './wedstrijd.js';
 import { initAmbulance } from './ambulance.js';
 import { maakNieuws } from './nieuws.js';
 import { initLeven } from './leven.js';
@@ -826,6 +826,18 @@ function werkWedstrijdBij(dt) {
     if (sfeer.uur < 15) wedWas.uitslag = false;
   }
   wedWas.aanwezig = wedstrijd.aanwezig; wedWas.gestaakt = wedstrijd.gestaakt;
+}
+
+/*
+ De wedstrijd in de intro (stap 119): het voorlaatste beeld trekt over het hoofdveld van VV Sneek, en daar
+ hoort een wedstrijd te spelen, ook als het filmpje buiten de speeltijd valt of het veld nog niet in beeld is
+ geweest. Tijdens de intro rekent hij met de camera (de speler staat bij Molenkrite 15, meer dan 240 m weg)
+ en met een uur midden in de wedstrijd; daarna gaat alles weer volgens de klok.
+*/
+function wedstrijdInFilm(dt) {
+  if (!wedstrijd) return;
+  if (!wedstrijd.aanwezig) { wedstrijd.begin(); wedstrijd.st.dag = wedDag; }
+  wedstrijd.update(dt, { uur: (WEDSTRIJD.van + WEDSTRIJD.tot) / 2, dag: wedDag, camera, x: camera.position.x, z: camera.position.z });
 }
 
 /*
@@ -1854,6 +1866,7 @@ async function voorFilm() {
     if (grasVeld) grasVeld.update(b.pos.x, b.pos.z, true);
     zetSchaduwDoos(b.kijk.x, b.kijk.z);
     zetVoorvlak();
+    wedstrijdInFilm(0);
   };
   // één beeld per stuk film, op het midden ervan: zo komt elke plek één keer langs
   const midden = [];
@@ -2601,6 +2614,7 @@ function loop() {
       if (lodKlok > 0.12) { lodKlok = 0; updateLOD(cx, cz, { zacht: true }); vehicles.lod(cx, cz); if (grasVeld) grasVeld.update(cx, cz); lodFilmBij = { x: cx, z: cz }; }
       const k = intro.kijkNu();
       if (k) zetSchaduwDoos(k.x, k.z);
+      wedstrijdInFilm(dt);
     }
     updateClouds(dt, camera.position.x, camera.position.z);
     sfeer.update(dt, camera.position.x, camera.position.z);
@@ -2767,7 +2781,7 @@ window.__game = {
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   grasVeld, wolken: clouds,
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, studio, derde, politie,
-  wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, ambulance, nieuws, ambulanceMelding, inBeeld, leven,
+  wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, wedstrijdInFilm, ambulance, nieuws, ambulanceMelding, inBeeld, leven,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,
   // de keuzeknoppen voor een aanraakscherm (tools/opzettest.mjs: met `true` ook zonder aanraakscherm)

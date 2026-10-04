@@ -4,8 +4,9 @@
  Wat je ziet (verzoek 20 sep 2026, uitgebreid op de tweede ronde): een reeks
  rustige beelden langs de plekken die de wijk en de omgeving maken — de
  Molenkrite, de Jumbo, het Tinga-bosje, het Viaduct Tinga, de waterzuivering, de Geeuw,
- houtzaagmolen De Rat aan het Sneekerpad en de Poiesz in IJlst — en dan een
- daling naar precies het standpunt waar je het spel begint. Over het beeld heen
+ houtzaagmolen De Rat aan het Sneekerpad en het hoofdveld van VV Sneek, waar de
+ wedstrijd speelt — en dan een daling naar precies het standpunt waar je het spel
+ begint. Tot stap 119 was het voorlaatste beeld de Poiesz. Over het beeld heen
  de titels:
 
    RED EAGLE PRODUCTIONS   →   presents   →   GTA VI / TINGA
@@ -20,9 +21,10 @@
  Hoogte en clipping. Alles wat van boven gefilmd wordt zit op minstens dertig
  meter — hoger dan de bomen (18 m), de molen (20,7 m) en de hoogste flat van de
  kaart (26 m) — zodat de camera nergens door een dak of een kruin heen zakt. De
- drie lage beelden (de straat, het viaduct en de Poiesz) liggen op de rijbaan en
- op het parkeerterrein, waar niets staat: bij het viaduct vliegt de camera over
- de rondweg eronder, van elf naar zeven meter.
+ lage beelden (de straat, het viaduct en het begin bij het voetbalveld) liggen op
+ de rijbaan en op het gras, waar niets staat: bij het viaduct vliegt de camera over
+ de rondweg eronder, van elf naar zeven meter, en bij het veld begint hij boven de
+ hoofden van de spelers.
 
  De muziek staat in `audio/intro/`. Dat is, net als `audio/menu/` en
  `audio/radio/`, een bewuste uitzondering op de regel dat er geen
@@ -33,6 +35,8 @@
  van js/main.js tekent door, maar zet de camera niet terug zolang `bezig()` true
  is. Overslaan kan altijd met een toets, een klik of een tik.
 */
+
+import { bordPlekken } from './sportveld.js';
 
 let bezigNu = false;
 let tNu = 0, runs = 0;
@@ -160,6 +164,26 @@ function viaductVan(KAART, naam) {
 }
 
 /*
+ Het hoofdveld van VV Sneek, met een bord van Radio Spannenburg aan de overkant van de tribune (stap 119):
+ het bord dat het dichtst bij een derde van de halve lengte staat. Alles in het assenstelsel van het
+ veld (u langs, v dwars, js/wedstrijd.js); `w(u, v)` geeft de wereld.
+*/
+function voetbalVan(KAART) {
+  const V = (KAART.sportvelden || []).find(v => v.hoofd);
+  if (!V) return null;
+  const ex = Math.cos(V.hoek), ez = Math.sin(V.hoek);
+  const w = (u, v) => ({ x: V.cx + ex * u - ez * v, z: V.cz + ez * u + ex * v });
+  const kant = V.tribune ? V.tribune.kant : 1;
+  const hl = V.vl / 2, hb = V.vb / 2;
+  // de overkant: daar kijken de borden naar de tribune, en zie je die bij het opstijgen achter het veld
+  const s = -kant;
+  const borden = bordPlekken(V).filter(b => b.spannenburg && Math.sign(b.v) === s && Math.abs(Math.abs(b.v) - hb) < 3);
+  const bord = borden.sort((a, b) => Math.abs(a.u + hl * 0.3) - Math.abs(b.u + hl * 0.3))[0] || null;
+  const m = w(0, 0);
+  return { x: m.x, z: m.z, hl, hb, s, w, bord, veld: V };
+}
+
+/*
  Alles wat het filmpje aandoet, opgezocht in de kaart. Wat er niet is wordt
  stilletjes overgeslagen (`null`), zodat een kaart zonder molen of zonder Poiesz
  geen kapot filmpje geeft maar een kortere reeks.
@@ -174,6 +198,7 @@ export function zoekPlekken(KAART, start) {
     molenkrite: straatVan(KAART, 'Molenkrite'),
     jumbo: pandVan(KAART, 'jumbo'),
     poiesz: pandVan(KAART, 'poiesz'),
+    voetbal: voetbalVan(KAART),
     molen: molen ? { x: molen.cx, z: molen.cz, hoog: molen.top || 20 } : null,
     sneekerpad,
     bosje: vlakVan(KAART, 'bos', start, 900),
@@ -281,8 +306,27 @@ function maakBeelden(KAART, start) {
   // 8. houtzaagmolen De Rat aan het Sneekerpad — halverwege de romp gekeken
   if (P.molen) rij.push(omheen(P.molen, { straal: 58, hoogte: 33, van: 2.6, tot: 1.9, kijkY: (P.molen.hoog || 20) * 0.55, duur: 7.0 }));
 
-  // 9. de Poiesz in IJlst, laag langs de voorkant
-  if (P.poiesz) rij.push(omheen(P.poiesz, { basis: P.poiesz.hoek, straal: 48, hoogte: 13, van: 0.35, tot: -0.25, kijkY: 4, duur: 6.0 }));
+  /*
+   9. het hoofdveld van VV Sneek, waar de wedstrijd speelt (stap 119; tot dan de Poiesz in IJlst, 6,0 s,
+   en dit beeld duurt precies zo lang: het filmpje blijft gelijk met de muziek).
+
+   Een ander soort beeld dan de rest: geen zwenk om een punt en geen vlucht erop af, maar een kraan die
+   terugtrekt. Hij begint op het gras, boven de hoofden van de spelers, recht voor een bord van Radio
+   Spannenburg (een kwart van loodrecht, anders lees je het niet), en trekt dan achteruit en omhoog over
+   het veld tot de hele wedstrijd in beeld is, met de borden aan de overkant. Hij kijkt de hele tijd
+   dezelfde kant op, dus er zit geen zwaai in. js/main.js laat de wedstrijd tijdens de intro spelen.
+  */
+  if (P.voetbal && P.voetbal.bord) {
+    const F = P.voetbal, b = F.bord, s = F.s;
+    // van een kwart voor het bord tot boven de middenlijn aan de kant van de tribune, met het veld voor je
+    const van = F.w(b.u - 6.4, s * (F.hb - 12)), naar = F.w(0, -s * (F.hb - 6));
+    const kVan = F.w(b.u, s * (F.hb + 1.6)), kNaar = F.w(0, s * F.hb * 0.4);
+    rij.push({
+      duur: 6.0, ease: soepel, soort: 'kraan',
+      van: { x: van.x, y: 2.4, z: van.z }, naar: { x: naar.x, y: 26, z: naar.z },
+      kijkVan: { x: kVan.x, y: 0.6, z: kVan.z }, kijkNaar: { x: kNaar.x, y: 0, z: kNaar.z },
+    });
+  } else if (P.poiesz) rij.push(omheen(P.poiesz, { basis: P.poiesz.hoek, straal: 48, hoogte: 13, van: 0.35, tot: -0.25, kijkY: 4, duur: 6.0 }));
 
   // 10. en terug naar Erik: de daling naar het standpunt waar het spel begint
   rij.push({
@@ -327,6 +371,7 @@ export function beeldOp(t, KAART, start) {
     pos: { x: meng(beeld.van.x, beeld.naar.x), y: meng(beeld.van.y, beeld.naar.y), z: meng(beeld.van.z, beeld.naar.z) },
     kijk: { x: meng(beeld.kijkVan.x, beeld.kijkNaar.x), y: meng(beeld.kijkVan.y, beeld.kijkNaar.y), z: meng(beeld.kijkVan.z, beeld.kijkNaar.z) },
     titel, beeldNr: nr, beelden: beelden.length, deel: totaal > 0 ? Math.min(1, t / totaal) : 1, totaal,
+    soort: beeld.soort || null, u: Math.max(0, Math.min(1, u)), duur: beeld.duur,
   };
 }
 

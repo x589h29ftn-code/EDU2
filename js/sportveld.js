@@ -130,6 +130,40 @@ function voegToe(b, geo, m) {
  * @param velden KAART.sportvelden
  * @param grondY hoogte van de ondergrond (de velden liggen op stoephoogte)
  */
+/*
+ De reclameborden rond een veld: waar ze staan in het assenstelsel van het veld (u langs, v dwars), hoe
+ breed, hoe gedraaid (de voorkant naar het veld toe) en welke van Radio Spannenburg is. Eén bron voor het
+ bouwen hieronder en voor de intro (js/intro.js zet de camera bij zo'n bord; stap 119).
+*/
+export function bordPlekken(V) {
+  if (!V || !V.reclame) return [];
+  const bordL = 3.0, af = 1.6;   // achter de zijlijn
+  const hl = V.vl / 2, hb = V.vb / 2;
+  const ru = hl + af, rv = hb + af;
+  const zijden = [
+    { a: [-ru, -rv], b: [ru, -rv] }, { a: [ru, rv], b: [-ru, rv] },
+    { a: [ru, -rv], b: [ru, rv] }, { a: [-ru, rv], b: [-ru, -rv] },
+  ];
+  const uit = [];
+  let n = 0;
+  for (const zij of zijden) {
+    const du = zij.b[0] - zij.a[0], dv = zij.b[1] - zij.a[1], L = Math.hypot(du, dv);
+    const aantal = Math.max(1, Math.round(L / bordL));
+    const stap = L / aantal;
+    for (let i = 0; i < aantal; i++) {
+      const t0 = (i + 0.5) * stap / L;
+      const u = zij.a[0] + du * t0, v = zij.a[1] + dv * t0;
+      const hoek = Math.atan2(dv, du);
+      // de voorkant kijkt naar het veld toe
+      const naarVeld = Math.atan2(-v, -u);
+      const draai = -(V.hoek + hoek) + (Math.cos(naarVeld - hoek - Math.PI / 2) < 0 ? Math.PI : 0);
+      uit.push({ u, v, stap, hoek, draai, spannenburg: n % SPANNENBURG_STAP === 2 });
+      n++;
+    }
+  }
+  return uit;
+}
+
 export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
   if (!velden || !velden.length) return;
   const M = materialen();
@@ -161,7 +195,7 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
    steeds dezelfde twee kleuren naast elkaar.
   */
   let gewoon = 0;
-  const bordBak = (n) => (n % SPANNENBURG_STAP === 2 ? B.spannenburg : B.borden[gewoon++ % B.borden.length]);
+  const bordBak = () => B.borden[gewoon++ % B.borden.length];
   // een vorm op zijn plek in de wereld zetten: eerst lokaal draaien en
   // verschuiven, dan het veld in
   const mat = new THREE.Matrix4(), hulp = new THREE.Matrix4();
@@ -260,34 +294,17 @@ export function bouwSportvelden(scene, W, velden, grondY = 0.12) {
 
     // ---- reclameborden ----
     if (V.reclame) {
-      const bordL = 3.0, bordH = BORD_H, af = 1.6;   // achter de zijlijn
-      const ru = hl + af, rv = hb + af;
-      const zijden = [
-        { a: [-ru, -rv], b: [ru, -rv] }, { a: [ru, rv], b: [-ru, rv] },
-        { a: [ru, -rv], b: [ru, rv] }, { a: [-ru, rv], b: [-ru, -rv] },
-      ];
-      let n = 0;
-      for (const zij of zijden) {
-        const du = zij.b[0] - zij.a[0], dv = zij.b[1] - zij.a[1], L = Math.hypot(du, dv);
-        const aantal = Math.max(1, Math.round(L / bordL));
-        const stap = L / aantal;
-        for (let i = 0; i < aantal; i++) {
-          const t0 = (i + 0.5) * stap / L;
-          const u = zij.a[0] + du * t0, v = zij.a[1] + dv * t0;
-          const hoek = Math.atan2(dv, du);
-          // de voorkant kijkt naar het veld toe
-          const naarVeld = Math.atan2(-v, -u);
-          const draai = -(V.hoek + hoek) + (Math.cos(naarVeld - hoek - Math.PI / 2) < 0 ? Math.PI : 0);
-          const bx = wx(u, v), bz = wz(u, v);
-          const vlak = new THREE.PlaneGeometry(stap - 0.06, bordH);
-          voegToe(bordBak(n), vlak,
-            plaats(bx + Math.sin(draai) * 0.03, grondY + bordH / 2, bz + Math.cos(draai) * 0.03, draai));
-          voegToe(B.achterkant, vlak,
-            plaats(bx - Math.sin(draai) * 0.03, grondY + bordH / 2, bz - Math.cos(draai) * 0.03, draai + Math.PI));
-          const doos = W.addCollider(bx, bz, stap / 2, 0.1, -(V.hoek + hoek), BORD_SPRONG);
-          doos.y0 = grondY;                           // hierboven spring je eroverheen
-          n++;
-        }
+      const bordH = BORD_H;
+      for (const b of bordPlekken(V)) {
+        const { u, v, stap, draai } = b;
+        const bx = wx(u, v), bz = wz(u, v);
+        const vlak = new THREE.PlaneGeometry(stap - 0.06, bordH);
+        voegToe(b.spannenburg ? B.spannenburg : bordBak(), vlak,
+          plaats(bx + Math.sin(draai) * 0.03, grondY + bordH / 2, bz + Math.cos(draai) * 0.03, draai));
+        voegToe(B.achterkant, vlak,
+          plaats(bx - Math.sin(draai) * 0.03, grondY + bordH / 2, bz - Math.cos(draai) * 0.03, draai + Math.PI));
+        const doos = W.addCollider(bx, bz, stap / 2, 0.1, -(V.hoek + b.hoek), BORD_SPRONG);
+        doos.y0 = grondY;                           // hierboven spring je eroverheen
       }
     }
 

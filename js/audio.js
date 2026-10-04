@@ -63,6 +63,8 @@ let schotTeller = 0;
 */
 let uitzendBuf = null, uitzendLaden = null, uitzendBron = null, uitzendBegon = 0, uitzendWil = false;
 let uitzendingNu = false;
+// het muziekje van de intro in de heli van missie 18 (stap 119): seconden aanzwellen, seconden uitdoven, volume
+export const HELI_MUZIEK = { url: 'audio/intro/intro.mp3', in: 4, uit: 7, vol: 0.5 };
 let herhaling = false;             // na missie 18 zendt Radio Tinga het fragment af en toe opnieuw uit
 const HERHALING = { bestand: 'uitzending.mp3', titel: 'Een mededeling van Erik en Mark', artiest: 'Radio Tinga' };
 /*
@@ -734,7 +736,7 @@ export const geluid = {
   pauzeer(v) {
     gepauzeerd = !!v;
     if (hoofd) hoofd.gain.setTargetAtTime(gedempt || gepauzeerd ? 0 : 0.55, nu(), 0.08);
-    for (const m of [bronnen.muziek, bronnen.missie]) {
+    for (const m of [bronnen.muziek, bronnen.missie, bronnen.heliMuz]) {
       if (m && m.el) { if (gepauzeerd) m.el.pause(); else if (m.aan) m.el.play().catch(() => {}); }
     }
   },
@@ -1034,8 +1036,68 @@ export const geluid = {
    De autoradio zakt weg zolang dit speelt — zie `muziek` en `autoradio`
    hieronder: twee nummers door elkaar is geen spanning maar drukte.
   */
+  /*
+   Het muziekje van de intro (audio/intro/intro.mp3), nog één keer: in missie 18 als Erik in de heli van
+   Wiebe zit (stap 119, gevraagd: "met fade in en rustige fade out"). js/verhaal.js roept dit elk beeld aan
+   met true zolang je in de heli zit, en met false daarna. Het nummer begint vooraan en zwelt aan in
+   `HELI_MUZIEK.in` seconden; uit gaat het in `HELI_MUZIEK.uit`, en ook als het nummer zelf bijna op is,
+   zodat het nooit afgehakt eindigt. Eén keer per vlucht: wie uitstapt en weer in de heli zit (opnieuw na
+   het neergaan) hoort het opnieuw vanaf het begin. De missiemuziek zwijgt eronder.
+  */
+  heliMuziek(actief) {
+    if (!aan || !ctx) return false;
+    if (!bronnen.heliMuz) {
+      if (!actief) return true;
+      const el = new Audio();
+      el.crossOrigin = 'anonymous';
+      el.preload = 'auto';
+      el.src = HELI_MUZIEK.url;
+      const g = ctx.createGain(); g.gain.value = 0;
+      let bron = null;
+      try { bron = ctx.createMediaElementSource(el); } catch { return false; }
+      bron.connect(g); g.connect(hoofd);
+      bronnen.heliMuz = { el, gain: g, aan: false, speelt: false, uitT: 0, stuk: false, keer: 0 };
+      el.addEventListener('error', () => { bronnen.heliMuz.stuk = true; });
+      el.addEventListener('ended', () => { bronnen.heliMuz.speelt = false; });
+    }
+    const h = bronnen.heliMuz;
+    if (h.stuk) return false;
+    const t = nu();
+    if (actief && !h.aan) {
+      // instappen: vooraan beginnen, aanzwellen
+      h.aan = true; h.speelt = true; h.uitT = 0; h.keer++;
+      try { h.el.currentTime = 0; } catch { /* nog niet geladen */ }
+      h.el.play().catch(() => {});
+      h.gain.gain.cancelScheduledValues(t);
+      h.gain.gain.setValueAtTime(0, t);
+      h.gain.gain.linearRampToValueAtTime(HELI_MUZIEK.vol, t + HELI_MUZIEK.in);
+    } else if (!actief && h.aan) {
+      // uitstappen: rustig weg, en pas daarna op pauze
+      h.aan = false;
+      h.gain.gain.cancelScheduledValues(t);
+      h.gain.gain.setValueAtTime(h.gain.gain.value, t);
+      h.gain.gain.linearRampToValueAtTime(0, t + HELI_MUZIEK.uit);
+      h.uitT = t + HELI_MUZIEK.uit;
+    } else if (actief && h.speelt && !h.uitT && h.el.duration && h.el.duration - h.el.currentTime < HELI_MUZIEK.uit) {
+      // het nummer is bijna op: ook dan rustig uit
+      h.gain.gain.cancelScheduledValues(t);
+      h.gain.gain.setValueAtTime(h.gain.gain.value, t);
+      h.gain.gain.linearRampToValueAtTime(0, t + Math.max(1, h.el.duration - h.el.currentTime));
+      h.uitT = t + HELI_MUZIEK.uit;
+    }
+    if (!h.aan && h.uitT && t > h.uitT && !h.el.paused) { h.el.pause(); h.speelt = false; }
+    return true;
+  },
+  // (voor tools/introtest.mjs en tools/avondtest.mjs)
+  heliMuziekStand() {
+    const h = bronnen.heliMuz;
+    return h ? { aan: h.aan, speelt: h.speelt && !h.el.paused, volume: +h.gain.gain.value.toFixed(3), tijd: +h.el.currentTime.toFixed(2),
+      bestand: HELI_MUZIEK.url, keer: h.keer, stuk: h.stuk } : null;
+  },
+
   missiemuziek(actief) {
     if (uitzendingNu) actief = false;            // onder de uitzending van missie 18
+    if (bronnen.heliMuz && bronnen.heliMuz.aan) actief = false;   // en onder het muziekje in de heli (stap 119)
     if (!aan || !missieLijst.length) return false;
     if (!bronnen.missie) {
       if (!actief) return true;

@@ -7279,6 +7279,60 @@ de eerste minuten tegenkomt.
 
 **Proeven**: `opzettest` (nieuw); `opslagtest` en `checkpointtest` opnieuw.
 
+**De intro bij VV Sneek, het muziekje in de heli, en ronde 3 (stap 119).** Gevraagd op 4 okt 2026: in de
+intro het voetbalveld waar gespeeld wordt in plaats van de Poiesz, met een andere camerahoek en Radio
+Spannenburg op de borden, niet langer dan nu; het muziekje van de intro in de heli van missie 18, met
+fade in en rustige fade out; en ronde 3 van de steekproef, de speelelementen van missie 1 tot 5.
+
+**De intro**
+- Beeld 9 (`js/intro.js`) is nu een **kraan** (`soort: 'kraan'`): van 2,4 m op het gras, schuin voor een
+  bord van Radio Spannenburg aan de overkant van de tribune, in 6,0 s naar 26 m boven de middenlijn.
+  De andere beelden draaien om een punt (`omheen`) of vliegen erop af (het viaduct); deze trekt terug en
+  stijgt, en kijkt de hele tijd dezelfde kant op.
+- De Spannenburg-borden stonden er al (om de vijf borden, `SPANNENBURG_STAP`). Waar ze staan rekende
+  `bouwSportvelden` binnen een lus uit; dat is nu `bordPlekken(V)` in js/sportveld.js, zodat het bouwen en
+  de intro dezelfde plekken gebruiken.
+- Het beeld duurt 6,0 s, net als dat van de Poiesz: de film blijft 65,3 s, gelijk met de muziek.
+- De wedstrijd moest er tijdens de film ook zijn. Die komt alleen als het veld níet in beeld is, tussen
+  12 en 15 uur, en alleen bijgewerkt binnen 240 m van de speler (bij Molenkrite 15 en verder weg). Tijdens
+  de intro (en in `voorFilm`) roept js/main.js nu `wedstrijdInFilm` aan: begin als hij er niet is, met de
+  camera als positie en een uur midden in de speeltijd. Daarna gaat alles weer op de klok.
+- `beeldOp` geeft nu ook `soort`, `u` en `duur` terug; `introtest` zoekt het beeld zo op in plaats van
+  op zijn nummer.
+
+**Het muziekje in de heli**
+- `geluid.heliMuziek(actief)` in js/audio.js: een eigen `Audio` met `intro.mp3` door een gain, vooraan
+  beginnend, `linearRamp` naar 0,5 in 4 s; uit in 7 s, en ook als het nummer bijna op is (het duurt 65 s,
+  een vlucht kan langer duren). Het element gaat pas na de fade op pauze, en het pauzemenu zet het stil
+  zoals de andere muziek. De missiemuziek zwijgt zolang het aan staat.
+- js/verhaal.js roept het elk beeld aan: aan in missie 18 zolang `AVOND_IN_HELI` (heliStart, heli, luifel,
+  landen), niet tijdens het neergaan of mislukken.
+
+**Ronde 3: missie 1 tot 5**
+- *Missie 1*: na de eerste treffer springt de man op die het verst weg zit (`springOp`). Zijn zittende
+  prop (stoel en man in één, js/props.js) gaat uit beeld, er komt een lege `tuinstoel` voor in de plaats en
+  een `Persoon` in dezelfde kleuren ernaast, als `Bewaking` van één man die meteen aanvalt (schade 4,
+  bereik 24 m). Hij telt als een van de vier (`telOmgevallen`). Opnieuw beginnen en laden zetten hem terug
+  (`ruimOpspringerOp`). Wegrennen kan een `Bewaking` niet; terugschieten wel, dus dat is het geworden.
+- *Missie 2*: `RIJDEN_ONDERWEG`, vier zinnen, om de tien tellen zolang je in de auto zit, niet binnen 90 m
+  van de poort en niet over een andere zin heen (net als `INVAL_ONDERWEG` van missie 16).
+- *Missie 4*: 110 m van de poort met de vrachtwagen belt de bewaking de politie (één ster, `sterGeven`) en
+  belt Mark het door. Mark staat bij de boerderij (`markBijDeBoerderij`, 3,5 m voor de gevel van de schuur,
+  uit de botsdozen geduwd). Met sterren lever je niet af; zonder: `AFGELEVERD` en € 500, dan pas
+  `missieVoltooid`. De opslag kent `aflAlarm`; een opslag midden in dat gesprek kan niet, en `herstel`
+  zet 'afgeleverd' toch terug naar 'rijden'.
+- *Missie 5*: de dief rent 6,7 m/s (was 7,3; je sprint 7,5). Een auto binnen 32 m: `kiesTuin` zoekt een punt
+  op een voetpad of achterpad dat minstens 6 m van de rijweg ligt (`tuinPuntenBij`, met `afstandTotRijweg`,
+  nu geëxporteerd uit js/world.js), van de auto af, en een looproute erheen met `zoekLooppad` waarbij hij
+  over lage hekken en heggen klimt (`TUIN.laag` 1,3 m; zijn `stap` gebruikt dan dezelfde `laag`). Hij zegt
+  het, en de opdracht zegt: stap uit.
+
+**Bestaande proeven**: `verhaaltest` legde de vrachtwagen bij de schuur en verwachtte MISSIE VOLTOOID. Nu
+komt er eerst het alarm (de wagen staat ver van de poort): de proef klikt dat weg, haalt de ster weg en
+klikt het gesprek door.
+
+**Proeven**: `beginmissietest` (nieuw) en `introtest`; foto's met `beginmissieshots` (nieuw).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
