@@ -152,6 +152,8 @@ export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart
       player.lastCarYaw = undefined;
     }
   }
+  // zette een missie je net zelf in een auto (de grid van de race, de Golf van Mark), dan wint die
+  if (verhaal && verhaal.naLaden && verhaal.naLaden()) player.lastCarYaw = undefined;
 
   /*
    En de sloepen. Dit moet ná de speler, want stap je aan boord dan bepaalt de

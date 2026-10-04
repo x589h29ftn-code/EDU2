@@ -7393,6 +7393,50 @@ herstelpunt (hierboven). `dealtest`, `huistest` en `veteraantest` draaiden op de
 
 **Proeven**: `nalooptest` (nieuw); `bxtest`, `bomtest`, `opslagtest` en `checkpointtest` opnieuw.
 
+**Missie 11 tot 15 nagelopen (stap 121).** Gevraagd op 4 okt 2026: "check de volgende 5 op dezelfde wijze".
+Eerst draaiden `politieautotest`, `brugtest`, `schrifttest`, `racetest` en `schaduwtest` op de oude code (alle
+vijf groen); daarnaast lazen twee helpers missie 11–13 en 14–15 (met racen voor geld), en elke bevinding is in
+de code nagelopen voordat er iets veranderde.
+
+**Wat er mis was, en wat het nu doet**
+- *Laden liet missie 11–15 in de wereld staan.* `herstel` ruimde sinds stap 120 alleen missie 7, 8 en 10 op.
+  Laden midden in missie 12 liet de schutters op het dek (ze bleven schieten), de hekken, de C4, Mark en Johan
+  en het politiepak staan; een race de ringen, de pijlen en het verkeersvrije parcours (`vrijeZone`); missie 13
+  het lint en het schrift in de sloep; missie 15 de balk en de mannen bij de loods. Nu ruimt `herstel` die ook
+  op. Het klokje van missie 15 (`schaduwKlokWas`) gaat daarbij níet terug naar zijn oude stand: js/opslag.js
+  heeft de klok van de opslag dan al gezet.
+- *Missie 12 vergat na het laden de hekken die er al stonden* (de voortgang zat niet in de opslag), en wie met
+  alle drie gezet laadde (het gesprek erna is na laden weg) bleef hangen op "zet de dranghekken neer". De
+  opslag kent nu `brugGezet`; alle drie gezet gaat door naar de C4. De C4 en de controle zetten een herstelpunt:
+  na het neergaan lagen de hekken er weer, maar moest je de C4 opnieuw van de grond halen.
+- *Het konvooi stapelde.* Elke poging zette vier auto's in `vehicles.cars` en verborg de vorige alleen, met
+  botsing en al; nu gaan ze weg (`vehicles.verwijder`), behalve een waar je zelf in zit.
+- *"Een paar dagen later" werd weggeknipt.* `naarDeMiddag` start missie 13 in het zwart, en `startMissie` →
+  `stopNaloop` zette het zwart meteen uit: geen tekst, geen opkomen. Binnen de callback van het zwart
+  (`inZwartSprong`) blijft het nu staan.
+- *Missie 12 kwam soms nooit.* Na missie 11 zette alleen het einde van Marks gesprek de volgende missie klaar;
+  ging je tijdens dat gesprek neer (of werd het anders gesloten), dan bleef het daarna stil. Nu staat hij
+  meteen klaar, en het aftellen tussen twee missies wacht zolang er een gesprek open is.
+- *Missie 14 na het laden*: elke fase na de start begon opnieuw op de grid. Gewonnen en op weg naar Bouwman
+  opgeslagen: de hele race nog eens. Verloren en opgeslagen: de revanche zonder te kiezen. Nu is laden na de
+  finish gewonnen (€ 2.000), en na het verliezen staat de keuze er weer (`toonRaceKeuze`).
+- *Laden midden in de race* zette je terug op de grid, waarna js/opslag.js je in de auto op de plek van het
+  opslaan zette: je stond ergens op de route, de race wachtte bij de BP. In een nieuwe sessie kwam er nog een
+  geleende Ferrari op de grid bij (je eigen Ferrari bestaat pas na `garage.herstel`). js/opslag.js vraagt nu
+  na de auto's `verhaal.naLaden()`: zette de missie je zelf in een auto, dan wint die, en de race zet de grid
+  dan opnieuw neer met je eigen Ferrari (de geleende gaat weg).
+- *Racen voor geld en neergaan*: `herstartMissie` ging naar `hervatRace`, en dat begon het verhaal van missie 14
+  opnieuw (Ronald belde, terwijl die missie al af was). Nu is de inleg weg en speel je vrij verder. Aan de
+  balie kan het niet meer tijdens een middag met Mark.
+- *Een mislukte missie met sterren* (gezien in missie 13 of 15) nam die sterren mee de nieuwe poging in;
+  `naDeMislukking` haalt ze weg.
+
+**Niet veranderd**: de politieauto blijft na missie 12 op de Dúvelsrak staan (je kunt hem gebruiken); de
+geleende Ferrari blijft na een race van jou; opslaan in de paar tellen tussen MISSIE GESLAAGD en het zwart
+mag nog (na het laden belt de volgende missie dan zonder de ochtend ervoor).
+
+**Proeven**: `naloop2test` (nieuw); PROEVEN_HIER.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

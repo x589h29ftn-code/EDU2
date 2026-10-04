@@ -2362,6 +2362,8 @@ export function initVerhaal(ctx) {
   function naDeMislukking() {
     hud.zetGrijs(false);
     player.active = true;
+    // (stap 121: gezien in missie 13 of 15 gaf twee sterren en mislukt; die gingen mee de nieuwe poging in)
+    if (sterrenWeg) sterrenWeg();
     herstartMissie();
     if (heeftOpslag()) hud.show('De missie begint opnieuw · F9 laadt je opgeslagen spel', 4);
   }
@@ -2472,6 +2474,18 @@ export function initVerhaal(ctx) {
     if (missie === 'politieauto') { hervatPolitieauto(punt && punt.missie === 'politieauto' ? punt.fase : 'wacht'); return; }
     if (missie === 'brug') { hervatBrug(punt && punt.missie === 'brug' ? punt.fase : 'wacht'); return; }
     if (missie === 'schrift') { hervatSchrift(punt && punt.missie === 'schrift' ? punt.fase : 'wacht'); return; }
+    /*
+     Neergaan in een race voor geld (stap 121): dat liep via hervatRace en beginRace, dus het verhaal van
+     missie 14 begon opnieuw (Ronald belde, terwijl die missie al lang af was). Nu is de inleg weg en speel
+     je vrij verder.
+    */
+    if (missie === 'race' && (geldInleg || fase === 'geldKlaar')) {
+      if (geldInleg) geldVerloren('Je ging neer.');
+      geldNaT = 0; missie = 'klaar'; fase = 'klaar';
+      race.ruimOp(); vehicles.vrijeZone = null;
+      ronald.groep.visible = false;
+      return;
+    }
     if (missie === 'race') { hervatRace(punt && punt.missie === 'race' ? punt.fase : 'telefoon'); return; }
     if (missie === 'schaduw') { hervatSchaduw(punt && punt.missie === 'schaduw' ? punt.fase : 'telefoon'); return; }
     if (missie === 'inval') { hervatInval(punt && punt.missie === 'inval' ? punt.fase : 'telefoon'); return; }
@@ -4575,9 +4589,15 @@ export function initVerhaal(ctx) {
    Laden of een nieuwe missie maakt dat allemaal ongedaan: anders sprong de ochtend van de vorige
    missie midden in de geladen (stap 101, gevonden bij missie 16; `npm run overgangtest`).
   */
+  /*
+   Een missie die in het zwart begint (missie 13 na "Een paar dagen later") ging via startMissie langs
+   stopNaloop, en die knipte het zwart weg midden in de overgang: geen tekst, geen opkomen, meteen beeld
+   (stap 121). Binnen de callback van het zwart blijft het daarom staan.
+  */
+  let inZwartSprong = false;
   function stopNaloop() {
     brugNaT = 0; raceNaT = 0; invalNaT = 0; ronaldNaT = 0;
-    if (zwart) { zwart = null; zetZwart(0, 0); }
+    if (zwart && !inZwartSprong) { zwart = null; zetZwart(0, 0); }
     // (en het filmbeeld aan het water na missie 17, dat daarna in het zwart gaat)
     if (ronaldFilm && ronaldFilm.soort === 'loods') { ronaldFilm = null; toonFilmbalken(0); schietSlot(false); }
     // (en na missie 18: het klokje naar de avond, het filmbeeld van het einde en de titelrol)
@@ -4596,7 +4616,9 @@ export function initVerhaal(ctx) {
     const t = zwart.t;
     if (!zwart.gesprongen && t >= uit) {
       zwart.gesprongen = true;
-      if (zwart.bijZwart) zwart.bijZwart();
+      // (begint de callback een missie, dan laat stopNaloop dit zwart staan: stap 121)
+      inZwartSprong = true;
+      try { if (zwart.bijZwart) zwart.bijZwart(); } finally { inZwartSprong = false; }
     }
     if (!zwart) return;       // (bijZwart kan zelf een nieuw zwart beginnen)
     const dekking = t < uit ? glad(t / uit) : t < uit + stil ? 1 : 1 - glad((t - uit - stil) / op);
@@ -5125,7 +5147,9 @@ export function initVerhaal(ctx) {
       mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, polAuto));
       markZichtbaar(true);
       // hij gaat alvast naar binnen: daar vertelt hij het plan (missie 12)
-      naMissieNaam = 'brug'; naMissieT = 0;
+      // (stap 121: de M kwam alleen uit het einde van het gesprek; ging je tijdens het praten neer, dan
+      //  begon missie 12 nooit. Nu staat hij al klaar; het aftellen wacht tot de balk dicht is)
+      naMissieNaam = 'brug'; naMissieT = BRUG_WACHT;
       zeg(POL_KLAAR, () => { if (missie === 'klaar' && !brugKlaar) naMissieT = BRUG_WACHT; });
     }
   }
@@ -5240,7 +5264,14 @@ export function initVerhaal(ctx) {
     if (brugAutoMerk) brugAutoMerk.toon(false);
     schietSlot(false);
     if (brugSchade && !brugKlaar) brugSchade.toon(false);
-    for (const k of brugKonvooi) if (k.auto && k.auto.mesh) { k.auto.mesh.visible = false; k.auto.zichtbaar = false; k.auto.driveable = false; }
+    /*
+     De auto's van het konvooi gaan echt weg (stap 121): verborgen bleven ze in vehicles.cars staan, met
+     botsing en al, en elke poging zette er vier of acht bij. Zit je er zelf in, dan blijft hij van jou.
+    */
+    for (const k of brugKonvooi) {
+      if (!k.auto || k.auto === player.inCar) continue;
+      if (!vehicles.verwijder(k.auto) && k.auto.mesh) { k.auto.mesh.visible = false; k.auto.zichtbaar = false; k.auto.driveable = false; }
+    }
     brugKonvooi = [];
     for (const k of brugKnallen) if (k.knal) k.knal.stop();
     brugKnallen = [];
@@ -5371,7 +5402,7 @@ export function initVerhaal(ctx) {
     brugMerken[i].toon(false);
   }
   function naarDeLadingen() {
-    fase = 'c4leggen';
+    fase = 'c4leggen'; zetPunt(fase);     // (stap 121: na het neergaan lagen de hekken er weer, de C4 niet)
     BRUG_C4.forEach(([s, u], i) => { const p = brugP(s, u); brugMerken[i].zet(p.x, brug.hoogte, p.z); brugMerken[i].toon(!brugC4Gezet[i]); });
     zetOpdracht(`leg de C4 achter op de brug (${BRUG_C4.length - brugC4Gezet.filter(Boolean).length} te gaan)`);
   }
@@ -5383,7 +5414,7 @@ export function initVerhaal(ctx) {
     return n;
   }
   function controle() {
-    fase = 'controle';
+    fase = 'controle'; zetPunt(fase);
     zetOpdracht('');
     const genoeg = kogelsTotaal() >= BRUG_KOGELS && player.health >= 100;
     zeg(genoeg ? BRUG_GENOEG : BRUG_TE_WEINIG, () => {
@@ -5440,7 +5471,7 @@ export function initVerhaal(ctx) {
     zetOpBrug(brugJohan, BRUG_POST_JOHAN);
     brugJohanLoopt = false;
     // de vier auto's, achter elkaar de helling op aan de kant van de Lemmerweg
-    for (const k of brugKonvooi) if (k.auto.mesh) { k.auto.mesh.visible = false; k.auto.zichtbaar = false; }
+    for (const k of brugKonvooi) if (k.auto !== player.inCar && !vehicles.verwijder(k.auto) && k.auto.mesh) { k.auto.mesh.visible = false; k.auto.zichtbaar = false; }
     const lijn = brug.vanLemmerweg(BRUG_HELLING, BRUG_STOP[0], BRUG_RIJBAAN);
     const L = lijnLengte(lijn);
     brugKonvooi = BRUG_STOP.map((sStop, i) => {
@@ -5916,7 +5947,12 @@ export function initVerhaal(ctx) {
     opDeBrug(false);
     const e = brugP(BRUG_POST_ERIK[0], BRUG_POST_ERIK[1] - 1.2);
     player.pos.set(e.x, brug.hoogte, e.z); player.yaw = brug.noord; player.pitch = 0; player.applyCamera();
-    if (f === 'versperren') { hekken.forEach((v, i) => { if (v) zetHek(i); }); return; }
+    if (f === 'versperren') {
+      hekken.forEach((v, i) => { if (v) zetHek(i); });
+      // (alle drie stonden er al, maar het gesprek erna was weg: dan door naar de C4, stap 121)
+      if (hekken.every(Boolean)) naarDeLadingen();
+      return;
+    }
     for (let i = 0; i < BRUG_HEKKEN.length; i++) zetHek(i);
     if (f === 'c4leggen') {
       ladingen.forEach((v, i) => { if (v) { zetLading(i); player.c4 = Math.max(0, player.c4 - 1); } });
@@ -6307,6 +6343,9 @@ export function initVerhaal(ctx) {
     if (vehicles.maakVrij) vehicles.maakVrij(racePlek.start.x, racePlek.start.z);
     const p = racePlek.speler;
     raceAuto = eigenFerrari();
+    // (een geleende van een vorige keer, terwijl je eigen Ferrari er nu wel is: die gaat weg, anders
+    //  stonden er twee door elkaar op de grid; stap 121)
+    if (raceAuto && raceLeen && raceLeen !== player.inCar) { if (!vehicles.verwijder(raceLeen) && raceLeen.mesh) raceLeen.mesh.visible = false; raceLeen = null; }
     if (!raceAuto) {
       // is de jouwe een wrak (of heb je er nooit een gekocht): dan leent Ronald er een
       if (!raceLeen || raceLeen.wrak) raceLeen = vehicles.voegToe({ x: p.x, z: p.z, yaw: p.yaw, soort: 'ferrari', kleur: 0xc40a12 });
@@ -6379,11 +6418,12 @@ export function initVerhaal(ctx) {
     if (raceRondes > 1) raceSchuld = RACE_SCHULD * 2 ** (raceRondes - 1);
     const dichtbij = afst(sp, bouwman.groep.position) < 60 && bouwman.groep.visible;
     if (!dichtbij) geluid.telefoon(1);
-    zeg(RACE_VERLOREN(raceSchuld), () => {
-      fase = 'keuze';
-      zetOpdracht(`1 — nog een keer rijden (dubbel of niks) · 2 — ${euro(raceSchuld)} betalen`);
-      hud.melding('WAT DOE JE?', `1 — nog een keer rijden · 2 — Ronalds schuld betalen (${euro(raceSchuld)})`, 8);
-    }, dichtbij ? {} : { wie: 'Bouwman', telefoon: true, kop: KOPPEN.bouwman });
+    zeg(RACE_VERLOREN(raceSchuld), toonRaceKeuze, dichtbij ? {} : { wie: 'Bouwman', telefoon: true, kop: KOPPEN.bouwman });
+  }
+  function toonRaceKeuze() {
+    fase = 'keuze';
+    zetOpdracht(`1 — nog een keer rijden (dubbel of niks) · 2 — ${euro(raceSchuld)} betalen`);
+    hud.melding('WAT DOE JE?', `1 — nog een keer rijden · 2 — Ronalds schuld betalen (${euro(raceSchuld)})`, 8);
   }
   // 1 of 2 na een verloren race (js/main.js stuurt de cijfers via `kiesHuis`)
   function raceKeuze(nr) {
@@ -6628,7 +6668,8 @@ export function initVerhaal(ctx) {
     return !!(b && afst(sp, b) < GELDRACE_BALIE);
   }
   function geldraceToets() {
-    if (!raceKlaar || geldInleg || geldKiezen || missie !== 'klaar' || player.inCar || klusjes.bezig) return false;
+    // (niet tijdens een middag met Mark: dan reed je weg en bleef hij bij het veld staan; stap 121)
+    if (!raceKlaar || geldInleg || geldKiezen || missie !== 'klaar' || player.inCar || klusjes.bezig || uitjeBezig()) return false;
     if (!geldBijDeBalie(spelerPunt())) return false;
     zeg(GELDRACE_AANBOD, () => {
       geldKiezen = true;
@@ -6983,6 +7024,19 @@ export function initVerhaal(ctx) {
     if (f === 'telefoon') return;
     if (f === 'naarRonald' || f === 'uitleg') { naarRonald(); return; }
     if (f === 'auto' || f === 'gekocht') { naarRonald(); ronald.groep.visible = false; raceBijgelegd = true; naarHetAutohuis(); zetPunt('auto'); return; }
+    /*
+     Na de finish (stap 121). Tot nu toe begon elke fase vanaf hier opnieuw op de grid: wie na het winnen
+     opsloeg, op weg naar Bouwman, moest na het laden de hele race nog eens rijden; wie na het verliezen
+     opsloeg, kreeg de revanche zonder te kiezen. Gewonnen is gewonnen, en verloren krijgt de keuze terug.
+    */
+    if (f === 'finish') { raceGeslaagd(); return; }
+    if (f === 'verloren' || f === 'keuze') {
+      if (raceRondes < 1) raceRondes = 1;
+      if (raceRondes > 1) raceSchuld = RACE_SCHULD * 2 ** (raceRondes - 1);
+      zetPunt('start');
+      toonRaceKeuze();
+      return;
+    }
     opDeStart();
   }
   // na de race: Bouwman, Ronald en de tegenstanders gaan weg als je een eind weg bent
@@ -9983,7 +10037,7 @@ export function initVerhaal(ctx) {
       return;
     }
     // pauze tussen twee missies: na de boerderij belt Johan (niet tijdens een klus)
-    if (naMissieT > 0 && !klusjes.bezig && !geldInleg && fase !== 'geldKlaar') {
+    if (naMissieT > 0 && !klusjes.bezig && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
       naMissieT -= dt;
       if (naMissieT <= 0) startMissie(naMissieNaam, { vanzelf: true });
     }
@@ -10306,6 +10360,8 @@ export function initVerhaal(ctx) {
       veteraanKlaar: vetKlaar,
       politieautoKlaar: polKlaar,
       brugKlaar, schriftKlaar, raceKlaar, schaduwKlaar,
+      // missie 12: welke dranghekken en welke C4 er al liggen (stap 121; ging na het laden verloren)
+      brugGezet: missie === 'brug' ? { hekken: brugHekGezet.slice(), c4: brugC4Gezet.slice() } : null,
       // missie 15: welke foto's je al hebt, en of de mannen je zagen
       schaduwFotos: schaduwFotos.slice(), schaduwGezien,
       // missie 16: afgerond, welke keuze, de telefoon van Bouwman, en of hij het schrift heeft
@@ -10323,6 +10379,7 @@ export function initVerhaal(ctx) {
     geldInleg = 0; geldKiezen = false; geldNaT = 0;
     // een opgeslagen spel begint zonder klus
     klusjes.reset(); klusPauze = null;
+    geladenIn = null;
     if (!s) return;
     stopNaloop();
     gesprek = null; sluitBalk(); praatEl.hidden = true;
@@ -10334,6 +10391,22 @@ export function initVerhaal(ctx) {
      (`vuurSlot`). De missie die geladen wordt, bouwt het hieronder zelf weer op.
     */
     ruimBomOp(); ruimSniperOp(); ruimVeteraanOp();
+    /*
+     En van missie 11 tot 15 (stap 121). Laden midden in missie 12 liet de schutters op het dek staan (ze
+     schoten door), de dranghekken, de C4 en het politiepak; een geladen race hield de ringen, de pijlen
+     en het verkeersvrije parcours; missie 13 het lint en het schrift in de sloep; missie 15 de balk en de
+     mannen bij de loods. Het klokje van missie 15 gaat niet terug naar zijn oude stand: de opslag heeft
+     de klok net gezet (js/opslag.js laadt die vóór het verhaal).
+    */
+    ruimPolitieautoOp(); ruimBrugOp(); ruimSchriftOp();
+    race.ruimOp(); raceAftel = 0; raceOverT = 0; raceTeLaatT = 0; raceUitT = 0; raceUitslag = null;
+    vehicles.vrijeZone = null;
+    schaduwKlokWas = null; ruimSchaduwOp();
+    // de voortgang op de brug (welke hekken en welke C4 al liggen); hervatBrug zet ze terug
+    if (s.brugGezet && s.missie === 'brug') {
+      (s.brugGezet.hekken || []).forEach((v, i) => { if (i < brugHekGezet.length) brugHekGezet[i] = !!v; });
+      (s.brugGezet.c4 || []).forEach((v, i) => { if (i < brugC4Gezet.length) brugC4Gezet[i] = !!v; });
+    }
     weg.mark = false; weg.bx = false;
     missie = s.missie || 'molenkrite';
     // een geladen spel is geen net afgeronde missie: daar komt geen checkpoint bij
@@ -10586,6 +10659,30 @@ export function initVerhaal(ctx) {
     if (!doorNaar) punt = s.punt && s.punt.missie === missie ? { ...s.punt } : null;
     if (!punt && missie !== 'klaar' && fase !== 'klaar') zetPunt(fase);
     hud.zetLeven(player.health);
+    // zette de missie je zelf in een auto (de grid, de Golf van Mark), dan houdt naLaden je daar
+    geladenIn = player.inCar ? { car: player.inCar, x: player.inCar.x, z: player.inCar.z, yaw: player.inCar.yaw } : null;
+  }
+
+  /*
+   Na het laden, als js/opslag.js ook de gekochte auto's en de auto waar je in zat heeft teruggezet
+   (stap 121). Die zette je in de auto op de plek van het opslaan, ook als de missie net opnieuw op de
+   grid of bij de BP begonnen was: na laden midden in de race stond je met je Ferrari ergens op de route
+   terwijl de race bij de BP op je wachtte, en in een nieuwe sessie stond er ook nog een geleende Ferrari
+   op de grid (je eigen Ferrari bestaat pas na garage.herstel). Geeft true als het verhaal de stoel koos.
+  */
+  let geladenIn = null;
+  function naLaden() {
+    const g = geladenIn;
+    geladenIn = null;
+    if (missie === 'race' && fase === 'start' && !geldInleg) { opDeStart(); return true; }
+    if (!g || !g.car) return false;
+    const car = g.car;
+    if (player.inCar && player.inCar !== car) player.inCar.speed = 0;
+    car.x = g.x; car.z = g.z; car.yaw = g.yaw; car.rij = g.yaw; car.speed = 0;
+    if (car.mesh) { car.mesh.position.set(g.x, car.mesh.position.y, g.z); car.mesh.rotation.y = g.yaw; car.mesh.visible = true; }
+    player.inCar = car;
+    player.pos.set(g.x, player.pos.y, g.z);
+    return true;
   }
 
   /*
@@ -10615,7 +10712,7 @@ export function initVerhaal(ctx) {
   zetGeldInBeeld();
 
   return {
-    update, toets, doelen, raak, hinder, bewaar, herstel, meldAan, schotGehoord, dood, mislukt,
+    update, toets, doelen, raak, hinder, bewaar, herstel, naLaden, meldAan, schotGehoord, dood, mislukt,
     beginGesprek, waaromNietOpslaan,
     /*
      De keuze die nu openstaat (1, 2 of 3), als woorden: op een aanraakscherm zet js/main.js er
@@ -10714,7 +10811,9 @@ export function initVerhaal(ctx) {
       return { inleg: geldInleg, kiezen: geldKiezen, tipT: geldTipT, tipGehad: geldTipGehad, uitslagen: geldUitslagen.slice(),
         INLEG: GELDRACE_INLEG, naT: geldNaT, bijBalie: () => geldBijDeBalie(spelerPunt()),
         // (de ochtend na missie 14, zoals `naDeRace` die opent: voor de proef)
-        ochtendNaRace: () => naarDeOchtend() };
+        ochtendNaRace: () => naarDeOchtend(),
+        // (voor tools/naloop2test.mjs, stap 121: een inleg kiezen zonder naar de balie te lopen)
+        kies: (nr) => geldKeuze(nr) };
     },
     // stap 115, voor tools/uitjetest.mjs: het uitje met Mark na het einde (een momentopname)
     get uitje() {
