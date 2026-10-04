@@ -4510,7 +4510,7 @@ export function initVerhaal(ctx) {
 
   function ruimVeteraanOp() {
     if (vet) vet.toon(false);
-    if (zwart) { zwart = null; zetZwart(0, 0); }
+    if (zwart && !inZwartSprong) { zwart = null; zetZwart(0, 0); }
     if (tas) tas.toon(false);
     if (tasMerk) tasMerk.toon(false);
     tasBij = false;
