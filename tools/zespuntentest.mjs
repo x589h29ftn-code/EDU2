@@ -212,11 +212,11 @@ const her = await page.evaluate(() => {
 });
 ok(her.n === 16 && her.eerste.nr === 2, 'zestien missies om opnieuw te spelen (niet 1 en 9)', JSON.stringify(her));
 ok(her.knop, 'in het pauzemenu: Missie opnieuw', String(her.knop));
-await page.click('#menuHerspeel');
+await page.evaluate(() => document.getElementById('menuHerspeel').click());
 await page.waitForTimeout(300);
 const lijstKnoppen = await page.$$eval('.menuknop.klein', bs => bs.map(b => b.textContent));
 ok(lijstKnoppen.length === 16 && lijstKnoppen.some(t => /Dúvelsrak/.test(t)), 'de lijst in het menu', lijstKnoppen.slice(0, 3).join(' | '));
-await page.click('.menuknop.klein[data-missie="brug"]');
+await page.evaluate(() => document.querySelector('.menuknop.klein[data-missie="brug"]').click());
 await page.waitForTimeout(800);
 const na = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;

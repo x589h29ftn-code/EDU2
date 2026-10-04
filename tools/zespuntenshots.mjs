@@ -105,7 +105,7 @@ if (doe('menu')) {
     g.player.active = true;
     g.pauzeer();
   });
-  await page.click('#menuHerspeel');
+  await page.evaluate(() => document.getElementById('menuHerspeel').click());
   await foto('menu_herspeel');
 }
 
