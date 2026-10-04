@@ -227,12 +227,12 @@ const geld = await page.evaluate(() => {
   const na = { missie: v.missie, fase: v.fase, inleg: v.geldrace.inleg, geld: v.geld, zone: !!V.vrijeZone,
     ringen: v.race.race.ringen.filter(r => r.visible).length };
   window.__stap(200);
-  return { gekozen, voor, na, later: { missie: v.missie, fase: v.fase, dicht: window.__dicht() } };
+  return { gekozen, voor, na, later: { missie: v.missie, fase: v.fase, klaar: v.race.klaar, wie: window.__dicht() ? '' : (document.getElementById('dialoog').textContent || '').slice(0, 80) } };
 });
 ok(geld.gekozen && geld.voor.missie === 'race' && geld.voor.inleg === 500, 'een race voor € 500', JSON.stringify(geld.voor));
 ok(geld.na.missie === 'klaar' && geld.na.inleg === 0 && geld.na.geld === 4500, 'neergaan: de inleg is weg, vrij spelen', JSON.stringify(geld.na));
 ok(!geld.na.zone && geld.na.ringen === 0, 'het parcours is weer vrij', JSON.stringify(geld.na));
-ok(geld.later.missie === 'klaar' && geld.later.dicht, 'Ronald belt niet opnieuw voor missie 14', JSON.stringify(geld.later));
+ok(geld.later.missie === 'klaar' && geld.later.fase === 'klaar' && geld.later.klaar, 'missie 14 begint niet opnieuw (geen telefoon van Ronald voor de race)', JSON.stringify(geld.later));
 
 // ------------------------------------------------------------------ 7. mislukt
 kop('een mislukte missie begint zonder sterren');
