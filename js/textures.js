@@ -485,7 +485,16 @@ export function wapenIcoon(soort = 'pistool') {
   g.fillStyle = '#e8ecf2';
   const mp = soort === 'mitrailleur';
   const sn = soort === 'sniper';
-  if (sn) {
+  const mes = soort === 'mes';
+  if (mes) {
+    // het mes (stap 123): heft, stootplaat en een lemmet met een punt
+    g.fillRect(70, 52, 84, 20);             // heft
+    g.fillRect(62, 54, 10, 16);             // kop
+    g.fillRect(152, 44, 10, 36);            // stootplaat
+    g.beginPath();
+    g.moveTo(162, 52); g.lineTo(276, 52); g.quadraticCurveTo(300, 58, 312, 66);
+    g.lineTo(162, 70); g.closePath(); g.fill();
+  } else if (sn) {
     // lange loop, grendelkast, kolf naar achteren en de kijker erboven
     g.fillRect(70, 40, 175, 18);            // grendelkast
     g.fillRect(236, 44, 74, 10);            // loop
@@ -521,7 +530,7 @@ export function wapenIcoon(soort = 'pistool') {
   g.fillStyle = '#ffd400';
   g.font = '700 20px system-ui, sans-serif';
   g.textBaseline = 'alphabetic';
-  g.fillText(sn ? 'SNIPER' : mp ? 'MACHINEGEWEER' : 'PISTOOL', 16, sn ? 16 : 26);
+  g.fillText(mes ? 'MES' : sn ? 'SNIPER' : mp ? 'MACHINEGEWEER' : 'PISTOOL', 16, sn ? 16 : 26);
   const t = tex(c); cache.set(sleutel, t); return t;
 }
 

@@ -14,11 +14,82 @@
 import * as THREE from 'three';
 import { grondHoogte } from './viaduct.js';
 import { MAAT, DEEL, loopHouding, mikHouding, hurkHouding, zitHouding, lichaamMat } from './lichaam.js';
+import { rondeDoosGeo } from './wapen.js';
 
 const SCHOUDER_X = 0.235;
 
 function mat(hex, ruw = 0.92) {
   return new THREE.MeshStandardMaterial({ color: hex, roughness: ruw });
+}
+
+/*
+ De wapens van de anderen (stap 123; tot dan losse blokjes, open punt 17). Afgeronde dozen voor kast,
+ greep en magazijn, ronde lopen, een houten kolf, en een staal dat glimt. Eén keer gebouwd per soort en
+ per materiaal samengevoegd (een paar draw calls per wapen), en gedeeld door iedereen die het vasthoudt.
+*/
+const NPC_MAT = {};
+function npcMat(naam) {
+  if (!NPC_MAT[naam]) {
+    const [kleur, ruw, metaal] = { staal: [0x1c1e22, 0.42, 0.6], poly: [0x26282d, 0.78, 0], hout: [0x5a3a22, 0.68, 0] }[naam];
+    NPC_MAT[naam] = new THREE.MeshStandardMaterial({ color: kleur, roughness: ruw, metalness: metaal });
+  }
+  return NPC_MAT[naam];
+}
+function npcDoos(b, h, d, x, y, z, r = 0.008, rx = 0) {
+  const g = rondeDoosGeo(b, h, d, r, 1);
+  if (rx) g.rotateX(rx);
+  g.translate(x, y, z);
+  return g;
+}
+function npcLoop(r, L, x, y, z) {
+  const g = new THREE.CylinderGeometry(r, r, L, 12);
+  g.rotateX(Math.PI / 2); g.translate(x, y, z);
+  return g;
+}
+function samen(lijst) {
+  const pos = [], nor = [];
+  for (const g of lijst) {
+    const n = g.index ? g.toNonIndexed() : g;
+    pos.push(...n.attributes.position.array); nor.push(...n.attributes.normal.array);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.computeBoundingSphere();
+  return geo;
+}
+const NPC_WAPEN = {};
+function npcWapen(soort) {
+  if (NPC_WAPEN[soort]) return NPC_WAPEN[soort];
+  const d = { staal: [], poly: [], hout: [] };
+  if (soort === 'pistool') {
+    d.staal.push(npcDoos(0.034, 0.048, 0.19, 0, 0.018, -0.03, 0.009));          // slede
+    d.staal.push(npcLoop(0.009, 0.03, 0, 0.012, -0.135));                        // loop
+    d.poly.push(npcDoos(0.032, 0.105, 0.052, 0, -0.062, 0.048, 0.011, 0.24));     // greep, iets naar achteren
+    d.poly.push(npcDoos(0.012, 0.012, 0.052, 0, -0.034, -0.004, 0.005));         // trekkerbeugel
+    d.staal.push(npcDoos(0.010, 0.014, 0.012, 0, 0.048, -0.105, 0.003));         // korrel
+  } else if (soort === 'mp') {
+    d.staal.push(npcDoos(0.056, 0.084, 0.30, 0, 0, -0.04, 0.012));               // kast
+    d.staal.push(npcLoop(0.022, 0.17, 0, 0.008, -0.27));                         // loopmantel
+    d.staal.push(npcLoop(0.008, 0.05, 0, 0.008, -0.375));                        // loop
+    d.poly.push(npcDoos(0.040, 0.20, 0.050, 0, -0.12, -0.02, 0.008, -0.12));     // magazijn, licht naar voren
+    d.poly.push(npcDoos(0.044, 0.10, 0.055, 0, -0.07, 0.10, 0.012, 0.28));       // greep
+    d.staal.push(npcLoop(0.006, 0.20, -0.022, 0.03, 0.22));                      // de stut, twee stangen
+    d.staal.push(npcLoop(0.006, 0.20, 0.022, 0.03, 0.22));
+    d.poly.push(npcDoos(0.06, 0.07, 0.02, 0, 0.0, 0.32, 0.008));                 // de schouderplaat
+    d.staal.push(npcDoos(0.018, 0.036, 0.036, 0, 0.058, -0.10, 0.004));          // vizier
+  } else {
+    // het geweer van de bewaking: lange loop, houten kolf en handgreep, een gebogen magazijn
+    d.staal.push(npcLoop(0.012, 0.34, 0, 0.012, -0.42));                         // loop
+    d.staal.push(npcDoos(0.050, 0.070, 0.34, 0, 0.004, -0.08, 0.010));           // kast
+    d.hout.push(npcDoos(0.056, 0.060, 0.20, 0, -0.004, -0.27, 0.014));           // handgreep
+    d.hout.push(npcDoos(0.046, 0.115, 0.27, 0, -0.030, 0.22, 0.016, -0.10));     // kolf
+    d.poly.push(npcDoos(0.040, 0.17, 0.052, 0, -0.10, -0.04, 0.008, -0.32));     // magazijn
+    d.poly.push(npcDoos(0.040, 0.09, 0.05, 0, -0.07, 0.07, 0.010, 0.30));        // pistoolgreep
+    d.staal.push(npcDoos(0.018, 0.045, 0.040, 0, 0.055, 0.02, 0.004));          // vizier
+  }
+  NPC_WAPEN[soort] = Object.entries(d).filter(([, l]) => l.length).map(([m, l]) => ({ geo: samen(l), m: npcMat(m) }));
+  return NPC_WAPEN[soort];
 }
 
 // Een blokje op zijn plek, met schaduw aan. Stond eerst in de constructor;
@@ -157,22 +228,7 @@ export class Persoon {
     if (this.wapen) { this.wapen.visible = true; return this.wapen; }
     this.wapenSoort = soort;
     const g = new THREE.Group();
-    const zwart = mat(0x1b1d21, 0.5);
-    if (soort === 'mp') {
-      /*
-       Het machinepistool van de arrestatie-eenheid: korter dan het geweer, een
-       kast met een magazijn dat eronder uitsteekt, een loopmantel en een
-       ingeklapte schouderstut. Dezelfde vorm als het wapen dat je zelf kunt
-       kopen (js/wapen.js), maar dan als los blok — je ziet hem op tien meter
-       en niet in je handen.
-      */
-      g.add(mesh(new THREE.BoxGeometry(0.06, 0.09, 0.34), zwart, 0, 0, -0.04));
-      g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.17), mat(0x121417, 0.5), 0, 0.01, -0.27));  // loopmantel
-      g.add(mesh(new THREE.BoxGeometry(0.045, 0.19, 0.05), mat(0x15171a, 0.5), 0, -0.12, 0.01)); // magazijn
-      g.add(mesh(new THREE.BoxGeometry(0.05, 0.09, 0.10), mat(0x2c2118), 0, -0.03, 0.14));       // greep
-      g.add(mesh(new THREE.BoxGeometry(0.055, 0.03, 0.20), zwart, 0, 0.05, 0.20));               // stut
-      g.add(mesh(new THREE.BoxGeometry(0.02, 0.04, 0.04), zwart, 0, 0.065, -0.10));              // vizier
-    } else if (soort === 'knuppel') {
+    if (soort === 'knuppel') {
       /*
        Een honkbalknuppel van de bende (na missie 10): blank hout, dun bij de
        greep en dik aan het eind, 82 cm lang. Hij steekt vanuit de vuist naar
@@ -187,21 +243,13 @@ export class Persoon {
       g.add(k);
       g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.1, 8), mat(0x1e1e22, 0.8), 0, 0, 0.05));  // tape om de greep
       g.children[g.children.length - 1].rotation.x = -Math.PI / 2;
-    } else if (soort === 'pistool') {
-      /*
-       Een handpistool: slede met loop, greep eronder, trekkerbeugel. Klein
-       genoeg om in een hand te passen (19 cm) en toch te zien op tien meter.
-      */
-      g.add(mesh(new THREE.BoxGeometry(0.035, 0.062, 0.19), zwart, 0, 0.015, -0.03));            // slede
-      g.add(mesh(new THREE.BoxGeometry(0.028, 0.030, 0.05), mat(0x121417, 0.5), 0, 0.0, -0.14)); // loop
-      g.add(mesh(new THREE.BoxGeometry(0.033, 0.105, 0.05), mat(0x2b2b30, 0.7), 0, -0.07, 0.05));// greep
-      g.add(mesh(new THREE.BoxGeometry(0.02, 0.028, 0.035), zwart, 0, -0.03, 0.0));              // beugel
-      g.add(mesh(new THREE.BoxGeometry(0.014, 0.018, 0.016), zwart, 0, 0.05, -0.10));            // korrel
     } else {
-      g.add(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.62), zwart, 0, 0, -0.20));
-      g.add(mesh(new THREE.BoxGeometry(0.06, 0.12, 0.26), mat(0x2c2118), 0, -0.02, 0.20));
-      g.add(mesh(new THREE.BoxGeometry(0.05, 0.16, 0.08), zwart, 0, -0.11, -0.02));
-      g.add(mesh(new THREE.BoxGeometry(0.02, 0.05, 0.05), zwart, 0, 0.045, 0.02));   // vizier
+      // pistool, machinepistool of geweer: de gedeelde vorm uit `npcWapen` (stap 123)
+      for (const { geo, m } of npcWapen(soort === 'mp' || soort === 'pistool' ? soort : 'geweer')) {
+        const o = new THREE.Mesh(geo, m);
+        o.castShadow = true; o.receiveShadow = true;
+        g.add(o);
+      }
     }
     g.position.set(0, -MAAT.onderarm - 0.03, 0);
     g.rotation.x = -Math.PI / 2;

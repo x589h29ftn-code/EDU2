@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { resolveCollisions, pointInWater, ondergrondOp, grondHoogte } from './world.js';
 import { geluid } from './audio.js';
-import { maakPistool, maakMitrailleur, maakSniper, HERLAADTIJD } from './wapen.js';
+import { maakPistool, maakMitrailleur, maakSniper, maakMes, HERLAADTIJD } from './wapen.js';
 import { hurkHouding } from './lichaam.js';
 
 /*
@@ -56,6 +56,12 @@ export const WAPENS = {
   */
   sniper: { naam: 'Sniper', mag: 5, auto: false, tempo: 0.95, spreiding: 0, kick: 4.0, mikKick: 0.6, herstel: 5, dodelijk: 1,
     scope: { min: 4, max: 12, stap: 1.6 } },
+  /*
+   Het mes (stap 123): voor als de kogels op zijn. Geen magazijn, geen knal: een steek op armlengte
+   (`bereik` 2,4 m vanaf het oog), twee steken voor iemand neer, en een kleine pauze ertussen. Je hebt
+   het altijd; met lege wapens wissel je er vanzelf naartoe.
+  */
+  mes: { naam: 'Mes', mag: 0, mes: true, auto: false, tempo: 0.42, spreiding: 0, kick: 0.25, dodelijk: 2, bereik: 2.4 },
 };
 
 /*
@@ -133,7 +139,7 @@ export class Player {
      `reserve` is de voorraad kogels — die is voor alle wapens dezelfde, dus een
      doos kogels of de munitie van een agent past altijd.
     */
-    this.wapens = ['pistool'];
+    this.wapens = ['pistool', 'mes'];
     this.wapenNr = 0;
     // het wapen zit op slot tot het verhaal het vrijgeeft (zie wisselWapen)
     this.wapenSlot = false;
@@ -211,7 +217,7 @@ export class Player {
     // allebei de modellen staan er meteen; wisselen is een kwestie van zichtbaar
     // maken. Dat is een paar honderd driehoeken en het scheelt een hapering op
     // het moment dat je het scrollwiel draait.
-    this.modellen = { pistool: maakPistool(geluid), mitrailleur: maakMitrailleur(geluid), sniper: maakSniper(geluid) };
+    this.modellen = { pistool: maakPistool(geluid), mitrailleur: maakMitrailleur(geluid), sniper: maakSniper(geluid), mes: maakMes(geluid) };
     for (const k of Object.keys(this.modellen)) {
       this.modellen[k].groep.visible = false;
       this.camera.add(this.modellen[k].groep);
@@ -566,7 +572,7 @@ export class Player {
   }
 
   reload() {
-    if (this.reloading > 0 || this.wisselT > 0) return;
+    if (this.reloading > 0 || this.wisselT > 0 || this.wapenInfo.mes) return;
     if (this.ammo === this.wapenInfo.mag || this.reserve <= 0) return;
     // de klikken horen bij de beweging en komen uit js/wapen.js
     this.reloading = this.wapen.herlaadtijd || HERLAADTIJD;
@@ -592,11 +598,27 @@ export class Player {
     return Math.abs(d) < Math.PI * (150 / 180);
   }
 
+  // Zit er in geen enkel wapen nog een kogel, en ook niet in je voorraad? (stap 123: dan pak je het mes)
+  get allesLeeg() {
+    if (this.reserve > 0) return false;
+    return !this.wapens.some(w => !WAPENS[w].mes && ((w === this.wapenSoort ? this.ammo : this.magazijnen[w]) || 0) > 0);
+  }
+
   shoot() {
     if (!this.magSchieten()) return;
     if (this.vuurKlok > 0) return;
-    if (this.ammo <= 0) { geluid.leegKlik(); this.reload(); return; }
     const W = this.wapenInfo;
+    if (W.mes) { this.steek(); return; }
+    if (this.ammo <= 0) {
+      geluid.leegKlik();
+      // alles leeg: het mes erbij (één keer per lege trekker, en niet midden in een wissel)
+      if (this.allesLeeg && this.wapens.includes('mes')) {
+        this.vuurAan = false;
+        if (this.startWissel('mes') && this.wisselCb) this.wisselCb('mes', 'Geen kogels meer — het mes');
+        return;
+      }
+      this.reload(); return;
+    }
     // over het vizier ligt het wapen vaster: minder terugslag en minder
     // spreiding, en dát is waarom je zou richten
     const mikF = this.mikFactor;
@@ -622,6 +644,22 @@ export class Player {
     }
     const origin = this.camera.getWorldPosition(new THREE.Vector3());
     if (this.shootCb) this.shootCb(origin, dir);
+  }
+
+  /*
+   Een steek met het mes: geen knal, dus de buurt en de politie horen het niet (js/main.js kijkt naar
+   `mes`); alleen wie binnen `bereik` voor je staat wordt geraakt. Uit een auto steek je niet.
+  */
+  steek() {
+    if (this.inCar) return;
+    const W = this.wapenInfo;
+    this.vuurKlok = W.tempo;
+    this.kickPitch += 0.006 * W.kick;
+    if (this.wapen) this.wapen.vuur();
+    this.steken = (this.steken || 0) + 1;      // (voor tools/mestest.mjs)
+    const dir = new THREE.Vector3(); this.camera.getWorldDirection(dir);
+    const origin = this.camera.getWorldPosition(new THREE.Vector3());
+    if (this.shootCb) this.shootCb(origin, dir, { mes: true, bereik: W.bereik });
   }
 
   // Zet de camera op de speler zonder te bewegen. Nodig op het startscherm,

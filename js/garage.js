@@ -51,6 +51,13 @@ export const TE_KOOP = [
     x: 778.6, z: 131.7, yaw: Math.PI / 2, draai: true, bord: { x: 774.2, z: 135.2 } },
   { id: 'ferrari_geel', naam: 'gele Ferrari', merk: 'FERRARI', kleurNaam: 'giallo modena', soort: 'ferrari', kleur: 0xf2bf00, prijs: 3000,
     x: 776.4, z: 140.6, yaw: Math.PI / 2 - 0.5, bord: { x: 772.9, z: 138.2 } },
+  /*
+   De derde soort (stap 123): een snelle hatchback, tussen de BX en de Ferrari in. 150 km/u, vlot weg en
+   strak door de bocht (`RIJ.gti` in js/vehicles.js); hetzelfde model als de hatchbacks in de wijk, maar
+   lager en korter (`gti` in js/carmodel.js). Achterin, tussen de koffiehoek en de balie.
+  */
+  { id: 'gti', naam: 'blauwe GTI', merk: 'VW GOLF GTI', kleurNaam: 'blauw metallic', soort: 'gti', kleur: 0x1f4fb4, prijs: 1200,
+    x: 783.6, z: 132.0, yaw: Math.PI / 2, bord: { x: 780.6, z: 134.6 } },
 ];
 
 // ---------- maten (m) ----------
@@ -172,7 +179,7 @@ function prijsDoek(a) {
     g.fillStyle = '#16181b'; g.font = 'bold 50px sans-serif';
     g.fillText(`€ ${a.prijs.toLocaleString('nl-NL')}`, w / 2, 124);
     g.fillStyle = '#6a6e74'; g.font = '19px sans-serif';
-    g.fillText(a.soort === 'ferrari' ? '0-100 in 3,1 s · 200+ km/u' : 'hydropneumatisch · APK', w / 2, 168);
+    g.fillText(a.soort === 'ferrari' ? '0-100 in 3,1 s · 200+ km/u' : a.soort === 'gti' ? '0-100 in 6,4 s · 150 km/u' : 'hydropneumatisch · APK', w / 2, 168);
   });
 }
 // het wandbord achterin

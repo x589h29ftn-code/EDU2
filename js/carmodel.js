@@ -369,6 +369,7 @@ function autoGeoms(kind) {
    mee.
   */
   const bx = kind === 'bx';
+  const gti = kind === 'gti';         // de GTI uit de showroom (stap 123): een hatchback, lager en korter
   let L = bus ? 5.20 : 4.30, W = bus ? 1.90 : 1.78, R = bus ? 0.35 : 0.32;
   let wielZ = bus ? 1.62 : 1.32;
 
@@ -393,6 +394,11 @@ function autoGeoms(kind) {
     cabZ = 0.06; cabL = 2.15;
     kapL = 1.45; kontL = 0.80;
     kapVoor = 0.70; kontAchter = 0.42;
+  }
+  if (gti) {
+    L = 4.18; R = 0.33;
+    flankY = 0.68; schouderY = 0.87; dakY = 1.33;
+    kontL = 0.95; kontAchter = 0.50;
   }
   const wielX = W / 2 - 0.09;
   const dorpelY = 0.30 + R * 0.42;

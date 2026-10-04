@@ -563,7 +563,9 @@ export class HUD {
       this.hint.textContent = '';
     } else {
       this.speed.style.display = 'none'; this.ammo.style.display = 'block';
-      this.ammo.textContent = player.reloading > 0 ? 'herladen…' : `${player.ammo} / ${player.reserve}`;
+      // (met het mes in de hand: geen magazijn, wel wat je nog aan kogels hebt; stap 123)
+      this.ammo.textContent = player.reloading > 0 ? 'herladen…'
+        : player.wapenInfo && player.wapenInfo.mes ? `mes · ${player.reserve}` : `${player.ammo} / ${player.reserve}`;
       const car = vehicles.nearestDriveable(player.pos.x, player.pos.z);
       this.hint.textContent = (car && !praten) ? 'Druk E om in te stappen' : '';
     }

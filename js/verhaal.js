@@ -1927,6 +1927,18 @@ export function initVerhaal(ctx) {
     punt = null;                      // een nieuwe missie, dus geen oud herstelpunt
     // wat na missie 6 uit het zicht mocht verdwijnen, verdwijnt niet in een volgende missie (stap 120)
     weg.mark = false; weg.bx = false;
+    /*
+     Een missie opnieuw spelen vanuit het menu (stap 123): wil het verhaal daarna de volgende beginnen
+     (het telefoontje, of missie 1 die doorloopt in 2), dan is het herspelen voorbij en speel je vrij.
+    */
+    if (herspeelNaam && naam !== herspeelNaam) {
+      herspeelNaam = null;
+      missie = 'klaar'; fase = 'klaar';
+      zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
+      if (uitzendingKlaar) brugKlaar = true;
+      hud.melding('KLAAR', 'Je speelt weer vrij verder.', 4);
+      return;
+    }
     missie = naam;
     fase = 'wacht';
     player.health = 100;              // na elke missie is je leven weer vol
@@ -2657,7 +2669,8 @@ export function initVerhaal(ctx) {
     if (kruis) kruis.style.display = '';
     uitleg.toon('wapen', 'Je pistool',
       '<kbd>H</kbd> wapen pakken en weer wegbergen · '
-      + '<kbd>LMB</kbd> schieten · <kbd>RMB</kbd> richten · <kbd>R</kbd> herladen', 11);
+      + '<kbd>LMB</kbd> schieten · <kbd>RMB</kbd> richten · <kbd>R</kbd> herladen · '
+      + '<kbd>scrollwiel</kbd> ander wapen; zijn je kogels op, dan pak je je <b>mes</b>', 12);
   }
 
   // ---------- schieten ----------
@@ -3892,6 +3905,29 @@ export function initVerhaal(ctx) {
    minder werk en het kan niet uit de pas lopen met wat de missie zelf doet.
   */
   let punt = null;               // { missie, fase }
+  /*
+   Missies opnieuw spelen na het einde (stap 123, uit het pauzemenu). Niet missie 1 (de kennismaking, die
+   loopt door in 2–4) en niet missie 9 (je hebt al een huis).
+  */
+  let herspeelNaam = null;
+  const HERSPEEL = [
+    ['rijden', 'Naar de waterzuivering'], ['bewaking', 'De bewaking'], ['afleveren', 'Afleveren bij de boerderij'],
+    ['johan', 'Het telefoontje van Johan'], ['bx', 'De groene BX'], ['bom', 'De bom bij de Poiesz'], ['sniper', 'De deal bij de molen'],
+    ['veteraan', 'De Veteraan'], ['politieauto', 'De politieauto en de C4'], ['brug', 'De Dúvelsrak'], ['schrift', 'Het schrift'],
+    ['race', 'Ronald en de race'], ['schaduw', 'Bouwman schaduwen'], ['inval', 'De inval'], ['ronald', 'Wie is R.'], ['uitzending', 'De uitzending'],
+  ];
+  function herspeelbaar() {
+    if (!uitzendingKlaar || missie !== 'klaar' || klusjes.bezig || geldInleg || uitjeBezig() || zwart || titelrol) return [];
+    return HERSPEEL.map(([naam, titel], i) => ({ naam, titel, nr: i + 2 + (i >= 7 ? 1 : 0) }));
+  }
+  function herspeel(naam) {
+    if (!herspeelbaar().some(m => m.naam === naam)) return false;
+    herspeelNaam = naam;
+    // de Dúvelsrak heeft na missie 12 een gat; voor het opnieuw spelen is hij heel (brugGeslaagd zet het terug)
+    if (naam === 'brug') brugKlaar = false;
+    startMissie(naam);
+    return true;
+  }
   function zetPunt(f) {
     if (!f) return;
     punt = { missie, fase: f };
@@ -10427,6 +10463,7 @@ export function initVerhaal(ctx) {
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
       raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
+      herspeel: herspeelNaam,
       // liep de klok voordat een missie (of het uitje) hem stilzette? De opslag bewaart hem stil (stap 122)
       klokWas: [schaduwKlokWas, invalKlokWas, ronaldKlokWas, uitzKlokWas, uitje.klokWas].find(k => k !== null) ?? null,
     };
@@ -10438,6 +10475,7 @@ export function initVerhaal(ctx) {
     klusjes.reset(); klusPauze = null;
     geladenIn = null;
     if (!s) return;
+    herspeelNaam = typeof s.herspeel === 'string' ? s.herspeel : null;
     // (de klok komt uit de opslag: een opruimer zet hem niet terug naar zijn stand van vóór een missie, stap 122)
     uitje.klokWas = null; uitzKlokWas = null;
     /*
@@ -10809,6 +10847,7 @@ export function initVerhaal(ctx) {
 
   return {
     update, toets, doelen, raak, hinder, bewaar, herstel, naLaden, meldAan, schotGehoord, dood, mislukt,
+    herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; },
     beginGesprek, waaromNietOpslaan,
     /*
      De keuze die nu openstaat (1, 2 of 3), als woorden: op een aanraakscherm zet js/main.js er

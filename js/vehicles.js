@@ -139,6 +139,8 @@ export const RIJ = {
    1,5 en op 200 km/u 0,9 rad/s.
   */
   ferrari: { top: 70, trek: 1.9, grip: 50 },
+  // de GTI uit de showroom (stap 123): 150 km/u, vlot weg, strakker door de bocht dan een gewone hatchback
+  gti: { top: 42, trek: 1.45, grip: 36 },
 };
 
 export const LAKKLEUREN = [

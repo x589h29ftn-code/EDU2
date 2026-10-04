@@ -298,6 +298,21 @@ begint met **12 kogels in het pistool en 200 in reserve**.
 | herladen | 1,55 s | 2,05 s |
 | prijs | je begint ermee | € 500 |
 
+### Het mes
+
+Zijn je kogels op — in elk wapen en in je voorraad — dan pak je bij de volgende klik vanzelf je **mes**
+(*"Geen kogels meer — het mes"*). Je hebt het altijd, ook met het scrollwiel te kiezen. Een klik is een
+steek op armlengte: **twee steken** voor iemand neer, een bewaker van een missie in één. Er is geen knal:
+de buurt rent niet weg en de politie hoort geen schot. Uit een auto steek je niet. Linksonder staat dan
+*mes · 0*: zodra je kogels vindt (een neergestoken agent laat ze vallen) scrol je terug naar je pistool.
+
+![Het mes in je hand](docs/screenshots/mes_in_hand.png)
+
+De anderen hebben sinds stap 123 ook echte wapens in plaats van blokjes: een pistool met slede en greep,
+een machinepistool met loopmantel en stut, en het geweer van de bewaking met een houten kolf.
+
+![Een bewaker met zijn geweer](docs/screenshots/wapen_bewaker.png)
+
 ### De terugslag van de sniper
 
 De sniper **schopt** (stap 111: "voelt vrij zwak"):
@@ -645,13 +660,16 @@ glazen gevels, tegen Duinterpen aan. Je komt er via de inrit recht tegenover de 
 de kaart staat hij als winkeltje met *auto's* eronder, en aan de weg staat een zuil met de naam.
 
 Loop je op de glazen deur af, dan schuift hij open (in een auto niet: het is geen doorrijroute).
-Binnen staan drie auto's:
+Binnen staan vier auto's:
 
 | auto | prijs | topsnelheid |
 |---|---|---|
 | rode Ferrari, op de draaischijf recht tegenover de deur | € 3.000 | ruim 200 km/u, 0–100 in ongeveer 2 s |
 | gele Ferrari | € 3.000 | ruim 200 km/u |
+| blauwe VW Golf GTI, achterin tussen de koffiehoek en de balie | € 1.200 | 150 km/u, vlot weg en strak door de bocht |
 | rode Citroën BX | € 250 | rond de 80 km/u, net als de rest |
+
+![De GTI in de showroom](docs/screenshots/gti_showroom.png)
 
 Ga naast een auto staan: de balk zegt **E — rode Ferrari kopen (€ 3.000)**. Heb je het geld, dan
 staat hij buiten op het voorterrein met de sleutels erin, en zegt Sjoerd achter de balie dat je
@@ -2526,6 +2544,14 @@ in een muur. `npm run uitzendingshots` maakt de zes foto's.
 rand, naast Bouwman met de deur naar hem toe, nooit harder dan 21 m/s en nooit meer dan 4,5 m/s² erbij,
 de camera buiten de romp. Hij schiet echt uit de deur, landt, rijdt de achtervolging, raakt Bouwman kwijt,
 het gevecht, de politie en de brug, en hervat elke fase opnieuw. `npm run avondshots` maakt de vijf foto's.
+
+#### Na het einde: een missie opnieuw spelen
+
+Na de titelrol staat er in het pauzemenu (**Esc**) een knop **Missie opnieuw**, met de missies 2 tot en
+met 18 (zonder 9: je hebt al een huis). Kies er een en hij begint waar je staat. Is hij af, dan speel je
+weer vrij verder in plaats van door te gaan met de volgende; de Dúvelsrak is voor missie 12 even heel.
+
+![Missie opnieuw in het pauzemenu](docs/screenshots/menu_herspeel.png)
 
 #### Na het einde: een middag met Mark
 

@@ -614,7 +614,17 @@ export class NPCs {
     }
     const startsAtA = Math.hypot(s.a[0] - end[0], s.a[1] - end[1]) < 1.5;
     p.seg = s; p.dir = startsAtA ? 1 : -1; p.t = startsAtA ? 0 : 1;
-    if (p.paniek <= 0 && this.r() < 0.35) p.side *= -1;   // soms oversteken naar de andere stoep
+    /*
+     Soms naar de andere stoep. Tot stap 123 was dat `p.side *= -1`: in één beeld tien tot twintig meter
+     opzij (open punt 21). Nu steekt hij over zoals midden op een wegvak (`steek`), en alleen over een
+     rijweg waar niets aankomt; anders blijft hij aan zijn kant.
+    */
+    if (p.paniek <= 0 && this.r() < 0.35) {
+      if (s.drive && !(p.steek > 0) && (!this.magOversteken || this.magOversteken(p.x, p.z))) {
+        p.steekVan = p.side; p.steekNaar = -p.side; p.steek = 1; p.opWeg = true;
+        p.steekWacht = 18 + this.r() * 40;
+      }
+    }
   }
 
   /*

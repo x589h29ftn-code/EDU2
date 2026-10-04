@@ -256,7 +256,7 @@ const bak = () => ({ delen: [] });
  en de buitenste de afronding; de normaal is de richting vanaf de binnendoos,
  dus op de rand loopt hij glad mee om de hoek.
 */
-function rondeDoosGeo(b, h, d, r, seg = 2) {
+export function rondeDoosGeo(b, h, d, r, seg = 2) {
   r = Math.max(0.0002, Math.min(r, b / 2 - 1e-5, h / 2 - 1e-5, d / 2 - 1e-5));
   const s = seg * 2 + 1;
   const geo = new THREE.BoxGeometry(1, 1, 1, s, s, s).toNonIndexed();
@@ -1106,5 +1106,96 @@ function maakWapen(geluid, soort = 'pistool') {
     get terugslag() { return terugslag; },
     get veer() { return { ...veer }; },
     get hulzenInDeLucht() { return hulsData.filter(h => h.t <= 0.7).length; },
+  };
+}
+
+/*
+ Het mes (stap 123, verzoek 4 okt 2026: "een mes als wapen voor als je wapen leeg is, zodat je nog iets
+ hebt om terug te vechten"). Een vuist om het heft, het lemmet naar voren en iets omhoog, de onderarm
+ schuin naar de rechteronderhoek zoals bij het pistool. Dezelfde doeken en materialen als de andere
+ wapens, dus geen nieuw soort shader na het opstarten.
+
+ `vuur` is hier een steek: in 0,32 s naar voren en terug (`STEEK`). Geen flits, geen huls, geen rook.
+*/
+export const STEEK = 0.32;
+export function maakMes(geluid) {
+  const groep = new THREE.Group();
+  const staal = mat(0xffffff, 0.6, 0.85, staalDoek(), [0.08, 0.08]);
+  const heftMat = mat(0x2a2522, 1, 0, polyDoek(), [0.05, 0.05]);
+  const huid = mat(0xffffff, 1, 0, huidDoek(), [0.07, 0.07]);
+  const stof = mat(0xffffff, 1, 0, stofDoek(), [0.05, 0.05]);
+
+  // het lemmet: een plat profiel met een punt, uitgetrokken tot 3,5 mm dik
+  const vorm2 = new THREE.Shape();
+  vorm2.moveTo(0, -0.011);
+  vorm2.lineTo(0.118, -0.011);
+  vorm2.quadraticCurveTo(0.150, -0.006, 0.165, 0.006);      // de buik naar de punt
+  vorm2.lineTo(0.112, 0.012);                               // de rug, met een valse snede
+  vorm2.lineTo(0, 0.012);
+  vorm2.lineTo(0, -0.011);
+  const lemmetGeo = new THREE.ExtrudeGeometry(vorm2, { depth: 0.0035, bevelEnabled: false, curveSegments: 6 });
+  lemmetGeo.translate(0, 0, -0.00175);
+  lemmetGeo.rotateY(Math.PI / 2);                           // x (de lengte) wordt −z: naar voren
+  const mB = bak();
+  vorm(mB, lemmetGeo, staal);
+  doos(mB, staal, 0.016, 0.036, 0.008, 0, 0, 0.004, 0.002);  // de stootplaat
+  doos(mB, heftMat, 0.020, 0.026, 0.105, 0, -0.001, 0.060, 0.008, 2);   // het heft
+  doos(mB, staal, 0.018, 0.022, 0.010, 0, -0.001, 0.115, 0.004);       // de kop van het heft
+  const mes = bouw(mB, new THREE.Group());
+  mes.rotation.x = 0.10;                                    // de punt iets omhoog
+  groep.add(mes);
+
+  // de vuist om het heft: vier vingers om de onderkant, de duim erover
+  const hB = bak();
+  doos(hB, huid, 0.030, 0.050, 0.090, 0.022, -0.004, 0.062, 0.012, 2);   // de rug van de hand, rechts
+  for (const [z, r] of [[0.030, 0.0092], [0.052, 0.0090], [0.074, 0.0086], [0.094, 0.0078]]) {
+    staaf(hB, huid, [0.026, -0.020, z], [0.004, -0.024, z], r);
+    staaf(hB, huid, [0.004, -0.024, z], [-0.016, -0.010, z], r * 0.95);
+  }
+  staaf(hB, huid, [0.012, 0.022, 0.050], [-0.014, 0.018, 0.026], 0.0098); // de duim
+  const hand = bouw(hB, new THREE.Group());
+  groep.add(hand);
+
+  const aB = bak();
+  const pols = rondeDoosGeo(0.052, 0.056, 0.070, 0.019, 2);
+  pols.rotateY(0.22); pols.rotateX(-0.20); pols.translate(0.028, -0.010, 0.135);
+  vorm(aB, pols, huid);
+  const mouw = buisGeo(0.038, 0.043, 0.44, 0, 0, 0, 16);
+  mouw.rotateZ(0.06); mouw.rotateY(0.34); mouw.rotateX(-0.20); mouw.translate(0.100, -0.060, 0.360);
+  vorm(aB, mouw, stof);
+  groep.add(bouw(aB, new THREE.Group()));
+
+  const RUST = { x: 0.17, y: -0.15, z: -0.40 };
+  groep.position.set(RUST.x, RUST.y, RUST.z);
+  let steekT = 0, terugslag = 0;
+
+  function vuur() {
+    steekT = STEEK;
+    if (geluid && geluid.mesZwaai) geluid.mesZwaai();
+  }
+  function update(dt, { bob = 0, holster = 0 } = {}) {
+    steekT = Math.max(0, steekT - dt);
+    // de steek: snel naar voren, rustiger terug (een halve sinus, scheef)
+    const f = steekT > 0 ? 1 - steekT / STEEK : 0;
+    const s = f > 0 ? Math.sin(Math.min(1, f * 1.6) * Math.PI) * (f < 0.31 ? 1 : 1 - (f - 0.31) * 0.6) : 0;
+    terugslag = s;
+    const sb = Math.sin(bob), cb = Math.cos(bob * 2);
+    groep.position.set(RUST.x - 0.06 * s + sb * 0.006, RUST.y + 0.03 * s + cb * 0.004, RUST.z - 0.22 * s);
+    groep.rotation.set(-0.20 * s, 0.30 * s, 0);
+    if (holster > 0) {
+      groep.position.y -= 0.42 * holster;
+      groep.position.z += 0.16 * holster;
+      groep.rotation.x -= 0.95 * holster;
+      groep.rotation.z += 0.42 * holster;
+    }
+  }
+  update(0);
+  return {
+    groep, vuur, update, soort: 'mes', herlaadtijd: 0,
+    houding: { rust: RUST, mik: RUST, vizierY: 0 },
+    get terugslag() { return terugslag; },
+    get steekt() { return steekT > 0; },
+    get veer() { return { x: 0, y: 0 }; },
+    get hulzenInDeLucht() { return 0; },
   };
 }

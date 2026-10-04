@@ -476,6 +476,9 @@ export const geluid = {
   },
 
   raak() { toon({ freq: 1400, naar: 900, duur: 0.09, volume: 0.14, golf: 'square' }); },
+  // het mes (stap 123): een korte zwiep door de lucht, en een doffe tik als hij niets raakt
+  mesZwaai() { tik({ freq: 2600, q: 0.8, duur: 0.13, volume: 0.10, type: 'bandpass', val: 0.6 }); },
+  mesMis() { tik({ freq: 1800, q: 0.6, duur: 0.08, volume: 0.04, type: 'bandpass', val: 0.5 }); },
 
   // Schelle ringtone: twee tonen die een paar keer heen en weer gaan, zoals een
   // goedkope telefoon. Wordt door het verhaal aangeroepen (js/verhaal.js).

@@ -7484,6 +7484,34 @@ draaiden eerst op de oude code (alle vijf groen); twee helpers lazen 16–17 en 
 **Proeven**: `naloop3test` (nieuw, groen); `invaltest`, `ronaldtest`, `avondtest`, `uitzendingtest`, `uitjetest`,
 `checkpointtest`, `overgangtest`, `opslagtest` en `naloop2test` opnieuw, alle groen.
 
+**Zes dingen voor de publicatie (stap 123).** Gevraagd op 4 okt 2026, uit een lijst van voorstellen: "1. 3. 5.
+6. 8. En voeg ook een mes toe als wapen voor als je wapen leeg is zodat je nog iets hebt om terug te vechten."
+
+- *Het mes* (js/wapen.js `maakMes`, js/player.js `WAPENS.mes`, `steek`, `allesLeeg`). Een vuist om het heft
+  en een uitgetrokken lemmet, met dezelfde doeken als de andere wapens, zodat er na het opstarten geen nieuwe
+  shader bij komt. Je hebt het altijd (`wapens = ['pistool', 'mes']`; een oude opslag krijgt het erbij in
+  js/opslag.js). Zijn alle magazijnen en de voorraad leeg, dan wisselt de volgende klik naar het mes. Een steek
+  gaat via `shootCb` met `{ mes, bereik }`: alleen mensen binnen 2,4 m, geen auto's of heli, en niets van de
+  knal (`schotGehoord`, `hoorSchot`, de paniek in de buurt); wat er bij een treffer gebeurt staat in
+  `steekRaak`. Twee steken voor iemand neer, een bewaker van een missie in één. Uit een auto niet.
+- *De GTI* (js/garage.js `TE_KOOP`, `RIJ.gti`, `gti` in `autoGeoms`): de vierde auto, € 1.200, 150 km/u,
+  lager en korter dan een hatchback. Achterin tussen de koffiehoek en de balie; er waren al vier
+  afleverplekken. De legenda noemt hem.
+- *Uitleg* (js/uitleg.js): bij de eerste ster en de eerste keer de grote kaart (`uitlegBij` in js/main.js),
+  en de uitleg bij het wapen en de auto aangevuld (scrollwiel en mes; gas, sturen, handrem, uitstappen).
+- *De wapens van de anderen* (open punt 17; `npcWapen` in js/persoon.js): afgeronde dozen (`rondeDoosGeo`, nu
+  uit js/wapen.js geëxporteerd), ronde lopen, een houten kolf, glimmend staal. Eén geometrie per soort en per
+  materiaal, gedeeld door iedereen die hem vasthoudt; de oude bouwde per persoon vijf losse blokjes.
+- *Oversteken* (open punt 21): `pickSegment` in js/npc.js zette `p.side *= -1`, en dan sprong een voetganger
+  in één beeld tien tot twintig meter opzij. Nu begint hij daar een oversteek (`steek`), alleen over een rijweg
+  en als `magOversteken` het toelaat.
+- *Missie opnieuw* (js/verhaal.js `herspeelbaar`, `herspeel`, `herspeelNaam`; js/menu.js): na het einde een
+  knop in het pauzemenu met missie 2–18 zonder 9. Wil het verhaal na de herspeelde missie de volgende beginnen
+  (missie 1–4 lopen direct in elkaar door, de rest via het telefoontje of het zwart), dan vangt `startMissie`
+  dat af en speel je vrij. De opslag onthoudt dat je aan het herspelen bent. Voor missie 12 is de brug even heel.
+
+**Proeven**: `zespuntentest` (nieuw); PROEVEN_HIER. **Foto's**: `zespuntenshots` (vier).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

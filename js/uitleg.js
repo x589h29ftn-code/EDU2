@@ -48,6 +48,8 @@ function verberg() {
  Uitleg tonen. `sleutel` zorgt dat het maar één keer gebeurt; `regels` is een
  stukje HTML met <kbd> erin voor de toetsen.
 */
+// is deze uitleg al geweest? (voor tools/zespuntentest.mjs)
+export function gezien(sleutel) { return gehad.has(sleutel); }
 export function toon(sleutel, kop, regels, tellen = 9) {
   if (gehad.has(sleutel)) return false;
   if (!pak()) return false;

@@ -293,6 +293,8 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opsla
     opslaan: knop('Opslaan', 'menuOpslaan', opslaanKlik),
     nieuw: knop('Start spel', 'menuNieuw', nieuwKlik, true),
     laden: knop('Spel laden', 'menuLaden', kies('laden')),
+    // na het einde: een missie opnieuw spelen (stap 123); de lijst komt uit js/verhaal.js
+    herspeel: knop('Missie opnieuw', 'menuHerspeel', () => toonPaneel('herspeel')),
     instellingen: knop('Instellingen', 'menuInstellingen', () => toonPaneel('instellingen')),
     besturing: knop('Besturing', 'menuBesturing', () => toonPaneel('besturing')),
     afsluiten: knop('Afsluiten', 'menuAfsluiten', () => opAfsluiten && opAfsluiten()),
@@ -300,6 +302,7 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opsla
   for (const k of Object.values(knoppen)) lijst.append(k);
   knoppen.doorgaan.hidden = true;
   knoppen.opslaan.hidden = true;
+  knoppen.herspeel.hidden = true;
   knoppen.laden.hidden = !heeftOpslag;
   // onder de knoppen: wat een nieuw spel doet (bij de vraag), en een opslag die niet te lezen is
   const nieuwUitleg = document.createElement('div'); nieuwUitleg.className = 'menuonder'; nieuwUitleg.id = 'menuNieuwUitleg';
@@ -332,6 +335,7 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opsla
 
   wortel.append(doek, waas, paneel, laad);
   el = { wortel, doek, paneel, lijst, knoppen, zijpaneel, laad, laadDoek, laadTitel, laadTip, balkIn, laadWat, laadKlaar, nieuwUitleg, opslagMelding };
+  el.kies = kies;
   zetOpslag(opslag, staat);
   return el;
 }
@@ -383,13 +387,24 @@ function toonPaneel(welke) {
   z.dataset.welke = welke;
   z.innerHTML = '';
   z.hidden = false;
+  if (welke === 'herspeel') {
+    const kop = document.createElement('h3'); kop.textContent = 'Missie opnieuw spelen'; z.append(kop);
+    for (const m of herspeelLijst) {
+      const b = document.createElement('button');
+      b.className = 'menuknop klein'; b.dataset.missie = m.naam;
+      b.textContent = `${m.nr} · ${m.titel}`;
+      b.addEventListener('click', el.kies(`herspeel:${m.naam}`));
+      z.append(b);
+    }
+    return;
+  }
   if (welke === 'besturing') {
     const kop = document.createElement('h3'); kop.textContent = 'Besturing'; z.append(kop);
     for (const [a, b] of [
       ['W A S D', 'lopen · shift = rennen · spatie = springen'],
       ['C', 'bukken: lager, langzamer, en moeilijker te zien'],
       ['muis', 'rondkijken · linkermuisknop = schieten · rechtermuisknop = richten · R = herladen'],
-      ['scrollwiel', 'wisselen tussen je wapens (pistool, machinegeweer, sniper) · H = wapen weg'],
+      ['scrollwiel', 'wisselen tussen je wapens (pistool, machinegeweer, sniper, mes) · H = wapen weg'],
       ['E', 'praten, naar binnen, in- en uitstappen, kopen, oppakken'],
       ['1 2 3', 'een keuze maken als het spel erom vraagt (een huis, een inleg, wat je doet)'],
       ['1 … 4', 'aan de toonbank bij Tinga State: kopen wat er in het schap ligt'],
@@ -420,8 +435,11 @@ function toonPaneel(welke) {
 
 // Het menu tonen. `bezig` = de wereld is nog aan het laden; dan staat er bij de
 // knoppen hoever hij is, maar je kunt gewoon al kiezen.
-export function toonMenu({ pauze = false, heeftOpslag = null, opslag = undefined, staat = undefined } = {}) {
+let herspeelLijst = [];
+export function toonMenu({ pauze = false, heeftOpslag = null, opslag = undefined, staat = undefined, herspeel = [] } = {}) {
   if (!el.wortel) return;
+  herspeelLijst = pauze ? herspeel : [];
+  el.knoppen.herspeel.hidden = !herspeelLijst.length;
   el.wortel.style.display = 'flex';
   el.laad.hidden = true;
   el.paneel.hidden = false;

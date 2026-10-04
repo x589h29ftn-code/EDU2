@@ -881,11 +881,12 @@ winkelsNu = null; werkKaartvlaggenBij();
 */
 {
   const ferrari = TE_KOOP.find(a => a.soort === 'ferrari'), bx = TE_KOOP.find(a => a.soort === 'bx');
+  const gti = TE_KOOP.find(a => a.soort === 'gti');
   const wapenVanaf = Math.min(PISTOOL.prijs, MITRAILLEUR.prijs, SNIPER.prijs);
   hud.zetLegenda([
     { wat: 'munitie', naam: 'Tinga State', uitleg: `munitie ${euro(MUNITIE.prijs)}, verband ${euro(EHBO.prijs)}, wapens vanaf ${euro(wapenVanaf)}` },
     { wat: 'bier', naam: 'Poiesz', uitleg: `bier ${euro(BIER.prijs)}: elk flesje ${BIER.leven} leven` },
-    { wat: "auto's", naam: AUTOHUIS, uitleg: `Ferrari ${euro(ferrari.prijs)}, BX ${euro(bx.prijs)}` },
+    { wat: "auto's", naam: AUTOHUIS, uitleg: `Ferrari ${euro(ferrari.prijs)}, GTI ${euro(gti.prijs)}, BX ${euro(bx.prijs)}` },
     { wat: 'overspuiten', naam: 'BP wasbox', uitleg: `overspuiten: de sterren kwijt, ${euro(PRIJS_PER_STER)} per ster` },
     { wat: 'huis', naam: 'je huis', uitleg: 'bier in de koelkast, barbecue, radio, je auto op de oprit' },
     { wat: 'klus', naam: 'klusje', uitleg: `Mark of Johan: ${euro(KLUS.loon.tas[0])} tot ${euro(KLUS.loon.omleggen[1])}` },
@@ -1177,10 +1178,68 @@ function bloedBij(punt, richting, raak) {
   toonPlas(x, z, grondHoogte(x, z) + (vlak ? vlak.y || 0 : 0));
 }
 
-player.shootCb = (camOrigin, camDir) => {
+/*
+ Een steek die raak is (stap 123). Dezelfde mensen als bij een kogel — voetgangers, agenten, de
+ wedstrijd, het tuinfeest, de schutters van een missie — en dezelfde gevolgen als ze neergaan, maar
+ zonder knal: de buurt rent niet weg en een steek telt niet als schot.
+*/
+function steekRaak(h, dir) {
+  const nodig = player.kogelsNodig();
+  const pijn = () => { geluid.raak(); geluid.kreet('pijn', afstandTot(h.point)); };
+  const raakMens = npcs.hit(h.object, h.instanceId, nodig);
+  let raakAgent = null, raakLeven = null;
+  if (raakMens) {
+    pijn(); bloedBij(h.point, dir, raakMens);
+    if (raakMens.neer) {
+      politie.misdaad('neergeschoten', h.point.x, h.point.z);
+      nieuws.meld('schietpartij', h.point.x, h.point.z);
+      ambulanceMelding(raakMens.x ?? h.point.x, raakMens.z ?? h.point.z);
+      buit.laatVallen('geld', h.point.x, h.point.z, zakgeld(), h.point.y - 1);
+    }
+  } else if ((raakAgent = politie.raak(h.object, nodig))) {
+    pijn(); bloedBij(h.point, dir, raakAgent);
+    if (raakAgent.neer) buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie(), h.point.y - 1);
+  } else if (wedstrijd && wedstrijd.raak(h.object)) {
+    pijn(); bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+    politie.misdaad('neergeschoten', h.point.x, h.point.z);
+    ambulanceMelding(h.point.x, h.point.z, wedstrijdSlachtoffer());
+  } else if (leven && (raakLeven = leven.raak(h.object))) {
+    pijn(); bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+    politie.misdaad('neergeschoten', h.point.x, h.point.z);
+    if (raakLeven.herstel) ambulanceMelding(raakLeven.x, raakLeven.z, { herstel: raakLeven.herstel });
+  } else if (verhaal.raak(h.object, 1)) {
+    pijn(); bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+  }
+}
+
+// uitleg bij de eerste ster en de eerste keer de grote kaart (stap 123; één keer per spel, js/uitleg.js)
+function uitlegBij() {
+  if (politie.ster > 0) uitleg.toon('sterren', 'De politie zoekt je',
+    'Elke ster is meer politie. Blijf <b>uit het zicht</b>, dan zakken ze vanzelf · of laat je auto overspuiten in de '
+    + `<b>wasbox van de BP</b> (${euro(PRIJS_PER_STER)} per ster)`, 11);
+  if (hud.bigOpen) uitleg.toon('kaart', 'De grote kaart',
+    '<kbd>M</kbd> klein, groot, uit · <b>klik</b> op de kaart voor een eigen doel (paars), nog eens klikken haalt het weg · '
+    + 'onderaan staat wat elk icoon is', 10);
+}
+
+player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
   // in de derde persoon komt de kogel uit de schouder van je poppetje en niet
   // uit de camera, anders schiet je langs jezelf heen
   const { origin, dir } = derde.mikpunt(camOrigin, camDir);
+  /*
+   Een steek met het mes (stap 123): geen knal, dus niemand hoort het, geen paniek en geen sterren voor
+   een schot; alleen mensen binnen armlengte (`bereik`), en auto's of de heli raak je er niet mee.
+  */
+  if (mes) {
+    raycaster.set(origin, dir); raycaster.far = bereik + (derde.aan ? 2.6 : 0);
+    const mensen = [...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
+      ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : [])];
+    const h = raycaster.intersectObjects(mensen, true)[0];
+    raycaster.far = 120;
+    if (!h) { geluid.mesMis && geluid.mesMis(); return; }
+    steekRaak(h, dir);
+    return;
+  }
   // wie op een tuinfeest staat schrikt van een schot in de buurt (stap 113)
   if (leven) leven.schrik(origin.x, origin.z);
   // de sniper schudt het hele beeld even (stap 111: de terugslag "voelt vrij zwak")
@@ -1677,8 +1736,9 @@ window.addEventListener('keydown', e => {
  twee tellen een tekening van dat wapen rechtsonder. Hetzelfde idee als het
  zenderlogo hierboven.
 */
-function toonWapenIcoon(soort) {
+function toonWapenIcoon(soort, uitleg) {
   hud.toonWapen(wapenIcoon(soort).image);
+  if (uitleg) hud.show(uitleg, 2.5);
 }
 player.wisselCb = toonWapenIcoon;
 
@@ -2064,7 +2124,8 @@ function pauseGame() {
   // loopt door en `motorToeren` wordt niet meer aangeroepen, dus hij blijft op
   // zijn laatste stand hangen (melding beta-test 12 sep 2026).
   geluid.pauzeer(true);
-  menu.toonMenu({ pauze: true, heeftOpslag: !!opslagInfo(), opslag: opslagInfo(), staat: opslagStaat() });
+  menu.toonMenu({ pauze: true, heeftOpslag: !!opslagInfo(), opslag: opslagInfo(), staat: opslagStaat(),
+    herspeel: verhaal.herspeelbaar ? verhaal.herspeelbaar() : [] });
   wachtOpMenu(true);
 }
 
@@ -2078,6 +2139,13 @@ function pauseGame() {
 async function wachtOpMenu(pauze = false) {
   const wat = await menu.volgendeKeuze();
   if (wat === 'doorgaan') { hervatSpel(); return; }
+  // een missie opnieuw (stap 123): het menu weg, en de missie begint waar je staat
+  if (typeof wat === 'string' && wat.startsWith('herspeel:')) {
+    hervatSpel();
+    politie.reset();
+    verhaal.herspeel(wat.slice(9));
+    return;
+  }
   const balk = menu.toonLaadscherm();
   balk(0.15, wat === 'laden' ? 'opgeslagen spel' : 'nieuw spel');
   await new Promise(r => setTimeout(r, 260));
@@ -2345,7 +2413,8 @@ function loop() {
        weer weg — zie js/uitleg.js.
       */
       uitleg.toon('auto', 'In de auto',
-        '<kbd>←</kbd><kbd>→</kbd> andere radiozender · <kbd>V</kbd> camera vanuit je ogen of achter de auto', 10);
+        '<kbd>W</kbd><kbd>S</kbd> gas en rem · <kbd>A</kbd><kbd>D</kbd> sturen · <kbd>spatie</kbd> handrem · <kbd>E</kbd> uitstappen · '
+        + '<kbd>←</kbd><kbd>→</kbd> andere radiozender · <kbd>V</kbd> camera vanuit je ogen of achter de auto', 11);
       /*
        De koplampen aan als het donker is. De spot staat op de neus van de auto
        en kijkt twintig meter vooruit naar de grond — daar ligt de plas licht.
@@ -2520,6 +2589,7 @@ function loop() {
       }
     }
     hud.zetSterren(politie.ster, politie.gezocht);
+    uitlegBij();
     /*
      De blauwe stippen op de kaart. De politieboot hoort erbij — hij telt als een
      wagen, want hij is even groot en je wilt hem op de kaart net zo goed zien
@@ -2787,7 +2857,7 @@ window.__game = {
   kaartvlaggen: werkKaartvlaggenBij,
   // de keuzeknoppen voor een aanraakscherm (tools/opzettest.mjs: met `true` ook zonder aanraakscherm)
   werkKeuzeKnoppenBij,
-  opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
+  uitlegBij, opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
   geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij, garage, boten, politieboot, vaart,
   raakLantaarn, werkLantaarnsBij, lantaarnsOm, buit,
   // het beginpunt van de speler, voor de intro en de fotogereedschappen

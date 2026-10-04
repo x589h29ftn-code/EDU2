@@ -121,6 +121,8 @@ export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart
   if (Array.isArray(s.wapens) && s.wapens.length) {
     player.wapens = s.wapens.filter(w => player.modellen && player.modellen[w]);
     if (!player.wapens.length) player.wapens = ['pistool'];
+    // een opslag van vóór het mes (stap 123): je hebt het altijd
+    if (player.modellen && player.modellen.mes && !player.wapens.includes('mes')) player.wapens.push('mes');
     if (s.magazijnen) player.magazijnen = { ...player.magazijnen, ...s.magazijnen };
     player.zetWapen(player.wapens.includes(s.wapen) ? s.wapen : player.wapens[0]);
     if (typeof s.ammo === 'number') player.ammo = s.ammo;

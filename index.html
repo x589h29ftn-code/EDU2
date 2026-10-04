@@ -210,6 +210,9 @@
   .menuzij { margin-top: 22px; padding: 16px 18px; background: rgba(255,255,255,.05);
              border: 1px solid rgba(255,255,255,.10); border-radius: 10px; font-size: 13px; }
   .menuzij[hidden] { display: none; }
+  /* de lijst met missies om opnieuw te spelen (stap 123): kleiner, en scrollen als hij niet past */
+  .menuknop.klein { font-size: 15px; font-weight: 500; padding: 5px 0; }
+  .menuzij:has(.menuknop.klein) { max-height: 46vh; overflow-y: auto; }
   .menuzij h3 { margin: 0 0 10px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #ffd400; }
   .menurij { display: flex; gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.07); align-items: center; }
   .menurij:last-child { border-bottom: 0; }
