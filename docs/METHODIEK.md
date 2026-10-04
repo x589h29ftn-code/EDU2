@@ -7511,6 +7511,9 @@ draaiden eerst op de oude code (alle vijf groen); twee helpers lazen 16–17 en 
   knop in het pauzemenu met missie 2–18 zonder 9. Wil het verhaal na de herspeelde missie de volgende beginnen
   (missie 1–4 lopen direct in elkaar door, de rest via het telefoontje of het zwart), dan vangt `startMissie`
   dat af en speel je vrij. De opslag onthoudt dat je aan het herspelen bent. Voor missie 12 is de brug even heel.
+- *De huiskeuze op een aanraakscherm* (gevonden door `opzettest`, die na stap 120 niet meer gedraaid had): met
+  het aanbod van missie 9 nog open stonden de drie knoppen ook midden in elke andere missie in beeld. Nu alleen
+  in missie 9 en in vrij spelen.
 
 **Proeven**: `zespuntentest` (nieuw); PROEVEN_HIER. **Foto's**: `zespuntenshots` (drie: het mes, de GTI, het menu). Een foto van een bewaker met het nieuwe geweer
 lukte niet: de hoofdlus zette de camera elke keer terug achter het poppetje van de speler; de wapens zijn in de

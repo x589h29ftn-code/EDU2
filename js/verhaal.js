@@ -10858,8 +10858,10 @@ export function initVerhaal(ctx) {
       if (geldKiezen) return GELDRACE_INLEG.map(euro);
       if (missie === 'race' && fase === 'keuze') return ['nog een keer, dubbel of niks', `${euro(raceSchuld)} betalen`];
       if (missie === 'inval' && fase === 'keuze') return ['ruilen', 'hinderlaag'];
-      // (ook na missie 9 zolang het aanbod openstaat, net als de toetsen; niet tijdens een klus; stap 120)
-      if (huisAanbod && !huisGekozen && !klusjes.bezig) return stekLijst().map(w => `${w.naam} · ${euro(w.prijs)}`);
+      // (ook na missie 9 zolang het aanbod openstaat, net als de toetsen; niet tijdens een klus; stap 120.
+      //  Niet midden in een andere missie: daar stonden drie knoppen de hele missie lang in beeld; stap 123)
+      if (huisAanbod && !huisGekozen && !klusjes.bezig && (missie === 'huis' || missie === 'klaar' || fase === 'klaar'))
+        return stekLijst().map(w => `${w.naam} · ${euro(w.prijs)}`);
       return null;
     },
     /*
