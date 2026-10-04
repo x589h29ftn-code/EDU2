@@ -85,13 +85,19 @@ if (doe('wapen')) {
     const THREE = await import('three');
     const g = window.__game, v = g.verhaal;
     v.__startMissie('bewaking'); window.__stap(4);
-    // de bewakers bevroren, en van voren schuin op de eerste
+    // de bewakers bevroren (anders loopt hij in de tel voor de foto zijn rondje verder), en van voren op de eerste
+    v.update = () => {};
     const d = v.doelen()[0];
     const q = d.getWorldPosition(new THREE.Vector3());
     // (de voorkant van een poppetje is −z van zijn groep; getWorldDirection geeft +z)
     const voor = d.getWorldDirection(new THREE.Vector3()).negate();
     const zij = new THREE.Vector3(-voor.z, 0, voor.x);
-    window.__cam({ x: q.x + voor.x * 2.0 + zij.x * 0.9, y: 1.5, z: q.z + voor.z * 2.0 + zij.z * 0.9 }, { x: q.x, y: 1.1, z: q.z });
+    const oog = { x: q.x + voor.x * 2.0 + zij.x * 0.9, y: 1.5, z: q.z + voor.z * 2.0 + zij.z * 0.9 };
+    window.__cam(oog, { x: q.x, y: 1.1, z: q.z });
+    // (de vrije camera telt de ooghoogte er nog bij op: hier precies op 1,5 m, recht op hem)
+    g.camera.position.set(oog.x, oog.y, oog.z);
+    g.camera.lookAt(q.x, 1.1, q.z);
+    g.camera.updateMatrixWorld();
   });
   await foto('wapen_bewaker');
 }
