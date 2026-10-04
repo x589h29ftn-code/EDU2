@@ -215,6 +215,8 @@ const MISLUKT_SCHOT = 'Johan zei nog zo: geen wouten op ons dak!';
  nog onder hun M (KLUS_WACHT), waar ook weer klusjes komen. `npm run tempotest` meet het.
 */
 const TUSSENPOOS = 150;
+// missie 2 tot 6 beginnen direct na de vorige: dan een checkpoint bij hun begin (stap 117)
+const CHECKPOINT_BIJ_BEGIN = new Set(['rijden', 'bewaking', 'afleveren', 'johan', 'bx']);
 const SNIP_WACHT = TUSSENPOOS;                        // zoveel seconden na de bom belt Johan
 const SNIP_WINKEL = { straat: 'Molenkrite', nr: '115' };  // Tinga State
 const SNIP_RING = 15;                                 // straal van de gele cirkel op het water
@@ -1618,7 +1620,8 @@ export function initVerhaal(ctx) {
    zijn M weer in beeld.
   */
   const KLUS_WACHT = {
-    johan: ['naar_johan'], bx: ['wacht'], bom: ['wacht'], huis: ['naar_mark', 'kiezen'],
+    // (missie 5 heet 'naar_kruirad'; hier stond 'naar_johan', de fase van missie 8, en dan kwam er vóór missie 6 nooit een klus: stap 117)
+    johan: ['naar_kruirad'], bx: ['wacht'], bom: ['wacht'], huis: ['naar_mark', 'kiezen'],
     // missie 8: een sniper kopen en naar Johan aan de Geeuw is nog niets; de deal begint pas bij hem (stap 108)
     sniper: ['kopen', 'naar_johan'],
     veteraan: ['naar_veteraan'], politieauto: ['wacht'], brug: ['wacht'], schrift: ['wacht'],
@@ -1879,6 +1882,27 @@ export function initVerhaal(ctx) {
     // eenmalig uitleggen waar die M voor staat
     uitleg.toon('missies', 'NIEUWE MISSIES',
       BX_AANKONDIGING[0], 14);
+  }
+
+  /*
+   Missie 6 na het laden (stap 117; tot dan had herstel er geen tak voor en stond je zonder opdracht). Vóór
+   het ophalen weer bij de M; daarna terug naar de stap, en wie al overgespoten heeft gaat via 'spuiten'
+   vanzelf door naar IJlst (werkBXBij ziet de nieuwe kleur en zet Mark daar neer).
+  */
+  function hervatBX(f) {
+    if (f === 'wacht' || f === 'briefing' || !bxAuto) { beginBX(); return; }
+    spanning = true; spanningUit = 0;
+    markZichtbaar(false);
+    if (f === 'ophalen') {
+      fase = 'ophalen';
+      zetOpdracht('haal de groene Citroën BX op bij VV Sneek');
+      zetNavDoel(bxAuto.x, bxAuto.z, 'VV Sneek', 'A');
+      return;
+    }
+    fase = 'spuiten';
+    const bp = (KAART.tankstations || [])[0];
+    zetOpdracht('laat de BX overspuiten bij de wasbox achter de BP');
+    if (bp) zetNavDoel(bp.x ?? bp.cx, bp.z ?? bp.cz, 'BP Slump Oil', 'S');
   }
 
   /*
@@ -9687,10 +9711,17 @@ export function initVerhaal(ctx) {
      al in staan.
     */
     if (missie === 'klaar' && vorigeMissie !== null && vorigeMissie !== 'klaar') checkpointT = 1.0;
+    /*
+     Missie 1 tot 5 gaan direct in elkaar over, zonder 'klaar' ertussen: daar kwam het eerste checkpoint
+     pas na missie 5, dus na een kwartier spelen (stap 117). Nu ook als er een nieuwe van die missies begint.
+    */
+    else if (vorigeMissie !== null && vorigeMissie !== missie && CHECKPOINT_BIJ_BEGIN.has(missie)) checkpointT = 1.0;
     vorigeMissie = missie;
     if (checkpointT > 0) {
       checkpointT -= dt;
-      if (checkpointT <= 0 && checkpoint && player.health > 0) {
+      // (midden in een gesprek of filmbeeld wacht hij: zo'n opslag kan na het laden niet verder)
+      if (checkpointT <= 0 && waaromNietOpslaan()) checkpointT = 0.5;
+      else if (checkpointT <= 0 && checkpoint && player.health > 0) {
         checkpoint();
         hud.show('Checkpoint opgeslagen', 2);
       }
@@ -10056,13 +10087,29 @@ export function initVerhaal(ctx) {
       if (brugKlaar) { const g = brugP(BRUG_GAT, 0); brugSchade.zet(g.x, brug.hoogte, g.z, brug.noord); brugSchade.toon(true); }
       else brugSchade.toon(false);
     }
-    if ((fase === 'gesprek' || fase === 'briefing') && missie !== 'veteraan') { fase = 'wacht'; missie = 'molenkrite'; }
+    /*
+     Een gesprek is na het laden weg, en wat erna moest komen gebeurt dan niet meer. Tot stap 117
+     werd hier elk gesprek (behalve bij De Veteraan) "missie 1, wacht": wie in missie 13 tijdens het
+     praten op F5 drukte, stond na het laden weer bij Mark voor Molenkrite 15 (de vlaggen van alle
+     missies erna stonden nog aan, dus daarna liep niets meer). Nu:
+       missie 1    het eerste gesprek begint opnieuw; de briefing na het gezelschap gaat door naar missie 2
+       missie 2–3  "Shit, bewaking" en het gesprek bij de poort gaan door naar missie 3 en 4
+       de rest     hun hervat… kent de fase (een gesprek wordt daar het begin van die stap)
+     F5 tijdens een gesprek kan sinds stap 117 niet meer (`waaromNietOpslaan`); dit is voor oude opslag.
+    */
+    let doorNaar = null;
+    if (missie === 'molenkrite' && fase === 'gesprek') fase = 'wacht';
+    else if (missie === 'molenkrite' && fase === 'briefing') doorNaar = 'rijden';
+    else if (missie === 'rijden' && fase === 'aangekomen') doorNaar = 'bewaking';
+    else if (missie === 'bewaking' && fase === 'poort') doorNaar = 'afleveren';
     /*
      Missie 7 heeft een winkel vol losse toestand (de bende, de bom, de knal).
      Die wordt niet in de opslag gestopt maar opnieuw opgezet: je begint hem
-     weer bij de M aan de Wieken. Dat is eerlijker dan half herstellen.
+     weer bij de M aan de Wieken. Dat is eerlijker dan half herstellen. (Onderaan
+     `herstel`, sinds stap 117: hier sprong hij eruit vóór het geld en de buit
+     teruggezet waren.)
     */
-    if (missie === 'bom' && fase !== 'klaar') { beginBom(); return; }
+    if (missie === 'bom' && fase !== 'klaar') doorNaar = 'bom';
     // Een opgeslagen spel middenin de rit begint ook weer met muziek eronder.
     spanning = (missie === 'rijden' && fase !== 'instappen') || missie === 'bewaking' || missie === 'afleveren'
       || (missie === 'bx' && fase !== 'wacht' && fase !== 'briefing' && fase !== 'klaar')
@@ -10168,6 +10215,13 @@ export function initVerhaal(ctx) {
       } else {
         zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
       }
+    } else if (missie === 'bx' && fase !== 'klaar') {
+      hervatBX(fase);
+    } else if (missie === 'sniper' && fase !== 'klaar') {
+      // (missie 8 en 9 hadden hier geen tak: opslaan midden in de deal gaf een spel zonder opdracht)
+      hervatSniper(fase);
+    } else if (missie === 'huis' && fase !== 'klaar') {
+      hervatHuis(fase === 'briefing' ? 'naar_mark' : fase);
     } else if (missie === 'veteraan' && fase !== 'klaar') {
       hervatVeteraan(fase);
     } else if (missie === 'politieauto' && fase !== 'klaar') {
@@ -10194,7 +10248,8 @@ export function initVerhaal(ctx) {
      na het laden. En een opslag van vóór missie 10 met een gekocht huis erin
      krijgt De Veteraan ook nog aan de lijn.
     */
-    if (missie === 'klaar' && s.volgende) { naMissieNaam = s.volgende; naMissieT = 6; }
+    // (ook na missie 4: die blijft op 'afleveren' staan met fase 'klaar' tot Johan belt; daar belde hij na het laden nooit)
+    if ((missie === 'klaar' || fase === 'klaar') && s.volgende) { naMissieNaam = s.volgende; naMissieT = 6; }
     else if (missie === 'klaar' && huisGekozen && !vetKlaar) { naMissieNaam = 'veteraan'; naMissieT = VET_WACHT; }
     // een opslag na missie 10 van vóór missie 11: de M komt alsnog
     else if (missie === 'klaar' && vetKlaar && !polKlaar) { naMissieNaam = 'politieauto'; naMissieT = 6; }
@@ -10211,7 +10266,22 @@ export function initVerhaal(ctx) {
     else if (missie === 'klaar' && invalKlaar && !ronaldKlaar) { naMissieNaam = 'ronald'; naMissieT = 6; }
     // en na Wie is R.: Mark belt voor de uitzending
     else if (missie === 'klaar' && ronaldKlaar && !uitzendingKlaar) { naMissieNaam = 'uitzending'; naMissieT = 6; }
+    // en wat na een weggevallen gesprek moest komen (zie boven), of missie 7 opnieuw
+    if (doorNaar === 'bom') beginBom();
+    else if (doorNaar) startMissie(doorNaar);
     hud.zetLeven(player.health);
+  }
+
+  /*
+   Mag er nu opgeslagen worden? Niet tijdens een gesprek (dat is na het laden weg), een filmbeeld of het
+   zwart ertussen, het neergaan of een mislukte missie: dan staat het verhaal tussen twee stappen in. Levert
+   de reden, of null als het mag. F5 in js/main.js vraagt het, en het checkpoint wacht erop (stap 117).
+  */
+  function waaromNietOpslaan() {
+    if (!balk.hidden || gesprek) return 'tijdens een gesprek';
+    if (zwart || titelrol || document.body.classList.contains('film')) return 'tijdens een filmbeeld';
+    if (doodT > 0 || misluktT > 0 || keuzeOpen || player.health <= 0) return 'nu even niet';
+    return null;
   }
 
   // Op een aanraakscherm klik je het gesprek door met een tik op de balk. Met de
@@ -10230,7 +10300,7 @@ export function initVerhaal(ctx) {
 
   return {
     update, toets, doelen, raak, hinder, bewaar, herstel, meldAan, schotGehoord, dood, mislukt,
-    beginGesprek,
+    beginGesprek, waaromNietOpslaan,
     /*
      Wat het overspuiten kost. De wasbox achter de BP (js/spuiterij.js) rekent
      normaal honderd euro per ster; de BX uit missie 6 gaat voor een vast bedrag

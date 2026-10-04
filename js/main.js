@@ -1574,20 +1574,28 @@ function startMissieLos(naam) {
   return true;
 }
 /*
- 1, 2 en 3 zonder shift: de keuze uit de drie woningen van missie 9. Mark noemt
+ 1, 2 en 3 (sinds stap 117 ook met shift): de keuze uit de drie woningen van missie 9. Mark noemt
  ze in de gespreksbalk met adres en bedrag, en de navigatie gaat naar wat je
  kiest (verzoek 23 sep 2026). Buiten die missie doen de cijfers niets.
 */
+/*
+ Een keuze met 1, 2 of 3 gaat vóór de sneltoetsen van de missies, ook met shift erbij: shift is
+ rennen, en wie rennend op 2 drukte bij een keuze (een huis, de inleg, missie 14 of 16) begon
+ tot stap 117 aan missie 2.
+*/
 window.addEventListener('keydown', e => {
-  if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (!player.active && !window.__autoplay) return;
   const k = /^Digit([123])$/.exec(e.code) || /^Numpad([123])$/.exec(e.code);
   if (!k || !verhaal.kiesHuis) return;
   if (verhaal.kiesHuis(+k[1])) e.preventDefault();
 });
+// loop je (een looptoets ingedrukt), dan is shift rennen en geen sneltoets (stap 117)
+const LOOPTOETSEN = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 window.addEventListener('keydown', e => {
   if (!e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
   if (!player.active && !window.__autoplay) return;
+  if (e.defaultPrevented || LOOPTOETSEN.some(t => player.keys[t])) return;
   // op de toetscode en niet op de letter: shift+1 geeft op een Nederlands
   // toetsenbord een '!' en op een ander een '1'
   // shift en het streepje achter de nul: missie 11
@@ -2017,7 +2025,7 @@ function pauseGame() {
 */
 async function wachtOpMenu(pauze = false) {
   const wat = await menu.volgendeKeuze();
-  if (wat === 'doorgaan') { startGame(false); return; }
+  if (wat === 'doorgaan') { hervatSpel(); return; }
   const balk = menu.toonLaadscherm();
   balk(0.15, wat === 'laden' ? 'opgeslagen spel' : 'nieuw spel');
   await new Promise(r => setTimeout(r, 260));
@@ -2051,7 +2059,28 @@ function afsluiten() {
 // 'Spel laden' aan; anders begin je als Erik voor Molenkrite 15.
 let gepauzeerd = false;
 
+/*
+ Doorgaan uit het pauzemenu (stap 117). Dat ging via `startGame(false)`, de weg van een nieuw spel: die
+ wiste het checkpoint (na één keer Esc kon je na het neergaan niet meer terug naar het checkpoint),
+ bereidde de wereld opnieuw voor, liet Mark aan zijn eerste zin beginnen en startte een ?missie=… opnieuw.
+ Nu alleen het menu weg en weer spelen.
+*/
+function hervatSpel() {
+  gepauzeerd = false;
+  menu.verbergMenu();
+  geluid.pauzeer(false);
+  if (touch) { volledigScherm(); touch.setVisible(true); } else vergrendelMuis();
+  player.active = true;
+}
+
 function bewaarSpelNu() {
+  /*
+   Niet in het menu, en niet tijdens een gesprek, een filmbeeld of het neergaan (stap 117): zo'n opslag
+   kon na het laden niet verder. F5 in het menu overschreef je opslag met een vers spel.
+  */
+  if (!player.active || gepauzeerd) return;
+  const reden = verhaal.waaromNietOpslaan ? verhaal.waaromNietOpslaan() : null;
+  if (reden) { hud.show(`Nu niet opslaan: ${reden}`, 2.2); return; }
   const gelukt = bewaarSpel({
     player, sfeer, vehicles, verhaal, boten, vaart, garage,
     straat: nearestRoadName(camera.position.x, camera.position.z),

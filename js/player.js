@@ -423,6 +423,8 @@ export class Player {
       if (this.active && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
     });
     window.addEventListener('keyup', e => { this.keys[e.code] = false; });
+    // wegklikken (alt-tab): de keyup komt dan nooit, en je bleef lopen (stap 117)
+    window.addEventListener('blur', () => { this.keys = {}; });
 
     // Rondkijken. Met muisvergrendeling gaat dat vanzelf; lukt die niet, dan
     // kijk je rond door met de linkerknop ingedrukt te slepen.

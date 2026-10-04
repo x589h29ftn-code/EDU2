@@ -320,7 +320,9 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run ramentest` (de ramen 's avonds van dichtbij, oud tegen nieuw op dezelfde gevel: evenveel licht,
+De laatste die ertoe doen: `npm run opslagtest` (F5 niet in het menu, een gesprek of een filmbeeld; laden midden in een
+gesprek per missie, doorschuiven na missie 1–3, Johan na missie 4, missie 6, 8 en 9 midden, het geld van missie 7, checkpoints
+bij het begin van missie 2–6 en niet in een gesprek, een klus vóór missie 6, Doorgaan, shift + cijfer, blur; stap 117); `npm run ramentest` (de ramen 's avonds van dichtbij, oud tegen nieuw op dezelfde gevel: evenveel licht,
 minder harde sprongen, een kortere rand; maakt ramen_oud.png en ramen_nieuw.png; stap 116); `npm run uitjetest` (na het einde de M bij Molenkrite 15: de keuze, de wedstrijd op het
 juiste uur, de kijkplek gemeten, Mark die naar de lijn loopt, bier, juichen, het einde, de bank, laden; stap 115) met
 `uitjeshots` (twee foto's); `npm run geldracetest` (racen voor geld na missie 14: de tip van Ronald vóór missie 15, de balie,
@@ -515,6 +517,11 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
 - **Een nieuwe missie met een wachtfase hoort in `KLUS_WACHT`** (stap 99), anders komt er
   daar geen klus; en een nieuwe `werk…Bij` van een missie die op je kan wachten hoort achter
   `!wachtOpKlus`, anders gaat hij tijdens een klus gewoon door.
+- **Opslaan kan niet altijd** (stap 117). `verhaal.waaromNietOpslaan()` weigert tijdens een gesprek, een filmbeeld
+  (`body.film`), het zwart, de titelrol en het neergaan; F5 vraagt het, en het checkpoint wacht erop. Een nieuwe
+  missie hoort in `herstel` een tak te hebben (`hervat…`), en een gesprek dat na het laden weg is moet daar naar
+  een stap kunnen die zonder dat gesprek verder kan (`doorNaar`). Tot stap 117 hadden missie 6, 8 en 9 er geen,
+  en werd elk gesprek "missie 1".
 - **js/verhaal.js is één groot bereik.** Een `function` met een naam die er al is
   overschrijft de andere stil (hoisting): in stap 89 namen `beginGevecht` en
   `naarDeC4` zo die van missie 10 en 11 over, en van stap 96 tot 102 reed missie 12 na het plan de

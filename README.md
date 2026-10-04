@@ -2688,8 +2688,11 @@ Handig om te weten: **`[`** en **`]`** zetten de klok een uur terug of vooruit e
 ## Neergaan en het checkpoint
 
 Na elke afgeronde missie schrijft het spel een tel later vanzelf een
-**checkpoint** ("Checkpoint opgeslagen"). Dat staat los van je eigen opslag met
-F5: die wordt er nooit door overschreven.
+**checkpoint** ("Checkpoint opgeslagen"). Missie 1 tot 5 lopen direct in elkaar over; daar komt het
+checkpoint bij het begin van missie 2, 3, 4, 5 en 6 (stap 117: eerst kwam het eerste pas na missie 5).
+Loopt er net een gesprek of een filmbeeld, dan wacht het tot dat voorbij is. Het checkpoint staat los van
+je eigen opslag met F5: die wordt er nooit door overschreven, en **Doorgaan** uit het pauzemenu laat het
+ook staan.
 
 Ga je neer, dan krijg je een keuze, met de muis of met **1**, **2** en **3**:
 
@@ -3794,6 +3797,16 @@ munitie en je leven, de auto waar je in zat, waar de twee sloepen liggen en of j
 de tijd van de dag, het weer, en de stand van het
 verhaal: welke missie, welke bierdrinkers en bewakers al neer liggen, of de poort open staat, waar de
 auto en de vrachtwagen staan, hoe het met de dief staat en hoeveel geld je hebt. Ga je in een vuurgevecht neer, dan begint het spel bij deze opslag.
+
+**Wanneer F5 niet opslaat** (stap 117): in het menu, tijdens een gesprek, een filmbeeld of het zwart
+ertussen, en als je neergaat. Dan staat er *Nu niet opslaan* in beeld. Een gesprek is na het laden weg,
+en wat erna moest komen gebeurde dan niet meer: wie in missie 13 tijdens het praten opsloeg, stond na het
+laden weer bij Mark voor Molenkrite 15. Een oude opslag van zo'n moment laadt nu bij het begin van die
+stap, of gaat meteen door naar wat er na het gesprek kwam. Ook midden in missie 6, 8 en 9 krijg je na het
+laden weer een opdracht, en missie 7 zet je geld goed terug.
+
+**Shift met een cijfer** start een missie los (voor wie wil testen), maar niet terwijl je loopt of rent,
+en een open keuze met 1, 2 of 3 gaat altijd voor. `npm run opslagtest` toetst het allemaal.
 
 Staat er een opgeslagen spel, dan biedt het startscherm **Verder spelen** aan naast **Nieuw spel**, met
 de datum van de opslag erbij; na **Esc** is datzelfde scherm het pauzescherm met **Doorgaan**. De wijk

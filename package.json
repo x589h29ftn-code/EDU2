@@ -199,6 +199,7 @@
     "uitjetest": "node tools/uitjetest.mjs",
     "uitjeshots": "node tools/uitjeshots.mjs",
     "ramentest": "node tools/ramentest.mjs",
+    "opslagtest": "node tools/opslagtest.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",
     "tempotest": "node tools/tempotest.mjs"

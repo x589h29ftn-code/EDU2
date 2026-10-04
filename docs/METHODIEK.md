@@ -7195,6 +7195,52 @@ pixels: maak dat smoother. Zie je nog kleine foutjes, los ze dan direct op."
 **Proeven**: `ramentest` (nieuw), `ambulancetest`, `omgevingtest` en `vloeiendtest` zijn groen. Foto's:
 `ambulanceshots` (nu vier, met het model schuin van voren) en de twee van `ramentest`.
 
+**Opslaan en laden betrouwbaar (stap 117).** Uit een steekproef door de wereld en de eerste missies (4 okt
+2026). Twee helpers lazen de code van missie 1–5 en van de opzet; de belangrijkste punten zijn daarna in de
+code nagelopen. De gebruiker koos ronde 1: alles wat opslag en laden kapot kan maken.
+
+**Wat er mis was**
+- *Een gesprek werd missie 1.* `herstel` maakte van elke fase 'gesprek' of 'briefing' (behalve bij De Veteraan)
+  "missie 1, wacht". Wie in missie 13 tijdens het praten op F5 drukte, stond na het laden weer voor Molenkrite
+  15. Alle vlaggen van de latere missies stonden nog aan, dus daarna gebeurde er niets meer.
+- *Tussenfases zonder vervolg.* Het gesprek bij de poort ('aangekomen'), na de bewaking ('poort') en
+  MISSION COMPLETED van missie 4 ('klaar', terwijl `missie` op 'afleveren' bleef staan) liepen na het laden
+  niet meer verder. Johan belde dan nooit.
+- *Missie 6, 8 en 9 hadden geen tak in `herstel`*: na het laden stond je zonder opdracht en zonder doel.
+- *Missie 7 sprong vroeg uit `herstel`*, vóór het geld en de buit teruggezet waren.
+- *F5 sloeg overal op*: in het menu (een vers spel over je opslag heen), tijdens gesprekken, filmbeelden en
+  het neergaan.
+- *Doorgaan* liep via `startGame(false)`, de weg van een nieuw spel. Dat wiste het checkpoint, bereidde de
+  wereld opnieuw voor, liet Mark aan zijn eerste zin beginnen en startte een `?missie=…` opnieuw.
+- *Het eerste checkpoint kwam pas na missie 5*: missie 1 tot 5 gaan direct in elkaar over, zonder 'klaar'.
+- *`KLUS_WACHT.johan` noemde 'naar_johan'* (een fase van missie 8). Missie 5 wacht in 'naar_kruirad', dus vóór
+  missie 6 kwam er nooit een klus.
+- *Shift + cijfer* startte een missie. Shift is ook rennen, dus wie rennend op 2 drukte bij een keuze (een
+  huis, de inleg, missie 14 of 16) begon aan missie 2. De keuze sloeg shift juist over.
+- *Na alt-tab* bleven de looptoetsen ingedrukt: de keyup komt dan nooit.
+
+**Wat het nu doet**
+- `verhaal.waaromNietOpslaan()` geeft een reden of null. F5 vraagt het en zegt dan *Nu niet opslaan*. Het
+  checkpoint wacht erop. In het menu doet F5 niets.
+- In `herstel`:
+  - een gesprek in missie 1 begint opnieuw;
+  - de briefing na het gezelschap, 'aangekomen' en 'poort' gaan door naar de volgende missie (`doorNaar`,
+    onderaan `herstel`);
+  - elke latere missie gaat naar zijn `hervat…`, die een gesprek al als het begin van die stap kende;
+  - missie 6 (`hervatBX`, nieuw), 8 en 9 hebben een tak;
+  - missie 7 begint onderaan opnieuw, met het geld terug;
+  - een opslag met een volgende missie belt ook als alleen de fase 'klaar' is.
+- Een checkpoint bij het begin van missie 2 tot 6 (`CHECKPOINT_BIJ_BEGIN`).
+- Doorgaan is `hervatSpel()`: het menu weg, de muis vast, verder spelen.
+- Een keuze met 1, 2 of 3 werkt ook met shift en gaat vóór de sneltoetsen. Een sneltoets werkt niet zolang
+  er een looptoets ingedrukt is. Zo houden de proeven en de bouwer hun shift + cijfer.
+- `blur` maakt de toetsen leeg.
+
+**Proeven**: `opslagtest` (nieuw) is groen; `checkpointtest`, `tempotest` en `overgangtest` zijn opnieuw
+gedraaid en ook groen. De eerste run van `opslagtest` had twee fouten in de proef zelf: het gesprek ging in de
+opzet niet open (dus F5 mocht terecht), en daardoor stond er al een opslag toen de controle voor het filmbeeld
+keek. Nu zet hij de balk zelf open en wist hij de opslag per geval.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
