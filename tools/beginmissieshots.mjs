@@ -7,13 +7,16 @@
    missie4_boerderij.png    missie 4: Mark wacht bij de boerderij
    missie5_tuinen.png       missie 5: de dief in de tuinen, de auto op straat
 
- Gebruik: npm run server &   node tools/beginmissieshots.mjs 8123 [map]
+ Gebruik: npm run server &   node tools/beginmissieshots.mjs 8123 [map] [alleen]
+ (met `alleen`, bijvoorbeeld missie5, wordt alleen die foto gemaakt)
 */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
 const poort = process.argv[2] || '8123';
 const map = process.argv[3] || 'docs/screenshots';
+const alleen = process.argv[4] || null;
+const doe = (naam) => !alleen || naam.startsWith(alleen);
 mkdirSync(map, { recursive: true });
 
 const browser = await chromium.launch({
@@ -57,6 +60,7 @@ const foto = async (naam) => {
 
 // ---- de intro: het begin en het eind van het beeld bij VV Sneek, met de wedstrijd
 for (const [naam, waar] of [['intro_voetbal_begin', 0.03], ['intro_voetbal_eind', 0.97]]) {
+  if (!doe(naam)) continue;
   const info = await page.evaluate(async (u) => {
     const I = await import('/js/intro.js');
     const { KAART } = await import('/js/kaart.js');
@@ -77,6 +81,7 @@ for (const [naam, waar] of [['intro_voetbal_begin', 0.03], ['intro_voetbal_eind'
 }
 
 // ---- missie 1: de opspringer
+if (doe('missie1')) {
 const m1 = await page.evaluate(async () => {
   const THREE = await import('three');
   const g = window.__game, v = g.verhaal, P = g.player;
@@ -100,8 +105,10 @@ const m1 = await page.evaluate(async () => {
 });
 console.log('missie1', JSON.stringify(m1));
 await foto('missie1_opspringer');
+}
 
 // ---- missie 4: Mark bij de boerderij
+if (doe('missie4')) {
 const m4 = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal;
   v.__startMissie('bewaking'); window.__stap(2);
@@ -114,8 +121,10 @@ const m4 = await page.evaluate(() => {
 });
 console.log('missie4', JSON.stringify(m4));
 await foto('missie4_boerderij');
+}
 
 // ---- missie 5: de dief in de tuinen
+if (doe('missie5')) {
 const m5 = await page.evaluate(async () => {
   const g = window.__game, v = g.verhaal, P = g.player;
   const { KAART } = await import('/js/kaart.js');
@@ -145,13 +154,14 @@ const m5 = await page.evaluate(async () => {
   for (let i = 0; i < 40 && !dief.tuin; i++) v.update(0.05);
   for (let i = 0; i < 50 && dief.tuin; i++) v.update(0.05);
   P.inCar = null;
-  // tussen de auto en de dief, wat hoger: de auto op straat en hij tussen de schuttingen
+  // schuin van boven: de auto op straat en hij achter de huizen, tussen de schuttingen
   const dx = auto.x - pos.x, dz = auto.z - pos.z, d = Math.hypot(dx, dz) || 1;
-  const k = Math.min(d * 0.6, 9);
-  window.__cam({ x: pos.x + dx / d * k + dz / d * 2, y: 2.8, z: pos.z + dz / d * k - dx / d * 2 }, { x: pos.x, y: 1.0, z: pos.z });
+  window.__cam({ x: auto.x + dx / d * 6 + dz / d * 4, y: 17, z: auto.z + dz / d * 6 - dx / d * 4 },
+    { x: (pos.x * 2 + auto.x) / 3, y: 0.5, z: (pos.z * 2 + auto.z) / 3 });
   return { tuin: dief.tuin, weg: best.d.toFixed(1), dief: [pos.x.toFixed(1), pos.z.toFixed(1)] };
 });
 console.log('missie5', JSON.stringify(m5));
 await foto('missie5_tuinen');
+}
 
 await browser.close();
