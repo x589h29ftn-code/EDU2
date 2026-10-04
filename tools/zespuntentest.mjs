@@ -110,12 +110,13 @@ const gti = await page.evaluate(async () => {
   const maat = (soort) => new THREE.Box3().setFromObject(makeCar(0x3355aa, soort, false)).getSize(new THREE.Vector3());
   const m = maat('gti'), h = maat('hatch');
   const legenda = ((g.hud.legenda || []).find(l => l.wat === "auto's") || {}).uitleg || '';
-  return { a: a && { prijs: a.prijs, naam: a.naam }, rij: RIJ.gti, hatch: RIJ.hatch, gtiH: m.y, hatchH: h.y, gtiL: Math.max(m.x, m.z), legenda,
+  // (de doos van het hele model telt de lichtbundel van de koplampen mee: vergelijk met de hatchback)
+  return { a: a && { prijs: a.prijs, naam: a.naam }, rij: RIJ.gti, hatch: RIJ.hatch, gtiH: m.y, hatchH: h.y, gtiL: Math.max(m.x, m.z), hatchL: Math.max(h.x, h.z), legenda,
     plekken: TE_KOOP.length };
 });
 ok(gti.a && gti.a.prijs === 1200 && gti.plekken === 4, 'een vierde auto: de GTI voor € 1.200', JSON.stringify(gti.a));
 ok(gti.rij && gti.rij.top > gti.hatch.top && gti.rij.top < 70, 'sneller dan een hatchback, langzamer dan de Ferrari', JSON.stringify(gti.rij));
-ok(gti.gtiH < gti.hatchH && gti.gtiL > 3.9 && gti.gtiL < 4.4, 'een eigen model: lager dan een hatchback', `${gti.gtiH.toFixed(2)} tegen ${gti.hatchH.toFixed(2)} m, ${gti.gtiL.toFixed(2)} m lang`);
+ok(gti.gtiH < gti.hatchH && gti.gtiL <= gti.hatchL, 'een eigen model: lager en niet langer dan een hatchback', `${gti.gtiH.toFixed(2)} tegen ${gti.hatchH.toFixed(2)} m hoog`);
 ok(/GTI/.test(gti.legenda) && /1\.200/.test(gti.legenda), 'in de legenda van de grote kaart', gti.legenda);
 
 // ------------------------------------------------------------------ 3. uitleg
