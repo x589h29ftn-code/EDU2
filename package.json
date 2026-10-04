@@ -204,6 +204,7 @@
     "beginmissietest": "node tools/beginmissietest.mjs",
     "nalooptest": "node tools/nalooptest.mjs",
     "naloop2test": "node tools/naloop2test.mjs",
+    "naloop3test": "node tools/naloop3test.mjs",
     "beginmissieshots": "node tools/beginmissieshots.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",

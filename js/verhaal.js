@@ -912,6 +912,7 @@ const UITJE_PARKEER = 45;             // zo dicht bij het clubparkeerterrein ben
 const UITJE_BIJ = 1.8;                // zo dicht bij de kijkplek sta je aan de lijn (m)
 const UITJE_KIJK = 150;               // s aan de lijn, dan is het mooi geweest
 const UITJE_WEG = 70;                 // verder van de kijkplek: je gaat weg
+const UITJE_LOS = 150;             // zo ver van de Golf van Mark te voet tijdens de rit: dan gaat hij zelf terug (stap 122)
 const UITJE_UREN = 3;                 // op de bank: zo veel later
 const UITJE_BIER = { leven: 12, dronkenVanaf: 3, perFlesje: 0.34, max: 6, bereik: 3 };
 const UITJE_BINNEN = [
@@ -2459,6 +2460,9 @@ export function initVerhaal(ctx) {
   }
   // Geen opgeslagen spel: dan begint de missie zelf opnieuw.
   function herstartMissie() {
+    // (stap 122: neergaan tijdens een middag met Mark liet het uitje hangen, met de klok stil op 12:12 en
+    //  daarna geen klus en geen nieuwe M meer)
+    if (missie === 'klaar' && uitjeBezig()) ruimUitjeOp();
     // je staat weer buiten de auto: de muziek begint straks opnieuw, op een
     // ander fragment
     spanning = missie === 'bewaking' || missie === 'afleveren';
@@ -6955,6 +6959,12 @@ export function initVerhaal(ctx) {
     const p = uitjePlek();
     const w = wedstrijd && wedstrijd();
     if (uitje.fase === 'rijden') {
+      // (stap 122: uitstappen en weglopen liet het uitje voor altijd op 'rijden' staan, de klok stil)
+      if (!player.inCar && uitje.golf && afst(sp, uitje.golf) > UITJE_LOS) {
+        hud.show('Mark rijdt zelf wel terug', 3);
+        ruimUitjeOp();
+        return;
+      }
       navKlok += dt;
       if (navKlok > 2) { navKlok = 0; werkNavBij(); }
       const stil = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.5;
@@ -9206,7 +9216,7 @@ export function initVerhaal(ctx) {
     const st = studio();
     uitzFilm = null; toonFilmbalken(0); schietSlot(false);
     player.applyCamera();
-    fase = 'naarBuiten';
+    fase = 'naarBuiten'; zetPunt(fase);   // (stap 122: na laden of neergaan moest de montage opnieuw)
     zetOpdracht('naar buiten');
     // Sjors loopt naar zijn stoel en gaat weer zitten
     loopt(st.dj, st.plekken.stoel, 1.1, () => st.djAanTafel());
@@ -9491,7 +9501,14 @@ export function initVerhaal(ctx) {
     for (const a of [avondTweede]) verstopAuto(a);
     if (avondMannen && schutters === avondMannen) { schutters.verwijder(); schutters = null; }
     avondMannen = null;
-    if (avondBrug) { for (const k of avondBrug.politie) verstopAuto(k.auto); if (avondBrug.c4) avondBrug.c4.toon(false); avondBrug = null; }
+    // (de politieauto's echt weg, en de filmbalken van het filmbeeld op de brug ook: na neergaan in die
+    //  zes tellen bleef het beeld half bedekt en kon je niet opslaan; stap 122)
+    if (avondBrug) {
+      for (const k of avondBrug.politie) if (!vehicles.verwijder(k.auto)) verstopAuto(k.auto);
+      if (avondBrug.c4) avondBrug.c4.toon(false);
+      avondBrug = null;
+      toonFilmbalken(0);
+    }
     for (const k of avondKnallen) if (k.knal && k.knal.stop) k.knal.stop();
     avondKnallen.length = 0;
     avondTreffers = 0; avondRaakGezegd = false; avondKwijtT = 0; avondTeVerT = 0; avondNeerGezegd = false;
@@ -9642,7 +9659,7 @@ export function initVerhaal(ctx) {
     // de auto: een zwarte Ferrari bij het Autohuis
     const g = garage && garage(), af = g && g.plekken && g.plekken.aflever;
     const ap = af ? af[0] : { x: avondLand.x - 10, z: avondLand.z, yaw: 0 };
-    if (!avondAuto || avondAuto.wrak) avondAuto = vehicles.voegToe({ x: ap.x, z: ap.z, yaw: ap.yaw || 0, soort: 'ferrari', kleur: 0x16171b });
+    if (!avondAuto || avondAuto.wrak) avondAuto = vervangAuto(avondAuto, { x: ap.x, z: ap.z, yaw: ap.yaw || 0, soort: 'ferrari', kleur: 0x16171b });
     else { avondAuto.x = ap.x; avondAuto.z = ap.z; avondAuto.yaw = ap.yaw || 0; avondAuto.speed = 0; if (avondAuto.mesh) { avondAuto.mesh.visible = true; avondAuto.mesh.position.set(ap.x, 0, ap.z); avondAuto.mesh.rotation.y = ap.yaw || 0; } vehicles.zetNeer(avondAuto, 0, avondAuto.yaw); }
     avondAuto.driveable = true; avondAuto.zichtbaar = true;
     player.yaw = kijkHoek(player.pos, avondAuto);
@@ -9666,7 +9683,7 @@ export function initVerhaal(ctx) {
     hud.zetNavigatie(null); navDoel = null;
     markZichtbaar(false); invalJohan.groep.visible = false;   // ze zitten bij jou in de auto
     if (avondHeli) avondHeli.toon(false);
-    if (!avondTweede || avondTweede.wrak) avondTweede = vehicles.voegToe({ x: avondB.x[0], z: avondB.z[0], yaw: 0, soort: 'hatch', kleur: 0x2b2f36, driveable: false });
+    if (!avondTweede || avondTweede.wrak) avondTweede = vervangAuto(avondTweede, { x: avondB.x[0], z: avondB.z[0], yaw: 0, soort: 'hatch', kleur: 0x2b2f36, driveable: false });
     zetOpLijnBegin(avondTweede, avondB);
     avondTweede.hp = 100;
     avondRit = nieuweRit(avondB, avondTweede, AVOND_VLUCHT_TOP);
@@ -9699,7 +9716,8 @@ export function initVerhaal(ctx) {
     [[1424, -187], [1424, -179]],
   ];
   function startGevecht() {
-    fase = 'gevecht';
+    // (stap 122: na neergaan bij de loods begon de hele achtervolging opnieuw; het laatste punt was die)
+    fase = 'gevecht'; zetPunt('gevecht');
     const a = avondRit.auto;
     if (invalBalk) invalBalk.hidden = true;
     avondRit = null;
@@ -9771,7 +9789,7 @@ export function initVerhaal(ctx) {
     if (!avondLijnen()) return false;
     const b = avondB, i = Math.max(0, b.n - terug);
     const yaw = Math.atan2(-b.tx[i], -b.tz[i]);
-    if (!avondAuto || avondAuto.wrak) avondAuto = vehicles.voegToe({ x: b.x[i], z: b.z[i], yaw, soort: 'ferrari', kleur: 0x16171b });
+    if (!avondAuto || avondAuto.wrak) avondAuto = vervangAuto(avondAuto, { x: b.x[i], z: b.z[i], yaw, soort: 'ferrari', kleur: 0x16171b });
     avondAuto.x = b.x[i]; avondAuto.z = b.z[i]; avondAuto.yaw = yaw; avondAuto.speed = 0; avondAuto.driveable = true;
     if (avondAuto.mesh) { avondAuto.mesh.visible = true; avondAuto.mesh.position.set(b.x[i], 0, b.z[i]); avondAuto.mesh.rotation.y = yaw; }
     vehicles.zetNeer(avondAuto, 0, yaw);
@@ -9781,6 +9799,7 @@ export function initVerhaal(ctx) {
   // opnieuw na het neergaan met de politie achter je aan: in de auto bij de loods, Bouwman ligt
   function startPolitieOpnieuw() {
     if (!autoBijDeLoods(20)) { naarDeStudio(); return; }
+    spanning = true; spanningUit = 0;
     startPolitie();
   }
   // opnieuw na het neergaan bij de loods: daar weer aankomen, de tweede auto van Bouwman voor de deur
@@ -9789,13 +9808,19 @@ export function initVerhaal(ctx) {
     markZichtbaar(false); invalJohan.groep.visible = false;
     if (avondHeli) avondHeli.toon(false);
     const b = avondB, j = b.n - 1;
-    if (!avondTweede || avondTweede.wrak) avondTweede = vehicles.voegToe({ x: b.x[j], z: b.z[j], yaw: 0, soort: 'hatch', kleur: 0x2b2f36, driveable: false });
+    if (!avondTweede || avondTweede.wrak) avondTweede = vervangAuto(avondTweede, { x: b.x[j], z: b.z[j], yaw: 0, soort: 'hatch', kleur: 0x2b2f36, driveable: false });
     const yaw = Math.atan2(-b.tx[j], -b.tz[j]);
     avondTweede.x = b.x[j]; avondTweede.z = b.z[j]; avondTweede.yaw = yaw; avondTweede.speed = 0; avondTweede.driveable = false;
     if (avondTweede.mesh) { avondTweede.mesh.visible = true; avondTweede.mesh.position.set(b.x[j], 0, b.z[j]); avondTweede.mesh.rotation.y = yaw; }
     vehicles.zetNeer(avondTweede, 0, yaw);
     avondRit = { auto: avondTweede };
+    spanning = true; spanningUit = 0;      // (stap 122: opnieuw beginnen was stil)
     startGevecht();
+  }
+  // een nieuwe auto voor een uitgebrande of verdwenen: de oude gaat weg (stap 122; ze stapelden zich op)
+  function vervangAuto(oud, opties) {
+    if (oud && oud !== player.inCar) vehicles.verwijder(oud);
+    return vehicles.voegToe(opties);
   }
   function startPolitie() {
     fase = 'politie';
@@ -9803,7 +9828,7 @@ export function initVerhaal(ctx) {
     // (opnieuw na het neergaan: in de auto bij de loods)
     if (!avondAuto || avondAuto.wrak || !avondAuto.mesh || !avondAuto.mesh.visible) {
       const b = avondB, i = Math.max(0, b.n - 12);
-      avondAuto = vehicles.voegToe({ x: b.x[i], z: b.z[i], yaw: Math.atan2(-b.tx[i], -b.tz[i]), soort: 'ferrari', kleur: 0x16171b });
+      avondAuto = vervangAuto(avondAuto, { x: b.x[i], z: b.z[i], yaw: Math.atan2(-b.tx[i], -b.tz[i]), soort: 'ferrari', kleur: 0x16171b });
     }
     const sp = spelerPunt();
     if (sterGeven) sterGeven(AVOND_STERREN, sp.x, sp.z);
@@ -9954,10 +9979,26 @@ export function initVerhaal(ctx) {
     if (['naarWieken', 'plan', 'klaarmaken'].includes(f)) { naarDeWiekenUitzending(); return; }
     // de avond: de heli opnieuw, of bij de auto, of met de politie achter je aan
     if (['nacht', 'heliStart', 'heli', 'luifel', 'landen'].includes(f)) { startAvond(); return; }
-    if (['naarAuto', 'achtervolging'].includes(f)) { naLanden(); return; }
+    // (stap 122: na neergaan in een andere auto bleef je daarin zitten, ver van Mark en Johan)
+    if (['naarAuto', 'achtervolging'].includes(f)) { if (player.inCar) { player.inCar.speed = 0; player.inCar = null; } naLanden(); return; }
     if (f === 'gevecht') { startGevechtOpnieuw(); return; }
     if (['politieKomt', 'politie', 'brugFilm', 'naBrug'].includes(f)) { startPolitieOpnieuw(); return; }
     if (['naarBuiten', 'buiten', 'avond', 'einde', 'terug'].includes(f) && uitzendingKlaar) { startEindFilm(); return; }
+    /*
+     Het fragment is uitgezonden, maar het gesprek buiten nog niet geweest (stap 122): tot nu toe begon dat
+     de minuut en de montage helemaal opnieuw, want `uitzendingKlaar` komt pas na dat gesprek. Nu staan
+     Mark en Johan bij de zuil, met de stick in het mengpaneel.
+    */
+    if (['naarBuiten', 'buiten', 'terug'].includes(f)) {
+      naarDeStudio();
+      const st = studio && studio();
+      if (!st) return;
+      st.zetSlot(null); st.zetUsb(true); st.zetSchuif(1);
+      naDeUitzending();
+      zetOpdracht('naar Mark en Johan bij Radio Tinga');
+      zetNavDoel(st.plekken.stoep.x, st.plekken.stoep.z, 'Radio Tinga', 'M');
+      return;
+    }
     naarDeStudio();
   }
 
@@ -10381,6 +10422,8 @@ export function initVerhaal(ctx) {
     klusjes.reset(); klusPauze = null;
     geladenIn = null;
     if (!s) return;
+    // (de klok komt uit de opslag: een opruimer zet hem niet terug naar zijn stand van vóór een missie, stap 122)
+    uitje.klokWas = null; uitzKlokWas = null;
     stopNaloop();
     gesprek = null; sluitBalk(); praatEl.hidden = true;
     doodT = 0;
@@ -10402,6 +10445,13 @@ export function initVerhaal(ctx) {
     race.ruimOp(); raceAftel = 0; raceOverT = 0; raceTeLaatT = 0; raceUitT = 0; raceUitslag = null;
     vehicles.vrijeZone = null;
     schaduwKlokWas = null; ruimSchaduwOp();
+    /*
+     En missie 18 (stap 122). F9 tijdens de montage liet het filmbeeld over het geladen spel doorlopen: de
+     camera sprong nog veertig tellen met de shots mee, het fragment speelde door en daarna stond je in de
+     studio midden in een andere missie. Na het einde liet een oude opslag de deur van Radio Tinga op slot,
+     met Johan ervoor, en de politieauto's en de C4 op de Dúvelsrak.
+    */
+    ruimUitzendingOp();
     // de voortgang op de brug (welke hekken en welke C4 al liggen); hervatBrug zet ze terug
     if (s.brugGezet && s.missie === 'brug') {
       (s.brugGezet.hekken || []).forEach((v, i) => { if (i < brugHekGezet.length) brugHekGezet[i] = !!v; });
@@ -10661,6 +10711,7 @@ export function initVerhaal(ctx) {
     hud.zetLeven(player.health);
     // zette de missie je zelf in een auto (de grid, de Golf van Mark), dan houdt naLaden je daar
     geladenIn = player.inCar ? { car: player.inCar, x: player.inCar.x, z: player.inCar.z, yaw: player.inCar.yaw } : null;
+    geladenTeVoet = player.inCar ? null : { x: player.pos.x, y: player.pos.y, z: player.pos.z };
   }
 
   /*
@@ -10670,11 +10721,17 @@ export function initVerhaal(ctx) {
    terwijl de race bij de BP op je wachtte, en in een nieuwe sessie stond er ook nog een geleende Ferrari
    op de grid (je eigen Ferrari bestaat pas na garage.herstel). Geeft true als het verhaal de stoel koos.
   */
-  let geladenIn = null;
+  let geladenIn = null, geladenTeVoet = null;
   function naLaden() {
     const g = geladenIn;
     geladenIn = null;
     if (missie === 'race' && fase === 'start' && !geldInleg) { opDeStart(); return true; }
+    // missie 18 na de landing: te voet bij Mark en Johan, niet in de auto van het opslaan (stap 122)
+    if (missie === 'uitzending' && fase === 'naarAuto' && geladenTeVoet) {
+      if (player.inCar) { player.inCar.speed = 0; player.inCar = null; }
+      player.pos.set(geladenTeVoet.x, geladenTeVoet.y, geladenTeVoet.z);
+      return true;
+    }
     if (!g || !g.car) return false;
     const car = g.car;
     if (player.inCar && player.inCar !== car) player.inCar.speed = 0;

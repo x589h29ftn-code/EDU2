@@ -862,6 +862,8 @@ export function initStudio({ scene, player, hud }) {
     update, toets, binnen, meldAan, kaart, bijTafel, bijDeur, naarBinnenGaan, naarBuitenGaan,
     zetUsb, zetSchuif, zetOnAir, djAanTafel,
     zetSlot(t) { slot = t || null; },
+    // (voor tools/naloop3test.mjs: zit de deur op slot?)
+    get slot() { return slot; },
     zetTafelHint(t) { tafelHint = t || null; },
     // het verhaal laat de dj opstaan en lopen; zolang hij niet zit, werkt hij hem zelf bij
     djStaat() { djZit = false; },
