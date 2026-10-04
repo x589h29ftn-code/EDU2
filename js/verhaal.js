@@ -2086,7 +2086,8 @@ export function initVerhaal(ctx) {
     navDoel = null;
     player.health = 100;
     hud.zetLeven(player.health);
-    hud.melding('MISSION COMPLETED', 'De lading staat bij de boerderij.', 8);
+    // (in het Nederlands, zoals elke andere missie: tot stap 118 stond hier MISSION COMPLETED)
+    hud.melding('MISSIE VOLTOOID', 'De lading staat bij de boerderij.', 8);
     /*
      En de politie is je eenmalig kwijt. Je hebt net een vrachtwagen met een
      lading dwars door de wijk gereden; dat de sterren daarna blijven staan
@@ -2181,11 +2182,16 @@ export function initVerhaal(ctx) {
     hud.melding('MISSIE MISLUKT', reden, 4);
     player.active = false;
   }
+  /*
+   Na een mislukte missie: die missie opnieuw, vanaf zijn herstelpunt (stap 118). Tot dan laadde dit
+   stil je eigen opslag (F5), en wie die ooit in missie 1 maakte stond na een mislukte missie 13 weer
+   aan het begin. Je opslag blijft gewoon onder F9.
+  */
   function naDeMislukking() {
     hud.zetGrijs(false);
     player.active = true;
-    const geladen = ctx.opnieuw && ctx.opnieuw();
-    if (!geladen) herstartMissie();
+    herstartMissie();
+    if (heeftOpslag()) hud.show('De missie begint opnieuw · F9 laadt je opgeslagen spel', 4);
   }
 
   // ---------- neergaan ----------
@@ -9724,6 +9730,11 @@ export function initVerhaal(ctx) {
       else if (checkpointT <= 0 && checkpoint && player.health > 0) {
         checkpoint();
         hud.show('Checkpoint opgeslagen', 2);
+        // het eerste checkpoint: eenmalig uitleggen hoe opslaan werkt (stap 118; het stond alleen in een laadtip)
+        uitleg.toon('opslaan', 'Opslaan',
+          'Na elke missie zet het spel zelf een <b>checkpoint</b>. Je eigen spel bewaar je met <kbd>F5</kbd> '
+          + '(of <b>Opslaan</b> in het menu onder <kbd>Esc</kbd>) en laad je met <kbd>F9</kbd>. '
+          + 'Tijdens een gesprek of een filmbeeld kan opslaan even niet.', 12);
       }
     }
     if (misluktT > 0) {
@@ -10302,6 +10313,18 @@ export function initVerhaal(ctx) {
     update, toets, doelen, raak, hinder, bewaar, herstel, meldAan, schotGehoord, dood, mislukt,
     beginGesprek, waaromNietOpslaan,
     /*
+     De keuze die nu openstaat (1, 2 of 3), als woorden: op een aanraakscherm zet js/main.js er
+     knoppen voor neer (stap 118), want daar is geen toetsenbord. null als er niets te kiezen valt.
+    */
+    get openKeuze() {
+      if (uitje.fase === 'keuze') return ['de wedstrijd', 'de bank'];
+      if (geldKiezen) return GELDRACE_INLEG.map(euro);
+      if (missie === 'race' && fase === 'keuze') return ['nog een keer, dubbel of niks', `${euro(raceSchuld)} betalen`];
+      if (missie === 'inval' && fase === 'keuze') return ['ruilen', 'hinderlaag'];
+      if (missie === 'huis' && huisAanbod && !huisGekozen) return stekLijst().map(w => `${w.naam} · ${euro(w.prijs)}`);
+      return null;
+    },
+    /*
      Wat het overspuiten kost. De wasbox achter de BP (js/spuiterij.js) rekent
      normaal honderd euro per ster; de BX uit missie 6 gaat voor een vast bedrag
      over de kop, ook zonder sterren — dat is precies het geld dat Mark je
@@ -10526,5 +10549,7 @@ export function initVerhaal(ctx) {
     */
     startMissie,
     __startMissie: startMissie,
+    // (voor tools/opzettest.mjs) een missie laten mislukken zoals de missie dat zelf doet
+    __mislukt: (reden) => mislukt(reden),
   };
 }

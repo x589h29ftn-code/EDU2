@@ -13,7 +13,7 @@
     camera over je schouder reed.
  4. Na het afleveren van de vrachtwagen ben je de politie eenmalig kwijt.
  5. De spanningsmuziek (audio/missie/) speelt van het instappen tot even na
-    MISSION COMPLETED, en verder nergens; hij begint elke keer op een andere
+    MISSIE VOLTOOID, en verder nergens; hij begint elke keer op een andere
     plek in het nummer en zwelt aan in plaats van in te vallen.
  6. De autoradio zakt weg zolang die muziek speelt.
  7. Sta je voor de neus van een auto, dan claxonneert de bestuurder — maar pas
@@ -303,12 +303,12 @@ const afgeleverd = await page.evaluate(async () => {
   for (let i = 0; i < 200; i++) { g.verhaal.update(0.06); await new Promise(r => setTimeout(r, 60)); }
   return { fase, melding, sterrenVoor, sterrenNa, muziekBijMelding, muziekNa: geluid.missieStand() };
 });
-ok(afgeleverd.fase === 'klaar' && /MISSION COMPLETED/.test(afgeleverd.melding),
+ok(afgeleverd.fase === 'klaar' && /MISSIE VOLTOOID/.test(afgeleverd.melding),
   'de vrachtwagen staat bij de boerderij', afgeleverd.melding.slice(0, 30));
 ok(afgeleverd.sterrenVoor >= 3, `je had ${afgeleverd.sterrenVoor} sterren op je dak`);
 ok(afgeleverd.sterrenNa === 0, 'en die ben je na de missie eenmalig kwijt',
   `${afgeleverd.sterrenVoor} → ${afgeleverd.sterrenNa}`);
-ok(afgeleverd.muziekBijMelding.aan, 'de muziek loopt over MISSION COMPLETED heen');
+ok(afgeleverd.muziekBijMelding.aan, 'de muziek loopt over MISSIE VOLTOOID heen');
 ok(!afgeleverd.muziekNa.aan && afgeleverd.muziekNa.volume < 0.01,
   'en daarna dooft hij uit', `volume ${afgeleverd.muziekNa.volume}, speelt ${afgeleverd.muziekNa.speelt}`);
 

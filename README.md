@@ -54,11 +54,13 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | **C** | bukken: je zakt een halve meter, loopt op een derde van je snelheid en bent achter een muurtje of een auto niet meer te zien |
 | ← → | in de auto: radiozender wisselen |
 | muis | rondkijken · linkermuisknop = schieten (het machinegeweer schiet door zolang je hem vasthoudt) · R = herladen · H = wapen weg en weer tevoorschijn |
-| scrollwiel | wisselen tussen het pistool en het machinegeweer; je bergt het ene op en trekt het andere, en het icoon staat kort rechtsonder |
+| scrollwiel | wisselen tussen het pistool, het machinegeweer en de sniper; je bergt het ene op en trekt het andere, en het icoon staat kort rechtsonder |
 | **rechtermuisknop** | over het vizier richten zolang je hem vasthoudt: nauwkeuriger en minder terugslag, maar je loopt langzamer |
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto of een boot |
+| 1 2 3 | een keuze maken als het spel erom vraagt (een huis, de inleg, wat je doet); op een aanraakscherm zijn het knoppen |
 | 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, verband, wapens) |
-| F5 / F9 | spel opslaan / opgeslagen spel laden |
+| F5 / F9 | spel opslaan / opgeslagen spel laden (ook: **Opslaan** in het menu onder Esc) |
+| **X** | een klusje afbreken |
 | levensbalk | linksonder; leeg = neergegaan, en dan kies je: de missie opnieuw, het laatste checkpoint, of je eigen opslag |
 | portemonnee | rechtsonder; je begint met € 1000 (testfase) en verdient de rest met missies |
 | **V** | camera: vanuit je ogen of over je schouder (handig met de auto) |
@@ -66,7 +68,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | in de auto: W/S, A/D, spatie | gas/rem (en achteruit), sturen, handrem |
 | in de boot: W/S, A/D | gas en achteruit, roer — er zit geen rem op een boot |
 | in de boot: muis | schieten kan gewoon, alle kanten op: je staat in de open lucht |
-| M | grote kaart van de wijk met straatnamen |
+| M | kaart: klein, groot, uit · op de grote kaart klikken zet een eigen doel |
 | in de auto: naar de wasbox rijden | achter het BP-station: overspuiten, alle sterren kwijt (€ 100 per ster) |
 | [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
 | Y | weer: helder, bewolkt, regen |
@@ -1097,7 +1099,7 @@ verdwijnen en Mark die zelf begint.
 
 Wanneer hij speelt staat in `js/verhaal.js` en nergens anders: vanaf het moment
 dat je in de auto naar de waterzuivering stapt, door de bewaking en de rit met
-de vrachtwagen heen, tot zes seconden na **MISSION COMPLETED**. Ga je neer of
+de vrachtwagen heen, tot zes seconden na **MISSIE VOLTOOID**. Ga je neer of
 mislukt de missie, dan stopt hij meteen. Bij de andere missies en op straat is
 het gewoon stil — dat is wat spanning spannend houdt.
 
@@ -1550,7 +1552,7 @@ bij de schuur en de klus is klaar:
 
 ![Mission completed](docs/screenshots/boerderij_afgeleverd.png)
 
-Bij **MISSION COMPLETED** ben je de politie **eenmalig** kwijt: je gezocht-niveau
+Bij **MISSIE VOLTOOID** ben je de politie **eenmalig** kwijt: je gezocht-niveau
 gaat terug naar nul en de eenheden die achter je aan zaten worden opgeruimd. Je
 hebt net een vrachtwagen met een lading dwars door de wijk gereden; bleven die
 sterren staan, dan was het spel daarna onspeelbaar (verzoek 20 sep 2026). Dit
@@ -3808,9 +3810,23 @@ laden weer een opdracht, en missie 7 zet je geld goed terug.
 **Shift met een cijfer** start een missie los (voor wie wil testen), maar niet terwijl je loopt of rent,
 en een open keuze met 1, 2 of 3 gaat altijd voor. `npm run opslagtest` toetst het allemaal.
 
-Staat er een opgeslagen spel, dan biedt het startscherm **Verder spelen** aan naast **Nieuw spel**, met
-de datum van de opslag erbij; na **Esc** is datzelfde scherm het pauzescherm met **Doorgaan**. De wijk
-zelf zit niet in de opslag, want die ligt vast in de gegenereerde kaart, zodat
+Staat er een opgeslagen spel, dan is **Spel laden** de gele hoofdknop op het startscherm, met de dag, het
+uur en de straat van de opslag eronder. **Start spel** vraagt dan eerst *Echt een nieuw spel? Klik nog eens*:
+een nieuw spel wist het checkpoint, en je eerste F5 daarna schrijft over je enige opslagplek heen. Na **Esc**
+is datzelfde scherm het pauzescherm met **Doorgaan** en **Opslaan** (zo kan het ook op een telefoon, waar
+geen F5 is); tijdens een gesprek zegt die knop *Nu niet*. Een opslag die deze versie niet kan lezen staat
+er als regel onder de knoppen, in plaats van dat Spel laden stil verdwijnt. Het eerste checkpoint legt in
+een kaartje uit hoe opslaan werkt.
+
+**Een missie mislukt** (stap 118): dan begint die missie opnieuw, vanaf zijn herstelpunt. Tot stap 118
+laadde het spel dan stil je eigen opslag, en wie die in missie 1 maakte stond na een mislukte missie 13 weer
+aan het begin. Je opslag blijft onder F9; de melding zegt het erbij.
+
+**Een ander tabblad**, het venster geminimaliseerd of de telefoon op slot: het spel gaat op pauze. Op een
+aanraakscherm staan de keuzes (een huis, de inleg, missie 14 en 16, het uitje met Mark) als knoppen in
+beeld. `npm run opzettest` toetst het allemaal.
+
+De wijk zelf zit niet in de opslag, want die ligt vast in de gegenereerde kaart, zodat
 een gewone opslag nooit werk aan de wijk overschrijft.
 
 ## Windows-app

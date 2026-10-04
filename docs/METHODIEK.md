@@ -7241,6 +7241,44 @@ gedraaid en ook groen. De eerste run van `opslagtest` had twee fouten in de proe
 opzet niet open (dus F5 mocht terecht), en daardoor stond er al een opslag toen de controle voor het filmbeeld
 keek. Nu zet hij de balk zelf open en wist hij de opslag per geval.
 
+**De opzet voor een nieuwe speler (stap 118).** Ronde 2 van dezelfde steekproef: wat een nieuwe speler in
+de eerste minuten tegenkomt.
+
+**Wat er mis was**
+- *Een mislukte missie laadde stil je opslag.* `naDeMislukking` nam `laadSpel` als er een opslag was, en
+  alleen anders `herstartMissie`. Een F5 uit missie 1 zette je na een mislukte missie 13 terug aan het begin.
+- *De besturing in het menu miste* X, 1 2 3, de rechtermuisknop, de sniper en het eigen doel op de kaart; een
+  laadtip had het over de boerderij waar Tinga State bedoeld was.
+- *Opslaan kon alleen met F5*: op een telefoon niet. *Spel laden* zei niet wanneer of waar, en een opslag die
+  niet te lezen was verdween stil uit het menu.
+- *Start spel was de gele hoofdknop en vroeg niets*, ook als er een opslag was, en ook vanuit de pauze.
+- *Keuzes met 1, 2 of 3* waren op een aanraakscherm niet te maken: de missie bleef staan.
+- *Een ander tabblad* liet het spel doorlopen: sterren en de klok van een missie gingen verder zodra de browser
+  weer tekende.
+- *MISSION COMPLETED* was de enige Engelse zin in beeld.
+- *Voorwerpen uit de oude lijst* (`PROPS`, js/data.js, nog in pixels) stonden in de rijbaan en in het water,
+  met alleen een waarschuwing in de console.
+- *Een 404 bij elke start*: de browser vroeg `favicon.ico`.
+
+**Wat het nu doet**
+- `naDeMislukking` neemt altijd `herstartMissie`, met de melding *De missie begint opnieuw · F9 laadt je
+  opgeslagen spel*.
+- js/menu.js: de besturing compleet; **Opslaan** in de pauze (`opOpslaan` → `bewaar({ uitMenu: true })` in
+  js/main.js, dezelfde `waaromNietOpslaan` als F5, en de knop zegt *Opgeslagen ✓* of *Nu niet: …*); onder Spel
+  laden de dag, het uur en de straat (`zetOpslag`, `.menuklein`); `opslagStaat()` in js/opslag.js geeft 'leeg',
+  'ok' of 'onleesbaar' en het menu meldt de laatste; Spel laden is de hoofdknop als er een opslag is; Start spel
+  vraagt eerst (`dataset.zeker`, vijf tellen).
+- Het eerste checkpoint toont een uitleg over opslaan (`uitleg.toon('opslaan', …)`).
+- `verhaal.openKeuze` geeft de open keuze als woorden; js/main.js `werkKeuzeKnoppenBij` zet er op een
+  aanraakscherm knoppen voor (`#keuzeknoppen`), die `kiesHuis` aanroepen.
+- `visibilitychange` met `document.hidden` roept `pauseGame` aan.
+- MISSIE VOLTOOID (ook in `missietest`, `verhaaltest` en `missieshots`).
+- `buildProps` slaat een voorwerp in de rijbaan of het water over (`overgeslagenProps`, één regel in de console);
+  wat in een gebouw valt blijft staan, dat zijn meest carports en veranda's tegen de gevel.
+- `<link rel="icon" href="data:,">` in index.html.
+
+**Proeven**: `opzettest` (nieuw); `opslagtest` en `checkpointtest` opnieuw.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

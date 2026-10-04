@@ -1732,12 +1732,23 @@ export function updateProps(dt) {
   }
 }
 
+/*
+ Objecten uit de oude lijst (`PROPS` in js/data.js) die in de rijbaan of in het water vallen, worden
+ sinds stap 118 overgeslagen. Ze werden wel neergezet, met een waarschuwing in de console: een
+ nieuwe speler reed tegen een tuinset midden op straat (de steekproef van stap 117). De lijst rekent
+ nog in pixels (open punt 7); wat in een gebouw valt blijft staan, dat zijn meest carports en
+ veranda's tegen de gevel. `overgeslagenProps` is voor tools/opzettest.mjs.
+*/
+export const overgeslagenProps = [];
 function buildProps(scene) {
   for (const p of PROPS) {
     const def = PROP_TYPES[p.type];
-    const obj = maakProp(p.type);
-    if (!obj || !def) { console.warn(`onbekend object: ${p.type}`); continue; }
+    if (!def) { console.warn(`onbekend object: ${p.type}`); continue; }
     const [x, z] = toWorld(p.at[0], p.at[1]);
+    const bezwaar = vrijeObjectPlek(x, z);
+    if (bezwaar === 'rijbaan' || bezwaar === 'water') { overgeslagenProps.push({ src: p.src, type: p.type, x, z, bezwaar }); continue; }
+    const obj = maakProp(p.type);
+    if (!obj) { console.warn(`onbekend object: ${p.type}`); continue; }
     const s = p.scale || 1;
     obj.position.set(x, 0, z);
     obj.rotation.y = (p.yaw || 0) * Math.PI / 180;
@@ -1748,13 +1759,13 @@ function buildProps(scene) {
     const arm = obj.getObjectByName('drinkarm');
     if (arm) drinkArmen.push({ obj: arm, fase: arm.userData.drinkfase || 0, duur: 7 + (p.src % 5) * 1.7 });
     if (p.type === 'radiotafel') radioPlekken.push({ x, z });
-    const bezwaar = vrijeObjectPlek(x, z);
-    if (bezwaar) console.warn(`object ${p.src} ${p.type} op [${p.at}] staat in ${bezwaar === 'rijbaan' ? 'de rijbaan' : bezwaar === 'water' ? 'het water' : 'een gebouw'}`);
+    if (bezwaar) console.warn(`object ${p.src} ${p.type} op [${p.at}] staat in een gebouw`);
     // botsingsdoos, behalve voor dingen waar je onderdoor of overheen loopt
     if (!['haag', 'struik', 'vijverrand', 'zandbak', 'pergola', 'carport', 'veranda'].includes(p.type)) {
       addCollider(x, z, def.maat[0] * s / 2, def.maat[1] * s / 2, -obj.rotation.y, def.h * s);
     }
   }
+  if (overgeslagenProps.length) console.info(`${overgeslagenProps.length} objecten uit de oude lijst overgeslagen (rijbaan of water)`);
 }
 
 // ---------- Parkjes: gras, slingerend tegelpad, bomen, struiken, bankjes ----------

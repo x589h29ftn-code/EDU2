@@ -320,7 +320,7 @@ uit gaat) en naast de voordeur een **oprit** waar je auto blijft staan.
 
 Er is één `npm run <naam>test` en meestal een `<naam>shots` per onderwerp; ze
 staan allemaal in `tools/` en draaien via Playwright op een headless Chromium.
-De laatste die ertoe doen: `npm run opslagtest` (F5 niet in het menu, een gesprek of een filmbeeld; laden midden in een
+De laatste die ertoe doen: `npm run opzettest` (de opzet voor een nieuwe speler: de besturing in het menu, Spel laden met datum, een onleesbare opslag, Start spel vraagt eerst, Opslaan in de pauze, een ander tabblad pauzeert, keuzeknoppen voor een aanraakscherm, een mislukte missie laadt niet je opslag, de uitleg bij het eerste checkpoint, geen voorwerpen in de rijbaan, geen 404; stap 118); `npm run opslagtest` (F5 niet in het menu, een gesprek of een filmbeeld; laden midden in een
 gesprek per missie, doorschuiven na missie 1–3, Johan na missie 4, missie 6, 8 en 9 midden, het geld van missie 7, checkpoints
 bij het begin van missie 2–6 en niet in een gesprek, een klus vóór missie 6, Doorgaan, shift + cijfer, blur; stap 117); `npm run ramentest` (de ramen 's avonds van dichtbij, oud tegen nieuw op dezelfde gevel: evenveel licht,
 minder harde sprongen, een kortere rand; maakt ramen_oud.png en ramen_nieuw.png; stap 116); `npm run uitjetest` (na het einde de M bij Molenkrite 15: de keuze, de wedstrijd op het
@@ -521,7 +521,10 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   (`body.film`), het zwart, de titelrol en het neergaan; F5 vraagt het, en het checkpoint wacht erop. Een nieuwe
   missie hoort in `herstel` een tak te hebben (`hervat…`), en een gesprek dat na het laden weg is moet daar naar
   een stap kunnen die zonder dat gesprek verder kan (`doorNaar`). Tot stap 117 hadden missie 6, 8 en 9 er geen,
-  en werd elk gesprek "missie 1".
+  en werd elk gesprek "missie 1". Een mislukte missie begint altijd zichzelf opnieuw (`herstartMissie`), ook
+  als er een opslag is (stap 118); laden is F9 of het menu.
+- **Een nieuwe keuze met 1, 2 of 3** hoort ook in `verhaal.openKeuze` (stap 118): daar maakt js/main.js op een
+  aanraakscherm knoppen van; zonder regel daar zit een telefoon vast.
 - **js/verhaal.js is één groot bereik.** Een `function` met een naam die er al is
   overschrijft de andere stil (hoisting): in stap 89 namen `beginGevecht` en
   `naarDeC4` zo die van missie 10 en 11 over, en van stap 96 tot 102 reed missie 12 na het plan de

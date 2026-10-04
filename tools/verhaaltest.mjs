@@ -9,7 +9,7 @@
     en bij het terrein stap je automatisch uit.
  3. Bewaking: vijf bewakers, ze vallen je binnen het hek aan (levensbalk loopt
     leeg), na vijf treffers gaat de poort open en mag je de vrachtwagen pakken.
- 4. Afleveren: met de vrachtwagen naar de boerderij, dan MISSION COMPLETED.
+ 4. Afleveren: met de vrachtwagen naar de boerderij, dan MISSIE VOLTOOID.
  5. Johan: de telefoon gaat, briefing op de oprit van Kruirad 62, de dief van De
     Wieken 27 opsporen, achtervolgen (niet neerschieten!), pakken en de duizend
     euro terugbrengen voor vijfhonderd euro beloning.
@@ -388,7 +388,7 @@ const afgeleverd = await page.evaluate(() => {
   };
 });
 ok(afgeleverd.fase === 'klaar', 'de missie is afgerond', `${afgeleverd.missie}/${afgeleverd.fase}`);
-ok(/MISSION COMPLETED/.test(afgeleverd.melding), '"MISSION COMPLETED" staat in beeld', afgeleverd.melding.slice(0, 40));
+ok(/MISSIE VOLTOOID/.test(afgeleverd.melding), '"MISSIE VOLTOOID" staat in beeld', afgeleverd.melding.slice(0, 40));
 ok(afgeleverd.opdracht === '' && !afgeleverd.nav, 'de opdracht en de route zijn van het scherm');
 ok(afgeleverd.leven === 100, 'je leven is weer vol', String(afgeleverd.leven));
 

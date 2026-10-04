@@ -3,7 +3,7 @@
 
    uitleg_winkels.png   de balk na de beloning van Johan: waar je je geld kwijt kunt
    sterren_voor.png     vier sterren op je dak, vlak voor het afleveren
-   sterren_weg.png      MISSION COMPLETED, en de sterren zijn van het scherm
+   sterren_weg.png      MISSIE VOLTOOID, en de sterren zijn van het scherm
 
  Gebruik: npm run server &   node tools/missieshots.mjs 8123 [map]
 */
@@ -84,7 +84,7 @@ await page.evaluate(async () => {
   const g = window.__game;
   // wat het verhaal doet zodra de vrachtwagen bij de schuur staat
   g.politie.reset();
-  g.hud.melding('MISSION COMPLETED', 'De lading staat bij de boerderij.', 30);
+  g.hud.melding('MISSIE VOLTOOID', 'De lading staat bij de boerderij.', 30);
   await new Promise(r => requestAnimationFrame(r));
 });
 await foto('sterren_weg', 900);

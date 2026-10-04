@@ -37,7 +37,10 @@ const TIPS = [
   'Met V wissel je tussen de camera vanuit je ogen en de camera achter je.',
   'Druk op M voor de grote kaart van de wijk.',
   'Met F5 sla je op, met F9 laad je je laatste opgeslagen spel.',
-  'Bij de boerderij aan de Molenkrite koop je kogels, verband en wapens; bij de Poiesz een flesje bier.',
+  'Bij Tinga State koop je kogels, verband en wapens; bij de Poiesz een flesje bier.',
+  'Een groene K op de kaart is een klusje van Mark of Johan: wat geld tussen de missies door. X breekt een klus af.',
+  'Klik op de grote kaart (M) om zelf een doel te zetten; klik er nog eens op om het weg te halen.',
+  'Na elke missie zet het spel een checkpoint. Tijdens een gesprek of filmbeeld kan opslaan even niet.',
   'Uit het zicht blijven laat de politie je sneller vergeten.',
   'Met [ en ] draai je de klok een uur terug of vooruit.',
   'Met Y wissel je het weer: helder, bewolkt of regen.',
@@ -245,8 +248,9 @@ function knop(tekst, id, opKlik, hoofd = false) {
  gereedschappen in tools/ op: die zetten hem op display:none om zonder menu een
  foto te maken.
 */
-export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
+export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opslaan = null, opslag = null, staat = 'leeg' }) {
   opAfsluiten = afsluiten;
+  opOpslaan = opslaan;
   const wortel = document.getElementById('overlay');
   wortel.innerHTML = '';
   wortel.className = 'menuscherm';
@@ -263,9 +267,31 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
   paneel.append(titel, onder, lijst);
 
   const kies = (wat) => () => { keuze = wat; if (keuzeKlaar) { keuzeKlaar(wat); keuzeKlaar = null; } };
+  /*
+   Start spel als er al een opslag is, of vanuit de pauze: eerst een vraag (stap 118). Een nieuw spel
+   wist het checkpoint, en de eerste F5 daarna overschrijft je enige opslagplek; de knop was de gele
+   hoofdknop en vroeg niets.
+  */
+  let bevestigT = null;
+  const nieuwKlik = () => {
+    const vragen = !el.knoppen.laden.hidden || !el.knoppen.doorgaan.hidden;
+    if (!vragen || el.knoppen.nieuw.dataset.zeker === '1') { el.knoppen.nieuw.dataset.zeker = ''; kies('nieuw')(); return; }
+    el.knoppen.nieuw.dataset.zeker = '1';
+    el.knoppen.nieuw.textContent = 'Echt een nieuw spel? Klik nog eens';
+    if (el.nieuwUitleg) el.nieuwUitleg.hidden = false;
+    clearTimeout(bevestigT);
+    bevestigT = setTimeout(zetNieuwTerug, 5000);
+  };
+  const opslaanKlik = () => {
+    const r = opOpslaan ? opOpslaan() : { gelukt: false, reden: 'niet beschikbaar' };
+    const b = el.knoppen.opslaan;
+    b.textContent = r.gelukt ? 'Opgeslagen ✓' : `Nu niet: ${r.reden || 'opslaan lukte niet'}`;
+    setTimeout(() => { b.textContent = 'Opslaan'; }, 2500);
+  };
   const knoppen = {
     doorgaan: knop('Doorgaan', 'menuDoorgaan', kies('doorgaan'), true),
-    nieuw: knop('Start spel', 'menuNieuw', kies('nieuw'), true),
+    opslaan: knop('Opslaan', 'menuOpslaan', opslaanKlik),
+    nieuw: knop('Start spel', 'menuNieuw', nieuwKlik, true),
     laden: knop('Spel laden', 'menuLaden', kies('laden')),
     instellingen: knop('Instellingen', 'menuInstellingen', () => toonPaneel('instellingen')),
     besturing: knop('Besturing', 'menuBesturing', () => toonPaneel('besturing')),
@@ -273,7 +299,15 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
   };
   for (const k of Object.values(knoppen)) lijst.append(k);
   knoppen.doorgaan.hidden = true;
+  knoppen.opslaan.hidden = true;
   knoppen.laden.hidden = !heeftOpslag;
+  // onder de knoppen: wat een nieuw spel doet (bij de vraag), en een opslag die niet te lezen is
+  const nieuwUitleg = document.createElement('div'); nieuwUitleg.className = 'menuonder'; nieuwUitleg.id = 'menuNieuwUitleg';
+  nieuwUitleg.textContent = 'Je begint weer bij Molenkrite 15. Je opgeslagen spel blijft staan tot je opnieuw opslaat (F5).';
+  nieuwUitleg.hidden = true;
+  const opslagMelding = document.createElement('div'); opslagMelding.className = 'menuonder'; opslagMelding.id = 'menuOpslagMelding';
+  opslagMelding.hidden = true;
+  lijst.append(nieuwUitleg, opslagMelding);
 
   // het onderpaneel: instellingen of besturing, uitklapbaar onder de knoppen
   const zijpaneel = document.createElement('div'); zijpaneel.className = 'menuzij'; zijpaneel.hidden = true;
@@ -297,8 +331,39 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten }) {
   laad.append(laadDoek, laadWaas, laadVoet);
 
   wortel.append(doek, waas, paneel, laad);
-  el = { wortel, doek, paneel, lijst, knoppen, zijpaneel, laad, laadDoek, laadTitel, laadTip, balkIn, laadWat, laadKlaar };
+  el = { wortel, doek, paneel, lijst, knoppen, zijpaneel, laad, laadDoek, laadTitel, laadTip, balkIn, laadWat, laadKlaar, nieuwUitleg, opslagMelding };
+  zetOpslag(opslag, staat);
   return el;
+}
+
+let opOpslaan = null;
+function zetNieuwTerug() {
+  if (!el.knoppen) return;
+  el.knoppen.nieuw.dataset.zeker = '';
+  el.knoppen.nieuw.textContent = 'Start spel';
+  if (el.nieuwUitleg) el.nieuwUitleg.hidden = true;
+}
+/*
+ Bij Spel laden: wanneer en waar je opsloeg (stap 118; `opslagInfo` werd nergens getoond). En een opslag
+ die er wel is maar niet te lezen (een andere versie, kapotte tekst) krijgt een regel, in plaats van stil
+ te verdwijnen.
+*/
+function zetOpslag(info, staat) {
+  if (!el.knoppen) return;
+  const b = el.knoppen.laden;
+  b.textContent = 'Spel laden';
+  if (info && info.tijd) {
+    const d = new Date(info.tijd);
+    const dag = d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+    const tijd = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    const klein = document.createElement('span'); klein.className = 'menuklein';
+    klein.textContent = `${dag} ${tijd}${info.straat ? ` · ${info.straat}` : ''}`;
+    b.append(klein);
+  }
+  if (el.opslagMelding) {
+    el.opslagMelding.hidden = staat !== 'onleesbaar';
+    el.opslagMelding.textContent = 'Er staat een opgeslagen spel, maar dat kan deze versie niet lezen. Een nieuw spel overschrijft het met F5.';
+  }
 }
 
 // Instellingen en besturing, allebei in hetzelfde uitklapvak onder de knoppen.
@@ -323,15 +388,17 @@ function toonPaneel(welke) {
     for (const [a, b] of [
       ['W A S D', 'lopen · shift = rennen · spatie = springen'],
       ['C', 'bukken: lager, langzamer, en moeilijker te zien'],
-      ['muis', 'rondkijken · linkermuisknop = schieten · R = herladen'],
-      ['scrollwiel', 'wisselen tussen pistool en machinegeweer · H = wapen weg'],
-      ['E', 'praten, naar binnen, in- en uitstappen'],
+      ['muis', 'rondkijken · linkermuisknop = schieten · rechtermuisknop = richten · R = herladen'],
+      ['scrollwiel', 'wisselen tussen je wapens (pistool, machinegeweer, sniper) · H = wapen weg'],
+      ['E', 'praten, naar binnen, in- en uitstappen, kopen, oppakken'],
+      ['1 2 3', 'een keuze maken als het spel erom vraagt (een huis, een inleg, wat je doet)'],
       ['1 … 4', 'aan de toonbank bij Tinga State: kopen wat er in het schap ligt'],
       ['V', 'camera: vanuit je ogen of achter je'],
-      ['M', 'grote kaart van de wijk'],
+      ['M', 'kaart: klein, groot, uit · op de grote kaart klikken = eigen doel'],
+      ['X', 'een klusje afbreken'],
       ['in de auto', 'W/S gas en rem · A/D sturen · spatie handrem'],
       ['← →', 'in de auto: radiozender wisselen'],
-      ['F5 / F9', 'opslaan / laden'],
+      ['F5 / F9', 'opslaan / laden (niet tijdens een gesprek of filmbeeld; ook: Opslaan in dit menu)'],
       ['[ ]  \\', 'klok een uur terug, vooruit, of laten lopen'],
       ['Y · U', 'weer wisselen · geluid uit en aan'],
       ['G', 'scherpte: scherp, normaal of zuinig'],
@@ -353,15 +420,22 @@ function toonPaneel(welke) {
 
 // Het menu tonen. `bezig` = de wereld is nog aan het laden; dan staat er bij de
 // knoppen hoever hij is, maar je kunt gewoon al kiezen.
-export function toonMenu({ pauze = false, heeftOpslag = null } = {}) {
+export function toonMenu({ pauze = false, heeftOpslag = null, opslag = undefined, staat = undefined } = {}) {
   if (!el.wortel) return;
   el.wortel.style.display = 'flex';
   el.laad.hidden = true;
   el.paneel.hidden = false;
   // sla je tijdens het spelen op met F5, dan hoort 'Spel laden' er daarna te staan
   if (heeftOpslag !== null) el.knoppen.laden.hidden = !heeftOpslag;
+  if (opslag !== undefined) zetOpslag(opslag, staat || 'leeg');
   el.knoppen.doorgaan.hidden = !pauze;
-  el.knoppen.nieuw.classList.toggle('hoofd', !pauze);
+  // opslaan vanuit de pauze (ook op een aanraakscherm, waar geen F5 is)
+  el.knoppen.opslaan.hidden = !pauze;
+  zetNieuwTerug();
+  // de hoofdknop: Doorgaan in de pauze, Spel laden als er een opslag is, anders Start spel
+  const laadHoofd = !pauze && !el.knoppen.laden.hidden;
+  el.knoppen.nieuw.classList.toggle('hoofd', !pauze && !laadHoofd);
+  el.knoppen.laden.classList.toggle('hoofd', laadHoofd);
   el.knoppen.doorgaan.classList.toggle('hoofd', pauze);
   el.zijpaneel.hidden = true;
   speelMuziek(true);           // ook bij Esc: het menu heeft zijn eigen deuntje

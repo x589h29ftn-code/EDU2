@@ -36,6 +36,20 @@ export function wisCheckpoint() {
   try { localStorage.removeItem(CHECKPOINT); return true; } catch { return false; }
 }
 
+/*
+ Wat er in de opslagplek staat (stap 118): 'leeg', 'ok', of 'onleesbaar' (kapotte tekst, een andere
+ versie of geen speler erin). Een onleesbare opslag verdween eerst stil: 'Spel laden' stond dan gewoon
+ niet in het menu, en niemand wist waarom.
+*/
+export function opslagStaat(sleutel = SLEUTEL) {
+  try {
+    const raw = localStorage.getItem(sleutel);
+    if (!raw) return 'leeg';
+    const d = JSON.parse(raw);
+    return d && d.versie === VERSIE && d.speler && Number.isFinite(d.speler.x) && Number.isFinite(d.speler.z) ? 'ok' : 'onleesbaar';
+  } catch { return 'onleesbaar'; }
+}
+
 // Voor het startscherm: wanneer is er opgeslagen en waar stond je?
 export function opslagInfo() {
   const d = lees();
@@ -90,7 +104,8 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
 // Zet een opgeslagen spel terug. Geeft false als er niets (bruikbaars) staat.
 export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, garage = null, checkpoint = false }) {
   const d = lees(checkpoint ? CHECKPOINT : SLEUTEL);
-  if (!d || !d.speler) return false;
+  // (zonder plek geen spel: anders stond de speler op NaN)
+  if (!d || !d.speler || !Number.isFinite(d.speler.x) || !Number.isFinite(d.speler.z)) return false;
   const s = d.speler;
   player.pos.set(s.x, s.y || 0, s.z);
   player.yaw = s.yaw || 0;

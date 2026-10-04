@@ -27,7 +27,7 @@ import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
 import { initPolitieboot } from './politieboot.js';
 import { initVaart } from './vaart.js';
-import { bewaarSpel, laadSpel, opslagInfo, heeftOpslag, heeftCheckpoint, wisCheckpoint } from './opslag.js';
+import { bewaarSpel, laadSpel, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen } from './kaartwereld.js';
 import { zetKoplampen } from './carmodel.js';
@@ -404,6 +404,8 @@ const geefBeeldTerug = () => new Promise(klaar => {
 menu.bouwMenu({
   heeftOpslag: !!opslagInfo(),
   opAfsluiten: () => afsluiten(),
+  opOpslaan: () => bewaar({ uitMenu: true }),     // de knop Opslaan in het pauzemenu (stap 118)
+  opslag: opslagInfo(), staat: opslagStaat(),
 });
 menu.laadBeelden();
 menu.laadMuziek();          // het menudeuntje uit audio/menu/, op herhaling
@@ -1590,6 +1592,42 @@ window.addEventListener('keydown', e => {
   if (!k || !verhaal.kiesHuis) return;
   if (verhaal.kiesHuis(+k[1])) e.preventDefault();
 });
+/*
+ Op een aanraakscherm zijn er geen cijfertoetsen (stap 118): een keuze (een huis, de inleg, missie 14, 16,
+ het uitje) bleef daar openstaan. Nu staan de keuzes als knoppen boven de joystick, zolang
+ `verhaal.openKeuze` er een geeft. Met een toetsenbord blijft het bij 1, 2 en 3.
+*/
+let keuzeKnoppen = null, keuzeSleutel = '';
+function werkKeuzeKnoppenBij(dwing = false) {
+  if (!touch && !dwing) return;
+  const keuzes = player.active && verhaal.openKeuze ? verhaal.openKeuze : null;
+  const sleutel = keuzes ? keuzes.join('|') : '';
+  if (sleutel === keuzeSleutel) return;
+  keuzeSleutel = sleutel;
+  if (!keuzeKnoppen) {
+    keuzeKnoppen = document.createElement('div');
+    keuzeKnoppen.id = 'keuzeknoppen';
+    document.getElementById('ui').appendChild(keuzeKnoppen);
+  }
+  keuzeKnoppen.replaceChildren();
+  keuzeKnoppen.hidden = !keuzes;
+  if (!keuzes) return;
+  keuzes.forEach((tekst, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = `${i + 1} · ${tekst}`;
+    b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); verhaal.kiesHuis(i + 1); werkKeuzeKnoppenBij(dwing); });
+    keuzeKnoppen.appendChild(b);
+  });
+}
+/*
+ Een ander tabblad, het venster geminimaliseerd of de telefoon op slot: dan stond het spel niet stil
+ (stap 118). De lus liep na terugkomst één beeld van een twintigste seconde, maar sterren, de klok van
+ een missie en de politie gingen door zodra de browser het tabblad weer liet tekenen. Nu het pauzemenu.
+*/
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && player.active && !gepauzeerd) pauseGame();
+});
 // loop je (een looptoets ingedrukt), dan is shift rennen en geen sneltoets (stap 117)
 const LOOPTOETSEN = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 window.addEventListener('keydown', e => {
@@ -2012,7 +2050,7 @@ function pauseGame() {
   // loopt door en `motorToeren` wordt niet meer aangeroepen, dus hij blijft op
   // zijn laatste stand hangen (melding beta-test 12 sep 2026).
   geluid.pauzeer(true);
-  menu.toonMenu({ pauze: true, heeftOpslag: !!opslagInfo() });
+  menu.toonMenu({ pauze: true, heeftOpslag: !!opslagInfo(), opslag: opslagInfo(), staat: opslagStaat() });
   wachtOpMenu(true);
 }
 
@@ -2079,13 +2117,24 @@ function bewaarSpelNu() {
    kon na het laden niet verder. F5 in het menu overschreef je opslag met een vers spel.
   */
   if (!player.active || gepauzeerd) return;
-  const reden = verhaal.waaromNietOpslaan ? verhaal.waaromNietOpslaan() : null;
+  const { gelukt, reden } = bewaar();
   if (reden) { hud.show(`Nu niet opslaan: ${reden}`, 2.2); return; }
+  hud.show(gelukt ? 'Spel opgeslagen' : 'Opslaan lukte niet', 2);
+}
+
+/*
+ Het eigenlijke opslaan, voor F5 en voor de knop in het pauzemenu (stap 118). Uit het menu mag het
+ alleen als er al gespeeld wordt: de pauze na Esc, niet het startscherm (daar staat nog geen spel).
+*/
+function bewaar({ uitMenu = false } = {}) {
+  if (uitMenu && !gepauzeerd) return { gelukt: false, reden: 'er is nog geen spel' };
+  const reden = verhaal.waaromNietOpslaan ? verhaal.waaromNietOpslaan() : null;
+  if (reden) return { gelukt: false, reden };
   const gelukt = bewaarSpel({
     player, sfeer, vehicles, verhaal, boten, vaart, garage,
     straat: nearestRoadName(camera.position.x, camera.position.z),
   });
-  hud.show(gelukt ? 'Spel opgeslagen' : 'Opslaan lukte niet', 2);
+  return { gelukt, reden: gelukt ? null : 'opslaan lukte niet' };
 }
 
 function laadSpelNu() {
@@ -2214,6 +2263,7 @@ function loop() {
     }
   }
   if (voorbereiden) return;           // de intro wordt klaargezet (`voorFilm`)
+  werkKeuzeKnoppenBij();
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
   /*
    De koplampspot staat 's nachts áltijd in de scene, ook als je te voet bent
@@ -2720,6 +2770,8 @@ window.__game = {
   wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, ambulance, nieuws, ambulanceMelding, inBeeld, leven,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,
+  // de keuzeknoppen voor een aanraakscherm (tools/opzettest.mjs: met `true` ook zonder aanraakscherm)
+  werkKeuzeKnoppenBij,
   opslaan: bewaarSpelNu, laden: laadSpelNu, praat: praatOfAuto, toggleCar, aanrijden, wisselCamera,
   geluid, pauzeer: pauseGame, hervat: startGame, schok, sporen: sporenTeller, spuiterij, garage, boten, politieboot, vaart,
   raakLantaarn, werkLantaarnsBij, lantaarnsOm, buit,
