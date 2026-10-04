@@ -121,30 +121,26 @@ ok(/GTI/.test(gti.legenda) && /1\.200/.test(gti.legenda), 'in de legenda van de 
 
 // ------------------------------------------------------------------ 3. uitleg
 kop('uitleg bij de eerste ster en de grote kaart');
-await page.evaluate(() => {
+// (de tekst meteen na het tonen gelezen: headless kan één beeld zo lang duren dat het klokje van de uitleg al af is)
+const uitl = await page.evaluate(async () => {
   const g = window.__game;
+  const U = await import('/js/uitleg.js');
+  const el = document.getElementById('uitleg');
+  const lees = () => (el && el.classList.contains('zichtbaar') ? el.textContent : '');
   g.player.active = true;
   g.politie.zetSter(1, g.player.pos.x + 300, g.player.pos.z);
   g.uitlegBij();
-});
-const ster = await page.waitForFunction(() => {
-  const u = document.getElementById('uitleg');
-  return u && u.classList.contains('zichtbaar') && /politie/i.test(u.textContent) ? u.textContent : false;
-}, null, { timeout: 20000 }).then(h => h.jsonValue()).catch(() => '');
-ok(/wasbox/i.test(ster), 'de eerste ster: uit het zicht blijven of de wasbox', ster.slice(0, 120));
-await page.evaluate(() => {
-  const g = window.__game;
+  const ster = lees() || (U.gezien('sterren') ? '(al getoond)' : '');
   g.politie.reset();
-  document.getElementById('uitleg').classList.remove('zichtbaar');
   while (!g.hud.bigOpen) g.hud.kaartStap();
   g.uitlegBij();
+  const kaart = lees() || (U.gezien('kaart') ? '(al getoond)' : '');
+  while (g.hud.kaartStand !== 0) g.hud.kaartStap();
+  g.player.active = false;
+  return { ster, kaart };
 });
-const kaart = await page.waitForFunction(() => {
-  const u = document.getElementById('uitleg');
-  return u && u.classList.contains('zichtbaar') && /kaart/i.test(u.textContent) ? u.textContent : false;
-}, null, { timeout: 20000 }).then(h => h.jsonValue()).catch(() => '');
-ok(/eigen doel/i.test(kaart), 'de grote kaart: klik voor een eigen doel', kaart.slice(0, 120));
-await page.evaluate(() => { const g = window.__game; while (g.hud.kaartStand !== 0) g.hud.kaartStap(); g.player.active = false; });
+ok(/wasbox/i.test(uitl.ster), 'de eerste ster: uit het zicht blijven of de wasbox', uitl.ster.slice(0, 120));
+ok(/eigen doel/i.test(uitl.kaart), 'de grote kaart: klik voor een eigen doel', uitl.kaart.slice(0, 120));
 
 // ------------------------------------------------------------------ 4. de wapens van de anderen
 kop('de wapens van de anderen');
