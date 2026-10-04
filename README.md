@@ -311,8 +311,6 @@ de buurt rent niet weg en de politie hoort geen schot. Uit een auto steek je nie
 De anderen hebben sinds stap 123 ook echte wapens in plaats van blokjes: een pistool met slede en greep,
 een machinepistool met loopmantel en stut, en het geweer van de bewaking met een houten kolf.
 
-![Een bewaker met zijn geweer](docs/screenshots/wapen_bewaker.png)
-
 ### De terugslag van de sniper
 
 De sniper **schopt** (stap 111: "voelt vrij zwak"):

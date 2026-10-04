@@ -7512,7 +7512,9 @@ draaiden eerst op de oude code (alle vijf groen); twee helpers lazen 16–17 en 
   (missie 1–4 lopen direct in elkaar door, de rest via het telefoontje of het zwart), dan vangt `startMissie`
   dat af en speel je vrij. De opslag onthoudt dat je aan het herspelen bent. Voor missie 12 is de brug even heel.
 
-**Proeven**: `zespuntentest` (nieuw); PROEVEN_HIER. **Foto's**: `zespuntenshots` (vier).
+**Proeven**: `zespuntentest` (nieuw); PROEVEN_HIER. **Foto's**: `zespuntenshots` (drie: het mes, de GTI, het menu). Een foto van een bewaker met het nieuwe geweer
+lukte niet: de hoofdlus zette de camera elke keer terug achter het poppetje van de speler; de wapens zijn in de
+proef gemeten (vorm, lengte, gedeeld).
 
 **Wat nog niet af is** (in volgorde).
 
