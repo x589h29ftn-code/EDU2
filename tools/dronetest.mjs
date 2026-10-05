@@ -57,6 +57,29 @@ const progVoor = await page.evaluate(() => {
   return g.renderer.info.programs.length;
 });
 
+// ------------------------------------------------------------------ 6. geen nieuwe shaders
+kop('geen nieuwe shaders tijdens het spelen (hier, vóór de rest: de proef vliegt daarna tot de rand van de wereld)');
+const prog = await page.evaluate(async () => {
+  const g = window.__game, P = g.player, D = g.drone;
+  const s = g.start || { x: 10.7, z: -7.1 };
+  const r = () => { g.scene.updateMatrixWorld(true); g.renderer.render(g.scene, g.camera); };
+  // overdag, met de vogels, de drone en een auto met schade in beeld
+  P.pos.set(s.x, 0, s.z); P.drone = true; D.accu = 300;
+  g.droneToets(); for (let i = 0; i < 10; i++) D.update(0.05);
+  const car = g.vehicles.voegToe({ x: s.x + 8, z: s.z - 8, yaw: 0.4, soort: 'hatch', kleur: 0x3a7a3a });
+  g.autoschade.botsing(car, 16, true);
+  g.vogels.vulAan(s.x, s.z);
+  r();
+  // 's nachts: sterren, knipperlichten, het lampje van de drone
+  g.sfeer.uur = 1; g.knipper.update(0.1, true); D.update(0.05); r();
+  // de ochtend
+  g.sfeer.uur = 6; r();
+  D.terug(); g.vehicles.verwijder(car);
+  g.sfeer.uur = 13; P.drone = false;
+  return g.renderer.info.programs.length;
+});
+ok(prog === progVoor, 'evenveel shaderprogramma\'s als bij het begin', `${progVoor} → ${prog}`);
+
 // ------------------------------------------------------------------ 1. de drone
 kop('de drone kopen bij Tinga State');
 const koop = await page.evaluate(() => {
@@ -481,28 +504,6 @@ const sporen = await page.evaluate(async () => {
   return { na30, na62: sporenTeller() };
 });
 ok(sporen.na30 >= 20 && sporen.na62 === 0, 'remsporen liggen er een minuut', `${sporen.na30} na 30 s, ${sporen.na62} na 62 s`);
-
-// ------------------------------------------------------------------ 6. geen nieuwe shaders
-kop('geen nieuwe shaders tijdens het spelen');
-const prog = await page.evaluate(async () => {
-  const g = window.__game, P = g.player, D = g.drone;
-  const s = g.start || { x: 10.7, z: -7.1 };
-  const r = () => { g.scene.updateMatrixWorld(true); g.renderer.render(g.scene, g.camera); };
-  // overdag, met de vogels, de drone en een auto met schade in beeld
-  P.pos.set(s.x, 0, s.z); P.drone = true; D.accu = 300;
-  g.droneToets(); for (let i = 0; i < 10; i++) D.update(0.05);
-  const car = g.vehicles.voegToe({ x: s.x + 8, z: s.z - 8, yaw: 0.4, soort: 'hatch', kleur: 0x3a7a3a });
-  g.autoschade.botsing(car, 16, true);
-  r();
-  // 's nachts: sterren, knipperlichten, het lampje van de drone
-  g.sfeer.uur = 1; g.knipper.update(0.1, true); D.update(0.05); r();
-  // de ochtend
-  g.sfeer.uur = 6; r();
-  D.terug(); g.vehicles.verwijder(car);
-  g.sfeer.uur = 13;
-  return g.renderer.info.programs.length;
-});
-ok(prog === progVoor, 'evenveel shaderprogramma\'s als bij het begin', `${progVoor} → ${prog}`);
 
 console.log(fouten ? `\n${fouten} FOUT(EN)` : '\nalles goed');
 await browser.close();

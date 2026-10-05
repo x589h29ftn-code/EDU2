@@ -562,8 +562,8 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
     const w = vuilWagen();
     if (!w) { vuil.reden = 'geen wagen'; return false; }
     vuil.reden = 'geen weg';
-    for (let poging = 0; poging < 6; poging++) {
-      const a = wegPunt(sp.x, sp.z, { van: 40, tot: 140 });
+    for (let poging = 0; poging < 10; poging++) {
+      const a = wegPunt(sp.x, sp.z, { van: 40, tot: 160 });
       const b = wegPunt(sp.x, sp.z, { van: VUILNIS.van_, tot: VUILNIS.tot_, weg: { x: sp.x, z: sp.z, min: 150 } });
       if (!a || !b) continue;
       vuil.reden = 'in zicht';
@@ -571,8 +571,10 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
       vuil.reden = 'geen route';
       // van ver weg, langs je, en weer ver weg: over het punt bij jou heen
       const c = wegPunt(sp.x, sp.z, { van: VUILNIS.van_, tot: VUILNIS.tot_, weg: { x: b.x, z: b.z, min: 250 } });
-      const L = lijnDoor(KAART, c ? [[b.x, b.z], [a.x, a.z], [c.x, c.z]] : [[b.x, b.z], [a.x, a.z]]);
-      if (!L || L.n < 4 || L.lengte > 1600) continue;
+      let L = c ? lijnDoor(KAART, [[b.x, b.z], [a.x, a.z], [c.x, c.z]]) : null;
+      // lukt de lijn over drie punten niet (een punt op een los stuk weg), dan van ver weg tot bij jou
+      if (!L || L.n < 4 || L.lengte > 1800) L = lijnDoor(KAART, [[b.x, b.z], [a.x, a.z]]);
+      if (!L || L.n < 4 || L.lengte > 1800) continue;
       vuil.reden = null;
       vuil.lijn = L; vuil.prof = profiel(L, { top: VUILNIS.top, dwars: 2.6 });
       vuil.s = 0; vuil.v = 0; vuil.stopT = 0; vuil.volgendeStop = VUILNIS.stopOm; vuil.fase = 'rijdt'; vuil.ritten++;
