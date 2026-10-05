@@ -190,7 +190,10 @@ if (doe('autoschade')) {
     const g = window.__game, A = g.autoschade;
     const THREE = await import('three');
     g.sfeer.uur = 12;
-    // (het poppetje van Erik niet in beeld)
+    // vrij spelen: anders loopt Mark van missie 1 zwaaiend achter de camera aan
+    const vs = g.verhaal.bewaar(); vs.volgende = null; vs.punt = null;
+    Object.assign(vs, { missie: 'klaar', fase: 'klaar' });
+    g.verhaal.herstel(vs);
     if (g.derde) g.derde.aan = false;
     // op de rijbaan van de Molenkrite, een stuk voor het beginpunt
     const yaw0 = s.yaw ?? -0.88;
