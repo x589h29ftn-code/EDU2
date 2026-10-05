@@ -7611,6 +7611,34 @@ voor de vuilniswagen een speciaal auto model zie foto's met sudwest Fryslan logo
 **Proeven**: `tijdtest` (nieuw), `dronetest`, `gevoeltest`, `winkeltest`, `vloeiendtest`. **Foto's**: `droneshots`
 opnieuw (de nacht, de mist, de vuilniswagen, de autoschade).
 
+**Kleine winsten (stap 126).** Gevraagd op 5 okt 2026, uit een lijstje voorstellen: "1 digitale klok niet groot, 2, 4,
+6, 7, 8, 9, 10".
+
+- *Het klokje* (index.html `#klok`, js/main.js `werkKlokBij`): 14 px, monospace, links naast de minikaart; alleen
+  opnieuw geschreven als de minuut verandert. De eerste proef zag 07:04 voor 7 + 5/60 uur: 0,0833… × 60 is
+  4,999…; `klokTekst` rekent nu in hele minuten.
+- *Slapen* (js/verhaal.js `slapen`, js/main.js `slaapToets`, Z): op de bank (`zitOpBank` in js/interieur.js) in je
+  eigen huis (`huisGekozen`), niet als `tijdVast`. `zwartMet` naar acht uur, vol leven. De balk van de woning
+  zegt het erbij (`magSlapen`, door js/main.js gezet).
+- *De minikaart en de drone*: js/hud.js had al `kaartVanaf` (binnen wijst de kaart naar de deur); met de drone in
+  de lucht zet `kaartNaarDrone` die op de drone, ná `straatOf`, dat hem anders elk beeld leegmaakt.
+- *Wisselend weer* (js/sfeer.js `zwaar`, `dobbelWeer`, `W3`): elk heel uur een dobbelsteen (van helder 12 % naar
+  bewolkt; van bewolkt 22 % regen en 28 % helder; van regen 45 % bewolkt: op den duur ongeveer 61 % droog, 26 %
+  bewolkt, 13 % regen), alleen als de klok loopt. Het weer is een getal geworden zodat alles wat ervan afhangt
+  (zicht, de grijze lucht, de zon, de sterren, het water) in 45 tellen meeschuift; de regen zelf en het natte
+  wegdek gaan halverwege om. Met de hand (Y, het menu, de opslag) meteen, zodat geen proef iets merkt.
+- *Kliko's* (js/leven.js `zetKlikos`, `tekenKlikos`): bij elke stop op 3,9 m rechts van de lijn, of 3,4 of 2,9 als
+  daar een botsdoos staat; twee instanced meshes (groen, grijs) met het deksel donkerder in de hoekpunten. Bij de
+  stop kantelt de kliko omhoog en neer; met de wagen weg zijn ze weg.
+- *Twinkelen*: een `tijd` in de uniforms van de lucht, per ster een eigen tempo.
+- *Open punt 19* (js/interieur.js `DEUR_ACHTER`): zonder aanbouw zit de tuindeur rechts in de achtergevel, en de
+  bank tegen die wand liep met zijn chaise longue ervoor langs. De bank houdt nu 0,9 m voor de deur op.
+- *Open punt 26*: de woonkamers zijn op 23 sep opnieuw ingericht (`ab69a44`), de proef niet. Hij toetst nu de regels
+  van de inrichting (past in de ruimte, 0,98 m diep, zithoogte, tv van 55 tot 60 inch).
+
+**Proeven**: `kleinwinsttest` (nieuw), `huistest` (groen, ook de tuindeur), `verhaaltest`. **Foto's**: `klok_hud`, en
+`vuilniswagen` opnieuw met de kliko's.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
