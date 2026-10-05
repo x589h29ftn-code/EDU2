@@ -4767,6 +4767,8 @@ donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en gl
   in de instellingen zet het uit.
 - **De sterren twinkelen**, elk op zijn eigen tempo, en dichter bij de horizon wat meer.
 
+![Het klokje naast de minikaart, 's avonds](docs/screenshots/klok_hud.png)
+
 ### Een levender wereld (stap 124)
 
 - **De nacht.** Bij helder weer staan er sterren en een maan aan de hemel (achter de wolken bijna niets). Op de
