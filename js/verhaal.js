@@ -10084,6 +10084,25 @@ export function initVerhaal(ctx) {
     if (klokVastDoorVerhaal()) return 'Nu even niet: het verhaal houdt de tijd vast.';
     return null;
   }
+  /*
+   Slapen tot de ochtend (stap 126): op de bank in je eigen huis, met Z. Zacht naar zwart, "De volgende
+   ochtend…", en het is acht uur; je bent uitgerust (vol leven). Niet tijdens een missie of een gesprek, en
+   niet als het verhaal de tijd vasthoudt. Geeft null als het lukt, anders waarom niet.
+  */
+  const SLAAP_UUR = 8;
+  function slapen(adres) {
+    if (!huisGekozen || adres !== huisGekozen) return 'Slapen doe je in je eigen huis.';
+    if (gesprek || zwart || doodT > 0 || misluktT > 0) return 'Niet nu.';
+    const vast = tijdVast();
+    if (vast) return vast;
+    const u = uurNu ? uurNu() : 12;
+    zwartMet(u >= 6 && u < SLAAP_UUR ? 'Even later…' : 'De volgende ochtend…', () => {
+      if (zetUur) zetUur(SLAAP_UUR);
+      player.health = Math.max(player.health, 100);
+      if (hud.zetLeven) hud.zetLeven(player.health);
+    });
+    return null;
+  }
   function werkMissieKlokBij() {
     if (!klokLoopt) return;
     const bezig = missieBezig();
@@ -10901,7 +10920,7 @@ export function initVerhaal(ctx) {
     update, toets, doelen, raak, hinder, bewaar, herstel, naLaden, meldAan, schotGehoord, dood, mislukt,
     herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; },
     // stap 125: de klok en de missies
-    tijdVast, get missieBezig() { return missieBezig(); },
+    tijdVast, get missieBezig() { return missieBezig(); }, slapen, get eigenHuis() { return huisGekozen; },
     beginGesprek, waaromNietOpslaan,
     /*
      De keuze die nu openstaat (1, 2 of 3), als woorden: op een aanraakscherm zet js/main.js er

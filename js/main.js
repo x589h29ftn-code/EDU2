@@ -115,6 +115,7 @@ const skyUniforms = {
   sunDir: { value: SUN_DIR },
   // stap 124: sterren en de maan, 's nachts (js/sfeer.js zet ze)
   nacht: { value: 0 },
+  tijd: { value: 0 },          // stap 126: de sterren twinkelen
   maanDir: { value: new THREE.Vector3(0.4, 0.5, -0.6).normalize() },
 };
 const skyMat = new THREE.ShaderMaterial({
@@ -122,7 +123,7 @@ const skyMat = new THREE.ShaderMaterial({
   vertexShader: `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader: `
     uniform vec3 top, mid, bot, sunDir, maanDir;
-    uniform float nacht;
+    uniform float nacht, tijd;
     varying vec3 vP;
     float hash(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
     void main(){
@@ -147,6 +148,8 @@ const skyMat = new THREE.ShaderMaterial({
           vec3 mid2 = (cel + 0.5) / 260.0;
           float r = length(dir - normalize(mid2)) * 260.0;
           float st = smoothstep(0.75, 0.0, r) * (0.55 + 0.9 * hash(cel + 7.0));
+          // twinkelen: elk sterretje op zijn eigen tempo, en dichter bij de horizon wat meer
+          st *= 0.72 + 0.28 * sin(tijd * (1.6 + 2.4 * hash(cel + 3.0)) + hash(cel + 11.0) * 40.0) * (1.2 - h);
           c += vec3(0.92, 0.95, 1.0) * st * nacht * smoothstep(0.02, 0.18, h);
         }
         float m = dot(dir, normalize(maanDir));
@@ -2355,6 +2358,16 @@ const klokTekst = (u) => `${String(Math.floor(u)).padStart(2, '0')}:${String(Mat
  ochtend, middag, avond, nacht — en daarna weer de ochtend. Tijdens een missie (of als het verhaal de tijd
  vasthoudt: het zwart, de titelrol, het uitje) kan het niet; dan zegt het spel dat.
 */
+// het klokje naast de minikaart (stap 126): alleen opnieuw schrijven als de minuut verandert
+const klokEl = document.getElementById('klok');
+let klokWasTekst = '';
+function werkKlokBij() {
+  if (!klokEl || !sfeer) return;
+  const t = klokTekst(sfeer.uur);
+  if (t !== klokWasTekst) { klokWasTekst = t; klokEl.textContent = t; }
+}
+// met de drone in de lucht volgt de minikaart de drone, niet Erik (stap 126); de straat is dan al die van de camera
+function kaartNaarDrone() { if (drone.actief) hud.kaartVanaf = drone.pos; }
 function kiesTijd() {
   const nee = verhaal.tijdVast();
   if (nee) { hud.show(nee, 2.5); return null; }
@@ -2362,6 +2375,23 @@ function kiesTijd() {
   hud.show(`${t.naam[0].toUpperCase()}${t.naam.slice(1)} · ${klokTekst(t.uur)}`, 2.2);
   return t;
 }
+/*
+ Slapen (stap 126): Z op de bank in je eigen huis. Het verhaal beslist of het mag (js/verhaal.js `slapen`).
+*/
+for (const w of woningen) w.magSlapen = () => verhaal.eigenHuis === w.naam && !verhaal.tijdVast();
+function slaapToets() {
+  const w = woningen.find(q => q.zitOpBank);
+  if (!w) return false;
+  const nee = verhaal.slapen(w.naam);
+  if (nee) { hud.show(nee, 2.5); return false; }
+  w.staOp();
+  return true;
+}
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyZ' || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (!player.active && !window.__autoplay) return;
+  slaapToets();
+});
 window.addEventListener('keydown', e => {
   if (e.code !== 'KeyT' || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
   if (!player.active && !window.__autoplay) return;
@@ -2394,6 +2424,8 @@ menu.zetInstellingen(() => [
     id: 'weer', naam: 'Weer', waarde: () => sfeer.weer,
     volgende: () => { sfeer.weer = WEER_RIJ[(WEER_RIJ.indexOf(sfeer.weer) + 1) % WEER_RIJ.length]; },
   },
+  // stap 126: het weer wisselt vanzelf (een bui van een uur of twee), of blijft wat je kiest
+  { id: 'autoweer', naam: 'Wisselend weer', waarde: () => (sfeer.autoWeer ? 'aan' : 'uit'), volgende: () => { sfeer.autoWeer = !sfeer.autoWeer; } },
   {
     id: 'camera', naam: 'Camera', waarde: () => (derde.aan ? 'achter je' : 'vanuit je ogen'),
     volgende: () => { derde.wissel(); if (derde.aan && player.inCar) derde.achterAuto(player.inCar); },
@@ -2799,7 +2831,10 @@ function loop() {
     // open kaart: de muis is van de kaart; dicht: weer van het rondkijken
     player.kaartMuis = hud.bigOpen ? kaartMuis : null;
     if (!hud.bigOpen) hud.kaartCursor = null;
-    hud.update(dt, player, vehicles, npcs, straatOf(cx, cz), verhaal.aanspreekbaar);
+    const straatNu = straatOf(cx, cz);
+    kaartNaarDrone();
+    hud.update(dt, player, vehicles, npcs, straatNu, verhaal.aanspreekbaar);
+    werkKlokBij();
   }
   if (!player.active && !window.__autoplay) {
     /*
@@ -2848,6 +2883,7 @@ function loop() {
   // meedraaide. Meeschuiven houdt hem altijd op 1000 m.
   const kijker = window.__bovenCam || camera;
   sky.position.copy(kijker.position);
+  skyUniforms.tijd.value = time;
   // het achtervlak loopt met de mist mee (js/sfeer.js), dus de bol ook
   if (Math.abs(sky.scale.x - kijker.far * 0.92) > 1) sky.scale.setScalar(kijker.far * 0.92);
   /*
@@ -3003,7 +3039,7 @@ window.__game = {
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   grasVeld, wolken: clouds,
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, studio, derde, politie,
-  drone, droneToets, droneFoto, waaromGeenDrone, vogels, autoschade, kiesTijd, get knipper() { return knipper; },
+  drone, droneToets, droneFoto, waaromGeenDrone, vogels, autoschade, kiesTijd, slaapToets, werkKlokBij, kaartNaarDrone, straatOf, get knipper() { return knipper; },
   wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, wedstrijdInFilm, ambulance, nieuws, ambulanceMelding, inBeeld, leven,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,

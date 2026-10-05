@@ -71,6 +71,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | M | kaart: klein, groot, uit · op de grote kaart klikken zet een eigen doel |
 | in de auto: naar de wasbox rijden | achter het BP-station: overspuiten, alle sterren kwijt (€ 100 per ster) |
 | **T** | de tijd: ochtend → middag → avond → nacht (niet tijdens een missie) |
+| **Z** | op de bank in je eigen huis: slapen tot de ochtend |
 | [ ] | klok een uur terug / vooruit · `\` dag en nacht laten meelopen of stilzetten |
 | Y | weer: helder, bewolkt, regen |
 | U | geluid uit en aan |
@@ -334,6 +335,7 @@ tot Erik en de accu onderin. **B** of **E** haalt hem terug.
 - **Accu:** vijf minuten vliegen (met shift korter). Leeg: hij vliegt vanzelf terug, en laadt in anderhalve
   minuut weer op.
 - Hij vliegt niet door gebouwen of de grond. 's Nachts brandt er een lampje onder, met een plas licht op de grond.
+- De minikaart volgt de drone zolang hij in de lucht is (stap 126).
 - **Geen politiester**: vliegen is niet strafbaar. Schieten kan niet met de afstandsbediening in je handen, en wordt
   Erik geraakt, dan komt de drone terug.
 
@@ -4755,6 +4757,15 @@ donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en gl
   elke missie begint overdag. De klok loopt dan door zolang het licht is en blijft om zes uur 's avonds
   staan, zodat een missie overdag niet in het donker eindigt. Wat in het donker moet — de race,
   *Die avond…*, *Die nacht…* — zet zijn eigen nacht, en 's nachts staat de klok in een missie stil.
+- **Het klokje** (stap 126): klein en digitaal, links naast de minikaart.
+- **Slapen tot de ochtend** (stap 126): zit je op de bank in je eigen huis, dan zegt de balk
+  *E — opstaan · Z — slapen tot de ochtend*. Z: zacht naar zwart, *De volgende ochtend…*, acht uur, en je bent
+  uitgerust (vol leven). Niet in een ander huis en niet tijdens een missie.
+- **Wisselend weer** (stap 126): elk uur in het spel kan het weer omslaan — meestal blijft het droog, soms
+  betrekt het, af en toe komt er een bui van een uur of twee. Het zicht, de lucht en de zon schuiven in drie
+  kwart minuut mee, zodat het niet in één beeld omslaat. Met Y of het menu kies je het meteen; *Wisselend weer*
+  in de instellingen zet het uit.
+- **De sterren twinkelen**, elk op zijn eigen tempo, en dichter bij de horizon wat meer.
 
 ### Een levender wereld (stap 124)
 
@@ -4770,7 +4781,8 @@ donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en gl
   Een op de acht wandelaars laat nog steeds een hondje uit.
 - **De vuilniswagen.** Tussen zeven en half elf 's ochtends rijdt er om de paar minuten een vuilniswagen
   door een straat bij je in de buurt: de gele DAF van de gemeente **Súdwest-Fryslân**, met het logo op de bak,
-  een grijze bumper, een zwaailicht en een rode grijparm (stap 125). Hij en stopt om de 38 m om de kliko's te legen (sissen, bonken, piepjes). Hij
+  een grijze bumper, een zwaailicht en een rode grijparm (stap 125). Langs zijn route staan **kliko's** aan de
+  stoep, groen en grijs; bij elke stop gaat er een omhoog, en als de wagen weg is, zijn ze weg (stap 126). Hij en stopt om de 38 m om de kliko's te legen (sissen, bonken, piepjes). Hij
   is een echte auto: je botst ertegen.
 - **Het terras bij de Poiesz.** Overdag, als het droog is, staan er naast de ingang van de Poiesz in IJlst twee
   tafels met een rode parasol, en zitten er vijf mensen aan de koffie.

@@ -82,6 +82,26 @@ export function initSfeer(ctx) {
 
   let uur = 13.5;          // begint op een heldere middag
   let weer = 'helder';
+  /*
+   Wisselend weer (stap 126). `zwaar` is het weer als getal: helder 0, bewolkt 1, regen 2. Met de hand (Y, het
+   menu) springt het meteen; vanzelf schuift het in `WEER_OVERGANG` tellen naar het nieuwe weer, zodat het zicht,
+   de lucht en de zon niet in één beeld omslaan. `weer` zelf (de regen, het natte wegdek) gaat halverwege om.
+   Elk heel uur in het spel (twee minuten) gooit het weer een dobbelsteen, alleen als de klok loopt.
+  */
+  const WEER_OVERGANG = 45;
+  let zwaar = 0, zwaarDoel = 0;
+  let autoWeer = (() => { try { return localStorage.getItem('tinga.weer') !== 'vast'; } catch { return true; } })();
+  const W3 = (a, b, c) => (zwaar <= 1 ? a + (b - a) * zwaar : b + (c - b) * (zwaar - 1));
+  function dobbelWeer() {
+    const r = Math.random();
+    const nu = Math.round(zwaarDoel);
+    // meestal blijft het zoals het is; een bui duurt een uur of twee
+    let naar = nu;
+    if (nu === 0 && r < 0.12) naar = 1;
+    else if (nu === 1) naar = r < 0.22 ? 2 : r < 0.5 ? 0 : 1;
+    else if (nu === 2 && r < 0.45) naar = 1;
+    zwaarDoel = naar;
+  }
   // de klok loopt standaard mee (stap 125); `voorkeur` is wat de speler in de instellingen koos
   let voorkeur = leesVoorkeur();
   let loopt = voorkeur;
@@ -239,8 +259,8 @@ export function initSfeer(ctx) {
   function pasToe() {
     const k = meng(uur);
     const nacht = k.kracht < 0.35;
-    const bewolkt = weer !== 'helder';
-    const demping = weer === 'regen' ? 0.42 : weer === 'bewolkt' ? 0.62 : 1;
+    const wolk = Math.min(1, zwaar);                  // 0 helder … 1 bewolkt of zwaarder
+    const demping = W3(1, 0.62, 0.42);
 
     // zon: hoogte volgt de tijd, richting draait mee van oost naar west
     const hoek = (uur - 6) / 12 * Math.PI;                 // 0 bij zonsopgang, pi bij ondergang
@@ -252,13 +272,13 @@ export function initSfeer(ctx) {
     sun.color.copy(k.zon);
     sun.intensity = k.kracht * demping;
     sun.castShadow = k.kracht * demping > 0.25;
-    hemi.intensity = Math.max(0.12, k.hemel * (bewolkt ? 1.15 : 1));
-    fill.intensity = 0.8 * k.hemel * (bewolkt ? 1.3 : 1);
+    hemi.intensity = Math.max(0.12, k.hemel * (1 + 0.15 * wolk));
+    fill.intensity = 0.8 * k.hemel * (1 + 0.3 * wolk);
 
     const top = k.top.clone(), mid = k.mid.clone(), bot = k.bot.clone();
-    if (bewolkt) {
-      const grijs = new THREE.Color(weer === 'regen' ? 0x5d666e : 0x8d959c);
-      const f = weer === 'regen' ? 0.75 : 0.5;
+    if (zwaar > 0) {
+      const grijs = new THREE.Color(0x8d959c).lerp(new THREE.Color(0x5d666e), Math.max(0, zwaar - 1));
+      const f = W3(0, 0.5, 0.75);
       top.lerp(grijs, f); mid.lerp(grijs, f * 0.9); bot.lerp(grijs, f * 0.8);
     }
     // de ochtendmist (stap 124) kleurt ook de onderkant van de lucht: een witte waas aan de horizon
@@ -269,7 +289,7 @@ export function initSfeer(ctx) {
     skyUniforms.bot.value.copy(bot);
     // sterren en maan (stap 124): hoe donkerder hoe meer, en achter de wolken bijna niets
     if (skyUniforms.nacht) {
-      skyUniforms.nacht.value = Math.max(0, Math.min(1, (0.45 - k.kracht) / 0.35)) * (weer === 'helder' ? 1 : weer === 'bewolkt' ? 0.2 : 0);
+      skyUniforms.nacht.value = Math.max(0, Math.min(1, (0.45 - k.kracht) / 0.35)) * W3(1, 0.2, 0);
       skyUniforms.maanDir.value.set(Math.cos(hoek) * 0.6, 0.42, -0.55).normalize();
     }
     /*
@@ -279,8 +299,8 @@ export function initSfeer(ctx) {
     */
     const m = mist;
     scene.fog.color.copy(bot).lerp(MIST_KLEUR, m * 0.85);
-    scene.fog.near = (weer === 'regen' ? 40 : 180) * (1 - m) + 6 * m;
-    scene.fog.far = (weer === 'regen' ? 320 : weer === 'bewolkt' ? 620 : 900) * (1 - m) + 200 * m;
+    scene.fog.near = W3(180, 180, 40) * (1 - m) + 6 * m;
+    scene.fog.far = W3(900, 620, 320) * (1 - m) + 200 * m;
     /*
      Het achtervlak van de camera loopt met de mist mee. Het stond vast op 1200 m
      terwijl de mist bij helder weer al op 900 dicht is en bij regen op 320: alles
@@ -304,7 +324,7 @@ export function initSfeer(ctx) {
     // water: donkerder en doffer bij regen, spiegelend bij helder weer. De
     // kleur is die van het water zelf (donker groenblauw); het licht erop komt
     // uit de spiegeling van de lucht (zie MAT.water in js/world.js)
-    mats.water.roughness = weer === 'regen' ? 0.32 : weer === 'bewolkt' ? 0.14 : 0.07;
+    mats.water.roughness = W3(0.07, 0.14, 0.32);
     mats.water.color.set(nacht ? 0x121c22 : weer === 'helder' ? 0x2f5560 : 0x3b4f56);
 
     /*
@@ -316,7 +336,7 @@ export function initSfeer(ctx) {
     if (ctx.wolken) {
       const helder = Math.max(0.10, Math.min(1, k.kracht / 1.6));
       const kleur = new THREE.Color(1, 1, 1).lerp(k.zon, k.kracht < 1.6 ? 0.45 : 0.12).multiplyScalar(helder);
-      if (bewolkt) kleur.lerp(new THREE.Color(0.55, 0.58, 0.62).multiplyScalar(helder), 0.5);
+      if (wolk > 0) kleur.lerp(new THREE.Color(0.55, 0.58, 0.62).multiplyScalar(helder), 0.5 * wolk);
       for (const m of ctx.wolken) m.color.copy(kleur);
     }
     // hoe nacht het is, voor de verlichte ramen (js/licht.js)
@@ -354,14 +374,27 @@ export function initSfeer(ctx) {
     }
 
     regen.visible = weer === 'regen';
-    sterkte.value = weer === 'regen' ? 0.30 : weer === 'bewolkt' ? 0.22 : 0.16;
+    sterkte.value = W3(0.16, 0.22, 0.30);
     ctx.onWeer && ctx.onWeer(weer, nacht);
   }
 
   // ---------- per beeld ----------
   let lampKlok = 0;
   function update(dt, camX, camZ) {
-    if (loopt) { uur = (uur + dt * (24 / (DAG_MINUTEN * 60))) % 24; pasToe(); }   // een dag in 48 minuten (stap 125)
+    if (loopt) {
+      const was = uur;
+      uur = (uur + dt * (24 / (DAG_MINUTEN * 60))) % 24;     // een dag in 48 minuten (stap 125)
+      if (autoWeer && Math.floor(uur) !== Math.floor(was)) dobbelWeer();
+      pasToe();
+    }
+    // het weer schuift naar zijn doel (stap 126)
+    if (zwaar !== zwaarDoel) {
+      const stap = dt * 2 / WEER_OVERGANG;
+      zwaar = zwaar < zwaarDoel ? Math.min(zwaarDoel, zwaar + stap) : Math.max(zwaarDoel, zwaar - stap);
+      const naam = WEER[Math.round(zwaar)];
+      if (naam !== weer) weer = naam;
+      if (!loopt) pasToe();
+    }
     windUniform.value += dt;
     tijdUniform.value = windUniform.value;       // de tv's achter de ramen
 
@@ -399,6 +432,7 @@ export function initSfeer(ctx) {
     if (e.shiftKey && (e.code === 'BracketLeft' || e.code === 'BracketRight' || e.code === 'Backslash')) return;
     if (e.code === 'KeyY') {
       weer = WEER[(WEER.indexOf(weer) + 1) % WEER.length];
+      zwaar = zwaarDoel = WEER.indexOf(weer);
       pasToe(); hud.show(`Weer: ${weer}`, 2);
     } else if (e.code === 'BracketRight') {
       uur = (uur + 1) % 24; pasToe(); hud.show(`${String(Math.floor(uur)).padStart(2, '0')}:${String(Math.floor(uur % 1 * 60)).padStart(2, '0')} uur`, 2);
@@ -461,7 +495,12 @@ export function initSfeer(ctx) {
     get ramenAan() { return raamFactor(); },
     get uur() { return uur; }, set uur(v) { uur = v % 24; pasToe(); },
     get mist() { return ochtendMist(uur, weer); },
-    get weer() { return weer; }, set weer(v) { if (WEER.includes(v)) { weer = v; pasToe(); } },
+    get weer() { return weer; }, set weer(v) { if (WEER.includes(v)) { weer = v; zwaar = zwaarDoel = WEER.indexOf(v); pasToe(); } },
+    // wisselend weer (stap 126): aan of uit (bewaard in de browser), het weer als getal, en het doel
+    get autoWeer() { return autoWeer; },
+    set autoWeer(v) { autoWeer = !!v; try { localStorage.setItem('tinga.weer', autoWeer ? 'wisselt' : 'vast'); } catch { /* alleen voor nu */ } },
+    get weerZwaar() { return zwaar; }, get weerDoel() { return zwaarDoel; },
+    dobbelWeer, naarWeer(naam) { if (WEER.includes(naam)) zwaarDoel = WEER.indexOf(naam); },
     get nacht() { return meng(uur).kracht < 0.35; },
     get loopt() { return loopt; }, set loopt(v) { loopt = v; },
     // de keuze van de speler: loopt de klok mee als er geen missie is (stap 125)

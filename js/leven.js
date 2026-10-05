@@ -558,6 +558,64 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
     return vuil.wagen;
   }
   vuilWagen();
+  /*
+   De kliko's (stap 126). Bij elke stop van de vuilniswagen staat er een aan de stoep, groen of grijs; de wagen
+   kantelt hem als hij stilstaat, en als de wagen weg is, zijn ze weg. Twee instanced meshes met dezelfde
+   vorm (bak, deksel, twee wieltjes, het deksel donkerder in de hoekpunten), gemaakt bij het opstarten.
+  */
+  const KLIKO_MAX = 48;
+  const klikoGeo = (() => {
+    const delen = [
+      [new THREE.BoxGeometry(0.58, 0.95, 0.70), 1, 0, 0.53, 0],
+      [new THREE.BoxGeometry(0.62, 0.05, 0.76), 0.62, 0, 1.03, 0.02],
+      [new THREE.CylinderGeometry(0.1, 0.1, 0.05, 10).rotateZ(Math.PI / 2), 0.25, -0.26, 0.1, 0.3],
+      [new THREE.CylinderGeometry(0.1, 0.1, 0.05, 10).rotateZ(Math.PI / 2), 0.25, 0.26, 0.1, 0.3],
+    ];
+    const pos = [], nor = [], kl = [];
+    for (const [g0, c, x, y, z] of delen) {
+      const g = g0.toNonIndexed(); g.translate(x, y, z);
+      pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array);
+      for (let i = 0; i < g.attributes.position.count; i++) kl.push(c, c, c);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(kl, 3));
+    return geo;
+  })();
+  const klikoMeshes = [0x2f6b35, 0x55595e].map(k => {
+    const m = new THREE.InstancedMesh(klikoGeo, new THREE.MeshStandardMaterial({ color: k, vertexColors: true, roughness: 0.75 }), KLIKO_MAX);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.count = 0; m.castShadow = true;
+    scene.add(m);
+    return m;
+  });
+  const klikoM4 = new THREE.Matrix4(), klikoQ = new THREE.Quaternion(), klikoE = new THREE.Euler(), klikoP = new THREE.Vector3(), EEN = new THREE.Vector3(1, 1, 1);
+  function zetKlikos() {
+    // langs de lijn, rechts van de wagen tegen de stoep; waar een muur of schutting staat, schuift hij naar de weg
+    vuil.klikos = [];
+    const L = vuil.lijn;
+    for (let s2 = VUILNIS.stopOm; s2 < L.lengte - 20 && vuil.klikos.length < KLIKO_MAX; s2 += VUILNIS.stopOm) {
+      let p = null;
+      for (const off of [3.9, 3.4, 2.9]) {
+        const q = puntOp(L, s2 + 1.5, off);
+        const [ux, uz] = resolveCollisions(q.x, q.z, 0.45);
+        if (Math.hypot(ux - q.x, uz - q.z) < 0.02) { p = q; break; }
+      }
+      if (!p) continue;
+      vuil.klikos.push({ x: p.x, z: p.z, y: grondHoogte(p.x, p.z, 1), yaw: p.yaw + Math.PI / 2, s: s2, soort: vuil.klikos.length % 3 === 2 ? 1 : 0, kantel: 0, leeg: false });
+    }
+    tekenKlikos();
+  }
+  function tekenKlikos() {
+    const n = [0, 0];
+    for (const k of vuil.klikos || []) {
+      klikoE.set(-k.kantel, k.yaw, 0, 'YXZ'); klikoQ.setFromEuler(klikoE);
+      klikoP.set(k.x, k.y + Math.sin(k.kantel) * 0.25, k.z);
+      klikoM4.compose(klikoP, klikoQ, EEN);
+      klikoMeshes[k.soort].setMatrixAt(n[k.soort]++, klikoM4);
+    }
+    klikoMeshes.forEach((m, i) => { m.count = n[i]; m.instanceMatrix.needsUpdate = true; });
+  }
   function startVuilnis(sp, ziet, { zeker = false } = {}) {
     const w = vuilWagen();
     if (!w) { vuil.reden = 'geen wagen'; return false; }
@@ -580,6 +638,7 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
       vuil.s = 0; vuil.v = 0; vuil.stopT = 0; vuil.volgendeStop = VUILNIS.stopOm; vuil.fase = 'rijdt'; vuil.ritten++;
       w.hp = 100; w.speed = 0;
       zetWagen();
+      zetKlikos();
       return true;
     }
     return false;
@@ -593,6 +652,7 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
   }
   function vuilnisWeg() {
     vuil.fase = 'weg'; vuil.lijn = null;
+    vuil.klikos = []; tekenKlikos();
     vuil.volgende = VUILNIS.elke[0] + Math.random() * (VUILNIS.elke[1] - VUILNIS.elke[0]);
     if (vuil.wagen) { vuil.wagen.x = vuilWeg.x; vuil.wagen.z = vuilWeg.z; vuil.wagen.speed = 0; vuil.wagen.mesh.position.set(vuilWeg.x, 0, vuilWeg.z); }
   }
@@ -606,10 +666,18 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
     }
     const w = vuil.wagen;
     // stukgeschoten of in brand: dan is zijn ronde voorbij (het wrak doet js/vehicles.js)
-    if (!w || w.hp <= 0 || w.wrak) { vuil.fase = 'weg'; vuil.lijn = null; vuil.volgende = VUILNIS.elke[1]; vuil.wagen = null; return; }
+    if (!w || w.hp <= 0 || w.wrak) { vuil.fase = 'weg'; vuil.lijn = null; vuil.volgende = VUILNIS.elke[1]; vuil.wagen = null; vuil.klikos = []; tekenKlikos(); return; }
     const d = Math.hypot(w.x - sp.x, w.z - sp.z);
     if (vuil.stopT > 0) {
       vuil.stopT -= dt; vuil.v = 0;
+      // de kliko bij deze stop gaat omhoog en weer neer
+      const k = (vuil.klikos || []).find(q => Math.abs(q.s - (vuil.volgendeStop - VUILNIS.stopOm)) < 1);
+      if (k) {
+        const t = 1 - Math.max(0, vuil.stopT) / VUILNIS.stopT;
+        k.kantel = Math.sin(Math.min(1, t * 1.25) * Math.PI) * 1.25;
+        if (t > 0.6) k.leeg = true;
+        tekenKlikos();
+      }
     } else {
       const L = vuil.lijn;
       const i = Math.min(L.n - 1, Math.max(0, Math.round(vuil.s / 2)));
@@ -718,7 +786,7 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
       werkTerrasBij(dt, sp, uur);
     },
     // stap 124: de vuilniswagen en het terras
-    get vuilnis() { return { reden: vuil.reden, fase: vuil.fase, ritten: vuil.ritten, stops: vuil.stops, wagen: vuil.wagen, s: vuil.s, v: vuil.v, stil: vuil.stopT > 0, lengte: vuil.lijn ? vuil.lijn.lengte : 0 }; },
+    get vuilnis() { return { klikos: (vuil.klikos || []).map(k => ({ x: k.x, z: k.z, s: k.s, leeg: k.leeg, kantel: k.kantel })), reden: vuil.reden, fase: vuil.fase, ritten: vuil.ritten, stops: vuil.stops, wagen: vuil.wagen, s: vuil.s, v: vuil.v, stil: vuil.stopT > 0, lengte: vuil.lijn ? vuil.lijn.lengte : 0 }; },
     startVuilnis: (sp, opties) => startVuilnis(sp, () => false, opties), vuilnisWeg,
     get terras() { return { aan: terras.groep.visible, plek: terras.plek, gasten: terras.gasten.length, groep: terras.groep }; },
     // een schot of een knal: wie op het feest staat rent weg

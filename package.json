@@ -210,6 +210,7 @@
     "dronetest": "node tools/dronetest.mjs",
     "droneshots": "node tools/droneshots.mjs",
     "tijdtest": "node tools/tijdtest.mjs",
+    "kleinwinsttest": "node tools/kleinwinsttest.mjs",
     "beginmissieshots": "node tools/beginmissieshots.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",

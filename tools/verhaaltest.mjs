@@ -783,10 +783,17 @@ ok(Math.abs(M.voordeur.hoog - 2.15) < 0.01 && Math.abs(M.voordeur.breed - 0.95) 
   'de voordeur is 0,95 bij 2,15 m', `${M.voordeur.breed.toFixed(2)} × ${M.voordeur.hoog.toFixed(2)}`);
 ok(M.aanrecht === 0.90 && M.bovenkast[0] === 1.45 && M.bovenkast[1] === 2.15,
   'het aanrecht ligt op 90 cm, de bovenkasten van 1,45 tot 2,15 m');
-ok(M.bank.breed === 2.10 && M.bank.diep === 0.90 && Math.abs(M.bank.zitting - 0.44) < 0.02,
-  'de bank is 2,10 bij 0,90 m met een zitting op 44 cm');
-ok(Math.abs(M.tv.breed - 1.20) < 0.05 && Math.abs(M.tv.midden - 0.86) < 0.05,
-  'de tv is een 55-inch met het beeld op ooghoogte vanaf de bank',
+/*
+ De woonkamers zijn op 23 sep 2026 opnieuw ingericht (een hoekbank die naar de kamer gemeten wordt, js/interieur.js
+ `BANK_LANG`, en een grotere tv); deze twee regels toetsten tot stap 126 nog de bank en de tv van daarvoor (open
+ punt 26). Nu de regels van de inrichting zelf: past in de ruimte, zitting op zithoogte, tv van 55 tot 60 inch.
+*/
+ok(M.bank.breed >= 1.4 && M.bank.breed <= Math.min(3.20, M.bank.ruimte - 0.2 + 1e-6) && Math.abs(M.bank.diep - 0.98) < 0.01
+  && M.bank.zitting >= 0.42 && M.bank.zitting <= 0.48,
+  'de hoekbank past langs zijn wand, 0,98 m diep, met de zitting op zithoogte',
+  `${M.bank.breed.toFixed(2)} × ${M.bank.diep} m in ${M.bank.ruimte.toFixed(2)} m, zitting ${M.bank.zitting}`);
+ok(M.tv.breed >= 1.2 && M.tv.breed <= 1.35 && M.tv.midden >= 0.85 && M.tv.midden <= 1.0,
+  'de tv is 55 tot 60 inch, met het beeld op ooghoogte vanaf de bank',
   `${M.tv.breed.toFixed(2)} × ${M.tv.hoog.toFixed(2)} m, midden op ${M.tv.midden.toFixed(2)}`);
 ok(M.gang >= 1.1 && M.gang <= 1.4 && M.keuken.breed > 1.7 && M.keuken.diep > 4,
   'de gang is 1,30 m breed en de keuken is een rijtje in de aanbouw',

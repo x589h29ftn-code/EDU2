@@ -10,6 +10,7 @@
    terras_poiesz.png      het terras naast de ingang van de Poiesz in IJlst
    vuilniswagen.png       de vuilniswagen die de kliko's leegt
    autoschade.png         een deuk, kogelgaten en een gebarsten voorruit
+   klok_hud.png           stap 126: het klokje naast de minikaart, 's avonds
 
  Gebruik: npm run server &   node tools/droneshots.mjs 8123 [map] [alleen]
 */
@@ -217,6 +218,22 @@ if (doe('autoschade')) {
     window.__cam({ x: voor.x, y: 1.5, z: voor.z }, { x: car.x, y: 0.75, z: car.z });
   }, S);
   await foto('autoschade');
+}
+
+// stap 126: het klokje naast de minikaart, 's avonds, met de HUD
+if (doe('klok')) {
+  await page.evaluate((s) => {
+    const g = window.__game;
+    const vs = g.verhaal.bewaar(); vs.volgende = null; vs.punt = null;
+    Object.assign(vs, { missie: 'klaar', fase: 'klaar' }); g.verhaal.herstel(vs);
+    g.sfeer.uur = 21 + 47 / 60;
+    window.__cam({ x: s.x, y: 1.7, z: s.z }, { x: s.x + 30, y: 3, z: s.z - 20 }, true);
+    g.player.fly = false; g.player.active = true;
+    g.werkKlokBij();
+    g.hud.update(0.1, g.player, g.vehicles, g.npcs, g.straatOf(s.x, s.z), null);
+  }, S);
+  await foto('klok_hud');
+  await page.evaluate(() => { window.__game.player.active = false; });
 }
 
 await browser.close();

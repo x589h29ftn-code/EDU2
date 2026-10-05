@@ -184,6 +184,11 @@
   /* Eén keer M maakt de minikaart groter (js/hud.js zet de maat zelf); wat
      eronder hangt schuift dan mee naar beneden, anders staan de sterren en de
      kaartknop ín de kaart. */
+  /* het klokje (stap 126): klein en digitaal, links naast de minikaart */
+  #klok { position: absolute; right: 250px; top: 24px; font: 700 14px/1 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    letter-spacing: .06em; color: #e9f2ff; background: rgba(8,14,24,.55); border: 1px solid rgba(255,255,255,.18);
+    border-radius: 4px; padding: 4px 7px; text-shadow: none; pointer-events: none; }
+  body.kaartgroot #klok { right: 372px; }
   body.kaartgroot #ster { top: 372px; }
   body.kaartgroot #tmap { top: 308px; }
   body.kaartgroot #tcam { top: 368px; }
@@ -309,6 +314,7 @@
   /* op een telefoon is de ronde minikaart en de tekst een stuk te groot */
   @media (max-width: 900px), (max-height: 560px) {
     #minimap { width: 128px; height: 128px; right: 14px; top: 14px; }
+    #klok { right: 150px; top: 16px; font-size: 12px; }
     #tmap { top: 152px; }
     #tcam { top: 210px; }
     /* op een telefoon is de vergrote kaart 210 in plaats van 360 (js/hud.js) */
@@ -448,6 +454,7 @@
   <div id="crosshair"></div>
   <div id="uitleg"><div class="kop"></div><div class="regel"></div></div>
   <canvas id="minimap" width="220" height="220"></canvas>
+  <div id="klok">13:30</div>
   <div id="street">Molenkrite</div>
   <div id="speed"></div>
   <div id="ammo"></div>

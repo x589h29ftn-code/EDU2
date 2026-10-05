@@ -812,8 +812,16 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   const KEUKEN_DOORGANG = 0.95;
   const keukenAchterBank = !ACHTERWAND && !!aanbouw && aanbouw.x1 > BREED - MUUR - (BANK_DIEP + 2.0);
   const BANK_EIND = keukenAchterBank ? voorhuis.z1 - MUUR - KEUKEN_DOORGANG : Infinity;
+  /*
+   De tuindeur in de achtergevel (stap 126, open punt 19: "Molenkrite 130c: de tuindeur staat achter de
+   hoekbank"). Zonder aanbouw komt de tuindeur rechts in de achtergevel, van 2,30 tot 1,00 m voor de hoek,
+   en staat de bank tegen die wand, dan liep hij met zijn chaise longue voor de deur langs. Hij houdt nu
+   een doorgang van 0,9 m voor de deur op.
+  */
+  const DEUR_ACHTER = (ACHTERWAND && tuinIn === 'achter' && !aanbouw) ? BREED + MUUR - 2.30 - 0.9 : Infinity;
   const BANK_LANG = Math.max(1.4, Math.min(3.20, BANK_RUIMTE - 0.2,
-    keukenAchterBank ? BANK_EIND - (HAL.z1 + 0.15) : Infinity));
+    keukenAchterBank ? BANK_EIND - (HAL.z1 + 0.15) : Infinity,
+    DEUR_ACHTER - (HAL.x1 + 0.3 + 0.2)));
   /*
    Waar de bank langs die wand begint. Tegen de rechterwand in het midden; tegen
    de achterwand juist aan de kant van de gang, want in zo'n brede kamer staat de
@@ -2131,6 +2139,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   const tafelPlek = wereld(TAFEL.x - 0.38, TAFEL.z - TAFEL.diep / 2 - 0.32);
   const TAFEL_BEREIK = 1.1;
   let zitWaar = null;                       // 'bank' of 'tafel', voor het opstaan
+  let magSlapen = null;                     // () => true in je eigen huis (js/main.js zet hem, stap 126)
   function bijBank(x, z) {
     return binnen(x, z) && Math.hypot(x - zitPlek.x, z - zitPlek.z) < ZIT_BEREIK;
   }
@@ -2312,7 +2321,10 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     if (bezet) { if (hintAan) praatEl.hidden = true; hintAan = false; return; }
     let tekst = null;
     if (bezig && !player.inCar) {
-      if (player.zit && binnen(player.pos.x, player.pos.z)) tekst = 'E — opstaan';
+      if (player.zit && binnen(player.pos.x, player.pos.z)) {
+        // op de bank in je eigen huis kun je ook slapen tot de ochtend (stap 126; js/main.js, Z)
+        tekst = zitWaar === 'bank' && magSlapen && magSlapen() ? 'E — opstaan · Z — slapen tot de ochtend' : 'E — opstaan';
+      }
       else if (bijBBQ(player.pos.x, player.pos.z)) {
         tekst = bbqKlaar ? 'E — het vlees opeten'
           : bbqT > 0 ? `nog ${Math.ceil(bbqT)} tellen op de barbecue`
@@ -2379,6 +2391,9 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     get vlees() { return bbqKlaar ? 'gaar' : bbqT > 0 ? 'op de barbecue' : 'niets'; },
     // missie 9: is dit een van de drie woningen, wat kost hij, en staat de tv aan
     get stek() { return !!HUIS.stek; },
+    set magSlapen(f) { magSlapen = f; },
+    get zitOpBank() { return !!player.zit && zitWaar === 'bank' && binnen(player.pos.x, player.pos.z); },
+    staOp: () => { if (player.zit) staOp(); },
     get prijs() { return HUIS.prijs || 0; },
     get soort() { return HUIS.soort || null; },
     get beschrijving() { return HUIS.beschrijving || ''; },

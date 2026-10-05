@@ -408,6 +408,7 @@ function toonPaneel(welke) {
       ['E', 'praten, naar binnen, in- en uitstappen, kopen, oppakken'],
       ['1 2 3', 'een keuze maken als het spel erom vraagt (een huis, een inleg, wat je doet)'],
       ['1 … 6', 'aan de toonbank bij Tinga State: kopen wat er in het schap ligt'],
+      ['Z', 'op de bank in je eigen huis: slapen tot de ochtend'],
       ['B', 'de drone (van Tinga State) laten opstijgen of terughalen · F = foto · spatie/C = omhoog/omlaag'],
       ['V', 'camera: vanuit je ogen of achter je'],
       ['M', 'kaart: klein, groot, uit · op de grote kaart klikken = eigen doel'],
