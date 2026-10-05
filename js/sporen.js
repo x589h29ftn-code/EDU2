@@ -19,8 +19,9 @@
 */
 import * as THREE from 'three';
 
-const MAX = 120;            // vierhoekjes in de ring
-const LEEFTIJD = 14;        // seconden tot een spoor helemaal weg is
+// stap 124: langer en meer ("remsporen die blijven"): een minuut, en genoeg voor een paar flinke slippers
+const MAX = 400;            // vierhoekjes in de ring
+const LEEFTIJD = 60;        // seconden tot een spoor helemaal weg is
 const HOOGTE = 0.02;
 
 let mesh = null, pos = null, kleur = null;
@@ -94,7 +95,8 @@ export function werkSporenBij(dt) {
   for (let i = 0; i < MAX; i++) {
     if (leeft[i] <= 0) continue;
     leeft[i] -= dt;
-    const v = Math.max(0, leeft[i] / LEEFTIJD);
+    // de eerste veertig tellen vol, dan in twintig tellen weg
+    const v = Math.max(0, Math.min(1, leeft[i] / 20));
     for (let j = 0; j < 6; j++) {
       const idx = i * 6 + j;
       // de beginkracht zit al in de waarde; alleen naar beneden schalen

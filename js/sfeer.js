@@ -39,6 +39,16 @@ function meng(u) {
   };
 }
 
+/*
+ Hoe dik de ochtendmist is (stap 124), 0 tot 1: van half vijf tot half zes komt hij op, tot tien voor
+ zeven hangt hij er vol, en om acht is hij weg. Bij regen niet.
+*/
+export function ochtendMist(uur, weer = 'helder') {
+  if (weer === 'regen') return 0;
+  const s = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  return s(4.5, 5.5, uur) * (1 - s(6.8, 8.0, uur)) * (weer === 'bewolkt' ? 0.8 : 1);
+}
+
 export function initSfeer(ctx) {
   const { scene, camera, renderer, sun, hemi, fill, skyUniforms, hud } = ctx;
   const mats = sfeerMaterialen();
@@ -196,6 +206,7 @@ export function initSfeer(ctx) {
   }
 
   // ---------- toepassen ----------
+  const MIST_KLEUR = new THREE.Color(0xdfe3e5);
   function pasToe() {
     const k = meng(uur);
     const nacht = k.kracht < 0.35;
@@ -221,12 +232,26 @@ export function initSfeer(ctx) {
       const f = weer === 'regen' ? 0.75 : 0.5;
       top.lerp(grijs, f); mid.lerp(grijs, f * 0.9); bot.lerp(grijs, f * 0.8);
     }
+    // de ochtendmist (stap 124) kleurt ook de onderkant van de lucht: een witte waas aan de horizon
+    const mist = ochtendMist(uur, weer);
+    if (mist > 0) { bot.lerp(MIST_KLEUR, mist * 0.75); mid.lerp(MIST_KLEUR, mist * 0.35); }
     skyUniforms.top.value.copy(top);
     skyUniforms.mid.value.copy(mid);
     skyUniforms.bot.value.copy(bot);
-    scene.fog.color.copy(bot);
-    scene.fog.near = weer === 'regen' ? 40 : 180;
-    scene.fog.far = weer === 'regen' ? 320 : weer === 'bewolkt' ? 620 : 900;
+    // sterren en maan (stap 124): hoe donkerder hoe meer, en achter de wolken bijna niets
+    if (skyUniforms.nacht) {
+      skyUniforms.nacht.value = Math.max(0, Math.min(1, (0.45 - k.kracht) / 0.35)) * (weer === 'helder' ? 1 : weer === 'bewolkt' ? 0.2 : 0);
+      skyUniforms.maanDir.value.set(Math.cos(hoek) * 0.6, 0.42, -0.55).normalize();
+    }
+    /*
+     Ochtendmist (stap 124): tussen half vijf en acht hangt er mist over de wijk en de weilanden,
+     op zijn dikst van half zes tot tien voor zeven. De mist komt dichterbij en wordt witter; bij
+     regen niet, dan is het zicht al slecht.
+    */
+    const m = mist;
+    scene.fog.color.copy(bot).lerp(MIST_KLEUR, m * 0.85);
+    scene.fog.near = (weer === 'regen' ? 40 : 180) * (1 - m) + 6 * m;
+    scene.fog.far = (weer === 'regen' ? 320 : weer === 'bewolkt' ? 620 : 900) * (1 - m) + 200 * m;
     /*
      Het achtervlak van de camera loopt met de mist mee. Het stond vast op 1200 m
      terwijl de mist bij helder weer al op 900 dicht is en bij regen op 320: alles
@@ -405,6 +430,7 @@ export function initSfeer(ctx) {
     get lampenAan() { return lampFactor(); },
     get ramenAan() { return raamFactor(); },
     get uur() { return uur; }, set uur(v) { uur = v % 24; pasToe(); },
+    get mist() { return ochtendMist(uur, weer); },
     get weer() { return weer; }, set weer(v) { if (WEER.includes(v)) { weer = v; pasToe(); } },
     get nacht() { return meng(uur).kracht < 0.35; },
     get loopt() { return loopt; }, set loopt(v) { loopt = v; },

@@ -36,6 +36,9 @@ import { zoekLooppad } from './looppad.js';
 export const FEEST = { van: 15, tot: 1.5, elke: 45, kans: 0.07, min: 110, max: 280, duur: 600, gasten: 8 };
 export const PIZZA = { tijden: [[11.5, 14], [16.5, 23.5]], elke: [150, 330], van: 280, tot: 420, top: 11, adresVan: 40, adresTot: 260, lopen: 1.8, wachtT: 6 };
 export const BOOT = { van: 10, tot: 20, snel: 4, wachtT: 30 };
+// stap 124: de vuilniswagen 's ochtends, en het terras bij de Poiesz in IJlst overdag
+export const VUILNIS = { van: 7, tot: 10.5, elke: [200, 420], van_: 260, tot_: 420, top: 7, stopOm: 38, stopT: 5 };
+export const TERRAS = { van: 10, tot: 18.5, gasten: 5 };
 
 const KLEUREN = [0x2f4a7a, 0x8a2f3a, 0x2f6a3a, 0xd8c23a, 0x6a3a8a, 0xe08a3a, 0x3a8aa0, 0xf0f0f0, 0x222222];
 const HUID = [0xd9b48f, 0xc79a72, 0xe0bfa0, 0x8d5f3f, 0xd2a77f];
@@ -73,7 +76,7 @@ function vlagDoek() {
 // in een bepaald tijdvak (ook over middernacht heen)
 const binnen = (uur, van, tot) => van <= tot ? uur >= van && uur < tot : uur >= van || uur < tot;
 
-export function initLeven({ scene, KAART, sfeer = null }) {
+export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz = null }) {
   if (!KAART) return null;
   const nacht = () => !!(sfeer && sfeer.nacht);
 
@@ -533,6 +536,162 @@ export function initLeven({ scene, KAART, sfeer = null }) {
     if (Math.hypot(p.x - sp.x, p.z - sp.z) < 150) for (const m of boot.mensen) zitAanBoord(m, dt);
   }
 
+  // ================================================================ de vuilniswagen (stap 124)
+  /*
+   Tussen zeven en half elf 's ochtends komt er om de paar minuten een vuilniswagen door een straat bij
+   je in de buurt: een groene bakwagen uit js/vehicles.js (`voegToe`, zodat je er niet doorheen rijdt),
+   die over een lijn langs de weg rijdt (`lijnDoor`) en om de 38 m vijf tellen stilstaat om de
+   kliko's te legen — dat hoor je. Begin en eind liggen buiten je zicht, net als bij de pizzascooter.
+  */
+  const vuil = { fase: 'weg', lijn: null, prof: null, s: 0, v: 0, volgende: VUILNIS.elke[0] * 0.4, stopT: 0, volgendeStop: VUILNIS.stopOm, ritten: 0, stops: 0, wagen: null };
+  const vuilWeg = { x: 1e5, z: 1e5 };
+  function vuilWagen() {
+    if (vuil.wagen || !vehicles) return vuil.wagen;
+    vuil.wagen = vehicles.voegToe({ x: vuilWeg.x, z: vuilWeg.z, soort: 'truck', kleur: 0x2f7d3e, driveable: false });
+    vuil.wagen.vuilnis = true;
+    return vuil.wagen;
+  }
+  function startVuilnis(sp, ziet, { zeker = false } = {}) {
+    const w = vuilWagen();
+    if (!w) return false;
+    for (let poging = 0; poging < 6; poging++) {
+      const a = wegPunt(sp.x, sp.z, { van: 40, tot: 140 });
+      const b = wegPunt(sp.x, sp.z, { van: VUILNIS.van_, tot: VUILNIS.tot_, weg: { x: sp.x, z: sp.z, min: 150 } });
+      if (!a || !b) continue;
+      if (!zeker && ziet(b.x, b.z)) continue;
+      // van ver weg, langs je, en weer ver weg: over het punt bij jou heen
+      const c = wegPunt(sp.x, sp.z, { van: VUILNIS.van_, tot: VUILNIS.tot_, weg: { x: b.x, z: b.z, min: 250 } });
+      const L = lijnDoor(KAART, c ? [[b.x, b.z], [a.x, a.z], [c.x, c.z]] : [[b.x, b.z], [a.x, a.z]]);
+      if (!L || L.n < 4 || L.lengte > 1600) continue;
+      vuil.lijn = L; vuil.prof = profiel(L, { top: VUILNIS.top, dwars: 2.6 });
+      vuil.s = 0; vuil.v = 0; vuil.stopT = 0; vuil.volgendeStop = VUILNIS.stopOm; vuil.fase = 'rijdt'; vuil.ritten++;
+      w.hp = 100; w.speed = 0;
+      zetWagen();
+      return true;
+    }
+    return false;
+  }
+  function zetWagen() {
+    const w = vuil.wagen, L = vuil.lijn;
+    const p = puntOp(L, vuil.s, 1.6);
+    w.x = p.x; w.z = p.z; w.yaw = p.yaw; w.speed = vuil.v;
+    w.mesh.position.set(p.x, grondHoogte(p.x, p.z, w.mesh.position.y + 1), p.z);
+    w.mesh.rotation.y = p.yaw;
+  }
+  function vuilnisWeg() {
+    vuil.fase = 'weg'; vuil.lijn = null;
+    vuil.volgende = VUILNIS.elke[0] + Math.random() * (VUILNIS.elke[1] - VUILNIS.elke[0]);
+    if (vuil.wagen) { vuil.wagen.x = vuilWeg.x; vuil.wagen.z = vuilWeg.z; vuil.wagen.speed = 0; vuil.wagen.mesh.position.set(vuilWeg.x, 0, vuilWeg.z); }
+  }
+  function werkVuilnisBij(dt, sp, ziet, uur) {
+    if (!vehicles) return;
+    if (vuil.fase === 'weg') {
+      if (!binnen(uur, VUILNIS.van, VUILNIS.tot)) return;
+      vuil.volgende -= dt;
+      if (vuil.volgende <= 0) { if (!startVuilnis(sp, ziet)) vuil.volgende = 25; }
+      return;
+    }
+    const w = vuil.wagen;
+    // stukgeschoten of in brand: dan is zijn ronde voorbij (het wrak doet js/vehicles.js)
+    if (!w || w.hp <= 0 || w.wrak) { vuil.fase = 'weg'; vuil.lijn = null; vuil.volgende = VUILNIS.elke[1]; vuil.wagen = null; return; }
+    const d = Math.hypot(w.x - sp.x, w.z - sp.z);
+    if (vuil.stopT > 0) {
+      vuil.stopT -= dt; vuil.v = 0;
+    } else {
+      const L = vuil.lijn;
+      const i = Math.min(L.n - 1, Math.max(0, Math.round(vuil.s / 2)));
+      const doel = Math.min(VUILNIS.top, vuil.prof[Math.min(L.n - 1, i + 1)], vuil.volgendeStop - vuil.s < 6 ? 1.6 : VUILNIS.top);
+      vuil.v += Math.max(-4 * dt, Math.min(1.4 * dt, doel - vuil.v));
+      vuil.v = Math.max(0.8, vuil.v);
+      vuil.s = Math.min(L.lengte, vuil.s + vuil.v * dt);
+      if (vuil.s >= vuil.volgendeStop && vuil.s < L.lengte - 20) {
+        vuil.stopT = VUILNIS.stopT; vuil.volgendeStop += VUILNIS.stopOm; vuil.stops++;
+        if (d < 90 && geluid.kliko) geluid.kliko(d);
+      }
+    }
+    zetWagen();
+    if (vuil.s >= vuil.lijn.lengte - 0.5 && (!ziet(w.x, w.z) || d > 300)) vuilnisWeg();
+    else if (d > 600 && !ziet(w.x, w.z)) vuilnisWeg();
+  }
+
+  // ================================================================ het terras bij de Poiesz (stap 124)
+  /*
+   Overdag, als het droog is, staan er naast de ingang van de Poiesz in IJlst twee tafels met een
+   parasol, en zitten er vijf mensen met een kop koffie. Waar precies wordt bij het opstarten gezocht:
+   naast de stoep voor de schuifdeuren, op een plek waar niets in de weg staat en geen rijbaan ligt.
+  */
+  const terras = { groep: new THREE.Group(), plek: null, gasten: [] };
+  terras.groep.name = 'terras'; terras.groep.visible = false;
+  scene.add(terras.groep);
+  if (poiesz && poiesz.deur && poiesz.f) {
+    const f = poiesz.f, r = [-f[1], f[0]];
+    const vrij = (x, z) => {
+      const [ux, uz] = resolveCollisions(x, z, 1.6);
+      if (Math.hypot(ux - x, uz - z) > 0.05) return false;
+      for (const as of KAART.wegassen || []) {
+        if (!as.drive) continue;
+        for (const q of as.pts) if (Math.hypot(q[0] - x, q[1] - z) < 5) return false;
+      }
+      return true;
+    };
+    outer: for (const zij of [6, -6, 8, -8, 10, -10, 5, -5]) for (const voor of [0.5, 1.5, 2.5]) {
+      const x = poiesz.deur.x + f[0] * (voor + 2) + r[0] * zij, z = poiesz.deur.z + f[1] * (voor + 2) + r[1] * zij;
+      const x2 = x + r[0] * Math.sign(zij) * 2.6, z2 = z + r[1] * Math.sign(zij) * 2.6;
+      if (vrij(x, z) && vrij(x2, z2)) { terras.plek = { x, z, x2, z2 }; break outer; }
+    }
+  }
+  if (terras.plek) {
+    const hout = new THREE.MeshStandardMaterial({ color: 0x9a7a52, roughness: 0.8 });
+    const metaal = new THREE.MeshStandardMaterial({ color: 0x3a3d42, roughness: 0.5, metalness: 0.5 });
+    const doek = new THREE.MeshStandardMaterial({ color: 0xc8302a, roughness: 0.85, side: THREE.DoubleSide });
+    const blad = new THREE.CylinderGeometry(0.45, 0.45, 0.04, 18), poot = new THREE.CylinderGeometry(0.035, 0.035, 0.74, 8);
+    const zitting = new THREE.BoxGeometry(0.42, 0.04, 0.42), leuning = new THREE.BoxGeometry(0.42, 0.42, 0.04), stoelPoot = new THREE.CylinderGeometry(0.018, 0.018, 0.45, 6);
+    const kopGeo = new THREE.CylinderGeometry(0.04, 0.035, 0.08, 10), kopMat = new THREE.MeshStandardMaterial({ color: 0xf2f0ea, roughness: 0.4 });
+    const P = terras.plek;
+    let nr = 0;
+    for (const [tx, tz] of [[P.x, P.z], [P.x2, P.z2]]) {
+      const ty = grondHoogte(tx, tz);
+      const t = new THREE.Group(); t.position.set(tx, ty, tz);
+      const b = new THREE.Mesh(blad, hout); b.position.y = 0.74; t.add(b);
+      const pt = new THREE.Mesh(poot, metaal); pt.position.y = 0.37; t.add(pt);
+      // de parasol
+      const stok = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.3, 6), metaal); stok.position.y = 1.15; t.add(stok);
+      const kap = new THREE.Mesh(new THREE.ConeGeometry(1.35, 0.45, 8, 1, true), doek); kap.position.y = 2.25; t.add(kap);
+      // drie of twee stoelen, met iemand erop
+      const n = nr === 0 ? 3 : 2;
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * Math.PI * 2 + nr * 0.6;
+        const sx = Math.sin(a) * 0.78, sz = Math.cos(a) * 0.78;
+        const stoel = new THREE.Group(); stoel.position.set(sx, 0, sz); stoel.rotation.y = a;
+        const zt = new THREE.Mesh(zitting, metaal); zt.position.y = 0.45; stoel.add(zt);
+        const ln = new THREE.Mesh(leuning, metaal); ln.position.set(0, 0.68, 0.2); stoel.add(ln);
+        for (const [px, pz] of [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]]) { const q = new THREE.Mesh(stoelPoot, metaal); q.position.set(px, 0.225, pz); stoel.add(q); }
+        t.add(stoel);
+        const kop = new THREE.Mesh(kopGeo, kopMat); kop.position.set(Math.sin(a) * 0.28, 0.8, Math.cos(a) * 0.28); t.add(kop);
+        if (terras.gasten.length < TERRAS.gasten) {
+          const i = terras.gasten.length;
+          const p = new Persoon({ shirt: KLEUREN[(i + 5) % KLEUREN.length], broek: i % 2 ? 0x24303f : 0x3a3a3a, huid: HUID[(i + 2) % HUID.length], haar: HAAR[(i + 3) % HAAR.length],
+            hoogte: 0.95 + (i % 3) * 0.03, korteMouw: i % 2 === 1 });
+          // de leuning staat naar buiten; de gast kijkt naar het midden van de tafel (zijn −z)
+          p.groep.position.set(tx + sx, ty, tz + sz);
+          p.groep.rotation.y = a; p.yaw = a;
+          terras.groep.add(p.groep);
+          terras.gasten.push({ p, t: Math.random() * 6 });
+        }
+      }
+      terras.groep.add(t);
+      nr++;
+    }
+  }
+  function werkTerrasBij(dt, sp, uur) {
+    if (!terras.plek) return;
+    const aan = binnen(uur, TERRAS.van, TERRAS.tot) && !(sfeer && sfeer.weer === 'regen');
+    if (terras.groep.visible !== aan) terras.groep.visible = aan;
+    if (!aan) return;
+    if (Math.hypot(terras.plek.x - sp.x, terras.plek.z - sp.z) > 120) return;
+    for (const g of terras.gasten) { g.t += dt; g.p.update(dt, { zit: 0.46 }); }
+  }
+
   return {
     feest, gasten, pizza, scooter, rijder, boot,
     /*
@@ -542,7 +701,13 @@ export function initLeven({ scene, KAART, sfeer = null }) {
       werkFeestBij(dt, sp, ziet, uur);
       werkPizzaBij(dt, sp, ziet, uur);
       werkBootBij(dt, sp, uur);
+      werkVuilnisBij(dt, sp, ziet, uur);
+      werkTerrasBij(dt, sp, uur);
     },
+    // stap 124: de vuilniswagen en het terras
+    get vuilnis() { return { fase: vuil.fase, ritten: vuil.ritten, stops: vuil.stops, wagen: vuil.wagen, s: vuil.s, v: vuil.v, stil: vuil.stopT > 0, lengte: vuil.lijn ? vuil.lijn.lengte : 0 }; },
+    startVuilnis: (sp, opties) => startVuilnis(sp, () => false, opties), vuilnisWeg,
+    get terras() { return { aan: terras.groep.visible, plek: terras.plek, gasten: terras.gasten.length, groep: terras.groep }; },
     // een schot of een knal: wie op het feest staat rent weg
     schrik(x, z) { if (feest.aan && Math.hypot(feest.x - x, feest.z - z) < 60) feestVlucht(x, z); },
     // een auto: gasten op het feest en de bezorger (te voet of op de scooter) gaan omver

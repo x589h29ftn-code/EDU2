@@ -311,6 +311,35 @@ de buurt rent niet weg en de politie hoort geen schot. Uit een auto steek je nie
 De anderen hebben sinds stap 123 ook echte wapens in plaats van blokjes: een pistool met slede en greep,
 een machinepistool met loopmantel en stut, en het geweer van de bewaking met een houten kolf.
 
+### De drone
+
+Bij **Tinga State** ligt sinds stap 124 een **drone** in het schap: **€ 1.000**, één keer, en de opslag
+onthoudt dat je hem hebt. Buiten, te voet en zonder de politie achter je aan, laat **B** hem opstijgen. Erik
+blijft staan met de afstandsbediening; het beeld is van de camera onder de drone, met de hoogte, de afstand
+tot Erik en de accu onderin. **B** of **E** haalt hem terug.
+
+| toets | wat |
+|---|---|
+| W A S D | vliegen |
+| spatie / C | omhoog / omlaag |
+| shift | sneller |
+| muis | rondkijken |
+| F | een foto zonder HUD, als png naar je downloads |
+
+- **Grenzen:** niet hoger dan **150 m**, niet dichter dan **100 m** bij de rand van de wereld, niet verder dan
+  **800 m** van Erik. In de buurt van een grens komt er ruis in beeld; erover staat **OUT OF RANGE** met
+  **tien tellen**. Niet op tijd terug: het signaal is weg, de drone stort neer en is kwijt (een nieuwe kost
+  weer € 1.000).
+- **Accu:** vijf minuten vliegen (met shift korter). Leeg: hij vliegt vanzelf terug, en laadt in anderhalve
+  minuut weer op.
+- Hij vliegt niet door gebouwen of de grond. 's Nachts brandt er een lampje onder, met een plas licht op de grond.
+- **Geen politiester**: vliegen is niet strafbaar. Schieten kan niet met de afstandsbediening in je handen, en wordt
+  Erik geraakt, dan komt de drone terug.
+
+![Het beeld van de drone boven Tinga](docs/screenshots/drone_beeld.png)
+
+![Boven de 150 m: OUT OF RANGE](docs/screenshots/drone_bereik.png)
+
 ### De terugslag van de sniper
 
 De sniper **schopt** (stap 111: "voelt vrij zwak"):
@@ -4710,6 +4739,41 @@ dof, hoor je het op je jas en wordt het wegdek nat: asfalt, klinkers, fietspad e
 donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en glans**).
 
 ![Dag, nacht en weer](docs/screenshots/sfeer.png)
+
+### Een levender wereld (stap 124)
+
+- **De nacht.** Bij helder weer staan er sterren en een maan aan de hemel (achter de wolken bijna niets). Op de
+  hoge platte daken — de flats en kantoren met een goot vanaf 11 m — knipperen rode lampjes, en het lampje op de
+  zendmast van Radio Tinga knippert mee.
+- **Ochtendmist.** Tussen half vijf en acht hangt er mist over de wijk en de weilanden, het dikst van half zes
+  tot tien voor zeven: het zicht zakt naar een paar honderd meter en de mist wordt witter. Bij regen niet.
+- **Vogels.** Groepjes eenden en soms een paar zwanen peddelen in de sloten en de Geeuw bij je in de buurt, en
+  keren om waar het water ophoudt. Boven de haven van IJlst cirkelt een zwerm meeuwen, en die hoor je ook.
+  Overdag kwaakt er af en toe een eend, 's nachts een kikker, en buiten tsjirpen dan de krekels.
+- **Joggers.** Een op de tien volwassen wandelaars loopt hard, in een fel sportshirt, en staat nooit stil.
+  Een op de acht wandelaars laat nog steeds een hondje uit.
+- **De vuilniswagen.** Tussen zeven en half elf 's ochtends rijdt er om de paar minuten een groene vuilniswagen
+  door een straat bij je in de buurt, en stopt om de 38 m om de kliko's te legen (sissen, bonken, piepjes). Hij
+  is een echte auto: je botst ertegen.
+- **Het terras bij de Poiesz.** Overdag, als het droog is, staan er naast de ingang van de Poiesz in IJlst twee
+  tafels met een rode parasol, en zitten er vijf mensen aan de koffie.
+- **Schade die blijft.** Een flinke klap laat een deuk in de neus of de kont van je auto achter, een heel harde
+  ook een gebarsten voor- of achterruit; een kogel een gat in het blik of een barst in het glas. Het blijft
+  zitten tot je de auto in de wasbox laat overspuiten. Remsporen liggen er nu een minuut.
+
+![Sterren, de maan en de rode lampjes op de hoge daken](docs/screenshots/nacht_sterren.png)
+
+![Ochtendmist om zes uur](docs/screenshots/ochtendmist.png)
+
+![Eenden op het water](docs/screenshots/eenden.png)
+
+![Meeuwen boven de haven van IJlst](docs/screenshots/meeuwen_ijlst.png)
+
+![Het terras bij de Poiesz in IJlst](docs/screenshots/terras_poiesz.png)
+
+![De vuilniswagen](docs/screenshots/vuilniswagen.png)
+
+![Een deuk, kogelgaten en een gebarsten voorruit](docs/screenshots/autoschade.png)
 
 Alle geluid is gesynthetiseerd met de Web Audio API, er zijn geen geluidsbestanden: wind, vogels
 overdag en krekels 's avonds, regen, voetstappen die verschillen op klinkers, tegels en gras, een

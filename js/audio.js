@@ -90,8 +90,8 @@ let laatsteSfeer = null;     // welk omgevingsgeluid er het laatst klonk
  een hond verderop, en een enkele brommer. Binnen (in de auto) hoor je de
  kleine geluiden niet, alleen wat er doorheen komt.
 */
-const SFEER_DAG = ['mus', 'merel', 'meeuw', 'kraai', 'duif', 'hond', 'brommer', 'klok'];
-const SFEER_NACHT = ['uil', 'hond', 'brommer', 'kraai', 'klok'];
+const SFEER_DAG = ['mus', 'merel', 'meeuw', 'kraai', 'duif', 'hond', 'brommer', 'klok', 'eend'];
+const SFEER_NACHT = ['uil', 'hond', 'brommer', 'kraai', 'klok', 'kikker'];
 const SFEER_BINNEN = ['brommer', 'klok', 'meeuw'];
 function kiesSfeer(nacht, binnen) {
   const lijst = binnen ? SFEER_BINNEN : nacht ? SFEER_NACHT : SFEER_DAG;
@@ -1655,6 +1655,52 @@ export const geluid = {
   },
 
   /*
+   ---- de drone (stap 124) ----
+   Vier kleine propellers op hoge toeren: een zoemende zaagtand rond de 180 Hz met de
+   boventonen erbij, en ruis eromheen. `afstand` is hoe ver de drone van Erik is, want
+   jij staat daar met de afstandsbediening: hoe verder weg, hoe zachter. Vol gas (`toeren`
+   tot 1) gaat de toon omhoog. `null` is uit.
+  */
+  drone(afstand, toeren = 0) {
+    if (!aan) return;
+    if (!bronnen.drone) {
+      if (afstand == null) return;
+      const g = ctx.createGain(); g.gain.value = 0;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2400; f.Q.value = 0.7;
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 180;
+      const o2 = ctx.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = 187;
+      const r = ruisLaag('bandpass', 1500, 0.8, 0);
+      r.gain.disconnect(); r.gain.connect(g);
+      o.connect(f); o2.connect(f); f.connect(g); g.connect(hoofd);
+      o.start(); o2.start();
+      bronnen.drone = { gain: g, filter: f, o, o2, ruis: r };
+    }
+    const d = bronnen.drone, t = nu();
+    // dichtbij goed te horen, op 800 m nog een vleugje: je weet dat hij er is
+    const v = afstand == null ? 0 : 0.15 + 0.85 * Math.max(0, 1 - afstand / 300) ** 1.4;
+    d.gain.gain.setTargetAtTime(afstand == null ? 0 : v * 0.05, t, 0.15);
+    d.ruis.gain.gain.setTargetAtTime(afstand == null ? 0 : v * 0.03, t, 0.15);
+    const hz = 175 + toeren * 70;
+    d.o.frequency.setTargetAtTime(hz, t, 0.2);
+    d.o2.frequency.setTargetAtTime(hz * 1.04, t, 0.2);
+    d.filter.frequency.setTargetAtTime(900 + v * 1800, t, 0.3);
+  },
+  /*
+   De vuilniswagen die een kliko leegt (stap 124): het sissen van de hydrauliek, het bonken van de bak
+   tegen de rand en twee piepjes van de lift. Zachter op afstand.
+  */
+  kliko(afstand = 20) {
+    if (!aan) return;
+    const v = Math.max(0, 1 - afstand / 90) ** 1.3;
+    if (v < 0.03) return;
+    tik({ freq: 2600, q: 0.6, duur: 1.1, volume: 0.05 * v, type: 'highpass', val: 0.5 });
+    for (const t of [0.9, 1.3]) tik({ freq: 140, q: 1.2, duur: 0.25, volume: 0.22 * v, val: 0.8, vertraag: t });
+    for (const t of [0, 0.35]) toon({ freq: 1250, duur: 0.12, volume: 0.03 * v, golf: 'square', vertraag: 2.2 + t });
+  },
+  get droneVolume() { return bronnen.drone ? bronnen.drone.gain.gain.value : 0; },
+  get krekelVolume() { return bronnen.krekel ? bronnen.krekel.gain.gain.value : 0; },
+
+  /*
    Een auto die langsrijdt (verzoek 20 sep 2026: "kan je ook auto geluid
    toevoegen als ze langskomen"). Wat je hoort is niet de motor maar de banden
    op het asfalt: een ruisstoot door een filter dat van hoog naar laag zakt,
@@ -1786,6 +1832,22 @@ export const geluid = {
     */
     const kl = Math.max(0, Math.min(1, water));
     bronnen.water.gain.gain.setTargetAtTime(binnen ? 0 : kl * 0.045, t, 1.0);
+    /*
+     Krekels (stap 124). Een doorlopende laag: hoge ruis rond 4,6 kHz die door een blokgolf van
+     zeventien tellen per seconde open- en dichtgaat (het tsjirpen), en die zelf weer op een trage
+     golf van een halve seconde aan- en uitgaat. Alleen 's nachts, buiten en droog.
+    */
+    if (!bronnen.krekel) {
+      const k = ruisLaag('bandpass', 4600, 9, 0);
+      const puls = ctx.createOscillator(); puls.type = 'square'; puls.frequency.value = 17;
+      const pg = ctx.createGain(); pg.gain.value = 0.5;
+      const mod = ctx.createGain(); mod.gain.value = 0.5;
+      k.src.disconnect(); k.src.connect(k.filter); k.filter.disconnect(); k.filter.connect(mod); mod.connect(k.gain);
+      puls.connect(pg); pg.connect(mod.gain); puls.start();
+      bronnen.krekel = k;
+    }
+    this.krekelSterkte = (nacht && !binnen && weer !== 'regen') ? 0.030 : 0;
+    bronnen.krekel.gain.gain.setTargetAtTime(this.krekelSterkte, t, 2.5);
     bronnen.water.filter.frequency.setTargetAtTime(600 + kl * 260, t, 1.5);
     /*
      En de molen. Sta je onder houtzaagmolen De Rat terwijl de wieken draaien,
@@ -1885,6 +1947,19 @@ export const geluid = {
         g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
         o.connect(f); f.connect(g); g.connect(hoofd);
         o.start(t); o.stop(t + duur + 0.05);
+        break;
+      }
+      case 'eend': {                      // stap 124: een wilde eend in de sloot, kwak-kwak
+        for (let i = 0, n = 2 + Math.floor(r * 3); i < n; i++) {
+          tik({ freq: 620 + Math.random() * 120, q: 4, duur: 0.16, volume: 0.05, val: 0.6, vertraag: i * 0.24 });
+          toon({ freq: 330, naar: 260, duur: 0.14, volume: 0.012, golf: 'sawtooth', vertraag: i * 0.24 });
+        }
+        break;
+      }
+      case 'kikker': {                    // stap 124: een kikker langs de Geeuw, 's nachts
+        for (let i = 0, n = 3 + Math.floor(r * 4); i < n; i++) {
+          toon({ freq: 210 + r * 40, naar: 180, duur: 0.09, volume: 0.02, golf: 'square', vertraag: i * 0.16 });
+        }
         break;
       }
       case 'uil': {                       // 's nachts: twee lage hoe-tonen

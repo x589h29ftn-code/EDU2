@@ -873,6 +873,8 @@ export function initStudio({ scene, player, hud }) {
     get usb() { return usb.visible; },
     get schuif() { return schuifStand; },
     get groep() { return groep; },
+    // het rode lampje op de mast: js/knipper.js laat het 's nachts knipperen (stap 124)
+    get topLampMat() { return topLampMat; },
     get buiten() { return buiten; },
     get panelen() { return panelen; },
     get plekken() {

@@ -102,10 +102,10 @@ const sporen = await page.evaluate(async () => {
 ok(sporen.na >= 20, 'er komen sporen bij als je slipt', `${sporen.voor} → ${sporen.na}`);
 const weg = await page.evaluate(async () => {
   const { werkSporenBij, sporenTeller } = await import('/js/sporen.js');
-  for (let i = 0; i < 160; i++) werkSporenBij(0.1);      // zestien seconden
+  for (let i = 0; i < 620; i++) werkSporenBij(0.1);      // tweeënzestig seconden (stap 124: ze liggen er een minuut)
   return sporenTeller();
 });
-ok(weg === 0, 'en ze zijn na veertien seconden weer weg', `${weg} over`);
+ok(weg === 0, 'en ze zijn na een minuut weer weg', `${weg} over`);
 
 kop('de camera schudt van een klap en komt weer tot rust');
 const schok = await page.evaluate(async () => {

@@ -422,9 +422,9 @@ export class Player {
       this.keys[e.code] = true;
       if (e.code === 'KeyR') this.reload();
       if (e.code === 'KeyH' && this.active) this.wisselWapen();
-      if (e.code === 'KeyC' && this.active && !e.ctrlKey && !e.metaKey) this.bukken();
+      if (e.code === 'KeyC' && this.active && !this.inDrone && !e.ctrlKey && !e.metaKey) this.bukken();
       // meteen springen, zodat een korte tik nooit tussen twee beelden valt
-      if (e.code === 'Space' && this.active) this.jump();
+      if (e.code === 'Space' && this.active && !this.inDrone) this.jump();
       // scrollen met de spatiebalk voorkomen zodra het spel loopt
       if (this.active && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
     });
@@ -590,6 +590,8 @@ export class Player {
   */
   magSchieten() {
     if (this.vuurSlot) return false;
+    // met de afstandsbediening in je handen (de drone, stap 124) schiet je niet
+    if (this.inDrone) return false;
     if (this.reloading > 0 || this.wapenUit || this.binnen || this.wisselT > 0) return false;
     if (!this.inCar) return true;
     let d = this.yaw - this.inCar.yaw;

@@ -82,6 +82,8 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
       magazijnen: { ...(player.magazijnen || {}) },
       // de C4 van missie 11
       c4: player.c4 || 0,
+      // de drone van Tinga State (stap 124)
+      drone: !!player.drone,
     },
     auto: auto ? {
       index: vehicles ? vehicles.cars.indexOf(auto) : -1,
@@ -129,6 +131,7 @@ export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart
   }
   if (typeof s.health === 'number') player.health = s.health;
   player.c4 = typeof s.c4 === 'number' ? s.c4 : 0;
+  player.drone = !!s.drone;
   player.reloading = 0;
 
   player.inCar = null;

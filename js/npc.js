@@ -10,6 +10,8 @@ import { MAAT, DEEL, loopHouding, fietsHouding, doekVoor, DOEK_VAN } from './lic
 const STOEP_STAP = 0.5;     // om de zoveel meter kijkt het stoepprofiel of er plek is
 const STOEP_VOORUIT = 1.2;  // zover vooruit ziet een voetganger dat de stoep dicht is
 
+// sportshirts van de joggers (stap 124): fel, zodat je ze herkent
+const SPORT = [0xff5a1f, 0x18c0d8, 0xe8f03a, 0xff2d7a, 0x2fd06a];
 const SHIRTS = [0x2f3a56, 0x8a1f1f, 0xe8e2d0, 0x2a6b3a, 0x2b2b2b, 0xd8b04a, 0x6a4c93, 0xc85a2a, 0x3f7fb0];
 const PANTS = [0x1f2a44, 0x333333, 0x5a4632, 0x6f7480, 0x24303f];
 const SKIN = [0xd9b48f, 0xc48a5a, 0x8d5a3b, 0xf0d5b8, 0xa9714b];
@@ -238,9 +240,9 @@ export class NPCs {
 
       const height = 0.88 + r() * 0.22;   // kinderen tot volwassenen
       // een op de vijf is een fietser: hoger, sneller en met een fiets eronder
-      const fietst = r() < 0.20 && height > 0.95;
+      let fietst = r() < 0.20 && height > 0.95;
       // een op de acht wandelaars laat een hondje uit
-      const hond = !fietst && height > 0.93 && r() < 0.13
+      let hond = !fietst && height > 0.93 && r() < 0.13
         ? { kleur: VACHT[Math.floor(r() * VACHT.length)], maat: 0.72 + r() * 0.5,
             kant: r() < 0.5 ? 1 : -1, riem: 1.1 + r() * 0.5, fase: r() * 6.28, x: 0, z: 0, yaw: 0 }
         : null;
@@ -254,10 +256,22 @@ export class NPCs {
         paniek: 0, schrik: 0, bron: null,
         height, phase: r() * 6.28, fase: r() * 6.28, alive: true, fall: 0, respawn: 0,
         pause: fietst ? 0 : r() * 12, x: 0, z: 0, yaw: 0,
-        fietst, hond,
+        fietst, hond, jogt: false,
         // oversteken: opWeg is waar het verkeer voor moet remmen
         steek: 0, steekVan: 0, steekNaar: 0, opWeg: false, steekWacht: 4 + r() * 25,
       };
+      /*
+       Joggers (stap 124): een op de tien volwassen wandelaars zonder hond loopt hard, in een
+       sportshirt met korte mouwen, en staat nooit stil. Net als de oogkleur uit het nummer en niet uit
+       `r()`, zodat de rest van de wijk precies blijft wie hij was.
+      */
+      if (!fietst && !hond && height > 0.97 && ((Math.imul(i + 11, 2246822519) >>> 0) % 100) < 10) {
+        p.jogt = true;
+        p.speed = 2.7 + ((i * 37) % 10) * 0.08;
+        p.pause = 0;
+        kleuren.shirt = SPORT[i % SPORT.length]; kleuren.mouw = kleuren.huid; kleuren.broek = 0x1d1f24;
+        this.kleurSlot(i, i);
+      }
       this.pickSegment(p, true);
       this.people.push(p);
     }
@@ -853,7 +867,7 @@ export class NPCs {
         p.t += p.dir * p.vNu * dt / len;
         if (p.t > 1 || p.t < 0) { p.t = Math.max(0, Math.min(1, p.t)); this.pickSegment(p); }
         if (!rent) {
-          if (!p.fietst && this.r() < dt * 0.03) p.pause = 2 + this.r() * 8;
+          if (!p.fietst && !p.jogt && this.r() < dt * 0.03) p.pause = 2 + this.r() * 8;
           // af en toe oversteken naar de overkant, dwars over de rijbaan
           p.steekWacht -= dt;
           if (p.steekWacht <= 0 && s.drive) {

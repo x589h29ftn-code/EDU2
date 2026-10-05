@@ -34,6 +34,10 @@ import { zetKoplampen } from './carmodel.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
+import { initDrone, DRONE } from './drone.js';
+import { initVogels } from './vogels.js';
+import { initKnipperlichten } from './knipper.js';
+import { initAutoschade } from './autoschade.js';
 import { grondHoogte } from './viaduct.js';
 import { maakBuit, zakgeld, agentMunitie } from './buit.js';
 import * as menu from './menu.js';
@@ -109,13 +113,18 @@ const skyUniforms = {
   mid: { value: new THREE.Color(0x8fbde6) },
   bot: { value: new THREE.Color(0xdae8f2) },
   sunDir: { value: SUN_DIR },
+  // stap 124: sterren en de maan, 's nachts (js/sfeer.js zet ze)
+  nacht: { value: 0 },
+  maanDir: { value: new THREE.Vector3(0.4, 0.5, -0.6).normalize() },
 };
 const skyMat = new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyUniforms,
   vertexShader: `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader: `
-    uniform vec3 top, mid, bot, sunDir;
+    uniform vec3 top, mid, bot, sunDir, maanDir;
+    uniform float nacht;
     varying vec3 vP;
+    float hash(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
     void main(){
       vec3 dir = normalize(vP);
       float h = dir.y;
@@ -126,6 +135,26 @@ const skyMat = new THREE.ShaderMaterial({
       float d = max(dot(dir, normalize(sunDir)), 0.0);
       c += vec3(1.0, 0.95, 0.84) * pow(d, 7000.0) * 2.6;
       c += vec3(1.0, 0.92, 0.76) * pow(d, 22.0) * 0.16;
+      /*
+       De nacht (stap 124). Sterren: de hemel in cellen, en in één op de tweehonderdvijftig cellen een
+       sterretje met zijn eigen helderheid, alleen boven de horizonwaas. De maan: een schijf tegenover
+       de zon met wat donkere vlekken en een zachte kring eromheen.
+      */
+      if (nacht > 0.0 && h > 0.0) {
+        vec3 cel = floor(dir * 260.0);
+        float s = hash(cel);
+        if (s > 0.996) {
+          vec3 mid2 = (cel + 0.5) / 260.0;
+          float r = length(dir - normalize(mid2)) * 260.0;
+          float st = smoothstep(0.75, 0.0, r) * (0.55 + 0.9 * hash(cel + 7.0));
+          c += vec3(0.92, 0.95, 1.0) * st * nacht * smoothstep(0.02, 0.18, h);
+        }
+        float m = dot(dir, normalize(maanDir));
+        float schijf = smoothstep(0.99985, 0.99992, m);
+        float vlek = 0.82 + 0.18 * hash(floor(dir * 2200.0));
+        c = mix(c, vec3(0.93, 0.92, 0.86) * vlek, schijf * nacht);
+        c += vec3(0.5, 0.55, 0.65) * pow(max(m, 0.0), 300.0) * 0.12 * nacht;
+      }
       gl_FragColor = vec4(c, 1.0);
     }`,
 });
@@ -614,7 +643,7 @@ const verhaal = initVerhaal({
   scene, player, hud, vehicles,
   // Ga je neer, dan begint het verhaal bij het laatst opgeslagen spel; is er
   // niets opgeslagen, dan zegt laadSpel false en begint de missie opnieuw.
-  opnieuw: () => laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, garage }),
+  opnieuw: () => laadZonderDrone({ player, sfeer, vehicles, verhaal, boten, vaart, garage }),
   /*
    Het checkpoint na elke afgeronde missie, en de keuze na het neergaan (verzoek
    26 sep 2026): terug naar dat checkpoint, of naar je eigen opslag. De politie
@@ -624,11 +653,11 @@ const verhaal = initVerhaal({
     straat: nearestRoadName(camera.position.x, camera.position.z) }),
   naarCheckpoint: () => {
     politie.reset(); if (politieboot) politieboot.reset();
-    return laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, garage, checkpoint: true });
+    return laadZonderDrone({ player, sfeer, vehicles, verhaal, boten, vaart, garage, checkpoint: true });
   },
   naarOpslag: () => {
     politie.reset(); if (politieboot) politieboot.reset();
-    return laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, garage });
+    return laadZonderDrone({ player, sfeer, vehicles, verhaal, boten, vaart, garage });
   },
   heeftCheckpoint, heeftOpslag,
   vergrendel: () => { if (!touch) vergrendelMuis(); },
@@ -726,7 +755,7 @@ const LEEG = {
  sfeermodule wordt verderop pas gemaakt, dus hij gaat als kijkvenster mee: de
  kamers vragen alleen of het buiten donker is, en dat pas als de lus draait.
 */
-const dagKlok = { get nacht() { return sfeer ? sfeer.nacht : false; }, get ramenAan() { return sfeer ? sfeer.ramenAan : 0; } };
+const dagKlok = { get weer() { return sfeer ? sfeer.weer : 'helder'; }, get nacht() { return sfeer ? sfeer.nacht : false; }, get ramenAan() { return sfeer ? sfeer.ramenAan : 0; } };
 await adem('woningen van binnen', 0.988);
 const woningen = WONINGEN.map(h => initInterieur({ scene, player, sfeer: dagKlok, hud, huis: h })).filter(Boolean);
 const interieur = woningen[0] || LEEG;
@@ -786,6 +815,15 @@ function straatOf(x, z) {
 // Camera over de schouder (V): handig met de auto, en te voet zie je jezelf
 // lopen. De hengel wordt ingekort zodra er een muur achter je staat.
 const derde = initDerdePersoon({ scene, camera, player });
+// de drone van Tinga State (stap 124): B laat hem opstijgen, B of E haalt hem terug, F maakt een foto
+// eenden en zwanen op het water, meeuwen boven de haven van IJlst (stap 124)
+const vogels = initVogels({ scene, geluid, waterY: ((KAART.vlakken || []).find(v => v.k === 'water') || {}).y ?? -0.35 });
+// deuken, kogelgaten en gebarsten ruiten die blijven (stap 124)
+const autoschade = initAutoschade(scene);
+// rode knipperlichten op de hoge daken en de mast van Radio Tinga, 's nachts (stap 124)
+const knipper = initKnipperlichten({ scene, panden: KAART.panden || [], extra: [studio.topLampMat] });
+const drone = initDrone({ scene, camera, player, geluid, gebied: KAART.gebied, nacht: () => dagKlok.nacht,
+  melding: (kop, onder, t) => hud.melding(kop, onder, t) });
 
 // Politie en het gezocht-systeem: schieten en aanrijden leveren verdenking op,
 // en boven een drempel komen er eenheden op je af (zie js/politie.js).
@@ -848,7 +886,7 @@ function wedstrijdInFilm(dt) {
 const ambulance = (KAART && !BOVEN) ? initAmbulance({ scene, vehicles, KAART, npcs, sfeer: dagKlok }) : null;
 const nieuws = maakNieuws({ hud, geluid, straatVan: (x, z) => nearestRoadName(x, z) });
 // een feestje in een tuin, de pizzascooter en de plezierboot op de Geeuw (stap 113, js/leven.js)
-const leven = (KAART && !BOVEN) ? initLeven({ scene, KAART, sfeer: dagKlok }) : null;
+const leven = (KAART && !BOVEN) ? initLeven({ scene, KAART, sfeer: dagKlok, vehicles, poiesz: (supermarkt.ingangen || [])[0] || null }) : null;
 function ambulanceMelding(x, z, wie = null) {
   if (!ambulance || politie.ster >= 3) return false;
   const komt = ambulance.melding(x, z, wie, { x: player.pos.x, z: player.pos.z });
@@ -1362,7 +1400,10 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
       const car = politiewagen || vehicles.hit(h.object, h.instanceId);
       if (car) {
         geluid.klap();
-        if (Math.random() < 0.4) geluid.glas();     // een ruit die het begeeft
+        // een gat in het blik of een barst in het glas, dat blijft zitten (stap 124)
+        const nw = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : dir.clone().negate();
+        const gat = car.mesh ? autoschade.kogel(car, h.object, h.point, nw) : null;
+        if ((gat && gat.userData.schade === 'barst') || Math.random() < 0.4) geluid.glas();     // een ruit die het begeeft
         if (car.hp <= 0 && !car.wrak) {
           vehicles.laatOntploffen(car);
           if (politiewagen) politie.wagenOp(car);
@@ -1580,7 +1621,69 @@ function toggleBoot() {
   return true;
 }
 window.addEventListener('keydown', e => {
-  if (e.code === 'KeyE' && !e.ctrlKey && !e.metaKey) praatOfAuto();
+  if (e.code === 'KeyE' && !e.ctrlKey && !e.metaKey) {
+    if (drone.actief) { drone.terug(); return; }
+    praatOfAuto();
+  }
+});
+
+/*
+ De drone (stap 124). B laat hem opstijgen als je buiten te voet staat en er niets anders loopt:
+ geen gesprek, geen filmbeeld, niet binnen, niet zittend, en zonder de politie achter je aan (dan
+ heb je je handen nodig). Hij geeft zelf nooit een ster. F maakt in de lucht een foto zonder HUD.
+*/
+function waaromGeenDrone() {
+  if (!player.drone) return 'Je hebt geen drone. Tinga State verkoopt er een voor € ' + DRONE.prijs + '.';
+  if (player.inCar || (boten && boten.inBoot)) return 'Eerst uitstappen.';
+  if (player.binnen || player.zit) return 'Een drone vlieg je buiten.';
+  if (document.body.classList.contains('film') || !document.getElementById('dialoog').hidden) return 'Niet nu.';
+  if (politie.ster > 0) return 'Niet met de politie achter je aan.';
+  if (drone.accu < 15) return 'De accu laadt nog op.';
+  return null;
+}
+// laden haalt eerst de drone terug: anders hing de camera nog boven de oude plek
+function laadZonderDrone(opties) {
+  if (drone.actief) drone.terug();
+  return laadSpel(opties);
+}
+function droneToets() {
+  if (!player.active && !window.__autoplay) return false;
+  if (drone.actief) { drone.terug(); return true; }
+  const nee = waaromGeenDrone();
+  if (nee) { hud.show(nee, 2.5); return false; }
+  drone.start();
+  uitleg.toon('drone', 'De drone',
+    '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> vliegen · <kbd>spatie</kbd> omhoog · <kbd>C</kbd> omlaag · <kbd>shift</kbd> sneller · '
+    + '<kbd>F</kbd> foto · <kbd>B</kbd> of <kbd>E</kbd> terug. Niet hoger dan ' + DRONE.maxHoog + ' m en niet verder dan ' + DRONE.bereik + ' m.', 10);
+  return true;
+}
+// een foto uit de drone: het beeld zonder HUD, als png naar je downloads
+function droneFoto() {
+  if (!drone.actief) return null;
+  const ui = document.getElementById('ui'), sch = document.getElementById('droneScherm');
+  const uiWas = ui.style.display;
+  ui.style.display = 'none'; sch.style.display = 'none';
+  renderer.render(scene, camera);
+  let url = null;
+  try { url = renderer.domElement.toDataURL('image/png'); } catch { url = null; }
+  ui.style.display = uiWas; sch.style.display = '';
+  drone.telFoto();
+  if (url && !window.__geenDownload) {
+    const a = document.createElement('a');
+    const d = new Date();
+    a.download = `tinga-drone-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}.png`;
+    a.href = url; a.click();
+  }
+  const flits = document.getElementById('fotoflits');
+  if (flits) { flits.classList.remove('aan'); void flits.offsetWidth; flits.classList.add('aan'); }
+  if (geluid.klik) geluid.klik();
+  hud.show('Foto bewaard', 1.8);
+  return url;
+}
+window.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (e.code === 'KeyB') { droneToets(); return; }
+  if (e.code === 'KeyF' && drone.actief) { droneFoto(); e.stopImmediatePropagation(); }
 });
 
 /*
@@ -2222,7 +2325,7 @@ function bewaar({ uitMenu = false } = {}) {
 function laadSpelNu() {
   politie.reset();          // een opgeslagen spel begint zonder achtervolging
   if (politieboot) politieboot.reset();
-  const gelukt = laadSpel({ player, sfeer, vehicles, verhaal, boten, vaart, garage });
+  const gelukt = laadZonderDrone({ player, sfeer, vehicles, verhaal, boten, vaart, garage });
   hud.show(gelukt ? 'Spel geladen' : 'Er is nog geen opgeslagen spel', 2.5);
   return gelukt;
 }
@@ -2367,7 +2470,11 @@ function loop() {
   npcs.drukte = drukteNu;
   vehicles.drukte = drukteNu;
   if (player.active || window.__autoplay) {
-    player.update(dt);
+    // met de drone in de lucht staat Erik stil: de toetsen en de muis zijn van de drone
+    // een filmbeeld, een auto of de bank: dan komt de drone vanzelf terug
+    if (drone.actief && (document.body.classList.contains('film') || player.inCar || player.zit || player.binnen)) drone.terug();
+    if (drone.actief) drone.update(dt);
+    else { player.update(dt); drone.update(dt); }
     /*
      De boten. Ook als je er niet in zit deinen ze mee met het water, dus dit
      staat vóór de keuze tussen te voet, in de auto en aan boord; alleen de
@@ -2380,6 +2487,9 @@ function loop() {
       geluid.motorToeren(car.speed, car.topSnelheid || 24);
       geluid.gier(car.gierNiveau || 0);
       if (car.botsKracht) {
+        // een harde klap laat een deuk achter, en een heel harde een gebarsten ruit (stap 124)
+        const schade = autoschade.botsing(car, car.botsKracht, car.speed >= 0);
+        if (schade && schade.barst) geluid.glas();
         geluid.klap();
         schok(0.35 + Math.min(0.85, car.botsKracht / 16));
         car.botsKracht = 0;
@@ -2495,7 +2605,9 @@ function loop() {
       player.lastCarYaw = undefined;
       // uit de auto: de koplampen gaan mee uit (sterkte, niet `visible`: zie boven)
       koplamp.intensity = 0;
-      derde.update(dt, null);
+      // de drone: Erik blijft in beeld staan met de afstandsbediening, de camera is van de drone
+      if (drone.actief) { derde.staat(dt, drone.erikYaw); player.gun.visible = false; }
+      else derde.update(dt, null);
       geluid.gier(0);
     }
     werkSporenBij(dt);
@@ -2604,6 +2716,8 @@ function loop() {
     zetSchaduwDoos(cx, cz);
     updateClouds(dt, cx, cz);
     werkOmgevingBij(dt);
+    vogels.update(dt, cx, cz);
+    if (knipper) knipper.update(dt, dagKlok.nacht);
     sfeer.update(dt, cx, cz);
     updateProps(dt);
     langsrijders(dt);          // een auto die voorbijkomt hoor je ook
@@ -2671,7 +2785,7 @@ function loop() {
     */
     for (const r of binnenruimtes) r.update(dt, true);
     // tijdens de intro zet js/intro.js de camera; die niet overschrijven
-    if (!intro.bezig()) player.applyCamera();
+    if (!intro.bezig() && !drone.actief) player.applyCamera();
     else {
       /*
        En de wereld volgt die camera. De LOD, de auto's op afstand en het gras
@@ -2852,6 +2966,7 @@ window.__game = {
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   grasVeld, wolken: clouds,
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, studio, derde, politie,
+  drone, droneToets, droneFoto, waaromGeenDrone, vogels, autoschade, get knipper() { return knipper; },
   wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, wedstrijdInFilm, ambulance, nieuws, ambulanceMelding, inBeeld, leven,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,

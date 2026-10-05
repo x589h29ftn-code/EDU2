@@ -149,6 +149,18 @@ export function initDerdePersoon({ scene, camera, player }) {
     set aan(v) { aan = !!v; if (!aan) pop.groep.visible = false; },
     wissel() { aan = !aan; if (!aan) pop.groep.visible = false; return aan; },
     update, mikpunt,
+    /*
+     Erik staat stil met de afstandsbediening (de drone, stap 124): het poppetje blijft in beeld waar
+     hij staat, ook als je vanuit je ogen speelde, maar de camera is van de drone.
+    */
+    staat(dt, yaw) {
+      if (!pop.groep.visible) pop.groep.visible = true;
+      const p = player.pos;
+      pop.groep.position.set(p.x, p.y, p.z);
+      pop.yaw = yaw; pop.groep.rotation.y = yaw;
+      pop.update(dt, { loopt: false, snelheid: 1, hurkt: 0 });
+      vorigeX = null; vorigeZ = null;
+    },
     // recht achter de auto gaan hangen (bij het instappen en bij het wisselen)
     achterAuto(car) { if (!car) return; player.yaw = car.yaw; player.pitch = -0.10; player.kijkT = 0; },
     get pop() { return pop; },

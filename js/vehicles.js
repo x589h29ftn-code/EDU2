@@ -643,6 +643,9 @@ export class Vehicles {
   verf(car, kleur) {
     if (!car) return null;
     car.kleur = kleur;
+    // de schade van js/autoschade.js (stap 124): nieuwe lak, geen deuken meer
+    if (car.schade) { for (const d of car.schade) if (d.parent) d.parent.remove(d); car.schade = []; }
+
     if (car.mesh) {
       const lak = lakVoor(kleur);
       car.mesh.traverse(o => { if (o.isMesh && o.userData.lak) o.material = lak; });
@@ -1422,6 +1425,9 @@ export class Vehicles {
   // Een uitgebrand wrak weer een gewone auto maken, op zijn eigen parkeerplek.
   herstelWrak(car) {
     car.wrak = false; car.wrakT = 0;
+    // de schade van js/autoschade.js (stap 124): nieuwe lak, geen deuken meer
+    if (car.schade) { for (const d of car.schade) if (d.parent) d.parent.remove(d); car.schade = []; }
+
     car.hp = 100;
     car.driveable = true;
     car.speed = 0;

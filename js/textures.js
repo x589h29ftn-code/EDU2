@@ -702,6 +702,21 @@ function icoonEhbo(g) {
   g.fillStyle = '#9aa2ad'; g.fillRect(60, 38, 112, 3);
 }
 
+function icoonDrone(g) {
+  // stap 124: een quadcopter van boven, schuin op de plank, vier propellers als grijze schijven
+  g.save(); g.translate(116, 70);
+  g.strokeStyle = '#3a3f46'; g.lineWidth = 7; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(-50, -26); g.lineTo(50, 26); g.moveTo(50, -26); g.lineTo(-50, 26); g.stroke();
+  for (const [x, y] of [[-50, -26], [50, -26], [-50, 26], [50, 26]]) {
+    g.fillStyle = 'rgba(200,206,214,.55)'; g.beginPath(); g.ellipse(x, y, 26, 12, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#2a2e33'; g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fill();
+  }
+  g.fillStyle = '#e4e7ea'; g.fillRect(-20, -14, 40, 28);
+  g.fillStyle = '#2a2e33'; g.beginPath(); g.arc(0, 14, 6, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ff3a2a'; g.fillRect(-52, -30, 4, 4); g.fillStyle = '#3aff5a'; g.fillRect(48, -30, 4, 4);
+  g.restore();
+}
+
 function icoonWapen(g, mp, sn = false) {
   // dezelfde silhouetten als het icoon rechtsonder in beeld, maar dan liggend
   // op de plank en zonder de naam erbij — die staat op de kaart eronder
@@ -750,6 +765,7 @@ export function schapIcoon(sleutel = 'munitie') {
   plank(g);
   if (sleutel === 'munitie') icoonMunitie(g);
   else if (sleutel === 'ehbo') icoonEhbo(g);
+  else if (sleutel === 'drone') icoonDrone(g);
   else icoonWapen(g, sleutel === 'mitrailleur', sleutel === 'sniper');
   cache.set(k, c); return c;
 }

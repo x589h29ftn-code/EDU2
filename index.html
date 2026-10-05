@@ -126,6 +126,24 @@
   #schaduwbalk .tekst { margin-top: 7px; }
   #schaduwbalk.fout .tekst { color: #ff6a50; }
   /* de flits van een foto */
+  /* de drone (stap 124): het beeld van de camera eronder, met ruis en de waarden */
+  #droneScherm { position: fixed; inset: 0; z-index: 4; pointer-events: none; font: 700 14px/1.2 system-ui, sans-serif; color: #fff; }
+  #droneScherm[hidden] { display: none; }
+  #droneScherm canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; opacity: 0; mix-blend-mode: screen; }
+  #droneScherm .hoek { position: absolute; width: 46px; height: 46px; border: 3px solid rgba(255,255,255,.8); }
+  #droneScherm .lb { left: 6%; top: 9%; border-right: 0; border-bottom: 0; }
+  #droneScherm .rb { right: 6%; top: 9%; border-left: 0; border-bottom: 0; }
+  #droneScherm .lo { left: 6%; bottom: 12%; border-right: 0; border-top: 0; }
+  #droneScherm .ro { right: 6%; bottom: 12%; border-left: 0; border-top: 0; }
+  #droneScherm .rec { position: absolute; right: calc(6% + 58px); top: calc(9% + 4px); letter-spacing: .08em; }
+  #droneScherm .rec::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #e3242b; margin-right: 6px; }
+  #droneScherm .waarden { position: absolute; left: 50%; bottom: calc(12% + 6px); transform: translateX(-50%); white-space: pre;
+    background: rgba(0,0,0,.35); padding: 5px 12px; border-radius: 4px; letter-spacing: .04em; }
+  #droneScherm .waarden.laag { color: #ff6b5a; }
+  #droneScherm .bereik { position: absolute; left: 50%; top: 38%; transform: translateX(-50%); font-size: 34px; font-weight: 900;
+    color: #ff3b30; text-shadow: 0 0 10px rgba(0,0,0,.8); letter-spacing: .06em; }
+  #droneScherm .bereik[hidden] { display: none; }
+  #droneScherm .uitleg { position: absolute; left: 50%; top: calc(9% + 6px); transform: translateX(-50%); font-weight: 600; font-size: 12px; opacity: .8; }
   #fotoflits { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
   #fotoflits.aan { animation: fotoflits .45s ease-out; }
   @keyframes fotoflits { 0% { opacity: .85; } 100% { opacity: 0; } }
@@ -417,6 +435,14 @@
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="droneScherm" hidden>
+  <canvas width="200" height="112"></canvas>
+  <div class="hoek lb"></div><div class="hoek rb"></div><div class="hoek lo"></div><div class="hoek ro"></div>
+  <div class="rec">DRONE</div>
+  <div class="uitleg">WASD vliegen · spatie omhoog · C omlaag · shift sneller · F foto · B of E terug</div>
+  <div class="waarden"></div>
+  <div class="bereik" hidden></div>
+</div>
 <div id="ui">
   <div id="title">TINGA · SNEEK</div>
   <div id="crosshair"></div>

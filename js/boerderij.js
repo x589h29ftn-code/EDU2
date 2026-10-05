@@ -27,6 +27,7 @@ import { addCollider, resolveCollisions } from './world.js';
 import { plattegrond, banden } from './interieur.js';
 import { Persoon } from './persoon.js';
 import { schapIcoon } from './textures.js';
+import { DRONE } from './drone.js';
 
 const PAND = { straat: 'Molenkrite', nr: '115', type: 'tinga_state' };
 
@@ -561,6 +562,25 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     wapenArtikel(PISTOOL, 'Wisselen doe je met het scrollwiel.'),
     wapenArtikel(MITRAILLEUR, 'Wisselen doe je met het scrollwiel.'),
     wapenArtikel(SNIPER, 'Rechtermuisknop om door de kijker te kijken, scrollen zoomt.'),
+    {
+      /*
+       De drone (stap 124): € 1.000, één keer. Neergestort en kwijt, dan staat hij weer in het schap.
+      */
+      sleutel: 'drone',
+      naam: 'drone',
+      prijs: DRONE.prijs,
+      beschikbaar: () => !player.drone,
+      koop() {
+        if (player.drone) { hud.melding('Die heb je al', 'B laat hem opstijgen.', 3); return 'heeft'; }
+        if (!betaal(DRONE.prijs)) {
+          hud.melding('Te weinig geld', `Een drone kost € ${DRONE.prijs}.`, 3);
+          return 'arm';
+        }
+        player.drone = true;
+        hud.melding('Drone gekocht', `€ ${DRONE.prijs} betaald. Buiten laat B hem opstijgen.`, 4);
+        return 'ok';
+      },
+    },
   ];
 
   /*
@@ -600,7 +620,7 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
    kwijtraakt, staat hij vanzelf weer op de lijst.
   */
   function bezitLijst() {
-    return SCHAP.filter(a => !a.beschikbaar() && [PISTOOL.soort, MITRAILLEUR.soort, SNIPER.soort].includes(a.sleutel));
+    return SCHAP.filter(a => !a.beschikbaar() && [PISTOOL.soort, MITRAILLEUR.soort, SNIPER.soort, 'drone'].includes(a.sleutel));
   }
   function inBezit() { return bezitLijst().map(a => a.naam); }
 

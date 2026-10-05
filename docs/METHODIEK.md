@@ -7521,6 +7521,56 @@ het pistool terug en controleert het mes), `schottest`, `garagetest`, `legendate
 lukte niet: de hoofdlus zette de camera elke keer terug achter het poppetje van de speler; de wapens zijn in de
 proef gemeten (vorm, lengte, gedeeld).
 
+**De drone en een levender wereld (stap 124).** Gevraagd op 5 okt 2026, na een voorstel voor een drone en een lijst
+met beleving: "Drone kost 1000 euro en idd jouw bediening ed. Verder geen politiester voor bediening. Voeg nummer 1,
+3, 4, 5 toe en onthoud kermis als latere mogelijke uitbreiding."
+
+- *De drone* (js/drone.js, `DRONE`). Een artikel in het schap van Tinga State (€ 1.000, `player.drone`, in de
+  opslag). B start hem als je buiten te voet staat zonder gesprek, filmbeeld of sterren (`waaromGeenDrone` in
+  js/main.js). Erik blijft staan (`derde.staat`), `player.update` draait niet en `player.inDrone` zet springen,
+  bukken en schieten uit; de muis draait gewoon `player.yaw/pitch`, en bij terugkomen krijgt Erik zijn eigen
+  blik terug. Vliegen met traagheid (bijsturen met 2,2/s) en overhellen in de bocht. Tegen gebouwen houdt
+  `resolveCollisions` hem tegen met `ignoreLowH` op zijn eigen hoogte boven de grond: alles wat lager is dan
+  de drone telt niet. De grenzen zijn zacht: ruis vanaf 82 % van de hoogte, 140 m van de rand of 85 % van het
+  bereik, erover OUT OF RANGE met tien tellen (`aftel`); op nul eerst 1,4 s ruis, dan `terug('kwijt')` en is
+  `player.drone` weg. Daarnaast harde grenzen (40 m boven de 150 en 10 m van de rand), zodat niemand uit de
+  wereld vliegt. Accu 300 s (shift 1,4×), leeg = terug, 90 s laden. F rendert één beeld zonder `#ui` en
+  `#droneScherm` en leest het canvas meteen uit (zonder `preserveDrawingBuffer` kan dat alleen direct na de
+  render). Geen ster: er gaat niets naar js/politie.js. Laden (`laadZonderDrone`), een filmbeeld, instappen,
+  zitten en geraakt worden halen hem terug. Het lampje eronder en zijn plas licht zijn een bolletje en een
+  doorzichtige schijf, geen lamp (stap 83).
+- *Vogels* (js/vogels.js). Zeven groepjes in een vaste pool, rond de camera op 40–220 m in ruim water (vijf
+  punten `vaarbaar`), verhuizen als ze verder dan 320 m liggen. Elk dier keert om als het water 0,8 m voor hem
+  ophoudt. Eén instanced mesh per soort met de kleur in de hoekpunten. Veertien meeuwen cirkelen boven de
+  ligplaats in IJlst (lijf en twee vleugels als drie instanced meshes, klapperen of zweven). Geluid: eend en
+  kikker in de lijsten van `sfeerGeluid`, krekels als doorlopende laag in `omgeving` (gepulste ruis op 4,6 kHz).
+  De README beweerde al sinds lang dat er 's avonds krekels waren; die waren er niet.
+- *De nacht.* Sterren en maan in de shader van de lucht (`nacht`, `maanDir` in `skyUniforms`, gezet in
+  js/sfeer.js `pasToe`): sterren als één op de tweehonderdvijftig cellen van een hash op de kijkrichting. De
+  omgevingskaart gebruikt dezelfde shader en uniforms (een kloon), dus die hoefde niet apart. Ochtendmist
+  (`ochtendMist(uur, weer)`): de mist komt dichterbij (6–200 m) en witter; het achtervlak van de camera loopt
+  mee, dus 's ochtends wordt er ook minder getekend. Knipperlichten (js/knipper.js): twee per pand met een plat
+  dak en een goot vanaf 11 m (elf panden, 22 lampjes; met een schuin dak zijn het kerken en schuren), één
+  materiaal voor allemaal, plus het lampje dat al op de mast van Radio Tinga stond.
+- *Leven in de wijk.* Joggers in js/npc.js: uit het nummer van de persoon gekozen (zoals de oogkleur), niet uit
+  `r()`, zodat de rest van de wijk precies dezelfde blijft. De vuilniswagen in js/leven.js is een `voegToe`-truck
+  (dan bots je ertegen), rijdt over `lijnDoor` van ver weg langs jou naar ver weg, en staat om de 38 m vijf tellen
+  stil (`geluid.kliko`). Het terras zoekt bij het opstarten naast de ingang van de Poiesz in IJlst een plek
+  zonder botsdoos en verder dan 5 m van een rijweg; de gasten zitten met `update(dt, { zit })`.
+- *Autoschade* (js/autoschade.js). De geometrie van een auto is gedeeld, dus deuken zijn doeken in de `bak`
+  van de auto, en een straal van buitenaf zoekt de echte lak of het echte glas om ze precies op het oppervlak
+  te leggen. Een klap vanaf 6 m/s een deuk, vanaf 13 m/s ook een barst in de ruit; een kogel een gat of een
+  barst. `vehicles.verf` en `herstelWrak` halen ze weg. Remsporen liggen er nu een minuut (40 s vol, 20 s
+  vervagen; 400 stukjes in de ring), `gevoeltest` is daarop aangepast.
+
+Wat misging: de eerste proef zette een ster met `politie.ster = 2` (een getter) en mat het tegenhouden door een
+gebouw aan de eindafstand, terwijl het pand groot genoeg was om erlangs te vliegen; nu wordt elk beeld gekeken of
+de drone in een botsdoos staat, en of hij aan het eind stilstaat. Een kogel op een zwarte stijl of een kozijn liet
+geen gat achter, omdat alleen de delen met `userData.lak` telden; nu telt alles in de `bak` behalve de doeken zelf.
+
+**Proeven**: `dronetest` (nieuw); `gevoeltest` (remsporen een minuut), `winkeltest`, `vloeiendtest`. **Foto's**:
+`droneshots` (negen).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
