@@ -4750,10 +4750,11 @@ donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en gl
   **nacht** (0:30), en dan weer de ochtend.
 - **In de instellingen** (Esc → Instellingen): *Dag en nacht* — loopt mee of staat stil (de browser onthoudt
   het) — en *Tijd*, dezelfde schakelaar als T.
-- **Tijdens een missie ligt de tijd vast.** Zodra een missie echt begint (niet als hij nog onder zijn M op je
-  wacht) staat de klok stil, en T doet dan niets. Is het nacht als een missie begint, dan is het
-  *de volgende ochtend*: elke missie begint overdag. Wat in het donker moet — de race, *Die avond…*,
-  *Die nacht…* — zet zijn eigen nacht en houdt die vast. Na de missie loopt de klok weer.
+- **Tijdens een missie bepaalt het verhaal de tijd.** Zodra een missie echt begint (niet als hij nog onder
+  zijn M op je wacht) doet T niets. Is het nacht als een missie begint, dan is het *de volgende ochtend*:
+  elke missie begint overdag. De klok loopt dan door zolang het licht is en blijft om zes uur 's avonds
+  staan, zodat een missie overdag niet in het donker eindigt. Wat in het donker moet — de race,
+  *Die avond…*, *Die nacht…* — zet zijn eigen nacht, en 's nachts staat de klok in een missie stil.
 
 ### Een levender wereld (stap 124)
 

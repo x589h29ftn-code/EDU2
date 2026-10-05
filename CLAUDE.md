@@ -554,8 +554,9 @@ groen), `npm run veteraanshots` (vijf foto's), `npm run huistest`
   laden en bij een nieuwe missie weg: `stopNaloop` (stap 102). Een nieuwe missie met zo'n klokje
   zet het daar bij, anders springt zijn ochtend in de volgende.
 - **De klok loopt standaard mee** (stap 125: `sfeer.voorkeur`, een dag in `DAG_MINUTEN` = 48 minuten).
-  js/verhaal.js `werkMissieKlokBij` zet hem stil zodra een missie echt bezig is (`missieBezig`: niet klaar en
-  niet in zijn `KLUS_WACHT`-fase) of het verhaal de tijd vasthoudt (`klokVastDoorVerhaal`: het zwart, de
+  js/verhaal.js `werkMissieKlokBij`: in een missie die echt bezig is (`missieBezig`: niet klaar en niet in zijn
+  `KLUS_WACHT`-fase) loopt hij alleen van 7 tot 18 uur (`MISSIE_AVOND`; 's nachts stil), en hij staat stil
+  zolang het verhaal de tijd vasthoudt (`klokVastDoorVerhaal`: het zwart, de
   klokjes na een missie, de `…KlokWas`-waarden, de titelrol, het uitje), en zet hem anders terug op de
   voorkeur. Een proef die `sfeer.loopt` zelf zet, wordt bij de volgende `verhaal.update` overschreven; zet
   `sfeer.zetVoorkeur` of de tijd zelf. Begint een missie 's nachts, dan springt het naar 9:00

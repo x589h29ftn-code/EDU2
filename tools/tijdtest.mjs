@@ -40,6 +40,11 @@ await page.evaluate(() => {
   window.__autoplay = true;
   g.player.active = false;
   window.__stap = (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) { g.player.health = 100; g.verhaal.update(dt); } };
+  window.__vrij = () => {
+    const v = g.verhaal, s = v.bewaar(); s.volgende = null; s.punt = null;
+    Object.assign(s, { missie: 'klaar', fase: 'klaar' });
+    v.herstel(s); window.__stap(2);
+  };
 });
 
 // ------------------------------------------------------------------ 1. de klok loopt
@@ -47,7 +52,9 @@ kop('de klok loopt vanaf het begin');
 const klok = await page.evaluate(async () => {
   const g = window.__game, S = g.sfeer;
   const { DAG_MINUTEN } = await import('/js/sfeer.js');
-  const uit = { voorkeur: S.voorkeur, loopt: S.loopt, dagMin: DAG_MINUTEN };
+  // een nieuw spel begint in missie 1, overdag: ook dan loopt de klok
+  window.__stap(2);
+  const uit = { voorkeur: S.voorkeur, loopt: S.loopt, dagMin: DAG_MINUTEN, missie: g.verhaal.missie };
   S.uur = 10;
   S.update(60, 0, 0);                      // een minuut
   uit.naMinuut = S.uur;
@@ -56,7 +63,7 @@ const klok = await page.evaluate(async () => {
   S.uur = 13;
   return uit;
 });
-ok(klok.voorkeur && klok.loopt, 'een nieuw spel: de klok loopt mee');
+ok(klok.voorkeur && klok.loopt, 'een nieuw spel (missie 1, overdag): de klok loopt mee', klok.missie);
 ok(klok.dagMin === 48 && Math.abs(klok.naMinuut - 10.5) < 0.01, 'een minuut is een half uur: een dag in 48 minuten', `10:00 → ${klok.naMinuut.toFixed(3)}`);
 ok(!klok.middagNacht && klok.nachtNacht, 'om 12 uur licht, om 2 uur donker');
 
@@ -64,6 +71,7 @@ ok(!klok.middagNacht && klok.nachtNacht, 'om 12 uur licht, om 2 uur donker');
 kop('T: ochtend, middag, avond, nacht');
 const t = await page.evaluate(() => {
   const g = window.__game, S = g.sfeer;
+  window.__vrij();
   S.uur = 13;
   const rij = [];
   for (let i = 0; i < 5; i++) {
@@ -119,8 +127,16 @@ const missie = await page.evaluate(() => {
   window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyT' }));
   uit.tNiets = S.uur === voor;
   uit.tMelding = document.getElementById('msg') ? document.getElementById('msg').textContent : '';
+  // overdag loopt hij door; om zes uur 's avonds blijft hij staan
   S.update(120, 0, 0);
-  uit.stil = S.uur === voor;
+  uit.loopt = S.uur - voor;
+  S.uur = 17.9; window.__stap(1);
+  for (let i = 0; i < 20; i++) { S.update(30, 0, 0); window.__stap(1); }
+  uit.avond = { uur: S.uur, loopt: S.loopt, nacht: S.nacht };
+  // en 's nachts (een missie die zijn eigen nacht zet) staat hij stil
+  S.uur = 1; window.__stap(2);
+  const nacht = S.uur; S.update(120, 0, 0);
+  uit.nachtStil = S.uur === nacht && !S.loopt;
   // een missie die onder zijn M wacht: de klok loopt
   v.startMissie('bx');
   window.__stap(3);
@@ -129,9 +145,11 @@ const missie = await page.evaluate(() => {
   return uit;
 });
 ok(Math.abs(missie.start.uur - 9) < 0.01 && missie.start.bezig, 'om half twaalf \'s nachts begint een missie de volgende ochtend', `${missie.start.uur}`);
-ok(!missie.start.loopt && /missie/.test(missie.start.vast || ''), 'tijdens de missie staat de klok stil', missie.start.vast);
+ok(missie.start.loopt && /missie/.test(missie.start.vast || ''), 'overdag loopt de klok in de missie door, maar de tijd ligt vast', missie.start.vast);
 ok(missie.tNiets && /missie/.test(missie.tMelding), 'T doet dan niets en zegt waarom', missie.tMelding);
-ok(missie.stil, 'twee minuten later is het nog dezelfde tijd');
+ok(Math.abs(missie.loopt - 1) < 0.01, 'twee minuten later is het een uur later', missie.loopt.toFixed(3));
+ok(Math.abs(missie.avond.uur - 18) < 0.3 && !missie.avond.loopt && !missie.avond.nacht, 'om zes uur blijft hij staan: een dagmissie wordt niet donker', JSON.stringify(missie.avond));
+ok(missie.nachtStil, '\'s nachts staat de klok in een missie stil');
 ok(!missie.wacht.bezig && missie.wacht.loopt && missie.wacht.vast === null, 'een missie die onder zijn M wacht: de klok loopt gewoon', JSON.stringify(missie.wacht));
 
 const laden = await page.evaluate(() => {
@@ -152,7 +170,7 @@ const laden = await page.evaluate(() => {
   return uit;
 });
 ok(laden.klaar.loopt && laden.klaar.vast === null, 'na de missie loopt de klok weer');
-ok(Math.abs(laden.geladen.uur - 1.5) < 0.01 && !laden.geladen.loopt, 'een geladen missie springt niet naar de ochtend, en staat stil', JSON.stringify(laden.geladen));
+ok(Math.abs(laden.geladen.uur - 1.5) < 0.01 && !laden.geladen.loopt, 'een geladen missie springt niet naar de ochtend, en staat \'s nachts stil', JSON.stringify(laden.geladen));
 
 // ------------------------------------------------------------------ 5. de nacht van de race
 kop('een missie die de nacht nodig heeft');
@@ -184,7 +202,8 @@ const wagen = await page.evaluate(async () => {
   uit.bestaat = !!w && w.soort === 'vuilnis' && g.vehicles.cars.includes(w);
   const m = w.mesh;
   uit.lengte = m.userData.length;
-  const doos = new (await import('three')).Box3().setFromObject(m.userData.bak);
+  // het hele model, met de wielen en de spiegels
+  const doos = new (await import('three')).Box3().setFromObject(m);
   uit.maat = { l: doos.max.z - doos.min.z, b: doos.max.x - doos.min.x, h: doos.max.y - doos.min.y };
   // het geel, de DAF-grille en het logo: tel kleuren op de doeken
   const doeken = [];
@@ -200,9 +219,10 @@ const wagen = await page.evaluate(async () => {
   uit.ruit = !!m.userData.glas;
   // je botst ertegen: zet hem op de weg en kijk of botsAutos hem ziet
   const s = g.start || { x: 10.7, z: -7.1 };
-  L.startVuilnis({ x: s.x, z: s.z }, { zeker: true });
+  uit.gestart = L.startVuilnis({ x: s.x, z: s.z }, { zeker: true });
   for (let i = 0; i < 5; i++) L.update(0.1, { x: s.x, z: s.z }, () => true, 8);
   uit.opWeg = Math.hypot(w.x, w.z) < 5000;
+  uit.rit = { fase: L.vuilnis.fase, zelfde: L.vuilnis.wagen === w, hp: w.hp, wrak: !!w.wrak, x: Math.round(w.x), z: Math.round(w.z) };
   // een deuk op de neus kan ook (js/autoschade.js)
   w.mesh.updateMatrixWorld(true);
   uit.deuk = g.autoschade.botsing(w, 10, true);
@@ -211,11 +231,11 @@ const wagen = await page.evaluate(async () => {
   return uit;
 });
 ok(wagen.bestaat, 'een eigen model, soort vuilnis, tussen de auto\'s');
-ok(Math.abs(wagen.maat.l - 9.6) < 0.4 && Math.abs(wagen.maat.b - 2.5) < 0.6 && wagen.maat.h > 3.4 && wagen.maat.h < 4.2, 'ruim negen meter lang, 2,5 m breed, ruim 3,5 m hoog', `${wagen.maat.l.toFixed(2)} × ${wagen.maat.b.toFixed(2)} × ${wagen.maat.h.toFixed(2)} m`);
+ok(Math.abs(wagen.maat.l - 9.6) < 0.4 && wagen.maat.b > 2.4 && wagen.maat.b < 3.4 && wagen.maat.h > 3.4 && wagen.maat.h < 4.2, 'ruim negen meter lang, 2,5 m breed (met de spiegels ruim 3), bijna 4 m hoog', `${wagen.maat.l.toFixed(2)} × ${wagen.maat.b.toFixed(2)} × ${wagen.maat.h.toFixed(2)} m`);
 ok(wagen.geel > 0.4, 'geel', `${(wagen.geel * 100).toFixed(0)} % van de zijkant`);
 ok(wagen.rood > 0.002 && wagen.blauw > 0.002 && wagen.groen > 0.002 && wagen.grijsTekst > 0.001, 'het logo: rood, blauw, groen en de grijze letters', `${(wagen.rood * 100).toFixed(2)} / ${(wagen.blauw * 100).toFixed(2)} / ${(wagen.groen * 100).toFixed(2)} / ${(wagen.grijsTekst * 100).toFixed(2)} %`);
 ok(wagen.ruit && wagen.doeken >= 5, 'een voorruit en eigen doeken (cabine, bak, achterkant)', `${wagen.doeken} doeken`);
-ok(wagen.opWeg, 'hij rijdt in de wijk');
+ok(wagen.opWeg, 'hij rijdt in de wijk', `${wagen.gestart} ${JSON.stringify(wagen.rit)}`);
 ok(wagen.deuk && wagen.deuk.deuk, 'en krijgt een deuk als je hem ramt');
 
 console.log(fouten ? `\n${fouten} FOUT(EN)` : '\nalles goed');

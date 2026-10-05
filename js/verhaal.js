@@ -10057,13 +10057,17 @@ export function initVerhaal(ctx) {
    De klok en de missies (stap 125: "Tijdens missie is het bepaald tijdstip en dan staat als het nodig is
    voor de missie de tijd stil"). Buiten de missies loopt de klok mee als de speler dat wil (js/sfeer.js,
    `voorkeur`). Zodra een missie echt begint — niet als hij nog onder zijn M op je wacht (`KLUS_WACHT`) —
-   staat de klok stil tot hij klaar is, en is het nacht, dan begint hij de volgende ochtend (een missie
-   begint altijd overdag; wat 's nachts moet, zet zijn eigen nacht: de race, "Die avond…", "Die nacht…").
-   Na de missie loopt de klok weer volgens de voorkeur, behalve zolang het verhaal zelf de tijd vasthoudt
-   (het zwart, de klokjes na een missie, de titelrol, het uitje).
+   kun je de tijd niet meer verzetten (T), en is het nacht, dan begint hij de volgende ochtend: een missie
+   begint altijd overdag. Daarna loopt de klok door zolang het licht is, en om zes uur 's avonds blijft hij
+   staan tot de missie klaar is, zodat een dagmissie niet in het donker eindigt. Wat 's nachts moet (de
+   race, "Die avond…", "Die nacht…") zet zijn eigen nacht, en 's nachts staat de klok in een missie stil.
+   Een nieuw spel begint midden in missie 1 (en 1 tot 4 lopen in elkaar door): daarom loopt de klok in een
+   missie wél, anders was er in het begin geen dag en nacht te zien. Buiten de missies, of zolang het
+   verhaal zelf de tijd vasthoudt (het zwart, de klokjes na een missie, de titelrol, het uitje), geldt de
+   voorkeur respectievelijk het verhaal.
   */
-  const DAG_VAN = 7, DAG_TOT = 21, MISSIE_OCHTEND = 9;
-  let wasBezig = false;
+  const DAG_VAN = 7, DAG_TOT = 21, MISSIE_OCHTEND = 9, MISSIE_AVOND = 18;
+  let wasBezig = false, wasMissie = null;
   let naHerstel = false;         // net geladen: geen "volgende ochtend" voor een missie die al liep
   function missieBezig() {
     if (!missie || missie === 'klaar' || fase === 'klaar' || fase === 'geldKlaar') return false;
@@ -10083,20 +10087,20 @@ export function initVerhaal(ctx) {
   function werkMissieKlokBij() {
     if (!klokLoopt) return;
     const bezig = missieBezig();
-    if (naHerstel) { naHerstel = false; wasBezig = bezig; }
-    if (bezig && !wasBezig && !zwart && !inZwartSprong && uurNu && zetUur) {
+    if (naHerstel) { naHerstel = false; wasBezig = bezig; wasMissie = missie; }
+    // (ook een missie die direct op de vorige volgt, zoals 1 tot 4, begint overdag)
+    if (bezig && (!wasBezig || missie !== wasMissie) && !zwart && !inZwartSprong && uurNu && zetUur) {
       const u = uurNu();
       if (u < DAG_VAN || u >= DAG_TOT) {
         zetUur(MISSIE_OCHTEND);
         hud.melding('De volgende ochtend', 'Een missie begint overdag.', 3);
       }
     }
-    wasBezig = bezig;
-    if (bezig || klokVastDoorVerhaal()) { if (klokLoopt()) klokLoopt(false); }
-    else {
-      const wil = klokVoorkeur ? klokVoorkeur() : true;
-      if (klokLoopt() !== wil) klokLoopt(wil);
-    }
+    wasBezig = bezig; wasMissie = missie;
+    let wil = klokVoorkeur ? klokVoorkeur() : true;
+    if (klokVastDoorVerhaal()) wil = false;
+    else if (bezig) { const u = uurNu ? uurNu() : 12; wil = wil && u >= DAG_VAN && u < MISSIE_AVOND; }
+    if (klokLoopt() !== wil) klokLoopt(wil);
   }
 
   function update(dt) {

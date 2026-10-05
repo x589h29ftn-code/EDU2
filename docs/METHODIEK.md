@@ -7571,6 +7571,46 @@ geen gat achter, omdat alleen de delen met `userData.lak` telden; nu telt alles 
 **Proeven**: `dronetest` (nieuw); `gevoeltest` (remsporen een minuut), `winkeltest`, `vloeiendtest`. **Foto's**:
 `droneshots` (negen).
 
+**Dag en nacht lopen mee, en een DAF van Súdwest-Fryslân (stap 125).** Gevraagd op 5 okt 2026, met drie foto's (het
+logo, twee gele vuilniswagens): "Zorg dan ook dat er standaard een dag en nacht ritme loopt met de tijd. Kies een
+logische tijd dat het dag is en nacht is. Laat gebruiker met een knop de tijd kiezen als een soort schakelaar
+(bijvoorbeeld knop T). Zet dit ook in de instellingen. Tijdens missie is het bepaald tijdstip en dan staat als het
+nodig is voor de missie de tijd stil. Zoals een avondrace moet wel donker zijn. Denk dit verder uit. Verder, maak
+voor de vuilniswagen een speciaal auto model zie foto's met sudwest Fryslan logo. Is een daf vrachtauto voor afval".
+
+- *De klok* (js/sfeer.js). Hij stond bij een nieuw spel stil en liep met \\ in vier minuten rond. Nu loopt hij
+  vanaf het begin (`voorkeur`, in de browser bewaard als `tinga.dagnacht`), een dag in 48 minuten
+  (`DAG_MINUTEN`): een uur in het spel is twee minuten. Licht is het van zes tot zes, zoals de zon al stond;
+  dat hield de lantaarns, de ramen, de drukte en de proeven van de nacht zoals ze waren.
+- *T en de instellingen.* T is een schakelaar met vier standen (`TIJDEN`: ochtend 8:00, middag 13:00, avond
+  18:15, nacht 0:30). De instellingen hebben *Dag en nacht* (loopt mee / staat stil) en *Tijd* (dezelfde
+  schakelaar, in plaats van de oude regel die een uur doorschoof). \\ zet nu de voorkeur zelf om.
+- *De missies* (js/verhaal.js `werkMissieKlokBij`). Eerst liet ik de klok in elke missie stilstaan; de
+  proef liet zien dat er dan bij een nieuw spel geen dag en nacht was, want een nieuw spel begint in missie 1
+  en 1 tot 4 lopen in elkaar door. Nu: zodra een missie echt begint (`missieBezig`, niet in zijn
+  `KLUS_WACHT`-fase) doet T niets (`tijdVast`); begint hij 's nachts — of volgt hij 's nachts op de vorige —
+  dan is het de volgende ochtend, 9:00 (niet in het zwart en niet direct na laden, `naHerstel`). De klok
+  loopt in een missie door van 7 tot 18 uur en blijft om zes uur staan, zodat een dagmissie niet donker wordt.
+  's Nachts staat hij in een missie stil: de nachten die de missies zelf zetten (de race, *Die avond…*,
+  *Die nacht…*) blijven zo vanzelf donker. Zolang het verhaal de tijd zelf vasthoudt (het zwart, de klokjes
+  na een missie, de `…KlokWas`, de titelrol, het uitje) blijft hij stil; daarbuiten geldt de voorkeur. Omdat
+  dit elk beeld de klok op zijn plek zet, is wat een `…KlokWas` onthoudt niet meer zo belangrijk: een
+  missie die de klok "terugzet" naar hoe hij liep, wordt het volgende beeld weer gelijkgetrokken.
+- *De vuilniswagen* (js/vuilniswagen.js, `maakVuilniswagen`). Een gele DAF CF als zijlader naar de foto's:
+  cabine met zwarte zonneklep, grijze bumper en opstap, een zwarte grille met DAF op een zilveren band,
+  koplampen, het kenteken van de foto; een bak met het logo op een witte plaat, rood-witte strepen achter,
+  een zwaailicht, spiegels, een rode grijparm rechts, drie assen. Het logo (`tekenLogo`) is nagetekend: een
+  rode vorm met halve schijven, een blauwe kom, een groene t, en "Gemeente Súdwest-Fryslân" in grijs. Het
+  model hangt via `voegToe({ mesh })` aan js/vehicles.js (soort `vuilnis`, 9,6 m), zodat botsen, kogels en
+  js/autoschade.js er gewoon mee werken, en wordt bij het opstarten gemaakt (de shaders vooraf).
+- *Stap 124 nagemeten*: meer en grotere sterren, grotere knipperlichten en een dichtere, wittere ochtendmist
+  (6–200 m, ook de onderkant van de lucht), na de eerste foto's. De shaderproef van `dronetest` kreeg 37 nieuwe
+  programma's: die kwamen allemaal van de eerste overgang naar de nacht (het aantal lampen verandert bij
+  zonsondergang, wat mag); na één keer dag en nacht vooraf voegen de drone, de vogels en de schade er nul toe.
+
+**Proeven**: `tijdtest` (nieuw), `dronetest`, `gevoeltest`, `winkeltest`, `vloeiendtest`. **Foto's**: `droneshots`
+opnieuw (de nacht, de mist, de vuilniswagen, de autoschade).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
