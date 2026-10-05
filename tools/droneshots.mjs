@@ -147,8 +147,10 @@ if (doe('meeuwen')) {
     const H = { x: -1282, z: 1106 };
     V.update(0.1, H.x, H.z);
     // van dichtbij, schuin omhoog naar de zwerm
-    const m = V.meeuwPlek(0);
-    window.__cam({ x: m.x + 14, y: m.y - 6, z: m.z + 12 }, { x: H.x, y: m.y + 2, z: H.z });
+    // vlak onder de laagste meeuw, schuin omhoog naar hem en de zwerm erachter
+    let m = V.meeuwPlek(0);
+    for (let i = 1; i < V.meeuwen; i++) { const q = V.meeuwPlek(i); if (q.y < m.y) m = q; }
+    window.__cam({ x: m.x + 7, y: Math.max(2, m.y - 4), z: m.z + 6 }, { x: m.x, y: m.y + 1.5, z: m.z });
   });
   await foto('meeuwen_ijlst');
 }

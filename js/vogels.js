@@ -140,11 +140,13 @@ export function initVogels({ scene, waterY = -0.35, geluid = null }) {
   // ---------- de meeuwen ----------
   const meeuwen = [];
   for (let i = 0; i < VOGELS.meeuwen; i++) {
-    meeuwen.push({ r: 18 + rnd() * 45, h: 14 + rnd() * 22, fase: rnd() * 6.28, w: (0.18 + rnd() * 0.16) * (rnd() < 0.5 ? -1 : 1),
+    meeuwen.push({ r: 14 + rnd() * 34, h: 9 + rnd() * 16, fase: rnd() * 6.28, w: (0.18 + rnd() * 0.16) * (rnd() < 0.5 ? -1 : 1),
       klap: rnd() * 6.28, zweef: rnd() * 10, cx: (rnd() - 0.5) * 30, cz: (rnd() - 0.5) * 30 });
   }
 
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sch = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
+  // de meeuwen iets groter dan echt (1,7 m spanwijdte): anders zijn het van de grond af stipjes
+  const meeuwMaat = new THREE.Vector3(1.4, 1.4, 1.4);
   let t = 0, zoekKlok = 0, meeuwKlok = 3;
 
   function update(dt, cx, cz) {
@@ -204,14 +206,14 @@ export function initVogels({ scene, waterY = -0.35, geluid = null }) {
         // de vliegrichting is de raaklijn aan de cirkel; schuin in de bocht
         const yaw = Math.atan2(Math.sin(m.fase) * Math.sign(m.w), -Math.cos(m.fase) * Math.sign(m.w));
         e.set(0, yaw, -Math.sign(m.w) * 0.35, 'YXZ'); q.setFromEuler(e);
-        p.set(x, y, z); m4.compose(p, q, sch);
+        p.set(x, y, z); m4.compose(p, q, meeuwMaat);
         lijven.setMatrixAt(i, m4);
         // klapperen, met tussendoor stukken zweven
         const zweeft = Math.sin(t * 0.3 + m.zweef) > 0.2;
         m.klap += dt * (zweeft ? 0 : 7);
         const hoek = zweeft ? 0.08 : Math.sin(m.klap) * 0.55;
-        e.set(0, yaw, -Math.sign(m.w) * 0.35 + hoek, 'YXZ'); q.setFromEuler(e); m4.compose(p, q, sch); links.setMatrixAt(i, m4);
-        e.set(0, yaw, -Math.sign(m.w) * 0.35 - hoek, 'YXZ'); q.setFromEuler(e); m4.compose(p, q, sch); rechts.setMatrixAt(i, m4);
+        e.set(0, yaw, -Math.sign(m.w) * 0.35 + hoek, 'YXZ'); q.setFromEuler(e); m4.compose(p, q, meeuwMaat); links.setMatrixAt(i, m4);
+        e.set(0, yaw, -Math.sign(m.w) * 0.35 - hoek, 'YXZ'); q.setFromEuler(e); m4.compose(p, q, meeuwMaat); rechts.setMatrixAt(i, m4);
       }
       lijven.instanceMatrix.needsUpdate = links.instanceMatrix.needsUpdate = rechts.instanceMatrix.needsUpdate = true;
       // en je hoort ze, hoe dichterbij hoe vaker

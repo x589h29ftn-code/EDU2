@@ -311,7 +311,7 @@ const vogels = await page.evaluate(async () => {
 ok(vogels.groepen >= 5 && vogels.dieren >= 12, 'groepjes eenden en zwanen rond de Geeuw', `${vogels.groepen} groepjes, ${vogels.eenden} eenden, ${vogels.zwanen} zwanen`);
 ok(vogels.inWater === vogels.dieren, 'allemaal in het water', `${vogels.inWater}/${vogels.dieren}`);
 ok(vogels.nogInWater === vogels.dieren && vogels.bewogen > vogels.dieren / 2, 'een minuut later nog steeds, en ze peddelen rond', `${vogels.nogInWater} in het water, ${vogels.bewogen} bewogen`);
-ok(vogels.meeuwen === 14 && vogels.minH > 9 && vogels.maxH < 40 && vogels.maxAf < 100, 'veertien meeuwen boven de haven van IJlst', `${vogels.minH.toFixed(0)}–${vogels.maxH.toFixed(0)} m hoog, hoogstens ${vogels.maxAf.toFixed(0)} m van de haven`);
+ok(vogels.meeuwen === 14 && vogels.minH > 6 && vogels.maxH < 30 && vogels.maxAf < 80, 'veertien meeuwen boven de haven van IJlst', `${vogels.minH.toFixed(0)}–${vogels.maxH.toFixed(0)} m hoog, hoogstens ${vogels.maxAf.toFixed(0)} m van de haven`);
 ok(vogels.verWeg === 0, 'ver van IJlst geen meeuwen');
 
 const geluid = await page.evaluate(() => {
