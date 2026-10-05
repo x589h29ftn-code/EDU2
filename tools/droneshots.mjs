@@ -177,7 +177,10 @@ if (doe('vuilnis')) {
     const w = L.vuilnis.wagen;
     // schuin van voren, aan de kant van het logo en de grijper (rechts, +x)
     const zij = { x: Math.cos(w.yaw), z: -Math.sin(w.yaw) };
-    window.__cam({ x: w.x + zij.x * 9 - Math.sin(w.yaw) * 9, y: 2.0, z: w.z + zij.z * 9 - Math.cos(w.yaw) * 9 }, { x: w.x, y: 1.8, z: w.z });
+    // recht naast de bak (rechts, +x), een stukje naar voren: het logo en de cabine in één beeld
+    const vx = -Math.sin(w.yaw), vz = -Math.cos(w.yaw);
+    const doel = { x: w.x + vx * 0.5, y: 1.9, z: w.z + vz * 0.5 };
+    window.__cam({ x: doel.x + zij.x * 11 + vx * 3, y: 2.1, z: doel.z + zij.z * 11 + vz * 3 }, doel);
   }, S);
   await foto('vuilniswagen');
 }
@@ -188,7 +191,7 @@ if (doe('autoschade')) {
     g.sfeer.uur = 12;
     // op de rijbaan van de Molenkrite, een stuk voor het beginpunt
     const yaw0 = s.yaw ?? -0.88;
-    const car = g.vehicles.voegToe({ x: s.x - Math.sin(yaw0) * 9, z: s.z - Math.cos(yaw0) * 9, yaw: yaw0 + 0.3, soort: 'hatch', kleur: 0x2a5aa0 });
+    const car = g.vehicles.voegToe({ x: s.x, z: s.z, yaw: yaw0, soort: 'hatch', kleur: 0x2a5aa0 });
     car.mesh.updateMatrixWorld(true);
     A.botsing(car, 11, true);
     A.botsing(car, 17, true);
@@ -197,14 +200,15 @@ if (doe('autoschade')) {
     const delen = [];
     car.mesh.traverse(o => { if (o.isMesh && (o.userData.lak || o === car.mesh.userData.glas)) delen.push(o); });
     for (const [dz, dy] of [[-0.5, 0.75], [0.2, 0.7], [0.9, 0.85]]) {
-      const a = car.mesh.localToWorld(new THREE.Vector3(-3, dy, dz)), b = car.mesh.localToWorld(new THREE.Vector3(0, dy, dz));
+      const a = car.mesh.localToWorld(new THREE.Vector3(-3, dy, dz)), b = car.mesh.localToWorld(new THREE.Vector3(0, dy, dz));  // (links, de kant van de camera)
       r.set(a, b.sub(a).normalize());
       const h = r.intersectObjects(delen, false)[0];
       if (h) A.kogel(car, h.object, h.point, h.face.normal.clone().transformDirection(h.object.matrixWorld));
     }
     // schuin van voren links
-    const voor = car.mesh.localToWorld(new THREE.Vector3(-3.0, 1.5, -3.4));
-    window.__cam({ x: voor.x, y: 1.55, z: voor.z }, { x: car.x, y: 0.7, z: car.z });
+    // vóór de auto langs de weg, een halve meter opzij: de deuk in de neus, de barst in de voorruit en de gaten in de flank
+    const voor = car.mesh.localToWorld(new THREE.Vector3(-1.4, 1.5, -5.2));
+    window.__cam({ x: voor.x, y: 1.5, z: voor.z }, { x: car.x, y: 0.75, z: car.z });
   }, S);
   await foto('autoschade');
 }
