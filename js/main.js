@@ -2945,15 +2945,25 @@ function metAvondlampen(fn) {
   */
   const poel = lichtpoelen(), poelStond = poel ? poel.visible : false;
   if (poel) poel.visible = true;
+  /*
+   Net zo voor wat stap 124 alleen 's nachts laat zien: het lampje onder de drone en zijn plas licht, en de
+   knipperlichten op de daken (npm run dronetest: twee nieuwe programma's bij de eerste nacht met de drone).
+   Even zichtbaar en niet weggeknipt, want ze staan niet per se voor de camera.
+  */
+  const nachtDelen = [];
+  for (const o of nachtExtra()) o.traverse(d => { nachtDelen.push([d, d.visible, d.frustumCulled]); d.visible = true; d.frustumCulled = false; });
   const wasNacht = !!(sfeerNu() && sfeerNu().nacht);
   zetKoplampen(true);
   try { fn(); } finally {
     lampen.forEach((l, i) => { l.visible = stond[i]; });
     koplamp.visible = spot; koplamp.intensity = sterkte;
     if (poel) poel.visible = poelStond;
+    for (const [d, v, f] of nachtDelen) { d.visible = v; d.frustumCulled = f; }
     zetKoplampen(wasNacht);
   }
 }
+// de drone en de knipperlichten (stap 124), voor `metAvondlampen`; ze bestaan pas verderop
+function nachtExtra() { try { return [drone.groep, drone.plas, knipper.mesh].filter(Boolean); } catch { return []; } }
 // (sfeer bestaat pas verderop; bij het eerste voorverwarmen is het nog dag)
 function sfeerNu() { try { return sfeer; } catch { return null; } }
 function warmDeAvondOp() {
