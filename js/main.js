@@ -2352,7 +2352,8 @@ window.addEventListener('keydown', e => {
  naam, wat er nu staat, en wat er gebeurt als je erop klikt.
 */
 const WEER_RIJ = ['helder', 'bewolkt', 'regen'];
-const klokTekst = (u) => `${String(Math.floor(u)).padStart(2, '0')}:${String(Math.floor(u % 1 * 60)).padStart(2, '0')}`;
+// (in hele minuten: 7 + 5/60 uur is 7,0833…, en × 60 kwam daar 4,999… uit, dus 07:04)
+const klokTekst = (u) => { const m = Math.floor(u * 60 + 1e-6); return `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; };
 /*
  De tijd kiezen (stap 125): T, of de regel Tijd in de instellingen. Een schakelaar met vier standen —
  ochtend, middag, avond, nacht — en daarna weer de ochtend. Tijdens een missie (of als het verhaal de tijd
