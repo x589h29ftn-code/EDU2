@@ -110,16 +110,17 @@ kop('de minikaart volgt de drone');
 const kaart = await page.evaluate(() => {
   const g = window.__game, P = g.player, D = g.drone;
   const s = g.start || { x: 10.7, z: -7.1 };
-  P.pos.set(s.x, 0, s.z); P.drone = true; D.accu = 300;
-  g.droneToets(); for (let i = 0; i < 4; i++) D.update(0.05);
+  // (de vlag `binnen` zet de hoofdlus; na het slapen stond hij nog aan)
+  P.pos.set(s.x, 0, s.z); P.binnen = false; P.zit = false; P.inCar = null; P.drone = true; D.accu = 300;
+  const op = g.droneToets(); for (let i = 0; i < 4; i++) D.update(0.05);
   D.pos.set(s.x + 300, 60, s.z + 200);
   g.straatOf(D.pos.x, D.pos.z); g.kaartNaarDrone();
   const k = g.hud.kaartVanaf ? { x: g.hud.kaartVanaf.x, z: g.hud.kaartVanaf.z } : null;
   D.terug(); P.drone = false;
   g.straatOf(P.pos.x, P.pos.z); g.kaartNaarDrone();
-  return { k, na: g.hud.kaartVanaf, drone: { x: s.x + 300, z: s.z + 200 } };
+  return { op, k, na: g.hud.kaartVanaf, drone: { x: s.x + 300, z: s.z + 200 } };
 });
-ok(kaart.k && Math.abs(kaart.k.x - kaart.drone.x) < 0.01 && Math.abs(kaart.k.z - kaart.drone.z) < 0.01, 'in de lucht: de kaart op de drone');
+ok(kaart.k && Math.abs(kaart.k.x - kaart.drone.x) < 0.01 && Math.abs(kaart.k.z - kaart.drone.z) < 0.01, 'in de lucht: de kaart op de drone', `opgestegen: ${kaart.op}`);
 ok(kaart.na === null, 'terug bij Erik: de kaart weer op Erik');
 
 // ------------------------------------------------------------------ 6. wisselend weer
