@@ -1452,7 +1452,7 @@ export function initVerhaal(ctx) {
     // missie 9: de drie woningen waar je uit kunt kiezen (js/interieur.js)
     stekken = null,
     // missie 10: na het gesprek met De Veteraan wordt het één uur 's nachts
-    zetUur = null, klokLoopt = null,
+    zetUur = null, klokLoopt = null, klokVoorkeur = null,
     // het checkpoint na elke missie, en de keuze na het neergaan (js/main.js)
     checkpoint = null, naarCheckpoint = null, naarOpslag = null,
     heeftCheckpoint = () => false, heeftOpslag = () => false, vergrendel = null,
@@ -10053,7 +10053,54 @@ export function initVerhaal(ctx) {
   }
 
   // ---------- per beeld ----------
+  /*
+   De klok en de missies (stap 125: "Tijdens missie is het bepaald tijdstip en dan staat als het nodig is
+   voor de missie de tijd stil"). Buiten de missies loopt de klok mee als de speler dat wil (js/sfeer.js,
+   `voorkeur`). Zodra een missie echt begint — niet als hij nog onder zijn M op je wacht (`KLUS_WACHT`) —
+   staat de klok stil tot hij klaar is, en is het nacht, dan begint hij de volgende ochtend (een missie
+   begint altijd overdag; wat 's nachts moet, zet zijn eigen nacht: de race, "Die avond…", "Die nacht…").
+   Na de missie loopt de klok weer volgens de voorkeur, behalve zolang het verhaal zelf de tijd vasthoudt
+   (het zwart, de klokjes na een missie, de titelrol, het uitje).
+  */
+  const DAG_VAN = 7, DAG_TOT = 21, MISSIE_OCHTEND = 9;
+  let wasBezig = false;
+  let naHerstel = false;         // net geladen: geen "volgende ochtend" voor een missie die al liep
+  function missieBezig() {
+    if (!missie || missie === 'klaar' || fase === 'klaar' || fase === 'geldKlaar') return false;
+    return !(KLUS_WACHT[missie] || []).includes(fase);
+  }
+  function klokVastDoorVerhaal() {
+    return !!zwart || !!titelrol || brugNaT > 0 || raceNaT > 0 || invalNaT > 0 || ronaldNaT > 0 || uitzNaT > 0
+      || schaduwKlokWas !== null || invalKlokWas !== null || ronaldKlokWas !== null || uitzKlokWas !== null
+      || uitje.klokWas !== null || uitjeBezig();
+  }
+  // waarom de speler de tijd nu niet kan verzetten (T, de instellingen), of null
+  function tijdVast() {
+    if (missieBezig()) return 'Tijdens een missie ligt de tijd vast.';
+    if (klokVastDoorVerhaal()) return 'Nu even niet: het verhaal houdt de tijd vast.';
+    return null;
+  }
+  function werkMissieKlokBij() {
+    if (!klokLoopt) return;
+    const bezig = missieBezig();
+    if (naHerstel) { naHerstel = false; wasBezig = bezig; }
+    if (bezig && !wasBezig && !zwart && !inZwartSprong && uurNu && zetUur) {
+      const u = uurNu();
+      if (u < DAG_VAN || u >= DAG_TOT) {
+        zetUur(MISSIE_OCHTEND);
+        hud.melding('De volgende ochtend', 'Een missie begint overdag.', 3);
+      }
+    }
+    wasBezig = bezig;
+    if (bezig || klokVastDoorVerhaal()) { if (klokLoopt()) klokLoopt(false); }
+    else {
+      const wil = klokVoorkeur ? klokVoorkeur() : true;
+      if (klokLoopt() !== wil) klokLoopt(wil);
+    }
+  }
+
   function update(dt) {
+    werkMissieKlokBij();
     // Het spannende deuntje loopt precies zolang de achtervolging duurt: het
     // stopt als je hem pakt, als je hem neerschiet en als je neergaat.
     geluid.jacht(missie === 'johan' && fase === 'achtervolging' && doodT <= 0 && misluktT <= 0);
@@ -10484,6 +10531,7 @@ export function initVerhaal(ctx) {
      terug zoals hij vóór die missie liep; de missie die nu hervat, zet hem zelf weer stil en onthoudt dit.
     */
     if (typeof s.klokWas === 'boolean' && klokLoopt) klokLoopt(s.klokWas);
+    naHerstel = true;
     posVoorHerstel = { x: player.pos.x, z: player.pos.z };
     stopNaloop();
     gesprek = null; sluitBalk(); praatEl.hidden = true;
@@ -10848,6 +10896,8 @@ export function initVerhaal(ctx) {
   return {
     update, toets, doelen, raak, hinder, bewaar, herstel, naLaden, meldAan, schotGehoord, dood, mislukt,
     herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; },
+    // stap 125: de klok en de missies
+    tijdVast, get missieBezig() { return missieBezig(); },
     beginGesprek, waaromNietOpslaan,
     /*
      De keuze die nu openstaat (1, 2 of 3), als woorden: op een aanraakscherm zet js/main.js er

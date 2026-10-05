@@ -49,13 +49,42 @@ export function ochtendMist(uur, weer = 'helder') {
   return s(4.5, 5.5, uur) * (1 - s(6.8, 8.0, uur)) * (weer === 'bewolkt' ? 0.8 : 1);
 }
 
+/*
+ Het dag-en-nachtritme (stap 125: "zorg dat er standaard een dag en nacht ritme loopt met de tijd").
+ De klok loopt vanaf een nieuw spel mee: een dag duurt `DAG_MINUTEN` echte minuten, dus een uur in het
+ spel twee minuten. Licht is het van zes tot zes (de zon in `pasToe`); de straatlantaarns gaan aan als
+ het schemert. Wie het niet wil, zet het in de instellingen uit (`voorkeur`, bewaard in de browser).
+
+ `TIJDEN` zijn de standen van de schakelaar onder T: ochtend, middag, avond en nacht, in die volgorde.
+*/
+export const DAG_MINUTEN = 48;
+export const TIJDEN = [
+  { naam: 'ochtend', uur: 8 },
+  { naam: 'middag', uur: 13 },
+  { naam: 'avond', uur: 18.25 },
+  { naam: 'nacht', uur: 0.5 },
+];
+const VOORKEUR = 'tinga.dagnacht';
+function leesVoorkeur() {
+  try { return localStorage.getItem(VOORKEUR) !== 'stil'; } catch { return true; }
+}
+// welke stand van de schakelaar het nu is (de laatste die al begonnen is)
+export function tijdNaam(uur) {
+  if (uur >= 5.5 && uur < 11.5) return 'ochtend';
+  if (uur >= 11.5 && uur < 17) return 'middag';
+  if (uur >= 17 && uur < 22.5) return 'avond';
+  return 'nacht';
+}
+
 export function initSfeer(ctx) {
   const { scene, camera, renderer, sun, hemi, fill, skyUniforms, hud } = ctx;
   const mats = sfeerMaterialen();
 
   let uur = 13.5;          // begint op een heldere middag
   let weer = 'helder';
-  let loopt = false;       // klok laten doorlopen
+  // de klok loopt standaard mee (stap 125); `voorkeur` is wat de speler in de instellingen koos
+  let voorkeur = leesVoorkeur();
+  let loopt = voorkeur;
   const wind = { value: 0 };
 
   // ---------- wind in het blad ----------
@@ -332,7 +361,7 @@ export function initSfeer(ctx) {
   // ---------- per beeld ----------
   let lampKlok = 0;
   function update(dt, camX, camZ) {
-    if (loopt) { uur = (uur + dt * (24 / 240)) % 24; pasToe(); }   // een dag in vier minuten
+    if (loopt) { uur = (uur + dt * (24 / (DAG_MINUTEN * 60))) % 24; pasToe(); }   // een dag in 48 minuten (stap 125)
     windUniform.value += dt;
     tijdUniform.value = windUniform.value;       // de tv's achter de ramen
 
@@ -376,7 +405,8 @@ export function initSfeer(ctx) {
     } else if (e.code === 'BracketLeft') {
       uur = (uur + 23) % 24; pasToe(); hud.show(`${String(Math.floor(uur)).padStart(2, '0')}:${String(Math.floor(uur % 1 * 60)).padStart(2, '0')} uur`, 2);
     } else if (e.code === 'Backslash') {
-      loopt = !loopt; hud.show(loopt ? 'Klok loopt (een dag in vier minuten)' : 'Klok stil', 2.5);
+      // (dit is nu de voorkeur zelf, net als in de instellingen; tijdens een missie zet het verhaal hem stil)
+      zetVoorkeur(!voorkeur); hud.show(voorkeur ? `Dag en nacht lopen mee (een dag in ${DAG_MINUTEN} minuten)` : 'Klok stil', 2.5);
     }
   });
 
@@ -434,5 +464,20 @@ export function initSfeer(ctx) {
     get weer() { return weer; }, set weer(v) { if (WEER.includes(v)) { weer = v; pasToe(); } },
     get nacht() { return meng(uur).kracht < 0.35; },
     get loopt() { return loopt; }, set loopt(v) { loopt = v; },
+    // de keuze van de speler: loopt de klok mee als er geen missie is (stap 125)
+    get voorkeur() { return voorkeur; }, zetVoorkeur,
+    // de schakelaar onder T: naar de volgende stand (ochtend → middag → avond → nacht → ochtend)
+    volgendeTijd() {
+      const i = TIJDEN.findIndex(t => t.naam === tijdNaam(uur));
+      const t = TIJDEN[(i + 1) % TIJDEN.length];
+      uur = t.uur; pasToe();
+      return t;
+    },
+    zetTijd(naam) { const t = TIJDEN.find(q => q.naam === naam); if (t) { uur = t.uur; pasToe(); } return t || null; },
+    get tijdNaam() { return tijdNaam(uur); },
   };
+  function zetVoorkeur(v) {
+    voorkeur = !!v; loopt = voorkeur;
+    try { localStorage.setItem(VOORKEUR, voorkeur ? 'loopt' : 'stil'); } catch { /* geen opslag: alleen voor nu */ }
+  }
 }

@@ -46,7 +46,16 @@ await page.evaluate(() => {
 // ------------------------------------------------------------------ 6 (voor): de shaders vooraf
 // wat `startGame` doet vóór het spelen (zoals tools/vloeiendtest.mjs): het reliëf af, de vervaagshaders en de avond
 await page.evaluate(() => window.__game.voorbereidSpel());
-const progVoor = await page.evaluate(() => { const g = window.__game; g.renderer.render(g.scene, g.camera); return g.renderer.info.programs.length; });
+// één keer dag en één keer nacht: bij zonsondergang mag het aantal lampen veranderen (stap 83), en dan
+// vertaalt three wat het voor de nacht nodig heeft. Daarna mag er door de drone, de vogels en de schade niets bij.
+const progVoor = await page.evaluate(() => {
+  const g = window.__game;
+  g.renderer.render(g.scene, g.camera);
+  g.sfeer.uur = 1; g.renderer.render(g.scene, g.camera);
+  g.sfeer.uur = 6; g.renderer.render(g.scene, g.camera);
+  g.sfeer.uur = 13; g.renderer.render(g.scene, g.camera);
+  return g.renderer.info.programs.length;
+});
 
 // ------------------------------------------------------------------ 1. de drone
 kop('de drone kopen bij Tinga State');
@@ -377,7 +386,7 @@ const wijk = await page.evaluate(async () => {
   uit.start = L.startVuilnis(sp, { zeker: true });
   const v0 = L.vuilnis;
   uit.inCars = g.vehicles.cars.includes(v0.wagen);
-  uit.truck = v0.wagen && v0.wagen.soort === 'truck';
+  uit.truck = v0.wagen && v0.wagen.soort === 'vuilnis' && !!v0.wagen.mesh.userData.vuilnis;
   const ziet = () => true;
   let stil = 0;
   for (let i = 0; i < 900; i++) { L.update(0.1, sp, ziet, 8); if (L.vuilnis.stil) stil++; }
@@ -405,7 +414,7 @@ const wijk = await page.evaluate(async () => {
 });
 ok(wijk.joggers >= 4 && wijk.snel >= 2.7 && wijk.geenFiets, 'joggers op straat, hard en zonder fiets of hond', `${wijk.joggers}, minstens ${wijk.snel.toFixed(1)} m/s`);
 ok(wijk.pauze === 0, 'een jogger staat niet stil');
-ok(wijk.start && wijk.inCars && wijk.truck, 'de vuilniswagen: een bakwagen tussen de auto\'s (je botst ertegen)');
+ok(wijk.start && wijk.inCars && wijk.truck, 'de vuilniswagen: de gele DAF tussen de auto\'s (je botst ertegen)');
 ok(wijk.gereden > 100 && wijk.stops >= 2 && wijk.stil >= 8, 'hij rijdt en stopt om de kliko\'s te legen', `${wijk.gereden.toFixed(0)} m, ${wijk.stops} keer gestopt, ${wijk.stil.toFixed(0)} s stil`);
 ok(wijk.opWeg, 'op de weg');
 ok(wijk.middag === 'weg', '\'s middags komt hij niet');

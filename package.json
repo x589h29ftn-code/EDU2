@@ -209,6 +209,7 @@
     "zespuntenshots": "node tools/zespuntenshots.mjs",
     "dronetest": "node tools/dronetest.mjs",
     "droneshots": "node tools/droneshots.mjs",
+    "tijdtest": "node tools/tijdtest.mjs",
     "beginmissieshots": "node tools/beginmissieshots.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",

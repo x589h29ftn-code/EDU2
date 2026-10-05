@@ -31,6 +31,7 @@ import { bouwSloep, SLOEP, LIGPLAATSEN } from './boot.js';
 import { vaarRoute } from './vaart.js';
 import { inBouwvlak } from './bouwvlak.js';
 import { geluid } from './audio.js';
+import { maakVuilniswagen } from './vuilniswagen.js';
 import { zoekLooppad } from './looppad.js';
 
 export const FEEST = { van: 15, tot: 1.5, elke: 45, kans: 0.07, min: 110, max: 280, duur: 600, gasten: 8 };
@@ -545,12 +546,18 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
   */
   const vuil = { fase: 'weg', lijn: null, prof: null, s: 0, v: 0, volgende: VUILNIS.elke[0] * 0.4, stopT: 0, volgendeStop: VUILNIS.stopOm, ritten: 0, stops: 0, wagen: null };
   const vuilWeg = { x: 1e5, z: 1e5 };
+  /*
+   Sinds stap 125 een eigen model: de gele DAF van Súdwest-Fryslân (js/vuilniswagen.js), naar foto's van de
+   gebruiker. Hij wordt meteen bij het opstarten gemaakt en buiten de wereld geparkeerd, zodat zijn
+   materialen meegaan als de shaders vooraf vertaald worden.
+  */
   function vuilWagen() {
     if (vuil.wagen || !vehicles) return vuil.wagen;
-    vuil.wagen = vehicles.voegToe({ x: vuilWeg.x, z: vuilWeg.z, soort: 'truck', kleur: 0x2f7d3e, driveable: false });
+    vuil.wagen = vehicles.voegToe({ x: vuilWeg.x, z: vuilWeg.z, soort: 'vuilnis', kleur: 0xf4cf12, driveable: false, mesh: maakVuilniswagen() });
     vuil.wagen.vuilnis = true;
     return vuil.wagen;
   }
+  vuilWagen();
   function startVuilnis(sp, ziet, { zeker = false } = {}) {
     const w = vuilWagen();
     if (!w) return false;

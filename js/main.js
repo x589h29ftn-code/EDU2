@@ -8,7 +8,7 @@ import { NPCs } from './npc.js';
 import { HUD, euro } from './hud.js';
 import { isTouchDevice, initTouchControls } from './touch.js';
 import { START, toWorld, ROWS, PROPS } from './data.js';
-import { initSfeer } from './sfeer.js';
+import { initSfeer, DAG_MINUTEN } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur, WONINGEN } from './interieur.js';
 import { initBoerderij, MUNITIE, EHBO, PISTOOL, MITRAILLEUR, SNIPER } from './boerderij.js';
@@ -704,6 +704,8 @@ const verhaal = initVerhaal({
   zetUur: (u) => { const sf = sfeerNu(); if (sf) sf.uur = u; },
   // loopt de klok (sfeer.loopt)? Met een waarde: aan- of uitzetten
   klokLoopt: (v) => { const sf = sfeerNu(); if (!sf) return false; if (v !== undefined) sf.loopt = !!v; return sf.loopt; },
+  // wat de speler in de instellingen koos: loopt de klok mee buiten de missies (stap 125)
+  klokVoorkeur: () => { const sf = sfeerNu(); return sf ? sf.voorkeur : true; },
   schokken: (kracht) => schok(kracht),
   /*
    Missie 12, de Dúvelsrak: het filmbeeld van de aanrijdende auto's zet zelf de
@@ -2347,6 +2349,24 @@ window.addEventListener('keydown', e => {
  naam, wat er nu staat, en wat er gebeurt als je erop klikt.
 */
 const WEER_RIJ = ['helder', 'bewolkt', 'regen'];
+const klokTekst = (u) => `${String(Math.floor(u)).padStart(2, '0')}:${String(Math.floor(u % 1 * 60)).padStart(2, '0')}`;
+/*
+ De tijd kiezen (stap 125): T, of de regel Tijd in de instellingen. Een schakelaar met vier standen —
+ ochtend, middag, avond, nacht — en daarna weer de ochtend. Tijdens een missie (of als het verhaal de tijd
+ vasthoudt: het zwart, de titelrol, het uitje) kan het niet; dan zegt het spel dat.
+*/
+function kiesTijd() {
+  const nee = verhaal.tijdVast();
+  if (nee) { hud.show(nee, 2.5); return null; }
+  const t = sfeer.volgendeTijd();
+  hud.show(`${t.naam[0].toUpperCase()}${t.naam.slice(1)} · ${klokTekst(t.uur)}`, 2.2);
+  return t;
+}
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyT' || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (!player.active && !window.__autoplay) return;
+  kiesTijd();
+});
 try { geluid.zetSchotSoort(localStorage.getItem('tinga.schot') || 'opname'); } catch { /* geen opslag */ }
 menu.zetInstellingen(() => [
   {
@@ -2378,9 +2398,16 @@ menu.zetInstellingen(() => [
     id: 'camera', naam: 'Camera', waarde: () => (derde.aan ? 'achter je' : 'vanuit je ogen'),
     volgende: () => { derde.wissel(); if (derde.aan && player.inCar) derde.achterAuto(player.inCar); },
   },
+  // stap 125: loopt de dag mee, en de tijd zelf (ochtend, middag, avond, nacht; net als T)
   {
-    id: 'klok', naam: 'Klok', waarde: () => `${String(Math.floor(sfeer.uur)).padStart(2, '0')}:${String(Math.round(sfeer.uur % 1 * 60)).padStart(2, '0')}`,
-    volgende: () => { sfeer.uur = (sfeer.uur + 1) % 24; },
+    id: 'dagnacht', naam: 'Dag en nacht',
+    waarde: () => (sfeer.voorkeur ? `loopt mee (een dag in ${DAG_MINUTEN} min)` : 'staat stil'),
+    volgende: () => { sfeer.zetVoorkeur(!sfeer.voorkeur); },
+  },
+  {
+    id: 'klok', naam: 'Tijd',
+    waarde: () => `${sfeer.tijdNaam} · ${klokTekst(sfeer.uur)}${verhaal.tijdVast() ? ' (vast tijdens de missie)' : ''}`,
+    volgende: () => { kiesTijd(); },
   },
 ]);
 document.addEventListener('pointerlockchange', () => {
@@ -2966,7 +2993,7 @@ window.__game = {
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   grasVeld, wolken: clouds,
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, studio, derde, politie,
-  drone, droneToets, droneFoto, waaromGeenDrone, vogels, autoschade, get knipper() { return knipper; },
+  drone, droneToets, droneFoto, waaromGeenDrone, vogels, autoschade, kiesTijd, get knipper() { return knipper; },
   wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, wedstrijdInFilm, ambulance, nieuws, ambulanceMelding, inBeeld, leven,
   // de vlaggen op de kaart bijwerken; de lus doet dit zelf, de proef roept het aan
   kaartvlaggen: werkKaartvlaggenBij,

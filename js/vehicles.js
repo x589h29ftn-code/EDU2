@@ -590,21 +590,23 @@ export class Vehicles {
    krijgt bredere botsingscirkels, een hogere stoel en een instapafstand die bij
    zijn maat past.
   */
-  voegToe({ x, z, yaw = 0, soort = 'hatch', kleur = 0xd8d9dc, driveable = true }) {
-    const mesh = makeCar(kleur, soort, true);
+  voegToe({ x, z, yaw = 0, soort = 'hatch', kleur = 0xd8d9dc, driveable = true, mesh: eigen = null }) {
+    // (een eigen model, zoals de vuilniswagen van stap 125 uit js/vuilniswagen.js)
+    const mesh = eigen || makeCar(kleur, soort, true);
     mesh.position.set(x, 0, z); mesh.rotation.y = yaw;
     this.scene.add(mesh);
-    const truck = soort === 'truck';
+    const vuil = soort === 'vuilnis';
+    const truck = soort === 'truck' || vuil;
     // (de ambulance van stap 116 is een eigen model: zes meter lang en twee breed)
     const amb = soort === 'ambulance';
     const rij = RIJ[soort] || RIJ.hatch;
     const car = {
       mesh, x, z, yaw, speed: 0, steer: 0, driveable, hp: 100, soort, kleur,
-      as: truck ? 2.6 : amb ? 1.95 : 1.4, botsRadius: truck ? 1.15 : amb ? 1.05 : (soort === 'ferrari' ? 1.0 : 0.95),
+      as: vuil ? 4.2 : truck ? 2.6 : amb ? 1.95 : 1.4, botsRadius: vuil ? 1.3 : truck ? 1.15 : amb ? 1.05 : (soort === 'ferrari' ? 1.0 : 0.95),
       instap: truck || amb ? 2.4 : 1.2,
       stoel: null,          // het oogpunt komt uit het model (userData.oog)
       topSnelheid: rij.top, trek: rij.trek, grip: rij.grip || STUUR_GRIP,
-      breedte: truck ? 2.35 : amb ? 2.04 : (soort === 'ferrari' ? 1.95 : 1.78),
+      breedte: vuil ? 2.5 : truck ? 2.35 : amb ? 2.04 : (soort === 'ferrari' ? 1.95 : 1.78),
     };
     this.cars.push(car);
     return car;

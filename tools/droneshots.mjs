@@ -146,7 +146,9 @@ if (doe('meeuwen')) {
     g.sfeer.uur = 15;
     const H = { x: -1282, z: 1106 };
     V.update(0.1, H.x, H.z);
-    window.__cam({ x: H.x + 55, y: 3, z: H.z + 45 }, { x: H.x, y: 22, z: H.z });
+    // van dichtbij, schuin omhoog naar de zwerm
+    const m = V.meeuwPlek(0);
+    window.__cam({ x: m.x + 14, y: m.y - 6, z: m.z + 12 }, { x: H.x, y: m.y + 2, z: H.z });
   });
   await foto('meeuwen_ijlst');
 }
@@ -171,8 +173,9 @@ if (doe('vuilnis')) {
     L.startVuilnis(s, { zeker: true });
     for (let i = 0; i < 400 && !L.vuilnis.stil; i++) L.update(0.1, s, () => true, 8);
     const w = L.vuilnis.wagen;
+    // schuin van voren, aan de kant van het logo en de grijper (rechts, +x)
     const zij = { x: Math.cos(w.yaw), z: -Math.sin(w.yaw) };
-    window.__cam({ x: w.x + zij.x * 8 - Math.sin(w.yaw) * 7, y: 2.2, z: w.z + zij.z * 8 - Math.cos(w.yaw) * 7 }, { x: w.x, y: 1.4, z: w.z });
+    window.__cam({ x: w.x + zij.x * 9 - Math.sin(w.yaw) * 9, y: 2.0, z: w.z + zij.z * 9 - Math.cos(w.yaw) * 9 }, { x: w.x, y: 1.8, z: w.z });
   }, S);
   await foto('vuilniswagen');
 }
@@ -181,7 +184,9 @@ if (doe('autoschade')) {
     const g = window.__game, A = g.autoschade;
     const THREE = await import('three');
     g.sfeer.uur = 12;
-    const car = g.vehicles.voegToe({ x: s.x + 14, z: s.z + 6, yaw: 0.6, soort: 'hatch', kleur: 0x2a5aa0 });
+    // op de rijbaan van de Molenkrite, een stuk voor het beginpunt
+    const yaw0 = s.yaw ?? -0.88;
+    const car = g.vehicles.voegToe({ x: s.x - Math.sin(yaw0) * 9, z: s.z - Math.cos(yaw0) * 9, yaw: yaw0 + 0.3, soort: 'hatch', kleur: 0x2a5aa0 });
     car.mesh.updateMatrixWorld(true);
     A.botsing(car, 11, true);
     A.botsing(car, 17, true);
@@ -196,7 +201,7 @@ if (doe('autoschade')) {
       if (h) A.kogel(car, h.object, h.point, h.face.normal.clone().transformDirection(h.object.matrixWorld));
     }
     // schuin van voren links
-    const voor = car.mesh.localToWorld(new THREE.Vector3(-3.6, 1.5, -4.2));
+    const voor = car.mesh.localToWorld(new THREE.Vector3(-3.0, 1.5, -3.4));
     window.__cam({ x: voor.x, y: 1.55, z: voor.z }, { x: car.x, y: 0.7, z: car.z });
   }, S);
   await foto('autoschade');

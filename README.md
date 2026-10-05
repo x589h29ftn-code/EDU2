@@ -70,7 +70,8 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | in de boot: muis | schieten kan gewoon, alle kanten op: je staat in de open lucht |
 | M | kaart: klein, groot, uit · op de grote kaart klikken zet een eigen doel |
 | in de auto: naar de wasbox rijden | achter het BP-station: overspuiten, alle sterren kwijt (€ 100 per ster) |
-| [ ] | klok een uur terug / vooruit · `\` laat de klok lopen (een dag in vier minuten) |
+| **T** | de tijd: ochtend → middag → avond → nacht (niet tijdens een missie) |
+| [ ] | klok een uur terug / vooruit · `\` dag en nacht laten meelopen of stilzetten |
 | Y | weer: helder, bewolkt, regen |
 | U | geluid uit en aan |
 | **K** | je eigen plek in spelmeters (`x, z`), in beeld en op het klembord — handig om een plek door te geven |
@@ -2762,8 +2763,8 @@ paal die uitgaat dooft mee). Ook dat loopt over een uur, en
 tegen zessen staat alles weer aan. De lampen zelf komen bij het schemeren
 langzaam op in plaats van in één keer.
 
-Handig om te weten: **`[`** en **`]`** zetten de klok een uur terug of vooruit en
-**`\`** laat hem lopen (een dag in vier minuten).
+Handig om te weten: **T** kiest ochtend, middag, avond of nacht, **`[`** en **`]`** zetten de klok een uur
+terug of vooruit, en **`\`** zet het meelopen van dag en nacht aan of uit (zie **Dag en nacht** hieronder).
 
 ## Neergaan en het checkpoint
 
@@ -4740,6 +4741,20 @@ donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en gl
 
 ![Dag, nacht en weer](docs/screenshots/sfeer.png)
 
+### Dag en nacht (stap 125)
+
+- **De klok loopt mee.** Vanaf een nieuw spel draait de dag: een dag duurt **48 minuten**, een uur in het
+  spel dus twee minuten. Licht is het van zes tot zes, met schemer ervoor en erna; 's nachts gaan de
+  lantaarns en de ramen aan en wordt de wijk stiller.
+- **T is een schakelaar** met vier standen: **ochtend** (8:00), **middag** (13:00), **avond** (18:15) en
+  **nacht** (0:30), en dan weer de ochtend.
+- **In de instellingen** (Esc → Instellingen): *Dag en nacht* — loopt mee of staat stil (de browser onthoudt
+  het) — en *Tijd*, dezelfde schakelaar als T.
+- **Tijdens een missie ligt de tijd vast.** Zodra een missie echt begint (niet als hij nog onder zijn M op je
+  wacht) staat de klok stil, en T doet dan niets. Is het nacht als een missie begint, dan is het
+  *de volgende ochtend*: elke missie begint overdag. Wat in het donker moet — de race, *Die avond…*,
+  *Die nacht…* — zet zijn eigen nacht en houdt die vast. Na de missie loopt de klok weer.
+
 ### Een levender wereld (stap 124)
 
 - **De nacht.** Bij helder weer staan er sterren en een maan aan de hemel (achter de wolken bijna niets). Op de
@@ -4752,8 +4767,9 @@ donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en gl
   Overdag kwaakt er af en toe een eend, 's nachts een kikker, en buiten tsjirpen dan de krekels.
 - **Joggers.** Een op de tien volwassen wandelaars loopt hard, in een fel sportshirt, en staat nooit stil.
   Een op de acht wandelaars laat nog steeds een hondje uit.
-- **De vuilniswagen.** Tussen zeven en half elf 's ochtends rijdt er om de paar minuten een groene vuilniswagen
-  door een straat bij je in de buurt, en stopt om de 38 m om de kliko's te legen (sissen, bonken, piepjes). Hij
+- **De vuilniswagen.** Tussen zeven en half elf 's ochtends rijdt er om de paar minuten een vuilniswagen
+  door een straat bij je in de buurt: de gele DAF van de gemeente **Súdwest-Fryslân**, met het logo op de bak,
+  een grijze bumper, een zwaailicht en een rode grijparm (stap 125). Hij en stopt om de 38 m om de kliko's te legen (sissen, bonken, piepjes). Hij
   is een echte auto: je botst ertegen.
 - **Het terras bij de Poiesz.** Overdag, als het droog is, staan er naast de ingang van de Poiesz in IJlst twee
   tafels met een rode parasol, en zitten er vijf mensen aan de koffie.
