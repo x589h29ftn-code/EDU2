@@ -173,10 +173,11 @@ export function maakVuilniswagen() {
   const glas = new THREE.MeshStandardMaterial({ color: 0x1d252c, roughness: 0.08, metalness: 0.4 });
   const m = (kaart) => new THREE.MeshStandardMaterial({ map: kaart, roughness: 0.45, metalness: 0.1 });
   const zij = bakZij(), achter = bakAchter();
-  const zijL = zij.clone(); zijL.needsUpdate = true; zijL.wrapS = THREE.RepeatWrapping; zijL.repeat.x = -1;
 
   // de cabine: [+x, −x, +y, −y, +z, −z]; de neus is −z
-  const cabGeo = rondeDoosGeo(W, C.y1 - C.y0, C.z1 - C.z0, 0.12);
+  // (een gewone doos: `rondeDoosGeo` knijpt de buitenste vakjes tot de afronding, en dan viel van een doek
+  // alleen het midden in beeld — de grille en de bumper verdwenen in de rand)
+  const cabGeo = new THREE.BoxGeometry(W, C.y1 - C.y0, C.z1 - C.z0);
   const cabMat = [m(cabineZij(true)), m(cabineZij(false)), geel, zwart, geel, m(cabineVoor())];
   const cab = new THREE.Mesh(cabGeo, cabMat);
   cab.position.set(0, (C.y0 + C.y1) / 2, (C.z0 + C.z1) / 2);
@@ -188,8 +189,10 @@ export function maakVuilniswagen() {
   ruit.rotation.x = -0.06;
   bak.add(ruit);
   // de bak: [+x, −x, +y, −y, +z, −z]
-  const bakGeo = rondeDoosGeo(W, B.y1 - B.y0, B.z1 - B.z0, 0.08);
-  const bakMesh = new THREE.Mesh(bakGeo, [m(zij), m(zijL), geel, zwart, m(achter), geel]);
+  const bakGeo = new THREE.BoxGeometry(W, B.y1 - B.y0, B.z1 - B.z0);
+  // (een gewone doos zet het doek aan beide kanten leesbaar neer: links van achter naar voren, rechts andersom)
+  const zijMat = m(zij);
+  const bakMesh = new THREE.Mesh(bakGeo, [zijMat, zijMat, geel, zwart, m(achter), geel]);
   bakMesh.position.set(0, (B.y0 + B.y1) / 2, (B.z0 + B.z1) / 2);
   bakMesh.userData.lak = true; bakMesh.castShadow = true;
   bak.add(bakMesh);

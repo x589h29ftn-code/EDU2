@@ -177,10 +177,11 @@ if (doe('vuilnis')) {
     const w = L.vuilnis.wagen;
     // schuin van voren, aan de kant van het logo en de grijper (rechts, +x)
     const zij = { x: Math.cos(w.yaw), z: -Math.sin(w.yaw) };
-    // recht naast de bak (rechts, +x), een stukje naar voren: het logo en de cabine in één beeld
+    // op de weg vóór hem, iets naar rechts: de grille met DAF, en de rechterkant met het logo en de grijper
+    // (opzij van de weg stond de camera in een gevel)
     const vx = -Math.sin(w.yaw), vz = -Math.cos(w.yaw);
-    const doel = { x: w.x + vx * 0.5, y: 1.9, z: w.z + vz * 0.5 };
-    window.__cam({ x: doel.x + zij.x * 11 + vx * 3, y: 2.1, z: doel.z + zij.z * 11 + vz * 3 }, doel);
+    const doel = { x: w.x + vx * 1.0, y: 1.8, z: w.z + vz * 1.0 };
+    window.__cam({ x: w.x + vx * 13 + zij.x * 3.2, y: 2.3, z: w.z + vz * 13 + zij.z * 3.2 }, doel);
   }, S);
   await foto('vuilniswagen');
 }
@@ -189,6 +190,8 @@ if (doe('autoschade')) {
     const g = window.__game, A = g.autoschade;
     const THREE = await import('three');
     g.sfeer.uur = 12;
+    // (het poppetje van Erik niet in beeld)
+    if (g.derde) g.derde.aan = false;
     // op de rijbaan van de Molenkrite, een stuk voor het beginpunt
     const yaw0 = s.yaw ?? -0.88;
     const car = g.vehicles.voegToe({ x: s.x, z: s.z, yaw: yaw0, soort: 'hatch', kleur: 0x2a5aa0 });
@@ -206,8 +209,8 @@ if (doe('autoschade')) {
       if (h) A.kogel(car, h.object, h.point, h.face.normal.clone().transformDirection(h.object.matrixWorld));
     }
     // schuin van voren links
-    // vóór de auto langs de weg, een halve meter opzij: de deuk in de neus, de barst in de voorruit en de gaten in de flank
-    const voor = car.mesh.localToWorld(new THREE.Vector3(-1.4, 1.5, -5.2));
+    // vóór de auto, rechts van de neus en laag: de deuk, de barst in de voorruit (links staat vaak een voetganger)
+    const voor = car.mesh.localToWorld(new THREE.Vector3(1.6, 1.3, -4.4));
     window.__cam({ x: voor.x, y: 1.5, z: voor.z }, { x: car.x, y: 0.75, z: car.z });
   }, S);
   await foto('autoschade');

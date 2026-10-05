@@ -234,7 +234,7 @@ ok(wagen.bestaat, 'een eigen model, soort vuilnis, tussen de auto\'s');
 ok(Math.abs(wagen.maat.l - 9.6) < 0.4 && wagen.maat.b > 2.4 && wagen.maat.b < 3.4 && wagen.maat.h > 3.4 && wagen.maat.h < 4.2, 'ruim negen meter lang, 2,5 m breed (met de spiegels ruim 3), bijna 4 m hoog', `${wagen.maat.l.toFixed(2)} × ${wagen.maat.b.toFixed(2)} × ${wagen.maat.h.toFixed(2)} m`);
 ok(wagen.geel > 0.4, 'geel', `${(wagen.geel * 100).toFixed(0)} % van de zijkant`);
 ok(wagen.rood > 0.002 && wagen.blauw > 0.002 && wagen.groen > 0.002 && wagen.grijsTekst > 0.001, 'het logo: rood, blauw, groen en de grijze letters', `${(wagen.rood * 100).toFixed(2)} / ${(wagen.blauw * 100).toFixed(2)} / ${(wagen.groen * 100).toFixed(2)} / ${(wagen.grijsTekst * 100).toFixed(2)} %`);
-ok(wagen.ruit && wagen.doeken >= 5, 'een voorruit en eigen doeken (cabine, bak, achterkant)', `${wagen.doeken} doeken`);
+ok(wagen.ruit && wagen.doeken >= 4, 'een voorruit en eigen doeken (cabine, bak, achterkant)', `${wagen.doeken} doeken`);
 ok(wagen.opWeg, 'hij rijdt in de wijk', `${wagen.gestart} ${JSON.stringify(wagen.rit)}`);
 ok(wagen.deuk && wagen.deuk.deuk, 'en krijgt een deuk als je hem ramt');
 

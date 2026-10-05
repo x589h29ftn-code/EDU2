@@ -385,6 +385,7 @@ const wijk = await page.evaluate(async () => {
   const sp = { x: s.x, z: s.z };
   uit.start = L.startVuilnis(sp, { zeker: true });
   const v0 = L.vuilnis;
+  uit.vuilWas = { reden: v0.reden, fase: v0.fase, wagen: !!v0.wagen, inCars: v0.wagen ? g.vehicles.cars.indexOf(v0.wagen) : -2, soort: v0.wagen && v0.wagen.soort, hp: v0.wagen && v0.wagen.hp, wrak: v0.wagen && !!v0.wagen.wrak };
   uit.inCars = g.vehicles.cars.includes(v0.wagen);
   uit.truck = v0.wagen && v0.wagen.soort === 'vuilnis' && !!v0.wagen.mesh.userData.vuilnis;
   const ziet = () => true;
@@ -414,7 +415,7 @@ const wijk = await page.evaluate(async () => {
 });
 ok(wijk.joggers >= 4 && wijk.snel >= 2.7 && wijk.geenFiets, 'joggers op straat, hard en zonder fiets of hond', `${wijk.joggers}, minstens ${wijk.snel.toFixed(1)} m/s`);
 ok(wijk.pauze === 0, 'een jogger staat niet stil');
-ok(wijk.start && wijk.inCars && wijk.truck, 'de vuilniswagen: de gele DAF tussen de auto\'s (je botst ertegen)');
+ok(wijk.start && wijk.inCars && wijk.truck, 'de vuilniswagen: de gele DAF tussen de auto\'s (je botst ertegen)', JSON.stringify(wijk.vuilWas));
 ok(wijk.gereden > 100 && wijk.stops >= 2 && wijk.stil >= 8, 'hij rijdt en stopt om de kliko\'s te legen', `${wijk.gereden.toFixed(0)} m, ${wijk.stops} keer gestopt, ${wijk.stil.toFixed(0)} s stil`);
 ok(wijk.opWeg, 'op de weg');
 ok(wijk.middag === 'weg', '\'s middags komt hij niet');

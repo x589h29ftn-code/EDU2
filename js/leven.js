@@ -560,16 +560,20 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
   vuilWagen();
   function startVuilnis(sp, ziet, { zeker = false } = {}) {
     const w = vuilWagen();
-    if (!w) return false;
+    if (!w) { vuil.reden = 'geen wagen'; return false; }
+    vuil.reden = 'geen weg';
     for (let poging = 0; poging < 6; poging++) {
       const a = wegPunt(sp.x, sp.z, { van: 40, tot: 140 });
       const b = wegPunt(sp.x, sp.z, { van: VUILNIS.van_, tot: VUILNIS.tot_, weg: { x: sp.x, z: sp.z, min: 150 } });
       if (!a || !b) continue;
+      vuil.reden = 'in zicht';
       if (!zeker && ziet(b.x, b.z)) continue;
+      vuil.reden = 'geen route';
       // van ver weg, langs je, en weer ver weg: over het punt bij jou heen
       const c = wegPunt(sp.x, sp.z, { van: VUILNIS.van_, tot: VUILNIS.tot_, weg: { x: b.x, z: b.z, min: 250 } });
       const L = lijnDoor(KAART, c ? [[b.x, b.z], [a.x, a.z], [c.x, c.z]] : [[b.x, b.z], [a.x, a.z]]);
       if (!L || L.n < 4 || L.lengte > 1600) continue;
+      vuil.reden = null;
       vuil.lijn = L; vuil.prof = profiel(L, { top: VUILNIS.top, dwars: 2.6 });
       vuil.s = 0; vuil.v = 0; vuil.stopT = 0; vuil.volgendeStop = VUILNIS.stopOm; vuil.fase = 'rijdt'; vuil.ritten++;
       w.hp = 100; w.speed = 0;
@@ -712,7 +716,7 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
       werkTerrasBij(dt, sp, uur);
     },
     // stap 124: de vuilniswagen en het terras
-    get vuilnis() { return { fase: vuil.fase, ritten: vuil.ritten, stops: vuil.stops, wagen: vuil.wagen, s: vuil.s, v: vuil.v, stil: vuil.stopT > 0, lengte: vuil.lijn ? vuil.lijn.lengte : 0 }; },
+    get vuilnis() { return { reden: vuil.reden, fase: vuil.fase, ritten: vuil.ritten, stops: vuil.stops, wagen: vuil.wagen, s: vuil.s, v: vuil.v, stil: vuil.stopT > 0, lengte: vuil.lijn ? vuil.lijn.lengte : 0 }; },
     startVuilnis: (sp, opties) => startVuilnis(sp, () => false, opties), vuilnisWeg,
     get terras() { return { aan: terras.groep.visible, plek: terras.plek, gasten: terras.gasten.length, groep: terras.groep }; },
     // een schot of een knal: wie op het feest staat rent weg
