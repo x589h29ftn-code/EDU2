@@ -530,11 +530,21 @@ export function initGarage({ scene, player, vehicles, hud, verhaal, sfeer = null
     }
   }
 
+  // ---------- tuning (js/tuning.js) ----------
+  // die meldt zich hier aan, zodat `herstel` de tuning terug op een geladen auto zet
+  let tuner = null;
+  const zetTuning = fn => { tuner = typeof fn === 'function' ? fn : null; };
+
   // ---------- opslaan ----------
   // De gekochte auto's, waar ze nu staan. Een wrak is niet meer van jou.
+  // (sinds de tuning ook wat er aan de auto gedaan is: `car.tuning` uit js/tuning.js)
   function bewaar() {
     return eigen.filter(e => e.car && !e.car.wrak && !e.car.weg && (e.car.hp ?? 100) > 0)
-      .map(e => ({ id: e.id, soort: e.soort, kleur: e.kleur, naam: e.naam, x: +e.car.x.toFixed(2), z: +e.car.z.toFixed(2), yaw: +e.car.yaw.toFixed(3) }));
+      .map(e => {
+        const s = { id: e.id, soort: e.soort, kleur: e.kleur, naam: e.naam, x: +e.car.x.toFixed(2), z: +e.car.z.toFixed(2), yaw: +e.car.yaw.toFixed(3) };
+        if (e.car.tuning) s.tuning = JSON.parse(JSON.stringify(e.car.tuning));
+        return s;
+      });
   }
   /*
    Terugzetten. Wat er nu van jou is gaat eerst weg: niet uit de lijst van
@@ -550,8 +560,10 @@ export function initGarage({ scene, player, vehicles, hud, verhaal, sfeer = null
       if (!s || !s.soort) continue;
       const al = vehicles.cars.find(c => c.driveable !== false && !c.weg && c.eigen == null && c.soort === s.soort
         && c.kleur === s.kleur && Math.hypot(c.x - s.x, c.z - s.z) < 4);
+      let car = null;
       if (al) {
         al.eigen = s.id; eigen.push({ id: s.id, soort: s.soort, kleur: s.kleur, naam: s.naam, car: al });
+        car = al;
       } else {
         /*
          Staat er al een andere auto (die op de oprit, door js/verhaal.js teruggezet), dan een plek opzij: twee
@@ -563,8 +575,10 @@ export function initGarage({ scene, player, vehicles, hud, verhaal, sfeer = null
           const x = s.x + zx * d, z = s.z + zz * d;
           if (!vehicles.cars.some(c => !c.weg && isFinite(c.x) && Math.hypot(c.x - x, c.z - z) < 3.2)) { p = { x, z, yaw }; break; }
         }
-        neerzetten(s.soort, s.kleur, s.naam || s.soort, p, s.id);
+        car = neerzetten(s.soort, s.kleur, s.naam || s.soort, p, s.id);
       }
+      // de tuning terug op de auto (js/tuning.js `pasToe`)
+      if (car && s.tuning && tuner) tuner(car, s.tuning);
       volgende = Math.max(volgende, (s.id || 0) + 1);
     }
   }
@@ -576,7 +590,11 @@ export function initGarage({ scene, player, vehicles, hud, verhaal, sfeer = null
   }
 
   return {
-    update, toets, koop, bewaar, herstel, binnen, bijAuto,
+    update, toets, koop, bewaar, herstel, binnen, bijAuto, zetTuning,
+    // betalen en terugbetalen aan de balie (de tuning van js/tuning.js); het geld zelf staat in js/verhaal.js
+    betaal: n => !!(verhaal && verhaal.betaal && verhaal.betaal(n)),
+    verdien: n => (verhaal && verhaal.verdien ? verhaal.verdien(n) : 0),
+    get geld() { return verhaal && typeof verhaal.geld === 'number' ? verhaal.geld : 0; },
     autoVan: id => (eigen.find(e => e.id === id) || {}).car || null,
     idVan: car => (car && car.eigen != null && eigen.some(e => e.car === car)) ? car.eigen : null,
     get eigen() { return eigen.map(e => ({ id: e.id, soort: e.soort, kleur: e.kleur, naam: e.naam, car: e.car })); },
