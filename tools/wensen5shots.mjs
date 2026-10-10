@@ -120,7 +120,8 @@ await page.evaluate(async () => {
 await opname('wensen5_tuning', new Function(`
   const c = window.__gti;
   const zx = Math.cos(c.yaw), zz = -Math.sin(c.yaw);
-  return (${kijk})([c.x + zx * 5.5 + Math.sin(c.yaw) * 2.5, 1.7, c.z + zz * 5.5 + Math.cos(c.yaw) * 2.5], [c.x, 0.7, c.z]);
+  // (van de straatkant, niet door het glas van de showroom)
+  return (${kijk})([c.x - zx * 4.2 + Math.sin(c.yaw) * 1.8, 1.5, c.z - zz * 4.2 + Math.cos(c.yaw) * 1.8], [c.x, 0.7, c.z]);
 `));
 
 // 3. een zeilbootje
