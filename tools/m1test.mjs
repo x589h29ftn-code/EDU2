@@ -272,16 +272,30 @@ const sh = await page.evaluate(async () => {
   P.zetWapen('garand'); P.wisselT = 0; P.holster = 0; P.binnen = false; P.wapenUit = false;
   window.__stap(2);
   R.render(g.scene || P.scene, P.camera);
+  /*
+   Eerst het pistool een keer schieten en herladen: het mondingsvuur en de damp (MeshBasicMaterial) worden in deze
+   omgeving bij het eerste schot nog vertaald, ook zonder de M1 (nagemeten 10 okt 2026: 98 → 100 met alleen het
+   pistool). Dat is de tegenproef; daarna mag de M1 er niets meer bij doen.
+  */
+  const wapenRonde = (soort) => {
+    P.zetWapen(soort); P.wisselT = 0; P.holster = 0; P.reserve = Math.max(P.reserve, 50);
+    window.__stap(2);
+    P.ammo = 1; P.vuurKlok = 0; P.shoot();
+    for (let i = 0; i < 6; i++) { window.__stap(1, 0.03); P.gun.visible = true; g.tekenWapen(); }
+    P.reload();
+    for (let i = 0; i < 60; i++) { window.__stap(1, 0.04); P.gun.visible = true; g.tekenWapen(); }
+  };
+  const begin = R.info.programs.length;
+  wapenRonde('pistool');
   const voor = R.info.programs.length;
-  // het hele wapen in beeld: schot, ping, herladen
-  P.ammo = 1; P.vuurKlok = 0; P.shoot();
-  for (let i = 0; i < 6; i++) { window.__stap(1, 0.03); P.gun.visible = true; g.tekenWapen(); }
-  P.reload();
-  for (let i = 0; i < 60; i++) { window.__stap(1, 0.04); P.gun.visible = true; g.tekenWapen(); }
-  return { voor, na: R.info.programs.length };
+  P.zetWapen('garand'); P.wisselT = 0; P.holster = 0;
+  window.__stap(2);
+  wapenRonde('garand');
+  window.__pistoolErbij = voor - begin;
+  return { voor, na: R.info.programs.length, pistool: window.__pistoolErbij };
 });
 if (sh.overgeslagen) ok(false, 'geen renderer of tekenWapen in __game');
-else ok(sh.na === sh.voor, 'het wapen tekenen vertaalt geen nieuwe shader', `${sh.voor} → ${sh.na} programma's`);
+else ok(sh.na === sh.voor, 'het wapen tekenen vertaalt geen nieuwe shader', `${sh.voor} → ${sh.na} programma's (het pistool ervoor: +${sh.pistool})`);
 
 await page.evaluate(() => { const P = window.__game.player; P.shootCb = window.__shootCb; });
 await browser.close();
