@@ -115,6 +115,39 @@ function baanDoek(L, B, n, px = 8) {
 }
 
 export { baanDoek as __baanDoek };   // alleen voor tools/tennistest.mjs
+export { BAAN };
+
+/*
+ De assen van elke baan, voor het minispel (js/tennisspel.js). Dezelfde rekensom
+ als in `bouwTennisparken` hieronder: `s` loopt langs de baan (het net op s = 0),
+ `u` dwars erop, vanuit het hart van het blok. `punt(s, u)` geeft de plek in de
+ wereld; `baan(i)` het hart van baan i dwars op het blok.
+*/
+export function baanAssen(parken) {
+  const uit = [];
+  for (const P of parken || []) {
+    for (const blok of P.blokken || []) {
+      const asL = Math.hypot(blok.as[0], blok.as[1]);
+      const as = [blok.as[0] / asL, blok.as[1] / asL];
+      const zij = [-as[1], as[0]];
+      const L = blok.lengte, B = blok.breedte, n = blok.banen;
+      const vak = B / n;
+      for (let i = 0; i < n; i++) {
+        const u0 = -B / 2 + (i + 0.5) * vak;
+        uit.push({
+          blok, nr: i, as, zij, L, B, vak, u0,
+          hek: P.hek || 3.6,
+          // s langs de baan, u dwars op de baan gemeten vanaf het hart van déze baan
+          punt: (s, u) => ({
+            x: blok.cx + s * as[0] + (u0 + u) * zij[0],
+            z: blok.cz + s * as[1] + (u0 + u) * zij[1],
+          }),
+        });
+      }
+    }
+  }
+  return uit;
+}
 
 // gaas voor het hek: een canvas met ruitjes en veel doorzicht
 let gaasDoek = null;

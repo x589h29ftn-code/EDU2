@@ -9,6 +9,7 @@ import { sfeerMaterialen, lampPosities } from './world.js';
 import { nachtUniform, tijdUniform, aandeelUniform } from './licht.js';
 import { zetKoplampen } from './carmodel.js';
 import { zetLichtpoelen } from './kaartwereld.js';
+import { geluid } from './audio.js';
 
 const WEER = ['helder', 'bewolkt', 'regen'];
 
@@ -24,6 +25,38 @@ const DAGKLEUREN = [
   { u: 22, zon: 0x35406b, top: 0x111c33, mid: 0x1d2b44, bot: 0x2b3a52, kracht: 0.10, hemel: 0.15 },
   { u: 24, zon: 0x2a3c66, top: 0x08111f, mid: 0x122036, bot: 0x1b2b40, kracht: 0.05, hemel: 0.10 },
 ];
+
+/*
+ Onweer (stap 131: "Onweer ook als kans als het regent, wel realistisch"). Zolang het echt regent gooit het weer elk
+ beeld een dobbelsteen met `kans` per minuut; valt hij, dan begint er een bui van `duur` tellen. Daarin om de `tussen`
+ tellen een bliksem: de lucht en het licht een flits van `flits` tellen fel wit-blauw (één tot drie ontladingen na
+ elkaar, zoals een echte bliksem flakkert), en na `vertraging` tellen de donder — geluid gaat 343 m/s, dus een tel is
+ een derde kilometer. Over de bui komt hij dichterbij en trekt weer weg: de vertraging zakt van zes naar één tel en
+ loopt weer op. Er komt GEEN lichtbron bij (CLAUDE.md: het aantal lichten mag tijdens het spelen niet veranderen);
+ de flits zit in de sterkte van de hemel- en vullamp die er al zijn, in de lucht, de mist en de wolken.
+ Stopt het met regenen, dan is de bui voorbij (wat nog onderweg is, rommelt nog na).
+*/
+export const ONWEER = {
+  kans: 0.25,              // per minuut regen
+  duur: [150, 300],        // tellen
+  tussen: [15, 60],        // tellen tussen twee bliksems
+  eerste: [4, 12],         // tellen tot de eerste
+  flits: [0.1, 0.2],       // tellen
+  vertraging: [1, 6],      // tellen tussen flits en donder
+  geluid: 343,             // m/s
+  hemel: 2.4,              // zoveel sterkte erbij voor de hemellamp bij een volle flits
+  vul: 1.3,                // en voor de vullamp
+  lucht: 0.75,             // zover gaat de lucht naar de flitskleur
+  binnen: 0.3,             // zoveel ervan binnen (dichte ramen)
+};
+const FLITS_KLEUR = new THREE.Color(0xdde6ff);
+
+/*
+ De wind (stap 131, voor de zeilbootjes van js/zeilen.js): een richting die langzaam draait rond het zuidwesten
+ (hij waait naar het noordoosten: +x is oost, −z is noord), en een kracht van 0 tot 1 die met het weer meegaat.
+ `x` en `z` zijn de richting waar hij naartoe waait.
+*/
+export const WIND = { hoek: -Math.PI / 4, draai: 0.5, kracht: [0.35, 0.55, 0.8] };
 
 function meng(u) {
   let a = DAGKLEUREN[0], b = DAGKLEUREN[DAGKLEUREN.length - 1];
@@ -105,7 +138,86 @@ export function initSfeer(ctx) {
   // de klok loopt standaard mee (stap 125); `voorkeur` is wat de speler in de instellingen koos
   let voorkeur = leesVoorkeur();
   let loopt = voorkeur;
-  const wind = { value: 0 };
+  const wind = { x: Math.cos(WIND.hoek), z: Math.sin(WIND.hoek), kracht: WIND.kracht[0], hoek: WIND.hoek };
+  let windKlok = 0;
+
+  // ---------- onweer (stap 131) ----------
+  const tussen = ([a, b]) => a + Math.random() * (b - a);
+  const onweer = { actief: false, rest: 0, lengte: 0, volgende: 0, bliksems: 0, donders: 0, buien: 0, flitsMax: 0, laatste: null };
+  const donders = [];                 // { t, afstand }: onderweg
+  let flits = null;                   // { t, duur, pulsen: [[begin, lengte]], sterkte }
+  let flitsWas = false;
+  function beginOnweer(eersteNa = tussen(ONWEER.eerste)) {
+    onweer.actief = true;
+    onweer.lengte = onweer.rest = tussen(ONWEER.duur);
+    onweer.volgende = eersteNa;
+    onweer.buien++;
+  }
+  function bliksem() {
+    // waar in de bui we zijn: 0 aan het begin, 1 aan het eind; in het midden is hij het dichtst bij
+    const v = 1 - Math.max(0, Math.min(1, onweer.rest / Math.max(1, onweer.lengte)));
+    const [v0, v1] = ONWEER.vertraging;
+    const vertraging = Math.max(v0, Math.min(v1, v1 - (v1 - v0) * Math.sin(Math.PI * v) + (Math.random() - 0.5) * 1.6));
+    const afstand = vertraging * ONWEER.geluid;
+    const duur = tussen(ONWEER.flits);
+    const n = 1 + Math.floor(Math.random() * 3);
+    const pulsen = [[0, Math.min(duur, 0.05 + Math.random() * 0.03)]];
+    for (let i = 1; i < n; i++) {
+      const b = duur * (0.35 + 0.6 * i / n) * (0.85 + Math.random() * 0.15);
+      pulsen.push([Math.min(b, duur - 0.03), 0.03 + Math.random() * 0.03]);
+    }
+    flits = { t: 0, duur, pulsen, sterkte: Math.max(0.3, Math.min(1, 1.2 - vertraging * 0.13)) };
+    donders.push({ t: vertraging, afstand });
+    onweer.bliksems++;
+    onweer.laatste = { vertraging: +vertraging.toFixed(2), afstand: Math.round(afstand), duur: +duur.toFixed(3), pulsen: n };
+  }
+  function flitsSterkte() {
+    if (!flits) return 0;
+    let s = 0;
+    for (const [b, l] of flits.pulsen) {
+      const u = (flits.t - b) / l;
+      if (u >= 0 && u <= 1) s = Math.max(s, Math.sqrt(1 - u));
+    }
+    return s * flits.sterkte;
+  }
+  // de flits over wat `pasToe` net zette: alleen sterktes en kleuren, geen lichtbron erbij
+  function flitsOver(s) {
+    hemi.intensity += ONWEER.hemel * s;
+    fill.intensity += ONWEER.vul * s;
+    const l = ONWEER.lucht * s;
+    skyUniforms.top.value.lerp(FLITS_KLEUR, l);
+    skyUniforms.mid.value.lerp(FLITS_KLEUR, l);
+    skyUniforms.bot.value.lerp(FLITS_KLEUR, l * 0.9);
+    scene.fog.color.lerp(FLITS_KLEUR, l * 0.6);
+    if (ctx.wolken) for (const m of ctx.wolken) m.color.lerp(FLITS_KLEUR, l * 0.8);
+  }
+  function werkOnweerBij(dt) {
+    const regent = weer === 'regen' && zwaar >= 1.5;
+    if (!onweer.actief) {
+      if (regent && Math.random() < ONWEER.kans * dt / 60) beginOnweer();
+    } else {
+      onweer.rest -= dt;
+      if (!regent || onweer.rest <= 0) onweer.actief = false;
+      else if ((onweer.volgende -= dt) <= 0) { bliksem(); onweer.volgende = tussen(ONWEER.tussen); }
+    }
+    // de donder die nog onderweg is
+    for (let i = donders.length - 1; i >= 0; i--) {
+      const d = donders[i];
+      if ((d.t -= dt) > 0) continue;
+      donders.splice(i, 1);
+      onweer.donders++;
+      if (api.opDonder) api.opDonder(d.afstand); else geluid.donder(d.afstand);
+    }
+    // de flits: elk beeld opnieuw over `pasToe`, en na afloop één keer terug
+    if (flits) { flits.t += dt; if (flits.t > flits.duur) flits = null; }
+    const s = flitsSterkte() * (geluid.binnen ? ONWEER.binnen : 1);
+    if (s > 0 || flitsWas) {
+      pasToe();
+      if (s > 0) { flitsOver(s); onweer.flitsMax = Math.max(onweer.flitsMax, s); }
+      flitsWas = s > 0;
+    }
+    onweer.flits = s;
+  }
 
   // ---------- wind in het blad ----------
   // Een kleine verschuiving per hoekpunt in de vertex shader; kost niets en
@@ -397,6 +509,12 @@ export function initSfeer(ctx) {
     }
     windUniform.value += dt;
     tijdUniform.value = windUniform.value;       // de tv's achter de ramen
+    // de wind draait langzaam en gaat met het weer mee (stap 131)
+    windKlok += dt;
+    wind.hoek = WIND.hoek + WIND.draai * Math.sin(windKlok / 600) + 0.2 * Math.sin(windKlok / 170);
+    wind.x = Math.cos(wind.hoek); wind.z = Math.sin(wind.hoek);
+    wind.kracht = Math.min(1, W3(...WIND.kracht) * (0.85 + 0.15 * Math.sin(windKlok * 0.7) * Math.sin(windKlok * 0.23)) + (onweer.actief ? 0.1 : 0));
+    werkOnweerBij(dt);
 
     // water laten stromen: de rimpels (normal map) schuiven langzaam
     const golf = mats.water.normalMap || mats.water.map;
@@ -488,7 +606,7 @@ export function initSfeer(ctx) {
   }
 
   pasToe();
-  return {
+  const api = {
     update, pasToe,
     get drukte() { return drukteFactor(); },
     get lampenAan() { return lampFactor(); },
@@ -514,7 +632,24 @@ export function initSfeer(ctx) {
     },
     zetTijd(naam) { const t = TIJDEN.find(q => q.naam === naam); if (t) { uur = t.uur; pasToe(); } return t || null; },
     get tijdNaam() { return tijdNaam(uur); },
+    // de wind (stap 131): { x, z } waar hij naartoe waait, `kracht` 0…1, `hoek`; één object, elk beeld bijgewerkt
+    get wind() { return wind; },
+    /*
+     Onweer (stap 131). `onweer` is de stand voor een proef (actief, rest, bliksems, donders, buien, flits, flitsMax,
+     laatste); `bliksems` de teller. `opDonder` (afstand in meter) vervangt het geluid: zonder roept sfeer zelf
+     `geluid.donder` aan. `forceerOnweer` zet het voor een proef meteen op regen met een bui die begint, de eerste
+     bliksem na `flitsNa` tellen.
+    */
+    get onweer() { return onweer; },
+    get bliksems() { return onweer.bliksems; },
+    opDonder: null,
+    forceerOnweer({ flitsNa = 0.2 } = {}) {
+      if (weer !== 'regen') { weer = 'regen'; zwaar = zwaarDoel = 2; pasToe(); }
+      beginOnweer(flitsNa);
+      return onweer;
+    },
   };
+  return api;
   function zetVoorkeur(v) {
     voorkeur = !!v; loopt = voorkeur;
     try { localStorage.setItem(VOORKEUR, voorkeur ? 'loopt' : 'stil'); } catch { /* geen opslag: alleen voor nu */ }

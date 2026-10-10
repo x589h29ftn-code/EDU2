@@ -35,6 +35,8 @@ import { KAART } from './kaartwereld.js';
 import { HOUSE_STYLES, facade, roofTiles, brick } from './textures.js';
 import { addCollider, resolveCollisions } from './world.js';
 import { maakKat } from './kat.js';
+import { kopteksten, nieuwsVersie, uurTekst } from './nieuws.js';
+import { geluid } from './audio.js';
 
 /*
  De woningen waar je naar binnen kunt. Ze hebben allebei dezelfde opzet — een
@@ -238,30 +240,144 @@ function lichthout() {
 }
 
 /*
- Het beeld op de tv. Geen plaatje in de repo (dat is de afspraak: alles wordt
- getekend), maar een doek met een programma erop zoals je het door een
- woonkamerraam ziet: een lucht met een horizon, een paar vlakken die voor
- gebouwen doorgaan, en onderin de balk van de omroep. Het schuift in de lus
- langzaam door, en dan is het van drie meter afstand precies genoeg beweging om
- te zien dat hij aanstaat.
+ Tinga Nieuws op de tv (stap 131). Gevraagd op 10 okt 2026: "Tv zender Tinga
+ nieuws goed idee". Tot nu toe stond er in de drie woningen van missie 9 een vast
+ plaatje van Radio Spannenburg dat langzaam doorschoof; nu is het scherm een
+ nieuwsstudio: links boven het logo (rood en blauw), rechts het uur en LIVE, een
+ presentator achter een rode desk tegen de silhouetten van Sneek, onderin een balk
+ met de kop en daaronder een ticker. De koppen komen uit js/nieuws.js
+ (`kopteksten()`): wat jij in het spel gedaan hebt, en anders rustig lokaal nieuws.
+
+ Het doek wordt niet elk beeld getekend: TV_SCHERM.ververs (een kwart tel) is genoeg
+ voor de ticker, en alleen dan gaat de textuur opnieuw naar de kaart. Uit is het
+ scherm een donker vlak met een flauwe weerspiegeling — hetzelfde materiaal met
+ dezelfde map, zodat aan- en uitzetten geen nieuw shaderprogramma vraagt.
 */
-function tvDoek() {
-  const c = doek(128, 96), g = c.getContext('2d');
-  const r = rnd(41);
-  const lucht = g.createLinearGradient(0, 0, 0, 58);
-  lucht.addColorStop(0, '#2c5f96'); lucht.addColorStop(1, '#9fc4e0');
-  g.fillStyle = lucht; g.fillRect(0, 0, 128, 58);
-  g.fillStyle = '#3d6b3a'; g.fillRect(0, 54, 128, 42);
-  for (let k = 0; k < 9; k++) {
-    const x = r() * 128, w = 8 + r() * 16, h = 10 + r() * 22;
-    g.fillStyle = `rgba(${40 + r() * 60 | 0},${40 + r() * 40 | 0},${50 + r() * 50 | 0},0.9)`;
-    g.fillRect(x, 58 - h, w, h);
+export const TV_SCHERM = {
+  b: 512, h: 288,      // het doek, 16:9 zoals het scherm (1,28 bij 0,73 m)
+  ververs: 0.25,       // s tussen twee keer tekenen
+  kop: 8,              // s per kop
+  ticker: 46,          // px per seconde
+  bereik: 1.2,         // m van de voorkant van de tv waarop E hem aan- of uitzet
+};
+
+// regels afbreken op de breedte; past het niet in `max` regels, dan kleiner
+function afbreken(g, tekst, breed, max, px, gewicht = 'bold') {
+  for (let grootte = px; grootte >= 12; grootte -= 1) {
+    g.font = `${gewicht} ${grootte}px sans-serif`;
+    const regels = [];
+    let r = '';
+    for (const w of tekst.split(' ')) {
+      const proef = r ? `${r} ${w}` : w;
+      if (g.measureText(proef).width <= breed || !r) r = proef;
+      else { regels.push(r); r = w; }
+    }
+    if (r) regels.push(r);
+    if (regels.length <= max) return { regels, grootte };
   }
-  g.fillStyle = 'rgba(12,16,24,0.82)'; g.fillRect(0, 78, 128, 18);
-  g.fillStyle = '#f2c14a'; g.fillRect(4, 82, 3, 10);
-  g.fillStyle = '#e8e6e0'; g.font = 'bold 9px sans-serif';
-  g.fillText('SPANNENBURG', 11, 90);
-  return c;
+  return { regels: [tekst], grootte: 12 };
+}
+
+function tekenTv(c, st) {
+  const g = c.getContext('2d');
+  const B = c.width, H = c.height;
+  g.save();
+  g.textBaseline = 'alphabetic';
+  if (!st.aan) {
+    g.fillStyle = '#121a24'; g.fillRect(0, 0, B, H);
+    const w = g.createLinearGradient(0, 0, B, H);
+    w.addColorStop(0, 'rgba(255,255,255,0.07)'); w.addColorStop(0.45, 'rgba(255,255,255,0.0)');
+    w.addColorStop(0.55, 'rgba(255,255,255,0.03)'); w.addColorStop(1, 'rgba(255,255,255,0.0)');
+    g.fillStyle = w; g.fillRect(0, 0, B, H);
+    g.restore();
+    return;
+  }
+  // de studio: diep blauw met lichte panelen
+  const bg = g.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0a1a36'); bg.addColorStop(1, '#17407a');
+  g.fillStyle = bg; g.fillRect(0, 0, B, H);
+  for (let x = 0; x < B; x += 64) { g.fillStyle = 'rgba(255,255,255,0.04)'; g.fillRect(x, 0, 30, H); }
+  // de silhouetten van Sneek achter het glas: daken, een kerktoren en de Waterpoort
+  g.fillStyle = 'rgba(120,170,235,0.20)';
+  const r = rnd(131);
+  for (let x = 0; x < B; ) {
+    const w = 18 + r() * 26, h = 22 + r() * 30;
+    g.fillRect(x, 168 - h, w, h);
+    g.beginPath(); g.moveTo(x, 168 - h); g.lineTo(x + w / 2, 168 - h - w * 0.45); g.lineTo(x + w, 168 - h); g.fill();
+    x += w + 2;
+  }
+  g.fillRect(150, 82, 16, 86);                                     // de kerktoren
+  g.beginPath(); g.moveTo(148, 82); g.lineTo(158, 50); g.lineTo(168, 82); g.fill();
+  for (const tx of [212, 262]) {                                   // de Waterpoort: twee torentjes en een boog
+    g.fillRect(tx, 104, 18, 64);
+    g.beginPath(); g.moveTo(tx - 2, 104); g.lineTo(tx + 9, 80); g.lineTo(tx + 20, 104); g.fill();
+  }
+  g.fillRect(230, 120, 32, 18);
+  // de presentator achter de desk, rechts in beeld
+  const px = 392;
+  g.fillStyle = '#1d2430';                                         // colbert
+  g.beginPath(); g.moveTo(px - 62, 196); g.quadraticCurveTo(px - 58, 128, px, 124);
+  g.quadraticCurveTo(px + 58, 128, px + 62, 196); g.closePath(); g.fill();
+  g.fillStyle = '#e9edf2';                                         // overhemd
+  g.beginPath(); g.moveTo(px - 13, 126); g.lineTo(px, 152); g.lineTo(px + 13, 126); g.closePath(); g.fill();
+  g.fillStyle = '#b3122e';                                         // stropdas
+  g.beginPath(); g.moveTo(px - 4, 130); g.lineTo(px + 4, 130); g.lineTo(px + 6, 160); g.lineTo(px, 168); g.lineTo(px - 6, 160); g.closePath(); g.fill();
+  g.fillStyle = '#d6a585'; g.fillRect(px - 8, 110, 16, 18);        // hals
+  g.beginPath(); g.ellipse(px, 92, 21, 26, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#3b2a1e';                                         // haar
+  g.beginPath(); g.ellipse(px, 76, 22, 13, 0, Math.PI, 0); g.fill();
+  // de desk
+  g.fillStyle = '#c8102e'; g.fillRect(260, 168, B - 260, 28);
+  g.fillStyle = '#9c0c24'; g.fillRect(260, 192, B - 260, 4);
+  g.fillStyle = '#ffffff'; g.font = 'bold 18px sans-serif';
+  g.fillText('TN', 274, 189);
+  // het logo: TINGA op rood, NIEUWS op blauw
+  g.fillStyle = '#c8102e'; g.fillRect(14, 14, 94, 34);
+  g.fillStyle = '#1f5bd8'; g.fillRect(108, 14, 108, 34);
+  g.fillStyle = '#ffffff'; g.font = 'bold 23px sans-serif';
+  g.fillText('TINGA', 22, 40);
+  g.font = '23px sans-serif';
+  g.fillText('NIEUWS', 116, 40);
+  // rechts boven: LIVE (het bolletje knippert) en het uur
+  if (st.uur) {
+    g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(B - 84, 14, 70, 34);
+    g.fillStyle = '#ffffff'; g.font = 'bold 22px sans-serif';
+    g.fillText(st.uur, B - 77, 39);
+  }
+  const lx = st.uur ? B - 152 : B - 82;
+  g.fillStyle = '#c8102e'; g.fillRect(lx, 14, 64, 34);
+  g.fillStyle = st.knipper ? '#ffffff' : 'rgba(255,255,255,0.25)';
+  g.beginPath(); g.arc(lx + 13, 31, 5, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ffffff'; g.font = 'bold 16px sans-serif';
+  g.fillText('LIVE', lx + 23, 37);
+  // de balk met de kop: een etiket en de tekst op wit
+  const kop = st.kop || { tekst: '', soort: 'lokaal' };
+  const etiket = kop.vers ? 'NET BINNEN' : kop.soort === 'lokaal' ? 'LOKAAL' : 'NIEUWS';
+  g.font = 'bold 14px sans-serif';
+  const ew = g.measureText(etiket).width + 20;
+  g.fillStyle = kop.vers ? '#f2c14a' : '#c8102e'; g.fillRect(12, 200, ew, 22);
+  g.fillStyle = kop.vers ? '#1a1a1a' : '#ffffff'; g.fillText(etiket, 22, 216);
+  if (kop.uur) {
+    g.fillStyle = 'rgba(10,26,54,0.85)'; g.fillRect(12 + ew, 200, 56, 22);
+    g.fillStyle = '#ffffff'; g.fillText(kop.uur, 20 + ew, 216);
+  }
+  g.fillStyle = '#ffffff'; g.fillRect(12, 222, B - 24, 30);
+  const { regels, grootte } = afbreken(g, kop.tekst, B - 44, 1, 21);
+  g.fillStyle = '#0a1a36'; g.font = `bold ${grootte}px sans-serif`;
+  g.fillText(regels[0] || '', 22, 222 + 15 + grootte * 0.36);
+  // de ticker onderaan
+  g.fillStyle = '#0d2a5c'; g.fillRect(0, 258, B, 30);
+  g.fillStyle = '#c8102e'; g.fillRect(0, 258, 42, 30);
+  g.fillStyle = '#ffffff'; g.font = 'bold 15px sans-serif'; g.fillText('TN', 10, 279);
+  g.save();
+  g.beginPath(); g.rect(44, 258, B - 44, 30); g.clip();
+  g.fillStyle = '#ffd23f'; g.font = '16px sans-serif';
+  const tw = Math.max(1, g.measureText(st.ticker || '').width);
+  const x0 = 44 + ((st.tickX % tw) + tw) % tw - tw;     // twee keer, zodat hij rond loopt
+  g.fillText(st.ticker || '', x0, 279);
+  g.fillText(st.ticker || '', x0 + tw, 279);
+  g.restore();
+  g.restore();
 }
 
 /*
@@ -593,6 +709,9 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     { muur: 0xece4d4, accent: 0x5d7a74 },   // zand met diepgroen
   ];
   const KLEUR = KLEUREN[(HUIS.plek || 0) % KLEUREN.length];
+  // het doek van de tv (stap 131): vóór de materialen, want het scherm draagt het vanaf het begin
+  const tvDoekC = doek(TV_SCHERM.b, TV_SCHERM.h);
+  const tvTex = texture(tvDoekC, 1, 1);
   const MAT = {
     muur: new THREE.MeshBasicMaterial({
       map: texture(behangDoek(), 2.5, 2.5), color: KLEUR.muur, vertexColors: true, fog: false,
@@ -626,14 +745,13 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     tvKast: plat(0x33333a),
     tvRand: plat(0x1a1a1e),
     /*
-     Een donker scherm, behalve in de drie woningen van missie 9: daar staat de
-     tv aan op Radio Spannenburg en is het beeld een eigen doek dat langzaam
-     doorschuift. Zonder `vertexColors` blijft hij overal even fel — een scherm
-     dat aanstaat hoort niet mee te doen met het licht in de kamer.
+     Het scherm: in elke woning hetzelfde soort materiaal met een eigen doek
+     (Tinga Nieuws, stap 131; `tvDoekC`), dat uit een donker vlak is en aan de
+     nieuwsstudio. Zo is er vanaf het opstarten één programma en komt er bij het
+     aanzetten geen bij. Zonder `vertexColors` blijft hij overal even fel — een
+     scherm dat aanstaat hoort niet mee te doen met het licht in de kamer.
     */
-    tvBeeld: HUIS.stek
-      ? new THREE.MeshBasicMaterial({ map: texture(tvDoek(), 1, 1), fog: false })
-      : new THREE.MeshBasicMaterial({ color: 0x121a24, fog: false }),
+    tvBeeld: new THREE.MeshBasicMaterial({ map: tvTex, fog: false }),
     lamp: new THREE.MeshBasicMaterial({ color: 0xfff4d8, side: THREE.DoubleSide, fog: false }),
     snoer: plat(0x33332f),
     // de inrichting (verzoek 23 sep 2026): planten, een dressoir met foto's en
@@ -1076,6 +1194,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   */
   const TV_AFSTAND = Math.max(1.9, Math.min(3.20, DWARS - BANK_DIEP - 1.35));
   const TV_V = BANK_DIEP + TV_AFSTAND;
+  // waar je voor de tv staat om hem met E aan of uit te zetten (stap 131), in kamermaten
+  const tvPlek = pB((BANK_U0 + BANK_U1) / 2, TV_V - 0.4);
   {
     const um = (BANK_U0 + BANK_U1) / 2;
     const u0 = um - 0.85, u1 = um + 0.85;
@@ -2065,8 +2185,9 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
        hij is dan het felste vlak in de kamer.
       */
       if (t.m === MAT.lamp) { t.m.color.setHex(nacht ? 0xfff6d2 : 0xd7d4cb); continue; }
-      // en een tv die aanstaat is 's avonds juist het enige licht in de kamer
-      if (t.m === MAT.tvBeeld && MAT.tvBeeld.map) continue;
+      // en het scherm doet nooit mee: aan is het 's avonds juist het enige licht in de kamer,
+      // en uit heeft het doek zijn eigen donker (stap 131)
+      if (t.m === MAT.tvBeeld) continue;
       t.m.color.copy(t.basis).multiply(nacht ? t.nacht : t.dag);
     }
   }
@@ -2117,6 +2238,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   }
   function naarBuitenGaan() {
     zetRadio(false);
+    zetTv(false);
     player.inCar = null;
     if (player.zit) { player.zit = false; player.eye = player.eyeStaand; }
     const [ux, uz] = resolveCollisions(stoep.x, stoep.z, 0.4);
@@ -2156,6 +2278,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     player.pitch = 0;
     player.zit = true;
     zitWaar = 'bank';
+    // wie op de bank gaat zitten, zet de tv aan (stap 131: "of de bank")
+    if (!tvAan) zetTv(true);
     player.applyCamera();
   }
   function aanTafel() {
@@ -2236,6 +2360,61 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
   }
 
   /*
+   ---------- de tv: Tinga Nieuws (stap 131) ----------
+   E voor de tv zet hem aan en uit, en op de bank gaan zitten zet hem aan. Aan
+   tekent hij om de TV_SCHERM.ververs een nieuw beeld, maar alleen als je in deze
+   woning bent; om de TV_SCHERM.kop tellen de volgende kop, en komt er nieuws bij
+   (`nieuwsVersie`), dan meteen het nieuwste. Hij gaat uit als je het huis uit
+   gaat, net als de radio. De drie woningen van missie 9 staan bij het begin aan,
+   zoals ze dat met Radio Spannenburg deden.
+  */
+  const tvPunt = wereld(tvPlek.x, tvPlek.z);
+  let tvAan = !!HUIS.stek;
+  let tvKoppen = [], tvNr = 0, tvKopT = 0, tvTekenT = 0, tvTickX = 0, tvVersie = -1, tvKnipT = 0;
+  let tvWasBinnen = false;
+  function bijTv(x, z) {
+    return binnen(x, z) && Math.hypot(x - tvPunt.x, z - tvPunt.z) < TV_SCHERM.bereik;
+  }
+  function tvLijst() {
+    tvKoppen = kopteksten({ metSoort: true });
+    if (!tvKoppen.length) tvKoppen = [{ tekst: 'Tinga Nieuws', soort: 'lokaal', uur: null, vers: false }];
+    if (tvNr >= tvKoppen.length) tvNr = 0;
+  }
+  function tekenScherm() {
+    tekenTv(tvDoekC, {
+      aan: tvAan, kop: tvKoppen[tvNr], uur: uurTekst(), knipper: tvKnipT % 1 < 0.5, tickX: tvTickX,
+      ticker: tvKoppen.map(k => k.tekst).join('   +++   ') + '   +++   ',
+    });
+    tvTex.needsUpdate = true;
+  }
+  function zetTv(aan) {
+    aan = !!aan;
+    const was = tvAan;
+    tvAan = aan;
+    if (aan) { tvVersie = nieuwsVersie(); tvNr = 0; tvKopT = 0; tvTickX = 0; tvLijst(); }
+    tvTekenT = TV_SCHERM.ververs;
+    tekenScherm();
+    // een tikje van de knop, alleen als je erbij bent (de tv gaat ook uit als je weggaat)
+    if (was !== aan && binnen(player.pos.x, player.pos.z)) { try { geluid.magazijnKnop(); } catch (e) { /* geen geluid */ } }
+    return true;
+  }
+  function werkTvBij(dt) {
+    const hier = binnen(player.pos.x, player.pos.z);
+    // ook via de opslag, een filmbeeld of een teleport het huis uit: dan gaat hij uit
+    if (tvWasBinnen && !hier && tvAan) zetTv(false);
+    tvWasBinnen = hier;
+    if (!tvAan || !hier) return;
+    tvKopT += dt; tvTekenT -= dt; tvKnipT += dt;
+    tvTickX -= dt * TV_SCHERM.ticker;
+    const v = nieuwsVersie();
+    if (v !== tvVersie) { tvVersie = v; tvNr = 0; tvKopT = 0; tvLijst(); tvTekenT = 0; }
+    else if (tvKopT >= TV_SCHERM.kop) { tvKopT = 0; tvNr++; tvLijst(); tvTekenT = 0; }
+    if (tvTekenT <= 0) { tvTekenT = TV_SCHERM.ververs; tekenScherm(); }
+  }
+  if (tvAan) tvLijst();
+  tekenScherm();
+
+  /*
    ---------- de barbecue op het terras ----------
    E legt het vlees erop; na een halve minuut is het gaar en eet je het op. Dat
    geeft meer leven dan een flesje uit de koelkast, maar je moet er wel even bij
@@ -2280,6 +2459,7 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     }
     if (bijBBQ(player.pos.x, player.pos.z)) { if (bbqToets()) return true; }
     if (bijRadio(player.pos.x, player.pos.z)) { zetRadio(!radioAan); return true; }
+    if (bijTv(player.pos.x, player.pos.z)) return zetTv(!tvAan);
     if (bijKoelkast(player.pos.x, player.pos.z)) return pakBier();
     if (bijTafel(player.pos.x, player.pos.z)) { aanTafel(); return true; }
     if (bijBank(player.pos.x, player.pos.z)) { gaZitten(); return true; }
@@ -2301,8 +2481,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     // de lamp gaat aan zodra het buiten donker wordt
     if (sfeer) zetLicht(!!sfeer.nacht);
     if (katten.length) katUpdate(Math.min(dt, 0.1));
-    // het beeld op de tv schuift door, en de telling van de flesjes loopt af
-    if (MAT.tvBeeld.map) MAT.tvBeeld.map.offset.y = (MAT.tvBeeld.map.offset.y + dt * 0.035) % 1;
+    // Tinga Nieuws op de tv (stap 131), en de telling van de flesjes loopt af
+    werkTvBij(Math.min(dt, 0.5));
     if (nuchterT > 0) { nuchterT -= dt; if (nuchterT <= 0) flesjes = 0; }
     // het vlees op de barbecue
     if (bbqT > 0) {
@@ -2334,6 +2514,8 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
             : 'E — vlees op de barbecue';
       } else if (bijRadio(player.pos.x, player.pos.z)) {
         tekst = radioAan ? 'E — de radio uitzetten' : 'E — de radio aanzetten';
+      } else if (bijTv(player.pos.x, player.pos.z)) {
+        tekst = tvAan ? 'E — de tv uitzetten' : 'E — Tinga Nieuws aanzetten';
       } else if (bijKoelkast(player.pos.x, player.pos.z)) tekst = 'E — een flesje uit de koelkast';
       else if (bijTafel(player.pos.x, player.pos.z)) tekst = 'E — aan tafel zitten';
       else if (bijBank(player.pos.x, player.pos.z)) tekst = 'E — op de bank zitten';
@@ -2400,7 +2582,10 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     get prijs() { return HUIS.prijs || 0; },
     get soort() { return HUIS.soort || null; },
     get beschrijving() { return HUIS.beschrijving || ''; },
-    get tvAan() { return !!MAT.tvBeeld.map; },
+    get tvAan() { return tvAan; },
+    // Tinga Nieuws (stap 131): aan/uit, waar je staat om hem te bedienen, en wat er nu in beeld staat
+    zetTv, bijTv, tvPunt, get tvDoek() { return tvDoekC; },
+    get tvKop() { return tvAan ? (tvKoppen[tvNr] || null) : null; },
     // wat er aan inrichting in deze kamer gepast heeft (npm run huistest)
     get inrichting() { return { ...inrichting, ramen: raamAantal, meshes: groep.children.length }; },
     get flesjes() { return flesjes; },

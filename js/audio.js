@@ -140,6 +140,20 @@ function nu() { return ctx ? ctx.currentTime : 0; }
 const opname = {}, opnameLaden = {};
 let politieRadioT = -1e9, politieRadioTeller = 0, explosieTeller = 0;
 
+/*
+ De donder (stap 131: "Onweer ook als kans als het regent, wel realistisch"). Gemaakt, geen opname: ruis door twee
+ laagdoorlaten, een rommel van een paar seconden die een paar keer aanzwelt, en dichtbij een scherpe knal ervoor.
+ Hoe verder weg, hoe zachter, doffer en langer het rommelt (de hoge tonen sterven eerder uit in de lucht, en het
+ geluid komt van een langer stuk bliksem tegelijk). Binnen hoor je hem gedempt, door de muur.
+
+   ver       vanaf hier (meter) hoor je hem niet meer als knal, alleen als rommel
+   binnen    zoveel ervan binnen
+   knal      onder deze afstand (meter) zit er een knal voor
+*/
+export const DONDER = { ver: 2200, binnen: 0.35, knal: 750, vol: 0.62 };
+let omgevingBinnen = false;           // de laatste `binnen` uit `omgeving`, voor de donder
+let donderGevraagd = 0, donderTeller = 0, laatsteDonder = null;
+
 // ---------- bouwstenen ----------
 function ruisBuffer(sec = 2) {
   const n = Math.floor(ctx.sampleRate * sec);
@@ -1915,6 +1929,58 @@ export const geluid = {
   get explosieTeller() { return explosieTeller; },
 
   /*
+   Een donderslag op `afstand` meter (stap 131). js/sfeer.js roept hem aan, de vertraging na de flits heeft die al
+   gewacht. `binnen` staat standaard op wat `omgeving` het laatst kreeg.
+  */
+  donder(afstand = 1000, { binnen = omgevingBinnen } = {}) {
+    donderGevraagd++;
+    if (!aan || !ctx) return false;
+    if (!isFinite(afstand)) afstand = 1000;
+    afstand = Math.max(50, afstand);
+    const t = nu();
+    const dicht = Math.max(0, Math.min(1, 1 - (afstand - 300) / (DONDER.ver - 300)));   // 1 tot 300 m, 0 op 2,2 km
+    const demp = binnen ? DONDER.binnen : 1;
+    const vol = DONDER.vol * (0.22 + 0.78 * dicht * dicht) * demp;
+    const duur = 3 + 3 * (1 - dicht) + Math.random() * 1.5;
+    // de rommel: ruis door twee laagdoorlaten (steiler dan één), verder weg lager afgesneden
+    const src = ctx.createBufferSource(); src.buffer = ruisBuffer(duur + 0.6);
+    const f1 = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter();
+    f1.type = f2.type = 'lowpass';
+    const kant = (90 + 420 * dicht) * (binnen ? 0.55 : 1);
+    f1.frequency.value = kant; f2.frequency.value = kant * 1.3; f1.Q.value = 0.7; f2.Q.value = 0.5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    const aanloop = 0.06 + 0.7 * (1 - dicht);         // ver weg rolt hij aan, dichtbij is hij er meteen
+    g.gain.linearRampToValueAtTime(vol, t + aanloop);
+    // drie tot vijf keer aanzwellen: het geluid van verschillende stukken van de bliksem dat na elkaar aankomt
+    const n = 3 + Math.floor(Math.random() * 3);
+    for (let i = 1; i <= n; i++) {
+      const ti = t + aanloop + (duur * 0.75) * i / (n + 1) + (Math.random() - 0.5) * 0.3;
+      g.gain.setTargetAtTime(vol * (0.35 + Math.random() * 0.65) * (1 - 0.5 * i / n), ti, 0.18);
+    }
+    g.gain.setTargetAtTime(0.0001, t + duur * 0.8, duur * 0.12);
+    src.connect(f1); f1.connect(f2); f2.connect(g); g.connect(hoofd);
+    src.start(t); src.stop(t + duur + 0.6);
+    // de diepe onderlaag, die je meer voelt dan hoort
+    toon({ freq: 48, naar: 28, duur: 1.4 + duur * 0.3, volume: 0.22 * vol, golf: 'sine', vertraag: aanloop * 0.5 });
+    // dichtbij: de knal (een scheur door de lucht, dan een klap); binnen alleen de doffe klap
+    if (afstand < DONDER.knal) {
+      const k = (1 - afstand / DONDER.knal) * demp;
+      if (!binnen) {
+        tik({ freq: 2600, q: 0.5, duur: 0.09, volume: 0.42 * k, type: 'highpass', val: 0.3 });
+        for (let i = 0; i < 4; i++) tik({ freq: 1400 + Math.random() * 1600, q: 0.7, duur: 0.06, volume: 0.18 * k, type: 'bandpass', val: 0.5, vertraag: 0.03 + i * 0.05 + Math.random() * 0.03 });
+      }
+      tik({ freq: 320, q: 0.6, duur: 0.7, volume: 0.55 * k, type: 'lowpass', val: 0.3, vertraag: 0.02 });
+    }
+    donderTeller++;
+    laatsteDonder = { afstand: Math.round(afstand), binnen: !!binnen, duur: +duur.toFixed(2), vol: +vol.toFixed(3), knal: afstand < DONDER.knal, t };
+    return true;
+  },
+  // voor een proef: hoe vaak gevraagd, hoe vaak echt gespeeld (alleen met geluid aan), en de laatste
+  get donders() { return { gevraagd: donderGevraagd, gespeeld: donderTeller, laatste: laatsteDonder }; },
+  get binnen() { return omgevingBinnen; },
+
+  /*
    ---- de drone (stap 124) ----
    Vier kleine propellers op hoge toeren: een zoemende zaagtand rond de 180 Hz met de
    boventonen erbij, en ruis eromheen. `afstand` is hoe ver de drone van Erik is, want
@@ -2104,6 +2170,7 @@ export const geluid = {
   // ---------- omgeving per beeld ----------
   omgeving(dt, { weer = 'helder', nacht = false, wind = 0.2, binnen = false,
     water = 0, molen = 0, stad = 1 } = {}) {
+    omgevingBinnen = !!binnen;
     if (!aan) return;
     const t = nu();
     /*

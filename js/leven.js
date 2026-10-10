@@ -46,7 +46,8 @@ const HUID = [0xd9b48f, 0xc79a72, 0xe0bfa0, 0x8d5f3f, 0xd2a77f];
 const HAAR = [0x2a1d12, 0x5a3a22, 0x9a8a72, 0x111111, 0xb08a52, 0xc8a060];
 
 // ---- doeken ----
-function doosDoek(merk) {
+// (ook js/pizzabaan.js gebruikt hem: de dozen op de toonbank en achterop de scooter)
+export function doosDoek(merk) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 256;
   const g = c.getContext('2d');
   const cap = merk === 'Cappadocia';
