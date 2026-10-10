@@ -57,6 +57,8 @@ const TEKSTEN = {
   ],
   brand: [
     (s) => `Brand ${s}. De brandweer heeft het vuur onder controle.`,
+  ],  dj: [
+    () => `Op Radio Tinga draaide vandaag een gastdj. Sjors: "Hij mag terugkomen."`,
   ],
 };
 
@@ -190,6 +192,9 @@ const KOPPEN = {
       (s, e) => `Illegale straatrace naar IJlst${e.inleg ? `: om € ${e.inleg} gereden` : ''}, winnaar spoorloos`,
       () => `Nachtelijke race over de Lemmerweg: buurt klaagt over lawaai`,
     ],
+  },
+  dj: {
+    lijst: [() => 'Gastdj achter de knoppen bij Radio Tinga: luisteraars bellen massaal'],
   },
   missie: {
     lijst: [

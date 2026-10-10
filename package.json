@@ -222,6 +222,8 @@
     "wensen3shots": "node tools/wensen3shots.mjs 8123",
     "wensen4test": "node tools/wensen4test.mjs 8123",
     "wensen4shots": "node tools/wensen4shots.mjs 8123",
+    "wensen5test": "node tools/wensen5test.mjs 8123",
+    "wensen5shots": "node tools/wensen5shots.mjs 8123",
     "wensenshots": "node tools/wensenshots.mjs 8123"
   }
 }

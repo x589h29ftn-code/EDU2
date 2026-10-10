@@ -14,6 +14,14 @@ import { initInterieur, WONINGEN } from './interieur.js';
 import { initBoerderij, MUNITIE, EHBO, PISTOOL, MITRAILLEUR, SNIPER } from './boerderij.js';
 import { initSpuiterij, PRIJS_PER_STER } from './spuiterij.js';
 import { initGarage, TE_KOOP, NAAM as AUTOHUIS } from './garage.js';
+// stap 131: bijbaantjes en dingen om te doen of te zien
+import { initPizzabaan } from './pizzabaan.js';
+import { initTennisspel } from './tennisspel.js';
+import { initVishandel } from './vishandel.js';
+import { initZeilen } from './zeilen.js';
+import { initTuning } from './tuning.js';
+import { initDjDienst } from './djdienst.js';
+import { zetKlok as nieuwsKlok } from './nieuws.js';
 import { inBouwvlak } from './bouwvlak.js';
 import { initBoten } from './boot.js';
 import { initSupermarkt, BIER } from './supermarkt.js';
@@ -847,6 +855,12 @@ const spuiterij = initSpuiterij({ scene, player, vehicles, hud, verhaal, politie
  met de Ferrari's en de BX (js/garage.js, de plek in js/bouwvlak.js).
 */
 const garage = (KAART && !BOVEN) ? initGarage({ scene, player, vehicles, hud, verhaal, sfeer: dagKlok }) : null;
+// tuning en decals aan het eind van de balie, alleen voor je eigen auto (stap 131)
+const tuning = garage ? initTuning({ scene, vehicles, garage, player, hud }) : null;
+// de klok voor wat het uur nodig heeft vóór js/sfeer.js bestaat (die komt verderop)
+const uurKlok = { get uur() { try { return sfeer.uur; } catch { return 12; } } };
+// Martens Vishandel voor de Jumbo aan de Molenkrite (stap 131)
+const vishandel = (KAART && !BOVEN) ? initVishandel({ scene, KAART, player, hud, sfeer: uurKlok, verhaal }) : null;
 /*
  Een wedstrijd op het hoofdveld van VV Sneek, elke dag van twaalf tot drie (js/wedstrijd.js, stap 111).
  `wedDag` telt de dagen: een nieuwe dag mag weer een wedstrijd.
@@ -891,6 +905,17 @@ function wedstrijdInFilm(dt) {
 const ambulance = (KAART && !BOVEN) ? initAmbulance({ scene, vehicles, KAART, npcs, sfeer: dagKlok }) : null;
 const nieuws = maakNieuws({ hud, geluid, straatVan: (x, z) => nearestRoadName(x, z) });
 // een feestje in een tuin, de pizzascooter en de plezierboot op de Geeuw (stap 113, js/leven.js)
+// het uur voor de tv thuis (Tinga Nieuws, stap 131)
+nieuwsKlok(() => uurKlok.uur);
+// "MISSIE GESLAAGD" komt ook op het nieuws (stap 131)
+{
+  const echt = hud.melding.bind(hud);
+  hud.melding = (kop, ...rest) => {
+    const m = /^MISSIE GESLAAGD(?:\s*[–-]\s*(.+))?/.exec(kop || '');
+    if (m) nieuws.meld('missie', null, null, { titel: m[1] || '' });
+    return echt(kop, ...rest);
+  };
+}
 const leven = (KAART && !BOVEN) ? initLeven({ scene, KAART, sfeer: dagKlok, vehicles, poiesz: (supermarkt.ingangen || [])[0] || null }) : null;
 function ambulanceMelding(x, z, wie = null) {
   if (!ambulance || politie.ster >= 3) return false;
@@ -914,7 +939,17 @@ function inBeeld(x, z) {
   return _frustum.intersectsSphere(_bol);
 }
 // (en de wasbox achter de BP, die stond nog niet op de kaart)
-extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : [])];
+// pizza bezorgen (stap 131): de twee afhaalluiken, met een eigen scooter
+const pizzabaan = (KAART && !BOVEN) ? initPizzabaan({ scene, KAART, vehicles, player, hud, geluid,
+  verdien: n => verhaal.verdien(n), derde }) : null;
+// tennis tegen een tegenstander op het park aan de Molenkrite (stap 131)
+const tennisspel = (KAART && !BOVEN) ? initTennisspel({ scene, KAART, player, hud, geluid,
+  verdien: n => verhaal.verdien(n),
+  vrij: () => (verhaal.missieBezig ? 'Eerst je missie afmaken.' : politie.ster > 0 ? 'Niet met de politie achter je aan.' : true) }) : null;
+// de knoppen van Radio Tinga overnemen (stap 131)
+const djdienst = initDjDienst({ studio, geluid, hud, player, verdien: n => verhaal.verdien(n), nieuws });
+extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : []),
+  ...(pizzabaan ? pizzabaan.plekken : []), ...(vishandel && vishandel.winkels ? vishandel.winkels : [])];
 winkelsNu = null; werkKaartvlaggenBij();
 
 /*
@@ -1602,14 +1637,34 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keydown', e => {
   if (e.code !== 'KeyX' || e.ctrlKey || e.metaKey || e.repeat) return;
   if (!player.active && !window.__autoplay) return;
+  if (tennisspel && tennisspel.afbreken()) return;
+  if (pizzabaan && pizzabaan.afbreken()) return;
   if (verhaal && verhaal.klusAfbreken) verhaal.klusAfbreken();
+});
+
+// stap 131: de cijfers voor het menu van de tuning en de knoppen van Radio Tinga (vóór kiesHuis en shift+cijfer)
+window.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = /^(?:Digit|Numpad)([0-9])$/.exec(e.code);
+  if (!k) return;
+  if ((tuning && tuning.open && tuning.kies(+k[1])) || (djdienst.open && djdienst.kies(+k[1]))) { e.preventDefault(); e.stopImmediatePropagation(); }
+}, { capture: true });
+// de klik als slag bij tennis
+document.addEventListener('mousedown', e => {
+  if (e.button === 0 && player.active && tennisspel && tennisspel.bezig) tennisspel.slag();
 });
 
 function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
+  if (tennisspel && tennisspel.bezig) { tennisspel.slag(); return; }
   if (verhaal.toets()) return;
   for (const r of binnenruimtes) if (r.toets()) return;
+  if (djdienst.toets()) return;               // aan de knoppen van Radio Tinga (stap 131)
+  if (pizzabaan && pizzabaan.toets()) return; // pizza bezorgen (stap 131)
+  if (tuning && tuning.toets()) return;       // tuning en decals aan het eind van de balie
   if (garage && garage.toets()) return;       // een auto kopen in de showroom
+  if (vishandel && vishandel.toets()) return; // kibbeling bij Martens (stap 131)
+  if (tennisspel && tennisspel.toets()) return;
   if (toggleBoot()) return;
   toggleCar();
 }
@@ -2350,6 +2405,9 @@ function bewaar({ uitMenu = false } = {}) {
 }
 
 function laadSpelNu() {
+  if (tennisspel) tennisspel.afbreken();
+  if (pizzabaan) pizzabaan.afbreken();
+  djdienst.stop();
   politie.reset();          // een opgeslagen spel begint zonder achtervolging
   if (politieboot) politieboot.reset();
   const gelukt = laadZonderDrone({ player, sfeer, vehicles, verhaal, boten, vaart, garage });
@@ -2536,11 +2594,14 @@ const sfeer = initSfeer({
   // de wolken kleuren mee met het licht (zie js/sfeer.js)
   wolken: clouds.map(l => l.mesh.material),
 });
+// een paar zeilbootjes op het open water (stap 131)
+const zeilen = (KAART && !BOVEN) ? initZeilen({ scene, KAART, sfeer }) : null;
 
 // Hoofdlus
 let last = performance.now(); let time = 0; let lodKlok = 0;
 let laatsteRadio = null;     // welk nummer er als laatste in het balkje stond
 let opruimKlok = 0;          // (stap 130) voor vehicles.ruimVerlatenOp
+let sterWas = 0;             // (stap 131) om 'politie afgeschud' te melden
 let stekRadio = false;       // staat de radio in een van de woningen aan (missie 9)
 // Afstand tot de dichtstbijzijnde radio in de wijk; audio.js bepaalt daarmee
 // het volume. Null als er geen radio staat.
@@ -2622,6 +2683,7 @@ function loop() {
     if (drone.actief && (document.body.classList.contains('film') || player.inCar || player.zit || player.binnen)) drone.terug();
     if (drone.actief) drone.update(dt);
     else { player.update(dt); drone.update(dt); }
+    if (tennisspel) tennisspel.update(dt);
     /*
      De boten. Ook als je er niet in zit deinen ze mee met het water, dus dit
      staat vóór de keuze tussen te voet, in de auto en aan boord; alleen de
@@ -2790,6 +2852,13 @@ function loop() {
     for (const r of binnenruimtes) r.update(dt, verhaal.aanspreekbaar);
     if (spuiterij) spuiterij.update(dt);      // de roldeuren van de wasboxen
     if (garage) garage.update(dt, verhaal.aanspreekbaar);   // de showroom aan de Lemmerweg
+    if (tuning) tuning.update(dt, verhaal.aanspreekbaar);
+    if (vishandel) vishandel.update(dt);
+    if (pizzabaan) pizzabaan.update(dt, { vrij: !!verhaal.klusVrij && !(verhaal.klusjes && verhaal.klusjes.bezig) });
+    djdienst.update(dt, { vrij: !verhaal.missieBezig });
+    // politie afgeschud: dat is ook nieuws (stap 131)
+    if (sterWas > 0 && politie.ster === 0) nieuws.meld('afgeschud', player.pos.x, player.pos.z, { sterren: sterWas });
+    sterWas = politie.ster;
     werkWedstrijdBij(dt);                                    // de wedstrijd bij VV Sneek
     if (ambulance) ambulance.update(dt, player.pos, inBeeld);  // de ambulance (stap 112)
     if (leven) leven.update(dt, player.pos, inBeeld, sfeer.uur);   // feestje, pizzascooter, plezierboot (stap 113)
@@ -2864,6 +2933,7 @@ function loop() {
     updateClouds(dt, cx, cz);
     werkOmgevingBij(dt);
     vogels.update(dt, cx, cz);
+    if (zeilen) zeilen.update(dt, cx, cz);
     if (knipper) knipper.update(dt, dagKlok.nacht);
     sfeer.update(dt, cx, cz);
     updateProps(dt);
@@ -3122,6 +3192,8 @@ opstartStap('na het eerste beeld');
 // Testhaak voor automatische screenshots
 opstartStap('klaar');
 window.__game = {
+  // stap 131
+  pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst,
   // (stap 130) hoe bebouwd het is, voor de achtergrondgeluiden
   stadNabij: (x, z) => stadNabij(100, x, z),
   // voor tools/kaartdoeltest.mjs: het eigen doel en zijn bijwerken
