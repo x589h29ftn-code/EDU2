@@ -455,13 +455,14 @@ export function initVishandel({ scene, KAART, player, hud, sfeer, verhaal = null
   blok(2.2, 0.04, 0.3, M.rvs, 0.6, 2.0, -B / 2 + 0.2);
 
   // ---- de toonbank met de vitrine ----
-  blok(LUIK_B + 0.1, 0.06, 0.62, M.rvs, TOONBANK.x, LUIK_Y0 + 0.03, B / 2 + 0.06);
-  blok(LUIK_B * 0.62, 0.3, 0.44, M.glas, TOONBANK.x - 0.55, LUIK_Y0 + 0.21, B / 2 - 0.05, { schaduw: false });
-  const ijs = vlak(LUIK_B * 0.6, 0.42, M.vitrine, TOONBANK.x - 0.55, LUIK_Y0 + 0.08, B / 2 - 0.05);
+  blok(LUIK_B + 0.1, 0.06, 0.8, M.rvs, TOONBANK.x, LUIK_Y0 + 0.03, B / 2 - 0.03);
+  // de vitrine staat binnen de lijn van het luik, zodat het luik erover dicht kan
+  blok(LUIK_B * 0.62, 0.3, 0.36, M.glas, TOONBANK.x - 0.55, LUIK_Y0 + 0.21, B / 2 - 0.25, { schaduw: false });
+  const ijs = vlak(LUIK_B * 0.6, 0.34, M.vitrine, TOONBANK.x - 0.55, LUIK_Y0 + 0.08, B / 2 - 0.25);
   ijs.rotation.x = -Math.PI / 2;
   // een bakje kibbeling op de toonbank, klaar om mee te nemen
-  blok(0.22, 0.06, 0.14, M.wit, TOONBANK.x + 1.3, LUIK_Y0 + 0.09, B / 2 + 0.12);
-  blok(0.18, 0.04, 0.1, M.olie, TOONBANK.x + 1.3, LUIK_Y0 + 0.13, B / 2 + 0.12, { schaduw: false });
+  blok(0.22, 0.06, 0.14, M.wit, TOONBANK.x + 1.3, LUIK_Y0 + 0.09, B / 2 + 0.22);
+  blok(0.18, 0.04, 0.1, M.olie, TOONBANK.x + 1.3, LUIK_Y0 + 0.13, B / 2 + 0.22, { schaduw: false });
 
   // ---- het prijsbord naast het luik ----
   vlak(0.66, 0.84, M.prijs, (LUIK_X1 + L / 2) / 2, 1.85, B / 2 + 0.012);
@@ -495,14 +496,18 @@ export function initVishandel({ scene, KAART, player, hud, sfeer, verhaal = null
   groep.add(luik);
   {
     const kant = M.wit;
-    const m = new THREE.Mesh(new THREE.BoxGeometry(LUIK_B, LUIK_H, 0.05),
+    // 7 cm korter dan de opening: dicht rust hij net boven de toonbank
+    const lh = LUIK_H - 0.07;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(LUIK_B, lh, 0.05),
       [kant, kant, kant, kant, M.luik, M.luikOnder]);
-    m.position.set(0, -LUIK_H / 2, 0.025);
+    m.position.set(0, -lh / 2, 0.025);
     m.castShadow = true; m.receiveShadow = true;
     luik.add(m);
     // de gestreepte rand hangt aan de onderrand, en als het luik open is aan de voorkant
-    const rand = new THREE.Mesh(new THREE.PlaneGeometry(LUIK_B, 0.28), M.streep);
-    rand.position.set(0, -LUIK_H, 0.055); rand.rotation.x = Math.PI / 2;
+    const randGeo = new THREE.PlaneGeometry(LUIK_B, 0.28);
+    randGeo.translate(0, -0.14, 0);              // de bovenrand op het scharnierpunt
+    const rand = new THREE.Mesh(randGeo, M.streep);
+    rand.position.set(0, -lh, 0.055);
     rand.castShadow = true;
     luik.add(rand);
     luik.userData.rand = rand;
@@ -531,7 +536,7 @@ export function initVishandel({ scene, KAART, player, hud, sfeer, verhaal = null
 
   // ---- de visboer ----
   const drager = new THREE.Group();
-  drager.position.set(TOONBANK.x + 0.4, VLOER, B / 2 - 0.55);
+  drager.position.set(TOONBANK.x + 0.4, VLOER, B / 2 - 0.78);
   groep.add(drager);
   const verkoper = new Persoon({ shirt: 0xf2f4f6, broek: 0x26303e, huid: 0xe3b993, haar: 0x7a5a3a,
     pet: true, petKleur: 0xf4f4f2, vest: 0x1d4f9c, korteMouw: true });
@@ -556,8 +561,8 @@ export function initVishandel({ scene, KAART, player, hud, sfeer, verhaal = null
     const e = f * f * (3 - 2 * f);
     luik.rotation.x = e * LUIK_OPEN;
     // de rand hangt altijd recht naar beneden
-    luik.userData.rand.rotation.x = Math.PI / 2 - (Math.PI / 2) * e - luik.rotation.x * 0 + (e > 0 ? -luik.rotation.x : 0) * 0;
-    luik.userData.rand.rotation.x = -luik.rotation.x + (1 - e) * Math.PI / 2;
+    luik.userData.rand.rotation.x = -luik.rotation.x;
+    luik.userData.rand.visible = e > 0.5;
     for (const sx of [-1, 1]) luik.userData['veer' + sx].visible = e > 0.3;
     drager.visible = f > 0.02;
   }

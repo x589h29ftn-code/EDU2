@@ -1028,7 +1028,7 @@ HUD.prototype.tekenLegenda = function (c, W, H) {
 */
 HUD.PICTO_KLEUR = {
   munitie: '#f2b632', bier: '#35b5b0', "auto's": '#e2433b', overspuiten: '#b06be0',
-  huis: '#5ea8e6', klus: '#39d353', missie: '#ffd400', politie: '#3d8bff',
+  huis: '#5ea8e6', klus: '#39d353', missie: '#ffd400', politie: '#3d8bff', pizza: '#e8702a',
 };
 HUD.PICTO = {
   munitie: (c, r) => HUD.tekenWinkel(c, r),
@@ -1075,6 +1075,14 @@ HUD.PICTO = {
     c.fillStyle = '#1a1a1a'; c.font = `bold ${(r * 0.95).toFixed(1)}px sans-serif`;
     c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText('M', 0, 0.5);
+  },
+  // de pizzeria's (js/pizzabaan.js): een punt pizza met salami
+  pizza: (c, r) => {
+    HUD.speld(c, r, HUD.PICTO_KLEUR.pizza, '#3a1a08');
+    c.beginPath(); c.moveTo(0, r * 0.45); c.lineTo(-r * 0.5, -r * 0.5); c.lineTo(r * 0.5, -r * 0.5); c.closePath();
+    c.fillStyle = '#ffd36a'; c.fill();
+    c.fillStyle = '#c0392b';
+    for (const [dx, dy] of [[-0.18, -0.28], [0.17, -0.3], [0, 0.02]]) { c.beginPath(); c.arc(dx * r, dy * r, r * 0.1, 0, Math.PI * 2); c.fill(); }
   },
   // de politie: de blauwe stip die knippert als ze je zoeken
   politie: (c, r) => {
