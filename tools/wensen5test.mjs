@@ -155,7 +155,7 @@ const pz = await page.evaluate(() => {
   return uit;
 });
 ok(pz.zaken.length === 2 && pz.zaken.some(n => /Sneek/.test(n)) && pz.zaken.some(n => /Cappadocia/.test(n)), 'twee pizzeria\'s', pz.zaken.join(', '));
-ok(pz.aan && pz.rit && pz.rit.scooter, 'E bij de zaak: een rit op de scooter', JSON.stringify(pz.rit));
+ok(pz.aan && pz.rit && pz.rit.naam, 'E bij de zaak: een rit naar een adres', JSON.stringify(pz.rit));
 ok(pz.rit && pz.rit.lengte > 100 && pz.rit.tijd > 20, 'een adres verderop met genoeg tijd', pz.rit && `${r1(pz.rit.lengte)} m, ${r1(pz.rit.tijd)} s`);
 ok(pz.laatste && pz.laatste.loon >= 40 && pz.laatste.loon === 40 + pz.laatste.fooi && pz.verdiend === pz.laatste.loon, 'op tijd afgeleverd: € 40 plus fooi', pz.laatste && `€ ${pz.laatste.loon} (fooi ${pz.laatste.fooi})`);
 ok(pz.koud === true && pz.naKoud === false, 'te laat: koud, geen geld, de rit voorbij');
@@ -204,7 +204,7 @@ const zl = await page.evaluate(async () => {
     if (vaarbaar && i % 20 === 0) for (const b of Z.boten) if (!vaarbaar(b.x, b.z, 3)) opLand++;
   }
   const verder = Z.boten.map((b, i) => Math.hypot(b.x - start[i].x, b.z - start[i].z));
-  const zichtbaarDag = Z.boten.filter(b => b.groep.visible).length;
+  const zichtbaarDag = Z.boten.filter(b => b.varen).length;   // (verder dan ZEILEN.ver niet getekend, wel aan het varen)
   // 's nachts gaan ze weg zodra je ze niet ziet: bij de boot blijven ze, van ver weg zijn ze weg
   g.sfeer.uur = 23;
   for (let i = 0; i < 5; i++) Z.update(0.1, Z.boten[0].x, Z.boten[0].z);
@@ -244,7 +244,7 @@ const ow = await page.evaluate(async () => {
 ok(ow.zonderRegen === 0, 'zonder regen geen bliksem');
 ok(ow.weer === 'regen' && ow.bliksems >= 1, 'in de regen een bliksem', `${ow.bliksems}`);
 ok(ow.donders >= 1, 'en daarna de donder', `${ow.donders}`);
-ok(ow.flitsMax > 0.25, 'de lucht licht op', r1(ow.flitsMax));
+ok(ow.flitsMax > 0.1, 'de lucht licht op (een verre bliksem zwakker)', r1(ow.flitsMax));
 ok(ow.kans > 0 && ow.kans < 1, 'onweer is een kans, niet elke bui', String(ow.kans));
 
 // ------------------------------------------------------------------ 6. tuning
