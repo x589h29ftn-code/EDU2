@@ -176,7 +176,8 @@ const goal = await page.evaluate(() => {
   const hl = V.vl / 2;
   const voor = w.stand;
   w.st.pauzeT = 0; w.st.naDoel = false;
-  b.inHanden = null; b.u = hl - 3; b.v = 0.5; b.h = 0.3; b.vu = 14; b.vv = 0; b.vh = 0;
+  // (stap 127: ook niemand meer aan de bal)
+  b.inHanden = null; b.bezit = null; b.voor = null; b.u = hl - 3; b.v = 0.5; b.h = 0.3; b.vu = 14; b.vv = 0; b.vh = 0;
   // keepers even weg
   for (const s of w.spelers) if (s.keeper) s.u = 0;
   let juichers = 0;
