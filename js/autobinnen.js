@@ -57,6 +57,12 @@ function materialen() {
     chroom: std(0xc6c9cf, 0.35, { metalness: 0.7, ...binnenlicht(0xc6c9cf, 0.2) }),
     klok: null,     // wordt gezet zodra het doek er is
     naald: new THREE.MeshBasicMaterial({ color: 0xe8453a, side: THREE.DoubleSide }),
+    // de Ferrari (stap 127): rood leer, koolstof, en het gele schildje op het stuur
+    leer: std(0x8a1717, 0.62, binnenlicht(0x8a1717, 0.30)),
+    leerZwart: std(0x1d1e22, 0.6, binnenlicht(0x1d1e22, 0.25)),
+    carbon: std(0x26282d, 0.42, { metalness: 0.25, ...binnenlicht(0x26282d, 0.22) }),
+    geel: new THREE.MeshBasicMaterial({ color: 0xf2c418, side: THREE.DoubleSide }),
+    knop: new THREE.MeshBasicMaterial({ color: 0xd21f1f }),
     lampje: new THREE.MeshBasicMaterial({ color: 0x8fe0a0 }),
   };
   return MAT;
@@ -120,6 +126,42 @@ function doos(groep, mat, b, h, d, x, y, z, rx = 0) {
   return groep.add(m), m;
 }
 
+/*
+ De Ferrari van binnen (stap 127, gevraagd: "Ferrari heeft geen goed interieur"). Hij kreeg het interieur van
+ een hatchback: een stoffen bank achterin, een hoedenplank, en stoelen met een rugleuning van 1,39 m terwijl zijn
+ dak op 1,15 m ligt — de hoofdsteunen staken door het dak. Nu twee lage kuipstoelen in rood leer met zwarte
+ wangen, een tunnel in koolstof met de rode startknop en drie knoppen, een schot achter de stoelen, en
+ dashboard en stuur in zijn eigen stijl (zie hierboven).
+*/
+function sportBinnen(groep, M, maat, { vloerY, hemelY, cabZ, achter, stuurX }) {
+  const W = maat.W;
+  const zit = vloerY + 0.07;
+  const rugTop = Math.min(hemelY - 0.06, (maat.oog ? maat.oog.y : 1.02) + 0.06);
+  const rugH = rugTop - zit - 0.03;
+  for (const sx of [stuurX, -stuurX]) {
+    doos(groep, M.leer, 0.40, 0.08, 0.48, sx, zit, cabZ - 0.08);                          // zitting
+    doos(groep, M.leer, 0.40, rugH, 0.08, sx, zit + 0.03 + rugH / 2, cabZ + 0.20, 0.22);  // rug, ver achterover
+    for (const w of [-1, 1]) {
+      // de wangen: hoog langs de zitting en de rug, in zwart leer
+      doos(groep, M.leerZwart, 0.07, 0.15, 0.46, sx + w * 0.235, zit + 0.04, cabZ - 0.08);
+      doos(groep, M.leerZwart, 0.07, rugH * 0.8, 0.12, sx + w * 0.235, zit + 0.03 + rugH * 0.42, cabZ + 0.19, 0.22);
+    }
+    // de uitsparing voor de gordels, bovenin de rug
+    doos(groep, M.leerZwart, 0.08, 0.05, 0.085, sx, rugTop - 0.09, cabZ + 0.215 + Math.sin(0.22) * rugH * 0.4, 0.22);
+  }
+  // de tunnel tussen de stoelen, met de brug van knoppen
+  doos(groep, M.carbon, 0.24, 0.20, 0.95, 0, vloerY + 0.10, cabZ - 0.30);
+  doos(groep, M.carbon, 0.20, 0.05, 0.30, 0, vloerY + 0.24, cabZ - 0.58, -0.25);
+  const knop = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.012, 12), M.knop);
+  knop.position.set(0, vloerY + 0.28, cabZ - 0.62); knop.rotation.x = -0.25; groep.add(knop);
+  for (const dx of [-0.06, 0, 0.06]) doos(groep, M.chroom, 0.035, 0.018, 0.035, dx, vloerY + 0.215, cabZ - 0.42);
+  // het schot achter de stoelen (de motor ligt erachter), en de hoedenplank in koolstof
+  doos(groep, M.carbon, W - 0.26, maat.schouderY - vloerY + 0.06, 0.04, 0, (vloerY + maat.schouderY) / 2 + 0.03, achter + 0.06);
+  doos(groep, M.carbon, W - 0.28, 0.03, 0.30, 0, maat.schouderY + 0.02, achter + 0.22);
+  // een kap over de klokken
+  doos(groep, M.carbon, 0.40, 0.03, 0.14, stuurX, maat.schouderY + 0.135, (cabZ - maat.cabL / 2 + 0.30) + 0.12, -0.12);
+}
+
 /**
  * Het interieur van één auto. `kind` is 'hatch', 'van' of 'truck'.
  *
@@ -168,24 +210,27 @@ export function maakAutoBinnen(maat) {
 
   // ------------------------------------------------------------- dashboard
   // de kuip onder de voorruit, met een schuine bovenkant naar het glas toe
-  doos(groep, M.kunststof, W - 0.20, 0.26, 0.20, 0, schouderY - 0.10, dashZ);
+  const dashMat = maat.sport ? M.carbon : M.kunststof;
+  doos(groep, dashMat, W - 0.20, 0.26, 0.20, 0, schouderY - 0.10, dashZ);
   /*
    Het schot onder het dashboard. Zonder dit keek je vanaf de stoel onder het
    dashboard door tegen de binnenkant van het plaatwerk aan: een rode vlakte
    waar het voetenhok hoort te zitten.
   */
   doos(groep, M.kunststof, W - 0.22, schouderY - 0.23 - vloerY, 0.05, 0, (vloerY + schouderY - 0.23) / 2, dashZ + 0.02);
-  doos(groep, M.kunststof, W - 0.20, 0.06, 0.30, 0, schouderY + 0.03, dashZ - 0.08, -0.42);
+  doos(groep, maat.sport ? M.leerZwart : M.kunststof, W - 0.20, 0.06, 0.30, 0, schouderY + 0.03, dashZ - 0.08, -0.42);
   // middenconsole met ventilatieroosters en een radiootje
   doos(groep, M.zwart, 0.34, 0.12, 0.04, 0, schouderY - 0.08, dashAchter);
   doos(groep, M.chroom, 0.26, 0.05, 0.02, 0, schouderY - 0.08, dashAchter + 0.015);
   for (const sx of [-1, 1]) doos(groep, M.zwart, 0.18, 0.07, 0.03, sx * (W / 2 - 0.32), schouderY - 0.02, dashAchter);
-  // console tussen de stoelen, met de pook erop
-  doos(groep, M.kunststof, 0.30, 0.16, 0.58, 0, vloerY + 0.12, cabZ - 0.30);
-  doos(groep, M.zwart, 0.035, 0.20, 0.035, 0, vloerY + 0.28, cabZ - 0.40);
-  doos(groep, M.zwart, 0.055, 0.05, 0.055, 0, vloerY + 0.38, cabZ - 0.40);
-  // handrem
-  doos(groep, M.zwart, 0.035, 0.035, 0.24, 0.02, vloerY + 0.24, cabZ - 0.12, -0.35);
+  if (!maat.sport) {
+    // console tussen de stoelen, met de pook erop
+    doos(groep, M.kunststof, 0.30, 0.16, 0.58, 0, vloerY + 0.12, cabZ - 0.30);
+    doos(groep, M.zwart, 0.035, 0.20, 0.035, 0, vloerY + 0.28, cabZ - 0.40);
+    doos(groep, M.zwart, 0.055, 0.05, 0.055, 0, vloerY + 0.38, cabZ - 0.40);
+    // handrem
+    doos(groep, M.zwart, 0.035, 0.035, 0.24, 0.02, vloerY + 0.24, cabZ - 0.12, -0.35);
+  }
 
   // -------------------------------------------------------------- klokken
   const klok = new THREE.Mesh(new THREE.PlaneGeometry(0.30, 0.15), maat.sport ? M.klokSport : M.klok);
@@ -227,6 +272,17 @@ export function maakAutoBinnen(maat) {
   const naaf = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.035, 10), M.kunststof);
   naaf.rotation.x = Math.PI / 2;
   stuur.add(naaf);
+  if (maat.sport) {
+    // het gele schildje in de naaf, een rode streep bovenop de krans, en de schakelflippers erachter
+    const schild = new THREE.Mesh(new THREE.CircleGeometry(0.03, 14), M.geel);
+    schild.position.z = 0.019; stuur.add(schild);
+    const streep = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.042), M.leer);
+    streep.position.set(0, R, 0); stuur.add(streep);
+    for (const sx of [-1, 1]) {
+      const fl = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.13, 0.008), M.chroom);
+      fl.position.set(sx * (R * 0.72), R * 0.18, -0.045); stuur.add(fl);
+    }
+  }
   groep.add(stuur);
   // de kolom eronder
   doos(groep, M.zwart, 0.07, 0.07, 0.24, stuurX, schouderY - 0.155, stuurZ - 0.09, -0.42);
@@ -238,12 +294,15 @@ export function maakAutoBinnen(maat) {
     doos(groep, M.stof, 0.44, 0.58, 0.10, sx, zit + 0.33, cabZ + 0.16, 0.10);
     doos(groep, M.stof, 0.22, 0.10, 0.10, sx, zit + 0.66, cabZ + 0.12);   // hoofdsteun
   };
-  stoel(stuurX);
-  stoel(-stuurX);
-  // achterbank en hoedenplank
-  doos(groep, M.stof, W - 0.30, 0.11, 0.42, 0, vloerY + 0.16, achter - 0.10);
-  doos(groep, M.stof, W - 0.32, 0.48, 0.10, 0, vloerY + 0.42, achter + 0.16, 0.12);
-  doos(groep, M.kunststof, W - 0.28, 0.03, 0.34, 0, schouderY - 0.02, achter + 0.30);
+  if (maat.sport) sportBinnen(groep, M, maat, { vloerY, hemelY, cabZ, achter, stuurX, dashZ, dashAchter, stuurZ, voor });
+  else {
+    stoel(stuurX);
+    stoel(-stuurX);
+    // achterbank en hoedenplank
+    doos(groep, M.stof, W - 0.30, 0.11, 0.42, 0, vloerY + 0.16, achter - 0.10);
+    doos(groep, M.stof, W - 0.32, 0.48, 0.10, 0, vloerY + 0.42, achter + 0.16, 0.12);
+    doos(groep, M.kunststof, W - 0.28, 0.03, 0.34, 0, schouderY - 0.02, achter + 0.30);
+  }
 
   /*
    Spiegel en zonnekleppen. Ze hangen aan de hemel, maar in een bestelbus zit de
@@ -255,7 +314,7 @@ export function maakAutoBinnen(maat) {
   const spiegelY = Math.min(hemelY - 0.03, Math.max(hemelY - 0.075, oogY + 0.10));
   doos(groep, M.zwart, 0.22, 0.065, 0.035, 0, spiegelY, voor + 0.02);
   const klepY = Math.min(hemelY - 0.022, Math.max(hemelY - 0.035, oogY + 0.05));
-  for (const sx of [-1, 1]) {
+  if (!maat.sport) for (const sx of [-1, 1]) {
     doos(groep, M.hemel, 0.36, 0.015, 0.16, sx * 0.34, klepY, voor + 0.08, -0.16);
   }
 

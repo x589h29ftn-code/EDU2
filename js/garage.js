@@ -553,7 +553,17 @@ export function initGarage({ scene, player, vehicles, hud, verhaal, sfeer = null
       if (al) {
         al.eigen = s.id; eigen.push({ id: s.id, soort: s.soort, kleur: s.kleur, naam: s.naam, car: al });
       } else {
-        neerzetten(s.soort, s.kleur, s.naam || s.soort, { x: s.x, z: s.z, yaw: s.yaw || 0 }, s.id);
+        /*
+         Staat er al een andere auto (die op de oprit, door js/verhaal.js teruggezet), dan een plek opzij: twee
+         auto's op één plek kwamen op elkaar te staan (stap 127, "de Ferrari voor de woning in de lucht").
+        */
+        const yaw = s.yaw || 0, zx = Math.cos(yaw), zz = -Math.sin(yaw);
+        let p = { x: s.x, z: s.z, yaw };
+        for (const d of [0, 3.2, -3.2, 6.4, -6.4]) {
+          const x = s.x + zx * d, z = s.z + zz * d;
+          if (!vehicles.cars.some(c => !c.weg && isFinite(c.x) && Math.hypot(c.x - x, c.z - z) < 3.2)) { p = { x, z, yaw }; break; }
+        }
+        neerzetten(s.soort, s.kleur, s.naam || s.soort, p, s.id);
       }
       volgende = Math.max(volgende, (s.id || 0) + 1);
     }

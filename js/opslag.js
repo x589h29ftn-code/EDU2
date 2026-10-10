@@ -13,6 +13,50 @@
 */
 const SLEUTEL = 'tinga.spel.v1';
 /*
+ Meerdere opgeslagen spellen (stap 127, gevraagd: "Na opslaan spel wil ik ook bij hoofdmenu een laad spel en dan zie
+ je alle spellen die opgeslagen zijn met welke missie je bent en dag tijdstip"). Elk spel heeft zijn eigen plek:
+ plek 1 is de oude sleutel (een opslag van vóór deze stap blijft dus gewoon staan), plek n daarna `tinga.spel.v1.n`.
+ F5 en Opslaan schrijven naar de plek van het spel dat je speelt (`actief`); een nieuw spel krijgt bij de eerste
+ keer opslaan een nieuwe plek. Meer dan MAX_PLEKKEN: de oudste maakt plaats.
+*/
+const ACTIEF = 'tinga.spel.actief';
+export const MAX_PLEKKEN = 10;
+const plekSleutel = (n) => (n === 1 ? SLEUTEL : `${SLEUTEL}.${n}`);
+let actief = (() => { try { return Math.max(1, parseInt(localStorage.getItem(ACTIEF), 10) || 1); } catch { return 1; } })();
+let nieuwSpel = false;      // na Start spel: de eerste opslag krijgt een nieuwe plek
+function zetActief(n) { actief = n; try { localStorage.setItem(ACTIEF, String(n)); } catch { /* alleen voor nu */ } }
+// alle plekken waar iets staat, met wat erin zit (de nieuwste eerst)
+export function opslagen() {
+  const uit = [];
+  for (let n = 1; n <= MAX_PLEKKEN + 5; n++) {
+    let raw = null;
+    try { raw = localStorage.getItem(plekSleutel(n)); } catch { /* geblokkeerd */ }
+    if (!raw) continue;
+    try {
+      const d = JSON.parse(raw);
+      if (!d || d.versie !== VERSIE || !d.speler) continue;
+      uit.push({ plek: n, tijd: d.tijd || 0, straat: d.straat || '', uur: d.speeluur, missie: d.missieTitel || '', geld: d.geld ?? null, actief: n === actief });
+    } catch { /* onleesbaar: niet in de lijst */ }
+  }
+  return uit.sort((a, b) => b.tijd - a.tijd);
+}
+export function kiesPlek(n) { if (Number.isFinite(n) && n >= 1) { zetActief(n); nieuwSpel = false; } }
+export function startNieuwSpel() { nieuwSpel = true; }
+export function actievePlek() { return actief; }
+export function wisPlek(n) { try { localStorage.removeItem(plekSleutel(n)); return true; } catch { return false; } }
+// de plek voor de volgende opslag
+function schrijfPlek() {
+  if (!nieuwSpel) return actief;
+  const bezet = new Set(opslagen().map(o => o.plek));
+  let n = 1; while (bezet.has(n) && n <= MAX_PLEKKEN) n++;
+  if (n > MAX_PLEKKEN) {
+    // vol: de oudste
+    const lijst = opslagen(); n = lijst[lijst.length - 1].plek;
+  }
+  zetActief(n); nieuwSpel = false;
+  return n;
+}
+/*
  En een tweede plek: het checkpoint (verzoek 26 sep 2026: "na doodgaan altijd
  optie geven om vanaf het laatste checkpoint, dus na de laatste missie, te
  herstarten"). js/verhaal.js laat hem schrijven zodra er een missie afgerond is;
@@ -21,7 +65,7 @@ const SLEUTEL = 'tinga.spel.v1';
 const CHECKPOINT = 'tinga.checkpoint.v1';
 const VERSIE = 1;
 
-function lees(sleutel = SLEUTEL) {
+function lees(sleutel = plekSleutel(actief)) {
   try {
     const raw = localStorage.getItem(sleutel);
     if (!raw) return null;
@@ -30,7 +74,7 @@ function lees(sleutel = SLEUTEL) {
   } catch { return null; }
 }
 
-export function heeftOpslag() { return lees() != null; }
+export function heeftOpslag() { return lees() != null || opslagen().length > 0; }
 export function heeftCheckpoint() { return lees(CHECKPOINT) != null; }
 export function wisCheckpoint() {
   try { localStorage.removeItem(CHECKPOINT); return true; } catch { return false; }
@@ -41,7 +85,7 @@ export function wisCheckpoint() {
  versie of geen speler erin). Een onleesbare opslag verdween eerst stil: 'Spel laden' stond dan gewoon
  niet in het menu, en niemand wist waarom.
 */
-export function opslagStaat(sleutel = SLEUTEL) {
+export function opslagStaat(sleutel = plekSleutel(actief)) {
   try {
     const raw = localStorage.getItem(sleutel);
     if (!raw) return 'leeg';
@@ -52,13 +96,15 @@ export function opslagStaat(sleutel = SLEUTEL) {
 
 // Voor het startscherm: wanneer is er opgeslagen en waar stond je?
 export function opslagInfo() {
-  const d = lees();
+  // de laatst opgeslagen plek (bij het opstarten), of die van het spel dat je speelt
+  let d = lees();
+  if (!d) { const l = opslagen(); if (l.length) d = lees(plekSleutel(l[0].plek)); }
   if (!d) return null;
-  return { tijd: d.tijd || 0, straat: d.straat || '', uur: d.speeluur };
+  return { tijd: d.tijd || 0, straat: d.straat || '', uur: d.speeluur, missie: d.missieTitel || '', aantal: opslagen().length };
 }
 
 export function wisOpslag() {
-  try { localStorage.removeItem(SLEUTEL); return true; } catch { return false; }
+  try { localStorage.removeItem(plekSleutel(actief)); return true; } catch { return false; }
 }
 
 /*
@@ -72,6 +118,9 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
     tijd: Date.now(),
     straat,
     speeluur: sfeer ? sfeer.uur : null,
+    // voor de lijst bij Spel laden (stap 127)
+    missieTitel: verhaal && verhaal.missieTitel ? verhaal.missieTitel() : '',
+    geld: verhaal && typeof verhaal.geld === 'number' ? verhaal.geld : null,
     speler: {
       x: player.pos.x, y: player.pos.y, z: player.pos.z,
       yaw: player.yaw, pitch: player.pitch,
@@ -100,12 +149,14 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
     sfeer: sfeer ? { uur: sfeer.uur, weer: sfeer.weer, loopt: sfeer.loopt } : null,
     verhaal: verhaal ? verhaal.bewaar() : null,
   };
-  try { localStorage.setItem(checkpoint ? CHECKPOINT : SLEUTEL, JSON.stringify(data)); return true; } catch { return false; }
+  try { localStorage.setItem(checkpoint ? CHECKPOINT : plekSleutel(schrijfPlek()), JSON.stringify(data)); return true; } catch { return false; }
 }
 
 // Zet een opgeslagen spel terug. Geeft false als er niets (bruikbaars) staat.
 export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart = null, garage = null, checkpoint = false }) {
-  const d = lees(checkpoint ? CHECKPOINT : SLEUTEL);
+  let d = lees(checkpoint ? CHECKPOINT : plekSleutel(actief));
+  // (de plek van dit spel is leeg, maar er staan er andere: de nieuwste)
+  if (!d && !checkpoint) { const l = opslagen(); if (l.length) { zetActief(l[0].plek); d = lees(plekSleutel(actief)); } }
   // (zonder plek geen spel: anders stond de speler op NaN)
   if (!d || !d.speler || !Number.isFinite(d.speler.x) || !Number.isFinite(d.speler.z)) return false;
   const s = d.speler;

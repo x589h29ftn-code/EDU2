@@ -37,6 +37,7 @@ function materialen() {
     slang: std(0x23262a, { roughness: 0.9 }),
     zuil: std(0xf2f3f1, { roughness: 0.6 }),
     licht: new THREE.MeshStandardMaterial({ color: 0xfff6e0, emissive: 0xfff0cc, emissiveIntensity: 0.55, roughness: 1 }),
+    vloer: std(0x7d8085, { roughness: 0.95 }),
   };
   return MAT;
 }
@@ -128,6 +129,16 @@ export function bouwTankstations(scene, W, stations) {
     const botsYaw = -Math.atan2(T.as[1], T.as[0]);
     const L = T.lengte, B = T.breedte;
     const onder = T.hoogte, dik = T.dek;
+
+    /*
+     De vloer onder de luifel (stap 127, gevraagd: "Bij de Bp kan je door de grond heenkijken"). De kaart heeft
+     onder de luifel twee gaten van zo'n 5 × 8 m — daar lagen in de BGT de pompeilanden als eigen vlak, en die
+     worden hier als model gebouwd. Een plaat asfalt over de hele luifel, net boven het maaiveld.
+    */
+    const vloer = new THREE.Mesh(new THREE.BoxGeometry(L + 3, 0.06, B + 3), M.vloer);
+    vloer.position.set(0, 0.0, 0);
+    vloer.receiveShadow = true;
+    groep.add(vloer);
 
     // ---- de luifel: een plaat met een groene rand eromheen ----
     const dek = new THREE.Mesh(new THREE.BoxGeometry(L, dik * 0.55, B), M.dek);

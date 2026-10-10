@@ -7639,6 +7639,63 @@ opnieuw (de nacht, de mist, de vuilniswagen, de autoschade).
 **Proeven**: `kleinwinsttest` (nieuw), `huistest` (groen, ook de tuindeur), `verhaaltest`. **Foto's**: `klok_hud`, en
 `vuilniswagen` opnieuw met de kliko's.
 
+**Wensen van 9 en 10 okt (stap 127).** Een lijst na het spelen van missie 18, en daarna een tweede met geluiden.
+
+- *In de heli* (js/verhaal.js `werkDeurBij`): het wapen stond daar bewust op onzichtbaar (de buitencamera hangt
+  achter Erik); "ik zie mijn wapen niet" — het staat nu in beeld. Kogels raken van de heli tot het einde van de
+  achtervolging niet op (`player.oneindig`, `AVOND_ONEINDIG`; de hud zegt ∞); in het gevecht gooit Johan een doos
+  als alles leeg is. Het muziekje van de intro (65 s) was op voor de vlucht klaar was: het element loopt nu in een
+  lus, met een dip vlak voor het eind en weer aanzwellen (`HELI_MUZIEK.dip`). De heli van Wiebe had geen eigen
+  geluid: de wieken klonken alleen via de politieheli, die zijn bron elk beeld op stil zet zolang er geen vier
+  sterren zijn. Nu een eigen bron (`geluid.heliRond`), 2,6 keer zo hard.
+- *Bouwman* reed 13,5 en 19 m/s, en `profiel` liet hem door elke bocht op 5,2 m/s² dwars. Nu 21 en 32 m/s, 8,5 m/s²
+  dwars, 6,5 optrekken (`AVOND_RIJ`; `rijdVlucht` neemt `st.optrek` en `st.remmen`). De heli kon dat niet bijhouden:
+  `RONDVLUCHT.vmax` 31, `versnel` 6,5.
+- *Handlangers* (js/handlangers.js, nieuw): twee auto's achter Bouwman op lijn B, tussen hem en jou, en op 42 % van
+  de lijn twee scooters (een zijstraat uit: pas als je hun plek niet ziet). Ze rijden een vaste afstand achter hem,
+  schieten binnen 60 m als `zichtVrij`, de auto's in salvo's van drie; raak is een dobbelsteen die kleiner wordt met
+  de afstand en je snelheid. Ze gaan neer via `car.hp` zoals elke auto.
+- *Het gevecht* zwaarder: zeven man (twee posten erbij, buiten de muren van de loods gemeten), Bouwman vijf
+  treffers, de rest vier, drie machinegeweren, 7 schade per treffer, Mark en Johan om de 5,5–8 s.
+- *De Dúvelsrak*: het schudden van `schokken` zat op de camera van de speler, en het filmbeeld zet de camera elk beeld
+  zelf: het schudden zit nu in het filmbeeld (`AVOND_KNAL`). De knal met `luid` 2,2.
+- *De navigatie na de knal* naar Radio Tinga gaf geen route: de stoep van Radio Tinga hangt aan een voetpad van 34
+  punten dat nergens op aansluit (gemeten: de graaf van de speler had 17.965 knopen, die van de stoep 34). Elk
+  doel op zo'n eiland gaf `null`. js/navigatie.js neemt nu het bereikbare punt dat het dichtst bij het doel ligt.
+- *Het einde* om 22:00 (was 20:30, te licht voor vuurwerk), met js/vuurwerk.js (nieuw: één InstancedMesh, additief,
+  pijlen die openspringen in een bol, een doffe plof en geknetter, `geluid.vuurwerk`) en het muziekje van de intro
+  tot na de titelrol (`muziekVanDeIntro`).
+- *De Ferrari van binnen* (js/autobinnen.js `sportBinnen`): hij had het interieur van een hatchback, met een
+  achterbank en rugleuningen tot 1,39 m onder een dak op 1,15 m. Nu kuipstoelen in rood leer met zwarte wangen, een
+  tunnel in koolstof met een startknop, een schot achter de stoelen, flippers en het gele schildje op het stuur.
+- *De Ferrari in de lucht bij de Wieken*: `springNaarHuis` zette je auto altijd precies op de oprit, op de hoogte die
+  hij had (van het viaduct 5,6 m), ook als daar al een auto stond. `zetAutoBijHuis` zoekt de eerste vrije plek ernaast,
+  op de grond; js/garage.js `herstel` schuift ook op als er al een auto staat.
+- *Voetbal* (js/wedstrijd.js): balbezit. Wie de bal aanneemt dribbelt ermee naar het doel en om tegenstanders heen,
+  speelt eerder af onder druk, een tegenstander kan hem afpakken, en een pass gaat naar de vrijste ploeggenoot (ook
+  opzij of terug), die hem gaat halen (`bal.voor`). De ploeg met de bal schuift op; die zonder zet druk.
+- *De mouw* van het wapen en het mes was een dichte cilinder die 0,52 m achter het wapen ophield; op een breed scherm
+  en bij een steek kwam dat uiteinde rechtsonder in beeld. `mouwGeo` maakt hem 0,55 m langer, tot achter de camera.
+- *De drone* buiten bereik: 15 tellen (was 10), en terug gaat met 48 m/s; stuur je niets, dan drijft hij er vanzelf
+  heen (`terugRichting`).
+- *Volledig scherm*: een regel in de instellingen (de Fullscreen-API, in de app `window.tinga.volledig`), F11 in de app
+  zelf (`before-input-event`). Het menu Wijk van de app (van de oude wijkeditor) is weg; er is geen menubalk meer.
+- *Opgeslagen spellen* (js/opslag.js): tien plekken; plek 1 is de oude sleutel, dus niemand raakt een opslag kwijt.
+  Een nieuw spel krijgt bij de eerste keer opslaan een eigen plek. Spel laden geeft bij meer dan één spel een lijst
+  met de missie (`verhaal.missieTitel`), het moment in het spel en wanneer en waar je opsloeg.
+- *De BP*: de kaart heeft onder de luifel twee gaten van zo'n 5 × 8 m (de pompeilanden waren in de BGT eigen
+  vlakken, en worden hier als model gebouwd). Gemeten met een straal recht naar beneden; nu een vloer onder de luifel.
+- *De geluiden van de gebruiker* (audio/explosie, audio/heli, audio/sfeer, audio/politie): de explosie als opname (op
+  afstand zachter en doffer), de heli als opname in een lus (de afstand zoals de gemaakte: tot 320 m, de hoge tonen
+  eerst weg), de achtergrond overdag de lange opname van 6,8 minuten en 's nachts de korte van 68 s (gemeten: de
+  korte is gelijkmatig en laag, de lange wisselend), streamend omdat de lange als buffer 140 MB zou zijn; zij vervangen
+  het gemaakte verkeersgeruis en dunnen de vogeltjes uit. De portofoon bij de eerste ster: een willekeurig stuk van 5
+  tot 8 s, 0,35 s in en 0,9 s uit, niet vaker dan eens in de 45 s.
+
+**Proeven**: `wensentest` (nieuw), `beginmissietest` (het muziekje begint opnieuw), `dronetest` (vijftien tellen),
+`avondtest`, `uitzendingtest` (het einde om tien uur), `wedstrijdtest`, `opslagtest`, `opzettest`, `vloeiendtest`.
+**Foto's**: `wensenshots`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

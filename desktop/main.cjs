@@ -68,7 +68,7 @@ async function maakVenster() {
   venster = new BrowserWindow({
     width: 1600, height: 950,
     backgroundColor: '#0b1420',
-    title: 'Tinga Sneek – wijkeditor',
+    title: 'Tinga Sneek',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -77,22 +77,23 @@ async function maakVenster() {
   });
   venster.loadURL(`http://127.0.0.1:${port}/index.html`);
 
-  const menu = Menu.buildFromTemplate([
-    {
-      label: 'Wijk',
-      submenu: [
-        { label: 'Editor aan/uit (F2)', click: () => venster.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'F2' }) },
-        { label: 'Rijen opslaan (Ctrl+S)', accelerator: 'CmdOrCtrl+Shift+S', click: () => venster.webContents.executeJavaScript('window.__game && window.__game.editor && window.__game.editor.opslaan()') },
-        { type: 'separator' },
-        { label: 'Map met rows.user.js openen', click: () => shell.openPath(path.join(APP_DIR, 'js')) },
-        { type: 'separator' },
-        { role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' },
-        { type: 'separator' }, { role: 'quit', label: 'Afsluiten' },
-      ],
-    },
-  ]);
-  Menu.setApplicationMenu(menu);
+  /*
+   Geen menubalk meer (stap 127, gevraagd: "Verwijder in het menu van de applicatie 'wijk'"): het menu Wijk was van
+   de wijkeditor. F11 zet het volledige scherm aan en uit, Esc in het spel opent het pauzemenu (daar staat ook
+   "Volledig scherm"), en Ctrl+Shift+I blijft de ontwikkelhulp.
+  */
+  Menu.setApplicationMenu(null);
+  venster.webContents.on('before-input-event', (e, inv) => {
+    if (inv.type !== 'keyDown') return;
+    if (inv.key === 'F11') { venster.setFullScreen(!venster.isFullScreen()); e.preventDefault(); }
+    else if (inv.control && inv.shift && (inv.key === 'I' || inv.key === 'i')) venster.webContents.toggleDevTools();
+  });
 }
+ipcMain.handle('tinga:volledig', (_e, aan) => {
+  if (!venster) return false;
+  venster.setFullScreen(aan === undefined ? !venster.isFullScreen() : !!aan);
+  return venster.isFullScreen();
+});
 
 // De editor schrijft js/rows.user.js. Alleen die ene bestandsnaam, zodat een
 // pagina niet zomaar ergens anders kan schrijven.

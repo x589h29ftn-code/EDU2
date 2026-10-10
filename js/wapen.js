@@ -294,6 +294,19 @@ function buisGeo(r1, r2, L, x, y, z, rond = 14) {
   g.rotateX(Math.PI / 2); g.translate(x, y, z);
   return g;
 }
+/*
+ Een mouw: een buis van `L` meter, met de voorkant (bij de pols, −z) waar hij stond, maar MOUW_ERBIJ langer naar
+ achteren (stap 127, gevraagd: "Je ziet bij wapens en mes achterkant van de arm in beeld"). Het dichte uiteinde
+ van de mouw lag 0,52 m achter het wapen en kwam op een breed scherm, bij het herladen en bij een steek
+ rechtsonder in beeld; nu ligt het achter de camera.
+*/
+const MOUW_ERBIJ = 0.55;
+function mouwGeo(r1, r2, L, rond = 16) {
+  // (de bovenkant van de cilinder, r1, komt na het kantelen aan de kant van de camera: daar gaat hij verder)
+  const g = new THREE.CylinderGeometry(Math.max(0.02, r1 + (r1 - r2) * MOUW_ERBIJ / L), r2, L + MOUW_ERBIJ, rond);
+  g.rotateX(Math.PI / 2); g.translate(0, 0, MOUW_ERBIJ / 2);
+  return g;
+}
 
 /*
  De uv: per driehoek de as waar zijn normaal het meest langs ligt, en de twee
@@ -575,7 +588,7 @@ function maakWapen(geluid, soort = 'pistool') {
   const polsL = rondeDoosGeo(0.050, 0.050, 0.060, 0.018, 2);
   polsL.rotateZ(0.30); polsL.translate(-0.048, -0.048, 0.010);
   vorm(lhB, polsL, huid);
-  const mouwL = buisGeo(0.038, 0.042, 0.30, 0, 0, 0, 14);
+  const mouwL = mouwGeo(0.038, 0.042, 0.30, 14);
   mouwL.rotateZ(0.30); mouwL.rotateY(-0.18); mouwL.translate(-0.115, -0.135, 0.130);
   vorm(lhB, mouwL, stof);
   const manchetL = buisGeo(0.041, 0.041, 0.032, 0, 0, 0, 14);
@@ -653,7 +666,7 @@ function maakWapen(geluid, soort = 'pistool') {
   const pols = rondeDoosGeo(0.050, 0.054, 0.070, 0.019, 2);
   pols.rotateY(0.22); pols.rotateX(-0.26); pols.translate(0.016, -0.088, 0.082);
   vorm(aB, pols, huid);
-  const mouw = buisGeo(0.038, 0.043, 0.44, 0, 0, 0, 16);
+  const mouw = mouwGeo(0.038, 0.043, 0.44);
   mouw.rotateZ(0.06); mouw.rotateY(0.34); mouw.rotateX(-0.26); mouw.translate(0.086, -0.150, 0.300);
   vorm(aB, mouw, stof);
   const manchet = buisGeo(0.043, 0.043, 0.034, 0, 0, 0, 16);
@@ -1161,7 +1174,7 @@ export function maakMes(geluid) {
   pols.rotateY(0.22); pols.rotateX(-0.30); pols.translate(0.030, -0.030, 0.130);
   vorm(aB, pols, huid);
   // de onderarm loopt schuin naar de rechteronderhoek uit beeld, net als bij het pistool
-  const mouw = buisGeo(0.038, 0.043, 0.44, 0, 0, 0, 16);
+  const mouw = mouwGeo(0.038, 0.043, 0.44);
   mouw.rotateZ(0.06); mouw.rotateY(0.34); mouw.rotateX(-0.42); mouw.translate(0.105, -0.135, 0.330);
   vorm(aB, mouw, stof);
   groep.add(bouw(aB, new THREE.Group()));

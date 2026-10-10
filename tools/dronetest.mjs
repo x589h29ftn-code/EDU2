@@ -189,7 +189,7 @@ const muur = await page.evaluate(async () => {
 ok(!muur.binnenPand && muur.afMidden > 3 && muur.afMidden < muur.zuid - 1, 'een gebouw houdt hem tegen (hij glijdt erlangs)', `gestart ${muur.zuid} m ten zuiden, gestopt op ${muur.afMidden.toFixed(1)} m van het midden van een pand van ${muur.nok} m (${muur.binnen} beelden in het pand, ${muur.stil.toFixed(2)} m in de laatste 2 s)`);
 ok(muur.opGrond >= 0.45, 'en de grond ook', `${muur.opGrond.toFixed(2)} m boven de grond`);
 
-kop('de grenzen: OUT OF RANGE, tien tellen, op tijd terug');
+kop('de grenzen: OUT OF RANGE, vijftien tellen, op tijd terug');
 const grens = await page.evaluate(async () => {
   const g = window.__game, P = g.player, D = g.drone;
   const s = g.start || { x: 10.7, z: -7.1 };
@@ -225,7 +225,8 @@ const grens = await page.evaluate(async () => {
   D.pos.set(P.pos.x + 830, 30, P.pos.z);
   D.update(0.05);
   let t = 0;
-  while (D.actief && t < 20) { D.update(0.05); t += 0.05; }
+  // (stap 127: buiten bereik drijft hij vanzelf terug; wie buiten wil blijven, houdt hem daar)
+  while (D.actief && t < 25) { if (!D.verloren) D.pos.x = P.pos.x + 830; D.update(0.05); t += 0.05; }
   uit.kwijtNa = t;
   uit.weg = !D.actief && P.drone === false && D.reden === 'kwijt';
   uit.melding = document.getElementById('missie') ? document.getElementById('missie').textContent : '';
@@ -241,7 +242,7 @@ ok(/OUT OF RANGE/.test(grens.tekst) && grens.ruis > 0.5, 'OUT OF RANGE in beeld,
 ok(grens.terugBinnen && grens.hoogNa < 150, 'op tijd terug: het aftellen stopt', `${grens.hoogNa.toFixed(1)} m`);
 ok(grens.rand === 'te dicht bij de rand', 'binnen 100 m van de rand van de wereld: buiten bereik', grens.rand);
 ok(grens.ver === 'te ver van Erik' && grens.binnen === null, 'verder dan 800 m van Erik: buiten bereik', `${grens.ver} / ${grens.binnen}`);
-ok(grens.weg && grens.kwijtNa > 9.9 && grens.kwijtNa < 12, 'tien tellen buiten bereik: neergestort en kwijt', `na ${grens.kwijtNa.toFixed(1)} s`);
+ok(grens.weg && grens.kwijtNa > 14.9 && grens.kwijtNa < 17, 'vijftien tellen buiten bereik: neergestort en kwijt (stap 127; was tien)', `na ${grens.kwijtNa.toFixed(1)} s`);
 ok(!grens.inDrone && grens.ster === 0, 'terug bij Erik, en nog steeds geen ster');
 ok(grens.schap, 'de drone staat weer in het schap');
 ok(/geen drone/.test(grens.zonder || ''), 'zonder drone zegt B dat', grens.zonder);

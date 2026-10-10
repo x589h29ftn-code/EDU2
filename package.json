@@ -214,6 +214,8 @@
     "beginmissieshots": "node tools/beginmissieshots.mjs",
     "avondshots": "node tools/avondshots.mjs",
     "uitzendingshots": "node tools/uitzendingshots.mjs",
-    "tempotest": "node tools/tempotest.mjs"
+    "tempotest": "node tools/tempotest.mjs",
+    "wensentest": "node tools/wensentest.mjs 8123",
+    "wensenshots": "node tools/wensenshots.mjs 8123"
   }
 }

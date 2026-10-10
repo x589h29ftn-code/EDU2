@@ -8,7 +8,7 @@ import { NPCs } from './npc.js';
 import { HUD, euro } from './hud.js';
 import { isTouchDevice, initTouchControls } from './touch.js';
 import { START, toWorld, ROWS, PROPS } from './data.js';
-import { initSfeer, DAG_MINUTEN } from './sfeer.js';
+import { initSfeer, DAG_MINUTEN, tijdNaam } from './sfeer.js';
 import { initVerhaal, verhaalStart } from './verhaal.js';
 import { initInterieur, WONINGEN } from './interieur.js';
 import { initBoerderij, MUNITIE, EHBO, PISTOOL, MITRAILLEUR, SNIPER } from './boerderij.js';
@@ -27,7 +27,7 @@ import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
 import { initPolitieboot } from './politieboot.js';
 import { initVaart } from './vaart.js';
-import { bewaarSpel, laadSpel, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint } from './opslag.js';
+import { bewaarSpel, laadSpel, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint, opslagen, kiesPlek, startNieuwSpel } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen } from './kaartwereld.js';
 import { zetKoplampen } from './carmodel.js';
@@ -2060,8 +2060,8 @@ async function voorFilm() {
 
 async function startGame(vervolg = false, metIntro = false) {
   if (vervolg) laadSpelNu();
-  // een nieuw spel begint zonder het checkpoint van een vorig spel
-  else wisCheckpoint();
+  // een nieuw spel begint zonder het checkpoint van een vorig spel, en krijgt bij de eerste keer opslaan een eigen plek
+  else { wisCheckpoint(); startNieuwSpel(); }
   gepauzeerd = false;
   menu.verbergMenu();
   geluid.start();
@@ -2399,6 +2399,17 @@ window.addEventListener('keydown', e => {
   kiesTijd();
 });
 try { geluid.zetSchotSoort(localStorage.getItem('tinga.schot') || 'opname'); } catch { /* geen opslag */ }
+/*
+ De lijst bij Spel laden (stap 127): per opgeslagen spel de missie, het moment van de dag in het spel, en wanneer en
+ waar je opsloeg. Kiezen zet die plek klaar; het laden zelf gaat zoals altijd.
+*/
+menu.zetOpslagen(() => opslagen().map(o => {
+  const d = new Date(o.tijd);
+  const datum = `${d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
+  const moment = typeof o.uur === 'number' ? `${tijdNaam(o.uur)} ${klokTekst(o.uur)}` : '';
+  return { plek: o.plek, actief: o.actief, titel: o.missie || 'Opgeslagen spel',
+    onder: [moment, datum, o.straat].filter(Boolean).join(' · ') };
+}), (n) => kiesPlek(n));
 menu.zetInstellingen(() => [
   {
     id: 'scherpte', naam: 'Scherpte',
@@ -2410,6 +2421,8 @@ menu.zetInstellingen(() => [
       resize();
     },
   },
+  // stap 127 (gevraagd: "Spel moet ook full screen gespeeld kunnen worden"): ook F11, in de browser en in de app
+  { id: 'volledig', naam: 'Volledig scherm', waarde: () => (isVolledig() ? 'aan' : 'uit'), volgende: () => { zetVolledig(!isVolledig()); } },
   { id: 'geluid', naam: 'Geluid', waarde: () => (stil ? 'uit' : 'aan'), volgende: () => { stil = !stil; geluid.demp(stil); menu.zetGeluid(!stil); } },
   // het schot: de opname uit audio/wapen/schot.mp3, of het oude gemaakte geluid (stap 105), om te vergelijken
   {
@@ -2447,6 +2460,22 @@ document.addEventListener('pointerlockchange', () => {
   // Esc geeft de muis vrij; dan pauzeren we ook echt.
   if (!document.pointerLockElement && player.active && !dragHint) pauseGame();
 });
+
+/*
+ Volledig scherm (stap 127). In de browser met de Fullscreen-API (een klik in het menu telt als gebaar), in de
+ Windows-app via Electron (window.tinga.volledig, js/../desktop/preload.cjs): daar is het het hele venster, zonder
+ rand. F11 doet in beide hetzelfde.
+*/
+let appVolledig = false;
+function isVolledig() { return window.tinga && window.tinga.volledig ? appVolledig : !!document.fullscreenElement; }
+function zetVolledig(aan) {
+  if (window.tinga && window.tinga.volledig) { window.tinga.volledig(aan).then(v => { appVolledig = !!v; if (menu.ververs) menu.ververs(); }).catch(() => {}); return; }
+  try {
+    if (aan && !document.fullscreenElement) document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+    else if (!aan && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  } catch { /* geen volledig scherm in deze browser */ }
+}
+document.addEventListener('fullscreenchange', () => { if (menu && menu.ververs) menu.ververs(); setTimeout(resize, 50); });
 
 function resize() {
   camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();

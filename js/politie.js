@@ -1239,8 +1239,12 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
    niet: de melding is net binnen en ze zijn nog onderweg.
   */
   let rust = false;
+  let vorigeSter = 0;
   function update(dt) {
     const s = ster();
+    // de eerste ster: de portofoon van de meldkamer, een kort willekeurig stuk (stap 127; geluid.politieRadio)
+    if (s > 0 && vorigeSter === 0) geluid.politieRadio();
+    vorigeSter = s;
     let schade = 0;
     const sp = spelerPlek();
     /*

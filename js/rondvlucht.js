@@ -24,14 +24,14 @@ export const RONDVLUCHT = {
   hoogte: 34,          // boven de grond (m): laag, maar ruim boven de daken (de hoogste toren is 26 m)
   opzij: 28,           // zo ver rechts naast het doel (m): de open deur kijkt naar links
   achter: 6,           // en een stukje erachter
-  vmax: 21,            // m/s: rustig
+  vmax: 31,            // m/s: rustig, maar Bouwman rijdt sinds stap 127 76 km/u (was 21)
   veer: 0.75,          // hoe snel hij naar zijn plek toe wil (1/s)
   draai: 0.55,         // rad/s: rustig bijdraaien
   helling: 0.16,       // zo ver helt hij hooguit over in een bocht (rad)
   deurHoek: 1.75,      // zo ver mag de blik van de deur af draaien (rad), naar voren en naar achteren
   pitchMin: -1.25, pitchMax: 0.15,
   landen: 2.4,         // m/s naar beneden bij het landen
-  versnel: 4.5,        // m/s²: hooguit zo hard op of af, ook als het doel een bocht neemt
+  versnel: 6.5,        // m/s²: hooguit zo hard op of af, ook als het doel een bocht neemt (was 4,5)
 };
 
 const ROMP = 0xf3f2ee, STREEP = 0xe2661b;

@@ -343,7 +343,7 @@ const einde = await page.evaluate(() => {
 ok(einde.buiten && einde.markBuiten, 'buiten staan Mark en Johan');
 ok(einde.geslaagd && einde.geld1 - einde.geld0 === 10000, 'MISSIE GESLAAGD, € 10.000', `+ € ${einde.geld1 - einde.geld0}`);
 ok(einde.herhaling, 'Radio Tinga zendt het fragment voortaan af en toe opnieuw uit');
-ok(einde.avond && Math.abs(einde.uur - 20.5) < 0.1 && einde.film === 'einde' && einde.beiden, '"Die avond…": voor de Wieken 29, met Mark en Johan', `uur ${einde.uur.toFixed(2)}, ${einde.film}`);
+ok(einde.avond && Math.abs(einde.uur - 22) < 0.1 && einde.film === 'einde' && einde.beiden, '"Die avond…": voor de Wieken 29, met Mark en Johan', `uur ${einde.uur.toFixed(2)}, ${einde.film}`);
 ok(einde.namen.includes('Mark') && einde.namen.includes('Johan') && einde.namen.includes('Erik'), 'het laatste gesprek', einde.namen.join(', '));
 ok(einde.hoog > 60, 'de camera stijgt op over de daken, naar de mast', `${einde.hoog.toFixed(0)} m`);
 ok(einde.titel && einde.zichtbaar && /Tinga is van jou/.test(einde.tekst) && /Bouwman/.test(einde.tekst), 'de titelrol', einde.tekst.slice(0, 60));

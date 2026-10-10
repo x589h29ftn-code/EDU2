@@ -64,6 +64,8 @@ import { maakErf, ERF } from './schuur.js';
 import { UNIFORM, zetZwaailamp } from './politie.js';
 import { Navigatie } from './navigatie.js';
 import { geluid } from './audio.js';
+import { maakVuurwerk } from './vuurwerk.js';
+import { maakHandlangers } from './handlangers.js';
 import * as uitleg from './uitleg.js';
 
 // ---------- waar het verhaal zich afspeelt ----------
@@ -1169,7 +1171,7 @@ const UITZENDING_WACHT = TUSSENPOOS;    // tellen na de ochtend van missie 17 to
 const UITZENDING_OCHTEND = 7.75;        // zondagochtend, kwart voor acht
 const UITZENDING_TIJD = 60;             // zo lang houdt Johan de dj bij de koffie
 const UITZENDING_BELONING = 10000;
-const UITZENDING_AVOND = 20.5;          // het einde: half negen 's avonds, de zon gaat onder
+const UITZENDING_AVOND = 22;            // het einde: tien uur 's avonds, donker genoeg voor het vuurwerk (stap 127; was half negen)
 const UITZENDING_DUUR = 40.2;           // het fragment (gemeten aan de mp3-frames); de mp3 zelf wint als hij geladen is
 const zegtSjors = (tekst) => ({ wie: 'Sjors', kop: { huid: '#e2b896', haar: '#3b2a1c', shirt: '#1d2a44' }, tekst });
 const UITZENDING_TELEFOON = [
@@ -1190,11 +1192,19 @@ const UITZENDING_PLAN = [
 const AVOND_UUR = 1;                    // 01:00 's nachts (stap 110; was half elf)
 const AVOND_KWIJT = 300;                // verder dan dit achter Bouwman (m)…
 const AVOND_KWIJT_T = 10;               // …zo lang, en hij is weg
-const AVOND_HELI_TOP = 13.5;            // m/s: Bouwman met de heli boven zich
-const AVOND_VLUCHT_TOP = 19;            // m/s: Bouwman op weg naar zijn boot
+// (stap 127, gevraagd: "Verder rijdt Bouwman erg traag … Ook met achtervolging daarna is Bouwman enorm traag VS
+//  Ferrari": hij reed 49 en 68 km/u, en remde in elke bocht tot 5,2 m/s² dwars; nu harder en scherper door de bocht)
+const AVOND_HELI_TOP = 21;              // m/s: Bouwman met de heli boven zich (76 km/u; was 13,5)
+const AVOND_VLUCHT_TOP = 32;            // m/s: Bouwman op weg naar zijn boot (115 km/u; was 19)
+const AVOND_RIJ = { dwars: 8.5, optrek: 6.5, remmen: 8 };   // m/s²: hoe hij door de bocht gaat, optrekt en remt
 const AVOND_STERREN = 4;
-const AVOND_LEVEN = [2, 3, 3, 3, 3];    // treffers per man bij de loods: Bouwman, en zijn vier bodyguards
-const AVOND_MG = [1, 2];                // de posten met een machinegeweer
+// (stap 127, gevraagd: "Maak het Bouwman gevecht lastiger": zes bodyguards in plaats van vier, taaier, drie
+//  machinegeweren, Bouwman zelf vijf treffers, en Mark en Johan helpen minder vaak)
+const AVOND_LEVEN = [5, 4, 4, 4, 4, 4, 4];  // treffers per man bij de loods: Bouwman, en zijn zes bodyguards (was 2 en 3)
+const AVOND_MG = [1, 2, 5];             // de posten met een machinegeweer
+const AVOND_HULP = [5.5, 8];            // s tussen twee treffers van Mark of Johan (was 3,5–5,5)
+const AVOND_SCHADE = 7;                 // per treffer van een bodyguard (was 5)
+const AVOND_KNAL = { luid: 2.2, schud: 0.55, schudDuur: 1.6 };   // de C4 op de Dúvelsrak (stap 127): hoe hard, hoe ver de camera schudt (m), hoe lang
 const AVOND_KOGELS = 120;               // zoveel reserve geeft Johan je bij de auto, als je minder hebt
 const zegtWiebe = (tekst) => ({ wie: 'Wiebe', kop: { huid: '#e0b48e', haar: '#9a8a72', shirt: '#3b3f46' }, tekst });
 const AVOND_HELI = [
@@ -3916,6 +3926,16 @@ export function initVerhaal(ctx) {
     ['veteraan', 'De Veteraan'], ['politieauto', 'De politieauto en de C4'], ['brug', 'De Dúvelsrak'], ['schrift', 'Het schrift'],
     ['race', 'Ronald en de race'], ['schaduw', 'Bouwman schaduwen'], ['inval', 'De inval'], ['ronald', 'Wie is R.'], ['uitzending', 'De uitzending'],
   ];
+  // de naam van de missie waar je bent, voor de lijst bij Spel laden (stap 127)
+  const MISSIE_RIJ = ['molenkrite', 'rijden', 'bewaking', 'afleveren', 'johan', 'bx', 'bom', 'sniper', 'huis', 'veteraan',
+    'politieauto', 'brug', 'schrift', 'race', 'schaduw', 'inval', 'ronald', 'uitzending'];
+  const MISSIE_NAAM = { molenkrite: 'Kennismaking met Mark', huis: 'Een eigen stek', ...Object.fromEntries(HERSPEEL) };
+  function missieTitel() {
+    if (missie === 'klaar') return uitzendingKlaar ? 'Vrij spelen (na het einde)' : 'Tussen twee missies';
+    if (missie === 'race' && geldInleg) return 'Racen voor geld';
+    const i = MISSIE_RIJ.indexOf(missie);
+    return i < 0 ? 'Vrij spelen' : `Missie ${i + 1} · ${MISSIE_NAAM[missie] || missie}`;
+  }
   function herspeelbaar() {
     if (!uitzendingKlaar || missie !== 'klaar' || klusjes.bezig || geldInleg || uitjeBezig() || zwart || titelrol) return [];
     return HERSPEEL.map(([naam, titel], i) => ({ naam, titel, nr: i + 2 + (i >= 7 ? 1 : 0) }));
@@ -4667,6 +4687,35 @@ export function initVerhaal(ctx) {
     zetZwart(dekking, tekst);
     if (t >= uit + stil + op) { zwart = null; zetZwart(0, 0); }
   }
+  /*
+   Je auto bij het huis neerzetten (stap 127, gevraagd: "Bij de wieken staat de Ferrari voor woning in de lucht
+   omdat er al auto onder stond"). Hij ging altijd precies op de oprit, met de hoogte die hij had: stond daar al
+   een auto, dan kwam hij er bovenop, en kwam hij van het viaduct, dan hing hij op 5,6 m. Nu de eerste vrije plek:
+   de oprit, of anders een plek ernaast langs de straat, op de grond.
+  */
+  function zetAutoBijHuis(auto, o) {
+    const zx = Math.cos(o.yaw), zz = -Math.sin(o.yaw);          // dwars op de oprit
+    const vx = -Math.sin(o.yaw), vz = -Math.cos(o.yaw);         // langs de oprit
+    const vrij = (x, z) => {
+      for (const c of vehicles.cars) {
+        if (c === auto || c.weg || !isFinite(c.x)) continue;
+        if (Math.hypot(c.x - x, c.z - z) < 3.4) return false;
+      }
+      const [rx, rz] = resolveCollisions(x, z, 1.0);
+      return Math.hypot(rx - x, rz - z) < 0.05;
+    };
+    let plek = { x: o.x, z: o.z };
+    zoek: for (const d of [0, 3.2, -3.2, 6.4, -6.4, 9.6, -9.6]) {
+      for (const l of [0, 5, -5]) {
+        const x = o.x + zx * d + vx * l, z = o.z + zz * d + vz * l;
+        if (vrij(x, z)) { plek = { x, z }; break zoek; }
+      }
+    }
+    auto.x = plek.x; auto.z = plek.z; auto.yaw = o.yaw; auto.speed = 0;
+    if (auto.mesh) { auto.mesh.position.set(plek.x, grondHoogte(plek.x, plek.z), plek.z); auto.mesh.rotation.y = o.yaw; }
+    vehicles.zetNeer(auto, 0, o.yaw);
+    return plek;
+  }
   function springNaarHuis() {
     // De Veteraan is dan allang weg van het pad
     if (vet) vet.toon(false);
@@ -4682,10 +4731,7 @@ export function initVerhaal(ctx) {
       if (eersteP) eersteP();
       geluid.motorUit();
       const o = t.w.plekken.oprit;
-      if (o) {
-        auto.x = o.x; auto.z = o.z; auto.yaw = o.yaw;
-        if (auto.mesh) { auto.mesh.position.set(o.x, auto.mesh.position.y, o.z); auto.mesh.rotation.y = o.yaw; }
-      }
+      if (o) zetAutoBijHuis(auto, o);
     }
     const [px, pz] = resolveCollisions(stoep.x, stoep.z, 0.4);
     player.pos.set(px, 0, pz);
@@ -9315,6 +9361,13 @@ export function initVerhaal(ctx) {
     fase = 'einde';
     uitzFilm = { soort: 'einde', t: 0, vast: pe, midden, ux, uz, zx, zz, gezegd: false };
     schietSlot(true);
+    // vuurwerk boven de wijk, achter de drie langs gezien vanaf de camera (die kijkt langs +u)
+    const pl = [];
+    for (const [a, b] of [[110, -45], [130, 0], [105, 45], [160, -20], [150, 30]]) {
+      const x = midden.x + ux * a + zx * b, z = midden.z + uz * a + zz * b;
+      pl.push({ x, z, y: grondHoogte(x, z) });
+    }
+    vuurwerk.start(pl);
   }
   function openTitelrol() {
     if (!titelrolEl) { naDeTitelrol(); return; }
@@ -9343,6 +9396,7 @@ export function initVerhaal(ctx) {
     titelrol = null;
   }
   function naDeTitelrol() {
+    vuurwerk.stop();
     // vrij spelen: de avond loopt weer, en er wacht geen missie meer
     uitzFilm = null; toonFilmbalken(0); schietSlot(false);
     markZichtbaar(false); invalJohan.groep.visible = false;
@@ -9526,6 +9580,25 @@ export function initVerhaal(ctx) {
   const AVOND_VAST = ['heliStart', 'heli', 'luifel', 'landen', 'brugFilm'];
   // zolang zit Erik in de heli (het muziekje van de intro, stap 119)
   const AVOND_IN_HELI = ['heliStart', 'heli', 'luifel', 'landen'];
+  // zolang raken je kogels niet op (stap 127): uit de deur schieten, en uit het raam op de handlangers
+  const AVOND_ONEINDIG = ['heliStart', 'heli', 'luifel', 'landen', 'naarAuto', 'achtervolging'];
+  /*
+   Het muziekje van de intro: in de heli (stap 119), en aan het eind bij het vuurwerk en de titelrol (stap 127,
+   gevraagd: "Laat ook vuurwerk de lucht in bij het einde en speel weer het muziekje dat bij intro spel ook komt").
+  */
+  function muziekVanDeIntro() {
+    if (doodT > 0 || misluktT > 0) return false;
+    if (missie === 'uitzending' && AVOND_IN_HELI.includes(fase)) return true;
+    return !!titelrol || (missie === 'uitzending' && fase === 'einde' && !!uitzFilm && uitzFilm.soort === 'einde');
+  }
+  // hoe ver de heli van Wiebe van je af is (null: niet te horen); in de deur zit je er pal onder
+  function heliRondAfstand() {
+    if (missie !== 'uitzending' || !avondHeli || !avondHeli.zichtbaar || doodT > 0 || binnenInStudio()) return null;
+    if (AVOND_IN_HELI.includes(fase)) return 2;
+    const sp = spelerPunt();
+    return Math.hypot(avondHeli.pos.x - sp.x, avondHeli.pos.z - sp.z, avondHeli.pos.y - (player.pos.y || 0));
+  }
+  function binnenInStudio() { return !!(player.binnen); }
   const AVOND_ZONDER_STERREN = ['heliStart', 'heli', 'luifel', 'landen', 'naarAuto', 'achtervolging', 'gevecht'];
   let avondHeli = null;                       // de heli van Wiebe (js/rondvlucht.js), bij het opstarten gemaakt
   let avondA = null, avondB = null;           // de lijnen: van de loods naar de BP, en van de BP terug
@@ -9542,6 +9615,10 @@ export function initVerhaal(ctx) {
   // de heli en het blok C4 al bij het opstarten: dan worden hun materialen achter het laadscherm vertaald
   avondHeliMaken();
   if (brug) avondC4 = maakC4(scene);
+  // de handlangers in de achtervolging (stap 127, js/handlangers.js)
+  const handlangers = maakHandlangers(scene, vehicles);
+  // het vuurwerk van het einde (stap 127), ook al bij het opstarten
+  const vuurwerk = maakVuurwerk(scene, { knal: (v) => { const sp = spelerPunt(); geluid.vuurwerk(Math.hypot(v.x - sp.x, v.z - sp.z, v.y)); } });
 
   function avondHeliMaken() { if (!avondHeli) avondHeli = maakRondvlucht(scene); return avondHeli; }
   function ruimAvondOp() {
@@ -9549,6 +9626,7 @@ export function initVerhaal(ctx) {
     if (player.zit && (fase === 'heli' || fase === 'heliStart' || fase === 'luifel' || fase === 'landen')) player.zit = false;
     avondRit = null;
     for (const a of [avondTweede]) verstopAuto(a);
+    handlangers.ruim();
     if (avondMannen && schutters === avondMannen) { schutters.verwijder(); schutters = null; }
     avondMannen = null;
     // (de politieauto's echt weg, en de filmbalken van het filmbeeld op de brug ook: na neergaan in die
@@ -9574,7 +9652,8 @@ export function initVerhaal(ctx) {
     return !!(avondA && avondB);
   }
   function nieuweRit(lijn, auto, top) {
-    return { st: { s: 0, v: 0, prof: profiel(lijn, { top }), klaar: false, gecrasht: false }, lijn, auto, top, wachtT: 0 };
+    return { st: { s: 0, v: 0, prof: profiel(lijn, { top, dwars: AVOND_RIJ.dwars, remmen: AVOND_RIJ.remmen }), klaar: false, gecrasht: false,
+      optrek: AVOND_RIJ.optrek, remmen: AVOND_RIJ.remmen }, lijn, auto, top, wachtT: 0 };
   }
   function zetOpLijnBegin(auto, lijn) {
     const p = puntOp(lijn, 0);
@@ -9629,7 +9708,8 @@ export function initVerhaal(ctx) {
     const cam = h.camera(blik);
     player.pos.set(cam.pos.x, cam.pos.y - player.eye, cam.pos.z);
     player.vy = 0;
-    if (player.gun) player.gun.visible = false;
+    // (stap 127, gevraagd: "Bij Bouwman laatste missie zie ik mijn wapen niet vanaf helicopter"; tot dan stond hier false)
+    if (player.gun) player.gun.visible = !player.wapenUit && !player.inScope;
     if (camera) { camera.position.copy(cam.pos); camera.lookAt(cam.kijk); }
     avondFilmCam = { pos: [cam.pos.x, cam.pos.y, cam.pos.z], kijk: [cam.kijk.x, cam.kijk.y, cam.kijk.z] };
   }
@@ -9738,6 +9818,8 @@ export function initVerhaal(ctx) {
     avondTweede.hp = 100;
     avondRit = nieuweRit(avondB, avondTweede, AVOND_VLUCHT_TOP);
     avondKwijtT = 0; avondTeVerT = 0;
+    // twee auto's met zijn mannen achter hem aan, later twee scooters
+    handlangers.start(avondB, 0);
     zetOpdracht('achter Bouwman aan, niet kwijtraken');
   }
   function werkAchtervolgingBij(dt, sp) {
@@ -9746,7 +9828,20 @@ export function initVerhaal(ctx) {
     // hij wacht niet, maar hij rijdt ook niet weg van wie dichtbij blijft: een beetje rubber
     if (!r.st.klaar) {
       rijdVlucht(r.st, r.lijn, a, vehicles, dt);
-      if (d > 140) r.st.v = Math.max(5, r.st.v * (1 - dt * 0.35));
+      if (d > 160) r.st.v = Math.max(5, r.st.v * (1 - dt * 0.35));
+    }
+    // de handlangers schieten uit het raam en van de scooter
+    const schade = handlangers.update(dt, {
+      bouwman: { s: r.st.s, v: r.st.v },
+      speler: { x: sp.x, z: sp.z, v: player.inCar ? player.inCar.speed : 0 },
+      zicht: (x, z) => zichtVrij(x, z, sp.x, sp.z, 1.3),
+    });
+    if (schade > 0 && player.active) {
+      player.health = Math.max(0, player.health - schade);
+      if (player.inCar && player.inCar.hp > 30) player.inCar.hp -= 1;
+      hud.zetLeven(player.health);
+      hud.flits();
+      if (player.health <= 0) { dood(); return; }
     }
     if (a.hp < 40) a.hp = 40;                  // stuk schieten gaat niet: hij moet naar zijn boot
     zetInvalBalk(`Bouwman · ${Math.round(d)} m`, Math.max(0, 1 - d / AVOND_KWIJT), d > AVOND_KWIJT * 0.7);
@@ -9764,6 +9859,8 @@ export function initVerhaal(ctx) {
     [[1416, -201], [1420, -195]],
     [[1411, -178], [1400, -178]],               // tussen de loods en het water
     [[1424, -187], [1424, -179]],
+    [[1390, -186], [1389, -192]],               // (stap 127) aan de westkant van de loods
+    [[1419, -205], [1410, -206]],               // en achter de loods, met een machinegeweer
   ];
   function startGevecht() {
     // (stap 122: na neergaan bij de loods begon de hele achtervolging opnieuw; het laatste punt was die)
@@ -9772,12 +9869,13 @@ export function initVerhaal(ctx) {
     if (invalBalk) invalBalk.hidden = true;
     avondRit = null;
     a.speed = 0;
+    handlangers.stop();
     bouwman.legNeer(0);                        // (opnieuw na het neergaan lag hij nog)
     bouwman.zetNeer(a.x, a.z, 0); bouwman.groep.visible = true;
     if (schutters) schutters.verwijder();
     // de bodyguards gaan niet neer met één kogel, en twee hebben een machinegeweer (stap 110)
     schutters = avondMannen = new Bewaking(scene, AVOND_POSTEN.map(([p, q]) => ({ a: p, b: q })),
-      { ...INVAL_MANNEN, personen: [bouwman], leven: AVOND_LEVEN, mg: AVOND_MG });
+      { ...INVAL_MANNEN, schade: AVOND_SCHADE, personen: [bouwman], leven: AVOND_LEVEN, mg: AVOND_MG });
     avondHulpT = 4;
     avondNeerGezegd = false;
     zetOpdracht('schiet Bouwman neer');
@@ -9796,6 +9894,11 @@ export function initVerhaal(ctx) {
   }
   function werkGevechtBij(dt, sp) {
     hulpBijDeLoods(sp);
+    // alles leeg in het gevecht: Johan gooit je een doos toe (stap 127, gevraagd: "Wat als kogels op zijn")
+    if (player.allesLeeg && invalJohan.groep.visible && !player.inCar) {
+      player.reserve += AVOND_KOGELS / 2;
+      hud.show('Johan gooit je een doos kogels toe', 2.4);
+    }
     const W = avondMannen;
     if (!W) return;
     const lo = schaduw.bouwmanStaat;
@@ -9803,7 +9906,7 @@ export function initVerhaal(ctx) {
     avondHulpT -= dt;
     const dLoods = Math.hypot(sp.x - lo.x, sp.z - lo.z);
     if (avondHulpT <= 0 && dLoods < 90) {
-      avondHulpT = 3.5 + Math.random() * 2;    // (één treffer van de drie; stap 110)
+      avondHulpT = AVOND_HULP[0] + Math.random() * (AVOND_HULP[1] - AVOND_HULP[0]);    // (één treffer van de drie; stap 110)
       const levend = W.wachters.filter((w, i) => i > 0 && w.staat !== 'neer');
       if (levend.length) {
         // samen op één man: wie al het meest geraakt is (met drie levens per man kwam er anders in
@@ -9970,8 +10073,12 @@ export function initVerhaal(ctx) {
       const q = brug.p(f.sBom, 0);
       f.c4.toon(false);
       avondKnallen.push({ knal: ontplofBij(scene, q.x, brug.hoogte, q.z) });
-      geluid.explosie(Math.abs(f.s - f.sBom));
-      if (schokken) schokken(0.6);
+      // (stap 127, gevraagd: "Geef bij explosie duvelsrak ook explosie geluid mee en schud camera fors": de knal
+      //  op 25 m klonk als een auto die ontplofte, en het schudden van `schokken` zat op de camera van de speler,
+      //  die dit filmbeeld elk beeld overschrijft)
+      geluid.explosie(Math.min(12, Math.abs(f.s - f.sBom)), AVOND_KNAL.luid);
+      if (schokken) schokken(1.5);
+      f.schudT = 0;
       if (paniek) paniek(q.x, q.z, 60);
     }
     for (const k of avondKnallen) if (k.knal) k.knal.update(dt);
@@ -10002,6 +10109,17 @@ export function initVerhaal(ctx) {
       const c = brug.langsAs(f.sBom - f.dir * 1, (brug.breed || 9) / 2 + 9);
       const k = brug.p(f.sBom - f.dir * 6, 0);
       pos = [c.x, H + 3.2, c.z]; kijk = [k.x, H + 1.2, k.z];
+    }
+    // het schudden na de knal: fors, en in anderhalve tel weg
+    if (f.schudT !== undefined) {
+      f.schudT += dt;
+      const a = AVOND_KNAL.schud * Math.max(0, 1 - f.schudT / AVOND_KNAL.schudDuur) ** 1.5;
+      f.schud = a;
+      if (a > 0) {
+        const r = () => (Math.random() * 2 - 1) * a;
+        pos = [pos[0] + r(), pos[1] + r() * 0.7, pos[2] + r()];
+        kijk = [kijk[0] + r() * 2.5, kijk[1] + r() * 2, kijk[2] + r() * 2.5];
+      }
     }
     avondFilmCam = { pos, kijk };
     if (camera) { camera.position.set(pos[0], pos[1], pos[2]); camera.lookAt(kijk[0], kijk[1], kijk[2]); }
@@ -10136,7 +10254,12 @@ export function initVerhaal(ctx) {
     // (en niet tijdens een klus: missie 8 zet de muziek al aan bij het telefoontje, stap 108)
     geluid.missiemuziek(spanning && doodT <= 0 && misluktT <= 0 && !(klusjes.bezig && missie !== 'klaar'));
     // missie 18: in de heli van Wiebe het muziekje van de intro, aanzwellend en rustig uit (stap 119)
-    if (geluid.heliMuziek) geluid.heliMuziek(missie === 'uitzending' && AVOND_IN_HELI.includes(fase) && doodT <= 0 && misluktT <= 0);
+    if (geluid.heliMuziek) geluid.heliMuziek(muziekVanDeIntro());
+    // de wieken van de heli van Wiebe, luider dan die van de politie (stap 127)
+    if (geluid.heliRond) geluid.heliRond(heliRondAfstand());
+    if (vuurwerk) vuurwerk.update(dt);
+    // in de heli en de achtervolging raken je kogels niet op (stap 127, gevraagd: "Eventueel tijdelijk oneindig munitie?")
+    player.oneindig = missie === 'uitzending' && AVOND_ONEINDIG.includes(fase) && doodT <= 0;
     // de overgang naar de nacht in missie 10 loopt altijd door tot het beeld terug is
     werkZwartBij(dt);
     // missie 12: het filmbeeld van de auto's op de brug zet zelf de camera
@@ -10918,7 +11041,9 @@ export function initVerhaal(ctx) {
 
   return {
     update, toets, doelen, raak, hinder, bewaar, herstel, naLaden, meldAan, schotGehoord, dood, mislukt,
-    herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; },
+    herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; }, missieTitel,
+    // (stap 127, voor tools/wensentest.mjs: je auto bij huis neerzetten)
+    springNaarHuis: () => springNaarHuis(), thuisDoel: () => thuisDoel(),
     // stap 125: de klok en de missies
     tijdVast, get missieBezig() { return missieBezig(); }, slapen, get eigenHuis() { return huisGekozen; },
     beginGesprek, waaromNietOpslaan,
@@ -11014,6 +11139,10 @@ export function initVerhaal(ctx) {
         filmCam: avondFilmCam ? { pos: avondFilmCam.pos.slice(), kijk: avondFilmCam.kijk.slice() } : null,
         bouwman, mark, johan: invalJohan, posten: AVOND_POSTEN, uur: AVOND_UUR, kwijt: AVOND_KWIJT, kwijtTijd: AVOND_KWIJT_T,
         lijnen: () => avondLijnen(), opHetDek: (x, z) => opHetDek(x, z), brugAssen: brug,
+        // stap 127
+        handlangers, vuurwerk, schud: avondBrug ? avondBrug.schud || 0 : 0, rijStijl: AVOND_RIJ,
+        tops: { heli: AVOND_HELI_TOP, vlucht: AVOND_VLUCHT_TOP }, leven: AVOND_LEVEN, mg: AVOND_MG, oneindig: AVOND_ONEINDIG,
+        muziek: () => muziekVanDeIntro(), heliAfstand: () => heliRondAfstand(),
       };
     },
     // racen voor geld, voor tools/geldracetest.mjs

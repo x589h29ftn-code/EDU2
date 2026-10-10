@@ -146,9 +146,23 @@ export class Navigatie {
         }
       }
     }
-    if (afstand[b] === Infinity) return null;
+    /*
+     Het doel ligt op een los stuk pad (stap 127: de stoep van Radio Tinga hangt aan een voetpad van 34 punten dat
+     nergens op aansluit, en na de knal op de Dúvelsrak gaf de navigatie daarom geen route). Dan de route naar het
+     punt dat wél te bereiken is en het dichtst bij het doel ligt; het laatste stukje is een rechte lijn.
+    */
+    let eind = b;
+    if (afstand[b] === Infinity) {
+      let bd = Infinity; eind = -1;
+      for (let i = 0; i < n; i++) {
+        if (afstand[i] === Infinity) continue;
+        const d = Math.hypot(this.punten[i][0] - naar[0], this.punten[i][1] - naar[1]);
+        if (d < bd) { bd = d; eind = i; }
+      }
+      if (eind < 0) return null;
+    }
     const pad = [];
-    for (let i = b; i >= 0; i = vanwaar[i]) pad.push(this.punten[i]);
+    for (let i = eind; i >= 0; i = vanwaar[i]) pad.push(this.punten[i]);
     pad.reverse();
     return [[van[0], van[1]], ...pad, [naar[0], naar[1]]];
   }

@@ -154,6 +154,7 @@ export class Player {
     this.zoomPer = {};
     // 200 kogels in reserve bij het begin, "voor het gemak" (verzoek 3 okt 2026, stap 106; was 60)
     this.ammo = 12; this.reserve = START_RESERVE; this.reloading = 0;
+    this.oneindig = false;      // kogels raken niet op (missie 18, de heli en de achtervolging; stap 127)
     this.vuurAan = false;       // trekker ingedrukt (voor het automatische vuur)
     this.vuurKlok = 0;          // tijd tot het volgende schot mag
     /*
@@ -602,7 +603,7 @@ export class Player {
 
   // Zit er in geen enkel wapen nog een kogel, en ook niet in je voorraad? (stap 123: dan pak je het mes)
   get allesLeeg() {
-    if (this.reserve > 0) return false;
+    if (this.reserve > 0 || this.oneindig) return false;
     return !this.wapens.some(w => !WAPENS[w].mes && ((w === this.wapenSoort ? this.ammo : this.magazijnen[w]) || 0) > 0);
   }
 
@@ -611,6 +612,7 @@ export class Player {
     if (this.vuurKlok > 0) return;
     const W = this.wapenInfo;
     if (W.mes) { this.steek(); return; }
+    if (this.oneindig && this.ammo <= 0) this.ammo = W.mag;
     if (this.ammo <= 0) {
       geluid.leegKlik();
       // alles leeg: het mes erbij (één keer per lege trekker, en niet midden in een wissel)
@@ -624,7 +626,8 @@ export class Player {
     // over het vizier ligt het wapen vaster: minder terugslag en minder
     // spreiding, en dát is waarom je zou richten
     const mikF = this.mikFactor;
-    this.ammo--;
+    // (stap 127: in de heli en de achtervolging van missie 18 raken je kogels niet op, `oneindig`)
+    if (!this.oneindig) this.ammo--;
     this.vuurKlok = W.tempo;
     this.recoil = 1; this.flashT = 0.06;
     // beeld omhoog en een willekeurig tikje opzij

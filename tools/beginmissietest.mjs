@@ -343,11 +343,14 @@ const heli = await page.evaluate(async () => {
   // het nummer is bijna op terwijl je nog in de heli zit: ook dan rustig weg
   window.__laad({ missie: 'uitzending', fase: 'heli' });
   let s3 = stand();
-  for (let i = 0; i < 240 && !(s3.ramps.length && s3.ramps[s3.ramps.length - 1].waarom === 'einde') && !s3.pauze; i++) {
+  // (stap 127: het nummer begint dan opnieuw — even zakken bij het eind, en weer aanzwellen — tot je uitstapt)
+  for (let i = 0; i < 240 && !(s3.ramps.length && s3.ramps[s3.ramps.length - 1].waarom === 'opnieuw') && !s3.pauze; i++) {
     await wacht(400); v.update(0.05); s3 = stand();
   }
-  uit.rampEinde = s3.ramps[s3.ramps.length - 1] || null;
-  uit.eindeAan = s3.aan;
+  uit.rampEinde = s3.ramps.slice().reverse().find(r => r.waarom === 'dip') || null;
+  uit.rampOpnieuw = s3.ramps[s3.ramps.length - 1] || null;
+  uit.eindeAan = s3.aan && !s3.pauze;
+  uit.herhaal = s3.herhaal; uit.loop = s3.loop;
   uit.keer = s3.keer;
   v.__startMissie('molenkrite');
   window.__stap(2);
@@ -361,7 +364,8 @@ ok(heli.missie == null || heli.missie < 0.01, 'de missiemuziek zwijgt eronder', 
 ok(!heli.naHeli, 'uit als hij eruit is', heli.naHeliFase);
 ok(heli.rampUit && heli.rampUit.naar === 0 && heli.rampUit.duur >= 6, 'rustig weg (fade out)', R(heli.rampUit));
 ok(!heli.pauzeMeteen && heli.pauzeLater, 'het nummer stopt pas na de fade', `meteen: ${heli.pauzeMeteen ? 'stil' : 'speelt'}, later: ${heli.pauzeLater ? 'stil' : 'speelt'}`);
-ok(heli.rampEinde && heli.rampEinde.waarom === 'einde' && heli.rampEinde.naar === 0 && heli.eindeAan, 'is het nummer bijna op, dan ook rustig uit', R(heli.rampEinde));
+ok(heli.loop && heli.rampEinde && heli.rampOpnieuw && heli.rampOpnieuw.waarom === 'opnieuw' && heli.herhaal >= 1 && heli.eindeAan,
+  'is het nummer op, dan begint het opnieuw (even zachter, en weer aanzwellen) zolang je in de heli zit (stap 127)', `${R(heli.rampEinde)}, ${R(heli.rampOpnieuw)}, ${heli.herhaal}×`);
 ok(heli.keer === 2, 'opnieuw in de heli: weer vanaf het begin', `${heli.keer} keer`);
 
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');

@@ -60,6 +60,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | 1 2 3 | een keuze maken als het spel erom vraagt (een huis, de inleg, wat je doet); op een aanraakscherm zijn het knoppen |
 | 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, verband, wapens) |
 | F5 / F9 | spel opslaan / opgeslagen spel laden (ook: **Opslaan** in het menu onder Esc) |
+| F11 | volledig scherm aan en uit (ook onder Instellingen; in de app zonder menubalk) |
 | **X** | een klusje afbreken |
 | levensbalk | linksonder; leeg = neergegaan, en dan kies je: de missie opnieuw, het laatste checkpoint, of je eigen opslag |
 | portemonnee | rechtsonder; je begint met € 1000 (testfase) en verdient de rest met missies |
@@ -330,7 +331,8 @@ tot Erik en de accu onderin. **B** of **E** haalt hem terug.
 
 - **Grenzen:** niet hoger dan **150 m**, niet dichter dan **100 m** bij de rand van de wereld, niet verder dan
   **800 m** van Erik. In de buurt van een grens komt er ruis in beeld; erover staat **OUT OF RANGE** met
-  **tien tellen**. Niet op tijd terug: het signaal is weg, de drone stort neer en is kwijt (een nieuwe kost
+  **vijftien tellen**. Terug gaat snel (stuur hem terug en hij vliegt ruim 170 km/u; laat je los, dan drijft
+  hij vanzelf terug). Niet op tijd terug: het signaal is weg, de drone stort neer en is kwijt (een nieuwe kost
   weer € 1.000).
 - **Accu:** vijf minuten vliegen (met shift korter). Leeg: hij vliegt vanzelf terug, en laadt in anderhalve
   minuut weer op.
@@ -2503,21 +2505,25 @@ boven de loods. Bouwman ziet de heli en rijdt weg.
 - **Wiebe vliegt rustig**, op 34 m boven de grond (ruim boven elk dak), naast Bouwman en met de deur
   naar hem toe. Het zoeklicht staat op zijn politieauto.
 - **Het muziekje van de intro** speelt in de heli (stap 119): het zwelt in vier seconden aan als je in de
-  deur zit, en dooft in zeven seconden rustig uit als je bij het Autohuis uitstapt (of als het nummer
-  bijna op is). De spanningsmuziek van de missie zwijgt zolang.
+  deur zit, en dooft in zeven seconden rustig uit als je bij het Autohuis uitstapt. Is het nummer op voor
+  je geland bent, dan begint het opnieuw. De spanningsmuziek van de missie zwijgt zolang, en de **wieken**
+  hoor je luid.
+- **Je wapen** zie je in de deur, en tot het einde van de achtervolging **raken je kogels niet op** (∞).
 - **Schieten** raakt, je ziet het in de balk ("Bouwman · 3 treffers"), maar hij stopt niet. Bij de
   **BP** duikt hij onder de luifel en stapt over in een tweede auto.
 - Wiebe zet je neer bij het **Autohuis**. Daar staan **Mark en Johan** bij een **zwarte Ferrari**.
-- **De achtervolging**: Bouwman gaat terug naar zijn loods, naar zijn boot. Blijf erbij: verder dan
-  300 m, tien tellen lang, en hij is weg (missie mislukt).
-- **Bij de loods**: Bouwman en vier bodyguards. Ze gaan niet neer met één kogel (de bodyguards drie
-  treffers, Bouwman twee; met de sniper wel in één keer), en twee hebben een **machinegeweer** dat in
-  salvo's schiet. Zoek dekking. Mark en Johan stappen met je uit en schieten mee op de mannen, maar
-  **Bouwman is voor jou**. Ga je neer, dan begin je opnieuw bij de loods. Weinig kogels? Johan geeft je
-  bij de auto een doos.
+- **De achtervolging**: Bouwman gaat terug naar zijn loods, naar zijn boot, en hij rijdt hard (ruim
+  110 km/u). Blijf erbij: verder dan 300 m, tien tellen lang, en hij is weg (missie mislukt).
+- **Handlangers**: twee auto's met zijn mannen rijden achter hem en schieten uit het raam op je; verderop
+  komen er twee **scooters** bij. Schiet hun auto stuk en ze liggen eruit.
+- **Bij de loods**: Bouwman en zes bodyguards. Ze gaan niet neer met één kogel (de bodyguards vier
+  treffers, Bouwman vijf; met de sniper wel in één keer), en drie hebben een **machinegeweer** dat in
+  salvo's schiet. Zoek dekking. Mark en Johan stappen met je uit en schieten af en toe mee op de mannen,
+  maar **Bouwman is voor jou**. Ga je neer, dan begin je opnieuw bij de loods. Weinig kogels? Johan geeft
+  je bij de auto een doos, en gooit je er nog een toe als alles op is.
 - Dan **zwaailichten**: vier sterren. *"Naar de Dúvelsrak. Johan, heb je dat laatste blok nog?"*
   *"Altijd."* Rijd over het dek en Johan gooit zijn **laatste C4** uit het raam: een filmbeeld van de
-  knal achter je, en de politie die er vol in de remmen voor staat. De sterren zijn weg. (Raak je ze
+  knal achter je (de camera schudt flink), en de politie die er vol in de remmen voor staat. De sterren zijn weg. (Raak je ze
   op een andere manier kwijt, dan is het ook goed.)
 
 Daarna ***Zondagochtend***, kwart voor acht, en je staat voor je eigen huis. Radio Tinga
@@ -2542,9 +2548,14 @@ auto parkeer je aan de Molenkrite en loop je het pad op.
   er eerder, en mislukt de missie.
 
 Buiten staan Mark en Johan. Op de Lemmerweg wordt getoeterd. **€ 10.000**, MISSIE GESLAAGD, en dan
-***Die avond…***: een laatste filmbeeld voor de Wieken 29 bij zonsondergang. *"Op Tinga."* De camera
-stijgt op over de daken naar het rode lampje van de mast, en dan rolt **de titelrol**. **E** slaat hem
-over. Hij eindigt met *Gefeliciteerd met je verjaardag, Erik!*
+***Die avond…***: een laatste filmbeeld voor de Wieken 29, om tien uur. *"Op Tinga."* Boven de wijk gaat
+**vuurwerk** de lucht in en het **muziekje van de intro** speelt weer. De camera stijgt op over de daken naar
+het rode lampje van de mast, en dan rolt **de titelrol**. **E** slaat hem over. Hij eindigt met
+*Gefeliciteerd met je verjaardag, Erik!*
+
+| ![In de deur van de heli, met je wapen](docs/screenshots/wensen_heli.png) | ![Een handlanger in de achtervolging](docs/screenshots/wensen_handlangers.png) |
+|---|---|
+| ![Vuurwerk aan het einde](docs/screenshots/wensen_vuurwerk.png) | ![De Ferrari van binnen](docs/screenshots/wensen_ferrari_binnen.png) |
 
 Daarna speel je **vrij** verder: er belt geen missie meer, maar de klusjes, de Ferrari, de winkels en
 de stad blijven. Radio Tinga zendt het fragment voortaan af en toe opnieuw uit, tussen de nummers
@@ -3018,8 +3029,10 @@ geel, en een scheidsrechter in het zwart. Op de tribune zitten veertien toeschou
 overkant staan er zes langs de lijn.
 
 - **Er wordt echt gespeeld.** Iedereen heeft een plek in de opstelling, en die schuift mee met de bal.
-  Wie het dichtst bij de bal staat gaat erop af. Dicht bij het doel wordt er geschoten; verder weg
-  speelt hij over naar een ploeggenoot die vóór hem staat, soms met een boogbal. De bal rolt, stuitert
+  Wie het dichtst bij de bal staat gaat erop af en neemt hem aan; met de bal aan de voet dribbelt hij naar
+  het doel en om tegenstanders heen, en die zetten druk en pakken hem soms af (stap 127). Dicht bij het doel
+  wordt er geschoten; anders speelt hij over naar de vrijste ploeggenoot, soms opzij of terug, soms met een
+  boogbal, en die gaat de bal halen. De bal rolt, stuitert
   en gaat uit: over de zijlijn volgt een inworp, achter het doel een doeltrap. De keeper pakt niet
   alles. Bij een doelpunt fluit de scheidsrechter, gaan de armen op de tribune omhoog, juicht het
   publiek, en volgt een aftrap vanaf de middenstip.
@@ -3898,6 +3911,14 @@ is datzelfde scherm het pauzescherm met **Doorgaan** en **Opslaan** (zo kan het 
 geen F5 is); tijdens een gesprek zegt die knop *Nu niet*. Een opslag die deze versie niet kan lezen staat
 er als regel onder de knoppen, in plaats van dat Spel laden stil verdwijnt. Het eerste checkpoint legt in
 een kaartje uit hoe opslaan werkt.
+
+**Meer dan één opgeslagen spel** (stap 127). Elk spel krijgt bij de eerste keer opslaan een eigen plek (tot tien);
+F5 schrijft daarna steeds naar die plek. Staat er meer dan één, dan geeft **Spel laden** een lijst: per spel de
+missie waar je was, het moment in het spel (*middag 13:45*) en wanneer en waar je opsloeg. Een opslag van vóór
+deze stap staat er gewoon bij.
+
+| ![Spel laden: de lijst](docs/screenshots/wensen_spel_laden.png) | ![De BP, met een vloer onder de luifel](docs/screenshots/wensen_bp.png) |
+|---|---|
 
 **Een missie mislukt** (stap 118): dan begint die missie opnieuw, vanaf zijn herstelpunt. Tot stap 118
 laadde het spel dan stil je eigen opslag, en wie die in missie 1 maakte stond na een mislukte missie 13 weer

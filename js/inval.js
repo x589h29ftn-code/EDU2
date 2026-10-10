@@ -102,8 +102,9 @@ export function rijdVlucht(st, L, car, vehicles, dt) {
   const i = Math.min(L.n - 1, Math.max(0, Math.round(st.s / 2)));
   const doel = st.prof[Math.min(L.n - 1, i + 1)];
   const vorig = st.v, vorigeYaw = car.yaw;
-  if (st.v < doel) st.v = Math.min(doel, st.v + INVAL.optrek * dt);
-  else st.v = Math.max(doel, st.v - INVAL.remmen * 1.6 * dt);
+  // (`st.optrek` en `st.remmen`: een eigen rijstijl, zoals Bouwman in missie 18; stap 127)
+  if (st.v < doel) st.v = Math.min(doel, st.v + (st.optrek || INVAL.optrek) * dt);
+  else st.v = Math.max(doel, st.v - (st.remmen || INVAL.remmen) * 1.6 * dt);
   st.v = Math.max(st.v, 1.2);
   const stap = st.v * dt;
   st.s = Math.min(L.lengte, st.s + stap);

@@ -64,7 +64,29 @@ let schotTeller = 0;
 let uitzendBuf = null, uitzendLaden = null, uitzendBron = null, uitzendBegon = 0, uitzendWil = false;
 let uitzendingNu = false;
 // het muziekje van de intro in de heli van missie 18 (stap 119): seconden aanzwellen, seconden uitdoven, volume
-export const HELI_MUZIEK = { url: 'audio/intro/intro.mp3', in: 4, uit: 7, vol: 0.5 };
+export const HELI_MUZIEK = { url: 'audio/intro/intro.mp3', in: 4, uit: 7, vol: 0.5, dip: 2.5 };
+// de wieken van de heli van Wiebe (stap 127): zoveel keer de politieheli
+export const HELI_ROND = { luid: 2.6 };
+/*
+ Opnames van de gebruiker (stap 127, 9 okt 2026): "Ik voeg ook geluid toe voor explosies, twee soorten
+ achtergrond geluid ipv wat je nu hanteert, helicopter geluid voor de helicopter let wel op afstand
+ helicopter … Verder een radio geluid als je voor het eerst een politiester hebt. Speel je een deel van het
+ nummer kort random deel kort fade in en kort fade out". Lukt het laden niet, dan blijft het gemaakte geluid.
+*/
+export const OPNAMES = {
+  explosie: 'audio/explosie/explosie.mp3',      // 2,9 s
+  heli: 'audio/heli/heli.mp3',                  // 10,1 s, in een lus
+  politieRadio: 'audio/politie/radio.mp3',      // 37,5 s portofoon
+};
+// de achtergrond: overdag de lange opname (6,8 min), 's nachts de korte (68 s); een element dat streamt
+export const ACHTERGROND = {
+  dag: { url: 'audio/sfeer/achtergrond1.mp3', vol: 0.55 },
+  nacht: { url: 'audio/sfeer/achtergrond2.mp3', vol: 0.30 },
+  wissel: 4,           // s overvloeien tussen dag en nacht
+  binnen: 0.25,        // zoveel ervan binnen, en doffer
+};
+// de portofoon bij de eerste ster: een willekeurig stuk van zo lang, zo snel in en uit, en niet vaker dan dit
+export const POLITIE_RADIO = { duur: [5, 8], in: 0.35, uit: 0.9, vol: 0.55, rust: 45 };
 let herhaling = false;             // na missie 18 zendt Radio Tinga het fragment af en toe opnieuw uit
 const HERHALING = { bestand: 'uitzending.mp3', titel: 'Een mededeling van Erik en Mark', artiest: 'Radio Tinga' };
 /*
@@ -103,6 +125,9 @@ function kiesSfeer(nacht, binnen) {
 }
 
 function nu() { return ctx ? ctx.currentTime : 0; }
+// de opnames van stap 127 (`OPNAMES`): AudioBuffers zodra ze binnen zijn
+const opname = {}, opnameLaden = {};
+let politieRadioT = -1e9, politieRadioTeller = 0, explosieTeller = 0;
 
 // ---------- bouwstenen ----------
 function ruisBuffer(sec = 2) {
@@ -216,7 +241,26 @@ export const geluid = {
     bronnen.water = ruisLaag('bandpass', 700, 1.1, 0.0);
     window.__geluid = true;
     this.laadSchot();
+    this.laadOpnames();
   },
+
+  // de opnames van stap 127, elk één keer opgehaald en ontleed
+  laadOpnames() {
+    if (!ctx) return null;
+    for (const [k, url] of Object.entries(OPNAMES)) {
+      if (opnameLaden[k]) continue;
+      opnameLaden[k] = (async () => {
+        try {
+          const r = await fetch(url, { cache: 'force-cache' });
+          if (!r.ok) return null;
+          opname[k] = await ctx.decodeAudioData(await r.arrayBuffer());
+          return opname[k];
+        } catch { return null; }
+      })();
+    }
+    return Promise.all(Object.values(opnameLaden));
+  },
+  opnameStand() { return Object.fromEntries(Object.keys(OPNAMES).map(k => [k, opname[k] ? +opname[k].duration.toFixed(1) : null])); },
 
   // het schot als opname: één keer ophalen en ontleden; mislukt het, dan blijft het gemaakte schot
   laadSchot(url = 'audio/wapen/schot.mp3') {
@@ -613,7 +657,7 @@ export const geluid = {
    4. de brokken: een handvol tikjes in het eerste halve seconde, blik en glas
       dat op de straat terechtkomt.
   */
-  explosie(afstand = 0) {
+  explosie(afstand = 0, luid = 1) {
     if (!aan) return;
     /*
      Hoe ver weg het gebeurt telt mee. Een auto die honderd meter verderop de
@@ -622,9 +666,36 @@ export const geluid = {
      je hem niet meer; de hoge kant (de flits, de brokjes) valt sneller weg dan
      het lage rommelen, want dat is ook wat lucht met geluid doet.
     */
-    const v = Math.max(0, 1 - afstand / 120) ** 1.4;
+    const v = Math.max(0, 1 - afstand / 120) ** 1.4 * luid;
     if (v < 0.03) return;
-    const hoog = v * v;
+    explosieTeller++;
+    if (opname.explosie) {
+      /*
+       De opname (stap 127): verder weg zachter en doffer, en elke knal een tikje anders van toonhoogte.
+       Bij `luid` boven de 1 komt er hieronder het naroffelen bij.
+      */
+      const src = ctx.createBufferSource(); src.buffer = opname.explosie;
+      src.playbackRate.value = 0.9 + Math.random() * 0.16;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass';
+      f.frequency.value = 900 + 15000 * Math.max(0, 1 - afstand / 90) ** 2;
+      const g = ctx.createGain(); g.gain.value = Math.min(1.6, 0.95 * v);
+      src.connect(f); f.connect(g); g.connect(hoofd);
+      src.start();
+      if (luid <= 1) return;
+      toon({ freq: 55, naar: 22, duur: 1.6, volume: 0.32 * Math.min(2, luid), golf: 'sine', vertraag: 0.04 });
+      tik({ freq: 160, q: 0.5, duur: 2.8, volume: 0.26 * Math.min(2, luid), type: 'lowpass', val: 0.6, vertraag: 0.3 });
+      return;
+    }
+    const hoog = Math.min(1.6, v * v);
+    /*
+     `luid` boven de 1 (stap 127, de C4 op de Dúvelsrak: "Geef bij explosie duvelsrak ook explosie geluid mee"):
+     een tweede, diepere klap en een lang naroffelen onder het dek door.
+    */
+    if (luid > 1) {
+      toon({ freq: 55, naar: 22, duur: 1.6, volume: 0.32 * Math.min(2, luid), golf: 'sine', vertraag: 0.04 });
+      tik({ freq: 160, q: 0.5, duur: 2.8, volume: 0.30 * Math.min(2, luid), type: 'lowpass', val: 0.6, vertraag: 0.1 });
+      for (let i = 0; i < 6; i++) tik({ freq: 300 + Math.random() * 500, q: 0.8, duur: 0.35, volume: 0.12, type: 'lowpass', val: 0.2, vertraag: 0.4 + i * 0.28 + Math.random() * 0.2 });
+    }
     tik({ freq: 2200, q: 0.4, duur: 0.06, volume: 0.5 * hoog, type: 'highpass', val: 0.15 });
     tik({ freq: 240, q: 0.6, duur: 0.55, volume: 0.5 * v, type: 'lowpass', val: 0.25 });
     toon({ freq: 90, naar: 28, duur: 0.65, volume: 0.30 * v, golf: 'sine' });
@@ -632,6 +703,23 @@ export const geluid = {
     for (let i = 0; i < 7; i++) {
       tik({ freq: 2600 + Math.random() * 4000, q: 3, duur: 0.05, volume: 0.07 * hoog,
             vertraag: 0.12 + Math.random() * 0.5 });
+    }
+  },
+
+  /*
+   Vuurwerk (stap 127): een doffe plof als de pijl openspringt en daarna het knetteren van de vonken, alles
+   zachter en doffer naarmate het verder weg is (tot 400 m).
+  */
+  vuurwerk(afstand = 100) {
+    if (!aan) return;
+    const v = Math.max(0, 1 - afstand / 400) ** 1.2;
+    if (v < 0.03) return;
+    const vertraag = Math.min(0.9, afstand / 340);      // het geluid komt na het licht
+    toon({ freq: 120, naar: 40, duur: 0.45, volume: 0.22 * v, golf: 'sine', vertraag });
+    tik({ freq: 900, q: 0.6, duur: 0.18, volume: 0.18 * v, type: 'lowpass', val: 0.1, vertraag });
+    for (let i = 0; i < 10; i++) {
+      tik({ freq: 3000 + Math.random() * 3500, q: 2.5, duur: 0.03, volume: 0.05 * v * v,
+            vertraag: vertraag + 0.25 + Math.random() * 1.1 });
     }
   },
 
@@ -739,7 +827,8 @@ export const geluid = {
   pauzeer(v) {
     gepauzeerd = !!v;
     if (hoofd) hoofd.gain.setTargetAtTime(gedempt || gepauzeerd ? 0 : 0.55, nu(), 0.08);
-    for (const m of [bronnen.muziek, bronnen.missie, bronnen.heliMuz]) {
+    const bed = bronnen.bed ? [bronnen.bed.dagB, bronnen.bed.nachtB] : [];
+    for (const m of [bronnen.muziek, bronnen.missie, bronnen.heliMuz, ...bed]) {
       if (m && m.el) { if (gepauzeerd) m.el.pause(); else if (m.aan) m.el.play().catch(() => {}); }
     }
   },
@@ -1043,8 +1132,8 @@ export const geluid = {
    Het muziekje van de intro (audio/intro/intro.mp3), nog één keer: in missie 18 als Erik in de heli van
    Wiebe zit (stap 119, gevraagd: "met fade in en rustige fade out"). js/verhaal.js roept dit elk beeld aan
    met true zolang je in de heli zit, en met false daarna. Het nummer begint vooraan en zwelt aan in
-   `HELI_MUZIEK.in` seconden; uit gaat het in `HELI_MUZIEK.uit`, en ook als het nummer zelf bijna op is,
-   zodat het nooit afgehakt eindigt. Eén keer per vlucht: wie uitstapt en weer in de heli zit (opnieuw na
+   `HELI_MUZIEK.in` seconden; uit gaat het in `HELI_MUZIEK.uit`. Is het nummer op voor de vlucht klaar is, dan
+   begint het opnieuw (stap 127, zie hieronder). Eén keer per vlucht: wie uitstapt en weer in de heli zit (opnieuw na
    het neergaan) hoort het opnieuw vanaf het begin. De missiemuziek zwijgt eronder.
   */
   heliMuziek(actief) {
@@ -1059,7 +1148,8 @@ export const geluid = {
       let bron = null;
       try { bron = ctx.createMediaElementSource(el); } catch { return false; }
       bron.connect(g); g.connect(hoofd);
-      bronnen.heliMuz = { el, gain: g, aan: false, speelt: false, uitT: 0, stuk: false, keer: 0, ramps: [] };
+      bronnen.heliMuz = { el, gain: g, aan: false, speelt: false, uitT: 0, stuk: false, keer: 0, ramps: [], dipt: false, herhaal: 0, vorigeTijd: 0 };
+      el.loop = true;
       el.addEventListener('error', () => { bronnen.heliMuz.stuk = true; });
       el.addEventListener('ended', () => { bronnen.heliMuz.speelt = false; });
     }
@@ -1070,7 +1160,7 @@ export const geluid = {
     const plan = (van, naar, duur, waarom) => { h.ramps.push({ van: +van.toFixed(3), naar, duur: +duur.toFixed(2), waarom }); if (h.ramps.length > 8) h.ramps.shift(); };
     if (actief && !h.aan) {
       // instappen: vooraan beginnen, aanzwellen
-      h.aan = true; h.speelt = true; h.uitT = 0; h.keer++;
+      h.aan = true; h.speelt = true; h.uitT = 0; h.keer++; h.dipt = false; h.vorigeTijd = 0;
       try { h.el.currentTime = 0; } catch { /* nog niet geladen */ }
       h.el.play().catch(() => {});
       h.gain.gain.cancelScheduledValues(t);
@@ -1085,14 +1175,28 @@ export const geluid = {
       h.gain.gain.linearRampToValueAtTime(0, t + HELI_MUZIEK.uit);
       plan(h.gain.gain.value, 0, HELI_MUZIEK.uit, 'uit');
       h.uitT = t + HELI_MUZIEK.uit;
-    } else if (actief && h.speelt && !h.uitT && h.el.duration && h.el.duration - h.el.currentTime < HELI_MUZIEK.uit) {
-      // het nummer is bijna op: ook dan rustig uit
-      h.gain.gain.cancelScheduledValues(t);
-      h.gain.gain.setValueAtTime(h.gain.gain.value, t);
-      h.gain.gain.linearRampToValueAtTime(0, t + Math.max(1, h.el.duration - h.el.currentTime));
-      plan(h.gain.gain.value, 0, Math.max(1, h.el.duration - h.el.currentTime), 'einde');
-      h.uitT = t + HELI_MUZIEK.uit;
+    } else if (actief && h.speelt && !h.uitT && h.el.duration) {
+      /*
+       Het nummer duurt 65 s, de vlucht langer (stap 127, gevraagd: "Muziekje stopt op de helft van de missie,
+       misschien nogmaals spelen totdat heli klaar is"). Het element staat op `loop`: vlak voor het eind zakt het
+       even weg en na de sprong naar het begin zwelt het weer aan, tot je uitstapt.
+      */
+      const rest = h.el.duration - h.el.currentTime;
+      if (rest < HELI_MUZIEK.dip && !h.dipt) {
+        h.dipt = true;
+        h.gain.gain.cancelScheduledValues(t);
+        h.gain.gain.setValueAtTime(h.gain.gain.value, t);
+        h.gain.gain.linearRampToValueAtTime(HELI_MUZIEK.vol * 0.2, t + Math.max(0.3, rest));
+        plan(h.gain.gain.value, +(HELI_MUZIEK.vol * 0.2).toFixed(3), Math.max(0.3, rest), 'dip');
+      } else if (h.dipt && h.el.currentTime < h.vorigeTijd - 1) {
+        h.dipt = false; h.herhaal++;
+        h.gain.gain.cancelScheduledValues(t);
+        h.gain.gain.setValueAtTime(h.gain.gain.value, t);
+        h.gain.gain.linearRampToValueAtTime(HELI_MUZIEK.vol, t + 2);
+        plan(h.gain.gain.value, HELI_MUZIEK.vol, 2, 'opnieuw');
+      }
     }
+    if (h.speelt) h.vorigeTijd = h.el.currentTime;
     if (!h.aan && h.uitT && t > h.uitT && !h.el.paused) { h.el.pause(); h.speelt = false; }
     return true;
   },
@@ -1100,7 +1204,7 @@ export const geluid = {
   heliMuziekStand() {
     const h = bronnen.heliMuz;
     return h ? { aan: h.aan, speelt: h.speelt && !h.el.paused, volume: +h.gain.gain.value.toFixed(3), tijd: +h.el.currentTime.toFixed(2),
-      bestand: HELI_MUZIEK.url, keer: h.keer, stuk: h.stuk, ramps: h.ramps.slice(), duur: h.el.duration || 0, pauze: h.el.paused } : null;
+      bestand: HELI_MUZIEK.url, keer: h.keer, herhaal: h.herhaal, loop: h.el.loop, stuk: h.stuk, ramps: h.ramps.slice(), duur: h.el.duration || 0, pauze: h.el.paused } : null;
   },
 
   missiemuziek(actief) {
@@ -1621,9 +1725,43 @@ export const geluid = {
 
    Wordt elk beeld aangeroepen met de afstand tot de heli; `null` betekent stil.
   */
-  heli(afstand) {
+  heli(afstand) { this.heliBron('heli', afstand, 1); },
+  /*
+   De heli van Wiebe in missie 18 (stap 127, gevraagd: "Geef de heli luider geluid van de wieken"). Een
+   eigen bron naast die van de politieheli: die zet de zijne elk beeld op stil zolang er geen vier sterren
+   zijn. `luid` schaalt het volume; in de deur zit je pal onder de bladen.
+  */
+  heliRond(afstand, luid = HELI_ROND.luid) { this.heliBron('heliRond', afstand, luid); },
+  heliBron(sleutel, afstand, luid) {
     if (!aan) return;
-    if (!bronnen.heli) {
+    // de opname is binnen gekomen nadat de gemaakte heli al liep: die gaat eruit
+    if (bronnen[sleutel] && bronnen[sleutel].gemaakt && opname.heli) {
+      const o = bronnen[sleutel]; o.gain.gain.setTargetAtTime(0, nu(), 0.2);
+      setTimeout(() => { try { o.gain.disconnect(); } catch { /* al weg */ } }, 1200);
+      bronnen[sleutel] = null;
+    }
+    if (!bronnen[sleutel] && opname.heli) {
+      if (afstand == null) return;
+      /*
+       De opname in een lus (stap 127, "let wel op afstand helicopter"). Hoe verder weg, hoe zachter en
+       hoe doffer: een laagdoorlaat van 14 kHz pal eronder naar 500 Hz op 320 m, net als bij de gemaakte heli.
+      */
+      const src = ctx.createBufferSource(); src.buffer = opname.heli; src.loop = true;
+      src.loopStart = 0.05; src.loopEnd = opname.heli.duration - 0.05;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2000; f.Q.value = 0.5;
+      const g = ctx.createGain(); g.gain.value = 0;
+      src.connect(f); f.connect(g); g.connect(hoofd);
+      src.start(0, Math.random() * opname.heli.duration * 0.8);
+      bronnen[sleutel] = { gain: g, filter: f, src, opname: true };
+    }
+    if (bronnen[sleutel] && bronnen[sleutel].opname) {
+      const h = bronnen[sleutel], t = nu();
+      const v = afstand == null ? 0 : Math.max(0, 1 - afstand / 320) ** 1.6;
+      h.gain.gain.setTargetAtTime(Math.min(1.4, v * 0.55 * luid), t, 0.35);
+      h.filter.frequency.setTargetAtTime(500 + v * v * 13500, t, 0.5);
+      return;
+    }
+    if (!bronnen[sleutel]) {
       if (afstand == null) return;
       const g = ctx.createGain(); g.gain.value = 0;
       const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300; f.Q.value = 0.8;
@@ -1642,17 +1780,46 @@ export const geluid = {
       ruis.connect(rf); rf.connect(rg); rg.connect(g);
       o.connect(f); f.connect(g); g.connect(hoofd);
       o.start(); ruis.start(); slag.start();
-      bronnen.heli = { gain: g, filter: f, ruisGain: rg };
+      bronnen[sleutel] = { gain: g, filter: f, ruisGain: rg, gemaakt: true };
     }
-    const h = bronnen.heli;
+    const h = bronnen[sleutel];
     // hoorbaar tot 320 m — een heli hoor je veel verder dan een sirene
     const v = afstand == null ? 0 : Math.max(0, 1 - afstand / 320) ** 1.6;
     const t = nu();
-    h.gain.gain.setTargetAtTime(v * 0.20, t, 0.35);
-    h.ruisGain.gain.setTargetAtTime(v * 0.16, t, 0.35);
+    h.gain.gain.setTargetAtTime(v * 0.20 * luid, t, 0.35);
+    h.ruisGain.gain.setTargetAtTime(v * 0.16 * luid, t, 0.35);
     // dichtbij hoor je het klapperen, ver weg alleen het dreunen
     h.filter.frequency.setTargetAtTime(180 + v * 900, t, 0.5);
   },
+  heliRondStand() { const h = bronnen.heliRond; return h ? { volume: +h.gain.gain.value.toFixed(3), opname: !!h.opname } : null; },
+  heliStand() { const h = bronnen.heli; return h ? { volume: +h.gain.gain.value.toFixed(3), opname: !!h.opname, filter: Math.round(h.filter.frequency.value) } : null; },
+
+  /*
+   De portofoon van de politie (stap 127): bij de eerste ster een willekeurig stuk van de opname, kort aan
+   en kort weg. `forceer` slaat de rust over (voor de proef).
+  */
+  politieRadio({ forceer = false } = {}) {
+    if (!aan || !opname.politieRadio) return false;
+    const t = nu();
+    if (!forceer && t - politieRadioT < POLITIE_RADIO.rust) return false;
+    politieRadioT = t;
+    const B = opname.politieRadio, P = POLITIE_RADIO;
+    const duur = Math.min(B.duration - 0.5, P.duur[0] + Math.random() * (P.duur[1] - P.duur[0]));
+    const begin = Math.random() * Math.max(0, B.duration - duur);
+    const src = ctx.createBufferSource(); src.buffer = B;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(P.vol, t + P.in);
+    g.gain.setValueAtTime(P.vol, t + duur - P.uit);
+    g.gain.linearRampToValueAtTime(0, t + duur);
+    src.connect(g); g.connect(hoofd);
+    src.start(t, begin, duur + 0.05);
+    politieRadioTeller++;
+    this.laatsteRadio = { begin: +begin.toFixed(2), duur: +duur.toFixed(2), in: P.in, uit: P.uit };
+    return true;
+  },
+  get politieRadioTeller() { return politieRadioTeller; },
+  get explosieTeller() { return explosieTeller; },
 
   /*
    ---- de drone (stap 124) ----
@@ -1782,6 +1949,49 @@ export const geluid = {
     }
   },
 
+  /*
+   De achtergrond (stap 127): twee opnames van de gebruiker in plaats van het gemaakte verkeersgeruis. Overdag
+   de lange, 's nachts de korte; ze vloeien in ACHTERGROND.wissel tellen in elkaar over. Binnen zachter en doffer.
+   Twee streamende elementen (de lange is bijna zeven minuten: als buffer zou dat 140 MB zijn). Levert true
+   zolang er een speelt.
+  */
+  achtergrond(nacht, binnen) {
+    if (!aan || !ctx) return false;
+    if (!bronnen.bed) {
+      const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 18000;
+      filter.connect(hoofd);
+      const maak = (k) => {
+        const el = new Audio(); el.crossOrigin = 'anonymous'; el.preload = 'auto'; el.loop = true; el.src = ACHTERGROND[k].url;
+        const g = ctx.createGain(); g.gain.value = 0;
+        const b = { el, gain: g, stuk: false, aan: false };
+        try { ctx.createMediaElementSource(el).connect(g); g.connect(filter); } catch { b.stuk = true; }
+        el.addEventListener('error', () => { b.stuk = true; });
+        return b;
+      };
+      bronnen.bed = { dagB: maak('dag'), nachtB: maak('nacht'), filter };
+    }
+    const B = bronnen.bed, t = nu();
+    let speelt = false;
+    for (const [k, b] of [['dag', B.dagB], ['nacht', B.nachtB]]) {
+      if (b.stuk) continue;
+      const wil = (k === 'nacht') === !!nacht;
+      const vol = wil && !gepauzeerd ? ACHTERGROND[k].vol * (binnen ? ACHTERGROND.binnen : 1) : 0;
+      b.gain.gain.setTargetAtTime(vol, t, ACHTERGROND.wissel / 3);
+      if (wil && !b.aan) { b.aan = true; b.el.play().catch(() => {}); }
+      // de andere pas stilzetten als hij is uitgedoofd
+      if (!wil && b.aan && b.gain.gain.value < 0.003) { b.aan = false; b.el.pause(); }
+      if (wil && !b.el.paused) speelt = true;
+    }
+    B.filter.frequency.setTargetAtTime(binnen ? 900 : 18000, t, 0.8);
+    return speelt;
+  },
+  achtergrondStand() {
+    const B = bronnen.bed;
+    if (!B) return null;
+    const st = b => ({ aan: b.aan, speelt: !b.el.paused, stuk: b.stuk, volume: +b.gain.gain.value.toFixed(3), bestand: b.el.src.split('/').pop() });
+    return { dag: st(B.dagB), nacht: st(B.nachtB), filter: Math.round(B.filter.frequency.value) };
+  },
+
   // ---------- omgeving per beeld ----------
   omgeving(dt, { weer = 'helder', nacht = false, wind = 0.2, binnen = false,
     water = 0, molen = 0 } = {}) {
@@ -1807,7 +2017,9 @@ export const geluid = {
     bronnen.wind.gain.gain.setTargetAtTime(binnen ? w * 0.35 : w, t, 1.2);
     bronnen.wind.filter.frequency.setTargetAtTime(weer === 'regen' ? 700 : 420, t, 2.0);
     bronnen.regen.gain.gain.setTargetAtTime(weer === 'regen' ? (binnen ? 0.030 : 0.085) : 0, t, 1.0);
-    bronnen.verkeer.gain.gain.setTargetAtTime(nacht ? 0.006 : 0.017, t, 2.0);
+    // (stap 127: met de opnames van de achtergrond erbij zwijgt het gemaakte verkeersgeruis en komen de vogeltjes minder vaak)
+    const bed = this.achtergrond(nacht, binnen);
+    bronnen.verkeer.gain.gain.setTargetAtTime(bed ? 0 : nacht ? 0.006 : 0.017, t, 2.0);
 
     /*
      De buurt laten horen dat hij er is. Hier stond één mussengeluidje op een
@@ -1820,7 +2032,7 @@ export const geluid = {
     if (weer !== 'regen') {
       vogelKlok -= dt;
       if (vogelKlok <= 0) {
-        vogelKlok = 2.6 + Math.random() * 6.5;
+        vogelKlok = (2.6 + Math.random() * 6.5) * (bed ? 3 : 1);
         this.sfeerGeluid(kiesSfeer(nacht, binnen));
       }
     }

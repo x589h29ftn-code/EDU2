@@ -38,6 +38,14 @@ export const WEDSTRIJD = {
   schietAfstand: 20,         // dichter bij het doel: schieten
   aanrijV: 3.5,              // m/s: harder rijdt iemand omver
   aanrijR: 1.5,              // m
+  // stap 127 (gevraagd: "De spelers op voetbalveld lopen allemaal een kant op maar spelen niet de bal. Voeg wat
+  // simpele voetbal logica toe"): balbezit, dribbelen, druk zetten, afpakken, en een pass die iemand gaat halen
+  dribbel: 4.6,              // m/s met de bal aan de voet
+  bezit: [0.9, 2.6],         // s dribbelen voor hij speelt (korter als er iemand op hem staat)
+  druk: 2.2,                 // m: zo dicht bij een tegenstander speelt hij eerder af
+  afpak: 1.0,                // m: zo dichtbij kan een tegenstander de bal afpakken…
+  afpakKans: 1.6,            // …met deze kans per seconde
+  aanname: 13,               // m/s: harder dan dit is een bal niet in één keer aan te nemen
 };
 const BAL_R = 0.11;
 const DOEL_HALF = 3.66, LAT = 2.44;
@@ -151,7 +159,7 @@ export function maakWedstrijd({ scene, veld }) {
   const balMesh = new THREE.Mesh(new THREE.SphereGeometry(BAL_R, 14, 10), balMat);
   balMesh.castShadow = true;
   groep.add(balMesh);
-  const bal = { u: 0, v: 0, h: BAL_R, vu: 0, vv: 0, vh: 0, laatste: 0, inHanden: null, vasthoudT: 0 };
+  const bal = { u: 0, v: 0, h: BAL_R, vu: 0, vv: 0, vh: 0, laatste: 0, inHanden: null, vasthoudT: 0, bezit: null, bezitT: 0, voor: null };
 
   const st = { aanwezig: false, gestaakt: false, gestaaktT: 0, stand: [0, 0], pauzeT: 0, aftrap: 0, dag: -1, gezien: false,
     doelpunten: 0, schoten: 0, passes: 0, uit: 0, slachtoffers: [] };
@@ -171,7 +179,7 @@ export function maakWedstrijd({ scene, veld }) {
     // wie aftrapt staat bij de middenstip
     const trapper = spelers.find(s => s.team === team && s.nr === 9);
     trapper.u = team === 0 ? -0.6 : 0.6; trapper.v = 0;
-    bal.u = 0; bal.v = 0; bal.h = BAL_R; bal.vu = bal.vv = bal.vh = 0; bal.inHanden = null;
+    bal.u = 0; bal.v = 0; bal.h = BAL_R; bal.vu = bal.vv = bal.vh = 0; bal.inHanden = null; bal.bezit = null; bal.voor = null;
     scheids.u = 0; scheids.v = hb * 0.35;
   }
   function begin() {
@@ -195,7 +203,7 @@ export function maakWedstrijd({ scene, veld }) {
     const du = doelU - bal.u, dv = doelV - bal.v, d = Math.hypot(du, dv) || 1;
     bal.vu = du / d * snel; bal.vv = dv / d * snel; bal.vh = hoog;
     bal.h = Math.max(bal.h, BAL_R + 0.02);
-    bal.laatste = s.team; bal.inHanden = null;
+    bal.laatste = s.team; bal.inHanden = null; bal.bezit = null; bal.voor = null;
     s.schopT = 0.7;
   }
   function beslis(s) {
@@ -210,16 +218,22 @@ export function maakWedstrijd({ scene, veld }) {
       schop(s, doelU + r * 2, naast, 19 + Math.random() * 6, 1 + Math.random() * 4);
       return;
     }
-    // een ploeggenoot verder naar voren
-    const maats = spelers.filter(m => m.team === s.team && m !== s && !m.neer && (m.u - s.u) * r > 3)
-      .sort((a, b) => Math.hypot(a.u - s.u, a.v - s.v) - Math.hypot(b.u - s.u, b.v - s.v)).slice(0, 3);
-    if (maats.length && (Math.random() < 0.72 || s.keeper)) {
-      const m = maats[Math.floor(Math.random() * maats.length)];
-      const d = Math.hypot(m.u - s.u, m.v - s.v);
+    /*
+     Een ploeggenoot: liefst vooruit, maar ook opzij of terug als die vrij staat (stap 127). Wie het verst van een
+     tegenstander staat en niet te ver weg is, telt het zwaarst. Hij gaat de bal halen (`bal.voor`).
+    */
+    const vrijheid = (m) => { let d = Infinity; for (const o of spelers) if (o.team !== s.team && !o.neer) d = Math.min(d, Math.hypot(o.u - m.u, o.v - m.v)); return d; };
+    const maats = spelers.filter(m => m.team === s.team && m !== s && !m.neer && !m.keeper)
+      .map(m => { const d = Math.hypot(m.u - s.u, m.v - s.v), vooruit = (m.u - s.u) * r;
+        return { m, d, score: Math.min(8, vrijheid(m)) + vooruit * 0.25 - Math.max(0, d - 30) * 0.4 - (d < 6 ? 6 : 0) + Math.random() * 3 }; })
+      .sort((a, b) => b.score - a.score).slice(0, 3);
+    if (maats.length && (Math.random() < 0.8 || s.keeper)) {
+      const { m, d } = maats[0];
       // een beetje voor hem uit, en ver weg met een boogbal
       const lang = d > 26;
       st.passes++;
-      schop(s, m.u + r * 2, m.v, Math.min(21, 6 + d * (lang ? 0.55 : 0.8)), lang ? 6 + Math.random() * 2 : 0);
+      schop(s, m.u + r * 1.5, m.v, Math.min(19, 5 + d * (lang ? 0.5 : 0.45)), lang ? 6 + Math.random() * 2 : 0);
+      bal.voor = m;
       return;
     }
     // dribbelen: een tikje vooruit
@@ -294,8 +308,34 @@ export function maakWedstrijd({ scene, veld }) {
       // na een doelpunt blijft hij in het net liggen (anders rolde hij negen meter door)
       if (st.naDoel && Math.abs(bal.u) > hl + 1.4) { bal.u = Math.sign(bal.u) * (hl + 1.4); bal.vu = 0; bal.vv *= 0.3; }
     }
-    // wie gaat er op af: per ploeg de dichtstbijzijnde die niet ligt
+    // met de bal aan de voet: hij loopt, de bal rolt voor hem uit (stap 127)
+    if (bal.bezit && !bal.inHanden) {
+      const s = bal.bezit;
+      if (s.neer || st.pauzeT > 0 || st.naDoel) bal.bezit = null;
+      else {
+        const r = s.team === 0 ? 1 : -1;
+        // naar het doel, een beetje naar het midden, en weg van wie er voor hem staat
+        let du = r * hl - s.u, dv = -s.v * 0.35;
+        let dichtste = Infinity;
+        for (const o of spelers) {
+          if (o.team === s.team || o.neer) continue;
+          const ou = o.u - s.u, ov = o.v - s.v, od = Math.hypot(ou, ov);
+          dichtste = Math.min(dichtste, od);
+          if (od < 6 && ou * r > 0) dv -= Math.sign(ov || 1) * (6 - od) * 0.6;
+        }
+        const d = Math.hypot(du, dv) || 1, stap = WEDSTRIJD.dribbel * dt;
+        s.u += du / d * stap; s.v = Math.max(-hb + 1, Math.min(hb - 1, s.v + dv / d * stap));
+        s.yaw = yawUV(du, dv); s.loopt = true; s.snelheid = WEDSTRIJD.dribbel;
+        bal.u = s.u + du / d * 0.55; bal.v = s.v + dv / d * 0.55; bal.h = BAL_R;
+        bal.vu = du / d * WEDSTRIJD.dribbel; bal.vv = dv / d * WEDSTRIJD.dribbel; bal.vh = 0;
+        bal.bezitT -= dt * (dichtste < WEDSTRIJD.druk ? 2.5 : 1);
+        if (bal.bezitT <= 0 || Math.hypot(r * hl - bal.u, bal.v) < WEDSTRIJD.schietAfstand * 0.8) { bal.bezit = null; beslis(s); }
+      }
+    }
+    // wie gaat er op af: per ploeg de dichtstbijzijnde die niet ligt (en de man voor wie de pass bedoeld is)
     const jagers = [0, 1].map(t => {
+      if (bal.bezit && bal.bezit.team === t) return null;
+      if (bal.voor && bal.voor.team === t && !bal.voor.neer) return bal.voor;
       let best = null, bd = Infinity;
       for (const s of spelers) {
         if (s.team !== t || s.keeper || s.neer) continue;
@@ -316,8 +356,18 @@ export function maakWedstrijd({ scene, veld }) {
         const dBal = Math.hypot(bal.u - lijn, bal.v);
         if (dBal < 9 && !bal.inHanden && st.pauzeT <= 0) { doelU = bal.u; doelV = bal.v; snel = WEDSTRIJD.ren; }
         else { doelU = lijn; doelV = Math.max(-2.8, Math.min(2.8, bal.v * 0.25)); snel = WEDSTRIJD.draf; }
+      } else if (s === bal.bezit) {
+        continue;                                // (hierboven al verplaatst)
       } else if (s === jagers[s.team] && st.pauzeT <= 0 && !st.naDoel && !bal.inHanden) {
-        doelU = bal.u - r * 0.35; doelV = bal.v; snel = WEDSTRIJD.ren;
+        // op de bal af, of op wie hem heeft; een rollende bal een stukje voor zijn baan
+        const voor = bal.bezit ? 0 : 0.35;
+        doelU = bal.u + bal.vu * voor - r * 0.35; doelV = bal.v + bal.vv * voor; snel = WEDSTRIJD.ren;
+      } else if (bal.bezit && bal.bezit.team === s.team && !s.keeper) {
+        // de ploeg met de bal: naar voren, de breedte in
+        const o = opstelling(s);
+        doelU = o.u + Math.max(-hl * 0.35, Math.min(hl * 0.35, bal.u * 0.55)) + r * hl * 0.14;
+        doelV = o.v * 1.1 + bal.v * 0.15;
+        snel = WEDSTRIJD.draf * 1.25;
       } else {
         const o = opstelling(s);
         doelU = o.u + Math.max(-hl * 0.35, Math.min(hl * 0.35, bal.u * 0.45)) + (s.team === bal.laatste ? r * hl * 0.08 : 0);
@@ -336,8 +386,20 @@ export function maakWedstrijd({ scene, veld }) {
       if (dBal < WEDSTRIJD.bereik && bal.h < (s.keeper ? 2.2 : 0.6) && s.schopT <= 0 && !bal.inHanden && st.pauzeT <= 0 && !st.naDoel) {
         // een hard schot pakt de keeper niet altijd (KEEPER_PAKT)
         if (s.keeper && Math.hypot(bal.vu, bal.vv) > 12 && Math.random() > KEEPER_PAKT) s.schopT = 1.0;
-        else if (s.keeper && Math.abs(bal.u) > hl - 17) { bal.inHanden = s; bal.vasthoudT = 1.4; s.schopT = 1.6; bal.laatste = s.team; }
-        else beslis(s);
+        else if (s.keeper && Math.abs(bal.u) > hl - 17) { bal.inHanden = s; bal.vasthoudT = 1.4; s.schopT = 1.6; bal.laatste = s.team; bal.bezit = null; }
+        else if (bal.bezit && bal.bezit.team !== s.team) {
+          // afpakken: niet elke keer
+          if (dBal < WEDSTRIJD.afpak && Math.random() < WEDSTRIJD.afpakKans * dt) {
+            st.afgepakt = (st.afgepakt || 0) + 1;
+            bal.bezit.schopT = 1.0;
+            bal.bezit = s; bal.bezitT = WEDSTRIJD.bezit[0]; bal.laatste = s.team; bal.voor = null;
+          }
+        } else if (!bal.bezit && Math.hypot(bal.vu, bal.vv) < WEDSTRIJD.aanname) {
+          // aannemen: hij heeft hem
+          bal.bezit = s; bal.voor = null; bal.laatste = s.team;
+          bal.bezitT = WEDSTRIJD.bezit[0] + Math.random() * (WEDSTRIJD.bezit[1] - WEDSTRIJD.bezit[0]);
+          st.aangenomen = (st.aangenomen || 0) + 1;
+        } else if (!bal.bezit) beslis(s);       // een harde bal: in één keer door
       }
     }
     // de scheidsrechter: op een afstand mee met de bal

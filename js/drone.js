@@ -24,7 +24,13 @@ export const DRONE = {
   maxHoog: 150,       // m boven het maaiveld
   rand: 100,          // m van de rand van de wereld
   bereik: 800,        // m van Erik
-  aftel: 10,          // s om terug binnen bereik te komen
+  aftel: 15,          // s om terug binnen bereik te komen (stap 127; was 10)
+  /*
+   Terug in bereik (stap 127, gevraagd: "Als ik out of range ga met drone dan kan ik niet snel genoeg in range
+   komen"). Buiten bereik vliegt hij in de richting terug zo hard als `terugSnel`, en stuur je niets, dan drijft hij
+   met `terugDrijf` vanzelf terug; ook dalen gaat dan sneller.
+  */
+  terugSnel: 48, terugDrijf: 14, terugDaal: 14,
   accu: 300,          // s vliegen op een volle accu
   laad: 90,           // s om hem op te laden van leeg tot vol
   snel: 12, sneller: 26, klim: 5,
@@ -112,6 +118,16 @@ export function initDrone({ scene, camera, player, geluid, gebied, nacht = () =>
     if (randAfstand(pos.x, pos.z) < DRONE.rand) return 'te dicht bij de rand';
     if (afstand() > DRONE.bereik) return 'te ver van Erik';
     return null;
+  }
+
+  // de richting terug binnen bereik: { x, z } horizontaal (lengte 1 of 0), y −1 als hij moet dalen
+  function terugRichting(wat) {
+    if (wat === 'te hoog') return { x: 0, z: 0, y: -1 };
+    let dx, dz;
+    if (wat === 'te ver van Erik') { dx = player.pos.x - pos.x; dz = player.pos.z - pos.z; }
+    else { dx = (gebied.x0 + gebied.x1) / 2 - pos.x; dz = (gebied.z0 + gebied.z1) / 2 - pos.z; }
+    const L = Math.hypot(dx, dz) || 1;
+    return { x: dx / L, z: dz / L, y: 0 };
   }
 
   function start() {
@@ -211,10 +227,20 @@ export function initDrone({ scene, camera, player, geluid, gebied, nacht = () =>
     const vooruit = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
     const opzij = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
     const op = (k.Space ? 1 : 0) - (k.KeyC ? 1 : 0);
-    const doelX = (fx * vooruit + rx * opzij) * v, doelZ = (fz * vooruit + rz * opzij) * v;
-    const doelY = op * DRONE.klim * (snel ? 1.6 : 1);
-    // traag bijsturen: de drone zweeft een beetje na
-    const a = Math.min(1, dt * 2.2);
+    let doelX = (fx * vooruit + rx * opzij) * v, doelZ = (fz * vooruit + rz * opzij) * v;
+    let doelY = op * DRONE.klim * (snel ? 1.6 : 1);
+    // buiten bereik: de weg terug is snel, en zonder sturen gaat hij er vanzelf heen
+    const weg = buiten(), terugR = weg ? terugRichting(weg) : null;
+    if (terugR) {
+      const L = Math.hypot(doelX, doelZ);
+      if (terugR.x || terugR.z) {
+        if (L > 0.1 && (doelX * terugR.x + doelZ * terugR.z) / L > 0.3) { doelX = doelX / L * DRONE.terugSnel; doelZ = doelZ / L * DRONE.terugSnel; }
+        else if (L <= 0.1) { doelX = terugR.x * DRONE.terugDrijf; doelZ = terugR.z * DRONE.terugDrijf; }
+      }
+      if (terugR.y < 0 && op <= 0) doelY = -DRONE.terugDaal;
+    }
+    // traag bijsturen: de drone zweeft een beetje na (buiten bereik draait hij vlotter bij)
+    const a = Math.min(1, dt * (terugR ? 4 : 2.2));
     vel.x += (doelX - vel.x) * a; vel.z += (doelZ - vel.z) * a;
     vel.y += (doelY - vel.y) * Math.min(1, dt * 3);
     pos.addScaledVector(vel, dt);

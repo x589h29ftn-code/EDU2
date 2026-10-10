@@ -292,7 +292,8 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opsla
     doorgaan: knop('Doorgaan', 'menuDoorgaan', kies('doorgaan'), true),
     opslaan: knop('Opslaan', 'menuOpslaan', opslaanKlik),
     nieuw: knop('Start spel', 'menuNieuw', nieuwKlik, true),
-    laden: knop('Spel laden', 'menuLaden', kies('laden')),
+    // (stap 127: de lijst van opgeslagen spellen; met maar één spel laadt hij die meteen, zoals voorheen)
+    laden: knop('Spel laden', 'menuLaden', () => { const l = opslagLijst ? opslagLijst() : []; if (l.length > 1) toonPaneel('laden'); else kies('laden')(); }),
     // na het einde: een missie opnieuw spelen (stap 123); de lijst komt uit js/verhaal.js
     herspeel: knop('Missie opnieuw', 'menuHerspeel', () => toonPaneel('herspeel')),
     instellingen: knop('Instellingen', 'menuInstellingen', () => toonPaneel('instellingen')),
@@ -373,6 +374,14 @@ function zetOpslag(info, staat) {
 // Instellingen en besturing, allebei in hetzelfde uitklapvak onder de knoppen.
 let instelHaak = null;
 export function zetInstellingen(haak) { instelHaak = haak; }
+// de opgeslagen spellen (stap 127): `lijst()` geeft [{ plek, titel, onder, actief }], `kies(plek)` zet die klaar
+let opslagLijst = null, opslagKies = null;
+export function zetOpslagen(lijst, kiesPlek) { opslagLijst = lijst; opslagKies = kiesPlek; }
+// de waarden in het instellingenpaneel opnieuw lezen (het volledige scherm verandert pas na de klik)
+export function ververs() {
+  if (!instelHaak || !el.zijpaneel || el.zijpaneel.hidden) return;
+  for (const i of instelHaak() || []) { const b = document.getElementById(`instel_${i.id}`); if (b) b.textContent = i.waarde(); }
+}
 
 function rij(naam, waarde) {
   const r = document.createElement('div'); r.className = 'menurij';
@@ -394,6 +403,19 @@ function toonPaneel(welke) {
       b.className = 'menuknop klein'; b.dataset.missie = m.naam;
       b.textContent = `${m.nr} · ${m.titel}`;
       b.addEventListener('click', el.kies(`herspeel:${m.naam}`));
+      z.append(b);
+    }
+    return;
+  }
+  if (welke === 'laden') {
+    const kop = document.createElement('h3'); kop.textContent = 'Opgeslagen spellen'; z.append(kop);
+    for (const o of (opslagLijst ? opslagLijst() : [])) {
+      const b = document.createElement('button');
+      b.className = 'menuknop klein opslagplek'; b.dataset.plek = o.plek;
+      b.textContent = o.titel;
+      const klein = document.createElement('span'); klein.className = 'menuklein'; klein.textContent = o.onder;
+      b.append(klein);
+      b.addEventListener('click', () => { if (opslagKies) opslagKies(o.plek); el.kies('laden')(); });
       z.append(b);
     }
     return;
@@ -420,6 +442,7 @@ function toonPaneel(welke) {
       ['[ ]  \\', 'klok een uur terug of vooruit · dag en nacht laten meelopen of stilzetten'],
       ['Y · U', 'weer wisselen · geluid uit en aan'],
       ['G', 'scherpte: scherp, normaal of zuinig'],
+      ['F11', 'volledig scherm aan of uit (ook in Instellingen)'],
       ['Esc', 'dit menu'],
     ]) z.append(rij(a, b));
     return;
