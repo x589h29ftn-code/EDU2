@@ -29,6 +29,7 @@ let zenderNu = 0;            // welke zender opstaat
 let zenderStand = [];        // per zender: waar je gebleven was (seconden)
 let radioAuto = null;        // in welke auto je zat: een andere auto = andere plek in de uitzending
 let lijstGeladen = false;
+let radioVerzoekNu = null;   // (stap 131) het verzoeknummer van de dj-dienst
 let missieLijst = [];        // de spanningsmuziek uit audio/missie/
 // hoe hard de missiemuziek mag (stap 130: een schuif in de instellingen), 0 tot 1
 let missieSterkte = (() => { try { const v = parseFloat(localStorage.getItem('tinga.missievolume')); return isFinite(v) ? Math.max(0, Math.min(1, v)) : 1; } catch { return 1; } })();
@@ -1035,6 +1036,14 @@ export const geluid = {
   },
 
   // Wat er nu speelt, voor het berichtbalkje: { titel, artiest } of null.
+  // (stap 131) het volgende nummer op Radio Tinga, gekozen aan de knoppen in de studio (js/djdienst.js)
+  radioVerzoek(bestand) {
+    radioVerzoekNu = bestand || null;
+    const m = bronnen.muziek;
+    // speelt Radio Tinga nu, dan meteen: het huidige nummer klaar
+    if (m && zenders[zenderNu] && zenders[zenderNu].naam === 'Radio Tinga') m.nummer = null;
+  },
+  get verzoek() { return radioVerzoekNu; },
   radioNummer() {
     const m = bronnen.muziek;
     return m && m.nummer ? { titel: m.nummer.titel, artiest: m.nummer.artiest } : null;
@@ -1106,8 +1115,10 @@ export const geluid = {
     if (actief) {
       if (!m.nummer) {
         const zender = zenders[zenderNu];
-        m.nummer = radioLijst[m.beurt % radioLijst.length];
-        m.beurt++;
+        // (stap 131) een verzoeknummer van de dj-dienst in de studio gaat op Radio Tinga voor
+        const verzoek = radioVerzoekNu && zender && zender.naam === 'Radio Tinga' ? radioLijst.find(n => n.url && n.url.endsWith(radioVerzoekNu)) : null;
+        if (verzoek) { m.nummer = verzoek; radioVerzoekNu = null; }
+        else { m.nummer = radioLijst[m.beurt % radioLijst.length]; m.beurt++; }
         /*
          Alleen een ándere bron laden. Dezelfde url opnieuw toekennen laadt het
          bestand wéér, en dan gooit die herstart de plek weg die we er net in
