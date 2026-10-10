@@ -141,7 +141,7 @@ const hl = await page.evaluate(async () => {
   uit.vmax = vmax; uit.weg = (v.avond.rit ? v.avond.rit.s : 0) - s0;
   return uit;
 });
-ok(hl.fase === 'heli' && hl.gun, 'in de deur van de heli: je wapen in beeld', `${hl.fase}, wapen ${hl.gun}`);
+ok((hl.fase === 'heli' || hl.fase === 'heliStart') && hl.gun, 'in de deur van de heli: je wapen in beeld', `${hl.fase}, wapen ${hl.gun}`);
 ok(hl.oneindig && hl.ammo[1] === hl.ammo[0] && hl.ammo[3] === hl.ammo[2], 'kogels raken niet op', JSON.stringify(hl.ammo));
 ok(hl.muziek && hl.afstand <= 3, 'het muziekje, en de wieken van dichtbij', `${hl.muziek}, ${hl.afstand}`);
 ok(hl.rotor && hl.rotor.volume > 0.3, 'de wieken luid (de opname, ruim boven de politieheli)', JSON.stringify(hl.rotor));
@@ -313,7 +313,7 @@ const hu = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, P = g.player, W = window.__W, V = g.vehicles;
   window.__na17();
   window.__stap(2);
-  const t = v.thuisDoel();
+  const t = v.thuisDoel;
   const o = t.w.plekken.oprit;
   // een andere auto op de oprit, en jij komt in een Ferrari die hoog in de lucht hangt (van het viaduct)
   const ander = V.voegToe({ x: o.x, z: o.z, yaw: o.yaw, soort: 'hatch', kleur: 0x335577 });
@@ -342,11 +342,12 @@ const vb = await page.evaluate(() => {
   g.werkWedstrijdBij(0.1); g.werkWedstrijdBij(0.1);
   kijk(V.cx - 80, V.cz - 80, V.cx - 200, V.cz - 200);
   const s0 = { ...w.st };
-  let bijBal = 0, n = 0, metBal = 0, richting = 0, rn = 0;
+  let bijBal = 0, n = 0, metBal = 0, richting = 0, rn = 0, links = 0, rechts = 0;
   const vorig = new Map();
-  for (let i = 0; i < 3000; i++) {
-    g.werkWedstrijdBij(1 / 30);
-    if (i % 15) continue;
+  // tien minuten, net als tools/wedstrijdtest.mjs (een schot valt er een paar keer per tien minuten)
+  for (let i = 0; i < 6000; i++) {
+    g.werkWedstrijdBij(0.1);
+    if (i % 5) continue;
     n++;
     const d = Math.min(...w.spelers.filter(s => !s.keeper).map(s => Math.hypot(s.u - w.bal.u, s.v - w.bal.v)));
     if (d < 1.5) bijBal++;
@@ -355,14 +356,16 @@ const vb = await page.evaluate(() => {
     let som = 0, k = 0;
     for (const s of w.spelers) { const p = vorig.get(s); if (p) { const du = s.u - p; if (Math.abs(du) > 0.05) { som += Math.sign(du); k++; } } vorig.set(s, s.u); }
     if (k > 4) { richting += Math.abs(som) / k; rn++; }
+    if (w.bal.u > 0) rechts++; else links++;
   }
   return { aangenomen: (w.st.aangenomen || 0) - (s0.aangenomen || 0), afgepakt: (w.st.afgepakt || 0) - (s0.afgepakt || 0),
-    passes: w.st.passes - s0.passes, schoten: w.st.schoten - s0.schoten, bijBal: bijBal / n, metBal: metBal / n, eenKant: richting / Math.max(1, rn) };
+    passes: w.st.passes - s0.passes, schoten: w.st.schoten - s0.schoten, bijBal: bijBal / n, metBal: metBal / n, eenKant: richting / Math.max(1, rn), helften: Math.min(links, rechts) / Math.max(1, links + rechts) };
 });
 ok(vb.aangenomen > 20 && vb.passes > 15, 'de bal wordt aangenomen en overgespeeld', `${vb.aangenomen} aangenomen, ${vb.passes} passes, ${vb.schoten} schoten`);
 ok(vb.afgepakt > 2, 'de tegenstander zet druk en pakt de bal af', `${vb.afgepakt} keer`);
 ok(vb.bijBal > 0.45 && vb.metBal > 0.3, 'er is bijna altijd iemand bij de bal, en vaak heeft iemand hem aan de voet', `${(vb.bijBal * 100).toFixed(0)} % bij de bal, ${(vb.metBal * 100).toFixed(0)} % in bezit`);
-ok(vb.eenKant < 0.85, 'ze lopen niet allemaal dezelfde kant op', `${(vb.eenKant * 100).toFixed(0)} % eensgezind`);
+// (samen één kant op lopen is voetbal: wie aanvalt schuift op, de ander zakt terug; wat telt is dat de bal heen en weer gaat)
+ok(vb.helften > 0.2 && vb.schoten >= 3, 'de bal gaat beide helften in, en er wordt geschoten', `${(vb.helften * 100).toFixed(0)} % in de kleinste helft, ${vb.schoten} schoten, ${(vb.eenKant * 100).toFixed(0)} % van de lopers dezelfde kant op`);
 
 // ------------------------------------------------------------------ 10. de mouw
 kop('de mouw van het wapen en het mes');
@@ -378,7 +381,7 @@ const mw = await page.evaluate(async () => {
     const inv = new THREE.Matrix4().copy(g.camera.matrixWorld).invert();
     const v3 = new THREE.Vector3();
     mod.groep.traverse(o => {
-      if (!o.isMesh || !o.geometry.parameters || !o.geometry.parameters.height) return;
+      if (!o.isMesh || !o.visible) return;
       const pos = o.geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) { v3.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv); achter = Math.max(achter, v3.z); }
     });

@@ -135,7 +135,9 @@ export function bouwTankstations(scene, W, stations) {
      onder de luifel twee gaten van zo'n 5 × 8 m — daar lagen in de BGT de pompeilanden als eigen vlak, en die
      worden hier als model gebouwd. Een plaat asfalt over de hele luifel, net boven het maaiveld.
     */
-    const vloer = new THREE.Mesh(new THREE.BoxGeometry(L + 3, 0.06, B + 3), M.vloer);
+    // (vierkant: de gaten liggen naast de luifel, aan weerszijden van de pompen, gemeten tot 13 m van het hart)
+    const zijde = Math.max(L, B) + 3;
+    const vloer = new THREE.Mesh(new THREE.BoxGeometry(zijde, 0.06, zijde), M.vloer);
     vloer.position.set(0, 0.0, 0);
     vloer.receiveShadow = true;
     groep.add(vloer);

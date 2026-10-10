@@ -11043,7 +11043,7 @@ export function initVerhaal(ctx) {
     update, toets, doelen, raak, hinder, bewaar, herstel, naLaden, meldAan, schotGehoord, dood, mislukt,
     herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; }, missieTitel,
     // (stap 127, voor tools/wensentest.mjs: je auto bij huis neerzetten)
-    springNaarHuis: () => springNaarHuis(), thuisDoel: () => thuisDoel(),
+    springNaarHuis: () => springNaarHuis(),
     // stap 125: de klok en de missies
     tijdVast, get missieBezig() { return missieBezig(); }, slapen, get eigenHuis() { return huisGekozen; },
     beginGesprek, waaromNietOpslaan,
