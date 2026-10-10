@@ -7812,6 +7812,48 @@ stilstaand 5,6 s, op 5 okt 4,6). `wensentest` kwam in deze container niet voorbi
 
 **Proeven**: `wensen4test` (nieuw). **Foto's**: `wensen4shots`.
 
+**Vijfde ronde wensen van 10 okt (stap 131).** Zes nieuwe modules, elk los gebouwd en daarna in js/main.js gekoppeld.
+
+- *Pizza bezorgen* (js/pizzabaan.js): E bij Pizzeria Sneek (bij de Jumbo Tinga) of Cappadocia (bij de Jumbo Lemmerweg)
+  geeft een rit naar een adres 250–1100 m verder (`KAART.huisnummers`, een deur aan de weg, over de routeplanner),
+  met een paarse route (`hud.zetEigenNav`) en een tijd uit de lengte. Op de scooter van de zaak of in je eigen auto;
+  E aan de deur, stilstaand: € 40 plus fooi (tot € 30, minder bij schade of als het krap was). Te laat: koud, niets.
+  Alleen buiten een missie en een klus (`vrij`).
+- *Tennis* (js/tennisspel.js, de banen uit js/tennis.js): E aan het hek begint een game tegen een tegenstander,
+  15-30-40 en voordeel; slaan met E of de muis in een venster rond het moment dat de bal bij je racket is (een meter
+  in beeld). Winnen: € 50.
+- *Martens Vishandel* (js/vishandel.js) in plaats van een ijscokar: een viskraam naar de foto van de gebruiker op het
+  parkeerterrein van de Jumbo aan de Molenkrite (237,6, −62,4), open van 9 tot 18 uur. Kibbeling € 20, +25 leven
+  (hoogstens 100), even wachten tussen twee porties. Een eigen speldje `vis`.
+- *Zeilbootjes* (js/zeilen.js): vier boten op de twee grootste open wateren, die laveren op de wind (`WIND` in
+  js/sfeer.js: geen koers binnen de dode hoek, overstag) en wegblijven van de oever (`vaarbaar`). 's Nachts en bij
+  onweer gaan ze binnen, maar pas als je ze niet ziet.
+- *Onweer* (js/sfeer.js `ONWEER`): alleen in echte regen (`zwaar` ≥ 1,5), een kans van 0,25 per minuut regen;
+  dan een bui van 150–300 s met bliksems (de lucht licht op via hemi, vul en hemel, zonder een licht erbij of eraf) en
+  de donder met vertraging naar de afstand (`geluid.donder`, binnen gedempt).
+- *Tuning* (js/tuning.js) bij Sjoerd, naast de balie van het Autohuis maar niet erop (de balie is van de race om geld):
+  alleen aan een auto die je daar gekocht hebt. Motor (+12 % top en trek, € 1.500), sportvering (€ 800), spoiler
+  (€ 400, niet op de Ferrari), velgen (€ 300) en decals (€ 150): Radio Spannenburg, Radio Markant (naar de foto),
+  Radio Tinga, 100% NL, racenummer 23, Tinga Racing, racestrepen en vlammen. Een decal is een rooster dat de flank
+  volgt en stopt bij ruit en wielboog. De tuning gaat mee in `garage.bewaar`.
+- *Tinga Nieuws op de tv* (js/nieuws.js `kopteksten`, js/interieur.js): de tv thuis toont koppen over wat jij gedaan
+  hebt (schietpartij, achtervolging, afgeschud, een missie, een race, de dj) met de straat erin, anders rustig lokaal
+  nieuws, en een lopende balk. E bij de tv zet hem aan; op de bank gaat hij vanzelf aan.
+- *Aan de knoppen van Radio Tinga* (js/djdienst.js): buiten de missies E aan de tafel van de studio; 1–3 kiest het
+  volgende nummer op Radio Tinga (`geluid.radioVerzoek`), de schuif gaat omhoog en ON AIR aan, 4 een jingle, 5 stoppen.
+  € 75, hoogstens eens per vier minuten, en het nieuws meldt het.
+
+Wat misging in de proef: de zeilboten bleven om 23 uur staan, omdat de proef de camera bij de boot zette; ze gaan pas
+weg als je ze niet ziet, en dat is zo bedoeld. De pizzaproef gaf nooit een rit: de
+scooter staat op het parkeerterrein van de Jumbo, en dat is in de kaart een eiland in de graaf van de routeplanner.
+Sinds stap 127 ging een route naar een onbereikbaar doel naar het bereikbare punt het dichtst erbij, en vanaf een
+eiland is dat een punt op hetzelfde eiland: 60 van de 60 adressen strandden op 251–650 m van de deur. Nu kent
+js/navigatie.js het grote net (`opNet`: de grootste samenhangende groep knopen), en een begin op een eiland springt naar
+de dichtstbijzijnde knoop van het net binnen 80 m. Daarna 60 van de 60 goed. Dat geldt voor elke route die op een
+parkeerterrein begint, ook de navigatie van de speler.
+
+**Proeven**: `wensen5test` (nieuw). **Foto's**: `wensen5shots`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -758,6 +758,35 @@ muren, de deur, het kopen met en zonder geld, het model (de gegoten romp, de wie
 neus en de vleugel) en de topsnelheid, en opslaan en laden. `npm run garageshots` maakt de
 foto's; `npm run ferrarishots` maakt de drie foto's van het model alleen, in een paar seconden.
 
+## Tussendoor: pizza, tennis, kibbeling en de dj
+
+Buiten de missies is er meer te doen.
+
+- **Pizza bezorgen.** Bij Pizzeria Sneek (bij de Jumbo in Tinga) en Cappadocia (bij de Jumbo aan de Lemmerweg) geeft
+  E een bezorgrit: een adres verderop, een paarse route en een tijd. Neem de scooter voor de deur of je eigen auto, stop
+  bij de deur en druk E: € 40 plus een fooi tot € 30. Te laat is de pizza koud en krijg je niets.
+- **Tennis.** Aan het hek van een baan op het tennispark start E een game. Sla met E of de muis op het moment dat de bal
+  bij je racket is; de meter onderin helpt. Win de game voor € 50.
+- **Martens Vishandel** staat van 9 tot 18 uur op het parkeerterrein van de Jumbo aan de Molenkrite: een portie
+  kibbeling kost € 20 en geeft 25 leven.
+- **Tuning.** Bij Sjoerd in het Autohuis Lemmerweg, naast de balie, kun je een auto die je daar gekocht hebt laten
+  opvoeren (motor +12 %, € 1.500), een sportvering (€ 800), een spoiler (€ 400), andere velgen (€ 300) en decals
+  (€ 150): Radio Spannenburg, Radio Markant, Radio Tinga, 100% NL, racenummer 23, Tinga Racing, racestrepen of vlammen.
+  Kiezen met de cijfers, 0 terug.
+- **Tinga Nieuws.** De tv thuis (E, of ga op de bank zitten) laat het nieuws zien over wat jij in de wijk hebt
+  uitgehaald, met de straat erbij.
+- **Aan de knoppen van Radio Tinga.** Na het verhaal staat de studio open: E aan de tafel, kies met 1–3 het volgende
+  nummer op Radio Tinga, 4 een jingle, 5 stoppen. Sjors geeft er € 75 voor.
+- Op het open water varen **zeilbootjes**, en in de regen kan het gaan **onweren**.
+
+![Martens Vishandel voor de Jumbo](docs/screenshots/wensen5_vishandel.png)
+
+![Een getunede GTI met Radio Markant](docs/screenshots/wensen5_tuning.png)
+
+![Een zeilbootje](docs/screenshots/wensen5_zeilboot.png)
+
+![Tinga Nieuws op de tv](docs/screenshots/wensen5_tinganieuws.png)
+
 ## Tennispark Molenkrite
 
 Naast het sportpark, bij Molenkrite 130, liggen tien gravelbanen: roodbruin gravel met witte belijning,

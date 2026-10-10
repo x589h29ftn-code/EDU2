@@ -205,16 +205,20 @@ const zl = await page.evaluate(async () => {
   }
   const verder = Z.boten.map((b, i) => Math.hypot(b.x - start[i].x, b.z - start[i].z));
   const zichtbaarDag = Z.boten.filter(b => b.groep.visible).length;
+  // 's nachts gaan ze weg zodra je ze niet ziet: bij de boot blijven ze, van ver weg zijn ze weg
   g.sfeer.uur = 23;
   for (let i = 0; i < 5; i++) Z.update(0.1, Z.boten[0].x, Z.boten[0].z);
+  const bijNacht = Z.boten[0].groep.visible;
+  for (let i = 0; i < 5; i++) Z.update(0.1, 1e5, 1e5);
   const zichtbaarNacht = Z.boten.filter(b => b.groep.visible).length;
   g.sfeer.uur = 12;
-  return { n: Z.boten.length, verder, zichtbaarDag, zichtbaarNacht, opLand, getoetst: !!vaarbaar };
+  return { n: Z.boten.length, verder, zichtbaarDag, zichtbaarNacht, bijNacht, opLand, getoetst: !!vaarbaar };
 });
 ok(zl.n >= 3, 'een paar zeilbootjes', `${zl.n}`);
 ok(zl.verder.every(d => d > 20), 'in 30 s vaart elk bootje meer dan 20 m', zl.verder.map(r1).join(', '));
 ok(!zl.getoetst || zl.opLand === 0, 'ze blijven op het water', `${zl.opLand} keer op land`);
 ok(zl.zichtbaarDag === zl.n && zl.zichtbaarNacht === 0, 'overdag op het water, om 23 uur binnen', `${zl.zichtbaarDag} / ${zl.zichtbaarNacht}`);
+ok(zl.bijNacht, 'maar niet voor je ogen: wie erbij is, ziet hem niet verdwijnen');
 
 // ------------------------------------------------------------------ 5. onweer
 kop('onweer');
@@ -282,7 +286,7 @@ const tu = await page.evaluate(async () => {
 ok(tu.zonderAuto, 'zonder gekochte auto geen tuning');
 ok(tu.gekocht && tu.open && tu.menuZichtbaar, 'met je eigen GTI ervoor gaat het menu open');
 ok(Math.abs(tu.factor - 1.12) < 0.01, 'de motor: +12 % topsnelheid', tu.factor && tu.factor.toFixed(3));
-ok(tu.betaald === 1500 + 150 + 1200, 'betaald: GTI € 1.200, motor € 1.500, decal € 150', `€ ${tu.betaald}`);
+ok(tu.betaald === 1500 + 150, 'betaald: motor € 1.500, decal € 150', `€ ${tu.betaald}`);
 ok(tu.decals === 2, 'de decal van Radio Markant op beide flanken', `${tu.decals}`);
 ok(tu.menuWeg, '0 sluit het menu');
 ok(!!tu.bewaard, 'de tuning gaat mee in de opslag', JSON.stringify(tu.bewaard).slice(0, 80));

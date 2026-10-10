@@ -103,8 +103,45 @@ export class Navigatie {
    Geeft een lijst punten [[x,z], ...] die begint bij het startpunt en eindigt
    op het doel, of null als er geen weg naartoe is.
   */
+  /*
+   Ligt een knoop op het grote wegennet? (stap 131) De delen van de graaf worden één keer geteld; het grootste is
+   "het net". Een parkeerterrein of een los voetpad is een eiland.
+  */
+  opNet(i) {
+    if (!this._net) {
+      const n = this.punten.length, deel = new Int32Array(n).fill(-1), maat = [];
+      for (let s = 0; s < n; s++) {
+        if (deel[s] >= 0) continue;
+        const k = maat.length; let tel = 0; const stapel = [s]; deel[s] = k;
+        while (stapel.length) {
+          const i = stapel.pop(); tel++;
+          for (const e of this.bogen[i]) if (deel[e.naar] < 0) { deel[e.naar] = k; stapel.push(e.naar); }
+        }
+        maat.push(tel);
+      }
+      let groot = 0;
+      for (let k = 1; k < maat.length; k++) if (maat[k] > maat[groot]) groot = k;
+      this._net = Uint8Array.from(deel, d => (d === groot ? 1 : 0));
+    }
+    return i >= 0 && this._net[i] === 1;
+  }
+
   route(van, naar) {
-    const a = this.naaste(van[0], van[1]);
+    let a = this.naaste(van[0], van[1]);
+    /*
+     Het begin op een eiland (stap 131): de pizzascooter staat op het parkeerterrein van de Jumbo, dat in de kaart nergens
+     op aansluit. Sinds stap 127 ging de route dan naar het punt van het eiland het dichtst bij het doel, dus nergens heen.
+     Ligt er binnen 80 m een knoop van het grote net, dan begint de route daar (het eerste stukje is een rechte lijn).
+    */
+    if (a >= 0 && !this.opNet(a)) {
+      let bd = Infinity, beste = -1;
+      for (const i of this.buren(van[0], van[1], 80)) {
+        if (!this.opNet(i)) continue;
+        const d = Math.hypot(this.punten[i][0] - van[0], this.punten[i][1] - van[1]);
+        if (d < bd && d <= 80) { bd = d; beste = i; }
+      }
+      if (beste >= 0) a = beste;
+    }
     const b = this.naaste(naar[0], naar[1]);
     if (a < 0 || b < 0) return null;
     if (a === b) return [[van[0], van[1]], [naar[0], naar[1]]];
