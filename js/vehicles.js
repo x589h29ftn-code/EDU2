@@ -329,6 +329,11 @@ export class Vehicles {
         const d = Math.hypot(t._pos.x - camX, t._pos.y - camZ);
         if (d > 90 && d < wd) { wd = d; weg = t; }
       }
+      /*
+       (stap 130, gevraagd: "Laat het moment dat personen of auto's verdwijnen terwijl je hun kant op komt pas later
+       zijn"): niet wie je ziet. Staat de dichtstbijzijnde in het zicht, dan gaat er nu niemand.
+      */
+      if (weg && wd < VER && zichtVrij(camX, camZ, weg._pos.x, weg._pos.y, 1.4)) weg = null;
       if (weg) this.zetOpRijbaan(weg, camX, camZ, 420, 420, 1400);
       return;
     }
@@ -631,8 +636,32 @@ export class Vehicles {
    carrosserie die kan overhellen. Dat scheelt zo'n tweeduizend draw calls ten
    opzichte van iedereen die uitvoering geven.
   */
+  /*
+   Achtergelaten auto's terug naar hun vak (stap 130, gevraagd: "Stel ik rijd in diverse auto's en zet ze steeds
+   willekeurig weer op straat en pak een ander enzovoort, ruim dan bijv na een hele dag wat op. Anders is de wereld
+   bezaaid met die auto's"). Een geparkeerde auto waar je in reed en uit stapte (`verlatenOp`, js/main.js) gaat na
+   `dag` seconden spelen terug naar zijn parkeervak (`thuis`), maar alleen als je hem niet ziet en hij verder dan
+   150 m weg staat. Gekochte auto's en auto's van een missie hebben geen `thuis` en blijven staan.
+  */
+  ruimVerlatenOp(nu, camX, camZ, dag, bezet = null) {
+    let n = 0;
+    for (const c of this.cars) {
+      if (!c.thuis || c.verlatenOp == null || nu - c.verlatenOp < dag || c === bezet || c.eigen) continue;
+      if (Math.hypot(c.x - camX, c.z - camZ) < 150 || Math.hypot(c.thuis.x - camX, c.thuis.z - camZ) < 150) continue;
+      if (Math.hypot(c.x - camX, c.z - camZ) < 400 && zichtVrij(camX, camZ, c.x, c.z, 1.4)) continue;
+      if (c.wrak && this.herstelWrak) this.herstelWrak(c);
+      c.x = c.thuis.x; c.z = c.thuis.z; c.yaw = c.thuis.yaw; c.speed = 0; c.verlatenOp = null;
+      if (c.mesh) { c.mesh.position.set(c.x, c.mesh.position.y, c.z); c.mesh.rotation.y = c.yaw; }
+      this.zetNeer(c, 0, c.yaw);
+      n++;
+    }
+    return n;
+  }
+
   maakBestuurbaar(car) {
     if (!car || (car.mesh && car.mesh.userData.wielen)) return car;
+    // (stap 130) een geparkeerde auto onthoudt zijn vak, voor `ruimVerlatenOp`
+    if (car.inst && !car.thuis) car.thuis = { x: car.x, z: car.z, yaw: car.yaw };
     const zichtbaar = this.isZichtbaar(car);
     const nieuw = makeCar(car.kleur ?? 0x8a8d93, car.soort || 'hatch', true);
     nieuw.position.set(car.x, 0, car.z);

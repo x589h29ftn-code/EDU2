@@ -458,11 +458,19 @@ export class NPCs {
        halve seconde kosten en dat is precies het soort werk dat het spel doet
        haperen; op vijftig meter valt het verdwijnen toch niet op.
       */
+      /*
+       (stap 130, gevraagd: "Laat het moment dat personen of auto's verdwijnen terwijl je hun kant op komt pas later
+       zijn. Dus dat ze niet zomaar uit beeld verdwijnen."): op vijftig meter viel het wél op, als hij recht voor je
+       liep. Nu alleen wie achter je is (buiten 80° van de kijkrichting) of verder dan de tweehonderd meter waar
+       toch geen lichaam meer getekend wordt.
+      */
+      const kx = this.kijk ? this.kijk.x : 0, kz = this.kijk ? this.kijk.z : 0, KEGEL = Math.cos(80 * Math.PI / 180);
       let weg = null, wd = Infinity;
       for (const p of this.people) {
         if (!p.alive || p.slaapt || p.steek > 0 || p.paniek > 0) continue;
-        const d = Math.hypot(p.x - camX, p.z - camZ);
-        if (d > 50 && d < wd) { wd = d; weg = p; }
+        const dx = p.x - camX, dz = p.z - camZ, d = Math.hypot(dx, dz);
+        const uitZicht = d > this.ZICHT || !this.kijk || (dx * kx + dz * kz) < KEGEL * d;
+        if (d > 50 && uitZicht && d < wd) { wd = d; weg = p; }
       }
       if (weg) this.verhuisNaarBuurt(weg, camX, camZ, 420, 420, 1200);
       // (maar is de straat bij je leeg, dan vult de binnenste ring nog wel aan:

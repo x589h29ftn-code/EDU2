@@ -21,7 +21,7 @@ import { bouwMolens } from './molen.js';
 import { bouwTankstations } from './tankstation.js';
 import { bouwTennisparken } from './tennis.js';
 import { bouwZuilengangen } from './zuilengang.js';
-import { bouwAfsluitingen } from './afsluiting.js';
+import { bouwAfsluitingen, bouwGrenzen } from './afsluiting.js';
 import { inBouwvlak } from './bouwvlak.js';
 
 /*
@@ -902,7 +902,8 @@ export function* bouwKaartWereldStap(scene, W) {
     bouwTerreinen(scene, W);
     bouwBouwwerken(scene, W);
     // muren, hekken, kademuren, damwanden, vangrails en balustrades uit de BGT
-    bouwScheidingen(scene, W, KM, K.scheidingen, (x, z) => grondHoogte(x, z));
+    bouwScheidingen(scene, W, KM, K.scheidingen, (x, z) => grondHoogte(x, z),
+      (x, z) => { const v = vlakOp(x, z); return !!v && (v.k === 'autoweg' || v.k === 'rijbaan'); });
     /*
      Struiken per tegel. Ze zaten in één InstancedMesh van de hele wereld, en
      zo'n mesh valt nooit buiten beeld: negentienduizend bollen werden élk beeld
@@ -981,6 +982,8 @@ export function* bouwKaartWereldStap(scene, W) {
     // de afzettingen waar de wijk voor de speler ophoudt
     const dicht = bouwAfsluitingen(scene, W, K.wegafsluitingen);
     if (dicht) console.log(`kaart: ${dicht} wegafsluiting(en)`);
+    // en de grenzen zonder hek (stap 130): de N7 westwaarts
+    bouwGrenzen(W, K);
     // en de zuilengangen onder de twee blokken aan de Keizersmantel in Duinterpen
     const gangen = bouwZuilengangen(scene, W, K.zuilengangen);
     if (gangen) console.log(`kaart: ${gangen} zuilengang(en) gebouwd`);

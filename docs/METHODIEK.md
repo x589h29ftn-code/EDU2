@@ -7777,6 +7777,41 @@ stilstaand 5,6 s, op 5 okt 4,6). `wensentest` kwam in deze container niet voorbi
 
 **Proeven**: `wensen3test` (nieuw). **Foto's**: `wensen3shots`.
 
+**Vierde ronde wensen van 10 okt (stap 130).**
+
+- *Missiemuziek 2* (audio/missie/missie2.mp3): bij meer dan één nummer nooit twee keer achter elkaar hetzelfde
+  (`m.vorige`). In de instellingen een schuif *Missiemuziek* (0–100 %, bewaard als `tinga.missievolume`); js/menu.js
+  maakt van een instelling met `schuif` een `<input type="range">`.
+- *De radio*: Ren Lenny Ren (audio/radio/ren-lenny-ren.mp3) op Radio Tinga, en een derde zender **100% NL** met Ren
+  Lenny Ren en Kali, met een eigen logo op canvas (`logo100nl` in js/textures.js: rood-wit-blauw, oranje NL).
+- *De rondweg bij (−168, −484)*: drie BGT-muren van 2 m (samen 530 m) liepen daar zigzaggend over de rijbaan. js/kaart.js
+  blijft zoals hij is; js/scheiding.js laat een muur- of hekstuk weg als zijn midden en een halve meter aan beide kanten
+  op een rijbaan of autoweg liggen, of drie van vijf punten langs het stuk (`opWeg`, `muurOpWeg` telt ze: 40). De
+  eerste regel alleen liet op de foto stompjes over de middenberm staan: midden op het gras, de rest op de weg.
+- *De grens op de N7* (−364,3, −613,5): het verkeer rijdt daar over zijn eigen lijn door, dus geen schrikhek maar een
+  onzichtbare wand van 150 m breed en 6 m hoog dwars op de rijbaan-as (`GRENZEN`, `bouwGrenzen` in js/afsluiting.js).
+- *Verdwijnen*: wie naar huis ging (`vulBuurtAan` in js/npc.js) was de dichtstbijzijnde verder dan 50 m, ook als hij
+  recht voor je liep. Nu alleen wie buiten 80° van de kijkrichting staat of verder dan 200 m. Bij de auto's ging de
+  dichtstbijzijnde verder dan 90 m; nu niet als je hem ziet.
+- *Een schot van ver*: de paniek zat alleen rond de schutter; nu ook rond de inslag (`PANIEK_INSLAG`, 32 m), zodra die
+  verder dan 22 m van de schutter is.
+- *De achtergrond*: `stadNabij` in js/main.js telt panden in een raster van 60 m (negen vakken, 45 = volop stad);
+  buiten de bebouwing een vijfde van het volume, 's nachts nog eens de helft (`ACHTERGROND.nachtStil`).
+- *De volgende missie*: na missie 17 zag de gebruiker geen missie meer; de telefoon kwam pas na de tussenpoos van
+  150 s, zonder iets op de kaart. Het "niet wachten" van stap 128 (`VROEG`) geldt nu ook voor missie 15–18: een vlag
+  op de deur waar de missie begint (Molenkrite 15 of de Wieken 29), en wie daar komt krijgt meteen het telefoontje.
+- *Achtergelaten auto's*: een geparkeerde auto onthoudt bij het instappen zijn vak (`thuis`), en bij het uitstappen
+  wanneer (`verlatenOp`). Na een speeldag (48 min) gaat hij terug, buiten beeld en verder dan 150 m
+  (`ruimVerlatenOp`, eens in de tien tellen).
+- *Missie 15*: de auto van Bouwman kon stuk. Elke treffer is nu mislukt ("Nu weet hij dat hij gevolgd wordt").
+- *De agenten in paren*: om de beurt `aanval` en `flank` (js/politie.js `FLANK`): de flankeerder loopt naar een plek
+  15 m van je af en 66° opzij van waar hij stond, hurkt daar en schiet; om de vier tellen schuift dat punt met je mee.
+  Twee fouten onderweg: de hoek werd elke vier tellen opnieuw vanaf zijn eigen plek genomen, zodat hij in een kring om
+  je heen bleef lopen, en de routeplanner over het wegennet stuurde hem voor vijftien meter opzij een omweg in (55 m
+  verderop). Nu de hoek één keer, en binnen 45 m recht erheen. Gemeten: aanval op 10,9 m, flank op 14,9 m, 59° ernaast.
+
+**Proeven**: `wensen4test` (nieuw). **Foto's**: `wensen4shots`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

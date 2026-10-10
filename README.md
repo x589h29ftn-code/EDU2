@@ -195,6 +195,13 @@ en een kofferklep, met schuine A- en C-stijlen, wielkasten, spiegels, portiernad
 
 ![Een auto van dichtbij](docs/screenshots/auto_model.png)
 
+Een auto die je ergens hebt laten staan, staat na een speeldag weer in zijn eigen parkeervak. Op de N7 richting het
+westen houdt de wereld op bij een onzichtbare grens.
+
+Op de rondweg ten zuidwesten van Tinga stonden muren zigzaggend over de rijbaan (een fout in de kaartdata); die zijn weg.
+
+![De rondweg, zonder muren over de rijbaan](docs/screenshots/wensen4_rondweg.png)
+
 Op de N7 en in de wijk rijdt overdag meer verkeer dan vroeger. De Ferrari stuurt op hoge snelheid wendbaarder en remt
 harder.
 
@@ -1573,6 +1580,10 @@ telefoon: tik op de 🚗-knop om te praten en op de tekstbalk om door te klikken
 
 Zodra je met Mark praat speelt **Kali** uit het radiootje op het tafeltje van het gezelschap: hoe dichterbij, hoe
 luider. Na de schietpartij speelt het nog even door en sterft dan weg. Kali staat ook op **Radio Tinga**.
+
+In de auto is er nu ook de zender **100% NL** (Ren Lenny Ren en Kali); Ren Lenny Ren staat ook op Radio Tinga.
+Onder de missies speelt afwisselend een van twee nummers; onder **Instellingen → Missiemuziek** zet je ze met een
+schuif zachter.
 
 Daarna loopt hij de Molenkrite over naar het gezelschap dat schuin tegenover, in de voortuin van
 **Molenkrite 20**, met een radio en een flesje bier in de tuin zit. Daar draait hij zich naar je om:

@@ -32,7 +32,7 @@ import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen } from './kaartwereld.js';
 import { zetKoplampen } from './carmodel.js';
 import { KLEUR } from './kaartkleuren.js';
-import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
+import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, logo100nl, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
 import { initDrone, DRONE } from './drone.js';
 import { initVogels } from './vogels.js';
@@ -1017,6 +1017,7 @@ function schokCamera(cam, dt) {
 // Hoe ver de schrik reikt. Een schot hoor je door de hele straat, een klap van
 // een aanrijding wat minder ver; wie binnen die straal loopt, gaat ervandoor.
 const PANIEK_SCHOT = 28;
+const PANIEK_INSLAG = 32;     // m rond de inslag van een schot van ver (stap 130)
 const PANIEK_KLAP = 20;
 
 // afstand van de speler tot een punt in de wereld, voor het volume van een kreet
@@ -1330,6 +1331,12 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
   if (hits.length) {
     const h = hits[0];
     /*
+     Een schot van ver (stap 130, gevraagd: "Als iemand met een sniper beschoten wordt voeg dan ook toe dat ze en
+     omstanders wegrennen. Dus als iemand op afstand schiet"): de paniek hierboven zit rond de schutter; wie bij de
+     inslag staat hoorde de knal ver weg, maar ziet iemand vallen. Dus ook daar rent men weg.
+    */
+    if (Math.hypot(h.point.x - origin.x, h.point.z - origin.z) > PANIEK_SCHOT * 0.8) npcs.paniek(h.point.x, h.point.z, PANIEK_INSLAG);
+    /*
      Geen meldingen meer bij een treffer ("Raak!", "Agent neer!"): je ziet het
      gebeuren en het balkje stond er voortdurend (melding beta-test 12 sep 2026).
      Wat er wél bij komt is een kreet — dat vertelt hetzelfde zonder tekst.
@@ -1477,6 +1484,7 @@ function toggleCar() {
   if (!player.active) return;
   if (player.inCar) {
     const car = player.inCar; player.inCar = null;
+    car.verlatenOp = time;               // (stap 130) na een speeldag gaat hij terug naar zijn vak
     // het interieur hoort alleen te staan als je erin zit
     if (car.mesh && car.mesh.userData.binnen) car.mesh.userData.binnen.groep.visible = false;
     // buiten weer door je eigen ogen, als je te voet zo liep
@@ -1931,7 +1939,7 @@ window.addEventListener('keydown', e => {
 */
 function toonZenderLogo(z) {
   if (!z) return;
-  const doek = (z.logo === 'spannenburg' ? bordSpannenburg() : logoTinga()).image;
+  const doek = (z.logo === 'spannenburg' ? bordSpannenburg() : z.logo === '100nl' ? logo100nl() : logoTinga()).image;
   hud.toonZender(doek);
 }
 window.addEventListener('keydown', e => {
@@ -2442,6 +2450,8 @@ menu.zetInstellingen(() => [
     id: 'volledig', naam: 'Spelen in volledig scherm', waarde: () => (volledigVoorkeur() ? 'aan' : 'uit'),
     volgende: () => { const nieuw = !volledigVoorkeur(); zetVolledigVoorkeur(nieuw); zetVolledig(nieuw); },
   },
+  // stap 130 (gevraagd: "Voeg ook in instellingen slider toe om missie geluid zachter te zetten")
+  { id: 'missievolume', naam: 'Missiemuziek', schuif: { waarde: () => geluid.missieVolume, zet: v => geluid.zetMissieVolume(v) } },
   { id: 'geluid', naam: 'Geluid', waarde: () => (stil ? 'uit' : 'aan'), volgende: () => { stil = !stil; geluid.demp(stil); menu.zetGeluid(!stil); } },
   // het schot: de opname uit audio/wapen/schot.mp3, of het oude gemaakte geluid (stap 105), om te vergelijken
   {
@@ -2530,9 +2540,34 @@ const sfeer = initSfeer({
 // Hoofdlus
 let last = performance.now(); let time = 0; let lodKlok = 0;
 let laatsteRadio = null;     // welk nummer er als laatste in het balkje stond
+let opruimKlok = 0;          // (stap 130) voor vehicles.ruimVerlatenOp
 let stekRadio = false;       // staat de radio in een van de woningen aan (missie 9)
 // Afstand tot de dichtstbijzijnde radio in de wijk; audio.js bepaalt daarmee
 // het volume. Null als er geen radio staat.
+/*
+ Hoe bebouwd is het hier (stap 130, voor de achtergrondgeluiden)? Eén keer een raster van 60 m met het aantal panden
+ per vak; per beeld de negen vakken rond de camera, 45 panden of meer is volop stad. Gladgestreken over een paar
+ tellen, zodat het geluid niet springt bij een vakgrens.
+*/
+const STAD_VAK = 60, STAD_VOL = 45;
+let stadRaster = null, stadGlad = 1;
+function stadNabij(dt, x, z) {
+  if (!stadRaster) {
+    stadRaster = new Map();
+    for (const p of (KAART && KAART.panden) || []) {
+      const q = p.voet && p.voet[0];
+      if (!q) continue;
+      const k = `${Math.floor(q[0] / STAD_VAK)}:${Math.floor(q[1] / STAD_VAK)}`;
+      stadRaster.set(k, (stadRaster.get(k) || 0) + 1);
+    }
+  }
+  const i = Math.floor(x / STAD_VAK), j = Math.floor(z / STAD_VAK);
+  let n = 0;
+  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) n += stadRaster.get(`${i + a}:${j + b}`) || 0;
+  const doel = Math.min(1, n / STAD_VOL);
+  stadGlad += (doel - stadGlad) * Math.min(1, dt * 0.5);
+  return stadGlad;
+}
 function afstandTotRadio(x, z) {
   let best = null;
   for (const r of radioPlekken) {
@@ -2840,12 +2875,15 @@ function loop() {
       */
       weer: sfeer.weer, nacht: sfeer.nacht,
       binnen: !!player.inCar || (player.binnen && !inTuin(cx, cz)),
-      water: waterNabij(dt, cx, cz), molen: molenNabij(cx, cz),
+      water: waterNabij(dt, cx, cz), molen: molenNabij(cx, cz), stad: stadNabij(dt, cx, cz),
     });
     // missie 1: Kali uit het radiootje op het tafeltje (stap 129); dan zwijgt het gemaakte deuntje daar
     const kaliT = verhaal.kaliRadio;
     geluid.kali(kaliT && !player.binnen ? Math.hypot(cx - kaliT.x, cz - kaliT.z) : null);
     geluid.radio(kaliT ? null : afstandTotRadio(cx, cz));
+    // achtergelaten auto's na een speeldag terug naar hun vak (stap 130), eens in de tien tellen
+    opruimKlok += dt;
+    if (opruimKlok > 10) { opruimKlok = 0; vehicles.ruimVerlatenOp(time, cx, cz, DAG_MINUTEN * 60, player.inCar); }
     /*
      Muziek uit audio/radio/, anders het riffje. Behalve in de auto speelt hij nu
      ook in de drie woningen van missie 9: daar staat de tv aan op Radio
@@ -3084,6 +3122,8 @@ opstartStap('na het eerste beeld');
 // Testhaak voor automatische screenshots
 opstartStap('klaar');
 window.__game = {
+  // (stap 130) hoe bebouwd het is, voor de achtergrondgeluiden
+  stadNabij: (x, z) => stadNabij(100, x, z),
   // voor tools/kaartdoeltest.mjs: het eigen doel en zijn bijwerken
   get eigenDoel() { return eigenDoel; }, werkEigenDoelBij, kaartMuis,
   // de wapenpas en het voorvlak, voor tools/cliptest.mjs

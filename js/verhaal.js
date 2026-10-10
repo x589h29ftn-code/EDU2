@@ -3060,10 +3060,19 @@ export function initVerhaal(ctx) {
    de missie ook. Dit geldt ook voor missie na de veteraan beschermen op de boot"). Tijdens het wachten op missie 8
    staat Johan al bij zijn boot aan de Geeuw, op missie 9 Mark voor de Wieken 29; wie erheen gaat, begint meteen.
   */
-  let vroegGezet = null;
+  let vroegGezet = null, vroegPlek = null;
   const VROEG = {
     sniper: { letter: 'J', plek: () => johanBijDeBoot(), wie: () => johan, verder: () => naHetSniperGesprek() },
     huis: { letter: 'M', plek: () => markBijDeWieken(), wie: () => mark, verder: () => naHetHuisGesprek() },
+    /*
+     (stap 130, gevraagd: "na de missie dat je achter ronald komt dat hij de verrader is zie ik geen andere missie
+     meer. Check dit soort zaken.") Ook de latere missies die met de telefoon beginnen hebben tijdens het wachten een
+     vlag op de deur waar ze beginnen; wie daar komt, krijgt meteen het telefoontje.
+    */
+    schaduw: { letter: 'M', plek: () => molenkriteDeur() },
+    inval: { letter: 'J', plek: () => molenkriteDeur() },
+    ronald: { letter: 'M', plek: () => wiekenDeur() },
+    uitzending: { letter: 'M', plek: () => wiekenDeur() },
   };
   function werkVroegBij() {
     const V = VROEG[naMissieNaam];
@@ -3072,7 +3081,15 @@ export function initVerhaal(ctx) {
       const p = V.plek();
       if (!p) return;
       vroegGezet = naMissieNaam;
+      vroegPlek = { x: p.x, z: p.z };
       zetMarker(p.x, p.z, V.letter);
+    }
+    // een deur zonder iemand ervoor: daar aankomen laat de telefoon gaan
+    if (!V.wie) {
+      if (!balk.hidden || !vroegPlek) return;
+      const sp = spelerPunt();
+      if (afst(sp, vroegPlek) < 7) { naMissieT = 0; vroegGezet = null; startMissie(naMissieNaam, { vanzelf: true }); }
+      return;
     }
     const w = V.wie();
     if (!w || !w.groep.visible || !balk.hidden) return;
@@ -7345,6 +7362,7 @@ export function initVerhaal(ctx) {
     schaduwRit = schaduw.nieuweRit();
     const car = bouwmanAuto();
     zetBouwmanAuto({ ...schaduw.punt(0), yaw: schaduw.punt(0).yaw });
+    car.hp = 100; car.wrak = false;              // (stap 130: een schot erop is het einde van de missie)
     schaduw.rijd(schaduwRit, car, 0);
     bouwman.groep.visible = false;               // hij zit in zijn auto
     ronald.groep.visible = false;
@@ -7554,6 +7572,15 @@ export function initVerhaal(ctx) {
       if (schaduwRit.weg && car.mesh) { car.mesh.visible = false; car.x = car.z = 1e5; car.mesh.position.set(1e5, 0, 1e5); }
     }
     // de mannen bij de loods: zien ze je, dan is het voorbij met het stil blijven
+    /*
+     Op Bouwman geschoten (stap 130, gevraagd: "Ik kan de auto in missie bouwman schaduwen kapotmaken. Als je bouwman
+     zijn auto beschiet dan eigenlijk missie gefaald"): schaduwen is ongezien blijven, een kogel in zijn auto verraadt je.
+    */
+    if (car && (car.hp < 100 || car.wrak) && (fase === 'wacht' || fase === 'volgen' || fase === 'loods')) {
+      car.hp = 100; car.wrak = false;
+      mislukt('Je schoot op de auto van Bouwman. Nu weet hij dat hij gevolgd wordt.');
+      return;
+    }
     if (schaduwMannen && schaduwMannen.alarm && !schaduwGezien && (fase === 'volgen' || fase === 'loods' || fase === 'wacht')) gezienBijDeLoods();
 
     if (fase === 'wacht' || fase === 'volgen') {

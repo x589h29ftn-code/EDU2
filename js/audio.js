@@ -30,6 +30,8 @@ let zenderStand = [];        // per zender: waar je gebleven was (seconden)
 let radioAuto = null;        // in welke auto je zat: een andere auto = andere plek in de uitzending
 let lijstGeladen = false;
 let missieLijst = [];        // de spanningsmuziek uit audio/missie/
+// hoe hard de missiemuziek mag (stap 130: een schuif in de instellingen), 0 tot 1
+let missieSterkte = (() => { try { const v = parseFloat(localStorage.getItem('tinga.missievolume')); return isFinite(v) ? Math.max(0, Math.min(1, v)) : 1; } catch { return 1; } })();
 let missieGeladen = false;
 let missiePlek = -1;         // waar het vorige fragment begon (seconden), om niet te herhalen
 // en de vier fragmenten daarvoor: een nieuw begin ligt zo ver mogelijk van al die plekken af
@@ -92,6 +94,7 @@ export const ACHTERGROND = {
   nacht: { url: 'audio/sfeer/achtergrond2.mp3', vol: 0.065 },
   wissel: 4,           // s overvloeien tussen dag en nacht
   binnen: 0.25,        // zoveel ervan binnen, en doffer
+  nachtStil: 0.5,      // (stap 130) 's nachts nog eens de helft
 };
 // de portofoon bij de eerste ster: een willekeurig stuk van zo lang, zo snel in en uit, en niet vaker dan dit
 export const POLITIE_RADIO = { duur: [5, 8], in: 0.35, uit: 0.9, vol: 0.55, rust: 45 };
@@ -1267,7 +1270,13 @@ export const geluid = {
       m.stopT = 0;
       if (!m.speelt) {
         m.speelt = true;
-        m.nummer = missieLijst[Math.floor(Math.random() * missieLijst.length)];
+        /*
+         Niet steeds hetzelfde nummer (stap 130, gevraagd bij Missie muziek 2: "random afspelen maar zorg dat niet
+         hele tijd zelfde muziek gespeeld wordt"): bij meer dan één nummer nooit twee keer achter elkaar hetzelfde.
+        */
+        const keus = missieLijst.length > 1 ? missieLijst.filter(n => n !== m.vorige) : missieLijst;
+        m.nummer = keus[Math.floor(Math.random() * keus.length)];
+        m.vorige = m.nummer;
         const zelfde = m.el.src && m.el.src === new URL(m.nummer.url, location.href).href;
         if (!zelfde) m.el.src = m.nummer.url;
         /*
@@ -1347,7 +1356,7 @@ export const geluid = {
         m.wissel = 0; m.wil = -1;
         if (m.zetPlek) m.zetPlek();
       }
-      m.gain.gain.setTargetAtTime(opzij ? 0 : MISSIE_VOL, nu(), opzij ? 0.6 : 0.7);
+      m.gain.gain.setTargetAtTime(opzij ? 0 : MISSIE_VOL * missieSterkte, nu(), opzij ? 0.6 : 0.7);
     } else if (m.speelt) {
       m.speelt = false;
       m.gain.gain.setTargetAtTime(0, nu(), 0.8);               // uit in ~2,5 s
@@ -1376,6 +1385,11 @@ export const geluid = {
   radioVoorgrond() { return radioVoor; },
 
   // Of de missiemuziek nu speelt, voor js/verhaal.js en tools/missietest.mjs.
+  get missieVolume() { return missieSterkte; },
+  zetMissieVolume(v) {
+    missieSterkte = Math.max(0, Math.min(1, +v || 0));
+    try { localStorage.setItem('tinga.missievolume', String(missieSterkte)); } catch { /* alleen voor nu */ }
+  },
   missieStand() {
     const m = bronnen.missie;
     if (!m) return { speler: false, nummers: missieLijst.length };
@@ -2034,7 +2048,13 @@ export const geluid = {
    Twee streamende elementen (de lange is bijna zeven minuten: als buffer zou dat 140 MB zijn). Levert true
    zolang er een speelt.
   */
-  achtergrond(nacht, binnen) {
+  /*
+   `stad` (0…1, stap 130): hoe bebouwd het rond je is. Gevraagd: "Laat het ambient achtergrond muziek dat we nu hebben
+   afspelen in stadsgebied maar als je platteland of nacht ingaat dan nog zachter. Het is geluid met mensen die
+   praten op zeer zachte toon maar dat is op die gebieden minder logisch." Buiten de bebouwing een vijfde, 's nachts
+   nog eens de helft.
+  */
+  achtergrond(nacht, binnen, stad = 1) {
     if (!aan || !ctx) return false;
     /*
      Na een lange hapering kan de browser de context stilzetten: weer aan, zolang het spel niet gepauzeerd is.
@@ -2064,7 +2084,7 @@ export const geluid = {
     for (const [k, b] of [['dag', B.dagB], ['nacht', B.nachtB]]) {
       if (b.stuk) continue;
       const wil = (k === 'nacht') === !!nacht;
-      const vol = wil && !gepauzeerd ? ACHTERGROND[k].vol * (binnen ? ACHTERGROND.binnen : 1) : 0;
+      const vol = wil && !gepauzeerd ? ACHTERGROND[k].vol * (binnen ? ACHTERGROND.binnen : 1) * (0.2 + 0.8 * stad) * (nacht ? ACHTERGROND.nachtStil : 1) : 0;
       b.gain.gain.setTargetAtTime(vol, t, ACHTERGROND.wissel / 3);
       if (wil && !b.aan) { b.aan = true; b.el.play().catch(() => {}); }
       // de andere pas stilzetten als hij is uitgedoofd
@@ -2083,7 +2103,7 @@ export const geluid = {
 
   // ---------- omgeving per beeld ----------
   omgeving(dt, { weer = 'helder', nacht = false, wind = 0.2, binnen = false,
-    water = 0, molen = 0 } = {}) {
+    water = 0, molen = 0, stad = 1 } = {}) {
     if (!aan) return;
     const t = nu();
     /*
@@ -2107,7 +2127,7 @@ export const geluid = {
     bronnen.wind.filter.frequency.setTargetAtTime(weer === 'regen' ? 700 : 420, t, 2.0);
     bronnen.regen.gain.gain.setTargetAtTime(weer === 'regen' ? (binnen ? 0.030 : 0.085) : 0, t, 1.0);
     // (stap 127: met de opnames van de achtergrond erbij zwijgt het gemaakte verkeersgeruis en komen de vogeltjes minder vaak)
-    const bed = this.achtergrond(nacht, binnen);
+    const bed = this.achtergrond(nacht, binnen, stad);
     bronnen.verkeer.gain.gain.setTargetAtTime(bed ? 0 : nacht ? 0.006 : 0.017, t, 2.0);
 
     /*

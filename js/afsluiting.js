@@ -115,3 +115,38 @@ export function bouwAfsluitingen(scene, W, plekken) {
   }
   return n;
 }
+
+/*
+ Grenzen zonder hek (stap 130, gevraagd: "Zorg dat speler ook niet veel verder kan dan -364.3, -613.5 dan ga je
+ niemandsland in"). Dat punt ligt op de N7: daar rijdt het doorgaande verkeer over zijn eigen lijn verder, dus een
+ schrikhek over de weg zou door de auto's heen staan. Alleen een onzichtbare wand dwars over de weg en de bermen,
+ `muur` meter breed en zes meter hoog (een auto rijdt door alles lager dan 3,5 m). De richting komt van de
+ dichtstbijzijnde rijbaan-as.
+*/
+export const GRENZEN = [
+  { naam: 'N7 west', punt: [-364.3, -613.5], muur: 150, bron: 'gebruiker, chat 10 okt 2026' },
+];
+export function bouwGrenzen(W, K, lijst = GRENZEN) {
+  let n = 0;
+  for (const g of lijst) {
+    const [px, pz] = g.punt;
+    let beste = null;
+    for (const as of (K && K.wegassen) || []) {
+      if (!as.drive) continue;
+      for (let i = 1; i < as.pts.length; i++) {
+        const a = as.pts[i - 1], b = as.pts[i];
+        const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz || 1;
+        const t = Math.max(0, Math.min(1, ((px - a[0]) * dx + (pz - a[1]) * dz) / L2));
+        const d = Math.hypot(a[0] + dx * t - px, a[1] + dz * t - pz);
+        if (!beste || d < beste.d) beste = { d, dx, dz };
+      }
+    }
+    if (!beste) continue;
+    const L = Math.hypot(beste.dx, beste.dz) || 1;
+    const nx = -beste.dz / L, nz = beste.dx / L;            // dwars op de weg
+    W.addCollider(px, pz, g.muur / 2, 0.5, -Math.atan2(nz, nx), 6);
+    g.dwars = [nx, nz];
+    n++;
+  }
+  return n;
+}

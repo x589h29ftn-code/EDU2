@@ -127,13 +127,17 @@ function mesh(g, mat, klasse, schaduw = true) {
  * Bouwt alle scheidingen uit de kaart.
  * `grond(x, z)` geeft de hoogte van het maaiveld (of van het brugdek).
  */
-export function bouwScheidingen(scene, W, KM, lijst, grond = () => 0) {
+// hoeveel muurstukken op een rijbaan zijn overgeslagen (stap 130)
+export let muurOpWeg = 0;
+
+export function bouwScheidingen(scene, W, KM, lijst, grond = () => 0, opWeg = null) {
   if (!lijst || !lijst.length) return 0;
   const nieuw = () => ({ pos: [], uv: [], nor: [] });
   const beton = nieuw(), metaal = nieuw(), hout = nieuw(), gaas = nieuw();
   // tags op de blinde muren; zie de uitleg onderaan bij `verf`
   const verf = nieuw();
   let n = 0;
+  let overgeslagen = 0;
 
   for (const s of lijst) {
     const h = s.h || 1.6;
@@ -146,6 +150,18 @@ export function bouwScheidingen(scene, W, KM, lijst, grond = () => 0) {
       const y0 = Math.min(grond(a[0], a[1]), grond(b[0], b[1]));
       const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
       const yaw = -Math.atan2(b[1] - a[1], b[0] - a[0]);
+      /*
+       Een muur midden op de rijbaan (stap 130, gemeten op (−168, −484): drie BGT-muren van 2 m zigzaggen daar over de
+       rondweg, "de weg ziet er raar uit met objecten"). Ligt een stuk met zijn midden én een halve meter aan beide
+       kanten op een rijbaan, dan is het een fout in de bron: dat stuk komt er niet, en zijn botsdoos ook niet.
+      */
+      if (opWeg && (s.soort === 'muur' || s.soort === 'hek')) {
+        const nx = -(b[1] - a[1]) / L * 0.6, nz = (b[0] - a[0]) / L * 0.6;
+        let opRijbaan = 0;
+        for (const f of [0.1, 0.3, 0.5, 0.7, 0.9]) if (opWeg(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)) opRijbaan++;
+        // (de foto liet stompjes over de middenberm staan: midden op het gras, de rest op de weg; nu telt de helft)
+        if ((opWeg(mx, mz) && opWeg(mx + nx, mz + nz) && opWeg(mx - nx, mz - nz)) || opRijbaan >= 3) { weg += L; overgeslagen++; continue; }
+      }
 
       if (s.soort === 'hek') {
         paneel(gaas, a, b, y0 + 0.02, h, weg);
@@ -212,5 +228,6 @@ export function bouwScheidingen(scene, W, KM, lijst, grond = () => 0) {
     const m = mesh(g, mat, klasse, klasse !== 'damwand');
     if (m) { scene.add(m); delen.push(m); }
   }
+  muurOpWeg = overgeslagen;                    // (stap 130, voor de proef)
   return n;
 }

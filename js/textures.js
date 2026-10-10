@@ -471,6 +471,26 @@ export function logoTinga() {
 }
 
 /*
+ Het logo van 100% NL (stap 130, gevraagd: "een nieuwe zender: 100% NL (Ren Lenny Ren en Kali)"): rood, wit en
+ blauw in drie banen, met "100%" groot en "NL" in een oranje vlak. Op canvas, zoals de andere twee.
+*/
+export function logo100nl() {
+  if (cache.has('logo100nl')) return cache.get('logo100nl');
+  const W = 512, H = 154;
+  const c = canvas(W, H); const g = c.getContext('2d');
+  g.fillStyle = '#ae1c28'; g.fillRect(0, 0, W, H / 3);
+  g.fillStyle = '#ffffff'; g.fillRect(0, H / 3, W, H / 3);
+  g.fillStyle = '#21468b'; g.fillRect(0, H * 2 / 3, W, H / 3);
+  g.fillStyle = 'rgba(10,16,30,0.82)'; g.fillRect(18, 16, 300, H - 32);
+  g.fillStyle = '#f2f4f8'; g.font = '900 86px system-ui, sans-serif'; g.textBaseline = 'middle';
+  g.fillText('100%', 34, H / 2 + 4);
+  g.fillStyle = '#ff7f00'; g.fillRect(336, 26, 156, H - 52);
+  g.fillStyle = '#ffffff'; g.font = '900 72px system-ui, sans-serif'; g.textAlign = 'center';
+  g.fillText('NL', 414, H / 2 + 3);
+  const t = tex(c); cache.set('logo100nl', t); return t;
+}
+
+/*
  Het icoontje van een wapen: de zijkant van het wapen in silhouet, met de naam
  eronder. Het komt twee tellen rechtsonder in beeld als je met het scrollwiel
  wisselt (js/hud.js). Geen plaatje — net als al het andere hier getekend, in

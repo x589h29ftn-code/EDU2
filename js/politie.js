@@ -178,6 +178,8 @@ const SPAWN_ZICHT = 130;
 const LEEG_WEG = 45;
 const LEEG_KWIJT = 8;                      // zodra de sterren weg zijn gaat het sneller
 const LEEG_AFSTAND = 45;
+// de flankeerder (stap 130): zo ver van je af, zoveel opzij (rad), om de zoveel tellen een nieuw punt, zo diep gehurkt
+export const FLANK = { afst: 15, hoek: 1.15, opnieuw: 4, hurk: 0.55 };
 /*
  Het uniform: donkerblauw met een fluorescerend vest eroverheen. Dat vest is niet
  alleen echter, het helpt ook spelen — een agent in het donkerblauw was tussen de
@@ -708,14 +710,23 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     return Math.random() < (MP_KANS[ster()] || 0);
   }
 
+  let rolTel = 0;
   function maakAgent(x, z, inWagen = null) {
     const mp = heeftMP();
     const persoon = new Persoon({ ...UNIFORM, huid: Math.random() < 0.5 ? 0xd9b48f : 0xc79a72, hoogte: 0.99 + Math.random() * 0.04, wapen: mp ? 'mp' : true, pet: true });
     scene.add(persoon.groep);
     persoon.zetNeer(x, z, Math.random() * 6.28);
+    /*
+     Twee rollen (stap 130, gevraagd: "De agenten die in paren werken lijken precies alles hetzelfde te doen. Zou mooi
+     zijn als eentje bijvoorbeeld op Erik afkomt, de ander zoekt wat meer dekking op en probeert te flanken."): om de
+     beurt `aanval` (recht op je af, zoals altijd) en `flank` (een boog om je heen naar een plek een eind opzij,
+     daar gehurkt achter wat er staat, en vandaar schieten).
+    */
+    const rol = rolTel++ % 2 ? 'flank' : 'aanval';
     const a = {
       persoon, staat: 'naarPlek', vuurT: VUURTIJD * Math.random(), kijkT: Math.random() * 0.3,
       zicht: false, doel: null, wacht: 0, omT: 0, wagen: inWagen, mp,
+      rol, zijde: Math.random() < 0.5 ? -1 : 1, flankPunt: null,
     };
     persoon.groep.visible = !inWagen;
     agenten.push(a);
@@ -1387,10 +1398,27 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         // zonder zicht loopt hij naar de laatst bekende plek, niet naar jou
         const mik = (a.zicht || !laatstBekend) ? sp : laatstBekend;
         const dMik = Math.hypot(mik.x - pos.x, mik.z - pos.z);
-        const dichtbij = a.zicht && dSp < DEKKING;
-        if (!dichtbij && dMik > 1.5) loopNaar(a, volgPunt(a, pos, mik, dt, 4), dt, REN);
-        persoon.kijkNaar(mik.x, mik.z, dt, 7);
-        persoon.update(dt, { loopt: !dichtbij && dMik > 1.5, mikt: true, snelheid: REN });
+        if (a.rol === 'flank') {
+          // de flank: een plek FLANK.afst van je af, FLANK.hoek opzij van waar hij nu staat; om de paar tellen opnieuw
+          a.flankT = (a.flankT || 0) - dt;
+          if (!a.flankPunt || a.flankT <= 0) {
+            // de hoek één keer vast (waar hij vandaan kwam, plus opzij); daarna schuift alleen het midden met je mee
+            if (a.flankHoek == null) a.flankHoek = Math.atan2(pos.z - mik.z, pos.x - mik.x) + a.zijde * FLANK.hoek;
+            const [px, pz] = resolveCollisions(mik.x + Math.cos(a.flankHoek) * FLANK.afst, mik.z + Math.sin(a.flankHoek) * FLANK.afst, 0.5);
+            a.flankPunt = { x: px, z: pz }; a.flankT = FLANK.opnieuw;
+          }
+          const dF = Math.hypot(a.flankPunt.x - pos.x, a.flankPunt.z - pos.z);
+          const erIs = dF < 1.5;
+          // (dichtbij recht erheen: de routeplanner over het wegennet nam voor vijftien meter opzij een omweg)
+          if (!erIs) loopNaar(a, dF < 45 ? a.flankPunt : volgPunt(a, pos, a.flankPunt, dt, 4), dt, REN);
+          persoon.kijkNaar(mik.x, mik.z, dt, 7);
+          persoon.update(dt, { loopt: !erIs, mikt: true, snelheid: REN, hurkt: erIs ? FLANK.hurk : 0 });
+        } else {
+          const dichtbij = a.zicht && dSp < DEKKING;
+          if (!dichtbij && dMik > 1.5) loopNaar(a, volgPunt(a, pos, mik, dt, 4), dt, REN);
+          persoon.kijkNaar(mik.x, mik.z, dt, 7);
+          persoon.update(dt, { loopt: !dichtbij && dMik > 1.5, mikt: true, snelheid: REN });
+        }
         a.vuurT -= dt;
         if (!rust && a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht && schutters.has(a)) {
           /*
@@ -1737,6 +1765,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     get gezocht() { return ster() > 0; },
     get eenheden() { return { voet: agenten.filter(a => !a.wagen).length, inWagen: agenten.filter(a => a.wagen).length, wagens: wagens.length, verlaten: verlaten.length }; },
     get stille() { return stille; },
+    // (stap 130, voor de proef: de rollen aanval en flank)
+    get agentenLijst() { return agenten; },
     // de helikopter, voor js/hud.js en tools/helitest.mjs
     get heli() { return { actief: heli.actief, fase: heli.fase, ziet: heli.ziet, hp: heli.hp, maxHp: heli.maxHp, x: heli.positie.x, y: heli.positie.y, z: heli.positie.z }; },
     // de plek waar een neergehaalde heli insloeg, één keer op te halen

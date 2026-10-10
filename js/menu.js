@@ -453,6 +453,17 @@ function toonPaneel(welke) {
   for (const i of s) {
     const r = document.createElement('div'); r.className = 'menurij';
     const a = document.createElement('span'); a.className = 'menusleutel'; a.textContent = i.naam;
+    // een schuif (stap 130: het volume van de missiemuziek): `schuif: { waarde(), zet(v) }`, 0 tot 100
+    if (i.schuif) {
+      const sch = document.createElement('input');
+      sch.type = 'range'; sch.min = '0'; sch.max = '100'; sch.step = '5'; sch.id = `instel_${i.id}`;
+      sch.value = String(Math.round(i.schuif.waarde() * 100)); sch.className = 'menuschuif';
+      const tal = document.createElement('span'); tal.className = 'menuwaarde'; tal.textContent = `${sch.value} %`;
+      sch.addEventListener('input', () => { i.schuif.zet(+sch.value / 100); tal.textContent = `${sch.value} %`; });
+      sch.addEventListener('keydown', e => e.stopPropagation());
+      r.append(a, sch, tal); z.append(r);
+      continue;
+    }
     const b = knop(i.waarde(), `instel_${i.id}`, () => { i.volgende(); b.textContent = i.waarde(); });
     b.className = 'menuwaarde';
     r.append(a, b); z.append(r);

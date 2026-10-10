@@ -220,6 +220,8 @@
     "wensen2shots": "node tools/wensen2shots.mjs 8123",
     "wensen3test": "node tools/wensen3test.mjs 8123",
     "wensen3shots": "node tools/wensen3shots.mjs 8123",
+    "wensen4test": "node tools/wensen4test.mjs 8123",
+    "wensen4shots": "node tools/wensen4shots.mjs 8123",
     "wensenshots": "node tools/wensenshots.mjs 8123"
   }
 }

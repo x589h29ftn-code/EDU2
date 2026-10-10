@@ -15,6 +15,12 @@
           "titel": "Kali",
           "artiest": "",
           "bron": "aangeleverd door de gebruiker, chat 10 okt 2026 (ook uit het radiootje van missie 1)"
+        },
+        {
+          "bestand": "ren-lenny-ren.mp3",
+          "titel": "Ren Lenny Ren",
+          "artiest": "",
+          "bron": "aangeleverd door de gebruiker, chat 10 okt 2026"
         }
       ]
     },
@@ -28,6 +34,24 @@
           "titel": "Radio Spannenburg",
           "artiest": "de omroep van De Fryske Marren",
           "bron": "aangeleverd door de gebruiker, chat 13 sep 2026"
+        }
+      ]
+    },
+    {
+      "naam": "100% NL",
+      "logo": "100nl",
+      "nummers": [
+        {
+          "bestand": "ren-lenny-ren.mp3",
+          "titel": "Ren Lenny Ren",
+          "artiest": "",
+          "bron": "aangeleverd door de gebruiker, chat 10 okt 2026"
+        },
+        {
+          "bestand": "kali.mp3",
+          "titel": "Kali",
+          "artiest": "",
+          "bron": "aangeleverd door de gebruiker, chat 10 okt 2026 (ook uit het radiootje van missie 1)"
         }
       ]
     }
