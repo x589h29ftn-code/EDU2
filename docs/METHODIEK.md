@@ -7668,6 +7668,11 @@ opnieuw (de nacht, de mist, de vuilniswagen, de autoschade).
 - *De Ferrari van binnen* (js/autobinnen.js `sportBinnen`): hij had het interieur van een hatchback, met een
   achterbank en rugleuningen tot 1,39 m onder een dak op 1,15 m. Nu kuipstoelen in rood leer met zwarte wangen, een
   tunnel in koolstof met een startknop, een schot achter de stoelen, flippers en het gele schildje op het stuur.
+  Pas de foto van binnen liet zien wat de gebruiker eigenlijk zag: het geëxtrudeerde zijprofiel (`uitProfiel`)
+  liep over de volle breedte door, dus tussen voorruit en achterdek lag een dichte plaat op schouderhoogte. Je
+  keek van de stoel op een rode vlakte, met stoelen en tunnel eronder. Het profiel zakt daar nu tot onder de vloer,
+  met twee smalle zijwanden als deuren; de hemel is een plaat zo groot als de koepel (hij stak door het dak).
+  Les: een proef die meet of de stoelen onder het dak passen, ziet niet of er iets vóór je ogen hangt.
 - *De Ferrari in de lucht bij de Wieken*: `springNaarHuis` zette je auto altijd precies op de oprit, op de hoogte die
   hij had (van het viaduct 5,6 m), ook als daar al een auto stond. `zetAutoBijHuis` zoekt de eerste vrije plek ernaast,
   op de grond; js/garage.js `herstel` schuift ook op als er al een auto staat.

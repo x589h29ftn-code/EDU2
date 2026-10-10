@@ -821,10 +821,20 @@ function sportGeoms() {
   // ---- de romp ----
   const romp = new THREE.Shape();
   romp.moveTo(-2.28, 0.30);
+  /*
+   De cabine is hol (stap 127, gevraagd: "Ferrari heeft geen goed interieur"). Het profiel liep over de volle
+   breedte door, dus tussen voorruit en achterdek lag een dichte plaat op schouderhoogte, dwars door het
+   interieur: van de stoel keek je erop, en stoelen en tunnel zaten eronder. Nu zakt het profiel daar tot onder
+   de vloer, en staan er twee smalle zijwanden (`zijwand` hieronder).
+  */
   romp.splineThru([
     new THREE.Vector2(-2.34, 0.41), new THREE.Vector2(-2.27, 0.55), new THREE.Vector2(-2.05, 0.68),
-    new THREE.Vector2(-1.65, 0.815), new THREE.Vector2(-1.20, 0.85), new THREE.Vector2(-0.95, 0.86),
-    new THREE.Vector2(-0.40, 0.87), new THREE.Vector2(0.35, 0.885), new THREE.Vector2(0.85, 0.91),
+    new THREE.Vector2(-1.65, 0.815), new THREE.Vector2(-1.20, 0.85), new THREE.Vector2(-0.98, 0.86),
+  ]);
+  romp.lineTo(-0.95, 0.52);
+  romp.lineTo(0.86, 0.52);
+  romp.lineTo(0.89, 0.912);
+  romp.splineThru([
     new THREE.Vector2(1.30, 0.965), new THREE.Vector2(1.80, 0.985), new THREE.Vector2(2.12, 0.975),
     new THREE.Vector2(2.29, 0.92), new THREE.Vector2(2.33, 0.78),
   ]);
@@ -843,6 +853,18 @@ function sportGeoms() {
   romp.absarc(wielVoor, asY, kast, -0.05, Math.PI + 0.05, false);
   romp.lineTo(-2.28, 0.30);
   const rompGeo = uitProfiel(romp, W, (z, y) => plan(z) * inTrek(y), 0.06);
+  // de zijwanden van de cabine: de deuren, van de dorpel tot de schouderlijn, langs de taille van de romp
+  const wand = new THREE.Shape();
+  wand.moveTo(-0.99, 0.46); wand.lineTo(0.90, 0.46); wand.lineTo(0.90, 0.912);
+  wand.splineThru([new THREE.Vector2(0.35, 0.885), new THREE.Vector2(-0.40, 0.87), new THREE.Vector2(-0.99, 0.86)]);
+  wand.lineTo(-0.99, 0.46);
+  const zijwand = (sx) => {
+    const g = uitProfiel(wand, 0.12, () => 1, 0.025);
+    const P = g.attributes.position;
+    for (let i = 0; i < P.count; i++) P.setX(i, P.getX(i) + sx * (breedte(P.getZ(i), P.getY(i)) - 0.07));
+    g.computeVertexNormals();
+    return g;
+  };
 
   // ---- de koepel: glas, met het dak en de stijlen in de lak ----
   const koepel = new THREE.Shape();
@@ -857,7 +879,7 @@ function sportGeoms() {
   const dakBreed = (y) => (koepelBreed / 2) * (1 - Math.max(0, y - 0.84) * 0.62);
 
   const lak = [
-    { geo: rompGeo },
+    { geo: rompGeo }, { geo: zijwand(-1) }, { geo: zijwand(1) },
     { geo: rdoos(dakBreed(1.15) * 2 - 0.06, 0.035, 0.56, 0.015), y: 1.158, z: -0.04 },                // het dak
     // de achtervleugel op twee steunen
     { geo: rdoos(1.80, 0.035, 0.30, 0.015), y: 1.15, z: 2.08, rx: 0.06 },

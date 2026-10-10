@@ -9361,10 +9361,15 @@ export function initVerhaal(ctx) {
     fase = 'einde';
     uitzFilm = { soort: 'einde', t: 0, vast: pe, midden, ux, uz, zx, zz, gezegd: false };
     schietSlot(true);
-    // vuurwerk boven de wijk, achter de drie langs gezien vanaf de camera (die kijkt langs +u)
+    /*
+     Vuurwerk boven de wijk, in de kijkrichting van de camera van het filmbeeld (van links achter naar de drie):
+     daar is lucht boven de daken. Langs +u alleen gingen de pijlen achter de huizen aan de overkant op.
+    */
+    let kx = ux * 5.5 - zx * 4, kz = uz * 5.5 - zz * 4;
+    const kl = Math.hypot(kx, kz) || 1; kx /= kl; kz /= kl;
     const pl = [];
-    for (const [a, b] of [[110, -45], [130, 0], [105, 45], [160, -20], [150, 30]]) {
-      const x = midden.x + ux * a + zx * b, z = midden.z + uz * a + zz * b;
+    for (const [a, b] of [[90, -25], [120, 0], [100, 25], [150, -12], [140, 18]]) {
+      const x = midden.x + kx * a - kz * b, z = midden.z + kz * a + kx * b;
       pl.push({ x, z, y: grondHoogte(x, z) });
     }
     vuurwerk.start(pl);

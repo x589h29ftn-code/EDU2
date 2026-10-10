@@ -199,7 +199,9 @@ export function maakAutoBinnen(maat) {
   // vloer, hemel en de twee deurpanelen: dit is wat voorkomt dat je door de
   // auto heen naar buiten kijkt
   doos(groep, M.vloer, W - 0.20, 0.04, cabL + 0.5, 0, vloerY, cabZ);
-  doos(groep, M.hemel, W - 0.26, 0.03, cabL - 0.10, 0, hemelY, cabZ);
+  // (de Ferrari heeft een smalle koepel van 1,40 × 1,20 m: een hemel over de hele cabine stak door zijn dak, stap 127)
+  if (maat.sport) doos(groep, M.carbon, 1.28, 0.03, 1.05, 0, hemelY - 0.02, cabZ - 0.05);
+  else doos(groep, M.hemel, W - 0.26, 0.03, cabL - 0.10, 0, hemelY, cabZ);
   for (const sx of [-1, 1]) {
     // portierpaneel tot aan de raamlijn
     doos(groep, M.kunststof, 0.035, schouderY - vloerY + 0.06, cabL - 0.30, sx * binnenX, (vloerY + schouderY) / 2 + 0.03, cabZ);

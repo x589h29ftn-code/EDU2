@@ -20,7 +20,7 @@ export const VUURWERK = {
   max: 900,            // vonken tegelijk
   vonken: 70,          // per bol
   om: [0.55, 1.15],    // s tussen twee pijlen
-  hoog: [32, 48],      // m boven de grond: daar springt hij open
+  hoog: [40, 62],      // m boven de grond: daar springt hij open (boven de daken, in beeld van het filmbeeld)
   stijg: 30,           // m/s omhoog
   open: [11, 16],      // m/s naar buiten in de bol
   zwaarte: 5.5,        // m/s² naar beneden

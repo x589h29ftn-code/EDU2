@@ -91,19 +91,36 @@ await page.evaluate(() => { const g = window.__game; g.werkWedstrijdBij && 0; })
 await lod();
 await foto('wensen_handlangers');
 
-// 3. de Ferrari van binnen
-await page.evaluate(() => {
-  const g = window.__game, P = g.player, V = g.vehicles;
-  window.__na17(); window.__stap(2);
-  g.sfeer.uur = 13; g.sfeer.weer = 'helder';
-  if (g.derde.aan) g.derde.wissel();
-  const f = V.voegToe({ x: P.pos.x + 4, z: P.pos.z, yaw: 0, soort: 'ferrari', kleur: 0xc81e1e });
-  V.zetNeer(f, 0, 0);
-  P.inCar = f; P.yaw = f.yaw + 0.35; P.pitch = -0.32;
-});
-await page.waitForTimeout(500);
-await lod();
-await foto('wensen_ferrari_binnen');
+// 3. de Ferrari van binnen: zelf tekenen vanaf de stoel en meteen uitlezen (headless zet de hoofdlus de camera niet in de auto)
+{
+  const data = await page.evaluate(() => {
+    const g = window.__game, P = g.player, V = g.vehicles;
+    window.__na17(); window.__stap(2);
+    g.sfeer.uur = 13; g.sfeer.weer = 'helder';
+    if (g.derde.aan) g.derde.wissel();
+    const f = V.voegToe({ x: P.pos.x + 4, z: P.pos.z, yaw: 0, soort: 'ferrari', kleur: 0xc81e1e });
+    V.zetNeer(f, 0, 0);
+    const m = f.mesh; m.updateMatrixWorld(true);
+    const b = m.userData.binnen; if (b) b.groep.visible = true;
+    if (V.ruiten) V.ruiten(f, false);
+    const o = m.userData.oog;
+    const C = g.camera;
+    C.position.copy(m.localToWorld(C.position.clone().set(o.x, o.y, o.z)));
+    C.rotation.set(-0.36, f.yaw + 0.38, 0, 'YXZ');
+    C.updateMatrixWorld(true);
+    window.__W.updateLOD(C.position.x, C.position.z);
+    P.gun.visible = false;
+    document.getElementById('ui') && (document.getElementById('ui').style.visibility = 'hidden');
+    g.renderer.render(g.scene, C);
+    const url = g.renderer.domElement.toDataURL('image/png');
+    document.getElementById('ui') && (document.getElementById('ui').style.visibility = '');
+    V.verwijder(f);
+    return url;
+  });
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(`${map}/wensen_ferrari_binnen.png`, Buffer.from(data.split(',')[1], 'base64'));
+  console.log(`${map}/wensen_ferrari_binnen.png`);
+}
 
 // 4. het vuurwerk
 await page.evaluate(() => {
