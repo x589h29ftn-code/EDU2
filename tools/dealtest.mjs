@@ -14,7 +14,7 @@
  6. Na vijftien seconden gaat het mis: vijf man openen het vuur op De Veteraan
     en pas dan mag je zelf schieten.
  7. Daarna terug naar de Geeuw met drie waterpolitieboten achter je aan.
- 8. Terug bij de kade: € 500.
+ 8. Terug bij de kade: € 2.500 (sinds stap 128; was € 500).
 
  De plekken worden niet ingetikt maar gezocht in de kaart: open water op een
  meter of zestig van de molen, met vrij zicht op de kade ertegenover.
@@ -408,7 +408,7 @@ ok(eind.fases.every(f => f === 'wrak' || f === 'weg'), 'de drie boten gaan uit',
   eind.fases.join(', '));
 ok(eind.regels.some(r => /Bedankt Erik/i.test(r)), 'Johan bedankt je',
   (eind.regels[0] || '').slice(0, 40));
-ok(eind.geldNa - eind.geldVoor === 500, 'de beloning is € 500',
+ok(eind.geldNa - eind.geldVoor === 2500, 'de beloning is € 2.500',
   `€ ${eind.geldVoor} → € ${eind.geldNa}`);
 ok(/MISSIE VOLTOOID/.test(eind.melding) && /MOLEN/i.test(eind.melding),
   'MISSIE VOLTOOID – DE DEAL BIJ DE MOLEN', (eind.melding || '').slice(0, 45));

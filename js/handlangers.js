@@ -31,10 +31,11 @@ export const HANDLANGERS = {
   dwars: 9,            // m/s² door de bocht
   optrek: 7, remmen: 9,
   bereik: 60,          // m: binnen zo ver schieten ze
-  kans: 0.30,          // kans op raak vlakbij, stilstaand…
+  kans: 0.18,          // kans op raak vlakbij, stilstaand… (stap 128: was 0,30, "minder hard raken")
   kansVer: 0.005,      // …min zoveel per meter…
-  kansHard: 0.006,     // …en zoveel per m/s dat je zelf rijdt (minimaal 6 %)
-  schade: 4,           // per treffer
+  kansHard: 0.006,     // …en zoveel per m/s dat je zelf rijdt (minimaal kansMin)
+  kansMin: 0.035,
+  schade: 3,           // per treffer (stap 128: was 4)
   salvo: 3,            // de auto's: zoveel kogels…
   salvoTempo: 0.13,    // …zo snel achter elkaar…
   rust: [1.1, 1.9],    // …dan zo lang stil
@@ -152,7 +153,7 @@ export function maakHandlangers(scene, vehicles) {
         schoten++;
         m.flits.visible = true; m.flitsT = 0.06;
         geluid.schot(d, { wapen: m.soort === 'auto' ? 'mitrailleur' : 'pistool', bron: 'handlanger' + mannen.indexOf(m) });
-        const kans = Math.max(0.06, HANDLANGERS.kans - d * HANDLANGERS.kansVer - Math.abs(speler.v || 0) * HANDLANGERS.kansHard);
+        const kans = Math.max(HANDLANGERS.kansMin, HANDLANGERS.kans - d * HANDLANGERS.kansVer - Math.abs(speler.v || 0) * HANDLANGERS.kansHard);
         if (Math.random() < kans) { schade += HANDLANGERS.schade; raak++; }
       }
       return schade;

@@ -49,6 +49,7 @@ import { maakTas } from './tas.js';
 import { zoekLooppad } from './looppad.js';
 import { initBendes } from './bendes.js';
 import { LIGPLAATSEN } from './boot.js';
+import { vaarRoute } from './vaart.js';
 import { initPolitieboot } from './politieboot.js';
 import { Dief } from './dief.js';
 import { euro, tekenKop } from './hud.js';
@@ -61,11 +62,12 @@ import { grondHoogte } from './viaduct.js';
 import { INVAL, vluchtLijn, nieuweVlucht, rijdVlucht, invalRoute as invalRouteJs, crashSchuif, renVrij, profiel, puntOp } from './inval.js';
 import { maakRondvlucht, RONDVLUCHT } from './rondvlucht.js';
 import { maakErf, ERF } from './schuur.js';
-import { UNIFORM, zetZwaailamp } from './politie.js';
+import { UNIFORM, zetZwaailamp, dakZwaailicht } from './politie.js';
 import { Navigatie } from './navigatie.js';
 import { geluid } from './audio.js';
 import { maakVuurwerk } from './vuurwerk.js';
 import { maakHandlangers } from './handlangers.js';
+import { maakGrondvuur } from './grondvuur.js';
 import * as uitleg from './uitleg.js';
 
 // ---------- waar het verhaal zich afspeelt ----------
@@ -260,7 +262,8 @@ const SNIP_LIEFST = 60;                               // en zo ver het liefst
 const SNIP_KIJK = 15;                                 // seconden meekijken voor het misgaat
 const SNIP_BOTEN = 3;                                 // zoveel waterpolitie komt er achter je aan
 const SNIP_THUIS = 18;                                // zo dicht bij de kade ben je terug
-const SNIP_BELONING = 500;
+const SNIP_DOOS = 40;                // zoveel kogels geeft Johan in missie 8 als alles op is (stap 128)
+const SNIP_BELONING = 2500;          // (stap 128, gevraagd: "geef hem 2.500 hierna"; was 500)
 const MISLUKT_VETERAAN = 'Je hebt De Veteraan neergeschoten.';
 
 // ---------- missie 7: de bom bij de Poiesz in Duinterpen ----------
@@ -271,6 +274,24 @@ const BOM_BINNEN = [
   zegtMark('Ga je mee?'),
 ];
 const BOM_INSTAPPEN = [zegtMark('De auto staat voor de deur. Jij rijdt.')];
+/*
+ Onderweg naar Duinterpen (stap 128, gevraagd: "Geef Mark en Erik wat dialoog die automatisch loopt zonder dat je hoeft
+ door te klikken. Laat Mark iets meer over de veteraan vertellen"). Om de BOM_PRAAT.tussen tellen een zin, alleen in de
+ auto; dichtbij de Poiesz stopt het, en aankomen sluit een zin die nog loopt.
+*/
+const BOM_ONDERWEG = [
+  zegtMark('Weet jij eigenlijk wie De Veteraan is?'),
+  zegtErik('Die ouwe met dat hondje? Geen idee.'),
+  zegtMark('Hij werkte vroeger bij Top 1 Toys. Achter de kassa, geloof het of niet.'),
+  zegtMark('Daarvoor heeft hij nog tegen de Duitsers gevochten. Zegt hij tenminste.'),
+  zegtErik('Tegen de Duitsers? Hoe oud is die man?'),
+  zegtMark('Oud genoeg. En later werd hij bekend van de film. No Mercy. Deel één, twee en drie.'),
+  zegtErik('No Mercy? Die actiefilms die een Emmy wonnen?'),
+  zegtMark('Precies die. Dus onderschat hem niet. Hij heeft meer gezien dan wij samen.'),
+  zegtErik('En wij leggen een bom bij de Poiesz.'),
+  zegtMark('Wij zetten een tas neer. Meer niet. Rijden.'),
+];
+const BOM_PRAAT = { eerst: 3, tussen: 5.2, zin: 4.4, stop: 70 };   // s, s, s, m van de ingang: dan niet meer
 const BOM_BIJ_WINKEL = [
   zegtMark('Hier heb je de explosieven. Ga naar binnen en plant het bij de schappen.'),
   zegtMark('We detoneren het buiten.'),
@@ -1628,6 +1649,8 @@ export function initVerhaal(ctx) {
   const gevallen = new Set();    // wie er al een wapen heeft laten liggen
   let bomAuto = null;            // de auto voor de deur aan de Wieken
   let bomMerk = null;            // de markering waar de bom moet komen
+  let ingangMerk = null;         // de gele cirkel bij de ingang van de Poiesz (stap 128)
+  let bomPraatI = 0, bomPraatT = 0, bomPraatTot = 0;
   let bomPakket = null;          // het pakket zelf, zodra het geplant is
   let knal = null;               // de lopende ontploffing
   let bomT = 0;                  // klok voor de stappen die vanzelf doorlopen
@@ -1884,7 +1907,11 @@ export function initVerhaal(ctx) {
     // een stuk verder bent dan de vorige keer.
     if (!nu && navVanaf && Math.hypot(p.x - navVanaf.x, p.z - navVanaf.z) < 15) return;
     navVanaf = { x: p.x, z: p.z };
-    const route = navigatie.route([p.x, p.z], [navDoel.x, navDoel.z]);
+    // in een boot over het water (stap 128, gevraagd: "Navigatie met de boot probeert land te volgen. Kies de water
+    // route"); vindt het water geen weg, dan toch over de weg
+    const inBoot = boten && boten() && boten().inBoot;
+    const water = inBoot ? vaarRoute({ x: p.x, z: p.z }, { x: navDoel.x, z: navDoel.z }) : null;
+    const route = water && water.length > 1 ? [[p.x, p.z], ...water, [navDoel.x, navDoel.z]] : navigatie.route([p.x, p.z], [navDoel.x, navDoel.z]);
     hud.zetNavigatie({ route, doel: [navDoel.x, navDoel.z], naam: navDoel.naam, letter: navDoel.letter });
   }
 
@@ -2040,6 +2067,9 @@ export function initVerhaal(ctx) {
    ze nodig heeft; zo hoeft er middenin een missie niets gebouwd te worden.
   */
   bomMerk = maakMarkering(scene);
+  // (stap 128, "Poeisz duinterpen is ingang wat lastiger te vinden, geef met een gele cirkel tijdens de missie aan waar")
+  ingangMerk = maakMarkering(scene);
+  ingangMerk.groep.scale.set(2.6, 1.6, 2.6);
   bomPakket = maakBompakket(scene);
 
   /*
@@ -2693,6 +2723,7 @@ export function initVerhaal(ctx) {
     if (bewaking && (missie === 'bewaking' || missie === 'afleveren' || missie === 'klaar')) uit.push(...bewaking.doelen());
     // de zes man uit missie 7, zolang ze er staan
     if (schutters) uit.push(...schutters.doelen());
+    uit.push(...grondvuur.doelen());
     // de groepjes van De Veteraan op straat
     uit.push(...bendes.doelen());
     // wie je voor een klus moet omleggen, en zijn lijfwacht
@@ -2709,6 +2740,7 @@ export function initVerhaal(ctx) {
     if (klusjes.raak(obj)) return true;
     // de zes man bij de Poiesz: die mogen juist wel (kracht: zie Bewaking.raak)
     if (schutters && schutters.raak(obj, kracht)) return true;
+    if (grondvuur.raak(obj)) return true;
     // en de bende op straat na missie 10: die begon zelf
     if (bendes.raak(obj)) return true;
     /*
@@ -3005,6 +3037,38 @@ export function initVerhaal(ctx) {
     return lig.wal || { x: lig.x, z: lig.z };
   }
 
+  /*
+   Niet wachten op de telefoon (stap 128, gevraagd: "Na missie poiesz explosie gebeurt er iets te lang niks. Laat de
+   telefoon idd na de volgende dag afgaan maar laat ook een J zien dat je johan kan opzoeken bij de geeuw en dat start
+   de missie ook. Dit geldt ook voor missie na de veteraan beschermen op de boot"). Tijdens het wachten op missie 8
+   staat Johan al bij zijn boot aan de Geeuw, op missie 9 Mark voor de Wieken 29; wie erheen gaat, begint meteen.
+  */
+  let vroegGezet = null;
+  const VROEG = {
+    sniper: { letter: 'J', plek: () => johanBijDeBoot(), wie: () => johan, verder: () => naHetSniperGesprek() },
+    huis: { letter: 'M', plek: () => markBijDeWieken(), wie: () => mark, verder: () => naHetHuisGesprek() },
+  };
+  function werkVroegBij() {
+    const V = VROEG[naMissieNaam];
+    if (!V || missie !== 'klaar' || zwart) { vroegGezet = null; return; }
+    if (vroegGezet !== naMissieNaam) {
+      const p = V.plek();
+      if (!p) return;
+      vroegGezet = naMissieNaam;
+      zetMarker(p.x, p.z, V.letter);
+    }
+    const w = V.wie();
+    if (!w || !w.groep.visible || !balk.hidden) return;
+    const sp = spelerPunt();
+    const stil = !player.inCar || Math.abs(player.inCar.speed || 0) < 2;
+    if (afst(sp, w.groep.position) < PRAAT_AFSTAND + 4 && stil) {
+      const naam = naMissieNaam;
+      naMissieT = 0; vroegGezet = null;
+      startMissie(naam, { vanzelf: true });
+      VROEG[naam].verder();
+    }
+  }
+
   function beginSniper() {
     fase = 'telefoon';
     ruimSniperOp();
@@ -3012,6 +3076,24 @@ export function initVerhaal(ctx) {
     zetOpdracht('neem de telefoon op');
     hud.zetNavigatie(null); navDoel = null;
     markZichtbaar(false);
+  }
+
+  function naHetSniperGesprek() {
+    const heeft = player.wapens.includes('sniper');
+    fase = heeft ? 'naar_johan' : 'kopen'; zetPunt(fase);
+    if (heeft) {
+      zetOpdracht('ga naar Johan bij de Geeuwkade achter de waterzuivering');
+      const p = johanBijDeBoot();
+      if (p) zetNavDoel(p.x, p.z, 'Johan bij de Geeuw', 'J');
+    } else {
+      zetOpdracht('koop een sniper bij Tinga State');
+      const pand = pandVan(SNIP_WINKEL);
+      const v = pand ? voorPunt(pand, 7.5) : null;
+      if (v) zetNavDoel(v.x, v.z, 'Tinga State', 'M');
+    }
+    hud.melding('NIEUWE MISSIE', heeft ? 'Ga naar Johan aan de Geeuw.'
+      : 'Koop een sniper bij Tinga State.', 5);
+    spanning = true; spanningUit = 0;
   }
 
   function ruimSniperOp() {
@@ -3043,6 +3125,11 @@ export function initVerhaal(ctx) {
 
   function werkSniperBij(dt, sp) {
     if (fase === 'klaar') return;
+    // alles leeg terwijl je De Veteraan dekt: Johan heeft altijd een doos bij zich (stap 128)
+    if (!['telefoon', 'kopen', 'naar_johan'].includes(fase) && player.allesLeeg) {
+      player.reserve += SNIP_DOOS;
+      hud.show(`Johan gooit je ${SNIP_DOOS} kogels toe`, 2.4);
+    }
     if (fase !== 'telefoon') {
       navKlok += dt;
       if (navKlok > 2) { navKlok = 0; werkNavBij(); }
@@ -3054,23 +3141,7 @@ export function initVerhaal(ctx) {
         snipT -= dt;
         if (snipT <= 0) {
           geluid.telefoon();
-          zeg(SNIP_TELEFOON, () => {
-            const heeft = player.wapens.includes('sniper');
-            fase = heeft ? 'naar_johan' : 'kopen'; zetPunt(fase);
-            if (heeft) {
-              zetOpdracht('ga naar Johan bij de Geeuwkade achter de waterzuivering');
-              const p = johanBijDeBoot();
-              if (p) zetNavDoel(p.x, p.z, 'Johan bij de Geeuw', 'J');
-            } else {
-              zetOpdracht('koop een sniper bij Tinga State');
-              const pand = pandVan(SNIP_WINKEL);
-              const v = pand ? voorPunt(pand, 7.5) : null;
-              if (v) zetNavDoel(v.x, v.z, 'Tinga State', 'M');
-            }
-            hud.melding('NIEUWE MISSIE', heeft ? 'Ga naar Johan aan de Geeuw.'
-              : 'Koop een sniper bij Tinga State.', 5);
-            spanning = true; spanningUit = 0;
-          }, { wie: 'Johan', telefoon: true, kop: KOPPEN.johan });
+          zeg(SNIP_TELEFOON, naHetSniperGesprek, { wie: 'Johan', telefoon: true, kop: KOPPEN.johan });
         }
       }
       return;
@@ -3639,6 +3710,8 @@ export function initVerhaal(ctx) {
           zetOpdracht('rij met Mark naar de Poiesz in Duinterpen');
           const ing = winkelIngang();
           if (ing) zetNavDoel(ing.stoep.x, ing.stoep.z, 'Poiesz Duinterpen', 'M');
+          if (ing && ingangMerk) { ingangMerk.zet(ing.stoep.x, grondHoogte(ing.stoep.x, ing.stoep.z), ing.stoep.z); ingangMerk.toon(true); }
+          bomPraatI = 0; bomPraatT = BOM_PRAAT.eerst;
         });
       });
       return;
@@ -3655,8 +3728,21 @@ export function initVerhaal(ctx) {
       if (!ing) return;
       const d = Math.hypot(sp.x - ing.stoep.x, sp.z - ing.stoep.z);
       const staat = !player.inCar || Math.abs(player.inCar.speed || 0) < 1.5;
+      if (ingangMerk && !ingangMerk.zichtbaar) { ingangMerk.zet(ing.stoep.x, grondHoogte(ing.stoep.x, ing.stoep.z), ing.stoep.z); ingangMerk.toon(true); }
+      // de praat onderweg, vanzelf
+      if (bomPraatTot > 0) bomPraatTot -= dt;
+      if (player.inCar && bomPraatI < BOM_ONDERWEG.length && d > BOM_PRAAT.stop) {
+        bomPraatT -= dt;
+        if (bomPraatT <= 0 && balk.hidden) {
+          zeg([BOM_ONDERWEG[bomPraatI++]], null, { auto: BOM_PRAAT.zin });
+          bomPraatT = BOM_PRAAT.tussen; bomPraatTot = BOM_PRAAT.zin;
+        }
+      }
+      // aangekomen: een zin van onderweg die nog loopt gaat dicht
+      if (d < BOM_PARKEER && staat && !balk.hidden && bomPraatTot > 0) { sluitBalk(); bomPraatTot = 0; }
       if (d < BOM_PARKEER && staat && balk.hidden) {
         fase = 'planten'; zetPunt(fase);
+        if (ingangMerk) ingangMerk.toon(false);
         hud.zetNavigatie(null); navDoel = null;
         // Mark stapt uit en wacht bij de deur
         const naast = { x: ing.stoep.x + ing.f[0] * 3.5, z: ing.stoep.z + ing.f[1] * 3.5 };
@@ -3969,6 +4055,7 @@ export function initVerhaal(ctx) {
     zetOpdracht('rij met Mark naar de Poiesz in Duinterpen');
     const ing = winkelIngang();
     if (ing) zetNavDoel(ing.stoep.x, ing.stoep.z, 'Poiesz Duinterpen', 'M');
+    bomPraatI = 0; bomPraatT = BOM_PRAAT.eerst; bomPraatTot = 0;
     if (f === 'instappen') return;
 
     // bij de winkel: Mark wacht bij de deur en de plek bij de schappen licht op
@@ -4167,6 +4254,14 @@ export function initVerhaal(ctx) {
   }
 
   // Mark voor de deur van de Wieken 29, waar missie 7 ook begon
+  function naHetHuisGesprek() {
+    fase = 'naar_mark'; zetPunt(fase);
+    zetOpdracht('ga naar Mark bij de Wieken 29');
+    const p = markBijDeWieken();
+    if (p) zetNavDoel(p.x, p.z, 'Mark bij de Wieken', 'M');
+    hud.melding('NIEUWE MISSIE', 'Mark wacht bij de Wieken 29.', 5);
+    // (geen spanningsmuziek: een huis uitzoeken is geen spannende missie; stap 128)
+  }
   function markBijDeWieken() {
     const pand = pandVan(HUIS_THUIS);
     const v = pand ? voorPunt(pand, 5.5) : null;
@@ -4238,14 +4333,7 @@ export function initVerhaal(ctx) {
         huisT -= dt;
         if (huisT <= 0) {
           geluid.telefoon();
-          zeg(HUIS_TELEFOON, () => {
-            fase = 'naar_mark'; zetPunt(fase);
-            zetOpdracht('ga naar Mark bij de Wieken 29');
-            const p = markBijDeWieken();
-            if (p) zetNavDoel(p.x, p.z, 'Mark bij de Wieken', 'M');
-            hud.melding('NIEUWE MISSIE', 'Mark wacht bij de Wieken 29.', 5);
-            spanning = true; spanningUit = 0;
-          }, { wie: 'Mark', telefoon: true, kop: KOPPEN.mark });
+          zeg(HUIS_TELEFOON, naHetHuisGesprek, { wie: 'Mark', telefoon: true, kop: KOPPEN.mark });
         }
       }
       return;
@@ -4422,12 +4510,10 @@ export function initVerhaal(ctx) {
       zetOpdracht('ga naar Mark bij de Wieken 29');
       const p = markBijDeWieken();
       if (p) zetNavDoel(p.x, p.z, 'Mark bij de Wieken', 'M');
-      spanning = true; spanningUit = 0;
       return;
     }
     fase = 'kiezen';
     zetOpdracht('bekijk de drie woningen en kies er een');
-    spanning = true; spanningUit = 0;
   }
 
 
@@ -9622,16 +9708,34 @@ export function initVerhaal(ctx) {
   if (brug) avondC4 = maakC4(scene);
   // de handlangers in de achtervolging (stap 127, js/handlangers.js)
   const handlangers = maakHandlangers(scene, vehicles);
+  // zijn mannen langs de weg die op de heli schieten (stap 128, js/grondvuur.js)
+  const grondvuur = maakGrondvuur(scene);
   // het vuurwerk van het einde (stap 127), ook al bij het opstarten
   const vuurwerk = maakVuurwerk(scene, { knal: (v) => { const sp = spelerPunt(); geluid.vuurwerk(Math.hypot(v.x - sp.x, v.z - sp.z, v.y)); } });
 
+  // (stap 128, gevraagd: "Laat de auto van bouwman zwaailichten aandoen") — de politieauto heeft zijn balk,
+  // de tweede auto krijgt een magneetlamp en een flitser achter de grille
+  let avondZwaaiT = 0;
+  function knipperBouwman(a, dt, aan = true) {
+    if (!a || !a.mesh) return;
+    if (!a.zwaailicht && aan) a.zwaailicht = dakZwaailicht(a);
+    const z = a.zwaailicht;
+    if (!z) return;
+    avondZwaaiT += dt;
+    const k = aan ? Math.floor(avondZwaaiT / 0.24) % 2 : -1;
+    zetZwaailamp(z.links, k === 0 ? 1 : 0, true);
+    zetZwaailamp(z.rechts, k === 1 ? 1 : 0, true);
+  }
   function avondHeliMaken() { if (!avondHeli) avondHeli = maakRondvlucht(scene); return avondHeli; }
   function ruimAvondOp() {
     if (avondHeli) { avondHeli.toon(false); avondHeli.richtLicht(null, 0); }
     if (player.zit && (fase === 'heli' || fase === 'heliStart' || fase === 'luifel' || fase === 'landen')) player.zit = false;
+    if (avondRit) knipperBouwman(avondRit.auto, 0, false);
+    if (raceBouwmanAuto) knipperBouwman(raceBouwmanAuto, 0, false);
     avondRit = null;
     for (const a of [avondTweede]) verstopAuto(a);
     handlangers.ruim();
+    grondvuur.ruim();
     if (avondMannen && schutters === avondMannen) { schutters.verwijder(); schutters = null; }
     avondMannen = null;
     // (de politieauto's echt weg, en de filmbalken van het filmbeeld op de brug ook: na neergaan in die
@@ -9699,6 +9803,7 @@ export function initVerhaal(ctx) {
     const n = h.deurNormaal();
     player.yaw = Math.atan2(-n.x, -n.z); player.pitch = -0.45;
     spanning = true; spanningUit = 0;
+    grondvuur.start(avondA, (x, z) => grondHoogte(x, z));
     zetOpdracht('raak de auto van Bouwman, vanuit de deur');
     zeg(AVOND_HELI, null, { auto: 2.6 });
   }
@@ -9735,6 +9840,14 @@ export function initVerhaal(ctx) {
     } else if (!r.st.klaar) {
       rijdVlucht(r.st, r.lijn, a, vehicles, dt);
     }
+    knipperBouwman(a, dt, r.wachtT <= 0);
+    // zijn mannen langs de weg schieten omhoog, met tracers; het raakt zelden en niet hard
+    const schadeGrond = grondvuur.update(dt, avondHeli.zichtbaar ? avondHeli.pos : null);
+    if (schadeGrond > 0 && player.active) {
+      player.health = Math.max(0, player.health - schadeGrond);
+      hud.zetLeven(player.health); hud.flits();
+      if (player.health <= 0) { dood(); return; }
+    }
     // treffers tellen: hij is in dit stuk niet stuk te krijgen
     if (a.hp < 100) { avondTreffers += Math.max(1, Math.round((100 - a.hp) / 10)); a.hp = 100; a.wrak = false; }
     if (avondTreffers >= 3 && !avondRaakGezegd && balk.hidden) { avondRaakGezegd = true; zeg(AVOND_RAAK, null, { auto: 2.4 }); }
@@ -9764,6 +9877,7 @@ export function initVerhaal(ctx) {
   }
   function avondLanden() {
     fase = 'landen';
+    grondvuur.ruim();
     if (avondRit) verstopAuto(avondRit.auto);
     if (invalBalk) invalBalk.hidden = true;
     avondLand = landPlek();
@@ -9835,6 +9949,7 @@ export function initVerhaal(ctx) {
       rijdVlucht(r.st, r.lijn, a, vehicles, dt);
       if (d > 160) r.st.v = Math.max(5, r.st.v * (1 - dt * 0.35));
     }
+    knipperBouwman(a, dt);
     // de handlangers schieten uit het raam en van de scooter
     const schade = handlangers.update(dt, {
       bouwman: { s: r.st.s, v: r.st.v },
@@ -9858,19 +9973,29 @@ export function initVerhaal(ctx) {
     if (r.st.klaar) startGevecht();
   }
   // ---- de loods: Bouwman en zijn mannen ----
+  /*
+   (stap 128, gevraagd: "Het eind gevecht bij de loods laat wat meer ruimte tussen de vijanden en jullie zodat
+   je dekking kan zoeken. Laat de vijanden zichtbaar uit de loods komen rennen.") Tot stap 128 stonden ze al op
+   het erf, zes meter van de oprit, en kwamen ze op je af. Nu begint wie in de loods staat binnen (a), rent door
+   de roldeur (x 1402–1406,5 in de noordgevel, z −194) over `via` naar zijn plek (b) tegen de loods of ernaast,
+   en blijft daar (`houden` in js/bewaking.js): ze komen niet meer op je af. Bouwman staat bij zijn auto.
+  */
+  const AVOND_DEUR = [[1404.2, -191.5], [1404.2, -196.4]];
   const AVOND_POSTEN = [
-    [[1402, -199.5], [1404.5, -197.5]],        // Bouwman, bij de deur
-    [[1395, -199], [1392.5, -192]],
-    [[1416, -201], [1420, -195]],
-    [[1411, -178], [1400, -178]],               // tussen de loods en het water
-    [[1424, -187], [1424, -179]],
-    [[1390, -186], [1389, -192]],               // (stap 127) aan de westkant van de loods
-    [[1419, -205], [1410, -206]],               // en achter de loods, met een machinegeweer
+    [[1402, -199.5], [1404.5, -197.5]],                          // Bouwman, bij de deur
+    [[1403, -184.5], [1395, -196.6], AVOND_DEUR],
+    [[1405.5, -185.5], [1416.5, -196.6], AVOND_DEUR],
+    [[1411, -178], [1421.5, -200], [[1421.5, -180.5]]],            // van tussen de loods en het water om de hoek
+    [[1404, -187], [1423, -189], [...AVOND_DEUR, [1419.5, -196.8]]],
+    [[1403.5, -189.5], [1392.5, -189.5], [...AVOND_DEUR, [1393, -196.6]]],   // aan de westkant van de loods
+    [[1405, -191], [1409.5, -196.4], AVOND_DEUR],                 // voor de loods, achter de bus, met een machinegeweer
   ];
+  const AVOND_UITKIJK = { x: 1412, z: -212 };                     // de oprit: daar kom je vandaan
   function startGevecht() {
     // (stap 122: na neergaan bij de loods begon de hele achtervolging opnieuw; het laatste punt was die)
     fase = 'gevecht'; zetPunt('gevecht');
     const a = avondRit.auto;
+    knipperBouwman(a, 0, false);
     if (invalBalk) invalBalk.hidden = true;
     avondRit = null;
     a.speed = 0;
@@ -9879,8 +10004,11 @@ export function initVerhaal(ctx) {
     bouwman.zetNeer(a.x, a.z, 0); bouwman.groep.visible = true;
     if (schutters) schutters.verwijder();
     // de bodyguards gaan niet neer met één kogel, en twee hebben een machinegeweer (stap 110)
-    schutters = avondMannen = new Bewaking(scene, AVOND_POSTEN.map(([p, q]) => ({ a: p, b: q })),
-      { ...INVAL_MANNEN, schade: AVOND_SCHADE, personen: [bouwman], leven: AVOND_LEVEN, mg: AVOND_MG });
+    schutters = avondMannen = new Bewaking(scene, AVOND_POSTEN.map(([p, q, via]) => ({ a: p, b: q.slice(), via, kijk: AVOND_UITKIJK })),
+      { ...INVAL_MANNEN, schade: AVOND_SCHADE, personen: [bouwman], leven: AVOND_LEVEN, mg: AVOND_MG, houden: true });
+    // ze weten dat je eraan komt: meteen naar buiten, naar hun plek
+    avondMannen.alarm = true;
+    for (const w of avondMannen.wachters) w.staat = 'zoekt';
     avondHulpT = 4;
     avondNeerGezegd = false;
     zetOpdracht('schiet Bouwman neer');
@@ -10329,6 +10457,7 @@ export function initVerhaal(ctx) {
     if (naMissieT > 0 && !klusjes.bezig && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
       naMissieT -= dt;
       if (naMissieT <= 0) startMissie(naMissieNaam, { vanzelf: true });
+      else werkVroegBij();
     }
     // een regel die zichzelf wegklikt (wat er tijdens het rennen geroepen wordt)
     if (gesprek && gesprek.auto) {
@@ -10559,6 +10688,7 @@ export function initVerhaal(ctx) {
       }
     }
     if (bomMerk) bomMerk.update(dt);
+    if (ingangMerk) { if (missie !== 'bom' || fase !== 'instappen') ingangMerk.toon(false); ingangMerk.update(dt); }
     if (tasMerk) tasMerk.update(dt);
 
     // ---- na missie 10: de bende op straat ----
@@ -11049,6 +11179,11 @@ export function initVerhaal(ctx) {
     herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; }, missieTitel,
     // (stap 127, voor tools/wensentest.mjs: je auto bij huis neerzetten)
     springNaarHuis: () => springNaarHuis(),
+    // (stap 128, voor tools/wensen2test.mjs: de praat onderweg, de gele cirkel, de J of M vóór het telefoontje)
+    get stap128() {
+      return { ingangMerk, bomPraatI, ingang: winkelIngang(), vroegGezet, naMissieNaam, naMissieT,
+        zetWacht: (naam, t) => { naMissieNaam = naam; naMissieT = t; }, navNaar: (x, z) => zetNavDoel(x, z, 'proef', 'J'), hervatBom: (f) => hervatBom(f) };
+    },
     // stap 125: de klok en de missies
     tijdVast, get missieBezig() { return missieBezig(); }, slapen, get eigenHuis() { return huisGekozen; },
     beginGesprek, waaromNietOpslaan,
@@ -11138,13 +11273,14 @@ export function initVerhaal(ctx) {
     get avond() {
       const r = avondRit;
       return {
-        heli: avondHeli, A: avondA, B: avondB, auto: avondAuto, tweede: avondTweede, mannen: avondMannen,
+        heli: avondHeli, grondvuur, A: avondA, B: avondB, auto: avondAuto, tweede: avondTweede, mannen: avondMannen,
         treffers: avondTreffers, kwijtT: avondKwijtT, land: avondLand, brug: avondBrug && { t: avondBrug.t, s: avondBrug.s, dir: avondBrug.dir, sBom: avondBrug.sBom, geknald: avondBrug.geknald, politie: avondBrug.politie.map(k => ({ s: k.s, v: k.v, x: k.auto.x, z: k.auto.z })) },
         rit: r && { s: r.st.s, v: r.st.v, klaar: r.st.klaar, lengte: r.lijn.lengte, wachtT: r.wachtT, x: r.auto.x, z: r.auto.z },
         filmCam: avondFilmCam ? { pos: avondFilmCam.pos.slice(), kijk: avondFilmCam.kijk.slice() } : null,
         bouwman, mark, johan: invalJohan, posten: AVOND_POSTEN, uur: AVOND_UUR, kwijt: AVOND_KWIJT, kwijtTijd: AVOND_KWIJT_T,
         lijnen: () => avondLijnen(), opHetDek: (x, z) => opHetDek(x, z), brugAssen: brug,
         // stap 127
+        ritAuto: r && r.auto,             // (stap 128: het zwaailicht)
         handlangers, vuurwerk, schud: avondBrug ? avondBrug.schud || 0 : 0, rijStijl: AVOND_RIJ,
         tops: { heli: AVOND_HELI_TOP, vlucht: AVOND_VLUCHT_TOP }, leven: AVOND_LEVEN, mg: AVOND_MG, oneindig: AVOND_ONEINDIG,
         muziek: () => muziekVanDeIntro(), heliAfstand: () => heliRondAfstand(),

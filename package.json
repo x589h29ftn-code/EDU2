@@ -216,6 +216,8 @@
     "uitzendingshots": "node tools/uitzendingshots.mjs",
     "tempotest": "node tools/tempotest.mjs",
     "wensentest": "node tools/wensentest.mjs 8123",
+    "wensen2test": "node tools/wensen2test.mjs 8123",
+    "wensen2shots": "node tools/wensen2shots.mjs 8123",
     "wensenshots": "node tools/wensenshots.mjs 8123"
   }
 }

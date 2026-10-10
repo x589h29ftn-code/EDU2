@@ -28,8 +28,8 @@ import { profiel, rijdVlucht } from './inval.js';
 import { geluid } from './audio.js';
 
 export const AMB = {
-  kans: 0.4,            // zoveel kans dat er een komt als er iemand neergaat
-  rust: 120,            // s na de vorige rit voordat er weer een kan komen
+  kans: 0.85,           // zoveel kans dat er een komt als er iemand neergaat (stap 128: was 0,4, "meer ambulances")
+  rust: 45,             // s na de vorige rit voordat er weer een kan komen (stap 128: was 120)
   van: 300, tot: 480,   // m: waar hij begint, van het slachtoffer
   nietBij: 180,         // m: en niet dichter bij de speler dan dit
   top: 16,              // m/s met spoed

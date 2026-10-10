@@ -7701,6 +7701,61 @@ opnieuw (de nacht, de mist, de vuilniswagen, de autoschade).
 `avondtest`, `uitzendingtest` (het einde om tien uur), `wedstrijdtest`, `opslagtest`, `opzettest`, `vloeiendtest`.
 **Foto's**: `wensenshots`.
 
+**Tweede ronde wensen van 10 okt (stap 128).** Na het spelen, met drie foto's (een blauwe schijf onder in beeld,
+een oever en de radio thuis).
+
+- *Geluid*: de achtergronden 78 % zachter (dag 0,12, nacht 0,065; was 0,55 en 0,30), de explosie zachter (0,62 per
+  `luid`, was 0,95), de wieken van de heli 1,2 (was 2,6) en het muziekje 0,62 (was 0,5). *Stil na de hapering rond
+  18:00*: niet na te spelen. Rond 18:00 verandert bij zonsondergang het aantal lichtbronnen (de hapering, stap 83), en
+  na die hapering bleef alleen het menu klinken, dat buiten de keten om speelt. Twee oorzaken passen daarbij: een
+  NaN in een AudioParam (een filter dat NaN krijgt, zwijgt voor altijd en alles erachter ook) of een context die
+  `suspended` raakt. js/audio.js weigert nu elke waarde die geen getal is (het prototype van AudioParam, `geweigerd`
+  telt ze), en `achtergrond()` zet een context die al liep en stilviel weer aan (hoogstens eens in de vijf tellen).
+  *In deze container*: `wensentest` bleef in zijn eerste stap hangen. Los nagelopen met een logboek in de pagina:
+  dertig beelden `geluid.omgeving` met de lange achtergrondopname duren hier nu 604 s, ook met de audio.js van
+  stap 127 (A/B gemeten); 's ochtends ging dezelfde stap vlot. Het streamen van die mp3 legt headless de pagina
+  plat, de code van stap 128 niet. Om dezelfde reden mist `dealtest` zijn sprong in de missiemuziek (ook een
+  mediaelement). Les: een proef die niets meer zegt, eerst los nalopen met een logboek per regel in de pagina, en
+  dan met de oude versie ernaast, niet de hele proef opnieuw.
+- *De mouw* (js/wapen.js `mouwGeo`): bij het richten wijst de onderarm naar je oog, en het afgesneden eind van de
+  buis werd een blauwe schijf. De mouw heeft nu een elleboog: na de onderarm knikt hij 0,95 rad naar beneden en naar
+  achteren, 0,6 m lang. Gemeten: niets van het wapen binnen 18 cm van het oog in beeld, uit de heup en richtend.
+- *Rennen met het pistool*: het tempo kwam per beeld uit `dBob / dt` en sprong bij ongelijke beelden heen en weer
+  over de drempel van rennen. Nu gladgestreken (`tempoGlad`), met een marge (aan boven 12, uit onder 9).
+- *Shift*: in een auto 15 % harder en sneller op toeren (`BOOST`, alleen met gas), in de boot 1,4 keer de stuwkracht
+  en de top (`BOOT_BOOST`).
+- *Oevers*: de BGT knipt een vaart in stukken en elk stuk kreeg een eigen oeverwand, ook langs de naad met het
+  volgende stuk: twee wanden rug aan rug midden in het water, 13 cm boven het waterdek. Gemeten 556 stukjes, 7,7 km.
+  js/kaartwereld.js laat een stukje wand weg als er aan de landkant ook water is (`wandInWater`).
+- *De radio thuis*: de panelen en knoppen stonden met hun achterkant precies in het voorvlak van de kast; ze steken
+  er nu 6 mm in.
+- *Een boomstam*: auto's rijden door alles lager dan 3,5 m, ook door een stam; dan stond het draaipunt van de camera
+  in de doos en klom de camera. `vrijeCamera` slaat een kleine doos over waar het draaipunt zelf in staat.
+- *Thuis*: de eerste keer in je eigen huis een uitleg (bank, tv, radio, bier, barbecue, opslaan). Het vlees gaar en
+  jij weg: "Ga terug naar … om te eten."
+- *Missie 7*: onderweg naar Duinterpen praat Mark vanzelf (`BOM_ONDERWEG`, tien zinnen over De Veteraan: Top 1 Toys,
+  tegen de Duitsers, No Mercy 1, 2 en 3 met een Emmy), om de 5,2 s, alleen in de auto en niet binnen 70 m van de
+  ingang; bij aankomst gaat een lopende zin dicht. Een gele cirkel bij de ingang (`ingangMerk`).
+- *Na missie 7 en 8*: de telefoon gaat nog steeds na de tussenpoos, maar meteen staat er een J bij Johan aan de Geeuw
+  (en na missie 8 een M bij Mark voor de Wieken 29). Wie erheen gaat, begint (`VROEG`, `werkVroegBij`).
+- *Missie 8*: € 2.500 (was 500); zonder kogels gooit Johan je er 40 toe. Missie 9 zonder spanningsmuziek.
+- *In een boot* rekent de navigatie over het water (`vaarRoute` uit js/vaart.js); vindt het water geen weg, dan over
+  de weg.
+- *Meer leven*: de ambulance komt bij 85 % van de meldingen (was 40) met 45 s rust (was 120); op de N7 is elke vijfde
+  een bakwagen, en in de wijk rijden er twee.
+- *Missie 18*: langs de weg van Bouwman staan zeven man (js/grondvuur.js, nieuw) die op de heli schieten zodra hij
+  binnen 85 m is, met een gele streep per kogel; 7 % raak, 2 schade. Zijn auto knippert (de lichtbalk van de
+  politieauto; de tweede auto krijgt een magneetlamp en een flitser achter de grille, `dakZwaailicht` in
+  js/politie.js). De handlangers raken minder (kans 0,18, was 0,30; schade 3, was 4; minimaal 3,5 %). Bij de loods
+  stonden de mannen zes meter van de oprit en kwamen ze op je af: nu staan er vijf binnen in de loods, die door de
+  roldeur naar buiten rennen naar plekken tegen de gevel en ernaast, en daar blijven (`houden`).
+
+**Proeven**: `wensen2test` (nieuw, groen), `avondtest` (groen) (die toetste nog vijf man, twee en drie levens en een heli
+van 21 m/s: de waarden van vóór stap 127; nu die van 127), `dealtest` (€ 2.500; rood op de twee muziekregels, zie boven), `bomtest` (groen), `vloeiendtest` (geen nieuw
+programma; de proef liep tegen zijn grens van 50 minuten, de beelden zijn headless trager geworden: 's nachts
+stilstaand 5,6 s, op 5 okt 4,6). `wensentest` kwam in deze container niet voorbij zijn eerste stap (zie boven).
+**Foto's**: `wensen2shots`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

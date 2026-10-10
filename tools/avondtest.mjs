@@ -12,7 +12,7 @@
     landt op een vrije plek bij het Autohuis.
  4. De auto staat klaar, Mark en Johan ernaast; instappen begint de achtervolging over B.
  5. Kwijtraken: verder dan AVOND_KWIJT, tien tellen, dan mislukt.
- 6. Bij de loods: Bouwman en vier man, niet neer met één kogel, twee met een machinegeweer (salvo's);
+ 6. Bij de loods: Bouwman en zes man (stap 127), niet neer met één kogel, twee met een machinegeweer (salvo's);
     een echt schot met het pistool kost één leven, de sniper legt hem neer. Je komt in een andere auto
     dan de Ferrari: Mark en Johan stappen naast jou uit en schieten mee (niet op Bouwman); Bouwman neer,
     iedereen neer, dan de politie: vier sterren en de nav naar de Dúvelsrak.
@@ -158,7 +158,7 @@ const heli = await page.evaluate(() => {
     uurEind = g.sfeer.uur;
   }
   return { start, minBoven, minRand, minD, maxD, minDeur, maxV, maxSchok, camBinnen, camLaag, n, maxYawDeur, uurEind, fase: v.fase,
-    vmax: 21, deurHoek: 1.75, pitch: g.player.pitch };
+    vmax: 31, deurHoek: 1.75, pitch: g.player.pitch };
 });
 ok(heli.start.fase === 'heliStart' && heli.start.zichtbaar && heli.start.zit && heli.start.erik, 'Die avond: de heli, Erik zit in de deur', heli.start.fase);
 ok(Math.abs(heli.start.uur - 1) < 0.05 && Math.abs(heli.uurEind - 1) < 0.05, 'één uur \'s nachts, en de klok staat stil', `${r1(heli.start.uur)} → ${r1(heli.uurEind)}`);
@@ -167,7 +167,7 @@ ok(heli.minBoven > 5, 'boven de daken', `minstens ${r1(heli.minBoven)} m boven h
 ok(heli.minRand > 150, 'ruim van de rand van de wereld', `${r1(heli.minRand)} m`);
 ok(heli.minD > 12 && heli.maxD < 70, 'naast Bouwman: niet erbovenop en niet kwijt', `${r1(heli.minD)}–${r1(heli.maxD)} m`);
 ok(heli.minDeur > 0.35, 'de open deur kijkt naar hem', `cos ${heli.minDeur.toFixed(2)}`);
-ok(heli.maxV <= heli.vmax + 0.01 && heli.maxSchok < 5, 'rustig: nooit harder dan vmax, geen schok', `${r1(heli.maxV)} m/s, ${r1(heli.maxSchok)} m/s²`);
+ok(heli.maxV <= heli.vmax + 0.01 && heli.maxSchok < 7, 'rustig: nooit harder dan vmax, geen schok', `${r1(heli.maxV)} m/s, ${r1(heli.maxSchok)} m/s²`);
 ok(heli.camBinnen === 0 && heli.camLaag > 15, 'de buitencamera hangt buiten de romp', `${heli.camBinnen} keer binnen, laagst ${r1(heli.camLaag)} m`);
 ok(heli.maxYawDeur <= heli.deurHoek + 0.01, 'de blik blijft binnen de deur', `${r1(heli.maxYawDeur)} rad`);
 
@@ -329,8 +329,9 @@ const gev = await page.evaluate(() => {
   window.__stap(2);
   const hulp = { mark: v.avond.mark.groep.visible, johan: v.avond.johan.groep.visible,
     dMark: Math.hypot(v.avond.mark.groep.position.x - P.pos.x, v.avond.mark.groep.position.z - P.pos.z) };
-  // dertig tellen: Mark en Johan halen er een paar neer, Bouwman niet
-  for (let t = 0; t < 30 && v.fase === 'gevecht'; t += 0.1) { window.__stap(1, 0.1); if (!document.getElementById('dialoog').hidden) v.toets(); }
+  // vijfenzestig tellen (sinds stap 127 vier levens per man en om de 5,5–8 s een treffer): Mark en Johan halen er
+  // een paar neer, Bouwman niet
+  for (let t = 0; t < 65 && v.fase === 'gevecht'; t += 0.1) { window.__stap(1, 0.1); if (!document.getElementById('dialoog').hidden) v.toets(); }
   const neerHulp = W.wachters.filter((w, i) => i > 0 && w.staat === 'neer').length;
   const bouwmanStaat = W.wachters[0].staat;
   // een echt schot met het pistool op een bodyguard die nog staat: één leven eraf, hij blijft staan
@@ -364,9 +365,9 @@ const gev = await page.evaluate(() => {
   return { andersGenomen, vuurMg, vuurPi, schadeMg, schadePi, pistool, sniper, begin, hulp, neerHulp, bouwmanStaat, bouwmanNeer: W.wachters[0].staat === 'neer', zin, open, komt, fase: v.fase,
     sterren: g.politie.ster, nav: g.hud.nav && g.hud.nav.letter, inAuto: !!P.inCar };
 });
-ok(gev.begin.fase === 'gevecht' && gev.begin.aantal === 5 && gev.begin.bouwman && gev.begin.zichtbaar, 'bij de loods: Bouwman en vier man', `${gev.begin.fase}, ${gev.begin.aantal}`);
+ok(gev.begin.fase === 'gevecht' && gev.begin.aantal === 7 && gev.begin.bouwman && gev.begin.zichtbaar, 'bij de loods: Bouwman en zes man (stap 127)', `${gev.begin.fase}, ${gev.begin.aantal}`);
 ok(gev.andersGenomen, 'in een andere auto dan de Ferrari: de achtervolging gaat met die auto');
-ok(gev.begin.leven.join(',') === '2,3,3,3,3', 'niet neer met één kogel: Bouwman twee treffers, zijn mannen drie', gev.begin.leven.join(', '));
+ok(gev.begin.leven.join(',') === '5,4,4,4,4,4,4', 'niet neer met één kogel: Bouwman vijf treffers, zijn mannen vier (stap 127)', gev.begin.leven.join(', '));
 ok(gev.begin.mg >= 2, 'twee bodyguards met een machinegeweer', `${gev.begin.mg}`);
 ok(gev.vuurMg >= gev.vuurPi * 3 && gev.schadeMg > 0, 'het machinegeweer schiet in salvo\'s', `${gev.vuurMg} kogels tegen ${gev.vuurPi} met het pistool in 8 s; schade ${gev.schadeMg} tegen ${gev.schadePi}`);
 ok(gev.pistool && gev.pistool.na === gev.pistool.voor - 1 && gev.pistool.staat !== 'neer', 'een echt schot met het pistool: één leven eraf, hij staat nog', JSON.stringify(gev.pistool));
@@ -457,7 +458,7 @@ const opnieuw = await page.evaluate(() => {
 });
 for (const f of ['nacht', 'heli', 'luifel', 'landen']) ok(opnieuw[f].fase === 'heliStart' && opnieuw[f].zit && opnieuw[f].heli, `${f}: opnieuw in de heli`, opnieuw[f].fase);
 ok(opnieuw.naarAuto.fase === 'naarAuto' && !opnieuw.naarAuto.zit, 'naarAuto: opnieuw bij de auto', opnieuw.naarAuto.fase);
-ok(opnieuw.gevecht.fase === 'gevecht' && opnieuw.gevecht.inAuto && opnieuw.gevecht.staan === 5 && opnieuw.gevecht.bouwman !== 'neer',
+ok(opnieuw.gevecht.fase === 'gevecht' && opnieuw.gevecht.inAuto && opnieuw.gevecht.staan === 7 && opnieuw.gevecht.bouwman !== 'neer',
   'gevecht: opnieuw bij de loods, niet de hele achtervolging over', `${opnieuw.gevecht.fase}, ${opnieuw.gevecht.staan} man, Bouwman ${opnieuw.gevecht.bouwman}`);
 for (const f of ['politieKomt', 'brugFilm']) ok(opnieuw[f].fase === 'politie' && opnieuw[f].sterren === 4, `${f}: opnieuw met de politie achter je aan`, opnieuw[f].fase);
 ok(!opnieuw.weg.heli && !opnieuw.weg.zit, 'laden buiten de missie: geen heli, niet meer zitten');

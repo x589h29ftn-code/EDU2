@@ -295,16 +295,28 @@ function buisGeo(r1, r2, L, x, y, z, rond = 14) {
   return g;
 }
 /*
- Een mouw: een buis van `L` meter, met de voorkant (bij de pols, −z) waar hij stond, maar MOUW_ERBIJ langer naar
- achteren (stap 127, gevraagd: "Je ziet bij wapens en mes achterkant van de arm in beeld"). Het dichte uiteinde
- van de mouw lag 0,52 m achter het wapen en kwam op een breed scherm, bij het herladen en bij een steek
- rechtsonder in beeld; nu ligt het achter de camera.
+ Een mouw met een elleboog (stap 128). De onderarm is een buis van `L` meter met de pols waar hij stond; aan het
+ eind buigt hij af, schuin naar beneden en naar achteren, zodat de arm onder in beeld wegloopt. Eerst hield de
+ buis 0,52 m achter het wapen op en zag je op een breed scherm het dichte uiteinde; daarna liep hij recht door
+ tot achter de camera, maar bij het richten wijst de onderarm naar je oog en werd de mouw een blauwe schijf
+ onderin beeld ("ik zie nog steeds achterkant arm als ik wil schieten").
 */
-const MOUW_ERBIJ = 0.55;
+const ELLEBOOG = { lang: 0.6, hoek: 0.95 };
 function mouwGeo(r1, r2, L, rond = 16) {
-  // (de bovenkant van de cilinder, r1, komt na het kantelen aan de kant van de camera: daar gaat hij verder)
-  const g = new THREE.CylinderGeometry(Math.max(0.02, r1 + (r1 - r2) * MOUW_ERBIJ / L), r2, L + MOUW_ERBIJ, rond);
-  g.rotateX(Math.PI / 2); g.translate(0, 0, MOUW_ERBIJ / 2);
+  const a = new THREE.CylinderGeometry(r1, r2, L, rond).toNonIndexed();
+  a.rotateX(Math.PI / 2);                                   // de bovenkant (r1) naar +z, de kant van de camera
+  const b = new THREE.CylinderGeometry(r1 * 1.08, r1 * 1.2, ELLEBOOG.lang, rond).toNonIndexed();
+  b.rotateX(Math.PI / 2);
+  b.rotateX(ELLEBOOG.hoek);                                 // langs (0, −sin, cos): omlaag en naar achteren
+  const dy = -Math.sin(ELLEBOOG.hoek), dz = Math.cos(ELLEBOOG.hoek);
+  b.translate(0, dy * ELLEBOOG.lang / 2, L / 2 - 0.02 + dz * ELLEBOOG.lang / 2);
+  const g = new THREE.BufferGeometry();
+  for (const naam of ['position', 'normal', 'uv']) {
+    const x = a.attributes[naam], y = b.attributes[naam];
+    const arr = new Float32Array(x.array.length + y.array.length);
+    arr.set(x.array, 0); arr.set(y.array, x.array.length);
+    g.setAttribute(naam, new THREE.BufferAttribute(arr, x.itemSize));
+  }
   return g;
 }
 
@@ -781,7 +793,7 @@ function maakWapen(geluid, soort = 'pistool') {
   const POLS = { y: -0.080, z: 0.075 };
   const ARM_MEE = 0.35;                            // zoveel draait de onderarm mee
   let sledeT = 9, grendelT = 9, trekT = 9, hulsWacht = -1;
-  let tijd = 0, vorigeBob = null, loopF = 0, renF = 0, vorigeYaw = null, vorigePitch = null;
+  let tijd = 0, vorigeBob = null, loopF = 0, renF = 0, tempoGlad = 0, renDoel = 0, vorigeYaw = null, vorigePitch = null;
   const zwaai = { x: 0, y: 0 };
   const tmp = new THREE.Vector3();
   // de stand van het wapen (groep) in de laatste update, voor de hulzen
@@ -891,9 +903,17 @@ function maakWapen(geluid, soort = 'pistool') {
 
     // lopen, rennen en omkijken: hoe hard gaat `bob`, en hoe hard draai je?
     const dBob = vorigeBob === null ? 0 : bob - vorigeBob; vorigeBob = bob;
-    const tempo = dt > 0 ? dBob / dt : 0;
-    loopF += ((tempo > 0.1 ? 1 : 0) - loopF) * Math.min(1, dt * 6);
-    renF += ((tempo > 11 ? 1 : 0) - renF) * Math.min(1, dt * 5);
+    /*
+     (stap 128: "als ik ren met een handpistool ziet het bewegen er glitchy uit". Het tempo kwam per beeld uit
+     dBob / dt en sprong met elk ongelijk beeld over de drempel van rennen heen en weer. Nu gladgestreken, met
+     een marge tussen aan en uit.)
+    */
+    const tempoNu = dt > 0 ? dBob / dt : 0;
+    tempoGlad += (tempoNu - tempoGlad) * Math.min(1, dt * 5);
+    const tempo = tempoGlad;
+    loopF += ((tempo > 0.4 ? 1 : 0) - loopF) * Math.min(1, dt * 5);
+    renDoel = tempo > 12 ? 1 : tempo < 9 ? 0 : renDoel;
+    renF += (renDoel - renF) * Math.min(1, dt * 3.5);
     let dYaw = 0, dPitch = 0;
     if (yaw !== null && vorigeYaw !== null) {
       dYaw = yaw - vorigeYaw;

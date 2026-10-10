@@ -68,6 +68,10 @@ const STUUR_GRIP = 26;
  bocht kunt: v = √(a / κ). Eén keer per as, onthouden op de as zelf.
 */
 const PAD = { stap: 2, glad: 2, passen: 3, dwars: 2.6, remmen: 2.8, vooruit: 45 };   // m, monsters, keer, m/s², m/s², m
+// de boost met shift in een auto (stap 128)
+// de bakwagens in het verkeer: wit, rood, blauw, geel
+const VRACHT_KLEUREN = [0xf2f2f0, 0xb8282a, 0x24508f, 0xe8c22a];
+export const BOOST = 1.15;
 export function gladPad(pts) {
   if (!pts || pts.length < 2) return pts;
   if (pts._glad) return pts._glad;
@@ -222,12 +226,15 @@ export class Vehicles {
     for (let i = 0; i < 14; i++) {
       const dir = i % 2 ? 1 : -1;
       const lane = (i % 4 < 2) ? 2.1 : 6.2;
-      const mesh = makeCar(LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)], r() < 0.3 ? 'van' : 'hatch');
+      // (stap 128, gevraagd: "meer vrachtwagens, ik zie ze bijna niet"): elke vijfde op de N7 is een bakwagen
+      const soort = i % 5 === 2 ? 'truck' : r() < 0.3 ? 'van' : 'hatch';
+      const mesh = makeCar(soort === 'truck' ? VRACHT_KLEUREN[i % VRACHT_KLEUREN.length] : LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)], soort);
       scene.add(mesh);
+      const speed = soort === 'truck' ? 21 + r() * 3 : 22 + r() * 8;
       if (n7.length) {
         const path = gladPad(n7[i % n7.length]);
-        this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: (i % n7.length) ? -1 : 1, lane: (i % 4 < 2) ? 1.6 : -1.6, speed: 22 + r() * 8, y: 0.1 });
-      } else this.traffic.push({ mesh, path: hp, t: r() * (hp.length - 1), dir, lane, speed: 22 + r() * 8, y: 0.6 });
+        this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: (i % n7.length) ? -1 : 1, lane: (i % 4 < 2) ? 1.6 : -1.6, speed, y: 0.1, soort });
+      } else this.traffic.push({ mesh, path: hp, t: r() * (hp.length - 1), dir, lane, speed, y: 0.6, soort });
     }
     // wijkverkeer: langzame auto's op Molenkrite, Jasker, Monnikmolen, De Wieken
     const namen = ['Molenkrite', 'Jasker', 'Monnikmolen', 'De Wieken', 'de Wieken', 'Buitenroede', 'Bonkelaar'];
@@ -243,10 +250,12 @@ export class Vehicles {
     for (let i = 0; i < 12 && local.length; i++) {
       const rd = local[i % local.length];
       const path = gladPad(rd.pts);
-      const mesh = makeCar(LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)]);
+      // twee van de twaalf zijn een bakwagen die in de wijk aflevert (stap 128)
+      const soort = i === 3 || i === 9 ? 'truck' : undefined;
+      const mesh = makeCar(soort ? VRACHT_KLEUREN[i % VRACHT_KLEUREN.length] : LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)], soort);
       scene.add(mesh);
       // `lokaal` merkt de wijkauto's, zodat `vulBuurtAan` ze kan laten meeverhuizen
-      this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: 1, lane: 1.4, speed: 6 + r() * 2, y: 0.1, bounce: true, lokaal: true });
+      this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: 1, lane: 1.4, speed: soort ? 5 + r() : 6 + r() * 2, y: 0.1, bounce: true, lokaal: true, soort });
     }
     /*
      En álle rijbanen van de wereld als voorraad om die wijkauto's op te zetten.
@@ -691,7 +700,13 @@ export class Vehicles {
     const gas = !!(keys.KeyW || keys.ArrowUp);
     const rem = !!(keys.KeyS || keys.ArrowDown);
     const hand = !!keys.Space;
-    const top = car.topSnelheid || 24, achteruitTop = -(top * 0.28);
+    /*
+     Shift ingedrukt: een kleine boost, 15 % harder en sneller op toeren (stap 128). Alleen voor de speler: de
+     bestuurders van de computer geven geen shift mee.
+    */
+    const boost = (keys.ShiftLeft || keys.ShiftRight) && gas ? BOOST : 1;
+    car.boost = boost > 1;
+    const top = (car.topSnelheid || 24) * boost, achteruitTop = -((car.topSnelheid || 24) * 0.28);
     const wielbasis = (car.as || 1.4) * 2;
 
     // ---- sturen: bij stilstand vol, op snelheid nog een kwart ----
@@ -731,7 +746,7 @@ export class Vehicles {
     // ---- motor, rem en rolweerstand ----
     const v = car.speed;
     if (gas && v < -0.4) car.speed += 18 * dt;                       // eerst afremmen
-    else if (gas) car.speed += 9.5 * (car.trek || 1) * (1 - Math.max(0, v) / top) * dt;
+    else if (gas) car.speed += 9.5 * (car.trek || 1) * boost * (1 - Math.max(0, v) / top) * dt;
     else if (rem && v > 0.4) car.speed -= 15 * dt;                   // remmen
     else if (rem) car.speed -= 6 * dt;                               // achteruit
     else car.speed -= Math.sign(v) * Math.min(Math.abs(v), 2.4 * dt); // motorrem

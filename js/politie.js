@@ -243,6 +243,25 @@ export function zetZwaailamp(lamp, sterk, nacht = false) {
   if (u.plas) u.plas.opacity = sterk * (nacht ? 0.8 : 0.08);
 }
 
+/*
+ Een losse zwaailamp op het dak (stap 128, gevraagd: "Laat de auto van bouwman zwaailichten aandoen"):
+ Bouwman rijdt in een burgerauto, dus geen balk maar een magneetlamp links op het dak en een flitser
+ achter de grille. Zelfde `{ links, rechts }` als de lichtbalk, zodat `zetZwaailamp` ze laat knipperen.
+*/
+export function dakZwaailicht(car, hoog = 1.44) {
+  const balk = new THREE.Group();
+  const lampMat = () => new THREE.MeshStandardMaterial({ color: 0x2b6bff, emissive: 0x2b6bff, emissiveIntensity: 0.15 });
+  const links = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.14, 10), lampMat());
+  links.position.set(-0.35, hoog + 0.07, 0.25);
+  const rechts = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.04), lampMat());
+  rechts.position.set(0, 0.62, -2.08);
+  balk.add(links, rechts);
+  maakGloed(links, balk, -1);
+  maakGloed(rechts, balk, 1);
+  car.mesh.add(balk);
+  return { balk, links, rechts };
+}
+
 export const UNIFORM = { shirt: 0x1b2a4a, broek: 0x141c2c, vest: 0xd6dc46, schoen: 0x14161c };
 
 export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }) {

@@ -64,9 +64,9 @@ let schotTeller = 0;
 let uitzendBuf = null, uitzendLaden = null, uitzendBron = null, uitzendBegon = 0, uitzendWil = false;
 let uitzendingNu = false;
 // het muziekje van de intro in de heli van missie 18 (stap 119): seconden aanzwellen, seconden uitdoven, volume
-export const HELI_MUZIEK = { url: 'audio/intro/intro.mp3', in: 4, uit: 7, vol: 0.5, dip: 2.5 };
+export const HELI_MUZIEK = { url: 'audio/intro/intro.mp3', in: 4, uit: 7, vol: 0.62, dip: 2.5 };
 // de wieken van de heli van Wiebe (stap 127): zoveel keer de politieheli
-export const HELI_ROND = { luid: 2.6 };
+export const HELI_ROND = { luid: 1.2 };   // (was 2,6: te hard tegen het muziekje)
 /*
  Opnames van de gebruiker (stap 127, 9 okt 2026): "Ik voeg ook geluid toe voor explosies, twee soorten
  achtergrond geluid ipv wat je nu hanteert, helicopter geluid voor de helicopter let wel op afstand
@@ -80,8 +80,9 @@ export const OPNAMES = {
 };
 // de achtergrond: overdag de lange opname (6,8 min), 's nachts de korte (68 s); een element dat streamt
 export const ACHTERGROND = {
-  dag: { url: 'audio/sfeer/achtergrond1.mp3', vol: 0.55 },
-  nacht: { url: 'audio/sfeer/achtergrond2.mp3', vol: 0.30 },
+  // (stap 128, tweede ronde: "Minimaal 75% reductie voor achtergrond geluid"; was 0,55 en 0,30)
+  dag: { url: 'audio/sfeer/achtergrond1.mp3', vol: 0.12 },
+  nacht: { url: 'audio/sfeer/achtergrond2.mp3', vol: 0.065 },
   wissel: 4,           // s overvloeien tussen dag en nacht
   binnen: 0.25,        // zoveel ervan binnen, en doffer
 };
@@ -187,8 +188,35 @@ function toon({ freq = 800, naar = null, duur = 0.15, volume = 0.12, golf = 'sin
   o.start(t); o.stop(t + duur + 0.02);
 }
 
+/*
+ Een waarde die geen getal is, mag nooit een AudioParam in (stap 128). De gebruiker had na een hapering rond 18:00
+ geen geluid meer tot hij opnieuw laadde, terwijl het menu wel klonk (dat speelt buiten de keten om). Een NaN of
+ Infinity in een filter (een afstand of snelheid uit een beeld van seconden lang) zet de toestand van dat filter op
+ NaN, en dat blijft hangen: alles wat erachter zit zwijgt voorgoed. Hier worden zulke waarden genegeerd.
+*/
+if (typeof AudioParam !== 'undefined' && !AudioParam.prototype.__getalBewaakt) {
+  const P = AudioParam.prototype;
+  for (const naam of ['setValueAtTime', 'linearRampToValueAtTime', 'exponentialRampToValueAtTime', 'setTargetAtTime']) {
+    const echt = P[naam];
+    P[naam] = function (v, t, c) {
+      if (!Number.isFinite(v) || !Number.isFinite(t) || (c !== undefined && !(Number.isFinite(c) && c > 0))) { geluidNaN++; return this; }
+      return echt.apply(this, arguments);
+    };
+  }
+  // en `param.value = NaN`: dat gooit in Chrome een fout midden in een beeld; nu wordt het genegeerd
+  const waarde = Object.getOwnPropertyDescriptor(P, 'value');
+  if (waarde && waarde.set) {
+    Object.defineProperty(P, 'value', { configurable: true, enumerable: waarde.enumerable, get: waarde.get,
+      set(v) { if (!Number.isFinite(v)) { geluidNaN++; return; } waarde.set.call(this, v); } });
+  }
+  P.__getalBewaakt = true;
+}
+let geluidNaN = 0;
+let ctxLiep = false, laatsteResume = 0;
+
 // ---------- publieke geluiden ----------
 export const geluid = {
+  get geweigerd() { return geluidNaN; },
   get actief() { return aan && !gedempt; },
 
   start() {
@@ -678,7 +706,7 @@ export const geluid = {
       src.playbackRate.value = 0.9 + Math.random() * 0.16;
       const f = ctx.createBiquadFilter(); f.type = 'lowpass';
       f.frequency.value = 900 + 15000 * Math.max(0, 1 - afstand / 90) ** 2;
-      const g = ctx.createGain(); g.gain.value = Math.min(1.6, 0.95 * v);
+      const g = ctx.createGain(); g.gain.value = Math.min(1.1, 0.62 * v);   // (stap 128: iets zachter, was 0,95)
       src.connect(f); f.connect(g); g.connect(hoofd);
       src.start();
       if (luid <= 1) return;
@@ -1957,6 +1985,16 @@ export const geluid = {
   */
   achtergrond(nacht, binnen) {
     if (!aan || !ctx) return false;
+    /*
+     Na een lange hapering kan de browser de context stilzetten: weer aan, zolang het spel niet gepauzeerd is.
+     Alleen een context die al eens liep, en hoogstens eens in de vijf tellen: elk beeld `resume()` op een context
+     die nooit mocht starten (headless) zette de pagina helemaal vast (stap 128, gemeten in wensentest).
+    */
+    if (ctx.state === 'running') ctxLiep = true;
+    else if (ctxLiep && !gepauzeerd && !gedempt && performance.now() - laatsteResume > 5000) {
+      laatsteResume = performance.now();
+      ctx.resume().catch(() => {});
+    }
     if (!bronnen.bed) {
       const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 18000;
       filter.connect(hoofd);

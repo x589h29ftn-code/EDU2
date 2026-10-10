@@ -581,6 +581,27 @@ export function* bouwKaartWereldStap(scene, W) {
    fietspaden van 0,12 die anders net buiten de boot vielen.
   */
   const verhardBoven = bouwVerhardIndex(K, 0.11);
+  /*
+   Water aan de andere kant van de oever (stap 128, "bij oevers en de wal zie ik nog clipping"). De BGT knipt een
+   vaart in stukken; elk stuk kreeg zijn eigen oeverwand, ook langs de naad met het volgende stuk. Daar stonden twee
+   wanden rug aan rug midden in het water, 13 cm boven het waterdek — 556 stukjes, 7,7 km (gemeten). Een stukje wand
+   waar het aan de landkant ook water is, komt er niet.
+  */
+  const waterAnders = (() => {
+    const lijst = (K.vlakken || []).filter(v => v.k === 'water').map(v => {
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const [x, z] of v.r[0]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+      return { v, x0, x1, z0, z1 };
+    });
+    const inRing = (x, z, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const a = r[i], b = r[j]; if ((a[1] > z) !== (b[1] > z) && x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+    return (x, z, eigen) => lijst.some(w => w.v !== eigen && x >= w.x0 && x <= w.x1 && z >= w.z0 && z <= w.z1
+      && inRing(x, z, w.v.r[0]) && !w.v.r.slice(1).some(g => inRing(x, z, g)));
+  })();
+  const wandInWater = (v, p0, p1) => {
+    const L = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) || 1;
+    const mx = (p0[0] + p1[0]) / 2, mz = (p0[1] + p1[1]) / 2, nx = (p1[1] - p0[1]) / L * 0.25, nz = -(p1[0] - p0[0]) / L * 0.25;
+    return waterAnders(mx + nx, mz + nz, v) || waterAnders(mx - nx, mz - nz, v);
+  };
 
   // -- ondergrond, één mesh per materiaal
   const perMat = new Map();       // "materiaal|tegel" -> stuk
@@ -629,7 +650,7 @@ export function* bouwKaartWereldStap(scene, W) {
       W.waterPolys.push(v.r[0].map(([x, z]) => new THREE.Vector2(x, z)));
       if (!plat) {
         randGeometrie(v.r, 0.13, -0.6, null, null, null, true, (x, z, p0, p1) => (
-          (verhardBoven(x, z) || verhardBoven(p0[0], p0[1]) || verhardBoven(p1[0], p1[1]))
+          (verhardBoven(x, z) || verhardBoven(p0[0], p0[1]) || verhardBoven(p1[0], p1[1]) || wandInWater(v, p0, p1))
             ? null
             : stuk(oevers, tegelVan(x, z), KM.oeverwand, 'oeverwand')));
       }

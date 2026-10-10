@@ -48,6 +48,8 @@ import { geluid } from './audio.js';
 import * as T from './textures.js';
 
 // ---------- maten van de sloep (m) ----------
+// met shift zoveel harder en zoveel meer stuwkracht (stap 128)
+export const BOOT_BOOST = 1.4;
 const LENGTE = 6.30;
 const BREEDTE = 2.16;
 const DIEPGANG = 0.62;          // van de waterlijn tot de kiel
@@ -678,14 +680,16 @@ export function initBoten({ scene, player, hud }) {
 
     // ---- schroef ----
     boot.gas += ((gas ? 1 : terug ? -1 : 0) - boot.gas) * Math.min(1, dt * 2.4);
-    if (boot.gas > 0) vl += STUW * boot.gas * dt;
+    // shift: harder varen (stap 128, gevraagd: "Maak een boot ook sneller met shift")
+    const snel = (keys.ShiftLeft || keys.ShiftRight) && gas ? BOOT_BOOST : 1;
+    if (boot.gas > 0) vl += STUW * boot.gas * snel * dt;
     else vl += STUW_ACHTER * boot.gas * dt;
 
     // ---- weerstand van het water ----
     vl -= vl * Math.abs(vl) * LANGS * dt;
     vl -= Math.sign(vl) * Math.min(Math.abs(vl), LANGS_VAST * dt);
     vd -= vd * Math.min(1, DWARS * dt);
-    vl = Math.max(-TOP_ACHTER, Math.min(TOP, vl));
+    vl = Math.max(-TOP_ACHTER, Math.min(TOP * snel, vl));
 
     // ---- roer ----
     /*

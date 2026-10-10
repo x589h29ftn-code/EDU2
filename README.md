@@ -195,6 +195,10 @@ en een kofferklep, met schuine A- en C-stijlen, wielkasten, spiegels, portiernad
 
 ![Een auto van dichtbij](docs/screenshots/auto_model.png)
 
+Houd **Shift** ingedrukt terwijl je gas geeft voor een kleine boost: 15 % harder en sneller op toeren. In een
+boot werkt Shift ook, en daar rekent de navigatie de route **over het water**. Op de N7 rijden nu ook
+vrachtwagens, en in de wijk een paar bakwagens.
+
 **Wat er in de ronde van 13 september bij kwam.** Het dak was W − 0,40 breed terwijl de zijruiten
 tien centimeter verder naar buiten stonden: aan weerskanten bleef er een spleet open en van schuin
 voren leek elke auto een cabriolet. Het dak sluit nu over de ruiten heen, met een druiplijst langs de
@@ -1756,6 +1760,11 @@ gekeerd, en die moet een lesje. *"Hij wil dat we een bom plaatsen in het pand.
 Ga je mee?"*
 
 Buiten staat een auto klaar — jij rijdt.
+Onderweg praat Mark vanzelf, je hoeft niets te klikken: over De Veteraan, die bij Top 1 Toys werkte,
+tegen de Duitsers vocht en later beroemd werd met de actiefilms *No Mercy* 1, 2 en 3 (een Emmy). Bij de
+Poiesz houdt hij op, en een **gele cirkel** wijst de ingang aan.
+
+![De gele cirkel bij de ingang van de Poiesz](docs/screenshots/wensen2_poiesz.png)
 
 ![De auto voor de deur](docs/screenshots/bom_auto.png)
 
@@ -1831,6 +1840,9 @@ bootmissie die uitstaat en de M bij de Wieken 29 tot de beloning bij Molenkrite
 15, inclusief de radio die voorgaat op de missiemuziek en de zes man die pas ná
 Marks waarschuwing uitstappen. `npm run bomshots` maakt de foto's hierboven.
 
+Je hoeft na de bom niet op de telefoon te wachten: er staat meteen een **J** op de kaart, bij Johan aan de
+Geeuw. Ga je erheen, dan begint de volgende missie; zo staat er na missie 8 een **M** bij Mark.
+
 ### 8 · De deal bij de molen
 
 Een paar minuten na de bom gaat de telefoon. Johan, met een boodschap die hij eerst
@@ -1875,7 +1887,7 @@ maar je moet ze wel uitschakelen: twee agenten per boot, of de romp kapot
 schieten. Terug bij de
 kade bedankt Johan je.
 
-Beloning: **€ 500**. En onder alles loopt de spanningsmuziek uit `audio/missie/`,
+Beloning: **€ 2.500**. Zijn je kogels op, dan gooit Johan je een doos toe. En onder alles loopt de spanningsmuziek uit `audio/missie/`,
 vanaf het telefoontje tot even na **MISSIE VOLTOOID**.
 
 `npm run dealtest` (vijfenvijftig controles) loopt de hele missie na, van het
@@ -2556,6 +2568,13 @@ het rode lampje van de mast, en dan rolt **de titelrol**. **E** slaat hem over. 
 | ![In de deur van de heli, met je wapen](docs/screenshots/wensen_heli.png) | ![Een handlanger in de achtervolging](docs/screenshots/wensen_handlangers.png) |
 |---|---|
 | ![Vuurwerk aan het einde](docs/screenshots/wensen_vuurwerk.png) | ![De Ferrari van binnen](docs/screenshots/wensen_ferrari_binnen.png) |
+
+In de heli schieten **de mannen van Bouwman langs de weg terug**: je ziet hun kogels als gele strepen omhoog
+komen, en ze raken zelden. Bouwman zelf rijdt **met zwaailicht**. Bij de loods komen zijn mannen **uit de loods
+rennen**, door de roldeur, en ze blijven bij de gevel staan: er is ruimte om achter je auto dekking te zoeken.
+
+| ![Vuur van beneden, met tracers](docs/screenshots/wensen2_heli.png) | ![Ze rennen de loods uit](docs/screenshots/wensen2_loods.png) |
+|---|---|
 
 Daarna speel je **vrij** verder: er belt geen missie meer, maar de klusjes, de Ferrari, de winkels en
 de stad blijven. Radio Tinga zendt het fragment voortaan af en toe opnieuw uit, tussen de nummers

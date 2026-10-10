@@ -1237,14 +1237,15 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       m.position.set(lx, d.hoog + 0.40, z1 - 0.205);
       groep.add(m);
     }
-    // en de radio ernaast, met de knoppen naar de kamer toe
+    // en de radio ernaast, met de knoppen naar de kamer toe (de panelen en knoppen steken 6 mm de kast in: met hun
+    // achterkant precies in het voorvlak flikkerde dat, stap 128)
     {
       const rx = d.x0 + 0.26, rb = d.hoog + 0.035;
       doos(rx - 0.16, rx + 0.16, d.z0 + 0.06, d.z0 + 0.30, rb, rb + 0.19, MAT.donkerhout, false);
-      doos(rx - 0.13, rx - 0.02, d.z0 + 0.052, d.z0 + 0.06, rb + 0.04, rb + 0.15, MAT.tvRand, false);
-      radioLicht = doos(rx + 0.01, rx + 0.12, d.z0 + 0.052, d.z0 + 0.06, rb + 0.09, rb + 0.15, MAT.tvKast, false);
-      doos(rx + 0.03, rx + 0.07, d.z0 + 0.048, d.z0 + 0.06, rb + 0.03, rb + 0.07, MAT.rvs, false);
-      doos(rx + 0.09, rx + 0.13, d.z0 + 0.048, d.z0 + 0.06, rb + 0.03, rb + 0.07, MAT.rvs, false);
+      doos(rx - 0.13, rx - 0.02, d.z0 + 0.052, d.z0 + 0.066, rb + 0.04, rb + 0.15, MAT.tvRand, false);
+      radioLicht = doos(rx + 0.01, rx + 0.12, d.z0 + 0.052, d.z0 + 0.066, rb + 0.09, rb + 0.15, MAT.tvKast, false);
+      doos(rx + 0.03, rx + 0.07, d.z0 + 0.046, d.z0 + 0.066, rb + 0.03, rb + 0.07, MAT.rvs, false);
+      doos(rx + 0.09, rx + 0.13, d.z0 + 0.046, d.z0 + 0.066, rb + 0.03, rb + 0.07, MAT.rvs, false);
       radioPlek = { x: rx, z: d.z0 + 0.18 };
     }
     inrichting.dressoir = true; inrichting.fotos = true; inrichting.lamp = true;
@@ -1274,10 +1275,10 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
     {
       const rz = d.z0 + 0.26, rb = d.hoog + 0.035;
       doos(x1 - 0.30, x1 - 0.06, rz - 0.16, rz + 0.16, rb, rb + 0.19, MAT.donkerhout, false);
-      doos(x1 - 0.068, x1 - 0.06, rz - 0.13, rz - 0.02, rb + 0.04, rb + 0.15, MAT.tvRand, false);
-      radioLicht = doos(x1 - 0.068, x1 - 0.06, rz + 0.01, rz + 0.12, rb + 0.09, rb + 0.15, MAT.tvKast, false);
-      doos(x1 - 0.072, x1 - 0.06, rz + 0.03, rz + 0.07, rb + 0.03, rb + 0.07, MAT.rvs, false);
-      doos(x1 - 0.072, x1 - 0.06, rz + 0.09, rz + 0.13, rb + 0.03, rb + 0.07, MAT.rvs, false);
+      doos(x1 - 0.068, x1 - 0.054, rz - 0.13, rz - 0.02, rb + 0.04, rb + 0.15, MAT.tvRand, false);
+      radioLicht = doos(x1 - 0.068, x1 - 0.054, rz + 0.01, rz + 0.12, rb + 0.09, rb + 0.15, MAT.tvKast, false);
+      doos(x1 - 0.074, x1 - 0.054, rz + 0.03, rz + 0.07, rb + 0.03, rb + 0.07, MAT.rvs, false);
+      doos(x1 - 0.074, x1 - 0.054, rz + 0.09, rz + 0.13, rb + 0.03, rb + 0.07, MAT.rvs, false);
       radioPlek = { x: x1 - 0.18, z: rz };
     }
     inrichting.dressoir = true; inrichting.fotos = true; inrichting.lamp = true;
@@ -2308,7 +2309,9 @@ export function initInterieur({ scene, player, sfeer = null, hud = null, huis = 
       bbqT -= dt;
       if (bbqT <= 0) {
         bbqT = 0; bbqKlaar = true;
-        if (hud && hud.melding) hud.melding('Het vlees is gaar', 'Druk op E om te eten.', 4);
+        // (stap 128: wie al weg is, krijgt te horen waar het ligt)
+        const hier = binnen(player.pos.x, player.pos.z) || (tuin && tuin(player.pos.x, player.pos.z));
+        if (hud && hud.melding) hud.melding('Het vlees is gaar', hier ? 'Druk op E om te eten.' : `Ga terug naar ${HUIS.naam || 'je huis'} om te eten.`, hier ? 4 : 6);
       }
     }
     /*

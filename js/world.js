@@ -2603,6 +2603,12 @@ export function vrijeCamera(px, py, pz, dx, dy, dz, maxD, marge = 0.35) {
      er in een oogwenk voorbij en een paal van twintig centimeter dekt niets af.
     */
     if (c.hx < 0.35 && c.hz < 0.35) return;
+    /*
+     En een kleine doos waar het draaipunt zelf in staat (stap 128, "als je door een boomstam rijdt gaat de camera
+     wat omhoog"): auto's rijden door alles lager dan 3,5 m heen, ook door een stam, en dan was de hengel nul lang
+     en klom de camera omhoog.
+    */
+    if (c.hx < 1.2 && c.hz < 1.2 && Math.abs(c.cx - px) < c.hx + 0.4 && Math.abs(c.cz - pz) < c.hz + 0.4) return;
     if (Math.abs(c.cx - px) > bereik + c.hx || Math.abs(c.cz - pz) > bereik + c.hz) return;
     camKandidaten.push(c);
   };

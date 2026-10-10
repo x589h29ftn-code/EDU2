@@ -1260,6 +1260,18 @@ function uitlegBij() {
   if (politie.ster > 0) uitleg.toon('sterren', 'De politie zoekt je',
     'Elke ster is meer politie. Blijf <b>uit het zicht</b>, dan zakken ze vanzelf · of laat je auto overspuiten in de '
     + `<b>wasbox van de BP</b> (${euro(PRIJS_PER_STER)} per ster)`, 11);
+  /*
+   De eerste keer in je eigen huis (stap 128, gevraagd: "Kan je bij eerste keer je eigen woning in gaan uitleggen wat
+   je allemaal kan doen"): wat er binnen en in de tuin te doen is.
+  */
+  if (verhaal.eigenHuis) {
+    const w = woningen.find(h => h.naam === verhaal.eigenHuis);
+    if (w && w.binnen && w.binnen(player.pos.x, player.pos.z)) uitleg.toon('thuis', `Thuis: ${w.naam}`,
+      '<kbd>E</kbd> bij de <b>bank</b>: zitten, tv kijken (en <kbd>Z</kbd> slapen tot de ochtend) · <kbd>E</kbd> bij de '
+      + '<b>koelkast</b>: een biertje (leven) · <kbd>E</kbd> bij de <b>radio</b> op het dressoir: aan en uit · '
+      + 'in de tuin de <b>barbecue</b>: <kbd>E</kbd> en even wachten (28 leven) · aan tafel zitten · je auto op de '
+      + '<b>oprit</b> naast de deur blijft daar staan · <kbd>F5</kbd> slaat op', 14);
+  }
   if (hud.bigOpen) uitleg.toon('kaart', 'De grote kaart',
     '<kbd>M</kbd> klein, groot, uit · <b>klik</b> op de kaart voor een eigen doel (paars), nog eens klikken haalt het weg · '
     + 'onderaan staat wat elk icoon is', 10);
