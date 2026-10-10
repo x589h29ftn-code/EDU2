@@ -64,6 +64,13 @@ let schotTeller = 0;
 let uitzendBuf = null, uitzendLaden = null, uitzendBron = null, uitzendBegon = 0, uitzendWil = false;
 let uitzendingNu = false;
 // het muziekje van de intro in de heli van missie 18 (stap 119): seconden aanzwellen, seconden uitdoven, volume
+/*
+ Kali uit het radiootje van missie 1 (stap 129, gevraagd: "Laat uit het radiootje dit nummer Kali.mp3 spelen. Sluit
+ het geluidsniveau aan op het spel. Hoe dichter bij hoe luider. … Fade in en out."). Een streamend element zoals
+ het muziekje in de heli, door een licht filter (een draagbaar radiootje, maar nog herkenbaar), met het volume
+ uit de afstand tot het tafeltje: hoorbaar tot `ver` meter, vloeiend luider naar `vol` dichtbij.
+*/
+export const KALI = { url: 'audio/radio/kali.mp3', vol: 0.75, ver: 55, in: 1.6, uit: 3.5 };
 export const HELI_MUZIEK = { url: 'audio/intro/intro.mp3', in: 4, uit: 7, vol: 0.62, dip: 2.5 };
 // de wieken van de heli van Wiebe (stap 127): zoveel keer de politieheli
 export const HELI_ROND = { luid: 1.2 };   // (was 2,6: te hard tegen het muziekje)
@@ -1472,6 +1479,50 @@ export const geluid = {
       for (let i = 0; i < 8; i++) tik({ freq: 8000, q: 0.8, duur: 0.04, volume: i % 2 ? 0.05 : 0.08, type: 'highpass', vertraag: start - t + i * 0.25, bus: rr.bus });
       rr.volgende += 2.0; rr.maat++;
     }
+  },
+
+  // ---------- Kali uit het radiootje van missie 1 (stap 129) ----------
+  // `afstand` null: niet (meer) aan. Begint vooraan als hij uit stond, zwelt aan en sterft weg.
+  kali(afstand) {
+    if (!aan || !ctx) return false;
+    const actief = afstand != null && !uitzendingNu;
+    if (!bronnen.kali) {
+      if (!actief) return false;
+      const el = new Audio(); el.crossOrigin = 'anonymous'; el.preload = 'auto'; el.loop = true; el.src = KALI.url;
+      const g = ctx.createGain(); g.gain.value = 0;
+      const laag = ctx.createBiquadFilter(); laag.type = 'highpass'; laag.frequency.value = 140;
+      const hoog = ctx.createBiquadFilter(); hoog.type = 'lowpass'; hoog.frequency.value = 6500;
+      let stuk = false;
+      try { ctx.createMediaElementSource(el).connect(laag); laag.connect(hoog); hoog.connect(g); g.connect(hoofd); } catch { stuk = true; }
+      bronnen.kali = { el, gain: g, aan: false, stuk, uitT: 0, keer: 0 };
+      el.addEventListener('error', () => { bronnen.kali.stuk = true; });
+    }
+    const k = bronnen.kali;
+    if (k.stuk) return false;
+    const t = nu();
+    if (actief) {
+      const v = KALI.vol * Math.max(0, 1 - afstand / KALI.ver) ** 1.6;
+      if (!k.aan) {
+        k.aan = true; k.keer++;
+        // stond hij helemaal stil, dan vooraan beginnen
+        if (k.el.paused) { try { k.el.currentTime = 0; } catch { /* nog niet geladen */ } k.el.play().catch(() => {}); }
+        k.gain.gain.cancelScheduledValues(t);
+        k.gain.gain.setValueAtTime(k.gain.gain.value, t);
+        k.gain.gain.linearRampToValueAtTime(v, t + KALI.in);
+        k.inTot = t + KALI.in; k.uitT = 0;
+      } else if (t >= (k.inTot || 0)) k.gain.gain.setTargetAtTime(v, t, 0.25);
+    } else if (k.aan) {
+      k.aan = false;
+      k.gain.gain.cancelScheduledValues(t);
+      k.gain.gain.setValueAtTime(k.gain.gain.value, t);
+      k.gain.gain.linearRampToValueAtTime(0, t + KALI.uit);
+      k.uitT = t + KALI.uit + 0.2;
+    } else if (k.uitT && t > k.uitT) { k.uitT = 0; k.el.pause(); }
+    return k.aan;
+  },
+  kaliStand() {
+    const k = bronnen.kali;
+    return k ? { aan: k.aan, speelt: !k.el.paused, stuk: k.stuk, tijd: +k.el.currentTime.toFixed(1), volume: +k.gain.gain.value.toFixed(3), keer: k.keer } : null;
   },
 
   // ---------- radio in de voortuin ----------

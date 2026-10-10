@@ -1246,7 +1246,7 @@ function steekRaak(h, dir) {
     pijn(); bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
     politie.misdaad('neergeschoten', h.point.x, h.point.z);
     ambulanceMelding(h.point.x, h.point.z, wedstrijdSlachtoffer());
-  } else if (leven && (raakLeven = leven.raak(h.object))) {
+  } else if ((raakLeven = (leven && leven.raak(h.object)) || (ambulance && ambulance.raak(h.object)))) {
     pijn(); bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
     politie.misdaad('neergeschoten', h.point.x, h.point.z);
     if (raakLeven.herstel) ambulanceMelding(raakLeven.x, raakLeven.z, { herstel: raakLeven.herstel });
@@ -1288,7 +1288,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
   if (mes) {
     raycaster.set(origin, dir); raycaster.far = bereik + (derde.aan ? 2.6 : 0);
     const mensen = [...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
-      ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : [])];
+      ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []), ...(ambulance ? ambulance.doelen() : [])];
     const h = raycaster.intersectObjects(mensen, true)[0];
     raycaster.far = 120;
     if (!h) { geluid.mesMis && geluid.mesMis(); return; }
@@ -1324,7 +1324,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
   */
   const eigen = player.inCar && player.inCar.mesh ? player.inCar.mesh : null;
   const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
-    ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []),
+    ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []), ...(ambulance ? ambulance.doelen() : []),
     ...(politieboot ? politieboot.doelen() : [])].filter(o => !eigen || o !== eigen);
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
@@ -1394,7 +1394,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
       raakVerhaal = true;
     }
     // een gast op een tuinfeest, of de pizzabezorger (stap 113)
-    else if (leven && (raakLeven = leven.raak(h.object))) {
+    else if ((raakLeven = (leven && leven.raak(h.object)) || (ambulance && ambulance.raak(h.object)))) {
       geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
       bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
       politie.misdaad('neergeschoten', h.point.x, h.point.z);
@@ -2087,6 +2087,7 @@ async function startGame(vervolg = false, metIntro = false) {
    laadscherm doorklikte. Na twintig seconden film is die toestemming verlopen
    en zou je in het sleepmodus-vangnet belanden.
   */
+  if (volledigVoorkeur()) zetVolledig(true);     // (stap 129: in volledig scherm spelen, als je dat koos)
   if (touch) volledigScherm(); else vergrendelMuis();
   // (ná het vastzetten van de muis: dat mag alleen vlak na de klik)
   // met de intro doet `voorFilm` dit, achter het zwart van het filmpje
@@ -2309,6 +2310,7 @@ function hervatSpel() {
   gepauzeerd = false;
   menu.verbergMenu();
   geluid.pauzeer(false);
+  if (volledigVoorkeur()) zetVolledig(true);
   if (touch) { volledigScherm(); touch.setVisible(true); } else vergrendelMuis();
   player.active = true;
 }
@@ -2434,7 +2436,12 @@ menu.zetInstellingen(() => [
     },
   },
   // stap 127 (gevraagd: "Spel moet ook full screen gespeeld kunnen worden"): ook F11, in de browser en in de app
-  { id: 'volledig', naam: 'Volledig scherm', waarde: () => (isVolledig() ? 'aan' : 'uit'), volgende: () => { zetVolledig(!isVolledig()); } },
+  // stap 129 (gevraagd: "Geef full screen als optie in de instellingen om spel te spelen"): een keuze die blijft;
+  // bij Start spel en Doorgaan gaat het scherm dan vanzelf vol, en in de app al bij het opstarten
+  {
+    id: 'volledig', naam: 'Spelen in volledig scherm', waarde: () => (volledigVoorkeur() ? 'aan' : 'uit'),
+    volgende: () => { const nieuw = !volledigVoorkeur(); zetVolledigVoorkeur(nieuw); zetVolledig(nieuw); },
+  },
   { id: 'geluid', naam: 'Geluid', waarde: () => (stil ? 'uit' : 'aan'), volgende: () => { stil = !stil; geluid.demp(stil); menu.zetGeluid(!stil); } },
   // het schot: de opname uit audio/wapen/schot.mp3, of het oude gemaakte geluid (stap 105), om te vergelijken
   {
@@ -2479,6 +2486,10 @@ document.addEventListener('pointerlockchange', () => {
  rand. F11 doet in beide hetzelfde.
 */
 let appVolledig = false;
+function volledigVoorkeur() { try { return localStorage.getItem('tinga.volledig') === '1'; } catch { return false; } }
+function zetVolledigVoorkeur(aan) { try { localStorage.setItem('tinga.volledig', aan ? '1' : '0'); } catch { /* alleen voor nu */ } }
+// in de app mag het venster meteen vol, zonder klik
+if (window.tinga && window.tinga.volledig && volledigVoorkeur()) setTimeout(() => zetVolledig(true), 0);
 function isVolledig() { return window.tinga && window.tinga.volledig ? appVolledig : !!document.fullscreenElement; }
 function zetVolledig(aan) {
   if (window.tinga && window.tinga.volledig) { window.tinga.volledig(aan).then(v => { appVolledig = !!v; if (menu.ververs) menu.ververs(); }).catch(() => {}); return; }
@@ -2831,7 +2842,10 @@ function loop() {
       binnen: !!player.inCar || (player.binnen && !inTuin(cx, cz)),
       water: waterNabij(dt, cx, cz), molen: molenNabij(cx, cz),
     });
-    geluid.radio(afstandTotRadio(cx, cz));
+    // missie 1: Kali uit het radiootje op het tafeltje (stap 129); dan zwijgt het gemaakte deuntje daar
+    const kaliT = verhaal.kaliRadio;
+    geluid.kali(kaliT && !player.binnen ? Math.hypot(cx - kaliT.x, cz - kaliT.z) : null);
+    geluid.radio(kaliT ? null : afstandTotRadio(cx, cz));
     /*
      Muziek uit audio/radio/, anders het riffje. Behalve in de auto speelt hij nu
      ook in de drie woningen van missie 9: daar staat de tv aan op Radio
@@ -2864,7 +2878,7 @@ function loop() {
     */
     if (player.inCar) {
       const nu2 = geluid.radioNummer();
-      const naam = nu2 ? `${nu2.titel} — ${nu2.artiest}` : null;
+      const naam = nu2 ? (nu2.artiest ? `${nu2.titel} — ${nu2.artiest}` : nu2.titel) : null;
       if (naam && naam !== laatsteRadio) { laatsteRadio = naam; hud.show(`♪ ${naam}`, 3.5); }
     } else laatsteRadio = null;
     lodKlok += dt;

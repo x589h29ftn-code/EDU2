@@ -60,7 +60,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | 1 2 3 | een keuze maken als het spel erom vraagt (een huis, de inleg, wat je doet); op een aanraakscherm zijn het knoppen |
 | 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, verband, wapens) |
 | F5 / F9 | spel opslaan / opgeslagen spel laden (ook: **Opslaan** in het menu onder Esc) |
-| F11 | volledig scherm aan en uit (ook onder Instellingen; in de app zonder menubalk) |
+| F11 | volledig scherm aan en uit (in de app zonder menubalk). Onder **Instellingen → Spelen in volledig scherm** kies je het voorgoed: dan gaat het spel bij Start en Doorgaan vanzelf schermvullend |
 | **X** | een klusje afbreken |
 | levensbalk | linksonder; leeg = neergegaan, en dan kies je: de missie opnieuw, het laatste checkpoint, of je eigen opslag |
 | portemonnee | rechtsonder; je begint met € 1000 (testfase) en verdient de rest met missies |
@@ -194,6 +194,9 @@ stappen. Ze zijn opgebouwd uit een dorpel, een flank met een taille, een schoude
 en een kofferklep, met schuine A- en C-stijlen, wielkasten, spiegels, portiernaden en een uitlaat.
 
 ![Een auto van dichtbij](docs/screenshots/auto_model.png)
+
+Op de N7 en in de wijk rijdt overdag meer verkeer dan vroeger. De Ferrari stuurt op hoge snelheid wendbaarder en remt
+harder.
 
 Houd **Shift** ingedrukt terwijl je gas geeft voor een kleine boost: 15 % harder en sneller op toeren. In een
 boot werkt Shift ook, en daar rekent de navigatie de route **over het water**. Op de N7 rijden nu ook
@@ -1093,6 +1096,8 @@ minstens twee minuten voor er weer een kan komen. Bij drie sterren of meer blijf
 
 `npm run ambulanceshots` maakt de foto's.
 
+De twee broeders zijn ook te raken. Gaat er een neer, dan vertrekt de ambulance zonder te helpen.
+
 ## De buurt leeft: een feestje, de pizzabezorger en een plezierboot
 
 - **Een feestje in een tuin.** Heel af en toe, 's middags en 's avonds (van drie uur tot half twee),
@@ -1565,6 +1570,9 @@ Met **E** spreek je hem aan. Het gesprek staat onderin het scherm en klik je met
 telefoon: tik op de 🚗-knop om te praten en op de tekstbalk om door te klikken).
 
 ![Het gesprek](docs/screenshots/molenkrite15_gesprek.png)
+
+Zodra je met Mark praat speelt **Kali** uit het radiootje op het tafeltje van het gezelschap: hoe dichterbij, hoe
+luider. Na de schietpartij speelt het nog even door en sterft dan weg. Kali staat ook op **Radio Tinga**.
 
 Daarna loopt hij de Molenkrite over naar het gezelschap dat schuin tegenover, in de voortuin van
 **Molenkrite 20**, met een radio en een flesje bier in de tuin zit. Daar draait hij zich naar je om:
@@ -2572,6 +2580,10 @@ het rode lampje van de mast, en dan rolt **de titelrol**. **E** slaat hem over. 
 In de heli schieten **de mannen van Bouwman langs de weg terug**: je ziet hun kogels als gele strepen omhoog
 komen, en ze raken zelden. Bouwman zelf rijdt **met zwaailicht**. Bij de loods komen zijn mannen **uit de loods
 rennen**, door de roldeur, en ze blijven bij de gevel staan: er is ruimte om achter je auto dekking te zoeken.
+Wie langs de weg op de heli schiet staat op een **gele ring**, en Wiebe waarschuwt je. In de achtervolging
+schieten Mark en Johan uit het raam op de handlangers, en bij de loods schieten ze vaker mee.
+
+![Een schutter langs de weg, met zijn gele ring](docs/screenshots/wensen3_ringen.png)
 
 | ![Vuur van beneden, met tracers](docs/screenshots/wensen2_heli.png) | ![Ze rennen de loods uit](docs/screenshots/wensen2_loods.png) |
 |---|---|

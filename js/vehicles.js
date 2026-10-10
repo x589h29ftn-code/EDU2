@@ -142,7 +142,9 @@ export const RIJ = {
    heel lastig links en rechts" (melding 3 okt 2026, stap 106). Met 50 draait hij op 120 km/u
    1,5 en op 200 km/u 0,9 rad/s.
   */
-  ferrari: { top: 70, trek: 1.9, grip: 50 },
+  // (stap 129, gevraagd: "Ferrari besturing bij hoge snelheden is nog steeds lastig, maak hem nog wat wendbaarder en
+  //  remmen harder"): grip 50 → 64, het stuur bouwt op snelheid 1,7 keer zo snel op, en remmen 26 m/s² in plaats van 15
+  ferrari: { top: 70, trek: 1.9, grip: 64, rem: 26, stuur: 1.7 },
   // de GTI uit de showroom (stap 123): 150 km/u, vlot weg, strakker door de bocht dan een gewone hatchback
   gti: { top: 42, trek: 1.45, grip: 36 },
 };
@@ -247,7 +249,8 @@ export class Vehicles {
      één daarvan stond stil voor de speler. Zes wijkauto's voor heel Sneek en
      IJlst is te weinig, ook als ze meeverhuizen.
     */
-    for (let i = 0; i < 12 && local.length; i++) {
+    // (stap 129, gevraagd: "Maak de hoeveelheid auto's die overdag rondrijden wat meer": 18 in plaats van 12)
+    for (let i = 0; i < 18 && local.length; i++) {
       const rd = local[i % local.length];
       const path = gladPad(rd.pts);
       // twee van de twaalf zijn een bakwagen die in de wijk aflevert (stap 128)
@@ -290,7 +293,7 @@ export class Vehicles {
     */
     const NABIJ = 260, VER = 300;
     const f = this.drukte === undefined ? 1 : this.drukte;
-    const DOEL = Math.max(1, Math.round(7 * f));
+    const DOEL = Math.max(1, Math.round(11 * f));     // (stap 129: 11 rond de speler, was 7)
     this._vulKlok = (this._vulKlok || 0) + dt;
     if (this._vulKlok < 1) return;
     this._vulKlok = 0;
@@ -614,7 +617,7 @@ export class Vehicles {
       as: vuil ? 4.2 : truck ? 2.6 : amb ? 1.95 : 1.4, botsRadius: vuil ? 1.3 : truck ? 1.15 : amb ? 1.05 : (soort === 'ferrari' ? 1.0 : 0.95),
       instap: truck || amb ? 2.4 : 1.2,
       stoel: null,          // het oogpunt komt uit het model (userData.oog)
-      topSnelheid: rij.top, trek: rij.trek, grip: rij.grip || STUUR_GRIP,
+      topSnelheid: rij.top, trek: rij.trek, grip: rij.grip || STUUR_GRIP, remKracht: rij.rem || 15, stuurOpbouw: rij.stuur || 1,
       breedte: vuil ? 2.5 : truck ? 2.35 : amb ? 2.04 : (soort === 'ferrari' ? 1.95 : 1.78),
     };
     this.cars.push(car);
@@ -740,14 +743,14 @@ export class Vehicles {
     */
     const naar = doel * maxStuur;
     const opbouwen = Math.abs(naar) > Math.abs(car.steer) && naar * car.steer >= 0;
-    const tempo = typeof keys.stuur === 'number' || !opbouwen ? 8 : 8 / (1 + Math.abs(car.speed) / 40);
+    const tempo = typeof keys.stuur === 'number' || !opbouwen ? 8 : Math.min(8, 8 * (car.stuurOpbouw || 1) / (1 + Math.abs(car.speed) / 40));
     car.steer += (naar - car.steer) * Math.min(1, dt * tempo);
 
     // ---- motor, rem en rolweerstand ----
     const v = car.speed;
     if (gas && v < -0.4) car.speed += 18 * dt;                       // eerst afremmen
     else if (gas) car.speed += 9.5 * (car.trek || 1) * boost * (1 - Math.max(0, v) / top) * dt;
-    else if (rem && v > 0.4) car.speed -= 15 * dt;                   // remmen
+    else if (rem && v > 0.4) car.speed -= (car.remKracht || 15) * dt; // remmen
     else if (rem) car.speed -= 6 * dt;                               // achteruit
     else car.speed -= Math.sign(v) * Math.min(Math.abs(v), 2.4 * dt); // motorrem
     if (hand) car.speed -= Math.sign(car.speed) * Math.min(Math.abs(car.speed), 9 * dt);

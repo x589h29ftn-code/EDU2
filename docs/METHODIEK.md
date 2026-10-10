@@ -7756,6 +7756,27 @@ programma; de proef liep tegen zijn grens van 50 minuten, de beelden zijn headle
 stilstaand 5,6 s, op 5 okt 4,6). `wensentest` kwam in deze container niet voorbij zijn eerste stap (zie boven).
 **Foto's**: `wensen2shots`.
 
+**Derde ronde wensen van 10 okt (stap 129).**
+
+- *Volledig scherm*: stond sinds stap 127 in de instellingen, maar onthield niets. Nu "Spelen in volledig scherm" als
+  keuze die blijft (`tinga.volledig`): bij Start spel en Doorgaan gaat het scherm vanzelf vol (een klik telt als
+  gebaar), in de app al bij het opstarten.
+- *Kali* (audio/radio/kali.mp3, van de gebruiker): uit het radiootje op het tafeltje van missie 1, als streamend
+  element door een licht filter (`geluid.kali`, `KALI`): vanaf het gesprek met Mark tot de vier liggen en dan nog
+  `KALI_NA` (7 s), aanzwellen in 1,6 s, wegsterven in 3,5 s, hoorbaar tot 55 m en luider naarmate je dichterbij
+  staat. Het gemaakte deuntje van `geluid.radio` zwijgt zolang. Kali staat ook in de lijst van Radio Tinga.
+- *Missie 18*: een gele ring van 2,3 m onder elke schutter langs de weg (weg als hij neer is); Wiebe roept het bij het
+  eerste schot. Mark en Johan schieten uit de rijdende auto op de handlangers (`rijHulp`, `AVOND_RIJHULP`: om de
+  1,4–2,6 s, 75 m, 70 % raak, 16 schade, met een gele streep uit de tracerpool van js/grondvuur.js), en bij de
+  loods om de 3–5 s (was 5,5–8), ook met een streep.
+- *De Ferrari*: grip 64 (was 50), het stuur bouwt op snelheid 1,7 keer zo snel op, remmen 26 m/s² (was 15).
+  Gemeten op 216 km/u en bij 180 km/u remmen tegen de oude waarden.
+- *Verkeer*: achttien wijkauto's (was twaalf), elf rond de speler (was zeven).
+- *De ambulancebroeders* zijn te raken (`doelen`, `raak` in js/ambulance.js, via dezelfde tak als het tuinfeest in
+  js/main.js): wie neergaat blijft liggen, de ambulance vertrekt zonder te helpen; uit beeld ruimt hij op.
+
+**Proeven**: `wensen3test` (nieuw). **Foto's**: `wensen3shots`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

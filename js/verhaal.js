@@ -79,6 +79,7 @@ const BOERDERIJ = '0683100000288962';                 // de grote schuur in de z
 // afstanden vanaf de voorgevel (m)
 const MARK_VOOR = 6.1;       // op de stoep voor zijn eigen voortuin
 const SPELER_VOOR = 9.3;     // in de berm, met Mark recht vooruit
+const KALI_NA = 7;           // s dat Kali na de schietpartij nog doorspeelt voor hij wegsterft (stap 129)
 const TAFEL_VOOR = 2.0;      // het tafeltje met de radio in de voortuin
 const STOP_VOOR = 4.6;       // waar Mark blijft staan, naast het gezelschap
 const STOEL_RING = 1.15;     // de vier stoelen rond het tafeltje
@@ -1223,11 +1224,16 @@ const AVOND_STERREN = 4;
 //  machinegeweren, Bouwman zelf vijf treffers, en Mark en Johan helpen minder vaak)
 const AVOND_LEVEN = [5, 4, 4, 4, 4, 4, 4];  // treffers per man bij de loods: Bouwman, en zijn zes bodyguards (was 2 en 3)
 const AVOND_MG = [1, 2, 5];             // de posten met een machinegeweer
-const AVOND_HULP = [5.5, 8];            // s tussen twee treffers van Mark of Johan (was 3,5–5,5)
+const AVOND_HULP = [3, 5];              // s tussen twee treffers van Mark of Johan (stap 129: "laat Mark en Johan meer
+                                        // schieten"; stap 127 was 5,5–8, daarvoor 3,5–5,5)
+// uit de rijdende auto: zo vaak schieten ze op de handlangers, zo ver, zoveel schade per treffer (stap 129)
+const AVOND_RIJHULP = { om: [1.4, 2.6], bereik: 75, schade: 16, raak: 0.7 };
 const AVOND_SCHADE = 7;                 // per treffer van een bodyguard (was 5)
 const AVOND_KNAL = { luid: 2.2, schud: 0.55, schudDuur: 1.6 };   // de C4 op de Dúvelsrak (stap 127): hoe hard, hoe ver de camera schudt (m), hoe lang
 const AVOND_KOGELS = 120;               // zoveel reserve geeft Johan je bij de auto, als je minder hebt
 const zegtWiebe = (tekst) => ({ wie: 'Wiebe', kop: { huid: '#e0b48e', haar: '#9a8a72', shirt: '#3b3f46' }, tekst });
+// (stap 129) bij het eerste schot van beneden
+const AVOND_GRONDVUUR_ZIN = [zegtWiebe('Ze schieten op ons, vanaf de weg! Die gele kringen — haal ze neer, Erik!')];
 const AVOND_HELI = [
   zegtWiebe('Daar is zijn loods. Ik blijf naast hem, met de deur naar hem toe. Rustig aan.'),
   telLijn(zegtMark('Erik, hij komt naar buiten. Hij heeft de heli gezien. Hij rijdt weg!')),
@@ -1824,6 +1830,16 @@ export function initVerhaal(ctx) {
   }
   function teGaan() { return drinkers.length - omgevallen.size; }
   /*
+   Kali uit het radiootje op het tafeltje (stap 129): vanaf het gesprek met Mark tot de vier liggen, en dan nog
+   KALI_NA tellen; js/main.js leest `kaliRadio` en geeft de afstand aan geluid.kali (aanzwellen, wegsterven).
+  */
+  let kaliNaT = 0;
+  function kaliRadio() {
+    if (!tafel) return null;
+    if (missie === 'molenkrite' && (fase === 'gesprek' || fase === 'loopt' || fase === 'bevel' || fase === 'opdracht')) return tafel;
+    return kaliNaT > 0 ? tafel : null;
+  }
+  /*
    De opspringer (stap 119). `springOp` haalt de zittende man weg, zet er een lege tuinstoel voor in de
    plaats en een echte Persoon ernaast die meteen aanvalt. Raak je hem, dan telt hij als een van de vier.
   */
@@ -1871,6 +1887,7 @@ export function initVerhaal(ctx) {
     else {
       zetOpdracht('');
       fase = 'briefing';
+      kaliNaT = KALI_NA;                // de radio speelt nog even door, dan sterft hij weg
       zeg(BRIEFING, () => startMissie('rijden'));
     }
   }
@@ -9701,6 +9718,7 @@ export function initVerhaal(ctx) {
   let avondLand = null;                       // de plek waar Wiebe landt
   let avondBrug = null;                       // het filmbeeld op de Dúvelsrak
   let avondNeerGezegd = false;
+  let avondGrondGezegd = false, avondRijHulpT = 2;
   let avondC4 = null;
   const avondKnallen = [];
   // de heli en het blok C4 al bij het opstarten: dan worden hun materialen achter het laadscherm vertaald
@@ -9748,7 +9766,7 @@ export function initVerhaal(ctx) {
     }
     for (const k of avondKnallen) if (k.knal && k.knal.stop) k.knal.stop();
     avondKnallen.length = 0;
-    avondTreffers = 0; avondRaakGezegd = false; avondKwijtT = 0; avondTeVerT = 0; avondNeerGezegd = false;
+    avondTreffers = 0; avondRaakGezegd = false; avondKwijtT = 0; avondTeVerT = 0; avondNeerGezegd = false; avondGrondGezegd = false; avondRijHulpT = 2;
   }
   // de lijnen van de avond, één keer uitgerekend
   function avondLijnen() {
@@ -9843,6 +9861,8 @@ export function initVerhaal(ctx) {
     knipperBouwman(a, dt, r.wachtT <= 0);
     // zijn mannen langs de weg schieten omhoog, met tracers; het raakt zelden en niet hard
     const schadeGrond = grondvuur.update(dt, avondHeli.zichtbaar ? avondHeli.pos : null);
+    // Wiebe ziet het als eerste (stap 129)
+    if (!avondGrondGezegd && grondvuur.schoten > 0 && balk.hidden) { avondGrondGezegd = true; zeg(AVOND_GRONDVUUR_ZIN, null, { auto: 3 }); }
     if (schadeGrond > 0 && player.active) {
       player.health = Math.max(0, player.health - schadeGrond);
       hud.zetLeven(player.health); hud.flits();
@@ -9963,6 +9983,7 @@ export function initVerhaal(ctx) {
       hud.flits();
       if (player.health <= 0) { dood(); return; }
     }
+    rijHulp(dt, sp, a);
     if (a.hp < 40) a.hp = 40;                  // stuk schieten gaat niet: hij moet naar zijn boot
     zetInvalBalk(`Bouwman · ${Math.round(d)} m`, Math.max(0, 1 - d / AVOND_KWIJT), d > AVOND_KWIJT * 0.7);
     if (d > AVOND_KWIJT) {
@@ -9971,6 +9992,34 @@ export function initVerhaal(ctx) {
     } else avondKwijtT = 0;
     if (d > AVOND_KWIJT * 0.7) { avondTeVerT += dt; if (avondTeVerT > 3 && balk.hidden) { avondTeVerT = -12; zeg(AVOND_TE_VER, null, { auto: 2.2 }); } }
     if (r.st.klaar) startGevecht();
+  }
+  /*
+   Mark en Johan schieten uit de auto (stap 129, gevraagd: "Laat Mark en Johan meer schieten. Ook vanuit de
+   ferrari als ze rijden"): om de AVOND_RIJHULP.om tellen op de dichtstbijzijnde handlanger die ze zien, met een
+   gele streep uit het raam. Is er niemand, dan op de auto van Bouwman (die kan niet stuk).
+  */
+  function rijHulp(dt, sp, bouwmanAuto) {
+    grondvuur.update(dt, null);                  // (laat de strepen vliegen)
+    if (!player.inCar) return;
+    avondRijHulpT -= dt;
+    if (avondRijHulpT > 0) return;
+    avondRijHulpT = AVOND_RIJHULP.om[0] + Math.random() * (AVOND_RIJHULP.om[1] - AVOND_RIJHULP.om[0]);
+    const R = AVOND_RIJHULP;
+    const kandidaten = handlangers.mannen.filter(m => !m.dood && !m.auto.wrak && m.auto.hp > 0)
+      .map(m => ({ m, d: Math.hypot(m.auto.x - sp.x, m.auto.z - sp.z) }))
+      .filter(k => k.d < R.bereik && zichtVrij(sp.x, sp.z, k.m.auto.x, k.m.auto.z, 1.3))
+      .sort((p, q) => p.d - q.d);
+    const doel = kandidaten.length ? kandidaten[0].m.auto
+      : (Math.hypot(bouwmanAuto.x - sp.x, bouwmanAuto.z - sp.z) < R.bereik ? bouwmanAuto : null);
+    if (!doel) return;
+    const y0 = (player.inCar.mesh ? player.inCar.mesh.position.y : 0) + 1.15;
+    const y1 = (doel.mesh ? doel.mesh.position.y : 0) + 0.9;
+    const raak = Math.random() < R.raak;
+    const naar = new THREE.Vector3(doel.x + (raak ? 0 : (Math.random() - 0.5) * 4), y1 + (raak ? 0 : Math.random() * 1.5), doel.z + (raak ? 0 : (Math.random() - 0.5) * 4));
+    grondvuur.streep(new THREE.Vector3(sp.x, y0, sp.z), naar);
+    geluid.schot(4, { wapen: 'pistool', bron: 'hulp' });
+    if (raak && doel !== bouwmanAuto) doel.hp -= R.schade;
+    else if (raak) doel.hp = Math.max(40, doel.hp - 4);
   }
   // ---- de loods: Bouwman en zijn mannen ----
   /*
@@ -10027,6 +10076,7 @@ export function initVerhaal(ctx) {
   }
   function werkGevechtBij(dt, sp) {
     hulpBijDeLoods(sp);
+    grondvuur.update(dt, null);                // (de strepen van Mark en Johan)
     // alles leeg in het gevecht: Johan gooit je een doos toe (stap 127, gevraagd: "Wat als kogels op zijn")
     if (player.allesLeeg && invalJohan.groep.visible && !player.inCar) {
       player.reserve += AVOND_KOGELS / 2;
@@ -10046,7 +10096,12 @@ export function initVerhaal(ctx) {
         // dertig tellen niemand neer, stap 110)
         const w = levend.reduce((a, b) => ((b.leven ?? 1) < (a.leven ?? 1) ? b : a));
         const wie = Math.random() < 0.5 ? mark : invalJohan;
-        if (wie.groep.visible) { wie.kijkNaar(w.persoon.groep.position.x, w.persoon.groep.position.z, 1, 99); wie.vuur && wie.vuur(); }
+        if (wie.groep.visible) {
+          wie.kijkNaar(w.persoon.groep.position.x, w.persoon.groep.position.z, 1, 99); wie.vuur && wie.vuur();
+          // (stap 129) een streep, zodat je ziet dat zij het doen
+          const v = wie.groep.position, q = w.persoon.groep.position;
+          grondvuur.streep(new THREE.Vector3(v.x, v.y + 1.4, v.z), new THREE.Vector3(q.x, q.y + 1.1, q.z));
+        }
         W.raak(w.persoon.groep);
         geluid.schot(Math.hypot(w.persoon.groep.position.x - sp.x, w.persoon.groep.position.z - sp.z), { bron: 'hulp' });
       }
@@ -10448,6 +10503,7 @@ export function initVerhaal(ctx) {
           + 'Tijdens een gesprek of een filmbeeld kan opslaan even niet.', 12);
       }
     }
+    if (kaliNaT > 0) kaliNaT = Math.max(0, kaliNaT - dt);
     if (misluktT > 0) {
       misluktT -= dt;
       if (misluktT <= 0) naDeMislukking();
@@ -11179,6 +11235,8 @@ export function initVerhaal(ctx) {
     herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; }, missieTitel,
     // (stap 127, voor tools/wensentest.mjs: je auto bij huis neerzetten)
     springNaarHuis: () => springNaarHuis(),
+    // (stap 129) waar Kali uit het radiootje van missie 1 speelt, of null
+    get kaliRadio() { return kaliRadio(); },
     // (stap 128, voor tools/wensen2test.mjs: de praat onderweg, de gele cirkel, de J of M vóór het telefoontje)
     get stap128() {
       return { ingangMerk, bomPraatI, ingang: winkelIngang(), vroegGezet, naMissieNaam, naMissieT,

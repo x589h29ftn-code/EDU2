@@ -237,8 +237,26 @@ export function initAmbulance({ scene, vehicles, KAART, npcs = null, sfeer = nul
     const p = new Persoon({ ...kleding, huid: i ? 0xc79a72 : 0xe0bfa0, haar: i ? 0x111111 : 0x9a7a52, hoogte: 0.98 + i * 0.03 });
     p.groep.visible = false;
     scene.add(p.groep);
+    p.neer = false; p.omT = 0;
     return p;
   });
+  /*
+   De bemanning is te raken (stap 129, gevraagd: "Ambulance broeders kan je niet neerschieten, verander dit"). Wie
+   neergaat blijft liggen; de ander rent terug en de ambulance vertrekt zonder te helpen. Bij `klaar` (uit beeld)
+   ruimt hij op.
+  */
+  function bemanningNeer() { return bemanning.some(p => p.neer); }
+  function raakBemanning(obj) {
+    for (let o = obj; o; o = o.parent) {
+      const p = bemanning.find(q => q.groep === o);
+      if (!p) continue;
+      if (p.neer || !p.groep.visible) return null;
+      p.neer = true; p.omT = 0;
+      if (st.fase === 'uitstappen' || st.fase === 'helpt' || st.fase === 'instappen') vertrek();
+      return { x: p.groep.position.x, z: p.groep.position.z };
+    }
+    return null;
+  }
 
   const st = { fase: 'vrij', rust: 0, lijn: null, rit: null, doel: null, helpT: 0, ritten: 0, gereanimeerd: 0, knipper: 0, weigeringen: 0 };
 
@@ -355,7 +373,7 @@ export function initAmbulance({ scene, vehicles, KAART, npcs = null, sfeer = nul
     st.gereanimeerd++;
   }
   function vertrek() {
-    for (const p of bemanning) p.groep.visible = false;
+    for (const p of bemanning) if (!p.neer) p.groep.visible = false;
     const naar = wegPunt(auto.x, auto.z, { van: 350, tot: 520 });
     const Ln = naar ? lijnDoor(KAART, [[auto.x, auto.z], [naar.x, naar.z]]) : null;
     st.lijn = Ln;
@@ -364,6 +382,7 @@ export function initAmbulance({ scene, vehicles, KAART, npcs = null, sfeer = nul
   }
   function klaar() {
     verstop();
+    for (const p of bemanning) { p.neer = false; p.omT = 0; p.legNeer(0); }
     st.fase = 'vrij'; st.rust = AMB.rust; st.doel = null; st.lijn = null; st.rit = null;
   }
 
@@ -376,15 +395,18 @@ export function initAmbulance({ scene, vehicles, KAART, npcs = null, sfeer = nul
      Eén beeld. `speler` { x, z }, `ziet(x, z)` of de camera daar kan kijken (om uit beeld te
      verdwijnen).
     */
+    doelen() { return bemanning.filter(p => p.groep.visible && !p.neer).map(p => p.groep); },
+    raak: raakBemanning,
     update(dt, speler, ziet = () => false) {
       if (st.rust > 0) st.rust -= dt;
+      for (const p of bemanning) if (p.neer && p.omT < 1) { p.omT = Math.min(1, p.omT + dt * 1.8); p.legNeer(p.omT); }
       if (st.fase === 'vrij') return;
       const dSp = Math.hypot(auto.x - speler.x, auto.z - speler.z);
       // stukgeschoten: de bemanning rent weg en het is voorbij zodra je het niet meer ziet
       if (auto.wrak || auto.hp <= 0) {
         lampenBij(dt, false);
         if (st.doel && st.doel.npc) st.doel.npc.respawn = 20;
-        if (!ziet(auto.x, auto.z) || dSp > AMB.weg) { st.fase = 'vrij'; st.rust = AMB.rust; for (const p of bemanning) p.groep.visible = false; st.doel = null; }
+        if (!ziet(auto.x, auto.z) || dSp > AMB.weg) { st.fase = 'vrij'; st.rust = AMB.rust; for (const p of bemanning) { p.groep.visible = false; p.neer = false; p.omT = 0; p.legNeer(0); } st.doel = null; }
         return;
       }
       if (st.fase === 'heen') {

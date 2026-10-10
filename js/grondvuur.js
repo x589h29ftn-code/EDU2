@@ -48,7 +48,16 @@ export function maakGrondvuur(scene) {
     scene.add(m);
     strepen.push({ mesh: m, van: new THREE.Vector3(), dir: new THREE.Vector3(), lengte: 0, s: 0, aan: false });
   }
-  const mannen = [];        // { p: Persoon, vuurT, neer, omT }
+  /*
+   Een gele ring onder elke schutter (stap 129, gevraagd: "Zorg bij laatste missie dat de personen die op je
+   schieten wat beter zichtbaar zijn. bijv met geel iets onder hun."). Plat op de grond, 2,3 m breed: vanuit de
+   heli op 40 tot 80 m nog een duidelijk teken. Gaat weg als hij neer is.
+  */
+  const ringGeo = new THREE.RingGeometry(0.8, 1.15, 28).rotateX(-Math.PI / 2);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd21a, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  // (één vooraf in de scène, verborgen: dan is hij achter het laadscherm vertaald)
+  { const proef = new THREE.Mesh(ringGeo, ringMat); proef.visible = false; proef.position.set(0, -500, 0); scene.add(proef); }
+  const mannen = [];        // { p: Persoon, vuurT, neer, omT, ring }
   let schoten = 0, raakTel = 0;
   const v = new THREE.Vector3();
 
@@ -74,7 +83,10 @@ export function maakGrondvuur(scene) {
         p.zetNeer(q.x, q.z, q.yaw);
         p.groep.position.y = hoogte(q.x, q.z);
         p.groep.visible = true;
-        mannen.push({ p, vuurT: r(0.5, 2), neer: false, omT: 0 });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.y = 0.06; ring.raycast = () => {}; ring.renderOrder = 2;
+        p.groep.add(ring);
+        mannen.push({ p, vuurT: r(0.5, 2), neer: false, omT: 0, ring });
       });
     },
     update(dt, heli) {
@@ -119,11 +131,13 @@ export function maakGrondvuur(scene) {
       }
       return schade;
     },
+    // een streep van buiten deze mannen: Mark en Johan uit de auto (stap 129); `update(dt, null)` laat hem vliegen
+    streep: (van, naar) => streep(van, naar),
     doelen() { return mannen.filter(m => !m.neer).map(m => m.p.groep); },
     raak(obj) {
       for (let o = obj; o; o = o.parent) {
         const m = mannen.find(q => q.p.groep === o);
-        if (m) { if (m.neer) return false; m.neer = true; return true; }
+        if (m) { if (m.neer) return false; m.neer = true; m.ring.visible = false; return true; }
       }
       return false;
     },
