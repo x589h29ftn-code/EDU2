@@ -787,6 +787,22 @@ Buiten de missies is er meer te doen.
 
 ![Tinga Nieuws op de tv](docs/screenshots/wensen5_tinganieuws.png)
 
+## Klusjes met de drone en de M1 Garand
+
+Heb je een drone, dan vraagt Mark of Johan soms om een auto te volgen. Start je drone (B), blijf binnen 60 m van de
+auto en tussen 15 en 45 m hoog: te laag en de bestuurder ziet je, te hoog of te ver en je bent hem kwijt. Waar hij stopt
+vindt een deal plaats: maak met de linkermuisknop een foto met de deal in het midden van het beeld, en breng hem terug
+(€ 600–900). Twee keer achter elkaar dezelfde soort klusje komt niet meer voor.
+
+Bij Tinga State ligt de **M1 Garand** voor € 1.500: acht patronen, één schot per klik en een stevige terugslag. Na het
+achtste schot springt de lege clip er met een ping uit; daarna druk je van boven een nieuwe clip van acht in de grendel.
+
+![Een deal gefotografeerd vanuit de drone](docs/screenshots/droneklus.png)
+
+![De M1 Garand](docs/screenshots/m1_hand.png)
+
+![Herladen: de clip van boven in de grendel](docs/screenshots/m1_herladen.png)
+
 ## Tennispark Molenkrite
 
 Naast het sportpark, bij Molenkrite 130, liggen tien gravelbanen: roodbruin gravel met witte belijning,

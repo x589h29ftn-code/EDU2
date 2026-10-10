@@ -1334,7 +1334,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
   // wie op een tuinfeest staat schrikt van een schot in de buurt (stap 113)
   if (leven) leven.schrik(origin.x, origin.z);
   // de sniper schudt het hele beeld even (stap 111: de terugslag "voelt vrij zwak")
-  if (player.wapenSoort === 'sniper') schok(0.35);
+  if (player.wapenSoort === 'sniper') schok(0.35); else if (player.wapenSoort === 'garand') schok(0.22);
   verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
   politie.hoorSchot(origin.x, origin.z);         // en de politie ook
   /*
@@ -1445,7 +1445,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
       raakVerhaal = true;
     }
     // (de sniper legt ook een taaie bodyguard in één keer neer: stap 110)
-    else if ((raakVerhaal = verhaal.raak(h.object, player.wapenSoort === 'sniper' ? 99 : 1))) {
+    else if ((raakVerhaal = verhaal.raak(h.object, (player.wapenSoort === 'sniper' || player.wapenSoort === 'garand') ? 99 : 1))) {
       geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
       bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
     }

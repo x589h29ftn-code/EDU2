@@ -7854,6 +7854,31 @@ parkeerterrein begint, ook de navigatie van de speler.
 
 **Proeven**: `wensen5test` (nieuw). **Foto's**: `wensen5shots`.
 
+**Drone-klusjes en de M1 Garand (stap 132, 10 okt).**
+
+- *Een vijfde soort klusje: de drone* (js/klusjes.js, `KLUS_DRONE`). Alleen als je een drone hebt; anders kiest het
+  aanbod een andere soort, ook als hij tussen aanbod en aannemen kwijt is. Een witte bestelbus rijdt van de opdrachtgever
+  over `lijnDoor`/`rijdVlucht` naar een plek waar een koper wacht, pas als je drone opgestegen is. Volgen in een eigen
+  balk `#droneklus`: binnen 60 m en 15–45 m boven de auto; te ver, te hoog of niet in de lucht langer dan 8 s is
+  mislukt, langer dan 3 s te laag is "hij heeft de drone gezien". Bij de deal (22 s, de tas gaat halverwege over) telt
+  een foto (linkermuisknop of F) alleen binnen 70 m en met de deal in het midden van het beeld (|NDC| ≤ 0,5); daarna
+  terug naar de opdrachtgever, E: € 600–900. js/verhaal.js geeft klusjes de camera mee (met de drone in de lucht is
+  dat de drone).
+- *Nooit twee keer dezelfde soort achter elkaar*: het aanbod onthoudt de soort van het vorige aanbod (in het geheugen;
+  klusjes worden niet opgeslagen). Gemeten over 200 aanbiedingen met en 200 zonder drone: 0 keer dezelfde, 39 keer drone.
+- *De M1 Garand* bij Tinga State, € 1.500 (`maakGarand` in js/wapen.js, naar de foto's van de gebruiker): walnoten kolf
+  en voorhout, geparkeerd staal, het achtervizier met de ring tussen twee oren en twee gekartelde knoppen, de korrel op
+  de gasbuis, een grendel die bij elk schot terugslaat. Acht patronen, één schot per klik, één treffer is genoeg
+  (ook voor de doelen van het verhaal, en een schermschok van 0,22). Terugslag 3,2 tegen 1 voor het pistool: in de
+  hand 0,375 rad, het beeld 0,094 rad. Na het achtste schot de *ping*: de lege clip springt omhoog en opzij (eigen
+  synthetisch geluid rond 2,95 kHz met boventonen) en de grendel blijft open. Herladen (2,1 s): de rechterhand drukt
+  van boven een en-bloc-clip van 2 × 4 messing patronen in de grendel, klik, klak. R met een halve clip werpt die ook
+  uit (de patronen terug in de tas). Kopen geeft 8 plus 48. Het schot is de bestaande opname, lager en harder.
+  De proef schiet eerst met het pistool als tegenproef: het eerste schot vertaalt altijd twee programma's (vuur en
+  damp), dat kwam niet van de M1 (98 → 100 met, 99 → 99 na de tegenproef).
+
+**Proeven**: `droneklustest`, `m1test` (nieuw), `klusjestest`, `wapentest`. **Foto's**: `droneklusshots`, `m1shots`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
