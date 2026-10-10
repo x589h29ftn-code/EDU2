@@ -418,7 +418,10 @@ const wijk = await page.evaluate(async () => {
   const v1 = L.vuilnis;
   uit.gereden = v1.s; uit.stops = v1.stops; uit.stil = stil * 0.1;
   const p = v1.wagen ? { x: v1.wagen.x, z: v1.wagen.z } : null;
-  uit.opWeg = p ? (KAART.wegassen || []).some(a => a.drive && a.pts.some(q => Math.hypot(q[0] - p.x, q[1] - p.z) < 12)) : false;
+  // (tot het wegvak, niet tot een hoekpunt: op een lange rechte weg liggen die verder dan 12 m uit elkaar; stap 127)
+  const totVak = (a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz || 1;
+    const t = Math.max(0, Math.min(1, ((p.x - a[0]) * dx + (p.z - a[1]) * dz) / L2)); return Math.hypot(a[0] + dx * t - p.x, a[1] + dz * t - p.z); };
+  uit.opWeg = p ? (KAART.wegassen || []).some(a => a.drive && a.pts.some((q, i) => i > 0 && totVak(a.pts[i - 1], q) < 8)) : false;
   L.vuilnisWeg();
   // buiten de tijden komt hij niet
   for (let i = 0; i < 6000; i++) L.update(0.1, sp, () => false, 13);
