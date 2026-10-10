@@ -28,7 +28,7 @@ import * as THREE from 'three';
 export const ZEILEN = {
   aantal: 4,
   van: 9, tot: 20.5,     // uren dat er gevaren wordt
-  snel: 2.4,             // m/s bij halve wind en een gewone wind
+  snel: 2.7,             // m/s bij halve wind en een gewone wind (gemiddeld komt het op 2 à 2,5)
   draai: 0.3,            // rad/s
   open: 3,               // cellen van de wal om te mogen varen
   vrij: 35,              // zoveel meter water voor de boeg, anders een nieuwe koers
@@ -252,7 +252,7 @@ export function initZeilen({ scene, KAART, sfeer }) {
 
     boten.push({
       x: p0.x, z: p0.z, yaw: rnd() * Math.PI * 2, doelYaw: 0, v: 0, zij: 1, zijGlad: 1, hel: 0, fase: rnd() * 6.28,
-      kiesKlok: rnd() * 0.5, wisselKlok: 30 + rnd() * 60, varen: true, zichtbaar: true, gekozen: 0,
+      kiesKlok: rnd() * 0.5, wisselKlok: 30 + rnd() * 60, varen: null, zichtbaar: true, gekozen: 0,
       groep, helling, giekGroep, fokGroep, groot, fok, mens, stuk: n % stukken.length,
     });
   }
@@ -305,6 +305,7 @@ export function initZeilen({ scene, KAART, sfeer }) {
     const w = windNu();
     for (const b of boten) {
       const ver = Math.hypot(b.x - camX, b.z - camZ);
+      if (b.varen === null) b.varen = magVaren;        // het eerste beeld (ook na laden 's nachts): meteen goed
       // 's nachts weg zodra je hem niet ziet, overdag pas terug als je hem niet ziet
       if (!magVaren && b.varen && ver > ZEILEN.uitZicht) b.varen = false;
       else if (magVaren && !b.varen && ver > ZEILEN.uitZicht) b.varen = true;
@@ -343,7 +344,8 @@ export function initZeilen({ scene, KAART, sfeer }) {
       const vier = Math.max(0.14, Math.min(1.35, (theta - 0.6) * 0.62));   // aan de wind dicht, voor de wind ver uit
       const bol = inDeWind ? 0.18 * Math.sin(t * 11 + b.fase) : (0.35 + 0.75 * w.kracht) * Math.min(1, Math.abs(b.zijGlad) * 1.3);
       b.giekGroep.rotation.y = b.zijGlad * vier;
-      b.groot.scale.x = (inDeWind ? 1 : Math.sign(b.zijGlad) || 1) * bol;
+      const sx = (inDeWind ? 1 : Math.sign(b.zijGlad) || 1) * bol;
+      b.groot.scale.x = sx < 0 ? Math.min(-0.02, sx) : Math.max(0.02, sx);   // nooit plat nul (de normalen)
       as.copy(b.fokGroep.userData.as);
       b.fokGroep.quaternion.setFromAxisAngle(as, b.zijGlad * vier * 0.55);
       b.fok.scale.x = b.groot.scale.x * 1.1;
