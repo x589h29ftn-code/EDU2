@@ -209,6 +209,8 @@
     "zespuntenshots": "node tools/zespuntenshots.mjs",
     "dronetest": "node tools/dronetest.mjs",
     "droneshots": "node tools/droneshots.mjs",
+    "droneklustest": "node tools/droneklustest.mjs 8123",
+    "droneklusshots": "node tools/droneklusshots.mjs 8123",
     "tijdtest": "node tools/tijdtest.mjs",
     "kleinwinsttest": "node tools/kleinwinsttest.mjs",
     "beginmissieshots": "node tools/beginmissieshots.mjs",
@@ -224,6 +226,8 @@
     "wensen4shots": "node tools/wensen4shots.mjs 8123",
     "wensen5test": "node tools/wensen5test.mjs 8123",
     "wensen5shots": "node tools/wensen5shots.mjs 8123",
+    "m1test": "node tools/m1test.mjs 8123",
+    "m1shots": "node tools/m1shots.mjs 8123",
     "wensenshots": "node tools/wensenshots.mjs 8123"
   }
 }

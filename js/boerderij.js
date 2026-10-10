@@ -56,6 +56,11 @@ export const MUNITIE = { prijs: 50, kogels: 100 };
 export const MITRAILLEUR = { prijs: 500, soort: 'mitrailleur', naam: 'Machinegeweer' };
 export const PISTOOL = { prijs: 150, soort: 'pistool', naam: 'Pistool' };
 export const SNIPER = { prijs: 650, soort: 'sniper', naam: 'Sniper' };
+/*
+ De M1 Garand (verzoek 10 okt 2026): € 1.500. Je krijgt er een volle clip bij en zes clips in je tas
+ (`kogels`: 8 + 48, en nooit meer dan MAX_RESERVE), want .30-06 ligt niet bij elke doos kogels.
+*/
+export const GARAND = { prijs: 1500, soort: 'garand', naam: 'M1 Garand', schapNaam: 'M1 Garand', kogels: 56 };
 // Een verbandtrommel: vijftig levenspunten voor vijfentwintig euro, en nooit
 // meer dan vol. Wie al fit is koopt hem niet — dan gooi je je geld weg.
 export const EHBO = { prijs: 25, punten: 50 };
@@ -562,6 +567,7 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     wapenArtikel(PISTOOL, 'Wisselen doe je met het scrollwiel.'),
     wapenArtikel(MITRAILLEUR, 'Wisselen doe je met het scrollwiel.'),
     wapenArtikel(SNIPER, 'Rechtermuisknop om door de kijker te kijken, scrollen zoomt.'),
+    wapenArtikel(GARAND, 'Acht patronen per clip, één schot per klik. R werpt de clip uit en laadt een volle.'),
     {
       /*
        De drone (stap 124): € 1.000, één keer. Neergestort en kwijt, dan staat hij weer in het schap.
@@ -592,7 +598,7 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
   function wapenArtikel(wapen, hint) {
     return {
       sleutel: wapen.soort,
-      naam: wapen.naam.toLowerCase(),
+      naam: wapen.schapNaam || wapen.naam.toLowerCase(),
       prijs: wapen.prijs,
       beschikbaar: () => !(player.wapens && player.wapens.includes(wapen.soort)),
       koop() {
@@ -601,9 +607,11 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
           return 'heeft';
         }
         if (!betaal(wapen.prijs)) {
-          hud.melding('Te weinig geld', `Een ${wapen.naam.toLowerCase()} kost € ${wapen.prijs}.`, 3);
+          hud.melding('Te weinig geld', `Een ${wapen.schapNaam || wapen.naam.toLowerCase()} kost € ${wapen.prijs}.`, 3);
           return 'arm';
         }
+        // (de M1 Garand: de patronen erbij, zodat de eerste clip niet uit je pistoolkogels komt)
+        if (wapen.kogels) player.reserve = Math.min(MAX_RESERVE, player.reserve + wapen.kogels);
         player.krijgWapen(wapen.soort);
         hud.melding(`${wapen.naam} gekocht`, `€ ${wapen.prijs} betaald. ${hint}`, 4);
         return 'ok';
@@ -620,7 +628,7 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
    kwijtraakt, staat hij vanzelf weer op de lijst.
   */
   function bezitLijst() {
-    return SCHAP.filter(a => !a.beschikbaar() && [PISTOOL.soort, MITRAILLEUR.soort, SNIPER.soort, 'drone'].includes(a.sleutel));
+    return SCHAP.filter(a => !a.beschikbaar() && [PISTOOL.soort, MITRAILLEUR.soort, SNIPER.soort, GARAND.soort, 'drone'].includes(a.sleutel));
   }
   function inBezit() { return bezitLijst().map(a => a.naam); }
 

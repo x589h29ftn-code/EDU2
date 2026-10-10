@@ -111,6 +111,8 @@ const SCHOT = {
   pistool: { rate: 1.0, vol: 1.15 },
   mitrailleur: { rate: 1.08, vol: 0.9 },
   sniper: { rate: 0.8, vol: 1.35 },
+  // de M1 Garand (.30-06): dieper en voller dan het pistool, net onder de sniper
+  garand: { rate: 0.84, vol: 1.42 },
   ander: { rate: 1.0, vol: 1.0 },
 };
 const SCHOT_KAP = 0.6;
@@ -535,6 +537,51 @@ export const geluid = {
   slede() {
     tik({ freq: 2400, q: 4, duur: 0.05, volume: 0.17 });
     tik({ freq: 1500, q: 5, duur: 0.06, volume: 0.20, vertraag: 0.10 });
+  },
+
+  /*
+   De M1 Garand. Na het achtste schot springt de lege en-bloc clip uit het wapen: de "ping". Een stalen
+   veerclip die tegen de kast slaat en vrij door de lucht vliegt, dus een hoge metalen toon met een harde
+   aanslag en een korte naklank. Een paar boventonen die niet harmonisch liggen (zoals bij een klokje of
+   een stemvork), elk met een eigen uitsterftijd: de hoogste zijn het eerst weg. En onder de toon een
+   tikje ruis voor de klap van staal op staal. `m1Pings` telt mee voor tools/m1test.mjs.
+  */
+  m1Ping() {
+    this.m1Pings = (this.m1Pings || 0) + 1;
+    if (!aan) return;
+    const t = nu() + 0.002;
+    const f0 = 2950 * (0.97 + Math.random() * 0.06);
+    // (verhouding, sterkte, uitsterftijd in s)
+    const delen = [[1, 0.16, 0.55], [1.47, 0.07, 0.32], [2.09, 0.05, 0.20], [2.76, 0.03, 0.12], [0.61, 0.025, 0.25]];
+    for (const [r, v, duur] of delen) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f0 * r, t);
+      // de clip draait weg: de toon zakt een fractie
+      o.frequency.exponentialRampToValueAtTime(f0 * r * 0.985, t + duur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(v, t + 0.002);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+      o.connect(g); g.connect(hoofd);
+      o.start(t); o.stop(t + duur + 0.02);
+    }
+    tik({ freq: 5200, q: 2, duur: 0.025, volume: 0.10 });
+  },
+  // de volle clip die je van boven in de open grendel drukt: staal en messing die in de kast schuiven
+  m1ClipIn() {
+    tik({ freq: 1900, q: 2.5, duur: 0.06, volume: 0.15 });
+    tik({ freq: 800, q: 2, duur: 0.08, volume: 0.16, val: 0.5, vertraag: 0.04 });
+  },
+  // de grendel die dichtslaat zodra de clip zit: een zware klak, met een laag nadreunen
+  m1Klak() {
+    tik({ freq: 1500, q: 1.6, duur: 0.07, volume: 0.30, val: 0.45 });
+    tik({ freq: 3200, q: 3, duur: 0.03, volume: 0.14 });
+    toon({ freq: 260, naar: 110, duur: 0.09, volume: 0.10, golf: 'triangle' });
+  },
+  // de grendel naar achteren trekken (herladen met een halve clip)
+  m1Grendel() {
+    tik({ freq: 2100, q: 3.5, duur: 0.05, volume: 0.15 });
+    tik({ freq: 1200, q: 3, duur: 0.06, volume: 0.12, vertraag: 0.05 });
   },
 
   /*

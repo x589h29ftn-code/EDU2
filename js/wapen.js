@@ -1233,3 +1233,660 @@ export function maakMes(geluid) {
     get hulzenInDeLucht() { return 0; },
   };
 }
+
+/*
+ ------------------------------------------------------------------ de M1 Garand
+ Verzoek 10 okt 2026: "Voeg tot slot bij Tinga State ook de M1 Garand toe als wapen, kost 1.500 euro. 8 kogels
+ semi automatisch wapen. Terugslag. Hierna een ping geluid zoals de M1 doet. Dan van boven de 4x2 clip met munitie
+ er in. Recoil vrij hoog met het wapen. Maak het realistisch, zie ook de foto's."
+
+ Een eigen model en een eigen beweging, want aan dit geweer is bijna niets zoals aan de andere drie:
+
+ - Er is geen magazijn dat onderuit valt. De acht patronen zitten in een en-bloc clip (twee rijen van vier,
+   verspringend), en die druk je met je duim van boven in de open grendel. Zodra de clip zit, slaat de grendel
+   dicht: "klak".
+ - Na het achtste schot blijft de grendel open staan en springt de lege clip er met een "ping" uit, omhoog en
+   naar rechts (`legeClip`, in de losse groep, zodat hij niet met het wapen meebeweegt).
+ - Herlaad je met een halve clip, dan trek je de grendel naar achteren en springt die clip er ook uit, met
+   dezelfde ping; de patronen die erin zaten gaan terug in je voorraad (js/player.js telt zo).
+ - Het staal is geparkeerd: dof grijsgroen met een fijne korrel, geen geblauwd glimmend staal. Het hout is
+   walnoot, roodbruiner dan het notenhout van de sniper. Het achtervizier is een diopter (een ring) tussen
+   twee beschermoren, met links de knop voor de hoogte en rechts die voor de windafwijking, allebei gekarteld;
+   vooraan een korrel tussen twee oren op het gasblok, met de gasbuis onder de loop.
+ - De terugslag is zwaar (.30-06): een harde zet van de kolf, de loop ver omhoog, en een veer die trager tot
+   rust komt.
+
+ Dezelfde soorten materialen als de andere wapens (MeshStandardMaterial met doek, ruwheid en reliëf; messing
+ zonder doek; het mondingsvuur additief), dus er komt na het opstarten geen nieuwe shader bij: js/player.js
+ maakt dit model bij het opstarten, verborgen, en `soortenVoorbereid` (js/world.js) ziet het dan al.
+
+ Assenstelsel zoals bij het pistool: de oorsprong boven in de greep, −z is naar voren, +y omhoog. De greep
+ (de halve pistoolgreep van de kolf) staat precies waar die van het pistool staat, zodat dezelfde rechterhand
+ eromheen past.
+*/
+export const GARAND_HERLAAD = 2.1;
+// de stappen van het herladen, als fractie van GARAND_HERLAAD
+const GSTAP = {
+  kantelen: [0.00, 0.14],   // het geweer komt omhoog en kantelt met de bovenkant naar je toe
+  open: [0.03, 0.09],       // (halve clip) de grendel naar achteren…
+  uitwerp: 0.10,            // …en de clip springt eruit: ping
+  handWeg: [0.08, 0.20],    // de rechterhand laat de greep los
+  hand: [0.18, 0.40],       // en komt van rechts met een volle clip boven de kast
+  duw: [0.40, 0.58],        // de duim drukt de clip van boven in de kast
+  klik: 0.50,
+  dicht: [0.60, 0.64],      // de grendel slaat dicht: klak
+  terugHand: [0.64, 0.84],  // de hand gaat terug naar de greep
+  terug: [0.84, 1.00],      // terug in de aanslag
+};
+
+// geparkeerd staal: grijsgroen, dof, met een fijne korrel en hier en daar een blank geschuurde rand
+const parkerDoek = () => doekSet('parker', (k, w, h, r) => {
+  k.fillStyle = '#5b5e57'; k.fillRect(0, 0, S, S);
+  w.fillStyle = '#b8b8b8'; w.fillRect(0, 0, S, S);
+  ruis(k, S, 16, r); ruis(w, S, 30, r); ruis(h, S, 50, r);
+  for (let i = 0; i < 40; i++) {
+    const x = r() * S, y = r() * S, L = 8 + r() * 40;
+    k.fillStyle = 'rgba(130,134,128,0.18)'; k.fillRect(x, y, L, 1);
+    w.fillStyle = 'rgba(60,60,60,0.3)'; w.fillRect(x, y, L, 1);
+  }
+}, 0.45);
+
+// walnoot: roodbruin, geolied, met lange nerven en donkere strepen in de lengte
+const walnootDoek = () => doekSet('walnoot', (k, w, h, r) => {
+  const d = k.createImageData(S, S), p = d.data;
+  const golf = [0, 1, 2].map(() => [r() * 6, 0.008 + r() * 0.02, 3 + r() * 5]);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    let o = 0; for (const [f, s, a] of golf) o += Math.sin(x * s * 6.28 / 8 + f) * a;
+    const ring = 0.5 + 0.5 * Math.sin((y + o) * 0.21);
+    const vlam = 0.5 + 0.5 * Math.sin(y * 0.05 + Math.sin(x * 0.015) * 2.2);
+    const donker = Math.pow(ring, 5) * 0.30 + vlam * 0.16 + (r() - 0.5) * 0.06;
+    const i = (y * S + x) * 4;
+    p[i] = 106 - donker * 58; p[i + 1] = 56 - donker * 32; p[i + 2] = 36 - donker * 22; p[i + 3] = 255;
+  }
+  k.putImageData(d, 0, 0);
+  // gebruikssporen: een paar donkere vlekken en deukjes
+  for (let i = 0; i < 18; i++) {
+    const x = r() * S, y = r() * S, rr = 3 + r() * 9;
+    k.fillStyle = 'rgba(40,18,8,0.20)'; k.beginPath(); k.ellipse(x, y, rr * 2, rr, 0, 0, Math.PI * 2); k.fill();
+    h.fillStyle = 'rgba(70,70,70,0.6)'; h.beginPath(); h.arc(x, y, rr * 0.4, 0, Math.PI * 2); h.fill();
+  }
+  w.fillStyle = '#7a7a7a'; w.fillRect(0, 0, S, S);
+  for (let i = 0; i < 200; i++) { h.fillStyle = 'rgba(60,60,60,0.5)'; h.fillRect(r() * S, r() * S, 10 + r() * 70, 1); }
+}, 0.5);
+
+// een mouw van `start` (pols) in richting `dir` (naar je elleboog toe), `L` lang
+function mouwNaar(bk, m, start, dir, L, r1 = 0.037, r2 = 0.042) {
+  const g = mouwGeo(r1, r2, L, 14);
+  const d = new THREE.Vector3(...dir).normalize();
+  g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), d));
+  g.translate(start[0] + d.x * L / 2, start[1] + d.y * L / 2, start[2] + d.z * L / 2);
+  vorm(bk, g, m);
+}
+
+export function maakGarand(geluid) {
+  const park = mat(0xffffff, 1, 0.35, parkerDoek(), [0.05, 0.05]);
+  const parkDonker = mat(0xa8a8a8, 1, 0.35, parkerDoek(), [0.04, 0.04]);
+  const hout = mat(0xffffff, 1, 0, walnootDoek(), [0.26, 0.05]);
+  const huid = mat(0xffffff, 1, 0, huidDoek(), [0.07, 0.07]);
+  const stof = mat(0xffffff, 1, 0, stofDoek(), [0.05, 0.05]);
+  const manchetMat = mat(0x8890a8, 1, 0, stofDoek(), [0.03, 0.03]);
+  const messing = mat(0xc9a24a, 0.28, 1);
+  const koper = mat(0xb8734a, 0.32, 1);
+
+  const groep = new THREE.Group();
+  const wapen = new THREE.Group();
+  groep.add(wapen);
+
+  const VIZIER_Y = 0.058;          // het hart van de diopter en de top van de korrel
+  const LOOP_Y = 0.022;
+  const MOND_Z = -0.668;
+
+  // ---------------------------------------------------------------- vast staal
+  const fB = bak();
+  // de kast: onderdeel, twee wanden langs de patroonhouder, de voorring om de kamer en de hiel achteraan
+  doos(fB, park, 0.033, 0.016, 0.200, 0, 0.002, -0.060, 0.004, 2);
+  for (const sx of [-1, 1]) doos(fB, park, 0.004, 0.026, 0.090, sx * 0.0145, 0.021, -0.080, 0.0015);
+  vorm(fB, buisGeo(0.0165, 0.0165, 0.032, 0, LOOP_Y, -0.141, 18), park);
+  doos(fB, park, 0.033, 0.036, 0.075, 0, 0.018, 0.002, 0.005, 2);          // de hiel, waar de grendel in wegschuift
+  // het achtervizier: voet, twee beschermoren en de diopter ertussen
+  doos(fB, park, 0.030, 0.008, 0.026, 0, 0.040, 0.020, 0.002);
+  for (const sx of [-1, 1]) doos(fB, park, 0.004, 0.028, 0.020, sx * 0.0128, 0.054, 0.022, 0.0018);
+  doos(fB, parkDonker, 0.005, 0.012, 0.004, 0, VIZIER_Y - 0.0125, 0.016, 0.001);   // de steel onder de ring
+  const ring = new THREE.TorusGeometry(0.0062, 0.0022, 8, 22);
+  ring.translate(0, VIZIER_Y, 0.016);
+  vorm(fB, ring, parkDonker);
+  // de twee knoppen opzij: links de hoogte, rechts de windafwijking, met kartels rondom
+  for (const sx of [-1, 1]) {
+    const knop = new THREE.CylinderGeometry(0.0085, 0.0085, 0.007, 20);
+    knop.rotateZ(Math.PI / 2); knop.translate(sx * 0.0215, 0.046, 0.020);
+    vorm(fB, knop, parkDonker);
+    const as = new THREE.CylinderGeometry(0.004, 0.004, 0.008, 10);
+    as.rotateZ(Math.PI / 2); as.translate(sx * 0.0155, 0.046, 0.020);
+    vorm(fB, as, park);
+    for (let i = 0; i < 18; i++) {
+      const a = i / 18 * Math.PI * 2;
+      doos(fB, parkDonker, 0.0068, 0.0016, 0.0016, sx * 0.0215, 0.046 + Math.cos(a) * 0.0088, 0.020 + Math.sin(a) * 0.0088, 0.0004);
+    }
+  }
+  // de loop, de gasbuis eronder en het gasblok met de korrel tussen twee oren
+  vorm(fB, buisGeo(0.0085, 0.0095, 0.510, 0, LOOP_Y, -0.412, 16), park);
+  vorm(fB, buisGeo(0.0072, 0.0072, 0.100, 0, 0.004, -0.610, 14), park);
+  doos(fB, park, 0.020, 0.036, 0.016, 0, 0.012, -0.652, 0.004, 2);
+  vorm(fB, buisGeo(0.0055, 0.0055, 0.006, 0, 0.004, -0.662, 12), parkDonker);   // de schroefkop van de gasbuis
+  doos(fB, park, 0.014, 0.010, 0.012, 0, 0.034, -0.650, 0.002);
+  doos(fB, parkDonker, 0.0032, VIZIER_Y - 0.039, 0.004, 0, (VIZIER_Y + 0.039) / 2, -0.650, 0.0006);   // de korrel
+  for (const sx of [-1, 1]) doos(fB, park, 0.003, 0.020, 0.010, sx * 0.0085, 0.047, -0.650, 0.001);
+  // de twee banden om hout en loop, en de trekkerbeugel
+  doos(fB, park, 0.044, 0.058, 0.010, 0, 0.004, -0.338, 0.004);
+  doos(fB, park, 0.042, 0.052, 0.014, 0, 0.004, -0.540, 0.004);
+  doos(fB, park, 0.008, 0.012, 0.014, 0, -0.026, -0.548, 0.002);              // de bajonetlip
+  doos(fB, park, 0.012, 0.006, 0.050, 0, -0.041, -0.020, 0.0025);
+  doos(fB, park, 0.012, 0.022, 0.006, 0, -0.031, -0.044, 0.0025);
+  doos(fB, park, 0.042, 0.120, 0.007, 0, -0.053, 0.336, 0.003);               // de kolfplaat
+  // de beugel voor de draagriem onder de kolf en aan de voorste band
+  vorm(fB, new THREE.TorusGeometry(0.008, 0.0016, 6, 14).rotateY(Math.PI / 2).translate(0, -0.104, 0.24), park);
+  vorm(fB, new THREE.TorusGeometry(0.007, 0.0016, 6, 14).rotateY(Math.PI / 2).translate(0, -0.032, -0.338), park);
+
+  // ---------------------------------------------------------------- hout
+  // de lade onder loop en kast, de twee bovenhouten over de loop
+  doos(fB, hout, 0.040, 0.034, 0.385, 0, -0.010, -0.345, 0.008, 2);
+  doos(fB, hout, 0.040, 0.030, 0.200, 0, -0.016, -0.055, 0.008, 2);
+  doos(fB, hout, 0.031, 0.020, 0.170, 0, 0.027, -0.245, 0.008, 2);
+  doos(fB, hout, 0.029, 0.018, 0.190, 0, 0.026, -0.440, 0.008, 2);
+  // de kolf in zijaanzicht: rug, hiel, neus, onderkant en de halve pistoolgreep; uitgetrokken tot 3 cm breed
+  {
+    const v = new THREE.Shape();
+    const p = [[0.030, 0.004], [0.110, 0.008], [0.326, 0.003], [0.330, -0.110], [0.220, -0.086],
+      [0.125, -0.070], [0.070, -0.094], [0.040, -0.100], [0.026, -0.030]];
+    v.moveTo(...p[0]); for (const q of p.slice(1)) v.lineTo(...q); v.closePath();
+    const kolf = new THREE.ExtrudeGeometry(v, { depth: 0.030, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.005, bevelSegments: 3, curveSegments: 4 });
+    kolf.rotateY(-Math.PI / 2);
+    kolf.translate(0.015, 0, 0);
+    vorm(fB, kolf, hout);
+  }
+  bouw(fB, wapen);
+
+  // de greep, waar de rechterhand om zit (dezelfde maat en hoek als de greep van het pistool)
+  const gB = bak();
+  doos(gB, hout, 0.032, 0.090, 0.040, 0, -0.058, 0.022, 0.010, 2);
+  const greep = bouw(gB, new THREE.Group());
+  greep.rotation.x = 0.30;
+  wapen.add(greep);
+
+  // de trekker
+  const tB = bak();
+  doos(tB, parkDonker, 0.007, 0.021, 0.006, 0, -0.010, 0, 0.0025);
+  const trekker = bouw(tB, new THREE.Group());
+  trekker.position.set(0, -0.019, -0.019);
+  wapen.add(trekker);
+
+  // ---------------------------------------------------------------- de grendel
+  /*
+   Grendel, spanstang en spanhendel in één groep: die slaan bij elk schot samen naar achteren (`SLAG`). De
+   grendel ligt boven in de kast, de spanstang loopt rechts langs de loop naar voren tussen hout en bovenhout,
+   en de hendel steekt rechts uit de kast.
+  */
+  const SLAG = 0.072;
+  const rB = bak();
+  doos(rB, park, 0.020, 0.013, 0.068, 0, 0.0285, -0.090, 0.004, 2);
+  doos(rB, parkDonker, 0.010, 0.004, 0.050, 0, 0.0355, -0.092, 0.0012);         // de rug van de grendel
+  staaf(rB, park, [0.0175, 0.013, -0.120], [0.0175, 0.012, -0.500], 0.0034);    // de spanstang
+  doos(rB, park, 0.012, 0.012, 0.030, 0.0225, 0.019, -0.098, 0.003);            // de hendel…
+  staaf(rB, park, [0.026, 0.020, -0.090], [0.036, 0.024, -0.096], 0.0052);      // …met de knop eraan
+  const grendel = bouw(rB, new THREE.Group());
+  wapen.add(grendel);
+
+  // ---------------------------------------------------------------- de clip met acht patronen
+  /*
+   De en-bloc clip: een stalen veer met twee zijwangen en een rug, en acht patronen in twee rijen van vier die
+   een halve patroon verspringen. In de kast liggen de punten naar voren en de bodems tegen de rug; zittend
+   steekt alleen de bovenste patroon boven de kast uit, onder de grendel. Elk patroon apart, zodat er
+   zichtbaar eentje minder in zit na elk schot (van boven af).
+  */
+  const CLIP_Z = -0.063;                                    // het midden van de clip als hij zit
+  const PATROON = { r: 0.0049, huls: 0.050, kogel: 0.020 };
+  const RIJ = 0.0100;                                       // de afstand tussen twee rijen
+  const hulsGeo = new THREE.CylinderGeometry(PATROON.r, PATROON.r * 0.94, PATROON.huls, 12).rotateX(Math.PI / 2);
+  const hals = new THREE.CylinderGeometry(PATROON.r * 0.94, PATROON.r * 0.70, 0.006, 12).rotateX(Math.PI / 2);
+  const kogelGeo = new THREE.ConeGeometry(PATROON.r * 0.68, PATROON.kogel, 12).rotateX(-Math.PI / 2);
+  function maakClip(metPatronen) {
+    const g = new THREE.Group();
+    const cB = bak();
+    const LANG = 0.040;
+    // de zijwangen zijn smalle randen boven en onder (daar haken de bodems achter), ertussen zie je het messing
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) doos(cB, parkDonker, 0.0012, 0.007, LANG * 0.7, sx * 0.0112, -0.004 + sy * 0.0185, CLIP_Z + 0.020, 0.0005);
+    doos(cB, parkDonker, 0.024, 0.044, 0.0016, 0, -0.004, CLIP_Z + 0.034, 0.0006);     // de rug
+    for (const sy of [-1, 1]) doos(cB, parkDonker, 0.024, 0.0014, 0.012, 0, -0.004 + sy * 0.021, CLIP_Z + 0.029, 0.0005);
+    bouw(cB, g);
+    const patronen = [];
+    if (metPatronen) {
+      for (let i = 0; i < 8; i++) {
+        // van onder naar boven: links, rechts, links, … met een halve rij verschil
+        const sx = i % 2 === 0 ? -1 : 1;
+        const y = -0.0225 + i * RIJ / 2 + RIJ / 4;
+        const p = new THREE.Group();
+        const huls = new THREE.Mesh(hulsGeo, messing); huls.position.z = PATROON.huls / 2;
+        const h2 = new THREE.Mesh(hals, messing); h2.position.z = -0.002;
+        const kogel = new THREE.Mesh(kogelGeo, koper); kogel.position.z = -0.005 - PATROON.kogel / 2;
+        p.add(huls, h2, kogel);
+        p.position.set(sx * 0.0047, y, CLIP_Z + 0.032 - PATROON.huls);
+        g.add(p);
+        patronen.push(p);
+      }
+    }
+    return { g, patronen };
+  }
+  const clip = maakClip(true);
+  wapen.add(clip.g);
+
+  // ---------------------------------------------------------------- de handen
+  // de rechterhand om de greep, dezelfde als bij het pistool (de greep staat op dezelfde plek)
+  const hB = bak();
+  doos(hB, huid, 0.022, 0.066, 0.058, 0.025, -0.058, 0.030, 0.009, 2);
+  doos(hB, huid, 0.034, 0.060, 0.034, 0.008, -0.064, 0.060, 0.010, 2);
+  doos(hB, huid, 0.036, 0.020, 0.030, 0.004, -0.021, 0.048, 0.008, 2);
+  for (const [y, r] of [[-0.054, 0.0088], [-0.071, 0.0085], [-0.087, 0.0075]]) {
+    staaf(hB, huid, [0.027, y, 0.010], [0.022, y, -0.006], r);
+    staaf(hB, huid, [0.019, y, -0.008], [-0.013, y, -0.008], r);
+    staaf(hB, huid, [-0.017, y, -0.005], [-0.021, y, 0.012], r * 0.9);
+  }
+  staaf(hB, huid, [0.025, -0.030, 0.010], [0.016, -0.034, -0.010], 0.0085);
+  staaf(hB, huid, [0.016, -0.034, -0.010], [0.002, -0.037, -0.018], 0.0080);
+  staaf(hB, huid, [-0.006, -0.018, 0.038], [-0.022, -0.012, 0.016], 0.0098);   // de duim over de kolfhals
+  const hand = bouw(hB, new THREE.Group());
+  hand.rotation.x = 0.30;
+  groep.add(hand);
+
+  const aB = bak();
+  const pols = rondeDoosGeo(0.050, 0.054, 0.070, 0.019, 2);
+  pols.rotateY(0.22); pols.rotateX(-0.26); pols.translate(0.018, -0.090, 0.086);
+  vorm(aB, pols, huid);
+  const mouw = mouwGeo(0.038, 0.043, 0.44);
+  mouw.rotateZ(0.06); mouw.rotateY(0.34); mouw.rotateX(-0.26); mouw.translate(0.088, -0.152, 0.304);
+  vorm(aB, mouw, stof);
+  const manchet = buisGeo(0.043, 0.043, 0.034, 0, 0, 0, 16);
+  manchet.rotateZ(0.06); manchet.rotateY(0.34); manchet.rotateX(-0.26); manchet.translate(0.032, -0.106, 0.116);
+  vorm(aB, manchet, manchetMat);
+  const arm = bouw(aB, new THREE.Group());
+  groep.add(arm);
+
+  // de linkerhand onder het voorhout: de palm eronder, de vingers links omhoog, de duim rechts
+  const lB = bak();
+  const HZ = -0.300;
+  doos(lB, huid, 0.044, 0.022, 0.080, 0, -0.038, HZ, 0.010, 2);
+  for (let i = 0; i < 4; i++) {
+    const z = HZ - 0.028 + i * 0.018, r = i === 3 ? 0.0068 : 0.0078;
+    staaf(lB, huid, [-0.018, -0.040, z], [-0.026, -0.010, z], r);
+    staaf(lB, huid, [-0.026, -0.010, z], [-0.022, 0.012, z + 0.002], r * 0.92);
+  }
+  staaf(lB, huid, [0.016, -0.040, HZ + 0.026], [0.024, -0.006, HZ - 0.004], 0.0095);
+  staaf(lB, huid, [0.024, -0.006, HZ - 0.004], [0.022, 0.010, HZ - 0.026], 0.0088);
+  const polsL2 = rondeDoosGeo(0.050, 0.050, 0.064, 0.018, 2);
+  polsL2.translate(-0.010, -0.062, HZ + 0.050);
+  vorm(lB, polsL2, huid);
+  mouwNaar(lB, stof, [-0.016, -0.070, HZ + 0.070], [-0.62, -0.50, 0.60], 0.46);
+  const linkerhand = bouw(lB, new THREE.Group());
+  wapen.add(linkerhand);
+
+  /*
+   De laadhand: de rechterhand met de volle clip, de duim boven op de bovenste patroon (zoals op de foto's),
+   de vingers rechts langs de kast. Hij hangt aan `wapen`, in de coördinaten van de clip als die zit, en
+   schuift dus met de clip mee.
+  */
+  const dB = bak();
+  doos(dB, huid, 0.030, 0.058, 0.070, 0.044, 0.030, CLIP_Z + 0.004, 0.011, 2);       // de palm, rechts van de clip
+  staaf(dB, huid, [0.034, 0.046, CLIP_Z + 0.024], [0.012, 0.040, CLIP_Z + 0.004], 0.0098);   // de duim…
+  staaf(dB, huid, [0.012, 0.040, CLIP_Z + 0.004], [0.001, 0.032, CLIP_Z - 0.008], 0.0090);   // …op de patronen
+  for (let i = 0; i < 3; i++) {
+    const z = CLIP_Z - 0.024 + i * 0.017;
+    staaf(dB, huid, [0.050, 0.010, z], [0.036, -0.004, z - 0.004], 0.0082);
+    staaf(dB, huid, [0.036, -0.004, z - 0.004], [0.024, -0.010, z - 0.002], 0.0076);
+  }
+  const polsD = rondeDoosGeo(0.054, 0.050, 0.066, 0.019, 2);
+  polsD.translate(0.062, 0.010, CLIP_Z + 0.050);
+  vorm(dB, polsD, huid);
+  mouwNaar(dB, stof, [0.070, 0.002, CLIP_Z + 0.072], [0.55, -0.45, 0.70], 0.44, 0.038, 0.043);
+  const laadhand = bouw(dB, new THREE.Group());
+  laadhand.visible = false;
+  wapen.add(laadhand);
+
+  // ---------------------------------------------------------------- vuur, hulzen, damp en de lege clip
+  const vlamMat = new THREE.MeshBasicMaterial({
+    map: flitsDoek(), color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+  });
+  const flits = new THREE.Group();
+  {
+    const delen = [new THREE.PlaneGeometry(0.12, 0.12)];
+    for (const r of [0, Math.PI / 2]) {
+      const blad = new THREE.PlaneGeometry(0.14, 0.06);
+      blad.rotateY(Math.PI / 2); blad.rotateZ(r); blad.translate(0, 0, -0.045);
+      delen.push(blad);
+    }
+    const pos = [], nor = [], uv = [];
+    for (const g of delen) {
+      const n = g.toNonIndexed();
+      pos.push(...n.attributes.position.array); nor.push(...n.attributes.normal.array); uv.push(...n.attributes.uv.array);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    flits.add(new THREE.Mesh(geo, vlamMat));
+  }
+  const MOND = [0, LOOP_Y, MOND_Z];
+  flits.position.set(...MOND);
+  flits.visible = false;
+  wapen.add(flits);
+
+  const los = new THREE.Group();
+  los.matrixAutoUpdate = false;
+  groep.add(los);
+  const HULZEN = 4;
+  const losHuls = new THREE.CylinderGeometry(PATROON.r, PATROON.r * 0.94, PATROON.huls, 10);
+  const hulzen = new THREE.InstancedMesh(losHuls, messing, HULZEN);
+  hulzen.frustumCulled = false;
+  const hulsData = Array.from({ length: HULZEN }, () => ({ t: 9, p: new THREE.Vector3(), v: new THREE.Vector3(), q: new THREE.Quaternion(), w: new THREE.Vector3() }));
+  const nul = new THREE.Matrix4().makeScale(0, 0, 0);
+  for (let i = 0; i < HULZEN; i++) hulzen.setMatrixAt(i, nul);
+  los.add(hulzen);
+  let hulsNr = 0;
+  const rookMats = [0, 1, 2].map(() => new THREE.MeshBasicMaterial({ map: rookDoek(), transparent: true, opacity: 0, depthWrite: false }));
+  const rookData = rookMats.map(m => {
+    const r = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), m);
+    r.visible = false; los.add(r);
+    return { mesh: r, t: 9, v: new THREE.Vector3() };
+  });
+  let rookNr = 0;
+  // de lege clip die eruit springt: dezelfde clip, zonder patronen
+  const leeg = maakClip(false);
+  const legeClip = leeg.g;
+  // om zijn eigen midden laten draaien, niet om de oorsprong van het wapen
+  const CLIP_MIDDEN = [0, -0.004, CLIP_Z + 0.014];
+  for (const c of legeClip.children) c.position.set(-CLIP_MIDDEN[0], -CLIP_MIDDEN[1], -CLIP_MIDDEN[2]);
+  legeClip.matrixAutoUpdate = false;
+  legeClip.visible = false;
+  los.add(legeClip);
+  const clipVlucht = { t: 9, p: new THREE.Vector3(), v: new THREE.Vector3(), q: new THREE.Quaternion(), w: new THREE.Vector3() };
+  const CLIP_VLUCHT = 1.1;
+
+  // ---------------------------------------------------------------- houding
+  const RUST = { x: 0.135, y: -0.122, z: -0.40 };
+  // over het vizier: de diopter op 13 cm van je oog, de korrel er in het midden achter
+  const MIK = { x: 0, y: -VIZIER_Y, z: -0.146 };
+  groep.position.set(RUST.x, RUST.y, RUST.z);
+  groep.rotation.set(0, 0.08, 0.05);
+
+  const VEER = { k: 330, c: 22 };
+  const KICK = { z: 3.6, x: 15.5, y: 2.6 };
+  const veer = { z: 0, vz: 0, x: 0, vx: 0, y: 0, vy: 0 };
+  const PIEK_X = KICK.x / 36;
+  const POLS = { y: -0.080, z: 0.075 };
+  const ARM_MEE = 0.35;
+
+  let flitsT = 0, terugslag = 0, tijd = 0;
+  let sledeT = 9, trekT = 9, hulsWacht = -1, pingWacht = -1;
+  let vorigeBob = null, loopF = 0, renF = 0, tempoGlad = 0, renDoel = 0, vorigeYaw = null, vorigePitch = null;
+  const zwaai = { x: 0, y: 0 };
+  const standMat = new THREE.Matrix4();
+  // het herladen: met hoeveel patronen begon het, wat zit er straks in, en wat is al gebeurd
+  let herlaadBezig = false, startAmmo = 0, nieuwAantal = 8, gedaan = {};
+  let pings = 0, laatsteAmmo = 8;
+
+  function zetPatronen(n) {
+    for (let i = 0; i < 8; i++) clip.patronen[i].visible = i < n;
+  }
+
+  /** Eén schot. `leeg` zegt of dit het achtste was: dan blijft de grendel open en springt de clip eruit. */
+  function vuur({ leeg: laatste = false } = {}) {
+    flitsT = 0.075;
+    const al = Math.max(0, Math.min(0.5, veer.x / (PIEK_X * 2)));
+    veer.vz += KICK.z * (0.9 + Math.random() * 0.2) * (1 - al);
+    veer.vx += KICK.x * (0.9 + Math.random() * 0.2) * (1 - al);
+    veer.vy += (Math.random() - 0.5) * 2 * KICK.y;
+    terugslag = 1;
+    flits.rotation.z = Math.random() * Math.PI;
+    const s = 1.3 * (0.85 + Math.random() * 0.4);
+    flits.scale.set(s, s, 0.8 + Math.random() * 0.5);
+    sledeT = 0; trekT = 0;
+    hulsWacht = 0.025;                    // de huls komt eruit als de grendel achter is
+    if (laatste) pingWacht = 0.045;       // en na de laatste de clip
+    blaasRook();
+  }
+  function werpHuls() {
+    const h = hulsData[hulsNr]; hulsNr = (hulsNr + 1) % HULZEN;
+    h.t = 0;
+    h.p.set(0.004, 0.034, -0.095).applyMatrix4(standMat);
+    // de M1 werpt omhoog en naar rechts uit, hoog over je schouder
+    h.v.set(0.45 + Math.random() * 0.3, 1.25 + Math.random() * 0.35, 0.05 + Math.random() * 0.15);
+    h.q.setFromEuler(new THREE.Euler(Math.PI / 2 + (Math.random() - 0.5), Math.random() * 3, 0));
+    h.w.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, 18 + Math.random() * 20);
+  }
+  function werpClip() {
+    pings++;
+    if (geluid && geluid.m1Ping) geluid.m1Ping();
+    clipVlucht.t = 0;
+    clipVlucht.p.set(...CLIP_MIDDEN).applyMatrix4(standMat);
+    clipVlucht.q.setFromRotationMatrix(standMat);
+    clipVlucht.v.set(0.38 + Math.random() * 0.12, 1.30 + Math.random() * 0.20, -0.10 - Math.random() * 0.08);
+    clipVlucht.w.set(6 + Math.random() * 6, (Math.random() - 0.5) * 8, -8 - Math.random() * 6);
+    legeClip.visible = true;
+    clip.g.visible = false;
+  }
+  function blaasRook() {
+    const r = rookData[rookNr]; rookNr = (rookNr + 1) % rookData.length;
+    r.t = 0;
+    r.mesh.position.set(...MOND).applyMatrix4(standMat);
+    r.v.set((Math.random() - 0.5) * 0.05, 0.06 + Math.random() * 0.04, -0.05 - Math.random() * 0.05);
+    r.mesh.rotation.z = Math.random() * Math.PI * 2;
+    r.mesh.visible = true;
+  }
+  const hulsM = new THREE.Matrix4(), hulsS = new THREE.Vector3(1, 1, 1), draai = new THREE.Quaternion(), e = new THREE.Euler();
+  function losBij(dt) {
+    let iets = false;
+    for (let i = 0; i < HULZEN; i++) {
+      const h = hulsData[i];
+      if (h.t > 0.8) continue;
+      iets = true;
+      h.t += dt;
+      if (h.t > 0.8) { hulzen.setMatrixAt(i, nul); continue; }
+      h.v.y -= 7 * dt;
+      h.p.addScaledVector(h.v, dt);
+      e.set(h.w.x * dt, h.w.y * dt, h.w.z * dt); draai.setFromEuler(e); h.q.multiply(draai);
+      hulsM.compose(h.p, h.q, hulsS);
+      hulzen.setMatrixAt(i, hulsM);
+    }
+    if (iets) hulzen.instanceMatrix.needsUpdate = true;
+    if (clipVlucht.t < CLIP_VLUCHT) {
+      clipVlucht.t += dt;
+      if (clipVlucht.t >= CLIP_VLUCHT) legeClip.visible = false;
+      else {
+        clipVlucht.v.y -= 6 * dt;
+        clipVlucht.p.addScaledVector(clipVlucht.v, dt);
+        e.set(clipVlucht.w.x * dt, clipVlucht.w.y * dt, clipVlucht.w.z * dt); draai.setFromEuler(e); clipVlucht.q.multiply(draai);
+        legeClip.matrix.compose(clipVlucht.p, clipVlucht.q, hulsS);
+        legeClip.matrixWorldNeedsUpdate = true;
+      }
+    }
+    for (const r of rookData) {
+      if (!r.mesh.visible) continue;
+      r.t += dt;
+      const u = r.t / 1.0;
+      if (u >= 1) { r.mesh.visible = false; continue; }
+      r.mesh.position.addScaledVector(r.v, dt);
+      const s = 0.10 + u * 0.24;
+      r.mesh.scale.set(s, s, 1);
+      r.mesh.material.opacity = 0.55 * (1 - u) * Math.min(1, r.t * 25);
+      r.mesh.rotation.z += dt * 0.6;
+    }
+  }
+
+  function update(dt, { herlaad = 0, bob = 0, mik = 0, holster = 0, yaw = null, pitch = null, leeg: magLeeg = false, ammo = null, reserve = 0 } = {}) {
+    dt = Math.min(dt, 0.05);
+    tijd += dt;
+    const n = ammo === null ? (magLeeg ? 0 : 8) : Math.max(0, Math.min(8, ammo));
+    const stappen = Math.max(1, Math.ceil(dt * 240)), h = dt / stappen;
+    for (let s = 0; s < stappen; s++) {
+      for (const [p, v] of [['z', 'vz'], ['x', 'vx'], ['y', 'vy']]) {
+        veer[v] += (-VEER.k * veer[p] - VEER.c * veer[v]) * h;
+        veer[p] += veer[v] * h;
+      }
+    }
+    terugslag = Math.max(0, Math.min(1, veer.x / PIEK_X));
+    flitsT -= dt;
+    const aan = flitsT > 0;
+    flits.visible = aan;
+    vlamMat.opacity = aan ? 0.6 + Math.random() * 0.4 : 0;
+    const gloed = aan ? 0.24 : 0;
+    huid.emissive.setRGB(gloed, gloed * 0.55, gloed * 0.2);
+    sledeT += dt; trekT += dt;
+    if (hulsWacht >= 0 && sledeT >= hulsWacht) { hulsWacht = -1; werpHuls(); }
+    if (pingWacht >= 0 && sledeT >= pingWacht) { pingWacht = -1; werpClip(); }
+    const trek = trekT < 0.04 ? trekT / 0.04 : Math.max(0, 1 - (trekT - 0.04) / 0.14);
+    trekker.rotation.x = -0.38 * soepel(trek);
+
+    const dBob = vorigeBob === null ? 0 : bob - vorigeBob; vorigeBob = bob;
+    const tempoNu = dt > 0 ? dBob / dt : 0;
+    tempoGlad += (tempoNu - tempoGlad) * Math.min(1, dt * 5);
+    loopF += ((tempoGlad > 0.4 ? 1 : 0) - loopF) * Math.min(1, dt * 5);
+    renDoel = tempoGlad > 12 ? 1 : tempoGlad < 9 ? 0 : renDoel;
+    renF += (renDoel - renF) * Math.min(1, dt * 3.5);
+    let dYaw = 0, dPitch = 0;
+    if (yaw !== null && vorigeYaw !== null) {
+      dYaw = yaw - vorigeYaw;
+      while (dYaw > Math.PI) dYaw -= 2 * Math.PI;
+      while (dYaw < -Math.PI) dYaw += 2 * Math.PI;
+      dPitch = pitch - vorigePitch;
+    }
+    vorigeYaw = yaw; vorigePitch = pitch;
+    // een zwaar geweer sleept meer achter je kijkrichting aan dan een pistool
+    const doelX = Math.max(-0.045, Math.min(0.045, dt > 0 ? dYaw / dt * 0.008 : 0));
+    const doelY = Math.max(-0.035, Math.min(0.035, dt > 0 ? -dPitch / dt * 0.006 : 0));
+    zwaai.x += (doelX - zwaai.x) * Math.min(1, dt * 7);
+    zwaai.y += (doelY - zwaai.y) * Math.min(1, dt * 7);
+
+    if (herlaad > 0) {
+      if (!herlaadBezig) {
+        herlaadBezig = true; gedaan = {};
+        startAmmo = clip.g.visible ? n : 0;
+        nieuwAantal = Math.max(1, Math.min(8, n + reserve));
+      }
+      const t = 1 - herlaad / GARAND_HERLAAD;
+      const uit = soepel(deel(t, GSTAP.kantelen)) - soepel(deel(t, GSTAP.terug));
+      // het geweer omhoog, de loop naar linksboven, de bovenkant naar je toe (zie de foto van het laden)
+      groep.position.set(RUST.x - 0.075 * uit, RUST.y + 0.060 * uit, RUST.z + 0.050 * uit);
+      groep.rotation.set(0.22 * uit, 0.08 + 0.38 * uit, 0.05 - 0.42 * uit);
+      // de rechterhand laat de greep los en zakt naar rechtsonder weg, en komt aan het eind terug
+      const weg = soepel(deel(t, GSTAP.handWeg)) - soepel(deel(t, GSTAP.terugHand));
+      hand.position.set(0.12 * weg, -0.22 * weg, 0.06 * weg);
+      arm.rotation.set(0, 0, 0);
+      arm.position.set(0.12 * weg, -0.22 * weg, 0.06 * weg);
+      hand.visible = arm.visible = weg < 0.98;
+      // halve clip: de grendel naar achteren en de clip springt eruit
+      const open = startAmmo > 0 ? soepel(deel(t, GSTAP.open)) : 1;
+      if (startAmmo > 0 && !gedaan.open && t >= GSTAP.open[0]) { gedaan.open = true; if (geluid && geluid.m1Grendel) geluid.m1Grendel(); }
+      if (startAmmo > 0 && !gedaan.uit && t >= GSTAP.uitwerp) { gedaan.uit = true; groep.updateMatrix(); standMat.copy(groep.matrix); werpClip(); }
+      // de volle clip met de laadhand: van rechtsboven naar boven de kast, dan erin gedrukt
+      const komt = soepel(deel(t, GSTAP.hand));
+      const duw = soepel(deel(t, GSTAP.duw));
+      const dicht = deel(t, GSTAP.dicht);
+      const hoog = 0.056 * (1 - duw);
+      const ox = 0.16 * (1 - komt), oy = hoog + 0.10 * (1 - komt), oz = 0.05 * (1 - komt);
+      const nieuw = t >= GSTAP.hand[0];
+      if (nieuw) {
+        clip.g.visible = true;
+        clip.g.position.set(ox, oy, oz);
+        zetPatronen(nieuwAantal);
+      } else {
+        clip.g.position.set(0, 0, 0);
+        clip.g.visible = startAmmo > 0 && !gedaan.uit;
+        zetPatronen(startAmmo);
+      }
+      if (!gedaan.klik && t >= GSTAP.klik) { gedaan.klik = true; if (geluid && geluid.m1ClipIn) geluid.m1ClipIn(); }
+      if (!gedaan.klak && t >= GSTAP.dicht[0]) { gedaan.klak = true; if (geluid && geluid.m1Klak) geluid.m1Klak(); }
+      // de grendel: open tot de clip zit, dan in een paar honderdsten dicht
+      const grendelOpen = dicht > 0 ? 1 - dicht : open;
+      grendel.position.z = SLAG * grendelOpen;
+      // de duim schiet omhoog als de grendel dichtslaat, en de hand gaat terug naar rechts
+      const schok = Math.sin(Math.min(1, deel(t, [0.60, 0.70])) * Math.PI) * 0.03;
+      const handTerug = soepel(deel(t, GSTAP.terugHand));
+      laadhand.visible = komt > 0 && handTerug < 1;
+      laadhand.position.set(ox + 0.16 * handTerug, oy + schok + 0.02 * handTerug, oz + 0.06 * handTerug);
+      stand(holster);
+      losBij(dt);
+      laatsteAmmo = n;
+      return;
+    }
+    if (herlaadBezig) { herlaadBezig = false; clip.g.position.set(0, 0, 0); }
+    laadhand.visible = false;
+    hand.visible = arm.visible = true;
+    hand.position.set(0, 0, 0);
+    arm.rotation.set(0, 0, 0);
+    // na het laden van een opslag of een wissel: de clip zit erin zolang er patronen zijn
+    if (n > 0) { clip.g.visible = true; clip.g.position.set(0, 0, 0); }
+    else if (pingWacht < 0) clip.g.visible = false;
+    zetPatronen(n);
+    laatsteAmmo = n;
+
+    // de grendel: in 35 ms naar achteren, in 60 ms weer naar voren; na de laatste blijft hij open
+    const slag = sledeT < 0.035 ? sledeT / 0.035 : (n === 0 ? 1 : Math.max(0, 1 - (sledeT - 0.035) / 0.06));
+    grendel.position.z = SLAG * (n === 0 && sledeT >= 0.035 ? 1 : slag);
+
+    const m = Math.max(0, Math.min(1, mik));
+    const vrij = 1 - m;
+    const pas = loopF * vrij, ren = renF * vrij;
+    const deinen = Math.sin(bob) * 0.007 * vrij;
+    const opzij = Math.cos(bob * 0.5) * 0.009 * pas;
+    const adem = Math.sin(tijd * 1.6) * 0.0016 * vrij * (1 - loopF);
+    const terugM = 1 - 0.40 * m;
+    const rx = veer.x * terugM;
+    const cx = Math.cos(rx), sx = Math.sin(rx);
+    const polsY = POLS.y - (POLS.y * cx - POLS.z * sx), polsZ = POLS.z - (POLS.y * sx + POLS.z * cx);
+    const ax = -rx * (1 - ARM_MEE), ca = Math.cos(ax), sa = Math.sin(ax);
+    arm.rotation.set(ax, 0, 0);
+    arm.position.set(0, POLS.y - (POLS.y * ca - POLS.z * sa), POLS.z - (POLS.y * sa + POLS.z * ca));
+    groep.rotation.set(
+      rx - 0.38 * ren + Math.sin(tijd * 1.6 + 1) * 0.004 * vrij + zwaai.y * 1.2 * vrij,
+      0.08 * vrij + veer.y * terugM + 0.40 * ren - zwaai.x * 1.4 * vrij,
+      0.05 * vrij + Math.sin(bob * 0.5) * 0.02 * pas + 0.30 * ren,
+    );
+    groep.position.set(
+      RUST.x + (MIK.x - RUST.x) * m + opzij + zwaai.x * vrij + 0.02 * ren,
+      RUST.y + (MIK.y - RUST.y) * m + deinen + adem + zwaai.y * vrij - 0.05 * ren + polsY + rx * 0.04,
+      RUST.z + (MIK.z - RUST.z) * m + veer.z * (1 - 0.4 * m) + 0.02 * ren + polsZ,
+    );
+    stand(holster);
+    losBij(dt);
+  }
+
+  function stand(holster) {
+    if (holster > 0) {
+      groep.position.y -= 0.42 * holster;
+      groep.position.z += 0.16 * holster;
+      groep.position.x += 0.05 * holster;
+      groep.rotation.x -= 0.95 * holster;
+      groep.rotation.z += 0.42 * holster;
+    }
+    groep.updateMatrix();
+    standMat.copy(groep.matrix);
+    los.matrix.copy(groep.matrix).invert();
+    los.matrixWorldNeedsUpdate = true;
+  }
+
+  zetPatronen(8);
+  update(0, { ammo: 8 });
+  return {
+    groep, vuur, update, soort: 'garand', herlaadtijd: GARAND_HERLAAD,
+    delen: { grendel, clip: clip.g, patronen: clip.patronen, legeClip, laadhand, linkerhand, hand, arm, trekker, flits, hulzen, rook: rookData.map(r => r.mesh), los },
+    houding: { rust: RUST, mik: MIK, vizierY: VIZIER_Y },
+    slag: SLAG,
+    get terugslag() { return terugslag; },
+    get veer() { return { ...veer }; },
+    get hulzenInDeLucht() { return hulsData.filter(h => h.t <= 0.8).length; },
+    // (voor tools/m1test.mjs) hoe vaak de clip eruit sprong, of hij nog vliegt, en hoever de grendel open staat
+    get pings() { return pings; },
+    get clipInDeLucht() { return clipVlucht.t < CLIP_VLUCHT && legeClip.visible; },
+    get grendelOpen() { return grendel.position.z / SLAG; },
+    get patronenZichtbaar() { return clip.g.visible ? clip.patronen.filter(p => p.visible).length : 0; },
+    get laatsteAmmo() { return laatsteAmmo; },
+  };
+}

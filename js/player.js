@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { resolveCollisions, pointInWater, ondergrondOp, grondHoogte } from './world.js';
 import { geluid } from './audio.js';
-import { maakPistool, maakMitrailleur, maakSniper, maakMes, HERLAADTIJD } from './wapen.js';
+import { maakPistool, maakMitrailleur, maakSniper, maakMes, maakGarand, HERLAADTIJD } from './wapen.js';
 import { hurkHouding } from './lichaam.js';
 
 /*
@@ -61,6 +61,16 @@ export const WAPENS = {
    (`bereik` 2,4 m vanaf het oog), twee steken voor iemand neer, en een kleine pauze ertussen. Je hebt
    het altijd; met lege wapens wissel je er vanzelf naartoe.
   */
+  /*
+   De M1 Garand (verzoek 10 okt 2026, € 1.500 bij Tinga State): acht patronen in een en-bloc clip, halfautomatisch
+   — één schot per klik, `auto` false, dus vasthouden schiet niet door — met een kleine pauze tussen twee schoten
+   (`tempo` 0,14 s: de grendel moet heen en terug). Een .30-06: één treffer is genoeg. De terugslag is zwaar
+   (`kick` 3,2: ruim drie keer het pistool, vijf keer het machinegeweer), over het vizier blijft er 55 % van
+   over, en hij zakt trager terug dan bij het pistool. `toonNaam` zet de naam bij de kogels in beeld (js/hud.js).
+   Herladen gaat altijd met een volle clip: wat er nog in de oude zat, gaat terug in je voorraad.
+  */
+  garand: { naam: 'M1 Garand', mag: 8, auto: false, tempo: 0.14, spreiding: 0.006, kick: 3.2, mikKick: 0.55, herstel: 6,
+    dodelijk: 1, toonNaam: true },
   mes: { naam: 'Mes', mag: 0, mes: true, auto: false, tempo: 0.42, spreiding: 0, kick: 0.25, dodelijk: 2, bereik: 2.4 },
 };
 
@@ -149,7 +159,7 @@ export class Player {
      (js/verhaal.js zet dit weer op false).
     */
     this.vuurSlot = false;
-    this.magazijnen = { pistool: 12, mitrailleur: 0, sniper: 0 };
+    this.magazijnen = { pistool: 12, mitrailleur: 0, sniper: 0, garand: 0 };
     // de stand van de kijker, per wapen (zie `zoom`)
     this.zoomPer = {};
     // 200 kogels in reserve bij het begin, "voor het gemak" (verzoek 3 okt 2026, stap 106; was 60)
@@ -218,7 +228,7 @@ export class Player {
     // allebei de modellen staan er meteen; wisselen is een kwestie van zichtbaar
     // maken. Dat is een paar honderd driehoeken en het scheelt een hapering op
     // het moment dat je het scrollwiel draait.
-    this.modellen = { pistool: maakPistool(geluid), mitrailleur: maakMitrailleur(geluid), sniper: maakSniper(geluid), mes: maakMes(geluid) };
+    this.modellen = { pistool: maakPistool(geluid), mitrailleur: maakMitrailleur(geluid), sniper: maakSniper(geluid), garand: maakGarand(geluid), mes: maakMes(geluid) };
     for (const k of Object.keys(this.modellen)) {
       this.modellen[k].groep.visible = false;
       this.camera.add(this.modellen[k].groep);
@@ -633,7 +643,8 @@ export class Player {
     // beeld omhoog en een willekeurig tikje opzij
     this.kickPitch += (0.026 + Math.random() * 0.010) * W.kick * mikF.kick;
     this.kickYaw += (Math.random() - 0.5) * 0.014 * W.kick * mikF.kick;
-    if (this.wapen) this.wapen.vuur();
+    // (`leeg`: was dit de laatste patroon, dan springt bij de M1 Garand de clip eruit)
+    if (this.wapen) this.wapen.vuur({ leeg: this.ammo <= 0 });
     this.schoten = (this.schoten || 0) + 1;      // (voor tools/schottest.mjs)
     geluid.schot(0, { wapen: this.wapenSoort, bron: 'speler' });
     const dir = new THREE.Vector3(); this.camera.getWorldDirection(dir);
@@ -886,6 +897,8 @@ export class Player {
     this.wapen.update(dt, {
       herlaad: this.reloading, bob: this.bob, mik: this.mik, holster: this.holster,
       yaw: this.yaw, pitch: this.pitch, leeg: this.ammo <= 0,
+      // (de M1 Garand laat zien hoeveel patronen er nog in de clip zitten, en wat de nieuwe clip krijgt)
+      ammo: this.ammo, reserve: this.oneindig ? 8 : this.reserve,
     });
     // Kijk je door de kijker, dan zit het wapen zelf niet meer in beeld: je oog
     // zit achter het oculair. `_scopeAan` wordt in zetBeeldhoek() gezet.

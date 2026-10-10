@@ -1760,6 +1760,8 @@ export function initVerhaal(ctx) {
       bende: { zetGroep: (x, z, n) => bendes.zetGroep(x, z, n) },
       checkpoint: () => { if (checkpoint && player.health > 0) { checkpoint(); hud.show('Checkpoint opgeslagen', 2); } },
       spelerPunt: () => spelerPunt(),
+      // de drone-klus (stap 132): met de drone in de lucht is de camera de drone
+      camera,
       KOPPEN,
       // Johan ken je vanaf zijn telefoontje in missie 5
       johanBekend: () => !VOOR_JOHAN.includes(missie) && !(missie === 'johan' && fase === 'telefoon')
