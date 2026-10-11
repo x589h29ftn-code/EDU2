@@ -459,7 +459,7 @@ export const KAMP = {
   staf: { x: 2, z: -7, yaw: Math.PI / 2 },
   closeup: { x: 0, z: 3 },                             // de gele ruit voor de camera
   camera: { x: -3.4, z: 3 },                           // waar de cameraman de close-up draait
-  regisseur: { x: -13, z: 7 },
+  regisseur: { x: -9, z: 6.5 },                       // binnen de open plek: daarbuiten staan de stammen (botsdozen)
   ejSlot: { x: -3.0, z: 4.8 },                         // Erik Jan met het klapbord, naast de camera
   // de schildwachten: A staat achter de zandzakken en kijkt naar het oosten, B loopt aan de oostkant heen en weer
   wachten: [{ a: [8, -0.6], b: [8.4, -0.6] }, { a: [10.6, -5], b: [10.6, 5] }],

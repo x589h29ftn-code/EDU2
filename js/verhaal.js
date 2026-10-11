@@ -1712,7 +1712,7 @@ export function initVerhaal(ctx) {
   const nmStaf = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'bx', kleur: NOMERCY.stafKleur, driveable: false });
   nmStaf.mesh.visible = false; nmStaf.mesh.position.set(1e5, 0, 1e5); nmStaf.noMercy = true;
   const nmKlapbord = maakKlapbord();
-  nmKlapbord.position.set(0.05, 1.62, -0.46); nmKlapbord.rotation.y = Math.PI;
+  nmKlapbord.position.set(0.05, 1.44, -0.5); nmKlapbord.rotation.y = Math.PI;   // voor de borst, onder het gezicht
   nmEJ.groep.add(nmKlapbord);
   const nmTentDoos = addCollider(NOMERCY.kamp.x, NOMERCY.kamp.z, 2.1, 1.6, 0, 0);
   const nmRadioDoos = addCollider(NOMERCY.kamp.x, NOMERCY.kamp.z, 0.45, 0.6, 0, 0);

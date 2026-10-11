@@ -207,7 +207,11 @@ const twee = await page.evaluate(() => {
   for (const t of W.treePositions) boom = Math.min(boom, Math.hypot(t.x - K.x, t.z - K.z));
   // de plekken: midden, tent, radiopost, stafauto, close-up, de ruiten, de ingang
   const plekken = { midden: K, tent: n.kamp.tent, radio: n.kamp.radioPlek, staf: n.kamp.staf, closeup: n.kamp.closeup,
-    radioRuit: n.kamp.radioRuit, ingang: n.kamp.ingang, camera: n.kamp.cameraPlek };
+    radioRuit: n.kamp.radioRuit, ingang: n.kamp.ingang, camera: n.kamp.cameraPlek, regisseur: n.kamp.regisseur, ejSlot: n.kamp.ejSlot };
+  // alles waar iemand staat of loopt, binnen de open plek (daarbuiten staan de stammen, en die zijn botsdozen)
+  let buiten = 0;
+  for (const p of [...Object.values(plekken), ...n.kamp.wachtPosten().flatMap(w => [{ x: w.a[0], z: w.a[1] }, { x: w.b[0], z: w.b[1] }])])
+    buiten = Math.max(buiten, Math.hypot(p.x - K.x, p.z - K.z));
   let water = 0, hoogte = 0;
   const y0 = n.kamp.groep.position.y;
   for (const p of Object.values(plekken)) {
@@ -231,7 +235,7 @@ const twee = await page.evaluate(() => {
   let minY = Infinity;
   n.kamp.groep.traverse(o => { if (o.isMesh && o.visible) { o.geometry.computeBoundingBox(); const b = o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld); minY = Math.min(minY, b.min.y); } });
   const st = n.staf;
-  return { boom, water, hoogte, geduwd, tentHoudt, minY, grond: V.grondHoogte(K.x, K.z), inBos: n.bos.inBos(K.x, K.z),
+  return { buiten, boom, water, hoogte, geduwd, tentHoudt, minY, grond: V.grondHoogte(K.x, K.z), inBos: n.bos.inBos(K.x, K.z),
     vanSet: Math.hypot(K.x - S.x, K.z - S.z), stafY: st.mesh.position.y, stafGrond: V.grondHoogte(st.x, st.z), stafRijdt: st.driveable,
     stafIn: v.noMercy.staf === st && g.vehicles.cars.includes(st) };
 });
@@ -239,6 +243,7 @@ ok(twee.inBos, 'midden in het Tinga-bos');
 ok(twee.vanSet > 60, 'ruim weg van de eerste set', `${r1(twee.vanSet)} m`);
 ok(twee.boom > 11, 'geen boom in het kamp: de dichtstbijzijnde stam', `${r1(twee.boom)} m van het midden`);
 ok(twee.water === 0, 'geen water onder het kamp');
+ok(twee.buiten < 12, 'alle plekken en de posten van de schildwachten binnen de open plek', `verst ${r1(twee.buiten)} m van het midden`);
 ok(twee.hoogte < 0.05 && Math.abs(twee.minY - twee.grond) < 0.05, 'op de grond', `hoogteverschil ${twee.hoogte.toFixed(3)}, onderkant ${twee.minY.toFixed(3)} tegen ${twee.grond.toFixed(3)}`);
 ok(twee.geduwd < 0.02, 'geen botsdoos van de wereld in het kamp', `${twee.geduwd.toFixed(3)} m`);
 ok(twee.tentHoudt, 'de tent houdt je tegen');
@@ -350,7 +355,7 @@ const vijf = await page.evaluate(() => {
   const kb = n.klapbord.getWorldPosition(new (n.klapbord.position.constructor)());
   const ej = n.ej.groep.position;
   uit.na = { fase: n.fase, balk: b.hidden, applaus: window.__geluid.applaus, klapbord: n.klapbord.visible && n.ej.groep.visible,
-    kbHoog: kb.y - ej.y, kbBij: Math.hypot(kb.x - ej.x, kb.z - ej.z), wie: document.getElementById('dialoogNaam').textContent,
+    kbHoog: kb.y - ej.y, kbBij: Math.hypot(kb.x - ej.x, kb.z - ej.z), ejPlek: Math.hypot(ej.x - n.kamp.ejSlot.x, ej.z - n.kamp.ejSlot.z), wie: document.getElementById('dialoogNaam').textContent,
     zin: document.getElementById('dialoogTekst').textContent };
   window.__klik(6);
   window.__stap(2);
@@ -363,6 +368,7 @@ ok(vijf.naast === 0, 'stilstaan naast de ruit ook niet');
 ok(vijf.half.balk && vijf.half.stilT > 1.2 && vijf.half.stilT < 1.8 && Math.abs(vijf.half.nu - vijf.half.stilT / 3 * 100) < 4, 'stil op de ruit: de balk loopt op', `${vijf.half.stilT.toFixed(2)} s, ${vijf.half.nu}%: ${vijf.half.tekst}`);
 ok(vijf.na.fase === 'applaus' && vijf.na.balk && vijf.na.applaus === 1, 'na drie tellen: applaus van de ploeg, de balk weg', vijf.na.fase);
 ok(vijf.na.klapbord && vijf.na.kbHoog > 1.4 && vijf.na.kbBij < 0.8, 'Erik Jan houdt het klapbord omhoog', `${r1(vijf.na.kbHoog)} m hoog`);
+ok(vijf.na.ejPlek < 1, 'naast de camera: hij is van zijn regieplek naar de camera gelopen', `${r1(vijf.na.ejPlek)} m van zijn plek`);
 ok(vijf.na.wie === 'Erik Jan' && /wrap/.test(vijf.na.zin), '"dat is een wrap!"', vijf.na.zin);
 ok(vijf.keuze.fase === 'keuze' && Array.isArray(vijf.keuze.open) && vijf.keuze.open.length === 2 && /M1/.test(vijf.keuze.open[1]), 'de keuze staat open, ook als knoppen', JSON.stringify(vijf.keuze.open));
 
@@ -523,6 +529,8 @@ const tien = await page.evaluate(() => {
   uit.laden = { leeg: window.__leeg(), fase: v.noMercy.fase };
   // X tijdens de keuze doet niets
   g.player.active = false; P.health = 100;
+  // (laden hierboven was alleen het verhaal: de geleende M1 zat nog in de wapens, js/opslag.js zet die normaal terug)
+  P.wapens = P.wapens.filter(w => w !== 'garand'); P.magazijnen.garand = 0; P.reserve = 40; P.zetWapen('pistool');
   const f = [];
   window.__naMissie5(); f.push(v.noMercy.fase); window.__naarKamp(); f.push(v.noMercy.fase); window.__totCloseup(); f.push(v.noMercy.fase);
   window.__klik(); window.__stilOp(); f.push(v.noMercy.fase);

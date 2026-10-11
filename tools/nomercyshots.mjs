@@ -18,6 +18,7 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 let fouten = 0;
 page.on('pageerror', e => { console.log('[pageerror]', e.message); fouten++; });
+page.on('console', m => { if (/^(kamp|radio|klapbord):/.test(m.text())) console.log(m.text()); });
 await page.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load', timeout: 900000 });
 await page.waitForFunction(() => window.__game, null, { timeout: 900000 });
 await page.evaluate(async () => {
@@ -119,14 +120,15 @@ await page.evaluate(() => {
 });
 await opname('nomercy_kamp', `
   const g = window.__game, v = g.verhaal, n = v.noMercy, P = g.player, K = n.kamp.midden;
-  const e = n.kamp.naarWereld({ x: -14, z: 3.5 });
+  const e = n.kamp.naarWereld({ x: -9.6, z: 2.6 });
   window.__zet(e.x, e.z);
   P.yaw = Math.atan2(-(K.x - e.x), -(K.z - e.z));
-  const c = n.kamp.naarWereld({ x: -15.5, z: 6 });
-  n.cam.zetNeer(c.x, c.z, Math.atan2(-(K.x - c.x), -(K.z - c.z))); n.cam.update(0.05, { mikt: true });
+  const c = n.kamp.naarWereld({ x: -8.4, z: 4.6 });
+  n.cam.zetNeer(c.x, c.z, Math.atan2(-(e.x - c.x), -(e.z - c.z))); n.cam.update(0.05, { mikt: true });
   g.derde.aan = true; g.derde.update(0.016, null);
-  const k = n.kamp.naarWereld({ x: -19, z: 9.5 });
-  return (${kijk})([k.x, 3.1, k.z], [K.x + 1, 0.9, K.z - 1]);
+  const k = n.kamp.naarWereld({ x: -10.5, z: 5.5 });
+  console.log('kamp: fase ' + n.fase + ', camera ' + Math.hypot(k.x - K.x, k.z - K.z).toFixed(1) + ' m van het midden');
+  return (${kijk})([k.x, 2.9, k.z], [K.x + 2, 0.8, K.z - 1.5]);
 `);
 
 // 5. de radiopost gaat de lucht in
@@ -138,13 +140,15 @@ await page.evaluate(() => {
   const r = v.noMercy.kamp.radioRuit; window.__zet(r.x, r.z); window.__stap(2); v.toets();
   const rp = v.noMercy.kamp.radioPlek; window.__zet(rp.x - 13, rp.z - 3);
   for (let i = 0; i < 120 && v.noMercy.fase !== 'radioKnal'; i++) window.__stap(1);
-  window.__stap(6);
+  // de vuurbal is na een seconde uit; dan de rook, de vonken op de grond en de post scheef
+  window.__stap(24);
+  console.log('radio: fase ' + v.noMercy.fase);
 });
 await opname('nomercy_radio', `
   const g = window.__game, v = g.verhaal, n = v.noMercy, r = n.kamp.radioPlek, P = g.player;
   g.derde.aan = true; g.derde.update(0.016, null);
-  const k = n.kamp.naarWereld({ x: -8, z: 9 });
-  return (${kijk})([k.x, 2.0, k.z], [r.x, 1.6, r.z]);
+  const k = n.kamp.naarWereld({ x: -5, z: 8.5 });
+  return (${kijk})([k.x, 2.0, k.z], [r.x, 1.4, r.z]);
 `);
 
 // 6. de close-up, het applaus en het klapbord
@@ -156,6 +160,8 @@ await page.evaluate(() => {
   for (let i = 0; i < 120 && v.noMercy.fase === 'closeup'; i++) window.__stap(1);
   // Erik Jan loopt naar de camera en houdt het klapbord omhoog
   window.__stap(60);
+  const n = v.noMercy, ej = n.ej.groep.position, s = n.kamp.ejSlot;
+  console.log('klapbord: fase ' + n.fase + ', Erik Jan ' + (n.ej.groep.visible ? 'zichtbaar' : 'weg') + ' op ' + Math.hypot(ej.x - s.x, ej.z - s.z).toFixed(1) + ' m van zijn plek, bord ' + n.klapbord.visible);
 });
 await opname('nomercy_klapbord', `
   const g = window.__game, v = g.verhaal, n = v.noMercy, P = g.player, ej = n.ej.groep.position;

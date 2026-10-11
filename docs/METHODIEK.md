@@ -8431,10 +8431,15 @@ tussen de scènes, tijdens het applaus en de keuze geen grens en geen X (`NM_VRI
 bos zijn wél botsdozen in `colliders` (0,3–0,45 m breed, 3 m hoog), anders dan het blok van stap 140 zegt. De proef
 loopt nu een route over een rooster van 1 m, elke stap nagemeten met `resolveCollisions` (`__pad`), en wordt niet gezien. (2) Een tweede bijmissie-run houdt `nm.m1` van een vorige: de proef met een eigen M1 keek daar
 ten onrechte naar. (3) Schildwacht B liep eerst tot 13,6 m van het midden, tussen de stammen en over de zandzakken;
-nu 10,6 m ten oosten, van −5 tot 5.
+nu 10,6 m ten oosten, van −5 tot 5. (4) Erik Jan stond op zijn regieplek 14,8 m van het midden, tussen de stammen, en
+liep bij de close-up vast (9,1 m van de camera in de foto): nu (−9, 6,5), en de proef kijkt of elke plek en elke post
+binnen de open plek ligt (verst 11,7 m) en of hij bij de camera aankomt (0,3 m). (5) De eerste kampfoto stond met de
+camera 14,9 m van het midden achter de stammen; het klapbord hing voor zijn gezicht (nu voor de borst).
 
-*Proef*: `npm run nomercy2test`: NM2_UITKOMST. `npm run nomercytest` stopt nu bij de tweede take (stap 7) en het stuk
-met een eigen M1 staat in nomercy2test. Ook: OVERGANG_UITKOMST. *Foto's*: `npm run nomercyshots` erbij: nomercy_kamp.png,
+*Proef*: `npm run nomercy2test`: 73 controles, alles goed (sluipen over 23 punten van een looproute zonder alarm, de
+cameraman hoogstens 6,5 m achter je, 21 schoten van de figuranten zonder schade, de balk 48 % na 1,45 s, 228 patronen
+na opslaan en laden, 171 → 171 programma's). `npm run nomercytest` (57, alles goed) stopt nu bij de tweede take (stap 7);
+het stuk met een eigen M1 staat in nomercy2test. Ook groen: `overgangtest` (19), `tempotest` (21) en `klusjestest` (45). *Foto's*: `npm run nomercyshots` erbij: nomercy_kamp.png,
 nomercy_radio.png, nomercy_klapbord.png.
 
 **De postbode (stap 141, 12 okt).**
