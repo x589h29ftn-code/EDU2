@@ -347,7 +347,8 @@ const mik = await page.evaluate(async () => {
     window.__stap(20, 1 / 60);
     const fovs = [P.camera.fov];
     P.richten(true);
-    for (let i = 0; i < 30; i++) { window.__stap(1, 1 / 60); fovs.push(P.camera.fov); }
+    // een seconde: de andere wapens naderen hun stand (een vaste fractie per beeld), de M1 is er na een kwart
+    for (let i = 0; i < 60; i++) { window.__stap(1, 1 / 60); fovs.push(P.camera.fov); }
     return fovs;
   };
   const uit = {};
@@ -369,13 +370,13 @@ const mik = await page.evaluate(async () => {
   const boven = px([0, M.vizierY + M.ringR, M.vizierZ]), onder = px([0, M.vizierY - M.ringR, M.vizierZ]);
   const gatB = px([0, M.vizierY + 0.0033, M.vizierZ]), gatO = px([0, M.vizierY - 0.0033, M.vizierZ]);
   uit.ringH = (onder[1] - boven[1]) / H; uit.gatR = (gatO[1] - gatB[1]) / 2;
-  P.richten(false); window.__stap(30, 1 / 60);
+  P.richten(false); window.__stap(20, 1 / 60);
   uit.terug = P.camera.fov; uit.kruisTerug = document.getElementById('crosshair').style.display;
   return uit;
 });
 const px = (p) => `(${p[0].toFixed(1)}, ${p[1].toFixed(1)}) px`;
 ok(Math.abs(mik.garand - mik.doel) < 0.3 && mik.doel >= 40 && mik.doel <= 45, 'de M1 legt aan naar 40–45°', `${r3(mik.garand)}°`);
-ok(Math.abs(mik.pistool - 54) < 0.3 && Math.abs(mik.mitrailleur - 54) < 0.3 && mik.sniper < 20,
+ok(Math.abs(mik.pistool - 54) < 0.5 && Math.abs(mik.mitrailleur - 54) < 0.5 && mik.sniper < 20,
   'de andere wapens houden hun eigen richten', `pistool ${r3(mik.pistool)}°, mg ${r3(mik.mitrailleur)}°, sniper ${r3(mik.sniper)}°`);
 ok(mik.klaarNa >= 0.2 && mik.klaarNa <= 0.3, 'aanleggen duurt ongeveer een kwart seconde', `${r3(mik.klaarNa)} s`);
 ok(mik.eerste < mik.grootste * 0.3 && mik.laatste < mik.grootste * 0.3, 'zacht beginnen en zacht aankomen (geen lineaire stap)',

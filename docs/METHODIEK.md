@@ -8118,10 +8118,95 @@ iron sights heen ziet dus denk wat meer inzoomen beeld."
   fractie mee); ring en korreltop staan op 0,0 px van het midden. Aanleggen duurt 0,25 s (`mikTijd`) en gaat door
   `soepel`, voor het wapen én de beeldhoek, met halverwege een fractie zakken en kantelen. De andere wapens houden
   `MIK_TIJD` en `MIK_FOV` (54°, de sniper zijn kijker). Het kruisje gaat al uit boven `mik` 0,5.
+- *Wat misging bij het richten*: `mik` in js/player.js loopt niet lineair maar nadert zijn doel met een vaste fractie per
+  beeld; na een halve seconde stond hij op 0,96, dus de M1 op 43,3° en de ring 24 px naast het midden. Voor de M1
+  (`mikSoepel`) loopt `mik` nu met vaste snelheid in `mikTijd`; de andere wapens houden het oude naderen.
 - *Proef*: `m1test` deel 10 (aanleggen: 42°, de andere wapens, de tijd, zacht begin en eind, ring en korrel op het
   scherm, de maat van de ring, het kruisje) en deel 11 (herladen per beeld van 1/60 s, leeg, half en vanuit het vizier:
-  de stap per beeld en het verschil tussen twee stappen begrensd, de laadhand, de ping, het beeld).
+  de stap per beeld en het verschil tussen twee stappen begrensd, de laadhand, de ping, het beeld). Gemeten: 42,000°,
+  pistool en mg 54°, sniper 18°; klaar in 0,250 s, eerste en laatste stap 0,38° tegen 3,0° in het midden; ring en
+  korrel op (0,0; 0,0) px, de ring 19,2 % van de hoogte; herladen stap ≤ 9,2 mm en 0,023 rad per beeld (vanuit het
+  vizier 15,1 mm), snelheidsverschil ≤ 2,2 mm en 0,005 rad (vanuit het vizier 3,4 mm en 0,009), het beeld hoogstens
+  0,011 rad. `m1test` groen, 62 controles (was 41), 100 → 100 programma's.
   **Foto's**: `m1shots` met m1_richten (16:9, 42°) en m1_herladen_1..4 (16:9: 0,30 / 0,47 / 0,57 / 0,655 van de tijd).
+
+**Levens zoals in GTA (stap 138, 11 okt).**
+
+"Qua health, ik wil iets net als GTA. Dat je de eerste 50 % health langzaam terug krijgt als je buiten combat
+blijft, dus niet geraakt wordt. En dan 50 % daarna met levens gebruiken, die je kan kopen of kibbeling ed eten.
+Je healthpacks bij Tinga State kan je later inzetten met een knop en max 5 meenemen."
+
+- *Een eigen module*, js/gezondheid.js, met de maten in `LEVEN` (vanzelf tot 50, wacht 5 s, 2 per seconde,
+  hoogstens 5 dozen, +40 per doos, € 100). `js/leven.js` bestond al (het tuinfeest), vandaar de naam.
+- *Geraakt* lees ik niet uit de twintig plekken die `player.health -=` doen (bewaking, politie, bendes, knallen,
+  missie 18 …) maar uit het leven zelf: lager dan het vorige beeld = een treffer, de wachttijd opnieuw. Zo telt
+  elke bron mee, ook een nieuwe. Omhoog is nooit een treffer, dus de proeven die elk beeld `health = 100` zetten
+  merken er niets van. `update(dt)` staat in de hoofdlus naast de vishandel; headless roept de proef hem zelf aan.
+- *Boven de helft* komt er vanzelf niets bij; bier, de barbecue, kibbeling en het bier bij VV Sneek gaan zoals
+  altijd tot 100.
+- *De verbandtrommel werd de EHBO-doos*: hetzelfde artikel in het schap (sleutel `ehbo`, hetzelfde getekende
+  plaatje), maar hij gaat mee in je tas (`player.packs`) in plaats van meteen op. Met vijf staat hij niet meer in
+  het schap. `EHBO` in js/boerderij.js leest nu uit `LEVEN`, dus de legenda (die "verband" zei en nu "EHBO") en
+  `legendatest` rekenen met dezelfde prijs.
+- *De toets*: H was al bezet (wapen weg, js/player.js en js/main.js), dus **L** ("leven"). Niet op het
+  startscherm, niet met de drone in de lucht, niet bij vol leven, niet zonder dozen, niet als je neer bent.
+  Inzetten: +40 tot 100, een groene gloed om de balk (`hud.levenPuls`), een melding en een ritsje met twee
+  tonen (`geluid.verband`, gemaakt, geen opname).
+- *De HUD*: een wit streepje op de helft van de levensbalk (`#levenhelft`), en naast het getal een wit doosje met
+  een rood kruis in CSS en "×n" (`#levenpacks`, `hud.zetPacks`); bij nul weg, met een eigen `[hidden]`-regel
+  (stap 106). L staat in de besturing van het menu, en er is een tip bij het laden.
+- *De opslag* bewaart `speler.packs` (0–5); `update` zet de HUD bij zodra `player.packs` verandert, dus ook na
+  het laden.
+- *Wat misging*: de eerste ronde van de proef kocht niets — `boerderij.toets` werkt alleen met `player.active`
+  (of `__autoplay`), `koopLeven()` wel; de proef zet nu `active` aan de toonbank.
+
+**Proeven**: `levenstest` (nieuw) groen, 28 controles: herstel na 5 s, 2 per seconde, opnieuw na een treffer, tot
+50 en niet verder, niets boven 50, niets op nul; kibbeling 50 → 75 en het herstel laat dat staan; vijf dozen
+kopen, de zesde niet en kost niets, kopen geeft geen leven; L 35 → 75, 80 → 100, niets bij vol, zonder dozen,
+neer of op het startscherm; het streepje op de helft, het doosje met ×3 en rood kruis, weg bij nul, L in het menu;
+de opslag. `winkeltest` aangepast aan de EHBO-doos (deel 4b).
+
+**De scooterrijder en de tracers van Mark en Johan (stap 138, 11 okt).**
+
+"Zie foto scooter, zorg dat de persoon logischer zit en het stuur vast houdt." Op de foto zat de bezorger van
+Pizzeria Sneek te hoog en te ver naar achteren, met gestrekte armen in de lucht, en stond het stuur los voor hem.
+Alle drie de scooters (de bezorger in js/leven.js, jij op de scooter van de pizzabaan, de handlangers van missie 18)
+lieten hun rijder zitten met `update(dt, { zit })`, de houding van de bank (handen naar de knieën), en het
+beenschild helde van de rijder af, zodat het stuur verder voor zijn schouders hing dan zijn armen lang zijn.
+
+- *De maten* staan nu op één plek, `SCOOTER` in js/lichaam.js: het zadel (bovenkant 0,80 m), de heup, de treeplank,
+  de handgreep (±0,25; 1,08; −0,36) en het beenschild, dat nu met 0,22 rad naar de rijder toe helt. Het stuur
+  (`stuurDelen` in js/leven.js: een kolom vanaf de bovenkant van het schild, de stang en twee rubberen grepen,
+  `handvatL`/`handvatR`) is voor alle drie hetzelfde; de handlangers hadden er geen.
+- *`Persoon.opScooter(dt, nul)`* zet het heupgewricht 6,8 cm (een broekdikte) boven het zadel op z 0,22, de romp
+  0,38 rad voorover, en rekent armen en benen uit met een tweeledige IK (`tweeLeden` in js/persoon.js: de
+  cosinusregel voor elleboog of knie, dan Rz en Rx van het bovenstuk, in de volgorde van three). De hand mikt met
+  het midden van de handpalm (3,2 cm onder de pols) op de greep, de enkel op de plank plus een zool; de schoen draait
+  plat terug, het hoofd kijkt de weg op. `update` zet de zijdraai van de benen weer op nul, zodat wie afstapt recht
+  loopt. `gewrichten()` geeft de handpalmen, heupen, knieën en enkels in de wereld, voor de proef.
+- *Nagerekend vóór het bouwen*: met de schouder op 1,34 m en de greep waar hij stond was de afstand 0,61 m tegen een
+  arm van 0,55 m (tot het midden van de hand). Het stuur kwam daarom 22 cm terug en 6 cm hoger; nu is het 0,47 m en
+  buigt de elleboog 61°.
+
+De tracers. Eerst gelezen als "Mark en Johan hebben nog geen tracers", maar die hadden ze sinds stap 129 al
+(`grondvuur.streep` uit `rijHulp` en bij de loods). De gebruiker legde het uit: "De tracers zijn nog van helicopter
+deel van de missie en tracers moeten dus weg daarna. Nu hangen ze in de lucht zonder iets te doen." De oorzaak zat
+in js/grondvuur.js: de staart van een streep werd gerekend als `kop − lang`, met de kop afgekapt op de lengte van
+het schot. Een schot korter dan de streep zelf (9 m) kreeg zo een staart die altijd op nul bleef en ging nooit uit.
+In de heli schieten ze van 40 tot 80 m, daar zag je het niet; Mark en Johan schieten op een handlanger of een man
+bij de loods op een paar meter, en die strepen bleven tot het einde van de missie in de lucht hangen. Nu rekent de
+staart vanaf de afgelegde weg (`s − lang`, begrensd op de lengte). Verder ruimt `naLanden` de strepen van de heli
+ook op (na laden of opnieuw; `avondLanden` deed dat al), en na de achtervolging en het gevecht vliegt een streep
+die nog onderweg is uit (`grondvuur.update(dt, null)` zolang er een aan is). Mark en Johan houden hun tracers.
+
+**Proeven**: `npm run scootertest` (nieuw) groen, 42 controles: voor elk van de drie scooters elke hand 0,0 cm van
+zijn greep, de ellebogen 61–63° gebogen, het heupgewricht 6,8 cm boven het zadel, het laagste punt van bekken en
+bovenbenen 0,8–0,9 cm in de zitting (het kussen), de zolen 0,3 cm in de plank, de schoenen binnen de plank, niets
+door het beenschild, het hoofd 26 cm vóór de heup, de knieën op 0,79 m onder het stuur; na het afstappen geen
+zijdraai; een streep van 4 m en van 1,5 m uit na 0,1 s (was: nooit), van 60 m na 0,4 s; na de heli nul strepen; in
+de achtervolging schieten Mark en Johan met strepen en die blijven niet hangen. `buurttest` en `wensen3test`
+opnieuw groen. **Foto's**: `npm run scootershots` (scooter_rijder.png schuin van voren zoals de foto van de
+gebruiker, scooter_rijder_zij.png van opzij).
 
 **Wat nog niet af is** (in volgorde).
 

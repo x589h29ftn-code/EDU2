@@ -70,7 +70,7 @@ const meting = await page.evaluate(async ({ GROND, VERKEER }) => {
   });
   const ray = new THREE.Raycaster();
   const omlaag = new THREE.Vector3(0, -1, 0);
-  const isGroen = (m) => ['berm', 'gras', 'heesters', 'bos', 'bodembedekker', 'dijk'].includes(m.object.userData.klasse)
+  const isGroen = (m) => ['berm', 'gras', 'heesters', 'bos', 'bodembedekker'].includes(m.object.userData.klasse) || /dijk/.test(m.object.userData.klasse || '')
     || (m.object.material && /gras|dijk|groen/i.test(m.object.material.name || ''));
   let punten = 0, groenBoven = 0, verkeerdHoog = 0, gat = 0, maxAf = 0;
   const voorbeelden = [];

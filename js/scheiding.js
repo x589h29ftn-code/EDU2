@@ -138,6 +138,18 @@ export function bouwScheidingen(scene, W, KM, lijst, grond = () => 0, opWeg = nu
   const verf = nieuw();
   let n = 0;
   let overgeslagen = 0;
+  // de laagste en hoogste grond langs een stuk muur, aan beide kanten (stap 138)
+  const bereik = (a, b, dik) => {
+    const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz) || 1;
+    const nx = -dz / L * (dik / 2 + 0.4), nz = dx / L * (dik / 2 + 0.4);
+    let lo = Infinity, hi = -Infinity;
+    for (const f of [0, 0.5, 1]) for (const z of [-1, 0, 1]) {
+      const y = grond(a[0] + dx * f + nx * z, a[1] + dz * f + nz * z);
+      lo = Math.min(lo, y); hi = Math.max(hi, y);
+    }
+    return [lo, hi];
+  };
+  const helling = (a, b, dik) => { const [lo, hi] = bereik(a, b, dik); return hi - lo > 0.15; };
 
   for (const s of lijst) {
     const h = s.h || 1.6;
@@ -184,6 +196,28 @@ export function bouwScheidingen(scene, W, KM, lijst, grond = () => 0, opWeg = nu
         }
       } else if (s.soort === 'damwand') {
         doosNaar(hout, a, b, y0 - 0.6, y0 + h, dik, 0.7);
+      } else if (helling(a, b, dik)) {
+        /*
+         Een muur op een helling (stap 138): de keermuren langs de bak van de N7
+         bij (719, −156) staan in de BGT op de rand van de bak, half op het talud.
+         Eén doos van de laagste grond tot twee meter daarboven stak als een grijze
+         driehoek uit het gras, en aan de hoge kant stond er niets. Nu in stukjes
+         van hoogstens anderhalve meter, elk van de laagste grond aan zijn twee
+         kanten tot een meter boven de hoogste: een keermuur, die de grond
+         tegenhoudt en er een eind boven uitsteekt.
+        */
+        const stukjes = Math.max(1, Math.ceil(L / 1.5));
+        for (let k = 0; k < stukjes; k++) {
+          const p = [a[0] + (b[0] - a[0]) * k / stukjes, a[1] + (b[1] - a[1]) * k / stukjes];
+          const q = [a[0] + (b[0] - a[0]) * (k + 1) / stukjes, a[1] + (b[1] - a[1]) * (k + 1) / stukjes];
+          const [lo, hi] = bereik(p, q, dik);
+          const top = hi + (hi - lo > 0.5 ? Math.min(h, 1) : h);
+          doosNaar(beton, p, q, lo - 0.2, top, dik, 0.45);
+          const c = W.addCollider((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, L / stukjes / 2, Math.max(0.12, dik / 2), yaw, top - lo);
+          c.y0 = lo;
+        }
+        weg += L;
+        continue;
       } else {
         doosNaar(beton, a, b, y0 - 0.2, y0 + h, dik, 0.45);
         /*

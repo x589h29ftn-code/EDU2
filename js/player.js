@@ -793,7 +793,12 @@ export class Player {
     this.wisselStap(dt);
     if (this.inCar || this.wapenUit || this.reloading > 0 || this.wisselT > 0) this.richtAan = false;
     const mikDoel = this.richtAan ? 1 : 0;
-    this.mik += Math.max(-1, Math.min(1, mikDoel - this.mik)) * Math.min(1, dt / ((this.wapen && this.wapen.mikTijd) || MIK_TIJD));
+    if (this.wapen && this.wapen.mikSoepel) {
+      // (stap 138) de M1: met vaste snelheid in `mikTijd` naar het doel; de zachte overgang komt van soepel() in
+      // js/wapen.js en zetBeeldhoek (een naderende stap zoals hieronder kwam in een halve seconde niet aan)
+      const stap = dt / this.wapen.mikTijd;
+      this.mik += Math.max(-stap, Math.min(stap, mikDoel - this.mik));
+    } else this.mik += Math.max(-1, Math.min(1, mikDoel - this.mik)) * Math.min(1, dt / MIK_TIJD);
     if (Math.abs(this.mik - mikDoel) < 0.002) this.mik = mikDoel;
     this.zetBeeldhoek();
     /*

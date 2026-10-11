@@ -191,10 +191,40 @@ function trianguleer(ringen) {
 let HF = null;
 const HF_ZIJ = 2.5;      // maximale zijde van een driehoek op de helling
 
+/*
+ Stap 138: tot hier stopte het opdelen na zes keer halveren. Een grasvlak van de
+ BGT langs de bak van de N7 is honderden meters lang, en earcut maakt daar
+ linten van driehoeken van; na zes keer halveren bleef er een driehoek van tien,
+ twintig meter over die met één hoekpunt op maaiveld en twee in de bak lag — een
+ groen vlak dat schuin over de rijksweg hing (melding bij (719, −156)). Ook een
+ kleine driehoek die over de knik onderaan het talud ligt, hief de rand van de
+ weg tot dertig centimeter op.
+
+ Nu deelt hij op zolang hij te groot is én in de buurt van een viaduct ligt
+ (`HF_VAK`, de omhullende rechthoeken), en daarna nog zolang de hoogte tussen
+ de hoekpunten meer dan vier centimeter van de rechte lijn afwijkt, tot een
+ zijde van een kwart meter. Wat ver van elk viaduct ligt blijft één driehoek.
+*/
+let HF_VAK = [];
+const HF_KNIK = 0.04, HF_MIN = 0.25;
+function bijViaduct(A, B, C) {
+  const x0 = Math.min(A[0], B[0], C[0]) - 2, x1 = Math.max(A[0], B[0], C[0]) + 2;
+  const z0 = Math.min(A[1], B[1], C[1]) - 2, z1 = Math.max(A[1], B[1], C[1]) + 2;
+  return HF_VAK.some(q => x1 >= q[0] && x0 <= q[2] && z1 >= q[1] && z0 <= q[3]);
+}
+function knikt(A, B, C) {
+  const hA = HF(A[0], A[1]), hB = HF(B[0], B[1]), hC = HF(C[0], C[1]);
+  for (const [u, w] of [[0.5, 0], [0, 0.5], [0.5, 0.5], [1 / 3, 1 / 3]]) {
+    const x = A[0] + (B[0] - A[0]) * u + (C[0] - A[0]) * w, z = A[1] + (B[1] - A[1]) * u + (C[1] - A[1]) * w;
+    if (Math.abs(HF(x, z) - (hA + (hB - hA) * u + (hC - hA) * w)) > HF_KNIK) return true;
+  }
+  return false;
+}
+
 function driehoek(A, B, C, y, uvSchaal, pos, uv, nor, diep = 0) {
   const zij = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
   const lang = Math.max(zij(A, B), zij(B, C), zij(C, A));
-  if (diep < 6 && lang > HF_ZIJ) {
+  if (diep < 24 && ((lang > HF_ZIJ && (diep < 6 || bijViaduct(A, B, C))) || (lang > HF_MIN && knikt(A, B, C)))) {
     // langste zijde halveren en beide helften opnieuw
     const m = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
     if (zij(A, B) === lang) { const M = m(A, B); driehoek(A, M, C, y, uvSchaal, pos, uv, nor, diep + 1); driehoek(M, B, C, y, uvSchaal, pos, uv, nor, diep + 1); }
@@ -615,6 +645,7 @@ export function* bouwKaartWereldStap(scene, W) {
   // Vakken die op of tegen een viaduct liggen krijgen de hoogte van het
   // dijklichaam mee; de rest blijft plat en dus net zo goedkoop als eerst.
   const viaVakken = (K.viaducten || []).map(v => v.bbox);
+  HF_VAK = viaVakken;
   /*
    −Infinity betekent: geef me de grond zelf, nooit het dek erboven. Met 0 zou
    het wegdek onder het viaduct goed gaan (dat ligt op maaiveld) maar de rijksweg
@@ -2047,6 +2078,37 @@ function bouwLantaarns(scene, W) {
     if (!tegels.has(k)) tegels.set(k, { k, i: Math.floor(x / TEGEL_L), j: Math.floor(z / TEGEL_L), n: 0 });
     return tegels.get(k);
   };
+  /*
+   Een lantaarn op het talud van de bak van de N7 (stap 138, melding "lantaarns op
+   rare plekken" bij (719, −156)): de BGT zet de palen langs de rand van de
+   rijksweg, en waar de bak met een talud van twee à drie meter zakt, valt zo'n
+   punt midden op de helling. Hij stond dan schuin half in het gras, met zijn kop
+   op ooghoogte van wie bovenaan loopt. Zo'n paal schuift naar het dichtstbijzijnde
+   vlakke stuk (helling onder 30 %), hoogstens zes meter verderop. Dit verschuift
+   de kaartgegevens zelf, zodat de botsdoos en het licht meeschuiven.
+  */
+  const helling = (x, z) => {
+    const h = grondHoogte(x, z, -Infinity);
+    let m = 0;
+    for (const [dx, dz] of [[0.6, 0], [-0.6, 0], [0, 0.6], [0, -0.6]]) m = Math.max(m, Math.abs(grondHoogte(x + dx, z + dz, -Infinity) - h) / 0.6);
+    return m;
+  };
+  for (const l of K.lantaarns) {
+    if (l._vlak || !(K.viaducten || []).some(V => l.x >= V.bbox[0] && l.x <= V.bbox[2] && l.z >= V.bbox[1] && l.z <= V.bbox[3])) continue;
+    l._vlak = true;
+    if (helling(l.x, l.z) <= 0.5) continue;
+    let best = null;
+    for (let r = 0.5; r <= 6 && !best; r += 0.5) {
+      for (let a = 0; a < 16; a++) {
+        const x = l.x + Math.cos(a * Math.PI / 8) * r, z = l.z + Math.sin(a * Math.PI / 8) * r;
+        // niet op de rijbaan zelf
+        const v = vlakOp(x, z);
+        if (v && (v.k === 'autoweg' || v.k === 'rijbaan')) continue;
+        if (helling(x, z) < 0.3 && helling(x, z) < (best ? best.h : 1)) best = { x, z, h: helling(x, z) };
+      }
+    }
+    if (best) { l.x = best.x; l.z = best.z; }
+  }
   const plek = K.lantaarns.map(l => { const t = tegelVan(l.x, l.z); return { t, j: t.n++ }; });
   /*
    En per tegel twee stapels koppen: de palen die de hele nacht branden en de
