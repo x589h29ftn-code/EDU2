@@ -42,6 +42,8 @@ const opname = async (nr, van, naar, uur = 13) => {
     for (let i = 0; i < 5; i++) g.sfeer.update(0.1, van[0], van[2]);
     if (g.werkOmgevingBij) g.werkOmgevingBij(7);
     C.position.set(van[0], van[1], van[2]); C.lookAt(naar[0], naar[1], naar[2]); C.updateMatrixWorld(true);
+    // de luchtbol volgt de camera in de hoofdlus; die draait hier niet (anders een zwart gat in de lucht)
+    g.scene.traverse(o => { if (o.isMesh && o.frustumCulled === false && o.geometry && o.geometry.type === 'SphereGeometry' && o.material && o.material.side === 1 && o.material.uniforms) o.position.copy(C.position); });
     W.updateLOD(C.position.x, C.position.z);
     g.vehicles.lod(C.position.x, C.position.z);
     if (g.grasVeld) g.grasVeld.update(C.position.x, C.position.z, true);

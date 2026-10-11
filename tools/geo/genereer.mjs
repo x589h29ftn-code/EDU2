@@ -1379,7 +1379,7 @@ const SCHEIDINGEN = [];
       const v = tel2 ? som / tel2 : 0;
       pts.push([r2(r.cx + u * c - v * sn), r2(r.cz + u * sn + v * c)]);
     }
-    return { pts, dik: r2(Math.max(0.2, Math.min(1.2, r.B))), vulling: Math.abs(oppervlak(ring)) / Math.max(1e-6, r.L * r.B) };
+    return { pts, dik: r2(Math.max(0.2, Math.min(1.2, r.B))), vulling: Math.abs(oppervlak(ring)) / Math.max(1e-6, r.L * r.B), B: r.B };
   };
 
   /*
@@ -1540,7 +1540,9 @@ const SCHEIDINGEN = [];
       const band = bandHartlijn(ring);
       if (band) { hartTel.band++; for (const st of band) voeg(soort, st.pts, { dik: st.dik }); continue; }
       const hl = hartlijn(ring);
-      if (hl && hl.vulling > 0.8) { hartTel.recht++; voeg(soort, hl.pts, { dik: hl.dik }); } else hartTel.weg++;
+      // (een "muur" van zes meter breed is een blok — bij de fietstunnel noord de hele tunnelmond, waar
+      // js/viaduct.js de wanden al zet; als muur stond hij midden op het fietspad in de tunnel)
+      if (hl && hl.vulling > 0.8 && hl.B < 2.5) { hartTel.recht++; voeg(soort, hl.pts, { dik: hl.dik }); } else hartTel.weg++;
     }
   }
   for (const f of leesOpt('bgt_weginrichtingselement')) {

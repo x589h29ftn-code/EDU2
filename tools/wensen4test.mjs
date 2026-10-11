@@ -254,10 +254,10 @@ const ag2 = await page.evaluate(async () => {
   let dh = Math.abs(hoek(aanval) - hoek(flank)); if (dh > Math.PI) dh = 2 * Math.PI - dh;
   const d = (a) => Math.hypot(a.persoon.groep.position.x - P.pos.x, a.persoon.groep.position.z - P.pos.z);
   Po.reset();
-  return { rollen: lijst.map(a => a.rol), dAanval: d(aanval), dFlank: d(flank), hoek: dh * 180 / Math.PI, afst: A.afst };
+  return { rollen: lijst.map(a => a.rol), dAanval: d(aanval), dFlank: d(flank), hoek: dh * 180 / Math.PI, afst: A.afst, pos: [P.pos.x, P.pos.z] };
 });
 ok(ag2.rollen && ag2.rollen.includes('aanval') && ag2.rollen.includes('flank'), 'twee rollen in een wagen', (ag2.rollen || []).join(', '));
-ok(ag2.dAanval < ag2.dFlank && ag2.hoek > 35, 'de een komt dichterbij, de ander gaat er een boog omheen', `aanval ${r1(ag2.dAanval)} m, flank ${r1(ag2.dFlank)} m, ${r1(ag2.hoek)}° uit elkaar`);
+ok(ag2.dAanval < ag2.dFlank && ag2.hoek > 35, 'de een komt dichterbij, de ander gaat er een boog omheen', `aanval ${r1(ag2.dAanval)} m, flank ${r1(ag2.dFlank)} m, ${r1(ag2.hoek)}° uit elkaar, bij ${(ag2.pos || []).map(r1).join(', ')}`);
 
 console.log(fouten ? `\n${fouten} fout(en)` : '\nAlles goed.');
 console.log('EINDE');

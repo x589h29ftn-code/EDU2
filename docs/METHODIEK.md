@@ -8213,6 +8213,69 @@ met `opScooter`, geven precies dezelfde afstanden tot de deur (0,4–1,0 m; twee
 in `deurVan` en de adreskeuze, niet in deze stap. **Foto's**: `npm run scootershots` (scooter_rijder.png schuin van voren zoals de foto van de
 gebruiker, scooter_rijder_zij.png van opzij).
 
+**Het viaduct bij (719, −156) en de muurtjes bij (960, −195) (stap 138, 11 okt).**
+
+Twee meldingen met foto's. "Op plek 960.0, −194.9 zitten ook rare objecten op de weg": 's nachts witte betonnen
+muurtjes die zigzaggend over de rijbaan en de stoep langs de Geeuw liepen. En "Locatie 719.3, −156.2 loopt raar, dit
+is de viaduct": de bak van de N7 onder de rotonde aan de Lemmerweg (`verdiept`, stap 46), met een groot groen vlak dat
+schuin over de rijksweg hing, grijze driehoeken die uit de taluds staken, lantaarns half op de helling en
+grassprietjes in de lucht. De naam `viaducttest` was al van het viaduct Tinga (stap 15); de proef heet daarom
+`onderdoorgangtest`.
+
+*De muurtjes: twee fouten in tools/geo/genereer.mjs, allebei al van stap 47.* Een BGT-muur is een lang smal vlak;
+`hartlijn` maakte daar een lijn van door de ring op de langste as van de kleinste rechthoek te projecteren en per twee
+meter te middelen. Dat gaat goed zolang de muur recht is. De kademuur hier is 563 m omtrek en 43 cm dik maar maakt een
+bocht van 85 m opzij: in elk strookje van twee meter vielen punten van de voorkant en van de achterkant tientallen
+meters uit elkaar, en het gemiddelde zigzagde over de weg. Gemeten aan de bron waren 31 van de 48 muurvlakken krom
+genoeg om het mis te laten gaan; de zigzag over de rondweg bij (−168, −484) van stap 130 was dezelfde fout, en stap
+130 knipte daar alleen de stukken weg die midden op de rijbaan vielen. Nu loopt `bandHartlijn` de rand zelf af: de
+ring fijn bemonsterd, de twee koppen waar de rand binnen drie keer de dikte omkeert terwijl de twee kanten daar dicht
+bij elkaar liggen, en per halve meter langs de ene kant het midden met het dichtstbijzijnde punt van de andere. Waar
+de overkant ineens ver weg is, breekt de lijn; valt hij niet voor 85 % in het vlak, dan geeft hij niets. De dikte is
+de mediaan van die afstanden. Een "muur" van zes meter breed (de mond van de fietstunnel noord, die js/viaduct.js al
+van wanden voorziet) is een blok en vervalt; daarvoor stond er een muur midden op het fietspad in de tunnel.
+De tweede fout zat in `dun`: die toetste elk punt alleen tegen de lijn naar zijn buurman, en bij een bocht in punten
+van een halve meter wijkt geen enkel punt daarvan af. De kademuur werd zo één rechte lijn van 180 m die zeven meter de
+wal op stond. Nu is het Douglas-Peucker. Van de 47 muurvlakken worden er 42 een band, 1 de oude rechte lijn en 4
+vervallen (`telling.scheiding_vlak_*` in de kaart).
+
+*Het groene vlak: twee oorzaken.* (1) `driehoek` in js/kaartwereld.js deelt een vlak op een helling op tot zijden van
+2,5 m, maar stopte na zes keer halveren. Earcut maakt van een berm van 350 m linten, en daarvan bleef dan een driehoek
+van tien, twintig meter over met één hoekpunt boven en twee in de bak. Nu deelt hij door zolang hij groter is dan 2,5 m
+én bij een viaduct ligt (`HF_VAK`), en daarna zolang de hoogte tussen de hoekpunten meer dan 4 cm afwijkt van de rechte
+lijn (`knikt`), tot een kwart meter: de knik onderaan het talud tilde de rand van de weg anders 30 cm op. Van 24.242
+naar 66.724 driehoeken in de bak; ver van een viaduct verandert niets. (2) De onderlaag van de fietstunnels
+(js/viaduct.js). Die lopen sinds stap 46b tot ín de bak van de N7 door, en hun onderlaag lag daar op hun eigen profiel
+— de teen op maaiveld, de bodem op −3,2 m — terwijl de grond er op −5,6 m ligt. Dat was het vlak van 7.webp (in de
+proef: `viaduct_dijk` op −0,1 m boven een rijbaan op −5,25). Een stuk van de strook waarvan een hoek meer dan 30 cm
+boven `grondHoogte` uitkomt, hoort bij de diepere bak en vervalt.
+
+*De rest.* Muren op een helling (de keermuren op de rand van de bak) waren één doos van de laagste grond tot twee meter
+daarboven: een grijze driehoek uit het talud. Nu in stukjes van anderhalve meter, elk van de laagste grond aan zijn
+twee kanten tot een meter boven de hoogste (js/scheiding.js, `bereik`). Negen lantaarns stonden op het talud (helling
+82 tot 933 %): de BGT zet ze langs de rand van de rijksweg. Een paal op een helling boven 50 % schuift nu naar het
+dichtstbijzijnde vlakke stuk binnen zes meter dat geen rijbaan is (`bouwLantaarns`). En de grassprietjes in 3D
+(`maakGrasVeld`) stonden op `v.y` van hun vlak, zonder de hoogte van de bak: ze zweefden op maaiveldhoogte boven de
+rijksweg (js/main.js telt nu `grondHoogte` mee, of `dekh` op een dek).
+
+*Gemeten* (`npm run onderdoorgangtest`, voor → na): op een raster van een meter rond (719, −156), 1659 punten op de
+rijbaan in de bak (na: 1617, sinds ook de randen van de brugdekken eruit zijn): groen boven de rijbaan 207 → 0 punten, rijbaan op een andere hoogte dan
+`grondHoogte` 88 → 0 (grootste afwijking 6,65 → 0,05 m); driehoeken van de ondergrond die tussen hun hoekpunten meer dan
+30 cm naast de grond liggen 780 (487 m², ergste 4,48 m; alles meegeteld) → 0 (er blijven 3786 driehoekjes van hoogstens een halve meter
+over een loodrechte tunnelwand, onder de dekken van de fietstunnels; die tellen apart); lantaarns op het talud 9 → 0;
+zwevende grassprietjes 0 van 970. Rijden en lopen door de bak was al goed en blijft goed (een auto van 691 tot 830 op
+0,00 m van `grondHoogte`, te voet geen sprong). Muren over de hele kaart waarvan het midden en een halve meter aan
+weerskanten op een rijbaan of stoep liggen: 471 m in de kaart, waarvan 169 m in beeld na het weglaten van stap 130 →
+0 m; rond (960, −195) 49 → 0 m. Het weglaten van stap 130 heeft niets meer te doen (0 stukken) en blijft als vangnet;
+`wensen4test` toetst daarom niet meer dat er iets weggelaten wordt, wel dat de rondweg vrij is (0 van 41 punten). Eén controle van `wensen4test` is rood, twee keer op
+rij en buiten dit werk: de flank van de agenten (24,4° uit elkaar, de grens is 35°) bij (766, 118), waar geen muur,
+viaduct of verplaatste lantaarn in de buurt ligt (nagemeten in de kaart van vóór en na).
+
+**Foto's**: `npm run onderdoorgangshots` (node tools/onderdoorgangshots.mjs 8123 voor|na): viaduct_voor_1…6.png en
+viaduct_na_1…6.png in docs/screenshots — 1 zoals 6.webp, 2 zoals 7.webp, 3 van opzij, 4 van boven, 5 westwaarts uit
+de bak, 6 zoals 4.png bij nacht. Een eigen camera buiten de hoofdlus moet de luchtbol meenemen (die volgt de camera in
+de lus); anders hangt er een zwart gat in de lucht.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
