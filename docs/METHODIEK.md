@@ -8025,6 +8025,44 @@ render van schuin boven.
 `m1_169.png` (1280 × 720, naast de foto uit Hell Let Loose te leggen) en `m1_vizierdicht.png` (het vizier en de hiel
 van achteren), en in de uitvoer de maat op het scherm.
 
+**De M1 Garand, kleiner in beeld (stap 136, 11 okt).**
+
+"De iron sights en bovenkant deel lijkt wel stuk groter dan de andere modellen in andere spellen. Check dit nog." Het
+gemiddelde van stap 135 (0,179 van de beeldbreedte over de knoppen) werd omhoog getrokken door Call of Duty (0,195) en
+de clipfoto (0,258, midden in de terugslag). Doel nu: de twee foto's in de gewone heupstand, Hell Let Loose en de
+sneeuw. Hell Let Loose opnieuw nagemeten op een uitsnede van 4× met raster: de linkerknop begint op x 797 en niet op
+770 (dat was de ring van de kast), dus de span is daar 155 px = 0,121 en niet 0,141.
+
+| maat (16:9) | HLL | sneeuw | doel | stap 135 | stap 136 |
+|---|---|---|---|---|---|
+| breedte over de knoppen / beeldbreedte | 0,121 | 0,123 | ~0,12–0,13 | 0,183 | **0,126** |
+| ring x / y | 0,674 / 0,585 | 0,675 / 0,549 | 0,675 / 0,55–0,58 | 0,643 / 0,531 | 0,668 / 0,573 |
+| korrel x / y | 0,540 / 0,521 | 0,518 / 0,483 | | 0,497 / 0,472 | 0,511 / 0,484 |
+| ring → korrel, in span (x, y) | −1,10, −0,30 | −1,27, −0,31 | | −0,80, −0,18 | −1,25, −0,40 |
+| doorsnede van de ring / span | 0,20 | 0,18 | | 0,207 | 0,203 |
+| ring boven de knik van de hiel / span | 0,49 | 0,53 | | 0,518 | 0,531 |
+| linkerhand / span | 0,65 | 0,68 | | 0,53 | 0,71 |
+| buitenkant van de oren / span | 0,69 | | (clipfoto 0,58) | 0,47 | 0,66 |
+| knop steekt buiten het oor uit / span | 0,21 | | (clipfoto 0,19–0,22) | 0,27 | 0,18 |
+| bovenkant van de oren boven het midden van de ring / span | ~0 | | (clipfoto 0,03) | 0,11 | ~0,02 |
+
+- *Verder weg*: `RUST` (0,0566, −0,068, −0,099) → (0,0887, −0,082, −0,153): de ring op ~19 cm van je oog in plaats
+  van ~14, dezelfde richting. De echte maten blijven; het geweer is niet geschaald. De hiel vult rechtsonder nu een
+  veel kleiner deel (de achterkant van de hiel staat op 84 % van de hoogte in beeld, was 94 %).
+- *Binnen het vizier*, naar Hell Let Loose en de clipfoto: de oren staan verder uit elkaar (het midden van de plaat op
+  1,5 cm in plaats van 1,22) en zijn 5 mm lager (de bovenkant 5,9 cm, ongeveer het midden van de ring); de knoppen
+  steken minder uit (de buitenkant 2,7 cm uit het midden, was 2,83; straal 0,95 cm, was 1,0), de trommels ertussen zijn
+  smaller; de voet is 3,3 cm breed om de oren te dragen; de ring 1,3 cm met een gaatje van 7,8 mm en een smaller
+  plaatje eronder. De hiel is 3,2 cm breed (was 3,0): op de foto's is hij aan de bovenkant 0,7–0,8 span, bij ons 0,6.
+- *Wat niet te halen is*: in Hell Let Loose is de achterkant van de hiel 1,08 span breed, bij ons 0,68. Met een echte
+  M1 (de hiel 5,6 cm achter het vizier) zou dat vragen om een oog op 7 cm van de hiel, en dan wordt het vizier met onze
+  beeldhoek (104° horizontaal) weer 0,17 van het beeld. Daar is een eigen, smallere beeldhoek voor het wapen voor nodig
+  (js/main.js `tekenWapen`), dus dat blijft zo.
+- *Bijwerking*: verder weg staat de vuist om de greep nu onderaan in beeld (de rechterhand; de mouw loopt steil
+  naar beneden het beeld uit).
+
+**Proeven**: `m1test` groen, 36 controles, 100 → 100 programma's; de lege clip 0,058 m omhoog in 0,16 s. Driehoeken 24.592 → 24.592, textuurgeheugen 35,2 MB (ongewijzigd). **Foto's**: `m1shots` opnieuw, alle acht.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -1679,8 +1679,11 @@ export function maakGarand(geluid) {
   const LOOP_Y = 0.030;
   const MOND_Z = -0.785;
   const KORREL = { y: 0.055, z: -0.752 };
-  const RING_R = 0.0068;                                   // de ring van de diopter, buiten (stap 135; was 0,009)
-  const KNOP = { x: 0.0283, y: 0.0478, r: 0.0100 };        // de buitenkant van de knoppen, en hun straal
+  const RING_R = 0.0065;                                   // de ring van de diopter, buiten (stap 135; was 0,009)
+  // de buitenkant van de knoppen, en hun straal (stap 136: 2,7 cm uit het midden in plaats van 2,83, straal 0,95 cm)
+  const KNOP = { x: 0.0270, y: 0.0478, r: 0.0095 };
+  // de beschermoren: het midden van de plaat opzij en de bovenkant (stap 136: verder uit elkaar en lager, naar de foto's)
+  const OOR = { x: 0.0150, top: 0.0588 };
   // de vizierlijn loopt van de diopter naar de top van de korrel iets omlaag; bij het richten kantelt het geweer zo ver
   const KANTEL = Math.atan2(VIZIER_Y - KORREL.y, VIZIER_Z - KORREL.z);
 
@@ -1730,13 +1733,13 @@ export function maakGarand(geluid) {
   const HIEL = [[0.016, 0.004], [0.016, 0.017], [-0.010, 0.035], [-0.052, 0.036], [-0.052, 0.004]];
   // (stap 135) rondere randen: 2,5 mm afronding om een kern van 2,5 cm, samen 3 cm breed zoals de echte hiel
   const HIEL_RAND = 0.0025;
-  vorm(fB, zijProfiel(HIEL, 0.025, HIEL_RAND, 3, 1), park);
+  vorm(fB, zijProfiel(HIEL, 0.027, HIEL_RAND, 3, 1), park);
   // de stempel als plaatje op de schuine kant, net boven het staal
   {
     const [a, c] = [HIEL[1], HIEL[2]];
     const dz = c[0] - a[0], dy = c[1] - a[1], L = Math.hypot(dz, dy);
     const nz = dy / L, ny = -dz / L;                         // de normaal: omhoog en naar achteren
-    const plaat = new THREE.PlaneGeometry(0.0245, L * 0.98);
+    const plaat = new THREE.PlaneGeometry(0.0265, L * 0.98);
     plaat.rotateX(-Math.atan2(ny, nz));
     plaat.translate(0, (a[1] + c[1]) / 2 + ny * (HIEL_RAND + 0.0002), (a[0] + c[0]) / 2 + nz * (HIEL_RAND + 0.0002));
     const m = new THREE.Mesh(plaat, stempel);
@@ -1773,7 +1776,7 @@ export function maakGarand(geluid) {
    buigen; links de hoogteknop en rechts de knop voor de windafwijking, gekarteld, met op de buitenkant een schijf
    met streepjes (de hoogte met de cijfers 2 tot 12) en een zeskantige asmoer in het midden.
   */
-  doos(fB, park, 0.027, 0.006, 0.022, 0, 0.0405, VIZIER_Z, 0.0012);                 // de voet
+  doos(fB, park, 0.033, 0.006, 0.022, 0, 0.0405, VIZIER_Z, 0.0012);                 // de voet
   doos(fB, park, 0.0205, 0.0040, 0.0040, 0, 0.0398, VIZIER_Z + 0.0118, 0.0006);       // de lijst van de schaal
   // de gleuf in de voet, waar het plaatje van de diopter uit komt: een donkere sleuf met een randje ervoor
   doos(fB, gleufStaal, 0.0098, 0.0012, 0.0050, 0, 0.0437, VIZIER_Z, 0.0003);
@@ -1781,21 +1784,21 @@ export function maakGarand(geluid) {
   // de twee beschermoren: gebogen platen die boven rond zijn en een fractie naar binnen buigen
   for (const sx of [-1, 1]) {
     const oor = zijProfiel([
-      [VIZIER_Z + 0.010, 0.040], [VIZIER_Z + 0.010, 0.056], [VIZIER_Z + 0.009, 0.064, VIZIER_Z + 0.001, 0.064],
-      [VIZIER_Z - 0.008, 0.064, VIZIER_Z - 0.010, 0.054], [VIZIER_Z - 0.011, 0.040],
+      [VIZIER_Z + 0.010, 0.040], [VIZIER_Z + 0.010, OOR.top - 0.008], [VIZIER_Z + 0.009, OOR.top, VIZIER_Z + 0.001, OOR.top],
+      [VIZIER_Z - 0.008, OOR.top, VIZIER_Z - 0.010, OOR.top - 0.010], [VIZIER_Z - 0.011, 0.040],
     ], 0.0022, 0.0007, 2, 6);
     const P = oor.attributes.position;
     for (let i = 0; i < P.count; i++) {
-      const t = Math.max(0, Math.min(1, (P.getY(i) - 0.044) / 0.020));
-      P.setX(i, P.getX(i) + sx * 0.0122 - sx * 0.0016 * t * t);
+      const t = Math.max(0, Math.min(1, (P.getY(i) - 0.044) / (OOR.top - 0.044)));
+      P.setX(i, P.getX(i) + sx * OOR.x - sx * 0.0016 * t * t);
     }
     vorm(fB, oor, park);
   }
   // de diopter: een dun plaatje dat uit de gleuf steekt, met bovenop een dikke ring met een klein gaatje
-  doos(fB, parkDonker, 0.0072, 0.0150, 0.0026, 0, 0.0505 - 0.0075 + 0.0008, VIZIER_Z, 0.0007);
+  doos(fB, parkDonker, 0.0058, 0.0150, 0.0026, 0, 0.0505 - 0.0075 + 0.0008, VIZIER_Z, 0.0007);
   {
     const v = new THREE.Shape(); v.absarc(0, 0, RING_R - 0.0006, 0, Math.PI * 2, false);
-    const gat = new THREE.Path(); gat.absarc(0, 0, 0.0036, 0, Math.PI * 2, true); v.holes.push(gat);
+    const gat = new THREE.Path(); gat.absarc(0, 0, 0.0039, 0, Math.PI * 2, true); v.holes.push(gat);
     const ring = new THREE.ExtrudeGeometry(v, { depth: 0.0022, bevelEnabled: true, bevelThickness: 0.0007, bevelSize: 0.0006, bevelSegments: 2, curveSegments: 24 });
     ring.translate(0, VIZIER_Y, VIZIER_Z - 0.0011);
     vorm(fB, glad(ring), parkDonker);
@@ -1803,7 +1806,7 @@ export function maakGarand(geluid) {
   // de knoppen: een gekartelde schijf buiten en een geribde trommel ertussen; de asmoer zeskantig, met een gleuf
   for (const sx of [-1, 1]) {
     vorm(fB, kartelGeo(KNOP.r, KNOP.r - 0.0009, 30, 0.0042, sx * (KNOP.x - 0.0021), KNOP.y, VIZIER_Z), park);
-    vorm(fB, kartelGeo(0.0074, 0.0069, 22, 0.0080, sx * 0.0198, KNOP.y, VIZIER_Z), parkDonker);
+    vorm(fB, kartelGeo(0.0070, 0.0065, 22, 0.0064, sx * 0.0196, KNOP.y, VIZIER_Z), parkDonker);
     vorm(fB, new THREE.CylinderGeometry(0.0031, 0.0031, 0.0020, 6).rotateZ(Math.PI / 2).translate(sx * (KNOP.x + 0.0010), KNOP.y, VIZIER_Z), blank);
     blok(fB, gleufStaal, 0.0006, 0.0006, 0.0042, sx * (KNOP.x + 0.0020), KNOP.y, VIZIER_Z);
   }
@@ -2129,8 +2132,12 @@ export function maakGarand(geluid) {
    al goed groot, maar 11 cm onder je oog, zodat je steil op het geweer neerkeek. De ring stond op 73 % van de hoogte,
    op de foto's op 53–58 %; de korrel zakte 0,68 knopbreedte onder de ring (de foto's 0,2–0,4). Nu staat het vizier
    vlak onder je ooghoogte en een fractie verder weg: je kijkt langs het geweer, zoals op de foto's.
+   Stap 136 ("de iron sights lijken een stuk groter dan in andere spellen"): het gemiddelde van stap 135 werd omhoog
+   getrokken door Call of Duty en de clipfoto (in de terugslag). In de twee foto's in de gewone heupstand (Hell Let
+   Loose en de sneeuw) is de breedte over de knoppen 0,12 van het beeld: het geweer staat nu ~1,4 keer zo ver weg
+   (de ring op ~19 cm), de ring op 67 % van de breedte en 57 % van de hoogte.
   */
-  const RUST = { x: 0.0566, y: -0.068, z: -0.099 };
+  const RUST = { x: 0.0887, y: -0.082, z: -0.153 };
   const RUST_DRAAI = { x: 0.060, y: 0.080, z: 0.06 };
   // de stand bij het herladen: omhoog, de loop naar linksboven, de bovenkant naar je toe (zoals tot stap 134)
   const HERLAAD = { x: 0.012, y: -0.072, z: -0.255 };
@@ -2415,7 +2422,7 @@ export function maakGarand(geluid) {
     // (voor tools/m1shots.mjs, stap 135) de punten waaraan de maat op het scherm gemeten wordt
     meetpunten: {
       vizierY: VIZIER_Y, vizierZ: VIZIER_Z, ringR: RING_R, knop: KNOP, korrel: KORREL,
-      hielKnik: HIEL[2], hielAchter: HIEL[1], hielB: 0.030,
+      hielKnik: HIEL[2], hielAchter: HIEL[1], hielB: 0.032,
     },
     get terugslag() { return terugslag; },
     get veer() { return { ...veer }; },
