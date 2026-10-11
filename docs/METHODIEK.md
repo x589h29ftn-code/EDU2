@@ -7956,7 +7956,8 @@ boven in de open grendel gaat, en het geweer op een stoel met de riem en twee cl
   staal was grof als beton (korrel en vlekken te sterk, 180 slijpsporen die in de normal map als groeven lagen). En het
   glansdoek had eerst geen normal map: dat is een ander soort materiaal dan de rest, en dus een nieuwe shader.
 
-**Proeven**: `m1test` (ongewijzigd, ook de shaderteller). **Foto's**: `m1shots`, nu met `m1_dichtbij.png` (de kast,
+**Proeven**: `m1test` (ongewijzigd) groen, 100 → 100 programma's. Let op: de lege clip stijgt in de gemeten 0,16 s nu
+0,025 m (de grens is 0,02), omdat hij meer naar voren dan omhoog vliegt; wie de vlucht weer aanpast, kijkt daar eerst. **Foto's**: `m1shots`, nu met `m1_dichtbij.png` (de kast,
 de hendel, het hout en de riem van dichtbij) en het textuurgeheugen van het wapen in de uitvoer.
 
 **Wat nog niet af is** (in volgorde).
