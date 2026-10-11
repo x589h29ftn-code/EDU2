@@ -803,6 +803,8 @@ achtste schot springt de lege clip er met een ping uit; daarna druk je van boven
 
 ![Herladen: de clip van boven in de grendel](docs/screenshots/m1_herladen.png)
 
+![De M1 van dichtbij: walnoot, geparkeerd staal en de leren riem](docs/screenshots/m1_dichtbij.png)
+
 ![De M1 Garand van opzij](docs/screenshots/m1_zij.png)
 
 ## Tennispark Molenkrite
