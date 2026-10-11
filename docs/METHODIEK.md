@@ -8063,6 +8063,35 @@ sneeuw. Hell Let Loose opnieuw nagemeten op een uitsnede van 4× met raster: de 
 
 **Proeven**: `m1test` groen, 36 controles, 100 → 100 programma's; de lege clip 0,058 m omhoog in 0,16 s. Driehoeken 24.592 → 24.592, textuurgeheugen 35,2 MB (ongewijzigd). **Foto's**: `m1shots` opnieuw, alle acht.
 
+**De M1 Garand, de handen (stap 137, 11 okt).**
+
+"Als ik hem rechts vasthoud, zou dan mijn duim niet links moeten zitten van linker hand. Denk eens na hoe je hem
+vasthoudt. Wapen herlaadt hij dan met rechterhand." Een rechtshandige schutter houdt het voorhout met de linkerhand
+van onderen vast, de palm omhoog: het hout ligt in de palm, de duim langs de linkerkant, en de vingers krullen om de
+rechterkant omhoog. Bij ons was de linkerhand gespiegeld: de vingers links omhoog, de duim rechts (sinds stap 133, en
+in 135 alleen groter gemaakt).
+
+- *Linkerhand*: gespiegeld in x. Vier vingers van de palm om de rechterkant omhoog tot over de rand van het
+  bovenhout (rechts loopt de spanstang op 1,8 cm, de vingers liggen er op 3,1–3,6 cm naast en raken de hendel niet:
+  die zit 3 cm verder naar achteren), de duim links langs het voorhout naar voren.
+- *Rechterhand*: de vingers om de greep en de wijsvinger bij de trekker klopten al (0,5 cm van de trekker). De duim
+  lag links ónder de bovenkant van de hals en ligt er nu overheen, van rechts naar links. Wat misging: lager gelegd,
+  zodat hij minder in beeld komt, stak hij door het hout heen (een vlek huid op de kolf); de hals zit maar 11 cm voor
+  je oog, dus je ziet je duim rechtsonder, zoals in het echt.
+- *Herladen* deed al de rechterhand (de greephand verdwijnt, de laadhand met de clip komt van rechts, de linkerhand
+  blijft aan het voorhout). Nieuw: de voorste rand van de laadhand ligt tegen de achterkant van de spanstanghendel als
+  de grendel open staat (op −0,118), zoals op de foto van het laden; de palm schoof daarvoor 1,7 cm naar achteren.
+  De ping en R met een halve clip gaan met dezelfde handen.
+- *Proef*: `m1test` heeft een deel 8b, gemeten op het scherm met de camera van het spel: duimtop links van het voorhout
+  en de vingertop rechts ervan (x 0,538 < 0,569 < 0,581 van de beeldbreedte), de rechterduim links van de hals (0,730 <
+  0,800), de rechterwijsvinger 0,005 m van de trekker, en halverwege het herladen de laadhand zichtbaar, de greephand
+  weg, de linkerhand aan het voorhout en de laadhand rechts van de clip (NDC 0,18 tegen −0,07). De punten staan in
+  `meetpunten` (js/wapen.js).
+- *Kosten*: 24.592 → 24.800 driehoeken (de duim van de rechterhand in twee stukken), textuurgeheugen 35,2 MB.
+
+**Proeven**: `m1test` groen, 41 controles (was 36), 100 → 100 programma's. **Foto's**: `m1shots` opnieuw (alle acht,
+waaronder m1_169, m1_hand, m1_herladen en m1_ping).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
