@@ -13,6 +13,7 @@
  7. De naam en de patronen in beeld ("M1 Garand · 8 / …").
  8. Opslaan en laden houdt het wapen.
  9. Geen nieuwe shader: het model is bij het opstarten gemaakt.
+ (8b, stap 137: de handen van een rechtshandige schutter, op het scherm gemeten.)
 */
 import { chromium } from 'playwright';
 
@@ -261,6 +262,71 @@ const opslag = await page.evaluate(async () => {
 });
 ok(opslag.geladen !== false && opslag.wapens.includes('garand'), 'na laden heb je de M1 Garand nog', opslag.wapens.join(', '));
 ok(opslag.soort === 'garand' && opslag.ammo === 6, 'in je hand, met de patronen die erin zaten', `${opslag.soort}, ${opslag.ammo}`);
+
+// ------------------------------------------------------------------ 8b. de handen (stap 137)
+/*
+ "Als ik hem rechts vasthoud, zou dan mijn duim niet links moeten zitten van linker hand." Een rechtshandige schutter:
+ de linkerhand met de palm omhoog onder het voorhout, de duim links en de vingers rechts omhoog; de rechterhand om de
+ hals, de duim over de bovenkant naar links en de wijsvinger bij de trekker. Herladen doet de rechterhand: die laat
+ de greep los en drukt de clip van rechts in, terwijl de linkerhand het voorhout blijft vasthouden. Gemeten op het
+ scherm, met de camera van het spel.
+*/
+kop('de handen: rechtshandig');
+const handen = await page.evaluate(async () => {
+  const g = window.__game, P = g.player;
+  const { GARAND_HERLAAD } = await import('/js/wapen.js');
+  P.zetWapen('garand'); P.wisselT = 0; P.holster = 0; P.ammo = 8;
+  window.__klaar();
+  P.mik = 0;
+  window.__stap(30);
+  const W = P.wapen, M = W.meetpunten, wap = W.groep.children[0];
+  const V = W.groep.position.constructor;
+  const scherm = (obj, p) => {
+    P.camera.updateMatrixWorld(true); W.groep.updateMatrixWorld(true);
+    const v = obj.localToWorld(new V(...p)).project(P.camera);
+    return [(v.x + 1) / 2, (1 - v.y) / 2];
+  };
+  const r = {
+    duim: scherm(wap, M.linkerDuim), vinger: scherm(wap, M.linkerVinger), voorhout: scherm(wap, M.voorhout),
+    rDuim: scherm(W.delen.hand, M.rechterDuim), hals: scherm(wap, M.hals),
+  };
+  // de wijsvinger van de rechterhand bij de trekker, in de assen van het wapen
+  W.groep.updateMatrixWorld(true);
+  const wv = wap.worldToLocal(W.delen.hand.localToWorld(new V(...M.rechterWijsvinger)));
+  r.wijsTrekker = wv.distanceTo(W.delen.trekker.position);
+  // herladen: halverwege het indrukken
+  P.ammo = 0; P.reserve = Math.max(P.reserve, 16); P.vuurKlok = 0; P.reloading = 0;
+  P.reload();
+  let n = 0;
+  while (P.reloading > 0 && 1 - P.reloading / GARAND_HERLAAD < 0.48 && n < 400) { window.__stap(1, 0.02); n++; }
+  W.groep.updateMatrixWorld(true);
+  // het midden van alle stukken van een onderdeel op het scherm (NDC, −1 links … 1 rechts)
+  const midden = (obj) => {
+    obj.updateMatrixWorld(true);
+    let som = 0, n = 0;
+    obj.traverse(o => {
+      if (!o.isMesh) return;
+      o.geometry.computeBoundingBox();
+      const c = new V(); o.geometry.boundingBox.getCenter(c);
+      som += o.localToWorld(c).project(P.camera).x; n++;
+    });
+    return n ? som / n : NaN;
+  };
+  r.laad = {
+    laadhand: W.delen.laadhand.visible, greephand: W.delen.hand.visible, linkerhand: W.delen.linkerhand.visible,
+    handX: midden(W.delen.laadhand), clipX: midden(W.delen.clip),
+  };
+  window.__klaar(); window.__stap(10);
+  return r;
+});
+const rx = (p) => `x ${r3(p[0])}`;
+ok(handen.duim[0] < handen.voorhout[0] && handen.voorhout[0] < handen.vinger[0],
+  'de linkerhand onder het voorhout: de duim links, de vingers rechts', `duim ${rx(handen.duim)}, voorhout ${rx(handen.voorhout)}, vingertop ${rx(handen.vinger)}`);
+ok(handen.rDuim[0] < handen.hals[0], 'de duim van de rechterhand over de hals naar links', `duimtop ${rx(handen.rDuim)}, hals ${rx(handen.hals)}`);
+ok(handen.wijsTrekker < 0.03, 'de rechterwijsvinger bij de trekker', `${r3(handen.wijsTrekker)} m`);
+ok(handen.laad.laadhand && !handen.laad.greephand && handen.laad.linkerhand,
+  'herladen met de rechterhand: die laat de greep los, de linkerhand houdt het voorhout', `laadhand ${handen.laad.laadhand}, greep ${handen.laad.greephand}, links ${handen.laad.linkerhand}`);
+ok(handen.laad.handX > handen.laad.clipX, 'de laadhand komt van rechts', `hand x ${r3(handen.laad.handX)}, clip x ${r3(handen.laad.clipX)} (NDC)`);
 
 // ------------------------------------------------------------------ 9. shaders
 kop('geen nieuwe shader');

@@ -1997,7 +1997,11 @@ export function maakGarand(geluid) {
   }
   staaf(hB, huid, [0.025, -0.030, 0.010], [0.016, -0.034, -0.010], 0.0085);
   staaf(hB, huid, [0.016, -0.034, -0.010], [0.002, -0.037, -0.018], 0.0080);
-  staaf(hB, huid, [-0.006, -0.018, 0.038], [-0.022, -0.012, 0.016], 0.0098);   // de duim over de kolfhals
+  // de duim over de bovenkant van de kolfhals naar links (stap 137; tot dan lag hij links onder de bovenkant)
+  // (de hand staat 0,30 rad gekanteld; zo ligt de duim op de bovenkant van de hals. Lager stak hij door het hout, en
+  // omdat de hals maar 11 cm voor je oog zit, zie je hem rechtsonder in beeld, zoals je je eigen duim ziet)
+  staaf(hB, huid, [0.012, -0.004, 0.046], [-0.004, 0.018, 0.036], 0.0098);
+  staaf(hB, huid, [-0.004, 0.018, 0.036], [-0.021, 0.010, 0.020], 0.0092);
   const hand = bouw(hB, new THREE.Group());
   hand.rotation.x = 0.30;
   groep.add(hand);
@@ -2023,15 +2027,22 @@ export function maakGarand(geluid) {
   */
   const lB = bak();
   const HZ = -0.262;
-  doos(lB, huid, 0.058, 0.026, 0.094, -0.004, -0.042, HZ, 0.012, 2);
+  /*
+   Stap 137 ("als ik hem rechts vasthoud, zou dan mijn duim niet links moeten zitten van linker hand"): een linkerhand
+   met de palm omhoog onder het voorhout heeft zijn duim aan de linkerkant en krult de vingers om de rechterkant
+   omhoog. Tot stap 136 was het andersom: de vingers links, de duim rechts, een gespiegelde hand.
+  */
+  doos(lB, huid, 0.058, 0.026, 0.094, 0.002, -0.042, HZ, 0.012, 2);
+  // de vingers: van de palm onder het hout om de rechterkant omhoog, de toppen over de rand van het bovenhout
   for (let i = 0; i < 4; i++) {
     const z = HZ - 0.034 + i * 0.022, r = i === 3 ? 0.0084 : 0.0098;
-    staaf(lB, huid, [-0.024, -0.046, z], [-0.036, -0.012, z], r);
-    staaf(lB, huid, [-0.036, -0.012, z], [-0.031, 0.017, z + 0.002], r * 0.94);
-    staaf(lB, huid, [-0.031, 0.017, z + 0.002], [-0.021, 0.031, z + 0.003], r * 0.86);
+    staaf(lB, huid, [0.024, -0.046, z], [0.036, -0.012, z], r);
+    staaf(lB, huid, [0.036, -0.012, z], [0.031, 0.017, z + 0.002], r * 0.94);
+    staaf(lB, huid, [0.031, 0.017, z + 0.002], [0.021, 0.031, z + 0.003], r * 0.86);
   }
-  staaf(lB, huid, [0.018, -0.045, HZ + 0.030], [0.029, -0.008, HZ - 0.002], 0.0108);
-  staaf(lB, huid, [0.029, -0.008, HZ - 0.002], [0.026, 0.012, HZ - 0.028], 0.0098);
+  // de duim langs de linkerkant van het voorhout, naar voren
+  staaf(lB, huid, [-0.018, -0.045, HZ + 0.030], [-0.029, -0.008, HZ - 0.002], 0.0108);
+  staaf(lB, huid, [-0.029, -0.008, HZ - 0.002], [-0.026, 0.012, HZ - 0.028], 0.0098);
   const polsL2 = rondeDoosGeo(0.056, 0.054, 0.068, 0.019, 2);
   polsL2.translate(-0.010, -0.068, HZ + 0.056);
   vorm(lB, polsL2, huid);
@@ -2046,7 +2057,9 @@ export function maakGarand(geluid) {
    schuift dus met de clip mee.
   */
   const dB = bak();
-  doos(dB, huid, 0.030, 0.058, 0.070, 0.044, 0.030, CLIP_Z + 0.004, 0.011, 2);       // de palm, rechts van de clip
+  // de palm rechts van de clip; zijn voorste rand ligt tegen de achterkant van de spanstanghendel (die bij een open
+  // grendel op −0,118 staat) en houdt hem tegen, zoals op de foto van het laden (stap 137)
+  doos(dB, huid, 0.030, 0.058, 0.068, 0.046, 0.030, CLIP_Z + 0.021, 0.011, 2);
   staaf(dB, huid, [0.034, 0.046, CLIP_Z + 0.024], [0.012, 0.040, CLIP_Z + 0.004], 0.0098);   // de duim…
   staaf(dB, huid, [0.012, 0.040, CLIP_Z + 0.004], [0.001, 0.032, CLIP_Z - 0.008], 0.0090);   // …op de patronen
   for (let i = 0; i < 3; i++) {
@@ -2055,9 +2068,9 @@ export function maakGarand(geluid) {
     staaf(dB, huid, [0.036, -0.004, z - 0.004], [0.024, -0.010, z - 0.002], 0.0076);
   }
   const polsD = rondeDoosGeo(0.054, 0.050, 0.066, 0.019, 2);
-  polsD.translate(0.062, 0.010, CLIP_Z + 0.050);
+  polsD.translate(0.064, 0.010, CLIP_Z + 0.064);
   vorm(dB, polsD, huid);
-  mouwNaar(dB, stof, [0.070, 0.002, CLIP_Z + 0.072], [0.30, -0.78, 0.55], 0.44, 0.035, 0.040);
+  mouwNaar(dB, stof, [0.072, 0.002, CLIP_Z + 0.086], [0.30, -0.78, 0.55], 0.44, 0.035, 0.040);
   const laadhand = bouw(dB, new THREE.Group());
   laadhand.visible = false;
   wapen.add(laadhand);
@@ -2423,6 +2436,10 @@ export function maakGarand(geluid) {
     meetpunten: {
       vizierY: VIZIER_Y, vizierZ: VIZIER_Z, ringR: RING_R, knop: KNOP, korrel: KORREL,
       hielKnik: HIEL[2], hielAchter: HIEL[1], hielB: 0.032,
+      // (stap 137) de toppen van de linkerduim en de linkerwijsvinger, het voorhout ertussen, en de rechterduim boven de hals
+      linkerDuim: [-0.026, 0.012, -0.262 - 0.028], linkerVinger: [0.021, 0.031, -0.262 - 0.034 + 0.003], voorhout: [0, 0.014, -0.262],
+      // (de rechterduim in de assen van de rechterhand, `delen.hand`; de rest in die van het wapen)
+      rechterDuim: [-0.021, 0.010, 0.020], rechterWijsvinger: [0.002, -0.037, -0.018], hals: [0, 0.006, 0.024],
     },
     get terugslag() { return terugslag; },
     get veer() { return { ...veer }; },
