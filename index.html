@@ -166,6 +166,20 @@
            padding: 2px; box-sizing: border-box; }
   #levenbalk { height: 100%; width: 100%; border-radius: 2px; background: #4ade80; transition: width .15s, background .3s; }
   #levenlabel { position: absolute; left: 232px; bottom: 74px; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+  /* stap 138: de helft (tot daar komt je leven vanzelf terug) en de EHBO-dozen die je bij je hebt */
+  #leven { overflow: visible; }
+  #levenhelft { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; margin-left: -1px;
+                background: rgba(255,255,255,.85); pointer-events: none; }
+  #leven.puls { box-shadow: 0 0 0 2px #4ade80, 0 0 12px #4ade80; }
+  #leven { transition: box-shadow .4s; }
+  #levenpacks { position: absolute; left: 266px; bottom: 72px; display: flex; align-items: center; gap: 4px;
+                font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+  #levenpacks[hidden] { display: none; }
+  #levenpacks .doos { position: relative; width: 16px; height: 13px; border-radius: 3px; background: #f4f4f2;
+                      border: 1px solid rgba(0,0,0,.5); box-sizing: border-box; }
+  #levenpacks .doos::before, #levenpacks .doos::after { content: ''; position: absolute; background: #d62a2a; }
+  #levenpacks .doos::before { left: 6px; top: 2px; width: 2px; height: 7px; }
+  #levenpacks .doos::after { left: 3.5px; top: 4.5px; width: 7px; height: 2px; }
   /* grote melding: missie voltooid, neergegaan */
   #missie { position: absolute; left: 50%; top: 38%; transform: translate(-50%,-50%); text-align: center;
             font-size: 44px; font-weight: 800; letter-spacing: 2px; color: #ffd400;
@@ -346,6 +360,7 @@
     #geld .buit { font-size: 11px; }
     #dialoogKop { width: 44px; height: 44px; }
     #levenlabel { left: 148px; bottom: 44px; font-size: 10px; }
+    #levenpacks { left: 174px; bottom: 42px; font-size: 10px; }
     #missie { font-size: 26px; }
     #missie .onder { font-size: 13px; }
     .panel { max-width: 94vw; max-height: 88vh; overflow: auto; padding: 18px 20px; }
@@ -470,8 +485,9 @@
   <div id="opdracht" hidden></div>
   <div id="schaduwbalk" hidden><div class="spoor"><div class="wijzer"></div></div><div class="tekst"></div></div>
   <div id="fotoflits"></div>
-  <div id="leven"><div id="levenbalk"></div></div>
+  <div id="leven"><div id="levenbalk"></div><div id="levenhelft"></div></div>
   <div id="levenlabel">100</div>
+  <div id="levenpacks" hidden title="EHBO-dozen (L)"><span class="doos"></span><span id="levenpacksN">0</span></div>
   <div id="geld" hidden></div>
   <div id="ster" hidden></div>
   <div id="missie"></div>

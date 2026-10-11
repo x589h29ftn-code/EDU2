@@ -208,6 +208,27 @@ export class HUD {
     this.levenlabel.textContent = String(v);
   }
 
+  /*
+   Stap 138: de EHBO-dozen die je bij je hebt, naast het getal van je leven (een wit doosje met een
+   rood kruis in CSS en het aantal). Zonder dozen staat er niets.
+  */
+  zetPacks(n) {
+    const el = document.getElementById('levenpacks');
+    if (!el) return;
+    const v = Math.max(0, Math.round(n || 0));
+    el.hidden = v === 0;
+    const nEl = document.getElementById('levenpacksN');
+    if (nEl) nEl.textContent = `×${v}`;
+  }
+  // een groene gloed om de levensbalk als je een doos inzet
+  levenPuls() {
+    const el = document.getElementById('leven');
+    if (!el) return;
+    el.classList.add('puls');
+    clearTimeout(this._pulsT);
+    this._pulsT = setTimeout(() => el.classList.remove('puls'), 600);
+  }
+
   // Grote melding in het midden: MISSION COMPLETED, of dat je neergegaan bent.
   melding(kop, onder = '', t = 4) {
     this.missieEl.innerHTML = `${kop}${onder ? `<span class="onder">${onder}</span>` : ''}`;

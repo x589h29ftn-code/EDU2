@@ -133,6 +133,7 @@ export class Player {
     this.inCar = null;
     this.inBoot = null;      // de sloep waar je in staat (js/boot.js)
     this.health = 100;
+    this.packs = 0;          // EHBO-dozen van Tinga State, hoogstens vijf (js/gezondheid.js, stap 138)
     /*
      Bier. `dronken` loopt van 0 tot 1 en zakt in een minuut terug naar nul
      (js/supermarkt.js zet hem omhoog vanaf het derde flesje). Zolang hij

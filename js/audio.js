@@ -621,6 +621,12 @@ export const geluid = {
   },
 
   raak() { toon({ freq: 1400, naar: 900, duur: 0.09, volume: 0.14, golf: 'square' }); },
+  // een EHBO-doos openritsen en inzetten (stap 138): een ritsje ruis en twee zachte oplopende tonen
+  verband() {
+    tik({ freq: 3200, q: 0.7, duur: 0.22, volume: 0.07, type: 'bandpass', val: 0.5 });
+    toon({ freq: 660, naar: 700, duur: 0.12, volume: 0.07, golf: 'sine', vertraag: 0.18 });
+    toon({ freq: 880, naar: 940, duur: 0.18, volume: 0.07, golf: 'sine', vertraag: 0.30 });
+  },
   // het mes (stap 123): een korte zwiep door de lucht, en een doffe tik als hij niets raakt
   mesZwaai() { tik({ freq: 2600, q: 0.8, duur: 0.13, volume: 0.10, type: 'bandpass', val: 0.6 }); },
   mesMis() { tik({ freq: 1800, q: 0.6, duur: 0.08, volume: 0.04, type: 'bandpass', val: 0.5 }); },
