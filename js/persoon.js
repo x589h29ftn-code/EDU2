@@ -13,10 +13,30 @@
 */
 import * as THREE from 'three';
 import { grondHoogte } from './viaduct.js';
-import { MAAT, DEEL, loopHouding, mikHouding, hurkHouding, zitHouding, lichaamMat } from './lichaam.js';
+import { MAAT, DEEL, loopHouding, mikHouding, hurkHouding, zitHouding, lichaamMat, SCOOTER } from './lichaam.js';
 import { rondeDoosGeo } from './wapen.js';
 
 const SCHOUDER_X = 0.235;
+
+/*
+ Twee leden naar een doel (stap 138): een arm naar een handvat, een been naar de treeplank. Alles in het
+ assenstelsel van het lichaam zelf (zonder schaal). Het lid hangt langs −y; `buig` +1 buigt het onderstuk
+ naar voren (een elleboog), −1 naar achteren (een knie: `onder.rotation.x = −knie`). De bovenste draai is
+ Rx·Rz (de volgorde van three, 'XYZ'): eerst opzij (z), dan voor/achter (x).
+*/
+const _d = new THREE.Vector3(), _inv = new THREE.Matrix4();
+function tweeLeden(lid, wortel, doel, l1, l2, buig) {
+  _d.copy(doel).sub(wortel);
+  const D = Math.min(l1 + l2 - 1e-4, Math.max(Math.abs(l1 - l2) + 1e-3, _d.length()));
+  const e = Math.PI - Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + l2 * l2 - D * D) / (2 * l1 * l2))));
+  lid.onder.rotation.set(buig * e, 0, 0);
+  const py = -(l1 + l2 * Math.cos(e)), pz = -buig * l2 * Math.sin(e);
+  const b = Math.asin(Math.max(-1, Math.min(1, _d.x / -py)));
+  const y1 = py * Math.cos(b);
+  lid.boven.rotation.set(Math.atan2(_d.z, _d.y) - Math.atan2(pz, y1), 0, b);
+  return e;
+}
+const HAND_PALM = 0.032;     // van de pols tot het midden van de handpalm (DEEL.hand)
 
 function mat(hex, ruw = 0.92) {
   return new THREE.MeshStandardMaterial({ color: hex, roughness: ruw });
@@ -275,6 +295,51 @@ export class Persoon {
     if (this.vlam) this.vlam.material.opacity = 0.95;
   }
 
+  /*
+   Op een scooter (stap 138). Tot dan zat de rijder met `update(dt, { zit })`: de houding van de bank, met de
+   armen naar de knieën, te hoog en te ver naar achteren, en het stuur stak los voor hem uit. Nu: de heup op
+   het zadel (SCOOTER.heup), de romp licht voorover, de voeten op de treeplank en de handen om de
+   handvatten, met de armen en benen er uitgerekend naartoe (`tweeLeden`). `nul` is waar de ouder van dit
+   poppetje in het assenstelsel van de scooter staat (de `zitPlek`).
+  */
+  opScooter(dt, nul = { x: 0, y: 0, z: 0 }, S = SCOOTER) {
+    this.klok += dt;
+    if (this.vlamT > 0) { this.vlamT -= dt; if (this.vlamT <= 0 && this.vlam) this.vlam.material.opacity = 0; }
+    const sc = this.groep.scale.x, a = -S.voorover;      // negatief om x: het hoofd naar −z, naar voren
+    const hx = S.heup.x || 0, hy = S.heup.y - nul.y, hz = S.heup.z - nul.z;
+    this.omT = 0; this.yaw = 0;
+    this.groep.rotation.set(a, 0, 0);
+    // de oorsprong (de voeten van een staand mens) zo dat het heupgewricht op het zadel uitkomt
+    this.groep.position.set(hx - (nul.x || 0), hy - MAAT.heup * sc * Math.cos(a), hz - MAAT.heup * sc * Math.sin(a));
+    this.groep.updateMatrix();
+    _inv.copy(this.groep.matrix).invert();
+    const lokaal = (x, y, z) => new THREE.Vector3(x - (nul.x || 0), y - nul.y, z - nul.z).applyMatrix4(_inv);
+    const H = S.handvat, V = S.voet, voetY = S.plank + MAAT.schoenH * sc;
+    for (const [lid, k] of [[this.armLinks, -1], [this.armRechts, 1]]) {
+      tweeLeden(lid, new THREE.Vector3(k * SCHOUDER_X, MAAT.schouder, 0), lokaal(k * H.x, H.y, H.z),
+        MAAT.bovenarm, MAAT.onderarm + HAND_PALM, 1);
+      lid.eind.rotation.set(0, 0, 0);
+    }
+    for (const [lid, k] of [[this.beenLinks, -1], [this.beenRechts, 1]]) {
+      tweeLeden(lid, new THREE.Vector3(k * MAAT.heupX, MAAT.heup, 0), lokaal(k * V.x, voetY, V.z),
+        MAAT.bovenbeen, MAAT.onderbeen, -1);
+      // de schoen plat op de plank: alle draaiingen om x opgeteld weer nul
+      lid.eind.rotation.set(-(a + lid.boven.rotation.x + lid.onder.rotation.x), 0, 0);
+    }
+    // het hoofd kijkt de weg op, niet naar het stuur
+    this.hoofd.rotation.x = -a * 0.75;
+  }
+
+  /** Waar de handpalmen en de heupgewrichten nu zijn, in de wereld (voor proeven). */
+  gewrichten() {
+    this.groep.updateWorldMatrix(true, true);
+    const palm = (lid) => new THREE.Vector3(0, -HAND_PALM, 0).applyMatrix4(lid.eind.matrixWorld);
+    const p = (o) => new THREE.Vector3().setFromMatrixPosition(o.matrixWorld);
+    return { handL: palm(this.armLinks), handR: palm(this.armRechts), heupL: p(this.beenLinks.boven), heupR: p(this.beenRechts.boven),
+      enkelL: p(this.beenLinks.eind), enkelR: p(this.beenRechts.eind), knieL: p(this.beenLinks.onder), knieR: p(this.beenRechts.onder),
+      elleboogL: p(this.armLinks.onder), elleboogR: p(this.armRechts.onder) };
+  }
+
   // loopt: benen en armen zwaaien · zwaait: rechterarm omhoog en heen en weer
   // mikt: geweer vooruit, dus beide armen naar voren
   // slaat: 0..1, een slag met de knuppel — eerst over de schouder naar achteren
@@ -336,6 +401,7 @@ export class Persoon {
     this.beenRechts.boven.rotation.x = H.heupR;
     this.beenLinks.onder.rotation.x = -H.knieL;
     this.beenRechts.onder.rotation.x = -H.knieR;
+    this.beenLinks.boven.rotation.z = 0; this.beenRechts.boven.rotation.z = 0;   // (na `opScooter`)
     this.beenLinks.eind.rotation.x = H.enkelL;
     this.beenRechts.eind.rotation.x = H.enkelR;
     /*

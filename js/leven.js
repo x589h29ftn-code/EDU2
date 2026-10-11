@@ -24,6 +24,7 @@
 */
 import * as THREE from 'three';
 import { Persoon } from './persoon.js';
+import { SCOOTER } from './lichaam.js';
 import { grondHoogte, resolveCollisions } from './world.js';
 import { lijnDoor } from './schaduw.js';
 import { profiel, puntOp } from './inval.js';
@@ -33,6 +34,30 @@ import { inBouwvlak } from './bouwvlak.js';
 import { geluid } from './audio.js';
 import { maakVuilniswagen } from './vuilniswagen.js';
 import { zoekLooppad } from './looppad.js';
+
+/*
+ Het stuur van een scooter (stap 138): een kolom van de bovenkant van het beenschild omhoog, de stang en twee
+ rubberen handgrepen precies waar SCOOTER.handvat ze zet; daar pakt de rijder (`Persoon.opScooter`) ze vast.
+ Gedeeld met js/pizzabaan.js en js/handlangers.js.
+*/
+export function stuurDelen(stang, greep) {
+  const H = SCOOTER.handvat, S = SCOOTER.scherm;
+  const topY = S.y + 0.35 * Math.cos(S.rx), topZ = S.z + 0.35 * Math.sin(S.rx);
+  const uit = [];
+  const kolomL = Math.hypot(H.y - 0.02 - topY, H.z - topZ);
+  const kolom = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.032, kolomL, 8), stang);
+  kolom.position.set(0, (H.y - 0.02 + topY) / 2, (H.z + topZ) / 2);
+  kolom.rotation.x = Math.atan2(H.z - topZ, H.y - 0.02 - topY);
+  uit.push(kolom);
+  const st = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 2 * H.x - 0.12, 6), stang);
+  st.rotation.z = Math.PI / 2; st.position.set(0, H.y, H.z); uit.push(st);
+  for (const k of [-1, 1]) {
+    const g = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.12, 8), greep);
+    g.rotation.z = Math.PI / 2; g.position.set(k * H.x, H.y, H.z); g.name = k < 0 ? 'handvatL' : 'handvatR'; uit.push(g);
+  }
+  for (const m of uit) m.castShadow = true;
+  return uit;
+}
 
 export const FEEST = { van: 15, tot: 1.5, elke: 45, kans: 0.07, min: 110, max: 280, duur: 600, gasten: 8 };
 export const PIZZA = { tijden: [[11.5, 14], [16.5, 23.5]], elke: [150, 330], van: 280, tot: 420, top: 11, adresVan: 40, adresTot: 260, lopen: 1.8, wachtT: 6 };
@@ -235,8 +260,9 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
     const vloer = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.1, 0.8), romp); vloer.position.set(0, 0.32, 0.02); scooter.add(vloer);
     const kap = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.34, 0.6), romp); kap.position.set(0, 0.55, 0.42); scooter.add(kap);
     const zadel = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.5), zwart); zadel.position.set(0, 0.76, 0.38); scooter.add(zadel);
-    const front = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.7, 0.12), romp); front.position.set(0, 0.62, -0.5); front.rotation.x = -0.25; scooter.add(front);
-    const stuur = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.6, 6), zwart); stuur.rotation.z = Math.PI / 2; stuur.position.set(0, 1.0, -0.56); scooter.add(stuur);
+    // het beenschild helt naar de rijder toe en het stuur staat erboven, binnen bereik van zijn handen (stap 138)
+    const front = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.7, 0.12), romp); front.position.set(0, SCOOTER.scherm.y, SCOOTER.scherm.z); front.rotation.x = SCOOTER.scherm.rx; scooter.add(front);
+    for (const m of stuurDelen(zwart, zwart)) scooter.add(m);
   }
   // de pizzadoos achterop (een eigen mesh per merk) en de doos in zijn handen
   const doosGeo = new THREE.BoxGeometry(0.42, 0.36, 0.42);
@@ -419,8 +445,8 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
       if (pizza.fase === 'terug' || pizza.fase === 'heen') {
         // (een Persoon zet zijn eigen hoogte op de grond; op het zadel hoort hij op nul)
         // (Persoon.update zet y op grond + wip; alleen de wip hoort erbij: dan zit de heup op het zadel)
-        rijder.update(dt, { zit: 0.4 });
-        rijder.groep.position.set(0, rijder.groep.position.y - rijder.grond, 0);
+        // (stap 138: op het zadel, de voeten op de plank en de handen om het stuur; zie Persoon.opScooter)
+        rijder.opScooter(dt, zitPlek.position);
       }
       return;
     }

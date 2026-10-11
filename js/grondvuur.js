@@ -121,7 +121,13 @@ export function maakGrondvuur(scene) {
       for (const s of strepen) {
         if (!s.aan) continue;
         s.s += GRONDVUUR.tempo * dt;
-        const kop = Math.min(s.s, s.lengte), staart = Math.max(0, kop - GRONDVUUR.lang);
+        /*
+         De staart rekent vanaf de afgelegde weg, niet vanaf de kop (stap 138). Met `kop − lang` kwam de staart
+         bij een streep korter dan GRONDVUUR.lang nooit van nul af: een schot van Mark of Johan op een
+         handlanger of een man bij de loods op een paar meter bleef als gele streep in de lucht hangen, tot
+         het einde van de missie ("nu hangen ze in de lucht zonder iets te doen").
+        */
+        const kop = Math.min(s.s, s.lengte), staart = Math.min(s.lengte, Math.max(0, s.s - GRONDVUUR.lang));
         if (staart >= s.lengte - 0.01) { s.aan = false; s.mesh.visible = false; continue; }
         const mid = (kop + staart) / 2;
         s.mesh.position.copy(s.van).addScaledVector(s.dir, mid);

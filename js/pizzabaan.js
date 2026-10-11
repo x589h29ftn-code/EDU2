@@ -34,7 +34,8 @@ import * as THREE from 'three';
 import { Persoon } from './persoon.js';
 import { grondHoogte, nearestRoadName, addCollider } from './world.js';
 import { Navigatie, routeLengte } from './navigatie.js';
-import { doosDoek } from './leven.js';
+import { doosDoek, stuurDelen } from './leven.js';
+import { SCOOTER } from './lichaam.js';
 import { euro } from './hud.js';
 
 export const PIZZABAAN = {
@@ -215,11 +216,12 @@ function maakScooter(romp, zwart, chroom, doos) {
   const deel = (geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; m.castShadow = true; bak.add(m); return m; };
   deel(new THREE.BoxGeometry(0.34, 0.1, 0.8), romp, 0, 0.32, 0.02);                // de treeplank
   deel(new THREE.BoxGeometry(0.42, 0.36, 0.62), romp, 0, 0.55, 0.42);              // de kap achter
-  deel(new THREE.BoxGeometry(0.3, 0.09, 0.56), zwart, 0, 0.77, 0.38);              // het zadel
-  deel(new THREE.BoxGeometry(0.38, 0.72, 0.12), romp, 0, 0.62, -0.5, -0.25);       // het voorscherm
-  deel(new THREE.BoxGeometry(0.1, 0.5, 0.1), zwart, 0, 0.62, -0.6, -0.3);          // de voorvork
-  deel(new THREE.CylinderGeometry(0.02, 0.02, 0.62, 6), chroom, 0, 1.02, -0.58).rotation.z = Math.PI / 2;   // het stuur
-  deel(new THREE.BoxGeometry(0.14, 0.08, 0.04), chroom, 0, 0.92, -0.58);           // de koplamp
+  deel(new THREE.BoxGeometry(0.3, 0.09, 0.56), zwart, 0, SCOOTER.zadel.y - 0.045, 0.38);   // het zadel
+  // (stap 138) het voorscherm helt naar de rijder toe, met het stuur erboven waar zijn handen het pakken
+  deel(new THREE.BoxGeometry(0.38, 0.72, 0.12), romp, 0, SCOOTER.scherm.y, SCOOTER.scherm.z, SCOOTER.scherm.rx);
+  deel(new THREE.BoxGeometry(0.1, 0.5, 0.1), zwart, 0, 0.42, -0.6, 0.2);           // de voorvork
+  for (const m of stuurDelen(chroom, zwart)) bak.add(m);                           // het stuur, met handgrepen
+  deel(new THREE.BoxGeometry(0.14, 0.08, 0.04), chroom, 0, 0.9, -0.5, SCOOTER.scherm.rx);   // de koplamp
   // het rek achterop met de bezorgkoffer van de zaak
   deel(new THREE.BoxGeometry(0.36, 0.03, 0.4), chroom, 0, 0.8, 0.72);
   deel(new THREE.BoxGeometry(0.48, 0.42, 0.48), doos, 0, 1.03, 0.72);
@@ -505,7 +507,7 @@ export function initPizzabaan({ scene, KAART, vehicles, player, hud, geluid = nu
       if (rijder.groep.parent !== zp) zp.add(rijder.groep);
       const zien = !derde || !!derde.aan;
       if (rijder.groep.visible !== zien) rijder.groep.visible = zien;
-      if (zien) rijder.update(dt, { zit: 0.4 });
+      if (zien) rijder.opScooter(dt, zp.position);     // (stap 138: zadel, treeplank, handen om het stuur)
     } else if (rijder.groep.visible) rijder.groep.visible = false;
     // een achtergelaten scooter gaat terug naar zijn zaak, als niemand kijkt
     for (const z of zaken) {
@@ -564,6 +566,7 @@ export function initPizzabaan({ scene, KAART, vehicles, player, hud, geluid = nu
     plekken: zaken.map(z => ({ x: z.staan.x, z: z.staan.z, naam: z.naam, wat: 'pizza' })),
     // de scooters van de zaken (voor een proef: `stand.rit.auto === scooters[0]`)
     scooters: zaken.map(z => z.auto).filter(Boolean),
+    rijder,                               // de bezorger op jouw scooter (voor een proef, stap 138)
     zaken,
   };
 }

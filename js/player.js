@@ -714,8 +714,11 @@ export class Player {
      geen tweede toestand die uit de pas kan lopen.
     */
     const sc = this.wapenInfo.scope;
-    const dicht = sc ? this.fovBasis / this.zoom : this.fovBasis * MIK_FOV;
-    const doel = this.fovBasis + (dicht - this.fovBasis) * this.mik;
+    // (stap 138) de M1 Garand legt verder aan (`mikBeeld`, 42°) en laat de beeldhoek soepel lopen, gelijk met het wapen
+    const W = this.wapen || {};
+    const dicht = sc ? this.fovBasis / this.zoom : this.fovBasis * (W.mikBeeld || MIK_FOV);
+    const mk = W.mikSoepel ? this.mik * this.mik * (3 - 2 * this.mik) : this.mik;
+    const doel = this.fovBasis + (dicht - this.fovBasis) * mk;
     if (Math.abs(this.camera.fov - doel) > 0.01) {
       this.camera.fov = doel;
       this.camera.updateProjectionMatrix();
@@ -790,7 +793,7 @@ export class Player {
     this.wisselStap(dt);
     if (this.inCar || this.wapenUit || this.reloading > 0 || this.wisselT > 0) this.richtAan = false;
     const mikDoel = this.richtAan ? 1 : 0;
-    this.mik += Math.max(-1, Math.min(1, mikDoel - this.mik)) * Math.min(1, dt / MIK_TIJD);
+    this.mik += Math.max(-1, Math.min(1, mikDoel - this.mik)) * Math.min(1, dt / ((this.wapen && this.wapen.mikTijd) || MIK_TIJD));
     if (Math.abs(this.mik - mikDoel) < 0.002) this.mik = mikDoel;
     this.zetBeeldhoek();
     /*
@@ -886,6 +889,11 @@ export class Player {
     this.camera.rotation.set(0, 0, 0, 'YXZ');
     this.camera.rotation.y = this.yaw + this.zicht.yaw;
     this.camera.rotation.x = this.pitch + this.zicht.pitch;
+    // (stap 138) het beeld doet heel licht mee met het herladen van de M1 (`camSchok` uit js/wapen.js)
+    const schok = this.wapen && this.wapen.camSchok;
+    if (schok && !this.inCar) {
+      this.camera.rotation.x += schok.x; this.camera.rotation.y += schok.y; this.camera.rotation.z += schok.z;
+    }
   }
 
   // wapenanimatie: schot, terugslag, de vijf stappen van het herladen, het

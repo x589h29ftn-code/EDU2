@@ -59,14 +59,6 @@ export function initGezondheid({ player, hud, geluid = null }) {
     vorig = player.health;
   }
 
-  // een doos erbij (het schap): 'ok' of 'vol'
-  function koopPack() {
-    if ((player.packs || 0) >= LEVEN.maxPacks) return 'vol';
-    player.packs = (player.packs || 0) + 1;
-    if (hud && hud.zetPacks) hud.zetPacks(player.packs);
-    return 'ok';
-  }
-
   /*
    L: een doos inzetten. Geeft 'ok', 'geen' (geen dozen), 'vol' (leven al vol) of
    'neer' (leven op nul, of het spel draait niet).
@@ -106,7 +98,7 @@ export function initGezondheid({ player, hud, geluid = null }) {
   if (hud && hud.zetPacks) hud.zetPacks(player.packs);
 
   return {
-    update, koopPack, gebruikPack, naLaden,
+    update, gebruikPack, naLaden,
     get rust() { return rust; },
     zetRust(t) { rust = t; },
   };

@@ -8092,6 +8092,37 @@ in 135 alleen groter gemaakt).
 **Proeven**: `m1test` groen, 41 controles (was 36), 100 → 100 programma's. **Foto's**: `m1shots` opnieuw (alle acht,
 waaronder m1_169, m1_hand, m1_herladen en m1_ping).
 
+**De M1 Garand: herladen en richten (stap 138, 11 okt).**
+
+"Maak de M1 garand herlaad animatie smoother en professioneler. Ook als je rechtermuisknop richt dat je beter door de
+iron sights heen ziet dus denk wat meer inzoomen beeld."
+
+- *Herladen*: tot stap 137 tien losse stukjes, elk met zijn eigen `soepel()`. Elk stuk begon en eindigde stil, dus het
+  geweer stond op elke grens even stil, de hand bewoog in rechte lijnen, en wie herlaadde terwijl hij aangelegd stond
+  zag het geweer in één beeld van het vizier naar de heup springen (de herlaadtak zette de stand vanaf de rust, los van
+  `mik` en de terugslag). Nu: sleutelstanden met een vloeiende baan erdoor (`baan` in js/wapen.js: kubisch, Catmull-Rom
+  met ongelijke tussenpozen; `stil` waar iets echt stilstaat), en die tellen op bij de gewone stand, zodat begin en eind
+  vanzelf aansluiten. De beweging (2,25 s, was 2,1): een klein zakje vooraf, het geweer kantelt naar links met de put
+  naar je toe en schiet een fractie voorbij; de rechterhand laat de greep los en zakt naar je borst, komt met de volle
+  clip van rechtsonder omhoog, boven de put, de duim drukt hem erin (het geweer duikt even mee), de duim schiet weg
+  terwijl de grendel versnellend dichtslaat (een stootje naar voren), de hand gaat terug naar de greep en het geweer
+  zakt in de schouder met een kleine na-veer. Het beeld doet heel licht mee (`camSchok`, hoogstens ~0,01 rad; js/player.js
+  telt hem op bij de camera). R met een halve clip: eerst de grendel en de ping, daarna hetzelfde.
+- *Wat misging*: de clip volgde de laadhand met `max(0, y)`, zodat hij de eerste tienden van de beweging alleen in de
+  put leek te zweven terwijl de hand nog onder het beeld zat (m1_herladen_1 liet het zien). Nu pas begrensd na het
+  hoogste punt boven de put.
+- *Richten*: de diopter stond 21 cm van je oog bij 54°: de ring was 6 % van de beeldhoogte. Nu een eigen beeldhoek
+  (`GARAND_MIK_FOV` 42°, `mikBeeld` op het wapen) en de ring op 8,8 cm (`MIK_AFSTAND`): de ring is 19 % van de
+  beeldhoogte, het gat 10 %, de oren en knoppen groot eromheen, zoals bij aanleggen in Hell Let Loose of Call of Duty.
+  En precies in het midden: de stand rekent nu met de kanteling (`KANTEL` draait om de greep, dus het vizier schoof een
+  fractie mee); ring en korreltop staan op 0,0 px van het midden. Aanleggen duurt 0,25 s (`mikTijd`) en gaat door
+  `soepel`, voor het wapen én de beeldhoek, met halverwege een fractie zakken en kantelen. De andere wapens houden
+  `MIK_TIJD` en `MIK_FOV` (54°, de sniper zijn kijker). Het kruisje gaat al uit boven `mik` 0,5.
+- *Proef*: `m1test` deel 10 (aanleggen: 42°, de andere wapens, de tijd, zacht begin en eind, ring en korrel op het
+  scherm, de maat van de ring, het kruisje) en deel 11 (herladen per beeld van 1/60 s, leeg, half en vanuit het vizier:
+  de stap per beeld en het verschil tussen twee stappen begrensd, de laadhand, de ping, het beeld).
+  **Foto's**: `m1shots` met m1_richten (16:9, 42°) en m1_herladen_1..4 (16:9: 0,30 / 0,47 / 0,57 / 0,655 van de tijd).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

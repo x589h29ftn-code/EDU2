@@ -18,6 +18,7 @@ import { initGarage, TE_KOOP, NAAM as AUTOHUIS } from './garage.js';
 import { initPizzabaan } from './pizzabaan.js';
 import { initTennisspel } from './tennisspel.js';
 import { initVishandel } from './vishandel.js';
+import { initGezondheid } from './gezondheid.js';
 import { initZeilen } from './zeilen.js';
 import { initTuning } from './tuning.js';
 import { initDjDienst } from './djdienst.js';
@@ -861,6 +862,8 @@ const tuning = garage ? initTuning({ scene, vehicles, garage, player, hud }) : n
 const uurKlok = { get uur() { try { return sfeer.uur; } catch { return 12; } } };
 // Martens Vishandel voor de Jumbo aan de Molenkrite (stap 131)
 const vishandel = (KAART && !BOVEN) ? initVishandel({ scene, KAART, player, hud, sfeer: uurKlok, verhaal }) : null;
+// levens zoals in GTA: vanzelf terug tot de helft, daarboven eten en EHBO-dozen met L (js/gezondheid.js, stap 138)
+const gezondheid = initGezondheid({ player, hud, geluid });
 /*
  Een wedstrijd op het hoofdveld van VV Sneek, elke dag van twaalf tot drie (js/wedstrijd.js, stap 111).
  `wedDag` telt de dagen: een nieuwe dag mag weer een wedstrijd.
@@ -962,7 +965,7 @@ winkelsNu = null; werkKaartvlaggenBij();
   const gti = TE_KOOP.find(a => a.soort === 'gti');
   const wapenVanaf = Math.min(PISTOOL.prijs, MITRAILLEUR.prijs, SNIPER.prijs);
   hud.zetLegenda([
-    { wat: 'munitie', naam: 'Tinga State', uitleg: `munitie ${euro(MUNITIE.prijs)}, verband ${euro(EHBO.prijs)}, wapens vanaf ${euro(wapenVanaf)}` },
+    { wat: 'munitie', naam: 'Tinga State', uitleg: `munitie ${euro(MUNITIE.prijs)}, EHBO ${euro(EHBO.prijs)}, wapens vanaf ${euro(wapenVanaf)}` },
     { wat: 'bier', naam: 'Poiesz', uitleg: `bier ${euro(BIER.prijs)}: elk flesje ${BIER.leven} leven` },
     { wat: "auto's", naam: AUTOHUIS, uitleg: `Ferrari ${euro(ferrari.prijs)}, GTI ${euro(gti.prijs)}, BX ${euro(bx.prijs)}` },
     { wat: 'overspuiten', naam: 'BP wasbox', uitleg: `overspuiten: de sterren kwijt, ${euro(PRIJS_PER_STER)} per ster` },
@@ -1768,7 +1771,7 @@ window.addEventListener('keydown', e => {
 
 /*
  De cijfers 1 tot en met 4 kopen aan de toonbank bij Tinga State het artikel met
- dat nummer: kogels, een verbandtrommel, een pistool, een machinegeweer. F doet
+ dat nummer: kogels, een EHBO-doos, een pistool, een machinegeweer. F doet
  nog steeds het machinegeweer, want daar zat hij op.
 
  Het gaat rechtstreeks naar de boerderij en niet langs `binnenruimtes`: de
@@ -1924,6 +1927,20 @@ function toonWapenIcoon(soort, uitleg) {
   if (uitleg) hud.show(uitleg, 2.5);
 }
 player.wisselCb = toonWapenIcoon;
+
+/*
+ L: een EHBO-doos van Tinga State inzetten (stap 138). H was al bezet (wapen weg).
+ Niet op het startscherm, in het pauzemenu of met de drone in de lucht.
+*/
+function levenToets() {
+  if (!player.active && !window.__autoplay) return null;
+  if (player.inDrone) return null;
+  return gezondheid.gebruikPack();
+}
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyL' || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.repeat) return;
+  levenToets();
+});
 
 /*
  H terwijl het wapen nog op slot zit. Aan het begin van een nieuw spel loopt
@@ -2854,6 +2871,7 @@ function loop() {
     if (garage) garage.update(dt, verhaal.aanspreekbaar);   // de showroom aan de Lemmerweg
     if (tuning) tuning.update(dt, verhaal.aanspreekbaar);
     if (vishandel) vishandel.update(dt);
+    gezondheid.update(dt);                   // vanzelf herstel tot de helft (stap 138)
     if (pizzabaan) pizzabaan.update(dt, { vrij: !!verhaal.klusVrij && !(verhaal.klusjes && verhaal.klusjes.bezig) });
     djdienst.update(dt, { vrij: !verhaal.missieBezig });
     // politie afgeschud: dat is ook nieuws (stap 131)
@@ -3194,6 +3212,8 @@ opstartStap('klaar');
 window.__game = {
   // stap 131
   pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst,
+  // stap 138: levens zoals in GTA
+  gezondheid, levenToets,
   // (stap 130) hoe bebouwd het is, voor de achtergrondgeluiden
   stadNabij: (x, z) => stadNabij(100, x, z),
   // voor tools/kaartdoeltest.mjs: het eigen doel en zijn bijwerken

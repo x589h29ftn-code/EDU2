@@ -139,7 +139,7 @@ ok(koop.naKogels === koop.voorKogels + 100, 'je krijgt honderd kogels',
 ok(koop.naGeld === koop.voorGeld - 50, 'en er gaat vijftig euro af',
   `€ ${koop.voorGeld} → € ${koop.naGeld}`);
 
-// ---------- 4b. het schap: kogels, verband, pistool, machinegeweer ----------
+// ---------- 4b. het schap: kogels, EHBO-doos, pistool, machinegeweer ----------
 kop('het schap aan de toonbank');
 const schap = await page.evaluate(async () => {
   const g = window.__game, b = g.boerderij;
@@ -152,24 +152,24 @@ const schap = await page.evaluate(async () => {
   const beginSchap = b.schap.map(a => a.sleutel);
   const beginBezit = b.inBezit.slice();
 
-  // 1. een verbandtrommel als je gewond bent
-  g.player.health = 40; g.hud.zetLeven(40);
+  // 1. een EHBO-doos (stap 138): je neemt hem mee, het leven blijft gelijk, hoogstens vijf
+  g.player.health = 40; g.hud.zetLeven(40); g.player.packs = 3;
   b.update(0.1, false);
   const hintGewond = (() => { const e = document.getElementById('schap'); return e.hidden ? '' : e.textContent; })();
   const nrEhbo = b.schap.findIndex(a => a.sleutel === 'ehbo') + 1;
   const geldVoor = g.verhaal.geld;
   const gebruikt = b.toets(String(nrEhbo));
-  const naEen = { leven: g.player.health, betaald: geldVoor - g.verhaal.geld };
-  // nog een keer: hij mag nooit boven het maximum uitkomen
+  const naEen = { leven: g.player.health, packs: g.player.packs, betaald: geldVoor - g.verhaal.geld };
+  // nog een keer: vijf, en dan zit de tas vol
   b.toets(String(Math.max(1, b.schap.findIndex(a => a.sleutel === 'ehbo') + 1)));
-  const naTwee = g.player.health;
-  // en vol is vol: dan verkoopt hij hem niet en kost het niets
+  const naTwee = g.player.packs;
   const geldVol = g.verhaal.geld;
   const vol = b.koopLeven();
-  const naVol = { leven: g.player.health, betaald: geldVol - g.verhaal.geld };
-  // het verband staat er dan ook niet meer bij
+  const naVol = { packs: g.player.packs, betaald: geldVol - g.verhaal.geld };
+  // de doos staat er dan ook niet meer bij
   b.update(0.1, false);
   const hintFit = (() => { const e = document.getElementById('schap'); return e.hidden ? '' : e.textContent; })();
+  g.player.packs = 0; g.player.health = 100; g.hud.zetLeven(100);
 
   // 2. het machinegeweer
   const mp = b.koopWapen('mitrailleur');
@@ -191,7 +191,7 @@ const schap = await page.evaluate(async () => {
     beginSchap, beginBezit, hintGewond, nrEhbo, gebruikt, naEen, naTwee, vol, naVol, hintFit,
     mp, naKoop, prijsPistool: zonderPistool ? zonderPistool.prijs : null, naPistool,
     prijzen: { munitie: B.MUNITIE.prijs, ehbo: B.EHBO.prijs, pistool: B.PISTOOL.prijs, mp: B.MITRAILLEUR.prijs },
-    maxLeven: B.MAX_LEVEN, punten: B.EHBO.punten,
+    maxPacks: B.EHBO.max, punten: B.EHBO.punten,
   };
 });
 ok(schap.beginSchap[0] === 'munitie' && schap.beginSchap.includes('mitrailleur'),
@@ -199,16 +199,16 @@ ok(schap.beginSchap[0] === 'munitie' && schap.beginSchap.includes('mitrailleur')
 ok(schap.beginBezit.includes('pistool'),
   'het pistool dat je al hebt staat er als "in bezit" bij, niet als koopje',
   schap.beginBezit.join(', '));
-ok(/verband/i.test(schap.hintGewond) && schap.hintGewond.includes('€ 25'),
-  'gewond staat de verbandtrommel met nummer en prijs in het schap', schap.hintGewond);
-ok(schap.gebruikt && schap.naEen.leven === 90 && schap.naEen.betaald === schap.prijzen.ehbo,
-  `een verbandtrommel geeft ${schap.punten} levenspunten voor € ${schap.prijzen.ehbo}`,
-  `40 → ${schap.naEen.leven} leven, € ${schap.naEen.betaald} betaald`);
-ok(schap.naTwee === schap.maxLeven, 'en nooit meer dan vol', `${schap.naTwee} van ${schap.maxLeven}`);
-ok(schap.vol === 'vol' && schap.naVol.betaald === 0,
-  'wie al fit is krijgt er geen verkocht, en betaalt dus ook niets',
-  `${schap.naVol.leven} leven, € ${schap.naVol.betaald} betaald`);
-ok(!/verband/i.test(schap.hintFit), 'dan staat hij ook niet meer in de lijst', schap.hintFit);
+ok(/EHBO/.test(schap.hintGewond) && schap.hintGewond.includes(`€ ${schap.prijzen.ehbo}`),
+  'de EHBO-doos staat met nummer en prijs in het schap', schap.hintGewond);
+ok(schap.gebruikt && schap.naEen.leven === 40 && schap.naEen.packs === 4 && schap.naEen.betaald === schap.prijzen.ehbo,
+  `een EHBO-doos gaat mee in je tas voor € ${schap.prijzen.ehbo}, je leven blijft gelijk`,
+  `${schap.naEen.leven} leven, ${schap.naEen.packs} dozen, € ${schap.naEen.betaald} betaald`);
+ok(schap.naTwee === schap.maxPacks, 'en nooit meer dan vijf', `${schap.naTwee} van ${schap.maxPacks}`);
+ok(schap.vol === 'vol' && schap.naVol.betaald === 0 && schap.naVol.packs === schap.maxPacks,
+  'met een volle tas krijg je er geen verkocht, en betaal je dus ook niets',
+  `${schap.naVol.packs} dozen, € ${schap.naVol.betaald} betaald`);
+ok(!/EHBO/.test(schap.hintFit), 'dan staat hij ook niet meer in de lijst', schap.hintFit);
 ok(schap.mp === 'ok' && schap.naKoop.bezit.includes('machinegeweer'),
   'het machinegeweer koop je één keer en staat daarna als "in bezit"',
   schap.naKoop.bezit.join(', '));

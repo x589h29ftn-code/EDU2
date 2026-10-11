@@ -9654,6 +9654,8 @@ export function initVerhaal(ctx) {
       if (player.inCar && balk.hidden) startAvondAchtervolging();
       return;
     }
+    // een streep van Mark of Johan die nog vliegt als het gevecht voorbij is, vliegt uit (stap 138)
+    if (fase !== 'achtervolging' && fase !== 'gevecht' && grondvuur.strepen) grondvuur.update(dt, null);
     if (fase === 'achtervolging') { werkAchtervolgingBij(dt, sp); return; }
     if (fase === 'gevecht') { werkGevechtBij(dt, sp); return; }
     if (fase === 'politieKomt') { for (const p of [mark, invalJohan]) if (p.groep.visible) p.update(dt, {}); return; }
@@ -9949,6 +9951,7 @@ export function initVerhaal(ctx) {
     if (!h.zichtbaar || !h.geland) { h.zet(avondLand.x, grondHoogte(avondLand.x, avondLand.z) + 1.42, avondLand.z, 0); h.toon(true); }
     h.erik.groep.visible = false;
     h.richtLicht(null, 0);
+    grondvuur.ruim();                          // (ook na laden of opnieuw: geen tracers van de heli meer in de lucht; stap 138)
     player.zit = false;
     const n = h.deurNormaal();
     const [px, pz] = resolveCollisions(h.pos.x + n.x * 3, h.pos.z + n.z * 3, 0.4);

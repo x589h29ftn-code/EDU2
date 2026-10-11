@@ -602,6 +602,29 @@ export function zitHouding(uit, zitting = 0.46) {
   uit.wip = zitting + 0.01 - MAAT.heup;
 }
 
+/*
+ De maten van een scooter en van wie erop rijdt (stap 138, gevraagd met een foto: "zorg dat de persoon
+ logischer zit en het stuur vast houdt"). Gedeeld door de drie scooters: de pizzascooter van js/leven.js, die
+ van de pizzabaan (js/pizzabaan.js) en die van de handlangers (js/handlangers.js). Alles in het assenstelsel
+ van de scooter (voorkant −z, grond op 0); `Persoon.rijdt` rekent de armen en benen er zelf naartoe.
+
+   zadel     de bovenkant van het zadel (y) en waar het loopt (z)
+   heup      het heupgewricht: een broekdikte boven het zadel, op het voorste deel van het zadel
+   plank     de bovenkant van de treeplank; de voeten staan erop, iets voor de knie
+   handvat   het midden van de rechter handgreep (de linker is gespiegeld)
+   scherm    het beenschild: het midden en de helling (de bovenkant naar de rijder toe)
+   voorover  hoe ver de romp naar voren helt (rad)
+*/
+export const SCOOTER = {
+  zadel: { y: 0.80, z0: 0.10, z1: 0.66 },
+  heup: { y: 0.868, z: 0.22 },
+  plank: 0.37,
+  voet: { x: 0.115, z: -0.06 },
+  handvat: { x: 0.25, y: 1.08, z: -0.36 },
+  scherm: { y: 0.62, z: -0.5, rx: 0.22 },
+  voorover: 0.38,
+};
+
 /** Houding voor wie met twee handen een wapen vooruit houdt. */
 export function mikHouding(uit = {}) {
   uit.schouderL = 1.42; uit.schouderR = 1.48;

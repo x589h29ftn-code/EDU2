@@ -328,6 +328,123 @@ ok(handen.laad.laadhand && !handen.laad.greephand && handen.laad.linkerhand,
   'herladen met de rechterhand: die laat de greep los, de linkerhand houdt het voorhout', `laadhand ${handen.laad.laadhand}, greep ${handen.laad.greephand}, links ${handen.laad.linkerhand}`);
 ok(handen.laad.handX > handen.laad.clipX, 'de laadhand komt van rechts', `hand x ${r3(handen.laad.handX)}, clip x ${r3(handen.laad.clipX)} (NDC)`);
 
+// ------------------------------------------------------------------ 10. aanleggen (stap 138)
+/*
+ "Als je rechtermuisknop richt dat je beter door de iron sights heen ziet, dus wat meer inzoomen." De M1 legt aan naar
+ 42° (de andere wapens houden hun 54°, de sniper zijn kijker), in een kwart seconde met een zachte overgang; het hart
+ van de ring en de top van de korrel staan midden in beeld, en het kruisje is weg.
+*/
+kop('aanleggen: door de ring');
+const mik = await page.evaluate(async () => {
+  const g = window.__game, P = g.player;
+  const { GARAND_MIK_FOV } = await import('/js/wapen.js');
+  for (const w of ['sniper', 'mitrailleur', 'garand']) if (!P.wapens.includes(w)) P.wapens.push(w);
+  P.wisselT = 0; P.holster = 0; P.reloading = 0; P.wapenUit = false; P.binnen = false; P.inCar = false;
+  const legAan = (soort) => {
+    P.richten(false); window.__stap(40, 1 / 60);
+    if (P.wapenSoort !== soort) { P.zetWapen(soort); P.wisselT = 0; P.holster = 0; }
+    P.ammo = Math.max(1, P.ammo); P.reloading = 0;
+    window.__stap(20, 1 / 60);
+    const fovs = [P.camera.fov];
+    P.richten(true);
+    for (let i = 0; i < 30; i++) { window.__stap(1, 1 / 60); fovs.push(P.camera.fov); }
+    return fovs;
+  };
+  const uit = {};
+  for (const s of ['pistool', 'mitrailleur', 'sniper']) uit[s] = legAan(s).at(-1);
+  const fovs = legAan('garand');
+  uit.garand = fovs.at(-1); uit.doel = GARAND_MIK_FOV;
+  // hoe lang tot hij er is, en de stappen per beeld: zacht beginnen, zacht aankomen
+  uit.klaarNa = fovs.findIndex(f => Math.abs(f - fovs.at(-1)) < 0.05) / 60;
+  const d = fovs.slice(1).map((f, i) => Math.abs(f - fovs[i]));
+  uit.eerste = d[0]; uit.grootste = Math.max(...d); uit.laatste = d[Math.round(uit.klaarNa * 60) - 1];
+  uit.kruis = document.getElementById('crosshair').style.display;
+  // het vizier op het scherm, in beeldpunten van het midden
+  const W = P.wapen, M = W.meetpunten, wap = W.groep.children[0], V = W.groep.position.constructor;
+  P.camera.updateMatrixWorld(true); W.groep.updateMatrixWorld(true);
+  const B = innerWidth, H = innerHeight;
+  const px = (p) => { const v = wap.localToWorld(new V(...p)).project(P.camera); return [v.x * B / 2, -v.y * H / 2]; };
+  uit.ring = px([0, M.vizierY, M.vizierZ]);
+  uit.korrel = px([0, M.korrel.y, M.korrel.z]);
+  const boven = px([0, M.vizierY + M.ringR, M.vizierZ]), onder = px([0, M.vizierY - M.ringR, M.vizierZ]);
+  const gatB = px([0, M.vizierY + 0.0033, M.vizierZ]), gatO = px([0, M.vizierY - 0.0033, M.vizierZ]);
+  uit.ringH = (onder[1] - boven[1]) / H; uit.gatR = (gatO[1] - gatB[1]) / 2;
+  P.richten(false); window.__stap(30, 1 / 60);
+  uit.terug = P.camera.fov; uit.kruisTerug = document.getElementById('crosshair').style.display;
+  return uit;
+});
+const px = (p) => `(${p[0].toFixed(1)}, ${p[1].toFixed(1)}) px`;
+ok(Math.abs(mik.garand - mik.doel) < 0.3 && mik.doel >= 40 && mik.doel <= 45, 'de M1 legt aan naar 40–45°', `${r3(mik.garand)}°`);
+ok(Math.abs(mik.pistool - 54) < 0.3 && Math.abs(mik.mitrailleur - 54) < 0.3 && mik.sniper < 20,
+  'de andere wapens houden hun eigen richten', `pistool ${r3(mik.pistool)}°, mg ${r3(mik.mitrailleur)}°, sniper ${r3(mik.sniper)}°`);
+ok(mik.klaarNa >= 0.2 && mik.klaarNa <= 0.3, 'aanleggen duurt ongeveer een kwart seconde', `${r3(mik.klaarNa)} s`);
+ok(mik.eerste < mik.grootste * 0.3 && mik.laatste < mik.grootste * 0.3, 'zacht beginnen en zacht aankomen (geen lineaire stap)',
+  `per beeld: eerste ${r3(mik.eerste)}°, grootste ${r3(mik.grootste)}°, laatste ${r3(mik.laatste)}°`);
+ok(Math.hypot(...mik.ring) < 2, 'het hart van de ring midden in beeld', px(mik.ring));
+ok(Math.hypot(mik.korrel[0] - mik.ring[0], mik.korrel[1] - mik.ring[1]) < mik.gatR * 0.25, 'de top van de korrel midden in het gat',
+  `korrel ${px(mik.korrel)}, gat ${mik.gatR.toFixed(1)} px straal`);
+ok(mik.ringH > 0.15 && mik.ringH < 0.30, 'de ring vult een duidelijk deel van het beeld', `${(mik.ringH * 100).toFixed(1)} % van de hoogte`);
+ok(mik.kruis === 'none' && mik.kruisTerug !== 'none', 'het kruisje verdwijnt bij aanleggen en komt terug', `"${mik.kruis}" → "${mik.kruisTerug}"`);
+ok(Math.abs(mik.terug - 72) < 0.3, 'losgelaten weer 72°', `${r3(mik.terug)}°`);
+
+// ------------------------------------------------------------------ 11. herladen zonder schokken (stap 138)
+/*
+ Elk beeld van 1/60 s de stand van het geweer (plaats en draaiing ten opzichte van de camera) en de kleine beweging
+ van het beeld. Geen sprong: de verandering per beeld begrensd. En de snelheid loopt door: het verschil tussen twee
+ opeenvolgende stappen (de tweede afgeleide per beeld) begrensd, ook bij het begin en het eind, en ook als je herlaadt
+ terwijl je aangelegd stond (tot stap 137 sprong het geweer dan in één beeld van het vizier naar de heup).
+*/
+kop('herladen zonder schokken');
+const glad = await page.evaluate(async () => {
+  const g = window.__game, P = g.player;
+  const { GARAND_HERLAAD } = await import('/js/wapen.js');
+  if (P.wapenSoort !== 'garand') { P.zetWapen('garand'); }
+  P.wisselT = 0; P.holster = 0;
+  const ronde = (ammo, aangelegd) => {
+    P.richten(false); P.reloading = 0; P.ammo = ammo; P.reserve = Math.max(P.reserve, 48);
+    window.__stap(40, 1 / 60);
+    if (aangelegd) { P.richten(true); window.__stap(30, 1 / 60); }
+    const W = P.wapen, rij = [], laad = [];
+    const neem = () => {
+      const p = W.groep.position, r = W.groep.rotation, c = P.camera.rotation;
+      rij.push([p.x, p.y, p.z, r.x, r.y, r.z, c.x - P.pitch - P.zicht.pitch, c.y - P.yaw - P.zicht.yaw, c.z]);
+      laad.push(W.delen.laadhand.visible ? W.delen.laadhand.position.toArray() : null);
+    };
+    for (let i = 0; i < 6; i++) { window.__stap(1, 1 / 60); neem(); }
+    const pings = W.pings;
+    P.reload();
+    const tijd = P.reloading;
+    let n = 0;
+    while (P.reloading > 0 && n < 400) { window.__stap(1, 1 / 60); neem(); n++; }
+    for (let i = 0; i < 20; i++) { window.__stap(1, 1 / 60); neem(); }
+    let dp = 0, dr = 0, ap = 0, ar = 0, ac = 0, dl = 0;
+    for (let i = 1; i < rij.length; i++) {
+      const a = rij[i - 1], b = rij[i];
+      dp = Math.max(dp, Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]));
+      dr = Math.max(dr, ...[3, 4, 5].map(k => Math.abs(b[k] - a[k])));
+      if (laad[i] && laad[i - 1]) dl = Math.max(dl, Math.hypot(...laad[i].map((v, k) => v - laad[i - 1][k])));
+      if (i < 2) continue;
+      const c = rij[i - 2];
+      ap = Math.max(ap, Math.hypot(...[0, 1, 2].map(k => b[k] - 2 * a[k] + c[k])));
+      ar = Math.max(ar, ...[3, 4, 5].map(k => Math.abs(b[k] - 2 * a[k] + c[k])));
+      ac = Math.max(ac, ...[6, 7, 8].map(k => Math.abs(b[k] - 2 * a[k] + c[k])));
+    }
+    const cam = Math.max(...rij.map(r => Math.max(Math.abs(r[6]), Math.abs(r[7]), Math.abs(r[8]))));
+    return { tijd, dp, dr, ap, ar, ac, dl, cam, ping: W.pings - pings, ammo: P.ammo, eindCam: Math.abs(rij.at(-1)[6]) + Math.abs(rij.at(-1)[8]) };
+  };
+  return { T: GARAND_HERLAAD, leeg: ronde(0, false), half: ronde(4, false), mik: ronde(0, true) };
+});
+const gl = (x) => `stap ≤ ${(x.dp * 1000).toFixed(1)} mm en ${r3(x.dr)} rad, snelheidsverschil ≤ ${(x.ap * 1000).toFixed(2)} mm en ${r3(x.ar)} rad per beeld`;
+ok(glad.T >= 2.1 && glad.T <= 2.4 && Math.abs(glad.leeg.tijd - glad.T) < 0.01, 'herladen duurt 2,1–2,4 s', `${r3(glad.leeg.tijd)} s`);
+for (const [naam, x] of [['een lege grendel', glad.leeg], ['een halve clip', glad.half], ['vanuit het vizier', glad.mik]]) {
+  ok(x.dp < 0.02 && x.dr < 0.05, `${naam}: het geweer springt nergens`, gl(x));
+  ok(x.ap < 0.006 && x.ar < 0.015 && x.ac < 0.002, `${naam}: de snelheid loopt door`, `beeld ${r3(x.ac)} rad; ${gl(x)}`);
+  ok(x.dl < 0.03 && x.ammo === 8, `${naam}: de laadhand glijdt, en weer acht`, `${(x.dl * 1000).toFixed(1)} mm per beeld, ${x.ammo} erin`);
+}
+ok(glad.half.ping === 1 && glad.leeg.ping === 0, 'met een halve clip eerst de ping, met een lege niet', `half ${glad.half.ping}, leeg ${glad.leeg.ping}`);
+ok(glad.leeg.cam > 0.004 && glad.leeg.cam < 0.02 && glad.leeg.eindCam < 1e-4, 'het beeld doet heel licht mee, en staat daarna weer recht',
+  `hoogstens ${r3(glad.leeg.cam)} rad`);
+
 // ------------------------------------------------------------------ 9. shaders
 kop('geen nieuwe shader');
 const sh = await page.evaluate(async () => {

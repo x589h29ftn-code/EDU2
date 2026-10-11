@@ -58,11 +58,12 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | **rechtermuisknop** | over het vizier richten zolang je hem vasthoudt: nauwkeuriger en minder terugslag, maar je loopt langzamer |
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto of een boot |
 | 1 2 3 | een keuze maken als het spel erom vraagt (een huis, de inleg, wat je doet); op een aanraakscherm zijn het knoppen |
-| 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, verband, wapens) |
+| 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, EHBO-dozen, wapens) |
 | F5 / F9 | spel opslaan / opgeslagen spel laden (ook: **Opslaan** in het menu onder Esc) |
 | F11 | volledig scherm aan en uit (in de app zonder menubalk). Onder **Instellingen → Spelen in volledig scherm** kies je het voorgoed: dan gaat het spel bij Start en Doorgaan vanzelf schermvullend |
 | **X** | een klusje afbreken |
-| levensbalk | linksonder; leeg = neergegaan, en dan kies je: de missie opnieuw, het laatste checkpoint, of je eigen opslag |
+| levensbalk | linksonder; leeg = neergegaan, en dan kies je: de missie opnieuw, het laatste checkpoint, of je eigen opslag. Het streepje in het midden is de helft: tot daar komt je leven vanzelf terug (zie [Levens zoals in GTA](#levens-zoals-in-gta)) |
+| **L** | een EHBO-doos inzetten: +40 leven, tot 100. Het doosje met het aantal staat naast de levensbalk |
 | portemonnee | rechtsonder; je begint met € 1000 (testfase) en verdient de rest met missies |
 | **V** | camera: vanuit je ogen of over je schouder (handig met de auto) |
 | **G** | scherpte: scherp, normaal of zuinig (blijft bewaard) |
@@ -3196,11 +3197,11 @@ schap. Tot stap 106 bleef het in beeld staan, ook buiten. Je koopt het met de **
 | | artikel | prijs | |
 |---|---|---|---|
 | 1 | 100 kogels | € 50 | meer dan 600 krijg je niet in je tas |
-| 2 | verbandtrommel | € 25 | **+50 levenspunten**, nooit meer dan vol — sta je op 80, dan word je 100 |
+| 2 | EHBO-doos | € 100 | gaat mee in je tas, hoogstens vijf; **L** zet er een in voor **+40 leven** (tot 100) |
 | 3 | pistool | € 150 | alleen als je er geen hebt; anders staat hij als *in bezit* in de vitrine |
 | 4 | machinegeweer | € 500 | één keer; wisselen daarna met het scrollwiel |
 
-De lijst is precies wat er te koop is: ben je al helemaal fit, dan verdwijnt de verbandtrommel eruit
+De lijst is precies wat er te koop is: heb je al vijf EHBO-dozen bij je, dan verdwijnt de doos eruit
 en schuiven de nummers op — wat je ziet is wat je indrukt. Een wapen dat je al hebt staat er grijs bij
 als *in bezit* met een vinkje in plaats van een nummer, zodat je ziet dát de verkoper het heeft. Heb
 je te weinig geld, dan zegt hij dat, en er gaat niets af. Een gekocht wapen komt meteen in je handen
@@ -3209,6 +3210,16 @@ met een vol magazijn uit je eigen voorraad kogels (zie [De wapens](#de-wapens)).
 De plaatjes zijn, net als alles in dit spel, getekend en geen bestand: een doos met patronen erin,
 een verbandtrommel met een rood kruis, en de zijkanten van het pistool en het machinegeweer, elk op
 een houten plank met een schaduwtje eronder (`schapIcoon` in `js/textures.js`).
+
+### Levens zoals in GTA
+
+Sinds stap 138 werkt je leven zoals in GTA. **Tot de helft komt het vanzelf terug**: word je vijf tellen
+niet geraakt, dan krijg je er twee punten per seconde bij, tot 50 — verder niet. Elke treffer (een kogel, een
+klap, een knal) zet die vijf tellen opnieuw. **Boven de helft** moet je het halen: bier uit de koelkast of van
+de Poiesz, vlees van de barbecue, kibbeling bij Martens, of een **EHBO-doos**. Die koop je bij Tinga State
+(€ 100), je neemt er hoogstens vijf mee, en met **L** zet je er een in wanneer je wilt: +40 leven, nooit meer
+dan 100. Bij vol leven of zonder dozen doet L niets. Naast de levensbalk staat een wit doosje met een rood
+kruis en het aantal; de dozen gaan mee in je opslag (`js/gezondheid.js`, `npm run levenstest`).
 
 ![Het schap aan de toonbank](docs/screenshots/boerderij_schap.png)
 

@@ -18,6 +18,8 @@
 import * as THREE from 'three';
 import { profiel, puntOp } from './inval.js';
 import { Persoon } from './persoon.js';
+import { SCOOTER } from './lichaam.js';
+import { stuurDelen } from './leven.js';
 import { geluid } from './audio.js';
 
 export const HANDLANGERS = {
@@ -45,19 +47,21 @@ export const HANDLANGERS = {
 const r = (a, b) => a + Math.random() * (b - a);
 
 // een scooter met een man erop (de vormen van de pizzascooter in js/leven.js, in het zwart)
-function maakScooter() {
+export function maakScooter() {
   const g = new THREE.Group(); g.name = 'handlangerScooter';
   const romp = new THREE.MeshStandardMaterial({ color: 0x1d1f24, roughness: 0.35, metalness: 0.2 });
   const zwart = new THREE.MeshStandardMaterial({ color: 0x18181a, roughness: 0.7 });
   const wiel = new THREE.TorusGeometry(0.2, 0.06, 6, 14);
   for (const z of [-0.62, 0.55]) { const w = new THREE.Mesh(wiel, zwart); w.rotation.y = Math.PI / 2; w.position.set(0, 0.26, z); g.add(w); }
-  for (const [w, h, d, x, y, z, rx] of [[0.34, 0.1, 0.8, 0, 0.32, 0.02, 0], [0.4, 0.34, 0.6, 0, 0.55, 0.42, 0], [0.36, 0.7, 0.12, 0, 0.62, -0.5, -0.25]]) {
+  // (stap 138: het beenschild helt naar de rijder toe en er staat een stuur op, dat hij vasthoudt)
+  for (const [w, h, d, x, y, z, rx] of [[0.34, 0.1, 0.8, 0, 0.32, 0.02, 0], [0.4, 0.34, 0.6, 0, 0.55, 0.42, 0], [0.36, 0.7, 0.12, 0, SCOOTER.scherm.y, SCOOTER.scherm.z, SCOOTER.scherm.rx]]) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), romp); m.position.set(x, y, z); m.rotation.x = rx; g.add(m);
   }
   const zadel = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.5), zwart); zadel.position.set(0, 0.76, 0.38); g.add(zadel);
+  for (const m of stuurDelen(zwart, zwart)) g.add(m);
   const rijder = new Persoon({ shirt: 0x15171b, broek: 0x202228, huid: 0xc99a74, haar: 0x1b1b1b, hoogte: 0.98 });
   const zit = new THREE.Group(); zit.position.set(0, 0.36, 0.3); g.add(zit); zit.add(rijder.groep);
-  return { mesh: g, rijder };
+  return { mesh: g, rijder, zit };
 }
 
 export function maakHandlangers(scene, vehicles) {
@@ -137,7 +141,7 @@ export function maakHandlangers(scene, vehicles) {
         else m.v = Math.max(wil, m.v - HANDLANGERS.remmen * (m.dood ? 0.6 : 1) * dt);
         m.s = Math.min(lijn.lengte - 4, m.s + m.v * dt);
         if (!a.wrak) plaats(m, dt);
-        if (m.rijder) { m.rijder.update(dt, { zit: 0.36 }); m.rijder.groep.position.set(0, 0, 0); }
+        if (m.rijder) m.rijder.opScooter(dt, m.rijder.groep.parent.position);     // (stap 138: handen om het stuur)
         // schieten
         if (m.flitsT > 0) { m.flitsT -= dt; if (m.flitsT <= 0) m.flits.visible = false; }
         if (m.dood || m.stop) continue;

@@ -28,6 +28,7 @@ import { plattegrond, banden } from './interieur.js';
 import { Persoon } from './persoon.js';
 import { schapIcoon } from './textures.js';
 import { DRONE } from './drone.js';
+import { LEVEN } from './gezondheid.js';
 
 const PAND = { straat: 'Molenkrite', nr: '115', type: 'tinga_state' };
 
@@ -61,9 +62,11 @@ export const SNIPER = { prijs: 650, soort: 'sniper', naam: 'Sniper' };
  (`kogels`: 8 + 48, en nooit meer dan MAX_RESERVE), want .30-06 ligt niet bij elke doos kogels.
 */
 export const GARAND = { prijs: 1500, soort: 'garand', naam: 'M1 Garand', schapNaam: 'M1 Garand', kogels: 56 };
-// Een verbandtrommel: vijftig levenspunten voor vijfentwintig euro, en nooit
-// meer dan vol. Wie al fit is koopt hem niet — dan gooi je je geld weg.
-export const EHBO = { prijs: 25, punten: 50 };
+/*
+ De EHBO-doos (stap 138; tot dan een verbandtrommel die je meteen gebruikte, € 25 voor 50 punten).
+ Nu neem je hem mee: hoogstens vijf, en L zet er één in voor 40 punten (js/gezondheid.js).
+*/
+export const EHBO = { prijs: LEVEN.packPrijs, punten: LEVEN.packLeven, max: LEVEN.maxPacks };
 export const MAX_LEVEN = 100;
 export const MAX_RESERVE = 600;
 
@@ -538,29 +541,26 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     },
     {
       /*
-       De verbandtrommel. Vijftig punten voor vijfentwintig euro, en nooit meer
-       dan vol: sta je op tachtig, dan krijg je er twintig bij en betaal je
-       gewoon de volle prijs — een halve trommel bestaat niet. Wie al helemaal
-       fit is krijgt hem niet verkocht; dan gooi je je geld weg en dat zegt de
-       verkoper ook.
+       De EHBO-doos (stap 138). Je neemt hem mee en zet hem in met L wanneer je wilt
+       (js/gezondheid.js), hoogstens vijf in je tas. Met vijf staat hij niet meer in de
+       lijst; het leven zelf doet er bij het kopen niet meer toe.
       */
       sleutel: 'ehbo',
-      naam: `verbandtrommel (+${EHBO.punten} leven)`,
+      naam: `EHBO-doos (+${EHBO.punten}, L)`,
       prijs: EHBO.prijs,
-      beschikbaar: () => player.health < MAX_LEVEN,
+      beschikbaar: () => (player.packs || 0) < EHBO.max,
       koop() {
-        if (player.health >= MAX_LEVEN) {
-          hud.melding('Je bent er prima aan toe', 'Een verbandtrommel heeft nu geen zin.', 3);
+        if ((player.packs || 0) >= EHBO.max) {
+          hud.melding('Je tas zit vol', `Meer dan ${EHBO.max} EHBO-dozen neem je niet mee.`, 3);
           return 'vol';
         }
         if (!betaal(EHBO.prijs)) {
-          hud.melding('Te weinig geld', `Een verbandtrommel kost € ${EHBO.prijs}.`, 3);
+          hud.melding('Te weinig geld', `Een EHBO-doos kost € ${EHBO.prijs}.`, 3);
           return 'arm';
         }
-        const voor = player.health;
-        player.health = Math.min(MAX_LEVEN, player.health + EHBO.punten);
-        if (hud.zetLeven) hud.zetLeven(player.health);
-        hud.melding('Verbandtrommel gekocht', `${Math.round(player.health - voor)} levenspunten erbij, € ${EHBO.prijs} betaald.`, 3);
+        player.packs = (player.packs || 0) + 1;
+        if (hud.zetPacks) hud.zetPacks(player.packs);
+        hud.melding('EHBO-doos gekocht', `€ ${EHBO.prijs} betaald · ${player.packs} van ${EHBO.max} bij je · L zet er een in (+${EHBO.punten}).`, 3);
         return 'ok';
       },
     },

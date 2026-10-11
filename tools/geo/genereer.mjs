@@ -1365,8 +1365,135 @@ const SCHEIDINGEN = [];
       const v = tel2 ? som / tel2 : 0;
       pts.push([r2(r.cx + u * c - v * sn), r2(r.cz + u * sn + v * c)]);
     }
-    return { pts, dik: r2(Math.max(0.2, Math.min(1.2, r.B))) };
+    return { pts, dik: r2(Math.max(0.2, Math.min(1.2, r.B))), vulling: Math.abs(oppervlak(ring)) / Math.max(1e-6, r.L * r.B) };
   };
+
+  /*
+   De hartlijn van een gebógen band (stap 138). `hartlijn` hierboven gaat ervan
+   uit dat een muur recht is: hij projecteert de ring op de langste as van de
+   kleinste rechthoek en middelt per twee meter wat erin valt. Bij een muur die
+   een bocht maakt (de kademuur langs de Geeuw ten zuiden van de Lemmerweg: 425 m
+   lang, 43 cm dik, met een bocht van 85 m opzij) liggen in zo'n strookje punten
+   van de voorkant hier en van de achterkant dáár, tientallen meters verderop: het
+   midden zigzagde over de rijbaan en de stoep. Gemeten waren 31 van de 48
+   muurvlakken in de BGT krom genoeg om het mis te laten gaan.
+
+   Dit loopt de rand zelf af. De ring wordt fijn bemonsterd; de twee koppen zijn
+   de plekken waar de rand binnen een paar keer de dikte helemaal omkeert en de
+   twee kanten daar dicht bij elkaar liggen. Daartussen is de ene kant de
+   voorkant en de andere de achterkant, en per halve meter langs de voorkant is
+   het midden met het dichtstbijzijnde punt van de achterkant een punt van de
+   hartlijn. Waar die afstand ineens veel groter is dan de dikte (een uitstulping,
+   een tak) wordt de lijn daar onderbroken in plaats van er dwars overheen te
+   gaan. Valt de lijn niet voor minstens 85 % binnen het vlak, dan geeft dit null.
+  */
+  const bandHartlijn = (ring) => {
+    const n0 = ring.length;
+    let P = 0;
+    for (let i = 0; i < n0; i++) { const a = ring[i], b = ring[(i + 1) % n0]; P += Math.hypot(b[0] - a[0], b[1] - a[1]); }
+    if (P < 3) return null;
+    // de dikte uit oppervlak en omtrek, alsof het een rechthoek is (L + B = P/2, L·B = A)
+    const A0 = Math.abs(oppervlak(ring)), disc = P * P / 4 - 4 * A0;
+    const w = Math.max(0.05, disc > 0 ? (P / 2 - Math.sqrt(disc)) / 2 : 2 * A0 / P);
+    if (w > 2.5) return null;                      // geen muur maar een blok
+    const STAP = Math.min(0.25, Math.max(0.05, w / 2));
+    const s = [];
+    for (let i = 0; i < n0; i++) {
+      const a = ring[i], b = ring[(i + 1) % n0], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const k = Math.max(1, Math.round(L / STAP));
+      for (let j = 0; j < k; j++) s.push([a[0] + (b[0] - a[0]) * j / k, a[1] + (b[1] - a[1]) * j / k]);
+    }
+    const N = s.length, ds = P / N;
+    // hoeveel de rand omkeert over een paar keer de dikte, en of de twee kanten daar dicht bij elkaar liggen
+    const k = Math.max(1, Math.round(Math.max(0.4, 3 * w) / ds));
+    const ruw = new Float32Array(N), kop = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const a = s[(i - k + N) % N], m = s[i], b = s[(i + k) % N];
+      const ux = m[0] - a[0], uz = m[1] - a[1], vx = b[0] - m[0], vz = b[1] - m[1];
+      const lu = Math.hypot(ux, uz) || 1, lv = Math.hypot(vx, vz) || 1;
+      ruw[i] = Math.acos(Math.max(-1, Math.min(1, (ux * vx + uz * vz) / (lu * lv))));
+      kop[i] = Math.hypot(a[0] - b[0], a[1] - b[1]) > 1.8 * w + 0.1 ? 0 : ruw[i];
+    }
+    // samenhangende groepjes met een keer van meer dan ~140°: elk groepje is een kop
+    const DREMPEL = 2.4, koppen = [];
+    let start = -1;
+    for (let i = 0; i < N; i++) if (kop[i] >= DREMPEL && kop[(i - 1 + N) % N] < DREMPEL) { start = i; break; }
+    if (start >= 0) {
+      let vorige = -2;
+      for (let t = 0; t < N; t++) {
+        const i = (start + t) % N;
+        if (kop[i] < DREMPEL) continue;
+        if (vorige !== t - 1) koppen.push({ i, v: kop[i] });
+        const c = koppen[koppen.length - 1]; if (kop[i] > c.v) { c.v = kop[i]; c.i = i; }
+        vorige = t;
+      }
+    }
+    const boog = (a, b) => ((b - a + N) % N) * ds;            // langs de rand van a naar b
+    const besteTegenover = (e) => {                          // de scherpste keer ruwweg een halve omtrek verder
+      let bi = -1, bv = -1;
+      for (let i = 0; i < N; i++) { const t = boog(e, i); if (t > P / 3 && t < 2 * P / 3 && ruw[i] > bv) { bv = ruw[i]; bi = i; } }
+      return bi;
+    };
+    let e1, e2;
+    if (koppen.length >= 2) {
+      let best = Infinity;
+      for (let a = 0; a < koppen.length; a++) for (let b = a + 1; b < koppen.length; b++) {
+        const t = Math.abs(boog(koppen[a].i, koppen[b].i) - P / 2);
+        if (t < best) { best = t; e1 = koppen[a].i; e2 = koppen[b].i; }
+      }
+    } else {
+      e1 = koppen.length ? koppen[0].i : ruw.reduce((bi, v, i) => v > ruw[bi] ? i : bi, 0);
+      e2 = besteTegenover(e1);
+      if (e2 < 0) return null;
+    }
+    // voorkant A van e1 naar e2, achterkant B van e2 terug naar e1
+    const A = [], B = [];
+    for (let i = e1; i !== e2; i = (i + 1) % N) A.push(s[i]);
+    A.push(s[e2]);
+    for (let i = e2; i !== e1; i = (i + 1) % N) B.push(s[i]);
+    B.push(s[e1]);
+    const naast = (p) => {
+      let best = Infinity, bq = null;
+      for (let i = 1; i < B.length; i++) {
+        const a = B[i - 1], b = B[i];
+        const dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz || 1e-9;
+        let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / L2; t = t < 0 ? 0 : t > 1 ? 1 : t;
+        const qx = a[0] + dx * t, qz = a[1] + dz * t, d = Math.hypot(p[0] - qx, p[1] - qz);
+        if (d < best) { best = d; bq = [qx, qz]; }
+      }
+      return [bq, best];
+    };
+    const mids = [];
+    let gelopen = Infinity;
+    for (let i = 0; i < A.length; i++) {
+      if (i) gelopen += Math.hypot(A[i][0] - A[i - 1][0], A[i][1] - A[i - 1][1]);
+      if (gelopen < 0.5 && i !== A.length - 1) continue;
+      gelopen = 0;
+      const [q, d] = naast(A[i]);
+      mids.push({ p: [(A[i][0] + q[0]) / 2, (A[i][1] + q[1]) / 2], d });
+    }
+    // onderbreken waar de overkant ineens ver weg is, of de lijn een sprong maakt
+    const MAX = 2.5 * w + 0.25, stukken = [];
+    let nu = [];
+    for (const m of mids) {
+      const vorig = nu[nu.length - 1];
+      if (m.d > MAX || (vorig && Math.hypot(m.p[0] - vorig.p[0], m.p[1] - vorig.p[1]) > 3)) {
+        if (nu.length >= 2) stukken.push(nu);
+        nu = m.d > MAX ? [] : [m];
+        continue;
+      }
+      nu.push(m);
+    }
+    if (nu.length >= 2) stukken.push(nu);
+    const alle = stukken.flat();
+    if (alle.length < 2) return null;
+    const binnen = alle.filter(m => inRing(m.p, ring)).length / alle.length;
+    if (binnen < 0.85) return null;
+    const dd = alle.map(m => m.d).sort((a, b) => a - b);
+    const dik = r2(Math.max(0.2, Math.min(1.2, dd[dd.length >> 1])));
+    return stukken.map(st => ({ pts: st.map(m => m.p), dik }));
+  };
+  const hartTel = { band: 0, recht: 0, weg: 0 };
 
   const voeg = (soort, pts, extra = {}) => {
     if (!pts || pts.length < 2) return;
@@ -1392,8 +1519,14 @@ const SCHEIDINGEN = [];
     if (!soort) continue;
     for (const l of lijnen(f.geometry)) voeg(soort, l.map(naarSpel));
     for (const r of ringen(f.geometry)) {
-      const hl = hartlijn(r.map(naarSpel));
-      if (hl) voeg(soort, hl.pts, { dik: hl.dik });
+      let ring = r.map(naarSpel);
+      if (ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ring = ring.slice(0, -1);
+      // eerst als band langs de rand (stap 138); lukt dat niet, dan alleen nog
+      // de oude rechte hartlijn voor een vlak dat zijn rechthoek ook echt vult
+      const band = bandHartlijn(ring);
+      if (band) { hartTel.band++; for (const st of band) voeg(soort, st.pts, { dik: st.dik }); continue; }
+      const hl = hartlijn(ring);
+      if (hl && hl.vulling > 0.8) { hartTel.recht++; voeg(soort, hl.pts, { dik: hl.dik }); } else hartTel.weg++;
     }
   }
   for (const f of leesOpt('bgt_weginrichtingselement')) {
@@ -1406,6 +1539,7 @@ const SCHEIDINGEN = [];
     const q = SCHEIDINGEN.filter(s => s.soort === soort);
     if (q.length) telling[`scheiding_${soort}_m`] = Math.round(q.reduce((a, b) => a + b.lengte, 0));
   }
+  telling.scheiding_vlak_band = hartTel.band; telling.scheiding_vlak_recht = hartTel.recht; telling.scheiding_vlak_weg = hartTel.weg;
 }
 tel('scheidingen', SCHEIDINGEN.length);
 

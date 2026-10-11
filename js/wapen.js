@@ -1266,20 +1266,58 @@ export function maakMes(geluid) {
  (de halve pistoolgreep van de kolf) staat precies waar die van het pistool staat, zodat dezelfde rechterhand
  eromheen past.
 */
-export const GARAND_HERLAAD = 2.1;
-// de stappen van het herladen, als fractie van GARAND_HERLAAD
+/*
+ Het herladen, stap 138 ("smoother en professioneler"). Tot stap 137 waren het tien losse stukjes, elk met een eigen
+ soepel(): elk stuk begon en eindigde stil, dus het geweer stond op elke grens even stil en de hand bewoog in rechte
+ lijnen. Nu loopt alles over sleutelstanden met een vloeiende baan erdoorheen (`baan`, Catmull-Rom met ongelijke
+ tussenpozen): de snelheid loopt door van de ene stand in de andere, en alleen waar iets echt stilstaat (de clip die
+ zit, de hand die nog op de greep ligt) staat een sleutel `stil`. De beweging zelf, zoals in goede shooters:
+ een klein zakje vooraf (anticipatie), het geweer kantelt naar links met de put naar je toe en schiet daar een fractie
+ voorbij; de rechterhand laat de greep los en zakt naar je borst, komt met een volle clip van rechtsonder omhoog, drukt
+ hem met de duim in de put (het geweer duikt even mee), en schiet weg terwijl de grendel naar voren slaat (een kleine
+ stoot naar voren); dan terug naar de greep, het geweer terug in de schouder met een kleine na-veer. Het beeld doet
+ heel licht mee (`camSchok`). Alles telt op bij de gewone stand (heup, richten, terugslag), dus bij het begin en het
+ eind springt er niets: ook niet als je herlaadt terwijl je nog aangeslagen stond.
+*/
+export const GARAND_HERLAAD = 2.25;
+// de momenten van het herladen, als fractie van GARAND_HERLAAD
 const GSTAP = {
-  kantelen: [0.00, 0.14],   // het geweer komt omhoog en kantelt met de bovenkant naar je toe
-  open: [0.03, 0.09],       // (halve clip) de grendel naar achteren…
-  uitwerp: 0.10,            // …en de clip springt eruit: ping
-  handWeg: [0.08, 0.20],    // de rechterhand laat de greep los
-  hand: [0.18, 0.40],       // en komt van rechts met een volle clip boven de kast
-  duw: [0.40, 0.58],        // de duim drukt de clip van boven in de kast
-  klik: 0.50,
-  dicht: [0.60, 0.64],      // de grendel slaat dicht: klak
-  terugHand: [0.64, 0.84],  // de hand gaat terug naar de greep
-  terug: [0.84, 1.00],      // terug in de aanslag
+  open: [0.05, 0.11],       // (halve clip) de grendel naar achteren…
+  uitwerp: 0.12,            // …en de clip springt eruit: ping
+  laadhand: [0.24, 0.86],   // de laadhand is er (en buiten deze tijd nooit)
+  zit: 0.585,               // de clip zit
+  klik: 0.57,
+  dicht: [0.62, 0.645],     // de grendel slaat dicht: klak
 };
+// (stap 138) aanleggen met de M1: een eigen beeldhoek (graden, verticaal) en een iets tragere, vloeiende overgang
+export const GARAND_MIK_FOV = 42;
+export const GARAND_MIK_TIJD = 0.25;
+
+/*
+ Een vloeiende baan door sleutels { t, v: [...], stil }: kubisch (Hermite), met als raaklijn in elke sleutel het
+ verschil tussen de buren gedeeld door hun tijd (Catmull-Rom). Eerste en laatste sleutel, en sleutels met `stil`,
+ krijgen snelheid nul. Geeft een functie t → v (een hergebruikte rij, niet bewaren).
+*/
+function baan(sleutels) {
+  const n = sleutels.length, dim = sleutels[0].v.length;
+  const raak = sleutels.map((k, i) => {
+    if (k.stil || i === 0 || i === n - 1) return new Array(dim).fill(0);
+    const a = sleutels[i - 1], b = sleutels[i + 1];
+    return k.v.map((_, d) => (b.v[d] - a.v[d]) / (b.t - a.t));
+  });
+  const uit = new Array(dim).fill(0);
+  return (t) => {
+    if (t <= sleutels[0].t) { for (let d = 0; d < dim; d++) uit[d] = sleutels[0].v[d]; return uit; }
+    if (t >= sleutels[n - 1].t) { for (let d = 0; d < dim; d++) uit[d] = sleutels[n - 1].v[d]; return uit; }
+    let i = 0;
+    while (t > sleutels[i + 1].t) i++;
+    const a = sleutels[i], b = sleutels[i + 1], L = b.t - a.t, s = (t - a.t) / L;
+    const s2 = s * s, s3 = s2 * s;
+    const h00 = 2 * s3 - 3 * s2 + 1, h10 = s3 - 2 * s2 + s, h01 = -2 * s3 + 3 * s2, h11 = s3 - s2;
+    for (let d = 0; d < dim; d++) uit[d] = h00 * a.v[d] + h10 * L * raak[i][d] + h01 * b.v[d] + h11 * L * raak[i + 1][d];
+    return uit;
+  };
+}
 
 /*
  De doeken van de M1, derde ronde (stap 134: "ook de texture kwaliteit verhogen"). Tot stap 133 waren ze 256 × 256 zoals
@@ -2155,10 +2193,74 @@ export function maakGarand(geluid) {
   // de stand bij het herladen: omhoog, de loop naar linksboven, de bovenkant naar je toe (zoals tot stap 134)
   const HERLAAD = { x: 0.012, y: -0.072, z: -0.255 };
   const HERLAAD_DRAAI = { x: 0.245, y: 0.415, z: -0.24 };
-  // over het vizier: de diopter op 13 cm van je oog, de korrel er in het midden achter
-  const MIK = { x: 0, y: -VIZIER_Y, z: VIZIER_Z - 0.130 };
+  /*
+   Over het vizier (stap 138, "dat je beter door de iron sights heen ziet"). Tot stap 137 stond de diopter 21 cm van je
+   oog, bij 54°: de ring was 6 % van de beeldhoogte en het gat een stipje. Nu staat hij op MIK_AFSTAND, met een eigen
+   beeldhoek (GARAND_MIK_FOV, 42°), zoals in Hell Let Loose en Call of Duty bij aanleggen: de ring is ~ een vijfde van
+   de beeldhoogte, je kijkt door het gat, en de oren en knoppen staan er groot en onscherp-dichtbij omheen. En precies
+   in het midden: de stand houdt nu rekening met de kanteling (KANTEL draait om de greep, dus ook het vizier schoof
+   een fractie), zodat het hart van de ring en de top van de korrel allebei op de as van de camera liggen.
+  */
+  const MIK_AFSTAND = 0.088;
+  const ck = Math.cos(KANTEL), sk = Math.sin(KANTEL);
+  const MIK = { x: 0, y: -(VIZIER_Y * ck - VIZIER_Z * sk), z: -MIK_AFSTAND - (VIZIER_Y * sk + VIZIER_Z * ck) };
   groep.position.set(RUST.x, RUST.y, RUST.z);
   groep.rotation.set(RUST_DRAAI.x, RUST_DRAAI.y, RUST_DRAAI.z);
+
+  /*
+   De banen van het herladen (stap 138), als afwijking van de gewone stand. `st(k, …)` is k keer de weg van de rust
+   naar de herlaadstand (HERLAAD), met daarbovenop een kleine extra verschuiving en draaiing.
+  */
+  const DH = [HERLAAD.x - RUST.x, HERLAAD.y - RUST.y, HERLAAD.z - RUST.z,
+    HERLAAD_DRAAI.x - RUST_DRAAI.x, HERLAAD_DRAAI.y - RUST_DRAAI.y, HERLAAD_DRAAI.z - RUST_DRAAI.z];
+  const st = (k, ...extra) => DH.map((d, i) => d * k + (extra[i] || 0));
+  const wapenBaan = baan([
+    { t: 0.00, v: st(0) },
+    { t: 0.06, v: st(0.02, 0.002, -0.006, 0.004, -0.035, 0, 0.010) },     // het zakje vooraf
+    { t: 0.24, v: st(1.05) },                                              // gekanteld, een fractie voorbij
+    { t: 0.32, v: st(1.00) },
+    { t: 0.46, v: st(1.00, 0, 0, 0, 0, 0.015, 0.010) },                    // iets naar de hand toe
+    { t: 0.58, v: st(1.00, 0, -0.007, 0.002, -0.045, 0.015, 0.010) },      // de duim drukt: het geweer duikt mee
+    { t: 0.635, v: st(1.00, 0, 0.002, -0.008, 0.025, 0, 0) },              // de grendel slaat dicht: een stoot
+    { t: 0.70, v: st(1.00) },
+    { t: 0.80, v: st(0.97) },
+    { t: 0.93, v: st(-0.04, 0, 0, 0.006) },                                // terug in de schouder, een fractie te ver
+    { t: 1.00, v: st(0) },
+  ]);
+  // de rechterhand: van de greep naar je borst (uit beeld) en weer terug
+  const greepBaan = baan([
+    { t: 0.00, v: [0, 0, 0], stil: true },
+    { t: 0.08, v: [0, 0, 0], stil: true },
+    { t: 0.13, v: [0.015, -0.025, 0.015] },
+    { t: 0.26, v: [0.12, -0.25, 0.07], stil: true },
+    { t: 0.78, v: [0.12, -0.25, 0.07], stil: true },
+    { t: 0.90, v: [0.010, -0.020, 0.006] },
+    { t: 0.95, v: [0, 0, 0], stil: true },
+  ]);
+  // de laadhand met de clip, ten opzichte van de clip die zit: van rechtsonder omhoog, boven de put, erin, en weg
+  const laadBaan = baan([
+    { t: 0.24, v: [0.13, -0.27, 0.10], stil: true },
+    { t: 0.36, v: [0.10, -0.06, 0.06] },
+    { t: 0.45, v: [0.014, 0.078, 0.014] },
+    { t: 0.50, v: [0, 0.058, 0.002] },
+    { t: 0.585, v: [0, 0, 0], stil: true },
+    { t: 0.62, v: [0, -0.003, 0], stil: true },                            // de duim drukt nog even na
+    { t: 0.665, v: [0.045, 0.050, 0.030] },                                // en schiet weg als de grendel slaat
+    { t: 0.75, v: [0.13, -0.08, 0.08] },
+    { t: 0.86, v: [0.13, -0.27, 0.10], stil: true },
+  ]);
+  // het beeld doet heel licht mee (radialen: knik, draai, kanteling)
+  const camBaan = baan([
+    { t: 0.00, v: [0, 0, 0] },
+    { t: 0.10, v: [-0.004, 0.003, 0.008] },
+    { t: 0.30, v: [-0.006, 0.004, 0.010] },
+    { t: 0.585, v: [-0.010, 0.004, 0.010] },
+    { t: 0.64, v: [0.004, 0.002, 0.006] },
+    { t: 0.72, v: [-0.004, 0.003, 0.008] },
+    { t: 0.88, v: [0.002, 0, -0.003] },
+    { t: 1.00, v: [0, 0, 0] },
+  ]);
+  const camSchok = { x: 0, y: 0, z: 0 };
 
   const VEER = { k: 330, c: 22 };
   // de veer slaat tot ~10 cm terug; zo dicht bij je oog gaat daar maar een derde van naar achteren (stap 133)
@@ -2314,78 +2416,15 @@ export function maakGarand(geluid) {
     zwaai.x += (doelX - zwaai.x) * Math.min(1, dt * 7);
     zwaai.y += (doelY - zwaai.y) * Math.min(1, dt * 7);
 
-    if (herlaad > 0) {
-      if (!herlaadBezig) {
-        herlaadBezig = true; gedaan = {};
-        startAmmo = clip.g.visible ? n : 0;
-        nieuwAantal = Math.max(1, Math.min(8, n + reserve));
-      }
-      const t = 1 - herlaad / GARAND_HERLAAD;
-      const uit = soepel(deel(t, GSTAP.kantelen)) - soepel(deel(t, GSTAP.terug));
-      // het geweer omhoog, de loop naar linksboven, de bovenkant naar je toe (zie de foto van het laden)
-      // (stap 135) naar een vaste stand, niet meer een stukje vanaf de rust: die staat nu hoger en dichterbij, en dan
-      // kwam de kolf bij het herladen schuin door het halve beeld
-      groep.position.set(RUST.x + (HERLAAD.x - RUST.x) * uit, RUST.y + (HERLAAD.y - RUST.y) * uit, RUST.z + (HERLAAD.z - RUST.z) * uit);
-      groep.rotation.set(RUST_DRAAI.x + (HERLAAD_DRAAI.x - RUST_DRAAI.x) * uit, RUST_DRAAI.y + (HERLAAD_DRAAI.y - RUST_DRAAI.y) * uit,
-        RUST_DRAAI.z + (HERLAAD_DRAAI.z - RUST_DRAAI.z) * uit);
-      // de rechterhand laat de greep los en zakt naar rechtsonder weg, en komt aan het eind terug
-      const weg = soepel(deel(t, GSTAP.handWeg)) - soepel(deel(t, GSTAP.terugHand));
-      hand.position.set(0.12 * weg, -0.22 * weg, 0.06 * weg);
-      arm.rotation.set(0, 0, 0);
-      arm.position.set(0.12 * weg, -0.22 * weg, 0.06 * weg);
-      hand.visible = arm.visible = weg < 0.98;
-      // halve clip: de grendel naar achteren en de clip springt eruit
-      const open = startAmmo > 0 ? soepel(deel(t, GSTAP.open)) : 1;
-      if (startAmmo > 0 && !gedaan.open && t >= GSTAP.open[0]) { gedaan.open = true; if (geluid && geluid.m1Grendel) geluid.m1Grendel(); }
-      if (startAmmo > 0 && !gedaan.uit && t >= GSTAP.uitwerp) { gedaan.uit = true; groep.updateMatrix(); standMat.copy(groep.matrix); werpClip(); }
-      // de volle clip met de laadhand: van rechtsboven naar boven de kast, dan erin gedrukt
-      const komt = soepel(deel(t, GSTAP.hand));
-      const duw = soepel(deel(t, GSTAP.duw));
-      const dicht = deel(t, GSTAP.dicht);
-      const hoog = 0.056 * (1 - duw);
-      const ox = 0.16 * (1 - komt), oy = hoog + 0.10 * (1 - komt), oz = 0.05 * (1 - komt);
-      const nieuw = t >= GSTAP.hand[0];
-      if (nieuw) {
-        clip.g.visible = true;
-        clip.g.position.set(ox, oy, oz);
-        zetPatronen(nieuwAantal);
-      } else {
-        clip.g.position.set(0, 0, 0);
-        clip.g.visible = startAmmo > 0 && !gedaan.uit;
-        zetPatronen(startAmmo);
-      }
-      if (!gedaan.klik && t >= GSTAP.klik) { gedaan.klik = true; if (geluid && geluid.m1ClipIn) geluid.m1ClipIn(); }
-      if (!gedaan.klak && t >= GSTAP.dicht[0]) { gedaan.klak = true; if (geluid && geluid.m1Klak) geluid.m1Klak(); }
-      // de grendel: open tot de clip zit, dan in een paar honderdsten dicht
-      const grendelOpen = dicht > 0 ? 1 - dicht : open;
-      grendel.position.z = SLAG * grendelOpen;
-      // de duim schiet omhoog als de grendel dichtslaat, en de hand gaat terug naar rechts
-      const schok = Math.sin(Math.min(1, deel(t, [0.60, 0.70])) * Math.PI) * 0.03;
-      const handTerug = soepel(deel(t, GSTAP.terugHand));
-      laadhand.visible = komt > 0 && handTerug < 1;
-      laadhand.position.set(ox + 0.16 * handTerug, oy + schok + 0.02 * handTerug, oz + 0.06 * handTerug);
-      stand(holster);
-      losBij(dt);
-      laatsteAmmo = n;
-      return;
-    }
-    if (herlaadBezig) { herlaadBezig = false; clip.g.position.set(0, 0, 0); }
-    laadhand.visible = false;
-    hand.visible = arm.visible = true;
-    hand.position.set(0, 0, 0);
-    arm.rotation.set(0, 0, 0);
-    // na het laden van een opslag of een wissel: de clip zit erin zolang er patronen zijn
-    if (n > 0) { clip.g.visible = true; clip.g.position.set(0, 0, 0); }
-    else if (pingWacht < 0) clip.g.visible = false;
-    zetPatronen(n);
-    laatsteAmmo = n;
-
-    // de grendel: in 35 ms naar achteren, in 60 ms weer naar voren; na de laatste blijft hij open
-    const slag = sledeT < 0.035 ? sledeT / 0.035 : (n === 0 ? 1 : Math.max(0, 1 - (sledeT - 0.035) / 0.06));
-    grendel.position.z = SLAG * (n === 0 && sledeT >= 0.035 ? 1 : slag);
-
-    const m = Math.max(0, Math.min(1, mik));
+    /*
+     De gewone stand: uit de heup of over het vizier, met de terugslag, het lopen en het naslepen. Het herladen telt
+     daar hieronder bij op (stap 138), zodat het begin en het eind ervan nooit springen. `mik` loopt in js/player.js
+     lineair; hier gaat hij door soepel(), zodat het aanleggen zacht begint en zacht in het vizier aankomt, met
+     halverwege een fractie zakken en kantelen (`boog`): het geweer komt omhoog naar je oog, niet in een rechte lijn.
+    */
+    const m = soepel(Math.max(0, Math.min(1, mik)));
     const vrij = 1 - m;
+    const boog = Math.sin(Math.PI * m);
     const pas = loopF * vrij, ren = renF * vrij;
     const deinen = Math.sin(bob) * 0.007 * vrij;
     const opzij = Math.cos(bob * 0.5) * 0.009 * pas;
@@ -2395,18 +2434,81 @@ export function maakGarand(geluid) {
     const cx = Math.cos(rx), sx = Math.sin(rx);
     const polsY = POLS.y - (POLS.y * cx - POLS.z * sx), polsZ = POLS.z - (POLS.y * sx + POLS.z * cx);
     const ax = -rx * (1 - ARM_MEE), ca = Math.cos(ax), sa = Math.sin(ax);
+    const armY = POLS.y - (POLS.y * ca - POLS.z * sa), armZ = POLS.z - (POLS.y * sa + POLS.z * ca);
     arm.rotation.set(ax, 0, 0);
-    arm.position.set(0, POLS.y - (POLS.y * ca - POLS.z * sa), POLS.z - (POLS.y * sa + POLS.z * ca));
+    arm.position.set(0, armY, armZ);
+    hand.position.set(0, 0, 0);
     groep.rotation.set(
       RUST_DRAAI.x * vrij + KANTEL * m + rx - 0.38 * ren + Math.sin(tijd * 1.6 + 1) * 0.004 * vrij + zwaai.y * 1.2 * vrij,
       RUST_DRAAI.y * vrij + veer.y * terugM + 0.40 * ren - zwaai.x * 1.4 * vrij,
-      RUST_DRAAI.z * vrij + Math.sin(bob * 0.5) * 0.02 * pas + 0.30 * ren,
+      RUST_DRAAI.z * vrij + Math.sin(bob * 0.5) * 0.02 * pas + 0.30 * ren + 0.05 * boog,
     );
     groep.position.set(
       RUST.x + (MIK.x - RUST.x) * m + opzij + zwaai.x * vrij + 0.02 * ren,
-      RUST.y + (MIK.y - RUST.y) * m + deinen + adem + zwaai.y * vrij - 0.05 * ren + polsY + rx * 0.04,
+      RUST.y + (MIK.y - RUST.y) * m + deinen + adem + zwaai.y * vrij - 0.05 * ren + polsY + rx * 0.04 - 0.008 * boog,
       RUST.z + (MIK.z - RUST.z) * m + veer.z * TERUG_Z * (1 - 0.15 * m) + 0.02 * ren + polsZ,
     );
+    camSchok.x = camSchok.y = camSchok.z = 0;
+
+    if (herlaad > 0) {
+      if (!herlaadBezig) {
+        herlaadBezig = true; gedaan = {};
+        startAmmo = clip.g.visible ? n : 0;
+        nieuwAantal = Math.max(1, Math.min(8, n + reserve));
+      }
+      const t = Math.max(0, Math.min(1, 1 - herlaad / GARAND_HERLAAD));
+      // het geweer: kantelen naar links met de put naar je toe, en weer terug (zie `wapenBaan`)
+      const w = wapenBaan(t);
+      groep.position.x += w[0]; groep.position.y += w[1]; groep.position.z += w[2];
+      groep.rotation.x += w[3]; groep.rotation.y += w[4]; groep.rotation.z += w[5];
+      // de rechterhand laat de greep los en zakt uit beeld, en komt aan het eind terug
+      const g = greepBaan(t);
+      hand.position.set(g[0], g[1], g[2]);
+      arm.position.set(g[0], armY + g[1], armZ + g[2]);
+      hand.visible = arm.visible = g[1] > -0.20;
+      // halve clip: de grendel naar achteren en de clip springt eruit
+      const open = startAmmo > 0 ? soepel(deel(t, GSTAP.open)) : 1;
+      if (startAmmo > 0 && !gedaan.open && t >= GSTAP.open[0]) { gedaan.open = true; if (geluid && geluid.m1Grendel) geluid.m1Grendel(); }
+      if (startAmmo > 0 && !gedaan.uit && t >= GSTAP.uitwerp) { gedaan.uit = true; groep.updateMatrix(); standMat.copy(groep.matrix); werpClip(); }
+      // de volle clip met de laadhand: van rechtsonder omhoog, boven de put, erin gedrukt; daarna gaat de hand weg
+      const l = laadBaan(t);
+      laadhand.visible = t >= GSTAP.laadhand[0] && t < GSTAP.laadhand[1] && l[1] > -0.22;
+      laadhand.position.set(l[0], l[1], l[2]);
+      if (t >= GSTAP.laadhand[0]) {
+        clip.g.visible = true;
+        // (de clip gaat nooit dieper dan de put; de duim drukt nog een fractie na)
+        if (t < GSTAP.zit) clip.g.position.set(l[0], t > 0.5 ? Math.max(0, l[1]) : l[1], l[2]);
+        else clip.g.position.set(0, 0, 0);
+        zetPatronen(nieuwAantal);
+      } else {
+        clip.g.position.set(0, 0, 0);
+        clip.g.visible = startAmmo > 0 && !gedaan.uit;
+        zetPatronen(startAmmo);
+      }
+      if (!gedaan.klik && t >= GSTAP.klik) { gedaan.klik = true; if (geluid && geluid.m1ClipIn) geluid.m1ClipIn(); }
+      if (!gedaan.klak && t >= GSTAP.dicht[0]) { gedaan.klak = true; if (geluid && geluid.m1Klak) geluid.m1Klak(); }
+      // de grendel: open tot de clip zit, dan versnellend dicht (een veer duwt hem, hij remt niet af)
+      const d = deel(t, GSTAP.dicht);
+      grendel.position.z = SLAG * (t >= GSTAP.dicht[0] ? 1 - d * d : open);
+      const c = camBaan(t);
+      camSchok.x = c[0]; camSchok.y = c[1]; camSchok.z = c[2];
+      stand(holster);
+      losBij(dt);
+      laatsteAmmo = n;
+      return;
+    }
+    if (herlaadBezig) { herlaadBezig = false; clip.g.position.set(0, 0, 0); }
+    laadhand.visible = false;
+    hand.visible = arm.visible = true;
+    // na het laden van een opslag of een wissel: de clip zit erin zolang er patronen zijn
+    if (n > 0) { clip.g.visible = true; clip.g.position.set(0, 0, 0); }
+    else if (pingWacht < 0) clip.g.visible = false;
+    zetPatronen(n);
+    laatsteAmmo = n;
+
+    // de grendel: in 35 ms naar achteren, in 60 ms weer naar voren; na de laatste blijft hij open
+    const slag = sledeT < 0.035 ? sledeT / 0.035 : (n === 0 ? 1 : Math.max(0, 1 - (sledeT - 0.035) / 0.06));
+    grendel.position.z = SLAG * (n === 0 && sledeT >= 0.035 ? 1 : slag);
     stand(holster);
     losBij(dt);
   }
@@ -2432,6 +2534,10 @@ export function maakGarand(geluid) {
     delen: { grendel, clip: clip.g, patronen: clip.patronen, legeClip, laadhand, linkerhand, hand, arm, trekker, flits, hulzen, rook: rookData.map(r => r.mesh), los },
     houding: { rust: RUST, mik: MIK, vizierY: VIZIER_Y },
     slag: SLAG,
+    // (stap 138) aanleggen: de beeldhoek als deel van 72°, de tijd, en dat js/player.js de beeldhoek soepel laat lopen;
+    // `camSchok` is de kleine beweging van het beeld bij het herladen (radialen, js/player.js telt hem op)
+    mikBeeld: GARAND_MIK_FOV / 72, mikTijd: GARAND_MIK_TIJD, mikSoepel: true, camSchok,
+    mikAfstand: MIK_AFSTAND,
     // (voor tools/m1shots.mjs, stap 135) de punten waaraan de maat op het scherm gemeten wordt
     meetpunten: {
       vizierY: VIZIER_Y, vizierZ: VIZIER_Z, ringR: RING_R, knop: KNOP, korrel: KORREL,

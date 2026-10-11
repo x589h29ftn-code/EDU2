@@ -11,6 +11,8 @@
    m1_169.png        uit de heup in 16:9 (1280 × 720) met de beeldhoek van het spel (72° verticaal), naast de foto uit
                      Hell Let Loose te leggen (stap 135)
    m1_vizierdicht.png het achtervizier en de hiel van dichtbij, van achteren zoals de speler ze ziet (stap 135)
+   m1_richten.png    aangelegd in 16:9 met de beeldhoek van de M1 (42°): door de ring, de korrel in het midden (stap 138)
+   m1_herladen_1..4.png het herladen in vier beelden, 16:9 (stap 138)
 
  Meet ook (stap 135) waar het vizier op het scherm staat, als fractie van de breedte en de hoogte en in eenheden van de
  breedte over de twee knoppen: zo is het te vergelijken met de eerste-persoonsfoto's van de gebruiker (docs/METHODIEK.md).
@@ -114,10 +116,30 @@ await page.setContent(`<!doctype html><html><head>
   uit['169'] = foto();
   r.setSize(${B}, ${H}); cam.aspect = ${B / H}; cam.updateProjectionMatrix();
   uit.hand = foto();
-  // over het vizier
-  cam.fov = 54; cam.updateProjectionMatrix();
+  // over het vizier, met de beeldhoek van de M1 (stap 138: 42° in plaats van 54)
+  cam.fov = 72 * w.mikBeeld; cam.updateProjectionMatrix();
   stap(30, { mik: 1 });
   uit.vizier = foto();
+  /*
+   Aangelegd in 16:9 (stap 138): het hart van de ring en de top van de korrel op het scherm, in beeldpunten van het
+   midden, en de ring (buiten) en het gat als deel van de beeldhoogte.
+  */
+  r.setSize(1280, 720); cam.aspect = 16 / 9; cam.updateProjectionMatrix();
+  {
+    const P = w.meetpunten, wap = w.groep.children[0];
+    cam.updateMatrixWorld(true); w.groep.updateMatrixWorld(true);
+    const naar = (x, y, z) => { const v = wap.localToWorld(new THREE.Vector3(x, y, z)).project(cam); return [(v.x + 1) / 2 * 1280, (1 - v.y) / 2 * 720]; };
+    const ring = naar(0, P.vizierY, P.vizierZ), korrel = naar(0, P.korrel.y, P.korrel.z);
+    const boven = naar(0, P.vizierY + P.ringR, P.vizierZ), onder = naar(0, P.vizierY - P.ringR, P.vizierZ);
+    const gatB = naar(0, P.vizierY + 0.0033, P.vizierZ), gatO = naar(0, P.vizierY - 0.0033, P.vizierZ);
+    const f = (v) => +v.toFixed(3);
+    window.__maat.richten = {
+      fov: cam.fov, ring_px: [f(ring[0] - 640), f(ring[1] - 360)], korrel_px: [f(korrel[0] - 640), f(korrel[1] - 360)],
+      ring_H: f((onder[1] - boven[1]) / 720), gat_H: f((gatO[1] - gatB[1]) / 720),
+    };
+  }
+  uit.richten = foto();
+  r.setSize(${B}, ${H}); cam.aspect = ${B / H}; cam.updateProjectionMatrix();
   cam.fov = 72; cam.updateProjectionMatrix();
   stap(30);
   // het achtste schot: de grendel blijft open en de clip springt eruit
@@ -129,8 +151,22 @@ await page.setContent(`<!doctype html><html><head>
   // herladen: de hand met de volle clip boven de open grendel
   const T = W.GARAND_HERLAAD;
   let t = 0;
-  while (t < 0.40 * T) { w.update(1 / 60, { herlaad: T - t, ammo: 0, reserve: 48 }); t += 1 / 60; }
-  uit.herladen = foto();
+  /*
+   (stap 138) een reeks in 16:9: de put naar je toe en de hand op weg (0,30), de clip boven de put (0,47), de duim
+   drukt (0,57), de hand schiet weg als de grendel dichtslaat (0,655); en de oude foto (0,45) in het gewone formaat
+  */
+  r.setSize(1280, 720); cam.aspect = 16 / 9; cam.updateProjectionMatrix();
+  const reeks = [0.30, 0.47, 0.57, 0.655];
+  for (let i = 0; i < reeks.length; i++) {
+    while (t < reeks[i] * T) { w.update(1 / 60, { herlaad: T - t, ammo: 0, reserve: 48 }); t += 1 / 60; }
+    uit['herladen_' + (i + 1)] = foto();
+    if (i === 1) {
+      r.setSize(${B}, ${H}); cam.aspect = ${B / H}; cam.updateProjectionMatrix();
+      uit.herladen = foto();
+      r.setSize(1280, 720); cam.aspect = 16 / 9; cam.updateProjectionMatrix();
+    }
+  }
+  r.setSize(${B}, ${H}); cam.aspect = ${B / H}; cam.updateProjectionMatrix();
   // het hele geweer van opzij, de loop naar rechts, zonder handen (stap 133)
   while (t < T) { w.update(1 / 60, { herlaad: T - t, ammo: 0, reserve: 48 }); t += 1 / 60; }
   stap(30);

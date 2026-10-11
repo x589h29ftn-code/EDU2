@@ -133,6 +133,8 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
       c4: player.c4 || 0,
       // de drone van Tinga State (stap 124)
       drone: !!player.drone,
+      // de EHBO-dozen die je bij je hebt (stap 138)
+      packs: player.packs || 0,
     },
     auto: auto ? {
       index: vehicles ? vehicles.cars.indexOf(auto) : -1,
@@ -183,6 +185,7 @@ export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart
   if (typeof s.health === 'number') player.health = s.health;
   player.c4 = typeof s.c4 === 'number' ? s.c4 : 0;
   player.drone = !!s.drone;
+  player.packs = typeof s.packs === 'number' && isFinite(s.packs) ? Math.max(0, Math.min(5, Math.round(s.packs))) : 0;   // 5 = LEVEN.maxPacks
   player.reloading = 0;
 
   player.inCar = null;
