@@ -6,6 +6,9 @@
    m1_vizier.png     over het vizier: de korrel in de ring
    m1_ping.png       net na het achtste schot: de grendel open en de lege clip die omhoog wegspringt
    m1_herladen.png   tijdens het herladen: de hand met de volle clip (2 × 4) boven de open grendel
+   m1_zij.png        het hele geweer van opzij (rechts), zonder handen: naast de zijfoto te leggen (stap 133)
+
+ Schrijft ook het aantal driehoeken van het model (alles in `groep`, zonder de losse hulzen en de damp).
 
  Laadt alleen js/wapen.js op een lege pagina (zoals tools/terugslagshots.mjs), dus het duurt seconden.
 
@@ -73,10 +76,28 @@ await page.setContent(`<!doctype html><html><head>
   let t = 0;
   while (t < 0.40 * T) { w.update(1 / 60, { herlaad: T - t, ammo: 0, reserve: 48 }); t += 1 / 60; }
   uit.herladen = foto();
+  // het hele geweer van opzij, de loop naar rechts, zonder handen (stap 133)
+  while (t < T) { w.update(1 / 60, { herlaad: T - t, ammo: 0, reserve: 48 }); t += 1 / 60; }
+  stap(30);
+  let tris = 0;
+  w.groep.traverse(o => {
+    if (!o.isMesh || o === w.delen.hulzen || w.delen.rook.includes(o) || o.parent === w.delen.flits) return;
+    if (o.parent === w.delen.legeClip || o.parent?.parent === w.delen.legeClip) return;
+    const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+  });
+  window.__tris = tris;
+  for (const d of [w.delen.hand, w.delen.arm, w.delen.linkerhand]) d.visible = false;
+  cam.remove(w.groep); scene.add(w.groep);
+  w.groep.position.set(0, 0, 0); w.groep.rotation.set(0, 0, 0); w.groep.updateMatrixWorld(true);
+  vloer.visible = false; scene.background = new THREE.Color(0xeeeeec);
+  const zij = new THREE.PerspectiveCamera(20, ${B / H}, 0.05, 20);
+  zij.position.set(2.0, 0.0, -0.22); zij.lookAt(0, -0.02, -0.22);
+  r.render(scene, zij); uit.zij = r.domElement.toDataURL('image/png');
   window.__fotos = uit;
 </script></body></html>`);
 await page.waitForFunction(() => window.__fotos, null, { timeout: 120000 });
 const fotos = await page.evaluate(() => window.__fotos);
+console.log('driehoeken in het model:', await page.evaluate(() => window.__tris));
 const { writeFileSync } = await import('node:fs');
 for (const [naam, data] of Object.entries(fotos)) {
   const pad = `${map}/m1_${naam}.png`;

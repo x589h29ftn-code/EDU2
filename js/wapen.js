@@ -1279,38 +1279,80 @@ const GSTAP = {
   terug: [0.84, 1.00],      // terug in de aanslag
 };
 
-// geparkeerd staal: grijsgroen, dof, met een fijne korrel en hier en daar een blank geschuurde rand
+// geparkeerd staal: grijsgroen, dof, met een fijne korrel, slijpsporen in de lengte en hier en daar een blank geschuurde plek
 const parkerDoek = () => doekSet('parker', (k, w, h, r) => {
-  k.fillStyle = '#5b5e57'; k.fillRect(0, 0, S, S);
+  k.fillStyle = '#585c54'; k.fillRect(0, 0, S, S);
   w.fillStyle = '#b8b8b8'; w.fillRect(0, 0, S, S);
-  ruis(k, S, 16, r); ruis(w, S, 30, r); ruis(h, S, 50, r);
-  for (let i = 0; i < 40; i++) {
-    const x = r() * S, y = r() * S, L = 8 + r() * 40;
-    k.fillStyle = 'rgba(130,134,128,0.18)'; k.fillRect(x, y, L, 1);
-    w.fillStyle = 'rgba(60,60,60,0.3)'; w.fillRect(x, y, L, 1);
+  ruis(k, S, 18, r); ruis(w, S, 30, r); ruis(h, S, 36, r);
+  // vlekkerig: het fosfaat is nooit egaal
+  for (let i = 0; i < 70; i++) {
+    const x = r() * S, y = r() * S, rr = 6 + r() * 26;
+    const gr = k.createRadialGradient(x, y, 0, x, y, rr);
+    gr.addColorStop(0, r() < 0.5 ? 'rgba(40,44,38,0.22)' : 'rgba(120,124,112,0.16)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    k.fillStyle = gr; k.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+  }
+  for (let i = 0; i < 60; i++) {
+    const x = r() * S, y = r() * S, L = 8 + r() * 50;
+    k.fillStyle = 'rgba(140,144,136,0.20)'; k.fillRect(x, y, L, 1);
+    w.fillStyle = 'rgba(60,60,60,0.35)'; w.fillRect(x, y, L, 1);
   }
 }, 0.45);
 
-// walnoot: roodbruin, geolied, met lange nerven en donkere strepen in de lengte
+/*
+ De stempel op de hiel van de kast (stap 133), zoals op de foto van achteren: "U.S. RIFLE / CAL. .30 M1 /
+ SPRINGFIELD / ARMORY" en een serienummer. Hetzelfde geparkeerde staal als `parkerDoek`, met de letters
+ erin geslagen: lager in de hoogte (dus een rand in de normal map) en lichter, waar het fosfaat eruit is.
+*/
+const stempelDoek = () => doekSet('stempel', (k, w, h, r) => {
+  k.fillStyle = '#5a5e56'; k.fillRect(0, 0, S, S);
+  w.fillStyle = '#b4b4b4'; w.fillRect(0, 0, S, S);
+  ruis(k, S, 18, r); ruis(w, S, 30, r); ruis(h, S, 50, r);
+  // in het midden glimt het een beetje: daar wrijft je wang
+  const gr = k.createRadialGradient(S / 2, S * 0.55, 10, S / 2, S * 0.55, S * 0.6);
+  gr.addColorStop(0, 'rgba(150,150,140,0.20)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  k.fillStyle = gr; k.fillRect(0, 0, S, S);
+  const regels = [['U.S. RIFLE', 30], ['CAL. .30 M1', 30], ['SPRINGFIELD', 28], ['ARMORY', 30], ['2009029', 34]];
+  k.textAlign = h.textAlign = w.textAlign = 'center';
+  k.textBaseline = h.textBaseline = w.textBaseline = 'middle';
+  regels.forEach(([tekst, px], i) => {
+    const y = 44 + i * 42 + (i === 4 ? 8 : 0);
+    for (const g of [k, h, w]) g.font = `bold ${px}px "DejaVu Sans Mono", monospace`;
+    h.fillStyle = '#262626'; h.fillText(tekst, S / 2, y);
+    w.fillStyle = '#6a6a6a'; w.fillText(tekst, S / 2, y);
+    k.fillStyle = 'rgba(30,32,28,0.55)'; k.fillText(tekst, S / 2 + 1, y + 1);
+    k.fillStyle = 'rgba(196,198,186,0.80)'; k.fillText(tekst, S / 2, y);
+  });
+}, 0.9);
+
+// walnoot: roodbruin, geolied, met lange nerven, donkere strepen in de lengte en lichte plekken waar het hout gesleten is
 const walnootDoek = () => doekSet('walnoot', (k, w, h, r) => {
   const d = k.createImageData(S, S), p = d.data;
-  const golf = [0, 1, 2].map(() => [r() * 6, 0.008 + r() * 0.02, 3 + r() * 5]);
+  // alles in hele golven over het doek, zodat het naadloos herhaalt: anders zie je om de 26 cm een naad in de kolf
+  const T = Math.PI * 2 / S;
+  const golf = [1, 1, 2].map((n) => [r() * 6, n, 3 + r() * 5]);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    let o = 0; for (const [f, s, a] of golf) o += Math.sin(x * s * 6.28 / 8 + f) * a;
-    const ring = 0.5 + 0.5 * Math.sin((y + o) * 0.21);
-    const vlam = 0.5 + 0.5 * Math.sin(y * 0.05 + Math.sin(x * 0.015) * 2.2);
-    const donker = Math.pow(ring, 5) * 0.30 + vlam * 0.16 + (r() - 0.5) * 0.06;
+    let o = 0; for (const [f, n, a] of golf) o += Math.sin(x * n * T + f) * a;
+    const ring = 0.5 + 0.5 * Math.sin((y + o) * 9 * T);
+    const vlam = 0.5 + 0.5 * Math.sin(y * 2 * T + Math.sin(x * T) * 2.2);
+    const donker = Math.pow(ring, 5) * 0.32 + vlam * 0.16 + (r() - 0.5) * 0.06;
     const i = (y * S + x) * 4;
-    p[i] = 106 - donker * 58; p[i + 1] = 56 - donker * 32; p[i + 2] = 36 - donker * 22; p[i + 3] = 255;
+    p[i] = 96 - donker * 50; p[i + 1] = 52 - donker * 27; p[i + 2] = 34 - donker * 18; p[i + 3] = 255;
   }
   k.putImageData(d, 0, 0);
+  // slijtplekken: lichter en doffer
+  for (let i = 0; i < 7; i++) {
+    const x = r() * S, y = r() * S, rr = 14 + r() * 30;
+    const gr = k.createRadialGradient(x, y, 0, x, y, rr);
+    gr.addColorStop(0, 'rgba(190,120,80,0.22)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    k.fillStyle = gr; k.fillRect(x - rr * 2, y - rr, rr * 4, rr * 2);
+  }
   // gebruikssporen: een paar donkere vlekken en deukjes
   for (let i = 0; i < 18; i++) {
     const x = r() * S, y = r() * S, rr = 3 + r() * 9;
     k.fillStyle = 'rgba(40,18,8,0.20)'; k.beginPath(); k.ellipse(x, y, rr * 2, rr, 0, 0, Math.PI * 2); k.fill();
     h.fillStyle = 'rgba(70,70,70,0.6)'; h.beginPath(); h.arc(x, y, rr * 0.4, 0, Math.PI * 2); h.fill();
   }
-  w.fillStyle = '#7a7a7a'; w.fillRect(0, 0, S, S);
+  w.fillStyle = '#727272'; w.fillRect(0, 0, S, S);
   for (let i = 0; i < 200; i++) { h.fillStyle = 'rgba(60,60,60,0.5)'; h.fillRect(r() * S, r() * S, 10 + r() * 70, 1); }
 }, 0.5);
 
@@ -1323,10 +1365,87 @@ function mouwNaar(bk, m, start, dir, L, r1 = 0.037, r2 = 0.042) {
   vorm(bk, g, m);
 }
 
+/*
+ Hulpjes voor de M1 (stap 133).
+
+ `glad` maakt de normalen van een geëxtrudeerde vorm glad: three geeft een ExtrudeGeometry per driehoek een eigen
+ normaal, en dan zie je op de afgeronde rand van de kolf elk facet. Hoekpunten op dezelfde plek krijgen het gemiddelde
+ van de normalen die minder dan ~55° van elkaar afwijken; een echte hoek (de kolfplaat) blijft scherp.
+
+ `zijProfiel` trekt een zijaanzicht (punten als [z, y], of [cz, cy, z, y] voor een bocht) uit tot een plaat van
+ `dikte`, gecentreerd op x = 0, met een ronde rand van `rand`. De rand komt er rondom bij, ook in het profiel.
+
+ `kartelGeo` is een getand wieltje langs de x-as: de knoppen van het achtervizier en hun geribde trommels.
+*/
+function glad(geo, drempel = 0.57, vlakX = false) {
+  const g = geo.index ? geo.toNonIndexed() : geo;
+  g.computeVertexNormals();
+  const P = g.attributes.position, N = g.attributes.normal;
+  const plek = new Map();
+  for (let i = 0; i < P.count; i++) {
+    const s = `${Math.round(P.getX(i) * 2e4)},${Math.round(P.getY(i) * 2e4)},${Math.round(P.getZ(i) * 2e4)}`;
+    if (!plek.has(s)) plek.set(s, []);
+    plek.get(s).push(i);
+  }
+  const uit = new Float32Array(N.array.length);
+  for (const lijst of plek.values()) for (const i of lijst) {
+    const nx = N.getX(i), ny = N.getY(i), nz = N.getZ(i);
+    // de platte zijkant van een profiel blijft plat: zijn driehoeken lopen van rand tot rand, en een schuine normaal
+    // op de rand gaf dwars over de kolf een streep
+    if (vlakX && Math.abs(nx) > 0.999) { uit[i * 3] = nx; uit[i * 3 + 1] = ny; uit[i * 3 + 2] = nz; continue; }
+    let x = 0, y = 0, z = 0;
+    for (const j of lijst) {
+      const mx = N.getX(j), my = N.getY(j), mz = N.getZ(j);
+      if (nx * mx + ny * my + nz * mz > drempel) { x += mx; y += my; z += mz; }
+    }
+    const l = Math.hypot(x, y, z) || 1;
+    uit[i * 3] = x / l; uit[i * 3 + 1] = y / l; uit[i * 3 + 2] = z / l;
+  }
+  g.setAttribute('normal', new THREE.BufferAttribute(uit, 3));
+  return g;
+}
+function zijProfiel(punten, dikte, rand, randSeg = 3, bochtSeg = 6) {
+  const v = new THREE.Shape();
+  v.moveTo(punten[0][0], punten[0][1]);
+  for (const q of punten.slice(1)) {
+    if (q.length === 4) v.quadraticCurveTo(q[0], q[1], q[2], q[3]);
+    else v.lineTo(q[0], q[1]);
+  }
+  const g = new THREE.ExtrudeGeometry(v, {
+    depth: dikte, bevelEnabled: rand > 0, bevelThickness: rand, bevelSize: rand, bevelSegments: randSeg, curveSegments: bochtSeg,
+  });
+  g.rotateY(-Math.PI / 2);                       // vorm-x wordt model-z, de dikte komt langs x
+  g.translate(dikte / 2, 0, 0);
+  return glad(g, 0.57, true);
+}
+function kartelGeo(rUit, rIn, n, dikte, x, y, z) {
+  const v = new THREE.Shape();
+  for (let i = 0; i < n; i++) {
+    // een tand: twee punten buiten, twee binnen, zodat de ribbels een vlakke top hebben
+    for (const [f, rr] of [[0, rIn], [0.18, rUit], [0.5, rUit], [0.68, rIn]]) {
+      const a = (i + f) / n * Math.PI * 2;
+      if (i === 0 && f === 0) v.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else v.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+  }
+  const g = new THREE.ExtrudeGeometry(v, { depth: dikte, bevelEnabled: false });
+  g.translate(0, 0, -dikte / 2);
+  g.rotateY(Math.PI / 2);
+  g.translate(x, y, z);
+  return g;
+}
+// een gewoon blokje van twaalf driehoeken, voor wat te klein is om af te ronden
+const blok = (bk, m, b, h, d, x, y, z) => vorm(bk, new THREE.BoxGeometry(b, h, d).translate(x, y, z), m);
+// een buisje langs een kromme (trekkerbeugel, trekker, riembeugels)
+const kromme = (bk, m, punten, r, seg = 16, rond = 6, dicht = false) =>
+  vorm(bk, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(punten.map(p => new THREE.Vector3(...p)), dicht), seg, r, rond, dicht), m);
+
 export function maakGarand(geluid) {
   const park = mat(0xffffff, 1, 0.35, parkerDoek(), [0.05, 0.05]);
-  const parkDonker = mat(0xa8a8a8, 1, 0.35, parkerDoek(), [0.04, 0.04]);
-  const hout = mat(0xffffff, 1, 0, walnootDoek(), [0.26, 0.05]);
+  const parkDonker = mat(0xa0a29c, 1, 0.35, parkerDoek(), [0.04, 0.04]);
+  const blank = mat(0xd8d8d0, 0.75, 0.5, parkerDoek(), [0.03, 0.03]);
+  const stempel = mat(0xffffff, 1, 0.35, stempelDoek(), [0.05, 0.05]);
+  const hout = mat(0xd8c6b2, 1, 0, walnootDoek(), [0.26, 0.05]);
   const huid = mat(0xffffff, 1, 0, huidDoek(), [0.07, 0.07]);
   const stof = mat(0xffffff, 1, 0, stofDoek(), [0.05, 0.05]);
   const manchetMat = mat(0x8890a8, 1, 0, stofDoek(), [0.03, 0.03]);
@@ -1337,102 +1456,183 @@ export function maakGarand(geluid) {
   const wapen = new THREE.Group();
   groep.add(wapen);
 
-  const VIZIER_Y = 0.058;          // het hart van de diopter en de top van de korrel
-  const LOOP_Y = 0.022;
-  const MOND_Z = -0.668;
-
-  // ---------------------------------------------------------------- vast staal
-  const fB = bak();
-  // de kast: onderdeel, twee wanden langs de patroonhouder, de voorring om de kamer en de hiel achteraan
-  doos(fB, park, 0.033, 0.016, 0.200, 0, 0.002, -0.060, 0.004, 2);
-  for (const sx of [-1, 1]) doos(fB, park, 0.004, 0.026, 0.090, sx * 0.0145, 0.021, -0.080, 0.0015);
-  vorm(fB, buisGeo(0.0165, 0.0165, 0.032, 0, LOOP_Y, -0.141, 18), park);
-  doos(fB, park, 0.033, 0.036, 0.075, 0, 0.018, 0.002, 0.005, 2);          // de hiel, waar de grendel in wegschuift
-  // het achtervizier: voet, twee beschermoren en de diopter ertussen
-  doos(fB, park, 0.030, 0.008, 0.026, 0, 0.040, 0.020, 0.002);
-  for (const sx of [-1, 1]) doos(fB, park, 0.004, 0.028, 0.020, sx * 0.0128, 0.054, 0.022, 0.0018);
-  doos(fB, parkDonker, 0.005, 0.012, 0.004, 0, VIZIER_Y - 0.0125, 0.016, 0.001);   // de steel onder de ring
-  const ring = new THREE.TorusGeometry(0.0062, 0.0022, 8, 22);
-  ring.translate(0, VIZIER_Y, 0.016);
-  vorm(fB, ring, parkDonker);
-  // de twee knoppen opzij: links de hoogte, rechts de windafwijking, met kartels rondom
-  for (const sx of [-1, 1]) {
-    const knop = new THREE.CylinderGeometry(0.0085, 0.0085, 0.007, 20);
-    knop.rotateZ(Math.PI / 2); knop.translate(sx * 0.0215, 0.046, 0.020);
-    vorm(fB, knop, parkDonker);
-    const as = new THREE.CylinderGeometry(0.004, 0.004, 0.008, 10);
-    as.rotateZ(Math.PI / 2); as.translate(sx * 0.0155, 0.046, 0.020);
-    vorm(fB, as, park);
-    for (let i = 0; i < 18; i++) {
-      const a = i / 18 * Math.PI * 2;
-      doos(fB, parkDonker, 0.0068, 0.0016, 0.0016, sx * 0.0215, 0.046 + Math.cos(a) * 0.0088, 0.020 + Math.sin(a) * 0.0088, 0.0004);
-    }
-  }
-  // de loop, de gasbuis eronder en het gasblok met de korrel tussen twee oren
-  vorm(fB, buisGeo(0.0085, 0.0095, 0.510, 0, LOOP_Y, -0.412, 16), park);
-  vorm(fB, buisGeo(0.0072, 0.0072, 0.100, 0, 0.004, -0.610, 14), park);
-  doos(fB, park, 0.020, 0.036, 0.016, 0, 0.012, -0.652, 0.004, 2);
-  vorm(fB, buisGeo(0.0055, 0.0055, 0.006, 0, 0.004, -0.662, 12), parkDonker);   // de schroefkop van de gasbuis
-  doos(fB, park, 0.014, 0.010, 0.012, 0, 0.034, -0.650, 0.002);
-  doos(fB, parkDonker, 0.0032, VIZIER_Y - 0.039, 0.004, 0, (VIZIER_Y + 0.039) / 2, -0.650, 0.0006);   // de korrel
-  for (const sx of [-1, 1]) doos(fB, park, 0.003, 0.020, 0.010, sx * 0.0085, 0.047, -0.650, 0.001);
-  // de twee banden om hout en loop, en de trekkerbeugel
-  doos(fB, park, 0.044, 0.058, 0.010, 0, 0.004, -0.338, 0.004);
-  doos(fB, park, 0.042, 0.052, 0.014, 0, 0.004, -0.540, 0.004);
-  doos(fB, park, 0.008, 0.012, 0.014, 0, -0.026, -0.548, 0.002);              // de bajonetlip
-  doos(fB, park, 0.012, 0.006, 0.050, 0, -0.041, -0.020, 0.0025);
-  doos(fB, park, 0.012, 0.022, 0.006, 0, -0.031, -0.044, 0.0025);
-  doos(fB, park, 0.042, 0.120, 0.007, 0, -0.053, 0.336, 0.003);               // de kolfplaat
-  // de beugel voor de draagriem onder de kolf en aan de voorste band
-  vorm(fB, new THREE.TorusGeometry(0.008, 0.0016, 6, 14).rotateY(Math.PI / 2).translate(0, -0.104, 0.24), park);
-  vorm(fB, new THREE.TorusGeometry(0.007, 0.0016, 6, 14).rotateY(Math.PI / 2).translate(0, -0.032, -0.338), park);
+  /*
+   De maten komen uit de zijfoto (een echte M1 van 1,10 m, 1555 beeldpunten per meter), met de oorsprong boven in
+   de hals van de kolf, net achter de trekker. Van achter naar voren: de kolfplaat op +0,33, de hiel van de kast
+   met de stempel tot −0,05, het achtervizier op −0,04, de put voor de clip, de voorring van de kast op −0,18,
+   het achterste bovenhout tot −0,435, de onderste band, het voorste bovenhout (rond) tot −0,625, de voorste band,
+   de gasbuis met de korrel tot −0,765 en de loop die er nog een stukje uitsteekt.
+  */
+  const VIZIER_Y = 0.058;          // het hart van de diopter
+  const VIZIER_Z = -0.040;
+  const LOOP_Y = 0.030;
+  const MOND_Z = -0.785;
+  const KORREL = { y: 0.055, z: -0.752 };
+  // de vizierlijn loopt van de diopter naar de top van de korrel iets omlaag; bij het richten kantelt het geweer zo ver
+  const KANTEL = Math.atan2(VIZIER_Y - KORREL.y, VIZIER_Z - KORREL.z);
 
   // ---------------------------------------------------------------- hout
-  // de lade onder loop en kast, de twee bovenhouten over de loop
-  doos(fB, hout, 0.040, 0.034, 0.385, 0, -0.010, -0.345, 0.008, 2);
-  doos(fB, hout, 0.040, 0.030, 0.200, 0, -0.016, -0.055, 0.008, 2);
-  doos(fB, hout, 0.031, 0.020, 0.170, 0, 0.027, -0.245, 0.008, 2);
-  doos(fB, hout, 0.029, 0.018, 0.190, 0, 0.026, -0.440, 0.008, 2);
-  // de kolf in zijaanzicht: rug, hiel, neus, onderkant en de halve pistoolgreep; uitgetrokken tot 3 cm breed
+  /*
+   De kolf in zijaanzicht, uit de foto: de kolfplaat iets schuin, de onderkant die naar de halve pistoolgreep
+   oploopt, de greep achter de trekkerbeugel, en de lade onder de kast en het achterste bovenhout door tot de
+   onderste band. Daarna breder gemaakt naar achteren (de kolf is 4,5 cm, de hals 3,3).
+  */
   {
-    const v = new THREE.Shape();
-    const p = [[0.030, 0.004], [0.110, 0.008], [0.326, 0.003], [0.330, -0.110], [0.220, -0.086],
-      [0.125, -0.070], [0.070, -0.094], [0.040, -0.100], [0.026, -0.030]];
-    v.moveTo(...p[0]); for (const q of p.slice(1)) v.lineTo(...q); v.closePath();
-    const kolf = new THREE.ExtrudeGeometry(v, { depth: 0.030, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.005, bevelSegments: 3, curveSegments: 4 });
-    kolf.rotateY(-Math.PI / 2);
-    kolf.translate(0.015, 0, 0);
-    vorm(fB, kolf, hout);
+    const kolf = zijProfiel([
+      [-0.432, 0.012], [-0.432, -0.008], [-0.300, -0.016], [-0.200, -0.021], [-0.070, -0.024], [-0.004, -0.024],
+      [0.010, -0.026, 0.016, -0.040], [0.024, -0.054, 0.046, -0.061], [0.066, -0.065, 0.090, -0.062],
+      [0.200, -0.088], [0.306, -0.114],
+      [0.322, -0.002],
+      [0.200, 0.000], [0.060, -0.001], [0.020, 0.006], [0.012, 0.012], [-0.200, 0.014],
+    ], 0.020, 0.007, 4, 8);
+    const P = kolf.attributes.position;
+    for (let i = 0; i < P.count; i++) {
+      const z = P.getZ(i);
+      const f = z > 0.07 ? 1 + Math.min(1, (z - 0.07) / 0.16) * 0.34 : z < -0.03 ? 1 + Math.min(1, (-0.03 - z) / 0.06) * 0.08 : 1;
+      P.setX(i, P.getX(i) * f);
+    }
+    // de normalen van vóór het verbreden houden: opnieuw uitrekenen gaf per driehoek van het zijvlak een eigen knik
+    const b = bak(); vorm(b, kolf, hout); bouw(b, wapen);
   }
+  const fB = bak();
+  // het achterste bovenhout: hoog en rond over de loop, van de kast tot de onderste band
+  vorm(fB, rondeDoosGeo(0.031, 0.032, 0.208, 0.0135, 3).translate(0, LOOP_Y + 0.004, -0.327), hout);
+  // het voorste bovenhout: rond om de loop, iets dikker in het midden
+  {
+    const pr = [];
+    for (let i = 0; i <= 8; i++) {
+      const u = i / 8;
+      pr.push(new THREE.Vector2(0.0178 + Math.sin(u * Math.PI) * 0.0016, u * 0.176));
+    }
+    const voor = new THREE.LatheGeometry(pr, 20);
+    voor.rotateX(-Math.PI / 2); voor.translate(0, LOOP_Y - 0.002, -0.447);
+    vorm(fB, voor, hout);
+  }
+
+  // ---------------------------------------------------------------- de kast
+  // de hiel in zijaanzicht: achteraan schuin omhoog (daar staat de stempel), boven vlak onder het achtervizier
+  const HIEL = [[0.016, 0.004], [0.016, 0.017], [-0.010, 0.035], [-0.052, 0.036], [-0.052, 0.004]];
+  vorm(fB, zijProfiel(HIEL, 0.027, 0.0015, 2, 1), park);
+  // de stempel als plaatje op de schuine kant, net boven het staal
+  {
+    const [a, c] = [HIEL[1], HIEL[2]];
+    const dz = c[0] - a[0], dy = c[1] - a[1], L = Math.hypot(dz, dy);
+    const nz = dy / L, ny = -dz / L;                         // de normaal: omhoog en naar achteren
+    const plaat = new THREE.PlaneGeometry(0.0255, L * 0.98);
+    plaat.rotateX(-Math.atan2(ny, nz));
+    plaat.translate(0, (a[1] + c[1]) / 2 + ny * 0.0017, (a[0] + c[0]) / 2 + nz * 0.0017);
+    const m = new THREE.Mesh(plaat, stempel);
+    wapen.add(m);
+  }
+  // de wanden van de put, de bodem eronder en de rail van de spanstang rechts
+  for (const sx of [-1, 1]) doos(fB, park, 0.0042, 0.032, 0.112, sx * 0.0142, 0.020, -0.107, 0.0012);
+  doos(fB, park, 0.033, 0.010, 0.120, 0, 0.003, -0.108, 0.002);
+  doos(fB, park, 0.0045, 0.006, 0.150, 0.0182, 0.023, -0.112, 0.0012);
+  doos(fB, park, 0.0035, 0.004, 0.060, -0.0175, 0.032, -0.120, 0.0008);           // de verdikking links boven
+  // de voorring van de kast om de kamer, met een vlak schouderstuk ervoor
+  vorm(fB, buisGeo(0.0145, 0.0150, 0.036, 0, LOOP_Y, -0.180, 20), park);
+  doos(fB, park, 0.030, 0.014, 0.030, 0, 0.017, -0.178, 0.003);
+  // de clipknop links op de kast
+  vorm(fB, new THREE.CylinderGeometry(0.0042, 0.0042, 0.004, 12).rotateZ(Math.PI / 2).translate(-0.0185, 0.016, -0.040), parkDonker);
+  // de trekkerkast onder het hout, met de beugel en de veiligheidspal voorin
+  doos(fB, park, 0.022, 0.006, 0.100, 0, -0.026, -0.026, 0.0015);
+  kromme(fB, park, [[0, -0.026, 0.008], [0, -0.046, 0.006], [0, -0.054, -0.012], [0, -0.054, -0.044], [0, -0.046, -0.060], [0, -0.028, -0.064]], 0.0028, 18, 6);
+  doos(fB, park, 0.006, 0.010, 0.004, 0, -0.037, -0.058, 0.0012);                   // de veiligheidspal
+  // de kolfplaat, met de klep voor het schoonmaakgerei
+  {
+    const plaat = zijProfiel([[0.326, 0.002], [0.331, 0.002], [0.315, -0.122], [0.310, -0.122]], 0.026, 0.004, 2, 1);
+    const P = plaat.attributes.position;
+    for (let i = 0; i < P.count; i++) P.setX(i, P.getX(i) * 1.30);
+    vorm(fB, plaat, park);
+  }
+
+  // ---------------------------------------------------------------- het achtervizier
+  doos(fB, park, 0.027, 0.006, 0.022, 0, 0.0405, VIZIER_Z, 0.0012);                 // de voet
+  // de schaal achterop de voet: een strip met streepjes
+  doos(fB, parkDonker, 0.020, 0.004, 0.002, 0, 0.0400, VIZIER_Z + 0.0115, 0.0005);
+  for (let i = 0; i < 11; i++) blok(fB, blank, 0.0007, i % 5 === 0 ? 0.0030 : 0.0018, 0.0008, -0.0085 + i * 0.0017, 0.0402, VIZIER_Z + 0.0127);
+  // de twee beschermoren: gebogen platen die boven rond over de diopter heen buigen
+  for (const sx of [-1, 1]) {
+    const oor = zijProfiel([
+      [VIZIER_Z + 0.010, 0.040], [VIZIER_Z + 0.010, 0.056], [VIZIER_Z + 0.009, 0.064, VIZIER_Z + 0.001, 0.064],
+      [VIZIER_Z - 0.008, 0.064, VIZIER_Z - 0.010, 0.054], [VIZIER_Z - 0.011, 0.040],
+    ], 0.0022, 0.0007, 2, 6);
+    oor.translate(sx * 0.0122, 0, 0);
+    vorm(fB, oor, park);
+  }
+  // de diopter: een plaatje dat op en neer schuift, met bovenop een dikke ring met een klein gaatje
+  doos(fB, parkDonker, 0.010, 0.016, 0.0028, 0, 0.0465, VIZIER_Z, 0.0008);
+  {
+    const v = new THREE.Shape(); v.absarc(0, 0, 0.0090, 0, Math.PI * 2, false);
+    const gat = new THREE.Path(); gat.absarc(0, 0, 0.0040, 0, Math.PI * 2, true); v.holes.push(gat);
+    const ring = new THREE.ExtrudeGeometry(v, { depth: 0.0022, bevelEnabled: true, bevelThickness: 0.0007, bevelSize: 0.0007, bevelSegments: 2, curveSegments: 20 });
+    ring.translate(0, VIZIER_Y, VIZIER_Z - 0.0011);
+    vorm(fB, glad(ring), parkDonker);
+  }
+  // de knoppen: links de hoogte, rechts de windafwijking; een gekartelde schijf buiten en een geribde trommel ertussen
+  for (const sx of [-1, 1]) {
+    vorm(fB, kartelGeo(0.0100, 0.0091, 26, 0.0042, sx * 0.0262, 0.0478, VIZIER_Z), park);
+    vorm(fB, kartelGeo(0.0074, 0.0069, 22, 0.0080, sx * 0.0198, 0.0478, VIZIER_Z), parkDonker);
+    vorm(fB, new THREE.CylinderGeometry(0.0034, 0.0034, 0.0014, 12).rotateZ(Math.PI / 2).translate(sx * 0.0290, 0.0478, VIZIER_Z), blank);
+  }
+
+  // ---------------------------------------------------------------- loop, gasbuis en korrel
+  vorm(fB, buisGeo(0.0090, 0.0078, 0.605, 0, LOOP_Y, -0.4875, 16), park);
+  vorm(fB, buisGeo(0.0052, 0.0052, 0.004, 0, LOOP_Y, MOND_Z - 0.0005, 12), parkDonker);          // de kroon
+  // de banden: achter het achterste bovenhout, de onderste band met de neus van de lade, en de voorste
+  doos(fB, park, 0.034, 0.030, 0.006, 0, LOOP_Y + 0.004, -0.222, 0.004);
+  vorm(fB, buisGeo(0.0205, 0.0205, 0.012, 0, LOOP_Y + 0.002, -0.441, 20), park);
+  doos(fB, park, 0.034, 0.030, 0.012, 0, 0.004, -0.441, 0.006);
+  vorm(fB, buisGeo(0.0198, 0.0190, 0.010, 0, LOOP_Y - 0.002, -0.629, 20), park);
+  // de gasbuis: een mof om het eind van de loop, de cilinder eronder met de dop, en een rib ertussen
+  vorm(fB, buisGeo(0.0118, 0.0118, 0.130, 0, LOOP_Y, -0.699, 18), park);
+  vorm(fB, buisGeo(0.0090, 0.0090, 0.134, 0, LOOP_Y - 0.0175, -0.701, 16), park);
+  doos(fB, park, 0.012, 0.016, 0.128, 0, LOOP_Y - 0.009, -0.699, 0.002);
+  vorm(fB, buisGeo(0.0072, 0.0060, 0.008, 0, LOOP_Y - 0.0175, -0.771, 14), parkDonker);
+  blok(fB, blank, 0.0016, 0.009, 0.0012, 0, LOOP_Y - 0.0175, -0.7752);                          // de gleuf in de dop
+  // de bajonetnok onder de cilinder en de riembeugels
+  doos(fB, park, 0.008, 0.012, 0.022, 0, LOOP_Y - 0.030, -0.740, 0.0015);
+  kromme(fB, park, [[0, LOOP_Y - 0.026, -0.648], [0, LOOP_Y - 0.040, -0.652], [0, LOOP_Y - 0.040, -0.668], [0, LOOP_Y - 0.026, -0.672]], 0.0017, 10, 5);
+  kromme(fB, park, [[0, -0.010, -0.425], [0, -0.024, -0.430], [0, -0.024, -0.446], [0, -0.010, -0.450]], 0.0017, 10, 5);
+  kromme(fB, park, [[0, -0.088, 0.205], [0, -0.102, 0.210], [0, -0.106, 0.226], [0, -0.094, 0.232]], 0.0017, 10, 5);
+  // de korrel: een voetstuk op de mof, twee oren en de post ertussen
+  doos(fB, park, 0.017, 0.007, 0.018, 0, LOOP_Y + 0.013, KORREL.z, 0.002);
+  for (const sx of [-1, 1]) {
+    const oor = zijProfiel([[KORREL.z + 0.007, 0.0], [KORREL.z + 0.006, 0.020], [KORREL.z + 0.001, 0.022], [KORREL.z - 0.007, 0.012], [KORREL.z - 0.007, 0.0]], 0.0022, 0.0006, 2, 1);
+    oor.translate(sx * 0.0072, LOOP_Y + 0.010, 0);
+    vorm(fB, oor, park);
+  }
+  doos(fB, parkDonker, 0.0030, KORREL.y - (LOOP_Y + 0.016), 0.0040, 0, (KORREL.y + LOOP_Y + 0.016) / 2, KORREL.z, 0.0006);
   bouw(fB, wapen);
 
-  // de greep, waar de rechterhand om zit (dezelfde maat en hoek als de greep van het pistool)
-  const gB = bak();
-  doos(gB, hout, 0.032, 0.090, 0.040, 0, -0.058, 0.022, 0.010, 2);
-  const greep = bouw(gB, new THREE.Group());
-  greep.rotation.x = 0.30;
-  wapen.add(greep);
-
-  // de trekker
+  // de trekker: een gebogen blad aan zijn as
   const tB = bak();
-  doos(tB, parkDonker, 0.007, 0.021, 0.006, 0, -0.010, 0, 0.0025);
+  kromme(tB, parkDonker, [[0, 0.002, 0.001], [0, -0.008, -0.002], [0, -0.017, 0.001], [0, -0.020, 0.004]], 0.0026, 10, 6);
   const trekker = bouw(tB, new THREE.Group());
-  trekker.position.set(0, -0.019, -0.019);
+  trekker.position.set(0, -0.028, -0.024);
   wapen.add(trekker);
 
   // ---------------------------------------------------------------- de grendel
   /*
    Grendel, spanstang en spanhendel in één groep: die slaan bij elk schot samen naar achteren (`SLAG`). De
-   grendel ligt boven in de kast, de spanstang loopt rechts langs de loop naar voren tussen hout en bovenhout,
-   en de hendel steekt rechts uit de kast.
+   grendel ligt boven op de clip tussen de wanden van de put en schuift open tot onder het achtervizier; de
+   spanstang loopt rechts langs de kast en het bovenhout naar de gasbuis, met de hendel als een haak rechts
+   naast de voorring.
   */
-  const SLAG = 0.072;
+  const SLAG = 0.045;
   const rB = bak();
-  doos(rB, park, 0.020, 0.013, 0.068, 0, 0.0285, -0.090, 0.004, 2);
-  doos(rB, parkDonker, 0.010, 0.004, 0.050, 0, 0.0355, -0.092, 0.0012);         // de rug van de grendel
-  staaf(rB, park, [0.0175, 0.013, -0.120], [0.0175, 0.012, -0.500], 0.0034);    // de spanstang
-  doos(rB, park, 0.012, 0.012, 0.030, 0.0225, 0.019, -0.098, 0.003);            // de hendel…
-  staaf(rB, park, [0.026, 0.020, -0.090], [0.036, 0.024, -0.096], 0.0052);      // …met de knop eraan
+  doos(rB, park, 0.0205, 0.0140, 0.099, 0, 0.0310, -0.1035, 0.0045, 2);
+  doos(rB, blank, 0.0090, 0.0030, 0.070, 0, 0.0372, -0.100, 0.0010);              // de blank gesleten rug
+  doos(rB, parkDonker, 0.0060, 0.0080, 0.010, 0, 0.032, -0.058, 0.0015);          // de achterkant met de slagpin
+  vorm(rB, new THREE.CylinderGeometry(0.0034, 0.0034, 0.006, 10).rotateZ(Math.PI / 2).translate(0.0115, 0.031, -0.140), parkDonker);   // de rol
+  // de spanstang: achter in de rail, dan naar voren langs het bovenhout
+  staaf(rB, park, [0.0182, 0.0265, -0.125], [0.0190, 0.0265, -0.200], 0.0030);
+  staaf(rB, park, [0.0190, 0.0265, -0.200], [0.0180, 0.0170, -0.260], 0.0030);
+  staaf(rB, park, [0.0180, 0.0170, -0.260], [0.0160, 0.0150, -0.620], 0.0030);
+  // de hendel: een blok op de stang met een haak naar buiten en omhoog
+  doos(rB, park, 0.008, 0.013, 0.030, 0.0222, 0.0255, -0.178, 0.0025);
+  staaf(rB, park, [0.0255, 0.0275, -0.170], [0.0355, 0.0300, -0.176], 0.0055);
+  staaf(rB, park, [0.0355, 0.0300, -0.176], [0.0360, 0.0355, -0.186], 0.0040);
   const grendel = bouw(rB, new THREE.Group());
   wapen.add(grendel);
 
@@ -1443,7 +1643,7 @@ export function maakGarand(geluid) {
    steekt alleen de bovenste patroon boven de kast uit, onder de grendel. Elk patroon apart, zodat er
    zichtbaar eentje minder in zit na elk schot (van boven af).
   */
-  const CLIP_Z = -0.063;                                    // het midden van de clip als hij zit
+  const CLIP_Z = -0.105;                                    // het midden van de clip als hij zit
   const PATROON = { r: 0.0049, huls: 0.050, kogel: 0.020 };
   const RIJ = 0.0100;                                       // de afstand tussen twee rijen
   const hulsGeo = new THREE.CylinderGeometry(PATROON.r, PATROON.r * 0.94, PATROON.huls, 12).rotateX(Math.PI / 2);
@@ -1524,7 +1724,7 @@ export function maakGarand(geluid) {
   const polsL2 = rondeDoosGeo(0.050, 0.050, 0.064, 0.018, 2);
   polsL2.translate(-0.010, -0.062, HZ + 0.050);
   vorm(lB, polsL2, huid);
-  mouwNaar(lB, stof, [-0.016, -0.070, HZ + 0.070], [-0.62, -0.50, 0.60], 0.46);
+  mouwNaar(lB, stof, [-0.016, -0.070, HZ + 0.070], [-0.80, -0.48, 0.46], 0.46);
   const linkerhand = bouw(lB, new THREE.Group());
   wapen.add(linkerhand);
 
@@ -1610,13 +1810,21 @@ export function maakGarand(geluid) {
   const CLIP_VLUCHT = 1.1;
 
   // ---------------------------------------------------------------- houding
-  const RUST = { x: 0.135, y: -0.122, z: -0.40 };
+  /*
+   Uit de heup zoals op de foto's uit Call of Duty (stap 133): het geweer laag rechts en dichtbij, het achtervizier
+   groot rechtsonder in beeld, en de loop die schuin naar het midden van het scherm wijst. Tot stap 132 hing het
+   geweer 40 cm voor je, recht vooruit: een dunne lat met een klein vizier ver weg.
+  */
+  const RUST = { x: 0.072, y: -0.108, z: -0.105 };
+  const RUST_DRAAI = { x: 0.045, y: 0.115, z: 0.06 };
   // over het vizier: de diopter op 13 cm van je oog, de korrel er in het midden achter
-  const MIK = { x: 0, y: -VIZIER_Y, z: -0.146 };
+  const MIK = { x: 0, y: -VIZIER_Y, z: VIZIER_Z - 0.130 };
   groep.position.set(RUST.x, RUST.y, RUST.z);
-  groep.rotation.set(0, 0.08, 0.05);
+  groep.rotation.set(RUST_DRAAI.x, RUST_DRAAI.y, RUST_DRAAI.z);
 
   const VEER = { k: 330, c: 22 };
+  // de veer slaat tot ~10 cm terug; zo dicht bij je oog gaat daar maar een derde van naar achteren (stap 133)
+  const TERUG_Z = 0.35;
   const KICK = { z: 3.6, x: 15.5, y: 2.6 };
   const veer = { z: 0, vz: 0, x: 0, vx: 0, y: 0, vy: 0 };
   const PIEK_X = KICK.x / 36;
@@ -1773,8 +1981,8 @@ export function maakGarand(geluid) {
       const t = 1 - herlaad / GARAND_HERLAAD;
       const uit = soepel(deel(t, GSTAP.kantelen)) - soepel(deel(t, GSTAP.terug));
       // het geweer omhoog, de loop naar linksboven, de bovenkant naar je toe (zie de foto van het laden)
-      groep.position.set(RUST.x - 0.075 * uit, RUST.y + 0.060 * uit, RUST.z + 0.050 * uit);
-      groep.rotation.set(0.22 * uit, 0.08 + 0.38 * uit, 0.05 - 0.42 * uit);
+      groep.position.set(RUST.x - 0.060 * uit, RUST.y + 0.040 * uit, RUST.z - 0.150 * uit);
+      groep.rotation.set(RUST_DRAAI.x + 0.20 * uit, RUST_DRAAI.y + 0.30 * uit, RUST_DRAAI.z - 0.46 * uit);
       // de rechterhand laat de greep los en zakt naar rechtsonder weg, en komt aan het eind terug
       const weg = soepel(deel(t, GSTAP.handWeg)) - soepel(deel(t, GSTAP.terugHand));
       hand.position.set(0.12 * weg, -0.22 * weg, 0.06 * weg);
@@ -1845,14 +2053,14 @@ export function maakGarand(geluid) {
     arm.rotation.set(ax, 0, 0);
     arm.position.set(0, POLS.y - (POLS.y * ca - POLS.z * sa), POLS.z - (POLS.y * sa + POLS.z * ca));
     groep.rotation.set(
-      rx - 0.38 * ren + Math.sin(tijd * 1.6 + 1) * 0.004 * vrij + zwaai.y * 1.2 * vrij,
-      0.08 * vrij + veer.y * terugM + 0.40 * ren - zwaai.x * 1.4 * vrij,
-      0.05 * vrij + Math.sin(bob * 0.5) * 0.02 * pas + 0.30 * ren,
+      RUST_DRAAI.x * vrij + KANTEL * m + rx - 0.38 * ren + Math.sin(tijd * 1.6 + 1) * 0.004 * vrij + zwaai.y * 1.2 * vrij,
+      RUST_DRAAI.y * vrij + veer.y * terugM + 0.40 * ren - zwaai.x * 1.4 * vrij,
+      RUST_DRAAI.z * vrij + Math.sin(bob * 0.5) * 0.02 * pas + 0.30 * ren,
     );
     groep.position.set(
       RUST.x + (MIK.x - RUST.x) * m + opzij + zwaai.x * vrij + 0.02 * ren,
       RUST.y + (MIK.y - RUST.y) * m + deinen + adem + zwaai.y * vrij - 0.05 * ren + polsY + rx * 0.04,
-      RUST.z + (MIK.z - RUST.z) * m + veer.z * (1 - 0.4 * m) + 0.02 * ren + polsZ,
+      RUST.z + (MIK.z - RUST.z) * m + veer.z * TERUG_Z * (1 - 0.15 * m) + 0.02 * ren + polsZ,
     );
     stand(holster);
     losBij(dt);

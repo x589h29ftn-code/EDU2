@@ -7879,6 +7879,44 @@ parkeerterrein begint, ook de navigatie van de speler.
 
 **Proeven**: `droneklustest`, `m1test` (nieuw), `klusjestest`, `wapentest`. **Foto's**: `droneklusshots`, `m1shots`.
 
+**De M1 Garand opnieuw (stap 133, 11 okt).**
+
+"Stop meer detail in het M1 Garand-model. Lijkt nu niet op de foto's die ik stuurde." Op `m1_hand.png` van stap 132
+was het geweer een dunne rechte houten lat die 40 cm voor je schuin wegstak, met een grijze doos als kast en een klein
+vizier ver weg. Op de foto's (Call of Duty WWII, Arma, een echte M1 van opzij en het vizier van achteren) zit het geweer
+laag rechts en dichtbij, is het achtervizier groot en loopt de loop naar het midden van het beeld.
+
+- *De maten uit de zijfoto*: 1555 beeldpunten per meter, de oorsprong in de hals van de kolf. Kolfplaat op +0,33 m,
+  het achtervizier op −0,04, de put voor de clip, de voorring op −0,18, het achterste bovenhout tot −0,435, de onderste
+  band, het voorste (ronde) bovenhout tot −0,625, de voorste band, de gasbuis met de korrel en de loop tot −0,785. De
+  oude was 10 cm te kort en had het vizier achter de greep.
+- *Hout*: de kolf is een geëxtrudeerd zijprofiel (`zijProfiel`) met de halve pistoolgreep en een ronde rand, achteraan
+  naar 4,5 cm verbreed; het achterste bovenhout een ronde doos, het voorste een draaivorm (`LatheGeometry`). Het
+  walnootdoek is nu naadloos (hele golven over het doek) en donkerder roodbruin, met slijtplekken.
+- *Staal*: de hiel van de kast loopt schuin af en draagt de stempel (`stempelDoek`: U.S. RIFLE / CAL. .30 M1 /
+  SPRINGFIELD / ARMORY / 2009029, ingeslagen in de normal map), de wanden van de put, de rail van de spanstang, de
+  clipknop links, de voorring. Het achtervizier: een voet met een schaal met streepjes, twee gebogen beschermoren,
+  de diopter als dikke ring met een gaatje, links en rechts een gekartelde knop met een geribde trommel (`kartelGeo`).
+  Vooraan de gasbuis als mof met de cilinder eronder, de dop met gleuf, de korrel tussen twee oren, de bajonetnok, drie
+  riembeugels; de trekkerbeugel en de trekker als gebogen buisjes (`kromme`), de veiligheidspal voorin de beugel.
+  De grendel ligt nu zichtbaar tussen de wanden, de spanstang loopt rechts langs het bovenhout, de hendel is een haak.
+- *Fout onderweg*: een ExtrudeGeometry krijgt van three een normaal per driehoek, dus de afgeronde rand van de kolf
+  was een rij facetten. `glad` middelt de normalen op dezelfde plek; maar het platte zijvlak bestaat uit lange
+  driehoeken van rand tot rand, en een schuine normaal op de rand gaf een streep dwars over de kolf. Het zijvlak houdt
+  nu zijn eigen normaal, en na het verbreden van de kolf worden de normalen niet opnieuw uitgerekend.
+- *Houding*: `RUST` van (0,135, −0,122, −0,40) naar (0,072, −0,108, −0,105), met `RUST_DRAAI` (0,045, 0,115, 0,06):
+  het achtervizier rechtsonder op ongeveer 70 % van de breedte en de loop naar het midden. Zo dichtbij sloeg de veer
+  het geweer tot ~10 cm naar achteren, door je oog heen; de verplaatsing telt nu voor een derde (`TERUG_Z`), de kanteling
+  (die de proef meet) blijft. Bij het richten kantelt het geweer een fractie (`KANTEL`) zodat de top van de korrel in
+  de ring staat; de diopter staat op 13 cm van je oog. De grendelslag is 4,5 cm, zodat de open grendel onder de hiel
+  verdwijnt in plaats van erdoorheen te steken; de clip zit op −0,105.
+- *Kosten*: 21.232 driehoeken in de hele groep (met handen, mouwen, clip en laadhand) tegen 20.610 nu: de kartels
+  waren 36 afgeronde doosjes van 108 driehoeken per knop, nu één getand wieltje. Geen nieuw soort materiaal: de stempel
+  is een MeshStandardMaterial met kleur-, ruwheid- en normal map, net als het staal.
+
+**Proeven**: `m1test`. **Foto's**: `m1shots`, nu met `m1_zij.png` (het hele geweer van opzij, naast de zijfoto te leggen)
+en het aantal driehoeken in de uitvoer.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
