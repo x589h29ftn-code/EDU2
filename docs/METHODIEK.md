@@ -8378,6 +8378,52 @@ cameraman hoogstens 4,7 m achter je, 26 schoten in 20 s zonder één punt schade
 nomercy_knal.png, nomercy_duitsers.png. Valkuil (stap 139): de proeven draaien met
 `CHROME_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
 
+**De postbode (stap 141, 12 okt).**
+
+Gekozen uit een lijst: "Brievenbusbezorger die 's ochtends met een fietstas langs de huizen loopt." Gebouwd in
+js/postbode.js, gekoppeld via js/leven.js (`leven.postbode`; `doelen`, `raak`, `aanrijden` en `schrik` van leven geven
+het door), dus js/main.js hoefde niet aangepast te worden: de kogel, de auto en het schot kwamen al bij leven aan.
+
+*Het uiterlijk.* Een verzonnen bezorger, "Post Tinga", geen echt merk en geen logo dat op een bestaand lijkt: een
+`Persoon` met een oranje shirt, donkerblauwe broek en pet, een posttas voor de linkerheup aan een band schuin over de
+borst (het doek op canvas: oranje, een donkerdere klep met stiksel, een envelop in een wit rondje, "Post Tinga" en een
+blauwe band met BRIEVEN · PAKJES), en een witte envelop aan de rechterhand die alleen bij de deur te zien is. Alles bij
+het opstarten gemaakt: de materialen gaan mee met `soortenVoorbereid` (102 → 102 programma's als hij in beeld komt).
+
+*De straat.* Van 8:00 tot 11:30 (`POST`), om de 25–60 s als er geen loopt: een adres uit `KAART.huisnummers` op 30–150 m
+van de speler, en daarvandaan de adressen aan dezelfde rijweg-as en dezelfde kant ervan, binnen 70 m langs de weg, op
+volgorde; twee nummers achter één deur tellen één keer. Tussen de deuren een looproute (`zoekLooppad`); een deur waar
+alleen een omweg van meer dan 2,2 keer hemelsbreed heen gaat valt af. Vier tot negen deuren. De eerste deur mag niet in
+beeld liggen (anders van de andere kant); verdwijnen doet hij ook alleen uit beeld: na de laatste deur, verder dan 220 m,
+of na half twaalf.
+
+*Bij de deur* (2,6 s) draait hij naar de gevel, buigt 0,16 rad voorover en steekt de rechterarm naar voren (tot 1,0
+rad), met de envelop; op 1,15 s klikt de klep (`geluid.brievenbus` in js/audio.js: een metalen tik, papier, de klep die
+terugvalt; vanaf 30 m niets), dan is de envelop weg.
+
+*Wat misging.* (1) De deur van `deurVan` (js/pizzabaan.js, nu geëxporteerd) is het punt van de omtrek het dichtst bij
+de weg: bij een rijtjeshuis het midden van de gevel, en dat is de woonkamerpui. Op de eerste foto deed hij de post door
+het raam. Nu rekent `voordeurVan` de deur uit het geveldoek na: T.facade tekent per woning de deur op 0,5 m van de rand
+(0,95 m breed, om en om gespiegeld, of altijd rechts bij `deurRechts`), en `muurKeuze` in js/kaartwereld.js legt dat doek
+over het muurvlak van het 3D BAG-model (u vanaf de linkerrand, `huizen`, `toon`). Dat gebeurt hier opnieuw, voor het
+muurvlak op de grond aan de kant van `front`; zonder `front`, 3D-model of getekende deur (een flat, een bedrijf) blijft
+het `deurVan`. In de proef 12 van de 13 en 11 van de 11 deuren uit het doek. (2) Na een schot rende hij recht van het schot af, en dat
+was vanaf de stoep meestal de gevel in: 4,7 m in 3 s. Nu een looproute naar 40 m langs de straat, de kant die van het
+schot af ligt (of de andere kant als daar geen route is), en de stap in stukjes van 20 cm: rennend (50 cm per
+beeld) duwde een hoek van twee botsdozen hem in vier beelden half in een muur. (3) De eerste foto stond achter een tuinmuur, de tweede achter zijn rug; de foto kiest nu een deur die
+je van de straat af vrij ziet en kijkt van rechts. (4) Valkuil: de scratchpad wordt gedeeld met andere helpers; een
+logbestand met een algemene naam (ps.log) werd door een andere proef overschreven. Gebruik een eigen voorvoegsel.
+
+*Raken.* Een kogel (`raak`) of een auto vanaf 3,5 m/s (`aanrijden`): hij valt om; een schot binnen 50 m (`schrik`): hij
+rent weg. In alle drie de gevallen gaat hij uit beeld weg en blijft het `vandaag` tot de klok buiten 8–11:30 komt: de
+volgende ochtend is hij er weer.
+
+*Proef*: `npm run postbodetest`: 28 controles, alles goed (om 9 uur na 14 s, 11 deuren in 4 minuten, 0 van 2074 beelden
+in een botsdoos of pand en geen stap door een muur, 12 van 12 keer buiten beeld ontstaan, 15 m gerend in 3 s, 100 → 100
+programma's). Ook in die proef: `kiesStraat` loot en vindt soms in tien pogingen niets; de proef zet een straat met
+`__start` (tot acht keer), anders begon de weg-fase zelf een straat bij de verkeerde plek. *Foto*: `npm run postbodeshots` → postbode.png. `buurttest` (het tuinfeest,
+de pizzascooter en de plezierboot) is nu helemaal groen, ook de pizzadeur.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

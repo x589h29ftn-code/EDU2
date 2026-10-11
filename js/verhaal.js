@@ -69,7 +69,7 @@ import { maakVuurwerk } from './vuurwerk.js';
 import { maakHandlangers } from './handlangers.js';
 import { maakGrondvuur } from './grondvuur.js';
 import * as uitleg from './uitleg.js';
-import { NOMERCY, maakSet, maakErikJan, maakCameraman, maakDuitser, bosKaart } from './nomercy.js';
+import { NOMERCY, maakSet, maakErikJan, maakCameraman, maakDuitser, bosKaart, maakKamp, maakKlapbord } from './nomercy.js';
 
 // ---------- waar het verhaal zich afspeelt ----------
 const HUIS = { straat: 'Molenkrite', nr: '15' };      // het huis van Mark
@@ -1690,7 +1690,9 @@ export function initVerhaal(ctx) {
    en de negen Duitsers bestaan vanaf het opstarten, verborgen (js/nomercy.js).
   */
   const nm = { fase: 'uit', klaar: false, gebeld: false, belT: Infinity, telT: 0, t: 0, leen: null, pauze: null, navOver: null,
-    golf: null, levens: [], wegVan: null, uitgang: null, grijsT: 0, camWegT: 0, bos: null, knal: null, knalT: -1, roep: false, pak: false };
+    golf: null, levens: [], wegVan: null, uitgang: null, grijsT: 0, camWegT: 0, bos: null, knal: null, knalT: -1, roep: false, pak: false,
+    // de tweede scène (stap 141): gezien, stil (de kaart gepakt zonder alarm), de close-up, de M1 gehouden
+    gezien: false, stil: false, stilT: 0, vorig: null, m1: false, balk: false, camNaar: null };
   const nmSet = maakSet(scene);
   const nmEJ = maakErikJan();
   const nmCam = maakCameraman();
@@ -1701,6 +1703,19 @@ export function initVerhaal(ctx) {
   const nmMerk = maakMarkering(scene);
   // de Flak houdt je tegen zolang hij er staat (een doos zonder hoogte telt niet: js/world.js)
   const nmDoos = addCollider(NOMERCY.set.x, NOMERCY.set.z, 1.2, 1.2, 0, 0);
+  /*
+   De tweede scène, het bunkerdorp (stap 141): het kamp, de stafauto (een auto uit js/vehicles.js in feldgrau, niet
+   bestuurbaar, tot hij nodig is ver buiten de wereld), het klapbord in de handen van Erik Jan, en botsdozen voor de
+   tent en de radiopost. Alles bij het opstarten, zodat er geen shader bij komt.
+  */
+  const nmKamp = maakKamp(scene);
+  const nmStaf = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'bx', kleur: NOMERCY.stafKleur, driveable: false });
+  nmStaf.mesh.visible = false; nmStaf.mesh.position.set(1e5, 0, 1e5); nmStaf.noMercy = true;
+  const nmKlapbord = maakKlapbord();
+  nmKlapbord.position.set(0.05, 1.62, -0.46); nmKlapbord.rotation.y = Math.PI;
+  nmEJ.groep.add(nmKlapbord);
+  const nmTentDoos = addCollider(NOMERCY.kamp.x, NOMERCY.kamp.z, 2.1, 1.6, 0, 0);
+  const nmRadioDoos = addCollider(NOMERCY.kamp.x, NOMERCY.kamp.z, 0.45, 0.6, 0, 0);
   let envelop = null;            // {obj, t} – de envelop die de dief weggooit
   let geld = START_GELD;         // portemonnee; ruim gevuld zolang het spel in de testfase zit
   let buit = 0;                  // geld dat nog afgeleverd moet worden
@@ -2860,6 +2875,7 @@ export function initVerhaal(ctx) {
     klusjes.hoorSchot(x, z);
     invalSchot(x, z);
     ronaldSchot(x, z);
+    nmSchot(x, z);
     // missie 12: wie bij de hekken schiet voor de knal, begint het gevecht zelf
     if (missie === 'brug' && schutters && schutters.rustig && (fase === 'stop' || fase === 'ontsteken')) {
       const v = schutters.wachters[0] && schutters.wachters[0].persoon.groep.position;
@@ -4546,6 +4562,8 @@ export function initVerhaal(ctx) {
    naar die woning; je mag onderweg van gedachten veranderen.
   */
   function kiesHuis(nr) {
+    // (No Mercy 4, stap 141: 1 het geld, 2 de M1 houden)
+    if (nm.fase === 'keuze') return noMercyKeuze(nr);
     // (na het einde: 1 de wedstrijd met Mark, 2 de bank)
     if (uitje.fase === 'keuze') return uitjeKeuze(nr);
     // (racen voor geld: 1, 2 of 3 is de inleg)
@@ -10431,19 +10449,25 @@ export function initVerhaal(ctx) {
    hij was. Na missie 5 staat Erik Jan bij de waterzuivering (een gele ruit met EJ, `hud.zetEJ`); wie er niet heen
    gaat, krijgt hem na NOMERCY.belNa tellen aan de lijn. Bij hem: het gesprek, "Even omkleden…" (het uniform, een
    M1 Garand en 200 patronen in bruikleen), met de cameraman naar de set, de C4 bij de Flak, de knal, vier Duitsers,
-   het bos uit, nog vijf, "Cut!", € 500, en de bruikleen terug. Zolang de opnames lopen wacht het verhaal zoals
+   het bos uit, nog vijf, en dan (stap 141) de tweede take: het bunkerdorp — sluipen of vechten, de kaart uit de
+   tent, het alarm en zes figuranten, de radiopost opblazen, de close-up, applaus en het klapbord, en de keuze:
+   € 1.000 of de M1 houden. Daarna de bruikleen terug (of niet). Zolang de opnames lopen wacht het verhaal zoals
    bij een klus (`nmBezig` in `vrijVoorKlus`, `wachtOpKlus`, `toets` en de tussenpoos). Alle namen hier beginnen
    met nm of noMercy (js/verhaal.js is één bereik: zie `npm run overgangtest`).
   */
   const NM_VOOR = ['molenkrite', 'rijden', 'bewaking', 'afleveren', 'johan'];
-  const NM_ACTIEF = ['gesprek', 'omkleden', 'naarSet', 'set', 'bom', 'weg', 'knal', 'golf1', 'wegkomen', 'golf2', 'cut'];
-  const NM_OP_SET = ['naarSet', 'set', 'bom', 'weg', 'knal', 'golf1', 'wegkomen', 'golf2', 'cut'];
+  // (stap 141: na 'golf2' niet meer 'cut' maar 'take2' en de tweede scène, het bunkerdorp)
+  const NM_KAMP_FASEN = ['kampIntro', 'kamp', 'figuranten', 'radio', 'radioWeg', 'radioKnal', 'closeup', 'applaus', 'keuze'];
+  const NM_ACTIEF = ['gesprek', 'omkleden', 'naarSet', 'set', 'bom', 'weg', 'knal', 'golf1', 'wegkomen', 'golf2', 'take2', ...NM_KAMP_FASEN];
+  const NM_OP_SET = ['naarSet', 'set', 'bom', 'weg', 'knal', 'golf1', 'wegkomen', 'golf2', 'take2', ...NM_KAMP_FASEN];
+  // hier geen grens en geen X: tussen de scènes, en aan het eind
+  const NM_VRIJ = ['take2', 'applaus', 'keuze'];
   const zegtEJ = (tekst) => ({ wie: 'Erik Jan', kop: KOPPEN.erikjan, tekst });
   const zegtCam = (tekst) => ({ wie: 'Cameraman', kop: KOPPEN.cameraman, tekst });
   const NM_TELEFOON = [
     'Hé Erik, met Erik Jan! Van de films, No Mercy, je weet wel. Johan zei dat jij wel van aanpakken weet.',
     'We draaien deze week No Mercy 4, in het Tinga-bos. Tweede Wereldoorlog: Amerikanen tegen Duitsers, het hele circus.',
-    'Ik kom een figurant tekort. Een Amerikaanse soldaat. Wil je figureren? Vijfhonderd euro, en je krijgt een echte M1 Garand in handen. Nou ja, in bruikleen.',
+    'Ik kom een figurant tekort. Een Amerikaanse soldaat. Wil je figureren? Duizend euro voor twee scènes, en je krijgt een echte M1 Garand in handen. Nou ja, in bruikleen.',
     'Ik sta bij de waterzuivering: de EJ op je kaart. Kom maar langs als je zin hebt.',
   ];
   const NM_GESPREK = [
@@ -10451,6 +10475,7 @@ export function initVerhaal(ctx) {
     zegtEJ('Het verhaal is simpel: jij bent een GI achter de linies. In het bos staat een Duitse achtentachtig, een Flak. Van triplex en blik, maar hij moet de lucht in.'),
     zegtEJ(`Hier: een M1 Garand in bruikleen, en ${NOMERCY.kogels} patronen. De Duitsers schieten met losse flodders, daar voel je niks van.`),
     zegtEJ('Na de knal komen er vier Duitsers op je af. Schiet terug, dan gaan ze neer. Daarna moet je het bos uit zien te komen, en dan komen er nog vijf. De cameraman loopt de hele tijd met je mee.'),
+    zegtEJ('En daarna draaien we meteen de tweede scène: het bunkerdorp, dieper in het bos.'),
     zegtEJ('Eerst dit uniform aan, en de helm op. Dan gaan we draaien!'),
   ];
   const NM_OP_SET_ZIN = [
@@ -10461,11 +10486,33 @@ export function initVerhaal(ctx) {
   const NM_DUITSERS = [zegtEJ('Daar komen de Duitsers! Schieten, Erik, schieten!')];
   const NM_WEG = [zegtEJ('Prachtig! En nu het bos uit, de camera blijft bij je!')];
   const NM_GOLF2 = [zegtCam('Nog meer Duitsers! Doorgaan, ik draai door!')];
-  const NM_CUT = [
-    zegtCam('Cut! Prachtig. Dat was hem, in één take.'),
-    zegtCam(`Erik Jan zegt dat je ${euro(NOMERCY.beloning)} krijgt. Het geweer en de rest van de patronen neem ik weer mee: die zijn van de set.`),
-    zegtCam('Bedankt, man. Als er een No Mercy 5 komt, bellen we je.'),
+  // (stap 141: geen "Cut!" meer na de eerste scène, maar door naar de tweede)
+  const NM_TAKE2 = [
+    zegtEJ('Goed zo — nu de tweede take!'),
+    zegtEJ('We verhuizen naar het bunkerdorp, dieper in het bos. Daar komt de climax. Even de camera overzetten…'),
   ];
+  const NM_KAMP_ZIN = [
+    zegtEJ('Het bunkerdorp. Twee schildwachten, een stafauto, een radiopost, en in de tent ligt de stafkaart.'),
+    zegtEJ('Pak die kaart. Sluipen of knallen, jij kiest: als ze je zien, draaien we gewoon door. Geen "cut", geen overnieuw.'),
+    zegtEJ('Camera loopt… ACTIE!'),
+  ];
+  const NM_GEZIEN = [zegtEJ('Ze zien je! Doorspelen, niet stoppen — vechten!')];
+  const NM_STIL = [zegtEJ('Mooi stil, dat is cinema!'), zegtEJ('En nu het alarm… daar komen ze!')];
+  const NM_ALARM = [zegtEJ('Het alarm! Daar komen de figuranten, alle zes!')];
+  const NM_RADIO = [zegtEJ('Allemaal liggen! Nu de radiopost: C4 erop, dan kunnen ze geen hulp meer roepen.')];
+  const NM_CLOSEUP = [zegtEJ('Prachtig! En nu de close-up: op de gele ruit voor de camera, en drie tellen heel stil staan.')];
+  const NM_APPLAUS = [
+    zegtEJ('CUT! En… dat is een wrap! No Mercy 4, scène twee, take één. In één keer goed!'),
+    zegtCam('Applaus voor onze Amerikaan!'),
+  ];
+  const NM_KEUZE = [
+    zegtEJ(`Dan je gage. Wil je ${euro(NOMERCY.beloning)}, of houd je de M1 Garand? Die heb je verdiend.`),
+    zegtEJ('1 — het geld. 2 — de M1, en wat er van de patronen over is.'),
+  ];
+  const NM_EIGEN_M1 = [
+    zegtEJ(`Je had al een eigen M1, zie ik. Dan krijg je gewoon ${euro(NOMERCY.beloning)}. Het geleende geweer en de patronen gaan terug naar de set.`),
+  ];
+  const NM_BEDANKT = [zegtCam('Bedankt, man. Als er een No Mercy 5 komt, bellen we je.')];
 
   function nmBeschikbaar() { return !nm.klaar && !NM_VOOR.includes(missie); }
   function nmBezig() { return NM_ACTIEF.includes(nm.fase); }
@@ -10566,12 +10613,24 @@ export function initVerhaal(ctx) {
     if (nm.knal) { nm.knal.stop(); nm.knal = null; }
     nmCam.groep.visible = false; nm.camWegT = 0;
     nmEJ.groep.visible = false;
+    nmRuimKampOp();
     if (terug) nmLeenTerug(); else nm.leen = null;
     if (nm.pak) { nm.pak = false; if (zetPak) zetPak('gewoon'); }
     if (nmBezig() && gesprek) { gesprek = null; sluitBalk(); }
     if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
     hud.zetEJ(null);
     nm.knalT = -1; nm.roep = false; nm.uitgang = null; nm.wegVan = null;
+  }
+  // de tweede scène weg: het kamp, de stafauto (weer ver buiten de wereld, heel), het klapbord, de balk
+  function nmRuimKampOp() {
+    nmKamp.toon(false); nmKamp.herstel();
+    nmTentDoos.h = 0; nmRadioDoos.h = 0;
+    if (nmStaf.wrak && vehicles.herstelWrak) vehicles.herstelWrak(nmStaf);
+    nmStaf.hp = 100; nmStaf.speed = 0;
+    nmStaf.x = nmStaf.z = 1e5; nmStaf.mesh.position.set(1e5, 0, 1e5); nmStaf.mesh.visible = false;
+    nmKlapbord.visible = false;
+    if (nm.balk) { const b = document.getElementById('schaduwbalk'); if (b) b.hidden = true; nm.balk = false; }
+    nm.gezien = false; nm.stil = false; nm.stilT = 0; nm.vorig = null;
   }
   function nmMislukt(reden) {
     nmRuimOp(true);
@@ -10582,7 +10641,7 @@ export function initVerhaal(ctx) {
   }
   // X tijdens de opnames: stoppen (js/main.js via klusAfbreken)
   function noMercyAfbreken() {
-    if (!nmBezig() || nm.fase === 'gesprek' || nm.fase === 'omkleden' || nm.fase === 'cut') return false;
+    if (!nmBezig() || nm.fase === 'gesprek' || nm.fase === 'omkleden' || NM_VRIJ.includes(nm.fase)) return false;
     nmMislukt('Je stopte met de opnames.');
     return true;
   }
@@ -10679,6 +10738,7 @@ export function initVerhaal(ctx) {
     return nm.golf.wachters.filter(w => w.i >= van && w.i < tot && w.staat !== 'neer').length;
   }
   function nmTreffer() {
+    if (NM_KAMP_FASEN.includes(nm.fase)) { nmKampOpdracht(); return; }
     if (nm.fase === 'golf1') {
       const over = nmOver(0, NOMERCY.golf1);
       zetOpdracht(over > 0 ? `schakel de Duitsers uit (${over} te gaan)` : '');
@@ -10721,7 +10781,7 @@ export function initVerhaal(ctx) {
     // na "Cut!": de cameraman loopt terug naar de set en is weg
     if (nm.camWegT > 0) {
       nm.camWegT -= dt;
-      const S = NOMERCY.set;
+      const S = nm.camNaar || NOMERCY.set;
       const erIs = nmLoop(nmCam, S, dt, 1.5, 1);
       nmCam.update(dt, { loopt: !erIs, snelheid: 1.5 });
       if (nm.camWegT <= 0 || erIs) { nm.camWegT = 0; nmCam.groep.visible = false; }
@@ -10772,12 +10832,15 @@ export function initVerhaal(ctx) {
     // ---- de opnames ----
     // de politie weet ervan: op de set geen sterren
     if (sterren() > 0 && sterrenWeg) sterrenWeg();
-    const S = NOMERCY.set;
+    // (in de tweede scène telt de afstand tot het kamp)
+    const inKamp = NM_KAMP_FASEN.includes(nm.fase);
+    const S = inKamp ? NOMERCY.kamp : NOMERCY.set;
     const dSet = Math.hypot(sp.x - S.x, sp.z - S.z);
-    if (nm.fase !== 'cut') {
+    if (!NM_VRIJ.includes(nm.fase)) {
       if (player.inCar) { nmMislukt('Een figurant rijdt niet van de set weg.'); return; }
       if (dSet > NOMERCY.weg) { nmMislukt('Je liep van de set weg.'); return; }
     }
+    if (inKamp) { nmKampBij(dt, sp); return; }
     nmCamBij(dt, sp);
     // Erik Jan regisseert vanaf zijn stoel
     if (nmEJ.groep.visible) { nmEJ.kijkNaar(sp.x, sp.z, dt, 2); nmEJ.update(dt, {}); }
@@ -10858,27 +10921,277 @@ export function initVerhaal(ctx) {
       nmGolf2Opdracht();
       const binnen = nmBosKaart().inBos(sp.x, sp.z);
       if (!binnen && nmOver(NOMERCY.golf1, NOMERCY.golf1 + NOMERCY.golf2) === 0 && balk.hidden) {
-        nm.fase = 'cut';
+        // (stap 141) geen "Cut!" meer: door naar de tweede scène
+        nm.fase = 'take2';
         zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
-        zeg(NM_CUT, () => nmGeslaagd());
+        zeg(NM_TAKE2, () => {
+          if (nm.fase !== 'take2') return;
+          zwartMet('Even later, dieper in het bos…', () => nmNaarKamp(), [1.0, 1.8, 1.0]);
+        });
       }
     }
   }
-  function nmGeslaagd() {
-    verdien(NOMERCY.beloning);
-    nmLeenTerug();
+  /*
+   Het einde, met de keuze (stap 141): 1 is € 1.000 en de bruikleen terug, 2 is de M1 houden. Bij 2 gaat er niets
+   terug: het geweer met wat er in de clip zit en alle overgebleven patronen van de doos (ook de 200 van de set, voor
+   zover je ze niet verschoot) zijn van jou, en geen geld. Had je al een eigen M1, dan is er niets te kiezen: € 1.000.
+  */
+  function nmGeslaagd(keus = 1) {
+    const houdt = keus === 2 && nm.leen && !nm.leen.eigen;
+    let tekst;
+    if (houdt) {
+      nm.m1 = true;
+      const P = player;
+      P.magazijnen[P.wapenSoort] = P.ammo;
+      nm.leen = null;                                  // niets terug: de M1 en de patronen zijn van jou
+      tekst = `No Mercy 4: de M1 Garand is van jou, met ${P.reserve + (P.magazijnen.garand || 0)} patronen.`;
+    } else {
+      verdien(NOMERCY.beloning);
+      nmLeenTerug();
+      tekst = `No Mercy 4: + ${euro(NOMERCY.beloning)}. De M1 en de overgebleven patronen gaan terug naar de set.`;
+    }
     if (nm.pak) { nm.pak = false; if (zetPak) zetPak('gewoon'); }
     nm.klaar = true;
-    // de set, de Flak, de Duitsers en Erik Jan weg; de cameraman loopt terug het bos in
+    // de sets, de Duitsers, de stafauto en Erik Jan weg; de cameraman loopt terug het bos in
     const cam = nmCam.groep.visible;
+    nm.camNaar = nmKamp.zichtbaar ? nmKamp.midden : NOMERCY.set;
     nmRuimOp(false);
     if (cam) { nmCam.groep.visible = true; nm.camWegT = 7; }
     nm.fase = 'uit';
     nmZetBeeldTerug();
-    hud.melding('MISSIE GESLAAGD', `No Mercy 4: + ${euro(NOMERCY.beloning)}. De M1 en de overgebleven patronen gaan terug naar de set.`, 7);
+    hud.melding('MISSIE GESLAAGD', tekst, 7);
     if (checkpoint && player.health > 0) { checkpoint(); hud.show('Checkpoint opgeslagen', 2); }
   }
+  // 1 of 2 aan het eind (kiesHuis, ook de knoppen op een aanraakscherm via `openKeuze`)
+  function noMercyKeuze(nr) {
+    if (nm.fase !== 'keuze' || (nr !== 1 && nr !== 2)) return false;
+    nm.fase = 'applaus';
+    zetOpdracht('');
+    zeg(NM_BEDANKT, () => nmGeslaagd(nr), { auto: 2.5 });
+    return true;
+  }
+  function nmKampOpdracht() {
+    if (!nm.golf) return;
+    const over = nm.golf.wachters.filter(w => w.staat !== 'neer').length;
+    if (nm.fase === 'kamp') zetOpdracht(nm.gezien
+      ? `pak de kaart in de tent (E) — of schakel eerst de schildwachten uit (${over} over)`
+      : 'sluip naar de tent en pak de kaart (E) — of vecht je erdoorheen');
+    else if (nm.fase === 'figuranten') zetOpdracht(over > 0 ? `schakel de figuranten uit (${over} te gaan)` : '');
+  }
+  // een schot in de tweede scène: de schildwachten horen het (Bewaking.hoorSchot slaat alarm)
+  function nmSchot(x, z) {
+    if (nm.golf && nm.fase === 'kamp') nm.golf.hoorSchot(x, z);
+  }
+
+  /*
+   Naar het bunkerdorp, in het zwart: de eerste set en de Duitsers weg, het kamp en de stafauto neer, Erik bij de
+   rand van de open plek met de cameraman naast zich, Erik Jan op zijn regieplek, en twee schildwachten die nog
+   niets doorhebben (`zicht` NOMERCY.wachtZicht zolang er geen alarm is; daarna net zo ver als in de eerste scène).
+  */
+  function nmNaarKamp() {
+    if (nm.fase !== 'take2') return;
+    if (nm.golf) { nm.golf.verwijder(); nm.golf = null; }
+    for (const p of nmDuitsers) { p.legNeer(0); p.groep.visible = false; }
+    nmSet.toon(false); nmDoos.h = 0; nmC4.toon(false); nmMerk.toon(false);
+    if (nm.knal) { nm.knal.stop(); nm.knal = null; }
+    hud.zetNavigatie(null); navDoel = null;
+    const K = NOMERCY.kamp;
+    nmKamp.zet(K.x, grondHoogte(K.x, K.z), K.z);
+    nmKamp.herstel(); nmKamp.toon(true);
+    const tent = nmKamp.tent, radio = nmKamp.radioPlek;
+    nmTentDoos.cx = tent.x; nmTentDoos.cz = tent.z; nmTentDoos.h = 2.0;
+    nmRadioDoos.cx = radio.x; nmRadioDoos.cz = radio.z; nmRadioDoos.h = 1.1;
+    const st = nmKamp.staf;
+    nmStaf.x = st.x; nmStaf.z = st.z; nmStaf.yaw = st.yaw; nmStaf.speed = 0; nmStaf.hp = 100;
+    nmStaf.mesh.position.set(st.x, grondHoogte(st.x, st.z), st.z); nmStaf.mesh.rotation.y = st.yaw; nmStaf.mesh.visible = true;
+    // Erik aan de rand van de open plek, met de cameraman naast zich
+    const [sx, sz] = resolveCollisions(K.start.x, K.start.z, 0.4);
+    player.inCar = null;
+    player.pos.set(sx, grondHoogte(sx, sz), sz); player.yaw = kijkHoek({ x: sx, z: sz }, K); player.applyCamera();
+    const [cx, cz] = resolveCollisions(sx - 1.5, sz + 2.2, 0.4);
+    nmCam.zetNeer(cx, cz, kijkHoek({ x: cx, z: cz }, { x: sx, z: sz })); nmCam.legNeer(0); nmCam.groep.visible = true;
+    const r = nmKamp.regisseur;
+    nmEJ.zetNeer(r.x, r.z, kijkHoek(r, K)); nmEJ.legNeer(0); nmEJ.groep.visible = true;
+    nmKlapbord.visible = false;
+    // de schildwachten: 1 tot 3 treffers per man, net als de rest
+    nm.levens = nmDuitsers.map(() => NOMERCY.treffers[0] + Math.floor(Math.random() * (NOMERCY.treffers[1] - NOMERCY.treffers[0] + 1)));
+    const posten = nmKamp.wachtPosten();
+    const personen = posten.map((_, j) => nmDuitsers[j]);
+    for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
+    nm.golf = new Bewaking(scene, posten, { schade: 0, leven: nm.levens, klank: 'garand', personen, vest: null, pet: false,
+      zicht: NOMERCY.wachtZicht, vuurbereik: 46, dekking: 11, oog: 1.5 });
+    nm.gezien = false; nm.stil = false; nm.stilT = 0; nm.vorig = null;
+    nm.fase = 'kampIntro';
+    zetOpdracht('');
+    zeg(NM_KAMP_ZIN, () => {
+      if (nm.fase !== 'kampIntro') return;
+      nm.fase = 'kamp';
+      nmKampOpdracht();
+    });
+  }
+  // het alarm: wie nog rondloopt komt op je af, en ze zien je net zo ver als de Duitsers van de eerste scène
+  function nmAlarm(sp) {
+    if (!nm.golf) return;
+    nm.golf.alarm = true;
+    nm.golf.zicht = 48;
+    for (const w of nm.golf.wachters) if (w.staat === 'patrouille') { w.staat = 'zoekt'; w.doel = [sp.x, sp.z]; }
+  }
+  // E bij de ingang van de tent: de kaart, het luchtalarm, en zes figuranten uit het oosten
+  function nmKaartPakken() {
+    const sp = spelerPunt();
+    nm.stil = !nm.gezien && !(nm.golf && nm.golf.alarm);
+    nmKamp.toonKaart(false);
+    if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
+    const r = nmKamp.radioPlek;
+    geluid.luchtalarm(Math.hypot(sp.x - r.x, sp.z - r.z), 10);
+    nmAlarm(sp);
+    const K = nmKamp.midden;
+    const naar = { x: K.x + 45 - sp.x, z: K.z - sp.z }, d = Math.hypot(naar.x, naar.z) || 1;
+    nmGolfErbij(NOMERCY.figuranten, sp, { x: naar.x / d, z: naar.z / d }, 22, 34, 0.8);
+    nm.fase = 'figuranten';
+    nmKampOpdracht();
+    hud.melding('De stafkaart', nm.stil ? 'Ongezien gepakt. Nu gaat het alarm.' : 'Gepakt. Het alarm gaat.', 4);
+    zeg(nm.stil ? NM_STIL : NM_ALARM, null, { auto: 2.6 });
+  }
+  function nmRadioBoem(sp) {
+    const r = nmKamp.radioPlek;
+    nm.knal = ontplofBij(scene, r.x, grondHoogte(r.x, r.z), r.z);
+    geluid.explosie(Math.hypot(sp.x - r.x, sp.z - r.z));
+    if (schokken) schokken(0.45);
+    nmC4.toon(false);
+    nmRadioDoos.h = 0.6;
+    nm.fase = 'radioKnal'; nm.t = 0;
+  }
+  function nmZetBalk(tekst, deel) {
+    const b = document.getElementById('schaduwbalk');
+    if (!b) return;
+    nm.balk = true;
+    b.hidden = false;
+    b.style.setProperty('--dicht', '0%');
+    b.style.setProperty('--ver', '100%');
+    b.style.setProperty('--nu', `${Math.max(0, Math.min(100, deel * 100)).toFixed(1)}%`);
+    const t = b.querySelector('.tekst');
+    if (t) t.textContent = tekst;
+    b.classList.toggle('fout', deel <= 0);
+  }
+
+  // de tweede scène, elk beeld
+  function nmKampBij(dt, sp) {
+    const vast = nm.fase === 'closeup' || nm.fase === 'applaus' || nm.fase === 'keuze';
+    if (!vast) nmCamBij(dt, sp);
+    else {
+      // de cameraman staat achter zijn camera en draait de close-up
+      const c = nmKamp.cameraPlek, cu = nmKamp.closeup;
+      const erIs = nmLoop(nmCam, c, dt, 3.5, 0.3);
+      if (erIs) nmCam.kijkNaar(cu.x, cu.z, dt, 5);
+      nmCam.update(dt, { loopt: !erIs, snelheid: 3.5 });
+    }
+    // Erik Jan: van zijn regieplek, en aan het eind naast de camera met het klapbord
+    if (nmEJ.groep.visible) {
+      if (vast) {
+        const e = nmKamp.ejSlot;
+        const erIs = nmLoop(nmEJ, e, dt, 3.0, 0.3);
+        if (erIs) nmEJ.kijkNaar(sp.x, sp.z, dt, 3);
+        nmEJ.update(dt, { loopt: !erIs, snelheid: 3.0, mikt: nm.fase !== 'closeup' && erIs });
+      } else { nmEJ.kijkNaar(sp.x, sp.z, dt, 2); nmEJ.update(dt, {}); }
+    }
+    if (nm.golf) nm.golf.update(dt, player, true);      // losse flodders: de schade telt niet (schade 0)
+    nmMerk.update(dt); nmC4.update(dt);
+    if (nm.fase === 'kamp') {
+      // gezien (of gehoord): geen "cut", het gevecht gaat gewoon los
+      if (nm.golf && nm.golf.alarm && !nm.gezien) {
+        nm.gezien = true;
+        nmAlarm(sp);
+        nmKampOpdracht();
+        if (balk.hidden) zeg(NM_GEZIEN, null, { auto: 2.6 });
+      }
+      const bij = afst(sp, nmKamp.ingang) < NOMERCY.kaartBereik && balk.hidden;
+      if (bij) { praatEl.textContent = 'E — de kaart pakken'; praatEl.hidden = false; nm.hint = true; }
+      else if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
+      return;
+    }
+    if (nm.fase === 'figuranten') {
+      if (nm.golf && nm.golf.wachters.every(w => w.staat === 'neer') && balk.hidden) {
+        nm.fase = 'radio';
+        const r = nmKamp.radioRuit;
+        nmMerk.zet(r.x, grondHoogte(r.x, r.z), r.z); nmMerk.toon(true);
+        zetOpdracht('blaas de radiopost op: de C4 op de gele markering (E)');
+        zeg(NM_RADIO, null, { auto: 3.0 });
+      }
+      return;
+    }
+    if (nm.fase === 'radio') {
+      const bij = afst(sp, nmKamp.radioRuit) < NOMERCY.bomBereik && balk.hidden;
+      if (bij) { praatEl.textContent = 'E — de C4 plaatsen'; praatEl.hidden = false; nm.hint = true; }
+      else if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
+      return;
+    }
+    if (nm.fase === 'radioWeg') {
+      nm.t += dt;
+      const r = nmKamp.radioPlek;
+      if (!nm.roep && (Math.hypot(sp.x - r.x, sp.z - r.z) >= NOMERCY.radioAfstand || nm.t >= NOMERCY.bomUiterlijk)) {
+        nm.roep = true; nm.knalT = 1.0;
+      }
+      if (nm.knalT > 0) { nm.knalT -= dt; if (nm.knalT <= 0) nmRadioBoem(sp); }
+      return;
+    }
+    if (nm.fase === 'radioKnal') {
+      nm.t += dt;
+      nmKamp.radioKnal(Math.min(1, nm.t / 0.6));
+      if (nm.t > 2.4) {
+        nm.fase = 'closeup'; nm.stilT = 0; nm.vorig = { x: sp.x, z: sp.z };
+        const c = nmKamp.closeup;
+        nmMerk.zet(c.x, grondHoogte(c.x, c.z), c.z); nmMerk.toon(true);
+        zetOpdracht('de close-up: op de gele ruit voor de camera, en drie tellen stil staan');
+        if (balk.hidden) zeg(NM_CLOSEUP, null, { auto: 3.2 });
+      }
+      return;
+    }
+    if (nm.fase === 'closeup') {
+      // stil: op de ruit, en tussen twee beelden (vrijwel) niet bewogen. Bewegen begint opnieuw
+      const c = nmKamp.closeup;
+      const v = nm.vorig && dt > 0 ? Math.hypot(sp.x - nm.vorig.x, sp.z - nm.vorig.z) / dt : 0;
+      nm.vorig = { x: sp.x, z: sp.z };
+      const op = Math.hypot(sp.x - c.x, sp.z - c.z) < NOMERCY.closeupBereik;
+      if (op && v < NOMERCY.stil) nm.stilT += dt; else nm.stilT = 0;
+      const deel = nm.stilT / NOMERCY.closeup;
+      nmZetBalk(!op ? 'Ga op de gele ruit staan' : nm.stilT > 0 ? `Stil… ${Math.min(NOMERCY.closeup, nm.stilT).toFixed(1).replace('.', ',')} van ${NOMERCY.closeup} s` : 'Stil blijven staan!', deel);
+      if (nm.stilT >= NOMERCY.closeup) {
+        nm.fase = 'applaus';
+        const b = document.getElementById('schaduwbalk'); if (b) b.hidden = true; nm.balk = false;
+        nmMerk.toon(false);
+        zetOpdracht('');
+        geluid.applaus(0, 4.5);
+        nmKlapbord.visible = true;
+        const klap = nmKlapbord.userData.klap; if (klap) klap.rotation.z = 0;   // klap!
+        zeg(NM_APPLAUS, () => {
+          if (nm.fase !== 'applaus') return;
+          if (nm.leen && nm.leen.eigen) { zeg(NM_EIGEN_M1, () => nmGeslaagd(1)); return; }
+          zeg(NM_KEUZE, () => {
+            if (nm.fase !== 'applaus') return;
+            nm.fase = 'keuze';
+            zetOpdracht(`kies: 1 = ${euro(NOMERCY.beloning)} · 2 = de M1 Garand houden`);
+          });
+        });
+      }
+      return;
+    }
+  }
+
   function noMercyToets() {
+    if (nm.fase === 'kamp' && balk.hidden && afst(spelerPunt(), nmKamp.ingang) <= NOMERCY.kaartBereik) { nmKaartPakken(); return true; }
+    if (nm.fase === 'radio' && balk.hidden) {
+      const r = nmKamp.radioRuit;
+      if (afst(spelerPunt(), r) > NOMERCY.bomBereik) return false;
+      nmC4.zet(r.x, grondHoogte(r.x, r.z), r.z, Math.PI / 2); nmC4.toon(true);
+      nmMerk.toon(false);
+      if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
+      geluid.neerzetten();
+      nm.fase = 'radioWeg'; nm.t = 0; nm.roep = false; nm.knalT = -1;
+      zetOpdracht(`neem afstand: op ${NOMERCY.radioAfstand} meter van de radiopost gaat hij af`);
+      hud.melding('C4 geplaatst', 'Wegwezen!', 3);
+      return true;
+    }
     if (nm.fase !== 'bom' || !balk.hidden) return false;
     const r = nmSet.ruit;
     if (afst(spelerPunt(), r) > NOMERCY.bomBereik) return false;
@@ -11399,6 +11712,8 @@ export function initVerhaal(ctx) {
       // No Mercy 4 (stap 140): gedaan, en of Erik Jan al gebeld heeft
       // (en of het telefoontje nog moet komen: alleen als het bij het opslaan nog aftelde)
       noMercyKlaar: nm.klaar, noMercyGebeld: nm.gebeld, noMercyBel: !nm.gebeld && Number.isFinite(nm.belT),
+      // (stap 141) koos je aan het eind de M1? Het geweer zelf zit in de wapens van js/opslag.js
+      noMercyM1: nm.m1,
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
       raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
@@ -11416,7 +11731,7 @@ export function initVerhaal(ctx) {
     // No Mercy 4: de set weg; de wapens komen uit de opslag (js/opslag.js zette ze al), dus niets teruggeven
     nmRuimOp(false); nm.fase = 'uit'; nm.pauze = null; nm.navOver = null;
     if (!s) return;
-    nm.klaar = !!s.noMercyKlaar; nm.gebeld = !!s.noMercyGebeld;
+    nm.klaar = !!s.noMercyKlaar; nm.gebeld = !!s.noMercyGebeld; nm.m1 = !!s.noMercyM1;
     // het telefoontje komt alleen als het bij het opslaan nog aftelde; een oude opslag van na missie 5 krijgt alleen de EJ
     nm.belT = !nm.gebeld && s.noMercyBel ? NOMERCY.belNa : Infinity;
     herspeelNaam = typeof s.herspeel === 'string' ? s.herspeel : null;
@@ -11811,6 +12126,7 @@ export function initVerhaal(ctx) {
      knoppen voor neer (stap 118), want daar is geen toetsenbord. null als er niets te kiezen valt.
     */
     get openKeuze() {
+      if (nm.fase === 'keuze') return [euro(NOMERCY.beloning), 'de M1 Garand houden'];
       if (uitje.fase === 'keuze') return ['de wedstrijd', 'de bank'];
       if (geldKiezen) return GELDRACE_INLEG.map(euro);
       if (missie === 'race' && fase === 'keuze') return ['nog een keer, dubbel of niks', `${euro(raceSchuld)} betalen`];
@@ -11837,6 +12153,11 @@ export function initVerhaal(ctx) {
       return { fase: nm.fase, klaar: nm.klaar, gebeld: nm.gebeld, belT: nm.belT, leen: nm.leen, levens: nm.levens.slice(),
         golf: nm.golf, uitgang: nm.uitgang, bos: nmBosKaart(), set: nmSet, ej: nmEJ, cam: nmCam, duitsers: nmDuitsers, c4: nmC4,
         merk: nmMerk, doos: nmDoos, ejPlek: nmEJPlek(), bezig: nmBezig(), startbaar: nmStartbaar(), pak: nm.pak, knal: nm.knal,
+        // de tweede scène (stap 141)
+        kamp: nmKamp, staf: nmStaf, klapbord: nmKlapbord, tentDoos: nmTentDoos, radioDoos: nmRadioDoos,
+        gezien: nm.gezien, stil: nm.stil, stilT: nm.stilT, m1: nm.m1,
+        // (voor proeven en foto's) meteen naar het bunkerdorp, als de opnames lopen
+        naarKamp: () => { if (!nmBezig()) return false; if (gesprek) { gesprek = null; sluitBalk(); } nm.fase = 'take2'; nmNaarKamp(); return true; },
         zetBelT: (t) => { nm.belT = t; } };
     },
     get klusjes() { return klusjes; },

@@ -1774,14 +1774,40 @@ meter laten ze hem afgaan.
 Dan komen er **vier Duitsers** aan in feldgrau met een stahlhelm (en, omdat de film het zo heeft, ook met een
 M1). Ze schieten met losse flodders: je ziet het mondingsvuur en je hoort het, maar je verliest er geen leven
 door. Elk gaat neer na één tot drie treffers. Daarna moet je **het bos uit**; onderweg komen er nog **vijf**.
-Ben je buiten het bos en liggen ze allemaal, dan roept de cameraman *"Cut! Prachtig."* en krijg je **€ 500**.
-Het geweer en de patronen die je over hebt gaan terug naar de set (had je zelf al een M1, dan houd je die, met
-je eigen patronen), het uniform gaat uit, en de Flak, het decor en de figuranten worden opgeruimd.
+Ben je buiten het bos en liggen ze allemaal, dan roept Erik Jan: *"Goed zo — nu de tweede take!"*
 
 ![De Duitsers](docs/screenshots/nomercy_duitsers.png)
 
-Ga je neer, loop je van de set weg, stap je in een auto of druk je op **X**, dan zijn de opnames mislukt en
-staat Erik Jan weer bij de waterzuivering. Tijdens de opnames kun je niet opslaan. Na het slagen is hij weg.
+**De tweede scène: het bunkerdorp.** "Even later, dieper in het bos…": je staat aan de rand van een tweede open
+plek, negentig meter verderop. Daar staat een Duits kampement: een tent van zeildoek, een **stafauto** in
+feldgrau, een **radiopost** met een zweepantenne en een handsirene, kisten, vaten en een muurtje van
+zandzakken. Twee **schildwachten** houden de wacht: de ene kijkt over de zandzakken naar het oosten, de andere
+loopt aan de oostkant heen en weer. In de tent ligt de **stafkaart**.
+
+![Het bunkerdorp](docs/screenshots/nomercy_kamp.png)
+
+Sluipen of vechten, jij kiest. Kom je van het westen recht naar de tent, dan zien ze je niet; zien ze je toch
+(of horen ze je schieten), dan is er geen "Cut! Overnieuw": het gevecht gaat gewoon los en de camera draait door.
+Pak de kaart bij de ingang van de tent (**E**). Was je ongezien, dan zegt Erik Jan *"Mooi stil, dat is cinema!"*.
+Dan gaat het **luchtalarm** en komen er **zes figuranten** aan; ook die schieten met losse flodders en gaan
+neer na één tot drie treffers. Daarna de **radiopost**: C4 op de gele markering (**E**), twaalf meter afstand,
+en de post gaat de lucht in en blijft zwartgeblakerd en scheef staan.
+
+![De radiopost](docs/screenshots/nomercy_radio.png)
+
+Dan de **close-up**: ga op de gele ruit voor de camera staan en blijf **drie tellen stil** staan (de balk
+linksboven telt; bewegen begint opnieuw). De ploeg applaudisseert en Erik Jan houdt het **klapbord** omhoog:
+*No Mercy 4 · scène 2 · take 1*.
+
+![Het klapbord](docs/screenshots/nomercy_klapbord.png)
+
+Dan kies je je gage: **1 = € 1.000**, **2 = de M1 Garand houden** (met alle patronen die je van de 200 nog over
+hebt; geen geld). Had je zelf al een M1, dan is er niets te kiezen: je krijgt € 1.000 en het geleende geweer en
+de patronen gaan terug. Het uniform gaat uit, en het decor, de stafauto en de figuranten worden opgeruimd. Een
+gehouden M1 zit gewoon in je wapens, ook na opslaan en laden.
+
+Ga je neer, loop je weg (verder dan 160 m van de set, of in de tweede scène van het kamp), stap je in een auto
+of druk je op **X**, dan zijn de opnames mislukt en staat Erik Jan weer bij de waterzuivering. Tijdens de opnames kun je niet opslaan. Na het slagen is hij weg.
 
 ### 6 · De groene BX
 
@@ -4945,6 +4971,11 @@ donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en gl
   een grijze bumper, een zwaailicht en een rode grijparm (stap 125). Langs zijn route staan **kliko's** aan de
   stoep, groen en grijs; bij elke stop gaat er een omhoog, en als de wagen weg is, zijn ze weg (stap 126). Hij en stopt om de 38 m om de kliko's te legen (sissen, bonken, piepjes). Hij
   is een echte auto: je botst ertegen.
+- **De postbode** (stap 141). Tussen acht en half twaalf 's ochtends loopt er een postbode van **Post Tinga**
+  (een verzonnen bezorger: oranje shirt, blauwe broek en pet, een oranje posttas over de schouder) een straat bij
+  je in de buurt af, aan één kant van de weg, van deur naar deur. Bij elke deur buigt hij naar de brievenbus,
+  duwt er een envelop door en klikt de klep. Hij loopt om heggen en schuttingen heen, komt en gaat alleen waar
+  je niet kijkt, en schrikt van een schot: dan rent hij weg en komt hij pas de volgende ochtend terug.
 - **Het terras bij de Poiesz.** Overdag, als het droog is, staan er naast de ingang van de Poiesz in IJlst twee
   tafels met een rode parasol, en zitten er vijf mensen aan de koffie.
 - **Schade die blijft.** Een flinke klap laat een deuk in de neus of de kont van je auto achter, een heel harde
@@ -4962,6 +4993,8 @@ donkerder en spiegelender, zodat de grauwe lucht erin staat (zie **Reliëf en gl
 ![Het terras bij de Poiesz in IJlst](docs/screenshots/terras_poiesz.png)
 
 ![De vuilniswagen](docs/screenshots/vuilniswagen.png)
+
+![De postbode van Post Tinga bij een brievenbus](docs/screenshots/postbode.png)
 
 ![Een deuk, kogelgaten en een gebarsten voorruit](docs/screenshots/autoschade.png)
 

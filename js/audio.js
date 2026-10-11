@@ -1791,6 +1791,64 @@ export const geluid = {
       src.start(t); src.stop(t + 3);
     }
   },
+  /*
+   Het luchtalarm van het bunkerdorp (stap 141, No Mercy 4): een handsirene uit de oorlog. Twee
+   zaagtanden een kwint uit elkaar door een laagdoorlaat, die in drie tellen van een brom naar een
+   gillende toon aanzwellen, twee keer op en neer gaan en dan in drie tellen uitlopen. Eén keer
+   ingepland, met `duur` de totale lengte; zachter met de afstand, onhoorbaar verder dan 300 m.
+  */
+  luchtalarm(afstand = 0, duur = 10) {
+    if (!aan) return;
+    const v = Math.max(0, 1 - afstand / 300) ** 2;
+    if (v < 0.01) return;
+    const t = nu(), op = 3, af = 3, hoog = 560, laag = 430;
+    const mid = Math.max(0.5, duur - op - af);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.13 * v, t + op * 0.6);
+    g.gain.setValueAtTime(0.13 * v, t + op + mid);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1800; f.Q.value = 0.8;
+    f.connect(g); g.connect(hoofd);
+    for (const k of [1, 1.5]) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(70 * k, t);
+      o.frequency.exponentialRampToValueAtTime(hoog * k, t + op);
+      // op en neer: het draaien aan de slinger
+      const stap = mid / 4;
+      for (let i = 0; i < 4; i++) o.frequency.linearRampToValueAtTime((i % 2 ? hoog : laag) * k, t + op + stap * (i + 1));
+      o.frequency.exponentialRampToValueAtTime(60 * k, t + duur);
+      const og = ctx.createGain(); og.gain.value = k === 1 ? 1 : 0.45;
+      o.connect(og); og.connect(f);
+      o.start(t); o.stop(t + duur + 0.05);
+    }
+    this.luchtalarmT = t;
+  },
+  /*
+   Applaus van de filmploeg (stap 141): een paar dozijn handen, elk een kort tikje ruis door een
+   bandfilter tussen 1,2 en 2,6 kHz op een willekeurig moment, dichter in het begin en uitlopend
+   naar het eind, met een zachte ruislaag eronder voor het geroezemoes.
+  */
+  applaus(afstand = 0, duur = 4) {
+    if (!aan) return;
+    const v = Math.max(0, 1 - afstand / 120) ** 2;
+    if (v < 0.01) return;
+    const n = Math.round(duur * 34);
+    for (let i = 0; i < n; i++) {
+      const u = Math.random() ** 1.6;               // meer klappen vooraan
+      tik({ freq: 1200 + Math.random() * 1400, q: 1.6, duur: 0.035, volume: (0.05 + Math.random() * 0.05) * v * (1 - u * 0.6),
+        type: 'bandpass', val: 0.7, vertraag: u * duur });
+    }
+    const src = ctx.createBufferSource(); src.buffer = ruisBuffer(Math.ceil(duur + 1));
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1600; f.Q.value = 0.7;
+    const g = ctx.createGain(); const t = nu();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.035 * v, t + 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+    src.connect(f); f.connect(g); g.connect(hoofd);
+    src.start(t); src.stop(t + duur + 0.1);
+    this.applausT = t;
+  },
 
   /*
    Het nieuwsjingletje van Radio Tinga (stap 112, js/nieuws.js): drie oplopende tonen en een lange
@@ -2157,6 +2215,20 @@ export const geluid = {
     tik({ freq: 2600, q: 0.6, duur: 1.1, volume: 0.05 * v, type: 'highpass', val: 0.5 });
     for (const t of [0.9, 1.3]) tik({ freq: 140, q: 1.2, duur: 0.25, volume: 0.22 * v, val: 0.8, vertraag: t });
     for (const t of [0, 0.35]) toon({ freq: 1250, duur: 0.12, volume: 0.03 * v, golf: 'square', vertraag: 2.2 + t });
+  },
+  /*
+   De klep van een brievenbus (stap 141): de postbode duwt de post erdoor. Een kort metalen tikje (de klep
+   die opengaat), het papier dat erdoor schuift, en de klep die terugvalt. Kort en zacht; verder dan
+   dertig meter hoor je het niet.
+  */
+  brievenbus(afstand = 5) {
+    if (!aan) return;
+    const v = Math.max(0, 1 - afstand / 30) ** 1.5;
+    if (v < 0.03) return;
+    tik({ freq: 3200, q: 4, duur: 0.05, volume: 0.05 * v, val: 0.04 });
+    tik({ freq: 1800, q: 0.8, duur: 0.22, volume: 0.025 * v, type: 'bandpass', val: 0.2, vertraag: 0.06 });
+    tik({ freq: 2400, q: 5, duur: 0.07, volume: 0.07 * v, val: 0.05, vertraag: 0.34 });
+    toon({ freq: 520, naar: 380, duur: 0.08, volume: 0.02 * v, golf: 'triangle', vertraag: 0.34 });
   },
   get droneVolume() { return bronnen.drone ? bronnen.drone.gain.gain.value : 0; },
   get krekelVolume() { return bronnen.krekel ? bronnen.krekel.gain.gain.value : 0; },

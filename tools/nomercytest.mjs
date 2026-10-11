@@ -8,8 +8,8 @@
  4. De set rond (−150,8, −180,6): de Flak op de grond, niet in een boom of een botsdoos, in het bos.
  5. De cameraman loopt mee (< 8 m), de C4, de knal.
  6. Vier Duitsers: ze schieten, maar de speler verliest geen leven; elk gaat neer na zijn eigen 1 tot 3 treffers.
- 7. Het bos uit, vijf erbij, neer, "Cut!", € 500, de M1 en de patronen terug, alles opgeruimd.
- 8. Met een eigen M1: die en de eigen patronen blijven.
+ 7. Het bos uit, vijf erbij, neer, en (stap 141) geen "Cut!" maar "nu de tweede take!": het bunkerdorp. Het einde,
+    de keuze en het opruimen daarna staan in tools/nomercy2test.mjs, net als 8 (met een eigen M1).
  9. Mislukken (te ver weg, X), neergaan en laden ruimen op; de tussenpoos naar een missie staat stil en loopt daarna.
  10. Opslaan: niet tijdens de opnames, en `noMercyKlaar` in de opslag.
  11. Geen nieuwe shader als de set in beeld komt.
@@ -285,7 +285,7 @@ ok(zes.treffers.every((n, i) => n >= 1 && n <= 3 && n === zes.levens[i]), 'elk g
 ok(zes.na === 'wegkomen' && zes.uitgang && zes.uitBos === false, 'daarna: het bos uit, naar een plek buiten het bos', zes.uitgang ? `${r1(zes.uitgang.d)} m` : '-');
 
 // ------------------------------------------------------------------ 7. de tweede golf en het einde
-kop('7. vijf erbij, het einde');
+kop('7. vijf erbij, de tweede take');
 const zeven = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, P = g.player;
   const u = v.noMercy.uitgang;
@@ -302,68 +302,31 @@ const zeven = await page.evaluate(() => {
   window.__loop(u.x + (u.x - P.pos.x) * 0.1, u.z + (u.z - P.pos.z) * 0.1, 4.5, 40);
   window.__stap(70);
   res.buiten = !v.noMercy.bos.inBos(P.pos.x, P.pos.z);
-  res.cut = v.noMercy.fase;
+  res.take = v.noMercy.fase;
   res.spreker = document.getElementById('dialoogNaam').textContent;
   res.zin = document.getElementById('dialoogTekst').textContent;
   window.__klik();
   window.__stap(4);
   const n2 = v.noMercy;
-  res.na = { fase: n2.fase, klaar: n2.klaar, geld: v.geld - geld, wapens: P.wapens.slice(), reserve: P.reserve, pak: g.derde.pak,
-    set: n2.set.zichtbaar, duitsers: n2.duitsers.filter(p => p.groep.visible).length, golf: !!n2.golf, ej: n2.ej.groep.visible,
-    pin: !!g.hud.ej, melding: window.__meld.slice(-3).join(' / '), missie: v.missie, missieFase: v.fase, nav: g.hud.nav && g.hud.nav.letter };
-  window.__stap(200);
-  res.camWeg = !v.noMercy.cam.groep.visible;
-  // in de scène: geen zichtbare Flak, Duitser, cameraman of Erik Jan
-  let zichtbaar = 0;
-  const lijst = [n2.set.groep, n2.ej.groep, n2.cam.groep, ...n2.duitsers.map(p => p.groep)];
-  for (const o of lijst) { let z = o.visible; let q = o.parent; while (z && q) { z = q.visible; q = q.parent; } if (z) zichtbaar++; }
-  res.zichtbaar = zichtbaar;
-  res.opslag = v.bewaar().noMercyKlaar;
+  res.na = { fase: n2.fase, klaar: n2.klaar, geld: v.geld - geld, wapens: P.wapens.slice(), pak: g.derde.pak,
+    melding: window.__meld.slice(-2).join(' / ') };
+  // het zwart ("Even later, dieper in het bos…"), dan het bunkerdorp
+  window.__stap(100);
+  const n3 = v.noMercy;
+  res.kamp = { fase: n3.fase, kamp: n3.kamp.zichtbaar, set: n3.set.zichtbaar, golf: n3.golf ? n3.golf.aantal : 0 };
+  v.klusAfbreken(); window.__stap(2);
   return res;
 });
 ok(zeven.aantal === 9, 'onderweg komen er vijf bij', `${zeven.aantal - 4} (na ${r1(zeven.loop.t)} s lopen)`);
 ok(zeven.loop.groot < 8, 'de cameraman loopt mee het bos uit', `${r1(zeven.loop.groot)} m`);
 ok(zeven.gehaald < 1.5, 'de plek buiten het bos is te voet te halen', `${r1(zeven.gehaald)} m ervandaan na ${r1(zeven.loop.t)} s`);
 ok(zeven.treffers.every((n, i) => n >= 1 && n <= 3 && n === zeven.levens[i]), 'ook die gaan neer na 1 tot 3 treffers', zeven.treffers.join(', '));
-ok(zeven.buiten && zeven.cut === 'cut' && zeven.spreker === 'Cameraman' && /Cut!/.test(zeven.zin), 'buiten het bos: "Cut! Prachtig."', zeven.cut);
-ok(zeven.na.geld === 500, '€ 500', `${zeven.na.geld}`);
-ok(!zeven.na.wapens.includes('garand') && zeven.na.reserve <= zeven.voor, 'de M1 en de overgebleven patronen zijn terug', `${zeven.na.wapens.join(',')}, voorraad ${zeven.na.reserve}`);
-ok(zeven.na.reserve === 40, 'en je houdt precies je eigen voorraad', `${zeven.na.reserve}`);
-ok(zeven.na.pak === 'gewoon', 'het uniform is uit');
-ok(!zeven.na.set && zeven.na.duitsers === 0 && !zeven.na.golf && !zeven.na.ej && !zeven.na.pin, 'de Flak, de Duitsers en Erik Jan zijn opgeruimd, geen EJ meer');
-ok(zeven.camWeg && zeven.zichtbaar === 0, 'en even later de cameraman ook: niets meer in de scène', `${zeven.zichtbaar} zichtbaar`);
-ok(/MISSIE GESLAAGD/.test(zeven.na.melding), 'MISSIE GESLAAGD', zeven.na.melding);
-ok(zeven.na.missie === 'bx' && zeven.na.missieFase === 'wacht' && zeven.na.nav === 'M', 'missie 6 staat weer met zijn M op de kaart', `${zeven.na.missie}/${zeven.na.missieFase}/${zeven.na.nav}`);
-ok(zeven.na.klaar && zeven.opslag === true, 'noMercyKlaar, ook in de opslag');
+ok(zeven.buiten && zeven.take === 'take2' && zeven.spreker === 'Erik Jan' && /tweede take/.test(zeven.zin), 'buiten het bos (stap 141): "Goed zo — nu de tweede take!"', `${zeven.take}: ${zeven.zin}`);
+ok(zeven.na.geld === 0 && !zeven.na.klaar && zeven.na.wapens.includes('garand') && zeven.na.pak === 'soldaat', 'nog geen geld, de M1 en het uniform houd je aan', `${zeven.na.geld}`);
+ok(!/MISSIE GESLAAGD/.test(zeven.na.melding), 'en nog geen MISSIE GESLAAGD', zeven.na.melding);
+ok(zeven.kamp.fase === 'kampIntro' && zeven.kamp.kamp && !zeven.kamp.set && zeven.kamp.golf === 2, 'na het zwart: het bunkerdorp, met twee schildwachten (verder: npm run nomercy2test)', JSON.stringify(zeven.kamp));
 
-// ------------------------------------------------------------------ 8. met een eigen M1
-kop('8. met een eigen M1');
-const acht = await page.evaluate(() => {
-  const g = window.__game, v = g.verhaal, P = g.player;
-  window.__naMissie5();
-  if (!P.wapens.includes('garand')) P.wapens.push('garand');
-  P.magazijnen.garand = 5; P.reserve = 37; P.zetWapen('pistool');
-  const pistool = P.ammo;
-  v.startNoMercy(); window.__klik(); window.__stap(90);
-  const tijdens = { pool: P.reserve + (P.wapenSoort === 'garand' ? P.ammo : P.magazijnen.garand), soort: P.wapenSoort };
-  // een paar schoten met de M1
-  P.ammo = 8; P.magazijnen.garand = 8;
-  P.ammo = 2;                       // zes verschoten
-  const nm = v.noMercy, f = nm.set.groep.position;
-  window.__zet(f.x + 2, f.z + 9); window.__stap(3); window.__klik();
-  const r = v.noMercy.set.ruit; window.__zet(r.x + 0.8, r.z); window.__stap(1); v.toets();
-  window.__zet(f.x + 18, f.z + 6); window.__stap(100);
-  for (const w of v.noMercy.golf.wachters) window.__neerMet(w);
-  window.__stap(3);
-  const u = v.noMercy.uitgang; window.__zet(u.x, u.z); window.__stap(3);
-  for (const w of v.noMercy.golf.wachters) window.__neerMet(w);
-  window.__zet(u.x, u.z); window.__stap(70); window.__klik(); window.__stap(3);
-  return { tijdens, fase: v.noMercy.fase, klaar: v.noMercy.klaar, wapens: P.wapens.slice(), clip: P.magazijnen.garand, reserve: P.reserve, soort: P.wapenSoort, pistool, ammo: P.ammo };
-});
-ok(acht.tijdens.pool === 5 + 37 + 200, 'de 200 bij je eigen M1-patronen', `${acht.tijdens.pool}`);
-ok(acht.klaar && acht.wapens.includes('garand'), 'na afloop houd je je eigen M1', acht.wapens.join(','));
-ok(acht.clip === 5 && acht.reserve === 37, 'met je eigen clip en je eigen voorraad', `clip ${acht.clip}, voorraad ${acht.reserve}`);
-ok(acht.soort === 'pistool' && acht.ammo === acht.pistool, 'en weer het wapen dat je vasthad', `${acht.soort} ${acht.ammo}`);
+// (8, met een eigen M1, staat sinds stap 141 in tools/nomercy2test.mjs: het einde is daar)
 
 // ------------------------------------------------------------------ 9. mislukken, neergaan, laden, de tussenpoos
 kop('9. mislukken, neergaan, laden, X');

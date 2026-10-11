@@ -34,6 +34,7 @@ import { inBouwvlak } from './bouwvlak.js';
 import { geluid } from './audio.js';
 import { maakVuilniswagen } from './vuilniswagen.js';
 import { zoekLooppad } from './looppad.js';
+import { initPostbode } from './postbode.js';
 
 /*
  Het stuur van een scooter (stap 138): een kolom van de bovenkant van het beenschild omhoog, de stang en twee
@@ -800,8 +801,11 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
     for (const g of terras.gasten) { g.t += dt; g.p.update(dt, { zit: 0.46 }); }
   }
 
+  // ================================================================ de postbode (stap 141, js/postbode.js)
+  const post = initPostbode({ scene, KAART });
+
   return {
-    feest, gasten, pizza, scooter, rijder, boot,
+    feest, gasten, pizza, scooter, rijder, boot, postbode: post,
     /*
      Eén beeld. `sp` waar de speler is, `ziet(x, z)` of de camera daar kan kijken, `uur` de klok.
     */
@@ -811,13 +815,14 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
       werkBootBij(dt, sp, uur);
       werkVuilnisBij(dt, sp, ziet, uur);
       werkTerrasBij(dt, sp, uur);
+      if (post) post.update(dt, sp, ziet, uur);
     },
     // stap 124: de vuilniswagen en het terras
     get vuilnis() { return { klikos: (vuil.klikos || []).map(k => ({ x: k.x, z: k.z, s: k.s, leeg: k.leeg, kantel: k.kantel })), reden: vuil.reden, fase: vuil.fase, ritten: vuil.ritten, stops: vuil.stops, wagen: vuil.wagen, s: vuil.s, v: vuil.v, stil: vuil.stopT > 0, lengte: vuil.lijn ? vuil.lijn.lengte : 0 }; },
     startVuilnis: (sp, opties) => startVuilnis(sp, () => false, opties), vuilnisWeg,
     get terras() { return { aan: terras.groep.visible, plek: terras.plek, gasten: terras.gasten.length, groep: terras.groep }; },
     // een schot of een knal: wie op het feest staat rent weg
-    schrik(x, z) { if (feest.aan && Math.hypot(feest.x - x, feest.z - z) < 60) feestVlucht(x, z); },
+    schrik(x, z) { if (feest.aan && Math.hypot(feest.x - x, feest.z - z) < 60) feestVlucht(x, z); if (post) post.schrik(x, z); },
     // een auto: gasten op het feest en de bezorger (te voet of op de scooter) gaan omver
     aanrijden(x, z, straal = 1.5, snelheid = 0) {
       if (snelheid < 3.5) return 0;
@@ -834,6 +839,7 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
           if (rijder.groep.parent !== scene) stapAf();
         }
       }
+      if (post) n += post.aanrijden(x, z, straal, snelheid);
       return n;
     },
     // de kogel van de speler (js/main.js): gasten en de bezorger
@@ -842,6 +848,7 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
       // (wie het huis in rende is weg; three raakt ook wat onzichtbaar is)
       if (feest.aan) for (const g of gasten) if (!g.neer && !g.binnen) uit.push(g.p.groep);
       if (pizza.fase !== 'weg' && !pizza.omgevallen) uit.push(rijder.groep);
+      if (post) uit.push(...post.doelen());
       return uit;
     },
     raak(obj) {
@@ -858,7 +865,7 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
           return { x: q.x, z: q.z, herstel: null };
         }
       }
-      return null;
+      return post ? post.raak(obj) : null;
     },
     // voor de proeven
     beginFeest: (plek) => begin(plek), vrijeTuin, eindFeest, startPizza, pizzaWeg,

@@ -48,6 +48,16 @@ export const LOODS = {
 */
 export const NOMERCY_SET = { x: -150.8, z: -180.6, r: 8.5 };
 
+/*
+ En de tweede scène van No Mercy 4, "Het bunkerdorp" (stap 141): een Duits kampement dieper in het bos,
+ ten oosten van de eerste set (90 m hemelsbreed, aan de overkant van de sloot die schuin door het bos
+ loopt). Gekozen uit de kaart: overal eromheen bos (ook op 10 en 16 m in acht richtingen), geen water,
+ oever, pad, erf of rijbaan binnen 14 m, geen pand, hek, heg of as binnen 24 m. Er staan 32 stammen
+ binnen 12 m; de ploeg heeft ook hier gekapt. `start` is waar Erik na "Even later…" staat: 32 m ten
+ westen van het midden, te voet over droge grond te bereiken (32 m lopen, gemeten op een rooster van 2 m).
+*/
+export const NOMERCY_KAMP = { x: -63, z: -214, r: 12, start: { x: -95, z: -214 } };
+
 export const GARAGE = {
   // het gebouw: de glazen gevel op x0 kijkt naar de Lemmerweg (west)
   x0: 770, x1: 788, z0: 120, z1: 146,
@@ -69,7 +79,8 @@ export function inBouwvlak(x, z) {
   const G = GARAGE, L = LOODS;
   return inRechthoek(x, z, G, MARGE) || inRechthoek(x, z, G.voor, 0.5) || inRechthoek(x, z, G.inrit, 0.5)
     || inRechthoek(x, z, L, MARGE) || inRechthoek(x, z, L.erf, 1) || inRechthoek(x, z, L.oprit, 0.5) || inRechthoek(x, z, L.kade, 0.5)
-    || Math.hypot(x - NOMERCY_SET.x, z - NOMERCY_SET.z) < NOMERCY_SET.r;
+    || Math.hypot(x - NOMERCY_SET.x, z - NOMERCY_SET.z) < NOMERCY_SET.r
+    || Math.hypot(x - NOMERCY_KAMP.x, z - NOMERCY_KAMP.z) < NOMERCY_KAMP.r;
 }
 
 /*

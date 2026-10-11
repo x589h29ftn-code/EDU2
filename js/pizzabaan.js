@@ -177,7 +177,7 @@ export function zoekPizzerias(KAART) {
  omtrek van het pand dat het dichtst bij de weg ligt, een halve meter naar buiten. Het adrespunt
  zelf ligt midden in het pand.
 */
-function deurVan(pand, adres, vanaf) {
+export function deurVan(pand, adres, vanaf) {
   if (!pand || !pand.voet || pand.voet.length < 3) return { x: adres.x, z: adres.z };
   const V = pand.voet;
   let beste = null;
