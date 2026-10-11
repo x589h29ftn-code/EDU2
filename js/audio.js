@@ -71,9 +71,10 @@ let uitzendingNu = false;
  Kali uit het radiootje van missie 1 (stap 129, gevraagd: "Laat uit het radiootje dit nummer Kali.mp3 spelen. Sluit
  het geluidsniveau aan op het spel. Hoe dichter bij hoe luider. … Fade in en out."). Een streamend element zoals
  het muziekje in de heli, door een licht filter (een draagbaar radiootje, maar nog herkenbaar), met het volume
- uit de afstand tot het tafeltje: hoorbaar tot `ver` meter, vloeiend luider naar `vol` dichtbij.
+ uit de afstand tot het tafeltje: hoorbaar tot `ver` meter, vloeiend luider naar `vol` dichtbij. Sinds stap 138
+ 25 % zachter (0,75 → 0,56), gevraagd op 11 okt.
 */
-export const KALI = { url: 'audio/radio/kali.mp3', vol: 0.75, ver: 55, in: 1.6, uit: 3.5 };
+export const KALI = { url: 'audio/radio/kali.mp3', vol: 0.56, ver: 55, in: 1.6, uit: 3.5 };
 export const HELI_MUZIEK = { url: 'audio/intro/intro.mp3', in: 4, uit: 7, vol: 0.62, dip: 2.5 };
 // de wieken van de heli van Wiebe (stap 127): zoveel keer de politieheli
 export const HELI_ROND = { luid: 1.2 };   // (was 2,6: te hard tegen het muziekje)
