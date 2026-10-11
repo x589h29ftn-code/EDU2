@@ -87,6 +87,30 @@ await page.evaluate(async () => {
     }
     return { groot, t, alarm, eind: Math.hypot(P.pos.x - x, P.pos.z - z) };
   };
+  /*
+   Een looproute om de stammen heen (de bomen in het bos zijn botsdozen): breedte-eerst over een rooster van 1 m
+   vanaf het doel, met elke stap in vieren nagemeten met resolveCollisions; levert de punten van (x, z) naar het doel.
+  */
+  window.__pad = (x, z, dx, dz, R = 50) => {
+    const N = 2 * R + 1, x0 = dx - R, z0 = dz - R;
+    const vrij = (ax, az, bx, bz) => { for (let t = 0.25; t <= 1.001; t += 0.25) { const px = ax + (bx - ax) * t, pz = az + (bz - az) * t;
+      const [rx, rz] = W.resolveCollisions(px, pz, 0.4); if (Math.hypot(rx - px, rz - pz) > 0.01 || W.pointInWater(px, pz)) return false; } return true; };
+    const d = new Int32Array(N * N).fill(-1);
+    d[R * N + R] = R * N + R;
+    const q = [[R, R]];
+    for (let h = 0; h < q.length; h++) { const [i, j] = q[h];
+      for (const [a, c] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { const ii = i + a, jj = j + c;
+        if (ii < 0 || jj < 0 || ii >= N || jj >= N || d[ii * N + jj] >= 0) continue;
+        if (!vrij(x0 + i, z0 + j, x0 + ii, z0 + jj)) continue;
+        d[ii * N + jj] = i * N + j; q.push([ii, jj]); } }
+    let i = Math.round(x - x0), j = Math.round(z - z0);
+    if (d[i * N + j] < 0) return null;
+    const pad = [];
+    for (let k = 0; k < 4 * N; k++) { const ouder = d[i * N + j]; const oi = Math.floor(ouder / N), oj = ouder % N;
+      if (oi === i && oj === j) break; i = oi; j = oj; pad.push([x0 + i, z0 + j]); }
+    pad.push([dx, dz]);
+    return pad;
+  };
   window.__neerMet = (w) => {
     let n = 0;
     while (w.staat !== 'neer' && n < 10) { if (v.raak(w.persoon.groep.children[0], 99)) n++; else break; window.__stap(1); }
@@ -225,8 +249,15 @@ kop('3. sluipen, de kaart, het alarm');
 const drie = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, P = g.player;
   const n = v.noMercy, i = n.kamp.ingang;
-  // van de rand recht naar de ingang van de tent, achter de schildwachten langs
-  const l = window.__loop(i.x - 0.6, i.z, 2.2, 40);
+  // van de rand naar de ingang van de tent, achter de schildwachten langs (om de stammen heen)
+  const pad = window.__pad(P.pos.x, P.pos.z, i.x - 0.6, i.z);
+  const l = { groot: 0, t: 0, alarm: false, eind: 99, punten: pad ? pad.length : 0 };
+  for (const [px, pz] of pad || []) {
+    const s = window.__loop(px, pz, 2.2, 6);
+    l.groot = Math.max(l.groot, s.groot); l.t += s.t; l.alarm = l.alarm || s.alarm;
+    if (v.noMercy.fase !== 'kamp') break;
+  }
+  l.eind = Math.hypot(P.pos.x - (i.x - 0.6), P.pos.z - i.z);
   const uit = { l, fase: v.noMercy.fase, gezien: v.noMercy.gezien, hint: !document.getElementById('praat').hidden && document.getElementById('praat').textContent };
   const alarmVoor = window.__geluid.luchtalarm;
   v.toets(); window.__stap(1);
@@ -247,7 +278,7 @@ const drie = await page.evaluate(() => {
   uit.radio = { fase: v.noMercy.fase, merk: v.noMercy.merk.zichtbaar, opdracht: document.getElementById('opdracht').textContent };
   return uit;
 });
-ok(drie.l.eind < 1 && !drie.l.alarm && !drie.gezien, 'achter de schildwachten langs naar de tent: niet gezien', `${r1(drie.l.t)} s gelopen`);
+ok(drie.l.eind < 1 && !drie.l.alarm && !drie.gezien, 'achter de schildwachten langs naar de tent: niet gezien', `${r1(drie.l.t)} s gelopen over ${drie.l.punten} punten, ${r1(drie.l.eind)} m van de ingang`);
 ok(drie.l.groot > 0 && drie.l.groot < 8, 'de cameraman loopt mee', `hoogstens ${r1(drie.l.groot)} m`);
 ok(/kaart/.test(drie.hint || ''), 'bij de ingang: E — de kaart pakken', drie.hint);
 ok(drie.na.fase === 'figuranten' && drie.na.stil && !drie.na.kaart, 'E pakt de kaart, ongezien', drie.na.fase);

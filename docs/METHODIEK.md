@@ -8378,6 +8378,65 @@ cameraman hoogstens 4,7 m achter je, 26 schoten in 20 s zonder één punt schade
 nomercy_knal.png, nomercy_duitsers.png. Valkuil (stap 139): de proeven draaien met
 `CHROME_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
 
+**No Mercy 4, de tweede scène (stap 141, 12 okt).**
+
+Gevraagd (de gebruiker koos dit voorstel): na het bos niet "Cut!" maar een tweede scène, "Het bunkerdorp": een Duits
+kampement dieper in het bos met een stafauto, een tent, een radiopost en kisten, twee schildwachten, sluipen of vechten
+("ipv cut opnieuw mag je ook geweld gebruiken"), de kaart uit de tent, een sirene en zes figuranten, de radiopost
+opblazen, een close-up van drie tellen stilstaan, applaus en een klapbord, en een keuze: € 1.000 of de M1 houden.
+
+*De plek* (`NOMERCY_KAMP` in js/bouwvlak.js, (−63, −214), r 12). Uit de kaart gezocht met een los script: elk punt op
+55–170 m van de eerste set, strikt in het bos (`bosKaart`) en ook op 10 en 16 m in acht richtingen, geen water, oever,
+pad, erf, zand of rijbaan binnen 14 m (punt-in-veelhoek over een schijf), geen pand, hek, heg, schutting of as binnen
+16 m; gesorteerd op het aantal stammen binnen 12 m. Alle kandidaten liggen aan de overkant van de sloot die schuin door
+het bos loopt (lopend 1,6 keer de afstand), dus de overstap gaat in het zwart ("Even later, dieper in het bos…"), zoals
+een filmploeg verhuist: de speler, de cameraman en Erik Jan worden neergezet, de eerste set en de Duitsers gaan weg.
+De start ligt 32 m ten westen van het midden; de bouwvlakcirkel haalt 32 stammen weg (de dichtstbijzijnde staat nu op
+12,2 m).
+
+*Het kamp* (`maakKamp`, `KAMP` in js/nomercy.js) staat in wereldrichtingen, zodat de botsdozen gewone rechthoeken zijn
+(`nmTentDoos` 4,2 × 3,2 m en 2 m hoog, `nmRadioDoos`; bij het opstarten zonder hoogte). Een nokkentent als eigen
+geometrie (twee dakvlakken en een achterwand, de voorkant open naar het westen) met een zeildoek op canvas, palen,
+scheerlijnen, opgerold voorzeil, en binnen een klaptafel met de stafkaart (canvas: hoogtelijnen, de Geeuw, rode pijlen,
+GEHEIM) en een stormlamp. De radiopost: een kist met een veldradio (wijzers, schalen, knoppen en een typeplaatje op
+canvas, alleen op de voorkant), een veldtelefoon, een zweepantenne, een krukje en een handsirene; `radioKnal` kantelt
+hem, knikt de antenne en kleurt alles zwart (kleuren, geen nieuw materiaal). Kisten, twee vaten en drie rijen
+zandzakken (jute op canvas). De stafauto is een `voegToe`-bx in feldgrau, `driveable: false`, die bij het opstarten
+op 1e5 wordt gezet (zoals de ambulance): daardoor is hij dekking (`blokkeertZicht`) en vertaalt hij niets nieuws.
+
+*Sluipen of vechten.* De schildwachten zijn een `Bewaking` met `schade: 0` en `zicht` 16 m (`NOMERCY.wachtZicht`). A
+staat achter de zandzakken en kijkt naar het oosten (een post van 0,4 m: `loopNaar` is er meteen, dus hij draait niet),
+B loopt aan de oostkant heen en weer; de ingang van de tent ligt achter A en minstens 19 m van B, en de tent zelf houdt
+de kijklijn tegen. Zien ze je, of horen ze je schieten (`nmSchot` in `schotGehoord`), dan is er geen herstart: `nmAlarm`
+zet het alarm, `zicht` 48 en iedereen op zoek, Erik Jan roept "Doorspelen, niet stoppen — vechten!". De kaart (E bij de
+ingang, `nmKaartPakken`) onthoudt of het ongezien was (`nm.stil`: "Mooi stil, dat is cinema!"), speelt het luchtalarm
+(`geluid.luchtalarm` in js/audio.js: twee zaagtanden een kwint uit elkaar, in drie tellen aanzwellend, op en neer,
+uitlopend) en zet zes figuranten (`nmGolfErbij`, van de oostkant). Alles neer → de radiopost (C4, 12 m, de knal met
+vonken en rook uit js/bom.js) → de close-up.
+
+*De close-up* meet stilstaan: binnen 1 m van de ruit en tussen twee beelden langzamer dan 0,25 m/s; anders terug naar
+nul (een take is een take). De balk is `#schaduwbalk` (`nmZetBalk`). Na drie tellen applaus (`geluid.applaus`: tikjes
+ruis tussen 1,2 en 2,6 kHz, dichter vooraan, met geroezemoes eronder) en het klapbord (`maakKlapbord`: lei met
+NO MERCY 4 · scène 2 · take 1, de gestreepte klap) in de handen van Erik Jan, die naast de camera komt staan.
+
+*De keuze* (`nm.fase === 'keuze'` in `kiesHuis` en `openKeuze`, dus ook knoppen op een aanraakscherm): 1 = € 1.000 en
+de bruikleen terug (`nmLeenTerug`), 2 = de M1 houden met alles wat er van de clip en de 200 patronen over is, geen geld
+(`nm.leen = null`, niets terug). Had je al een eigen M1, dan is er niets te kiezen (een tweede M1 zegt niets): € 1.000 en
+de geleende patronen terug. De opslag bewaart `noMercyM1`; het geweer zelf zit in de wapens van js/opslag.js, dus na
+laden is het er gewoon. Mislukken, neergaan, X en laden ruimen ook het kamp op (`nmRuimKampOp`: kamp, dozen, stafauto
+terug naar 1e5 en heel, klapbord, balk). De grens van 160 m telt in de tweede scène vanaf het kamp (`NM_KAMP_FASEN`);
+tussen de scènes, tijdens het applaus en de keuze geen grens en geen X (`NM_VRIJ`).
+
+*Wat misging.* (1) De eerste proef liep de speler recht van de rand naar de tent en bleef na 2,4 m hangen: de bomen in het
+bos zijn wél botsdozen in `colliders` (0,3–0,45 m breed, 3 m hoog), anders dan het blok van stap 140 zegt. De proef
+loopt nu een route over een rooster van 1 m, elke stap nagemeten met `resolveCollisions` (`__pad`), en wordt niet gezien. (2) Een tweede bijmissie-run houdt `nm.m1` van een vorige: de proef met een eigen M1 keek daar
+ten onrechte naar. (3) Schildwacht B liep eerst tot 13,6 m van het midden, tussen de stammen en over de zandzakken;
+nu 10,6 m ten oosten, van −5 tot 5.
+
+*Proef*: `npm run nomercy2test`: NM2_UITKOMST. `npm run nomercytest` stopt nu bij de tweede take (stap 7) en het stuk
+met een eigen M1 staat in nomercy2test. Ook: OVERGANG_UITKOMST. *Foto's*: `npm run nomercyshots` erbij: nomercy_kamp.png,
+nomercy_radio.png, nomercy_klapbord.png.
+
 **De postbode (stap 141, 12 okt).**
 
 Gekozen uit een lijst: "Brievenbusbezorger die 's ochtends met een fietstas langs de huizen loopt." Gebouwd in

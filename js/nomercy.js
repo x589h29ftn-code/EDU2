@@ -462,7 +462,7 @@ export const KAMP = {
   regisseur: { x: -13, z: 7 },
   ejSlot: { x: -3.0, z: 4.8 },                         // Erik Jan met het klapbord, naast de camera
   // de schildwachten: A staat achter de zandzakken en kijkt naar het oosten, B loopt aan de oostkant heen en weer
-  wachten: [{ a: [8, -0.6], b: [8.4, -0.6] }, { a: [11, -8], b: [11, 8] }],
+  wachten: [{ a: [8, -0.6], b: [8.4, -0.6] }, { a: [10.6, -5], b: [10.6, 5] }],
 };
 
 // zeildoek van de tent: olijfgrauw met een weefsel, naden, vlekken en vouwen
