@@ -66,7 +66,7 @@ await opname(3, [728, 4.5, -186], [742, -4, -152]);
 // 4. van boven, recht over de bak bij de fietstunnels
 await opname(4, [725, 38, -175], [742, -5, -152]);
 // 5. vanaf het noorden, westwaarts de bak uit
-{ const y = await gh(770, -146); await opname(5, [770, y + 1.7, -146], [700, y + 2, -154]); }
+{ const y = await gh(749, -147); await opname(5, [749, y + 1.7, -147], [700, y + 1, -155]); }
 
 // 6. zoals 4.png: 's nachts langs het water bij (960, −194.9), de muurtjes links van de weg
 {

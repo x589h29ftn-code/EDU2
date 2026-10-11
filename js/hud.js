@@ -886,6 +886,16 @@ HUD.prototype.drawBig = function (player, vehicles) {
   c.beginPath();
   for (const car of vehicles.cars) c.rect(car.x - cr, car.z - cr, cr * 2, cr * 2);
   c.fill();
+  /*
+   De speldjes van de winkels staan in de vaste laag, dus onder de auto's: bij Pizzeria Sneek stond de scooter
+   precies op zijn speldje en zag je een grijs vierkantje (stap 138, legendatest). Daarom de pictogrammen nog een
+   keer boven de auto's, in beeldpunten.
+  */
+  if (this._bigPins && this._bigPins.length) {
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+    for (const q of this._bigPins) { c.save(); c.translate(q.x, q.y); HUD.tekenPictogram(c, q.wat, 9); c.restore(); }
+    c.restore();
+  }
   // politie: ook op de grote kaart zie je waar ze zoeken (js/politie.js). De
   // stippen krijgen een vaste maat in beeldpunten — de hele wijk past hier op
   // ruim één pixel per meter, dus op ware grootte zie je ze niet liggen.

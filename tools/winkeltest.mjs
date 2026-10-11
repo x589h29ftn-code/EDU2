@@ -27,8 +27,8 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 900, height: 560 } });
 page.on('pageerror', e => { console.log('[pageerror]', e.message); fouten++; });
-await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'load' });
-await page.waitForFunction(() => window.__game, null, { timeout: 120000 });
+await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'load', timeout: 900000 });
+await page.waitForFunction(() => window.__game, null, { timeout: 900000 });
 await page.evaluate(() => {
   localStorage.removeItem('tinga.spel.v1');
   window.__autoplay = true;

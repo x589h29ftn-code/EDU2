@@ -2602,7 +2602,8 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 */
 const grasVeld = (KAART && !BOVEN) ? maakGrasVeld(scene,
   (x, z) => { const v = vlakOp(x, z); return !!(v && (v.m === 'gras' || v.m === 'bodembedekker')) && !inBouwvlak(x, z); },
-  (x, z) => { const v = vlakOp(x, z); return v ? v.y : 0; }) : null;
+  // (stap 138: plus de hoogte van een viaduct of de bak van de N7; daar zweefden de pollen op maaiveldhoogte boven de rijksweg)
+  (x, z) => { const v = vlakOp(x, z); return v ? (v.dekh ? v.dekh + v.y : v.y + grondHoogte(x, z, -Infinity)) : 0; }) : null;
 if (grasVeld) waaitMee(grasVeld.mat);
 
 const sfeer = initSfeer({

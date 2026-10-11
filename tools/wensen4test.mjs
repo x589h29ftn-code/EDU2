@@ -124,7 +124,9 @@ const rw = await page.evaluate(async () => {
   }
   return { overgeslagen: S.muurOpWeg, geraakt, n, grens };
 });
-ok(rw.overgeslagen > 0, 'muurstukken midden op een rijbaan zijn weggelaten', `${rw.overgeslagen} stukken`);
+// (stap 138: sinds de hartlijn van een gebogen muur langs zijn rand loopt, komen de muren niet meer op de rondweg
+// terecht; het weglaten van stap 130 blijft als vangnet, maar heeft niets meer te doen — npm run onderdoorgangtest)
+console.log(`    js/scheiding.js liet ${rw.overgeslagen} muurstukken op een rijbaan weg`);
 ok(rw.geraakt <= 2, 'de rondweg bij (−168, −484) is vrij (hoogstens een lantaarnpaal)', `${rw.geraakt} van ${rw.n} punten botsen`);
 ok(rw.grens.every(d => d > 0.1), 'bij (−364, −614) staat een wand dwars over de N7', rw.grens.join(' · '));
 

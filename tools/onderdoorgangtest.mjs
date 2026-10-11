@@ -186,6 +186,25 @@ for (const p of W_) {
 console.log(`    ${W_.length} instanties van palen in de buurt`);
 ok(zweeft === 0, 'elke paal staat op de grond', `${zweeft}`);
 
+// de grassprietjes in 3D (js/groen.js maakGrasVeld): op de grond, niet op maaiveldhoogte boven de bak
+const gras = await page.evaluate(() => {
+  const g = window.__game, W = window.__W;
+  if (!g.grasVeld) return null;
+  g.grasVeld.update(719.3, -156.2, true);
+  const m = g.grasVeld.mesh, M = new m.matrixWorld.constructor();
+  let n = 0, zweeft = 0, ergste = 0;
+  for (let i = 0; i < m.count; i++) {
+    m.getMatrixAt(i, M);
+    const x = M.elements[12], y = M.elements[13], z = M.elements[14];
+    const v = window.__KW.vlakOp(x, z);
+    const verwacht = (v ? v.y : 0) + W.grondHoogte(x, z, -Infinity);
+    n++; const af = Math.abs(y - verwacht); ergste = Math.max(ergste, af);
+    if (af > 0.2) zweeft++;
+  }
+  return { n, zweeft, ergste };
+});
+if (gras) ok(gras.n > 100 && gras.zweeft === 0, 'de grassprietjes rond (719, −156) staan op de grond', `${gras.zweeft} van ${gras.n} zweven, ergste ${gras.ergste.toFixed(2)} m`);
+
 // ------------------------------------------------------------------ 4. rijden en lopen
 kop('rijden en lopen door de bak');
 const rit = await page.evaluate(() => {
