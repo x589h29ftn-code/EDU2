@@ -7960,6 +7960,71 @@ boven in de open grendel gaat, en het geweer op een stoel met de riem en twee cl
 0,025 m (de grens is 0,02), omdat hij meer naar voren dan omhoog vliegt; wie de vlucht weer aanpast, kijkt daar eerst. **Foto's**: `m1shots`, nu met `m1_dichtbij.png` (de kast,
 de hendel, het hout en de riem van dichtbij) en het textuurgeheugen van het wapen in de uitvoer.
 
+**De M1 Garand, de maat (stap 135, 11 okt).**
+
+"Grootte lijkt nog niet te kloppen, kijk nog eens goed naar alle foto's en ook de drie extra. Geef het nog wat meer
+detail werk op de sights en bovenkant wat de speler ziet." Drie nieuwe foto's: Hell Let Loose in de eerste persoon,
+een eerste-persoonsbeeld met de lege clip en een huls in de lucht en de hiel met de stempel groot in beeld, en een
+render van schuin boven.
+
+- *Gemeten, niet gekeken.* In de vier eerste-persoonsfoto's in 16:9 (Hell Let Loose, de clip, de sneeuw, Call of
+  Duty) in beeldpunten nagemeten met een vergrote uitsnede met raster; `m1shots` rekent dezelfde maten voor ons uit
+  door de punten van het model naar het scherm te projecteren (de knoppen als rand van hun schijf, de ring, de knik
+  van de hiel, de korrel, alle hoekpunten van de linkerhand zonder mouw), in 1280 × 720 met de beeldhoek van het spel
+  (72° verticaal, 104° horizontaal). "span" is de breedte over de buitenkant van de twee knoppen.
+
+  | maat | HLL | clip | sneeuw | CoD | gemiddeld | wij vóór | wij na |
+  |---|---|---|---|---|---|---|---|
+  | breedte over de knoppen / beeldbreedte | 0,141 | 0,258 | 0,123 | 0,195 | 0,179 | 0,176 | 0,183 |
+  | midden van de ring, x | 0,675 | 0,555 | 0,675 | 0,679 | 0,646 | 0,675 | 0,643 |
+  | midden van de ring, y | 0,582 | 0,369 | 0,549 | 0,671 | 0,543 | **0,727** | 0,531 |
+  | korrel, x / y | 0,54 / 0,52 | 0,41 / 0,19 | 0,52 / 0,48 | 0,46 / 0,40 | 0,48 / 0,40 | 0,49 / 0,51 | 0,50 / 0,47 |
+  | ring → korrel, in span (x, y) | −0,96, −0,24 | −0,56, −0,39 | −1,27, −0,31 | −1,13, −0,79 | −0,98, −0,43 | −1,04, **−0,68** | −0,80, −0,18 |
+  | doorsnede van de ring / span | 0,175 | 0,195 | 0,18 | 0,28 | 0,21 | **0,263** | 0,207 |
+  | ring boven de knik van de hiel / span | 0,42 | 0,42 | 0,53 | 0,53 | 0,48 | **0,656** | 0,518 |
+  | linkerhand, breedte / span | 0,56 | 0,42 | 0,68 | 1,0 | 0,67 | **0,40** | 0,53 |
+  | achterkant van de hiel, breedte / span | 1,08 | ≥ 1,0 | ≥ 1,5 | ≥ 0,8 | | 0,67 | 0,73 |
+
+  (De clip-foto is midden in de terugslag genomen: daarom staat de korrel daar zo hoog. De foto uit Call of Duty WWII
+  in m1foto2 is een halve collage zonder bekende beeldbreedte; in span: ring 0,25, ring boven de hiel 0,55, hand 0,36.)
+- *Wat er niet klopte*: niet de grootte van het vizier (0,176 van de breedte, het gemiddelde is 0,179), maar de
+  kijkhoek. Het vizier hing 11 cm onder je oog op 14 cm ervoor: je keek er onder 45° op neer, de ring stond op 73 %
+  van de hoogte, de korrel zakte ver onder de ring weg en alles voor de kast werd klein en dun. Op de foto's kijk je
+  langs het geweer. `RUST` van (0,072, −0,108, −0,105) naar (0,0566, −0,068, −0,099) en `RUST_DRAAI` van (0,045,
+  0,115, 0,06) naar (0,060, 0,080, 0,06): de ring zit nu ~1 cm onder je ooghoogte op ~14 cm. De ring was 1,8 cm;
+  op een echte M1 is de schijf ~1,3 cm, op de foto's een vijfde van de span: nu 1,36 cm met een gaatje van 7 mm
+  (was 8 mm in 1,8). Over het vizier richten (`MIK`, `KANTEL`) is ongewijzigd; de korrel staat midden in de ring.
+- *De verhoudingen van het model* tegen een echte M1: de kast bij het vizier 3,3 cm, de hiel 3 cm (nu 2,5 cm met
+  2,5 mm afronding rondom, was 2,7 + 1,5 mm), de knoppen 2 cm, de loop met gasbuis 2,4 cm: dat klopte. Smal waren het
+  hout voor de kast (de lade 3,7 → 4 cm, het achterste bovenhout 3,1 → 3,4 cm) en vooral de linkerhand: die zat 30 cm
+  voor de greep, nu 26 cm (op het achterste bovenhout, vlak voor de kast, zoals op alle foto's) en is een volle hand
+  (palm 9,4 × 5,8 cm, vingers van 2 cm die tot over de rand van het bovenhout grijpen).
+- *Herladen*: die stand was een stukje vanaf de rust (`RUST` + (−0,06, 0,04, −0,15)); met de hogere rust kwam de kolf
+  schuin door het halve beeld. Nu een vaste stand (`HERLAAD`, `HERLAAD_DRAAI`), dezelfde als tot stap 134.
+- *Detail op wat de speler ziet*:
+  - het achtervizier: een gleuf in de voet met een randje ervoor, waaruit een dun plaatje met de ring steekt; de oren
+    buigen bovenaan 1,6 mm naar binnen; de knoppen hebben 30 tanden, een zeskantige asmoer met een gleuf en op de
+    buitenkant een schijf (`vizierDoek`, 512) met een ribbelrand, een streepje per klik (langer om de vijf) en op de
+    hoogteknop de cijfers 2 tot 12; achterop de voet een schaal van 41 streepjes met een gegraveerde index in plaats
+    van elf blokjes. Alles in één doek met eigen uv, één mesh (`samen`).
+  - de hiel: rondere randen, de stempel met het serienummer 2975632 van de foto, de letters iets minder wit, zacht
+    blank gesleten langs de lange randen.
+  - vóór het vizier: de grendel 1,7 cm breed in plaats van 2,05, zodat er aan weerskanten een spleet in de put zit; de
+    band achter het bovenhout is rond om het hout in plaats van een blok.
+  - de lege clip vliegt iets harder omhoog (1,30–1,45 m/s in plaats van 1,05–1,20): op de foto hangt hij boven het
+    vizier, en m1test had in de gemeten 0,16 s maar 0,025 m tegen een grens van 0,02.
+- *Kosten*: 22.898 → **24.592** driehoeken (de extra vingerkootjes, de knoppen met 30 tanden, de asmoeren, de schijven en de gleuf);
+  textuurgeheugen **31,2 → 35,2 MB** (23 → 26 doeken: het vizierdoek van 512 met kleur, ruwheid en normal map).
+  Geen nieuw soort materiaal: het vizierdoek en de gleuf zijn MeshStandardMaterial met dezelfde drie doeken als het
+  staal.
+- *Wat misging*: de eerste meting in `m1shots` gaf voor beide beeldmaten "900x560": een `${…}` in de pagina die in
+  een sjabloon van node staat, wordt al door node ingevuld (net als een backtick in een opmerking daar, die het hele
+  bestand brak). En de stempel stond eerst met een heldere rand van slijt als een sticker op de hiel.
+
+**Proeven**: `m1test` groen, 36 controles, 100 → 100 programma's; de lege clip stijgt nu 0,069 m in de gemeten 0,16 s (was 0,025, grens 0,02). **Foto's**: `m1shots`, nu ook
+`m1_169.png` (1280 × 720, naast de foto uit Hell Let Loose te leggen) en `m1_vizierdicht.png` (het vizier en de hiel
+van achteren), en in de uitvoer de maat op het scherm.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

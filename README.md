@@ -801,6 +801,10 @@ achtste schot springt de lege clip er met een ping uit; daarna druk je van boven
 
 ![De M1 Garand](docs/screenshots/m1_hand.png)
 
+![De M1 Garand op een breed scherm (16:9): je kijkt langs het geweer, het achtervizier rechts van het midden](docs/screenshots/m1_169.png)
+
+![Het achtervizier en de hiel met de stempel, zoals je ze ziet](docs/screenshots/m1_vizierdicht.png)
+
 ![Herladen: de clip van boven in de grendel](docs/screenshots/m1_herladen.png)
 
 ![De M1 van dichtbij: walnoot, geparkeerd staal en de leren riem](docs/screenshots/m1_dichtbij.png)

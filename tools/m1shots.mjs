@@ -8,6 +8,12 @@
    m1_herladen.png   tijdens het herladen: de hand met de volle clip (2 × 4) boven de open grendel
    m1_zij.png        het hele geweer van opzij (rechts), zonder handen: naast de zijfoto te leggen (stap 133)
    m1_dichtbij.png   de kast, de hendel, het hout en de riem van dichtbij en schuin: de doeken (stap 134)
+   m1_169.png        uit de heup in 16:9 (1280 × 720) met de beeldhoek van het spel (72° verticaal), naast de foto uit
+                     Hell Let Loose te leggen (stap 135)
+   m1_vizierdicht.png het achtervizier en de hiel van dichtbij, van achteren zoals de speler ze ziet (stap 135)
+
+ Meet ook (stap 135) waar het vizier op het scherm staat, als fractie van de breedte en de hoogte en in eenheden van de
+ breedte over de twee knoppen: zo is het te vergelijken met de eerste-persoonsfoto's van de gebruiker (docs/METHODIEK.md).
 
  Schrijft ook het aantal driehoeken van het model (alles in `groep`, zonder de losse hulzen en de damp).
 
@@ -59,6 +65,54 @@ await page.setContent(`<!doctype html><html><head>
   const foto = () => { r.render(scene, cam); return r.domElement.toDataURL('image/png'); };
   const uit = {};
   stap(60);
+  /*
+   De maat (stap 135): de punten van het vizier, de korrel, de hiel en de linkerhand naar het scherm, in beeldpunten.
+   span is de breedte over de twee knoppen; de rest staat als fractie van het beeld of in eenheden van span.
+  */
+  function meet(B, H) {
+    const P = w.meetpunten, wap = w.groep.children[0];
+    cam.updateMatrixWorld(true); w.groep.updateMatrixWorld(true);
+    const naar = (x, y, z) => { const v = wap.localToWorld(new THREE.Vector3(x, y, z)).project(cam); return [(v.x + 1) / 2 * B, (1 - v.y) / 2 * H]; };
+    const rand = (cx, cy, cz, r, as) => Array.from({ length: 24 }, (_, i) => {
+      const a = i / 24 * Math.PI * 2, c = Math.cos(a) * r, s = Math.sin(a) * r;
+      return as === 'x' ? naar(cx, cy + c, cz + s) : naar(cx + c, cy + s, cz);
+    });
+    const kL = rand(-P.knop.x, P.knop.y, P.vizierZ, P.knop.r, 'x'), kR = rand(P.knop.x, P.knop.y, P.vizierZ, P.knop.r, 'x');
+    const links = Math.min(...kL.map(p => p[0])), rechts = Math.max(...kR.map(p => p[0]));
+    const span = rechts - links;
+    const ring = naar(0, P.vizierY, P.vizierZ), ringRand = rand(0, P.vizierY, P.vizierZ, P.ringR, 'z');
+    const ringD = Math.max(...ringRand.map(p => p[0])) - Math.min(...ringRand.map(p => p[0]));
+    const knik = naar(0, P.hielKnik[1], P.hielKnik[0]);
+    const korrel = naar(0, P.korrel.y, P.korrel.z);
+    const hielL = naar(-P.hielB / 2, P.hielAchter[1], P.hielAchter[0]), hielR = naar(P.hielB / 2, P.hielAchter[1], P.hielAchter[0]);
+    // de linkerhand: alleen de huid (dezelfde stof als de rechterhand), niet de mouw
+    const huid = w.delen.hand.children[0].material;
+    let hx0 = 1e9, hx1 = -1e9, hy0 = 1e9, hy1 = -1e9;
+    w.delen.linkerhand.traverse(o => {
+      if (!o.isMesh || o.material !== huid) return;
+      const A = o.geometry.attributes.position, v = new THREE.Vector3();
+      for (let i = 0; i < A.count; i++) {
+        v.fromBufferAttribute(A, i); o.localToWorld(v); v.project(cam);
+        const x = (v.x + 1) / 2 * B, y = (1 - v.y) / 2 * H;
+        hx0 = Math.min(hx0, x); hx1 = Math.max(hx1, x); hy0 = Math.min(hy0, y); hy1 = Math.max(hy1, y);
+      }
+    });
+    const f = (v) => +v.toFixed(3);
+    return {
+      beeld: B + "x" + H, knoppenBreed_W: f(span / B), ring_x: f(ring[0] / B), ring_y: f(ring[1] / H),
+      korrel_x: f(korrel[0] / B), korrel_y: f(korrel[1] / H),
+      ringNaarKorrel_span: [f((korrel[0] - ring[0]) / span), f((korrel[1] - ring[1]) / span)],
+      ringDoorsnede_span: f(ringD / span), ringBovenHiel_span: f((knik[1] - ring[1]) / span),
+      hielAchter_span: f((hielR[0] - hielL[0]) / span), hielAchter_y: f(hielL[1] / H),
+      hand_span: f((Math.min(hx1, B) - Math.max(hx0, 0)) / span), hand_x: f((hx0 + hx1) / 2 / B), hand_y: f((hy0 + hy1) / 2 / H),
+    };
+  }
+  window.__maat = { hand: meet(${B}, ${H}) };
+  // dezelfde stand in 16:9, met de beeldhoek van het spel (js/main.js: 72° verticaal)
+  r.setSize(1280, 720); cam.aspect = 16 / 9; cam.updateProjectionMatrix();
+  window.__maat.b169 = meet(1280, 720);
+  uit['169'] = foto();
+  r.setSize(${B}, ${H}); cam.aspect = ${B / H}; cam.updateProjectionMatrix();
   uit.hand = foto();
   // over het vizier
   cam.fov = 54; cam.updateProjectionMatrix();
@@ -107,11 +161,16 @@ await page.setContent(`<!doctype html><html><head>
   const dicht = new THREE.PerspectiveCamera(30, ${B / H}, 0.01, 20);
   dicht.position.set(0.20, 0.13, 0.10); dicht.lookAt(0.0, 0.0, -0.13);
   r.render(scene, dicht); uit.dichtbij = r.domElement.toDataURL('image/png');
+  // het achtervizier en de hiel van dichtbij, van achter en boven, zoals de speler ze ziet (stap 135)
+  const vd = new THREE.PerspectiveCamera(30, ${B / H}, 0.01, 20);
+  vd.position.set(0.035, 0.150, 0.170); vd.lookAt(0.0, 0.040, -0.040);
+  r.render(scene, vd); uit.vizierdicht = r.domElement.toDataURL('image/png');
   window.__fotos = uit;
 </script></body></html>`);
 await page.waitForFunction(() => window.__fotos, null, { timeout: 120000 });
 const fotos = await page.evaluate(() => window.__fotos);
 console.log('driehoeken in het model:', await page.evaluate(() => window.__tris));
+console.log('maat (stap 135):', JSON.stringify(await page.evaluate(() => window.__maat), null, 1));
 console.log('textuurgeheugen van het wapen:', JSON.stringify(await page.evaluate(() => window.__geheugen)));
 const { writeFileSync } = await import('node:fs');
 for (const [naam, data] of Object.entries(fotos)) {

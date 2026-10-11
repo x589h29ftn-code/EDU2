@@ -1381,8 +1381,17 @@ const stempelDoek = () => doekSet('stempel512', (k, w, h, r, S) => {
   const gr = k.createRadialGradient(S / 2, S * 0.55, S * 0.04, S / 2, S * 0.55, S * 0.6);
   gr.addColorStop(0, 'rgba(150,152,144,0.22)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
   k.fillStyle = gr; k.fillRect(0, 0, S, S);
+  // (stap 135) langs de twee lange randen, waar de hiel rond afloopt, is het staal blank gesleten
+  for (const [x0, x1] of [[0, S * 0.05], [S, S * 0.95]]) {
+    const gk = k.createLinearGradient(x0, 0, x1, 0);
+    gk.addColorStop(0, 'rgba(150,152,144,0.12)'); gk.addColorStop(1, 'rgba(150,152,144,0)');
+    k.fillStyle = gk; k.fillRect(0, 0, S, S);
+    const gw = w.createLinearGradient(x0, 0, x1, 0);
+    gw.addColorStop(0, 'rgba(60,60,60,0.45)'); gw.addColorStop(1, 'rgba(60,60,60,0)');
+    w.fillStyle = gw; w.fillRect(0, 0, S, S);
+  }
   const m = S / 256;
-  const regels = [['U.S. RIFLE', 30], ['CAL. .30 M1', 30], ['SPRINGFIELD', 28], ['ARMORY', 30], ['2009029', 34]];
+  const regels = [['U.S. RIFLE', 30], ['CAL. .30 M1', 30], ['SPRINGFIELD', 28], ['ARMORY', 30], ['2975632', 34]];
   for (const g of [k, h, w]) { g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; }
   regels.forEach(([tekst, px], i) => {
     const y = (44 + i * 42 + (i === 4 ? 8 : 0)) * m, x = S / 2;
@@ -1394,10 +1403,69 @@ const stempelDoek = () => doekSet('stempel512', (k, w, h, r, S) => {
     // de kleur: de schaduw van de bovenrand in het putje, dan de lichtere bodem een fractie lager
     k.fillStyle = 'rgba(26,28,24,0.85)'; k.fillText(tekst, x, y);
     k.save(); k.beginPath(); k.rect(0, y - px * m, S, px * m * 2); k.clip();
-    k.fillStyle = 'rgba(178,180,170,0.85)'; k.fillText(tekst, x + 0.8 * m, y + 1.2 * m);
+    k.fillStyle = 'rgba(170,172,162,0.78)'; k.fillText(tekst, x + 0.8 * m, y + 1.2 * m);
     k.restore();
   });
 }, 0.9, 512);
+
+/*
+ Het vizierdoek (stap 135): boven twee schijven voor de buitenkant van de knoppen, onder een strook voor de schaal
+ achterop de voet van het achtervizier. Staal als `parkerDoek`; de streepjes en cijfers zijn ingeslagen (laag in de
+ hoogte) en lichter in de kleur, waar de slijt het staal in de groefjes blank maakt.
+   linksboven   de hoogteknop: een gladde ring met een streepje per klik, langer om de vijf, en de cijfers 2 tot 12
+   rechtsboven  de windafwijking: alleen streepjes, en een pijltje
+   onder        (v 0,30–0,48) de schaal: een streepje per punt, langer om de vijf, en de index als driehoekje in het midden
+*/
+const vizierDoek = () => doekSet('vizier512', (k, w, h, r, S) => {
+  tekenParker(k, w, h, r, S);
+  const m = S / 512;
+  const gegraveerd = (teken) => {
+    for (const [g, kl] of [[h, '#262626'], [w, '#8c8c8c'], [k, 'rgba(176,178,168,0.9)']]) { g.fillStyle = kl; g.strokeStyle = kl; teken(g); }
+  };
+  for (const [cx, cijfers] of [[128 * m, true], [384 * m, false]]) {
+    const cy = 128 * m, R = 126 * m;
+    // de rand: een schuine kant met fijne ribbels (de kartel loopt erin door)
+    for (let i = 0; i < 120; i++) {
+      const a = i / 120 * Math.PI * 2;
+      for (const [g, kl] of [[h, 'rgba(40,40,40,0.8)'], [k, 'rgba(30,32,28,0.55)']]) {
+        g.strokeStyle = kl; g.lineWidth = 2.2 * m; g.beginPath();
+        g.moveTo(cx + Math.cos(a) * R * 0.86, cy + Math.sin(a) * R * 0.86); g.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); g.stroke();
+      }
+    }
+    // het gladde vlak waar de schaal op staat: iets blanker en gladder
+    const gv = k.createRadialGradient(cx, cy, R * 0.35, cx, cy, R * 0.84);
+    gv.addColorStop(0, 'rgba(118,120,114,0.0)'); gv.addColorStop(0.6, 'rgba(118,120,114,0.25)'); gv.addColorStop(1, 'rgba(118,120,114,0.0)');
+    k.fillStyle = gv; k.beginPath(); k.arc(cx, cy, R * 0.84, 0, Math.PI * 2); k.fill();
+    // de streepjes: één per klik, langer om de vijf
+    const N = cijfers ? 60 : 48;
+    for (let i = 0; i < N; i++) {
+      const a = i / N * Math.PI * 2 - Math.PI / 2, lang = i % 5 === 0;
+      const r0 = R * (lang ? 0.64 : 0.72), r1 = R * 0.83;
+      gegraveerd(g => { g.lineWidth = (lang ? 3.2 : 2.0) * m; g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.stroke(); });
+    }
+    if (cijfers) {
+      ['2', '4', '6', '8', '10', '12'].forEach((t, i) => {
+        const a = i / 6 * Math.PI * 2 - Math.PI / 2, rr = R * 0.50;
+        gegraveerd(g => {
+          g.save(); g.translate(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); g.rotate(a + Math.PI / 2);
+          g.font = `bold ${30 * m}px "DejaVu Sans", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+          g.fillText(t, 0, 0); g.restore();
+        });
+      });
+    } else {
+      gegraveerd(g => { g.beginPath(); g.moveTo(cx - 14 * m, cy - R * 0.50); g.lineTo(cx + 14 * m, cy - R * 0.50); g.lineTo(cx, cy - R * 0.62); g.closePath(); g.fill(); });
+    }
+    // het midden, onder de asmoer: een donkere kom
+    for (const [g, kl] of [[h, '#3a3a3a'], [k, 'rgba(36,38,34,0.85)']]) { g.fillStyle = kl; g.beginPath(); g.arc(cx, cy, R * 0.36, 0, Math.PI * 2); g.fill(); }
+  }
+  // de schaal: de strook van v 0,30 tot 0,48 is op het doek y van 0,52 tot 0,70 (het doek staat op zijn kop in v)
+  const y0 = S * 0.52, y1 = S * 0.70, hoog = y1 - y0;
+  for (let i = 0; i <= 40; i++) {
+    const x = S * (0.05 + i / 40 * 0.90), lang = i % 5 === 0;
+    gegraveerd(g => { g.fillRect(x - 1.6 * m, y0 + hoog * 0.08, 3.2 * m, hoog * (lang ? 0.55 : 0.32)); });
+  }
+  gegraveerd(g => { g.beginPath(); g.moveTo(S / 2 - 12 * m, y1 - hoog * 0.06); g.lineTo(S / 2 + 12 * m, y1 - hoog * 0.06); g.lineTo(S / 2, y1 - hoog * 0.34); g.closePath(); g.fill(); });
+}, 1.0, 512);
 
 /*
  Walnoot, zoals op de foto van het geweer op de stoel: warm middenbruin (niet rood), een lange nerf die zacht golft,
@@ -1554,6 +1622,19 @@ function kartelGeo(rUit, rIn, n, dikte, x, y, z) {
   g.translate(x, y, z);
   return g;
 }
+// losse vormen met hun eigen uv samenvoegen tot één geometrie (de schijven van de knoppen en de schaal, stap 135)
+function samen(geos) {
+  const lijst = geos.map(g => g.index ? g.toNonIndexed() : g);
+  const geo = new THREE.BufferGeometry();
+  for (const naam of ['position', 'normal', 'uv']) {
+    const n = lijst[0].attributes[naam].itemSize;
+    const arr = new Float32Array(lijst.reduce((t, g) => t + g.attributes[naam].array.length, 0));
+    let o = 0;
+    for (const g of lijst) { arr.set(g.attributes[naam].array, o); o += g.attributes[naam].array.length; }
+    geo.setAttribute(naam, new THREE.BufferAttribute(arr, n));
+  }
+  return geo;
+}
 // een gewoon blokje van twaalf driehoeken, voor wat te klein is om af te ronden
 const blok = (bk, m, b, h, d, x, y, z) => vorm(bk, new THREE.BoxGeometry(b, h, d).translate(x, y, z), m);
 // een buisje langs een kromme (trekkerbeugel, trekker, riembeugels)
@@ -1578,6 +1659,9 @@ export function maakGarand(geluid) {
   const messing = mat(0xd9ae58, 1, 1, glansDoek(), [0.02, 0.02]);
   const koper = mat(0xd08a62, 1, 1, glansDoek(), [0.02, 0.02]);
   const messingLos = mat(0xc9a24a, 0.28, 1);
+  // (stap 135) de gleuf in de voet van het achtervizier en in de asmoeren: bijna zwart staal, hetzelfde soort materiaal
+  const gleufStaal = mat(0x3a3c3a, 1, 0.35, parkerDoek(), [0.03, 0.03]);
+  const vizierMat = mat(0xffffff, 0.9, 0.35, vizierDoek());
 
   const groep = new THREE.Group();
   const wapen = new THREE.Group();
@@ -1595,6 +1679,8 @@ export function maakGarand(geluid) {
   const LOOP_Y = 0.030;
   const MOND_Z = -0.785;
   const KORREL = { y: 0.055, z: -0.752 };
+  const RING_R = 0.0068;                                   // de ring van de diopter, buiten (stap 135; was 0,009)
+  const KNOP = { x: 0.0283, y: 0.0478, r: 0.0100 };        // de buitenkant van de knoppen, en hun straal
   // de vizierlijn loopt van de diopter naar de top van de korrel iets omlaag; bij het richten kantelt het geweer zo ver
   const KANTEL = Math.atan2(VIZIER_Y - KORREL.y, VIZIER_Z - KORREL.z);
 
@@ -1615,7 +1701,8 @@ export function maakGarand(geluid) {
     const P = kolf.attributes.position;
     for (let i = 0; i < P.count; i++) {
       const z = P.getZ(i);
-      const f = z > 0.07 ? 1 + Math.min(1, (z - 0.07) / 0.16) * 0.34 : z < -0.03 ? 1 + Math.min(1, (-0.03 - z) / 0.06) * 0.08 : 1;
+      // (stap 135) de lade vooraan 4 cm breed in plaats van 3,7: op de foto's is het hout voor de kast breder dan de kast
+      const f = z > 0.07 ? 1 + Math.min(1, (z - 0.07) / 0.16) * 0.34 : z < -0.03 ? 1 + Math.min(1, (-0.03 - z) / 0.06) * 0.16 : 1;
       P.setX(i, P.getX(i) * f);
     }
     // de normalen van vóór het verbreden houden: opnieuw uitrekenen gaf per driehoek van het zijvlak een eigen knik
@@ -1623,9 +1710,9 @@ export function maakGarand(geluid) {
   }
   const fB = bak();
   // het achterste bovenhout: hoog en rond over de loop, van de kast tot de onderste band
-  vorm(fB, rondeDoosGeo(0.031, 0.032, 0.208, 0.0135, 3).translate(0, LOOP_Y + 0.004, -0.327), hout);
+  vorm(fB, rondeDoosGeo(0.034, 0.033, 0.208, 0.0145, 3).translate(0, LOOP_Y + 0.004, -0.327), hout);
   // de stalen klem om het achterste bovenhout (stap 134, de schietfoto en de zijfoto): een dun bandje over de bovenkant
-  vorm(fB, rondeDoosGeo(0.0326, 0.0336, 0.0055, 0.0142, 3).translate(0, LOOP_Y + 0.004, -0.262), park);
+  vorm(fB, rondeDoosGeo(0.0356, 0.0346, 0.0055, 0.0152, 3).translate(0, LOOP_Y + 0.004, -0.262), park);
   // het voorste bovenhout: rond om de loop, iets dikker in het midden
   {
     const pr = [];
@@ -1641,15 +1728,17 @@ export function maakGarand(geluid) {
   // ---------------------------------------------------------------- de kast
   // de hiel in zijaanzicht: achteraan schuin omhoog (daar staat de stempel), boven vlak onder het achtervizier
   const HIEL = [[0.016, 0.004], [0.016, 0.017], [-0.010, 0.035], [-0.052, 0.036], [-0.052, 0.004]];
-  vorm(fB, zijProfiel(HIEL, 0.027, 0.0015, 2, 1), park);
+  // (stap 135) rondere randen: 2,5 mm afronding om een kern van 2,5 cm, samen 3 cm breed zoals de echte hiel
+  const HIEL_RAND = 0.0025;
+  vorm(fB, zijProfiel(HIEL, 0.025, HIEL_RAND, 3, 1), park);
   // de stempel als plaatje op de schuine kant, net boven het staal
   {
     const [a, c] = [HIEL[1], HIEL[2]];
     const dz = c[0] - a[0], dy = c[1] - a[1], L = Math.hypot(dz, dy);
     const nz = dy / L, ny = -dz / L;                         // de normaal: omhoog en naar achteren
-    const plaat = new THREE.PlaneGeometry(0.0255, L * 0.98);
+    const plaat = new THREE.PlaneGeometry(0.0245, L * 0.98);
     plaat.rotateX(-Math.atan2(ny, nz));
-    plaat.translate(0, (a[1] + c[1]) / 2 + ny * 0.0017, (a[0] + c[0]) / 2 + nz * 0.0017);
+    plaat.translate(0, (a[1] + c[1]) / 2 + ny * (HIEL_RAND + 0.0002), (a[0] + c[0]) / 2 + nz * (HIEL_RAND + 0.0002));
     const m = new THREE.Mesh(plaat, stempel);
     wapen.add(m);
   }
@@ -1676,40 +1765,77 @@ export function maakGarand(geluid) {
   }
 
   // ---------------------------------------------------------------- het achtervizier
+  /*
+   Stap 135, naar de foto's van achteren (de clip die wegvliegt, Hell Let Loose, de render van schuin boven): een voet
+   met achterop een schaal van fijne streepjes en een gegraveerde index; daarin een gleuf waar het plaatje van de
+   diopter uit steekt, met bovenop de ring (1,4 cm, was 1,8: op de foto's is hij een vijfde van de breedte over de
+   knoppen, bij ons was hij een kwart); twee beschermoren als gebogen platen met een ronde bovenkant die naar binnen
+   buigen; links de hoogteknop en rechts de knop voor de windafwijking, gekarteld, met op de buitenkant een schijf
+   met streepjes (de hoogte met de cijfers 2 tot 12) en een zeskantige asmoer in het midden.
+  */
   doos(fB, park, 0.027, 0.006, 0.022, 0, 0.0405, VIZIER_Z, 0.0012);                 // de voet
-  // de schaal achterop de voet: een strip met streepjes
-  doos(fB, parkDonker, 0.020, 0.004, 0.002, 0, 0.0400, VIZIER_Z + 0.0115, 0.0005);
-  for (let i = 0; i < 11; i++) blok(fB, blank, 0.0007, i % 5 === 0 ? 0.0030 : 0.0018, 0.0008, -0.0085 + i * 0.0017, 0.0402, VIZIER_Z + 0.0127);
-  // de twee beschermoren: gebogen platen die boven rond over de diopter heen buigen
+  doos(fB, park, 0.0205, 0.0040, 0.0040, 0, 0.0398, VIZIER_Z + 0.0118, 0.0006);       // de lijst van de schaal
+  // de gleuf in de voet, waar het plaatje van de diopter uit komt: een donkere sleuf met een randje ervoor
+  doos(fB, gleufStaal, 0.0098, 0.0012, 0.0050, 0, 0.0437, VIZIER_Z, 0.0003);
+  for (const dz of [-1, 1]) blok(fB, park, 0.0120, 0.0010, 0.0010, 0, 0.0437, VIZIER_Z + dz * 0.0031);
+  // de twee beschermoren: gebogen platen die boven rond zijn en een fractie naar binnen buigen
   for (const sx of [-1, 1]) {
     const oor = zijProfiel([
       [VIZIER_Z + 0.010, 0.040], [VIZIER_Z + 0.010, 0.056], [VIZIER_Z + 0.009, 0.064, VIZIER_Z + 0.001, 0.064],
       [VIZIER_Z - 0.008, 0.064, VIZIER_Z - 0.010, 0.054], [VIZIER_Z - 0.011, 0.040],
     ], 0.0022, 0.0007, 2, 6);
-    oor.translate(sx * 0.0122, 0, 0);
+    const P = oor.attributes.position;
+    for (let i = 0; i < P.count; i++) {
+      const t = Math.max(0, Math.min(1, (P.getY(i) - 0.044) / 0.020));
+      P.setX(i, P.getX(i) + sx * 0.0122 - sx * 0.0016 * t * t);
+    }
     vorm(fB, oor, park);
   }
-  // de diopter: een plaatje dat op en neer schuift, met bovenop een dikke ring met een klein gaatje
-  doos(fB, parkDonker, 0.010, 0.016, 0.0028, 0, 0.0465, VIZIER_Z, 0.0008);
+  // de diopter: een dun plaatje dat uit de gleuf steekt, met bovenop een dikke ring met een klein gaatje
+  doos(fB, parkDonker, 0.0072, 0.0150, 0.0026, 0, 0.0505 - 0.0075 + 0.0008, VIZIER_Z, 0.0007);
   {
-    const v = new THREE.Shape(); v.absarc(0, 0, 0.0090, 0, Math.PI * 2, false);
-    const gat = new THREE.Path(); gat.absarc(0, 0, 0.0040, 0, Math.PI * 2, true); v.holes.push(gat);
-    const ring = new THREE.ExtrudeGeometry(v, { depth: 0.0022, bevelEnabled: true, bevelThickness: 0.0007, bevelSize: 0.0007, bevelSegments: 2, curveSegments: 20 });
+    const v = new THREE.Shape(); v.absarc(0, 0, RING_R - 0.0006, 0, Math.PI * 2, false);
+    const gat = new THREE.Path(); gat.absarc(0, 0, 0.0036, 0, Math.PI * 2, true); v.holes.push(gat);
+    const ring = new THREE.ExtrudeGeometry(v, { depth: 0.0022, bevelEnabled: true, bevelThickness: 0.0007, bevelSize: 0.0006, bevelSegments: 2, curveSegments: 24 });
     ring.translate(0, VIZIER_Y, VIZIER_Z - 0.0011);
     vorm(fB, glad(ring), parkDonker);
   }
-  // de knoppen: links de hoogte, rechts de windafwijking; een gekartelde schijf buiten en een geribde trommel ertussen
+  // de knoppen: een gekartelde schijf buiten en een geribde trommel ertussen; de asmoer zeskantig, met een gleuf
   for (const sx of [-1, 1]) {
-    vorm(fB, kartelGeo(0.0100, 0.0091, 26, 0.0042, sx * 0.0262, 0.0478, VIZIER_Z), park);
-    vorm(fB, kartelGeo(0.0074, 0.0069, 22, 0.0080, sx * 0.0198, 0.0478, VIZIER_Z), parkDonker);
-    vorm(fB, new THREE.CylinderGeometry(0.0034, 0.0034, 0.0014, 12).rotateZ(Math.PI / 2).translate(sx * 0.0290, 0.0478, VIZIER_Z), blank);
+    vorm(fB, kartelGeo(KNOP.r, KNOP.r - 0.0009, 30, 0.0042, sx * (KNOP.x - 0.0021), KNOP.y, VIZIER_Z), park);
+    vorm(fB, kartelGeo(0.0074, 0.0069, 22, 0.0080, sx * 0.0198, KNOP.y, VIZIER_Z), parkDonker);
+    vorm(fB, new THREE.CylinderGeometry(0.0031, 0.0031, 0.0020, 6).rotateZ(Math.PI / 2).translate(sx * (KNOP.x + 0.0010), KNOP.y, VIZIER_Z), blank);
+    blok(fB, gleufStaal, 0.0006, 0.0006, 0.0042, sx * (KNOP.x + 0.0020), KNOP.y, VIZIER_Z);
+  }
+  /*
+   De schijven op de knoppen en de schaal achterop de voet: één doek (`vizierDoek`) met eigen uv, zoals de stempel.
+   Links de hoogte met cijfers, rechts de windafwijking met alleen streepjes; de schaal van achteren gezien.
+  */
+  {
+    const delen = [];
+    for (const [sx, u0] of [[-1, 0], [1, 0.5]]) {
+      const g = new THREE.CircleGeometry(KNOP.r - 0.0009, 32);
+      const U = g.attributes.uv;
+      for (let i = 0; i < U.count; i++) U.setXY(i, u0 + U.getX(i) * 0.5, 0.5 + U.getY(i) * 0.5);
+      g.rotateY(sx * Math.PI / 2);
+      g.translate(sx * (KNOP.x + 0.0001), KNOP.y, VIZIER_Z);
+      delen.push(g);
+    }
+    const schaal = new THREE.PlaneGeometry(0.0195, 0.0036);
+    const U = schaal.attributes.uv;
+    for (let i = 0; i < U.count; i++) U.setXY(i, U.getX(i), 0.30 + U.getY(i) * 0.18);
+    schaal.translate(0, 0.0398, VIZIER_Z + 0.0139);
+    delen.push(schaal);
+    const vizierMesh = new THREE.Mesh(samen(delen), vizierMat);
+    wapen.add(vizierMesh);
   }
 
   // ---------------------------------------------------------------- loop, gasbuis en korrel
   vorm(fB, buisGeo(0.0090, 0.0078, 0.605, 0, LOOP_Y, -0.4875, 16), park);
   vorm(fB, buisGeo(0.0052, 0.0052, 0.004, 0, LOOP_Y, MOND_Z - 0.0005, 12), parkDonker);          // de kroon
   // de banden: achter het achterste bovenhout, de onderste band met de neus van de lade, en de voorste
-  doos(fB, park, 0.034, 0.030, 0.006, 0, LOOP_Y + 0.004, -0.222, 0.004);
+  // (stap 135) de band achter het bovenhout rond om het hout, zoals de klem: het bovenhout begint met staal
+  vorm(fB, rondeDoosGeo(0.0372, 0.0356, 0.0075, 0.0158, 3).translate(0, LOOP_Y + 0.004, -0.2225), park);
   vorm(fB, buisGeo(0.0205, 0.0205, 0.012, 0, LOOP_Y + 0.002, -0.441, 20), park);
   doos(fB, park, 0.034, 0.030, 0.012, 0, 0.004, -0.441, 0.006);
   vorm(fB, buisGeo(0.0198, 0.0190, 0.010, 0, LOOP_Y - 0.002, -0.629, 20), park);
@@ -1775,8 +1901,9 @@ export function maakGarand(geluid) {
   */
   const SLAG = 0.045;
   const rB = bak();
-  doos(rB, grendelStaal, 0.0205, 0.0140, 0.099, 0, 0.0310, -0.1035, 0.0045, 2);
-  doos(rB, blank, 0.0090, 0.0030, 0.070, 0, 0.0372, -0.100, 0.0010);              // de blank gesleten rug
+  // (stap 135) 1,7 cm breed in plaats van 2,05: naast de grendel zie je in de put het messing van de bovenste patroon
+  doos(rB, grendelStaal, 0.0170, 0.0140, 0.099, 0, 0.0310, -0.1035, 0.0045, 2);
+  doos(rB, blank, 0.0080, 0.0030, 0.070, 0, 0.0372, -0.100, 0.0010);              // de blank gesleten rug
   doos(rB, grendelStaal, 0.0060, 0.0080, 0.010, 0, 0.032, -0.058, 0.0015);        // de achterkant met de slagpin
   vorm(rB, new THREE.CylinderGeometry(0.0034, 0.0034, 0.006, 10).rotateZ(Math.PI / 2).translate(0.0115, 0.031, -0.140), parkDonker);   // de rol
   /*
@@ -1885,22 +2012,28 @@ export function maakGarand(geluid) {
   const arm = bouw(aB, new THREE.Group());
   groep.add(arm);
 
-  // de linkerhand onder het voorhout: de palm eronder, de vingers links omhoog, de duim rechts
+  /*
+   De linkerhand onder het voorhout: de palm eronder, de vingers links omhoog tot over de rand van het bovenhout, de
+   duim rechts. Stap 135: vlak voor de kast (op het achterste bovenhout, zoals op alle eerste-persoonsfoto's) in plaats
+   van 30 cm voor de greep, en een volle hand (de palm 9 cm lang en 5 breed, vingers van 1,8 cm). Op de foto's is de
+   hand twee derde van de breedte over de knoppen; bij ons was hij smal en ver weg, 0,4.
+  */
   const lB = bak();
-  const HZ = -0.300;
-  doos(lB, huid, 0.044, 0.022, 0.080, 0, -0.038, HZ, 0.010, 2);
+  const HZ = -0.262;
+  doos(lB, huid, 0.058, 0.026, 0.094, -0.004, -0.042, HZ, 0.012, 2);
   for (let i = 0; i < 4; i++) {
-    const z = HZ - 0.028 + i * 0.018, r = i === 3 ? 0.0068 : 0.0078;
-    staaf(lB, huid, [-0.018, -0.040, z], [-0.026, -0.010, z], r);
-    staaf(lB, huid, [-0.026, -0.010, z], [-0.022, 0.012, z + 0.002], r * 0.92);
+    const z = HZ - 0.034 + i * 0.022, r = i === 3 ? 0.0084 : 0.0098;
+    staaf(lB, huid, [-0.024, -0.046, z], [-0.036, -0.012, z], r);
+    staaf(lB, huid, [-0.036, -0.012, z], [-0.031, 0.017, z + 0.002], r * 0.94);
+    staaf(lB, huid, [-0.031, 0.017, z + 0.002], [-0.021, 0.031, z + 0.003], r * 0.86);
   }
-  staaf(lB, huid, [0.016, -0.040, HZ + 0.026], [0.024, -0.006, HZ - 0.004], 0.0095);
-  staaf(lB, huid, [0.024, -0.006, HZ - 0.004], [0.022, 0.010, HZ - 0.026], 0.0088);
-  const polsL2 = rondeDoosGeo(0.050, 0.050, 0.064, 0.018, 2);
-  polsL2.translate(-0.010, -0.062, HZ + 0.050);
+  staaf(lB, huid, [0.018, -0.045, HZ + 0.030], [0.029, -0.008, HZ - 0.002], 0.0108);
+  staaf(lB, huid, [0.029, -0.008, HZ - 0.002], [0.026, 0.012, HZ - 0.028], 0.0098);
+  const polsL2 = rondeDoosGeo(0.056, 0.054, 0.068, 0.019, 2);
+  polsL2.translate(-0.010, -0.068, HZ + 0.056);
   vorm(lB, polsL2, huid);
   // schuiner naar beneden dan tot stap 133: bij het herladen kantelt het geweer en stond de mouw als een blauwe balk in beeld
-  mouwNaar(lB, stof, [-0.016, -0.070, HZ + 0.070], [-0.52, -0.74, 0.42], 0.46, 0.035, 0.040);
+  mouwNaar(lB, stof, [-0.016, -0.076, HZ + 0.078], [-0.52, -0.74, 0.42], 0.46, 0.037, 0.042);
   const linkerhand = bouw(lB, new THREE.Group());
   wapen.add(linkerhand);
 
@@ -1990,9 +2123,18 @@ export function maakGarand(geluid) {
    Uit de heup zoals op de foto's uit Call of Duty (stap 133): het geweer laag rechts en dichtbij, het achtervizier
    groot rechtsonder in beeld, en de loop die schuin naar het midden van het scherm wijst. Tot stap 132 hing het
    geweer 40 cm voor je, recht vooruit: een dunne lat met een klein vizier ver weg.
+
+   Stap 135, gemeten tegen vier eerste-persoonsfoto's (Hell Let Loose, de wegvliegende clip, de sneeuw, Call of Duty;
+   tools/m1shots.mjs rekent dezelfde maten voor ons uit): het vizier stond met 0,18 van de beeldbreedte over de knoppen
+   al goed groot, maar 11 cm onder je oog, zodat je steil op het geweer neerkeek. De ring stond op 73 % van de hoogte,
+   op de foto's op 53–58 %; de korrel zakte 0,68 knopbreedte onder de ring (de foto's 0,2–0,4). Nu staat het vizier
+   vlak onder je ooghoogte en een fractie verder weg: je kijkt langs het geweer, zoals op de foto's.
   */
-  const RUST = { x: 0.072, y: -0.108, z: -0.105 };
-  const RUST_DRAAI = { x: 0.045, y: 0.115, z: 0.06 };
+  const RUST = { x: 0.0566, y: -0.068, z: -0.099 };
+  const RUST_DRAAI = { x: 0.060, y: 0.080, z: 0.06 };
+  // de stand bij het herladen: omhoog, de loop naar linksboven, de bovenkant naar je toe (zoals tot stap 134)
+  const HERLAAD = { x: 0.012, y: -0.072, z: -0.255 };
+  const HERLAAD_DRAAI = { x: 0.245, y: 0.415, z: -0.24 };
   // over het vizier: de diopter op 13 cm van je oog, de korrel er in het midden achter
   const MIK = { x: 0, y: -VIZIER_Y, z: VIZIER_Z - 0.130 };
   groep.position.set(RUST.x, RUST.y, RUST.z);
@@ -2054,7 +2196,8 @@ export function maakGarand(geluid) {
     clipVlucht.q.setFromRotationMatrix(standMat);
     // omhoog, naar rechts en vooral naar voren, weg van je oog (stap 134): met 0,1 m/s naar voren vloog hij in een
     // tiende seconde tot 20 cm voor de camera en was hij een grote donkere vlek
-    clipVlucht.v.set(0.42 + Math.random() * 0.10, 1.05 + Math.random() * 0.15, -0.85 - Math.random() * 0.15);
+    // (stap 135) iets harder omhoog, zoals op de foto waarop de clip boven het vizier hangt; ook marge voor m1test
+    clipVlucht.v.set(0.42 + Math.random() * 0.10, 1.30 + Math.random() * 0.15, -0.85 - Math.random() * 0.15);
     clipVlucht.w.set(6 + Math.random() * 6, (Math.random() - 0.5) * 8, -8 - Math.random() * 6);
     legeClip.visible = true;
     clip.g.visible = false;
@@ -2160,8 +2303,11 @@ export function maakGarand(geluid) {
       const t = 1 - herlaad / GARAND_HERLAAD;
       const uit = soepel(deel(t, GSTAP.kantelen)) - soepel(deel(t, GSTAP.terug));
       // het geweer omhoog, de loop naar linksboven, de bovenkant naar je toe (zie de foto van het laden)
-      groep.position.set(RUST.x - 0.060 * uit, RUST.y + 0.040 * uit, RUST.z - 0.150 * uit);
-      groep.rotation.set(RUST_DRAAI.x + 0.20 * uit, RUST_DRAAI.y + 0.30 * uit, RUST_DRAAI.z - 0.30 * uit);
+      // (stap 135) naar een vaste stand, niet meer een stukje vanaf de rust: die staat nu hoger en dichterbij, en dan
+      // kwam de kolf bij het herladen schuin door het halve beeld
+      groep.position.set(RUST.x + (HERLAAD.x - RUST.x) * uit, RUST.y + (HERLAAD.y - RUST.y) * uit, RUST.z + (HERLAAD.z - RUST.z) * uit);
+      groep.rotation.set(RUST_DRAAI.x + (HERLAAD_DRAAI.x - RUST_DRAAI.x) * uit, RUST_DRAAI.y + (HERLAAD_DRAAI.y - RUST_DRAAI.y) * uit,
+        RUST_DRAAI.z + (HERLAAD_DRAAI.z - RUST_DRAAI.z) * uit);
       // de rechterhand laat de greep los en zakt naar rechtsonder weg, en komt aan het eind terug
       const weg = soepel(deel(t, GSTAP.handWeg)) - soepel(deel(t, GSTAP.terugHand));
       hand.position.set(0.12 * weg, -0.22 * weg, 0.06 * weg);
@@ -2266,6 +2412,11 @@ export function maakGarand(geluid) {
     delen: { grendel, clip: clip.g, patronen: clip.patronen, legeClip, laadhand, linkerhand, hand, arm, trekker, flits, hulzen, rook: rookData.map(r => r.mesh), los },
     houding: { rust: RUST, mik: MIK, vizierY: VIZIER_Y },
     slag: SLAG,
+    // (voor tools/m1shots.mjs, stap 135) de punten waaraan de maat op het scherm gemeten wordt
+    meetpunten: {
+      vizierY: VIZIER_Y, vizierZ: VIZIER_Z, ringR: RING_R, knop: KNOP, korrel: KORREL,
+      hielKnik: HIEL[2], hielAchter: HIEL[1], hielB: 0.030,
+    },
     get terugslag() { return terugslag; },
     get veer() { return { ...veer }; },
     get hulzenInDeLucht() { return hulsData.filter(h => h.t <= 0.8).length; },
