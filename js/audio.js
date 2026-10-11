@@ -109,8 +109,9 @@ export const OPNAMES = {
  De achtergrond: één streamend element. Tot stap 139 overdag achtergrond1.mp3 (mensen die zacht praten, 0,12) en
  's nachts achtergrond2.mp3 (0,065); sinds stap 139 (11 okt, "een muziekje … als ambient geluid voor in stad ter
  vervanging wat we nu hebben. Speel het heel zacht af.") dag en nacht audio/sfeer/stad.mp3, een snelweg in de verte
- van ruim elf minuten. Gemeten: stad.mp3 −25,6 dB RMS, achtergrond1 −32,0 dB; met 0,023 klinkt hij overdag
- −58,4 dB, 8 dB zachter dan de oude dag (−50,4 dB). 's Nachts dezelfde opname nog zachter (`nachtStil`): een
+ van ruim elf minuten. Gemeten (100 s aan het begin / in het midden): stad.mp3 −25,6 / −27,9 dB RMS,
+ achtergrond1 −32,0 / −31,3 dB. Met 0,023 klinkt hij overdag −58 tot −61 dB, 8 tot 11 dB zachter dan de oude dag
+ (0,12: −50 dB). 's Nachts dezelfde opname nog zachter (`nachtStil`): een
  aparte nachtopname is niet meer nodig (de bestanden blijven staan).
 */
 export const ACHTERGROND = {
@@ -501,9 +502,13 @@ export const geluid = {
        De opname. Van ver weg zachter (dezelfde lijn als het gemaakte schot hieronder) en doffer:
        een laagdoorlaat die van 12 kHz vlakbij naar 1,4 kHz op tachtig meter zakt.
       */
-      const W = SCHOT[wapen] || SCHOT.ander;
+      const S = SCHOT[wapen] || SCHOT.ander;
+      // een eigen opname (de garand), of schot.mp3; zonder geladen eigen opname de `terug`-instelling
+      const eigen = S.url ? wapenOpname[wapen] : null;
+      const W = eigen || !S.terug ? S : S.terug;
+      const buf = eigen ? eigen.buf : schotBuf, begin = eigen ? eigen.begin : schotBegin;
       const k = Math.max(0.12, 1 - afstand / 80);
-      const src = ctx.createBufferSource(); src.buffer = schotBuf;
+      const src = ctx.createBufferSource(); src.buffer = buf;
       const rate = W.rate * (0.96 + Math.random() * 0.08);
       src.playbackRate.value = rate;
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
@@ -522,8 +527,10 @@ export const geluid = {
       schotLevend.add(stem);
       src.onended = () => { stem.speelt = false; schotLevend.delete(stem); };
       schotStemmen.set(bron, stem);
-      src.start(t0, schotBegin);
-      laatsteSchot = { wapen, bron, rate, offset: schotBegin, gain: W.vol * k, lp: lp.frequency.value, opname: true };
+      // alleen het eerste schot uit een eigen opname (tot zijn gemeten einde), schot.mp3 helemaal
+      if (eigen) src.start(t0, begin, eigen.eind - begin); else src.start(t0, begin);
+      laatsteSchot = { wapen, bron, rate, offset: begin, duur: eigen ? eigen.eind - begin : null, gain: W.vol * k,
+        lp: lp.frequency.value, opname: true, bestand: eigen ? S.url.split('/').pop() : 'schot.mp3' };
       if (afstand < 25) setTimeout(() => { toon({ freq: 3200, naar: 2100, duur: 0.07, volume: 0.05 }); }, 260);
       return;
     }
@@ -600,6 +607,19 @@ export const geluid = {
   m1Ping() {
     this.m1Pings = (this.m1Pings || 0) + 1;
     if (!aan) return;
+    const op = wapenOpname.clip;
+    if (op) {
+      // de opname (stap 139), vanaf de ping zelf, met een fractie toonverschil per clip
+      const t0 = nu();
+      const src = ctx.createBufferSource(); src.buffer = op.buf;
+      src.playbackRate.value = 0.98 + Math.random() * 0.04;
+      const g = ctx.createGain(); g.gain.value = M1_CLIP.vol;
+      src.connect(g); g.connect(hoofd);
+      src.start(t0, op.begin, op.eind - op.begin);
+      laatstePing = { opname: true, gain: M1_CLIP.vol, offset: op.begin, duur: op.eind - op.begin };
+      return;
+    }
+    laatstePing = { opname: false };
     const t = nu() + 0.002;
     const f0 = 2950 * (0.97 + Math.random() * 0.06);
     // (verhouding, sterkte, uitsterftijd in s)
@@ -2224,10 +2244,9 @@ export const geluid = {
   },
 
   /*
-   De achtergrond (stap 127): twee opnames van de gebruiker in plaats van het gemaakte verkeersgeruis. Overdag
-   de lange, 's nachts de korte; ze vloeien in ACHTERGROND.wissel tellen in elkaar over. Binnen zachter en doffer.
-   Twee streamende elementen (de lange is bijna zeven minuten: als buffer zou dat 140 MB zijn). Levert true
-   zolang er een speelt.
+   De achtergrond (stap 127): een opname van de gebruiker in plaats van het gemaakte verkeersgeruis; sinds stap 139
+   stad.mp3, dag en nacht, 's nachts zachter (zie ACHTERGROND). Binnen zachter en doffer. Een streamend element
+   (elf minuten: als buffer zou dat ruim 200 MB zijn). Levert true zolang hij speelt.
   */
   /*
    `stad` (0…1, stap 130): hoe bebouwd het rond je is. Gevraagd: "Laat het ambient achtergrond muziek dat we nu hebben
@@ -2250,36 +2269,31 @@ export const geluid = {
     if (!bronnen.bed) {
       const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 18000;
       filter.connect(hoofd);
-      const maak = (k) => {
-        const el = new Audio(); el.crossOrigin = 'anonymous'; el.preload = 'auto'; el.loop = true; el.src = ACHTERGROND[k].url;
-        const g = ctx.createGain(); g.gain.value = 0;
-        const b = { el, gain: g, stuk: false, aan: false };
-        try { ctx.createMediaElementSource(el).connect(g); g.connect(filter); } catch { b.stuk = true; }
-        el.addEventListener('error', () => { b.stuk = true; });
-        return b;
-      };
-      bronnen.bed = { dagB: maak('dag'), nachtB: maak('nacht'), filter };
+      const el = new Audio(); el.crossOrigin = 'anonymous'; el.preload = 'auto'; el.loop = true; el.src = ACHTERGROND.stad.url;
+      const g = ctx.createGain(); g.gain.value = 0;
+      const b = { el, gain: g, stuk: false, aan: false };
+      try { ctx.createMediaElementSource(el).connect(g); g.connect(filter); } catch { b.stuk = true; }
+      el.addEventListener('error', () => { b.stuk = true; });
+      bronnen.bed = { b, filter, nacht: false };
     }
-    const B = bronnen.bed, t = nu();
-    let speelt = false;
-    for (const [k, b] of [['dag', B.dagB], ['nacht', B.nachtB]]) {
-      if (b.stuk) continue;
-      const wil = (k === 'nacht') === !!nacht;
-      const vol = wil && !gepauzeerd ? ACHTERGROND[k].vol * (binnen ? ACHTERGROND.binnen : 1) * (0.2 + 0.8 * stad) * (nacht ? ACHTERGROND.nachtStil : 1) : 0;
-      b.gain.gain.setTargetAtTime(vol, t, ACHTERGROND.wissel / 3);
-      if (wil && !b.aan) { b.aan = true; b.el.play().catch(() => {}); }
-      // de andere pas stilzetten als hij is uitgedoofd
-      if (!wil && b.aan && b.gain.gain.value < 0.003) { b.aan = false; b.el.pause(); }
-      if (wil && !b.el.paused) speelt = true;
-    }
+    const B = bronnen.bed, b = B.b, t = nu();
+    B.nacht = !!nacht;
+    if (b.stuk) return false;
+    const wil = !gepauzeerd;
+    const vol = wil ? ACHTERGROND.stad.vol * (binnen ? ACHTERGROND.binnen : 1) * (0.2 + 0.8 * stad) * (nacht ? ACHTERGROND.nachtStil : 1) : 0;
+    b.gain.gain.setTargetAtTime(vol, t, ACHTERGROND.wissel / 3);
+    if (wil && !b.aan) { b.aan = true; b.el.play().catch(() => {}); }
+    // pas stilzetten als hij is uitgedoofd
+    if (!wil && b.aan && b.gain.gain.value < 0.0005) { b.aan = false; b.el.pause(); }
     B.filter.frequency.setTargetAtTime(binnen ? 900 : 18000, t, 0.8);
-    return speelt;
+    return wil && !b.el.paused;
   },
   achtergrondStand() {
     const B = bronnen.bed;
     if (!B) return null;
-    const st = b => ({ aan: b.aan, speelt: !b.el.paused, stuk: b.stuk, volume: +b.gain.gain.value.toFixed(3), bestand: b.el.src.split('/').pop() });
-    return { dag: st(B.dagB), nacht: st(B.nachtB), filter: Math.round(B.filter.frequency.value) };
+    const b = B.b;
+    return { aan: b.aan, speelt: !b.el.paused, stuk: b.stuk, volume: +b.gain.gain.value.toFixed(4), nacht: B.nacht,
+      bestand: b.el.src.split('/').pop(), filter: Math.round(B.filter.frequency.value) };
   },
 
   // ---------- omgeving per beeld ----------

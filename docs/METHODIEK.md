@@ -8276,6 +8276,44 @@ viaduct_na_1…6.png in docs/screenshots — 1 zoals 6.webp, 2 zoals 7.webp, 3 v
 de bak, 6 zoals 4.png bij nacht. Een eigen camera buiten de hoofdlus moet de luchtbol meenemen (die volgt de camera in
 de lus); anders hangt er een zwart gat in de lucht.
 
+**Geluiden van de M1 en de stad (stap 139, 11 okt).**
+
+Drie opnames van de gebruiker: `audio/wapen/m1_clip.mp3` ("clip ejection geluid voor de m1 … klinkt wat luid nu"),
+`audio/wapen/m1_schot.mp3` (een schot van de M1 Garand) en `audio/sfeer/stad.mp3` ("als ambient geluid voor in stad
+ter vervanging wat we nu hebben. Speel het heel zacht af"; een snelweg in de verte, 10,8 MB, ruim elf minuten). Er is
+geen ffmpeg in de container, dus alles is in de browser gemeten (`decodeAudioData`, de kanalen gemiddeld, RMS over de
+eerste 300 ms vanaf waar het geluid begint):
+
+| opname | begint op | houdt op (−50 dB) | piek | RMS 300 ms | gain | in het spel |
+|---|---|---|---|---|---|---|
+| schot.mp3 (pistool / sniper) | 0,081 s | — | −3,9 dB | −17,5 dB | 1,15 / 1,35 | −16,3 / −14,9 dB |
+| m1_schot.mp3 | 0,041 s | 1,84 s | +1,0 dB | −7,2 dB | 0,46 | −14,0 dB |
+| m1_clip.mp3 | 0,201 s | 0,87 s | −3,1 dB | −14,8 dB | 0,23 | −27,6 dB |
+
+- *Het schot*: één knal met een naklank die gestaag wegzakt (na 150 ms nergens meer dan 2 dB stijging; geen tweede
+  schot en geen ping erachter). Hij speelt vanaf 0,041 s tot het gemeten einde (`src.start(t0, begin, eind − begin)`),
+  0,9 dB boven de sniper en 2,3 boven het pistool: een .30-06 mag zwaarder, maar niet veel. Afspeelsnelheid 1 (met
+  ±4 % per schot); de oude garand speelde schot.mp3 op 0,84 en 1,42 en blijft dat doen als de opname niet laadt
+  (`SCHOT.garand.terug`). Afstand (zachter, laagdoorlaat) en afkappen per bron zijn dezelfde code als voor de rest.
+- *De ping*: vóór de ping zit 0,2 s stilte en zacht geritsel (−60 dB); `knipOpname` begint op de eerste 5 ms boven
+  −30 dB van de piek, dus op de ping zelf, gelijk met de clip die wegspringt. 0,23 legt hem 13,6 dB onder het
+  garandschot: duidelijk hoorbaar, niet luid. De gemaakte ping blijft als terugval. `knipOpname` (begin en einde,
+  over alle kanalen) doet nu ook het begin van schot.mp3.
+- *De stad*: in 100 s aan het begin −25,6 dB RMS, in het midden −27,9; achtergrond1 (de oude dag) −32,0 / −31,3. Met
+  0,023 klinkt hij −58 tot −61 dB tegen −50 dB voor de oude dag (0,12): 8 tot 11 dB zachter. De schaal met `stad`
+  (buiten de bebouwing een vijfde) blijft; 's nachts `nachtStil` 0,4 (was 0,5). Eén opname voor dag en nacht, dus
+  achtergrond2 is uit de code (beide oude bestanden blijven staan). Nog steeds een streamend element: als buffer
+  zou elf minuten ruim 200 MB zijn, en de valkuil van stap 128 (de lange opname die een proef platlegt) geldt nog.
+  `wensentest` en `wensen2test` keken naar `ACHTERGROND.dag/nacht`; die controles toetsen nu `stad.mp3`.
+
+*Proef*: `npm run m1geluidtest` laadt alleen js/audio.js (dat importeert niets) op een lege pagina, dus in een
+minuut: de bestanden (geen 404), de niveaus hierboven, de garand uit m1_schot.mp3 vanaf de knal en alleen het eerste
+schot, het niveau tegen sniper en pistool, op 60 m (gain 0,46 → 0,115, laagdoorlaat 12000 → 4050 Hz), het afkappen,
+de ping uit de opname 12–15 dB onder het schot, de terugvallen, en de achtergrond (stad.mp3, dag 0,0227, land 0,0048,
+nacht 0,0092). Alles goed. `npm run m1test` (de ping na het achtste schot en bij R met een halve clip): M1TEST_UITKOMST.
+Valkuil: de Playwright in node_modules wil een nieuwere Chromium dan er in /opt/pw-browsers staat; de proeven draaien
+met `CHROME_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

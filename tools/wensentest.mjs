@@ -111,8 +111,9 @@ const gl = await page.evaluate(async () => {
   return uit;
 });
 ok(gl.opnames.explosie > 2.5 && gl.opnames.heli > 9 && gl.opnames.politieRadio > 30, 'de opnames zijn binnen', JSON.stringify(gl.opnames));
-ok(gl.dag && gl.dag.dag.bestand === 'achtergrond1.mp3' && gl.dag.dag.aan && !gl.dag.dag.stuk && gl.dag.dag.volume > 0.1, 'overdag de lange achtergrond', JSON.stringify(gl.dag && gl.dag.dag));
-ok(gl.nacht && gl.nacht.nacht.aan && gl.nacht.nacht.volume > 0.1 && gl.nacht.dag.volume < 0.1, "'s nachts de korte, de dag vloeit weg", `${JSON.stringify(gl.nacht.nacht)} / dag ${gl.nacht.dag.volume}`);
+// (stap 139: één opname voor dag en nacht, stad.mp3, 's nachts zachter)
+ok(gl.dag && gl.dag.bestand === 'stad.mp3' && gl.dag.aan && !gl.dag.stuk && gl.dag.volume > 0.005, 'overdag de stadsachtergrond', JSON.stringify(gl.dag));
+ok(gl.nacht && gl.nacht.aan && gl.nacht.nacht && gl.nacht.volume < gl.dag.volume, "'s nachts dezelfde, zachter", `${JSON.stringify(gl.nacht)} / dag ${gl.dag.volume}`);
 ok(gl.binnen && gl.binnen.filter < 2000, 'binnen doffer', String(gl.binnen && gl.binnen.filter));
 ok(gl.knallen === 2, 'de explosie speelt de opname', `${gl.knallen}`);
 ok(gl.radioEerste === 1 && gl.radioTweede === 1 && gl.radio && gl.radio.duur >= 5 && gl.radio.duur <= 8 && gl.radio.in <= 0.5 && gl.radio.uit <= 1,

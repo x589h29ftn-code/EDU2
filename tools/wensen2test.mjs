@@ -82,10 +82,10 @@ const gl = await page.evaluate(async () => {
   try { gn.gain.value = NaN; gn.gain.setTargetAtTime(NaN, 0, 0.1); gn.gain.linearRampToValueAtTime(Infinity, 1); } catch (e) { gooit = true; }
   const bron = await fetch('/js/audio.js').then(r => r.text());
   const expl = (bron.match(/g\.gain\.value = Math\.min\(([\d.]+), ([\d.]+) \* v\)/) || []).slice(1).map(Number);
-  return { dag: A.ACHTERGROND.dag.vol, nacht: A.ACHTERGROND.nacht.vol, heli: A.HELI_ROND.luid, muziek: A.HELI_MUZIEK.vol,
+  return { dag: A.ACHTERGROND.stad.vol, nacht: A.ACHTERGROND.stad.vol * A.ACHTERGROND.nachtStil, heli: A.HELI_ROND.luid, muziek: A.HELI_MUZIEK.vol,
     nan: gn.gain.value, gooit, expl };
 });
-ok(gl.dag <= 0.55 * 0.25 && gl.nacht <= 0.30 * 0.25, 'de achtergronden minstens 75 % zachter', `dag ${gl.dag} (was 0,55), nacht ${gl.nacht} (was 0,30)`);
+ok(gl.dag <= 0.55 * 0.25 && gl.nacht <= 0.30 * 0.25, 'de achtergronden minstens 75 % zachter', `dag ${gl.dag} (was 0,55), nacht ${gl.nacht.toFixed(4)} (was 0,30; sinds stap 139 één opname, stad.mp3)`);
 ok(gl.expl.length === 2 && gl.expl[1] < 0.95, 'de explosie zachter', `${gl.expl.join(' / ')} (was 0,95 per luid)`);
 ok(gl.muziek / gl.heli > (0.5 / 2.6) * 2.5, 'de heli zachter tegen het muziekje', `muziek ${gl.muziek}, wieken ${gl.heli} (was 0,5 en 2,6)`);
 ok(gl.nan === 0.5 && !gl.gooit, 'een NaN in een AudioParam wordt geweigerd', `waarde ${gl.nan}`);
