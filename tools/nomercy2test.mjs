@@ -254,7 +254,9 @@ const drie = await page.evaluate(() => {
   const l = { groot: 0, t: 0, alarm: false, eind: 99, punten: pad ? pad.length : 0 };
   for (const [px, pz] of pad || []) {
     const s = window.__loop(px, pz, 2.2, 6);
-    l.groot = Math.max(l.groot, s.groot); l.t += s.t; l.alarm = l.alarm || s.alarm;
+    l.t += s.t; l.alarm = l.alarm || s.alarm;
+    const c = v.noMercy.cam.groep;
+    if (l.t > 2 && c.visible) l.groot = Math.max(l.groot, Math.hypot(c.position.x - P.pos.x, c.position.z - P.pos.z));
     if (v.noMercy.fase !== 'kamp') break;
   }
   l.eind = Math.hypot(P.pos.x - (i.x - 0.6), P.pos.z - i.z);
@@ -520,10 +522,12 @@ const tien = await page.evaluate(() => {
   v.herstel(s); window.__stap(2);
   uit.laden = { leeg: window.__leeg(), fase: v.noMercy.fase };
   // X tijdens de keuze doet niets
-  g.player.active = false;
-  window.__naMissie5(); window.__naarKamp(); window.__totCloseup(); window.__klik(); window.__stilOp();
+  g.player.active = false; P.health = 100;
+  const f = [];
+  window.__naMissie5(); f.push(v.noMercy.fase); window.__naarKamp(); f.push(v.noMercy.fase); window.__totCloseup(); f.push(v.noMercy.fase);
+  window.__klik(); window.__stilOp(); f.push(v.noMercy.fase);
   window.__klik(6); window.__stap(2); window.__klik(6); window.__stap(2);
-  uit.xKeuze = { x: v.klusAfbreken(), fase: v.noMercy.fase };
+  uit.xKeuze = { x: v.klusAfbreken(), fase: v.noMercy.fase, f: f.join('>'), meld: window.__meld.slice(-1)[0] };
   v.kiesHuis(1); window.__klik(); window.__stap(4);
   return uit;
 });
