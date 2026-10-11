@@ -7,6 +7,7 @@
    m1_ping.png       net na het achtste schot: de grendel open en de lege clip die omhoog wegspringt
    m1_herladen.png   tijdens het herladen: de hand met de volle clip (2 × 4) boven de open grendel
    m1_zij.png        het hele geweer van opzij (rechts), zonder handen: naast de zijfoto te leggen (stap 133)
+   m1_dichtbij.png   de kast, de hendel, het hout en de riem van dichtbij en schuin: de doeken (stap 134)
 
  Schrijft ook het aantal driehoeken van het model (alles in `groep`, zonder de losse hulzen en de damp).
 
@@ -86,6 +87,15 @@ await page.setContent(`<!doctype html><html><head>
     const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
   });
   window.__tris = tris;
+  // het textuurgeheugen van het wapen (stap 134): elk doek één keer, vier bytes per beeldpunt, plus een derde voor de mipmaps
+  const tex = new Set();
+  w.groep.traverse(o => {
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material)) for (const k of ['map', 'normalMap', 'roughnessMap']) if (m[k]) tex.add(m[k]);
+  });
+  let bytes = 0; const maten = {};
+  for (const t of tex) { const b = t.image.width, h = t.image.height; bytes += b * h * 4 * 4 / 3; maten[b] = (maten[b] || 0) + 1; }
+  window.__geheugen = { mb: +(bytes / 1048576).toFixed(1), doeken: tex.size, maten };
   for (const d of [w.delen.hand, w.delen.arm, w.delen.linkerhand]) d.visible = false;
   cam.remove(w.groep); scene.add(w.groep);
   w.groep.position.set(0, 0, 0); w.groep.rotation.set(0, 0, 0); w.groep.updateMatrixWorld(true);
@@ -93,11 +103,16 @@ await page.setContent(`<!doctype html><html><head>
   const zij = new THREE.PerspectiveCamera(20, ${B / H}, 0.05, 20);
   zij.position.set(2.0, 0.0, -0.22); zij.lookAt(0, -0.02, -0.22);
   r.render(scene, zij); uit.zij = r.domElement.toDataURL('image/png');
+  // van dichtbij, schuin van rechtsboven op de kast, de hendel en het hout: zie je de doeken (stap 134)
+  const dicht = new THREE.PerspectiveCamera(30, ${B / H}, 0.01, 20);
+  dicht.position.set(0.20, 0.13, 0.10); dicht.lookAt(0.0, 0.0, -0.13);
+  r.render(scene, dicht); uit.dichtbij = r.domElement.toDataURL('image/png');
   window.__fotos = uit;
 </script></body></html>`);
 await page.waitForFunction(() => window.__fotos, null, { timeout: 120000 });
 const fotos = await page.evaluate(() => window.__fotos);
 console.log('driehoeken in het model:', await page.evaluate(() => window.__tris));
+console.log('textuurgeheugen van het wapen:', JSON.stringify(await page.evaluate(() => window.__geheugen)));
 const { writeFileSync } = await import('node:fs');
 for (const [naam, data] of Object.entries(fotos)) {
   const pad = `${map}/m1_${naam}.png`;

@@ -44,7 +44,7 @@
    rent, ademt als je stilstaat, en blijft een fractie achter als je omkijkt.
 */
 import * as THREE from 'three';
-import { rng, _normaalDoek } from './textures.js';
+import { rng, _normaalDoek, anisotropie } from './textures.js';
 
 export const HERLAADTIJD = 1.55;
 
@@ -94,14 +94,16 @@ function ruis(g, S, sterkte, r) {
  * drie tekenvlakken: de kleur, de ruwheid (grijs: wit is dof) en de hoogte
  * (grijs: wit is hoog) waar de normal map uit komt.
  */
-function doekSet(naam, teken, reliëf = 1) {
+function doekSet(naam, teken, reliëf = 1, maat = DOEK) {
   if (doeken.has(naam)) return doeken.get(naam);
-  const k = nieuwDoek(), w = nieuwDoek(), h = nieuwDoek();
+  const k = nieuwDoek(maat), w = nieuwDoek(maat), h = nieuwDoek(maat);
   const r = rng(naam.length * 977 + naam.charCodeAt(0));
-  const gk = k.getContext('2d'), gw = w.getContext('2d'), gh = h.getContext('2d');
-  gh.fillStyle = '#808080'; gh.fillRect(0, 0, DOEK, DOEK);
-  teken(gk, gw, gh, r);
+  const gk = k.getContext('2d', { willReadFrequently: maat > DOEK }), gw = w.getContext('2d', { willReadFrequently: maat > DOEK }), gh = h.getContext('2d', { willReadFrequently: maat > DOEK });
+  gh.fillStyle = '#808080'; gh.fillRect(0, 0, maat, maat);
+  teken(gk, gw, gh, r, maat);
   const set = { map: alsTexture(k, true), roughnessMap: alsTexture(w, false), normalMap: reliëf ? alsTexture(_normaalDoek(h, reliëf), false) : null };
+  // de grote doeken (stap 134, de M1) blijven ook schuin en van dichtbij scherp: zoveel anisotropie als de kaart kan
+  if (maat > DOEK) for (const t of Object.values(set)) if (t) t.anisotropy = Math.max(8, anisotropie());
   doeken.set(naam, set);
   return set;
 }
@@ -1279,82 +1281,200 @@ const GSTAP = {
   terug: [0.84, 1.00],      // terug in de aanslag
 };
 
-// geparkeerd staal: grijsgroen, dof, met een fijne korrel, slijpsporen in de lengte en hier en daar een blank geschuurde plek
-const parkerDoek = () => doekSet('parker', (k, w, h, r) => {
-  k.fillStyle = '#585c54'; k.fillRect(0, 0, S, S);
-  w.fillStyle = '#b8b8b8'; w.fillRect(0, 0, S, S);
-  ruis(k, S, 18, r); ruis(w, S, 30, r); ruis(h, S, 36, r);
-  // vlekkerig: het fosfaat is nooit egaal
-  for (let i = 0; i < 70; i++) {
-    const x = r() * S, y = r() * S, rr = 6 + r() * 26;
-    const gr = k.createRadialGradient(x, y, 0, x, y, rr);
-    gr.addColorStop(0, r() < 0.5 ? 'rgba(40,44,38,0.22)' : 'rgba(120,124,112,0.16)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    k.fillStyle = gr; k.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+/*
+ De doeken van de M1, derde ronde (stap 134: "ook de texture kwaliteit verhogen"). Tot stap 133 waren ze 256 × 256 zoals
+ alle andere wapendoeken; het walnoot herhaalde om de 26 cm en was op de hiel van dichtbij een paar vegen. Nu:
+ walnoot 1024, geparkeerd staal en de stempel 512, het leer van de riem 512, messing 256. Alles herhaalt naadloos:
+ de ruis is een rooster dat over de rand doorloopt (`tegelRuis`), en elke golf heeft een heel aantal perioden per doek.
+*/
+// zachte ruis met nx × ny cellen over het doek, naadloos; waarden 0..1
+function tegelRuis(S, nx, ny, r) {
+  const g = Float32Array.from({ length: nx * ny }, () => r());
+  const uit = new Float32Array(S * S);
+  const sx = new Float32Array(S), x0 = new Int32Array(S), x1 = new Int32Array(S);
+  for (let x = 0; x < S; x++) {
+    const f = x / S * nx, i = Math.floor(f), t = f - i;
+    x0[x] = i; x1[x] = (i + 1) % nx; sx[x] = t * t * (3 - 2 * t);
   }
-  for (let i = 0; i < 60; i++) {
-    const x = r() * S, y = r() * S, L = 8 + r() * 50;
-    k.fillStyle = 'rgba(140,144,136,0.20)'; k.fillRect(x, y, L, 1);
-    w.fillStyle = 'rgba(60,60,60,0.35)'; w.fillRect(x, y, L, 1);
+  for (let y = 0; y < S; y++) {
+    const f = y / S * ny, j = Math.floor(f), t = f - j, sy = t * t * (3 - 2 * t);
+    const r0 = j * nx, r1 = ((j + 1) % ny) * nx;
+    for (let x = 0; x < S; x++) {
+      const a = g[r0 + x0[x]], b = g[r0 + x1[x]], c = g[r1 + x0[x]], d = g[r1 + x1[x]];
+      const o = a + (b - a) * sx[x], n = c + (d - c) * sx[x];
+      uit[y * S + x] = o + (n - o) * sy;
+    }
   }
-}, 0.45);
+  return uit;
+}
+// een paar lagen ruis op elkaar, grof tot fijn; weer 0..1
+function lagenRuis(S, nx, ny, lagen, r) {
+  const uit = new Float32Array(S * S);
+  let som = 0;
+  for (let l = 0, a = 1; l < lagen; l++, a *= 0.5) {
+    const f = 1 << l, n = tegelRuis(S, nx * f, ny * f, r);
+    for (let i = 0; i < n.length; i++) uit[i] += n[i] * a;
+    som += a;
+  }
+  for (let i = 0; i < uit.length; i++) uit[i] /= som;
+  return uit;
+}
+const klem = (v, a = 0, b = 1) => v < a ? a : v > b ? b : v;
+const stapZacht = (a, b, v) => { const t = klem((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+// drie vlakken in één keer vullen: f(i, x, y) zet kleur (k), ruwheid (w) en hoogte (h), elk 0..255
+function vulPerPunt(gk, gw, gh, S, f) {
+  const K = gk.createImageData(S, S), W = gw.createImageData(S, S), H = gh.createImageData(S, S);
+  const uit = { r: 0, g: 0, b: 0, w: 0, h: 0 };
+  for (let y = 0, i = 0; y < S; y++) for (let x = 0; x < S; x++, i++) {
+    f(i, x, y, uit);
+    const j = i * 4;
+    K.data[j] = uit.r; K.data[j + 1] = uit.g; K.data[j + 2] = uit.b; K.data[j + 3] = 255;
+    W.data[j] = W.data[j + 1] = W.data[j + 2] = uit.w; W.data[j + 3] = 255;
+    H.data[j] = H.data[j + 1] = H.data[j + 2] = uit.h; H.data[j + 3] = 255;
+  }
+  gk.putImageData(K, 0, 0); gw.putImageData(W, 0, 0); gh.putImageData(H, 0, 0);
+}
 
 /*
- De stempel op de hiel van de kast (stap 133), zoals op de foto van achteren: "U.S. RIFLE / CAL. .30 M1 /
- SPRINGFIELD / ARMORY" en een serienummer. Hetzelfde geparkeerde staal als `parkerDoek`, met de letters
- erin geslagen: lager in de hoogte (dus een rand in de normal map) en lichter, waar het fosfaat eruit is.
+ Geparkeerd staal: een dofgrijze laag met een groene zweem en een fijne kristalkorrel (de korrel zit ook in de hoogte,
+ dus het licht breekt er een beetje op), vlekkerig omdat het fosfaat nooit egaal is, en waar het hout en de handen
+ erlangs wrijven blank gesleten: lichter, zilverig en gladder.
 */
-const stempelDoek = () => doekSet('stempel', (k, w, h, r) => {
-  k.fillStyle = '#5a5e56'; k.fillRect(0, 0, S, S);
-  w.fillStyle = '#b4b4b4'; w.fillRect(0, 0, S, S);
-  ruis(k, S, 18, r); ruis(w, S, 30, r); ruis(h, S, 50, r);
-  // in het midden glimt het een beetje: daar wrijft je wang
-  const gr = k.createRadialGradient(S / 2, S * 0.55, 10, S / 2, S * 0.55, S * 0.6);
-  gr.addColorStop(0, 'rgba(150,150,140,0.20)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-  k.fillStyle = gr; k.fillRect(0, 0, S, S);
-  const regels = [['U.S. RIFLE', 30], ['CAL. .30 M1', 30], ['SPRINGFIELD', 28], ['ARMORY', 30], ['2009029', 34]];
-  k.textAlign = h.textAlign = w.textAlign = 'center';
-  k.textBaseline = h.textBaseline = w.textBaseline = 'middle';
-  regels.forEach(([tekst, px], i) => {
-    const y = 44 + i * 42 + (i === 4 ? 8 : 0);
-    for (const g of [k, h, w]) g.font = `bold ${px}px "DejaVu Sans Mono", monospace`;
-    h.fillStyle = '#262626'; h.fillText(tekst, S / 2, y);
-    w.fillStyle = '#6a6a6a'; w.fillText(tekst, S / 2, y);
-    k.fillStyle = 'rgba(30,32,28,0.55)'; k.fillText(tekst, S / 2 + 1, y + 1);
-    k.fillStyle = 'rgba(196,198,186,0.80)'; k.fillText(tekst, S / 2, y);
+function tekenParker(k, w, h, r, S) {
+  const vlek = lagenRuis(S, 4, 4, 3, r), slijt = lagenRuis(S, 6, 6, 3, r), korrel = tegelRuis(S, S / 4, S / 4, r);
+  vulPerPunt(k, w, h, S, (i, x, y, u) => {
+    const fijn = r() - 0.5, kk = korrel[i] - 0.5;
+    const v = (vlek[i] - 0.5) * 2;
+    const blank = stapZacht(0.70, 0.86, slijt[i]) * 0.6;
+    // grijsgroen; de vlekken trekken naar groener of grijzer
+    let R = 72 + v * 6 + fijn * 7 + kk * 6, G = 75 + v * 5 + fijn * 7 + kk * 6, B = 70 + v * 2 + fijn * 6 + kk * 5;
+    R += (128 - R) * blank; G += (130 - G) * blank; B += (126 - B) * blank;
+    u.r = klem(R, 0, 255); u.g = klem(G, 0, 255); u.b = klem(B, 0, 255);
+    u.w = klem(205 + fijn * 30 + v * 12 - blank * 95, 0, 255);
+    u.h = klem(128 + kk * 40 + fijn * 24, 0, 255);
   });
-}, 0.9);
+  // slijpsporen en krassen in de lengte: blank, glad, iets lager
+  for (let i = 0; i < S * 0.12; i++) {
+    const x = r() * S, y = r() * S, L = S * (0.02 + r() * 0.10), a = (r() - 0.5) * 0.12;
+    const dx = Math.cos(a) * L, dy = Math.sin(a) * L, bd = S / 512 * (0.6 + r() * 0.8);
+    for (const [g, kl] of [[k, `rgba(150,152,146,${0.08 + r() * 0.18})`], [w, 'rgba(70,70,70,0.25)'], [h, 'rgba(90,90,90,0.25)']]) {
+      g.strokeStyle = kl; g.lineWidth = bd; g.beginPath(); g.moveTo(x, y); g.lineTo(x + dx, y + dy); g.stroke();
+    }
+  }
+  // putjes
+  for (let i = 0; i < S * 0.5; i++) {
+    const x = r() * S, y = r() * S, rr = S / 512 * (0.6 + r() * 1.2);
+    k.fillStyle = 'rgba(40,42,38,0.45)'; k.beginPath(); k.arc(x, y, rr, 0, Math.PI * 2); k.fill();
+    h.fillStyle = 'rgba(40,40,40,0.7)'; h.beginPath(); h.arc(x, y, rr, 0, Math.PI * 2); h.fill();
+  }
+}
+const parkerDoek = () => doekSet('parker512', (k, w, h, r, S) => tekenParker(k, w, h, r, S), 0.55, 512);
 
-// walnoot: roodbruin, geolied, met lange nerven, donkere strepen in de lengte en lichte plekken waar het hout gesleten is
-const walnootDoek = () => doekSet('walnoot', (k, w, h, r) => {
-  const d = k.createImageData(S, S), p = d.data;
-  // alles in hele golven over het doek, zodat het naadloos herhaalt: anders zie je om de 26 cm een naad in de kolf
-  const T = Math.PI * 2 / S;
-  const golf = [1, 1, 2].map((n) => [r() * 6, n, 3 + r() * 5]);
-  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    let o = 0; for (const [f, n, a] of golf) o += Math.sin(x * n * T + f) * a;
-    const ring = 0.5 + 0.5 * Math.sin((y + o) * 9 * T);
-    const vlam = 0.5 + 0.5 * Math.sin(y * 2 * T + Math.sin(x * T) * 2.2);
-    const donker = Math.pow(ring, 5) * 0.32 + vlam * 0.16 + (r() - 0.5) * 0.06;
-    const i = (y * S + x) * 4;
-    p[i] = 96 - donker * 50; p[i + 1] = 52 - donker * 27; p[i + 2] = 34 - donker * 18; p[i + 3] = 255;
+/*
+ De stempel op de hiel van de kast, zoals op de foto van achteren: "U.S. RIFLE / CAL. .30 M1 / SPRINGFIELD / ARMORY"
+ en een serienummer. Hetzelfde staal als `parkerDoek`, op 512 (stap 134) en met de letters echt ingeslagen: in de
+ hoogte een putje met een opgeworpen randje eromheen, in de kleur lichter in de bodem en een schaduw aan de bovenkant.
+*/
+const stempelDoek = () => doekSet('stempel512', (k, w, h, r, S) => {
+  tekenParker(k, w, h, r, S);
+  // in het midden glimt het een beetje: daar wrijft je wang
+  const gr = k.createRadialGradient(S / 2, S * 0.55, S * 0.04, S / 2, S * 0.55, S * 0.6);
+  gr.addColorStop(0, 'rgba(150,152,144,0.22)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  k.fillStyle = gr; k.fillRect(0, 0, S, S);
+  const m = S / 256;
+  const regels = [['U.S. RIFLE', 30], ['CAL. .30 M1', 30], ['SPRINGFIELD', 28], ['ARMORY', 30], ['2009029', 34]];
+  for (const g of [k, h, w]) { g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; }
+  regels.forEach(([tekst, px], i) => {
+    const y = (44 + i * 42 + (i === 4 ? 8 : 0)) * m, x = S / 2;
+    for (const g of [k, h, w]) g.font = `bold ${px * m}px "DejaVu Sans Mono", monospace`;
+    // de hoogte: een opgeworpen rand, dan het putje
+    h.strokeStyle = 'rgba(200,200,200,0.8)'; h.lineWidth = 3 * m; h.strokeText(tekst, x, y);
+    h.fillStyle = '#1c1c1c'; h.fillText(tekst, x, y);
+    w.fillStyle = '#7a7a7a'; w.fillText(tekst, x, y);
+    // de kleur: de schaduw van de bovenrand in het putje, dan de lichtere bodem een fractie lager
+    k.fillStyle = 'rgba(26,28,24,0.85)'; k.fillText(tekst, x, y);
+    k.save(); k.beginPath(); k.rect(0, y - px * m, S, px * m * 2); k.clip();
+    k.fillStyle = 'rgba(178,180,170,0.85)'; k.fillText(tekst, x + 0.8 * m, y + 1.2 * m);
+    k.restore();
+  });
+}, 0.9, 512);
+
+/*
+ Walnoot, zoals op de foto van het geweer op de stoel: warm middenbruin (niet rood), een lange nerf die zacht golft,
+ donkere lijnen van fijn tot breed, een beetje vlam dwars op de nerf, de poriën als korte streepjes in de lengte,
+ een zachte lak (halfglanzend, de poriën doffer) en lichtere, gladde plekken waar handen het hout hebben gesleten.
+ 1024 × 1024 voor 0,40 m × 0,10 m: in de lengte 2,5 beeldpunten per millimeter, dwars 10.
+*/
+const walnootDoek = () => doekSet('walnoot1024', (k, w, h, r, S) => {
+  const T = Math.PI * 2;
+  const golfGroot = lagenRuis(S, 2, 6, 3, r), golfKlein = lagenRuis(S, 4, 14, 2, r);
+  const streep = lagenRuis(S, 2, 18, 3, r), vlamR = tegelRuis(S, 3, 4, r), slijt = lagenRuis(S, 3, 3, 3, r);
+  const breedte = lagenRuis(S, 3, 10, 2, r);
+  const LIJNEN = 15;
+  vulPerPunt(k, w, h, S, (i, x, y, u) => {
+    const ux = x / S, vy = y / S;
+    const fase = vy * LIJNEN * T + (golfGroot[i] - 0.5) * 24 + (golfKlein[i] - 0.5) * 3;
+    // de donkere lijnen zijn niet overal even breed: hier een dun haarlijntje, daar een brede baan
+    const lijn = Math.pow(0.5 + 0.5 * Math.cos(fase), 3 + breedte[i] * 16);
+    const fijn = Math.pow(0.5 + 0.5 * Math.cos(fase * 4 + (golfKlein[i] - 0.5) * 6), 12);
+    // brede donkere en lichte banen in de lengte
+    const baan = (streep[i] - 0.5) * 2;
+    // de vlam: een zachte golf van licht dwars over de nerf
+    const vlam = Math.sin(ux * 22 * T + (vlamR[i] - 0.5) * 8 + vy * 3 * T) * 0.5 + 0.5;
+    const sl = stapZacht(0.62, 0.78, slijt[i]);
+    let d = 0.46 + baan * 0.34 + lijn * 0.30 + fijn * 0.12 - vlam * 0.08 + (r() - 0.5) * 0.04;
+    d = klem(d - sl * 0.22);
+    // licht honing → middenbruin → bijna zwart bruin
+    const R = d < 0.5 ? 128 + (92 - 128) * d * 2 : 92 + (44 - 92) * (d - 0.5) * 2;
+    const G = d < 0.5 ? 86 + (58 - 86) * d * 2 : 58 + (27 - 58) * (d - 0.5) * 2;
+    const B = d < 0.5 ? 56 + (37 - 56) * d * 2 : 37 + (17 - 37) * (d - 0.5) * 2;
+    u.r = R; u.g = G; u.b = B;
+    u.w = klem(112 + lijn * 26 + (r() - 0.5) * 10 - sl * 34 - vlam * 8, 0, 255);
+    u.h = klem(150 - lijn * 46 - fijn * 18 + (r() - 0.5) * 6, 0, 255);
+  });
+  // de poriën: korte donkere streepjes in de lengte, doffer en iets dieper
+  for (let i = 0; i < S * 9; i++) {
+    const x = r() * S, y = r() * S, L = S / 1024 * (3 + r() * 12), a = 0.18 + r() * 0.3;
+    k.fillStyle = `rgba(40,20,8,${a})`; k.fillRect(x, y, L, 1);
+    w.fillStyle = 'rgba(200,200,200,0.35)'; w.fillRect(x, y, L, 1);
+    h.fillStyle = 'rgba(40,40,40,0.55)'; h.fillRect(x, y, L, 1);
   }
-  k.putImageData(d, 0, 0);
-  // slijtplekken: lichter en doffer
-  for (let i = 0; i < 7; i++) {
-    const x = r() * S, y = r() * S, rr = 14 + r() * 30;
-    const gr = k.createRadialGradient(x, y, 0, x, y, rr);
-    gr.addColorStop(0, 'rgba(190,120,80,0.22)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    k.fillStyle = gr; k.fillRect(x - rr * 2, y - rr, rr * 4, rr * 2);
+  // gebruikssporen: een paar deukjes en donkere vlekken (geen tegen de rand, dan loopt het doek niet door)
+  for (let i = 0; i < 22; i++) {
+    const x = S * (0.05 + r() * 0.9), y = S * (0.05 + r() * 0.9), rr = S / 1024 * (4 + r() * 10);
+    k.fillStyle = 'rgba(40,20,8,0.18)'; k.beginPath(); k.ellipse(x, y, rr * 3, rr, 0, 0, Math.PI * 2); k.fill();
+    h.fillStyle = 'rgba(60,60,60,0.5)'; h.beginPath(); h.ellipse(x, y, rr * 1.2, rr * 0.5, 0, 0, Math.PI * 2); h.fill();
   }
-  // gebruikssporen: een paar donkere vlekken en deukjes
-  for (let i = 0; i < 18; i++) {
-    const x = r() * S, y = r() * S, rr = 3 + r() * 9;
-    k.fillStyle = 'rgba(40,18,8,0.20)'; k.beginPath(); k.ellipse(x, y, rr * 2, rr, 0, 0, Math.PI * 2); k.fill();
-    h.fillStyle = 'rgba(70,70,70,0.6)'; h.beginPath(); h.arc(x, y, rr * 0.4, 0, Math.PI * 2); h.fill();
+}, 1.3, 1024);
+
+// licht metaal voor de patronen: bijna wit, zodat de kleur van het materiaal er messing of koper van maakt, met
+// polijststrepen rondom (de uv van een cilinder loopt rond) en wat dof aangelopen plekken
+const glansDoek = () => doekSet('glans', (k, w, h, r, S) => {
+  const vlek = lagenRuis(S, 4, 4, 3, r);
+  vulPerPunt(k, w, h, S, (i, x, y, u) => {
+    const v = stapZacht(0.6, 0.8, vlek[i]), f = (r() - 0.5) * 10;
+    u.r = klem(240 - v * 60 + f, 0, 255); u.g = klem(236 - v * 66 + f, 0, 255); u.b = klem(228 - v * 80 + f, 0, 255);
+    u.w = klem(60 + v * 90 + f * 2, 0, 255); u.h = 128 + f;
+  });
+  for (let i = 0; i < 160; i++) {
+    const y = r() * S;
+    k.fillStyle = `rgba(255,255,255,${0.05 + r() * 0.08})`; k.fillRect(0, y, S, 1);
+    w.fillStyle = 'rgba(30,30,30,0.15)'; w.fillRect(0, y, S, 1);
   }
-  w.fillStyle = '#727272'; w.fillRect(0, 0, S, S);
-  for (let i = 0; i < 200; i++) { h.fillStyle = 'rgba(60,60,60,0.5)'; h.fillRect(r() * S, r() * S, 10 + r() * 70, 1); }
-}, 0.5);
+}, 0.2, 256);   // ook een normal map: zonder zou het een ander soort materiaal zijn (een nieuwe shader)
+
+// leer van de riem: middenbruin, een fijne nerf van kleine bultjes, plooien, en donkerder waar hij vaak vastgepakt is
+const leerDoek = () => doekSet('leer', (k, w, h, r, S) => {
+  const vlek = lagenRuis(S, 3, 3, 3, r), nerf = lagenRuis(S, S / 8, S / 8, 2, r), plooi = lagenRuis(S, 2, 12, 2, r);
+  vulPerPunt(k, w, h, S, (i, x, y, u) => {
+    const v = (vlek[i] - 0.5) * 2, n = nerf[i] - 0.5, p = Math.pow(1 - Math.abs(plooi[i] - 0.5) * 2, 8);
+    u.r = klem(118 + v * 16 + n * 20 - p * 14, 0, 255);
+    u.g = klem(68 + v * 10 + n * 13 - p * 9, 0, 255);
+    u.b = klem(36 + v * 6 + n * 8 - p * 5, 0, 255);
+    u.w = klem(150 + n * 50 - v * 20, 0, 255);
+    u.h = klem(128 + n * 120 - p * 50, 0, 255);
+  });
+}, 0.8, 512);
 
 // een mouw van `start` (pols) in richting `dir` (naar je elleboog toe), `L` lang
 function mouwNaar(bk, m, start, dir, L, r1 = 0.037, r2 = 0.042) {
@@ -1443,14 +1563,21 @@ const kromme = (bk, m, punten, r, seg = 16, rond = 6, dicht = false) =>
 export function maakGarand(geluid) {
   const park = mat(0xffffff, 1, 0.35, parkerDoek(), [0.05, 0.05]);
   const parkDonker = mat(0xa0a29c, 1, 0.35, parkerDoek(), [0.04, 0.04]);
+  // de grendel en de spanstang: zwarter en koeler van tint dan de kast, en wat gladder (stap 134)
+  const grendelStaal = mat(0x8a9098, 0.85, 0.45, parkerDoek(), [0.045, 0.045]);
+  const clipStaal = mat(0xd4d8dc, 0.85, 0.30, parkerDoek(), [0.03, 0.03]);
   const blank = mat(0xd8d8d0, 0.75, 0.5, parkerDoek(), [0.03, 0.03]);
   const stempel = mat(0xffffff, 1, 0.35, stempelDoek(), [0.05, 0.05]);
-  const hout = mat(0xd8c6b2, 1, 0, walnootDoek(), [0.26, 0.05]);
+  const hout = mat(0xffffff, 1, 0, walnootDoek(), [0.40, 0.10]);
+  const leer = mat(0xc4b2a6, 1, 0, leerDoek(), [0.08, 0.08]);
   const huid = mat(0xffffff, 1, 0, huidDoek(), [0.07, 0.07]);
   const stof = mat(0xffffff, 1, 0, stofDoek(), [0.05, 0.05]);
   const manchetMat = mat(0x8890a8, 1, 0, stofDoek(), [0.03, 0.03]);
-  const messing = mat(0xc9a24a, 0.28, 1);
-  const koper = mat(0xb8734a, 0.32, 1);
+  // messing en koper met glans (stap 134); de losse hulzen houden het kale messing, want een InstancedMesh met
+  // doeken zou een nieuw soort materiaal zijn
+  const messing = mat(0xd9ae58, 1, 1, glansDoek(), [0.02, 0.02]);
+  const koper = mat(0xd08a62, 1, 1, glansDoek(), [0.02, 0.02]);
+  const messingLos = mat(0xc9a24a, 0.28, 1);
 
   const groep = new THREE.Group();
   const wapen = new THREE.Group();
@@ -1497,6 +1624,8 @@ export function maakGarand(geluid) {
   const fB = bak();
   // het achterste bovenhout: hoog en rond over de loop, van de kast tot de onderste band
   vorm(fB, rondeDoosGeo(0.031, 0.032, 0.208, 0.0135, 3).translate(0, LOOP_Y + 0.004, -0.327), hout);
+  // de stalen klem om het achterste bovenhout (stap 134, de schietfoto en de zijfoto): een dun bandje over de bovenkant
+  vorm(fB, rondeDoosGeo(0.0326, 0.0336, 0.0055, 0.0142, 3).translate(0, LOOP_Y + 0.004, -0.262), park);
   // het voorste bovenhout: rond om de loop, iets dikker in het midden
   {
     const pr = [];
@@ -1595,6 +1724,31 @@ export function maakGarand(geluid) {
   kromme(fB, park, [[0, LOOP_Y - 0.026, -0.648], [0, LOOP_Y - 0.040, -0.652], [0, LOOP_Y - 0.040, -0.668], [0, LOOP_Y - 0.026, -0.672]], 0.0017, 10, 5);
   kromme(fB, park, [[0, -0.010, -0.425], [0, -0.024, -0.430], [0, -0.024, -0.446], [0, -0.010, -0.450]], 0.0017, 10, 5);
   kromme(fB, park, [[0, -0.088, 0.205], [0, -0.102, 0.210], [0, -0.106, 0.226], [0, -0.094, 0.232]], 0.0017, 10, 5);
+  /*
+   De draagriem (stap 134), de M1907 van leer zoals op de zijfoto en de foto op de stoel: van de beugel bij de onderste
+   band naar die onder de kolf, los doorhangend. Twee lagen over elkaar (de riem is dubbel gelegd), twee leren
+   lussen die ze bij elkaar houden, en vooraan de haak in de gaatjes. Een plat buisje: een TubeGeometry die in de
+   dikte (x) is platgedrukt.
+  */
+  {
+    const riem = (punten, dx, breed = 0.027, dik = 0.0032) => {
+      const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(punten.map(p => new THREE.Vector3(dx, p[0], p[1]))), 40, breed / 2, 8, false);
+      const P = g.attributes.position;
+      for (let i = 0; i < P.count; i++) P.setX(i, dx + (P.getX(i) - dx) * dik / breed);
+      g.computeVertexNormals();
+      vorm(fB, g, leer);
+    };
+    const VOOR = [-0.026, -0.437], ACHTER = [-0.104, 0.218];
+    riem([VOOR, [-0.050, -0.400], [-0.086, -0.280], [-0.114, -0.120], [-0.126, 0.010], [-0.124, 0.130], ACHTER], 0.0012);
+    riem([VOOR, [-0.052, -0.398], [-0.088, -0.278], [-0.116, -0.118], [-0.128, 0.012], [-0.126, 0.131], ACHTER], -0.0024);
+    // de lussen om beide lagen en de haak
+    for (const [y, z, a] of [[-0.101, -0.205, 0.22], [-0.128, 0.060, -0.02]]) {
+      const lus = rondeDoosGeo(0.0105, 0.031, 0.016, 0.003, 1);
+      lus.rotateX(a); lus.translate(-0.0006, y, z);
+      vorm(fB, lus, leer);
+    }
+    kromme(fB, blank, [[-0.0035, -0.072, -0.338], [-0.0045, -0.082, -0.330], [-0.0045, -0.088, -0.316], [-0.0035, -0.084, -0.306]], 0.0013, 10, 5);
+  }
   // de korrel: een voetstuk op de mof, twee oren en de post ertussen
   doos(fB, park, 0.017, 0.007, 0.018, 0, LOOP_Y + 0.013, KORREL.z, 0.002);
   for (const sx of [-1, 1]) {
@@ -1621,18 +1775,32 @@ export function maakGarand(geluid) {
   */
   const SLAG = 0.045;
   const rB = bak();
-  doos(rB, park, 0.0205, 0.0140, 0.099, 0, 0.0310, -0.1035, 0.0045, 2);
+  doos(rB, grendelStaal, 0.0205, 0.0140, 0.099, 0, 0.0310, -0.1035, 0.0045, 2);
   doos(rB, blank, 0.0090, 0.0030, 0.070, 0, 0.0372, -0.100, 0.0010);              // de blank gesleten rug
-  doos(rB, parkDonker, 0.0060, 0.0080, 0.010, 0, 0.032, -0.058, 0.0015);          // de achterkant met de slagpin
+  doos(rB, grendelStaal, 0.0060, 0.0080, 0.010, 0, 0.032, -0.058, 0.0015);        // de achterkant met de slagpin
   vorm(rB, new THREE.CylinderGeometry(0.0034, 0.0034, 0.006, 10).rotateZ(Math.PI / 2).translate(0.0115, 0.031, -0.140), parkDonker);   // de rol
-  // de spanstang: achter in de rail, dan naar voren langs het bovenhout
-  staaf(rB, park, [0.0182, 0.0265, -0.125], [0.0190, 0.0265, -0.200], 0.0030);
-  staaf(rB, park, [0.0190, 0.0265, -0.200], [0.0180, 0.0170, -0.260], 0.0030);
-  staaf(rB, park, [0.0180, 0.0170, -0.260], [0.0160, 0.0150, -0.620], 0.0030);
-  // de hendel: een blok op de stang met een haak naar buiten en omhoog
-  doos(rB, park, 0.008, 0.013, 0.030, 0.0222, 0.0255, -0.178, 0.0025);
-  staaf(rB, park, [0.0255, 0.0275, -0.170], [0.0355, 0.0300, -0.176], 0.0055);
-  staaf(rB, park, [0.0355, 0.0300, -0.176], [0.0360, 0.0355, -0.186], 0.0040);
+  /*
+   De spanstang (stap 134, naar de schietfoto en de zijfoto): achter in de rail een rond stuk, dan een platte stalen
+   strook die rechts onder het bovenhout naar voren loopt — op de foto's de donkere baan onder het hout.
+  */
+  staaf(rB, grendelStaal, [0.0182, 0.0265, -0.125], [0.0190, 0.0262, -0.196], 0.0030);
+  staaf(rB, grendelStaal, [0.0190, 0.0262, -0.196], [0.0186, 0.0190, -0.232], 0.0032);
+  doos(rB, grendelStaal, 0.0046, 0.0094, 0.392, 0.0181, 0.0168, -0.426, 0.0015);
+  /*
+   De hendel: geen staafjes meer maar een gebogen plaat zoals op de foto's, een bult die naar achteren omhoog loopt
+   met een ronde top, op een voetstuk dat naar buiten steekt.
+  */
+  doos(rB, grendelStaal, 0.0085, 0.0125, 0.034, 0.0222, 0.0250, -0.180, 0.0028);
+  {
+    const plaat = zijProfiel([
+      [-0.163, 0.020], [-0.163, 0.031], [-0.164, 0.041, -0.172, 0.043], [-0.183, 0.044, -0.191, 0.036], [-0.197, 0.026], [-0.197, 0.020],
+    ], 0.0050, 0.0018, 2, 6);
+    plaat.translate(0.0300, 0, 0);
+    vorm(rB, plaat, grendelStaal);
+    // het verbindingsstuk naar buiten en een blank gesleten top waar je duim hem naar achteren trekt
+    doos(rB, grendelStaal, 0.010, 0.010, 0.026, 0.0262, 0.0235, -0.180, 0.0025);
+    doos(rB, blank, 0.0048, 0.0030, 0.012, 0.0300, 0.0428, -0.176, 0.0012);
+  }
   const grendel = bouw(rB, new THREE.Group());
   wapen.add(grendel);
 
@@ -1652,11 +1820,18 @@ export function maakGarand(geluid) {
   function maakClip(metPatronen) {
     const g = new THREE.Group();
     const cB = bak();
-    const LANG = 0.040;
-    // de zijwangen zijn smalle randen boven en onder (daar haken de bodems achter), ertussen zie je het messing
-    for (const sx of [-1, 1]) for (const sy of [-1, 1]) doos(cB, parkDonker, 0.0012, 0.007, LANG * 0.7, sx * 0.0112, -0.004 + sy * 0.0185, CLIP_Z + 0.020, 0.0005);
-    doos(cB, parkDonker, 0.024, 0.044, 0.0016, 0, -0.004, CLIP_Z + 0.034, 0.0006);     // de rug
-    for (const sy of [-1, 1]) doos(cB, parkDonker, 0.024, 0.0014, 0.012, 0, -0.004 + sy * 0.021, CLIP_Z + 0.029, 0.0005);
+    /*
+     Zoals op de foto's (stap 134): twee dichte zijwangen over de achterste helft van de patronen, elk met een
+     ingeperste ribbel in de lengte en bovenaan een omgezette lip die de bovenste patroon vasthoudt, en de rug over
+     de bodems. Tot stap 133 waren de wangen smalle randjes, en de lege clip die wegvloog een open U.
+    */
+    for (const sx of [-1, 1]) {
+      doos(cB, clipStaal, 0.0011, 0.042, 0.026, sx * 0.0112, -0.004, CLIP_Z + 0.021, 0.0005);
+      doos(cB, clipStaal, 0.0010, 0.026, 0.0045, sx * 0.0119, -0.004, CLIP_Z + 0.019, 0.0005);              // de ribbel
+      doos(cB, clipStaal, 0.0040, 0.0011, 0.020, sx * 0.0094, 0.0172, CLIP_Z + 0.022, 0.0004);              // de lip boven
+      doos(cB, clipStaal, 0.0040, 0.0011, 0.020, sx * 0.0094, -0.0252, CLIP_Z + 0.022, 0.0004);             // en onder
+    }
+    doos(cB, clipStaal, 0.024, 0.044, 0.0014, 0, -0.004, CLIP_Z + 0.034, 0.0006);     // de rug
     bouw(cB, g);
     const patronen = [];
     if (metPatronen) {
@@ -1724,7 +1899,8 @@ export function maakGarand(geluid) {
   const polsL2 = rondeDoosGeo(0.050, 0.050, 0.064, 0.018, 2);
   polsL2.translate(-0.010, -0.062, HZ + 0.050);
   vorm(lB, polsL2, huid);
-  mouwNaar(lB, stof, [-0.016, -0.070, HZ + 0.070], [-0.80, -0.48, 0.46], 0.46);
+  // schuiner naar beneden dan tot stap 133: bij het herladen kantelt het geweer en stond de mouw als een blauwe balk in beeld
+  mouwNaar(lB, stof, [-0.016, -0.070, HZ + 0.070], [-0.52, -0.74, 0.42], 0.46, 0.035, 0.040);
   const linkerhand = bouw(lB, new THREE.Group());
   wapen.add(linkerhand);
 
@@ -1745,7 +1921,7 @@ export function maakGarand(geluid) {
   const polsD = rondeDoosGeo(0.054, 0.050, 0.066, 0.019, 2);
   polsD.translate(0.062, 0.010, CLIP_Z + 0.050);
   vorm(dB, polsD, huid);
-  mouwNaar(dB, stof, [0.070, 0.002, CLIP_Z + 0.072], [0.55, -0.45, 0.70], 0.44, 0.038, 0.043);
+  mouwNaar(dB, stof, [0.070, 0.002, CLIP_Z + 0.072], [0.30, -0.78, 0.55], 0.44, 0.035, 0.040);
   const laadhand = bouw(dB, new THREE.Group());
   laadhand.visible = false;
   wapen.add(laadhand);
@@ -1783,7 +1959,7 @@ export function maakGarand(geluid) {
   groep.add(los);
   const HULZEN = 4;
   const losHuls = new THREE.CylinderGeometry(PATROON.r, PATROON.r * 0.94, PATROON.huls, 10);
-  const hulzen = new THREE.InstancedMesh(losHuls, messing, HULZEN);
+  const hulzen = new THREE.InstancedMesh(losHuls, messingLos, HULZEN);
   hulzen.frustumCulled = false;
   const hulsData = Array.from({ length: HULZEN }, () => ({ t: 9, p: new THREE.Vector3(), v: new THREE.Vector3(), q: new THREE.Quaternion(), w: new THREE.Vector3() }));
   const nul = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -1864,8 +2040,9 @@ export function maakGarand(geluid) {
     const h = hulsData[hulsNr]; hulsNr = (hulsNr + 1) % HULZEN;
     h.t = 0;
     h.p.set(0.004, 0.034, -0.095).applyMatrix4(standMat);
-    // de M1 werpt omhoog en naar rechts uit, hoog over je schouder
-    h.v.set(0.45 + Math.random() * 0.3, 1.25 + Math.random() * 0.35, 0.05 + Math.random() * 0.15);
+    // de M1 werpt omhoog en naar rechts uit, en een beetje naar voren (stap 134, zoals op de schietfoto): eerst vloog
+    // de huls naar achteren, recht langs je oog
+    h.v.set(0.40 + Math.random() * 0.25, 1.15 + Math.random() * 0.30, -0.30 - Math.random() * 0.20);
     h.q.setFromEuler(new THREE.Euler(Math.PI / 2 + (Math.random() - 0.5), Math.random() * 3, 0));
     h.w.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, 18 + Math.random() * 20);
   }
@@ -1875,7 +2052,9 @@ export function maakGarand(geluid) {
     clipVlucht.t = 0;
     clipVlucht.p.set(...CLIP_MIDDEN).applyMatrix4(standMat);
     clipVlucht.q.setFromRotationMatrix(standMat);
-    clipVlucht.v.set(0.38 + Math.random() * 0.12, 1.30 + Math.random() * 0.20, -0.10 - Math.random() * 0.08);
+    // omhoog, naar rechts en vooral naar voren, weg van je oog (stap 134): met 0,1 m/s naar voren vloog hij in een
+    // tiende seconde tot 20 cm voor de camera en was hij een grote donkere vlek
+    clipVlucht.v.set(0.42 + Math.random() * 0.10, 1.05 + Math.random() * 0.15, -0.85 - Math.random() * 0.15);
     clipVlucht.w.set(6 + Math.random() * 6, (Math.random() - 0.5) * 8, -8 - Math.random() * 6);
     legeClip.visible = true;
     clip.g.visible = false;
@@ -1982,7 +2161,7 @@ export function maakGarand(geluid) {
       const uit = soepel(deel(t, GSTAP.kantelen)) - soepel(deel(t, GSTAP.terug));
       // het geweer omhoog, de loop naar linksboven, de bovenkant naar je toe (zie de foto van het laden)
       groep.position.set(RUST.x - 0.060 * uit, RUST.y + 0.040 * uit, RUST.z - 0.150 * uit);
-      groep.rotation.set(RUST_DRAAI.x + 0.20 * uit, RUST_DRAAI.y + 0.30 * uit, RUST_DRAAI.z - 0.46 * uit);
+      groep.rotation.set(RUST_DRAAI.x + 0.20 * uit, RUST_DRAAI.y + 0.30 * uit, RUST_DRAAI.z - 0.30 * uit);
       // de rechterhand laat de greep los en zakt naar rechtsonder weg, en komt aan het eind terug
       const weg = soepel(deel(t, GSTAP.handWeg)) - soepel(deel(t, GSTAP.terugHand));
       hand.position.set(0.12 * weg, -0.22 * weg, 0.06 * weg);

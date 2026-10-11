@@ -62,6 +62,8 @@ export function rng(seed) {
 */
 let ANIS = 8;
 export function zetAnisotropie(n) { ANIS = Math.max(1, Math.min(16, Math.round(n) || 8)); }
+// de waarde die de renderer toestaat (stap 134: de doeken van de M1 gebruiken hem ook)
+export const anisotropie = () => ANIS;
 
 /*
  Van welke soort is dit doek? Dat wordt bij het dóek onthouden en niet bij de

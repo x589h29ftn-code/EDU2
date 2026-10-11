@@ -7917,6 +7917,48 @@ laag rechts en dichtbij, is het achtervizier groot en loopt de loop naar het mid
 **Proeven**: `m1test`. **Foto's**: `m1shots`, nu met `m1_zij.png` (het hele geweer van opzij, naast de zijfoto te leggen)
 en het aantal driehoeken in de uitvoer.
 
+**De M1 Garand, derde ronde (stap 134, 11 okt).**
+
+"Doe nog 1 run om het model te verbeteren en ook de texture kwaliteit te verhogen", met vier nieuwe foto's: een
+eerste-persoonsbeeld in de sneeuw, iemand die schiet terwijl de lege clip en een huls eruit vliegen, een clip die van
+boven in de open grendel gaat, en het geweer op een stoel met de riem en twee clips.
+
+- *Doeken*: `doekSet` krijgt een maat (`maat`, standaard 256) en geeft die aan het tekenwerk mee; doeken boven de 256
+  krijgen zoveel anisotropie als de kaart toelaat (minstens 8; `anisotropie()` uit js/textures.js). Alles herhaalt
+  naadloos via een rooster-ruis die over de rand doorloopt (`tegelRuis`, `lagenRuis`) en golven met een heel aantal
+  perioden per doek; kleur, ruwheid en hoogte worden per beeldpunt in één keer gevuld (`vulPerPunt`).
+  - *Walnoot* 1024 (was 256), over 0,40 × 0,10 m (was 0,26 × 0,05): warm middenbruin in plaats van roodbruin, een
+    nerf die zacht golft met donkere lijnen van haarfijn tot breed (de breedte zelf is ruis), een vlam dwars op de
+    nerf, poriën als korte streepjes, een halfglanzende lak (poriën doffer) en lichtere, gladde slijtplekken. De
+    hoogte geeft de normal map. Het materiaal heeft geen kleurtint meer: de kleur zit in het doek.
+  - *Geparkeerd staal* 512: donker grijsgroen met een fijne kristalkorrel (ook in de hoogte), zachte vlekken en wat
+    blank gesleten plekken. De grendel en de spanstang hebben een koelere, donkerdere tint (`grendelStaal`), de clip
+    een eigen (`clipStaal`).
+  - *De stempel* 512, de letters echt ingeslagen: een putje met een opgeworpen randje in de hoogte, een schaduw van de
+    bovenrand en een lichtere bodem in de kleur.
+  - *Messing en koper* krijgen een glansdoek (256, bijna wit; het materiaal maakt er messing of koper van). De losse
+    hulzen (een InstancedMesh) houden het kale messing: met doeken was dat een nieuw soort materiaal geweest.
+  - *Leer* 512 voor de riem.
+  - Geheugen van alle doeken die het wapen gebruikt (met de hand, de mouw en de vlam, plus een derde voor de mipmaps):
+    **5,2 MB → 31,2 MB** (17 doeken van 256/128 → 23: drie van 1024, negen van 512, negen van 256, twee van 128). Het
+    walnoot alleen is 16,8 MB; mocht het geheugen knellen, dan is de ruwheid van het walnoot op 512 de eerste stap.
+- *Model*: een leren draagriem (dubbel, met twee lussen en de haak; een platgedrukte `TubeGeometry`) van de onderste
+  band naar de kolf; de stalen klem om het achterste bovenhout; de spanstang als platte strook onder het bovenhout
+  (de donkere baan op de foto's); de spanhendel als gebogen plaat met een blanke top in plaats van drie staafjes; de
+  clip met dichte zijwangen, een ribbel en lippen boven en onder (de lege clip was een open U).
+- *De lege clip en de huls* vliegen nu naar voren weg (0,85–1,0 m/s, was 0,1–0,18), dus klein rechtsboven in beeld,
+  met de huls erboven zoals op de schietfoto; eerst hing de clip een tiende seconde later 20 cm voor je oog.
+- *Herladen*: het geweer kantelt minder (0,30 in plaats van 0,46 rad), de mouwen lopen steiler naar beneden en zijn
+  iets dunner; ze nemen nog ongeveer de helft van het beeld in dat ze innamen.
+- *Driehoeken*: **20.610 → 22.898** (de riem ~1.300, de hendel en de clipwangen de rest).
+- *Wat misging*: het eerste walnoot was een regelmatig gestreepte plank (26 lijnen op gelijke afstand, oranje in het
+  licht van de foto's); minder lijnen, een veel sterkere golf en een breedte per lijn maakten er hout van. Het eerste
+  staal was grof als beton (korrel en vlekken te sterk, 180 slijpsporen die in de normal map als groeven lagen). En het
+  glansdoek had eerst geen normal map: dat is een ander soort materiaal dan de rest, en dus een nieuwe shader.
+
+**Proeven**: `m1test` (ongewijzigd, ook de shaderteller). **Foto's**: `m1shots`, nu met `m1_dichtbij.png` (de kast,
+de hendel, het hout en de riem van dichtbij) en het textuurgeheugen van het wapen in de uitvoer.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
