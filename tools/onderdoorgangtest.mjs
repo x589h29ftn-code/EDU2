@@ -80,6 +80,8 @@ const meting = await page.evaluate(async ({ GROND, VERKEER }) => {
     const gh = W.grondHoogte(x, z, -Infinity);
     if (gh > -1) continue;                         // alleen in de bak
     if (W.onderBrug(x, z, 0.5)) continue;         // onder een dek ligt het dek bovenop
+    // en ook onder de rand van een brugdek over de bak (de dekken staan als rechthoek in de kaart)
+    if (window.__K.viaducten.some(V => (V.bakDekken || []).some(b => x >= b[0] - 0.5 && x <= b[2] + 0.5 && z >= b[1] - 0.5 && z <= b[3] + 0.5))) continue;
     punten++;
     ray.set(new THREE.Vector3(x, 40, z), omlaag);
     ray.far = 80;

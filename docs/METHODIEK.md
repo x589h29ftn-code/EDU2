@@ -8204,8 +8204,13 @@ zijn greep, de ellebogen 61–63° gebogen, het heupgewricht 6,8 cm boven het za
 bovenbenen 0,8–0,9 cm in de zitting (het kussen), de zolen 0,3 cm in de plank, de schoenen binnen de plank, niets
 door het beenschild, het hoofd 26 cm vóór de heup, de knieën op 0,79 m onder het stuur; na het afstappen geen
 zijdraai; een streep van 4 m en van 1,5 m uit na 0,1 s (was: nooit), van 60 m na 0,4 s; na de heli nul strepen; in
-de achtervolging schieten Mark en Johan met strepen en die blijven niet hangen. `buurttest` en `wensen3test`
-opnieuw groen. **Foto's**: `npm run scootershots` (scooter_rijder.png schuin van voren zoals de foto van de
+de achtervolging schieten Mark en Johan met strepen en die blijven niet hangen. `wensen3test` groen, na één regel in
+js/menu.js: `ververs` riep `waarde()` aan op elke instelling, ook op de schuif van de missiemuziek (stap 130), en
+dat gaf een pageerror bij volledig scherm. `buurttest` is twee keer rood geweest op de deur van de bezorger (één
+keer 1,9 m van de deur, één keer een deurpunt in een botsdoos), elke keer op een ander, toevallig adres. Nagemeten
+dat dat niet aan de houding ligt: acht ritten met dezelfde toevalsreeks, eenmaal met de oude zithouding en eenmaal
+met `opScooter`, geven precies dezelfde afstanden tot de deur (0,4–1,0 m; twee deurpunten in een botsdoos). Het zit
+in `deurVan` en de adreskeuze, niet in deze stap. **Foto's**: `npm run scootershots` (scooter_rijder.png schuin van voren zoals de foto van de
 gebruiker, scooter_rijder_zij.png van opzij).
 
 **Wat nog niet af is** (in volgorde).
