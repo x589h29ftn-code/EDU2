@@ -60,6 +60,22 @@ let laatsteSchot = null;          // (voor tools/schottest.mjs)
 const schotLevend = new Set();    // alle stemmen die nog klinken (ook voor de proef: per bron tellen)
 let schotTeller = 0;
 /*
+ Waar een opname begint en ophoudt: het eerste stukje van 5 ms boven −30 dB van de piek (min 4 ms), en het laatste
+ stukje van 10 ms boven −50 dB van de piek. Over alle kanalen samen.
+*/
+function knipOpname(buf) {
+  const sr = buf.sampleRate, L = buf.length, K = buf.numberOfChannels;
+  const kan = Array.from({ length: K }, (_, c) => buf.getChannelData(c));
+  const waarde = i => { let s = 0; for (let c = 0; c < K; c++) s += kan[c][i]; return s / K; };
+  let piek = 0; for (let i = 0; i < L; i++) piek = Math.max(piek, Math.abs(waarde(i)));
+  const rms = (i, n) => { let s = 0, m = 0; for (let j = i; j < Math.min(L, i + n); j++, m++) { const x = waarde(j); s += x * x; } return m ? Math.sqrt(s / m) : 0; };
+  const N = Math.max(1, Math.round(sr * 0.005)), M = Math.max(1, Math.round(sr * 0.01));
+  let begin = 0, eind = buf.duration;
+  for (let i = 0; i < L; i += N) if (rms(i, N) > piek * 0.0316) { begin = Math.max(0, i / sr - 0.004); break; }
+  for (let i = L - M; i > 0; i -= M) if (rms(i, M) > piek * 0.00316) { eind = Math.min(buf.duration, (i + M) / sr); break; }
+  return { begin, eind, piek };
+}
+/*
  De uitzending van missie 18 (stap 107): audio/radio/uitzending.mp3, het fragment dat de gebruiker
  aanleverde (40,2 s). Gedecodeerd, net als het schot, want het verhaal wil weten hoe lang hij duurt en
  de proef of hij speelt. Zolang hij loopt zwijgen de autoradio, de huisradio en de missiemuziek.
@@ -89,14 +105,19 @@ export const OPNAMES = {
   heli: 'audio/heli/heli.mp3',                  // 10,1 s, in een lus
   politieRadio: 'audio/politie/radio.mp3',      // 37,5 s portofoon
 };
-// de achtergrond: overdag de lange opname (6,8 min), 's nachts de korte (68 s); een element dat streamt
+/*
+ De achtergrond: één streamend element. Tot stap 139 overdag achtergrond1.mp3 (mensen die zacht praten, 0,12) en
+ 's nachts achtergrond2.mp3 (0,065); sinds stap 139 (11 okt, "een muziekje … als ambient geluid voor in stad ter
+ vervanging wat we nu hebben. Speel het heel zacht af.") dag en nacht audio/sfeer/stad.mp3, een snelweg in de verte
+ van ruim elf minuten. Gemeten: stad.mp3 −25,6 dB RMS, achtergrond1 −32,0 dB; met 0,023 klinkt hij overdag
+ −58,4 dB, 8 dB zachter dan de oude dag (−50,4 dB). 's Nachts dezelfde opname nog zachter (`nachtStil`): een
+ aparte nachtopname is niet meer nodig (de bestanden blijven staan).
+*/
 export const ACHTERGROND = {
-  // (stap 128, tweede ronde: "Minimaal 75% reductie voor achtergrond geluid"; was 0,55 en 0,30)
-  dag: { url: 'audio/sfeer/achtergrond1.mp3', vol: 0.12 },
-  nacht: { url: 'audio/sfeer/achtergrond2.mp3', vol: 0.065 },
-  wissel: 4,           // s overvloeien tussen dag en nacht
+  stad: { url: 'audio/sfeer/stad.mp3', vol: 0.023 },
+  wissel: 4,           // s overvloeien (tijdconstante × 3) naar een ander volume
   binnen: 0.25,        // zoveel ervan binnen, en doffer
-  nachtStil: 0.5,      // (stap 130) 's nachts nog eens de helft
+  nachtStil: 0.4,      // 's nachts (was de helft, stap 130; met één opname voor dag en nacht nu 0,4)
 };
 // de portofoon bij de eerste ster: een willekeurig stuk van zo lang, zo snel in en uit, en niet vaker dan dit
 export const POLITIE_RADIO = { duur: [5, 8], in: 0.35, uit: 0.9, vol: 0.55, rust: 45 };
@@ -108,14 +129,29 @@ const HERHALING = { bestand: 'uitzending.mp3', titel: 'Een mededeling van Erik e
  machinegeweer twaalf losse knallen per seconde in plaats van één opgestapelde brij, en klinkt
  alleen het laatste helemaal uit.
 */
-const SCHOT = {
+/*
+ Een wapen met een eigen opname (`url`) speelt die, vanaf waar de knal begint, alleen het eerste schot (tot `eind`,
+ gemeten bij het laden). Lukt het laden niet, dan schot.mp3 met `terug`.
+ De M1 Garand (stap 139): audio/wapen/m1_schot.mp3 van de gebruiker. Gemeten over de eerste 300 ms na de knal:
+ schot.mp3 −17,5 dB RMS, m1_schot.mp3 −7,2 dB (piek +1,0 dB). De sniper klinkt zo −17,5 + 2,6 = −14,9 dB;
+ de garand met 0,46: −7,2 − 6,7 = −13,9 dB, één dB boven de sniper en 2,4 dB boven het pistool.
+*/
+export const SCHOT = {
   pistool: { rate: 1.0, vol: 1.15 },
   mitrailleur: { rate: 1.08, vol: 0.9 },
   sniper: { rate: 0.8, vol: 1.35 },
-  // de M1 Garand (.30-06): dieper en voller dan het pistool, net onder de sniper
-  garand: { rate: 0.84, vol: 1.42 },
+  garand: { url: 'audio/wapen/m1_schot.mp3', rate: 1.0, vol: 0.46, terug: { rate: 0.84, vol: 1.42 } },
   ander: { rate: 1.0, vol: 1.0 },
 };
+/*
+ De lege clip van de M1 (stap 139): audio/wapen/m1_clip.mp3. Er zit 0,2 s stilte en geritsel vóór de ping; die
+ knippen we weg, zodat hij klinkt als de clip wegspringt. Gemeten over 300 ms: −14,8 dB RMS. Met 0,23 is dat
+ −27,6 dB, 13,7 dB onder het garandschot (gevraagd: "klinkt wat luid nu"). Zonder opname de gemaakte ping.
+*/
+export const M1_CLIP = { url: 'audio/wapen/m1_clip.mp3', vol: 0.23 };
+const wapenOpname = {};   // per sleutel { buf, begin, eind }
+const wapenLaden = {};
+let laatstePing = null;   // (voor tools/m1geluidtest.mjs)
 const SCHOT_KAP = 0.6;
 const MISSIE_VOL = 0.26;     // spanningsmuziek: onder de radio (0,32) en boven de motor
 let vogelKlok = 0, krekelKlok = 0, molenKlok = 0;
@@ -297,6 +333,7 @@ export const geluid = {
     bronnen.water = ruisLaag('bandpass', 700, 1.1, 0.0);
     window.__geluid = true;
     this.laadSchot();
+    this.laadWapenOpnames();
     this.laadOpnames();
   },
 
@@ -326,19 +363,32 @@ export const geluid = {
         const r = await fetch(url, { cache: 'force-cache' });
         if (!r.ok) return null;
         const buf = await ctx.decodeAudioData(await r.arrayBuffer());
-        // waar begint de knal: het eerste stukje van 5 ms boven −30 dB van de piek, en dan 4 ms ervoor
-        const d = buf.getChannelData(0), N = Math.max(1, Math.round(buf.sampleRate * 0.005));
-        let piek = 0; for (let i = 0; i < d.length; i++) piek = Math.max(piek, Math.abs(d[i]));
-        let begin = 0;
-        for (let i = 0; i < d.length; i += N) {
-          let som = 0; for (let j = i; j < Math.min(d.length, i + N); j++) som += d[j] * d[j];
-          if (Math.sqrt(som / N) > piek * 0.0316) { begin = Math.max(0, i / buf.sampleRate - 0.004); break; }
-        }
-        schotBuf = buf; schotBegin = begin;
+        schotBuf = buf; schotBegin = knipOpname(buf).begin;
         return buf;
       } catch { return null; }
     })();
     return schotLaden;
+  },
+  // de opnames van stap 139: het schot van de garand en de lege clip, elk met waar hij begint en ophoudt
+  laadWapenOpnames() {
+    if (!ctx) return null;
+    for (const [k, url] of [['garand', SCHOT.garand.url], ['clip', M1_CLIP.url]]) {
+      if (wapenLaden[k]) continue;
+      wapenLaden[k] = (async () => {
+        try {
+          const r = await fetch(url, { cache: 'force-cache' });
+          if (!r.ok) return null;
+          const buf = await ctx.decodeAudioData(await r.arrayBuffer());
+          wapenOpname[k] = { buf, ...knipOpname(buf) };
+          return wapenOpname[k];
+        } catch { return null; }
+      })();
+    }
+    return Promise.all(Object.values(wapenLaden));
+  },
+  wapenOpnameStand() {
+    const st = o => o ? { duur: +o.buf.duration.toFixed(3), begin: +o.begin.toFixed(3), eind: +o.eind.toFixed(3) } : null;
+    return { garand: st(wapenOpname.garand), clip: st(wapenOpname.clip), laatstePing };
   },
   zetSchotSoort(soort) { schotSoort = soort === 'gemaakt' ? 'gemaakt' : 'opname'; },
 
