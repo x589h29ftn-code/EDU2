@@ -69,6 +69,7 @@ import { maakVuurwerk } from './vuurwerk.js';
 import { maakHandlangers } from './handlangers.js';
 import { maakGrondvuur } from './grondvuur.js';
 import * as uitleg from './uitleg.js';
+import { NOMERCY, maakSet, maakErikJan, maakCameraman, maakDuitser, bosKaart } from './nomercy.js';
 
 // ---------- waar het verhaal zich afspeelt ----------
 const HUIS = { straat: 'Molenkrite', nr: '15' };      // het huis van Mark
@@ -211,6 +212,9 @@ const KOPPEN = {
   // missie 14: Ronald in zijn blauwe overall, blond; Bouwman in burger, grijzend
   ronald: { huid: '#e0b893', haar: '#c9a66b', shirt: '#2d3f63', stoppels: true },
   bouwman: { huid: '#d6ab86', haar: '#8d8a84', shirt: '#4b4f55' },
+  // No Mercy 4 (stap 140): Erik Jan met zijn pet, en de cameraman
+  erikjan: { huid: '#dcb08c', shirt: '#7a2f2a', pet: '#1b1b20', stoppels: true },
+  cameraman: { huid: '#d3a273', shirt: '#26272b', pet: '#2a2a2e' },
 };
 // twee sprekers die elkaar afwisselen, dus twee hulpjes die een regel opmaken
 const zegtMark = (tekst) => ({ wie: 'Mark', kop: KOPPEN.mark, tekst });
@@ -1680,6 +1684,23 @@ export function initVerhaal(ctx) {
   // na het einde: een middag met Mark (stap 115; de rest staat bij racen voor geld)
   const uitje = { fase: 'uit', t: 0, golf: null, klokWas: null, pad: null, padI: 0, kijkT: 0, praatT: 0, praatI: 0,
     stand: null, flesjes: 0, juichT: 0, hint: false, keer: 0, keuzes: [], plek: null, merk: null };
+  /*
+   No Mercy 4 (stap 140): de bijmissie na missie 5, los van de hoofdlijn. `fase`: uit (niets), wacht (Erik Jan
+   bij de waterzuivering met zijn EJ), bellen, en dan de opnames (`NM_ACTIEF`). De set, Erik Jan, de cameraman
+   en de negen Duitsers bestaan vanaf het opstarten, verborgen (js/nomercy.js).
+  */
+  const nm = { fase: 'uit', klaar: false, gebeld: false, belT: Infinity, telT: 0, t: 0, leen: null, pauze: null, navOver: null,
+    golf: null, levens: [], wegVan: null, uitgang: null, grijsT: 0, camWegT: 0, bos: null, knal: null, knalT: -1, roep: false, pak: false };
+  const nmSet = maakSet(scene);
+  const nmEJ = maakErikJan();
+  const nmCam = maakCameraman();
+  const nmDuitsers = [];
+  for (let i = 0; i < NOMERCY.golf1 + NOMERCY.golf2; i++) nmDuitsers.push(maakDuitser(i));
+  for (const p of [nmEJ, nmCam, ...nmDuitsers]) { p.groep.visible = false; scene.add(p.groep); }
+  const nmC4 = maakC4(scene);
+  const nmMerk = maakMarkering(scene);
+  // de Flak houdt je tegen zolang hij er staat (een doos zonder hoogte telt niet: js/world.js)
+  const nmDoos = addCollider(NOMERCY.set.x, NOMERCY.set.z, 1.2, 1.2, 0, 0);
   let envelop = null;            // {obj, t} – de envelop die de dief weggooit
   let geld = START_GELD;         // portemonnee; ruim gevuld zolang het spel in de testfase zit
   let buit = 0;                  // geld dat nog afgeleverd moet worden
@@ -1714,6 +1735,7 @@ export function initVerhaal(ctx) {
   function vrijVoorKlus() {
     if (doodT > 0 || misluktT > 0 || keuzeOpen || zwart || player.health <= 0) return false;
     if (uitjeBezig()) return false;
+    if (nmBezig()) return false;          // de opnames van No Mercy 4 (stap 140)
     if (missie === 'klaar') return true;
     return (KLUS_WACHT[missie] || []).includes(fase);
   }
@@ -1960,6 +1982,8 @@ export function initVerhaal(ctx) {
   */
   function startMissie(naam, { vanzelf = false } = {}) {
     geldInleg = 0; geldKiezen = false; geldNaT = 0;
+    // midden in de opnames van No Mercy 4 (een sneltoets): de set weg en de bruikleen terug
+    if (nmBezig()) { nmRuimOp(true); nm.fase = 'uit'; nm.pauze = null; }
     // na de tussenpoos (`vanzelf`) blijft een klus die klaarstaat liggen; met een sneltoets of na het laden niet
     klusjes.reset({ aanbodHouden: vanzelf }); klusPauze = null;
     gesprek = null; sluitBalk();
@@ -2451,6 +2475,8 @@ export function initVerhaal(ctx) {
     */
     gesprek = null; sluitBalk();
     spanning = false; spanningUit = 0;
+    // neergaan op de set van No Mercy 4: die opnames zijn mislukt, Erik Jan wacht weer bij de waterzuivering
+    if (nmBezig()) { nmRuimOp(true); nm.fase = 'uit'; nm.eerstWeg = true; nmZetBeeldTerug(); }
     hud.melding('NEERGEGAAN', 'Kies hoe je verder gaat.', 3);
     player.active = false;
   }
@@ -2645,6 +2671,9 @@ export function initVerhaal(ctx) {
     // de missie die onder zijn M op je wacht niets
     if (klusjes.toets()) return true;
     if (klusjes.bezig && missie !== 'klaar') return false;
+    // No Mercy 4: de C4 bij de Flak; tijdens de opnames doet de rest van het verhaal niets
+    if (noMercyToets()) return true;
+    if (nmBezig()) return false;
     // missie 11: aan de balie van Tinga State de C4 ophalen, vóór het kopen daar
     if (bijDeBalie()) return haalC4();
     // missie 12: een dranghek, een lading C4, of de knal zelf
@@ -2747,6 +2776,8 @@ export function initVerhaal(ctx) {
     uit.push(...bendes.doelen());
     // wie je voor een klus moet omleggen, en zijn lijfwacht
     uit.push(...klusjes.doelen());
+    // de Duitsers van No Mercy 4
+    if (nm.golf) uit.push(...nm.golf.doelen());
     // en de maffia op de kade plus de waterpolitie uit missie 8
     if (deal) uit.push(...deal.doelen());
     for (const b of snipBoten) uit.push(...b.doelen());
@@ -2756,6 +2787,8 @@ export function initVerhaal(ctx) {
   }
 
   function raak(obj, kracht = 1) {
+    // een Duitser van No Mercy 4: elke treffer telt één, ook die van de M1 (ze gaan neer na 1 tot 3)
+    if (nm.golf && nm.golf.raak(obj, 1)) { nmTreffer(); return true; }
     if (klusjes.raak(obj)) return true;
     // de zes man bij de Poiesz: die mogen juist wel (kracht: zie Bewaking.raak)
     if (schutters && schutters.raak(obj, kracht)) return true;
@@ -2983,6 +3016,8 @@ export function initVerhaal(ctx) {
           zetGeldInBeeld();
           zetOpdracht('');
           hud.melding('MISSIE VOLTOOID', `Beloning: + ${euro(BELONING)} toegevoegd aan wallet`, 8);
+          // en over een halve minuut belt Erik Jan voor No Mercy 4 (stap 140), als je nog niet bij hem was
+          nm.belT = NOMERCY.belNa;
           /*
            En meteen door naar de volgende: vanaf hier staat een missie als M op
            de kaart in plaats van dat hij vanzelf begint (verzoek 20 sep 2026).
@@ -10390,6 +10425,488 @@ export function initVerhaal(ctx) {
     naarDeStudio();
   }
 
+  /*
+   ---------- No Mercy 4: figureren in het Tinga-bos (stap 140, verzoek 11 okt 2026) ----------
+   Een bijmissie na missie 5, los van de hoofdlijn: missie 6 en verder lopen gewoon door, en `missie` blijft wat
+   hij was. Na missie 5 staat Erik Jan bij de waterzuivering (een gele ruit met EJ, `hud.zetEJ`); wie er niet heen
+   gaat, krijgt hem na NOMERCY.belNa tellen aan de lijn. Bij hem: het gesprek, "Even omkleden…" (het uniform, een
+   M1 Garand en 200 patronen in bruikleen), met de cameraman naar de set, de C4 bij de Flak, de knal, vier Duitsers,
+   het bos uit, nog vijf, "Cut!", € 500, en de bruikleen terug. Zolang de opnames lopen wacht het verhaal zoals
+   bij een klus (`nmBezig` in `vrijVoorKlus`, `wachtOpKlus`, `toets` en de tussenpoos). Alle namen hier beginnen
+   met nm of noMercy (js/verhaal.js is één bereik: zie `npm run overgangtest`).
+  */
+  const NM_VOOR = ['molenkrite', 'rijden', 'bewaking', 'afleveren', 'johan'];
+  const NM_ACTIEF = ['gesprek', 'omkleden', 'naarSet', 'set', 'bom', 'weg', 'knal', 'golf1', 'wegkomen', 'golf2', 'cut'];
+  const NM_OP_SET = ['naarSet', 'set', 'bom', 'weg', 'knal', 'golf1', 'wegkomen', 'golf2', 'cut'];
+  const zegtEJ = (tekst) => ({ wie: 'Erik Jan', kop: KOPPEN.erikjan, tekst });
+  const zegtCam = (tekst) => ({ wie: 'Cameraman', kop: KOPPEN.cameraman, tekst });
+  const NM_TELEFOON = [
+    'Hé Erik, met Erik Jan! Van de films, No Mercy, je weet wel. Johan zei dat jij wel van aanpakken weet.',
+    'We draaien deze week No Mercy 4, in het Tinga-bos. Tweede Wereldoorlog: Amerikanen tegen Duitsers, het hele circus.',
+    'Ik kom een figurant tekort. Een Amerikaanse soldaat. Wil je figureren? Vijfhonderd euro, en je krijgt een echte M1 Garand in handen. Nou ja, in bruikleen.',
+    'Ik sta bij de waterzuivering: de EJ op je kaart. Kom maar langs als je zin hebt.',
+  ];
+  const NM_GESPREK = [
+    zegtEJ('Daar is mijn Amerikaan! Fijn dat je er bent, de hele ploeg staat al klaar.'),
+    zegtEJ('Het verhaal is simpel: jij bent een GI achter de linies. In het bos staat een Duitse achtentachtig, een Flak. Van triplex en blik, maar hij moet de lucht in.'),
+    zegtEJ(`Hier: een M1 Garand in bruikleen, en ${NOMERCY.kogels} patronen. De Duitsers schieten met losse flodders, daar voel je niks van.`),
+    zegtEJ('Na de knal komen er vier Duitsers op je af. Schiet terug, dan gaan ze neer. Daarna moet je het bos uit zien te komen, en dan komen er nog vijf. De cameraman loopt de hele tijd met je mee.'),
+    zegtEJ('Eerst dit uniform aan, en de helm op. Dan gaan we draaien!'),
+  ];
+  const NM_OP_SET_ZIN = [
+    zegtEJ('Kijk hem staan, de achtentachtig! De pyrotechnicus heeft een lading C4 voor je klaargelegd.'),
+    zegtEJ(`Leg hem bij het sluitstuk, op de gele markering, en ren dan weg. Op ${NOMERCY.afstand} meter laten we hem afgaan.`),
+  ];
+  const NM_ACTIE = [zegtEJ('Camera loopt… en… ACTIE!')];
+  const NM_DUITSERS = [zegtEJ('Daar komen de Duitsers! Schieten, Erik, schieten!')];
+  const NM_WEG = [zegtEJ('Prachtig! En nu het bos uit, de camera blijft bij je!')];
+  const NM_GOLF2 = [zegtCam('Nog meer Duitsers! Doorgaan, ik draai door!')];
+  const NM_CUT = [
+    zegtCam('Cut! Prachtig. Dat was hem, in één take.'),
+    zegtCam(`Erik Jan zegt dat je ${euro(NOMERCY.beloning)} krijgt. Het geweer en de rest van de patronen neem ik weer mee: die zijn van de set.`),
+    zegtCam('Bedankt, man. Als er een No Mercy 5 komt, bellen we je.'),
+  ];
+
+  function nmBeschikbaar() { return !nm.klaar && !NM_VOOR.includes(missie); }
+  function nmBezig() { return NM_ACTIEF.includes(nm.fase); }
+  function nmStartbaar() {
+    return nmBeschikbaar() && !nmBezig() && vrijVoorKlus() && !klusjes.bezig && !geldInleg && !zwart && !titelrol;
+  }
+  // waar Erik Jan staat: buiten de poort van de waterzuivering, naast de plek waar je in missie 2 uitstapt
+  let nmEJPlekWas = null;
+  function nmEJPlek() {
+    if (nmEJPlekWas) return nmEJPlekWas;
+    if (!poort) return null;
+    const p = poort.punt(-11, 5);
+    const [x, z] = resolveCollisions(p.x, p.z, 0.5);
+    nmEJPlekWas = { x, z, yaw: kijkHoek({ x, z }, poort.punt(-30, 5)) };
+    return nmEJPlekWas;
+  }
+  function nmBosKaart() {
+    if (!nm.bos) nm.bos = bosKaart(KAART.bomen || [], NOMERCY.set);
+    return nm.bos;
+  }
+  // opdracht en navigatie van het verhaal opzij zetten en terugzetten (zoals bij een klus)
+  function nmBewaarBeeld() {
+    return {
+      navDoel: navDoel ? { ...navDoel } : null, nav: hud.nav || null,
+      opdracht: opdrachtEl.hidden ? '' : opdrachtEl.textContent.replace(/^Opdracht: /, ''),
+      rood: opdrachtEl.classList.contains('rood'),
+    };
+  }
+  function nmZetBeeldTerugVan(b) {
+    if (!b) { zetOpdracht(''); navDoel = null; hud.zetNavigatie(null); return; }
+    zetOpdracht(b.opdracht, b.rood);
+    if (b.navDoel) zetNavDoel(b.navDoel.x, b.navDoel.z, b.navDoel.naam, b.navDoel.letter);
+    else { navDoel = null; hud.zetNavigatie(b.nav); }
+  }
+  function nmZetBeeldTerug() { const b = nm.pauze; nm.pauze = null; nmZetBeeldTerugVan(b); }
+
+  // lopen met botsingen (de cameraman en Erik Jan); true als hij er is
+  function nmLoop(p, doel, dt, v, stop = 0.5) {
+    const pos = p.groep.position;
+    let dx = doel.x - pos.x, dz = doel.z - pos.z;
+    const a = Math.hypot(dx, dz);
+    if (a < stop) return true;
+    dx /= a; dz /= a;
+    const stap = Math.min(a - stop * 0.9, v * dt);
+    for (const draai of [0, 0.6, -0.6, 1.2, -1.2]) {
+      const c = Math.cos(draai), s = Math.sin(draai);
+      const rx = dx * c - dz * s, rz = dx * s + dz * c;
+      const nx = pos.x + rx * stap, nz = pos.z + rz * stap;
+      const [kx, kz] = resolveCollisions(nx, nz, 0.34);
+      if (Math.hypot(kx - nx, kz - nz) < 0.02) { pos.x = kx; pos.z = kz; p.draaiNaar(Math.atan2(-rx, -rz), dt, 6); return false; }
+    }
+    return false;
+  }
+
+  /*
+   De bruikleen. Het M1-magazijn en je voorraad zijn één pot: de 200 patronen gaan erbij (8 in de clip van een
+   geleende M1, de rest in je voorraad). Terug geef je alles wat er boven je eigen voorraad uit komt; had je zelf al
+   een M1, dan houd je die met zijn eigen clip. Wie meer dan 200 verschoot, heeft na afloop minder dan ervoor.
+  */
+  function nmLeenUit() {
+    const P = player;
+    P.magazijnen[P.wapenSoort] = P.ammo;
+    const eigen = P.wapens.includes('garand');
+    nm.leen = { eigen, reserve: P.reserve, clip: P.magazijnen.garand || 0, soort: P.wapenSoort };
+    P.reserve += NOMERCY.kogels;
+    if (eigen) P.zetWapen('garand');
+    else { P.magazijnen.garand = 0; P.krijgWapen('garand'); }
+    P.wisselT = 0; P.holster = 0; P.wisselNaar = null;
+    geefWapen();
+  }
+  function nmLeenTerug() {
+    const P = player, L = nm.leen;
+    nm.leen = null;
+    if (!L) return;
+    P.wisselNaar = null; P.wisselT = 0; P.holster = 0; P.reloading = 0;
+    P.magazijnen[P.wapenSoort] = P.ammo;
+    const clip = P.magazijnen.garand || 0;
+    if (L.eigen) {
+      const over = Math.min(P.reserve + clip, L.reserve + L.clip);
+      P.magazijnen.garand = Math.min(L.clip, over);
+      P.reserve = over - P.magazijnen.garand;
+    } else {
+      P.reserve = Math.min(P.reserve, L.reserve);
+      P.magazijnen.garand = 0;
+      const i = P.wapens.indexOf('garand');
+      if (i >= 0) P.wapens.splice(i, 1);
+    }
+    const soort = P.wapens.includes(L.soort) ? L.soort : P.wapens[0];
+    P.zetWapen(soort);
+  }
+
+  // alles van de set weg; `terug`: de bruikleen terug (niet bij laden: de opslag heeft de wapens al gezet)
+  function nmRuimOp(terug = true) {
+    if (nm.golf) { nm.golf.verwijder(); nm.golf = null; }
+    for (const p of nmDuitsers) { p.legNeer(0); p.groep.visible = false; }
+    nmSet.toon(false); nmSet.herstel(); nmDoos.h = 0;
+    nmC4.toon(false); nmMerk.toon(false);
+    if (nm.knal) { nm.knal.stop(); nm.knal = null; }
+    nmCam.groep.visible = false; nm.camWegT = 0;
+    nmEJ.groep.visible = false;
+    if (terug) nmLeenTerug(); else nm.leen = null;
+    if (nm.pak) { nm.pak = false; if (zetPak) zetPak('gewoon'); }
+    if (nmBezig() && gesprek) { gesprek = null; sluitBalk(); }
+    if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
+    hud.zetEJ(null);
+    nm.knalT = -1; nm.roep = false; nm.uitgang = null; nm.wegVan = null;
+  }
+  function nmMislukt(reden) {
+    nmRuimOp(true);
+    nm.fase = 'uit'; nm.eerstWeg = true;
+    nmZetBeeldTerug();
+    hud.melding('MISSIE MISLUKT', `${reden} Erik Jan wacht weer bij de waterzuivering.`, 5);
+    hud.zetGrijs(true); nm.grijsT = 2.4;
+  }
+  // X tijdens de opnames: stoppen (js/main.js via klusAfbreken)
+  function noMercyAfbreken() {
+    if (!nmBezig() || nm.fase === 'gesprek' || nm.fase === 'omkleden' || nm.fase === 'cut') return false;
+    nmMislukt('Je stopte met de opnames.');
+    return true;
+  }
+
+  function nmUitstappen() {
+    const auto = player.inCar;
+    if (!auto) return;
+    auto.speed = 0;
+    player.inCar = null;
+    const [ux, uz] = resolveCollisions(auto.x - Math.cos(auto.yaw) * 2.2, auto.z + Math.sin(auto.yaw) * 2.2, 0.4);
+    player.pos.set(ux, 0, uz);
+    if (eersteP) eersteP();
+    player.applyCamera();
+    geluid.portier(); geluid.motorUit();
+  }
+
+  // bij Erik Jan: het gesprek
+  function nmBegin() {
+    if (nm.navOver && navDoel && navDoel.letter === 'EJ') nmZetBeeldTerugVan(nm.navOver);
+    nm.navOver = null;
+    nm.pauze = nmBewaarBeeld();
+    nm.gebeld = true;               // wie bij hem was, wordt niet meer gebeld
+    hud.zetEJ(null);
+    nmUitstappen();
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+    nm.fase = 'gesprek';
+    zeg(NM_GESPREK, () => nmOmkleden());
+  }
+  function nmOmkleden() {
+    nm.fase = 'omkleden';
+    zwartMet('Even omkleden…', () => {
+      nmLeenUit();
+      nm.pak = true;
+      if (zetPak) zetPak('soldaat');
+      nmZetSetNeer();
+      // de cameraman naast je, Erik Jan al op de set
+      const sp = spelerPunt();
+      const [cx, cz] = resolveCollisions(sp.x + 2.2, sp.z + 1.4, 0.4);
+      nmCam.zetNeer(cx, cz, kijkHoek({ x: cx, z: cz }, sp)); nmCam.legNeer(0); nmCam.groep.visible = true;
+      const r = nmSet.regisseur;
+      nmEJ.zetNeer(r.x, r.z, kijkHoek(r, nmSet.groep.position)); nmEJ.groep.visible = true;
+      nm.fase = 'naarSet';
+      zetOpdracht('loop met de cameraman naar de set in het Tinga-bos');
+      zetNavDoel(NOMERCY.set.x, NOMERCY.set.z, 'set No Mercy 4', 'EJ');
+      hud.melding('NO MERCY 4', `M1 Garand en ${NOMERCY.kogels} patronen in bruikleen. Naar de set in het Tinga-bos.`, 5);
+    }, [1.0, 1.8, 1.0]);
+  }
+  // de Flak met zijn loop van de aanloop af (van de waterzuivering naar de set)
+  function nmZetSetNeer() {
+    const S = NOMERCY.set;
+    const van = poort ? poort.mid : { x: S.x + 50, z: S.z - 80 };
+    const d = Math.hypot(S.x - van.x, S.z - van.z) || 1;
+    nmSet.zet(S.x, grondHoogte(S.x, S.z), S.z, { x: (S.x - van.x) / d, z: (S.z - van.z) / d });
+    nmSet.herstel(); nmSet.toon(true);
+    nmDoos.cx = S.x; nmDoos.cz = S.z; nmDoos.h = 2.2;
+    nmC4.toon(false); nmMerk.toon(false);
+    nmBosKaart();
+    // 1 tot 3 treffers per man, willekeurig
+    nm.levens = nmDuitsers.map(() => NOMERCY.treffers[0] + Math.floor(Math.random() * (NOMERCY.treffers[1] - NOMERCY.treffers[0] + 1)));
+  }
+
+  // n Duitsers erbij, tussen dMin en dMax van je, rond `richting` (± spreiding rad), in het bos
+  function nmGolfErbij(n, sp, richting, dMin, dMax, spreiding) {
+    const bos = nmBosKaart();
+    const posten = [];
+    const basis = Math.atan2(richting.z, richting.x);
+    for (let poging = 0; poging < 600 && posten.length < n; poging++) {
+      const losser = poging > 400;
+      const a = basis + (Math.random() * 2 - 1) * (losser ? Math.PI : spreiding);
+      const d = dMin + Math.random() * (dMax - dMin);
+      const x = sp.x + Math.cos(a) * d, z = sp.z + Math.sin(a) * d;
+      if (pointInWater(x, z) || (!losser && !bos.inBos(x, z))) continue;
+      const [rx, rz] = resolveCollisions(x, z, 0.4);
+      if (Math.hypot(rx - x, rz - z) > 0.05) continue;
+      if (posten.some(p => Math.hypot(p.a[0] - x, p.a[1] - z) < 2.5)) continue;
+      posten.push({ a: [x, z], b: [x + (sp.x - x) * 0.25, z + (sp.z - z) * 0.25] });
+    }
+    const begin = nm.golf ? nm.golf.aantal : 0;
+    const personen = posten.map((_, j) => nmDuitsers[begin + j]);
+    for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
+    let nieuw;
+    if (!nm.golf) {
+      nm.golf = new Bewaking(scene, posten, { schade: 0, leven: nm.levens, klank: 'garand', personen, vest: null, pet: false,
+        zicht: 48, vuurbereik: 46, dekking: 11, oog: 1.5 });
+      nieuw = nm.golf.wachters;
+    } else nieuw = nm.golf.voegToe(posten, personen);
+    nm.golf.alarm = true;
+    nieuw.forEach((w, j) => { w.staat = 'zoekt'; w.doel = [sp.x, sp.z]; w.vuurT = 0.8 + j * 0.45; });
+    return posten.length;
+  }
+  function nmOver(van, tot) {
+    if (!nm.golf) return 0;
+    return nm.golf.wachters.filter(w => w.i >= van && w.i < tot && w.staat !== 'neer').length;
+  }
+  function nmTreffer() {
+    if (nm.fase === 'golf1') {
+      const over = nmOver(0, NOMERCY.golf1);
+      zetOpdracht(over > 0 ? `schakel de Duitsers uit (${over} te gaan)` : '');
+    } else if (nm.fase === 'golf2') nmGolf2Opdracht();
+  }
+  function nmGolf2Opdracht() {
+    const over = nmOver(NOMERCY.golf1, NOMERCY.golf1 + NOMERCY.golf2);
+    const buiten = !nmBosKaart().inBos(player.pos.x, player.pos.z);
+    zetOpdracht(over > 0 ? `schakel de Duitsers uit (${over} te gaan)${buiten ? '' : ', en kom uit het Tinga-bos'}` : 'kom uit het Tinga-bos');
+  }
+  function nmBoem(sp) {
+    const f = nmSet.groep.position;
+    nm.knal = ontplofBij(scene, f.x, f.y, f.z);
+    geluid.explosie(Math.hypot(sp.x - f.x, sp.z - f.z));
+    if (schokken) schokken(0.6);
+    nmC4.toon(false);
+    nm.fase = 'knal'; nm.t = 0;
+  }
+
+  // de cameraman loopt mee, op een paar meter, en filmt je
+  function nmCamBij(dt, sp) {
+    const pos = nmCam.groep.position;
+    let d = Math.hypot(sp.x - pos.x, sp.z - pos.z);
+    // achter een boom of een sloot blijven hangen: dan staat hij weer achter je (zonder dat je het ziet)
+    if (d > 11) {
+      const [x, z] = resolveCollisions(sp.x + Math.sin(player.yaw) * 4, sp.z + Math.cos(player.yaw) * 4, 0.4);
+      nmCam.zetNeer(x, z, kijkHoek({ x, z }, sp));
+      d = Math.hypot(sp.x - x, sp.z - z);
+    }
+    const loopt = d > NOMERCY.cameraAfstand + 0.4;
+    const v = Math.min(7.5, 1.6 + (d - NOMERCY.cameraAfstand) * 1.8);
+    if (loopt) nmLoop(nmCam, sp, dt, v, NOMERCY.cameraAfstand);
+    else nmCam.kijkNaar(sp.x, sp.z, dt, 5);
+    nmCam.update(dt, { loopt, snelheid: Math.max(1.2, v), mikt: true });
+  }
+
+  function werkNoMercyBij(dt, sp) {
+    if (nm.grijsT > 0) { nm.grijsT -= dt; if (nm.grijsT <= 0) hud.zetGrijs(false); }
+    if (nm.knal) { nm.knal.update(dt); if (nm.knal.klaar) nm.knal = null; }
+    // na "Cut!": de cameraman loopt terug naar de set en is weg
+    if (nm.camWegT > 0) {
+      nm.camWegT -= dt;
+      const S = NOMERCY.set;
+      const erIs = nmLoop(nmCam, S, dt, 1.5, 1);
+      nmCam.update(dt, { loopt: !erIs, snelheid: 1.5 });
+      if (nm.camWegT <= 0 || erIs) { nm.camWegT = 0; nmCam.groep.visible = false; }
+    }
+    if (!nmBezig()) {
+      if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
+      const p = nmBeschikbaar() ? nmEJPlek() : null;
+      if (!p) { if (nmEJ.groep.visible && nm.camWegT <= 0) nmEJ.groep.visible = false; hud.zetEJ(null); return; }
+      if (nm.fase === 'uit') {
+        nm.fase = 'wacht';
+        nmEJ.zetNeer(p.x, p.z, p.yaw); nmEJ.legNeer(0);
+      }
+      nmEJ.groep.visible = true;
+      const dEJ = Math.hypot(sp.x - p.x, sp.z - p.z);
+      if (dEJ < 26) nmEJ.kijkNaar(sp.x, sp.z, dt, 2); else nmEJ.draaiNaar(p.yaw, dt, 1);
+      if (dEJ < 120) nmEJ.update(dt, { zwaait: dEJ < 26 && dEJ > NOMERCY.praat });
+      const kan = nmStartbaar();
+      hud.zetEJ(kan ? { x: p.x, z: p.z } : null);
+      // het telefoontje omleggen: een navigatie naar hem die het verhaal intussen vervangen heeft, is weg
+      if (nm.navOver && !(navDoel && navDoel.letter === 'EJ')) nm.navOver = null;
+      if (!nm.gebeld && nm.belT > 0 && nm.belT !== Infinity) nm.belT -= dt;
+      if (nm.fase === 'bellen') {
+        nm.telT -= dt;
+        if (nm.telT <= 0 && balk.hidden && !gesprek) {
+          nm.fase = 'wacht';
+          zeg(NM_TELEFOON, () => {
+            if (nmBezig() || !nmBeschikbaar()) return;
+            nm.navOver = nmBewaarBeeld();
+            zetNavDoel(p.x, p.z, 'Erik Jan · waterzuivering', 'EJ');
+            hud.melding('NO MERCY 4', 'Erik Jan wacht bij de waterzuivering: de EJ op de kaart.', 5);
+          }, { wie: 'Erik Jan', telefoon: true, kop: KOPPEN.erikjan });
+        }
+        return;
+      }
+      if (!kan || !balk.hidden || gesprek) return;
+      if (!nm.gebeld && nm.belT <= 0 && dEJ > 30) {
+        nm.gebeld = true; nm.fase = 'bellen'; nm.telT = 2.0;
+        geluid.telefoon(3);
+        return;
+      }
+      const stil = !player.inCar || Math.abs(player.inCar.speed || 0) < 2;
+      // na een mislukte poging begint het gesprek pas weer als je even weg bent geweest (anders meteen opnieuw)
+      if (nm.eerstWeg) { if (dEJ > NOMERCY.praat + 6) nm.eerstWeg = false; return; }
+      if (dEJ < NOMERCY.praat && stil && nm.fase === 'wacht') nmBegin();
+      return;
+    }
+    if (!NM_OP_SET.includes(nm.fase)) return;
+    // ---- de opnames ----
+    // de politie weet ervan: op de set geen sterren
+    if (sterren() > 0 && sterrenWeg) sterrenWeg();
+    const S = NOMERCY.set;
+    const dSet = Math.hypot(sp.x - S.x, sp.z - S.z);
+    if (nm.fase !== 'cut') {
+      if (player.inCar) { nmMislukt('Een figurant rijdt niet van de set weg.'); return; }
+      if (dSet > NOMERCY.weg) { nmMislukt('Je liep van de set weg.'); return; }
+    }
+    nmCamBij(dt, sp);
+    // Erik Jan regisseert vanaf zijn stoel
+    if (nmEJ.groep.visible) { nmEJ.kijkNaar(sp.x, sp.z, dt, 2); nmEJ.update(dt, {}); }
+    if (nm.golf) nm.golf.update(dt, player, true);      // losse flodders: de schade telt niet (schade 0)
+    nmMerk.update(dt); nmC4.update(dt);
+    if (nm.fase === 'naarSet') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+      if (dSet < 13 && balk.hidden) {
+        nm.fase = 'set';
+        hud.zetNavigatie(null); navDoel = null;
+        zeg(NM_OP_SET_ZIN, () => {
+          nm.fase = 'bom';
+          const r = nmSet.ruit;
+          nmMerk.zet(r.x, grondHoogte(r.x, r.z), r.z); nmMerk.toon(true);
+          zetOpdracht('plaats de C4 bij het kanon: de gele markering (E)');
+        });
+      }
+      return;
+    }
+    if (nm.fase === 'bom') {
+      const bij = afst(sp, nmSet.ruit) < NOMERCY.bomBereik && balk.hidden;
+      if (bij) { praatEl.textContent = 'E — de C4 plaatsen'; praatEl.hidden = false; nm.hint = true; }
+      else if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
+      return;
+    }
+    if (nm.fase === 'weg') {
+      nm.t += dt;
+      if (!nm.roep && (dSet >= NOMERCY.afstand || nm.t >= NOMERCY.bomUiterlijk)) {
+        nm.roep = true; nm.knalT = 1.3;
+        if (balk.hidden) zeg(NM_ACTIE, null, { auto: 1.4 });
+      }
+      if (nm.knalT > 0) { nm.knalT -= dt; if (nm.knalT <= 0) nmBoem(sp); }
+      return;
+    }
+    if (nm.fase === 'knal') {
+      nm.t += dt;
+      nmSet.knal(Math.min(1, nm.t / 0.6));
+      if (nm.t > 2.6) {
+        const f = nmSet.groep.position;
+        // ze komen van de overkant van het kanon, uit het bos
+        const r = { x: f.x - sp.x, z: f.z - sp.z }, d = Math.hypot(r.x, r.z) || 1;
+        nmGolfErbij(NOMERCY.golf1, sp, { x: r.x / d, z: r.z / d }, 26, 36, 0.7);
+        nm.fase = 'golf1';
+        nmTreffer();
+        if (balk.hidden) zeg(NM_DUITSERS, null, { auto: 3.2 });
+      }
+      return;
+    }
+    if (nm.fase === 'golf1') {
+      if (nmOver(0, NOMERCY.golf1) === 0) {
+        nm.fase = 'wegkomen';
+        nm.wegVan = { x: sp.x, z: sp.z };
+        // een plek buiten het bos die je ook kunt halen: niet in het water, en geen hek of gevel ertussen
+        nm.uitgang = nmBosKaart().uitgang(sp.x, sp.z, (x, z) => !pointInWater(x, z) && zichtVrij(sp.x, sp.z, x, z, 0.6))
+          || nmBosKaart().uitgang(sp.x, sp.z, (x, z) => !pointInWater(x, z));
+        if (nm.uitgang) zetMarker(nm.uitgang.x, nm.uitgang.z, 'EJ');
+        zetOpdracht('kom uit het Tinga-bos');
+        if (balk.hidden) zeg(NM_WEG, null, { auto: 3.0 });
+      }
+      return;
+    }
+    if (nm.fase === 'wegkomen') {
+      const u = nm.uitgang;
+      const dU = u ? Math.hypot(sp.x - u.x, sp.z - u.z) : 99;
+      if (Math.hypot(sp.x - nm.wegVan.x, sp.z - nm.wegVan.z) > 10 || dU < 24 || !nmBosKaart().inBos(sp.x, sp.z)) {
+        // ze komen van voren: tussen jou en de rand van het bos
+        const r = u ? { x: u.x - sp.x, z: u.z - sp.z } : { x: Math.sin(-player.yaw), z: -Math.cos(player.yaw) };
+        const d = Math.hypot(r.x, r.z) || 1;
+        nmGolfErbij(NOMERCY.golf2, sp, { x: r.x / d, z: r.z / d }, 18, 30, 0.9);
+        nm.fase = 'golf2';
+        nmGolf2Opdracht();
+        if (balk.hidden) zeg(NM_GOLF2, null, { auto: 2.8 });
+      }
+      return;
+    }
+    if (nm.fase === 'golf2') {
+      nmGolf2Opdracht();
+      const binnen = nmBosKaart().inBos(sp.x, sp.z);
+      if (!binnen && nmOver(NOMERCY.golf1, NOMERCY.golf1 + NOMERCY.golf2) === 0 && balk.hidden) {
+        nm.fase = 'cut';
+        zetOpdracht(''); hud.zetNavigatie(null); navDoel = null;
+        zeg(NM_CUT, () => nmGeslaagd());
+      }
+    }
+  }
+  function nmGeslaagd() {
+    verdien(NOMERCY.beloning);
+    nmLeenTerug();
+    if (nm.pak) { nm.pak = false; if (zetPak) zetPak('gewoon'); }
+    nm.klaar = true;
+    // de set, de Flak, de Duitsers en Erik Jan weg; de cameraman loopt terug het bos in
+    const cam = nmCam.groep.visible;
+    nmRuimOp(false);
+    if (cam) { nmCam.groep.visible = true; nm.camWegT = 7; }
+    nm.fase = 'uit';
+    nmZetBeeldTerug();
+    hud.melding('MISSIE GESLAAGD', `No Mercy 4: + ${euro(NOMERCY.beloning)}. De M1 en de overgebleven patronen gaan terug naar de set.`, 7);
+    if (checkpoint && player.health > 0) { checkpoint(); hud.show('Checkpoint opgeslagen', 2); }
+  }
+  function noMercyToets() {
+    if (nm.fase !== 'bom' || !balk.hidden) return false;
+    const r = nmSet.ruit;
+    if (afst(spelerPunt(), r) > NOMERCY.bomBereik) return false;
+    nmC4.zet(r.x, grondHoogte(r.x, r.z), r.z, nmSet.yaw); nmC4.toon(true);
+    nmMerk.toon(false);
+    if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
+    geluid.neerzetten();
+    nm.fase = 'weg'; nm.t = 0; nm.roep = false; nm.knalT = -1;
+    zetOpdracht(`neem afstand: op ${NOMERCY.afstand} meter van het kanon gaat hij af`);
+    hud.melding('C4 geplaatst', 'Wegwezen: de pyrotechnicus laat hem afgaan.', 4);
+    return true;
+  }
+  // los starten (shift + punt, js/main.js): vóór missie 6 eerst door naar missie 6, en dan meteen bij Erik Jan
+  function startNoMercyLos() {
+    if (nmBezig()) return false;
+    if (NM_VOOR.includes(missie)) startMissie('bx');
+    nm.klaar = false; nm.gebeld = true; nm.fase = 'wacht'; nm.eerstWeg = false;
+    const p = nmEJPlek();
+    if (!p) return false;
+    if (gesprek) { gesprek = null; sluitBalk(); }
+    player.inCar = null;
+    const [x, z] = resolveCollisions(p.x - 3, p.z - 1, 0.4);
+    player.pos.set(x, 0, z); player.yaw = kijkHoek({ x, z }, p); player.applyCamera();
+    nmEJ.zetNeer(p.x, p.z, p.yaw); nmEJ.groep.visible = true;
+    nmBegin();
+    return true;
+  }
+
   // ---------- per beeld ----------
   /*
    De klok en de missies (stap 125: "Tijdens missie is het bepaald tijdstip en dan staat als het nodig is
@@ -10542,7 +11059,7 @@ export function initVerhaal(ctx) {
       return;
     }
     // pauze tussen twee missies: na de boerderij belt Johan (niet tijdens een klus)
-    if (naMissieT > 0 && !klusjes.bezig && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
+    if (naMissieT > 0 && !klusjes.bezig && !nmBezig() && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
       naMissieT -= dt;
       if (naMissieT <= 0) startMissie(naMissieNaam, { vanzelf: true });
       else werkVroegBij();
@@ -10554,6 +11071,8 @@ export function initVerhaal(ctx) {
     }
     ruimOpUitZicht();       // Mark en de BX verdwijnen als je je omdraait
     const sp = spelerPunt();
+    // No Mercy 4: Erik Jan, zijn telefoontje en de opnames in het Tinga-bos (stap 140)
+    werkNoMercyBij(dt, sp);
     const dMark = afst(sp, mark.groep.position);
     const opTerrein = poort ? inPolygoon(sp.x, sp.z, poort.hek) : false;
 
@@ -10719,7 +11238,8 @@ export function initVerhaal(ctx) {
     }
 
     // een missie die onder zijn M op je wacht, wacht ook tijdens een klus (js/klusjes.js)
-    const wachtOpKlus = klusjes.bezig && missie !== 'klaar';
+    // (en tijdens de opnames van No Mercy 4, stap 140)
+    const wachtOpKlus = (klusjes.bezig || nmBezig()) && missie !== 'klaar';
 
     // ---- missie 5: Johan en de dief ----
     if (missie === 'johan' && !wachtOpKlus) werkJohanBij(dt, sp);
@@ -10876,6 +11396,9 @@ export function initVerhaal(ctx) {
       ronaldKlaar, ronaldPraatte, ronaldWeg, ronaldSchrift, erfHeeftWorst, erfWorstGehad,
       // missie 18: de laatste; daarna zendt Radio Tinga het fragment af en toe opnieuw uit
       uitzendingKlaar,
+      // No Mercy 4 (stap 140): gedaan, en of Erik Jan al gebeld heeft
+      // (en of het telefoontje nog moet komen: alleen als het bij het opslaan nog aftelde)
+      noMercyKlaar: nm.klaar, noMercyGebeld: nm.gebeld, noMercyBel: !nm.gebeld && Number.isFinite(nm.belT),
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
       raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
@@ -10890,7 +11413,12 @@ export function initVerhaal(ctx) {
     // een opgeslagen spel begint zonder klus
     klusjes.reset(); klusPauze = null;
     geladenIn = null;
+    // No Mercy 4: de set weg; de wapens komen uit de opslag (js/opslag.js zette ze al), dus niets teruggeven
+    nmRuimOp(false); nm.fase = 'uit'; nm.pauze = null; nm.navOver = null;
     if (!s) return;
+    nm.klaar = !!s.noMercyKlaar; nm.gebeld = !!s.noMercyGebeld;
+    // het telefoontje komt alleen als het bij het opslaan nog aftelde; een oude opslag van na missie 5 krijgt alleen de EJ
+    nm.belT = !nm.gebeld && s.noMercyBel ? NOMERCY.belNa : Infinity;
     herspeelNaam = typeof s.herspeel === 'string' ? s.herspeel : null;
     // (de klok komt uit de opslag: een opruimer zet hem niet terug naar zijn stand van vóór een missie, stap 122)
     uitje.klokWas = null; uitzKlokWas = null;
@@ -11240,6 +11768,7 @@ export function initVerhaal(ctx) {
     if (!balk.hidden || gesprek) return 'tijdens een gesprek';
     if (zwart || titelrol || document.body.classList.contains('film')) return 'tijdens een filmbeeld';
     if (doodT > 0 || misluktT > 0 || keuzeOpen || player.health <= 0) return 'nu even niet';
+    if (nmBezig()) return 'tijdens de opnames van No Mercy 4';
     /*
      Net na een missie, tot het zwart en de ochtend (stap 122): het checkpoint werd een tel na GESLAAGD
      geschreven, en na het laden was het nog 01:00, met de klok stil en zonder "De volgende ochtend".
@@ -11301,7 +11830,15 @@ export function initVerhaal(ctx) {
     */
     spuitPrijs: (auto) => (missie === 'bx' && auto && auto === bxAuto ? BX_SPUIT : klusjes.spuitPrijs(auto)),
     // de klusjes (js/klusjes.js): X breekt er een af
-    klusAfbreken: () => klusjes.afbreken(),
+    klusAfbreken: () => noMercyAfbreken() || klusjes.afbreken(),
+    // No Mercy 4 (stap 140): los starten (shift + punt), en voor tools/nomercytest.mjs de stand
+    startNoMercy: () => startNoMercyLos(),
+    get noMercy() {
+      return { fase: nm.fase, klaar: nm.klaar, gebeld: nm.gebeld, belT: nm.belT, leen: nm.leen, levens: nm.levens.slice(),
+        golf: nm.golf, uitgang: nm.uitgang, bos: nmBosKaart(), set: nmSet, ej: nmEJ, cam: nmCam, duitsers: nmDuitsers, c4: nmC4,
+        merk: nmMerk, doos: nmDoos, ejPlek: nmEJPlek(), bezig: nmBezig(), startbaar: nmStartbaar(), pak: nm.pak, knal: nm.knal,
+        zetBelT: (t) => { nm.belT = t; } };
+    },
     get klusjes() { return klusjes; },
     // (voor tools/tempotest.mjs) de tussenpoos tussen twee missies, en of er nu een klus mag
     tussenpoos: TUSSENPOOS,

@@ -22,6 +22,7 @@ import * as THREE from 'three';
 import { Persoon } from './persoon.js';
 import { vrijeCamera } from './world.js';
 import { UNIFORM } from './politie.js';
+import { NOMERCY, zetHelm } from './nomercy.js';
 
 // te voet: dicht op de rug. In een auto hangt de hengel aan de lengte van het
 // voertuig, zodat je bij een bakwagen van zeven meter niet in de laadbak kijkt.
@@ -39,8 +40,12 @@ export function initDerdePersoon({ scene, camera, player }) {
    iedereen in hetzelfde shirt mee veranderen.
   */
   const agent = new Persoon({ ...UNIFORM, huid: 0xd9b48f, haar: 0x6b5a45, hoogte: 1.02, pet: true });
+  // en als Amerikaanse soldaat in No Mercy 4 (stap 140): olijfgroen, met een M1-helm
+  const soldaat = new Persoon({ shirt: NOMERCY.amerikaans.shirt, broek: NOMERCY.amerikaans.broek, schoen: NOMERCY.amerikaans.schoen,
+    huid: 0xd9b48f, haar: 0x6b5a45, hoogte: 1.02 });
+  zetHelm(soldaat, 'm1');
   let pop = gewoon;
-  for (const p of [gewoon, agent]) { p.groep.visible = false; scene.add(p.groep); }
+  for (const p of [gewoon, agent, soldaat]) { p.groep.visible = false; scene.add(p.groep); }
 
   let aan = false;
   let afstand = 0;              // huidige, ingekorte hengellengte
@@ -164,10 +169,10 @@ export function initDerdePersoon({ scene, camera, player }) {
     // recht achter de auto gaan hangen (bij het instappen en bij het wisselen)
     achterAuto(car) { if (!car) return; player.yaw = car.yaw; player.pitch = -0.10; player.kijkT = 0; },
     get pop() { return pop; },
-    // 'politie' of iets anders: welk pak Erik aan heeft
-    get pak() { return pop === agent ? 'politie' : 'gewoon'; },
+    // 'politie', 'soldaat' of iets anders: welk pak Erik aan heeft
+    get pak() { return pop === agent ? 'politie' : pop === soldaat ? 'soldaat' : 'gewoon'; },
     set pak(v) {
-      const nieuw = v === 'politie' ? agent : gewoon;
+      const nieuw = v === 'politie' ? agent : v === 'soldaat' ? soldaat : gewoon;
       if (nieuw === pop) return;
       nieuw.groep.visible = pop.groep.visible;
       pop.groep.visible = false;

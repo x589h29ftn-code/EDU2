@@ -61,6 +61,7 @@ export class Bewaking {
                                           het erf van de loods, niet de weg erlangs)
      oog                                  de hoogte van hun kijklijn (standaard 1,2 m); missie 1:
                                           1,6, de man die opspringt kijkt over de tafel en de stoelen
+     klank                                het wapen voor het schotgeluid (stap 140: 'garand')
      rustig                               ze staan erbij en doen niets tot `rustig` weer
                                           uit gaat of er op ze geschoten wordt (missie 12:
                                           de lijfwachten bij de wegversperring)
@@ -90,6 +91,8 @@ export class Bewaking {
     */
     this.leven = opties.leven ?? 1;
     this.mg = opties.mg || [];
+    // het geluid van hun schot (stap 140: de figuranten van No Mercy 4 met een M1 Garand); zonder: het gewone
+    this.klank = opties.klank || null;
     this.opties = { kleuren, vest, pet };
     const personen = opties.personen || [];
     this.wachters = [];
@@ -379,7 +382,8 @@ export class Bewaking {
       return Math.random() < kans * 0.7 ? Math.max(1, Math.round(this.schade * MG_SCHADE)) : 0;
     }
     w.vuurT = VUURTIJD * (0.8 + Math.random() * 0.5);
-    geluid.schot();
+    if (this.klank) geluid.schot(dSp, { wapen: this.klank, bron: 'bew' + w.i });
+    else geluid.schot();
     return Math.random() < kans ? this.schade : 0;
   }
 

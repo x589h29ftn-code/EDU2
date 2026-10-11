@@ -8314,6 +8314,70 @@ nacht 0,0092). Alles goed. `npm run m1test` (de ping na het achtste schot en bij
 Valkuil: de Playwright in node_modules wil een nieuwere Chromium dan er in /opt/pw-browsers staat; de proeven draaien
 met `CHROME_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
 
+**No Mercy 4: figureren in het Tinga-bos (stap 140, 11 okt).**
+
+Gevraagd: een missie na die van Johan en het geld (missie 5) waarin Erik figureert als Amerikaanse soldaat in de film
+No Mercy 4 van Erik Jan: een M1 Garand en 200 patronen in bruikleen, een nep 8,8 cm Flak opblazen met C4, vier Duitsers
+die schieten maar geen schade doen en na één tot drie treffers neergaan, het bos uit, nog vijf, "bedankt", € 500, en
+daarna de M1, de overgebleven patronen, de Flak en de rest weer weg. De plek uit de foto: (−150,8, −180,6).
+
+*Een bijmissie, geen missie.* Na missie 5 begint missie 6 meteen (`startMissie('bx')`, Mark onder de M bij Tinga State),
+dus een eigen waarde voor `missie` zou missie 6 wegdrukken of door de tussenpoos van een latere missie weggedrukt
+worden. De opnames hebben daarom hun eigen toestand (`nm` in js/verhaal.js, met `fase`) en het verhaal wacht zolang
+`nmBezig()` zoals bij een klus: geen klus erbij (`vrijVoorKlus`), de wachtende missie doet niets (`wachtOpKlus`), E gaat
+niet naar de missie (`toets`), de tussenpoos telt niet af, en opslaan kan niet (`waaromNietOpslaan`). Opdracht en
+navigatie van het verhaal gaan opzij (`nmBewaarBeeld`) en komen na afloop terug. Alle namen beginnen met nm of noMercy
+(js/verhaal.js is één bereik; `overgangtest` groen).
+
+*Erik Jan.* Staat buiten de poort van de waterzuivering (`poort.punt(−11, 5)`, 12 m van het midden van de poort, waar
+missie 2 eindigt), met een eigen gele ruit EJ op de kaarten (`hud.zetEJ`, `HUD.tekenEJ`; los van de vlag van de missie,
+want daar staat de M van missie 6 al). Wie daar komt, krijgt het gesprek; wie niet, krijgt 30 s na missie 5 de telefoon
+(`NOMERCY.belNa`; niet tijdens een klus, een missie of een gesprek: dan wacht hij). Na het telefoontje gaat de route naar
+hem; vervangt het verhaal die intussen, dan blijft die van het verhaal.
+
+*De bruikleen.* Voorraad en clip van de M1 zijn één pot. Er komt 200 bij (8 in de clip van een geleende M1); terug gaat
+alles boven wat je zelf had (`nmLeenTerug`). Had je zelf al een M1, dan houd je die met je eigen clip. Laden geeft niets
+terug: js/opslag.js zet de wapens vóór `verhaal.herstel`.
+
+*De set* (js/nomercy.js). Het bos staat daar zo dicht (een stam om de 2,5 m, 284 bomen binnen 40 m) dat er geen Flak
+van zeven meter tussen past: `NOMERCY_SET` in js/bouwvlak.js houdt een open plek van 8,5 m vrij (de bomen staan niet als
+botsdoos in de wereld, dus het meten gaat via `treePositions`). De Flak: kruisonderstel met stelvoeten, voet,
+draaischijf, bovenaffuit, wieg met de loop 30° omhoog, schild met sleuf en vleugels; verf als doek op canvas (feldgrau,
+vlekken, krassen, roest). Na de knal kantelt hij, hangt de loop, zakt het schild en wordt alles zwartgeblakerd (de kleur,
+geen nieuw materiaal). Kisten met opdruk, een camouflagenet (`alphaTest`), een filmlamp (een gloeiend vlak, geen licht)
+en de stoel met NO MERCY 4. De Flak heeft een botsdoos die bij het opstarten zonder hoogte wordt aangemaakt en alleen
+tijdens de opnames 2,2 m hoog is.
+
+*Het bos.* In de kaart staat alleen een bosvlak van 1.800 m²; de bomen staan ook op het gras eromheen. `bosKaart`
+maakt vakjes van 4 m met minstens twee stammen binnen 6 m, aaneengesloten vanaf de set: 24.750 m², een strook van
+zuidwest naar noordoost. "Buiten het bos" is: geen bosvakje ernaast. De uitgang wordt in 36 richtingen gezocht, niet in
+het water en met vrij zicht (`zichtVrij` op 0,6 m: geen hek of gevel ertussen).
+
+*De Duitsers* zijn een `Bewaking` met `schade: 0` (losse flodders: mondingsvuur en het garandschot, `klank`, nieuw in
+js/bewaking.js, maar geen leven eraf), `leven` 1–3 per man en hun eigen lichaam (feldgrau, stahlhelm als draaivorm,
+`npcWapen('garand')` in js/persoon.js). `raak` telt elke treffer als één, ook die van de M1 (die anders 99 doet).
+Vier komen van de overkant van het kanon, vijf tussen jou en de rand van het bos. De cameraman loopt mee op 3,2 m (blijft
+hij verder dan 11 m achter, dan staat hij weer achter je, buiten beeld); Erik Jan staat bij zijn stoel. Op de set geen
+sterren. Mislukt: in een auto, verder dan 160 m van de set, X, neergaan; alles weg, de bruikleen terug, Erik Jan weer bij
+de waterzuivering (pas weer praten als je even weg bent geweest).
+
+*Wat misging.* (1) De proef telde de seconden tot het telefoontje verkeerd (26 s in plaats van 29): de eerste keer rood
+op "na 31 s"; de code klopte. (2) Lopend naar de uitgang bleef de speler tegen een hek hangen: de eerste uitgang lag
+achter de omheining van de waterzuivering. Nu met vrij zicht. (3) Na X naast Erik Jan begon het gesprek meteen opnieuw.
+(4) De eerste foto's: van achter het net, van achter de bomen, en een Duitser midden in het kanon. (5) `tempotest` werd
+rood: hij laadt een stand van na missie 13, en Erik Jan belde dan een halve minuut na het laden; dat gesprek blokkeerde
+de tussenpoos van de proef. Een oude opslag van na missie 5 krijgt nu alleen de EJ op de kaart; het telefoontje komt
+alleen als het bij het opslaan nog aftelde (`noMercyBel`).
+
+*Sneltoets*: **shift + .** (de punt; ook die van het numerieke blok): vóór missie 6 eerst door naar missie 6, dan meteen
+het gesprek bij Erik Jan.
+
+*Proef*: `npm run nomercytest`: 67 controles, alles goed (het telefoontje na 28,6 s nog niet en na 31 s wel, de
+cameraman hoogstens 4,7 m achter je, 26 schoten in 20 s zonder één punt schade, 171 → 171 programma's). Ook groen:
+`overgangtest`, `tempotest` (21), `klusjestest` (43) en `legendatest` (de regel "missie" noemt nu ook EJ). *Foto's*: `npm run nomercyshots`: nomercy_flak.png,
+nomercy_knal.png, nomercy_duitsers.png. Valkuil (stap 139): de proeven draaien met
+`CHROME_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

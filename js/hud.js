@@ -348,6 +348,22 @@ export class HUD {
   */
   zetKlus(k) { this.klus = k || null; }
   /*
+   Erik Jan van No Mercy 4 (stap 140): de bijmissie na missie 5 heeft een eigen gele ruit met EJ, los van
+   de vlag van de hoofdmissie, want missie 6 staat dan al met zijn M op de kaart. { x, z } of null.
+  */
+  zetEJ(p) { this.ej = p || null; }
+  static tekenEJ(c, r = 10) {
+    const v = r * 0.3;
+    c.beginPath();
+    c.moveTo(0, -v * 3.2); c.lineTo(v * 2.6, 0); c.lineTo(0, v * 3.2); c.lineTo(-v * 2.6, 0);
+    c.closePath();
+    c.fillStyle = '#ffd400'; c.fill();
+    c.strokeStyle = '#1a1a1a'; c.lineWidth = 1.5; c.stroke();
+    c.fillStyle = '#1a1a1a'; c.font = `bold ${(r * 0.82).toFixed(1)}px sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('EJ', 0, 0.5);
+  }
+  /*
    De legenda onderaan de grote kaart: [{ wat, naam, uitleg }]. js/main.js stelt hem samen
    met de prijzen uit de modules zelf, zodat wat er staat klopt met wat het kost.
   */
@@ -437,6 +453,7 @@ export class HUD {
     const kandidaten = [];
     for (const q of this._bigPins || []) kandidaten.push({ x: q.echt.x, y: q.echt.y, sx: q.x, sy: q.y, naam: q.naam });
     if (this.klus) { const q = this.wereldNaarBig(this.klus.x, this.klus.z); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: 'de klus' }); }
+    if (this.ej) { const q = this.wereldNaarBig(this.ej.x, this.ej.z); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: 'Erik Jan' }); }
     if (this.nav && this.nav.doel) { const q = this.wereldNaarBig(this.nav.doel[0], this.nav.doel[1]); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: this.nav.naam || 'het doel van de missie' }); }
     let beste = null;
     for (const k of kandidaten) {
@@ -759,6 +776,16 @@ export class HUD {
       HUD.tekenKlus(c, 9);
       c.restore();
     }
+    // Erik Jan (No Mercy 4): net zo, op de rand als hij buiten het rondje staat
+    if (this.ej) {
+      const q = opRand(this.ej.x, this.ej.z);
+      opKaart.push({ wat: 'ej', ...q });
+      c.save();
+      c.translate(q.x * scale, q.z * scale);
+      c.rotate(-this._kaartRot);
+      HUD.tekenEJ(c, 10);
+      c.restore();
+    }
     // (voor tools/kaartdoeltest.mjs: waar elke plek op de minikaart staat, in meters)
     this._miniPlekken = opKaart; this._miniRand = randR;
     // `rot` bepaalt alleen of een straatnaam omgeklapt moet om leesbaar te
@@ -918,6 +945,16 @@ HUD.prototype.drawBig = function (player, vehicles) {
     c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
     const wie = this.klus.wie === 'johan' ? 'klus · Johan' : 'klus · Mark';
     c.strokeText(wie, 0, -18); c.fillStyle = '#9ff0a8'; c.fillText(wie, 0, -18);
+    c.restore();
+  }
+  if (this.ej) {
+    c.save();
+    c.translate(this.ej.x, this.ej.z);
+    c.scale(1 / scale, 1 / scale);
+    HUD.tekenEJ(c, 12);
+    c.textAlign = 'center'; c.font = 'bold 12px sans-serif';
+    c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
+    c.strokeText('No Mercy 4 · Erik Jan', 0, -18); c.fillStyle = '#ffe680'; c.fillText('No Mercy 4 · Erik Jan', 0, -18);
     c.restore();
   }
   const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);

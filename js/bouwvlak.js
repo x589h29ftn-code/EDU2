@@ -40,6 +40,14 @@ export const LOODS = {
   kade: { x0: 1394, x1: 1421, z0: -182, z1: -171.5 },
 };
 
+/*
+ En de filmset van No Mercy 4 in het Tinga-bos (stap 140, de bijmissie na missie 5, js/nomercy.js): de
+ plek uit de foto van de gebruiker, tussen de stammen. Daar staat het bos zo dicht (een stam om de
+ twee à drie meter) dat er geen 8,8 cm Flak van zeven meter tussen past; de ploeg heeft een open plek
+ gekapt. Een cirkel: geen boom, struik of gras binnen `r` meter.
+*/
+export const NOMERCY_SET = { x: -150.8, z: -180.6, r: 8.5 };
+
 export const GARAGE = {
   // het gebouw: de glazen gevel op x0 kijkt naar de Lemmerweg (west)
   x0: 770, x1: 788, z0: 120, z1: 146,
@@ -60,7 +68,8 @@ function inRechthoek(x, z, r, m = 0) {
 export function inBouwvlak(x, z) {
   const G = GARAGE, L = LOODS;
   return inRechthoek(x, z, G, MARGE) || inRechthoek(x, z, G.voor, 0.5) || inRechthoek(x, z, G.inrit, 0.5)
-    || inRechthoek(x, z, L, MARGE) || inRechthoek(x, z, L.erf, 1) || inRechthoek(x, z, L.oprit, 0.5) || inRechthoek(x, z, L.kade, 0.5);
+    || inRechthoek(x, z, L, MARGE) || inRechthoek(x, z, L.erf, 1) || inRechthoek(x, z, L.oprit, 0.5) || inRechthoek(x, z, L.kade, 0.5)
+    || Math.hypot(x - NOMERCY_SET.x, z - NOMERCY_SET.z) < NOMERCY_SET.r;
 }
 
 /*

@@ -971,7 +971,7 @@ winkelsNu = null; werkKaartvlaggenBij();
     { wat: 'overspuiten', naam: 'BP wasbox', uitleg: `overspuiten: de sterren kwijt, ${euro(PRIJS_PER_STER)} per ster` },
     { wat: 'huis', naam: 'je huis', uitleg: 'bier in de koelkast, barbecue, radio, je auto op de oprit' },
     { wat: 'klus', naam: 'klusje', uitleg: `Mark of Johan: ${euro(KLUS.loon.tas[0])} tot ${euro(KLUS.loon.omleggen[1])}` },
-    { wat: 'missie', naam: 'missie', uitleg: 'de gele ruit (M, J, R…): daar gaat het verhaal verder' },
+    { wat: 'missie', naam: 'missie', uitleg: 'de gele ruit (M, J, R, EJ…): daar gaat het verhaal verder' },
     { wat: 'politie', naam: 'politie', uitleg: 'blauw: daar zoeken ze je' },
   ]);
 }
@@ -1910,6 +1910,13 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Quote') { e.preventDefault(); startMissieLos('17'); return; }
   // en de toets rechts onderin naast de punt (/ op een Amerikaans toetsenbord, - op een Nederlands): missie 18
   if (e.code === 'Slash' || e.code === 'NumpadDivide') { e.preventDefault(); startMissieLos('18'); return; }
+  // en de punt ernaast (stap 140): de bijmissie No Mercy 4, meteen bij Erik Jan aan de waterzuivering
+  if (e.code === 'Period' || e.code === 'NumpadDecimal') {
+    e.preventDefault();
+    politie.reset();
+    if (verhaal.startNoMercy && verhaal.startNoMercy()) hud.show('Bijmissie — No Mercy 4', 3.5);
+    return;
+  }
   const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();

@@ -98,6 +98,20 @@ function npcWapen(soort) {
     d.staal.push(npcLoop(0.006, 0.20, 0.022, 0.03, 0.22));
     d.poly.push(npcDoos(0.06, 0.07, 0.02, 0, 0.0, 0.32, 0.008));                 // de schouderplaat
     d.staal.push(npcDoos(0.018, 0.036, 0.036, 0, 0.058, -0.10, 0.004));          // vizier
+  } else if (soort === 'garand') {
+    /*
+     De M1 Garand van de figuranten in No Mercy 4 (stap 140): een lang houten geweer zonder magazijn
+     eronder, de loop die vóór het hout uitsteekt, met de gaskamer aan de mond. 1,10 m van kolf tot mond.
+    */
+    d.staal.push(npcLoop(0.0105, 0.30, 0, 0.020, -0.70));                        // loop, voorbij het hout
+    d.staal.push(npcLoop(0.0150, 0.07, 0, 0.012, -0.84));                        // gaskamer aan de mond
+    d.hout.push(npcDoos(0.050, 0.052, 0.46, 0, 0.002, -0.32, 0.014));            // voorhout
+    d.staal.push(npcDoos(0.040, 0.050, 0.20, 0, 0.026, -0.02, 0.008));           // kast met de grendel
+    d.hout.push(npcDoos(0.048, 0.060, 0.16, 0, -0.008, 0.10, 0.014));            // de pols
+    d.hout.push(npcDoos(0.046, 0.118, 0.24, 0, -0.040, 0.28, 0.016, -0.12));     // kolf
+    d.staal.push(npcDoos(0.012, 0.040, 0.050, 0, -0.040, 0.035, 0.004));         // trekkerbeugel
+    d.staal.push(npcDoos(0.016, 0.034, 0.030, 0, 0.060, 0.05, 0.004));           // vizier achter
+    d.staal.push(npcDoos(0.008, 0.026, 0.012, 0, 0.040, -0.86, 0.003));          // korrel
   } else {
     // het geweer van de bewaking: lange loop, houten kolf en handgreep, een gebogen magazijn
     d.staal.push(npcLoop(0.012, 0.34, 0, 0.012, -0.42));                         // loop
@@ -265,7 +279,7 @@ export class Persoon {
       g.children[g.children.length - 1].rotation.x = -Math.PI / 2;
     } else {
       // pistool, machinepistool of geweer: de gedeelde vorm uit `npcWapen` (stap 123)
-      for (const { geo, m } of npcWapen(soort === 'mp' || soort === 'pistool' ? soort : 'geweer')) {
+      for (const { geo, m } of npcWapen(soort === 'mp' || soort === 'pistool' || soort === 'garand' ? soort : 'geweer')) {
         const o = new THREE.Mesh(geo, m);
         o.castShadow = true; o.receiveShadow = true;
         g.add(o);
@@ -277,7 +291,7 @@ export class Persoon {
     this.wapen = g;
     // een knuppel vuurt niet: geen mondingsvlam
     if (soort === 'knuppel') { this.vlam = null; this.vlamT = 0; return g; }
-    const vlamAf = soort === 'mp' ? -0.38 : soort === 'pistool' ? -0.20 : -0.52;
+    const vlamAf = soort === 'mp' ? -0.38 : soort === 'pistool' ? -0.20 : soort === 'garand' ? -0.90 : -0.52;
     const vlam = new THREE.Mesh(new THREE.SphereGeometry(soort === 'pistool' ? 0.055 : soort === 'mp' ? 0.08 : 0.07, 8, 6),
       new THREE.MeshBasicMaterial({ color: 0xffd080, transparent: true, opacity: 0 }));
     vlam.position.set(0, 0, vlamAf);

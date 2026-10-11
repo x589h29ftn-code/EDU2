@@ -105,6 +105,7 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + [** | het schrift (de toets rechts naast de P) |
 | **shift + ]** | Ronald en de race naar IJlst (de toets daarnaast) |
 | **shift + \\** | Bouwman schaduwen (de toets daar weer rechts van; op een Europees toetsenbord ook **shift + <**) |
+| **shift + .** | de bijmissie No Mercy 4 (meteen bij Erik Jan aan de waterzuivering) |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
@@ -1750,6 +1751,37 @@ spel een reeks opdrachten geweest; vanaf hier is het de wijk in, en dan helpt he
 om te weten waar de winkels voor zijn (verzoek 20 sep 2026).
 
 ![De balk over de winkels](docs/screenshots/uitleg_winkels.png)
+
+### Bijmissie · No Mercy 4
+
+Na missie 5 staat er bij de poort van de waterzuivering een man met een pet: **Erik Jan**, de regisseur van
+de oorlogsfilm *No Mercy*. Op de kaart is dat een gele ruit met **EJ**, naast de M van missie 6. Ga je er niet
+uit jezelf heen, dan belt hij een halve minuut na missie 5 (niet tijdens een klus of een missie; dan later):
+ze draaien **No Mercy 4** in het Tinga-bos, en hij komt een figurant tekort. Missie 6 en de rest van het
+verhaal wachten gewoon: dit is een bijmissie, en zolang de opnames lopen telt de tijd tot de volgende missie
+niet af.
+
+Bij hem trek je een Amerikaans uniform aan, met een M1-helm, en krijg je een **M1 Garand en 200 patronen in
+bruikleen**. Met de cameraman, die de hele tijd een paar meter achter je loopt te filmen, ga je naar de set
+tussen de stammen, een open plek honderd meter van de waterzuivering. Daar staat een Duitse **8,8 cm Flak**
+van triplex en blik. Leg de **C4** op de gele markering bij het sluitstuk (**E**) en ren weg: op vijftien
+meter laten ze hem afgaan.
+
+![De set van No Mercy 4](docs/screenshots/nomercy_flak.png)
+
+![De knal](docs/screenshots/nomercy_knal.png)
+
+Dan komen er **vier Duitsers** aan in feldgrau met een stahlhelm (en, omdat de film het zo heeft, ook met een
+M1). Ze schieten met losse flodders: je ziet het mondingsvuur en je hoort het, maar je verliest er geen leven
+door. Elk gaat neer na één tot drie treffers. Daarna moet je **het bos uit**; onderweg komen er nog **vijf**.
+Ben je buiten het bos en liggen ze allemaal, dan roept de cameraman *"Cut! Prachtig."* en krijg je **€ 500**.
+Het geweer en de patronen die je over hebt gaan terug naar de set (had je zelf al een M1, dan houd je die, met
+je eigen patronen), het uniform gaat uit, en de Flak, het decor en de figuranten worden opgeruimd.
+
+![De Duitsers](docs/screenshots/nomercy_duitsers.png)
+
+Ga je neer, loop je van de set weg, stap je in een auto of druk je op **X**, dan zijn de opnames mislukt en
+staat Erik Jan weer bij de waterzuivering. Tijdens de opnames kun je niet opslaan. Na het slagen is hij weg.
 
 ### 6 · De groene BX
 
