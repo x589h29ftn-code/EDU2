@@ -381,7 +381,7 @@ export function zetOpslagen(lijst, kiesPlek) { opslagLijst = lijst; opslagKies =
 // de waarden in het instellingenpaneel opnieuw lezen (het volledige scherm verandert pas na de klik)
 export function ververs() {
   if (!instelHaak || !el.zijpaneel || el.zijpaneel.hidden) return;
-  for (const i of instelHaak() || []) { const b = document.getElementById(`instel_${i.id}`); if (b) b.textContent = i.waarde(); }
+  for (const i of instelHaak() || []) { const b = document.getElementById(`instel_${i.id}`); if (b && i.waarde) b.textContent = i.waarde(); }   // (een schuif heeft geen `waarde`; stap 138)
 }
 
 function rij(naam, waarde) {

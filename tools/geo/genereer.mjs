@@ -1328,16 +1328,30 @@ const SCHEIDINGEN = [];
   const inGebied = (pts) => pts.some(q => q[0] >= G.x0 - 20 && q[0] <= G.x1 + 20 && q[1] >= G.z0 - 20 && q[1] <= G.z1 + 20);
   // punten uitdunnen: de BGT zet er om de halve meter een, en dat is voor een
   // rechte muur van tachtig meter zonde van het geheugen
+  /*
+   Douglas-Peucker (stap 138). Hier stond een gretige versie die elk punt alleen
+   tegen zijn twee buren toetste: bij een bocht die in punten van een halve meter
+   is getekend wijkt geen enkel punt af van de lijn naar zijn buurman, en zo
+   werd de kademuur langs de Geeuw (een flauwe bocht van 180 m) één rechte lijn
+   die zeven meter de wal op stond — over de stoep en de berm (bij (960, −195)).
+  */
   const dun = (pts, tol = 0.35) => {
-    const uit = [pts[0]];
-    for (let i = 1; i < pts.length - 1; i++) {
-      const a = uit[uit.length - 1], b = pts[i], c = pts[i + 1];
-      const dx = c[0] - a[0], dz = c[1] - a[1], L = Math.hypot(dx, dz) || 1;
-      const afw = Math.abs((b[0] - a[0]) * dz - (b[1] - a[1]) * dx) / L;
-      if (afw > tol) uit.push(b);
+    if (pts.length < 3) return pts.slice();
+    const houd = new Uint8Array(pts.length); houd[0] = houd[pts.length - 1] = 1;
+    const stapel = [[0, pts.length - 1]];
+    while (stapel.length) {
+      const [i0, i1] = stapel.pop();
+      const a = pts[i0], c = pts[i1];
+      const dx = c[0] - a[0], dz = c[1] - a[1], L = Math.hypot(dx, dz);
+      let best = -1, bi = -1;
+      for (let i = i0 + 1; i < i1; i++) {
+        const b = pts[i];
+        const afw = L > 1e-9 ? Math.abs((b[0] - a[0]) * dz - (b[1] - a[1]) * dx) / L : Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (afw > best) { best = afw; bi = i; }
+      }
+      if (best > tol) { houd[bi] = 1; stapel.push([i0, bi], [bi, i1]); }
     }
-    uit.push(pts[pts.length - 1]);
-    return uit;
+    return pts.filter((_, i) => houd[i]);
   };
   const lengteVan = (pts) => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; };
   /*

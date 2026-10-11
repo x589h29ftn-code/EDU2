@@ -263,6 +263,27 @@ function bouwEen(scene, W, KM, V) {
      schuinen. Beton dus, geen gras.
     */
     const steil = Math.max(as[i][4] - as[i][3], as[i][6] - as[i][5]) < 0.4 && Math.abs(as[i][2]) > 1;
+    /*
+     Twee bakken door elkaar (stap 138). De fietstunnels lopen aan de kant van de
+     rijksweg door tot ín de bak van de N7 (stap 46b). Hun onderlaag lag daar dan
+     op hun eigen profiel — de teen van hun talud op maaiveld, de bodem op −3,2 m —
+     terwijl de grond er op −5,6 m ligt: een groen vlak dat schuin over de rijksweg
+     hing (melding bij (719, −156), 7.webp). Een stuk van de strook waarvan een
+     hoek boven de echte grond uitkomt (grondHoogte neemt de diepste bak) hoort bij
+     de diepere bak, en die heeft zijn eigen onderlaag; dat stuk vervalt.
+    */
+    if (V.verdiept) {
+      const a = prof(i - 1), b = prof(i);
+      const boven = (p) => p[1] > grondHoogte(p[0], p[2], -Infinity) + 0.3;
+      if (a.some(boven) || b.some(boven)) {
+        for (let k = 0; k < 3; k++) {
+          const A = [a[k], a[k + 1]], B = [b[k], b[k + 1]];
+          if (A.some(boven) || B.some(boven)) continue;
+          strook(steil ? beton : grond, A, B, 0.12);
+        }
+        continue;
+      }
+    }
     strook(V.verdiept && steil ? beton : grond, prof(i - 1), prof(i), 0.12);
   }
 

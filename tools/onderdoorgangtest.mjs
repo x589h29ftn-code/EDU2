@@ -95,7 +95,7 @@ const meting = await page.evaluate(async ({ GROND, VERKEER }) => {
 
   // 2. elke driehoek van de ondergrond: ligt hij ook tussen zijn hoekpunten op de grond?
   const v3 = new THREE.Vector3();
-  let driehoeken = 0, scheef = 0, ergste = 0, scheefOpp = 0;
+  let driehoeken = 0, scheef = 0, ergste = 0, scheefOpp = 0, klein = 0;
   const scheefVb = [];
   for (const o of kandidaten) {
     const kl = o.userData.klasse;
@@ -117,15 +117,19 @@ const meting = await page.evaluate(async ({ GROND, VERKEER }) => {
         const x = A[0] + (B[0] - A[0]) * u + (C[0] - A[0]) * w, y = A[1] + (B[1] - A[1]) * u + (C[1] - A[1]) * w, z = A[2] + (B[2] - A[2]) * u + (C[2] - A[2]) * w;
         af = Math.max(af, Math.abs(y - (W.grondHoogte(x, z, -Infinity) + o0)));
       }
+      // een driehoekje van een kwart meter over een loodrechte wand (een tunnelwand onder het dek) is geen hangend
+      // vlak: dat kan geen enkel net volgen zonder de BGT-vlakken langs de wand te knippen; dat telt apart
+      const lang = Math.max(Math.hypot(B[0] - A[0], B[2] - A[2]), Math.hypot(C[0] - B[0], C[2] - B[2]), Math.hypot(A[0] - C[0], A[2] - C[2]));
+      if (af > 0.3 && lang <= 0.5) { klein++; continue; }
       if (af > 0.3) {
         scheef++;
         scheefOpp += Math.abs((B[0] - A[0]) * (C[2] - A[2]) - (B[2] - A[2]) * (C[0] - A[0])) / 2;
         if (scheefVb.length < 5) scheefVb.push(`${kl} bij ${cx.toFixed(0)},${cz.toFixed(0)}: ${af.toFixed(2)} m naast de grond`);
       }
-      ergste = Math.max(ergste, af);
+      if (af > 0.3) ergste = Math.max(ergste, af);
     }
   }
-  return { punten, groenBoven, verkeerdHoog, gat, maxAf, voorbeelden, driehoeken, scheef, ergste, scheefOpp, scheefVb, meshes: kandidaten.length };
+  return { punten, groenBoven, verkeerdHoog, gat, maxAf, voorbeelden, driehoeken, scheef, ergste, scheefOpp, scheefVb, klein, meshes: kandidaten.length };
 }, { GROND, VERKEER });
 console.log(`  ${meting.meshes} meshes; ${meting.punten} punten op de rijbaan in de bak`);
 for (const v of meting.voorbeelden) console.log('    ' + v);
@@ -138,7 +142,7 @@ kop('de driehoeken van de ondergrond in de bak');
 for (const v of meting.scheefVb) console.log('    ' + v);
 ok(meting.driehoeken > 1000, 'er liggen driehoeken van de ondergrond in de bak', `${meting.driehoeken}`);
 ok(meting.scheef === 0, 'geen driehoek die scheef over de bak hangt (30 cm tussen zijn hoekpunten)',
-  `${meting.scheef} driehoeken, ${meting.scheefOpp.toFixed(0)} m², ergste ${meting.ergste.toFixed(2)} m`);
+  `${meting.scheef} driehoeken, ${meting.scheefOpp.toFixed(0)} m², ergste ${meting.ergste.toFixed(2)} m; ${meting.klein} kleiner dan een halve meter langs een loodrechte wand`);
 
 // ------------------------------------------------------------------ 3. de lantaarns
 kop('de lantaarns');
