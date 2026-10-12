@@ -8596,6 +8596,30 @@ is 1,73 m. (4) Op de eerste foto lag de schop dwars over het balkenkruis.
 een eigen zon en grond op een lege pagina): nomercy5_stafauto.png, nomercy5_stafauto_achter.png, nomercy5_zijspan.png.
 `npm run nomercy5test` met de nieuwe modellen: 74 controles, alles goed (rijden, Cut, de stafauto houden en laden, 216 → 216 programma's).
 
+**No Mercy: de stafauto in het bos, uit elkaar, rood zonder schade (stap 143, 12 okt).**
+
+Gemeld: "in missie no mercy zie ik in het tinga bos nog de bx als auto. De duitsers lopen ook wat door elkaar. Laat ze als
+ze je raken wel rood zien in beeld maar geen levens."
+
+*De stafauto.* De stafauto in het bunkerdorp van No Mercy 4 (`nmStaf`) was nog een BX in feldgrau; nu is het hetzelfde eigen
+model als in No Mercy 5 (`maakStafauto`, via `voegToe({ mesh })`), niet bestuurbaar, op zijn plek in het kamp.
+
+*Uit elkaar.* Een golf Duitsers kreeg allemaal hetzelfde doel (`w.doel = [sp.x, sp.z]`), en in de aanval liepen ze alle vier
+recht op je af tot de dekkingsafstand: ze kwamen op één kluitje en liepen door elkaar heen. Nu krijgt elke man een eigen punt op
+een ring van 4 m om je heen (`nmGolfErbij`, en bij het alarm in het kamp), en heeft `Bewaking` een optie `uitElkaar` (m): na elk
+beeld schuiven twee levende mannen die dichter bij elkaar staan elk de helft van het verschil uit elkaar (hoogstens 2,5 m/s, nooit
+een muur in; wie met `houden` op zijn plek staat blijft staan). Aan voor alle figuranten van No Mercy 4 en 5 (`NM_UIT_ELKAAR` =
+1,4 m); zonder de optie verandert er niets.
+
+*Rood zonder schade.* `Bewaking.schiet` telt elke treffer in `raakNu`, ook als hij geen schade doet. Na elke update van de
+figuranten laat `nmRaakFlits` het beeld rood flitsen (`hud.flits`, de flits van een echte treffer) en zet de teller op nul; het
+leven blijft vol. Erbij gevonden: het machinegeweer gaf met `schade: 0` toch 1 per treffer terug (`Math.max(1, …)`); bij No
+Mercy werd die waarde nergens gebruikt, maar nu is het 0.
+
+*Proef*: `npm run figurantentest`: 13 controles, alles goed (de stafauto en 172 → 172 programma's, vier verschillende doelen, in
+twintig tellen gevecht nooit dichter dan 1,39 m, tien rode flitsen bij leven 100 in No Mercy 4 en twee in No Mercy 5, een gewone
+Bewaking duwt niemand weg, een machinegeweer met schade 0 raakt 112 keer zonder schade). NM2UITSLAG
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

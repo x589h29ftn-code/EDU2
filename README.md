@@ -1773,8 +1773,8 @@ meter laten ze hem afgaan.
 ![De knal](docs/screenshots/nomercy_knal.png)
 
 Dan komen er **vier Duitsers** aan in feldgrau met een stahlhelm (en, omdat de film het zo heeft, ook met een
-M1). Ze schieten met losse flodders: je ziet het mondingsvuur en je hoort het, maar je verliest er geen leven
-door. Elk gaat neer na één tot drie treffers. Daarna moet je **het bos uit**; onderweg komen er nog **vijf**.
+M1). Ze schieten met losse flodders: je ziet het mondingsvuur en je hoort het, en bij een treffer flitst het beeld rood,
+maar je verliest er geen leven door. Ze komen elk van een eigen kant en lopen niet door elkaar. Elk gaat neer na één tot drie treffers. Daarna moet je **het bos uit**; onderweg komen er nog **vijf**.
 Ben je buiten het bos en liggen ze allemaal, dan roept Erik Jan: *"Goed zo — nu de tweede take!"*
 
 ![De Duitsers](docs/screenshots/nomercy_duitsers.png)
