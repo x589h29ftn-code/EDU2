@@ -18,6 +18,7 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
 const page = await browser.newPage({ viewport: { width: B, height: H } });
+page.setDefaultTimeout(600000);   // (op de resolutie van het boekje duurt een schermafdruk langer dan 30 s)
 let fouten = 0;
 page.on('pageerror', e => { console.log('[pageerror]', e.message); fouten++; });
 await page.goto(`http://127.0.0.1:${poort}/stafautobank`, { waitUntil: 'load', timeout: 120000 });

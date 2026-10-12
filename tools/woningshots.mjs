@@ -24,6 +24,7 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
 const page = await browser.newPage({ viewport: { width: +(process.env.SHOT_B || 1280), height: +(process.env.SHOT_H || 720) } });
+page.setDefaultTimeout(600000);   // (op de resolutie van het boekje duurt een schermafdruk langer dan 30 s)
 page.on('pageerror', e => console.log('[pageerror]', e.message));
 await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__game, null, { timeout: 120000 });

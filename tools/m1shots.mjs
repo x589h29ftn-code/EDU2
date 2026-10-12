@@ -36,6 +36,7 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
 const page = await browser.newPage({ viewport: { width: B, height: H } });
+page.setDefaultTimeout(600000);   // (op de resolutie van het boekje duurt een schermafdruk langer dan 30 s)
 page.on('pageerror', e => console.log('[pageerror]', e.message));
 await page.goto(`http://127.0.0.1:${poort}/m1bank`, { waitUntil: 'load', timeout: 120000 });
 await page.setContent(`<!doctype html><html><head>

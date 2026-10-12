@@ -16,6 +16,7 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
 const page = await browser.newPage({ viewport: { width: +(process.env.SHOT_B || 1280), height: +(process.env.SHOT_H || 720) } });
+page.setDefaultTimeout(600000);   // (op de resolutie van het boekje duurt een schermafdruk langer dan 30 s)
 let fouten = 0;
 page.on('pageerror', e => { console.log('[pageerror]', e.message); fouten++; });
 page.on('console', m => { if (/^(kamp|radio|klapbord):/.test(m.text())) console.log(m.text()); });
