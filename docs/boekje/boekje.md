@@ -12,7 +12,7 @@ Jij bent **Erik**. Je krijgt een telefoontje van **Mark**, en later steekt **Joh
 
 Tinga is groot en je hoeft niet alles via de missies te doen. Loop rond, koop een auto, eet kibbeling, speel een potje tennis, en kijk uit voor de politie.
 
-*Foto: 01_welkom.png*
+*Foto: 01_welkom.jpg*
 
 ---
 
@@ -75,7 +75,7 @@ Het **mes** heb je altijd. Zijn al je kogels op, dan pak je bij de volgende klik
 
 **Aanraakscherm:** links een stick om te lopen, rechts veeg je om rond te kijken. Knoppen voor vuur, springen, herladen, wapen wisselen, bukken, in- en uitstappen (E), kaart, camera en pauze.
 
-*Foto: 02_lopen.png*
+*Foto's: 02_lopen.jpg, 23_menu_besturing.jpg*
 
 ---
 
@@ -101,7 +101,7 @@ Martens staat er van 9 tot 18 uur. Van EHBO-dozen draag je er maximaal vijf. L d
 
 Gaat je leven op nul, dan ben je neer. Dan kies je: de missie opnieuw, het laatste checkpoint of je eigen opslag.
 
-*Foto: 03_vishandel.png*
+*Foto's: 03_vishandel.jpg, 20_poiesz.jpg, 21_ambulance.jpg*
 
 ---
 
@@ -131,7 +131,7 @@ Wat je al hebt, staat grijs in het schap. C4 is niet te koop: dat krijg je in he
 
 **De drone** (€ 1.000): B laat hem opstijgen, Erik blijft staan. Hij kan 150 meter hoog, 800 meter van jou af en niet te dicht bij de rand van de wereld. Buiten bereik krijg je OUT OF RANGE en een paar seconden om terug te komen, anders stort hij neer. De accu gaat 5 minuten mee. Vliegen is niet strafbaar: de drone geeft nooit een ster.
 
-*Foto's: 04_tinga_state.png, 05_m1_garand.png, 06_drone.png*
+*Foto's: 04_tinga_state.jpg, 04b_schap.jpg, 05_m1_garand.jpg, 05b_sniper.jpg, 05c_mes.jpg, 06_drone.jpg*
 
 ---
 
@@ -163,7 +163,7 @@ Decals: Radio Spannenburg, Radio Markant, Radio Tinga, 100% NL, racenummer 23 (d
 
 **Tanken:** je auto heeft geen benzine nodig. De BP is wel een mooie plek om te herkennen waar je bent .
 
-*Foto's: 07_autohuis.png, 08_tuning.png, 09_wasbox.png*
+*Foto's: 07_autohuis.jpg, 08_tuning.jpg, 09_wasbox.jpg, 19e_stafauto.jpg*
 
 ---
 
@@ -176,11 +176,12 @@ Decals: Radio Spannenburg, Radio Markant, Radio Tinga, 100% NL, racenummer 23 (d
 | **Tennis** | tennispark aan de Molenkrite. E aan het hek van een baan | € 50 voor een gewonnen game |
 | **Racen voor geld** | Autohuis Lemmerweg, E aan de balie bij Sjoerd; kan nadat je de eerste race in het verhaal hebt gereden. Kies je inleg | inleg € 500, € 1.000 of € 2.500; win en je krijgt het dubbele [controleren] |
 | **Dj bij Radio Tinga** | na het verhaal: E aan de tafel, kies een nummer | € 75 |
-| **No Mercy 4** | bijmissie: na missie 5 vraagt Erik Jan je voor een filmopname bij de waterzuivering | € 1.000 of een M1 Garand |
+| **No Mercy 4** | bijmissie: na missie 5 vraagt Erik Jan je voor een filmopname bij de waterzuivering; daarna een tweede take in het bunkerdorp in het Tinga-bos | € 1.000 of een M1 Garand |
+| **No Mercy 5** | bijmissie: na missie 12 en No Mercy 4 staat Erik Jan met een EJ op de kade in IJlst (hij belt niet). 's Nachts de overtocht bij molen De Rat, dan de rit in de stafauto | € 2.000 of de stafauto |
 
 Een klusje breek je af met **X**. Er komt nooit twee keer dezelfde soort achter elkaar.
 
-*Foto's: 10_klusje.png, 11_pizza.png, 12_tennis.png, 14_radio_tinga.png*
+*Foto's: 10_klusje.jpg, 11_pizza.jpg, 12_tennis.jpg, 13_race.jpg, 14_radio_tinga.jpg, 19_nomercy.jpg, 19b_nomercy_kamp.jpg, 19c_nomercy5.jpg, 19d_nomercy5_molen.jpg, 19f_zijspan.jpg*
 
 ---
 
@@ -211,7 +212,7 @@ De agenten werken in **paren**: eentje komt recht op je af, de ander zoekt dekki
 - Rij je een wegversperring tegemoet, remt dan op tijd.
 - Voor een missie met politie zorg je dat je leven vol is en je kogels aangevuld.
 
-*Foto's: 15_politie_blokkade.png, 15b_politie_heli.png*
+*Foto's: 15_politie_blokkade.jpg, 15b_politie_heli.jpg, 15c_sterren.jpg*
 
 ---
 
@@ -260,7 +261,7 @@ Binnen: bank en tv, keuken met koelkast, tuin met barbecue, radio, en je auto op
 
 Op de grote kaart klik je om een eigen doel te zetten: een paarse route verschijnt.
 
-*Foto's: 16_kaart_legenda.png, 17_molenkrite15.png, 17b_wieken29.png, 17c_duvelsrak.png*
+*Foto's: kaart_speelgebied.jpg, 16_kaart_legenda.jpg, 16b_kaart_route.jpg, 17_molenkrite15.jpg, 17b_wieken29.jpg, 17c_duvelsrak.jpg*
 
 ---
 
@@ -275,7 +276,7 @@ Op de grote kaart klik je om een eigen doel te zetten: een paarse route verschij
 - **Tv thuis:** Tinga Nieuws vertelt wat jij in de wijk hebt uitgehaald.
 - **Eerste keer:** het spel legt uit wat een ster is, wat de kaart doet en wat je met winkels kunt.
 
-*Foto's: 18_tv_thuis.png, 18b_nacht.png, 18c_ochtend.png*
+*Foto's: 18_tv_thuis.jpg, 18b_nacht.jpg, 18c_ochtend.jpg, 22_postbode.jpg*
 
 ---
 

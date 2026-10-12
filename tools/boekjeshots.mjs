@@ -5,10 +5,10 @@
 
    npm run server &   node tools/boekjeshots.mjs [poort] [--opnieuw] [--alleen script,script]   (npm run boekjeshots)
 
- Het draait de bestaande fotoscripts (die weten al waar de camera moet staan) met SHOT_B × SHOT_H = 2400 × 1350 en een
- eigen map (SHOT_MAP = docs/boekje/ruw, niet in git), twee tegelijk, en zet daarna de gekozen opnamen om naar JPEG
- (kwaliteit 0,92, op een canvas in de browser: geen beeldpakketten) in docs/boekje/foto/. 2400 px breed is een halve
- A5-pagina op ruim 500 dpi, of een hele A5 liggend op 350. Een script waarvan alle opnamen al in de ruwe map staan,
+ Het draait de bestaande fotoscripts (die weten al waar de camera moet staan) met SHOT_B × SHOT_H = 1920 × 1080 en een
+ eigen map (SHOT_MAP = docs/boekje/ruw, niet in git), drie tegelijk (BOEKJE_B, BOEKJE_H, BOEKJE_TEGELIJK), en zet
+ daarna de gekozen opnamen om naar JPEG (kwaliteit 0,92, op een canvas in de browser: geen beeldpakketten) in
+ docs/boekje/foto/. 1920 px over de volle A5-breedte (148 mm) is 330 dpi; drukwerk vraagt 300 (1748 px). Een script waarvan alle opnamen al in de ruwe map staan,
  slaat het over (behalve met --opnieuw), zodat een onderbroken ronde verder kan.
 
  Daarna schrijft het docs/boekje/fotolijst.md opnieuw: bestand, hoofdstuk, onderschrift en waar de foto vandaan komt.
@@ -22,7 +22,14 @@ const poort = args.find(a => /^\d+$/.test(a)) || '8123';
 const opnieuw = args.includes('--opnieuw');
 const alleenI = args.indexOf('--alleen');
 const alleen = alleenI >= 0 ? (args[alleenI + 1] || '').split(',') : null;
-const B = 2400, H = 1350;
+/*
+ Het boekje is A5 (148 × 210 mm): een foto over de volle breedte heeft op 300 dpi 1748 px nodig, dus 1920 × 1080 is genoeg
+ (ruim 330 dpi) en tekent een derde sneller dan 2400 × 1350. Drie scripts tegelijk: de container heeft vier kernen.
+ Allebei instelbaar: BOEKJE_B, BOEKJE_H en BOEKJE_TEGELIJK.
+*/
+const B = +(process.env.BOEKJE_B || 1920), H = +(process.env.BOEKJE_H || 1080);
+const TEGELIJK = +(process.env.BOEKJE_TEGELIJK || 3);
+const dpiA5 = (b) => Math.round(b / (148 / 25.4));
 const RUW = 'docs/boekje/ruw', FOTO = 'docs/boekje/foto';
 mkdirSync(RUW, { recursive: true }); mkdirSync(FOTO, { recursive: true });
 
@@ -122,11 +129,11 @@ function maakKaart() {
 }
 
 const teDoen = scripts.filter(r => (!alleen || alleen.includes(r.s)) && (opnieuw || !klaar(r)));
-console.log(`${teDoen.length} van ${scripts.length} fotoscripts te draaien, ${B} × ${H}`);
+console.log(`${teDoen.length} van ${scripts.length} fotoscripts te draaien, ${B} × ${H}, ${TEGELIJK} tegelijk`);
 const rij = teDoen.slice();
 const kaartNodig = (!alleen || alleen.includes('kaart')) && (opnieuw || !existsSync(`docs/kaart/${KAART_NAAM}.jpg`));
 if (kaartNodig) rij.push('kaart');
-await Promise.all([0, 1].map(async () => { while (rij.length) { const r = rij.shift(); if (r === 'kaart') await maakKaart(); else await draai(r); } }));
+await Promise.all(Array.from({ length: TEGELIJK }, () => 0).map(async () => { while (rij.length) { const r = rij.shift(); if (r === 'kaart') await maakKaart(); else await draai(r); } }));
 
 // ------------------------------------------------------------ omzetten naar JPEG, op een canvas in de browser
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: ['--no-sandbox'] });
@@ -147,9 +154,9 @@ for (const [s, bron, naam, hoofdstuk, onder] of LIJST) {
     return { url: c.toDataURL('image/jpeg', 0.92), b: c.width, h: c.height };
   }, data);
   writeFileSync(`${FOTO}/${naam}.jpg`, Buffer.from(uit.url.split(',')[1], 'base64'));
-  const klein = uit.b < 2000;
+  const klein = uit.b < 1748;           // (minder dan 300 dpi over de volle breedte van een A5-pagina)
   if (klein) { console.log(` FOUT  ${naam}: maar ${uit.b} × ${uit.h}`); fouten++; }
-  regels.push(`| ${naam}.jpg | ${hoofdstuk} | ${onder} | ${uit.b} × ${uit.h} | \`${s}\` → ${bron} |`);
+  regels.push(`| ${naam}.jpg | ${hoofdstuk} | ${onder} | ${uit.b} × ${uit.h} (${dpiA5(uit.b)} dpi op A5-breedte) | \`${s}\` → ${bron} |`);
 }
 await browser.close();
 
@@ -168,8 +175,8 @@ for (const f of readdirSync(FOTO)) if (f.endsWith('.png')) unlinkSync(`${FOTO}/$
 writeFileSync('docs/boekje/fotolijst.md', `# Fotolijst boekje
 
 Alle foto's staan in \`docs/boekje/foto/\`, als JPEG op kwaliteit 0,92. Ze zijn gemaakt met \`npm run boekjeshots\`
-(tools/boekjeshots.mjs): de fotoscripts van het spel opnieuw gedraaid op ${B} × ${H}, met de stand van het spel van nu.
-Dat is een halve A5-pagina op ruim 500 dpi, of een hele A5 liggend op 350 dpi.
+(tools/boekjeshots.mjs): de fotoscripts van het spel opnieuw gedraaid, met de stand van het spel van nu. Het boekje is A5;
+over de volle breedte van een pagina (148 mm) heeft een foto op 300 dpi 1748 px nodig, en elke foto hieronder haalt dat.
 
 De kaart van het hele speelgebied voor achterin staat in \`docs/kaart/\` (\`npm run kaart:print\`): \`tinga-speelgebied.jpg\`
 in kleur en \`tinga-speelgebied-licht.jpg\` met de herkenningspunten, allebei 13.140 × 7500 px (3 px per meter). Voor het
