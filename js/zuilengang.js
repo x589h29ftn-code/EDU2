@@ -145,6 +145,21 @@ function mesh(bak, mat, klasse, schaduw = true) {
   return m;
 }
 
+/*
+ (stap 152) De schuifdeuren van de winkels achter een zuilengang: { x, z, vleugels, open, breed }. `werkSchuifdeurenBij`
+ schuift ze open als er iemand binnen `SCHUIF.bereik` staat, in `SCHUIF.tijd` seconden.
+*/
+export const SCHUIFDEUREN = [];
+export const SCHUIF = { bereik: 3.5, tijd: 0.8 };
+export function werkSchuifdeurenBij(dt, punten) {
+  for (const d of SCHUIFDEUREN) {
+    const dichtbij = punten.some(p => p && Math.hypot(p.x - d.x, p.z - d.z) < SCHUIF.bereik);
+    d.open = Math.max(0, Math.min(1, d.open + (dichtbij ? 1 : -1) * dt / SCHUIF.tijd));
+    const k = d.open * d.open * (3 - 2 * d.open);
+    for (const v of d.vleugels) v.position.x = v.userData.dicht + Math.sign(v.userData.dicht) * d.breed * k;
+  }
+}
+
 export function bouwZuilengangen(scene, W, gangen) {
   if (!gangen || !gangen.length) return 0;
 
@@ -155,6 +170,8 @@ export function bouwZuilengangen(scene, W, gangen) {
     vloer: new THREE.MeshStandardMaterial({ color: 0x8d8781, roughness: 0.95 }),
     band: new THREE.MeshStandardMaterial({ color: 0xece6d6, roughness: 0.7 }),
     merk: new THREE.MeshStandardMaterial({ map: merk(), roughness: 0.6 }),
+    // (stap 152) het glas van de schuifdeuren: donker en glanzend, zonder kaart
+    deurGlas: new THREE.MeshStandardMaterial({ color: 0x24343c, roughness: 0.08, metalness: 0.35 }),
   };
 
   let gebouwd = 0;
@@ -284,6 +301,37 @@ export function bouwZuilengangen(scene, W, gangen) {
       bord.rotation.y = Math.atan2(-ix, -iz);
       bord.userData.klasse = 'winkelmerk';
       scene.add(bord);
+
+      /*
+       (stap 152) De schuifdeuren onder het woordmerk: een kozijn en twee glazen vleugels van 1,2 m, 2,3 m hoog, net
+       voor de pui. Ze schuiven open als je ervoor staat (`werkSchuifdeurenBij`, js/main.js); de E van de ingang
+       (js/supermarkt.js) ligt hier ook. Gewone materialen zonder kaart: geen nieuw shaderprogramma.
+      */
+      const px = (a[0] + b[0]) / 2 + ix * (D - 0.04), pz = (a[1] + b[1]) / 2 + iz * (D - 0.04);
+      const groep = new THREE.Group();
+      groep.position.set(px, 0, pz);
+      groep.rotation.y = Math.atan2(-ix, -iz);                   // lokale +z wijst naar buiten
+      const doos = (b2, h, d, x, y, z, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(b2, h, d), mat); m.position.set(x, y, z); groep.add(m); return m; };
+      const DB = 2.4, DH = 2.3;
+      doos(DB + 0.24, 0.12, 0.10, 0, DH + 0.06, 0, MAT.band);          // bovendorpel
+      for (const sx of [-1, 1]) doos(0.12, DH, 0.10, sx * (DB / 2 + 0.06), DH / 2, 0, MAT.band);
+      doos(DB + 0.24, 0.02, 0.5, 0, STOEP_Y + 0.01, 0.2, MAT.zuil);    // dorpel op de vloer
+      // elke vleugel een groepje: het glas met een smal kozijn eromheen, dat als geheel opzij schuift
+      const vleugels = [-1, 1].map(sx => {
+        const v = new THREE.Group();
+        const vb = DB / 2 - 0.02, vh = DH - 0.04;
+        const stuk = (b2, h, d, x, y, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(b2, h, d), mat); m.position.set(x, y, 0); v.add(m); };
+        stuk(vb - 0.08, vh - 0.08, 0.02, 0, vh / 2, MAT.deurGlas);
+        for (const kx of [-1, 1]) stuk(0.04, vh, 0.04, kx * (vb / 2 - 0.02), vh / 2, MAT.band);
+        for (const ky of [0.02, vh - 0.02]) stuk(vb, 0.04, 0.04, 0, ky, MAT.band);
+        v.position.set(sx * DB / 4, 0.02, 0.02);
+        v.userData.dicht = sx * DB / 4;
+        groep.add(v);
+        return v;
+      });
+      groep.userData.klasse = 'schuifdeur';
+      scene.add(groep);
+      SCHUIFDEUREN.push({ x: px, z: pz, vleugels, open: 0, breed: DB / 2 - 0.1 });
     }
 
     /*

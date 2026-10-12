@@ -149,7 +149,8 @@ const mensen = await page.evaluate(() => {
     p.groep.traverse(o => {
       if (!o.material) return;
       const c = o.material.color;
-      if (o.material.map) heeftLogo = true;
+      // (stap 152) op naam: sinds stap 77 heeft elk deel van een mens een doek, dus `map` telde iedereen
+      if (o.name === 'borstlogo' && o.material.map) heeftLogo = true;
       if (!c) return;
       const hex = c.getHex();
       if (hex === 0x43b02a) heeftGroen = true;

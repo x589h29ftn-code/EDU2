@@ -8921,6 +8921,59 @@ Ook opgepakt:
 `npm run autoechttest` met (6b) vier portiergrepen in de lengte, hoogstens 2 cm uit en een eind onder het raam, en de
 uitlaat hoogstens 4 cm achter de bumper; `npm run rijtest` (de onderdelen tegen de banden en het plaatwerk).
 
+**De Poiesz: onder de zuilengang door, en schuifdeuren (stap 152, 14 okt).**
+
+Gevraagd: "Verbeter de Poiesz en de zuilengang maar zorg wel dat je de missies niet in de weg zit."
+
+Wat er al was: de zuilengang zelf (js/zuilengang.js: zuilen met elk een eigen doos, de pui met dozen, plafond, vloer,
+woordmerk), en een deur naar de supermarkt van IJlst (js/supermarkt.js, `ingangen`), midden op de voorgevel. Wat niet
+werkte: je liep op de zuillijn tegen een onzichtbare muur. `pandDozen` hakt het grondvlak in stroken, en de gang ligt
+binnen dat grondvlak.
+- *De dozen achter de pui.* `gangVrij` in js/kaartwereld.js schuift voor de dozen de negen hoekpunten van het grondvlak op de
+  boog naar binnen, tot diepte + 0,6 m (een strook steekt tot een halve meter over zijn schuine rand). Aan de punten van de
+  halvemaan is het pand maar twee meter diep: daar zou een punt door de achterkant heen schuiven en de veelhoek omklappen;
+  hij stopt 20 cm voor de overkant (een straal van het punt naar binnen, `tot`). De pui houdt zijn eigen dozen.
+- *De schuifdeuren* onder het woordmerk (js/zuilengang.js): een kozijn en twee glazen vleugels van 1,2 m, die in 0,8 s
+  opengaan als je binnen 3,5 m staat (`SCHUIFDEUREN`, `werkSchuifdeurenBij`, js/main.js). Gewone materialen zonder kaart.
+- *De deur van de supermarkt* (js/supermarkt.js) staat nu in de pui bij de schuifdeuren, de stoep 1,2 m ervoor in de gang.
+  Missie 7 rekent met `deur` en `stoep` (het gele merk, Mark op stoep + f · 3,5, de knal op de deur), dus die schuift
+  vanzelf mee; `npm run bomtest` is groen.
+- *Onkruid in de gang*: op de eerste foto stond een pol midden in de gang. Het bleek geen gras maar het onkruid van
+  js/rommel.js, dat langs de wegassen staat (plus een stukje zwerfvuil). `inZuilengang` (js/kaartwereld.js) houdt
+  onkruid, zwerfvuil en kliko's er nu uit, en voor de zekerheid ook het gras in 3D en `geenGroen`.
+- Twee oude proeven aangepast: `duinterpentest` legde vast dat de gang nog níet beloopbaar was (nu wel), en `poiesztest`
+  telde als "logo op de borst" elk materiaal met een kaart — sinds stap 77 heeft elk deel van een mens er een, dus negen
+  in plaats van vijf. Het lapje heet nu `borstlogo`.
+
+*Proef*: `npm run zuilengangtest`: per blok door de gang lopen zonder botsing (114 punten), tussen twee zuilen door, een
+meter achter de pui dicht, de rest van het pand dicht (≤ 3 %), geen gras; bij de Poiesz de ingang bij de deuren, de stoep
+vrij, de deuren open en dicht, E naar binnen en weer naar buiten in de gang, geen nieuw programma (176 → 176). Tegenproef
+met de oude dozen: zes fouten. Ook geen onkruid of zwerfvuil in de gang. En `bomtest`, `duinterpentest`, `poiesztest` groen. Foto's: `npm run zuilengangshots`.
+
+**Gezichten en handen (stap 153, 14 okt).**
+
+Gevraagd: personen, "gezichten en handen". Ze hadden al een gezicht in het doek en een hand met een duim; van dichtbij
+(`npm run gezichtshots`, een lege pagina met vijf mensen) bleek wat er niet klopte:
+- *Het hoofd* was een bol van 14 × 9 met een losse kaak en kin eronder: van voren hing de kin er als een lichte bobbel
+  onder. Nu één bol van 18 × 13 die naar beneden smaller wordt (de kaak), achter terugwijkt, met jukbeenderen; de neus een
+  wig die naar boven smaller wordt.
+- *De ogen* waren donkere kraaltjes van 6 mm diep. Oogwit in het doek werkt niet: het doek wordt vermenigvuldigd met de
+  huidskleur, dus wit werd huidkleurig (gemeten: 40 donkerder dan de huid). Het oogwit is nu een eigen onderdeel
+  (`DEEL.oogwit`, gebroken wit `OOGWIT`), met de iris erop als een plat schijfje van 2,6 mm; de bol van het hoofd ligt
+  tussen zijn hoekpunten 2 mm binnen de ellipsoïde, dus de proef meet met een straal. In het doek: oogleden, wimpers, de
+  plooi erboven, neusgaten.
+- *Het haar* was een kap met een harde rand. Nu een bol om het hoofd waarvan de ringen zo liggen dat één ring precies op de
+  haarlijn valt (vooraan zes centimeter boven de wenkbrauwen, bij de slapen lager, in de nek uitlopend); de ringen eronder
+  zakken het hoofd in. Eerst zakten losse hoekpunten in, en dat gaf een zaagtand.
+- *De hand*: een platte palm met vier vingers van verschillende lengte en een duim naar voren, smal opzij en breed in de
+  diepte, zodat hij voor links en rechts dezelfde is.
+- *Het budget*: de eerste versie had 5.620 driehoeken per mens tegen een grens van 4.000 (en 130 voetgangers). Met minder
+  boogstukken: 3.992.
+
+*Proef*: `npm run mensechttest` met erbij oogwit als eigen onderdeel op het gezicht en achter de iris, de irissen op het
+gezicht (hoogstens 4 mm ervoor, de achterkant erin), vier vingers en een duim, de haarlijn boven het voorhoofd; en nog
+steeds onder de 4000 driehoeken.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
@@ -8991,13 +9044,9 @@ van dat lijstje over is staat hieronder als 1, 2 en 3.
    3485 m²) en het blok aan de Krans. Ze kunnen op dezelfde manier als de
    supermarkt en de boerderij een eigen type krijgen in het blok `panden` van
    `data/stijl/straten.json`, zodra er een foto van is.
-11. **Onder de zuilengang door kunnen lopen, en een deur de Poiesz in.** De
-   botsingsdozen van een pand volgen het grondvlak, en de zuilen staan op die
-   lijn: je loopt nu tot aan de zuilen en houdt daar op, net als bij elke andere
-   gevel. Om onder de gang door te kunnen lopen moeten de dozen van deze twee
-   panden op de puilijn gelegd worden in plaats van op het grondvlak. Dat is pas
-   de moeite als er ook een deur de winkel in komt — dan kan deze Poiesz dezelfde
-   binnenruimte krijgen als die in IJlst (`js/supermarkt.js`).
+11. ~~**Onder de zuilengang door kunnen lopen, en een deur de Poiesz in.**~~ Af in
+   stap 152: de dozen van beide panden liggen langs de boog achter de pui
+   (`gangVrij`), en de deur zit bij schuifdeuren onder het woordmerk.
 12. **De drie punten belichting die na stap 27 overbleven.** Punt 1 (normal maps)
    en 2 (roughness maps) zijn af; wat er nog ligt:
    - **ambient occlusion.** Onder een dakrand, in een portiek en in de hoek van

@@ -568,6 +568,16 @@ rent zwaait verder en buigt dieper; wie fietst trapt rondjes met de armen op het
 |---|---|
 | ![Een voetganger](docs/screenshots/mensen_straat.png) | ![Een agent](docs/screenshots/mensen_agent.png) |
 
+**Gezichten en handen van dichtbij** (stap 153). Het hoofd is één gladde vorm met een kaak, een kin en jukbeenderen;
+eerst hing de kin er als een bobbel onder. De ogen hebben **oogwit**, een iris in de oogkleur en oogleden met wimpers
+(eerst twee donkere kraaltjes), de neus heeft neusgaten, en het haar begint met een zachte haarlijn hoog op het
+voorhoofd in plaats van een kom met een rand. De **hand** heeft vier vingers van verschillende lengte en een duim. Het
+blijft onder de 4000 driehoeken per mens.
+
+| van voren | schuin | de hand |
+|---|---|---|
+| ![gezicht van voren](docs/screenshots/gezicht_voor.png) | ![gezicht schuin](docs/screenshots/gezicht_schuin.png) | ![de hand](docs/screenshots/gezicht_hand.png) |
+
 **Wat er in de ronde van 13 september bij kwam.** Ze zwaaiden met armen en benen, maar de rómp stond
 er kaarsrecht en doodstil bij — en dat is waarom ze eruitzagen als marionetten. Nu doet het lichaam
 mee:
@@ -4480,8 +4490,15 @@ muur van deze panden op de ganghoogte af.
 |---|---|
 | ![dichtbij](docs/screenshots/duinterpen_poiesz_dichtbij.png) | ![buurblok](docs/screenshots/duinterpen_buur_dichtbij.png) |
 
-Je loopt tot aan de zuilen; onder de gang door kunnen lopen en een deur de winkel in staan als open
-punt in [docs/METHODIEK.md](docs/METHODIEK.md).
+**Onder de gang door** (stap 152). Je loopt nu tussen de zuilen door de gang in en er onderdoor, langs de pui; de
+winkel in lopen kan alleen door de deur. Onder het POIESZ-woordmerk zitten **schuifdeuren** die opengaan als je ervoor
+staat, en met **E** sta je binnen in de Poiesz (dezelfde winkel als in IJlst, met bier voor € 5). Buiten kom je weer in de
+gang uit. De bom van missie 7 en de plek waar Mark wacht schuiven vanzelf mee naar de nieuwe deur, en in de gang staat
+geen onkruid meer.
+
+| in de gang | de schuifdeuren |
+|---|---|
+| ![in de gang](docs/screenshots/zuilengang_gang.png) | ![de schuifdeuren](docs/screenshots/zuilengang_deuren.png) |
 
 | de achterkant, waar eerst een gat zat |
 |---|

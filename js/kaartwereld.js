@@ -141,8 +141,34 @@ export function inPand(x, z) {
   return false;
 }
 /** Staat (x, z) in een pand of op een rijbaan? Daar hoort geen boom of struik. */
+/*
+ (stap 152) Geen gras in en vlak voor een zuilengang: langs de zuilen ligt in de BGT een smal grasvlak, en het gras in 3D
+ groeide zo midden in de gang, tussen de zuilen en de schuifdeuren. Een strook van 0,8 m vóór de boog tot de pui.
+*/
+let gangStroken = null;
+export function inZuilengang(x, z) {
+  if (!KAART) return false;
+  if (!gangStroken) gangStroken = (KAART.zuilengangen || []).map(g => {
+    const xs = g.boog.map(q => q[0]), zs = g.boog.map(q => q[1]), m = g.diepte + 1;
+    return { g, x0: Math.min(...xs) - m, x1: Math.max(...xs) + m, z0: Math.min(...zs) - m, z1: Math.max(...zs) + m };
+  });
+  for (const { g, x0, x1, z0, z1 } of gangStroken) {
+    if (x < x0 || x > x1 || z < z0 || z > z1) continue;
+    for (let i = 1; i < g.boog.length; i++) {
+      const a = g.boog[i - 1], b = g.boog[i], dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz;
+      if (L2 < 1e-6) continue;
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / L2));
+      const px = x - (a[0] + dx * t), pz = z - (a[1] + dz * t), n = g.binnen[i - 1] || [0, 0];
+      const binnen = px * n[0] + pz * n[1];                      // > 0: naar de pui toe
+      if (Math.hypot(px, pz) < 0.8 || (binnen > 0 && binnen < g.diepte + 0.1 && Math.abs(px * n[1] - pz * n[0]) < 0.05 + Math.sqrt(L2) / 2)) return true;
+    }
+  }
+  return false;
+}
+
 export function geenGroen(x, z) {
   if (inPand(x, z)) return true;
+  if (inZuilengang(x, z)) return true;
   // en ook niet waar het spel zelf bouwt: de showroom aan de Lemmerweg (js/bouwvlak.js)
   if (inBouwvlak(x, z)) return true;
   const v = vlakOp(x, z);
@@ -995,8 +1021,10 @@ export function* bouwKaartWereldStap(scene, W) {
       return o; };
     const opHetWater = (x, z) => waterBbox.some(w =>
       x >= w.b[0] && x <= w.b[2] && z >= w.b[1] && z <= w.b[3] && inRing(x, z, w.r));
+    // (stap 152: in en vlak voor de zuilengang geen onkruid, zwerfvuil of kliko — daar telt hij als water: weren)
     const rommel = bouwRommel(scene, W, K.wegassen, (x, z) => grondHoogte(x, z, -Infinity),
-      (x, z) => { const v = vlakOp(x, z); return v ? v.k : null; }, opHetWater);
+      (x, z) => { if (inZuilengang(x, z)) return 'water'; const v = vlakOp(x, z); return v ? v.k : null; },
+      (x, z) => inZuilengang(x, z) || opHetWater(x, z));
     console.log(`kaart: ${rommel.onkruid} pollen onkruid, ${rommel.vuil} stuks zwerfvuil, ${rommel.kliko} rolcontainers`
       + `${rommel.geweerd ? ` (${rommel.geweerd} pollen geweerd: die stonden op de rijbaan)` : ''}`);
 
@@ -1174,6 +1202,51 @@ function* bouwPandenStap(scene, W, plat) {
   */
   const gangHoogte = new Map((K.zuilengangen || []).map(z => [z.pand, z.hoogte]));
   const gangBoog = new Map((K.zuilengangen || []).map(z => [z.pand, z.boog]));
+  /*
+   (stap 152) Onder de zuilengang door. De botsdozen van een pand vulden zijn hele voetafdruk, en de gang ligt binnen die
+   voetafdruk: je liep tegen een onzichtbare muur aan de buitenkant van de zuilen. Voor de dozen schuift het stuk voetafdruk
+   langs de boog daarom naar binnen, tot achter de pui (diepte + 0,6 m: een strook kan een halve meter over zijn schuine rand
+   steken). De pui zelf houdt zijn eigen dozen (js/zuilengang.js), dus de winkel in lopen kan nog steeds niet.
+  */
+  const gangVan = new Map((K.zuilengangen || []).map(z => [z.pand, z]));
+  const gangVrij = (p) => {
+    const g = gangVan.get(p.id);
+    if (!g || !p.voet || !g.boog || g.boog.length < 2) return p;
+    const naar = (x, z) => {
+      let best = Infinity, n = null;
+      for (let i = 1; i < g.boog.length; i++) {
+        const a = g.boog[i - 1], b = g.boog[i], dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz;
+        if (L2 < 1e-6) continue;
+        const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / L2));
+        const d = Math.hypot(x - (a[0] + dx * t), z - (a[1] + dz * t));
+        if (d < best) { best = d; n = g.binnen && g.binnen[i - 1]; }
+      }
+      return best < 1.2 && n ? n : null;
+    };
+    const diep = g.diepte + 0.6;
+    // hoe ver kan een punt naar binnen voor het de overkant van de voetafdruk raakt (aan de punten van de halvemaan is
+    // het pand maar twee meter diep): daar 20 cm voor blijven, anders klapt de veelhoek om
+    const tot = (x, z, n, i0) => {
+      let t = Infinity;
+      for (let j = 0; j < p.voet.length; j++) {
+        if (j === i0 || (j + 1) % p.voet.length === i0) continue;
+        const a = p.voet[j], b = p.voet[(j + 1) % p.voet.length];
+        const ex = b[0] - a[0], ez = b[1] - a[1], den = n[0] * ez - n[1] * ex;
+        if (Math.abs(den) < 1e-9) continue;
+        const wx = a[0] - x, wz = a[1] - z;
+        const tt = (wx * ez - wz * ex) / den, uu = (wx * n[1] - wz * n[0]) / den;
+        if (tt > 1e-3 && uu >= 0 && uu <= 1) t = Math.min(t, tt);
+      }
+      return t;
+    };
+    const voet = p.voet.map(([x, z], i) => {
+      const n = naar(x, z);
+      if (!n) return [x, z];
+      const d = Math.max(0, Math.min(diep, tot(x, z, n, i) - 0.2));
+      return [x + n[0] * d, z + n[1] * d];
+    });
+    return { ...p, voet };
+  };
   /*
    Alleen de muur langs de zuilengang mag weg, niet de hele onderbouw. De eerste
    versie knipte élk muurvlak van het pand op de ganghoogte af, dus ook de
@@ -1767,7 +1840,7 @@ function* bouwPandenStap(scene, W, plat) {
     }
     if (p.rect) {
       const h = Math.max(3, p.nok || p.goot || 3);
-      for (const d of pandDozen(p)) W.addCollider(d.x, d.z, d.hx, d.hz, -d.hoek, h);
+      for (const d of pandDozen(gangVrij(p))) W.addCollider(d.x, d.z, d.hx, d.hz, -d.hoek, h);
     }
     const dst = T.HOUSE_STYLES[p.type];
     if (dst && dst.dakdetail) dakDetails(scene, W, p, dst);

@@ -396,13 +396,23 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
      puilijn, en je staat er verder vandaan weer buiten: anders kom je midden
      tussen de zuilen terecht.
     */
-    const uit = UIT_VOOR + 2.2;
-    ingangen.push({
-      naam: PAND_DUINTERPEN.naam,
-      deur: deur2,
-      stoep: { x: deur2.x + plan2.f[0] * uit, z: deur2.z + plan2.f[1] * uit },
-      f: plan2.f,
-    });
+    let ingang = { naam: PAND_DUINTERPEN.naam, deur: deur2,
+      stoep: { x: deur2.x + plan2.f[0] * (UIT_VOOR + 2.2), z: deur2.z + plan2.f[1] * (UIT_VOOR + 2.2) }, f: plan2.f };
+    /*
+     (stap 152) Sinds je onder de zuilengang door kunt lopen, staat de deur waar hij hoort: in de pui, onder het woordmerk,
+     waar js/zuilengang.js de schuifdeuren zet (het midden van de boog, `diepte` naar binnen). Je komt buiten in de gang,
+     1,2 m voor de deuren. Missie 7 rekent met `deur` en `stoep` en schuift dus vanzelf mee.
+    */
+    const gang = (KAART.zuilengangen || []).find(z => z.pand === pand2.id && z.merk && z.boog && z.boog.length > 1);
+    if (gang) {
+      const mid = Math.floor((gang.boog.length - 1) / 2), a = gang.boog[mid], b = gang.boog[mid + 1] || a;
+      let ix = 0, iz = 0;
+      for (const n of gang.binnen || []) { ix += n[0]; iz += n[1]; }
+      const iL = Math.hypot(ix, iz) || 1; ix /= iL; iz /= iL;
+      const deur = { x: (a[0] + b[0]) / 2 + ix * gang.diepte, z: (a[1] + b[1]) / 2 + iz * gang.diepte };
+      ingang = { naam: PAND_DUINTERPEN.naam, deur, stoep: { x: deur.x - ix * 1.2, z: deur.z - iz * 1.2 }, f: [-ix, -iz], gang: true };
+    }
+    ingangen.push(ingang);
   }
   // door welke deur je naar binnen bent gegaan; daar kom je ook weer buiten
   let viaIngang = ingangen[0];
@@ -689,6 +699,7 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
       }));
       // net vóór het schort, dat zelf 0,245 m diep is
       lap.position.set(0, MAAT.romp + 0.09, -0.131);
+      lap.name = 'borstlogo';   // (stap 152: tools/poiesztest.mjs zoekt hem op naam)
       p.groep.add(lap);
     }
     p.zetNeer(NUL.x + x, NUL.z + z, yaw);

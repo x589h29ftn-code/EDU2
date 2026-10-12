@@ -38,9 +38,10 @@ import { initPolitieboot } from './politieboot.js';
 import { initVaart } from './vaart.js';
 import { bewaarSpel, laadSpel, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint, opslagen, kiesPlek, startNieuwSpel } from './opslag.js';
 import { geluid } from './audio.js';
-import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen } from './kaartwereld.js';
+import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen, inZuilengang } from './kaartwereld.js';
 import { zetKoplampen, autoMaat } from './carmodel.js';
 import { maakAutoBinnen, autoKijk } from './autobinnen.js';
+import { werkSchuifdeurenBij, SCHUIFDEUREN } from './zuilengang.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, logo100nl, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
@@ -2629,7 +2630,8 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 250));
  moet vóór initSfeer bestaan.
 */
 const grasVeld = (KAART && !BOVEN) ? maakGrasVeld(scene,
-  (x, z) => { const v = vlakOp(x, z); return !!(v && (v.m === 'gras' || v.m === 'bodembedekker')) && !inBouwvlak(x, z); },
+  // (stap 152: en niet in of vlak voor de zuilengang van de Poiesz, `inZuilengang`)
+  (x, z) => { const v = vlakOp(x, z); return !!(v && (v.m === 'gras' || v.m === 'bodembedekker')) && !inBouwvlak(x, z) && !inZuilengang(x, z); },
   // (stap 138: plus de hoogte van een viaduct of de bak van de N7; daar zweefden de pollen op maaiveldhoogte boven de rijksweg)
   (x, z) => { const v = vlakOp(x, z); return v ? (v.dekh ? v.dekh + v.y : v.y + grondHoogte(x, z, -Infinity)) : 0; }) : null;
 if (grasVeld) waaitMee(grasVeld.mat);
@@ -2871,6 +2873,7 @@ function loop() {
       else derde.update(dt, null);
       geluid.gier(0);
     }
+    werkSchuifdeurenBij(dt, [player.pos]);   // (stap 152) de schuifdeuren onder de zuilengang van de Poiesz
     werkSporenBij(dt);
     werkInslagenBij(dt);        // de stofwolkjes van de kogelinslagen
     werkBloedBij(dt);           // de spatten en de plassen
@@ -3254,6 +3257,8 @@ opstartStap('na het eerste beeld');
 // Testhaak voor automatische screenshots
 opstartStap('klaar');
 window.__game = {
+  // stap 152: de schuifdeuren van de Poiesz (js/zuilengang.js)
+  schuifdeuren: SCHUIFDEUREN, werkSchuifdeurenBij,
   // stap 131
   pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst,
   // stap 138: levens zoals in GTA

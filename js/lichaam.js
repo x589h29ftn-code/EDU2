@@ -148,6 +148,17 @@ function gezichtDoek(g, h, S, r) {
   };
   for (const sx of [-1, 1]) {
     ovaal(sx * 0.045, 0.004, 0.030, 0.020, 'rgba(90,50,40,0.22)');         // oogkas
+    // (stap 153) het bovenooglid met de wimpers, het onderooglid en de plooi erboven; oogwit en iris zijn eigen onderdelen
+    {
+      const [cx, cy] = naarDoek(sx * 0.044, 0.008, S), rx = 0.0165 / GEZ_B * S, ry = 0.0078 / GEZ_H * S;
+      g.strokeStyle = 'rgba(55,32,26,0.85)'; g.lineWidth = S / 120; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(cx - rx * 1.05, cy + 0.5); g.quadraticCurveTo(cx, cy - ry * 2.0, cx + rx * 1.05, cy + 0.5); g.stroke();
+      g.strokeStyle = 'rgba(120,80,70,0.35)'; g.lineWidth = S / 300;
+      g.beginPath(); g.moveTo(cx - rx * 0.9, cy + 1); g.quadraticCurveTo(cx, cy + ry * 1.6, cx + rx * 0.9, cy + 1); g.stroke();
+      // de plooi boven het ooglid
+      g.strokeStyle = 'rgba(90,55,45,0.22)'; g.lineWidth = S / 260;
+      g.beginPath(); g.moveTo(cx - rx * 0.9, cy - ry * 1.4); g.quadraticCurveTo(cx, cy - ry * 2.9, cx + rx * 1.0, cy - ry * 1.2); g.stroke();
+    }
     ovaal(sx * 0.058, -0.045, 0.032, 0.026, 'rgba(230,110,100,0.16)');     // wang
     // wenkbrauw: een dunne boog
     const [a0, b0] = naarDoek(sx * 0.020, 0.030, S), [a1, b1] = naarDoek(sx * 0.047, 0.036, S), [a2, b2] = naarDoek(sx * 0.072, 0.028, S);
@@ -157,6 +168,7 @@ function gezichtDoek(g, h, S, r) {
   ovaal(0.014, -0.022, 0.008, 0.022, 'rgba(90,50,40,0.18)');               // schaduw langs de neus
   ovaal(-0.014, -0.022, 0.008, 0.022, 'rgba(90,50,40,0.10)');
   ovaal(0, -0.040, 0.016, 0.006, 'rgba(90,40,40,0.20)');                    // onder de neus
+  for (const sx of [-1, 1]) ovaal(sx * 0.0075, -0.036, 0.0045, 0.0028, 'rgba(60,25,20,0.45)');   // (stap 153) neusgaten
   // de mond: bovenlip, onderlip en de lijn ertussen
   const [m0, my] = naarDoek(-0.026, -0.060, S), [m1] = naarDoek(0.026, -0.060, S);
   const [, bl] = naarDoek(0, -0.052, S), [, ol] = naarDoek(0, -0.070, S);
@@ -197,7 +209,7 @@ export function lichaamMat(kleur, soort) {
 // (de onderarm is huid of mouw, per persoon; het gladde huiddoek staat op
 // allebei goed, een breisteek op een blote arm niet)
 export const DOEK_VAN = {
-  romp: 'stof', bekken: 'broek', nek: 'huid', hoofd: 'gezicht', haar: 'haar', ogen: null,
+  romp: 'stof', bekken: 'broek', nek: 'huid', hoofd: 'gezicht', haar: 'haar', ogen: null, oogwit: null,
   bovenarm: 'stof', onderarm: 'huid', hand: 'huid', bovenbeen: 'broek', onderbeen: 'broek',
   schoen: 'schoen', pet: 'stof', vest: 'stof',
 };
@@ -346,69 +358,126 @@ export const DEEL = {
    het doek.
   */
   hoofd: () => {
-    const kop = new THREE.SphereGeometry(MAAT.hoofdR, 14, 9);
-    kop.scale(1.0, 1.13, 1.06);
-    const delen = [
-      kop,
-      new THREE.SphereGeometry(1, 6, 4).scale(0.014, 0.021, 0.020).rotateX(-0.25).translate(0, -0.016, -0.110),   // neus
-      // kaak en kin als ellipsoïden: als dozen stond er een witte baard onder
-      // het gezicht, ook met ronde randen
-      // (de kaak ligt vóór binnen de bol: stak hij erbuiten, dan tekende de
-      // snijlijn een lichte rand om het gezicht)
-      new THREE.SphereGeometry(1, 10, 6).scale(0.074, 0.048, 0.074).translate(0, -0.080, -0.006),   // kaak
-      new THREE.SphereGeometry(1, 8, 5).scale(0.036, 0.022, 0.040).translate(0, -0.106, -0.050),   // kin
-    ];
-    for (const sx of [-1, 1]) delen.push(new THREE.SphereGeometry(1, 6, 4).scale(0.009, 0.025, 0.017).translate(sx * 0.109, 0.005, 0.008));   // oren
+    /*
+     (stap 153) Eén gladde vorm in plaats van een bol met een losse kaak en kin eronder: die kin hing van dichtbij als een
+     lichte bobbel onder het gezicht, en de bol van 14 × 9 was hoekig. Nu een bol van 18 × 13 die naar beneden toe
+     smaller wordt (de kaak), aan de achterkant iets terugwijkt, met jukbeenderen; de neus is een smalle wig die half in
+     het gezicht zit, met een rug die naar boven dunner wordt.
+    */
+    const R = MAAT.hoofdR;
+    const kop = new THREE.SphereGeometry(1, 18, 13);
+    const P = kop.attributes.position;
+    for (let i = 0; i < P.count; i++) {
+      let x = P.getX(i) * R, y = P.getY(i) * R * 1.13, z = P.getZ(i) * R * 1.06;
+      const t = Math.max(0, Math.min(1, (-y - 0.015) / 0.11));            // 0 boven de wangen, 1 bij de kin
+      x *= 1 - 0.22 * Math.pow(t, 1.4);
+      z *= z > 0 ? 1 - 0.22 * t : 1 - 0.06 * t;
+      if (z < 0) z -= 0.004 * Math.exp(-(((Math.abs(x) - 0.055) / 0.02) ** 2 + ((y + 0.02) / 0.025) ** 2));   // jukbeen
+      P.setXYZ(i, x, y, z);
+    }
+    kop.computeVertexNormals();
+    const neus = new THREE.SphereGeometry(1, 6, 5);
+    const N = neus.attributes.position;
+    for (let i = 0; i < N.count; i++) {
+      const ny = N.getY(i);
+      // smal bij de wortel (boven), breder bij de vleugels (onder); de punt naar voren
+      N.setXYZ(i, N.getX(i) * 0.0145 * (0.55 + 0.45 * (1 - ny) / 2), ny * 0.021, N.getZ(i) * 0.0135 - (ny < 0 ? 0.002 * (-ny) : 0));
+    }
+    neus.computeVertexNormals();
+    neus.rotateX(-0.18); neus.translate(0, -0.017, -0.1090);
+    const delen = [kop, neus];
+    for (const sx of [-1, 1]) delen.push(new THREE.SphereGeometry(1, 5, 4).scale(0.011, 0.027, 0.018).translate(sx * 0.103, 0.003, 0.010));   // oren
     return samen(delen, 0.08, true);
   },
   /*
-   Ogen, als eigen onderdeel omdat ze een andere kleur hebben dan de huid — bij
-   de voetgangers is elk onderdeel één instanced mesh met één kleur. Twee
-   donkere ovaaltjes, meer niet, en het is het verschil tussen een pop en iemand
-   die je aankijkt.
-
-   Er zaten eerst wenkbrauwen bij. Die liepen op deze afstand met de ogen samen
-   tot één donkere band over het gezicht — een blinddoek. Weg dus; twee kleine
-   ogen doen het werk (de wenkbrauwen zitten nu, dun, in het doek van het hoofd).
+   Ogen, als eigen onderdeel omdat ze een andere kleur hebben dan de huid — bij de voetgangers is elk onderdeel één
+   instanced mesh met één kleur. (stap 153) Het oogwit en de oogleden staan in het doek van het gezicht; dit zijn nu de
+   irissen, twee platte schijfjes in de kleur van de ogen op het oogwit. Eerst waren het donkere kraaltjes zonder wit
+   eromheen, en dan kijkt iemand je van dichtbij met twee knopen aan.
   */
+  /*
+   (stap 153) Het oogwit, een eigen onderdeel in zijn eigen kleur: in het doek van het gezicht werd het met de huidskleur
+   vermenigvuldigd, en dan was het oogwit huidkleurig. Een plat amandeltje per oog, net achter de iris.
+  */
+  oogwit: () => {
+    const delen = [];
+    const R = MAAT.hoofdR;
+    for (const sx of [-1, 1]) {
+      const x = sx * 0.044, y = 0.008;
+      const z = -R * 1.06 * Math.sqrt(Math.max(0, 1 - (x / R) ** 2 - (y / (R * 1.13)) ** 2));
+      const wit = new THREE.SphereGeometry(1, 8, 4);
+      wit.scale(0.0158, 0.0072, 0.0014); wit.translate(x, y, z + 0.0016);
+      delen.push(wit);
+    }
+    return samen(delen, 0.05);
+  },
   ogen: () => {
     const delen = [];
+    const R = MAAT.hoofdR;
     for (const sx of [-1, 1]) {
-      const oog = new THREE.SphereGeometry(0.0095, 6, 4);
-      oog.scale(1.25, 0.8, 0.55); oog.translate(sx * 0.045, 0.008, -0.1055);
+      const x = sx * 0.044, y = 0.008;
+      const z = -R * 1.06 * Math.sqrt(Math.max(0, 1 - (x / R) ** 2 - (y / (R * 1.13)) ** 2));
+      // (de bol van het hoofd ligt tussen zijn hoekpunten bijna 2 mm binnen de ellipsoïde: daar ligt het schijfje op,
+      // met zijn achterkant net in het gezicht en zijn voorkant 2,5 mm ervoor — eerst 6 mm, een kraal)
+      const oog = new THREE.SphereGeometry(0.0072, 8, 4);
+      oog.scale(1, 1, 0.25); oog.translate(x, y, z + 0.0012);
       delen.push(oog);
     }
     return samen(delen, 0.05);
   },
   /*
-   Kapsel: een kruin plus een stukje in de nek. De kruin liep tot op de ooglijn
-   en dat las als een helm; hij houdt nu hoger op, zodat er voorhoofd overblijft.
-  */
-  /*
-   Nu één ronde kap: rondom tot boven het voorhoofd, en aan de achterkant (een
-   boog van 130 graden om +z) verder omlaag tot in de nek. Het achterhoofd en de
-   nek waren twee afgeronde blokjes, en van achteren lazen die als een zwarte
-   band met twee bolletjes over het hoofd.
+   Kapsel. (stap 153) Eerst een kap met een harde rand rondom: van dichtbij een kom op het hoofd. Nu een hele bol om het
+   hoofd, waarvan wat onder de haarlijn ligt naar binnen zakt, ín het hoofd: een haarlijn die vooraan hoog op het
+   voorhoofd ligt, bij de slapen zakt, achter de oren door en in de nek uitloopt, met een zachte overgang in plaats van
+   een rand.
   */
   haar: () => {
-    const kruin = new THREE.SphereGeometry(0.119, 16, 7, 0, Math.PI * 2, 0, Math.PI * 0.44);
-    const achter = new THREE.SphereGeometry(0.119, 12, 4, Math.PI / 2 - 1.15, 2.3, Math.PI * 0.44, Math.PI * 0.26);
-    for (const g of [kruin, achter]) g.scale(1.0, 1.08, 1.06);
-    return samen([kruin, achter], 0.06);
+    const g = new THREE.SphereGeometry(0.119, 20, 11);
+    const P = g.attributes.position, U = g.attributes.uv;
+    // de ringen worden zo over de bol gelegd dat ring RH precies op de haarlijn valt: dan is de rand glad in plaats
+    // van een zaagtand tussen twee ringen; de ringen eronder zakken het hoofd in
+    const RH = 8 / 11;
+    for (let i = 0; i < P.count; i++) {
+      const u = U.getX(i), v = 1 - U.getY(i);
+      const fi = u * Math.PI * 2;
+      const ux = -Math.cos(fi), uz = Math.sin(fi);                      // de richting in het platte vlak
+      const c = Math.cos(Math.atan2(ux, -uz));                          // 1 vooraan, −1 achter
+      // de haarlijn (als y van de richting, vanuit het hart van het kapsel, 2 cm boven dat van het hoofd): voorhoofd
+      // 0,52 (zes centimeter boven de wenkbrauwen), slapen 0,12, nek −0,50
+      const lijn = c > 0 ? 0.12 + 0.40 * Math.pow(c, 1.5) : 0.12 - 0.62 * Math.pow(-c, 1.2);
+      const th = Math.acos(Math.max(-1, Math.min(1, lijn)));
+      let theta, k = 1;
+      if (v <= RH) theta = (v / RH) * th;
+      else { theta = th + (v - RH) / (1 - RH) * 0.35; k = 0.84; }
+      const r = 0.119 * k, sn = Math.sin(theta);
+      P.setXYZ(i, ux * r * sn * 0.985, r * Math.cos(theta) * 1.06, uz * r * sn * 1.045);
+    }
+    g.computeVertexNormals();
+    return samen([g], 0.06);
   },
   bovenarm: () => samen(ledGeo(0.048, 0.042, MAAT.bovenarm), 0.05),
   onderarm: () => samen(ledGeo(0.042, 0.034, MAAT.onderarm, { eind: true }), 0.05),
-  // hand met een duim en de vingers als één ronde want, iets gebogen
+  /*
+   (stap 153) De hand: een platte handpalm met vier vingers en een duim, de vingers van verschillende lengte en iets
+   gebogen. Eerst hingen de vingers als één ronde want onder de palm, en van dichtbij waren dat twee klonten. De hand is
+   nu breed in de diepte (z) en smal opzij (x): een hangende hand keert zijn palm naar het been, en je ziet hem van voren
+   op zijn kant, met de duim naar voren. Zo is hij voor links en rechts dezelfde.
+  */
   hand: () => {
-    // (ellipsoïden in plaats van afgeronde dozen: een hand is klein, en bij
-    // honderddertig voetgangers telt elke driehoek twee keer)
-    const duim = new THREE.CapsuleGeometry(0.013, 0.030, 2, 6);
-    duim.rotateZ(0.5); duim.translate(-0.036, -0.034, 0.004);
-    return samen([
-      new THREE.SphereGeometry(1, 8, 6).scale(0.036, 0.036, 0.022).translate(0, -0.032, 0),                 // handpalm
-      new THREE.SphereGeometry(1, 8, 6).scale(0.033, 0.030, 0.019).rotateX(0.30).translate(0, -0.074, -0.006),   // vingers
-      duim,
-    ], 0.07);
+    const palm = new THREE.SphereGeometry(1, 8, 6).scale(0.017, 0.040, 0.041).translate(0, -0.040, 0);
+    const delen = [palm];
+    // van voren naar achteren: wijsvinger, middelvinger, ringvinger, pink
+    [[-0.022, 0.040], [-0.0075, 0.045], [0.0075, 0.042], [0.022, 0.034]].forEach(([vz, lang]) => {
+      const v = new THREE.CapsuleGeometry(0.0082, lang - 0.016, 1, 5);
+      v.translate(0, -lang / 2, 0);
+      v.rotateZ(0.12);                                   // iets gebogen, naar de palm toe
+      v.translate(0.002, -0.068, vz);
+      delen.push(v);
+    });
+    const duim = new THREE.CapsuleGeometry(0.0098, 0.026, 1, 5);
+    duim.translate(0, -0.020, 0); duim.rotateX(0.75); duim.translate(0.004, -0.030, -0.034);
+    delen.push(duim);
+    return samen(delen, 0.07);
   },
   bovenbeen: () => samen(ledGeo(0.074, 0.060, MAAT.bovenbeen, { dz: 1.08 }), 0.06),
   onderbeen: () => samen(ledGeo(0.060, 0.046, MAAT.onderbeen, { dz: 1.05, eind: true }), 0.06),

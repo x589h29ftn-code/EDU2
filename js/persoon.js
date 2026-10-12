@@ -135,6 +135,9 @@ function mesh(geo, m, x = 0, y = 0, z = 0) {
   return o;
 }
 
+// (stap 153) het oogwit: gebroken wit, niet spierwit
+export const OOGWIT = 0xeee8de;
+
 export class Persoon {
   /*
    kleding en postuur; hoogte 1.0 is een volwassene van 1,75 m
@@ -163,6 +166,7 @@ export class Persoon {
     this.hoofd = new THREE.Group();
     this.hoofd.position.set(0, MAAT.hoofd, 0);
     this.hoofd.add(mesh(DEEL.hoofd(), mGezicht));
+    this.hoofd.add(mesh(DEEL.oogwit(), mat(OOGWIT, 0.35)));   // (stap 153)
     this.hoofd.add(mesh(DEEL.ogen(), mat(oog, 0.4)));
     this.groep.add(this.hoofd);
     // pet of haar hangt aan het hoofd, zodat hij meedraait als het hoofd knikt

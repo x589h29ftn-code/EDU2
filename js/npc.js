@@ -43,6 +43,7 @@ const DELEN = [
   { naam: 'hoofd', geo: DEEL.hoofd, kleur: 'huid', y: MAAT.hoofd },
   { naam: 'haar', geo: DEEL.haar, kleur: 'haar', y: MAAT.hoofd + 0.020 },
   // ogen en wenkbrauwen: een eigen deel, want ze hebben een eigen kleur
+  { naam: 'oogwit', geo: DEEL.oogwit, kleur: 'wit', y: MAAT.hoofd },   // (stap 153)
   { naam: 'ogen', geo: DEEL.ogen, kleur: 'oog', y: MAAT.hoofd },
   { naam: 'bovenarm', geo: DEEL.bovenarm, kleur: 'shirt', paar: true },
   { naam: 'onderarm', geo: DEEL.onderarm, kleur: 'mouw', paar: true },
@@ -232,7 +233,7 @@ export class NPCs {
       */
       const korteMouw = ((Math.imul(i + 1, 2654435761) >>> 0) % 100) < 55;
       const kleuren = {
-        shirt, broek: pants, huid: skin, haar: hair, schoen, oog,
+        shirt, broek: pants, huid: skin, haar: hair, schoen, oog, wit: 0xeee8de,
         mouw: korteMouw ? skin : shirt,
       };
       this.kleurVan.push(kleuren);
@@ -722,6 +723,7 @@ export class NPCs {
     zet(this.meshes.bekken, i, 0, MAAT.bekken, 0, 0);
     zet(this.meshes.nek, i, 0, MAAT.nek, 0, 0);
     zet(this.meshes.hoofd, i, 0, MAAT.hoofd, 0, kop);
+    zet(this.meshes.oogwit, i, 0, MAAT.hoofd, 0, kop);
     zet(this.meshes.ogen, i, 0, MAAT.hoofd, 0, kop);
     zet(this.meshes.haar, i, 0, MAAT.hoofd + 0.020, 0, kop);
     // armen en benen, links (2i) en rechts (2i+1)
