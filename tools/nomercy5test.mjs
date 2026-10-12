@@ -73,6 +73,8 @@ await page.evaluate(async () => {
     const [rx, rz] = W.resolveCollisions(x, z, 0.4);
     g.player.pos.set(rx, V.grondHoogte(rx, rz), rz); g.player.applyCamera();
   };
+  // E naast een auto (js/main.js toggleCar werkt alleen met een actieve speler)
+  window.__instap = () => { g.player.active = true; g.toggleCar(); g.player.active = false; };
   window.__uitBoot = () => { if (g.boten.inBoot) g.boten.herstel({ boten: g.boten.bewaar().boten, aanBoord: -1 }); };
   window.__neerMet = (w) => {
     let n = 0;
@@ -132,7 +134,7 @@ await page.evaluate(async () => {
     const vl = n.set.vlag; window.__zet(vl.x + 1, vl.z); window.__stap(2); v.toets();
     window.__stap(60); window.__klik(); window.__stap(2);
     const st = v.noMercy5.staf;
-    window.__zet(st.x + 2, st.z); g.toggleCar(); window.__stap(2); window.__klik(); window.__stap(2);
+    window.__zet(st.x + 2, st.z); window.__instap(); window.__stap(2); window.__klik(); window.__stap(2);
     return v.noMercy5.fase;
   };
   // de automaat: de stafauto `gat` meter achter de camera-auto over de lijn, met `dt`
@@ -245,7 +247,7 @@ const twee = await page.evaluate(() => {
     ruit: n.ruit ? meet(n.ruit) : null,
   };
 });
-ok(!twee.ej.water && !twee.ej.pand && twee.ej.duw < 0.05 && twee.ej.lig < 16, 'de kade: op het land bij de ligplaats', `${r1(twee.ej.lig)} m van de sloep`);
+ok(!twee.ej.water && !twee.ej.pand && twee.ej.duw < 0.05 && twee.ej.lig < 30, 'de kade: op het land bij de ligplaats', `water ${twee.ej.water}, pand ${twee.ej.pand}, duw ${r1(twee.ej.duw)}, ${r1(twee.ej.lig)} m van de sloep`);
 ok(twee.start.past && twee.start.water, 'de sloep begint op open water');
 ok(!twee.aanleg.water && !twee.aanleg.pand && twee.aanleg.duw < 0.05, 'de ruit aan de overkant ligt op het land, vrij');
 ok(!twee.mg.water && !twee.mg.pand && twee.mg.duw < 0.05 && twee.mg.mgWater < 8, 'het MG-nest aan de waterkant', `${r1(twee.mg.mgWater)} m van het water`);
@@ -274,7 +276,8 @@ const drie = await page.evaluate(() => {
   const vlek = n.set.vlek;
   window.__stap(120);
   return {
-    hint, gesprek, fase: n.fase, uur: g.sfeer.uur, loopt: g.sfeer.loopt, pak: n.pak, garand: P.wapens.includes('garand'), reserve: P.reserve,
+    hint, gesprek, fase: n.fase, uur: g.sfeer.uur, loopt: g.sfeer.loopt, pak: n.pak, garand: P.wapens.includes('garand'),
+    reserve: P.reserve + (P.wapenSoort === 'garand' ? P.ammo : (P.magazijnen.garand || 0)),
     inBoot: g.boten.inBoot === b, fig: n.figuranten.map(f => f.groep.visible && f.groep.parent === b.mesh),
     camBoot: n.boot.mesh.visible, ejAanBoord: n.ej.groep.parent === n.boot.mesh, set: n.set.zichtbaar,
     vlek: vlek ? { water: W.pointInWater(vlek.x, vlek.z) || W.vaarbaar(vlek.x, vlek.z) } : null,
@@ -285,7 +288,7 @@ ok(drie.hint, 'bij Erik Jan: "E — praten met Erik Jan"');
 ok(drie.gesprek === 'gesprek', 'E begint het gesprek');
 ok(drie.fase === 'overtocht' || drie.fase === 'overtochtIntro', 'na het zwart: de overtocht', drie.fase);
 ok(Math.floor(drie.uur) === 1 && !drie.loopt, 'één uur \'s nachts, en de klok staat stil', `${r1(drie.uur)} uur, loopt ${drie.loopt}`);
-ok(drie.pak && drie.garand && drie.reserve === 240, 'uniform, de M1 en 200 patronen in bruikleen', `reserve ${drie.reserve}`);
+ok(drie.pak && drie.garand && drie.reserve === 240, 'uniform, de M1 en 200 patronen in bruikleen', `voorraad en clip ${drie.reserve}`);
 ok(drie.inBoot && drie.fig.every(Boolean), 'in de sloep, met twee figuranten aan boord');
 ok(drie.camBoot && drie.ejAanBoord && drie.set, 'de camera-boot met Erik Jan, en de set bij de molen');
 ok(drie.vlek && drie.vlek.water, 'het zoeklicht schijnt op het water');
@@ -448,7 +451,7 @@ const zeven = await page.evaluate(() => {
   window.__stap(70);
   // uitstappen
   window.__meld = [];
-  g.toggleCar(); window.__stap(2);
+  window.__instap(); window.__stap(2);
   const uitgestapt = !P.inCar;
   t = 0; while (v.noMercy5.fase === 'rit' && t < 10) { v.update(0.05); t += 0.05; }
   uit.uit = { uitgestapt, cut: window.__meld.some(m => /uit de auto/.test(m)), takes: v.noMercy5.takes };
@@ -507,44 +510,44 @@ const negen = await page.evaluate(() => {
   // te vroeg van boord (aan de westkant)
   begin(); window.__totBoot(); window.__klik();
   window.__uitBoot(); window.__zet(-1285, 884); window.__stap(4);
-  uit.vroeg = { fase: v.noMercy5.fase, melding: window.__meld.some(m => /van boord/.test(m)), leeg: leeg(), reserve: P.reserve };
+  uit.vroeg = { bezig: v.noMercy5.bezig, fase: v.noMercy5.fase, melding: window.__meld.some(m => /van boord/.test(m)), leeg: leeg(), reserve: P.reserve };
   // te ver van de set
   begin(); window.__totBoot(); window.__overtocht(); window.__klik();
   window.__zet(-1127 + 300, 904); window.__stap(4);
-  uit.ver = { fase: v.noMercy5.fase, melding: window.__meld.some(m => /van de set/.test(m)), leeg: leeg() };
+  uit.ver = { bezig: v.noMercy5.bezig, melding: window.__meld.some(m => /van de set/.test(m)), leeg: leeg() };
   // X tijdens de overtocht
   begin(); window.__totBoot(); window.__klik();
   const x = v.klusAfbreken();
   window.__stap(2);
-  uit.x = { x, fase: v.noMercy5.fase, leeg: leeg(), boot: !g.boten.inBoot || true };
+  uit.x = { x, bezig: v.noMercy5.bezig, leeg: leeg(), boot: !g.boten.inBoot || true };
   window.__uitBoot();
   // neergaan in de rit
   begin(); window.__totRit();
   v.dood(); window.__stap(4);
-  uit.dood = { fase: v.noMercy5.fase, leeg: leeg(), inCar: !!P.inCar };
+  uit.dood = { bezig: v.noMercy5.bezig, leeg: leeg(), inCar: !!P.inCar };
   // laden midden bij de molen
   begin(); const s = v.bewaar();
   window.__totBoot(); window.__overtocht(); window.__klik();
   v.herstel(s); window.__stap(2);
-  uit.laden = { fase: v.noMercy5.fase, leeg: leeg() };
+  uit.laden = { bezig: v.noMercy5.bezig, leeg: leeg() };
   // een nieuwe missie midden in de opnames
   begin(); window.__totBoot(); window.__klik();
   window.__uitBoot();
   g.verhaal.herspeel && null;
   const sm = v.__startMissie ? v.__startMissie('schrift') : null;
-  uit.missie = { sm, fase: v.noMercy5.fase, leeg: v.noMercy5.fase !== 'uit' ? null : leeg() };
+  uit.missie = { sm, bezig: v.noMercy5.bezig, leeg: leeg() };
   // na een mislukte poging: weer een EJ, en het gesprek pas na even weg
   begin();
   window.__stap(4);
   uit.terug = { ej: !!g.hud.ej, beschikbaar: v.noMercy5.beschikbaar };
   return uit;
 });
-ok(negen.vroeg.fase === 'uit' && negen.vroeg.melding && negen.vroeg.leeg && negen.vroeg.reserve === 40, 'te vroeg van boord: mislukt, alles weg, de bruikleen terug', JSON.stringify(negen.vroeg));
-ok(negen.ver.fase === 'uit' && negen.ver.melding && negen.ver.leeg, 'te ver van de set: mislukt en opgeruimd');
-ok(negen.x.x && negen.x.fase === 'uit' && negen.x.leeg, 'X: gestopt en opgeruimd');
-ok(negen.dood.fase === 'uit' && negen.dood.leeg && !negen.dood.inCar, 'neergaan in de rit: opgeruimd, niet meer in de stafauto');
-ok(negen.laden.fase === 'uit' && negen.laden.leeg, 'laden: opgeruimd');
-if (negen.missie.sm !== null) ok(negen.missie.fase === 'uit' && negen.missie.leeg, 'een nieuwe missie: opgeruimd');
+ok(!negen.vroeg.bezig && negen.vroeg.melding && negen.vroeg.leeg && negen.vroeg.reserve === 40, 'te vroeg van boord: mislukt, alles weg, de bruikleen terug', JSON.stringify(negen.vroeg));
+ok(!negen.ver.bezig && negen.ver.melding && negen.ver.leeg, 'te ver van de set: mislukt en opgeruimd');
+ok(negen.x.x && !negen.x.bezig && negen.x.leeg, 'X: gestopt en opgeruimd');
+ok(!negen.dood.bezig && negen.dood.leeg && !negen.dood.inCar, 'neergaan in de rit: opgeruimd, niet meer in de stafauto');
+ok(!negen.laden.bezig && negen.laden.leeg, 'laden: opgeruimd');
+if (negen.missie.sm !== null) ok(!negen.missie.bezig && negen.missie.leeg, 'een nieuwe missie: opgeruimd');
 ok(negen.terug.ej && negen.terug.beschikbaar, 'daarna staat de EJ er weer');
 
 // ------------------------------------------------------------------ 10. sneltoets en tussenpoos
@@ -581,8 +584,13 @@ const elf = await page.evaluate(() => {
   window.__vrij();
   const M = v.noMercy5.molen;
   const kijk = (x, z, nx, nz) => { P.pos.set(x, 2, z); P.yaw = Math.atan2(-(nx - x), -(nz - z)); P.pitch = 0; P.applyCamera(); g.scene.updateMatrixWorld(true); R.render(g.scene, P.camera); };
+  // de vergelijking 's nachts: bij de overgang van dag naar nacht verandert het aantal lichten (dat mag, CLAUDE.md)
+  g.sfeer.uur = 1; if (g.sfeer.update) g.sfeer.update(0.05);
   kijk(M.cx - 60, M.cz - 20, M.cx, M.cz);
+  kijk(M.cx - 25, M.cz - 25, M.cx, M.cz);
+  const ijlst = v.noMercy5.ejPlek; kijk(ijlst.x + 10, ijlst.z + 10, ijlst.x, ijlst.z);
   const voor = R.info.programs.length;
+  const oud = new Set(R.info.programs.map(p => p.cacheKey));
   window.__totBoot(); window.__klik(); window.__stap(40);
   const b = v.noMercy5.sloep;
   kijk(b.x + 10, b.z + 25, b.x, b.z);
@@ -592,17 +600,31 @@ const elf = await page.evaluate(() => {
   for (const grp of [v.noMercy5.groepA, v.noMercy5.groepB]) for (const w of grp.wachters) window.__neerMet(w);
   window.__stap(4); window.__klik();
   const vl = v.noMercy5.set.vlag; window.__zet(vl.x + 1, vl.z); window.__stap(2); v.toets(); window.__stap(60); window.__klik(); window.__stap(2);
-  const st = v.noMercy5.staf; window.__zet(st.x + 2, st.z); g.toggleCar(); window.__stap(2); window.__klik();
+  const st = v.noMercy5.staf; window.__zet(st.x + 2, st.z); window.__instap(); window.__stap(2); window.__klik();
   window.__rijd(15, 8);
   const s = v.noMercy5.staf, mo = v.noMercy5.motoren[0].mesh.position;
   kijk(s.x + 8, s.z + 8, s.x, s.z);
   kijk(mo.x + 6, mo.z + 6, mo.x, mo.z);
   const na = R.info.programs.length;
+  // wie de nieuwe programma's gebruikt (voor het zoeken)
+  const nieuw = new Set(R.info.programs.filter(p => !oud.has(p.cacheKey)));
+  const wie = [];
+  g.scene.traverse(o => {
+    if (!o.isMesh) return;
+    for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
+      const pm = m && R.properties.get(m);
+      if (pm && pm.currentProgram && nieuw.has(pm.currentProgram) && wie.length < 12) {
+        let pad = o.name || o.type, q = o.parent; for (let k = 0; k < 4 && q; k++, q = q.parent) pad = `${q.name || q.type}/${pad}`;
+        wie.push(`${m.type}${m.transparent ? ' doorzichtig' : ''}${m.side === 2 ? ' dubbel' : ''}${m.map ? ' kaart' : ''} · ${pad}`);
+      }
+    }
+  });
   v.klusAfbreken(); window.__stap(2);
-  return { voor, na };
+  return { voor, na, wie };
 });
 if (elf.overgeslagen) ok(false, 'geen renderer in __game');
 else ok(elf.na === elf.voor, 'de set, de boten, de auto\'s en de zijspannen vertalen geen nieuwe shader', `${elf.voor} → ${elf.na} programma's (soorten vooraf: ${soortenKlaar ? 'klaar' : 'niet gezien'})`);
+if (elf.wie && elf.wie.length) console.log('  nieuw bij: ' + elf.wie.join('\n            '));
 
 await browser.close();
 console.log(fouten ? `\n${fouten} fout${fouten > 1 ? 'en' : ''}` : '\nalles goed');

@@ -98,7 +98,7 @@ await opname('nomercy5_rit', `
   }
   window.__stap(4); window.__klik();
   const vl = n.set.vlag; window.__zet(vl.x + 1, vl.z); window.__stap(2); v.toets(); window.__stap(60); window.__klik(); window.__stap(2);
-  const st = v.noMercy5.staf; window.__zet(st.x + 2, st.z); g.toggleCar(); window.__stap(2); window.__klik(); window.__stap(2);
+  const st = v.noMercy5.staf; window.__zet(st.x + 2, st.z); g.player.active = true; g.toggleCar(); g.player.active = false; window.__stap(2); window.__klik(); window.__stap(2);
   n = v.noMercy5;
   const L = n.lijn, c = n.staf;
   let s = 0;

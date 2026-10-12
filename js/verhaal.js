@@ -11340,15 +11340,32 @@ export function initVerhaal(ctx) {
   }
   function n5Boten() { return boten ? boten() : null; }
   function n5Sloep() { const B = n5Boten(); return B ? B.ruw(SCHRIFT_BOOT) : null; }
-  // Erik Jan op de kade in IJlst: van de ligplaats van de sloep naar de wal, en nog een paar meter de kant op
+  /*
+   Erik Jan op de kade in IJlst, bij de ligplaats van de sloep. De `wal` van die ligplaats (js/boot.js) ligt op de
+   steiger, en die staat in de BGT boven het water: de eerste versie zette hem daar 2,5 m achter, midden in het
+   water (nomercy5test). Nu het dichtstbijzijnde stuk echt land vanaf de steiger, vrij van botsdozen.
+  */
   let n5EJPlekWas = null;
   function n5EJPlek() {
     if (n5EJPlekWas) return n5EJPlekWas;
     const b = n5Sloep();
     if (!b || !b.L || !b.L.wal) return null;
-    const L = b.L, dx = L.wal.x - L.x, dz = L.wal.z - L.z, d = Math.hypot(dx, dz) || 1;
-    const [x, z] = resolveCollisions(L.wal.x + dx / d * 2.5, L.wal.z + dz / d * 2.5, 0.5);
-    n5EJPlekWas = { x, z, yaw: kijkHoek({ x, z }, { x: L.x, z: L.z }) };
+    const L = b.L, w = L.wal;
+    let plek = null;
+    for (let r = 1; r <= 40 && !plek; r += 0.5) {
+      for (let i = 0; i < 48; i++) {
+        const a = i / 48 * Math.PI * 2, x = w.x + Math.cos(a) * r, z = w.z + Math.sin(a) * r;
+        if (pointInWater(x, z)) continue;
+        // een meter landinwaarts, zodat hij niet op de rand van het water staat
+        const x2 = x + Math.cos(a), z2 = z + Math.sin(a);
+        if (pointInWater(x2, z2)) continue;
+        const [rx, rz] = resolveCollisions(x2, z2, 0.5);
+        if (Math.hypot(rx - x2, rz - z2) > 0.02) continue;
+        plek = { x: rx, z: rz }; break;
+      }
+    }
+    if (!plek) return null;
+    n5EJPlekWas = { ...plek, yaw: kijkHoek(plek, { x: L.x, z: L.z }) };
     return n5EJPlekWas;
   }
   function n5Lijn() {
