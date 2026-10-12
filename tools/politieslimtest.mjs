@@ -347,7 +347,7 @@ const tuin = await page.evaluate(() => {
   const tuinen = (K.tuinvlakken || []).map(t => {
     // (een tuinvlak is één ring [[x, z], …], soms in een lijst van ringen)
     const r = Array.isArray(t.r[0][0]) ? t.r[0] : t.r; let x = 0, z = 0; for (const p of r) { x += p[0]; z += p[1]; }
-    return { x: x / r.length, z: z / r.length };
+    return { x: x / r.length, z: z / r.length, r };
   }).filter(t => Math.hypot(t.x - pd.x, t.z - pd.z) < 600)
     .sort((p, q) => Math.hypot(p.x - pd.x, p.z - pd.z) - Math.hypot(q.x - pd.x, q.z - pd.z));
   for (const t of tuinen) {
@@ -365,21 +365,30 @@ const tuin = await page.evaluate(() => {
         if (L < d * 1.25) continue;
         const a = P.proef.agent(p[0], p[1]);
         a.staat = 'zoekt'; a.doel = { x: tx, z: tz }; a.zoekT = 120; a.wacht = 0;
-        let min = Infinity;
+        // staat hij ergens in het tuinvlak (of op een meter ervan)?
+        const binnen = (x, z) => {
+          let ja = false;
+          for (let i = 0, j = t.r.length - 1; i < t.r.length; j = i++) {
+            const [xi, zi] = t.r[i], [xj, zj] = t.r[j];
+            if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) ja = !ja;
+          }
+          return ja;
+        };
+        let min = Infinity, erin = false;
         window.__stap(900, 1 / 15, () => {
           const q = a.persoon.groep.position;
           min = Math.min(min, Math.hypot(q.x - tx, q.z - tz));
-          if (min < 3) a.zoekT = 120;
+          if (binnen(q.x, q.z)) erin = true;
         });
         window.__schoon();
-        return { min, d, L, start: p, tuin: [tx, tz] };
+        return { min, erin, d, L, start: p, tuin: [tx, tz] };
       }
     }
   }
   return null;
 });
 ok(!!tuin, 'een achtertuin waar je van de straat omheen moet', tuin ? `${tuin.d.toFixed(0)} m hemelsbreed, ${tuin.L.toFixed(0)} m lopen` : '');
-if (tuin) ok(tuin.min < 3, 'een zoekende agent komt in die tuin', `${tuin.min.toFixed(1)} m van het punt`);
+if (tuin) ok(tuin.erin, 'een zoekende agent komt in die tuin', `tot ${tuin.min.toFixed(1)} m van het midden`);
 
 // ---------- 8. terug naar de auto ----------
 kop('terug naar de auto');

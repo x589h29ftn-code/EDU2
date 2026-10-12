@@ -440,11 +440,18 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       ? Math.atan2(geheugen.vlucht.rz, geheugen.vlucht.rx) : null;
     const anderen = [...agenten, ...wagens].filter(o => o !== e && o.doel).map(o => o.doel);
     let beste = null, besteScore = -Infinity;
-    for (let k = 0; k < 6; k++) {
+    /*
+     Ligt zijn hele sector in vakken die net doorzocht zijn, dan kijkt hij daarna ook rondom (k 6–11): anders bleef
+     een agent met een doorzochte sector die sector gewoon nog eens afzoeken (de proef: 40 % van de punten in
+     doorzochte vakken tegen 48 % zonder geheugen).
+    */
+    for (let k = 0; k < 12; k++) {
+      if (k === 6 && (dichtbij || !beste || geheugen.vers(beste.x, beste.z) < 0.5)) break;
       const straal = dichtbij
         ? Math.min(ZOEKSTRAAL[s] * 0.2, UITRUK_STRAAL)
         : ZOEKSTRAAL[s] * (0.35 + Math.random() * 0.65);
-      const hoek = (k < 3 || vlucht === null)
+      const hoek = k >= 6 ? Math.random() * Math.PI * 2
+        : (k < 3 || vlucht === null)
         ? (e.sector + (Math.random() - 0.5) * (k === 0 ? 0.18 : 0.4)) * Math.PI * 2
         : vlucht + (Math.random() - 0.5) * 1.4;
       let x = ank.x + Math.cos(hoek) * straal, z = ank.z + Math.sin(hoek) * straal;
