@@ -8537,7 +8537,7 @@ niet, ik sta gewoon weer op je kaart."), en de keuze. 2 geeft de stafauto via ee
 van jou en gaat mee in `garage.bewaar`. De bruikleen gaat altijd terug.
 
 *Wat misging.* (1) De `wal` van de ligplaats in IJlst (js/boot.js) ligt op de steiger, en die staat in de BGT boven het water:
-de eerste plek voor Erik Jan, 2,5 m daarachter, lag midden in het water. Nu het dichtstbijzijnde echte land, ~20 m verder.
+de eerste plek voor Erik Jan, 2,5 m daarachter, lag midden in het water. Nu het dichtstbijzijnde echte land vanaf de steiger (9,7 m van de sloep).
 (2) In de proef stapte de speler niet in de stafauto: `toggleCar` in js/main.js doet niets zonder `player.active`. (3) De
 voorraad na de bruikleen was 232: acht patronen zitten in de clip van de M1; de proef telt nu voorraad plus clip. (4) De
 ruit lag eerst 26 m voor het eind; stil op de ruit was je dan te ver van de camera-auto, en de automaat reed ernaar toe op 18 m.
@@ -8546,7 +8546,10 @@ vergelijking staat nu helemaal 's nachts, en de proef noemt de mesh van elk nieu
 tweezijdig MeshStandardMaterial met een kaart dat 's nachts nog niet vertaald was; nu enkelzijdig met een tweede vlak met de rug
 ertegen. (6) Laden in de proef via `verhaal.herstel` liet de M1 staan: de wapens komen uit js/opslag.js, dus de proef laadt nu echt.
 
-*Proef*: `npm run nomercy5test`: PROEFUITSLAG. Foto's (`npm run nomercy5shots`): nomercy5_overtocht.png, nomercy5_molen.png,
+*Proef*: `npm run nomercy5test`: 74 controles, alles goed (in de derde ronde; de eerste had 28 fouten, de tweede 17). Onder meer: drie minuten wachten
+zonder telefoontje, de kade 9,7 m van de sloep op het land, de route 553 m zonder keerpunt, de automaat 14,4–16,8 m achter de
+camera-auto zonder "Cut!", de zijspannen 15–30 m achter je, stilstaan geeft na 7,4 s "Cut!", de stafauto 3,2 m naast je, 216 → 216
+programma's. Foto's (`npm run nomercy5shots`): nomercy5_overtocht.png, nomercy5_molen.png,
 nomercy5_rit.png, nomercy5_premiere.png.
 
 **Wat nog niet af is** (in volgorde).
