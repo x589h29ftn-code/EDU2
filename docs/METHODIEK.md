@@ -8823,6 +8823,38 @@ waar je in zit.
 en leeg zonder zender, de nacht (doek, knopjes, gloed), één dashboard en een console die eruit komt; en nog steeds in het spel
 geen nieuw programma (176 → 176). Alles goed. Foto's: `npm run binnenshots`, met `NACHT=1` 's nachts met Radio Spannenburg.
 
+**Het dashboard en er omheen (stap 149, 14 okt).**
+
+Gevraagd: "Je gaat de goede kant op bedankt, kijk nog even naar het dashboard en er omheen. Lijkt nog niet overal juist."
+
+Eerst gemeten, niet gekeken: stralen vanuit de cabine vooruit, omhoog en omlaag, per soort (zonder het interieur).
+- *Het dashboard hield twintig centimeter vóór het glas op.* `voor` in js/autobinnen.js (cabZ − cabL/2 + 0,30) heette "de
+  onderkant van de voorruit", maar het is de **bovenkant**: de ruit staat schuin, en de voet ligt bij de hatchback op z −0,84
+  (hoogte 0,975), niet op −0,58. Het dashboard begon op `voor` − 0,06 en lag met zijn bovenkant (T + 0,06 = 0,96) ónder de
+  motorkap (0,975). Tussen de rand en het glas zag je dus een strook motorkap in de kleur van de auto, binnen de ruit.
+  js/carmodel.js geeft nu `maat.ruit = { z, y, tan }`: de voet van het glas van binnen, en hoe het oploopt (dz/dy). Voor de
+  gewone auto's uitgerekend uit dezelfde getallen als de ruit zelf (`ruitVoet`: het hart van de ruit, 0,031 voor de binnenkant,
+  waar hij uit de motorkap komt; bij de BX loopt de kap naar achteren op); voor de vrachtwagen (recht glas op −3,45 vanaf
+  1,555), de Ferrari (−0,77 op 0,91, heel plat: 2,0) en de ambulance (−1,985 op 1,33) gemeten.
+- Het dashboard loopt nu door tot net onder het glas, met de voorrand net boven de motorkap (`yVoor`), een schuin stuk met de
+  sleuf van de **ontwaseming** en daarna vlak naar de bestuurder (`yTop`), met een vel leer of zacht kunststof (`dashvel`). Let
+  op de afronding van `profiel`: die legt er 0,8 · 0,018 m omheen (`BV`), dus de voorrand staat zoveel verder van het glas af.
+- *De klokken zitten nu op de hoogte van de rand*, en eerst stond het voorvlak van het dashboard (met zijn afronding) vóór de
+  wijzerplaten: de straal van de ogen raakte het dashboard. Bij de bestuurder wijkt het voorvlak nu drie centimeter terug.
+- *De kap over de klokken* was een plank op het huis. Nu een doorsnede die uit het dashboard oprijst, over de klokken buigt en
+  vooraan als klep overhangt (`klokkap`).
+- *De hemel* was cabL − 0,10 lang en stak bij de gewone auto's voor en achter door de ruiten (het dak is cabL − 0,52). Nu
+  `maat.dakZ`: van de voorruit tot de achterruit of het eind van het dak (`dakBinnen`). *Binnenspiegel en zonnekleppen* hingen
+  op `voor`; nu achter het glas aan de voorrand van de hemel.
+- *De ambulance had geen A-stijl*: zijn carrosserie is één dichte vorm met de ruiten erop, en van binnen tekent three de
+  achterkant daarvan niet. De voorruit liep zo naadloos over in de zijruit. Nu een bekleding langs de rand van de voorruit.
+
+*Proef*: `npm run binnentest` met erbij (15) stralen recht omlaag tussen de voet van het glas en het voorvlak raken eerst het
+interieur — vanuit de cabine, onder het glas, want de ambulance raak je van buiten altijd —, en (16) een straal van vóór (en
+voor de hemel ook van achter) de auto raakt eerst de carrosserie, dan pas de hemel, de spiegel of een klep. Tegenproef met
+js/autobinnen.js van stap 148: beide rood bij elke soort behalve de BX-hemel. `ALLEEN_MODELLEN=1` slaat het deel in het spel
+over, voor het snelle nameten.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

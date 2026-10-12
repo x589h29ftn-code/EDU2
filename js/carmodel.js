@@ -349,7 +349,9 @@ function truckGeoms() {
     // de maten van de cabine zoals hij er werkelijk staat: vloer op 0,91, de
     // onderkant van de voorruit op 1,55 en het dak op 2,15
     maat: { L, W, R, dakY: 2.15, schouderY: 1.52, flankY: 1.2, dorpelY: 0.79, cabZ, cabL: 2.1,
-      aHoek: 0.30, stijlH: 1.0, oog, truck: true } };
+      aHoek: 0.30, stijlH: 1.0, oog, truck: true,
+      // (stap 149) de voorruit staat recht op z −3,45 vanaf 1,555 (het plaatwerk eronder reikt tot 1,55), gemeten
+      ruit: { z: cabZ - 1.0, y: 1.555, tan: 0 }, dakZ: [cabZ - 0.99, cabZ + 1.0] } };
 }
 
 /*
@@ -526,6 +528,28 @@ function autoGeoms(kind) {
     }
   }
 
+  /*
+   (stap 149) Waar het glas van binnen begint, voor js/autobinnen.js. Het dashboard liep tot `voor` − 0,06, maar `voor`
+   is de bovenkant van de voorruit: tussen het dashboard en het glas lag twintig centimeter motorkap in beeld. De
+   binnenkant van het glas ligt 0,031 achter het hart (een ruit van 5 cm, schuin); de voet is waar hij uit de motorkap
+   komt (bij de BX loopt de kap naar achteren op, rx −0,085).
+  */
+  function ruitVoet() {
+    const tan = Math.tan(aHoek);
+    const kapBoven = (z) => schouderY + (bus ? 0.04 : (bx ? -0.02 : 0.02)) + 0.055 + (bx ? (z - kapZ) * Math.tan(0.085) : 0);
+    const glasZ = (y, binnen) => zA + (y - yMid - 0.03) * tan + (binnen ? 0.031 : -0.031);
+    let y = kapBoven(glasZ(schouderY, false));
+    for (let i = 0; i < 3; i++) y = kapBoven(glasZ(y, false));
+    return { y, z: glasZ(y, true), tan };
+  }
+  // het dak van binnen: van de voorruit tot de achterruit (of het eind van het dak), voor de hemel, de spiegel en de kleppen
+  function dakBinnen() {
+    const dL = cabL - (bus ? 0.10 : 0.52), hy = dakY - 0.045 + 0.02;
+    const z0 = Math.max(cabZ - dL / 2 + 0.04, zA + (hy - yMid - 0.03) * Math.tan(aHoek) + 0.041);
+    let z1 = cabZ + dL / 2 - 0.04;
+    if (!bus) z1 = Math.min(z1, zC + (hy - yMid - 0.03) * Math.tan(cHoek) - 0.041);
+    return [z0, z1];
+  }
   const lijstL = 2 * (wielZ - R - 0.05);        // tussen de banden, zie hieronder
   const zwartVast = [
     { geo: rdoos(W + 0.03, 0.24, 0.26, 0.08), y: dorpelY + 0.06, z: -L / 2 + 0.09 },   // bumper voor
@@ -720,7 +744,7 @@ function autoGeoms(kind) {
      bestuurder een meter onder zijn eigen stuur.
     */
     maat: { L, W, R, dakY, schouderY, flankY, dorpelY: bus ? schouderY - 0.75 : dorpelY,
-      cabZ, cabL, aHoek, stijlH, oog, bus } };
+      cabZ, cabL, aHoek, stijlH, oog, bus, ruit: ruitVoet(), dakZ: dakBinnen() } };
 }
 
 /*
@@ -952,7 +976,9 @@ function sportGeoms() {
   // de maten voor het interieur (js/autobinnen.js) en het oogpunt van de bestuurder
   const schouderY = 0.84, dakY = 1.15, cabZ = -0.08, cabL = 1.86;
   const oog = { x: -(W / 2 - 0.52), y: 1.02, z: -0.02 };
-  const maat = { L, W, R, dakY, schouderY, flankY: 0.62, dorpelY: 0.45, cabZ, cabL, aHoek: 1.12, stijlH: dakY - schouderY, oog, bus: false, sport: true };
+  const maat = { L, W, R, dakY, schouderY, flankY: 0.62, dorpelY: 0.45, cabZ, cabL, aHoek: 1.12, stijlH: dakY - schouderY, oog, bus: false, sport: true,
+    // (stap 149) het glas komt op z −0,80 uit de kap (0,91 hoog) en loopt plat op (dz/dy 2,0); het dak van binnen −0,31 tot 0,23
+    ruit: { z: -0.77, y: 0.91, tan: 2.0 }, dakZ: [-0.31, 0.23] };
 
   // de dozen voor de proef, met dozen die de romp benaderen (tussen de wielkasten door)
   const romp3 = [
@@ -1104,6 +1130,8 @@ function ambulanceGeoms() {
   const schouderY = 1.34, cabDak = 2.04, cabZ = -1.075, cabL = 2.15;
   const oog = { x: -(W / 2 - 0.56), y: 1.70, z: cabZ + 0.04 };
   const maat = { L, W, R, dakY: cabDak, schouderY, flankY: 1.0, dorpelY: 0.62, cabZ, cabL, aHoek: 0.65, stijlH: cabDak - schouderY, oog, bus: true,
+    // (stap 149) de voorruit van binnen: z −1,985 op 1,33, oplopend met dz/dy 0,757 tot het dak op −1,45 (gemeten)
+    ruit: { z: -1.985, y: 1.33, tan: 0.757 }, dakZ: [-1.44, cabZ + cabL / 2 - 0.05],
     // voor js/ambulance.js: waar de vlakke zijden, het dak, de motorkap en de achterdeuren liggen
     amb: { zijX, voorZ: voorV, achterZ: achterV, dakY: dakY + rand, dakVoorZ: -0.95, kapA: { z: voorZ + 0.18, y: 1.03 + rand }, kapB: { z: -2.04, y: 1.20 + rand },
       wielVoor, wielAchter, R, kast: kast - rand, raamAchter: { z0: 1.22, z1: 2.58, y0: 1.74, y1: 2.36 }, portier: { z0: -1.88, z1: -1.00, y0: 1.36, y1: 2.04 },

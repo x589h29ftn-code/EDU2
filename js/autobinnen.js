@@ -392,7 +392,7 @@ export function maakAutoBinnen(maat) {
   const binnenX = W / 2 - 0.145;          // binnenkant van het portier, binnen de flankwand
   const vloerY = dorpelY + 0.16;          // de vloer ligt net boven de dorpelbalk
   const hemelY = dakY - 0.045;
-  const voor = cabZ - cabL / 2 + 0.30;    // onderkant voorruit
+  const voor = cabZ - cabL / 2 + 0.30;    // (de bovenkant van de voorruit; de voet staat in `maat.ruit`)
   // (de neus ligt bij −z: wat verder naar achteren staat heeft een gróter getal)
   const dashZ = voor + 0.06;
   const F = dashZ + 0.10;                 // het vlak van het dashboard dat naar de bestuurder kijkt
@@ -404,8 +404,10 @@ export function maakAutoBinnen(maat) {
 
   // ---------------------------------------------------------------- schil: vloer, hemel, deuren
   doos(groep, M.vloer, W - 0.20, 0.04, cabL + 0.5, 0, vloerY, cabZ);
-  if (sport) rond(groep, M.carbon, 1.28, 0.03, 1.05, 0, hemelY - 0.02, cabZ - 0.05, 0, 0.012);
-  else rond(groep, M.hemel, W - 0.26, 0.03, cabL - 0.10, 0, hemelY, cabZ, 0, 0.012);
+  // (stap 149) de hemel zo lang als het dak van binnen (`maat.dakZ`): hij stak voor en achter door de ruiten heen
+  const [dak0, dak1] = maat.dakZ || [cabZ - cabL / 2 + 0.28, cabZ + cabL / 2 - 0.28];
+  if (sport) rond(groep, M.carbon, 1.28, 0.03, dak1 - dak0, 0, hemelY - 0.02, (dak0 + dak1) / 2, 0, 0.012, 'hemel');
+  else rond(groep, M.hemel, W - 0.26, 0.03, dak1 - dak0, 0, hemelY, (dak0 + dak1) / 2, 0, 0.012, 'hemel');
   const deurMat = sport ? M.leerZwart : M.kunststof;
   const deurL = cabL - 0.30;
   for (const sx of [-1, 1]) {
@@ -438,24 +440,64 @@ export function maakAutoBinnen(maat) {
     }
   }
 
+  /*
+   (stap 149) De ambulance is van buiten één dichte vorm met de ruiten erop; van binnen zie je daar alleen de achterkant
+   van, en die tekent three niet. Er stond dus geen A-stijl: van de bestuurdersstoel liep de voorruit naadloos over in de
+   zijruit. Nu een bekleding langs de rand van de voorruit, net erachter.
+  */
+  if (maat.amb && maat.ruit) {
+    const r = maat.ruit, hoek = Math.atan(r.tan), lang = (dakY - r.y) / Math.cos(hoek), ym = (r.y + dakY) / 2;
+    for (const sx of [-1, 1]) rond(groep, M.hemel, 0.05, lang, 0.09, sx * (W / 2 - 0.05), ym, r.z + (ym - r.y) * r.tan + 0.055, hoek, 0.015, 'stijlbekleding');
+  }
+
   // ---------------------------------------------------------------- het dashboard: één vorm
   /*
    De doorsnede, van de voet van de voorruit (iets eronder, zodat er geen kier is) over een bolle bovenkant naar de
    voorkant, dan schuin terug langs de knieën naar het schot bij de voeten. Over de breedte van portier tot portier.
   */
   const kniY = Math.max(T - 0.27, vloerY + 0.14);
+  /*
+   (stap 149) Het dashboard liep tot `voor` − 0,06 — maar `voor` is de bovenkant van de voorruit, niet de voet. Tussen
+   de rand van het dashboard en het glas lag zo twintig centimeter motorkap in beeld, een gekleurde strook onder de
+   ruit. Nu loopt de bovenkant door tot net onder het glas (`maat.ruit`: de voet van de ruit van binnen, uit
+   js/carmodel.js) en ligt hij net boven de motorkap. Vooraan een sleuf voor de ontwaseming.
+  */
+  const ruit = maat.ruit || { z: voor - 0.30, y: T + 0.05, tan: 0.7 };
+  const glasOp = (y) => ruit.z + (y - ruit.y) * ruit.tan;          // de binnenkant van de voorruit op hoogte y
+  const yTop = Math.max(T + 0.06, ruit.y + 0.02);                  // de bovenkant van het dashboard bij de bestuurder
+  const yVoor = ruit.y + 0.012;
+  // (de afronding van `profiel` legt er rondom 0,8 · 0,018 = 0,0144 m omheen: de voorrand blijft zo nog net van het glas af;
+  // bij de bestuurder wijkt het voorvlak 3 cm terug, anders stond het voor de klokken, die nu op de hoogte van de rand zitten)
+  const BV = 0.0144;
+  const zVoor = glasOp(yVoor + BV) + BV + 0.006;
+  const zMid = Math.min(F - 0.12, Math.max(zVoor + 0.06, (zVoor + F) / 2));
   profiel(groep, dashMat, [
-    [voor - 0.06, T - 0.02], [voor - 0.03, T + 0.025], [dashZ, T + 0.06], [F - 0.01, T + 0.04], [F + 0.02, T + 0.01],
-    [F + 0.03, T - 0.11], [F - 0.04, kniY], [voor + 0.05, vloerY + 0.06], [voor - 0.06, vloerY + 0.06],
+    [ruit.z + 0.02, Math.min(yVoor - 0.06, kniY)], [zVoor, yVoor], [zMid, yTop], [F - 0.035, yTop - 0.012], [F - 0.01, yTop - 0.035],
+    [F + 0.03, T - 0.11], [F - 0.04, kniY], [voor + 0.05, vloerY + 0.06], [ruit.z + 0.02, vloerY + 0.06],
   ], 2 * binnenX - 0.02, 0, 0.018, 'dashboard');
-  // een strook leer of zacht kunststof over de bovenkant, met een naad
-  rond(groep, bovenMat, 2 * binnenX - 0.06, 0.012, 0.16, 0, T + 0.062, dashZ - 0.02, 0.18, 0.005);
+  // de bovenkant in leer of zacht kunststof: een vel over het vlakke stuk, van de knik tot de rand bij de bestuurder
+  if (F - 0.05 - zMid > 0.06) {
+    const hoek = Math.atan2(0.012, F - 0.035 - zMid);
+    rond(groep, bovenMat, 2 * binnenX - 0.08, 0.006, F - 0.05 - zMid, 0, yTop - 0.006 + BV + 0.003, (zMid + F - 0.05) / 2, hoek, 0.003, 'dashvel');
+  }
+  // de sleuf van de ontwaseming op het schuine stuk vlak onder het glas
+  {
+    const helling = (yTop - yVoor) / Math.max(0.02, zMid - zVoor), zs = zVoor + Math.min(0.035, (zMid - zVoor) / 2);
+    rond(groep, M.zwart, 2 * binnenX - 0.40, 0.005, 0.03, 0, yVoor + (zs - zVoor) * helling + BV + 0.002, zs, -Math.atan(helling), 0.002, 'ontwaseming');
+  }
 
   // ---------------------------------------------------------------- het klokkenhuis met de klokken
   // (het huis staat met zijn achterkant op F + 0,015: de klokken net daarvoor, anders zaten ze erin)
-  const klokY = T + 0.05, klokZ = F + 0.021;
+  const klokY = Math.max(T + 0.05, yTop - 0.035), klokZ = F + 0.021;
   rond(groep, dashMat, 0.36, 0.16, 0.10, stuurX, klokY, F - 0.035, 0, 0.035);                 // het huis
-  rond(groep, bovenMat, 0.38, 0.03, 0.15, stuurX, klokY + 0.088, F - 0.015, 0.10, 0.014);      // de kap erover
+  /*
+   De kap over de klokken was een losse plank op het huis. Nu een doorsnede die uit de bovenkant van het dashboard
+   oprijst, over de klokken heen buigt en vooraan als een klep over de rand hangt, met de zijkanten afgerond.
+  */
+  profiel(groep, bovenMat, [
+    [F - 0.24, yTop - 0.004], [F - 0.13, klokY + 0.085], [F - 0.04, klokY + 0.105], [F + 0.025, klokY + 0.098],
+    [F + 0.04, klokY + 0.078], [F + 0.022, klokY + 0.074], [F - 0.02, klokY + 0.082], [F - 0.06, yTop - 0.01],
+  ], 0.40, stuurX, 0.02, 'klokkap');
   const klok = new THREE.Group(); klok.name = 'klokken'; groep.add(klok);
   const naalden = [];
   const RK = 0.056;
@@ -596,12 +638,14 @@ export function maakAutoBinnen(maat) {
   // ---------------------------------------------------------------- spiegel en zonnekleppen
   const oogY = (maat.oog && maat.oog.y) || (T + 0.27);
   const spiegelY = Math.min(hemelY - 0.03, Math.max(hemelY - 0.075, oogY + 0.10));
-  rond(groep, M.zwart, 0.23, 0.07, 0.035, 0, spiegelY, voor + 0.02, 0, 0.018);
+  // (stap 149) aan de voorrand van het dak, achter het glas: ze hingen op `voor`, en dat lag bij sommige soorten vóór de ruit
+  const spZ = Math.max(dak0 + 0.04, glasOp(spiegelY + 0.04) + 0.05);
+  rond(groep, M.zwart, 0.23, 0.07, 0.035, 0, spiegelY, spZ, 0, 0.018, 'binnenspiegel');
   const glasSp = new THREE.Mesh(tegelUv(rondGeo(0.205, 0.05, 0.004, 0.012), null), M.chroom);
-  glasSp.position.set(0, spiegelY, voor + 0.039); glasSp.rotation.y = -0.12; groep.add(glasSp);
-  cilinder(groep, M.zwart, 0.007, 0.007, Math.max(0.02, hemelY - spiegelY - 0.02), 0, (hemelY + spiegelY) / 2, voor + 0.02, 8);
+  glasSp.position.set(0, spiegelY, spZ + 0.019); glasSp.rotation.y = -0.12; groep.add(glasSp);
+  cilinder(groep, M.zwart, 0.007, 0.007, Math.max(0.02, hemelY - spiegelY - 0.02), 0, (hemelY + spiegelY) / 2, spZ, 8);
   const klepY = Math.min(hemelY - 0.022, Math.max(hemelY - 0.035, oogY + 0.05));
-  if (!sport) for (const sx of [-1, 1]) rond(groep, M.hemel, 0.36, 0.018, 0.16, sx * 0.34, klepY, voor + 0.08, -0.16, 0.008);
+  if (!sport) for (const sx of [-1, 1]) rond(groep, M.hemel, 0.36, 0.018, 0.16, sx * 0.34, klepY, Math.max(dak0 + 0.09, glasOp(klepY) + 0.10), -0.16, 0.008, 'zonneklep');
 
   // ---------------------------------------------------------------- bijwerken
   /*

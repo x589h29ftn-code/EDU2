@@ -24,6 +24,10 @@
  13. 's nachts wisselen de klokken naar het verlichte doek, gaan de knopjes aan, en zakt de eigen gloed van het interieur;
  14. het dashboard is één vorm, en de console komt er als één geheel uit (niet erdoorheen): de console begint achter het
      voorvlak van het dashboard.
+ Stap 149 (het dashboard en er omheen):
+ 15. het dashboard loopt door tot de voorruit: stralen recht omlaag tussen de voet van het glas en het voorvlak raken eerst
+     het interieur (tot stap 148 lag daar twintig centimeter motorkap in beeld);
+ 16. de hemel, de binnenspiegel en de zonnekleppen blijven binnen de ruiten (de hemel stak voor en achter door het glas).
 */
 import { chromium } from 'playwright';
 
@@ -136,6 +140,39 @@ const uit = await page.evaluate(() => {
       });
     }
     const hemelY = maat ? maat.dakY - 0.045 : null;
+    /*
+     (stap 149) Het dashboard tot aan het glas: stralen recht naar beneden tussen de voet van de voorruit en het
+     voorvlak van het dashboard raken (zonder het glas) eerst het interieur, niet de motorkap. En de hemel, de spiegel
+     en de zonnekleppen blijven achter de voorruit: een straal van vóór de auto naar achteren raakt eerst de carrosserie.
+    */
+    let ruitMeting = null;
+    if (soort !== 'staf') {
+      const rc = new THREE.Raycaster();
+      const eersteBuiten = (o, d) => { rc.set(o, d); rc.far = 12; return rc.intersectObject(g, true).find(x => !inBinnen(x.object) && x.object.visible !== false); };
+      const F = maat.cabZ - maat.cabL / 2 + 0.46, R = maat.ruit;
+      const y0 = Math.min(R.y + 0.30, hemelY - 0.05);
+      const mis = [];
+      let stralen = 0;
+      for (const x of [-0.35, 0, 0.35]) for (let i = 0; i <= 5; i++) {
+        const z = R.z + 0.05 + (F - 0.05 - R.z - 0.05) * i / 5;   // (de eerste 5 cm zie je alleen schuin, door het glas)
+        // (vanuit de cabine, onder het glas: de ambulance is één dichte vorm met de ruit erop, die raak je van buiten altijd)
+        const yStart = R.tan > 0 ? Math.min(y0, R.y + (z - R.z) / R.tan - 0.01) : y0;
+        rc.set(new THREE.Vector3(x, yStart, z), new THREE.Vector3(0, -1, 0)); rc.far = 2;
+        const h = rc.intersectObject(g, true).find(q => !glas.has(q.object) && !(q.object.material && q.object.material.transparent && !inBinnen(q.object)) && q.object.visible !== false);
+        stralen++;
+        if (!h || !inBinnen(h.object)) mis.push(`(${x}, ${z.toFixed(2)}): ${h ? (h.object.name || 'carrosserie') + ' op ' + h.point.y.toFixed(2) + ' ' + h.object.material.type + (h.object.material.transparent ? ' doorzichtig' : '') + ' ' + h.object.material.color?.getHexString() : 'niets'}`);
+      }
+      const achterGlas = [];
+      B.groep.traverse(x => {
+        if (!['hemel', 'binnenspiegel', 'zonneklep'].includes(x.name)) return;
+        const bb = new THREE.Box3().setFromObject(x);
+        const y = Math.min(bb.max.y - 0.002, (bb.min.y + bb.max.y) / 2 + 0.01), xm = (bb.min.x + bb.max.x) / 2;
+        const v = eersteBuiten(new THREE.Vector3(xm, y, maat.cabZ - 6), new THREE.Vector3(0, 0, 1));
+        const a = x.name === 'hemel' ? eersteBuiten(new THREE.Vector3(xm, y, maat.cabZ + 9), new THREE.Vector3(0, 0, -1)) : null;
+        achterGlas.push({ naam: x.name, voor: v ? +(bb.min.z - v.point.z).toFixed(3) : null, achter: a ? +(a.point.z - bb.max.z).toFixed(3) : null });
+      });
+      ruitMeting = { stralen, mis, achterGlas };
+    }
     // (stap 148) de klokken te zien, de radio, de nacht, de opbouw
     let extra = null;
     if (soort !== 'staf') {
@@ -176,7 +213,7 @@ const uit = await page.evaluate(() => {
         gloedDag, gloedNacht, dashStukken: dash.length, dashAchter: +dashAchter.toFixed(3), consoleVoor: +consoleVoor.toFixed(3) };
     }
     res[soort] = {
-      extra, regels, driehoeken: Math.round(driehoeken), meshes, namen, stijlen, stoelTop: +stoelTop.toFixed(3), hemelY,
+      extra, ruitMeting, regels, driehoeken: Math.round(driehoeken), meshes, namen, stijlen, stoelTop: +stoelTop.toFixed(3), hemelY,
       uitBijStart, oog: o,
       stuur: { dz: +(o.z - st.z).toFixed(2), hoek: +hoek(st).toFixed(1) },
       klokHoek: +hoek(klokLaag).toFixed(1), vrij, stuurDraait: Math.abs(s1 - s0) > 0.5, naaldLoopt: Math.abs(n1 - n0) > 0.2,
@@ -214,10 +251,17 @@ for (const [soort, r] of Object.entries(uit)) {
     `knop ${e.knopDag?.toString(16)} → ${e.knopNacht?.toString(16)}, gloed ${e.gloedDag} → ${e.gloedNacht?.toFixed(3)}`);
   ok(e.dashStukken === 1 && e.consoleVoor >= e.dashAchter - 0.02, 'het dashboard is één vorm, en de console komt eruit in plaats van erdoorheen',
     `voorvlak tot z ${e.dashAchter}, console vanaf ${e.consoleVoor}`);
+  const rm = r.ruitMeting;
+  ok(rm.mis.length === 0, 'het dashboard loopt door tot de voorruit: tussen glas en dashboard geen motorkap in beeld', rm.mis.length ? `${rm.mis.length} van ${rm.stralen}: ${rm.mis.slice(0, 3).join('; ')}` : `${rm.stralen} stralen`);
+  const fouteRuit = rm.achterGlas.filter(a => a.voor === null || a.voor < 0 || (a.achter !== null && a.achter < 0));
+  ok(rm.achterGlas.length >= (soort === 'ferrari' ? 2 : 4) && fouteRuit.length === 0, 'de hemel, de spiegel en de zonnekleppen blijven binnen de ruiten',
+    fouteRuit.length ? fouteRuit.map(a => `${a.naam} ${a.voor} / ${a.achter}`).join('; ') : rm.achterGlas.map(a => `${a.naam} ${a.voor}${a.achter !== null ? '/' + a.achter : ''}`).join(', '));
   ok(r.driehoeken <= 30000, 'één auto: hoogstens 30.000 driehoeken', `${r.driehoeken} driehoeken in ${r.meshes} onderdelen`);
 }
 
 // ---------------------------------------------------------------- 10. in het spel: geen nieuwe shader
+// (ALLEEN_MODELLEN=1 slaat dit deel over: voor snel nameten tijdens het bouwen)
+if (!process.env.ALLEEN_MODELLEN) {
 kop('in het spel: het interieur vertaalt geen nieuwe shader');
 const spel = await browser.newPage({ viewport: { width: 640, height: 400 } });
 spel.setDefaultTimeout(900000);
@@ -259,6 +303,7 @@ const prog = await spel.evaluate(async () => {
 });
 if (prog) for (const [soort, v] of Object.entries(prog)) ok(v.na === v.voor, `${soort}: het interieur in beeld, geen nieuw programma`, `${v.voor} → ${v.na}${v.wie.length ? ' · ' + v.wie.join(', ') : ''}`);
 else ok(false, 'geen renderer in de pagina');
+}
 
 await browser.close();
 console.log(fout ? `\n${fout} fout${fout > 1 ? 'en' : ''}` : '\nalles goed');

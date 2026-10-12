@@ -320,6 +320,10 @@ spiegel zijn afgerond, en de stoelen zitten lager. De **radio** laat de zender z
 Radio Spannenburg of 100% NL — met het nummer dat speelt. **'s Nachts** gaat de dashboardverlichting aan: de klokken in
 barnsteen, de voorkeuzetoetsen en de ringen om de klimaatknoppen, en het scherm van de radio.
 
+**Tot aan de voorruit** (stap 149). Het dashboard loopt nu door tot het glas: daartussen zag je eerst een strook motorkap in
+de kleur van de auto. Vooraan een sleuf voor de ontwaseming, de klokken onder een kap die uit het dashboard oprijst, de hemel
+precies zo lang als het dak, spiegel en zonnekleppen achter het glas, en de ambulance heeft van binnen zijn A-stijlen.
+
 | Overdag | 's Nachts |
 |---|---|
 | ![Bestelbus overdag](docs/screenshots/binnen_van.png) | ![Bestelbus 's nachts](docs/screenshots/binnen_van_nacht.png) |
