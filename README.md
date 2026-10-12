@@ -329,6 +329,11 @@ wat wijdere blik zodat stuur, klokken en voorruit samen in beeld staan. Met de m
 rijdt, dan draait je blik vanzelf terug naar de weg. De klokken staan vooraan in hun huis, niet meer diep onder de kap, en de
 pook is kleiner.
 
+**Van buiten klopt het weer** (stap 151). Niets van het interieur steekt meer door de carrosserie of het glas (de achterbank
+stond achter de achterruit, de vloer stak onder de vrachtwagen uit, de deurpanelen van de Ferrari door zijn zijwand). De
+motorkap houdt op bij de voorruit en de wissers liggen erop in plaats van erachter, de deurgrepen liggen plat in de flank, de
+uitlaat steekt niet meer ver achter de bumper uit, en in de vrachtwagen en de ambulance staat het stuur recht voor je.
+
 | Overdag | 's Nachts |
 |---|---|
 | ![Bestelbus overdag](docs/screenshots/binnen_van.png) | ![Bestelbus 's nachts](docs/screenshots/binnen_van_nacht.png) |

@@ -344,11 +344,13 @@ function sportBinnen(groep, M, maat, { vloerY, hemelY, cabZ, achter, stuurX }) {
   const rugTop = Math.min(hemelY - 0.06, (maat.oog ? maat.oog.y : 1.02) + 0.06);
   const rugH = rugTop - zit - 0.03;
   for (const sx of [stuurX, -stuurX]) {
-    rond(groep, M.leer, 0.36, 0.08, 0.46, sx, zit, cabZ - 0.08, 0, 0.03, 'zitting');
-    rond(groep, M.leer, 0.36, rugH, 0.08, sx, zit + 0.03 + rugH / 2, cabZ + 0.20, 0.22, 0.035);
+    // (stap 151) een kuipstoel van 36 cm diep (was 46): de voorrand van je eigen zitting stond onderin beeld, waar je benen horen
+    rond(groep, M.leer, 0.30, 0.08, 0.36, sx, zit, cabZ - 0.03, 0, 0.03, 'zitting');
+    rond(groep, M.leer, 0.30, rugH, 0.08, sx, zit + 0.03 + rugH / 2, cabZ + 0.20, 0.22, 0.035);
     for (const w of [-1, 1]) {
-      rond(groep, M.leerZwart, 0.08, 0.16, 0.46, sx + w * 0.22, zit + 0.04, cabZ - 0.08, 0, 0.035);
-      rond(groep, M.leerZwart, 0.08, rugH * 0.82, 0.13, sx + w * 0.22, zit + 0.03 + rugH * 0.42, cabZ + 0.19, 0.22, 0.035);
+      // (stap 151) de wangen 4 cm naar binnen en de rugwangen lager: ze staken door de glazen koepel
+      rond(groep, M.leerZwart, 0.07, 0.16, 0.36, sx + w * 0.18, zit + 0.04, cabZ - 0.03, 0, 0.03);
+      rond(groep, M.leerZwart, 0.07, rugH * 0.62, 0.13, sx + w * 0.18, zit + 0.03 + rugH * 0.32, cabZ + 0.19, 0.22, 0.03);
     }
     rond(groep, M.leerZwart, 0.09, 0.05, 0.09, sx, rugTop - 0.09, cabZ + 0.215 + Math.sin(0.22) * rugH * 0.4, 0.22, 0.02);
   }
@@ -356,8 +358,10 @@ function sportBinnen(groep, M, maat, { vloerY, hemelY, cabZ, achter, stuurX }) {
   rond(groep, M.carbon, 0.20, 0.05, 0.30, 0, vloerY + 0.24, cabZ - 0.58, -0.25, 0.02);
   const knop = cilinder(groep, M.knop, 0.018, 0.018, 0.012, 0, vloerY + 0.28, cabZ - 0.62, 16); knop.rotation.x = -0.25;
   for (const dx of [-0.06, 0, 0.06]) rond(groep, M.chroom, 0.035, 0.018, 0.035, dx, vloerY + 0.215, cabZ - 0.42, 0, 0.006);
-  rond(groep, M.carbon, W - 0.26, maat.schouderY - vloerY + 0.06, 0.04, 0, (vloerY + maat.schouderY) / 2 + 0.03, achter + 0.06, 0, 0.015);
-  rond(groep, M.carbon, W - 0.28, 0.03, 0.30, 0, maat.schouderY + 0.02, achter + 0.22, 0, 0.012);
+  // (stap 151) het schot en de plank achter de stoelen zo breed als de cabine (`maat.binnenX`): ze staken door de zijwand
+  const bx2 = 2 * (maat.binnenX || W / 2 - 0.13);
+  rond(groep, M.carbon, bx2, maat.schouderY - vloerY + 0.02, 0.04, 0, (vloerY + maat.schouderY) / 2 + 0.01, achter + 0.06, 0, 0.015);
+  rond(groep, M.carbon, bx2 - 0.02, 0.03, 0.30, 0, maat.schouderY - 0.01, achter + 0.22, 0, 0.012);
 }
 
 /**
@@ -415,7 +419,8 @@ export function maakAutoBinnen(maat) {
   const { W, dakY, schouderY, cabZ, cabL, dorpelY } = maat;
   const T = schouderY;
   const groep = new THREE.Group();
-  const binnenX = W / 2 - 0.145;          // binnenkant van het portier, binnen de flankwand
+  // (stap 151) de Ferrari is in zijn taille smaller dan W: zijn deurpanelen staken 2 cm door de zijwand (`maat.binnenX`)
+  const binnenX = maat.binnenX || W / 2 - 0.145;          // binnenkant van het portier, binnen de flankwand
   const vloerY = dorpelY + 0.16;          // de vloer ligt net boven de dorpelbalk
   const hemelY = dakY - 0.045;
   const voor = cabZ - cabL / 2 + 0.30;    // (de bovenkant van de voorruit; de voet staat in `maat.ruit`)
@@ -424,23 +429,50 @@ export function maakAutoBinnen(maat) {
   const F = dashZ + 0.10;                 // het vlak van het dashboard dat naar de bestuurder kijkt
   const stuurZ = voor + 0.265;
   const achter = cabZ + cabL / 2 - 0.20;
-  const stuurX = -(W / 2 - 0.46);
+  // (stap 151) het stuur recht voor je ogen: in de vrachtwagen stond het 14 cm naast je, in de ambulance 10 cm
+  const stuurX = maat.oog ? maat.oog.x : -(W / 2 - 0.46);
   const sport = !!maat.sport;
   const dashMat = sport ? M.carbon : M.kunststof, bovenMat = sport ? M.leerZwart : M.kunststof;
 
   // ---------------------------------------------------------------- schil: vloer, hemel, deuren
-  doos(groep, M.vloer, W - 0.20, 0.04, cabL + 0.5, 0, vloerY, cabZ);
+  /*
+   (stap 151) De vloer was W − 0,20 breed en een halve meter langer dan de cabine: in de vrachtwagen stak hij voor en
+   achter onder de cabine uit, in de ambulance zag je hem in de wielkast. Nu van portier tot portier, van het schot onder de
+   voorruit (`maat.ruit`) tot het eind van de cabine.
+  */
+  {
+    const v0 = maat.ruit ? maat.ruit.z + 0.02 : cabZ - cabL / 2, v1 = cabZ + cabL / 2 - 0.05;
+    // (de ambulance: boven zijn voorwielen zit de vloer laag, en door de wielkast zag je hem; daar alleen tussen de kasten)
+    const kast = maat.amb ? maat.amb.wielVoor + maat.amb.R + 0.05 : -Infinity;
+    if (kast > v0) {
+      doos(groep, M.vloer, 1.20, 0.04, kast - v0, 0, vloerY, (v0 + kast) / 2);
+      doos(groep, M.vloer, 2 * binnenX - 0.24, 0.04, v1 - kast, 0, vloerY, (kast + v1) / 2);
+    } else doos(groep, M.vloer, 2 * binnenX, 0.04, v1 - v0, 0, vloerY, (v0 + v1) / 2);
+  }
   // (stap 149) de hemel zo lang als het dak van binnen (`maat.dakZ`): hij stak voor en achter door de ruiten heen
   const [dak0, dak1] = maat.dakZ || [cabZ - cabL / 2 + 0.28, cabZ + cabL / 2 - 0.28];
-  if (sport) rond(groep, M.carbon, 1.28, 0.03, dak1 - dak0, 0, hemelY - 0.02, (dak0 + dak1) / 2, 0, 0.012, 'hemel');
+  // (stap 151) de koepel van de Ferrari wordt naar boven smaller: zijn hemel is `maat.hemelB` breed (was 1,28: 2 cm erdoor)
+  if (sport) rond(groep, M.carbon, maat.hemelB || 1.28, 0.03, dak1 - dak0, 0, hemelY - 0.02, (dak0 + dak1) / 2, 0, 0.012, 'hemel');
   else rond(groep, M.hemel, W - 0.26, 0.03, dak1 - dak0, 0, hemelY, (dak0 + dak1) / 2, 0, 0.012, 'hemel');
   const deurMat = sport ? M.leerZwart : M.kunststof;
   const deurL = cabL - 0.30;
   for (const sx of [-1, 1]) {
     const bx = sx * binnenX;
     // het paneel tot de raamlijn, met een rand langs het raam
-    rond(groep, deurMat, 0.04, T - vloerY + 0.04, deurL, bx, (vloerY + T) / 2 + 0.02, cabZ, 0, 0.012);
-    rond(groep, M.zwart, 0.06, 0.03, deurL, bx - sx * 0.01, T + 0.01, cabZ, 0, 0.012);
+    // (stap 151) in de Ferrari 4 cm lager: daarboven begint de glazen koepel, en die is smaller dan de zijwand
+    const dT = sport ? T - 0.04 : T;
+    // (en het paneel begint 10 cm achter de voet van de voorruit: de neus van de ambulance loopt daar al in)
+    const p0 = Math.max(cabZ - deurL / 2, maat.ruit ? maat.ruit.z + 0.10 : -Infinity), p1 = cabZ + deurL / 2;
+    rond(groep, deurMat, 0.04, dT - vloerY + 0.04, p1 - p0, bx, (vloerY + dT) / 2 + 0.02, (p0 + p1) / 2, 0, 0.012);
+    rond(groep, M.zwart, 0.06, 0.03, p1 - p0, bx - sx * 0.01, dT + 0.01, (p0 + p1) / 2, 0, 0.012);
+    /*
+     (stap 151) De raamlijst: van het deurpaneel tot vlak voor het zijraam. Tussen het paneel en de buitenkant van het
+     portier zat een gat van 15 cm, en door het raam keek je daar langs naar de deurgreep aan de buitenkant.
+    */
+    if (!sport) {
+      const xb = W / 2 - 0.075;
+      if (xb - binnenX > 0.02) rond(groep, deurMat, xb - binnenX + 0.02, 0.025, p1 - p0, sx * (binnenX + xb) / 2, dT + 0.005, (p0 + p1) / 2, 0, 0.008, 'raamlijst');
+    }
     // de armsteun loopt naar voren toe iets op, met een uitsparing als greep
     rond(groep, M.kunststof, 0.08, 0.05, 0.44, bx - sx * 0.045, T - 0.15, cabZ - 0.10, -0.06, 0.022);
     rond(groep, M.zwart, 0.04, 0.035, 0.13, bx - sx * 0.075, T - 0.12, cabZ - 0.26, 0, 0.012);
@@ -461,8 +493,11 @@ export function maakAutoBinnen(maat) {
   if (!sport && !maat.truck && !maat.amb && maat.stijlH && maat.aHoek != null) {
     const x0 = W / 2 - (maat.bus ? 0.10 : 0.075), sH = maat.stijlH;
     for (const sx of [-1, 1]) {
-      rond(groep, M.hemel, 0.03, sH + 0.10, 0.13, sx * (x0 - 0.06), (T + dakY) / 2, cabZ - cabL / 2 + 0.30 - Math.sin(maat.aHoek) * sH / 2, maat.aHoek, 0.012, 'stijlbekleding');
-      rond(groep, M.hemel, 0.03, sH, 0.10, sx * (x0 - 0.05), (T + dakY) / 2, cabZ + (maat.bus ? 0.30 : 0.18), 0, 0.012, 'stijlbekleding');
+      // (stap 151) 4 cm korter dan de stijl (was 10 cm langer): onderaan stak hij door de motorkap, boven door het dak
+      // (en 7 cm achter het hart van de stijl, langs de normaal: hij stond midden op de lijn van de ruit, dus half ervoor)
+      const a = maat.aHoek, nz = Math.cos(a) * 0.07, ny = -Math.sin(a) * 0.07;
+      rond(groep, M.hemel, 0.03, sH - 0.04, 0.09, sx * (x0 - 0.06), (T + dakY) / 2 + ny, cabZ - cabL / 2 + 0.30 - Math.sin(a) * sH / 2 + nz, a, 0.012, 'stijlbekleding');
+      rond(groep, M.hemel, 0.03, sH - 0.04, 0.10, sx * (x0 - 0.05), (T + dakY) / 2 - 0.01, cabZ + (maat.bus ? 0.30 : 0.18), 0, 0.012, 'stijlbekleding');
     }
   }
 
@@ -473,7 +508,7 @@ export function maakAutoBinnen(maat) {
   */
   if (maat.amb && maat.ruit) {
     const r = maat.ruit, hoek = Math.atan(r.tan), lang = (dakY - r.y) / Math.cos(hoek), ym = (r.y + dakY) / 2;
-    for (const sx of [-1, 1]) rond(groep, M.hemel, 0.05, lang, 0.09, sx * (W / 2 - 0.05), ym, r.z + (ym - r.y) * r.tan + 0.055, hoek, 0.015, 'stijlbekleding');
+    for (const sx of [-1, 1]) rond(groep, M.hemel, 0.05, lang, 0.09, sx * (W / 2 - 0.11), ym, r.z + (ym - r.y) * r.tan + 0.07, hoek, 0.015, 'stijlbekleding');
   }
 
   // ---------------------------------------------------------------- het dashboard: één vorm
@@ -500,7 +535,7 @@ export function maakAutoBinnen(maat) {
   profiel(groep, dashMat, [
     [ruit.z + 0.02, Math.min(yVoor - 0.06, kniY)], [zVoor, yVoor], [zMid, yTop], [F - 0.035, yTop - 0.012], [F - 0.01, yTop - 0.035],
     [F + 0.03, T - 0.11], [F - 0.04, kniY], [voor + 0.05, vloerY + 0.06], [ruit.z + 0.02, vloerY + 0.06],
-  ], 2 * binnenX - 0.02, 0, 0.018, 'dashboard');
+  ], 2 * binnenX - (sport ? 0.08 : 0.02), 0, 0.018, 'dashboard');
   // de bovenkant in leer of zacht kunststof: een vel over het vlakke stuk, van de knik tot de rand bij de bestuurder
   if (F - 0.05 - zMid > 0.06) {
     const hoek = Math.atan2(0.012, F - 0.035 - zMid);
@@ -523,10 +558,12 @@ export function maakAutoBinnen(maat) {
    De kap over de klokken was een losse plank op het huis. Nu een doorsnede die uit de bovenkant van het dashboard
    oprijst, over de klokken heen buigt en vooraan als een smalle klep afloopt, met de zijkanten afgerond.
   */
+  // (stap 151) geen punt van de kap vóór het glas: bij de Ferrari, met zijn platte voorruit, stak hij erdoorheen
+  const achterGlas = ([z, y]) => [Math.max(z, glasOp(y + 0.016) + 0.016 + 0.008), y];
   profiel(groep, bovenMat, [
     [F - 0.24, yTop - 0.004], [F - 0.13, klokY + 0.085], [F - 0.04, klokY + 0.100], [F + 0.02, klokY + 0.095],
     [F + 0.035, klokY + 0.082], [F + 0.02, klokY + 0.077], [F - 0.02, klokY + 0.081], [F - 0.06, yTop - 0.01],
-], 0.40, stuurX, 0.02, 'klokkap');
+  ].map(achterGlas), sport ? 0.34 : 0.40, stuurX, 0.02, 'klokkap');
   const klok = new THREE.Group(); klok.name = 'klokken'; groep.add(klok);
   const naalden = [];
   const RK = 0.056;
@@ -655,8 +692,20 @@ export function maakAutoBinnen(maat) {
     stoel(stuurX);
     stoel(-stuurX);
     // de achterbank en de hoedenplank
-    rond(groep, M.stof, W - 0.32, 0.10, 0.42, 0, vloerY + 0.14, achter - 0.10, 0, 0.035);
-    rond(groep, M.stof, W - 0.34, 0.46, 0.10, 0, vloerY + 0.42, achter + 0.16, 0.12, 0.035);
+    /*
+     (stap 151) De rug van de achterbank stond op `achter` + 0,16, en bij de hatchback, de BX en de GTI loopt de achterruit
+     schuin naar voren: zijn bovenkant stak 15 cm door de ruit en de C-stijl naar buiten. Nu staat hij vóór de achterruit
+     (`maat.achterRuit`), en de zitting schuift mee.
+    */
+    let rugZ = achter + 0.16, rugH = 0.46;
+    const ar = maat.achterRuit;
+    if (ar) {
+      rugH = 0.40;
+      const top = vloerY + 0.19 + rugH + 0.035;                    // met de afronding erbij
+      rugZ = Math.min(rugZ, ar.z + (top - ar.y) * ar.tan - 0.05 - Math.sin(0.12) * rugH / 2 - 0.04);
+    }
+    rond(groep, M.stof, W - 0.32, 0.10, 0.38, 0, vloerY + 0.14, rugZ - 0.26, 0, 0.035);
+    rond(groep, M.stof, W - 0.34, rugH, 0.10, 0, vloerY + 0.19 + rugH / 2, rugZ, 0.12, 0.035);
     rond(groep, M.kunststof, W - 0.28, 0.03, 0.34, 0, T - 0.02, achter + 0.30, 0, 0.012);
   }
   // de vloermatten voor de voorstoelen

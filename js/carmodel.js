@@ -431,7 +431,7 @@ function autoGeoms(kind) {
      binnen lag er een blauwe balk dwars door de voorruit, en van buiten dekte hij het onderste stuk glas af. Nu ligt hij
      net als bij de andere auto's net boven de schouderlijn.
     */
-    { geo: rdoos(W - 0.20, 0.11, kapL, 0.05), y: schouderY + (bus ? 0.04 : (bx ? -0.02 : 0.02)), z: kapZ, rx: bx ? -0.085 : 0 }, // motorkap
+    { geo: rdoos(W - 0.20, 0.11, kapL, 0.05), y: schouderY + (bus ? 0.04 : (bx ? -0.02 : 0.02)), z: kapZ, rx: bx ? -0.085 : 0, naam: 'motorkap' }, // motorkap (stap 151: ingekort, zie ruitVoet)
     { geo: rdoos(W - 0.14, 0.20, kontL, 0.07), y: schouderY + 0.09, z: kontZ },     // kofferklep
     /*
      Het dak. Het was W − 0,40 breed (1,38 m) terwijl de zijruiten op ±0,79
@@ -540,8 +540,23 @@ function autoGeoms(kind) {
     const glasZ = (y, binnen) => zA + (y - yMid - 0.03) * tan + (binnen ? 0.031 : -0.031);
     let y = kapBoven(glasZ(schouderY, false));
     for (let i = 0; i < 3; i++) y = kapBoven(glasZ(y, false));
-    return { y, z: glasZ(y, true), tan };
+    return { y, z: glasZ(y, true), tan, buiten: glasZ(y, false), kapBoven };
   }
+  /*
+   (stap 151) De motorkap liep tot kapZ + kapL/2, en dat is `voor`: de bovenkant van de voorruit. Onder het glas lag hij dus
+   nog dertig centimeter door de cabine, onder het dashboard (bij de BX, waar hij naar achteren oploopt, kwam hij er naast het
+   dashboard bovenuit), en de wissers lagen 12 cm vóór dat eind: áchter de voorruit, in de auto. Nu houdt de kap 6 cm achter
+   de voet van het glas op, en liggen de wissers 6 cm ervoor, op de kap.
+  */
+  const voet = ruitVoet();
+  {
+    const kap = lak.find(d => d.naam === 'motorkap');
+    const k0 = kapZ - kapL / 2, k1 = Math.min(kapZ + kapL / 2, voet.buiten + 0.06), mid = (k0 + k1) / 2;
+    kap.geo = rdoos(W - 0.20, 0.11, k1 - k0, 0.05);
+    kap.z = mid;
+    if (bx) kap.y += (mid - kapZ) * Math.tan(0.085);       // hetzelfde vlak, want hij loopt schuin op
+  }
+  const wisZ = voet.buiten - 0.06, wisY = voet.kapBoven(wisZ);
   // het dak van binnen: van de voorruit tot de achterruit (of het eind van het dak), voor de hemel, de spiegel en de kleppen
   function dakBinnen() {
     const dL = cabL - (bus ? 0.10 : 0.52), hy = dakY - 0.045 + 0.02;
@@ -581,7 +596,8 @@ function autoGeoms(kind) {
     // loopt tot W/2 − 0,05) en zat er dus een spleet tussen
     { geo: doos(0.07, 0.13, lijstL), x: -W / 2 + 0.03, y: dorpelY - 0.02 },       // sierlijst dorpel
     { geo: doos(0.07, 0.13, lijstL), x: W / 2 - 0.03, y: dorpelY - 0.02 },
-    { geo: doos(0.10, 0.10, 0.24), x: -W / 2 + 0.34, y: dorpelY - 0.02, z: L / 2 + 0.02 },  // uitlaat
+    // (stap 151) de uitlaat stak 10 cm achter de bumper uit (die eindigt op L/2 + 0,04); nu 3 cm
+    { geo: doos(0.10, 0.10, 0.24), x: -W / 2 + 0.34, y: dorpelY - 0.02, z: L / 2 - 0.05 },  // uitlaat
   ];
   // de naad tussen de twee achterdeuren van de bus
   if (bus) zwartVast.push({ geo: doos(0.025, dakY - flankY + 0.30, 0.02), y: (dakY + flankY - 0.30) / 2, z: laadZ1 + 0.008 });
@@ -603,10 +619,13 @@ function autoGeoms(kind) {
   for (const w of wielen) zwartVast.push({ geo: kast, x: Math.sign(w.x) * (W / 2 + 0.01), y: R, z: w.z });
 
   const chroomVast = [
-    { geo: doos(0.11, 0.035, 0.05), x: -W / 2 - 0.01, y: flankY + 0.12, z: cabZ - 0.32 },   // portiergrepen
-    { geo: doos(0.11, 0.035, 0.05), x: W / 2 + 0.01, y: flankY + 0.12, z: cabZ - 0.32 },
-    { geo: doos(0.11, 0.035, 0.05), x: -W / 2 - 0.01, y: flankY + 0.12, z: cabZ + 0.92 },
-    { geo: doos(0.11, 0.035, 0.05), x: W / 2 + 0.01, y: flankY + 0.12, z: cabZ + 0.92 },
+    /*
+     Portiergrepen. (stap 151) Ze lagen dwars: 11 cm in de breedte en 5 cm in de lengte, dus ze staken 6,5 cm uit de
+     zijkant, en op 0,84 m, een centimeter onder het zijraam — van binnen zag je ze als een wit blok door het raam. Nu
+     liggen ze in de lengte, steken ze 1,5 cm uit, en zitten ze 17 cm onder de schouderlijn.
+    */
+    ...[[-1, cabZ - 0.32], [1, cabZ - 0.32], [-1, cabZ + 0.92], [1, cabZ + 0.92]].map(([sx, z]) =>
+      ({ geo: doos(0.03, 0.035, 0.11), x: sx * (W / 2 + 0.0), y: schouderY - 0.17, z })),
     // tankdop op het achterspatbord
     { geo: doos(0.02, 0.115, 0.115), x: W / 2 + 0.005, y: flankY + 0.06, z: kontZ + 0.30 },
   ];
@@ -635,10 +654,10 @@ function autoGeoms(kind) {
      niet ervoor in de lucht. De kap loopt tot kapZ + kapL/2 en zijn bovenkant
      ligt op schouderY + 0,075; daar liggen ze net bovenop.
     */
-    const wisZ = kapZ + kapL / 2 - 0.12;
+    // (stap 151: wisZ en wisY bij ruitVoet; bij de BX zweefden ze 4,5 cm boven zijn lage kap)
     for (const sx of [-1, 1]) {
-      zwartVast.push({ geo: doos(0.34, 0.018, 0.040), x: sx * 0.30, y: schouderY + 0.080, z: wisZ, rz: sx * 0.10 });
-      zwartVast.push({ geo: doos(0.05, 0.030, 0.055), x: sx * 0.16, y: schouderY + 0.075, z: wisZ });
+      zwartVast.push({ geo: doos(0.34, 0.018, 0.040), x: sx * 0.30, y: wisY + 0.009, z: wisZ, rz: sx * 0.10 });
+      zwartVast.push({ geo: doos(0.05, 0.030, 0.055), x: sx * 0.16, y: wisY + 0.004, z: wisZ });
     }
     // antenne achter op het dak
     zwartVast.push({ geo: doos(0.016, 0.34, 0.016), x: -W / 2 + 0.22, y: dakY + 0.17, z: cabZ + cabL / 2 - 0.34 });
@@ -747,7 +766,9 @@ function autoGeoms(kind) {
      bestuurder een meter onder zijn eigen stuur.
     */
     maat: { L, W, R, dakY, schouderY, flankY, dorpelY: bus ? schouderY - 0.75 : dorpelY,
-      cabZ, cabL, aHoek, stijlH, oog, bus, ruit: ruitVoet(), dakZ: dakBinnen() } };
+      cabZ, cabL, aHoek, stijlH, oog, bus, ruit: { y: voet.y, z: voet.z, tan: voet.tan }, dakZ: dakBinnen(),
+      // (stap 151) de binnenkant van de achterruit: z op hoogte y, en hoe hij oploopt (negatief: naar voren)
+      achterRuit: bus ? null : { y: yMid + 0.03, z: zC - 0.031, tan: Math.tan(cHoek) } } };
 }
 
 /*
@@ -981,7 +1002,9 @@ function sportGeoms() {
   const oog = { x: -(W / 2 - 0.52), y: 1.02, z: 0.02 };   // (stap 150) 4 cm naar achteren, zie autoGeoms
   const maat = { L, W, R, dakY, schouderY, flankY: 0.62, dorpelY: 0.45, cabZ, cabL, aHoek: 1.12, stijlH: dakY - schouderY, oog, bus: false, sport: true,
     // (stap 149) het glas komt op z −0,80 uit de kap (0,91 hoog) en loopt plat op (dz/dy 2,0); het dak van binnen −0,31 tot 0,23
-    ruit: { z: -0.77, y: 0.91, tan: 2.0 }, dakZ: [-0.31, 0.23] };
+    ruit: { z: -0.77, y: 0.91, tan: 2.0 }, dakZ: [-0.31, 0.23],
+    // (stap 151) zijn zijwand is van buiten 0,85–0,87 breed op schouderhoogte, en 12 cm dik: de deurpanelen binnen 0,72
+    binnenX: 0.70, hemelB: 1.12 };
 
   // de dozen voor de proef, met dozen die de romp benaderen (tussen de wielkasten door)
   const romp3 = [

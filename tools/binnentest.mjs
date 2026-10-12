@@ -28,6 +28,10 @@
  15. het dashboard loopt door tot de voorruit: stralen recht omlaag tussen de voet van het glas en het voorvlak raken eerst
      het interieur (tot stap 148 lag daar twintig centimeter motorkap in beeld);
  16. de hemel, de binnenspiegel en de zonnekleppen blijven binnen de ruiten (de hemel stak voor en achter door het glas).
+ Stap 151 (van buiten):
+ 20. niets van het interieur steekt door de carrosserie: stralen uit negen richtingen op een raster van 4 cm raken het
+     interieur nooit zonder eerst door glas te gaan (de achterbank stond achter de achterruit, de stijlbekleding half vóór
+     de voorruit, de vloer onder de vrachtwagen uit, de deurpanelen van de Ferrari door zijn zijwand).
  Stap 150 (de klokken, de pook, de kijkhoek):
  17. de klokken niet ingezonken: de rand van de kap steekt hoogstens 1 cm voor de wijzerplaat uit en het huis niet;
  18. de pookknop hoogstens 2,4 cm straal;
@@ -177,7 +181,31 @@ const uit = await page.evaluate(() => {
         const a = x.name === 'hemel' ? eersteBuiten(new THREE.Vector3(xm, y, maat.cabZ + 9), new THREE.Vector3(0, 0, -1)) : null;
         achterGlas.push({ naam: x.name, voor: v ? +(bb.min.z - v.point.z).toFixed(3) : null, achter: a ? +(a.point.z - bb.max.z).toFixed(3) : null });
       });
-      ruitMeting = { stralen, mis, achterGlas };
+      /*
+       (stap 151) Van buiten: niets van het interieur steekt door de carrosserie. Stralen uit negen richtingen (opzij, voor,
+       achter, van boven en schuin van boven) op een raster van 4 cm door het kastje van het interieur; raakt een straal eerst
+       het interieur, zonder eerst door glas te gaan, dan steekt daar iets uit.
+      */
+      const bbB = new THREE.Box3().setFromObject(B.groep), cB = bbB.getCenter(new THREE.Vector3());
+      const isGlas = (h) => h.object.material && h.object.material.transparent && !inBinnen(h.object);
+      const uitsteek = {}; let uitN = 0;
+      for (const d of [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,-1,0],[0.7,-0.7,0],[-0.7,-0.7,0],[0,-0.7,0.7],[0,-0.7,-0.7]]) {
+        const D = new THREE.Vector3(...d).normalize();
+        const u = Math.abs(D.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0).cross(D).normalize();
+        const v = new THREE.Vector3().crossVectors(D, u).normalize();
+        for (let a = -1.6; a <= 1.6; a += 0.04) for (let b = -1.6; b <= 1.6; b += 0.04) {
+          const o = cB.clone().addScaledVector(u, a).addScaledVector(v, b).addScaledVector(D, -6);
+          rc.set(o, D); rc.far = 12;
+          if (!rc.ray.intersectsBox(bbB)) continue;
+          const hs = rc.intersectObject(g, true).filter(h => h.object.visible !== false);
+          const eerste = hs.find(h => !isGlas(h));
+          if (!eerste || !inBinnen(eerste.object) || hs.some(h => isGlas(h) && h.distance < eerste.distance)) continue;
+          uitN++;
+          const k = eerste.object.name || eerste.object.geometry.type;
+          uitsteek[k] = (uitsteek[k] || 0) + 1;
+        }
+      }
+      ruitMeting = { stralen, mis, achterGlas, uitN, uitsteek };
     }
     // (stap 148) de klokken te zien, de radio, de nacht, de opbouw
     let extra = null;
@@ -276,6 +304,7 @@ for (const [soort, r] of Object.entries(uit)) {
   const fouteRuit = rm.achterGlas.filter(a => a.voor === null || a.voor < 0 || (a.achter !== null && a.achter < 0));
   ok(rm.achterGlas.length >= (soort === 'ferrari' ? 2 : 4) && fouteRuit.length === 0, 'de hemel, de spiegel en de zonnekleppen blijven binnen de ruiten',
     fouteRuit.length ? fouteRuit.map(a => `${a.naam} ${a.voor} / ${a.achter}`).join('; ') : rm.achterGlas.map(a => `${a.naam} ${a.voor}${a.achter !== null ? '/' + a.achter : ''}`).join(', '));
+  ok(rm.uitN === 0, 'van buiten: niets van het interieur steekt door de carrosserie', rm.uitN ? Object.entries(rm.uitsteek).map(([k, n]) => `${k} ${n}×`).join(', ') : 'negen richtingen, raster van 4 cm');
   ok(r.driehoeken <= 30000, 'één auto: hoogstens 30.000 driehoeken', `${r.driehoeken} driehoeken in ${r.meshes} onderdelen`);
 }
 

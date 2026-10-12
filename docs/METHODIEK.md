@@ -8877,6 +8877,50 @@ pov voor de camera voor de autorijder, goed bij het stuur en voorraam net als an
 hoogstens 2,4 cm; (19) de kijkhoek uit `autoKijk` — instappen, de grens omlaag, blijven staan als je stilstaat of net met de
 muis bewoog, terugdraaien als je rijdt — en in het spel 78° in de auto en 72° als je uitstapt.
 
+**De overgebleven punten, en van buiten: niets steekt uit (stap 151, 14 okt).**
+
+Gevraagd: "Pak overblijvende punten wel op. En check of exterieur nog klopt en niks uitsteekt."
+
+Eerst gemeten: stralen uit negen richtingen (opzij, voor, achter, van boven, schuin van boven) op een raster van 3 cm op
+elke auto met het interieur aan; raakt een straal eerst het interieur zonder eerst door glas te gaan, dan steekt daar iets
+uit. Bij de hatchback 1.029 stralen, de BX 1.313, de vrachtwagen 1.675, de Ferrari 1.555. Wat het was:
+- *De achterbank* van hatch, BX en GTI stond op `achter` + 0,16, maar daar loopt de achterruit schuin naar voren: de rug stak
+  15 cm door de ruit en de C-stijl. Nu `maat.achterRuit` (z, y, helling) uit js/carmodel.js; de rug staat ervoor, 40 cm hoog,
+  en de zitting schuift mee.
+- *De bekleding van de A-stijl* was 10 cm langer dan de stijl (onderaan door de motorkap, boven door het dak) en stond midden
+  op de lijn van de ruit, dus half ervoor. Nu 4 cm korter en 7 cm erachter, langs de normaal.
+- *De vloer* was W − 0,20 breed en een halve meter langer dan de cabine: onder de vrachtwagen stak hij voor en achter uit, in
+  de ambulance zag je hem in de wielkast. Nu van portier tot portier en van het schot tot het eind van de cabine; in de
+  ambulance boven de voorwielen alleen tussen de kasten.
+- *De Ferrari* is in zijn taille smaller dan W: de deurpanelen, het schot achter de stoelen en de plank staken door de
+  zijwand (`maat.binnenX` 0,70), de hemel door de koepel (`maat.hemelB`), de wangen van de stoelen door het glas, en de kap
+  over de klokken door zijn platte voorruit (nu nooit een punt vóór het glas, `achterGlas`).
+- *De ambulance*: de A-stijlen van stap 149 6 cm naar binnen, en de deurpanelen beginnen 10 cm achter de voet van de ruit.
+
+En van buiten, wat ermee samenhing:
+- *De motorkap* liep tot `voor`, de bovenkant van de voorruit: dertig centimeter onder het glas door, in de cabine. Bij de BX,
+  waar hij naar achteren oploopt, kwam hij naast het dashboard boven — de blauwe strook bij de A-stijl die nog openstond. Nu
+  houdt hij 6 cm achter de voet van het glas op (`ruitVoet` geeft ook de voet aan de buitenkant).
+- *De ruitenwissers* lagen 12 cm vóór het oude eind van de kap, dus áchter de voorruit, in de auto; bij de BX zweefden ze
+  bovendien 4,5 cm boven zijn lage kap. Nu op de kap, 6 cm voor het glas.
+- *De portiergrepen* lagen dwars (11 cm breed, 5 cm lang) en staken 6,5 cm uit de flank, op 0,84 m: een centimeter onder het
+  zijraam. Van binnen zag je ze als een wit blok door het raam. Nu in de lengte, 1,5 cm uit, 17 cm onder de schouderlijn; en
+  binnen een *raamlijst* van het deurpaneel tot het zijraam, waar een gat van 15 cm zat.
+- *De uitlaat* stak 10 cm achter de bumper uit; nu 3 cm.
+- Alle onderdelen langs: wat verder dan 3 cm buiten de breedte of lengte komt, zijn de spiegels, de bumpers en de kentekens.
+
+Ook opgepakt:
+- *Het stuur recht voor je ogen*: in de vrachtwagen stond het 14 cm naast je, in de ambulance 10 cm (`stuurX` = `oog.x`).
+- *De Ferrari*: een kuipstoel van 36 cm diep; de voorrand van je eigen zitting stond onderin beeld, waar je benen horen.
+- *`autoechttest`* stond sinds stap 127 rood op "zeven meshes": de plas licht van de koplampen (`userData.bundel`) telde mee.
+  Die is geen carrosserie en telt nu niet meer.
+- Blijft zoals het is: in de Ferrari zie je boven de deur de blauwe bovenrand van de zijwand (een echte sportwagen heeft daar
+  ook lak), en in Ferrari en ambulance ligt de hemel door het hoge glas buiten beeld.
+
+*Proef*: `npm run binnentest` met (20) de stralen van buiten op een raster van 4 cm, nul treffers bij alle zeven soorten;
+`npm run autoechttest` met (6b) vier portiergrepen in de lengte, hoogstens 2 cm uit en een eind onder het raam, en de
+uitlaat hoogstens 4 cm achter de bumper; `npm run rijtest` (de onderdelen tegen de banden en het plaatwerk).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

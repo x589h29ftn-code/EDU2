@@ -19,6 +19,8 @@
  6. En het blijft even goedkoop: evenveel meshes per soort als voorheen, en een
     ruime grens op het aantal driehoeken (de geometrie wordt gedeeld, maar elke
     auto in beeld wordt wel getekend).
+ 6b. (stap 151) Niets steekt uit: vier portiergrepen in de lengte, hoogstens 2 cm uit de flank en een eind onder het
+    zijraam, en de uitlaat hoogstens 4 cm achter de bumper.
  7. Op afstand (ronde van 25 sep 2026): een stapel heeft een grove uitvoering
     van dezelfde maat met hoogstens een derde van de driehoeken, en tekent
     alleen de auto's die er staan (achter elkaar, `count`). Een treffer vindt
@@ -56,7 +58,9 @@ const r = await page.evaluate(() => {
   for (const soort of ['hatch', 'van', 'bx', 'truck']) {
     const auto = C.makeCar(0x8a1c1c, soort);
     const meshes = [];
-    auto.traverse(o => { if (o.isMesh) meshes.push(o); });
+    // (stap 151) de plas licht van de koplampen ('s nachts, `userData.bundel`) kwam er in stap 127 bij en is geen carrosserie:
+    // hij telt niet mee, anders stond deze controle sindsdien op 8 tegen 7
+    auto.traverse(o => { if (o.isMesh && !o.userData.bundel) meshes.push(o); });
     const lak = meshes.find(m => m.userData.lak);
     const N = lak.geometry.attributes.normal;
     let schuin = 0;
@@ -173,6 +177,26 @@ ok(r.hatch.meshes === 7 && r.truck.meshes === 7, 'evenveel meshes per auto als v
 ok(r.hatch.stapelMeshes === 7, 'en evenveel instanced meshes per stapel', `${r.hatch.stapelMeshes}`);
 ok(r.hatch.driehoeken < 9000 && r.truck.driehoeken < 9000, 'een auto blijft onder de negenduizend driehoeken',
   `hatch ${r.hatch.driehoeken}, bus ${r.van.driehoeken}, BX ${r.bx.driehoeken}, bakwagen ${r.truck.driehoeken}`);
+
+// (stap 151) niets steekt uit: de portiergrepen lagen dwars en staken 6,5 cm uit, op de raamlijn; de uitlaat 10 cm achter de bumper
+kop('niets steekt uit');
+const uit = await page.evaluate(() => {
+  const { C } = window.__t; const res = {};
+  for (const soort of ['hatch', 'van', 'bx', 'gti']) {
+    const O = C.autoOnderdelen(soort), M = C.autoMaat(soort);
+    const grepen = O.dozen.filter(d => d.groep === 'chroom' && Math.abs(Math.abs(d.x) - O.W / 2) < 0.05 && d.h < 0.05 && d.y > M.flankY - 0.2);
+    const uitlaat = O.dozen.find(d => d.groep === 'zwart' && d.b === 0.1 && d.h === 0.1);
+    const bumper = Math.max(...O.dozen.filter(d => d.groep === 'zwart' && d.b > O.W).map(d => d.z + d.d / 2));
+    res[soort] = { n: grepen.length, langs: grepen.every(d => d.d > d.b), uit: Math.max(...grepen.map(d => Math.abs(d.x) + d.b / 2 - O.W / 2)),
+      onderRaam: Math.min(...grepen.map(d => M.schouderY - (d.y + d.h / 2))), uitlaat: uitlaat ? +(uitlaat.z + uitlaat.d / 2 - bumper).toFixed(3) : null };
+  }
+  return res;
+});
+for (const [soort, u] of Object.entries(uit)) {
+  ok(u.n === 4 && u.langs && u.uit <= 0.02 && u.onderRaam >= 0.10, `${soort}: vier portiergrepen in de lengte, hoogstens 2 cm uit de flank, een eind onder het raam`,
+    `${u.n} grepen, ${u.uit.toFixed(3)} m uit, ${u.onderRaam.toFixed(3)} m onder de schouder`);
+  ok(u.uitlaat !== null && u.uitlaat <= 0.04, `${soort}: de uitlaat hoogstens 4 cm achter de bumper`, `${u.uitlaat} m`);
+}
 
 kop('op afstand');
 const ver = await page.evaluate(() => {
