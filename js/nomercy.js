@@ -23,6 +23,9 @@ import { Persoon } from './persoon.js';
 import { MAAT } from './lichaam.js';
 import { NOMERCY_SET, NOMERCY_KAMP } from './bouwvlak.js';
 
+// (stap 142) de hulpjes voor de doeken en vormen, ook voor No Mercy 5 (js/nomercy5.js)
+export { doek, doos, cil, juteDoek, verfDoek, kistDoek };
+
 export const NOMERCY = {
   set: NOMERCY_SET,
   kamp: NOMERCY_KAMP,    // de tweede scène, "Het bunkerdorp" (stap 141)

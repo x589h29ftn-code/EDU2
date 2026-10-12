@@ -591,6 +591,8 @@ export function initGarage({ scene, player, vehicles, hud, verhaal, sfeer = null
 
   return {
     update, toets, koop, bewaar, herstel, binnen, bijAuto, zetTuning,
+    // (stap 142) een auto cadeau: de stafauto van No Mercy 5. Hij is van jou, net als een gekochte, en gaat mee in de opslag
+    schenk: (soort, kleur, naam, p) => neerzetten(soort, kleur, naam, p),
     // betalen en terugbetalen aan de balie (de tuning van js/tuning.js); het geld zelf staat in js/verhaal.js
     betaal: n => !!(verhaal && verhaal.betaal && verhaal.betaal(n)),
     verdien: n => (verhaal && verhaal.verdien ? verhaal.verdien(n) : 0),

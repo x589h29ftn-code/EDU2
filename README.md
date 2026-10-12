@@ -106,6 +106,7 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + ]** | Ronald en de race naar IJlst (de toets daarnaast) |
 | **shift + \\** | Bouwman schaduwen (de toets daar weer rechts van; op een Europees toetsenbord ook **shift + <**) |
 | **shift + .** | de bijmissie No Mercy 4 (meteen bij Erik Jan aan de waterzuivering) |
+| **shift + ,** | de bijmissie No Mercy 5 (meteen bij Erik Jan op de kade in IJlst) |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
@@ -2325,6 +2326,50 @@ alles klaargezet. Na het gevecht begin je bij het gat met de vier sterren.
 
 `npm run brugtest` speelt de hele missie na, met de dekking achter een auto
 gemeten. `npm run brugshots` maakt de zeven foto's hierboven.
+
+### Bijmissie · No Mercy 5: De Overtocht
+
+Na missie 12 (en als je No Mercy 4 gedaan hebt) staat **Erik Jan** weer op de kaart, met zijn gele **EJ**: op de
+kade in IJlst, naast de ligplaats van de sloep. Er komt één melding als hij er staat. Hij **belt niet**: hij
+wacht tot je komt, ook na het einde van het verhaal. Met **E** spreek je hem aan.
+
+De Veteraan is dood, en Erik Jan maakt **No Mercy 5** voor hem: De Veteraan speelde in deel één tot drie sergeant
+Van der Wal, en die rol speel jij nu. Erik Jan weet niet wat er op de Dúvelsrak gebeurd is. *"Speel gewoon mee,
+Erik. Hij weet van niks."*
+
+**De overtocht.** "Die nacht…" (01:00): in uniform, met de M1 en 200 patronen in bruikleen, sta je aan het roer
+van de sloep op het water ten westen van **Houtzaagmolen De Rat**. Twee Amerikaanse figuranten zitten voorin, en
+naast je vaart de camera-boot met Erik Jan en de cameraman. Op de stelling van de molen zwaait een **zoeklicht**
+over het water, er hangen **lichtkogels** boven, en het MG-nest aan de waterkant en een **sluipschutter op de
+stelling** schieten met losse flodders. Vaar naar de gele ruit aan de overkant en ga aan wal (**E**). Ga je te
+vroeg van boord, dan mislukt de scène.
+
+![De overtocht](docs/screenshots/nomercy5_overtocht.png)
+
+**De molen.** Aan de voet van de molen liggen drie Duitsers achter zandzakken. Met het MG en de sluipschutter erbij
+zijn het er vijf; het MG heeft twee treffers nodig, de sluipschutter één, de rest één tot drie. Daarna haal je met
+**E** bij de mast de **vlag** neer: het beeld voor de poster.
+
+![De molen](docs/screenshots/nomercy5_molen.png)
+
+**De rit.** Achter de molen staat de **stafauto** (in feldgrau). De camera-auto rijdt voor je uit door IJlst, met de
+camera op het dak naar achteren, en twee **zijspannen** komen achter je aan. Blijf **tussen 8 en 25 meter** achter
+de camera-auto: de balk linksboven laat zien hoe ver hij voor je rijdt. Te ver erachter, er bijna op, uitgestapt of
+voorbij de eindstreep: drie tellen later roept Erik Jan **"Cut!"** en begint de rit opnieuw (een nieuwe take, alleen
+de rit). Stop aan het eind op de gele ruit: *"dat is een wrap!"*
+
+![De rit](docs/screenshots/nomercy5_rit.png)
+
+**De première.** "Een week later…", om acht uur 's avonds op de kade: *Opgedragen aan De Veteraan*. Erik Jan telt
+de **filmpunten** (buiten het zoeklicht gebleven, de molen binnen een minuut, de rit in één take, precies op de ruit;
+alleen een compliment, geen geld) en vraagt wat je wilt: **1 = € 2.000**, **2 = de stafauto houden**. De stafauto
+staat dan naast je, is van jou zoals een gekochte auto, en gaat mee in de opslag.
+
+![De première](docs/screenshots/nomercy5_premiere.png)
+
+Ga je neer, loop je weg (verder dan 230 m van de molen), stap je in een andere auto of druk je op **X**, dan zijn
+de opnames mislukt en staat Erik Jan weer op de kade. De bruikleen gaat altijd terug. Tijdens de opnames kun je niet
+opslaan, en de tijd tot de volgende missie telt niet af.
 
 ### 13 · Het schrift
 

@@ -220,7 +220,8 @@ export class Persoon {
   get positie() { return this.groep.position; }
 
   zetNeer(x, z, yaw = 0) {
-    this.grond = grondHoogte(x, z);
+    // (stap 142: `vasteGrond` zet iemand op een vaste hoogte, zoals de sluipschutter op de stelling van De Rat)
+    this.grond = this.vasteGrond ?? grondHoogte(x, z);
     this.groep.position.set(x, this.grond, z);
     this.yaw = yaw;
     this.groep.rotation.y = yaw;
@@ -361,7 +362,7 @@ export class Persoon {
   update(dt, { loopt = false, zwaait = false, mikt = false, snelheid = 1.3, hurkt = 0, slaat = 0, zit = 0 } = {}) {
     this.klok += dt;
     // hij loopt zelf rond, dus elk beeld opnieuw kijken waar de grond ligt
-    this.grond = grondHoogte(this.groep.position.x, this.groep.position.z, this.groep.position.y + 0.9);
+    this.grond = this.vasteGrond ?? grondHoogte(this.groep.position.x, this.groep.position.z, this.groep.position.y + 0.9);
     if (this.vlamT > 0) {
       this.vlamT -= dt;
       if (this.vlamT <= 0 && this.vlam) this.vlam.material.opacity = 0;

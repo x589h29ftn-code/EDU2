@@ -235,6 +235,8 @@
     "nomercytest": "node tools/nomercytest.mjs 8123",
     "nomercyshots": "node tools/nomercyshots.mjs 8123",
     "nomercy2test": "node tools/nomercy2test.mjs 8123",
+    "nomercy5test": "node tools/nomercy5test.mjs 8123",
+    "nomercy5shots": "node tools/nomercy5shots.mjs 8123",
     "m1geluidtest": "node tools/m1geluidtest.mjs 8123",
     "scootertest": "node tools/scootertest.mjs 8123",
     "scootershots": "node tools/scootershots.mjs 8123",

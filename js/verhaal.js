@@ -69,7 +69,8 @@ import { maakVuurwerk } from './vuurwerk.js';
 import { maakHandlangers } from './handlangers.js';
 import { maakGrondvuur } from './grondvuur.js';
 import * as uitleg from './uitleg.js';
-import { NOMERCY, maakSet, maakErikJan, maakCameraman, maakDuitser, bosKaart, maakKamp, maakKlapbord } from './nomercy.js';
+import { NOMERCY, maakSet, maakErikJan, maakCameraman, maakDuitser, bosKaart, maakKamp, maakKlapbord, zetHelm } from './nomercy.js';
+import { NOMERCY5, maakMolenSet, maakCameraBoot, maakCameraRig, maakZijspan } from './nomercy5.js';
 
 // ---------- waar het verhaal zich afspeelt ----------
 const HUIS = { straat: 'Molenkrite', nr: '15' };      // het huis van Mark
@@ -1751,6 +1752,7 @@ export function initVerhaal(ctx) {
     if (doodT > 0 || misluktT > 0 || keuzeOpen || zwart || player.health <= 0) return false;
     if (uitjeBezig()) return false;
     if (nmBezig()) return false;          // de opnames van No Mercy 4 (stap 140)
+    if (n5Bezig()) return false;          // en van No Mercy 5 (stap 142)
     if (missie === 'klaar') return true;
     return (KLUS_WACHT[missie] || []).includes(fase);
   }
@@ -1999,6 +2001,7 @@ export function initVerhaal(ctx) {
     geldInleg = 0; geldKiezen = false; geldNaT = 0;
     // midden in de opnames van No Mercy 4 (een sneltoets): de set weg en de bruikleen terug
     if (nmBezig()) { nmRuimOp(true); nm.fase = 'uit'; nm.pauze = null; }
+    if (n5Bezig()) { n5RuimOp(true); n5.fase = 'uit'; n5.pauze = null; }
     // na de tussenpoos (`vanzelf`) blijft een klus die klaarstaat liggen; met een sneltoets of na het laden niet
     klusjes.reset({ aanbodHouden: vanzelf }); klusPauze = null;
     gesprek = null; sluitBalk();
@@ -2492,6 +2495,8 @@ export function initVerhaal(ctx) {
     spanning = false; spanningUit = 0;
     // neergaan op de set van No Mercy 4: die opnames zijn mislukt, Erik Jan wacht weer bij de waterzuivering
     if (nmBezig()) { nmRuimOp(true); nm.fase = 'uit'; nm.eerstWeg = true; nmZetBeeldTerug(); }
+    // en op die van No Mercy 5 (stap 142): Erik Jan wacht weer op de kade
+    if (n5Bezig()) { n5RuimOp(true); n5.fase = 'uit'; n5.eerstWeg = true; const b = n5.pauze; n5.pauze = null; nmZetBeeldTerugVan(b); }
     hud.melding('NEERGEGAAN', 'Kies hoe je verder gaat.', 3);
     player.active = false;
   }
@@ -2689,6 +2694,9 @@ export function initVerhaal(ctx) {
     // No Mercy 4: de C4 bij de Flak; tijdens de opnames doet de rest van het verhaal niets
     if (noMercyToets()) return true;
     if (nmBezig()) return false;
+    // No Mercy 5 (stap 142): Erik Jan op de kade, de vlag
+    if (noMercy5Toets()) return true;
+    if (n5Bezig()) return false;
     // missie 11: aan de balie van Tinga State de C4 ophalen, vóór het kopen daar
     if (bijDeBalie()) return haalC4();
     // missie 12: een dranghek, een lading C4, of de knal zelf
@@ -2793,6 +2801,9 @@ export function initVerhaal(ctx) {
     uit.push(...klusjes.doelen());
     // de Duitsers van No Mercy 4
     if (nm.golf) uit.push(...nm.golf.doelen());
+    // en die van No Mercy 5
+    if (n5.groepA) uit.push(...n5.groepA.doelen());
+    if (n5.groepB) uit.push(...n5.groepB.doelen());
     // en de maffia op de kade plus de waterpolitie uit missie 8
     if (deal) uit.push(...deal.doelen());
     for (const b of snipBoten) uit.push(...b.doelen());
@@ -2804,6 +2815,8 @@ export function initVerhaal(ctx) {
   function raak(obj, kracht = 1) {
     // een Duitser van No Mercy 4: elke treffer telt één, ook die van de M1 (ze gaan neer na 1 tot 3)
     if (nm.golf && nm.golf.raak(obj, 1)) { nmTreffer(); return true; }
+    if (n5.groepA && n5.groepA.raak(obj, 1)) { n5Treffer(); return true; }
+    if (n5.groepB && n5.groepB.raak(obj, 1)) { n5Treffer(); return true; }
     if (klusjes.raak(obj)) return true;
     // de zes man bij de Poiesz: die mogen juist wel (kracht: zie Bewaking.raak)
     if (schutters && schutters.raak(obj, kracht)) return true;
@@ -4564,6 +4577,8 @@ export function initVerhaal(ctx) {
   function kiesHuis(nr) {
     // (No Mercy 4, stap 141: 1 het geld, 2 de M1 houden)
     if (nm.fase === 'keuze') return noMercyKeuze(nr);
+    // (No Mercy 5, stap 142: 1 het geld, 2 de stafauto)
+    if (n5.fase === 'keuze') return noMercy5Keuze(nr);
     // (na het einde: 1 de wedstrijd met Mark, 2 de bank)
     if (uitje.fase === 'keuze') return uitjeKeuze(nr);
     // (racen voor geld: 1, 2 of 3 is de inleg)
@@ -10759,20 +10774,20 @@ export function initVerhaal(ctx) {
   }
 
   // de cameraman loopt mee, op een paar meter, en filmt je
-  function nmCamBij(dt, sp) {
-    const pos = nmCam.groep.position;
+  function nmCamBij(dt, sp, cam = nmCam) {
+    const pos = cam.groep.position;
     let d = Math.hypot(sp.x - pos.x, sp.z - pos.z);
     // achter een boom of een sloot blijven hangen: dan staat hij weer achter je (zonder dat je het ziet)
     if (d > 11) {
       const [x, z] = resolveCollisions(sp.x + Math.sin(player.yaw) * 4, sp.z + Math.cos(player.yaw) * 4, 0.4);
-      nmCam.zetNeer(x, z, kijkHoek({ x, z }, sp));
+      cam.zetNeer(x, z, kijkHoek({ x, z }, sp));
       d = Math.hypot(sp.x - x, sp.z - z);
     }
     const loopt = d > NOMERCY.cameraAfstand + 0.4;
     const v = Math.min(7.5, 1.6 + (d - NOMERCY.cameraAfstand) * 1.8);
-    if (loopt) nmLoop(nmCam, sp, dt, v, NOMERCY.cameraAfstand);
-    else nmCam.kijkNaar(sp.x, sp.z, dt, 5);
-    nmCam.update(dt, { loopt, snelheid: Math.max(1.2, v), mikt: true });
+    if (loopt) nmLoop(cam, sp, dt, v, NOMERCY.cameraAfstand);
+    else cam.kijkNaar(sp.x, sp.z, dt, 5);
+    cam.update(dt, { loopt, snelheid: Math.max(1.2, v), mikt: true });
   }
 
   function werkNoMercyBij(dt, sp) {
@@ -11220,6 +11235,697 @@ export function initVerhaal(ctx) {
     return true;
   }
 
+
+  /*
+   ---------- No Mercy 5: "De Overtocht" (stap 142, verzoek 12 okt 2026) ----------
+   De tweede bijmissie van Erik Jan, een eerbetoon aan De Veteraan (sergeant Van der Wal in No Mercy 1 tot 3). Na
+   missie 12 (De Veteraan is dan dood) en No Mercy 4 staat Erik Jan op de kade in IJlst, naast de ligplaats van de
+   sloep: een gele EJ op de kaart en één melding. Hij belt niet ("Laat Erik Jan niet bellen in deze missie maar puur
+   op de kaart"), en wacht tot je komt. E bij hem: het gesprek, "Die nacht…" (01:00, de klok stil), in uniform met de
+   M1 in bruikleen in de sloep met twee figuranten; de camera-boot met Erik Jan en de cameraman vaart mee. Het
+   zoeklicht op de stelling van De Rat zwaait over het water, lichtkogels hangen erboven, het MG-nest en de
+   sluipschutter schieten met losse flodders. Aan wal bij de gele ruit: drie Duitsers aan de voet, het MG en de
+   sluipschutter neer, de vlag neerhalen (E), dan de stafauto: de camera-auto rijdt voor je uit door IJlst en je
+   blijft tussen 8 en 25 m erachter, met twee zijspannen achter je aan; anders "Cut!" en de rit opnieuw. Stilstaan op
+   de gele ruit: een wrap. "Een week later…": de première, en de keuze: € 2.000 of de stafauto houden.
+   Filmpunten (alleen een compliment, geen geld): niet in het licht, de molen binnen een minuut, de rit in één take,
+   precies op de ruit. Alle namen beginnen met n5 of noMercy5 (js/verhaal.js is één bereik: npm run overgangtest).
+  */
+  const N5_ACTIEF = ['gesprek', 'omkleden', 'overtochtIntro', 'overtocht', 'molen', 'vlag', 'vlagNeer', 'naarStaf', 'rit',
+    'cut', 'wrap', 'premiere', 'keuze', 'bedankt'];
+  // hier telt de grens rond de molen, en een auto is mislukt
+  const N5_SET = ['overtochtIntro', 'overtocht', 'molen', 'vlag', 'vlagNeer'];
+  // hier geen X: in het gesprek, in het zwart, en aan het eind
+  const N5_VRIJ = ['gesprek', 'omkleden', 'cut', 'wrap', 'premiere', 'keuze', 'bedankt'];
+  const N5_GESPREK = [
+    zegtEJ('Erik! Fijn dat je er bent. Je hebt het gehoord, van De Veteraan?'),
+    zegtErik('Ja. Gehoord.'),
+    zegtEJ('Hij speelde sergeant Van der Wal, in deel één tot en met drie. Zonder hem was er nooit een No Mercy geweest.'),
+    zegtEJ('Ik maak deel vijf voor hem. En ik wil dat jij zijn rol speelt. In het bos heb je laten zien dat je het kunt.'),
+    zegtEJ('Vannacht draaien we de overtocht. De molen hier, De Rat, is in de film een Duitse observatiepost aan de overkant van de rivier.'),
+    zegtEJ('Jij vaart erheen met twee man, schakelt de post uit en haalt hun vlag neer. Dan ontsnap je in hun stafauto. Losse flodders, zoals altijd.'),
+    zegtEJ(`Je gage is ${euro(NOMERCY5.beloning)}. Of je houdt die stafauto, als je hem wilt. Kom, omkleden.`),
+    zegtErik('Speel gewoon mee, Erik. Hij weet van niks.'),
+  ];
+  const N5_OVERTOCHT = [
+    zegtEJ('Daar ligt de molen. Het zoeklicht zoekt het water af: blijf er zo veel mogelijk buiten.'),
+    zegtEJ('Vaar naar de gele ruit aan de overkant en ga aan wal. Camera loopt… ACTIE!'),
+  ];
+  const N5_LICHT = [zegtEJ('Je zit in het licht! Weg daar, laag blijven!')];
+  const N5_AAN_WAL = [zegtEJ('Aan wal! Pak die post — en kijk uit voor de sluipschutter op de stelling!')];
+  const N5_VLAG = [zegtEJ('Allemaal liggen! Nu de vlag: haal hem neer.')];
+  const N5_POSTER = [
+    zegtEJ('Dat is het beeld voor de poster!'),
+    zegtEJ('En nu de stafauto, achter de molen. Volg de camera-auto: niet te ver erachter, en niet erop. Op de gele ruit stop je.'),
+  ];
+  const N5_RIJDEN = [zegtEJ('Camera loopt… rijden!')];
+  const N5_MOTOREN = [zegtCam('Daar komen ze, met de zijspannen! Blijf bij me!')];
+  const N5_WRAP = [
+    zegtEJ('CUT! En… dat is een wrap! No Mercy 5 zit erop.'),
+    zegtCam('Applaus voor sergeant Van der Wal!'),
+  ];
+  const N5_PREMIERE = [
+    zegtEJ('Gisteren was de première. Het hele zaaltje stond op, en aan het eind, in het zwart: "Opgedragen aan De Veteraan".'),
+    zegtErik('Mooi gedaan.'),
+    zegtEJ('Hij zou trots zijn geweest.'),
+    zegtErik('Vast.'),
+  ];
+  const N5_KEUZE = [
+    zegtEJ(`Dan je gage. ${euro(NOMERCY5.beloning)}, of de stafauto? Hij staat hier om de hoek.`),
+    zegtEJ('1 — het geld. 2 — de stafauto.'),
+  ];
+  const N5_BEDANKT = [zegtCam('Tot de volgende, sergeant.')];
+
+  const n5 = { fase: 'uit', klaar: false, gemeld: false, staf: false, pak: false, hint: false, eerstWeg: false, grijsT: 0,
+    t: 0, aanlegT: 0, lichtT: 0, roepT: 0, punten: null, groepA: null, groepB: null, pauze: null,
+    lijn: null, prof: null, camS: 0, camV: 0, sP: 0, iP: 0, uitT: 0, uitReden: '', takes: 0, motorRoep: false, balk: false };
+  const n5Molen = (KAART && KAART.molens || []).find(m => m.naam === NOMERCY5.molen) || null;
+  const n5Set = n5Molen ? maakMolenSet(scene, n5Molen, (x, z) => grondHoogte(x, z)) : null;
+  const n5EJ = maakErikJan();
+  const n5Cam = maakCameraman();
+  for (const p of [n5EJ, n5Cam]) { p.groep.visible = false; scene.add(p.groep); }
+  // de Duitsers: het MG (met een machinepistool in de hand), de sluipschutter, drie aan de voet
+  const n5MG = new Persoon({ shirt: NOMERCY.duits.shirt, broek: NOMERCY.duits.broek, schoen: NOMERCY.duits.schoen, huid: 0xd9b48f, haar: 0x6a5a40, hoogte: 1.0 });
+  zetHelm(n5MG, 'stahl'); n5MG.geefWapen('mp');
+  const n5Duitsers = [n5MG, maakDuitser(1), maakDuitser(2), maakDuitser(3), maakDuitser(4)];
+  for (const p of n5Duitsers) { p.groep.visible = false; scene.add(p.groep); }
+  // twee Amerikaanse figuranten in de sloep
+  const n5Figuranten = [0, 1].map(i => {
+    const A = NOMERCY.amerikaans;
+    const p = new Persoon({ shirt: A.shirt, broek: A.broek, schoen: A.schoen, huid: i ? 0xc79a72 : 0xd9b48f, haar: 0x4a3b2c, hoogte: 0.99 + i * 0.02 });
+    zetHelm(p, 'm1'); p.geefWapen('garand');
+    p.groep.visible = false;
+    return p;
+  });
+  const n5Boot = maakCameraBoot(scene);
+  // de stafauto (bestuurbaar tijdens de rit) en de camera-auto, ver buiten de wereld tot ze nodig zijn
+  const n5Staf = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'bx', kleur: NOMERCY5.stafKleur, driveable: false });
+  const n5CamAuto = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'bx', kleur: NOMERCY5.camKleur, driveable: false });
+  for (const c of [n5Staf, n5CamAuto]) { c.mesh.visible = false; c.mesh.position.set(1e5, 0, 1e5); c.noMercy = true; }
+  const n5Rig = maakCameraRig();
+  n5Rig.position.set(0, 1.38, 0.6); n5Rig.rotation.y = Math.PI;      // op het dak, het objectief naar achteren
+  n5CamAuto.mesh.add(n5Rig);
+  const n5Motoren = [0, 1].map(i => {
+    const m = maakZijspan(maakDuitser(5 + i), maakDuitser(7 + i));
+    scene.add(m.mesh);
+    if (m.rijder.wapen) m.rijder.wapen.visible = false;    // de rijder heeft zijn handen aan het stuur
+    m.kant = i ? 1.1 : -1.1;
+    return m;
+  });
+
+  function n5Bezig() { return N5_ACTIEF.includes(n5.fase); }
+  function n5Beschikbaar() { return !!n5Set && !n5.klaar && nm.klaar && brugKlaar; }
+  function n5Startbaar() {
+    return n5Beschikbaar() && !n5Bezig() && !nmBezig() && vrijVoorKlus() && !klusjes.bezig && !geldInleg && !zwart && !titelrol;
+  }
+  function n5Boten() { return boten ? boten() : null; }
+  function n5Sloep() { const B = n5Boten(); return B ? B.ruw(SCHRIFT_BOOT) : null; }
+  // Erik Jan op de kade in IJlst: van de ligplaats van de sloep naar de wal, en nog een paar meter de kant op
+  let n5EJPlekWas = null;
+  function n5EJPlek() {
+    if (n5EJPlekWas) return n5EJPlekWas;
+    const b = n5Sloep();
+    if (!b || !b.L || !b.L.wal) return null;
+    const L = b.L, dx = L.wal.x - L.x, dz = L.wal.z - L.z, d = Math.hypot(dx, dz) || 1;
+    const [x, z] = resolveCollisions(L.wal.x + dx / d * 2.5, L.wal.z + dz / d * 2.5, 0.5);
+    n5EJPlekWas = { x, z, yaw: kijkHoek({ x, z }, { x: L.x, z: L.z }) };
+    return n5EJPlekWas;
+  }
+  function n5Lijn() {
+    if (!n5.lijn) {
+      n5.lijn = lijnDoor(KAART, NOMERCY5.rit);
+      if (n5.lijn) n5.prof = profiel(n5.lijn, { top: NOMERCY5.camTop });
+    }
+    return n5.lijn;
+  }
+  function n5RuitS() { const L = n5Lijn(); return L ? L.lengte - NOMERCY5.ruitVoorEind : 0; }
+  function n5Ruit() { const L = n5Lijn(); return L ? puntOp(L, n5RuitS()) : null; }
+  function n5DMolen(sp) { return n5Molen ? Math.hypot(sp.x - n5Molen.cx, sp.z - n5Molen.cz) : 0; }
+  // van boord, zonder een stuk wal te zoeken (laden doet hetzelfde: js/boot.js herstel)
+  function n5UitBoot() {
+    const B = n5Boten();
+    if (B && B.inBoot) B.herstel({ boten: B.bewaar().boten, aanBoord: -1 });
+  }
+  function n5ZetBalk(tekst, deel, fout) {
+    nmZetBalk(tekst, deel);
+    n5.balk = true;
+    const b = document.getElementById('schaduwbalk');
+    if (b) b.classList.toggle('fout', !!fout);
+  }
+  function n5BalkWeg() {
+    if (!n5.balk) return;
+    const b = document.getElementById('schaduwbalk'); if (b) b.hidden = true;
+    n5.balk = false; nm.balk = false;
+  }
+  // iemand in een boot zetten (Erik Jan en de cameraman in de camera-boot, de figuranten in de sloep): een kind van
+  // de boot, op een vaste hoogte in de boot (`vasteGrond`, js/persoon.js), en na afloop weer terug in de scène
+  function n5AanBoord(p, boot, x, y, z, yaw = 0) {
+    boot.add(p.groep);
+    p.vasteGrond = y;
+    p.groep.position.set(x, y, z);
+    p.yaw = yaw; p.groep.rotation.y = yaw;
+    p.legNeer(0); p.groep.position.y = y;
+    p.groep.visible = true;
+  }
+  function n5VanBoord(p) {
+    if (p.groep.parent !== scene) scene.add(p.groep);
+    delete p.vasteGrond;
+    p.groep.visible = false;
+  }
+  function n5AutoWeg(c) {
+    if (player.inCar === c) nmUitstappen();
+    if (c.wrak && vehicles.herstelWrak) vehicles.herstelWrak(c);
+    c.hp = 100; c.speed = 0; c.driveable = false;
+    c.x = c.z = 1e5; c.mesh.position.set(1e5, 0, 1e5); c.mesh.visible = false;
+  }
+  function n5AutoOp(c, p, bestuurbaar) {
+    if (c.wrak && vehicles.herstelWrak) vehicles.herstelWrak(c);
+    c.hp = 100; c.speed = 0; c.driveable = !!bestuurbaar;
+    c.x = p.x; c.z = p.z; c.yaw = p.yaw;
+    c.mesh.position.set(p.x, grondHoogte(p.x, p.z), p.z); c.mesh.rotation.y = p.yaw; c.mesh.visible = true;
+  }
+
+  // alles weg; `terug`: de bruikleen terug (niet bij laden: de opslag heeft de wapens al gezet)
+  function n5RuimOp(terug = true) {
+    if (!n5Set) return;
+    for (const k of ['groepA', 'groepB']) if (n5[k]) { n5[k].verwijder(); n5[k] = null; }
+    for (const p of n5Duitsers) { delete p.vasteGrond; p.legNeer(0); p.groep.visible = false; }
+    n5Set.toon(false); n5Set.herstel();
+    n5Boot.mesh.visible = false;
+    for (const p of [n5EJ, n5Cam, ...n5Figuranten]) n5VanBoord(p);
+    n5AutoWeg(n5Staf); n5AutoWeg(n5CamAuto);
+    for (const m of n5Motoren) m.mesh.visible = false;
+    nmMerk.toon(false);
+    n5BalkWeg();
+    if (terug) nmLeenTerug(); else nm.leen = null;
+    if (n5.pak) { n5.pak = false; if (zetPak) zetPak('gewoon'); }
+    if (n5Bezig() && gesprek) { gesprek = null; sluitBalk(); }
+    if (n5.hint) { praatEl.hidden = true; n5.hint = false; }
+    hud.zetEJ(null);
+    n5.uitT = 0; n5.motorRoep = false;
+  }
+  function n5Mislukt(reden) {
+    n5RuimOp(true);
+    n5.fase = 'uit'; n5.eerstWeg = true;
+    const b = n5.pauze; n5.pauze = null; nmZetBeeldTerugVan(b);
+    hud.melding('MISSIE MISLUKT', `${reden} Erik Jan wacht weer op de kade in IJlst.`, 5);
+    hud.zetGrijs(true); n5.grijsT = 2.4;
+  }
+  // X tijdens de opnames (js/main.js via klusAfbreken)
+  function noMercy5Afbreken() {
+    if (!n5Bezig() || N5_VRIJ.includes(n5.fase)) return false;
+    n5Mislukt('Je stopte met de opnames.');
+    return true;
+  }
+
+  // bij Erik Jan op de kade: het gesprek
+  function n5Begin() {
+    n5.pauze = nmBewaarBeeld();
+    hud.zetEJ(null);
+    if (n5.hint) { praatEl.hidden = true; n5.hint = false; }
+    nmUitstappen();
+    zetOpdracht('');
+    hud.zetNavigatie(null); navDoel = null;
+    n5.fase = 'gesprek';
+    n5.punten = { licht: true, snel: false, take1: true, stop: false };
+    n5.takes = 0;
+    zeg(N5_GESPREK, () => n5Omkleden());
+  }
+  function n5Omkleden() {
+    if (n5.fase !== 'gesprek') return;
+    n5.fase = 'omkleden';
+    zwartMet('Die nacht…', () => {
+      if (n5.fase !== 'omkleden') return;
+      if (zetUur) zetUur(1);
+      nmLeenUit();
+      n5.pak = true;
+      if (zetPak) zetPak('soldaat');
+      n5ZetSetNeer();
+      if (!n5NaarBoot()) { n5Mislukt('De sloep kon niet uitvaren.'); return; }
+      n5.fase = 'overtochtIntro';
+      zeg(N5_OVERTOCHT, () => {
+        if (n5.fase !== 'overtochtIntro') return;
+        n5.fase = 'overtocht';
+        zetOpdracht('vaar naar de gele ruit aan de overkant en ga daar aan wal (E)');
+      });
+      hud.melding('NO MERCY 5', `De overtocht. M1 Garand en ${NOMERCY.kogels} patronen in bruikleen.`, 5);
+    }, [1.0, 1.8, 1.0]);
+  }
+  // de set neer: het MG-nest, de vlag, het zoeklicht, en het MG en de sluipschutter op hun plek
+  function n5ZetSetNeer() {
+    n5Set.herstel(); n5Set.toon(true); n5Set.zoekAan(true);
+    const a = n5Set.aanleg || NOMERCY5.aanleg;
+    nmMerk.zet(a.x, grondHoogte(a.x, a.z), a.z); nmMerk.toon(true);
+    const mg = n5Set.mg, s = n5Set.sluip;
+    const sluip = n5Duitsers[1];
+    sluip.vasteGrond = s.y;
+    const posten = [
+      { a: [mg.x, mg.z], b: [mg.x, mg.z], kijk: n5Set.mgKijk },
+      { a: [s.x, s.z], b: [s.x, s.z], kijk: NOMERCY5.aanleg },
+    ];
+    const personen = [n5Duitsers[0], sluip];
+    for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
+    n5.groepA = new Bewaking(scene, posten, { schade: 0, leven: [2, 1], mg: [0], klank: 'garand', personen, vest: null, pet: false,
+      zicht: NOMERCY5.sluipZicht, vuurbereik: NOMERCY5.sluipZicht, dekking: 11, oog: 1.5, houden: true });
+    n5.groepA.alarm = true;
+    sluip.groep.position.y = s.y;
+  }
+  // in de sloep op het water, de figuranten op de voorste bank, de camera-boot ernaast
+  function n5NaarBoot() {
+    const B = n5Boten(), b = n5Sloep();
+    if (!B || !b) return false;
+    n5UitBoot();
+    player.inCar = null;
+    const S = NOMERCY5.start;
+    let gelukt = false;
+    for (const [dx, dz] of [[0, 0], [4, 0], [-4, 0], [0, 4], [0, -4], [8, 0]]) {
+      if (B.verplaats(b, S.x + dx, S.z + dz, S.yaw)) { gelukt = true; break; }
+    }
+    if (!gelukt) return false;
+    player.pos.set(b.x, 0, b.z); player.yaw = S.yaw;
+    B.stapIn(b);
+    player.applyCamera();
+    // de voorste bank in het model zoeken (zoals het schrift in missie 13), en de twee figuranten erop
+    let kussen = null;
+    b.mesh.traverse(o => {
+      const p = o.geometry && o.geometry.parameters;
+      if (o.isMesh && p && Math.abs(p.width - 0.42) < 1e-6 && Math.abs(p.height - 0.075) < 1e-6 && (!kussen || o.position.x > kussen.position.x)) kussen = o;
+    });
+    const kx = kussen ? kussen.position.x : 1.6, ky = kussen ? kussen.position.y + 0.04 : 0.1;
+    n5Figuranten.forEach((p, i) => n5AanBoord(p, b.mesh, i ? 0.42 : -0.42, ky - 0.42, -kx, 0));
+    // de camera-boot: veertien meter opzij (stuurboord) en wat achter, Erik Jan en de cameraman erin
+    const zij = { x: -Math.cos(S.yaw), z: Math.sin(S.yaw) };
+    n5Boot.x = b.x + zij.x * 14; n5Boot.z = b.z + zij.z * 14; n5Boot.yaw = S.yaw;
+    n5ZetBootBeeld();
+    n5Boot.mesh.visible = true;
+    n5AanBoord(n5Cam, n5Boot.mesh, 0.35, 0.3, -0.9, 0);
+    n5AanBoord(n5EJ, n5Boot.mesh, -0.45, 0.3, 0.4, 0);
+    return true;
+  }
+  function n5ZetBootBeeld() {
+    n5Boot.mesh.position.set(n5Boot.x, -0.35, n5Boot.z);
+    n5Boot.mesh.rotation.y = n5Boot.yaw;
+  }
+  // de camera-boot vaart mee: naast de sloep, nooit de wal op (dezelfde controle als de sloepen)
+  function n5BootBij(dt, sp) {
+    const B = n5Boten(), b = n5Sloep();
+    if (!B || !b) return;
+    const zij = { x: -Math.cos(b.yaw), z: Math.sin(b.yaw) }, voor = { x: -Math.sin(b.yaw), z: -Math.cos(b.yaw) };
+    const doel = { x: b.x + zij.x * 13 - voor.x * 3, z: b.z + zij.z * 13 - voor.z * 3 };
+    const dx = doel.x - n5Boot.x, dz = doel.z - n5Boot.z, d = Math.hypot(dx, dz);
+    if (d > 0.3) {
+      const stap = Math.min(d, Math.max(2, d * 0.8) * dt * 1.6, 9 * dt);
+      const nx = n5Boot.x + dx / d * stap, nz = n5Boot.z + dz / d * stap;
+      let yaw = n5Boot.yaw;
+      if (stap > 0.02) { let doelYaw = Math.atan2(-dx, -dz), dy = doelYaw - yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; yaw += dy * Math.min(1, dt * 1.5); }
+      if (B.pastHier(nx, nz, yaw)) { n5Boot.x = nx; n5Boot.z = nz; n5Boot.yaw = yaw; }
+    }
+    n5ZetBootBeeld();
+    // Erik Jan en de cameraman kijken naar de sloep
+    const a = Math.atan2(-(sp.x - n5Boot.x), -(sp.z - n5Boot.z)) - n5Boot.yaw;
+    for (const p of [n5EJ, n5Cam]) { p.yaw = a; p.groep.rotation.y = a; p.update(dt, { mikt: p === n5Cam }); p.groep.position.y = p.vasteGrond; }
+    if (n5Boot.rig) n5Boot.rig.rotation.y = a;
+    for (const p of n5Figuranten) { p.update(dt, { zit: 1, mikt: true }); }
+  }
+  // aan wal bij de ruit: de cameraman stapt over, drie Duitsers aan de voet van de molen
+  function n5AanWal(sp) {
+    n5.fase = 'molen'; n5.aanlegT = 0;
+    nmMerk.toon(false);
+    n5VanBoord(n5Cam);
+    const [cx, cz] = resolveCollisions(sp.x + 2.2, sp.z + 1.4, 0.4);
+    n5Cam.zetNeer(cx, cz, kijkHoek({ x: cx, z: cz }, sp)); n5Cam.legNeer(0); n5Cam.groep.visible = true;
+    const voet = n5Set.voet, kijk = NOMERCY5.aanleg;
+    const posten = voet.map(v => { const [x, z] = resolveCollisions(v.x, v.z, 0.4); return { a: [x, z], b: [x, z], kijk }; });
+    const personen = n5Duitsers.slice(2, 2 + posten.length);
+    for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
+    const levens = posten.map(() => NOMERCY.treffers[0] + Math.floor(Math.random() * (NOMERCY.treffers[1] - NOMERCY.treffers[0] + 1)));
+    n5.groepB = new Bewaking(scene, posten, { schade: 0, leven: levens, klank: 'garand', personen, vest: null, pet: false,
+      zicht: 48, vuurbereik: 46, dekking: 11, oog: 1.5, houden: true });
+    n5.groepB.alarm = true;
+    n5MolenOpdracht();
+    zeg(N5_AAN_WAL, null, { auto: 3.0 });
+  }
+  function n5Over() {
+    let n = 0;
+    for (const g of [n5.groepA, n5.groepB]) if (g) n += g.wachters.filter(w => w.staat !== 'neer').length;
+    return n;
+  }
+  function n5MolenOpdracht() {
+    const over = n5Over();
+    if (n5.fase === 'molen') zetOpdracht(over > 0 ? `schakel de Duitsers bij de molen uit (${over} te gaan)` : '');
+  }
+  function n5Treffer() { if (n5.fase === 'molen') n5MolenOpdracht(); }
+
+  // de cameraman op het land (dezelfde als in No Mercy 4, met een andere man)
+  function n5NaarStaf() {
+    const L = n5Lijn();
+    if (!L) { n5Mislukt('De route van de stafauto bestaat niet.'); return; }
+    const p0 = puntOp(L, 0);
+    n5AutoOp(n5Staf, { x: p0.x, z: p0.z, yaw: p0.yaw }, true);
+    const pc = puntOp(L, NOMERCY5.camVoor);
+    n5AutoOp(n5CamAuto, { x: pc.x, z: pc.z, yaw: pc.yaw }, false);
+    n5.camS = NOMERCY5.camVoor; n5.camV = 0; n5.sP = 0; n5.iP = 0; n5.uitT = 0;
+    n5.fase = 'naarStaf';
+    zetOpdracht('stap in de stafauto achter de molen');
+    zetNavDoel(p0.x, p0.z, 'stafauto', 'EJ');
+  }
+  // de rit (opnieuw) klaarzetten: de stafauto op het begin met jou erin, de camera-auto ervoor, de motoren weg
+  function n5RitKlaar() {
+    const L = n5Lijn();
+    const p0 = puntOp(L, 0), pc = puntOp(L, NOMERCY5.camVoor);
+    if (player.inCar && player.inCar !== n5Staf) nmUitstappen();
+    n5AutoOp(n5Staf, { x: p0.x, z: p0.z, yaw: p0.yaw }, true);
+    n5AutoOp(n5CamAuto, { x: pc.x, z: pc.z, yaw: pc.yaw }, false);
+    if (player.inCar !== n5Staf && stapIn) stapIn(n5Staf);
+    n5.camS = NOMERCY5.camVoor; n5.camV = 0; n5.sP = 0; n5.iP = 0; n5.uitT = 0; n5.motorRoep = false;
+    for (const m of n5Motoren) { m.mesh.visible = false; m.s = 0; }
+    nmMerk.toon(false);
+  }
+  function n5StartRit() {
+    n5.fase = 'rit';
+    n5Cam.groep.visible = false;           // de cameraman zit nu in de camera-auto
+    hud.zetNavigatie(null); navDoel = null;
+    n5.camV = 0; n5.uitT = 0;
+    zetOpdracht('volg de camera-auto: tussen 8 en 25 meter erachter blijven');
+    zeg(N5_RIJDEN, null, { auto: 1.6 });
+  }
+  // waar de stafauto op de lijn is: het dichtstbijzijnde monster, in een venster rond het vorige
+  function n5ZoekS(x, z) {
+    const L = n5.lijn;
+    let beste = n5.iP, bd = Infinity;
+    const van = Math.max(0, n5.iP - 20), tot = Math.min(L.n - 1, n5.iP + 40);
+    for (let i = van; i <= tot; i++) { const d = Math.hypot(L.x[i] - x, L.z[i] - z); if (d < bd) { bd = d; beste = i; } }
+    n5.iP = beste;
+    return { s: L.s[beste], d: bd };
+  }
+  // de camera-auto: rijdt de lijn af, wacht als je achterblijft en trekt op als je te dichtbij komt
+  function n5CamAutoBij(dt) {
+    const L = n5.lijn, c = n5CamAuto;
+    const i = Math.min(L.n - 1, Math.max(0, Math.round(n5.camS / 2)));
+    const gat = n5.camS - n5.sP;
+    const jij = player.inCar === n5Staf ? Math.abs(n5Staf.speed || 0) : 0;
+    let doel = n5.prof[Math.min(L.n - 1, i + 1)];
+    if (gat > NOMERCY5.camDoel + 4) doel = Math.min(doel, Math.max(1.5, jij * 0.75));
+    else if (gat < NOMERCY5.camDoel - 4) doel = Math.min(NOMERCY5.camTop, Math.max(doel, jij + 3));
+    if (n5.camS >= L.lengte - 0.5) doel = 0;
+    const vorig = n5.camV, vorigeYaw = c.yaw;
+    n5.camV = n5.camV < doel ? Math.min(doel, n5.camV + 4.5 * dt) : Math.max(doel, n5.camV - 8 * dt);
+    n5.camS = Math.min(L.lengte, n5.camS + n5.camV * dt);
+    const p = puntOp(L, n5.camS, 1.0);
+    c.x = p.x; c.z = p.z; c.yaw = p.yaw; c.speed = n5.camV;
+    vehicles.zetNeer(c, dt, vorigeYaw, { gas: n5.camV > vorig, rem: n5.camV < vorig - 0.02 });
+  }
+  // de zijspannen: achter je aan over de lijn, met losse flodders
+  function n5MotorenBij(dt, sp) {
+    const L = n5.lijn;
+    if (n5.sP < NOMERCY5.motorVanaf && !n5Motoren[0].mesh.visible) return;
+    if (!n5.motorRoep) { n5.motorRoep = true; if (balk.hidden) zeg(N5_MOTOREN, null, { auto: 2.6 }); }
+    n5Motoren.forEach((m, j) => {
+      const doel = Math.max(0, n5.sP - NOMERCY5.motorAchter[j]);
+      if (!m.mesh.visible) { m.s = Math.max(0, doel - 6); m.mesh.visible = true; }
+      const v = Math.max(0, Math.min(22, (doel - m.s) * 1.6));
+      m.s = Math.min(L.lengte, m.s + v * dt);
+      const p = puntOp(L, m.s, m.kant);
+      m.mesh.position.set(p.x, grondHoogte(p.x, p.z), p.z);
+      m.mesh.rotation.y = p.yaw;
+      m.rijder.opScooter(dt, m.zit.position);
+      m.bijrijder.update(dt, { zit: 1, mikt: true });
+      m.vuurT -= dt;
+      const d = Math.hypot(sp.x - p.x, sp.z - p.z);
+      if (m.vuurT <= 0 && d < 45) {
+        m.vuurT = NOMERCY5.motorVuur[0] + Math.random() * (NOMERCY5.motorVuur[1] - NOMERCY5.motorVuur[0]);
+        m.bijrijder.vuur();
+        geluid.schot(d, { wapen: 'garand', bron: 'n5m' + j });
+      }
+    });
+  }
+  function n5Cut(reden) {
+    n5.fase = 'cut';
+    n5.punten.take1 = false;
+    n5.takes++;
+    n5BalkWeg();
+    zetOpdracht('');
+    hud.melding('CUT!', `${reden} Nog een keer, vanaf het begin van de rit.`, 3.5);
+    zwartMet(`Take ${n5.takes + 1}…`, () => {
+      if (n5.fase !== 'cut') return;
+      n5RitKlaar();
+      n5StartRit();
+    }, [0.7, 1.2, 0.7]);
+  }
+  function n5Wrap(dR) {
+    n5.fase = 'wrap';
+    n5.punten.stop = dR <= NOMERCY5.stopMooi;
+    n5BalkWeg();
+    nmMerk.toon(false);
+    zetOpdracht('');
+    geluid.applaus(0, 4.5);
+    zeg(N5_WRAP, () => {
+      if (n5.fase !== 'wrap') return;
+      zwartMet('Een week later…', () => n5Premiere(), [1.0, 2.2, 1.0]);
+    });
+  }
+  // de rit, elk beeld
+  function n5RitBij(dt, sp) {
+    const L = n5.lijn;
+    const inStaf = player.inCar === n5Staf;
+    if (inStaf) n5.sP = n5ZoekS(n5Staf.x, n5Staf.z).s;
+    n5CamAutoBij(dt);
+    n5MotorenBij(dt, sp);
+    const gat = n5.camS - n5.sP;
+    const ruit = n5Ruit(), ruitS = n5RuitS();
+    const [lo, hi] = NOMERCY5.camVenster;
+    // de gele ruit komt in beeld op het laatste stuk
+    if (n5.sP > ruitS - 90 && !nmMerk.zichtbaar) { nmMerk.zet(ruit.x, grondHoogte(ruit.x, ruit.z), ruit.z); nmMerk.toon(true); }
+    // klaar: stil op de ruit
+    const dR = inStaf ? Math.hypot(n5Staf.x - ruit.x, n5Staf.z - ruit.z) : Infinity;
+    if (inStaf && dR < NOMERCY5.stopBereik && Math.abs(n5Staf.speed || 0) < NOMERCY5.stil) { n5Wrap(dR); return; }
+    // wat er mis is
+    let reden = '';
+    if (n5Staf.wrak || (n5Staf.hp ?? 100) <= 0) { n5Cut('De stafauto is stuk.'); return; }
+    if (!inStaf) reden = 'Je stapte uit de auto.';
+    else if (n5.sP > ruitS + NOMERCY5.voorbij) reden = 'Je reed voorbij de ruit.';
+    else if (gat > hi) reden = 'Je reed uit beeld.';
+    else if (gat < lo && n5.camS < L.lengte - 1) reden = 'Je zat bijna op de camera-auto.';
+    if (reden) { n5.uitT += dt; n5.uitReden = reden; } else n5.uitT = Math.max(0, n5.uitT - dt * 2);
+    if (n5.uitT >= NOMERCY5.cutNa) { n5Cut(n5.uitReden); return; }
+    // de balk: hoe ver je van de camera-auto zit
+    const midden = (lo + hi) / 2, deel = Math.max(0, 1 - Math.abs(gat - midden) / (midden - lo + 4));
+    const tekst = reden ? `${reden.replace(/\.$/, '')} — nog ${Math.max(0, NOMERCY5.cutNa - n5.uitT).toFixed(1).replace('.', ',')} s`
+      : `Camera-auto: ${Math.max(0, Math.round(gat))} m voor je`;
+    n5ZetBalk(tekst, reden ? Math.max(0.02, 1 - n5.uitT / NOMERCY5.cutNa) : deel, !!reden);
+    if (n5.sP > ruitS - 90) zetOpdracht('stop op de gele ruit');
+  }
+  // een week later, op de kade: de première, en de keuze
+  function n5Premiere() {
+    if (n5.fase !== 'wrap') return;
+    nmLeenTerug();                         // de bruikleen terug, dan de set en de auto's weg
+    n5RuimOp(false);
+    n5UitBoot();
+    const B = n5Boten(); if (B) B.naarLigplaats(SCHRIFT_BOOT);
+    if (zetUur) zetUur(20);
+    const p = n5EJPlek();
+    if (p) {
+      const vx = Math.sin(p.yaw), vz = Math.cos(p.yaw);
+      const [x, z] = resolveCollisions(p.x + vz * 2.2 - vx * 1.2, p.z - vx * 2.2 - vz * 1.2, 0.4);
+      player.inCar = null;
+      player.pos.set(x, grondHoogte(x, z), z); player.yaw = kijkHoek({ x, z }, p); player.applyCamera();
+      n5EJ.zetNeer(p.x, p.z, kijkHoek(p, { x, z })); n5EJ.legNeer(0); n5EJ.groep.visible = true;
+      const [cx, cz] = resolveCollisions(p.x - vz * 1.6, p.z + vx * 1.6, 0.4);
+      n5Cam.zetNeer(cx, cz, kijkHoek({ x: cx, z: cz }, { x, z })); n5Cam.legNeer(0); n5Cam.groep.visible = true;
+    }
+    n5.fase = 'premiere';
+    hud.melding('NO MERCY 5', 'Opgedragen aan De Veteraan', 6);
+    const P = n5.punten, n = (P.licht ? 1 : 0) + (P.snel ? 1 : 0) + (P.take1 ? 1 : 0) + (P.stop ? 1 : 0);
+    const oordeel = n >= 3
+      ? zegtEJ(`En weet je wat? ${n} van de 4 scènes in één keer goed. Dit wordt deel zes ook. Ik bel je niet, ik sta gewoon weer op je kaart.`)
+      : zegtEJ(`Niet alles ging in één keer goed, ${n} van de 4. Maar de montage maakt er een feest van.`);
+    zeg([...N5_PREMIERE, oordeel], () => {
+      if (n5.fase !== 'premiere') return;
+      zeg(N5_KEUZE, () => {
+        if (n5.fase !== 'premiere') return;
+        n5.fase = 'keuze';
+        zetOpdracht(`kies: 1 = ${euro(NOMERCY5.beloning)} · 2 = de stafauto houden`);
+      });
+    });
+  }
+  // 1 of 2 aan het eind (kiesHuis, en de knoppen op een aanraakscherm via `openKeuze`)
+  function noMercy5Keuze(nr) {
+    if (n5.fase !== 'keuze' || (nr !== 1 && nr !== 2)) return false;
+    n5.fase = 'bedankt';
+    zetOpdracht('');
+    zeg(N5_BEDANKT, () => n5Geslaagd(nr), { auto: 2.5 });
+    return true;
+  }
+  function n5Geslaagd(keus) {
+    let tekst;
+    const g = garage ? garage() : null;
+    if (keus === 2 && g && g.schenk) {
+      // de stafauto naast je op de kade, van jou (in de opslag, net als een gekochte auto)
+      const sp = spelerPunt();
+      const vx = Math.sin(player.yaw), vz = Math.cos(player.yaw);
+      const [x, z] = resolveCollisions(sp.x + vz * 3.2, sp.z - vx * 3.2, 1.2);
+      g.schenk('bx', NOMERCY5.stafKleur, 'stafauto', { x, z, yaw: player.yaw });
+      n5.staf = true;
+      tekst = 'No Mercy 5: de stafauto is van jou. Hij staat naast je op de kade.';
+    } else {
+      verdien(NOMERCY5.beloning);
+      tekst = `No Mercy 5: + ${euro(NOMERCY5.beloning)}.`;
+    }
+    n5.klaar = true;
+    n5.fase = 'uit';
+    const b = n5.pauze; n5.pauze = null; nmZetBeeldTerugVan(b);
+    hud.melding('MISSIE GESLAAGD', tekst, 7);
+    if (checkpoint && player.health > 0) { checkpoint(); hud.show('Checkpoint opgeslagen', 2); }
+  }
+
+  function werkNoMercy5Bij(dt, sp) {
+    if (!n5Set) return;
+    if (n5.grijsT > 0) { n5.grijsT -= dt; if (n5.grijsT <= 0) hud.zetGrijs(false); }
+    if (!n5Bezig()) {
+      if (n5.hint) { praatEl.hidden = true; n5.hint = false; }
+      const p = n5Beschikbaar() ? n5EJPlek() : null;
+      if (!p) {
+        // (na afloop: Erik Jan en de cameraman pas weg als je ver genoeg bent)
+        for (const q of [n5EJ, n5Cam]) if (q.groep.visible && q.groep.parent === scene && Math.hypot(sp.x - q.groep.position.x, sp.z - q.groep.position.z) > 45) q.groep.visible = false;
+        return;
+      }
+      if (n5.fase === 'uit') {
+        n5.fase = 'wacht';
+        n5EJ.zetNeer(p.x, p.z, p.yaw); n5EJ.legNeer(0);
+      }
+      n5EJ.groep.visible = true;
+      const dEJ = Math.hypot(sp.x - p.x, sp.z - p.z);
+      if (dEJ < 26) n5EJ.kijkNaar(sp.x, sp.z, dt, 2); else n5EJ.draaiNaar(p.yaw, dt, 1);
+      if (dEJ < 120) n5EJ.update(dt, { zwaait: dEJ < 26 && dEJ > NOMERCY5.praat });
+      const kan = n5Startbaar();
+      hud.zetEJ(kan ? { x: p.x, z: p.z } : null);
+      if (kan && !n5.gemeld && balk.hidden && !gesprek) {
+        n5.gemeld = true;
+        hud.melding('NO MERCY 5', 'Erik Jan staat op de kade in IJlst: de EJ op de kaart.', 6);
+      }
+      // na een mislukte poging pas weer als je even weg bent geweest
+      if (n5.eerstWeg) { if (dEJ > NOMERCY5.praat + 6) n5.eerstWeg = false; return; }
+      if (kan && dEJ < NOMERCY5.praat && balk.hidden && !gesprek && !player.inBoot) {
+        praatEl.textContent = 'E — praten met Erik Jan'; praatEl.hidden = false; n5.hint = true;
+      }
+      return;
+    }
+    // ---- de opnames ----
+    if (sterren() > 0 && sterrenWeg) sterrenWeg();     // de politie weet ervan
+    const opSet = N5_SET.includes(n5.fase);
+    if (opSet || n5.fase === 'naarStaf') {
+      if (player.inCar && player.inCar !== n5Staf) { n5Mislukt('Een figurant rijdt niet van de set weg.'); return; }
+      if (n5DMolen(sp) > NOMERCY5.weg) { n5Mislukt('Je ging van de set weg.'); return; }
+    }
+    const lucht = n5.fase === 'overtochtIntro' || n5.fase === 'overtocht' || n5.fase === 'molen';
+    const vlek = n5Set.update(dt, { kogels: lucht });
+    for (const g of [n5.groepA, n5.groepB]) if (g) { g.update(dt, player, true); }
+    // de sluipschutter blijft op de stelling, ook als hij neergaat
+    const sluip = n5Duitsers[1];
+    if (sluip.groep.visible && sluip.vasteGrond != null && n5.groepA) {
+      const w = n5.groepA.wachters[1];
+      if (w && w.staat !== 'neer') sluip.groep.position.y = sluip.vasteGrond;
+    }
+    nmMerk.update(dt);
+    if (n5.fase === 'overtochtIntro' || n5.fase === 'overtocht') {
+      n5BootBij(dt, sp);
+      // in de lichtvlek: Erik Jan roept, en het filmpunt is weg
+      if (n5.roepT > 0) n5.roepT -= dt;
+      if (player.inBoot && vlek && Math.hypot(sp.x - vlek.x, sp.z - vlek.z) < vlek.r) {
+        n5.lichtT += dt;
+        if (n5.lichtT >= NOMERCY5.lichtGrens) {
+          n5.punten.licht = false;
+          if (n5.roepT <= 0 && balk.hidden) { n5.roepT = NOMERCY5.lichtRoep; zeg(N5_LICHT, null, { auto: 2.2 }); }
+        }
+      } else n5.lichtT = Math.max(0, n5.lichtT - dt);
+      if (n5.fase === 'overtocht' && !player.inBoot) {
+        const a = NOMERCY5.aanleg, dA = Math.hypot(sp.x - a.x, sp.z - a.z);
+        if (dA < NOMERCY5.aanlegBereik) { n5AanWal(sp); return; }
+        if (dA > NOMERCY5.vroegVanBoord) { n5Mislukt('Je ging van boord vóór de overkant.'); return; }
+      }
+      return;
+    }
+    if (n5.fase === 'molen' || n5.fase === 'vlag' || n5.fase === 'vlagNeer' || n5.fase === 'naarStaf') {
+      nmCamBij(dt, sp, n5Cam);
+      // de camera-boot ligt stil aan de kant, met Erik Jan
+      if (n5Boot.mesh.visible) {
+        const a = Math.atan2(-(sp.x - n5Boot.x), -(sp.z - n5Boot.z)) - n5Boot.yaw;
+        n5EJ.yaw = a; n5EJ.groep.rotation.y = a; n5EJ.update(dt, {}); n5EJ.groep.position.y = n5EJ.vasteGrond ?? 0.3;
+      }
+      for (const p of n5Figuranten) p.update(dt, { zit: 1, mikt: true });
+    }
+    if (n5.fase === 'molen') {
+      n5.aanlegT += dt;
+      if (n5Over() === 0 && balk.hidden) {
+        n5.punten.snel = n5.aanlegT <= NOMERCY5.molenTijd;
+        n5.fase = 'vlag';
+        const v = n5Set.vlag;
+        nmMerk.zet(v.x, grondHoogte(v.x, v.z), v.z); nmMerk.toon(true);
+        zetOpdracht('haal de vlag neer: bij de mast (E)');
+        zeg(N5_VLAG, null, { auto: 2.6 });
+      }
+      return;
+    }
+    if (n5.fase === 'vlag') {
+      const bij = afst(sp, n5Set.vlag) < NOMERCY5.vlagBereik && balk.hidden;
+      if (bij) { praatEl.textContent = 'E — de vlag neerhalen'; praatEl.hidden = false; n5.hint = true; }
+      else if (n5.hint) { praatEl.hidden = true; n5.hint = false; }
+      return;
+    }
+    if (n5.fase === 'vlagNeer') {
+      n5.t += dt;
+      n5Set.vlagNeer(n5.t / NOMERCY5.vlagTijd);
+      if (n5.t >= NOMERCY5.vlagTijd && balk.hidden && !n5.posterGezegd) {
+        n5.posterGezegd = true;
+        zeg(N5_POSTER, () => { if (n5.fase === 'vlagNeer') n5NaarStaf(); });
+      }
+      return;
+    }
+    if (n5.fase === 'naarStaf') {
+      navKlok += dt;
+      if (navKlok > 2) { navKlok = 0; werkNavBij(); }
+      if (player.inCar === n5Staf) n5StartRit();
+      return;
+    }
+    if (n5.fase === 'rit') { n5RitBij(dt, sp); return; }
+  }
+
+  function noMercy5Toets() {
+    if (!n5Set) return false;
+    const sp = spelerPunt();
+    if (n5.fase === 'wacht' && balk.hidden && !gesprek && n5Startbaar() && !n5.eerstWeg && !player.inBoot) {
+      const p = n5EJPlek();
+      if (p && Math.hypot(sp.x - p.x, sp.z - p.z) < NOMERCY5.praat) { n5Begin(); return true; }
+      return false;
+    }
+    if (n5.fase === 'vlag' && balk.hidden && afst(sp, n5Set.vlag) < NOMERCY5.vlagBereik) {
+      if (n5.hint) { praatEl.hidden = true; n5.hint = false; }
+      nmMerk.toon(false);
+      n5.fase = 'vlagNeer'; n5.t = 0; n5.posterGezegd = false;
+      zetOpdracht('');
+      hud.melding('De vlag', 'Neer.', 2.5);
+      return true;
+    }
+    return false;
+  }
+  // los starten (shift + komma, js/main.js): meteen bij Erik Jan op de kade, ook vóór missie 12
+  function startNoMercy5Los() {
+    if (!n5Set || n5Bezig()) return false;
+    if (nmBezig()) { nmRuimOp(true); nm.fase = 'uit'; nm.pauze = null; }
+    n5.klaar = false; n5.gemeld = true; n5.fase = 'wacht'; n5.eerstWeg = false;
+    const p = n5EJPlek();
+    if (!p) return false;
+    if (gesprek) { gesprek = null; sluitBalk(); }
+    n5UitBoot();
+    player.inCar = null;
+    const vx = Math.sin(p.yaw), vz = Math.cos(p.yaw);
+    const [x, z] = resolveCollisions(p.x + vz * 2.5, p.z - vx * 2.5, 0.4);
+    player.pos.set(x, grondHoogte(x, z), z); player.yaw = kijkHoek({ x, z }, p); player.applyCamera();
+    n5EJ.zetNeer(p.x, p.z, kijkHoek(p, { x, z })); n5EJ.groep.visible = true;
+    n5Begin();
+    return true;
+  }
+
   // ---------- per beeld ----------
   /*
    De klok en de missies (stap 125: "Tijdens missie is het bepaald tijdstip en dan staat als het nodig is
@@ -11244,7 +11950,7 @@ export function initVerhaal(ctx) {
   function klokVastDoorVerhaal() {
     return !!zwart || !!titelrol || brugNaT > 0 || raceNaT > 0 || invalNaT > 0 || ronaldNaT > 0 || uitzNaT > 0
       || schaduwKlokWas !== null || invalKlokWas !== null || ronaldKlokWas !== null || uitzKlokWas !== null
-      || uitje.klokWas !== null || uitjeBezig();
+      || uitje.klokWas !== null || uitjeBezig() || n5Bezig();
   }
   // waarom de speler de tijd nu niet kan verzetten (T, de instellingen), of null
   function tijdVast() {
@@ -11372,7 +12078,7 @@ export function initVerhaal(ctx) {
       return;
     }
     // pauze tussen twee missies: na de boerderij belt Johan (niet tijdens een klus)
-    if (naMissieT > 0 && !klusjes.bezig && !nmBezig() && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
+    if (naMissieT > 0 && !klusjes.bezig && !nmBezig() && !n5Bezig() && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
       naMissieT -= dt;
       if (naMissieT <= 0) startMissie(naMissieNaam, { vanzelf: true });
       else werkVroegBij();
@@ -11386,6 +12092,8 @@ export function initVerhaal(ctx) {
     const sp = spelerPunt();
     // No Mercy 4: Erik Jan, zijn telefoontje en de opnames in het Tinga-bos (stap 140)
     werkNoMercyBij(dt, sp);
+    // No Mercy 5: Erik Jan op de kade in IJlst en de opnames bij De Rat (stap 142)
+    werkNoMercy5Bij(dt, sp);
     const dMark = afst(sp, mark.groep.position);
     const opTerrein = poort ? inPolygoon(sp.x, sp.z, poort.hek) : false;
 
@@ -11552,7 +12260,7 @@ export function initVerhaal(ctx) {
 
     // een missie die onder zijn M op je wacht, wacht ook tijdens een klus (js/klusjes.js)
     // (en tijdens de opnames van No Mercy 4, stap 140)
-    const wachtOpKlus = (klusjes.bezig || nmBezig()) && missie !== 'klaar';
+    const wachtOpKlus = (klusjes.bezig || nmBezig() || n5Bezig()) && missie !== 'klaar';
 
     // ---- missie 5: Johan en de dief ----
     if (missie === 'johan' && !wachtOpKlus) werkJohanBij(dt, sp);
@@ -11714,6 +12422,8 @@ export function initVerhaal(ctx) {
       noMercyKlaar: nm.klaar, noMercyGebeld: nm.gebeld, noMercyBel: !nm.gebeld && Number.isFinite(nm.belT),
       // (stap 141) koos je aan het eind de M1? Het geweer zelf zit in de wapens van js/opslag.js
       noMercyM1: nm.m1,
+      // No Mercy 5 (stap 142): gedaan, de melding al gegeven, en of je de stafauto koos (de auto zelf zit in js/garage.js)
+      noMercy5Klaar: n5.klaar, noMercy5Gemeld: n5.gemeld, noMercy5Staf: n5.staf,
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
       raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
@@ -11730,7 +12440,10 @@ export function initVerhaal(ctx) {
     geladenIn = null;
     // No Mercy 4: de set weg; de wapens komen uit de opslag (js/opslag.js zette ze al), dus niets teruggeven
     nmRuimOp(false); nm.fase = 'uit'; nm.pauze = null; nm.navOver = null;
+    // No Mercy 5 (stap 142): ook die set weg
+    n5RuimOp(false); n5.fase = 'uit'; n5.pauze = null; n5.eerstWeg = false;
     if (!s) return;
+    n5.klaar = !!s.noMercy5Klaar; n5.gemeld = !!s.noMercy5Gemeld; n5.staf = !!s.noMercy5Staf;
     nm.klaar = !!s.noMercyKlaar; nm.gebeld = !!s.noMercyGebeld; nm.m1 = !!s.noMercyM1;
     // het telefoontje komt alleen als het bij het opslaan nog aftelde; een oude opslag van na missie 5 krijgt alleen de EJ
     nm.belT = !nm.gebeld && s.noMercyBel ? NOMERCY.belNa : Infinity;
@@ -12084,6 +12797,7 @@ export function initVerhaal(ctx) {
     if (zwart || titelrol || document.body.classList.contains('film')) return 'tijdens een filmbeeld';
     if (doodT > 0 || misluktT > 0 || keuzeOpen || player.health <= 0) return 'nu even niet';
     if (nmBezig()) return 'tijdens de opnames van No Mercy 4';
+    if (n5Bezig()) return 'tijdens de opnames van No Mercy 5';
     /*
      Net na een missie, tot het zwart en de ochtend (stap 122): het checkpoint werd een tel na GESLAAGD
      geschreven, en na het laden was het nog 01:00, met de klok stil en zonder "De volgende ochtend".
@@ -12127,6 +12841,7 @@ export function initVerhaal(ctx) {
     */
     get openKeuze() {
       if (nm.fase === 'keuze') return [euro(NOMERCY.beloning), 'de M1 Garand houden'];
+      if (n5.fase === 'keuze') return [euro(NOMERCY5.beloning), 'de stafauto houden'];
       if (uitje.fase === 'keuze') return ['de wedstrijd', 'de bank'];
       if (geldKiezen) return GELDRACE_INLEG.map(euro);
       if (missie === 'race' && fase === 'keuze') return ['nog een keer, dubbel of niks', `${euro(raceSchuld)} betalen`];
@@ -12146,9 +12861,19 @@ export function initVerhaal(ctx) {
     */
     spuitPrijs: (auto) => (missie === 'bx' && auto && auto === bxAuto ? BX_SPUIT : klusjes.spuitPrijs(auto)),
     // de klusjes (js/klusjes.js): X breekt er een af
-    klusAfbreken: () => noMercyAfbreken() || klusjes.afbreken(),
+    klusAfbreken: () => noMercyAfbreken() || noMercy5Afbreken() || klusjes.afbreken(),
     // No Mercy 4 (stap 140): los starten (shift + punt), en voor tools/nomercytest.mjs de stand
     startNoMercy: () => startNoMercyLos(),
+    // No Mercy 5 (stap 142): los starten (shift + komma), en voor tools/nomercy5test.mjs de stand
+    startNoMercy5: () => startNoMercy5Los(),
+    get noMercy5() {
+      return { fase: n5.fase, klaar: n5.klaar, gemeld: n5.gemeld, stafGekozen: n5.staf, punten: n5.punten ? { ...n5.punten } : null,
+        takes: n5.takes, bezig: n5Bezig(), beschikbaar: n5Beschikbaar(), startbaar: n5Startbaar(), ejPlek: n5EJPlek(),
+        molen: n5Molen, set: n5Set, ej: n5EJ, cam: n5Cam, duitsers: n5Duitsers, figuranten: n5Figuranten, boot: n5Boot,
+        staf: n5Staf, camAuto: n5CamAuto, motoren: n5Motoren, groepA: n5.groepA, groepB: n5.groepB, lijn: n5Lijn(),
+        ruit: n5Ruit(), camS: n5.camS, sP: n5.sP, uitT: n5.uitT, lichtT: n5.lichtT, aanlegT: n5.aanlegT, pak: n5.pak,
+        sloep: n5Sloep(), merk: nmMerk };
+    },
     get noMercy() {
       return { fase: nm.fase, klaar: nm.klaar, gebeld: nm.gebeld, belT: nm.belT, leen: nm.leen, levens: nm.levens.slice(),
         golf: nm.golf, uitgang: nm.uitgang, bos: nmBosKaart(), set: nmSet, ej: nmEJ, cam: nmCam, duitsers: nmDuitsers, c4: nmC4,

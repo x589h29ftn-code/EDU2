@@ -1917,6 +1917,13 @@ window.addEventListener('keydown', e => {
     if (verhaal.startNoMercy && verhaal.startNoMercy()) hud.show('Bijmissie — No Mercy 4', 3.5);
     return;
   }
+  // en de komma ervoor (stap 142): de bijmissie No Mercy 5, meteen bij Erik Jan op de kade in IJlst
+  if (e.code === 'Comma') {
+    e.preventDefault();
+    politie.reset();
+    if (verhaal.startNoMercy5 && verhaal.startNoMercy5()) hud.show('Bijmissie — No Mercy 5', 3.5);
+    return;
+  }
   const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);
   if (!cijfer) return;
   e.preventDefault();
