@@ -61,12 +61,15 @@ const LIJST = [
   ['politieshots', 'politie_blokkade', '15_politie_blokkade', 'Politie', 'Wegversperring vanaf drie sterren.'],
   ['helishots', 'heli_zoeklicht', '15b_politie_heli', 'Politie', 'Vanaf vier sterren komt de heli.'],
   ['missieshots', 'sterren_voor', '15c_sterren', 'Politie', 'De sterren onder de minikaart.'],
+  ['politieslimshots', 'politie_verstopt', '15d_verstopt', 'Politie', 'Gehurkt in een struik: VERSTOPT. Ze lopen je op een paar meter voorbij.'],
+  ['politieslimshots', 'politie_zaklamp', '15e_zaklamp', 'Politie', "'s Nachts zoeken ze met een zaklamp: in de bundel zien ze je, ernaast niet."],
   ['legendatest', 'legenda', '16_kaart_legenda', 'Plekken / speldjes', 'De grote kaart met de legenda onderaan.'],
   ['verhaalshots', 'kaart_route', '16b_kaart_route', 'Plekken', 'Een paarse route naar je doel.'],
   ['verhaalshots', 'molenkrite15', '17_molenkrite15', 'Plekken', 'Molenkrite 15.'],
   ['woningshots', 'wieken29_woonkamer', '17b_wieken29', 'Plekken', 'De woonkamer van de Wieken 29.'],
   ['viaductshots', 'viaduct_dek', '17c_duvelsrak', 'Plekken', 'De Dúvelsrak (Viaduct Tinga).'],
-  ['wensen5shots', 'wensen5_tinganieuws', '18_tv_thuis', 'Handig', 'Tinga Nieuws op de tv thuis.'],
+  // (het doek van de tv zelf, 512 × 288: een inzet van 4 cm, geen foto over de breedte)
+  ['wensen5shots', 'wensen5_tinganieuws', '18_tv_thuis', 'Handig', 'Tinga Nieuws op de tv thuis.', { inzet: true }],
   ['nachtshots', 'nacht_straat', '18b_nacht', 'Handig', 'Tinga bij nacht.'],
   ['omgevingshots', 'licht_ochtend', '18c_ochtend', 'Handig', 'Een ochtend in de wijk.'],
   ['nomercyshots', 'nomercy_flak', '19_nomercy', 'Geld verdienen', 'No Mercy 4: de set in het Tinga-bos.'],
@@ -140,7 +143,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH 
 const page = await browser.newPage();
 let fouten = 0;
 const regels = [];
-for (const [s, bron, naam, hoofdstuk, onder] of LIJST) {
+for (const [s, bron, naam, hoofdstuk, onder, extra] of LIJST) {
   const pad = `${RUW}/${bron}.png`;
   if (!existsSync(pad)) { console.log(` FOUT  ${naam}: geen ${bron}.png van ${s}`); fouten++; continue; }
   const data = readFileSync(pad).toString('base64');
@@ -154,9 +157,10 @@ for (const [s, bron, naam, hoofdstuk, onder] of LIJST) {
     return { url: c.toDataURL('image/jpeg', 0.92), b: c.width, h: c.height };
   }, data);
   writeFileSync(`${FOTO}/${naam}.jpg`, Buffer.from(uit.url.split(',')[1], 'base64'));
-  const klein = uit.b < 1748;           // (minder dan 300 dpi over de volle breedte van een A5-pagina)
+  const klein = uit.b < 1748 && !(extra && extra.inzet);   // (minder dan 300 dpi over de volle breedte van een A5-pagina)
   if (klein) { console.log(` FOUT  ${naam}: maar ${uit.b} × ${uit.h}`); fouten++; }
-  regels.push(`| ${naam}.jpg | ${hoofdstuk} | ${onder} | ${uit.b} × ${uit.h} (${dpiA5(uit.b)} dpi op A5-breedte) | \`${s}\` → ${bron} |`);
+  const maat = extra && extra.inzet ? `${uit.b} × ${uit.h} (inzet: ${(uit.b / 300 * 2.54).toFixed(1)} cm op 300 dpi)` : `${uit.b} × ${uit.h} (${dpiA5(uit.b)} dpi op A5-breedte)`;
+  regels.push(`| ${naam}.jpg | ${hoofdstuk} | ${onder} | ${maat} | \`${s}\` → ${bron} |`);
 }
 await browser.close();
 

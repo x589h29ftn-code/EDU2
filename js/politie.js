@@ -472,7 +472,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         }
       }
       const score = (dichtbij ? 0 : geheugen.score(ank.x, ank.z, x, z, anderen)) + Math.random() * 4;
-      if (score > besteScore) { besteScore = score; beste = { x, z }; }
+      if (score > besteScore) { besteScore = score; beste = tuin ? { x, z, tuin: true } : { x, z }; }
     }
     e.doel = beste;
     e.zoekT = 14 + Math.random() * 12;
@@ -1736,7 +1736,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         const vorige = a.vorigePlek || (a.vorigePlek = { x: pos.x, z: pos.z, t: 0 });
         vorige.t += dt;
         if (vorige.t > 3) {
-          if (Math.hypot(pos.x - vorige.x, pos.z - vorige.z) < 2 && dSp > 70 && !a.wagen) { ruimAgent(a); continue; }
+          // (stap 144: niet wie nog een eigen auto heeft, die loopt straks terug)
+          if (Math.hypot(pos.x - vorige.x, pos.z - vorige.z) < 2 && dSp > 70 && !a.wagen && !a.eigenAuto) { ruimAgent(a); continue; }
           vorige.x = pos.x; vorige.z = pos.z; vorige.t = 0;
         }
         // een eigen zoekpunt: zolang hij nog aan het uitrukken is blijft dat
@@ -1750,8 +1751,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         const eindDoel = a.doel;
         const snelheid = a.staat === 'naarPlek' ? REN : LOOP;
         const doel = voetPunt(a, pos, eindDoel, dt);
+        // (stap 144) een punt in een tuin moet hij echt halen; op straat is in de buurt genoeg
         const erIs = loopNaar(a, doel, dt, snelheid)
-          && Math.hypot(eindDoel.x - pos.x, eindDoel.z - pos.z) < 6;
+          && Math.hypot(eindDoel.x - pos.x, eindDoel.z - pos.z) < (eindDoel.tuin ? 1.5 : 6);
         // het wapen komt pas omhoog waar hij daadwerkelijk staat te zoeken, of
         // als je in de buurt bent; onderweg naar zijn zoekpunt loopt hij gewoon
         persoon.update(dt, { loopt: !erIs, mikt: a.staat === 'zoekt' && (erIs || dSp < 40), snelheid });

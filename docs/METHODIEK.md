@@ -8620,6 +8620,75 @@ Mercy werd die waarde nergens gebruikt, maar nu is het 0.
 twintig tellen gevecht nooit dichter dan 1,39 m, tien rode flitsen bij leven 100 in No Mercy 4 en twee in No Mercy 5, een gewone
 Bewaking duwt niemand weg, een machinegeweer met schade 0 raakt 112 keer zonder schade). Ook groen: `nomercy2test` (73 controles, het bunkerdorp met de nieuwe stafauto en de figuranten die uit elkaar blijven).
 
+**Nieuwe foto's voor het boekje (stap 143, 12 okt).**
+
+Gevraagd: "voor het boekje nieuwe foto's maken, de huidige zijn deels outdated. Zorg ook voor een hoge kwaliteit map foto", en
+later: "kan je het ook sneller doen door meer agents of resolutie verlagen? Komt in een a5 boekje".
+
+`tools/boekjeshots.mjs` (`npm run boekjeshots`) draait de bestaande fotoscripts opnieuw met `SHOT_B × SHOT_H` en een eigen map
+(`docs/boekje/ruw`, niet in git), zet de gekozen opnamen om naar JPEG (0,92, op een canvas in de browser) in `docs/boekje/foto/` en
+schrijft `docs/boekje/fotolijst.md` met maat, dpi op A5 en de bron. Een script waarvan alle opnamen er al zijn slaat het over, zodat
+een onderbroken ronde verder kan; de kaart komt uit `tools/geo/printkaart.mjs` op 1 px/m.
+
+*Wat misging.* (1) Eerst op 2400 × 1350 en twee tegelijk: de helft van de scripts in drie uur. A5 is 148 mm breed; 300 dpi over de
+volle breedte is 1748 px, dus 1920 × 1080 is genoeg (330 dpi), en drie tegelijk. Meer agenten helpen niet: het is dezelfde
+container met vier kernen. (2) Een schermafdruk op die maat duurt langer dan de standaard 30 s van Playwright, en het opstarten met
+drie tegelijk langer dan 120 s: alle fotoscripts wachten nu tien minuten. (3) De server was na een herstart van de container weg
+(curl exit 7). (4) `poiesz` bestond niet als opname; het werd `terras_poiesz`. (5) `verhaalshots` valt bij missie 5 om (`johan` is
+daar null); de twee opnamen die het boekje eruit nodig heeft staan ervoor. (6) Het tv-doek van Tinga Nieuws is 512 × 288: geen foto
+maar het scherm zelf, als inzet van 4 cm (`{ inzet: true }`).
+
+**De politie slimmer (stap 144, 12 okt).**
+
+Gevraagd, na een rondgang langs js/politie.js: "Bouw 1, 2, 3, 4, 5, 8. Zorg wel dat het nog te doen is om weg te komen. Dus
+verstoppen in bosjes, het bos, gehurkt ergens achter. Moet allemaal bijdragen. Laat politie ook terug naar auto keren om achter je
+aan te gaan als je vol uit beeld bent. Laat ze je ook proberen te rammen indien handig." Halverwege: "negeer lekke band, voeg dat
+niet toe" — de spijkermat bij de versperring (die tot een lekke band leidde) is er weer uit.
+
+De losse stukken staan in `js/politieslim.js` (getallen in `SLIM`), js/politie.js haakt ze in:
+
+- *Zicht.* `zichtAfstand`: overdag 42 m zoals altijd; 's nachts 20, onder een brandende lantaarn 34 (`lantaarnBij`), in de bundel
+  van een zaklamp 32, een auto 's nachts 36 (koplampen); regen een vijfde minder. `verstop` kijkt waar de speler staat (één keer per
+  beeld): in een struik (de 19.000 uit `KAART.struiken`, zonder botsdoos) gehurkt 2,5 m, staand een derde; in het bos (vijf bomen
+  binnen 8 m) de helft, gehurkt 0,3; onder een kroon 0,9; gehurkt 0,85; rennen valt op. `struikOpLijn`: gehurkt achter een bosje
+  houdt het de kijklijn tegen. De heli ziet je in een struik niet.
+- *De zaklamp.* Een kegel aan de agent, 's nachts zichtbaar, met precies het materiaal van het zoeklicht van de heli (geen nieuw
+  programma), `raycast` uit zodat kogels erdoor gaan. Wagens tellen hun koplampen als zo'n bundel.
+- *Dekking.* `zoekDekking`: veertien plekken rond de aanvaller; goed is een plek waar hij op 0,7 m hoogte gedekt is en op 1,45 m (of
+  een stap opzij, `piek`) de speler ziet, op 7–28 m. Daar zit hij laag (`a.laag`), komt voor een schot een halve tel omhoog (`opT`)
+  en schiet nooit vanuit zijn dekking. Een schot van de speler binnen 18 m laat wie met hem vecht 1,6 s wegduiken (hoogstens om de
+  4 s, anders hield een machinegeweer ze eeuwig plat).
+- *Raak schieten.* `raakKans`: de oude formule maal de opbouw (`richtT`: na 3 s zien op vol, het eerste schot op 35 %), rennen 0,6,
+  lopen 0,85, stil in het open 1,2, een auto 0,9/0,55/0,35 naar de vaart, gehurkt 0,75, gedekt 0,5, onder vuur 0,5, donker 0,8; nooit
+  boven 0,8.
+- *Zoeken.* `ZoekGeheugen` stempelt om de halve tel de vakken (20 m) waar eenheden staan, en onthoudt bij het kwijtraken de richting.
+  `nieuwZoekpunt` trekt zes kandidaten (drie in de eigen sector, drie in de vluchtrichting) en kiest op de score: een vers vak −60,
+  de vluchtrichting tot +30 (afnemend over 40 s), een punt waar een collega heen gaat −25. Ligt de hele sector in verse vakken, dan
+  nog zes rondom. Agenten te voet dicht bij het anker zoeken de helft van de tijd in de tuinen, en zo'n punt moeten ze tot 1,5 m halen
+  (op straat is 6 m genoeg). `omsingel`: bij het kwijtraken vanaf twee sterren gaat de helft van de wagens posten op kruisingen
+  ~90 m rond de plek (eerst in de vluchtrichting), 22 s.
+- *De looproute.* `voetPunt`: binnen 70 m `zoekLooppad` uit js/looppad.js (hoogstens één nieuwe route per beeld), anders het
+  wegennet; met vrij zicht binnen 25 m recht erop af.
+- *Terug naar de auto.* Bij uitstappen onthoudt de bemanning zijn wagen (`eigenAuto`). Na 5 s helemaal uit beeld als je wegreed
+  (`vluchtInAuto`), of na 16 s, lopen ze terug (`naarAuto`), stappen in (`inAuto`, onzichtbaar) en als de levende bemanning zit wordt
+  de lege wagen weer een eenheid (`weerInDeWagen`). Steel je hem eerder, dan stapt wie erin zat uit.
+- *Rammen en insluiten.* Vanaf twee sterren, als hij al ongeveer op je af rijdt en je langzaam rijdt of hij sneller is: vol gas op
+  waar je zo bent (`ramHandig`). Botst hij (`botsKracht`), dan gaat er vaart af van je auto en draait hij om zijn as (`ramKlapNu`);
+  js/main.js maakt er een deuk, een klap en een schok van (`pakRam`). Daarna 2,6 s afstand. Vanaf drie sterren en onder 4 m/s gaat een
+  tweede wagen vóór je neus staan. Zolang je in een auto rijdt (boven 2 m/s) stappen ze vanaf twee sterren niet uit.
+
+Wegkomen blijft te doen, en daar is elke regel op gemeten: struik en bos, de vluchtrichting die na 40 s niets meer telt, de posten
+die na 22 s weer gaan rijden, het donker, en het terugschieten dat ze laat wegduiken.
+
+*Wat misging.* (1) De proef van het zoekgeheugen telde eerst de gemiddelde richting; die bleef gelijk, want elke agent zoekt in zijn
+eigen sector. Geteld als aandeel punten in verse vakken bleek het echt zwak (40 % tegen 48 %): een agent met een doorzochte sector had
+geen keus. Nu kijkt hij dan rondom. (2) Een zoekende agent stopte op 6 m van zijn punt en kwam zo een tuin niet in. (3) De oude regel
+"staat drie tellen stil en ver van de speler = omgelopen" ruimde een agent op die straks terug naar zijn auto moest. (4) De proef las
+de tuinvlakken als lijst van ringen; het is één ring.
+
+*Proef*: `npm run politieslimtest` (zie onder), en `npm run politietest` blijft groen. Foto's: `npm run politieslimshots`
+(politie_dekking, politie_zaklamp, politie_verstopt).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

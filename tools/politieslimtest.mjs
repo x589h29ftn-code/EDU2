@@ -364,7 +364,7 @@ const tuin = await page.evaluate(() => {
         let L = 0; for (let i = 1; i < pad.length; i++) L += Math.hypot(pad[i][0] - pad[i - 1][0], pad[i][1] - pad[i - 1][1]);
         if (L < d * 1.25) continue;
         const a = P.proef.agent(p[0], p[1]);
-        a.staat = 'zoekt'; a.doel = { x: tx, z: tz }; a.zoekT = 120; a.wacht = 0;
+        a.staat = 'zoekt'; a.doel = { x: tx, z: tz, tuin: true }; a.zoekT = 120; a.wacht = 0;
         // staat hij ergens in het tuinvlak (of op een meter ervan)?
         const binnen = (x, z) => {
           let ja = false;
@@ -418,6 +418,7 @@ const terug = await page.evaluate(() => {
   window.__stap(30 * 30, 1 / 30, (i) => {
     t = i / 30;
     for (const a of bemanning) staten.add(a.staat);
+    if (bemanning.some(a => !a.persoon.groep.visible)) staten.add('inAuto');   // (instappen kan in hetzelfde beeld als wegrijden)
     if (!weer) weer = P.intern.wagens.find(x => x.car === car) || null;
   });
   const res = {

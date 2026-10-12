@@ -197,22 +197,26 @@ Een klusje breek je af met **X**. Er komt nooit twee keer dezelfde soort achter 
 | 4 | **helikopter** boven de wijk (zoeklicht 's nachts); agenten met machinepistool |
 | 5 | de halve wijk is op zoek |
 
-De agenten werken in **paren**: eentje komt recht op je af, de ander zoekt dekking en probeert je te flankeren.
+De agenten werken in **paren**: eentje zoekt dekking achter een auto of muurtje en komt alleen omhoog om te schieten, de ander probeert je te flankeren. Vanaf twee sterren rammen ze je auto als het handig is, en vanaf drie zetten ze je klem als je stilstaat.
 
 **Afschudden**
 - Blijf **uit het zicht**. Zolang niemand je ziet, loopt de verdenking terug en rijden ze weg.
 - Zien ze je opnieuw, dan begint het aftellen weer van voren af aan.
 - **Overspuiten** bij de wasbox achter de BP haalt alle sterren weg: € 100 per ster. Niet als er politie vlak naast de box staat.
-- Tegen de heli helpt: bukken, onder een dak of luifel staan, of de wasbox in.
+- Tegen de heli helpt: bukken, onder een dak of luifel staan, in een struik zitten, of de wasbox in.
+- **Verstoppen:** gehurkt (C) in een struik zien ze je pas op een paar meter; in het bos veel minder ver. Onder de sterren staat dan VERSTOPT.
+- Ze zoeken eerst in de richting waarin je verdween: sla een hoek om en ga de andere kant op.
+- 's Nachts zien ze minder ver, behalve onder een lantaarn of in de bundel van hun zaklamp. Let op het licht.
+- Ben je helemaal uit beeld, dan lopen ze terug naar hun auto. Dat is je kans.
 
 **Tips**
 - Een agent neerschieten is de duurste misdaad. Laat het.
 - Bij drie sterren moet je kiezen: er omheen rijden of te voet de wijk in.
-- Blijf niet staan: de politie zoekt eerst de laatste plek waar ze je zagen.
+- Blijf niet staan in het open: daar raken ze je het makkelijkst. Rennen, gehurkt zitten en dekking maken je lastiger te raken, en terugschieten laat ze even wegduiken.
 - Rij je een wegversperring tegemoet, remt dan op tijd.
 - Voor een missie met politie zorg je dat je leven vol is en je kogels aangevuld.
 
-*Foto's: 15_politie_blokkade.jpg, 15b_politie_heli.jpg, 15c_sterren.jpg*
+*Foto's: 15_politie_blokkade.jpg, 15b_politie_heli.jpg, 15c_sterren.jpg, 15d_verstopt.jpg, 15e_zaklamp.jpg*
 
 ---
 
