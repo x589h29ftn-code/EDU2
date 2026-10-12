@@ -228,8 +228,16 @@ export function maakAutoBinnen(maat) {
   if (!maat.sport) {
     // console tussen de stoelen, met de pook erop
     doos(groep, M.kunststof, 0.30, 0.16, 0.58, 0, vloerY + 0.12, cabZ - 0.30);
-    doos(groep, M.zwart, 0.035, 0.20, 0.035, 0, vloerY + 0.28, cabZ - 0.40);
-    doos(groep, M.zwart, 0.055, 0.05, 0.055, 0, vloerY + 0.38, cabZ - 0.40);
+    /*
+     De pook (stap 146): een dunne ronde stang met een bol en een rubberen hoes, geen balkje van 3,5 cm in het vierkant
+     met een blokje erop: van de stoel af leek dat een stijl midden in de auto.
+    */
+    const hoes = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.05, 0.07, 12), M.zwart);
+    hoes.position.set(0, vloerY + 0.235, cabZ - 0.40); groep.add(hoes);
+    const stang = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.011, 0.15, 8), M.chroom);
+    stang.position.set(0, vloerY + 0.34, cabZ - 0.41); stang.rotation.x = -0.12; groep.add(stang);
+    const bol = new THREE.Mesh(new THREE.SphereGeometry(0.028, 14, 10), M.zwart);
+    bol.position.set(0, vloerY + 0.42, cabZ - 0.42); groep.add(bol);
     // handrem
     doos(groep, M.zwart, 0.035, 0.035, 0.24, 0.02, vloerY + 0.24, cabZ - 0.12, -0.35);
   }
@@ -315,6 +323,9 @@ export function maakAutoBinnen(maat) {
   const oogY = (maat.oog && maat.oog.y) || (schouderY + 0.27);
   const spiegelY = Math.min(hemelY - 0.03, Math.max(hemelY - 0.075, oogY + 0.10));
   doos(groep, M.zwart, 0.22, 0.065, 0.035, 0, spiegelY, voor + 0.02);
+  // (stap 146) het spiegelglas aan de kant van de bestuurder, een tikje schuin naar hem toe
+  const glasSp = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.05), M.chroom);
+  glasSp.position.set(0, spiegelY, voor + 0.039); glasSp.rotation.y = -0.12; groep.add(glasSp);
   const klepY = Math.min(hemelY - 0.022, Math.max(hemelY - 0.035, oogY + 0.05));
   if (!maat.sport) for (const sx of [-1, 1]) {
     doos(groep, M.hemel, 0.36, 0.015, 0.16, sx * 0.34, klepY, voor + 0.08, -0.16);

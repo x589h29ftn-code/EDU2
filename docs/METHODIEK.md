@@ -8722,6 +8722,36 @@ de ruitrand van 1,44, de klok op 0,69 m vóór je, het stuur recht voor je, de p
 stuuruitslag van 0,4, de naald halverwege bij 50 km/u, de spiegel boven je ogen, 27 meshes met de materiaalregels), alles goed.
 Foto: `npm run stafautoshots` maakt nu ook nomercy5_stafauto_binnen.png.
 
+**De interieurs van alle auto's nagelopen (stap 146, 13 okt).**
+
+Gevraagd: "Kijk daarna ook naar de interieurs van de andere auto's of je die kan verbeteren." `npm run binnenshots` maakt van
+elke soort een foto uit de ogen van de bestuurder (alleen de modellen op een lege pagina); de vuilniswagen is niet te besturen en
+heeft er dus geen nodig. Gemeten (het stuur en de klokken ten opzichte van de ogen, en stralen recht vooruit) en gevonden:
+
+- *De ambulance*: het stuur stond 16 cm voor je ogen en 71° omlaag, de klokken 61°: recht vooruit kijkend geen dashboard. js/autobinnen.js
+  zet het stuur op cabZ − cabL/2 + 0,565 en de bestuurder op cabZ + 0,04, en de cabine van de ambulance was in zijn maten maar
+  1,20 m. Nu 2,15 m (cabZ −1,075; het dashboard op 1,85, waar de voorruit op schouderhoogte begint) en de ogen op 1,70: het stuur
+  0,55 m en 34° omlaag, als in de andere auto's. De buitenkant hangt niet aan die maten.
+- *De bestelbus*: zijn motorkap lag op schouderY + 0,30 = 1,80 m, terwijl de voorruit op 1,50 begint: een balk dwars door de
+  voorruit, en van buiten dekte hij het onderste stuk glas af. Nu schouderY + 0,04.
+- *De pook*: een balkje van 3,5 cm in het vierkant met een blokje erop, dat vanaf de stoel als een stijl midden in de auto stond.
+  Nu een ronde stang met een bol en een hoes. De binnenspiegel kreeg glas.
+- *De stafauto*: het stuur stond op 32 cm en 43° omlaag en de snelheidsmeter recht vooruit kijkend buiten beeld; de ogen staan nu
+  10 cm verder naar achter en 7 cm lager (`STAF.oog`, 1,25 m).
+
+Niet gedaan: benen onder het stuur. De cabines zijn samengedrukt (in de hatchback ligt de zitting hoger dan de onderkant van het
+stuur), dus benen zouden plat liggen of door het stuur steken.
+
+*Wat misging.* De eerste versie van de proef telde elk stuk carrosserie in de kijklijn als een balk, ook de lange motorkap van de
+Ferrari onder de raamlijn; nu alleen wat meer dan 10 cm boven de raamlijn ligt (de balk van de bus lag er 30 cm boven).
+`npm run autoechttest` is rood op één controle ("zeven meshes per auto": het zijn er acht), ook zonder deze ronde: dat stamt van
+een eerdere stap; de raamcontroles voor de bus zijn groen.
+
+*Proef*: `npm run binnentest` (acht soorten, 46 controles: een interieur dat uit staat tot je erin zit, het stuur 0,38–0,70 m vóór
+je en 20–40° omlaag, de klokken hoogstens 33° omlaag, vrij zicht door de voorruit, stuur en naald die meelopen, de pook), alles
+goed; `npm run stafautotest` blijft groen. Foto's: `npm run binnenshots` (binnen_hatch, _van, _bx, _gti, _truck, _ferrari,
+_ambulance; met `BUITEN=1` van buiten), en nomercy5_stafauto_binnen.png opnieuw.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

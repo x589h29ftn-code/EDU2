@@ -299,6 +299,18 @@ opening met de stijlen eromheen, alsof de ramen openstaan — en dat is precies
 wat je in een spel wilt. Ze komen terug zodra je uitstapt of naar de camera
 achter de auto gaat.
 
+**Elke soort nagelopen** (stap 146). In de **ambulance** stond het stuur onder je kin en zag je recht vooruit kijkend
+geen dashboard: nu zit je er net als in de andere auto's een halve meter achter. In de **bestelbus** lag de motorkap
+op 1,80 m, een blauwe balk dwars door de voorruit (ook van buiten dekte hij het glas af): nu ligt hij net boven de
+raamlijn. De **pook** is een dunne stang met een bol en een rubberen hoes, en de **binnenspiegel** heeft spiegelglas.
+In de **stafauto** zit je wat verder van het stuur, zodat de snelheidsmeter in beeld blijft.
+
+| Hatchback | Bestelbus | Ambulance |
+|---|---|---|
+| ![Hatchback](docs/screenshots/binnen_hatch.png) | ![Bestelbus](docs/screenshots/binnen_van.png) | ![Ambulance](docs/screenshots/binnen_ambulance.png) |
+| **BX** | **Vrachtwagen** | **Ferrari** |
+| ![BX](docs/screenshots/binnen_bx.png) | ![Vrachtwagen](docs/screenshots/binnen_truck.png) | ![Ferrari](docs/screenshots/binnen_ferrari.png) |
+
 ![Rijden vanuit de auto](docs/screenshots/auto_eerstepersoon.png)
 
 ## De wapens

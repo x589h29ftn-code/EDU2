@@ -424,7 +424,12 @@ function autoGeoms(kind) {
      te herkennen is. Een negatieve kanteling om de x-as zet de voorkant omlaag
      (y' = z·sin θ voor de voorste rand op −z).
     */
-    { geo: rdoos(W - 0.20, 0.11, kapL, 0.05), y: schouderY + (bus ? 0.30 : (bx ? -0.02 : 0.02)), z: kapZ, rx: bx ? -0.085 : 0 }, // motorkap
+    /*
+     (stap 146) De bus had zijn motorkap op schouderY + 0,30 (1,80 m): 30 cm boven de onderrand van de voorruit, dus van
+     binnen lag er een blauwe balk dwars door de voorruit, en van buiten dekte hij het onderste stuk glas af. Nu ligt hij
+     net als bij de andere auto's net boven de schouderlijn.
+    */
+    { geo: rdoos(W - 0.20, 0.11, kapL, 0.05), y: schouderY + (bus ? 0.04 : (bx ? -0.02 : 0.02)), z: kapZ, rx: bx ? -0.085 : 0 }, // motorkap
     { geo: rdoos(W - 0.14, 0.20, kontL, 0.07), y: schouderY + 0.09, z: kontZ },     // kofferklep
     /*
      Het dak. Het was W − 0,40 breed (1,38 m) terwijl de zijruiten op ±0,79
@@ -1090,8 +1095,14 @@ function ambulanceGeoms() {
   const hubGeo = naafGeo(R);
 
   // de maten voor het interieur (js/autobinnen.js); de bestuurder zit hoog, zoals in een bus
-  const schouderY = 1.34, cabDak = 2.04, cabZ = -1.42, cabL = 1.20;
-  const oog = { x: -(W / 2 - 0.56), y: 1.86, z: -1.30 };
+  /*
+   (stap 146) De cabine was hier 1,20 m lang, terwijl js/autobinnen.js het stuur op cabZ − cabL/2 + 0,565 zet en de
+   bestuurder op cabZ + 0,04: het stuur stond 16 cm voor je ogen en 71° onder de horizon, onder je kin, en recht vooruit
+   kijkend zag je geen dashboard. Met 2,15 m staat het dashboard op 1,85 (waar de voorruit op schouderhoogte begint) en
+   het stuur 55 cm voor je, net als in de andere auto's.
+  */
+  const schouderY = 1.34, cabDak = 2.04, cabZ = -1.075, cabL = 2.15;
+  const oog = { x: -(W / 2 - 0.56), y: 1.70, z: cabZ + 0.04 };
   const maat = { L, W, R, dakY: cabDak, schouderY, flankY: 1.0, dorpelY: 0.62, cabZ, cabL, aHoek: 0.65, stijlH: cabDak - schouderY, oog, bus: true,
     // voor js/ambulance.js: waar de vlakke zijden, het dak, de motorkap en de achterdeuren liggen
     amb: { zijX, voorZ: voorV, achterZ: achterV, dakY: dakY + rand, dakVoorZ: -0.95, kapA: { z: voorZ + 0.18, y: 1.03 + rand }, kapB: { z: -2.04, y: 1.20 + rand },

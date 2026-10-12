@@ -428,7 +428,9 @@ const STAF = {
   zij: { z0: -1.87, z1: 1.87, y0: 0.30, y1: 1.02 },      // het vlak waar het zijdoek overheen ligt
   riem: 0.98,                                             // de bovenrand van de kuip
   ruit: { z: -0.62, y0: 0.98, h: 0.46 },                  // de voorruit
-  oog: { x: -0.36, y: 1.32, z: -0.1 },                    // de ogen van de bestuurder (js/main.js zet daar de camera)
+  // de ogen van de bestuurder (js/main.js zet daar de camera); stap 146: 10 cm naar achter en 7 cm lager, anders stond het
+  // stuur op 32 cm onder je kin en viel de snelheidsmeter recht vooruit kijkend buiten beeld (tools/binnentest.mjs)
+  oog: { x: -0.36, y: 1.25, z: 0.0 },
 };
 function stafZijDoek() {
   const Z = STAF.zij, W = 1024, H = Math.round(W * (Z.y1 - Z.y0) / (Z.z1 - Z.z0));
