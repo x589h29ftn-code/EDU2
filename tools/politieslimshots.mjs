@@ -94,8 +94,9 @@ await opname('politie_dekking', `
   const a1 = P.proef.agent(0, 0), a2 = P.proef.agent(0, 0);
   zet(a1, auto.x - fx * 1.7 * k + lx * 0.9, auto.z - fz * 1.7 * k + lz * 0.9, 0.6);
   zet(a2, auto.x - fx * 1.7 * k - lx * 2.6, auto.z - fz * 1.7 * k - lz * 2.6, 0);
-  const van = [sp.x - lx * 3, 1.55, sp.z - lz * 3];
-  return (${kijk})(van, [auto.x - fx * 1.2 * k, 0.9, auto.z - fz * 1.2 * k]);
+  // zes meter van de auto, een stap opzij: de gehurkte achter de motorkap, de staande ernaast
+  const van = [auto.x + fx * 6.5 * k - lx * 2.5, 1.5, auto.z + fz * 6.5 * k - lz * 2.5];
+  return (${kijk})(van, [auto.x - fx * 1.0 * k - lx * 0.6, 0.8, auto.z - fz * 1.0 * k - lz * 0.6]);
 `);
 
 // 2. de zaklamp: 01:00, twee agenten op straat, de camera een eind verderop
@@ -137,12 +138,10 @@ const verstopt = await page.evaluate(`(() => {
   const a = P.proef.agent(ax, az);
   a.persoon.zetNeer(ax, az, Math.atan2(Math.sin(h), -Math.cos(h)) ); a.persoon.groep.visible = true; a.staat = 'zoekt';
   for (let i = 0; i < 20; i++) a.persoon.update(0.05, { loopt: true, mikt: true, snelheid: 1.7 });
-  const C = g.camera;
-  C.position.set(s.x, 0.85, s.z); C.lookAt(ax, 1.1, az); C.updateMatrixWorld(true);
-  g.scene.traverse(o => { if (o.material && o.material.uniforms && o.material.uniforms.maanDir) o.position.copy(C.position); });
-  W.updateLOD(C.position.x, C.position.z);
-  g.scene.updateMatrixWorld(true); g.renderer.shadowMap.needsUpdate = true;
-  g.renderer.render(g.scene, C); g.renderer.render(g.scene, C);
+  // (de hoofdlus tekent ook headless een beeld met de camera van de speler: dus de speler zelf zo neerzetten)
+  g.player.yaw = Math.atan2(-(ax - s.x), -(az - s.z)); g.player.pitch = 0.02;
+  g.player.applyCamera();
+  W.updateLOD(s.x, s.z);
   return { ziet: P.zietSpeler({ x: ax, z: az }, a.persoon.yaw, false, true), hud: !document.getElementById('verstopt').hidden };
 })()`);
 if (verstopt) {

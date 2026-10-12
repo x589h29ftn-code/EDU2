@@ -270,7 +270,7 @@ export function maakZaklamp() {
   m.userData.zaklamp = true;
   return m;
 }
-export function zetZaklampen(sterkte) { zaklampMateriaal().opacity = 0.11 * sterkte; }
+export function zetZaklampen(sterkte) { zaklampMateriaal().opacity = 0.2 * sterkte; }
 /** Staat (x, z) in de bundel van iemand op `pos` die naar `yaw` kijkt? */
 export function inBundel(pos, yaw, x, z, lengte = SLIM.zaklamp) {
   const dx = x - pos.x, dz = z - pos.z, d = Math.hypot(dx, dz);

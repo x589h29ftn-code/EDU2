@@ -1110,11 +1110,18 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     if (d < 25 && zichtVrij(pos.x, pos.z, doel.x, doel.z, 0.5)) { a.pad = null; return doel; }
     a.padT = (a.padT || 0) - dt;
     const verschoven = !a.padDoel || Math.hypot(a.padDoel.x - doel.x, a.padDoel.z - doel.z) > 4;
-    if ((a.pad === undefined || a.pad === null || verschoven || a.padT <= 0) && padBudget > 0) {
+    /*
+     Opnieuw uitrekenen als het doel verschoof, of als er (nog) geen route is. Een route naar een vast punt elke paar
+     tellen opnieuw uitrekenen ging mis: vanaf een plek vlak langs een schutting vindt de zoeker soms niets, en dan
+     gooide hij een goede route weg, liep recht op de tuin af en bleef op 3,5 m tegen de schutting staan. Een
+     mislukte poging overschrijft daarom nooit een route die er al is.
+    */
+    if ((a.pad === undefined || a.pad === null || verschoven || (!a.pad && a.padT <= 0)) && padBudget > 0) {
       padBudget--;
       const r = zoekLooppad({ x: pos.x, z: pos.z }, { x: doel.x, z: doel.z });
-      a.pad = r && r.length > 1 ? r : false;
-      a.padI = 1; a.padDoel = { x: doel.x, z: doel.z }; a.padT = a.pad ? 2.5 : 4;
+      if (r && r.length > 1) { a.pad = r; a.padI = 1; a.padT = 2.5; }
+      else if (!a.pad || verschoven) { a.pad = false; a.padT = 4; }
+      a.padDoel = { x: doel.x, z: doel.z };
     }
     if (a.pad) {
       while (a.padI < a.pad.length - 1 && Math.hypot(a.pad[a.padI][0] - pos.x, a.pad[a.padI][1] - pos.z) < 0.9) a.padI++;
