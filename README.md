@@ -2360,6 +2360,19 @@ de rit). Stop aan het eind op de gele ruit: *"dat is een wrap!"*
 
 ![De rit](docs/screenshots/nomercy5_rit.png)
 
+De **stafauto** is een eigen model: een open Duitse stafwagen in de trant van de Kübelwagen, met platte panelen en
+ribbels, vier deurtjes, een schuine voorkap met het reservewiel erop, een rechtopstaande voorruit, de opgevouwen kap
+achterin, vier stoelen, het stuur, koplampen op de spatborden met een Notek-camouflagelamp, buisbumpers, een jerrycan,
+een schop en een antenne. Het **zijspan** is een motor in de trant van de BMW R75: een boxermotor met koelribben, twee
+uitlaten, spaakwielen met noppenbanden, spatborden, een veerzadel, en een zijspan met een MG op de neus en een reservewiel
+achterop.
+
+![De stafauto](docs/screenshots/nomercy5_stafauto.png)
+
+![De stafauto van achteren](docs/screenshots/nomercy5_stafauto_achter.png)
+
+![Het zijspan](docs/screenshots/nomercy5_zijspan.png)
+
 **De première.** "Een week later…", om acht uur 's avonds op de kade: *Opgedragen aan De Veteraan*. Erik Jan telt
 de **filmpunten** (buiten het zoeklicht gebleven, de molen binnen een minuut, de rit in één take, precies op de ruit;
 alleen een compliment, geen geld) en vraagt wat je wilt: **1 = € 2.000**, **2 = de stafauto houden**. De stafauto

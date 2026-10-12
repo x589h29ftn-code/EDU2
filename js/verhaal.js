@@ -70,7 +70,7 @@ import { maakHandlangers } from './handlangers.js';
 import { maakGrondvuur } from './grondvuur.js';
 import * as uitleg from './uitleg.js';
 import { NOMERCY, maakSet, maakErikJan, maakCameraman, maakDuitser, bosKaart, maakKamp, maakKlapbord, zetHelm } from './nomercy.js';
-import { NOMERCY5, maakMolenSet, maakCameraBoot, maakCameraRig, maakZijspan } from './nomercy5.js';
+import { NOMERCY5, maakMolenSet, maakCameraBoot, maakCameraRig, maakZijspan, maakStafauto } from './nomercy5.js';
 
 // ---------- waar het verhaal zich afspeelt ----------
 const HUIS = { straat: 'Molenkrite', nr: '15' };      // het huis van Mark
@@ -11319,7 +11319,8 @@ export function initVerhaal(ctx) {
   });
   const n5Boot = maakCameraBoot(scene);
   // de stafauto (bestuurbaar tijdens de rit) en de camera-auto, ver buiten de wereld tot ze nodig zijn
-  const n5Staf = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'bx', kleur: NOMERCY5.stafKleur, driveable: false });
+  // (de stafauto is een eigen model, `maakStafauto`; hij rijdt als een BX)
+  const n5Staf = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'bx', kleur: NOMERCY5.stafKleur, driveable: false, mesh: maakStafauto() });
   const n5CamAuto = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'bx', kleur: NOMERCY5.camKleur, driveable: false });
   for (const c of [n5Staf, n5CamAuto]) { c.mesh.visible = false; c.mesh.position.set(1e5, 0, 1e5); c.noMercy = true; }
   const n5Rig = maakCameraRig();

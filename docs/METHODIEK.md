@@ -8556,6 +8556,46 @@ camera-auto zonder "Cut!", de zijspannen 15–30 m achter je, stilstaan geeft na
 programma's. Ook groen: `overgangtest` (19, geen functienaam dubbel) en `tempotest` (21). Foto's (`npm run nomercy5shots`): nomercy5_overtocht.png, nomercy5_molen.png,
 nomercy5_rit.png, nomercy5_premiere.png.
 
+**No Mercy 5: de stafauto en het zijspan als eigen modellen (stap 142, 12 okt).**
+
+Gevraagd: "Geef de stafauto en de zijspan motor meer detail en betere textures", en midden in het werk: "bouw anders een
+nieuw speciaal model". De stafauto was een BX uit js/carmodel.js in feldgrau, het zijspan zestien losse dozen. Nu zijn het
+twee eigen modellen in js/nomercy5.js.
+
+*De stafauto* (`maakStafauto`) gaat via `vehicles.voegToe({ mesh })`, zoals de vuilniswagen, en draagt de userData die
+js/vehicles.js van een auto verwacht: `bak` (de carrosserie, die in de bocht overhelt), `wielen` ({ groep, band, stuur }),
+`R`, `length`, `oog` en `glas`, en een remlicht. Een open stafwagen in de trant van de Kübelwagen (3,74 m, met de bumpers
+3,96): de zijkanten zijn één zijprofiel als `ExtrudeGeometry` zonder afronding (de platte panelen van zo'n wagen), met de
+wielkasten erin, 3 cm dik. ExtrudeGeometry geeft de zijvlakken uv = (z, y) in meters; de kaart ligt met repeat en offset
+precies over de plaat (`STAF.zij`), dus het zijdoek tekent op (z, y): de vier deurtjes met naden, scharnieren en hendels, de
+persribbels, het balkenkruis, een tactisch teken (symmetrisch: aan de rechterkant ligt het doek gespiegeld, en een vlaggetje
+aan een stok werd daar een 9) en stof en roest onderaan. Daarbij: de schuine voorkap met luchtsleuven en het reservewiel, de
+voorruit in een buizen frame (het glas dezelfde soort als dat van de auto's, lichter getint), het dashboard met de
+snelheidsmeter, het stuur, vier stoelen van zeil, de opgevouwen kap, koplampen op de spatborden en een Notek-lamp, buisbumpers,
+kentekens WH-217 402 en WH-48 113, achterlichten, het motordeksel met koelsleuven en een verzonnen divisieteken (een Y in een
+rondje leek op een automerk), een jerrycan ("Wehrmacht 1943"), een schop op de dorpel en een antenne. 84 meshes.
+js/garage.js zet een stafauto met de naam 'stafauto' ook na het laden met dit model neer (`neerzetten`).
+
+*Het zijspan* (`maakZijspan`, R75-achtig): spaakwielen met een noppenband (een open cilinder met het loopvlak en twee
+torussen als schouders), spatborden (een stuk open cilinder, tweezijdig zonder kaart zoals de helmen), een vork en een frame van
+buizen, een druppeltank met kniestukken, een boxermotor met twee cilinders opzij vol koelribben, twee uitlaten met dempers, een
+koplamp met Notek-kap, een veerzadel en een duozit, en een zijspan: een kuip (een `CapsuleGeometry`), de opening, een MG 34 op
+een draaipunt, een reservewiel achterop, het balkenkruis als opdruk (dezelfde soort als de beplakking van de ambulance) en een
+kenteken. De rijder blijft op het zadel van de scooters (`SCOOTER`, `opScooter`). 76 meshes.
+
+*Materialen.* Alles is MeshStandardMaterial, gedeeld (`mat5`, één keer bij het opstarten; een stafauto die je later krijgt
+gebruikt dezelfde): met of zonder kaart, enkelzijdig als er een kaart op zit (de les van de vlag), doorzichtig alleen het glas
+en de opdruk. De kuip en de tank kregen een tint tegen het doek van de Flak, dat lichter is dan het zijdoek van de stafauto.
+
+*Wat misging.* (1) De kap en het motordeksel liepen eerst de verkeerde kant op: een positieve draai om x laat +z dalen, dus de
+hoek van de kap moet negatief (de proef kijkt nu of de neus lager ligt dan de ruit). (2) Het reservewiel van het zijspan stond in
+de kuip, die tot z = 0,83 loopt. (3) Het zijspan is 1,77 m breed; de grens van 1,6 m in de proef was gegokt, een R75 met zijspan
+is 1,73 m. (4) Op de eerste foto lag de schop dwars over het balkenkruis.
+
+*Proef*: `npm run stafautotest` (laadt alleen js/nomercy5.js, een paar seconden): 26 controles, alles goed. Foto's (`npm run stafautoshots`,
+een eigen zon en grond op een lege pagina): nomercy5_stafauto.png, nomercy5_stafauto_achter.png, nomercy5_zijspan.png.
+`npm run nomercy5test` met de nieuwe modellen: N5UITSLAG.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

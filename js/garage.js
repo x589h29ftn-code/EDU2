@@ -38,6 +38,7 @@
 import * as THREE from 'three';
 import { addCollider } from './world.js';
 import { makeCar } from './carmodel.js';
+import { maakStafauto } from './nomercy5.js';
 import { Persoon } from './persoon.js';
 import { GARAGE } from './bouwvlak.js';
 
@@ -447,7 +448,9 @@ export function initGarage({ scene, player, vehicles, hud, verhaal, sfeer = null
     return AFLEVER[0];
   }
   function neerzetten(soort, kleur, naam, p, id = volgende++) {
-    const car = vehicles.voegToe({ x: p.x, z: p.z, yaw: p.yaw, soort, kleur });
+    // (de stafauto van No Mercy 5 is een eigen model, ook na het laden: stap 142)
+    const mesh = naam === 'stafauto' ? maakStafauto() : null;
+    const car = vehicles.voegToe({ x: p.x, z: p.z, yaw: p.yaw, soort, kleur, mesh });
     car.eigen = id;
     eigen.push({ id, soort, kleur, naam, car });
     return car;
