@@ -2922,6 +2922,14 @@ function loop() {
       // wordt: de levensbalk wordt alleen bijgewerkt als iemand hem bijwerkt,
       // en de rode flits komt uit js/hud.js — net als bij de bewaking op de RWZI.
       if (schade > 0) { player.health -= schade; hud.zetLeven(player.health); hud.flits(); }
+      // (stap 144) geramd door de politie: een deuk, een klap en een schok, net als een botsing
+      const ram = politie.pakRam();
+      if (ram && player.inCar) {
+        const d = autoschade.botsing(player.inCar, ram.kracht, true);
+        if (d && d.barst) geluid.glas();
+        geluid.klap();
+        schok(0.35 + Math.min(0.85, ram.kracht / 16));
+      }
       /*
        Een neergehaalde helikopter slaat ergens in de wijk in. Dat hoor en voel
        je: de camera schudt naar de afstand, de buurt rent weg en wie er vlak
@@ -2950,6 +2958,7 @@ function loop() {
       }
     }
     hud.zetSterren(politie.ster, politie.gezocht);
+    if (hud.zetVerstopt) hud.zetVerstopt(politie.gezocht && politie.verstopt);
     uitlegBij();
     /*
      De blauwe stippen op de kaart. De politieboot hoort erbij — hij telt als een

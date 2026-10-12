@@ -154,6 +154,12 @@
   #ster { position: absolute; right: 26px; top: 232px; font-size: 26px; letter-spacing: 3px; color: #ffd400;
           text-shadow: 0 2px 6px rgba(0,0,0,.85); }
   #ster .leeg { color: rgba(255,255,255,.22); }
+  /* stap 144: verstopt (in een struik of het bos), onder de sterren */
+  #verstopt { position: absolute; right: 26px; top: 266px; font-size: 12px; font-weight: 700; letter-spacing: 2px;
+              color: #b9f5c4; background: rgba(8,24,14,.6); border: 1px solid rgba(150,240,170,.35); border-radius: 4px;
+              padding: 3px 8px; text-shadow: none; pointer-events: none; }
+  #verstopt[hidden] { display: none; }
+  body.kaartgroot #verstopt { top: 406px; }
   #ster.knippert { animation: sterKnippert .9s steps(1,end) infinite; }
   @keyframes sterKnippert { 50% { opacity: .35; } }
   #geld .buit { display: block; font-size: 13px; color: #fff; opacity: .85; }
@@ -490,6 +496,7 @@
   <div id="levenpacks" hidden title="EHBO-dozen (L)"><span class="doos"></span><span id="levenpacksN">0</span></div>
   <div id="geld" hidden></div>
   <div id="ster" hidden></div>
+  <div id="verstopt" hidden>VERSTOPT</div>
   <div id="missie"></div>
   <div id="praat" hidden>E — praten</div>
   <div id="schap" hidden></div>

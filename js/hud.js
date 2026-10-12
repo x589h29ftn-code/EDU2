@@ -276,6 +276,12 @@ export class HUD {
   // Waar staat de politie? De minikaart tekent er blauwe stippen van.
   zetPolitie(plekken) { this.politiePlekken = plekken; }
 
+  // (stap 144) onder de sterren: je zit in een struik of in het bos, ze zien je slecht
+  zetVerstopt(aan) {
+    const el = this.verstopEl || (this.verstopEl = document.getElementById('verstopt'));
+    if (el && el.hidden === !!aan) el.hidden = !aan;
+  }
+
   zetSterren(n, knippert = false) {
     if (!this.sterEl) return;
     if (!n) { this.sterEl.hidden = true; this.sterEl.classList.remove('knippert'); return; }

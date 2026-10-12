@@ -27,6 +27,10 @@ import { Persoon } from './persoon.js';
 import { resolveCollisions, zichtVrij } from './world.js';
 import { KAART } from './kaartwereld.js';
 import { Navigatie } from './navigatie.js';
+import { zoekLooppad } from './looppad.js';
+// stap 144: verstoppen, dekking, raak schieten, het zoekgeheugen en de zaklamp
+import { SLIM, verstop, zichtAfstand, struikOpLijn, zoekDekking, raakKans, ZoekGeheugen, maakZaklamp, zetZaklampen,
+  inBundel } from './politieslim.js';
 import { geluid } from './audio.js';
 import { initHelikopter, HELI_STER } from './helikopter.js';
 
@@ -282,6 +286,18 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   */
   const heli = initHelikopter({ scene, player });
   let stille = 0;              // misdaden die (nog) niemand meldde
+  /*
+   Stap 144. Het geheugen van de zoektocht (welke vakken al afgezocht zijn, en de richting waarin je verdween), waar
+   de speler nu staat (`verstopNu`: struik, bos, lantaarn; één keer per beeld), hoeveel looproutes er dit beeld nog
+   uitgerekend mogen worden, en de klap van een ramming voor js/main.js.
+  */
+  const geheugen = new ZoekGeheugen();
+  let verstopNu = { struik: false, bos: false, kroon: false, lamp: false, bomen: 0 };
+  let padBudget = 1;
+  let ramKlap = null;
+  let stempelT = 0;
+  let vluchtInAuto = false;    // reed je weg toen ze je kwijtraakten? dan lopen ze terug naar hun auto
+  let proefStil = false;       // voor tools/politieslimtest.mjs: geen nieuwe eenheden en geen versperringen
   const rijbanen = (KAART && KAART.wegassen ? KAART.wegassen.filter(w => w.drive && w.lengte > 40) : []);
   /*
    Een rooster over alle punten van die rijbanen, één keer opgebouwd. In de kleine
@@ -411,27 +427,50 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     const ank = anker();
     const s = Math.max(1, ster());
     if (e.sector === undefined) e.sector = (sectorTeller++ * 0.618034) % 1;
-    const straal = dichtbij
-      ? Math.min(ZOEKSTRAAL[s] * 0.2, UITRUK_STRAAL)
-      : ZOEKSTRAAL[s] * (0.35 + Math.random() * 0.65);
-    const hoek = (e.sector + (Math.random() - 0.5) * 0.18) * Math.PI * 2;
-    let x = ank.x + Math.cos(hoek) * straal, z = ank.z + Math.sin(hoek) * straal;
     const net = wegennet();
-    if (net) {
-      const i = net.naaste(x, z, 200, true);
-      if (i >= 0) {
-        // Op het knooppunt zelf gaan staan geeft een kluitje: twee eenheden die
-        // vanuit dezelfde hoek zoeken vallen op hetzelfde punt samen. Ieder
-        // krijgt daarom een eigen plekje van een paar meter eromheen.
-        const eigen = e.sector * Math.PI * 2;
-        const r = 3 + (e.sector * 7) % 5;
-        x = net.punten[i][0] + Math.cos(eigen) * r;
-        z = net.punten[i][1] + Math.sin(eigen) * r;
+    const teVoet = !!e.persoon;
+    /*
+     Gericht zoeken (stap 144). Niet één punt in de eigen sector maar zes kandidaten: drie rond de sector, drie rond
+     de richting waarin je verdween. `geheugen.score` geeft de doorslag: een vak dat net doorzocht is telt zwaar
+     tegen, de vluchtrichting de eerste veertig tellen zwaar vóór, en een punt waar een collega al heen gaat tegen.
+     Agenten te voet dicht bij het anker blijven niet op de straat: de helft van hun punten ligt in de tuinen en
+     paadjes eromheen (ze lopen er via de looproute heen), want daar zit je.
+    */
+    const vlucht = geheugen.vlucht && (geheugen.vlucht.rx || geheugen.vlucht.rz) && geheugen.vluchtGewicht() > 0
+      ? Math.atan2(geheugen.vlucht.rz, geheugen.vlucht.rx) : null;
+    const anderen = [...agenten, ...wagens].filter(o => o !== e && o.doel).map(o => o.doel);
+    let beste = null, besteScore = -Infinity;
+    for (let k = 0; k < 6; k++) {
+      const straal = dichtbij
+        ? Math.min(ZOEKSTRAAL[s] * 0.2, UITRUK_STRAAL)
+        : ZOEKSTRAAL[s] * (0.35 + Math.random() * 0.65);
+      const hoek = (k < 3 || vlucht === null)
+        ? (e.sector + (Math.random() - 0.5) * (k === 0 ? 0.18 : 0.4)) * Math.PI * 2
+        : vlucht + (Math.random() - 0.5) * 1.4;
+      let x = ank.x + Math.cos(hoek) * straal, z = ank.z + Math.sin(hoek) * straal;
+      const tuin = teVoet && !dichtbij && Math.hypot(x - ank.x, z - ank.z) < 50 && Math.random() < 0.5;
+      if (tuin) {
+        const [cx, cz] = resolveCollisions(x, z, 0.5);
+        x = cx; z = cz;
+      } else if (net) {
+        const i = net.naaste(x, z, 200, true);
+        if (i >= 0) {
+          // Op het knooppunt zelf gaan staan geeft een kluitje: twee eenheden die
+          // vanuit dezelfde hoek zoeken vallen op hetzelfde punt samen. Ieder
+          // krijgt daarom een eigen plekje van een paar meter eromheen.
+          const eigen = e.sector * Math.PI * 2;
+          const r = 3 + (e.sector * 7) % 5;
+          x = net.punten[i][0] + Math.cos(eigen) * r;
+          z = net.punten[i][1] + Math.sin(eigen) * r;
+        }
       }
+      const score = (dichtbij ? 0 : geheugen.score(ank.x, ank.z, x, z, anderen)) + Math.random() * 4;
+      if (score > besteScore) { besteScore = score; beste = { x, z }; }
     }
-    e.doel = { x, z };
+    e.doel = beste;
     e.zoekT = 14 + Math.random() * 12;
     e.route = null;
+    e.pad = null;
     return e.doel;
   }
 
@@ -729,6 +768,10 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       rol, zijde: Math.random() < 0.5 ? -1 : 1, flankPunt: null,
     };
     persoon.groep.visible = !inWagen;
+    // (stap 144) een zaklamp in de hand, 's nachts aan; kogels gaan er dwars doorheen
+    a.zaklamp = maakZaklamp();
+    a.zaklamp.raycast = () => {};
+    persoon.groep.add(a.zaklamp);
     agenten.push(a);
     return a;
   }
@@ -759,6 +802,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   {
     const proef = new THREE.Group(), lamp = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), new THREE.MeshStandardMaterial({ color: 0x2b6bff, emissive: 0x2b6bff }));
     proef.add(lamp); maakGloed(lamp, proef, 1);
+    // (stap 144) en de zaklamp
+    const zl = maakZaklamp(); zl.visible = true; proef.add(zl);
     proef.visible = false; proef.position.set(0, -500, 0);
     scene.add(proef);
   }
@@ -947,14 +992,37 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     const car = w.car;
     car.driveable = true;
     car.speed = 0; car.steer = 0;
-    for (const a of w.agenten) a.wagen = null;   // ze tellen nu mee als agent te voet
+    // (stap 144) ze onthouden hun auto: zie 'naarAuto' in update
+    const v = { car, balk: w.balk, links: w.links, rechts: w.rechts, t: 0, knipper: w.knipper, bemanning: [...w.agenten] };
+    for (const a of w.agenten) { a.wagen = null; a.eigenAuto = v; }   // ze tellen nu mee als agent te voet
     w.agenten.length = 0;
     const j = wagens.indexOf(w); if (j >= 0) wagens.splice(j, 1);
-    verlaten.push({ car, balk: w.balk, links: w.links, rechts: w.rechts, t: 0, knipper: w.knipper });
+    verlaten.push(v);
     return car;
   }
 
+  /*
+   De bemanning zit weer in (stap 144): de lege wagen wordt een eenheid. Uit `verlaten`, niet meer te stelen, terug
+   in `wagens`, en meteen op weg naar de laatst bekende plek.
+  */
+  function weerInDeWagen(v) {
+    const j = verlaten.indexOf(v); if (j >= 0) verlaten.splice(j, 1);
+    const car = v.car;
+    car.driveable = false;
+    car.topSnelheid = POLITIE_TOP;
+    const zitten = v.bemanning.filter(a => a.staat === 'inAuto' && agenten.includes(a));
+    const w = { car, balk: v.balk, links: v.links, rechts: v.rechts, agenten: zitten, staat: 'naarPlek', knipper: v.knipper,
+                uitstapT: 0, klemT: 0, stilT: 0, route: null, routeI: 1, routeDoel: null, routeT: 0,
+                doel: laatstBekend ? { ...laatstBekend } : null, zoekT: RADIO_GELDIG };
+    for (const a of zitten) { a.wagen = w; a.eigenAuto = null; a.staat = 'naarPlek'; a.persoon.groep.visible = false; }
+    wagens.push(w);
+    geluid.portier();
+    return w;
+  }
+
   function ruimVerlaten(v) {
+    // wie er al in zat gaat mee; wie nog onderweg was vergeet zijn auto
+    for (const a of v.bemanning || []) { if (a.staat === 'inAuto') ruimAgent(a); else if (a.eigenAuto === v) a.eigenAuto = null; }
     scene.remove(v.car.mesh);
     const i = vehicles.cars.indexOf(v.car); if (i >= 0) vehicles.cars.splice(i, 1);
     const j = verlaten.indexOf(v); if (j >= 0) verlaten.splice(j, 1);
@@ -966,7 +1034,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   function vulAan(dt) {
     const s = ster();
     const wilVoet = TE_VOET[s], wilWagens = WAGENS[s];
-    const nuVoet = agenten.filter(a => !a.wagen).length;
+    const nuVoet = agenten.filter(a => !a.wagen && a.staat !== 'inAuto').length;
     vulT -= dt;
     if (vulT > 0) return;
     // geen fatsoenlijke plek? dan volgende tel opnieuw proberen
@@ -1024,6 +1092,32 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   }
 
   /*
+   Te voet de weg vinden (stap 144). Over het wegennet (`volgPunt`) kwam een agent nooit een tuin in: spring je over
+   een schutting, dan bleef hij ervoor staan of liep hij om over de straat. Dichtbij (zeventig meter) gebruikt hij nu
+   de looproute van js/looppad.js om hekken, schuttingen en schuurtjes heen. Een route uitrekenen kost wat, dus er
+   mag er één per beeld bij (`padBudget`); wie zijn beurt mist loopt even over het wegennet of recht af.
+  */
+  function voetPunt(a, pos, doel, dt) {
+    const d = Math.hypot(doel.x - pos.x, doel.z - pos.z);
+    if (d > 70) { a.pad = null; return volgPunt(a, pos, doel, dt, 4); }
+    if (d < 25 && zichtVrij(pos.x, pos.z, doel.x, doel.z, 0.5)) { a.pad = null; return doel; }
+    a.padT = (a.padT || 0) - dt;
+    const verschoven = !a.padDoel || Math.hypot(a.padDoel.x - doel.x, a.padDoel.z - doel.z) > 4;
+    if ((a.pad === undefined || a.pad === null || verschoven || a.padT <= 0) && padBudget > 0) {
+      padBudget--;
+      const r = zoekLooppad({ x: pos.x, z: pos.z }, { x: doel.x, z: doel.z });
+      a.pad = r && r.length > 1 ? r : false;
+      a.padI = 1; a.padDoel = { x: doel.x, z: doel.z }; a.padT = a.pad ? 2.5 : 4;
+    }
+    if (a.pad) {
+      while (a.padI < a.pad.length - 1 && Math.hypot(a.pad[a.padI][0] - pos.x, a.pad[a.padI][1] - pos.z) < 0.9) a.padI++;
+      const q = a.pad[Math.min(a.padI, a.pad.length - 1)];
+      return { x: q[0], z: q[1] };
+    }
+    return volgPunt(a, pos, doel, dt, 4);
+  }
+
+  /*
    Een surveillanceauto naar een punt rijden. In plaats van een eigen
    rijnatuurkunde te schrijven doet de agent alsof hij op de toetsen drukt: dan
    loopt hij door dezelfde `Vehicles.drive` als de speler en heeft hij
@@ -1077,10 +1171,21 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   }
 
   // ---------------------------------------------------------------- kijken
-  function zietSpeler(pos, yaw, altijdRondom = false) {
+  function zietSpeler(pos, yaw, altijdRondom = false, zaklamp = false) {
     const sp = spelerPlek();
     const d = Math.hypot(sp.x - pos.x, sp.z - pos.z);
-    if (d > ZICHT) return false;
+    /*
+     Hoe ver? (stap 144, js/politieslim.js) Overdag 42 m zoals altijd; 's nachts 20, onder een lantaarn 34, in de
+     bundel van een zaklamp 32; regen haalt er een vijfde af. Gehurkt in een struik zien ze je pas op 2,5 m, staand
+     erin op een derde; in het bos de helft (gehurkt minder dan een derde). Rennen valt op.
+    */
+    const nacht = !!(sfeer && sfeer.nacht);
+    const max = zichtAfstand({
+      v: verstopNu, nacht, zwaar: sfeer ? (sfeer.weerZwaar || 0) : 0,
+      inBundel: zaklamp && nacht && inBundel(pos, yaw, sp.x, sp.z),
+      inAuto: !!player.inCar, hurk: player.hurk || 0, vaart: Math.hypot(spSnelheid.x, spSnelheid.z),
+    });
+    if (d > max) return false;
     if (!altijdRondom) {
       const hoek = Math.atan2(-(sp.x - pos.x), -(sp.z - pos.z));
       let v = hoek - yaw;
@@ -1096,7 +1201,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
      waar bukken voor is.
     */
     const hoogte = 1.3 - (player.hurk || 0) * 0.55;
-    return zichtVrij(pos.x, pos.z, sp.x, sp.z, hoogte);
+    if (!zichtVrij(pos.x, pos.z, sp.x, sp.z, hoogte)) return false;
+    // (stap 144) gehurkt achter een bosje: struiken hebben geen botsdoos, dus apart
+    return player.inCar || !struikOpLijn(pos.x, pos.z, sp.x, sp.z, player.hurk || 0);
   }
 
   // Een schot van de speler horen ze in de wijde omtrek.
@@ -1109,6 +1216,14 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     let gehoord = false;
     for (const a of agenten) {
       const pos = a.persoon.groep.position;
+      /*
+       Onder vuur (stap 144): wie al met je in gevecht is en het schot vlakbij hoort, duikt een paar tellen weg —
+       achter zijn dekking als hij die heeft — en schiet in die tijd niet. Terugschieten koopt je dus tijd.
+      */
+      // (niet vaker dan om de vier tellen per agent: anders hield een machinegeweer ze eeuwig plat)
+      if (a.staat === 'jacht' && !(a.onderdrukRust > 0) && Math.hypot(pos.x - x, pos.z - z) < SLIM.onderdrukStraal) {
+        a.onderdrukT = SLIM.onderdrukt; a.onderdrukRust = 4; a.vuurT = Math.max(a.vuurT, SLIM.onderdrukt * 0.6);
+      }
       if (a.staat === 'neer' || a.staat === 'jacht') continue;
       if (Math.hypot(pos.x - x, pos.z - z) < GEHOOR) {
         a.staat = 'zoekt'; a.doel = { x, z }; a.route = null; a.zoekT = 12; gehoord = true;
@@ -1209,6 +1324,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     }
     for (const v of [...verlaten]) {
       if (v.car !== car) continue;
+      for (const a of v.bemanning || []) { if (a.staat === 'inAuto') ruimAgent(a); else if (a.eigenAuto === v) a.eigenAuto = null; }
       const j = verlaten.indexOf(v); if (j >= 0) verlaten.splice(j, 1);
       wrakken.push({ car, t: 0 });
       return true;
@@ -1270,6 +1386,85 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   */
   let rust = false;
   let vorigeSter = 0;
+  /*
+   Omsingelen (stap 144). Op het moment dat ze je kwijtraken (vanaf twee sterren) gaat de helft van de wagens niet
+   zoeken maar posten: naar een kruising op een meter of negentig van de plek waar je verdween, eerst in je
+   vluchtrichting, dan opzij, dan terug. Daar gaan ze staan kijken. Wie het blok uit wil, moet langs een post — of
+   wachten tot ze weer gaan rijden (`postT`), of er gehurkt langs.
+  */
+  function omsingel() {
+    const net = wegennet();
+    if (!net || !laatstBekend) return 0;
+    const vrij = wagens.filter(w => w.staat !== 'wegwezen');
+    if (vrij.length < 2) return 0;
+    const v = geheugen.vlucht;
+    const basis = v && (v.rx || v.rz) ? Math.atan2(v.rz, v.rx) : Math.random() * Math.PI * 2;
+    const posten = [];
+    for (const d of [0, Math.PI / 2, -Math.PI / 2, Math.PI]) {
+      const h = basis + d;
+      const i = net.naaste(laatstBekend.x + Math.cos(h) * 90, laatstBekend.z + Math.sin(h) * 90, 60, true);
+      if (i < 0) continue;
+      const p = { x: net.punten[i][0], z: net.punten[i][1] };
+      if (Math.hypot(p.x - laatstBekend.x, p.z - laatstBekend.z) < 45) continue;
+      if (posten.some(q => Math.hypot(q.x - p.x, q.z - p.z) < 40)) continue;
+      posten.push(p);
+    }
+    let n = 0;
+    const max = Math.min(posten.length, Math.max(1, Math.floor(vrij.length / 2)));
+    for (const p of posten.slice(0, max)) {
+      let beste = null, bd = Infinity;
+      for (const w of vrij) {
+        if (w.staat === 'post') continue;
+        const d = Math.hypot(w.car.x - p.x, w.car.z - p.z);
+        if (d < bd) { bd = d; beste = w; }
+      }
+      if (!beste) break;
+      beste.staat = 'post'; beste.doel = p; beste.postT = 22; beste.route = null; n++;
+    }
+    return n;
+  }
+
+  // Is rammen handig? Hij rijdt al ongeveer op je af, en je staat stil of rijdt langzaam, of hij is sneller dan jij.
+  function ramHandig(w, pc, vaart) {
+    const car = w.car;
+    const dx = pc.x - car.x, dz = pc.z - car.z, d = Math.hypot(dx, dz) || 1;
+    const cos = (dx * -Math.sin(car.yaw) + dz * -Math.cos(car.yaw)) / d;
+    if (cos < Math.cos(SLIM.ramHoek)) return false;
+    if (vaart < 9) return true;
+    return car.speed > vaart + 2;
+  }
+
+  /*
+   De klap van een ramming. js/vehicles.js laat de politiewagen afketsen (`botsKracht`), maar de auto van de speler
+   rijdt niet in `drive` van de politie: die krijgt hier zijn deel. Hoe harder het verschil, hoe meer vaart eraf en
+   hoe verder hij om zijn as gaat (de hoek die geraakt wordt, gaat weg); js/main.js maakt er een deuk, een klap en
+   een schok van (`pakRam`).
+  */
+  function ramKlapNu(w, pc) {
+    const car = w.car;
+    const fxC = -Math.sin(car.yaw), fzC = -Math.cos(car.yaw);
+    const fxP = -Math.sin(pc.yaw), fzP = -Math.cos(pc.yaw);
+    const rel = Math.max(0, car.botsKracht - (pc.speed || 0) * (fxC * fxP + fzC * fzP));
+    w.ramT = SLIM.ramRust;
+    if (rel < 2.5) return;
+    const rx = Math.cos(pc.yaw), rz = -Math.sin(pc.yaw);                 // rechts van de speler
+    const zij = (car.x - pc.x) * rx + (car.z - pc.z) * rz;               // aan welke kant hij geraakt wordt
+    const voor = (car.x - pc.x) * fxP + (car.z - pc.z) * fzP;            // voor of achter het midden
+    pc.yaw += -Math.sign(zij || 1) * Math.sign(voor || -1) * Math.min(0.6, rel * 0.035);
+    pc.speed *= 0.55;
+    ramKlap = { kracht: rel, x: car.x, z: car.z };
+  }
+
+  // Gaat deze agent terug naar zijn auto? (stap 144, zie 'naarAuto' in update)
+  function wilTerug(a) {
+    const v = a.eigenAuto;
+    if (!v || !verlaten.includes(v) || player.inCar === v.car) return false;
+    if (gezienT < SLIM.terugNa) return false;
+    if (!vluchtInAuto && gezienT < SLIM.terugAltijd) return false;
+    const p = a.persoon.groep.position;
+    return Math.hypot(v.car.x - p.x, v.car.z - p.z) < SLIM.terugMax;
+  }
+
   function update(dt) {
     const s = ster();
     // de eerste ster: de portofoon van de meldkamer, een kort willekeurig stuk (stap 127; geluid.politieRadio)
@@ -1294,6 +1489,19 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       }
     }
     spVorig = { x: sp.x, z: sp.z };
+    // (stap 144) waar staat de speler, één keer per beeld; het zoekgeheugen; één looproute per beeld; de zaklampen
+    verstopNu = player.inCar ? { struik: false, bos: false, kroon: false, lamp: false, bomen: 0 }
+      : verstop(sp.x, sp.z, { lampenAan: sfeer && sfeer.nacht ? (sfeer.lampenAan ?? 1) : 0 });
+    geheugen.tik(dt);
+    padBudget = 1;
+    const nachtNu = !!(sfeer && sfeer.nacht);
+    zetZaklampen(nachtNu ? 1 : 0);
+    stempelT -= dt;
+    if (stempelT <= 0 && s > 0) {
+      stempelT = 0.5;
+      for (const a of agenten) if (a.staat !== 'neer' && a.persoon.groep.visible) geheugen.stempel(a.persoon.groep.position.x, a.persoon.groep.position.z);
+      for (const w of wagens) geheugen.stempel(w.car.x, w.car.z);
+    }
     /*
      Het anker laten bijtrekken als het te ver achterblijft (zie
      ANKER_ACHTERSTAND). Alleen zolang je gezocht wordt: zonder sterren is er
@@ -1324,7 +1532,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       if (meldWacht <= 0) { deelMeldingUit(); meldNieuw = false; }
     }
 
-    if (s > 0 && !rust) vulAan(dt);
+    if (s > 0 && !rust && !proefStil) vulAan(dt);
     /*
      Wegblokkades: bij veel sterren komt er om de paar tellen een bij, tot het
      maximum. Zakt de verdenking, dan worden ze weer weggehaald — een straat die
@@ -1332,7 +1540,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
      wegversperring voor altijd.
     */
     blokT -= dt;
-    if (!rust && s >= BLOKKADE_STER && blokkades.length < BLOKKADE_MAX_AANTAL && blokT <= 0) {
+    if (!rust && !proefStil && s >= BLOKKADE_STER && blokkades.length < BLOKKADE_MAX_AANTAL && blokT <= 0) {
       blokT = zetBlokkade() ? 12 : 3;
     }
     if (s < BLOKKADE_STER) for (const b of [...blokkades]) {
@@ -1370,12 +1578,18 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         continue;
       }
       if (a.wagen && !persoon.groep.visible) continue;      // zit nog in de auto
+      if (a.staat === 'inAuto') continue;                  // (stap 144) terug in zijn wagen, wacht op zijn maat
+      if (a.zaklamp) a.zaklamp.visible = nachtNu;           // 's nachts de zaklamp aan
+      if (a.onderdrukT > 0) a.onderdrukT -= dt;
+      if (a.onderdrukRust > 0) a.onderdrukRust -= dt;
 
       const dSp = Math.hypot(sp.x - pos.x, sp.z - pos.z);
       a.kijkT -= dt;
       if (a.kijkT <= 0) {
         a.kijkT = 0.25;
-        a.zicht = zietSpeler(pos, persoon.yaw, a.staat === 'jacht' && dSp < 18);
+        a.zicht = zietSpeler(pos, persoon.yaw, a.staat === 'jacht' && dSp < 18, true);
+        // (stap 144) hoe lang hij je al in het vizier heeft: de eerste schoten gaan vaker mis
+        a.richtT = a.zicht ? (a.richtT || 0) + 0.25 : Math.max(0, (a.richtT || 0) - 0.5);
         if (a.zicht) {
           a.staat = 'jacht'; a.kwijtT = 0; laatstBekend = { x: sp.x, z: sp.z };
           meldDoor(sp.x, sp.z);       // en hij roept het om: de rest komt eraan
@@ -1394,6 +1608,27 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       }
       if (a.zicht) iemandZiet = true;
 
+      /*
+       Terug naar de auto (stap 144, gevraagd: "Laat politie ook terug naar auto keren om achter je aan te gaan als je
+       vol uit beeld bent"). Wie uit een surveillancewagen kwam, onthoudt die (`eigenAuto`). Ben je een paar tellen
+       helemaal uit beeld en reed je weg — of al een hele tijd, ook te voet — dan lopen ze terug, stappen in, en zodra
+       de hele (levende) bemanning zit rijdt de wagen weer mee in de zoektocht (zie de lege wagens hieronder).
+      */
+      if (a.eigenAuto && a.staat !== 'jacht' && a.staat !== 'naarAuto' && wilTerug(a)) { a.staat = 'naarAuto'; a.pad = null; }
+      if (a.staat === 'naarAuto') {
+        const v = a.eigenAuto;
+        if (!v || !verlaten.includes(v) || player.inCar === v.car) { a.eigenAuto = null; a.staat = 'zoekt'; a.doel = null; }
+        else {
+          const car = v.car;
+          const zij = a.zijKant || (a.zijKant = Math.random() < 0.5 ? -1 : 1);
+          const deur = { x: car.x + Math.cos(car.yaw) * 1.5 * zij, z: car.z - Math.sin(car.yaw) * 1.5 * zij };
+          if (Math.hypot(deur.x - pos.x, deur.z - pos.z) < 1.6) { persoon.groep.visible = false; a.staat = 'inAuto'; continue; }
+          loopNaar(a, voetPunt(a, pos, deur, dt), dt, REN);
+          persoon.update(dt, { loopt: true, mikt: false, snelheid: REN });
+          continue;
+        }
+      }
+
       if (a.staat === 'jacht') {
         // zonder zicht loopt hij naar de laatst bekende plek, niet naar jou
         const mik = (a.zicht || !laatstBekend) ? sp : laatstBekend;
@@ -1410,17 +1645,50 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
           const dF = Math.hypot(a.flankPunt.x - pos.x, a.flankPunt.z - pos.z);
           const erIs = dF < 1.5;
           // (dichtbij recht erheen: de routeplanner over het wegennet nam voor vijftien meter opzij een omweg)
-          if (!erIs) loopNaar(a, dF < 45 ? a.flankPunt : volgPunt(a, pos, a.flankPunt, dt, 4), dt, REN);
+          // (stap 144: over de looproute, om schuttingen heen)
+          if (!erIs) loopNaar(a, voetPunt(a, pos, a.flankPunt, dt), dt, REN);
           persoon.kijkNaar(mik.x, mik.z, dt, 7);
           persoon.update(dt, { loopt: !erIs, mikt: true, snelheid: REN, hurkt: erIs ? FLANK.hurk : 0 });
+          a.laag = erIs;
         } else {
-          const dichtbij = a.zicht && dSp < DEKKING;
-          if (!dichtbij && dMik > 1.5) loopNaar(a, volgPunt(a, pos, mik, dt, 4), dt, REN);
-          persoon.kijkNaar(mik.x, mik.z, dt, 7);
-          persoon.update(dt, { loopt: !dichtbij && dMik > 1.5, mikt: true, snelheid: REN });
+          /*
+           Dekking (stap 144). Midden op straat blijven staan en schieten was het domste wat ze deden. De aanvaller
+           zoekt nu om de paar tellen een plek vlakbij waar hij gehurkt gedekt zit en staand (of een stap opzij) over
+           de dekking heen kan schieten: een geparkeerde auto, een muurtje, een hoek (js/politieslim.js
+           `zoekDekking`). Daar zit hij laag, komt voor elk schot een halve tel omhoog en duikt weer weg; onder vuur
+           blijft hij laag. Vindt hij niets, dan doet hij wat hij altijd deed.
+          */
+          a.dekT = (a.dekT || 0) - dt;
+          const verschoof = a.dekVoor && Math.hypot(a.dekVoor.x - sp.x, a.dekVoor.z - sp.z) > 6;
+          if (a.zicht && dSp < SLIM.dekkingMax + 6 && (a.dekT <= 0 || verschoof)) {
+            a.dekT = SLIM.dekkingOpnieuw;
+            a.dekking = zoekDekking(pos, sp);
+            a.dekVoor = { x: sp.x, z: sp.z };
+          }
+          if (!a.zicht && (a.kwijtT || 0) > 1) a.dekking = null;   // waar hij je niet meer ziet heeft dekking geen zin
+          if (a.dekking) {
+            if (a.opT > 0) a.opT -= dt;
+            const piekNu = a.dekking.piek && a.opT > 0;
+            const plek = piekNu ? a.dekking.piek : a.dekking;
+            const erIs = Math.hypot(plek.x - pos.x, plek.z - pos.z) < 0.6;
+            if (!erIs) loopNaar(a, voetPunt(a, pos, plek, dt), dt, piekNu ? 2.5 : REN);
+            if (erIs && a.vuurT < 0.35 && !(a.onderdrukT > 0) && !(a.opT > 0)) a.opT = SLIM.opstaan;
+            const laag = Math.hypot(a.dekking.x - pos.x, a.dekking.z - pos.z) < 1.4 && !(a.opT > 0);
+            persoon.kijkNaar(mik.x, mik.z, dt, 7);
+            persoon.update(dt, { loopt: !erIs, mikt: true, snelheid: REN, hurkt: laag ? 0.6 : 0 });
+            a.laag = laag;
+          } else {
+            const dichtbij = a.zicht && dSp < DEKKING;
+            if (!dichtbij && dMik > 1.5) loopNaar(a, voetPunt(a, pos, mik, dt), dt, REN);
+            persoon.kijkNaar(mik.x, mik.z, dt, 7);
+            persoon.update(dt, { loopt: !dichtbij && dMik > 1.5, mikt: true, snelheid: REN, hurkt: a.onderdrukT > 0 ? 0.5 : 0 });
+            a.laag = a.onderdrukT > 0;
+          }
         }
         a.vuurT -= dt;
-        if (!rust && a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht && schutters.has(a)) {
+        // (stap 144) niet vanuit zijn dekking (de flankeerder wel, die schiet gehurkt) en niet onder vuur
+        if (!rust && a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht && schutters.has(a)
+            && !(a.onderdrukT > 0) && !(a.laag && a.rol !== 'flank')) {
           /*
            Wie een machinepistool heeft schiet korte salvo's: drie schoten kort
            achter elkaar in plaats van één, en hij is eerder weer aan de beurt.
@@ -1442,7 +1710,14 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
            (elf meter) is dat ruim vier levenspunten per seconde van drie
            schutters samen, dus wegkomen is het antwoord en niet wachten.
           */
-          const kans = Math.max(0.14, 0.58 - dSp * 0.0105) * (a.mp ? 0.45 : 1);
+          /*
+           Stap 144: dat getal is nu de basis van `raakKans` (js/politieslim.js): de eerste schoten op een nieuw doel
+           gaan vaker mis, wie rent, rijdt, gehurkt of gedekt zit is lastiger te raken, stil in het open makkelijker,
+           en onder vuur of in het donker schiet hij slechter.
+          */
+          const gedekt = !player.inCar && !zichtVrij(pos.x, pos.z, sp.x, sp.z, 1.0);
+          const kans = raakKans({ d: dSp, richtT: a.richtT || 0, mp: a.mp, vaart: Math.hypot(spSnelheid.x, spSnelheid.z),
+            inAuto: !!player.inCar, hurk: player.hurk || 0, gedekt, onderdrukt: a.onderdrukT > 0, donker: nachtNu && !verstopNu.lamp });
           for (let k = 0; k < salvo; k++) if (Math.random() < kans) schade += SCHADE;
         }
         continue;
@@ -1467,7 +1742,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         }
         const eindDoel = a.doel;
         const snelheid = a.staat === 'naarPlek' ? REN : LOOP;
-        const doel = volgPunt(a, pos, eindDoel, dt, 4);
+        const doel = voetPunt(a, pos, eindDoel, dt);
         const erIs = loopNaar(a, doel, dt, snelheid)
           && Math.hypot(eindDoel.x - pos.x, eindDoel.z - pos.z) < 6;
         // het wapen komt pas omhoog waar hij daadwerkelijk staat te zoeken, of
@@ -1530,7 +1805,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       zetZwaailamp(w.rechts, aanLinks ? 0 : 1, donker());
       if (dichtsteSirene === null || dSp < dichtsteSirene) dichtsteSirene = dSp;
 
-      const ziet = zietSpeler({ x: car.x, z: car.z }, car.yaw, dSp < 30);
+      // (stap 144: 's nachts zien ze je in hun koplampen verder, net als in de bundel van een zaklamp)
+      const ziet = zietSpeler({ x: car.x, z: car.z }, car.yaw, dSp < 30, true);
       if (ziet) {
         iemandZiet = true; laatstBekend = { x: sp.x, z: sp.z }; w.staat = 'jacht'; w.kwijtT = 0;
         meldDoor(sp.x, sp.z);
@@ -1549,6 +1825,20 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         w.wegT = (w.wegT || 0) + dt;
         // hij is vertrokken zodra hij er is, ver genoeg weg is, of het te lang duurt
         if (afst < 12 || (dSp > 80 && w.wegT > 4) || w.wegT > 18) ruimWagen(w);
+        continue;
+      }
+
+      /*
+       Een post (stap 144, zie `omsingel`): hij rijdt naar een kruising rond de plek waar je verdween, gaat daar
+       staan en kijkt. Ziet hij je, dan is hij weer een jager (hierboven); anders gaat hij na zijn tijd zoeken.
+      */
+      if (w.staat === 'post') {
+        w.postT -= dt;
+        const afstP = Math.hypot(w.doel.x - car.x, w.doel.z - car.z);
+        if (afstP > 9) rijNaar(w, w.doel, dt, 22);
+        else vehicles.drive(car, car.speed > 0.4 ? { KeyS: true } : {}, dt);
+        if (w.postT <= 0) { w.staat = 'zoekt'; nieuwZoekpunt(w); }
+        if ((w.pogingen || 0) >= 3 && dSp > 55) ruimWagen(w);
         continue;
       }
 
@@ -1581,7 +1871,30 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         doel = { x: mikPunt.x, z: mikPunt.z };
         w.onderschept = true;
       }
-      const afst = rijNaar(w, doel, dt, w.staat === 'jacht' ? 26 : 15);
+      /*
+       Rammen en insluiten (stap 144). Zit je in een auto en zien ze je, dan:
+       - staat je auto (bijna) stil vanaf drie sterren: wie niet de volger is gaat vóór je neus staan, de volger zit
+         erachter — je staat klem, achteruit en eromheen kan nog;
+       - vanaf twee sterren, als het handig is (`ramHandig`: hij rijdt al op je af, en je rijdt langzaam of hij is
+         sneller dan jij): vol gas erop, op waar je zo bent. Na een klap neemt hij even afstand (`SLIM.ramRust`).
+      */
+      let haast = w.staat === 'jacht' ? 26 : 15;
+      w.ramT = (w.ramT || 0) - dt;
+      w.ramt = false; w.sluit = false;
+      const pc = player.inCar;
+      if (w.staat === 'jacht' && pc && ziet && !rust) {
+        const vaartJ = Math.hypot(spSnelheid.x, spSnelheid.z);
+        if (s >= SLIM.insluitSter && vaartJ < SLIM.insluitVaart && w !== volger && dSp < 70) {
+          doel = { x: pc.x - Math.sin(pc.yaw) * 7, z: pc.z - Math.cos(pc.yaw) * 7 };
+          w.sluit = true; haast = 14;
+        } else if (s >= SLIM.ramSter && w.ramT <= 0 && dSp < SLIM.ramAfstand && ramHandig(w, pc, vaartJ)) {
+          const lead = Math.min(0.9, dSp / Math.max(8, car.speed + 4));
+          doel = { x: pc.x + spSnelheid.x * lead, z: pc.z + spSnelheid.z * lead };
+          w.ramt = true; haast = POLITIE_TOP;
+        } else if (w.ramT > 0) haast = 16;
+      }
+      const afst = rijNaar(w, doel, dt, haast);
+      if (w.ramt && car.botsKracht > 0 && pc && Math.hypot(pc.x - car.x, pc.z - car.z) < 5.5) ramKlapNu(w, pc);
       if (w.staat !== 'jacht' && afst < 12) { w.staat = 'zoekt'; nieuwZoekpunt(w); }
       if ((w.pogingen || 0) >= 3 && dSp > 55) { ruimWagen(w); continue; }   // hopeloos vast: verderop komt een verse wagen
       // ver buiten het zoekgebied verdwaald? die eenheid is uitgeschakeld
@@ -1594,7 +1907,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
        zitten en rijden ze achter je aan; uitstappen heeft dan geen zin.
       */
       const spVaart = Math.hypot(spSnelheid.x, spSnelheid.z);
-      if (dSp < 40 && spVaart < UITSTAP_SNELHEID && w.agenten.some(a => !a.persoon.groep.visible)) {
+      // (stap 144) zit je in een auto en zijn er twee sterren, dan rammen ze eerst: uitstappen pas als je stilstaat
+      const uitstapVaart = player.inCar && s >= SLIM.ramSter ? 2 : UITSTAP_SNELHEID;
+      if (dSp < 40 && spVaart < uitstapVaart && w.agenten.some(a => !a.persoon.groep.visible)) {
         w.uitstapT += dt;
         if (w.uitstapT > 0.4 || dSp < 22) {
           const zij = new THREE.Vector3(Math.cos(car.yaw), 0, -Math.sin(car.yaw));
@@ -1631,10 +1946,24 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       const links = Math.floor(v.knipper * 4) % 2 === 0;
       zetZwaailamp(v.links, gestolen ? 0 : (links ? 1 : 0), donker());
       zetZwaailamp(v.rechts, gestolen ? 0 : (links ? 0 : 1), donker());
-      if (gestolen) { verlaten.splice(i, 1); continue; }
+      if (gestolen) {
+        // (stap 144) wie er al in zat stapt uit; de rest vergeet zijn auto
+        for (const a of v.bemanning || []) {
+          if (a.staat === 'inAuto') { a.persoon.groep.visible = true; a.staat = 'zoekt'; a.doel = { x: v.car.x, z: v.car.z }; }
+          if (a.eigenAuto === v) a.eigenAuto = null;
+        }
+        verlaten.splice(i, 1); continue;
+      }
+      // (stap 144) zit de hele levende bemanning weer in? dan rijdt hij weer mee
+      if (v.bemanning) {
+        const levend = v.bemanning.filter(a => a.staat !== 'neer' && agenten.includes(a));
+        if (levend.length && levend.every(a => a.staat === 'inAuto')) { weerInDeWagen(v); continue; }
+      }
       v.t += dt;
       const dLeeg = Math.hypot(sp.x - v.car.x, sp.z - v.car.z);
-      const opTijd = v.t > (ster() === 0 ? LEEG_KWIJT : LEEG_WEG);
+      // (niet opruimen terwijl de bemanning nog terugloopt)
+      const terug = (v.bemanning || []).some(a => a.staat === 'naarAuto' || a.staat === 'inAuto');
+      const opTijd = v.t > (ster() === 0 ? LEEG_KWIJT : LEEG_WEG) && !(terug && ster() > 0);
       if (opTijd && dLeeg > LEEG_AFSTAND) ruimVerlaten(v);
     }
 
@@ -1654,7 +1983,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       doel: anker(),
       donker: !!(sfeer && sfeer.nacht),
     });
-    if (heliZiet) {
+    // (stap 144) in een struik ziet de heli je niet; onder een kroon en gehurkt regelt js/helikopter.js zelf
+    if (heliZiet && !verstopNu.struik) {
       iemandZiet = true;
       laatstBekend = { x: sp.x, z: sp.z };
       // hij hangt erboven en geeft door wat hij ziet; dat is waar hij voor is
@@ -1670,6 +2000,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
      de eenheden waaieren er met hun eigen sectoren omheen uit (`nieuwZoekpunt`).
     */
     if (zagJeVorigBeeld && !iemandZiet && laatstBekend) {
+      // (stap 144) onthouden waarheen je verdween, en of je reed: dan lopen ze straks terug naar hun auto
+      geheugen.verdween(laatstBekend.x, laatstBekend.z, spSnelheid.x, spSnelheid.z);
+      vluchtInAuto = !!player.inCar;
       const vaart = Math.hypot(spSnelheid.x, spSnelheid.z);
       if (vaart > 1) {
         let x = laatstBekend.x + spSnelheid.x * VOORUIT;
@@ -1684,6 +2017,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       // iedereen die nog aan het jagen was gaat vanaf daar zoeken
       for (const a of agenten) if (a.staat === 'jacht') { a.route = null; }
       for (const w of wagens) if (w.staat === 'jacht') { w.route = null; }
+      if (s >= 2 && !rust) omsingel();
     }
     zagJeVorigBeeld = iemandZiet;
 
@@ -1753,6 +2087,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     spVorig = null; spSnelheid.x = 0; spSnelheid.z = 0;
     heli.reset();
     meldPlek = null; meldNieuw = false; meldWacht = 0; meldRust = 0;
+    geheugen.wis(); ramKlap = null; vluchtInAuto = false;
     geluid.sirene(null);
   }
 
@@ -1811,6 +2146,16 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     },
     // voor de proef: dwing een bepaalde verdenking af en kijk binnen
     zetHeat(v) { heat = Math.max(0, Math.min(MAX_HEAT, v)); },
-    get intern() { return { wagens, agenten, verlaten, wrakken, blokkades, laatstBekend, gezienT, stille, heli }; },
+    get intern() { return { wagens, agenten, verlaten, wrakken, blokkades, laatstBekend, gezienT, stille, heli, geheugen, verstopNu, vluchtInAuto }; },
+    /*
+     Stap 144. `verstopt`: sta je ergens waar ze je slecht zien (een struik, het bos), voor de hud. `pakRam`: de klap
+     van een ramming, één keer op te halen door js/main.js (een deuk, een klap, een schok). `zietSpeler` en
+     `nieuwZoekpunt` voor de proef.
+    */
+    get verstopt() { return !player.inCar && (verstopNu.struik || verstopNu.bos); },
+    pakRam() { const r = ramKlap; ramKlap = null; return r; },
+    zietSpeler, nieuwZoekpunt, omsingel,
+    set proefStil(v) { proefStil = !!v; },
+    proef: { agent: maakAgent, wagen: maakWagen, verlaat: verlaatWagen, voetPunt },
   };
 }
