@@ -428,6 +428,7 @@ const STAF = {
   zij: { z0: -1.87, z1: 1.87, y0: 0.30, y1: 1.02 },      // het vlak waar het zijdoek overheen ligt
   riem: 0.98,                                             // de bovenrand van de kuip
   ruit: { z: -0.62, y0: 0.98, h: 0.46 },                  // de voorruit
+  oog: { x: -0.36, y: 1.32, z: -0.1 },                    // de ogen van de bestuurder (js/main.js zet daar de camera)
 };
 function stafZijDoek() {
   const Z = STAF.zij, W = 1024, H = Math.round(W * (Z.y1 - Z.y0) / (Z.z1 - Z.z0));
@@ -600,6 +601,9 @@ function mat5() {
     zeil: std({ color: 0xffffff, roughness: 0.95, metalness: 0, map: zeilDoek() }),
     jerry: std({ color: 0xffffff, map: jerrycanDoek() }),
     dash: std({ color: 0xffffff, map: dashDoek() }),
+    // (stap 145) de wijzerplaat en de naald van de snelheidsmeter, voor het interieur
+    klok: std({ color: 0xffffff, map: klokDoek(), roughness: 0.5, metalness: 0 }),
+    wijzer: std({ color: 0xe8e2c8, roughness: 0.4, metalness: 0, emissive: 0x2a2618 }),
     hout: std({ color: 0x7a5a3a, roughness: 0.85, metalness: 0 }),
     lens: std({ color: 0xd8d6c8, roughness: 0.2, metalness: 0.3 }),
     rem: new THREE.MeshStandardMaterial({ color: 0xff2a1a, emissive: 0xff2010, emissiveIntensity: 1.4, roughness: 0.4 }),
@@ -680,8 +684,12 @@ export function maakStafauto() {
   bak.add(glas);
   // het stuur (links), op een kolom
   const stuur = new THREE.Group(); stuur.position.set(-0.36, 1.02, -0.42); stuur.rotation.x = -0.95; bak.add(stuur);
-  stuur.add(new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.014, 6, 24), M.zwart));
-  stuur.add(doos(0.32, 0.018, 0.018, M.zwart, 0, 0, 0));
+  // (stap 145) de rand, de spaken en de claxon draaien mee met het sturen: zie `maakStafBinnen`
+  const draai = new THREE.Group(); stuur.add(draai);
+  draai.add(new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.014, 6, 24), M.zwart));
+  draai.add(doos(0.32, 0.018, 0.018, M.zwart, 0, 0, 0));
+  draai.add(doos(0.018, 0.17, 0.018, M.zwart, 0, -0.085, 0));
+  draai.add(cil(0.035, 0.035, 0.03, M.donker, 0, 0, 0.012, 'z', 14));
   const kolom = cil(0.02, 0.02, 0.4, M.zwart, -0.36, 0.9, -0.53, 'y', 8); kolom.rotation.x = 0.6; bak.add(kolom);   // van het stuur schuin naar het dashboard
   // vier stoelen: twee kuipstoelen voor, een bank achter, van zeil op een buizen frame
   const stoel = (x, z, b) => {
@@ -736,8 +744,104 @@ export function maakStafauto() {
     const band = maakWiel5(M.velg, x < 0 ? -1 : 1); groep.add(band);
     return { groep, band, stuur: stuurt };
   });
-  g.userData = { length: STAF.L, bak, glas, wielen, rem, R: STAF.R, oog: { x: -0.36, y: 1.32, z: -0.1 }, stafauto: true };
+  // (stap 145) het interieur voor wie erin zit en uit zijn ogen kijkt; js/main.js zet het aan en roept `update` aan
+  const binnen = maakStafBinnen(draai);
+  binnen.groep.visible = false;
+  bak.add(binnen.groep);
+  g.userData = { length: STAF.L, bak, glas, wielen, rem, R: STAF.R, oog: STAF.oog, stafauto: true, binnen };
   return g;
+}
+
+/*
+ De stafauto van binnen (stap 145, gevraagd: "Heeft de auto ook een interieur voor first person view? Zo niet, bouw dit
+ dan"). Er stond al een dashboard, een stuur en vier stoelen, maar niets bewoog en de binnenkant van de zijplaten
+ droeg het zijdoek van buiten, gespiegeld. Dit is wat je ziet als je erin zit en uit je ogen kijkt (V), net als het
+ interieur van de gewone auto's (js/autobinnen.js): `groep` staat uit tot js/main.js hem aanzet, `update(car, dt)` zet
+ het stuur en de naald van de snelheidsmeter.
+
+ - binnenpanelen in veldgrijs over de zijplaten, met een deurgreep;
+ - de snelheidsmeter als echte klok over de getekende op het dashboard: wijzerplaat tot 100 km/u, een rand, een naald;
+ - twee schakelaars, een handgreep voor de bijrijder, drie pedalen, de pook en de handrem tussen de stoelen;
+ - een binnenspiegel boven aan het ruitframe.
+ Alleen MeshStandardMaterial, enkelzijdig: geen nieuw programma (tools/stafautotest.mjs).
+*/
+const KLOK = { x: -0.461, y: 0.9, z: -0.636, r: 0.052, max: 100 };      // over de getekende klok van dashDoek
+function klokDoek() {
+  return doek(128, 128, (c, w, h) => {
+    const m = w / 2;
+    c.fillStyle = '#141412'; c.beginPath(); c.arc(m, m, m, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#d9d4c0'; c.fillStyle = '#d9d4c0'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = 'bold 15px sans-serif';
+    for (let v = 0; v <= KLOK.max; v += 10) {
+      const a = stafKlokHoek(v / KLOK.max);
+      const lang = v % 20 === 0;
+      c.lineWidth = lang ? 3 : 1.5;
+      c.beginPath(); c.moveTo(m + Math.cos(a) * (m - 4), m - Math.sin(a) * (m - 4));
+      c.lineTo(m + Math.cos(a) * (m - (lang ? 16 : 11)), m - Math.sin(a) * (m - (lang ? 16 : 11))); c.stroke();
+      if (lang) c.fillText(String(v), m + Math.cos(a) * (m - 30), m - Math.sin(a) * (m - 30));
+    }
+    c.font = 'bold 12px sans-serif'; c.fillText('km/h', m, m + 30);
+  });
+}
+// de hoek van de naald bij een fractie van de schaal: van linksonder (225°) met de klok mee naar rechtsonder (−45°)
+export function stafKlokHoek(f) { return Math.PI * 1.25 - Math.max(0, Math.min(1, f)) * Math.PI * 1.5; }
+
+export function maakStafBinnen(draai = null) {
+  const M = mat5();
+  const groep = new THREE.Group(); groep.name = 'stafBinnen';
+  const B = STAF.B / 2;
+  // binnenpanelen: van het schutbord tot het motorschot, van de vloer tot de riem, naar binnen gekeerd
+  const pz0 = -0.64, pz1 = 0.9, py0 = 0.46, py1 = STAF.riem - 0.01;
+  const paneelGeo = new THREE.PlaneGeometry(pz1 - pz0, py1 - py0);
+  for (const kant of [-1, 1]) {
+    const p = new THREE.Mesh(paneelGeo, M.verf);
+    p.position.set(kant * (B - 0.035), (py0 + py1) / 2, (pz0 + pz1) / 2);
+    p.rotation.y = kant > 0 ? -Math.PI / 2 : Math.PI / 2;
+    p.name = 'binnenpaneel';
+    groep.add(p);
+    // de naad van het deurtje en een greep
+    groep.add(doos(0.012, py1 - py0 - 0.06, 0.012, M.donker, kant * (B - 0.045), (py0 + py1) / 2, 0.02));
+    groep.add(doos(0.025, 0.02, 0.12, M.chroom, kant * (B - 0.05), STAF.riem - 0.12, -0.3));
+  }
+  // de snelheidsmeter: een wijzerplaat met een rand, en een naald die om het midden draait
+  const plaat = new THREE.Mesh(new THREE.CircleGeometry(KLOK.r, 32), M.klok);
+  plaat.position.set(KLOK.x, KLOK.y, KLOK.z); plaat.name = 'klok';
+  groep.add(plaat);
+  const rand = new THREE.Mesh(new THREE.TorusGeometry(KLOK.r + 0.004, 0.006, 6, 32), M.chroom);
+  rand.position.set(KLOK.x, KLOK.y, KLOK.z + 0.002); groep.add(rand);
+  const naald = new THREE.Group(); naald.position.set(KLOK.x, KLOK.y, KLOK.z + 0.004); naald.name = 'naald';
+  const wijzer = doos(KLOK.r * 0.85, 0.004, 0.002, M.wijzer, KLOK.r * 0.42, 0, 0);
+  naald.add(wijzer); naald.add(cil(0.006, 0.006, 0.004, M.donker, 0, 0, 0, 'z', 10));
+  naald.rotation.z = stafKlokHoek(0);
+  groep.add(naald);
+  // twee schakelaars en het lampje, over de getekende
+  for (const x of [-0.319, -0.269]) groep.add(cil(0.009, 0.009, 0.025, M.donker, x, KLOK.y, KLOK.z + 0.01, 'z', 10));
+  // de handgreep voor de bijrijder, boven op het dashboard
+  groep.add(cil(0.012, 0.012, 0.36, M.chroom, 0.36, 1.04, -0.64, 'x', 8));
+  for (const dx of [-0.17, 0.17]) groep.add(cil(0.01, 0.01, 0.05, M.chroom, 0.36 + dx, 1.015, -0.64, 'y', 6));
+  // drie pedalen voor de bestuurder, schuin op de vloer
+  for (const [x, b] of [[-0.48, 0.06], [-0.38, 0.06], [-0.27, 0.07]]) {
+    const ped = doos(b, 0.09, 0.012, M.zwart, x, 0.53, -0.55); ped.rotation.x = 0.5; groep.add(ped);
+    groep.add(cil(0.008, 0.008, 0.12, M.donker, x, 0.56, -0.6, 'y', 6));
+  }
+  // de pook en de handrem tussen de stoelen
+  const pook = cil(0.009, 0.009, 0.32, M.donker, 0, 0.6, -0.36, 'y', 8); pook.rotation.x = -0.25; groep.add(pook);
+  groep.add(new THREE.Mesh(new THREE.SphereGeometry(0.025, 10, 8), M.zwart).translateX(0).translateY(0.76).translateZ(-0.4));
+  const rem = cil(0.012, 0.012, 0.26, M.donker, 0.05, 0.56, -0.05, 'y', 8); rem.rotation.x = 1.0; groep.add(rem);
+  // de binnenspiegel boven aan het ruitframe, naar achteren gekeerd
+  const R0 = STAF.ruit;
+  groep.add(cil(0.006, 0.006, 0.05, M.donker, 0, R0.y0 + R0.h - 0.03, R0.z + 0.01, 'y', 6));
+  groep.add(doos(0.17, 0.055, 0.015, M.donker, 0, R0.y0 + R0.h - 0.075, R0.z + 0.02));
+  groep.add(doos(0.155, 0.042, 0.004, M.chroom, 0, R0.y0 + R0.h - 0.075, R0.z + 0.029));
+
+  let getoond = 0;
+  function update(car, dt = 1 / 60) {
+    if (draai) draai.rotation.z = -((car && car.steer) || 0) * 4.2;
+    const kmu = Math.abs((car && car.speed) || 0) * 3.6;
+    getoond += (Math.min(1, kmu / KLOK.max) - getoond) * Math.min(1, dt * 8);
+    naald.rotation.z = stafKlokHoek(getoond);
+  }
+  return { groep, naald, draai, update };
 }
 // een wiel: de band (een cilinder met het loopvlak en twee afgeronde schouders) en de velg, de as langs x
 function maakWiel5(velgMat, kant = 1, R = STAF.R, breed = 0.16) {

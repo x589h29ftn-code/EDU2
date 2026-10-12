@@ -5,6 +5,8 @@
    nomercy5_stafauto.png         de stafauto schuin van voren: de kap met het reservewiel, de ruit, de lampen, het Notek
    nomercy5_stafauto_achter.png  schuin van achteren: het motordeksel met de koelsleuven, de kap, de jerrycan, het kenteken
    nomercy5_zijspan.png          het zijspan met de twee mannen: de boxermotor, de spaakwielen, de MG op de kuip
+   nomercy5_stafauto_binnen.png  (stap 145) uit de ogen van de bestuurder: het stuur een kwartslag in, de klok op 50 km/u,
+                                 de spiegel, de pook, de handgreep en de binnenpanelen
 */
 import { chromium } from 'playwright';
 import { writeFileSync } from 'node:fs';
@@ -65,6 +67,19 @@ await page.evaluate(() => {
 });
 await opname('nomercy5_stafauto', `return (${foto})([-4.2, 1.9, -4.6], [0, 0.75, -0.2]);`);
 await opname('nomercy5_stafauto_achter', `return (${foto})([3.8, 2.2, 4.4], [0, 0.8, 0.3]);`);
+await opname('nomercy5_stafauto_binnen', `
+  const { THREE, R, scene, cam } = window.__t;
+  const g = window.__staf, B = g.userData.binnen, o = g.userData.oog;
+  B.groep.visible = true;
+  if (g.userData.glas) g.userData.glas.visible = false;
+  for (let i = 0; i < 30; i++) B.update({ steer: 0.25, speed: 50 / 3.6 }, 0.1);
+  const breed = cam.fov; cam.fov = 70; cam.updateProjectionMatrix();
+  cam.position.set(o.x, o.y, o.z); cam.lookAt(o.x + 0.1, o.y - 0.32, o.z - 1);
+  R.render(scene, cam); R.render(scene, cam);
+  const url = R.domElement.toDataURL('image/png');
+  cam.fov = breed; cam.updateProjectionMatrix(); B.groep.visible = false;
+  return url;
+`);
 await opname('nomercy5_zijspan', `
   const { N, scene, schaduw, maakDuitser } = window.__t;
   scene.remove(window.__staf);

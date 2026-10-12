@@ -8699,6 +8699,29 @@ dekking, 3 % van de zoekpunten in doorzochte vakken tegen 57 % zonder geheugen, 
 een ramklap, klem bij drie sterren, posten op ~100 m, 138 → 138 programma's). `npm run politietest` blijft groen. Foto's:
 `npm run politieslimshots` (politie_dekking, politie_zaklamp, politie_verstopt); twee ervan staan ook in het boekje (15d, 15e).
 
+**De stafauto van binnen (stap 145, 13 okt).**
+
+Gevraagd: "Kan je de kubelwagen ook als je hem kiest als gift rijden en waar wordt die gestald" — ja: `garage.schenk` zet hem
+bestuurbaar naast je op de kade in IJlst, en de opslag onthoudt waar je hem achterliet (`garage.bewaar`); een vaste plek heeft hij
+niet. Daarna: "Heeft de auto ook een interieur voor first person view? Zo niet, bouw dit dan."
+
+Er stond al een dashboard met een getekende klok, een stuur en vier stoelen, maar niets bewoog, en de binnenkant van de zijplaten
+droeg het zijdoek van buiten, gespiegeld. `maakStafBinnen` in js/nomercy5.js levert nu `userData.binnen = { groep, update }`,
+precies zoals js/autobinnen.js voor de gewone auto's: js/main.js zet de groep aan zolang je erin zit en uit je ogen kijkt, en roept
+`update(car, dt)` aan. Erin: binnenpanelen in veldgrijs met een naad en een greep (naar binnen gekeerd, enkelzijdig), de
+snelheidsmeter als echte klok over de getekende (`KLOK`, wijzerplaat op canvas tot 100 km/u, een chromen rand, een naald die
+`stafKlokHoek` volgt), twee schakelaars, een handgreep voor de bijrijder, drie pedalen, de pook, de handrem en een binnenspiegel. Het
+stuur kreeg een draaiend deel (`draai`, met een derde spaak en de claxon), dat `update` met `car.steer · 4,2` draait, net als het stuur
+van js/autobinnen.js. De oogpositie staat nu in `STAF.oog`.
+
+*Wat misging.* De oude controle "het stuur zit links" zocht de eerste ring onder de carrosserie en vond nu de rand van de nieuwe
+snelheidsmeter; hij zoekt het stuur nu in `binnen.draai`. En de server was na een herstart van de container twee keer weg.
+
+*Proef*: `npm run stafautotest`: blok 7 erbij (10 controles: uit tot je erin zit, de ogen 1,32 m boven een zitting van 0,62 en onder
+de ruitrand van 1,44, de klok op 0,69 m vóór je, het stuur recht voor je, de panelen naar binnen, het stuur −1,68 rad bij een
+stuuruitslag van 0,4, de naald halverwege bij 50 km/u, de spiegel boven je ogen, 27 meshes met de materiaalregels), alles goed.
+Foto: `npm run stafautoshots` maakt nu ook nomercy5_stafauto_binnen.png.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

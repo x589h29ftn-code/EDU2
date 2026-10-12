@@ -17,6 +17,9 @@
  5. Het zijspan: drie wielen op de grond, binnen 1,8 m breed (een R75 met zijspan is 1,73 m), de rijder op het zadel van de scooters, de bijrijder in
     de kuip, het reservewiel achter de kuip en niet erin, dezelfde regels voor de materialen.
  6. Veel meer onderdelen dan het oude model (het zijspan had 16 meshes, de BX 7).
+ 7. Van binnen (stap 145): het interieur staat uit tot je erin zit (`userData.binnen`), de ogen zitten boven de stoel en
+    onder de bovenrand van de ruit, de klok en het stuur liggen vóór je, de binnenpanelen kijken naar binnen, het stuur
+    draait mee met het sturen en de naald met de snelheid, de spiegel hangt boven je ogen, en dezelfde materiaalregels.
 */
 import { chromium } from 'playwright';
 
@@ -116,7 +119,8 @@ const staf = await page.evaluate(() => {
         zijUv = { lo, hi };
       }
     }
-    if (o.geometry.type === 'TorusGeometry' && o.parent && o.parent.parent === u.bak && !stuur) stuur = window.__doos(o, g);
+    // (stap 145: het stuur draait in zijn eigen groep `binnen.draai`; de rand van de snelheidsmeter is ook een ring)
+    if (o.geometry.type === 'TorusGeometry' && o.parent && u.binnen && o.parent === u.binnen.draai && !stuur) stuur = window.__doos(o, g);
   });
   uit.platen = platen; uit.zijUv = zijUv; uit.stuur = stuur;
   // de kap, het motordeksel en het reservewiel: de neus laag, het reservewiel erop
@@ -204,6 +208,64 @@ ok(zij.mat.kaartZonderUv === 0 && zij.mat.vreemd === 0 && zij.mat.dubbelMetKaart
 kop('6. detail');
 ok(staf.meshes >= 60, 'de stafauto: veel meer onderdelen dan de BX (7)', `${staf.meshes} meshes`);
 ok(zij.meshes >= 60, 'het zijspan: veel meer onderdelen dan eerst (16)', `${zij.meshes} meshes`);
+
+kop('7. van binnen');
+const bin = await page.evaluate(() => {
+  const { THREE, N } = window.__t;
+  const g = N.maakStafauto();
+  g.updateMatrixWorld(true);
+  const B = g.userData.binnen, oog = g.userData.oog;
+  if (!B) return null;
+  const d = (naam) => { let o = null; B.groep.traverse(x => { if (!o && x.name === naam) o = x; }); return o; };
+  const wp = (o) => { const v = new THREE.Vector3(); o.getWorldPosition(v); return v; };
+  // de stoel van de bestuurder: de zitting die het dichtst onder de ogen ligt
+  let zitTop = -Infinity;
+  g.userData.bak.traverse(o => {
+    if (!o.isMesh || !o.geometry.parameters || o.geometry.parameters.depth !== 0.44) return;
+    const p = wp(o); if (Math.abs(p.x - oog.x) < 0.1 && Math.abs(p.z - oog.z) < 0.3) zitTop = Math.max(zitTop, p.y + 0.045);
+  });
+  const klok = wp(d('klok')), naald = d('naald');
+  // de panelen: de normaal in de wereld moet naar het midden wijzen
+  const panelen = [];
+  B.groep.traverse(o => { if (o.name === 'binnenpaneel') { const n = new THREE.Vector3(0, 0, 1).applyQuaternion(o.getWorldQuaternion(new THREE.Quaternion())); panelen.push({ x: wp(o).x, nx: n.x }); } });
+  // sturen en snelheid
+  const auto = { steer: 0, speed: 0 };
+  B.update(auto, 1);
+  const stuur0 = B.draai.rotation.z, naald0 = naald.rotation.z;
+  auto.steer = 0.4; auto.speed = 50 / 3.6;
+  for (let i = 0; i < 30; i++) B.update(auto, 0.1);
+  const stuur1 = B.draai.rotation.z, naald1 = naald.rotation.z;
+  const verwacht = N.stafKlokHoek(0.5);
+  // de spiegel: het hoogste kleine ding vlak achter de ruit
+  let spiegel = null;
+  B.groep.traverse(o => { if (o.isMesh && o.geometry.parameters && o.geometry.parameters.width === 0.17) spiegel = wp(o); });
+  const draaiStuur = wp(B.draai);
+  // materiaalregels voor het interieur alleen
+  const mat = window.__materialen(B.groep);
+  return {
+    uit: B.groep.visible === false, oog, zitTop, ruitTop: 0.98 + 0.46,
+    klok: { x: klok.x, y: klok.y, z: klok.z }, stuur: { x: draaiStuur.x, y: draaiStuur.y, z: draaiStuur.z },
+    panelen, stuur0, stuur1, naald0, naald1, verwacht, spiegel: spiegel && { y: spiegel.y, z: spiegel.z }, mat,
+    nul: N.stafKlokHoek(0), vol: N.stafKlokHoek(1),
+  };
+});
+ok(!!bin && bin.uit, 'het interieur staat uit tot je erin zit (userData.binnen)');
+if (bin) {
+  ok(bin.oog.y > bin.zitTop + 0.55 && bin.oog.y < bin.ruitTop - 0.05, 'de ogen boven de stoel en onder de bovenrand van de ruit',
+    `ogen ${r2(bin.oog.y)} m, zitting ${r2(bin.zitTop)}, ruit tot ${r2(bin.ruitTop)}`);
+  const dKlok = Math.hypot(bin.klok.x - bin.oog.x, bin.klok.y - bin.oog.y, bin.klok.z - bin.oog.z);
+  ok(bin.klok.z < bin.oog.z - 0.3 && dKlok < 0.75 && bin.klok.y < bin.oog.y, 'de snelheidsmeter vóór je, onder je ogen, binnen armlengte', `${r2(dKlok)} m`);
+  ok(bin.stuur.z < bin.oog.z && Math.abs(bin.stuur.x - bin.oog.x) < 0.05 && bin.stuur.y < bin.oog.y, 'het stuur recht voor de bestuurder');
+  ok(bin.panelen.length === 2 && bin.panelen.every(p => Math.sign(p.nx) === -Math.sign(p.x) && Math.abs(p.nx) > 0.99), 'de binnenpanelen kijken naar binnen',
+    bin.panelen.map(p => `x ${r2(p.x)} → ${r2(p.nx)}`).join(', '));
+  ok(Math.abs(bin.stuur0) < 1e-6 && Math.abs(bin.stuur1 + 0.4 * 4.2) < 1e-6, 'het stuur draait mee met het sturen', `${r2(bin.stuur1)} rad`);
+  ok(Math.abs(bin.naald0 - bin.nul) < 1e-3 && Math.abs(bin.naald1 - bin.verwacht) < 0.02, 'de naald staat op 0 en bij 50 km/u halverwege de schaal',
+    `${r2(bin.naald1)} tegen ${r2(bin.verwacht)} rad`);
+  ok(bin.nul > bin.vol, 'de schaal loopt met de klok mee');
+  ok(!!bin.spiegel && bin.spiegel.y > bin.oog.y && bin.spiegel.z < bin.oog.z, 'de binnenspiegel hangt boven je ogen, vóór je');
+  ok(bin.mat.kaartZonderUv === 0 && bin.mat.vreemd === 0 && bin.mat.dubbelMetKaart === 0 && bin.mat.doorzichtigVreemd === 0, 'het interieur volgt dezelfde materiaalregels',
+    `${bin.mat.meshes} meshes, ${bin.mat.soorten.join(', ')}`);
+}
 
 await browser.close();
 console.log(fout ? `\n${fout} fout${fout > 1 ? 'en' : ''}` : '\nalles goed');

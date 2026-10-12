@@ -2403,10 +2403,18 @@ achterop.
 
 ![Het zijspan](docs/screenshots/nomercy5_zijspan.png)
 
+**Van binnen.** Kijk je uit je ogen (V) terwijl je in de stafauto zit, dan zie je zijn interieur: het stuur draait mee als
+je stuurt, de naald van de snelheidsmeter (tot 100 km/u) loopt mee met je vaart, en verder de binnenpanelen in veldgrijs met
+een deurgreep, twee schakelaars, de handgreep voor de bijrijder, drie pedalen, de pook en de handrem, en een binnenspiegel boven
+aan het ruitframe.
+
+![De stafauto van binnen](docs/screenshots/nomercy5_stafauto_binnen.png)
+
 **De première.** "Een week later…", om acht uur 's avonds op de kade: *Opgedragen aan De Veteraan*. Erik Jan telt
 de **filmpunten** (buiten het zoeklicht gebleven, de molen binnen een minuut, de rit in één take, precies op de ruit;
 alleen een compliment, geen geld) en vraagt wat je wilt: **1 = € 2.000**, **2 = de stafauto houden**. De stafauto
-staat dan naast je, is van jou zoals een gekochte auto, en gaat mee in de opslag.
+staat dan naast je op de kade, is van jou zoals een gekochte auto, rijdt (als een BX) en gaat mee in de opslag: hij staat
+waar je hem het laatst achterliet.
 
 ![De première](docs/screenshots/nomercy5_premiere.png)
 
