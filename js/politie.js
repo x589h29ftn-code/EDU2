@@ -1669,7 +1669,11 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
           const verschoof = a.dekVoor && Math.hypot(a.dekVoor.x - sp.x, a.dekVoor.z - sp.z) > 6;
           if (a.zicht && dSp < SLIM.dekkingMax + 6 && (a.dekT <= 0 || verschoof)) {
             a.dekT = SLIM.dekkingOpnieuw;
-            a.dekking = zoekDekking(pos, sp);
+            // een plek die nog dekt houdt hij; anders liep hij om de drie tellen naar een nieuwe en zat hij nooit
+            const d0 = a.dekking;
+            const dekt = d0 && !zichtVrij(d0.x, d0.z, sp.x, sp.z, 0.7)
+              && (zichtVrij(d0.x, d0.z, sp.x, sp.z, 1.45) || (d0.piek && zichtVrij(d0.piek.x, d0.piek.z, sp.x, sp.z, 1.3)));
+            if (!dekt) a.dekking = zoekDekking(pos, sp);
             a.dekVoor = { x: sp.x, z: sp.z };
           }
           if (!a.zicht && (a.kwijtT || 0) > 1) a.dekking = null;   // waar hij je niet meer ziet heeft dekking geen zin
