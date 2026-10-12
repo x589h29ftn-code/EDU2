@@ -8618,7 +8618,7 @@ Mercy werd die waarde nergens gebruikt, maar nu is het 0.
 
 *Proef*: `npm run figurantentest`: 13 controles, alles goed (de stafauto en 172 → 172 programma's, vier verschillende doelen, in
 twintig tellen gevecht nooit dichter dan 1,39 m, tien rode flitsen bij leven 100 in No Mercy 4 en twee in No Mercy 5, een gewone
-Bewaking duwt niemand weg, een machinegeweer met schade 0 raakt 112 keer zonder schade). NM2UITSLAG
+Bewaking duwt niemand weg, een machinegeweer met schade 0 raakt 112 keer zonder schade). Ook groen: `nomercy2test` (73 controles, het bunkerdorp met de nieuwe stafauto en de figuranten die uit elkaar blijven).
 
 **Wat nog niet af is** (in volgorde).
 
