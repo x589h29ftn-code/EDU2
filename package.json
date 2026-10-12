@@ -239,6 +239,7 @@
     "nomercy5shots": "node tools/nomercy5shots.mjs 8123",
     "stafautotest": "node tools/stafautotest.mjs 8123",
     "stafautoshots": "node tools/stafautoshots.mjs 8123",
+    "figurantentest": "node tools/figurantentest.mjs 8123",
     "m1geluidtest": "node tools/m1geluidtest.mjs 8123",
     "scootertest": "node tools/scootertest.mjs 8123",
     "scootershots": "node tools/scootershots.mjs 8123",

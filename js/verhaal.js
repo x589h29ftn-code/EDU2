@@ -1710,7 +1710,8 @@ export function initVerhaal(ctx) {
    tent en de radiopost. Alles bij het opstarten, zodat er geen shader bij komt.
   */
   const nmKamp = maakKamp(scene);
-  const nmStaf = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'bx', kleur: NOMERCY.stafKleur, driveable: false });
+  // (sinds stap 142 hetzelfde eigen model als in No Mercy 5, `maakStafauto`; tot dan een BX in feldgrau)
+  const nmStaf = vehicles.voegToe({ x: 1e5, z: 1e5, yaw: 0, soort: 'bx', kleur: NOMERCY.stafKleur, driveable: false, mesh: maakStafauto() });
   nmStaf.mesh.visible = false; nmStaf.mesh.position.set(1e5, 0, 1e5); nmStaf.noMercy = true;
   const nmKlapbord = maakKlapbord();
   nmKlapbord.position.set(0.05, 1.44, -0.5); nmKlapbord.rotation.y = Math.PI;   // voor de borst, onder het gezicht
@@ -10529,6 +10530,17 @@ export function initVerhaal(ctx) {
   ];
   const NM_BEDANKT = [zegtCam('Bedankt, man. Als er een No Mercy 5 komt, bellen we je.')];
 
+  /*
+   De Duitsers schieten met losse flodders: geen schade, maar een treffer laat het beeld wel rood flitsen, zoals een echte
+   (stap 142, gevraagd: "Laat ze als ze je raken wel rood zien in beeld maar geen levens"). Ze houden ook afstand van
+   elkaar (`uitElkaar` in js/bewaking.js): ze liepen naar hetzelfde punt en door elkaar heen.
+  */
+  const NM_UIT_ELKAAR = 1.4;
+  function nmRaakFlits(g) {
+    if (!g || !g.raakNu) return;
+    g.raakNu = 0;
+    if (hud.flits && player.health > 0) hud.flits();
+  }
   function nmBeschikbaar() { return !nm.klaar && !NM_VOOR.includes(missie); }
   function nmBezig() { return NM_ACTIEF.includes(nm.fase); }
   function nmStartbaar() {
@@ -10740,12 +10752,13 @@ export function initVerhaal(ctx) {
     for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
     let nieuw;
     if (!nm.golf) {
-      nm.golf = new Bewaking(scene, posten, { schade: 0, leven: nm.levens, klank: 'garand', personen, vest: null, pet: false,
+      nm.golf = new Bewaking(scene, posten, { schade: 0, uitElkaar: NM_UIT_ELKAAR, leven: nm.levens, klank: 'garand', personen, vest: null, pet: false,
         zicht: 48, vuurbereik: 46, dekking: 11, oog: 1.5 });
       nieuw = nm.golf.wachters;
     } else nieuw = nm.golf.voegToe(posten, personen);
     nm.golf.alarm = true;
-    nieuw.forEach((w, j) => { w.staat = 'zoekt'; w.doel = [sp.x, sp.z]; w.vuurT = 0.8 + j * 0.45; });
+    // (ieder een eigen doel op een ring om je heen, niet allemaal hetzelfde punt: stap 142)
+    nieuw.forEach((w, j) => { const a = j * 2.4; w.staat = 'zoekt'; w.doel = [sp.x + Math.cos(a) * 4, sp.z + Math.sin(a) * 4]; w.vuurT = 0.8 + j * 0.45; });
     return posten.length;
   }
   function nmOver(van, tot) {
@@ -10859,7 +10872,7 @@ export function initVerhaal(ctx) {
     nmCamBij(dt, sp);
     // Erik Jan regisseert vanaf zijn stoel
     if (nmEJ.groep.visible) { nmEJ.kijkNaar(sp.x, sp.z, dt, 2); nmEJ.update(dt, {}); }
-    if (nm.golf) nm.golf.update(dt, player, true);      // losse flodders: de schade telt niet (schade 0)
+    if (nm.golf) { nm.golf.update(dt, player, true); nmRaakFlits(nm.golf); }   // losse flodders: geen schade, wel een rode flits
     nmMerk.update(dt); nmC4.update(dt);
     if (nm.fase === 'naarSet') {
       navKlok += dt;
@@ -11033,7 +11046,7 @@ export function initVerhaal(ctx) {
     const posten = nmKamp.wachtPosten();
     const personen = posten.map((_, j) => nmDuitsers[j]);
     for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
-    nm.golf = new Bewaking(scene, posten, { schade: 0, leven: nm.levens, klank: 'garand', personen, vest: null, pet: false,
+    nm.golf = new Bewaking(scene, posten, { schade: 0, uitElkaar: NM_UIT_ELKAAR, leven: nm.levens, klank: 'garand', personen, vest: null, pet: false,
       zicht: NOMERCY.wachtZicht, vuurbereik: 46, dekking: 11, oog: 1.5 });
     nm.gezien = false; nm.stil = false; nm.stilT = 0; nm.vorig = null;
     nm.fase = 'kampIntro';
@@ -11049,7 +11062,7 @@ export function initVerhaal(ctx) {
     if (!nm.golf) return;
     nm.golf.alarm = true;
     nm.golf.zicht = 48;
-    for (const w of nm.golf.wachters) if (w.staat === 'patrouille') { w.staat = 'zoekt'; w.doel = [sp.x, sp.z]; }
+    nm.golf.wachters.forEach((w, j) => { if (w.staat === 'patrouille') { const a = j * 2.4; w.staat = 'zoekt'; w.doel = [sp.x + Math.cos(a) * 4, sp.z + Math.sin(a) * 4]; } });
   }
   // E bij de ingang van de tent: de kaart, het luchtalarm, en zes figuranten uit het oosten
   function nmKaartPakken() {
@@ -11110,7 +11123,7 @@ export function initVerhaal(ctx) {
         nmEJ.update(dt, { loopt: !erIs, snelheid: 3.0, mikt: nm.fase !== 'closeup' && erIs });
       } else { nmEJ.kijkNaar(sp.x, sp.z, dt, 2); nmEJ.update(dt, {}); }
     }
-    if (nm.golf) nm.golf.update(dt, player, true);      // losse flodders: de schade telt niet (schade 0)
+    if (nm.golf) { nm.golf.update(dt, player, true); nmRaakFlits(nm.golf); }   // losse flodders: geen schade, wel een rode flits
     nmMerk.update(dt); nmC4.update(dt);
     if (nm.fase === 'kamp') {
       // gezien (of gehoord): geen "cut", het gevecht gaat gewoon los
@@ -11504,7 +11517,7 @@ export function initVerhaal(ctx) {
     ];
     const personen = [n5Duitsers[0], sluip];
     for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
-    n5.groepA = new Bewaking(scene, posten, { schade: 0, leven: [2, 1], mg: [0], klank: 'garand', personen, vest: null, pet: false,
+    n5.groepA = new Bewaking(scene, posten, { schade: 0, uitElkaar: NM_UIT_ELKAAR, leven: [2, 1], mg: [0], klank: 'garand', personen, vest: null, pet: false,
       zicht: NOMERCY5.sluipZicht, vuurbereik: NOMERCY5.sluipZicht, dekking: 11, oog: 1.5, houden: true });
     n5.groepA.alarm = true;
     sluip.groep.position.y = s.y;
@@ -11578,7 +11591,7 @@ export function initVerhaal(ctx) {
     const personen = n5Duitsers.slice(2, 2 + posten.length);
     for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
     const levens = posten.map(() => NOMERCY.treffers[0] + Math.floor(Math.random() * (NOMERCY.treffers[1] - NOMERCY.treffers[0] + 1)));
-    n5.groepB = new Bewaking(scene, posten, { schade: 0, leven: levens, klank: 'garand', personen, vest: null, pet: false,
+    n5.groepB = new Bewaking(scene, posten, { schade: 0, uitElkaar: NM_UIT_ELKAAR, leven: levens, klank: 'garand', personen, vest: null, pet: false,
       zicht: 48, vuurbereik: 46, dekking: 11, oog: 1.5, houden: true });
     n5.groepB.alarm = true;
     n5MolenOpdracht();
@@ -11838,7 +11851,7 @@ export function initVerhaal(ctx) {
     }
     const lucht = n5.fase === 'overtochtIntro' || n5.fase === 'overtocht' || n5.fase === 'molen';
     const vlek = n5Set.update(dt, { kogels: lucht });
-    for (const g of [n5.groepA, n5.groepB]) if (g) { g.update(dt, player, true); }
+    for (const g of [n5.groepA, n5.groepB]) if (g) { g.update(dt, player, true); nmRaakFlits(g); }
     // de sluipschutter blijft op de stelling, ook als hij neergaat
     const sluip = n5Duitsers[1];
     if (sluip.groep.visible && sluip.vasteGrond != null && n5.groepA) {

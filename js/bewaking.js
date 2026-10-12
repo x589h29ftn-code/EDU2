@@ -93,6 +93,13 @@ export class Bewaking {
     this.mg = opties.mg || [];
     // het geluid van hun schot (stap 140: de figuranten van No Mercy 4 met een M1 Garand); zonder: het gewone
     this.klank = opties.klank || null;
+    /*
+     Uit elkaar (stap 142, gevraagd: "De duitsers lopen ook wat door elkaar"): zo ver blijven levende mannen van
+     elkaar af (m). Zonder deze optie gedraagt alles zich als altijd. `raakNu` telt de treffers sinds de laatste
+     keer dat iemand keek, ook als ze geen schade doen (de losse flodders van No Mercy: het beeld wordt dan rood).
+    */
+    this.uitElkaar = opties.uitElkaar || 0;
+    this.raakNu = 0;
     this.opties = { kleuren, vest, pet };
     const personen = opties.personen || [];
     this.wachters = [];
@@ -334,7 +341,35 @@ export class Bewaking {
       if (this.loopNaar(w, doel, dt, LOOP)) { w.naarB = !w.naarB; w.wacht = 1.5; }
       persoon.update(dt, { loopt: true, snelheid: LOOP });
     }
+    if (this.uitElkaar > 0) this.duwUitElkaar(dt);
     return schade;
+  }
+
+  /*
+   Twee levende mannen die dichter bij elkaar staan dan `uitElkaar` schuiven elk de helft van het verschil uit
+   elkaar (hoogstens 2,5 m/s, zodat het niet schokt), en niet een muur of een boom in. Wie op een vaste plek staat
+   (`houden` en daar aangekomen) blijft staan; dan schuift de ander het hele stuk.
+  */
+  duwUitElkaar(dt) {
+    const L = this.wachters.filter(w => w.staat !== 'neer');
+    const max = 2.5 * dt;
+    for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
+      const a = L[i].persoon.groep.position, b = L[j].persoon.groep.position;
+      let dx = b.x - a.x, dz = b.z - a.z;
+      const d = Math.hypot(dx, dz);
+      if (d >= this.uitElkaar) continue;
+      if (d < 1e-4) { dx = Math.cos(i * 2.4 + j); dz = Math.sin(i * 2.4 + j); } else { dx /= d; dz /= d; }
+      const vastA = !!L[i].klaar, vastB = !!L[j].klaar;
+      if (vastA && vastB) continue;
+      const tekort = Math.min(this.uitElkaar - d, max * 2);
+      const deelA = vastA ? 0 : vastB ? 1 : 0.5, deelB = 1 - deelA;
+      for (const [p, s, deel] of [[a, -1, deelA], [b, 1, deelB]]) {
+        if (deel <= 0) continue;
+        const nx = p.x + dx * s * tekort * deel, nz = p.z + dz * s * tekort * deel;
+        const [kx, kz] = resolveCollisions(nx, nz, 0.34, this.overLaag, p.y);
+        p.x = kx; p.z = kz;
+      }
+    }
   }
 
   /*
@@ -379,12 +414,16 @@ export class Bewaking {
       if (w.salvo >= MG_SALVO) { w.salvo = 0; w.vuurT = VUURTIJD * (0.9 + Math.random() * 0.5); }
       else w.vuurT = MG_TEMPO;
       geluid.schot(0, { wapen: 'mitrailleur', bron: 'mg' + w.i });
-      return Math.random() < kans * 0.7 ? Math.max(1, Math.round(this.schade * MG_SCHADE)) : 0;
+      if (Math.random() >= kans * 0.7) return 0;
+      this.raakNu++;
+      return this.schade > 0 ? Math.max(1, Math.round(this.schade * MG_SCHADE)) : 0;   // (losse flodders: nooit schade)
     }
     w.vuurT = VUURTIJD * (0.8 + Math.random() * 0.5);
     if (this.klank) geluid.schot(dSp, { wapen: this.klank, bron: 'bew' + w.i });
     else geluid.schot();
-    return Math.random() < kans ? this.schade : 0;
+    if (Math.random() >= kans) return 0;
+    this.raakNu++;
+    return this.schade;
   }
 
   bewaar() {
