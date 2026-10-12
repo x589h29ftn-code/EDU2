@@ -313,19 +313,28 @@ const zoek = await page.evaluate(() => {
     for (let i = 0; i < 40; i++) { const e = {}; const p = P.nieuwZoekpunt(e); som += (p.x - pd.x) / (Math.hypot(p.x - pd.x, p.z - pd.z) || 1); }
     return som / 40;
   };
+  // welk deel van de zoekpunten valt in vakken die net doorzocht zijn?
+  const inVers = () => {
+    let n = 0;
+    for (let i = 0; i < 60; i++) { const p = P.nieuwZoekpunt({}); if (G.vers(p.x, p.z) > 0.5) n++; }
+    return n / 60;
+  };
   const zonder = richting();
   G.verdween(pd.x, pd.z, 1, 0);           // naar het oosten verdwenen
   const oost = richting();
-  // en nu het oosten net doorzocht, zonder vluchtrichting
+  // en nu het oosten net doorzocht, zonder vluchtrichting: hoeveel punten vallen er nog in?
   G.vlucht = null;
+  G.wis();
+  const oostDeel = (() => { let n = 0; for (let i = 0; i < 60; i++) { const p = P.nieuwZoekpunt({}); if (p.x > pd.x) n++; } return n / 60; })();
   for (let x = 0; x < 260; x += 10) for (let z = -260; z < 260; z += 10) G.stempel(pd.x + x, pd.z + z);
-  const doorzocht = richting();
+  const doorzocht = inVers();
   window.__schoon();
-  return { zonder, oost, doorzocht };
+  return { zonder, oost, oostDeel, doorzocht };
 });
 ok(zoek.oost > 0.35 && zoek.oost > zoek.zonder + 0.25, 'eerst zoeken ze in de richting waarin je verdween',
   `gemiddeld ${zoek.oost.toFixed(2)} naar het oosten, zonder richting ${zoek.zonder.toFixed(2)}`);
-ok(zoek.doorzocht < -0.1, 'een kant die net doorzocht is laten ze liggen', zoek.doorzocht.toFixed(2));
+ok(zoek.doorzocht < zoek.oostDeel * 0.6, 'een kant die net doorzocht is laten ze zoveel mogelijk liggen',
+  `${Math.round(zoek.doorzocht * 100)} % van de punten in doorzochte vakken, tegen ${Math.round(zoek.oostDeel * 100)} % daarvoor`);
 
 // ---------- 7. de looproute ----------
 kop('de looproute');
@@ -336,9 +345,11 @@ const tuin = await page.evaluate(() => {
   P.zetSter(1, pd.x + 900, pd.z + 900);
   // een tuin achter de huizen: over de straat moet je eromheen
   const tuinen = (K.tuinvlakken || []).map(t => {
-    const r = t.r ? t.r[0] : t; let x = 0, z = 0; for (const p of r) { x += p[0]; z += p[1]; }
+    // (een tuinvlak is één ring [[x, z], …], soms in een lijst van ringen)
+    const r = Array.isArray(t.r[0][0]) ? t.r[0] : t.r; let x = 0, z = 0; for (const p of r) { x += p[0]; z += p[1]; }
     return { x: x / r.length, z: z / r.length };
-  }).filter(t => Math.hypot(t.x - pd.x, t.z - pd.z) < 250);
+  }).filter(t => Math.hypot(t.x - pd.x, t.z - pd.z) < 600)
+    .sort((p, q) => Math.hypot(p.x - pd.x, p.z - pd.z) - Math.hypot(q.x - pd.x, q.z - pd.z));
   for (const t of tuinen) {
     const [tx, tz] = W.resolveCollisions(t.x, t.z, 0.4);
     if (Math.hypot(tx - t.x, tz - t.z) > 0.05 || W.pointInWater(tx, tz)) continue;

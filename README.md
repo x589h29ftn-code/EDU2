@@ -1337,6 +1337,36 @@ wordt in plaats van een gaspedaal — doorrijden en eromheen, of de wijk in en t
 |---|---|
 | ![Een wegblokkade](docs/screenshots/politie_blokkade.png) | ![Twee wagens dwars over de straat](docs/screenshots/politie_wegversperring.png) |
 
+### Slimmer, maar te ontlopen (stap 144)
+
+De agenten denken na, maar elke slimmigheid heeft een tegenzet:
+
+- **Verstoppen.** In een **struik** zien ze je staand pas op een meter of vijftien, en **gehurkt (C)** pas als
+  ze er bijna in staan (2,5 m). Gehurkt áchter een bosje houdt het hun blik ook tegen. In het **bos** zien ze je
+  op de helft van de gewone afstand, gehurkt op minder dan een derde. De helikopter ziet je in een struik niet.
+  Onder de sterren staat dan **VERSTOPT**.
+- **Dekking.** Een agent blijft niet meer midden op straat staan: hij zoekt een geparkeerde auto, een muurtje of
+  een hoek, zit daar laag en komt alleen omhoog om te schieten. Schiet je terug, dan duikt hij een paar tellen
+  weg — dat is je kans om te rennen.
+- **Raak schieten.** Het eerste schot op een nieuw doel gaat vaker mis; wie rent, rijdt, gehurkt of gedekt zit
+  is lastiger te raken, en wie stil in het open blijft staan juist makkelijker.
+- **Gericht zoeken.** Ze zoeken eerst in de richting waarin je verdween, en een straat die net doorzocht is laten
+  ze liggen. Vanaf twee sterren gaat een deel van de wagens op de kruisingen rond die plek staan posten. Een hoek
+  omslaan en de andere kant op gaan werkt dus nog steeds — en even blijven liggen tot de posten weer gaan rijden ook.
+- **Over de schutting.** Agenten te voet lopen om hekken en schuurtjes heen de tuinen in; over een schutting
+  springen houdt ze niet meer tegen, uit het zicht blijven wel.
+- **'s Nachts** zien ze je op twintig meter, onder een lantaarn op vierendertig. Ze hebben een **zaklamp**: in die
+  bundel zien ze je verder, ernaast niet — en je ziet hem aankomen. Regen haalt er nog een vijfde af.
+- **Terug naar de auto.** Ben je helemaal uit beeld (en reed je weg, of al een tijdje), dan lopen de agenten terug
+  naar hun wagen, stappen in en rijden weer mee in de zoektocht.
+- **Rammen en klemzetten.** Vanaf twee sterren rammen ze je auto als dat handig is — als je langzaam rijdt, of als
+  ze sneller zijn dan jij. Vanaf drie sterren zet een tweede wagen zich voor je neus als je bijna stilstaat.
+  Zolang je rijdt stappen ze niet uit.
+
+| Achter een auto in dekking | Met de zaklamp, 01:00 | Gehurkt in een struik |
+|---|---|---|
+| ![Dekking](docs/screenshots/politie_dekking.png) | ![Zaklamp](docs/screenshots/politie_zaklamp.png) | ![Verstopt](docs/screenshots/politie_verstopt.png) |
+
 ### De helikopter (vanaf vier sterren)
 
 Vanaf vier sterren komt er een politiehelikopter over de wijk. Hij vliegt van buiten het gebied aan,
