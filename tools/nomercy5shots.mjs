@@ -116,7 +116,7 @@ await opname('nomercy5_rit', `
   // naast het voorste zijspan, gericht op de camera-auto: dan staan ze alle drie in één lijn (het zijspan voorin, de stafauto, de camera-auto)
   const ca = v.noMercy5.camAuto, mo = v.noMercy5.motoren[0].mesh.position;
   const dx = ca.x - mo.x, dz = ca.z - mo.z, d = Math.hypot(dx, dz) || 1;
-  console.log(`rit: zijspan (${mo.x.toFixed(1)}, ${mo.z.toFixed(1)}) zichtbaar ${v.noMercy5.motoren[0].mesh.visible}, stafauto (${c.x.toFixed(1)}, ${c.z.toFixed(1)}), camera-auto (${ca.x.toFixed(1)}, ${ca.z.toFixed(1)}), ${d.toFixed(1)} m`);
+  console.log('rit: zijspan (' + mo.x.toFixed(1) + ', ' + mo.z.toFixed(1) + ') zichtbaar ' + v.noMercy5.motoren[0].mesh.visible + ', stafauto (' + c.x.toFixed(1) + ', ' + c.z.toFixed(1) + '), camera-auto (' + ca.x.toFixed(1) + ', ' + ca.z.toFixed(1) + '), ' + d.toFixed(1) + ' m');
   const van = [mo.x - dx / d * 3 + dz / d * 2.6, 2.3, mo.z - dz / d * 3 - dx / d * 2.6];
   return (${kijk})(van, [ca.x, 0.9, ca.z]);
 `);
