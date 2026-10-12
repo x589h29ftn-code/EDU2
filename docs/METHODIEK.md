@@ -8776,11 +8776,15 @@ niet had; enkelzijdig is het de soort van de stafauto (js/nomercy5.js). De proef
 *Wat misging.* (1) De nerf was te grof en te fel: van de stoel af leek het dashboard terrazzo (korrel 0,10 → 0,045, tegel 0,30 →
 0,18 m), en de wangen van de stoelen idem. (2) De chromen trekgreep in de deur lichtte als een witte balk op: nu zwart, en het chroom
 in het interieur wat minder fel. (3) De rug van de stoel stak in de hatchback 2 cm door de hemel: rug en hoofdsteun blijven er nu
-onder (`hemelY − 0,14` en `− 0,07`).
+onder (`hemelY − 0,14` en `− 0,07`). (4) De proef in het spel vond bij het eerste interieur drie nieuwe programma's (95 → 98): het
+interieur ontstaat pas als je voor het eerst instapt en viel daarmee buiten `soortenVoorbereid`. js/main.js hangt nu bij het
+opstarten één gewone en één sportieve schil verborgen in de scène; daarna 176 → 176. De proef wacht eerst op `voorbereidSpel`
+(zonder dat mat hij voordat het spel zijn soorten vertaald had).
 
 *Proef*: `npm run binnentest` breidt uit met de doeken (enkelzijdig, niet doorzichtig, met uv, de grote panelen herhalen hun doek),
 de onderdelen per soort, de stijlbekleding tussen de stijl en het deurpaneel, de stoelen onder de hemel, hoogstens 9000 driehoeken,
-en in het spel: het interieur van een hatchback, een Ferrari en een bus in beeld, zonder nieuw programma. Foto's: `npm run binnenshots`.
+en in het spel: het interieur van een hatchback, een Ferrari en een bus in beeld, zonder nieuw programma. 88 controles, alles goed.
+Foto's: `npm run binnenshots`.
 
 **Wat nog niet af is** (in volgorde).
 

@@ -171,9 +171,11 @@ spel.setDefaultTimeout(900000);
 spel.on('pageerror', e => { console.log('[pageerror]', e.message); fout++; });
 await spel.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load' });
 await spel.waitForFunction(() => window.__game, null, { timeout: 900000 });
-const prog = await spel.evaluate(() => {
+const prog = await spel.evaluate(async () => {
   const g = window.__game, R = g.renderer;
   if (!R || !R.info.programs) return null;
+  // eerst wat het spel achter het laadscherm doet: het reliëf, de LOD en het vooraf vertalen van alle soorten
+  await g.voorbereidSpel();
   document.getElementById('overlay').style.display = 'none';
   g.player.active = false; window.__autoplay = false;
   const p = g.player.pos;
@@ -190,14 +192,19 @@ const prog = await spel.evaluate(() => {
     };
     u.binnen.groep.visible = false; kijk(); kijk();
     const voor = R.info.programs.length;
+    const oud = new Set(R.info.programs.map(q => q.cacheKey));
     u.binnen.groep.visible = true; u.binnen.update(car, 0.1); kijk(); kijk();
-    uit[soort] = { voor, na: R.info.programs.length };
+    // wie de nieuwe programma's gebruikt (voor het zoeken)
+    const nieuw = new Set(R.info.programs.filter(q => !oud.has(q.cacheKey)));
+    const wie = new Set();
+    u.binnen.groep.traverse(x => { if (!x.isMesh) return; const pm = R.properties.get(x.material); if (pm && pm.currentProgram && nieuw.has(pm.currentProgram)) wie.add(`${x.material.type}${x.material.map ? '+kaart' : ''}${x.material.side === 2 ? ' tweezijdig' : ''}${x.material.emissive && x.material.emissive.getHex() ? ' gloed' : ''}`); });
+    uit[soort] = { voor, na: R.info.programs.length, wie: [...wie] };
     u.binnen.groep.visible = false;
     if (g.vehicles.verwijder) g.vehicles.verwijder(car);
   }
   return uit;
 });
-if (prog) for (const [soort, v] of Object.entries(prog)) ok(v.na === v.voor, `${soort}: het interieur in beeld, geen nieuw programma`, `${v.voor} → ${v.na}`);
+if (prog) for (const [soort, v] of Object.entries(prog)) ok(v.na === v.voor, `${soort}: het interieur in beeld, geen nieuw programma`, `${v.voor} → ${v.na}${v.wie.length ? ' · ' + v.wie.join(', ') : ''}`);
 else ok(false, 'geen renderer in de pagina');
 
 await browser.close();

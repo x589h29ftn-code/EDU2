@@ -39,7 +39,8 @@ import { initVaart } from './vaart.js';
 import { bewaarSpel, laadSpel, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint, opslagen, kiesPlek, startNieuwSpel } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen } from './kaartwereld.js';
-import { zetKoplampen } from './carmodel.js';
+import { zetKoplampen, autoMaat } from './carmodel.js';
+import { maakAutoBinnen } from './autobinnen.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, logo100nl, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
@@ -834,6 +835,17 @@ const derde = initDerdePersoon({ scene, camera, player });
 const vogels = initVogels({ scene, geluid, waterY: ((KAART.vlakken || []).find(v => v.k === 'water') || {}).y ?? -0.35 });
 // deuken, kogelgaten en gebarsten ruiten die blijven (stap 124)
 const autoschade = initAutoschade(scene);
+/*
+ Het interieur ontstaat pas als je voor het eerst in een auto stapt (js/autobinnen.js), en viel daarmee buiten het
+ vooraf vertalen (`soortenVoorbereid`): bij die eerste keer vertaalde three drie programma's (tools/binnentest.mjs, stap
+ 147). Eén gewone en één sportieve schil, verborgen in de scène, en de soorten zijn er vanaf het laadscherm.
+*/
+{
+  const proef = new THREE.Group();
+  proef.add(maakAutoBinnen(autoMaat('hatch')).groep, maakAutoBinnen(autoMaat('ferrari')).groep);
+  proef.visible = false; proef.position.set(0, -500, 0);
+  scene.add(proef);
+}
 // rode knipperlichten op de hoge daken en de mast van Radio Tinga, 's nachts (stap 124)
 const knipper = initKnipperlichten({ scene, panden: KAART.panden || [], extra: [studio.topLampMat] });
 const drone = initDrone({ scene, camera, player, geluid, gebied: KAART.gebied, nacht: () => dagKlok.nacht,
