@@ -8594,7 +8594,7 @@ is 1,73 m. (4) Op de eerste foto lag de schop dwars over het balkenkruis.
 
 *Proef*: `npm run stafautotest` (laadt alleen js/nomercy5.js, een paar seconden): 26 controles, alles goed. Foto's (`npm run stafautoshots`,
 een eigen zon en grond op een lege pagina): nomercy5_stafauto.png, nomercy5_stafauto_achter.png, nomercy5_zijspan.png.
-`npm run nomercy5test` met de nieuwe modellen: N5UITSLAG.
+`npm run nomercy5test` met de nieuwe modellen: 74 controles, alles goed (rijden, Cut, de stafauto houden en laden, 216 → 216 programma's).
 
 **Wat nog niet af is** (in volgorde).
 
