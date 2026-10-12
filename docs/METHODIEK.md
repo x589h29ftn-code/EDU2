@@ -8686,8 +8686,18 @@ geen keus. Nu kijkt hij dan rondom. (2) Een zoekende agent stopte op 6 m van zij
 "staat drie tellen stil en ver van de speler = omgelopen" ruimde een agent op die straks terug naar zijn auto moest. (4) De proef las
 de tuinvlakken als lijst van ringen; het is één ring.
 
-*Proef*: `npm run politieslimtest` (zie onder), en `npm run politietest` blijft groen. Foto's: `npm run politieslimshots`
-(politie_dekking, politie_zaklamp, politie_verstopt).
+Verder: (5) een route naar een vast punt werd elke 2,5 s opnieuw uitgerekend, en vanaf een plek vlak langs een schutting vond de
+zoeker niets: de goede route ging weg en de agent bleef op 3,5 m tegen de schutting staan (gevonden met een logboek van zijn
+stappen). Nu alleen opnieuw als het doel verschuift, en een mislukte poging overschrijft nooit een goede route. (6) De agent zocht om
+de drie tellen een nieuwe dekking en kwam nooit te zitten; een plek die nog dekt houdt hij nu. (7) Hij werd door een auto net niet op
+zijn punt geduwd (0,65 m) en stond dus nooit op; opstaan geldt nu binnen 1,4 m, net als laag zitten. (8) De zaklamp op 0,11 was op de
+foto bijna niet te zien: 0,2.
+
+*Proef*: `npm run politieslimtest`: 49 controles, alles goed (gehurkt in een struik niet gezien op 6 m en wel op 2 m, op 25 m in de
+bundel wel en ernaast niet, het eerste schot 0,19 tegen 0,54, de agent op 0,57 m van zijn dekking en 0 van 5 schoten vanuit zijn
+dekking, 3 % van de zoekpunten in doorzochte vakken tegen 57 % zonder geheugen, de tuin tot 0,6 m, terug in de wagen met z'n tweeën,
+een ramklap, klem bij drie sterren, posten op ~100 m, 138 → 138 programma's). `npm run politietest` blijft groen. Foto's:
+`npm run politieslimshots` (politie_dekking, politie_zaklamp, politie_verstopt); twee ervan staan ook in het boekje (15d, 15e).
 
 **Wat nog niet af is** (in volgorde).
 

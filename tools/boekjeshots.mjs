@@ -134,7 +134,8 @@ function maakKaart() {
 const teDoen = scripts.filter(r => (!alleen || alleen.includes(r.s)) && (opnieuw || !klaar(r)));
 console.log(`${teDoen.length} van ${scripts.length} fotoscripts te draaien, ${B} × ${H}, ${TEGELIJK} tegelijk`);
 const rij = teDoen.slice();
-const kaartNodig = (!alleen || alleen.includes('kaart')) && (opnieuw || !existsSync(`docs/kaart/${KAART_NAAM}.jpg`));
+// (de kaart wordt na het maken naar docs/boekje/foto verplaatst, zodat hij er niet twee keer in git staat)
+const kaartNodig = (!alleen || alleen.includes('kaart')) && (opnieuw || !(existsSync(`docs/kaart/${KAART_NAAM}.jpg`) || existsSync('docs/boekje/foto/kaart_speelgebied.jpg')));
 if (kaartNodig) rij.push('kaart');
 await Promise.all(Array.from({ length: TEGELIJK }, () => 0).map(async () => { while (rij.length) { const r = rij.shift(); if (r === 'kaart') await maakKaart(); else await draai(r); } }));
 
@@ -168,8 +169,8 @@ await browser.close();
 const { copyFileSync } = await import('node:fs');
 for (const [van, naar, onder] of [[`${KAART_NAAM}.jpg`, 'kaart_speelgebied', 'Het hele speelgebied van boven, met de straatnamen en een maatverdeling langs de randen.'],
   [`${KAART_NAAM}-licht.jpg`, 'kaart_speelgebied_licht', 'Dezelfde kaart, licht, met de herkenningspunten: hierop teken je.']]) {
-  if (!existsSync(`docs/kaart/${van}`)) { console.log(` FOUT  geen docs/kaart/${van}`); fouten++; continue; }
-  copyFileSync(`docs/kaart/${van}`, `${FOTO}/${naar}.jpg`);
+  if (existsSync(`docs/kaart/${van}`)) { copyFileSync(`docs/kaart/${van}`, `${FOTO}/${naar}.jpg`); unlinkSync(`docs/kaart/${van}`); }
+  else if (!existsSync(`${FOTO}/${naar}.jpg`)) { console.log(` FOUT  geen docs/kaart/${van}`); fouten++; continue; }
   regels.push(`| ${naar}.jpg | Plekken (kaart) | ${onder} | 4380 × 2500 | \`printkaart\` op 1 px/m |`);
 }
 
