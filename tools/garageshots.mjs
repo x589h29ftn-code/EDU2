@@ -14,7 +14,7 @@ import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
 const poort = process.argv[2] || '8123';
-const map = process.argv[3] || 'docs/screenshots';
+const map = process.env.SHOT_MAP || process.argv[3] || 'docs/screenshots';
 mkdirSync(map, { recursive: true });
 
 const browser = await chromium.launch({
@@ -22,7 +22,7 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required',
     '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const page = await browser.newPage({ viewport: { width: +(process.env.SHOT_B || 1280), height: +(process.env.SHOT_H || 720) } });
 page.on('pageerror', e => console.log('[pageerror]', e.message));
 await page.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load', timeout: 900000 });
 await page.waitForFunction(() => window.__game, null, { timeout: 900000 });

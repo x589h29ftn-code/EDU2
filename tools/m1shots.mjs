@@ -27,9 +27,9 @@ import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
 const poort = process.argv[2] || '8123';
-const map = process.argv[3] || 'docs/screenshots';
+const map = process.env.SHOT_MAP || process.argv[3] || 'docs/screenshots';
 mkdirSync(map, { recursive: true });
-const B = 900, H = 560;
+const B = +(process.env.SHOT_B || 900), H = +(process.env.SHOT_H || 560);
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || undefined,

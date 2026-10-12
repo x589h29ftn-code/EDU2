@@ -17,7 +17,7 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || undefined,
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const page = await browser.newPage({ viewport: { width: +(process.env.SHOT_B || 1280), height: +(process.env.SHOT_H || 720) } });
 page.on('pageerror', e => { console.log('[pageerror]', e.message); fouten++; });
 await page.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load', timeout: 900000 });
 await page.waitForFunction(() => window.__game, null, { timeout: 900000 });
@@ -56,7 +56,7 @@ await page.evaluate(async () => {
   };
 });
 
-const map = 'docs/screenshots';
+const map = process.env.SHOT_MAP || process.argv[3] || 'docs/screenshots';
 const foto = async (naam) => {
   await page.evaluate(() => { const g = window.__game; g.scene.updateMatrixWorld(true); g.renderer.shadowMap.needsUpdate = true; g.renderer.render(g.scene, g.camera); if (g.tekenWapen && g.player.gun && g.player.gun.visible) g.tekenWapen(); });
   await page.waitForTimeout(1500);

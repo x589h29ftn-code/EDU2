@@ -26,13 +26,14 @@ const ok = (goed, wat, extra = '') => {
   if (!goed) fouten++;
 };
 const kop = (t) => console.log(`\n--- ${t} ---`);
-mkdirSync('docs/screenshots', { recursive: true });
+const map = process.env.SHOT_MAP || 'docs/screenshots';
+mkdirSync(map, { recursive: true });
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || undefined,
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const page = await browser.newPage({ viewport: { width: +(process.env.SHOT_B || 1280), height: +(process.env.SHOT_H || 720) } });
 page.on('pageerror', e => { console.log('[pageerror]', e.message); fouten++; });
 await page.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load', timeout: 900000 });
 await page.waitForFunction(() => window.__game, null, { timeout: 900000 });
@@ -153,8 +154,8 @@ const pinMis = await page.evaluate((pins) => pins.filter(p => {
 ok(pinMis.length === 0, 'en elk speldje in de kleur van zijn soort', pinMis.join(' · ') || 'allemaal');
 
 await page.waitForTimeout(800);
-await page.screenshot({ path: 'docs/screenshots/legenda.png', timeout: 600000 });
-console.log('docs/screenshots/legenda.png');
+await page.screenshot({ path: `${map}/legenda.png`, timeout: 600000 });
+console.log(`${map}/legenda.png`);
 
 // ------------------------------------------------------------------ 6. smal scherm
 kop('op een smal scherm');

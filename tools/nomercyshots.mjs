@@ -15,7 +15,7 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || undefined,
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const page = await browser.newPage({ viewport: { width: +(process.env.SHOT_B || 1280), height: +(process.env.SHOT_H || 720) } });
 let fouten = 0;
 page.on('pageerror', e => { console.log('[pageerror]', e.message); fouten++; });
 page.on('console', m => { if (/^(kamp|radio|klapbord):/.test(m.text())) console.log(m.text()); });
@@ -42,7 +42,7 @@ await page.evaluate(async () => {
   window.__zet(f.x - 3, f.z + 10.5); window.__stap(3); window.__klik();
 });
 
-const map = 'docs/screenshots';
+const map = process.env.SHOT_MAP || process.argv[3] || 'docs/screenshots';
 const kijk = `(van, naar) => {
   const g = window.__game, C = g.camera;
   C.position.set(van[0], van[1], van[2]); C.lookAt(naar[0], naar[1], naar[2]); C.updateMatrixWorld(true);

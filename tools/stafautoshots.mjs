@@ -10,11 +10,14 @@ import { chromium } from 'playwright';
 import { writeFileSync } from 'node:fs';
 
 const poort = process.argv[2] || '8123';
+// (stap 143: resolutie en map instelbaar, voor de foto's van het boekje)
+const B = +(process.env.SHOT_B || 1280), H = +(process.env.SHOT_H || 720);
+const map = process.env.SHOT_MAP || process.argv[3] || 'docs/screenshots';
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || undefined,
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const page = await browser.newPage({ viewport: { width: B, height: H } });
 let fouten = 0;
 page.on('pageerror', e => { console.log('[pageerror]', e.message); fouten++; });
 await page.goto(`http://127.0.0.1:${poort}/stafautobank`, { waitUntil: 'load', timeout: 120000 });
@@ -25,7 +28,7 @@ await page.setContent(`<!doctype html><html><head><style>body{margin:0}</style>
   import * as N from '/js/nomercy5.js';
   import { maakDuitser } from '/js/nomercy.js';
   const R = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-  R.setSize(1280, 720); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
+  R.setSize(${B}, ${H}); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
   R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05;
   document.body.appendChild(R.domElement);
   const scene = new THREE.Scene();
@@ -37,7 +40,7 @@ await page.setContent(`<!doctype html><html><head><style>body{margin:0}</style>
   scene.add(zon);
   const grond = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x6d6a58, roughness: 0.95 }));
   grond.rotation.x = -Math.PI / 2; grond.receiveShadow = true; scene.add(grond);
-  const cam = new THREE.PerspectiveCamera(38, 1280 / 720, 0.05, 100);
+  const cam = new THREE.PerspectiveCamera(38, ${B} / ${H}, 0.05, 100);
   const schaduw = (o) => o.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
   window.__t = { THREE, N, maakDuitser, R, scene, cam, schaduw };
 </script></body></html>`);
@@ -45,8 +48,8 @@ await page.waitForFunction(() => window.__t, null, { timeout: 120000 });
 
 const opname = async (naam, code) => {
   const data = await page.evaluate(new Function(code));
-  writeFileSync(`docs/screenshots/${naam}.png`, Buffer.from(data.split(',')[1], 'base64'));
-  console.log(`docs/screenshots/${naam}.png`);
+  writeFileSync(`${map}/${naam}.png`, Buffer.from(data.split(',')[1], 'base64'));
+  console.log(`${map}/${naam}.png`);
 };
 const foto = `(van, naar) => {
   const { R, scene, cam } = window.__t;
