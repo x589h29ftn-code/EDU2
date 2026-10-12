@@ -18,6 +18,7 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 let fouten = 0;
 page.on('pageerror', e => { console.log('[pageerror]', e.message); fouten++; });
+page.on('console', m => { if (/^rit:/.test(m.text())) console.log(m.text()); });
 await page.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load', timeout: 900000 });
 await page.waitForFunction(() => window.__game, null, { timeout: 900000 });
 await page.evaluate(async () => {
@@ -112,9 +113,12 @@ await opname('nomercy5_rit', `
     v.update(0.05);
   }
   window.__klik();
-  // van opzij: links het zijspan, in het midden de stafauto, rechts de camera-auto met de camera op het dak
-  const p = window.__I.puntOp(L, Math.max(0, s - 1), -19), q = window.__I.puntOp(L, s + 1, 0);
-  return (${kijk})([p.x, 4.2, p.z], [q.x, 0.8, q.z]);
+  // naast het voorste zijspan, gericht op de camera-auto: dan staan ze alle drie in één lijn (het zijspan voorin, de stafauto, de camera-auto)
+  const ca = v.noMercy5.camAuto, mo = v.noMercy5.motoren[0].mesh.position;
+  const dx = ca.x - mo.x, dz = ca.z - mo.z, d = Math.hypot(dx, dz) || 1;
+  console.log(`rit: zijspan (${mo.x.toFixed(1)}, ${mo.z.toFixed(1)}) zichtbaar ${v.noMercy5.motoren[0].mesh.visible}, stafauto (${c.x.toFixed(1)}, ${c.z.toFixed(1)}), camera-auto (${ca.x.toFixed(1)}, ${ca.z.toFixed(1)}), ${d.toFixed(1)} m`);
+  const van = [mo.x - dx / d * 3 + dz / d * 2.6, 2.3, mo.z - dz / d * 3 - dx / d * 2.6];
+  return (${kijk})(van, [ca.x, 0.9, ca.z]);
 `);
 
 // 4. de première: de rit afmaken op de ruit, "Een week later…", Erik Jan en de cameraman op de kade
