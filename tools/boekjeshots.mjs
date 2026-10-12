@@ -68,7 +68,7 @@ const LIJST = [
   ['nomercy5shots', 'nomercy5_molen', '19d_nomercy5_molen', 'Geld verdienen', 'No Mercy 5: de Duitse post bij de molen.'],
   ['stafautoshots', 'nomercy5_stafauto', '19e_stafauto', "Auto's", 'De stafauto uit No Mercy: houd hem, of neem de gage.'],
   ['stafautoshots', 'nomercy5_zijspan', '19f_zijspan', 'Geld verdienen', 'Het zijspan uit de rit van No Mercy 5.'],
-  ['droneshots', 'poiesz', '20_poiesz', 'Gezondheid', 'De Poiesz: bier voor € 5.'],
+  ['droneshots', 'terras_poiesz', '20_poiesz', 'Gezondheid', 'De Poiesz in IJlst, met het terras: bier voor € 5.'],
   ['ambulanceshots', 'ambulance_dag', '21_ambulance', 'Gezondheid / sfeer', 'De ambulance rijdt uit.'],
   ['postbodeshots', 'postbode', '22_postbode', 'Handig', "De postbode van Post Tinga, 's ochtends langs de deuren."],
   ['menushots', 'menu_besturing', '23_menu_besturing', 'Besturing', 'De besturing in het menu (Esc).'],
