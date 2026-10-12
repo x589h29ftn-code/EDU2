@@ -1690,8 +1690,10 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
             const plek = piekNu ? a.dekking.piek : a.dekking;
             const erIs = Math.hypot(plek.x - pos.x, plek.z - pos.z) < 0.6;
             if (!erIs) loopNaar(a, voetPunt(a, pos, plek, dt), dt, piekNu ? 2.5 : REN);
-            if (erIs && a.vuurT < 0.35 && !(a.onderdrukT > 0) && !(a.opT > 0)) a.opT = SLIM.opstaan;
-            const laag = Math.hypot(a.dekking.x - pos.x, a.dekking.z - pos.z) < 1.4 && !(a.opT > 0);
+            // (bij zijn dekking is binnen 1,4 m: een auto of muur duwt hem soms net niet op het punt zelf)
+            const bij = Math.hypot(a.dekking.x - pos.x, a.dekking.z - pos.z) < 1.4;
+            if (bij && a.vuurT < 0.35 && !(a.onderdrukT > 0) && !(a.opT > 0)) a.opT = SLIM.opstaan;
+            const laag = bij && !(a.opT > 0);
             persoon.kijkNaar(mik.x, mik.z, dt, 7);
             persoon.update(dt, { loopt: !erIs, mikt: true, snelheid: REN, hurkt: laag ? 0.6 : 0 });
             a.laag = laag;
