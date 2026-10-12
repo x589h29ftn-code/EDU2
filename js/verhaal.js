@@ -11329,6 +11329,7 @@ export function initVerhaal(ctx) {
     const m = maakZijspan(maakDuitser(5 + i), maakDuitser(7 + i));
     scene.add(m.mesh);
     if (m.rijder.wapen) m.rijder.wapen.visible = false;    // de rijder heeft zijn handen aan het stuur
+    m.bijrijder.vasteGrond = 0;                              // in de bak, niet op de grond onder het viaduct
     m.kant = i ? 1.1 : -1.1;
     return m;
   });
@@ -11562,7 +11563,7 @@ export function initVerhaal(ctx) {
     const a = Math.atan2(-(sp.x - n5Boot.x), -(sp.z - n5Boot.z)) - n5Boot.yaw;
     for (const p of [n5EJ, n5Cam]) { p.yaw = a; p.groep.rotation.y = a; p.update(dt, { mikt: p === n5Cam }); p.groep.position.y = p.vasteGrond; }
     if (n5Boot.rig) n5Boot.rig.rotation.y = a;
-    for (const p of n5Figuranten) { p.update(dt, { zit: 1, mikt: true }); }
+    for (const p of n5Figuranten) { p.update(dt, { zit: 0.42, mikt: true }); }
   }
   // aan wal bij de ruit: de cameraman stapt over, drie Duitsers aan de voet van de molen
   function n5AanWal(sp) {
@@ -11666,7 +11667,7 @@ export function initVerhaal(ctx) {
       m.mesh.position.set(p.x, grondHoogte(p.x, p.z), p.z);
       m.mesh.rotation.y = p.yaw;
       m.rijder.opScooter(dt, m.zit.position);
-      m.bijrijder.update(dt, { zit: 1, mikt: true });
+      m.bijrijder.update(dt, { zit: 0.3, mikt: true });     // (`zit` is de hoogte van de zitting in de bak, m)
       m.vuurT -= dt;
       const d = Math.hypot(sp.x - p.x, sp.z - p.z);
       if (m.vuurT <= 0 && d < 45) {
@@ -11869,7 +11870,7 @@ export function initVerhaal(ctx) {
         const a = Math.atan2(-(sp.x - n5Boot.x), -(sp.z - n5Boot.z)) - n5Boot.yaw;
         n5EJ.yaw = a; n5EJ.groep.rotation.y = a; n5EJ.update(dt, {}); n5EJ.groep.position.y = n5EJ.vasteGrond ?? 0.3;
       }
-      for (const p of n5Figuranten) p.update(dt, { zit: 1, mikt: true });
+      for (const p of n5Figuranten) p.update(dt, { zit: 0.42, mikt: true });
     }
     if (n5.fase === 'molen') {
       n5.aanlegT += dt;

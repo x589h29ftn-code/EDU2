@@ -48,6 +48,8 @@ const map = 'docs/screenshots';
 const kijk = `(van, naar) => {
   const g = window.__game, C = g.camera;
   C.position.set(van[0], van[1], van[2]); C.lookAt(naar[0], naar[1], naar[2]); C.updateMatrixWorld(true);
+  // de luchtbol gaat in de hoofdlus met de camera mee; headless niet, en dan kijk je er na een sprong van honderden meters buiten
+  g.scene.traverse(o => { if (o.material && o.material.uniforms && o.material.uniforms.maanDir) o.position.copy(C.position); });
   window.__W.updateLOD(C.position.x, C.position.z);
   g.scene.updateMatrixWorld(true); g.renderer.shadowMap.needsUpdate = true;
   g.renderer.render(g.scene, C);
@@ -110,9 +112,9 @@ await opname('nomercy5_rit', `
     v.update(0.05);
   }
   window.__klik();
-  const ca = v.noMercy5.camAuto;
-  const p = window.__I.puntOp(L, Math.max(0, s - 26), 6);
-  return (${kijk})([p.x, 3.6, p.z], [(c.x + ca.x) / 2, 1.0, (c.z + ca.z) / 2]);
+  // van opzij: links het zijspan, in het midden de stafauto, rechts de camera-auto met de camera op het dak
+  const p = window.__I.puntOp(L, Math.max(0, s - 5), -11), q = window.__I.puntOp(L, s + 3, 0);
+  return (${kijk})([p.x, 2.6, p.z], [q.x, 1.0, q.z]);
 `);
 
 // 4. de première: de rit afmaken op de ruit, "Een week later…", Erik Jan en de cameraman op de kade

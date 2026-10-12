@@ -8544,12 +8544,16 @@ ruit lag eerst 26 m voor het eind; stil op de ruit was je dan te ver van de came
 (5) De shadermeting begon overdag en tekende daarna de nacht: bij zonsondergang verandert het aantal lichten (dat mag), dus de
 vergelijking staat nu helemaal 's nachts, en de proef noemt de mesh van elk nieuw programma. Daarna bleef er één over: de vlag, een
 tweezijdig MeshStandardMaterial met een kaart dat 's nachts nog niet vertaald was; nu enkelzijdig met een tweede vlak met de rug
-ertegen. (6) Laden in de proef via `verhaal.herstel` liet de M1 staan: de wapens komen uit js/opslag.js, dus de proef laadt nu echt.
+ertegen. (6) Laden in de proef via `verhaal.herstel` liet de M1 staan: de wapens komen uit js/opslag.js, dus de proef laadt nu echt. (7) Op de eerste foto stonden de figuranten rechtop in de sloep: `zit` in `Persoon.update` is de hoogte van de
+zitting in meters, niet een schakelaar; met 1 stond hun heup een meter boven de bodem. Nu 0,42 (de bank) en 0,3 in de bak van het
+zijspan. (8) De foto van de première had een zwarte bol in de lucht: de luchtbol gaat in de hoofdlus met de camera mee, en die draait
+headless niet; na de sprong van de rit naar de kade keek de camera er gedeeltelijk buiten. Een fout van de foto, niet van het spel;
+tools/nomercy5shots.mjs zet de bol nu op de camera.
 
 *Proef*: `npm run nomercy5test`: 74 controles, alles goed (in de derde ronde; de eerste had 28 fouten, de tweede 17). Onder meer: drie minuten wachten
 zonder telefoontje, de kade 9,7 m van de sloep op het land, de route 553 m zonder keerpunt, de automaat 14,4–16,8 m achter de
 camera-auto zonder "Cut!", de zijspannen 15–30 m achter je, stilstaan geeft na 7,4 s "Cut!", de stafauto 3,2 m naast je, 216 → 216
-programma's. Foto's (`npm run nomercy5shots`): nomercy5_overtocht.png, nomercy5_molen.png,
+programma's. Ook groen: `overgangtest` (19, geen functienaam dubbel) en `tempotest` (21). Foto's (`npm run nomercy5shots`): nomercy5_overtocht.png, nomercy5_molen.png,
 nomercy5_rit.png, nomercy5_premiere.png.
 
 **Wat nog niet af is** (in volgorde).
