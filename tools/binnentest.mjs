@@ -11,6 +11,13 @@
     had zijn motorkap op 1,80 m, een balk dwars door de voorruit; de motorkap van de Ferrari onder de raamlijn mag);
  5. het stuur draait mee met het sturen en de snelheidsmeter met de vaart;
  6. de pook is een dunne stang met een bol (geen balkje), behalve in de Ferrari en de stafauto (die hun eigen hebben).
+ Stap 147 (detail en opmaak, niet voor de stafauto):
+ 7. de doeken: elk MeshStandardMaterial met een kaart is enkelzijdig, niet doorzichtig en zonder hoekpuntkleuren (een soort die
+    het spel al vertaalt), alles met een kaart heeft uv, en de grote panelen herhalen hun doek (de uv is in meters);
+ 8. de onderdelen: roosters, het radiootje, luidsprekers, vloermatten, de hendels; in de gewone auto's ook het
+    handschoenenkastje, de bekerhouders, het binnenlampje en de handgreep; in hatch, bus, BX en GTI de bekleding van de
+    A- en B-stijlen, tussen de stijl en het deurpaneel;
+ 9. de stoelen blijven onder de hemel, en het blijft één auto: hoogstens 9000 driehoeken.
 */
 import { chromium } from 'playwright';
 
@@ -93,7 +100,38 @@ const uit = await page.evaluate(() => {
       if (x.geometry.type === 'SphereGeometry' && p.radius < 0.04 && p.radius > 0.015) bol++;
       if (x.geometry.type === 'CylinderGeometry' && p.height > 0.1 && p.height < 0.2 && Math.max(p.radiusTop, p.radiusBottom) < 0.015) dunsteStang = Math.min(dunsteStang, Math.max(p.radiusTop, p.radiusBottom));
     });
+    // (stap 147) doeken, onderdelen, stoelen onder de hemel, driehoeken
+    const regels = { fout: [], metKaart: 0, tegelMax: 0 };
+    let driehoeken = 0, meshes = 0;
+    const namen = {};
+    B.groep.traverse(x => {
+      if (x.name) namen[x.name] = (namen[x.name] || 0) + 1;
+      if (!x.isMesh) return;
+      meshes++;
+      const geo = x.geometry; driehoeken += (geo.index ? geo.index.count : geo.attributes.position.count) / 3;
+      const m = x.material;
+      if (!m.map) return;
+      regels.metKaart++;
+      if (!geo.attributes.uv) regels.fout.push(`${x.name || geo.type}: geen uv`);
+      if (m.type === 'MeshStandardMaterial' && (m.side !== THREE.FrontSide || m.transparent || m.vertexColors)) regels.fout.push(`${x.name || geo.type}: ${m.side === THREE.DoubleSide ? 'tweezijdig' : ''}${m.transparent ? ' doorzichtig' : ''}${m.vertexColors ? ' hoekpuntkleuren' : ''}`);
+      if (m.userData && m.userData.tegel > 0) { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) regels.tegelMax = Math.max(regels.tegelMax, uv.getX(i), uv.getY(i)); }
+    });
+    let maat = null, stijlen = [], stoelTop = -Infinity;
+    if (soort !== 'staf') {
+      maat = autoMaat(soort);
+      const binnenX = maat.W / 2 - 0.145, x0 = maat.W / 2 - (maat.bus ? 0.10 : 0.075);
+      B.groep.traverse(x => {
+        if (x.name === 'stijlbekleding') { const p = wp(x); stijlen.push(Math.abs(p.x) > binnenX - 0.05 && Math.abs(p.x) < x0); }
+      });
+      // de stoelen: alles van stoelstof (ruwheid 0,98) of rood leer (0,62): zitting, wangen, rug, hoofdsteun, achterbank
+      B.groep.traverse(x => {
+        if (!x.isMesh || !x.material.map || ![0.98, 0.62].includes(x.material.roughness)) return;
+        stoelTop = Math.max(stoelTop, new THREE.Box3().setFromObject(x).max.y);
+      });
+    }
+    const hemelY = maat ? maat.dakY - 0.045 : null;
     res[soort] = {
+      regels, driehoeken: Math.round(driehoeken), meshes, namen, stijlen, stoelTop: +stoelTop.toFixed(3), hemelY,
       uitBijStart, oog: o,
       stuur: { dz: +(o.z - st.z).toFixed(2), hoek: +hoek(st).toFixed(1) },
       klokHoek: +hoek(klokLaag).toFixed(1), vrij, stuurDraait: Math.abs(s1 - s0) > 0.5, naaldLoopt: Math.abs(n1 - n0) > 0.2,
@@ -112,7 +150,55 @@ for (const [soort, r] of Object.entries(uit)) {
   ok(r.vrij[0] === null && r.vrij[6] === null, 'vrij zicht door de voorruit, recht vooruit en 6° omlaag (boven de raamlijn)', `${r.vrij[0] ?? 'vrij'} / ${r.vrij[6] ?? 'vrij'}`);
   ok(r.stuurDraait && r.naaldLoopt, 'het stuur draait mee en de naald loopt mee');
   if (soort !== 'ferrari' && soort !== 'staf') ok(r.pook.bol >= 1 && r.pook.stang !== null, 'de pook: een dunne stang met een bol', r.pook.stang ? `stang ${r.pook.stang} m` : 'geen');
+  if (soort === 'staf') continue;
+  ok(r.regels.fout.length === 0 && r.regels.metKaart >= 20, 'de doeken: enkelzijdig, niet doorzichtig, met uv', r.regels.fout.length ? r.regels.fout.slice(0, 4).join('; ') : `${r.regels.metKaart} onderdelen met een doek`);
+  ok(r.regels.tegelMax > 2, 'de grote panelen herhalen hun doek (uv in meters)', `uv tot ${r.regels.tegelMax.toFixed(1)}`);
+  const n = r.namen, gewoon = soort !== 'ferrari';
+  const mist = [];
+  if ((n.rooster || 0) < 4) mist.push('roosters'); if (!n.radio) mist.push('radio'); if ((n.luidspreker || 0) < 2) mist.push('luidsprekers');
+  if ((n.vloermat || 0) < 2) mist.push('vloermatten'); if ((n.hendel || 0) < 2) mist.push('hendels');
+  if (gewoon) { if (!n.handschoenenkastje) mist.push('handschoenenkastje'); if ((n.bekerhouder || 0) < 2) mist.push('bekerhouders'); if (!n.binnenlampje) mist.push('binnenlampje'); if (!n.handgreep) mist.push('handgreep'); }
+  ok(mist.length === 0, 'de onderdelen: roosters, radio, luidsprekers, matten, hendels' + (gewoon ? ', handschoenenkastje, bekerhouders, lampje, handgreep' : ''), mist.length ? `mist: ${mist.join(', ')}` : '');
+  if (['hatch', 'van', 'bx', 'gti'].includes(soort)) ok(r.stijlen.length === 4 && r.stijlen.every(Boolean), 'de A- en B-stijl bekleed, tussen de stijl en het deurpaneel', `${r.stijlen.length} bekledingen`);
+  ok(r.stoelTop <= r.hemelY + 1e-3, 'de stoelen blijven onder de hemel', `stoel tot ${r.stoelTop}, hemel ${r.hemelY.toFixed(3)}`);
+  ok(r.driehoeken <= 9000, 'één auto: hoogstens 9000 driehoeken', `${r.driehoeken} driehoeken in ${r.meshes} onderdelen`);
 }
+
+// ---------------------------------------------------------------- 10. in het spel: geen nieuwe shader
+kop('in het spel: het interieur vertaalt geen nieuwe shader');
+const spel = await browser.newPage({ viewport: { width: 640, height: 400 } });
+spel.setDefaultTimeout(900000);
+spel.on('pageerror', e => { console.log('[pageerror]', e.message); fout++; });
+await spel.goto(`http://127.0.0.1:${poort}/index.html`, { waitUntil: 'load' });
+await spel.waitForFunction(() => window.__game, null, { timeout: 900000 });
+const prog = await spel.evaluate(() => {
+  const g = window.__game, R = g.renderer;
+  if (!R || !R.info.programs) return null;
+  document.getElementById('overlay').style.display = 'none';
+  g.player.active = false; window.__autoplay = false;
+  const p = g.player.pos;
+  const uit = {};
+  for (const soort of ['hatch', 'ferrari', 'van']) {
+    const car = g.vehicles.voegToe({ x: p.x + 3, z: p.z, yaw: 0, soort, driveable: true });
+    const u = car.mesh.userData, o = u.oog;
+    const C = g.camera;
+    const kijk = () => {
+      car.mesh.updateMatrixWorld(true);
+      const v = car.mesh.localToWorld({ x: o.x, y: o.y, z: o.z, isVector3: true, applyMatrix4(m) { const e = m.elements, x = this.x, y = this.y, z = this.z, w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]); this.x = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w; this.y = (e[1] * x + e[5] * y + e[9] * z + e[13]) * w; this.z = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w; return this; } });
+      C.position.set(v.x, v.y, v.z); C.rotation.set(-0.25, car.yaw, 0, 'YXZ'); C.updateMatrixWorld(true);
+      g.scene.updateMatrixWorld(true); R.render(g.scene, C);
+    };
+    u.binnen.groep.visible = false; kijk(); kijk();
+    const voor = R.info.programs.length;
+    u.binnen.groep.visible = true; u.binnen.update(car, 0.1); kijk(); kijk();
+    uit[soort] = { voor, na: R.info.programs.length };
+    u.binnen.groep.visible = false;
+    if (g.vehicles.verwijder) g.vehicles.verwijder(car);
+  }
+  return uit;
+});
+if (prog) for (const [soort, v] of Object.entries(prog)) ok(v.na === v.voor, `${soort}: het interieur in beeld, geen nieuw programma`, `${v.voor} → ${v.na}`);
+else ok(false, 'geen renderer in de pagina');
 
 await browser.close();
 console.log(fout ? `\n${fout} fout${fout > 1 ? 'en' : ''}` : '\nalles goed');

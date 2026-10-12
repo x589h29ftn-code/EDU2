@@ -311,6 +311,15 @@ In de **stafauto** zit je wat verder van het stuur, zodat de snelheidsmeter in b
 | **BX** | **Vrachtwagen** | **Ferrari** |
 | ![BX](docs/screenshots/binnen_bx.png) | ![Vrachtwagen](docs/screenshots/binnen_truck.png) | ![Ferrari](docs/screenshots/binnen_ferrari.png) |
 
+**Opmaak en detail** (stap 147). Het interieur was effen grijs; nu heeft het kunststof een fijne nerf, zitten de stoelen in
+geweven stof met banen en effen wangen, met een hoofdsteun op twee stangetjes, is de hemel geperforeerd en ligt er tapijt
+met rubberen matten. De A- en B-stijlen hebben een bekleding (je keek tegen de lak aan). Het dashboard kreeg roosters met
+lamellen, een radiootje met een verlicht scherm (*FM 98.2 · TINGA*), een alarmlichtknop en een handschoenenkastje; de
+klokken een brandstof- en temperatuurmeter, pijltjes en controlelampjes. In de deuren een stofvlak, de raamschakelaar,
+een luidspreker en een vak; achter het stuur de hendels, op de console twee bekerhouders, in de hemel het binnenlampje en
+een handgreep. De **Ferrari** kreeg rood leer met stiksels en perforatie, zwart leer met een rood stiksel en koolstof met een
+keperbinding. Alles op canvas getekend, zoals elk doek in dit spel, en het blijft één auto: zo'n 2.000 driehoeken.
+
 ![Rijden vanuit de auto](docs/screenshots/auto_eerstepersoon.png)
 
 ## De wapens

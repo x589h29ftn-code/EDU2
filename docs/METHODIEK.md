@@ -8752,6 +8752,36 @@ je en 20–40° omlaag, de klokken hoogstens 33° omlaag, vrij zicht door de voo
 goed; `npm run stafautotest` blijft groen. Foto's: `npm run binnenshots` (binnen_hatch, _van, _bx, _gti, _truck, _ferrari,
 _ambulance; met `BUITEN=1` van buiten), en nomercy5_stafauto_binnen.png opnieuw.
 
+**De interieurs: opmaak en detail (stap 147, 13 okt).**
+
+Gevraagd: "Kan je de interieur details en opmaak verbeteren. Behalve de staf auto." Alles in js/autobinnen.js (de gewone auto's,
+de bus, de vrachtwagen, de ambulance en de Ferrari).
+
+*Opmaak.* Doeken op canvas (`DOEK`, met een vaste zaadwaarde): nerf op het kunststof, geweven stof met banen voor de stoelen en
+effen stof voor de wangen, een geperforeerde hemel, tapijt, rubberen matten, lamellen voor de roosters, een luidsprekergaas, het
+scherm van het radiootje, en voor de Ferrari leer met korrel, perforatie en stiksels, zwart leer met een rood stiksel en koolstof
+met een keperbinding. `doekMat` geeft een materiaal een `userData.tegel` (meters per herhaling), en `doos` rekt de uv van elk vlak
+naar zijn maat (`schaalUv`), zodat een paneel en een knopje dezelfde korrel hebben. De klokken kregen brandstof en temperatuur,
+pijltjes en controlelampjes.
+
+*Detail.* De bekleding van de A- en B-stijl (in hatch, bus, BX en GTI, uit dezelfde formule als de stijlen in js/carmodel.js),
+roosters, het radiootje, de alarmlichtknop, het handschoenenkastje, in de deuren een stofvlak, de raamschakelaar, een luidspreker
+en een vak, de hendels achter het stuur, een rondere krans met een embleempje, stoelen met wangen en een hoofdsteun op stangetjes,
+bekerhouders, het binnenlampje, een handgreep en vloermatten. Zo'n 2.000 driehoeken in 70–83 onderdelen (was 353 in 41).
+
+*Waarom enkelzijdig.* De materialen van het interieur waren tweezijdig ("een doos van three kijkt naar buiten"), maar het zijn
+allemaal dichte dozen die je van buiten ziet. Een MeshStandardMaterial met een kaart, tweezijdig, is een programma dat het spel nog
+niet had; enkelzijdig is het de soort van de stafauto (js/nomercy5.js). De proef kijkt het in het spel na.
+
+*Wat misging.* (1) De nerf was te grof en te fel: van de stoel af leek het dashboard terrazzo (korrel 0,10 → 0,045, tegel 0,30 →
+0,18 m), en de wangen van de stoelen idem. (2) De chromen trekgreep in de deur lichtte als een witte balk op: nu zwart, en het chroom
+in het interieur wat minder fel. (3) De rug van de stoel stak in de hatchback 2 cm door de hemel: rug en hoofdsteun blijven er nu
+onder (`hemelY − 0,14` en `− 0,07`).
+
+*Proef*: `npm run binnentest` breidt uit met de doeken (enkelzijdig, niet doorzichtig, met uv, de grote panelen herhalen hun doek),
+de onderdelen per soort, de stijlbekleding tussen de stijl en het deurpaneel, de stoelen onder de hemel, hoogstens 9000 driehoeken,
+en in het spel: het interieur van een hatchback, een Ferrari en een bus in beeld, zonder nieuw programma. Foto's: `npm run binnenshots`.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
