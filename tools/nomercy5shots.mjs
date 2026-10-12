@@ -113,8 +113,8 @@ await opname('nomercy5_rit', `
   }
   window.__klik();
   // van opzij: links het zijspan, in het midden de stafauto, rechts de camera-auto met de camera op het dak
-  const p = window.__I.puntOp(L, Math.max(0, s - 5), -11), q = window.__I.puntOp(L, s + 3, 0);
-  return (${kijk})([p.x, 2.6, p.z], [q.x, 1.0, q.z]);
+  const p = window.__I.puntOp(L, Math.max(0, s - 1), -19), q = window.__I.puntOp(L, s + 1, 0);
+  return (${kijk})([p.x, 4.2, p.z], [q.x, 0.8, q.z]);
 `);
 
 // 4. de première: de rit afmaken op de ruit, "Een week later…", Erik Jan en de cameraman op de kade
