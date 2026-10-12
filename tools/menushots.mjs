@@ -20,7 +20,7 @@ page.on('pageerror', e => console.log('[pageerror]', e.message));
 await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'load', timeout: 300000 });
 
 // 1. het startscherm, dat er is voordat de wereld klaar is
-await page.waitForSelector('#menuNieuw', { state: 'attached', timeout: 120000 });
+await page.waitForSelector('#menuNieuw', { state: 'attached', timeout: 600000 });
 await page.waitForTimeout(700);
 await page.screenshot({ path: `${map}/startscherm.png`, timeout: 300000 });
 console.log(`${map}/startscherm.png`);

@@ -30,7 +30,7 @@ const page = await browser.newPage({ viewport: { width: +(process.env.SHOT_B || 
 page.setDefaultTimeout(600000);   // (op de resolutie van het boekje duurt een schermafdruk langer dan 30 s)
 page.on('pageerror', e => console.log('[pageerror]', e.message));
 await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: 'load' });
-await page.waitForFunction(() => window.__game, null, { timeout: 120000 });
+await page.waitForFunction(() => window.__game, null, { timeout: 600000 });
 
 // ---------- opzet: speler op een recht stuk Molenkrite, vijf sterren ----------
 await page.evaluate(async () => {
