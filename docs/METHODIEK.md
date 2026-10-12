@@ -8488,6 +8488,67 @@ programma's). Ook in die proef: `kiesStraat` loot en vindt soms in tien pogingen
 `__start` (tot acht keer), anders begon de weg-fase zelf een straat bij de verkeerde plek. *Foto*: `npm run postbodeshots` → postbode.png. `buurttest` (het tuinfeest,
 de pizzascooter en de plezierboot) is nu helemaal groen, ook de pizzadeur.
 
+**No Mercy 5, "De Overtocht" (stap 142, 12 okt).**
+
+Gevraagd: "Bedenk een tweede bijmissie voor No Mercy. Nog niet bouwen maar uitdenken", daarna "Laat Erik Jan niet bellen in
+deze missie maar puur op de kaart", en "Ok bouw". De vier open vragen uit het ontwerp kregen geen antwoord; gebouwd is het
+voorstel: het eerbetoon aan De Veteraan, molen De Rat in IJlst, € 2.000 of de stafauto, en "Cut!" alleen in de rit.
+
+*Het verhaal.* De Veteraan speelde in No Mercy 1–3 sergeant Van der Wal (Mark vertelt in missie 7 dat hij in No Mercy zat), en
+is sinds missie 12 dood. Erik Jan maakt deel vijf voor hem en vraagt Erik die rol te spelen, zonder te weten wat er op de
+Dúvelsrak gebeurde ("Speel gewoon mee, Erik. Hij weet van niks."). Aan het eind: "Opgedragen aan De Veteraan".
+
+*Alleen op de kaart.* Na missie 12 én No Mercy 4 (`n5Beschikbaar`: `brugKlaar`, `nm.klaar`) staat Erik Jan met de EJ
+(`hud.zetEJ`) op de kade in IJlst, en komt er één melding (`n5.gemeld`, in de opslag). Er is geen `belT` en geen telefoontje;
+de proef wacht drie minuten speltijd ver weg en telt `geluid.telefoon`: 0. E bij hem begint het gesprek (`noMercy5Toets`).
+No Mercy 4 zet de EJ elk beeld op null zodra hij klaar is; `werkNoMercy5Bij` draait daarna en zet hem weer.
+
+*De plek.* Houtzaagmolen De Rat is de enige stellingmolen in de kaart (`KAART.molens`, stelling 7,52 m, romp 4,5 m). Het
+water ten westen ervan is met een los script uit de BGT gemeten: op z = 884 water van x = −1276 tot −1137, gras daarachter
+tot de molen. De sloep begint op (−1262, 884) met de steven naar het oosten; de ruit ligt op het gras op (−1133, 884), ten
+zuiden van de loods. Het MG-nest, de drie posten aan de voet en de vlag zijn verschuivingen ten opzichte van het hart van de
+molen; de proef meet ze tegen water, panden en botsdozen.
+
+*De overtocht.* De sloep van IJlst (`SCHRIFT_BOOT`) gaat met `boten.verplaats` naar het begin, de speler erin (`stapIn`). Twee
+figuranten zitten op de voorste bank: de bank wordt in het model opgezocht zoals het schrift in missie 13, en een `Persoon` in
+een boot is een kind van de boot. Daarvoor kreeg js/persoon.js `vasteGrond`: `zetNeer` en `update` peilden de grond elk beeld
+uit js/viaduct.js en zetten de figuranten anders op het maaiveld onder de boot. De camera-boot (een `bouwSloep` met NO MERCY op
+de spiegel en een camera op een statief) vaart veertien meter opzij mee en controleert elke stap met `boten.pastHier`, zodat
+hij nooit de wal op gaat. Het zoeklicht op de stelling is een open kegel en een vlek op het water (MeshBasicMaterial, geen
+lamp: het aantal lichtbronnen blijft gelijk); de vlek zwaait rond het westen en ademt van 38 tot 112 m. Een halve tel in de
+vlek kost het filmpunt "licht". Drie lichtkogels hangen om beurten boven het water. Het MG en de sluipschutter zijn een
+`Bewaking` met `houden`, `schade: 0` en alarm vanaf het begin; de sluipschutter staat met `vasteGrond` op de stelling.
+
+*De molen en de vlag.* Aan wal bij de ruit stapt de cameraman over en komen drie Duitsers achter hun zandzakken (`groepB`, 1–3
+treffers). Het MG heeft er twee nodig, de sluipschutter één. Alles neer binnen 60 s is een filmpunt. De vlag (het balkenkruis op
+wit, geen hakenkruis) zakt met E in 2,2 s.
+
+*De rit.* De route is een `lijnDoor` door vijf punten van het eind van het Sneekerpad door IJlst (553 m). Het eerste punt ligt
+precies op het eind van de as: een punt een paar meter ervoor liet de routeplanner eerst naar de knoop rijden en dan keren
+(gemeten: vier knikken van meer dan 137° op één plek). De camera-auto rijdt de lijn kinematisch, zoals de vlucht van Bouwman,
+met het snelheidsprofiel van js/inval.js, en wacht als je meer dan 19 m achterblijft. Buiten het venster van 8–25 m, uitgestapt of
+14 m voorbij de ruit: na 3 s "Cut!", zwart "Take 2…", en de rit begint opnieuw (`n5RitKlaar`). Twee zijspannen (het frame van de
+scooters van js/handlangers.js, een bak met een eigen wiel, een Duitser aan het stuur via `opScooter` en een in de bak) rijden
+13 en 20 m achter je over dezelfde lijn en schieten losse flodders. De ruit ligt 18 m voor het eind, waar de camera-auto stopt:
+stil op de ruit sta je dan nog in het venster.
+
+*Het einde.* "Een week later…", 20:00 op de kade: de première, de filmpunten (drie of vier: "Dit wordt deel zes ook. Ik bel je
+niet, ik sta gewoon weer op je kaart."), en de keuze. 2 geeft de stafauto via een nieuw `garage.schenk`: hij staat naast je, is
+van jou en gaat mee in `garage.bewaar`. De bruikleen gaat altijd terug.
+
+*Wat misging.* (1) De `wal` van de ligplaats in IJlst (js/boot.js) ligt op de steiger, en die staat in de BGT boven het water:
+de eerste plek voor Erik Jan, 2,5 m daarachter, lag midden in het water. Nu het dichtstbijzijnde echte land, ~20 m verder.
+(2) In de proef stapte de speler niet in de stafauto: `toggleCar` in js/main.js doet niets zonder `player.active`. (3) De
+voorraad na de bruikleen was 232: acht patronen zitten in de clip van de M1; de proef telt nu voorraad plus clip. (4) De
+ruit lag eerst 26 m voor het eind; stil op de ruit was je dan te ver van de camera-auto, en de automaat reed ernaar toe op 18 m.
+(5) De shadermeting begon overdag en tekende daarna de nacht: bij zonsondergang verandert het aantal lichten (dat mag), dus de
+vergelijking staat nu helemaal 's nachts, en de proef noemt de mesh van elk nieuw programma. Daarna bleef er één over: de vlag, een
+tweezijdig MeshStandardMaterial met een kaart dat 's nachts nog niet vertaald was; nu enkelzijdig met een tweede vlak met de rug
+ertegen. (6) Laden in de proef via `verhaal.herstel` liet de M1 staan: de wapens komen uit js/opslag.js, dus de proef laadt nu echt.
+
+*Proef*: `npm run nomercy5test`: PROEFUITSLAG. Foto's (`npm run nomercy5shots`): nomercy5_overtocht.png, nomercy5_molen.png,
+nomercy5_rit.png, nomercy5_premiere.png.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er
