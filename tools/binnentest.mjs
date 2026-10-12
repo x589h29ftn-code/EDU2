@@ -17,7 +17,13 @@
  8. de onderdelen: roosters, het radiootje, luidsprekers, vloermatten, de hendels; in de gewone auto's ook het
     handschoenenkastje, de bekerhouders, het binnenlampje en de handgreep; in hatch, bus, BX en GTI de bekleding van de
     A- en B-stijlen, tussen de stijl en het deurpaneel;
- 9. de stoelen blijven onder de hemel, en het blijft één auto: hoogstens 9000 driehoeken.
+ 9. de stoelen blijven onder de hemel, en het blijft één auto: hoogstens 30.000 driehoeken (stap 148: afgeronde vormen).
+ Stap 148 (afgerond, logisch opgebouwd, de radio en de verlichting):
+ 11. de klokken zijn te zien: een straal van de ogen naar het midden van elke klok raakt eerst de klok (niet het huis);
+ 12. de radio laat de zender zien (Radio Tinga, Radio Spannenburg, 100% NL) en het nummer, en is leeg zonder zender;
+ 13. 's nachts wisselen de klokken naar het verlichte doek, gaan de knopjes aan, en zakt de eigen gloed van het interieur;
+ 14. het dashboard is één vorm, en de console komt er als één geheel uit (niet erdoorheen): de console begint achter het
+     voorvlak van het dashboard.
 */
 import { chromium } from 'playwright';
 
@@ -130,8 +136,47 @@ const uit = await page.evaluate(() => {
       });
     }
     const hemelY = maat ? maat.dakY - 0.045 : null;
+    // (stap 148) de klokken te zien, de radio, de nacht, de opbouw
+    let extra = null;
+    if (soort !== 'staf') {
+      const stuurDeel = new Set(); B.stuur.traverse(x => stuurDeel.add(x));
+      const platen = []; B.klok.traverse(x => { if (x.isMesh && x.geometry.type === 'CircleGeometry' && x.material.map) platen.push(x); });
+      const klokDeel = new Set(); B.klok.traverse(x => klokDeel.add(x));
+      // (de naald, het dopje en de rand horen bij de klok zelf: alleen het huis, de kap en de rest kunnen hem verstoppen)
+      const meshes = []; B.groep.traverse(x => { if (x.isMesh && !stuurDeel.has(x) && (!klokDeel.has(x) || platen.includes(x))) meshes.push(x); });
+      const rc = new THREE.Raycaster();
+      const zichtbaar = platen.map(pl => {
+        const doel = wp(pl), van = new THREE.Vector3(o.x, o.y, o.z);
+        rc.set(van, doel.clone().sub(van).normalize()); rc.far = van.distanceTo(doel) + 0.01;
+        const h = rc.intersectObjects(meshes, false)[0];
+        return !!h && h.object === pl;
+      });
+      const radioTekst = (z, n) => { B.update({ steer: 0, speed: 0 }, 0.1, { nacht: false, zender: z, nummer: n }); return B.radioTekst; };
+      const tinga = radioTekst({ naam: 'Radio Tinga', logo: 'tinga' }, { artiest: 'Kali', titel: 'Tinga' });
+      const spannen = radioTekst({ naam: 'Radio Spannenburg', logo: 'spannenburg' }, null);
+      const nl = radioTekst({ naam: '100% NL', logo: '100nl' }, { artiest: 'Lenny', titel: 'Ren Lenny Ren' });
+      const uit = radioTekst(null, null);
+      const kaartDag = platen[0] && platen[0].material.map;
+      const knop = []; B.groep.traverse(x => { if (x.isMesh && x.material.isMeshBasicMaterial && !x.material.map && x.material !== platen[0]?.material && ![0xd21f1f, 0xf1ead2, 0xff5a2a, 0xf2c418].includes(x.material.color.getHex())) knop.push(x.material); });
+      const knopDag = knop[0] ? knop[0].color.getHex() : null;
+      const dash = []; B.groep.traverse(x => { if (x.name === 'dashboard') dash.push(x); });
+      const gloedDag = dash[0] ? dash[0].material.emissiveIntensity : null;
+      B.update({ steer: 0, speed: 0 }, 0.1, { nacht: true, zender: { naam: 'Radio Tinga', logo: 'tinga' } });
+      const kaartNacht = platen[0] && platen[0].material.map, knopNacht = knop[0] ? knop[0].color.getHex() : null;
+      const gloedNacht = dash[0] ? dash[0].material.emissiveIntensity : null;
+      B.update({ steer: 0, speed: 0 }, 0.1, { nacht: false, zender: { naam: 'Radio Tinga', logo: 'tinga' } });
+      // de opbouw: het voorvlak van het dashboard en het begin van de console
+      let dashAchter = -Infinity, consoleVoor = Infinity;
+      if (dash[0]) dashAchter = new THREE.Box3().setFromObject(dash[0]).max.z;
+      B.groep.traverse(x => { if (x.isMesh && x.geometry.type === 'ExtrudeGeometry' && x.material.userData && x.material.userData.tegel === 0.18 && !x.name) {
+        const bb = new THREE.Box3().setFromObject(x);
+        if (bb.max.y < (maat.schouderY - 0.05) && Math.abs((bb.min.x + bb.max.x) / 2) < 0.02 && (bb.max.x - bb.min.x) < 0.3 && (bb.max.z - bb.min.z) > 0.25) consoleVoor = Math.min(consoleVoor, bb.min.z);
+      } });
+      extra = { platen: platen.length, zichtbaar, tinga, spannen, nl, uit, nachtWissel: kaartDag !== kaartNacht && !!kaartNacht, knopDag, knopNacht,
+        gloedDag, gloedNacht, dashStukken: dash.length, dashAchter: +dashAchter.toFixed(3), consoleVoor: +consoleVoor.toFixed(3) };
+    }
     res[soort] = {
-      regels, driehoeken: Math.round(driehoeken), meshes, namen, stijlen, stoelTop: +stoelTop.toFixed(3), hemelY,
+      extra, regels, driehoeken: Math.round(driehoeken), meshes, namen, stijlen, stoelTop: +stoelTop.toFixed(3), hemelY,
       uitBijStart, oog: o,
       stuur: { dz: +(o.z - st.z).toFixed(2), hoek: +hoek(st).toFixed(1) },
       klokHoek: +hoek(klokLaag).toFixed(1), vrij, stuurDraait: Math.abs(s1 - s0) > 0.5, naaldLoopt: Math.abs(n1 - n0) > 0.2,
@@ -161,7 +206,15 @@ for (const [soort, r] of Object.entries(uit)) {
   ok(mist.length === 0, 'de onderdelen: roosters, radio, luidsprekers, matten, hendels' + (gewoon ? ', handschoenenkastje, bekerhouders, lampje, handgreep' : ''), mist.length ? `mist: ${mist.join(', ')}` : '');
   if (['hatch', 'van', 'bx', 'gti'].includes(soort)) ok(r.stijlen.length === 4 && r.stijlen.every(Boolean), 'de A- en B-stijl bekleed, tussen de stijl en het deurpaneel', `${r.stijlen.length} bekledingen`);
   ok(r.stoelTop <= r.hemelY + 1e-3, 'de stoelen blijven onder de hemel', `stoel tot ${r.stoelTop}, hemel ${r.hemelY.toFixed(3)}`);
-  ok(r.driehoeken <= 9000, 'één auto: hoogstens 9000 driehoeken', `${r.driehoeken} driehoeken in ${r.meshes} onderdelen`);
+  const e = r.extra;
+  ok(e.platen === 2 && e.zichtbaar.every(Boolean), 'de twee klokken zijn te zien (een straal raakt eerst de klok)', e.zichtbaar.map(v => v ? 'ja' : 'nee').join(', '));
+  ok(/RADIO TINGA|Radio Tinga/.test(e.tinga) && /Kali/.test(e.tinga) && /Spannenburg/.test(e.spannen) && /100% NL/.test(e.nl) && /Lenny/.test(e.nl) && e.uit.startsWith('-|'),
+    'de radio volgt de zender en het nummer, en is leeg zonder zender', `${e.tinga.split('|')[0]} · ${e.spannen.split('|')[0]} · ${e.nl.split('|')[0]} · uit`);
+  ok(e.nachtWissel && e.knopDag !== e.knopNacht && e.gloedNacht < e.gloedDag, "'s nachts het verlichte doek op de klokken, de knopjes aan, de gloed van het interieur omlaag",
+    `knop ${e.knopDag?.toString(16)} → ${e.knopNacht?.toString(16)}, gloed ${e.gloedDag} → ${e.gloedNacht?.toFixed(3)}`);
+  ok(e.dashStukken === 1 && e.consoleVoor >= e.dashAchter - 0.02, 'het dashboard is één vorm, en de console komt eruit in plaats van erdoorheen',
+    `voorvlak tot z ${e.dashAchter}, console vanaf ${e.consoleVoor}`);
+  ok(r.driehoeken <= 30000, 'één auto: hoogstens 30.000 driehoeken', `${r.driehoeken} driehoeken in ${r.meshes} onderdelen`);
 }
 
 // ---------------------------------------------------------------- 10. in het spel: geen nieuwe shader

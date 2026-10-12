@@ -184,71 +184,6 @@ function materialen() {
   return MAT;
 }
 
-/*
- Het klokkendoek: twee wijzerplaten met streepjes en cijfers, op een zwarte
- achtergrond. De wijzers zelf zijn geen tekening maar twee dunne meshes die
- draaien — dan hoeft er geen doek per beeld naar de kaart en loopt de naald
- vloeiend mee.
-*/
-function klokDoek(maxKmu = 160) {
-  const c = document.createElement('canvas');
-  c.width = 512; c.height = 256;
-  const g = c.getContext('2d');
-  g.fillStyle = '#17191d'; g.fillRect(0, 0, 512, 256);
-  g.strokeStyle = '#2c3037'; g.lineWidth = 4;
-  g.strokeRect(2, 2, 508, 252);
-  const plaat = (cx, labels, stap) => {
-    g.save(); g.translate(cx, 128);
-    g.fillStyle = '#101215'; g.beginPath(); g.arc(0, 0, 104, 0, 6.283); g.fill();
-    g.strokeStyle = '#454a52'; g.lineWidth = 3;
-    g.beginPath(); g.arc(0, 0, 104, 0, 6.283); g.stroke();
-    // schaalverdeling van 225° tot -45°, zoals op een echte teller
-    for (let i = 0; i <= labels; i++) {
-      const h = (225 - (270 * i) / labels) * Math.PI / 180;
-      const co = Math.cos(h), si = -Math.sin(h);
-      const groot = i % 2 === 0;
-      g.strokeStyle = groot ? '#e6e9ee' : '#8b9098';
-      g.lineWidth = groot ? 5 : 3;
-      g.beginPath();
-      g.moveTo(co * 88, si * 88); g.lineTo(co * (groot ? 68 : 76), si * (groot ? 68 : 76));
-      g.stroke();
-      if (groot) {
-        g.fillStyle = '#dfe3e9';
-        g.font = '600 22px system-ui, sans-serif';
-        g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText(String(i * stap), co * 50, si * 50);
-      }
-    }
-    g.restore();
-  };
-  plaat(128, 8, maxKmu / 8); // snelheidsmeter 0-160 km/u, bij de Ferrari 0-320
-  plaat(384, 8, 1);         // toerenteller 0-8 (× 1000)
-  g.fillStyle = '#9aa0a8';
-  g.font = '600 15px system-ui, sans-serif';
-  g.textAlign = 'center';
-  g.fillText('km/u', 128, 222);
-  g.fillText('× 1000', 384, 222);
-  /*
-   (stap 147) Tussen de klokken: brandstof en temperatuur als staafjes, de pijltjes van de richtingaanwijzers en een
-   rij controlelampjes onderin (uit, donker getint: een teller staat niet als een kerstboom aan).
-  */
-  const staaf = (x, label, vol) => {
-    g.fillStyle = '#0b0d10'; g.fillRect(x - 8, 66, 16, 116);
-    g.fillStyle = '#e6e9ee'; g.fillRect(x - 5, 68 + 112 * (1 - vol), 10, 112 * vol - 2);
-    for (let i = 1; i < 4; i++) { g.fillStyle = '#5a5f67'; g.fillRect(x - 8, 66 + i * 29, 4, 2); }
-    g.fillStyle = '#9aa0a8'; g.font = '600 12px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(label, x, 198);
-  };
-  staaf(244, 'F', 0.72); staaf(268, '°C', 0.5);
-  const pijl = (x, r) => { g.fillStyle = '#1f5a2c'; g.beginPath(); g.moveTo(x + r * 10, 34); g.lineTo(x, 26); g.lineTo(x, 42); g.closePath(); g.fill(); };
-  pijl(240, -1); pijl(272, 1);
-  for (const [x, kleur] of [[196, '#5a2020'], [222, '#5a4a18'], [290, '#1d3a5a'], [316, '#5a2020']]) {
-    g.fillStyle = kleur; g.beginPath(); g.arc(x, 240, 6, 0, Math.PI * 2); g.fill();
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
 // de uv van een doos in meters: elk vlak herhaalt het doek om de `tegel` meter (vlakken: +x −x +y −y +z −z)
 function schaalUv(geo, b, h, d, tegel) {
   const uv = geo.attributes.uv, maten = [[d, h], [d, h], [b, d], [b, d], [b, h], [b, h]];
@@ -269,11 +204,139 @@ function doos(groep, mat, b, h, d, x, y, z, rx = 0) {
 }
 
 /*
- De Ferrari van binnen (stap 127, gevraagd: "Ferrari heeft geen goed interieur"). Hij kreeg het interieur van
- een hatchback: een stoffen bank achterin, een hoedenplank, en stoelen met een rugleuning van 1,39 m terwijl zijn
- dak op 1,15 m ligt — de hoofdsteunen staken door het dak. Nu twee lage kuipstoelen in rood leer met zwarte
- wangen, een tunnel in koolstof met de rode startknop en drie knoppen, een schot achter de stoelen, en
- dashboard en stuur in zijn eigen stijl (zie hierboven).
+ ---------------------------------------------------------------- vormen (stap 148)
+ Gevraagd: "De interieur van de auto's behalve staf auto lijken wat low poly en niet logisch qua opbouw. Kan je hier
+ verbeteringen in aanbrengen, dat het van binnen er net zo goed uit ziet als de buitenkant. Ook dat de interieur radio
+ meegaat met Radio Tinga, Radio Spannenburg of 100% NL. Die tekst en wat knopjes en dashboardverlichting ook aan in de
+ nacht."
+
+ Tot stap 147 was alles een rechthoekige doos, en de opbouw klopte niet: de console stak door het dashboard, het dashboard
+ was drie losse platen voor een gat, de klokken een plaatje op de rand, en de zitting lag hoger dan de onderkant van het
+ stuur. Nu:
+ - `rond`: een doos met afgeronde randen (een geëxtrudeerde afgeronde rechthoek met een afronding rondom);
+ - `profiel`: een doorsnede in het vlak (z, y), over de breedte uitgetrokken: het dashboard is één vorm, van de voet van
+   de voorruit over de bovenkant en de voorkant naar het schot bij de voeten;
+ - een klokkenhuis met een kap op het dashboard, met twee echte ronde klokken, een rand, wijzers en een displaytje;
+ - een middenconsole die als één geheel uit het dashboard naar beneden komt (roosters, radio, klimaatknoppen) en tussen
+   de stoelen doorloopt tot een armsteun;
+ - lagere stoelen met afgeronde zittingen, wangen en een hoofdsteun;
+ - roosters met echte lamellen, een stuur met een airbagkussen, een kolom met een kap.
+ De radio laat de zender zien waar je naar luistert en het nummer dat speelt; 's nachts branden de klokken, het scherm en
+ de knopjes (`update(car, dt, { nacht, zender, nummer })` uit js/main.js).
+*/
+const RONDING = { curveSegments: 3, bevelSegments: 2 };
+// een doos van b × h × d met afgeronde randen (straal r); de uv in meters, gedeeld door de tegel van het materiaal
+function rondGeo(b, h, d, r = 0.015) {
+  r = Math.max(0.002, Math.min(r, b / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001));
+  const bb = b - 2 * r, hh = h - 2 * r, rr = Math.min(r, bb / 2 - 0.0005, hh / 2 - 0.0005);
+  const s = new THREE.Shape();
+  const x0 = -bb / 2, y0 = -hh / 2, x1 = bb / 2, y1 = hh / 2, k = Math.max(0.0005, rr * 0.6);
+  s.moveTo(x0 + k, y0); s.lineTo(x1 - k, y0); s.quadraticCurveTo(x1, y0, x1, y0 + k);
+  s.lineTo(x1, y1 - k); s.quadraticCurveTo(x1, y1, x1 - k, y1); s.lineTo(x0 + k, y1);
+  s.quadraticCurveTo(x0, y1, x0, y1 - k); s.lineTo(x0, y0 + k); s.quadraticCurveTo(x0, y0, x0 + k, y0);
+  const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.001, d - 2 * r), bevelEnabled: true, bevelThickness: r, bevelSize: r, ...RONDING });
+  g.translate(0, 0, -(d - 2 * r) / 2);
+  return g;
+}
+function tegelUv(g, mat) {
+  const t = mat && mat.userData && mat.userData.tegel;
+  if (!(t > 0) || !g.attributes.uv) return g;
+  const uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / t, uv.getY(i) / t);
+  uv.needsUpdate = true;
+  return g;
+}
+function rond(groep, mat, b, h, d, x, y, z, rx = 0, r = 0.015, naam = '') {
+  const m = new THREE.Mesh(tegelUv(rondGeo(b, h, d, r), mat), mat);
+  m.position.set(x, y, z);
+  if (rx) m.rotation.x = rx;
+  if (naam) m.name = naam;
+  groep.add(m);
+  return m;
+}
+// een doorsnede [[z, y], …] over de breedte `breed` uitgetrokken, rond x = 0, met afgeronde randen
+function profiel(groep, mat, punten, breed, x = 0, r = 0.018, naam = '') {
+  const s = new THREE.Shape();
+  punten.forEach(([z, y], i) => (i ? s.lineTo(z, y) : s.moveTo(z, y)));
+  s.closePath();
+  const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.001, breed - 2 * r), bevelEnabled: true, bevelThickness: r, bevelSize: r * 0.8, ...RONDING });
+  g.rotateY(-Math.PI / 2);                 // de doorsnede-x wordt de z van de auto, de extrusie loopt naar −x
+  g.translate((breed - 2 * r) / 2, 0, 0);
+  const m = new THREE.Mesh(tegelUv(g, mat), mat);
+  m.position.x = x;
+  if (naam) m.name = naam;
+  groep.add(m);
+  return m;
+}
+function cilinder(groep, mat, r0, r1, h, x, y, z, seg = 20) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, h, seg), mat);
+  m.position.set(x, y, z);
+  groep.add(m);
+  return m;
+}
+
+// ---------------------------------------------------------------- klokken
+/*
+ Eén wijzerplaat per klok (snelheid of toeren), overdag wit op zwart, 's nachts in barnsteen met een zachte gloed: de
+ dashboardverlichting. De wijzers zijn losse meshes die draaien.
+*/
+function wijzerDoek(labels, stap, eenheid, nacht) {
+  return tekenDoek(256, 256, (g, w, h) => {
+    const m = w / 2;
+    g.fillStyle = '#0c0e11'; g.beginPath(); g.arc(m, m, m, 0, Math.PI * 2); g.fill();
+    if (nacht) { const gr = g.createRadialGradient(m, m, 20, m, m, m); gr.addColorStop(0, 'rgba(255,150,40,0.10)'); gr.addColorStop(1, 'rgba(255,150,40,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
+    const kleur = nacht ? '#ffb24a' : '#e6e9ee', fijn = nacht ? '#b5762a' : '#8b9098';
+    if (nacht) { g.shadowColor = 'rgba(255,160,60,0.9)'; g.shadowBlur = 6; }
+    for (let i = 0; i <= labels * 2; i++) {
+      const a = (225 - (270 * i) / (labels * 2)) * Math.PI / 180, co = Math.cos(a), si = -Math.sin(a);
+      const groot = i % 2 === 0;
+      g.strokeStyle = groot ? kleur : fijn; g.lineWidth = groot ? 6 : 3;
+      g.beginPath(); g.moveTo(m + co * 112, m + si * 112); g.lineTo(m + co * (groot ? 88 : 98), m + si * (groot ? 88 : 98)); g.stroke();
+      if (groot) {
+        g.fillStyle = kleur; g.font = '600 26px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(String((i / 2) * stap), m + co * 64, m + si * 64);
+      }
+    }
+    g.fillStyle = fijn; g.font = '600 18px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(eenheid, m, m + 70);
+  }, false);
+}
+const KLOKDOEKEN = new Map();
+function klokDoeken(max) {
+  if (!KLOKDOEKEN.has(max)) KLOKDOEKEN.set(max, {
+    snelDag: wijzerDoek(8, max / 8, 'km/u', false), snelNacht: wijzerDoek(8, max / 8, 'km/u', true),
+    toerDag: wijzerDoek(8, 1, '× 1000', false), toerNacht: wijzerDoek(8, 1, '× 1000', true),
+  });
+  return KLOKDOEKEN.get(max);
+}
+// ---------------------------------------------------------------- radio
+/*
+ Het scherm van de radio: de zender waar je naar luistert (Radio Tinga, Radio Spannenburg, 100% NL), een frequentie, het
+ nummer dat speelt, en een klokje. Eén doek dat alleen opnieuw getekend wordt als er iets verandert.
+*/
+const FREQ = { tinga: '98.2', spannenburg: '104.7', '100nl': '101.4' };
+function tekenRadio(doek, { naam, logo, regel, nacht, uit }) {
+  const c = doek.image, g = c.getContext('2d'), w = c.width, h = c.height;
+  g.fillStyle = '#05080c'; g.fillRect(0, 0, w, h);
+  if (uit) { doek.needsUpdate = true; return; }
+  const kleur = nacht ? '#8ff0ff' : '#6fd6ec', zacht = nacht ? '#4fb3cc' : '#3e9ab0';
+  if (nacht) { g.shadowColor = 'rgba(120,230,255,0.8)'; g.shadowBlur = 8; }
+  g.fillStyle = zacht; g.font = 'bold 22px monospace'; g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillText(`FM ${FREQ[logo] || '98.2'}`, 14, 22);
+  g.textAlign = 'right'; g.fillText('ST', w - 14, 22);
+  // de naam zo groot als past: "RADIO SPANNENBURG" moet er helemaal op
+  const tekst = (naam || 'RADIO').toUpperCase();
+  let px = 46; g.font = `bold ${px}px monospace`;
+  while (px > 20 && g.measureText(tekst).width > w - 28) { px -= 2; g.font = `bold ${px}px monospace`; }
+  g.fillStyle = kleur; g.textAlign = 'center';
+  g.fillText(tekst, w / 2, 66);
+  g.fillStyle = zacht; g.font = '20px monospace';
+  g.fillText((regel || '').slice(0, 30), w / 2, 106);
+  doek.needsUpdate = true;
+}
+
+/*
+ De Ferrari (stap 127, en stap 148: afgerond). Twee lage kuipstoelen in rood leer met zwarte wangen, een tunnel in
+ koolstof met de rode startknop en drie knoppen, een schot achter de stoelen.
 */
 function sportBinnen(groep, M, maat, { vloerY, hemelY, cabZ, achter, stuurX }) {
   const W = maat.W;
@@ -281,300 +344,311 @@ function sportBinnen(groep, M, maat, { vloerY, hemelY, cabZ, achter, stuurX }) {
   const rugTop = Math.min(hemelY - 0.06, (maat.oog ? maat.oog.y : 1.02) + 0.06);
   const rugH = rugTop - zit - 0.03;
   for (const sx of [stuurX, -stuurX]) {
-    doos(groep, M.leer, 0.40, 0.08, 0.48, sx, zit, cabZ - 0.08);                          // zitting
-    doos(groep, M.leer, 0.40, rugH, 0.08, sx, zit + 0.03 + rugH / 2, cabZ + 0.20, 0.22);  // rug, ver achterover
+    rond(groep, M.leer, 0.36, 0.08, 0.46, sx, zit, cabZ - 0.08, 0, 0.03, 'zitting');
+    rond(groep, M.leer, 0.36, rugH, 0.08, sx, zit + 0.03 + rugH / 2, cabZ + 0.20, 0.22, 0.035);
     for (const w of [-1, 1]) {
-      // de wangen: hoog langs de zitting en de rug, in zwart leer
-      doos(groep, M.leerZwart, 0.07, 0.15, 0.46, sx + w * 0.235, zit + 0.04, cabZ - 0.08);
-      doos(groep, M.leerZwart, 0.07, rugH * 0.8, 0.12, sx + w * 0.235, zit + 0.03 + rugH * 0.42, cabZ + 0.19, 0.22);
+      rond(groep, M.leerZwart, 0.08, 0.16, 0.46, sx + w * 0.22, zit + 0.04, cabZ - 0.08, 0, 0.035);
+      rond(groep, M.leerZwart, 0.08, rugH * 0.82, 0.13, sx + w * 0.22, zit + 0.03 + rugH * 0.42, cabZ + 0.19, 0.22, 0.035);
     }
-    // de uitsparing voor de gordels, bovenin de rug
-    doos(groep, M.leerZwart, 0.08, 0.05, 0.085, sx, rugTop - 0.09, cabZ + 0.215 + Math.sin(0.22) * rugH * 0.4, 0.22);
+    rond(groep, M.leerZwart, 0.09, 0.05, 0.09, sx, rugTop - 0.09, cabZ + 0.215 + Math.sin(0.22) * rugH * 0.4, 0.22, 0.02);
   }
-  // de tunnel tussen de stoelen, met de brug van knoppen
-  doos(groep, M.carbon, 0.24, 0.20, 0.95, 0, vloerY + 0.10, cabZ - 0.30);
-  doos(groep, M.carbon, 0.20, 0.05, 0.30, 0, vloerY + 0.24, cabZ - 0.58, -0.25);
-  const knop = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.012, 12), M.knop);
-  knop.position.set(0, vloerY + 0.28, cabZ - 0.62); knop.rotation.x = -0.25; groep.add(knop);
-  for (const dx of [-0.06, 0, 0.06]) doos(groep, M.chroom, 0.035, 0.018, 0.035, dx, vloerY + 0.215, cabZ - 0.42);
-  // het schot achter de stoelen (de motor ligt erachter), en de hoedenplank in koolstof
-  doos(groep, M.carbon, W - 0.26, maat.schouderY - vloerY + 0.06, 0.04, 0, (vloerY + maat.schouderY) / 2 + 0.03, achter + 0.06);
-  doos(groep, M.carbon, W - 0.28, 0.03, 0.30, 0, maat.schouderY + 0.02, achter + 0.22);
-  // een kap over de klokken
-  doos(groep, M.carbon, 0.40, 0.03, 0.14, stuurX, maat.schouderY + 0.135, (cabZ - maat.cabL / 2 + 0.30) + 0.12, -0.12);
+  rond(groep, M.carbon, 0.24, 0.20, 0.95, 0, vloerY + 0.10, cabZ - 0.30, 0, 0.04);
+  rond(groep, M.carbon, 0.20, 0.05, 0.30, 0, vloerY + 0.24, cabZ - 0.58, -0.25, 0.02);
+  const knop = cilinder(groep, M.knop, 0.018, 0.018, 0.012, 0, vloerY + 0.28, cabZ - 0.62, 16); knop.rotation.x = -0.25;
+  for (const dx of [-0.06, 0, 0.06]) rond(groep, M.chroom, 0.035, 0.018, 0.035, dx, vloerY + 0.215, cabZ - 0.42, 0, 0.006);
+  rond(groep, M.carbon, W - 0.26, maat.schouderY - vloerY + 0.06, 0.04, 0, (vloerY + maat.schouderY) / 2 + 0.03, achter + 0.06, 0, 0.015);
+  rond(groep, M.carbon, W - 0.28, 0.03, 0.30, 0, maat.schouderY + 0.02, achter + 0.22, 0, 0.012);
 }
 
 /**
- * Het interieur van één auto. `kind` is 'hatch', 'van' of 'truck'.
+ * Het interieur van één auto. `maat` komt uit `autoMaat(kind)` in js/carmodel.js.
  *
- * Levert { groep, update(car) } — `update` zet het stuur en de wijzers op hun
- * plek. Hang `groep` in de carrosseriegroep van het model (js/carmodel.js), dan
- * helt het mee in de bocht.
+ * Levert { groep, stuur, klok, naalden, update(car, dt, { nacht, zender, nummer }) } — `update` zet het stuur en de
+ * wijzers, de klok- en knopverlichting en het scherm van de radio. Hang `groep` in de carrosseriegroep (js/carmodel.js),
+ * dan helt het mee in de bocht.
  */
 export function maakAutoBinnen(maat) {
   const M = materialen();
-  if (!M.klok) M.klok = new THREE.MeshBasicMaterial({ map: klokDoek(), side: THREE.DoubleSide });
-  // de Ferrari (js/garage.js) rijdt ruim 200: zijn teller loopt tot 320
-  if (maat.sport && !M.klokSport) M.klokSport = new THREE.MeshBasicMaterial({ map: klokDoek(320), side: THREE.DoubleSide });
+  if (!M.knopLicht) {
+    // de knopjes en de randjes die 's nachts oplichten; overdag donker kunststof (alleen de kleur verandert)
+    M.knopLicht = new THREE.MeshBasicMaterial({ color: 0x2a2d33 });
+    M.wijzer = new THREE.MeshBasicMaterial({ color: 0xff5a2a, side: THREE.DoubleSide });
+    M.doekLcd = tekenDoek(256, 64, (g, w, h) => { g.fillStyle = '#071014'; g.fillRect(0, 0, w, h); g.fillStyle = '#5fd0e6'; g.font = 'bold 30px monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('054213 km', w / 2, h / 2); }, false);
+    M.lcd = new THREE.MeshBasicMaterial({ map: M.doekLcd, side: THREE.DoubleSide, color: 0xbfc8cc });
+  }
   const maxKmu = maat.sport ? 320 : 160;
-  const { W, dakY, schouderY, cabZ, cabL, dorpelY } = maat;
-  const groep = new THREE.Group();
+  const KD = klokDoeken(maxKmu);
+  // elke auto zijn eigen klokmaterialen (de doeken zijn gedeeld): de nacht wisselt het doek
+  const snelMat = new THREE.MeshBasicMaterial({ map: KD.snelDag, side: THREE.DoubleSide });
+  const toerMat = new THREE.MeshBasicMaterial({ map: KD.toerDag, side: THREE.DoubleSide });
+  // het scherm van de radio: een eigen doek per auto, opnieuw getekend als de zender of het nummer verandert
+  const radioDoek = tekenDoek(512, 128, () => {}, false);
+  const radioMat = new THREE.MeshBasicMaterial({ map: radioDoek, side: THREE.DoubleSide, color: 0xd6dde0 });
+  tekenRadio(radioDoek, { naam: 'Radio Tinga', logo: 'tinga', regel: '', nacht: false });
 
+  const { W, dakY, schouderY, cabZ, cabL, dorpelY } = maat;
+  const T = schouderY;
+  const groep = new THREE.Group();
   const binnenX = W / 2 - 0.145;          // binnenkant van het portier, binnen de flankwand
   const vloerY = dorpelY + 0.16;          // de vloer ligt net boven de dorpelbalk
   const hemelY = dakY - 0.045;
   const voor = cabZ - cabL / 2 + 0.30;    // onderkant voorruit
-  /*
-   Let op de richting van z: de neus van de auto ligt bij −z, dus wat verder
-   naar achteren staat heeft een gróter getal. `voor` is de onderkant van de
-   voorruit; het dashboard staat daar net achter, het stuur weer achter het
-   dashboard, en de bestuurder achter het stuur. Ging dat mis, dan hing het
-   stuur onder de motorkap — en dat was precies wat er de eerste keer gebeurde.
-  */
-  const dashZ = voor + 0.06;              // hart van de dashboardkuip
-  const dashAchter = dashZ + 0.10;        // het vlak dat naar de bestuurder kijkt
-  const stuurZ = voor + 0.265;            // het stuur, tussen dashboard en stoel
-  const achter = cabZ + cabL / 2 - 0.20;  // achterruit
-  const stuurX = -(W / 2 - 0.46);         // dezelfde kant als het oogpunt
+  // (de neus ligt bij −z: wat verder naar achteren staat heeft een gróter getal)
+  const dashZ = voor + 0.06;
+  const F = dashZ + 0.10;                 // het vlak van het dashboard dat naar de bestuurder kijkt
+  const stuurZ = voor + 0.265;
+  const achter = cabZ + cabL / 2 - 0.20;
+  const stuurX = -(W / 2 - 0.46);
+  const sport = !!maat.sport;
+  const dashMat = sport ? M.carbon : M.kunststof, bovenMat = sport ? M.leerZwart : M.kunststof;
 
-  // ---------------------------------------------------------------- schil
-  // vloer, hemel en de twee deurpanelen: dit is wat voorkomt dat je door de
-  // auto heen naar buiten kijkt
+  // ---------------------------------------------------------------- schil: vloer, hemel, deuren
   doos(groep, M.vloer, W - 0.20, 0.04, cabL + 0.5, 0, vloerY, cabZ);
-  // (de Ferrari heeft een smalle koepel van 1,40 × 1,20 m: een hemel over de hele cabine stak door zijn dak, stap 127)
-  if (maat.sport) doos(groep, M.carbon, 1.28, 0.03, 1.05, 0, hemelY - 0.02, cabZ - 0.05);
-  else doos(groep, M.hemel, W - 0.26, 0.03, cabL - 0.10, 0, hemelY, cabZ);
-  const deurMat = maat.sport ? M.leerZwart : M.kunststof;
+  if (sport) rond(groep, M.carbon, 1.28, 0.03, 1.05, 0, hemelY - 0.02, cabZ - 0.05, 0, 0.012);
+  else rond(groep, M.hemel, W - 0.26, 0.03, cabL - 0.10, 0, hemelY, cabZ, 0, 0.012);
+  const deurMat = sport ? M.leerZwart : M.kunststof;
+  const deurL = cabL - 0.30;
   for (const sx of [-1, 1]) {
-    // portierpaneel tot aan de raamlijn
-    doos(groep, deurMat, 0.035, schouderY - vloerY + 0.06, cabL - 0.30, sx * binnenX, (vloerY + schouderY) / 2 + 0.03, cabZ);
-    // armsteun met een greep erin
-    doos(groep, M.kunststof, 0.075, 0.075, 0.42, sx * (binnenX - 0.045), schouderY - 0.13, cabZ - 0.12);
-    // (stap 147: de trekgreep zwart; in chroom lichtte hij van de stoel af op als een witte balk)
-    doos(groep, M.zwart, 0.05, 0.035, 0.15, sx * (binnenX - 0.06), schouderY - 0.05, cabZ - 0.28);
-    /*
-     (stap 147) Het paneel kreeg wat een deur heeft: een vlak stof onder de armsteun, de raamschakelaar voor op de
-     armsteun, een luidspreker laag vooraan en een vak onderin.
-    */
-    doos(groep, maat.sport ? M.carbon : M.stof, 0.012, 0.14, Math.min(0.55, cabL * 0.32), sx * (binnenX - 0.022), schouderY - 0.27, cabZ - 0.05);
-    doos(groep, M.zwart, 0.03, 0.016, 0.07, sx * (binnenX - 0.065), schouderY - 0.085, cabZ - 0.29);
-    const gaas = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.16), M.gaas);
-    gaas.position.set(sx * (binnenX - 0.0185), vloerY + 0.15, cabZ - cabL / 2 + 0.47);
+    const bx = sx * binnenX;
+    // het paneel tot de raamlijn, met een rand langs het raam
+    rond(groep, deurMat, 0.04, T - vloerY + 0.04, deurL, bx, (vloerY + T) / 2 + 0.02, cabZ, 0, 0.012);
+    rond(groep, M.zwart, 0.06, 0.03, deurL, bx - sx * 0.01, T + 0.01, cabZ, 0, 0.012);
+    // de armsteun loopt naar voren toe iets op, met een uitsparing als greep
+    rond(groep, M.kunststof, 0.08, 0.05, 0.44, bx - sx * 0.045, T - 0.15, cabZ - 0.10, -0.06, 0.022);
+    rond(groep, M.zwart, 0.04, 0.035, 0.13, bx - sx * 0.075, T - 0.12, cabZ - 0.26, 0, 0.012);
+    // de deurklink vooraan, en de raamschakelaar voor op de armsteun
+    rond(groep, M.chroom, 0.02, 0.025, 0.08, bx - sx * 0.03, T - 0.05, cabZ - deurL / 2 + 0.16, 0, 0.008);
+    rond(groep, M.zwart, 0.035, 0.018, 0.075, bx - sx * 0.07, T - 0.12, cabZ - 0.31, -0.06, 0.006);
+    // een stofvlak onder de armsteun, een luidspreker laag vooraan en een vak onderin
+    rond(groep, sport ? M.carbon : M.stof, 0.014, 0.15, Math.min(0.55, cabL * 0.30), bx - sx * 0.022, T - 0.28, cabZ - 0.02, 0, 0.006);
+    const gaas = new THREE.Mesh(new THREE.CircleGeometry(0.07, 32), M.gaas);
+    gaas.position.set(bx - sx * 0.0205, vloerY + 0.15, cabZ - deurL / 2 + 0.17);
     gaas.rotation.y = sx > 0 ? -Math.PI / 2 : Math.PI / 2; gaas.name = 'luidspreker';
     groep.add(gaas);
-    doos(groep, M.kunststof, 0.045, 0.10, Math.min(0.42, cabL * 0.25), sx * (binnenX - 0.035), vloerY + 0.11, cabZ + 0.08);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.072, 0.006, 6, 32), M.zwart);
+    ring.position.copy(gaas.position); ring.rotation.y = Math.PI / 2; groep.add(ring);
+    rond(groep, M.kunststof, 0.05, 0.10, Math.min(0.42, cabL * 0.24), bx - sx * 0.04, vloerY + 0.11, cabZ + 0.10, 0, 0.015);
   }
-  /*
-   De binnenkant van de stijlen (stap 147). Van binnen keek je tegen de lak van de A- en B-stijl aan (blauw, rood, wat de
-   auto ook had): nu zit er, zoals in elke auto, een bekleding in de kleur van de hemel overheen. De maten komen uit
-   dezelfde formule als de stijlen zelf (js/carmodel.js, autoGeoms); de vrachtwagen, de ambulance en de Ferrari hebben
-   een eigen cabine en houden hun stijl.
-  */
-  if (!maat.sport && !maat.truck && !maat.amb && maat.stijlH && maat.aHoek != null) {
+  // de bekleding van de A- en B-stijl (in hatch, bus, BX en GTI; uit dezelfde formule als de stijlen in js/carmodel.js)
+  if (!sport && !maat.truck && !maat.amb && maat.stijlH && maat.aHoek != null) {
     const x0 = W / 2 - (maat.bus ? 0.10 : 0.075), sH = maat.stijlH;
     for (const sx of [-1, 1]) {
-      const a = doos(groep, M.hemel, 0.03, sH + 0.10, 0.13, sx * (x0 - 0.06), (schouderY + dakY) / 2, cabZ - cabL / 2 + 0.30 - Math.sin(maat.aHoek) * sH / 2, maat.aHoek);
-      a.name = 'stijlbekleding';
-      const b = doos(groep, M.hemel, 0.03, sH, 0.10, sx * (x0 - 0.05), (schouderY + dakY) / 2, cabZ + (maat.bus ? 0.30 : 0.18));
-      b.name = 'stijlbekleding';
+      rond(groep, M.hemel, 0.03, sH + 0.10, 0.13, sx * (x0 - 0.06), (T + dakY) / 2, cabZ - cabL / 2 + 0.30 - Math.sin(maat.aHoek) * sH / 2, maat.aHoek, 0.012, 'stijlbekleding');
+      rond(groep, M.hemel, 0.03, sH, 0.10, sx * (x0 - 0.05), (T + dakY) / 2, cabZ + (maat.bus ? 0.30 : 0.18), 0, 0.012, 'stijlbekleding');
     }
   }
 
-  // ------------------------------------------------------------- dashboard
-  // de kuip onder de voorruit, met een schuine bovenkant naar het glas toe
-  const dashMat = maat.sport ? M.carbon : M.kunststof;
-  doos(groep, dashMat, W - 0.20, 0.26, 0.20, 0, schouderY - 0.10, dashZ);
+  // ---------------------------------------------------------------- het dashboard: één vorm
   /*
-   Het schot onder het dashboard. Zonder dit keek je vanaf de stoel onder het
-   dashboard door tegen de binnenkant van het plaatwerk aan: een rode vlakte
-   waar het voetenhok hoort te zitten.
+   De doorsnede, van de voet van de voorruit (iets eronder, zodat er geen kier is) over een bolle bovenkant naar de
+   voorkant, dan schuin terug langs de knieën naar het schot bij de voeten. Over de breedte van portier tot portier.
   */
-  doos(groep, M.kunststof, W - 0.22, schouderY - 0.23 - vloerY, 0.05, 0, (vloerY + schouderY - 0.23) / 2, dashZ + 0.02);
-  doos(groep, maat.sport ? M.leerZwart : M.kunststof, W - 0.20, 0.06, 0.30, 0, schouderY + 0.03, dashZ - 0.08, -0.42);
-  // middenconsole met ventilatieroosters en een radiootje (stap 147: echte lamellen en een verlicht scherm)
-  doos(groep, M.zwart, 0.34, 0.20, 0.04, 0, schouderY - 0.10, dashAchter);
-  for (const dx of [-0.075, 0.075]) doos(groep, M.rooster, 0.13, 0.055, 0.03, dx, schouderY - 0.035, dashAchter + 0.012).name = 'rooster';
-  const radio = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.0975), M.radio);
-  radio.position.set(0, schouderY - 0.135, dashAchter + 0.021); radio.name = 'radio';
-  groep.add(radio);
-  for (const sx of [-1, 1]) doos(groep, M.rooster, 0.18, 0.07, 0.03, sx * (W / 2 - 0.32), schouderY - 0.02, dashAchter).name = 'rooster';
-  // de alarmlichtknop tussen de roosters
-  doos(groep, M.knop, 0.03, 0.018, 0.012, 0, schouderY + 0.005, dashAchter + 0.01);
-  if (!maat.sport) {
-    // het handschoenenkastje aan de kant van de bijrijder: een deksel met een naad eromheen en een greep
-    doos(groep, M.zwart, 0.42, 0.16, 0.006, -stuurX, schouderY - 0.17, dashAchter + 0.002);
-    doos(groep, M.kunststof, 0.40, 0.14, 0.012, -stuurX, schouderY - 0.17, dashAchter + 0.006).name = 'handschoenenkastje';
-    doos(groep, M.chroom, 0.09, 0.015, 0.012, -stuurX, schouderY - 0.12, dashAchter + 0.014);
-  }
-  if (!maat.sport) {
-    // console tussen de stoelen, met de pook erop
-    doos(groep, M.kunststof, 0.30, 0.16, 0.58, 0, vloerY + 0.12, cabZ - 0.30);
-    /*
-     De pook (stap 146): een dunne ronde stang met een bol en een rubberen hoes, geen balkje van 3,5 cm in het vierkant
-     met een blokje erop: van de stoel af leek dat een stijl midden in de auto.
-    */
-    const hoes = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.05, 0.07, 12), M.zwart);
-    hoes.position.set(0, vloerY + 0.235, cabZ - 0.40); groep.add(hoes);
-    const stang = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.011, 0.15, 8), M.chroom);
-    stang.position.set(0, vloerY + 0.34, cabZ - 0.41); stang.rotation.x = -0.12; groep.add(stang);
-    const bol = new THREE.Mesh(new THREE.SphereGeometry(0.028, 14, 10), M.zwart);
-    bol.position.set(0, vloerY + 0.42, cabZ - 0.42); groep.add(bol);
-    // handrem
-    doos(groep, M.zwart, 0.035, 0.035, 0.24, 0.02, vloerY + 0.24, cabZ - 0.12, -0.35);
-    // (stap 147) twee bekerhouders voor de pook
-    for (const dx of [-0.07, 0.07]) {
-      const rand = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.012, 18), M.zwart);
-      rand.position.set(dx, vloerY + 0.205, cabZ - 0.53); rand.name = 'bekerhouder'; groep.add(rand);
-    }
-  }
+  const kniY = Math.max(T - 0.27, vloerY + 0.14);
+  profiel(groep, dashMat, [
+    [voor - 0.06, T - 0.02], [voor - 0.03, T + 0.025], [dashZ, T + 0.06], [F - 0.01, T + 0.04], [F + 0.02, T + 0.01],
+    [F + 0.03, T - 0.11], [F - 0.04, kniY], [voor + 0.05, vloerY + 0.06], [voor - 0.06, vloerY + 0.06],
+  ], 2 * binnenX - 0.02, 0, 0.018, 'dashboard');
+  // een strook leer of zacht kunststof over de bovenkant, met een naad
+  rond(groep, bovenMat, 2 * binnenX - 0.06, 0.012, 0.16, 0, T + 0.062, dashZ - 0.02, 0.18, 0.005);
 
-  // -------------------------------------------------------------- klokken
-  const klok = new THREE.Mesh(new THREE.PlaneGeometry(0.30, 0.15), maat.sport ? M.klokSport : M.klok);
-  klok.position.set(stuurX, schouderY + 0.035, dashAchter + 0.012);
-  klok.rotation.x = -0.30;
-  groep.add(klok);
-  // een randje eromheen, zodat het niet als een sticker op het dashboard plakt
-  doos(groep, M.zwart, 0.34, 0.19, 0.02, stuurX, schouderY + 0.035, dashAchter, -0.30);
+  // ---------------------------------------------------------------- het klokkenhuis met de klokken
+  // (het huis staat met zijn achterkant op F + 0,015: de klokken net daarvoor, anders zaten ze erin)
+  const klokY = T + 0.05, klokZ = F + 0.021;
+  rond(groep, dashMat, 0.36, 0.16, 0.10, stuurX, klokY, F - 0.035, 0, 0.035);                 // het huis
+  rond(groep, bovenMat, 0.38, 0.03, 0.15, stuurX, klokY + 0.088, F - 0.015, 0.10, 0.014);      // de kap erover
+  const klok = new THREE.Group(); klok.name = 'klokken'; groep.add(klok);
   const naalden = [];
-  for (const dx of [-0.075, 0.075]) {
-    const n = new THREE.Mesh(new THREE.PlaneGeometry(0.010, 0.062), M.naald);
-    // het draaipunt onderaan de naald: de geometrie schuift omhoog, de mesh draait
-    n.geometry.translate(0, 0.025, 0);
-    n.position.set(stuurX + dx, schouderY + 0.035, dashAchter + 0.020);
-    n.rotation.x = -0.30;
-    klok.parent.add(n);
-    naalden.push(n);
+  const RK = 0.056;
+  for (const [dx, mat] of [[-0.078, snelMat], [0.078, toerMat]]) {
+    const plaat = new THREE.Mesh(new THREE.CircleGeometry(RK, 40), mat);
+    plaat.position.set(stuurX + dx, klokY, klokZ); klok.add(plaat);
+    const rand = new THREE.Mesh(new THREE.TorusGeometry(RK + 0.004, 0.0045, 8, 40), M.chroom);
+    rand.position.set(stuurX + dx, klokY, klokZ + 0.002); klok.add(rand);
+    const n = new THREE.Mesh(new THREE.PlaneGeometry(0.006, RK * 0.82), M.wijzer);
+    n.geometry.translate(0, RK * 0.3, 0);
+    n.position.set(stuurX + dx, klokY, klokZ + 0.004); klok.add(n); naalden.push(n);
+    cilinder(klok, M.zwart, 0.008, 0.008, 0.006, stuurX + dx, klokY, klokZ + 0.005, 12).rotation.x = Math.PI / 2;
+  }
+  const lcd = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 0.016), M.lcd);
+  lcd.position.set(stuurX, klokY - 0.045, klokZ + 0.001); klok.add(lcd);
+  // de controlelampjes tussen de klokken: 's nachts lichten ze op
+  for (let i = 0; i < 3; i++) {
+    const l = new THREE.Mesh(new THREE.CircleGeometry(0.0055, 10), M.knopLicht);
+    l.position.set(stuurX, klokY + 0.03 - i * 0.017, klokZ + 0.001); klok.add(l);
   }
 
-  // ----------------------------------------------------------------- stuur
-  /*
-   Het stuur zit op een kolom en staat scheef — een stuur dat recht overeind
-   staat leest als een boot. De krans is een torus, met drie spaken en een naaf
-   erin, en het geheel draait om zijn eigen as als je stuurt.
-  */
+  // ---------------------------------------------------------------- het stuur
   const stuur = new THREE.Group();
-  stuur.position.set(stuurX, schouderY - 0.02, stuurZ);
+  stuur.position.set(stuurX, T - 0.02, stuurZ);
   stuur.rotation.x = -0.42;
   const R = maat.truck ? 0.21 : 0.158;
-  // (stap 147: een dikkere, rondere krans; zestien hoeken lazen als een achthoek)
-  const krans = new THREE.Mesh(new THREE.TorusGeometry(R, 0.021, 8, 32), M.zwart);
-  stuur.add(krans);
-  for (let i = 0; i < 3; i++) {
-    const sp = new THREE.Mesh(new THREE.BoxGeometry(0.026, R * 0.95, 0.018), M.zwart);
-    sp.position.y = -R * 0.47;
-    sp.rotation.z = i * Math.PI * 2 / 3;
-    sp.position.set(Math.sin(i * Math.PI * 2 / 3) * R * 0.47, -Math.cos(i * Math.PI * 2 / 3) * R * 0.47, 0);
+  stuur.add(new THREE.Mesh(new THREE.TorusGeometry(R, 0.022, 12, 48), M.zwart));
+  // drie spaken van het kussen naar de krans: links en rechts iets onder de horizon, en recht naar beneden
+  for (const phi of [Math.PI + 0.2, -0.2, -Math.PI / 2]) {
+    const sp = new THREE.Mesh(rondGeo(0.045, R * 0.62, 0.016, 0.007), sport ? M.carbon : M.zwart);
+    sp.rotation.z = phi - Math.PI / 2;          // de lengte (lokale y) wijst naar `phi`
+    sp.position.set(Math.cos(phi) * R * 0.6, Math.sin(phi) * R * 0.6, -0.004);
     stuur.add(sp);
   }
-  const naaf = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.062, 0.04, 20), M.kunststof);
-  naaf.rotation.x = Math.PI / 2;
-  stuur.add(naaf);
-  if (!maat.sport) {
-    // een rond embleempje op de claxon (geen merk)
-    const embleem = new THREE.Mesh(new THREE.CircleGeometry(0.016, 16), M.chroom);
-    embleem.position.z = 0.021; stuur.add(embleem);
-  }
-  if (maat.sport) {
-    // het gele schildje in de naaf, een rode streep bovenop de krans, en de schakelflippers erachter
-    const schild = new THREE.Mesh(new THREE.CircleGeometry(0.03, 14), M.geel);
-    schild.position.z = 0.019; stuur.add(schild);
-    const streep = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.042), M.leer);
-    streep.position.set(0, R, 0); stuur.add(streep);
-    for (const sx of [-1, 1]) {
-      const fl = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.13, 0.008), M.chroom);
-      fl.position.set(sx * (R * 0.72), R * 0.18, -0.045); stuur.add(fl);
-    }
+  const kussen = new THREE.Mesh(rondGeo(0.12, 0.095, 0.05, 0.025), M.zwart);
+  kussen.position.z = 0.012; stuur.add(kussen);
+  if (sport) {
+    const schild = new THREE.Mesh(new THREE.CircleGeometry(0.026, 16), M.geel); schild.position.z = 0.038; stuur.add(schild);
+    const streep = new THREE.Mesh(rondGeo(0.03, 0.04, 0.046, 0.008), M.leer); streep.position.set(0, R, 0); stuur.add(streep);
+    for (const sx of [-1, 1]) { const fl = new THREE.Mesh(rondGeo(0.075, 0.13, 0.008, 0.003), M.carbon); fl.position.set(sx * (R * 0.72), R * 0.18, -0.045); stuur.add(fl); }
+  } else {
+    const embleem = new THREE.Mesh(new THREE.CircleGeometry(0.014, 16), M.chroom); embleem.position.z = 0.038; stuur.add(embleem);
   }
   groep.add(stuur);
-  // de kolom eronder
-  doos(groep, M.zwart, 0.07, 0.07, 0.24, stuurX, schouderY - 0.155, stuurZ - 0.09, -0.42);
-  // (stap 147) de hendels voor richtingaanwijzer en ruitenwissers, links en rechts uit de kolom
+  // de kolom met een kap, en de hendels voor richtingaanwijzer en ruitenwissers
+  rond(groep, M.zwart, 0.085, 0.085, 0.24, stuurX, T - 0.11, stuurZ - 0.09, -0.42, 0.03);
   for (const sx of [-1, 1]) {
-    const hendel = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.008, 0.15, 8), M.zwart);
-    hendel.position.set(stuurX + sx * 0.11, schouderY - 0.085, stuurZ - 0.05);
+    const hendel = cilinder(groep, M.zwart, 0.006, 0.008, 0.15, stuurX + sx * 0.11, T - 0.085, stuurZ - 0.05, 8);
     hendel.rotation.z = sx * 1.35; hendel.name = 'hendel';
-    groep.add(hendel);
+  }
+
+  // ---------------------------------------------------------------- de middenconsole: uit het dashboard naar de stoelen
+  const consoleTop = vloerY + 0.20;
+  const stackBoven = T - 0.03, stackOnder = vloerY + 0.10;
+  // het front: één schuin vlak van onder de dashboardrand tot de vloer
+  rond(groep, sport ? M.carbon : M.kunststof, 0.30, stackBoven - stackOnder, 0.10, 0, (stackBoven + stackOnder) / 2, F + 0.01, -0.10, 0.03, 'middenconsole');
+  const fz = (y) => F + 0.065 - (y - (stackBoven + stackOnder) / 2) * Math.tan(0.10);   // het voorvlak op hoogte y
+  // twee roosters bovenin, met lamellen
+  const rooster = (cx, cy, cz, b, h) => {
+    rond(groep, M.zwart, b, h, 0.03, cx, cy, cz, -0.10, 0.01, 'rooster');
+    for (let i = 0; i < 4; i++) rond(groep, M.chroom, b - 0.02, 0.004, 0.022, cx, cy - h / 2 + (i + 1) * h / 5, cz + 0.006, -0.25, 0.0015);
+  };
+  for (const dx of [-0.075, 0.075]) rooster(dx, stackBoven - 0.045, fz(stackBoven - 0.045), 0.12, 0.055);
+  // de radio: een frame, het scherm, twee draaiknoppen en zes voorkeuzetoetsen die 's nachts oplichten
+  const ry = stackBoven - 0.13;
+  rond(groep, M.zwart, 0.26, 0.10, 0.025, 0, ry, fz(ry), -0.10, 0.01);
+  const scherm = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.0375), radioMat);
+  scherm.position.set(0, ry + 0.015, fz(ry) + 0.014); scherm.rotation.x = -0.10; scherm.name = 'radio';
+  groep.add(scherm);
+  for (const dx of [-0.105, 0.105]) { const k = cilinder(groep, M.chroom, 0.014, 0.015, 0.018, dx, ry + 0.012, fz(ry) + 0.02, 20); k.rotation.x = Math.PI / 2 - 0.10; }
+  for (let i = 0; i < 6; i++) rond(groep, M.knopLicht, 0.026, 0.012, 0.008, -0.075 + i * 0.03, ry - 0.03, fz(ry) + 0.014, -0.10, 0.003);
+  // de klimaatknoppen eronder, met een lichtring
+  const ky = Math.max(stackOnder + 0.05, ry - 0.10);
+  for (const dx of [-0.08, 0, 0.08]) {
+    const k = cilinder(groep, M.zwart, 0.018, 0.02, 0.02, dx, ky, fz(ky) + 0.015, 20); k.rotation.x = Math.PI / 2 - 0.10;
+    const lr = new THREE.Mesh(new THREE.TorusGeometry(0.022, 0.0025, 6, 24), M.knopLicht); lr.position.set(dx, ky, fz(ky) + 0.008); lr.rotation.x = -0.10; groep.add(lr);
+  }
+  // de alarmlichtknop, boven tussen de roosters
+  rond(groep, M.knop, 0.03, 0.02, 0.012, 0, stackBoven - 0.005, fz(stackBoven) + 0.01, -0.10, 0.004);
+  // de roosters aan de zijkanten, op het dashboard bij de portieren
+  for (const sx of [-1, 1]) rooster(sx * (binnenX - 0.13), T - 0.02, F + 0.03, 0.16, 0.065);
+  if (!sport) {
+    // het handschoenenkastje: een deksel met een naad en een greep, op het schuine stuk aan de kant van de bijrijder
+    const hy = T - 0.17;
+    rond(groep, M.kunststof, 0.40, 0.13, 0.022, -stuurX, hy, F + 0.02 - (T - 0.11 - hy) * 0.45, -0.42, 0.012, 'handschoenenkastje');
+    rond(groep, M.chroom, 0.09, 0.016, 0.014, -stuurX, hy + 0.045, F + 0.035 - (T - 0.11 - hy) * 0.45, -0.42, 0.005);
+    // de tunnel tussen de stoelen: van het front tot een armsteun, met de pook, bekerhouders en de handrem
+    const z0 = F + 0.06, z1 = cabZ + 0.12, cl = Math.max(0.3, z1 - z0);
+    rond(groep, M.kunststof, 0.26, consoleTop - vloerY, cl, 0, (vloerY + consoleTop) / 2, (z0 + z1) / 2, 0, 0.03);
+    rond(groep, M.zwart, 0.20, 0.004, Math.min(0.24, cl * 0.4), 0, consoleTop + 0.002, z0 + 0.16, 0, 0.002);   // een mat in het vak
+    rond(groep, M.stofRand, 0.22, 0.06, 0.26, 0, consoleTop + 0.035, z1 - 0.13, 0, 0.025);                      // de armsteun
+    const pz = z0 + 0.10;
+    const hoes = cilinder(groep, M.zwart, 0.022, 0.05, 0.07, 0, consoleTop + 0.035, pz, 14);
+    const stang = cilinder(groep, M.chroom, 0.009, 0.011, 0.15, 0, consoleTop + 0.14, pz - 0.01, 10); stang.rotation.x = -0.12;
+    const bol = new THREE.Mesh(new THREE.SphereGeometry(0.028, 18, 12), M.zwart); bol.position.set(0, consoleTop + 0.22, pz - 0.02); groep.add(bol);
+    for (const dx of [-0.065, 0.065]) {
+      const bh = cilinder(groep, M.zwart, 0.036, 0.036, 0.014, dx, consoleTop + 0.003, pz + 0.15, 22); bh.name = 'bekerhouder';
+    }
+    const rem = rond(groep, M.zwart, 0.04, 0.035, 0.24, 0.015, consoleTop + 0.04, pz + 0.30, -0.30, 0.015);
+    rem.name = 'handrem';
+    // het binnenlampje in de hemel en een handgreep boven de deur van de bijrijder
+    rond(groep, M.kunststof, 0.14, 0.022, 0.08, 0, hemelY - 0.025, cabZ - 0.05, 0, 0.008);
+    rond(groep, M.lampglas, 0.10, 0.008, 0.05, 0, hemelY - 0.037, cabZ - 0.05, 0, 0.003, 'binnenlampje');
+    rond(groep, M.kunststof, 0.03, 0.025, 0.20, -stuurX > 0 ? binnenX - 0.07 : -(binnenX - 0.07), hemelY - 0.07, cabZ - 0.05, 0, 0.01, 'handgreep');
   }
 
   // ---------------------------------------------------------------- stoelen
   /*
-   (stap 147) Een stoel met geweven banen in het midden en effen, iets hogere wangen opzij, en een hoofdsteun op twee
-   stangetjes. De rug en de hoofdsteun blijven onder de hemel (in de hatchback stak de rug er 2 cm doorheen).
+   Lager dan eerst: de zitting lag hoger dan de onderkant van het stuur. Nu een zitting van 8 cm net boven de vloer, iets
+   naar voren oplopend, met wangen, een rug die onder de hemel blijft en een hoofdsteun op twee stangetjes.
   */
   const stoel = (sx) => {
-    const zit = vloerY + 0.16;
-    doos(groep, M.stof, 0.30, 0.11, 0.46, sx, zit, cabZ - 0.10).name = 'zitting';
-    for (const w of [-1, 1]) doos(groep, M.stofRand, 0.08, 0.15, 0.48, sx + w * 0.19, zit + 0.02, cabZ - 0.10);
-    const rugTop = Math.min(zit + 0.62, hemelY - 0.14), rugH = rugTop - (zit + 0.05);
-    doos(groep, M.stof, 0.30, rugH, 0.10, sx, zit + 0.05 + rugH / 2, cabZ + 0.16, 0.10);
-    for (const w of [-1, 1]) doos(groep, M.stofRand, 0.08, rugH, 0.13, sx + w * 0.18, zit + 0.05 + rugH / 2, cabZ + 0.15, 0.10);
-    const hoofdY = Math.min(rugTop + 0.09, hemelY - 0.07);
-    doos(groep, M.stofRand, 0.22, 0.11, 0.09, sx, hoofdY, cabZ + 0.13 + Math.sin(0.10) * rugH / 2, 0.10);   // hoofdsteun
-    for (const w of [-1, 1]) {
-      const stang = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, Math.max(0.02, hoofdY - rugTop), 6), M.chroom);
-      stang.position.set(sx + w * 0.06, (hoofdY + rugTop) / 2 - 0.03, cabZ + 0.13 + Math.sin(0.10) * rugH / 2); groep.add(stang);
-    }
+    const zit = vloerY + 0.10;
+    rond(groep, M.stof, 0.30, 0.08, 0.42, sx, zit, cabZ - 0.07, -0.05, 0.03, 'zitting');
+    for (const w of [-1, 1]) rond(groep, M.stofRand, 0.08, 0.12, 0.44, sx + w * 0.19, zit + 0.02, cabZ - 0.07, -0.05, 0.035);
+    const rugTop = Math.min(zit + 0.60, hemelY - 0.14), rugH = rugTop - (zit + 0.05);
+    rond(groep, M.stof, 0.30, rugH, 0.09, sx, zit + 0.05 + rugH / 2, cabZ + 0.17, 0.12, 0.035);
+    for (const w of [-1, 1]) rond(groep, M.stofRand, 0.08, rugH, 0.12, sx + w * 0.18, zit + 0.05 + rugH / 2, cabZ + 0.16, 0.12, 0.035);
+    const hoofdY = Math.min(rugTop + 0.09, hemelY - 0.07), hz = cabZ + 0.14 + Math.sin(0.12) * rugH / 2;
+    rond(groep, M.stofRand, 0.22, 0.12, 0.09, sx, hoofdY, hz, 0.12, 0.04);
+    for (const w of [-1, 1]) cilinder(groep, M.chroom, 0.006, 0.006, Math.max(0.02, hoofdY - rugTop), sx + w * 0.06, (hoofdY + rugTop) / 2 - 0.03, hz, 6);
   };
-  if (maat.sport) sportBinnen(groep, M, maat, { vloerY, hemelY, cabZ, achter, stuurX, dashZ, dashAchter, stuurZ, voor });
+  if (sport) sportBinnen(groep, M, maat, { vloerY, hemelY, cabZ, achter, stuurX });
   else {
     stoel(stuurX);
     stoel(-stuurX);
-    // achterbank en hoedenplank
-    doos(groep, M.stof, W - 0.30, 0.11, 0.42, 0, vloerY + 0.16, achter - 0.10);
-    doos(groep, M.stof, W - 0.32, 0.48, 0.10, 0, vloerY + 0.42, achter + 0.16, 0.12);
-    doos(groep, M.kunststof, W - 0.28, 0.03, 0.34, 0, schouderY - 0.02, achter + 0.30);
+    // de achterbank en de hoedenplank
+    rond(groep, M.stof, W - 0.32, 0.10, 0.42, 0, vloerY + 0.14, achter - 0.10, 0, 0.035);
+    rond(groep, M.stof, W - 0.34, 0.46, 0.10, 0, vloerY + 0.42, achter + 0.16, 0.12, 0.035);
+    rond(groep, M.kunststof, W - 0.28, 0.03, 0.34, 0, T - 0.02, achter + 0.30, 0, 0.012);
   }
-
-  /*
-   Spiegel en zonnekleppen. Ze hangen aan de hemel, maar in een bestelbus zit de
-   bestuurder veel dichter onder het dak dan in een hatchback — daar hingen ze
-   dwars door het beeld. Ze houden daarom altijd een handbreedte boven het
-   oogpunt, en blijven tegelijk onder de hemel.
-  */
-  const oogY = (maat.oog && maat.oog.y) || (schouderY + 0.27);
-  const spiegelY = Math.min(hemelY - 0.03, Math.max(hemelY - 0.075, oogY + 0.10));
-  doos(groep, M.zwart, 0.22, 0.065, 0.035, 0, spiegelY, voor + 0.02);
-  // (stap 146) het spiegelglas aan de kant van de bestuurder, een tikje schuin naar hem toe
-  const glasSp = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.05), M.chroom);
-  glasSp.position.set(0, spiegelY, voor + 0.039); glasSp.rotation.y = -0.12; groep.add(glasSp);
-  const klepY = Math.min(hemelY - 0.022, Math.max(hemelY - 0.035, oogY + 0.05));
-  if (!maat.sport) {
-    // (stap 147) het binnenlampje in de hemel, en een handgreep boven de deur van de bijrijder
-    doos(groep, M.kunststof, 0.14, 0.02, 0.08, 0, hemelY - 0.025, cabZ - 0.05);
-    doos(groep, M.lampglas, 0.10, 0.006, 0.05, 0, hemelY - 0.037, cabZ - 0.05).name = 'binnenlampje';
-    doos(groep, M.kunststof, 0.03, 0.025, 0.20, -stuurX > 0 ? binnenX - 0.07 : -(binnenX - 0.07), hemelY - 0.07, cabZ - 0.05).name = 'handgreep';
-  }
-  // de vloermatten voor de voorstoelen, van het dashboard tot de zitting
+  // de vloermatten voor de voorstoelen
   {
-    const z0 = dashZ + 0.13, z1 = cabZ - 0.30, l = Math.max(0.2, z1 - z0);
-    for (const sx of [stuurX, -stuurX]) doos(groep, M.mat, 0.40, 0.012, l, sx, vloerY + 0.026, (z0 + z1) / 2).name = 'vloermat';
-  }
-  if (!maat.sport) for (const sx of [-1, 1]) {
-    doos(groep, M.hemel, 0.36, 0.015, 0.16, sx * 0.34, klepY, voor + 0.08, -0.16);
+    const z0 = F + 0.05, z1 = cabZ - 0.26, l = Math.max(0.2, z1 - z0);
+    for (const sx of [stuurX, -stuurX]) rond(groep, M.mat, 0.40, 0.012, l, sx, vloerY + 0.026, (z0 + z1) / 2, 0, 0.005, 'vloermat');
   }
 
+  // ---------------------------------------------------------------- spiegel en zonnekleppen
+  const oogY = (maat.oog && maat.oog.y) || (T + 0.27);
+  const spiegelY = Math.min(hemelY - 0.03, Math.max(hemelY - 0.075, oogY + 0.10));
+  rond(groep, M.zwart, 0.23, 0.07, 0.035, 0, spiegelY, voor + 0.02, 0, 0.018);
+  const glasSp = new THREE.Mesh(tegelUv(rondGeo(0.205, 0.05, 0.004, 0.012), null), M.chroom);
+  glasSp.position.set(0, spiegelY, voor + 0.039); glasSp.rotation.y = -0.12; groep.add(glasSp);
+  cilinder(groep, M.zwart, 0.007, 0.007, Math.max(0.02, hemelY - spiegelY - 0.02), 0, (hemelY + spiegelY) / 2, voor + 0.02, 8);
+  const klepY = Math.min(hemelY - 0.022, Math.max(hemelY - 0.035, oogY + 0.05));
+  if (!sport) for (const sx of [-1, 1]) rond(groep, M.hemel, 0.36, 0.018, 0.16, sx * 0.34, klepY, voor + 0.08, -0.16, 0.008);
+
+  // ---------------------------------------------------------------- bijwerken
   /*
-   Bijwerken: het stuur draait mee met de wielen en de wijzers lopen met de
-   snelheid en de toeren mee. Drie kwartslagen stuuruitslag op elke kant is wat
-   een auto in dit spel doet; de meters gaan van 225° naar −45°, dezelfde
-   verdeling als op het doek.
+   Het stuur draait mee met de wielen (drie kwartslagen per kant), de wijzers lopen van 225° naar −45°. 's Nachts het
+   barnstenen doek op de klokken en de knopjes aan; het scherm van de radio volgt de zender en het nummer.
   */
   const hoekVan = (deel) => (225 - 270 * Math.max(0, Math.min(1, deel))) * Math.PI / 180;
-  let getoondeSnelheid = 0, getoondeToeren = 0;
-  function update(car, dt = 1 / 60) {
+  let getoondeSnelheid = 0, getoondeToeren = 0, wasNacht = null, radioSleutel = '';
+  function update(car, dt = 1 / 60, { nacht = false, zender, nummer } = {}) {
     const uitslag = (car && car.steer) || 0;
     stuur.rotation.z = -uitslag * 4.2;
     const kmu = Math.abs((car && car.speed) || 0) * 3.6;
     const top = ((car && car.topSnelheid) || 24) * 3.6;
-    // de toerenteller volgt de motor: hoger verzet, lagere toeren
     const toeren = top > 0 ? 0.12 + 0.75 * ((kmu / top) % 0.34) / 0.34 : 0.12;
     const soepel = Math.min(1, dt * 8);
     getoondeSnelheid += (Math.min(1, kmu / maxKmu) - getoondeSnelheid) * soepel;
     getoondeToeren += (toeren - getoondeToeren) * soepel;
-    // de naald staat in het vlak van de klok, dus hij draait om zijn z-as
-    naalden[0].rotation.z = -hoekVan(getoondeSnelheid) + Math.PI / 2;
-    naalden[1].rotation.z = -hoekVan(getoondeToeren) + Math.PI / 2;
+    naalden[0].rotation.z = hoekVan(getoondeSnelheid) - Math.PI / 2;
+    naalden[1].rotation.z = hoekVan(getoondeToeren) - Math.PI / 2;
+    if (nacht !== wasNacht) {
+      wasNacht = nacht;
+      snelMat.map = nacht ? KD.snelNacht : KD.snelDag;
+      toerMat.map = nacht ? KD.toerNacht : KD.toerDag;
+      M.knopLicht.color.setHex(nacht ? 0xffa53c : 0x2a2d33);
+      /*
+       De eigen gloed van het interieur staat voor het daglicht dat via de ruiten binnenvalt (zie `materialen`); 's nachts
+       is dat er niet, en dan lichtte de hemel grijs op in het donker. Nu een kwart, zodat de verlichting van het dashboard
+       het licht is.
+      */
+      for (const m of Object.values(M)) {
+        if (!m || !m.isMeshStandardMaterial || !m.emissive) continue;
+        if (m.userData.gloedDag == null) m.userData.gloedDag = m.emissiveIntensity;
+        m.emissiveIntensity = m.userData.gloedDag * (nacht ? 0.25 : 1);
+      }
+      M.lcd.color.setHex(nacht ? 0xffffff : 0xbfc8cc);
+      radioMat.color.setHex(nacht ? 0xffffff : 0xd6dde0);
+      radioSleutel = '';
+    }
+    const z = zender === undefined ? { naam: 'Radio Tinga', logo: 'tinga' } : zender;
+    const regel = nummer ? `${nummer.artiest ? nummer.artiest + ' - ' : ''}${nummer.titel || ''}` : '';
+    const sleutel = `${z ? z.naam : '-'}|${regel}|${nacht}`;
+    if (sleutel !== radioSleutel) {
+      radioSleutel = sleutel;
+      tekenRadio(radioDoek, { naam: z && z.naam, logo: z && z.logo, regel, nacht, uit: !z });
+    }
   }
+  update(null, 1, { nacht: false });
 
-  return { groep, stuur, klok, naalden, update };
+  return { groep, stuur, klok, naalden, radioDoek, get radioTekst() { return radioSleutel; }, update };
 }

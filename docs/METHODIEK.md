@@ -8786,6 +8786,43 @@ de onderdelen per soort, de stijlbekleding tussen de stijl en het deurpaneel, de
 en in het spel: het interieur van een hatchback, een Ferrari en een bus in beeld, zonder nieuw programma. 88 controles, alles goed.
 Foto's: `npm run binnenshots`.
 
+**De interieurs afgerond en logisch opgebouwd, de radio en de verlichting (stap 148, 13 okt).**
+
+Gevraagd: "De interieur van de auto's behalve staf auto lijken wat low poly en niet logisch qua opbouw. Kan je hier
+verbeteringen in aanbrengen, dat het van binnen er net zo goed uit ziet als de buitenkant. Ook dat interieur radio meegaat met
+Radio Tinga, Radio Spannenburg of 100% NL. Die tekst en wat knopjes en dashboard verlichting ook aan in de nacht."
+
+js/autobinnen.js opnieuw opgezet (de doeken en materialen van stap 147 bleven):
+- `rondGeo`/`rond`: een doos met afgeronde randen, een geëxtrudeerde afgeronde rechthoek met een afronding rondom; de uv in
+  meters (`tegelUv`). `profiel`: een doorsnede in (z, y), over de breedte uitgetrokken.
+- *Het dashboard* is één profiel: van net onder de voet van de voorruit over een bolle bovenkant naar het voorvlak, schuin langs
+  de knieën naar het schot. Daarvoor waren het drie losse platen (`dashboard` staat er één keer in, de proef telt het).
+- *De klokken*: een huis met een kap op het dashboard en twee ronde klokken (`CircleGeometry` met een eigen doek per klok, een
+  rand, een naald, een dopje), een displaytje en drie controlelampjes. 's Nachts wisselt het doek naar barnsteen
+  (`wijzerDoek(…, nacht)`, `klokDoeken`). Eerst stonden de klokken 6 mm áchter de achterkant van hun eigen huis (`klokZ` F +
+  0,012 tegen F + 0,015): op de foto zag je alleen grijze bogen; de proef schiet nu een straal van de ogen naar elke klok.
+- *De middenconsole*: één front van onder de dashboardrand tot de vloer, met twee roosters (een frame en vier lamellen), de radio
+  (een frame, het scherm, twee draaiknoppen, zes voorkeuzetoetsen), drie klimaatknoppen met een lichtring en de alarmlichtknop;
+  daarachter de tunnel tot een armsteun, met de pook, de bekerhouders en de handrem. Hij begint achter het voorvlak van het
+  dashboard; eerst stak hij erdoorheen.
+- *De stoelen* een stuk lager (de zitting op vloerY + 0,10; die lag hoger dan de onderkant van het stuur), afgerond, met wangen en
+  een hoofdsteun. Deuren met een raamrand, een oplopende armsteun met een greep, een klink, een luidspreker met een ring. Het stuur
+  met een krans van 12 × 48, drie spaken en een airbagkussen; de kolom met een kap.
+- *De radio*: `update(car, dt, { nacht, zender, nummer })` (js/main.js geeft `geluid.radioZender()` en `geluid.radioNummer()`
+  mee). Het scherm (een eigen doek per auto) wordt alleen opnieuw getekend als de zender, het nummer of de nacht verandert:
+  `FM` met een frequentie, de zendernaam zo groot als past ("RADIO SPANNENBURG" werd eerst afgekapt), artiest en titel. Zonder
+  zender is het scherm leeg.
+- *De nacht*: de knopjes en lichtringen (`knopLicht`) worden barnsteen, het scherm en het displaytje feller, en de eigen gloed
+  van het interieur (die staat voor het daglicht door de ruiten) gaat naar een kwart: anders lichtte de hemel grijs op in het
+  donker.
+
+Zo'n 20.000–22.500 driehoeken in 115–131 onderdelen (de afronding met 3 boogstukken; met 4 was het 27.000), alleen in de auto
+waar je in zit.
+
+*Proef*: `npm run binnentest` met erbij: de klokken te zien, de radio per zender (Tinga met Kali, Spannenburg, 100% NL met Lenny)
+en leeg zonder zender, de nacht (doek, knopjes, gloed), één dashboard en een console die eruit komt; en nog steeds in het spel
+geen nieuw programma (176 → 176). Alles goed. Foto's: `npm run binnenshots`, met `NACHT=1` 's nachts met Radio Spannenburg.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

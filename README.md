@@ -311,6 +311,20 @@ In de **stafauto** zit je wat verder van het stuur, zodat de snelheidsmeter in b
 | **BX** | **Vrachtwagen** | **Ferrari** |
 | ![BX](docs/screenshots/binnen_bx.png) | ![Vrachtwagen](docs/screenshots/binnen_truck.png) | ![Ferrari](docs/screenshots/binnen_ferrari.png) |
 
+**Afgerond en logisch opgebouwd** (stap 148). Alles was een rechthoekige doos, en de opbouw klopte niet: de console stak
+door het dashboard en de zitting lag hoger dan het stuur. Nu is het dashboard één vorm die van de voet van de voorruit naar
+je knieën loopt, staan de **klokken** in een eigen huis met een kap (twee ronde klokken met een rand, wijzers en een
+displaytje), komt de **middenconsole** als één geheel uit het dashboard naar beneden — roosters met echte lamellen, de radio,
+drie klimaatknoppen — en loopt hij tussen de stoelen door tot een armsteun. Stoelen, deuren, stuur (met airbagkussen) en
+spiegel zijn afgerond, en de stoelen zitten lager. De **radio** laat de zender zien waar je naar luistert — Radio Tinga,
+Radio Spannenburg of 100% NL — met het nummer dat speelt. **'s Nachts** gaat de dashboardverlichting aan: de klokken in
+barnsteen, de voorkeuzetoetsen en de ringen om de klimaatknoppen, en het scherm van de radio.
+
+| Overdag | 's Nachts |
+|---|---|
+| ![Bestelbus overdag](docs/screenshots/binnen_van.png) | ![Bestelbus 's nachts](docs/screenshots/binnen_van_nacht.png) |
+| ![Hatchback overdag](docs/screenshots/binnen_hatch.png) | ![Hatchback 's nachts](docs/screenshots/binnen_hatch_nacht.png) |
+
 **Opmaak en detail** (stap 147). Het interieur was effen grijs; nu heeft het kunststof een fijne nerf, zitten de stoelen in
 geweven stof met banen en effen wangen, met een hoofdsteun op twee stangetjes, is de hemel geperforeerd en ligt er tapijt
 met rubberen matten. De A- en B-stijlen hebben een bekleding (je keek tegen de lak aan). Het dashboard kreeg roosters met

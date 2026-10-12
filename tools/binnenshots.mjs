@@ -10,6 +10,7 @@ const poort = process.argv[2] || '8123';
 const B = +(process.env.SHOT_B || 1280), H = +(process.env.SHOT_H || 720);
 const map = process.env.SHOT_MAP || process.argv[3] || 'docs/screenshots';
 const BUITEN = !!process.env.BUITEN;   // van buiten, schuin voor (om te zien of de carrosserie niet verandert)
+const NACHT = !!process.env.NACHT;     // 's nachts: de scène donker, het dashboard verlicht, een zender op de radio
 const alleen = process.env.SOORTEN ? process.env.SOORTEN.split(',') : null;
 mkdirSync(map, { recursive: true });
 const browser = await chromium.launch({
@@ -44,6 +45,11 @@ await page.setContent(`<!doctype html><html><head><style>body{margin:0}</style>
 </script></body></html>`);
 await page.waitForFunction(() => window.__t, null, { timeout: 120000 });
 if (BUITEN) await page.evaluate(() => { window.__buiten = true; });
+if (NACHT) await page.evaluate(() => {
+  const { scene } = window.__t; window.__nacht = true;
+  scene.background.setHex(0x0b1020);
+  scene.traverse(o => { if (o.isLight) o.intensity *= 0.12; });
+});
 
 const soorten = ['hatch', 'van', 'bx', 'gti', 'truck', 'ferrari', 'ambulance', 'vuilnis', 'staf'].filter(s => !alleen || alleen.includes(s));
 for (const soort of soorten) {
@@ -53,7 +59,9 @@ for (const soort of soorten) {
     const mesh = g.mesh || g;
     scene.add(mesh); mesh.updateMatrixWorld(true);
     const u = mesh.userData;
-    if (u.binnen) { u.binnen.groep.visible = true; for (let i = 0; i < 20; i++) u.binnen.update({ steer: 0.15, speed: 13.9, topSnelheid: 30 }, 0.1); }
+    const zender = window.__nacht ? { naam: 'Radio Spannenburg', logo: 'spannenburg' } : { naam: 'Radio Tinga', logo: 'tinga' };
+    const nummer = { artiest: 'Kali', titel: 'Tinga' };
+    if (u.binnen) { u.binnen.groep.visible = true; for (let i = 0; i < 20; i++) u.binnen.update({ steer: 0.15, speed: 13.9, topSnelheid: 30 }, 0.1, { nacht: !!window.__nacht, zender, nummer }); }
     if (u.glas) (Array.isArray(u.glas) ? u.glas : [u.glas]).forEach(gl => { if (gl && gl.isObject3D) gl.visible = false; });
     const o = u.oog || { x: -0.34, y: 1.32, z: -0.87 };
     if (window.__buiten) { if (u.binnen) u.binnen.groep.visible = false; if (u.glas) (Array.isArray(u.glas) ? u.glas : [u.glas]).forEach(gl => { if (gl && gl.isObject3D) gl.visible = true; }); cam.position.set(-4.5, 2.2, -5.5); cam.lookAt(0, 1.1, -0.5); }
@@ -64,8 +72,8 @@ for (const soort of soorten) {
     scene.remove(mesh);
     return { url, binnen: !!u.binnen, oog: o };
   }, soort);
-  writeFileSync(`${map}/${BUITEN ? 'buiten' : 'binnen'}_${soort}.png`, Buffer.from(uit.url.split(',')[1], 'base64'));
-  console.log(`${map}/${BUITEN ? "buiten" : "binnen"}_${soort}.png — interieur: ${uit.binnen ? 'ja' : 'nee'}, ogen ${JSON.stringify(uit.oog)}`);
+  writeFileSync(`${map}/${BUITEN ? 'buiten' : 'binnen'}_${soort}${NACHT ? '_nacht' : ''}.png`, Buffer.from(uit.url.split(',')[1], 'base64'));
+  console.log(`${map}/${BUITEN ? "buiten" : "binnen"}_${soort}${NACHT ? "_nacht" : ""}.png — interieur: ${uit.binnen ? 'ja' : 'nee'}, ogen ${JSON.stringify(uit.oog)}`);
 }
 await browser.close();
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');

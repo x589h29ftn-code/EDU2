@@ -2808,7 +2808,8 @@ function loop() {
       const binnen = car.mesh && car.mesh.userData.binnen;
       if (binnen) {
         binnen.groep.visible = !derde.aan;
-        if (!derde.aan) binnen.update(car, dt);
+        // (stap 148) de radio laat de zender en het nummer zien, en 's nachts brandt de verlichting van het dashboard
+        if (!derde.aan) binnen.update(car, dt, { nacht: !!(sfeer && sfeer.nacht), zender: geluid.radioZender ? geluid.radioZender() : undefined, nummer: geluid.radioNummer ? geluid.radioNummer() : null });
       }
       if (!derde.update(dt, car)) {
         // camera op de bestuurdersstoel (links), meekijken met muis; een
