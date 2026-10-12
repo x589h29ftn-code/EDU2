@@ -367,6 +367,32 @@ function sportBinnen(groep, M, maat, { vloerY, hemelY, cabZ, achter, stuurX }) {
  * wijzers, de klok- en knopverlichting en het scherm van de radio. Hang `groep` in de carrosseriegroep (js/carmodel.js),
  * dan helt het mee in de bocht.
  */
+// ---------------------------------------------------------------- de kijkhoek van de bestuurder
+/*
+ (stap 150) "Logische pov voor de camera voor de autorijder, goed bij het stuur en voorraam net als andere games." In de
+ auto hield de camera de kijkhoek die je te voet had: keek je net naar de grond, dan zag je na het instappen alleen je
+ knieën. Nu kijk je bij het instappen (of bij V naar je ogen) recht vooruit en iets omlaag (`pitch`), met een wat wijdere
+ beeldhoek (`beeld`) zodat stuur, klokken en voorruit samen in beeld staan. Rondkijken met de muis kan; laat je hem los en
+ rijd je, dan draait de blik in `terug` per seconde terug naar vooruit, net als de camera achter de auto. Omhoog en omlaag
+ gaat niet verder dan `pitchMin`…`pitchMax`: door het dak of in je schoot kijken heeft geen zin.
+*/
+export const AUTO_KIJK = { pitch: -0.10, pitchMin: -0.75, pitchMax: 0.35, beeld: 78, terug: 1.6, rijdt: 1.5 };
+
+export function autoKijk(player, car, dt, eerste) {
+  if (eerste) { player.yaw = car.yaw; player.pitch = AUTO_KIJK.pitch; player.kijkT = 0; }
+  player.kijkT = Math.max(0, (player.kijkT || 0) - dt);
+  if (!player.kijkT && Math.abs(car.speed || 0) > AUTO_KIJK.rijdt) {
+    let d = car.yaw - player.yaw;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    const k = Math.min(1, dt * AUTO_KIJK.terug);
+    player.yaw += d * k;
+    player.pitch += (AUTO_KIJK.pitch - player.pitch) * k;
+  }
+  player.pitch = Math.max(AUTO_KIJK.pitchMin, Math.min(AUTO_KIJK.pitchMax, player.pitch));
+  return AUTO_KIJK.beeld;
+}
+
 export function maakAutoBinnen(maat) {
   const M = materialen();
   if (!M.knopLicht) {
@@ -487,17 +513,20 @@ export function maakAutoBinnen(maat) {
   }
 
   // ---------------------------------------------------------------- het klokkenhuis met de klokken
-  // (het huis staat met zijn achterkant op F + 0,015: de klokken net daarvoor, anders zaten ze erin)
-  const klokY = Math.max(T + 0.05, yTop - 0.035), klokZ = F + 0.021;
-  rond(groep, dashMat, 0.36, 0.16, 0.10, stuurX, klokY, F - 0.035, 0, 0.035);                 // het huis
+  /*
+   (stap 150) De klokken zaten 3,5 cm diep onder de klep van de kap, met het voorvlak van het huis eromheen: ze zagen er
+   ingezonken uit. Nu staan ze vooraan in het huis (dat 5 cm verder naar je toe komt), gelijk met de rand van de kap.
+  */
+  const klokY = Math.max(T + 0.05, yTop - 0.035), klokZ = F + 0.05;
+  rond(groep, dashMat, 0.36, 0.16, 0.10, stuurX, klokY, F - 0.005, 0, 0.035, 'klokhuis');      // het huis
   /*
    De kap over de klokken was een losse plank op het huis. Nu een doorsnede die uit de bovenkant van het dashboard
-   oprijst, over de klokken heen buigt en vooraan als een klep over de rand hangt, met de zijkanten afgerond.
+   oprijst, over de klokken heen buigt en vooraan als een smalle klep afloopt, met de zijkanten afgerond.
   */
   profiel(groep, bovenMat, [
-    [F - 0.24, yTop - 0.004], [F - 0.13, klokY + 0.085], [F - 0.04, klokY + 0.105], [F + 0.025, klokY + 0.098],
-    [F + 0.04, klokY + 0.078], [F + 0.022, klokY + 0.074], [F - 0.02, klokY + 0.082], [F - 0.06, yTop - 0.01],
-  ], 0.40, stuurX, 0.02, 'klokkap');
+    [F - 0.24, yTop - 0.004], [F - 0.13, klokY + 0.085], [F - 0.04, klokY + 0.100], [F + 0.02, klokY + 0.095],
+    [F + 0.035, klokY + 0.082], [F + 0.02, klokY + 0.077], [F - 0.02, klokY + 0.081], [F - 0.06, yTop - 0.01],
+], 0.40, stuurX, 0.02, 'klokkap');
   const klok = new THREE.Group(); klok.name = 'klokken'; groep.add(klok);
   const naalden = [];
   const RK = 0.056;
@@ -590,9 +619,10 @@ export function maakAutoBinnen(maat) {
     rond(groep, M.zwart, 0.20, 0.004, Math.min(0.24, cl * 0.4), 0, consoleTop + 0.002, z0 + 0.16, 0, 0.002);   // een mat in het vak
     rond(groep, M.stofRand, 0.22, 0.06, 0.26, 0, consoleTop + 0.035, z1 - 0.13, 0, 0.025);                      // de armsteun
     const pz = z0 + 0.10;
-    const hoes = cilinder(groep, M.zwart, 0.022, 0.05, 0.07, 0, consoleTop + 0.035, pz, 14);
-    const stang = cilinder(groep, M.chroom, 0.009, 0.011, 0.15, 0, consoleTop + 0.14, pz - 0.01, 10); stang.rotation.x = -0.12;
-    const bol = new THREE.Mesh(new THREE.SphereGeometry(0.028, 18, 12), M.zwart); bol.position.set(0, consoleTop + 0.22, pz - 0.02); groep.add(bol);
+    // (stap 150) kleiner: een knop van 4,2 cm op een stang van 11 cm boven een hoes (was 5,6 cm op 15 cm, een halve meter van je ogen)
+    const hoes = cilinder(groep, M.zwart, 0.018, 0.038, 0.05, 0, consoleTop + 0.025, pz, 14);
+    const stang = cilinder(groep, M.chroom, 0.0065, 0.0075, 0.11, 0, consoleTop + 0.10, pz - 0.006, 10); stang.rotation.x = -0.12;
+    const bol = new THREE.Mesh(new THREE.SphereGeometry(0.021, 18, 12), M.zwart); bol.position.set(0, consoleTop + 0.16, pz - 0.013); bol.name = 'pookknop'; groep.add(bol);
     for (const dx of [-0.065, 0.065]) {
       const bh = cilinder(groep, M.zwart, 0.036, 0.036, 0.014, dx, consoleTop + 0.003, pz + 0.15, 22); bh.name = 'bekerhouder';
     }

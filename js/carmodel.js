@@ -719,7 +719,10 @@ function autoGeoms(kind) {
    centimeter boven de schouderlijn (1,10 m bij een hatchback), en in de lengte
    een stuk achter de voorruit — precies waar een stoel staat.
   */
-  const oog = { x: -(W / 2 - 0.46), y: schouderY + (bus ? 0.42 : 0.27), z: cabZ + 0.04 };
+  // (stap 150) 4 cm verder naar achteren: het stuur stond 45 cm voor je ogen en vulde het halve beeld; nu 49 cm, met de
+  // wijdere beeldhoek van js/autobinnen.js AUTO_KIJK zie je stuur, klokken en voorruit samen
+  // (de bus had zijn ogen op schouder + 0,42: 5 cm onder de hemel, en het dak vulde het halve beeld; nu 17 cm eronder)
+  const oog = { x: -(W / 2 - 0.46), y: schouderY + (bus ? 0.30 : 0.27), z: cabZ + 0.08 };
   /*
    `delen` is de lijst dozen waar dit model uit bestaat, met hun maat en plek.
    Het model zelf gebruikt hem niet — de geometrieën zijn hierboven al
@@ -975,7 +978,7 @@ function sportGeoms() {
 
   // de maten voor het interieur (js/autobinnen.js) en het oogpunt van de bestuurder
   const schouderY = 0.84, dakY = 1.15, cabZ = -0.08, cabL = 1.86;
-  const oog = { x: -(W / 2 - 0.52), y: 1.02, z: -0.02 };
+  const oog = { x: -(W / 2 - 0.52), y: 1.02, z: 0.02 };   // (stap 150) 4 cm naar achteren, zie autoGeoms
   const maat = { L, W, R, dakY, schouderY, flankY: 0.62, dorpelY: 0.45, cabZ, cabL, aHoek: 1.12, stijlH: dakY - schouderY, oog, bus: false, sport: true,
     // (stap 149) het glas komt op z −0,80 uit de kap (0,91 hoog) en loopt plat op (dz/dy 2,0); het dak van binnen −0,31 tot 0,23
     ruit: { z: -0.77, y: 0.91, tan: 2.0 }, dakZ: [-0.31, 0.23] };

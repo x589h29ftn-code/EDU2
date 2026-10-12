@@ -28,6 +28,12 @@
  15. het dashboard loopt door tot de voorruit: stralen recht omlaag tussen de voet van het glas en het voorvlak raken eerst
      het interieur (tot stap 148 lag daar twintig centimeter motorkap in beeld);
  16. de hemel, de binnenspiegel en de zonnekleppen blijven binnen de ruiten (de hemel stak voor en achter door het glas).
+ Stap 150 (de klokken, de pook, de kijkhoek):
+ 17. de klokken niet ingezonken: de rand van de kap steekt hoogstens 1 cm voor de wijzerplaat uit en het huis niet;
+ 18. de pookknop hoogstens 2,4 cm straal;
+ 19. de kijkhoek (`autoKijk` in js/autobinnen.js): bij het instappen recht vooruit en iets omlaag met een wijdere beeldhoek,
+     niet verder omlaag dan je schoot, stilstaand of net met de muis bewogen blijft hij staan, rijdend draait hij terug; en in
+     het spel zet die beeldhoek de camera (78°) en gaat hij terug als je uitstapt (72°).
 */
 import { chromium } from 'playwright';
 
@@ -211,6 +217,17 @@ const uit = await page.evaluate(() => {
       } });
       extra = { platen: platen.length, zichtbaar, tinga, spannen, nl, uit, nachtWissel: kaartDag !== kaartNacht && !!kaartNacht, knopDag, knopNacht,
         gloedDag, gloedNacht, dashStukken: dash.length, dashAchter: +dashAchter.toFixed(3), consoleVoor: +consoleVoor.toFixed(3) };
+      // (stap 150) niet ingezonken: hoe ver de rand van de kap en het huis vóór de wijzerplaat uitsteken; en de pookknop
+      let kapBB = null, huisBB = null, knopR = null;
+      B.groep.traverse(x => {
+        if (x.name === 'klokkap') kapBB = new THREE.Box3().setFromObject(x);
+        if (x.name === 'klokhuis') huisBB = new THREE.Box3().setFromObject(x);
+        if (x.name === 'pookknop') knopR = x.geometry.parameters.radius;
+      });
+      const plaatZ = platen[0] ? wp(platen[0]).z : NaN;
+      extra.kapVoor = kapBB ? +(kapBB.max.z - plaatZ).toFixed(3) : null;
+      extra.huisVoor = huisBB ? +(huisBB.max.z - plaatZ).toFixed(3) : null;
+      extra.knopR = knopR;
     }
     res[soort] = {
       extra, ruitMeting, regels, driehoeken: Math.round(driehoeken), meshes, namen, stijlen, stoelTop: +stoelTop.toFixed(3), hemelY,
@@ -251,6 +268,9 @@ for (const [soort, r] of Object.entries(uit)) {
     `knop ${e.knopDag?.toString(16)} → ${e.knopNacht?.toString(16)}, gloed ${e.gloedDag} → ${e.gloedNacht?.toFixed(3)}`);
   ok(e.dashStukken === 1 && e.consoleVoor >= e.dashAchter - 0.02, 'het dashboard is één vorm, en de console komt eruit in plaats van erdoorheen',
     `voorvlak tot z ${e.dashAchter}, console vanaf ${e.consoleVoor}`);
+  ok(e.kapVoor !== null && e.kapVoor <= 0.01 && e.huisVoor !== null && e.huisVoor <= 0.002, 'de klokken niet ingezonken: de kap steekt hoogstens 1 cm voor de wijzerplaat uit, het huis niet',
+    `kap ${e.kapVoor} m, huis ${e.huisVoor} m voor de plaat`);
+  if (soort !== 'ferrari') ok(e.knopR !== null && e.knopR <= 0.024, 'de pookknop op maat (hoogstens 2,4 cm straal)', `${e.knopR} m`);
   const rm = r.ruitMeting;
   ok(rm.mis.length === 0, 'het dashboard loopt door tot de voorruit: tussen glas en dashboard geen motorkap in beeld', rm.mis.length ? `${rm.mis.length} van ${rm.stralen}: ${rm.mis.slice(0, 3).join('; ')}` : `${rm.stralen} stralen`);
   const fouteRuit = rm.achterGlas.filter(a => a.voor === null || a.voor < 0 || (a.achter !== null && a.achter < 0));
@@ -258,6 +278,36 @@ for (const [soort, r] of Object.entries(uit)) {
     fouteRuit.length ? fouteRuit.map(a => `${a.naam} ${a.voor} / ${a.achter}`).join('; ') : rm.achterGlas.map(a => `${a.naam} ${a.voor}${a.achter !== null ? '/' + a.achter : ''}`).join(', '));
   ok(r.driehoeken <= 30000, 'één auto: hoogstens 30.000 driehoeken', `${r.driehoeken} driehoeken in ${r.meshes} onderdelen`);
 }
+
+// ---------------------------------------------------------------- (stap 150) de kijkhoek van de bestuurder
+kop('de kijkhoek van de bestuurder');
+const kijk = await page.evaluate(async () => {
+  const { autoKijk, AUTO_KIJK } = await import('/js/autobinnen.js');
+  const car = { yaw: 0.8, speed: 0 };
+  // te voet keek je naar de grond, een kwart slag opzij
+  const sp = { yaw: 2.4, pitch: -1.3, kijkT: 0 };
+  const beeld = autoKijk(sp, car, 0.016, true);
+  const inst = { yaw: sp.yaw, pitch: sp.pitch, beeld };
+  // met de muis opzij en omlaag gekeken, verder dan mag
+  sp.yaw = car.yaw + 1.2; sp.pitch = -1.4; sp.kijkT = 1.6;
+  autoKijk(sp, car, 0.016, false);
+  const geklemd = sp.pitch;
+  // stilstaand: de blik blijft waar hij is, ook als de muis al even stil ligt
+  for (let i = 0; i < 200; i++) autoKijk(sp, car, 0.016, false);
+  const stil = sp.yaw - car.yaw;
+  // rijdend, de muis net bewogen: eerst niets, dan terug naar vooruit
+  car.speed = 12; sp.kijkT = 1.6;
+  for (let i = 0; i < 60; i++) autoKijk(sp, car, 0.016, false);
+  const netBewogen = sp.yaw - car.yaw;
+  for (let i = 0; i < 250; i++) autoKijk(sp, car, 0.016, false);
+  return { AUTO_KIJK, inst, geklemd, stil, netBewogen, terug: { dyaw: sp.yaw - car.yaw, pitch: sp.pitch } };
+});
+const AK = kijk.AUTO_KIJK;
+ok(Math.abs(kijk.inst.yaw - 0.8) < 1e-9 && Math.abs(kijk.inst.pitch - AK.pitch) < 1e-9 && kijk.inst.beeld > 72,
+  'bij het instappen recht vooruit en iets omlaag, met een wijdere beeldhoek', `pitch ${kijk.inst.pitch.toFixed(2)}, beeld ${kijk.inst.beeld}°`);
+ok(Math.abs(kijk.geklemd - AK.pitchMin) < 1e-9, 'omlaag kijken houdt op bij je schoot', `${kijk.geklemd.toFixed(2)} rad`);
+ok(Math.abs(kijk.stil - 1.2) < 1e-6 && Math.abs(kijk.netBewogen - 1.2) < 1e-6, 'stilstaand, of net met de muis bewogen, blijft de blik waar hij is', `${kijk.stil.toFixed(2)} / ${kijk.netBewogen.toFixed(2)} rad opzij`);
+ok(Math.abs(kijk.terug.dyaw) < 0.05 && Math.abs(kijk.terug.pitch - AK.pitch) < 0.05, 'rijdend draait de blik daarna terug naar vooruit', `${kijk.terug.dyaw.toFixed(3)} rad opzij, pitch ${kijk.terug.pitch.toFixed(2)}`);
 
 // ---------------------------------------------------------------- 10. in het spel: geen nieuwe shader
 // (ALLEEN_MODELLEN=1 slaat dit deel over: voor snel nameten tijdens het bouwen)
@@ -277,6 +327,9 @@ const prog = await spel.evaluate(async () => {
   g.player.active = false; window.__autoplay = false;
   const p = g.player.pos;
   const uit = {};
+  // (stap 150) de beeldhoek in de auto door je eigen ogen, en terug als je uitstapt
+  { const C = g.camera, pl = g.player; pl.autoBeeld = 78; pl.zetBeeldhoek(); const inAuto = C.fov; pl.autoBeeld = 0; pl.zetBeeldhoek();
+    uit.__beeld = { inAuto, buiten: C.fov }; }
   for (const soort of ['hatch', 'ferrari', 'van']) {
     const car = g.vehicles.voegToe({ x: p.x + 3, z: p.z, yaw: 0, soort, driveable: true });
     const u = car.mesh.userData, o = u.oog;
@@ -301,6 +354,7 @@ const prog = await spel.evaluate(async () => {
   }
   return uit;
 });
+if (prog && prog.__beeld) { ok(Math.abs(prog.__beeld.inAuto - 78) < 0.5 && Math.abs(prog.__beeld.buiten - 72) < 0.5, 'in het spel: de wijdere beeldhoek in de auto, en terug als je uitstapt', `${prog.__beeld.inAuto.toFixed(1)}° → ${prog.__beeld.buiten.toFixed(1)}°`); delete prog.__beeld; }
 if (prog) for (const [soort, v] of Object.entries(prog)) ok(v.na === v.voor, `${soort}: het interieur in beeld, geen nieuw programma`, `${v.voor} → ${v.na}${v.wie.length ? ' · ' + v.wie.join(', ') : ''}`);
 else ok(false, 'geen renderer in de pagina');
 }

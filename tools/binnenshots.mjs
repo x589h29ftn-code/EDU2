@@ -29,6 +29,7 @@ await page.setContent(`<!doctype html><html><head><style>body{margin:0}</style>
   import { makeCar } from '/js/carmodel.js';
   import { maakVuilniswagen } from '/js/vuilniswagen.js';
   import { maakStafauto } from '/js/nomercy5.js';
+  import { AUTO_KIJK } from '/js/autobinnen.js';
   const R = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   R.setSize(${B}, ${H}); R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping;
   document.body.appendChild(R.domElement);
@@ -41,7 +42,7 @@ await page.setContent(`<!doctype html><html><head><style>body{margin:0}</style>
   // een paar paaltjes vóór de auto, zodat je ziet waar je heen kijkt
   for (let i = 0; i < 8; i++) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1, 0.15), new THREE.MeshStandardMaterial({ color: 0xb04020 })); p.position.set(-6 + i * 1.7, 0.5, -14); scene.add(p); }
   const cam = new THREE.PerspectiveCamera(70, ${B} / ${H}, 0.03, 300);
-  window.__t = { THREE, R, scene, cam, makeCar, maakVuilniswagen, maakStafauto };
+  window.__t = { THREE, R, scene, cam, makeCar, maakVuilniswagen, maakStafauto, AUTO_KIJK };
 </script></body></html>`);
 await page.waitForFunction(() => window.__t, null, { timeout: 120000 });
 if (BUITEN) await page.evaluate(() => { window.__buiten = true; });
@@ -54,7 +55,7 @@ if (NACHT) await page.evaluate(() => {
 const soorten = ['hatch', 'van', 'bx', 'gti', 'truck', 'ferrari', 'ambulance', 'vuilnis', 'staf'].filter(s => !alleen || alleen.includes(s));
 for (const soort of soorten) {
   const uit = await page.evaluate((soort) => {
-    const { THREE, R, scene, cam, makeCar, maakVuilniswagen, maakStafauto } = window.__t;
+    const { THREE, R, scene, cam, makeCar, maakVuilniswagen, maakStafauto, AUTO_KIJK } = window.__t;
     const g = soort === 'vuilnis' ? maakVuilniswagen() : soort === 'staf' ? maakStafauto() : makeCar(0x3b6ea8, soort, true);
     const mesh = g.mesh || g;
     scene.add(mesh); mesh.updateMatrixWorld(true);
@@ -65,7 +66,9 @@ for (const soort of soorten) {
     if (u.glas) (Array.isArray(u.glas) ? u.glas : [u.glas]).forEach(gl => { if (gl && gl.isObject3D) gl.visible = false; });
     const o = u.oog || { x: -0.34, y: 1.32, z: -0.87 };
     if (window.__buiten) { if (u.binnen) u.binnen.groep.visible = false; if (u.glas) (Array.isArray(u.glas) ? u.glas : [u.glas]).forEach(gl => { if (gl && gl.isObject3D) gl.visible = true; }); cam.position.set(-4.5, 2.2, -5.5); cam.lookAt(0, 1.1, -0.5); }
-    else { cam.position.set(o.x, o.y, o.z); cam.lookAt(o.x + 0.15, o.y - 0.28, o.z - 1); }
+    // (stap 150) precies wat je in het spel ziet: recht vooruit, AUTO_KIJK.pitch omlaag, met de beeldhoek van de auto
+    else { cam.position.set(o.x, o.y, o.z); cam.rotation.set(AUTO_KIJK.pitch, 0, 0, 'YXZ'); }
+    cam.fov = window.__buiten ? 70 : AUTO_KIJK.beeld; cam.updateProjectionMatrix();
     mesh.updateMatrixWorld(true);
     R.render(scene, cam); R.render(scene, cam);
     const url = R.domElement.toDataURL('image/png');

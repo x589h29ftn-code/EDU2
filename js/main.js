@@ -40,7 +40,7 @@ import { bewaarSpel, laadSpel, opslagInfo, opslagStaat, heeftOpslag, heeftCheckp
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen } from './kaartwereld.js';
 import { zetKoplampen, autoMaat } from './carmodel.js';
-import { maakAutoBinnen } from './autobinnen.js';
+import { maakAutoBinnen, autoKijk } from './autobinnen.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, logo100nl, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
@@ -112,6 +112,8 @@ scene.fog = new THREE.Fog(0xc3d9ec, 180, 900);
  zit dichterbij, en dat wordt apart getekend (`tekenWapen` hieronder).
 */
 const CAMERA_NEAR = 0.15;
+// (stap 150) in welke auto je vorige beeld door je eigen ogen keek: een andere (of geen) = net ingestapt of net op V gedrukt
+let autoOgenWas = null;
 const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, CAMERA_NEAR, 1200);
 scene.add(camera);
 
@@ -2812,6 +2814,9 @@ function loop() {
         if (!derde.aan) binnen.update(car, dt, { nacht: !!(sfeer && sfeer.nacht), zender: geluid.radioZender ? geluid.radioZender() : undefined, nummer: geluid.radioNummer ? geluid.radioNummer() : null });
       }
       if (!derde.update(dt, car)) {
+        // (stap 150) een vaste kijkhoek bij het instappen of bij V, wat wijder, en terug naar vooruit tijdens het rijden
+        player.autoBeeld = autoKijk(player, car, dt, autoOgenWas !== car);
+        autoOgenWas = car;
         // camera op de bestuurdersstoel (links), meekijken met muis; een
         // bakwagen heeft zijn eigen, hogere stoel (zie vehicles.voegToe).
         // De ruiten gaan uit zolang je erachter zit: het glas is van buiten
@@ -2824,7 +2829,7 @@ function loop() {
         camera.position.set(car.x + seat.x, (car.mesh ? car.mesh.position.y : 0) + st.y, car.z + seat.z);
         camera.rotation.set(0, 0, 0, 'YXZ');
         camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
-      } else vehicles.ruiten(car, true);       // van buiten hoort het glas er wel te zitten
+      } else { vehicles.ruiten(car, true); autoOgenWas = null; player.autoBeeld = 0; }   // van buiten hoort het glas er wel te zitten
       /*
        Het pistool is in de auto te zien zolang je naar voren of opzij kijkt —
        dan hang je uit het raam en kun je ook schieten. Kijk je achterom, dan
@@ -2833,6 +2838,7 @@ function loop() {
       */
       player.gun.visible = !player.wapenUit && !derde.aan && !player.inScope && player.magSchieten();
     } else if (boten && boten.inBoot) {
+      autoOgenWas = null; player.autoBeeld = 0;
       /*
        Aan boord. Het gaat net als in de auto: de boot bepaalt waar je bent, de
        camera hangt erachter, en je kijkrichting draait met de romp mee (dat
@@ -2857,6 +2863,7 @@ function loop() {
       geluid.gier(0);
     } else {
       player.lastCarYaw = undefined;
+      autoOgenWas = null; player.autoBeeld = 0;
       // uit de auto: de koplampen gaan mee uit (sterkte, niet `visible`: zie boven)
       koplamp.intensity = 0;
       // de drone: Erik blijft in beeld staan met de afstandsbediening, de camera is van de drone

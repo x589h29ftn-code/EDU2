@@ -8855,6 +8855,28 @@ voor de hemel ook van achter) de auto raakt eerst de carrosserie, dan pas de hem
 js/autobinnen.js van stap 148: beide rood bij elke soort behalve de BX-hemel. `ALLEEN_MODELLEN=1` slaat het deel in het spel
 over, voor het snelle nameten.
 
+**De klokken, de pook en de kijkhoek van de bestuurder (stap 150, 14 okt).**
+
+Gevraagd: "Bijvoorbeeld snelheidsmeter ed zit wat ingezonken. Versnellingspook is zo groot, anders die wat kleiner. En logische
+pov voor de camera voor de autorijder, goed bij het stuur en voorraam net als andere games."
+- *De klokken* stonden 3,5 cm diep onder de klep van de kap (wijzerplaat op F + 0,021, de rand van de kap met zijn afronding
+  op F + 0,056), met het voorvlak van het huis eromheen. Nu staan ze op F + 0,05 vooraan in het huis (`klokhuis`, 3 cm naar je
+  toe) en loopt de kap vooraan smal af, gelijk met de plaat: hij steekt nog 7 mm uit, het huis niet.
+- *De pook*: een knop van 4,2 cm (was 5,6) op een stang van 11 cm (was 15) boven een smallere hoes. Een halve meter van je
+  ogen zag hij eruit als een knuppel.
+- *De kijkhoek*: in de auto hield de camera de kijkhoek die je te voet had, en de beeldhoek van lopen (72°). Nu
+  `autoKijk(player, car, dt, eerste)` in js/autobinnen.js, met de getallen in `AUTO_KIJK`: bij het instappen of op V recht
+  vooruit en 0,10 rad omlaag (js/main.js houdt in `autoOgenWas` bij of je het vorige beeld al door je ogen keek), een beeldhoek
+  van 78° (`player.autoBeeld`, die `zetBeeldhoek` als basis neemt in plaats van `fovBasis`), niet verder omlaag dan je schoot
+  of omhoog dan de hemel, en rijdend draait de blik terug naar vooruit zodra je de muis 1,6 s niet beweegt, net als de camera
+  achter de auto. Het oogpunt 4 cm naar achteren (stuur op 49 cm in plaats van 45), en de bus van schouder + 0,42 naar
+  + 0,30: zijn ogen zaten 5 cm onder de hemel, en het dak vulde het halve beeld.
+- De foto's (`binnenshots`) kijken nu precies zoals het spel: recht vooruit, `AUTO_KIJK.pitch`, `AUTO_KIJK.beeld`.
+
+*Proef*: `npm run binnentest` met erbij (17) de kap hoogstens 1 cm vóór de wijzerplaat, het huis niet; (18) de pookknop
+hoogstens 2,4 cm; (19) de kijkhoek uit `autoKijk` — instappen, de grens omlaag, blijven staan als je stilstaat of net met de
+muis bewoog, terugdraaien als je rijdt — en in het spel 78° in de auto en 72° als je uitstapt.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

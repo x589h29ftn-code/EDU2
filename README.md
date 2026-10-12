@@ -324,6 +324,11 @@ barnsteen, de voorkeuzetoetsen en de ringen om de klimaatknoppen, en het scherm 
 de kleur van de auto. Vooraan een sleuf voor de ontwaseming, de klokken onder een kap die uit het dashboard oprijst, de hemel
 precies zo lang als het dak, spiegel en zonnekleppen achter het glas, en de ambulance heeft van binnen zijn A-stijlen.
 
+**Door je eigen ogen** (stap 150). Met **V** kijk je vanaf de bestuurdersstoel: recht vooruit en een tikje omlaag, met een
+wat wijdere blik zodat stuur, klokken en voorruit samen in beeld staan. Met de muis kijk je rond; laat je hem los terwijl je
+rijdt, dan draait je blik vanzelf terug naar de weg. De klokken staan vooraan in hun huis, niet meer diep onder de kap, en de
+pook is kleiner.
+
 | Overdag | 's Nachts |
 |---|---|
 | ![Bestelbus overdag](docs/screenshots/binnen_van.png) | ![Bestelbus 's nachts](docs/screenshots/binnen_van_nacht.png) |

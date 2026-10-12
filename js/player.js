@@ -716,9 +716,11 @@ export class Player {
     const sc = this.wapenInfo.scope;
     // (stap 138) de M1 Garand legt verder aan (`mikBeeld`, 42°) en laat de beeldhoek soepel lopen, gelijk met het wapen
     const W = this.wapen || {};
-    const dicht = sc ? this.fovBasis / this.zoom : this.fovBasis * (W.mikBeeld || MIK_FOV);
+    // (stap 150) in de auto door je eigen ogen een wat wijdere beeldhoek (`autoBeeld`, js/autobinnen.js AUTO_KIJK)
+    const basis = this.autoBeeld || this.fovBasis;
+    const dicht = sc ? basis / this.zoom : basis * (W.mikBeeld || MIK_FOV);
     const mk = W.mikSoepel ? this.mik * this.mik * (3 - 2 * this.mik) : this.mik;
-    const doel = this.fovBasis + (dicht - this.fovBasis) * mk;
+    const doel = basis + (dicht - basis) * mk;
     if (Math.abs(this.camera.fov - doel) > 0.01) {
       this.camera.fov = doel;
       this.camera.updateProjectionMatrix();
