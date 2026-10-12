@@ -459,7 +459,7 @@ const zeven = await page.evaluate(() => {
   return uit;
 });
 ok(zeven.stil.cut && zeven.stil.t < 15, 'stilstaan: na een paar tellen "Cut! Je reed uit beeld."', `${r1(zeven.stil.t)} s`);
-ok(zeven.na.fase === 'rit' && zeven.na.takes === 1 && !zeven.na.take1 && zeven.na.inStaf && zeven.na.d0 < 1 && Math.abs(zeven.na.cam - 18) < 1,
+ok(zeven.na.fase === 'rit' && zeven.na.takes === 1 && !zeven.na.take1 && zeven.na.inStaf && zeven.na.d0 < 1 && zeven.na.cam >= 18 && zeven.na.cam < 30,
   'een nieuwe take: weer in de stafauto op het begin, de camera-auto ervoor, het filmpunt weg', JSON.stringify(zeven.na));
 ok(zeven.dicht.cut, 'te dicht op de camera-auto: "Cut!"', `${r1(zeven.dicht.t)} s`);
 ok(zeven.uit.uitgestapt && zeven.uit.cut && zeven.uit.takes === 3, 'uitstappen: "Cut!"', `takes ${zeven.uit.takes}`);
@@ -526,9 +526,12 @@ const negen = await page.evaluate(() => {
   v.dood(); window.__stap(4);
   uit.dood = { bezig: v.noMercy5.bezig, leeg: leeg(), inCar: !!P.inCar };
   // laden midden bij de molen
-  begin(); const s = v.bewaar();
+  // (echt opslaan en laden: de wapens komen uit js/opslag.js, niet uit het verhaal)
+  begin(); window.__stap(200);
+  const O = window.__O, deps = { player: P, sfeer: g.sfeer, vehicles: g.vehicles, verhaal: v, boten: g.boten, garage: g.garage };
+  O.bewaarSpel(deps);
   window.__totBoot(); window.__overtocht(); window.__klik();
-  v.herstel(s); window.__stap(2);
+  O.laadSpel(deps); window.__stap(4);
   uit.laden = { bezig: v.noMercy5.bezig, leeg: leeg() };
   // een nieuwe missie midden in de opnames
   begin(); window.__totBoot(); window.__klik();

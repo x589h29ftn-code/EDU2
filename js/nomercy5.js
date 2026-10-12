@@ -73,7 +73,7 @@ export const NOMERCY5 = {
   motorAchter: [13, 20], // de zijspannen: zo ver achter je (m)
   motorVanaf: 25,        // ze komen pas als je zo ver gereden hebt (m)
   motorVuur: [0.5, 1.1], // tussen twee schoten (s)
-  ruitVoorEind: 26,      // de gele ruit ligt zo ver voor het eind van de lijn; daar stopt de camera-auto
+  ruitVoorEind: 18,      // de gele ruit ligt zo ver voor het eind van de lijn, waar de camera-auto stopt: stil op de ruit sta je dan nog in het venster
   stopBereik: 3,         // stilstaan binnen zo ver van de ruit is een wrap (m)…
   stopMooi: 1.5,         // …en binnen zo ver een filmpunt
   stil: 0.6,             // en stilstaan is langzamer dan dit (m/s)
@@ -186,10 +186,17 @@ export function maakMolenSet(scene, M, hoogte = () => 0) {
   groep.add(mast);
   mast.add(cil(0.05, 0.07, 6.2, new THREE.MeshStandardMaterial({ color: 0xd9d6cc, roughness: 0.6 }), 0, 3.1, 0, 'y', 10));
   mast.add(cil(0.09, 0.09, 0.08, metaal, 0, 6.24, 0, 'y', 10));
-  const vlagMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, map: vlagDoek(), side: THREE.DoubleSide });
+  /*
+   Enkelzijdig, met een tweede vlak met de rug ertegen: een tweezijdig materiaal met een kaart vertaalde 's nachts een
+   eigen programma (nomercy5test, 216 → 217); deze soort bestaat al overal in de wereld.
+  */
+  const vlagMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, map: vlagDoek() });
   const vlagGeo = new THREE.PlaneGeometry(1.6, 1.0, 8, 4);
   const vlag = new THREE.Mesh(vlagGeo, vlagMat);
   vlag.castShadow = true;
+  const vlagAchter = new THREE.Mesh(vlagGeo, vlagMat);
+  vlagAchter.rotation.y = Math.PI;
+  vlag.add(vlagAchter);
   const vlagHoog = 5.6, vlagLaag = 1.05;
   vlag.position.set(0.82, vlagHoog, 0);
   mast.add(vlag);
