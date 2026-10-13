@@ -23,6 +23,7 @@ import { bouwTennisparken } from './tennis.js';
 import { bouwZuilengangen } from './zuilengang.js';
 import { bouwAaff, EIGEN_PANDEN } from './aaff.js';
 import { bouwTennishal } from './tennishal.js';   // (stap 162) zet zijn pand-id zelf in EIGEN_PANDEN
+import { bouwMolenflats } from './molenflat.js';  // (stap 163) de flats aan de Molenkrite, ook via EIGEN_PANDEN
 import { bouwGeeuwbrug, GEEUW_PANDEN } from './geeuwbrug.js';
 import { bouwBpWinkel } from './bpwinkel.js';   // (stap 160) de shop van de BP, van binnen
 import { bouwAfsluitingen, bouwGrenzen } from './afsluiting.js';
@@ -1054,6 +1055,8 @@ export function* bouwKaartWereldStap(scene, W) {
     if (bouwAaff(scene, K)) console.log('kaart: het kantoor aan het water (aaff., Excellente) gebouwd');
     // (stap 162) Tennishal Sneek aan de Lemmerweg 130a
     if (bouwTennishal(scene, K)) console.log('kaart: Tennishal Sneek gebouwd');
+    // (stap 163) de twee flats aan de Molenkrite (134–182 en 184–232)
+    if (bouwMolenflats(scene, K)) console.log('kaart: de flats aan de Molenkrite gebouwd');
     // (stap 161) de oude Geeuwbrug: het betonnen landhoofd met het torentje aan de Geeuw
     if (bouwGeeuwbrug(scene, K, W)) console.log('kaart: de oude Geeuwbrug (landhoofd en brugwachtershuisje) gebouwd');
     // (stap 160) de shop van de BP: schuifdeuren, schappen, een balie met een medewerker

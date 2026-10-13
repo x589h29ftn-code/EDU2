@@ -9201,6 +9201,57 @@ in twee delen van 4,0 en 3,45 m uit de BAG) met de entree, de blauwe luifel en h
 de diagonalen langs een lijn en op twee hoogtes, de puntgevel, de plint en de staanders, het bord op beide gevels, de aanbouw met
 glas, wit en de luifel, de botsdozen, geen nieuw programma dag en nacht) met `tennishalshots` (tennishal_entree, tennishal_lang,
 tennishal_boven).
+**De flats aan de Molenkrite (stap 163, 13 okt).**
+
+Gevraagd met een schermafdruk en vier foto's uit Street View: "verbeter ook deze woningen: 399.9, -26.9 zie foto van
+straatkant." Het punt is waar de gebruiker stond, op de klinkers bij de bocht van de Molenkrite; de woningen zijn de twee flats
+ernaast, BAG 0091100000006034 (nrs 134–182) en 0091100000006042 (nrs 184–232), allebei van 1982 en in de kaart van het naamloze
+`spil`-type: het 3D BAG-model met een lichte baksteen en geen enkel raam. In het echt: donkerbruine baksteen, trappen van één,
+twee en drie lagen, brede witte dakranden die schuin over de gevel steken met een donkere, bemoste kap erboven, ramen met blauwe
+kozijnen in paren, loggia's, lage bergingen met een blauwe boeiboord en een strook raampjes.
+- *Wat de 3D BAG zegt*: elk blok is een molen van vier vleugels om een trappenhuis. De dakvlakken liggen plat op 3,1–3,4 m
+  (de bergingen), 6,1–6,3, 8,9–9,1 en 11,7–11,9 m; maar een paar vlakken zijn schuin (6,0 → 9,1, 10,0 → 11,8, 4,4 → 6,1 m) en
+  dat zijn de mansardekappen, smalle stroken van een halve meter langs de gevel. js/molenflat.js neemt de platte vlakken als
+  delen (`regios`) en bouwt de kap zelf: muren tot `mansard` (2,6 m, boven 8,5 m) of `mansardLaag` (1,9 m) onder de dakhoogte,
+  dan de witte rand (onderkant 0,7 m buiten de gevel, bovenkant 0,3 m, een meter hoog) en het dakschild steil naar binnen tot
+  het platte dak op precies de hoogte uit de 3D BAG. Zo hebben de delen van 11,9 m drie lagen, die van 9,1 m twee en die van
+  6,2 m één hoge laag, zoals op de foto's.
+- *Binnen en buiten*: een rand waar langs de hele lengte een minstens even hoog deel ligt, is `binnen`: geen muur, geen kap,
+  en het platte dak schuift er een kwart meter onder de muur van het hogere deel (de ringen worden vereenvoudigd en sluiten
+  daarna niet meer precies op elkaar). Een gedeeltelijk gedeelde rand telt als buiten; wat daarvan in het hogere deel valt, is
+  niet te zien. De verschoven ringen (`verschuif`) zijn de snijpunten van de verschoven randen, met een afstand per rand.
+- *De gevels*: ramen en loggia's zijn echte gaten in de muur (`muur` knipt de muur in stroken rond de gaten), met dagkanten,
+  glas tien centimeter naar binnen, een blauw kozijn en een dorpel; een loggia is een nis van 1,1 m met een deur en een raam
+  achterin en een hek of een borstwering. Een raam komt alleen waar het boven het dak van de buren uitkomt; een loggia alleen
+  in lagen van hoogstens 3,4 m (in de hoge enkele laag van de delen van 6,2 m werd hij een gat van 3,7 m).
+- *Het trappenhuis* is in de BAG een eigen pand van 11,4 m (0091100000014656 en 0091100000006038). Dat bleef eerst van
+  js/kaartwereld.js en stak op de foto van boven als een lichte toren tussen de nieuwe kappen uit; nu bouwt de module het ook:
+  baksteen, een raam per verdieping waar het vrij ligt en een blauwe band bovenaan, zoals op de foto vanaf de Molenkrite. De
+  voetafdruk van het blok heeft een gat waar het trappenhuis staat, dus "ligt het midden in het blok" vond niets: het hoort bij
+  het blok waarvan het midden binnen 15 m ligt.
+- *Wat misging*: de paren ramen stonden eerst tegen elkaar (de tweede begon twee centimeter na de eerste); de loggia's op de
+  begane grond vielen weg omdat de vloer (15 cm) "onder het dak van de buren" lag terwijl er geen buren waren; de vlakken van
+  de dagkanten keken de muur in. De onderkant van de rand kleurde groen van het gras (de hemellamp van onderen): hij is iets
+  rozig gemaakt en krijgt overdag een grijze gloed (`emissiveIntensity`, 's nachts uit). De baksteen kwam in het spel bijna leigrijs uit; het doek is warmer gezet dan het op de foto's lijkt.
+- *De kijkrichting*: vanaf 399.9, -26.9 zie je het zuidelijke blok van de westkant, met de lage delen links en de hoge rechts.
+  Op de schermafdruk is het andersom, met een bed ronde struiken ervoor; dat bed staat in de kaart op de Molenkrite tussen de
+  twee blokken (411–425, −62…−71), voor het noordelijke blok. Daar staat ook de Street View-foto met het trappenhuis en de
+  berging met de blauwe boeiboord. De foto's nemen daarom allebei: `molenflat_straat` van het opgegeven punt en
+  `molenflat_noord` en `molenflat_molenkrite` vanaf de Molenkrite.
+- *Botsdozen*: de dozen van js/kaartwereld.js blijven (`pandDozen`, strookjes over de voetafdruk). Tussen twee strookjes zit
+  soms een naad van een paar millimeter; een punt precies daarop wordt van twee kanten even ver geduwd en blijft staan, en de
+  eerste proef (`resolveCollisions` in het midden van elk deel) zag daar een gat. Nu kijkt hij of een rooster van punten in elk
+  deel binnen een doos valt (`W.colliders`, 3 cm speling), en loopt hij van vier kanten op elk blok af.
+- *Shaders*: twaalf gewone MeshStandardMaterials met de combinaties die het kantoor aan het water en de tennishal al hebben
+  (een eigen doek zonder soort, dus geen reliëf erbij); overdag en 's nachts geen nieuw programma. Het licht achter een derde van
+  de ramen is alleen `emissiveIntensity` van één glasmateriaal (`update(dt, nacht)` uit js/main.js).
+
+*Proef*: `npm run molenflattest` (beide panden op hun voetafdruk en het oude blok weg, elk deel op zijn hoogte uit de 3D BAG, het
+hoogste op de nok, bergingen en twee en drie lagen, elk raam van voren en een waaier vanaf waar de gebruiker stond, blauwe
+kozijnen, de witte rand van boven en van onderen, het donkere dakschild, loggia's van 1,1 m, bergingen met een blauwe boeiboord,
+schoorstenen, het trappenhuis, botsdozen, licht 's nachts, geen nieuw programma) met `molenflatshots` (molenflat_straat,
+molenflat_molenkrite, molenflat_noord, molenflat_schuin, molenflat_nacht).
+
 **De oude Geeuwbrug (stap 161, 13 okt).**
 
 Gevraagd: "herbouw ook locatie -77.4, -459.8 zie foto ingame. dit is een deel van de oude geeuw brug. Zie torentje met

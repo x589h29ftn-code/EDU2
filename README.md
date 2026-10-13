@@ -981,6 +981,16 @@ plint langs de zuidkant en een lage witte aanbouw met de entree onder een blauwe
 |---|---|---|
 | ![](docs/screenshots/tennishal_entree.png) | ![](docs/screenshots/tennishal_lang.png) | ![](docs/screenshots/tennishal_boven.png) |
 
+**De flats aan de Molenkrite** (stap 163): de twee molenvormige flats aan de Molenkrite (nummers 134–232) waren kale
+blokken lichte baksteen zonder ramen. Nu staan ze er zoals in het echt: donkerbruine baksteen in trappen van één, twee en drie
+lagen, brede witte dakranden die schuin over de gevel steken met een donkere, bemoste kap erboven, ramen met blauwe kozijnen in
+paren, inpandige balkons met een hek of een gemetselde borstwering, lage bergingen met een blauwe boeiboord en een strook
+raampjes, en schoorstenen. 's Nachts brandt achter een deel van de ramen licht.
+
+| vanaf de Molenkrite | tussen de blokken | vanaf de straat | schuin van boven | 's nachts |
+|---|---|---|---|---|
+| ![](docs/screenshots/molenflat_molenkrite.png) | ![](docs/screenshots/molenflat_noord.png) | ![](docs/screenshots/molenflat_straat.png) | ![](docs/screenshots/molenflat_schuin.png) | ![](docs/screenshots/molenflat_nacht.png) |
+
 **Steekproef ronde 6** (stap 158): vijftien adressen waar een foto van de straat bij helpt, met de plek, de coördinaten,
 een Street View-link van hetzelfde standpunt en een vraag per adres: [docs/steekproef/RONDE6.md](docs/steekproef/RONDE6.md).
 
