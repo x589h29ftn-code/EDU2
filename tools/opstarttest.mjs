@@ -68,7 +68,13 @@ ok(start.klein > 1000 && start.kleurGoed === start.klein, 'tot die tijd een doek
 ok(start.bezig, 'en het reliëf komt ook daarna');
 ok(!start.fases.some(f => /reliëf/.test(f.wat)), 'het reliëf is geen fase van het opstarten meer');
 ok(som(/gebouwen/) < 25000, 'de gebouwen kosten geen 32 s meer', `${(som(/gebouwen/) / 1000).toFixed(1)} s`);
-ok(totaal < 60, 'en het geheel blijft ruim onder de 72 s', `${totaal.toFixed(1)} s`);
+// (stap 155) de avondstand wordt niet meer vóór het spel klaarstaat vertaald: dat was 15 s van "de rest van de opzet (2)"
+ok(som(/rest van de opzet \(2\)/) < 5000, 'de avondstand zit niet meer in het opstarten', `${(som(/rest van de opzet \(2\)/) / 1000).toFixed(1)} s (was 15,4)`);
+// het eerste beeld wordt wel duurder: wat niet van de lampen afhangt (basismaterialen, de schaduw) vertaalde het
+// avondbeeld er eerst al voor; samen waren die twee 21,3 s (het totaal schommelt hier met een paar seconden)
+const beide = som(/rest van de opzet \(2\)|het eerste beeld/);
+ok(beide < 18000, 'de avondstand en het eerste beeld samen korter', `${(beide / 1000).toFixed(1)} s (was 21,3)`);
+ok(totaal < 60, 'en het geheel blijft ruim onder de 72 s', `${totaal.toFixed(1)} s (was 52,3)`);
 
 kop('daarna is alles zoals het was');
 const na = await page.evaluate(async () => {
@@ -96,6 +102,28 @@ ok(na.wachtend === 0 && na.klein === 0, 'geen enkele gevel staat nog als doekje'
 ok(na.ruw >= 1145 && na.normaal >= 179, 'elke gevel heeft zijn glans en het reliëf is er',
   `${na.ruw} roughness maps, ${na.normaal} normal maps`);
 ok(na.los[0] > 100, 'een gevel die je daarna opvraagt krijg je af', `${na.los[0]}×${na.los[1]}`);
+
+/*
+ (stap 155) De avondstand in stukjes na het opstarten: daarna vertaalt een volledig beeld met de avondlampen niets meer
+ bij. Op een eigen pagina zonder reliëf (?relief=0), anders veranderen de materialen onderweg en vertaalt dat beeld
+ terecht nieuwe varianten.
+*/
+kop('de avondstand, na het opstarten in stukjes');
+const p2 = await browser.newPage({ viewport: { width: 640, height: 400 } });
+p2.on('pageerror', e => { console.log('[pageerror]', e.message); fout++; });
+await p2.goto(`http://127.0.0.1:${poort}/index.html?relief=0`, { waitUntil: 'load', timeout: 900000 });
+await p2.waitForFunction(() => window.__game, null, { timeout: 900000 });
+const avond = await p2.evaluate(async () => {
+  const g = window.__game;
+  const t = performance.now();
+  const n = await g.avondBelofte;
+  const ms = performance.now() - t;
+  const voor = g.renderer.info.programs.length;
+  g.warmDeAvondOp();
+  return { n, ms, voor, na: g.renderer.info.programs.length };
+});
+ok(avond.n > 100, 'de stukjes zijn klaar', `${avond.n} meshes, ${(avond.ms / 1000).toFixed(1)} s na het klaarstaan`);
+ok(avond.na === avond.voor, 'een heel avondbeeld vertaalt daarna niets meer', `${avond.voor} → ${avond.na} programma's`);
 
 console.log(`\n${fout ? fout + ' fout' : 'alles goed'}`);
 await browser.close();

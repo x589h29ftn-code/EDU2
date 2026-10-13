@@ -2139,10 +2139,14 @@ async function voorbereidSpel() {
       }
     } finally { voorbereiden = false; }
     if (lodBelofte) await lodBelofte;
+    if (avondBelofte) await avondBelofte;
     try { warmDeAvondOp(); } catch (e) { console.warn('avond voorverwarmen mislukt', e); }
     if (laag && !wasAan) laag.classList.remove('aan');
     if (zwart) { zwart.style.transition = ''; zwart.style.opacity = wasAan ? '1' : '0'; }
-  } else if (lodBelofte) await lodBelofte;
+  } else {
+    if (lodBelofte) await lodBelofte;
+    if (avondBelofte) await avondBelofte;
+  }
 }
 let lodFilmBij = null;              // waar de LOD tijdens het filmpje het laatst bijgewerkt is
 async function voorFilm() {
@@ -2715,6 +2719,9 @@ function loop() {
     }
   }
   if (voorbereiden) return;           // de intro wordt klaargezet (`voorFilm`)
+  // (stap 155) zolang de avondstand in stukjes vertaald wordt en je in het menu staat: geen eigen beeld ertussen
+  // (headless kostte elk beeld ertussen tientallen seconden; op een pc staat de achtergrond even stil)
+  if (avondBezig && !player.active) return;
   werkKeuzeKnoppenBij();
   const now = performance.now(); const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
   /*
@@ -3247,11 +3254,46 @@ function sfeerNu() { try { return sfeer; } catch { return null; } }
 function warmDeAvondOp() {
   metAvondlampen(() => renderer.render(scene, camera));
 }
-try { warmDeAvondOp(); } catch (e) { console.warn('avond voorverwarmen mislukt', e); }
+/*
+ (stap 155) Hetzelfde, maar na het opstarten en in stukjes. Het ene beeld met de avondlampen kostte headless 15 van de
+ 52 seconden vóór het spel klaarstond (opstarttest: "de rest van de opzet (2)"), terwijl je dan nog in het menu staat.
+ Nu staan alle zichtbare meshes in een lijst, en per stukje tekent hij alleen een vierentwintigste deel ervan, op één beeldpunt
+ (de schaar): wat three vertaalt hangt aan het materiaal, de lampen en de mist, niet aan de grootte van het beeld. Het
+ beeld van de hoofdlus erna tekent alles weer gewoon. `voorbereidSpel` (Start spel) wacht op `avondBelofte`.
+*/
+const AVOND_STUKJES = 24;        // headless 0,5–5 s per stukje, op een pc een tiende daarvan
+let avondBezig = false;
+async function warmDeAvondOpInStukjes() {
+  avondBezig = true;
+  try { return await avondStukjes(); } finally { avondBezig = false; }
+}
+async function avondStukjes() {
+  const lijst = [];
+  scene.traverseVisible(o => { if (o.material && (o.isMesh || o.isLine || o.isPoints || o.isSprite)) lijst.push(o); });
+  const per = Math.ceil(lijst.length / AVOND_STUKJES);
+  const vp = renderer.getViewport(new THREE.Vector4()), sc = renderer.getScissor(new THREE.Vector4()), scAan = renderer.getScissorTest();
+  for (let k = 0; k < AVOND_STUKJES; k++) {
+    await geefBeeldTerug();
+    const van = k * per, tot = Math.min(lijst.length, van + per);
+    try {
+      for (let i = 0; i < lijst.length; i++) lijst[i].visible = i >= van && i < tot;
+      renderer.setViewport(0, 0, 1, 1); renderer.setScissor(0, 0, 1, 1); renderer.setScissorTest(true);
+      metAvondlampen(() => renderer.render(scene, camera));
+    } catch (e) { console.warn('avond voorverwarmen mislukt', e); } finally {
+      for (const o of lijst) o.visible = true;
+      renderer.setViewport(vp); renderer.setScissor(sc); renderer.setScissorTest(scAan);
+    }
+  }
+  return lijst.length;
+}
+let avondBelofte = null;
 
 opstartStap('het eerste beeld');
 loop();
 opstartStap('na het eerste beeld');
+// (stap 155) de avondstand pas nu, in stukjes (zie `warmDeAvondOpInStukjes`)
+avondBelofte = warmDeAvondOpInStukjes().then(n => { console.log(`avond: ${n} meshes in ${AVOND_STUKJES} stukjes voorvertaald`); return n; },
+  e => { console.warn('avond voorverwarmen mislukt', e); return 0; });
 
 /*
  De wereld staat er; nu wachten we op de keuze uit het menu. Die kan al gemaakt
@@ -3283,7 +3325,7 @@ window.__game = {
   // de wapenpas en het voorvlak, voor tools/cliptest.mjs
   tekenWapen, cameraNear: CAMERA_NEAR,
   // het reliëf in één keer afmaken (de proeven), en hoever het is
-  reliëfAf, get reliëfBezig() { return !!reliëf; }, voorFilm, voorbereidSpel, zetVoorvlak, __envBakken: () => envBakken, get lodFilmBij() { return lodFilmBij; },
+  reliëfAf, get reliëfBezig() { return !!reliëf; }, get avondBelofte() { return avondBelofte; }, warmDeAvondOp, voorFilm, voorbereidSpel, zetVoorvlak, __envBakken: () => envBakken, get lodFilmBij() { return lodFilmBij; },
   // licht (tools/lichttest.mjs): de omgeving opnieuw bakken en de schaduwdoos
   bakOmgeving, werkOmgevingBij, zetSchaduwDoos, get omgevingGebakken() { return envBakken; }, sun,
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },

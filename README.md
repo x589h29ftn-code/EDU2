@@ -970,6 +970,12 @@ gebruikt. Riet: **29 → 4,3 s**.
 | laadtijd tot speelbaar | 67,8 s | **44,4 s** |
 | langste bevriezing tijdens de opbouw | 43 s | **4,1 s** |
 
+**De avond wordt na het opstarten voorbereid** (stap 155). Het spel vertaalt de shaders voor de avond vooraf, zodat
+het niet hapert als de lantaarns aangaan. Dat was één beeld met alle avondlampen aan, vlak voordat het spel klaarstond:
+headless 15 van de 52 seconden. Nu gebeurt het daarna, terwijl je in het menu staat, in 24 kleine stukjes; Start spel
+wacht er zo nodig op. Gemeten (`npm run opstarttest`): de twee laatste fasen samen van **21,3 naar 14,7 s**, en na de
+stukjes vertaalt een heel avondbeeld geen enkele shader meer.
+
 De beelden voor het laadscherm staan in [`beeld/laadscherm/`](beeld/laadscherm/) met een lijstje in
 `beelden.json` — zet daar je eigen beelden neer. Is er niets, dan tekent `js/menu.js` zelf een
 achtergrond op een canvas, dus het werkt ook leeg.
@@ -4675,13 +4681,12 @@ driehoek van tien meter hoog zonder één opening. De knip gaat nu nooit lager d
 woonlaag, zodat de deur op zijn plek valt), tenzij de muur daar te laag voor is; een schuurtje van
 drie meter hoort geen woonlaag te krijgen.
 
-> **Dit punt is maar half af.** Gemeten in de wereld staat er nu een gevelvlak van 0 tot 3,24 m waar
-> eerst alleen steen zat — de gevel is er dus. Maar er staat nog iets vóór: het 3D BAG-model heeft op
-> dit adres een uitbouw van 0,53 tot 3,30 m met een eigen plat dakje, en die wordt als dakkapel
-> getekend, met witte wangen, precies over de voordeur heen. Twee dingen die daaraan zouden moeten
-> liggen zijn aangepast — een dakkapel wordt niet meer op kniehoogte gezet, en een muur die onder de
-> 2,40 m begint telt niet meer als kapelwang — maar in beeld verandert er niets, dus de oorzaak zit
-> ergens anders. Wat er nu staat is beter dan een blinde muur, maar de deur is nog niet te zien.
+Sinds stap 155 nagemeten (`npm run voorgeveltest`): aan de Vang 28, 10 en 12 (goot 0,51 tot 1,28 m)
+raakt een straal van voren op 0,5, 1,2, 2,0 en 2,6 m de voorgevel met deur en ramen; de dakkapel over
+de deur van toen staat er niet meer. En voor alle 4653 woningen: bij **98,0 %** raakt minstens één van
+zeven stralen over de breedte van de voorkant een gevel met openingen; de rest (bergingen met een
+huisnummer, eindgevels, een paar waar de voorkant misschien verkeerd ligt) noemt de proef per straat,
+om met foto's na te lopen.
 
 ![De voorgevel aan de Vang](docs/screenshots/vang_voorgevel.png)
 

@@ -9026,6 +9026,32 @@ open, binnen uit beeld, weer naar buiten, de deuren dicht), de fiets (het rek, g
 (de telefoon bij het hoofd), schrik op het bankje, grof precies tussen 200 en 350 m, en geen nieuw shaderprogramma. Foto's:
 `npm run voetgangershots` (rij, poiesz, bank, regen); `npm run gezichtshots` heeft nu een gevarieerde rij.
 
+**De wereld: de voorgevels nagemeten en de avond na het opstarten (stap 155, 14 okt).**
+
+Gevraagd: "wereld 2 en 3" — de steekproef van woningen (goothoogte, voorgevelrichting, de Vang, straten zonder foto)
+en de opstarttijd.
+- *De opstarttijd* (`npm run opstarttest`, headless): 52,3 s. Met tijdelijke meetpunten in "de rest van de opzet (2)"
+  bleek 15,2 van de 15,4 s één regel: `warmDeAvondOp`, één beeld met alle avondlampen aan zodat three de avondshaders
+  vooraf vertaalt. Dat gebeurt nu na het opstarten (`warmDeAvondOpInStukjes`): alle zichtbare meshes in een lijst, per
+  stukje een vierentwintigste deel zichtbaar, getekend op één beeldpunt (de schaar; wat three vertaalt hangt aan het
+  materiaal, de lampen en de mist, niet aan de grootte van het beeld). `voorbereidSpel` wacht op `avondBelofte`.
+  - Het eerste beeld werd 8,5 s duurder: wat niet van de lampen afhangt (basismaterialen, de schaduw) vertaalde het
+    avondbeeld er eerst al voor. Netto zijn de twee fasen samen 21,3 → 14,7 s; het totaal schommelt hier een paar
+    seconden (de gebouwen 6,6 tot 9,4 s in drie metingen), dus de proef toetst de twee fasen samen.
+  - De eerste versie in twaalf stukjes was headless pas na 345 s klaar: tussen elk stukje tekende de hoofdlus een heel
+    beeld. Nu slaat de hoofdlus in het menu zijn beeld over zolang het loopt (`avondBezig`); los gemeten 21 s.
+  - Na de stukjes vertaalt een heel avondbeeld niets meer (95 → 95 programma's, op een pagina zonder reliëf: met reliëf
+    veranderen de materialen onderweg). `vloeiendtest` blijft groen.
+- *De voorgevels* (`npm run voorgeveltest`, nieuw): zonder foto's van de straat (Street View is vanuit deze omgeving niet
+  bereikbaar) gemeten wat wel te meten is: kijkt de voorkant van een woning naar een gevel met deur en ramen? Zeven stralen
+  op 1,2 m van de straatkant over de breedte van de voorkant; een gevel met openingen heeft `nachtRamen` in zijn materiaal.
+  Na het bijwerken van de LOD hebben de gevelmeshes geen naam meer (de eerste meting vond daardoor 0 van 4653), het
+  materiaal wel. Met één straal in het midden 92,7 %: vóór het midden staat vaak een berging of uitbouw met een blinde muur
+  (op de foto's te zien). Met zeven: **98,0 %**. De rest noemt de proef per straat (rijen bergingen met een letter achter
+  het huisnummer aan de Pikpôllewei, eindgevels aan de Jasker, een paar in het gebogen blok in Duinterpen).
+  - *De Vang*: de voorgevel van 28 (goot 0,51 m) loopt nu van de grond tot boven de deur; de dakkapel over de deur uit de
+    melding van 19 september staat er niet meer. Open punt 15 is daarmee af; de foto in de README is vervangen.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

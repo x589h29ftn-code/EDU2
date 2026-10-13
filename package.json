@@ -64,6 +64,7 @@
     "poieszshots": "node tools/poieszshots.mjs",
     "zuilengangtest": "node tools/zuilengangtest.mjs 8123",
     "voetgangertest": "node tools/voetgangertest.mjs 8123",
+    "voorgeveltest": "node tools/voorgeveltest.mjs 8123",
     "zuilengangshots": "node tools/zuilengangshots.mjs 8123",
     "voetgangershots": "node tools/voetgangershots.mjs 8123",
     "gezichtshots": "node tools/gezichtshots.mjs 8123",
