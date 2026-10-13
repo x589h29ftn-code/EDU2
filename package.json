@@ -75,6 +75,8 @@
     "tennishalshots": "node tools/tennishalshots.mjs 8123",
     "molenflattest": "node tools/molenflattest.mjs 8123",
     "molenflatshots": "node tools/molenflatshots.mjs 8123",
+    "eekmolentest": "node tools/eekmolentest.mjs 8123",
+    "eekmolenshots": "node tools/eekmolenshots.mjs 8123",
     "geeuwbrugtest": "node tools/geeuwbrugtest.mjs 8123",
     "geeuwbrugshots": "node tools/geeuwbrugshots.mjs 8123",
     "zuilengangshots": "node tools/zuilengangshots.mjs 8123",

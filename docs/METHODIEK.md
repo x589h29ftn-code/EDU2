@@ -9176,6 +9176,54 @@ slaat de geometrie van het pand over (`EIGEN_PANDEN`, zoals de molens) en houdt 
 plat op hun gevel in hun kleur, de gloed 's nachts en overdag, de shaders) met `aaffshots` (aaff_water, aaff_hoek, aaff_nacht,
 aaff_logo_nacht).
 
+**Garageboxen en de Eekmolen (stap 165, 13 okt).**
+
+Gevraagd met schermafdrukken en Street View: "locatie 332.0, 296.5 zijn garageboxen", "323.5, 278.9 locatie eekmolen zijn niet
+goed", daarna "325.9, 193.3 Idem eekmolen" en "Pas ook 435.3, 75.6 locatie zie foto aan de molenkrite". Vier plekken, twee fouten.
+
+- **De garagerij.** Eekmolen 2a–2i (BAG 0091100000018030, 12065, 9751, 16450, 9933, 9857, 10037, 10056, 10063) zijn negen panden van
+  2,8 × 5,7 m met een plat dak op 2,7 m, met een huisnummer en dus een woning voor de generator: ze kregen het straattype
+  `eekmolen`, met een voordeur en een woonkamerpui per box. Nu krijgen de platte panden van de Eekmolen (`plat` in
+  data/stijl/straten.json, precies deze negen) het type `garagebox`: per box een kanteldeur van 2,4 × 2,1 m tussen twee
+  penanten, een witte boeiboord erboven, geen ruit. De kleur volgt uit het pandnummer (wit, groen, bordeaux, blauw).
+- **De puntgevels.** De rijwoningen uit 1976–1981 aan de Eekmolen, de Loper en Molenkrite 133–143 hebben een hoge puntgevel
+  met de nok haaks op de straat. Het 3D BAG-model geeft ze een goot die niet bij het dak hoort (bij de helft 5,4–6,4 m, bij de
+  rest 2,5–3,3 m) en knipt de voorgevel in stukken, met smalle strookjes boven de berging. js/kaartwereld.js knipt elke muur op
+  de goot, en alles erboven werd dan bij `eekmolen` de witte houten topgevel (`topgevel`) en bij `molenkrite` een kapelwang of
+  een kapelkozijn — de witte kale volumes met de lange smalle ramen op alle vier de schermafdrukken. Het witte volume is dus
+  géén echte dakkapel uit de kapelcode (`dakkapel()` bouwt niets bij deze typen), maar de dakkapeltak van `muurKeuze` die een
+  stuk puntgevel als kapel aankleedt.
+- De oplossing zit in het type, niet in de geometrie: een `plan` per straat in data/stijl/straten.json (bouwjaar, nokhoogte of
+  huisnummers; tools/geo/genereer.mjs `kiesType`) kiest `eekmolen_punt` (bruinrood), `loper_punt` (geel) of `molenkrite_punt`
+  (rood, met een glazen vlak in de top) — 27 + 18 + 6 = 51 woningen. Die typen dragen `puntgevel`: geen kapeltak, en een voor-
+  of achtergevel blijft heel tot de nok (geen knip op de goot), zodat de punt baksteen is met ramen tot in de top (`punt` in
+  `facade()`: portiek met voordeur, twee staande ramen, één raam in de punt, soms in donkere houten bekleding). Een lage muur
+  vooraan (`laagType`, tot `laagTot`) is een berging met een bergingsdeur of een smal raampje, het schuine dakje erop krijgt
+  donkerrode pannen; aan de Molenkrite heeft de aanbouw een eigen puntgeveltje met witte of blauwe rabatdelen (`rabat`), en
+  omdat die muurtjes smaller zijn dan 2,40 m staat daar `laagMin`.
+- De nokrichting komt uit het model en is niet aangepast: bij 36 van de 51 kijkt het meeste schuine dak opzij (nok haaks op de
+  straat), bij 38 loopt de voorgevel tot op 1,3 m van de nok. De rest heeft in de 3D BAG een voorgevel tot ~5,8 m met het dak
+  ervoor; daar staat nu een bakstenen gevel van twee lagen zonder wit erboven.
+- js/kaart.js is opnieuw gegenereerd (`npm run geo:genereer`): behalve de datum verandert alleen `type` bij 60 panden. Het is
+  één regel; werkt een andere tak ook aan de kaart, dan is opnieuw genereren de manier om samen te voegen.
+- Het materiaal van een pand draagt nu zijn sleutel (`userData.sleutel`), zodat de proef kan zien welke gevel een straal raakt.
+- Misgegaan: de groene en blauwe kanteldeur en een groene voordeur vielen binnen de glastoets van `nachtRamen` (blauwer dan
+  rood, donker) en zouden 's nachts gaan branden; ook de donkere houten bekleding. Kleuren met rood ≥ blauw of minder groen,
+  en de proef telt "glas" in elk doek. De punt van de proef lag eerst in het midden van de hoeken van het hoogste voorvlak,
+  en dat ligt bij een smalle punt naast het vlak: nu een rij stralen over de breedte, op 1 tot 2 m onder de top. Het
+  "hoogste voorvlak" was bij acht woningen een strookje midden op het dak (een trede in de nok van het model): nu de hoogste
+  muur die op de grond begint. De blauwe kanteldeur ging drie keer opnieuw: met het lichte verloop bovenin werd hij steeds
+  weer "glas"; nu een blauw met weinig groen (#2e2a78). Het midden van de omhullende rechthoek lag bij een L-vormig pand in
+  de tuin, dus de botsdozen worden op een raster binnen het grondvlak gemeten (≥ 75 %: de dozen zijn rechthoeken).
+- Niet gedaan: Zeskanter 7a–7e (ook platte rijtjes met letters, waarschijnlijk garages) en de woningen van de Zeskanter, die
+  `eekmolen` blijven; daar is geen foto van. Bij Molenkrite 139 hebben sommige buren een witte houten topgevel boven de steen;
+  het type heeft er één voor alle zes.
+
+*Proef*: `npm run eekmolentest` (de typen uit de generator, de doeken zonder ruit of pui, de garagerij met deur, boeiboord en plat
+dak, een raster van stralen over elke voorkant: geen wit hout of kapel, de punt van steen, de bergingen; de nok uit het model,
+de botsdozen, geen nieuw programma dag en nacht) met `eekmolenshots` (eekmolen_garages, eekmolen_garages_schuin, eekmolen_punt,
+eekmolen_punt_schuin, eekmolen_loper, eekmolen_molenkrite).
+
 **Tennishal Sneek (stap 162, 13 okt).**
 
 Gevraagd met een schermafdruk en foto's: "herbouw ook 597.5, 158.2 zie foto. Is Tennishal Sneek." Het punt is waar de

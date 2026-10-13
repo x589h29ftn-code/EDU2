@@ -1311,6 +1311,9 @@ function* bouwPandenStap(scene, W, plat) {
           nachtRamen(mat, [(Number(d[2]) || 1) * 2, Number(d[3]) || 1]);
         }
         if (!plat && klasse === 'dakkapel' && !sleutel.startsWith('dakkapel|wang')) nachtRamen(mat, [1, 1]);
+        // (stap 165: de sleutel op het materiaal, zodat een proef kan zien welke
+        // gevel een straal raakt — tools/eekmolentest.mjs)
+        if (!plat) mat.userData.sleutel = sleutel;
         matCache.set(sleutel, mat);
       }
       g = { pos: [], uv: [], nor: [], mat, klasse, tegel: perTegel ? pandTegel() : null };
@@ -1378,7 +1381,9 @@ function* bouwPandenStap(scene, W, plat) {
      nog eens verder op, en waar het grondvlak 1,89 m zegt staan in het model
      smallere vlakken. Op 1,0 m hebben alle twintig een voordeur en een raam.
     */
-    const gevelMin = (st && st.gevelMin) || 2.4;
+    // (stap 165: `laagMin` — de aanbouw vóór een woning van Molenkrite 133–143 is
+    // smaller dan 2,40 m en hoort toch zijn geveltje te krijgen)
+    const gevelMin = (st && st.laagMin && st.laagType && top <= st.laagTot && kant > 0.6 && st.laagMin) || (st && st.gevelMin) || 2.4;
     const gevel = !pand.boven && !pand.kaal && st && pand.type !== 'schuur' && breed >= gevelMin && Math.abs(n[1]) < 0.3 && (ind ? top >= 2.6 : (kant > 0.6 || kant < -0.6));
     // Dakkapel: een muurvlak dat helemaal boven de goot begint. Witte wangen,
     // en aan de voorkant het kozijn van de dakkapel.
@@ -1400,7 +1405,9 @@ function* bouwPandenStap(scene, W, plat) {
      breed is voor een kapel is gewoon gevel of blinde muur en zakt hieronder
      door naar die keuze.
     */
-    if (st && !ind && !pand.gang && !pand.kaal && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven && breed < WANG_MAX) {
+    // (`puntgevel`, stap 165: bij de woningen van het plan Eekmolen / de Loper
+    // is zo'n vlak een stuk van de bakstenen puntgevel en geen kapel)
+    if (st && !ind && !st.puntgevel && !pand.gang && !pand.kaal && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven && breed < WANG_MAX) {
       if (Math.abs(kant) > 0.6 && breed >= 1.2) {
         const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
@@ -1489,7 +1496,10 @@ function* bouwPandenStap(scene, W, plat) {
      staat in de hoogte van het 3D BAG-model (`steenBoven`) en niet in een
      aanname. Zonder dit zou het hele complex één van de twee worden.
     */
-    const gtype = (st.steenBoven && st.bovenType && top > st.steenBoven) ? st.bovenType : pand.type;
+    // (stap 165: `laagType` — een lage muur tot `laagTot` is de berging vóór de
+    // woning, met een bergingsdeur in plaats van de gevel van het huis)
+    const gtype = (st.steenBoven && st.bovenType && top > st.steenBoven) ? st.bovenType
+      : (st.laagType && top <= (st.laagTot || 3.6)) ? st.laagType : pand.type;
     const gst = T.HOUSE_STYLES[gtype] || st;
     const SH = gst.storeyH || 2.9;
     // bedrijfsgevel: het aantal lagen past op de echte muurhoogte en de
@@ -1530,8 +1540,12 @@ function* bouwPandenStap(scene, W, plat) {
     // van 0 tot 1 (met ×huizen zag een brede muur alleen de laatste pixelkolom)
     return { g, kap, uvf: (p) => [0.5 + toon * ((((p[0] * r[0] + p[2] * r[2]) - u0) / breed) - 0.5), Math.min(1, p[1] / hoogte)] };
   };
-  const dakGroep = (pand, hellend) => {
-    const st = T.HOUSE_STYLES[pand.type];
+  const dakGroep = (pand, hellend, punten) => {
+    const st0 = T.HOUSE_STYLES[pand.type];
+    // (stap 165: het schuine dakje van een berging vóór een woning van het plan
+    // Eekmolen / de Loper heeft de donkerrode pannen van `laagType`, niet de kap)
+    const laagDak = hellend && st0 && st0.laagType && punten && Math.max(...punten.map(q => q[1])) <= (st0.laagTot || 3.6) + 1.0;
+    const st = laagDak ? T.HOUSE_STYLES[st0.laagType] : st0;
     if (!hellend && st && st.industrieel) return groep(`dak|plat|${st.roof}`, () => new THREE.MeshStandardMaterial({ color: st.roof, roughness: 0.6, metalness: 0.3 }), 'platdak', true);
     if (!hellend) return groep('dak|plat', () => std(T.bitumen()), 'platdak', true);
     const kleur = st ? st.roof : '#4a3a33';
@@ -1684,6 +1698,15 @@ function* bouwPandenStap(scene, W, plat) {
         opbouw = Math.abs(kant) > 0.6 && u1 - u0 >= WANG_MAX;
         if (opbouw) opbouwen++;
       }
+      /*
+       Stap 165: een puntgevel (`puntgevel` in de stijl, het plan Eekmolen / de
+       Loper) loopt als één bakstenen muur door tot de nok, met ramen tot in de
+       punt. De knip op de goot maakte van alles erboven een witte houten
+       topgevel of een kapelwang. Een voor- of achtergevel van zo'n woning blijft
+       daarom heel; de zijmuren worden gewoon geknipt.
+      */
+      const stP = T.HOUSE_STYLES[pand.type];
+      if (!opbouw && stP && stP.puntgevel && pand.front && Math.abs(n[0] * pand.front[0] + n[2] * pand.front[1]) > 0.6) opbouw = true;
       if (!opbouw && laag < gootH - 0.3 && top > gootH + 0.6) {
         const { onder, boven } = knipOpHoogte(buiten, gootH + 0.02);
         if (onder && boven) { vlak3d(pand, [onder], 1); vlak3d({ ...pand, boven: true, bovenTop: top }, [boven], 1); return; }
@@ -1712,7 +1735,7 @@ function* bouwPandenStap(scene, W, plat) {
       // een dakvlak dat naar beneden wijst staat verkeerd om rond (zie inVoet)
       if (soort === 2 && n[1] < -0.2) { n = n.map(v => -v); gedraaid++; }
       const hellend = Math.abs(n[1]) < 0.97 && pand.dak !== 'horizontal';
-      g = dakGroep(pand, hellend);
+      g = dakGroep(pand, hellend, punten);
       /*
        De uv van een schuin dak liep langs de wereldassen: u langs x, v langs
        z plus een stukje hoogte. Bij een dak waarvan de goot langs x loopt ging
