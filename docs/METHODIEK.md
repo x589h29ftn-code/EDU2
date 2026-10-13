@@ -9135,6 +9135,32 @@ slaat de geometrie van het pand over (`EIGEN_PANDEN`, zoals de molens) en houdt 
 plat op hun gevel in hun kleur, de gloed 's nachts en overdag, de shaders) met `aaffshots` (aaff_water, aaff_hoek, aaff_nacht,
 aaff_logo_nacht).
 
+**Tennishal Sneek (stap 162, 13 okt).**
+
+Gevraagd met een schermafdruk en foto's: "herbouw ook 597.5, 158.2 zie foto. Is Tennishal Sneek." Het punt is waar de
+gebruiker stond, op het gras voor de entree; het pand ligt tien meter oostelijker: BAG 0091100000013880, Lemmerweg 130a,
+een 3D BAG-model met het doek van het type `sudwester`, dat als een groen spiegelend blok in beeld kwam. js/tennishal.js bouwt
+het na op de maten van de 3D BAG: de hal van 67,4 × 38,9 m met een zadeldak (goot 6,26 m, nok 12,24 m, de nok over de lengte en
+de richting uit de nokpunten), lichtgrijze golfplaten en sandwichpanelen (doeken met uv in meters), donkere diagonalen als losse
+stroken die op elke gevel uitgeknipt worden (Sutherland–Hodgman, `knip`): twee kruisen en lange schuine lijnen op de lange
+gevels, donkergrijze vlakken met lijnen op de puntgevels. Langs de zuidgevel de zwarte plint (in de BAG een strook van 1,6 m
+diep en 3,5 m hoog; op de foto's ~2,5 m, hier 2,6) met staanders, aan de westkant de witte aanbouw (de voetafdruk buiten de hal,
+in twee delen van 4,0 en 3,45 m uit de BAG) met de entree, de blauwe luifel en het bord "tennishal SNEEK" op canvas.
+- Kleine voetafdruk in js/kaartwereld.js (er werken anderen in): alleen een import en één aanroep. js/tennishal.js zet zijn
+  pand-id bij het laden zelf in `EIGEN_PANDEN` van js/aaff.js, dus de skip-check en `dakDetails` blijven ongewijzigd.
+- De aanbouw is de voetafdruk geknipt op de oostrand van de aanbouw en de noordrand, en gesplitst op een hoekpunt uit de BAG. Het
+  stuk dat binnen de hal valt staat er ook, onzichtbaar binnen de muren; zo hoeft de knip langs de hal niet precies te zijn.
+- De entree zocht eerst de langste "westgevel" van het zuidelijke deel en vond de knip langs de hal aan de oostkant (13 m):
+  nu alleen randen aan de westkant. De proef keek eerst midden in de deur en raakte de stijl tussen de twee deuren.
+- De eerste fotoronde liep naast de proef en de pagina crashte (geheugen); los gedraaid ging het goed.
+- Niet gebouwd: het gaashek met de poort om het voorterrein en de lantaarnpaal (er staat er al een uit de kaart op 610, 129).
+  De plek van het hek staat niet in de kaart.
+
+*Proef*: `npm run tennishaltest` (op de voetafdruk en het oude blok weg, de nok op drie plekken en de goten, het lichte paneeldoek,
+de diagonalen langs een lijn en op twee hoogtes, de puntgevel, de plint en de staanders, het bord op beide gevels, de aanbouw met
+glas, wit en de luifel, de botsdozen, geen nieuw programma dag en nacht) met `tennishalshots` (tennishal_entree, tennishal_lang,
+tennishal_boven).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

@@ -952,6 +952,14 @@ nachts gaan branden.
 |---|---|---|---|
 | ![](docs/screenshots/aaff_water.png) | ![](docs/screenshots/aaff_hoek.png) | ![](docs/screenshots/aaff_nacht.png) | ![](docs/screenshots/aaff_logo_nacht.png) |
 
+**Tennishal Sneek** (stap 162): aan de Lemmerweg, naast BP Slump Oil, staat de tennishal zoals hij echt is: een lange hal
+met een laag zadeldak van lichtgrijze golfplaten, lichtgrijze gevels met grote donkere kruisen en schuine lijnen, een zwarte
+plint langs de zuidkant en een lage witte aanbouw met de entree onder een blauwe luifel, met het bord "tennishal SNEEK".
+
+| bij de entree | de lange zuidgevel | van boven |
+|---|---|---|
+| ![](docs/screenshots/tennishal_entree.png) | ![](docs/screenshots/tennishal_lang.png) | ![](docs/screenshots/tennishal_boven.png) |
+
 **Steekproef ronde 6** (stap 158): vijftien adressen waar een foto van de straat bij helpt, met de plek, de coördinaten,
 een Street View-link van hetzelfde standpunt en een vraag per adres: [docs/steekproef/RONDE6.md](docs/steekproef/RONDE6.md).
 
