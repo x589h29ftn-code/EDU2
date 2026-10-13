@@ -44,6 +44,7 @@ import { maakAutoBinnen, autoKijk } from './autobinnen.js';
 import { werkSchuifdeurenBij, SCHUIFDEUREN } from './zuilengang.js';
 import { maakGedrag } from './gedrag.js';
 import { AAFF_PAND } from './aaff.js';
+import { GEEUW_BRUG } from './geeuwbrug.js';
 import { GRAFISCH, GRAFISCH_RIJ, grafischVoorkeur, bewaarGrafisch } from './grafisch.js';
 import { moeilijk, koppelLeven } from './moeilijk.js';
 import { maakProp } from './props.js';
@@ -3358,6 +3359,7 @@ window.__game = {
   // stap 152: de schuifdeuren van de Poiesz (js/zuilengang.js)
   schuifdeuren: SCHUIFDEUREN, werkSchuifdeurenBij,
   get aaff() { return AAFF_PAND.nu; },
+  get geeuwbrug() { return GEEUW_BRUG.nu; },   // (stap 161) de oude Geeuwbrug, voor de proeven
   zetGrafisch, get grafisch() { return grafisch; }, moeilijk, get schaduwKaart() { return SHADOW_MAP; },
   // stap 131
   pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst,

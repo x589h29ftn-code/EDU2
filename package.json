@@ -69,6 +69,8 @@
     "standentest": "node tools/standentest.mjs 8123",
     "aafftest": "node tools/aafftest.mjs 8123",
     "aaffshots": "node tools/aaffshots.mjs 8123",
+    "geeuwbrugtest": "node tools/geeuwbrugtest.mjs 8123",
+    "geeuwbrugshots": "node tools/geeuwbrugshots.mjs 8123",
     "zuilengangshots": "node tools/zuilengangshots.mjs 8123",
     "voetgangershots": "node tools/voetgangershots.mjs 8123",
     "gezichtshots": "node tools/gezichtshots.mjs 8123",

@@ -22,6 +22,7 @@ import { bouwTankstations } from './tankstation.js';
 import { bouwTennisparken } from './tennis.js';
 import { bouwZuilengangen } from './zuilengang.js';
 import { bouwAaff, EIGEN_PANDEN } from './aaff.js';
+import { bouwGeeuwbrug, GEEUW_PANDEN } from './geeuwbrug.js';
 import { bouwAfsluitingen, bouwGrenzen } from './afsluiting.js';
 import { inBouwvlak } from './bouwvlak.js';
 
@@ -1049,6 +1050,8 @@ export function* bouwKaartWereldStap(scene, W) {
     if (gangen) console.log(`kaart: ${gangen} zuilengang(en) gebouwd`);
     // (stap 159) het kantoor aan het water naast de loods van Bouwman, met de logo's aaff. en Excellente
     if (bouwAaff(scene, K)) console.log('kaart: het kantoor aan het water (aaff., Excellente) gebouwd');
+    // (stap 161) de oude Geeuwbrug: het betonnen landhoofd met het torentje aan de Geeuw
+    if (bouwGeeuwbrug(scene, K, W)) console.log('kaart: de oude Geeuwbrug (landhoofd en brugwachtershuisje) gebouwd');
   } else {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor);
@@ -1818,8 +1821,10 @@ function* bouwPandenStap(scene, W, plat) {
     // beeld teruggeven, zodat het laadscherm blijft lopen
     if ((pandNr++ % 60) === 0) yield { wat: 'gebouwen', deel: 0.42 + 0.38 * (pandNr / K.panden.length) };
     tegelNu = tegelVan(p.rect ? p.rect.cx : p.voet[0][0], p.rect ? p.rect.cz : p.voet[0][1]);
-    if (molenPanden.has(p.id) || (!plat && EIGEN_PANDEN.has(p.id))) {
-      // alleen de botsingsdozen, verderop in deze lus (stap 159: ook een pand dat een eigen module nabouwt, js/aaff.js)
+    const eigen = !plat && (EIGEN_PANDEN.has(p.id) || GEEUW_PANDEN.has(p.id));
+    if (molenPanden.has(p.id) || eigen) {
+      // alleen de botsingsdozen, verderop in deze lus (stap 159: ook een pand dat een eigen module nabouwt, js/aaff.js;
+      // stap 161: de oude Geeuwbrug, js/geeuwbrug.js, zet ook zijn eigen botsdozen)
     } else if (p.v && p.f) {
       const V = p.v;
       const pt = (i) => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]];
@@ -1841,12 +1846,12 @@ function* bouwPandenStap(scene, W, plat) {
       extrudeer(p, voet, p.goot || 3, p.dak === 'slanted');
       geschat++;
     }
-    if (p.rect) {
+    if (p.rect && !(!plat && GEEUW_PANDEN.has(p.id))) {
       const h = Math.max(3, p.nok || p.goot || 3);
       for (const d of pandDozen(gangVrij(p))) W.addCollider(d.x, d.z, d.hx, d.hz, -d.hoek, h);
     }
     const dst = T.HOUSE_STYLES[p.type];
-    if (dst && dst.dakdetail && !(!plat && EIGEN_PANDEN.has(p.id))) dakDetails(scene, W, p, dst);
+    if (dst && dst.dakdetail && !eigen) dakDetails(scene, W, p, dst);
   }
   // de meshes van de panden: honderden stukken, en samen het duurste blok van
   // de hele opbouw na de panden zelf — dus ook hiertussen even ademhalen
