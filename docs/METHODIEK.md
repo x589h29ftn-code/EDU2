@@ -9052,6 +9052,84 @@ en de opstarttijd.
   - *De Vang*: de voorgevel van 28 (goot 0,51 m) loopt nu van de grond tot boven de deur; de dakkapel over de deur uit de
     melding van 19 september staat er niet meer. Open punt 15 is daarmee af; de foto in de README is vervangen.
 
+**De agenten niet langs Erik en zonder zaklamp (stap 156, 14 okt).**
+
+Gevraagd: "Agenten lopen nu met de nieuwe code soms ook compleet langs Erik om maar dekking te zoeken of flanken. Daarnaast
+verwijder de zaklamp van ze in de nacht."
+- *Waar het zat.* De eerste proef (stilstaande Erik) vond met de oude regels niets: dekking voorbij de speler 1 keer in 400,
+  een rechte flanklijn nooit dichtbij. De fout zat in een Erik die beweegt: het flankpunt lag op een vaste windrichting
+  vanaf Erik (`flankHoek` één keer vast), en loopt Erik voorbij de agent, dan ligt dat punt aan de overkant en loopt de
+  agent er in een rechte lijn dwars langs hem heen (in de tegenproef tot 2,8 m).
+- *Flanken in een boog* (`flankStap` in js/politieslim.js): telkens een stukje van de cirkel om Erik, vanaf waar de agent
+  nu staat, hoogstens `SLIM.flankBoog` (0,5 rad) per stap; staat hij dichterbij dan de flankafstand, dan eerst naar buiten.
+  Hij komt nooit dichter dan hij al was; loopt Erik langs, dan wijkt hij uit (in de proef nu minstens 11 m).
+- *Dekking aan de eigen kant* (`langsVrij`): hoogstens driekwart van de weg naar Erik, en de rechte weg erheen niet dichter
+  dan 5 m bij hem (of dan de agent al stond).
+- *Geen zaklamp*: de bundel in de hand is weg, en een agent te voet ziet je 's nachts op 20 m (onder een lantaarn 34). De
+  bundel telt nog voor de koplampen van een politieauto.
+
+*Proef*: `npm run politie2test` (dekking op 400 plekken, flanken als meetkunde vanuit 72 beginplekken en met een voorbijlopende
+Erik tegen het oude vaste punt, in het spel per rol en met Erik die op 3 m langs een flankeerder loopt, geen zaklamp);
+`politieslimtest` toetst sinds deze stap dat een agent geen zaklamp heeft.
+
+**Grafische standen en een moeilijkheidsgraad (stap 157, 14 okt).**
+
+Gevraagd: "Voeg idd grafische standen toe. Standaard hoe het nu is maar ook optie om te verhogen en verlagen.
+Moeilijkheidsgraad ook goed, normaal hoe het nu is, dan easy en hard."
+- *Grafische stand* (js/grafisch.js, `zetGrafisch` in js/main.js, Instellingen → Grafische stand): laag / normaal / hoog. Vier
+  knoppen: de LOD-afstand (maal `LOD.schaal`: 0,7 / 1 / 1,45), de schaduwkaart van de zon (1536 / 3072 / 4096: de oude kaart
+  weggooien, three maakt hem in de volgende schaduwpas op de nieuwe maat), het gras in 3D (laag uit), en tot hoever
+  voetgangers een lichaam hebben (140 / 200 / 260 m; het grove figuurtje nooit voorbij 350 m). Geen van die vier verandert
+  het aantal lampen of de soort van een materiaal: wisselen vertaalt geen nieuw programma.
+- *Moeilijkheid* (js/moeilijk.js, Instellingen → Moeilijkheid): makkelijk / normaal / moeilijk. `player.health` is een
+  eigenschap met een zetter geworden: een daling is een treffer en wordt geschaald (0,6 / 1 / 1,4), van wie dan ook (er
+  zijn tientallen plekken die `player.health -=` doen); een stijging gaat zoals hij gaat. Alleen het laden zet het leven
+  zonder schaling (`zetLevenRuw` in js/opslag.js). En de politie: `raakKans` maal 0,7 / 1 / 1,3, het afkoelen zonder zicht
+  maal 1,6 / 1 / 0,7.
+- Beide keuzes staan in `localStorage` (`tinga.grafisch`, `tinga.moeilijk`) en beginnen op normaal: het spel zoals het was.
+- De eerste proef op de shaders gaf 103 → 106 bij het wisselen naar laag: met een kortere LOD komen er grove tegels in beeld
+  die vanaf het beginpunt nog nooit getekend waren. Na `voorbereidSpel` en één ronde langs de standen: 179 → 179.
+
+*Proef*: `npm run standentest` (normaal is het oude spel, laag en hoog per knop met de schaduwkaart echt op maat, meer of minder
+meshes in beeld, geen nieuw programma; het menu; een treffer van 50 kost 30 / 50 / 70, bier telt gewoon, laden zonder
+schaling; een schietende agent kost op makkelijk minder dan de helft van moeilijk; de jacht zakt sneller of trager).
+
+**Steekproef ronde 6 (stap 158, 14 okt).**
+
+Gevraagd: "maak 15 nieuwe foto's met locatie en streetview waar je referentie van wil hebben. Dan voed ik dit met echte
+streetview fotos", en "stuur dus nog een lijst met steekproeven zoals verleden". Vijftien adressen in
+`data/stijl/steekproef.json` (`ronde: 6`), elk met een vraag: de kale voorkanten uit `voorgeveltest` (Jasker 93,
+Schoenlapper 307, Kleine vos 18 en 24, Pikpôllewei 38T, Geeuwkade 19C, Galamagracht 13, Keizersmantel 367, Zilverschoon 72,
+Parelmoervlinder 6), de straten zonder foto (Omloop 53, Zeskanter 2, Buitenroede 40), de achterkant van het Kruirad (46) en
+een pand van het naamloze type `spil` (Galamagracht 31–34). `node tools/geo/steekproef.mjs 8123 --ronde 6` rendert alleen
+die ronde naar docs/steekproef/RONDE6.md, met de plek in het spel, in RD en in graden, en de Street View-link van hetzelfde
+standpunt. Windbord en Voorzoom hebben geen panden met die straatnaam in de kaart, Buitenroede 50 is geen los pand.
+- Het eerste beeld van een ronde was zwart, ook na zes tellen wachten; het tweede niet. De eerste schermafdruk wordt nu
+  weggegooid. En de hud en het wapen staan niet meer in beeld.
+
+**Het kantoor aan het water naast de loods (stap 159, 14 okt).**
+
+Gevraagd met vier foto's: "1541.9, -136.4 is het pand vlak naast de loods van bouwman. Ziet in het echt zo uit. Maak het logo
+Excellente en aaff in de nacht lichtgevend." Het pand is BAG 1900100010087325, Stadsrondweg-Zuid 121–121A, tot nu toe een
+geschat blok van het type `spil`. js/aaff.js bouwt het na: de koperkleurige kubus aan het water (12,5 m breed, 10,6 m hoog;
+de BAG-goot van 5,8 is geschat), een glazen begane grond onder een overstek die links onder een plat dakje doorloopt, een
+groot donker raam en groepjes van drie smalle ramen, de antraciet hal erachter, een betonnen kade met treden, en de logo's
+"aaff." (paars met een groene punt) op de waterkant en "Excellente" (rood schrijfschrift) op de oostgevel. js/kaartwereld.js
+slaat de geometrie van het pand over (`EIGEN_PANDEN`, zoals de molens) en houdt de botsdozen.
+- 's Nachts gloeien de logo's: hetzelfde doek als `emissiveMap`, alleen `emissiveIntensity` gaat (0 → 2,6 in een paar tellen).
+  De eerste versie had een witte rand om de letters: die gloeide wit. Op de foto's is er geen rand.
+- De eerste versie was een brede, lage doos (18 m breed, 6,5 m koper): op de foto's is de kubus smaller en hoger, en loopt
+  het glas links verder. De hal miste zijn noordkant; boven de glazen uitbouw keek je erin.
+- De BAG-voetafdruk heeft links een inham van 1,6 m, waar de glazen uitbouw overheen steekt (de proef meet de westkant 2 m diep).
+- *Shaders*: overdag komt er niets bij. De eerste nacht op deze plek vertaalt three tientallen nachtvarianten van de omgeving
+  (gras, bomen, ramen): het voorvertalen van de avond tekent alleen wat vanaf het beginpunt in beeld is. Het pand voegt er
+  twee aan toe, zijn eigen soorten. Een los `renderer.compile` van het pand met de avondlampen aan hielp niet en is weer
+  weggehaald; het algemene punt staat als open punt 30.
+
+*Proef*: `npm run aafftest` (op de voetafdruk, het oude blok weg, glas en koper van het water, de maten, de botsdozen, de logo's
+plat op hun gevel in hun kleur, de gloed 's nachts en overdag, de shaders) met `aaffshots` (aaff_water, aaff_hoek, aaff_nacht,
+aaff_logo_nacht).
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

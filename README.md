@@ -941,6 +941,29 @@ de hoogbouw werden dat lagen van ruim zes meter. `npm run steekproeftest` rekent
 |---|---|
 | ![Westhemstraat](docs/screenshots/westhemstraat.png) | ![Potterzijlstraat](docs/screenshots/potterzijl_hoog.png) |
 
+## Het kantoor aan het water naast de loods
+
+Vlak naast de loods van Bouwman, aan de Stadsrondweg-Zuid, staat sinds stap 159 het kantoor zoals het er echt uitziet:
+een koperkleurige kubus met verticale lamellen boven een glazen begane grond, een groot donker raam aan het water, een
+antraciet hal erachter en een betonnen kade met treden. Bovenop de gevels de logo's **aaff.** en **Excellente**, die 's
+nachts gaan branden.
+
+| vanaf de overkant | schuin van voren | 's nachts | de logo's 's nachts |
+|---|---|---|---|
+| ![](docs/screenshots/aaff_water.png) | ![](docs/screenshots/aaff_hoek.png) | ![](docs/screenshots/aaff_nacht.png) | ![](docs/screenshots/aaff_logo_nacht.png) |
+
+**Steekproef ronde 6** (stap 158): vijftien adressen waar een foto van de straat bij helpt, met de plek, de coördinaten,
+een Street View-link van hetzelfde standpunt en een vraag per adres: [docs/steekproef/RONDE6.md](docs/steekproef/RONDE6.md).
+
+## Grafische stand en moeilijkheid
+
+In **Instellingen** (stap 157) staan twee nieuwe regels, allebei standaard op **normaal** (het spel zoals het was):
+
+- **Grafische stand**: *laag* voor een zwakke pc (gebouwen en bomen eerder grof, een kleinere schaduwkaart, geen gras in
+  3D, minder voetgangers in beeld), *hoog* voor een sterke (verder scherp, een scherpere schaduw, meer voetgangers).
+- **Moeilijkheid**: *makkelijk* (een treffer kost 60 %, de politie mist vaker en raakt je sneller kwijt) of *moeilijk*
+  (140 %, de politie raakt vaker en blijft langer zoeken).
+
 ## Het startscherm en het laadscherm
 
 Je komt binnen op een menu: **Start spel · Doorgaan · Spel laden · Instellingen · Besturing ·
@@ -1434,15 +1457,18 @@ De agenten denken na, maar elke slimmigheid heeft een tegenzet:
   omslaan en de andere kant op gaan werkt dus nog steeds — en even blijven liggen tot de posten weer gaan rijden ook.
 - **Over de schutting.** Agenten te voet lopen om hekken en schuurtjes heen de tuinen in; over een schutting
   springen houdt ze niet meer tegen, uit het zicht blijven wel.
-- **'s Nachts** zien ze je op twintig meter, onder een lantaarn op vierendertig. Ze hebben een **zaklamp**: in die
-  bundel zien ze je verder, ernaast niet — en je ziet hem aankomen. Regen haalt er nog een vijfde af.
+- **'s Nachts** zien ze je op twintig meter, onder een lantaarn op vierendertig. Regen haalt er nog een vijfde af.
+  (Tot stap 156 hadden ze een zaklamp; die is weg.)
+- **Niet langs je heen** (stap 156). Wie dekking zoekt kiest een plek aan zijn eigen kant, en de flankeerder gaat in
+  een boog om je heen in plaats van in een rechte lijn: loop je langs hem, dan wijkt hij uit in plaats van dwars langs
+  je te lopen.
 - **Terug naar de auto.** Ben je helemaal uit beeld (en reed je weg, of al een tijdje), dan lopen de agenten terug
   naar hun wagen, stappen in en rijden weer mee in de zoektocht.
 - **Rammen en klemzetten.** Vanaf twee sterren rammen ze je auto als dat handig is — als je langzaam rijdt, of als
   ze sneller zijn dan jij. Vanaf drie sterren zet een tweede wagen zich voor je neus als je bijna stilstaat.
   Zolang je rijdt stappen ze niet uit.
 
-| Achter een auto in dekking | Met de zaklamp, 01:00 | Gehurkt in een struik |
+| Achter een auto in dekking | 01:00 (de foto is van vóór stap 156, met zaklamp) | Gehurkt in een struik |
 |---|---|---|
 | ![Dekking](docs/screenshots/politie_dekking.png) | ![Zaklamp](docs/screenshots/politie_zaklamp.png) | ![Verstopt](docs/screenshots/politie_verstopt.png) |
 
