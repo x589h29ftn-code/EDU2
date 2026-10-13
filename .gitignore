@@ -21,3 +21,6 @@ data/geo/verschil.png
 data/geo/bgt-plaat.png
 tools/tmp/
 docs/boekje/ruw/
+
+# tijdelijke werkkopieën van agents (Claude Code)
+.claude/worktrees/
