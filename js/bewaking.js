@@ -10,7 +10,8 @@
  Eén treffer van het pistool legt een bewaker neer.
 */
 import { Persoon } from './persoon.js';
-import { resolveCollisions, zichtVrij } from './world.js';
+import { resolveCollisions, zichtVrij, dozenOp, pointInWater } from './world.js';
+import { zoekLooppad } from './looppad.js';
 import { geluid } from './audio.js';
 
 const ZICHT = 34;          // hoe ver ze je zien (m)
@@ -65,6 +66,16 @@ export class Bewaking {
      rustig                               ze staan erbij en doen niets tot `rustig` weer
                                           uit gaat of er op ze geschoten wordt (missie 12:
                                           de lijfwachten bij de wegversperring)
+     zichtMag(w, sp)                      (stap 167) een extra toets op de kijklijn: false = hij
+                                          ziet je niet (No Mercy 5: de romp van De Rat tussen de
+                                          sluipschutter op de stelling en jou)
+     jagen                                (stap 167) zo veel tellen zonder je te zien, met het
+                                          alarm af, en hij komt je zoeken over een looproute
+                                          (js/looppad.js) naar waar je nu staat: niemand blijft
+                                          ergens in het bos staan waar je hem niet vindt
+                                          (No Mercy 4). Niet voor `houden`.
+     droog                                (stap 167) geen stap het water in (No Mercy 4: een
+                                          Duitser liep achter je aan een sloot in het bos in)
   */
   constructor(scene, posten, opties = {}) {
     this.scene = scene;
@@ -100,6 +111,9 @@ export class Bewaking {
     */
     this.uitElkaar = opties.uitElkaar || 0;
     this.raakNu = 0;
+    this.zichtMag = opties.zichtMag || null;
+    this.jagen = opties.jagen || 0;
+    this.droog = !!opties.droog;
     this.opties = { kleuren, vest, pet };
     const personen = opties.personen || [];
     this.wachters = [];
@@ -210,6 +224,8 @@ export class Bewaking {
       // met de hoogte erbij: op het viaduct telt de pijler onder het dek niet (stap 90)
       const [kx, kz] = resolveCollisions(nx, nz, 0.34, this.overLaag, pos.y);
       if (Math.hypot(kx - nx, kz - nz) < 0.02) {
+        // (droog: niet het water in; wie er al in staat, mag er wel uit)
+        if (this.droog && pointInWater(kx, kz) && !pointInWater(pos.x, pos.z)) continue;
         pos.x = kx; pos.z = kz;
         w.persoon.draaiNaar(Math.atan2(-rx, -rz), dt, 6);
         return false;
@@ -284,12 +300,25 @@ export class Bewaking {
           while (d > Math.PI) d -= Math.PI * 2;
           while (d < -Math.PI) d += Math.PI * 2;
           if (Math.abs(d) < GEZICHTSVELD || this.alarm) {
-            zien = zichtVrij(pos.x, pos.z, sp.x, sp.z, this.oog, persoon.grond);
+            /*
+             Wie op een vaste hoogte ín een pand staat (de sluipschutter op de stelling van De Rat, `vasteGrond`),
+             kijkt niet tegen de binnenkant van zijn eigen botsdoos aan (stap 167): die dozen tellen voor hem niet.
+            */
+            const negeer = persoon.vasteGrond != null ? dozenOp(pos.x, pos.z, persoon.grond + 0.1) : null;
+            zien = zichtVrij(pos.x, pos.z, sp.x, sp.z, this.oog, persoon.grond, negeer && negeer.length ? negeer : null);
+            if (zien && this.zichtMag) zien = this.zichtMag(w, sp) !== false;
           }
         }
         w.zicht = zien;
         if (zien) { this.alarm = true; w.staat = 'aanval'; }
         else if (w.staat === 'aanval') { w.staat = 'zoekt'; w.doel = [sp.x, sp.z]; }
+      }
+
+      // jagen (stap 167): te lang niets gezien, dan over een looproute naar waar je nu staat
+      if (this.jagen && this.alarm && !this.houden) {
+        if (w.zicht) w.blindT = 0;
+        else w.blindT = (w.blindT || 0) + dt;
+        if (w.blindT > this.jagen + (w.i % 4) * 1.3) { w.blindT = 0; this.jaag(w, sp); }
       }
 
       /*
@@ -319,6 +348,7 @@ export class Bewaking {
       if (w.staat === 'zoekt') {
         // eerst de route af, dan pas naar waar hij je het laatst zag
         if (this.volgPad(w, dt, dSp)) { persoon.update(dt, { loopt: true, mikt: true, snelheid: REN }); continue; }
+        if (this.volgJacht(w, dt)) { persoon.update(dt, { loopt: true, mikt: true, snelheid: REN }); continue; }
         const doel = w.doel || w.post.a;
         const erIs = this.loopNaar(w, doel, dt, REN);
         persoon.update(dt, { loopt: !erIs, mikt: true, snelheid: REN });
@@ -346,6 +376,33 @@ export class Bewaking {
   }
 
   /*
+   Jagen (stap 167): een looproute van waar hij staat naar waar jij staat (js/looppad.js), om bomen, hekken en
+   gebouwen heen. Geen route: dan recht op je af, zoals bij het zoeken.
+  */
+  jaag(w, sp) {
+    const pos = w.persoon.groep.position;
+    w.staat = 'zoekt'; w.doel = [sp.x, sp.z]; w.wacht = 0;
+    let pad = null;
+    try { pad = zoekLooppad({ x: pos.x, z: pos.z }, { x: sp.x, z: sp.z }); } catch (e) { pad = null; }
+    w.jacht = pad && pad.length > 1 ? pad.slice(1) : null;
+    w.jachtI = 0; w.jachtVast = 0;
+    this.gejaagd = (this.gejaagd || 0) + 1;
+  }
+  // de jachtroute aflopen; true zolang hij erop loopt
+  volgJacht(w, dt) {
+    const pad = w.jacht;
+    if (!pad || w.jachtI >= pad.length) return false;
+    const pos = w.persoon.groep.position;
+    const voor = { x: pos.x, z: pos.z };
+    if (this.loopNaar(w, pad[w.jachtI], dt, REN)) { w.jachtI++; w.jachtVast = 0; return w.jachtI < pad.length; }
+    if (Math.hypot(pos.x - voor.x, pos.z - voor.z) < REN * dt * 0.2) {
+      w.jachtVast += dt;
+      if (w.jachtVast > 2) { w.jachtI++; w.jachtVast = 0; }
+    } else w.jachtVast = 0;
+    return true;
+  }
+
+  /*
    Twee levende mannen die dichter bij elkaar staan dan `uitElkaar` schuiven elk de helft van het verschil uit
    elkaar (hoogstens 2,5 m/s, zodat het niet schokt), en niet een muur of een boom in. Wie op een vaste plek staat
    (`houden` en daar aangekomen) blijft staan; dan schuift de ander het hele stuk.
@@ -359,7 +416,8 @@ export class Bewaking {
       const d = Math.hypot(dx, dz);
       if (d >= this.uitElkaar) continue;
       if (d < 1e-4) { dx = Math.cos(i * 2.4 + j); dz = Math.sin(i * 2.4 + j); } else { dx /= d; dz /= d; }
-      const vastA = !!L[i].klaar, vastB = !!L[j].klaar;
+      // (wie op een vaste hoogte staat, `vasteGrond`, schuift nooit: de sluipschutter niet van de stelling, stap 167)
+      const vastA = !!L[i].klaar || L[i].persoon.vasteGrond != null, vastB = !!L[j].klaar || L[j].persoon.vasteGrond != null;
       if (vastA && vastB) continue;
       const tekort = Math.min(this.uitElkaar - d, max * 2);
       const deelA = vastA ? 0 : vastB ? 1 : 0.5, deelB = 1 - deelA;
@@ -367,6 +425,7 @@ export class Bewaking {
         if (deel <= 0) continue;
         const nx = p.x + dx * s * tekort * deel, nz = p.z + dz * s * tekort * deel;
         const [kx, kz] = resolveCollisions(nx, nz, 0.34, this.overLaag, p.y);
+        if (this.droog && pointInWater(kx, kz) && !pointInWater(p.x, p.z)) continue;
         p.x = kx; p.z = kz;
       }
     }
@@ -455,6 +514,7 @@ export class Bewaking {
     this.alarm = false;
     for (const w of this.wachters) {
       w.staat = 'patrouille'; w.naarB = true; w.wacht = 0; w.doel = null; w.omT = 0; w.zicht = false; w.padI = 0;
+      w.jacht = null; w.blindT = 0;
       w.viaI = 0; w.klaar = false;
       w.persoon.legNeer(0);
       w.persoon.zetNeer(w.post.a[0], w.post.a[1], Math.atan2(-(w.post.b[0] - w.post.a[0]), -(w.post.b[1] - w.post.a[1])));

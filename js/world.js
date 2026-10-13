@@ -2466,7 +2466,7 @@ export function buildWorld(scene) {
  losse dozen (die bewegen, zoals de poort in js/verhaal.js) staan niet in het
  rooster en gaan er elke stap los bij.
 */
-export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2, grondY = null) {
+export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2, grondY = null, negeer = null) {
   const dx = x2 - x1, dz = z2 - z1;
   const L = Math.hypot(dx, dz);
   if (L < 1) return true;
@@ -2494,7 +2494,13 @@ export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2, grondY = null) {
    als de kijklijn tussen zijn onder- en bovenkant loopt.
   */
   const lijnY = grondY == null ? null : grondY + hoogte;
+  /*
+   `negeer` (stap 167): dozen die niet meetellen, een lijst. De sluipschutter van No Mercy 5 staat op de stelling van
+   De Rat, en die stelling ligt binnen de botsdozen van het molenpand (20,7 m hoog): een kijklijn die in een doos
+   begint, is altijd dicht. Hij zag zo nooit iemand en schoot nooit (tools/nm5duitsertest.mjs).
+  */
   const raaktDoos = (c, ax, az, bx, bz) => {
+    if (negeer && negeer.includes(c)) return false;
     if (lijnY != null) {
       const onder = c.y0 != null ? c.y0 : 0;
       if (lijnY < onder || lijnY > onder + c.h) return false;
@@ -2562,6 +2568,25 @@ export function zichtVrij(x1, z1, x2, z2, hoogte = 1.2, grondY = null) {
  schootsveld. js/vehicles.js geeft hier zijn eigen toets aan.
 */
 let zichtBlokker = null;
+
+/*
+ De botsdozen waar het punt (x, z) binnen staat, op hoogte `y` (stap 167): voor wie op een vaste hoogte ín een pand
+ staat (`vasteGrond`, js/persoon.js), zodat zijn kijklijn niet in zijn eigen doos begint (`zichtVrij`, `negeer`).
+*/
+export function dozenOp(x, z, y = null) {
+  if (rooster === null || roosterVoor !== colliders.length) bouwRooster();
+  const uit = [];
+  const toets = (c) => {
+    if (c.h <= 0) return;
+    if (y != null) { const onder = c.y0 != null ? c.y0 : 0; if (y < onder || y > onder + c.h) return; }
+    const dx = x - c.cx, dz = z - c.cz;
+    const lx = dx * c.cos - dz * c.sin, lz = dx * c.sin + dz * c.cos;
+    if (Math.abs(lx) <= c.hx && Math.abs(lz) <= c.hz) uit.push(c);
+  };
+  for (const c of rooster.get(CELSLEUTEL(Math.floor(x / CEL), Math.floor(z / CEL))) || []) toets(c);
+  for (const c of losseDozen) toets(c);
+  return uit;
+}
 export function zetZichtBlokker(fn) { zichtBlokker = fn; }
 
 /*

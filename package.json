@@ -253,6 +253,7 @@
     "nomercy2test": "node tools/nomercy2test.mjs 8123",
     "nomercy5test": "node tools/nomercy5test.mjs 8123",
     "nomercy5shots": "node tools/nomercy5shots.mjs 8123",
+    "nm5duitsertest": "node tools/nm5duitsertest.mjs 8123",
     "stafautotest": "node tools/stafautotest.mjs 8123",
     "stafautoshots": "node tools/stafautoshots.mjs 8123",
     "binnentest": "node tools/binnentest.mjs",
