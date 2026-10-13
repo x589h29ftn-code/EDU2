@@ -26,7 +26,10 @@ export const SLIM = {
   zicht: 42,            // overdag, zoals altijd (m)
   nacht: 20,            // 's nachts zonder licht
   lamp: 34,             // 's nachts onder een brandende lantaarn
-  zaklamp: 32,          // 's nachts in de bundel van een zaklamp
+  zaklamp: 32,          // 's nachts in de bundel van een zaklamp (sinds stap 156 alleen nog de koplampen van een politieauto)
+  langsMin: 5,          // (stap 156) zo dicht komt de weg naar dekking niet bij de speler
+  langsVoorbij: 0.75,   // (stap 156) dekking hoogstens driekwart van de weg naar de speler
+  flankBoog: 0.5,       // (stap 156) zoveel rad per stap om de speler heen
   zaklampHoek: 0.3,     // halve openingshoek van die bundel (rad)
   koplampen: 36,        // een auto 's nachts: die zie je aan zijn lampen
   regen: 0.8,           // zicht maal dit bij regen (zwaar 2), bewolkt de helft daarvan
@@ -158,7 +161,7 @@ export function struikOpLijn(ax, az, bx, bz, hurk = 0) {
  * Een plek waar een agent dekking heeft: gehurkt ziet hij de speler niet (er staat iets tussen), staand wel — of een
  * stapje opzij wel (`piek`, om een hoek kijken). `{ x, z, piek }` of null. `pos` is de agent, `sp` de speler.
  */
-export function zoekDekking(pos, sp, { rnd = Math.random, pogingen = SLIM.dekkingPogingen } = {}) {
+export function zoekDekking(pos, sp, { rnd = Math.random, pogingen = SLIM.dekkingPogingen, zonderLangs = false } = {}) {
   let beste = null, besteScore = -Infinity;
   for (let i = 0; i < pogingen; i++) {
     const hoek = rnd() * Math.PI * 2, r = 1.5 + rnd() * 9;
@@ -168,6 +171,12 @@ export function zoekDekking(pos, sp, { rnd = Math.random, pogingen = SLIM.dekkin
     const dS = Math.hypot(sp.x - cx, sp.z - cz);
     if (dS < SLIM.dekkingMin || dS > SLIM.dekkingMax) continue;
     if (zichtVrij(cx, cz, sp.x, sp.z, 0.7)) continue;              // gehurkt moet hij gedekt zitten
+    /*
+     (stap 156) Niet langs de speler heen: de dekking ligt aan de kant van de agent (verder dan driekwart van de weg naar
+     de speler telt niet), en de rechte weg ernaartoe komt niet dichter dan `langsMin` bij de speler. Eerst koos hij
+     soms een plek achter je en liep hij er dwars langs je heen.
+    */
+    if (!zonderLangs && !langsVrij(pos, { x: cx, z: cz }, sp)) continue;      // (`zonderLangs`: de oude regel, voor de tegenproef)
     let piek = null;
     const staand = zichtVrij(cx, cz, sp.x, sp.z, 1.45);
     if (!staand) {
@@ -186,6 +195,40 @@ export function zoekDekking(pos, sp, { rnd = Math.random, pogingen = SLIM.dekkin
     if (score > besteScore) { besteScore = score; beste = { x: cx, z: cz, piek }; }
   }
   return beste;
+}
+
+/**
+ * (stap 156) Mag een agent van `pos` naar `doel` zonder langs de speler `sp` te lopen? Het doel ligt aan zijn kant (de
+ * projectie op de lijn naar de speler is hoogstens `SLIM.langsVoorbij` van de weg), en de rechte lijn komt niet dichter
+ * dan `SLIM.langsMin` bij de speler — of niet dichter dan hij al was, als hij al dichterbij staat.
+ */
+export function langsVrij(pos, doel, sp) {
+  const ux = sp.x - pos.x, uz = sp.z - pos.z, L2 = ux * ux + uz * uz;
+  if (L2 < 1e-6) return true;
+  const t = ((doel.x - pos.x) * ux + (doel.z - pos.z) * uz) / L2;
+  if (t > SLIM.langsVoorbij) return false;
+  // de kortste afstand van de speler tot het stuk pos → doel
+  const dx = doel.x - pos.x, dz = doel.z - pos.z, l2 = dx * dx + dz * dz || 1;
+  const s = Math.max(0, Math.min(1, ((sp.x - pos.x) * dx + (sp.z - pos.z) * dz) / l2));
+  const d = Math.hypot(pos.x + dx * s - sp.x, pos.z + dz * s - sp.z);
+  return d >= Math.min(SLIM.langsMin, Math.sqrt(L2) - 0.01);
+}
+
+/**
+ * (stap 156) De flankeerder in een boog om de speler heen: het volgende punt op de cirkel om `mik` van straal
+ * `max(afst, waar hij nu staat)`, hoogstens `SLIM.flankBoog` rad verder richting `hoek`. Zo komt hij nooit dichter bij je
+ * dan hij al was, en loopt hij niet meer in een rechte lijn langs je heen naar de overkant.
+ */
+export function flankStap(pos, mik, hoek, afst) {
+  const nu = Math.atan2(pos.z - mik.z, pos.x - mik.x), dNu = Math.hypot(pos.x - mik.x, pos.z - mik.z);
+  let v = hoek - nu;
+  while (v > Math.PI) v -= Math.PI * 2;
+  while (v < -Math.PI) v += Math.PI * 2;
+  const stap = Math.max(-SLIM.flankBoog, Math.min(SLIM.flankBoog, v));
+  // dichterbij dan de flankafstand: eerst naar buiten, dan pas rond
+  const r = dNu < afst - 0.5 ? Math.min(afst, dNu + 3) : afst;
+  const a = nu + (dNu < afst - 0.5 ? stap * 0.3 : stap);
+  return { x: mik.x + Math.cos(a) * r, z: mik.z + Math.sin(a) * r };
 }
 
 // ---------------------------------------------------------------- raak schieten

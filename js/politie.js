@@ -29,7 +29,8 @@ import { KAART } from './kaartwereld.js';
 import { Navigatie } from './navigatie.js';
 import { zoekLooppad } from './looppad.js';
 // stap 144: verstoppen, dekking, raak schieten, het zoekgeheugen en de zaklamp
-import { SLIM, verstop, zichtAfstand, struikOpLijn, zoekDekking, raakKans, ZoekGeheugen, maakZaklamp, zetZaklampen,
+import { moeilijk } from './moeilijk.js';
+import { SLIM, verstop, zichtAfstand, struikOpLijn, zoekDekking, flankStap, raakKans, ZoekGeheugen,
   inBundel } from './politieslim.js';
 import { geluid } from './audio.js';
 import { initHelikopter, HELI_STER } from './helikopter.js';
@@ -775,10 +776,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       rol, zijde: Math.random() < 0.5 ? -1 : 1, flankPunt: null,
     };
     persoon.groep.visible = !inWagen;
-    // (stap 144) een zaklamp in de hand, 's nachts aan; kogels gaan er dwars doorheen
-    a.zaklamp = maakZaklamp();
-    a.zaklamp.raycast = () => {};
-    persoon.groep.add(a.zaklamp);
+    // (stap 144 gaf hem 's nachts een zaklamp; sinds stap 156 niet meer, gevraagd: "verwijder de zaklamp van ze in de nacht")
     agenten.push(a);
     return a;
   }
@@ -809,8 +807,6 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   {
     const proef = new THREE.Group(), lamp = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), new THREE.MeshStandardMaterial({ color: 0x2b6bff, emissive: 0x2b6bff }));
     proef.add(lamp); maakGloed(lamp, proef, 1);
-    // (stap 144) en de zaklamp
-    const zl = maakZaklamp(); zl.visible = true; proef.add(zl);
     proef.visible = false; proef.position.set(0, -500, 0);
     scene.add(proef);
   }
@@ -1509,7 +1505,6 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     geheugen.tik(dt);
     padBudget = 1;
     const nachtNu = !!(sfeer && sfeer.nacht);
-    zetZaklampen(nachtNu ? 1 : 0);
     stempelT -= dt;
     if (stempelT <= 0 && s > 0) {
       stempelT = 0.5;
@@ -1593,7 +1588,6 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       }
       if (a.wagen && !persoon.groep.visible) continue;      // zit nog in de auto
       if (a.staat === 'inAuto') continue;                  // (stap 144) terug in zijn wagen, wacht op zijn maat
-      if (a.zaklamp) a.zaklamp.visible = nachtNu;           // 's nachts de zaklamp aan
       if (a.onderdrukT > 0) a.onderdrukT -= dt;
       if (a.onderdrukRust > 0) a.onderdrukRust -= dt;
 
@@ -1601,7 +1595,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       a.kijkT -= dt;
       if (a.kijkT <= 0) {
         a.kijkT = 0.25;
-        a.zicht = zietSpeler(pos, persoon.yaw, a.staat === 'jacht' && dSp < 18, true);
+        // (stap 156: zonder zaklamp; 's nachts ziet een agent te voet je op 20 m, onder een lantaarn op 34)
+        a.zicht = zietSpeler(pos, persoon.yaw, a.staat === 'jacht' && dSp < 18, false);
         // (stap 144) hoe lang hij je al in het vizier heeft: de eerste schoten gaan vaker mis
         a.richtT = a.zicht ? (a.richtT || 0) + 0.25 : Math.max(0, (a.richtT || 0) - 0.5);
         if (a.zicht) {
@@ -1660,7 +1655,16 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
           const erIs = dF < 1.5;
           // (dichtbij recht erheen: de routeplanner over het wegennet nam voor vijftien meter opzij een omweg)
           // (stap 144: over de looproute, om schuttingen heen)
-          if (!erIs) loopNaar(a, voetPunt(a, pos, a.flankPunt, dt), dt, REN);
+          /*
+           (stap 156, gevraagd: "agenten lopen soms compleet langs Erik om dekking te zoeken of te flanken") De rechte lijn
+           naar het flankpunt liep dwars langs je heen als hij al dichtbij stond of jij naar hem toe kwam. Nu gaat hij in een
+           boog om je heen (`flankStap`): telkens een stukje van de cirkel, nooit dichterbij dan hij al was.
+          */
+          const stapPunt = erIs ? null : flankStap(pos, mik, a.flankHoek, FLANK.afst);
+          if (stapPunt) {
+            const [qx, qz] = resolveCollisions(stapPunt.x, stapPunt.z, 0.5);
+            loopNaar(a, voetPunt(a, pos, { x: qx, z: qz }, dt), dt, REN);
+          }
           persoon.kijkNaar(mik.x, mik.z, dt, 7);
           persoon.update(dt, { loopt: !erIs, mikt: true, snelheid: REN, hurkt: erIs ? FLANK.hurk : 0 });
           a.laag = erIs;
@@ -1737,7 +1741,8 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
           */
           const gedekt = !player.inCar && !zichtVrij(pos.x, pos.z, sp.x, sp.z, 1.0);
           const kans = raakKans({ d: dSp, richtT: a.richtT || 0, mp: a.mp, vaart: Math.hypot(spSnelheid.x, spSnelheid.z),
-            inAuto: !!player.inCar, hurk: player.hurk || 0, gedekt, onderdrukt: a.onderdrukT > 0, donker: nachtNu && !verstopNu.lamp });
+            inAuto: !!player.inCar, hurk: player.hurk || 0, gedekt, onderdrukt: a.onderdrukT > 0, donker: nachtNu && !verstopNu.lamp })
+            * moeilijk.waarden.raak;                     // (stap 157) de moeilijkheidsgraad, js/moeilijk.js
           for (let k = 0; k < salvo; k++) if (Math.random() < kans) schade += SCHADE;
         }
         continue;
@@ -2053,7 +2058,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     } else if (s > 0 && !rust) {
       gezienT += dt;
       const wachten = VERGETEN + s * 6;
-      if (gezienT > wachten) heat = Math.max(0, heat - KOEL * dt);
+      if (gezienT > wachten) heat = Math.max(0, heat - KOEL * moeilijk.waarden.koel * dt);
     }
 
     // geen sterren meer: iedereen gaat weg

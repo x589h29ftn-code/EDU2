@@ -1,6 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, soortenVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee, resolveCollisions, addCollider } from './world.js';
+import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, soortenVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee, resolveCollisions, addCollider, LOD } from './world.js';
 import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
@@ -43,6 +43,9 @@ import { zetKoplampen, autoMaat } from './carmodel.js';
 import { maakAutoBinnen, autoKijk } from './autobinnen.js';
 import { werkSchuifdeurenBij, SCHUIFDEUREN } from './zuilengang.js';
 import { maakGedrag } from './gedrag.js';
+import { AAFF_PAND } from './aaff.js';
+import { GRAFISCH, GRAFISCH_RIJ, grafischVoorkeur, bewaarGrafisch } from './grafisch.js';
+import { moeilijk, koppelLeven } from './moeilijk.js';
 import { maakProp } from './props.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, logo100nl, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
@@ -365,7 +368,8 @@ sun.castShadow = true;
  zodat de schaduwranden niet gaan zwemmen als je loopt. Op een telefoon blijft
  het zoals het was.
 */
-const SHADOW_MAP = IS_TOUCH ? 1024 : 3072;
+const SHADOW_MAP_STANDAARD = IS_TOUCH ? 1024 : 3072;
+let SHADOW_MAP = SHADOW_MAP_STANDAARD;      // (stap 157) de grafische stand schaalt hem (js/grafisch.js)
 sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
 sun.shadow.camera.near = 8; sun.shadow.camera.far = 230;
 const SHADOW_R = IS_TOUCH ? 52 : 38;
@@ -588,6 +592,7 @@ await adem('de speler', 0.966);
 const [ox, oz] = toWorld(START.at[0], START.at[1]);
 const beginpunt = verhaalStart() || (KAART ? startKaart() : { x: ox, z: oz, yaw: START.yaw });
 const player = new Player(camera, scene, beginpunt.x, beginpunt.z, beginpunt.yaw);
+koppelLeven(player);       // (stap 157) de moeilijkheidsgraad schaalt elke treffer (js/moeilijk.js)
 await adem('verkeer', 0.97);
 const vehicles = new Vehicles(scene, world.parkSpots);
 await adem('voetgangers', 0.978);
@@ -2552,6 +2557,17 @@ menu.zetOpslagen(() => opslagen().map(o => {
     onder: [moment, datum, o.straat].filter(Boolean).join(' · ') };
 }), (n) => kiesPlek(n));
 menu.zetInstellingen(() => [
+  // stap 157 (gevraagd: grafische standen en een moeilijkheidsgraad, "standaard hoe het nu is")
+  {
+    id: 'grafisch', naam: 'Grafische stand',
+    waarde: () => ({ laag: 'laag (voor een zwakke pc)', normaal: 'normaal', hoog: 'hoog (verder scherp, scherpere schaduw)' })[grafisch],
+    volgende: () => { const n = GRAFISCH_RIJ[(GRAFISCH_RIJ.indexOf(grafisch) + 1) % GRAFISCH_RIJ.length]; bewaarGrafisch(n); zetGrafisch(n); },
+  },
+  {
+    id: 'moeilijk', naam: 'Moeilijkheid',
+    waarde: () => ({ makkelijk: 'makkelijk (minder schade, de politie mist vaker)', normaal: 'normaal', moeilijk: 'moeilijk (meer schade, de politie raakt vaker)' })[moeilijk.stand],
+    volgende: () => { moeilijk.volgende(); },
+  },
   {
     id: 'scherpte', naam: 'Scherpte',
     waarde: () => `${scherpte} (${pixelVerhouding(scherpte).toFixed(2)}×)`,
@@ -2650,6 +2666,32 @@ const grasVeld = (KAART && !BOVEN) ? maakGrasVeld(scene,
   // (stap 138: plus de hoogte van een viaduct of de bak van de N7; daar zweefden de pollen op maaiveldhoogte boven de rijksweg)
   (x, z) => { const v = vlakOp(x, z); return v ? (v.dekh ? v.dekh + v.y : v.y + grondHoogte(x, z, -Infinity)) : 0; }) : null;
 if (grasVeld) waaitMee(grasVeld.mat);
+
+/*
+ (stap 157) De grafische stand: LOD-afstand, schaduwkaart, gras in 3D en hoe ver voetgangers een lichaam hebben
+ (js/grafisch.js). `normaal` is het spel zoals het was. Een nieuwe schaduwkaart: de oude weggooien, three maakt hem in
+ de volgende schaduwpas opnieuw op de nieuwe maat.
+*/
+const LOD_SCHAAL_STANDAARD = LOD.schaal;
+let grafisch = grafischVoorkeur();
+function zetGrafisch(stand) {
+  const g = GRAFISCH[stand] || GRAFISCH.normaal;
+  grafisch = g.naam;
+  LOD.schaal = LOD_SCHAAL_STANDAARD * g.lod;
+  const max = Math.min(renderer.capabilities.maxTextureSize || 4096, 4096);
+  const kaart = Math.min(max, Math.round(SHADOW_MAP_STANDAARD * g.schaduw));
+  if (kaart !== SHADOW_MAP) {
+    SHADOW_MAP = kaart;
+    sun.shadow.mapSize.set(kaart, kaart);
+    if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+    renderer.shadowMap.needsUpdate = true;
+  }
+  if (grasVeld) grasVeld.mesh.visible = g.gras;
+  npcs.ZICHT = g.mensen; npcs.ZICHT_GROF = Math.min(350, g.grof);
+  updateLOD(player.pos.x, player.pos.z);
+  return g;
+}
+zetGrafisch(grafisch);
 
 const sfeer = initSfeer({
   scene, camera, renderer, sun, hemi, fill, skyUniforms, hud,
@@ -2930,6 +2972,7 @@ function loop() {
     if (tuning) tuning.update(dt, verhaal.aanspreekbaar);
     if (vishandel) vishandel.update(dt);
     gezondheid.update(dt);                   // vanzelf herstel tot de helft (stap 138)
+    if (AAFF_PAND.nu) AAFF_PAND.nu.update(dt, sfeer.nacht);   // (stap 159) de logo's aaff. en Excellente 's nachts aan
     if (pizzabaan) pizzabaan.update(dt, { vrij: !!verhaal.klusVrij && !(verhaal.klusjes && verhaal.klusjes.bezig) });
     djdienst.update(dt, { vrij: !verhaal.missieBezig });
     // politie afgeschud: dat is ook nieuws (stap 131)
@@ -3314,6 +3357,8 @@ opstartStap('klaar');
 window.__game = {
   // stap 152: de schuifdeuren van de Poiesz (js/zuilengang.js)
   schuifdeuren: SCHUIFDEUREN, werkSchuifdeurenBij,
+  get aaff() { return AAFF_PAND.nu; },
+  zetGrafisch, get grafisch() { return grafisch; }, moeilijk, get schaduwKaart() { return SHADOW_MAP; },
   // stap 131
   pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst,
   // stap 138: levens zoals in GTA

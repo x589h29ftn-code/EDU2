@@ -182,7 +182,8 @@ export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart
     player.zetWapen(player.wapens.includes(s.wapen) ? s.wapen : player.wapens[0]);
     if (typeof s.ammo === 'number') player.ammo = s.ammo;
   }
-  if (typeof s.health === 'number') player.health = s.health;
+  // (stap 157) zonder de schaling van de moeilijkheidsgraad: dit is geen treffer
+  if (typeof s.health === 'number') { if (player.zetLevenRuw) player.zetLevenRuw(s.health); else player.health = s.health; }
   player.c4 = typeof s.c4 === 'number' ? s.c4 : 0;
   player.drone = !!s.drone;
   player.packs = typeof s.packs === 'number' && isFinite(s.packs) ? Math.max(0, Math.min(5, Math.round(s.packs))) : 0;   // 5 = LEVEN.maxPacks

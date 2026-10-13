@@ -13,7 +13,8 @@
  7. De looproute: een agent komt in een achtertuin waar hij over de straat niet in kwam.
  8. Terug naar de auto: helemaal uit beeld lopen ze terug, stappen in en rijden weer mee.
  9. Rammen, insluiten, omsingelen.
-10. De hud zegt VERSTOPT; de zaklamp vangt geen kogels; 's nachts geen nieuwe shader.
+10. De hud zegt VERSTOPT; de zaklamp vangt geen kogels; 's nachts geen nieuwe shader. (Sinds stap 156 heeft een agent
+    geen zaklamp meer; de bundel telt nog voor de koplampen van een wagen.)
 
  Gebruik: npm run server &  node tools/politieslimtest.mjs 8123
 */
@@ -209,12 +210,12 @@ const nacht = await page.evaluate(() => {
     const zonder = P.zietSpeler({ x: ax, z: az }, yaw, false, false);
     window.__dag(); P.update(0.001);
     const dagOp = P.zietSpeler({ x: ax, z: az }, yaw, false, true), dagNaast = P.zietSpeler({ x: ax, z: az }, yaw + 0.6, false, true);
-    // de zaklamp aan een agent
+    // (stap 156) geen zaklamp meer aan een agent, ook 's nachts niet
     const a = P.proef.agent(ax, az);
     window.__nacht(); P.update(0.001);
-    const lampAan = a.zaklamp.visible && a.zaklamp.material.opacity > 0;
-    window.__dag(); P.update(0.001);
-    const lampUit = !a.zaklamp.visible || a.zaklamp.material.opacity === 0;
+    let lamp = !!a.zaklamp;
+    a.persoon.groep.traverse(o => { if (o.userData && o.userData.zaklamp) lamp = true; });
+    const lampAan = !lamp, lampUit = true;
     return { isNacht, op, naast, zonder, dagOp, dagNaast, lampAan, lampUit, d };
   }
   return { isNacht, geen: true };
@@ -222,10 +223,11 @@ const nacht = await page.evaluate(() => {
 ok(nacht.isNacht, "het is nacht (01:00)");
 ok(!nacht.geen, 'een stuk weg zonder lantaarn met 25 m vrij zicht');
 if (!nacht.geen) {
-  ok(nacht.op && !nacht.naast, "op 25 m in de bundel van zijn zaklamp ziet hij je, 0,6 rad ernaast niet");
+  // (de bundel bestaat nog voor de koplampen van een politieauto; een agent te voet gebruikt hem sinds stap 156 niet)
+  ok(nacht.op && !nacht.naast, "op 25 m in een bundel (de koplampen van een wagen) ziet hij je, 0,6 rad ernaast niet");
   ok(!nacht.zonder, 'zonder zaklamp ook niet');
   ok(nacht.dagOp && nacht.dagNaast, 'overdag allebei wel');
-  ok(nacht.lampAan && nacht.lampUit, "de zaklamp brandt 's nachts en niet overdag");
+  ok(nacht.lampAan && nacht.lampUit, "(stap 156) een agent heeft 's nachts geen zaklamp");
 }
 
 // ---------- 4. raak schieten ----------
@@ -509,7 +511,7 @@ const rest = await page.evaluate(() => {
   if (R) {
     const P2 = g.player;
     const kijk = () => { P2.pos.set(pd.x + l.x * 8, 2, pd.z + l.z * 8); P2.yaw = Math.atan2(l.x, l.z); P2.pitch = -0.1; P2.applyCamera(); g.scene.updateMatrixWorld(true); R.render(g.scene, P2.camera); };
-    a.zaklamp.visible = false; kijk();
+    kijk();
     voor = R.info.programs.length;
     P.update(0.001); kijk(); kijk();
     na = R.info.programs.length;
