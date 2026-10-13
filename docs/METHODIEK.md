@@ -9160,6 +9160,37 @@ in twee delen van 4,0 en 3,45 m uit de BAG) met de entree, de blauwe luifel en h
 de diagonalen langs een lijn en op twee hoogtes, de puntgevel, de plint en de staanders, het bord op beide gevels, de aanbouw met
 glas, wit en de luifel, de botsdozen, geen nieuw programma dag en nacht) met `tennishalshots` (tennishal_entree, tennishal_lang,
 tennishal_boven).
+**De oude Geeuwbrug (stap 161, 13 okt).**
+
+Gevraagd: "herbouw ook locatie -77.4, -459.8 zie foto ingame. dit is een deel van de oude geeuw brug. Zie torentje met
+tekst geeuwbrug." Op die plek stond het geschatte 3D BAG-blok van Stadsrondweg-Zuid 90 (BAG 0091100000016709, 1966,
+`spil`): een muur van 3,4 m in baksteen over 28 × 18 m, met in de hoek een toren van 9,2 m.
+- *Wat het is*: de BAG-voetafdruk is breder dan wat er staat. Het betonnen landhoofd zelf staat in de BGT als `bouwwerk`
+  (8,15 m breed, 29,25 m lang, de korte kant aan de Geeuw; aan het water een lage plaat van 0,5 m tot in het water). Op
+  dat bouwwerk staat nu js/geeuwbrug.js: `geeuwAssen` leest de richting uit de langste rand, de breedte uit de punten
+  tussen 6 en 9,5 m van die rand (de plaat aan het water ligt verder), het eind aan het water uit de waterpolygonen en de
+  zijde van de toren uit de hoge punten van het BAG-model.
+- *Het bouwsel*: een basement van 2,4 m met een uitstekende dakrand (2,7 m), graffiti op canvas (verzonnen woorden in
+  grote letters met contour, schaduw, glimlicht en druipers, tags en overgeschilderde vlakken; op de kop aan de landkant
+  één stuk in een zwart-gele rand), drie dichtgemetselde openingen en een roestig deurtje; op het eind aan het water een
+  voet van 2 × 2 × 2,5 m en de cabine (3,6 × 3,2 m, smaller naar onderen, blauwe kozijnen, een kapotte ruit, een plat
+  dakje met een randje) met het bordje "Geeuwbrug" op de kop aan het water en naar het fietspad. Elf gewone
+  MeshStandardMaterials, enkelzijdig, bij het opstarten gemaakt; per materiaal één geometrie.
+- *Draairichting*: een vlak krijgt zijn normaal naar buiten mee en de volgorde van de hoeken volgt daaruit, zodat het niet
+  uitmaakt welke kant het assenstelsel op draait (`n` wijst van de zijde van de toren af; of dat links- of rechtsom is,
+  hangt van de kaart af).
+- *Botsdozen*: js/kaartwereld.js slaat van dit pand (`GEEUW_PANDEN`) niet alleen de geometrie maar ook de botsdozen over:
+  de doos van de BAG-voetafdruk zou op het gras naast het landhoofd een onzichtbare muur zijn. De module zet er twee:
+  het basement en het torentje (dat 1,2 m over het water steekt). Nagemeten langs beide assen.
+- *Groen*: `GEEUWBRUG` in js/bouwvlak.js, een gedraaide rechthoek met de getallen uit `geeuwAssen`; de proef kijkt of ze
+  nog kloppen.
+- *Shaders*: overdag geen nieuw programma. 's Nachts één: de elf materialen delen één programma, en three geeft de
+  nachtvariant vrij zodra ze een beeld overdag getekend zijn (het verschil zit in de lampen en `shadowMapEnabled`); de
+  eerste keer 's nachts weer in beeld vertaalt hem opnieuw. Hetzelfde als bij het kantoor aan het water (open punt 30).
+
+*Proef*: `npm run geeuwbrugtest` (op de voetafdruk en het oude blok weg, 2–3 m hoog, lang en smal, de cabine op de voet
+aan het water, het bordje, blauwe kozijnen, graffiti, botsdozen, geen groen, shaders). Foto's: `npm run geeuwbrugshots`
+(geeuwbrug_lang, _kop, _boven, _cabine).
 
 **Wat nog niet af is** (in volgorde).
 

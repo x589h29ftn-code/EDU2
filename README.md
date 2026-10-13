@@ -5134,6 +5134,18 @@ seconde nadat het filmpje voorbij is begint hij te praten (`verhaal.beginGesprek
 uit `js/main.js`), en daarna klikt het gesprek gewoon met <kbd>E</kbd> door. Bij
 een vervolgspel gebeurt dat niet — dan sta je midden in een missie.
 
+## De oude Geeuwbrug
+
+Aan de Geeuw, tussen het fietspad langs de rijksweg en het water, staat wat er over is van de oude Geeuwbrug: een lang,
+laag betonnen landhoofd vol graffiti, met op het eind aan het water het brugwachtershuisje op zijn voet. De cabine heeft
+blauwe kozijnen (een ruit is kapot) en onder de ramen een wit bordje "Geeuwbrug". Alles is op canvas getekend, ook de
+graffiti; de woorden zijn verzonnen. Je kunt er niet doorheen lopen, en tussen het basement en het water groeit niets.
+
+![De lange kant, vanaf het grasveld](docs/screenshots/geeuwbrug_lang.png)
+![De kop aan het water met het torentje](docs/screenshots/geeuwbrug_kop.png)
+![Het torentje dichtbij, met het bordje](docs/screenshots/geeuwbrug_cabine.png)
+![Van boven](docs/screenshots/geeuwbrug_boven.png)
+
 ## Dag, nacht en weer
 
 De zon draait van oost naar west, met bijpassende kleuren voor licht, lucht en mist. Wordt het donker,

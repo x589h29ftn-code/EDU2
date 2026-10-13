@@ -58,6 +58,19 @@ export const NOMERCY_SET = { x: -150.8, z: -180.6, r: 8.5 };
 */
 export const NOMERCY_KAMP = { x: -63, z: -214, r: 12, start: { x: -95, z: -214 } };
 
+/*
+ En de oude Geeuwbrug (stap 161, js/geeuwbrug.js): het betonnen landhoofd met het torentje aan de Geeuw, op het
+ BGT-bouwwerk binnen BAG 0091100000016709. Een gedraaide rechthoek: het midden, de richting van de lange as (naar het
+ water) en de halve maten, met de cabine die 1,2 m over het eind steekt erbij. Deze getallen komen uit `geeuwAssen`
+ (midden −81,53/−478,94, hoek −0,749, 29,25 × 8,15 m); npm run geeuwbrugtest kijkt of ze nog kloppen.
+*/
+export const GEEUWBRUG = { cx: -81.53, cz: -478.94, hoek: -0.749, hx: 14.62 + 1.3, hz: 4.07 + 0.3, marge: 1.0 };
+
+function inGedraaid(x, z, r) {
+  const dx = x - r.cx, dz = z - r.cz, c = Math.cos(r.hoek), s = Math.sin(r.hoek);
+  return Math.abs(dx * c + dz * s) < r.hx + r.marge && Math.abs(-dx * s + dz * c) < r.hz + r.marge;
+}
+
 export const GARAGE = {
   // het gebouw: de glazen gevel op x0 kijkt naar de Lemmerweg (west)
   x0: 770, x1: 788, z0: 120, z1: 146,
@@ -80,7 +93,8 @@ export function inBouwvlak(x, z) {
   return inRechthoek(x, z, G, MARGE) || inRechthoek(x, z, G.voor, 0.5) || inRechthoek(x, z, G.inrit, 0.5)
     || inRechthoek(x, z, L, MARGE) || inRechthoek(x, z, L.erf, 1) || inRechthoek(x, z, L.oprit, 0.5) || inRechthoek(x, z, L.kade, 0.5)
     || Math.hypot(x - NOMERCY_SET.x, z - NOMERCY_SET.z) < NOMERCY_SET.r
-    || Math.hypot(x - NOMERCY_KAMP.x, z - NOMERCY_KAMP.z) < NOMERCY_KAMP.r;
+    || Math.hypot(x - NOMERCY_KAMP.x, z - NOMERCY_KAMP.z) < NOMERCY_KAMP.r
+    || inGedraaid(x, z, GEEUWBRUG);
 }
 
 /*
