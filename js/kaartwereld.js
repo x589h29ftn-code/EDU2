@@ -22,6 +22,7 @@ import { bouwTankstations } from './tankstation.js';
 import { bouwTennisparken } from './tennis.js';
 import { bouwZuilengangen } from './zuilengang.js';
 import { bouwAaff, EIGEN_PANDEN } from './aaff.js';
+import { bouwTennishal } from './tennishal.js';   // (stap 162) zet zijn pand-id zelf in EIGEN_PANDEN
 import { bouwAfsluitingen, bouwGrenzen } from './afsluiting.js';
 import { inBouwvlak } from './bouwvlak.js';
 
@@ -1049,6 +1050,8 @@ export function* bouwKaartWereldStap(scene, W) {
     if (gangen) console.log(`kaart: ${gangen} zuilengang(en) gebouwd`);
     // (stap 159) het kantoor aan het water naast de loods van Bouwman, met de logo's aaff. en Excellente
     if (bouwAaff(scene, K)) console.log('kaart: het kantoor aan het water (aaff., Excellente) gebouwd');
+    // (stap 162) Tennishal Sneek aan de Lemmerweg 130a
+    if (bouwTennishal(scene, K)) console.log('kaart: Tennishal Sneek gebouwd');
   } else {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor);
