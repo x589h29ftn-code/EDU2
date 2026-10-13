@@ -129,13 +129,14 @@ const lopen = await page.evaluate(async () => {
   const meet = (vrij) => {
     n.stoepVrij = vrij;
     // iedereen opnieuw neerzetten in de wijk, en een minuut laten lopen
-    for (const p of n.people) { n.pickSegment(p, true); p.steek = 0; }
+    for (const p of n.people) { if (p.doe && n.gedrag) n.gedrag.afmaken(p); n.pickSegment(p, true); p.steek = 0; }
     let door = 0, stappen = 0, lopend = 0, tegen = 0;
     const vorig = new Map();
     for (let i = 0; i < 600; i++) {
       n.update(0.1, i * 0.1, 0, 0);
       for (const p of n.people) {
-        if (!p.alive || p.steek > 0 || p.smak) { vorig.delete(p); continue; }
+        // (stap 154: wie iets doet loopt bewust het bankje op en door de pui van de Poiesz; dat is geen looplijn)
+        if (!p.alive || p.steek > 0 || p.smak || p.doe) { vorig.delete(p); continue; }
         const v = vorig.get(p);
         const stap = v ? Math.hypot(p.x - v.x, p.z - v.z) : 0;
         if (v && stap < 2) {

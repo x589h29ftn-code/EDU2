@@ -58,7 +58,8 @@ const bouw = await page.evaluate(async () => {
 });
 ok(bouw.ogen && bouw.ogenDriehoeken >= 4, 'iedereen heeft ogen in zijn gezicht',
   `${bouw.ogenDriehoeken} driehoeken`);
-ok(bouw.namen.length === 12, 'een mens bestaat uit twaalf soorten onderdelen', bouw.namen.join(', '));
+// (stap 153 oogwit, stap 154 drie kapsels, een volle baard en een rok: negentien)
+ok(bouw.namen.length === 19, 'een mens bestaat uit negentien soorten onderdelen', bouw.namen.join(', '));
 ok(bouw.hoofdGroep, 'het hoofd is een eigen groep, zodat het los kan knikken');
 ok(bouw.driehoeken > 400, 'en een heel lichaam is meer dan een stapeltje dozen', `${bouw.driehoeken} driehoeken`);
 

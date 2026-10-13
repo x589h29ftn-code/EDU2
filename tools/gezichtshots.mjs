@@ -2,7 +2,8 @@
  Close-ups van een persoon (stap 153, npm run gezichtshots): het gezicht van voren en schuin, en de hand. Laadt alleen
  js/persoon.js op een lege pagina met een eigen zon, dus een paar seconden.
 
-   gezicht_voor.png, gezicht_schuin.png, gezicht_hand.png, gezicht_rij.png (vijf mensen naast elkaar op 4 m)
+   gezicht_voor.png, gezicht_schuin.png, gezicht_hand.png, gezicht_rij.png (vijf mensen naast elkaar op 4 m),
+   gezicht_lijf.png (het hele lichaam schuin van voren), gezicht_achter.png (van achteren)
 
  Gebruik: npm run server &  node tools/gezichtshots.mjs [poort] [map]
 */
@@ -29,12 +30,13 @@ await page.setContent(`<!doctype html><html><head><script type="importmap">{ "im
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x9fb3c2);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x6b6450, 1.1));
   const zon = new THREE.DirectionalLight(0xfff4e0, 1.8); zon.position.set(-2, 4, -3); scene.add(zon);
+  // (stap 154) een gevarieerde rij: mannen en vrouwen, huidskleuren, kapsels, baarden, een rok
   const mensen = [
-    new Persoon({ shirt: 0x2a6b3a, huid: 0xd9b48f, haar: 0x2a1d12 }),
-    new Persoon({ shirt: 0x8a2d2d, huid: 0x8d5a3b, haar: 0x111111, korteMouw: true }),
-    new Persoon({ shirt: 0x2d4f8a, huid: 0xf0cfb0, haar: 0xb8945a }),
-    new Persoon({ shirt: 0x444444, huid: 0xc89a74, haar: 0x6a6a6a, pet: true }),
-    new Persoon({ shirt: 0xd8c27a, huid: 0x5a3a28, haar: 0x1a120c }),
+    new Persoon({ shirt: 0x2a6b3a, huid: 0xf3dcc8, haar: 0xb8945a, vrouw: true, kapsel: 'lang', rok: true, broek: 0x2b2b44 }),
+    new Persoon({ shirt: 0x8a2d2d, huid: 0x7a4a2e, haar: 0x111111, korteMouw: true, baard: 'vol' }),
+    new Persoon({ shirt: 0x2d4f8a, huid: 0xd9b48f, haar: 0x2a1d12 }),
+    new Persoon({ shirt: 0xd8c27a, huid: 0x3f2718, haar: 0x1a120c, vrouw: true, kapsel: 'staart' }),
+    new Persoon({ shirt: 0x444444, huid: 0xc89a74, haar: 0x9a9a9a, kapsel: 'kaal', baard: 'stoppels' }),
   ];
   mensen.forEach((p, i) => { p.groep.position.set((i - 2) * 0.75, 0, 0); p.groep.rotation.y = Math.PI; p.update(0.016, {}); scene.add(p.groep); });
   window.__t = { THREE, R, scene, mensen };
@@ -56,6 +58,8 @@ await foto('gezicht_schuin', [0.5, 1.64, 0.6], [0, 1.6, 0], 22);
 const hand = await page.evaluate(() => { const v = new window.__t.THREE.Vector3(); window.__t.mensen[2].armRechts.eind.getWorldPosition(v); return v.toArray(); });
 await foto('gezicht_hand', [hand[0] + 0.25, hand[1] + 0.05, hand[2] + 0.30], [hand[0], hand[1] - 0.05, hand[2]], 30);
 await foto('gezicht_rij', [0, 1.5, 4.2], [0, 1.15, 0], 36);
+await foto('gezicht_lijf', [0.9, 1.3, 2.3], [0, 0.95, 0], 42);
+await foto('gezicht_achter', [-0.8, 1.4, -2.2], [0, 0.95, 0], 42);
 await browser.close();
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');
 process.exit(fouten ? 1 : 0);

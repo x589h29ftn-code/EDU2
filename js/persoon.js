@@ -137,6 +137,12 @@ function mesh(geo, m, x = 0, y = 0, z = 0) {
 
 // (stap 153) het oogwit: gebroken wit, niet spierwit
 export const OOGWIT = 0xeee8de;
+/*
+ (stap 154) Een vrouw: de romp 9 % smaller en 4 % minder diep, het bekken 7 % breder, de schouders 7 % naar binnen.
+ Gedeeld met js/npc.js, waar het een schaal per instantie is.
+*/
+export const LIJF_VROUW = { romp: [0.91, 0.96], bekken: [1.07, 1.03], schouder: 0.93 };
+const KAPSEL_DEEL = { kort: DEEL.haar, halflang: DEEL.haarHalflang, lang: DEEL.haarLang, staart: DEEL.haarStaart };
 
 export class Persoon {
   /*
@@ -147,7 +153,10 @@ export class Persoon {
   */
   constructor({ shirt = 0x2a6b3a, broek = 0x24303f, huid = 0xd9b48f, haar = 0x2a1d12,
     hoogte = 1.0, wapen = false, pet = false, petKleur = 0x1d2634,
-    vest = null, schoen = 0x24242a, oog = 0x2a1d14, korteMouw = false } = {}) {
+    vest = null, schoen = 0x24242a, oog = 0x2a1d14, korteMouw = false,
+    // (stap 154) vrouw: smallere schouders en bredere heupen; kapsel kort, halflang, lang, staart of kaal; een baard
+    // (stoppels, kort of vol) en een rok (dan zijn de kuiten huid, of `kuit` voor een panty)
+    vrouw = false, kapsel = 'kort', baard = 'geen', rok = false, kuit = null } = {}) {
     // elk soort onderdeel zijn eigen doek (js/lichaam.js): breisteek, keper,
     // huid, het gezicht, haar en leer
     const mShirt = lichaamMat(shirt, 'stof'), mBroek = lichaamMat(broek, 'broek'), mHuid = lichaamMat(huid, 'huid');
@@ -159,8 +168,10 @@ export class Persoon {
     this.groep.scale.setScalar(hoogte);
 
     // romp, bekken, nek en hoofd
-    this.groep.add(mesh(DEEL.romp(), mShirt, 0, MAAT.romp, 0));
-    this.groep.add(mesh(DEEL.bekken(), mBroek, 0, MAAT.bekken, 0));
+    const romp = mesh(DEEL.romp(), mShirt, 0, MAAT.romp, 0), bekken = mesh(DEEL.bekken(), mBroek, 0, MAAT.bekken, 0);
+    if (vrouw) { romp.scale.set(LIJF_VROUW.romp[0], 1, LIJF_VROUW.romp[1]); bekken.scale.set(LIJF_VROUW.bekken[0], 1, LIJF_VROUW.bekken[1]); }
+    this.groep.add(romp, bekken);
+    if (rok) this.groep.add(mesh(DEEL.rok(), mBroek, 0, MAAT.bekken, 0));
     this.groep.add(mesh(DEEL.nek(), mHuid, 0, MAAT.nek, 0));
     // hoofd met ogen; de ogen zijn een eigen mesh omdat ze een eigen kleur hebben
     this.hoofd = new THREE.Group();
@@ -171,7 +182,12 @@ export class Persoon {
     this.groep.add(this.hoofd);
     // pet of haar hangt aan het hoofd, zodat hij meedraait als het hoofd knikt
     if (pet) this.hoofd.add(mesh(DEEL.pet(), lichaamMat(petKleur, 'stof'), 0, 0.020, 0));
-    else this.hoofd.add(mesh(DEEL.haar(), mHaar, 0, 0.020, 0));
+    else if (kapsel !== 'kaal') this.hoofd.add(mesh((KAPSEL_DEEL[kapsel] || DEEL.haar)(), mHaar, 0, 0.020, 0));
+    if (baard !== 'geen') {
+      // stoppels: de korte baard in een kleur tussen huid en haar in
+      const bk = baard === 'stoppels' ? new THREE.Color(huid).lerp(new THREE.Color(haar), 0.45).getHex() : haar;
+      this.hoofd.add(mesh(baard === 'vol' ? DEEL.baardVol() : DEEL.baard(), lichaamMat(bk, 'haar')));
+    }
     if (vest) this.groep.add(mesh(DEEL.vest(), lichaamMat(vest, 'stof'), 0, MAAT.romp, 0));
 
     /*
@@ -195,14 +211,17 @@ export class Persoon {
       return { boven, onder, eind };
     };
 
-    this.armLinks = ledemaat(-SCHOUDER_X, MAAT.schouder, DEEL.bovenarm(), DEEL.onderarm(), DEEL.hand(),
+    const sX = SCHOUDER_X * (vrouw ? LIJF_VROUW.schouder : 1);
+    this.armLinks = ledemaat(-sX, MAAT.schouder, DEEL.bovenarm(), DEEL.onderarm(), DEEL.hand(),
       mShirt, mMouw, mHuid, MAAT.bovenarm, MAAT.onderarm);
-    this.armRechts = ledemaat(SCHOUDER_X, MAAT.schouder, DEEL.bovenarm(), DEEL.onderarm(), DEEL.hand(),
+    this.armRechts = ledemaat(sX, MAAT.schouder, DEEL.bovenarm(), DEEL.onderarm(), DEEL.hand(),
       mShirt, mMouw, mHuid, MAAT.bovenarm, MAAT.onderarm);
+    // met een rok zijn de benen onder de zoom huid (of een panty): ook de bovenbenen, anders leek het een korte broek
+    const mKuit = rok ? lichaamMat(kuit ?? huid, kuit ? 'broek' : 'huid') : mBroek;
     this.beenLinks = ledemaat(-MAAT.heupX, MAAT.heup, DEEL.bovenbeen(), DEEL.onderbeen(), DEEL.schoen(),
-      mBroek, mBroek, mSchoen, MAAT.bovenbeen, MAAT.onderbeen);
+      mKuit, mKuit, mSchoen, MAAT.bovenbeen, MAAT.onderbeen);
     this.beenRechts = ledemaat(MAAT.heupX, MAAT.heup, DEEL.bovenbeen(), DEEL.onderbeen(), DEEL.schoen(),
-      mBroek, mBroek, mSchoen, MAAT.bovenbeen, MAAT.onderbeen);
+      mKuit, mKuit, mSchoen, MAAT.bovenbeen, MAAT.onderbeen);
     // oude namen: js/verhaal.js kijkt naar de schouder om te zien of hij zwaait
     this.armL = this.armLinks.boven; this.armR = this.armRechts.boven;
     this.beenL = this.beenLinks.boven; this.beenR = this.beenRechts.boven;

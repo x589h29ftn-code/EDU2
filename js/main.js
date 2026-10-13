@@ -1,6 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
-import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, soortenVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee } from './world.js';
+import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, soortenVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee, resolveCollisions, addCollider } from './world.js';
 import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
@@ -42,6 +42,8 @@ import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, 
 import { zetKoplampen, autoMaat } from './carmodel.js';
 import { maakAutoBinnen, autoKijk } from './autobinnen.js';
 import { werkSchuifdeurenBij, SCHUIFDEUREN } from './zuilengang.js';
+import { maakGedrag } from './gedrag.js';
+import { maakProp } from './props.js';
 import { KLEUR } from './kaartkleuren.js';
 import { zetAnisotropie, reliëfStappen, zetUitstel, bordSpannenburg, logoTinga, logo100nl, wapenIcoon, inslagPluim, bloedSpatDoek, bloedPlasDoek } from './textures.js';
 import { bouwSporen, zetSpoor, werkSporenBij, sporenTeller } from './sporen.js';
@@ -785,6 +787,15 @@ const boerderij = initBoerderij({ scene, player, hud, verhaal }) || LEEG;
 // (js/supermarkt.js).
 await adem('de supermarkt', 0.996);
 const supermarkt = initSupermarkt({ scene, player, hud, verhaal }) || LEEG;
+/*
+ (stap 154) Wat voetgangers doen behalve lopen: een bankje, de Poiesz in Duinterpen in en uit, de fiets in het rek,
+ bellen (js/gedrag.js). De winkel is de ingang onder de zuilengang.
+*/
+npcs.gedrag = maakGedrag({
+  scene, kaart: KAART, winkel: (supermarkt.ingangen || []).find(i => i.gang) || null,
+  resolveCollisions, addCollider, maakProp, grondHoogte,
+});
+npcs.gedrag.zetFietsGeo(npcs.fiets.geometry, npcs.fiets.material);
 // en de studio van Radio Tinga aan de weg Tinga, met de zendmast op het dak (missie 18, js/studio.js)
 await adem('de studio', 0.997);
 const studio = initStudio({ scene, player, hud }) || LEEG;
@@ -2873,7 +2884,9 @@ function loop() {
       else derde.update(dt, null);
       geluid.gier(0);
     }
-    werkSchuifdeurenBij(dt, [player.pos]);   // (stap 152) de schuifdeuren onder de zuilengang van de Poiesz
+    // (stap 152) de schuifdeuren onder de zuilengang van de Poiesz; sinds stap 154 ook voor de voetgangers
+    werkSchuifdeurenBij(dt, [player.pos, ...npcs.gedrag.bijDeur(npcs.people)]);
+    npcs.zetRegen(sfeer.weer === 'regen' && sfeer.weerZwaar >= 1.5);
     werkSporenBij(dt);
     werkInslagenBij(dt);        // de stofwolkjes van de kogelinslagen
     werkBloedBij(dt);           // de spatten en de plassen

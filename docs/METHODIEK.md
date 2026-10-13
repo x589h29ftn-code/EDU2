@@ -8974,6 +8974,58 @@ Gevraagd: personen, "gezichten en handen". Ze hadden al een gezicht in het doek 
 gezicht (hoogstens 4 mm ervoor, de achterkant erin), vier vingers en een duim, de haarlijn boven het voorhoofd; en nog
 steeds onder de 4000 driehoeken.
 
+**De voetgangers: variatie, gedrag en een grove uitvoering op afstand (stap 154, 14 okt).**
+
+Gevraagd: "Personen optie 1, 3, 4" (grof op afstand; variatie in kleding en bouw; gedrag: de Poiesz in en uit, een
+bankje, bellen, een fiets op slot) en daarna "Verbeter ook de rest van de poppetjes en voeg div variatie huidskleur gender
+toe en lengte haar/baard".
+- *Het lichaam* (js/lichaam.js): armen en benen zijn draaiprofielen (`ledProfiel`: een LatheGeometry met een kuit, een
+  dij, een elleboog) in plaats van cilinders; het bekken heeft een riem; de schoen is één afgeplatte bol (de losse zool
+  stak als een licht plaatje onder de voet uit). Erbij: drie kapsels (`haarGeo` met `KAPSEL`: halflang, lang, een staart
+  met elastiekje), een rok (`DEEL.rok`, een binnen- en buitenkant zodat hij enkelzijdig kan), een volle baard
+  (`baardUit`). Een eerste volle baard was een masker; met de bol 6 % ruimer en 30 % uitlopend werd het een baard.
+- *Wie iemand is* (js/npc.js `kenmerken`): man of vrouw (de helft), kinderen (7 %), ouderen (14 %, grijs, trager, iets
+  voorover), kapsel, baard (stoppels mengen de huid met het haar), een rok met blote kuiten of een panty, negen
+  huidskleuren (onder een rok ook de bovenbenen: eerst bleven die in de broekkleur en leek het een korte broek; en de
+  benen krijgen hun kleur pas na de jogger, die zijn broek een eigen kleur geeft). Alles uit het nummer van de persoon, niet uit de lotingsreeks `r()`: die reeks levert ook de plekken en
+  snelheden, en twee trekkingen erbij maakt er een andere wijk van. Een vrouw heeft een smallere romp en een breder bekken
+  (`LIJF_VROUW` in js/persoon.js, ook voor de losse Persoon met `vrouw`, `kapsel`, `baard`, `rok`). Wat iemand niet heeft
+  staat op schaal nul in zijn mesh; zichtbaar blijft het onder de 4000 driehoeken (gemeten: hoogstens 3816).
+- *Regen*: wie een jas heeft (`jasBijRegen`, 62 %) trekt hem aan (de kleur van romp en mouwen, `zetRegen` vanuit
+  js/main.js zodra `weerZwaar` ≥ 1,5), een kwart steekt een paraplu op. De paraplu bleef bij droog weer eerst hangen bij
+  wie ver weg was: die krijgt niet elk beeld een houding, dus `metParaplu` was van het laatste getekende beeld. Nu telt de
+  stand van nu. De stok staat schuin van de hand naar boven het hoofd (rechtop hing het scherm 43 cm naast het hoofd).
+- *Gedrag* (js/gedrag.js, nieuw): een bezigheid (`p.doe`) neemt het wegvak over. Hij loopt van zijn punt op het wegvak in
+  een rechte lijn (met de botsdozen) naar een bankje (zitten, met de heup op de zitting), naar de schuifdeuren van de Poiesz
+  in Duinterpen (binnen uit beeld, `verborgen`, de deuren gaan voor hem open via `bijDeur`), of op de fiets naar het
+  fietsenrek naast de ingang (gehurkt op slot, de fiets blijft in het rek staan, dan de winkel in); terug naar hetzelfde
+  punt, en daar neemt het wegvak het zonder sprong over. Bellen is een houding (de onderarm teruggevouwen naar het oor,
+  `armZijR` naar binnen) met een telefoon in de hand. Wie schrikt breekt af en rent terug. Wie bezig is gaat niet slapen en
+  wordt niet verhuisd; neergaan maakt de bezigheid af bij het opstaan.
+  - Het fietsenrek had zijn botsdoos een kwartslag gedraaid: `addCollider` draait de andere kant op dan `rotation.y`. De
+    doos lag over de plekken van de fietsen en de fietser bleef er vier seconden tegenaan duwen en gaf het op.
+  - Een bankje op straat staat op de stoeprand (`KERB_Y`): de zitting op 0,615 m, en met de benen van `zitHouding` (voor
+    0,46) hingen de voeten 15 cm boven de grond. Nu zakken de bovenbenen schuin tot de enkel op de grond komt (6 cm).
+- *Grof op afstand*: tussen 200 en 350 m vóór je een figuurtje van drie meshes (romp, benen, hoofd: 64 driehoeken) in de
+  kleuren van de persoon. Naar huis gaan en inslapen mogen daarom vóór je pas buiten de 350 m (was 200 en 120); het
+  verhuizen van de verste begint op 380.
+
+- *De andere proeven*: `wapentest` miste na het rijden drie keer. Een oudere helde 0,07 rad voorover, en omdat de hele
+  figuur om de voeten kantelt stond zijn romp 8 cm naast zijn voeten; met de terugslag ging de kogel er net langs. Nu 0,035
+  met het hoofd naar voren, en de proef richt op de romp zoals hij getekend staat (en laat eerst een tweede beeld lopen:
+  de verdeling over de meshes gebeurt vóór het lopen, dus na een sprong heeft hij pas één beeld later een lichaam). Hij
+  telt nu negentien soorten onderdelen (ook `vuiltest`). `cliptest` telt wie iets doet niet meer mee (die loopt bewust het
+  bankje op en door de pui); zijn twee rode controles zijn op de commit ervoor ook rood (8 tegen 9 keer, en de lantaarn).
+  `bevolkingtest`: alleen de bekende rode (open punt 22). `vuiltest` heeft één rode controle ("elk schot daarvan is minder
+  trefzeker", 0 %) die op de commit ervoor ook rood is. `vloeiendtest`, `mensechttest`, `zuilengangtest` en `autolodtest`
+  groen.
+
+*Proef*: `npm run voetgangertest` (stap 154): de variatie geteld, wat iemand niet heeft op schaal nul, ≤ 4000 driehoeken,
+jassen en paraplu's (en weer weg), het bankje (de plek, de heup, de voeten, terug zonder sprong), de Poiesz (de deuren
+open, binnen uit beeld, weer naar buiten, de deuren dicht), de fiets (het rek, gehurkt, binnen, van het slot, weg), bellen
+(de telefoon bij het hoofd), schrik op het bankje, grof precies tussen 200 en 350 m, en geen nieuw shaderprogramma. Foto's:
+`npm run voetgangershots` (rij, poiesz, bank, regen); `npm run gezichtshots` heeft nu een gevarieerde rij.
+
 **Wat nog niet af is** (in volgorde).
 
 Van de vijf punten die de gebruiker expliciet voor later had laten liggen zijn er

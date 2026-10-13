@@ -578,6 +578,20 @@ blijft onder de 4000 driehoeken per mens.
 |---|---|---|
 | ![gezicht van voren](docs/screenshots/gezicht_voor.png) | ![gezicht schuin](docs/screenshots/gezicht_schuin.png) | ![de hand](docs/screenshots/gezicht_hand.png) |
 
+**Wie er op straat loopt** (stap 154). Mannen en vrouwen, kinderen en ouderen (grijs, wat trager en voorover), negen
+huidskleuren, kort, halflang of lang haar, een staart of kaal, stoppels, een korte of een volle baard, een rok met blote
+benen of een panty. Bij **regen** trekken de meesten een jas aan en steekt een kwart een **paraplu** op. En ze doen meer
+dan lopen: ze gaan op een **bankje** zitten, lopen de **Poiesz** in Duinterpen in en na een tijdje weer naar buiten (de
+schuifdeuren gaan voor ze open), zetten hun **fiets** in het rek naast de ingang op slot, en **bellen** onder het lopen.
+Wie schrikt, springt op en rent weg. Verder dan 200 m staat er tot 350 m een eenvoudig figuurtje in hun kleuren, zodat de
+straat in de verte niet leeg is.
+
+| een rij | voor de Poiesz |
+|---|---|
+| ![acht voetgangers](docs/screenshots/voetgangers_rij.png) | ![voor de Poiesz](docs/screenshots/voetgangers_poiesz.png) |
+| **op een bankje** | **regen** |
+| ![op een bankje](docs/screenshots/voetgangers_bank.png) | ![paraplu's](docs/screenshots/voetgangers_regen.png) |
+
 **Wat er in de ronde van 13 september bij kwam.** Ze zwaaiden met armen en benen, maar de rómp stond
 er kaarsrecht en doodstil bij — en dat is waarom ze eruitzagen als marionetten. Nu doet het lichaam
 mee:

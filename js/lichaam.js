@@ -209,7 +209,7 @@ export function lichaamMat(kleur, soort) {
 // (de onderarm is huid of mouw, per persoon; het gladde huiddoek staat op
 // allebei goed, een breisteek op een blote arm niet)
 export const DOEK_VAN = {
-  romp: 'stof', bekken: 'broek', nek: 'huid', hoofd: 'gezicht', haar: 'haar', ogen: null, oogwit: null,
+  romp: 'stof', bekken: 'broek', nek: 'huid', hoofd: 'gezicht', haar: 'haar', ogen: null, oogwit: null, baard: 'haar', baardVol: 'haar', haarHalflang: 'haar', haarLang: 'haar', haarStaart: 'haar', rok: 'stof',
   bovenarm: 'stof', onderarm: 'huid', hand: 'huid', bovenbeen: 'broek', onderbeen: 'broek',
   schoen: 'schoen', pet: 'stof', vest: 'stof',
 };
@@ -339,14 +339,112 @@ function samen(delen, maat = 0.08, gezicht = false) {
  maten zijn die van de dozen van hiervoor, zodat de houdingen, de botsingen en
  de proeven blijven kloppen; alleen de vorm is rond.
 */
+/*
+ (stap 153) De vorm van het hoofd op een eenheidsbol: smaller naar de kin (de kaak), achter terugwijkend, met
+ jukbeenderen. `ruimer` maakt hem een fractie groter, voor de baard die eroverheen ligt (stap 154).
+*/
+function kopVorm(bol, ruimer = 1) {
+  const R = MAAT.hoofdR * ruimer, P = bol.attributes.position;
+  for (let i = 0; i < P.count; i++) {
+    let x = P.getX(i) * R, y = P.getY(i) * R * 1.13, z = P.getZ(i) * R * 1.06;
+    const t = Math.max(0, Math.min(1, (-y - 0.015) / 0.11));            // 0 boven de wangen, 1 bij de kin
+    x *= 1 - 0.22 * Math.pow(t, 1.4);
+    z *= z > 0 ? 1 - 0.22 * t : 1 - 0.06 * t;
+    if (z < 0) z -= 0.004 * Math.exp(-(((Math.abs(x) - 0.055) / 0.02) ** 2 + ((y + 0.02) / 0.025) ** 2));   // jukbeen
+    P.setXYZ(i, x, y, z);
+  }
+  bol.computeVertexNormals();
+  return bol;
+}
+
+/*
+ (stap 153–154) Een kapsel: een bol om het hoofd waarvan de ringen zo liggen dat één ring precies op de haarlijn valt
+ (`lijn` als hoogte van de richting, vanuit het hart van het kapsel dat 2 cm boven dat van het hoofd ligt: `voor` op het
+ voorhoofd, `slaap` bij de slapen, `nek` achter); de ringen eronder zakken het hoofd in. Met `hang` hangt het haar onder
+ de evenaar recht naar beneden in plaats van naar de nek toe te lopen (en het blijft zo breed als het hoofd, anders
+ sneed het door de nek): halflang tot de kaak, lang tot de schouders.
+*/
+export const KAPSEL = {
+  kort: { voor: 0.52, slaap: 0.12, nek: -0.50, hang: 0 },
+  halflang: { voor: 0.50, slaap: -0.30, nek: -0.92, hang: 0.06 },
+  lang: { voor: 0.50, slaap: -0.45, nek: -0.96, hang: 0.17 },
+  staart: { voor: 0.52, slaap: 0.10, nek: -0.40, hang: 0 },
+};
+function haarGeo({ voor, slaap, nek, hang }) {
+  const g = new THREE.SphereGeometry(0.119, 20, 11);
+  const P = g.attributes.position, U = g.attributes.uv;
+  const RH = 8 / 11;
+  for (let i = 0; i < P.count; i++) {
+    const u = U.getX(i), v = 1 - U.getY(i);
+    const fi = u * Math.PI * 2;
+    const ux = -Math.cos(fi), uz = Math.sin(fi);                      // de richting in het platte vlak
+    const c = Math.cos(Math.atan2(ux, -uz));                          // 1 vooraan, −1 achter
+    const lijn = c > 0 ? slaap + (voor - slaap) * Math.pow(c, 1.5) : slaap + (nek - slaap) * Math.pow(-c, 1.2);
+    const th = Math.acos(Math.max(-1, Math.min(1, lijn)));
+    let theta, k = 1;
+    if (v <= RH) theta = (v / RH) * th;
+    else { theta = th + (v - RH) / (1 - RH) * 0.35; k = 0.84; }
+    const r = 0.119 * k;
+    let sn = Math.sin(theta), y = r * Math.cos(theta) * 1.06;
+    if (hang > 0 && k === 1 && theta > Math.PI / 2) {
+      // onder de evenaar: zo breed blijven als het hoofd, en recht naar beneden hangen
+      const f = (theta - Math.PI / 2) / (Math.PI / 2);
+      sn = Math.max(sn, 0.93);
+      y -= hang * f * 2.2;
+    }
+    P.setXYZ(i, ux * r * sn * 0.985, y, uz * r * sn * 1.045);
+  }
+  g.computeVertexNormals();
+  return samen([g], 0.06);
+}
+/*
+ (stap 154) Een arm- of beendeel met een profiel: een draaivorm van boven (0) naar beneden (−lengte), met de straal
+ tussen `rBoven` en `rOnder` keer de factor uit `profiel` ([t, f], t van 0 tot 1). Boven een ronde kop (het gewricht),
+ onder dicht of, met `eind`, ook rond. Eerst een rechte buis met een bol erop: van dichtbij een pijp.
+*/
+function ledProfiel(rBoven, rOnder, lengte, profiel, { dz = 1, eind = false } = {}) {
+  const punten = [new THREE.Vector2(0.001, rBoven * 0.95), new THREE.Vector2(rBoven * 0.72, rBoven * 0.66)];
+  for (const [t, f] of profiel) punten.push(new THREE.Vector2((rBoven + (rOnder - rBoven) * t) * f, -lengte * t));
+  const rEind = rOnder * profiel[profiel.length - 1][1];
+  if (eind) punten.push(new THREE.Vector2(rEind * 0.7, -lengte - rEind * 0.6), new THREE.Vector2(0.001, -lengte - rEind * 0.9));
+  else punten.push(new THREE.Vector2(0.001, -lengte));
+  const g = new THREE.LatheGeometry(punten.reverse(), 10);
+  g.scale(1, 1, dz);
+  g.computeVertexNormals();
+  return g;
+}
+// (stap 154) van een vorm om het hoofd alleen de kaak en de kin van voren, met een opening voor de mond
+function baardUit(bol) {
+  const g0 = bol.toNonIndexed();
+  const P = g0.attributes.position, N = g0.attributes.normal, pos = [], nor = [];
+  for (let t = 0; t < P.count; t += 3) {
+    let houden = true, mond = true;
+    for (let k = 0; k < 3; k++) {
+      const x = P.getX(t + k), y = P.getY(t + k), z = P.getZ(t + k);
+      if (!(y < -0.035 && z < 0.045)) houden = false;
+      if (!(Math.abs(x) < 0.026 && y > -0.078 && y < -0.045 && z < 0)) mond = false;
+    }
+    if (!houden || mond) continue;
+    for (let k = 0; k < 3; k++) { pos.push(P.getX(t + k), P.getY(t + k), P.getZ(t + k)); nor.push(N.getX(t + k), N.getY(t + k), N.getZ(t + k)); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return samen([g], 0.05);
+}
+
 export const DEEL = {
   // borstkas en taille: bovenin breder dan onderin, anders is het een doos
   // borstkas en taille: één gladde vorm, bovenin breder dan onderin (ROMP)
   romp: () => samen([lijfGeo(ROMP)], 0.05),
-  // bekken met een broekband die een slag breder is dan de broek eronder
+  /*
+   (stap 154) Het bekken: was een afgeronde doos met een bredere doos als band erop, en van dichtbij stak dat als een
+   heuptasje uit onder de ronde romp. Nu dezelfde soort vorm als de romp (ringen van de taille via de heupen naar het
+   kruis), en de riem een smalle ring die een fractie ruimer is dan de taille.
+  */
   bekken: () => samen([
-    doosGeo(0.335, 0.19, 0.205, 0, 0, 0, 0, 0.045),
-    doosGeo(0.352, 0.042, 0.215, 0, 0.085, 0, 0, 0.018),
+    lijfGeo([[-0.095, 0.142, 0.094], [-0.05, 0.168, 0.104], [0.01, 0.172, 0.104], [0.06, 0.167, 0.098], [0.095, 0.164, 0.094]]),
+    lijfGeo([[0.058, 0.172, 0.103], [0.084, 0.171, 0.102]]),
   ], 0.06),
   nek: () => samen([new THREE.CylinderGeometry(0.055, 0.068, 0.10, 12)], 0.08),
   /*
@@ -364,18 +462,8 @@ export const DEEL = {
      smaller wordt (de kaak), aan de achterkant iets terugwijkt, met jukbeenderen; de neus is een smalle wig die half in
      het gezicht zit, met een rug die naar boven dunner wordt.
     */
-    const R = MAAT.hoofdR;
     const kop = new THREE.SphereGeometry(1, 18, 13);
-    const P = kop.attributes.position;
-    for (let i = 0; i < P.count; i++) {
-      let x = P.getX(i) * R, y = P.getY(i) * R * 1.13, z = P.getZ(i) * R * 1.06;
-      const t = Math.max(0, Math.min(1, (-y - 0.015) / 0.11));            // 0 boven de wangen, 1 bij de kin
-      x *= 1 - 0.22 * Math.pow(t, 1.4);
-      z *= z > 0 ? 1 - 0.22 * t : 1 - 0.06 * t;
-      if (z < 0) z -= 0.004 * Math.exp(-(((Math.abs(x) - 0.055) / 0.02) ** 2 + ((y + 0.02) / 0.025) ** 2));   // jukbeen
-      P.setXYZ(i, x, y, z);
-    }
-    kop.computeVertexNormals();
+    kopVorm(kop);
     const neus = new THREE.SphereGeometry(1, 6, 5);
     const N = neus.attributes.position;
     for (let i = 0; i < N.count; i++) {
@@ -388,6 +476,19 @@ export const DEEL = {
     const delen = [kop, neus];
     for (const sx of [-1, 1]) delen.push(new THREE.SphereGeometry(1, 5, 4).scale(0.011, 0.027, 0.018).translate(sx * 0.103, 0.003, 0.010));   // oren
     return samen(delen, 0.08, true);
+  },
+  /*
+   (stap 154) Een baard, voor een deel van de voetgangers: dezelfde vorm als het hoofd, 4 % ruimer, en daarvan alleen
+   de kaak en de kin van voren, met een opening voor de mond. In de kleur van het haar.
+  */
+  baard: () => baardUit(kopVorm(new THREE.SphereGeometry(1, 16, 10), 1.04)),
+  // (stap 154) een volle baard: ruimer, en onderaan langer
+  baardVol: () => {
+    const bol = kopVorm(new THREE.SphereGeometry(1, 16, 10), 1.06);
+    const P = bol.attributes.position;
+    for (let i = 0; i < P.count; i++) { const y = P.getY(i); if (y < -0.07) P.setY(i, y - (-0.07 - y) * 0.30); }
+    bol.computeVertexNormals();
+    return baardUit(bol);
   },
   /*
    Ogen, als eigen onderdeel omdat ze een andere kleur hebben dan de huid — bij de voetgangers is elk onderdeel één
@@ -431,32 +532,20 @@ export const DEEL = {
    voorhoofd ligt, bij de slapen zakt, achter de oren door en in de nek uitloopt, met een zachte overgang in plaats van
    een rand.
   */
-  haar: () => {
-    const g = new THREE.SphereGeometry(0.119, 20, 11);
-    const P = g.attributes.position, U = g.attributes.uv;
-    // de ringen worden zo over de bol gelegd dat ring RH precies op de haarlijn valt: dan is de rand glad in plaats
-    // van een zaagtand tussen twee ringen; de ringen eronder zakken het hoofd in
-    const RH = 8 / 11;
-    for (let i = 0; i < P.count; i++) {
-      const u = U.getX(i), v = 1 - U.getY(i);
-      const fi = u * Math.PI * 2;
-      const ux = -Math.cos(fi), uz = Math.sin(fi);                      // de richting in het platte vlak
-      const c = Math.cos(Math.atan2(ux, -uz));                          // 1 vooraan, −1 achter
-      // de haarlijn (als y van de richting, vanuit het hart van het kapsel, 2 cm boven dat van het hoofd): voorhoofd
-      // 0,52 (zes centimeter boven de wenkbrauwen), slapen 0,12, nek −0,50
-      const lijn = c > 0 ? 0.12 + 0.40 * Math.pow(c, 1.5) : 0.12 - 0.62 * Math.pow(-c, 1.2);
-      const th = Math.acos(Math.max(-1, Math.min(1, lijn)));
-      let theta, k = 1;
-      if (v <= RH) theta = (v / RH) * th;
-      else { theta = th + (v - RH) / (1 - RH) * 0.35; k = 0.84; }
-      const r = 0.119 * k, sn = Math.sin(theta);
-      P.setXYZ(i, ux * r * sn * 0.985, r * Math.cos(theta) * 1.06, uz * r * sn * 1.045);
-    }
-    g.computeVertexNormals();
-    return samen([g], 0.06);
+  haar: () => haarGeo(KAPSEL.kort),
+  // (stap 154) meer kapsels: halflang, lang (tot de schouders) en een paardenstaart; kaal is geen haar
+  haarHalflang: () => haarGeo(KAPSEL.halflang),
+  haarLang: () => haarGeo(KAPSEL.lang),
+  haarStaart: () => {
+    const g = haarGeo(KAPSEL.staart);
+    const staart = new THREE.CapsuleGeometry(0.028, 0.15, 2, 6);
+    staart.translate(0, -0.09, 0); staart.rotateX(-0.35); staart.translate(0, -0.035, 0.118);
+    const elastiek = new THREE.SphereGeometry(1, 6, 4).scale(0.034, 0.02, 0.034).translate(0, -0.035, 0.118);
+    return samen([g, staart, elastiek], 0.06);
   },
-  bovenarm: () => samen(ledGeo(0.048, 0.042, MAAT.bovenarm), 0.05),
-  onderarm: () => samen(ledGeo(0.042, 0.034, MAAT.onderarm, { eind: true }), 0.05),
+  // (stap 154) armen en benen met een profiel: een schouder bovenaan, een kuit, een dunnere enkel en pols
+  bovenarm: () => samen([ledProfiel(0.048, 0.042, MAAT.bovenarm, [[0, 1.10], [0.2, 1.04], [0.55, 0.96], [1, 1]])], 0.05),
+  onderarm: () => samen([ledProfiel(0.042, 0.034, MAAT.onderarm, [[0, 1], [0.25, 1.08], [0.7, 0.95], [1, 0.92]], { eind: true })], 0.05),
   /*
    (stap 153) De hand: een platte handpalm met vier vingers en een duim, de vingers van verschillende lengte en iets
    gebogen. Eerst hingen de vingers als één ronde want onder de palm, en van dichtbij waren dat twee klonten. De hand is
@@ -479,14 +568,33 @@ export const DEEL = {
     delen.push(duim);
     return samen(delen, 0.07);
   },
-  bovenbeen: () => samen(ledGeo(0.074, 0.060, MAAT.bovenbeen, { dz: 1.08 }), 0.06),
-  onderbeen: () => samen(ledGeo(0.060, 0.046, MAAT.onderbeen, { dz: 1.05, eind: true }), 0.06),
-  // schoen: hangt aan de enkel en steekt naar voren uit
-  schoen: () => samen([
-    doosGeo(0.108, MAAT.schoenH, 0.235, 0, -MAAT.schoenH / 2, -0.045, 0, 0.030),
-    doosGeo(0.098, 0.060, 0.10, 0, -0.012, 0.020, 0, 0.026),        // hiel en wreef, tot aan de enkel
-    doosGeo(0.114, 0.022, 0.245, 0, -MAAT.schoenH + 0.008, -0.048, 0, 0.010),   // zool, iets breder
-  ], 0.08),
+  bovenbeen: () => samen([ledProfiel(0.074, 0.060, MAAT.bovenbeen, [[0, 1.04], [0.25, 1.02], [0.65, 0.93], [1, 1]], { dz: 1.08 })], 0.06),
+  onderbeen: () => samen([ledProfiel(0.060, 0.046, MAAT.onderbeen, [[0, 1], [0.28, 1.12], [0.62, 0.95], [0.9, 0.84], [1, 0.9]], { dz: 1.05, eind: true })], 0.06),
+  /*
+   Schoen: hangt aan de enkel en steekt naar voren uit. (stap 154) Eerst drie afgeronde dozen (324 driehoeken per
+   schoen, de duurste onderdelen van een mens) en van dichtbij een plat blok; nu één ronde vorm met een platte zool,
+   een neus die naar voren smaller wordt (een losse zool stak er van boven als een lichte plaat onder uit).
+  */
+  schoen: () => {
+    const g = new THREE.SphereGeometry(1, 10, 7);
+    const P = g.attributes.position;
+    for (let i = 0; i < P.count; i++) {
+      let x = P.getX(i) * 0.054, y = P.getY(i) * 0.05, z = P.getZ(i) * 0.125;
+      if (z < 0) x *= 1 - 0.25 * (-z / 0.125) ** 2;                  // de neus smaller
+      if (z < 0) y *= 1 - 0.35 * (-z / 0.125);                       // en lager
+      y = Math.max(y, -0.040);                                         // een platte zool
+      P.setXYZ(i, x, y - 0.028, z - 0.048);
+    }
+    g.computeVertexNormals();
+    return samen([g], 0.08);
+  },
+  // (stap 154) een rok, van de taille tot net boven de knie, binnen- en buitenkant (geen tweezijdig materiaal)
+  rok: () => {
+    const lijn = [[0.166, 0.07], [0.18, -0.02], [0.205, -0.17], [0.235, -0.36]].map(([r, y]) => new THREE.Vector2(r, y));
+    const buiten = new THREE.LatheGeometry(lijn, 14);
+    const binnen = new THREE.LatheGeometry(lijn.slice().reverse(), 14);
+    return samen([buiten, binnen], 0.06);
+  },
   // pet met klep, in plaats van haar
   pet: () => samen([
     new THREE.SphereGeometry(0.122, 16, 6, 0, Math.PI * 2, 0, Math.PI * 0.5),

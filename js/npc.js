@@ -5,7 +5,9 @@ import * as THREE from 'three';
 import { rng } from './textures.js';
 import { grondHoogte } from './viaduct.js';
 import { zichtVrij, resolveCollisions } from './world.js';
-import { MAAT, DEEL, loopHouding, fietsHouding, doekVoor, DOEK_VAN } from './lichaam.js';
+import { MAAT, DEEL, loopHouding, fietsHouding, zitHouding, hurkHouding, doekVoor, DOEK_VAN } from './lichaam.js';
+import { GEDRAG } from './gedrag.js';
+import { LIJF_VROUW } from './persoon.js';
 
 const STOEP_STAP = 0.5;     // om de zoveel meter kijkt het stoepprofiel of er plek is
 const STOEP_VOORUIT = 1.2;  // zover vooruit ziet een voetganger dat de stoep dicht is
@@ -14,7 +16,12 @@ const STOEP_VOORUIT = 1.2;  // zover vooruit ziet een voetganger dat de stoep di
 const SPORT = [0xff5a1f, 0x18c0d8, 0xe8f03a, 0xff2d7a, 0x2fd06a];
 const SHIRTS = [0x2f3a56, 0x8a1f1f, 0xe8e2d0, 0x2a6b3a, 0x2b2b2b, 0xd8b04a, 0x6a4c93, 0xc85a2a, 0x3f7fb0];
 const PANTS = [0x1f2a44, 0x333333, 0x5a4632, 0x6f7480, 0x24303f];
-const SKIN = [0xd9b48f, 0xc48a5a, 0x8d5a3b, 0xf0d5b8, 0xa9714b];
+// (stap 154) negen huidskleuren, van heel licht tot heel donker (was vijf)
+const SKIN = [0xf3dcc8, 0xecc9a8, 0xd9b48f, 0xc89a74, 0xb07a52, 0x9a6440, 0x7a4a2e, 0x5e3a24, 0x3f2718];
+const GRIJS = [0x9a9a9a, 0xbdbdbd, 0xdadada, 0x7d7d7d];      // het haar van ouderen
+const PANTY = [0x1c1c22, 0x3a2c22, 0x4a3a32];
+const JAS = [0x23262b, 0x3b3f2c, 0x4d3a2a, 0x1f2f45, 0x5a1e22, 0x6b6a62];
+const PARAPLU = [0x1d1f24, 0xb0262b, 0x2a4f8a, 0xd8b02a, 0x2a6b3a, 0x7a3a8a];
 const HAIR = [0x2a1d12, 0x141414, 0x8a6a3a, 0xd8c39a, 0x6b3a1f, 0x9a9a9a];
 // oogkleuren: donkerbruin, bruin, grijsblauw en groen. Op deze afstand is het
 // vooral "er zit iets donkers in dat gezicht", en juist dat werkt.
@@ -42,14 +49,21 @@ const DELEN = [
   { naam: 'nek', geo: DEEL.nek, kleur: 'huid', y: MAAT.nek },
   { naam: 'hoofd', geo: DEEL.hoofd, kleur: 'huid', y: MAAT.hoofd },
   { naam: 'haar', geo: DEEL.haar, kleur: 'haar', y: MAAT.hoofd + 0.020 },
+  // (stap 154) de andere kapsels, de baarden en de rok: wie ze niet heeft krijgt schaal nul
+  { naam: 'haarHalflang', geo: DEEL.haarHalflang, kleur: 'haar', y: MAAT.hoofd + 0.020 },
+  { naam: 'haarLang', geo: DEEL.haarLang, kleur: 'haar', y: MAAT.hoofd + 0.020 },
+  { naam: 'haarStaart', geo: DEEL.haarStaart, kleur: 'haar', y: MAAT.hoofd + 0.020 },
+  { naam: 'baardVol', geo: DEEL.baardVol, kleur: 'baard', y: MAAT.hoofd },
+  { naam: 'rok', geo: DEEL.rok, kleur: 'broek', y: MAAT.bekken },
   // ogen en wenkbrauwen: een eigen deel, want ze hebben een eigen kleur
   { naam: 'oogwit', geo: DEEL.oogwit, kleur: 'wit', y: MAAT.hoofd },   // (stap 153)
+  { naam: 'baard', geo: DEEL.baard, kleur: 'baard', y: MAAT.hoofd },   // (stap 154; wie er geen heeft krijgt schaal nul)
   { naam: 'ogen', geo: DEEL.ogen, kleur: 'oog', y: MAAT.hoofd },
   { naam: 'bovenarm', geo: DEEL.bovenarm, kleur: 'shirt', paar: true },
   { naam: 'onderarm', geo: DEEL.onderarm, kleur: 'mouw', paar: true },
   { naam: 'hand', geo: DEEL.hand, kleur: 'huid', paar: true },
-  { naam: 'bovenbeen', geo: DEEL.bovenbeen, kleur: 'broek', paar: true },
-  { naam: 'onderbeen', geo: DEEL.onderbeen, kleur: 'broek', paar: true },
+  { naam: 'bovenbeen', geo: DEEL.bovenbeen, kleur: 'dij', paar: true },     // (stap 154: onder een rok ook huid of panty)
+  { naam: 'onderbeen', geo: DEEL.onderbeen, kleur: 'kuit', paar: true },   // (stap 154: met een rok huid of panty)
   { naam: 'schoen', geo: DEEL.schoen, kleur: 'schoen', paar: true },
 ];
 const SCHOUDER_X = 0.235;      // iets buiten de romp, anders steken de armen erin
@@ -189,6 +203,7 @@ export class NPCs {
      persoon bij een instantie, `slotVan[persoon]` andersom (−1: niet getekend).
     */
     this.ZICHT = 200;
+    this.ZICHT_GROF = 350;              // (stap 154) tot hier een grof figuurtje, zie `zetGrof`
     this.kijk = null;                   // kijkrichting over de grond, { x, z } (zie `verdeelSlots`)
     this.slotNaar = new Int32Array(count);
     this.slotVan = new Int32Array(count);
@@ -236,10 +251,10 @@ export class NPCs {
         shirt, broek: pants, huid: skin, haar: hair, schoen, oog, wit: 0xeee8de,
         mouw: korteMouw ? skin : shirt,
       };
+      kleuren.kuit = kleuren.dij = pants; kleuren.baard = hair;
       this.kleurVan.push(kleuren);
-      this.kleurSlot(i, i);
 
-      const height = 0.88 + r() * 0.22;   // kinderen tot volwassenen
+      let height = 0.88 + r() * 0.22;   // kinderen tot volwassenen
       // een op de vijf is een fietser: hoger, sneller en met een fiets eronder
       let fietst = r() < 0.20 && height > 0.95;
       // een op de acht wandelaars laat een hondje uit
@@ -273,6 +288,8 @@ export class NPCs {
         kleuren.shirt = SPORT[i % SPORT.length]; kleuren.mouw = kleuren.huid; kleuren.broek = 0x1d1f24;
         this.kleurSlot(i, i);
       }
+      this.kenmerken(p, i, kleuren);
+      this.kleurSlot(i, i);
       this.pickSegment(p, true);
       this.people.push(p);
     }
@@ -296,11 +313,88 @@ export class NPCs {
     if (this.hond.instanceColor) this.hond.instanceColor.needsUpdate = true;
     scene.add(this.hond, this.riem);
 
+    /*
+     (stap 154) Wat iemand bij zich heeft: een telefoon aan het oor en een paraplu bij regen, elk één mesh voor iedereen.
+     En verder dan ZICHT: een grof figuurtje (romp, benen, hoofd: 64 driehoeken in drie meshes) tot ZICHT_GROF, in de
+     kleuren van de persoon. Gevraagd: "een grove uitvoering op afstand".
+    */
+    const extra = (geo, mat, n, schaduw = true) => {
+      const mm = new THREE.InstancedMesh(geo, mat, n);
+      mm.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      mm.castShadow = schaduw; mm.frustumCulled = false; mm.count = 0;
+      scene.add(mm);
+      return mm;
+    };
+    this.telefoon = extra(new THREE.BoxGeometry(0.036, 0.074, 0.009), new THREE.MeshStandardMaterial({ color: 0x15171b, roughness: 0.3, metalness: 0.3 }), count, false);
+    this.paraplu = extra(parapluGeo(), new THREE.MeshStandardMaterial({ roughness: 0.6 }), count);
+    for (let i = 0; i < count; i++) this.paraplu.setColorAt(i, col.setHex(0xffffff));
+    const grofMat = () => new THREE.MeshStandardMaterial({ roughness: 0.8 });
+    this.grof = {
+      romp: extra(new THREE.CylinderGeometry(0.17, 0.15, 0.62, 6, 1).translate(0, 1.17, 0), grofMat(), count),
+      benen: extra(new THREE.CylinderGeometry(0.14, 0.09, 0.88, 6, 1).translate(0, 0.44, 0), grofMat(), count),
+      kop: extra(new THREE.SphereGeometry(0.12, 6, 4).translate(0, 1.6, 0), grofMat(), count, false),
+    };
+    for (const mm of Object.values(this.grof)) for (let i = 0; i < count; i++) mm.setColorAt(i, col.setHex(0xffffff));
+
     for (const def of DELEN) this.meshes[def.naam].instanceColor.needsUpdate = true;
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion();
     this._e = new THREE.Euler(); this._v = new THREE.Vector3(); this._s = new THREE.Vector3();
     this._w = new THREE.Quaternion();
+    this._tmpPos = new THREE.Vector3();
     this._h = {};       // gewrichtshoeken van dit beeld (zie js/lichaam.js)
+  }
+
+  /*
+   (stap 154) Wie iemand is, naast zijn kleuren: man of vrouw, kind of oudere, kapsel, baard, een rok, en bij regen een
+   jas of een paraplu. Allemaal uit het nummer van de persoon (zoals de oogkleur hierboven), niet uit `r()`: dan blijft de
+   rest van de wijk precies wie hij was. Gevraagd: "voeg div variatie huidskleur gender toe en lengte haar/baard".
+  */
+  kenmerken(p, i, k) {
+    const hh = (n) => ((Math.imul(i + n, 2654435761) >>> 0) % 1000) / 1000;
+    const kiesUit = (lijst, n) => lijst[Math.floor(hh(n) * lijst.length) % lijst.length];
+    p.kind = !p.fietst && !p.hond && !p.jogt && hh(103) < 0.07;
+    p.oud = !p.kind && !p.jogt && hh(107) < 0.14;
+    p.vrouw = hh(101) < 0.5;
+    if (p.kind) p.height = 0.62 + hh(109) * 0.13;
+    else if (p.vrouw) p.height *= 0.94;
+    if (p.oud) { p.speed *= 0.75; p.ren *= 0.7; k.haar = kiesUit(GRIJS, 113); }
+    // het kapsel
+    const h = hh(127);
+    if (p.vrouw) p.kapsel = h < 0.40 ? 'lang' : h < 0.65 ? 'staart' : h < 0.90 ? 'halflang' : 'kort';
+    else if (p.kind) p.kapsel = 'kort';
+    else p.kapsel = h < (p.oud ? 0.45 : 0.16) ? 'kaal' : h < (p.oud ? 0.53 : 0.24) ? 'halflang' : 'kort';
+    // de baard (volwassen mannen)
+    const b = hh(131);
+    p.baard = (p.vrouw || p.kind) ? 'geen' : b < 0.58 ? 'geen' : b < 0.75 ? 'stoppels' : b < 0.90 ? 'kort' : 'vol';
+    k.baard = p.baard === 'stoppels' ? new THREE.Color(k.huid).lerp(new THREE.Color(k.haar), 0.45).getHex() : k.haar;
+    // een rok, met blote kuiten of een panty
+    p.rok = p.vrouw && !p.fietst && !p.jogt && hh(137) < 0.30;
+    // (de benen pas hier: een jogger heeft zijn broek net een andere kleur gegeven)
+    k.kuit = k.dij = k.broek;
+    if (p.rok) k.kuit = k.dij = hh(139) < 0.4 ? kiesUit(PANTY, 141) : k.huid;
+    // bij regen: een jas (lange mouwen in een donkere kleur) of een paraplu
+    k.droog = { shirt: k.shirt, mouw: k.mouw };
+    k.jas = kiesUit(JAS, 149);
+    p.jasBijRegen = !p.jogt && hh(151) < 0.65;
+    p.paraplu = !p.fietst && !p.jogt && !p.kind && hh(157) < 0.35;
+    p.parapluKleur = kiesUit(PARAPLU, 163);
+  }
+
+  /*
+   (stap 154) Het weer: bij regen trekt wie dat doet een jas aan (de kleuren van romp en mouwen), en weer uit als het
+   droog is. `zetRegen` roept js/main.js elk beeld aan; de kleuren wisselen alleen als het omslaat.
+  */
+  zetRegen(regen) {
+    if (!!regen === !!this._regen) return;
+    this._regen = !!regen;
+    for (let i = 0; i < this.people.length; i++) {
+      const p = this.people[i], k = this.kleurVan[i];
+      if (!p.jasBijRegen) continue;
+      if (regen) { k.shirt = k.jas; k.mouw = k.jas; } else { k.shirt = k.droog.shirt; k.mouw = k.droog.mouw; }
+      const j = this.slotVan[i];
+      if (j >= 0) this.kleurSlot(j, i);
+    }
+    for (const def of DELEN) this.meshes[def.naam].instanceColor.needsUpdate = true;
   }
 
   // de kleuren van persoon `i` op instantie `j` van elk onderdeel
@@ -334,7 +428,7 @@ export class NPCs {
     let k = 0, anders = false;
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
-      if (p.slaapt) { this.slotVan[i] = -1; continue; }
+      if (p.slaapt || p.verborgen) { this.slotVan[i] = -1; continue; }
       const dx = p.x - camX, dz = p.z - camZ, d2 = dx * dx + dz * dz;
       if (camX !== null && d2 > q) { this.slotVan[i] = -1; continue; }
       if (camX !== null && this.kijk && d2 > DICHT * DICHT && (dx * kx + dz * kz) < KEGEL * Math.sqrt(d2)) { this.slotVan[i] = -1; continue; }
@@ -468,9 +562,10 @@ export class NPCs {
       const kx = this.kijk ? this.kijk.x : 0, kz = this.kijk ? this.kijk.z : 0, KEGEL = Math.cos(80 * Math.PI / 180);
       let weg = null, wd = Infinity;
       for (const p of this.people) {
-        if (!p.alive || p.slaapt || p.steek > 0 || p.paniek > 0) continue;
+        if (!p.alive || p.slaapt || p.steek > 0 || p.paniek > 0 || p.doe) continue;
         const dx = p.x - camX, dz = p.z - camZ, d = Math.hypot(dx, dz);
-        const uitZicht = d > this.ZICHT || !this.kijk || (dx * kx + dz * kz) < KEGEL * d;
+        // (stap 154: tot ZICHT_GROF staat er een grof figuurtje, dus pas daarbuiten valt verdwijnen niet op)
+        const uitZicht = d > this.ZICHT_GROF || !this.kijk || (dx * kx + dz * kz) < KEGEL * d;
         if (d > 50 && uitZicht && d < wd) { wd = d; weg = p; }
       }
       if (weg) this.verhuisNaarBuurt(weg, camX, camZ, 420, 420, 1200);
@@ -484,7 +579,7 @@ export class NPCs {
     for (let n = 0; n < aantal; n++) {
       let verste = null, vd = VER;
       for (const p of this.people) {
-        if (!p.alive || p.slaapt || p.steek > 0) continue;
+        if (!p.alive || p.slaapt || p.steek > 0 || p.doe) continue;
         const d = Math.hypot(p.x - camX, p.z - camZ);
         if (d > vd) { vd = d; verste = p; }
       }
@@ -698,7 +793,7 @@ export class NPCs {
    een ledemaat is gewoon de som van de hoeken erboven — en dat scheelt een hoop
    quaternionen vermenigvuldigen bij honderddertig mensen per beeld.
   */
-  zetLichaam(i, x, y, z, yaw, tilt, h, H) {
+  zetLichaam(i, x, y, z, yaw, tilt, h, H, p = null) {
     const m = this._m, q = this._q, e = this._e, v = this._v, sc = this._s, w = this._w;
     sc.set(h, h, h);
     /*
@@ -710,8 +805,9 @@ export class NPCs {
     // de stand van het lichaam zelf is voor alle achttien delen dezelfde, dus
     // die hoeft maar één keer uitgerekend
     e.set(tilt, yaw, rol, 'YXZ'); w.setFromEuler(e);
-    const zet = (mesh, nr, ox, oy, oz, hoek, extra = 0, zij = 0) => {
+    const zet = (mesh, nr, ox, oy, oz, hoek, extra = 0, zij = 0, bx = 1, bz = 1) => {
       e.set(tilt + hoek + extra, yaw, rol + zij, 'YXZ'); q.setFromEuler(e);
+      if (bx !== 1 || bz !== 1) sc.set(h * bx, h, h * bz); else sc.set(h, h, h);
       v.set(ox * h, oy * h, oz * h).applyQuaternion(w);
       m.compose(v.set(x + v.x, y + v.y, z + v.z), q, sc);
       mesh.setMatrixAt(nr, m);
@@ -719,25 +815,35 @@ export class NPCs {
     // romp, bekken, nek, hoofd en haar draaien alleen met het lichaam mee; het
     // hoofd draait er een stukje tegenin, zodat het waterpas blijft
     const kop = H.hoofd || 0;
-    zet(this.meshes.romp, i, 0, MAAT.romp, 0, 0);
-    zet(this.meshes.bekken, i, 0, MAAT.bekken, 0, 0);
+    // (stap 154) een vrouw: smallere romp, breder bekken (LIJF_VROUW uit js/persoon.js); wat iemand niet heeft: schaal nul
+    const vrouw = p && p.vrouw;
+    const nul = (mesh, nr) => { m.makeScale(0, 0, 0); mesh.setMatrixAt(nr, m); };
+    zet(this.meshes.romp, i, 0, MAAT.romp, 0, 0, 0, 0, vrouw ? LIJF_VROUW.romp[0] : 1, vrouw ? LIJF_VROUW.romp[1] : 1);
+    zet(this.meshes.bekken, i, 0, MAAT.bekken, 0, 0, 0, 0, vrouw ? LIJF_VROUW.bekken[0] : 1, vrouw ? LIJF_VROUW.bekken[1] : 1);
+    if (p && p.rok) zet(this.meshes.rok, i, 0, MAAT.bekken, 0, 0, 0, 0, LIJF_VROUW.bekken[0], LIJF_VROUW.bekken[1]); else nul(this.meshes.rok, i);
     zet(this.meshes.nek, i, 0, MAAT.nek, 0, 0);
     zet(this.meshes.hoofd, i, 0, MAAT.hoofd, 0, kop);
     zet(this.meshes.oogwit, i, 0, MAAT.hoofd, 0, kop);
     zet(this.meshes.ogen, i, 0, MAAT.hoofd, 0, kop);
-    zet(this.meshes.haar, i, 0, MAAT.hoofd + 0.020, 0, kop);
+    const kapsel = p ? p.kapsel : 'kort';
+    for (const [naam, soort] of [['haar', 'kort'], ['haarHalflang', 'halflang'], ['haarLang', 'lang'], ['haarStaart', 'staart']]) {
+      if (kapsel === soort) zet(this.meshes[naam], i, 0, MAAT.hoofd + 0.020, 0, kop); else nul(this.meshes[naam], i);
+    }
+    const baard = p ? p.baard : 'geen';
+    if (baard === 'stoppels' || baard === 'kort') zet(this.meshes.baard, i, 0, MAAT.hoofd, 0, kop); else nul(this.meshes.baard, i);
+    if (baard === 'vol') zet(this.meshes.baardVol, i, 0, MAAT.hoofd, 0, kop); else nul(this.meshes.baardVol, i);
     // armen en benen, links (2i) en rechts (2i+1)
     for (const [nr, kant] of [[i * 2, 'L'], [i * 2 + 1, 'R']]) {
       const sx = kant === 'L' ? -1 : 1;
       const a1 = H['schouder' + kant], a2 = a1 + H['elleboog' + kant];
-      const sxa = sx * SCHOUDER_X, sy = MAAT.schouder;
+      const sxa = sx * SCHOUDER_X * (vrouw ? LIJF_VROUW.schouder : 1), sy = MAAT.schouder;
       /*
        De arm hangt een paar graden naar buiten (`armZij`), niet plat tegen de
        romp. Met de eulervolgorde YXZ is die draai de binnenste, dus de elleboog
        schuift er `sin(zij)` opzij mee en de rest van de arm wordt `cos(zij)`
        korter geprojecteerd. Zonder die correctie knikt de arm bij de elleboog.
       */
-      const zij = sx * (H.armZij || 0);
+      const zij = sx * (kant === 'R' && H.armZijR != null ? H.armZijR : (H.armZij || 0));
       const zs = Math.sin(zij), zc = Math.cos(zij);
       zet(this.meshes.bovenarm, nr, sxa, sy, 0, a1, 0, zij);
       const ex = sxa + MAAT.bovenarm * zs;
@@ -746,6 +852,10 @@ export class NPCs {
       zet(this.meshes.onderarm, nr, ex, ey, ez, a2, 0, zij);
       zet(this.meshes.hand, nr, ex + MAAT.onderarm * zs, ey - MAAT.onderarm * zc * Math.cos(a2),
         ez - MAAT.onderarm * zc * Math.sin(a2), a2, 0, zij);
+      // (stap 154) waar de hand is, voor de telefoon en de paraplu
+      const hw = this._handW || (this._handW = { L: new THREE.Vector3(), R: new THREE.Vector3() });
+      hw[kant].set((ex + MAAT.onderarm * zs) * h, (ey - MAAT.onderarm * zc * Math.cos(a2)) * h, (ez - MAAT.onderarm * zc * Math.sin(a2)) * h)
+        .applyQuaternion(w).add(this._tmpPos.set(x, y, z));
       const b1 = H['heup' + kant], b2 = b1 - H['knie' + kant], b3 = b2 + H['enkel' + kant];
       const hx = sx * MAAT.heupX, hy = MAAT.heup;
       zet(this.meshes.bovenbeen, nr, hx, hy, 0, b1);
@@ -785,7 +895,7 @@ export class NPCs {
     for (let i = 0; i < this.people.length; i++) {
       const p = this.people[i];
       if (p.slaap === undefined) p.slaap = ((i + 1) * 2654435761 % 4294967296) / 4294967296;
-      if (camX !== null && (p.slaap < wakkerTot) === !!p.slaapt && p.alive && !(p.paniek > 0) && !(p.steek > 0) && p.seg) {
+      if (camX !== null && (p.slaap < wakkerTot) === !!p.slaapt && p.alive && !(p.paniek > 0) && !(p.steek > 0) && p.seg && !p.doe) {
         // (de plek uit het wegvak zelf: wie net verhuisd is heeft in x en z nog
         // zijn oude plek staan, en die kan honderden meters verderop liggen)
         // Met de stoep erbij, zoals hieronder bij het lopen: de as van een brede
@@ -795,7 +905,8 @@ export class NPCs {
         const off = (sg.walkOff || sg.w / 2 + 0.8) * (p.side || 0);
         const dx = sg.a[0] + ex * t - ez / el * off - camX, dz = sg.a[1] + ez * t + ex / el * off - camZ, d2 = dx * dx + dz * dz;
         const achter = this.kijk ? (dx * kx + dz * kz) < 0 : false;
-        if (d2 > 120 * 120 || (d2 > 45 * 45 && achter)) p.slaapt = !p.slaapt;
+        // (stap 154: vóór je tot ZICHT_GROF, want tot daar staat er een grof figuurtje; was 120 m)
+        if (d2 > this.ZICHT_GROF * this.ZICHT_GROF || (d2 > 45 * 45 && achter)) p.slaapt = !p.slaapt;
       }
       if (p.slaapt) continue;
       // loopt hij, en hoe hard? de pas hangt daaraan
@@ -819,6 +930,7 @@ export class NPCs {
           p.paniek = 0; p.bron = null; p.vNu = 0;
           p.raken = 0;                                // weer heel, dus weer van voren af aan
           if (p.hond) p.hond.geplaatst = false;      // het hondje verhuist mee
+          if (p.doe && this.gedrag) this.gedrag.afmaken(p);   // (stap 154) van het bankje of uit de winkel
           /*
            Waar komt hij terug? Dit was `pickSegment(p, true)`: een willekeurig
            wegvak in de hele wereld. Over 10,95 km² betekende dat: schiet je er
@@ -837,6 +949,10 @@ export class NPCs {
           */
           if (camX === null || !this.verhuisNaarBuurt(p, camX, camZ)) this.pickSegment(p, true);
         }
+      } else if (p.doe && this.gedrag) {
+        // (stap 154) een bezigheid (js/gedrag.js): die zet zelf x, z en de kijkrichting
+        const w = this.gedrag.werk(p, dt);
+        loopt = w.loopt; renDeel = w.ren;
       } else if (p.steek > 0) {
         // midden in het oversteken: van de ene stoep naar de andere; wie schrikt
         // maakt er haast mee
@@ -899,13 +1015,18 @@ export class NPCs {
         }
         loopt = true;
         renDeel = Math.max(0, Math.min(1, (p.vNu - 1.6) / 3.2));
+        // (stap 154) misschien even naar een bankje, de winkel in, of bellen
+        if (this.gedrag && !rent) this.gedrag.misschien(p, dt);
       }
+      if (p.belt > 0) p.belt = Math.max(0, p.belt - dt);
       /*
        De pas telt door met de tijd in plaats van hem uit `time` te berekenen:
        verandert het tempo, dan versnelt de pas mee zonder te verspringen.
       */
       const cadans = p.fietst ? 2.4 + p.vNu * 0.42 : 2.6 + p.vNu * 1.9;
       if (loopt) p.fase += dt * cadans / p.height;
+      // (stap 154) wie iets doet, staat niet op zijn wegvak: js/gedrag.js heeft x, z en yaw al gezet
+      if (!p.doe) {
       const s = p.seg;
       const len = Math.max(0.1, Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1]));
       const dx = (s.b[0] - s.a[0]) / len, dz = (s.b[1] - s.a[1]) / len;
@@ -933,6 +1054,7 @@ export class NPCs {
        slag.
       */
       p.yaw = Math.atan2(-dx * p.dir, -dz * p.dir);
+      }
       // aangereden: hij schuift nog een paar meter door in de richting van de klap
       if (p.smak) {
         p.smak.t = Math.max(0, p.smak.t - dt);
@@ -967,7 +1089,7 @@ export class NPCs {
        vastlopen kan niet: zijn plek op het wegvak telt gewoon door. Wie neer ligt
        blijft liggen — die is geen wandelaar meer maar een hoopje op de stoep.
       */
-      if (p.alive) {
+      if (p.alive && !p.doe) {
         const [kx, kz] = resolveCollisions(p.x, p.z, 0.32, 0, grondHoogte(p.x, p.z));
         p.x = kx; p.z = kz;
       }
@@ -1013,12 +1135,17 @@ export class NPCs {
       // `time + i` : iedereen ademt en verlegt zijn gewicht op zijn eigen moment.
       // Zonder die verschuiving staat een rij wachtenden als één man te deinen.
       else loopHouding(p.fase, loopt, renDeel, H, time + i * 0.83);
+      H.armZijR = null;
+      if (!dood && !p.fietst) this.extraHouding(p, H, h, gy);
       // de voorovergebogen houding telt bij de kanteling van het hele lichaam op;
       // wie omvalt hoeft er niet ook nog bij te hellen
       const helling = tilt + (dood ? 0 : (H.romp || 0));
       if (dood) H.rol = 0;
-      this.zetLichaam(j, p.x, gy + yLift + (dood ? 0 : H.wip * h), p.z, p.yaw, helling, h, H);
+      this.zetLichaam(j, p.x, gy + yLift + (dood ? 0 : H.wip * h), p.z, p.yaw, helling, h, H, p);
       p.wip = H.wip;
+      // (stap 154) de hand van zojuist, voor de telefoon en de paraplu
+      if (!p.handR) { p.handR = new THREE.Vector3(); p.handL = new THREE.Vector3(); }
+      p.handR.copy(this._handW.R); p.handL.copy(this._handW.L);
     }
     // ---- de hondjes ----
     /*
@@ -1083,6 +1210,96 @@ export class NPCs {
       mm.boundingSphere = null;
     }
     this.fiets.instanceMatrix.needsUpdate = true;
+    this.zetExtras(camX, camZ);
+  }
+
+  /*
+   (stap 154) De houding bovenop het lopen: zitten op een bankje, gehurkt bij het fietsslot (js/gedrag.js), de telefoon
+   aan het oor, de paraplu in de linkerhand, en wie oud is loopt wat voorover.
+  */
+  extraHouding(p, H, h, gy) {
+    H.armZijR = null;
+    if (p.houding === 'zit') {
+      // de heup op de zitting van het bankje: in lichaamsmaat, boven de grond waar hij staat
+      const zit = Math.max(0.3, (GEDRAG.zitting - gy) / h);
+      zitHouding(H, zit);
+      /*
+       Een bankje op straat staat op de stoeprand: de zitting op 0,615 m, en met de benen van zitHouding (gemaakt voor
+       0,46) hingen de voeten 15 cm boven de grond. Dan zakken de bovenbenen schuin naar voren tot de enkel op de grond
+       komt, het onderbeen recht naar beneden.
+      */
+      const c = (zit - MAAT.onderbeen - MAAT.schoenH) / MAAT.bovenbeen;
+      if (c > Math.cos(1.5)) { const heup = Math.acos(Math.min(Math.cos(0.9), c)); H.heupL = H.heupR = heup; H.knieL = H.knieR = heup; H.enkelL = H.enkelR = 0; }
+      p.metParaplu = false;
+    } else if (p.houding === 'hurk') {
+      hurkHouding(H, 1);
+      p.metParaplu = false;
+      return;
+    } else {
+      // (de hele figuur kantelt om de voeten: 0,07 schoof de romp 8 cm naar voren, en dat was geen gebogen rug meer maar
+      // een man die omviel; nu een beetje, met het hoofd naar voren)
+      if (p.oud) { H.romp = (H.romp || 0) + 0.035; H.hoofd = (H.hoofd || 0) - 0.08; }
+      p.metParaplu = !!(this._regen && p.paraplu && !p.doe);
+      if (p.metParaplu) { H.schouderL = 0.35; H.elleboogL = 1.35; }
+    }
+    if (p.belt > 0) {
+      // de bovenarm naar voren en omhoog, de onderarm teruggevouwen naar het oor, de arm iets naar binnen
+      H.schouderR = 2.0; H.elleboogR = 2.83; H.armZijR = -0.2;
+      H.hoofd = (H.hoofd || 0) + 0.12;          // het hoofd iets omlaag en schuin naar de telefoon
+    }
+  }
+
+  // de telefoons, paraplu's en grove figuurtjes van dit beeld
+  zetExtras(camX, camZ) {
+    const m = this._m, q = this._q, e = this._e, v = this._v, sc = this._s, col = this._kleur || (this._kleur = new THREE.Color());
+    let nt = 0, np = 0, ng = 0;
+    const kx = this.kijk ? this.kijk.x : 0, kz = this.kijk ? this.kijk.z : 0, KEGEL = Math.cos(75 * Math.PI / 180);
+    const g2 = this.ZICHT_GROF * this.ZICHT_GROF, z2 = this.ZICHT * this.ZICHT;
+    for (let i = 0; i < this.people.length; i++) {
+      const p = this.people[i];
+      if (p.slaapt || p.verborgen) continue;
+      const h = p.height;
+      if (this.slotVan[i] >= 0 && p.handR) {
+        if (p.alive && p.belt > 0 && !p.fietst) {
+          e.set(0.25, p.yaw, 0, 'YXZ'); q.setFromEuler(e);
+          m.compose(v.set(p.handR.x, p.handR.y + 0.035 * h, p.handR.z), q, sc.set(h, h, h));
+          this.telefoon.setMatrixAt(nt++, m);
+        }
+        // (de stand van nu, niet die van het laatste getekende beeld: ver weg wordt niet elk beeld een houding gezet)
+        if (p.alive && p.metParaplu && this._regen && !p.doe && !p.fietst) {
+          // de stok schuin van de hand naar boven het hoofd: het scherm hangt boven het midden van het lichaam
+          const ux = p.x - p.handL.x, uz = p.z - p.handL.z, uy = 0.95 * h;
+          const ul = Math.hypot(ux, uy, uz);
+          q.setFromUnitVectors(this._omhoog || (this._omhoog = new THREE.Vector3(0, 1, 0)), v.set(ux / ul, uy / ul, uz / ul));
+          m.compose(v.copy(p.handL), q, sc.set(h, h, h));
+          this.paraplu.setMatrixAt(np, m);
+          this.paraplu.setColorAt(np++, col.setHex(p.parapluKleur));
+        }
+        continue;
+      }
+      // grof: tussen ZICHT en ZICHT_GROF, alleen vóór je en alleen wie staat
+      if (camX === null || !p.alive) continue;
+      const dx = p.x - camX, dz = p.z - camZ, d2 = dx * dx + dz * dz;
+      if (d2 <= z2 || d2 > g2) continue;
+      if (this.kijk && (dx * kx + dz * kz) < KEGEL * Math.sqrt(d2)) continue;
+      const k = this.kleurVan[i];
+      e.set(0, p.yaw, 0, 'YXZ'); q.setFromEuler(e);
+      m.compose(v.set(p.x, grondHoogte(p.x, p.z), p.z), q, sc.set(h * (p.vrouw ? 0.92 : 1), h, h));
+      this.grof.romp.setMatrixAt(ng, m); this.grof.benen.setMatrixAt(ng, m); this.grof.kop.setMatrixAt(ng, m);
+      this.grof.romp.setColorAt(ng, col.setHex(k.shirt));
+      this.grof.benen.setColorAt(ng, col.setHex(p.rok ? k.kuit : k.broek));
+      this.grof.kop.setColorAt(ng, col.setHex(k.huid));
+      ng++;
+    }
+    this.telefoon.count = nt; this.paraplu.count = np;
+    this.telefoon.instanceMatrix.needsUpdate = true;
+    this.paraplu.instanceMatrix.needsUpdate = true;
+    if (this.paraplu.instanceColor) this.paraplu.instanceColor.needsUpdate = true;
+    for (const mm of Object.values(this.grof)) {
+      mm.count = ng; mm.instanceMatrix.needsUpdate = true;
+      if (mm.instanceColor) mm.instanceColor.needsUpdate = true;
+    }
+    this.nGrof = ng;
   }
 
   // raycast-doelen: de instanced meshes zelf
@@ -1133,7 +1350,7 @@ export class NPCs {
     let n = 0;
     const vaart = Math.min(1, Math.abs(snelheid) / 14);
     for (const p of this.people) {
-      if (!p.alive || p.slaapt) continue;
+      if (!p.alive || p.slaapt || p.verborgen) continue;
       const dx = p.x - x, dz = p.z - z;
       if (dx * dx + dz * dz > straal * straal) continue;
       p.alive = false; p.fall = 0; p.respawn = 22 + this.r() * 8;
@@ -1145,4 +1362,25 @@ export class NPCs {
     }
     return n;
   }
+}
+
+/*
+ (stap 154) De paraplu: de oorsprong is het handvat (in de hand), de stok recht omhoog en het scherm erboven, met acht
+ baleinen. Gesloten onderkant, zodat het materiaal enkelzijdig kan blijven (tweezijdig is een nieuw programma).
+*/
+function parapluGeo() {
+  const stok = new THREE.CylinderGeometry(0.008, 0.008, 0.95, 5, 1).translate(0, 0.475, 0);
+  const haak = new THREE.TorusGeometry(0.035, 0.008, 4, 8, Math.PI).rotateZ(Math.PI).translate(-0.035, 0, 0);
+  const scherm = new THREE.ConeGeometry(0.52, 0.2, 8, 1, false).translate(0, 1.04, 0);
+  const punt = new THREE.CylinderGeometry(0.006, 0.006, 0.08, 4, 1).translate(0, 1.18, 0);
+  const delen = [stok, haak, scherm, punt].map(g => g.toNonIndexed());
+  for (const g of delen) { g.deleteAttribute('uv'); }
+  let n = 0; for (const g of delen) n += g.attributes.position.count;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
+  let o = 0;
+  for (const g of delen) { pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); o += g.attributes.position.count; }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  return geo;
 }
