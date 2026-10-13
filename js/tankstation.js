@@ -38,12 +38,14 @@ function materialen() {
     zuil: std(0xf2f3f1, { roughness: 0.6 }),
     licht: new THREE.MeshStandardMaterial({ color: 0xfff6e0, emissive: 0xfff0cc, emissiveIntensity: 0.55, roughness: 1 }),
     vloer: std(0x7d8085, { roughness: 0.95 }),
+    plint: std(0x5c6064, { roughness: 0.6, metalness: 0.2 }),
+    staal: std(0xb8bcc0, { roughness: 0.35, metalness: 0.6 }),
   };
   return MAT;
 }
 
 // ---------- het zonnetje van BP, op een canvas ----------
-function heliosDoek(maat = 256) {
+export function heliosDoek(maat = 256) {
   const c = document.createElement('canvas'); c.width = c.height = maat;
   const g = c.getContext('2d');
   g.clearRect(0, 0, maat, maat);
@@ -111,6 +113,116 @@ function zuilDoek(prijzen, breed = 256, hoog = 512) {
  Alles neerzetten. `W` is dezelfde bundel als bij de rest van de kaartwereld:
  `addCollider` voor de botsingen en `lodAan` voor de afstand.
 */
+// ---------- de pompen (stap 160: "ook de benzinepompen zelf") ----------
+const PRODUCT = [['Euro 95', 'E10', '#009640'], ['Diesel', 'B7', '#1c1c1c'], ['Ultimate', '98', '#1f5fb4']];
+const canvas = (b, h, teken) => {
+  const c = document.createElement('canvas'); c.width = b; c.height = h;
+  teken(c.getContext('2d'), b, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+};
+// het display: drie regels groene lcd-cijfers op zwart, met de literprijs van de zuil
+function lcdDoek(prijs) {
+  return canvas(256, 136, (g, b, h) => {
+    g.fillStyle = '#e9ebe8'; g.fillRect(0, 0, b, h);
+    g.fillStyle = '#0d1112'; g.fillRect(8, 8, b - 16, h - 16);
+    const regels = [['BEDRAG €', '0,00'], ['LITER', '0,00'], ['PRIJS/L', prijs]];
+    regels.forEach(([n, w], i) => {
+      const y = 30 + i * 38;
+      g.fillStyle = '#7fd08a'; g.font = 'bold 15px Arial, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+      g.fillText(n, 18, y);
+      g.fillStyle = '#9dff8a'; g.font = 'bold 30px "Courier New", monospace'; g.textAlign = 'right';
+      g.fillText(w, b - 18, y + 1);
+    });
+  });
+}
+// de onderkast: de drie producten met hun kleur en een knop, en de sticker "betaal binnen of aan de pomp"
+function productDoek() {
+  return canvas(256, 128, (g, b, h) => {
+    g.fillStyle = '#f4f5f3'; g.fillRect(0, 0, b, h);
+    PRODUCT.forEach(([naam, sub, kl], i) => {
+      const x = 8 + i * 82;
+      g.fillStyle = kl; g.fillRect(x, 10, 76, 62);
+      g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = 'bold 15px Arial, sans-serif'; g.fillText(naam, x + 38, 30);
+      g.font = 'bold 22px Arial, sans-serif'; g.fillText(sub, x + 38, 54);
+      g.fillStyle = '#d0d3d0'; g.beginPath(); g.arc(x + 38, 92, 11, 0, Math.PI * 2); g.fill();
+      g.fillStyle = kl; g.beginPath(); g.arc(x + 38, 92, 7, 0, Math.PI * 2); g.fill();
+    });
+    g.fillStyle = '#5a5e60'; g.font = '11px Arial, sans-serif'; g.textAlign = 'center';
+    g.fillText('betaal binnen of aan de pomp', b / 2, 117);
+  });
+}
+// het nummer van de pomp in een witte cirkel
+function nummerDoek(nr) {
+  return canvas(64, 64, (g, b, h) => {
+    g.fillStyle = '#009640'; g.fillRect(0, 0, b, h);
+    g.fillStyle = '#ffffff'; g.beginPath(); g.arc(32, 32, 27, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#009640'; g.font = 'bold 38px Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(String(nr), 32, 34);
+  });
+}
+// het betaalautomaatje: een schermpje en een toetsenblok
+function betaalDoek() {
+  return canvas(64, 96, (g, b, h) => {
+    g.fillStyle = '#25292c'; g.fillRect(0, 0, b, h);
+    g.fillStyle = '#5fa8d8'; g.fillRect(8, 8, b - 16, 26);
+    g.fillStyle = '#c9cdd0';
+    for (let r = 0; r < 4; r++) for (let k = 0; k < 3; k++) g.fillRect(10 + k * 16, 42 + r * 12, 12, 9);
+    g.fillStyle = '#111'; g.fillRect(14, 90, 36, 4);   // de kaartgleuf
+  });
+}
+/**
+ Eén pomp in zijn eigen assen (x langs het eiland, z dwars; de displays kijken naar ±z), de voet op y = 0:
+ plint, onderkast met producten en betaalautomaat, een groene naad, de displaykop, de groene kap met het zonnetje en
+ het nummer, aan elke kant drie pistolen in hun houder met een slang die van boven in een boog naar beneden hangt.
+*/
+function maakPomp(M, D, nr) {
+  const p = new THREE.Group();
+  p.name = 'pomp'; p.userData.nr = nr;
+  const doos = (b, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(b, h, d), mat); m.position.set(x, y, z); p.add(m); return m; };
+  const vlak = (b, h, mat, x, y, z, kant) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(b, h), mat);
+    m.position.set(x, y, z); m.rotation.y = kant > 0 ? 0 : Math.PI; p.add(m); return m;
+  };
+  doos(1.25, 0.1, 0.72, M.plint, 0, 0.05, 0);
+  doos(1.05, 0.95, 0.52, M.pomp, 0, 0.1 + 0.475, 0).castShadow = true;
+  doos(1.07, 0.05, 0.54, M.pompGroen, 0, 1.075, 0);
+  doos(1.05, 0.6, 0.5, M.pomp, 0, 1.1 + 0.3, 0).castShadow = true;
+  doos(1.15, 0.3, 0.6, M.pompGroen, 0, 1.7 + 0.15, 0);
+  doos(1.17, 0.03, 0.62, M.geel, 0, 1.7, 0);
+  // de staanders met de slangophanging opzij
+  for (const sx of [-1, 1]) doos(0.08, 1.55, 0.36, M.plint, sx * 0.565, 0.1 + 0.775, 0);
+  const nummer = new THREE.MeshStandardMaterial({ map: nummerDoek(nr), roughness: 0.5 });
+  for (const kant of [-1, 1]) {
+    const z = kant * 0.251;
+    vlak(0.86, 0.46, D.lcd, 0, 1.4, kant * 0.252, kant);
+    vlak(0.86, 0.43, D.product, 0, 0.42, z + kant * 0.011, kant);
+    vlak(0.24, 0.24, D.helios, -0.38, 1.85, kant * 0.302, kant);
+    vlak(0.2, 0.2, nummer, 0.38, 1.85, kant * 0.302, kant);
+    // de betaalautomaat
+    doos(0.2, 0.3, 0.06, M.scherm, 0.36, 0.82, kant * 0.29);
+    vlak(0.18, 0.27, D.betaal, 0.36, 0.82, kant * 0.321, kant);
+    // drie pistolen in hun houder, elk met zijn eigen kleur
+    PRODUCT.forEach(([, , kl], i) => {
+      const x = (i - 1) * 0.24 - 0.08;
+      const mk = D.kleur[i];
+      doos(0.13, 0.1, 0.07, mk, x, 0.96, kant * 0.295);                               // de houder
+      doos(0.07, 0.2, 0.1, M.slang, x, 0.93, kant * 0.35);                            // de greep
+      doos(0.075, 0.06, 0.11, mk, x, 1.05, kant * 0.35);                              // de kap van het pistool
+      const tuit = new THREE.Mesh(D.tuit, M.staal); tuit.position.set(x, 0.79, kant * 0.33); p.add(tuit);
+      // de slang: uit de kop opzij, in een boog tot vlak boven de grond en weer omhoog naar het pistool
+      const sx = x < 0 ? -0.5 : 0.5;
+      const lijn = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(sx, 1.62, kant * 0.18), new THREE.Vector3(sx * 1.18, 1.25, kant * 0.32),
+        new THREE.Vector3(sx * 1.05 + x * 0.3, 0.45, kant * 0.5), new THREE.Vector3(x, 0.55, kant * 0.42),
+        new THREE.Vector3(x, 1.08, kant * 0.36)]);
+      p.add(new THREE.Mesh(new THREE.TubeGeometry(lijn, 18, 0.017, 5, false), M.slang));
+    });
+  }
+  return p;
+}
+
 export function bouwTankstations(scene, W, stations) {
   if (!stations || !stations.length) return;
   const M = materialen();
@@ -206,6 +318,19 @@ export function bouwTankstations(scene, W, stations) {
     }
 
     // ---- de pompeilanden ----
+    // de gedeelde doeken en vormen van de pompen van dit station
+    const pr0 = parseFloat(String((T.prijzen[0] || {}).prijs || '206.9').replace(',', '.'));
+    const literPrijs = (pr0 > 20 ? pr0 / 100 : pr0).toFixed(3).replace('.', ',');
+    const lcd = lcdDoek(literPrijs);
+    const PD = {
+      lcd: new THREE.MeshStandardMaterial({ map: lcd, emissiveMap: lcd, emissive: 0xffffff, emissiveIntensity: 0.35, roughness: 0.3 }),
+      product: new THREE.MeshStandardMaterial({ map: productDoek(), roughness: 0.5 }),
+      betaal: new THREE.MeshStandardMaterial({ map: betaalDoek(), roughness: 0.4 }),
+      helios: new THREE.MeshBasicMaterial({ map: helios, transparent: true }),   // zoals het zonnetje op de zuil: geen nieuw programma
+      kleur: PRODUCT.map(([, , kl]) => new THREE.MeshStandardMaterial({ color: kl, roughness: 0.45 })),
+      tuit: new THREE.CylinderGeometry(0.012, 0.012, 0.16, 6),
+    };
+    let pompNr = 0;
     for (const eil of T.eilanden) {
       // plek van het eiland ten opzichte van het hart van de luifel
       const dx = eil.x - T.cx, dz = eil.z - T.cz;
@@ -219,22 +344,9 @@ export function bouwTankstations(scene, W, stations) {
 
       for (let i = 0; i < eil.pompen; i++) {
         const px = lokX + (i - (eil.pompen - 1) / 2) * (eil.lengte * 0.5);
-        const kast = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.55, 0.62), M.pomp);
-        kast.position.set(px, 0.28 + 1.55 / 2, lokZ);
-        kast.castShadow = true;
-        groep.add(kast);
-        const kop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.34, 0.66), M.pompGroen);
-        kop.position.set(px, 0.28 + 1.55 + 0.17, lokZ);
-        groep.add(kop);
-        for (const kant of [-1, 1]) {
-          const scherm = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.5, 0.03), M.scherm);
-          scherm.position.set(px, 0.28 + 1.12, lokZ + kant * 0.33);
-          groep.add(scherm);
-          // de slang aan een beugel opzij
-          const slang = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.55, 0.10), M.slang);
-          slang.position.set(px + 0.66, 0.28 + 0.85, lokZ + kant * 0.18);
-          groep.add(slang);
-        }
+        const pomp = maakPomp(M, PD, ++pompNr);
+        pomp.position.set(px, 0.28, lokZ);
+        groep.add(pomp);
         // een pomp is een paal waar je niet doorheen rijdt
         const wx = T.cx + px * T.as[0] + lokZ * -T.as[1];
         const wz = T.cz + px * T.as[1] + lokZ * T.as[0];

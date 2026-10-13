@@ -731,6 +731,27 @@ komen plek, richting en maat vandaan. Alleen de doorrijhoogte, het aantal pompen
 |---|---|
 | ![tankstation](docs/screenshots/tank_onder.png) | ![prijzenzuil](docs/screenshots/tank_voor.png) |
 
+### De shop van binnen
+
+Sinds stap 160 kun je de shop in. Loop naar de glazen pui onder de groene boeiboord met "shop": de schuifdeuren gaan
+vanzelf open als je dichtbij komt, net als bij het Autohuis en de Poiesz. Binnen ligt een grijze tegelvloer onder een
+systeemplafond met spots. Er staan twee gondels met snoep en chips, langs de oostmuur een koelvitrine met flessen en
+blikjes, en achterin een wand met zoetwaren onder het bord ZOETWAREN. Bij de deur hangt een groene wand "Bedankt voor uw
+bezoek" en staat een rode ijsvriezer, in het westdeel is een koffiehoek. Achter de balie met de kassa staat een medewerker
+in BP-groen voor de tabakswand; hij kijkt je aan als je binnenkomt. Verder: bordjes boven de gondels, een deurmat, rode
+mandjes, een tijdschriftenrek, olie en autospullen, een menubord boven de balie, een klok, affiches op de pui en een stoepbord. Kopen kan er nog niet: voor nu loop je er alleen rond.
+
+| van onder de luifel | voor de deur | binnen | de balie | 's avonds |
+|---|---|---|---|---|
+| ![](docs/screenshots/bp_buiten.png) | ![](docs/screenshots/bp_deur.png) | ![](docs/screenshots/bp_binnen.png) | ![](docs/screenshots/bp_balie.png) | ![](docs/screenshots/bp_nacht.png) |
+
+De pompen zelf hebben een display met de literprijs, de drie producten (Euro 95, Diesel, Ultimate 98) met elk een pistool in
+zijn eigen kleur, een slang die van de kop naar het pistool hangt, een betaalautomaat, het zonnetje en een nummer.
+
+| een pomp | de pompeilanden | binnen bij de pui |
+|---|---|---|
+| ![](docs/screenshots/bp_pomp.png) | ![](docs/screenshots/bp_pompen.png) | ![](docs/screenshots/bp_details.png) |
+
 ### De wasboxen achter het station — en wat je er écht doet
 
 Achter de shop, op het terrein van het station, staat een rij **wasboxen** met de groene band van BP

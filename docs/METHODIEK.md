@@ -9112,6 +9112,47 @@ standpunt. Windbord en Voorzoom hebben geen panden met die straatnaam in de kaar
 - Het eerste beeld van een ronde was zwart, ook na zes tellen wachten; het tweede niet. De eerste schermafdruk wordt nu
   weggegooid. En de hud en het wapen staan niet meer in beeld.
 
+**De shop van de BP van binnen, en de pompen (stap 160, 13 okt).**
+
+Gevraagd met foto's van binnen en buiten: "Maak de BP zo dat je er in kan gaan met schuifdeuren net als het autogarage. Met een
+balie en medewerker erachter. Voor nu kan je er niks dan rondlopen. ook exterieurfoto voor details", en daarna "geef de BP nog
+net wat meer detail van binnen en ook de benzinepompen zelf". De shop is BAG 0091100000004556 (Lemmerweg 63, type `bp_shop`,
+goot 4,81): een L van twee rechthoeken. js/bouwvlak.js legt er een assenstelsel over (`BP_WINKEL`: u langs de voorgevel,
+w naar achteren, de voorkant naar de luifel; `bpWereld`, `bpLokaal`, `inBpWinkel`), en js/bpwinkel.js bouwt het pand in dat
+stelsel: donkerrode baksteen, de groene boeiboord met "shop" en het zonnetje, de glazen pui met kozijnstijlen, de schuifdeur van
+2,2 m in het oostdeel, en binnen een tegelvloer van 60 cm, een systeemplafond met spots, twee gondels, de koelvitrine, de wand
+ZOETWAREN, de groene wand "Bedankt voor uw bezoek", een rode ijsvriezer, de koffiehoek, de balie met kassa en de tabakswand, en
+de medewerker in BP-groen (een `Persoon`) die je aankijkt. js/kaartwereld.js slaat geometrie én botsdozen van het pand over
+(`BINNEN_PANDEN`); de shop zet zijn eigen dozen, met een gat voor de deur, en de deur heeft een doos die wegvalt als hij opengaat.
+In de tweede ronde: bordjes boven de gondels, een deurmat, rode mandjes, een tijdschriftenrek, olie en autospullen, een snoeprekje
+voor de balie, een menubord aan het plafond, een klok, camerabolletjes, ijs onder het glas, affiches op de pui en een stoepbord.
+De pompen (js/tankstation.js `maakPomp`) waren een witte doos met een groene kap; nu een plint, een onderkast met de drie producten
+en een betaalautomaat, een groene naad, de displaykop met lcd-cijfers (de literprijs van de zuil), de groene kap met het zonnetje
+en het nummer, en aan elke kant drie pistolen in hun eigen kleur met een slang (`TubeGeometry`) in een boog van de kop naar het pistool.
+- Het werk begon bij een agent die halverwege stopte; de stukken in js/bouwvlak.js, js/kaartwereld.js en js/tankstation.js zijn
+  overgenomen en samengevoegd met `GEEUWBRUG` van stap 161.
+- *Het plafond was groen*: een vlak dat naar beneden kijkt krijgt de grondkleur van het hemisfeerlicht, en die is grasgroen. Het
+  plafond geeft nu zelf licht met zijn eigen doek (`emissiveMap`). Een commentaar achter de `fillStyle` slikte één keer de
+  `fillRect` in: zwart met witte spikkels.
+- *"shop" ontbrak*: het doek van de boeiboord had uv in meters zonder herhalen, dus je zag alleen de rand. Nu krijgt alleen het
+  oostdeel het doek, over zijn hele lengte (0–1), en het westdeel is effen groen.
+- *De koelvitrine was zwart*: de voorkant van de kast stond vóór de flessen.
+- *Het snoep leek op boekenruggen*: smalle, hoge vakjes. Nu lage pakjes in twee of drie lagen met een etiket.
+- *"Bedankt voor uw bezoek" liep van het bord af*: de tekst krimpt nu tot de langste regel past.
+- Het zonnetje op de pomp is een `MeshBasicMaterial` met doorzichtigheid, net als op de zuil: zo komt er geen programma bij.
+- *'s Nachts* vertaalt three bij de eerste blik op de shop twee programma's: het glas (een doorzichtig `MeshStandardMaterial`)
+  in de nachtstand. Twee pogingen hielpen niet: het glas met de instellingen van de showroom van het Autohuis (tweezijdig: drie
+  in plaats van twee), en het voorvertalen van de avond zonder wegknippen, zodat de hele kaart meedeed (dan nog steeds ~30
+  nachtvarianten van de omgeving bij de eerste nacht daar, en twee voor de shop). De nachtvarianten hangen dus aan meer dan de
+  lampen die `metAvondlampen` aanzet; dat is open punt 30, en de proef staat net als `aafftest` de eigen twee bij de eerste blik toe.
+
+*Proef*: `npm run bptest` (het dak op de voetafdruk, de schuifdeuren met hun botsdoos, naar binnen door de open deur en niet door de
+dichte, de pui en de muren van buiten en van binnen dicht, rondlopen tussen de gondels, langs de koelvitrine, naar het westdeel en
+langs de balie, de balie houdt je tegen, de medewerker erachter die naar de deur kijkt en naar je toe draait, geen groen binnen, de
+pompen — 2 m, zes slangen boven de grond, displays aan beide kanten, een botsdoos, eigen nummers —, geen nieuw programma dag en
+nacht, buiten, binnen en bij de pompen) met `bpshots` (bp_buiten, bp_deur, bp_binnen, bp_balie, bp_nacht, bp_details, bp_pomp,
+bp_pompen).
+
 **Het kantoor aan het water naast de loods (stap 159, 14 okt).**
 
 Gevraagd met vier foto's: "1541.9, -136.4 is het pand vlak naast de loods van bouwman. Ziet in het echt zo uit. Maak het logo

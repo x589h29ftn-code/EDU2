@@ -24,8 +24,9 @@ import { bouwZuilengangen } from './zuilengang.js';
 import { bouwAaff, EIGEN_PANDEN } from './aaff.js';
 import { bouwTennishal } from './tennishal.js';   // (stap 162) zet zijn pand-id zelf in EIGEN_PANDEN
 import { bouwGeeuwbrug, GEEUW_PANDEN } from './geeuwbrug.js';
+import { bouwBpWinkel } from './bpwinkel.js';   // (stap 160) de shop van de BP, van binnen
 import { bouwAfsluitingen, bouwGrenzen } from './afsluiting.js';
-import { inBouwvlak } from './bouwvlak.js';
+import { inBouwvlak, inBpWinkel, BINNEN_PANDEN } from './bouwvlak.js';
 
 /*
  De buitennormaal van een muurvlak, voor een pand dat uit zijn grondvlak wordt
@@ -1026,8 +1027,8 @@ export function* bouwKaartWereldStap(scene, W) {
       x >= w.b[0] && x <= w.b[2] && z >= w.b[1] && z <= w.b[3] && inRing(x, z, w.r));
     // (stap 152: in en vlak voor de zuilengang geen onkruid, zwerfvuil of kliko — daar telt hij als water: weren)
     const rommel = bouwRommel(scene, W, K.wegassen, (x, z) => grondHoogte(x, z, -Infinity),
-      (x, z) => { if (inZuilengang(x, z)) return 'water'; const v = vlakOp(x, z); return v ? v.k : null; },
-      (x, z) => inZuilengang(x, z) || opHetWater(x, z));
+      (x, z) => { if (inZuilengang(x, z) || inBpWinkel(x, z, 0.6)) return 'water'; const v = vlakOp(x, z); return v ? v.k : null; },
+      (x, z) => inZuilengang(x, z) || inBpWinkel(x, z, 0.6) || opHetWater(x, z));
     console.log(`kaart: ${rommel.onkruid} pollen onkruid, ${rommel.vuil} stuks zwerfvuil, ${rommel.kliko} rolcontainers`
       + `${rommel.geweerd ? ` (${rommel.geweerd} pollen geweerd: die stonden op de rijbaan)` : ''}`);
 
@@ -1055,6 +1056,8 @@ export function* bouwKaartWereldStap(scene, W) {
     if (bouwTennishal(scene, K)) console.log('kaart: Tennishal Sneek gebouwd');
     // (stap 161) de oude Geeuwbrug: het betonnen landhoofd met het torentje aan de Geeuw
     if (bouwGeeuwbrug(scene, K, W)) console.log('kaart: de oude Geeuwbrug (landhoofd en brugwachtershuisje) gebouwd');
+    // (stap 160) de shop van de BP: schuifdeuren, schappen, een balie met een medewerker
+    if (bouwBpWinkel(scene, { addCollider: W.addCollider, grondHoogte: (x, z) => grondHoogte(x, z, -Infinity) })) console.log('kaart: de shop van de BP gebouwd');
   } else {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor);
@@ -1824,10 +1827,11 @@ function* bouwPandenStap(scene, W, plat) {
     // beeld teruggeven, zodat het laadscherm blijft lopen
     if ((pandNr++ % 60) === 0) yield { wat: 'gebouwen', deel: 0.42 + 0.38 * (pandNr / K.panden.length) };
     tegelNu = tegelVan(p.rect ? p.rect.cx : p.voet[0][0], p.rect ? p.rect.cz : p.voet[0][1]);
-    const eigen = !plat && (EIGEN_PANDEN.has(p.id) || GEEUW_PANDEN.has(p.id));
+    const binnenPand = !plat && BINNEN_PANDEN.has(p.id);
+    const eigen = !plat && (EIGEN_PANDEN.has(p.id) || GEEUW_PANDEN.has(p.id)) || binnenPand;
     if (molenPanden.has(p.id) || eigen) {
       // alleen de botsingsdozen, verderop in deze lus (stap 159: ook een pand dat een eigen module nabouwt, js/aaff.js;
-      // stap 161: de oude Geeuwbrug, js/geeuwbrug.js, zet ook zijn eigen botsdozen)
+      // stap 161: de oude Geeuwbrug, js/geeuwbrug.js, zet ook zijn eigen botsdozen; stap 160: de BP-shop, js/bpwinkel.js)
     } else if (p.v && p.f) {
       const V = p.v;
       const pt = (i) => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]];
@@ -1849,7 +1853,8 @@ function* bouwPandenStap(scene, W, plat) {
       extrudeer(p, voet, p.goot || 3, p.dak === 'slanted');
       geschat++;
     }
-    if (p.rect && !(!plat && GEEUW_PANDEN.has(p.id))) {
+    // (stap 160, 161) een pand waar je in loopt (de BP-shop) en de oude Geeuwbrug zetten hun eigen dozen
+    if (p.rect && !(!plat && GEEUW_PANDEN.has(p.id)) && !binnenPand) {
       const h = Math.max(3, p.nok || p.goot || 3);
       for (const d of pandDozen(gangVrij(p))) W.addCollider(d.x, d.z, d.hx, d.hz, -d.hoek, h);
     }
