@@ -165,7 +165,9 @@ const r = await page.evaluate(async () => {
   // ---- 8. shaders
   const Cam = g.camera, R = g.renderer;
   const kijk = (uur, zien) => {
-    g.sfeer.uur = uur; for (let i = 0; i < 3; i++) g.sfeer.update(0.1, -77.4, -459.8);
+    // (dertig keer bijwerken: met drie stappen was de nachtstand soms nog niet helemaal door, en sloeg de omgeving pas om
+    // bij de meting mét het landhoofd: 207 → 237)
+    g.sfeer.uur = uur; for (let i = 0; i < 30; i++) g.sfeer.update(0.1, -77.4, -459.8);
     A.groep.visible = zien;
     Cam.position.set(-77.4, 1.7, -459.8); Cam.lookAt(mid.x, 3, mid.z); Cam.updateMatrixWorld(true);
     W.updateLOD(-77.4, -459.8); g.scene.updateMatrixWorld(true); R.render(g.scene, Cam);
