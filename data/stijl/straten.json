@@ -5,7 +5,8 @@
       "type": "molenkrite",
       "kap": "molenkrite_kap",
       "laag": "molenkrite_bung",
-      "bron": "foto: Molenkrite 19, 43 (kap) en 70 (laag met zonnedak)"
+      "plan": { "van": 1979, "tot": 1979, "nrVan": 133, "nrTot": 143, "type": "molenkrite_punt" },
+      "bron": "foto: Molenkrite 19, 43 (kap) en 70 (laag met zonnedak). Stap 165 (Street View van de gebruiker, '139 Molenkrite', bij 435.3, 75.6): Molenkrite 133-143 zijn rijwoningen van hetzelfde soort plan als de Eekmolen, in rode steen, met een glazen vlak in de top van de puntgevel en voor elke woning een aanbouw met een eigen puntgeveltje van witte of blauwe rabatdelen"
     },
     "Monnikmolen": {
       "type": "monnik",
@@ -81,7 +82,13 @@
     },
     "Eekmolen": {
       "type": "eekmolen",
-      "bron": "foto: Eekmolen 21"
+      "plat": "garagebox",
+      "plan": { "van": 1976, "tot": 1981, "nokVan": 7.5, "nokTot": 9.0, "type": "eekmolen_punt" },
+      "bron": "foto: Eekmolen 21. Stap 165 (13 okt 2026, Street View van de gebruiker): de platte panden zijn de garageboxen 2a-2i (negen kanteldeuren onder een plat dak, bij 332.0, 296.5), en de rijwoningen van het plan uit 1976-1981 (nok onder 9 m: Eekmolen 1-26, 53, 55) hebben een hoge bakstenen puntgevel met de nok haaks op de straat en een berging met pannendakje ervoor (Eekmolen 1, bij 323.5, 278.9)"
+    },
+    "de Loper": {
+      "plan": { "van": 1976, "tot": 1981, "nokVan": 7.5, "nokTot": 9.0, "type": "loper_punt" },
+      "bron": "stap 165 (schermafdruk van de gebruiker bij 325.9, 193.3: 'Idem eekmolen'): hetzelfde plan als de Eekmolen, in de gele steen van de buurt; de rest van de straat volgt de standaard"
     },
     "Zeskanter": {
       "type": "eekmolen",

@@ -952,6 +952,15 @@ nachts gaan branden.
 |---|---|---|---|
 | ![](docs/screenshots/aaff_water.png) | ![](docs/screenshots/aaff_hoek.png) | ![](docs/screenshots/aaff_nacht.png) | ![](docs/screenshots/aaff_logo_nacht.png) |
 
+**Garageboxen en puntgevels aan de Eekmolen** (stap 165): achter de Eekmolen staat de rij van negen garageboxen onder één plat
+dak, met kanteldeuren in wit, groen, bordeaux en blauw tussen gemetselde penanten en een witte boeiboord erboven. De rijwoningen
+aan de Eekmolen, de Loper en de Molenkrite (133–143) hebben weer hun hoge bakstenen puntgevel met losse ramen tot in de top en een
+berging met een pannendakje ervoor; aan de Molenkrite een glazen vlak in de punt en aanbouwtjes met witte of blauwe rabatdelen.
+
+| de garageboxen | Eekmolen | de Loper | Molenkrite 135–143 |
+|---|---|---|---|
+| ![](docs/screenshots/eekmolen_garages.png) | ![](docs/screenshots/eekmolen_punt_schuin.png) | ![](docs/screenshots/eekmolen_loper.png) | ![](docs/screenshots/eekmolen_molenkrite.png) |
+
 **Tennishal Sneek** (stap 162): aan de Lemmerweg, naast BP Slump Oil, staat de tennishal zoals hij echt is: een lange hal
 met een laag zadeldak van lichtgrijze golfplaten, lichtgrijze gevels met grote donkere kruisen en schuine lijnen, een zwarte
 plint langs de zuidkant en een lage witte aanbouw met de entree onder een blauwe luifel, met het bord "tennishal SNEEK".
