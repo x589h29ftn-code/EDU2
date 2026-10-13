@@ -30,7 +30,7 @@ import { Navigatie } from './navigatie.js';
 import { zoekLooppad } from './looppad.js';
 // stap 144: verstoppen, dekking, raak schieten, het zoekgeheugen en de zaklamp
 import { moeilijk } from './moeilijk.js';
-import { SLIM, verstop, zichtAfstand, struikOpLijn, zoekDekking, flankStap, raakKans, ZoekGeheugen,
+import { SLIM, verstop, zichtAfstand, struikOpLijn, zoekDekking, flankStap, langsVrij, raakKans, ZoekGeheugen,
   inBundel } from './politieslim.js';
 import { geluid } from './audio.js';
 import { initHelikopter, HELI_STER } from './helikopter.js';
@@ -1660,10 +1660,17 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
            naar het flankpunt liep dwars langs je heen als hij al dichtbij stond of jij naar hem toe kwam. Nu gaat hij in een
            boog om je heen (`flankStap`): telkens een stukje van de cirkel, nooit dichterbij dan hij al was.
           */
-          const stapPunt = erIs ? null : flankStap(pos, mik, a.flankHoek, FLANK.afst);
+          // (gaat de weg naar het flankpunt niet langs je heen, dan zoals voorheen: dat punt over de looproute, die
+          // goed om gebouwen heen navigeert; alleen anders de boog)
+          const viaPunt = !erIs && langsVrij(pos, a.flankPunt, mik);
+          if (viaPunt) loopNaar(a, voetPunt(a, pos, a.flankPunt, dt), dt, REN);
+          const stapPunt = erIs || viaPunt ? null : flankStap(pos, mik, a.flankHoek, FLANK.afst);
           if (stapPunt) {
             const [qx, qz] = resolveCollisions(stapPunt.x, stapPunt.z, 0.5);
-            loopNaar(a, voetPunt(a, pos, { x: qx, z: qz }, dt), dt, REN);
+            const q = { x: qx, z: qz }, vp = voetPunt(a, pos, q, dt);
+            // vindt de looproute niets, dan nam `voetPunt` het wegennet, en dat liep voor een stapje opzij een omweg de
+            // verkeerde kant op (wensen4test: van 28 naar 43 m); een stapje van de boog gaat dan recht, met de botsingen
+            loopNaar(a, a.pad === false ? q : vp, dt, REN);
           }
           persoon.kijkNaar(mik.x, mik.z, dt, 7);
           persoon.update(dt, { loopt: !erIs, mikt: true, snelheid: REN, hurkt: erIs ? FLANK.hurk : 0 });

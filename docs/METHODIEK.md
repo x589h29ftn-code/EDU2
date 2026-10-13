@@ -9063,6 +9063,11 @@ verwijder de zaklamp van ze in de nacht."
 - *Flanken in een boog* (`flankStap` in js/politieslim.js): telkens een stukje van de cirkel om Erik, vanaf waar de agent
   nu staat, hoogstens `SLIM.flankBoog` (0,5 rad) per stap; staat hij dichterbij dan de flankafstand, dan eerst naar buiten.
   Hij komt nooit dichter dan hij al was; loopt Erik langs, dan wijkt hij uit (in de proef nu minstens 11 m).
+- Bij het nalopen liep een flankeerder in `wensen4test` van 28 naar 43 m weg: de looproute naar het verschuivende
+  tussenpunt van de boog vond niets, en `voetPunt` viel terug op het wegennet, dat een omweg de verkeerde kant op nam.
+  Nu: gaat de rechte weg naar het flankpunt niet langs Erik (`langsVrij`), dan zoals voorheen dat punt over de looproute
+  (die goed om gebouwen heen navigeert); alleen anders de boog, en vindt de looproute dan niets, recht op het tussenpunt.
+  `wensen4test`, `politieslimtest` en `politie2test` groen.
 - *Dekking aan de eigen kant* (`langsVrij`): hoogstens driekwart van de weg naar Erik, en de rechte weg erheen niet dichter
   dan 5 m bij hem (of dan de agent al stond).
 - *Geen zaklamp*: de bundel in de hand is weg, en een agent te voet ziet je 's nachts op 20 m (onder een lantaarn 34). De
