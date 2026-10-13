@@ -960,6 +960,14 @@ plint langs de zuidkant en een lage witte aanbouw met de entree onder een blauwe
 |---|---|---|
 | ![](docs/screenshots/tennishal_entree.png) | ![](docs/screenshots/tennishal_lang.png) | ![](docs/screenshots/tennishal_boven.png) |
 
+**De Vuurvlinder** (stap 166): de oneven rij 1–15 aan de Vuurvlinder in Duinterpen is nieuwbouw in antraciete baksteen:
+kubistische blokken, om en om een laag blok van twee lagen en een toren van drie, grote ramen in brede crèmewitte kaders,
+op de begane grond een raam tot de grond met melkglas onderin, en een donkere dakrand. Het hoekpand 1 is lichter grijs.
+
+| vanaf de stoep voor nummer 3 | de rij | van boven | 's avonds |
+|---|---|---|---|
+| ![](docs/screenshots/vuurvlinder_straat.png) | ![](docs/screenshots/vuurvlinder_rij.png) | ![](docs/screenshots/vuurvlinder_schuin.png) | ![](docs/screenshots/vuurvlinder_nacht.png) |
+
 **Steekproef ronde 6** (stap 158): vijftien adressen waar een foto van de straat bij helpt, met de plek, de coördinaten,
 een Street View-link van hetzelfde standpunt en een vraag per adres: [docs/steekproef/RONDE6.md](docs/steekproef/RONDE6.md).
 

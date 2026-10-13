@@ -73,6 +73,8 @@
     "tennishalshots": "node tools/tennishalshots.mjs 8123",
     "geeuwbrugtest": "node tools/geeuwbrugtest.mjs 8123",
     "geeuwbrugshots": "node tools/geeuwbrugshots.mjs 8123",
+    "vuurvlindertest": "node tools/vuurvlindertest.mjs 8123",
+    "vuurvlindershots": "node tools/vuurvlindershots.mjs 8123",
     "zuilengangshots": "node tools/zuilengangshots.mjs 8123",
     "voetgangershots": "node tools/voetgangershots.mjs 8123",
     "gezichtshots": "node tools/gezichtshots.mjs 8123",

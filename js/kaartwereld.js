@@ -1394,7 +1394,8 @@ function* bouwPandenStap(scene, W, plat) {
      breed is voor een kapel is gewoon gevel of blinde muur en zakt hieronder
      door naar die keuze.
     */
-    if (st && !ind && !pand.gang && !pand.kaal && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven && breed < WANG_MAX) {
+    // (`geenKapel`, stap 166: aan de Vuurvlinder begint de hoge muur boven de lage achterbouw op 3 m, en dat is gevel)
+    if (st && !ind && !st.geenKapel && !pand.gang && !pand.kaal && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven && breed < WANG_MAX) {
       if (Math.abs(kant) > 0.6 && breed >= 1.2) {
         const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
@@ -1466,11 +1467,11 @@ function* bouwPandenStap(scene, W, plat) {
       const sleutel = st && st.damwand ? `damwand|${blind}`
         : st && st.hout ? `planken|${st.hout}`
         : pleister ? `pleister|${steen[0]}`
-        : `steen|${pand.type}|${seed % 3}`;
+        : `steen|${pand.type}|${seed % 3}${st && st.langeSteen ? '|lang' : ''}`;
       const maak = st && st.damwand ? () => std(T.damwand(blind))
         : st && st.hout ? () => std(T.planks(st.hout))
         : pleister ? () => std(T.plaster(steen[0]))
-        : () => std(T.brick(steen[0], steen[1], seed % 3 + 1));
+        : () => std(T.brick(steen[0], steen[1], seed % 3 + 1, !!(st && st.langeSteen)));
       const g = groep(sleutel, maak, 'muur', true);
       const perDoek = st && st.hout ? 1.2 : 2.6;
       return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / perDoek, p[1] / perDoek] };
@@ -1626,7 +1627,8 @@ function* bouwPandenStap(scene, W, plat) {
         return;
       }
     }
-    if (soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1 && !pand.boven && !(T.HOUSE_STYLES[pand.type] || {}).industrieel) {
+    // (`geenKapel`, stap 166: de toren aan de Vuurvlinder is tot boven gevel, zonder knip op de goot van de achterbouw)
+    if (soort === 1 && Math.abs(n[1]) < 0.5 && ringen.length === 1 && !pand.boven && !(T.HOUSE_STYLES[pand.type] || {}).industrieel && !(T.HOUSE_STYLES[pand.type] || {}).geenKapel) {
       // Muren boven de goot doorknippen: eronder de gevel, erboven een kopgevel
       // (tot de nok) of de wang van een dakkapel (lager dan de nok). 3D BAG trekt
       // de wanden van een dakkapel door tot de grond, dus zonder knip zou de

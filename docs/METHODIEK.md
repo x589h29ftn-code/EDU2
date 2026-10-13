@@ -9160,6 +9160,39 @@ in twee delen van 4,0 en 3,45 m uit de BAG) met de entree, de blauwe luifel en h
 de diagonalen langs een lijn en op twee hoogtes, de puntgevel, de plint en de staanders, het bord op beide gevels, de aanbouw met
 glas, wit en de luifel, de botsdozen, geen nieuw programma dag en nacht) met `tennishalshots` (tennishal_entree, tennishal_lang,
 tennishal_boven).
+**De Vuurvlinder (stap 166, 13 okt).**
+
+Gevraagd met een Street View van Vuurvlinder 3: "Ook locatie: 906.5, 324.5 die huizen". Het punt is de stoep; de huizen staan
+er vijftien meter oostelijker. De oneven rij 1–15 (BAG 0091100000002678, -2968, -4743, -2387, -2385, -3700, -2659, -19011, alle
+van 2007) stond als `molenkrite_kap`: geelbeige steen, witte boeiboorden, witte kapelwangen. Op de foto antraciete baksteen in
+lange smalle stenen, kubistische blokken met platte daken, brede crèmewitte kaders, een raam tot de grond met melkglas.
+- *De vorm uit de BAG*: in het LoD 2.2-model heeft elk pand een lage achterbouw met een plat dak op 3 m en daarachter één
+  schuin vlak van 6,6 naar 10,4 m zonder nok (`b3_n_nok` 0, ~35 m² plat, ~70 m² schuin): de reconstructie trekt het lage blok en
+  de toren samen tot één helling. Om en om ligt de hoge kant aan de straat (3 laag, 5 hoog, ...), en vanaf de straat leest dat
+  precies als op de foto: een blok van twee lagen naast een toren van drie. De vorm is gebleven; geschat is er niets.
+- *De keuze*: de BAG-signatuur (geen nok, plat + schuin, nok ~10,4 m) hebben ook 17, 31 en 33, maar met een ander grondvlak en een
+  lage voorgevel; daar is geen foto van, dus die blijven `molenkrite_kap`. De acht staan per pand in data/stijl/straten.json, want
+  aan de Vuurvlinder staan ook flats en kapwoningen; `npm run geo:genereer` zette alleen die acht om (nagemeten: verder is js/kaart.js
+  gelijk, op de datum na).
+- *Het type*: `vuurvlinder` en `vuurvlinder_grijs` (hoekpand 1, links op de foto, lichter grijs) in js/textures.js. Een eigen tak
+  `kubus` in de gevel: per laag één raam in een kader van 17 cm met een licht randje en slagschaduw, om en om links en rechts, op
+  de begane grond het raam tot de grond met een meter melkglas en de deur aan de andere kant. `storeyH` 3,4: de toren van 10,2 m is
+  drie lagen, het lage blok van 6,7 m twee. Het schuine vlak is donkere plaat (`metaaldak`, glans 0,05), geen pannen.
+- *Lange stenen*: `brick` kreeg `lang` (29 × 4 cm). Op de 21 px/m van een geveldoek is zo'n laag 0,8 pixel: in één keer verkleinen
+  gaf brede banen moiré over de gevel (eerste foto). Nu wordt het patroon eerst gehalveerd tot vlak boven de doelmaat.
+- *Wat misging*: (1) de muren boven de achterbouw beginnen op 3 m, boven de goot (2,93), en werden witte kapelwangen; (2) de
+  voorgevel van de toren haalt de nok, dus de knip op de goot maakte er een kopgevel van: alleen de begane grond had ramen, erboven
+  zeven meter blinde steen. Beide gaan uit met de stijlvlag `geenKapel` (twee voorwaarden in js/kaartwereld.js). (3) De eerste
+  steen was koel grijs en werd onder de blauwe hemel blauw; een tikje warmer. (4) De regenpijp was lichtgrijs op de donkere steen:
+  een stijl mag nu `pijp` zetten. (5) De proef zag 's nachts één nieuw programma: dat was het logo van het kantoor aan het water
+  (650 m verder in dezelfde kijkrichting, open punt 30); de proef zet dat pand voor de meting uit beeld en noemt het materiaal van
+  elk nieuw programma. (6) Twee van de drie schuine foto's stonden in een boomkruin.
+
+*Proef*: `npm run vuurvlindertest` (de types, per pand ~230–360 stralen op de straatgevel: overwegend antraciet, niets warms, crème
+en glas; de zijgevels; elk dakvlak op de BAG-hoogte, plat dak en donkere plaat; geen kapelwangen; de botsdozen; geen nieuw
+programma dag en nacht). Foto's: `npm run vuurvlindershots` (vuurvlinder_straat, _rij, _schuin, _nacht; vuurvlinder_oud is de stand
+ervoor). `npm run voorgeveltest` blijft groen.
+
 **De oude Geeuwbrug (stap 161, 13 okt).**
 
 Gevraagd: "herbouw ook locatie -77.4, -459.8 zie foto ingame. dit is een deel van de oude geeuw brug. Zie torentje met
