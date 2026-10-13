@@ -458,7 +458,26 @@ function kiesType(p, straat) {
   if (opp > 300) return STIJL.standaard.groot;
   if (opp < 35 && !p.nr.length) return 'schuur';           // bijgebouw: kale steen, geen gevel
   const kap = laag && (p.nok ?? 0) > 8;                     // woonruimte in een steile kap
-  if (s) {
+  /*
+   Stap 165: een bouwplan binnen een straat (`plan`): de rijwoningen van Eekmolen
+   en de Loper uit 1976–1981 hebben een hoge puntgevel met de nok haaks op de
+   straat, en waren tot nu toe het gewone type van hun straat (eekmolen met een
+   witte houten topgevel, of molenkrite met dakkapellen). Welke panden dat zijn
+   volgt uit de BAG: bouwjaar, een hellend dak en de nokhoogte. Een straat die
+   alleen een `plan` heeft valt voor de rest terug op de standaard.
+  */
+  // (een straat kan meer plannen hebben; elke maat is optioneel, en `nrVan`/`nrTot`
+  // begrenzen op het laagste huisnummer, zoals Molenkrite 133–143)
+  const nrLaag = Math.min(...p.nr.map(n => parseInt(n, 10)).filter(n => !isNaN(n)));
+  for (const plan of [].concat((s && s.plan) || [])) {
+    if (plat) break;
+    const nok = p.nok ?? 0;
+    if (plan.van !== undefined && !(p.jaar >= plan.van && p.jaar <= plan.tot)) continue;
+    if (plan.nokVan !== undefined && !(nok >= plan.nokVan && nok < plan.nokTot)) continue;
+    if (plan.nrVan !== undefined && !(nrLaag >= plan.nrVan && nrLaag <= plan.nrTot)) continue;
+    return plan.type;
+  }
+  if (s && s.type) {
     /*
      Een portiekflat is een plat pand met een goot boven de zeven meter, en die
      krijgt een eigen type (`plat_hoog`). Die regel stond alleen in de tak

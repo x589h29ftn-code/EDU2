@@ -44,7 +44,9 @@ import { maakAutoBinnen, autoKijk } from './autobinnen.js';
 import { werkSchuifdeurenBij, SCHUIFDEUREN } from './zuilengang.js';
 import { maakGedrag } from './gedrag.js';
 import { AAFF_PAND } from './aaff.js';
+import { BP_SHOP } from './bpwinkel.js';
 import { GEEUW_BRUG } from './geeuwbrug.js';
+import { MOLENFLAT_PAND } from './molenflat.js';
 import { GRAFISCH, GRAFISCH_RIJ, grafischVoorkeur, bewaarGrafisch } from './grafisch.js';
 import { moeilijk, koppelLeven } from './moeilijk.js';
 import { maakProp } from './props.js';
@@ -2974,6 +2976,8 @@ function loop() {
     if (vishandel) vishandel.update(dt);
     gezondheid.update(dt);                   // vanzelf herstel tot de helft (stap 138)
     if (AAFF_PAND.nu) AAFF_PAND.nu.update(dt, sfeer.nacht);   // (stap 159) de logo's aaff. en Excellente 's nachts aan
+    if (BP_SHOP.nu) BP_SHOP.nu.update(dt, [player.pos]);   // (stap 160) de schuifdeuren en de medewerker van de BP-shop
+    if (MOLENFLAT_PAND.nu) MOLENFLAT_PAND.nu.update(dt, sfeer.nacht);   // (stap 163) licht achter de ramen van de flats
     if (pizzabaan) pizzabaan.update(dt, { vrij: !!verhaal.klusVrij && !(verhaal.klusjes && verhaal.klusjes.bezig) });
     djdienst.update(dt, { vrij: !verhaal.missieBezig });
     // politie afgeschud: dat is ook nieuws (stap 131)
@@ -3359,7 +3363,9 @@ window.__game = {
   // stap 152: de schuifdeuren van de Poiesz (js/zuilengang.js)
   schuifdeuren: SCHUIFDEUREN, werkSchuifdeurenBij,
   get aaff() { return AAFF_PAND.nu; },
+  get bpshop() { return BP_SHOP.nu; },
   get geeuwbrug() { return GEEUW_BRUG.nu; },   // (stap 161) de oude Geeuwbrug, voor de proeven
+  get molenflat() { return MOLENFLAT_PAND.nu; },   // (stap 163) de flats aan de Molenkrite, voor de proeven
   zetGrafisch, get grafisch() { return grafisch; }, moeilijk, get schaduwKaart() { return SHADOW_MAP; },
   // stap 131
   pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst,

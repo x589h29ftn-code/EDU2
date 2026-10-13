@@ -1256,6 +1256,41 @@ export const HOUSE_STYLES = {
   // Eekmolen 21 (foto): twee lagen met kap, roodbruine steen, witte kozijnen,
   // witte houten topgevel, garages ervoor, zonnepanelen.
   eekmolen:   { brick: ['#9a5a44', '#c9bfae'], frame: '#ffffff', frame2: '#ffffff', door: ['#f2f2ee', '#1e1f22'], roof: '#35302d', roofType: 'gable', storeys: 2, w: 5.6, dormer: false, skylight: true, solar: true, chimney: false, band: '#f2f2f2', topgevel: '#f2f2ee' },
+  /*
+   Stap 165: de rijwoningen van het plan Eekmolen / de Loper (bouwjaar 1976–1981,
+   nok onder de 9 m; de keuze staat in data/stijl/straten.json als `plan`). Street
+   View van Eekmolen 1: drie bouwlagen in bruinrode steen onder een steil zadeldak
+   met de nok haaks op de straat, dus een hoge bakstenen puntgevel naar voren met
+   losse staande ramen, de voordeur in een terugliggende portiek, en vóór het huis
+   een lage berging met een pannendakje. `puntgevel` zegt kaartwereld.js dat een
+   muurvlak boven de goot hier geen dakkapel is maar een stuk van die puntgevel
+   (geen witte wangen, geen kapelkozijn), en dat de voor- en achtergevel heel
+   blijven tot de nok; `punt` kiest in facade() de gevel met de losse ramen;
+   `laagType` geeft een muur tot `laagTot` (de berging) de bergingsgevel.
+   De Loper is hetzelfde plan in de gele steen van de buurt (de schermafdruk van
+   de gebruiker bij 325.9, 193.3).
+  */
+  eekmolen_punt: { brick: ['#8e4c3a', '#c4b9a8'], frame: '#ffffff', frame2: '#1f3f78', door: ['#1f3f78', '#1c1d20', '#24457f'], bekleding: '#28262a', roof: '#35302d', roofType: 'gable', storeys: 3, w: 6.0, dormer: false, chimney: false, band: '#e6e6e2', puntgevel: true, punt: true, laagType: 'eekmolen_berging', laagTot: 3.7 },
+  eekmolen_berging: { brick: ['#8e4c3a', '#c4b9a8'], frame: '#ffffff', frame2: '#1f3f78', door: ['#1f3f78', '#24457f', '#1c1d20'], roof: '#5a2f26', roofType: 'gable', storeys: 1, storeyH: 3.0, w: 2.9, dormer: false, chimney: false, band: '#d4d6d4', berging: true },
+  loper_punt: { brick: ['#b39a75', '#d2c9b6'], frame: '#ffffff', frame2: '#1f2f4f', door: ['#2b3a22', '#1f2f5f', '#2a2a2a'], bekleding: '#2a292c', roof: '#3d3430', roofType: 'gable', storeys: 3, w: 6.0, dormer: false, chimney: false, band: '#e6e6e2', puntgevel: true, punt: true, laagType: 'loper_berging', laagTot: 3.7 },
+  loper_berging: { brick: ['#b39a75', '#d2c9b6'], frame: '#ffffff', frame2: '#1f2f4f', door: ['#1f2f5f', '#2b3a22', '#2a2a2a'], roof: '#5a2f26', roofType: 'gable', storeys: 1, storeyH: 3.0, w: 2.9, dormer: false, chimney: false, band: '#d4d6d4', berging: true },
+  /*
+   Molenkrite 133–143 (stap 165, Street View "139 Molenkrite"): hetzelfde soort
+   plan in rode steen, met een glazen vlak in de top van de puntgevel (`glasTop`)
+   en vóór elke woning een aanbouw met een eigen puntgeveltje tot vijf meter, dat
+   boven de steen wit of blauw met rabatdelen bekleed is (`rabat`). Die aanbouw
+   is smaller dan een gewone gevel, vandaar `laagMin`.
+  */
+  molenkrite_punt: { brick: ['#8c4636', '#c6baa8'], frame: '#ffffff', frame2: '#22409a', door: ['#22409a', '#1c1d20', '#f2f2ee'], roof: '#3a3330', roofType: 'gable', storeys: 3, storeyH: 3.1, w: 6.0, dormer: false, chimney: true, band: '#f2f2f2', puntgevel: true, punt: true, glasTop: true, laagType: 'molenkrite_berging', laagTot: 5.3, laagMin: 1.0 },
+  molenkrite_berging: { brick: ['#8c4636', '#c6baa8'], frame: '#ffffff', frame2: '#22409a', door: ['#22409a', '#f2f2ee', '#1c1d20'], roof: '#4a4440', roofType: 'gable', storeys: 2, storeyH: 2.6, w: 2.9, dormer: false, chimney: false, band: '#f2f2f2', berging: true, rabat: ['#f1f1ec', '#3d4f9c', '#f1f1ec'] },
+  /*
+   Stap 165: de garageboxen Eekmolen 2a–2i (Street View van de gebruiker bij
+   332.0, 296.5): negen boxen onder één plat dak, elk een kanteldeur van ~2,4 x
+   2,1 m tussen smalle gemetselde penanten, een doorlopende witte boeiboord
+   erboven, geen ramen en geen voordeuren. De kleur van de deur volgt uit het
+   pandnummer (`deuren`, op de foto wit, groen, bordeaux, blauw).
+  */
+  garagebox: { brick: ['#8a4a38', '#c2b6a4'], frame: '#ffffff', frame2: '#ffffff', door: ['#f1f0ea'], deuren: ['#f1f0ea', '#34502f', '#f1f0ea', '#6a2027', '#f1f0ea', '#2e2a78'], roof: '#555555', roofType: 'flat', storeys: 1, storeyH: 2.7, w: 2.78, dormer: false, chimney: false, band: '#f4f4f0', garages: true },
   // RWZI Buitenroede 1 (foto Street View, 4 sep 2026): lage bedrijfsgebouwen in
   // lichtbeige tot grijze steen met plat dak en grijze dakrand, hoge smalle
   // ramen met antracietgrijze kozijnen, stalen deuren en een overheaddeur.
@@ -2117,6 +2152,123 @@ function gevelDoek(type, n, storeys, back, seed) {
         g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(px + m(0.42), 0, m(0.13), top);
         g.fillStyle = 'rgba(255,255,255,0.20)'; g.fillRect(px, 0, m(0.08), top);
       }
+    } else if (st.garages) {
+      /*
+       Garagebox (stap 165, Eekmolen 2a–2i): een kanteldeur tussen twee smalle
+       penanten van de steen eronder, de witte boeiboord over de volle breedte
+       erboven. De deur is een vlakke plaat met lichte liggende ribbels, een
+       donkere naad rondom en een greep onderaan in het midden.
+      */
+      const kleur = st.deuren[(i + seed) % st.deuren.length];
+      const dw = m(Math.min(2.4, st.w - 0.36)), dh = m(2.1);
+      const dx = x0 + (HW - dw) / 2, dy = H - dh;
+      // de penanten: een streep schaduw langs de dag, zodat de deur erin ligt
+      g.fillStyle = 'rgba(0,0,0,0.38)'; g.fillRect(dx - m(0.05), dy - m(0.05), dw + m(0.1), dh + m(0.05));
+      g.fillStyle = kleur; g.fillRect(dx, dy, dw, dh);
+      for (let yy = dy + m(0.12); yy < H - m(0.05); yy += m(0.105)) {
+        g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(dx, yy, dw, m(0.025));
+        g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(dx, yy + m(0.025), dw, m(0.015));
+      }
+      // licht van boven, schaduw onderaan, naad langs de kanten
+      const lg = g.createLinearGradient(0, dy, 0, H);
+      lg.addColorStop(0, 'rgba(255,255,255,0.10)'); lg.addColorStop(1, 'rgba(0,0,0,0.16)');
+      g.fillStyle = lg; g.fillRect(dx, dy, dw, dh);
+      g.fillStyle = 'rgba(0,0,0,0.30)'; g.fillRect(dx, dy, m(0.03), dh); g.fillRect(dx + dw - m(0.03), dy, m(0.03), dh);
+      // greep en slot
+      g.fillStyle = '#9a9c9e'; g.fillRect(dx + dw / 2 - m(0.11), H - m(0.55), m(0.22), m(0.05));
+      g.fillStyle = '#4a4c4e'; g.fillRect(dx + dw / 2 - m(0.02), H - m(0.66), m(0.04), m(0.06));
+      // de witte boeiboord/lateiband boven de deuren, met de schaduw eronder
+      const bb = m(0.36);
+      g.fillStyle = st.band; g.fillRect(x0, 0, HW, bb);
+      g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(x0, 0, HW, m(0.04));
+      g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x0, bb, HW, m(0.06));
+      // de voeg tussen twee boxen op de penant
+      g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(x0, bb, m(0.03), H - bb);
+    } else if (st.berging) {
+      /*
+       Berging voor een woning van het plan Eekmolen / de Loper (stap 165): een
+       lage bakstenen aanbouw met een blauwe of zwarte deur, soms alleen een smal
+       hoog raampje, en bovenaan de lichtgrijze daktrim. Geen woonkamerpui.
+      */
+      const kleur = st.door[(i + seed) % st.door.length];
+      const metDeur = ((i + seed) % 3) !== 2;
+      const links = ((i + seed) % 2) === 0;
+      if (metDeur) {
+        const dw = m(0.9), dh = m(2.05);
+        const dx = links ? x0 + m(0.35) : x0 + HW - m(0.35) - dw;
+        g.fillStyle = 'rgba(0,0,0,0.30)'; g.fillRect(dx - m(0.07), H - dh - m(0.07), dw + m(0.14), dh + m(0.07));
+        g.fillStyle = st.frame; g.fillRect(dx - m(0.05), H - dh - m(0.05), dw + m(0.1), dh + m(0.05));
+        g.fillStyle = kleur; g.fillRect(dx, H - dh, dw, dh);
+        // staande delen van een bergingdeur
+        for (let k = 1; k < 5; k++) { g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(dx + dw * k / 5, H - dh, m(0.02), dh); }
+        g.fillStyle = '#c9c9c9'; g.fillRect(dx + dw * 0.82, H - m(1.05), m(0.03), m(0.14));
+      }
+      // een smal staand raampje aan de andere kant (of in het midden zonder deur)
+      const rw = m(0.5), rh = m(0.95);
+      const rx = metDeur ? (links ? x0 + HW - m(0.45) - rw : x0 + m(0.45)) : x0 + (HW - rw) / 2;
+      win(rx, H - m(2.0), rw, rh, st.frame, { kaal: true });
+      // het puntgeveltje erboven: liggende rabatdelen, wit of blauw (Molenkrite)
+      if (st.rabat && storeys > 1) {
+        const kleurR = st.rabat[(i + seed) % st.rabat.length], top = H - SH * PM;
+        g.fillStyle = kleurR; g.fillRect(x0, 0, HW, top);
+        for (let yy = m(0.16); yy < top; yy += m(0.16)) {
+          g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(x0, yy, HW, m(0.025));
+          g.fillStyle = 'rgba(255,255,255,0.14)'; g.fillRect(x0, yy + m(0.025), HW, m(0.015));
+        }
+        g.fillStyle = 'rgba(0,0,0,0.30)'; g.fillRect(x0, top - m(0.05), HW, m(0.05));
+        win(x0 + (HW - m(0.5)) / 2, top - m(1.35), m(0.5), m(0.9), st.frame, { kaal: true });
+      }
+    } else if (st.punt) {
+      /*
+       De hoge puntgevel van het plan Eekmolen / de Loper (stap 165). Het doek
+       telt drie lagen; de punt van het 3D BAG-model snijdt eruit wat boven de
+       daklijn valt, daarom zitten de ramen in het midden van de woning:
+
+         - begane grond: de voordeur in een terugliggende donkere portiek en een
+           gewoon raam ernaast, geen woonkamerpui;
+         - eerste verdieping: twee losse staande ramen;
+         - tweede verdieping (in de punt): één staand raam in het midden, bij een
+           deel van de woningen in een strook donkere houten gevelbekleding.
+      */
+      const accent = ((i + seed) % 3 === 1 && st.frame2 !== st.frame) ? st.frame2 : st.frame;
+      const midden = x0 + HW / 2;
+      for (let s = 0; s < storeys; s++) {
+        const fy = H - (s + 1) * SH * PM;
+        if (s === 0) {
+          if (!back) {
+            const pw = m(1.35), dw = m(0.95), dh = m(1.95);
+            const px = mirror ? x0 + HW - m(0.55) - pw : x0 + m(0.55);
+            // de portiek: een donkere nis met de deur achterin
+            g.fillStyle = '#2b2522'; g.fillRect(px, H - m(2.5), pw, m(2.5));
+            g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(px, H - m(2.5), pw, m(0.12));
+            door(px + (pw - dw) / 2, H - dh, dw, dh, doorColor);
+            const wx = mirror ? x0 + m(0.8) : x0 + HW - m(0.8) - m(1.9);
+            win(wx, H - m(2.25), m(1.9), m(1.35), accent);
+          } else {
+            g.fillStyle = st.frame; g.fillRect(x0 + m(0.7), H - m(2.2), m(1.0), m(2.2));
+            g.fillStyle = '#28323a'; g.fillRect(x0 + m(0.78), H - m(2.12), m(0.84), m(2.05));
+            win(x0 + HW - m(0.7) - m(2.0), H - m(2.2), m(2.0), m(1.3), st.frame);
+          }
+        } else if (s === 1) {
+          win(midden - m(1.45), fy + m(0.75), m(0.95), m(1.45), accent);
+          win(midden + m(0.5), fy + m(0.75), m(0.95), m(1.45), accent);
+        } else {
+          const bw = m(0.85), bh = m(1.25), by = fy + m(0.7);
+          if (!back && !st.glasTop && (i + seed) % 2 === 0) {
+            // donkere houten bekleding rond het raam: staande delen
+            const kx = midden - m(0.85), kw = m(1.7), ky = fy + m(0.3), kh = m(2.1);
+            g.fillStyle = st.bekleding || '#28262a'; g.fillRect(kx, ky, kw, kh);
+            for (let k = 0; k * 0.12 < 1.7; k++) { g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(kx + m(k * 0.12), ky, m(0.02), kh); }
+          }
+          if (st.glasTop) {
+            // een glazen vlak in de top: breed en tot in de punt, de daklijn van
+            // het 3D BAG-model snijdt de schuine kant eruit
+            const gw = m(2.2), gx = midden - m(0.4);
+            win(gx, fy + m(0.25), gw, m(SH - 0.45), accent, { kaal: true });
+            g.fillStyle = accent; g.fillRect(gx, fy + m(1.5), gw, m(0.08));
+          } else win(midden - bw / 2, by, bw, bh, accent);
+        }
+      }
     } else if (st.winkel) {
       /*
        Winkelpui (Jumbo): donkere plint, glazen pui met witte stijlen, een witte
@@ -2492,7 +2644,7 @@ function gevelDoek(type, n, storeys, back, seed) {
     }
     // De winkel en de boerderij hebben hun eigen plint en dakrand hierboven
     // afgemaakt; die zouden hier overschreven worden.
-    if (!st.winkel && !st.boerderij && !st.school) {
+    if (!st.winkel && !st.boerderij && !st.school && !st.garages) {
       // plint
       g.fillStyle = plintKleur; g.fillRect(x0, H - m(plintH), HW, m(plintH));
       g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x0, H - m(plintH), HW, m(0.03));
@@ -2529,7 +2681,8 @@ function gevelDoek(type, n, storeys, back, seed) {
   const vuilheid = st.winkel ? 0.35 : (r() < 0.17 ? 0.15 : 0.45 + r() * 0.55);
   const breedteTot = HW * n;
   // groene aanslag op de plint
-  const mosH = m(0.35 + r() * 0.55) * vuilheid;
+  // (geen groene aanslag op een kanteldeur: groen over blauw is voor `nachtRamen` glas, en dan brandt de deur 's nachts)
+  const mosH = st.garages ? 0 : m(0.35 + r() * 0.55) * vuilheid;
   if (mosH > 2) {
     g.save();
     g.beginPath();

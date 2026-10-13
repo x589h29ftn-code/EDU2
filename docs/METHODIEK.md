@@ -9112,6 +9112,47 @@ standpunt. Windbord en Voorzoom hebben geen panden met die straatnaam in de kaar
 - Het eerste beeld van een ronde was zwart, ook na zes tellen wachten; het tweede niet. De eerste schermafdruk wordt nu
   weggegooid. En de hud en het wapen staan niet meer in beeld.
 
+**De shop van de BP van binnen, en de pompen (stap 160, 13 okt).**
+
+Gevraagd met foto's van binnen en buiten: "Maak de BP zo dat je er in kan gaan met schuifdeuren net als het autogarage. Met een
+balie en medewerker erachter. Voor nu kan je er niks dan rondlopen. ook exterieurfoto voor details", en daarna "geef de BP nog
+net wat meer detail van binnen en ook de benzinepompen zelf". De shop is BAG 0091100000004556 (Lemmerweg 63, type `bp_shop`,
+goot 4,81): een L van twee rechthoeken. js/bouwvlak.js legt er een assenstelsel over (`BP_WINKEL`: u langs de voorgevel,
+w naar achteren, de voorkant naar de luifel; `bpWereld`, `bpLokaal`, `inBpWinkel`), en js/bpwinkel.js bouwt het pand in dat
+stelsel: donkerrode baksteen, de groene boeiboord met "shop" en het zonnetje, de glazen pui met kozijnstijlen, de schuifdeur van
+2,2 m in het oostdeel, en binnen een tegelvloer van 60 cm, een systeemplafond met spots, twee gondels, de koelvitrine, de wand
+ZOETWAREN, de groene wand "Bedankt voor uw bezoek", een rode ijsvriezer, de koffiehoek, de balie met kassa en de tabakswand, en
+de medewerker in BP-groen (een `Persoon`) die je aankijkt. js/kaartwereld.js slaat geometrie én botsdozen van het pand over
+(`BINNEN_PANDEN`); de shop zet zijn eigen dozen, met een gat voor de deur, en de deur heeft een doos die wegvalt als hij opengaat.
+In de tweede ronde: bordjes boven de gondels, een deurmat, rode mandjes, een tijdschriftenrek, olie en autospullen, een snoeprekje
+voor de balie, een menubord aan het plafond, een klok, camerabolletjes, ijs onder het glas, affiches op de pui en een stoepbord.
+De pompen (js/tankstation.js `maakPomp`) waren een witte doos met een groene kap; nu een plint, een onderkast met de drie producten
+en een betaalautomaat, een groene naad, de displaykop met lcd-cijfers (de literprijs van de zuil), de groene kap met het zonnetje
+en het nummer, en aan elke kant drie pistolen in hun eigen kleur met een slang (`TubeGeometry`) in een boog van de kop naar het pistool.
+- Het werk begon bij een agent die halverwege stopte; de stukken in js/bouwvlak.js, js/kaartwereld.js en js/tankstation.js zijn
+  overgenomen en samengevoegd met `GEEUWBRUG` van stap 161.
+- *Het plafond was groen*: een vlak dat naar beneden kijkt krijgt de grondkleur van het hemisfeerlicht, en die is grasgroen. Het
+  plafond geeft nu zelf licht met zijn eigen doek (`emissiveMap`). Een commentaar achter de `fillStyle` slikte één keer de
+  `fillRect` in: zwart met witte spikkels.
+- *"shop" ontbrak*: het doek van de boeiboord had uv in meters zonder herhalen, dus je zag alleen de rand. Nu krijgt alleen het
+  oostdeel het doek, over zijn hele lengte (0–1), en het westdeel is effen groen.
+- *De koelvitrine was zwart*: de voorkant van de kast stond vóór de flessen.
+- *Het snoep leek op boekenruggen*: smalle, hoge vakjes. Nu lage pakjes in twee of drie lagen met een etiket.
+- *"Bedankt voor uw bezoek" liep van het bord af*: de tekst krimpt nu tot de langste regel past.
+- Het zonnetje op de pomp is een `MeshBasicMaterial` met doorzichtigheid, net als op de zuil: zo komt er geen programma bij.
+- *'s Nachts* vertaalt three bij de eerste blik op de shop twee programma's: het glas (een doorzichtig `MeshStandardMaterial`)
+  in de nachtstand. Twee pogingen hielpen niet: het glas met de instellingen van de showroom van het Autohuis (tweezijdig: drie
+  in plaats van twee), en het voorvertalen van de avond zonder wegknippen, zodat de hele kaart meedeed (dan nog steeds ~30
+  nachtvarianten van de omgeving bij de eerste nacht daar, en twee voor de shop). De nachtvarianten hangen dus aan meer dan de
+  lampen die `metAvondlampen` aanzet; dat is open punt 30, en de proef staat net als `aafftest` de eigen twee bij de eerste blik toe.
+
+*Proef*: `npm run bptest` (het dak op de voetafdruk, de schuifdeuren met hun botsdoos, naar binnen door de open deur en niet door de
+dichte, de pui en de muren van buiten en van binnen dicht, rondlopen tussen de gondels, langs de koelvitrine, naar het westdeel en
+langs de balie, de balie houdt je tegen, de medewerker erachter die naar de deur kijkt en naar je toe draait, geen groen binnen, de
+pompen — 2 m, zes slangen boven de grond, displays aan beide kanten, een botsdoos, eigen nummers —, geen nieuw programma dag en
+nacht, buiten, binnen en bij de pompen) met `bpshots` (bp_buiten, bp_deur, bp_binnen, bp_balie, bp_nacht, bp_details, bp_pomp,
+bp_pompen).
+
 **Het kantoor aan het water naast de loods (stap 159, 14 okt).**
 
 Gevraagd met vier foto's: "1541.9, -136.4 is het pand vlak naast de loods van bouwman. Ziet in het echt zo uit. Maak het logo
@@ -9134,6 +9175,54 @@ slaat de geometrie van het pand over (`EIGEN_PANDEN`, zoals de molens) en houdt 
 *Proef*: `npm run aafftest` (op de voetafdruk, het oude blok weg, glas en koper van het water, de maten, de botsdozen, de logo's
 plat op hun gevel in hun kleur, de gloed 's nachts en overdag, de shaders) met `aaffshots` (aaff_water, aaff_hoek, aaff_nacht,
 aaff_logo_nacht).
+
+**Garageboxen en de Eekmolen (stap 165, 13 okt).**
+
+Gevraagd met schermafdrukken en Street View: "locatie 332.0, 296.5 zijn garageboxen", "323.5, 278.9 locatie eekmolen zijn niet
+goed", daarna "325.9, 193.3 Idem eekmolen" en "Pas ook 435.3, 75.6 locatie zie foto aan de molenkrite". Vier plekken, twee fouten.
+
+- **De garagerij.** Eekmolen 2a–2i (BAG 0091100000018030, 12065, 9751, 16450, 9933, 9857, 10037, 10056, 10063) zijn negen panden van
+  2,8 × 5,7 m met een plat dak op 2,7 m, met een huisnummer en dus een woning voor de generator: ze kregen het straattype
+  `eekmolen`, met een voordeur en een woonkamerpui per box. Nu krijgen de platte panden van de Eekmolen (`plat` in
+  data/stijl/straten.json, precies deze negen) het type `garagebox`: per box een kanteldeur van 2,4 × 2,1 m tussen twee
+  penanten, een witte boeiboord erboven, geen ruit. De kleur volgt uit het pandnummer (wit, groen, bordeaux, blauw).
+- **De puntgevels.** De rijwoningen uit 1976–1981 aan de Eekmolen, de Loper en Molenkrite 133–143 hebben een hoge puntgevel
+  met de nok haaks op de straat. Het 3D BAG-model geeft ze een goot die niet bij het dak hoort (bij de helft 5,4–6,4 m, bij de
+  rest 2,5–3,3 m) en knipt de voorgevel in stukken, met smalle strookjes boven de berging. js/kaartwereld.js knipt elke muur op
+  de goot, en alles erboven werd dan bij `eekmolen` de witte houten topgevel (`topgevel`) en bij `molenkrite` een kapelwang of
+  een kapelkozijn — de witte kale volumes met de lange smalle ramen op alle vier de schermafdrukken. Het witte volume is dus
+  géén echte dakkapel uit de kapelcode (`dakkapel()` bouwt niets bij deze typen), maar de dakkapeltak van `muurKeuze` die een
+  stuk puntgevel als kapel aankleedt.
+- De oplossing zit in het type, niet in de geometrie: een `plan` per straat in data/stijl/straten.json (bouwjaar, nokhoogte of
+  huisnummers; tools/geo/genereer.mjs `kiesType`) kiest `eekmolen_punt` (bruinrood), `loper_punt` (geel) of `molenkrite_punt`
+  (rood, met een glazen vlak in de top) — 27 + 18 + 6 = 51 woningen. Die typen dragen `puntgevel`: geen kapeltak, en een voor-
+  of achtergevel blijft heel tot de nok (geen knip op de goot), zodat de punt baksteen is met ramen tot in de top (`punt` in
+  `facade()`: portiek met voordeur, twee staande ramen, één raam in de punt, soms in donkere houten bekleding). Een lage muur
+  vooraan (`laagType`, tot `laagTot`) is een berging met een bergingsdeur of een smal raampje, het schuine dakje erop krijgt
+  donkerrode pannen; aan de Molenkrite heeft de aanbouw een eigen puntgeveltje met witte of blauwe rabatdelen (`rabat`), en
+  omdat die muurtjes smaller zijn dan 2,40 m staat daar `laagMin`.
+- De nokrichting komt uit het model en is niet aangepast: bij 36 van de 51 kijkt het meeste schuine dak opzij (nok haaks op de
+  straat), bij 38 loopt de voorgevel tot op 1,3 m van de nok. De rest heeft in de 3D BAG een voorgevel tot ~5,8 m met het dak
+  ervoor; daar staat nu een bakstenen gevel van twee lagen zonder wit erboven.
+- js/kaart.js is opnieuw gegenereerd (`npm run geo:genereer`): behalve de datum verandert alleen `type` bij 60 panden. Het is
+  één regel; werkt een andere tak ook aan de kaart, dan is opnieuw genereren de manier om samen te voegen.
+- Het materiaal van een pand draagt nu zijn sleutel (`userData.sleutel`), zodat de proef kan zien welke gevel een straal raakt.
+- Misgegaan: de groene en blauwe kanteldeur en een groene voordeur vielen binnen de glastoets van `nachtRamen` (blauwer dan
+  rood, donker) en zouden 's nachts gaan branden; ook de donkere houten bekleding. Kleuren met rood ≥ blauw of minder groen,
+  en de proef telt "glas" in elk doek. De punt van de proef lag eerst in het midden van de hoeken van het hoogste voorvlak,
+  en dat ligt bij een smalle punt naast het vlak: nu een rij stralen over de breedte, op 1 tot 2 m onder de top. Het
+  "hoogste voorvlak" was bij acht woningen een strookje midden op het dak (een trede in de nok van het model): nu de hoogste
+  muur die op de grond begint. De blauwe kanteldeur ging drie keer opnieuw: met het lichte verloop bovenin werd hij steeds
+  weer "glas"; nu een blauw met weinig groen (#2e2a78). Het midden van de omhullende rechthoek lag bij een L-vormig pand in
+  de tuin, dus de botsdozen worden op een raster binnen het grondvlak gemeten (≥ 75 %: de dozen zijn rechthoeken).
+- Niet gedaan: Zeskanter 7a–7e (ook platte rijtjes met letters, waarschijnlijk garages) en de woningen van de Zeskanter, die
+  `eekmolen` blijven; daar is geen foto van. Bij Molenkrite 139 hebben sommige buren een witte houten topgevel boven de steen;
+  het type heeft er één voor alle zes.
+
+*Proef*: `npm run eekmolentest` (de typen uit de generator, de doeken zonder ruit of pui, de garagerij met deur, boeiboord en plat
+dak, een raster van stralen over elke voorkant: geen wit hout of kapel, de punt van steen, de bergingen; de nok uit het model,
+de botsdozen, geen nieuw programma dag en nacht) met `eekmolenshots` (eekmolen_garages, eekmolen_garages_schuin, eekmolen_punt,
+eekmolen_punt_schuin, eekmolen_loper, eekmolen_molenkrite).
 
 **Tennishal Sneek (stap 162, 13 okt).**
 
@@ -9192,6 +9281,56 @@ lange smalle stenen, kubistische blokken met platte daken, brede crèmewitte kad
 en glas; de zijgevels; elk dakvlak op de BAG-hoogte, plat dak en donkere plaat; geen kapelwangen; de botsdozen; geen nieuw
 programma dag en nacht). Foto's: `npm run vuurvlindershots` (vuurvlinder_straat, _rij, _schuin, _nacht; vuurvlinder_oud is de stand
 ervoor). `npm run voorgeveltest` blijft groen.
+**De flats aan de Molenkrite (stap 163, 13 okt).**
+
+Gevraagd met een schermafdruk en vier foto's uit Street View: "verbeter ook deze woningen: 399.9, -26.9 zie foto van
+straatkant." Het punt is waar de gebruiker stond, op de klinkers bij de bocht van de Molenkrite; de woningen zijn de twee flats
+ernaast, BAG 0091100000006034 (nrs 134–182) en 0091100000006042 (nrs 184–232), allebei van 1982 en in de kaart van het naamloze
+`spil`-type: het 3D BAG-model met een lichte baksteen en geen enkel raam. In het echt: donkerbruine baksteen, trappen van één,
+twee en drie lagen, brede witte dakranden die schuin over de gevel steken met een donkere, bemoste kap erboven, ramen met blauwe
+kozijnen in paren, loggia's, lage bergingen met een blauwe boeiboord en een strook raampjes.
+- *Wat de 3D BAG zegt*: elk blok is een molen van vier vleugels om een trappenhuis. De dakvlakken liggen plat op 3,1–3,4 m
+  (de bergingen), 6,1–6,3, 8,9–9,1 en 11,7–11,9 m; maar een paar vlakken zijn schuin (6,0 → 9,1, 10,0 → 11,8, 4,4 → 6,1 m) en
+  dat zijn de mansardekappen, smalle stroken van een halve meter langs de gevel. js/molenflat.js neemt de platte vlakken als
+  delen (`regios`) en bouwt de kap zelf: muren tot `mansard` (2,6 m, boven 8,5 m) of `mansardLaag` (1,9 m) onder de dakhoogte,
+  dan de witte rand (onderkant 0,7 m buiten de gevel, bovenkant 0,3 m, een meter hoog) en het dakschild steil naar binnen tot
+  het platte dak op precies de hoogte uit de 3D BAG. Zo hebben de delen van 11,9 m drie lagen, die van 9,1 m twee en die van
+  6,2 m één hoge laag, zoals op de foto's.
+- *Binnen en buiten*: een rand waar langs de hele lengte een minstens even hoog deel ligt, is `binnen`: geen muur, geen kap,
+  en het platte dak schuift er een kwart meter onder de muur van het hogere deel (de ringen worden vereenvoudigd en sluiten
+  daarna niet meer precies op elkaar). Een gedeeltelijk gedeelde rand telt als buiten; wat daarvan in het hogere deel valt, is
+  niet te zien. De verschoven ringen (`verschuif`) zijn de snijpunten van de verschoven randen, met een afstand per rand.
+- *De gevels*: ramen en loggia's zijn echte gaten in de muur (`muur` knipt de muur in stroken rond de gaten), met dagkanten,
+  glas tien centimeter naar binnen, een blauw kozijn en een dorpel; een loggia is een nis van 1,1 m met een deur en een raam
+  achterin en een hek of een borstwering. Een raam komt alleen waar het boven het dak van de buren uitkomt; een loggia alleen
+  in lagen van hoogstens 3,4 m (in de hoge enkele laag van de delen van 6,2 m werd hij een gat van 3,7 m).
+- *Het trappenhuis* is in de BAG een eigen pand van 11,4 m (0091100000014656 en 0091100000006038). Dat bleef eerst van
+  js/kaartwereld.js en stak op de foto van boven als een lichte toren tussen de nieuwe kappen uit; nu bouwt de module het ook:
+  baksteen, een raam per verdieping waar het vrij ligt en een blauwe band bovenaan, zoals op de foto vanaf de Molenkrite. De
+  voetafdruk van het blok heeft een gat waar het trappenhuis staat, dus "ligt het midden in het blok" vond niets: het hoort bij
+  het blok waarvan het midden binnen 15 m ligt.
+- *Wat misging*: de paren ramen stonden eerst tegen elkaar (de tweede begon twee centimeter na de eerste); de loggia's op de
+  begane grond vielen weg omdat de vloer (15 cm) "onder het dak van de buren" lag terwijl er geen buren waren; de vlakken van
+  de dagkanten keken de muur in. De onderkant van de rand kleurde groen van het gras (de hemellamp van onderen): hij is iets
+  rozig gemaakt en krijgt overdag een grijze gloed (`emissiveIntensity`, 's nachts uit). De baksteen kwam in het spel bijna leigrijs uit; het doek is warmer gezet dan het op de foto's lijkt.
+- *De kijkrichting*: vanaf 399.9, -26.9 zie je het zuidelijke blok van de westkant, met de lage delen links en de hoge rechts.
+  Op de schermafdruk is het andersom, met een bed ronde struiken ervoor; dat bed staat in de kaart op de Molenkrite tussen de
+  twee blokken (411–425, −62…−71), voor het noordelijke blok. Daar staat ook de Street View-foto met het trappenhuis en de
+  berging met de blauwe boeiboord. De foto's nemen daarom allebei: `molenflat_straat` van het opgegeven punt en
+  `molenflat_noord` en `molenflat_molenkrite` vanaf de Molenkrite.
+- *Botsdozen*: de dozen van js/kaartwereld.js blijven (`pandDozen`, strookjes over de voetafdruk). Tussen twee strookjes zit
+  soms een naad van een paar millimeter; een punt precies daarop wordt van twee kanten even ver geduwd en blijft staan, en de
+  eerste proef (`resolveCollisions` in het midden van elk deel) zag daar een gat. Nu kijkt hij of een rooster van punten in elk
+  deel binnen een doos valt (`W.colliders`, 3 cm speling), en loopt hij van vier kanten op elk blok af.
+- *Shaders*: twaalf gewone MeshStandardMaterials met de combinaties die het kantoor aan het water en de tennishal al hebben
+  (een eigen doek zonder soort, dus geen reliëf erbij); overdag en 's nachts geen nieuw programma. Het licht achter een derde van
+  de ramen is alleen `emissiveIntensity` van één glasmateriaal (`update(dt, nacht)` uit js/main.js).
+
+*Proef*: `npm run molenflattest` (beide panden op hun voetafdruk en het oude blok weg, elk deel op zijn hoogte uit de 3D BAG, het
+hoogste op de nok, bergingen en twee en drie lagen, elk raam van voren en een waaier vanaf waar de gebruiker stond, blauwe
+kozijnen, de witte rand van boven en van onderen, het donkere dakschild, loggia's van 1,1 m, bergingen met een blauwe boeiboord,
+schoorstenen, het trappenhuis, botsdozen, licht 's nachts, geen nieuw programma) met `molenflatshots` (molenflat_straat,
+molenflat_molenkrite, molenflat_noord, molenflat_schuin, molenflat_nacht).
 
 **De oude Geeuwbrug (stap 161, 13 okt).**
 

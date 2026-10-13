@@ -80,6 +80,39 @@ export const GARAGE = {
   inrit: { x0: 749.5, x1: 763, z0: 110.5, z1: 116.2 },
 };
 
+/*
+ En de shop van BP Slump Oil aan de Lemmerweg 63 (stap 160, js/bpwinkel.js): het pand uit de BAG (0091100000004556,
+ type `bp_shop`), maar nu met een binnenkant waar je in loopt. js/kaartwereld.js slaat zijn geometrie én zijn botsdozen
+ over (`BINNEN_PANDEN`); js/bpwinkel.js bouwt de gevels met een gat voor de schuifdeur. Het assenstelsel: `o` is de
+ noordwesthoek van de voetafdruk, `u` langs de voorgevel (naar het oosten), `w` de diepte in (naar het zuiden). De
+ voetafdruk is een L: het westdeel u 0–9,57 bij w 0–9,79, het oostdeel u 9,57–19,82 bij w −0,75–13,25 (gemeten uit
+ KAART.panden, `npm run bptest` rekent het na).
+*/
+export const BP_WINKEL = {
+  pand: '0091100000004556',
+  o: [706.49, 145.95],
+  u: [0.9958589, 0.0909126],
+  west: { u0: 0, u1: 9.57, w0: 0, w1: 9.79 },
+  oost: { u0: 9.57, u1: 19.82, w0: -0.75, w1: 13.25 },
+};
+export const BINNEN_PANDEN = new Set([BP_WINKEL.pand]);
+/** Van wereld (x, z) naar (u, w) van de BP-shop. */
+export function bpLokaal(x, z) {
+  const B = BP_WINKEL, dx = x - B.o[0], dz = z - B.o[1];
+  return [dx * B.u[0] + dz * B.u[1], -dx * B.u[1] + dz * B.u[0]];
+}
+/** Van (u, w) van de BP-shop naar wereld (x, z). */
+export function bpWereld(u, w) {
+  const B = BP_WINKEL;
+  return [B.o[0] + u * B.u[0] - w * B.u[1], B.o[1] + u * B.u[1] + w * B.u[0]];
+}
+/** Ligt (x, z) in (of binnen `m` meter van) de BP-shop? */
+export function inBpWinkel(x, z, m = 0) {
+  const [u, w] = bpLokaal(x, z), { west: A, oost: O } = BP_WINKEL;
+  return (u > A.u0 - m && u < A.u1 + m && w > A.w0 - m && w < A.w1 + m)
+    || (u > O.u0 - m && u < O.u1 + m && w > O.w0 - m && w < O.w1 + m);
+}
+
 // hoeveel ruimte rond het gebouw vrij van bomen blijft (een kroon is ruim drie meter breed)
 const MARGE = 3.5;
 
@@ -94,7 +127,8 @@ export function inBouwvlak(x, z) {
     || inRechthoek(x, z, L, MARGE) || inRechthoek(x, z, L.erf, 1) || inRechthoek(x, z, L.oprit, 0.5) || inRechthoek(x, z, L.kade, 0.5)
     || Math.hypot(x - NOMERCY_SET.x, z - NOMERCY_SET.z) < NOMERCY_SET.r
     || Math.hypot(x - NOMERCY_KAMP.x, z - NOMERCY_KAMP.z) < NOMERCY_KAMP.r
-    || inGedraaid(x, z, GEEUWBRUG);
+    || inGedraaid(x, z, GEEUWBRUG)
+    || inBpWinkel(x, z, 0.5);
 }
 
 /*

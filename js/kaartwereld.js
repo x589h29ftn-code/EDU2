@@ -23,9 +23,11 @@ import { bouwTennisparken } from './tennis.js';
 import { bouwZuilengangen } from './zuilengang.js';
 import { bouwAaff, EIGEN_PANDEN } from './aaff.js';
 import { bouwTennishal } from './tennishal.js';   // (stap 162) zet zijn pand-id zelf in EIGEN_PANDEN
+import { bouwMolenflats } from './molenflat.js';  // (stap 163) de flats aan de Molenkrite, ook via EIGEN_PANDEN
 import { bouwGeeuwbrug, GEEUW_PANDEN } from './geeuwbrug.js';
+import { bouwBpWinkel } from './bpwinkel.js';   // (stap 160) de shop van de BP, van binnen
 import { bouwAfsluitingen, bouwGrenzen } from './afsluiting.js';
-import { inBouwvlak } from './bouwvlak.js';
+import { inBouwvlak, inBpWinkel, BINNEN_PANDEN } from './bouwvlak.js';
 
 /*
  De buitennormaal van een muurvlak, voor een pand dat uit zijn grondvlak wordt
@@ -1026,8 +1028,8 @@ export function* bouwKaartWereldStap(scene, W) {
       x >= w.b[0] && x <= w.b[2] && z >= w.b[1] && z <= w.b[3] && inRing(x, z, w.r));
     // (stap 152: in en vlak voor de zuilengang geen onkruid, zwerfvuil of kliko — daar telt hij als water: weren)
     const rommel = bouwRommel(scene, W, K.wegassen, (x, z) => grondHoogte(x, z, -Infinity),
-      (x, z) => { if (inZuilengang(x, z)) return 'water'; const v = vlakOp(x, z); return v ? v.k : null; },
-      (x, z) => inZuilengang(x, z) || opHetWater(x, z));
+      (x, z) => { if (inZuilengang(x, z) || inBpWinkel(x, z, 0.6)) return 'water'; const v = vlakOp(x, z); return v ? v.k : null; },
+      (x, z) => inZuilengang(x, z) || inBpWinkel(x, z, 0.6) || opHetWater(x, z));
     console.log(`kaart: ${rommel.onkruid} pollen onkruid, ${rommel.vuil} stuks zwerfvuil, ${rommel.kliko} rolcontainers`
       + `${rommel.geweerd ? ` (${rommel.geweerd} pollen geweerd: die stonden op de rijbaan)` : ''}`);
 
@@ -1053,8 +1055,12 @@ export function* bouwKaartWereldStap(scene, W) {
     if (bouwAaff(scene, K)) console.log('kaart: het kantoor aan het water (aaff., Excellente) gebouwd');
     // (stap 162) Tennishal Sneek aan de Lemmerweg 130a
     if (bouwTennishal(scene, K)) console.log('kaart: Tennishal Sneek gebouwd');
+    // (stap 163) de twee flats aan de Molenkrite (134–182 en 184–232)
+    if (bouwMolenflats(scene, K)) console.log('kaart: de flats aan de Molenkrite gebouwd');
     // (stap 161) de oude Geeuwbrug: het betonnen landhoofd met het torentje aan de Geeuw
     if (bouwGeeuwbrug(scene, K, W)) console.log('kaart: de oude Geeuwbrug (landhoofd en brugwachtershuisje) gebouwd');
+    // (stap 160) de shop van de BP: schuifdeuren, schappen, een balie met een medewerker
+    if (bouwBpWinkel(scene, { addCollider: W.addCollider, grondHoogte: (x, z) => grondHoogte(x, z, -Infinity) })) console.log('kaart: de shop van de BP gebouwd');
   } else {
     const hg = { pos: [], uv: [], nor: [] };
     for (const ring of K.hagen) vlakGeometrie([ring], 1.1, 0.5, hg.pos, hg.uv, hg.nor);
@@ -1305,6 +1311,9 @@ function* bouwPandenStap(scene, W, plat) {
           nachtRamen(mat, [(Number(d[2]) || 1) * 2, Number(d[3]) || 1]);
         }
         if (!plat && klasse === 'dakkapel' && !sleutel.startsWith('dakkapel|wang')) nachtRamen(mat, [1, 1]);
+        // (stap 165: de sleutel op het materiaal, zodat een proef kan zien welke
+        // gevel een straal raakt — tools/eekmolentest.mjs)
+        if (!plat) mat.userData.sleutel = sleutel;
         matCache.set(sleutel, mat);
       }
       g = { pos: [], uv: [], nor: [], mat, klasse, tegel: perTegel ? pandTegel() : null };
@@ -1372,7 +1381,9 @@ function* bouwPandenStap(scene, W, plat) {
      nog eens verder op, en waar het grondvlak 1,89 m zegt staan in het model
      smallere vlakken. Op 1,0 m hebben alle twintig een voordeur en een raam.
     */
-    const gevelMin = (st && st.gevelMin) || 2.4;
+    // (stap 165: `laagMin` — de aanbouw vóór een woning van Molenkrite 133–143 is
+    // smaller dan 2,40 m en hoort toch zijn geveltje te krijgen)
+    const gevelMin = (st && st.laagMin && st.laagType && top <= st.laagTot && kant > 0.6 && st.laagMin) || (st && st.gevelMin) || 2.4;
     const gevel = !pand.boven && !pand.kaal && st && pand.type !== 'schuur' && breed >= gevelMin && Math.abs(n[1]) < 0.3 && (ind ? top >= 2.6 : (kant > 0.6 || kant < -0.6));
     // Dakkapel: een muurvlak dat helemaal boven de goot begint. Witte wangen,
     // en aan de voorkant het kozijn van de dakkapel.
@@ -1395,7 +1406,9 @@ function* bouwPandenStap(scene, W, plat) {
      door naar die keuze.
     */
     // (`geenKapel`, stap 166: aan de Vuurvlinder begint de hoge muur boven de lage achterbouw op 3 m, en dat is gevel)
-    if (st && !ind && !st.geenKapel && !pand.gang && !pand.kaal && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven && breed < WANG_MAX) {
+    // (`puntgevel`, stap 165: bij de woningen van het plan Eekmolen / de Loper
+    // is zo'n vlak een stuk van de bakstenen puntgevel en geen kapel)
+    if (st && !ind && !st.puntgevel && !st.geenKapel && !pand.gang && !pand.kaal && pand.goot && laagste > gootKapel - 0.35 && Math.abs(n[1]) < 0.5 && !pand.boven && breed < WANG_MAX) {
       if (Math.abs(kant) > 0.6 && breed >= 1.2) {
         const g = groep(`dakkapel|${st.dormerFrame || st.frame}`, () => std(T.dormerFront(st.dormerFrame || st.frame)), 'dakkapel', true);
         return { g, uvf: (p) => [(p[0] * r[0] + p[2] * r[2] - u0) / breed, Math.min(1, (p[1] - laagste) / Math.max(0.5, top - laagste))] };
@@ -1484,7 +1497,10 @@ function* bouwPandenStap(scene, W, plat) {
      staat in de hoogte van het 3D BAG-model (`steenBoven`) en niet in een
      aanname. Zonder dit zou het hele complex één van de twee worden.
     */
-    const gtype = (st.steenBoven && st.bovenType && top > st.steenBoven) ? st.bovenType : pand.type;
+    // (stap 165: `laagType` — een lage muur tot `laagTot` is de berging vóór de
+    // woning, met een bergingsdeur in plaats van de gevel van het huis)
+    const gtype = (st.steenBoven && st.bovenType && top > st.steenBoven) ? st.bovenType
+      : (st.laagType && top <= (st.laagTot || 3.6)) ? st.laagType : pand.type;
     const gst = T.HOUSE_STYLES[gtype] || st;
     const SH = gst.storeyH || 2.9;
     // bedrijfsgevel: het aantal lagen past op de echte muurhoogte en de
@@ -1525,8 +1541,12 @@ function* bouwPandenStap(scene, W, plat) {
     // van 0 tot 1 (met ×huizen zag een brede muur alleen de laatste pixelkolom)
     return { g, kap, uvf: (p) => [0.5 + toon * ((((p[0] * r[0] + p[2] * r[2]) - u0) / breed) - 0.5), Math.min(1, p[1] / hoogte)] };
   };
-  const dakGroep = (pand, hellend) => {
-    const st = T.HOUSE_STYLES[pand.type];
+  const dakGroep = (pand, hellend, punten) => {
+    const st0 = T.HOUSE_STYLES[pand.type];
+    // (stap 165: het schuine dakje van een berging vóór een woning van het plan
+    // Eekmolen / de Loper heeft de donkerrode pannen van `laagType`, niet de kap)
+    const laagDak = hellend && st0 && st0.laagType && punten && Math.max(...punten.map(q => q[1])) <= (st0.laagTot || 3.6) + 1.0;
+    const st = laagDak ? T.HOUSE_STYLES[st0.laagType] : st0;
     if (!hellend && st && st.industrieel) return groep(`dak|plat|${st.roof}`, () => new THREE.MeshStandardMaterial({ color: st.roof, roughness: 0.6, metalness: 0.3 }), 'platdak', true);
     if (!hellend) return groep('dak|plat', () => std(T.bitumen()), 'platdak', true);
     const kleur = st ? st.roof : '#4a3a33';
@@ -1680,6 +1700,15 @@ function* bouwPandenStap(scene, W, plat) {
         opbouw = Math.abs(kant) > 0.6 && u1 - u0 >= WANG_MAX;
         if (opbouw) opbouwen++;
       }
+      /*
+       Stap 165: een puntgevel (`puntgevel` in de stijl, het plan Eekmolen / de
+       Loper) loopt als één bakstenen muur door tot de nok, met ramen tot in de
+       punt. De knip op de goot maakte van alles erboven een witte houten
+       topgevel of een kapelwang. Een voor- of achtergevel van zo'n woning blijft
+       daarom heel; de zijmuren worden gewoon geknipt.
+      */
+      const stP = T.HOUSE_STYLES[pand.type];
+      if (!opbouw && stP && stP.puntgevel && pand.front && Math.abs(n[0] * pand.front[0] + n[2] * pand.front[1]) > 0.6) opbouw = true;
       if (!opbouw && laag < gootH - 0.3 && top > gootH + 0.6) {
         const { onder, boven } = knipOpHoogte(buiten, gootH + 0.02);
         if (onder && boven) { vlak3d(pand, [onder], 1); vlak3d({ ...pand, boven: true, bovenTop: top }, [boven], 1); return; }
@@ -1708,7 +1737,7 @@ function* bouwPandenStap(scene, W, plat) {
       // een dakvlak dat naar beneden wijst staat verkeerd om rond (zie inVoet)
       if (soort === 2 && n[1] < -0.2) { n = n.map(v => -v); gedraaid++; }
       const hellend = Math.abs(n[1]) < 0.97 && pand.dak !== 'horizontal';
-      g = dakGroep(pand, hellend);
+      g = dakGroep(pand, hellend, punten);
       /*
        De uv van een schuin dak liep langs de wereldassen: u langs x, v langs
        z plus een stukje hoogte. Bij een dak waarvan de goot langs x loopt ging
@@ -1826,10 +1855,11 @@ function* bouwPandenStap(scene, W, plat) {
     // beeld teruggeven, zodat het laadscherm blijft lopen
     if ((pandNr++ % 60) === 0) yield { wat: 'gebouwen', deel: 0.42 + 0.38 * (pandNr / K.panden.length) };
     tegelNu = tegelVan(p.rect ? p.rect.cx : p.voet[0][0], p.rect ? p.rect.cz : p.voet[0][1]);
-    const eigen = !plat && (EIGEN_PANDEN.has(p.id) || GEEUW_PANDEN.has(p.id));
+    const binnenPand = !plat && BINNEN_PANDEN.has(p.id);
+    const eigen = !plat && (EIGEN_PANDEN.has(p.id) || GEEUW_PANDEN.has(p.id)) || binnenPand;
     if (molenPanden.has(p.id) || eigen) {
       // alleen de botsingsdozen, verderop in deze lus (stap 159: ook een pand dat een eigen module nabouwt, js/aaff.js;
-      // stap 161: de oude Geeuwbrug, js/geeuwbrug.js, zet ook zijn eigen botsdozen)
+      // stap 161: de oude Geeuwbrug, js/geeuwbrug.js, zet ook zijn eigen botsdozen; stap 160: de BP-shop, js/bpwinkel.js)
     } else if (p.v && p.f) {
       const V = p.v;
       const pt = (i) => [V[i * 3], V[i * 3 + 1], V[i * 3 + 2]];
@@ -1851,7 +1881,8 @@ function* bouwPandenStap(scene, W, plat) {
       extrudeer(p, voet, p.goot || 3, p.dak === 'slanted');
       geschat++;
     }
-    if (p.rect && !(!plat && GEEUW_PANDEN.has(p.id))) {
+    // (stap 160, 161) een pand waar je in loopt (de BP-shop) en de oude Geeuwbrug zetten hun eigen dozen
+    if (p.rect && !(!plat && GEEUW_PANDEN.has(p.id)) && !binnenPand) {
       const h = Math.max(3, p.nok || p.goot || 3);
       for (const d of pandDozen(gangVrij(p))) W.addCollider(d.x, d.z, d.hx, d.hz, -d.hoek, h);
     }

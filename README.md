@@ -731,6 +731,27 @@ komen plek, richting en maat vandaan. Alleen de doorrijhoogte, het aantal pompen
 |---|---|
 | ![tankstation](docs/screenshots/tank_onder.png) | ![prijzenzuil](docs/screenshots/tank_voor.png) |
 
+### De shop van binnen
+
+Sinds stap 160 kun je de shop in. Loop naar de glazen pui onder de groene boeiboord met "shop": de schuifdeuren gaan
+vanzelf open als je dichtbij komt, net als bij het Autohuis en de Poiesz. Binnen ligt een grijze tegelvloer onder een
+systeemplafond met spots. Er staan twee gondels met snoep en chips, langs de oostmuur een koelvitrine met flessen en
+blikjes, en achterin een wand met zoetwaren onder het bord ZOETWAREN. Bij de deur hangt een groene wand "Bedankt voor uw
+bezoek" en staat een rode ijsvriezer, in het westdeel is een koffiehoek. Achter de balie met de kassa staat een medewerker
+in BP-groen voor de tabakswand; hij kijkt je aan als je binnenkomt. Verder: bordjes boven de gondels, een deurmat, rode
+mandjes, een tijdschriftenrek, olie en autospullen, een menubord boven de balie, een klok, affiches op de pui en een stoepbord. Kopen kan er nog niet: voor nu loop je er alleen rond.
+
+| van onder de luifel | voor de deur | binnen | de balie | 's avonds |
+|---|---|---|---|---|
+| ![](docs/screenshots/bp_buiten.png) | ![](docs/screenshots/bp_deur.png) | ![](docs/screenshots/bp_binnen.png) | ![](docs/screenshots/bp_balie.png) | ![](docs/screenshots/bp_nacht.png) |
+
+De pompen zelf hebben een display met de literprijs, de drie producten (Euro 95, Diesel, Ultimate 98) met elk een pistool in
+zijn eigen kleur, een slang die van de kop naar het pistool hangt, een betaalautomaat, het zonnetje en een nummer.
+
+| een pomp | de pompeilanden | binnen bij de pui |
+|---|---|---|
+| ![](docs/screenshots/bp_pomp.png) | ![](docs/screenshots/bp_pompen.png) | ![](docs/screenshots/bp_details.png) |
+
 ### De wasboxen achter het station — en wat je er écht doet
 
 Achter de shop, op het terrein van het station, staat een rij **wasboxen** met de groene band van BP
@@ -952,6 +973,15 @@ nachts gaan branden.
 |---|---|---|---|
 | ![](docs/screenshots/aaff_water.png) | ![](docs/screenshots/aaff_hoek.png) | ![](docs/screenshots/aaff_nacht.png) | ![](docs/screenshots/aaff_logo_nacht.png) |
 
+**Garageboxen en puntgevels aan de Eekmolen** (stap 165): achter de Eekmolen staat de rij van negen garageboxen onder één plat
+dak, met kanteldeuren in wit, groen, bordeaux en blauw tussen gemetselde penanten en een witte boeiboord erboven. De rijwoningen
+aan de Eekmolen, de Loper en de Molenkrite (133–143) hebben weer hun hoge bakstenen puntgevel met losse ramen tot in de top en een
+berging met een pannendakje ervoor; aan de Molenkrite een glazen vlak in de punt en aanbouwtjes met witte of blauwe rabatdelen.
+
+| de garageboxen | Eekmolen | de Loper | Molenkrite 135–143 |
+|---|---|---|---|
+| ![](docs/screenshots/eekmolen_garages.png) | ![](docs/screenshots/eekmolen_punt_schuin.png) | ![](docs/screenshots/eekmolen_loper.png) | ![](docs/screenshots/eekmolen_molenkrite.png) |
+
 **Tennishal Sneek** (stap 162): aan de Lemmerweg, naast BP Slump Oil, staat de tennishal zoals hij echt is: een lange hal
 met een laag zadeldak van lichtgrijze golfplaten, lichtgrijze gevels met grote donkere kruisen en schuine lijnen, een zwarte
 plint langs de zuidkant en een lage witte aanbouw met de entree onder een blauwe luifel, met het bord "tennishal SNEEK".
@@ -967,6 +997,15 @@ op de begane grond een raam tot de grond met melkglas onderin, en een donkere da
 | vanaf de stoep voor nummer 3 | de rij | van boven | 's avonds |
 |---|---|---|---|
 | ![](docs/screenshots/vuurvlinder_straat.png) | ![](docs/screenshots/vuurvlinder_rij.png) | ![](docs/screenshots/vuurvlinder_schuin.png) | ![](docs/screenshots/vuurvlinder_nacht.png) |
+**De flats aan de Molenkrite** (stap 163): de twee molenvormige flats aan de Molenkrite (nummers 134–232) waren kale
+blokken lichte baksteen zonder ramen. Nu staan ze er zoals in het echt: donkerbruine baksteen in trappen van één, twee en drie
+lagen, brede witte dakranden die schuin over de gevel steken met een donkere, bemoste kap erboven, ramen met blauwe kozijnen in
+paren, inpandige balkons met een hek of een gemetselde borstwering, lage bergingen met een blauwe boeiboord en een strook
+raampjes, en schoorstenen. 's Nachts brandt achter een deel van de ramen licht.
+
+| vanaf de Molenkrite | tussen de blokken | vanaf de straat | schuin van boven | 's nachts |
+|---|---|---|---|---|
+| ![](docs/screenshots/molenflat_molenkrite.png) | ![](docs/screenshots/molenflat_noord.png) | ![](docs/screenshots/molenflat_straat.png) | ![](docs/screenshots/molenflat_schuin.png) | ![](docs/screenshots/molenflat_nacht.png) |
 
 **Steekproef ronde 6** (stap 158): vijftien adressen waar een foto van de straat bij helpt, met de plek, de coördinaten,
 een Street View-link van hetzelfde standpunt en een vraag per adres: [docs/steekproef/RONDE6.md](docs/steekproef/RONDE6.md).
