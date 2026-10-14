@@ -54,7 +54,7 @@ function maatVan(soort) {
   let m = MATEN.get(s);
   if (!m) {
     try { const a = autoMaat(s); m = { hl: a.L / 2, hw: a.W / 2 }; } catch { m = null; }
-    if (!m || !(m.hl > 0)) m = s === 'vuilnis' ? { hl: 4.3, hw: 1.25 } : s === 'truck' ? { hl: 3.6, hw: 1.2 } : { hl: 2.15, hw: 0.9 };
+    if (!m || !(m.hl > 0)) m = s === 'vuilnis' ? { hl: 4.3, hw: 1.25 } : s === 'truck' ? { hl: 3.6, hw: 1.2 } : s === 'tiger' ? { hl: 3.2, hw: 1.8 } : { hl: 2.15, hw: 0.9 };
     MATEN.set(s, m);
   }
   return m;

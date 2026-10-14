@@ -1,7 +1,9 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
 import { spelerInAuto } from './autodetail.js';
-import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, soortenVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee, resolveCollisions, addCollider, LOD } from './world.js';
+import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, soortenVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee, resolveCollisions, addCollider, LOD, pointInWater, vrijeCamera } from './world.js';
+import { initTiger } from './tiger.js';
+import { ontplofBij } from './bom.js';
 import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
@@ -1715,7 +1717,7 @@ let bpHintAan = false;
 function werkBpHintBij() {
   const el = document.getElementById('praat');
   if (!el) return;
-  const h = (player.active && !(verhaal.aanspreekbaar)) ? bpKassa.hint() : null;
+  const h = (player.active && !(verhaal.aanspreekbaar)) ? (bpKassa.hint() || (tiger ? tiger.hint() : null)) : null;
   if (h && (el.hidden || bpHintAan)) { el.textContent = h; el.hidden = false; bpHintAan = true; }
   else if (!h && bpHintAan) { el.hidden = true; bpHintAan = false; }
 }
@@ -1723,6 +1725,8 @@ function werkBpHintBij() {
 function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
   if (tennisspel && tennisspel.bezig) { tennisspel.slag(); return; }
+  // (stap 177) de Tiger bij de gedenkplek aan de Sudergoweg: in- en uitstappen
+  if (tiger && tiger.toets()) return;
   // (stap 170) de tuning bij Sjoerd aan de balie vóór het verhaal: met je eigen auto voor de deur opent E het menu (met de
   // race voor geld als 6); zonder laat hij de E aan Sjoerds aanbod in js/verhaal.js
   if (tuning && tuning.toets()) return;
@@ -1793,6 +1797,7 @@ function waaromGeenDrone() {
 // laden haalt eerst de drone terug: anders hing de camera nog boven de oude plek
 function laadZonderDrone(opties) {
   if (drone.actief) drone.terug();
+  if (tiger) tiger.uit();
   return laadSpel(opties);
 }
 function droneToets() {
@@ -2736,6 +2741,79 @@ const sfeer = initSfeer({
 });
 // een paar zeilbootjes op het open water (stap 131)
 const zeilen = (KAART && !BOVEN) ? initZeilen({ scene, KAART, sfeer }) : null;
+/*
+ (stap 177) De gedenkplek voor de Slag om Sneek aan de Sudergoweg, met de Tiger (js/tiger.js). Wat een granaat losmaakt
+ staat hier: de ontploffing (`ontplofBij`, js/bom.js), auto's binnen `TIGER_SCHADE` meter in vlammen, voetgangers neer,
+ het verkeer op de vlucht, paniek, de politie en het nieuws.
+*/
+const TIGER_SCHADE = 7;
+const tigerKnallen = [];
+function tigerRaakt(x, y, z) {
+  if (y > 2.4) return null;
+  for (const c of vehicles.cars) if (!c.wrak && vehicles.isZichtbaar(c) && Math.hypot(c.x - x, c.z - z) < 2.0) return 'auto';
+  for (const t of vehicles.traffic) if (!t.slaapt && t._pos && Math.hypot(t._pos.x - x, t._pos.y - z) < 2.0) return 'auto';
+  if (y < 2.0) for (const q of npcs.people) if (q.alive && !q.slaapt && Math.hypot(q.x - x, q.z - z) < 0.8) return 'mens';
+  return null;
+}
+function tigerInslag(h) {
+  tigerKnallen.push(ontplofBij(scene, h.x, h.y, h.z));
+  let auto = false;
+  for (const c of vehicles.cars) {
+    if (c.wrak || !vehicles.isZichtbaar(c) || Math.hypot(c.x - h.x, c.z - h.z) > TIGER_SCHADE) continue;
+    c.hp = 0; vehicles.laatOntploffen(c); autoOntploft(c); auto = true;
+  }
+  for (const t of vehicles.traffic) if (!t.slaapt && t._pos && Math.hypot(t._pos.x - h.x, t._pos.y - h.z) < TIGER_SCHADE * 2) vehicles.schrikAf(t, 'beschoten');
+  for (const q of npcs.people) if (q.alive && !q.slaapt && Math.hypot(q.x - h.x, q.z - h.z) < 6) npcs.hitPersoon(q, 99);
+  if (!auto) {
+    const d = Math.hypot(player.pos.x - h.x, player.pos.z - h.z);
+    geluid.explosie(d);
+    npcs.paniek(h.x, h.z, 40);
+    politie.hoorSchot(h.x, h.z);
+    politie.misdaad('schot', h.x, h.z);
+    nieuws.meld('explosie', h.x, h.z);
+    if (leven) leven.schrik(h.x, h.z);
+    const nabij = Math.max(0, 1 - d / 60);
+    if (nabij > 0) schok(1.0 * nabij * nabij);
+  }
+}
+const TIGER_NEP = { x: 0, z: 0, yaw: 0, speed: 0, mesh: null, soort: 'tiger' };
+const tiger = (KAART && !BOVEN) ? initTiger({
+  scene, camera, player, geluid, resolveCollisions, addCollider, pointInWater, grondHoogte, vrijeCamera,
+  derdeAan: () => derde.aan, opInslag: tigerInslag, raakt: tigerRaakt,
+  // het eigen schot en het trillen als hij het bijna begeeft: dezelfde schok als bij een ontploffing (`schokCamera`)
+  opSchot: (k) => schok(k), opSchok: (k) => schok(k),
+  opOntploffing: tigerOntploft,
+}) : null;
+/*
+ Op nul ontploft de Tiger: dezelfde knal als een auto, en wie dan nog binnen zit gaat neer (de rode waarschuwing en het
+ piepen in js/tiger.js zeiden het al). Daarbuiten schade naar afstand, zoals bij `autoOntploft`.
+*/
+function tigerOntploft(h) {
+  tigerKnallen.push(ontplofBij(scene, h.x, h.y, h.z));
+  const d = Math.hypot(player.pos.x - h.x, player.pos.z - h.z);
+  geluid.explosie(h.binnen ? 0 : d); geluid.glas();
+  npcs.paniek(h.x, h.z, 40);
+  politie.hoorSchot(h.x, h.z);
+  nieuws.meld('explosie', h.x, h.z);
+  if (leven) leven.schrik(h.x, h.z);
+  schok(h.binnen ? 1.2 : 1.2 * Math.max(0, 1 - d / 60) ** 2);
+  if (h.binnen) { player.health = 0; hud.zetLeven(player.health); hud.flits(); }
+  else if (d < 9) { player.health -= Math.round(38 * (1 - d / 9)); hud.zetLeven(player.health); hud.flits(); }
+}
+// (stap 177) in de Tiger raakt niets Erik: wat zijn leven anders verloor, gaat van de romp af
+let tigerLevenWas = null;
+function werkTigerSchadeBij() {
+  if (!tiger || !tiger.actief) { tigerLevenWas = null; return; }
+  if (tigerLevenWas !== null && player.health < tigerLevenWas && player.health > -1e9) {
+    const d = tigerLevenWas - player.health;
+    player.zetLevenRuw ? player.zetLevenRuw(tigerLevenWas) : (player.health = tigerLevenWas);
+    hud.zetLeven(player.health);
+    tiger.raak(d);
+  }
+  tigerLevenWas = tiger.actief ? player.health : null;
+}
+// het verkeer stopt voor de Tiger en wijkt uit, zoals voor een auto die op de weg staat (js/verkeersregels.js)
+if (tiger) vehicles.extraBlokkades = [tiger.blok];
 
 // Hoofdlus
 let last = performance.now(); let time = 0; let lodKlok = 0;
@@ -2824,8 +2902,15 @@ function loop() {
     // met de drone in de lucht staat Erik stil: de toetsen en de muis zijn van de drone
     // een filmbeeld, een auto of de bank: dan komt de drone vanzelf terug
     if (drone.actief && (document.body.classList.contains('film') || player.inCar || player.zit || player.binnen)) drone.terug();
+    // (stap 177) in de Tiger: niet in een filmbeeld, een auto, binnen of zittend; en dan zijn de toetsen en de muis van de tank
+    if (tiger && tiger.actief && (document.body.classList.contains('film') || player.inCar || player.zit || player.binnen)) tiger.uit();
     if (drone.actief) drone.update(dt);
+    else if (tiger && tiger.actief) drone.update(dt);
     else { player.update(dt); drone.update(dt); }
+    werkTigerSchadeBij();
+    if (tiger) tiger.update(dt, camera.position.x, camera.position.z);
+    werkTigerSchadeBij();
+    for (let i = tigerKnallen.length - 1; i >= 0; i--) { tigerKnallen[i].update(dt); if (tigerKnallen[i].klaar) tigerKnallen.splice(i, 1); }
     if (tennisspel) tennisspel.update(dt);
     /*
      De boten. Ook als je er niet in zit deinen ze mee met het water, dus dit
@@ -2968,6 +3053,8 @@ function loop() {
       koplamp.intensity = 0;
       // de drone: Erik blijft in beeld staan met de afstandsbediening, de camera is van de drone
       if (drone.actief) { derde.staat(dt, drone.erikYaw); player.gun.visible = false; }
+      // (stap 177) in de Tiger: geen poppetje (een voertuig zonder open dek), de camera van de tank
+      else if (tiger && tiger.actief) { derde.update(dt, TIGER_NEP); tiger.zetCamera(); player.gun.visible = false; }
       else derde.update(dt, null);
       geluid.gier(0);
     }
@@ -3102,7 +3189,8 @@ function loop() {
     const blauw = politie.gezocht ? politie.plekken : null;
     if (blauw && politieboot && politieboot.plek) blauw.push({ ...politieboot.plek, wagen: true });
     hud.zetPolitie(blauw);
-    if (player.health <= 0) { bpKassa.reset(); politie.reset(); if (politieboot) politieboot.reset(); verhaal.dood(); }
+    werkTigerSchadeBij();     // (stap 177) een treffer in de Tiger gaat van de romp af, ook die van dit beeld
+    if (player.health <= 0) { if (tiger) tiger.uit(); bpKassa.reset(); politie.reset(); if (politieboot) politieboot.reset(); verhaal.dood(); }
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
     zetSchaduwDoos(cx, cz);
@@ -3187,7 +3275,7 @@ function loop() {
     */
     for (const r of binnenruimtes) r.update(dt, true);
     // tijdens de intro zet js/intro.js de camera; die niet overschrijven
-    if (!intro.bezig() && !drone.actief) player.applyCamera();
+    if (!intro.bezig() && !drone.actief && !(tiger && tiger.actief)) player.applyCamera();
     else {
       /*
        En de wereld volgt die camera. De LOD, de auto's op afstand en het gras
@@ -3414,7 +3502,7 @@ window.__game = {
   get molenflat() { return MOLENFLAT_PAND.nu; },   // (stap 163) de flats aan de Molenkrite, voor de proeven
   zetGrafisch, get grafisch() { return grafisch; }, moeilijk, get schaduwKaart() { return SHADOW_MAP; },
   // stap 131
-  pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst,
+  pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst, tiger, tigerKnallen, tigerSchade: () => werkTigerSchadeBij(), schokNu: () => SCHOK.kracht,
   // stap 138: levens zoals in GTA
   gezondheid, levenToets,
   // (stap 130) hoe bebouwd het is, voor de achtergrondgeluiden

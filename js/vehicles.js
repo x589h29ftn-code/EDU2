@@ -1215,6 +1215,8 @@ export class Vehicles {
     // dit moet buiten de lus hieronder staan.
     const metModel = [];
     for (const c of this.cars) if (c.mesh) metModel.push(c);
+    // (stap 177) de Tiger bij de gedenkplek: een blokkade met zijn eigen maat (js/tiger.js `blok`)
+    if (this.extraBlokkades) for (const b of this.extraBlokkades) metModel.push(b);
     // (stap 173) voorrang, rotondes en wat er stilstaat: js/verkeersregels.js
     const R = this.regels && this.regels.aan ? this.regels : null;
     if (R) R.voorbereid(this, speler, metModel, dt);

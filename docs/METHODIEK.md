@@ -9317,6 +9317,54 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De gedenkplek aan de Sudergoweg en de Tiger (stap 177, 14 okt).** Gevraagd: een gedenkplek voor de ww2-slachtoffers
+aan de Sudergoweg, op een stuk weiland dat aan de weg grenst. Gevraagd werd ook een getegeld stuk met een plaquette
+("Gedenksteen ter nagedachtenis aan de Slag om Sneek, 1944, gedoneerd door Veteraan met het dikke hondje"). Daarop een
+Tiger, authentiek en met een eigen model zoals de stafwagen, die je van de gedenkplek af kunt rijden: met rupsbanden, een
+koepel die draait en het rijgedrag van een tank. Binnen kijk je langs de loop, en na een schot duurt herladen een tijdje.
+
+- **De plek gemeten** (geen gok): langs de 1,3 km van de Sudergoweg (623, 1069) → (−705, 1216) om de 60 m dwars op de
+  weg gepeild wat er ligt. Bijna overal ligt tussen het fietspad en het weiland een sloot. Bij (46, 1080) loopt een
+  halfverharde dam van het fietspad over de sloot het grasland in (BGT "grasland agrarisch"), zonder bomen of panden. De
+  tegelvloer ligt daar 22 m van de as, met de lokale x langs de weg (`TIGER.plek`, yaw −2,958).
+- **Het model** (js/tiger.js `maakTiger`): de onder- en bovenbouw zijn geëxtrudeerde zijprofielen (uv in meters).
+  `rotateY(+π/2)` met een spiegeling keerde de vlakken binnenstebuiten; `rotateY(−π/2)` zonder spiegeling niet. De koepel is
+  een hoefijzer in het vlak (x, −z), omhoog geëxtrudeerd. De rupsband is de omhullende van het aandrijfwiel, het eerste
+  en laatste loopwiel en het spanwiel (`bandPunten`, een convexe omhullende van punten op die cirkels, gelijk verdeeld). Het
+  is één strook vlakken met een doek per kant dat meeschuift (links en rechts apart, want op de plaats draaien laat ze
+  tegen elkaar in lopen). Verder acht loopwielen per kant in twee rijen en de camouflage op canvas.
+- **Rijden**: W/S met optrekken en remmen, A/D draaien de romp (op de plaats 0,42 rad/s, rijdend 0,32). De koepel volgt de
+  muis met 0,55 rad/s en het kanon richt van −8° tot +15°. De botsing gebeurt met drie cirkels langs de romp tegen alles
+  boven 3,5 m (heggen rijdt hij plat), plus geen hoek in het water. De Tiger heeft een eigen losse botsdoos (`beweegt`,
+  h 3,6): te voet en met een auto houdt hij je tegen, en zijn eigen botsing negeert hem (`h = 0` tijdens het meten). Het
+  verkeer kent hem als blokkade (`vehicles.extraBlokkades`, `maatVan('tiger')`).
+- **Schieten**: de granaat gaat in stappen van een meter langs de loop tot de grond, een botsdoos hoger dan de granaat
+  (`ignoreLowH` = de hoogte: een doos zonder `y0` kent geen hoogte), een auto of een mens. js/main.js `tigerInslag` doet
+  `ontplofBij` (js/bom.js), zet auto's binnen 7 m in vlammen en legt voetgangers binnen 6 m neer. Daarna volgen paniek,
+  de politie (`misdaad('schot')`) en het nieuws. Herladen duurt 8 s. De mondingsvlam staat altijd in de scène
+  (doorzichtigheid 0).
+- **De koppeling** loopt als bij de drone: met `player.inTiger` draait `player.update` niet, de toetsen en de muis zijn van
+  de tank, `player.pos` rijdt mee (voor de politie, de LOD en de voetgangers). De camera zet `tiger.zetCamera`: binnen op
+  de koepel, met V van buiten. E stapt in en uit. Een filmbeeld, een auto, binnen, zitten, laden en neergaan zetten je
+  eruit.
+
+- **De romp vangt de treffers** (gevraagd erbij: "als de politie op de tank schiet wordt Erik niet geraakt, alleen de tank
+  heeft wel een bepaalde health; het moet duidelijk worden dat de tank bijna explodeert en dat Erik eruit moet; bij schieten
+  terugslag en camera shake"). js/main.js `werkTigerSchadeBij`: wat `player.health` in de Tiger verliest, zet hij terug
+  (`zetLevenRuw`) en gaat van `TIGER.leven` (300) af. Dat gebeurt drie keer per beeld, ook vlak vóór de controle op
+  neergaan, want de politie schiet later in het beeld. Onder `kritiek` (35 %) rookt het motordek (vijf bollen met elk een
+  eigen materiaal van dezelfde soort als de kruitdamp), trilt de romp, roept hij `schok` aan, piept `aftelPiep` en staat
+  het rode alarm in de hud. Onder `brand` (15 %) komen er vlammen bij. Op nul `ontplof`: de kleur van de materialen
+  roetzwart (de kleur, niet het materiaal), `tigerOntploft` in js/main.js (de knal, en binnen = neer). Het wrak komt na
+  `wrakTijd` terug, als de camera 150 m van het wrak en van de gedenkplek is. Een schot: `kick` (de romp deint, het oog
+  schiet 35 cm terug) en `schok(TIGER.schok)`.
+- **Bij het nameten** was de romp eerst 7,06 m en met het kanon 9,37 m. Het aandrijfwiel en het spanwiel stonden te ver
+  buiten de romp, de spatborden waren te lang, de loop van de boordmitrailleur stak een halve meter uit en het kanon was 0,7 m
+  te lang. Nu: 8,71 m met het kanon. De proef reed eerst "tot de Sudergoweg" over het fietspad, want dat heet in de kaart ook
+  Sudergoweg (`drive: false`); nu telt alleen de rijweg.
+
+Proef: `npm run tigertest`, foto's: `npm run tigershots` (tiger_plek, _voor, _zij, _achter, _steen, _binnen, _schot).
+
 **Een zeilboot op de Molenkrite (stap 176, 14 okt).** Gevraagd: "in de intro cinematic zie je op de Molenkrite een
 zeilboot, check hoe dit kan". js/zeilen.js zette de vier boten zonder plek in de scène; hun plek kwam pas uit de eerste
 `update`, en die draait alleen in het spel (js/main.js, de tak met de speler). In het menu en in het filmpje van de intro

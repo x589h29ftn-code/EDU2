@@ -951,6 +951,51 @@ achtste schot springt de lege clip er met een ping uit; daarna druk je van boven
 
 ![De M1 Garand van opzij](docs/screenshots/m1_zij.png)
 
+## De gedenkplek aan de Sudergoweg en de Tiger
+
+Aan de Sudergoweg, de weg naar IJlst, ligt net buiten Sneek een **gedenkplek voor de Slag om Sneek, 1944**. Waar een dam
+van het fietspad over de sloot het weiland in loopt, ligt een tegelvloer van 13 bij 10 meter met een granieten
+gedenksteen. Op de bronzen plaat staat: *"Gedenksteen ter nagedachtenis aan de Slag om Sneek, 1944"*, met eronder
+*"gedoneerd door Veteraan met het dikke hondje"* en een klein hondje. Ervoor liggen een krans van klaprozen en twee
+bloembakken.
+
+![De gedenkplek vanaf het fietspad](docs/screenshots/tiger_plek.png)
+
+![De gedenksteen](docs/screenshots/tiger_steen.png)
+
+Op de tegels staat een **Tiger I**, gebouwd op de echte maten: 6,32 m romp, 8,45 m met het kanon, 3,56 m breed en 3 m
+hoog. Hij heeft acht grote loopwielen per kant, die om en om in twee rijen staan. Verder:
+
+- het aandrijfwiel voor en het spanwiel achter, met de rupsband eromheen;
+- de hoefijzervormige koepel met de commandantenkoepel en de kist achterop;
+- het 88 mm-kanon met de dubbele mondingsrem;
+- uitlaten, luchtfilters, gereedschap en reserveschakels;
+- camouflage in dunkelgelb met groene en bruine banen, het balkenkruis en torennummer 223.
+
+![De Tiger van opzij](docs/screenshots/tiger_zij.png)
+
+**En je kunt hem berijden.** Ga ernaast staan en druk op **E**. Dan rijd je zoals een tank:
+
+- **W** en **S**: vooruit en achteruit (hooguit 38 km/u);
+- **A** en **D**: de romp draaien, ook op de plaats (de rupsen lopen dan tegen elkaar in);
+- **muis**: de koepel volgt waar je kijkt, langzaam zoals bij de echte, en het kanon richt van −8° tot +15°;
+- **klik**: vuur. Dan volgen een terugslag, een mondingsvlam en een inslag die auto's in vlammen zet. Daarna duurt
+  **herladen acht seconden**; dat zie je onderin;
+- **V**: binnen kijk je over de koepel langs de loop, met het richtkruis van het vizier; met V kijk je van buiten;
+- **E**: uitstappen.
+
+**De romp vangt de klappen.** Schiet de politie op de Tiger, dan raakt dat Erik niet: de romp heeft zijn eigen leven
+(onderin, ROMP in procenten). Onder een derde rookt het motordek, trilt de tank, schudt het beeld, piept het en staat er
+in rood **"DE TIGER STAAT OP ONTPLOFFEN — STAP UIT (E)!"**. Nog lager slaan de vlammen eruit. Op nul ontploft hij, en wie
+dan nog binnen zit, overleeft het niet. Het uitgebrande wrak blijft staan. Na anderhalve minuut, en als je ver genoeg weg
+bent, staat er weer een nieuwe Tiger op de gedenkplek. Elk schot geeft een stevige terugslag: de romp deint achterover en
+het beeld schudt.
+
+Over de dam rijd je van de gedenkplek de weg op. Heggen en hekjes rijdt hij plat, voor huizen en het water stopt hij.
+Het verkeer stopt en wijkt uit, en een schot met het kanon blijft de politie niet onopgemerkt.
+
+![Langs de loop](docs/screenshots/tiger_binnen.png)
+
 ## Tennispark Molenkrite
 
 Naast het sportpark, bij Molenkrite 130, liggen tien gravelbanen: roodbruin gravel met witte belijning,

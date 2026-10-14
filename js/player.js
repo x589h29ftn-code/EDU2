@@ -604,6 +604,8 @@ export class Player {
     if (this.vuurSlot) return false;
     // met de afstandsbediening in je handen (de drone, stap 124) schiet je niet
     if (this.inDrone) return false;
+    // in de Tiger (stap 177) schiet het kanon, niet je wapen
+    if (this.inTiger) return false;
     if (this.reloading > 0 || this.wapenUit || this.binnen || this.wisselT > 0) return false;
     if (!this.inCar) return true;
     let d = this.yaw - this.inCar.yaw;

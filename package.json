@@ -283,6 +283,8 @@
     "m1shots": "node tools/m1shots.mjs 8123",
     "wensenshots": "node tools/wensenshots.mjs 8123",
     "claxonwraktest": "node tools/claxonwraktest.mjs",
-    "zeilintrotest": "node tools/zeilintrotest.mjs"
+    "zeilintrotest": "node tools/zeilintrotest.mjs",
+    "tigershots": "node tools/tigershots.mjs",
+    "tigertest": "node tools/tigertest.mjs"
   }
 }
