@@ -982,6 +982,14 @@ berging met een pannendakje ervoor; aan de Molenkrite een glazen vlak in de punt
 |---|---|---|---|
 | ![](docs/screenshots/eekmolen_garages.png) | ![](docs/screenshots/eekmolen_punt_schuin.png) | ![](docs/screenshots/eekmolen_loper.png) | ![](docs/screenshots/eekmolen_molenkrite.png) |
 
+Sinds stap 168 heeft het buurblok, **Molenkrite 145–157**, grijsbruine steen met witte kozijnen en om de woning een balkon
+met een witte borstwering, zoals op Street View. Bij 133–143 zit naast het glas in de top een strook wit of blauw beschot,
+en de aanbouwtjes hebben grijsbruine pannen.
+
+| 133–143 van voren | 145–157 met de balkons | vanaf het gras langs de Molenkrite |
+|---|---|---|
+| ![](docs/screenshots/molenkrite_punt_voor.png) | ![](docs/screenshots/molenkrite_balkon.png) | ![](docs/screenshots/molenkrite_gras.png) |
+
 **Tennishal Sneek** (stap 162): aan de Lemmerweg, naast BP Slump Oil, staat de tennishal zoals hij echt is: een lange hal
 met een laag zadeldak van lichtgrijze golfplaten, lichtgrijze gevels met grote donkere kruisen en schuine lijnen, een zwarte
 plint langs de zuidkant en een lage witte aanbouw met de entree onder een blauwe luifel, met het bord "tennishal SNEEK".

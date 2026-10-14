@@ -1281,8 +1281,15 @@ export const HOUSE_STYLES = {
    boven de steen wit of blauw met rabatdelen bekleed is (`rabat`). Die aanbouw
    is smaller dan een gewone gevel, vandaar `laagMin`.
   */
-  molenkrite_punt: { brick: ['#8c4636', '#c6baa8'], frame: '#ffffff', frame2: '#22409a', door: ['#22409a', '#1c1d20', '#f2f2ee'], roof: '#3a3330', roofType: 'gable', storeys: 3, storeyH: 3.1, w: 6.0, dormer: false, chimney: true, band: '#f2f2f2', puntgevel: true, punt: true, glasTop: true, laagType: 'molenkrite_berging', laagTot: 5.3, laagMin: 1.0 },
-  molenkrite_berging: { brick: ['#8c4636', '#c6baa8'], frame: '#ffffff', frame2: '#22409a', door: ['#22409a', '#f2f2ee', '#1c1d20'], roof: '#4a4440', roofType: 'gable', storeys: 2, storeyH: 2.6, w: 2.9, dormer: false, chimney: false, band: '#f2f2f2', berging: true, rabat: ['#f1f1ec', '#3d4f9c', '#f1f1ec'] },
+  molenkrite_punt: { brick: ['#8c4636', '#c6baa8'], frame: '#ffffff', frame2: '#22409a', door: ['#22409a', '#1c1d20', '#f2f2ee'], roof: '#3a3330', roofType: 'gable', storeys: 3, storeyH: 3.1, w: 6.0, dormer: false, chimney: true, band: '#f2f2f2', puntgevel: true, punt: true, glasTop: true, rabatTop: ['#f1f1ec', '#3d4f9c', null], laagType: 'molenkrite_berging', laagTot: 5.3, laagMin: 1.0 },
+  /*
+   (stap 168) Molenkrite 145–157, het buurblok van 133–143 uit hetzelfde jaar (1979): drie lagen in grijsbruine steen met
+   witte kozijnen, en om de woning een inpandig balkon op de eerste en tweede verdieping met een witte borstwering
+   (`balkon`). Op de Street View van de gebruiker (vanaf het gras langs de Molenkrite) stonden ze als `molenkrite` in
+   geelbeige steen met twee ramen per laag.
+  */
+  molenkrite_balkon: { brick: ['#8c6e5c', '#c2b4a4'], frame: '#ffffff', frame2: '#ffffff', door: ['#2a2d30', '#5a4636', '#f2f2ee'], roof: '#4a3f3a', roofType: 'gable', storeys: 3, storeyH: 2.5, w: 5.4, dormer: false, chimney: false, band: '#f2f2f2', balkon: true },
+  molenkrite_berging: { brick: ['#8c4636', '#c6baa8'], frame: '#ffffff', frame2: '#22409a', door: ['#22409a', '#f2f2ee', '#1c1d20'], roof: '#5e4f47', roofType: 'gable', storeys: 2, storeyH: 2.6, w: 2.9, dormer: false, chimney: false, band: '#f2f2f2', berging: true, rabat: ['#f1f1ec', '#3d4f9c', '#f1f1ec'] },
   /*
    Stap 165: de garageboxen Eekmolen 2a–2i (Street View van de gebruiker bij
    332.0, 296.5): negen boxen onder één plat dak, elk een kanteldeur van ~2,4 x
@@ -2264,6 +2271,20 @@ function gevelDoek(type, n, storeys, back, seed) {
             // een glazen vlak in de top: breed en tot in de punt, de daklijn van
             // het 3D BAG-model snijdt de schuine kant eruit
             const gw = m(2.2), gx = midden - m(0.4);
+            // (stap 168) naast het glas een staande strook beschot, om en om wit en blauw, zoals op de foto van
+            // Molenkrite 139: hij loopt van de verdieping eronder tot in de punt
+            if (!back && st.rabatTop) {
+              const kl = st.rabatTop[(i + seed) % st.rabatTop.length];
+              if (kl) {
+              const rx = gx - m(1.15), ry = fy - m(1.2), rw = m(1.05), rh = m(SH + 1.2);
+              g.fillStyle = kl; g.fillRect(rx, ry, rw, rh);
+              for (let yy = ry + m(0.15); yy < ry + rh; yy += m(0.15)) {
+                g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(rx, yy, rw, m(0.022));
+              }
+              g.fillStyle = '#f4f4f0'; g.fillRect(rx - m(0.05), ry, m(0.06), rh); g.fillRect(rx + rw - m(0.01), ry, m(0.06), rh);
+              win(rx + m(0.2), ry + m(0.35), rw - m(0.4), m(0.95), st.frame, { kaal: true });
+              }
+            }
             win(gx, fy + m(0.25), gw, m(SH - 0.45), accent, { kaal: true });
             g.fillStyle = accent; g.fillRect(gx, fy + m(1.5), gw, m(0.08));
           } else win(midden - bw / 2, by, bw, bh, accent);
@@ -2618,6 +2639,24 @@ function gevelDoek(type, n, storeys, back, seed) {
           win(bx, fy + m(0.5), bw2, m(1.25), st.frame);
           g.fillStyle = st.paneel; g.fillRect(bx, fy + m(1.75), bw2, m(0.62));
           g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(bx, fy + m(2.31), bw2, m(0.06));
+          continue;
+        }
+        if (st.balkon && (i + seed) % 2 === 1) {
+          /*
+           (stap 168) een inpandig balkon: een donkere nis over bijna de hele breedte met een glazen deur en een raam
+           achterin, en voorlangs een witte borstwering met een leuning. De borstwering is wit en dicht, niet van glas:
+           een blauwige ruit zou 's nachts als raam gaan branden (`nachtRamen`).
+          */
+          const nx = x0 + m(0.45), nw = m(st.w - 0.9), ny = fy + m(0.15), nh = m(SH - 0.25);
+          g.fillStyle = '#2a2624'; g.fillRect(nx, ny, nw, nh);
+          g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(nx, ny, nw, m(0.18));
+          win(nx + m(0.35), ny + m(0.3), m(0.95), nh - m(0.35), st.frame, { kaal: true });
+          win(nx + m(1.6), ny + m(0.55), nw - m(1.95), m(1.2), st.frame);
+          const by = fy + m(SH) - m(1.15);
+          g.fillStyle = '#eeeeea'; g.fillRect(nx - m(0.05), by, nw + m(0.1), m(1.05));
+          g.fillStyle = 'rgba(0,0,0,0.10)'; for (let k = 1; k < 6; k++) g.fillRect(nx + nw * k / 6, by + m(0.1), m(0.02), m(0.9));
+          g.fillStyle = '#ffffff'; g.fillRect(nx - m(0.08), by - m(0.06), nw + m(0.16), m(0.08));
+          g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(nx - m(0.05), by + m(1.05), nw + m(0.1), m(0.06));
           continue;
         }
         const accent = st.frame2 !== st.frame ? st.frame2 : null;

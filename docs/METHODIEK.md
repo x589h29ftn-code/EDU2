@@ -9176,6 +9176,30 @@ slaat de geometrie van het pand over (`EIGEN_PANDEN`, zoals de molens) en houdt 
 plat op hun gevel in hun kleur, de gloed 's nachts en overdag, de shaders) met `aaffshots` (aaff_water, aaff_hoek, aaff_nacht,
 aaff_logo_nacht).
 
+**De Molenkrite nog eens (stap 168, 14 okt).**
+
+Gevraagd: "Check de Molenkrite aangepaste woningen nog eens of dit beter kan." Naast de foto's van stap 165 gelegd. Het
+grootste verschil zat niet in 133–143 maar in het blok ernaast: op de tweede Street View van de gebruiker (vanaf het gras)
+staat rechts een rij van drie lagen in grijsbruine steen met balkons, en dat bleek een eigen bouwplan te zijn, Molenkrite
+145–157 (BAG 1979, goot 7,5 en 9,3 m). Die stonden als `molenkrite`: geelbeige steen, twee ramen per laag.
+- *145–157*: een tweede `plan` bij de Molenkrite in data/stijl/straten.json (`kiesType` kende er al meer per straat), het
+  type `molenkrite_balkon` in js/textures.js: grijsbruine steen (`#8c6e5c`; `#857368` kwam in het spel grijs uit), witte
+  kozijnen, drie lagen van 2,5 m, en om de woning een inpandig balkon (`balkon`): een donkere nis met een glazen deur en een
+  raam, en voorlangs een witte, dichte borstwering. Niet van glas: een blauwige ruit telt voor `nachtRamen` als raam en gaat
+  's nachts branden. js/kaart.js opnieuw gegenereerd; nagemeten tegen de oude kaart: alleen deze zeven panden van type
+  veranderd, verder niets.
+- *133–143*: naast het glas in de top een staande strook beschot (`rabatTop`), om en om wit en blauw en bij één op de drie
+  niets, zoals bij nummer 139; de pannen van de aanbouw grijsbruin (`#5e4f47`) in plaats van bijna zwart.
+- Niet gedaan: de zwarte houten tuinschuttingen van de foto (de schuttingen komen uit de omgeving, niet uit de woning), en
+  de garagedeur van de hoekwoning van 145–157.
+- De eerste meting van de borstwering telde gewoon wit, en vond dan ook "balkons" in de witte kozijnen en deuren van de
+  woningen ertussen. Nu telt hij de pixelrijen die voor meer dan 75 % wit zijn: een band over de hele breedte.
+
+*Proef*: `npm run molenkritetest` (laadt alleen js/kaart.js en js/textures.js: de typen, het balkon om de woning op de
+eerste en tweede verdieping en nooit beneden, de borstwering geen glas, de steen grijsbruin, de strook in de top, de
+pannen) met `molenkriteshots` (molenkrite_punt_voor, molenkrite_balkon, molenkrite_gras); `eekmolentest` en
+`voorgeveltest` blijven groen.
+
 **Garageboxen en de Eekmolen (stap 165, 13 okt).**
 
 Gevraagd met schermafdrukken en Street View: "locatie 332.0, 296.5 zijn garageboxen", "323.5, 278.9 locatie eekmolen zijn niet

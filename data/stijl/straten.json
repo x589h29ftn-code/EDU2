@@ -5,7 +5,7 @@
       "type": "molenkrite",
       "kap": "molenkrite_kap",
       "laag": "molenkrite_bung",
-      "plan": { "van": 1979, "tot": 1979, "nrVan": 133, "nrTot": 143, "type": "molenkrite_punt" },
+      "plan": [{ "van": 1979, "tot": 1979, "nrVan": 133, "nrTot": 143, "type": "molenkrite_punt" }, { "van": 1979, "tot": 1979, "nrVan": 145, "nrTot": 157, "type": "molenkrite_balkon" }],
       "bron": "foto: Molenkrite 19, 43 (kap) en 70 (laag met zonnedak). Stap 165 (Street View van de gebruiker, '139 Molenkrite', bij 435.3, 75.6): Molenkrite 133-143 zijn rijwoningen van hetzelfde soort plan als de Eekmolen, in rode steen, met een glazen vlak in de top van de puntgevel en voor elke woning een aanbouw met een eigen puntgeveltje van witte of blauwe rabatdelen"
     },
     "Monnikmolen": {

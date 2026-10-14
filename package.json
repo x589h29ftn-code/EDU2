@@ -76,6 +76,8 @@
     "molenflattest": "node tools/molenflattest.mjs 8123",
     "molenflatshots": "node tools/molenflatshots.mjs 8123",
     "eekmolentest": "node tools/eekmolentest.mjs 8123",
+    "molenkritetest": "node tools/molenkritetest.mjs 8123",
+    "molenkriteshots": "node tools/molenkriteshots.mjs 8123",
     "eekmolenshots": "node tools/eekmolenshots.mjs 8123",
     "geeuwbrugtest": "node tools/geeuwbrugtest.mjs 8123",
     "geeuwbrugshots": "node tools/geeuwbrugshots.mjs 8123",

@@ -253,7 +253,7 @@ const lageMuren = r.puntgevels.flatMap(p => p.bergingen.map(b => ({ naam: p.naam
 const geenBerging = lageMuren.filter(x => x.b.startsWith('gevel|') && !x.b.includes('_berging'));
 ok(geenBerging.length === 0, `de ${lageMuren.length} lage muren vooraan zijn berging of steen, nooit de woonkamerpui van het huis`, geenBerging.map(x => `${x.naam}: ${x.b}`).join('; ') || `${lageMuren.filter(x => x.b.includes('_berging')).length} bergingsgevels`);
 const daken = r.puntgevels.flatMap(p => p.bergDak);
-ok(daken.length > 0 && daken.filter(d => d.startsWith('dak|')).every(d => ['#5a2f26', '#4a4440'].some(k => d.includes(k))), `de schuine dakjes van de bergingen hebben eigen pannen (${daken.length} vlakken)`, [...new Set(daken)].join(', '));
+ok(daken.length > 0 && daken.filter(d => d.startsWith('dak|')).every(d => ['#5a2f26', '#5e4f47'] /* (stap 168: de aanbouw aan de Molenkrite grijsbruin) */.some(k => d.includes(k))), `de schuine dakjes van de bergingen hebben eigen pannen (${daken.length} vlakken)`, [...new Set(daken)].join(', '));
 
 kop('5. de nok uit het 3D BAG-model');
 const perType = {};
