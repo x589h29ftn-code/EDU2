@@ -248,6 +248,12 @@ export function initZeilen({ scene, KAART, sfeer }) {
     helling.add(r, dk, mast, giekGroep, fokGroep, mens);
     for (const m of [r, groot, fok, mast]) m.castShadow = true;
     r.receiveShadow = true; dk.receiveShadow = true;
+    /*
+     (stap 176, "in de intro zie je op de Molenkrite een zeilboot") Meteen op zijn eigen water: `update` draait pas in
+     het spel, en tot dan stond hij op (0, 0), de Molenkrite bij het beginpunt, ook in het filmpje van de intro en achter
+     het menu. Niet verborgen: dan slaat het voorvertalen van de shaders hem over (`traverseVisible`).
+    */
+    groep.position.set(p0.x, waterY, p0.z);
     scene.add(groep);
 
     boten.push({

@@ -9317,6 +9317,14 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Een zeilboot op de Molenkrite (stap 176, 14 okt).** Gevraagd: "in de intro cinematic zie je op de Molenkrite een
+zeilboot, check hoe dit kan". js/zeilen.js zette de vier boten zonder plek in de scène; hun plek kwam pas uit de eerste
+`update`, en die draait alleen in het spel (js/main.js, de tak met de speler). In het menu en in het filmpje van de intro
+stonden ze dus op (0, 0): de Molenkrite bij het beginpunt. Nu staan ze vanaf het begin op hun eigen water (`p0`, op
+`waterY`). Niet verborgen tot de eerste update: dan slaat het voorvertalen van de shaders ze over. Proef:
+`npm run zeilintrotest` (vóór het spelen elke zeilboot op het water en minstens 40 m van het beginpunt; gemeten 659 tot
+2351 m).
+
 **Haperen tijdens het rijden (stap 175, 14 okt).** Gevraagd: "zoek haperingtest uit; ik zie ook haperingen tijdens het
 rijden". `npm run rijprofiel` op de code van vóór stap 171 en op die van nu, naast elkaar gedraaid:
 
