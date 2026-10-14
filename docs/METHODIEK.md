@@ -9317,6 +9317,31 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Haperen tijdens het rijden (stap 175, 14 okt).** Gevraagd: "zoek haperingtest uit; ik zie ook haperingen tijdens het
+rijden". `npm run rijprofiel` op de code van vóór stap 171 en op die van nu, naast elkaar gedraaid:
+
+- **Het verkeer kostte twee keer zoveel**: gemiddeld 3,3 ms per beeld tegen 1,7. Het grootste nieuwe stuk was
+  `blokkadeVoor` in js/verkeersregels.js (658 ms van de 73 s). Die toetste elke verkeersauto tegen álle auto's met een
+  eigen model (politie, garage, missies, de meeste ver weg); nu eerst de afstand. Daarnaast telde `parkeerRooster` bij elke
+  vraag alle auto's van de wereld, en sinds stap 173 vraagt elke verkeersauto elk beeld; nu één keer per beeld
+  (`_beeld`). Daarna: `blokkadeVoor` 72 ms, het verkeer 2,3 ms tegen 2,0 op de oude code.
+- **De losse pieken** (30 tot 80 ms in "verkeer") zaten er vóór stap 171 ook al (63 ms). `rijprofiel` meet nu ook elke
+  trage aanroep in js/vehicles.js en js/verkeersregels.js (`traag`): het waren functies als `isZichtbaar` (58 ms) en
+  `botsAutos`, die zelf niets kosten. Dat is de vuilnisophaal. Het verkeer maakte per auto per beeld twee nieuwe vectoren
+  (`_pos`, `_dir`); die worden nu hergebruikt.
+- **De trilling op snelheid** (stap 171) zat op 7 tot 13 trillingen per seconde. Bij 20 tot 30 beelden per seconde valt elk
+  beeld op een willekeurig punt van die golf, en dan springt het beeld heen en weer: dat ziet eruit als haperen. Nu 2 tot
+  4 per seconde, en kleiner (8 mm, 1,2 mrad).
+- **`haperingtest`** was rood op "8 van 400 anders": de lus in de proef was die van vóór stap 128 en kende de uitzondering
+  voor een kleine doos waar het draaipunt zelf in staat (een stam) niet. De proef heeft die nu ook; het spel was goed.
+
+- **Een auto die 169 s vaststond** (`voorrangtest`, bij het nameten): hij wilde uitwijken voor een geparkeerde auto en stond
+  er met zijn neus 0,6 m achter. Opzij gaat alleen rijdend, vooruit mocht niet dichter dan 0,6 m, en het vangnet van 15 s
+  sloeg een uitwijkende auto over. Nu breekt `werkUitwijkBij` de poging af na BLOK.vast tellen stil (zonder sprong opzij),
+  probeert hij het voor die auto niet nog eens (`_geenUit`) en keert het vangnet hem. Daarna: langst stil 15,1 s.
+
+Wat een beeld op de grafische kaart kost blijft headless onmeetbaar (open punt 20).
+
 **Vijf opmerkingen na het spelen (stap 174, 14 okt).** Gevraagd, met twee foto's en een mp3: "gebruik dit muziek
 geluidje als claxon auto's", "na explosie politieauto ziet het model er wat gek uit, aan de bovenkant", "No Mercy laatste
 missie laat de motoren die je aanvallen met Duitsers van voren komen en ze moeten dood kunnen", "de filmauto rijdt ook door

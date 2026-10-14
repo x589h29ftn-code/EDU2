@@ -179,8 +179,8 @@ export const CAM = {
   fov: 9,             // graden extra, hooguit
   tempo: 0.9,         // per seconde: zo snel loopt de beeldhoek mee (geleidelijk)
   trilVanaf: 22,      // m/s (80 km/u)
-  tril: 0.012,        // m, de grootste uitslag
-  rol: 0.0018,        // rad, de grootste rol
+  tril: 0.008,        // m, de grootste uitslag (stap 175: was 0,012)
+  rol: 0.0012,        // rad, de grootste rol (stap 175: was 0,0018)
 };
 export class RijCamera {
   constructor() { this.fov = 0; this.tril = 0; this.t = 0; this.trilX = 0; this.trilY = 0; this.trilRol = 0; }
@@ -195,9 +195,14 @@ export class RijCamera {
     this.tril += (trilDoel - this.tril) * Math.min(1, dt * 1.5);
     // een paar trage golven door elkaar (7–13 Hz), geen ruis: ruis leest als een storing
     const t = this.t, a = this.tril;
-    this.trilX = (Math.sin(t * 47) * 0.5 + Math.sin(t * 71 + 1.3) * 0.3 + Math.sin(t * 83 + 0.4) * 0.2) * a * CAM.tril;
-    this.trilY = (Math.sin(t * 53 + 2.1) * 0.55 + Math.sin(t * 79) * 0.45) * a * CAM.tril;
-    this.trilRol = Math.sin(t * 41 + 0.7) * a * CAM.rol;
+    /*
+     (stap 175, "ik zie haperingen tijdens het rijden") Eerst 7 tot 13 trillingen per seconde: bij 20 tot 30 beelden per
+     seconde viel elk beeld op een willekeurig punt van de golf en sprong het beeld heen en weer, wat er net zo uitzag
+     als haperen. Nu 2 tot 4 per seconde: een rustig deinen dat elk beeldtempo kan volgen.
+    */
+    this.trilX = (Math.sin(t * 13) * 0.5 + Math.sin(t * 19 + 1.3) * 0.3 + Math.sin(t * 23 + 0.4) * 0.2) * a * CAM.tril;
+    this.trilY = (Math.sin(t * 15 + 2.1) * 0.55 + Math.sin(t * 21) * 0.45) * a * CAM.tril;
+    this.trilRol = Math.sin(t * 11 + 0.7) * a * CAM.rol;
   }
   zetOp(cam) {
     if (!this.tril) return;

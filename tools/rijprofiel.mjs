@@ -45,6 +45,17 @@ const r = await page.evaluate(async () => {
   meet(g.hud, 'update', 'hud'); meet(g.politie, 'update', 'politie'); meet(g.derde, 'update', 'derde');
   if (g.grasVeld) meet(g.grasVeld, 'update', 'gras');
   meet(g, 'werkLantaarnsBij', 'lantaarns');
+  // (stap 175) wie maakt een piek in het verkeer? elke methode van js/vehicles.js en js/verkeersregels.js, de trage aanroepen
+  const traag = [];
+  for (const obj of [g.vehicles, g.vehicles.regels].filter(Boolean)) {
+    const proto = Object.getPrototypeOf(obj);
+    for (const naam of Object.getOwnPropertyNames(proto)) {
+      if (naam === 'constructor' || ['updateTraffic', 'drive', 'lod'].includes(naam)) continue;
+      const f = obj[naam]; if (typeof f !== 'function') continue;
+      obj[naam] = function (...a) { const t0 = performance.now(); const u = f.apply(this, a); const d = performance.now() - t0; if (d > 6) traag.push(`${naam} ${d.toFixed(1)}`); return u; };
+    }
+  }
+  window.__traag = traag;
   P.inCar = null; P.pos.set(10, 0, -7); P.yaw = -0.88; P.pitch = 0; P.applyCamera();
   g.vehicles.voegToe({ x: 12.4, z: -7, yaw: P.yaw, soort: 'hatch' });
   g.toggleCar();
@@ -76,6 +87,7 @@ const r = await page.evaluate(async () => {
   const gem = {};
   for (const f of frames.slice(30)) for (const [k, v] of Object.entries(f)) if (!['dt', 'snel', 'x', 'z'].includes(k)) gem[k] = (gem[k] || 0) + v / (frames.length - 30);
   return { med, p95: dts[Math.floor(dts.length * 0.95)], max: dts[dts.length - 1], snel: c.speed, afgelegd: Math.hypot(c.x - 12.4, c.z + 7), aantalPieken: pieken.length, pieken: pieken.slice(0, 25),
+    traag: (() => { const t = {}; for (const x of traag) { const [n, d] = x.split(' '); t[n] = t[n] || { n: 0, max: 0 }; t[n].n++; t[n].max = Math.max(t[n].max, +d); } return t; })(),
     gem: Object.fromEntries(Object.entries(gem).map(([k, v]) => [k, +v.toFixed(2)])) };
 });
 console.log(JSON.stringify(r, null, 1));

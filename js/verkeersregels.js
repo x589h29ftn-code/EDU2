@@ -559,9 +559,12 @@ export class Verkeersregels {
     const V = this.V, d = t._dir, mij = maatVan(t.soort);
     let beste = null;
     const u = t.uitwijk;
+    const R2 = (BLOK.kijk + 10) * (BLOK.kijk + 10);
     const toets = (c) => {
-      if (!V.isZichtbaar(c)) return;
+      // (stap 175) eerst de afstand: de lijst met eigen modellen is lang (politie, garage, missies), de meeste ver weg
       const dx = c.x - t._pos.x, dz = c.z - t._pos.y;
+      if (dx * dx + dz * dz > R2) return;
+      if (!V.isZichtbaar(c)) return;
       const langs = dx * d.x + dz * d.y;
       if (langs < -8 || langs > BLOK.kijk + 4) return;
       const opzij = dx * -d.y + dz * d.x;
@@ -607,7 +610,7 @@ export class Verkeersregels {
         if (this.V.opClaxon && Math.random() < 0.8) this.V.opClaxon(t._pos.x, t._pos.y);
       }
       if (stil && !u && t.blokT > BLOK.wacht) {
-        const plan = this.uitwijkPlan(t, b);
+        const plan = t._geenUit === b.c ? null : this.uitwijkPlan(t, b);
         if (plan) {
           t.uitwijk = { obj: b.c, pad: t.path, lane0: t.lane, lane: plan, fase: 'uit' };
           t.vLane = 0;
@@ -674,6 +677,16 @@ export class Verkeersregels {
   werkUitwijkBij(t, dt, b) {
     const u = t.uitwijk;
     u.tijd = (u.tijd || 0) + dt;
+    /*
+     (stap 175, voorrangtest: een auto stond 169 s stil) Opzij gaan kan alleen rijdend, en vooruit mag niet dichter dan
+     0,6 m bij wat hij inhaalt: stond hij daar, dan kwam hij er nooit meer uit, ook niet terug, en het vangnet hieronder
+     slaat een uitwijkende auto over. Na BLOK.vast tellen stil: de poging af (de strook blijft waar hij is, geen sprong),
+     voor deze auto niet nog eens, en het vangnet keert hem.
+    */
+    if (Math.abs(t.snelheid || 0) < 0.2 && (t._stilT || 0) > BLOK.vast) {
+      t._geenUit = u.obj; t.uitwijk = null; t.vLane = 0;
+      return Infinity;
+    }
     if (u.fase === 'uit' && u.tijd > 20) u.fase = 'terug';       // komt hij er niet langs, dan terug in zijn strook
     if (u.fase === 'uit') {
       // voorbij de blokkade (of de blokkade is weg): terug naar de eigen strook

@@ -41,6 +41,8 @@ const r = await page.evaluate(async () => {
     const kand = [], bereik = maxD + 3;
     for (const c of W.colliders) {
       if (c.h < 0.6 || (c.hx < 0.35 && c.hz < 0.35)) continue;
+      // (sinds stap 128 in js/world.js: een kleine doos waar het draaipunt zelf in staat, een stam, telt niet)
+      if (c.hx < 1.2 && c.hz < 1.2 && Math.abs(c.cx - px) < c.hx + 0.4 && Math.abs(c.cz - pz) < c.hz + 0.4) continue;
       if (Math.abs(c.cx - px) > bereik + c.hx || Math.abs(c.cz - pz) > bereik + c.hz) continue;
       kand.push(c);
     }

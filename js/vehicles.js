@@ -1110,6 +1110,13 @@ export class Vehicles {
    een auto gestolen of opgeruimd).
   */
   parkeerRooster() {
+    /*
+     (stap 175, "haperingen tijdens het rijden") Eén keer per beeld tellen, niet bij elke vraag: sinds stap 173 vraagt
+     elke verkeersauto elk beeld naar de geparkeerde auto's om zich heen, en dit telde dan telkens alle auto's van de
+     wereld (gemeten met tools/rijprofiel.mjs).
+    */
+    if (this._pRooster && this._pRoosterBeeld === this._beeld) return this._pRooster;
+    this._pRoosterBeeld = this._beeld;
     const stil = [];
     for (const c of this.cars) if (!c.mesh) stil.push(c);
     if (this._pRooster && this._pRoosterN === stil.length) return this._pRooster;
@@ -1138,6 +1145,7 @@ export class Vehicles {
   }
 
   updateTraffic(dt, speler = null, voetgangers = null, camX = null, camZ = null) {
+    this._beeld = (this._beeld || 0) + 1;
     if (camX !== null) this.vulBuurtAan(camX, camZ, dt);
     this.rolUit(dt);
     /*
@@ -1186,8 +1194,10 @@ export class Vehicles {
     for (const t of this.traffic) {
       if (t.slaapt) { t._pos = VER_WEG; t._dir = VER_WEG_R; continue; }
       const pl = this.plekOpPad(t);
-      t._pos = new THREE.Vector2(pl.x, pl.z);
-      t._dir = new THREE.Vector2(pl.dx, pl.dz);
+      // (stap 175) dezelfde vectoren elk beeld: twee nieuwe per auto per beeld gaven pieken van de vuilnisophaal
+      if (!t._posEigen) { t._posEigen = new THREE.Vector2(); t._dirEigen = new THREE.Vector2(); }
+      t._pos = t._posEigen.set(pl.x, pl.z);
+      t._dir = t._dirEigen.set(pl.dx, pl.dz);
       if (t.snelheid === undefined) {
         // wie vlak voor een bocht begint, begint op de snelheid van die bocht
         t.snelheid = t.speed;
