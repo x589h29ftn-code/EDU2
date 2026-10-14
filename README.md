@@ -1168,7 +1168,7 @@ Vier nieuwe geluiden, allemaal gesynthetiseerd zoals al het andere geluid in het
 | **kreet** | een zaagtand op stemhoogte door drie formantfilters, `schrik` of `pijn` | iemand wordt geraakt of schrikt van een schot |
 | **bandengier** | ruis door een smalle band rond 1,3 kHz met een toon erbij, sterkte loopt met het slippen mee | zolang de banden slippen |
 | **passerende auto** | een ruisveeg door een band rond 1,1 kHz die wegvalt, met een motortoon die van 150 naar 72 Hz zakt | een auto rijdt langs je heen: op het moment dat hij het dichtst bij is |
-| **claxon** | twee korte stoten van 0,26 seconde op 420 en 520 Hz, blokgolf | een bestuurder voor wie je in de weg staat en niet weggaat |
+| **claxon** | een opname (`audio/auto/claxon.mp3`, sinds stap 174), zachter op afstand; zonder opname twee korte stoten op 420 en 520 Hz | een bestuurder voor wie je in de weg staat en niet weggaat |
 
 **Het verkeer klinkt weer.** Na de intro was het stil geworden op straat: de
 vogels, de wind en het verkeer in de verte stonden zo zacht dat je ze naast de
@@ -2595,7 +2595,9 @@ zijn het er vijf; het MG heeft twee treffers nodig, de sluipschutter één, de r
 ![De molen](docs/screenshots/nomercy5_molen.png)
 
 **De rit.** Achter de molen staat de **stafauto** (in feldgrau). De camera-auto rijdt voor je uit door IJlst, met de
-camera op het dak naar achteren, en twee **zijspannen** komen achter je aan. Blijf **tussen 8 en 25 meter** achter
+camera op het dak naar achteren (en netjes om heggen en hekken heen). Twee **zijspannen** met Duitsers komen je
+op de andere weghelft tegemoet en schieten; voorbij keren ze en zitten ze achter je aan. Twee treffers per man legt
+ze neer, en zonder rijder staat een zijspan stil. Blijf **tussen 8 en 25 meter** achter
 de camera-auto: de balk linksboven laat zien hoe ver hij voor je rijdt. Te ver erachter, er bijna op, uitgestapt of
 voorbij de eindstreep: drie tellen later roept Erik Jan **"Cut!"** en begint de rit opnieuw (een nieuwe take, alleen
 de rit). Stop aan het eind op de gele ruit: *"dat is een wrap!"*
@@ -2625,7 +2627,7 @@ aan het ruitframe.
 **De première.** "Een week later…", om acht uur 's avonds op de kade: *Opgedragen aan De Veteraan*. Erik Jan telt
 de **filmpunten** (buiten het zoeklicht gebleven, de molen binnen een minuut, de rit in één take, precies op de ruit;
 alleen een compliment, geen geld) en vraagt wat je wilt: **1 = € 2.000**, **2 = de stafauto houden**. De stafauto
-staat dan naast je op de kade, is van jou zoals een gekochte auto, rijdt (als een BX) en gaat mee in de opslag: hij staat
+staat dan voor het Autohuis aan de Lemmerweg, is van jou zoals een gekochte auto, rijdt (als een BX) en gaat mee in de opslag: hij staat
 waar je hem het laatst achterliet.
 
 ![De première](docs/screenshots/nomercy5_premiere.png)

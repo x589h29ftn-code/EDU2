@@ -1461,7 +1461,19 @@ export class Vehicles {
     if (car.mesh) {
       // de oude lak bewaren, anders kan het wrak nooit meer teruggezet worden
       car.lak = [];
-      car.mesh.traverse(o => { if (o.isMesh) { car.lak.push([o, o.material]); o.material = zwart; } });
+      /*
+       (stap 174, "na explosie politieauto ziet het model er wat gek uit, aan de bovenkant") Gloed, zwaailicht-halo's,
+       lichtbundels en de plas licht zijn doorzichtige of optellende vlakken: roetzwart werden dat grote dichte zwarte
+       vlakken boven het dak. Die gaan uit (`car.lakUit`), alleen de dichte delen worden zwart.
+      */
+      car.lakUit = [];
+      car.mesh.traverse(o => {
+        if (!o.isMesh) return;
+        const m = Array.isArray(o.material) ? o.material[0] : o.material;
+        const licht = m && (m.blending === THREE.AdditiveBlending || (m.transparent && (m.isMeshBasicMaterial || m.opacity < 0.5 || m.depthWrite === false)));
+        if (licht) { if (o.visible) { o.visible = false; car.lakUit.push(o); } return; }
+        car.lak.push([o, o.material]); o.material = zwart;
+      });
     } else if (car.inst) {
       // een geparkeerde auto zit in een stapel en heeft geen eigen materiaal:
       // daar gaat de kleur van de instantie op roetzwart
@@ -1539,6 +1551,7 @@ export class Vehicles {
     if (car.start) { car.x = car.start.x; car.z = car.start.z; car.yaw = car.start.yaw; }
     car.rij = car.yaw;
     if (car.lak) { for (const [o, m] of car.lak) o.material = m; car.lak = null; }
+    if (car.lakUit) { for (const o of car.lakUit) o.visible = true; car.lakUit = null; }
     if (car.inst) {
       const stap = this.stapels[car.inst.sleutel];
       stap.stapel.kleur(car.inst.i, car.kleur);

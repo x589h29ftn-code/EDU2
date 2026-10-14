@@ -281,6 +281,7 @@
     "scootertest": "node tools/scootertest.mjs 8123",
     "scootershots": "node tools/scootershots.mjs 8123",
     "m1shots": "node tools/m1shots.mjs 8123",
-    "wensenshots": "node tools/wensenshots.mjs 8123"
+    "wensenshots": "node tools/wensenshots.mjs 8123",
+    "claxonwraktest": "node tools/claxonwraktest.mjs"
   }
 }

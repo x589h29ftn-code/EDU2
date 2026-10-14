@@ -162,6 +162,8 @@ export const SCHOT = {
  −27,6 dB, 13,7 dB onder het garandschot (gevraagd: "klinkt wat luid nu"). Zonder opname de gemaakte ping.
 */
 export const M1_CLIP = { url: 'audio/wapen/m1_clip.mp3', vol: 0.23 };
+// stap 174: de claxon als opname van de gebruiker ("gebruik dit muziek geluidje als claxon auto's"); zonder opname de twee tonen
+export const CLAXON = { url: 'audio/auto/claxon.mp3', vol: 0.32 };
 const wapenOpname = {};   // per sleutel { buf, begin, eind }
 const wapenLaden = {};
 let laatstePing = null;   // (voor tools/m1geluidtest.mjs)
@@ -385,7 +387,7 @@ export const geluid = {
   // de opnames van stap 139: het schot van de garand en de lege clip, elk met waar hij begint en ophoudt
   laadWapenOpnames() {
     if (!ctx) return null;
-    for (const [k, url] of [['garand', SCHOT.garand.url], ['clip', M1_CLIP.url]]) {
+    for (const [k, url] of [['garand', SCHOT.garand.url], ['clip', M1_CLIP.url], ['claxon', CLAXON.url]]) {
       if (wapenLaden[k]) continue;
       wapenLaden[k] = (async () => {
         try {
@@ -2356,6 +2358,20 @@ export const geluid = {
   claxon(afstand = 6) {
     if (!aan) return;
     const dicht = Math.max(0.12, 1 - afstand / 30);
+    this.claxons = (this.claxons || 0) + 1;
+    const op = wapenOpname.claxon;
+    if (op) {
+      // niet over zichzelf heen: een claxon die nog klinkt laat de volgende vallen
+      if (nu() < (this.claxonTot || 0)) return;
+      const src = ctx.createBufferSource(); src.buffer = op.buf;
+      const g = ctx.createGain(); g.gain.value = CLAXON.vol * dicht;
+      src.connect(g); g.connect(hoofd);
+      src.start(nu(), op.begin, op.eind - op.begin);
+      this.claxonTot = nu() + (op.eind - op.begin);
+      this.laatsteClaxon = { opname: true, gain: g.gain.value };
+      return;
+    }
+    this.laatsteClaxon = { opname: false };
     const vol = 0.12 * dicht;
     for (const vertraag of [0, 0.26]) {
       for (const f of [420, 520]) {

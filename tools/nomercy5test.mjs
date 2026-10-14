@@ -141,6 +141,8 @@ await page.evaluate(async () => {
   window.__rijd = (gat = 15, max = 120, stopOp = null) => {
     const n0 = v.noMercy5, L = n0.lijn, c = n0.staf;
     let s = 0, t = 0, groot = 0, klein = 1e9, uitWeg = 0, motorVer = 0, motorDicht = 1e9, motorZag = false, cut = false;
+    // (stap 174) de camera-auto in een botsdoos (heg, hek), de zijspannen eerst vóór je en tegemoet, daarna erachter
+    let raakt = null, inDoos = 0, metingen = 0, eersteVoor = null, tegemoet = false, achter = false; const vorigS = [null, null];
     const ruitS = L.lengte - 18;
     while (t < max) {
       const n = v.noMercy5;
@@ -161,14 +163,31 @@ await page.evaluate(async () => {
       const ca = m.camAuto;
       let dWeg = 1e9; for (let i = 0; i < L.n; i += 2) dWeg = Math.min(dWeg, Math.hypot(L.x[i] - ca.x, L.z[i] - ca.z));
       uitWeg = Math.max(uitWeg, dWeg);
-      for (const mo of m.motoren) if (mo.mesh.visible) {
+      if (t > 1) { metingen++; const [rx, rz] = window.__W.resolveCollisions(ca.x, ca.z, 0.9); if (Math.hypot(rx - ca.x, rz - ca.z) > 0.05) inDoos++; }
+      m.motoren.forEach((mo, j) => {
+        if (!mo.mesh.visible) return;
+        if (eersteVoor === null) eersteVoor = mo.s - m.sP;
+        if (vorigS[j] !== null && mo.s < vorigS[j] - 0.05 && mo.s > m.sP) tegemoet = true;
+        if (mo.s < m.sP - 5) achter = true;
+        // het tweede zijspan neerschieten zodra het dichtbij is: twee treffers per man, dan staat het stil
+        if (j === 1 && !raakt && mo.s > m.sP && mo.s - m.sP < 40) {
+          const doel = v.doelen();
+          raakt = { inDoelen: doel.includes(mo.rijder.groep) && doel.includes(mo.bijrijder.groep), r: [], s: mo.s };
+          for (const wie of ['rijder', 'bijrijder', 'rijder', 'bijrijder']) { let o = mo[wie].groep; while (o.children && o.children.length) o = o.children[0]; raakt.r.push(v.raak(o)); }
+          raakt.leven = { ...mo.leven }; raakt.naDoelen = v.doelen().includes(mo.rijder.groep);
+        }
+        if (j === 1 && raakt && raakt.na == null && t > 0) raakt.na = 0;
+        if (j === 1 && raakt) raakt.na = Math.abs(mo.s - raakt.s);
+        vorigS[j] = mo.s;
+      });
+      for (const mo of m.motoren) if (mo.mesh.visible && mo.rol === 'volgt' && mo.leven && mo.leven.rijder > 0) {
         motorZag = true;
         const d = Math.hypot(mo.mesh.position.x - c.x, mo.mesh.position.z - c.z);
         motorVer = Math.max(motorVer, d); motorDicht = Math.min(motorDicht, d);
       }
       if (stopOp === null && s >= ruitS - 0.01 && ds === 0) { window.__stap(4); break; }
     }
-    return { t, s, groot, klein, uitWeg, motorVer, motorDicht, motorZag, cut, fase: v.noMercy5.fase };
+    return { t, s, groot, klein, uitWeg, motorVer, motorDicht, motorZag, cut, fase: v.noMercy5.fase, inDoos, metingen, eersteVoor, tegemoet, achter, raakt };
   };
 });
 
@@ -390,7 +409,7 @@ const zes = await page.evaluate(() => {
   window.__klik(); window.__stap(110); window.__klik(); window.__stap(4);
   const n = v.noMercy5;
   const p = n.ejPlek;
-  const pr = { fase: n.fase, uur: g.sfeer.uur, dEJ: Math.hypot(P.pos.x - p.x, P.pos.z - p.z), ej: n.ej.groep.visible,
+  const pr = { fase: n.fase, uur: g.sfeer.uur, dEJ: Math.hypot(P.pos.x - n.ej.groep.position.x, P.pos.z - n.ej.groep.position.z), ej: n.ej.groep.visible,
     opgedragen: window.__meld.some(m => /Opgedragen aan De Veteraan/.test(m)) };
   // de première afklikken tot de keuze
   window.__klik(); window.__stap(2); window.__klik(); window.__stap(2);
@@ -401,7 +420,11 @@ const zes = await page.evaluate(() => {
 ok(zes.fase === 'rit' && zes.inStaf, 'in de stafauto: de rit begint', zes.fase);
 ok(!zes.r.cut && zes.r.klein >= 8 - 0.5 && zes.r.groot <= 25 + 0.5, 'de automaat blijft in beeld van de camera-auto: geen "Cut!"', `${r1(zes.r.klein)}–${r1(zes.r.groot)} m`);
 ok(zes.r.uitWeg < 3, 'de camera-auto rijdt over de route', `verst ${r1(zes.r.uitWeg)} m ernaast`);
-ok(zes.r.motorZag && zes.r.motorDicht > 5 && zes.r.motorVer < 40, 'de zijspannen rijden achter je aan', `${r1(zes.r.motorDicht)}–${r1(zes.r.motorVer)} m`);
+ok(zes.r.motorZag && zes.r.motorDicht > 5 && zes.r.motorVer < 40, 'de zijspannen rijden (na het keren) achter je aan', `${r1(zes.r.motorDicht)}–${r1(zes.r.motorVer)} m`);
+ok(zes.r.eersteVoor > 60 && zes.r.tegemoet && zes.r.achter, 'de zijspannen komen van voren, je tegemoet, en keren daarna (stap 174)', JSON.stringify({ voor: r1(zes.r.eersteVoor), tegemoet: zes.r.tegemoet, achter: zes.r.achter }));
+ok(zes.r.raakt && zes.r.raakt.inDoelen && zes.r.raakt.r.every(Boolean) && zes.r.raakt.leven.rijder === 0 && zes.r.raakt.leven.bijrijder === 0 && !zes.r.raakt.naDoelen && zes.r.raakt.na < 0.1,
+  'een zijspan is neer te schieten: twee treffers per man, daarna staat het stil (stap 174)', JSON.stringify(zes.r.raakt));
+ok(zes.r.inDoos === 0, 'de camera-auto rijdt nooit door een heg of hek (stap 174)', `${zes.r.inDoos} van ${zes.r.metingen} beelden in een botsdoos`);
 ok(zes.schoten > 0 && zes.schade === 0, 'ze schieten, zonder schade', `${zes.schoten} schoten`);
 ok(zes.balk, 'de balk laat de afstand tot de camera-auto zien');
 ok(zes.naRit === 'wrap' && zes.applaus > 0, 'stil op de ruit: een wrap, en applaus', `${zes.naRit}, rit ${r1(zes.r.t)} s`);
@@ -474,13 +497,20 @@ const acht = await page.evaluate(() => {
   window.__klik(); window.__stap(110); window.__klik(); window.__stap(4);
   window.__klik(); window.__stap(2); window.__klik(); window.__stap(2);
   const geld = v.geld;
+  const voorKeuze = [+P.pos.x.toFixed(1), +P.pos.z.toFixed(1)];
   v.kiesHuis(2);
   window.__stap(80); window.__klik(); window.__stap(4);
   const n = v.noMercy5;
   const eigen = g.garage.eigen.filter(e => e.naam === 'stafauto');
   const auto = eigen[0] && eigen[0].car;
   const uit = { klaar: n.klaar, keuze: n.stafGekozen, plus: v.geld - geld, eigen: eigen.length,
-    dAuto: auto ? Math.hypot(auto.x - P.pos.x, auto.z - P.pos.z) : null, bestuurbaar: auto ? auto.driveable !== false : false };
+    dAuto: auto ? Math.hypot(auto.x - P.pos.x, auto.z - P.pos.z) : null, bestuurbaar: auto ? auto.driveable !== false : false,
+    // (stap 174) bij het Autohuis, niet in het water; en jijzelf op de kade ook niet half in het water
+    dGarage: auto ? Math.hypot(auto.x - g.garage.plekken.balie.x, auto.z - g.garage.plekken.balie.z) : null,
+    autoWater: auto ? [0, 1, 2, 3].some(k => window.__W.pointInWater(auto.x + Math.cos(k * 1.57) * 1.5, auto.z + Math.sin(k * 1.57) * 1.5)) : null,
+    waterAfstand: (() => { let best = 9; for (let r = 0.1; r <= 1.5; r += 0.1) for (let k = 0; k < 32; k++) if (window.__W.pointInWater(P.pos.x + Math.cos(k * 0.196) * r, P.pos.z + Math.sin(k * 0.196) * r)) best = Math.min(best, r); return +best.toFixed(1); })(),
+    spelerPos: [+P.pos.x.toFixed(1), +P.pos.z.toFixed(1)], voorKeuze,
+    spelerWater: Array.from({ length: 8 }, (_, k) => window.__W.pointInWater(P.pos.x + Math.cos(k * 0.785) * 0.6, P.pos.z + Math.sin(k * 0.785) * 0.6)).some(Boolean) };
   // opslaan en laden
   P.inCar = null;
   const O = window.__O;
@@ -493,7 +523,8 @@ const acht = await page.evaluate(() => {
   return uit;
 });
 ok(acht.klaar && acht.keuze && acht.plus === 0, 'keuze 2: geen geld, de stafauto', `+ ${acht.plus}`);
-ok(acht.eigen === 1 && acht.dAuto < 8 && acht.bestuurbaar, 'hij staat naast je op de kade, en is van jou', `${r1(acht.dAuto)} m`);
+ok(acht.eigen === 1 && acht.dGarage < 45 && !acht.autoWater && acht.bestuurbaar, 'hij staat voor het Autohuis, niet in het water, en is van jou (stap 174)', `${r1(acht.dGarage)} m van de balie`);
+ok(!acht.spelerWater, 'jij staat op de kade, niet half in het water (stap 174)', `water op ${acht.waterAfstand} m, plek ${acht.spelerPos}, vóór de keuze ${acht.voorKeuze}`);
 ok(acht.na.eigen === 1 && acht.na.keuze && acht.na.klaar, 'na opslaan en laden: nog steeds van jou', JSON.stringify(acht.na));
 
 // ------------------------------------------------------------------ 9. mislukken en opruimen
@@ -626,7 +657,7 @@ const elf = await page.evaluate(() => {
   return { voor, na, wie };
 });
 if (elf.overgeslagen) ok(false, 'geen renderer in __game');
-else ok(elf.na === elf.voor, 'de set, de boten, de auto\'s en de zijspannen vertalen geen nieuwe shader', `${elf.voor} → ${elf.na} programma's (soorten vooraf: ${soortenKlaar ? 'klaar' : 'niet gezien'})`);
+else ok(elf.na === elf.voor, 'de set, de boten, de auto\'s en de zijspannen vertalen geen nieuwe shader', `${elf.voor} → ${elf.na} programma's (soorten vooraf: ${soortenKlaar ? 'klaar' : 'niet gezien'})${elf.na === elf.voor ? '' : ' · ' + elf.wie.join(' | ')}`);
 if (elf.wie && elf.wie.length) console.log('  nieuw bij: ' + elf.wie.join('\n            '));
 
 await browser.close();

@@ -2805,6 +2805,7 @@ export function initVerhaal(ctx) {
     // en die van No Mercy 5
     if (n5.groepA) uit.push(...n5.groepA.doelen());
     if (n5.groepB) uit.push(...n5.groepB.doelen());
+    uit.push(...n5MotorDoelen());
     // en de maffia op de kade plus de waterpolitie uit missie 8
     if (deal) uit.push(...deal.doelen());
     for (const b of snipBoten) uit.push(...b.doelen());
@@ -2818,6 +2819,7 @@ export function initVerhaal(ctx) {
     if (nm.golf && nm.golf.raak(obj, 1)) { nmTreffer(); return true; }
     if (n5.groepA && n5.groepA.raak(obj, 1)) { n5Treffer(); return true; }
     if (n5.groepB && n5.groepB.raak(obj, 1)) { n5Treffer(); return true; }
+    if (n5MotorRaak(obj)) return true;
     if (klusjes.raak(obj)) return true;
     // de zes man bij de Poiesz: die mogen juist wel (kracht: zie Bewaking.raak)
     if (schutters && schutters.raak(obj, kracht)) return true;
@@ -11641,12 +11643,53 @@ export function initVerhaal(ctx) {
    Staat de plek uit js/nomercy5.js goed, dan blijft hij precies daar; anders de dichtstbijzijnde vrije plek in een
    spiraal tot 14 m (tools/nm5duitsertest.mjs meet elke man).
   */
-  function n5VrijePost(x, z) {
+  /*
+   (stap 174) Van het water af schuiven: de kade bij de ligplaats is smal, en een plek die zelf droog is kan op 0,3 m
+   van het water liggen (je stond er half in). Telkens 20 cm weg van het dichtstbijzijnde water, uit de botsdozen, en
+   de plek met het meeste droge land eromheen houden.
+  */
+  function n5WegVanWater(x, z) {
+    const waterOp = (px, pz) => {
+      for (let r = 0.1; r <= 1.2; r += 0.1) for (let k = 0; k < 32; k++) {
+        const a = k * Math.PI / 16;
+        if (pointInWater(px + Math.cos(a) * r, pz + Math.sin(a) * r)) return { r, a };
+      }
+      return null;
+    };
+    let best = { x, z, r: (waterOp(x, z) || { r: 9 }).r };
+    for (let i = 0; i < 30 && best.r < 9; i++) {
+      const w = waterOp(x, z);
+      if (!w) { best = { x, z, r: 9 }; break; }
+      const [rx, rz] = resolveCollisions(x - Math.cos(w.a) * 0.2, z - Math.sin(w.a) * 0.2, 0.4);
+      if (pointInWater(rx, rz) || inPand(rx, rz)) break;
+      x = rx; z = rz;
+      const nw = waterOp(x, z), r = nw ? nw.r : 9;
+      if (r > best.r) best = { x, z, r };
+    }
+    return { x: best.x, z: best.z };
+  }
+  function n5VrijePost(x, z, marge = 0, verst = 10) {
     const vrij = (px, pz) => {
       if (pointInWater(px, pz) || inPand(px, pz)) return false;
       const [rx, rz] = resolveCollisions(px, pz, 0.4);
       return Math.hypot(rx - px, rz - pz) < 0.02;
     };
+    /*
+     (stap 174) met een marge: de plek eerst uit de botsdozen geduwd (de kade staat vol paaltjes en hekjes), en dan
+     rondom (zestien kanten, op een, twee en drie derde van de marge) geen water; anders sta je met één been erin. Tot 10 m ver, dan zonder marge.
+    */
+    const metMarge = (px, pz) => {
+      const [rx, rz] = resolveCollisions(px, pz, 0.4);
+      if (Math.hypot(rx - px, rz - pz) > 0.8 || pointInWater(rx, rz) || inPand(rx, rz)) return null;
+      for (const f of [1 / 3, 2 / 3, 1]) for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8; if (pointInWater(rx + Math.cos(a) * marge * f, rz + Math.sin(a) * marge * f)) return null; }
+      return { x: rx, z: rz };
+    };
+    if (marge > 0) {
+      for (let r = 0; r <= verst; r += 0.5) {
+        const n = r ? Math.max(8, Math.round(r * 6)) : 1;
+        for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2, q = metMarge(x + Math.cos(a) * r, z + Math.sin(a) * r); if (q) return q; }
+      }
+    }
     if (vrij(x, z)) return { x, z };
     for (let r = 0.5; r <= 14; r += 0.5) {
       const n = Math.max(8, Math.round(r * 6));
@@ -11657,6 +11700,8 @@ export function initVerhaal(ctx) {
     }
     return { x, z };
   }
+
+
   // ligt de romp van De Rat (het achtkant onder de stelling) tussen `p` en `sp`? (in het vlak, met een marge)
   function n5RompVrij(p, sp) {
     if (!n5Molen) return true;
@@ -11698,7 +11743,7 @@ export function initVerhaal(ctx) {
     n5AutoOp(n5Staf, { x: p0.x, z: p0.z, yaw: p0.yaw }, true);
     n5AutoOp(n5CamAuto, { x: pc.x, z: pc.z, yaw: pc.yaw }, false);
     if (player.inCar !== n5Staf && stapIn) stapIn(n5Staf);
-    n5.camS = NOMERCY5.camVoor; n5.camV = 0; n5.sP = 0; n5.iP = 0; n5.uitT = 0; n5.motorRoep = false;
+    n5.camS = NOMERCY5.camVoor; n5.camV = 0; n5.camU = null; n5.sP = 0; n5.iP = 0; n5.uitT = 0; n5.motorRoep = false; n5.motorNeer = 0;
     for (const m of n5Motoren) { m.mesh.visible = false; m.s = 0; }
     nmMerk.toon(false);
   }
@@ -11732,24 +11777,63 @@ export function initVerhaal(ctx) {
     const vorig = n5.camV, vorigeYaw = c.yaw;
     n5.camV = n5.camV < doel ? Math.min(doel, n5.camV + 4.5 * dt) : Math.max(doel, n5.camV - 8 * dt);
     n5.camS = Math.min(L.lengte, n5.camS + n5.camV * dt);
-    const p = puntOp(L, n5.camS, 1.0);
-    c.x = p.x; c.z = p.z; c.yaw = p.yaw; c.speed = n5.camV;
+    /*
+     (stap 174, "de filmauto rijdt ook door heggen heen") Een meter rechts van de lijn kan in een smalle straat of
+     een bocht in een heg of hek liggen; auto's rijden door alles lager dan 3,5 m, dus niets hield hem tegen. Nu de
+     eerste plek dwars op de lijn die vrij is van botsdozen (ook lage), en daar glijdend naartoe.
+    */
+    let uDoel = n5.camU ?? 1.0;
+    for (const u of [1.0, 0.6, 0.2, -0.2, -0.6, -1.0]) {
+      const q = puntOp(L, n5.camS, u), [rx, rz] = resolveCollisions(q.x, q.z, 1.05);
+      if (Math.hypot(rx - q.x, rz - q.z) < 0.03) { uDoel = u; break; }
+    }
+    n5.camU = n5.camU == null ? uDoel : n5.camU + Math.sign(uDoel - n5.camU) * Math.min(Math.abs(uDoel - n5.camU), 2.5 * dt + (n5.camV < 1 ? 0.05 : 0));
+    const p = puntOp(L, n5.camS, n5.camU);
+    // vangnet: wat er dan nog in een doos staat (tijdens het glijden), eruit geduwd
+    const [px, pz] = resolveCollisions(p.x, p.z, 1.05);
+    c.x = px; c.z = pz; c.yaw = p.yaw; c.speed = n5.camV;
     vehicles.zetNeer(c, dt, vorigeYaw, { gas: n5.camV > vorig, rem: n5.camV < vorig - 0.02 });
   }
-  // de zijspannen: achter je aan over de lijn, met losse flodders
+  /*
+   De zijspannen (stap 174): ze verschijnen `motorVoor` meter vóór je op de andere weghelft, komen je tegemoet en
+   schieten, keren als ze voorbij zijn en rijden dan achter je aan (de oude rol). Elke man gaat neer na
+   `motorLeven` treffers (zonder schade aan jou, net als de andere Duitsers): de bijrijder zakt in de bak en schiet
+   niet meer, is de rijder neer dan staat het zijspan stil.
+  */
+  function n5MotorMan(m, wie) { return m.leven && m.leven[wie] > 0; }
   function n5MotorenBij(dt, sp) {
     const L = n5.lijn;
     if (n5.sP < NOMERCY5.motorVanaf && !n5Motoren[0].mesh.visible) return;
     if (!n5.motorRoep) { n5.motorRoep = true; if (balk.hidden) zeg(N5_MOTOREN, null, { auto: 2.6 }); }
     n5Motoren.forEach((m, j) => {
-      const doel = Math.max(0, n5.sP - NOMERCY5.motorAchter[j]);
-      if (!m.mesh.visible) { m.s = Math.max(0, doel - 6); m.mesh.visible = true; }
-      const v = Math.max(0, Math.min(22, (doel - m.s) * 1.6));
-      m.s = Math.min(L.lengte, m.s + v * dt);
-      const p = puntOp(L, m.s, m.kant);
+      if (!m.mesh.visible) {
+        m.mesh.visible = true;
+        m.s = Math.min(L.lengte - 2, n5.sP + NOMERCY5.motorVoor[j]);
+        m.rol = 'komt'; m.leven = { rijder: NOMERCY5.motorLeven, bijrijder: NOMERCY5.motorLeven };
+        m.u = NOMERCY5.motorOpzij - j * 0.2; m.vuurT = 0.8 + j * 0.4;
+        for (const wie of ['rijder', 'bijrijder']) {
+          const q = m[wie];
+          if (q.rotWas != null) { q.groep.rotation.x = q.rotWas; q.rotWas = null; }
+          if (q.wapen && wie === 'bijrijder') q.wapen.visible = true;
+        }
+      }
+      const rijdt = n5MotorMan(m, 'rijder');
+      if (rijdt && m.rol === 'komt') {
+        m.s = Math.max(0, m.s - NOMERCY5.motorTegen * dt);
+        if (m.s < n5.sP - 6) m.rol = 'volgt';
+      } else if (rijdt) {
+        const doel = Math.max(0, n5.sP - NOMERCY5.motorAchter[j]);
+        const v = Math.max(0, Math.min(22, (doel - m.s) * 1.6));
+        m.s = Math.min(L.lengte, m.s + v * dt);
+      }
+      // naar de eigen weghelft schuiven: tegemoet links, erachter aan op `kant`
+      const uDoel = m.rol === 'komt' ? NOMERCY5.motorOpzij - j * 0.2 : m.kant;
+      if (rijdt) m.u += Math.sign(uDoel - m.u) * Math.min(Math.abs(uDoel - m.u), 1.5 * dt);
+      const p = puntOp(L, m.s, m.u);
       m.mesh.position.set(p.x, grondHoogte(p.x, p.z), p.z);
-      m.mesh.rotation.y = p.yaw;
-      m.rijder.opScooter(dt, m.zit.position);
+      if (rijdt) m.mesh.rotation.y = p.yaw + (m.rol === 'komt' ? Math.PI : 0);
+      if (rijdt) m.rijder.opScooter(dt, m.zit.position);
+      if (!n5MotorMan(m, 'bijrijder')) return;
       m.bijrijder.update(dt, { zit: 0.3, mikt: true });     // (`zit` is de hoogte van de zitting in de bak, m)
       m.vuurT -= dt;
       const d = Math.hypot(sp.x - p.x, sp.z - p.z);
@@ -11759,6 +11843,37 @@ export function initVerhaal(ctx) {
         geluid.schot(d, { wapen: 'garand', bron: 'n5m' + j });
       }
     });
+  }
+  function n5MotorDoelen() {
+    const uit = [];
+    if (n5.fase !== 'rit') return uit;
+    for (const m of n5Motoren) {
+      if (!m.mesh.visible || !m.leven) continue;
+      for (const wie of ['rijder', 'bijrijder']) if (m.leven[wie] > 0) uit.push(m[wie].groep);
+    }
+    return uit;
+  }
+  function n5MotorRaak(obj) {
+    if (n5.fase !== 'rit') return false;
+    for (const m of n5Motoren) {
+      if (!m.mesh.visible || !m.leven) continue;
+      for (const wie of ['rijder', 'bijrijder']) {
+        if (m.leven[wie] <= 0) continue;
+        let q = obj; while (q && q !== m[wie].groep) q = q.parent;
+        if (!q) continue;
+        m.leven[wie]--;
+        if (m.leven[wie] <= 0) {
+          // neer: de rijder valt over het stuur, de bijrijder zakt in de bak
+          // (niet `legNeer`: die zet de hoogte op de grond, en ze zitten op het zijspan)
+          m[wie].rotWas = m[wie].groep.rotation.x;
+          m[wie].groep.rotation.x += wie === 'rijder' ? 0.55 : 0.45;
+          if (m[wie].wapen) m[wie].wapen.visible = false;
+          n5.motorNeer = (n5.motorNeer || 0) + 1;
+        }
+        return true;
+      }
+    }
+    return false;
   }
   function n5Cut(reden) {
     n5.fase = 'cut';
@@ -11824,14 +11939,20 @@ export function initVerhaal(ctx) {
     n5UitBoot();
     const B = n5Boten(); if (B) B.naarLigplaats(SCHRIFT_BOOT);
     if (zetUur) zetUur(20);
-    const p = n5EJPlek();
+    /*
+     (stap 174) De kade bij de ligplaats is op de plek van Erik Jan nog geen twee meter breed: jij stond er half in het
+     water. De première staat daarom op het eerste stuk kade (tot 25 m) met 1,6 m droog land rondom.
+    */
+    const p0 = n5EJPlek(), a0 = p0 ? n5VrijePost(p0.x, p0.z, 1.6, 25) : null;
+    const p = p0 ? { x: a0.x, z: a0.z, yaw: p0.yaw } : null;
     if (p) {
       const vx = Math.sin(p.yaw), vz = Math.cos(p.yaw);
-      const [x, z] = resolveCollisions(p.x + vz * 2.2 - vx * 1.2, p.z - vx * 2.2 - vz * 1.2, 0.4);
+      // (stap 174: de kade is smal, en op de oude plek stond je half in het water: een gemeten vrije plek op het land)
+      const v0 = n5VrijePost(p.x + vz * 2.2 - vx * 1.2, p.z - vx * 2.2 - vz * 1.2, 0.9), { x, z } = n5WegVanWater(v0.x, v0.z);
       player.inCar = null;
       player.pos.set(x, grondHoogte(x, z), z); player.yaw = kijkHoek({ x, z }, p); player.applyCamera();
       n5EJ.zetNeer(p.x, p.z, kijkHoek(p, { x, z })); n5EJ.legNeer(0); n5EJ.groep.visible = true;
-      const [cx, cz] = resolveCollisions(p.x - vz * 1.6, p.z + vx * 1.6, 0.4);
+      const c0 = n5VrijePost(p.x - vz * 1.6, p.z + vx * 1.6, 0.7), { x: cx, z: cz } = n5WegVanWater(c0.x, c0.z);
       n5Cam.zetNeer(cx, cz, kijkHoek({ x: cx, z: cz }, { x, z })); n5Cam.legNeer(0); n5Cam.groep.visible = true;
     }
     n5.fase = 'premiere';
@@ -11862,12 +11983,10 @@ export function initVerhaal(ctx) {
     const g = garage ? garage() : null;
     if (keus === 2 && g && g.schenk) {
       // de stafauto naast je op de kade, van jou (in de opslag, net als een gekochte auto)
-      const sp = spelerPunt();
-      const vx = Math.sin(player.yaw), vz = Math.cos(player.yaw);
-      const [x, z] = resolveCollisions(sp.x + vz * 3.2, sp.z - vx * 3.2, 1.2);
-      g.schenk('bx', NOMERCY5.stafKleur, 'stafauto', { x, z, yaw: player.yaw });
+      // (stap 174: "aan het einde staat de stafauto half in het water, laat hem voor het pand van de autogarage staan")
+      g.schenk('bx', NOMERCY5.stafKleur, 'stafauto');
       n5.staf = true;
-      tekst = 'No Mercy 5: de stafauto is van jou. Hij staat naast je op de kade.';
+      tekst = 'No Mercy 5: de stafauto is van jou. Hij staat voor het Autohuis aan de Lemmerweg.';
     } else {
       verdien(NOMERCY5.beloning);
       tekst = `No Mercy 5: + ${euro(NOMERCY5.beloning)}.`;

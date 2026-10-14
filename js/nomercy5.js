@@ -75,6 +75,11 @@ export const NOMERCY5 = {
   motorAchter: [13, 20], // de zijspannen: zo ver achter je (m)
   motorVanaf: 25,        // ze komen pas als je zo ver gereden hebt (m)
   motorVuur: [0.5, 1.1], // tussen twee schoten (s)
+  // (stap 174, "laat de motoren die je aanvallen met Duitsers van voren komen en ze moeten dood kunnen")
+  motorVoor: [95, 115],  // zo ver vóór je verschijnen ze, op de andere weghelft (m)…
+  motorTegen: 9,         // …en zo snel komen ze je tegemoet (m/s); voorbij je keren ze en rijden ze achter je aan
+  motorOpzij: -1.9,      // de andere weghelft (m opzij van de lijn; de camera-auto rijdt op +1)
+  motorLeven: 2,         // treffers per man; is de rijder neer, dan staat het zijspan stil
   ruitVoorEind: 18,      // de gele ruit ligt zo ver voor het eind van de lijn, waar de camera-auto stopt: stil op de ruit sta je dan nog in het venster
   stopBereik: 3,         // stilstaan binnen zo ver van de ruit is een wrap (m)…
   stopMooi: 1.5,         // …en binnen zo ver een filmpunt

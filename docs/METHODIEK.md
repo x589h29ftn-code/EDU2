@@ -9317,6 +9317,33 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Vijf opmerkingen na het spelen (stap 174, 14 okt).** Gevraagd, met twee foto's en een mp3: "gebruik dit muziek
+geluidje als claxon auto's", "na explosie politieauto ziet het model er wat gek uit, aan de bovenkant", "No Mercy laatste
+missie laat de motoren die je aanvallen met Duitsers van voren komen en ze moeten dood kunnen", "de filmauto rijdt ook door
+heggen heen", en "aan het einde staat de stafauto half in het water, laat hem voor het pand Autogarage staan; zelf sta je ook
+half in water waardoor je niks kan na de missie".
+
+- **De claxon** is `audio/auto/claxon.mp3` (1,1 s), geladen met de wapenopnames (`laadWapenOpnames`, `CLAXON` in js/audio.js),
+  zachter op afstand, en niet over zichzelf heen (`claxonTot`). Zonder opname de oude twee tonen.
+- **Het politiewrak.** `laatOntploffen` gaf élk mesh van de auto het roetzwarte materiaal, ook de gloed om de zwaailichten
+  (optellende vlakken van 1,5 m), de lichtbundels en de plas licht: dat werden dichte zwarte vlakken, en het grootste stond
+  boven het dak. Doorzichtige en optellende vlakken gaan nu uit (`car.lakUit`), `herstelWrak` zet ze terug.
+- **De zijspannen** verschijnen `motorVoor` (95–115 m) vóór je op de andere weghelft (`motorOpzij`), komen je met 9 m/s
+  tegemoet en schieten, keren als ze voorbij zijn en rijden dan achter je aan zoals eerst. Ze staan in `doelen()`, elke man
+  gaat neer na twee treffers (`motorLeven`, geen schade aan jou): de bijrijder zakt in de bak en schiet niet meer, is de
+  rijder neer dan staat het zijspan stil. Niet met `legNeer`: die zet de man op de grondhoogte, en hij zit op het zijspan.
+- **De camera-auto** reed een meter rechts van de lijn; in een smalle straat of een bocht lag dat in een heg, en auto's rijden
+  door alles onder 3,5 m. Nu de eerste plek dwars op de lijn (1 m rechts tot 1 m links) die vrij is van álle botsdozen, en
+  daar glijdend naartoe (`n5.camU`).
+- **Het einde.** Bij keuze 2 zet `garage.schenk` zonder plek de stafauto op een vrije plek op het voorterrein van het Autohuis
+  (`vrijePlek`). De première zette jou en de cameraman met `resolveCollisions` neer, die het water niet kent: nu
+  `n5VrijePost` met een marge (0,9 m rondom geen water, eerst uit de botsdozen geduwd) en `n5WegVanWater`; en omdat de kade bij Erik Jan nog geen twee meter breed is, staat de hele première op het eerste stuk kade binnen 25 m met 1,6 m droog land rondom. Daar ging vier proefrondes in zitten: een plek die zelf droog is, lag steeds op 0,3 m van het water.
+
+Proeven: `npm run claxonwraktest` (nieuw: de opname, zachter op afstand; geen zwart vlak boven het wrak en alles terug na
+`herstelWrak`) en `npm run nomercy5test` (erbij: de zijspannen eerst vóór je, tegemoet, daarna erachter; één neergeschoten met
+twee treffers per man en daarna stil; de camera-auto geen beeld in een botsdoos; de stafauto bij het Autohuis en niet in het
+water; jij niet half in het water).
+
 **Het verkeer: voorrang, voetgangers en de speler (stap 173, 14 okt).**
 
 Gevraagd: "Voorrang op kruisingen en rotondes, wachten voor overstekende voetgangers, en uitwijken of stoppen als jij dwars
