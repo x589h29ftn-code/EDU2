@@ -9176,6 +9176,70 @@ slaat de geometrie van het pand over (`EIGEN_PANDEN`, zoals de molens) en houdt 
 plat op hun gevel in hun kleur, de gloed 's nachts en overdag, de shaders) met `aaffshots` (aaff_water, aaff_hoek, aaff_nacht,
 aaff_logo_nacht).
 
+**Remlichten, achteruitrijlicht, bestuurders en wielen (stap 172, 14 okt).**
+
+Gevraagd: remlichten die oplichten bij remmen (de speler, het verkeer, de politie, Bouwman en de andere missie-auto's), feller
+dan het achterlicht 's nachts en ook overdag te zien; een wit licht bij achteruit; een bestuurder in het verkeer, goed achter
+het stuur, bij elke soort; en wielen die meesturen en rollen. Eerst gemeten wat er was:
+- *De wielen* van de auto waar je in zit waren al los, en de band rolde (`band.rotation.x`). Maar een band is rondom gelijk:
+  wat je ziet draaien is de velg met de spaken, en die (`naaf`) stond stil. Aan geen enkele auto zag je dus een wiel rollen.
+  Het verkeer had zijn wielen samengevoegd in de zwarte en chromen mesh: die konden niet sturen en niet rollen.
+- *Het remlicht* van de auto uit `voegToe` werkte alleen op toetsen (`invoer.rem` in `zetNeer`). De politie rijdt via `drive`
+  en gaf ze mee, maar wie een auto over een lijn verplaatst (de handlangers, de ambulance, missie 12 en 16) niet: die remden nooit
+  met licht. js/inval.js gaf `rem` wel mee, maar zette geen `speed`, dus brandde het daar ook nooit. In het verkeer stond
+  `if (t.remlicht) …`, en `t.remlicht` werd nergens gezet.
+- *Bestuurders*: geen. En Erik zit in de derde persoon niet zichtbaar in zijn eigen auto (js/derdepersoon.js verbergt hem).
+
+Nu, in twee eigen modules met kleine aanroepen in de gedeelde bestanden:
+- *js/autodetail.js* leest alles af aan de beweging, niet aan de rijcode, zodat het blijft werken welke rem- en
+  voorrangsregels er in js/vehicles.js ook bijkomen: de rolhoek is de afgelegde weg langs de neus gedeeld door de straal
+  (achteruit dus vanzelf de andere kant op; een sprong van meer dan 8 m in één beeld is verplaatsen, geen rijden); de
+  voorwielen volgen `car.steer`, of zonder stuur de hoek die bij de draai hoort (tan(stuur) = draai · wielbasis / v); het
+  remlicht met toetsen bij rem of handrem, anders bij een vertraging boven 1,6 m/s² (uitrollen niet), en het blijft branden
+  als hij zo tot stilstand remt, tot hij optrekt; het witte licht zodra hij achteruit rijdt. Voor het verkeer is de snelheid
+  `t.snelheid`, voor een missie-auto zonder `speed` de verplaatsing, afgevlakt.
+- *js/bestuurder.js*: een grof, gedeeld figuur (1188 driehoeken, één mesh, één materiaal met hoekpuntkleuren, acht
+  kleurvarianten en Erik), per soort uit `maat` en de regels van js/autobinnen.js: de zitting op dorpel + 0,16 + 0,10, het stuur
+  op cabZ − cabL/2 + 0,565 en 0,42 rad achterover, het hoofd op `oog`, de handen op tien voor twee op de krans.
+- *js/carmodel.js*: `makeCar(kleur, soort, 'verkeer', variant)` geeft het verkeer losse wielen, rem- en achteruitrijlicht en
+  een bestuurder, zonder interieur; voorbij 90 m (`zetVer`) gaan de losse wielen en de bestuurder uit en komen de
+  samengevoegde banden terug, zodat het verkeer op afstand niet meer meshes kost dan vroeger.
+- *Wanneer zit er iemand in*: in het verkeer altijd; in een auto uit `voegToe` als hij de laatste zes tellen zelf reed (een
+  geparkeerde politieauto of klusauto blijft leeg; wie uitstapt laat hem leeg achter); in jouw auto alleen van buiten, in
+  Eriks kleren (js/main.js `spelerInAuto`). `car.metBestuurder` dwingt het af als een missie dat ooit wil.
+
+Wat misging:
+- *Zwevende billen*. Een romp van vaste lengte onder een hoofd op ooghoogte paste in de hatchback precies, maar in de bus, de
+  vrachtwagen en de ambulance zweefden de billen 21 tot 26 cm boven de zitting (gemeten met een straal recht omlaag naar de
+  `zitting` van js/autobinnen.js). Nu groeit de romp mee tot 0,56 m.
+- *Het hoofd door de hemel van de Ferrari*. Eén centimeter onder `dak − 0,045` was niet genoeg: zijn hemel hangt lager, en het
+  haar ligt 11,6 cm boven het midden van het hoofd. Nu blijft het midden 16,5 cm onder `dak − 0,045`; de romp leunt in de
+  Ferrari achterover in plaats van door het dak te steken.
+- *De ambulance* is van buiten één dichte vorm met de ruiten erop geschilderd: geen straal raakt de bestuurder. Hij zit er
+  wel, goed gemeten, maar je ziet hem niet; de proef weet dat.
+- *Het remlicht was op de foto niet feller.* 2,6 tegen 1,1 loopt na de ACES-tonemapping allebei vol tot hetzelfde rood: van
+  achteren zag je het remmen alleen aan het derde remlicht. Nu hangt er aan het remlicht een rode waas om de achterlichten
+  (`remgloed`, optellend zoals `maakGloed` in js/politie.js, dezelfde soort materiaal als de bundel van de koplampen, dus geen
+  nieuw programma), 's nachts vol en overdag 0,4. De eerste versie was te klein (twee keer de lamp): op de foto voegde hij
+  vijftig eenheden rood toe op een handbreedte naast de lamp en verder niets; nu ruim drie keer de lamp.
+- *Uit een achteruit tot stilstand* telde niet als remmen (de vaart nam toe, van −3,2 naar 0). Nu telt de verandering van de
+  grootte van de vaart.
+- *Geen lampen*: het remlicht is een emissief materiaal dat aan- en uitgaat; het aantal lichtbronnen in de scène blijft 7, en
+  overdag (182) en 's nachts (216) komt er geen programma bij. Alle nieuwe materialen staan bij het opstarten al in de scène
+  (het verkeer), dus `soortenVoorbereid` vertaalt ze mee.
+
+In de gedeelde bestanden: js/vehicles.js (de import, de twee `makeCar` van het verkeer in de constructor met `'verkeer'`, in
+`zetNeer` de wielen en de lichten vervangen door `werkAutoBij`, aan het eind van de lus in `updateTraffic` `werkVerkeerBij` in
+plaats van de dode regel met `t.remlicht`), js/carmodel.js (`makeCar`: de tak 'verkeer', de naaf in `wielen`, de bestuurder,
+de remgloed; `zetKoplampen` zet de gloed), js/main.js (de import en `spelerInAuto` naast het interieur).
+
+*Proef*: `npm run autodetailtest` (per soort de bestuurder links, hoofd onder de hemel, billen op de zitting, handen op de krans
+van het echte stuur, niets door de carrosserie; wie wanneer in de auto zit; de wielen rollen afstand/straal en achteruit
+andersom, de voorwielen naar de kant van de bocht; het remlicht met en zonder toetsen, stil na remmen, uit bij optrekken en
+uitrollen, het witte licht, de gloed; in het spel bestuurders in al het verkeer, dichtbij en ver, een geparkeerde auto leeg,
+een remmende en achteruitrijdende auto, dag en nacht zonder nieuw programma, de lichtbronnen gelijk) met `autodetailshots`
+(auto_rem_avond, auto_rem_dag, auto_achteruit, auto_bestuurder_hatch, auto_bestuurder_bus, auto_wielen).
+
 **De mat, het kraslot, de rondweg en de tuning bij Sjoerd (stap 170, 14 okt).**
 
 Gevraagd: "de mat bij de schuifdeuren BP clipt met de vloer. Bij kopen kraslot moet je ook even laten zien wat impact er van

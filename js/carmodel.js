@@ -17,6 +17,7 @@
 */
 import * as THREE from 'three';
 import { maakAutoBinnen } from './autobinnen.js';
+import { maakBestuurder } from './bestuurder.js';
 
 function merge(parts) {
   const pos = [], nor = [], uv = [];
@@ -1266,12 +1267,56 @@ function voegBundelToe(g, L) {
   g.add(m);
   BUNDELS.add(m);
 }
+/*
+ (stap 172) De gloed om een remlicht. Een remlicht van 2,6 en een achterlicht van 1,1 lopen na de tonemapping allebei
+ vol tot hetzelfde rood: op een foto van achteren zag je het verschil alleen aan het derde remlicht. Daarom een zachte
+ rode waas om de achterlichten zolang hij remt, zoals `maakGloed` in js/politie.js om een zwaailicht: een vlak met een
+ doek, optellend, zonder diepte te schrijven. Dezelfde soort materiaal als de bundel van de koplampen (MeshBasic met
+ een kaart, doorzichtig), dus geen nieuw programma; 's nachts fel, overdag een zweem.
+*/
+let remGloedMat = null;
+function remGloedMateriaal() {
+  if (remGloedMat) return remGloedMat;
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const x = c.getContext('2d'), img = x.createImageData(64, 64);
+  for (let j = 0; j < 64; j++) for (let i = 0; i < 64; i++) {
+    const u = (i - 31.5) / 31.5, v = (j - 31.5) / 31.5, r = Math.min(1, Math.hypot(u, v));
+    const a = Math.pow(1 - r, 1.5);
+    const k = (j * 64 + i) * 4;
+    img.data[k] = 255; img.data[k + 1] = Math.round(40 + 80 * a * a); img.data[k + 2] = Math.round(25 + 40 * a * a); img.data[k + 3] = Math.round(a * 255);
+  }
+  x.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  remGloedMat = new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false });
+  return remGloedMat;
+}
+/** De vlakken van de gloed: één per kant, om het midden van de achterlichten aan die kant, net achter de auto. */
+function remGloedGeo(G) {
+  if (G.remGloed) return G.remGloed;
+  const P = G.tail.attributes.position;
+  const kant = [[], []];
+  for (let i = 0; i < P.count; i++) kant[P.getX(i) < 0 ? 0 : 1].push(i);
+  const vlakken = [];
+  for (const lijst of kant) {
+    if (!lijst.length) continue;
+    const b = new THREE.Box3();
+    for (const i of lijst) b.expandByPoint(new THREE.Vector3(P.getX(i), P.getY(i), P.getZ(i)));
+    const w = Math.max(0.75, (b.max.x - b.min.x) * 3.2), h = Math.max(0.55, (b.max.y - b.min.y) * 3.6);
+    const vlak = new THREE.PlaneGeometry(w, h);
+    vlak.translate((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, b.max.z + 0.025);   // de achterkant ligt op +z
+    vlakken.push(vlak);
+  }
+  G.remGloed = merge(vlakken.map(geo => ({ geo })));
+  return G.remGloed;
+}
+
 let nachtLampen = false;
 /** Dag of nacht voor de lampen van alles wat rijdt (js/sfeer.js). */
 export function zetKoplampen(nacht) {
   nachtLampen = !!nacht;
   SHARED.head.emissiveIntensity = nacht ? 1.9 : 0.35;
   SHARED.tail.emissiveIntensity = nacht ? 1.1 : 0.3;
+  remGloedMateriaal().opacity = nacht ? 1 : 0.4;
   for (const b of BUNDELS) b.visible = nachtLampen && b.parent !== null;
 }
 export function koplampStand() { return { nacht: nachtLampen, kop: SHARED.head.emissiveIntensity, stilKop: SHARED.headUit.emissiveIntensity, bundels: BUNDELS.size }; }
@@ -1429,24 +1474,32 @@ export function lakVoor(color) {
   return paintCache.get(color);
 }
 
-export function makeCar(color, kind = 'hatch', animatie = false) {
+/*
+ (stap 172) `animatie` kan ook 'verkeer' zijn: het rijdende verkeer (js/vehicles.js) krijgt dan losse wielen die
+ sturen en rollen, rem- en achteruitrijlichten en een bestuurder (js/bestuurder.js), maar géén interieur. Op afstand
+ (js/autodetail.js `zetVer`) gaan de losse wielen en de bestuurder uit en komen de samengevoegde banden en naven
+ terug: dan kost hij weer evenveel meshes als vroeger. `variant` kiest de kleren van de bestuurder.
+*/
+export function makeCar(color, kind = 'hatch', animatie = false, variant = 0) {
   const g = new THREE.Group();
   const G = geoms(kind);
   if (!paintCache.has(color)) paintCache.set(color, nieuweLak(color));
+  const verkeer = animatie === 'verkeer';
 
   const bak = animatie ? new THREE.Group() : g;    // carrosserie, kan overhellen
   const body = new THREE.Mesh(G.paint, paintCache.get(color)); body.castShadow = true;
   // gemerkt, zodat js/vehicles.js hem later kan overspuiten (de spuiterij bij BP)
   body.userData.lak = true;
   const glas = new THREE.Mesh(G.glass, SHARED.glass);
-  bak.add(body, glas,
-    new THREE.Mesh(animatie ? G.blackLos : G.black, SHARED.black),
+  const zwart = new THREE.Mesh(animatie ? G.blackLos : G.black, SHARED.black);
+  bak.add(body, glas, zwart,
     new THREE.Mesh(G.head, SHARED.head),
     new THREE.Mesh(G.tail, SHARED.tail),
     new THREE.Mesh(G.plate, SHARED.plate));
   const chroom = animatie ? G.chroomLos : G.chrome;
   const chroomMat = kind === 'ferrari' ? SHARED.velgSport : SHARED.chrome;
-  if (chroom) bak.add(new THREE.Mesh(chroom, chroomMat));
+  const chroomMesh = chroom ? new THREE.Mesh(chroom, chroomMat) : null;
+  if (chroomMesh) bak.add(chroomMesh);
 
   voegBundelToe(g, G.L);
   if (!animatie) { g.userData.length = G.L; g.userData.oog = G.oog; return g; }
@@ -1459,20 +1512,42 @@ export function makeCar(color, kind = 'hatch', animatie = false) {
    remmen. Standaard staat het uit: js/main.js zet het aan zodra je erin zit en
    vanuit je ogen kijkt.
   */
-  const binnen = maakAutoBinnen(G.maat);
-  binnen.groep.visible = false;
-  bak.add(binnen.groep);
+  const binnen = verkeer ? null : maakAutoBinnen(G.maat);
+  if (binnen) { binnen.groep.visible = false; bak.add(binnen.groep); }
   const rem = new THREE.Mesh(G.rem, SHARED.rem); rem.visible = false; bak.add(rem);
+  // (stap 172) de gloed hangt aan het remlicht en gaat dus mee aan en uit
+  const remGloed = new THREE.Mesh(remGloedGeo(G), remGloedMateriaal());
+  remGloed.raycast = () => {}; remGloed.renderOrder = 2; remGloed.name = 'remgloed';
+  rem.add(remGloed);
   const achteruit = new THREE.Mesh(G.achteruit, SHARED.achteruit); achteruit.visible = false; bak.add(achteruit);
+  /*
+   (stap 172) De naaf draait mee. Alleen de band rolde (`band.rotation.x`), en een band is rondom gelijk: aan een
+   rijdende auto zag je de wielen dus nooit draaien. De velg met zijn spaken (`naaf`) is wat je ziet rollen.
+  */
   const wielen = G.wielen.map(w => {
     const groep = new THREE.Group();
     groep.position.set(w.x, G.R, w.z);
-    const band = new THREE.Mesh(G.wielGeo, SHARED.black); band.castShadow = true;
+    const band = new THREE.Mesh(G.wielGeo, SHARED.black); band.castShadow = !verkeer;
     const naaf = new THREE.Mesh(G.hubGeo, chroomMat);
     groep.add(band, naaf);
     g.add(groep);
-    return { groep, band, stuur: !!w.stuur };
+    return { groep, band, naaf, stuur: !!w.stuur };
   });
-  g.userData = { length: G.L, oog: G.oog, bak, glas, wielen, rem, achteruit, R: G.R, binnen };
+  /*
+   (stap 172) De bestuurder: in het verkeer altijd, in een auto uit `voegToe` alleen als hij rijdt of als jij erin
+   zit en van buiten kijkt (js/autodetail.js). In de eerste persoon blijft hij weg: daar zit jij.
+  */
+  const bestuurder = maakBestuurder(kind, G.maat, variant);
+  bestuurder.visible = verkeer;
+  bak.add(bestuurder);
+  g.userData = { length: G.L, oog: G.oog, bak, glas, wielen, rem, achteruit, R: G.R, binnen, bestuurder, soort: kind };
+  if (verkeer) {
+    // de samengevoegde banden en naven voor op afstand, standaard uit
+    const zwartVer = new THREE.Mesh(G.black, SHARED.black); zwartVer.visible = false;
+    const chroomVer = G.chrome ? new THREE.Mesh(G.chrome, chroomMat) : null;
+    bak.add(zwartVer); if (chroomVer) { chroomVer.visible = false; bak.add(chroomVer); }
+    g.userData.verkeer = true;
+    g.userData.lod = { dicht: [zwart, chroomMesh].filter(Boolean), ver: [zwartVer, chroomVer].filter(Boolean), ver_: false };
+  }
   return g;
 }

@@ -164,6 +164,8 @@
     "gebouwshots": "node tools/gebouwshots.mjs",
     "wapenechttest": "node tools/wapenechttest.mjs",
     "autoechttest": "node tools/autoechttest.mjs",
+    "autodetailtest": "node tools/autodetailtest.mjs 8123",
+    "autodetailshots": "node tools/autodetailshots.mjs 8123",
     "mensechttest": "node tools/mensechttest.mjs",
     "groentest": "node tools/groentest.mjs",
     "groenshots": "node tools/groenshots.mjs",
