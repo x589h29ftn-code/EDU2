@@ -275,6 +275,12 @@ export class HUD {
   */
   // Waar staat de politie? De minikaart tekent er blauwe stippen van.
   zetPolitie(plekken) { this.politiePlekken = plekken; }
+  /*
+   (stap 167) De laatste tegenstanders van een gevecht: [{ x, z }] of null. Rode ruitjes op de minikaart, op de rand
+   als ze buiten het rondje staan, en op de grote kaart. js/verhaal.js zet ze bij No Mercy 4 en 5 als er nog één of
+   twee over zijn ("bij laatste no mercy missie kon ik een Duitser niet vinden").
+  */
+  zetVijanden(plekken) { this.vijanden = plekken && plekken.length ? plekken : null; }
 
   // (stap 144) onder de sterren: je zit in een struik of in het bos, ze zien je slecht
   zetVerstopt(aan) {
@@ -759,9 +765,22 @@ export class HUD {
         c.beginPath(); c.arc(p.x * scale, p.z * scale, r, 0, Math.PI * 2); c.fill();
       }
     }
+    const opKaart = [];
+    // de laatste tegenstanders (stap 167): een rood ruitje, op de rand als ze buiten het rondje staan
+    if (this.vijanden) {
+      const aan = Math.floor(performance.now() / 420) % 2 === 0;
+      for (const p of this.vijanden) {
+        const q = opRand(p.x, p.z);
+        opKaart.push({ wat: 'vijand', ...q });
+        c.save(); c.translate(q.x * scale, q.z * scale); c.rotate(-this._kaartRot);
+        const r = q.rand ? 4.5 : 5.5;
+        c.fillStyle = aan ? '#ff3b30' : '#ff8a80'; c.strokeStyle = 'rgba(20,0,0,0.85)'; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(0, -r); c.lineTo(r, 0); c.lineTo(0, r); c.lineTo(-r, 0); c.closePath(); c.fill(); c.stroke();
+        c.restore();
+      }
+    }
     // winkels: het icoontje draait niet mee, anders staat hij op zijn kop; buiten het
     // rondje wat kleiner op de rand
-    const opKaart = [];
     for (const w of (this.winkels || [])) {
       const q = opRand(w.x, w.z);
       opKaart.push({ wat: w.wat, ...q });
@@ -938,6 +957,14 @@ HUD.prototype.drawBig = function (player, vehicles) {
     c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.2 / scale;
     for (const p of this.politiePlekken) {
       c.beginPath(); c.arc(p.x, p.z, (p.wagen ? 5.5 : 4) / scale, 0, Math.PI * 2); c.fill(); c.stroke();
+    }
+  }
+  // de laatste tegenstanders (stap 167): rode ruitjes met een vaste maat in beeldpunten
+  if (this.vijanden) {
+    c.fillStyle = '#ff3b30'; c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.2 / scale;
+    const r = 6 / scale;
+    for (const p of this.vijanden) {
+      c.beginPath(); c.moveTo(p.x, p.z - r); c.lineTo(p.x + r, p.z); c.lineTo(p.x, p.z + r); c.lineTo(p.x - r, p.z); c.closePath(); c.fill(); c.stroke();
     }
   }
   // de klus (js/klusjes.js): het groene speldje met zijn opdrachtgever erbij

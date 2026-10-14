@@ -38,7 +38,7 @@
  bestand staat dus geen enkele coördinaat, alleen adressen, namen en afstanden.
 */
 import * as THREE from 'three';
-import { KAART, poortBladen } from './kaartwereld.js';
+import { KAART, poortBladen, inPand } from './kaartwereld.js';
 import { drinkArmen, radioPlekken, resolveCollisions, addCollider, vaarbaar, zichtVrij, afstandTotRijweg, pointInWater } from './world.js';
 import { maakProp, PROP_TYPES } from './props.js';
 import { Persoon } from './persoon.js';
@@ -10541,6 +10541,30 @@ export function initVerhaal(ctx) {
     g.raakNu = 0;
     if (hud.flits && player.health > 0) hud.flits();
   }
+  /*
+   Stap 167 ("bij laatste no mercy missie kon ik een Duitser niet vinden"): de laatste één of twee tegenstanders van
+   een gevecht als rood ruitje op de kaart (js/hud.js `zetVijanden`), zodra het alarm af is, met één melding per
+   gevecht (`sleutel`: de groep). Elk beeld opnieuw, dus het ruitje loopt met ze mee.
+  */
+  const LAATSTE_VIJANDEN = 2;
+  let vijandMeld = null;
+  function zetLaatsteVijanden(groepen, sleutel) {
+    const levend = [];
+    let alarm = false;
+    for (const g of groepen) if (g) {
+      if (g.alarm) alarm = true;
+      for (const w of g.wachters) if (w.staat !== 'neer') levend.push(w.persoon.groep.position);
+    }
+    const toon = alarm && levend.length > 0 && levend.length <= LAATSTE_VIJANDEN;
+    hud.zetVijanden(toon ? levend.map(p => ({ x: p.x, z: p.z })) : null);
+    if (toon && sleutel && vijandMeld !== sleutel) {
+      vijandMeld = sleutel;
+      hud.melding(levend.length === 1 ? 'Nog één' : 'Nog twee',
+        levend.length === 1 ? 'Het rode ruitje op je kaart wijst hem aan.' : 'De rode ruitjes op je kaart wijzen ze aan.', 3);
+    }
+  }
+  // (stap 167) een man die het bos in liep en je niet meer ziet, komt je na zo veel tellen zoeken (Bewaking `jagen`)
+  const NM_JAGEN = 12;
   function nmBeschikbaar() { return !nm.klaar && !NM_VOOR.includes(missie); }
   function nmBezig() { return NM_ACTIEF.includes(nm.fase); }
   function nmStartbaar() {
@@ -10645,7 +10669,7 @@ export function initVerhaal(ctx) {
     if (nm.pak) { nm.pak = false; if (zetPak) zetPak('gewoon'); }
     if (nmBezig() && gesprek) { gesprek = null; sluitBalk(); }
     if (nm.hint) { praatEl.hidden = true; nm.hint = false; }
-    hud.zetEJ(null);
+    hud.zetEJ(null); hud.zetVijanden(null);
     nm.knalT = -1; nm.roep = false; nm.uitgang = null; nm.wegVan = null;
   }
   // de tweede scène weg: het kamp, de stafauto (weer ver buiten de wereld, heel), het klapbord, de balk
@@ -10753,7 +10777,7 @@ export function initVerhaal(ctx) {
     let nieuw;
     if (!nm.golf) {
       nm.golf = new Bewaking(scene, posten, { schade: 0, uitElkaar: NM_UIT_ELKAAR, leven: nm.levens, klank: 'garand', personen, vest: null, pet: false,
-        zicht: 48, vuurbereik: 46, dekking: 11, oog: 1.5 });
+        zicht: 48, vuurbereik: 46, dekking: 11, oog: 1.5, jagen: NM_JAGEN, droog: true });
       nieuw = nm.golf.wachters;
     } else nieuw = nm.golf.voegToe(posten, personen);
     nm.golf.alarm = true;
@@ -10873,6 +10897,7 @@ export function initVerhaal(ctx) {
     // Erik Jan regisseert vanaf zijn stoel
     if (nmEJ.groep.visible) { nmEJ.kijkNaar(sp.x, sp.z, dt, 2); nmEJ.update(dt, {}); }
     if (nm.golf) { nm.golf.update(dt, player, true); nmRaakFlits(nm.golf); }   // losse flodders: geen schade, wel een rode flits
+    zetLaatsteVijanden([nm.golf], nm.golf);
     nmMerk.update(dt); nmC4.update(dt);
     if (nm.fase === 'naarSet') {
       navKlok += dt;
@@ -11047,7 +11072,7 @@ export function initVerhaal(ctx) {
     const personen = posten.map((_, j) => nmDuitsers[j]);
     for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
     nm.golf = new Bewaking(scene, posten, { schade: 0, uitElkaar: NM_UIT_ELKAAR, leven: nm.levens, klank: 'garand', personen, vest: null, pet: false,
-      zicht: NOMERCY.wachtZicht, vuurbereik: 46, dekking: 11, oog: 1.5 });
+      zicht: NOMERCY.wachtZicht, vuurbereik: 46, dekking: 11, oog: 1.5, jagen: NM_JAGEN, droog: true });
     nm.gezien = false; nm.stil = false; nm.stilT = 0; nm.vorig = null;
     nm.fase = 'kampIntro';
     zetOpdracht('');
@@ -11124,6 +11149,7 @@ export function initVerhaal(ctx) {
       } else { nmEJ.kijkNaar(sp.x, sp.z, dt, 2); nmEJ.update(dt, {}); }
     }
     if (nm.golf) { nm.golf.update(dt, player, true); nmRaakFlits(nm.golf); }   // losse flodders: geen schade, wel een rode flits
+    zetLaatsteVijanden([nm.golf], nm.golf);
     nmMerk.update(dt); nmC4.update(dt);
     if (nm.fase === 'kamp') {
       // gezien (of gehoord): geen "cut", het gevecht gaat gewoon los
@@ -11453,7 +11479,7 @@ export function initVerhaal(ctx) {
     if (n5.pak) { n5.pak = false; if (zetPak) zetPak('gewoon'); }
     if (n5Bezig() && gesprek) { gesprek = null; sluitBalk(); }
     if (n5.hint) { praatEl.hidden = true; n5.hint = false; }
-    hud.zetEJ(null);
+    hud.zetEJ(null); hud.zetVijanden(null);
     n5.uitT = 0; n5.motorRoep = false;
   }
   function n5Mislukt(reden) {
@@ -11508,7 +11534,8 @@ export function initVerhaal(ctx) {
     n5Set.herstel(); n5Set.toon(true); n5Set.zoekAan(true);
     const a = n5Set.aanleg || NOMERCY5.aanleg;
     nmMerk.zet(a.x, grondHoogte(a.x, a.z), a.z); nmMerk.toon(true);
-    const mg = n5Set.mg, s = n5Set.sluip;
+    const s = n5Set.sluip;
+    const mg = n5VrijePost(n5Set.mg.x, n5Set.mg.z);
     const sluip = n5Duitsers[1];
     sluip.vasteGrond = s.y;
     const posten = [
@@ -11517,8 +11544,15 @@ export function initVerhaal(ctx) {
     ];
     const personen = [n5Duitsers[0], sluip];
     for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
+    if (n5.groepA) { n5.groepA.verwijder(); n5.groepA = null; }
+    /*
+     De sluipschutter staat op de stelling, en die ligt binnen de botsdozen van het molenpand (stap 167): js/bewaking.js
+     laat die dozen voor hem niet meetellen (`vasteGrond`), en hier telt in plaats daarvan de romp zelf, het achtkant
+     onder de stelling: daarachter ziet hij je niet.
+    */
     n5.groepA = new Bewaking(scene, posten, { schade: 0, uitElkaar: NM_UIT_ELKAAR, leven: [2, 1], mg: [0], klank: 'garand', personen, vest: null, pet: false,
-      zicht: NOMERCY5.sluipZicht, vuurbereik: NOMERCY5.sluipZicht, dekking: 11, oog: 1.5, houden: true });
+      zicht: NOMERCY5.sluipZicht, vuurbereik: NOMERCY5.sluipZicht, dekking: 11, oog: 1.5, houden: true, droog: true,
+      zichtMag: (w, sp) => w.persoon !== sluip || n5RompVrij(w.persoon.groep.position, sp) });
     n5.groepA.alarm = true;
     sluip.groep.position.y = s.y;
   }
@@ -11587,15 +11621,46 @@ export function initVerhaal(ctx) {
     const [cx, cz] = resolveCollisions(sp.x + 2.2, sp.z + 1.4, 0.4);
     n5Cam.zetNeer(cx, cz, kijkHoek({ x: cx, z: cz }, sp)); n5Cam.legNeer(0); n5Cam.groep.visible = true;
     const voet = n5Set.voet, kijk = NOMERCY5.aanleg;
-    const posten = voet.map(v => { const [x, z] = resolveCollisions(v.x, v.z, 0.4); return { a: [x, z], b: [x, z], kijk }; });
+    const posten = voet.map(v => { const p = n5VrijePost(v.x, v.z); return { a: [p.x, p.z], b: [p.x, p.z], kijk }; });
+    if (n5.groepB) { n5.groepB.verwijder(); n5.groepB = null; }
     const personen = n5Duitsers.slice(2, 2 + posten.length);
     for (const p of personen) { p.legNeer(0); p.groep.visible = true; }
     const levens = posten.map(() => NOMERCY.treffers[0] + Math.floor(Math.random() * (NOMERCY.treffers[1] - NOMERCY.treffers[0] + 1)));
     n5.groepB = new Bewaking(scene, posten, { schade: 0, uitElkaar: NM_UIT_ELKAAR, leven: levens, klank: 'garand', personen, vest: null, pet: false,
-      zicht: 48, vuurbereik: 46, dekking: 11, oog: 1.5, houden: true });
+      zicht: 48, vuurbereik: 46, dekking: 11, oog: 1.5, houden: true, droog: true });
     n5.groepB.alarm = true;
     n5MolenOpdracht();
     zeg(N5_AAN_WAL, null, { auto: 3.0 });
+  }
+  /*
+   Een vrije plek voor een Duitser (stap 167): op het land, niet in een pand (KAART.panden), niet in een botsdoos.
+   Staat de plek uit js/nomercy5.js goed, dan blijft hij precies daar; anders de dichtstbijzijnde vrije plek in een
+   spiraal tot 14 m (tools/nm5duitsertest.mjs meet elke man).
+  */
+  function n5VrijePost(x, z) {
+    const vrij = (px, pz) => {
+      if (pointInWater(px, pz) || inPand(px, pz)) return false;
+      const [rx, rz] = resolveCollisions(px, pz, 0.4);
+      return Math.hypot(rx - px, rz - pz) < 0.02;
+    };
+    if (vrij(x, z)) return { x, z };
+    for (let r = 0.5; r <= 14; r += 0.5) {
+      const n = Math.max(8, Math.round(r * 6));
+      for (let k = 0; k < n; k++) {
+        const a = k / n * Math.PI * 2, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+        if (vrij(px, pz)) return { x: px, z: pz };
+      }
+    }
+    return { x, z };
+  }
+  // ligt de romp van De Rat (het achtkant onder de stelling) tussen `p` en `sp`? (in het vlak, met een marge)
+  function n5RompVrij(p, sp) {
+    if (!n5Molen) return true;
+    const R = n5Molen.romp + 0.15;
+    const dx = sp.x - p.x, dz = sp.z - p.z, L2 = dx * dx + dz * dz;
+    if (L2 < 1e-6) return true;
+    const t = Math.max(0, Math.min(1, ((n5Molen.cx - p.x) * dx + (n5Molen.cz - p.z) * dz) / L2));
+    return Math.hypot(p.x + dx * t - n5Molen.cx, p.z + dz * t - n5Molen.cz) > R;
   }
   function n5Over() {
     let n = 0;
@@ -11852,6 +11917,8 @@ export function initVerhaal(ctx) {
     const lucht = n5.fase === 'overtochtIntro' || n5.fase === 'overtocht' || n5.fase === 'molen';
     const vlek = n5Set.update(dt, { kogels: lucht });
     for (const g of [n5.groepA, n5.groepB]) if (g) { g.update(dt, player, true); nmRaakFlits(g); }
+    // de laatste één of twee als rood ruitje op de kaart, alleen aan wal (op het water tel je de molen nog niet)
+    zetLaatsteVijanden(n5.fase === 'molen' ? [n5.groepA, n5.groepB] : [], n5.groepA);
     // de sluipschutter blijft op de stelling, ook als hij neergaat
     const sluip = n5Duitsers[1];
     if (sluip.groep.visible && sluip.vasteGrond != null && n5.groepA) {
@@ -12904,7 +12971,7 @@ export function initVerhaal(ctx) {
         molen: n5Molen, set: n5Set, ej: n5EJ, cam: n5Cam, duitsers: n5Duitsers, figuranten: n5Figuranten, boot: n5Boot,
         staf: n5Staf, camAuto: n5CamAuto, motoren: n5Motoren, groepA: n5.groepA, groepB: n5.groepB, lijn: n5Lijn(),
         ruit: n5Ruit(), camS: n5.camS, sP: n5.sP, uitT: n5.uitT, lichtT: n5.lichtT, aanlegT: n5.aanlegT, pak: n5.pak,
-        sloep: n5Sloep(), merk: nmMerk };
+        sloep: n5Sloep(), merk: nmMerk, vrijePost: n5VrijePost, rompVrij: n5RompVrij };
     },
     get noMercy() {
       return { fase: nm.fase, klaar: nm.klaar, gebeld: nm.gebeld, belT: nm.belT, leen: nm.leen, levens: nm.levens.slice(),

@@ -9300,6 +9300,47 @@ kozijnen, de witte rand van boven en van onderen, het donkere dakschild, loggia'
 schoorstenen, het trappenhuis, botsdozen, licht 's nachts, geen nieuw programma) met `molenflatshots` (molenflat_straat,
 molenflat_molenkrite, molenflat_noord, molenflat_schuin, molenflat_nacht).
 
+
+**No Mercy 5: de Duitser die je niet vond (stap 167, 13 okt).**
+
+Gemeld: "bij laatste no mercy missie kon ik een Duitser niet vinden. Misschien zat die vast in een gebouw oid." De molen gaat pas
+door als alle vijf neer zijn (het MG, de sluipschutter op de stelling, drie aan de voet). Eerst gemeten in plaats van gezocht:
+elke man aan wal en twee minuten gevecht beeld voor beeld (plek, pand, botsdoos, water, hoogte, kijklijn, looproute).
+- *De oorzaak*: de sluipschutter. Hij staat op de stelling van De Rat, (−1129,8; 899,1) op 7,52 m, en dat punt ligt in de
+  BAG-voetafdruk van het molenpand (0683100000290817, dat ook de loodsen omvat) en daarmee in een van zijn botsdozen, 20,7 m
+  hoog. Een kijklijn die in een doos begint is in `zichtVrij` altijd dicht: hij zag nooit iemand, kwam nooit in `aanval`, schoot
+  nooit en bewoog niet. Gemeten met de oude code: vanaf 0 van de 53 plekken om de molen een kijklijn, 0 schoten tijdens de
+  overtocht en het gevecht. Een stille man in feldgrau, 's nachts hoog op de stelling, terwijl de vier anderen flitsen en knallen:
+  voor het spel stond hij in een gebouw. (Raken kon wel — de kogels van de speler kijken niet naar muren — maar je moest hem eerst
+  vinden.) De andere vier stonden goed: op het land, buiten panden en dozen, op de grond, te voet bereikbaar.
+- *De oplossing*: js/world.js `dozenOp(x, z, y)` geeft de dozen waar een punt in staat, en `zichtVrij` kreeg een lijst `negeer`.
+  js/bewaking.js laat voor wie op een vaste hoogte staat (`vasteGrond`) zijn eigen dozen niet meetellen; in plaats daarvan telt
+  de romp zelf (`zichtMag`, js/verhaal.js `n5RompVrij`: het achtkant onder de stelling, in het vlak). Nu ziet hij je vanaf 17 van de
+  53 plekken, schiet hij 11 keer tijdens de overtocht (zijn flits en knal wijzen hem aan) en gaat hij neer met een echt schot van de
+  grond. `duwUitElkaar` schuift iemand met `vasteGrond` nooit meer (hij zou de doos uit, van de stelling af geduwd worden).
+- *Robuust*: de posten van het MG en de voet gaan door `n5VrijePost` (land, geen pand via `inPand` uit js/kaartwereld.js, geen
+  doos; anders een spiraal tot 14 m), en de groepen worden eerst opgeruimd voordat er een nieuwe komt.
+- *No Mercy 4 meegemeten*: daar wel een echte fout. Met de speler 45 m verder in het bos liepen alle vier de Duitsers van de eerste
+  golf binnen 13 s een sloot in (−115, −176) en bleven daar staan: `loopNaar` keek niet naar water. Nu `droog` (geen stap het water
+  in; wie er al in staat, mag eruit), voor No Mercy 4 en 5. Daarbij `jagen` (12 s): wie je met het alarm af zo lang niet ziet, zoekt
+  een looproute (js/looppad.js) naar waar je nu staat. In de meting was dat nooit nodig (de langste tijd ver weg en buiten zicht was
+  ook met de oude code 8,9 s); het is een vangnet. Het bunkerdorp stond goed.
+- *De aanwijzing*: er bestond nog niets voor tegenstanders op de kaart (alleen de blauwe stippen van de politie). Nu zet
+  `zetLaatsteVijanden` bij No Mercy 4 en 5 de laatste één of twee als rood ruitje op de minikaart (op de rand als ze buiten het
+  rondje staan, net als de klus en de EJ) en op de grote kaart (`hud.zetVijanden`), met één melding ("Nog twee"); alleen met het
+  alarm af, dus niet tijdens het sluipen in het bunkerdorp. Opruimen en X halen ze weg.
+- De proef loopt met de code van vóór deze stap (een tweede servertje op een kopie van HEAD) rood op 16 controles: de
+  sluipschutter zonder kijklijn en zonder schot, de vier in de sloot, en alles wat nieuw is (de ruitjes, `jagen`).
+
+*Proef*: `npm run nm5duitsertest` (No Mercy 5: elke man gemeten, de overtocht, twee minuten gevecht, de ruitjes, echte schoten op de
+laatste twee, `n5VrijePost`, X en opnieuw niet dubbel; No Mercy 4: anderhalve minuut de eerste golf met de speler ver weg, de
+ruitjes, en een minuut gevecht in het bunkerdorp), 59 controles groen. Daarnaast groen: `nomercytest`, `nomercy2test`,
+`figurantentest`, en van `nomercy5test` alles (73 controles) behalve de shadertelling van punt 11: +2 programma's, het
+tweezijdige doorzichtige `MeshBasicMaterial` van de bundel van het zoeklicht. Die telling hangt aan toeval: of de hoofdlus, die
+headless af en toe een beeld tekent, de set 's nachts al eens getekend heeft vóór de meting. Met de code van vóór deze stap: één
+keer groen, één keer precies dezelfde +2, en punt 11 los (zonder de punten 1–10 ervoor) +4, met en zonder wachten op
+`avondBelofte`. De bundel bestaat sinds stap 142; het hoort bij open punt 30 (nachtvarianten die niet voorvertaald worden).
+
 **De oude Geeuwbrug (stap 161, 13 okt).**
 
 Gevraagd: "herbouw ook locatie -77.4, -459.8 zie foto ingame. dit is een deel van de oude geeuw brug. Zie torentje met
