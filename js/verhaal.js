@@ -216,6 +216,9 @@ const KOPPEN = {
   // No Mercy 4 (stap 140): Erik Jan met zijn pet, en de cameraman
   erikjan: { huid: '#dcb08c', shirt: '#7a2f2a', pet: '#1b1b20', stoppels: true },
   cameraman: { huid: '#d3a273', shirt: '#26272b', pet: '#2a2a2e' },
+  // (stap 178) Roan, blond en vier; Ma, de moeder van Erik en Mark, grijs
+  roan: { huid: '#e8c6a6', haar: '#e0bf6a', shirt: '#d8452e' },
+  ma: { huid: '#e0b898', haar: '#b8b4ae', shirt: '#8a3c5a' },
 };
 // twee sprekers die elkaar afwisselen, dus twee hulpjes die een regel opmaken
 const zegtMark = (tekst) => ({ wie: 'Mark', kop: KOPPEN.mark, tekst });
@@ -1694,6 +1697,15 @@ export function initVerhaal(ctx) {
     golf: null, levens: [], wegVan: null, uitgang: null, grijsT: 0, camWegT: 0, bos: null, knal: null, knalT: -1, roep: false, pak: false,
     // de tweede scène (stap 141): gezien, stil (de kaart gepakt zonder alarm), de close-up, de M1 gehouden
     gezien: false, stil: false, stilT: 0, vorig: null, m1: false, balk: false, camNaar: null };
+  /*
+   (stap 178) De bijmissie "Roan naar Ma". `fase`: uit → (na missie 5) wacht → bellen → ophalen (Roan bij de speeltoestellen
+   van de school, waar ook Radio Tinga zit) → lopen (hij volgt je naar Molenkrite 15) → thuis (het gesprek met Ma) → klaar.
+  */
+  const roan = { fase: 'uit', klaar: false, belT: Infinity, telT: 0, spoor: [], inAuto: false, wachtT: 0, roepT: 0, pauze: null, wegT: 0 };
+  const roanKind = new Persoon({ shirt: 0xd8452e, broek: 0x2c4a8a, huid: 0xe8c6a6, haar: 0xe0bf6a, hoogte: 0.58, korteMouw: true, schoen: 0x2b6ad0 });
+  roanKind.hoofd.scale.setScalar(1.28);         // een kind van vier: een groter hoofd op een kleiner lijf
+  const roanMa = new Persoon({ shirt: 0x8a3c5a, broek: 0x2f2b38, huid: 0xe0b898, haar: 0xb8b4ae, hoogte: 0.97, vrouw: true, kapsel: 'halflang', rok: true });
+  for (const q of [roanKind, roanMa]) { q.groep.visible = false; q.groep.position.set(1e5, 0, 1e5); scene.add(q.groep); }
   const nmSet = maakSet(scene);
   const nmEJ = maakErikJan();
   const nmCam = maakCameraman();
@@ -1754,6 +1766,7 @@ export function initVerhaal(ctx) {
     if (uitjeBezig()) return false;
     if (nmBezig()) return false;          // de opnames van No Mercy 4 (stap 140)
     if (n5Bezig()) return false;          // en van No Mercy 5 (stap 142)
+    if (roanBezig()) return false;        // en Roan naar Ma (stap 178)
     if (missie === 'klaar') return true;
     return (KLUS_WACHT[missie] || []).includes(fase);
   }
@@ -2003,6 +2016,7 @@ export function initVerhaal(ctx) {
     // midden in de opnames van No Mercy 4 (een sneltoets): de set weg en de bruikleen terug
     if (nmBezig()) { nmRuimOp(true); nm.fase = 'uit'; nm.pauze = null; }
     if (n5Bezig()) { n5RuimOp(true); n5.fase = 'uit'; n5.pauze = null; }
+    roanStop();
     // na de tussenpoos (`vanzelf`) blijft een klus die klaarstaat liggen; met een sneltoets of na het laden niet
     klusjes.reset({ aanbodHouden: vanzelf }); klusPauze = null;
     gesprek = null; sluitBalk();
@@ -2498,6 +2512,7 @@ export function initVerhaal(ctx) {
     if (nmBezig()) { nmRuimOp(true); nm.fase = 'uit'; nm.eerstWeg = true; nmZetBeeldTerug(); }
     // en op die van No Mercy 5 (stap 142): Erik Jan wacht weer op de kade
     if (n5Bezig()) { n5RuimOp(true); n5.fase = 'uit'; n5.eerstWeg = true; const b = n5.pauze; n5.pauze = null; nmZetBeeldTerugVan(b); }
+    roanStop();
     hud.melding('NEERGEGAAN', 'Kies hoe je verder gaat.', 3);
     player.active = false;
   }
@@ -2698,6 +2713,7 @@ export function initVerhaal(ctx) {
     // No Mercy 5 (stap 142): Erik Jan op de kade, de vlag
     if (noMercy5Toets()) return true;
     if (n5Bezig()) return false;
+    if (roanBezig()) return false;        // (stap 178) met Roan aan de hand doet E niets voor de missie
     // missie 11: aan de balie van Tinga State de C4 ophalen, vóór het kopen daar
     if (bijDeBalie()) return haalC4();
     // missie 12: een dranghek, een lading C4, of de knal zelf
@@ -3050,6 +3066,7 @@ export function initVerhaal(ctx) {
           hud.melding('MISSIE VOLTOOID', `Beloning: + ${euro(BELONING)} toegevoegd aan wallet`, 8);
           // en over een halve minuut belt Erik Jan voor No Mercy 4 (stap 140), als je nog niet bij hem was
           nm.belT = NOMERCY.belNa;
+          roan.belT = ROAN.belNa;          // en daarna Mark: Roan naar Ma (stap 178)
           /*
            En meteen door naar de volgende: vanaf hier staat een missie als M op
            de kaart in plaats van dat hij vanzelf begint (verzoek 20 sep 2026).
@@ -11998,6 +12015,202 @@ export function initVerhaal(ctx) {
     if (checkpoint && player.health > 0) { checkpoint(); hud.show('Checkpoint opgeslagen', 2); }
   }
 
+  // ---------- Roan naar Ma (stap 178) ----------
+  const ROAN = {
+    loon: 450,
+    belNa: 90,                   // s na missie 5: na het telefoontje van Erik Jan (30 s), niet er doorheen
+    buurt: 150,                  // zo dicht bij de school belt Mark meteen
+    speel: { x: 315.2, z: -84.6 },   // de speeltoestellen naast de school (het speeltoestel, de zandbak, de wipkip)
+    ophaal: 2.6,                 // zo dicht bij Roan begint het lopen
+    volg: 1.6,                   // zo ver loopt hij achter je
+    snel: 4.6,                   // m/s, hij rent als hij achterblijft
+    thuis: 4.5,                  // zo dicht bij Ma met Roan: klaar (hij loopt 1,6 m achter je)
+    kwijt: 45,                   // verder weg wacht hij en roept hij
+  };
+  const ROAN_TELEFOON = [
+    zegtMark('Erik, ff je hulp nodig.'),
+    zegtMark('Kan jij Roan naar Ma brengen? Hij staat bij de school, bij de speeltoestellen. Ma wacht bij mij voor de deur, Molenkrite 15.'),
+    zegtMark('Super bedankt!'),
+  ];
+  const ROAN_HOI = [
+    { wie: 'Roan', kop: KOPPEN.roan, tekst: 'Hoi Erik! Gaan we naar oma?' },
+    zegtErik('Kom maar mee, kleine man. Blijf achter me.'),
+  ];
+  const ROAN_THUIS = [
+    { wie: 'Ma', kop: KOPPEN.ma, tekst: 'Daar is hij! Dag lieverd, ben je netjes met oom Erik meegelopen?' },
+    { wie: 'Roan', kop: KOPPEN.roan, tekst: 'Ja! Erik loopt heel snel.' },
+    { wie: 'Ma', kop: KOPPEN.ma, tekst: 'Dankjewel jongen. Mark heeft het ook altijd druk. Hier, voor de moeite.' },
+  ];
+  function roanBeschikbaar() { return !roan.klaar && !NM_VOOR.includes(missie); }
+  function roanBezig() { return ['ophalen', 'lopen', 'thuis'].includes(roan.fase); }
+  function roanStartbaar() {
+    return roanBeschikbaar() && !roanBezig() && !nmBezig() && !n5Bezig() && vrijVoorKlus() && !klusjes.bezig && !geldInleg && !zwart && !titelrol;
+  }
+  // de R: op de stoep van Radio Tinga (de school); valt die weg, dan bij de speeltoestellen
+  function roanSchool() {
+    const st = studio && studio();
+    const p = st && st.plekken;
+    return p && p.stoep ? { x: p.stoep.x, z: p.stoep.z } : { ...ROAN.speel };
+  }
+  function roanSpeelPlek() {
+    const [x, z] = resolveCollisions(ROAN.speel.x, ROAN.speel.z, 0.4);
+    return { x, z };
+  }
+  // Ma op de stoep van Molenkrite 15 (waar je buiten neerkomt), met haar gezicht van de deur af naar de straat
+  function roanMaPlek() {
+    const m = molenkrite && molenkrite();
+    const d = molenkriteDeur(), st = m && m.plekken && m.plekken.stoep ? m.plekken.stoep : d;
+    const [x, z] = resolveCollisions(st.x, st.z, 0.4);
+    return { x, z, yaw: Math.atan2(-(x - d.x), -(z - d.z)) };
+  }
+  function roanRuimOp() {
+    for (const q of [roanKind, roanMa]) { q.groep.visible = false; q.groep.position.set(1e5, 0, 1e5); }
+    roan.spoor.length = 0; roan.inAuto = false;
+    hud.zetRoan(null);
+    if (navDoel && navDoel.letter === 'R') { navDoel = null; hud.zetNavigatie(null); }
+  }
+  function roanBegin() {
+    roan.fase = 'ophalen';
+    const p = roanSpeelPlek();
+    roanKind.zetNeer(p.x, p.z, 0); roanKind.legNeer(0); roanKind.groep.visible = true;
+    zetNavDoel(p.x, p.z, 'Roan · bij de speeltoestellen', 'R');
+    zetOpdracht('haal Roan op bij de speeltoestellen van de school');
+    hud.melding('ROAN NAAR MA', 'Roan staat bij de speeltoestellen naast de school: de R op de kaart.', 5);
+  }
+  function roanLopen() {
+    roan.fase = 'lopen';
+    roan.spoor.length = 0; roan.wachtT = 0;
+    const m = roanMaPlek();
+    roanMa.zetNeer(m.x, m.z, m.yaw); roanMa.legNeer(0); roanMa.groep.visible = true;
+    zetNavDoel(m.x, m.z, 'Ma · Molenkrite 15', 'R');
+    zetOpdracht('breng Roan naar Ma, voor Molenkrite 15');
+  }
+  function roanKlaar() {
+    roan.fase = 'klaar'; roan.klaar = true;
+    const n = verdien(ROAN.loon);
+    zetOpdracht('');
+    hud.zetRoan(null);
+    if (navDoel && navDoel.letter === 'R') { navDoel = null; hud.zetNavigatie(null); }
+    hud.melding('MISSIE GESLAAGD', `Roan is bij Ma. + ${euro(n)}`, 7);
+    roan.wegT = 4;           // dan gaan Ma en Roan naar binnen
+    if (checkpoint && player.health > 0) { checkpoint(); hud.show('Checkpoint opgeslagen', 2); }
+  }
+  // Roan volgt je spoor: om de halve meter een punt, en hij loopt dat na tot hij ROAN.volg achter je is
+  function roanVolg(dt, sp) {
+    const kind = roanKind.groep.position;
+    if (player.inCar) {
+      // in de auto: stapt hij in als hij er vlak bij staat (en uit als je uitstapt)
+      if (!roan.inAuto && Math.hypot(kind.x - player.inCar.x, kind.z - player.inCar.z) < 5) { roan.inAuto = true; roanKind.groep.visible = false; }
+      if (roan.inAuto) { kind.x = player.inCar.x; kind.z = player.inCar.z; roan.spoor.length = 0; return; }
+    } else if (roan.inAuto) {
+      roan.inAuto = false; roanKind.groep.visible = true;
+      const [x, z] = resolveCollisions(sp.x + Math.cos(player.yaw) * 1.2, sp.z - Math.sin(player.yaw) * 1.2, 0.3);
+      roanKind.zetNeer(x, z, player.yaw); roan.spoor.length = 0;
+    }
+    const laatste = roan.spoor[roan.spoor.length - 1];
+    if (!laatste || Math.hypot(sp.x - laatste.x, sp.z - laatste.z) > 0.5) roan.spoor.push({ x: sp.x, z: sp.z });
+    if (roan.spoor.length > 400) roan.spoor.splice(0, roan.spoor.length - 400);
+    const dJij = Math.hypot(sp.x - kind.x, sp.z - kind.z);
+    // te ver weg: hij blijft staan en roept
+    if (dJij > ROAN.kwijt) {
+      roan.roepT -= dt;
+      if (roan.roepT <= 0) { roan.roepT = 8; hud.melding('Roan', '"Erik! Wacht op mij!" Roan kan je niet bijhouden.', 3); }
+      roanKind.update(dt, { zwaait: true });
+      return;
+    }
+    // het volgende punt van het spoor; punten waar hij al is gaan eraf
+    while (roan.spoor.length > 1 && Math.hypot(roan.spoor[0].x - kind.x, roan.spoor[0].z - kind.z) < 0.45) roan.spoor.shift();
+    // punten die verder van je af liggen dan hij zelf, liggen achter hem (na een sprong, of na laden): overslaan
+    while (roan.spoor.length > 1 && Math.hypot(roan.spoor[0].x - sp.x, roan.spoor[0].z - sp.z) > dJij + 0.5) roan.spoor.shift();
+    let loopt = false;
+    if (dJij > ROAN.volg && roan.spoor.length) {
+      const doel = roan.spoor[0];
+      const v = Math.min(ROAN.snel, Math.max(1.3, (dJij - ROAN.volg) * 1.6));
+      const dx = doel.x - kind.x, dz = doel.z - kind.z, a = Math.hypot(dx, dz);
+      if (a > 0.01) {
+        const st = Math.min(a, v * dt);
+        const [x, z] = resolveCollisions(kind.x + dx / a * st, kind.z + dz / a * st, 0.25);
+        kind.x = x; kind.z = z;
+        roanKind.draaiNaar(Math.atan2(-dx, -dz), dt, 8);
+        loopt = true;
+      }
+    } else roanKind.kijkNaar(sp.x, sp.z, dt, 3);
+    roanKind.grond = grondHoogte(kind.x, kind.z, kind.y + 1);
+    kind.y = roanKind.grond;
+    roanKind.update(dt, { loopt, snelheid: loopt ? Math.max(1.3, Math.min(ROAN.snel, dJij)) : 1 });
+  }
+  function werkRoanBij(dt, sp) {
+    // na afloop: Ma en Roan lopen naar binnen en zijn weg
+    if (roan.wegT > 0) {
+      roan.wegT -= dt;
+      const d = molenkriteDeur();
+      for (const q of [roanMa, roanKind]) if (q.groep.visible) {
+        const erIs = nmLoop(q, d, dt, 1.2, 0.5);
+        q.update(dt, { loopt: !erIs, snelheid: 1.2 });
+        if (erIs || roan.wegT <= 0) q.groep.visible = false;
+      }
+      if (roan.wegT <= 0) roanRuimOp();
+    }
+    if (!roanBeschikbaar() && !roanBezig()) { hud.zetRoan(null); return; }
+    if (!roanBezig()) {
+      const school = roanSchool();
+      const kan = roanStartbaar();
+      hud.zetRoan(kan ? school : null);
+      if (roan.fase === 'uit') roan.fase = 'wacht';
+      if (roan.fase === 'bellen') {
+        roan.telT -= dt;
+        if (roan.telT <= 0 && balk.hidden && !gesprek) {
+          roan.fase = 'wacht';
+          zeg(ROAN_TELEFOON, () => { if (roanStartbaar()) roanBegin(); }, { wie: 'Mark', telefoon: true, kop: KOPPEN.mark });
+        }
+        return;
+      }
+      if (!kan || !balk.hidden || gesprek) return;
+      if (roan.belT > 0 && roan.belT !== Infinity) roan.belT -= dt;
+      const dSchool = Math.hypot(sp.x - school.x, sp.z - school.z);
+      // in de buurt van de school, of er loopt geen missie (vrij spelen, of een missie die onder zijn M wacht)
+      const klaarVoor = roan.belT <= 0 || roan.belT === Infinity;
+      if (klaarVoor && (dSchool < ROAN.buurt || !missieBezig()) && !(nm.fase === 'bellen')) {
+        roan.fase = 'bellen'; roan.telT = 2.0;
+        geluid.telefoon(3);
+      }
+      return;
+    }
+    hud.zetRoan(null);
+    if (roan.fase === 'ophalen') {
+      roanKind.kijkNaar(sp.x, sp.z, dt, 2);
+      const k = roanKind.groep.position;
+      roanKind.update(dt, { zwaait: Math.hypot(sp.x - k.x, sp.z - k.z) < 25 });
+      if (Math.hypot(sp.x - k.x, sp.z - k.z) < ROAN.ophaal && !player.inCar && balk.hidden && !gesprek) {
+        roanLopen();
+        zeg(ROAN_HOI, null, { auto: 2.4 });
+      }
+      return;
+    }
+    if (roan.fase === 'lopen') {
+      roanVolg(dt, sp);
+      const k = roanKind.groep.position, m = roanMa.groep.position;
+      roanMa.kijkNaar(k.x, k.z, dt, 2);
+      const dK = Math.hypot(k.x - m.x, k.z - m.z);
+      roanMa.update(dt, { zwaait: dK < 20 });
+      if (!roan.inAuto && dK < ROAN.thuis && Math.hypot(sp.x - m.x, sp.z - m.z) < 10 && balk.hidden && !gesprek) {
+        roan.fase = 'thuis';
+        roanKind.kijkNaar(m.x, m.z, 1, 10);
+        zeg(ROAN_THUIS, () => roanKlaar());
+      }
+      return;
+    }
+    if (roan.fase === 'thuis') {
+      roanMa.update(dt, {}); roanKind.update(dt, {});
+    }
+  }
+  // na neergaan, laden of een nieuwe missie: Roan staat weer bij de school en Mark belt opnieuw als je erheen gaat
+  function roanStop() {
+    if (!roanBezig()) return;
+    roanRuimOp();
+    roan.fase = 'wacht'; roan.belT = 0;
+  }
+
   function werkNoMercy5Bij(dt, sp) {
     if (!n5Set) return;
     if (n5.grijsT > 0) { n5.grijsT -= dt; if (n5.grijsT <= 0) hud.zetGrijs(false); }
@@ -12300,7 +12513,7 @@ export function initVerhaal(ctx) {
       return;
     }
     // pauze tussen twee missies: na de boerderij belt Johan (niet tijdens een klus)
-    if (naMissieT > 0 && !klusjes.bezig && !nmBezig() && !n5Bezig() && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
+    if (naMissieT > 0 && !klusjes.bezig && !nmBezig() && !n5Bezig() && !roanBezig() && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
       naMissieT -= dt;
       if (naMissieT <= 0) startMissie(naMissieNaam, { vanzelf: true });
       else werkVroegBij();
@@ -12314,6 +12527,7 @@ export function initVerhaal(ctx) {
     const sp = spelerPunt();
     // No Mercy 4: Erik Jan, zijn telefoontje en de opnames in het Tinga-bos (stap 140)
     werkNoMercyBij(dt, sp);
+    werkRoanBij(dt, sp);
     // No Mercy 5: Erik Jan op de kade in IJlst en de opnames bij De Rat (stap 142)
     werkNoMercy5Bij(dt, sp);
     const dMark = afst(sp, mark.groep.position);
@@ -12482,7 +12696,7 @@ export function initVerhaal(ctx) {
 
     // een missie die onder zijn M op je wacht, wacht ook tijdens een klus (js/klusjes.js)
     // (en tijdens de opnames van No Mercy 4, stap 140)
-    const wachtOpKlus = (klusjes.bezig || nmBezig() || n5Bezig()) && missie !== 'klaar';
+    const wachtOpKlus = (klusjes.bezig || nmBezig() || n5Bezig() || roanBezig()) && missie !== 'klaar';
 
     // ---- missie 5: Johan en de dief ----
     if (missie === 'johan' && !wachtOpKlus) werkJohanBij(dt, sp);
@@ -12646,6 +12860,7 @@ export function initVerhaal(ctx) {
       noMercyM1: nm.m1,
       // No Mercy 5 (stap 142): gedaan, de melding al gegeven, en of je de stafauto koos (de auto zelf zit in js/garage.js)
       noMercy5Klaar: n5.klaar, noMercy5Gemeld: n5.gemeld, noMercy5Staf: n5.staf,
+      roanKlaar: roan.klaar,
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
       raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
@@ -12667,6 +12882,8 @@ export function initVerhaal(ctx) {
     if (!s) return;
     n5.klaar = !!s.noMercy5Klaar; n5.gemeld = !!s.noMercy5Gemeld; n5.staf = !!s.noMercy5Staf;
     nm.klaar = !!s.noMercyKlaar; nm.gebeld = !!s.noMercyGebeld; nm.m1 = !!s.noMercyM1;
+    // (stap 178) Roan: klaar of niet; een oude opslag van na missie 5 krijgt de R, en Mark belt als je bij de school komt
+    roanRuimOp(); roan.wegT = 0; roan.klaar = !!s.roanKlaar; roan.fase = roan.klaar ? 'klaar' : 'uit'; roan.belT = ROAN.belNa;
     // het telefoontje komt alleen als het bij het opslaan nog aftelde; een oude opslag van na missie 5 krijgt alleen de EJ
     nm.belT = !nm.gebeld && s.noMercyBel ? NOMERCY.belNa : Infinity;
     herspeelNaam = typeof s.herspeel === 'string' ? s.herspeel : null;
@@ -13020,6 +13237,7 @@ export function initVerhaal(ctx) {
     if (doodT > 0 || misluktT > 0 || keuzeOpen || player.health <= 0) return 'nu even niet';
     if (nmBezig()) return 'tijdens de opnames van No Mercy 4';
     if (n5Bezig()) return 'tijdens de opnames van No Mercy 5';
+    if (roanBezig()) return 'zolang Roan bij je is';
     /*
      Net na een missie, tot het zwart en de ochtend (stap 122): het checkpoint werd een tel na GESLAAGD
      geschreven, en na het laden was het nog 01:00, met de klok stil en zonder "De volgende ochtend".
@@ -13095,6 +13313,12 @@ export function initVerhaal(ctx) {
         staf: n5Staf, camAuto: n5CamAuto, motoren: n5Motoren, groepA: n5.groepA, groepB: n5.groepB, lijn: n5Lijn(),
         ruit: n5Ruit(), camS: n5.camS, sP: n5.sP, uitT: n5.uitT, lichtT: n5.lichtT, aanlegT: n5.aanlegT, pak: n5.pak,
         sloep: n5Sloep(), merk: nmMerk, vrijePost: n5VrijePost, rompVrij: n5RompVrij };
+    },
+    // (stap 178, voor tools/roantest.mjs) Roan naar Ma
+    get roan() {
+      return { fase: roan.fase, klaar: roan.klaar, belT: roan.belT, inAuto: roan.inAuto, kind: roanKind, ma: roanMa, ROAN,
+        beschikbaar: roanBeschikbaar(), bezig: roanBezig(), startbaar: roanStartbaar(), school: roanSchool(), speel: roanSpeelPlek(), maPlek: roanMaPlek(),
+        zetBel: (t) => { roan.belT = t; } };
     },
     get noMercy() {
       return { fase: nm.fase, klaar: nm.klaar, gebeld: nm.gebeld, belT: nm.belT, leen: nm.leen, levens: nm.levens.slice(),

@@ -9317,6 +9317,30 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Bijmissie Roan naar Ma (stap 178, 14 okt).** Gevraagd: na de missie met Johan, als No Mercy 4 kan, een R bij Radio
+Tinga ("het gebouw is ook een school"). In de buurt of zonder missie belt Mark, Roan (4) staat bij de speeltoestellen
+(alleen tijdens de missie) en volgt je naar Molenkrite 15, waar Ma wacht: € 450.
+
+- **Het blok** staat in js/verhaal.js (`roan`, `ROAN`, `werkRoanBij`), naar het voorbeeld van No Mercy 4.
+  - `roanBeschikbaar`: na missie 5 (`NM_VOOR`), nog niet klaar. `roanStartbaar`: ook geen andere bijmissie, klus of zwart.
+  - `roanBezig` telt op dezelfde plekken als `nmBezig`: `vrijVoorKlus`, `wachtOpKlus`, `startMissie`, `dood`, `toets`, de
+    tussenpoos en `waaromNietOpslaan`.
+- **Het telefoontje**: `ROAN.belNa` (90 s) na missie 5, zodat het niet door dat van Erik Jan (30 s) heen belt. Daarna belt
+  Mark in de buurt van de school (`ROAN.buurt`, 150 m) of als er geen missie bezig is (`!missieBezig()`: vrij spelen, of een
+  missie die onder zijn M wacht).
+- **De plekken**: de R op de stoep van het pand van Radio Tinga (`studio().plekken.stoep`). Roan bij de speeltoestellen
+  ten westen ervan (de BGT-objecten speeltoestel, zandbak en wipkip bij (314, −82)). Ma op de stoep van Molenkrite 15
+  (`molenkrite().plekken.stoep`), met haar gezicht van de deur af.
+- **Roan** is een `Persoon` op 0,58 (ongeveer 1,05 m) met een hoofd van 1,28: een kind, geen kleine volwassene. Hij volgt
+  **je spoor**: om de halve meter een punt, en hij loopt dat na tot hij 1,6 m achter je is (rennen tot 4,6 m/s). Zo gaat
+  hij waar jij ging, en niet in een rechte lijn door een hek. Verder dan 45 m blijft hij staan en roept hij. Binnen 5 m van
+  je auto stapt hij in (verborgen) en bij het uitstappen naast je weer uit.
+- **De hud**: `hud.zetRoan` met een eigen icoon (een lichtblauw rondje met R) op de minikaart, aan de rand en op de grote kaart.
+- **De opslag**: `roanKlaar`. Een oude opslag van na missie 5 krijgt de R, en Mark belt anderhalve minuut na het laden.
+
+Proef: `npm run roantest`, foto's: `npm run roanshots` (roan_speeltuin, roan_volgt, roan_ma).
+
+
 **De gedenkplek aan de Sudergoweg en de Tiger (stap 177, 14 okt).** Gevraagd: een gedenkplek voor de ww2-slachtoffers
 aan de Sudergoweg, op een stuk weiland dat aan de weg grenst. Gevraagd werd ook een getegeld stuk met een plaquette
 ("Gedenksteen ter nagedachtenis aan de Slag om Sneek, 1944, gedoneerd door Veteraan met het dikke hondje"). Daarop een

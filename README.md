@@ -2101,6 +2101,27 @@ gehouden M1 zit gewoon in je wapens, ook na opslaan en laden.
 Ga je neer, loop je weg (verder dan 160 m van de set, of in de tweede scène van het kamp), stap je in een auto
 of druk je op **X**, dan zijn de opnames mislukt en staat Erik Jan weer bij de waterzuivering. Tijdens de opnames kun je niet opslaan. Na het slagen is hij weg.
 
+### Bijmissie · Roan naar Ma
+
+Na missie 5, als ook No Mercy 4 kan, staat er bij **Radio Tinga** een lichtblauwe **R**. Het pand is ook een school. Kom
+je in de buurt van de school, of loopt er geen missie, dan belt **Mark**: *"Erik, ff je hulp nodig. Kan jij Roan naar Ma
+brengen? Super bedankt!"* Hij belt pas anderhalve minuut na missie 5, dus niet door het telefoontje van Erik Jan heen.
+
+**Roan** is een jongetje van vier, blond en met een rood shirt. Hij staat bij de speeltoestellen naast de school, maar pas
+als de missie begonnen is. Loop naar hem toe: *"Hoi Erik! Gaan we naar oma?"* Daarna loopt hij achter je aan, over
+precies jouw spoor, dus niet door hekken of het water. Loop je te ver weg, dan roept hij dat je moet wachten. Stap je in
+een auto, dan stapt hij mee in, en bij het uitstappen weer uit.
+
+Op de stoep van **Molenkrite 15** wacht **Ma**, de moeder van Erik en Mark. Breng Roan bij haar: een kort gesprek,
+**€ 450** en MISSIE GESLAAGD. Daarna gaan ze samen naar binnen.
+
+![Roan rent achter Erik aan bij de school](docs/screenshots/roan_volgt.png)
+
+![Ma en Roan voor Molenkrite 15](docs/screenshots/roan_ma.png)
+
+ Zolang Roan bij je is, kun je niet opslaan. Ga je neer,
+dan staat hij weer bij de school en belt Mark opnieuw.
+
 ### 6 · De groene BX
 
 Vanaf hier begint een missie niet meer vanzelf. Na de beloning van Johan komt er

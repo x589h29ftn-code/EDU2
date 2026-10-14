@@ -285,6 +285,8 @@
     "claxonwraktest": "node tools/claxonwraktest.mjs",
     "zeilintrotest": "node tools/zeilintrotest.mjs",
     "tigershots": "node tools/tigershots.mjs",
-    "tigertest": "node tools/tigertest.mjs"
+    "tigertest": "node tools/tigertest.mjs",
+    "roantest": "node tools/roantest.mjs",
+    "roanshots": "node tools/roanshots.mjs"
   }
 }
