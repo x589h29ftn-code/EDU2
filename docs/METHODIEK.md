@@ -9300,7 +9300,14 @@ Wat misging:
   "−7,7 m" vóór hem, dus altijd te dichtbij). Nu: wat al naast of in de auto staat telt niet meer als blokkade, en wie vijftien tellen
   stilstaat zonder op een kruising of rotonde te wachten keert, desnoods eerst drie meter achteruit (`achteruit`, `_vastKeer`).
   Langst stil daarna: 19 s.
-- *De claxon in de proef* gaat in js/vehicles.js in 70 % van de gevallen: één keer nul in twaalf tellen. De proef zet de loting vast.
+- *De claxon in de proef* gaat in js/vehicles.js in 70 % van de gevallen: één keer nul in twaalf tellen. De proef zet de loting vast. Zo ook de claxon voor een auto
+  dwars over de weg (80 %): na het samenvoegen met stap 171 eens nul keer; ook daar zet de proef de loting vast.
+- *De eerste foto was zwart*: de avondstand werd nog in stukjes vertaald en de hoofdlus sloeg zijn beeld over (stap 155);
+  `voorrangshots` wacht nu eerst op `avondBelofte`.
+- *Andere proeven*: `racetest` (één controle: "een tikje van een tiende seconde is een kleine koerswijziging", 5,9°) en
+  `haperingtest` (één controle: de camera achter de auto, "8 van 400 anders") zijn rood; `racetest` precies zo op de code van
+  vóór deze stap, en beide gaan over de auto van de speler en zijn camera, niet over het verkeer. `bevolkingtest` en
+  `zespuntentest` groen, `bochtentest` groen ook na het samenvoegen met stap 171.
 
 *Tijd*: `updateTraffic` met 32 auto's drie minuten lang: met de regels 1,1 ms per beeld, zonder 0,9 ms (een eerdere ronde 1,5 tegen
 1,4); de meting schommelt meer dan het verschil.

@@ -421,6 +421,8 @@ const blok = await page.evaluate(() => {
     const mc = maat('hatch');
     const box = hoeken(car.x, car.z, car.mesh.rotation.y, mc);
     const oud = V.opClaxon; let toeter = 0; V.opClaxon = () => { toeter++; };
+    // (de claxon is geloot: 80 % van de bestuurders; hier toetert iedereen)
+    const rnd = Math.random; Math.random = () => 0.1;
     const uit = { botsing: 0, minGap: Infinity, stilT: 0, uitgeweken: false, gekeerd: false, voorbij: false, terugInStrook: false, laneMin: 1.4, laneMax: 1.4, maxSprong: 0, maxDraai: 0, duur: 0 };
     const dir0 = t.dir;
     let vorig = { x: t.mesh.position.x, z: t.mesh.position.z, yaw: t.mesh.rotation.y };
@@ -446,7 +448,7 @@ const blok = await page.evaluate(() => {
       if (uit.voorbij && !t.uitwijk && Math.abs(t.lane - 1.4) < 1e-6) { uit.terugInStrook = true; uit.duur = (n + 1) / 30; break; }
       if (uit.gekeerd && !t.keer && (t.t - k) * dir0 < -10) { uit.duur = (n + 1) / 30; break; }
     }
-    V.opClaxon = oud;
+    V.opClaxon = oud; Math.random = rnd;
     if (!wrak) pl.inCar = null;
     V.verwijder ? V.verwijder(car) : (car.mesh.visible = false, car.x = car.z = 1e5);
     uit.toeter = toeter;
