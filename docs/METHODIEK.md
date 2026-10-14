@@ -9176,6 +9176,26 @@ slaat de geometrie van het pand over (`EIGEN_PANDEN`, zoals de molens) en houdt 
 plat op hun gevel in hun kleur, de gloed 's nachts en overdag, de shaders) met `aaffshots` (aaff_water, aaff_hoek, aaff_nacht,
 aaff_logo_nacht).
 
+**De kassa van de BP: energydrank en kraslot (stap 169, 14 okt).**
+
+Gevraagd: "blikje energy drank kopen bij BP voor 10 health en een 5% boost in rennen. Max 20% boost als je doordrinkt.
+Ook kraslot kopen en dat kost 25 euro, kan tussen 0 en 150 opleveren, random kans." js/bpkassa.js: aan de balie (een vak
+voor de balie in het assenstelsel van de shop, `BP_KASSA.vak`) opent E de kassa, met 1 of 2 als bij de knoppen van Radio
+Tinga (dezelfde vangst van de cijfertoetsen in js/main.js), en op een aanraakscherm als keuzeknoppen (`keuzes`, naast
+`verhaal.openKeuze`). "E — afrekenen" staat in de praatbalk zoals bij de showroom.
+- *Energydrank* (€ 3, de prijs noemde de vraag niet): +10 leven tot 100, en `player.renBoost` 5 % erbij tot 20 %. De
+  boost werkt alleen op het rennen (`7,5 × (1 + renBoost)` in js/player.js); hij houdt 90 s na het laatste blikje en zakt
+  dan in 15 s weg. Neergaan haalt hem weg (`reset`). Ook bij vol leven drink je hem: dan gaat het om de boost.
+- *Kraslot* (€ 25): een prijs uit een tabel (`BP_KASSA.lot.prijzen`): 55 % niets, 20 % € 10, 12 % € 25, 8 % € 50,
+  4 % € 100, 1 % € 150. Gemiddeld € 14,50 terug: "tussen 0 en 150" letterlijk gelijk verdeeld zou € 75 per lot opleveren,
+  en dan is een lot een geldmachine.
+- *De meting van het rennen*: de proef zoekt eerst een vrij stuk van 12 m op het terrein van de BP (elke halve meter buiten
+  de botsdozen); een pomp of een kolom op de looplijn had de verhouding anders verpest.
+
+*Proef*: `npm run bpkassatest` (waar de kassa werkt, E open en dicht, de prijs, leven tot 100, de boost per blikje en het
+plafond, de boost gemeten als afstand: rennen 1,20 keer zo ver en lopen gelijk, het verloop en het neergaan, de loten en het
+geld, de kansen over 20.000 trekkingen, te weinig geld, weglopen). Geen foto: er is niets nieuws te zien.
+
 **De Molenkrite nog eens (stap 168, 14 okt).**
 
 Gevraagd: "Check de Molenkrite aangepaste woningen nog eens of dit beter kan." Naast de foto's van stap 165 gelegd. Het

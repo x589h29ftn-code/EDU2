@@ -838,7 +838,8 @@ export class Player {
     // rennen kan niet gehurkt en niet terwijl je over het vizier kijkt; richtend
     // loop je sowieso langzamer, want je kijkt over je wapen en niet waar je gaat
     const running = (this.keys.ShiftLeft || this.keys.ShiftRight || this.sprint) && this.hurk < 0.3 && this.mik < 0.3;
-    const speed = (running ? 7.5 : 4.2) * (1 - this.hurk * 0.62) * (1 - (1 - MIK_LOOP) * this.mik);
+    // (stap 169) `renBoost`: sneller rennen na een energydrank van de BP (js/bpkassa.js), alleen bij het rennen
+    const speed = (running ? 7.5 * (1 + (this.renBoost || 0)) : 4.2) * (1 - this.hurk * 0.62) * (1 - (1 - MIK_LOOP) * this.mik);
     const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const r = new THREE.Vector3(-f.z, 0, f.x);
     const move = new THREE.Vector3();

@@ -45,6 +45,7 @@ import { werkSchuifdeurenBij, SCHUIFDEUREN } from './zuilengang.js';
 import { maakGedrag } from './gedrag.js';
 import { AAFF_PAND } from './aaff.js';
 import { BP_SHOP } from './bpwinkel.js';
+import { initBpKassa } from './bpkassa.js';
 import { GEEUW_BRUG } from './geeuwbrug.js';
 import { MOLENFLAT_PAND } from './molenflat.js';
 import { GRAFISCH, GRAFISCH_RIJ, grafischVoorkeur, bewaarGrafisch } from './grafisch.js';
@@ -985,6 +986,8 @@ const tennisspel = (KAART && !BOVEN) ? initTennisspel({ scene, KAART, player, hu
   vrij: () => (verhaal.missieBezig ? 'Eerst je missie afmaken.' : politie.ster > 0 ? 'Niet met de politie achter je aan.' : true) }) : null;
 // de knoppen van Radio Tinga overnemen (stap 131)
 const djdienst = initDjDienst({ studio, geluid, hud, player, verdien: n => verhaal.verdien(n), nieuws });
+// (stap 169) de kassa van de BP-shop: energydrank en kraslot
+const bpKassa = initBpKassa({ player, hud, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n) });
 extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : []),
   ...(pizzabaan ? pizzabaan.plekken : []), ...(vishandel && vishandel.winkels ? vishandel.winkels : [])];
 winkelsNu = null; werkKaartvlaggenBij();
@@ -1684,12 +1687,23 @@ window.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const k = /^(?:Digit|Numpad)([0-9])$/.exec(e.code);
   if (!k) return;
-  if ((tuning && tuning.open && tuning.kies(+k[1])) || (djdienst.open && djdienst.kies(+k[1]))) { e.preventDefault(); e.stopImmediatePropagation(); }
+  if ((tuning && tuning.open && tuning.kies(+k[1])) || (djdienst.open && djdienst.kies(+k[1])) || (bpKassa.open && bpKassa.kies(+k[1]))) { e.preventDefault(); e.stopImmediatePropagation(); }
 }, { capture: true });
 // de klik als slag bij tennis
 document.addEventListener('mousedown', e => {
   if (e.button === 0 && player.active && tennisspel && tennisspel.bezig) tennisspel.slag();
 });
+
+// (stap 169) "E — afrekenen" in de praatbalk aan de balie van de BP, zoals de showroom het doet; hij laat de balk met rust
+// als iemand anders hem gebruikt
+let bpHintAan = false;
+function werkBpHintBij() {
+  const el = document.getElementById('praat');
+  if (!el) return;
+  const h = (player.active && !(verhaal.aanspreekbaar)) ? bpKassa.hint() : null;
+  if (h && (el.hidden || bpHintAan)) { el.textContent = h; el.hidden = false; bpHintAan = true; }
+  else if (!h && bpHintAan) { el.hidden = true; bpHintAan = false; }
+}
 
 function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
@@ -1697,6 +1711,7 @@ function praatOfAuto() {
   if (verhaal.toets()) return;
   for (const r of binnenruimtes) if (r.toets()) return;
   if (djdienst.toets()) return;               // aan de knoppen van Radio Tinga (stap 131)
+  if (bpKassa.toets()) return;                // de kassa van de BP-shop (stap 169)
   if (pizzabaan && pizzabaan.toets()) return; // pizza bezorgen (stap 131)
   if (tuning && tuning.toets()) return;       // tuning en decals aan het eind van de balie
   if (garage && garage.toets()) return;       // een auto kopen in de showroom
@@ -1892,7 +1907,7 @@ window.addEventListener('keydown', e => {
 let keuzeKnoppen = null, keuzeSleutel = '';
 function werkKeuzeKnoppenBij(dwing = false) {
   if (!touch && !dwing) return;
-  const keuzes = player.active && verhaal.openKeuze ? verhaal.openKeuze : null;
+  const keuzes = player.active ? (bpKassa.keuzes || verhaal.openKeuze || null) : null;
   const sleutel = keuzes ? keuzes.join('|') : '';
   if (sleutel === keuzeSleutel) return;
   keuzeSleutel = sleutel;
@@ -1908,7 +1923,7 @@ function werkKeuzeKnoppenBij(dwing = false) {
     const b = document.createElement('button');
     b.type = 'button';
     b.textContent = `${i + 1} · ${tekst}`;
-    b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); verhaal.kiesHuis(i + 1); werkKeuzeKnoppenBij(dwing); });
+    b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (bpKassa.open) bpKassa.kies(i + 1); else verhaal.kiesHuis(i + 1); werkKeuzeKnoppenBij(dwing); });
     keuzeKnoppen.appendChild(b);
   });
 }
@@ -2977,6 +2992,8 @@ function loop() {
     gezondheid.update(dt);                   // vanzelf herstel tot de helft (stap 138)
     if (AAFF_PAND.nu) AAFF_PAND.nu.update(dt, sfeer.nacht);   // (stap 159) de logo's aaff. en Excellente 's nachts aan
     if (BP_SHOP.nu) BP_SHOP.nu.update(dt, [player.pos]);   // (stap 160) de schuifdeuren en de medewerker van de BP-shop
+    bpKassa.update(dt);                                     // (stap 169) de boost van de energydrank, de kassa dicht als je wegloopt
+    werkBpHintBij();
     if (MOLENFLAT_PAND.nu) MOLENFLAT_PAND.nu.update(dt, sfeer.nacht);   // (stap 163) licht achter de ramen van de flats
     if (pizzabaan) pizzabaan.update(dt, { vrij: !!verhaal.klusVrij && !(verhaal.klusjes && verhaal.klusjes.bezig) });
     djdienst.update(dt, { vrij: !verhaal.missieBezig });
@@ -3059,7 +3076,7 @@ function loop() {
     const blauw = politie.gezocht ? politie.plekken : null;
     if (blauw && politieboot && politieboot.plek) blauw.push({ ...politieboot.plek, wagen: true });
     hud.zetPolitie(blauw);
-    if (player.health <= 0) { politie.reset(); if (politieboot) politieboot.reset(); verhaal.dood(); }
+    if (player.health <= 0) { bpKassa.reset(); politie.reset(); if (politieboot) politieboot.reset(); verhaal.dood(); }
     // zon en schaduwcamera volgen de speler
     const cx = camera.position.x, cz = camera.position.z;
     zetSchaduwDoos(cx, cz);
@@ -3364,6 +3381,7 @@ window.__game = {
   schuifdeuren: SCHUIFDEUREN, werkSchuifdeurenBij,
   get aaff() { return AAFF_PAND.nu; },
   get bpshop() { return BP_SHOP.nu; },
+  bpKassa,
   get geeuwbrug() { return GEEUW_BRUG.nu; },   // (stap 161) de oude Geeuwbrug, voor de proeven
   get molenflat() { return MOLENFLAT_PAND.nu; },   // (stap 163) de flats aan de Molenkrite, voor de proeven
   zetGrafisch, get grafisch() { return grafisch; }, moeilijk, get schaduwKaart() { return SHADOW_MAP; },

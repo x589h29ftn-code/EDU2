@@ -739,7 +739,13 @@ systeemplafond met spots. Er staan twee gondels met snoep en chips, langs de oos
 blikjes, en achterin een wand met zoetwaren onder het bord ZOETWAREN. Bij de deur hangt een groene wand "Bedankt voor uw
 bezoek" en staat een rode ijsvriezer, in het westdeel is een koffiehoek. Achter de balie met de kassa staat een medewerker
 in BP-groen voor de tabakswand; hij kijkt je aan als je binnenkomt. Verder: bordjes boven de gondels, een deurmat, rode
-mandjes, een tijdschriftenrek, olie en autospullen, een menubord boven de balie, een klok, affiches op de pui en een stoepbord. Kopen kan er nog niet: voor nu loop je er alleen rond.
+mandjes, een tijdschriftenrek, olie en autospullen, een menubord boven de balie, een klok, affiches op de pui en een stoepbord. Sinds stap 169 kun je er afrekenen: ga voor de balie staan en druk **E**, dan kies je met **1** of **2**:
+
+- **energydrank** (€ 3): +10 leven, en je rent 5 % sneller. Drink je door, dan loopt dat op tot 20 % na vier blikjes. De
+  boost houdt anderhalve minuut na het laatste blikje en zakt dan in 15 seconden weg;
+- **kraslot** (€ 25): van niets tot € 150. Meestal niets, soms € 10 of € 25, zelden € 50 of € 100 en heel af en toe € 150.
+
+E nog een keer of weglopen sluit de kassa.
 
 | van onder de luifel | voor de deur | binnen | de balie | 's avonds |
 |---|---|---|---|---|
