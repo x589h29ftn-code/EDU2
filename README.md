@@ -231,6 +231,20 @@ remlichten branden als je op de rem staat en de achteruitrijlichten als je achte
 de wijk houdt de zuinige uitvoering, want 329 auto's met losse wielen zou tweeduizend draw calls extra
 kosten.
 
+**Remlichten, achteruitrijlicht, een bestuurder en wielen die draaien** (stap 172). Elke auto die rijdt —
+de jouwe, het verkeer, de politie, Bouwman en de andere auto's uit de missies — laat bij het remmen zijn
+remlichten branden, met een rode gloed eromheen die 's nachts fel is en overdag nog te zien. Remt hij tot
+stilstand, dan blijft de voet op de rem tot hij weer optrekt; uitrollen is geen remmen. Rijdt hij
+achteruit, dan gaat het witte licht aan. In het verkeer zit nu echt iemand achter het stuur, links, met
+zijn handen op tien voor twee, in elke soort auto, bus en vrachtwagen; geparkeerde auto's zijn leeg. In
+de derde persoon zie je Erik zelf achter het stuur van je auto. De wielen draaien zichtbaar mee (eerst
+rolde alleen de band, en die is rondom gelijk), achteruit de andere kant op, en de voorwielen sturen mee
+de bocht in.
+
+![Een remmende auto 's avonds](docs/screenshots/auto_rem_avond.png)
+![Een bestuurder in een bus](docs/screenshots/auto_bestuurder_bus.png)
+![De voorwielen ingedraaid, met de bestuurder achter de voorruit](docs/screenshots/auto_wielen.png)
+
 Het rijden zelf: gas geven trekt af naarmate je sneller gaat, los gas is motorrem plus
 luchtweerstand, en de stuuruitslag wordt kleiner naarmate je harder rijdt — anders is een auto op
 snelheid onbestuurbaar. De auto rijdt bovendien niet precies waar zijn neus wijst: de rijrichting

@@ -1,5 +1,6 @@
 // Tinga Sneek – open-wereld FPS in de wijk Tinga.
 import * as THREE from 'three';
+import { spelerInAuto } from './autodetail.js';
 import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, vervaagLOD, lodVoorbereid, soortenVoorbereid, werkSchaduwBomenBij, updateProps, radioPlekken, vaarbaar, waaitMee, resolveCollisions, addCollider, LOD } from './world.js';
 import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
@@ -2904,6 +2905,8 @@ function loop() {
        Met de camera over je schouder zou je door het dak heen tegen de
        binnenkant van het dashboard aankijken.
       */
+      // (stap 172) van buiten zit Erik zichtbaar achter het stuur (js/bestuurder.js), vanuit je ogen niet
+      spelerInAuto(car, derde.aan);
       const binnen = car.mesh && car.mesh.userData.binnen;
       if (binnen) {
         binnen.groep.visible = !derde.aan;

@@ -7,6 +7,7 @@ import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
 import { makeCar, maakAutoStapel, lakVoor, VER_VANAF } from './carmodel.js';
 import { KAART } from './kaartwereld.js';
+import { werkAutoBij, werkVerkeerBij } from './autodetail.js';
 
 /*
  Hoe steil ligt de weg hier? Peil twee meter voor en achter de auto; op vlak
@@ -232,7 +233,8 @@ export class Vehicles {
       const lane = (i % 4 < 2) ? 2.1 : 6.2;
       // (stap 128, gevraagd: "meer vrachtwagens, ik zie ze bijna niet"): elke vijfde op de N7 is een bakwagen
       const soort = i % 5 === 2 ? 'truck' : r() < 0.3 ? 'van' : 'hatch';
-      const mesh = makeCar(soort === 'truck' ? VRACHT_KLEUREN[i % VRACHT_KLEUREN.length] : LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)], soort);
+      // (stap 172) 'verkeer': losse wielen, rem- en achteruitrijlichten en een bestuurder (js/autodetail.js)
+      const mesh = makeCar(soort === 'truck' ? VRACHT_KLEUREN[i % VRACHT_KLEUREN.length] : LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)], soort, 'verkeer', i);
       scene.add(mesh);
       const speed = soort === 'truck' ? 21 + r() * 3 : 22 + r() * 8;
       if (n7.length) {
@@ -257,7 +259,7 @@ export class Vehicles {
       const path = gladPad(rd.pts);
       // twee van de twaalf zijn een bakwagen die in de wijk aflevert (stap 128)
       const soort = i === 3 || i === 9 ? 'truck' : undefined;
-      const mesh = makeCar(soort ? VRACHT_KLEUREN[i % VRACHT_KLEUREN.length] : LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)], soort);
+      const mesh = makeCar(soort ? VRACHT_KLEUREN[i % VRACHT_KLEUREN.length] : LAKKLEUREN[Math.floor(r() * LAKKLEUREN.length)], soort || 'hatch', 'verkeer', i + 3);
       scene.add(mesh);
       // `lokaal` merkt de wijkauto's, zodat `vulBuurtAan` ze kan laten meeverhuizen
       this.traffic.push({ mesh, path, t: r() * (path.length - 1), dir: 1, lane: 1.4, speed: soort ? 5 + r() : 6 + r() * 2, y: 0.1, bounce: true, lokaal: true, soort });
@@ -1086,12 +1088,6 @@ export class Vehicles {
     m.rotation.x = helling(car.x, car.z, car.yaw, y);
     const u = m.userData;
     if (!u || !u.wielen) return;
-    // wielen: de voorste sturen, alle vier rollen mee met de afgelegde weg
-    const rol = car.speed * dt / u.R;
-    for (const w of u.wielen) {
-      if (w.stuur) w.groep.rotation.y += (car.steer - w.groep.rotation.y) * Math.min(1, dt * 12);
-      w.band.rotation.x -= rol;
-    }
     // carrosserie: overhellen in de bocht, duiken bij het remmen
     const draai = dt > 0 ? (car.yaw - vorigeYaw) / dt : 0;
     const zijwaarts = draai * car.speed;                       // dwarsversnelling
@@ -1101,8 +1097,8 @@ export class Vehicles {
     const duikDoel = Math.max(-0.05, Math.min(0.05, -langs * 0.004));
     u.bak.rotation.z += (rolDoel - u.bak.rotation.z) * Math.min(1, dt * 6);
     u.bak.rotation.x += (duikDoel - u.bak.rotation.x) * Math.min(1, dt * 6);
-    if (u.rem) u.rem.visible = !!(invoer.hand || (invoer.rem && car.speed > 0.2));
-    if (u.achteruit) u.achteruit.visible = car.speed < -0.2;
+    // (stap 172) wielen, remlicht, achteruitrijlicht en de bestuurder: js/autodetail.js, uit de beweging zelf
+    werkAutoBij(car, dt, invoer);
   }
 
   // Verkeer. Auto's kijken een stukje vooruit en remmen voor elkaar, voor de
@@ -1353,7 +1349,8 @@ export class Vehicles {
       t.mesh.rotation.order = 'YXZ';
       t.mesh.rotation.y = Math.atan2(-pl.dx, -pl.dz) + (t.zijHoek || 0);    // (zijHoek: uitwijken, stap 173)
       t.mesh.rotation.x = helling(tx, tz, t.mesh.rotation.y, ty - t.y);
-      if (t.remlicht) t.remlicht.visible = t.doel < t.speed * 0.6;
+      // (stap 172) wielen, remlicht en bestuurder; `t.remlicht` werd nergens gezet
+      werkVerkeerBij(t, dt, camX, camZ);
     }
   }
 
