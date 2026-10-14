@@ -804,6 +804,38 @@
         "pitch": 0.08
       },
       "bron": "foto van de gebruiker (20 sep 2026, met het pandnummer uit toets P): de galerijflat aan het water. Uit de data: BGT-pand 0091100000019596, Scherwolderhemstraat 27-73, 614 m2 (15 x 70 m), bouwjaar 1965, goot en nok allebei 11,0 m (plat dak). Van de foto komen kleur en indeling: een donkere onderbouw met bergingen, daarboven drie woonlagen met een galerij ervoor, roodbruine steen tussen de puien en een hekwerk van staande spijlen in roodbruin."
+    },
+    "0091100000002678": {
+      "type": "vuurvlinder_grijs",
+      "bron": "Street View van Vuurvlinder 3 van de gebruiker (13 okt 2026, gemeld vanaf 906.5, 324.5: 'die huizen'). De oneven rij 1-15 is nieuwbouw van 2007 in kubistische blokken; in het 3D BAG-model een lage achterbouw op 3 m en een dakvlak van 6,6 naar 10,4 m zonder nok, om en om hoog aan de straat of aan de tuin. Dat is de vorm en die blijft. Van de foto: antraciete baksteen in lange smalle stenen, brede cremewitte kaders, een raam tot de grond met melkglas, een donkere dakrand. Stonden als molenkrite_kap: geelbeige steen met witte boeiboorden en witte kapelwangen. Nummer 1 (het hoekpand, links op de foto) is lichter grijs: vuurvlinder_grijs."
+    },
+    "0091100000002968": {
+      "type": "vuurvlinder",
+      "bron": "Street View van Vuurvlinder 3 van de gebruiker (13 okt 2026, gemeld vanaf 906.5, 324.5: 'die huizen'). De oneven rij 1-15 is nieuwbouw van 2007 in kubistische blokken; in het 3D BAG-model een lage achterbouw op 3 m en een dakvlak van 6,6 naar 10,4 m zonder nok, om en om hoog aan de straat of aan de tuin. Dat is de vorm en die blijft. Van de foto: antraciete baksteen in lange smalle stenen, brede cremewitte kaders, een raam tot de grond met melkglas, een donkere dakrand. Stonden als molenkrite_kap: geelbeige steen met witte boeiboorden en witte kapelwangen."
+    },
+    "0091100000004743": {
+      "type": "vuurvlinder",
+      "bron": "Vuurvlinder 5: dezelfde rij en hetzelfde grondvlak als nummer 3 (0091100000002968), zie daar."
+    },
+    "0091100000002387": {
+      "type": "vuurvlinder",
+      "bron": "Vuurvlinder 7: dezelfde rij en hetzelfde grondvlak als nummer 3 (0091100000002968), zie daar."
+    },
+    "0091100000002385": {
+      "type": "vuurvlinder",
+      "bron": "Vuurvlinder 9: dezelfde rij en hetzelfde grondvlak als nummer 3 (0091100000002968), zie daar."
+    },
+    "0091100000003700": {
+      "type": "vuurvlinder",
+      "bron": "Vuurvlinder 11: dezelfde rij en hetzelfde grondvlak als nummer 3 (0091100000002968), zie daar."
+    },
+    "0091100000002659": {
+      "type": "vuurvlinder",
+      "bron": "Vuurvlinder 13: dezelfde rij en hetzelfde grondvlak als nummer 3 (0091100000002968), zie daar."
+    },
+    "0091100000019011": {
+      "type": "vuurvlinder",
+      "bron": "Vuurvlinder 15: dezelfde rij en hetzelfde grondvlak als nummer 3 (0091100000002968), zie daar."
     }
   },
   "standaard": {

@@ -94,9 +94,9 @@ function shade(hex, f) {
 // varianten is ruim genoeg; een eigen texture per woning kostte honderden
 // megabytes videogeheugen.
 const BRICK_VARIANTEN = 2;
-export function brick(base = '#8a6752', mortar = '#b9b2a6', seed = 1) {
+export function brick(base = '#8a6752', mortar = '#b9b2a6', seed = 1, lang = false) {
   seed = ((seed % BRICK_VARIANTEN) + BRICK_VARIANTEN) % BRICK_VARIANTEN;
-  const key = `brick${base}${mortar}${seed}`;
+  const key = `brick${base}${mortar}${seed}${lang ? 'L' : ''}`;
   if (cache.has(key)) return cache.get(key);
   // 512 px voor 2,6 m is 197 px/m. Waalformaat: 21 x 5 cm steen met een voeg
   // van ruim een centimeter, in halfsteensverband.
@@ -106,7 +106,9 @@ export function brick(base = '#8a6752', mortar = '#b9b2a6', seed = 1) {
   // voeg: iets donkerder en grijzer dan opgegeven, met korrel
   g.fillStyle = shade(mortar, 0.9); g.fillRect(0, 0, S, S);
   for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(0,0,0,${r() * 0.08})`; g.fillRect(r() * S, r() * S, 2, 2); }
-  const bw = 0.21 * PM, bh = 0.052 * PM, voeg = 0.012 * PM;
+  // `lang` (stap 166, de Vuurvlinder): lange smalle stenen van 29 x 4 cm, zoals de
+  // antraciete nieuwbouw in Duinterpen; de voeg blijft ruim een centimeter
+  const bw = (lang ? 0.29 : 0.21) * PM, bh = (lang ? 0.04 : 0.052) * PM, voeg = 0.012 * PM;
   const rijen = Math.ceil(S / (bh + voeg)) + 1;
   for (let row = 0; row < rijen; row++) {
     const y = row * (bh + voeg);
@@ -1115,6 +1117,23 @@ export const HOUSE_STYLES = {
   // voordeur, witte boeiboord boven de pui, roodbruine plint.
   molenkrite_kap: { brick: ['#a9906c', '#cfc6b4'], frame: '#ffffff', frame2: '#1f2f4f', door: ['#1f3a2a', '#1f2f5f', '#2a2a2a'], roof: '#3d3430', roofType: 'gable', storeys: 1, w: 5.4, dormer: true, dormerGroot: true, chimney: false, band: '#f2f2f2', plint: '#6a3a2e' },
   /*
+   De Vuurvlinder in Duinterpen, oneven 1–17, 31 en 33 (stap 166, Street View van nummer 3 van de gebruiker, 13 okt 2026).
+   Nieuwbouw van 2007 in kubistische blokken: een lager blok van twee lagen en een toren van drie, om en om aan de
+   straat (de vorm staat zo in het 3D BAG-model: een vlak van 6,6 naar 10,4 m, de ene woning hoog aan de voorkant,
+   de buurman hoog aan de achterkant). Van de foto komen kleur en indeling: antraciete baksteen in lange smalle
+   stenen met een donkere voeg, grote ramen in brede crèmewitte kaders die iets uit de gevel steken, op de begane
+   grond een raam tot de grond met melkglas onderin, geen witte boeiboord maar een donkere dakrand. `storeyH` 3,4:
+   de toren van 10,2 m is drie lagen, het lage blok van 6,7 m twee. `geenKapel`: de muren boven de lage achterbouw
+   (vanaf 3 m) zijn geen wangen van een dakkapel. Het dakvlak is donkere plaat en geen pannen.
+   `vuurvlinder_grijs` is het hoekpand 1 (links op de foto): dezelfde bouw in een lichtere grijze steen.
+  */
+  vuurvlinder: { brick: ['#4c4a4a', '#575553'], pijp: '#2e2f31', langeSteen: true, kubus: true, geenKapel: true,
+    frame: '#ece6d4', frame2: '#ece6d4', door: ['#2c2e31', '#3a3d41'], roof: '#3b3d40', roofType: 'gable', metaaldak: true, dakGlans: 0.05,
+    storeys: 2, storeyH: 3.4, w: 5.8, dormer: false, chimney: false, band: '#38393c', plint: '#2b2c2e' },
+  vuurvlinder_grijs: { brick: ['#706d6a', '#7a7774'], pijp: '#3a3b3d', langeSteen: true, kubus: true, geenKapel: true,
+    frame: '#ece6d4', frame2: '#ece6d4', door: ['#2c2e31', '#3a3d41'], roof: '#3b3d40', roofType: 'gable', metaaldak: true, dakGlans: 0.05,
+    storeys: 2, storeyH: 3.4, w: 5.8, dormer: false, chimney: false, band: '#4a4b4d', plint: '#2b2c2e' },
+  /*
    De tiny houses aan de Molenkrite, tegenover Jeugdhulp Friesland (foto van de
    gebruiker, 19 sep 2026, met de Street View ernaast). Twintig losse woningen
    van eenendertig vierkante meter, goot op 4,2 en nok op 6,3 — dat staat zo in
@@ -1896,9 +1915,21 @@ function gevelDoek(type, n, storeys, back, seed) {
   const bimg = st.hout ? planks(st.hout).image
     : st.damwand ? damwand(st.brick[0]).image
     : st.plaster ? plaster(st.brick[0]).image
-    : brick(st.brick[0], st.brick[1], seed).image;
-  const pat = g.createPattern(bimg, 'repeat');
-  const sc = PM * (st.hout ? 1.2 : 2.6) / bimg.width;
+    : brick(st.brick[0], st.brick[1], seed, !!st.langeSteen).image;
+  /*
+   (stap 166) Lange smalle stenen zijn op 21 px/m maar 0,8 pixel hoog: het patroon in één keer verkleinen gaf banen van
+   moiré over de gevel. Daarom eerst halveren tot vlak boven de doelmaat, dan pas het laatste stukje.
+  */
+  let bimg2 = bimg;
+  if (st.langeSteen) {
+    const doel = PM * 2.6;
+    while (bimg2.width / 2 >= doel) {
+      const h = canvas(Math.round(bimg2.width / 2), Math.round(bimg2.height / 2)), hg = h.getContext('2d');
+      hg.drawImage(bimg2, 0, 0, h.width, h.height); bimg2 = h;
+    }
+  }
+  const pat = g.createPattern(bimg2, 'repeat');
+  const sc = PM * (st.hout ? 1.2 : 2.6) / bimg2.width;
   g.save(); g.scale(sc, sc); g.fillStyle = pat; g.fillRect(0, 0, HW * n / sc, H / sc); g.restore();
   // lichte vervuiling onder de dakrand en boven de plint
   const vuil = g.createLinearGradient(0, 0, 0, H);
@@ -2510,6 +2541,44 @@ function gevelDoek(type, n, storeys, back, seed) {
         for (let k = eerste; k < 3; k++) win(x0 + m(0.5 + k * 1.9), ry, m(1.2), rh, st.frame, { kaal: !kantoor });
         if (eerste) staalDeur(x0 + m(0.5), H - m(2.2), m(1.0), m(2.2), doorColor);
       }
+    } else if (st.kubus && !back) {
+      /*
+       De Vuurvlinder (stap 166): per laag één groot raam in een breed crèmewit kader dat iets uit de gevel
+       steekt (licht bovenrandje, slagschaduw rechtsonder), om en om links of rechts van het midden. Op de
+       begane grond een raam tot de grond met melkglas in de onderste meter, en de voordeur aan de andere kant.
+      */
+      const kader = (x, y, w, h) => {
+        const k = m(0.17);
+        g.fillStyle = 'rgba(0,0,0,0.38)'; g.fillRect(x - k + m(0.07), y - k + m(0.09), w + 2 * k, h + 2 * k);
+        g.fillStyle = st.frame; g.fillRect(x - k, y - k, w + 2 * k, h + 2 * k);
+        g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(x - k, y - k, w + 2 * k, m(0.03));
+        g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x - k, y + h + k - m(0.03), w + 2 * k, m(0.03));
+        win(x, y, w, h, st.frame);
+      };
+      const links = mirror ? (seed % 2 === 0) : (seed % 2 === 1);
+      // begane grond: het raam tot de grond en de deur
+      const ww = Math.min(m(2.9), HW - m(2.4)), wh = m(2.55);
+      const wx = links ? x0 + m(0.45) : x0 + HW - m(0.45) - ww;
+      kader(wx, H - m(0.3) - wh, ww, wh);
+      const melk = m(1.0);
+      g.fillStyle = 'rgba(214,222,222,0.9)'; g.fillRect(wx + m(0.1), H - m(0.3) - melk - m(0.02), ww - m(0.2), melk - m(0.06));
+      g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(wx + m(0.1), H - m(0.3) - melk - m(0.02), ww - m(0.2), m(0.03));
+      const dw = m(1.0), dh = m(2.3);
+      const dx = links ? x0 + HW - m(0.7) - dw : x0 + m(0.7);
+      g.fillStyle = 'rgba(0,0,0,0.38)'; g.fillRect(dx - m(0.1), H - dh - m(0.12), dw + m(0.3), dh + m(0.12));
+      g.fillStyle = st.frame; g.fillRect(dx - m(0.15), H - dh - m(0.15), dw + m(0.3), dh + m(0.15));
+      g.fillStyle = doorColor; g.fillRect(dx, H - dh, dw, dh);
+      g.fillStyle = '#28323a'; g.fillRect(dx + dw * 0.2, H - dh + m(0.2), dw * 0.18, dh - m(0.5));
+      g.fillStyle = 'rgba(200,220,240,0.35)'; g.fillRect(dx + dw * 0.22, H - dh + m(0.22), dw * 0.06, dh - m(0.6));
+      g.fillStyle = '#c9c9c9'; g.fillRect(dx + dw * 0.72, H - dh * 0.5, m(0.04), m(0.4));
+      // de verdiepingen: één raam per laag, afwisselend naar links en naar rechts
+      for (let s = 1; s < storeys; s++) {
+        const fy = H - (s + 1) * SH * PM;
+        const bw = m(s === 1 ? 2.2 : 1.8), bh = m(1.45);
+        const naarLinks = (s % 2 === 1) ? links : !links;
+        const bx = naarLinks ? x0 + m(0.75) : x0 + HW - m(0.75) - bw;
+        kader(bx, fy + m(SH - 2.35), bw, bh);
+      }
     } else if (!back) {
       if (st.storeys >= 1 && type !== 'appart' && type !== 'spil') {
         // grote woonkamerpui + deur
@@ -2584,7 +2653,7 @@ function gevelDoek(type, n, storeys, back, seed) {
       g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x0, m(bandH), HW, m(0.06));
       // regenpijp op de woningscheiding
       if (!st.plaster && !st.detached && !st.damwand) {
-        g.fillStyle = '#8f9296'; g.fillRect(x0 + m(0.06), m(0.28), m(0.08), H - m(0.28));
+        g.fillStyle = st.pijp || '#8f9296'; g.fillRect(x0 + m(0.06), m(0.28), m(0.08), H - m(0.28));
         g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x0 + m(0.12), m(0.28), m(0.03), H - m(0.28));
         g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x0, 0, m(0.04), H);
       }

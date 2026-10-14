@@ -990,6 +990,13 @@ plint langs de zuidkant en een lage witte aanbouw met de entree onder een blauwe
 |---|---|---|
 | ![](docs/screenshots/tennishal_entree.png) | ![](docs/screenshots/tennishal_lang.png) | ![](docs/screenshots/tennishal_boven.png) |
 
+**De Vuurvlinder** (stap 166): de oneven rij 1–15 aan de Vuurvlinder in Duinterpen is nieuwbouw in antraciete baksteen:
+kubistische blokken, om en om een laag blok van twee lagen en een toren van drie, grote ramen in brede crèmewitte kaders,
+op de begane grond een raam tot de grond met melkglas onderin, en een donkere dakrand. Het hoekpand 1 is lichter grijs.
+
+| vanaf de stoep voor nummer 3 | de rij | van boven | 's avonds |
+|---|---|---|---|
+| ![](docs/screenshots/vuurvlinder_straat.png) | ![](docs/screenshots/vuurvlinder_rij.png) | ![](docs/screenshots/vuurvlinder_schuin.png) | ![](docs/screenshots/vuurvlinder_nacht.png) |
 **De flats aan de Molenkrite** (stap 163): de twee molenvormige flats aan de Molenkrite (nummers 134–232) waren kale
 blokken lichte baksteen zonder ramen. Nu staan ze er zoals in het echt: donkerbruine baksteen in trappen van één, twee en drie
 lagen, brede witte dakranden die schuin over de gevel steken met een donkere, bemoste kap erboven, ramen met blauwe kozijnen in
