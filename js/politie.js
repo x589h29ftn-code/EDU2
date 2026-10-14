@@ -22,6 +22,7 @@
 
  Een agent neerschieten is de duurste misdaad die er is.
 */
+import { BOTS } from './rijgedrag.js';   // (stap 171) de duw na een ramming
 import * as THREE from 'three';
 import { Persoon } from './persoon.js';
 import { resolveCollisions, zichtVrij } from './world.js';
@@ -1462,6 +1463,14 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     const voor = (car.x - pc.x) * fxP + (car.z - pc.z) * fzP;            // voor of achter het midden
     pc.yaw += -Math.sign(zij || 1) * Math.sign(voor || -1) * Math.min(0.6, rel * 0.035);
     pc.speed *= 0.55;
+    /*
+     (stap 171) En een zijwaartse duw weg van de politiewagen, met een draai die uitdempt: js/vehicles.js laat die in
+     `drive` van de speler doorlopen (js/rijgedrag.js `werkNaBij`), langs de muren en nooit erdoor.
+    */
+    const dl = Math.hypot(pc.x - car.x, pc.z - car.z) || 1, duw = Math.min(BOTS.maxDuw, rel * 0.3);
+    pc.duw = { x: (pc.x - car.x) / dl * duw, z: (pc.z - car.z) / dl * duw };
+    pc.tol = Math.max(-BOTS.maxTol, Math.min(BOTS.maxTol, (pc.tol || 0) - Math.sign(zij || 1) * Math.sign(voor || -1) * Math.min(1.2, rel * 0.05)));
+    pc.glijT = BOTS.glij;
     ramKlap = { kracht: rel, x: car.x, z: car.z };
   }
 

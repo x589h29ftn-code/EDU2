@@ -16,6 +16,18 @@
 // De browser staat pas geluid toe na een klik of toets, dus alles start bij de
 // eerste invoer van de speler. Met U zet je het geluid uit en weer aan.
 
+/*
+ (stap 171) De toon van de motor bij een toerental: `n` is het deel tussen stationair en de rode streep, en de toon
+ loopt mee zoals de oude bak deed (48 + n·155 Hz en de ondertoon de helft). Een motor met een hogere rode streep (de
+ Ferrari, 8500) klinkt navenant hoger. Los te gebruiken voor proeven: `import { motorToon } from './js/audio.js'`.
+*/
+export function motorToon({ toeren, rood = 6200, stationair = 850 }) {
+  const n = Math.max(0, Math.min(1.05, (toeren - stationair) / Math.max(1, rood - stationair)));
+  const hoog = Math.max(0.6, Math.min(1.5, rood / 6200));
+  const k = 0.30 + n * 0.70;
+  return { n, f1: (48 + k * 155) * Math.sqrt(hoog), f2: (24 + k * 78) * Math.sqrt(hoog), gain: 0.036 + k * 0.038 };
+}
+
 let ctx = null;
 let hoofd = null;      // eindvolume
 let aan = false;
@@ -1039,6 +1051,8 @@ export const geluid = {
     setTimeout(() => { try { m.o1.stop(); m.o2.stop(); } catch {} }, 500);
     bronnen.motor = null;
   },
+  // (stap 171) wat de motor nu laat horen: de versnelling en de toon (voor proeven)
+  motorStand() { const m = bronnen.motor; return m ? { bak: m.bak, toon: m.toon || null } : null; },
 
   /*
    Toeren en versnellingen. Zonder versnellingsbak loopt de toonhoogte recht met
@@ -1049,9 +1063,35 @@ export const geluid = {
 
    `top` is de topsnelheid van dít voertuig (een bakwagen schakelt eerder op).
   */
-  motorToeren(snelheid, top = 24) {
+  motorToeren(snelheid, top = 24, info = null) {
     const m = bronnen.motor; if (!m) return;
     const t = nu();
+    /*
+     (stap 171) Met `info` ({ toeren, rood, stationair, bak }) komt het toerental uit de versnellingsbak van de auto
+     zelf (js/rijgedrag.js `werkBakBij`): de toon volgt dan precies wat de toerenteller laat zien, en zakt bij het
+     opschakelen. Zonder `info` (een oude aanroep) blijft de bak hieronder, op de snelheid.
+    */
+    if (info && info.toeren) {
+      const toon = motorToon(info);
+      if (m.bak === undefined) m.bak = info.bak;
+      if (info.bak > 0 && info.bak !== m.bak) {
+        if (info.bak > m.bak) {
+          m.schakelT = t + 0.14;
+          tik({ freq: 240, q: 2.4, duur: 0.05, volume: 0.05, type: 'lowpass', val: 0.5 });
+        }
+        m.bak = info.bak;
+      }
+      if (info.bak < 0) m.bak = info.bak;
+      const schakelt = (m.schakelT || 0) > t;
+      const gas = schakelt ? 0.35 : 1;
+      const tau = schakelt ? 0.03 : 0.07;
+      m.o1.frequency.setTargetAtTime(toon.f1, t, tau);
+      m.o2.frequency.setTargetAtTime(toon.f2, t, tau);
+      m.filter.frequency.setTargetAtTime(380 + toon.n * 1500 * gas, t, 0.12);
+      m.gain.gain.setTargetAtTime(toon.gain * gas, t, schakelt ? 0.05 : 0.15);
+      m.toon = toon;
+      return;
+    }
     const v = Math.abs(snelheid);
     // grenzen waarbij er opgeschakeld wordt, als deel van de topsnelheid
     const GRENZEN = [0.16, 0.32, 0.52, 0.76, 1.02].map(f => f * top);
