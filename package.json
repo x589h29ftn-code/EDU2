@@ -70,6 +70,7 @@
     "aafftest": "node tools/aafftest.mjs 8123",
     "bptest": "node tools/bptest.mjs 8123",
     "bpkassatest": "node tools/bpkassatest.mjs 8123",
+    "baliestest": "node tools/baliestest.mjs 8123",
     "bpshots": "node tools/bpshots.mjs 8123",
     "aaffshots": "node tools/aaffshots.mjs 8123",
     "tennishaltest": "node tools/tennishaltest.mjs 8123",

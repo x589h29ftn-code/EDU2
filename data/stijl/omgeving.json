@@ -582,6 +582,15 @@
         ],
         "muur": 70,
         "bron": "gebruiker, chat 12 sep 2026: 'op plek 800.9, -554.2 een invisible wall met wegafsluiting hekken'"
+      },
+      {
+        "naam": "Rondweg oost",
+        "punt": [
+          1708.4,
+          -110.1
+        ],
+        "muur": 70,
+        "bron": "gebruiker, 14 okt 2026 (stap 170): 'rond 1708.4, -110.1 een wegversperring en invisible wall. Dus einde rondweg die kant op'"
       }
     ]
   },

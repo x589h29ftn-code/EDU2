@@ -6944,10 +6944,14 @@ export function initVerhaal(ctx) {
     const g = garage && garage(), b = g && g.plekken && g.plekken.balie;
     return !!(b && afst(sp, b) < GELDRACE_BALIE);
   }
+  // (stap 170) of Sjoerd nu de race voor geld zou aanbieden; js/tuning.js zet hem dan als 6 in het menu van de balie
+  function geldraceKan() {
+    if (!raceKlaar || geldInleg || geldKiezen || missie !== 'klaar' || player.inCar || klusjes.bezig || uitjeBezig()) return false;
+    return geldBijDeBalie(spelerPunt());
+  }
   function geldraceToets() {
     // (niet tijdens een middag met Mark: dan reed je weg en bleef hij bij het veld staan; stap 121)
-    if (!raceKlaar || geldInleg || geldKiezen || missie !== 'klaar' || player.inCar || klusjes.bezig || uitjeBezig()) return false;
-    if (!geldBijDeBalie(spelerPunt())) return false;
+    if (!geldraceKan()) return false;
     zeg(GELDRACE_AANBOD, () => {
       geldKiezen = true;
       zetOpdracht(`kies je inleg: 1 — ${euro(GELDRACE_INLEG[0])} · 2 — ${euro(GELDRACE_INLEG[1])} · 3 — ${euro(GELDRACE_INLEG[2])}`);
@@ -13006,6 +13010,7 @@ export function initVerhaal(ctx) {
     get dief() { return dief; },
     get johan() { return johan; },
     betaal, verdien,
+    geldraceKan, geldraceStart: () => geldraceToets(),
     get geld() { return geld; },
     get buit() { return buit; },
     get truck() { return truck; },

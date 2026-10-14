@@ -892,7 +892,7 @@ const spuiterij = initSpuiterij({ scene, player, vehicles, hud, verhaal, politie
 */
 const garage = (KAART && !BOVEN) ? initGarage({ scene, player, vehicles, hud, verhaal, sfeer: dagKlok }) : null;
 // tuning en decals aan het eind van de balie, alleen voor je eigen auto (stap 131)
-const tuning = garage ? initTuning({ scene, vehicles, garage, player, hud }) : null;
+const tuning = garage ? initTuning({ scene, vehicles, garage, player, hud, geldrace: { kan: () => verhaal.geldraceKan(), start: () => verhaal.geldraceStart() } }) : null;
 // de klok voor wat het uur nodig heeft vóór js/sfeer.js bestaat (die komt verderop)
 const uurKlok = { get uur() { try { return sfeer.uur; } catch { return 12; } } };
 // Martens Vishandel voor de Jumbo aan de Molenkrite (stap 131)
@@ -987,7 +987,7 @@ const tennisspel = (KAART && !BOVEN) ? initTennisspel({ scene, KAART, player, hu
 // de knoppen van Radio Tinga overnemen (stap 131)
 const djdienst = initDjDienst({ studio, geluid, hud, player, verdien: n => verhaal.verdien(n), nieuws });
 // (stap 169) de kassa van de BP-shop: energydrank en kraslot
-const bpKassa = initBpKassa({ player, hud, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n) });
+const bpKassa = initBpKassa({ player, hud, geluid, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n) });
 extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : []),
   ...(pizzabaan ? pizzabaan.plekken : []), ...(vishandel && vishandel.winkels ? vishandel.winkels : [])];
 winkelsNu = null; werkKaartvlaggenBij();
@@ -1708,12 +1708,14 @@ function werkBpHintBij() {
 function praatOfAuto() {
   if (!player.active && !window.__autoplay) return;   // op het startscherm niet
   if (tennisspel && tennisspel.bezig) { tennisspel.slag(); return; }
+  // (stap 170) de tuning bij Sjoerd aan de balie vóór het verhaal: met je eigen auto voor de deur opent E het menu (met de
+  // race voor geld als 6); zonder laat hij de E aan Sjoerds aanbod in js/verhaal.js
+  if (tuning && tuning.toets()) return;
   if (verhaal.toets()) return;
   for (const r of binnenruimtes) if (r.toets()) return;
   if (djdienst.toets()) return;               // aan de knoppen van Radio Tinga (stap 131)
   if (bpKassa.toets()) return;                // de kassa van de BP-shop (stap 169)
   if (pizzabaan && pizzabaan.toets()) return; // pizza bezorgen (stap 131)
-  if (tuning && tuning.toets()) return;       // tuning en decals aan het eind van de balie
   if (garage && garage.toets()) return;       // een auto kopen in de showroom
   if (vishandel && vishandel.toets()) return; // kibbeling bij Martens (stap 131)
   if (tennisspel && tennisspel.toets()) return;

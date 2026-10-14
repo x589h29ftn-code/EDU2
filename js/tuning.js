@@ -3,7 +3,9 @@
  Alleen met je eigen gekochte auto. Voeg ook optie om decals toe te voegen op de auto zoals logo radio
  spannenburg. Radio Markant en bedenk er nog paar random zonder radio").
 
- Waar: aan het eind van de balie staat een zuil met een scherm TUNING (`TUNING.zuil`), en op de wand
+ Waar (sinds stap 170, "auto tuning kan je ook bij de balie van de autogarage aanvragen ipv tuning box"): bij Sjoerd aan de
+ balie (`balieBereik`); is de race voor geld er, dan staat die in hetzelfde menu als 6. Tot stap 170: aan het eind van de balie
+ stond een zuil met een scherm TUNING (`TUNING.zuil`), en op de wand
  erachter hetzelfde bord. Je staat er op `TUNING.plek`. Dat is bewust niet bij Sjoerd zelf: daar biedt
  hij na missie 14 de race voor geld aan (`geldraceToets` in js/verhaal.js, binnen 2,8 m van de balie),
  en die E gaat vóór. Het gebied van de tuning (`bereik`) blijft daarom overal minstens `balieVrij` van
@@ -47,8 +49,9 @@ import { GARAGE } from './bouwvlak.js';
 export const TUNING = {
   plek: { x: 783.4, z: 144.0 },      // waar je staat (aan het eind van de balie, kant van de wand)
   zuil: { x: 784.6, z: 144.0 },      // de zuil met het scherm
-  bereik: 1.3,                       // zo dicht bij de plek gaat E naar de tuning
-  balieVrij: 2.9,                    // en minstens zo ver van het hart van de balie (de geldrace zit op 2,8)
+  bereik: 1.3,                       // (tot stap 170: zo dicht bij de zuil)
+  balieVrij: 2.9,                    // (tot stap 170)
+  balieBereik: 2.8,                  // sinds stap 170: zo dicht bij Sjoerd aan de balie gaat E naar de tuning
   autoBereik: 16,                    // je eigen auto: op het voorterrein, of zo dicht bij de plek
   sluitVanaf: 3.2,                   // verder weggelopen: het menu gaat dicht
   motor: { prijs: 1500, factor: 1.12 },
@@ -270,7 +273,7 @@ function schoon(g) {
   return t;
 }
 
-export function initTuning({ scene, vehicles, garage, player, hud }) {
+export function initTuning({ scene, vehicles, garage, player, hud, geldrace = null }) {
   // ---------- materialen, vanaf het opstarten ----------
   const opties = { transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, roughness: 0.45, metalness: 0.1 };
   const DMAT = {};
@@ -283,7 +286,6 @@ export function initTuning({ scene, vehicles, garage, player, hud }) {
   const ZWART = new THREE.MeshStandardMaterial({ color: 0x141518, metalness: 0.3, roughness: 0.55 });
   const bordTex = bordDoek();
   const BORD = new THREE.MeshStandardMaterial({ map: bordTex, emissive: 0xffffff, emissiveMap: bordTex, emissiveIntensity: 0.55, roughness: 0.5 });
-  const ZUILMAT = new THREE.MeshStandardMaterial({ color: 0x24262c, metalness: 0.4, roughness: 0.5 });
 
   // de vleugel en zijn steunen (gedeeld; de lak komt per auto uit `lakVoor`)
   const VLEUGEL = { blad: new THREE.BoxGeometry(1, 0.035, 0.25), plaat: new THREE.BoxGeometry(0.025, 0.15, 0.3), steun: new THREE.BoxGeometry(0.04, 1, 0.07) };
@@ -297,17 +299,11 @@ export function initTuning({ scene, vehicles, garage, player, hud }) {
   scene.add(staal);
 
   // ---------- de zuil met het scherm, en het bord op de wand ----------
+  // (stap 170) geen zuil meer: de tuning vraag je bij Sjoerd aan de balie aan ("ipv tuning box"); het bord op de wand blijft
   const Z = TUNING.zuil;
-  const zuil = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.25, 0.5), ZUILMAT);
-  zuil.position.set(Z.x, VLOER + 0.625, Z.z); zuil.castShadow = true; zuil.receiveShadow = true;
-  scene.add(zuil);
-  const scherm = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.23), BORD);
-  scherm.position.set(Z.x - 0.252, VLOER + 1.0, Z.z); scherm.rotation.y = -Math.PI / 2;
-  scene.add(scherm);
   const wandBord = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.0), BORD);
   wandBord.position.set(GARAGE.x1 - 0.14, 3.0, Z.z); wandBord.rotation.y = -Math.PI / 2;
   scene.add(wandBord);
-  addCollider(Z.x, Z.z, 0.25, 0.25, 0, 1.3);
 
   // ---------- het plaatwerk aftasten ----------
   const tastMat = new THREE.MeshBasicMaterial();          // wordt nooit getekend
@@ -553,10 +549,12 @@ export function initTuning({ scene, vehicles, garage, player, hud }) {
 
   // ---------- waar ben je, en welke auto ----------
   const balie = () => (garage && garage.plekken && garage.plekken.balie) || { x: 784.4, z: 139.8 };
+  // (stap 170) bij Sjoerd aan de balie, net zo dichtbij als voor de race voor geld (`GELDRACE_BALIE` in js/verhaal.js)
   function bijPlek(x, z) {
     const b = balie();
-    return Math.hypot(x - TUNING.plek.x, z - TUNING.plek.z) < TUNING.bereik && Math.hypot(x - b.x, z - b.z) > TUNING.balieVrij;
+    return Math.hypot(x - b.x, z - b.z) < TUNING.balieBereik;
   }
+  const geldraceKan = () => !!(geldrace && geldrace.kan && geldrace.kan());
   const V = GARAGE.voor;
   function opVoorterrein(c) {
     return c.x > V.x0 - 3 && c.x < V.x1 + 3 && c.z > V.z0 - 3 && c.z < V.z1 + 3;
@@ -566,7 +564,7 @@ export function initTuning({ scene, vehicles, garage, player, hud }) {
   function autoBij() {
     let beste = null, bd = Infinity;
     for (const c of eigenAutos()) {
-      const d = Math.hypot(c.x - TUNING.plek.x, c.z - TUNING.plek.z);
+      const b = balie(), d = Math.hypot(c.x - b.x, c.z - b.z);
       if ((opVoorterrein(c) || d < TUNING.autoBereik) && d < bd) { bd = d; beste = c; }
     }
     return beste;
@@ -633,6 +631,7 @@ export function initTuning({ scene, vehicles, garage, player, hud }) {
         : { n: 3, tekst: 'Spoiler', prijs: t.spoiler ? 'eraf: gratis' : euro(TUNING.spoiler.prijs), aan: t.spoiler },
       { n: 4, tekst: 'Velgen…', prijs: `${euro(TUNING.velg.prijs)}` },
       { n: 5, tekst: 'Decals…', prijs: `${euro(TUNING.decal.prijs)} per stuk` },
+      ...(geldraceKan() ? [{ n: 6, tekst: 'Racen voor geld (Sjoerd)', prijs: '' }] : []),
       { n: 0, tekst: 'Sluiten', prijs: 'E' },
     ];
   }
@@ -700,6 +699,7 @@ export function initTuning({ scene, vehicles, garage, player, hud }) {
         klaar('SPOILER', `${euro(TUNING.spoiler.prijs)} · in de kleur van je lak`);
       } else if (n === 4) { scherm_ = 'velg'; teken(); }
       else if (n === 5) { scherm_ = 'decal'; teken(); }
+      else if (n === 6 && geldraceKan()) { sluit(); geldrace.start(); }
       return true;
     }
     if (scherm_ === 'velg') {
@@ -745,6 +745,9 @@ export function initTuning({ scene, vehicles, garage, player, hud }) {
     if (!player.active && !window.__autoplay) return false;
     if (player.inCar) return false;
     if (!bijPlek(player.pos.x, player.pos.z)) return false;
+    if (!eigenAutos().length || !autoBij()) {
+      if (geldraceKan()) return false;         // dan is de E van Sjoerds aanbod (js/verhaal.js geldraceToets)
+    }
     if (!eigenAutos().length) {
       if (hud) hud.melding('Tuning', 'Sjoerd: "Tunen doe ik alleen aan een auto die je hier gekocht hebt."', 4);
       return true;
@@ -763,7 +766,7 @@ export function initTuning({ scene, vehicles, garage, player, hud }) {
   function update(dt, bezet = false) {
     const px = player.pos.x, pz = player.pos.z;
     if (open) {
-      const weg = Math.hypot(px - TUNING.plek.x, pz - TUNING.plek.z) > TUNING.sluitVanaf;
+      const b = balie(), weg = Math.hypot(px - b.x, pz - b.z) > TUNING.balieBereik + 0.6;
       if (weg || player.inCar || (!player.active && !window.__autoplay)) sluit();
       else if (geld() !== getoondGeld) teken();
     }

@@ -29,7 +29,52 @@ export const BP_KASSA = {
 
 const euro = (n) => `€ ${n.toLocaleString('nl-NL')}`;
 
-export function initBpKassa({ player, hud, geld = () => 0, betaal = () => false, verdien = () => 0, rng = Math.random }) {
+/*
+ (stap 170, "bij kopen kraslot moet je ook even laten zien wat impact er van is") De kraskaart in beeld: een kaartje met een
+ zilveren laag die in 0,8 s wordt weggekrast, daaronder het bedrag dat groot aanspringt ("€ 50 GEWONNEN!" of "Helaas…"),
+ met het krassen en een loopje (`geluid.kraslot`) erbij, en na `KAART_TIJD` s weer weg. Alleen html en css, geen plaatjes.
+*/
+export const KAART_TIJD = 3.6;
+let kaartEl = null, kaartKlok = null;
+function kraskaart(prijs) {
+  if (typeof document === 'undefined') return null;
+  if (!kaartEl) {
+    const css = document.createElement('style');
+    css.textContent = `
+    #kraslot { position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.9); z-index: 5; pointer-events: none;
+      width: 300px; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 14px 16px 12px; border-radius: 12px;
+      background: linear-gradient(160deg, #00843d, #0a5e30); color: #fff; font-family: Arial, sans-serif; text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,.45); opacity: 0; transition: opacity .25s, transform .25s; }
+    #kraslot[hidden] { display: none; }
+    #kraslot.aan { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    #kraslot .kop { font-weight: bold; letter-spacing: .08em; font-size: 13px; color: #ffe500; }
+    #kraslot .vak { position: relative; margin: 10px 0 8px; height: 74px; border-radius: 8px; background: #fffbe6; overflow: hidden; }
+    #kraslot .bedrag { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #0a5e30;
+      font-weight: bold; font-size: 30px; transform: scale(.6); transition: transform .35s cubic-bezier(.3,1.8,.5,1) .8s; }
+    #kraslot.niets .bedrag { color: #8a8a8a; font-size: 24px; }
+    #kraslot.aan .bedrag { transform: scale(1); }
+    #kraslot .laag { position: absolute; inset: 0; background: repeating-linear-gradient(135deg, #c9ccd0 0 6px, #aeb2b8 6px 12px);
+      clip-path: inset(0 0 0 0); transition: clip-path .8s steps(8); }
+    #kraslot.aan .laag { clip-path: inset(0 0 0 100%); }
+    #kraslot .onder { font-size: 12px; opacity: .9; }`;
+    document.head.appendChild(css);
+    kaartEl = document.createElement('div');
+    kaartEl.id = 'kraslot'; kaartEl.hidden = true;
+    (document.getElementById('ui') || document.body).appendChild(kaartEl);
+  }
+  const gewonnen = prijs > 0;
+  kaartEl.className = gewonnen ? 'winst' : 'niets';
+  kaartEl.innerHTML = `<div class="kop">BP · KRAS &amp; WIN</div><div class="vak"><div class="bedrag">${gewonnen ? `${euro(prijs)} GEWONNEN!` : 'Helaas…'}</div><div class="laag"></div></div>`
+    + `<div class="onder">${gewonnen ? (prijs >= 100 ? 'Wat een klapper!' : 'Uitbetaald aan de kassa.') : 'Volgende keer beter.'}</div>`;
+  kaartEl.hidden = false;
+  void kaartEl.offsetWidth;            // eerst zonder `aan` tekenen, anders krast hij niet
+  kaartEl.classList.add('aan');
+  clearTimeout(kaartKlok);
+  kaartKlok = setTimeout(() => { kaartEl.classList.remove('aan'); setTimeout(() => { kaartEl.hidden = true; }, 300); }, KAART_TIJD * 1000);
+  return kaartEl;
+}
+
+export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal = () => false, verdien = () => 0, rng = Math.random }) {
   let open = false, boostT = 0, drankjes = 0, loten = 0, gewonnen = 0;
   const K = BP_KASSA;
   if (player.renBoost == null) player.renBoost = 0;
@@ -73,6 +118,8 @@ export function initBpKassa({ player, hud, geld = () => 0, betaal = () => false,
     const prijs = trek();
     loten++;
     if (prijs > 0) { verdien(prijs); gewonnen += prijs; }
+    kraskaart(prijs);
+    if (geluid && geluid.kraslot) geluid.kraslot(prijs);
     if (hud) hud.melding(prijs > 0 ? `Kraslot: ${euro(prijs)}!` : 'Kraslot: helaas', prijs >= 100 ? 'De medewerker kijkt even op. "Gefeliciteerd!"'
       : prijs > 0 ? `${euro(prijs)} uitbetaald aan de kassa.` : '"Volgende keer beter."', 4);
     return prijs;

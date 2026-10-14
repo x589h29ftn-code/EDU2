@@ -489,7 +489,9 @@ export function bouwBpWinkel(scene, { addCollider, grondHoogte = () => 0 } = {})
   // ---- de details (stap 160, "nog net wat meer detail van binnen")
   const vlakHeel = (mat, u0, u1, w0, w1, y) => vlak(mat, [u0, y, w0], [u1, y, w0], [u1, y, w1], [u0, y, w1], [0, 1, 0], true);
   // de deurmat binnen, voor de schuifdeur
-  vlakHeel(MAT.mat, BP.deur.u0 - 0.2, BP.deur.u1 + 0.2, O.w0 + D + 0.02, O.w0 + D + 1.3, 0.03);
+  // (stap 170) een centimeter of vier boven de vloer (0,02): op 0,03 vochten mat en vloer om dezelfde pixels ("de mat clipt")
+  vlakHeel(MAT.mat, BP.deur.u0 - 0.2, BP.deur.u1 + 0.2, O.w0 + D + 0.02, O.w0 + D + 1.3, 0.06);
+  doos(MAT.zwart, BP.deur.u0 - 0.2, BP.deur.u1 + 0.2, 0.02, 0.06, O.w0 + D + 0.02, O.w0 + D + 1.3, 'vaow');   // de rand van de mat
   // een stapel rode mandjes naast de deur
   for (let i = 0; i < 6; i++) doos(MAT.mand, 12.55 - i * 0.004, 13.1 + i * 0.004, i * 0.09, i * 0.09 + 0.08, O.w0 + D + 0.1, O.w0 + D + 0.5, 'vaowb');
   doos(MAT.staal, 12.6, 13.05, 0.54, 0.56, O.w0 + D + 0.27, O.w0 + D + 0.33, 'vab');

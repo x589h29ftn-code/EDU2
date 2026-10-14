@@ -9176,6 +9176,30 @@ slaat de geometrie van het pand over (`EIGEN_PANDEN`, zoals de molens) en houdt 
 plat op hun gevel in hun kleur, de gloed 's nachts en overdag, de shaders) met `aaffshots` (aaff_water, aaff_hoek, aaff_nacht,
 aaff_logo_nacht).
 
+**De mat, het kraslot, de rondweg en de tuning bij Sjoerd (stap 170, 14 okt).**
+
+Gevraagd: "de mat bij de schuifdeuren BP clipt met de vloer. Bij kopen kraslot moet je ook even laten zien wat impact er van
+is. Bijv 5 euro gewonnen! Zorg ook rond 1708.4, -110.1 voor een wegversperring en invisible wall. Dus einde rondweg die kant
+op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv tuning box."
+- *De mat* lag op 3 cm, de vloer op 2: één centimeter is op tientallen meters minder dan de dieptebuffer onderscheidt, dus
+  vochten ze om dezelfde pixels. Nu op 6 cm, met een zwarte rand eronder zodat hij niet zweeft.
+- *Het kraslot* had alleen een melding bovenin. Nu een kaartje midden in beeld (html en css in js/bpkassa.js,
+  `kraskaart`): een zilveren laag die in acht stapjes wordt weggekrast, daaronder het bedrag dat groot aanspringt, en
+  `geluid.kraslot(prijs)` in js/audio.js: krassen, dan een loopje dat langer is naarmate de prijs groter is, of een zakkende
+  toon bij niets. Na 3,6 s is het kaartje weer weg. (€ 5 zit niet in de tabel van stap 169; de kleinste prijs is € 10.)
+- *De rondweg*: een tweede plek onder `wegafsluitingen` in data/stijl/omgeving.json; de generator vond de Stadsrondweg-Zuid
+  (12,3 m breed) en zette er hekken op met een wand van 70 m. js/kaart.js opnieuw gegenereerd: alleen `wegafsluitingen`
+  en de telling zijn anders.
+- *De tuning* zat aan een zuil aan het eind van de balie, zo gezet dat hij Sjoerds race voor geld (E binnen 2,8 m van de
+  balie) nooit in de weg zat. Nu bij Sjoerd zelf: in `praatOfAuto` gaat de tuning vóór het verhaal, maar alleen met je eigen
+  auto voor de deur; is de race voor geld er dan ook, dan staat die als 6 in het menu (`geldraceKan`, `geldraceStart` uit
+  js/verhaal.js). Zonder eigen auto laat de tuning de E aan Sjoerds aanbod, zoals `geldracetest` het verwacht. De zuil, zijn
+  scherm en zijn botsdoos zijn weg; het bord op de wand blijft.
+
+*Proef*: `npm run baliestest` (de mat van boven gemeten, het kaartje met het bedrag en het geluid en daarna weg, de afzetting
+met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
+`wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
+
 **De kassa van de BP: energydrank en kraslot (stap 169, 14 okt).**
 
 Gevraagd: "blikje energy drank kopen bij BP voor 10 health en een 5% boost in rennen. Max 20% boost als je doordrinkt.

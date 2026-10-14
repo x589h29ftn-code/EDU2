@@ -8,7 +8,7 @@
  3. Tennis als minispel: een game winnen levert € 50 op.
  4. Zeilbootjes die echt varen, op het water blijven en 's nachts weg zijn.
  5. Onweer in de regen: bliksem en donder.
- 6. Tuning aan de balie van het Autohuis, alleen aan je eigen auto: motor, vering, decals; bewaard.
+ 6. Tuning aan de balie van het Autohuis (sinds stap 170 bij Sjoerd zelf), alleen aan je eigen auto: motor, vering, decals; bewaard.
  7. Tinga Nieuws op de tv thuis.
  8. Aan de knoppen van Radio Tinga: een verzoeknummer, ON AIR, de schuif, € 75.
 */
@@ -253,10 +253,12 @@ const tu = await page.evaluate(async () => {
   const g = window.__game, t = g.tuning, ga = g.garage, v = g.verhaal, p = g.player;
   const { TE_KOOP } = await import('/js/garage.js');
   p.active = true; p.inCar = null;
-  p.pos.set(783.4, 0, 144.0);
+  { const b = ga.plekken.balie; p.pos.set(b.x + 1.2, 0, b.z); }   // (stap 170) bij Sjoerd aan de balie, niet meer bij de zuil
   const uit = {};
   t.update(0.1);
-  uit.zonderAuto = t.toets() && !t.open;
+  // (stap 170) aan de balie zonder eigen auto: geen tuning; met het verhaal klaar (`raceKlaar`) laat de tuning de E dan aan
+  // Sjoerds race voor geld (js/verhaal.js), dus `toets` kan ook false geven — het menu blijft in elk geval dicht
+  t.toets(); uit.zonderAuto = !t.open;
   v.verdien(10000);
   const geld0 = v.geld;
   const m = ga.eigen.length;
@@ -265,7 +267,7 @@ const tu = await page.evaluate(async () => {
   uit.gekocht = !!car;
   const geld1 = v.geld;
   const top0 = car.topSnelheid;
-  p.pos.set(783.4, 0, 144.0);
+  { const b = ga.plekken.balie; p.pos.set(b.x + 1.2, 0, b.z); }   // (stap 170) bij Sjoerd aan de balie, niet meer bij de zuil
   t.update(0.1);
   uit.open = t.toets() && t.open;
   t.kies(1); t.kies(5); t.kies(2);

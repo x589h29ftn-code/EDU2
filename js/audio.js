@@ -692,6 +692,15 @@ export const geluid = {
 
   raak() { toon({ freq: 1400, naar: 900, duur: 0.09, volume: 0.14, golf: 'square' }); },
   // een EHBO-doos openritsen en inzetten (stap 138): een ritsje ruis en twee zachte oplopende tonen
+  // (stap 170) een kraslot: eerst het krassen, dan een oplopend loopje bij een prijs (hoger en langer naarmate hij groter is)
+  // of een zakkende toon bij niets
+  kraslot(prijs = 0) {
+    for (let i = 0; i < 7; i++) tik({ freq: 3200 + (i % 2) * 900, q: 0.7, duur: 0.07, volume: 0.07, type: 'bandpass', val: 0.6, vertraag: i * 0.11 });
+    const na = 0.85;
+    if (prijs <= 0) { toon({ freq: 330, naar: 196, duur: 0.45, volume: 0.10, golf: 'triangle', vertraag: na }); return; }
+    const noten = prijs >= 100 ? [523, 659, 784, 1047, 1319] : prijs >= 50 ? [523, 659, 784, 1047] : [523, 659, 784];
+    noten.forEach((f, i) => toon({ freq: f, duur: 0.22, volume: 0.11, golf: 'square', vertraag: na + i * 0.11 }));
+  },
   verband() {
     tik({ freq: 3200, q: 0.7, duur: 0.22, volume: 0.07, type: 'bandpass', val: 0.5 });
     toon({ freq: 660, naar: 700, duur: 0.12, volume: 0.07, golf: 'sine', vertraag: 0.18 });

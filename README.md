@@ -744,6 +744,7 @@ mandjes, een tijdschriftenrek, olie en autospullen, een menubord boven de balie,
 - **energydrank** (€ 3): +10 leven, en je rent 5 % sneller. Drink je door, dan loopt dat op tot 20 % na vier blikjes. De
   boost houdt anderhalve minuut na het laatste blikje en zakt dan in 15 seconden weg;
 - **kraslot** (€ 25): van niets tot € 150. Meestal niets, soms € 10 of € 25, zelden € 50 of € 100 en heel af en toe € 150.
+  Sinds stap 170 krast een kaartje in beeld open met het bedrag erop ("€ 50 GEWONNEN!" of "Helaas…"), met geluid.
 
 E nog een keer of weglopen sluit de kassa.
 
@@ -872,7 +873,7 @@ Buiten de missies is er meer te doen.
   bij je racket is; de meter onderin helpt. Win de game voor € 50.
 - **Martens Vishandel** staat van 9 tot 18 uur op het parkeerterrein van de Jumbo aan de Molenkrite: een portie
   kibbeling kost € 20 en geeft 25 leven.
-- **Tuning.** Bij Sjoerd in het Autohuis Lemmerweg, naast de balie, kun je een auto die je daar gekocht hebt laten
+- **Tuning.** Bij Sjoerd in het Autohuis Lemmerweg, aan de balie zelf (sinds stap 170; de losse zuil is weg), kun je een auto die je daar gekocht hebt laten
   opvoeren (motor +12 %, € 1.500), een sportvering (€ 800), een spoiler (€ 400), andere velgen (€ 300) en decals
   (€ 150): Radio Spannenburg, Radio Markant, Radio Tinga, 100% NL, racenummer 23, Tinga Racing, racestrepen of vlammen.
   Kiezen met de cijfers, 0 terug.
@@ -1199,7 +1200,8 @@ waar je zonder waarschuwing tegenaan reed. Daar staan nu **rood-wit gestreepte s
 over de weg met een baken aan weerszijden. De botsdoos loopt links en rechts zeventig meter door, dus
 via de berm kom je er ook niet omheen — maar je ziet nu dat het einde een afzetting is en geen bug.
 Een plek toevoegen is een regel in `data/stijl/omgeving.json` onder `wegafsluitingen`; de generator
-zoekt zelf de dichtstbijzijnde rijbaan-as en zet het hek er haaks op.
+zoekt zelf de dichtstbijzijnde rijbaan-as en zet het hek er haaks op. Sinds stap 170 staat er een tweede op de
+Stadsrondweg-Zuid bij (1708,4; −110,1), voorbij het kantoor aan het water: daar houdt de rondweg die kant op op.
 
 ![de wegafsluiting aan de Lemmerweg](docs/screenshots/afsluiting.png)
 
