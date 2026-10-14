@@ -9200,6 +9200,63 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Het verkeer: voorrang, voetgangers en de speler (stap 173, 14 okt).**
+
+Gevraagd: "Voorrang op kruisingen en rotondes, wachten voor overstekende voetgangers, en uitwijken of stoppen als jij dwars
+staat in plaats van door te rijden." De regels staan in een eigen module, js/verkeersregels.js (`Verkeersregels`, in js/main.js
+als `vehicles.regels`); js/vehicles.js roept hem vanuit `updateTraffic` aan op vier plekken: `voorbereid` vóór de lus, `doel` na
+de bochtsnelheid (het strengste wint, achteruit gaat nog altijd voor), `naStap` na het opschuiven langs het pad, en `zijHoek` in
+de draaiing van het model. Met `regels.aan = false` rijdt het verkeer weer zoals vroeger (zo meet de proef oud tegen nieuw).
+- *Kruisingen.* De BGT kent geen kruispunten, dus de module maakt ze: eindpunten van rijbanen die binnen 3 m samenvallen, plus
+  assen die er doorheen lopen (die tellen voor twee); drie of meer is een kruising, 526 in totaal, niet op een rotonde. Per
+  gladde lijn één keer de kruisingen erlangs (`knopenOp`, onthouden op het pad), per beeld per auto de eerstvolgende en een lijst
+  per kruising: geen ronde over alle paren. De regel: wie al op de kruising staat, dan de N7 boven de wijk, dan de weg die een
+  meter breder is (de breedte uit de BGT-as met dezelfde eindpunten, `breedte`), anders rechts gaat voor. Tegemoetkomend verkeer
+  kruist niet. Wie moet wachten remt naar de stopstreep (de halve breedte van de breedste weg op de knoop plus 2,2 m). Het
+  vangnet: wie vijf tellen stilstaat terwijl niemand op de kruising staat, gaat (`_forceerK`), en de anderen zien hem als iemand
+  die al op de kruising staat; met vier auto's die allemaal iemand van rechts hebben was dat in de proef drie keer nodig.
+- *Rotondes.* Het verkeer reed niet tegen de klok in: het reed zelfs nooit óm een rotonde. Een wijkauto rijdt heen en weer over
+  één as; een as die zelf vooral ring is (Tinga, Duizendblad) reed zo de helft van de tijd met de klok mee, en een as die over de
+  rotonde liep reed dwars over het eiland. Nu gaan ringassen uit de voorraad van rijbanen, en krijgt een as die de rotonde op rijdt
+  bij de rand een eigen stuk pad (`rondje`): een hermitebocht naar rechts de ring op, tegen de klok in om het eiland, een bocht naar
+  rechts eraf, door `gladPad` zodat bochtsnelheid en raaklijn er gewoon bij horen. Eindigt de as op de rotonde, dan komt hij op de
+  andere strook van dezelfde as terug. Wie de ring op wil, wacht als er al iemand op de ring aankomt (1,9 rad of 7 m voor zijn
+  invoegpunt). Zolang hij op de ring is staat `bounce` uit, anders remde `bochtSnelheid` voor het eind van dat stuk alsof hij moest
+  keren.
+- *Voetgangers* remden al (`vrijMens`, stap 123): stil op 2,9 m van neus tot voetganger, gemeten. Voor de speler te voet stond de
+  neus op 1,9 m (de grens van `inDeWeg` is vier meter van midden tot midden); `spelerDoel` houdt hem op 2,6 m.
+- *Een auto op de rijbaan.* De oude toets keek naar het midden van een geparkeerde auto: een auto dwars over de weg met zijn midden
+  net buiten de strook stak 2,2 m in de weg en werd niet gezien. Nu met maat en draaiing (`blokkadeVoor`): stoppen op 7 m, na 1,5–3,5 s
+  toeteren, na 2,5 s uitwijken als er links of rechts binnen de rijbaan plaats is, de aanloop lang genoeg is om schuin opzij te
+  gaan (de zijwaartse snelheid hooguit 0,6 keer de voorwaartse, dus nooit opzij schuiven terwijl hij stilstaat) en er niemand
+  aankomt (`uitwijkPlan`, `strookBezet`); anders na 6 s keren met de halve cirkel van het eind van de straat (`keerHier`). Voorbij
+  de auto terug naar de eigen strook.
+
+Wat misging:
+- *De stopstreep in de proef* werd gemeten over alles wat hij binnen de kruising deed, ook het oversteken erna: "−5,3 m van het midden".
+  Nu alleen waar hij stilstaat.
+- *Een draai van 5,3 rad/s bij het oprijden van de rotonde.* Twee oorzaken. Een as die schuin langs een mini-rotonde scheerde (op
+  10 m van het midden) kreeg een passage, en omdat het eiland dan rechts lag werd dat een rondje van bijna 360° met een lus erin;
+  nu telt alleen een as die tot 4 m van het eiland komt en bij de rand recht op het midden af rijdt (`ROT.recht`). En de eerste
+  raaklijn van het nieuwe pad was die van de koorde over twee meter bocht, 0,18 rad naast die van de as; nu staan begin en eind
+  precies op de raaklijn van de as.
+- *Een draai van 4 rad/s bij 0,2 m/s* (ook in `bochtentest`): bij het uitwijken ging `zijHoek` na afloop in één beeld naar nul en
+  sprong hij mee met elke rem. Nu draait de neus hooguit 0,8 rad/s naar zijn doel.
+- *Een auto die drie minuten stilstond*, ook zonder de regels (175 s). Twee gevallen: twee wijkauto's die neus aan neus op twee
+  assen van dezelfde straat stonden, en een auto die bij het verhuizen half in een geparkeerde auto terechtkwam (de blokkade lag
+  "−7,7 m" vóór hem, dus altijd te dichtbij). Nu: wat al naast of in de auto staat telt niet meer als blokkade, en wie vijftien tellen
+  stilstaat zonder op een kruising of rotonde te wachten keert, desnoods eerst drie meter achteruit (`achteruit`, `_vastKeer`).
+  Langst stil daarna: 19 s.
+- *De claxon in de proef* gaat in js/vehicles.js in 70 % van de gevallen: één keer nul in twaalf tellen. De proef zet de loting vast.
+
+*Tijd*: `updateTraffic` met 32 auto's drie minuten lang: met de regels 1,1 ms per beeld, zonder 0,9 ms (een eerdere ronde 1,5 tegen
+1,4); de meting schommelt meer dan het verschil.
+
+*Proef*: `npm run voorrangtest` (de kruisingen en rotondes op de kaart, twee auto's op een kruising bij gelijke wegen en bij een
+bredere weg, de rotonde met verkeer op de ring en tegen de klok in, de voetganger en de speler te voet, de auto van de speler dwars,
+langs en als wrak met elk beeld de botsdoos gemeten, vier auto's en het vangnet, drie minuten verkeer met en zonder regels, geen
+nieuw shaderprogramma) met `voorrangshots` (voorrang_kruising, voorrang_voetganger, voorrang_uitwijken, voorrang_rotonde).
+
 **De kassa van de BP: energydrank en kraslot (stap 169, 14 okt).**
 
 Gevraagd: "blikje energy drank kopen bij BP voor 10 health en een 5% boost in rennen. Max 20% boost als je doordrinkt.

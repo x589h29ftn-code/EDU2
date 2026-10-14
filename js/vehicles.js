@@ -1156,6 +1156,9 @@ export class Vehicles {
     // dit moet buiten de lus hieronder staan.
     const metModel = [];
     for (const c of this.cars) if (c.mesh) metModel.push(c);
+    // (stap 173) voorrang, rotondes en wat er stilstaat: js/verkeersregels.js
+    const R = this.regels && this.regels.aan ? this.regels : null;
+    if (R) R.voorbereid(this, speler, metModel, dt);
 
     for (const t of this.traffic) {
       if (t.slaapt) continue;
@@ -1181,13 +1184,14 @@ export class Vehicles {
        binnen de elf meter vooruitkijken maar een handjevol staat. `isZichtbaar`
        wordt nog wel per kandidaat gevraagd, dus het remmen blijft hetzelfde.
       */
-      for (const c of this.parkeerNabij(t._pos.x, t._pos.y, KIJK + 2)) {
+      // (met de verkeersregels meet js/verkeersregels.js deze auto's, met hun maat en draaiing)
+      if (!R) for (const c of this.parkeerNabij(t._pos.x, t._pos.y, KIJK + 2)) {
         if (this.isZichtbaar(c)) inDeWeg(c.x, c.z, 0.4);
       }
       // en de auto's met een eigen model: die rijden of zijn gestolen, staan dus
       // niet in het rooster. Die lijst is één keer per beeld gemaakt en niet per
       // rijdende auto — anders loop je alsnog twintig keer door alle 1781.
-      for (const c of metModel) { if (this.isZichtbaar(c)) inDeWeg(c.x, c.z, 0.4); }
+      if (!R) for (const c of metModel) { if (this.isZichtbaar(c)) inDeWeg(c.x, c.z, 0.4); }
       /*
        De speler die voor de auto staat. `blokSpeler` telt hoe lang hij dat al
        doet: pas als dat een seconde of twee duurt gaat de claxon (verzoek
@@ -1252,13 +1256,14 @@ export class Vehicles {
       // wie haast heeft neemt hem wat scherper
       t.bocht = this.bochtSnelheid(t) * (t.haast > 0 ? 1.3 : 1);
       t.doel = Math.min(t.doel, t.bocht);
+      if (R) t.doel = R.doel(t, t.doel, basis, dt);
       // achteruit gaat voor: dan kijkt hij niet vooruit maar wil hij er weg
       if (t.achteruit > 0) t.doel = -3.2;
       // remmen gaat harder dan optrekken, en wie achteruit wil harder dan dat
       const versnelling = t.achteruit > 0 ? 20 : t.doel < t.snelheid ? 14 : (t.haast > 0 ? 8 : 3.5);
       t.snelheid += Math.max(-versnelling * dt, Math.min(versnelling * dt, t.doel - t.snelheid));
 
-      const n = t.path.length;
+      let n = t.path.length;
       if (t.keer) {
         // midden in het keren aan het eind van de straat: een halve cirkel
         t.keer.f += Math.abs(t.snelheid) * dt / (Math.PI * Math.max(0.5, Math.abs(t.lane)));
@@ -1267,6 +1272,7 @@ export class Vehicles {
         const j0 = Math.floor(t.t), j1 = Math.min(n - 1, j0 + 1);
         const segLen = Math.max(0.01, t.path[j0].distanceTo(t.path[j1]));
         t.t += t.dir * (t.snelheid * dt) / segLen;
+        if (R && R.naStap(t)) n = t.path.length;       // de rotonde op of eraf (stap 173)
         /*
          Het eind van de as. Een wijkauto keerde daar in één beeld om: een halve draai
          en een sprong van twee stroken opzij. Nu rijdt hij een halve cirkel om het
@@ -1292,7 +1298,7 @@ export class Vehicles {
       const ty = t.y + grondHoogte(tx, tz, t.mesh.position.y + 0.9);
       t.mesh.position.set(tx, ty, tz);
       t.mesh.rotation.order = 'YXZ';
-      t.mesh.rotation.y = Math.atan2(-pl.dx, -pl.dz);
+      t.mesh.rotation.y = Math.atan2(-pl.dx, -pl.dz) + (t.zijHoek || 0);    // (zijHoek: uitwijken, stap 173)
       t.mesh.rotation.x = helling(tx, tz, t.mesh.rotation.y, ty - t.y);
       if (t.remlicht) t.remlicht.visible = t.doel < t.speed * 0.6;
     }

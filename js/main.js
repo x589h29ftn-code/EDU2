@@ -4,6 +4,7 @@ import { buildWorld, buildWorldStap, nearestRoadName, colliders, updateLOD, verv
 import { maakGrasVeld } from './groen.js';
 import { Player, WAPEN_LAAG } from './player.js';
 import { Vehicles } from './vehicles.js';
+import { Verkeersregels } from './verkeersregels.js';
 import { NPCs } from './npc.js';
 import { HUD, euro } from './hud.js';
 import { isTouchDevice, initTouchControls } from './touch.js';
@@ -599,6 +600,8 @@ const player = new Player(camera, scene, beginpunt.x, beginpunt.z, beginpunt.yaw
 koppelLeven(player);       // (stap 157) de moeilijkheidsgraad schaalt elke treffer (js/moeilijk.js)
 await adem('verkeer', 0.97);
 const vehicles = new Vehicles(scene, world.parkSpots);
+// (stap 173) voorrang op kruisingen en rotondes, uitwijken voor wat er stilstaat
+new Verkeersregels(KAART, vehicles);
 await adem('voetgangers', 0.978);
 /*
  De claxon van een bestuurder die voor je staat te wachten (js/vehicles.js telt
