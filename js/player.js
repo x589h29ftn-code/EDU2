@@ -717,7 +717,8 @@ export class Player {
     // (stap 138) de M1 Garand legt verder aan (`mikBeeld`, 42°) en laat de beeldhoek soepel lopen, gelijk met het wapen
     const W = this.wapen || {};
     // (stap 150) in de auto door je eigen ogen een wat wijdere beeldhoek (`autoBeeld`, js/autobinnen.js AUTO_KIJK)
-    const basis = this.autoBeeld || this.fovBasis;
+    // (stap 171) en op snelheid een paar graden wijder (`snelBeeld`, js/rijgedrag.js RijCamera); stilstaand nul
+    const basis = (this.autoBeeld || this.fovBasis) + (this.inCar ? (this.snelBeeld || 0) : 0);
     const dicht = sc ? basis / this.zoom : basis * (W.mikBeeld || MIK_FOV);
     const mk = W.mikSoepel ? this.mik * this.mik * (3 - 2 * this.mik) : this.mik;
     const doel = basis + (dicht - basis) * mk;

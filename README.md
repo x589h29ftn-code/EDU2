@@ -278,6 +278,15 @@ alsof je de hele wijk in zijn één doorkomt. Achteruit is één laag verzet dat
 je achter het stuur zit speelt de **autoradio** een rockdeuntje: zacht genoeg om de motor eronder te
 blijven horen, en tijdens de achtervolging in het verhaal zakt hij nog verder weg.
 
+**Botsen, schakelen en de camera (stap 171).** Een klap zet je niet meer stil: frontaal tegen een muur rem je hard af
+en kaats je een stukje terug, maar schamp je hem, dan schuif je erlangs door en draait de neus van de muur weg — die
+draai dempt in een paar tellen uit. Rijdt het verkeer of de politie je in de flank, dan schuif je opzij en draai je
+mee. Je komt nooit in een muur of door de grond terecht. De motor heeft nu een echt toerental: vijf versnellingen per
+soort auto (de Ferrari draait tot 8500 en zijn toerenteller loopt tot 10), de naald valt terug bij elk opschakelen en
+de toon van de motor zakt mee. De topsnelheden en de opgevoerde motor van Sjoerd blijven wat ze waren. Boven de 45 km/u
+wordt het beeld geleidelijk een paar graden wijder (hooguit 9°, op 200 km/u) en boven de 80 km/u trilt het licht — in
+de camera achter de auto en door je eigen ogen, maar niet in een filmbeeld, de heli of met de drone.
+
 ### In de auto
 
 Vanachter het stuur zit je nu **echt in de auto**: dashboard, stuur, klokken,

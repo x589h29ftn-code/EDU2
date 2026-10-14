@@ -1,5 +1,7 @@
 // Auto's: geparkeerd, bestuurbaar en verkeer op de N7 en in de wijk.
 import * as THREE from 'three';
+// (stap 171) botsen met gevolg en de versnellingsbak van de auto van de speler
+import { werkBakBij, botsReactie, werkNaBij, BOTS } from './rijgedrag.js';
 import { resolveCollisions, pointInWater, grondHoogte, zichtVrij, breekScheidingenBij, zetZichtBlokker } from './world.js';
 import { HIGHWAY, ROADS, toWorld } from './data.js';
 import { rng } from './textures.js';
@@ -738,6 +740,12 @@ export class Vehicles {
     */
     const boost = (keys.ShiftLeft || keys.ShiftRight) && gas ? BOOST : 1;
     car.boost = boost > 1;
+    /*
+     (stap 171) De auto waar de speler in zit krijgt een versnellingsbak en botsingen met gevolg (js/rijgedrag.js);
+     js/main.js zet `spelerVan`. De politie en de lijnen van de missies rijden zoals ze reden.
+    */
+    const speler = !!(this.spelerVan && this.spelerVan() === car);
+    const bakGas = speler ? werkBakBij(car, dt, gas) : 1;
     const top = (car.topSnelheid || 24) * boost, achteruitTop = -((car.topSnelheid || 24) * 0.28);
     const wielbasis = (car.as || 1.4) * 2;
 
@@ -778,7 +786,7 @@ export class Vehicles {
     // ---- motor, rem en rolweerstand ----
     const v = car.speed;
     if (gas && v < -0.4) car.speed += 18 * dt;                       // eerst afremmen
-    else if (gas) car.speed += 9.5 * (car.trek || 1) * boost * (1 - Math.max(0, v) / top) * dt;
+    else if (gas) car.speed += 9.5 * (car.trek || 1) * boost * bakGas * (1 - Math.max(0, v) / top) * dt;
     else if (rem && v > 0.4) car.speed -= (car.remKracht || 15) * dt; // remmen
     else if (rem) car.speed -= 6 * dt;                               // achteruit
     else car.speed -= Math.sign(v) * Math.min(Math.abs(v), 2.4 * dt); // motorrem
@@ -789,18 +797,20 @@ export class Vehicles {
 
     // ---- koers ----
     const vorigeYaw = car.yaw;
+    // (stap 171) na een klap: de draai die uitdempt en de zijwaartse duw die de banden opeten
+    const naKlap = speler ? werkNaBij(car, dt) : null;
     if (Math.abs(car.speed) > 0.02) car.yaw += Math.tan(car.steer) * car.speed * dt / wielbasis;
     // de rijrichting loopt achter op de neus; met de handrem breekt de kont uit
     if (car.rij === undefined) car.rij = car.yaw;
     let verschil = car.yaw - car.rij;
     while (verschil > Math.PI) verschil -= Math.PI * 2;
     while (verschil < -Math.PI) verschil += Math.PI * 2;
-    const grip = hand ? 1.5 : 9;
+    const grip = hand ? 1.5 : (car.glijT > 0 ? 3 : 9);
     car.rij += verschil * Math.min(1, dt * grip);
     car.slip = verschil;
 
-    const nx = car.x - Math.sin(car.rij) * car.speed * dt;
-    const nz = car.z - Math.cos(car.rij) * car.speed * dt;
+    const nx = car.x - Math.sin(car.rij) * car.speed * dt + (naKlap ? naKlap.x : 0);
+    const nz = car.z - Math.cos(car.rij) * car.speed * dt + (naKlap ? naKlap.z : 0);
 
     // ---- botsingen: drie cirkels langs de auto ----
     let ok = true;
@@ -831,7 +841,9 @@ export class Vehicles {
       const [rx, rz] = resolveCollisions(px, pz, radius, 3.5, cy);
       if (rx !== px || rz !== pz) { cx += rx - px; cz += rz - pz; ok = false; }
     }
-    if (cy < 1.5 && pointInWater(cx, cz)) { cx = car.x; cz = car.z; ok = false; }
+    let water = false;
+    if (cy < 1.5 && pointInWater(cx, cz)) { cx = car.x; cz = car.z; ok = false; water = true; }
+    const muurX = cx - nx, muurZ = cz - nz;      // (stap 171) de duw van de vaste dingen: hun normaal
 
     // ---- en tegen andere auto's, die net zo goed in de weg staan ----
     const blik = this.botsAutos(car, cx, cz);
@@ -843,8 +855,11 @@ export class Vehicles {
      maakt daar een schok van de camera en een klap van. Hij wordt één beeld
      lang gezet en daarna weer op nul, zodat één botsing ook één klap geeft.
     */
-    car.botsKracht = (!ok && Math.abs(v) > 2.2) ? Math.abs(v) : 0;
-    if (!ok) { car.speed *= 0.25; car.rij = car.yaw; }
+    if (speler) this.spelerBots(car, !ok, water, muurX, muurZ, blik, cx, cz, nx, nz);
+    else {
+      car.botsKracht = (!ok && Math.abs(v) > 2.2) ? Math.abs(v) : 0;
+      if (!ok) { car.speed *= 0.25; car.rij = car.yaw; }
+    }
     car.x = cx; car.z = cz;
 
     /*
@@ -879,6 +894,44 @@ export class Vehicles {
     }
 
     this.zetNeer(car, dt, vorigeYaw, { gas, rem, hand });
+  }
+
+  /*
+   (stap 171) De klap van de auto van de speler, met gevolg (js/rijgedrag.js `botsReactie`). De normaal komt uit de
+   duw: eerst die van de vaste dingen (`resolveCollisions`, het water), dan die van de andere auto's (`botsAutos`),
+   met de snelheid van wie jou raakte. `botsKracht` is nu de snelheid recht op het obstakel af, met een korte rust,
+   zodat langs een muur schuren niet elk beeld een klap is; `botsVoor` zegt of de neus het raakte (js/autoschade.js).
+  */
+  spelerBots(car, geraakt, water, muurX, muurZ, blik, cx, cz, nx, nz) {
+    car.botsKracht = 0;
+    if (!geraakt) return;
+    let kracht = 0;
+    if (water) {
+      // het water: als een muur recht voor je (of achter je, achteruit)
+      const s = Math.sign(car.speed) || 1;
+      kracht = botsReactie(car, Math.sin(car.yaw) * s, Math.cos(car.yaw) * s);
+    } else {
+      const lm = Math.hypot(muurX, muurZ);
+      if (lm > 1e-4) kracht = botsReactie(car, muurX / lm, muurZ / lm);
+    }
+    if (blik.raak) {
+      const ax = cx - (nx + muurX), az = cz - (nz + muurZ), la = Math.hypot(ax, az);
+      if (la > 1e-4) {
+        // wie het dichtst bij staat, met zijn snelheid
+        let ander = null, best = 9;
+        for (const c of this.cars) {
+          if (c === car || !this.isZichtbaar(c)) continue;
+          const d = Math.hypot(c.x - cx, c.z - cz);
+          if (d < best) { best = d; ander = { x: -Math.sin(c.rij ?? c.yaw) * (c.speed || 0), z: -Math.cos(c.rij ?? c.yaw) * (c.speed || 0) }; }
+        }
+        for (const t of this.traffic) {
+          const p = t.mesh.position, d = Math.hypot(p.x - cx, p.z - cz);
+          if (d < best) { best = d; const s = t.snelheid || 0, y = t.mesh.rotation.y; ander = { x: -Math.sin(y) * s, z: -Math.cos(y) * s }; }
+        }
+        kracht = Math.max(kracht, botsReactie(car, ax / la, az / la, ander));
+      }
+    }
+    if (kracht > BOTS.klapVanaf && !(car.botsRust > 0)) { car.botsKracht = kracht; car.botsRust = BOTS.klapRust; }
   }
 
   /*
