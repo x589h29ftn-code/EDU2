@@ -9240,6 +9240,59 @@ uitrollen, het witte licht, de gloed; in het spel bestuurders in al het verkeer,
 een remmende en achteruitrijdende auto, dag en nacht zonder nieuw programma, de lichtbronnen gelijk) met `autodetailshots`
 (auto_rem_avond, auto_rem_dag, auto_achteruit, auto_bestuurder_hatch, auto_bestuurder_bus, auto_wielen).
 
+**Rijgedrag: botsen, schakelen, de camera (stap 171, 14 okt).**
+
+Gekozen uit een voorstel: botsingen met gevolg, een motor met versnellingen, en een camera die met de snelheid meegaat.
+Alles staat in een eigen module, js/rijgedrag.js, en geldt alleen voor de auto waar de speler in zit: `drive` in
+js/vehicles.js vraagt `vehicles.spelerVan()` (js/main.js zet die op `player.inCar`). De politie, het verkeer en de lijnen
+van de missies rijden zoals ze reden; hun pad door `drive` is regel voor regel het oude.
+- *Botsen* (`botsReactie`). Tot nu toe zette elke klap de auto op een kwart van zijn vaart en de rijrichting op de neus,
+  en dat élk beeld zolang je ergens tegenaan schoof: langs een muur schampen was stilstaan, en `botsKracht` gaf elk beeld
+  een klap, een schok en een deuk. Nu wordt de snelheid ontleed langs de normaal van wat je raakte — die komt gratis uit de
+  duw van `resolveCollisions` en `botsAutos`. Recht op het obstakel af gaat eraf en kaatst 18 % terug (frontaal op 67 km/u:
+  −3,4 m/s, en geen draai); langs de muur blijft, min wrijving (schampend op 18 m/s: nog 11 m/s). De klap grijpt aan op de
+  neus, de kont of de flank en geeft een draai (`car.tol`, hooguit 2,6 rad/s, na drie tellen nul) en een zijwaartse snelheid
+  (`car.duw`, die de banden met 8 m/s² opeten). Wie jou raakt, telt met zijn snelheid mee: een stilstaande auto die in de
+  flank geraakt wordt, schuift bijna vier meter opzij en draait. `botsKracht` is nu de snelheid recht op het obstakel en
+  heeft 0,3 s rust; `botsVoor` vertelt js/autoschade.js of de neus het raakte (na het terugkaatsen rijdt de auto achteruit,
+  en `car.speed >= 0` had de deuk dan achterop gezet). Een ramming van de politie (`ramKlapNu` in js/politie.js) houdt zijn
+  draai en zijn `pakRam`, en geeft er een duw weg van de wagen bij. De plek blijft van `resolveCollisions`: draai en duw gaan
+  vóór de botsing in hetzelfde beeld, dus nooit in een muur.
+- *Wat misging bij botsen*: eerst klopte de richting van de draai niet op papier — het moment om de as omhoog is
+  `p.z·J.x − p.x·J.z`, niet andersom (three draait om +y). De proef meet het: de neus draait van de muur weg. En de duw
+  zijwaarts kan niet in `car.speed` met een andere `rij`: die trekt in een tiende seconde naar de neus, en dan werd een duw
+  opzij een rit vooruit. Daarom een eigen `duw`.
+- *De motor* (`werkBakBij`, `BAK`). js/audio.js had al een bak, maar alleen in het geluid, nagebootst op de snelheid, en de
+  toerenteller was een zaagtand op de snelheid. Nu één toerental op de auto (`car.toeren`, `car.versnelling`): vijf
+  versnellingen per soort als deel van de topsnelheid (`f`), opschakelen bij `op`, terug als de lagere onder 62 % daarvan
+  zou zakken, met het gas op de helft tijdens het schakelen. De Ferrari draait tot 8500 (zijn klok loopt tot 10), een
+  bakwagen tot 3200. Omdat de verhoudingen een deel van `topSnelheid` zijn, schakelt een opgevoerde motor (js/tuning.js)
+  vanzelf later; de vijfde heeft gasfactor 1, dus de topsnelheid is precies de oude (hatchback 80,9, Ferrari 200,2,
+  opgevoerd 219,8, GTI 133,2 km/u). js/audio.js `motorToeren` neemt het toerental over (`motorToon`), js/autobinnen.js de naald.
+- *Wat misging bij de motor*: de eerste meting zag het toerental bij het schakelen *stijgen*. De naald liep 9 per seconde
+  achter een doel dat in de eerste versnelling met 10.000 toeren per seconde oploopt: hij hing 1200 toeren achter, en de val
+  bij het schakelen verdween daarin. Nu 25 per seconde. Daarna meldde de proef nul dalingen: hij las het toerental pas ná het
+  beeld van het schakelen, toen het al gedaald was. En optrekken naar 71 km/u duurde met de hatchback 5,35 s tegen 4,80;
+  met een kortere schakeltijd (0,15 s) en de helft gas in plaats van een derde 4,95 s.
+- *De camera* (`RijCamera`, `CAM`). Boven 43 km/u loopt de beeldhoek met 0,9 per seconde naar hooguit 9° extra op 200 km/u
+  (`player.snelBeeld`, opgeteld in `zetBeeldhoek` bovenop de 78° van de bestuurder of de gewone 72°), boven 80 km/u een
+  trilling van hooguit 12 mm en 1,8 mrad (een paar golven van 7–13 Hz, geen ruis), vlak voor het tekenen naast de schok
+  (`rijCam.zetOp`). In een filmbeeld, zittend (de heli), met de drone of uit de auto is het meteen nul, en de trilling telt
+  alleen op in een beeld waarin hij is bijgewerkt (`rijCamNu`), anders liep hij in het pauzemenu op.
+- *Shaders*: geen nieuwe. De proef zag er eerst twee bij, allebei `depth`: dat was de schaduwpas, die voor de eerste keer
+  auto's in zijn doos had (de hoofdlus zet de schaduwdoos bij de auto van de speler). Met de schaduwdoos bij de auto's al in
+  de nulmeting blijft het 185.
+- *Racetest*: één controle rood, "een tikje van een tiende seconde is een kleine koerswijziging" (5,9° tegen een grens van
+  4,6°). Die meet een Ferrari zonder speler erin, dus het oude pad; met de oude code gemeten precies hetzelfde. Het komt uit
+  stap 129 (het stuur van de Ferrari 1,7 keer zo snel), niet uit deze stap. Om dezelfde reden is in `vierpuntentest` "een
+  tikje op 200 km/u" rood (5,1°, toen 2,7°): ook een auto zonder speler, dus regel voor regel het oude pad.
+  `invaltest`, `binnentest`, `bochtentest` en `wensen5test` (de tuning) zijn groen.
+
+*Proef*: `npm run rijgedragtest` (frontaal, schampend, in de flank, tegen een stilstaande auto; schakelen, de toon, de
+toerenteller, terugschakelen bij het remmen; de topsnelheid en het optrekken naast het oude rijgedrag, met en zonder tuning;
+de camera wijder en terug, de 78°, de trilling, film en heli; geen nieuw programma). Rijdt 20 km buiten de kaart, met eigen
+muren (`addCollider`).
+
 **De mat, het kraslot, de rondweg en de tuning bij Sjoerd (stap 170, 14 okt).**
 
 Gevraagd: "de mat bij de schuifdeuren BP clipt met de vloer. Bij kopen kraslot moet je ook even laten zien wat impact er van

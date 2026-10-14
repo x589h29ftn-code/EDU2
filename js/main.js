@@ -42,6 +42,7 @@ import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen, inZuilengang } from './kaartwereld.js';
 import { zetKoplampen, autoMaat } from './carmodel.js';
 import { maakAutoBinnen, autoKijk } from './autobinnen.js';
+import { RijCamera } from './rijgedrag.js';
 import { werkSchuifdeurenBij, SCHUIFDEUREN } from './zuilengang.js';
 import { maakGedrag } from './gedrag.js';
 import { AAFF_PAND } from './aaff.js';
@@ -597,9 +598,19 @@ await adem('de speler', 0.966);
 const [ox, oz] = toWorld(START.at[0], START.at[1]);
 const beginpunt = verhaalStart() || (KAART ? startKaart() : { x: ox, z: oz, yaw: START.yaw });
 const player = new Player(camera, scene, beginpunt.x, beginpunt.z, beginpunt.yaw);
+// (stap 171) de camera met de snelheid: wat wijder en een lichte trilling (js/rijgedrag.js RijCamera)
+const rijCam = new RijCamera();
+let rijCamNu = false;     // is de trilling dit beeld bijgewerkt? anders niet optellen (pauze, menu)
+function werkRijCamBij(dt) {
+  rijCam.update(dt, player.inCar ? player.inCar.speed : 0, !!player.inCar && !drone.actief && !player.zit && !document.body.classList.contains('film'));
+  player.snelBeeld = rijCam.fov;
+  rijCamNu = true;
+}
 koppelLeven(player);       // (stap 157) de moeilijkheidsgraad schaalt elke treffer (js/moeilijk.js)
 await adem('verkeer', 0.97);
 const vehicles = new Vehicles(scene, world.parkSpots);
+// (stap 171) de auto van de speler krijgt de versnellingsbak en de botsingen met gevolg (js/rijgedrag.js)
+vehicles.spelerVan = () => player.inCar;
 await adem('voetgangers', 0.978);
 /*
  De claxon van een bestuurder die voor je staat te wachten (js/vehicles.js telt
@@ -2822,11 +2833,12 @@ function loop() {
     if (player.inCar) {
       const car = player.inCar;
       vehicles.drive(car, player.driveInput(), dt, aanrijden);
-      geluid.motorToeren(car.speed, car.topSnelheid || 24);
+      // (stap 171) het toerental en de versnelling uit js/rijgedrag.js: de toon zakt bij het opschakelen
+      geluid.motorToeren(car.speed, car.topSnelheid || 24, car.toeren ? { toeren: car.toeren, rood: car.toerenRood, stationair: car.toerenStationair, bak: car.versnelling } : null);
       geluid.gier(car.gierNiveau || 0);
       if (car.botsKracht) {
         // een harde klap laat een deuk achter, en een heel harde een gebarsten ruit (stap 124)
-        const schade = autoschade.botsing(car, car.botsKracht, car.speed >= 0);
+        const schade = autoschade.botsing(car, car.botsKracht, car.botsVoor ?? car.speed >= 0);
         if (schade && schade.barst) geluid.glas();
         geluid.klap();
         schok(0.35 + Math.min(0.85, car.botsKracht / 16));
@@ -2958,6 +2970,12 @@ function loop() {
     }
     // (stap 152) de schuifdeuren onder de zuilengang van de Poiesz; sinds stap 154 ook voor de voetgangers
     werkSchuifdeurenBij(dt, [player.pos, ...npcs.gedrag.bijDeur(npcs.people)]);
+    /*
+     (stap 171) De camera met de snelheid: alleen in de auto, niet in een filmbeeld en niet met de drone. De beeldhoek
+     gaat via `player.snelBeeld` (js/player.js zetBeeldhoek, bovenop de 78° van de bestuurder of de gewone), de trilling
+     vlak voor het tekenen (`rijCam.zetOp`).
+    */
+    werkRijCamBij(dt);
     npcs.zetRegen(sfeer.weer === 'regen' && sfeer.weerZwaar >= 1.5);
     werkSporenBij(dt);
     werkInslagenBij(dt);        // de stofwolkjes van de kogelinslagen
@@ -3232,6 +3250,8 @@ function loop() {
   renderer.shadowMap.needsUpdate = beweegt || (schaduwBeeld & 1) === 0;
   // de klap van een botsing, vlak voor het tekenen op de camera gezet
   if (kijker === camera) schokCamera(kijker, dt);
+  if (kijker === camera && rijCamNu && !gepauzeerd) rijCam.zetOp(kijker);
+  rijCamNu = false;
   vervaagLOD(dt);
   if (kijker === camera) zetVoorvlak();
   renderer.render(scene, kijker);
@@ -3406,6 +3426,8 @@ window.__game = {
   bakOmgeving, werkOmgevingBij, zetSchaduwDoos, get omgevingGebakken() { return envBakken; }, sun,
   schaduw: { map: SHADOW_MAP, r: SHADOW_R, vooruit: SHADOW_VOORUIT },
   grasVeld, wolken: clouds,
+  // (stap 171) de camera met de snelheid, voor tools/rijgedragtest.mjs
+  rijCam, werkRijCamBij,
   scene, camera, player, vehicles, npcs, renderer, hud, sfeer, verhaal, interieur, woningen, boerderij, supermarkt, studio, derde, politie,
   drone, droneToets, droneFoto, waaromGeenDrone, vogels, autoschade, kiesTijd, slaapToets, werkKlokBij, kaartNaarDrone, straatOf, get knipper() { return knipper; },
   wedstrijd, get wedDag() { return wedDag; }, werkWedstrijdBij, wedstrijdInFilm, ambulance, nieuws, ambulanceMelding, inBeeld, leven,

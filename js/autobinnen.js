@@ -304,7 +304,8 @@ const KLOKDOEKEN = new Map();
 function klokDoeken(max) {
   if (!KLOKDOEKEN.has(max)) KLOKDOEKEN.set(max, {
     snelDag: wijzerDoek(8, max / 8, 'km/u', false), snelNacht: wijzerDoek(8, max / 8, 'km/u', true),
-    toerDag: wijzerDoek(8, 1, '× 1000', false), toerNacht: wijzerDoek(8, 1, '× 1000', true),
+    // (stap 171) de Ferrari draait tot 8500: zijn toerenteller loopt tot 10
+    toerDag: wijzerDoek(max > 200 ? 10 : 8, 1, '× 1000', false), toerNacht: wijzerDoek(max > 200 ? 10 : 8, 1, '× 1000', true),
   });
   return KLOKDOEKEN.get(max);
 }
@@ -738,10 +739,17 @@ export function maakAutoBinnen(maat) {
     stuur.rotation.z = -uitslag * 4.2;
     const kmu = Math.abs((car && car.speed) || 0) * 3.6;
     const top = ((car && car.topSnelheid) || 24) * 3.6;
-    const toeren = top > 0 ? 0.12 + 0.75 * ((kmu / top) % 0.34) / 0.34 : 0.12;
+    /*
+     (stap 171) De toerenteller volgt het echte toerental uit de versnellingsbak (js/rijgedrag.js `werkBakBij`,
+     `car.toeren`), op een klok tot 8 (of 10 voor de Ferrari) × 1000. Zonder bak (een auto van de computer, het oude
+     model) blijft de nagebootste zaag op de snelheid.
+    */
+    const toerKlok = maxKmu > 200 ? 10000 : 8000;
+    const toeren = car && car.toeren ? Math.min(1.02, car.toeren / toerKlok)
+      : top > 0 ? 0.12 + 0.75 * ((kmu / top) % 0.34) / 0.34 : 0.12;
     const soepel = Math.min(1, dt * 8);
     getoondeSnelheid += (Math.min(1, kmu / maxKmu) - getoondeSnelheid) * soepel;
-    getoondeToeren += (toeren - getoondeToeren) * soepel;
+    getoondeToeren += (toeren - getoondeToeren) * (car && car.toeren ? Math.min(1, dt * 16) : soepel);
     naalden[0].rotation.z = hoekVan(getoondeSnelheid) - Math.PI / 2;
     naalden[1].rotation.z = hoekVan(getoondeToeren) - Math.PI / 2;
     if (nacht !== wasNacht) {
@@ -773,5 +781,5 @@ export function maakAutoBinnen(maat) {
   }
   update(null, 1, { nacht: false });
 
-  return { groep, stuur, klok, naalden, radioDoek, get radioTekst() { return radioSleutel; }, update };
+  return { groep, stuur, klok, naalden, radioDoek, get radioTekst() { return radioSleutel; }, get toerenDeel() { return getoondeToeren; }, toerKlok: maxKmu > 200 ? 10000 : 8000, update };
 }

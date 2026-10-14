@@ -198,6 +198,7 @@
     "garagetest": "node tools/garagetest.mjs",
     "garageshots": "node tools/garageshots.mjs",
     "racetest": "node tools/racetest.mjs",
+    "rijgedragtest": "node tools/rijgedragtest.mjs",
     "raceshots": "node tools/raceshots.mjs",
     "ferrarishots": "node tools/ferrarishots.mjs",
     "schaduwtest": "node tools/schaduwtest.mjs",
