@@ -269,7 +269,6 @@ over de weg, een achtergelaten auto of een wrak, dan rijdt het verkeer er niet m
 stopt, toetert, en rijdt na een paar tellen over de andere strook om de auto heen als daar plaats is en
 er niemand aankomt. Is de straat te smal, dan keert het.
 
-![Twee auto's bij een kruising: de een wacht voor de stopstreep, de ander komt van rechts](docs/screenshots/voorrang_kruising.png)
 ![Een auto die over de andere strook om een rode auto in zijn strook heen rijdt](docs/screenshots/voorrang_uitwijken.png)
 
 De motor heeft een **versnellingsbak** van vijf verzetten. Binnen een verzet lopen de toeren op, bij
