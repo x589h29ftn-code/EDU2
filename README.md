@@ -996,6 +996,10 @@ Het verkeer stopt en wijkt uit, en een schot met het kanon blijft de politie nie
 
 ![Langs de loop](docs/screenshots/tiger_binnen.png)
 
+![Net na het schot: herladen](docs/screenshots/tiger_binnen_schot.png)
+
+![Bijna kapot: STAP UIT](docs/screenshots/tiger_kritiek.png)
+
 ## Tennispark Molenkrite
 
 Naast het sportpark, bij Molenkrite 130, liggen tien gravelbanen: roodbruin gravel met witte belijning,
