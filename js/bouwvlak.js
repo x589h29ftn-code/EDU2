@@ -71,6 +71,15 @@ function inGedraaid(x, z, r) {
   return Math.abs(dx * c + dz * s) < r.hx + r.marge && Math.abs(-dx * s + dz * c) < r.hz + r.marge;
 }
 
+/*
+ (stap 184) De vouwwagen op het gras aan de Wieken (js/vouwwagen.js). Gevraagd bij (−128,8; 7,0); daar staat hij te dicht bij een
+ boom. Dit is de dichtstbijzijnde plek waar de hele wagen met dissel en tent (4,8 × 3,2 m) plus een halve meter op het gras staat,
+ minstens 2 m van een boomkroon, 1,3 m van de rand van een pad en vrij van lantaarns en panden (gezocht over de kaart, nagemeten in tools/vouwwagentest.mjs).
+ Daar groeit niets: `inGedraaid` met `hoek` = −yaw, want die doos draait de andere kant op dan `rotation.y`.
+*/
+export const VOUWWAGEN = { x: -123.3, z: 1.5, yaw: 0.5236, gevraagd: { x: -128.8, z: 7.0 } };
+const VOUWWAGEN_VLAK = { cx: VOUWWAGEN.x, cz: VOUWWAGEN.z, hoek: -VOUWWAGEN.yaw, hx: 1.6, hz: 2.5, marge: 0.4 };
+
 export const GARAGE = {
   // het gebouw: de glazen gevel op x0 kijkt naar de Lemmerweg (west)
   x0: 770, x1: 788, z0: 120, z1: 146,
@@ -128,6 +137,7 @@ export function inBouwvlak(x, z) {
     || Math.hypot(x - NOMERCY_SET.x, z - NOMERCY_SET.z) < NOMERCY_SET.r
     || Math.hypot(x - NOMERCY_KAMP.x, z - NOMERCY_KAMP.z) < NOMERCY_KAMP.r
     || inGedraaid(x, z, GEEUWBRUG)
+    || inGedraaid(x, z, VOUWWAGEN_VLAK)
     || inBpWinkel(x, z, 0.5);
 }
 

@@ -22,6 +22,7 @@ import { initGarage, TE_KOOP, NAAM as AUTOHUIS } from './garage.js';
 import { initPizzabaan } from './pizzabaan.js';
 import { initTennisspel } from './tennisspel.js';
 import { initVishandel } from './vishandel.js';
+import { initVouwwagen } from './vouwwagen.js';
 import { initGezondheid } from './gezondheid.js';
 import { initZeilen } from './zeilen.js';
 import { initTuning } from './tuning.js';
@@ -914,6 +915,8 @@ const tuning = garage ? initTuning({ scene, vehicles, garage, player, hud, geldr
 const uurKlok = { get uur() { try { return sfeer.uur; } catch { return 12; } } };
 // Martens Vishandel voor de Jumbo aan de Molenkrite (stap 131)
 const vishandel = (KAART && !BOVEN) ? initVishandel({ scene, KAART, player, hud, sfeer: uurKlok, verhaal }) : null;
+// (stap 184) een vouwwagen op het gras aan de Wieken
+const vouwwagen = (KAART && !BOVEN) ? initVouwwagen({ scene, addCollider, grondHoogte, vlakOp }) : null;
 // levens zoals in GTA: vanzelf terug tot de helft, daarboven eten en EHBO-dozen met L (js/gezondheid.js, stap 138)
 const gezondheid = initGezondheid({ player, hud, geluid });
 /*
@@ -3534,7 +3537,7 @@ window.__game = {
   get molenflat() { return MOLENFLAT_PAND.nu; },   // (stap 163) de flats aan de Molenkrite, voor de proeven
   zetGrafisch, get grafisch() { return grafisch; }, moeilijk, get schaduwKaart() { return SHADOW_MAP; },
   // stap 131
-  pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst, tiger, tigerKnallen, explosieRaakt, tigerInslag, tigerSchade: () => werkTigerSchadeBij(), schokNu: () => SCHOK.kracht,
+  pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst, tiger, vouwwagen, tigerKnallen, explosieRaakt, tigerInslag, tigerSchade: () => werkTigerSchadeBij(), schokNu: () => SCHOK.kracht,
   // stap 138: levens zoals in GTA
   gezondheid, levenToets,
   // (stap 130) hoe bebouwd het is, voor de achtergrondgeluiden

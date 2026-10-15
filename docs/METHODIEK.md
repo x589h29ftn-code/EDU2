@@ -9317,6 +9317,20 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Een vouwwagen aan de Wieken (stap 184, 15 okt).** Gevraagd met een foto: "zet rond plek en coördinaten op de foto in het gras
+een vouwwagen" (K gaf −128,8; 7,0). js/vouwwagen.js: bak, as, dissel met neuswiel en disselbak, het deksel als tweede bed op poten,
+de tent met boogdak, ramen, deur met rits, trapje en steunen; alles op canvas, geen merk.
+- *De plek is gezocht, niet geraden*: over de kaartdata (gras, panden, bomen, lantaarns, parkeerplekken, wegassen) de dichtstbijzijnde
+  ligging en draaiing waar de hele wagen plus een halve meter op het gras staat. Op de gevraagde plek zelf stond hij te dicht bij
+  een boom; het werd (−123,3; 1,5), 7,8 m verderop, gedraaid 30°. In js/bouwvlak.js als `VOUWWAGEN`, met een gedraaide doos in
+  `inBouwvlak` (zonder dat stak het 3D-gras door de bodem). Let op: `inGedraaid` draait de andere kant op, dus `hoek` = −yaw.
+- *Wat misging*: de eerste plek lag 27 cm van de rand van een voetpad (gemeten aan de omhullende dozen van alle meshes); een halve
+  meter verder is het 0,95 m. En de wagen stond op y = 0, terwijl het gras op 12 cm ligt (`grondHoogte` kent alleen het viaduct):
+  nu de `y` van het vlak uit `vlakOp`. De eerste meting van de shaders gaf +3, maar dat was de wereld die voor het eerst in beeld
+  kwam; zonder en met de wagen in hetzelfde beeld is het 0.
+- *Nagelopen*: `npm run vouwwagentest` (plek, gras, pad, bomen, hoogte, botsdozen van vier kanten en ernaast langs, geen gras eronder,
+  geen nieuw programma) met de foto's `vouwwagen.png` (vanaf de plek van de gebruiker) en `vouwwagen_dichtbij.png`.
+
 **De politie en de Tiger (stap 183, 15 okt).** Gevraagd: "de politie lijkt niet te schieten op de tank, pas op het laatst als
 de tank een tijdje stil staat". Drie oorzaken, alle drie in js/politie.js:
 - *Geen zicht*: Erik staat in de Tiger midden in de botsdoos van de tank, en elke kijklijn van een agent liep daar tegenaan

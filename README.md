@@ -2106,6 +2106,14 @@ gehouden M1 zit gewoon in je wapens, ook na opslaan en laden.
 Ga je neer, loop je weg (verder dan 160 m van de set, of in de tweede scène van het kamp), stap je in een auto
 of druk je op **X**, dan zijn de opnames mislukt en staat Erik Jan weer bij de waterzuivering. Tijdens de opnames kun je niet opslaan. Na het slagen is hij weg.
 
+### Een vouwwagen aan de Wieken
+
+Op het gras aan de Wieken, vlak bij het pad, staat een uitgeklapte vouwwagen: een witte aanhanger met het bed naar opzij
+geklapt, een beige tent met een groen dak, ramen met vliegengaas, een deur met een rits en een trapje, de dissel met het
+neuswiel en de disselbak, en vier steunpoten. Je loopt er niet doorheen.
+
+![De vouwwagen](docs/screenshots/vouwwagen_dichtbij.png)
+
 ### De dvd-hoes
 
 In `docs/hoes/` staat een hoes voor een dvd-doosje: voorkant, rug en achterkant als één inlay van 273 × 183 mm met 3 mm
