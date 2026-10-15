@@ -9317,6 +9317,11 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Vijf nummers op Radio Tinga (stap 186, 15 okt).** Sultans of Swing, Rainbow in the Sky, Under the Bridge, Whatever You Want en
+Knockin' on Heaven's Door, aangeleverd als mp3, onder audio/radio/ en in audio/radio/zenders.json. De radio pakt ze vanzelf op; het
+scherm in de auto toont titel en artiest. `npm run zendertest` (zonder browser) kijkt of elk bestand uit de lijst bestaat, een mp3
+is en een titel heeft, en geen nummer dubbel op een zender staat. Radio Tinga is nu acht nummers, samen ongeveer 38 MB erbij.
+
 **Een installer en de dvd (stap 185, 15 okt).** Gevraagd: "bereid alvast voor dat we het spel op een dvd willen branden en dat
 er een installer komt".
 - *De installer*: Inno Setup (installer/tinga.iss), omdat het op de Windows-runner staat (of met Chocolatey komt) en geen

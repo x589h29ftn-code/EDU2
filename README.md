@@ -1932,6 +1932,8 @@ luider. Na de schietpartij speelt het nog even door en sterft dan weg. Kali staa
 
 In de auto is er nu ook de zender **100% NL** (Ren Lenny Ren en Kali, en sinds 15 okt *Niet of nooit geweest* en *Het regent
 zonnestralen* van Acda en De Munnik en *Suzanne* van VOF de Kunst); Ren Lenny Ren staat ook op Radio Tinga.
+Op **Radio Tinga** draaien sinds 15 okt ook *Sultans of Swing* (Dire Straits), *Rainbow in the Sky* (DJ Paul Elstak), *Under the
+Bridge* (Red Hot Chili Peppers), *Whatever You Want* (Status Quo) en *Knockin' on Heaven's Door* (Guns N' Roses).
 Onder de opnames van **No Mercy 4 en 5** speelt het hoofdthema van *Medal of Honor: European Assault*: het zwelt aan zodra
 Erik Jan begint en dooft rustig uit als de opnames voorbij zijn.
 Onder de missies speelt afwisselend een van twee nummers; onder **Instellingen → Missiemuziek** zet je ze met een

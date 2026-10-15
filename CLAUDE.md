@@ -37,7 +37,7 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
   de heli, de twee achtergronden en de portofoon (`audio/explosie`, `audio/heli`, `audio/sfeer`, `audio/politie`), en sinds stap 129
   Kali (`audio/radio/kali.mp3`: het radiootje van missie 1 en Radio Tinga), en sinds stap 130 `audio/missie/missie2.mp3`
   en `audio/radio/ren-lenny-ren.mp3` (Radio Tinga en 100% NL), en sinds stap 139 `audio/wapen/m1_schot.mp3`,
-  `audio/wapen/m1_clip.mp3` (de M1 Garand) en `audio/sfeer/stad.mp3` (de stadsachtergrond), en sinds stap 174 `audio/auto/claxon.mp3` (de claxon), en sinds stap 181 drie nummers op 100% NL (`audio/radio/niet-of-nooit-geweest.mp3`, `het-regent-zonnestralen.mp3`, `suzanne.mp3`) en `audio/missie/nomercy.mp3` (Medal of Honor onder No Mercy).
+  `audio/wapen/m1_clip.mp3` (de M1 Garand) en `audio/sfeer/stad.mp3` (de stadsachtergrond), en sinds stap 174 `audio/auto/claxon.mp3` (de claxon), en sinds stap 181 drie nummers op 100% NL (`audio/radio/niet-of-nooit-geweest.mp3`, `het-regent-zonnestralen.mp3`, `suzanne.mp3`) en `audio/missie/nomercy.mp3` (Medal of Honor onder No Mercy), en sinds stap 186 vijf nummers op Radio Tinga (`sultans-of-swing`, `rainbow-in-the-sky`, `under-the-bridge`, `whatever-you-want`, `knockin-on-heavens-door`).
 - **`js/kaart.js` is gegenereerd** door `npm run geo:genereer` uit de geodata.
   Nooit met de hand aanpassen. Geometrie komt uit BGT en 3D BAG; foto's mogen
   alleen kleur, detail en indeling bepalen.

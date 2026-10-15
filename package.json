@@ -294,6 +294,7 @@
     "hoes": "python3 tools/hoes_kunst.py && node tools/hoes.mjs",
     "vouwwagentest": "node tools/vouwwagentest.mjs",
     "dvd": "node tools/dvd.mjs",
-    "dvdtest": "node tools/dvdtest.mjs"
+    "dvdtest": "node tools/dvdtest.mjs",
+    "zendertest": "node tools/zendertest.mjs"
   }
 }
