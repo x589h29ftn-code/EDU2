@@ -40,6 +40,7 @@ import { addCollider, resolveCollisions } from './world.js';
 import { plattegrond } from './interieur.js';
 import { Persoon } from './persoon.js';
 import { MAAT } from './lichaam.js';
+import { registreer, isNeer } from './omstanders.js';
 
 const PAND = { type: 'poiesz' };
 /*
@@ -704,6 +705,7 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
     }
     p.zetNeer(NUL.x + x, NUL.z + z, yaw);
     scene.add(p.groep);
+    registreer(p, { wie: personeel ? 'personeel' : 'klant' });   // (stap 188) te raken (js/omstanders.js)
     return p;
   }
   function maakLoper(opties, punten, snelheid = 1.05) {
@@ -828,6 +830,7 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
     // dan hoeft er ook niets bewogen te worden.
     if (hier) {
       for (const l of lopers) {
+        if (isNeer(l.p)) continue;                 // (stap 188) wie neer ligt, loopt niet door
         const pos = l.p.groep.position;
         const doel = l.punten[l.i];
         const dx = doel.x - pos.x, dz = doel.z - pos.z;

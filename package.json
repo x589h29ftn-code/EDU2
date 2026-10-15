@@ -296,6 +296,7 @@
     "dvd": "node tools/dvd.mjs",
     "dvdtest": "node tools/dvdtest.mjs",
     "zendertest": "node tools/zendertest.mjs",
-    "bootwaltest": "node tools/bootwaltest.mjs"
+    "bootwaltest": "node tools/bootwaltest.mjs",
+    "omstandertest": "node tools/omstandertest.mjs"
   }
 }

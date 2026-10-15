@@ -35,6 +35,7 @@ import { geluid } from './audio.js';
 import { maakVuilniswagen } from './vuilniswagen.js';
 import { zoekLooppad } from './looppad.js';
 import { initPostbode } from './postbode.js';
+import { registreer } from './omstanders.js';
 
 /*
  Het stuur van een scooter (stap 138): een kolom van de bovenkant van het beenschild omhoog, de stang en twee
@@ -512,6 +513,7 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
         boot.groep.add(houder);
         boot.mensen.push(p);
         zitAanBoord(p, 0);   // meteen zittend, ook als je nog ver weg bent
+        registreer(p, { wie: 'opvarende' });   // (stap 188) ook aan boord te raken (js/omstanders.js)
       }
       // de vlag achterop
       const stok = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.1, 6), new THREE.MeshStandardMaterial({ color: 0x6a4a2a }));
@@ -786,6 +788,7 @@ export function initLeven({ scene, KAART, sfeer = null, vehicles = null, poiesz 
           p.groep.rotation.y = a; p.yaw = a;
           terras.groep.add(p.groep);
           terras.gasten.push({ p, t: Math.random() * 6 });
+          registreer(p, { wie: 'terrasgast' });   // (stap 188)
         }
       }
       terras.groep.add(t);

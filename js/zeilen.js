@@ -24,6 +24,7 @@
  sloepen), en per beeld is het een handvol optellingen per boot.
 */
 import * as THREE from 'three';
+import { registreer } from './omstanders.js';
 
 export const ZEILEN = {
   aantal: 4,
@@ -261,6 +262,10 @@ export function initZeilen({ scene, KAART, sfeer }) {
       kiesKlok: rnd() * 0.5, wisselKlok: 30 + rnd() * 60, varen: null, zichtbaar: true, gekozen: 0,
       groep, helling, giekGroep, fokGroep, groot, fok, mens, stuk: n % stukken.length,
     });
+    // (stap 188) de zeiler is te raken: hij valt overboord, en de boot drijft uit tot hij terug is (js/omstanders.js)
+    const b = boten[boten.length - 1];
+    registreer({ groep: mens, valOverboord: true }, { wie: 'zeiler', mag: () => b.zichtbaar,
+      opNeer: () => { b.leeg = true; }, opTerug: () => { b.leeg = false; } });
   }
   for (const b of boten) b.doelYaw = b.yaw;
 
@@ -331,6 +336,7 @@ export function initZeilen({ scene, KAART, sfeer }) {
         b.yaw = wrap(b.yaw + Math.max(-ZEILEN.draai * dt, Math.min(ZEILEN.draai * dt, dy)));
         vWil = ZEILEN.snel * polair(theta) * (0.7 + 0.5 * w.kracht) * (Math.abs(dy) > 0.6 ? 0.75 : 1);
       }
+      if (b.leeg) vWil = 0;                           // (stap 188) zonder zeiler drijft hij uit
       b.v += (vWil - b.v) * Math.min(1, dt * 0.35);
       const fx = -Math.sin(b.yaw), fz = -Math.cos(b.yaw);
       const nx = b.x + fx * b.v * dt, nz = b.z + fz * b.v * dt;

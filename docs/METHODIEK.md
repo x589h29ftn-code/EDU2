@@ -9317,6 +9317,22 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Omstanders die je niet kon raken (stap 188, 15 okt).** Gevraagd: "als een persoon op een zeilboot zit kan je hem niet neerschieten
+zo te zien, dat soort dingetjes". Een kogel raakt alleen wat in een lijst van het schot staat (js/main.js `shootCb`). Nagelopen welke
+modules mensen maken (`new Persoon`) zonder `doelen()`: de zeilers (een eigen figuurtje in js/zeilen.js), de opvarenden van de
+plezierboot en de terrasgasten (wel in js/leven.js, niet in zijn doelen), de verkopers van de viskraam, de medewerker van de BP,
+Sjoerd, het personeel en de klanten van de supermarkt, de tegenstander bij tennis.
+- js/omstanders.js: `registreer(persoon, { wie, mag, opNeer, opTerug })`, `doelen()`, `raak(obj)`, `update` (na de updates van de
+  modules, zodat `legNeer` wint van hun eigen houding) en `reset`. Neer: omvallen (een zeiler overboord, zijn boot drijft uit), een
+  misdaad voor de politie, het nieuws. Na `OMSTANDER.terug` (75 s), met de camera minstens 45 m weg, staat hij weer op.
+- Gevolgen in de modules: de viskraam verkoopt niet zolang een verkoper ligt, de kassa van de BP is dicht (`bemand`), de balie van
+  Sjoerd ook (tuning en de race voor geld), een loper in de supermarkt loopt niet door, de tennisgame is voorbij.
+- Bewust niet: wie het verhaal nodig heeft (Mark, Johan, Erik Jan, Sjors, Wiebe).
+- Ook het mes en de knal van de Tiger (`explosieRaakt`) raken ze.
+- *Nagelopen*: `npm run omstandertest`: van elke soort één, met het echte schot neer, een misdaad, later weer op; het mes, de knal, en
+  de voetgangers blijven te raken. Een valkuil in de proef: op de plezierboot zitten ze tegenover elkaar, dus een schot van vóór
+  raakt eerst de overbuurman.
+
 **Haperingen bij het rijden en de boot tegen de wal (stap 187, 15 okt).** Gevraagd: "kijk of je nog haperingen ziet tijdens het
 rijden, en of er nog problemen zijn met de boot, bijvoorbeeld als je tegen de wal botst, dat je niet vast komt te zitten".
 - *Rijden*: `haperingtest` groen. `rijprofiel`: per beeld gemiddeld rijden 1,25 ms, verkeer 1,65, hud 1,24, voetgangers 0,91. Boven de

@@ -23,6 +23,7 @@ import { initPizzabaan } from './pizzabaan.js';
 import { initTennisspel } from './tennisspel.js';
 import { initVishandel } from './vishandel.js';
 import { initVouwwagen } from './vouwwagen.js';
+import { omstanders, isNeer } from './omstanders.js';
 import { initGezondheid } from './gezondheid.js';
 import { initZeilen } from './zeilen.js';
 import { initTuning } from './tuning.js';
@@ -1007,7 +1008,8 @@ const tennisspel = (KAART && !BOVEN) ? initTennisspel({ scene, KAART, player, hu
 // de knoppen van Radio Tinga overnemen (stap 131)
 const djdienst = initDjDienst({ studio, geluid, hud, player, verdien: n => verhaal.verdien(n), nieuws });
 // (stap 169) de kassa van de BP-shop: energydrank en kraslot
-const bpKassa = initBpKassa({ player, hud, geluid, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n) });
+const bpKassa = initBpKassa({ player, hud, geluid, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n),
+  bemand: () => !(BP_SHOP.nu && isNeer(BP_SHOP.nu.medewerker)) });
 extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : []),
   ...(pizzabaan ? pizzabaan.plekken : []), ...(vishandel && vishandel.winkels ? vishandel.winkels : [])];
 winkelsNu = null; werkKaartvlaggenBij();
@@ -1346,6 +1348,9 @@ function steekRaak(h, dir) {
     pijn(); bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
     politie.misdaad('neergeschoten', h.point.x, h.point.z);
     if (raakLeven.herstel) ambulanceMelding(raakLeven.x, raakLeven.z, { herstel: raakLeven.herstel });
+  } else if (omstanders.raak(h.object)) {
+    pijn(); bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+    politie.misdaad('neergeschoten', h.point.x, h.point.z);
   } else if (verhaal.raak(h.object, 1)) {
     pijn(); bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
   }
@@ -1384,7 +1389,8 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
   if (mes) {
     raycaster.set(origin, dir); raycaster.far = bereik + (derde.aan ? 2.6 : 0);
     const mensen = [...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
-      ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []), ...(ambulance ? ambulance.doelen() : [])];
+      ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []), ...(ambulance ? ambulance.doelen() : []),
+      ...omstanders.doelen()];
     const h = raycaster.intersectObjects(mensen, true)[0];
     raycaster.far = 120;
     if (!h) { geluid.mesMis && geluid.mesMis(); return; }
@@ -1421,7 +1427,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
   const eigen = player.inCar && player.inCar.mesh ? player.inCar.mesh : null;
   const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
     ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []), ...(ambulance ? ambulance.doelen() : []),
-    ...(politieboot ? politieboot.doelen() : [])].filter(o => !eigen || o !== eigen);
+    ...(politieboot ? politieboot.doelen() : []), ...omstanders.doelen()].filter(o => !eigen || o !== eigen);
   const hits = raycaster.intersectObjects(targets, true);
   if (hits.length) {
     const h = hits[0];
@@ -1502,6 +1508,14 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
       politie.misdaad('neergeschoten', h.point.x, h.point.z);
       nieuws.meld('schietpartij', h.point.x, h.point.z);
       if (raakLeven.herstel) ambulanceMelding(raakLeven.x, raakLeven.z, { herstel: raakLeven.herstel });
+      raakVerhaal = true;
+    }
+    // (stap 188) een zeiler, een opvarende, een terrasgast, iemand achter een toonbank of de tennisser (js/omstanders.js)
+    else if (omstanders.raak(h.object)) {
+      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
+      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+      politie.misdaad('neergeschoten', h.point.x, h.point.z);
+      nieuws.meld('schietpartij', h.point.x, h.point.z);
       raakVerhaal = true;
     }
     // (de sniper legt ook een taaie bodyguard in één keer neer: stap 110)
@@ -2772,13 +2786,13 @@ function explosieRaakt(x, y, z, straal) {
   for (const q of npcs.people) if (q.alive && !q.slaapt && Math.hypot(q.x - x, q.z - z) < straal) { q.raken = 0; npcs.hitPersoon(q, 1); neer++; }   // (1 = één treffer nodig, niet de schade)
   const gehad = new Set();
   const lijst = [...verhaal.doelen(), ...politie.doelen(), ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []),
-    ...(ambulance ? ambulance.doelen() : [])];
+    ...(ambulance ? ambulance.doelen() : []), ...omstanders.doelen()];
   for (const o of lijst) {
     if (!o || o.isInstancedMesh) continue;           // de voetgangers staan hierboven
     o.getWorldPosition(_explPunt);
     if (Math.hypot(_explPunt.x - x, _explPunt.z - z) > straal || Math.abs(_explPunt.y - y) > straal) continue;
     const wie = politie.raak(o, 1) || politie.raakWagen(o, 99) || (wedstrijd && wedstrijd.raak(o)) || (leven && leven.raak(o))
-      || (ambulance && ambulance.raak(o)) || verhaal.raak(o, 99);
+      || (ambulance && ambulance.raak(o)) || omstanders.raak(o) || verhaal.raak(o, 99);
     if (!wie) continue;
     const sleutel = typeof wie === 'object' ? wie : o;
     if (gehad.has(sleutel)) continue;
@@ -3379,6 +3393,8 @@ function loop() {
   if (kijker === camera && rijCamNu && !gepauzeerd) rijCam.zetOp(kijker);
   rijCamNu = false;
   vervaagLOD(dt);
+  // (stap 188) wie als omstander geraakt is ligt, na de updates van de modules zelf (js/omstanders.js)
+  if (!gepauzeerd) omstanders.update(dt, camera.position.x, camera.position.z);
   if (kijker === camera) zetVoorvlak();
   renderer.render(scene, kijker);
   if (kijker === camera && player.gun && player.gun.visible) tekenWapen();
@@ -3537,7 +3553,7 @@ window.__game = {
   get molenflat() { return MOLENFLAT_PAND.nu; },   // (stap 163) de flats aan de Molenkrite, voor de proeven
   zetGrafisch, get grafisch() { return grafisch; }, moeilijk, get schaduwKaart() { return SHADOW_MAP; },
   // stap 131
-  pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst, tiger, vouwwagen, tigerKnallen, explosieRaakt, tigerInslag, tigerSchade: () => werkTigerSchadeBij(), schokNu: () => SCHOK.kracht,
+  pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst, tiger, vouwwagen, omstanders, tigerKnallen, explosieRaakt, tigerInslag, tigerSchade: () => werkTigerSchadeBij(), schokNu: () => SCHOK.kracht,
   // stap 138: levens zoals in GTA
   gezondheid, levenToets,
   // (stap 130) hoe bebouwd het is, voor de achtergrondgeluiden

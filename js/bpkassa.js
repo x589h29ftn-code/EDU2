@@ -74,7 +74,7 @@ function kraskaart(prijs) {
   return kaartEl;
 }
 
-export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal = () => false, verdien = () => 0, rng = Math.random }) {
+export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal = () => false, verdien = () => 0, rng = Math.random, bemand = () => true }) {
   let open = false, boostT = 0, drankjes = 0, loten = 0, gewonnen = 0;
   const K = BP_KASSA;
   if (player.renBoost == null) player.renBoost = 0;
@@ -136,6 +136,8 @@ export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal
       if (!player.active && !window.__autoplay) return false;
       if (open) { sluit(); return true; }
       if (!bijBalie()) return false;
+      // (stap 188) de medewerker is neergeschoten (js/omstanders.js): niemand achter de kassa
+      if (!bemand()) { if (hud) hud.melding('BP', 'Er staat niemand meer achter de kassa.', 2.5); return true; }
       open = true; toonMenu();
       return true;
     },
@@ -148,7 +150,7 @@ export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal
       if (open) toonMenu();
       return true;
     },
-    hint() { return !open && bijBalie() ? 'E — afrekenen aan de kassa (energydrank, kraslot)' : null; },
+    hint() { return !open && bijBalie() && bemand() ? 'E — afrekenen aan de kassa (energydrank, kraslot)' : null; },
     // elk beeld: de boost laten verlopen, en de kassa dicht als je wegloopt
     update(dt) {
       if (open && !bijBalie()) sluit();

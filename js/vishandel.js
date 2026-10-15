@@ -50,6 +50,7 @@
 import * as THREE from 'three';
 import { addCollider, resolveCollisions } from './world.js';
 import { Persoon } from './persoon.js';
+import { registreer, isNeer } from './omstanders.js';
 import { HUD } from './hud.js';
 
 export const NAAM = 'Martens Vishandel';
@@ -710,6 +711,7 @@ export function initVishandel({ scene, KAART, player, hud, sfeer, verhaal = null
     const p = new Persoon(v.kleren);
     p.yaw = Math.PI; p.groep.rotation.y = Math.PI;    // naar de toonbank (+z van de wagen)
     drager.add(p.groep);
+    registreer(p, { wie: 'verkoper' });            // (stap 188) te raken; dan is de kraam even dicht
     return { p, drager };
   });
 
@@ -775,6 +777,10 @@ export function initVishandel({ scene, KAART, player, hud, sfeer, verhaal = null
     if (!bijToonbank() || !isOpen()) return false;
     if (afkoel > 0) return true;                 // net geprobeerd: E doet even niets
     afkoel = VIS.afkoel;
+    if (verkopers.some(v => isNeer(v.p))) {
+      if (hud) hud.melding(NAAM, 'Er wordt niet meer verkocht. Wat heb je gedaan?', 2.5);
+      return true;
+    }
     if (player.health >= VIS.max) {
       if (hud) hud.melding(NAAM, 'Je zit nog vol. "Kom straks maar terug!"', 2.5);
       return true;
@@ -794,6 +800,7 @@ export function initVishandel({ scene, KAART, player, hud, sfeer, verhaal = null
     if (!bijToonbank()) return null;
     if (!openUur(uurNu())) return `${NAAM} is dicht — open van ${VIS.open} tot ${VIS.dicht} uur`;
     if (!isOpen()) return null;
+    if (verkopers.some(v => isNeer(v.p))) return null;
     return `E — kibbeling kopen (€ ${VIS.prijs}, +${VIS.leven} leven)`;
   }
 

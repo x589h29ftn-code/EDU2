@@ -2108,6 +2108,14 @@ gehouden M1 zit gewoon in je wapens, ook na opslaan en laden.
 Ga je neer, loop je weg (verder dan 160 m van de set, of in de tweede scène van het kamp), stap je in een auto
 of druk je op **X**, dan zijn de opnames mislukt en staat Erik Jan weer bij de waterzuivering. Tijdens de opnames kun je niet opslaan. Na het slagen is hij weg.
 
+### Iedereen is te raken
+
+Ook wie eerst ongedeerd bleef, kun je nu neerschieten (of met het mes of de Tiger raken): de zeilers op de zeilbootjes (die vallen
+overboord en hun boot drijft uit), de mensen op de plezierboot en op het terras in IJlst, de verkopers van de viskraam, de
+medewerker van de BP, Sjoerd in het Autohuis, het personeel en de klanten van de supermarkt, en je tegenstander bij tennis. De
+politie hoort ervan. Een winkel verkoopt zolang er niemand achter de toonbank staat; na een tijdje, als je weg bent, staat iedereen
+weer op. Mark, Johan, Erik Jan, Sjors en Wiebe heeft het verhaal nodig: die blijven onkwetsbaar.
+
 ### Een vouwwagen aan de Wieken
 
 Op het gras aan de Wieken, vlak bij het pad, staat een uitgeklapte vouwwagen: een witte aanhanger met het bed naar opzij
