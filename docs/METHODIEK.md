@@ -9317,6 +9317,28 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De M1897 trench gun naar het echte model, met opnames (stap 190, 15 okt).** Gevraagd: "Shotgun geluid en cocking geluid. Bouw de
+Winchester Model 1897 trench gun als model. Zoek online hoe dit er uit moet zien."
+- *Nagezocht*: 99,7 cm lang (39¼ inch), loop 50,8 cm (20 inch), 3,6 kg, vijf in de buis plus één in de kamer; een geperforeerd
+  hitteschild met zes rijen gaten (een veilingbeschrijving telt er 29 per rij) dat je hand op het voorhout beschermt; een
+  adapter aan de monding met de nok voor de M1917-bajonet en de korrel. (Wikipedia, IMFDB en veilingen; imfdb.org en
+  doughboy.org waren vanuit de container niet bereikbaar.)
+- *Het model* (`MAAT` in `maakTrenchgun`): de kast van 0 tot −0,195 als zijprofiel met het trapje naar de staart (de haan staat
+  daar), de grote uitwerpopening rechts, de stelhuls met kartels vóór de kast; de loop tot −0,703; de buis 7,5 mm hoger, tegen
+  de loop aan; het hitteschild van −0,214 tot −0,652 over de hele loop, met 6 × 29 ronde gaten als donkere schijfjes (een doek
+  met doorzichtige gaten is een ander soort materiaal); het voorhout (dertien ribbels, 16,5 cm) eronder; de adapter met de nok
+  eronder, de korrel en een riembeugel; een rechte hals, de geribde kolfplaat en een tweede riembeugel onder de kolf.
+- *Een fout onderweg*: een `CylinderGeometry` met `thetaStart` die je met `rotateX(+π/2)` langs z legt, heeft het midden van zijn
+  boog ónder de as. Het schild van stap 189 lag dus onder de loop. Nu `rotateX(−π/2)`, en de proef schiet een straal recht omlaag
+  midden boven het schild (die raakt op y 0,035, de loop ligt op 0,018). Die straal moet `layers.enableAll()`: het wapen staat op
+  laag 1.
+- *Geluid*: `audio/wapen/shotgun_schot.mp3` (de opname van de gebruiker, van 7,9 s op 3,5 s geknipt met een uitfade; −3,0 dB
+  RMS over 300 ms, met 0,32 1,7 dB boven de M1) en `audio/wapen/shotgun_pomp.mp3` (0,12–0,80 s van de opname: terug en vooruit
+  0,25 s na elkaar; −20,3 dB, met 0,5 −26,3). `pompTerug` speelt hem op 0,13 s na het schot; de klak van het vooruit valt dan op
+  ~0,43 s, het voorhout is op 0,46 s vooraan. `pompVoor` zwijgt als de opname er is.
+- *Nagelopen*: `npm run shotguntest` nu 33 controles, ook de lengte (1,003 m), de loop (0,508), het schild boven de loop, en
+  beide opnames die geladen worden en spelen. Foto's: `npm run shotgunshots`.
+
 **Het pompgeweer (stap 189, 15 okt).** Gevraagd: "doe een pompgeweer, shotgun, ww2 stijl" (na mijn voorstel: een trench gun zoals
 de Winchester M1897).
 - *js/wapen.js* `maakTrenchgun`: rechte walnoten kolf, de kast met de open haan (`hamer`, gespannen 0,62 rad, af −0,15), de

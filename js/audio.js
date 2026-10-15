@@ -155,8 +155,12 @@ export const SCHOT = {
   mitrailleur: { rate: 1.08, vol: 0.9 },
   sniper: { rate: 0.8, vol: 1.35 },
   garand: { url: 'audio/wapen/m1_schot.mp3', rate: 1.0, vol: 0.46, terug: { rate: 0.84, vol: 1.42 } },
-  // het pompgeweer (stap 189): schot.mp3 trager en harder, een dikke doffe dreun (een 12 gauge, geen scherpe knal)
-  shotgun: { rate: 0.66, vol: 1.6 },
+  /*
+   Het pompgeweer (stap 190): audio/wapen/shotgun_schot.mp3 van de gebruiker, op 3,5 s geknipt (de galm liep tot 7,9 s) met
+   een uitfade. Over de eerste 300 ms −3,0 dB RMS (de M1 gemeten op dezelfde manier −7,9); met 0,32 is dat −12,9 dB, 1,7 dB
+   boven de M1. Zonder opname schot.mp3 trager en harder (stap 189).
+  */
+  shotgun: { url: 'audio/wapen/shotgun_schot.mp3', rate: 1.0, vol: 0.32, terug: { rate: 0.66, vol: 1.6 } },
   ander: { rate: 1.0, vol: 1.0 },
 };
 /*
@@ -167,9 +171,12 @@ export const SCHOT = {
 export const M1_CLIP = { url: 'audio/wapen/m1_clip.mp3', vol: 0.23 };
 // stap 174: de claxon als opname van de gebruiker ("gebruik dit muziek geluidje als claxon auto's"); zonder opname de twee tonen
 export const CLAXON = { url: 'audio/auto/claxon.mp3', vol: 0.32 };
+// het pompen van het pompgeweer (stap 190): audio/wapen/shotgun_pomp.mp3, terug en vooruit 0,25 s na elkaar; −20,3 dB, met 0,5 −26,3
+export const SHOTGUN_POMP = { url: 'audio/wapen/shotgun_pomp.mp3', vol: 0.5 };
 const wapenOpname = {};   // per sleutel { buf, begin, eind }
 const wapenLaden = {};
 let laatstePing = null;   // (voor tools/m1geluidtest.mjs)
+let laatstePomp = null;   // (voor tools/shotguntest.mjs)
 const SCHOT_KAP = 0.6;
 const MISSIE_VOL = 0.26;     // spanningsmuziek: onder de radio (0,32) en boven de motor
 let vogelKlok = 0, krekelKlok = 0, molenKlok = 0;
@@ -456,7 +463,7 @@ export const geluid = {
   // de opnames van stap 139: het schot van de garand en de lege clip, elk met waar hij begint en ophoudt
   laadWapenOpnames() {
     if (!ctx) return null;
-    for (const [k, url] of [['garand', SCHOT.garand.url], ['clip', M1_CLIP.url], ['claxon', CLAXON.url]]) {
+    for (const [k, url] of [['garand', SCHOT.garand.url], ['clip', M1_CLIP.url], ['claxon', CLAXON.url], ['shotgun', SCHOT.shotgun.url], ['pomp', SHOTGUN_POMP.url]]) {
       if (wapenLaden[k]) continue;
       wapenLaden[k] = (async () => {
         try {
@@ -472,7 +479,7 @@ export const geluid = {
   },
   wapenOpnameStand() {
     const st = o => o ? { duur: +o.buf.duration.toFixed(3), begin: +o.begin.toFixed(3), eind: +o.eind.toFixed(3) } : null;
-    return { garand: st(wapenOpname.garand), clip: st(wapenOpname.clip), laatstePing };
+    return { garand: st(wapenOpname.garand), clip: st(wapenOpname.clip), shotgun: st(wapenOpname.shotgun), pomp: st(wapenOpname.pomp), laatstePing, laatstePomp };
   },
   zetSchotSoort(soort) { schotSoort = soort === 'gemaakt' ? 'gemaakt' : 'opname'; },
 
@@ -745,10 +752,24 @@ export const geluid = {
   */
   pompTerug() {
     this.pompen = (this.pompen || 0) + 1;
+    if (!aan) return;
+    // de opname (stap 190): terug én vooruit in één, dus pompVoor zwijgt dan
+    const op = wapenOpname.pomp;
+    if (op) {
+      const src = ctx.createBufferSource(); src.buffer = op.buf;
+      src.playbackRate.value = 0.98 + Math.random() * 0.04;
+      const g = ctx.createGain(); g.gain.value = SHOTGUN_POMP.vol;
+      src.connect(g); g.connect(hoofd);
+      src.start(nu(), 0, op.eind);
+      laatstePomp = { opname: true, gain: SHOTGUN_POMP.vol, duur: op.eind };
+      return;
+    }
+    laatstePomp = { opname: false };
     tik({ freq: 1600, q: 2.2, duur: 0.07, volume: 0.20 });
     tik({ freq: 650, q: 1.6, duur: 0.06, volume: 0.12, vertraag: 0.03 });
   },
   pompVoor() {
+    if (wapenOpname.pomp) return;
     tik({ freq: 1250, q: 1.8, duur: 0.07, volume: 0.26, val: 0.5 });
     tik({ freq: 2900, q: 3, duur: 0.03, volume: 0.12 });
     toon({ freq: 210, naar: 95, duur: 0.08, volume: 0.09, golf: 'triangle' });

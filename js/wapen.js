@@ -2599,99 +2599,138 @@ export function maakTrenchgun(geluid) {
   const wapen = new THREE.Group();
   groep.add(wapen);
 
-  const LOOP_Y = 0.020, LOOP_R = 0.0105;
-  const BUIS_Y = -0.012, BUIS_R = 0.0095;
-  const MOND_Z = -0.725;
-  const VIZIER_Y = 0.050, VIZIER_Z = -0.030;            // de ooglijn: een fractie boven de groef op de kast
-  const KORREL = { y: LOOP_Y + LOOP_R + 0.0045, z: -0.712 };
+  /*
+   De maten (stap 190, nagezocht): de M1897 trench gun is 99,7 cm lang (39¼ inch) met een loop van 50,8 cm (20 inch), weegt
+   3,6 kg en heeft vijf patronen in de buis plus één in de kamer. Van achter naar voren: de kolfplaat op +0,296, de kolf tot de
+   kast op 0, de kast tot −0,195 (20 cm), de loop tot −0,703. Het hitteschild loopt van vlak voor de kast tot de bajonetadapter
+   aan de monding en heeft zes rijen van negenentwintig ronde gaten; het geribde voorhout schuift eronder over de buis.
+  */
+  const MAAT = { kolfplaat: 0.296, kastVoor: -0.195, mond: -0.703, schild: [-0.214, -0.652], adapter: [-0.652, -0.694] };
+  const LOOP_Y = 0.018, LOOP_R = 0.0105;
+  const BUIS_Y = -0.0045, BUIS_R = 0.0095;
+  const MOND_Z = MAAT.mond;
+  const KAST = { top: 0.034, bodem: -0.030 };
+  const VIZIER_Y = 0.046, VIZIER_Z = -0.030;            // de ooglijn: een fractie boven de groef op de kast
+  const KORREL = { y: LOOP_Y + 0.0165, z: -0.690 };
   const KANTEL = Math.atan2(VIZIER_Y - KORREL.y, VIZIER_Z - KORREL.z);
-  const HZ = -0.345;                                     // het midden van het voorhout als het vooraan staat
-  const POORT = { y: -0.034, z: -0.105 };                // de laadopening onderin de kast
+  const SLEDE_L = 0.165;
+  const HZ = -0.318;                                     // het midden van het voorhout als het vooraan staat
+  const POORT = { y: KAST.bodem, z: -0.110 };            // de laadopening onderin de kast
 
-  // ---------------------------------------------------------------- de kolf: recht, met een smalle hals
+  // ---------------------------------------------------------------- de kolf: een rechte hals, geen pistoolgreep
   {
     const kolf = zijProfiel([
-      [0.000, 0.018], [0.000, -0.030], [0.030, -0.038], [0.110, -0.054], [0.200, -0.076], [0.330, -0.106],
-      [0.338, -0.014], [0.200, -0.004], [0.080, 0.006], [0.025, 0.013],
+      [0.004, 0.014], [0.004, -0.026], [0.040, -0.040], [0.120, -0.060], [0.200, -0.083], [0.290, -0.111],
+      [0.290, -0.016], [0.200, -0.008], [0.090, 0.000], [0.030, 0.010],
     ], 0.018, 0.007, 4, 8);
     const P = kolf.attributes.position;
-    for (let i = 0; i < P.count; i++) {
-      const z = P.getZ(i);
-      P.setX(i, P.getX(i) * (1 + Math.max(0, Math.min(1, (z - 0.06) / 0.20)) * 0.38));
+    for (let k = 0; k < P.count; k++) {
+      const z = P.getZ(k);
+      P.setX(k, P.getX(k) * (1 + Math.max(0, Math.min(1, (z - 0.06) / 0.18)) * 0.36));
     }
     const b = bak(); vorm(b, kolf, hout);
-    // de kolfplaat van staal, met ribbels
-    doos(b, parkDonker, 0.036, 0.096, 0.006, 0, -0.060, 0.336, 0.002);
+    // de stalen kolfplaat met ribbels, en een riembeugel onder de kolf
+    doos(b, parkDonker, 0.036, 0.098, 0.006, 0, -0.064, MAAT.kolfplaat, 0.002);
+    for (let k = 0; k < 9; k++) doos(b, gleufStaal, 0.030, 0.0012, 0.0012, 0, -0.026 - k * 0.0095, MAAT.kolfplaat + 0.0032, 0.0003);
+    kromme(b, park, [[0, -0.088, 0.205], [0, -0.100, 0.214], [0, -0.100, 0.236], [0, -0.092, 0.245]], 0.0018, 12, 6);
     bouw(b, wapen);
   }
   const fB = bak();
   // ---------------------------------------------------------------- de kast
-  vorm(fB, rondeDoosGeo(0.030, 0.070, 0.192, 0.0045, 2).translate(0, 0.001, -0.098), park);
-  // de bovenkant loopt achter schuin af naar de haan
-  doos(fB, park, 0.026, 0.010, 0.030, 0, 0.034, -0.012, 0.003);
-  // de uitwerpopening rechts en de laadopening onderin: donkere vlakken in het staal
-  doos(fB, gleufStaal, 0.002, 0.016, 0.060, 0.0151, 0.016, -0.112, 0.0006);
-  doos(fB, gleufStaal, 0.020, 0.002, 0.090, 0, POORT.y - 0.0002, POORT.z, 0.0006);
-  // de schroeven op de zijplaat
-  for (const [y, z] of [[-0.012, -0.040], [-0.012, -0.160], [0.020, -0.175]]) {
-    for (const sx of [-1, 1]) vorm(fB, new THREE.CylinderGeometry(0.0032, 0.0032, 0.002, 10).rotateZ(Math.PI / 2).translate(sx * 0.0155, y, z), gleufStaal);
-  }
-  // de ring voor de loop, vóór de kast
-  vorm(fB, buisGeo(0.0150, 0.0150, 0.020, 0, LOOP_Y, -0.198, 20), park);
-  // de trekkerbeugel
-  kromme(fB, park, [[0, -0.034, 0.002], [0, -0.050, 0.000], [0, -0.058, -0.016], [0, -0.058, -0.046], [0, -0.050, -0.062], [0, -0.034, -0.066]], 0.0028, 18, 6);
-  // ---------------------------------------------------------------- loop, magazijnbuis, hitteschild
-  vorm(fB, buisGeo(LOOP_R, LOOP_R, 0.53, 0, LOOP_Y, -0.460, 20), park);
-  vorm(fB, buisGeo(0.0072, 0.0072, 0.004, 0, LOOP_Y, MOND_Z + 0.001, 16), gleufStaal);          // de monding
-  vorm(fB, buisGeo(BUIS_R, BUIS_R, 0.475, 0, BUIS_Y, -0.430, 18), park);
-  vorm(fB, buisGeo(BUIS_R + 0.0012, BUIS_R + 0.0012, 0.012, 0, BUIS_Y, -0.668, 18), parkDonker);  // de dop
   /*
-   Het hitteschild: een halve buis boven de loop met rijen gaten. Geen doek met doorzichtige gaten (dat is een ander
-   soort materiaal), maar staal met echte openingen: om de 3 cm een ring, en ertussen vier smalle langse strips.
+   In zijaanzicht: een vlakke bovenkant, achteraan een trapje omlaag naar de staart die over de hals van de kolf loopt (daar
+   staat de haan), onderin de laadopening en vooraan een afgeronde onderkant. Rechts de grote uitwerpopening.
+  */
+  vorm(fB, zijProfiel([
+    [MAAT.kastVoor, KAST.top - 0.002], [-0.026, KAST.top - 0.002], [-0.014, 0.022], [0.006, 0.016], [0.006, -0.022],
+    [-0.020, KAST.bodem + 0.003], [-0.160, KAST.bodem + 0.003], [-0.185, -0.016], [MAAT.kastVoor, -0.006],
+  ], 0.022, 0.0035, 3, 4), park);
+  // de bovenste staart over de hals, en de onderste met de trekkerbeugel
+  doos(fB, park, 0.012, 0.003, 0.052, 0, 0.0135, 0.030, 0.001);
+  doos(fB, park, 0.016, 0.004, 0.050, 0, -0.030, 0.010, 0.001);
+  kromme(fB, park, [[0, -0.031, -0.002], [0, -0.046, -0.004], [0, -0.054, -0.020], [0, -0.054, -0.046], [0, -0.046, -0.062], [0, -0.031, -0.066]], 0.0028, 18, 6);
+  // de uitwerpopening rechts (groot, tot bijna aan de bovenkant) en de laadopening onderin
+  doos(fB, gleufStaal, 0.002, 0.024, 0.080, 0.0146, 0.017, -0.098, 0.0006);
+  doos(fB, gleufStaal, 0.018, 0.002, 0.082, 0, POORT.y - 0.0004, POORT.z, 0.0006);
+  // de schroeven op de zijplaat
+  for (const [y, z] of [[-0.014, -0.034], [-0.014, -0.150], [0.012, -0.170]]) {
+    for (const sx of [-1, 1]) vorm(fB, new THREE.CylinderGeometry(0.0030, 0.0030, 0.002, 10).rotateZ(Math.PI / 2).translate(sx * 0.0148, y, z), gleufStaal);
+  }
+  // vóór de kast: de ring om de loop en de stelhuls van het uit elkaar nemen om de buis, met kartels
+  vorm(fB, buisGeo(0.0145, 0.0145, 0.016, 0, LOOP_Y, MAAT.kastVoor - 0.006, 20), park);
+  vorm(fB, buisGeo(0.0128, 0.0128, 0.022, 0, BUIS_Y, MAAT.kastVoor - 0.011, 20), parkDonker);
+  for (let k = 0; k < 4; k++) vorm(fB, buisGeo(0.0134, 0.0134, 0.0018, 0, BUIS_Y, MAAT.kastVoor - 0.003 - k * 0.005, 20), gleufStaal);
+  // ---------------------------------------------------------------- loop en magazijnbuis
+  vorm(fB, buisGeo(LOOP_R, LOOP_R, MAAT.kastVoor - MAAT.mond, 0, LOOP_Y, (MAAT.kastVoor + MAAT.mond) / 2, 20), park);
+  vorm(fB, buisGeo(0.0074, 0.0074, 0.004, 0, LOOP_Y, MOND_Z + 0.0015, 16), gleufStaal);          // de monding
+  vorm(fB, buisGeo(BUIS_R, BUIS_R, MAAT.adapter[0] - MAAT.kastVoor + 0.004, 0, BUIS_Y, (MAAT.kastVoor + MAAT.adapter[0]) / 2, 18), park);
+  /*
+   Het hitteschild: een halve buis van geparkeerd staal boven en langs de loop, van vlak voor de kast tot de adapter, met
+   zes rijen van 29 ronde gaten. De gaten zijn donkere schijfjes op het staal (een doek met doorzichtige gaten zou een ander
+   soort materiaal zijn); daaronder is de loop toch donker.
   */
   {
-    const R = 0.0178, van = -0.275, tot = -0.650, hoek = Math.PI * 1.15;
-    const boog = (L, z) => {
-      const g = new THREE.CylinderGeometry(R, R, L, 18, 1, true, -hoek / 2, hoek);
-      g.rotateX(Math.PI / 2); g.translate(0, LOOP_Y, z);
-      vorm(fB, g, park);
-    };
-    const ringen = 13;
-    for (let i = 0; i <= ringen; i++) boog(0.009, van + (tot - van) * i / ringen);
-    for (const a of [-0.48, -0.16, 0.16, 0.48]) {
-      const h = a * hoek;
-      const x = Math.sin(h) * R, y = LOOP_Y + Math.cos(h) * R;
-      vorm(fB, new THREE.BoxGeometry(0.0034, 0.0014, tot - van).rotateZ(-h).translate(x, y, (van + tot) / 2), park);
+    const R = 0.0172, [van, tot] = MAAT.schild, hoek = Math.PI * 1.10;
+    // (draai −90°: dan ligt het midden van de boog, θ = 0, bovenop; met +90° lag het schild onder de loop)
+    const g = new THREE.CylinderGeometry(R, R, van - tot, 26, 1, true, -hoek / 2, hoek);
+    g.rotateX(-Math.PI / 2); g.translate(0, LOOP_Y, (van + tot) / 2);
+    vorm(fB, g, park);
+    // de randen van het schild, omgezet
+    for (const sx of [-1, 1]) {
+      const h = sx * hoek / 2;
+      vorm(fB, new THREE.BoxGeometry(0.0022, 0.0035, van - tot).translate(Math.sin(h) * R, LOOP_Y + Math.cos(h) * R, (van + tot) / 2), park);
     }
-    // de klemmen van het schild aan de loop, voor en achter
-    for (const z of [van - 0.004, tot + 0.004]) vorm(fB, buisGeo(R + 0.0012, R + 0.0012, 0.010, 0, LOOP_Y, z, 20), parkDonker);
+    const gat = new THREE.CircleGeometry(0.0034, 8);
+    const rijen = [-1.25, -0.75, -0.25, 0.25, 0.75, 1.25];        // radialen vanaf de bovenkant
+    const n = 29, marge = 0.014;
+    for (const h of rijen) {
+      for (let k = 0; k < n; k++) {
+        const z = van - marge - (van - tot - 2 * marge) * k / (n - 1);
+        const c = gat.clone();
+        // het schijfje op het schild, naar buiten gericht
+        c.rotateX(-Math.PI / 2); c.rotateZ(-h);
+        c.translate(Math.sin(h) * (R + 0.0004), LOOP_Y + Math.cos(h) * (R + 0.0004), z);
+        vorm(fB, c, gleufStaal);
+      }
+    }
+    // de klem achteraan, om de loop
+    vorm(fB, buisGeo(R + 0.0014, R + 0.0014, 0.009, 0, LOOP_Y, van + 0.003, 22), parkDonker);
+    for (const sx of [-1, 1]) vorm(fB, new THREE.CylinderGeometry(0.0022, 0.0022, 0.003, 8).rotateZ(Math.PI / 2).translate(sx * (R + 0.0028), LOOP_Y - 0.004, van + 0.003), gleufStaal);
   }
-  // de bajonethouder om loop en buis, met de nok eronder, en de korrel
-  vorm(fB, rondeDoosGeo(0.026, 0.052, 0.030, 0.008, 2).translate(0, (LOOP_Y + BUIS_Y) / 2 + 0.0005, -0.684), parkDonker);
-  doos(fB, parkDonker, 0.008, 0.012, 0.044, 0, BUIS_Y - 0.020, -0.690, 0.002);
-  vorm(fB, new THREE.SphereGeometry(0.0030, 10, 8).translate(0, KORREL.y - 0.0016, KORREL.z), messing);
-  vorm(fB, new THREE.CylinderGeometry(0.0012, 0.0016, 0.004, 8).translate(0, KORREL.y - 0.0045, KORREL.z), park);
+  // de bajonetadapter om loop en buis: de nok voor de M1917-bajonet eronder, de korrel erop, een riembeugel links
+  {
+    const [a0, a1] = MAAT.adapter, mid = (a0 + a1) / 2, L = a0 - a1;
+    const hoog = (LOOP_Y + 0.0185) - (BUIS_Y - 0.0125);
+    vorm(fB, rondeDoosGeo(0.027, hoog, L, 0.009, 2).translate(0, (LOOP_Y + 0.0185 + BUIS_Y - 0.0125) / 2, mid), parkDonker);
+    for (const sx of [-1, 1]) for (const z of [a0 - 0.008, a1 + 0.008]) vorm(fB, new THREE.CylinderGeometry(0.0022, 0.0022, 0.002, 8).rotateZ(Math.PI / 2).translate(sx * 0.0137, BUIS_Y + 0.002, z), gleufStaal);
+    doos(fB, parkDonker, 0.007, 0.010, 0.036, 0, BUIS_Y - 0.0175, mid - 0.004, 0.0015);
+    doos(fB, gleufStaal, 0.004, 0.0018, 0.030, 0, BUIS_Y - 0.0175, mid - 0.004, 0.0004);           // de groef in de nok
+    kromme(fB, park, [[-0.0135, BUIS_Y + 0.004, mid + 0.010], [-0.024, BUIS_Y - 0.002, mid + 0.006], [-0.024, BUIS_Y - 0.002, mid - 0.006], [-0.0135, BUIS_Y + 0.004, mid - 0.010]], 0.0016, 10, 6);
+    vorm(fB, new THREE.CylinderGeometry(0.0014, 0.0020, 0.0050, 8).translate(0, KORREL.y - 0.0045, KORREL.z), park);
+    vorm(fB, new THREE.SphereGeometry(0.0026, 10, 8).translate(0, KORREL.y - 0.0012, KORREL.z), messing);
+  }
   bouw(fB, wapen);
 
-  // de grendel: schuift met het voorhout achter uit de kast
+  // de grendel: boven in de kast, schuift met het voorhout achteruit over de hals
   const gB = bak();
-  doos(gB, grendelStaal, 0.020, 0.018, 0.080, 0, 0.024, -0.050, 0.003);
-  doos(gB, gleufStaal, 0.0015, 0.008, 0.050, 0.0102, 0.020, -0.060, 0.0005);
+  doos(gB, grendelStaal, 0.018, 0.016, 0.092, 0, 0.022, -0.058, 0.003);
+  doos(gB, gleufStaal, 0.0014, 0.007, 0.060, 0.0093, 0.019, -0.066, 0.0005);
   const grendel = bouw(gB, new THREE.Group());
   wapen.add(grendel);
   // de haan, open achterop: draait om zijn as, gespannen naar achteren
   const hmB = bak();
   doos(hmB, grendelStaal, 0.007, 0.024, 0.010, 0, 0.011, 0, 0.002);
   doos(hmB, grendelStaal, 0.009, 0.006, 0.014, 0, 0.022, 0.004, 0.002);       // de spoor, met ribbels voor de duim
+  for (let k = 0; k < 3; k++) doos(hmB, gleufStaal, 0.0092, 0.0008, 0.0012, 0, 0.0252, -0.001 + k * 0.004, 0.0002);
   const hamer = bouw(hmB, new THREE.Group());
-  hamer.position.set(0, 0.010, -0.006);
+  hamer.position.set(0, 0.008, 0.000);
   wapen.add(hamer);
   const HAAN = { gespannen: 0.62, af: -0.15 };
   // de trekker
   const tB = bak();
   kromme(tB, parkDonker, [[0, 0.000, 0], [0, -0.010, -0.003], [0, -0.019, -0.001]], 0.0024, 8, 6);
   const trekker = bouw(tB, new THREE.Group());
-  trekker.position.set(0, -0.034, -0.034);
+  trekker.position.set(0, -0.031, -0.034);
   wapen.add(trekker);
 
   // ---------------------------------------------------------------- het voorhout (pompt)
@@ -2699,23 +2738,23 @@ export function maakTrenchgun(geluid) {
   wapen.add(pomp);
   {
     const pB = bak();
-    // geribd walnoot om de buis ("corncob"): tien ribbels over 14 cm
+    // geribd walnoot om de buis: dertien ribbels over 16,5 cm
     const pr = [];
-    const L = 0.140, N = 10;
+    const L = SLEDE_L, N = 13;
     pr.push(new THREE.Vector2(BUIS_R + 0.0008, 0));
-    for (let i = 0; i <= N * 4; i++) {
-      const u = i / (N * 4);
+    for (let k = 0; k <= N * 4; k++) {
+      const u = k / (N * 4);
       const rib = 0.5 + 0.5 * Math.cos(u * N * Math.PI * 2);
-      const eind = Math.min(1, u * 14, (1 - u) * 14);
-      pr.push(new THREE.Vector2(0.0170 + (0.0032 * rib + 0.0010) * eind, u * L));
+      const eind = Math.min(1, u * 16, (1 - u) * 16);
+      pr.push(new THREE.Vector2(0.0168 + (0.0030 * rib + 0.0010) * eind, u * L));
     }
     pr.push(new THREE.Vector2(BUIS_R + 0.0008, L));
     const g = new THREE.LatheGeometry(pr, 22);
     g.rotateX(-Math.PI / 2); g.translate(0, BUIS_Y, HZ + L / 2);
     vorm(pB, g, houtDonker);
-    // de stalen ring achter het hout, en de stang naar de grendel (links)
-    vorm(pB, buisGeo(0.0150, 0.0150, 0.008, 0, BUIS_Y, HZ + L / 2 + 0.003, 18), park);
-    doos(pB, park, 0.003, 0.006, 0.150, -0.0120, BUIS_Y + 0.010, HZ + L / 2 + 0.075, 0.001);
+    // de stalen ring achter het hout, en de stang naar de grendel (links, de kast in)
+    vorm(pB, buisGeo(0.0145, 0.0145, 0.008, 0, BUIS_Y, HZ + L / 2 + 0.003, 18), park);
+    doos(pB, park, 0.003, 0.006, 0.120, -0.0118, BUIS_Y + 0.010, HZ + L / 2 + 0.060, 0.001);
     bouw(pB, pomp);
   }
 
@@ -2755,7 +2794,7 @@ export function maakTrenchgun(geluid) {
    het voorhout zit om de buis, niet om de loop. Hij hangt aan het voorhout en pompt dus mee. Bij het herladen pakt
    dezelfde hand een patroon (`patroonInHand`) en drukt die in de laadopening.
   */
-  const DY = -0.014;
+  const DY = -0.0065;
   const lB = bak();
   doos(lB, huid, 0.058, 0.026, 0.094, 0.002, -0.042 + DY, HZ, 0.012, 2);
   for (let i = 0; i < 4; i++) {
@@ -3071,7 +3110,8 @@ export function maakTrenchgun(geluid) {
     houding: { rust: RUST, mik: MIK, vizierY: VIZIER_Y },
     mikBeeld: SHOTGUN_MIK_FOV / 72, mikTijd: 0.22, mikSoepel: true,
     mikAfstand: MIK_AFSTAND,
-    meetpunten: { vizierY: VIZIER_Y, vizierZ: VIZIER_Z, korrel: KORREL, mond: MOND, poort: POORT, loopY: LOOP_Y, buisY: BUIS_Y, hz: HZ },
+    meetpunten: { vizierY: VIZIER_Y, vizierZ: VIZIER_Z, korrel: KORREL, mond: MOND, poort: POORT, loopY: LOOP_Y, buisY: BUIS_Y, hz: HZ, kast: KAST },
+    maat: MAAT,
     get terugslag() { return terugslag; },
     get pompStand() { return pomp.position.z / POMP.slag; },
     get haan() { return hamer.rotation.x; },

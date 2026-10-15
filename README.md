@@ -955,8 +955,8 @@ achtste schot springt de lege clip er met een ping uit; daarna druk je van boven
 
 ## Het pompgeweer
 
-Naast de M1 ligt bij Tinga State een **pompgeweer** voor € 1.200: een trench gun zoals de Amerikanen die in de Tweede
-Wereldoorlog meenamen, met de open haan op de kast, het geperforeerde hitteschild over de loop en het geribde houten
+Naast de M1 ligt bij Tinga State een **pompgeweer** voor € 1.200: de Winchester Model 1897 trench gun die de Amerikanen in
+beide wereldoorlogen meenamen, op zijn echte maten (99,7 cm, een loop van 51 cm), met het echte schot- en pompgeluid, met de open haan op de kast, het geperforeerde hitteschild over de loop en het geribde houten
 voorhout. Zes patronen in de buis, en je krijgt er 24 bij. Elk schot zijn negen korrels hagel die uitwaaieren: van dichtbij
 gaat iedereen in één schot neer, op dertig meter raakt hooguit een enkele korrel, en verder dan 42 meter komt er niets aan.
 Over de korrel richten (rechtermuisknop) houdt de hagel bij elkaar. Na elk schot pomp je: het voorhout gaat naar achteren,

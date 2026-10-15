@@ -12,6 +12,8 @@
  6. In beeld: "Pompgeweer · 6 / …", en "laden… 3 / 6" tijdens het laden.
  7. Opslaan en laden houdt het wapen en de patronen in de buis.
  8. Geen nieuw shaderprogramma: schieten, pompen en laden met het pompgeweer.
+ 9. (stap 190) Het model op de maten van de M1897 (99,7 cm, loop 50,8 cm), het hitteschild boven de loop, en de opnames
+    van de gebruiker voor het schot en het pompen.
 
  Gebruik: npm run server &  node tools/shotguntest.mjs [poort]
 */
@@ -248,6 +250,56 @@ const sh = await page.evaluate(async () => {
 });
 if (sh.overgeslagen) ok(false, 'geen renderer of tekenWapen in __game');
 else ok(sh.na === sh.voor, 'het pompgeweer vertaalt geen nieuw programma', `${sh.voor} → ${sh.na}`);
+
+kop('9. het model (stap 190) en de opnames');
+const mdl = await page.evaluate(async () => {
+  const g = window.__game, P = g.player, THREE = await import('three');
+  const w = P.modellen.shotgun, wap = w.groep.children[0];
+  w.groep.updateMatrixWorld(true);
+  const inv = wap.matrixWorld.clone().invert();
+  // de lengte van het geweer zelf: alle meshes van het wapen, zonder de linkerhand en de patroon in die hand, en zonder het vuur
+  const weg = new Set();
+  for (const o of [w.delen.linkerhand, w.delen.flits]) o.traverse(q => weg.add(q));
+  const box = new THREE.Box3(), v = new THREE.Vector3();
+  wap.traverse(o => {
+    if (!o.isMesh || weg.has(o)) return;
+    const pos = o.geometry.attributes.position, m = inv.clone().multiply(o.matrixWorld);
+    for (let k = 0; k < pos.count; k++) { v.fromBufferAttribute(pos, k).applyMatrix4(m); box.expandByPoint(v); }
+  });
+  // het hitteschild ligt bóven de loop: een straal recht omlaag midden boven het schild raakt eerst het schild
+  const M = w.meetpunten, ray = new THREE.Raycaster();
+  ray.layers.enableAll();            // (het wapen staat op laag 1)
+  const raakY = (x, z) => {
+    const van = new THREE.Vector3(x, 0.3, z).applyMatrix4(wap.matrixWorld);
+    const dir = new THREE.Vector3(0, -1, 0).transformDirection(wap.matrixWorld);
+    ray.set(van, dir);
+    const h = ray.intersectObject(wap, true).find(q => !weg.has(q.object));
+    return h ? +h.point.clone().applyMatrix4(inv).y.toFixed(4) : null;
+  };
+  const schildMidden = (w.maat.schild[0] + w.maat.schild[1]) / 2;
+  const geluid = g.geluid;
+  geluid.start && geluid.start();
+  await Promise.all([geluid.laadSchot(), geluid.laadWapenOpnames()]);
+  const op = geluid.wapenOpnameStand();
+  P.shootCb = null;
+  P.zetWapen('shotgun'); window.__klaar();
+  P.ammo = 6; P.vuurKlok = 0; P.shoot();
+  const schot = geluid.schotStand().laatste;
+  for (let k = 0; k < 10; k++) window.__stap(1, 0.025);
+  return {
+    lengte: +(box.max.z - box.min.z).toFixed(3), achter: +box.max.z.toFixed(3), voor: +box.min.z.toFixed(3),
+    loop: +(w.maat.kastVoor - w.maat.mond).toFixed(3),
+    schildY: raakY(0.003, schildMidden), loopY: M.loopY, slede: raakY(0, M.hz - 0.06),
+    op: { shotgun: op.shotgun, pomp: op.pomp }, schot, pomp: op.laatstePomp || geluid.wapenOpnameStand().laatstePomp,
+  };
+});
+ok(mdl.lengte > 0.985 && mdl.lengte < 1.015, 'het geweer is 99,7 cm lang (39¼ inch)', `${mdl.lengte} m, van ${mdl.achter} tot ${mdl.voor}`);
+ok(Math.abs(mdl.loop - 0.508) < 0.002, 'met een loop van 50,8 cm (20 inch)', `${mdl.loop} m`);
+ok(mdl.schildY !== null && mdl.schildY > mdl.loopY + 0.016, 'het hitteschild ligt boven op de loop', `geraakt op y ${mdl.schildY}, loop ${mdl.loopY}`);
+ok(mdl.op.shotgun && mdl.op.shotgun.duur > 3.3 && mdl.op.shotgun.duur < 3.6, 'de opname van het schot is geladen (3,5 s)', JSON.stringify(mdl.op.shotgun));
+ok(mdl.op.pomp && mdl.op.pomp.duur > 0.5 && mdl.op.pomp.duur < 0.8, 'de opname van het pompen ook', JSON.stringify(mdl.op.pomp));
+ok(mdl.schot && mdl.schot.bestand === 'shotgun_schot.mp3' && Math.abs(mdl.schot.gain - 0.32) < 0.01, 'een schot speelt shotgun_schot.mp3 op 0,32', JSON.stringify(mdl.schot));
+ok(mdl.pomp && mdl.pomp.opname === true, 'en het pompen speelt de opname', JSON.stringify(mdl.pomp));
 
 await browser.close();
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');
