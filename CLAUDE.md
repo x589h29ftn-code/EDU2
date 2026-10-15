@@ -28,7 +28,8 @@ Deze gelden altijd, ook als ze niet opnieuw genoemd worden.
   samengevoegd. Kijk bij twijfel eerst met `git log` op beide takken.
 - **Pushen als de gebruiker het zegt.** "push" betekent pushen, **"Build"**
   betekent de Windows-app bouwen: `windows.yml` via `workflow_dispatch` op de
-  werktak.
+  werktak. Die levert sinds stap 185 ook de installer; met de invoer `dvd: true`
+  ook de dvd-inhoud en een ISO om te branden.
 - **Geen afbeeldingsbestanden in het spel.** Elke textuur wordt op een canvas
   getekend (`js/textures.js` en de doek-functies boven in de modules). Bewuste
   uitzonderingen: de mp3's onder `audio/` en de laadschermen onder

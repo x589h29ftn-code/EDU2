@@ -1,5 +1,7 @@
-# Bouwt de Windows-versie van Tinga. Na een run staat er onder "Artifacts" een
-# zip met Tinga.exe die je kunt downloaden en uitpakken.
+# Bouwt de Windows-versie van Tinga. Na een run staan er onder "Artifacts" een
+# zip met Tinga.exe die je kunt downloaden en uitpakken, en de installer
+# (Tinga-Setup-<versie>.exe, installer/tinga.iss). Met "dvd" aangevinkt ook de
+# inhoud van de dvd en een ISO om te branden (Tinga-dvd-iso).
 #
 # Let op de aanleiding: hij draaide bij élke push en bewaarde elke build dertig
 # dagen. Eén build is ruim honderd megabyte, en bij zes pushes op een dag staan
@@ -20,6 +22,11 @@ name: Windows-app
 
 on:
   workflow_dispatch:
+    inputs:
+      dvd:
+        description: 'Ook de dvd: de inhoud en een ISO om te branden (tools/dvd.mjs)'
+        type: boolean
+        default: false
   # Een tag die met v begint levert ook een build op, zodat een uitgave er altijd
   # een heeft: `git tag v0.9 && git push origin v0.9`.
   push:
@@ -39,12 +46,28 @@ jobs:
           cache: npm
       - name: Afhankelijkheden
         run: npm ci
+      # (stap 185) het icoon van Tinga.exe en de beelden van de installer, uit de kunst van de hoes (installer/beelden.py)
+      - name: Icoon en installerbeelden
+        shell: bash
+        run: |
+          python -m pip install --quiet pillow
+          python installer/beelden.py
       - name: Inpakken
         shell: bash
         run: npm run dist:win
       - name: Inhoud tonen
         shell: bash
         run: ls -la dist/Tinga-win32-x64 | head -20
+      # de installer (installer/tinga.iss); Inno Setup staat meestal al op de runner, anders via Chocolatey
+      - name: Installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          $versie = (Get-Content package.json | ConvertFrom-Json).version
+          & $iscc "/DVersie=$versie" installer\tinga.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem dist\installer\*.exe | Format-Table Name, Length
       - uses: actions/upload-artifact@v4
         with:
           name: Tinga-windows
@@ -52,4 +75,45 @@ jobs:
           # Vijf dagen is genoeg om hem te downloaden en uit te proberen. Langer
           # bewaren betekent alleen dat er meer kopieën tegelijk in de opslag
           # staan; opnieuw bouwen kan altijd.
+          retention-days: 5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tinga-installer
+          path: dist/installer/Tinga-Setup-*.exe
+          retention-days: 5
+      # de dvd: alleen als je "dvd" aanvinkt (een tag doet het ook)
+      - name: Dvd samenstellen
+        if: ${{ inputs.dvd || startsWith(github.ref, 'refs/tags/') }}
+        shell: bash
+        env:
+          DVD_STRENG: '1'
+        run: node tools/dvd.mjs
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.dvd || startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: Tinga-dvd-inhoud
+          path: dist/dvd
+          # alleen een tussenstap voor de ISO hieronder
+          retention-days: 1
+
+  # De ISO om te branden, op Linux met xorriso (ISO 9660 met Joliet voor de lange Windows-namen en Rock Ridge).
+  iso:
+    needs: build
+    if: ${{ inputs.dvd || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Tinga-dvd-inhoud
+          path: dvd
+      - name: ISO maken
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xorriso
+          xorriso -as mkisofs -o Tinga-dvd.iso -V TINGA -iso-level 3 -J -joliet-long -r dvd
+          ls -la Tinga-dvd.iso
+          test $(stat -c %s Tinga-dvd.iso) -lt 4700000000
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tinga-dvd-iso
+          path: Tinga-dvd.iso
           retention-days: 5

@@ -3,7 +3,7 @@
 // De CLI van @electron/packager loopt op de Windows-runner stuk op een
 // gesloten stdout (EPIPE), dus roepen we de API rechtstreeks aan.
 import { packager } from '@electron/packager';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 const platform = process.argv[2] || 'win32';
 const arch = process.argv[3] || 'x64';
@@ -28,10 +28,13 @@ const paden = await packager({
   */
   ignore: [
     /^\/dist/, /^\/shots/, /^\/\.git/, /^\/\.github/,
-    /^\/data\/geo/, /^\/data\/stijl\/fotos/, /^\/tools/, /^\/docs/,
+    /^\/data\/geo/, /^\/data\/stijl\/fotos/, /^\/tools/, /^\/docs/, /^\/installer/, /^\/dvd/,
     /^\/[^/]*\.md$/,
   ],
   quiet: true,
+  // het icoon van Tinga.exe (installer/beelden.py maakt het; zonder dat bestand het standaardicoon van Electron)
+  ...(platform === 'win32' && existsSync('dist/installer/tinga.ico') ? { icon: 'dist/installer/tinga.ico' } : {}),
+  win32metadata: { CompanyName: 'Tinga Sneek', FileDescription: 'GTA VI: Tinga', ProductName: 'Tinga', InternalName: 'Tinga' },
 });
 
 console.log('klaar:', paden.join(', '));

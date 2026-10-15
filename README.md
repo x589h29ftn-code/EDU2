@@ -2114,6 +2114,20 @@ neuswiel en de disselbak, en vier steunpoten. Je loopt er niet doorheen.
 
 ![De vouwwagen](docs/screenshots/vouwwagen_dichtbij.png)
 
+### Installeren en de dvd
+
+De Windows-build (GitHub, Actions, "Windows-app", Run workflow) levert nu ook een **installer**: `Tinga-Setup-<versie>.exe`.
+Die installeert in het Nederlands zonder beheerdersrechten, zet "GTA VI - Tinga" in het Startmenu (en op het bureaublad als je
+dat aanvinkt), en is te verwijderen via Windows-instellingen. Opgeslagen spellen blijven bij verwijderen of bijwerken staan.
+
+Vink je bij het starten **dvd** aan, dan komt er ook een **ISO** uit (`Tinga-dvd-iso`). Branden: rechtsklik op `Tinga-dvd.iso` en
+kies "Schijfkopie branden" (Windows 10 en 11 kunnen dat zelf), met een lege dvd-r in de brander. Op de dvd staan de installer,
+een map **Direct spelen** (Tinga.exe zonder installeren, ook vanaf de schijf), een `LEESMIJ.txt` met de besturing, de hoes als
+pdf, en `autorun.inf`: Windows toont dan "GTA VI: Tinga installeren" in het venster Automatisch afspelen.
+
+Omdat het spel niet bij Microsoft ondertekend is, kan Windows "Windows heeft uw pc beschermd" laten zien: "Meer informatie" en
+dan "Toch uitvoeren".
+
 ### De dvd-hoes
 
 In `docs/hoes/` staat een hoes voor een dvd-doosje: voorkant, rug en achterkant als één inlay van 273 × 183 mm met 3 mm

@@ -9317,6 +9317,23 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Een installer en de dvd (stap 185, 15 okt).** Gevraagd: "bereid alvast voor dat we het spel op een dvd willen branden en dat
+er een installer komt".
+- *De installer*: Inno Setup (installer/tinga.iss), omdat het op de Windows-runner staat (of met Chocolatey komt) en geen
+  extra npm-pakketten vraagt. Nederlands, `PrivilegesRequired=lowest` (geen beheerder nodig, in %LOCALAPPDATA%\Programs), een
+  vaste `AppId` zodat een nieuwe versie de oude bijwerkt, snelkoppelingen, een verwijderprogramma, starten na afloop. De
+  opgeslagen spellen staan in de gegevens van Electron (%APPDATA%\Tinga) en blijven dus bij verwijderen staan.
+- *Het icoon en de wizard*: installer/beelden.py maakt ze bij elke build uit de kunst van de hoes, in dist/installer (niet in de
+  repo: geen afbeeldingsbestanden erbij). tools/pack.mjs geeft Tinga.exe het icoon. Snelkoppelingen heten "GTA VI - Tinga",
+  want een dubbele punt mag niet in een bestandsnaam.
+- *De dvd*: tools/dvd.mjs zet installer, "Direct spelen" (de uitgepakte app), autorun.inf, icoon, LEESMIJ en de hoes in dist/dvd.
+  autorun.inf start sinds Windows 7 niets vanzelf, maar op een optische schijf toont Automatisch afspelen wel de actie en het
+  icoon. De ISO maakt een tweede job op Linux met xorriso (ISO 9660 niveau 3, Joliet met lange namen, Rock Ridge), alleen met
+  het vinkje "dvd" of een tag; de inhoud is een tussenstap van één dag, de ISO blijft vijf dagen (het opslagquotum, zie de kop van
+  de workflow).
+- *Nagelopen*: `npm run dvdtest` (zonder browser: beelden op maat, verwijzingen in het script, het icoon, autorun.inf in ASCII met
+  CRLF, de toetsen in de LEESMIJ bestaan in het spel, de workflow). Het echte bouwen alleen op GitHub: hier is geen Windows.
+
 **Een vouwwagen aan de Wieken (stap 184, 15 okt).** Gevraagd met een foto: "zet rond plek en coördinaten op de foto in het gras
 een vouwwagen" (K gaf −128,8; 7,0). js/vouwwagen.js: bak, as, dissel met neuswiel en disselbak, het deksel als tweede bed op poten,
 de tent met boogdak, ramen, deur met rits, trapje en steunen; alles op canvas, geen merk.
