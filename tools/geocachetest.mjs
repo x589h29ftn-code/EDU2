@@ -331,14 +331,14 @@ const hand = await page.evaluate(() => {
   G.zetGoud(false);
   const staal = mats().filter(m => m.metalness >= 0.3 && m.metalness < 0.9 && m.map);
   // (de M1 heeft van zichzelf al delen met metalness 1, zoals het messing: die tellen we niet mee)
-  const vooraf = mats().filter(m => m.metalness === 1).length;
+  const vooraf = mats().filter(m => m.metalness === 1 && m.map).length;
   G.zetGoud(true);
   const goud = mats().filter(m => m.metalness === 1 && m.map);
   const kleur = (m) => { const c = m.map.image, d = c.getContext('2d').getImageData(3, 3, 1, 1).data; return [d[0], d[1], d[2]]; };
   const k = goud.map(kleur);
   uit.goud = { staal: staal.length, goud: goud.length - vooraf, vooraf, kleur: k.slice(0, 3), ruw: goud.map(m => { const c = m.roughnessMap.image; return c.getContext('2d').getImageData(3, 3, 1, 1).data[0]; }).slice(0, 3),
     zelfde: goud.every(m => m.normalMap && m.roughnessMap) };
-  G.zetGoud(false); uit.terugStaal = mats().filter(m => m.metalness === 1).length - vooraf;
+  G.zetGoud(false); uit.terugStaal = mats().filter(m => m.metalness === 1 && m.map).length - vooraf;
   G.zetGoud(true);
   return uit;
 });
