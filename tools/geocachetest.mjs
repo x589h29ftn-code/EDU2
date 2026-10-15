@@ -15,6 +15,9 @@
     gouden M1 Garand.
  8. De statistieken: "Tinga Cache 5 van 5". Opslaan en laden houdt alles (ook het goud); een nieuw spel begint opnieuw.
  9. Geen nieuw shaderprogramma: de posters, de kistjes, Sjors, de GPS en de gouden M1.
+ 10. (stap 197) De GPS in je hand: geen wapen en niet schieten; klikken, R, een wapen kiezen en H stoppen hem weg (zonder schot);
+     pakken breekt het herladen af; de rechtermuisknop houdt hem dichterbij; het scherm wordt bijgewerkt; binnen en met de drone
+     gaat hij weg. De gouden M1 met echte doeken van gepolijst goud, metalness 1, en weer terug.
 
  Gebruik: npm run server &  node tools/geocachetest.mjs [poort]
 */
@@ -130,14 +133,22 @@ const sjors = await page.evaluate(() => {
   window.__regels = [];
   C.toets(); window.__klik();
   const uitleg = window.__regels.slice();
-  C.wissel(); window.__stap(4);
-  const el = document.getElementById('gpsToestel');
-  const c = el.querySelector('canvas'), px = c.getContext('2d').getImageData(c.width / 2, 20, 1, 1).data;
-  return { zicht, kaart: !!S, d: d && +d.toFixed(1), hint, uitleg, gpsZicht: !el.hidden && getComputedStyle(el).display !== 'none', geel: px[0] > 200 && px[1] > 150 && px[2] < 120, doel: !!C.doel() };
+  C.wissel(); window.__stap(10);
+  // (stap 197) het toestel in 3D aan de camera, op de wapenlaag, het scherm in beeld en het lcd getekend
+  const T = C.toestel, cam = g.camera; cam.updateMatrixWorld(true); T.groep.updateMatrixWorld(true);
+  let laag = true; T.groep.traverse(o => { if (o.isMesh && o.layers.mask !== 2) laag = false; });
+  const sw = new T.scherm.position.constructor(); T.scherm.getWorldPosition(sw); sw.project(cam);
+  const px = C.lcd.getContext('2d').getImageData(4, 4, 1, 1).data;
+  let geel = false; T.groep.traverse(o => { if (o.isMesh && o.material.color && o.material.color.r > 0.8 && o.material.color.g > 0.4 && o.material.color.b < 0.2 && !o.material.map) geel = true; });
+  return { zicht, kaart: !!S, d: d && +d.toFixed(1), hint, uitleg, gpsZicht: C.aan && T.groep.visible && T.groep.parent === cam && C.inBeeld, laag,
+    inBeeld: Math.abs(sw.x) < 1 && Math.abs(sw.y) < 1 && sw.z < 1, ndc: [+sw.x.toFixed(2), +sw.y.toFixed(2)], lcd: px[1] > px[2] && px[1] > 150, scherm: T.scherm.material.map && T.scherm.material.map.image === C.lcd,
+    geel, doel: !!C.doel() };
 });
 ok(sjors.zicht && sjors.kaart && sjors.d < 6, 'Sjors staat bij de stoep van Radio Tinga, met de S op de kaart', `${sjors.d} m van de stoep`);
 ok(/Sjors/.test(sjors.hint || '') && sjors.uitleg.length >= 4 && sjors.uitleg.some(r => /vijf/.test(r)) && sjors.uitleg.some(r => /\bN\b/.test(r)), 'E bij Sjors: de uitleg (vijf caches, N voor de GPS)', sjors.uitleg[0] || '');
-ok(sjors.gpsZicht && sjors.geel && sjors.doel, 'N: de GPS in beeld, geel handapparaat, met het doel van cache 1 al ingevuld');
+ok(sjors.gpsZicht && sjors.geel && sjors.doel, 'N: de GPS in je hand, een geel handapparaat, met het doel van cache 1 al ingevuld');
+ok(sjors.laag && sjors.inBeeld, '(stap 197) het toestel in 3D aan de camera, op de wapenlaag, het scherm in beeld', JSON.stringify(sjors.ndc));
+ok(sjors.lcd && sjors.scherm, '(stap 197) het scherm is het lcd-doek, grijsgroen getekend');
 
 kop('5. de vijf plekken');
 const plekken = await page.evaluate(async () => {
@@ -276,6 +287,77 @@ const opslag = await page.evaluate(async () => {
 ok(!opslag.leeg.gps && opslag.leeg.gevonden === 0, 'een nieuw spel begint zonder GPS en zonder caches');
 ok(opslag.na.gps && opslag.na.gevonden === 5 && opslag.na.goud, 'na laden: de GPS, vijf caches en de gouden M1', JSON.stringify(opslag.na));
 
+kop('10. de GPS in je hand en je wapen (stap 197)');
+const hand = await page.evaluate(() => {
+  const g = window.__game, C = g.geocache, P = g.player, uit = {};
+  const st = g.studio.plekken.stoep; window.__zet(st.x + 30, st.z + 30);
+  P.zetWapen('pistool'); P.wisselT = 0; P.holster = 0; P.reloading = 0; P.wapenUit = false; P.ammo = 5; P.vuurKlok = 0; P.reserve = 50;
+  const aan = () => { if (!C.aan) C.wissel(); window.__stap(8); P.update(0.05); };
+  // vasthouden: geen wapen, niet schieten
+  aan();
+  uit.vast = { inHand: P.gpsInHand, wapen: P.gun.visible, mag: P.magSchieten() };
+  // klikken: de GPS weg, het wapen omhoog, geen schot
+  const a0 = P.ammo; P.shoot();
+  uit.klik = { aan: C.aan, inHand: P.gpsInHand, schot: a0 - P.ammo, wissel: P.wisselT > 0 };
+  window.__stap(8); for (let i = 0; i < 12; i++) P.update(0.05);
+  uit.terug = { wapen: P.gun.visible, toestel: C.inBeeld, mag: P.magSchieten() };
+  // herladen: eerst de GPS weg
+  aan(); P.ammo = 3; P.reload(); uit.herlaad = { aan: C.aan, laadt: P.reloading > 0 };
+  window.__stap(8); for (let i = 0; i < 12; i++) P.update(0.05);
+  // pakken midden in het herladen breekt het af
+  P.reload(); const laadde = P.reloading > 0; aan(); uit.pakTijdensLaden = { laadde, nu: P.reloading };
+  // een wapen kiezen
+  P.wapens.includes('garand') || P.krijgWapen('garand'); P.zetWapen('pistool'); aan();
+  P.startWissel('garand'); uit.kies = { aan: C.aan, naar: P.wisselNaar };
+  for (let i = 0; i < 20; i++) P.update(0.05); window.__stap(8);
+  // H: met het wapen weggestopt pak je het weer en gaat de GPS weg
+  aan(); P.wisselWapen(); const weg = P.wapenUit; P.wisselWapen(); uit.h = { weg, aan: C.aan, wapenUit: P.wapenUit };
+  for (let i = 0; i < 20; i++) P.update(0.05);
+  // de rechtermuisknop: dichterbij om te lezen, niet richten
+  aan(); const z0 = C.toestel.groep.position.z, y0 = C.toestel.groep.position.y;
+  P.richten(true); window.__stap(8);
+  uit.lees = { dichter: C.toestel.groep.position.z - z0, hoger: C.toestel.groep.position.y - y0, richt: P.richtAan };
+  P.richten(false); window.__stap(8);
+  // het scherm wordt bijgewerkt
+  const v0 = C.toestel.scherm.material.map.version; window.__stap(10);
+  uit.scherm = C.toestel.scherm.material.map.version - v0;
+  // waar het niet kan: binnen, zittend, de drone; en dan gaat N ook niet aan
+  P.binnen = true; window.__stap(2); uit.binnen = C.aan; uit.binnenN = C.wissel(); P.binnen = false;
+  aan(); P.inDrone = true; window.__stap(2); uit.drone = C.aan; P.inDrone = false;
+  window.__stap(10); uit.wegNa = C.inBeeld;
+  // de gouden M1: echte doeken van goud, metalness 1, en weer terug
+  const G = P.modellen.garand;
+  const mats = () => { const s = new Set(); G.groep.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => s.add(m)); }); return [...s]; };
+  G.zetGoud(false);
+  const staal = mats().filter(m => m.metalness >= 0.3 && m.metalness < 0.9 && m.map);
+  // (de M1 heeft van zichzelf al delen met metalness 1, zoals het messing: die tellen we niet mee)
+  const vooraf = mats().filter(m => m.metalness === 1).length;
+  G.zetGoud(true);
+  const goud = mats().filter(m => m.metalness === 1 && m.map);
+  const kleur = (m) => { const c = m.map.image, d = c.getContext('2d').getImageData(3, 3, 1, 1).data; return [d[0], d[1], d[2]]; };
+  const k = goud.map(kleur);
+  uit.goud = { staal: staal.length, goud: goud.length - vooraf, vooraf, kleur: k.slice(0, 3), ruw: goud.map(m => { const c = m.roughnessMap.image; return c.getContext('2d').getImageData(3, 3, 1, 1).data[0]; }).slice(0, 3),
+    zelfde: goud.every(m => m.normalMap && m.roughnessMap) };
+  G.zetGoud(false); uit.terugStaal = mats().filter(m => m.metalness === 1).length - vooraf;
+  G.zetGoud(true);
+  return uit;
+});
+ok(hand.vast.inHand && !hand.vast.wapen && !hand.vast.mag, 'met de GPS in je hand: geen wapen in beeld en niet schieten', JSON.stringify(hand.vast));
+ok(!hand.klik.aan && !hand.klik.inHand && hand.klik.schot === 0 && hand.klik.wissel, 'klikken stopt de GPS weg en pakt het wapen, zonder schot', JSON.stringify(hand.klik));
+ok(hand.terug.wapen && !hand.terug.toestel && hand.terug.mag, 'daarna het wapen weer in je hand en de GPS uit beeld', JSON.stringify(hand.terug));
+ok(!hand.herlaad.aan && !hand.herlaad.laadt, 'R stopt eerst de GPS weg (en herlaadt nog niet)', JSON.stringify(hand.herlaad));
+ok(hand.pakTijdensLaden.laadde && hand.pakTijdensLaden.nu === 0, 'de GPS pakken breekt het herladen af', JSON.stringify(hand.pakTijdensLaden));
+ok(!hand.kies.aan && hand.kies.naar === 'garand', 'een wapen kiezen stopt de GPS weg', JSON.stringify(hand.kies));
+ok(hand.h.weg && !hand.h.aan && !hand.h.wapenUit, 'H pakt het wapen weer en stopt de GPS weg', JSON.stringify(hand.h));
+ok(hand.lees.dichter > 0.03 && hand.lees.hoger > 0.02 && !hand.lees.richt, 'de rechtermuisknop houdt de GPS dichterbij om te lezen, richten doet hij niet', JSON.stringify(hand.lees));
+ok(hand.scherm > 0, 'het scherm wordt bijgewerkt', `${hand.scherm}`);
+ok(!hand.binnen && hand.binnenN === false && !hand.drone && !hand.wegNa, 'binnen en met de drone gaat de GPS weg (en binnen niet aan)', JSON.stringify({ b: hand.binnen, n: hand.binnenN, d: hand.drone }));
+const Gd = hand.goud;
+ok(Gd.staal >= 5 && Gd.goud >= 7 && Gd.zelfde, 'de gouden M1: elk stalen deel krijgt het doek van goud, metalness 1, met glans- en reliëfkaart', JSON.stringify({ staal: Gd.staal, goud: Gd.goud }));
+ok(Gd.kleur.every(([r, g, b]) => r > 200 && g > 150 && g < r && b < 150), 'het doek is goud van kleur', JSON.stringify(Gd.kleur));
+ok(Gd.ruw.every(w => w < 110), 'en glad gepolijst (ruwheid onder 0,43)', JSON.stringify(Gd.ruw));
+ok(hand.terugStaal === 0, 'zonder goud weer het geparkeerde staal');
+
 kop('9. geen nieuw shaderprogramma');
 const sh = await page.evaluate(async () => {
   const g = window.__game, R = g.renderer, C = g.geocache, P = g.player;
@@ -297,10 +379,13 @@ const sh = await page.evaluate(async () => {
   const voor = R.info.programs.length;
   alles.forEach((o, i) => { o.visible = true; }); teken();
   P.zetWapen('garand'); P.wisselT = 0; P.holster = 0; for (let i = 0; i < 4; i++) { P.update(0.05); P.gun.visible = true; g.tekenWapen && g.tekenWapen(); }
+  // (stap 197) en de GPS in je hand
+  if (!C.aan) C.wissel(); for (let i = 0; i < 10; i++) C.update(0.05); g.tekenWapen && g.tekenWapen();
+  if (C.aan) C.wissel();
   alles.forEach((o, i) => { o.visible = was[i]; });
   return { voor, na: R.info.programs.length };
 });
-ok(sh.na === sh.voor, 'posters, kistjes, het bordje, Sjors en de gouden M1 vertalen niets nieuws', `${sh.voor} → ${sh.na}`);
+ok(sh.na === sh.voor, 'posters, kistjes, het bordje, Sjors, de gouden M1 en de GPS in je hand vertalen niets nieuws', `${sh.voor} → ${sh.na}`);
 
 await browser.close();
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');

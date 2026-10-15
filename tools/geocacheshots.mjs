@@ -1,11 +1,12 @@
 /*
  Foto's bij stap 196 (npm run geocacheshots): de Tinga Cache. In docs/screenshots/:
-   cache_gps.png       de GPS in beeld bij cache 2 (het raadsel), met de wereld erachter
+   cache_gps.png       de GPS in je linkerhand bij cache 2 (het raadsel), in 3D (stap 197)
+   cache_gps_lezen.png dezelfde, met de rechtermuisknop dichterbij om te lezen
    cache_poster_bp.png de poster op de balie van de BP-shop
    cache_poster_tafel.png de poster op de eettafel thuis
    cache_kistje.png    een cache bij de oude Geeuwbrug
    cache_sjors.png     Sjors en het prikbord bij Radio Tinga
-   cache_goud.png      de gouden M1 Garand in je handen
+   cache_goud.png      de gouden M1 Garand in je handen (stap 197: echt verguld)
 
  Gebruik: npm run server &  node tools/geocacheshots.mjs [poort] [map]
 */
@@ -46,20 +47,21 @@ const foto = async (naam, zet) => schrijf(naam, await page.evaluate((z) => {
   return window.__beeld(C);
 }, zet));
 
-// de GPS: de hele pagina, met de wereld erachter (bij cache 2, het raadsel)
-await page.evaluate(() => {
+// de GPS in je hand (stap 197: in 3D, op de wapenlaag): de wereld en het toestel in één beeld, en meteen uitlezen
+const gpsFoto = (dicht) => page.evaluate((dicht) => {
   const g = window.__game, C = g.camera, P = g.player, Gc = g.geocache;
   const c = Gc.stand.caches[1];
   P.pos.set(c.plek.x + 40, 0, c.plek.z + 25); P.yaw = Math.atan2(40, 25); P.pitch = -0.05; P.applyCamera();
-  for (let i = 0; i < 4; i++) Gc.update(0.05);
   if (!Gc.aan) Gc.wissel();
-  for (const d of '123456') Gc.cijfer(+d);
-  for (let i = 0; i < 3; i++) Gc.update(0.05);
-  window.__beeld(C);
-});
-await page.waitForTimeout(400);
-await page.screenshot({ path: `${map}/cache_gps.png` }); console.log(`${map}/cache_gps.png`);
-await page.evaluate(() => { const Gc = window.__game.geocache; if (Gc.aan) Gc.wissel(); document.getElementById('ui').style.display = 'none'; });
+  if (!Gc.stand.invoer) for (const d of '123456') Gc.cijfer(+d);
+  P.richten(dicht);
+  for (let i = 0; i < 12; i++) Gc.update(0.05);
+  window.__beeld(C); g.tekenWapen();
+  return g.renderer.domElement.toDataURL('image/png');
+}, dicht);
+schrijf('cache_gps', await gpsFoto(false));
+schrijf('cache_gps_lezen', await gpsFoto(true));
+await page.evaluate(() => { const g = window.__game, Gc = g.geocache; g.player.richten(false); if (Gc.aan) Gc.wissel(); for (let i = 0; i < 12; i++) Gc.update(0.05); document.getElementById('ui').style.display = 'none'; });
 
 await foto('cache_poster_bp', `const B = Gc.posters.find(m => m.geometry.type === 'PlaneGeometry' && m.position.y > 1.0 && m.position.y < 1.4);
   const p = B.position, n = new g.camera.position.constructor(0, 0, 1).applyQuaternion(B.quaternion);

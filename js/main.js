@@ -3142,7 +3142,7 @@ function loop() {
       }
       // aan boord sta je in de open lucht: het wapen mag alle kanten op — maar
       // door de kijker zie je het niet, net als te voet
-      player.gun.visible = !player.wapenUit && !derde.aan && !player.inScope;
+      player.gun.visible = !player.wapenUit && !derde.aan && !player.inScope && !player.gpsInHand;
       geluid.gier(0);
     } else {
       player.lastCarYaw = undefined;
@@ -3446,7 +3446,8 @@ function loop() {
   if (!gepauzeerd) omstanders.update(dt, camera.position.x, camera.position.z);
   if (kijker === camera) zetVoorvlak();
   renderer.render(scene, kijker);
-  if (kijker === camera && player.gun && player.gun.visible) tekenWapen();
+  // (stap 197) ook de GPS in je hand hangt op de wapenlaag
+  if (kijker === camera && ((player.gun && player.gun.visible) || (geocache && geocache.inBeeld))) tekenWapen();
 }
 
 /*

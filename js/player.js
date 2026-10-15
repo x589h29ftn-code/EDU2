@@ -257,6 +257,15 @@ export class Player {
     this.gun.visible = true;
     this.wapenUit = false;      // wapen weggestopt (toets H)
     /*
+     (stap 197) De GPS van de Tinga Cache in je linkerhand (js/geocache.js). Met een GPS in je hand heb je geen hand vrij
+     voor je wapen: het wapen is weg, je schiet en herlaadt niet, en richten kan niet. Klikken, herladen, een wapen kiezen
+     of H stopt de GPS weg (`opGpsWeg`, gezet door js/geocache.js) en het wapen komt weer omhoog — schieten doet die
+     klik niet, want je moet het wapen eerst nog pakken.
+    */
+    this.gpsInHand = false;
+    this.gpsDichtbij = false;   // rechtermuisknop: de GPS dichterbij om te lezen
+    this.opGpsWeg = null;
+    /*
      Sta je binnen — bij de Poiesz, bij Tinga State of in een woning — dan gaat
      het wapen vanzelf uit beeld (verzoek 19 sep 2026). Binnen valt er niets mee
      te doen: er lopen geen doelen rond, er is geen politie, en een pistool dat
@@ -334,6 +343,13 @@ export class Player {
   */
   startWissel(soort) {
     if (!this.modellen[soort] || !this.wapens.includes(soort)) return null;
+    // (stap 197) de GPS in je hand: die gaat weg en het gekozen wapen komt meteen omhoog (er valt niets op te bergen)
+    if (this.gpsInHand) {
+      this.gpsWeg();
+      this.wisselNaar = soort; this.wisselT = TREKKEN; this.holster = 1;
+      this.vuurAan = false; this.richtAan = false;
+      return soort;
+    }
     this.wisselNaar = soort;
     this.wisselT = WEGBERGEN + TREKKEN;
     this.vuurAan = false;
@@ -371,7 +387,7 @@ export class Player {
     this.gun.visible = false;
     this.wapen = this.modellen[soort];
     this.gun = this.wapen.groep;
-    this.gun.visible = !this.wapenUit;
+    this.gun.visible = !this.wapenUit && !this.gpsInHand;
     this.ammo = Math.min(this.magazijnen[soort] ?? 0, WAPENS[soort].mag);
     this.vuurAan = false;
     return soort;
@@ -406,6 +422,8 @@ export class Player {
   wisselWapen() {
     if (this.wapenSlot) return false;
     this.wapenUit = !this.wapenUit;
+    // (stap 197) met de GPS in je hand: H pakt het wapen, de GPS gaat in je zak
+    if (!this.wapenUit && this.gpsInHand) this.gpsWeg();
     const kruis = document.getElementById('crosshair');
     if (kruis) kruis.style.display = this.wapenUit ? 'none' : '';
     return !this.wapenUit;
@@ -427,6 +445,9 @@ export class Player {
    het herladen of midden in een wissel valt er niets te richten.
   */
   richten(aan = !this.richtAan) {
+    // (stap 197) met de GPS in je hand houdt de rechtermuisknop hem dichterbij om te lezen
+    this.gpsDichtbij = !!aan && this.gpsInHand;
+    if (this.gpsInHand) { this.richtAan = false; return false; }
     const kan = aan && !this.inCar && !this.wapenUit && !this.binnen && this.reloading <= 0 && this.wisselT <= 0;
     this.richtAan = !!kan;
     return this.richtAan;
@@ -593,7 +614,28 @@ export class Player {
     return k;
   }
 
+  /*
+   (stap 197) De GPS pakken of wegstoppen. Pakken breekt het herladen af (je hebt je hand nodig) en zet richten en
+   doorschieten uit; wegstoppen laat het wapen weer omhoog komen (de tweede helft van de wisselbeweging), tenzij het
+   met H weggestopt was. `melden` = js/geocache.js laten weten dat de GPS weg is.
+  */
+  gpsPak() {
+    this.gpsInHand = true;
+    this.vuurAan = false; this.richtAan = false;
+    if (this.reloading > 0) { this.reloading = 0; this.leegGeladen = false; }
+    if (this.gun) this.gun.visible = false;
+  }
+  gpsWeg(melden = true) {
+    if (!this.gpsInHand) return;
+    this.gpsInHand = false; this.gpsDichtbij = false;
+    this.vuurAan = false;
+    if (!this.wapenUit && this.wisselT <= 0) { this.wisselNaar = null; this.wisselT = TREKKEN; this.holster = 1; }
+    if (melden && this.opGpsWeg) this.opGpsWeg();
+  }
+
   reload() {
+    // (stap 197) R met de GPS in je hand: eerst de GPS weg, het wapen omhoog; daarna kun je herladen
+    if (this.gpsInHand) { this.gpsWeg(); return; }
     if (this.reloading > 0 || this.wisselT > 0 || this.wapenInfo.mes) return;
     if (this.ammo === this.wapenInfo.mag || this.reserve <= 0) return;
     // de klikken horen bij de beweging en komen uit js/wapen.js
@@ -618,6 +660,8 @@ export class Player {
     if (this.inDrone) return false;
     // in de Tiger (stap 177) schiet het kanon, niet je wapen
     if (this.inTiger) return false;
+    // (stap 197) met de GPS in je hand heb je geen hand vrij voor je wapen
+    if (this.gpsInHand) return false;
     if (this.reloading > 0 || this.wapenUit || this.binnen || this.wisselT > 0) return false;
     if (!this.inCar) return true;
     let d = this.yaw - this.inCar.yaw;
@@ -633,6 +677,8 @@ export class Player {
   }
 
   shoot() {
+    // (stap 197) klikken met de GPS in je hand: de GPS gaat weg en je pakt je wapen; die klik schiet nog niet
+    if (this.gpsInHand) { this.gpsWeg(); return; }
     const W = this.wapenInfo;
     // (het pompgeweer) schieten breekt het laden af, als er al iets in zit
     if (W.perPatroon && this.reloading > 0 && this.ammo > 0 && this.wisselT <= 0) { this.reloading = 0; this.leegGeladen = false; }
@@ -777,7 +823,7 @@ export class Player {
       if (aan !== this._scopeAan) {
         this._scopeAan = aan;
         this.scopeEl.hidden = !aan;
-        if (this.gun) this.gun.visible = !aan && !this.wapenUit && !this.binnen;
+        if (this.gun) this.gun.visible = !aan && !this.wapenUit && !this.binnen && !this.gpsInHand;
       }
       if (aan && this.scopeZoomEl) this.scopeZoomEl.textContent = `${this.zoom.toFixed(1)}×`;
     }
@@ -836,7 +882,7 @@ export class Player {
      vanzelf; het wisselen dat je nog was begonnen maak je gewoon af.
     */
     this.wisselStap(dt);
-    if (this.inCar || this.wapenUit || this.reloading > 0 || this.wisselT > 0) this.richtAan = false;
+    if (this.inCar || this.wapenUit || this.gpsInHand || this.reloading > 0 || this.wisselT > 0) this.richtAan = false;
     const mikDoel = this.richtAan ? 1 : 0;
     if (this.wapen && this.wapen.mikSoepel) {
       // (stap 138) de M1: met vaste snelheid in `mikTijd` naar het doel; de zachte overgang komt van soepel() in
@@ -962,6 +1008,6 @@ export class Player {
     });
     // Kijk je door de kijker, dan zit het wapen zelf niet meer in beeld: je oog
     // zit achter het oculair. `_scopeAan` wordt in zetBeeldhoek() gezet.
-    this.gun.visible = !this.wapenUit && !this.binnen && !this._scopeAan;
+    this.gun.visible = !this.wapenUit && !this.binnen && !this._scopeAan && !this.gpsInHand;
   }
 }

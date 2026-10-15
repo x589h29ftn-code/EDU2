@@ -9317,6 +9317,40 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De GPS in 3D en de M1 echt verguld (stap 197, 15 okt).** Gevraagd: "Kan je de gps tracker wat meer 3d achtig maken, ziet er
+nu 2d uit. En je kan hem niet met je wapen gebruiken want je bent met je hand bezig. Dat soort zaken ook uitdenken. Geef de m1 echt
+plated goud".
+
+- *De GPS als voorwerp.* Het plaatje rechtsonder (`#gpsToestel`, een canvas in de DOM) is weg. js/geocache.js `maakToestel` bouwt een
+  geel handapparaat in de trant van een eTrex, een slag groter dan echt (7,4 × 14 × 2,8 cm) zodat het scherm te lezen is: afgeronde
+  behuizing (`rondeDoosGeo` uit js/wapen.js), rubberen zijkanten, een zwarte rand, het scherm, twee knoppen en een duimknop die
+  indrukken bij het intikken, twee zijknoppen, een stompje antenne, het opschrift op een strookje canvas, en de linkerhand met duim,
+  vingers, pols en mouw. Het hangt aan de camera op de wapenlaag en wordt met het wapen getekend; js/main.js tekent die laag nu ook
+  als alleen de GPS in beeld is (`geocache.inBeeld`). Omhoog en weg in 0,28 s, een beetje mee met lopen en ademen.
+- *Het scherm* is een eigen canvas (`lcd`, 472 × 636) op een `MeshBasicMaterial`: een lcd geeft zijn eigen licht, dus 's nachts
+  blijft het leesbaar. `tekenGps` tekent alleen nog het scherm, met dezelfde opmaak als het oude plaatje maar twee keer zo scherp
+  (een `setTransform`), elke 0,12 s, en zet `needsUpdate`.
+- *Uitgedacht: een hand is een hand.* `player.gpsInHand` in js/player.js. Met de GPS vast: geen wapen in beeld, `magSchieten` nee,
+  geen richten, geen kruisje. Klikken stopt de GPS weg en het wapen komt omhoog (de tweede helft van de wisselbeweging), maar die klik
+  schiet niet: je moet het wapen eerst pakken. R doet hetzelfde (eerst wegstoppen, dan kun je herladen), een wapen kiezen ook (het
+  gekozen wapen komt meteen omhoog), en H pakt het wapen als het weggestopt was. De GPS pakken breekt een herlading af. De
+  rechtermuisknop houdt hem dichterbij om te lezen (`gpsDichtbij`, de stand `GPS3D.dicht`). Binnen, met de drone, in de Tiger, op de
+  bank, neergaan en in een filmbeeld gaat hij vanzelf weg (`magVasthouden`); in de auto en de boot mag hij mee (cache 4 is vanuit de
+  boot). Gemaakt bij het opstarten, dus achter het laadscherm vertaald: geen nieuw programma.
+- *Echt verguld.* Stap 196 tintte alleen de kleur van het staal; met het donkere doek van geparkeerd staal werd dat bruin, en met een
+  kleur boven 1 vals fel. Nu krijgt elk stalen materiaal van de M1 een eigen doek van gepolijst goud (`tekenGoud`, `goudDoek` 512):
+  de kleur is het goud zelf (sRGB ~ 236, 190, 100, licht gewolkt), metalness 1 (de weerkaatsing van de omgeving kleurt goud), de
+  ruwheid tussen 0,12 en 0,30 met polijstsporen in de lengte en een paar haarfijne krasjes in de laag. De stempel is opnieuw
+  ingeslagen in het goud (`goudStempelDoek`; de letters zijn naar `stempelLetters` verhuisd, gedeeld met het staal). De gleuven worden
+  donker goud zodat ze gleuf blijven, het vizier blijft gebruineerd staal, het hout walnoot. Alleen kaarten van dezelfde soort worden
+  verwisseld: geen nieuw programma (`geocachetest` deel 9: 141 → 141).
+- *Mis gegaan.* De eerste meting "zonder goud weer staal" telde alle materialen met metalness 1, maar het messing en koper van de M1
+  hebben dat van zichzelf; de proef meet nu tegen de stand vooraf. En de staalmeting vond acht materialen tegen zes vergulde: de
+  gleuven en het vizier; de gleuven zijn er nu bij.
+- *Proef:* `npm run geocachetest` deel 4 (het toestel aan de camera op laag 1, het scherm in beeld, het lcd) en een nieuw deel 10
+  (vasthouden, klikken, R, wisselen, H, herladen afbreken, dichterbij, het scherm bijgewerkt, binnen en drone, het goud gemeten aan
+  doek, kleur en ruwheid, en terug). Foto's: `cache_gps`, `cache_gps_lezen`, `cache_goud` (`npm run geocacheshots`).
+
 **De Tinga Cache: geocachen (stap 196, 15 okt).** Gevraagd na het ontwerp (docs/ontwerp-geocache.md): "Laat de BP medewerker bij
 aankoop GPS tracker uitleggen dat hij Sjors moet zien van Radio Tinga. Laat de poster in de BP shop maar ook op paar andere plekken
 terugkomen die logisch zijn, bijvoorbeeld op tafel van Eriks huisje. Maak een soort GPS tracker handheld die je ziet als je op de knop

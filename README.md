@@ -974,9 +974,16 @@ Met **N** pak je de GPS: je eigen coördinaten, het doel, een pijl en de afstand
 caches moet je zelf vinden en intikken (cijfertoetsen, backspace wist): een raadsel met dingen uit de wereld, een bordje dat je naar
 de tweede stap stuurt, een cache die je alleen vanuit een boot pakt, en een finale met de letters en cijfers uit de logboeken. De GPS
 brengt je tot op een paar meter; het kistje moet je zelf zoeken (E opent hem). Na elke cache noemt Sjors je op Radio Tinga, en wie
-ze alle vijf vindt krijgt **€ 2.500 en de gouden M1 Garand**.
+ze alle vijf vindt krijgt **€ 2.500 en de gouden M1 Garand**: echt verguld, gepolijst goud over het staal, het hout blijft walnoot.
 
-![De GPS in beeld](docs/screenshots/cache_gps.png)
+De GPS houd je in je linkerhand, als een echt geel handapparaat met een verlicht scherm. Daarmee heb je geen hand vrij voor je wapen:
+zolang je hem vasthoudt is het wapen weg en schiet je niet. Klikken, **R**, een ander wapen kiezen of **H** stopt de GPS weg en je
+pakt je wapen weer (die klik schiet nog niet). Met de **rechtermuisknop** houd je hem dichterbij om het raadsel te lezen. Binnen, in de
+drone, in de Tiger, op de bank en in een filmbeeld stop je hem vanzelf weg; in de auto en in de boot mag hij mee.
+
+![De GPS in je hand](docs/screenshots/cache_gps.png)
+
+![De GPS dichterbij om te lezen](docs/screenshots/cache_gps_lezen.png)
 
 ![De poster op de balie van de BP](docs/screenshots/cache_poster_bp.png)
 

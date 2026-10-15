@@ -9,7 +9,9 @@
     van Radio Tinga en op de eettafel van de drie woningen die Erik kan kopen.
   - De GPS koop je aan de kassa van de BP (3, € 250, js/bpkassa.js); de medewerker vertelt dat je bij Sjors moet zijn.
   - Dan staat Sjors op de stoep van Radio Tinga, met een S op de kaart. E bij hem: de uitleg en de eerste cache.
-  - N zet de GPS aan en uit: een handapparaat in beeld (canvas) met je eigen coördinaten, het doel, een pijl en de afstand, het
+  - N zet de GPS aan en uit: sinds stap 197 een 3D-handapparaat in je linkerhand (`maakToestel`, op de wapenlaag aan de
+    camera), het scherm een canvas als lcd. Met de GPS in je hand is het wapen weg (`player.gpsInHand`, js/player.js): klikken,
+    herladen, een wapen kiezen of H stopt hem weg, de rechtermuisknop houdt hem dichterbij. Het scherm toont je eigen coördinaten, het doel, een pijl en de afstand, het
     raadsel van de cache waar je bent, en "Tinga Cache n/5". De cijfers van het doel tik je in (1–9, 0, backspace).
   - Een cache ligt een paar meter van het punt uit het raadsel (`CACHE.radius`): vanaf `CACHE.dichtbij` meter zegt de GPS
     "dichtbij — zoek!", op `CACHE.open` meter is het "E — cache openen". Cache 4 kan alleen vanuit een boot.
@@ -27,6 +29,8 @@ import { grondHoogte } from './viaduct.js';
 import { bpWereld, BP_WINKEL } from './bouwvlak.js';
 import { TIGER } from './tiger.js';
 import { NOMERCY5 } from './nomercy5.js';
+import { WAPEN_LAAG } from './player.js';
+import { rondeDoosGeo } from './wapen.js';
 
 export const CACHE = {
   prijs: 250,          // de GPS aan de kassa van de BP
@@ -372,33 +376,117 @@ export function initGeocache(o) {
     caches.forEach((c, i) => { if (c.mesh && c.mesh.userData.deksel) c.mesh.userData.deksel.rotation.x = i < st.gevonden ? -0.9 : 0; });
   }
 
-  // ------------------------------------------------ de GPS in beeld
-  const gpsEl = document.createElement('div');
-  gpsEl.id = 'gpsToestel'; gpsEl.hidden = true;
-  const doekEl = document.createElement('canvas'); doekEl.width = 300; doekEl.height = 470;
-  gpsEl.appendChild(doekEl);
-  {
-    const css = document.createElement('style');
-    css.textContent = `#gpsToestel { position: fixed; right: 18px; bottom: 96px; z-index: 5; width: 230px; pointer-events: none;
-      filter: drop-shadow(0 6px 14px rgba(0,0,0,.55)); }
-      #gpsToestel[hidden] { display: none; } #gpsToestel canvas { width: 100%; display: block; }
-      @media (max-width: 700px) { #gpsToestel { width: 170px; bottom: 150px; } }`;
-    document.head.appendChild(css);
-    (document.getElementById('ui') || document.body).appendChild(gpsEl);
+  // ------------------------------------------------ de GPS in beeld (stap 197: in 3D, in je linkerhand)
+  /*
+   Tot stap 197 een plaatje rechtsonder in beeld ("ziet er nu 2d uit"). Nu een handapparaat zoals een gele eTrex, een slag groter
+   dan echt zodat het scherm te lezen is: een afgeronde behuizing met rubberen zijkanten, een zwarte rand om het scherm, het
+   scherm zelf (het canvas `lcd`, onverlicht getekend: het licht van een lcd komt van achteren), drie knoppen en een duimknop,
+   een stompje antenne, het opschrift, en je linkerhand eromheen met de mouw. Het hangt aan de camera op de wapenlaag, zoals het
+   wapen, en wordt dus met het wapen getekend (js/main.js `tekenWapen`). Alles gemaakt bij het opstarten (achter het laadscherm
+   vertaald, `soortenVoorbereid`), alleen `visible` en de stand veranderen.
+  */
+  const lcd = document.createElement('canvas'); lcd.width = 472; lcd.height = 636;
+  const lcdTex = new THREE.CanvasTexture(lcd); lcdTex.colorSpace = THREE.SRGBColorSpace; lcdTex.anisotropy = 4;
+  const GPS3D = {
+    rust: { x: -0.062, y: -0.082, z: -0.205, rx: -0.50, ry: 0.30, rz: 0.10 },
+    dicht: { x: -0.012, y: -0.040, z: -0.150, rx: -0.16, ry: 0.06, rz: 0.02 },
+    pakTijd: 0.28,           // s om hem omhoog te halen of weg te stoppen
+    dichtTijd: 0.22,         // s naar de leesstand en terug
+  };
+  function maakToestel() {
+    const groep = new THREE.Group(); groep.name = 'gps3d';
+    const std = (kleur, ruw, metaal = 0) => new THREE.MeshStandardMaterial({ color: kleur, roughness: ruw, metalness: metaal });
+    const geel = std(0xf0bd2c, 0.48), rubber = std(0x1c1d1f, 0.9), zwart = std(0x111214, 0.28), knop = std(0x2a2b2e, 0.6);
+    const huid = std(0xd29a76, 0.72), mouw = std(0x2c3a52, 0.92);
+    const mesh = (geo, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); groep.add(o); return o; };
+    // de behuizing: 7,4 × 14 × 2,8 cm, rubberen zijkanten
+    mesh(rondeDoosGeo(0.074, 0.14, 0.028, 0.012, 3), geel);
+    mesh(rondeDoosGeo(0.008, 0.11, 0.030, 0.004, 2), rubber, -0.036, -0.004, 0);
+    mesh(rondeDoosGeo(0.008, 0.11, 0.030, 0.004, 2), rubber, 0.036, -0.004, 0);
+    // de rand om het scherm en het scherm (5 × 6,74 cm, net als het canvas 472 × 636)
+    mesh(rondeDoosGeo(0.058, 0.080, 0.004, 0.004, 2), zwart, 0, 0.020, 0.0135);
+    const scherm = mesh(new THREE.PlaneGeometry(0.050, 0.0674), new THREE.MeshBasicMaterial({ map: lcdTex }), 0, 0.020, 0.01555);
+    scherm.name = 'gpsScherm';
+    // de knoppen onder het scherm en de duimknop in het midden
+    const knopGeo = new THREE.CylinderGeometry(0.0055, 0.006, 0.004, 16); knopGeo.rotateX(Math.PI / 2);
+    const knoppen = [-0.02, 0.02].map(x => mesh(knopGeo, knop, x, -0.040, 0.0150));
+    const duimGeo = new THREE.CylinderGeometry(0.0075, 0.0085, 0.006, 20); duimGeo.rotateX(Math.PI / 2);
+    const duim = mesh(duimGeo, zwart, 0, -0.044, 0.0155);
+    // twee knoppen op de linkerzijkant (aan/uit en zoom)
+    for (const y of [0.030, 0.010]) mesh(rondeDoosGeo(0.004, 0.012, 0.008, 0.0015, 1), knop, -0.0405, y, 0.002);
+    // het stompje antenne rechtsboven
+    const ant = new THREE.CylinderGeometry(0.0055, 0.0065, 0.026, 14);
+    mesh(ant, rubber, 0.022, 0.080, -0.002);
+    // het opschrift onder de knoppen: een strookje canvas
+    const opEl = document.createElement('canvas'); opEl.width = 256; opEl.height = 48;
+    { const g = opEl.getContext('2d'); g.fillStyle = '#f0bd2c'; g.fillRect(0, 0, 256, 48); g.fillStyle = '#1d1d1d';
+      g.font = 'bold 30px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('TINGA  GPS', 128, 25); }
+    const opTex = new THREE.CanvasTexture(opEl); opTex.colorSpace = THREE.SRGBColorSpace;
+    const opMat = std(0xffffff, 0.5); opMat.map = opTex;
+    mesh(new THREE.PlaneGeometry(0.040, 0.0075), opMat, 0, -0.058, 0.01405);
+    // de linkerhand: de palm achter het toestel, de duim langs de linkerkant op de rand, de vingers om de rechterkant
+    mesh(rondeDoosGeo(0.070, 0.080, 0.026, 0.011, 2), huid, -0.004, -0.030, -0.026);
+    const duimH = mesh(rondeDoosGeo(0.018, 0.050, 0.017, 0.008, 2), huid, -0.042, -0.024, 0.006);
+    duimH.rotation.z = -0.35;
+    for (let i = 0; i < 4; i++) {
+      const v = mesh(rondeDoosGeo(0.016, 0.017, 0.022, 0.0075, 2), huid, 0.041, -0.010 - i * 0.0185, 0.003 - i * 0.002);
+      v.rotation.y = 0.35;
+    }
+    // de pols en de mouw naar linksonder uit beeld
+    const pols = new THREE.CylinderGeometry(0.024, 0.026, 0.06, 16);
+    const p = mesh(pols, huid, -0.012, -0.090, -0.030); p.rotation.z = 0.35; p.rotation.x = -0.3;
+    const mouwGeo = new THREE.CylinderGeometry(0.034, 0.042, 0.30, 18);
+    const m = mesh(mouwGeo, mouw, -0.06, -0.24, -0.06); m.rotation.z = 0.35; m.rotation.x = -0.3;
+    groep.traverse(o => { o.layers.set(WAPEN_LAAG); o.frustumCulled = false; });
+    groep.visible = false;
+    return { groep, scherm, knoppen, duim };
+  }
+  const toestel = maakToestel();
+  if (player.camera) player.camera.add(toestel.groep);
+  // de stand van het toestel: `pak` 0 = weg, 1 = in je hand; `dicht` 0 = rust, 1 = leesstand
+  const hand = { pak: 0, dicht: 0, druk: 0, t: 0 };
+  function zetAan(aan) {
+    st.aan = !!aan;
+    if (st.aan) { player.gpsPak && player.gpsPak(); tekenGps(0); }
+    else if (player.gpsInHand && player.gpsWeg) player.gpsWeg(false);
+    const kruis = document.getElementById('crosshair');
+    if (kruis) kruis.style.display = (st.aan || player.wapenUit) ? 'none' : '';
+  }
+  // js/player.js meldt dat de GPS weg is (klikken, herladen, een wapen kiezen, H)
+  player.opGpsWeg = () => { if (st.aan) zetAan(false); };
+  // waar je hem niet kunt vasthouden: de drone, de Tiger, binnen, zitten, neergaan, een filmbeeld
+  function magVasthouden() {
+    return !player.inDrone && !player.inTiger && !player.binnen && !player.zit && !(player.health <= 0) && !document.body.classList.contains('film');
+  }
+  function werkToestelBij(dt) {
+    hand.pak = Math.max(0, Math.min(1, hand.pak + (st.aan ? dt : -dt) / GPS3D.pakTijd));
+    hand.dicht = Math.max(0, Math.min(1, hand.dicht + ((st.aan && player.gpsDichtbij) ? dt : -dt) / GPS3D.dichtTijd));
+    hand.druk = Math.max(0, hand.druk - dt * 8);
+    hand.t += dt;
+    const g = toestel.groep;
+    g.visible = hand.pak > 0.001;
+    if (!g.visible) return;
+    const s = (u) => u * u * (3 - 2 * u), d = s(hand.dicht), p = s(hand.pak);
+    const R = GPS3D.rust, D = GPS3D.dicht, mix = (a, b) => a + (b - a) * d;
+    // een beetje mee met het lopen, en wat ademen
+    const bob = player.bob || 0, loop = (player.speed || 0) > 0.5 ? 1 : 0.3;
+    const zw = Math.sin(bob) * 0.004 * loop, adem = Math.sin(hand.t * 1.6) * 0.0012;
+    g.position.set(mix(R.x, D.x) + zw, mix(R.y, D.y) - (1 - p) * 0.22 + Math.abs(Math.cos(bob)) * 0.003 * loop + adem, mix(R.z, D.z));
+    g.rotation.set(mix(R.rx, D.rx) - (1 - p) * 0.9, mix(R.ry, D.ry), mix(R.rz, D.rz));
+    for (const k of toestel.knoppen) k.position.z = 0.0150 - hand.druk * 0.0015;
+    toestel.duim.position.z = 0.0155 - hand.druk * 0.002;
   }
   let schommel = { x: 0, z: 0, t: 0 };
   function tekenGps(dt) {
-    const g = doekEl.getContext('2d'), B = doekEl.width, H = doekEl.height;
-    g.clearRect(0, 0, B, H);
-    // de behuizing: geel met zwarte randen, zoals een eTrex
-    const rond = (x, y, b, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + b, y, x + b, y + h, r); g.arcTo(x + b, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + b, y, r); g.closePath(); };
-    rond(8, 6, B - 16, H - 12, 34); g.fillStyle = '#f2c230'; g.fill(); g.lineWidth = 6; g.strokeStyle = '#222'; g.stroke();
-    g.fillStyle = '#2b2b2b'; g.fillRect(B / 2 - 18, 0, 36, 14);               // de antenne
-    rond(26, 40, B - 52, H - 140, 12); g.fillStyle = '#1a1d16'; g.fill();
-    rond(32, 46, B - 64, H - 152, 8); g.fillStyle = '#c9d8b0'; g.fill();          // het scherm
-    // de knoppen onderaan
-    for (const [x, y] of [[B * 0.32, H - 62], [B * 0.5, H - 52], [B * 0.68, H - 62]]) { g.beginPath(); g.arc(x, y, 13, 0, Math.PI * 2); g.fillStyle = '#2b2b2b'; g.fill(); }
-    g.fillStyle = '#2b2b2b'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText('TINGA GPS', B / 2, H - 22);
+    // (stap 197) alleen het scherm, op het lcd-doek van het 3D-toestel; de maten zijn nog die van het oude plaatje van
+    // 300 × 470 (het scherm liep daar van (32, 46) tot (268, 364)), twee keer zo scherp
+    const g = lcd.getContext('2d'), B = 300, H = 470;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    // het lcd: grijsgroen, van achteren verlicht (in het midden iets lichter)
+    const licht = g.createRadialGradient(lcd.width / 2, lcd.height * 0.45, 40, lcd.width / 2, lcd.height * 0.45, lcd.width * 0.8);
+    licht.addColorStop(0, '#d6e4bc'); licht.addColorStop(1, '#b4c49a');
+    g.fillStyle = licht; g.fillRect(0, 0, lcd.width, lcd.height);
+    g.setTransform(2, 0, 0, 2, -64, -92);
     // het scherm
     const x0 = 42, w = B - 84;
     let y = 66;
@@ -453,6 +541,7 @@ export function initGeocache(o) {
       if (regel) { g.fillText(regel, x0, y); y += 13; }
       if (y > H - 108) break;
     }
+    lcdTex.needsUpdate = true;
   }
 
   // ------------------------------------------------ openen, beloning
@@ -539,6 +628,10 @@ export function initGeocache(o) {
     get stand() { return { ...st, caches: caches ? caches.map(c => ({ nr: c.nr, plek: c.plek, punt: c.punt, n: c.n, e: c.e, letter: c.letter, cijfer: c.cijfer, stap1: c.stap1 || null, zicht: !!(c.mesh && c.mesh.visible) })) : null, bouwFout, rest: caches ? caches[4].rest : null }; },
     get gevonden() { return st.gevonden; },
     get aan() { return st.aan; },
+    // (stap 197) het 3D-toestel, en of het in beeld is (js/main.js tekent dan de wapenlaag)
+    get toestel() { return toestel; },
+    get inBeeld() { return toestel.groep.visible; },
+    get lcd() { return lcd; },
     get gps() { return st.gps; },
     get bordje() { return bordje; },
     get posters() { return posters; },
@@ -562,10 +655,9 @@ export function initGeocache(o) {
     // N: aan en uit
     wissel() {
       if (!st.gps) { hud.show(`Je hebt geen GPS: te koop aan de kassa van de BP (€ ${CACHE.prijs}).`, 3); return false; }
+      if (!st.aan && !magVasthouden()) return false;
       bouw();
-      st.aan = !st.aan;
-      gpsEl.hidden = !st.aan;
-      if (st.aan) tekenGps(0);
+      zetAan(!st.aan);
       return true;
     },
     // de cijfertoetsen terwijl de GPS aan is; true als hij ze gebruikt
@@ -573,6 +665,7 @@ export function initGeocache(o) {
       if (!st.aan || !caches) return false;
       const c = huidig();
       if (!c || c.nr === 1) return false;
+      hand.druk = 1;
       if (d === 'terug') { st.invoer = st.invoer.slice(0, -1); tekenGps(0); return true; }
       if (st.invoer.length >= 6) st.invoer = '';
       st.invoer += String(d);
@@ -619,7 +712,9 @@ export function initGeocache(o) {
       const s = wil && sjors ? { x: sjors.plek.x, z: sjors.plek.z } : null;
       if (hud.zetSjors && (sjorsZicht !== !!s)) { hud.zetSjors(s); sjorsZicht = !!s; }
       // de GPS
+      if (st.aan && !magVasthouden()) zetAan(false);
       if (st.aan) { tekenT -= dt; if (tekenT <= 0) { tekenT = 0.12; tekenGps(0.12); } }
+      werkToestelBij(dt);
       // op het ingetikte punt en niets: na twee keer een hint van Sjors
       const c = huidig(), d = doel();
       if (c && d && c.nr !== 1 && !st.misGemeld) {
@@ -640,7 +735,7 @@ export function initGeocache(o) {
       st.gps = !!(d && d.gps); st.intro = !!(d && d.intro); st.gevonden = Math.max(0, Math.min(CACHE.totaal, (d && d.gevonden) | 0));
       st.invoer = d && typeof d.invoer === 'string' ? d.invoer.replace(/\D/g, '').slice(0, 6) : '';
       st.mis = (d && d.mis) | 0; st.goud = !!(d && d.goud); st.misGemeld = false;
-      st.aan = false; gpsEl.hidden = true;
+      zetAan(false); hand.pak = 0; hand.dicht = 0; werkToestelBij(0);
       if (st.gps) bouw();
       if (caches) { caches.forEach((c, i) => { c.gevonden = i < st.gevonden; }); if (caches[2]) caches[2].stap1Gezien = !!(d && d.stap1); }
       werkZichtBij();

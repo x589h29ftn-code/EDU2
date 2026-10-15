@@ -1408,6 +1408,27 @@ function tekenParker(k, w, h, r, S) {
 }
 const parkerDoek = () => doekSet('parker512', (k, w, h, r, S) => tekenParker(k, w, h, r, S), 0.55, 512);
 
+// de letters van de stempel, ingeslagen: in de hoogte een putje met een opgeworpen rand, in de kleur `donker` (de schaduw van
+// de bovenrand) en `licht` (de bodem, een fractie lager). Gedeeld door het geparkeerde staal en het goud (stap 197).
+function stempelLetters(k, w, h, S, donker, licht) {
+  const m = S / 256;
+  const regels = [['U.S. RIFLE', 30], ['CAL. .30 M1', 30], ['SPRINGFIELD', 28], ['ARMORY', 30], ['2975632', 34]];
+  for (const g of [k, h, w]) { g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; }
+  regels.forEach(([tekst, px], i) => {
+    const y = (44 + i * 42 + (i === 4 ? 8 : 0)) * m, x = S / 2;
+    for (const g of [k, h, w]) g.font = `bold ${px * m}px "DejaVu Sans Mono", monospace`;
+    // de hoogte: een opgeworpen rand, dan het putje
+    h.strokeStyle = 'rgba(200,200,200,0.8)'; h.lineWidth = 3 * m; h.strokeText(tekst, x, y);
+    h.fillStyle = '#1c1c1c'; h.fillText(tekst, x, y);
+    w.fillStyle = '#7a7a7a'; w.fillText(tekst, x, y);
+    // de kleur: de schaduw van de bovenrand in het putje, dan de lichtere bodem een fractie lager
+    k.fillStyle = donker; k.fillText(tekst, x, y);
+    k.save(); k.beginPath(); k.rect(0, y - px * m, S, px * m * 2); k.clip();
+    k.fillStyle = licht; k.fillText(tekst, x + 0.8 * m, y + 1.2 * m);
+    k.restore();
+  });
+}
+
 /*
  De stempel op de hiel van de kast, zoals op de foto van achteren: "U.S. RIFLE / CAL. .30 M1 / SPRINGFIELD / ARMORY"
  en een serienummer. Hetzelfde staal als `parkerDoek`, op 512 (stap 134) en met de letters echt ingeslagen: in de
@@ -1428,22 +1449,49 @@ const stempelDoek = () => doekSet('stempel512', (k, w, h, r, S) => {
     gw.addColorStop(0, 'rgba(60,60,60,0.45)'); gw.addColorStop(1, 'rgba(60,60,60,0)');
     w.fillStyle = gw; w.fillRect(0, 0, S, S);
   }
-  const m = S / 256;
-  const regels = [['U.S. RIFLE', 30], ['CAL. .30 M1', 30], ['SPRINGFIELD', 28], ['ARMORY', 30], ['2975632', 34]];
-  for (const g of [k, h, w]) { g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; }
-  regels.forEach(([tekst, px], i) => {
-    const y = (44 + i * 42 + (i === 4 ? 8 : 0)) * m, x = S / 2;
-    for (const g of [k, h, w]) g.font = `bold ${px * m}px "DejaVu Sans Mono", monospace`;
-    // de hoogte: een opgeworpen rand, dan het putje
-    h.strokeStyle = 'rgba(200,200,200,0.8)'; h.lineWidth = 3 * m; h.strokeText(tekst, x, y);
-    h.fillStyle = '#1c1c1c'; h.fillText(tekst, x, y);
-    w.fillStyle = '#7a7a7a'; w.fillText(tekst, x, y);
-    // de kleur: de schaduw van de bovenrand in het putje, dan de lichtere bodem een fractie lager
-    k.fillStyle = 'rgba(26,28,24,0.85)'; k.fillText(tekst, x, y);
-    k.save(); k.beginPath(); k.rect(0, y - px * m, S, px * m * 2); k.clip();
-    k.fillStyle = 'rgba(170,172,162,0.78)'; k.fillText(tekst, x + 0.8 * m, y + 1.2 * m);
-    k.restore();
+  stempelLetters(k, w, h, S, 'rgba(26,28,24,0.85)', 'rgba(170,172,162,0.78)');
+}, 0.9, 512);
+
+/*
+ (stap 197) Echt verguld: de gouden M1 Garand van de Tinga Cache. Een gepolijste goudlaag over het staal, geen getint staal:
+ de kleur is het goud zelf (met metalness 1 is de kleur van het doek de kleur van de weerkaatsing), licht gewolkt waar de laag
+ iets dikker of dunner is, fijne polijstsporen in de lengte, en glad: de ruwheid ligt tussen 0,12 en 0,30, op de randen waar
+ de handen langs wrijven nog gladder. Een paar haarfijne krasjes laten zien dat het een laag is: daar is het iets donkerder
+ en ruwer, en een fractie lager.
+*/
+function tekenGoud(k, w, h, r, S) {
+  const wolk = lagenRuis(S, 3, 3, 3, r), glim = lagenRuis(S, 5, 5, 2, r), korrel = tegelRuis(S, S / 8, S / 8, r);
+  vulPerPunt(k, w, h, S, (i, x, y, u) => {
+    const v = (wolk[i] - 0.5) * 2, g = stapZacht(0.62, 0.9, glim[i]), fijn = r() - 0.5, kk = korrel[i] - 0.5;
+    // goud (sRGB ~ 240, 196, 110), warmer of bleker waar de laag wolkt; gepolijste plekken lichter
+    u.r = klem(236 + v * 10 + g * 14 + fijn * 6, 0, 255);
+    u.g = klem(190 + v * 12 + g * 20 + fijn * 6, 0, 255);
+    u.b = klem(100 + v * 14 + g * 24 + fijn * 5, 0, 255);
+    u.w = klem(62 + v * 10 - g * 26 + fijn * 10 + kk * 8, 0, 255);
+    u.h = klem(128 + kk * 10 + fijn * 6, 0, 255);
   });
+  // polijstsporen in de lengte: haarfijn, afwisselend lichter en donkerder, iets gladder
+  for (let i = 0; i < S * 0.9; i++) {
+    const x = r() * S, y = r() * S, L = S * (0.05 + r() * 0.25), licht = r() < 0.55;
+    k.fillStyle = licht ? 'rgba(255,236,170,0.10)' : 'rgba(120,80,20,0.07)';
+    k.fillRect(x, y, L, S / 512);
+    w.fillStyle = licht ? 'rgba(20,20,20,0.10)' : 'rgba(120,120,120,0.06)';
+    w.fillRect(x, y, L, S / 512);
+  }
+  // een paar haarfijne krasjes in de laag
+  for (let i = 0; i < 18; i++) {
+    const x = r() * S, y = r() * S, a = (r() - 0.5) * 1.2, L = S * (0.01 + r() * 0.04);
+    const dx = Math.cos(a) * L, dy = Math.sin(a) * L;
+    for (const [g, kl] of [[k, 'rgba(150,100,30,0.35)'], [w, 'rgba(150,150,150,0.5)'], [h, 'rgba(70,70,70,0.6)']]) {
+      g.strokeStyle = kl; g.lineWidth = S / 512; g.beginPath(); g.moveTo(x, y); g.lineTo(x + dx, y + dy); g.stroke();
+    }
+  }
+}
+const goudDoek = () => doekSet('goud512', (k, w, h, r, S) => tekenGoud(k, w, h, r, S), 0.3, 512);
+// de stempel in goud: dezelfde letters, ingeslagen in de goudlaag (in het putje donker goud, de bodem licht)
+const goudStempelDoek = () => doekSet('goudstempel512', (k, w, h, r, S) => {
+  tekenGoud(k, w, h, r, S);
+  stempelLetters(k, w, h, S, 'rgba(96,62,14,0.85)', 'rgba(255,226,150,0.7)');
 }, 0.9, 512);
 
 /*
@@ -2530,19 +2578,30 @@ export function maakGarand(geluid) {
   zetPatronen(8);
   update(0, { ammo: 8 });
   /*
-   (stap 196) De gouden M1 Garand, de beloning van de Tinga Cache: het staal wordt goud, het hout blijft walnoot. Alleen kleur,
-   metalness en roughness veranderen: geen nieuw shaderprogramma.
+   (stap 196, stap 197) De gouden M1 Garand, de beloning van de Tinga Cache: het staal is verguld, het hout blijft walnoot.
+   Tot stap 197 werd alleen de kleur van het staal getint (het doek bleef geparkeerd, dus het werd bruin); nu krijgt elk
+   stalen materiaal het doek van gepolijst goud (`goudDoek`, de stempel `goudStempelDoek`), metalness 1 en de ruwheid uit
+   dat doek. Dezelfde soorten kaarten (map, roughnessMap, normalMap) en hetzelfde kleurbereik: geen nieuw shaderprogramma.
   */
-  const goudMats = [park, parkDonker, grendelStaal, clipStaal, blank, stempel];
-  const goudWas = goudMats.map(m => ({ c: m.color.getHex(), me: m.metalness, r: m.roughness }));
+  // (de gleuven worden donker goud, zodat ze nog als gleuf lezen; het vizier blijft gebruineerd staal, zoals op een presentatiegeweer)
+  const goudMats = [park, parkDonker, grendelStaal, clipStaal, blank, stempel, gleufStaal];
+  const goudWas = goudMats.map(m => ({ c: m.color.getHex(), me: m.metalness, r: m.roughness, map: m.map, rm: m.roughnessMap, nm: m.normalMap }));
   let goud = false;
   function zetGoud(aan) {
     goud = !!aan;
+    const G = goudDoek(), GS = goudStempelDoek();
     goudMats.forEach((m, i) => {
       const w = goudWas[i];
-      // (het doek van het staal is donker; de kleur vermenigvuldigt ermee, dus feller dan 1 om echt goud te zijn)
-      if (goud) { if (i === 1) m.color.setRGB(2.0, 1.45, 0.42); else m.color.setRGB(2.7, 2.0, 0.55); m.metalness = 0.95; m.roughness = Math.min(w.r, 0.4); }
-      else { m.color.setHex(w.c); m.metalness = w.me; m.roughness = w.r; }
+      if (goud) {
+        const d = m === stempel ? GS : G;
+        m.map = d.map; m.roughnessMap = d.roughnessMap; m.normalMap = d.normalMap;
+        // de kast iets dieper van kleur, de grendel en de clip het blankst gepoetst
+        if (m === parkDonker) m.color.setRGB(0.93, 0.86, 0.74); else if (m === gleufStaal) m.color.setRGB(0.42, 0.33, 0.18); else m.color.setRGB(1, 1, 1);
+        m.metalness = 1; m.roughness = (m === grendelStaal || m === clipStaal) ? 0.8 : 1;
+      } else {
+        m.map = w.map; m.roughnessMap = w.rm; m.normalMap = w.nm;
+        m.color.setHex(w.c); m.metalness = w.me; m.roughness = w.r;
+      }
     });
   }
   return {
