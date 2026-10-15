@@ -9317,6 +9317,29 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Praatjes met Mark en Johan (stap 192, 15 okt).** Gevraagd: "Kan je voor missies tussendoor of na het spel zorgen dat je Johan en
+Mark kan vinden. Mark Molenkrite 15. Johan bij zijn huis. Ze geven diverse random dialogen als je probeert te praten. Los van het
+naar voetbal gaan en op de bank zitten. Johan heeft het bijv over binnenkort weer naar Yugo gaan, is een restaurant. Mark heeft het
+over GTA 6 die uitkomt in november, spelletjesavond organiseren met het gezin, kaasfondue binnenkort."
+- *js/praatjes.js*: 15 praatjes van Mark (GTA 6 in november, de spelletjesavond, de kaasfondue, Formule 1, de APK van de Golf,
+  Sneekweek, de Elfstedentocht, de caravan naar Frankrijk…) en 13 van Johan (Yugo, drie keer, en vissen aan de Geeuw, darten, de
+  sportschool, de buurman die boort, Sultans of Swing op Radio Tinga…), elk drie regels met Erik ertussen; `kiesPraatje` nooit een
+  van de laatste vier. Geen verhaal erin, zodat ze tussen elke twee missies passen.
+- *js/verhaal.js*: eigen figuren (`praatMark`, `praatJohan` in `praat`), los van de Mark en Johan van de missies, die overal heen
+  worden gezet. Mark op zijn stoep (`thuis`, waar hij bij missie 1 staat), Johan midden op zijn oprit (`johanPlek.mid`). Ze staan er
+  als `vrijVoorKlus` (vrij spelen of een missie die onder zijn M wacht) en er geen klus of geldrace loopt; Johan pas na missie 5
+  en niet bij missie 17–18 (dan zit hij aan de Wieken), Mark niet tussen De inval en het einde (het lint). Ze verschijnen en
+  verdwijnen alleen als je verder dan 60 m weg bent, behalve als het verhaal zijn eigen Mark of Johan binnen 60 m zet of er een
+  missievlag binnen 25 m van de deur staat (`praatBotst`): dan meteen weg. E geeft een praatje (`praatjeToets`, na het uitje in
+  `toets`), ze kijken je aan, de hint "E — praten met …", en `aanspreekbaar` zodat E niet ook een auto instapt.
+- Na het einde zit Mark binnen op de bank (het uitje): daar is het keuze 3, "even kletsen" (`UITJE_KEUZE_TEKST`, `openKeuze`), en
+  daarna staat de keuze weer open.
+- *Nagelopen*: `npm run praatjestest` (28 controles: de gesprekken en het kiezen, niet bij missie 1, tussen missie 5 en 6 bij
+  Molenkrite 15 en Kruirad 62 zonder water of botsdoos, acht keer praten met elk, niet als het verhaal ze nodig heeft (missie 5,
+  de vlag van missie 11), na het einde Johan buiten en keuze 3 binnen, een schot doet niets, geen nieuw programma). Twee fouten in
+  de proef zelf onderweg: `resolveCollisions` geeft `[x, z]` en geen object (de botsdooscontrole was zo altijd goed), en ze
+  verschijnen pas uit de buurt, dus een proef moet de speler eerst ver weg zetten. Foto's: `npm run praatjesshots`.
+
 **De doeken van het pompgeweer als die van de M1 (stap 191, 15 okt).** Gevraagd: "zorg ook voor de juiste kwaliteit textures net
 als de M1 Garand". Het staal en het hout waren al die van de M1 (`parkerDoek` 512, `walnootDoek` 1024); wat ontbrak was wat de M1
 van dichtbij echt maakt:

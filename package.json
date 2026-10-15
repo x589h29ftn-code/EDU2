@@ -265,6 +265,8 @@
     "m1test": "node tools/m1test.mjs 8123",
     "shotguntest": "node tools/shotguntest.mjs 8123",
     "shotgunshots": "node tools/shotgunshots.mjs 8123",
+    "praatjestest": "node tools/praatjestest.mjs 8123",
+    "praatjesshots": "node tools/praatjesshots.mjs 8123",
     "nomercytest": "node tools/nomercytest.mjs 8123",
     "nomercyshots": "node tools/nomercyshots.mjs 8123",
     "nomercy2test": "node tools/nomercy2test.mjs 8123",

@@ -953,6 +953,17 @@ achtste schot springt de lege clip er met een ping uit; daarna druk je van boven
 
 ![De M1 Garand van opzij](docs/screenshots/m1_zij.png)
 
+## Even kletsen met Mark en Johan
+
+Tussen de missies door staat Mark op de stoep voor Molenkrite 15 en Johan op zijn oprit aan het Kruirad 62. Loop erheen en druk op
+**E**: ze hebben het over van alles, van GTA 6 dat in november uitkomt, de spelletjesavond en de kaasfondue bij Mark, tot een avond
+eten bij Yugo, vissen aan de Geeuw en darten met Johan. Steeds een ander praatje. Hebben ze het druk met een missie, dan staan ze
+er niet. Na het einde zit Mark binnen op de bank: daar kies je **3** om even te kletsen, naast de wedstrijd en de bank.
+
+![Mark op de stoep voor Molenkrite 15](docs/screenshots/praatje_mark.png)
+
+![Johan op zijn oprit aan het Kruirad](docs/screenshots/praatje_johan.png)
+
 ## Het pompgeweer
 
 Naast de M1 ligt bij Tinga State een **pompgeweer** voor € 1.200: de Winchester Model 1897 trench gun die de Amerikanen in

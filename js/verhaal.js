@@ -58,6 +58,7 @@ import { maakSchrift, maakLint } from './schrift.js';
 import { initRace } from './race.js';
 import { initSchaduw, lijnDoor } from './schaduw.js';
 import { initKlusjes } from './klusjes.js';
+import { PRAATJES, kiesPraatje } from './praatjes.js';
 import { grondHoogte } from './viaduct.js';
 import { INVAL, vluchtLijn, nieuweVlucht, rijdVlucht, invalRoute as invalRouteJs, crashSchuif, renVrij, profiel, puntOp } from './inval.js';
 import { maakRondvlucht, RONDVLUCHT } from './rondvlucht.js';
@@ -951,6 +952,7 @@ const UITJE_BINNEN = [
   zegtMark('Erik. Het is voorbij, man. Geen Bouwman meer, geen Veteraan.'),
   zegtMark('Zin om vanmiddag naar de wedstrijd bij VV Sneek te gaan? Of blijven we gewoon hier op de bank hangen?'),
 ];
+const UITJE_KEUZE_TEKST = '1 — naar de wedstrijd bij VV Sneek · 2 — op de bank chillen · 3 — even kletsen';
 const UITJE_NAAR_WEDSTRIJD = [zegtMark('Mooi! Om twaalf uur is de aftrap. We gaan met de Golf, ik neem bier mee.')];
 const UITJE_ER_IS_ER_EEN = [zegtMark('Ze zijn al begonnen! Kom, met de Golf zijn we er zo.')];
 const UITJE_NAAR_BANK = [
@@ -2732,6 +2734,8 @@ export function initVerhaal(ctx) {
     if (geldraceToets()) return true;
     // na het einde: een biertje van Mark aan de lijn bij VV Sneek (stap 115)
     if (uitjeToets()) return true;
+    // tussendoor: een praatje met Mark op de stoep van Molenkrite 15 of Johan op zijn oprit (stap 192)
+    if (praatjeToets()) return true;
     if (missie === 'molenkrite' && fase === 'wacht' && afst(spelerPunt(), mark.groep.position) < PRAAT_AFSTAND) {
       fase = 'gesprek';
       zeg(GESPREK1, () => { fase = 'loopt'; zetOpdracht('ga met Mark mee'); });
@@ -7098,7 +7102,13 @@ export function initVerhaal(ctx) {
     zetMarker(d.x, d.z, 'M');
   }
   function uitjeKeuze(nr) {
-    if (uitje.fase !== 'keuze' || (nr !== 1 && nr !== 2)) return false;
+    if (uitje.fase !== 'keuze' || (nr !== 1 && nr !== 2 && nr !== 3)) return false;
+    // 3: even kletsen (stap 192), en daarna staat de keuze weer open
+    if (nr === 3) {
+      uitje.fase = 'gesprek';
+      zetOpdracht('');
+      return speelPraatje('mark', () => { if (uitje.fase === 'gesprek') { uitje.fase = 'keuze'; zetOpdracht(UITJE_KEUZE_TEKST); } });
+    }
     zetOpdracht('');
     uitje.keuzes.push(nr);
     const w = wedstrijd && wedstrijd();
@@ -7219,6 +7229,98 @@ export function initVerhaal(ctx) {
       uitjeEinde(UITJE_BANK_LATER);
     });
   }
+  /*
+   ---------- praatjes met Mark en Johan (stap 192) ----------
+   Tussen twee missies (en na het einde Johan) staat Mark op de stoep voor Molenkrite 15 en Johan op zijn oprit aan het
+   Kruirad 62. E geeft een willekeurig praatje uit js/praatjes.js, nooit een van de laatste vier. Het zijn eigen figuren
+   (`praatMark`, `praatJohan`), los van de Mark en Johan van de missies: die worden overal neergezet en mogen hier niet
+   weglopen. Ze staan er alleen als er niets anders loopt (`vrijVoorKlus`, geen klus, geen geldrace), als de Mark of Johan van
+   het verhaal niet in de buurt staat, en als er geen missievlag bij de deur staat (dan wacht de missie binnen). Ze komen en
+   gaan alleen als je verder dan PRAAT.wissel weg bent. Na het einde zit Mark binnen op de bank: daar is het keuze 3.
+  */
+  const PRAAT = { wissel: 60, vlag: 25, verhaalBij: 60, hint: 1.2, kijk: 7 };
+  const praat = { mark: null, johan: null, recent: { mark: [], johan: [] }, hintT: 0, aantal: { mark: 0, johan: 0 } };
+  function praatPlek(wie) {
+    if (wie === 'mark') return { x: thuis.x, z: thuis.z, yaw: straatkant };
+    if (!johanPand || !johanPlek) return null;
+    const v = voorgevel(johanPand);
+    return { x: johanPlek.mid.x, z: johanPlek.mid.z, yaw: Math.atan2(-v.fx, -v.fz) };
+  }
+  function praatFiguur(wie) {
+    if (praat[wie]) return praat[wie];
+    const plek = praatPlek(wie);
+    if (!plek) return null;
+    const p = wie === 'mark'
+      ? new Persoon({ shirt: 0x2f5d8a, broek: 0x39312a, huid: 0xd9b48f, haar: 0x6b5a45, hoogte: 1.03 })
+      : new Persoon({ shirt: 0x3d6b3a, broek: 0x2b3542, huid: 0xd3a273, haar: 0x3a2a1c, hoogte: 1.05 });
+    scene.add(p.groep);
+    p.zetNeer(plek.x, plek.z, plek.yaw);
+    p.groep.visible = false;
+    praat[wie] = p;
+    return p;
+  }
+  // botst hij met het verhaal? (de Mark of Johan van een missie staat daar, of er staat een missievlag bij de deur)
+  function praatBotst(wie, plek) {
+    const eigen = wie === 'mark' ? mark : johan;
+    if (eigen && eigen.groep.visible && afst(eigen.groep.position, plek) < PRAAT.verhaalBij) return true;
+    const doel = hud.nav && hud.nav.doel;
+    return !!(doel && Math.hypot(doel[0] - plek.x, doel[1] - plek.z) < PRAAT.vlag);
+  }
+  // mag hij daar nu staan?
+  function praatHoort(wie) {
+    if (!vrijVoorKlus() || klusjes.bezig || geldInleg || geldKiezen || titelrol) return false;
+    const plek = praatPlek(wie);
+    if (!plek) return false;
+    // na het einde zit Mark binnen (het uitje); tussen missie 16 en het einde hangt er lint voor zijn huis
+    if (wie === 'mark' && (uitzendingKlaar || invalKlaar)) return false;
+    // Johan kennen we pas na missie 5; bij missie 17 en 18 zit hij bij Mark aan de Wieken
+    if (wie === 'johan' && (NM_VOOR.includes(missie) || missie === 'ronald' || missie === 'uitzending')) return false;
+    return !praatBotst(wie, plek);
+  }
+  function praatBij(wie) {
+    const p = praat[wie];
+    return !!(p && p.groep.visible && !player.inCar && afst(spelerPunt(), p.groep.position) < PRAAT_AFSTAND);
+  }
+  function praatjeBij() { return praatBij('mark') || praatBij('johan'); }
+  // een praatje afspelen; `na` na de laatste regel
+  function speelPraatje(wie, na = null) {
+    const lijst = PRAATJES[wie];
+    const i = kiesPraatje(lijst, praat.recent[wie]);
+    praat.aantal[wie]++;
+    praat.laatste = { wie, i };
+    const regels = lijst[i].map(([w, t]) => (w === 'm' ? zegtMark(t) : w === 'j' ? zegtJohan(t) : zegtErik(t)));
+    zeg(regels, na);
+    return true;
+  }
+  function praatjeToets() {
+    for (const wie of ['mark', 'johan']) if (praatBij(wie)) return speelPraatje(wie);
+    return false;
+  }
+  function werkPraatjesBij(dt, sp) {
+    let hint = null;
+    for (const wie of ['mark', 'johan']) {
+      const wil = praatHoort(wie);
+      const p = wil ? praatFiguur(wie) : praat[wie];
+      if (!p) continue;
+      const plek = praatPlek(wie);
+      const ver = afst(sp, plek) > PRAAT.wissel;
+      // verschijnen en verdwijnen uit de buurt; alleen als het verhaal zijn eigen Mark of Johan daar zet meteen weg
+      if (wil !== p.groep.visible && balk.hidden && (ver || (!wil && praatBotst(wie, plek)))) {
+        p.groep.visible = wil;
+        if (wil) p.zetNeer(plek.x, plek.z, plek.yaw);
+      }
+      if (!p.groep.visible) continue;
+      const d = afst(sp, p.groep.position);
+      if (d < 120) {
+        if (d < PRAAT.kijk) p.kijkNaar(sp.x, sp.z, dt); else p.draaiNaar(plek.yaw, dt, 1.5);
+        p.update(dt, {});
+      }
+      if (d < PRAAT_AFSTAND && !player.inCar) hint = wie === 'mark' ? 'E — praten met Mark' : 'E — praten met Johan';
+    }
+    praat.hintT -= dt;
+    if (hint && balk.hidden && praat.hintT <= 0) { praat.hintT = PRAAT.hint; hud.show(hint, PRAAT.hint + 0.2); }
+  }
+
   function werkUitjeBij(dt, sp) {
     if (uitje.fase === 'uit') { if (uitzendingKlaar && missie === 'klaar') { uitje.fase = 'rust'; uitje.t = UITJE_WACHT; } return; }
     if (uitje.fase === 'rust') {
@@ -7241,8 +7343,8 @@ export function initVerhaal(ctx) {
       uitje.flesjes = 0;
       zeg(UITJE_BINNEN, () => {
         uitje.fase = 'keuze';
-        zetOpdracht('1 — naar de wedstrijd bij VV Sneek · 2 — op de bank chillen');
-        hud.melding('WAT GAAN JULLIE DOEN?', '1 — de wedstrijd · 2 — de bank', 10);
+        zetOpdracht(UITJE_KEUZE_TEKST);
+        hud.melding('WAT GAAN JULLIE DOEN?', '1 — de wedstrijd · 2 — de bank · 3 — even kletsen', 10);
       });
       return;
     }
@@ -12748,6 +12850,7 @@ export function initVerhaal(ctx) {
       if (missie === 'ronald') werkRonaldBij(dt, sp);
       if (missie === 'uitzending') werkUitzendingBij(dt, sp);
     }
+    werkPraatjesBij(dt, sp);              // praatjes met Mark en Johan tussendoor (stap 192)
     brugNaloop(sp, dt);
     raceNaloop(sp, dt);
     invalNaloop(dt);
@@ -13292,7 +13395,7 @@ export function initVerhaal(ctx) {
     get openKeuze() {
       if (nm.fase === 'keuze') return [euro(NOMERCY.beloning), 'de M1 Garand houden'];
       if (n5.fase === 'keuze') return [euro(NOMERCY5.beloning), 'de stafauto houden'];
-      if (uitje.fase === 'keuze') return ['de wedstrijd', 'de bank'];
+      if (uitje.fase === 'keuze') return ['de wedstrijd', 'de bank', 'even kletsen'];
       if (geldKiezen) return GELDRACE_INLEG.map(euro);
       if (missie === 'race' && fase === 'keuze') return ['nog een keer, dubbel of niks', `${euro(raceSchuld)} betalen`];
       if (missie === 'inval' && fase === 'keuze') return ['ruilen', 'hinderlaag'];
@@ -13531,10 +13634,16 @@ export function initVerhaal(ctx) {
         || bijDeTas()
         || ronaldBijKoelkast()
         || (missie === 'molenkrite' && fase === 'wacht' && bijMark)
-        || (missie === 'bx' && fase === 'wacht' && bijMark);
+        || (missie === 'bx' && fase === 'wacht' && bijMark)
+        || praatjeBij();
     },
     // missie 9: de vlaggen op de kaart en het huis dat van jou is
     huisMarkeringen, kiesHuis,
+    // (stap 192, voor tools/praatjestest.mjs) Mark op de stoep en Johan op zijn oprit
+    get praatjes() {
+      const st = (wie) => { const q = praat[wie], plek = praatPlek(wie); return { zichtbaar: !!(q && q.groep.visible), hoort: praatHoort(wie), plek, x: q ? q.groep.position.x : null, z: q ? q.groep.position.z : null, aantal: praat.aantal[wie] }; };
+      return { mark: st('mark'), johan: st('johan'), laatste: praat.laatste || null, recent: { mark: praat.recent.mark.slice(), johan: praat.recent.johan.slice() } };
+    },
     get gestaldeAuto() { return gestald; },
     get stek() { return huisGekozen; },
     get stekAanbod() { return huisAanbod; },
