@@ -5,7 +5,7 @@ De kunst voor de voorkant van de dvd-hoes (tools/hoes.mjs), uit het laadscherm b
      horizontale vervorming zoals 'liquify' in een fotobewerker (zie `slanker`). Alleen de linkercontour (schouder, arm, pak,
      been) gaat naar binnen; het hoofd en de rechterkant (die raakt de figuur ernaast) blijven zoals ze zijn. En zijn gezicht
      iets minder breed (`gezicht`): wangen, mond en kaak zacht naar het midden, de ogen en de bril niet; en de onderkin een paar
-     pixels op (`kin`).   2. bijsnijden tot het paneel van de voorkant (132,5 × 189 mm met afloop), zonder het logo rechtsboven;
+     pixels op (`kin`), en de rimpels op de huid gladder (`huid`).   2. bijsnijden tot het paneel van de voorkant (132,5 × 189 mm met afloop), zonder het logo rechtsboven;
   3. met Lanczos naar 300 dpi (1565 × 2232 px) en een lichte verscherping.
 
 Gebruik: python3 tools/hoes_kunst.py   (schrijft docs/hoes/voorkant_kunst.jpg en docs/hoes/slanker_voor_na.jpg)
@@ -81,6 +81,41 @@ def kin(beeld):
     return Image.fromarray(np.clip(uit, 0, 255).astype(np.uint8))
 
 
+# rimpels weg (gevraagd: "kan je ook wat rimpels weghalen"): op de huid een mediaan- en een lichte vervaging, gemengd door een
+# zacht masker. Het masker dekt het voorhoofd, onder de ogen, de wangen met de lachlijnen en de kin, maar niet de bril, de ogen,
+# de wenkbrauwen, de mond en de randen van het gezicht: die blijven scherp. HUID_KRACHT laat wat van de tekening over.
+HUID_KRACHT = 0.78
+HUID_DEKT = [            # ellipsen (midden x, midden y, halve breedte, halve hoogte) in het bronbeeld
+    (300, 247, 46, 18),  # het voorhoofd
+    (266, 309, 17, 12), (333, 309, 17, 12),   # wangen onder de bril
+    (276, 330, 14, 15), (322, 330, 14, 15),   # de lachlijnen naast neus en mond
+    (300, 352, 26, 11),  # de kin
+    (262, 296, 10, 4), (337, 296, 10, 4),     # wallen onder de glazen
+    (299, 266, 10, 7),   # de fronslijntjes tussen de wenkbrauwen
+]
+HUID_VRIJ = [
+    (300, 286, 70, 11),  # de bril en de ogen
+    (300, 328, 22, 6),   # de mond
+    (298, 312, 9, 10),   # de neusvleugels
+]
+
+
+def huid(beeld):
+    from PIL import ImageDraw
+    w, h = beeld.size
+    masker = Image.new('L', (w, h), 0)
+    t = ImageDraw.Draw(masker)
+    for (x, y, rx, ry) in HUID_DEKT:
+        t.ellipse((x - rx, y - ry, x + rx, y + ry), fill=255)
+    for (x, y, rx, ry) in HUID_VRIJ:
+        t.ellipse((x - rx, y - ry, x + rx, y + ry), fill=0)
+    masker = masker.filter(ImageFilter.GaussianBlur(5))
+    glad_beeld = beeld.filter(ImageFilter.MedianFilter(5)).filter(ImageFilter.GaussianBlur(1.3))
+    m = (np.asarray(masker).astype(np.float32) / 255.0 * HUID_KRACHT)[..., None]
+    a, b = np.asarray(beeld).astype(np.float32), np.asarray(glad_beeld).astype(np.float32)
+    return Image.fromarray(np.clip(a * (1 - m) + b * m, 0, 255).astype(np.uint8))
+
+
 def slanker(beeld):
     """
     Per rij een stuksgewijs lineaire afbeelding van uitvoer-x naar bron-x. Twee rijen knopen:
@@ -108,7 +143,7 @@ def slanker(beeld):
 
 def main():
     im = Image.open(BRON).convert('RGB')
-    slank = slanker(kin(gezicht(im)))
+    slank = slanker(kin(gezicht(huid(im))))
     W, H = 1565, 2232
     h = im.height
     w = round(h * W / H)
