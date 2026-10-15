@@ -9317,6 +9317,32 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Het pompgeweer (stap 189, 15 okt).** Gevraagd: "doe een pompgeweer, shotgun, ww2 stijl" (na mijn voorstel: een trench gun zoals
+de Winchester M1897).
+- *js/wapen.js* `maakTrenchgun`: rechte walnoten kolf, de kast met de open haan (`hamer`, gespannen 0,62 rad, af −0,15), de
+  uitwerpopening rechts en de laadopening onderin (`POORT`), de loop van 53 cm met het hitteschild (een halve buis van ringen
+  en vier langse strips: echte gaten, geen doorzichtig doek, want dat is een ander soort materiaal), de buis eronder, het
+  geribde voorhout (`pomp`, een draaiprofiel met tien ribbels), de bajonethouder en een messing korrel. Dezelfde materiaalsoorten
+  als de M1, dus geen nieuw programma (95 → 95). De handen en de mouw van de M1; de linkerhand hangt aan het voorhout en pompt mee.
+- Pompen (`POMP`): 0,13–0,27 s terug (grendel 7 cm uit de kast, de haan gespannen, op 0,24 s de rode huls rechts eruit, rood en
+  messing als twee `InstancedMesh`), 0,33–0,46 s weer naar voren; `geluid.pompTerug`/`pompVoor`.
+- Herladen patroon voor patroon (js/player.js `perPatroon`): elke `SHOTGUN_PATROON` (0,55 s) één erbij tot de buis vol is of de
+  voorraad op; dezelfde linkerhand pakt een patroon en drukt hem in de laadopening (`laadBaan`, een kringloop met gelijk begin
+  en eind, dus geen sprong tussen twee patronen); het geweer kantelt op zijn linkerzij. Schieten breekt het laden af als er iets
+  in zit; leeg geladen pompt hij na de laatste (`laadKamer`). De hud zegt "laden… 3 / 6".
+- Hagel: `korrels` 9 in een schijf van `hagel` 0,075 rad (over de korrel ×0,75), elk een eigen straal tot `bereik` 42 m. js/main.js
+  `shootCb` neemt `korrels` en loopt per straal door de treffers; knal, paniek en misdaad één keer per schot, de kreet ook (`pijn`).
+  `dodelijk` 2 telt per korrel. Een korrel op een auto telt voor een derde (anders brandt een politieauto na twee schoten).
+- Schot: schot.mp3 op 0,66 en 1,6 (`SCHOT.shotgun`); geen eigen opname. Bij Tinga State € 1.200 met 30 patronen (`SHOTGUN` in
+  js/boerderij.js), iconen in js/textures.js.
+- De stand: eerst stond het geweer als de M1 en vulde de kast de rechteronderhoek; verder weg en minder gedraaid (`RUST`). De
+  ooglijn ligt 1,2 cm boven de kast (`VIZIER_Y`), anders stond de haan voor de korrel. De patroon lag eerst ín de kast in plaats
+  van eronder (`NAAR_POORT`).
+- *Nagelopen*: `npm run shotguntest` (26 controles: kopen, de kegel, pompen met huls, haan en geluid, de klik tijdens het pompen,
+  laden per patroon, afbreken, leeg laden, een voetganger op 4 m neer met één kreet, op 60 m niets, de hud, opslaan, geen
+  programma). Een valkuil: een voetganger die je raken wilt, zet je op een eigen wegvak bij de camera (zoals `wapentest`), anders
+  heeft hij geen lichaam. Foto's: `npm run shotgunshots` (alleen js/wapen.js, seconden).
+
 **Omstanders die je niet kon raken (stap 188, 15 okt).** Gevraagd: "als een persoon op een zeilboot zit kan je hem niet neerschieten
 zo te zien, dat soort dingetjes". Een kogel raakt alleen wat in een lijst van het schot staat (js/main.js `shootCb`). Nagelopen welke
 modules mensen maken (`new Persoon`) zonder `doelen()`: de zeilers (een eigen figuurtje in js/zeilen.js), de opvarenden van de

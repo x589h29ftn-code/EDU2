@@ -62,6 +62,8 @@ export const SNIPER = { prijs: 650, soort: 'sniper', naam: 'Sniper' };
  (`kogels`: 8 + 48, en nooit meer dan MAX_RESERVE), want .30-06 ligt niet bij elke doos kogels.
 */
 export const GARAND = { prijs: 1500, soort: 'garand', naam: 'M1 Garand', schapNaam: 'M1 Garand', kogels: 56 };
+// het pompgeweer (stap 189): € 1.200, met een volle buis en vier keer bijladen in je tas (6 + 24 hagelpatronen)
+export const SHOTGUN = { prijs: 1200, soort: 'shotgun', naam: 'Pompgeweer', schapNaam: 'pompgeweer', kogels: 30 };
 /*
  De EHBO-doos (stap 138; tot dan een verbandtrommel die je meteen gebruikte, € 25 voor 50 punten).
  Nu neem je hem mee: hoogstens vijf, en L zet er één in voor 40 punten (js/gezondheid.js).
@@ -568,6 +570,7 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
     wapenArtikel(MITRAILLEUR, 'Wisselen doe je met het scrollwiel.'),
     wapenArtikel(SNIPER, 'Rechtermuisknop om door de kijker te kijken, scrollen zoomt.'),
     wapenArtikel(GARAND, 'Acht patronen per clip, één schot per klik. R werpt de clip uit en laadt een volle.'),
+    wapenArtikel(SHOTGUN, 'Zes patronen, negen korrels hagel per schot, pompen na elk schot. R laadt ze een voor een.'),
     {
       /*
        De drone (stap 124): € 1.000, één keer. Neergestort en kwijt, dan staat hij weer in het schap.
@@ -628,7 +631,7 @@ export function initBoerderij({ scene, player, hud, verhaal }) {
    kwijtraakt, staat hij vanzelf weer op de lijst.
   */
   function bezitLijst() {
-    return SCHAP.filter(a => !a.beschikbaar() && [PISTOOL.soort, MITRAILLEUR.soort, SNIPER.soort, GARAND.soort, 'drone'].includes(a.sleutel));
+    return SCHAP.filter(a => !a.beschikbaar() && [PISTOOL.soort, MITRAILLEUR.soort, SNIPER.soort, GARAND.soort, SHOTGUN.soort, 'drone'].includes(a.sleutel));
   }
   function inBezit() { return bezitLijst().map(a => a.naam); }
 

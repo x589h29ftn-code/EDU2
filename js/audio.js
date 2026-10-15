@@ -155,6 +155,8 @@ export const SCHOT = {
   mitrailleur: { rate: 1.08, vol: 0.9 },
   sniper: { rate: 0.8, vol: 1.35 },
   garand: { url: 'audio/wapen/m1_schot.mp3', rate: 1.0, vol: 0.46, terug: { rate: 0.84, vol: 1.42 } },
+  // het pompgeweer (stap 189): schot.mp3 trager en harder, een dikke doffe dreun (een 12 gauge, geen scherpe knal)
+  shotgun: { rate: 0.66, vol: 1.6 },
   ander: { rate: 1.0, vol: 1.0 },
 };
 /*
@@ -734,6 +736,27 @@ export const geluid = {
   m1Grendel() {
     tik({ freq: 2100, q: 3.5, duur: 0.05, volume: 0.15 });
     tik({ freq: 1200, q: 3, duur: 0.06, volume: 0.12, vertraag: 0.05 });
+  },
+
+  /*
+   Het pompgeweer (stap 189). `pompTerug`: het voorhout naar achteren, staal over staal en de lege huls die eruit
+   springt; `pompVoor`: weer naar voren, een zware klak als de grendel de nieuwe patroon in de kamer zet.
+   `hagelIn`: een patroon die je onderin de buis drukt (een klikje van de veer). `pompen` telt mee voor de proef.
+  */
+  pompTerug() {
+    this.pompen = (this.pompen || 0) + 1;
+    tik({ freq: 1600, q: 2.2, duur: 0.07, volume: 0.20 });
+    tik({ freq: 650, q: 1.6, duur: 0.06, volume: 0.12, vertraag: 0.03 });
+  },
+  pompVoor() {
+    tik({ freq: 1250, q: 1.8, duur: 0.07, volume: 0.26, val: 0.5 });
+    tik({ freq: 2900, q: 3, duur: 0.03, volume: 0.12 });
+    toon({ freq: 210, naar: 95, duur: 0.08, volume: 0.09, golf: 'triangle' });
+  },
+  hagelIn() {
+    this.hagelIns = (this.hagelIns || 0) + 1;
+    tik({ freq: 1100, q: 2.5, duur: 0.05, volume: 0.14, val: 0.6 });
+    tik({ freq: 2500, q: 4, duur: 0.03, volume: 0.09, vertraag: 0.06 });
   },
 
   /*

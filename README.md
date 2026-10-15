@@ -953,6 +953,26 @@ achtste schot springt de lege clip er met een ping uit; daarna druk je van boven
 
 ![De M1 Garand van opzij](docs/screenshots/m1_zij.png)
 
+## Het pompgeweer
+
+Naast de M1 ligt bij Tinga State een **pompgeweer** voor € 1.200: een trench gun zoals de Amerikanen die in de Tweede
+Wereldoorlog meenamen, met de open haan op de kast, het geperforeerde hitteschild over de loop en het geribde houten
+voorhout. Zes patronen in de buis, en je krijgt er 24 bij. Elk schot zijn negen korrels hagel die uitwaaieren: van dichtbij
+gaat iedereen in één schot neer, op dertig meter raakt hooguit een enkele korrel, en verder dan 42 meter komt er niets aan.
+Over de korrel richten (rechtermuisknop) houdt de hagel bij elkaar. Na elk schot pomp je: het voorhout gaat naar achteren,
+de rode huls vliegt eruit en de haan staat weer gespannen. **R** laadt de patronen een voor een onderin de kast; schiet je
+tussendoor, dan breek je het laden af.
+
+![Het pompgeweer uit de heup](docs/screenshots/shotgun_hand.png)
+
+![Na het schot: pompen, en de rode huls vliegt eruit](docs/screenshots/shotgun_pomp.png)
+
+![Laden: een patroon onderin de kast](docs/screenshots/shotgun_laden.png)
+
+![Over de korrel](docs/screenshots/shotgun_richten.png)
+
+![Het pompgeweer van opzij](docs/screenshots/shotgun_zij.png)
+
 ## De gedenkplek aan de Sudergoweg en de Tiger
 
 Aan de Sudergoweg, de weg naar IJlst, ligt net buiten Sneek een **gedenkplek voor de Slag om Sneek, 1944**. Waar een dam

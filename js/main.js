@@ -1377,7 +1377,7 @@ function uitlegBij() {
     + 'onderaan staat wat elk icoon is', 10);
 }
 
-player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
+player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120, korrels = null } = {}) => {
   // in de derde persoon komt de kogel uit de schouder van je poppetje en niet
   // uit de camera, anders schiet je langs jezelf heen
   const { origin, dir } = derde.mikpunt(camOrigin, camDir);
@@ -1399,7 +1399,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
   // wie op een tuinfeest staat schrikt van een schot in de buurt (stap 113)
   if (leven) leven.schrik(origin.x, origin.z);
   // de sniper schudt het hele beeld even (stap 111: de terugslag "voelt vrij zwak")
-  if (player.wapenSoort === 'sniper') schok(0.35); else if (player.wapenSoort === 'garand') schok(0.22);
+  if (player.wapenSoort === 'sniper') schok(0.35); else if (player.wapenSoort === 'garand') schok(0.22); else if (player.wapenSoort === 'shotgun') schok(0.28);
   verhaal.schotGehoord(origin.x, origin.z);      // de bewaking hoort je schieten
   politie.hoorSchot(origin.x, origin.z);         // en de politie ook
   /*
@@ -1415,145 +1415,156 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120 } = {}) => {
     }
   }
   politie.misdaad('schot', origin.x, origin.z);
-  raycaster.set(origin, dir); raycaster.far = 120;
   /*
-   Niet op je eigen auto schieten. Zat je erin, dan begon de kogel bij je hoofd
-   en raakte hij als eerste de binnenkant van je eigen dak of motorkap — je
-   schoot je eigen auto (en de vrachtwagen van de missie) aan gort van binnenuit
-   (melding 20 sep 2026). Het voertuig waar je in zit gaat daarom uit de lijst
-   met doelen; de kogel vliegt er gewoon doorheen naar buiten.
+   De kogel, of (het pompgeweer, stap 189) elke korrel hagel apart: elk een eigen straal tot `bereik`, met wat hij raakt.
+   De knal, de paniek en de melding hierboven gebeuren één keer per schot; de kreet ook (`pijn`), niet negen keer.
   */
-  const eigen = player.inCar && player.inCar.mesh ? player.inCar.mesh : null;
-  const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
-    ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []), ...(ambulance ? ambulance.doelen() : []),
-    ...(politieboot ? politieboot.doelen() : []), ...omstanders.doelen()].filter(o => !eigen || o !== eigen);
-  const hits = raycaster.intersectObjects(targets, true);
-  if (hits.length) {
-    const h = hits[0];
+  const stralen = korrels ? korrels.map(k => derde.mikpunt(camOrigin, k).dir) : [dir];
+  let gekreten = false;
+  const pijn = (p) => { if (gekreten) return; gekreten = true; geluid.raak(); geluid.kreet('pijn', afstandTot(p)); };
+  for (const dir of stralen) {
+    raycaster.set(origin, dir); raycaster.far = korrels ? bereik : 120;
     /*
-     Een schot van ver (stap 130, gevraagd: "Als iemand met een sniper beschoten wordt voeg dan ook toe dat ze en
-     omstanders wegrennen. Dus als iemand op afstand schiet"): de paniek hierboven zit rond de schutter; wie bij de
-     inslag staat hoorde de knal ver weg, maar ziet iemand vallen. Dus ook daar rent men weg.
+     Niet op je eigen auto schieten. Zat je erin, dan begon de kogel bij je hoofd
+     en raakte hij als eerste de binnenkant van je eigen dak of motorkap — je
+     schoot je eigen auto (en de vrachtwagen van de missie) aan gort van binnenuit
+     (melding 20 sep 2026). Het voertuig waar je in zit gaat daarom uit de lijst
+     met doelen; de kogel vliegt er gewoon doorheen naar buiten.
     */
-    if (Math.hypot(h.point.x - origin.x, h.point.z - origin.z) > PANIEK_SCHOT * 0.8) npcs.paniek(h.point.x, h.point.z, PANIEK_INSLAG);
-    /*
-     Geen meldingen meer bij een treffer ("Raak!", "Agent neer!"): je ziet het
-     gebeuren en het balkje stond er voortdurend (melding beta-test 12 sep 2026).
-     Wat er wél bij komt is een kreet — dat vertelt hetzelfde zonder tekst.
-    */
-    /*
-     Hoeveel kogels deze persoon nodig heeft hangt aan het wapen in je hand:
-     één met de sniper, twee met het machinegeweer, en met het pistool één of
-     twee (js/player.js, `dodelijk`). Het slachtoffer onthoudt dat getal, dus
-     een tweede kogel maakt het af en trekt niet opnieuw.
-    */
-    const nodig = player.kogelsNodig();
-    const raakMens = npcs.hit(h.object, h.instanceId, nodig);
-    let raakAgent = null, raakVerhaal = false, raakLeven = null;
-    if (raakMens) {
-      geluid.raak();
-      geluid.kreet('pijn', afstandTot(h.point));
-      bloedBij(h.point, dir, raakMens);
-      if (raakMens.neer) {
+    const eigen = player.inCar && player.inCar.mesh ? player.inCar.mesh : null;
+    const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
+      ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []), ...(ambulance ? ambulance.doelen() : []),
+      ...(politieboot ? politieboot.doelen() : []), ...omstanders.doelen()].filter(o => !eigen || o !== eigen);
+    const hits = raycaster.intersectObjects(targets, true);
+    if (hits.length) {
+      const h = hits[0];
+      /*
+       Een schot van ver (stap 130, gevraagd: "Als iemand met een sniper beschoten wordt voeg dan ook toe dat ze en
+       omstanders wegrennen. Dus als iemand op afstand schiet"): de paniek hierboven zit rond de schutter; wie bij de
+       inslag staat hoorde de knal ver weg, maar ziet iemand vallen. Dus ook daar rent men weg.
+      */
+      if (Math.hypot(h.point.x - origin.x, h.point.z - origin.z) > PANIEK_SCHOT * 0.8) npcs.paniek(h.point.x, h.point.z, PANIEK_INSLAG);
+      /*
+       Geen meldingen meer bij een treffer ("Raak!", "Agent neer!"): je ziet het
+       gebeuren en het balkje stond er voortdurend (melding beta-test 12 sep 2026).
+       Wat er wél bij komt is een kreet — dat vertelt hetzelfde zonder tekst.
+      */
+      /*
+       Hoeveel kogels deze persoon nodig heeft hangt aan het wapen in je hand:
+       één met de sniper, twee met het machinegeweer, en met het pistool één of
+       twee (js/player.js, `dodelijk`). Het slachtoffer onthoudt dat getal, dus
+       een tweede kogel maakt het af en trekt niet opnieuw.
+      */
+      const nodig = player.kogelsNodig();
+      const raakMens = npcs.hit(h.object, h.instanceId, nodig);
+      let raakAgent = null, raakVerhaal = false, raakLeven = null;
+      if (raakMens) {
+        pijn(h.point);
+        bloedBij(h.point, dir, raakMens);
+        if (raakMens.neer) {
+          politie.misdaad('neergeschoten', h.point.x, h.point.z);
+          nieuws.meld('schietpartij', h.point.x, h.point.z);
+          ambulanceMelding(raakMens.x ?? h.point.x, raakMens.z ?? h.point.z);
+          // wat iemand op zak had: vaak niets, hooguit een tientje (js/buit.js)
+          buit.laatVallen('geld', h.point.x, h.point.z, zakgeld(), h.point.y - 1);
+        }
+      } else if ((raakAgent = politie.raak(h.object, nodig))) {
+        pijn(h.point);
+        bloedBij(h.point, dir, raakAgent);
+        // een agent draagt munitie bij zich: drie tot vijftien kogels, en die
+        // passen in elk wapen
+        if (raakAgent.neer) buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie(), h.point.y - 1);
+      }
+      /*
+       De helikopter. Twintig kogels en hij gaat tollend naar beneden
+       (js/helikopter.js). Hij staat vóór de auto's in de rij, want anders zou een
+       treffer in de romp ook nog als "op een auto geschoten" tellen.
+      */
+      else if (politie.raakHeli(h.object)) {
+        schok(0.25);
+      }
+      /*
+       De politieboot en de twee agenten aan boord. Ze staan hier vóór de auto's,
+       net als de helikopter, anders telt een kogel in de romp ook nog als "op een
+       auto geschoten". Een agent aan boord is een agent: dat kost je net zoveel
+       verdenking als een agent op straat.
+      */
+      else if (politieboot && politieboot.raakAgent(h.object)) {
+        pijn(h.point);
+        bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+        politie.misdaad('agent', h.point.x, h.point.z);
+      }
+      else if (politieboot && politieboot.raak(h.object)) {
+        geluid.klap();
+        politie.misdaad('schot', h.point.x, h.point.z);
+      }
+      // op het veld van VV Sneek: een speler of iemand van het publiek (stap 111)
+      else if (wedstrijd && wedstrijd.raak(h.object)) {
+        pijn(h.point);
+        bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
         politie.misdaad('neergeschoten', h.point.x, h.point.z);
         nieuws.meld('schietpartij', h.point.x, h.point.z);
-        ambulanceMelding(raakMens.x ?? h.point.x, raakMens.z ?? h.point.z);
-        // wat iemand op zak had: vaak niets, hooguit een tientje (js/buit.js)
-        buit.laatVallen('geld', h.point.x, h.point.z, zakgeld(), h.point.y - 1);
+        ambulanceMelding(h.point.x, h.point.z, wedstrijdSlachtoffer());
+        raakVerhaal = true;
       }
-    } else if ((raakAgent = politie.raak(h.object, nodig))) {
-      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
-      bloedBij(h.point, dir, raakAgent);
-      // een agent draagt munitie bij zich: drie tot vijftien kogels, en die
-      // passen in elk wapen
-      if (raakAgent.neer) buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie(), h.point.y - 1);
-    }
-    /*
-     De helikopter. Twintig kogels en hij gaat tollend naar beneden
-     (js/helikopter.js). Hij staat vóór de auto's in de rij, want anders zou een
-     treffer in de romp ook nog als "op een auto geschoten" tellen.
-    */
-    else if (politie.raakHeli(h.object)) {
-      schok(0.25);
-    }
-    /*
-     De politieboot en de twee agenten aan boord. Ze staan hier vóór de auto's,
-     net als de helikopter, anders telt een kogel in de romp ook nog als "op een
-     auto geschoten". Een agent aan boord is een agent: dat kost je net zoveel
-     verdenking als een agent op straat.
-    */
-    else if (politieboot && politieboot.raakAgent(h.object)) {
-      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
-      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
-      politie.misdaad('agent', h.point.x, h.point.z);
-    }
-    else if (politieboot && politieboot.raak(h.object)) {
-      geluid.klap();
-      politie.misdaad('schot', h.point.x, h.point.z);
-    }
-    // op het veld van VV Sneek: een speler of iemand van het publiek (stap 111)
-    else if (wedstrijd && wedstrijd.raak(h.object)) {
-      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
-      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
-      politie.misdaad('neergeschoten', h.point.x, h.point.z);
-      nieuws.meld('schietpartij', h.point.x, h.point.z);
-      ambulanceMelding(h.point.x, h.point.z, wedstrijdSlachtoffer());
-      raakVerhaal = true;
-    }
-    // een gast op een tuinfeest, of de pizzabezorger (stap 113)
-    else if ((raakLeven = (leven && leven.raak(h.object)) || (ambulance && ambulance.raak(h.object)))) {
-      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
-      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
-      politie.misdaad('neergeschoten', h.point.x, h.point.z);
-      nieuws.meld('schietpartij', h.point.x, h.point.z);
-      if (raakLeven.herstel) ambulanceMelding(raakLeven.x, raakLeven.z, { herstel: raakLeven.herstel });
-      raakVerhaal = true;
-    }
-    // (stap 188) een zeiler, een opvarende, een terrasgast, iemand achter een toonbank of de tennisser (js/omstanders.js)
-    else if (omstanders.raak(h.object)) {
-      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
-      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
-      politie.misdaad('neergeschoten', h.point.x, h.point.z);
-      nieuws.meld('schietpartij', h.point.x, h.point.z);
-      raakVerhaal = true;
-    }
-    // (de sniper legt ook een taaie bodyguard in één keer neer: stap 110)
-    else if ((raakVerhaal = verhaal.raak(h.object, (player.wapenSoort === 'sniper' || player.wapenSoort === 'garand') ? 99 : 1))) {
-      geluid.raak(); geluid.kreet('pijn', afstandTot(h.point));
-      bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
-    }
-    else {
-      /*
-       Op een auto schieten. Een politieauto gaat eerst langs js/politie.js: die
-       telt de schade en zet meteen de melding uit — er wordt op ons geschoten en
-       we weten vanwaar. Tien kogels en hij vliegt in brand.
-      */
-      const politiewagen = politie.raakWagen(h.object, 10);
-      const car = politiewagen || vehicles.hit(h.object, h.instanceId);
-      if (car) {
-        geluid.klap();
-        // een gat in het blik of een barst in het glas, dat blijft zitten (stap 124)
-        const nw = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : dir.clone().negate();
-        const gat = car.mesh ? autoschade.kogel(car, h.object, h.point, nw) : null;
-        if ((gat && gat.userData.schade === 'barst') || Math.random() < 0.4) geluid.glas();     // een ruit die het begeeft
-        if (car.hp <= 0 && !car.wrak) {
-          vehicles.laatOntploffen(car);
-          if (politiewagen) politie.wagenOp(car);
-          autoOntploft(car);
+      // een gast op een tuinfeest, of de pizzabezorger (stap 113)
+      else if ((raakLeven = (leven && leven.raak(h.object)) || (ambulance && ambulance.raak(h.object)))) {
+        pijn(h.point);
+        bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+        politie.misdaad('neergeschoten', h.point.x, h.point.z);
+        nieuws.meld('schietpartij', h.point.x, h.point.z);
+        if (raakLeven.herstel) ambulanceMelding(raakLeven.x, raakLeven.z, { herstel: raakLeven.herstel });
+        raakVerhaal = true;
+      }
+      // (stap 188) een zeiler, een opvarende, een terrasgast, iemand achter een toonbank of de tennisser (js/omstanders.js)
+      else if (omstanders.raak(h.object)) {
+        pijn(h.point);
+        bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+        politie.misdaad('neergeschoten', h.point.x, h.point.z);
+        nieuws.meld('schietpartij', h.point.x, h.point.z);
+        raakVerhaal = true;
+      }
+      // (de sniper legt ook een taaie bodyguard in één keer neer: stap 110)
+      else if ((raakVerhaal = verhaal.raak(h.object, (player.wapenSoort === 'sniper' || player.wapenSoort === 'garand') ? 99 : 1))) {
+        pijn(h.point);
+        bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
+      }
+      else {
+        /*
+         Op een auto schieten. Een politieauto gaat eerst langs js/politie.js: die
+         telt de schade en zet meteen de melding uit — er wordt op ons geschoten en
+         we weten vanwaar. Tien kogels en hij vliegt in brand.
+        */
+        // (hagel: een korrel op een auto telt maar voor een derde, anders brandt een politieauto na twee schoten)
+        const telt = !korrels || Math.random() < 0.35;
+        const politiewagen = telt ? politie.raakWagen(h.object, 10) : null;
+        const car = telt ? (politiewagen || vehicles.hit(h.object, h.instanceId)) : null;
+        if (car) {
+          geluid.klap();
+          // een gat in het blik of een barst in het glas, dat blijft zitten (stap 124)
+          const nw = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : dir.clone().negate();
+          const gat = car.mesh ? autoschade.kogel(car, h.object, h.point, nw) : null;
+          if ((gat && gat.userData.schade === 'barst') || Math.random() < 0.4) geluid.glas();     // een ruit die het begeeft
+          if (car.hp <= 0 && !car.wrak) {
+            vehicles.laatOntploffen(car);
+            if (politiewagen) politie.wagenOp(car);
+            autoOntploft(car);
+          }
         }
       }
-    }
-    /*
-     Het wolkje op de plek van de inslag. Op blik en glas slaat een vonk af, op
-     steen en hout blijft het bij stof.
+      /*
+       Het wolkje op de plek van de inslag. Op blik en glas slaat een vonk af, op
+       steen en hout blijft het bij stof.
 
-     Op een mens komt er niets meer bij: daar staat sinds 20 september de spat
-     bloed, en het grijze stofwolkje legde zich er precies overheen — op de foto
-     werd de rode spat daardoor een bleke vlek. Eén ding per treffer is genoeg.
-    */
-    const opMens = raakMens || raakAgent || raakVerhaal;
-    if (!opMens) toonInslag(h.point, true, 1);
+       Op een mens komt er niets meer bij: daar staat sinds 20 september de spat
+       bloed, en het grijze stofwolkje legde zich er precies overheen — op de foto
+       werd de rode spat daardoor een bleke vlek. Eén ding per treffer is genoeg.
+      */
+      const opMens = raakMens || raakAgent || raakVerhaal;
+      if (!opMens) toonInslag(h.point, true, 1);
+    }
   }
+  raycaster.far = 120;
 };
 
 /*

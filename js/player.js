@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { resolveCollisions, pointInWater, ondergrondOp, grondHoogte } from './world.js';
 import { geluid } from './audio.js';
-import { maakPistool, maakMitrailleur, maakSniper, maakMes, maakGarand, HERLAADTIJD } from './wapen.js';
+import { maakPistool, maakMitrailleur, maakSniper, maakMes, maakGarand, maakTrenchgun, HERLAADTIJD } from './wapen.js';
 import { hurkHouding } from './lichaam.js';
 
 /*
@@ -71,6 +71,16 @@ export const WAPENS = {
   */
   garand: { naam: 'M1 Garand', mag: 8, auto: false, tempo: 0.14, spreiding: 0.006, kick: 3.2, mikKick: 0.55, herstel: 6,
     dodelijk: 1, toonNaam: true },
+  /*
+   Het pompgeweer (stap 189, "een pompgeweer, shotgun, ww2 stijl", € 1.200 bij Tinga State): een trench gun met zes
+   patronen in de buis. Eén patroon is negen korrels hagel (`korrels`) die uitwaaieren (`hagel`, radialen); elke korrel is
+   een eigen straal tot `bereik` meter. Twee korrels in één persoon zijn genoeg (`dodelijk` telt per korrel), dus dichtbij
+   gaat iedereen neer, en op dertig meter raakt hooguit een enkele. Na elk schot pompen (`tempo` 0,85 s). Herladen gaat
+   patroon voor patroon (`perPatroon`): R stopt er één in per `herlaadtijd` (js/wapen.js), tot de buis vol is of je
+   voorraad op; schieten breekt het af zolang er iets in zit.
+  */
+  shotgun: { naam: 'Pompgeweer', mag: 6, auto: false, tempo: 0.85, spreiding: 0, kick: 3.8, mikKick: 0.6, herstel: 5,
+    korrels: 9, hagel: 0.075, mikHagel: 0.75, bereik: 42, dodelijk: 2, perPatroon: true, toonNaam: true },
   mes: { naam: 'Mes', mag: 0, mes: true, auto: false, tempo: 0.42, spreiding: 0, kick: 0.25, dodelijk: 2, bereik: 2.4 },
 };
 
@@ -160,7 +170,7 @@ export class Player {
      (js/verhaal.js zet dit weer op false).
     */
     this.vuurSlot = false;
-    this.magazijnen = { pistool: 12, mitrailleur: 0, sniper: 0, garand: 0 };
+    this.magazijnen = { pistool: 12, mitrailleur: 0, sniper: 0, garand: 0, shotgun: 0 };
     // de stand van de kijker, per wapen (zie `zoom`)
     this.zoomPer = {};
     // 200 kogels in reserve bij het begin, "voor het gemak" (verzoek 3 okt 2026, stap 106; was 60)
@@ -229,7 +239,7 @@ export class Player {
     // allebei de modellen staan er meteen; wisselen is een kwestie van zichtbaar
     // maken. Dat is een paar honderd driehoeken en het scheelt een hapering op
     // het moment dat je het scrollwiel draait.
-    this.modellen = { pistool: maakPistool(geluid), mitrailleur: maakMitrailleur(geluid), sniper: maakSniper(geluid), garand: maakGarand(geluid), mes: maakMes(geluid) };
+    this.modellen = { pistool: maakPistool(geluid), mitrailleur: maakMitrailleur(geluid), sniper: maakSniper(geluid), garand: maakGarand(geluid), shotgun: maakTrenchgun(geluid), mes: maakMes(geluid) };
     for (const k of Object.keys(this.modellen)) {
       this.modellen[k].groep.visible = false;
       this.camera.add(this.modellen[k].groep);
@@ -588,6 +598,8 @@ export class Player {
     if (this.ammo === this.wapenInfo.mag || this.reserve <= 0) return;
     // de klikken horen bij de beweging en komen uit js/wapen.js
     this.reloading = this.wapen.herlaadtijd || HERLAADTIJD;
+    // (het pompgeweer leeg geladen: na de laatste patroon nog pompen)
+    this.leegGeladen = !!this.wapenInfo.perPatroon && this.ammo <= 0;
   }
 
   /*
@@ -621,9 +633,11 @@ export class Player {
   }
 
   shoot() {
+    const W = this.wapenInfo;
+    // (het pompgeweer) schieten breekt het laden af, als er al iets in zit
+    if (W.perPatroon && this.reloading > 0 && this.ammo > 0 && this.wisselT <= 0) { this.reloading = 0; this.leegGeladen = false; }
     if (!this.magSchieten()) return;
     if (this.vuurKlok > 0) return;
-    const W = this.wapenInfo;
     if (W.mes) { this.steek(); return; }
     if (this.oneindig && this.ammo <= 0) this.ammo = W.mag;
     if (this.ammo <= 0) {
@@ -662,6 +676,21 @@ export class Player {
       dir.normalize();
     }
     const origin = this.camera.getWorldPosition(new THREE.Vector3());
+    if (W.korrels) {
+      // hagel: elke korrel een eigen richting in een kegel om de kijkrichting (over de korrel iets smaller)
+      const zij = new THREE.Vector3(dir.z, 0, -dir.x).normalize();
+      const op = new THREE.Vector3().crossVectors(zij, dir).normalize();
+      const wijd = W.hagel * (1 - (1 - (W.mikHagel || 1)) * this.mik);
+      const korrels = [];
+      for (let i = 0; i < W.korrels; i++) {
+        // gelijkmatig over de schijf: een hoek en de wortel van een getal
+        const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * wijd;
+        korrels.push(dir.clone().addScaledVector(zij, Math.cos(a) * r).addScaledVector(op, Math.sin(a) * r).normalize());
+      }
+      this.laatsteKorrels = korrels;
+      if (this.shootCb) this.shootCb(origin, dir, { korrels, bereik: W.bereik });
+      return;
+    }
     if (this.shootCb) this.shootCb(origin, dir);
   }
 
@@ -777,9 +806,20 @@ export class Player {
     if (this.reloading > 0) {
       this.reloading -= dt;
       if (this.reloading <= 0) {
-        const need = this.wapenInfo.mag - this.ammo;
-        const take = Math.min(need, this.reserve);
-        this.ammo += take; this.reserve -= take; this.reloading = 0;
+        if (this.wapenInfo.perPatroon) {
+          // (het pompgeweer) één patroon erbij, en door met de volgende zolang de buis niet vol is
+          const leegBegon = this.leegGeladen;
+          if (this.reserve > 0 && this.ammo < this.wapenInfo.mag) { this.ammo++; this.reserve--; }
+          if (this.ammo < this.wapenInfo.mag && this.reserve > 0) this.reloading += this.wapen.herlaadtijd;
+          else {
+            this.reloading = 0; this.leegGeladen = false;
+            if (leegBegon && this.wapen.laadKamer) this.wapen.laadKamer();
+          }
+        } else {
+          const need = this.wapenInfo.mag - this.ammo;
+          const take = Math.min(need, this.reserve);
+          this.ammo += take; this.reserve -= take; this.reloading = 0;
+        }
       }
     }
     /*

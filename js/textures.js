@@ -511,7 +511,23 @@ export function wapenIcoon(soort = 'pistool') {
   const sn = soort === 'sniper';
   const mes = soort === 'mes';
   const ga = soort === 'garand';
-  if (ga) {
+  const sg = soort === 'shotgun';
+  if (sg) {
+    // het pompgeweer (stap 189): rechte kolf, de kast met de haan, de loop met het geperforeerde schild erboven,
+    // de buis eronder met het geribde voorhout, en de bajonethouder vooraan
+    g.beginPath(); g.moveTo(22, 56); g.lineTo(96, 46); g.lineTo(96, 66); g.lineTo(22, 94); g.closePath(); g.fill();   // kolf
+    g.fillRect(96, 40, 56, 28);             // kast
+    g.fillRect(96, 34, 8, 8);               // haan
+    g.fillRect(150, 44, 166, 9);            // loop
+    g.fillRect(170, 38, 132, 7);            // hitteschild
+    g.fillRect(150, 55, 150, 7);            // buis
+    for (let i = 0; i < 7; i++) g.fillRect(190 + i * 8, 53, 6, 12);   // geribd voorhout
+    g.fillRect(298, 42, 14, 22);            // bajonethouder
+    g.fillRect(108, 68, 8, 12); g.fillRect(108, 76, 30, 5);   // trekkerbeugel
+    g.fillStyle = '#20242a';
+    for (let i = 0; i < 12; i++) g.fillRect(176 + i * 10, 40, 5, 3);   // de gaten in het schild
+    g.fillStyle = '#e8ecf2';
+  } else if (ga) {
     // de M1 Garand: lange houten kolf met halve pistoolgreep, de kast met het achtervizier, het bovenhout,
     // twee banden, en de loop met de gasbuis eronder en de korrel vooraan
     g.fillRect(24, 50, 60, 30);             // kolf
@@ -569,7 +585,7 @@ export function wapenIcoon(soort = 'pistool') {
   g.fillStyle = '#ffd400';
   g.font = '700 20px system-ui, sans-serif';
   g.textBaseline = 'alphabetic';
-  g.fillText(ga ? 'M1 GARAND' : mes ? 'MES' : sn ? 'SNIPER' : mp ? 'MACHINEGEWEER' : 'PISTOOL', 16, sn ? 16 : 26);
+  g.fillText(sg ? 'POMPGEWEER' : ga ? 'M1 GARAND' : mes ? 'MES' : sn ? 'SNIPER' : mp ? 'MACHINEGEWEER' : 'PISTOOL', 16, sn ? 16 : 26);
   const t = tex(c); cache.set(sleutel, t); return t;
 }
 
@@ -756,11 +772,22 @@ function icoonDrone(g) {
   g.restore();
 }
 
-function icoonWapen(g, mp, sn = false, ga = false) {
+function icoonWapen(g, mp, sn = false, ga = false, sg = false) {
   // dezelfde silhouetten als het icoon rechtsonder in beeld, maar dan liggend
   // op de plank en zonder de naam erbij — die staat op de kaart eronder
   g.fillStyle = '#dfe4ec';
-  if (ga) {
+  if (sg) {
+    // het pompgeweer (stap 189)
+    g.beginPath(); g.moveTo(14, 54); g.lineTo(62, 48); g.lineTo(62, 62); g.lineTo(14, 76); g.closePath(); g.fill();
+    g.fillRect(62, 44, 32, 18);                                   // kast
+    g.fillRect(62, 40, 5, 5);                                     // haan
+    g.fillRect(92, 47, 116, 6);                                   // loop
+    g.fillRect(104, 43, 90, 4);                                   // hitteschild
+    g.fillRect(92, 55, 104, 5);                                   // buis
+    for (let i = 0; i < 6; i++) g.fillRect(118 + i * 6, 53, 4, 9); // voorhout
+    g.fillRect(196, 45, 9, 15);                                   // bajonethouder
+    g.fillRect(70, 62, 5, 8); g.fillRect(70, 67, 20, 4);          // trekkerbeugel
+  } else if (ga) {
     // de M1 Garand: kolf, kast met achtervizier, bovenhout, loop met gasbuis
     g.beginPath(); g.moveTo(14, 52); g.lineTo(58, 49); g.lineTo(58, 66); g.lineTo(14, 74); g.closePath(); g.fill();
     g.fillRect(56, 49, 18, 13);                                   // kolfhals
@@ -817,7 +844,7 @@ export function schapIcoon(sleutel = 'munitie') {
   if (sleutel === 'munitie') icoonMunitie(g);
   else if (sleutel === 'ehbo') icoonEhbo(g);
   else if (sleutel === 'drone') icoonDrone(g);
-  else icoonWapen(g, sleutel === 'mitrailleur', sleutel === 'sniper', sleutel === 'garand');
+  else icoonWapen(g, sleutel === 'mitrailleur', sleutel === 'sniper', sleutel === 'garand', sleutel === 'shotgun');
   cache.set(k, c); return c;
 }
 

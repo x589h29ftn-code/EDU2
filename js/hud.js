@@ -625,7 +625,7 @@ export class HUD {
     } else {
       this.speed.style.display = 'none'; this.ammo.style.display = 'block';
       // (met het mes in de hand: geen magazijn, wel wat je nog aan kogels hebt; stap 123)
-      this.ammo.textContent = player.reloading > 0 ? 'herladen…'
+      this.ammo.textContent = player.reloading > 0 ? (player.wapenInfo && player.wapenInfo.perPatroon ? `laden… ${player.ammo} / ${player.wapenInfo.mag}` : 'herladen…')
         : player.wapenInfo && player.wapenInfo.mes ? `mes · ${player.reserve}`
         // (de M1 Garand: de naam erbij, "M1 Garand · 8 / 48")
         : `${player.wapenInfo && player.wapenInfo.toonNaam ? player.wapenInfo.naam + ' · ' : ''}${player.ammo} / ${player.oneindig ? '∞' : player.reserve}`;
