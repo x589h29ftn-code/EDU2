@@ -9317,6 +9317,34 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De Tinga Cache: geocachen (stap 196, 15 okt).** Gevraagd na het ontwerp (docs/ontwerp-geocache.md): "Laat de BP medewerker bij
+aankoop GPS tracker uitleggen dat hij Sjors moet zien van Radio Tinga. Laat de poster in de BP shop maar ook op paar andere plekken
+terugkomen die logisch zijn, bijvoorbeeld op tafel van Eriks huisje. Maak een soort GPS tracker handheld die je ziet als je op de knop
+klikt. Kies Sjors, beloning is gouden M1 Garand en 2.500 euro. Plekken goed."
+- *js/geocache.js*: de omrekening kaart ↔ graden (vlak om `KAART.oorsprong.wgs84`; een duizendste minuut is 1,85 m noord, 1,1 m
+  oost; heen en terug op een millimeter), de vijf caches (pas gebouwd als je de GPS hebt, dan staat de wereld er), elk op een vrije
+  plek (`zoekVrij`: geen botsdoos, geen water, niet binnen een pand) en een punt uit het raadsel 2,5–4,5 m ernaast, afgerond op
+  duizendsten van een minuut. 1 de Geeuwbrug (Sjors zet hem in je GPS), 2 de vijver in Duinterpen (raadsel: B − k met B = 1944 van
+  de gedenksteen, C + A − k met A = 15 en C = 879), 3 een multi (stap 1 een bordje op een paal bij Martens Vishandel met de
+  coördinaten van stap 2, achter de tennishal), 4 aan het water bij De Rat (alleen vanuit een boot, `vanafBoot`), 5 bij de Tiger
+  (de letters S L A G uit de logboeken, de cijfers N 3 + E 1 uit de logboeken, de laatste twee in het raadsel).
+- De GPS (N, want G is de scherpte): een geel handapparaat op canvas rechts in beeld met je eigen coördinaten (± 4 m), het doel
+  (tik 6 cijfers in, backspace wist), een pijl en de afstand, "DICHTBIJ — ZOEK!" binnen 15 m (de pijl zwalkt), en het raadsel.
+  Verkeerd ingetikt en op dat punt: "Hier is niets…", na twee keer de verwijzing naar Sjors.
+- De kassa van de BP: 3 = GPS (€ 250); de kassa sluit en de medewerker vertelt het (`verhaal.zegExtern`). Sjors op de stoep van
+  Radio Tinga met de oranje S op beide kaarten (`hud.zetSjors`): de uitleg, daarna per cache een hint. Na elke cache meldt hij het
+  op Radio Tinga; na de vijfde € 2.500 en de gouden M1 Garand (`zetGoud` op het model: alleen kleur, metalness en roughness; het doek
+  van het staal is donker, dus de kleur boven 1, anders werd het bruin). Posters op de balie van de BP, op een prikbord bij Radio
+  Tinga en op de eettafel van Zeskanter 16, Molenkrite 130c en Koningsspil 20.
+- Opslag via `registreerOpslag` in js/opslag.js (modules die zelf iets bewaren); de statistieken krijgen "Tinga Cache n van 5".
+- Fouten onderweg: cache 1 lag eerst binnen de voetafdruk van het landhoofd (de botsdozen dekken die niet helemaal) en dus onder het
+  beton: nu ook `inPand`. De omrekening laadt three, dus de proef rekent in de browser. De foto van de gouden M1 was zwart: het
+  wapen moet in dezelfde stap getekend en uitgelezen worden.
+- *Nagelopen*: `npm run geocachetest` (46 controles: de omrekening, de posters, de kassa en de medewerker, Sjors, de GPS, de vijf
+  plekken gemeten, het raadsel tegen de wereld, alle vijf achter elkaar met de boot voor de vierde, de beloning, de statistieken,
+  opslaan, geen nieuw programma 143 → 143). `bpkassatest` bijgewerkt (drie keuzeknoppen); `legendatest`, `m1test` en
+  `statistiektest` groen. Foto's: `npm run geocacheshots`.
+
 **Statistieken in het pauzemenu en de titelrol (stap 195, 15 okt).** Gevraagd: "een statistiekenscherm in het pauzemenu …
 en deze ook in het eind scherm laten zien. Optie 3 ook" (missies opnieuw spelen: die bestond al sinds stap 123, missie 2–18 na het
 einde vanuit het pauzemenu).

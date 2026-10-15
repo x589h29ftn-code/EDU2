@@ -366,6 +366,16 @@ export class HUD {
   zetEJ(p) { this.ej = p || null; }
   // (stap 178) Roan: een lichtblauw rondje met R, bij Radio Tinga (de school), tot hij thuis is
   zetRoan(p) { this.roan = p || null; }
+  // (stap 196) Sjors van Radio Tinga voor de Tinga Cache: een oranje S
+  zetSjors(p) { this.sjors = p || null; }
+  static tekenSjors(c, r = 10) {
+    c.beginPath(); c.arc(0, 0, r * 0.95, 0, Math.PI * 2);
+    c.fillStyle = '#ff9d2e'; c.fill();
+    c.strokeStyle = '#4a2a08'; c.lineWidth = 1.5; c.stroke();
+    c.fillStyle = '#2a1504'; c.font = `bold ${(r * 1.1).toFixed(1)}px sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('S', 0, 0.8);
+  }
   static tekenRoan(c, r = 10) {
     c.beginPath(); c.arc(0, 0, r * 0.95, 0, Math.PI * 2);
     c.fillStyle = '#7cc8ff'; c.fill();
@@ -477,6 +487,7 @@ export class HUD {
     if (this.klus) { const q = this.wereldNaarBig(this.klus.x, this.klus.z); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: 'de klus' }); }
     if (this.ej) { const q = this.wereldNaarBig(this.ej.x, this.ej.z); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: 'Erik Jan' }); }
     if (this.roan) { const q = this.wereldNaarBig(this.roan.x, this.roan.z); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: 'Roan' }); }
+    if (this.sjors) { const q = this.wereldNaarBig(this.sjors.x, this.sjors.z); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: 'Sjors' }); }
     if (this.nav && this.nav.doel) { const q = this.wereldNaarBig(this.nav.doel[0], this.nav.doel[1]); kandidaten.push({ ...q, sx: q.x, sy: q.y, naam: this.nav.naam || 'het doel van de missie' }); }
     let beste = null;
     for (const k of kandidaten) {
@@ -831,6 +842,15 @@ export class HUD {
       HUD.tekenRoan(c, 9);
       c.restore();
     }
+    if (this.sjors) {
+      const q = opRand(this.sjors.x, this.sjors.z);
+      opKaart.push({ wat: 'sjors', ...q });
+      c.save();
+      c.translate(q.x * scale, q.z * scale);
+      c.rotate(-this._kaartRot);
+      HUD.tekenSjors(c, 9);
+      c.restore();
+    }
     // (voor tools/kaartdoeltest.mjs: waar elke plek op de minikaart staat, in meters)
     this._miniPlekken = opKaart; this._miniRand = randR;
     // `rot` bepaalt alleen of een straatnaam omgeklapt moet om leesbaar te
@@ -1018,6 +1038,16 @@ HUD.prototype.drawBig = function (player, vehicles) {
     c.textAlign = 'center'; c.font = 'bold 12px sans-serif';
     c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
     c.strokeText('Roan', 0, -18); c.fillStyle = '#bfe4ff'; c.fillText('Roan', 0, -18);
+    c.restore();
+  }
+  if (this.sjors) {
+    c.save();
+    c.translate(this.sjors.x, this.sjors.z);
+    c.scale(1 / scale, 1 / scale);
+    HUD.tekenSjors(c, 12);
+    c.textAlign = 'center'; c.font = 'bold 12px sans-serif';
+    c.lineWidth = 3; c.strokeStyle = 'rgba(8,14,24,0.85)';
+    c.strokeText('Tinga Cache · Sjors', 0, -18); c.fillStyle = '#ffd0a0'; c.fillText('Tinga Cache · Sjors', 0, -18);
     c.restore();
   }
   const px = this.kaartVanaf ? this.kaartVanaf.x : (player.inCar ? player.inCar.x : player.pos.x);

@@ -2529,7 +2529,24 @@ export function maakGarand(geluid) {
 
   zetPatronen(8);
   update(0, { ammo: 8 });
+  /*
+   (stap 196) De gouden M1 Garand, de beloning van de Tinga Cache: het staal wordt goud, het hout blijft walnoot. Alleen kleur,
+   metalness en roughness veranderen: geen nieuw shaderprogramma.
+  */
+  const goudMats = [park, parkDonker, grendelStaal, clipStaal, blank, stempel];
+  const goudWas = goudMats.map(m => ({ c: m.color.getHex(), me: m.metalness, r: m.roughness }));
+  let goud = false;
+  function zetGoud(aan) {
+    goud = !!aan;
+    goudMats.forEach((m, i) => {
+      const w = goudWas[i];
+      // (het doek van het staal is donker; de kleur vermenigvuldigt ermee, dus feller dan 1 om echt goud te zijn)
+      if (goud) { if (i === 1) m.color.setRGB(2.0, 1.45, 0.42); else m.color.setRGB(2.7, 2.0, 0.55); m.metalness = 0.95; m.roughness = Math.min(w.r, 0.4); }
+      else { m.color.setHex(w.c); m.metalness = w.me; m.roughness = w.r; }
+    });
+  }
   return {
+    zetGoud, get goud() { return goud; },
     groep, vuur, update, soort: 'garand', herlaadtijd: GARAND_HERLAAD,
     delen: { grendel, clip: clip.g, patronen: clip.patronen, legeClip, laadhand, linkerhand, hand, arm, trekker, flits, hulzen, rook: rookData.map(r => r.mesh), los },
     houding: { rust: RUST, mik: MIK, vizierY: VIZIER_Y },

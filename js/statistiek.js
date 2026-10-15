@@ -18,6 +18,8 @@ const leeg = () => ({
 });
 
 let s = leeg();
+// (stap 196) de Tinga Cache: hoeveel caches gevonden (js/geocache.js zet hem)
+let cacheTeller = null;
 // wat het vorige beeld zag (niet bewaard)
 let vorig = null;
 
@@ -27,6 +29,7 @@ export const statistiek = {
   get stand() { return { ...s }; },
   tel(naam, n = 1) { if (naam in s) s[naam] += n; },
   nieuw() { s = leeg(); vorig = null; },
+  zetCaches(f) { cacheTeller = f; },
   bewaar() { return { ...s }; },
   herstel(d) { s = leeg(); if (d && typeof d === 'object') for (const k of Object.keys(s)) s[k] = getal(d[k]); vorig = null; },
   // na laden of een sprong: het volgende beeld begint opnieuw (geen afstand, geen geld)
@@ -67,6 +70,7 @@ export const statistiek = {
       uit.push(['Missies', `${voortgang.missies} van 18`]);
       uit.push(['Bijmissies', `${voortgang.bijmissies} van ${voortgang.bijTotaal}`]);
     }
+    if (cacheTeller) { const c = cacheTeller(); if (c) uit.push(['Tinga Cache', `${c.gevonden} van ${c.totaal}`]); }
     uit.push(
       ['Klusjes', String(s.klusjes)],
       ['Gereden', km(s.auto)],

@@ -12,6 +12,9 @@
  aan de wijk kan overschrijven.
 */
 import { statistiek } from './statistiek.js';
+// (stap 196) modules die zelf iets bewaren (de Tinga Cache): naam → { bewaar(), herstel(d) }
+const extraOpslag = new Map();
+export function registreerOpslag(naam, m) { if (m && m.bewaar && m.herstel) extraOpslag.set(naam, m); }
 const SLEUTEL = 'tinga.spel.v1';
 /*
  Meerdere opgeslagen spellen (stap 127, gevraagd: "Na opslaan spel wil ik ook bij hoofdmenu een laad spel en dan zie
@@ -121,6 +124,7 @@ export function bewaarSpel({ player, sfeer, vehicles, verhaal, boten = null, vaa
     speeluur: sfeer ? sfeer.uur : null,
     // de statistieken (stap 195): tijd, afstand, geld, schoten, … over het hele spel
     statistiek: statistiek.bewaar(),
+    extra: Object.fromEntries([...extraOpslag].map(([k, m]) => [k, m.bewaar()])),
     // voor de lijst bij Spel laden (stap 127)
     missieTitel: verhaal && verhaal.missieTitel ? verhaal.missieTitel() : '',
     geld: verhaal && typeof verhaal.geld === 'number' ? verhaal.geld : null,
@@ -174,6 +178,7 @@ export function laadSpel({ player, sfeer, vehicles, verhaal, boten = null, vaart
   // (stap 195) een opslag van daarvoor heeft geen statistieken: dan beginnen ze bij nul
   // (een checkpoint draait de tellers niet terug; wel opnieuw beginnen met meten, anders telt het geld van het laden als verdiend)
   if (checkpoint) statistiek.opnieuw(); else statistiek.herstel(d.statistiek || null);
+  for (const [k, m] of extraOpslag) m.herstel(d.extra ? d.extra[k] || null : null);
   /*
    De wapens. Een opslag van vóór het machinegeweer heeft dit veld niet; dan
    blijft het bij het pistool. Het wapen dat je vasthield komt terug in je hand,

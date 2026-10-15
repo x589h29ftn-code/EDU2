@@ -964,6 +964,26 @@ titelrol. Na het einde kun je in het pauzemenu ook elke missie (2 tot en met 18)
 
 ![De cijfers in de titelrol](docs/screenshots/statistiek_titelrol.png)
 
+## De Tinga Cache
+
+In Tinga en IJlst liggen **vijf caches** verstopt. Op de balie van de BP-shop, op een prikbord bij Radio Tinga en op je eettafel
+thuis hangt de poster. Koop aan de kassa van de BP een **GPS** (3, € 250): de medewerker stuurt je naar **Sjors van Radio Tinga**,
+die op de stoep voor de studio staat (de oranje S op de kaart). Hij legt het uit en zet de eerste cache in je GPS.
+
+Met **N** pak je de GPS: je eigen coördinaten, het doel, een pijl en de afstand, en het raadsel. De coördinaten van de volgende
+caches moet je zelf vinden en intikken (cijfertoetsen, backspace wist): een raadsel met dingen uit de wereld, een bordje dat je naar
+de tweede stap stuurt, een cache die je alleen vanuit een boot pakt, en een finale met de letters en cijfers uit de logboeken. De GPS
+brengt je tot op een paar meter; het kistje moet je zelf zoeken (E opent hem). Na elke cache noemt Sjors je op Radio Tinga, en wie
+ze alle vijf vindt krijgt **€ 2.500 en de gouden M1 Garand**.
+
+![De GPS in beeld](docs/screenshots/cache_gps.png)
+
+![De poster op de balie van de BP](docs/screenshots/cache_poster_bp.png)
+
+![Een cache bij de oude Geeuwbrug](docs/screenshots/cache_kistje.png)
+
+![De gouden M1 Garand](docs/screenshots/cache_goud.png)
+
 ## Even kletsen met Mark en Johan
 
 Tussen de missies door staat Mark op de stoep voor Molenkrite 15 en Johan op zijn oprit aan het Kruirad 62. Loop erheen en druk op

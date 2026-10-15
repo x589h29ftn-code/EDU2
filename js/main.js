@@ -43,7 +43,9 @@ import { initPolitie } from './politie.js';
 import { initPolitieboot } from './politieboot.js';
 import { initVaart } from './vaart.js';
 import { statistiek } from './statistiek.js';
-import { bewaarSpel, laadSpel, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint, opslagen, kiesPlek, startNieuwSpel } from './opslag.js';
+import { initGeocache } from './geocache.js';
+import { Persoon } from './persoon.js';
+import { bewaarSpel, laadSpel, registreerOpslag, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint, opslagen, kiesPlek, startNieuwSpel } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen, inZuilengang } from './kaartwereld.js';
 import { zetKoplampen, autoMaat } from './carmodel.js';
@@ -1009,7 +1011,10 @@ const tennisspel = (KAART && !BOVEN) ? initTennisspel({ scene, KAART, player, hu
 // de knoppen van Radio Tinga overnemen (stap 131)
 const djdienst = initDjDienst({ studio, geluid, hud, player, verdien: n => verhaal.verdien(n), nieuws });
 // (stap 169) de kassa van de BP-shop: energydrank en kraslot
-const bpKassa = initBpKassa({ player, hud, geluid, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n) });
+// (stap 196) de Tinga Cache: de GPS koop je aan deze kassa; de module zelf komt na de boten (js/geocache.js)
+let geocache = null;
+const bpKassa = initBpKassa({ player, hud, geluid, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n),
+  gps: { prijs: 250, koop: () => (geocache ? geocache.koopGps() : 'nee') } });
 extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : []),
   ...(pizzabaan ? pizzabaan.plekken : []), ...(vishandel && vishandel.winkels ? vishandel.winkels : [])];
 winkelsNu = null; werkKaartvlaggenBij();
@@ -1041,6 +1046,10 @@ winkelsNu = null; werkKaartvlaggenBij();
  een auto.
 */
 const boten = initBoten({ scene, player, hud }) || null;
+geocache = initGeocache({ scene, player, hud, geluid, KAART, Persoon, studio: studio && studio.plekken ? studio : null, woningen, boten, vishandel,
+  zeg: (r, na, opt) => verhaal.zegExtern(r, na, opt), balkDicht: () => verhaal.balkDicht,
+  betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n), geld: () => verhaal.geld });
+if (geocache) { registreerOpslag('geocache', geocache); statistiek.zetCaches(() => ({ gevonden: geocache.gevonden, totaal: 5 })); }
 /*
  Voetgangers steken pas over als er geen auto aankomt, en auto's remmen voor wie
  al oversteekt (js/npc.js en js/vehicles.js). De twee weten niets van elkaar; ze
@@ -1742,6 +1751,8 @@ window.addEventListener('keydown', e => {
   const k = /^(?:Digit|Numpad)([0-9])$/.exec(e.code);
   if (!k) return;
   if ((tuning && tuning.open && tuning.kies(+k[1])) || (djdienst.open && djdienst.kies(+k[1])) || (bpKassa.open && bpKassa.kies(+k[1]))) { e.preventDefault(); e.stopImmediatePropagation(); }
+  // (stap 196) met de GPS aan tik je het doel in
+  else if (geocache && geocache.aan && !e.shiftKey && geocache.cijfer(+k[1])) { e.preventDefault(); e.stopImmediatePropagation(); }
 }, { capture: true });
 // de klik als slag bij tennis
 document.addEventListener('mousedown', e => {
@@ -1771,6 +1782,7 @@ function praatOfAuto() {
   for (const r of binnenruimtes) if (r.toets()) return;
   if (djdienst.toets()) return;               // aan de knoppen van Radio Tinga (stap 131)
   if (bpKassa.toets()) return;                // de kassa van de BP-shop (stap 169)
+  if (geocache && geocache.toets()) return;   // de Tinga Cache: Sjors, het bordje, een cache (stap 196)
   if (pizzabaan && pizzabaan.toets()) return; // pizza bezorgen (stap 131)
   if (garage && garage.toets()) return;       // een auto kopen in de showroom
   if (vishandel && vishandel.toets()) return; // kibbeling bij Martens (stap 131)
@@ -2115,6 +2127,14 @@ window.addEventListener('keydown', e => {
   console.log('pand', regel, `(${raak.hoe}, ${raak.afstand.toFixed(1)} m)`);
 });
 
+// (stap 196) de GPS van de Tinga Cache: N aan en uit, backspace wist een cijfer
+window.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || !geocache) return;
+  if (!player.active && !window.__autoplay) return;
+  if (e.code === 'KeyN' && !e.repeat) { geocache.wissel(); e.preventDefault(); }
+  else if (e.code === 'Backspace' && geocache.aan && geocache.cijfer('terug')) e.preventDefault();
+});
+
 // Scherpte wisselen (G). Blijft bewaard, zodat je hem maar één keer hoeft te zetten.
 window.addEventListener('keydown', e => {
   if (e.code !== 'KeyG' || e.ctrlKey || e.metaKey) return;
@@ -2279,7 +2299,7 @@ async function voorFilm() {
 async function startGame(vervolg = false, metIntro = false) {
   if (vervolg) laadSpelNu();
   // een nieuw spel begint zonder het checkpoint van een vorig spel, en krijgt bij de eerste keer opslaan een eigen plek
-  else { wisCheckpoint(); startNieuwSpel(); statistiek.nieuw(); }
+  else { wisCheckpoint(); startNieuwSpel(); statistiek.nieuw(); if (geocache) geocache.nieuw(); }
   gepauzeerd = false;
   menu.verbergMenu();
   geluid.start();
@@ -2966,6 +2986,7 @@ function loop() {
    's ochtends komt het terug. js/npc.js en js/vehicles.js verhuizen mensen en
    auto's naar je buurt; dit zegt er alleen hoeveel het er moeten zijn.
   */
+  if (geocache) geocache.update(dt);           // de Tinga Cache (stap 196)
   // de statistieken (stap 195): tijd, afstand, geld, klusjes, sterren en neergaan, uit de stand van het spel
   {
     const sp = player.inCar ? player.inCar : player.pos;
@@ -3573,6 +3594,7 @@ avondBelofte = warmDeAvondOpInStukjes().then(n => { console.log(`avond: ${n} mes
 opstartStap('klaar');
 window.__game = {
   statistiek,
+  get geocache() { return geocache; },
   // stap 152: de schuifdeuren van de Poiesz (js/zuilengang.js)
   schuifdeuren: SCHUIFDEUREN, werkSchuifdeurenBij,
   get aaff() { return AAFF_PAND.nu; },

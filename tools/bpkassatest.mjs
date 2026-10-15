@@ -10,7 +10,7 @@
    5. kraslot: € 25, de prijs altijd uit 0, 10, 25, 50, 100 of 150, het geld klopt met de prijs; over 20.000 trekkingen
       kansen die bij de tabel horen en gemiddeld onder de € 25 (de BP verdient eraan);
    6. te weinig geld: niets betaald, geen leven en geen lot;
-   7. weglopen sluit de kassa; op een aanraakscherm twee keuzeknoppen.
+   7. weglopen sluit de kassa; op een aanraakscherm drie keuzeknoppen (sinds stap 196 ook de GPS).
 
  Gebruik: npm run server &  node tools/bpkassatest.mjs [poort]
 */
@@ -115,7 +115,8 @@ const r = await page.evaluate(async () => {
 kop('1. waar de kassa werkt');
 ok(r.balie && !r.achter && !r.buiten, 'alleen voor de balie, niet erachter en niet buiten', JSON.stringify({ balie: r.balie, achter: r.achter, buiten: r.buiten }));
 ok(r.e1 && r.open1 && r.e2 && !r.open2, 'E opent de kassa en sluit hem weer');
-ok(r.knoppen === 2, 'op een aanraakscherm twee keuzeknoppen', `${r.knoppen}`);
+// (sinds stap 196 een derde: de GPS voor de Tinga Cache)
+ok(r.knoppen === 3, 'op een aanraakscherm drie keuzeknoppen (drank, kraslot, GPS)', `${r.knoppen}`);
 
 kop('2. energydrank');
 const B = r.blikjes;

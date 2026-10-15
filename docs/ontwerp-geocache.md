@@ -1,11 +1,12 @@
-# Ontwerp: Tinga Cache (geocachen) — nog niet gebouwd
+# Ontwerp: Tinga Cache (geocachen) — gebouwd in stap 196
 
 Gevraagd op 15 okt 2026: "Optie 5 doe dit als een geocache. Bedenk hier eerst een systematiek voor. Vaak een raadsel en dan
 coördinaten. En dan moet je op een gps tracker de locatie kunnen vinden. Misschien niet exact want dan is het makkelijk maar kleine
 radius. … Bedenk ook hoe dit start. Het is puur een extra activiteit. … gps tracker kopen bij de bp, 250 euro … raadsels via Ronald
 … of kies iemand anders. … hoe geocache werkt met opdrachtjes. Moet ook bekend zijn dat er 5 in de wereld zitten."
 
-Dit is het voorstel; er is nog niets van gebouwd. Wat de gebruiker kiest, komt hier bij.
+Gekozen (15 okt): Sjors, de gouden M1 Garand en € 2.500, de plekken zoals hieronder; de medewerker van de BP verwijst naar Sjors,
+de poster ook op een prikbord bij Radio Tinga en op de eettafel thuis. De GPS is N (G was al de scherpte). Gebouwd in js/geocache.js.
 
 ## 1 · Wie: Sjors van Radio Tinga (in plaats van Ronald)
 

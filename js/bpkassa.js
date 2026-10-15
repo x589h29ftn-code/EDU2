@@ -74,7 +74,7 @@ function kraskaart(prijs) {
   return kaartEl;
 }
 
-export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal = () => false, verdien = () => 0, rng = Math.random }) {
+export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal = () => false, verdien = () => 0, rng = Math.random, gps = null }) {
   let open = false, boostT = 0, drankjes = 0, loten = 0, gewonnen = 0;
   const K = BP_KASSA;
   if (player.renBoost == null) player.renBoost = 0;
@@ -88,9 +88,11 @@ export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal
   const keuzeTekst = () => [
     `energydrank (${euro(K.drank.prijs)}, +${K.drank.leven} leven, sneller rennen)`,
     `kraslot (${euro(K.lot.prijs)})`,
+    // (stap 196) de GPS voor de Tinga Cache (js/geocache.js)
+    ...(gps ? [`GPS voor de Tinga Cache (${euro(gps.prijs)})`] : []),
   ];
   function toonMenu() {
-    if (hud) hud.melding('BP · KASSA', `1 — ${keuzeTekst()[0]} · 2 — ${keuzeTekst()[1]} · E — klaar`, 12);
+    if (hud) hud.melding('BP · KASSA', keuzeTekst().map((t, i) => `${i + 1} — ${t}`).join(' · ') + ' · E — klaar', 12);
   }
   function sluit() { if (!open) return; open = false; if (hud) hud.melding('BP', '"Fijne dag nog!"', 2); }
 
@@ -144,6 +146,8 @@ export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal
       if (!open) return false;
       if (n === 1) drink();
       else if (n === 2) kras();
+      // (stap 196) de GPS: de kassa gaat dicht, want de medewerker gaat het uitleggen
+      else if (n === 3 && gps) { const r = gps.koop(); if (r === 'ok') { open = false; return true; } }
       else return false;
       if (open) toonMenu();
       return true;

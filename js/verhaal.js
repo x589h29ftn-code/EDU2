@@ -13414,6 +13414,9 @@ export function initVerhaal(ctx) {
   return {
     update, toets, doelen, raak, hinder, bewaar, herstel, naLaden, meldAan, schotGehoord, dood, mislukt,
     herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; }, missieTitel, voortgang,
+    // (stap 196) een gesprek van buiten het verhaal (js/geocache.js: de medewerker van de BP, Sjors), en of de balk dicht is
+    zegExtern: (regels, na = null, opties = {}) => zeg(regels, na, opties),
+    get balkDicht() { return balk.hidden && !gesprek; },
     // (stap 195, voor tools/statistiektest.mjs) de titelrol los openen en sluiten
     __titelrol: (open = true) => { if (open) openTitelrol(); else sluitTitelrol(); },
     // (stap 127, voor tools/wensentest.mjs: je auto bij huis neerzetten)
