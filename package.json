@@ -291,7 +291,7 @@
     "rondgang": "node tools/rondgang.mjs",
     "wensen6test": "node tools/wensen6test.mjs",
     "wensen7test": "node tools/wensen7test.mjs",
-    "hoes": "node tools/hoes.mjs",
+    "hoes": "python3 tools/hoes_kunst.py && node tools/hoes.mjs",
     "vouwwagentest": "node tools/vouwwagentest.mjs"
   }
 }
