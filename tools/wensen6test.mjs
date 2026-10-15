@@ -199,7 +199,7 @@ const vast = await page.evaluate(async () => {
   blok.mesh.position.set(x, 0, z); blok.mesh.rotation.y = blok.yaw;
   const bounce = t.bounce;
   t.path = P; t.t = k - 3; t.dir = 1; t.keer = null; t.rond = null; t.uitwijk = null; t.lane = 1.4; t.vLane = 0; t.zijHoek = 0;
-  t.haast = 0; t.achteruit = 0; t.speed = t.snelheid = t.doel = 0; t.blokT = 0; t._pos = null; t._dir = null; t._terugN = 0; t._geenUit = null;
+  t.haast = 0; t.achteruit = 0; t.speed = t.speed || 8; t.snelheid = t.doel = 0;   // (t.speed is zijn kruissnelheid, niet wat hij nu rijdt) t.blokT = 0; t._pos = null; t._dir = null; t._terugN = 0; t._geenUit = null;
   t.bounce = false;                      // keren kan hier niet: zo bleef hij eerst eeuwig staan
   let toeter = 0; const oud = V.opClaxon; V.opClaxon = () => { toeter++; };
   const rnd = Math.random; Math.random = () => 0.1;
@@ -224,7 +224,7 @@ const vast = await page.evaluate(async () => {
   const x2 = q.x + tz * 1.4, z2 = q.y - tx * 1.4;
   const blok2 = V.voegToe({ x: x2, z: z2, yaw: Math.atan2(tx, tz), soort: 'hatch', kleur: 0x1f3f9c });
   blok2.mesh.position.set(x2, 0, z2); blok2.mesh.rotation.y = blok2.yaw;
-  t.t = k - 3; t.dir = 1; t.uitwijk = null; t.lane = 1.4; t.vLane = 0; t.speed = t.snelheid = t.doel = 0; t.blokT = 0; t._terugN = 0; t._geenUit = null; t.achteruit = 0;
+  t.t = k - 3; t.dir = 1; t.uitwijk = null; t.lane = 1.4; t.vLane = 0; t.speed = t.speed || 8; t.snelheid = t.doel = 0;   // (t.speed is zijn kruissnelheid, niet wat hij nu rijdt) t.blokT = 0; t._terugN = 0; t._geenUit = null; t.achteruit = 0;
   toeter = 0;
   for (let n = 0; n < 30 * 90; n++) V.updateTraffic(1 / 30, null, null, null, null);
   uit.dicht = { toeter, terugN: t._terugN || 0 };

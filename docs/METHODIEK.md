@@ -9329,6 +9329,12 @@ No Mercy.
 - *Toeteren*: wie niet opzij kan (te weinig aanloop) en niet mag keren (`bounce` uit, of iemand binnen 9 m), toeterde eeuwig.
   Nu rijdt hij na `BLOK.terug` (7 s) `BLOK.terugT` (1,6 s) achteruit, dan heeft hij ruimte om eromheen te gaan. Na
   `BLOK.terugMax` (3) pogingen bij dezelfde blokkade toetert hij niet meer.
+  Daarbij bleek `strookBezet` een geparkeerde auto met zijn halve lengte opzij te rekenen (4,3 m breed): elke auto langs de
+  stoep binnen 3 m maakte de andere strook "bezet". Nu de breedte uit zijn draaiing.
+  Een valkuil in de proef: `t.speed` is de kruissnelheid van een auto uit het verkeer, niet wat hij nu rijdt (`snelheid`). De
+  eerste versie van de proef zette hem op nul, en de auto kwam na het achteruitrijden nooit meer vooruit.
+- *Nagelopen*: `wensen6test`, `voorrangtest`, `vierpuntentest` (5,1°) en `racetest` (5,9°) groen. Foto: `binnen_hatch_stuur.png`
+  (`STUUR=-0.3 SOORTEN=hatch npm run binnenshots`).
 - *Lengte*: `NPC_LENGTE` in js/npc.js, 0,95–1,04 en een vrouw ×0,97 (was 0,88–1,10 en ×0,94). De loting blijft dezelfde (`ruw`),
   dus wie er fietst, jogt of een hond uitlaat verandert niet.
 - *Muziek*: `heliMuziek` is `vasteMuziek(sleutel, M, actief)` geworden; `nomercyMuziek` gebruikt die met `NOMERCY_MUZIEK`
