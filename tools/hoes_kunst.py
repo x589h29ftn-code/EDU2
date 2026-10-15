@@ -3,7 +3,9 @@ De kunst voor de voorkant van de dvd-hoes (tools/hoes.mjs), uit het laadscherm b
 
   1. de linkerfiguur iets slanker (gevraagd 15 okt 2026: "kan je de personage links ook iets slanker maken"): een
      horizontale vervorming zoals 'liquify' in een fotobewerker (zie `slanker`). Alleen de linkercontour (schouder, arm, pak,
-     been) gaat naar binnen; het hoofd en de rechterkant (die raakt de figuur ernaast) blijven zoals ze zijn.   2. bijsnijden tot het paneel van de voorkant (132,5 × 189 mm met afloop), zonder het logo rechtsboven;
+     been) gaat naar binnen; het hoofd en de rechterkant (die raakt de figuur ernaast) blijven zoals ze zijn. En zijn gezicht
+     iets minder breed (`gezicht`): wangen, mond en kaak zacht naar het midden, de ogen en de bril niet; en de onderkin een paar
+     pixels op (`kin`).   2. bijsnijden tot het paneel van de voorkant (132,5 × 189 mm met afloop), zonder het logo rechtsboven;
   3. met Lanczos naar 300 dpi (1565 × 2232 px) en een lichte verscherping.
 
 Gebruik: python3 tools/hoes_kunst.py   (schrijft docs/hoes/voorkant_kunst.jpg en docs/hoes/slanker_voor_na.jpg)
@@ -26,6 +28,57 @@ NEK_VAN, NEK_TOT = 330, 410   # de overgang van het hoofd (niets) naar de schoud
 def glad(t):
     t = np.clip(t, 0.0, 1.0)
     return t * t * (3 - 2 * t)
+
+
+# het gezicht van de linkerfiguur (gevraagd: "kan je het gezicht ook iets minder overdreven maken"): wangen en kaak iets smaller
+GEZICHT_X = 298.0       # de neus
+GEZICHT_R = 95.0        # tot hier opzij (voorbij de oren) is het weer zoals het was
+GEZICHT_VOL = 0.65      # tot hier (deel van GEZICHT_R) de volle factor: de wangen lopen tot ≈ 58 px van de neus
+GEZICHT_KRACHT = 0.11   # zoveel verder naar buiten bemonsteren: de kaaklijn komt ≈ 6 px per kant naar binnen
+# van boven naar beneden: niets tot onder de bril (y 280), vol bij de wangen en de mond (320–355), weer niets bij de kraag (385)
+GEZICHT_Y = (280, 320, 355, 385)
+
+
+def gezicht(beeld):
+    """Wangen, mond en kaak naar het midden; de ogen, de bril en het voorhoofd blijven zoals ze zijn."""
+    a = np.asarray(beeld).astype(np.float32)
+    h, w, _ = a.shape
+    xs = np.arange(w, dtype=np.float32)
+    d = xs - GEZICHT_X
+    t = np.abs(d) / GEZICHT_R
+    g = np.where(t < GEZICHT_VOL, 1.0, 1.0 - glad((t - GEZICHT_VOL) / (1.0 - GEZICHT_VOL)))
+    y0, y1, y2, y3 = GEZICHT_Y
+    uit = a.copy()
+    for y in range(y0, y3 + 1):
+        vy = glad((y - y0) / (y1 - y0)) if y < y1 else (1.0 if y <= y2 else 1.0 - glad((y - y2) / (y3 - y2)))
+        bronx = GEZICHT_X + d * (1.0 + GEZICHT_KRACHT * vy * g)
+        assert np.all(np.diff(bronx) > 0), 'de vervorming van het gezicht vouwt het beeld'
+        for c in range(3):
+            uit[y, :, c] = np.interp(np.clip(bronx, 0, w - 1), xs, a[y, :, c])
+    return Image.fromarray(np.clip(uit, 0, 255).astype(np.uint8))
+
+
+# de onderkin iets op: tussen de mond en de kraag (KIN_VAN tot KIN_TOT) iets omhoog bemonsteren, de mond zelf niet
+KIN_VAN, KIN_MIDDEN, KIN_TOT = 338, 362, 392
+KIN_OP = 4.0            # px: zoveel komt de kinlijn omhoog
+KIN_X, KIN_R = 298.0, 70.0
+
+
+def kin(beeld):
+    a = np.asarray(beeld).astype(np.float32)
+    h, w, _ = a.shape
+    uit = a.copy()
+    ys = np.arange(h, dtype=np.float32)
+    for x in range(int(KIN_X - KIN_R), int(KIN_X + KIN_R) + 1):
+        gx = 1.0 - glad(abs(x - KIN_X) / KIN_R)
+        # een bult van 0 bij KIN_VAN en KIN_TOT tot KIN_OP bij KIN_MIDDEN: uitvoer-y bemonstert y + verschuiving
+        v = np.where(ys < KIN_MIDDEN, glad((ys - KIN_VAN) / (KIN_MIDDEN - KIN_VAN)), 1.0 - glad((ys - KIN_MIDDEN) / (KIN_TOT - KIN_MIDDEN)))
+        v = np.where((ys > KIN_VAN) & (ys < KIN_TOT), v, 0.0)
+        bron = ys + KIN_OP * gx * v
+        assert np.all(np.diff(bron) > 0), 'de kin vouwt het beeld'
+        for c in range(3):
+            uit[:, x, c] = np.interp(np.clip(bron, 0, h - 1), ys, a[:, x, c])
+    return Image.fromarray(np.clip(uit, 0, 255).astype(np.uint8))
 
 
 def slanker(beeld):
@@ -55,7 +108,7 @@ def slanker(beeld):
 
 def main():
     im = Image.open(BRON).convert('RGB')
-    slank = slanker(im)
+    slank = slanker(kin(gezicht(im)))
     W, H = 1565, 2232
     h = im.height
     w = round(h * W / H)
@@ -72,6 +125,10 @@ def main():
     vgl.paste(voor.resize((W // 2, H // 2)), (0, 0))
     vgl.paste(na.resize((W // 2, H // 2)), (W // 2 + 20, 0))
     vgl.save('docs/hoes/slanker_voor_na.jpg', quality=85)
+    kop = (210, 190, 390, 400)
+    a1, a2 = im.crop(kop).resize((540, 630), Image.LANCZOS), slank.crop(kop).resize((540, 630), Image.LANCZOS)
+    k = Image.new('RGB', (1100, 630), (20, 10, 35)); k.paste(a1, (0, 0)); k.paste(a2, (560, 0))
+    k.save('docs/hoes/gezicht_voor_na.jpg', quality=88)
     # de breedte van de figuur gemeten op borsthoogte (y = 560 in de bron): de eerste donkerblauwe pixel van links
     def linkerrand(b, y=560):
         rij = np.asarray(b)[y].astype(int)
