@@ -26,12 +26,12 @@ const BREED = ACHTER + RUG + VOOR + 2 * AF, HOOGT = HOOG + 2 * AF;
 const xRug = AF + ACHTER, xVoor = xRug + RUG;
 
 const beelden = [
+  ['intro_lucht', 'Tinga van hoog boven'],
+  ['intro_voetbal_eind', 'Een wedstrijd bij VV Sneek'],
   ['intro_geeuw', 'De Geeuw en Tinga van boven'],
+  ['intro_viaduct', 'De Stadsrondweg en het viaduct'],
   ['heli_zoeklicht', "'s Nachts in de heli van Wiebe"],
   ['avond_brug', 'De Dúvelsrak bij nacht'],
-  ['tiger_schot', 'De Tiger aan de Sudergoweg'],
-  ['nomercy5_molen', 'No Mercy 5: de overtocht bij De Rat'],
-  ['intro_viaduct', 'De Stadsrondweg en het viaduct'],
 ].map(([n, t]) => ({ src: b64(`docs/screenshots/${n}.png`), t }));
 const kunst = b64(`${map}/voorkant_kunst.jpg`);
 
