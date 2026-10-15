@@ -9317,6 +9317,21 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De Tiger, de regen en de boot (stap 182, 15 okt).**
+- *De knal van de Tiger*: `tigerInslag` raakte alleen `npcs.people` binnen 6 m. Nu `explosieRaakt(x, y, z, straal)` in
+  js/main.js (`TIGER_STRAAL` 9 m): voetgangers, en alles uit `verhaal.doelen()`, `politie.doelen()`, de wedstrijd, de buurt en
+  de ambulance, met dezelfde `raak`-functies als een kogel. Per doel één keer. Een valkuil: bij `politie.raak(obj, nodig)` is het
+  tweede getal het aantal treffers dat nodig is, niet de schade. Dat gold ook voor `npcs.hitPersoon(q, 99)` in de oude
+  `tigerInslag`, en dát was de fout die de gebruiker zag: een voetganger had 99 granaten nodig. Nu `hitPersoon(q, 1)`.
+- *De regen*: `dobbelWeer` liep alleen als de klok een heel uur verder ging. In een missie staat de klok vaak stil, en wie de klok
+  uitzet had nooit ander weer. Staat de klok stil, dan loot hij nu op echte tijd (`WEER_ECHT` = 120 s, een uur op de klok); loopt
+  hij, dan op het hele uur zoals eerst (`kleinwinsttest` toetst dat). En `REGEN_MAX` (3) keer regen op rij wordt bewolkt.
+- *De boot*: `stapUit` zette je 0,6 m achter de eerste plek die niet `vaarbaar` was, vaak tegen het hek van een kade of met een
+  voet in het water. Nu `walVrij`: van 1,2 tot 5 m landinwaarts de eerste plek zonder water binnen 0,8 m en zonder botsdoos
+  (`resolveCollisions` met 0,55 m); lukt dat nergens, dan met 0,6 m, dan 0,36 m (het midden van de smalle steiger in IJlst),
+  en pas dan de oude plek.
+- *Nagelopen*: `npm run wensen7test`.
+
 **Wensen van 15 okt (stap 181).** Gevraagd: sturen op snelheid weer zoals het was, drie nummers op 100% NL, het stuur draait
 verkeerd, vaststaande auto's die blijven toeteren, voetgangers niet veel groter of kleiner dan Erik, en Medal of Honor onder
 No Mercy.

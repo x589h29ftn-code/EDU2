@@ -2755,6 +2755,36 @@ function tigerRaakt(x, y, z) {
   if (y < 2.0) for (const q of npcs.people) if (q.alive && !q.slaapt && Math.hypot(q.x - x, q.z - z) < 0.8) return 'mens';
   return null;
 }
+/*
+ (stap 182, gevraagd: "met de Tiger kan ik geen personen in een radius opblazen als ik ergens schiet") Wie binnen `straal` van
+ een knal staat, gaat neer: voetgangers, agenten (en hun wagens), de mannen van een missie, spelers en publiek bij VV Sneek,
+ de buurt (feest, pizzabezorger, postbode) en de ambulance. Eerst raakte alleen een voetganger binnen 6 m, en die liepen het
+ zelden. Per doel één keer, ook al bestaat iemand uit tien meshes; wie al neer is telt niet nog eens. De speler in de Tiger
+ zit erbuiten. Geeft het aantal neer terug (voor tools/tigertest.mjs).
+*/
+const TIGER_STRAAL = 9;
+const _explPunt = new THREE.Vector3();
+function explosieRaakt(x, y, z, straal) {
+  let neer = 0;
+  for (const q of npcs.people) if (q.alive && !q.slaapt && Math.hypot(q.x - x, q.z - z) < straal) { q.raken = 0; npcs.hitPersoon(q, 1); neer++; }   // (1 = één treffer nodig, niet de schade)
+  const gehad = new Set();
+  const lijst = [...verhaal.doelen(), ...politie.doelen(), ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []),
+    ...(ambulance ? ambulance.doelen() : [])];
+  for (const o of lijst) {
+    if (!o || o.isInstancedMesh) continue;           // de voetgangers staan hierboven
+    o.getWorldPosition(_explPunt);
+    if (Math.hypot(_explPunt.x - x, _explPunt.z - z) > straal || Math.abs(_explPunt.y - y) > straal) continue;
+    const wie = politie.raak(o, 1) || politie.raakWagen(o, 99) || (wedstrijd && wedstrijd.raak(o)) || (leven && leven.raak(o))
+      || (ambulance && ambulance.raak(o)) || verhaal.raak(o, 99);
+    if (!wie) continue;
+    const sleutel = typeof wie === 'object' ? wie : o;
+    if (gehad.has(sleutel)) continue;
+    gehad.add(sleutel); neer++;
+    if (wie.herstel) ambulanceMelding(wie.x, wie.z, { herstel: wie.herstel });
+  }
+  if (neer) { geluid.kreet('pijn', Math.hypot(player.pos.x - x, player.pos.z - z)); politie.misdaad('neergeschoten', x, z); }
+  return neer;
+}
 function tigerInslag(h) {
   tigerKnallen.push(ontplofBij(scene, h.x, h.y, h.z));
   let auto = false;
@@ -2763,7 +2793,7 @@ function tigerInslag(h) {
     c.hp = 0; vehicles.laatOntploffen(c); autoOntploft(c); auto = true;
   }
   for (const t of vehicles.traffic) if (!t.slaapt && t._pos && Math.hypot(t._pos.x - h.x, t._pos.y - h.z) < TIGER_SCHADE * 2) vehicles.schrikAf(t, 'beschoten');
-  for (const q of npcs.people) if (q.alive && !q.slaapt && Math.hypot(q.x - h.x, q.z - h.z) < 6) npcs.hitPersoon(q, 99);
+  explosieRaakt(h.x, h.y, h.z, TIGER_STRAAL);
   if (!auto) {
     const d = Math.hypot(player.pos.x - h.x, player.pos.z - h.z);
     geluid.explosie(d);
@@ -3502,7 +3532,7 @@ window.__game = {
   get molenflat() { return MOLENFLAT_PAND.nu; },   // (stap 163) de flats aan de Molenkrite, voor de proeven
   zetGrafisch, get grafisch() { return grafisch; }, moeilijk, get schaduwKaart() { return SHADOW_MAP; },
   // stap 131
-  pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst, tiger, tigerKnallen, tigerSchade: () => werkTigerSchadeBij(), schokNu: () => SCHOK.kracht,
+  pizzabaan, tennisspel, vishandel, zeilen, tuning, djdienst, tiger, tigerKnallen, explosieRaakt, tigerInslag, tigerSchade: () => werkTigerSchadeBij(), schokNu: () => SCHOK.kracht,
   // stap 138: levens zoals in GTA
   gezondheid, levenToets,
   // (stap 130) hoe bebouwd het is, voor de achtergrondgeluiden

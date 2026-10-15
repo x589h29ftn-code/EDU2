@@ -42,7 +42,7 @@
    * IJlst — naast de steiger op (−1282, 1106); daar hangt 185.000 m² aan.
 */
 import * as THREE from 'three';
-import { vaarbaar } from './world.js';
+import { vaarbaar, pointInWater, resolveCollisions, grondHoogte } from './world.js';
 import { KAART } from './kaartwereld.js';
 import { geluid } from './audio.js';
 import * as T from './textures.js';
@@ -820,24 +820,50 @@ export function initBoten({ scene, player, hud }) {
    je daar een halve meter landinwaarts neer. Ligt de boot midden op de Geeuw,
    dan stap je niet uit; dat scheelt zwemmen.
   */
+  /*
+   (stap 182) Een plek op de wal waar je vrij staat: geen water binnen `UIT_MARGE` rondom, en geen botsdoos waar
+   `resolveCollisions` je uit duwt (een kademuur, een hek, een paal). Eerst kwam je 0,6 m achter de eerste droge plek, dus
+   vaak tegen het hek van de kade of met een voet in het water.
+  */
+  const UIT_DIEP = [1.2, 1.8, 2.5, 3.2, 4, 5], UIT_MARGE = 0.8;
+  function walVrij(x, z, marge = UIT_MARGE) {
+    if (pointInWater(x, z)) return false;
+    for (const m of [marge * 0.5, marge]) for (let i = 0; i < 12; i++) {
+      const h = i / 12 * 6.283;
+      if (pointInWater(x + Math.cos(h) * m, z + Math.sin(h) * m)) return false;
+    }
+    const y = grondHoogte(x, z, 3);
+    const [qx, qz] = resolveCollisions(x, z, 0.55, 0, y);
+    return Math.hypot(qx - x, qz - z) < 0.02;
+  }
   function stapUit() {
     if (!inBoot) return false;
     const b = inBoot;
-    let plek = null;
+    let plek = null, noodPlek = null, ruimPlek = null, smalPlek = null;
     for (let r = BREEDTE * 0.7; r <= 9 && !plek; r += 0.5) {
-      for (let i = 0; i < 24; i++) {
-        const h = i / 24 * 6.283;
-        const x = b.x + Math.cos(h) * r, z = b.z + Math.sin(h) * r;
-        if (!vaarbaar(x, z)) { plek = { x: x + Math.cos(h) * 0.6, z: z + Math.sin(h) * 0.6 }; break; }
+      for (let i = 0; i < 24 && !plek; i++) {
+        const h = i / 24 * 6.283, c = Math.cos(h), sn = Math.sin(h);
+        const x = b.x + c * r, z = b.z + sn * r;
+        if (vaarbaar(x, z)) continue;
+        if (!noodPlek) noodPlek = { x: x + c * 0.6, z: z + sn * 0.6 };
+        // (stap 182, gevraagd: "als je uit een boot gaat kan je soms op de wal net vast zitten, zorg voor wat meer marge")
+        // de kant op, tot `UIT_MARGE` landinwaarts, en dan een plek die echt vrij is
+        for (const diep of UIT_DIEP) {
+          const px = x + c * diep, pz = z + sn * diep;
+          if (walVrij(px, pz)) { plek = { x: px, z: pz }; break; }
+          if (!ruimPlek && walVrij(px, pz, 0.6)) ruimPlek = { x: px, z: pz };
+          if (!smalPlek && walVrij(px, pz, 0.36)) smalPlek = { x: px, z: pz };   // het midden van een smalle steiger
+        }
       }
     }
+    plek = plek || ruimPlek || smalPlek || noodPlek;
     if (!plek) {
       if (hud) hud.show('Te ver van de kant om uit te stappen', 2);
       return false;
     }
     inBoot = null;
     b.gas = 0; b.vx = 0; b.vz = 0; b.snelheid = 0; b.speed = 0;
-    if (player) { player.inBoot = null; player.pos.set(plek.x, 0, plek.z); }
+    if (player) { player.inBoot = null; player.pos.set(plek.x, grondHoogte(plek.x, plek.z, 3), plek.z); }
     geluid.bootMotor(null);
     return true;
   }

@@ -72,7 +72,7 @@ const r = await page.evaluate(async () => {
   const st0 = T.stand;
   T.T.romp.rotation.set(0, 0, 0); T.T.koepel.rotation.y = 0; T.T.kanon.rotation.x = 0; g.scene.updateMatrixWorld(true);
   const bAl = box(T.T.groep);
-  const rompAlleen = new THREE.Box3(); T.T.romp.children.forEach(q => { if (q !== T.T.koepel && q.isMesh) rompAlleen.expandByObject(q); });
+  const rompAlleen = new THREE.Box3(); T.T.romp.children.forEach(q => { if (q !== T.T.koepel && q.isMesh && !q.material.isMeshBasicMaterial) rompAlleen.expandByObject(q); });   // (rook en vuur tellen niet, net als in box)
   uit.maat = { lang: r2(bAl.max.z - bAl.min.z), romp: r2(rompAlleen.max.z - rompAlleen.min.z), breed: r2(bAl.max.x - bAl.min.x), hoog: r2(bAl.max.y - bAl.min.y), onder: r2(bAl.min.y - st0.y) };
   stap(1);
 

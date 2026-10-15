@@ -2118,6 +2118,16 @@ of druk je op **X**, dan zijn de opnames mislukt en staat Erik Jan weer bij de w
 - **Voetgangers** zijn nu ongeveer even groot als Erik: hoogstens 5 % kleiner (een vrouw 8 %) of 4 % groter. Kinderen blijven
   kinderen.
 
+### De Tiger, het weer en de boot (15 okt)
+
+- **De granaat van de Tiger** neemt iedereen binnen 9 m van de inslag mee: voetgangers, agenten en hun wagens, de mannen van
+  een missie, spelers en publiek bij VV Sneek, gasten op een feestje en de ambulance. Eerst ging alleen een voetganger neer
+  die er pal naast stond.
+- **De regen** houdt niet meer dagen aan. Het weer wisselt nu ook als de klok stilstaat (in een missie 's nachts, of als je
+  de klok uitzet), ongeveer elke twee minuten een kans, en een bui duurt hoogstens drie uur op de klok.
+- **Uit de boot** stap je nu een stukje verder de wal op, op een plek waar je nergens tegenaan staat en niet met een voet in
+  het water.
+
 ### Bijmissie · Roan naar Ma
 
 Na missie 5, als ook No Mercy 4 kan, staat er bij **Radio Tinga** een lichtblauwe **R**. Het pand is ook een school. Kom

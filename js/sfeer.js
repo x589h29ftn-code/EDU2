@@ -125,6 +125,15 @@ export function initSfeer(ctx) {
   let zwaar = 0, zwaarDoel = 0;
   let autoWeer = (() => { try { return localStorage.getItem('tinga.weer') !== 'vast'; } catch { return true; } })();
   const W3 = (a, b, c) => (zwaar <= 1 ? a + (b - a) * zwaar : b + (c - b) * (zwaar - 1));
+  /*
+   (stap 182, gevraagd: "de regen lijkt soms wel dagen te duren") Het weer werd alleen geloot als de klok een heel uur verder
+   ging. In een missie staat de klok vaak stil ('s nachts, na zessen, in het zwart), en een speler kan hem uitzetten: dan bleef
+   een bui eindeloos hangen. Staat de klok stil, dan loot hij nu op echte tijd, elke `WEER_ECHT` seconden (zoveel duurt een uur
+   op de klok); loopt hij, dan nog steeds op het hele uur. En verder duurt
+   een bui hoogstens `REGEN_MAX` keer loten; daarna wordt het bewolkt.
+  */
+  const WEER_ECHT = DAG_MINUTEN * 60 / 24, REGEN_MAX = 3;
+  let weerKlok = 0, regenKeer = 0;
   function dobbelWeer() {
     const r = Math.random();
     const nu = Math.round(zwaarDoel);
@@ -132,7 +141,8 @@ export function initSfeer(ctx) {
     let naar = nu;
     if (nu === 0 && r < 0.12) naar = 1;
     else if (nu === 1) naar = r < 0.22 ? 2 : r < 0.5 ? 0 : 1;
-    else if (nu === 2 && r < 0.45) naar = 1;
+    else if (nu === 2 && (r < 0.45 || regenKeer >= REGEN_MAX)) naar = 1;
+    regenKeer = naar === 2 ? regenKeer + 1 : 0;
     zwaarDoel = naar;
   }
   // de klok loopt standaard mee (stap 125); `voorkeur` is wat de speler in de instellingen koos
@@ -496,8 +506,13 @@ export function initSfeer(ctx) {
     if (loopt) {
       const was = uur;
       uur = (uur + dt * (24 / (DAG_MINUTEN * 60))) % 24;     // een dag in 48 minuten (stap 125)
-      if (autoWeer && Math.floor(uur) !== Math.floor(was)) dobbelWeer();
+      if (Math.floor(uur) !== Math.floor(was)) { weerKlok = 0; if (autoWeer) dobbelWeer(); }
       pasToe();
+    }
+    // loopt de klok niet, dan het weer loten op echte tijd (stap 182); loopt hij wel, dan op het hele uur hierboven
+    if (!loopt) {
+      weerKlok += dt;
+      if (weerKlok >= WEER_ECHT) { weerKlok -= WEER_ECHT; if (autoWeer) dobbelWeer(); }
     }
     // het weer schuift naar zijn doel (stap 126)
     if (zwaar !== zwaarDoel) {
@@ -620,7 +635,7 @@ export function initSfeer(ctx) {
     // wisselend weer (stap 126): aan of uit (bewaard in de browser), het weer als getal, en het doel
     get autoWeer() { return autoWeer; },
     set autoWeer(v) { autoWeer = !!v; try { localStorage.setItem('tinga.weer', autoWeer ? 'wisselt' : 'vast'); } catch { /* alleen voor nu */ } },
-    get weerZwaar() { return zwaar; }, get weerDoel() { return zwaarDoel; },
+    get weerZwaar() { return zwaar; }, get weerDoel() { return zwaarDoel; }, get weerKlok() { return weerKlok; }, WEER_ECHT, REGEN_MAX,
     dobbelWeer, naarWeer(naam) { if (WEER.includes(naam)) zwaarDoel = WEER.indexOf(naam); },
     get nacht() { return meng(uur).kracht < 0.35; },
     get loopt() { return loopt; }, set loopt(v) { loopt = v; },
