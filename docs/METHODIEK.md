@@ -9317,6 +9317,16 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Een steekproef door het spel (stap 180, 15 okt).** Gevraagd: "loop steekproefgewijs het spel door op fouten, max een
+halfuur". `npm run rondgang` (tools/rondgang.mjs) laat de echte hoofdlus (requestAnimationFrame) op tien plekken lopen in
+vrij spelen: het beginpunt, de BP naar binnen, de school, rijden, de Tiger (instappen, rijden, schieten), IJlst, Duinterpen,
+'s nachts, het dek van de Dúvelsrak en het beginpunt opnieuw. Per plek: fouten in de console, NaN bij speler, camera,
+verkeer en voetgangers, de speler in een botsdoos of onder de grond, de camera onder de grond, en nieuwe shaderprogramma's
+na de eerste acht beelden. Foto's en console.txt staan in docs/rondgang/.
+- *Uitkomst*: geen fouten. Nul meldingen in de console, geen NaN, niemand in een muur of onder de grond, geen nieuw programma.
+- *Wat niet klopte*: headless haalt maar 2–6 beelden per plek, dus van bewegen zie je weinig. Bij de plek "rijden" stapte
+  `na` al uit vóór `meet` de snelheid las (die stond daardoor op 0); nu meet hij eerst. Dat is nog niet opnieuw gedraaid.
+
 **De rode proeven (stap 179, 15 okt).** Gevraagd: "pak de rode punten op, behalve de wapens".
 
 - **Een tikje sturen op hoge snelheid** (`vierpuntentest` 5,1° waar < 3,4° moest, `racetest` 5,9° waar < 4,6°). Dit was

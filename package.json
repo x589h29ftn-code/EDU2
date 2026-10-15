@@ -287,6 +287,7 @@
     "tigershots": "node tools/tigershots.mjs",
     "tigertest": "node tools/tigertest.mjs",
     "roantest": "node tools/roantest.mjs",
-    "roanshots": "node tools/roanshots.mjs"
+    "roanshots": "node tools/roanshots.mjs",
+    "rondgang": "node tools/rondgang.mjs"
   }
 }
