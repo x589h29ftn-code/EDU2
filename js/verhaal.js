@@ -12070,6 +12070,8 @@ export function initVerhaal(ctx) {
     if (navDoel && navDoel.letter === 'R') { navDoel = null; hud.zetNavigatie(null); }
   }
   function roanBegin() {
+    // de opdracht en de navigatie van het verhaal bewaren, en na afloop terugzetten (zoals No Mercy 4)
+    roan.pauze = nmBewaarBeeld();
     roan.fase = 'ophalen';
     const p = roanSpeelPlek();
     roanKind.zetNeer(p.x, p.z, 0); roanKind.legNeer(0); roanKind.groep.visible = true;
@@ -12092,6 +12094,7 @@ export function initVerhaal(ctx) {
     hud.zetRoan(null);
     if (navDoel && navDoel.letter === 'R') { navDoel = null; hud.zetNavigatie(null); }
     hud.melding('MISSIE GESLAAGD', `Roan is bij Ma. + ${euro(n)}`, 7);
+    { const b = roan.pauze; roan.pauze = null; nmZetBeeldTerugVan(b); }
     roan.wegT = 4;           // dan gaan Ma en Roan naar binnen
     if (checkpoint && player.health > 0) { checkpoint(); hud.show('Checkpoint opgeslagen', 2); }
   }
@@ -12168,9 +12171,13 @@ export function initVerhaal(ctx) {
       if (!kan || !balk.hidden || gesprek) return;
       if (roan.belT > 0 && roan.belT !== Infinity) roan.belT -= dt;
       const dSchool = Math.hypot(sp.x - school.x, sp.z - school.z);
-      // in de buurt van de school, of er loopt geen missie (vrij spelen, of een missie die onder zijn M wacht)
+      /*
+       In de buurt van de school, of er is geen missie meer (vrij spelen na het einde). (Stap 179: eerst was een missie die
+       op zijn telefoontje of onder zijn M wachtte ook "geen missie"; dan belde Mark vóór Ronald en nam de R van Roan
+       diens navigatie over, racetest.)
+      */
       const klaarVoor = roan.belT <= 0 || roan.belT === Infinity;
-      if (klaarVoor && (dSchool < ROAN.buurt || !missieBezig()) && !(nm.fase === 'bellen')) {
+      if (klaarVoor && (dSchool < ROAN.buurt || missie === 'klaar') && naMissieT <= 0 && !(nm.fase === 'bellen')) {
         roan.fase = 'bellen'; roan.telT = 2.0;
         geluid.telefoon(3);
       }
@@ -12208,6 +12215,7 @@ export function initVerhaal(ctx) {
   function roanStop() {
     if (!roanBezig()) return;
     roanRuimOp();
+    { const b = roan.pauze; roan.pauze = null; nmZetBeeldTerugVan(b); }
     roan.fase = 'wacht'; roan.belT = 0;
   }
 

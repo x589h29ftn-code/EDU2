@@ -2104,7 +2104,7 @@ of druk je op **X**, dan zijn de opnames mislukt en staat Erik Jan weer bij de w
 ### Bijmissie · Roan naar Ma
 
 Na missie 5, als ook No Mercy 4 kan, staat er bij **Radio Tinga** een lichtblauwe **R**. Het pand is ook een school. Kom
-je in de buurt van de school, of loopt er geen missie, dan belt **Mark**: *"Erik, ff je hulp nodig. Kan jij Roan naar Ma
+je in de buurt van de school, of speel je na het einde vrij, dan belt **Mark**: *"Erik, ff je hulp nodig. Kan jij Roan naar Ma
 brengen? Super bedankt!"* Hij belt pas anderhalve minuut na missie 5, dus niet door het telefoontje van Erik Jan heen.
 
 **Roan** is een jongetje van vier, blond en met een rood shirt. Hij staat bij de speeltoestellen naast de school, maar pas

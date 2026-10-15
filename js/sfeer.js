@@ -568,8 +568,8 @@ export function initSfeer(ctx) {
    overgang (`soepel`) zodat er nergens een schakelaar omgaat.
 
    `drukte`   hoeveel verkeer en voetgangers de wijk om je heen wil hebben.
-              Overdag vol; tussen half elf en half twaalf zakt het weg naar een
-              zesde, en tussen vijf en half zeven 's ochtends komt het terug
+              Overdag vol; tussen half elf en half twaalf zakt het weg naar
+              12 % (tot stap 179 een zesde), en tussen vijf en half zeven 's ochtends komt het terug
               (verzoek 25 sep 2026).
    `lampenAan` hoeveel van de straatverlichting in de woonstraten nog brandt.
               Tot middernacht alles; in het uur daarna gaat het naar een derde,
@@ -579,11 +579,14 @@ export function initSfeer(ctx) {
     const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
     return t * t * (3 - 2 * t);
   };
+  // (stap 179) 's nachts 12 % in plaats van een zesde: sinds er overdag meer mensen en auto's zijn (stap 129) bleef het
+  // midden in de nacht te druk om je heen (nachttest: 7 mensen binnen 200 m en 5 auto's binnen 300 m)
+  const NACHT_DRUKTE = 0.12;
   function drukteFactor() {
     if (uur >= 6.5 && uur < 22.5) return 1;
-    if (uur >= 22.5) return 1 - 0.84 * soepel(22.5, 23.5, uur);
-    if (uur < 5) return 0.16;
-    return 0.16 + 0.84 * soepel(5, 6.5, uur);
+    if (uur >= 22.5) return 1 - (1 - NACHT_DRUKTE) * soepel(22.5, 23.5, uur);
+    if (uur < 5) return NACHT_DRUKTE;
+    return NACHT_DRUKTE + (1 - NACHT_DRUKTE) * soepel(5, 6.5, uur);
   }
   /*
    De ramen (verzoek 26 sep 2026: "vanaf 24:00 minder lampen aan in de woningen,

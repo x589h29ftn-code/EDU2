@@ -782,7 +782,17 @@ export class Vehicles {
     */
     const naar = doel * maxStuur;
     const opbouwen = Math.abs(naar) > Math.abs(car.steer) && naar * car.steer >= 0;
-    const tempo = typeof keys.stuur === 'number' || !opbouwen ? 8 : Math.min(8, 8 * (car.stuurOpbouw || 1) / (1 + Math.abs(car.speed) / 40));
+    let tempo = typeof keys.stuur === 'number' || !opbouwen ? 8 : Math.min(8, 8 * (car.stuurOpbouw || 1) / (1 + Math.abs(car.speed) / 40));
+    /*
+     (stap 179) En op snelheid loopt een toets de eerste 0,15 s zacht aan: sinds de Ferrari wendbaarder werd (stap 129,
+     grip 64 en een snellere opbouw) gaf een tikje van een tiende seconde op 200 km/u weer 5° koers (vierpuntentest,
+     racetest). Vasthouden haalt nog steeds de volle uitslag; onder de 90 km/u merk je er niets van.
+    */
+    car.stuurHoud = doel && typeof keys.stuur !== 'number' ? (car.stuurHoud || 0) + dt : 0;
+    if (opbouwen && typeof keys.stuur !== 'number') {
+      const zacht = 0.15 * Math.min(1, Math.abs(car.speed) / 25);
+      if (zacht > 0) tempo *= Math.min(1, car.stuurHoud / zacht) ** 2;
+    }
     car.steer += (naar - car.steer) * Math.min(1, dt * tempo);
 
     // ---- motor, rem en rolweerstand ----
@@ -1166,7 +1176,8 @@ export class Vehicles {
     for (let i = 0; i < this.traffic.length; i++) {
       const t = this.traffic[i];
       if (t.slaap === undefined) t.slaap = ((i + 1) * 2654435761 % 4294967296) / 4294967296;
-      let wakker = t.slaap < (t.lokaal ? f : Math.max(0.25, f));
+      // (stap 179) op de doorgaande weg blijft 's nachts 12 % rijden, net als in de wijk (was een kwart)
+      let wakker = t.slaap < (t.lokaal ? f : Math.max(0.12, f));
       /*
        `zoneSlaapt` (missie 15): alles wat op de vrije zone rijdt slaapt, ook het doorgaande
        verkeer op de N7, en dat mag al op dertig meter van de camera. Bouwman rijdt langs een

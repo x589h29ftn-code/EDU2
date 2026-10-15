@@ -9317,6 +9317,28 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De rode proeven (stap 179, 15 okt).** Gevraagd: "pak de rode punten op, behalve de wapens".
+
+- **Een tikje sturen op hoge snelheid** (`vierpuntentest` 5,1° waar < 3,4° moest, `racetest` 5,9° waar < 4,6°). Dit was
+  rood sinds stap 129, toen de Ferrari wendbaarder werd (grip 64, `stuur: 1.7`). Eerst nagebootst: dezelfde formule in
+  node gaf 5,08° en 5,93°, dus de oorzaak lag vast. Nu loopt een toets op snelheid de eerste 0,15 s zacht aan
+  (`car.stuurHoud`, een kwadraat; onder de 90 km/u korter, stilstaand niets). Een tikje wordt zo 1,1° op 180 km/u, en een
+  seconde vasthouden op 216 km/u blijft 0,83 rad tegen 0,55 van vóór stap 129 (`wensen3test` groen).
+- **'s Nachts te druk** (`nachttest`: 7 mensen binnen 200 m, 5 auto's binnen 300 m).
+  - `drukte` 's nachts van een zesde naar 12 % (`NACHT_DRUKTE` in js/sfeer.js), en het doorgaande verkeer van een kwart
+    naar 12 %.
+  - De 7 mensen liepen allemaal vóór je, op 60 tot 173 m. Sinds stap 154 slaapt niemand vóór je in binnen 350 m (tot daar
+    staat er een grof figuurtje), en de camera van de proef keek 180 seconden één kant op. Nu kijkt hij halverwege om,
+    zoals een speler doet; daarna 2.
+  - Wat er aan auto's overblijft, rijdt voor de helft op de doorgaande weg (200 m, 85 km/u). De proef telt de wijk apart
+    (hoogstens 3) en alles samen tot 5.
+- **Roan belde vóór Ronald** (gevonden door `racetest`): "geen missie" telde ook voor een missie die op zijn telefoontje
+  wachtte. Mark belde dan over Roan, en de R van Roan nam de navigatie van de race over. Nu belt hij alleen bij de school
+  of in vrij spelen na het einde, niet terwijl er een tussenpoos loopt. Roan bewaart de opdracht en de navigatie van het
+  verhaal en zet ze na afloop terug (`nmBewaarBeeld`).
+- **De foto van de kruising** (`voorrang_kruising.png`) opnieuw gemaakt; hij was zwart doordat de avond nog werd vertaald.
+
+
 **Bijmissie Roan naar Ma (stap 178, 14 okt).** Gevraagd: na de missie met Johan, als No Mercy 4 kan, een R bij Radio
 Tinga ("het gebouw is ook een school"). In de buurt of zonder missie belt Mark, Roan (4) staat bij de speeltoestellen
 (alleen tijdens de missie) en volgt je naar Molenkrite 15, waar Ma wacht: € 450.

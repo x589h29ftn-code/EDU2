@@ -30,6 +30,7 @@ await page.evaluate(async () => {
   // na missie 5, en meteen Marks telefoontje
   const s = v.bewaar(); s.missie = 'bx'; s.fase = 'wacht'; s.noMercyKlaar = true; s.noMercyGebeld = true; s.roanKlaar = false;
   v.herstel(s); v.__geenVolgende();
+  const sc = v.roan.school; g.player.pos.set(sc.x + 60, 0, sc.z + 20);   // bij de school belt Mark (stap 179)
   v.roan.zetBel(0);
   for (let i = 0; i < 80; i++) v.update(0.05);
   for (let i = 0; i < 12 && !document.getElementById('dialoog').hidden; i++) { v.toets(); v.update(0.05); }

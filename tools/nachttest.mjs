@@ -152,6 +152,12 @@ const slaap = await page.evaluate(() => {
     g.sfeer.uur = uur; g.sfeer.update(0.1, s.x, s.z);
     N.drukte = g.sfeer.drukte; V.drukte = g.sfeer.drukte;
     for (let t = 0; t < 90; t += 0.1) {
+      /*
+       (stap 179) 's nachts kijkt Erik halverwege om, zoals een speler rondkijkt. Sinds stap 154 slaapt niemand vóór je in
+       binnen 350 m (tot daar staat er een grof figuurtje): met de camera de hele nacht één kant op bleef wie bij het vallen
+       van de nacht vóór je liep, wakker (7 mensen op 60–173 m, allemaal vóór je).
+      */
+      N.kijk = (naam === 'nacht' || naam === 'weer') && t >= 45 ? { x: 0, z: 1 } : { x: 0, z: -1 };
       N.update(0.1, t, s.x, s.z);
       V.updateTraffic(0.1, g.player, null, s.x, s.z);
       // wie van stand wisselt: waar stond hij?
@@ -173,8 +179,8 @@ const slaap = await page.evaluate(() => {
           const ex = sg.b[0] - sg.a[0], ez = sg.b[1] - sg.a[1], el = Math.max(0.1, Math.hypot(ex, ez));
           const off = (sg.walkOff || sg.w / 2 + 0.8) * (st.side || 0);
           const dx = sg.a[0] + ex * tt - ez / el * off - s.x, dz = sg.a[1] + ez * tt + ex / el * off - s.z, d = Math.hypot(dx, dz);
-          // de kijkrichting is (0, -1): achter je is dz > 0
-          const achter = dz > 0;
+          // achter je: tegen de kijkrichting in (die is (0, −1), halverwege de nacht (0, 1))
+          const achter = dz * N.kijk.z < 0;
           // (twee meter marge, de ruime kant op: de wissel mag verder dan 120 m, of
           // verder dan 45 m achter je; hier stond 47, en dat telde wie op 46 m
           // achter je insliep als fout)
@@ -193,7 +199,11 @@ const slaap = await page.evaluate(() => {
     const nabij = N.people.filter(p => !p.slaapt && p.alive && Math.hypot(p.x - s.x, p.z - s.z) < 200).length;
     const autos = V.traffic.filter(a => !a.slaapt).length;
     const autosNabij = V.traffic.filter(a => !a.slaapt && a._pos && Math.hypot(a._pos.x - s.x, a._pos.y - s.z) < 300).length;
-    uit[naam] = { wakker, nabij, autos, autosNabij, van: N.people.length, autoVan: V.traffic.length };
+    // (stap 179) wie er wakker om je heen loopt: bezig (`doe`: bankje, winkel), vóór of achter je (de proef kijkt naar −z)
+    const wie = N.people.filter(p => !p.slaapt && p.alive && Math.hypot(p.x - s.x, p.z - s.z) < 200);
+    const autoWie = V.traffic.filter(a => !a.slaapt && a._pos && Math.hypot(a._pos.x - s.x, a._pos.y - s.z) < 300).map(a => `${a.lokaal ? 'wijk' : 'door'} ${Math.round(Math.hypot(a._pos.x - s.x, a._pos.y - s.z))} m ${Math.round(Math.abs(a.snelheid || 0))} m/s`);
+    const waarom = { autoWie, doe: wie.filter(p => p.doe).length, verborgen: wie.filter(p => p.verborgen).length, voor: wie.filter(p => p.z - s.z < 0).length, afstand: wie.map(p => Math.round(Math.hypot(p.x - s.x, p.z - s.z))) };
+    uit[naam] = { wakker, nabij, autos, autosNabij, van: N.people.length, autoVan: V.traffic.length, waarom };
   }
   uit.inBeeld = inBeeld; uit.autoDichtbij = autoDichtbij;
   N.drukte = 1; V.drukte = 1;
@@ -204,8 +214,11 @@ ok(slaap.middag.wakker === slaap.middag.van && slaap.middag.autos === slaap.midd
   `${slaap.middag.wakker} mensen, ${slaap.middag.autos} auto's; ${slaap.middag.nabij} binnen 200 m, ${slaap.middag.autosNabij} auto's binnen 300 m`);
 ok(slaap.nacht.wakker <= slaap.nacht.van * 0.25 && slaap.nacht.autos <= slaap.nacht.autoVan * 0.4,
   'om één uur slaapt het grootste deel, ook buiten de buurt', `${slaap.nacht.wakker} van ${slaap.nacht.van} mensen wakker, ${slaap.nacht.autos} van ${slaap.nacht.autoVan} auto's`);
-ok(slaap.nacht.nabij <= 6 && slaap.nacht.autosNabij <= 3 && slaap.nacht.nabij < slaap.middag.nabij / 2,
-  'en om je heen is het stil', `${slaap.nacht.nabij} mensen binnen 200 m (overdag ${slaap.middag.nabij}), ${slaap.nacht.autosNabij} auto's binnen 300 m`);
+// (stap 179) de wijk stil (hoogstens 3 auto's uit de wijk binnen 300 m); op de doorgaande weg blijft 's nachts 12 % rijden
+// (sinds stap 129 is er meer verkeer), dus samen hoogstens 5
+const wijkNacht = slaap.nacht.waarom.autoWie.filter(a => a.startsWith('wijk')).length;
+ok(slaap.nacht.nabij <= 6 && wijkNacht <= 3 && slaap.nacht.autosNabij <= 5 && slaap.nacht.nabij < slaap.middag.nabij / 2,
+  'en om je heen is het stil', `${slaap.nacht.nabij} mensen binnen 200 m (overdag ${slaap.middag.nabij}), ${slaap.nacht.autosNabij} auto's binnen 300 m · ${JSON.stringify(slaap.nacht.waarom)}`);
 ok(slaap.weer.wakker === slaap.weer.van && slaap.weer.autos === slaap.weer.autoVan, 'en de volgende middag is iedereen er weer');
 ok(slaap.inBeeld === 0 && slaap.autoDichtbij === 0, 'niemand verdwijnt of verschijnt waar je het ziet',
   `${slaap.inBeeld} mensen, ${slaap.autoDichtbij} auto's dichtbij van stand gewisseld`);
