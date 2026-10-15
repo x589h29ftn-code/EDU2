@@ -9317,6 +9317,24 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Statistieken in het pauzemenu en de titelrol (stap 195, 15 okt).** Gevraagd: "een statistiekenscherm in het pauzemenu …
+en deze ook in het eind scherm laten zien. Optie 3 ook" (missies opnieuw spelen: die bestond al sinds stap 123, missie 2–18 na het
+einde vanuit het pauzemenu).
+- *js/statistiek.js*: één teller voor het hele spel. `werkBij` uit de hoofdlus van js/main.js (tijd alleen als je speelt; afstand
+  te voet, met de auto en met de boot uit het verschil in plek, een sprong van meer dan 25 m telt niet; geld verdiend en uitgegeven
+  uit het verschil in `verhaal.geld`; `klusjes.gedaan`; de hoogste `politie.ster`; neergaan als het leven van boven nul naar nul
+  gaat). `tel` uit `shootCb` (schoten, mensen neer bij voetgangers, de wedstrijd, de buurt en omstanders, agenten neer) en uit
+  `autoOntploft`. `regels(voortgang)` geeft de regels; `verhaal.voortgang()` telt de missies (18 na het einde, anders de plek van de
+  huidige of de volgende missie in `MISSIE_RIJ`) en de drie bijmissies.
+- In de opslag (`statistiek`); een checkpoint draait de tellers niet terug (`opnieuw`, anders telde het geld van het laden als
+  verdiend); een nieuw spel begint bij nul.
+- Het pauzemenu: de knop Statistieken met een paneel in twee kolommen (`zetStatistiek`); de titelrol: "Jouw spel in cijfers", en
+  de titelrol duurt 30 in plaats van 22 s.
+- *Nagelopen*: `npm run statistiektest` (17 controles: de teller los, een schot en een voetganger in het spel, opslaan en laden,
+  een checkpoint, het menu, de titelrol). Foto's: `npm run statistiekshots`. De eerste foto liet zien dat de lijst onder uit het
+  menu liep: daarom twee kolommen.
+- Het ontwerp voor de geocache (optie 5) staat in docs/ontwerp-geocache.md; nog niet gebouwd.
+
 **Steekproef: de Bouwman-missies en de race (stap 194, 15 okt).** Gevraagd: "zet nog wat steekproeven uit bij de Bouwman missies
 en de race. Volgen hier nog bijzonderheden uit?" Na stap 189–193 (het pompgeweer in `shootCb`, de praatjes, Roan) negen proeven
 opnieuw: `racetest` (72), `geldracetest` (17), `schaduwtest` (64), `invaltest` (52), `ronaldtest` (51), `avondtest` (54),

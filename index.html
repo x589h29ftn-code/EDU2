@@ -256,6 +256,11 @@
   /* de lijst met missies om opnieuw te spelen (stap 123): kleiner, en scrollen als hij niet past */
   .menuknop.klein { font-size: 15px; font-weight: 500; padding: 5px 0; }
   .menuzij:has(.menuknop.klein) { max-height: 46vh; overflow-y: auto; }
+  /* (stap 195) de statistieken in twee kolommen, zodat de hele lijst in beeld past */
+  .menuzij[data-welke="statistiek"] { display: grid; grid-template-columns: 1fr 1fr; column-gap: 26px; max-height: 52vh; overflow-y: auto; }
+  .menuzij[data-welke="statistiek"][hidden] { display: none; }
+  .menuzij[data-welke="statistiek"] h3 { grid-column: 1 / -1; }
+  .menuzij[data-welke="statistiek"] .menusleutel { flex: 0 0 auto; min-width: 104px; }
   .menuzij h3 { margin: 0 0 10px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #ffd400; }
   .menurij { display: flex; gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.07); align-items: center; }
   .menurij:last-child { border-bottom: 0; }

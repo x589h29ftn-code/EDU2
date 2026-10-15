@@ -42,6 +42,7 @@ import { initDerdePersoon } from './derdepersoon.js';
 import { initPolitie } from './politie.js';
 import { initPolitieboot } from './politieboot.js';
 import { initVaart } from './vaart.js';
+import { statistiek } from './statistiek.js';
 import { bewaarSpel, laadSpel, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint, opslagen, kiesPlek, startNieuwSpel } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen, inZuilengang } from './kaartwereld.js';
@@ -1331,6 +1332,7 @@ function steekRaak(h, dir) {
   if (raakMens) {
     pijn(); bloedBij(h.point, dir, raakMens);
     if (raakMens.neer) {
+      statistiek.tel('mensen');
       politie.misdaad('neergeschoten', h.point.x, h.point.z);
       nieuws.meld('schietpartij', h.point.x, h.point.z);
       ambulanceMelding(raakMens.x ?? h.point.x, raakMens.z ?? h.point.z);
@@ -1338,6 +1340,7 @@ function steekRaak(h, dir) {
     }
   } else if ((raakAgent = politie.raak(h.object, nodig))) {
     pijn(); bloedBij(h.point, dir, raakAgent);
+    if (raakAgent.neer) statistiek.tel('agenten');
     if (raakAgent.neer) buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie(), h.point.y - 1);
   } else if (wedstrijd && wedstrijd.raak(h.object)) {
     pijn(); bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
@@ -1396,6 +1399,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120, korrels = null
     steekRaak(h, dir);
     return;
   }
+  statistiek.tel('schoten');                    // (stap 195)
   // wie op een tuinfeest staat schrikt van een schot in de buurt (stap 113)
   if (leven) leven.schrik(origin.x, origin.z);
   // de sniper schudt het hele beeld even (stap 111: de terugslag "voelt vrij zwak")
@@ -1462,6 +1466,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120, korrels = null
         pijn(h.point);
         bloedBij(h.point, dir, raakMens);
         if (raakMens.neer) {
+          statistiek.tel('mensen');
           politie.misdaad('neergeschoten', h.point.x, h.point.z);
           nieuws.meld('schietpartij', h.point.x, h.point.z);
           ambulanceMelding(raakMens.x ?? h.point.x, raakMens.z ?? h.point.z);
@@ -1473,6 +1478,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120, korrels = null
         bloedBij(h.point, dir, raakAgent);
         // een agent draagt munitie bij zich: drie tot vijftien kogels, en die
         // passen in elk wapen
+        if (raakAgent.neer) statistiek.tel('agenten');
         if (raakAgent.neer) buit.laatVallen('kogels', h.point.x, h.point.z, agentMunitie(), h.point.y - 1);
       }
       /*
@@ -1504,6 +1510,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120, korrels = null
         bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
         politie.misdaad('neergeschoten', h.point.x, h.point.z);
         nieuws.meld('schietpartij', h.point.x, h.point.z);
+        statistiek.tel('mensen');
         ambulanceMelding(h.point.x, h.point.z, wedstrijdSlachtoffer());
         raakVerhaal = true;
       }
@@ -1513,6 +1520,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120, korrels = null
         bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
         politie.misdaad('neergeschoten', h.point.x, h.point.z);
         nieuws.meld('schietpartij', h.point.x, h.point.z);
+        statistiek.tel('mensen');
         if (raakLeven.herstel) ambulanceMelding(raakLeven.x, raakLeven.z, { herstel: raakLeven.herstel });
         raakVerhaal = true;
       }
@@ -1522,6 +1530,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120, korrels = null
         bloedBij(h.point, dir, { neer: true, x: h.point.x, z: h.point.z });
         politie.misdaad('neergeschoten', h.point.x, h.point.z);
         nieuws.meld('schietpartij', h.point.x, h.point.z);
+        statistiek.tel('mensen');
         raakVerhaal = true;
       }
       // (de sniper legt ook een taaie bodyguard in één keer neer: stap 110)
@@ -1572,6 +1581,7 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120, korrels = null
  politie op de plek afstuurt, en schade voor wie er te dicht bij staat.
 */
 function autoOntploft(car) {
+  statistiek.tel('autos');                      // (stap 195)
   const d = Math.hypot(player.pos.x - car.x, player.pos.z - car.z);
   nieuws.meld('explosie', car.x, car.z);            // Radio Tinga (stap 112)
   if (leven) leven.schrik(car.x, car.z);
@@ -2269,7 +2279,7 @@ async function voorFilm() {
 async function startGame(vervolg = false, metIntro = false) {
   if (vervolg) laadSpelNu();
   // een nieuw spel begint zonder het checkpoint van een vorig spel, en krijgt bij de eerste keer opslaan een eigen plek
-  else { wisCheckpoint(); startNieuwSpel(); }
+  else { wisCheckpoint(); startNieuwSpel(); statistiek.nieuw(); }
   gepauzeerd = false;
   menu.verbergMenu();
   geluid.start();
@@ -2616,6 +2626,8 @@ try { geluid.zetSchotSoort(localStorage.getItem('tinga.schot') || 'opname'); } c
  De lijst bij Spel laden (stap 127): per opgeslagen spel de missie, het moment van de dag in het spel, en wanneer en
  waar je opsloeg. Kiezen zet die plek klaar; het laden zelf gaat zoals altijd.
 */
+// (stap 195) de statistieken in het pauzemenu
+menu.zetStatistiek(() => statistiek.regels(verhaal.voortgang ? verhaal.voortgang() : null));
 menu.zetOpslagen(() => opslagen().map(o => {
   const d = new Date(o.tijd);
   const datum = `${d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
@@ -2954,6 +2966,12 @@ function loop() {
    's ochtends komt het terug. js/npc.js en js/vehicles.js verhuizen mensen en
    auto's naar je buurt; dit zegt er alleen hoeveel het er moeten zijn.
   */
+  // de statistieken (stap 195): tijd, afstand, geld, klusjes, sterren en neergaan, uit de stand van het spel
+  {
+    const sp = player.inCar ? player.inCar : player.pos;
+    statistiek.werkBij(dt, { speelt: player.active && !gepauzeerd, x: sp.x, z: sp.z, auto: !!player.inCar, boot: !!(boten && boten.inBoot),
+      geld: verhaal.geld, klusjes: verhaal.klusjes ? verhaal.klusjes.gedaan : 0, sterren: politie.ster || 0, leven: player.health });
+  }
   const drukteNu = sfeer ? sfeer.drukte : 1;
   npcs.drukte = drukteNu;
   vehicles.drukte = drukteNu;
@@ -3554,6 +3572,7 @@ avondBelofte = warmDeAvondOpInStukjes().then(n => { console.log(`avond: ${n} mes
 // Testhaak voor automatische screenshots
 opstartStap('klaar');
 window.__game = {
+  statistiek,
   // stap 152: de schuifdeuren van de Poiesz (js/zuilengang.js)
   schuifdeuren: SCHUIFDEUREN, werkSchuifdeurenBij,
   get aaff() { return AAFF_PAND.nu; },

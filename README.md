@@ -953,6 +953,17 @@ achtste schot springt de lege clip er met een ping uit; daarna druk je van boven
 
 ![De M1 Garand van opzij](docs/screenshots/m1_zij.png)
 
+## Jouw spel in cijfers
+
+In het pauzemenu (Esc) staat **Statistieken**: hoe lang je speelt, hoeveel missies en bijmissies je hebt gedaan, de klusjes,
+de kilometers in de auto, te voet en met de boot, wat je verdiend en uitgegeven hebt, je schoten, hoeveel mensen en agenten er
+neergingen, de opgeblazen auto's, je hoogste aantal sterren en hoe vaak je zelf neerging. Dezelfde cijfers komen aan het eind in de
+titelrol. Na het einde kun je in het pauzemenu ook elke missie (2 tot en met 18) **opnieuw spelen**.
+
+![De statistieken in het pauzemenu](docs/screenshots/statistiek_menu.png)
+
+![De cijfers in de titelrol](docs/screenshots/statistiek_titelrol.png)
+
 ## Even kletsen met Mark en Johan
 
 Tussen de missies door staat Mark op de stoep voor Molenkrite 15 en Johan op zijn oprit aan het Kruirad 62. Loop erheen en druk op

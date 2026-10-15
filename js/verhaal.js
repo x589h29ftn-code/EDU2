@@ -59,6 +59,7 @@ import { initRace } from './race.js';
 import { initSchaduw, lijnDoor } from './schaduw.js';
 import { initKlusjes } from './klusjes.js';
 import { PRAATJES, kiesPraatje } from './praatjes.js';
+import { statistiek } from './statistiek.js';
 import { grondHoogte } from './viaduct.js';
 import { INVAL, vluchtLijn, nieuweVlucht, rijdVlucht, invalRoute as invalRouteJs, crashSchuif, renVrij, profiel, puntOp } from './inval.js';
 import { maakRondvlucht, RONDVLUCHT } from './rondvlucht.js';
@@ -4146,6 +4147,15 @@ export function initVerhaal(ctx) {
     if (missie === 'race' && geldInleg) return 'Racen voor geld';
     const i = MISSIE_RIJ.indexOf(missie);
     return i < 0 ? 'Vrij spelen' : `Missie ${i + 1} · ${MISSIE_NAAM[missie] || missie}`;
+  }
+  // (stap 195) hoe ver het verhaal is, voor de statistieken: de missies die af zijn, en de drie bijmissies
+  function voortgang() {
+    let missies;
+    if (uitzendingKlaar) missies = 18;
+    else if (missie === 'klaar') missies = Math.max(0, MISSIE_RIJ.indexOf(naMissieNaam));
+    else missies = Math.max(0, MISSIE_RIJ.indexOf(missie));
+    const bij = [nm.klaar, n5.klaar, roan.klaar];
+    return { missies, bijmissies: bij.filter(Boolean).length, bijTotaal: bij.length };
   }
   function herspeelbaar() {
     if (!uitzendingKlaar || missie !== 'klaar' || klusjes.bezig || geldInleg || uitjeBezig() || zwart || titelrol) return [];
@@ -9710,13 +9720,17 @@ export function initVerhaal(ctx) {
         '<p>Erik</p>', '<p>Mark, zijn broer</p>', '<p>Johan</p>', '<p>Ronald</p>', '<p>Sjors, Radio Tinga 87.9 FM</p>', '<br>',
         '<p class="klein">De Veteraan †</p>', '<p class="klein">Bouwman — verleden tijd</p>', '<br>',
         `<p>achttien missies</p>`, `<p>${euro(geld)} op zak</p>`, '<br>',
+        // (stap 195) je spel in cijfers
+        '<h2>Jouw spel in cijfers</h2>',
+        ...statistiek.regels(voortgang()).map(([k, w]) => `<p class="klein">${k}: <b>${w}</b></p>`), '<br>',
         '<p class="klein">de wijk uit de BGT en de 3D BAG</p>', '<p class="klein">gebouwd met Three.js</p>', '<br>',
         '<h2>Tinga is van jou.</h2>', '<p class="klein">Speel vrij verder: klusjes, de Ferrari, de radio.</p>', '<br>',
         '<h2>Gefeliciteerd met je verjaardag, Erik!</h2>',
       ].join('');
     }
     titelrolEl.hidden = false;
-    titelrol = { t: 0, duur: 22 };
+    // (stap 195: 30 s in plaats van 22, er staan nu ook de cijfers in)
+    titelrol = { t: 0, duur: 30 };
     zetTitelrol(0);
   }
   function zetTitelrol(f) {
@@ -13399,7 +13413,9 @@ export function initVerhaal(ctx) {
 
   return {
     update, toets, doelen, raak, hinder, bewaar, herstel, naLaden, meldAan, schotGehoord, dood, mislukt,
-    herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; }, missieTitel,
+    herspeelbaar, herspeel, get herspeelt() { return herspeelNaam; }, missieTitel, voortgang,
+    // (stap 195, voor tools/statistiektest.mjs) de titelrol los openen en sluiten
+    __titelrol: (open = true) => { if (open) openTitelrol(); else sluitTitelrol(); },
     // (stap 127, voor tools/wensentest.mjs: je auto bij huis neerzetten)
     springNaarHuis: () => springNaarHuis(),
     // (stap 129) waar Kali uit het radiootje van missie 1 speelt, of null

@@ -297,6 +297,8 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opsla
     laden: knop('Spel laden', 'menuLaden', () => { const l = opslagLijst ? opslagLijst() : []; if (l.length > 1) toonPaneel('laden'); else kies('laden')(); }),
     // na het einde: een missie opnieuw spelen (stap 123); de lijst komt uit js/verhaal.js
     herspeel: knop('Missie opnieuw', 'menuHerspeel', () => toonPaneel('herspeel')),
+    // (stap 195) je spel in cijfers; de regels komen uit js/statistiek.js via js/main.js
+    statistiek: knop('Statistieken', 'menuStatistiek', () => toonPaneel('statistiek')),
     instellingen: knop('Instellingen', 'menuInstellingen', () => toonPaneel('instellingen')),
     besturing: knop('Besturing', 'menuBesturing', () => toonPaneel('besturing')),
     afsluiten: knop('Afsluiten', 'menuAfsluiten', () => opAfsluiten && opAfsluiten()),
@@ -305,6 +307,7 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opsla
   knoppen.doorgaan.hidden = true;
   knoppen.opslaan.hidden = true;
   knoppen.herspeel.hidden = true;
+  knoppen.statistiek.hidden = true;
   knoppen.laden.hidden = !heeftOpslag;
   // onder de knoppen: wat een nieuw spel doet (bij de vraag), en een opslag die niet te lezen is
   const nieuwUitleg = document.createElement('div'); nieuwUitleg.className = 'menuonder'; nieuwUitleg.id = 'menuNieuwUitleg';
@@ -375,6 +378,8 @@ function zetOpslag(info, staat) {
 // Instellingen en besturing, allebei in hetzelfde uitklapvak onder de knoppen.
 let instelHaak = null;
 export function zetInstellingen(haak) { instelHaak = haak; }
+let statHaak = null;
+export function zetStatistiek(haak) { statHaak = haak; }
 // de opgeslagen spellen (stap 127): `lijst()` geeft [{ plek, titel, onder, actief }], `kies(plek)` zet die klaar
 let opslagLijst = null, opslagKies = null;
 export function zetOpslagen(lijst, kiesPlek) { opslagLijst = lijst; opslagKies = kiesPlek; }
@@ -397,6 +402,11 @@ function toonPaneel(welke) {
   z.dataset.welke = welke;
   z.innerHTML = '';
   z.hidden = false;
+  if (welke === 'statistiek') {
+    const kop = document.createElement('h3'); kop.textContent = 'Jouw spel in cijfers'; z.append(kop);
+    for (const [k, w] of (statHaak ? statHaak() : [])) z.append(rij(k, w));
+    return;
+  }
   if (welke === 'herspeel') {
     const kop = document.createElement('h3'); kop.textContent = 'Missie opnieuw spelen'; z.append(kop);
     for (const m of herspeelLijst) {
@@ -486,6 +496,7 @@ export function toonMenu({ pauze = false, heeftOpslag = null, opslag = undefined
   if (heeftOpslag !== null) el.knoppen.laden.hidden = !heeftOpslag;
   if (opslag !== undefined) zetOpslag(opslag, staat || 'leeg');
   el.knoppen.doorgaan.hidden = !pauze;
+  el.knoppen.statistiek.hidden = !pauze;
   // opslaan vanuit de pauze (ook op een aanraakscherm, waar geen F5 is)
   el.knoppen.opslaan.hidden = !pauze;
   zetNieuwTerug();
