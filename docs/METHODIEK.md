@@ -9317,6 +9317,15 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Steekproef: de Bouwman-missies en de race (stap 194, 15 okt).** Gevraagd: "zet nog wat steekproeven uit bij de Bouwman missies
+en de race. Volgen hier nog bijzonderheden uit?" Na stap 189–193 (het pompgeweer in `shootCb`, de praatjes, Roan) negen proeven
+opnieuw: `racetest` (72), `geldracetest` (17), `schaduwtest` (64), `invaltest` (52), `ronaldtest` (51), `avondtest` (54),
+`uitzendingtest` (48), `naloop2test` (30), `naloop3test` (31).
+- Acht meteen groen. `schaduwtest` had twee rode controles, allebei verouderde verwachtingen van de proef, niet van het spel:
+  na missie 15 verwachtte hij de klok stil (sinds stap 125 loopt hij standaard mee: nu toetst hij de voorkeur van de speler) en
+  `missie === 'klaar'` (sinds stap 108 staat De inval meteen klaar op zijn telefoontje: nu `inval`/`telefoon` of `klaar`). Daarna
+  groen. Geen fout in het spel gevonden.
+
 **Roan begint niet meer vanzelf onder een wachtende missie (stap 193, 15 okt).** Gemeld: "tijdens een missie kwam ik langs Radio
 Tinga en begon ineens de missie van Roan. Daardoor stopte de oude missie." Binnen `ROAN.buurt` (150 m) van de school belde Mark
 vanzelf zodra `roanStartbaar` waar was, en dat is ook zo in de fase waarin een missie onder zijn M op je wacht (`KLUS_WACHT`, zoals

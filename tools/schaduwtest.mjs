@@ -375,7 +375,7 @@ const klaar = await page.evaluate(() => {
   window.__zwartUit();
   window.__stap(3);
   const sch = v.schaduw, d = w.plekken.deurBuiten;
-  return { regels, zwart, tekst, uur: g.sfeer.uur, loopt: g.sfeer.loopt, buiten: +Math.hypot(g.player.pos.x - d.x, g.player.pos.z - d.z).toFixed(1),
+  return { regels, zwart, tekst, uur: g.sfeer.uur, loopt: g.sfeer.loopt, voorkeur: g.sfeer.voorkeur, fase: v.fase, buiten: +Math.hypot(g.player.pos.x - d.x, g.player.pos.z - d.z).toFixed(1),
     geld: v.geld - geld, missie: v.missie, klaar: sch.klaar, melding: document.getElementById('missie').textContent,
     mannen: !!sch.mannen, bus: sch.bus ? sch.bus.mesh.visible : false, auto: sch.auto ? sch.auto.mesh.visible : false,
     bewaard: v.bewaar().schaduwKlaar };
@@ -383,8 +383,10 @@ const klaar = await page.evaluate(() => {
 const klaarTekst = klaar.regels.map(r => r.tekst).join(' ');
 ok(/Ronald\. Johan\. En ik/.test(klaarTekst) && /Hij wil ons hebben/.test(klaarTekst), 'Mark ziet zijn naam op het bord: "Hij wil ons hebben"');
 ok(/Blijf hier maar even slapen/.test(klaarTekst) && klaar.zwart && /volgende ochtend/.test(klaar.tekst), '"Blijf hier maar even slapen", en zwart: "De volgende ochtend"', klaar.tekst);
-ok(Math.abs(klaar.uur - 10) < 0.05 && klaar.buiten < 6 && !klaar.loopt, 'om tien uur sta je voor de deur van Molenkrite 15, en de klok staat weer zoals hij stond', `${klaar.uur} uur, ${klaar.buiten} m van de deur`);
-ok(klaar.missie === 'klaar' && klaar.klaar && klaar.geld === 1500 && /GESLAAGD/.test(klaar.melding), 'geslaagd: € 1.500', klaar.melding.slice(0, 50));
+// (sinds stap 125 loopt de klok standaard mee: 'zoals hij stond' is de voorkeur van de speler, niet stil)
+ok(Math.abs(klaar.uur - 10) < 0.05 && klaar.buiten < 6 && klaar.loopt === klaar.voorkeur, 'om tien uur sta je voor de deur van Molenkrite 15, en de klok staat weer zoals hij stond', `${klaar.uur} uur, ${klaar.buiten} m van de deur, klok ${klaar.loopt ? 'loopt' : 'stil'} (voorkeur ${klaar.voorkeur ? 'lopen' : 'stil'})`);
+// (sinds stap 108 staat De inval meteen klaar en wacht hij op zijn telefoontje; vóór stap 108 was het 'klaar')
+ok((klaar.missie === 'klaar' || (klaar.missie === 'inval' && klaar.fase === 'telefoon')) && klaar.klaar && klaar.geld === 1500 && /GESLAAGD/.test(klaar.melding), 'geslaagd: € 1.500', JSON.stringify({ geld: klaar.geld, missie: klaar.missie, fase: klaar.fase, klaar: klaar.klaar }));
 ok(!klaar.mannen && !klaar.bus && !klaar.auto, 'Bouwman, zijn mannen en de bus zijn weg bij de loods');
 ok(klaar.bewaard === true, 'en het opgeslagen spel weet dat de missie af is');
 
