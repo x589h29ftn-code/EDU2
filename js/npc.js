@@ -9,6 +9,9 @@ import { MAAT, DEEL, loopHouding, fietsHouding, zitHouding, hurkHouding, doekVoo
 import { GEDRAG } from './gedrag.js';
 import { LIJF_VROUW } from './persoon.js';
 
+// (stap 181) de lengte van een volwassen voetganger, Erik is 1
+export const NPC_LENGTE = { van: 0.95, tot: 1.04, vrouw: 0.97 };
+
 const STOEP_STAP = 0.5;     // om de zoveel meter kijkt het stoepprofiel of er plek is
 const STOEP_VOORUIT = 1.2;  // zover vooruit ziet een voetganger dat de stoep dicht is
 
@@ -254,11 +257,17 @@ export class NPCs {
       kleuren.kuit = kleuren.dij = pants; kleuren.baard = hair;
       this.kleurVan.push(kleuren);
 
-      let height = 0.88 + r() * 0.22;   // kinderen tot volwassenen
+      const ruw = 0.88 + r() * 0.22;
+      /*
+       (stap 181, gevraagd: "maak de poppetjes maximaal iets hoger of kleiner dan Erik, behalve kinderen") Erik is 1. Was
+       0,88–1,10 (en een vrouw daar nog 6 % onder: tot 0,83); nu 0,95–1,04 en een vrouw 3 % kleiner. De loting en wie er
+       fietst of een hond uitlaat blijven dezelfde (`ruw`); de kinderen staan in `kenmerken`.
+      */
+      let height = NPC_LENGTE.van + (ruw - 0.88) / 0.22 * (NPC_LENGTE.tot - NPC_LENGTE.van);
       // een op de vijf is een fietser: hoger, sneller en met een fiets eronder
-      let fietst = r() < 0.20 && height > 0.95;
+      let fietst = r() < 0.20 && ruw > 0.95;
       // een op de acht wandelaars laat een hondje uit
-      let hond = !fietst && height > 0.93 && r() < 0.13
+      let hond = !fietst && ruw > 0.93 && r() < 0.13
         ? { kleur: VACHT[Math.floor(r() * VACHT.length)], maat: 0.72 + r() * 0.5,
             kant: r() < 0.5 ? 1 : -1, riem: 1.1 + r() * 0.5, fase: r() * 6.28, x: 0, z: 0, yaw: 0 }
         : null;
@@ -281,7 +290,7 @@ export class NPCs {
        sportshirt met korte mouwen, en staat nooit stil. Net als de oogkleur uit het nummer en niet uit
        `r()`, zodat de rest van de wijk precies blijft wie hij was.
       */
-      if (!fietst && !hond && height > 0.97 && ((Math.imul(i + 11, 2246822519) >>> 0) % 100) < 10) {
+      if (!fietst && !hond && ruw > 0.97 && ((Math.imul(i + 11, 2246822519) >>> 0) % 100) < 10) {
         p.jogt = true;
         p.speed = 2.7 + ((i * 37) % 10) * 0.08;
         p.pause = 0;
@@ -356,7 +365,7 @@ export class NPCs {
     p.oud = !p.kind && !p.jogt && hh(107) < 0.14;
     p.vrouw = hh(101) < 0.5;
     if (p.kind) p.height = 0.62 + hh(109) * 0.13;
-    else if (p.vrouw) p.height *= 0.94;
+    else if (p.vrouw) p.height *= NPC_LENGTE.vrouw;
     if (p.oud) { p.speed *= 0.75; p.ren *= 0.7; k.haar = kiesUit(GRIJS, 113); }
     // het kapsel
     const h = hh(127);

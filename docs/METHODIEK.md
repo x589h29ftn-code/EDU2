@@ -9317,6 +9317,23 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Wensen van 15 okt (stap 181).** Gevraagd: sturen op snelheid weer zoals het was, drie nummers op 100% NL, het stuur draait
+verkeerd, vaststaande auto's die blijven toeteren, voetgangers niet veel groter of kleiner dan Erik, en Medal of Honor onder
+No Mercy.
+- *Sturen*: de zachte aanloop van stap 179 (`car.stuurHoud`, een kwadraat over 0,15 s) is eruit. Die maakte twee proeven groen
+  door een tikje op 200 km/u van 5° naar 1° te brengen, maar daardoor reageerde de auto op snelheid traag. De grens in
+  `vierpuntentest` en `racetest` gaat terug naar wat er vóór stap 179 gemeten werd (< 5,7° en < 6,3°).
+- *Het stuur*: `stuur.rotation.z = -steer * 4,2`. Met steer > 0 draait de auto naar links (yaw neemt toe), en een positieve
+  draai om z is tegen de klok in, gezien vanaf de bestuurder (die naar −z kijkt). Het teken stond verkeerd, ook in de stafauto.
+  De proeven keken alleen óf het stuur draaide; `wensen6test` meet nu een punt bovenop de krans in het assenstelsel van de auto.
+- *Toeteren*: wie niet opzij kan (te weinig aanloop) en niet mag keren (`bounce` uit, of iemand binnen 9 m), toeterde eeuwig.
+  Nu rijdt hij na `BLOK.terug` (7 s) `BLOK.terugT` (1,6 s) achteruit, dan heeft hij ruimte om eromheen te gaan. Na
+  `BLOK.terugMax` (3) pogingen bij dezelfde blokkade toetert hij niet meer.
+- *Lengte*: `NPC_LENGTE` in js/npc.js, 0,95–1,04 en een vrouw ×0,97 (was 0,88–1,10 en ×0,94). De loting blijft dezelfde (`ruw`),
+  dus wie er fietst, jogt of een hond uitlaat verandert niet.
+- *Muziek*: `heliMuziek` is `vasteMuziek(sleutel, M, actief)` geworden; `nomercyMuziek` gebruikt die met `NOMERCY_MUZIEK`
+  (aanzwellen in 4 s, uit in 6 s, herhalen met een dip). Hij speelt zolang `nmBezig() || n5Bezig()`; de missiemuziek zwijgt eronder.
+
 **Een steekproef door het spel (stap 180, 15 okt).** Gevraagd: "loop steekproefgewijs het spel door op fouten, max een
 halfuur". `npm run rondgang` (tools/rondgang.mjs) laat de echte hoofdlus (requestAnimationFrame) op tien plekken lopen in
 vrij spelen: het beginpunt, de BP naar binnen, de school, rijden, de Tiger (instappen, rijden, schieten), IJlst, Duinterpen,

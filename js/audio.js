@@ -104,6 +104,7 @@ let uitzendingNu = false;
 */
 export const KALI = { url: 'audio/radio/kali.mp3', vol: 0.56, ver: 55, in: 1.6, uit: 3.5 };
 export const HELI_MUZIEK = { url: 'audio/intro/intro.mp3', in: 4, uit: 7, vol: 0.62, dip: 2.5 };
+export const NOMERCY_MUZIEK = { url: 'audio/missie/nomercy.mp3', in: 4, uit: 6, vol: 0.5, dip: 2.5 };
 // de wieken van de heli van Wiebe (stap 127): zoveel keer de politieheli
 export const HELI_ROND = { luid: 1.2 };   // (was 2,6: te hard tegen het muziekje)
 /*
@@ -294,6 +295,72 @@ let geluidNaN = 0;
 let ctxLiep = false, laatsteResume = 0;
 
 // ---------- publieke geluiden ----------
+// een vast nummer met aanzwellen, herhalen en uitdoven: de heli van missie 18, No Mercy (stap 119, 181)
+function vasteMuziek(sleutel, M, actief) {
+    if (!aan || !ctx) return false;
+    if (!bronnen[sleutel]) {
+      if (!actief) return true;
+      const el = new Audio();
+      el.crossOrigin = 'anonymous';
+      el.preload = 'auto';
+      el.src = M.url;
+      const g = ctx.createGain(); g.gain.value = 0;
+      let bron = null;
+      try { bron = ctx.createMediaElementSource(el); } catch { return false; }
+      bron.connect(g); g.connect(hoofd);
+      bronnen[sleutel] = { el, gain: g, aan: false, speelt: false, uitT: 0, stuk: false, keer: 0, ramps: [], dipt: false, herhaal: 0, vorigeTijd: 0 };
+      el.loop = true;
+      el.addEventListener('error', () => { bronnen[sleutel].stuk = true; });
+      el.addEventListener('ended', () => { bronnen[sleutel].speelt = false; });
+    }
+    const h = bronnen[sleutel];
+    if (h.stuk) return false;
+    const t = nu();
+    // (de proef leest wat er gepland is: in deze container lopen de audioklok en het element niet op echte tijd)
+    const plan = (van, naar, duur, waarom) => { h.ramps.push({ van: +van.toFixed(3), naar, duur: +duur.toFixed(2), waarom }); if (h.ramps.length > 8) h.ramps.shift(); };
+    if (actief && !h.aan) {
+      // instappen: vooraan beginnen, aanzwellen
+      h.aan = true; h.speelt = true; h.uitT = 0; h.keer++; h.dipt = false; h.vorigeTijd = 0;
+      try { h.el.currentTime = 0; } catch { /* nog niet geladen */ }
+      h.el.play().catch(() => {});
+      h.gain.gain.cancelScheduledValues(t);
+      h.gain.gain.setValueAtTime(0, t);
+      h.gain.gain.linearRampToValueAtTime(M.vol, t + M.in);
+      plan(0, M.vol, M.in, 'in');
+    } else if (!actief && h.aan) {
+      // uitstappen: rustig weg, en pas daarna op pauze
+      h.aan = false;
+      h.gain.gain.cancelScheduledValues(t);
+      h.gain.gain.setValueAtTime(h.gain.gain.value, t);
+      h.gain.gain.linearRampToValueAtTime(0, t + M.uit);
+      plan(h.gain.gain.value, 0, M.uit, 'uit');
+      h.uitT = t + M.uit;
+    } else if (actief && h.speelt && !h.uitT && h.el.duration) {
+      /*
+       Het nummer duurt 65 s, de vlucht langer (stap 127, gevraagd: "Muziekje stopt op de helft van de missie,
+       misschien nogmaals spelen totdat heli klaar is"). Het element staat op `loop`: vlak voor het eind zakt het
+       even weg en na de sprong naar het begin zwelt het weer aan, tot je uitstapt.
+      */
+      const rest = h.el.duration - h.el.currentTime;
+      if (rest < M.dip && !h.dipt) {
+        h.dipt = true;
+        h.gain.gain.cancelScheduledValues(t);
+        h.gain.gain.setValueAtTime(h.gain.gain.value, t);
+        h.gain.gain.linearRampToValueAtTime(M.vol * 0.2, t + Math.max(0.3, rest));
+        plan(h.gain.gain.value, +(M.vol * 0.2).toFixed(3), Math.max(0.3, rest), 'dip');
+      } else if (h.dipt && h.el.currentTime < h.vorigeTijd - 1) {
+        h.dipt = false; h.herhaal++;
+        h.gain.gain.cancelScheduledValues(t);
+        h.gain.gain.setValueAtTime(h.gain.gain.value, t);
+        h.gain.gain.linearRampToValueAtTime(M.vol, t + 2);
+        plan(h.gain.gain.value, M.vol, 2, 'opnieuw');
+      }
+    }
+    if (h.speelt) h.vorigeTijd = h.el.currentTime;
+    if (!h.aan && h.uitT && t > h.uitT && !h.el.paused) { h.el.pause(); h.speelt = false; }
+    return true;
+  }
+
 export const geluid = {
   get geweigerd() { return geluidNaN; },
   get actief() { return aan && !gedempt; },
@@ -1374,69 +1441,16 @@ export const geluid = {
    begint het opnieuw (stap 127, zie hieronder). Eén keer per vlucht: wie uitstapt en weer in de heli zit (opnieuw na
    het neergaan) hoort het opnieuw vanaf het begin. De missiemuziek zwijgt eronder.
   */
-  heliMuziek(actief) {
-    if (!aan || !ctx) return false;
-    if (!bronnen.heliMuz) {
-      if (!actief) return true;
-      const el = new Audio();
-      el.crossOrigin = 'anonymous';
-      el.preload = 'auto';
-      el.src = HELI_MUZIEK.url;
-      const g = ctx.createGain(); g.gain.value = 0;
-      let bron = null;
-      try { bron = ctx.createMediaElementSource(el); } catch { return false; }
-      bron.connect(g); g.connect(hoofd);
-      bronnen.heliMuz = { el, gain: g, aan: false, speelt: false, uitT: 0, stuk: false, keer: 0, ramps: [], dipt: false, herhaal: 0, vorigeTijd: 0 };
-      el.loop = true;
-      el.addEventListener('error', () => { bronnen.heliMuz.stuk = true; });
-      el.addEventListener('ended', () => { bronnen.heliMuz.speelt = false; });
-    }
-    const h = bronnen.heliMuz;
-    if (h.stuk) return false;
-    const t = nu();
-    // (de proef leest wat er gepland is: in deze container lopen de audioklok en het element niet op echte tijd)
-    const plan = (van, naar, duur, waarom) => { h.ramps.push({ van: +van.toFixed(3), naar, duur: +duur.toFixed(2), waarom }); if (h.ramps.length > 8) h.ramps.shift(); };
-    if (actief && !h.aan) {
-      // instappen: vooraan beginnen, aanzwellen
-      h.aan = true; h.speelt = true; h.uitT = 0; h.keer++; h.dipt = false; h.vorigeTijd = 0;
-      try { h.el.currentTime = 0; } catch { /* nog niet geladen */ }
-      h.el.play().catch(() => {});
-      h.gain.gain.cancelScheduledValues(t);
-      h.gain.gain.setValueAtTime(0, t);
-      h.gain.gain.linearRampToValueAtTime(HELI_MUZIEK.vol, t + HELI_MUZIEK.in);
-      plan(0, HELI_MUZIEK.vol, HELI_MUZIEK.in, 'in');
-    } else if (!actief && h.aan) {
-      // uitstappen: rustig weg, en pas daarna op pauze
-      h.aan = false;
-      h.gain.gain.cancelScheduledValues(t);
-      h.gain.gain.setValueAtTime(h.gain.gain.value, t);
-      h.gain.gain.linearRampToValueAtTime(0, t + HELI_MUZIEK.uit);
-      plan(h.gain.gain.value, 0, HELI_MUZIEK.uit, 'uit');
-      h.uitT = t + HELI_MUZIEK.uit;
-    } else if (actief && h.speelt && !h.uitT && h.el.duration) {
-      /*
-       Het nummer duurt 65 s, de vlucht langer (stap 127, gevraagd: "Muziekje stopt op de helft van de missie,
-       misschien nogmaals spelen totdat heli klaar is"). Het element staat op `loop`: vlak voor het eind zakt het
-       even weg en na de sprong naar het begin zwelt het weer aan, tot je uitstapt.
-      */
-      const rest = h.el.duration - h.el.currentTime;
-      if (rest < HELI_MUZIEK.dip && !h.dipt) {
-        h.dipt = true;
-        h.gain.gain.cancelScheduledValues(t);
-        h.gain.gain.setValueAtTime(h.gain.gain.value, t);
-        h.gain.gain.linearRampToValueAtTime(HELI_MUZIEK.vol * 0.2, t + Math.max(0.3, rest));
-        plan(h.gain.gain.value, +(HELI_MUZIEK.vol * 0.2).toFixed(3), Math.max(0.3, rest), 'dip');
-      } else if (h.dipt && h.el.currentTime < h.vorigeTijd - 1) {
-        h.dipt = false; h.herhaal++;
-        h.gain.gain.cancelScheduledValues(t);
-        h.gain.gain.setValueAtTime(h.gain.gain.value, t);
-        h.gain.gain.linearRampToValueAtTime(HELI_MUZIEK.vol, t + 2);
-        plan(h.gain.gain.value, HELI_MUZIEK.vol, 2, 'opnieuw');
-      }
-    }
-    if (h.speelt) h.vorigeTijd = h.el.currentTime;
-    if (!h.aan && h.uitT && t > h.uitT && !h.el.paused) { h.el.pause(); h.speelt = false; }
-    return true;
+  heliMuziek(actief) { return vasteMuziek('heliMuz', HELI_MUZIEK, actief); },
+  /*
+   Stap 181 (gevraagd: "medal of honor muziek voor no mercy missies, fade in en out"): het hoofdthema van Medal of Honor:
+   European Assault onder de opnames van No Mercy 4 en 5, net als het muziekje in de heli: vooraan beginnen, aanzwellen,
+   herhalen, rustig uit. De missiemuziek en de heli zwijgen eronder.
+  */
+  nomercyMuziek(actief) { return vasteMuziek('nmMuz', NOMERCY_MUZIEK, actief); },
+  nomercyMuziekStand() {
+    const h = bronnen.nmMuz;
+    return h ? { aan: h.aan, speelt: h.speelt && !h.el.paused, volume: +h.gain.gain.value.toFixed(3), bestand: NOMERCY_MUZIEK.url, keer: h.keer, ramps: h.ramps.slice(), stuk: h.stuk } : null;
   },
   // (voor tools/introtest.mjs en tools/avondtest.mjs)
   heliMuziekStand() {
@@ -1448,6 +1462,7 @@ export const geluid = {
   missiemuziek(actief) {
     if (uitzendingNu) actief = false;            // onder de uitzending van missie 18
     if (bronnen.heliMuz && bronnen.heliMuz.aan) actief = false;   // en onder het muziekje in de heli (stap 119)
+    if (bronnen.nmMuz && bronnen.nmMuz.aan) actief = false;       // en onder Medal of Honor in No Mercy (stap 181)
     if (!aan || !missieLijst.length) return false;
     if (!bronnen.missie) {
       if (!actief) return true;

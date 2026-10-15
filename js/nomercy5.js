@@ -843,7 +843,7 @@ export function maakStafBinnen(draai = null) {
 
   let getoond = 0;
   function update(car, dt = 1 / 60) {
-    if (draai) draai.rotation.z = -((car && car.steer) || 0) * 4.2;
+    if (draai) draai.rotation.z = ((car && car.steer) || 0) * 4.2;   // links is tegen de klok in (stap 181)
     const kmu = Math.abs((car && car.speed) || 0) * 3.6;
     getoond += (Math.min(1, kmu / KLOK.max) - getoond) * Math.min(1, dt * 8);
     naald.rotation.z = stafKlokHoek(getoond);

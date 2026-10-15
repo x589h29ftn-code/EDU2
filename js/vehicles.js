@@ -784,15 +784,10 @@ export class Vehicles {
     const opbouwen = Math.abs(naar) > Math.abs(car.steer) && naar * car.steer >= 0;
     let tempo = typeof keys.stuur === 'number' || !opbouwen ? 8 : Math.min(8, 8 * (car.stuurOpbouw || 1) / (1 + Math.abs(car.speed) / 40));
     /*
-     (stap 179) En op snelheid loopt een toets de eerste 0,15 s zacht aan: sinds de Ferrari wendbaarder werd (stap 129,
-     grip 64 en een snellere opbouw) gaf een tikje van een tiende seconde op 200 km/u weer 5° koers (vierpuntentest,
-     racetest). Vasthouden haalt nog steeds de volle uitslag; onder de 90 km/u merk je er niets van.
+     (stap 179 liet een toets op snelheid de eerste 0,15 s zacht aanlopen; stap 181 haalt dat weg, gevraagd: "het
+     autorijden op hogere snelheden is lastiger geworden met draaien en bochten, breng dit meer naar hoe het was".)
     */
-    car.stuurHoud = doel && typeof keys.stuur !== 'number' ? (car.stuurHoud || 0) + dt : 0;
-    if (opbouwen && typeof keys.stuur !== 'number') {
-      const zacht = 0.15 * Math.min(1, Math.abs(car.speed) / 25);
-      if (zacht > 0) tempo *= Math.min(1, car.stuurHoud / zacht) ** 2;
-    }
+    car.stuurHoud = 0;
     car.steer += (naar - car.steer) * Math.min(1, dt * tempo);
 
     // ---- motor, rem en rolweerstand ----

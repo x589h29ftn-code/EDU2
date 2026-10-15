@@ -42,7 +42,7 @@ import { autoMaat } from './carmodel.js';
 export const KRUIS = { kijk: 28, rem: 3.5, breder: 1, vangnet: 5, rechts: 0.3, tegen: 0.7 };
 export const ROT = { recht: 0.5, band: 9, raak: 4, kijk: 30, hoek: 1.9, dicht: 7, ringPad: 0.6, rem: 2.6 };
 export const MENS = { stop: 2.6 };
-export const BLOK = { kijk: 18, marge: 0.25, stop: 7, stopRijdt: 2, rem: 4, wacht: 2.5, keer: 6, schuin: 0.6, uitTempo: 3, claxon: 1.5, draai: 0.8, vast: 15 };
+export const BLOK = { kijk: 18, marge: 0.25, stop: 7, stopRijdt: 2, rem: 4, wacht: 2.5, keer: 6, schuin: 0.6, uitTempo: 3, claxon: 1.5, draai: 0.8, vast: 15, terug: 7, terugT: 1.6, terugMax: 3 };
 
 const TWEE_PI = Math.PI * 2;
 const mod2pi = (a) => ((a % TWEE_PI) + TWEE_PI) % TWEE_PI;
@@ -69,7 +69,7 @@ export class Verkeersregels {
     this.rotondes = [];
     this.knopen = [];
     this.breedtes = new Map();
-    this.stats = { wachtKruis: 0, wachtRotonde: 0, blok: 0, uitwijk: 0, keer: 0, forceer: 0, rondjes: 0, vast: 0 };
+    this.stats = { wachtKruis: 0, wachtRotonde: 0, blok: 0, uitwijk: 0, keer: 0, forceer: 0, rondjes: 0, vast: 0, terug: 0 };
     if (KAART) this.bouw(KAART);
     if (vehicles) this.koppel(vehicles);
   }
@@ -594,7 +594,8 @@ export class Verkeersregels {
     const u = t.uitwijk;
     let doel = Infinity;
     if (u) doel = this.werkUitwijkBij(t, dt, b);
-    if (!b) { t.blokT = 0; return doel; }
+    if (!b) { t.blokT = 0; if (!(t.achteruit > 0)) t._terugN = 0; return doel; }
+    if (t._terugObj && b.c !== t._terugObj) t._terugN = 0;     // een andere blokkade: weer opnieuw (stap 181)
     const stil = Math.abs(b.c.speed || 0) < 0.3;
     if (b.wie === 'uit') {
       // langs de auto die we inhalen: tot vlak erbij mag, maar niet ertegenaan
@@ -605,7 +606,7 @@ export class Verkeersregels {
       this.stats.blok++;
       t.blokT = (t.blokT || 0) + dt;
       // toeteren, niet meteen en niet aan één stuk door
-      if (t.blokT > (t.blokClaxon || (t.blokClaxon = BLOK.claxon + Math.random() * 2))) {
+      if (t.blokT > (t.blokClaxon || (t.blokClaxon = BLOK.claxon + Math.random() * 2)) && (t._terugN || 0) < BLOK.terugMax) {
         t.blokClaxon = t.blokT + 4 + Math.random() * 5;
         if (this.V.opClaxon && Math.random() < 0.8) this.V.opClaxon(t._pos.x, t._pos.y);
       }
@@ -618,6 +619,16 @@ export class Verkeersregels {
         } else if (t.blokT > BLOK.keer && this.keerHier(t)) {
           t.blokT = 0;
           this.stats.keer++;
+        } else if (t.blokT > BLOK.terug && !(t.achteruit > 0) && (t._terugN || 0) < BLOK.terugMax && !this.iemandAchter(t, 8)) {
+          /*
+           (stap 181, gevraagd: "soms staan auto's tegen elkaar aan en claxonneren, laat ze na een tijdje naar achteren rijden
+           en er omheen") Geen ruimte om opzij te gaan en keren kan hier niet: een stukje achteruit, zodat er aanloop is om
+           eromheen te gaan, en dan opnieuw kijken (ook langs wat eerder mislukte). Na BLOK.terugMax keer houdt hij op met
+           toeteren en wacht hij op het vangnet.
+          */
+          t.achteruit = BLOK.terugT; t._terugN = (t._terugN || 0) + 1; t._terugObj = b.c;
+          t.blokT = BLOK.wacht; t._geenUit = null; t._stilT = 0;
+          this.stats.terug++;
         }
       }
     } else if ((t.snelheid || 0) > 1) t.blokT = 0;
@@ -660,7 +671,14 @@ export class Verkeersregels {
       if (langs < -3 || langs > 25) continue;
       const m = maatVan(c.soort);
       const opzij = dx * -d.y + dz * d.x;
-      if (Math.abs(opzij - L) < m.hl + mij.hw) return true;
+      /*
+       (stap 181) De breedte die hij dwars op de weg inneemt, uit zijn draaiing: een auto die langs de stoep geparkeerd staat
+       is 1,8 m breed, niet 4,3. Met de halve lengte telde elke geparkeerde auto binnen 3 m als een dichte strook, en dan
+       kon een vaststaande auto er nooit omheen.
+      */
+      const cy = c.yaw ?? (c.mesh ? c.mesh.rotation.y : 0), rel = Math.atan2(-Math.sin(cy), -Math.cos(cy)) - Math.atan2(d.x, d.y);
+      const dwars = Math.abs(Math.sin(rel)) * m.hl + Math.abs(Math.cos(rel)) * m.hw;
+      if (Math.abs(opzij - L) < dwars + mij.hw + 0.2) return true;
     }
     for (const a of V.traffic) {
       if (a === t || a.slaapt || !a._pos) continue;

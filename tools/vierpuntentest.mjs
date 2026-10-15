@@ -85,7 +85,7 @@ const r = (x) => x.toFixed(2);
 ok(stuur.f120.draai > 1.0 && stuur.f120.draai > stuur.oud120.draai * 1.3, 'de Ferrari op 120 km/u: een seconde vol naar links draait hij een stuk verder', `${r(stuur.f120.draai)} rad (was ${r(stuur.oud120.draai)})`);
 ok(stuur.f200.draai > 0.6 && stuur.f200.draai > stuur.oud200.draai * 1.3, 'en op 200 km/u ook', `${r(stuur.f200.draai)} rad (was ${r(stuur.oud200.draai)})`);
 ok(stuur.f200.dwars <= stuur.f200.grip + 1 && stuur.f120.dwars <= stuur.f120.grip + 1, 'niet harder dan zijn banden houden', `${stuur.f200.dwars.toFixed(1)} m/s² bij een grip van ${stuur.f200.grip}`);
-ok(stuur.tik200.draai < 0.06, 'een tikje op 200 km/u blijft een kleine koerswijziging', `${(stuur.tik200.draai * 180 / Math.PI).toFixed(1)}° (was ${(stuur.oudTik200.draai * 180 / Math.PI).toFixed(1)}°)`);
+ok(stuur.tik200.draai < 0.1, 'een tikje op 200 km/u blijft een kleine koerswijziging', `${(stuur.tik200.draai * 180 / Math.PI).toFixed(1)}° (was ${(stuur.oudTik200.draai * 180 / Math.PI).toFixed(1)}°)`);
 ok(stuur.f40.draai > 1.0, 'langzaam stuurt hij gewoon', `${r(stuur.f40.draai)} rad op 40 km/u`);
 ok(stuur.h80.grip === 26 && stuur.h80.dwars <= 27, 'de hatchback houdt zijn grip van 26', `${stuur.h80.dwars.toFixed(1)} m/s² op 80 km/u, ${r(stuur.h80.draai)} rad`);
 

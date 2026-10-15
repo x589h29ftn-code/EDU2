@@ -12454,6 +12454,8 @@ export function initVerhaal(ctx) {
     geluid.missiemuziek(spanning && doodT <= 0 && misluktT <= 0 && !(klusjes.bezig && missie !== 'klaar'));
     // missie 18: in de heli van Wiebe het muziekje van de intro, aanzwellend en rustig uit (stap 119)
     if (geluid.heliMuziek) geluid.heliMuziek(muziekVanDeIntro());
+    // No Mercy 4 en 5: het thema van Medal of Honor zolang de opnames lopen (stap 181)
+    if (geluid.nomercyMuziek) geluid.nomercyMuziek((nmBezig() || n5Bezig()) && doodT <= 0 && misluktT <= 0);
     // de wieken van de heli van Wiebe, luider dan die van de politie (stap 127)
     if (geluid.heliRond) geluid.heliRond(heliRondAfstand());
     if (vuurwerk) vuurwerk.update(dt);

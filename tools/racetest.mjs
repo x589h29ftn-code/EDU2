@@ -478,7 +478,7 @@ const stuur = await page.evaluate(() => {
 });
 // de grip van de Ferrari is sinds stap 106 50 m/s² (RIJ in js/vehicles.js), was 26
 ok(stuur.vol50 * 50 < stuur.grip + 2, 'op 180 km/u vol naar links: niet harder dan de banden houden', `${(stuur.vol50 * 50).toFixed(1)} m/s² dwars (grip ${stuur.grip}), ${stuur.vol50} rad in een seconde`);
-ok(stuur.tik50 < 0.08, 'en een tikje van een tiende seconde is een kleine koerswijziging', `${(stuur.tik50 * 180 / Math.PI).toFixed(1)}°`);
+ok(stuur.tik50 < 0.11, 'en een tikje van een tiende seconde is een kleine koerswijziging', `${(stuur.tik50 * 180 / Math.PI).toFixed(1)}°`);
 ok(stuur.vol10 > 0.8, 'maar langzaam stuurt hij nog gewoon', `${stuur.vol10} rad in een seconde op 36 km/u`);
 
 kop('pauze');

@@ -1930,7 +1930,10 @@ telefoon: tik op de 🚗-knop om te praten en op de tekstbalk om door te klikken
 Zodra je met Mark praat speelt **Kali** uit het radiootje op het tafeltje van het gezelschap: hoe dichterbij, hoe
 luider. Na de schietpartij speelt het nog even door en sterft dan weg. Kali staat ook op **Radio Tinga**.
 
-In de auto is er nu ook de zender **100% NL** (Ren Lenny Ren en Kali); Ren Lenny Ren staat ook op Radio Tinga.
+In de auto is er nu ook de zender **100% NL** (Ren Lenny Ren en Kali, en sinds 15 okt *Niet of nooit geweest* en *Het regent
+zonnestralen* van Acda en De Munnik en *Suzanne* van VOF de Kunst); Ren Lenny Ren staat ook op Radio Tinga.
+Onder de opnames van **No Mercy 4 en 5** speelt het hoofdthema van *Medal of Honor: European Assault*: het zwelt aan zodra
+Erik Jan begint en dooft rustig uit als de opnames voorbij zijn.
 Onder de missies speelt afwisselend een van twee nummers; onder **Instellingen → Missiemuziek** zet je ze met een
 schuif zachter.
 
@@ -2102,6 +2105,18 @@ gehouden M1 zit gewoon in je wapens, ook na opslaan en laden.
 
 Ga je neer, loop je weg (verder dan 160 m van de set, of in de tweede scène van het kamp), stap je in een auto
 of druk je op **X**, dan zijn de opnames mislukt en staat Erik Jan weer bij de waterzuivering. Tijdens de opnames kun je niet opslaan. Na het slagen is hij weg.
+
+### Rijden en de straat (15 okt)
+
+- **Sturen op snelheid** reageert weer meteen op een toets, zoals vóór 15 okt; de zachte aanloop van de eerste 0,15 s is eruit.
+- **Het stuur in de auto** draait nu de goede kant op: naar rechts sturen draait het stuur rechtsom (in elke auto en in de
+  stafauto). Het draaide gespiegeld.
+
+  ![Naar rechts sturen: het stuur rechtsom](docs/screenshots/binnen_hatch_stuur.png)
+- **Auto's die vaststaan** en toeteren, rijden na zeven tellen een stukje achteruit en proberen er dan omheen. Lukt dat drie
+  keer niet, dan houden ze op met toeteren.
+- **Voetgangers** zijn nu ongeveer even groot als Erik: hoogstens 5 % kleiner (een vrouw 8 %) of 4 % groter. Kinderen blijven
+  kinderen.
 
 ### Bijmissie · Roan naar Ma
 

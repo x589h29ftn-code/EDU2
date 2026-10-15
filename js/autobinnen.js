@@ -736,7 +736,7 @@ export function maakAutoBinnen(maat) {
   let getoondeSnelheid = 0, getoondeToeren = 0, wasNacht = null, radioSleutel = '';
   function update(car, dt = 1 / 60, { nacht = false, zender, nummer } = {}) {
     const uitslag = (car && car.steer) || 0;
-    stuur.rotation.z = -uitslag * 4.2;
+    stuur.rotation.z = uitslag * 4.2;   // steer > 0 is links (yaw neemt toe); +z is tegen de klok in, gezien vanaf de bestuurder (stap 181)
     const kmu = Math.abs((car && car.speed) || 0) * 3.6;
     const top = ((car && car.topSnelheid) || 24) * 3.6;
     /*
