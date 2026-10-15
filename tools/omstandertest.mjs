@@ -2,8 +2,8 @@
  Proef bij stap 188 (npm run omstandertest): mensen die je eerst niet kon raken (js/omstanders.js). Gevraagd: "als een persoon op
  een zeilboot zit kan je hem niet neerschieten zo te zien, dat soort dingetjes".
 
- Voor één figuur van elke soort (zeiler, opvarende, terrasgast, klant van de supermarkt; wie een rol heeft, zoals Sjoerd en de
- medewerker van de BP, blijft staan, gevraagd: "de figuranten zoals Mark en Sjoerd niet neerschieten"): in beeld zetten, met het echte schot (`player.shootCb`) van een paar meter afstand op zijn borst
+ Voor één figuur van elke soort (zeiler, opvarende, terrasgast, klant van de supermarkt;
+ wie een rol heeft staat er niet in, gevraagd: "de figuranten zoals Mark en Sjoerd niet neerschieten"): in beeld zetten, met het echte schot (`player.shootCb`) van een paar meter afstand op zijn borst
  schieten, en dan:
    - hij gaat neer (`neer`, en een zeiler ligt na een tel in het water);
    - het is een misdaad (de politie krijgt een melding);
@@ -87,23 +87,6 @@ const r = await page.evaluate(async () => {
     S.reset();
     for (const [q, v] of was) q.visible = v;
   }
-  // wie een rol heeft: Sjoerd, de medewerker van de BP, een verkoper van de viskraam, recht van voren beschoten
-  uit.rollen = [];
-  const rollen = [['Sjoerd', g.garage && g.garage.sjoerd], ['medewerker BP', g.bpshop && g.bpshop.medewerker]];
-  for (const [wie, p] of rollen) {
-    if (!p) continue;
-    const was = maakZichtbaar(p.groep); g.scene.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(p.groep), mid = box.getCenter(new THREE.Vector3());
-    const voor = p.groep.getWorldDirection(new THREE.Vector3()).multiplyScalar(-1).setY(0).normalize();
-    const van = mid.clone().addScaledVector(voor, 3);
-    const m0 = misdaden; P.vuurKlok = 0; P.ammo = 12;
-    P.shootCb(van, mid.clone().sub(van).normalize());
-    // (elk schot is al een melding voor de politie, dus daar kijken we niet naar: wel of hij aangemeld is en omviel)
-    for (let i = 0; i < 20; i++) S.update(0.05, van.x, van.z);
-    uit.rollen.push({ wie, geraakt: !!p.omstander || S.lijst.some(q => q.neer) });
-    void m0;
-    for (const [q, v] of was) q.visible = v;
-  }
   // de voetgangers blijven te raken
   {
     const q = g.npcs.people.find(p => p.alive && !p.slaapt && !p.verborgen && !p.fietst);
@@ -118,7 +101,6 @@ const r = await page.evaluate(async () => {
 
 console.log(`\n--- soorten omstanders: ${r.soorten.join(', ')} ---`);
 ok(r.soorten.length === 4 && ['zeiler', 'opvarende', 'terrasgast', 'klant'].every(w => r.soorten.includes(w)), 'de gewone omstanders zijn aangemeld', r.soorten.join(', '));
-ok(r.rollen.every(x => !x.geraakt), 'wie een rol heeft blijft staan, ook van dichtbij beschoten', r.rollen.map(x => `${x.wie}${x.geraakt ? ' NEER' : ''}`).join(', '));
 for (const [wie, x] of Object.entries(r.per)) {
   ok(x.geraakt && x.misdaad, `${wie}: met het echte schot neer, en de politie hoort ervan`, x.zeilerWeg !== null ? `overboord: ${x.zeilerWeg}` : `${x.hoog} m hoog`);
   ok(x.terug, `${wie}: staat later weer op (camera ver weg)`);

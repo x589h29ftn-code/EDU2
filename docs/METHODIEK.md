@@ -9329,8 +9329,7 @@ Sjoerd, het personeel en de klanten van de supermarkt, de tegenstander bij tenni
 - Bewust niet: wie het verhaal nodig heeft (Mark, Johan, Erik Jan, Sjors, Wiebe). En daarna gevraagd: "ik denk dat je de figuranten
   zoals Mark en Sjoerd ed niet moet neerschieten": ook wie een rol heeft niet (Sjoerd, de medewerker van de BP, de verkopers van de
   viskraam, het personeel van de supermarkt, de tennistegenstander). De controles "winkel dicht" zijn met hen weer weg. Over blijven
-  de zeilers, de opvarenden, de terrasgasten en de klanten van de supermarkt; de proef schiet ook op Sjoerd en de BP-medewerker en
-  kijkt dat ze blijven staan.
+  de zeilers, de opvarenden, de terrasgasten en de klanten van de supermarkt.
 - Ook het mes en de knal van de Tiger (`explosieRaakt`) raken ze.
 - *Nagelopen*: `npm run omstandertest`: van elke soort één, met het echte schot neer, een misdaad, later weer op; het mes, de knal, en
   de voetgangers blijven te raken. Een valkuil in de proef: op de plezierboot zitten ze tegenover elkaar, dus een schot van vóór
