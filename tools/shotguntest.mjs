@@ -14,6 +14,8 @@
  8. Geen nieuw shaderprogramma: schieten, pompen en laden met het pompgeweer.
  9. (stap 190) Het model op de maten van de M1897 (99,7 cm, loop 50,8 cm), het hitteschild boven de loop, en de opnames
     van de gebruiker voor het schot en het pompen.
+ 10. (stap 191) De doeken in de kwaliteit van de M1: walnoot 1024, staal 512, niets kleiner dan bij de M1, de patroon rood,
+    de stempel op de kast.
 
  Gebruik: npm run server &  node tools/shotguntest.mjs [poort]
 */
@@ -300,6 +302,27 @@ ok(mdl.op.shotgun && mdl.op.shotgun.duur > 3.3 && mdl.op.shotgun.duur < 3.6, 'de
 ok(mdl.op.pomp && mdl.op.pomp.duur > 0.5 && mdl.op.pomp.duur < 0.8, 'de opname van het pompen ook', JSON.stringify(mdl.op.pomp));
 ok(mdl.schot && mdl.schot.bestand === 'shotgun_schot.mp3' && Math.abs(mdl.schot.gain - 0.32) < 0.01, 'een schot speelt shotgun_schot.mp3 op 0,32', JSON.stringify(mdl.schot));
 ok(mdl.pomp && mdl.pomp.opname === true, 'en het pompen speelt de opname', JSON.stringify(mdl.pomp));
+
+kop('10. de doeken (stap 191): dezelfde kwaliteit als de M1');
+const dk = await page.evaluate(() => {
+  const g = window.__game, P = g.player;
+  const maten = (groep) => {
+    const uit = new Map();
+    groep.traverse(o => { if (o.isMesh && o.material && o.material.map && o.material.map.image) uit.set(o.material.map.image, o.material.map.image.width); });
+    return [...uit.values()];
+  };
+  const sg = maten(P.modellen.shotgun.groep), m1 = maten(P.modellen.garand.groep);
+  const mesh = P.modellen.shotgun.delen.patroon.children[0];
+  const c = mesh.material.map.image, px = c.getContext('2d').getImageData(c.width / 2, c.height * 0.7, 1, 1).data;
+  // de stempel: een plaat met een eigen doek van 512 op de kast
+  let stempel = 0;
+  P.modellen.shotgun.groep.traverse(o => { if (o.isMesh && o.geometry.type === 'PlaneGeometry' && o.material.map && o.material.map.image.width === 512) stempel++; });
+  return { sg: sg.sort((a, b) => b - a), m1: m1.sort((a, b) => b - a), px: [...px], stempel };
+});
+ok(dk.sg.includes(1024) && dk.sg.includes(512), 'het walnoot op 1024 en het staal op 512, zoals de M1', `pompgeweer ${dk.sg.join(', ')} · M1 ${dk.m1.join(', ')}`);
+ok(Math.min(...dk.sg) >= Math.min(...dk.m1), 'geen doek kleiner dan het kleinste van de M1', `${Math.min(...dk.sg)} tegen ${Math.min(...dk.m1)}`);
+ok(dk.px[0] > 120 && dk.px[0] > dk.px[1] * 2.5, 'de patroon is rood papier (niet zwart)', `rgb ${dk.px.slice(0, 3).join(', ')}`);
+ok(dk.stempel >= 1, 'de stempel op de kast (WINCHESTER · MODEL 1897 · U.S.)', `${dk.stempel}`);
 
 await browser.close();
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');

@@ -973,6 +973,10 @@ tussendoor, dan breek je het laden af.
 
 ![Het pompgeweer van opzij](docs/screenshots/shotgun_zij.png)
 
+![Van dichtbij: de stempel op de kast, het hitteschild en de leren riem](docs/screenshots/shotgun_dichtbij.png)
+
+![Een rode hagelpatroon in de hand bij het laden](docs/screenshots/shotgun_patroon.png)
+
 ## De gedenkplek aan de Sudergoweg en de Tiger
 
 Aan de Sudergoweg, de weg naar IJlst, ligt net buiten Sneek een **gedenkplek voor de Slag om Sneek, 1944**. Waar een dam

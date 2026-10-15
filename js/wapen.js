@@ -2579,6 +2579,87 @@ export const SHOTGUN_MIK_FOV = 50;
 // de momenten van het pompen na een schot, in seconden na het schot
 const POMP = { terug: [0.13, 0.27], voor: [0.33, 0.46], huls: 0.24, slag: 0.085 };
 
+/*
+ De doeken van het pompgeweer (stap 191, gevraagd: "zorg ook voor de juiste kwaliteit textures net als de M1 Garand"). Het staal en
+ het hout zijn al die van de M1 (`parkerDoek` 512, `walnootDoek` 1024); erbij, op dezelfde manier getekend als de stempel van de M1:
+  - `stempel97Doek`: de linkerzijplaat van de kast met de ingeslagen tekst WINCHESTER / MODEL 1897 / 12 GA, de vlammende bom van
+    het leger met U.S. erboven, en het serienummer. Het doek ligt op een plaat van 14 × 4,2 cm, dus de letters worden 3,33 keer zo
+    hoog getekend als breed (`A`), dan staan ze op het staal in de goede verhouding.
+  - `hulsDoek`: de rode patroon van geperst papier, met vezels, een bedrukte band (12 GA · 00 BUCK, rondom twee keer) en een
+    donkere ring waar de voorkant is omgevouwen.
+*/
+const stempel97Doek = () => doekSet('stempel97_512', (k, w, h, r, S) => {
+  tekenParker(k, w, h, r, S);
+  // langs de randen blank gesleten, waar de hand en de riem langs schuren
+  for (const [y0, y1] of [[0, S * 0.06], [S, S * 0.94]]) {
+    const gk = k.createLinearGradient(0, y0, 0, y1);
+    gk.addColorStop(0, 'rgba(150,152,144,0.16)'); gk.addColorStop(1, 'rgba(150,152,144,0)');
+    k.fillStyle = gk; k.fillRect(0, 0, S, S);
+  }
+  const m = S / 256, A = 0.140 / 0.042;
+  // ingeslagen: in de hoogte een putje met een opgeworpen randje, in de kleur een schaduw aan de bovenkant en een lichtere bodem
+  const slag = (teken) => {
+    h.strokeStyle = 'rgba(200,200,200,0.8)'; h.lineWidth = 3 * m; teken(h, 'rand');
+    h.fillStyle = '#1c1c1c'; teken(h, 'vul');
+    w.fillStyle = '#7a7a7a'; teken(w, 'vul');
+    k.fillStyle = 'rgba(26,28,24,0.85)'; teken(k, 'vul');
+    k.save(); k.translate(0.8 * m, 1.2 * m); k.fillStyle = 'rgba(170,172,162,0.7)'; teken(k, 'vul'); k.restore();
+  };
+  const tekst = (t, x, y, px) => slag((g, wat) => {
+    g.save(); g.translate(x, y); g.scale(1, A);
+    g.font = `bold ${px * m}px "DejaVu Sans Mono", monospace`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    if (wat === 'rand') g.strokeText(t, 0, 0); else g.fillText(t, 0, 0);
+    g.restore();
+  });
+  tekst('WINCHESTER', S * 0.40, S * 0.22, 26);
+  tekst('MODEL 1897', S * 0.40, S * 0.50, 26);
+  tekst('12 GA', S * 0.40, S * 0.78, 22);
+  tekst('U.S.', S * 0.84, S * 0.16, 18);
+  // de vlammende bom: een bol met een kraag en vlammen omhoog
+  slag((g, wat) => {
+    g.save(); g.translate(S * 0.84, S * 0.62); g.scale(1, A);
+    const bx = 0, by = 4 * m, br = 8 * m;
+    g.beginPath(); g.arc(bx, by, br, 0, Math.PI * 2);
+    g.rect(bx - 3 * m, by - br - 3 * m, 6 * m, 3 * m);
+    for (const [dx, hgt] of [[-5, 9], [-2, 13], [1, 15], [4, 11], [6, 8]]) {
+      g.moveTo(bx + (dx - 1.6) * m, by - br - 3 * m);
+      g.quadraticCurveTo(bx + (dx - 3) * m, by - br - (3 + hgt * 0.6) * m, bx + (dx + 1) * m, by - br - (3 + hgt) * m);
+      g.quadraticCurveTo(bx + (dx + 0.4) * m, by - br - (3 + hgt * 0.5) * m, bx + (dx + 1.6) * m, by - br - 3 * m);
+    }
+    if (wat === 'rand') g.stroke(); else g.fill();
+    g.restore();
+  });
+  tekst('E 703518', S * 0.84, S * 0.90, 12);
+}, 0.9, 512);
+
+const hulsDoek = () => doekSet('huls512', (k, w, h, r, S) => {
+  // (hele aantallen cellen: met S / 6 werd de ruis NaN en de patroon zwart)
+  const vezel = lagenRuis(S, 64, 16, 2, r), vlek = lagenRuis(S, 4, 4, 3, r);
+  vulPerPunt(k, w, h, S, (i, x, y, u) => {
+    const v = (vlek[i] - 0.5) * 2, n = vezel[i] - 0.5;
+    u.r = klem(176 + v * 14 + n * 26, 0, 255);
+    u.g = klem(40 + v * 6 + n * 10, 0, 255);
+    u.b = klem(34 + v * 5 + n * 8, 0, 255);
+    u.w = klem(200 + n * 40, 0, 255);
+    u.h = klem(128 + n * 60, 0, 255);
+  });
+  // de omgevouwen voorkant (v 0..0,08) donkerder en geplooid, en een ribbel waar de vouw begint
+  for (let j = 0; j < 12; j++) {
+    const x = j / 12 * S;
+    k.fillStyle = 'rgba(60,10,8,0.35)'; k.fillRect(x, 0, S / 24, S * 0.08);
+    h.fillStyle = 'rgba(40,40,40,0.6)'; h.fillRect(x, 0, S / 48, S * 0.08);
+  }
+  k.fillStyle = 'rgba(40,6,6,0.5)'; k.fillRect(0, S * 0.08, S, S * 0.012);
+  // de bedrukte band, rondom twee keer
+  k.fillStyle = 'rgba(236,226,206,0.92)'; k.font = `bold ${S * 0.07}px "DejaVu Sans", sans-serif`;
+  k.textAlign = 'center'; k.textBaseline = 'middle';
+  for (const x of [S * 0.25, S * 0.75]) {
+    k.fillText('12 GA', x, S * 0.40);
+    k.font = `bold ${S * 0.05}px "DejaVu Sans", sans-serif`; k.fillText('00 BUCK', x, S * 0.52);
+    k.font = `bold ${S * 0.07}px "DejaVu Sans", sans-serif`;
+  }
+}, 0.6, 512);
+
 export function maakTrenchgun(geluid) {
   const park = mat(0xffffff, 1, 0.35, parkerDoek(), [0.05, 0.05]);
   const parkDonker = mat(0x8c8e88, 1, 0.35, parkerDoek(), [0.04, 0.04]);
@@ -2591,7 +2672,9 @@ export function maakTrenchgun(geluid) {
   const manchetMat = mat(0x8890a8, 1, 0, stofDoek(), [0.03, 0.03]);
   const messing = mat(0xd9ae58, 1, 1, glansDoek(), [0.02, 0.02]);
   // de patroon: rood papier of karton met een messing voet (zoals de Remington- en Western-patronen van toen)
-  const rood = mat(0xb4302a, 1, 0, stofDoek(), [0.02, 0.02]);
+  const rood = mat(0xffffff, 1, 0, hulsDoek(), [0.02, 0.02]);
+  const stempel = mat(0xffffff, 1, 0.35, stempel97Doek(), [0.05, 0.05]);
+  const leer = mat(0xc4b2a6, 1, 0, leerDoek(), [0.08, 0.08]);
   const roodLos = mat(0xa82a22, 0.55, 0);
   const messingLos = mat(0xc9a24a, 0.28, 1);
 
@@ -2652,6 +2735,13 @@ export function maakTrenchgun(geluid) {
   // de uitwerpopening rechts (groot, tot bijna aan de bovenkant) en de laadopening onderin
   doos(fB, gleufStaal, 0.002, 0.024, 0.080, 0.0146, 0.017, -0.098, 0.0006);
   doos(fB, gleufStaal, 0.018, 0.002, 0.082, 0, POORT.y - 0.0004, POORT.z, 0.0006);
+  // de stempel op de linkerzijplaat (een plaat net buiten het staal, zoals de stempel op de hiel van de M1)
+  {
+    const plaat = new THREE.PlaneGeometry(0.140, 0.042);
+    plaat.rotateY(-Math.PI / 2);
+    plaat.translate(-(0.011 + 0.0035 + 0.0002), 0.002, -0.100);
+    wapen.add(new THREE.Mesh(plaat, stempel));
+  }
   // de schroeven op de zijplaat
   for (const [y, z] of [[-0.014, -0.034], [-0.014, -0.150], [0.012, -0.170]]) {
     for (const sx of [-1, 1]) vorm(fB, new THREE.CylinderGeometry(0.0030, 0.0030, 0.002, 10).rotateZ(Math.PI / 2).translate(sx * 0.0148, y, z), gleufStaal);
@@ -2680,7 +2770,7 @@ export function maakTrenchgun(geluid) {
       const h = sx * hoek / 2;
       vorm(fB, new THREE.BoxGeometry(0.0022, 0.0035, van - tot).translate(Math.sin(h) * R, LOOP_Y + Math.cos(h) * R, (van + tot) / 2), park);
     }
-    const gat = new THREE.CircleGeometry(0.0034, 8);
+    const gat = new THREE.CircleGeometry(0.0029, 10);
     const rijen = [-1.25, -0.75, -0.25, 0.25, 0.75, 1.25];        // radialen vanaf de bovenkant
     const n = 29, marge = 0.014;
     for (const h of rijen) {
@@ -2708,6 +2798,32 @@ export function maakTrenchgun(geluid) {
     kromme(fB, park, [[-0.0135, BUIS_Y + 0.004, mid + 0.010], [-0.024, BUIS_Y - 0.002, mid + 0.006], [-0.024, BUIS_Y - 0.002, mid - 0.006], [-0.0135, BUIS_Y + 0.004, mid - 0.010]], 0.0016, 10, 6);
     vorm(fB, new THREE.CylinderGeometry(0.0014, 0.0020, 0.0050, 8).translate(0, KORREL.y - 0.0045, KORREL.z), park);
     vorm(fB, new THREE.SphereGeometry(0.0026, 10, 8).translate(0, KORREL.y - 0.0012, KORREL.z), messing);
+  }
+  /*
+   De draagriem: de M1907 van leer, zoals bij de M1, van de beugel links aan de adapter naar die onder de kolf, los
+   doorhangend; dubbel gelegd, met een lus die de lagen bijeenhoudt. Een plat buisje (in de dikte platgedrukt).
+  */
+  {
+    const riem = (punten, dx, breed = 0.025, dik = 0.0032) => {
+      const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(punten.map(q => new THREE.Vector3(q[0] + dx, q[1], q[2]))), 48, breed / 2, 8, false);
+      const P = g.attributes.position;
+      for (let k = 0; k < P.count; k++) {
+        // platdrukken loodrecht op de zijkant: x naar het midden van de doorsnede
+        const z = P.getZ(k), f = Math.max(0, Math.min(1, (z - MAAT.adapter[1]) / (0.225 - MAAT.adapter[1])));
+        const cx = (punten[0][0] + (punten[punten.length - 1][0] - punten[0][0]) * f) + dx;
+        P.setX(k, cx + (P.getX(k) - cx) * dik / breed);
+      }
+      g.computeVertexNormals();
+      vorm(fB, g, leer);
+    };
+    const mid = (MAAT.adapter[0] + MAAT.adapter[1]) / 2;
+    const lijn = [[-0.024, BUIS_Y - 0.004, mid], [-0.024, -0.040, -0.560], [-0.020, -0.082, -0.400], [-0.014, -0.108, -0.220],
+      [-0.008, -0.118, -0.040], [-0.003, -0.114, 0.110], [0, -0.100, 0.225]];
+    riem(lijn, 0);
+    riem(lijn.map(q => [q[0], q[1] - 0.003, q[2]]), -0.0034);
+    const lus = rondeDoosGeo(0.011, 0.029, 0.016, 0.003, 1);
+    lus.rotateX(0.10); lus.translate(-0.0125, -0.110, -0.210);
+    vorm(fB, lus, leer);
   }
   bouw(fB, wapen);
 
@@ -2751,7 +2867,20 @@ export function maakTrenchgun(geluid) {
     pr.push(new THREE.Vector2(BUIS_R + 0.0008, L));
     const g = new THREE.LatheGeometry(pr, 22);
     g.rotateX(-Math.PI / 2); g.translate(0, BUIS_Y, HZ + L / 2);
-    vorm(pB, g, houtDonker);
+    /*
+     (stap 191) Een eigen uv, met de nerf over de lengte: de projectie van `bouw` kiest per vlakje een richting uit de normaal,
+     en op de ribbels wisselt die om de paar millimeter; dat gaf een zigzag in het hout. Nu u langs z en v rond, in meters
+     gedeeld door de maat van het walnoot (`uvMaat` 0,40 × 0,10, zoals de rest van het hout).
+    */
+    {
+      const P = g.attributes.position, uv = g.attributes.uv;
+      for (let k = 0; k < P.count; k++) {
+        const hoek = Math.atan2(P.getX(k), P.getY(k) - BUIS_Y);
+        uv.setXY(k, (P.getZ(k) - HZ) / 0.40, (hoek + Math.PI) * 0.019 / 0.10);
+      }
+      const voorhout = new THREE.Mesh(g, houtDonker);
+      pomp.add(voorhout);
+    }
     // de stalen ring achter het hout, en de stang naar de grendel (links, de kast in)
     vorm(pB, buisGeo(0.0145, 0.0145, 0.008, 0, BUIS_Y, HZ + L / 2 + 0.003, 18), park);
     doos(pB, park, 0.003, 0.006, 0.120, -0.0118, BUIS_Y + 0.010, HZ + L / 2 + 0.060, 0.001);
@@ -2815,7 +2944,8 @@ export function maakTrenchgun(geluid) {
   const PATROON = { r: 0.0102, L: 0.066, voet: 0.016 };
   const maakPatroon = () => {
     const p = new THREE.Group();
-    const romp = new THREE.Mesh(new THREE.CylinderGeometry(PATROON.r, PATROON.r, PATROON.L - PATROON.voet, 16).rotateX(Math.PI / 2), rood);
+    // (−90°: de bovenkant van het doek, de omgevouwen rand, komt dan vooraan, weg van de messing voet)
+    const romp = new THREE.Mesh(new THREE.CylinderGeometry(PATROON.r, PATROON.r, PATROON.L - PATROON.voet, 16).rotateX(-Math.PI / 2), rood);
     romp.position.z = -PATROON.voet / 2;
     const voet = new THREE.Mesh(new THREE.CylinderGeometry(PATROON.r + 0.0006, PATROON.r + 0.0006, PATROON.voet, 16).rotateX(Math.PI / 2), messing);
     voet.position.z = (PATROON.L - PATROON.voet) / 2;

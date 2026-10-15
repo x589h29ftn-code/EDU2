@@ -6,6 +6,8 @@
    shotgun_pomp.png      net na het schot: het voorhout naar achteren, de grendel uit de kast, de rode huls die eruit vliegt
    shotgun_laden.png     herladen: het geweer op zijn zij, de hand met een patroon onder de laadopening
    shotgun_zij.png       het hele geweer van opzij (rechts), zonder handen
+   shotgun_dichtbij.png  (stap 191) de kast met de stempel, het hout, het schild en de riem van dichtbij: de doeken
+   shotgun_patroon.png   (stap 191) de rode patroon in de hand
 
  Laadt alleen js/wapen.js op een lege pagina, dus het duurt seconden. Schrijft ook het aantal driehoeken.
 
@@ -73,6 +75,16 @@ await page.setContent(`<!doctype html><html><head>
   const zcam = new THREE.PerspectiveCamera(30, ${B / H}, 0.01, 50);
   zcam.position.set(1.95, 0.02, -0.19); zcam.lookAt(0, -0.02, -0.19);
   r.render(scene, zcam); uit.zij = r.domElement.toDataURL('image/png');
+  // (stap 191) van dichtbij, schuin van linksvoor en boven: de stempel op de kast, het hout, het schild, de riem
+  const dcam = new THREE.PerspectiveCamera(32, ${B / H}, 0.01, 50);
+  dcam.position.set(-0.26, 0.11, -0.30); dcam.lookAt(0, -0.01, -0.13);
+  r.render(scene, dcam); uit.dichtbij = r.domElement.toDataURL('image/png');
+  // de patroon in de hand
+  w.delen.linkerhand.visible = true; w.delen.patroon.visible = true; w.groep.updateMatrixWorld(true);
+  const pp = w.delen.patroon.getWorldPosition(new THREE.Vector3());
+  const pcam = new THREE.PerspectiveCamera(30, ${B / H}, 0.01, 50);
+  pcam.position.set(pp.x - 0.10, pp.y + 0.05, pp.z - 0.12); pcam.lookAt(pp);
+  r.render(scene, pcam); uit.patroon = r.domElement.toDataURL('image/png');
   let drie = 0;
   w.groep.traverse(o => { if (o.isMesh && !o.isInstancedMesh && o.geometry) drie += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; });
   uit.drie = drie;
@@ -80,7 +92,7 @@ await page.setContent(`<!doctype html><html><head>
 </script></body></html>`);
 await page.waitForFunction(() => window.__uit, null, { timeout: 600000 });
 const uit = await page.evaluate(() => window.__uit);
-for (const n of ['hand', 'richten', 'pomp', 'laden', 'zij']) {
+for (const n of ['hand', 'richten', 'pomp', 'laden', 'zij', 'dichtbij', 'patroon']) {
   writeFileSync(`${map}/shotgun_${n}.png`, Buffer.from(uit[n].split(',')[1], 'base64'));
   console.log(`${map}/shotgun_${n}.png`);
 }

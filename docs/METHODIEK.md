@@ -9317,6 +9317,22 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De doeken van het pompgeweer als die van de M1 (stap 191, 15 okt).** Gevraagd: "zorg ook voor de juiste kwaliteit textures net
+als de M1 Garand". Het staal en het hout waren al die van de M1 (`parkerDoek` 512, `walnootDoek` 1024); wat ontbrak was wat de M1
+van dichtbij echt maakt:
+- `stempel97Doek` (512, getekend zoals de stempel op de hiel van de M1: putje, opgeworpen rand, lichtere bodem): WINCHESTER /
+  MODEL 1897 / 12 GA, U.S. met de vlammende bom en een serienummer, op een plaat net buiten de linkerzijplaat. De plaat is 14 × 4,2
+  cm, dus de letters staan 3,33 keer zo hoog op het doek (`A`).
+- `hulsDoek` (512): de rode patroon van geperst papier met vezels, de omgevouwen voorkant en een bedrukte band (12 GA · 00 BUCK).
+  Eerst was hij zwart: `lagenRuis(S, S / 6, …)` geeft bij 512 een niet-heel aantal cellen en dan NaN. Nu 64 × 16. En de cilinder
+  moest −90° gedraaid, anders zat de vouwrand aan de messing kant.
+- De M1907-riem van leer (`leerDoek`, zoals bij de M1) van de beugel aan de adapter naar die onder de kolf.
+- Het voorhout heeft een eigen uv (u langs z, v rond): de projectie van `bouw` wisselde op de ribbels om de paar millimeter van
+  richting en gaf een zigzag in het hout. De gaten in het schild iets kleiner (r 2,9 mm).
+- *Nagelopen*: `shotguntest` 37 controles, ook: walnoot 1024 en staal 512 op het pompgeweer, geen doek kleiner dan het kleinste van
+  de M1, de patroon rood gemeten, de stempel op de kast; nog steeds geen nieuw programma (96 → 96). Foto's `shotgun_dichtbij` en
+  `shotgun_patroon` in `npm run shotgunshots`.
+
 **De M1897 trench gun naar het echte model, met opnames (stap 190, 15 okt).** Gevraagd: "Shotgun geluid en cocking geluid. Bouw de
 Winchester Model 1897 trench gun als model. Zoek online hoe dit er uit moet zien."
 - *Nagezocht*: 99,7 cm lang (39¼ inch), loop 50,8 cm (20 inch), 3,6 kg, vijf in de buis plus één in de kamer; een geperforeerd
