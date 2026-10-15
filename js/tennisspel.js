@@ -33,7 +33,6 @@
 import * as THREE from 'three';
 import { baanAssen, BAAN } from './tennis.js';
 import { Persoon } from './persoon.js';
-import { registreer } from './omstanders.js';
 
 export const TENNIS = {
   prijs: 50,
@@ -162,8 +161,6 @@ export function initTennisspel({ scene, KAART, player, hud, geluid, verdien = nu
   tegen.armRechts.eind.add(maakRacket(M));
   tegen.groep.visible = false;
   scene.add(tegen.groep);
-  // (stap 188) de tegenstander is te raken: dan is de game voorbij
-  registreer(tegen, { wie: 'tennisser', opNeer: () => { if (typeof afbreken === 'function') afbreken('Je tegenstander ligt neer: geen tennis meer'); } });
 
   // ---------- het balkje: stand, het tijdsmetertje en de toetsen ----------
   const balk = document.createElement('div');

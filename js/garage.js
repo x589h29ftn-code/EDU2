@@ -41,7 +41,6 @@ import { makeCar } from './carmodel.js';
 import { maakStafauto } from './nomercy5.js';
 import { Persoon } from './persoon.js';
 import { GARAGE } from './bouwvlak.js';
-import { registreer } from './omstanders.js';
 
 export const NAAM = 'Autohuis Lemmerweg';
 
@@ -387,7 +386,6 @@ export function initGarage({ scene, player, vehicles, hud, verhaal, sfeer = null
   const sjoerd = new Persoon({ shirt: 0xf4f4f2, broek: 0x1d2330, haar: 0x6b5842, huid: 0xd9b48f, vest: 0x1b1d21 });
   sjoerd.zetNeer(BALIE.x + 0.95, BALIE.z + 0.2, -Math.PI / 2);
   scene.add(sjoerd.groep);
-  registreer(sjoerd, { wie: 'Sjoerd' });   // (stap 188) te raken; dan is de balie dicht (tuning, de race voor geld) tot hij terug is
 
   // ---- de zuil aan de weg ----
   const ZUIL = { x: 753.8, z: 121.8 };

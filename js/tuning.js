@@ -45,7 +45,6 @@ import { addCollider } from './world.js';
 import { autoVorm, lakVoor } from './carmodel.js';
 import { bordSpannenburg, logoTinga, logo100nl } from './textures.js';
 import { GARAGE } from './bouwvlak.js';
-import { isNeer } from './omstanders.js';
 
 export const TUNING = {
   plek: { x: 783.4, z: 144.0 },      // waar je staat (aan het eind van de balie, kant van de wand)
@@ -746,8 +745,6 @@ export function initTuning({ scene, vehicles, garage, player, hud, geldrace = nu
     if (!player.active && !window.__autoplay) return false;
     if (player.inCar) return false;
     if (!bijPlek(player.pos.x, player.pos.z)) return false;
-    // (stap 188) Sjoerd is neergeschoten (js/omstanders.js): de balie is dicht, ook voor de race voor geld
-    if (garage && garage.sjoerd && isNeer(garage.sjoerd)) { if (hud) hud.melding('Autohuis Lemmerweg', 'Er staat niemand achter de balie.', 2.5); return true; }
     if (!eigenAutos().length || !autoBij()) {
       if (geldraceKan()) return false;         // dan is de E van Sjoerds aanbod (js/verhaal.js geldraceToets)
     }

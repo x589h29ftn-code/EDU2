@@ -705,7 +705,8 @@ export function initSupermarkt({ scene, player, hud, verhaal }) {
     }
     p.zetNeer(NUL.x + x, NUL.z + z, yaw);
     scene.add(p.groep);
-    registreer(p, { wie: personeel ? 'personeel' : 'klant' });   // (stap 188) te raken (js/omstanders.js)
+    // (stap 188) klanten zijn te raken (js/omstanders.js); het personeel niet: wie een rol heeft in het spel blijft staan
+    if (!personeel) registreer(p, { wie: 'klant' });
     return p;
   }
   function maakLoper(opties, punten, snelheid = 1.05) {

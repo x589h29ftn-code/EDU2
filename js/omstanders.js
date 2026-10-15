@@ -5,11 +5,15 @@
  op de plezierboot en het terras, de verkopers van de viskraam, de medewerker van de BP, Sjoerd in het Autohuis, het personeel en
  de klanten van de supermarkt, de tegenstander bij tennis.
 
- Zo'n figuur meldt zich hier aan (`registreer`). Geraakt (een kogel, het mes, een knal): hij gaat neer (`Persoon.legNeer`, of bij
- een zeiler overboord), het spel meldt het als een misdaad, en `neer(persoon)` zegt het tegen de module zelf (een winkel verkoopt
- dan niet). Na `OMSTANDER.terug` seconden, als je niet dichtbij bent, staat hij weer op.
+ Gevraagd daarna: "ik denk dat je de figuranten zoals Mark en Sjoerd ed niet moet neerschieten". Wie een rol heeft (Sjoerd, de
+ medewerker van de BP, de verkopers van de viskraam, het personeel van de supermarkt, de tegenstander bij tennis, en natuurlijk
+ Mark, Johan, Erik Jan, Sjors, Wiebe) blijft staan. Hier alleen gewone omstanders: de zeilers, de opvarenden van de plezierboot,
+ de terrasgasten en de klanten van de supermarkt.
 
- Bewust niet hier: wie het verhaal nodig heeft (Mark, Johan, Erik Jan, Sjors in de studio, Wiebe in de heli).
+ Zo'n figuur meldt zich hier aan (`registreer`). Geraakt (een kogel, het mes, een knal): hij gaat neer (`Persoon.legNeer`, of bij
+ een zeiler overboord), het spel meldt het als een misdaad, en `opNeer` zegt het tegen de module zelf (een zeilboot drijft dan
+ uit). Na `OMSTANDER.terug` seconden, als je niet dichtbij bent, staat hij weer op.
+
 */
 export const OMSTANDER = {
   terug: 75,        // seconden tot hij weer opstaat

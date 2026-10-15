@@ -23,7 +23,7 @@ import { initPizzabaan } from './pizzabaan.js';
 import { initTennisspel } from './tennisspel.js';
 import { initVishandel } from './vishandel.js';
 import { initVouwwagen } from './vouwwagen.js';
-import { omstanders, isNeer } from './omstanders.js';
+import { omstanders } from './omstanders.js';
 import { initGezondheid } from './gezondheid.js';
 import { initZeilen } from './zeilen.js';
 import { initTuning } from './tuning.js';
@@ -1008,8 +1008,7 @@ const tennisspel = (KAART && !BOVEN) ? initTennisspel({ scene, KAART, player, hu
 // de knoppen van Radio Tinga overnemen (stap 131)
 const djdienst = initDjDienst({ studio, geluid, hud, player, verdien: n => verhaal.verdien(n), nieuws });
 // (stap 169) de kassa van de BP-shop: energydrank en kraslot
-const bpKassa = initBpKassa({ player, hud, geluid, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n),
-  bemand: () => !(BP_SHOP.nu && isNeer(BP_SHOP.nu.medewerker)) });
+const bpKassa = initBpKassa({ player, hud, geluid, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n) });
 extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : []),
   ...(pizzabaan ? pizzabaan.plekken : []), ...(vishandel && vishandel.winkels ? vishandel.winkels : [])];
 winkelsNu = null; werkKaartvlaggenBij();

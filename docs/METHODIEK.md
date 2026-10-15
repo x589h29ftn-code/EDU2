@@ -9325,9 +9325,12 @@ Sjoerd, het personeel en de klanten van de supermarkt, de tegenstander bij tenni
 - js/omstanders.js: `registreer(persoon, { wie, mag, opNeer, opTerug })`, `doelen()`, `raak(obj)`, `update` (na de updates van de
   modules, zodat `legNeer` wint van hun eigen houding) en `reset`. Neer: omvallen (een zeiler overboord, zijn boot drijft uit), een
   misdaad voor de politie, het nieuws. Na `OMSTANDER.terug` (75 s), met de camera minstens 45 m weg, staat hij weer op.
-- Gevolgen in de modules: de viskraam verkoopt niet zolang een verkoper ligt, de kassa van de BP is dicht (`bemand`), de balie van
-  Sjoerd ook (tuning en de race voor geld), een loper in de supermarkt loopt niet door, de tennisgame is voorbij.
-- Bewust niet: wie het verhaal nodig heeft (Mark, Johan, Erik Jan, Sjors, Wiebe).
+- Gevolgen in de modules: een zeilboot zonder zeiler drijft uit, een klant in de supermarkt die ligt loopt niet door.
+- Bewust niet: wie het verhaal nodig heeft (Mark, Johan, Erik Jan, Sjors, Wiebe). En daarna gevraagd: "ik denk dat je de figuranten
+  zoals Mark en Sjoerd ed niet moet neerschieten": ook wie een rol heeft niet (Sjoerd, de medewerker van de BP, de verkopers van de
+  viskraam, het personeel van de supermarkt, de tennistegenstander). De controles "winkel dicht" zijn met hen weer weg. Over blijven
+  de zeilers, de opvarenden, de terrasgasten en de klanten van de supermarkt; de proef schiet ook op Sjoerd en de BP-medewerker en
+  kijkt dat ze blijven staan.
 - Ook het mes en de knal van de Tiger (`explosieRaakt`) raken ze.
 - *Nagelopen*: `npm run omstandertest`: van elke soort één, met het echte schot neer, een misdaad, later weer op; het mes, de knal, en
   de voetgangers blijven te raken. Een valkuil in de proef: op de plezierboot zitten ze tegenover elkaar, dus een schot van vóór

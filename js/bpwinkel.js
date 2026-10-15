@@ -17,7 +17,6 @@ import * as THREE from 'three';
 import { BP_WINKEL, bpWereld } from './bouwvlak.js';
 import { heliosDoek } from './tankstation.js';
 import { Persoon } from './persoon.js';
-import { registreer } from './omstanders.js';
 
 export const BP = {
   hoog: 4.8,            // de bovenkant van de muren (de goot in de 3D BAG: 4,81)
@@ -596,7 +595,6 @@ export function bouwBpWinkel(scene, { addCollider, grondHoogte = () => 0 } = {})
   const mwYaw = Math.atan2(-fx, -fz);
   mw.zetNeer(mx, mz, mwYaw);
   scene.add(mw.groep);
-  registreer(mw, { wie: 'medewerker BP' });   // (stap 188) te raken; dan is de kassa dicht tot hij terug is
 
   const deurPunt = W(deurMidU, dw);
   const api = {
