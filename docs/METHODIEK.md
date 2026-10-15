@@ -9317,6 +9317,20 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De politie en de Tiger (stap 183, 15 okt).** Gevraagd: "de politie lijkt niet te schieten op de tank, pas op het laatst als
+de tank een tijdje stil staat". Drie oorzaken, alle drie in js/politie.js:
+- *Geen zicht*: Erik staat in de Tiger midden in de botsdoos van de tank, en elke kijklijn van een agent liep daar tegenaan
+  (`zietSpeler`, `zichtVrij`). Nu geeft js/main.js die doos door (`politie.zetZichtNegeer`), en die telt niet voor de kijklijn
+  en niet voor `gedekt`.
+- *Weggedoken*: een agent zoekt opnieuw dekking zodra zijn doel verschuift, en vanuit dekking (`a.laag`) schiet alleen de
+  flankeerder. Een rijdende tank verschuift voortdurend, dus de agent zat steeds weggedoken; pas als de tank stilstond kwam hij
+  overeind. Op een tank schiet hij nu ook vanuit zijn dekking.
+- *De wagens*: die stapten alleen uit bij een doel onder `UITSTAP_SNELHEID` (8,3 m/s), en de Tiger rijdt 10,5 m/s. Bij een tank
+  stappen ze nu altijd uit binnen 40 m; rammen doen ze hem niet. En een tank is een groot doel: `POLITIE_TANK_RAAK` 0,5 als
+  ondergrens van de raakkans.
+- *Nagelopen*: `wensen7test` deel 4: 139 van 160 beelden zicht op de rijdende tank, 3 treffers in 8 s, de romp −18, en een wagen
+  die bij de rijdende tank zijn agenten laat uitstappen.
+
 **De Tiger, de regen en de boot (stap 182, 15 okt).**
 - *De knal van de Tiger*: `tigerInslag` raakte alleen `npcs.people` binnen 6 m. Nu `explosieRaakt(x, y, z, straal)` in
   js/main.js (`TIGER_STRAAL` 9 m): voetgangers, en alles uit `verhaal.doelen()`, `politie.doelen()`, de wedstrijd, de buurt en

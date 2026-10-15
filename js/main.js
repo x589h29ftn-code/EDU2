@@ -2814,6 +2814,8 @@ const tiger = (KAART && !BOVEN) ? initTiger({
   opSchot: (k) => schok(k), opSchok: (k) => schok(k),
   opOntploffing: tigerOntploft,
 }) : null;
+// (stap 183) de kijklijn van een agent naar Erik in de Tiger loopt niet tegen de botsdoos van de tank zelf
+if (tiger && politie.zetZichtNegeer) { const tigerDoos = [tiger.doos]; politie.zetZichtNegeer(() => (player.inTiger ? tigerDoos : null)); }
 /*
  Op nul ontploft de Tiger: dezelfde knal als een auto, en wie dan nog binnen zit gaat neer (de rode waarschuwing en het
  piepen in js/tiger.js zeiden het al). Daarbuiten schade naar afstand, zoals bij `autoOntploft`.

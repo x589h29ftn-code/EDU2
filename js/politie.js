@@ -97,6 +97,7 @@ const UITRUK_STRAAL = 22;                  // (m)
  8,3 m/s.
 */
 const UITSTAP_SNELHEID = 8.3;              // (m/s)
+const POLITIE_TANK_RAAK = 0.5;             // (stap 183) de raakkans op de Tiger, ten minste
 /*
  ---- onderscheppen ----
  Een surveillanceauto reed naar de plek waar je wás. Op snelheid is dat per
@@ -333,6 +334,13 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
     return uit;
   };
 
+  /*
+   (stap 183, gevraagd: "de politie lijkt niet te schieten op de tank, pas op het laatst als de tank een tijdje stil staat")
+   Zit Erik in de Tiger, dan staat zijn plek in de botsdoos van de tank: elke kijklijn van een agent liep daar tegenaan, dus
+   niemand zag hem, en hij gold als gedekt. `zichtNegeer` (js/main.js zet hem) geeft die doos, die de kijklijn niet breekt.
+   En de wagens stapten alleen uit bij een doel onder `UITSTAP_SNELHEID`: de Tiger rijdt 10,5 m/s.
+  */
+  let zichtNegeer = () => null;
   const spelerPlek = () => (player.inCar ? { x: player.inCar.x, z: player.inCar.z } : { x: player.pos.x, z: player.pos.z });
   /*
    Waar zoeken ze? Niet waar je bent, maar waar ze je het laatst wisten. Dat is
@@ -1212,9 +1220,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
      waar bukken voor is.
     */
     const hoogte = 1.3 - (player.hurk || 0) * 0.55;
-    if (!zichtVrij(pos.x, pos.z, sp.x, sp.z, hoogte)) return false;
+    if (!zichtVrij(pos.x, pos.z, sp.x, sp.z, hoogte, null, zichtNegeer())) return false;
     // (stap 144) gehurkt achter een bosje: struiken hebben geen botsdoos, dus apart
-    return player.inCar || !struikOpLijn(pos.x, pos.z, sp.x, sp.z, player.hurk || 0);
+    return player.inCar || player.inTiger || !struikOpLijn(pos.x, pos.z, sp.x, sp.z, player.hurk || 0);
   }
 
   // Een schot van de speler horen ze in de wijde omtrek.
@@ -1728,7 +1736,9 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         a.vuurT -= dt;
         // (stap 144) niet vanuit zijn dekking (de flankeerder wel, die schiet gehurkt) en niet onder vuur
         if (!rust && a.vuurT <= 0 && dSp < VUURBEREIK && a.zicht && schutters.has(a)
-            && !(a.onderdrukT > 0) && !(a.laag && a.rol !== 'flank')) {
+            && !(a.onderdrukT > 0) && !(a.laag && a.rol !== 'flank' && !player.inTiger)) {
+          // (stap 183) op een tank schiet hij ook vanuit zijn dekking: die verschuift zolang de tank rijdt, dus anders zat
+          // hij steeds weggedoken en vuurde pas als de tank een tijd stilstond
           /*
            Wie een machinepistool heeft schiet korte salvo's: drie schoten kort
            achter elkaar in plaats van één, en hij is eerder weer aan de beurt.
@@ -1755,11 +1765,13 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
            gaan vaker mis, wie rent, rijdt, gehurkt of gedekt zit is lastiger te raken, stil in het open makkelijker,
            en onder vuur of in het donker schiet hij slechter.
           */
-          const gedekt = !player.inCar && !zichtVrij(pos.x, pos.z, sp.x, sp.z, 1.0);
+          const gedekt = !player.inCar && !player.inTiger && !zichtVrij(pos.x, pos.z, sp.x, sp.z, 1.0, null, zichtNegeer());
           const kans = raakKans({ d: dSp, richtT: a.richtT || 0, mp: a.mp, vaart: Math.hypot(spSnelheid.x, spSnelheid.z),
             inAuto: !!player.inCar, hurk: player.hurk || 0, gedekt, onderdrukt: a.onderdrukT > 0, donker: nachtNu && !verstopNu.lamp })
             * moeilijk.waarden.raak;                     // (stap 157) de moeilijkheidsgraad, js/moeilijk.js
-          for (let k = 0; k < salvo; k++) if (Math.random() < kans) schade += SCHADE;
+          // (stap 183) een tank van zeven meter mis je niet zo snel, ook niet als hij rijdt
+          const kansNu = player.inTiger ? Math.max(kans, POLITIE_TANK_RAAK) : kans;
+          for (let k = 0; k < salvo; k++) if (Math.random() < kansNu) schade += SCHADE;
         }
         continue;
       }
@@ -1951,7 +1963,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
       */
       const spVaart = Math.hypot(spSnelheid.x, spSnelheid.z);
       // (stap 144) zit je in een auto en zijn er twee sterren, dan rammen ze eerst: uitstappen pas als je stilstaat
-      const uitstapVaart = player.inCar && s >= SLIM.ramSter ? 2 : UITSTAP_SNELHEID;
+      const uitstapVaart = player.inTiger ? Infinity : player.inCar && s >= SLIM.ramSter ? 2 : UITSTAP_SNELHEID;   // een tank ram je niet
       if (dSp < 40 && spVaart < uitstapVaart && w.agenten.some(a => !a.persoon.groep.visible)) {
         w.uitstapT += dt;
         if (w.uitstapT > 0.4 || dSp < 22) {
@@ -2135,6 +2147,7 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
   }
 
   return {
+    zetZichtNegeer(f) { zichtNegeer = f; },
     misdaad, update, raak, raakWagen, raakHeli, wagenOp, doelen, hoorSchot, reset, aanrijden, zetSter, parkeerAuto, stuurWagens,
     get rust() { return rust; },
     set rust(v) { rust = !!v; },

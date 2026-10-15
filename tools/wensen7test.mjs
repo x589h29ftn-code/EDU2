@@ -2,7 +2,8 @@
  Proef bij stap 182 (npm run wensen7test). Gevraagd op 15 okt 2026:
    1. met de Tiger blaas je mensen op in een straal rond de inslag (voetgangers, agenten), niet alleen wie er pal op staat;
    2. de regen duurt niet meer dagen: ook als de klok stilstaat wisselt het weer, en een bui heeft een maximum;
-   3. uit een boot stap je op de wal met marge: niet in een botsdoos en niet met een voet in het water.
+   3. uit een boot stap je op de wal met marge: niet in een botsdoos en niet met een voet in het water;
+   4. (stap 183) de politie ziet Erik in de rijdende Tiger en schiet erop, en stapt uit de wagen ook al rijdt de tank.
 
  Gebruik: npm run server &  node tools/wensen7test.mjs [poort]
 */
@@ -115,6 +116,56 @@ const boot = await page.evaluate(async () => {
 ok(boot.pogingen >= 20 && boot.gelukt >= boot.pogingen * 0.6, 'langs de kant kun je uitstappen', `${boot.gelukt} van ${boot.pogingen} plekken`);
 ok(boot.inDoos.length === 0, 'nooit in een botsdoos (kademuur, hek, paal)', `${boot.inDoos.length}× ${boot.inDoos.slice(0, 4).join(' ')}`);
 ok(boot.inWater.length === 0 && boot.natteVoet.length <= Math.max(1, boot.gelukt * 0.05), 'en niet met een voet in het water (op een smalle steiger: in het midden)', `${boot.inWater.length} in het water, ${boot.natteVoet.length} binnen 0,5 m ervan ${boot.natteVoet.slice(0, 6).join(' ')}`);
+
+// ------------------------------------------------------------------ 4. de politie en de Tiger
+kop('4. de politie schiet op de rijdende Tiger');
+const pol = await page.evaluate(() => {
+  const g = window.__game, T = g.tiger, P = g.player, PO = g.politie, W = window.__W;
+  PO.reset(); PO.proefStil = true;
+  T.zetTerug(); T.update(0.05);
+  const s = T.stand;
+  P.inCar = null; P.pos.set(s.x + Math.cos(s.yaw) * 3, 0, s.z - Math.sin(s.yaw) * 3);
+  T.toets();
+  const inTank = !!P.inTiger;
+  // een agent op 18 m schuin vóór de tank, op een plek waar hij vrij staat
+  const fx = -Math.sin(s.yaw), fz = -Math.cos(s.yaw);
+  let ax = s.x + fx * 16 + Math.cos(s.yaw) * 8, az = s.z + fz * 16 - Math.sin(s.yaw) * 8;
+  [ax, az] = W.resolveCollisions(ax, az, 0.4);
+  const a = PO.proef.agent(ax, az);
+  PO.zetSter(3, s.x, s.z);
+  const leven0 = T.leven, uit = { inTank, zicht: 0, raak: 0, beelden: 0, vaartMax: 0 };
+  // rijden met W, de agent kijkt en schiet; de schade gaat naar de tank zoals in js/main.js
+  P.keys = { KeyW: true };
+  for (let i = 0; i < 160; i++) {
+    T.update(0.05);
+    g.scene.updateMatrixWorld(true);
+    const schade = PO.update(0.05);
+    if (schade > 0) { P.health -= schade; uit.raak++; }
+    g.tigerSchade();
+    if (a.zicht) uit.zicht++;
+    uit.vaartMax = Math.max(uit.vaartMax, Math.abs(T.stand.speed || T.stand.v || 0));
+    uit.beelden++;
+  }
+  P.keys = {};
+  uit.tankSchade = leven0 - T.leven;
+  uit.staat = a.staat;
+  // en een wagen bij de rijdende tank laat zijn agenten uitstappen
+  PO.reset();
+  const s2 = T.stand;
+  const w = PO.proef.wagen ? PO.proef.wagen(s2.x + 25, s2.z + 4) : null;
+  PO.zetSter(3, s2.x, s2.z);
+  P.keys = { KeyW: true };
+  let uitgestapt = false;
+  for (let i = 0; i < 120 && w && !uitgestapt; i++) { T.update(0.05); PO.update(0.05); if (w.agenten && w.agenten.some(q => q.persoon.groep.visible)) uitgestapt = true; }
+  P.keys = {};
+  uit.wagen = !!w; uit.uitgestapt = uitgestapt;
+  T.uit && T.uit(); PO.reset(); PO.proefStil = false;
+  return uit;
+});
+ok(pol.inTank, 'Erik zit in de Tiger');
+ok(pol.zicht > pol.beelden * 0.3, 'de agent ziet hem, ook terwijl de tank rijdt (de botsdoos van de tank breekt de kijklijn niet)', `${pol.zicht} van ${pol.beelden} beelden, tot ${pol.vaartMax.toFixed(1)} m/s`);
+ok(pol.raak >= 2 && pol.tankSchade > 0, 'en schiet raak: de tank krijgt schade (een grote kans op een groot doel)', `${pol.raak} treffers, romp −${pol.tankSchade.toFixed(0)}`);
+if (pol.wagen) ok(pol.uitgestapt, 'een wagen bij de rijdende tank laat zijn agenten uitstappen (geen grens van 8,3 m/s meer)');
 
 await browser.close();
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');

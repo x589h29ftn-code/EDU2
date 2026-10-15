@@ -2123,6 +2123,8 @@ of druk je op **X**, dan zijn de opnames mislukt en staat Erik Jan weer bij de w
 - **De granaat van de Tiger** neemt iedereen binnen 9 m van de inslag mee: voetgangers, agenten en hun wagens, de mannen van
   een missie, spelers en publiek bij VV Sneek, gasten op een feestje en de ambulance. Eerst ging alleen een voetganger neer
   die er pal naast stond.
+- **De politie** schiet nu meteen op de Tiger, ook als hij rijdt. Eerst zagen de agenten Erik niet door de tank heen en doken
+  ze steeds weg; ze schoten pas als de tank een tijd stilstond. Agenten in een wagen stappen nu ook uit bij een rijdende tank.
 - **De regen** houdt niet meer dagen aan. Het weer wisselt nu ook als de klok stilstaat (in een missie 's nachts, of als je
   de klok uitzet), ongeveer elke twee minuten een kans, en een bui duurt hoogstens drie uur op de klok.
 - **Uit de boot** stap je nu een stukje verder de wal op, op een plek waar je nergens tegenaan staat en niet met een voet in
