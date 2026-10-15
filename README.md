@@ -2106,6 +2106,13 @@ gehouden M1 zit gewoon in je wapens, ook na opslaan en laden.
 Ga je neer, loop je weg (verder dan 160 m van de set, of in de tweede scène van het kamp), stap je in een auto
 of druk je op **X**, dan zijn de opnames mislukt en staat Erik Jan weer bij de waterzuivering. Tijdens de opnames kun je niet opslaan. Na het slagen is hij weg.
 
+### De dvd-hoes
+
+In `docs/hoes/` staat een hoes voor een dvd-doosje: voorkant, rug en achterkant als één inlay van 273 × 183 mm met 3 mm
+afloop (`hoes_dvd.pdf` om te drukken, `hoes_dvd.png` op 300 dpi, `hoes_voorkant.png` los). Opnieuw maken: `npm run hoes`.
+
+![De dvd-hoes](docs/hoes/hoes_voorbeeld.png)
+
 ### Rijden en de straat (15 okt)
 
 - **Sturen op snelheid** reageert weer meteen op een toets, zoals vóór 15 okt; de zachte aanloop van de eerste 0,15 s is eruit.
