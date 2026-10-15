@@ -2716,6 +2716,7 @@ export function initVerhaal(ctx) {
     if (noMercy5Toets()) return true;
     if (n5Bezig()) return false;
     if (roanBezig()) return false;        // (stap 178) met Roan aan de hand doet E niets voor de missie
+    if (roanToets()) return true;         // (stap 193) bij de R zelf beginnen
     // missie 11: aan de balie van Tinga State de C4 ophalen, vóór het kopen daar
     if (bijDeBalie()) return haalC4();
     // missie 12: een dranghek, een lading C4, of de knal zelf
@@ -12121,13 +12122,14 @@ export function initVerhaal(ctx) {
   const ROAN = {
     loon: 450,
     belNa: 90,                   // s na missie 5: na het telefoontje van Erik Jan (30 s), niet er doorheen
-    buurt: 150,                  // zo dicht bij de school belt Mark meteen
+    buurt: 150,                  // (tot stap 193: zo dicht bij de school belde Mark meteen, ook onder een wachtende missie)
     speel: { x: 315.2, z: -84.6 },   // de speeltoestellen naast de school (het speeltoestel, de zandbak, de wipkip)
     ophaal: 2.6,                 // zo dicht bij Roan begint het lopen
     volg: 1.6,                   // zo ver loopt hij achter je
     snel: 4.6,                   // m/s, hij rent als hij achterblijft
     thuis: 4.5,                  // zo dicht bij Ma met Roan: klaar (hij loopt 1,6 m achter je)
     kwijt: 45,                   // verder weg wacht hij en roept hij
+    bijR: 6,                     // (stap 193) zo dicht bij de R begint E het, vóór het einde
   };
   const ROAN_TELEFOON = [
     zegtMark('Erik, ff je hulp nodig.'),
@@ -12272,16 +12274,25 @@ export function initVerhaal(ctx) {
       }
       if (!kan || !balk.hidden || gesprek) return;
       if (roan.belT > 0 && roan.belT !== Infinity) roan.belT -= dt;
-      const dSchool = Math.hypot(sp.x - school.x, sp.z - school.z);
       /*
        In de buurt van de school, of er is geen missie meer (vrij spelen na het einde). (Stap 179: eerst was een missie die
        op zijn telefoontje of onder zijn M wachtte ook "geen missie"; dan belde Mark vóór Ronald en nam de R van Roan
        diens navigatie over, racetest.)
       */
+      /*
+       Stap 193 (gevraagd: "tijdens een missie kwam ik langs Radio Tinga en begon ineens de missie van Roan, daardoor stopte de
+       oude missie"): binnen 150 m van de school belde Mark vanzelf, ook als er een missie onder zijn M wachtte, en Roan nam dan
+       de navigatie en de opdracht over. Nu belt Mark alleen nog vanzelf in vrij spelen na het einde; daarvoor begint het als
+       je zelf bij de R op de stoep van Radio Tinga E drukt (`roanToets`).
+      */
       const klaarVoor = roan.belT <= 0 || roan.belT === Infinity;
-      if (klaarVoor && (dSchool < ROAN.buurt || missie === 'klaar') && naMissieT <= 0 && !(nm.fase === 'bellen')) {
+      if (klaarVoor && missie === 'klaar' && uitzendingKlaar && naMissieT <= 0 && !(nm.fase === 'bellen')) {
         roan.fase = 'bellen'; roan.telT = 2.0;
         geluid.telefoon(3);
+      }
+      if (roanBijR()) {
+        roan.hintT = (roan.hintT || 0) - dt;
+        if (roan.hintT <= 0) { roan.hintT = 1.2; hud.show('E — Roan naar Ma brengen (voor Mark)', 1.4); }
       }
       return;
     }
@@ -12312,6 +12323,19 @@ export function initVerhaal(ctx) {
     if (roan.fase === 'thuis') {
       roanMa.update(dt, {}); roanKind.update(dt, {});
     }
+  }
+  // (stap 193) bij de R op de stoep van Radio Tinga, klaar om te beginnen
+  function roanBijR() {
+    if (!roanStartbaar() || roan.fase !== 'wacht' || player.inCar) return false;
+    const sp = spelerPunt(), sc = roanSchool();
+    return Math.hypot(sp.x - sc.x, sp.z - sc.z) < ROAN.bijR;
+  }
+  // E bij de R: Mark belt (je bent er zelf heen gegaan), en dan begint het
+  function roanToets() {
+    if (!roanBijR() || !balk.hidden || gesprek) return false;
+    roan.fase = 'bellen'; roan.telT = 0.3;
+    geluid.telefoon(1);
+    return true;
   }
   // na neergaan, laden of een nieuwe missie: Roan staat weer bij de school en Mark belt opnieuw als je erheen gaat
   function roanStop() {
@@ -13431,7 +13455,7 @@ export function initVerhaal(ctx) {
     get roan() {
       return { fase: roan.fase, klaar: roan.klaar, belT: roan.belT, inAuto: roan.inAuto, kind: roanKind, ma: roanMa, ROAN,
         beschikbaar: roanBeschikbaar(), bezig: roanBezig(), startbaar: roanStartbaar(), school: roanSchool(), speel: roanSpeelPlek(), maPlek: roanMaPlek(),
-        zetBel: (t) => { roan.belT = t; } };
+        zetBel: (t) => { roan.belT = t; }, stop: () => roanStop() };
     },
     get noMercy() {
       return { fase: nm.fase, klaar: nm.klaar, gebeld: nm.gebeld, belT: nm.belT, leen: nm.leen, levens: nm.levens.slice(),
@@ -13635,7 +13659,8 @@ export function initVerhaal(ctx) {
         || ronaldBijKoelkast()
         || (missie === 'molenkrite' && fase === 'wacht' && bijMark)
         || (missie === 'bx' && fase === 'wacht' && bijMark)
-        || praatjeBij();
+        || praatjeBij()
+        || roanBijR();
     },
     // missie 9: de vlaggen op de kaart en het huis dat van jou is
     huisMarkeringen, kiesHuis,

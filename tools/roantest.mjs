@@ -6,7 +6,8 @@
  als de missie begonnen is. Hij volgt je naar Molenkrite 15; daar staat de moeder van Erik en Mark. Missie klaar, € 450."
 
    1. vóór missie 5 geen R; erna de R bij Radio Tinga, en Roan en Ma nog niet te zien;
-   2. Mark belt pas na de tussenpoos (90 s, na Erik Jan), en dan zonder dat je naar de school hoeft (er loopt geen missie);
+   2. Mark belt pas na de tussenpoos (90 s, na Erik Jan); sinds stap 193 vóór het einde alleen als je bij de R E drukt (langsrijden
+      onder een wachtende missie belde eerst vanzelf en nam de navigatie van de missie over), na het einde vanzelf;
       "Erik, ff je hulp nodig" … "Super bedankt!";
    3. Roan staat dan bij de speeltoestellen naast de school, buiten de botsdozen, en is een kind (kleiner dan Erik);
    4. ophalen: hij groet en volgt je over je eigen spoor, nooit door een muur of het water, en blijft dichtbij;
@@ -68,8 +69,13 @@ const r = await page.evaluate(async () => {
   uit.na60 = { fase: v.roan.fase, dialoog: !dicht() };
   stap(800);         // 100 s: ver van de school, met missie 6 die onder zijn M wacht, belt hij niet (stap 179)
   uit.verWeg = { fase: v.roan.fase, dialoog: !dicht() };
-  // dan naar de school: binnen 150 m belt Mark
-  zet(school.x + 60, school.z + 20); stap(4);
+  // (stap 193) langs de school, met missie 6 die onder zijn M wacht: dan belt hij niet meer, en de M van de missie blijft
+  zet(school.x + 60, school.z + 20); stap(200);
+  uit.langs = { fase: v.roan.fase, dialoog: !dicht(), nav: (g.hud.nav && g.hud.nav.letter) || null, missie: v.missie };
+  // dan zelf naar de R op de stoep van Radio Tinga en E: dan belt Mark
+  zet(school.x, school.z); stap(4);
+  uit.bijR = v.aanspreekbaar;
+  v.toets();
   let rinkel = v.roan.fase;
   for (let i = 0; i < 200 && rinkel !== 'bellen'; i++) { stap(1); rinkel = v.roan.fase; }
   stap(60);          // 3 s: het gesprek
@@ -150,15 +156,24 @@ const r = await page.evaluate(async () => {
 
   // ---- 7b. neergaan tijdens de missie: terug bij de school
   s = v.bewaar(); s.roanKlaar = false; v.herstel(s); stap(2);
-  zet(v.roan.school.x + 60, v.roan.school.z + 20); v.roan.zetBel(0); stap(80); klik(); stap(2);
+  zet(v.roan.school.x, v.roan.school.z); v.roan.zetBel(0); stap(2); v.toets(); stap(80); klik(); stap(2);
   const voorNeer = v.roan.fase;
   P.health = 0; v.dood(); stap(2);
   uit.neer = { voor: voorNeer, na: v.roan.fase, zicht: v.roan.kind.groep.visible };
   P.zetLevenRuw(100);
 
+  // ---- 7c. (stap 193) na het einde belt Mark nog vanzelf, ook ver van de school
+  s = v.bewaar(); Object.assign(s, { missie: 'klaar', fase: 'klaar', volgende: null, uitzendingKlaar: true, invalKlaar: true, ronaldKlaar: true, roanKlaar: false });
+  v.herstel(s); stap(2);
+  zet(v.roan.school.x + 400, v.roan.school.z + 300); v.roan.zetBel(0);
+  let belNa = v.roan.fase;
+  for (let i = 0; i < 200 && belNa !== 'bellen' && dicht(); i++) { stap(1); belNa = v.roan.fase; }
+  uit.einde = { fase: belNa, open: !dicht() || belNa === 'bellen' };
+  klik(); stap(2);
+  v.roan.stop();
   // ---- 8. shaders: Roan en Ma in beeld
   s = v.bewaar(); s.roanKlaar = false; v.herstel(s); stap(2);
-  zet(v.roan.school.x + 60, v.roan.school.z + 20); v.roan.zetBel(0); stap(80); klik(); stap(2);
+  zet(v.roan.school.x, v.roan.school.z); v.roan.zetBel(0); stap(2); v.toets(); stap(80); klik(); stap(2);
   const k2 = v.roan.kind.groep.position, m2 = v.roan.maPlek;
   // eerst dezelfde twee beelden zonder Roan en Ma (de wereld daar), dan met: alleen het verschil telt
   const beeld = (x, y, z, lx, ly, lz) => { g.camera.position.set(x, y, z); g.camera.lookAt(lx, ly, lz); g.camera.updateMatrixWorld(true);
@@ -195,7 +210,9 @@ ok(!r.na.roan && !r.na.ma, 'Roan en Ma nog niet te zien', JSON.stringify(r.na));
 kop('2. Mark belt');
 ok(r.na60.fase === 'wacht' && !r.na60.dialoog, 'niet vóór de tussenpoos (90 s)', JSON.stringify(r.na60));
 ok(r.na.dSchool > 150 && r.verWeg.fase === 'wacht' && !r.verWeg.dialoog, 'ver van de school, met een missie die op je wacht, belt hij niet (stap 179)', JSON.stringify(r.verWeg));
-ok(r.bel.fase === 'bellen' && r.bel.open, 'bij de school belt hij wel', JSON.stringify({ fase: r.bel.fase }));
+ok(r.langs.fase === 'wacht' && !r.langs.dialoog && r.langs.nav !== 'R', 'langs de school met een missie die wacht: geen telefoontje, de missie houdt zijn navigatie (stap 193)', JSON.stringify(r.langs));
+ok(r.bijR, 'bij de R op de stoep is E van Roan');
+ok(r.bel.fase === 'bellen' && r.bel.open, 'E bij de R: dan belt Mark', JSON.stringify({ fase: r.bel.fase }));
 ok(r.belRegels.join(' ').includes('Erik, ff je hulp nodig') && r.belRegels.join(' ').includes('Roan naar Ma') && r.belRegels.join(' ').includes('Super bedankt'), '"Erik, ff je hulp nodig. Kan jij Roan naar Ma brengen? … Super bedankt!"', JSON.stringify(r.belRegels));
 
 kop('3. Roan bij de speeltoestellen');
@@ -221,6 +238,7 @@ ok(!r.binnen.roan && !r.binnen.ma, 'daarna gaan Ma en Roan naar binnen', JSON.st
 kop('7. opslaan en neergaan');
 ok(r.opslaan === 'zolang Roan bij je is', 'opslaan kan niet zolang Roan bij je is', r.opslaan);
 ok(r.opslag === true, 'de opslag onthoudt dat Roan thuis is');
+ok(r.einde.open, 'na het einde belt Mark nog vanzelf, ook ver van de school (stap 193)', JSON.stringify(r.einde));
 ok(r.neer.voor === 'ophalen' && r.neer.na === 'wacht' && !r.neer.zicht, 'neergaan: Roan weer bij de school, Mark belt opnieuw', JSON.stringify(r.neer));
 
 kop('8. shaders');

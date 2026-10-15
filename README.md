@@ -2208,9 +2208,10 @@ afloop (`hoes_dvd.pdf` om te drukken, `hoes_dvd.png` op 300 dpi, `hoes_voorkant.
 
 ### Bijmissie · Roan naar Ma
 
-Na missie 5, als ook No Mercy 4 kan, staat er bij **Radio Tinga** een lichtblauwe **R**. Het pand is ook een school. Kom
-je in de buurt van de school, of speel je na het einde vrij, dan belt **Mark**: *"Erik, ff je hulp nodig. Kan jij Roan naar Ma
-brengen? Super bedankt!"* Hij belt pas anderhalve minuut na missie 5, dus niet door het telefoontje van Erik Jan heen.
+Na missie 5, als ook No Mercy 4 kan, staat er bij **Radio Tinga** een lichtblauwe **R**. Het pand is ook een school. Ga
+naar de R op de stoep en druk op **E**, dan belt **Mark**: *"Erik, ff je hulp nodig. Kan jij Roan naar Ma brengen? Super
+bedankt!"* Je kiest het dus zelf: rij je tijdens een missie langs de school, dan gaat je missie gewoon door. Speel je na het
+einde vrij, dan belt Mark vanzelf. Het kan pas anderhalve minuut na missie 5, dus niet door het telefoontje van Erik Jan heen.
 
 **Roan** is een jongetje van vier, blond en met een rood shirt. Hij staat bij de speeltoestellen naast de school, maar pas
 als de missie begonnen is. Loop naar hem toe: *"Hoi Erik! Gaan we naar oma?"* Daarna loopt hij achter je aan, over

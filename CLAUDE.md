@@ -367,8 +367,8 @@ staan bij No Mercy 4 en 5 de laatste één of twee als rood ruitje op de kaart (
 komen Duitsers die je 12 s niet zien je zoeken (`jagen` in js/bewaking.js) en lopen ze het water niet in (`droog`).
 
 **Bijmissie Roan naar Ma** (stap 178, het blok `roan` in js/verhaal.js): na missie 5 een R (`hud.zetRoan`) op de stoep van
-Radio Tinga (het pand is ook een school). `ROAN.belNa` (90 s) na missie 5 belt Mark, in de buurt van de school (150 m) of
-alleen in vrij spelen na het einde (stap 179: niet meer onder een wachtende missie). Roan (een `Persoon` op 0,58, hoofd 1,28) staat dan bij de speeltoestellen (315, −85) en volgt je spoor
+Radio Tinga (het pand is ook een school). `ROAN.belNa` (90 s) na missie 5 kan het: sinds stap 193 vóór het einde alleen met E bij de R (`roanToets`, `ROAN.bijR` 6 m; langsrijden
+onder een wachtende missie belde eerst vanzelf en nam de navigatie van die missie over), en in vrij spelen na het einde belt Mark vanzelf. Roan (een `Persoon` op 0,58, hoofd 1,28) staat dan bij de speeltoestellen (315, −85) en volgt je spoor
 (`roanVolg`, ook mee de auto in) naar Ma op de stoep van Molenkrite 15 (`roanMaPlek`): € 450. `roanBezig` telt als `nmBezig`
 (het verhaal wacht, niet opslaan). Opslag: `roanKlaar`.
 

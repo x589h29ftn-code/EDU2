@@ -9317,6 +9317,17 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Roan begint niet meer vanzelf onder een wachtende missie (stap 193, 15 okt).** Gemeld: "tijdens een missie kwam ik langs Radio
+Tinga en begon ineens de missie van Roan. Daardoor stopte de oude missie." Binnen `ROAN.buurt` (150 m) van de school belde Mark
+vanzelf zodra `roanStartbaar` waar was, en dat is ook zo in de fase waarin een missie onder zijn M op je wacht (`KLUS_WACHT`, zoals
+missie 11 met de M bij Molenkrite 15, vlak bij Radio Tinga). `roanBegin` bewaarde dan de navigatie en de opdracht van de missie en
+zette die van Roan ervoor: in beeld was de missie weg.
+- Nu belt Mark alleen nog vanzelf in vrij spelen na het einde (`missie === 'klaar' && uitzendingKlaar`). Daarvoor begint het als je
+  zelf bij de R op de stoep van Radio Tinga (`ROAN.bijR`, 6 m) E drukt (`roanToets`, `roanBijR`, met een hint en in
+  `aanspreekbaar`); dan belt Mark en gaat het verder zoals het was. Een bewuste keuze, zoals een klus aannemen.
+- *Nagelopen*: `npm run roantest` groen, met erbij: langs de school onder een wachtende missie geen telefoontje en de M van de missie
+  blijft; bij de R is E van Roan en belt Mark; na het einde belt hij nog vanzelf, ook ver van de school.
+
 **Praatjes met Mark en Johan (stap 192, 15 okt).** Gevraagd: "Kan je voor missies tussendoor of na het spel zorgen dat je Johan en
 Mark kan vinden. Mark Molenkrite 15. Johan bij zijn huis. Ze geven diverse random dialogen als je probeert te praten. Los van het
 naar voetbal gaan en op de bank zitten. Johan heeft het bijv over binnenkort weer naar Yugo gaan, is een restaurant. Mark heeft het
