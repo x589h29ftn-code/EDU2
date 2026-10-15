@@ -6,6 +6,7 @@
    docs/hoes/hoes_dvd.png            hetzelfde als beeld op 300 dpi (3295 × 2232 px)
    docs/hoes/hoes_voorkant.png       alleen de voorkant (op snijmaat, 129,5 × 183 mm, 300 dpi)
    docs/hoes/hoes_voorbeeld.png      klein, met de snij- en vouwlijnen gestippeld (niet om te drukken)
+   docs/hoes/hoes_a4.pdf             voor een gewone printer: A4 liggend, op ware grootte, met snij- en vouwtekens
 
  De voorkant komt uit docs/hoes/voorkant_kunst.jpg, gemaakt door tools/hoes_kunst.py: het laadscherm (beeld/laadscherm/tinga_vi.jpg)
  met de linkerfiguur iets slanker, bijgesneden zónder het logo van Grand Theft Auto (een echt merk) en met Lanczos naar 300 dpi. De achterkant gebruikt schermafdrukken uit
@@ -153,5 +154,43 @@ await page.evaluate(({ AF, xRug, xVoor, BREED, HOOGT }) => {
 const klein = await browser.newPage({ viewport: { width: Math.round(BREED * mm), height: Math.round(HOOGT * mm) }, deviceScaleFactor: 1.2 });
 await klein.setContent(await page.content(), { waitUntil: 'load' });
 await klein.screenshot({ path: `${map}/hoes_voorbeeld.png` });
+/*
+ Voor een gewone printer: A4 liggend (297 × 210 mm), de hoes met afloop in het midden op ware grootte, met snijtekens
+ (doorgetrokken, op de snijmaat 273 × 183 mm) en vouwtekens (gestippeld, de rug) in de marge, en een meetlat van 10 mm om na
+ te meten dat de printer niet geschaald heeft. De streepjes blijven 4 mm van de rand, buiten wat een printer niet haalt.
+*/
+{
+  const A4B = 297, A4H = 210, ox = (A4B - BREED) / 2, oy = (A4H - HOOGT) / 2;
+  const sx = [ox + AF, ox + xRug, ox + xVoor, ox + BREED - AF];   // snijlijn links, de twee vouwen, snijlijn rechts
+  const sy = [oy + AF, oy + HOOGT - AF];
+  const streep = (x1, y1, x2, y2, stip = false) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#000" stroke-width="0.25" ${stip ? 'stroke-dasharray="1 0.8"' : ''}/>`;
+  let lijnen = '';
+  for (let i = 0; i < sx.length; i++) {
+    const stip = i === 1 || i === 2;
+    lijnen += streep(sx[i], 4, sx[i], oy - 1, stip) + streep(sx[i], oy + HOOGT + 1, sx[i], A4H - 4, stip);
+  }
+  for (const y of sy) lijnen += streep(4, y, ox - 1, y) + streep(ox + BREED + 1, y, A4B - 4, y);
+  const a4 = `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: ${A4B}mm ${A4H}mm; margin: 0; }
+    * { margin: 0; padding: 0; } html, body { width: ${A4B}mm; height: ${A4H}mm; position: relative; background: #fff; font-family: 'Inter', sans-serif; }
+    img { position: absolute; left: ${ox}mm; top: ${oy}mm; width: ${BREED}mm; height: ${HOOGT}mm; }
+    svg { position: absolute; left: 0; top: 0; width: ${A4B}mm; height: ${A4H}mm; }
+    .uitleg { position: absolute; left: ${ox + 30}mm; bottom: 4.6mm; font-size: 2mm; color: #333; }
+  </style></head><body>
+    <img src="${b64(`${map}/hoes_dvd.png`)}">
+    <svg viewBox="0 0 ${A4B} ${A4H}">${lijnen}
+      <line x1="${ox + 2}" y1="${A4H - 5.4}" x2="${ox + 12}" y2="${A4H - 5.4}" stroke="#000" stroke-width="0.3"/>
+      <line x1="${ox + 2}" y1="${A4H - 6.4}" x2="${ox + 2}" y2="${A4H - 4.4}" stroke="#000" stroke-width="0.3"/>
+      <line x1="${ox + 12}" y1="${A4H - 6.4}" x2="${ox + 12}" y2="${A4H - 4.4}" stroke="#000" stroke-width="0.3"/>
+    </svg>
+    <div class="uitleg">Het streepje links is 10 mm (meet na: anders is er geschaald). Afdrukken op werkelijke grootte, 100 %, liggend.
+      Snijden langs de doorgetrokken streepjes (273 × 183 mm), vouwen langs de gestippelde.</div>
+  </body></html>`;
+  const vel = await browser.newPage();
+  await vel.setContent(a4, { waitUntil: 'load' });
+  await vel.pdf({ path: `${map}/hoes_a4.pdf`, width: `${A4B}mm`, height: `${A4H}mm`, printBackground: true, pageRanges: '1' });
+}
+
 await browser.close();
+console.log(`${map}/hoes_a4.pdf (A4 liggend, met snijtekens),`);
 console.log(`${map}/hoes_dvd.pdf, hoes_dvd.png, hoes_voorkant.png, hoes_voorbeeld.png: ${BREED} × ${HOOGT} mm met ${AF} mm afloop`);
