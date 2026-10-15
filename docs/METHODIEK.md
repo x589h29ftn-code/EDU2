@@ -9317,6 +9317,18 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Haperingen bij het rijden en de boot tegen de wal (stap 187, 15 okt).** Gevraagd: "kijk of je nog haperingen ziet tijdens het
+rijden, en of er nog problemen zijn met de boot, bijvoorbeeld als je tegen de wal botst, dat je niet vast komt te zitten".
+- *Rijden*: `haperingtest` groen. `rijprofiel`: per beeld gemiddeld rijden 1,25 ms, verkeer 1,65, hud 1,24, voetgangers 0,91. Boven de
+  6 ms alleen losse uitschieters: `voegToe` 30 ms (de auto van de proef wordt gemaakt, één keer), `parkeerNabij` 18 ms (één keer, binnen
+  `blokkadeVoor`), `botsAutos` 7 ms (twee keer). Het rooster van de geparkeerde auto's opbouwen kost in node 0,5 ms (met getallen als
+  sleutel 0,26), dus die 18 ms is een eenmalige pauze van de browser (opruimen, vertalen), geen werk dat terugkomt. Niets veranderd.
+- *De boot*: `vaar` draaide eerst en keek pas daarna of de romp nog paste. Met het roer tegen de kant stak de boeg na de draai in
+  de wal, en dan paste geen enkele beweging meer, ook achteruit niet. Nagespeeld in `npm run bootwaltest`: met het roer tegen de
+  wal tot 239 van de 360 beelden met een stuk van de boot op het land, en één keer 0 m los na vijf tellen achteruit. Nu draait hij
+  alleen als de romp na de draai nog in het water ligt, en `maakVrij` zet een boot die toch op de kant ligt (een oude opslag) op
+  de dichtstbijzijnde plek waar hij past. Daarna: 20 keer tegen de wal bij twee boten, nooit op het land, altijd minstens 3 m los.
+
 **Vijf nummers op Radio Tinga (stap 186, 15 okt).** Sultans of Swing, Rainbow in the Sky, Under the Bridge, Whatever You Want en
 Knockin' on Heaven's Door, aangeleverd als mp3, onder audio/radio/ en in audio/radio/zenders.json. De radio pakt ze vanzelf op; het
 scherm in de auto toont titel en artiest. `npm run zendertest` (zonder browser) kijkt of elk bestand uit de lijst bestaat, een mp3

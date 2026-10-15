@@ -2158,6 +2158,8 @@ afloop (`hoes_dvd.pdf` om te drukken, `hoes_dvd.png` op 300 dpi, `hoes_voorkant.
   ze steeds weg; ze schoten pas als de tank een tijd stilstond. Agenten in een wagen stappen nu ook uit bij een rijdende tank.
 - **De regen** houdt niet meer dagen aan. Het weer wisselt nu ook als de klok stilstaat (in een missie 's nachts, of als je
   de klok uitzet), ongeveer elke twee minuten een kans, en een bui duurt hoogstens drie uur op de klok.
+- **Tegen de wal** blijft de boot niet meer vastzitten: met het roer tegen de kant draait hij niet meer met de boeg de wal in, en
+  achteruit kom je altijd los.
 - **Uit de boot** stap je nu een stukje verder de wal op, op een plek waar je nergens tegenaan staat en niet met een voet in
   het water.
 

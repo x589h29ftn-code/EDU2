@@ -663,7 +663,26 @@ export function initBoten({ scene, player, hud }) {
   let inBoot = null;
   let laatsteYaw = 0;
 
+  /*
+   (stap 187) Ligt de boot toch met een stuk op de kant (een oude opslag, een draai van een vorige versie), dan eerst naar de
+   dichtstbijzijnde plek waar hij wél past, in ringen van een kwart meter tot drie meter, met de eigen draaiing of een kwart
+   slag. Anders kon hij nooit meer weg.
+  */
+  function maakVrij(boot) {
+    if (pastHier(boot.x, boot.z, boot.yaw)) return false;
+    for (let r = 0.25; r <= 3.01; r += 0.25) {
+      for (let i = 0; i < 24; i++) {
+        const h = i / 24 * Math.PI * 2, x = boot.x + Math.cos(h) * r, z = boot.z + Math.sin(h) * r;
+        for (const dy of [0, 0.25, -0.25, 0.5, -0.5]) {
+          if (pastHier(x, z, boot.yaw + dy)) { boot.x = x; boot.z = z; boot.yaw += dy; boot.vx = 0; boot.vz = 0; return true; }
+        }
+      }
+    }
+    return false;
+  }
+
   function vaar(boot, keys, dt) {
+    maakVrij(boot);
     const gas = !!(keys.KeyW || keys.ArrowUp);
     const terug = !!(keys.KeyS || keys.ArrowDown);
     let doel = 0;
@@ -700,7 +719,14 @@ export function initBoten({ scene, player, hud }) {
     */
     const draai = boot.roer * (ROER * Math.max(-1, Math.min(1, vl / (TOP * 0.55)))
       + SCHROEF_DRAAI * Math.max(0, boot.gas) * Math.max(0, 1 - Math.abs(vl) / 2.5));
+    /*
+     (stap 187, gevraagd: "als je tegen de wal botst, dat je niet vast komt te zitten") Eerst draaide hij altijd en keek pas
+     daarna of hij nog paste. Met het roer tegen de kant stak de boeg na de draai in de wal, en dan paste geen enkele
+     beweging meer, ook achteruit niet. Nu draait hij alleen als de romp na de draai nog in het water ligt.
+    */
+    const yawWas = boot.yaw;
     boot.yaw += draai * dt;
+    if (!pastHier(boot.x, boot.z, boot.yaw) && pastHier(boot.x, boot.z, yawWas)) boot.yaw = yawWas;
 
     // terug naar snelheid over de grond
     boot.vx = fx * vl + rx * vd;

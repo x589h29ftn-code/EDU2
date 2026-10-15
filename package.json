@@ -295,6 +295,7 @@
     "vouwwagentest": "node tools/vouwwagentest.mjs",
     "dvd": "node tools/dvd.mjs",
     "dvdtest": "node tools/dvdtest.mjs",
-    "zendertest": "node tools/zendertest.mjs"
+    "zendertest": "node tools/zendertest.mjs",
+    "bootwaltest": "node tools/bootwaltest.mjs"
   }
 }
