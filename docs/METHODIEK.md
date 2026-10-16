@@ -9317,6 +9317,28 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Steekproef op bugs rond de Tinga Cache (stap 199, 16 okt).** Gevraagd: "Zie je verder nog problemen, of bugs. Desnoods steekproef
+doen van max half uur onderzoek." Gezocht waar het laatst gebouwde de rest raakt: de toetsen, de stoep van Radio Tinga, de volgorde
+in het verhaal. Gevonden en opgelost:
+
+- *E bij Sjors begon Roan.* De R van Roan staat op dezelfde stoep en reageert al op 6 m, en `verhaal.toets` komt in `praatOfAuto` vóór
+  de cache. Na missie 5 en vóór Roan begon E bij Sjors dus de missie van Roan. Nu wijkt de R als je bij Sjors staat (3,2 m,
+  `verhaal.zetRoanWijkt` met `geocache.bijSjorsNu`); een paar meter verder kan Roan gewoon.
+- *Met de GPS open kon je niet kiezen.* De GPS ving elk cijfer af (vanaf cache 2), ook als het spel om 1, 2 of 3 vroeg. Nu laat hij
+  de cijfers met rust zolang `verhaal.openKeuze` er een geeft.
+- *De GPS was vanaf het begin te koop.* Het ontwerp zei "vanaf na missie 5", zoals de andere bijmissies. Nu staat hij pas dan aan de
+  kassa (`gps.kan`, `verhaal.na5`) en hangen de posters pas dan (anders een poster voor iets dat er niet is); wie hem al heeft houdt
+  alles.
+- *Twee keer Sjors in missie 18.* In de uitzending is Sjors de dj binnen ("te laat: Sjors komt terug"); de cache-Sjors stond dan ook
+  buiten op de stoep. Nu niet zolang missie 18 loopt (`verhaal.sjorsInStudio`).
+- *Nagekeken en goed:* geen dubbele functienamen in js/verhaal.js, js/main.js, js/geocache.js en js/player.js; zonder GPS ligt er
+  niets (stap 198).
+- *Niet opgelost:* op een aanraakscherm is er geen knop voor de GPS (N) en geen manier om cijfers in te tikken; het spel is voor
+  Windows met een toetsenbord. Cache 4 ligt op de oever en is te voet te zien, al gaat hij alleen vanuit een boot open (vraag aan de
+  gebruiker: aan een steiger hangen?).
+- *Proef:* `geocachetest` deel 11 (Sjors en Roan, de cijfers bij een keuze, missie 18, de posters vóór en na missie 5) en
+  `bpkassatest` (twee knoppen vóór missie 5, drie erna); `roantest` opnieuw.
+
 **Het hoofdmenu met dezelfde linkerfiguur als de dvd-hoes (16 okt).** Gevraagd: "Je hebt voor de dvd cover de persoon links
 bijgewerkt. Doe dit ook voor het hoofdmenu foto zodat het netjes aansluit op de rest."
 

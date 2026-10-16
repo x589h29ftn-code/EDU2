@@ -10,7 +10,7 @@
    5. kraslot: € 25, de prijs altijd uit 0, 10, 25, 50, 100 of 150, het geld klopt met de prijs; over 20.000 trekkingen
       kansen die bij de tabel horen en gemiddeld onder de € 25 (de BP verdient eraan);
    6. te weinig geld: niets betaald, geen leven en geen lot;
-   7. weglopen sluit de kassa; op een aanraakscherm drie keuzeknoppen (sinds stap 196 ook de GPS).
+   7. weglopen sluit de kassa; op een aanraakscherm twee keuzeknoppen, en na missie 5 drie (sinds stap 196 de GPS).
 
  Gebruik: npm run server &  node tools/bpkassatest.mjs [poort]
 */
@@ -49,6 +49,9 @@ const r = await page.evaluate(async () => {
   zet(5.3, 5.2);
   uit.e1 = K.toets(); uit.open1 = K.open; uit.knoppen = K.keuzes ? K.keuzes.length : 0;
   uit.e2 = K.toets(); uit.open2 = K.open;
+  // (16 okt) de GPS pas vanaf na missie 5: dan drie knoppen
+  { const s = V.bewaar(); Object.assign(s, { missie: 'klaar', fase: 'klaar', volgende: null, uitzendingKlaar: true }); V.herstel(s); V.verdien(1000); zet(5.3, 5.2); }
+  K.toets(); uit.knoppenNa5 = K.keuzes ? K.keuzes.length : 0; K.toets();
 
   // ---- 2. energydrank
   K.reset(); pl.health = 50; K.toets();
@@ -115,8 +118,9 @@ const r = await page.evaluate(async () => {
 kop('1. waar de kassa werkt');
 ok(r.balie && !r.achter && !r.buiten, 'alleen voor de balie, niet erachter en niet buiten', JSON.stringify({ balie: r.balie, achter: r.achter, buiten: r.buiten }));
 ok(r.e1 && r.open1 && r.e2 && !r.open2, 'E opent de kassa en sluit hem weer');
-// (sinds stap 196 een derde: de GPS voor de Tinga Cache)
-ok(r.knoppen === 3, 'op een aanraakscherm drie keuzeknoppen (drank, kraslot, GPS)', `${r.knoppen}`);
+// (sinds stap 196 een derde: de GPS voor de Tinga Cache, sinds 16 okt pas na missie 5)
+ok(r.knoppen === 2, 'op een aanraakscherm twee keuzeknoppen vóór missie 5 (drank, kraslot)', `${r.knoppen}`);
+ok(r.knoppenNa5 === 3, 'en drie na missie 5 (ook de GPS)', `${r.knoppenNa5}`);
 
 kop('2. energydrank');
 const B = r.blikjes;

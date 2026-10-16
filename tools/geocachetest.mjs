@@ -19,6 +19,9 @@
  10. (stap 197) De GPS in je hand: geen wapen en niet schieten; klikken, R, een wapen kiezen en H stoppen hem weg (zonder schot);
      pakken breekt het herladen af; de rechtermuisknop houdt hem dichterbij; het scherm wordt bijgewerkt; binnen en met de drone
      gaat hij weg. De gouden M1 met echte doeken van gepolijst goud, metalness 1, en weer terug.
+ 11. (16 okt) Bij Sjors begint E niet de missie van Roan (de R staat op dezelfde stoep), een paar meter verder wel; met de GPS
+     open en een keuze in beeld gaan de cijfers naar de keuze; in missie 18 geen Sjors op de stoep (hij zit in de studio);
+     vóór missie 5 zonder GPS geen posters, daarna wel.
 
  Gebruik: npm run server &  node tools/geocachetest.mjs [poort]
 */
@@ -380,6 +383,62 @@ ok(Gd.staal >= 5 && Gd.goud >= 7 && Gd.zelfde, 'de gouden M1: elk stalen deel kr
 ok(Gd.kleur.every(([r, g, b]) => r > 200 && g > 150 && g < r && b < 150), 'het doek is goud van kleur', JSON.stringify(Gd.kleur));
 ok(Gd.ruw.every(w => w < 110), 'en glad gepolijst (ruwheid onder 0,43)', JSON.stringify(Gd.ruw));
 ok(hand.terugStaal === 0, 'zonder goud weer het geparkeerde staal');
+
+kop('11. Sjors en Roan, de cijfers bij een keuze, de posters vóór missie 5 (16 okt)');
+const elf = await page.evaluate(() => {
+  const g = window.__game, C = g.geocache, v = g.verhaal, P = g.player, uit = {};
+  const st = g.studio.plekken.stoep;
+  // Roan nog niet gedaan, Sjors op de stoep (de GPS, twee caches gevonden)
+  const s = v.bewaar(); Object.assign(s, { missie: 'klaar', fase: 'klaar', volgende: null, uitzendingKlaar: true, roanKlaar: false }); v.herstel(s);
+  C.herstel({ gps: true, intro: true, gevonden: 2, invoer: '' });
+  window.__zet(st.x + 120, st.z + 120); window.__stap(4);
+  const sj = C.sjors.groep.position;
+  window.__zet(sj.x + 1.2, sj.z); window.__stap(3);
+  uit.bijSjors = { sjors: C.bijSjorsNu(), aanspreekbaar: !!v.aanspreekbaar, verhaalE: v.toets() };
+  uit.sjorsE = C.toets(); window.__klik();
+  // een stap van Sjors af maar nog bij de R: dan de R
+  const dx = st.x - sj.x, dz = st.z - sj.z, L = Math.hypot(dx, dz) || 1;
+  window.__zet(st.x + dx / L * 2.8, st.z + dz / L * 2.8); window.__stap(3);
+  uit.bijR = { sjors: C.bijSjorsNu(), aanspreekbaar: !!v.aanspreekbaar, dSjors: +Math.hypot(P.pos.x - sj.x, P.pos.z - sj.z).toFixed(1) };
+  // in missie 18 zit Sjors in de studio: dan staat hij niet buiten
+  { const m = v.bewaar(); Object.assign(m, { missie: 'uitzending', fase: 'telefoon', volgende: null }); v.herstel(m); }
+  window.__zet(st.x + 120, st.z + 120); window.__stap(3);
+  uit.m18 = { inStudio: v.sjorsInStudio, sjors: !!(C.sjors && C.sjors.groep.visible) };
+  { const m = v.bewaar(); Object.assign(m, { missie: 'klaar', fase: 'klaar', volgende: null, uitzendingKlaar: true }); v.herstel(m); }
+  window.__stap(3);
+  uit.m18na = !!(C.sjors && C.sjors.groep.visible);
+  // de cijfers: met de GPS open en een keuze in beeld gaan ze naar de keuze, niet naar de GPS
+  window.__zet(st.x + 60, st.z + 60); window.__stap(2);
+  if (!C.aan) C.wissel(); window.__stap(4);
+  const was = Object.getOwnPropertyDescriptor(v, 'openKeuze');
+  Object.defineProperty(v, 'openKeuze', { get: () => ['een', 'twee'], configurable: true });
+  const i0 = C.stand.invoer;
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit9', key: '9', bubbles: true }));
+  uit.metKeuze = { voor: i0, na: C.stand.invoer };
+  Object.defineProperty(v, 'openKeuze', was);
+  if (!C.aan) C.wissel(); window.__stap(2);
+  const i1 = C.stand.invoer;
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit9', key: '9', bubbles: true }));
+  uit.zonderKeuze = { voor: i1, na: C.stand.invoer };
+  if (C.aan) C.wissel(); window.__stap(4);
+  // vóór missie 5 en zonder GPS: geen posters; daarna wel
+  const s2 = v.bewaar(); Object.assign(s2, { missie: 'molenkrite', fase: 'wacht', volgende: null, uitzendingKlaar: false }); v.herstel(s2);
+  C.herstel({ gps: false });
+  window.__stap(2);
+  uit.voor5 = { na5: v.na5, posters: C.posters.filter(m => m.visible).length };
+  const s3 = v.bewaar(); Object.assign(s3, { missie: 'klaar', fase: 'klaar', volgende: null, uitzendingKlaar: true }); v.herstel(s3);
+  window.__stap(2);
+  uit.na5 = { na5: v.na5, posters: C.posters.filter(m => m.visible).length };
+  C.herstel({ gps: true, intro: true, gevonden: 5, goud: true }); window.__stap(2);   // terug zoals deel 9 het verwacht
+  return uit;
+});
+ok(elf.bijSjors.sjors && !elf.bijSjors.aanspreekbaar && elf.bijSjors.verhaalE === false && elf.sjorsE, 'bij Sjors begint E niet de missie van Roan, maar praat je met Sjors', JSON.stringify(elf.bijSjors));
+ok(!elf.bijR.sjors && elf.bijR.aanspreekbaar, 'een paar meter verder, bij de R, kan Roan wel', JSON.stringify(elf.bijR));
+ok(elf.m18.inStudio && !elf.m18.sjors && elf.m18na, 'in missie 18 (Sjors in de studio) staat hij niet buiten op de stoep, daarna weer wel', JSON.stringify({ ...elf.m18, na: elf.m18na }));
+ok(elf.metKeuze.na === elf.metKeuze.voor, 'met de GPS open en een keuze in beeld gaat een cijfer niet naar de GPS', JSON.stringify(elf.metKeuze));
+ok(elf.zonderKeuze.na === elf.zonderKeuze.voor + '9', 'zonder keuze wel', JSON.stringify(elf.zonderKeuze));
+ok(!elf.voor5.na5 && elf.voor5.posters === 0, 'vóór missie 5 en zonder GPS hangen er nog geen posters', JSON.stringify(elf.voor5));
+ok(elf.na5.na5 && elf.na5.posters >= 5, 'na missie 5 wel', JSON.stringify(elf.na5));
 
 kop('9. geen nieuw shaderprogramma');
 const sh = await page.evaluate(async () => {

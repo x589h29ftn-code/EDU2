@@ -12339,8 +12339,11 @@ export function initVerhaal(ctx) {
     }
   }
   // (stap 193) bij de R op de stoep van Radio Tinga, klaar om te beginnen
+  // (16 okt) Sjors van de Tinga Cache staat ook op deze stoep; wie bij hem staat, praat met hem en begint Roan niet (js/main.js)
+  let roanWijktVoor = null;
   function roanBijR() {
     if (!roanStartbaar() || roan.fase !== 'wacht' || player.inCar) return false;
+    if (roanWijktVoor && roanWijktVoor()) return false;
     const sp = spelerPunt(), sc = roanSchool();
     return Math.hypot(sp.x - sc.x, sp.z - sc.z) < ROAN.bijR;
   }
@@ -13417,6 +13420,12 @@ export function initVerhaal(ctx) {
     // (stap 196) een gesprek van buiten het verhaal (js/geocache.js: de medewerker van de BP, Sjors), en of de balk dicht is
     zegExtern: (regels, na = null, opties = {}) => zeg(regels, na, opties),
     get balkDicht() { return balk.hidden && !gesprek; },
+    // (16 okt) de R van Roan wijkt als deze functie true geeft (js/main.js: je staat bij Sjors van de Tinga Cache)
+    zetRoanWijkt(f) { roanWijktVoor = f; },
+    // (16 okt) voorbij missie 5: vanaf dan de bijmissies, en de GPS van de Tinga Cache (js/bpkassa.js, js/geocache.js)
+    get na5() { return !NM_VOOR.includes(missie); },
+    // (16 okt) in missie 18 zit Sjors in de studio aan de knoppen: dan staat hij niet ook buiten voor de Tinga Cache
+    get sjorsInStudio() { return missie === 'uitzending'; },
     // (stap 195, voor tools/statistiektest.mjs) de titelrol los openen en sluiten
     __titelrol: (open = true) => { if (open) openTitelrol(); else sluitTitelrol(); },
     // (stap 127, voor tools/wensentest.mjs: je auto bij huis neerzetten)

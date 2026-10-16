@@ -1014,7 +1014,7 @@ const djdienst = initDjDienst({ studio, geluid, hud, player, verdien: n => verha
 // (stap 196) de Tinga Cache: de GPS koop je aan deze kassa; de module zelf komt na de boten (js/geocache.js)
 let geocache = null;
 const bpKassa = initBpKassa({ player, hud, geluid, geld: () => verhaal.geld, betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n),
-  gps: { prijs: 250, koop: () => (geocache ? geocache.koopGps() : 'nee') } });
+  gps: { prijs: 250, koop: () => (geocache ? geocache.koopGps() : 'nee'), kan: () => verhaal.na5 || (geocache && geocache.gps) } });
 extraWinkels = [...(spuiterij && spuiterij.winkels ? spuiterij.winkels : []), ...(garage ? garage.winkels : []),
   ...(pizzabaan ? pizzabaan.plekken : []), ...(vishandel && vishandel.winkels ? vishandel.winkels : [])];
 winkelsNu = null; werkKaartvlaggenBij();
@@ -1048,8 +1048,14 @@ winkelsNu = null; werkKaartvlaggenBij();
 const boten = initBoten({ scene, player, hud }) || null;
 geocache = initGeocache({ scene, player, hud, geluid, KAART, Persoon, studio: studio && studio.plekken ? studio : null, woningen, boten, vishandel,
   zeg: (r, na, opt) => verhaal.zegExtern(r, na, opt), balkDicht: () => verhaal.balkDicht,
-  betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n), geld: () => verhaal.geld });
+  betaal: n => verhaal.betaal(n), verdien: n => verhaal.verdien(n), geld: () => verhaal.geld,
+  // (16 okt) vanaf na missie 5 (de posters hangen er dan pas)
+  kan: () => verhaal.na5,
+  // (16 okt) in missie 18 zit Sjors in de studio
+  sjorsWeg: () => verhaal.sjorsInStudio });
 if (geocache) { registreerOpslag('geocache', geocache); statistiek.zetCaches(() => ({ gevonden: geocache.gevonden, totaal: 5 })); }
+// (16 okt) Sjors en de R van Roan staan op dezelfde stoep van Radio Tinga: wie bij Sjors staat, praat met hem
+if (geocache && verhaal.zetRoanWijkt) verhaal.zetRoanWijkt(() => geocache.bijSjorsNu());
 /*
  Voetgangers steken pas over als er geen auto aankomt, en auto's remmen voor wie
  al oversteekt (js/npc.js en js/vehicles.js). De twee weten niets van elkaar; ze
@@ -1752,7 +1758,8 @@ window.addEventListener('keydown', e => {
   if (!k) return;
   if ((tuning && tuning.open && tuning.kies(+k[1])) || (djdienst.open && djdienst.kies(+k[1])) || (bpKassa.open && bpKassa.kies(+k[1]))) { e.preventDefault(); e.stopImmediatePropagation(); }
   // (stap 196) met de GPS aan tik je het doel in
-  else if (geocache && geocache.aan && !e.shiftKey && geocache.cijfer(+k[1])) { e.preventDefault(); e.stopImmediatePropagation(); }
+  // (16 okt) behalve als het spel om een keuze vraagt (1, 2 of 3): die gaat voor, anders kon je met de GPS open niet kiezen
+  else if (geocache && geocache.aan && !e.shiftKey && !verhaal.openKeuze && geocache.cijfer(+k[1])) { e.preventDefault(); e.stopImmediatePropagation(); }
 }, { capture: true });
 // de klik als slag bij tennis
 document.addEventListener('mousedown', e => {

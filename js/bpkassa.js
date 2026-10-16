@@ -85,11 +85,13 @@ export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal
     const [u, w] = bpLokaal(player.pos.x, player.pos.z);
     return u >= K.vak.u0 && u <= K.vak.u1 && w >= K.vak.w0 && w <= K.vak.w1;
   }
+  // (16 okt) de GPS staat pas aan de kassa als `gps.kan()` het zegt (vanaf na missie 5, zoals de andere bijmissies)
+  const gpsTe = () => !!gps && (!gps.kan || gps.kan());
   const keuzeTekst = () => [
     `energydrank (${euro(K.drank.prijs)}, +${K.drank.leven} leven, sneller rennen)`,
     `kraslot (${euro(K.lot.prijs)})`,
     // (stap 196) de GPS voor de Tinga Cache (js/geocache.js)
-    ...(gps ? [`GPS voor de Tinga Cache (${euro(gps.prijs)})`] : []),
+    ...(gpsTe() ? [`GPS voor de Tinga Cache (${euro(gps.prijs)})`] : []),
   ];
   function toonMenu() {
     if (hud) hud.melding('BP · KASSA', keuzeTekst().map((t, i) => `${i + 1} — ${t}`).join(' · ') + ' · E — klaar', 12);
@@ -147,7 +149,7 @@ export function initBpKassa({ player, hud, geluid = null, geld = () => 0, betaal
       if (n === 1) drink();
       else if (n === 2) kras();
       // (stap 196) de GPS: de kassa gaat dicht, want de medewerker gaat het uitleggen
-      else if (n === 3 && gps) { const r = gps.koop(); if (r === 'ok') { open = false; return true; } }
+      else if (n === 3 && gpsTe()) { const r = gps.koop(); if (r === 'ok') { open = false; return true; } }
       else return false;
       if (open) toonMenu();
       return true;

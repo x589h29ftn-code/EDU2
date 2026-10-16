@@ -129,7 +129,7 @@ export function initGeocache(o) {
   const st = { gps: false, intro: false, gevonden: 0, invoer: '', mis: 0, goud: false, aan: false, misGemeld: false };
   let caches = null, bordje = null, bouwFout = null;
   const posters = [];
-  let sjors = null, hintT = 0, tekenT = 0, sjorsZicht = false;
+  let sjors = null, hintT = 0, tekenT = 0, sjorsZicht = false, posterZicht = true;
 
   // ------------------------------------------------ een vrije plek: geen botsdoos, geen water, op de grond
   // (binnen de voetafdruk van een pand ligt hij onder het dak of het dek: het landhoofd van de Geeuwbrug heeft botsdozen die niet
@@ -645,6 +645,8 @@ export function initGeocache(o) {
     get posters() { return posters; },
     get sjors() { return sjors; },
     om, raadsel, doel, bouw,
+    // (16 okt) sta je bij Sjors? Dan wijkt de R van Roan op dezelfde stoep (js/main.js)
+    bijSjorsNu: () => bijSjors(),
     // (js/bpkassa.js) de GPS kopen
     koopGps() {
       if (st.gps) { hud.melding('BP', '"Die heb je al, toch? Zet hem maar aan met N."', 3); return 'heeft'; }
@@ -704,8 +706,12 @@ export function initGeocache(o) {
     update(dt) {
       if (!player.active && !window.__autoplay) return;
       if (st.gps) bouw();
+      // (16 okt) de posters pas vanaf na missie 5 (dan staat de GPS aan de kassa), of als je hem al hebt
+      const posterNu = st.gps || !o.kan || o.kan();
+      if (posterNu !== posterZicht) { posterZicht = posterNu; posters.forEach(m => { m.visible = posterNu; }); }
       // Sjors op de stoep zolang er nog iets te zoeken is; de S op de kaart
-      const wil = st.gps && st.gevonden < CACHE.totaal;
+      // (16 okt) niet in missie 18: dan is Sjors de dj binnen in de studio (`o.sjorsWeg`)
+      const wil = st.gps && st.gevonden < CACHE.totaal && !(o.sjorsWeg && o.sjorsWeg());
       if (wil) zorgVoorSjors();
       if (sjors) {
         const sp = spelerPunt();
