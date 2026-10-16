@@ -9317,6 +9317,15 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Proeven van de bijmissies nagelopen (stap 201, 16 okt).** Gevraagd: "Loop nog enkele tests door van de side missions."
+Gedraaid: `nomercytest` (57 goed), `nomercy2test` (73), `nomercy5test` (78), `klusjestest` (44), `praatjestest` (24) en
+`uitjetest`; eerder die dag al `roantest` en `geocachetest`. Alles groen op één na:
+
+- *Na de wedstrijd stond de klok stil.* `uitjetest` zag "de klok loopt weer" fout. Sinds stap 127 telde `klokVastDoorVerhaal` heel
+  `uitjeBezig()` mee, ook de fase `na` ("Mooi geweest", Mark blijft nog even tot je wegloopt). `uitjeEinde` zette de klok dan aan,
+  en de volgende `werkMissieKlokBij` zette hem meteen weer stil, tot Mark naar huis was. Nu telt de fase `na` niet meer mee; de rit
+  en het kijken houden de klok nog steeds vast (`naloop3test` deel 4 meet de rit). `uitjetest` daarna groen (38 goed).
+
 **Cache 4 op een meerpaal in het water (stap 200, 16 okt).** Gevraagd: "Los cache 4 op." Cache 4 lag op de oever bij De Rat: hij
 ging alleen vanuit een boot open, maar te voet stond je er gewoon naast (cacheplek_4_dichtbij.png). Nu staat hij op een houten
 meerpaal met een touw erom, in het water, het kistje 1,05 m boven het water.

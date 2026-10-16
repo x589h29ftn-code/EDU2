@@ -12536,7 +12536,9 @@ export function initVerhaal(ctx) {
   function klokVastDoorVerhaal() {
     return !!zwart || !!titelrol || brugNaT > 0 || raceNaT > 0 || invalNaT > 0 || ronaldNaT > 0 || uitzNaT > 0
       || schaduwKlokWas !== null || invalKlokWas !== null || ronaldKlokWas !== null || uitzKlokWas !== null
-      || uitje.klokWas !== null || uitjeBezig() || n5Bezig();
+      // (16 okt) na de wedstrijd (fase 'na': "Mooi geweest", Mark blijft nog even) loopt de klok weer; tot dan hield deze regel
+      // hem stil, net nadat `uitjeEinde` hem had aangezet
+      || uitje.klokWas !== null || (uitjeBezig() && uitje.fase !== 'na') || n5Bezig();
   }
   // waarom de speler de tijd nu niet kan verzetten (T, de instellingen), of null
   function tijdVast() {
