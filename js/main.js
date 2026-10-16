@@ -2879,6 +2879,8 @@ const tiger = (KAART && !BOVEN) ? initTiger({
   // het eigen schot en het trillen als hij het bijna begeeft: dezelfde schok als bij een ontploffing (`schokCamera`)
   opSchot: (k) => schok(k), opSchok: (k) => schok(k),
   opOntploffing: tigerOntploft,
+  // (16 okt) lantaarnpalen rijdt hij omver
+  raakLantaarn,
 }) : null;
 // (stap 183) de kijklijn van een agent naar Erik in de Tiger loopt niet tegen de botsdoos van de tank zelf
 if (tiger && politie.zetZichtNegeer) { const tigerDoos = [tiger.doos]; politie.zetZichtNegeer(() => (player.inTiger ? tigerDoos : null)); }
@@ -3341,7 +3343,8 @@ function loop() {
       if (r.radioAan && !r.binnen(player.pos.x, player.pos.z)) r.zetRadio(false);
       radioSterk = Math.max(radioSterk, r.radioSterkte(player.pos.x, player.pos.z));
     }
-    const radioHier = !!player.inCar || radioSterk > 0;
+    // (16 okt) tijdens No Mercy 4 en 5 geen autoradio (1944, de filmset)
+    const radioHier = (!!player.inCar && !verhaal.geenRadio) || radioSterk > 0;
     if (radioSterk > 0 && !stekRadio) { geluid.zetZender('Spannenburg'); stekRadio = true; }
     if (radioSterk <= 0) stekRadio = false;
     // het nieuws op Radio Tinga: alleen als je naar Radio Tinga luistert, en dan even zachter

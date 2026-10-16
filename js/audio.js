@@ -35,6 +35,15 @@ let gedempt = false;
 let gepauzeerd = false;   // Esc: alles stil, zie geluid.pauzeer
 
 const bronnen = {};          // langlopende lagen
+/*
+ (16 okt, gevraagd: "als ik vaak snel switch van radiozender gaat hij terug naar het oude deuntje en geen muziek meer die ik heb
+ geüpload") Wanneer is een <audio> echt kapot? Wissel je de bron terwijl play() nog loopt, dan weigert die belofte met een
+ AbortError ("interrupted by a new load request"), en een browser die nog geen klik heeft gezien met NotAllowedError. Dat werd
+ allebei als "het bestand doet het niet" gelezen (`stuk`), en dan speelde de rest van het spel het gesynthetiseerde deuntje. Alleen
+ een bestand dat niet te spelen is (NotSupportedError, of een fout die geen afbreking is) telt nog.
+*/
+const speelKapot = (e) => !!e && e.name === 'NotSupportedError';
+const elKapot = (el) => !!(el && el.error && el.error.code !== 1);   // 1 = MEDIA_ERR_ABORTED: een nieuwe bron, geen fout
 let radioLijst = [];         // de nummers van de zender die nu opstaat
 let zenders = [];            // de zenders uit audio/radio/zenders.json
 let zenderNu = 0;            // welke zender opstaat
@@ -1284,7 +1293,8 @@ export const geluid = {
     if (m && m.el && !m.stuk) zenderStand[zenderNu] = m.el.currentTime;
     zenderNu = (zenderNu + stap + zenders.length) % zenders.length;
     radioLijst = zenders[zenderNu].nummers;
-    if (m) { m.nummer = null; m.zender = zenderNu; }
+    // (16 okt) een andere zender: een nieuwe kans voor de mp3's, ook als het vorige nummer haperde
+    if (m) { m.nummer = null; m.zender = zenderNu; m.stuk = false; }
     return this.radioZender();
   },
 
@@ -1377,7 +1387,7 @@ export const geluid = {
       bron.connect(hi); hi.connect(lo); lo.connect(g); g.connect(hoofd);
       bronnen.muziek = { el, gain: g, nummer: null, beurt: Math.floor(Math.random() * radioLijst.length), stuk: false };
       el.addEventListener('ended', () => { bronnen.muziek.nummer = null; });
-      el.addEventListener('error', () => { bronnen.muziek.stuk = true; });
+      el.addEventListener('error', () => { if (elKapot(el)) bronnen.muziek.stuk = true; });
     }
     const m = bronnen.muziek;
     m.aan = !!actief;                               // zodat geluid.pauzeer weet of hij mag hervatten
@@ -1433,7 +1443,7 @@ export const geluid = {
         else m.el.addEventListener('loadedmetadata', zetPlek, { once: true });
         m.nieuweAuto = false;
       }
-      if (m.el.paused) m.el.play().catch(() => { m.stuk = true; });
+      if (m.el.paused) m.el.play().catch((e) => { if (speelKapot(e)) m.stuk = true; });
       // waar hij is, voor de volgende keer dat je van zender wisselt
       if (m.zender === zenderNu) zenderStand[zenderNu] = m.el.currentTime;
     } else if (!m.el.paused) {
@@ -1518,7 +1528,7 @@ export const geluid = {
       try { bron = ctx.createMediaElementSource(el); } catch { return false; }
       bron.connect(g); g.connect(hoofd);
       bronnen.missie = { el, gain: g, nummer: null, stuk: false, speelt: false, stopT: 0, wil: -1 };
-      el.addEventListener('error', () => { bronnen.missie.stuk = true; });
+      el.addEventListener('error', () => { if (elKapot(el)) bronnen.missie.stuk = true; });
       // loopt het nummer toch een keer af, dan begint hij ergens anders opnieuw
       el.addEventListener('ended', () => { bronnen.missie.nummer = null; bronnen.missie.speelt = false; });
     }
@@ -1594,7 +1604,7 @@ export const geluid = {
         m.gain.gain.cancelScheduledValues(nu());
         m.gain.gain.setValueAtTime(0, nu());
       }
-      if (m.el.paused && !gepauzeerd) m.el.play().catch(() => { m.stuk = true; });
+      if (m.el.paused && !gepauzeerd) m.el.play().catch((e) => { if (speelKapot(e)) m.stuk = true; });
       /*
        Zet de speler zelf een zender op, dan stapt de missiemuziek opzij: hij
        blijft wel doorlopen (zo komt hij zonder sprong terug zodra je uitstapt)

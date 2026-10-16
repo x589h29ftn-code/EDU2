@@ -30,6 +30,7 @@ import { doek, doos, cil, juteDoek, kistDoek, verfDoek } from './nomercy.js';
 import { bouwSloep } from './boot.js';
 import { SCOOTER } from './lichaam.js';
 import { stuurDelen } from './leven.js';
+import { maakBestuurder } from './bestuurder.js';
 
 export const NOMERCY5 = {
   naam: 'No Mercy 5',
@@ -755,7 +756,17 @@ export function maakStafauto() {
   const binnen = maakStafBinnen(draai);
   binnen.groep.visible = false;
   bak.add(binnen.groep);
-  g.userData = { length: STAF.L, bak, glas, wielen, rem, R: STAF.R, oog: STAF.oog, stafauto: true, binnen };
+  /*
+   (16 okt) Erik achter het stuur, van buiten te zien (gevraagd: "je ziet Erik ook niet zitten in de stafauto"). De gedeelde
+   bestuurder van het verkeer (js/bestuurder.js), op de maten van deze wagen in de vorm die `bestuurderPlek` verwacht: de ogen
+   uit STAF.oog, de zitting van de linker voorstoel (bovenkant 0,615 m), de rugleuning op z 0,04, het stuur op (−0,36; 1,02; −0,42);
+   een open wagen, dus de hemel ver boven het hoofd. js/autodetail.js `werkAutoBij` laat hem alleen in de derde persoon zien.
+  */
+  const STAF_MAAT = { oog: STAF.oog, dorpelY: 0.315, dakY: 2.2, schouderY: 1.04, cabZ: -0.05, cabL: 1.87, sport: false, truck: false };
+  const erik = maakBestuurder('stafauto', STAF_MAAT, 'erik');
+  erik.userData.erik = true; erik.visible = false;
+  bak.add(erik);
+  g.userData = { length: STAF.L, bak, glas, wielen, rem, R: STAF.R, oog: STAF.oog, stafauto: true, binnen, bestuurder: erik };
   return g;
 }
 

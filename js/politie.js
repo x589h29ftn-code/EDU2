@@ -188,6 +188,14 @@ const LEEG_AFSTAND = 45;
 // de flankeerder (stap 130): zo ver van je af, zoveel opzij (rad), om de zoveel tellen een nieuw punt, zo diep gehurkt
 export const FLANK = { afst: 15, hoek: 1.15, opnieuw: 4, hurk: 0.55 };
 /*
+ (16 okt, gevraagd: "met al het flanken schiet de politie in het begin vrij weinig op Erik en raak") Een agent die je net ziet,
+ begon te richten bij nul (`richtT`: de eerste schoten raakten 35 % zo vaak als na drie tellen) en schoot pas na een willekeurige
+ wachttijd tot VUURTIJD; met de dekking erbij kwam er vaak vijf, zes tellen niets raak. Nu mikt hij al een beetje als hij je
+ ziet (`richtStart` seconden richten) en komt zijn eerste schot binnen `eersteSchot` + `spreiding` seconden. Daarna loopt alles
+ zoals het liep: de raakkans groeit verder met het richten, en dekking en terugschieten doen wat ze deden.
+*/
+export const AANVAL = { richtStart: 1.5, eersteSchot: 0.35, spreiding: 0.6 };
+/*
  Het uniform: donkerblauw met een fluorescerend vest eroverheen. Dat vest is niet
  alleen echter, het helpt ook spelen — een agent in het donkerblauw was tussen de
  voetgangers nauwelijks te onderscheiden.
@@ -1617,6 +1625,11 @@ export function initPolitie({ scene, player, npcs, vehicles, hud, sfeer = null }
         // (stap 144) hoe lang hij je al in het vizier heeft: de eerste schoten gaan vaker mis
         a.richtT = a.zicht ? (a.richtT || 0) + 0.25 : Math.max(0, (a.richtT || 0) - 0.5);
         if (a.zicht) {
+          // (16 okt) de eerste keer dat hij je ziet: hij heeft zijn wapen al half op je gericht, en schiet snel
+          if (a.staat !== 'jacht') {
+            a.richtT = Math.max(a.richtT || 0, AANVAL.richtStart);
+            a.vuurT = Math.min(a.vuurT, AANVAL.eersteSchot + Math.random() * AANVAL.spreiding);
+          }
           a.staat = 'jacht'; a.kwijtT = 0; laatstBekend = { x: sp.x, z: sp.z };
           meldDoor(sp.x, sp.z);       // en hij roept het om: de rest komt eraan
         }

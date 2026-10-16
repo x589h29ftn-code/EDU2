@@ -9317,6 +9317,52 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De politie schiet eerder raak (stap 203, 16 okt).** Gevraagd: "Met al het flanken schiet de politie in het begin vrij weinig op
+Erik en raak." Drie dingen stapelden: een agent die je net zag begon te richten bij nul (`richtT`, de raakkans 35 % van die na drie
+tellen), zijn eerste schot kwam na een willekeurige wachttijd tot VUURTIJD (1,8 s), en wie dekking had schoot alleen bij het
+opstaan. Nu krijgt een agent die je voor het eerst ziet `AANVAL.richtStart` (1,5 s) richten mee en valt zijn eerste schot binnen
+`AANVAL.eersteSchot` + `spreiding` (0,35–0,95 s); daarna loopt alles zoals het liep.
+
+- *Gemeten* (`npm run politievuurtest`: drie agenten op 12, 16 en 20 m op de Molenkrite, Erik stil in het open, twee sterren,
+  twintig keer met de oude en twintig keer met de nieuwe stand in dezelfde pagina): in de eerste vijf tellen 14,4 → 22,8 leven
+  schade, het eerste schot 0,60 → 0,46 s; na vijftien tellen 53,7 → 59,1 (3,9 per seconde), dus het begin is feller en het
+  geheel niet. De flankeerder vuurt in alle twintig gevechten binnen vijf tellen.
+- *Mis gegaan in de proef:* eerst schoot niemand, ook met de oude stand niet: zonder `zetSter` zijn er geen sterren en jagen ze
+  niet. En een agent die je al op `jacht` laat beginnen slaat het eerste zien over, precies wat er gemeten moet worden; nu komen ze
+  aan en kijken ze je kant op.
+
+**Radio in No Mercy, Erik in de stafauto, toeteren, de tank (stap 202, 16 okt).** Gevraagd: "Tijdens No Mercy kan je radio draaien
+in de stafauto, dit tijdelijk uit. Je ziet Erik ook niet zitten in de stafauto. Claxonneren tussen auto's max 2 keer. De tank maakt
+geen motorgeluid en kan geen lantaarn omver rijden."
+
+- *De radio.* `verhaal.geenRadio` (No Mercy 4 of 5 bezig, `nmBezig`/`n5Bezig`); js/main.js zet de autoradio dan niet aan. Na de
+  opnames gewoon weer.
+- *Erik in de stafauto.* De stafauto (js/nomercy5.js) had geen `userData.bestuurder`, dus js/autodetail.js had niemand om te tonen.
+  Nu de gedeelde bestuurder van het verkeer (js/bestuurder.js, variant `erik`) op de maten van deze wagen, in de vorm die
+  `bestuurderPlek` verwacht (`STAF_MAAT`: de ogen uit `STAF.oog`, de zitting van de linker voorstoel op 0,615 m, de rugleuning op
+  z 0,04, het stuur op (−0,36; 1,02; −0,42), de hemel ver boven het hoofd: een open wagen). `werkAutoBij` laat hem alleen in de
+  derde persoon zien. Gemaakt met de wagen bij het opstarten; het materiaal is dat van het verkeer: geen nieuw programma.
+- *Toeteren.* js/verkeersregels.js `blokDoel` telt per auto de toeters in een opstopping (`t._claxonN`, `BLOK.claxonMax` = 2); weer
+  rijden zet de teller terug. Daarvoor toeterde een auto die vaststond om de 4–9 s, tot hij achteruit ging (`terugMax`).
+- *De tank.* `motorToeren` liep in het niets: zonder `motorAan` is er geen oscillator. Nu bij het instappen `motorAan`, en een eigen
+  toon (stationair 600, rood 2600: lager dan een auto). Lantaarnpalen hebben een botsdoos, die de Tiger stopte als een muur, en
+  `raakLantaarn` vroeg 5 m/s. Nu kijkt de Tiger vóór het verplaatsen op drie punten over zijn voor- of achterkant en laat de paal
+  vallen bij elke snelheid boven 0,6 m/s (`raakLantaarn` uit js/kaartwereld.js als optie van `initTiger`); de doos zakt dan naar
+  0,35 m en hij rijdt door.
+- *Snel van zender wisselen* (ook gevraagd: "als ik vaak snel switch gaat hij terug naar het oude deuntje en geen muziek meer die ik
+  heb geüpload"). Wissel je de bron terwijl `play()` nog loopt, dan weigert die belofte met een AbortError; js/audio.js zette dan
+  `stuk` en speelde voortaan het gesynthetiseerde riffje. Nu telt alleen een echt onspeelbaar bestand (`speelKapot`: NotSupportedError;
+  `elKapot`: een mediafout die geen afbreking is), voor de radio en de missiemuziek, en een zenderwissel geeft de mp3's altijd een
+  nieuwe kans.
+- *Het pompgeweer "niet te kopen".* Nagemeten in de browser, op 1280 en 1920 breed, via de echte toets aan de toonbank van Tinga State
+  (niet via `koopWapen`, zoals `shotguntest`): het staat als nummer 6 in het schap en toets 6 koopt het. In deze versie werkt het;
+  de vraag aan de gebruiker is of hij een Windows-build van vóór stap 189 speelt, of minder dan € 1.200 had.
+- *Proef:* `npm run tankradiotest` (de radio in No Mercy 4 en 5 en daarbuiten, Erik in de stafauto gemeten tegen stoel en stuur en
+  wanneer hij te zien is, toeteren een minuut lang en opnieuw na rijden, de motor van de tank aan, lager en hoger, en uit, een
+  lantaarnpaal omver met vrije aanloop, twaalf keer snel van zender wisselen); `tigertest`, `stafautotest`, `voorrangtest` en
+  `nomercy5test` opnieuw. `stafautotest` verwachtte het stuur nog de verkeerde kant op: in stap 181 is het bewust omgedraaid (links
+  tegen de klok in) en de proef was niet bijgewerkt; nu wel.
+
 **Proeven van de bijmissies nagelopen (stap 201, 16 okt).** Gevraagd: "Loop nog enkele tests door van de side missions."
 Gedraaid: `nomercytest` (57 goed), `nomercy2test` (73), `nomercy5test` (78), `klusjestest` (44), `praatjestest` (24) en
 `uitjetest`; eerder die dag al `roantest` en `geocachetest`. Alles groen op één na:

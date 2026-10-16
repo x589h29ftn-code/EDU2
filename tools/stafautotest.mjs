@@ -258,7 +258,8 @@ if (bin) {
   ok(bin.stuur.z < bin.oog.z && Math.abs(bin.stuur.x - bin.oog.x) < 0.05 && bin.stuur.y < bin.oog.y, 'het stuur recht voor de bestuurder');
   ok(bin.panelen.length === 2 && bin.panelen.every(p => Math.sign(p.nx) === -Math.sign(p.x) && Math.abs(p.nx) > 0.99), 'de binnenpanelen kijken naar binnen',
     bin.panelen.map(p => `x ${r2(p.x)} → ${r2(p.nx)}`).join(', '));
-  ok(Math.abs(bin.stuur0) < 1e-6 && Math.abs(bin.stuur1 + 0.4 * 4.2) < 1e-6, 'het stuur draait mee met het sturen', `${r2(bin.stuur1)} rad`);
+  // (sinds stap 181 draait het stuur de goede kant op: links is tegen de klok in, dus + bij steer > 0; de proef verwachtte nog −)
+ok(Math.abs(bin.stuur0) < 1e-6 && Math.abs(bin.stuur1 - 0.4 * 4.2) < 1e-6, 'het stuur draait mee met het sturen (links tegen de klok in)', `${r2(bin.stuur1)} rad`);
   ok(Math.abs(bin.naald0 - bin.nul) < 1e-3 && Math.abs(bin.naald1 - bin.verwacht) < 0.02, 'de naald staat op 0 en bij 50 km/u halverwege de schaal',
     `${r2(bin.naald1)} tegen ${r2(bin.verwacht)} rad`);
   ok(bin.nul > bin.vol, 'de schaal loopt met de klok mee');

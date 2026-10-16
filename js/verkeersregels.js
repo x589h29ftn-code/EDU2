@@ -42,7 +42,7 @@ import { autoMaat } from './carmodel.js';
 export const KRUIS = { kijk: 28, rem: 3.5, breder: 1, vangnet: 5, rechts: 0.3, tegen: 0.7 };
 export const ROT = { recht: 0.5, band: 9, raak: 4, kijk: 30, hoek: 1.9, dicht: 7, ringPad: 0.6, rem: 2.6 };
 export const MENS = { stop: 2.6 };
-export const BLOK = { kijk: 18, marge: 0.25, stop: 7, stopRijdt: 2, rem: 4, wacht: 2.5, keer: 6, schuin: 0.6, uitTempo: 3, claxon: 1.5, draai: 0.8, vast: 15, terug: 7, terugT: 1.6, terugMax: 3 };
+export const BLOK = { kijk: 18, marge: 0.25, stop: 7, stopRijdt: 2, rem: 4, wacht: 2.5, keer: 6, schuin: 0.6, uitTempo: 3, claxon: 1.5, claxonMax: 2, draai: 0.8, vast: 15, terug: 7, terugT: 1.6, terugMax: 3 };
 
 const TWEE_PI = Math.PI * 2;
 const mod2pi = (a) => ((a % TWEE_PI) + TWEE_PI) % TWEE_PI;
@@ -606,9 +606,10 @@ export class Verkeersregels {
       this.stats.blok++;
       t.blokT = (t.blokT || 0) + dt;
       // toeteren, niet meteen en niet aan één stuk door
-      if (t.blokT > (t.blokClaxon || (t.blokClaxon = BLOK.claxon + Math.random() * 2)) && (t._terugN || 0) < BLOK.terugMax) {
+      // (16 okt, gevraagd: "claxonneren tussen auto's max 2 keer") hoogstens BLOK.claxonMax keer per opstopping; weer rijden telt opnieuw
+      if (t.blokT > (t.blokClaxon || (t.blokClaxon = BLOK.claxon + Math.random() * 2)) && (t._terugN || 0) < BLOK.terugMax && (t._claxonN || 0) < BLOK.claxonMax) {
         t.blokClaxon = t.blokT + 4 + Math.random() * 5;
-        if (this.V.opClaxon && Math.random() < 0.8) this.V.opClaxon(t._pos.x, t._pos.y);
+        if (this.V.opClaxon) { this.V.opClaxon(t._pos.x, t._pos.y); t._claxonN = (t._claxonN || 0) + 1; }
       }
       if (stil && !u && t.blokT > BLOK.wacht) {
         const plan = t._geenUit === b.c ? null : this.uitwijkPlan(t, b);
@@ -631,7 +632,7 @@ export class Verkeersregels {
           this.stats.terug++;
         }
       }
-    } else if ((t.snelheid || 0) > 1) t.blokT = 0;
+    } else if ((t.snelheid || 0) > 1) { t.blokT = 0; t._claxonN = 0; }
     return doel;
   }
 

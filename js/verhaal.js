@@ -13428,6 +13428,8 @@ export function initVerhaal(ctx) {
     get na5() { return !NM_VOOR.includes(missie); },
     // (16 okt) in missie 18 zit Sjors in de studio aan de knoppen: dan staat hij niet ook buiten voor de Tinga Cache
     get sjorsInStudio() { return missie === 'uitzending'; },
+    // (16 okt) tijdens de opnames van No Mercy 4 en 5 speelt er geen autoradio (gevraagd: "tijdens No Mercy kan je radio draaien in de stafauto")
+    get geenRadio() { return nmBezig() || n5Bezig(); },
     // (stap 195, voor tools/statistiektest.mjs) de titelrol los openen en sluiten
     __titelrol: (open = true) => { if (open) openTitelrol(); else sluitTitelrol(); },
     // (stap 127, voor tools/wensentest.mjs: je auto bij huis neerzetten)

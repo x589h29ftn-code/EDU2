@@ -483,7 +483,7 @@ export function maakGedenkplek() {
 // ---------- het besturen ----------
 const wrap = (a) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
 
-export function initTiger({ scene, camera, player, geluid = null, resolveCollisions, addCollider, pointInWater, grondHoogte, vrijeCamera = null, derdeAan = () => false, opInslag = () => {}, raakt = () => null, opSchot = () => {}, opOntploffing = () => {}, opSchok = () => {} }) {
+export function initTiger({ scene, camera, player, geluid = null, resolveCollisions, addCollider, pointInWater, grondHoogte, vrijeCamera = null, derdeAan = () => false, opInslag = () => {}, raakt = () => null, opSchot = () => {}, opOntploffing = () => {}, opSchok = () => {}, raakLantaarn = null }) {
   const P = TIGER.plek, V = TIGER.vloer;
   const plek = maakGedenkplek();
   plek.groep.position.set(P.x, 0.0, P.z); plek.groep.rotation.y = P.yaw;
@@ -607,6 +607,8 @@ export function initTiger({ scene, camera, player, geluid = null, resolveCollisi
   function stapIn() {
     if (st.kapot) return false;
     actief = true;
+    // (16 okt) de motor aan: zonder motorAan liep motorToeren in het niets en was de tank stil
+    if (geluid && geluid.motorAan) geluid.motorAan();
     player.inTiger = true;
     derdeWas = !!derdeAan();
     st.v = 0; st.draai = 0;
@@ -735,6 +737,23 @@ export function initTiger({ scene, camera, player, geluid = null, resolveCollisi
       st.draai += (dDoel - st.draai) * Math.min(1, dt * 3);
       const yaw = wrap(st.yaw + st.draai * dt);
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+      /*
+       (16 okt) Een lantaarnpaal rijdt hij omver: de paal heeft een botsdoos die de Tiger stopte als een muur. Vóór het verplaatsen
+       drie punten over de voorkant (of de achterkant, achteruit) die js/kaartwereld.js `raakLantaarn` laten kijken; een auto moet
+       daar 5 m/s voor rijden, een tank van 57 ton niet (de snelheid gaat er daarom als minstens 6 in).
+      */
+      if (raakLantaarn && Math.abs(st.v) > 0.6) {
+        const s = Math.sign(st.v), d = TIGER.maat.L / 2 + 0.45, rx = Math.cos(yaw), rz = -Math.sin(yaw);
+        for (const u of [-TIGER.maat.B / 2 + 0.35, 0, TIGER.maat.B / 2 - 0.35]) {
+          const px = st.x + fx * d * s + rx * u, pz = st.z + fz * d * s + rz * u;
+          if (raakLantaarn(px, pz, s > 0 ? yaw : wrap(yaw + Math.PI), Math.max(6, Math.abs(st.v)))) {
+            if (geluid && geluid.klap) geluid.klap();
+            if (geluid && geluid.glas) geluid.glas();
+            opSchok(0.12);
+            st.lantaarns = (st.lantaarns || 0) + 1;
+          }
+        }
+      }
       let nx = st.x + fx * st.v * dt, nz = st.z + fz * st.v * dt;
       [nx, nz] = botsUit(nx, nz, yaw);
       if (vrijOp(nx, nz, yaw)) {
@@ -749,7 +768,8 @@ export function initTiger({ scene, camera, player, geluid = null, resolveCollisi
       st.richt += Math.sign(wilR - st.richt) * Math.min(Math.abs(wilR - st.richt), 0.25 * dt);
       // de speler zit erin: zijn plek is die van de Tiger (de politie, de LOD, de voetgangers kijken daarnaar)
       player.pos.set(st.x, st.y, st.z);
-      if (geluid && geluid.motorToeren) geluid.motorToeren(Math.abs(st.v) * 0.8, R.top, null);
+      // (16 okt) een zware dieselbrom: laag toerental, stationair 600, hoogstens 2600 bij de topsnelheid
+      if (geluid && geluid.motorToeren) geluid.motorToeren(Math.abs(st.v), R.top, { toeren: 600 + Math.min(1, Math.abs(st.v) / R.top) * 1700 + Math.abs(st.draai) * 120, rood: 2600, stationair: 600, bak: 1 });
     }
     peilGrond();
     // de rupsen en de wielen: links en rechts apart, want draaien laat ze tegen elkaar in lopen
