@@ -9,7 +9,7 @@
  3. De kassa: met te weinig geld geen GPS; met genoeg € 250 eraf, de medewerker zegt dat je bij Sjors moet zijn; een tweede niet.
  4. Sjors op de stoep van Radio Tinga met de S op de kaart; E: de uitleg; N: de GPS in beeld (getekend).
  5. De vijf plekken gemeten: niet in het water, niet in een botsdoos, het punt uit het raadsel binnen `CACHE.radius` (plus de
-    afronding) van het kistje; cache 4 aan het water; elk bij zijn anker (Geeuwbrug, Duinterpen, tennishal, De Rat, de Tiger).
+    afronding) van het kistje; cache 4 sinds 16 okt op een meerpaal in het water, ≥ 3 m van de oever; elk bij zijn anker (Geeuwbrug, Duinterpen, tennishal, De Rat, de Tiger).
  6. Het raadsel van cache 2 klopt met de wereld (1944 op de gedenksteen, 87.9 FM, Molenkrite 15) en geeft het goede punt.
  7. Alle vijf achter elkaar: cache 1 openen; cache 2 eerst verkeerd ingetikt (hier is niets), dan goed; cache 3 met het bordje
     (stap 1) en de tweede stap; cache 4 te voet niet, vanuit de boot wel; cache 5 met de cijfers uit de logboeken: € 2.500 en de
@@ -193,16 +193,23 @@ const plekken = await page.evaluate(async () => {
     const [rx, rz] = W.resolveCollisions(c.plek.x, c.plek.z, 0.3);
     let water = false;
     for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; if (W.pointInWater(c.plek.x + Math.cos(a) * 2.5, c.plek.z + Math.sin(a) * 2.5)) water = true; }
-    return { nr: c.nr, pand: inPand(c.plek.x, c.plek.z), inWater: W.pointInWater(c.plek.x, c.plek.z), doos: Math.hypot(rx - c.plek.x, rz - c.plek.z) > 0.01, afPunt: +Math.hypot(c.punt.x - c.plek.x, c.punt.z - c.plek.z).toFixed(2), waterBij: water, x: +c.plek.x.toFixed(1), z: +c.plek.z.toFixed(1) };
+    // (16 okt) de dichtstbijzijnde oever: het eerste land in 32 richtingen, in stappen van 10 cm
+    let land = Infinity;
+    for (let i = 0; i < 32; i++) { const a = i / 32 * Math.PI * 2; for (let d = 0; d < 12; d += 0.1) if (!W.pointInWater(c.plek.x + Math.cos(a) * d, c.plek.z + Math.sin(a) * d)) { land = Math.min(land, d); break; } }
+    let kist = null; g.scene.traverse(o => { if (o.userData && o.userData.deksel && Math.hypot(o.position.x - c.plek.x, o.position.z - c.plek.z) < 0.5) kist = o; });
+    const paal = kist ? kist.children.some(m => m.geometry && m.geometry.type === 'CylinderGeometry') : false;
+    return { land: +land.toFixed(2), vaarbaar: W.vaarbaar(c.plek.x, c.plek.z), paal, kistY: kist ? +kist.position.y.toFixed(2) : null,
+      nr: c.nr, pand: inPand(c.plek.x, c.plek.z), inWater: W.pointInWater(c.plek.x, c.plek.z), doos: Math.hypot(rx - c.plek.x, rz - c.plek.z) > 0.01, afPunt: +Math.hypot(c.punt.x - c.plek.x, c.punt.z - c.plek.z).toFixed(2), waterBij: water, x: +c.plek.x.toFixed(1), z: +c.plek.z.toFixed(1) };
   });
 });
 const ankers = { 1: [-85, -482, 40], 2: [1400, 470, 260], 3: [null], 4: [-1133, 884, 35], 5: [46, 1097, 25] };
 for (const p of plekken) {
-  ok(!p.inWater && !p.doos && !p.pand && p.afPunt <= 5 + 1.6, `cache ${p.nr}: op het droge, niet in een botsdoos of pand, ${p.afPunt} m van het punt uit het raadsel`, `(${p.x}, ${p.z})`);
+  if (p.nr === 4) ok(p.inWater && p.vaarbaar && p.land >= 3 && p.land <= 9.5 && !p.doos && p.paal && p.kistY > 0.8, `cache 4: op een meerpaal in bevaarbaar water, ${p.land} m van de oever (te voet kom je er niet bij), het kistje boven het water, ${p.afPunt} m van het punt uit het raadsel`, `(${p.x}, ${p.z}), kistje op ${p.kistY} m`);
+  else ok(!p.inWater && !p.doos && !p.pand && p.afPunt <= 5 + 1.6, `cache ${p.nr}: op het droge, niet in een botsdoos of pand, ${p.afPunt} m van het punt uit het raadsel`, `(${p.x}, ${p.z})`);
   const a = ankers[p.nr];
   if (a[0] !== null) ok(Math.hypot(p.x - a[0], p.z - a[1]) < a[2], `cache ${p.nr}: bij zijn plek`, `${Math.round(Math.hypot(p.x - a[0], p.z - a[1]))} m van (${a[0]}, ${a[1]})`);
 }
-ok(plekken[3].waterBij, 'cache 4 ligt aan het water');
+ok(plekken[3].waterBij && plekken[3].afPunt <= 5 + 1.6, 'cache 4 ligt in het water, het punt uit het raadsel binnen de straal', `${plekken[3].afPunt} m`);
 
 kop('6. het raadsel van cache 2');
 const raad = await page.evaluate(async () => {

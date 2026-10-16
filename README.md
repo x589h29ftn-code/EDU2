@@ -972,7 +972,7 @@ die op de stoep voor de studio staat (de oranje S op de kaart). Hij legt het uit
 
 Met **N** pak je de GPS: je eigen coördinaten, het doel, een pijl en de afstand, en het raadsel. De coördinaten van de volgende
 caches moet je zelf vinden en intikken (cijfertoetsen, backspace wist): een raadsel met dingen uit de wereld, een bordje dat je naar
-de tweede stap stuurt, een cache die je alleen vanuit een boot pakt, en een finale met de letters en cijfers uit de logboeken. De GPS
+de tweede stap stuurt, een cache op een meerpaal in het water die je alleen vanuit een boot pakt, en een finale met de letters en cijfers uit de logboeken. De GPS
 brengt je tot op een paar meter; het kistje moet je zelf zoeken (E opent hem). Na elke cache noemt Sjors je op Radio Tinga, en wie
 ze alle vijf vindt krijgt **€ 2.500 en de gouden M1 Garand**: echt verguld, gepolijst goud over het staal, het hout blijft walnoot.
 

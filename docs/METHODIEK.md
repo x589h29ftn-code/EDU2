@@ -9317,6 +9317,19 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Cache 4 op een meerpaal in het water (stap 200, 16 okt).** Gevraagd: "Los cache 4 op." Cache 4 lag op de oever bij De Rat: hij
+ging alleen vanuit een boot open, maar te voet stond je er gewoon naast (cacheplek_4_dichtbij.png). Nu staat hij op een houten
+meerpaal met een touw erom, in het water, het kistje 1,05 m boven het water.
+
+- *De plek* (`zoekPaal` in js/geocache.js, de getallen in `PAAL`): vanaf de aanlegplaats van No Mercy 5 de eerste plek in een
+  spiraal die bevaarbaar is (`vaarbaar`), waar in een kring van 3 m nergens land is (de speler komt het water niet in, js/player.js,
+  en een cache gaat te voet pas op 1,7 m open), maar binnen 9 m wel (je ziet hem vanaf de kant liggen), en die niet in een botsdoos
+  staat. Het raadsel, het punt en de opening vanuit de boot (`CACHE.vanafBoot` 4,5 m) bleven zoals ze waren; de teksten van de GPS
+  en van Sjors noemen de meerpaal.
+- *Proef:* `geocachetest` deel 5 meet voor cache 4 de afstand tot de oever (het eerste land in 32 richtingen, stappen van 10 cm,
+  ≥ 3 m), bevaarbaar water, geen botsdoos, de paal onder het kistje en het kistje boven het water; deel 7 opent hem nog steeds niet
+  te voet en wel vanuit de sloep. Foto's: `npm run cacheplekshots` (cacheplek_4_*).
+
 **Steekproef op bugs rond de Tinga Cache (stap 199, 16 okt).** Gevraagd: "Zie je verder nog problemen, of bugs. Desnoods steekproef
 doen van max half uur onderzoek." Gezocht waar het laatst gebouwde de rest raakt: de toetsen, de stoep van Radio Tinga, de volgorde
 in het verhaal. Gevonden en opgelost:
@@ -9334,8 +9347,8 @@ in het verhaal. Gevonden en opgelost:
 - *Nagekeken en goed:* geen dubbele functienamen in js/verhaal.js, js/main.js, js/geocache.js en js/player.js; zonder GPS ligt er
   niets (stap 198).
 - *Niet opgelost:* op een aanraakscherm is er geen knop voor de GPS (N) en geen manier om cijfers in te tikken; het spel is voor
-  Windows met een toetsenbord. Cache 4 ligt op de oever en is te voet te zien, al gaat hij alleen vanuit een boot open (vraag aan de
-  gebruiker: aan een steiger hangen?).
+  Windows met een toetsenbord. Cache 4 lag op de oever en was te voet te zien, al ging hij alleen vanuit een boot open: opgelost in stap
+  200 (een meerpaal in het water).
 - *Proef:* `geocachetest` deel 11 (Sjors en Roan, de cijfers bij een keuze, missie 18, de posters vóór en na missie 5) en
   `bpkassatest` (twee knoppen vóór missie 5, drie erna); `roantest` opnieuw.
 

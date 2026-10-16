@@ -24,7 +24,7 @@
  ~1,1 m oost-west. Dat is niet precies het RD-raster, maar de GPS en de raadsels gebruiken dezelfde omrekening.
 */
 import * as THREE from 'three';
-import { resolveCollisions, pointInWater } from './world.js';
+import { resolveCollisions, pointInWater, vaarbaar } from './world.js';
 import { grondHoogte } from './viaduct.js';
 import { bpWereld, BP_WINKEL } from './bouwvlak.js';
 import { TIGER } from './tiger.js';
@@ -32,7 +32,9 @@ import { NOMERCY5 } from './nomercy5.js';
 import { WAPEN_LAAG } from './player.js';
 import { rondeDoosGeo } from './wapen.js';
 
-export const CACHE = {
+export // (16 okt) de meerpaal van cache 4: top boven het water (m), geen land binnen `land` m, wel binnen `zicht` m
+const PAAL = { top: 1.05, land: 3.0, zicht: 9.0 };
+const CACHE = {
   prijs: 250,          // de GPS aan de kassa van de BP
   totaal: 5,
   radius: 5,           // zo ver ligt de cache hoogstens van het punt uit het raadsel (m)
@@ -163,6 +165,32 @@ export function initGeocache(o) {
     }
     return null;
   }
+  /*
+   (16 okt) Een plek voor een meerpaal: in bevaarbaar water, in een kring van PAAL.land meter rondom nergens land (de speler komt het
+   water niet in, js/player.js, en een cache gaat te voet pas op CACHE.open meter open: zo kom je er te voet nooit bij), en binnen
+   PAAL.zicht meter wel land, zodat je hem vanaf de kant ziet liggen. Geen botsdoos (een steiger, een brug).
+  */
+  function zoekPaal(x, z, max = 40) {
+    const landBinnen = (px, pz, r) => {
+      for (let d = 0.75; d <= r + 1e-6; d += 0.75) for (let i = 0; i < 16; i++) {
+        const a = i / 16 * Math.PI * 2;
+        if (!pointInWater(px + Math.cos(a) * d, pz + Math.sin(a) * d)) return true;
+      }
+      return false;
+    };
+    for (let d = 0; d <= max; d += 0.5) {
+      const n = Math.max(1, Math.round(d * 2 * Math.PI / 0.6));
+      for (let i = 0; i < n; i++) {
+        const a = i / n * Math.PI * 2 + d * 0.37;
+        const px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d;
+        if (!pointInWater(px, pz) || !vaarbaar(px, pz) || landBinnen(px, pz, PAAL.land) || !landBinnen(px, pz, PAAL.zicht)) continue;
+        const [rx, rz] = resolveCollisions(px, pz, 0.3);
+        if (Math.hypot(rx - px, rz - pz) > 0.01) continue;
+        return { x: px, z: pz, paal: true };
+      }
+    }
+    return null;
+  }
   const waterBij = (x, z, r) => {
     for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; if (pointInWater(x + Math.cos(a) * r, z + Math.sin(a) * r)) return true; }
     return false;
@@ -207,9 +235,10 @@ export function initGeocache(o) {
         achter = { x: th.rect.cx - fx * (diep + 2.5), z: th.rect.cz - fz * (diep + 2.5) };
       }
       plekken.push(zoekVrij(achter.x, achter.z, 30));
-      // 4 · aan het water bij Houtzaagmolen De Rat in IJlst: alleen vanaf het water te pakken
+      // 4 · bij Houtzaagmolen De Rat in IJlst, op een meerpaal in het water: alleen met een boot te pakken (16 okt: tot dan lag hij
+      // op de oever, waar je er te voet naast stond, al ging hij alleen vanuit een boot open)
       const a4 = NOMERCY5.aanleg;
-      plekken.push(zoekVrij(a4.x, a4.z, 30, (x, z) => waterBij(x, z, 2.5)));
+      plekken.push(zoekPaal(a4.x, a4.z, 45));
       // 5 · bij de gedenkplek met de Tiger aan de Sudergoweg
       const t = TIGER.plek;
       plekken.push(zoekVrij(t.x - Math.sin(t.yaw) * 6, t.z - Math.cos(t.yaw) * 6, 20));
@@ -242,12 +271,23 @@ export function initGeocache(o) {
 
   // ------------------------------------------------ de dingen in de wereld
   const matKist = new THREE.MeshStandardMaterial({ color: 0x55633a, roughness: 0.75, metalness: 0.15 });
+  // (16 okt) de meerpaal van cache 4: geteerd hout en een touw
+  const matPaalHout = new THREE.MeshStandardMaterial({ color: 0x4a3626, roughness: 0.92 });
+  const matTouw = new THREE.MeshStandardMaterial({ color: 0xb59a6a, roughness: 0.95 });
   const matDeksel = new THREE.MeshStandardMaterial({ color: 0x3d4829, roughness: 0.7, metalness: 0.2 });
   const matPaal = new THREE.MeshStandardMaterial({ color: 0x6b6f72, roughness: 0.6, metalness: 0.3 });
   const matPoster = new THREE.MeshStandardMaterial({ map: doek(512, 724, tekenPoster), roughness: 0.85 });
   function bouwKistje(p) {
     const g = new THREE.Group();
-    const y = grondHoogte(p.x, p.z);
+    // (16 okt) op een meerpaal staat het kistje boven op de paal, die van de bodem tot PAAL.top boven het water komt
+    const y = p.paal ? PAAL.top : grondHoogte(p.x, p.z);
+    if (p.paal) {
+      const paal = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, PAAL.top + 1.6, 14), matPaalHout);
+      paal.position.y = -(PAAL.top + 1.6) / 2;
+      const touw = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.035, 8, 20), matTouw);
+      touw.rotation.x = Math.PI / 2; touw.position.y = -0.45;
+      g.add(paal, touw);
+    }
     const romp = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.17, 0.2), matKist); romp.position.y = 0.085;
     const deksel = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.03, 0.22), matDeksel); deksel.position.y = 0.185;
     const greep = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 0.03), matDeksel); greep.position.y = 0.21;
@@ -364,7 +404,7 @@ export function initGeocache(o) {
       if (!c.stap1Gezien) return ['Cache 3 · een multi', `Stap 1: ${vol(c.stap1n, c.stap1e)}`, 'Bij Martens Vishandel staat een bordje.', 'Daarop staat waar de cache ligt.'];
       return ['Cache 3 · stap 2', 'Tik in wat er op het bordje stond.', 'Achter een grote hal aan de Lemmerweg.'];
     }
-    if (c.nr === 4) return ['Cache 4 · een opdracht', vol(c.n, c.e), 'Bij de molen De Rat in IJlst.', 'Alleen te pakken vanaf het water:', 'neem een boot.'];
+    if (c.nr === 4) return ['Cache 4 · een opdracht', vol(c.n, c.e), 'Bij de molen De Rat in IJlst,', 'op een meerpaal in het water.', 'Te voet kom je er niet bij: neem een boot.'];
     const r = CACHE.letters.join(' ');
     return ['Cache 5 · de finale', `Letters uit je logboeken: ${r}`, 'Waar herdenkt Sneek de ___ om Sneek?', 'De cijfers uit je logboeken, op volgorde:',
       `${N(c.n)}[1][2][3]  ${E(c.e)}[4]${c.rest}`];
@@ -625,7 +665,7 @@ export function initGeocache(o) {
       'Cache 1 ligt bij de oude Geeuwbrug, aan de kant van het land, tussen de graffiti. Kijk laag.',
       'Het huisnummer van Mark ken je wel. Het jaar staat op de bronzen plaat bij de Tiger, en de frequentie hoor je op de radio: 87.9.',
       c.stap1Gezien ? 'Het bordje bij de vishandel geeft je de coördinaten van de tweede stap. De cache ligt achter de tennishal.' : 'Ga eerst naar het bordje bij Martens Vishandel, op het parkeerterrein van de Jumbo.',
-      'Cache 4 hangt aan de waterkant bij de molen in IJlst. Te voet kom je er niet bij: pak een sloep.',
+      'Cache 4 staat op een meerpaal in het water bij de molen in IJlst. Te voet kom je er niet bij: pak een sloep en vaar ernaast.',
       'S, L, A, G: de Slag om Sneek. De cijfers uit de logboeken op volgorde, en de laatste twee staan al in je GPS.',
     ];
     o.zeg([{ wie: 'Sjors', tekst: hints[c.nr - 1] }]);
