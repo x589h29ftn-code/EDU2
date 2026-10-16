@@ -9317,6 +9317,17 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Yugo vol gasten (stap 206, 16 okt).** Gevraagd: "Laat ook wat andere mensen in Yugo zitten te eten." Er zaten vier gasten
+stil op hun plek; nu achttien: stelletjes aan de tafeltjes langs de bank, vrienden en een gezin met een kind aan de ronde tafels.
+Ieder heeft een plankje sushi voor zich (op het tafelblad, in zijn kijkrichting) en eet met stokjes in zijn rechterhand, een stuk
+per 4 à 9 tellen; een leeg plankje is na 25 tellen weer vol (de ober loopt niet voor ze: die zou je eigen bestelling in de weg
+lopen). De arm en de stokjes van Johan en de gasten gaan nu door één functie (`eetArm`, met de draaiing van wie er zit). De zithouding
+rekent in de eigen maat van een persoon: wie kleiner is (het kind) krijgt `zitting / hoogte`, anders zakte hij door de stoel.
+Alles wordt bij het opstarten gebouwd; de proef telt geen nieuw programma.
+
+*Proef*: `npm run yugotest` (erbij: minstens veertien gasten met een kind, iedereen op zithoogte, elk plankje op een tafel en voor
+de gast, niemand op een ander, happen met de stokjes in de hand, en na het etentje weer weg); foto's `yugo_zaal`, `yugo_tafel`.
+
 **Yugo: geen wapen aan tafel, en Johan en Erik praten (stap 205, 16 okt).** Gevraagd: "Bouw het restaurant ergens buiten de wereld
 en teleporteer de speler erheen. Geen wapen kunnen trekken totdat je weer weg bent. Johan en Erik praten over werk (De Veteraan,
 missies), de nieuwe No Mercy-film die uitkomt, het weer, over Erik Jan, hoe het met hem is (het broertje van Johan), over weer eens

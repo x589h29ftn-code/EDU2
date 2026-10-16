@@ -819,22 +819,50 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
   // de looproute van de ober: de keukendeur, langs de bar, door het gangpad achter het hek, naast onze tafel
   const OBER_PAD = [[KEUKEN.x + 0.5, KEUKEN.z], [2.25, 5.6], [2.25, 2.2], [T.x + T.breed / 2 + 0.25, 2.2], [T.x + T.breed / 2 + 0.25, T.z + 0.1]]
     .map(([x, z]) => wereld(x, z));
+  /*
+   De andere gasten (gevraagd: "laat ook wat andere mensen in Yugo zitten te eten"): stelletjes aan de tafeltjes langs de bank, een
+   gezin en vrienden aan de ronde tafels. Ieder heeft een plankje sushi voor zich en eet in zijn eigen tempo met stokjes: een stuk
+   per 4 à 9 tellen, met de arm naar de mond; is het plankje leeg, dan staat er na een tijdje een nieuw (de ober loopt niet voor
+   ze, dat zou door je eigen bestelling heen lopen). Ze zijn er alleen zolang jij aan tafel zit.
+  */
   const gasten = [];
   {
     const r = rnd(5);
-    const kleding = [[0x8a3b3b, 0x2a2f3a, 0xe0b894], [0x2f4f6f, 0x3a3a3a, 0x8d5a3b], [0xd8d2c4, 0x2d3542, 0xf0c9a8], [0x5b4a7a, 0x222428, 0xc08a62]];
-    const plekken = [[3.2, 0.36, Math.PI], [3.2, 1.68, 0], [12.8, 0.36, Math.PI], [7.4 + 0.78 * Math.sin(0.4), 4.6 + 0.78 * Math.cos(0.4), 0.4]];
+    const kleding = [[0x8a3b3b, 0x2a2f3a, 0xe0b894], [0x2f4f6f, 0x3a3a3a, 0x8d5a3b], [0xd8d2c4, 0x2d3542, 0xf0c9a8], [0x5b4a7a, 0x222428, 0xc08a62],
+      [0x3f6b5a, 0x1f2a36, 0xd9b48f], [0xc9a24a, 0x2b2b2b, 0x6b4630], [0x1d1f24, 0x45505c, 0xf2d0b4], [0xa84a6a, 0x2a2f3a, 0xd3a273]];
+    const rond = (x, z, k) => { const a = k * Math.PI / 2 + 0.4; return [x + Math.sin(a) * 0.78, z + Math.cos(a) * 0.78, a]; };
+    const BANK_Z = 0.36, STOEL_Z = 1.05 + 0.35 + 0.28;
+    const plekken = [
+      [3.2, BANK_Z, Math.PI], [3.2, STOEL_Z, 0], [5.0, BANK_Z, Math.PI], [6.8, BANK_Z, Math.PI], [6.8, STOEL_Z, 0],
+      [8.2, STOEL_Z, 0], [11.2, BANK_Z, Math.PI], [12.8, BANK_Z, Math.PI], [12.8, STOEL_Z, 0],
+      rond(4.4, 4.4, 0), rond(4.4, 4.4, 2), rond(7.4, 4.6, 0), rond(7.4, 4.6, 1),
+      rond(5.6, 7.0, 0), rond(5.6, 7.0, 1), rond(5.6, 7.0, 2), rond(12.3, 6.8, 1), rond(12.3, 6.8, 3),
+    ];
     plekken.forEach(([x, z, yaw], i) => {
       const k = kleding[i % kleding.length];
-      const p = new Persoon({ shirt: k[0], broek: k[1], huid: k[2], haar: r() < 0.5 ? 0x2a1d12 : 0x6b4a2a, vrouw: i % 2 === 1, kapsel: i % 2 ? 'lang' : 'kort' });
+      const kind = i === 14;                          // het gezin aan de ronde tafel heeft een kind
+      const hoogte = kind ? 0.72 : 0.96 + r() * 0.08;
+      const p = new Persoon({ shirt: k[0], broek: k[1], huid: k[2], haar: r() < 0.5 ? 0x2a1d12 : (r() < 0.5 ? 0x6b4a2a : 0xc9a26a),
+        vrouw: i % 2 === 1, kapsel: i % 2 ? (r() < 0.5 ? 'lang' : 'halflang') : (r() < 0.2 ? 'kaal' : 'kort'), baard: !(i % 2) && r() < 0.3 ? 'kort' : 'geen',
+        hoogte });
       scene.add(p.groep);
       const w = wereld(x, z);
       p.zetNeer(w.x, w.z, yaw);
       p.groep.visible = false;
-      gasten.push(p);
+      // het plankje voor hem op tafel, en zijn stokjes
+      const f = { x: -Math.sin(yaw), z: -Math.cos(yaw) };
+      const bord = maakPlankje(SUSHI[i % SUSHI.length].id);
+      bord.position.set(x + f.x * 0.5, T.hoog, z + f.z * 0.5);
+      bord.rotation.y = yaw;
+      bord.visible = false;
+      groep.add(bord);
+      const stok = maakStokjes();
+      stok.rotation.order = 'YXZ';
+      stok.visible = false;
+      groep.add(stok);
+      gasten.push({ p, bord, stok, yaw, kind, hapT: 2 + r() * 7, hap: null, bijT: 0, zit: Y.zitting / hoogte });   // (de zithouding rekent in zijn eigen maat: een kind op dezelfde stoel)
     });
   }
-
   // ---------- de tablet op het scherm ----------
   const tabletEl = maakTabletEl();
   function maakTabletEl() {
@@ -938,7 +966,10 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     st.actief = true; st.ronde = 0; st.gegeten = 0; st.slokken = 0; st.gesprekken = 0; st.praatT = tussen(Y.praat);
     ruimTafel(true);
     johan.groep.visible = true; ober.groep.visible = false;
-    for (const g of gasten) g.groep.visible = true;
+    for (const g of gasten) {
+      g.p.groep.visible = true; g.bord.visible = true; g.stok.visible = true; g.hap = null; g.hapT = 1 + r() * 8;
+      for (const x of g.bord.userData.stukken) x.visible = r() < 0.75;
+    }
     johan.zetNeer(johanPlek.x, johanPlek.z, Math.PI);
     // aan tafel: op de stoel, over de tafel naar Johan en het logo kijkend, een beetje omlaag naar het blad
     const w = wereld(jijStoel.x, jijStoel.z);
@@ -1114,18 +1145,48 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
         if (s) st.johanHap = { t: 0, stuk: s, op: false };
       }
     }
-    johan.update(dt, { zit: Y.zitting });
-    // de rechterarm: van het blad naar de mond
-    johan.armRechts.boven.rotation.x = 0.55 + hap * 0.75;
-    johan.armRechts.onder.rotation.x = 0.85 + hap * 1.15;
-    johan.groep.updateWorldMatrix(true, true);
-    const hand = new THREE.Vector3(0, -0.07, 0).applyMatrix4(johan.armRechts.eind.matrixWorld);
-    johanStokjes.position.copy(hand).sub(groep.position);
-    johanStokjes.rotation.set(-0.9 - hap * 0.5, 0, 0.3);
-    // een stuk tussen zijn stokjes zolang hij het naar zijn mond brengt
-    const vast = johanStokjes.userData.vast;
-    if (h && !h.op) { if (!vast.userData.stuk) { const k = maakStuk(h.stuk.userData.soort); vast.add(k); vast.userData.stuk = k; } }
+    johan.update(dt, { zit: Y.zitting / 1.05 });
+    eetArm(johan, johanStokjes, hap, Math.PI, h && !h.op ? h.stuk.userData.soort : null);
+  }
+  /*
+   De rechterarm van iemand aan tafel, van het blad naar de mond (`hap` 0…1), met de stokjes in zijn hand en zolang `soort` een stuk
+   sushi ertussen. `yaw` is zijn draaiing: de stokjes wijzen voor hem uit, omlaag.
+  */
+  const handPunt = new THREE.Vector3();
+  function eetArm(p, stok, hap, yaw, soort) {
+    p.armRechts.boven.rotation.x = 0.55 + hap * 0.75;
+    p.armRechts.onder.rotation.x = 0.85 + hap * 1.15;
+    p.groep.updateWorldMatrix(true, true);
+    handPunt.set(0, -0.07, 0).applyMatrix4(p.armRechts.eind.matrixWorld);
+    stok.position.copy(handPunt).sub(groep.position);
+    stok.rotation.order = 'YXZ';
+    stok.rotation.set(-0.9 - hap * 0.5, yaw - Math.PI, 0.3);
+    const vast = stok.userData.vast;
+    if (soort) { if (!vast.userData.stuk) { const k = maakStuk(soort); vast.add(k); vast.userData.stuk = k; } }
     else if (vast.userData.stuk) { vast.remove(vast.userData.stuk); vast.userData.stuk = null; }
+  }
+  // de gasten eten mee, elk in zijn eigen tempo
+  function werkGastenBij(dt) {
+    for (const g of gasten) {
+      let hap = 0, soort = null;
+      if (g.hap) {
+        g.hap.t += dt;
+        hap = Math.sin(Math.min(1, g.hap.t / 1.2) * Math.PI);
+        if (!g.hap.op && g.hap.t > 0.6) { g.hap.op = true; g.hap.stuk.visible = false; }
+        else if (!g.hap.op) soort = g.hap.stuk.userData.soort;
+        if (g.hap.t > 1.2) g.hap = null;
+      } else {
+        g.hapT -= dt;
+        const s = g.bord.userData.stukken.find(x => x.visible);
+        if (!s) {
+          // leeg: na een tijdje een vol plankje
+          g.bijT += dt;
+          if (g.bijT > 25) { g.bijT = 0; for (const x of g.bord.userData.stukken) x.visible = true; }
+        } else if (g.hapT <= 0) { g.hapT = 4 + r() * 5; g.hap = { t: 0, stuk: s, op: false }; }
+      }
+      g.p.update(dt, { zit: g.zit });
+      eetArm(g.p, g.stok, hap, g.yaw, soort);
+    }
   }
   // de ober loopt het pad af, zet neer, en loopt terug
   function werkOberBij(dt) {
@@ -1170,7 +1231,7 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     werkStokjesBij(dt);
     werkJohanBij(dt);
     werkOberBij(dt);
-    for (const g of gasten) g.update(dt, { zit: Y.zitting });
+    werkGastenBij(dt);
     // de muziek
     if (geluid && geluid.yugoMuziek) geluid.yugoMuziek(dt, true);
     const balkVrij = !st.cb || !st.cb.balkVrij || st.cb.balkVrij();
@@ -1223,7 +1284,7 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     stokjes.visible = false;
     if (st.stok && st.stok.stuk && st.stok.ouder) { st.stok.ouder.add(st.stok.stuk); }
     johan.groep.visible = false; ober.groep.visible = false;
-    for (const g of gasten) g.groep.visible = false;
+    for (const g of gasten) { g.p.groep.visible = false; g.bord.visible = false; g.stok.visible = false; g.hap = null; eetArm(g.p, g.stok, 0, g.yaw, null); }
     if (player.zit) { player.zit = false; player.eye = player.eyeStaand; }
     player.aanTafel = false;
     if (geluid && geluid.yugoMuziek) geluid.yugoMuziek(0, false);
@@ -1253,6 +1314,8 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     },
     get plekken() { return { nul: NUL, tafel: wereld(T.x, T.z), stoel: wereld(jijStoel.x, jijStoel.z), johan: johanPlek, keuken: KEUKEN_W, pad: OBER_PAD }; },
     get maten() { return { ...YUGO, stoelen: stoelen.length, emmers: emmers.length, gasten: gasten.length }; },
+    // voor de proef: de gasten, hun plankje en hoeveel ze op hebben
+    get gasten() { return gasten.map(g => ({ x: g.p.groep.position.x, z: g.p.groep.position.z, yaw: g.yaw, zichtbaar: g.p.groep.visible, kind: g.kind, bord: g.bord, stok: g.stok, persoon: g.p, over: g.bord.userData.stukken.filter(x => x.visible).length, hapt: !!g.hap })); },
     get johan() { return johan; }, get ober() { return ober; }, get stokjes() { return stokjes; }, get groep() { return groep; },
     get tabletEl() { return tabletEl; },
   };

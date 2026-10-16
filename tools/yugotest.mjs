@@ -86,7 +86,7 @@ const zaal = await page.evaluate(() => {
 });
 ok(!zaal.binnenKaart && !zaal.overlap && zaal.eigen, 'de zaal ligt buiten het kaartgebied en niet over een andere binnenruimte');
 ok(zaal.sushi.length === 4 && zaal.drank === 'Pornstar Martini', 'vier soorten sushi en de Pornstar Martini', `${zaal.sushi.join(', ')} · ${zaal.drank}`);
-ok(zaal.maten.emmers >= 8 && zaal.maten.stoelen >= 20 && zaal.maten.gasten >= 3, 'emmerlampen, stoelen en een paar gasten', `${zaal.maten.emmers} lampen, ${zaal.maten.stoelen} stoelen, ${zaal.maten.gasten} gasten`);
+ok(zaal.maten.emmers >= 8 && zaal.maten.stoelen >= 20 && zaal.maten.gasten >= 14, 'emmerlampen, stoelen en een paar gasten', `${zaal.maten.emmers} lampen, ${zaal.maten.stoelen} stoelen, ${zaal.maten.gasten} gasten`);
 
 kop('2. Johan stelt Yugo voor');
 const voorstel = await page.evaluate(() => {
@@ -205,6 +205,48 @@ ok(Object.values(wapen.onderwerpen).every(Boolean), 'over het werk en De Veteraa
 ok(!wapen.gekozen.some(a => /veteraan|einde|nm5/.test(a)) && wapen.gekozen.includes('nm4') && wapen.gekozen.includes('altijd') && wapen.gekozen.includes('eten'),
   'bij missie 6 nog niets over De Veteraan, No Mercy 5 of het einde; wel over No Mercy 4, die je gespeeld hebt', wapen.gekozen.join(', '));
 
+kop('3c. de andere gasten eten ook');
+const gasten = await page.evaluate(() => {
+  const g = window.__game, y = g.yugo, M = window.__M, T = M.YUGO.tafel, n = y.plekken.nul, V = g.camera.position.constructor;
+  const lijst = y.gasten;
+  // de tafels in de zaal (de tafeltjes langs de bank en de ronde tafels), om te zien of elk plankje op een tafel staat
+  const bank = [3.2, 5.0, 6.8, 8.2, 11.2, 12.8].map(x => ({ x: n.x + x, z: n.z + 1.05, hx: 0.45, hz: 0.35 }));
+  const rond = [[4.4, 4.4], [7.4, 4.6], [10.4, 4.4], [5.6, 7.0], [9.0, 7.2], [12.3, 6.8]].map(([x, z]) => ({ x: n.x + x, z: n.z + z, r: 0.55 }));
+  const opTafel = (b) => bank.some(t => Math.abs(b.x - t.x) < t.hx && Math.abs(b.z - t.z) < t.hz) || rond.some(t => Math.hypot(b.x - t.x, b.z - t.z) < t.r);
+  const uit = { aantal: lijst.length, kind: lijst.some(x => x.kind), zichtbaar: lijst.every(x => x.zichtbaar && x.bord.visible) };
+  uit.heup = []; uit.borden = 0; uit.voor = 0; uit.stok = [];
+  for (const x of lijst) {
+    const heup = x.persoon.beenLinks.boven.getWorldPosition(new V()).y;
+    uit.heup.push(+heup.toFixed(2));
+    const b = x.bord.getWorldPosition(new V());
+    if (Math.abs(b.y - T.hoog) < 0.002 && opTafel(b)) uit.borden++;
+    // het plankje ligt voor hem (in zijn kijkrichting)
+    const f = { x: -Math.sin(x.yaw), z: -Math.cos(x.yaw) };
+    if ((b.x - x.x) * f.x + (b.z - x.z) * f.z > 0.3) uit.voor++;
+  }
+  let dichtst = Infinity;
+  for (let i = 0; i < lijst.length; i++) for (let j = i + 1; j < lijst.length; j++) dichtst = Math.min(dichtst, Math.hypot(lijst[i].x - lijst[j].x, lijst[i].z - lijst[j].z));
+  uit.dichtst = +dichtst.toFixed(2);
+  const over0 = y.gasten.reduce((a, x) => a + x.over, 0);
+  let happen = 0, stokBijHand = Infinity;
+  // (45 s: de tablet blijft open; na 70 s bestelt Johan zelf)
+  for (let i = 0; i < 900; i++) {
+    window.__stap(1, 0.05);
+    if (i % 10 === 0) for (const x of y.gasten) if (x.hapt) {
+      happen++;
+      const hand = new V(0, -0.07, 0).applyMatrix4(x.persoon.armRechts.eind.matrixWorld);
+      stokBijHand = Math.min(stokBijHand, x.stok.getWorldPosition(new V()).distanceTo(hand));
+    }
+  }
+  uit.over0 = over0; uit.over1 = y.gasten.reduce((a, x) => a + x.over, 0); uit.happen = happen; uit.stokBijHand = +stokBijHand.toFixed(3);
+  return uit;
+});
+ok(gasten.aantal >= 14 && gasten.kind && gasten.zichtbaar, 'een volle zaal: stelletjes, vrienden en een gezin met een kind', `${gasten.aantal} gasten`);
+ok(gasten.heup.every(h => h > 0.3 && h < 0.62), 'iedereen zit op een stoel of de bank (de heup op zithoogte)', gasten.heup.join(' '));
+ok(gasten.borden === gasten.aantal && gasten.voor === gasten.aantal, 'ieder heeft een plankje sushi voor zich op een tafel', `${gasten.borden} op een tafel, ${gasten.voor} voor zich`);
+ok(gasten.dichtst > 0.6, 'niemand zit op een ander', `het dichtst ${gasten.dichtst} m`);
+ok(gasten.happen > 10 && gasten.over1 !== gasten.over0 && gasten.stokBijHand < 0.02, 'ze eten met stokjes in hun hand', `${gasten.happen} keer een hap gezien in 45 s, ${gasten.over0} → ${gasten.over1} stukken, stokjes ${(gasten.stokBijHand * 100).toFixed(1)} cm van de hand`);
+
 kop('4. de tablet');
 const tablet = await page.evaluate(() => {
   const g = window.__game, y = g.yugo;
@@ -254,7 +296,7 @@ const ober = await page.evaluate(() => {
     tot++;
   }
   const s = y.stand;
-  const op = s.borden.length ? y.groep.children.filter(c => c.userData && c.userData.stukken).map(b => ({ x: b.position.x, y: b.position.y, z: b.position.z })) : [];
+  const op = s.borden.length ? y.groep.children.filter(c => c.userData && c.userData.stukken && c.userData.kant).map(b => ({ x: b.position.x, y: b.position.y, z: b.position.z })) : [];
   const opBlad = op.every(b => Math.abs(b.y - T.hoog) < 0.001 && Math.abs(b.x - T.x) < T.breed / 2 && Math.abs(b.z - T.z) < T.diep / 2);
   return { fase: s.fase, tijd: +(tot * 0.05).toFixed(1), zichtbaar: +(zichtbaar * 0.05).toFixed(1), inDoos, meest: +meest.toFixed(2), posities: posities.slice(0, 12),
     jij: s.borden.filter(b => b.kant === 'jij').length, johan: s.borden.filter(b => b.kant === 'johan').length, glazen: s.glazen.map(g2 => g2.kant), opBlad, n: op.length };
@@ -356,12 +398,12 @@ const einde = await page.evaluate(() => {
   const q = v.praatjes.johan;
   window.__stap(160);            // het zwart ebt weg (6,4 s)
   return { fase: v.yugo.fase, keer: v.yugo.keer, rondes: [...rondes], fases: [...fases], actief: y.stand.actief, borden: y.stand.borden.length, stokjes: y.stokjes.visible,
-    johanBinnen: y.johan.groep.visible, zwart, afstJohan: +Math.hypot(P.pos.x - q.x, P.pos.z - q.z).toFixed(1), johanZichtbaar: q.zichtbaar, zit: P.zit,
+    johanBinnen: y.johan.groep.visible, gastenBinnen: y.gasten.some(x => x.zichtbaar || x.bord.visible), zwart, afstJohan: +Math.hypot(P.pos.x - q.x, P.pos.z - q.z).toFixed(1), johanZichtbaar: q.zichtbaar, zit: P.zit,
     klok: g.sfeer.loopt, klokVoor: window.__klokVoor, aanTafel: P.aanTafel, klokWas: v.yugo.klokWas, tijdVast: v.tijdVast(), missieBezig: v.missieBezig, uur: +g.sfeer.uur.toFixed(2), binnen: y.binnen(P.pos.x, P.pos.z), regels: window.__regels.filter(r => /rekening|trakteer/.test(r)) };
 });
 ok(Math.max(...einde.rondes) === 5 && einde.fases.includes('klaar'), 'door tot ronde vijf (1 en 2 hierboven), en dan klaar', einde.rondes.join(','));
 ok(einde.regels.length >= 1, 'Johan vraagt de rekening en trakteert', einde.regels.join(' | '));
-ok(einde.fase === 'uit' && !einde.actief && einde.borden === 0 && !einde.stokjes && !einde.johanBinnen, 'na het zwart is de zaal opgeruimd', einde.zwart);
+ok(einde.fase === 'uit' && !einde.actief && einde.borden === 0 && !einde.stokjes && !einde.johanBinnen && !einde.gastenBinnen, 'na het zwart is de zaal opgeruimd', einde.zwart);
 ok(!einde.binnen && einde.afstJohan < 3.5 && einde.johanZichtbaar && !einde.zit && !einde.aanTafel, 'je staat weer bij Johan op de oprit, en je wapen mag weer', `${einde.afstJohan} m`);
 // (de klok zelf: missie 6 wacht hier al, en een lopende missie houdt hem na 18:00 stil; Yugo moet hem alleen loslaten)
 ok(einde.klokWas === null && !/verhaal houdt de tijd vast/.test(einde.tijdVast || '') && (einde.missieBezig || einde.klok === einde.klokVoor) && einde.uur > 19,
