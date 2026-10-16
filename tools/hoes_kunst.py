@@ -1,5 +1,5 @@
 """
-De kunst voor de voorkant van de dvd-hoes (tools/hoes.mjs), uit het laadscherm beeld/laadscherm/tinga_vi.jpg:
+De kunst voor de voorkant van de dvd-hoes (tools/hoes.mjs) en het beeld van het hoofdmenu, uit docs/hoes/tinga_vi_bron.jpg:
 
   1. de linkerfiguur iets slanker (gevraagd 15 okt 2026: "kan je de personage links ook iets slanker maken"): een
      horizontale vervorming zoals 'liquify' in een fotobewerker (zie `slanker`). Alleen de linkercontour (schouder, arm, pak,
@@ -8,13 +8,18 @@ De kunst voor de voorkant van de dvd-hoes (tools/hoes.mjs), uit het laadscherm b
      pixels op (`kin`), en de rimpels op de huid gladder (`huid`).   2. bijsnijden tot het paneel van de voorkant (132,5 × 189 mm met afloop), zonder het logo rechtsboven;
   3. met Lanczos naar 300 dpi (1565 × 2232 px) en een lichte verscherping.
 
-Gebruik: python3 tools/hoes_kunst.py   (schrijft docs/hoes/voorkant_kunst.jpg en docs/hoes/slanker_voor_na.jpg)
+Gebruik: python3 tools/hoes_kunst.py   (schrijft docs/hoes/voorkant_kunst.jpg, docs/hoes/slanker_voor_na.jpg en sinds 16 okt
+ook het beeld van het hoofdmenu en het laadscherm, beeld/laadscherm/tinga_vi.jpg, uit docs/hoes/tinga_vi_bron.jpg)
 """
 import numpy as np
 from PIL import Image, ImageFilter, ImageEnhance
 
-BRON = 'beeld/laadscherm/tinga_vi.jpg'
+# het onbewerkte beeld van de gebruiker (12 sep 2026). Sinds 16 okt staat het hier en niet meer in beeld/laadscherm/: het menu
+# krijgt dezelfde bewerkte linkerfiguur als de hoes (MENU), en zo gaat de bewerking er nooit twee keer overheen.
+BRON = 'docs/hoes/tinga_vi_bron.jpg'
 UIT = 'docs/hoes/voorkant_kunst.jpg'
+MENU = 'beeld/laadscherm/tinga_vi.jpg'   # het laadscherm en het hoofdmenu (js/menu.js): het hele beeld, bewerkt
+MENU_RAND = 32          # px die er links af gaan: de strook zonder bron van `slanker` (27 px), op het jpg-raster van 16 px
 
 # de linkerfiguur in het bronbeeld (1402 × 1122)
 MIDDEN = 315.0          # x van het midden van zijn bovenlijf: rechts daarvan verandert niets
@@ -144,6 +149,12 @@ def slanker(beeld):
 def main():
     im = Image.open(BRON).convert('RGB')
     slank = slanker(kin(gezicht(huid(im))))
+    # (16 okt) het hoofdmenu en het laadscherm: hetzelfde beeld, op zijn eigen maat, met dezelfde linkerfiguur als de hoes
+    # links van de mast schuift `slanker` alles SCHUIF px op; de eerste SCHUIF kolommen hebben dus geen bron en zijn één uitgerekte
+    # strook (op de hoes valt die weg bij het bijsnijden, x0 = 55). Het menu vult het scherm met het beeld (cover), dus die strook
+    # gaat er hier af: het menubeeld is MENU_RAND px smaller dan het origineel.
+    slank.crop((MENU_RAND, 0, slank.width, slank.height)).save(MENU, quality=90, optimize=True)
+    print(f'{MENU}: {slank.width - MENU_RAND} × {slank.height}')
     W, H = 1565, 2232
     h = im.height
     w = round(h * W / H)

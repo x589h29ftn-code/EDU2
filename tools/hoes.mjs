@@ -8,7 +8,7 @@
    docs/hoes/hoes_voorbeeld.png      klein, met de snij- en vouwlijnen gestippeld (niet om te drukken)
    docs/hoes/hoes_a4.pdf             voor een gewone printer: A4 liggend, op ware grootte, met snij- en vouwtekens
 
- De voorkant komt uit docs/hoes/voorkant_kunst.jpg, gemaakt door tools/hoes_kunst.py: het laadscherm (beeld/laadscherm/tinga_vi.jpg)
+ De voorkant komt uit docs/hoes/voorkant_kunst.jpg, gemaakt door tools/hoes_kunst.py: het onbewerkte laadscherm (docs/hoes/tinga_vi_bron.jpg)
  met de linkerfiguur iets slanker, bijgesneden zónder het logo van Grand Theft Auto (een echt merk) en met Lanczos naar 300 dpi. De achterkant gebruikt schermafdrukken uit
  docs/screenshots/. Geen echte merken, logo's of keurmerken (PEGI, Kijkwijzer, Rockstar): alles is eigen opmaak. De titel "GTA VI: Tinga" staat er als gewone tekst, op verzoek van de gebruiker (een cadeau, geen uitgave); het echte logo niet.
 

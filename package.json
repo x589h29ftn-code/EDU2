@@ -107,6 +107,7 @@
     "gevoelshots": "node tools/gevoelshots.mjs",
     "menutest": "node tools/menutest.mjs",
     "menushots": "node tools/menushots.mjs",
+    "menubeeldtest": "python3 tools/menubeeldtest.py",
     "betatest": "node tools/betatest.mjs",
     "betashots": "node tools/betashots.mjs",
     "rotondetest": "node tools/rotondetest.mjs",
