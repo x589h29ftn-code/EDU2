@@ -271,6 +271,7 @@
     "statistiekshots": "node tools/statistiekshots.mjs 8123",
     "geocachetest": "node tools/geocachetest.mjs 8123",
     "geocacheshots": "node tools/geocacheshots.mjs 8123",
+    "cacheplekshots": "node tools/cacheplekshots.mjs 8123",
     "nomercytest": "node tools/nomercytest.mjs 8123",
     "nomercyshots": "node tools/nomercyshots.mjs 8123",
     "nomercy2test": "node tools/nomercy2test.mjs 8123",
