@@ -236,7 +236,6 @@ export function initGeocache(o) {
         c3.stap1n = deel(s1.lat); c3.stap1e = deel(s1.lon);
       }
       caches.forEach(c => { c.mesh = bouwKistje(c.plek); });
-      bouwPosters();
       werkZichtBij();
     } catch (e) { bouwFout = String(e && e.message || e); caches = null; }
   }
@@ -333,7 +332,8 @@ export function initGeocache(o) {
   }
 
   // ------------------------------------------------ de staat
-  const huidig = () => (caches && st.gevonden < CACHE.totaal ? caches[st.gevonden] : null);
+  // (stap 198) pas als Sjors het heeft uitgelegd is er een cache om te zoeken: hij geeft je de eerste
+  const huidig = () => (caches && st.intro && st.gevonden < CACHE.totaal ? caches[st.gevonden] : null);
   const spelerPunt = () => (player.inCar ? { x: player.inCar.x, z: player.inCar.z } : { x: player.pos.x, z: player.pos.z });
   // het ingetikte doel: 6 cijfers (N en E, duizendsten); de rest van de coördinaten staat in het raadsel
   function doel() {
@@ -349,7 +349,8 @@ export function initGeocache(o) {
   // het raadsel van de cache waar je bent
   function raadsel() {
     const c = huidig();
-    if (!c) return st.gevonden >= CACHE.totaal ? ['Alle vijf gevonden!', 'Gefeliciteerd, cacher van Tinga.'] : [];
+    if (!c) return st.gevonden >= CACHE.totaal ? ['Alle vijf gevonden!', 'Gefeliciteerd, cacher van Tinga.']
+      : !st.intro ? ['Nog geen cache in je GPS.', 'Ga naar Sjors bij Radio Tinga (de S op de kaart): hij geeft je de eerste.'] : [];
     const N = (d) => `N ${d.gr}° ${twee(d.min)}.`, E = (d) => `E ${drie(d.gr)}° ${twee(d.min)}.`;
     const vol = (n, e) => `${N(n)}${drie(n.dui)}  ${E(e)}${drie(e.dui)}`;
     if (c.nr === 1) return ['Cache 1 · de oude Geeuwbrug', vol(c.n, c.e), 'Onder het landhoofd, tussen de graffiti.', 'Sjors heeft hem al in je GPS gezet.'];
@@ -371,8 +372,9 @@ export function initGeocache(o) {
 
   function werkZichtBij() {
     if (!caches) return;
-    caches.forEach((c, i) => { if (c.mesh) c.mesh.visible = st.gps && i <= st.gevonden; });
-    if (bordje) bordje.visible = st.gps && st.gevonden >= 2;
+    // (stap 198) zonder GPS, en met een GPS maar voor het gesprek met Sjors, ligt er niets
+    caches.forEach((c, i) => { if (c.mesh) c.mesh.visible = st.gps && st.intro && i <= st.gevonden; });
+    if (bordje) bordje.visible = st.gps && st.intro && st.gevonden >= 2;
     caches.forEach((c, i) => { if (c.mesh && c.mesh.userData.deksel) c.mesh.userData.deksel.rotation.x = i < st.gevonden ? -0.9 : 0; });
   }
 
@@ -441,6 +443,12 @@ export function initGeocache(o) {
     groep.visible = false;
     return { groep, scherm, knoppen, duim };
   }
+  /*
+   (stap 198) De posters hangen er vanaf het begin, ook zonder GPS: zij vertellen dat de Tinga Cache bestaat en dat de GPS bij de
+   BP te koop is. Tot stap 198 werden ze met de caches gebouwd, dus pas na het kopen van de GPS: wie hem nog niet had, zag nergens
+   een poster. Nu bij het opstarten (achter het laadscherm vertaald); de caches, het bordje en Sjors blijven wachten op de GPS.
+  */
+  try { bouwPosters(); } catch (e) { console.warn('Tinga Cache: posters', e); }
   const toestel = maakToestel();
   if (player.camera) player.camera.add(toestel.groep);
   // de stand van het toestel: `pak` 0 = weg, 1 = in je hand; `dicht` 0 = rust, 1 = leesstand

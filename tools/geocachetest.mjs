@@ -3,7 +3,8 @@
 
  1. De omrekening (zonder browser): de oorsprong van de kaart is 53,020904 N 5,643757 O; heen en terug op een millimeter; het
     schrijven als N 53° 01.254 / E 005° 38.612.
- 2. De posters: op de balie van de BP-shop, op een prikbord bij Radio Tinga en op de eettafel van de drie woningen die Erik kan
+  2. Zonder GPS (stap 198): geen caches, geen kistjes, geen bordje, geen Sjors, E en N doen niets; de posters hangen er al.
+    De posters: op de balie van de BP-shop, op een prikbord bij Radio Tinga en op de eettafel van de drie woningen die Erik kan
     kopen (op 74 cm, op het tafelblad).
  3. De kassa: met te weinig geld geen GPS; met genoeg € 250 eraf, de medewerker zegt dat je bij Sjors moet zijn; een tweede niet.
  4. Sjors op de stoep van Radio Tinga met de S op de kaart; E: de uitleg; N: de GPS in beeld (getekend).
@@ -75,7 +76,15 @@ kop('1. de omrekening');
 kop('2. de posters');
 const posters = await page.evaluate(async () => {
   const g = window.__game, C = g.geocache, B = await import('/js/bouwvlak.js');
-  C.bouw();
+  // (stap 198) zonder GPS: de posters hangen er wel (ze zijn bij het opstarten gemaakt, niet pas bij de GPS), niets anders
+  const kistjes = () => { let n = 0; g.scene.traverse(o => { if (o.userData && o.userData.deksel && o.visible) n++; }); return n; };
+  const zonder = { gps: C.gps, caches: C.stand.caches, kistjes: kistjes(), bordje: !!(C.bordje && C.bordje.visible), sjors: !!(C.sjors && C.sjors.groep.visible),
+    posters: C.posters.filter(m => m.geometry.type === 'PlaneGeometry' && m.visible && m.parent).length };
+  // overal waar een cache zou komen: geen hint en E doet niets
+  const plekken = [[-75.6, -478], [1440.4, 497.7], [649, 120.3], [47.2, 1102.9]];
+  zonder.ergens = plekken.map(([x, z]) => { window.__zet(x, z); window.__stap(2); return { hint: C.hint(), e: C.toets() }; });
+  zonder.n = C.wissel();
+  window.__zonder = zonder;
   const ps = C.posters.filter(m => m.geometry.type === 'PlaneGeometry');
   const bp = ps.filter(m => B.inBpWinkel ? B.inBpWinkel(m.position.x, m.position.z) : false).length;
   const tafels = g.woningen.filter(w => /Zeskanter|Molenkrite130c|Molenkrite 130c|Koningsspil/.test(w.adres || w.naam || '')).map(w => {
@@ -85,8 +94,13 @@ const posters = await page.evaluate(async () => {
   });
   const st = g.studio.plekken.stoep;
   const radio = ps.filter(m => Math.hypot(m.position.x - st.x, m.position.z - st.z) < 8).length;
-  return { aantal: ps.length, bp, tafels, radio, bouwFout: C.stand.bouwFout };
+  return { aantal: ps.length, bp, tafels, radio, bouwFout: C.stand.bouwFout, zonder: window.__zonder };
 });
+const Z = posters.zonder;
+ok(!Z.gps && Z.caches === null && Z.kistjes === 0 && !Z.bordje && !Z.sjors, '(stap 198) zonder GPS ligt er niets: geen caches, geen kistjes, geen bordje, geen Sjors', JSON.stringify({ caches: Z.caches, kistjes: Z.kistjes, bordje: Z.bordje, sjors: Z.sjors }));
+ok(Z.ergens.every(e => !e.hint && !e.e), '(stap 198) en op de plekken van de caches geen hint en doet E niets', JSON.stringify(Z.ergens));
+ok(Z.n === false, '(stap 198) N zonder GPS pakt niets');
+ok(Z.posters >= 5, '(stap 198) de posters hangen er al vóór de GPS (BP, prikbord, drie eettafels)', `${Z.posters}`);
 ok(!posters.bouwFout, 'de plekken zijn gevonden', posters.bouwFout || '');
 ok(posters.bp >= 1, 'een poster op de balie van de BP-shop');
 ok(posters.radio >= 1, 'een poster op een prikbord bij Radio Tinga');
@@ -125,6 +139,10 @@ ok(kassa.regels.some(r => /Sjors/.test(r) && /Radio Tinga/.test(r)) && kassa.wie
 kop('4. Sjors en de GPS');
 const sjors = await page.evaluate(() => {
   const g = window.__game, C = g.geocache, st = g.studio.plekken.stoep;
+  // (stap 198) met de GPS maar vóór Sjors: cache 1 ligt er nog niet en gaat niet open, de GPS stuurt je naar Sjors
+  const c1 = C.stand.caches[0].plek;
+  window.__zet(c1.x + 0.6, c1.z); window.__stap(3);
+  const voorSjors = { zicht: C.stand.caches[0].zicht, hint: C.hint(), e: C.toets(), raadsel: C.raadsel().join(' '), doel: !!C.doel() };
   window.__zet(st.x + 120, st.z + 120); window.__stap(4);
   const s = C.sjors, zicht = !!(s && s.groep.visible), S = g.hud.sjors;
   const d = s ? Math.hypot(s.groep.position.x - st.x, s.groep.position.z - st.z) : null;
@@ -140,10 +158,15 @@ const sjors = await page.evaluate(() => {
   const sw = new T.scherm.position.constructor(); T.scherm.getWorldPosition(sw); sw.project(cam);
   const px = C.lcd.getContext('2d').getImageData(4, 4, 1, 1).data;
   let geel = false; T.groep.traverse(o => { if (o.isMesh && o.material.color && o.material.color.r > 0.8 && o.material.color.g > 0.4 && o.material.color.b < 0.2 && !o.material.map) geel = true; });
-  return { zicht, kaart: !!S, d: d && +d.toFixed(1), hint, uitleg, gpsZicht: C.aan && T.groep.visible && T.groep.parent === cam && C.inBeeld, laag,
+  voorSjors.na = C.stand.caches[0].zicht;
+  return { voorSjors, zicht, kaart: !!S, d: d && +d.toFixed(1), hint, uitleg, gpsZicht: C.aan && T.groep.visible && T.groep.parent === cam && C.inBeeld, laag,
     inBeeld: Math.abs(sw.x) < 1 && Math.abs(sw.y) < 1 && sw.z < 1, ndc: [+sw.x.toFixed(2), +sw.y.toFixed(2)], lcd: px[1] > px[2] && px[1] > 150, scherm: T.scherm.material.map && T.scherm.material.map.image === C.lcd,
     geel, doel: !!C.doel() };
 });
+const VS = sjors.voorSjors;
+ok(!VS.zicht && !VS.hint && !VS.e && !VS.doel, '(stap 198) met de GPS maar vóór Sjors: cache 1 ligt er nog niet en gaat niet open', JSON.stringify(VS));
+ok(/Sjors/.test(VS.raadsel), '(stap 198) de GPS zegt dat je naar Sjors moet', VS.raadsel);
+ok(VS.na, '(stap 198) na het gesprek met Sjors ligt cache 1 er wel');
 ok(sjors.zicht && sjors.kaart && sjors.d < 6, 'Sjors staat bij de stoep van Radio Tinga, met de S op de kaart', `${sjors.d} m van de stoep`);
 ok(/Sjors/.test(sjors.hint || '') && sjors.uitleg.length >= 4 && sjors.uitleg.some(r => /vijf/.test(r)) && sjors.uitleg.some(r => /\bN\b/.test(r)), 'E bij Sjors: de uitleg (vijf caches, N voor de GPS)', sjors.uitleg[0] || '');
 ok(sjors.gpsZicht && sjors.geel && sjors.doel, 'N: de GPS in je hand, een geel handapparaat, met het doel van cache 1 al ingevuld');

@@ -976,6 +976,9 @@ de tweede stap stuurt, een cache die je alleen vanuit een boot pakt, en een fina
 brengt je tot op een paar meter; het kistje moet je zelf zoeken (E opent hem). Na elke cache noemt Sjors je op Radio Tinga, en wie
 ze alle vijf vindt krijgt **€ 2.500 en de gouden M1 Garand**: echt verguld, gepolijst goud over het staal, het hout blijft walnoot.
 
+Zonder GPS ligt er nog niets: de caches zijn er pas als je de GPS hebt én Sjors je de eerste heeft gegeven. De posters hangen er
+wel al, zodat je weet dat de Tinga Cache bestaat.
+
 De GPS houd je in je linkerhand, als een echt geel handapparaat met een verlicht scherm. Daarmee heb je geen hand vrij voor je wapen:
 zolang je hem vasthoudt is het wapen weg en schiet je niet. Klikken, **R**, een ander wapen kiezen of **H** stopt de GPS weg en je
 pakt je wapen weer (die klik schiet nog niet). Met de **rechtermuisknop** houd je hem dichterbij om het raadsel te lezen. Binnen, in de

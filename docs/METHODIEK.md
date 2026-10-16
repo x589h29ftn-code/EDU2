@@ -9317,6 +9317,37 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Het hoofdmenu met dezelfde linkerfiguur als de dvd-hoes (16 okt).** Gevraagd: "Je hebt voor de dvd cover de persoon links
+bijgewerkt. Doe dit ook voor het hoofdmenu foto zodat het netjes aansluit op de rest."
+
+- *Eén bron, één bewerking.* Het menu en het laadscherm (js/menu.js) tonen `beeld/laadscherm/tinga_vi.jpg`; de hoes maakte zijn kunst
+  uit datzelfde bestand. Zou het menubeeld zelf bewerkt worden, dan ging de bewerking bij de volgende `hoes_kunst.py` er twee keer
+  overheen. Het onbewerkte beeld van de gebruiker staat nu in `docs/hoes/tinga_vi_bron.jpg` (buiten het spel), en
+  `tools/hoes_kunst.py` schrijft uit die bron zowel de hoes (`voorkant_kunst.jpg`, bit voor bit gelijk aan die van 15 okt) als het
+  menubeeld: slanker, het gezicht smaller, de onderkin op en de rimpels gladder, precies als op de hoes.
+- *Mis gegaan.* `slanker` schuift links van de mast alles 27 px op; de eerste 27 kolommen hebben geen bron en werden één uitgerekte
+  strook (op de hoes valt die weg bij het bijsnijden). Het menubeeld is daarom 32 px smaller (`MENU_RAND`): de strook eraf, en 32
+  in plaats van 28 omdat een snede op het jpg-raster van 16 px het beeld niet opnieuw in blokjes knipt (bij 28 px was de rest van het
+  beeld gemiddeld 2,1 in plaats van 1,1 van het origineel af). Het menu vult het scherm met het beeld (cover), dus de maat doet er niet
+  toe.
+- *Proef:* `npm run menubeeldtest` (de maat, geen uitgerekte strook links, de linkercontour 86 → 113 px zoals op de hoes, het
+  menubeeld gelijk aan de bewerking van de hoes, rechts van de figuur onaangeroerd, de huid gladder, de bril op zijn plek) met
+  `docs/screenshots/menubeeld_voor_na.jpg`; `npm run menushots` voor het startscherm en het laadscherm.
+
+**Zonder GPS geen caches, wel posters (stap 198, 16 okt).** Gevraagd: "Denk even na wat er gebeurt als de gps tracker nog niet
+gekocht is, m.i. dan nog geen caches verstopt of dat je ze niet kan oprapen."
+
+- *Nagelopen.* Zonder GPS bouwde js/geocache.js niets (`bouw` alleen met `st.gps`): geen kistjes, geen bordje, geen Sjors, dus niets
+  op te rapen. Goed. Maar de posters werden in dezelfde `bouw` gemaakt, dus ook pas na het kopen: wie de GPS nog niet had, zag
+  nergens een poster en wist niet dat de Tinga Cache bestond. `geocachetest` zag dat niet, omdat hij `bouw()` zelf aanriep. En met de
+  GPS maar vóór het gesprek met Sjors lag cache 1 al in de wereld en ging hij open, terwijl Sjors hem je hoort te geven.
+- *Nu.* De posters worden bij het opstarten gemaakt (achter het laadscherm, los van de caches). `huidig` geeft pas een cache als
+  `st.intro` (Sjors heeft het uitgelegd), en `werkZichtBij` toont kistjes en bordje alleen met GPS én na Sjors. Tot dan zegt de GPS:
+  "Nog geen cache in je GPS. Ga naar Sjors bij Radio Tinga".
+- *Proef:* `geocachetest` deel 2 zonder GPS (geen caches, kistjes, bordje of Sjors; op de vier plekken geen hint en E doet niets; N
+  pakt niets; de vijf posters hangen er al) en deel 4 met de GPS maar vóór Sjors (cache 1 niet in beeld en niet te openen, de GPS
+  noemt Sjors, na het gesprek ligt hij er wel). Losse foto's van de vijf plekken: `npm run cacheplekshots`.
+
 **De GPS in 3D en de M1 echt verguld (stap 197, 15 okt).** Gevraagd: "Kan je de gps tracker wat meer 3d achtig maken, ziet er
 nu 2d uit. En je kan hem niet met je wapen gebruiken want je bent met je hand bezig. Dat soort zaken ook uitdenken. Geef de m1 echt
 plated goud".
