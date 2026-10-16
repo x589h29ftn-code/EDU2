@@ -110,6 +110,8 @@
     "menubeeldtest": "python3 tools/menubeeldtest.py",
     "tankradiotest": "node tools/tankradiotest.mjs 8123",
     "politievuurtest": "node tools/politievuurtest.mjs 8123",
+    "yugotest": "node tools/yugotest.mjs 8123",
+    "yugoshots": "node tools/yugoshots.mjs 8123",
     "betatest": "node tools/betatest.mjs",
     "betashots": "node tools/betashots.mjs",
     "rotondetest": "node tools/rotondetest.mjs",

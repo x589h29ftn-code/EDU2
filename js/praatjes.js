@@ -4,6 +4,9 @@
  voetbal gaan en op de bank zitten. Johan heeft het bijv over binnenkort weer naar Yugo gaan, is een restaurant. Mark heeft het over
  GTA 6 die uitkomt in november, spelletjesavond organiseren met het gezin, kaasfonduen binnenkort.").
 
+ Yugo is een Japans sushirestaurant in Sneek (stap 204, met foto's): de praatjes over Yugo gaan over sushi, en na zo'n praatje
+ vraagt Johan of je meegaat (js/verhaal.js, js/yugo.js).
+
  Hier alleen de gesprekken en het kiezen; js/verhaal.js zet Mark op de stoep van Molenkrite 15 en Johan op zijn oprit aan het
  Kruirad 62 (als ze niet ergens anders nodig zijn) en speelt een praatje af met E. Na het einde zit Mark binnen op de bank: daar is
  het keuze 3, naast de wedstrijd en de bank.
@@ -30,9 +33,9 @@ export const PRAATJES = {
     [['m', 'We gaan deze zomer met de caravan naar Frankrijk. Twaalf uur rijden met drie kinderen achterin.'], ['e', 'Neem een tablet mee voor ze.'], ['m', 'Drie tablets, Erik. Anders wordt het oorlog.']],
   ],
   johan: [
-    [['j', 'We moeten binnenkort weer eens naar Yugo. Mixed grill, ćevapčići, en die rakija van het huis.'], ['e', 'Jij trakteert.'], ['j', 'Wie het laatst bij de auto is, betaalt.']],
-    [['j', 'Heb je de nieuwe kaart van Yugo gezien? Ze hebben nu ook pljeskavica met kaas erin.'], ['e', 'Zaterdag?'], ['j', 'Ik reserveer voor zeven uur. Kom met honger.']],
-    [['j', 'Bij Yugo krijg je zo veel vlees dat je de dag erna nog vol zit. Daarom ga ik er altijd op vrijdag heen.'], ['e', 'Slim.'], ['j', 'Dan heb je het hele weekend om bij te komen.']],
+    [['j', 'We moeten binnenkort weer eens naar Yugo. Vijf rondes sushi, en die Pornstar Martini van ze.'], ['e', 'Jij trakteert.'], ['j', 'Wie de laatste crispy ebi pakt, betaalt.']],
+    [['j', 'Heb je de tablet bij Yugo gezien? Je tikt erop en de ober staat al naast je met een plank sushi.'], ['e', 'Zaterdag?'], ['j', 'Ik reserveer voor zeven uur. Kom met honger.']],
+    [['j', 'Bij Yugo bestel ik altijd te veel. Vijf rondes, en ik wil ze allemaal winnen.'], ['e', 'Winnen van wie?'], ['j', 'Van de sushi.']],
     [['j', 'Zondagochtend ga ik vissen aan de Geeuw. Vorige keer ving ik een snoek van tachtig centimeter.'], ['e', 'Tachtig?'], ['j', 'Nou, zestig. Maar hij vocht als een tachtiger.']],
     [['j', 'Vrijdag darten in het café. Ik gooi nog steeds geen 180, maar het bier is goed.'], ['e', 'Wat is je hoogste?'], ['j', '140. Eén keer. Er was niemand bij, maar het was echt zo.']],
     [['j', 'Ik ben lid geworden van de sportschool. Tot nu toe twee keer geweest.'], ['e', 'In hoeveel tijd?'], ['j', 'Drie maanden. Maar ik heb wel een mooie bidon gekocht.']],
@@ -42,7 +45,7 @@ export const PRAATJES = {
     [['j', 'Ik denk erover een sloepje te kopen. Op een zomeravond over het Sneekermeer.'], ['e', 'Kun je wel varen?'], ['j', 'Hoe moeilijk kan het zijn? Gas erop en niet tegen de brug aan.']],
     [['j', 'Klaverjassen vanavond? Mark zegt dat hij het kan, maar hij verzaakt elke keer.'], ['e', 'Ik speel met jou.'], ['j', 'Afgesproken. Dan zetten we Mark tegenover zijn schoonmoeder.']],
     [['j', 'Ik wil een weekendje naar Texel. Fietsen, vis eten, een beetje uitwaaien.'], ['e', 'In je eentje?'], ['j', 'Met de fiets van de buurman. Die is toch aan het verbouwen.']],
-    [['j', 'Na Yugo nemen we altijd nog een ijsje op de terugweg. Traditie.'], ['e', 'Na al dat vlees?'], ['j', 'IJs past altijd. Dat gaat in een ander vakje.']],
+    [['j', 'Na Yugo nemen we altijd nog een ijsje op de terugweg. Traditie.'], ['e', 'Na al die sushi?'], ['j', 'IJs past altijd. Dat gaat in een ander vakje.']],
   ],
 };
 

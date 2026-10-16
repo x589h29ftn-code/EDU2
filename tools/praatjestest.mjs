@@ -67,7 +67,7 @@ await page.evaluate(async () => {
   window.__E = () => { const was = g.player.active; g.player.active = true; v.toets(); g.player.active = was; window.__lees(); };
   window.__stand = (extra) => {
     const s = v.bewaar(); s.volgende = null;
-    Object.assign(s, { noMercyKlaar: true, noMercyGebeld: true, roanKlaar: true }, extra);
+    Object.assign(s, { noMercyKlaar: true, noMercyGebeld: true, roanKlaar: true, yugoGevraagd: true }, extra);   // (Yugo staat in tools/yugotest.mjs)
     g.politie.reset(); v.herstel(s); window.__stap(2);
   };
   window.__thuisMark = { x: v.praatjes.mark.plek.x, z: v.praatjes.mark.plek.z };

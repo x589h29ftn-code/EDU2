@@ -1514,6 +1514,8 @@ export function initVerhaal(ctx) {
     garage = () => null, stapIn = null,
     // missie 18 (js/main.js): de studio van Radio Tinga (js/studio.js)
     studio = () => null,
+    // stap 204 (js/main.js): de zaal van Yugo (js/yugo.js)
+    yugo: yugoZaal = () => null,
     // stap 115 (js/main.js): de wedstrijd bij VV Sneek, hem klaarzetten, en hoe laat het is
     wedstrijd = () => null, wedstrijdKlaar = null, uurNu = null,
   } = ctx;
@@ -1770,6 +1772,7 @@ export function initVerhaal(ctx) {
     if (nmBezig()) return false;          // de opnames van No Mercy 4 (stap 140)
     if (n5Bezig()) return false;          // en van No Mercy 5 (stap 142)
     if (roanBezig()) return false;        // en Roan naar Ma (stap 178)
+    if (yugoBezig()) return false;        // en sushi eten bij Yugo (stap 204)
     if (missie === 'klaar') return true;
     return (KLUS_WACHT[missie] || []).includes(fase);
   }
@@ -2703,6 +2706,9 @@ export function initVerhaal(ctx) {
 
   // ---------- E ----------
   function toets() {
+    // (stap 204) aan tafel bij Yugo: E eet met de stokjes (ook als Johan iets zegt), of bestelt als de tablet open staat
+    if (yugoAanTafel() && (balk.hidden || (gesprek && gesprek.auto))) { const y = yugoRuimte(); return y.tabletOpen ? y.kies(6) : y.eet(); }
+    if (yugoBezig()) return balk.hidden ? true : verderInGesprek();
     if (!balk.hidden) return verderInGesprek();
     // in de heli en in het filmbeeld op de brug doet E niets: geen auto 34 m lager instappen (stap 110)
     if (missie === 'uitzending' && AVOND_VAST.includes(fase)) return true;
@@ -4610,6 +4616,9 @@ export function initVerhaal(ctx) {
    naar die woning; je mag onderweg van gedachten veranderen.
   */
   function kiesHuis(nr) {
+    // (stap 204) aan tafel bij Yugo: de tablet (1–6, ook de knoppen op een aanraakscherm), of de vraag van Johan
+    if (yugoAanTafel() && yugoRuimte().tabletOpen) return yugoRuimte().kies(nr);
+    if (yugo.fase === 'keuze') return yugoKeuze(nr);
     // (No Mercy 4, stap 141: 1 het geld, 2 de M1 houden)
     if (nm.fase === 'keuze') return noMercyKeuze(nr);
     // (No Mercy 5, stap 142: 1 het geld, 2 de stafauto)
@@ -4890,6 +4899,8 @@ export function initVerhaal(ctx) {
     if (titelrol) sluitTitelrol();
     // (en een uitje met Mark na het einde)
     ruimUitjeOp();
+    // (en een etentje bij Yugo, stap 204)
+    ruimYugoOp();
     // (en laden in de lucht: de heli weg, en niet meer zitten)
     if (avondHeli && avondHeli.zichtbaar) { ruimAvondOp(); player.zit = false; }
     if (uitzFilm && uitzFilm.soort === 'einde') { uitzFilm = null; toonFilmbalken(0); schietSlot(false); }
@@ -7304,7 +7315,18 @@ export function initVerhaal(ctx) {
     return true;
   }
   function praatjeToets() {
-    for (const wie of ['mark', 'johan']) if (praatBij(wie)) return speelPraatje(wie);
+    for (const wie of ['mark', 'johan']) {
+      if (!praatBij(wie)) continue;
+      // (een open vraag van Johan vervalt als je verder praat)
+      if (yugo.fase === 'keuze') { yugoKeuzeDicht(); yugo.fase = 'uit'; }
+      // (stap 204) de eerste keer stelt Johan Yugo voor; en na een praatje over Yugo vraagt hij of je meegaat
+      if (wie === 'johan' && !yugo.gevraagd && yugoRuimte()) return yugoVraag(YUGO_VOORSTEL);
+      if (wie === 'johan' && yugoRuimte()) {
+        speelPraatje(wie, () => { const l = praat.laatste; if (l && PRAATJES.johan[l.i].some(([, t]) => /Yugo/.test(t))) yugoVraag([YUGO_NOG_EENS]); });
+        return true;
+      }
+      return speelPraatje(wie);
+    }
     return false;
   }
   function werkPraatjesBij(dt, sp) {
@@ -7330,6 +7352,134 @@ export function initVerhaal(ctx) {
     }
     praat.hintT -= dt;
     if (hint && balk.hidden && praat.hintT <= 0) { praat.hintT = PRAAT.hint; hud.show(hint, PRAAT.hint + 0.2); }
+  }
+
+  /*
+   ---------- sushi eten bij Yugo met Johan (stap 204) ----------
+   De eerste keer dat je Johan op zijn oprit aanspreekt, stelt hij voor om bij Yugo te gaan eten; daarna doet hij dat aan het
+   eind van elk praatje over Yugo. 1 = ja: "Die avond, bij Yugo…" (zwart, 19:00, de klok stil) en je zit aan tafel in de zaal van
+   js/yugo.js. 2 = een andere keer. Vijf rondes; X laat Erik opstaan ("Johan, sorry, maar ik moet morgen vroeg op"). Zolang je
+   daar zit wacht het verhaal (zoals bij een klus) en kun je niet opslaan. Daarna sta je weer bij Johan op de oprit.
+  */
+  const YUGO_UUR = 19, YUGO_KEUZE_TEKST = 'kies: 1 — ja, naar Yugo · 2 — een andere keer';
+  const YUGO_VOORSTEL = [
+    zegtJohan('Erik! Ik heb trek. Zullen we bij Yugo gaan eten? Sushi, in Sneek. Vijf rondes, alles bestellen via een tablet.'),
+    zegtErik('Sushi? Met stokjes?'),
+    zegtJohan('Met stokjes. En ze hebben daar een Pornstar Martini waar je u tegen zegt. Wat doe je, ga je mee?'),
+  ];
+  const YUGO_NOG_EENS = zegtJohan('Zin om weer bij Yugo te gaan eten? Ik heb al honger.');
+  const YUGO_JA = [zegtJohan('Top! Ik heb al gereserveerd. Voor twee. Nou ja, voor drie porties.')];
+  const YUGO_NEE = [zegtJohan('Jammer. Je weet me te vinden, ik heb altijd trek.')];
+  const YUGO_POLITIE = [zegtJohan('Met al die zwaailichten achter je aan? Eerst de politie kwijt, dan sushi.')];
+  const YUGO_WEG = [
+    zegtErik('Johan, sorry, maar ik moet morgen vroeg op. Ik ga die kant op.'),
+    zegtJohan('Nu al? Ik was net op gang. Ga maar, ik eet jouw bord wel leeg.'),
+  ];
+  const yugo = { fase: 'uit', gevraagd: false, keer: 0, klokWas: null, opdrachtWas: null, plek: null };
+  function yugoBezig() { return yugo.fase === 'tafel' || yugo.fase === 'weg' || yugo.fase === 'heen'; }
+  function yugoRuimte() { return yugo && yugoZaal ? yugoZaal() : null; }
+  function yugoAanTafel() { const y = yugoRuimte(); return !!(y && y.actief && yugo.fase === 'tafel'); }
+  // het voorstel: na de laatste regel staat de keuze open
+  function yugoVraag(regels) {
+    yugo.gevraagd = true;
+    yugo.fase = 'vraag';
+    zeg(regels, () => {
+      if (yugo.fase !== 'vraag') return;
+      yugo.fase = 'keuze';
+      yugo.opdrachtWas = { tekst: opdrachtEl.hidden ? '' : opdrachtEl.textContent.replace(/^Opdracht: /, ''), rood: opdrachtEl.classList.contains('rood') };
+      zetOpdracht(YUGO_KEUZE_TEKST);
+    });
+    return true;
+  }
+  function yugoKeuzeDicht() {
+    const w = yugo.opdrachtWas; yugo.opdrachtWas = null;
+    if (w) zetOpdracht(w.tekst, w.rood); else zetOpdracht('');
+  }
+  function yugoKeuze(nr) {
+    if (yugo.fase !== 'keuze' || (nr !== 1 && nr !== 2)) return false;
+    yugoKeuzeDicht();
+    if (nr === 2) { yugo.fase = 'uit'; zeg(YUGO_NEE); return true; }
+    if (gezocht()) { yugo.fase = 'uit'; zeg(YUGO_POLITIE); return true; }
+    if (!yugoRuimte()) { yugo.fase = 'uit'; return true; }
+    yugo.fase = 'heen';
+    zeg(YUGO_JA, () => zwartMet('Die avond, bij Yugo in Sneek…', () => yugoAanTafelZetten()));
+    return true;
+  }
+  // in het zwart: de klok stil op zeven uur, en aan tafel
+  function yugoAanTafelZetten() {
+    const y = yugoRuimte();
+    if (!y) { yugo.fase = 'uit'; return; }
+    if (player.inCar && stapIn) { /* uitstappen gebeurt vanzelf: je staat te voet bij Johan */ }
+    if (zetUur) zetUur(YUGO_UUR);
+    if (klokLoopt && yugo.klokWas === null) { yugo.klokWas = klokLoopt(); klokLoopt(false); }
+    const p = praatPlek('johan');
+    yugo.plek = p;
+    y.zetTerug(p ? { x: p.x, z: p.z } : null);
+    yugo.fase = 'tafel';
+    yugo.keer++;
+    y.begin({
+      zeg: (regels, opties = {}) => zeg(regels.map(r => (r.wie === 'Johan' ? zegtJohan(r.tekst) : { wie: r.wie, tekst: r.tekst })), null, opties),
+      balkVrij: () => balk.hidden && !gesprek,
+      klaar: () => yugoNaarBuiten('Later die avond…', 2.5),
+    });
+  }
+  // terug bij Johan op de oprit (ook na X)
+  function yugoNaarBuiten(tekst, uren = 0) {
+    if (yugo.fase === 'weg' && !uren) return;
+    yugo.fase = 'weg';
+    zwartMet(tekst, () => {
+      const y = yugoRuimte();
+      const rondes = y ? y.stand.ronde : 0;
+      if (y) y.eind();
+      praatEl.hidden = true;
+      if (zetUur) zetUur(Math.min(23.5, YUGO_UUR + (uren || rondes * 0.45 + 0.3)));
+      if (klokLoopt && yugo.klokWas !== null) { klokLoopt(yugo.klokWas); }
+      yugo.klokWas = null;
+      const p = yugo.plek || praatPlek('johan');
+      if (p) {
+        // twee meter voor Johan, naar hem toe kijkend; Johan staat er weer
+        const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
+        const [x, z] = resolveCollisions(p.x + fx * 2, p.z + fz * 2, 0.4);
+        player.inCar = null;
+        player.pos.set(x, 0, z);
+        player.yaw = p.yaw + Math.PI; player.pitch = 0;
+        player.applyCamera();
+        const j = praatFiguur('johan');
+        if (j) { j.groep.visible = true; j.zetNeer(p.x, p.z, p.yaw); }
+      }
+      yugo.fase = 'uit';
+    });
+  }
+  function yugoAfbreken() {
+    if (yugo.fase !== 'tafel') return false;
+    yugo.fase = 'weg';
+    zeg(YUGO_WEG, () => { yugo.fase = 'tafel'; yugoNaarBuiten('Even later…'); }, { auto: 3.5 });
+    return true;
+  }
+  // laden of een nieuwe missie: meteen weg uit de zaal
+  function ruimYugoOp() {
+    const y = yugoRuimte();
+    if (y && y.actief) y.eind();
+    if (yugo.fase === 'keuze') yugoKeuzeDicht();
+    if (yugo.klokWas !== null && klokLoopt) klokLoopt(yugo.klokWas);
+    yugo.klokWas = null;
+    yugo.fase = 'uit';
+  }
+  function werkYugoBij(dt, sp) {
+    // de keuze vervalt als je wegloopt
+    if (yugo.fase === 'keuze') {
+      const j = praat.johan;
+      if (!j || !j.groep.visible || afst(sp, j.groep.position) > PRAAT_AFSTAND * 3 || player.inCar) { yugoKeuzeDicht(); yugo.fase = 'uit'; }
+      return;
+    }
+    const y = yugoRuimte();
+    if (!y || !y.actief) return;
+    y.werkBij(dt);
+    // de hint onderin: eten en drinken, of de tablet
+    const tekst = !balk.hidden && !(gesprek && gesprek.auto) ? null
+      : y.tabletOpen ? '1–5 kiezen · 0 wissen · 6 of E bestellen · X weggaan' : 'E — eten met de stokjes · Q — drinken · X — weggaan';
+    if (tekst && balk.hidden) { praatEl.textContent = tekst; praatEl.hidden = false; yugo.hint = true; }
+    else if (yugo.hint) { praatEl.hidden = true; yugo.hint = false; }
   }
 
   function werkUitjeBij(dt, sp) {
@@ -12538,7 +12688,9 @@ export function initVerhaal(ctx) {
       || schaduwKlokWas !== null || invalKlokWas !== null || ronaldKlokWas !== null || uitzKlokWas !== null
       // (16 okt) na de wedstrijd (fase 'na': "Mooi geweest", Mark blijft nog even) loopt de klok weer; tot dan hield deze regel
       // hem stil, net nadat `uitjeEinde` hem had aangezet
-      || uitje.klokWas !== null || (uitjeBezig() && uitje.fase !== 'na') || n5Bezig();
+      || uitje.klokWas !== null || (uitjeBezig() && uitje.fase !== 'na') || n5Bezig()
+      // (stap 204) aan tafel bij Yugo
+      || yugo.klokWas !== null || yugoBezig();
   }
   // waarom de speler de tijd nu niet kan verzetten (T, de instellingen), of null
   function tijdVast() {
@@ -12668,7 +12820,7 @@ export function initVerhaal(ctx) {
       return;
     }
     // pauze tussen twee missies: na de boerderij belt Johan (niet tijdens een klus)
-    if (naMissieT > 0 && !klusjes.bezig && !nmBezig() && !n5Bezig() && !roanBezig() && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
+    if (naMissieT > 0 && !klusjes.bezig && !nmBezig() && !n5Bezig() && !roanBezig() && !yugoBezig() && !geldInleg && fase !== 'geldKlaar' && !gesprek) {
       naMissieT -= dt;
       if (naMissieT <= 0) startMissie(naMissieNaam, { vanzelf: true });
       else werkVroegBij();
@@ -12851,7 +13003,7 @@ export function initVerhaal(ctx) {
 
     // een missie die onder zijn M op je wacht, wacht ook tijdens een klus (js/klusjes.js)
     // (en tijdens de opnames van No Mercy 4, stap 140)
-    const wachtOpKlus = (klusjes.bezig || nmBezig() || n5Bezig() || roanBezig()) && missie !== 'klaar';
+    const wachtOpKlus = (klusjes.bezig || nmBezig() || n5Bezig() || roanBezig() || yugoBezig()) && missie !== 'klaar';
 
     // ---- missie 5: Johan en de dief ----
     if (missie === 'johan' && !wachtOpKlus) werkJohanBij(dt, sp);
@@ -12894,6 +13046,7 @@ export function initVerhaal(ctx) {
       if (missie === 'uitzending') werkUitzendingBij(dt, sp);
     }
     werkPraatjesBij(dt, sp);              // praatjes met Mark en Johan tussendoor (stap 192)
+    werkYugoBij(dt, sp);                  // sushi eten bij Yugo met Johan (stap 204)
     brugNaloop(sp, dt);
     raceNaloop(sp, dt);
     invalNaloop(dt);
@@ -13017,6 +13170,8 @@ export function initVerhaal(ctx) {
       // No Mercy 5 (stap 142): gedaan, de melding al gegeven, en of je de stafauto koos (de auto zelf zit in js/garage.js)
       noMercy5Klaar: n5.klaar, noMercy5Gemeld: n5.gemeld, noMercy5Staf: n5.staf,
       roanKlaar: roan.klaar,
+      // (stap 204) heeft Johan Yugo al voorgesteld, en hoe vaak waren jullie er
+      yugoGevraagd: yugo.gevraagd, yugoKeer: yugo.keer,
       // missie 14: wat Ronald Bouwman nog schuldig is, en hoe vaak je verloor
       raceSchuld, raceRondes,
       volgende: naMissieT > 0 ? naMissieNaam : null,
@@ -13037,6 +13192,7 @@ export function initVerhaal(ctx) {
     n5RuimOp(false); n5.fase = 'uit'; n5.pauze = null; n5.eerstWeg = false;
     if (!s) return;
     n5.klaar = !!s.noMercy5Klaar; n5.gemeld = !!s.noMercy5Gemeld; n5.staf = !!s.noMercy5Staf;
+    ruimYugoOp(); yugo.gevraagd = !!s.yugoGevraagd; yugo.keer = s.yugoKeer | 0;
     nm.klaar = !!s.noMercyKlaar; nm.gebeld = !!s.noMercyGebeld; nm.m1 = !!s.noMercyM1;
     // (stap 178) Roan: klaar of niet; een oude opslag van na missie 5 krijgt de R, en Mark belt als je bij de school komt
     roanRuimOp(); roan.wegT = 0; roan.klaar = !!s.roanKlaar; roan.fase = roan.klaar ? 'klaar' : 'uit'; roan.belT = ROAN.belNa;
@@ -13394,6 +13550,7 @@ export function initVerhaal(ctx) {
     if (nmBezig()) return 'tijdens de opnames van No Mercy 4';
     if (n5Bezig()) return 'tijdens de opnames van No Mercy 5';
     if (roanBezig()) return 'zolang Roan bij je is';
+    if (yugoBezig() || yugo.fase === 'keuze') return 'tijdens het etentje bij Yugo';
     /*
      Net na een missie, tot het zwart en de ochtend (stap 122): het checkpoint werd een tel na GESLAAGD
      geschreven, en na het laden was het nog 01:00, met de klok stil en zonder "De volgende ochtend".
@@ -13429,7 +13586,11 @@ export function initVerhaal(ctx) {
     // (16 okt) in missie 18 zit Sjors in de studio aan de knoppen: dan staat hij niet ook buiten voor de Tinga Cache
     get sjorsInStudio() { return missie === 'uitzending'; },
     // (16 okt) tijdens de opnames van No Mercy 4 en 5 speelt er geen autoradio (gevraagd: "tijdens No Mercy kan je radio draaien in de stafauto")
-    get geenRadio() { return nmBezig() || n5Bezig(); },
+    get geenRadio() { return nmBezig() || n5Bezig() || yugoBezig(); },
+    // (stap 204) sushi bij Yugo: de stand voor de proef, los beginnen, en Q is een slok
+    get yugo() { return { fase: yugo.fase, gevraagd: yugo.gevraagd, keer: yugo.keer, bezig: yugoBezig(), klokWas: yugo.klokWas }; },
+    startYugo: () => { if (!yugoRuimte()) return false; yugo.gevraagd = true; yugo.fase = 'heen'; yugoAanTafelZetten(); return true; },
+    yugoDrink: () => (yugoAanTafel() ? yugoRuimte().drink() : false),
     // (stap 195, voor tools/statistiektest.mjs) de titelrol los openen en sluiten
     __titelrol: (open = true) => { if (open) openTitelrol(); else sluitTitelrol(); },
     // (stap 127, voor tools/wensentest.mjs: je auto bij huis neerzetten)
@@ -13452,6 +13613,8 @@ export function initVerhaal(ctx) {
       if (nm.fase === 'keuze') return [euro(NOMERCY.beloning), 'de M1 Garand houden'];
       if (n5.fase === 'keuze') return [euro(NOMERCY5.beloning), 'de stafauto houden'];
       if (uitje.fase === 'keuze') return ['de wedstrijd', 'de bank', 'even kletsen'];
+      if (yugoAanTafel() && yugoRuimte().tabletOpen) return yugoRuimte().keuzes;
+      if (yugo.fase === 'keuze') return ['ja, naar Yugo', 'een andere keer'];
       if (geldKiezen) return GELDRACE_INLEG.map(euro);
       if (missie === 'race' && fase === 'keuze') return ['nog een keer, dubbel of niks', `${euro(raceSchuld)} betalen`];
       if (missie === 'inval' && fase === 'keuze') return ['ruilen', 'hinderlaag'];
@@ -13470,7 +13633,7 @@ export function initVerhaal(ctx) {
     */
     spuitPrijs: (auto) => (missie === 'bx' && auto && auto === bxAuto ? BX_SPUIT : klusjes.spuitPrijs(auto)),
     // de klusjes (js/klusjes.js): X breekt er een af
-    klusAfbreken: () => noMercyAfbreken() || noMercy5Afbreken() || klusjes.afbreken(),
+    klusAfbreken: () => yugoAfbreken() || noMercyAfbreken() || noMercy5Afbreken() || klusjes.afbreken(),
     // No Mercy 4 (stap 140): los starten (shift + punt), en voor tools/nomercytest.mjs de stand
     startNoMercy: () => startNoMercyLos(),
     // No Mercy 5 (stap 142): los starten (shift + komma), en voor tools/nomercy5test.mjs de stand

@@ -312,6 +312,54 @@ if (typeof AudioParam !== 'undefined' && !AudioParam.prototype.__getalBewaakt) {
 let geluidNaN = 0;
 let ctxLiep = false, laatsteResume = 0;
 
+/*
+ Het muziekje van Yugo (stap 204): de toonladder in halve tonen boven D4 (miyako-bushi: D, Es, G, A, Bes en de octaven),
+ twee zinnen van zestien tellen (null is een rust), de bas per vier tellen en de fluittoon eens in de twee maten.
+*/
+export const YUGO_MUZIEK = {
+  tel: 0.34, vooruit: 0.6, vol: 0.075,
+  ladder: [0, 1, 5, 7, 8, 12, 13, 17, 19, 20],
+  toon(i) { const L = this.ladder; const o = Math.floor(i / L.length), s = L[((i % L.length) + L.length) % L.length] + 12 * o; return 293.66 * 2 ** (s / 12); },
+  melodie: [
+    [5, null, 4, 3, 4, null, 2, null, 3, 2, 1, null, 0, null, null, null],
+    [2, null, 3, 4, 5, null, 7, 6, 5, null, 4, 3, 2, null, null, 1],
+    [7, null, 6, 5, 6, null, 5, 4, 3, null, 4, null, 2, null, null, null],
+    [0, 1, 2, null, 4, null, 3, 2, 1, null, 0, null, -2, null, null, null],
+  ],
+  bas: [0, 0, 3, 2, 0, 0, 2, -2],
+  fluit: [5, 3, 7, 2],
+};
+// een koto-tokkel: een snaar die snel opklinkt en uitsterft, met een tweede snaar een octaaf hoger erdoorheen
+function kotoPluk(freq, vertraag, volume, lang = 1.1) {
+  if (!aan || !ctx || !(freq > 0)) return;
+  const t = nu() + Math.max(0, vertraag);
+  const g = ctx.createGain(), f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.Q.value = 2;
+  f.frequency.setValueAtTime(freq * 7, t); f.frequency.exponentialRampToValueAtTime(freq * 1.6, t + 0.35);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(volume, t + 0.006);
+  g.gain.exponentialRampToValueAtTime(volume * 0.25, t + 0.25);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + lang);
+  for (const [mul, soort] of [[1, 'sawtooth'], [2.003, 'triangle']]) {
+    const o = ctx.createOscillator(); o.type = soort;
+    o.frequency.setValueAtTime(freq * mul * 1.012, t); o.frequency.exponentialRampToValueAtTime(freq * mul, t + 0.05);
+    o.connect(f); o.start(t); o.stop(t + lang + 0.05);
+  }
+  f.connect(g); g.connect(hoofd);
+}
+// een fluittoon: zacht aanblazen, een langzame vibrato, wat ruis van de adem
+function fluit(freq, vertraag, duur, volume) {
+  if (!aan || !ctx || !(freq > 0)) return;
+  const t = nu() + Math.max(0, vertraag);
+  const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(freq * 0.97, t); o.frequency.exponentialRampToValueAtTime(freq, t + 0.4);
+  lfo.frequency.value = 4.8; lg.gain.value = freq * 0.008; lfo.connect(lg); lg.connect(o.frequency);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(volume, t + duur * 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+  o.connect(g); g.connect(hoofd);
+  o.start(t); o.stop(t + duur + 0.05); lfo.start(t); lfo.stop(t + duur + 0.05);
+  tik({ freq: freq * 2, q: 3, duur: duur * 0.5, volume: volume * 0.15, type: 'bandpass', val: 1, vertraag: Math.max(0, vertraag) });
+}
+
 // ---------- publieke geluiden ----------
 // een vast nummer met aanzwellen, herhalen en uitdoven: de heli van missie 18, No Mercy (stap 119, 181)
 function vasteMuziek(sleutel, M, actief) {
@@ -1969,6 +2017,37 @@ export const geluid = {
     src.start(t); src.stop(t + duur + 0.1);
     this.applausT = t;
   },
+
+  /*
+   Het Japanse muziekje van Yugo (stap 204, js/yugo.js): een koto die in de miyako-bushi-toonladder (D, Es, G, A, Bes) een
+   rustig melodietje speelt over een lage tokkel op de tel, af en toe een langgerekte fluittoon erboven (zoals een
+   shakuhachi). Alles gemaakt, geen opname: de noten worden een halve tel vooruit ingepland (`YUGO_MUZIEK.vooruit`), zodat
+   een hapering in het beeld de maat niet breekt. Met `aan = false` stopt het inplannen en klinkt de laatste noot uit.
+  */
+  yugoMuziek(dt, aanZetten) {
+    const M = YUGO_MUZIEK;
+    if (!aanZetten) { this.yugoVolgende = null; return; }
+    if (!aan || !ctx) return;
+    const t0 = nu();
+    if (this.yugoVolgende == null || this.yugoVolgende < t0 - 1) { this.yugoVolgende = t0 + 0.1; this.yugoTel = 0; }
+    while (this.yugoVolgende < t0 + M.vooruit) {
+      const t = this.yugoVolgende, tel = this.yugoTel;
+      const zin = M.melodie[Math.floor(tel / 16) % M.melodie.length];
+      const noot = zin[tel % 16];
+      if (noot !== null && noot !== undefined) kotoPluk(M.toon(noot), t - t0, M.vol * (tel % 4 === 0 ? 1 : 0.8));
+      if (tel % 4 === 0) kotoPluk(M.toon(M.bas[Math.floor(tel / 4) % M.bas.length]) / 2, t - t0, M.vol * 0.7, 1.6);
+      if (tel % 32 === 8) fluit(M.toon(M.fluit[Math.floor(tel / 32) % M.fluit.length]) * 2, t - t0, M.tel * 6, M.vol * 0.35);
+      this.yugoVolgende += M.tel * (tel % 2 ? 0.92 : 1.08);   // een beetje swing, zoals een mens het speelt
+      this.yugoTel = tel + 1;
+    }
+    this.yugoLaatst = t0;
+  },
+  // een hapje (stap 204): een zacht, kort smakje
+  hap() { tik({ freq: 420, q: 2.2, duur: 0.07, volume: 0.07, val: 0.7 }); tik({ freq: 300, q: 2, duur: 0.06, volume: 0.05, val: 0.8, vertraag: 0.16 }); },
+  // een slok: een glas dat even tikt en een zachte slok erachteraan
+  slok() { toon({ freq: 2400, duur: 0.06, volume: 0.03, golf: 'sine' }); tik({ freq: 380, q: 1.4, duur: 0.18, volume: 0.06, val: 0.6, vertraag: 0.12 }); },
+  // een tikje op de tablet
+  tikje() { tik({ freq: 3200, q: 4, duur: 0.03, volume: 0.05, val: 0.9 }); },
 
   /*
    Het nieuwsjingletje van Radio Tinga (stap 112, js/nieuws.js): drie oplopende tonen en een lange

@@ -33,6 +33,7 @@ import { inBouwvlak } from './bouwvlak.js';
 import { initBoten } from './boot.js';
 import { initSupermarkt, BIER } from './supermarkt.js';
 import { initStudio } from './studio.js';
+import { initYugo } from './yugo.js';
 import { maakWedstrijd, WEDSTRIJD } from './wedstrijd.js';
 import { initAmbulance } from './ambulance.js';
 import { maakNieuws } from './nieuws.js';
@@ -688,6 +689,8 @@ await adem('het verhaal', 0.984);
 // Het verhaal: broer Mark voor Molenkrite 15, het gezelschap schuin tegenover,
 // de rit naar de waterzuivering, de bewaking en het afleveren bij de boerderij.
 // Zonder kaartdata (?kaart=oud) speelt het niet en doet alles niets.
+// (stap 204) de zaal van Yugo komt verderop (js/yugo.js), het verhaal vraagt hem pas later op
+let yugoZaal = null;
 const verhaal = initVerhaal({
   scene, player, hud, vehicles,
   // Ga je neer, dan begint het verhaal bij het laatst opgeslagen spel; is er
@@ -747,6 +750,8 @@ const verhaal = initVerhaal({
   poiesz: () => (supermarkt && supermarkt.ingangen ? supermarkt : null),
   // missie 18: de studio van Radio Tinga (js/studio.js)
   studio: () => (studio && studio.plekken ? studio : null),
+  // stap 204: de zaal van Yugo (js/yugo.js)
+  yugo: () => yugoZaal,
   // de drie woningen van missie 9 (js/interieur.js)
   stekken: () => woningen.filter(w => w.stek),
   // missie 10: "Enkele uren later" is het één uur 's nachts (de sfeer komt verderop)
@@ -830,9 +835,11 @@ npcs.gedrag.zetFietsGeo(npcs.fiets.geometry, npcs.fiets.material);
 // en de studio van Radio Tinga aan de weg Tinga, met de zendmast op het dak (missie 18, js/studio.js)
 await adem('de studio', 0.997);
 const studio = initStudio({ scene, player, hud }) || LEEG;
+// (stap 204) de zaal van Yugo in Sneek, waar je met Johan sushi eet (js/yugo.js); ook een binnenruimte
+yugoZaal = initYugo({ scene, player, camera, hud, geluid, Persoon });
 opstartStap('de rest van de opzet');
 // Alle binnenruimtes bij elkaar; ze werken allemaal op dezelfde manier.
-const binnenruimtes = [...woningen, boerderij, supermarkt, studio];
+const binnenruimtes = [...woningen, boerderij, supermarkt, studio, ...(yugoZaal ? [yugoZaal] : [])];
 const ergensBinnen = (x, z) => binnenruimtes.some(r => r.binnen(x, z));
 // en sta je in de tuin van een van de woningen? Dan ben je buiten (js/interieur.js)
 const inTuin = (x, z) => binnenruimtes.some(r => r.tuin && r.tuin(x, z));
@@ -1743,6 +1750,12 @@ window.addEventListener('keydown', e => {
  X: een klus afbreken (js/klusjes.js). Een klus zet het verhaal stil tot hij klaar is;
  wie toch liever met de missie verder wil, laat hem hiermee lopen.
 */
+// (stap 204) Q: een slok van je Pornstar Martini aan tafel bij Yugo
+window.addEventListener('keydown', e => {
+  if (e.code !== 'KeyQ' || e.ctrlKey || e.metaKey || e.repeat) return;
+  if (!player.active && !window.__autoplay) return;
+  if (verhaal && verhaal.yugoDrink) verhaal.yugoDrink();
+});
 window.addEventListener('keydown', e => {
   if (e.code !== 'KeyX' || e.ctrlKey || e.metaKey || e.repeat) return;
   if (!player.active && !window.__autoplay) return;
@@ -1756,7 +1769,9 @@ window.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const k = /^(?:Digit|Numpad)([0-9])$/.exec(e.code);
   if (!k) return;
-  if ((tuning && tuning.open && tuning.kies(+k[1])) || (djdienst.open && djdienst.kies(+k[1])) || (bpKassa.open && bpKassa.kies(+k[1]))) { e.preventDefault(); e.stopImmediatePropagation(); }
+  if ((tuning && tuning.open && tuning.kies(+k[1])) || (djdienst.open && djdienst.kies(+k[1])) || (bpKassa.open && bpKassa.kies(+k[1]))
+    // (stap 204) de tablet van Yugo: 1–5 kiezen, 0 wissen, 6 bestellen (via het verhaal, dat weet of je aan tafel zit)
+    || (yugoZaal && yugoZaal.tabletOpen && verhaal.kiesHuis(+k[1]))) { e.preventDefault(); e.stopImmediatePropagation(); }
   // (stap 196) met de GPS aan tik je het doel in
   // (16 okt) behalve als het spel om een keuze vraagt (1, 2 of 3): die gaat voor, anders kon je met de GPS open niet kiezen
   else if (geocache && geocache.aan && !e.shiftKey && !verhaal.openKeuze && geocache.cijfer(+k[1])) { e.preventDefault(); e.stopImmediatePropagation(); }
@@ -3605,6 +3620,8 @@ avondBelofte = warmDeAvondOpInStukjes().then(n => { console.log(`avond: ${n} mes
 opstartStap('klaar');
 window.__game = {
   statistiek,
+  // stap 204: de zaal van Yugo (js/yugo.js)
+  get yugo() { return yugoZaal; },
   get geocache() { return geocache; },
   // stap 152: de schuifdeuren van de Poiesz (js/zuilengang.js)
   schuifdeuren: SCHUIFDEUREN, werkSchuifdeurenBij,

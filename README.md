@@ -1005,6 +1005,29 @@ er niet. Na het einde zit Mark binnen op de bank: daar kies je **3** om even te 
 
 ![Johan op zijn oprit aan het Kruirad](docs/screenshots/praatje_johan.png)
 
+## Sushi eten bij Yugo
+
+De eerste keer dat je Johan op zijn oprit aanspreekt, stelt hij voor om bij **Yugo** te gaan eten, het Japanse sushirestaurant in
+Sneek. Kies **1** voor ja of **2** voor een andere keer; na elk praatje over Yugo vraagt hij het opnieuw. Met de politie achter je
+aan gaat het niet door.
+
+Bij ja wordt het zwart ("Die avond, bij Yugo in Sneek…", zeven uur) en zit je aan tafel, met Johan tegenover je op de blauwe bank
+en het verlichte logo achter hem. Op tafel staat een tablet. Daarmee bestel je met de cijfers: **1** Sake nigiri, **2** Zalm maki,
+**3** California roll, **4** Crispy ebi roll (samen hoogstens vier plankjes per ronde), **5** een Pornstar Martini, **0** wist je
+keuze, en **6** of **E** bestelt. Johan bestelt natuurlijk meer dan jij. Even later komt de ober met een dienblad uit de keuken en zet
+alles neer. Met **E** pak je met je stokjes een stuk sushi en eet je het op, met **Q** neem je een slok van je cocktail. Allebei
+geven ze wat leven. Johan eet in zijn eigen tempo mee en praat tussendoor. Na vijf rondes, ongeveer een kwartier, vraagt hij de
+rekening en trakteert hij. Je kunt altijd weggaan met **X**: "Johan, sorry, maar ik moet morgen vroeg op. Ik ga die kant op." Je
+staat dan weer bij Johan op de oprit. Er speelt een Japans muziekje.
+
+![De zaal van Yugo](docs/screenshots/yugo_zaal.png)
+
+![Aan tafel met Johan](docs/screenshots/yugo_tafel.png)
+
+![De tablet](docs/screenshots/yugo_tablet.png)
+
+![Eten met de stokjes](docs/screenshots/yugo_eten.png)
+
 ## Het pompgeweer
 
 Naast de M1 ligt bij Tinga State een **pompgeweer** voor € 1.200: de Winchester Model 1897 trench gun die de Amerikanen in

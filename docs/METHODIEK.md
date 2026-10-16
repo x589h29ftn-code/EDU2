@@ -9317,6 +9317,42 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Sushi eten bij Yugo met Johan (stap 204, 16 okt).** Gevraagd, met vier foto's (de tablet, een plank sushi, een gedekte tafel en
+de zaal met het verlichte logo): de eerste keer dat je Johan opzoekt stelt hij voor om bij Yugo te eten, het Japanse sushirestaurant
+in Sneek; bij ja zwart en aan tafel; bestellen op een tablet (vier soorten sushi, de Pornstar Martini), de ober brengt het, eten met
+stokjes, Johan bestelt te veel, vijf rondes in ongeveer een kwartier, X om weg te gaan ("Johan sorry maar ik moet morgen vroeg op. Ik
+ga die kant op"), een Japans muziekje.
+
+- *De zaal* (js/yugo.js) is een binnenruimte zoals de studio: buiten de kaart (gebied + (800, 1250)), zonder deur; het zwart zet je
+  aan tafel en haalt je weg. Naar de foto van de zaal: steenstrips met "yugo" in penseelletters, de rode stip en de grijze veeg,
+  van achteren verlicht (`tekenWandLogo`, een doorzichtig vlak); de lange blauwe bank met tafeltjes voor twee, het stalen rek met
+  flessen en aloë's, emmerlampen (blauw, groen, donkerblauw met rood van binnen), het zwarte hek met de houten leuning, ronde tafels
+  met kuipstoelen, sojaflesjes met een rode dop, gele glaasjes, onderleggers met "yugo", de sushibar met de keukendeur, vier gasten.
+  Het logo van de tablet (het zwarte vierkant met "yūgō SUSHI") en de gerechten op de tegels zijn op canvas getekend.
+- *Het verloop* staat in js/verhaal.js (het blok `yugo`): het voorstel bij het eerste praatje, en daarna na elk praatje over Yugo
+  (die gingen tot nu over ćevapčići en rakija, alsof Yugo een grill was; nu over sushi), 1/2 via `kiesHuis`, met sterren niet,
+  "Die avond, bij Yugo in Sneek…" om 19:00 met de klok stil. Zolang je zit wacht het verhaal (`yugoBezig` in `vrijVoorKlus`,
+  `wachtOpKlus`, de tussenpoos) en kun je niet opslaan; laden ruimt op (`ruimYugoOp` in `stopNaloop` en `herstel`).
+- *Een ronde*: de tablet (1–4 sushi, hoogstens vier plankjes, 5 de cocktail, 0 wissen, 6 of E bestellen); Johan bestelt vijf of
+  zes plankjes en een cocktail; de ober loopt over `OBER_PAD` van de keukendeur door het gangpad achter het hek naar de tafel, zet
+  alles op het blad (zes plekken per kant, `plekOpTafel`) en neemt de lege plankjes mee. E pakt met de stokjes (aan de camera) een
+  stuk en brengt het naar je mond, Q is een slok (het drankje zakt in het glas, het halve vruchtje zakt mee); allebei geven ze wat
+  leven. Johan eet met zijn arm en eigen stokjes, en praat tussendoor (`YUGO_TEKST`). Alles bestaat al bij het opstarten (de
+  vitrine van de sushibar heeft van elk soort een plankje en een glas), zodat er aan tafel geen programma bij komt.
+- *Het muziekje* is gemaakt (`geluid.yugoMuziek`, `YUGO_MUZIEK`): een koto in de miyako-bushi-toonladder over een lage tokkel op
+  de tel en eens in de twee maten een fluittoon, een halve tel vooruit ingepland zodat een hapering de maat niet breekt.
+- *Gemeten* (`npm run yugotest`): een ronde met de echte tijden en een automaat die na 15 s bestelt en elke 1,3 s eet, duurt 180 s,
+  vijf rondes dus een kwartier. Johan zit op 1,71 m midden in beeld, zijn heup op de zitting (0,51 m); de stokjes komen tot 0,8 cm
+  bij het stuk; geen nieuw programma bij het binnenkomen of met alles op tafel.
+- *Mis gegaan:* de ober wachtte bij de tafel en zocht intussen al een volgend punt op zijn pad, voorbij het eind: een fout in het
+  eerste beeld bij de tafel (gevonden met een korte proef vóór de echte). Zijn eindpunt lag 15 cm in de botsdoos van het
+  buurtafeltje; nu 25 cm naast de tafel. Het logo was zo groot dat het van de stoel boven in beeld werd afgesneden. Een eigen
+  render gevolgd door een schermafdruk is zwart (de hoofdlus tekent eroverheen zonder `preserveDrawingBuffer`): de foto's laten
+  de hoofdlus tekenen. En de audioklok loopt alleen met de echte tijd: een proef die het muziekje meet, moet echt wachten.
+
+*Proef*: `npm run yugotest`, foto's met `npm run yugoshots` (yugo_zaal, yugo_tafel, yugo_tablet, yugo_eten); `praatjestest` zet
+het voorstel als al gedaan (het eerste praatje met Johan is nu het voorstel).
+
 **De politie schiet eerder raak (stap 203, 16 okt).** Gevraagd: "Met al het flanken schiet de politie in het begin vrij weinig op
 Erik en raak." Drie dingen stapelden: een agent die je net zag begon te richten bij nul (`richtT`, de raakkans 35 % van die na drie
 tellen), zijn eerste schot kwam na een willekeurige wachttijd tot VUURTIJD (1,8 s), en wie dekking had schoot alleen bij het
