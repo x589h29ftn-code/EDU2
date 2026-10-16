@@ -1020,6 +1020,10 @@ geven ze wat leven. Johan eet in zijn eigen tempo mee en praat tussendoor. Na vi
 rekening en trakteert hij. Je kunt altijd weggaan met **X**: "Johan, sorry, maar ik moet morgen vroeg op. Ik ga die kant op." Je
 staat dan weer bij Johan op de oprit. Er speelt een Japans muziekje.
 
+Aan tafel blijft je wapen weg tot je weer buiten staat. Ondertussen praten Johan en Erik bij: over het werk en De Veteraan, de
+nieuwe No Mercy-film van Erik Jan, hoe het met Erik Jan gaat (het broertje van Johan), over weer eens een dagje weg met Mark en Erik
+Jan, net als de laatste keer naar Texel, en over het weer.
+
 ![De zaal van Yugo](docs/screenshots/yugo_zaal.png)
 
 ![Aan tafel met Johan](docs/screenshots/yugo_tafel.png)

@@ -7418,8 +7418,14 @@ export function initVerhaal(ctx) {
     yugo.fase = 'tafel';
     yugo.keer++;
     y.begin({
-      zeg: (regels, opties = {}) => zeg(regels.map(r => (r.wie === 'Johan' ? zegtJohan(r.tekst) : { wie: r.wie, tekst: r.tekst })), null, opties),
+      zeg: (regels, opties = {}) => zeg(regels.map(r => (r.wie === 'Johan' ? zegtJohan(r.tekst) : r.wie === 'Erik' ? zegtErik(r.tekst) : { wie: r.wie, tekst: r.tekst })), null, opties),
       balkVrij: () => balk.hidden && !gesprek,
+      // waar ze het over kunnen hebben: De Veteraan pas na missie 10, en dood na de Dúvelsrak; de films als je erin speelde
+      onderwerpen: () => {
+        const i = MISSIE_RIJ.indexOf(missie), vet = MISSIE_RIJ.indexOf('veteraan');
+        const voorbij = missie === 'klaar' || i > vet;
+        return { veteraanLeeft: voorbij && !brugKlaar, veteraanDood: brugKlaar, nm4: nm.klaar, nm5: n5.klaar, einde: uitzendingKlaar };
+      },
       klaar: () => yugoNaarBuiten('Later die avond…', 2.5),
     });
   }

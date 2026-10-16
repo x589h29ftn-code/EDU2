@@ -9317,6 +9317,25 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Yugo: geen wapen aan tafel, en Johan en Erik praten (stap 205, 16 okt).** Gevraagd: "Bouw het restaurant ergens buiten de wereld
+en teleporteer de speler erheen. Geen wapen kunnen trekken totdat je weer weg bent. Johan en Erik praten over werk (De Veteraan,
+missies), de nieuwe No Mercy-film die uitkomt, het weer, over Erik Jan, hoe het met hem is (het broertje van Johan), over weer eens
+een stadsuitje met Mark en Erik Jan erbij, net als de laatste keer naar Texel."
+
+- *Buiten de wereld* stond de zaal al (stap 204: gebied + (800, 1250), het zwart zet je aan tafel); niets aan veranderd.
+- *Geen wapen*: binnen ging het wapen al uit beeld en schoot je niet (`player.binnen`), maar dat zet de hoofdlus elk beeld, en
+  wisselen (startWissel), herladen en H liepen gewoon door. Nu zet js/yugo.js `player.aanTafel` tot `eind()`, en js/player.js
+  weigert dan trekken en wegbergen (H, met een melding in js/main.js), wisselen, herladen, richten en schieten.
+- *De gesprekken* (`YUGO_TEKST.gesprekken`, 26 stuks): het werk, De Veteraan, de nieuwe No Mercy, Erik Jan (zijn broertje: de
+  catering, de camera, figureren), een dagje weg met Mark en Erik Jan (Texel met de lekke band en de kibbeling, Groningen,
+  Amsterdam), het weer (de buienradar, wind, schaatsen, vissen). Elk gesprek heeft een `als`: js/verhaal.js geeft in
+  `onderwerpen` mee of je De Veteraan al kent (na missie 10), of hij dood is (`brugKlaar`), of je in No Mercy 4 of 5 speelde en of
+  het einde geweest is; zo komt hij niet ter sprake voor je hem ontmoet hebt. Twee op de drie keer een gesprek, anders een losse
+  opmerking van Johan over het eten, nooit een van de laatste acht; de stilte ertussen (7–14 s) telt alleen als niemand praat.
+
+*Proef*: `npm run yugotest` (erbij: het wapen aan tafel op alle manieren geweigerd en daarna weer vrij, de gesprekken met allebei
+aan het woord en alle onderwerpen, bij missie 6 nooit De Veteraan of de films, en in een ronde met de echte tijden zes gesprekken).
+
 **Sushi eten bij Yugo met Johan (stap 204, 16 okt).** Gevraagd, met vier foto's (de tablet, een plank sushi, een gedekte tafel en
 de zaal met het verlichte logo): de eerste keer dat je Johan opzoekt stelt hij voor om bij Yugo te eten, het Japanse sushirestaurant
 in Sneek; bij ja zwart en aan tafel; bestellen op een tablet (vier soorten sushi, de Pornstar Martini), de ober brengt het, eten met

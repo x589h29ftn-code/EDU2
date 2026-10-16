@@ -164,6 +164,8 @@ export class Player {
     this.wapenNr = 0;
     // het wapen zit op slot tot het verhaal het vrijgeeft (zie wisselWapen)
     this.wapenSlot = false;
+    // (stap 204) aan tafel bij Yugo: geen wapen trekken, wisselen, herladen, richten of schieten tot je weer weg bent
+    this.aanTafel = false;
     /*
      Wel richten, niet schieten. Missie 8 laat je eerst door de kijker
      meekijken met een deal aan de overkant; pas als het misgaat mag je vuren
@@ -342,6 +344,7 @@ export class Player {
    soort terug die eraan komt, zodat js/main.js het icoon meteen kan tonen.
   */
   startWissel(soort) {
+    if (this.aanTafel) return null;
     if (!this.modellen[soort] || !this.wapens.includes(soort)) return null;
     // (stap 197) de GPS in je hand: die gaat weg en het gekozen wapen komt meteen omhoog (er valt niets op te bergen)
     if (this.gpsInHand) {
@@ -420,7 +423,7 @@ export class Player {
    kan uitleggen waarom er niets gebeurt.
   */
   wisselWapen() {
-    if (this.wapenSlot) return false;
+    if (this.wapenSlot || this.aanTafel) return false;
     this.wapenUit = !this.wapenUit;
     // (stap 197) met de GPS in je hand: H pakt het wapen, de GPS gaat in je zak
     if (!this.wapenUit && this.gpsInHand) this.gpsWeg();
@@ -445,6 +448,7 @@ export class Player {
    het herladen of midden in een wissel valt er niets te richten.
   */
   richten(aan = !this.richtAan) {
+    if (this.aanTafel) { this.richtAan = false; return false; }
     // (stap 197) met de GPS in je hand houdt de rechtermuisknop hem dichterbij om te lezen
     this.gpsDichtbij = !!aan && this.gpsInHand;
     if (this.gpsInHand) { this.richtAan = false; return false; }
@@ -634,6 +638,7 @@ export class Player {
   }
 
   reload() {
+    if (this.aanTafel) return;
     // (stap 197) R met de GPS in je hand: eerst de GPS weg, het wapen omhoog; daarna kun je herladen
     if (this.gpsInHand) { this.gpsWeg(); return; }
     if (this.reloading > 0 || this.wisselT > 0 || this.wapenInfo.mes) return;
@@ -655,7 +660,7 @@ export class Player {
    js/main.js), dus dat verschil is precies je kijkrichting in de auto.
   */
   magSchieten() {
-    if (this.vuurSlot) return false;
+    if (this.vuurSlot || this.aanTafel) return false;
     // met de afstandsbediening in je handen (de drone, stap 124) schiet je niet
     if (this.inDrone) return false;
     // in de Tiger (stap 177) schiet het kanon, niet je wapen
@@ -823,7 +828,7 @@ export class Player {
       if (aan !== this._scopeAan) {
         this._scopeAan = aan;
         this.scopeEl.hidden = !aan;
-        if (this.gun) this.gun.visible = !aan && !this.wapenUit && !this.binnen && !this.gpsInHand;
+        if (this.gun) this.gun.visible = !aan && !this.wapenUit && !this.binnen && !this.aanTafel && !this.gpsInHand;
       }
       if (aan && this.scopeZoomEl) this.scopeZoomEl.textContent = `${this.zoom.toFixed(1)}×`;
     }
@@ -1008,6 +1013,6 @@ export class Player {
     });
     // Kijk je door de kijker, dan zit het wapen zelf niet meer in beeld: je oog
     // zit achter het oculair. `_scopeAan` wordt in zetBeeldhoek() gezet.
-    this.gun.visible = !this.wapenUit && !this.binnen && !this._scopeAan && !this.gpsInHand;
+    this.gun.visible = !this.wapenUit && !this.binnen && !this.aanTafel && !this._scopeAan && !this.gpsInHand;
   }
 }

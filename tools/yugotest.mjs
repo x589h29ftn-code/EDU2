@@ -172,6 +172,39 @@ ok(tafel.uur === 19 && tafel.klokNu === false, 'het is 19:00 en de klok staat st
 ok(!!tafel.opslaan && tafel.radio, 'niet opslaan aan tafel, en geen autoradio', tafel.opslaan);
 ok(tafel.tabletFase === 'bestellen' && tafel.ronde === 1, 'ronde 1 begint met de tablet');
 
+kop('3b. geen wapen aan tafel, en waar ze over praten');
+const wapen = await page.evaluate(() => {
+  const g = window.__game, P = g.player, y = g.yugo, v = g.verhaal;
+  const uit = { aanTafel: P.aanTafel, mag: P.magSchieten() };
+  const was = { uit: P.wapenUit, nr: P.wapenNr, ammo: P.ammo };
+  window.__toets('KeyH');                                   // trekken of wegbergen
+  uit.h = P.wapenUit === was.uit;
+  uit.wissel = P.startWissel(P.wapens.find(w => w !== P.wapenSoort) || 'mes');
+  P.ammo = 1; P.reload(); uit.herlaad = P.reloading <= 0; P.ammo = was.ammo;
+  uit.richt = P.richten(true);
+  const kogels = P.ammo; P.shoot && P.shoot(); uit.schot = P.ammo === kogels;
+  P.wapenStap && P.wapenStap(0.05);
+  uit.zichtbaar = !!(P.gun && P.gun.visible);
+  // de gesprekken: wie, waarover, en wat er bij deze stand (missie 6, De Veteraan nog niet gezien) niet mag
+  const alle = y.gesprekken;
+  const tekst = alle.map(gs => gs.regels.map(r => r[1]).join(' ')).join(' ');
+  uit.aantal = alle.filter(gs => !gs.eten).length;
+  uit.beide = alle.filter(gs => !gs.eten && gs.regels.some(r => r[0] === 'e') && gs.regels.some(r => r[0] === 'j')).length;
+  uit.onderwerpen = { veteraan: /Veteraan/.test(tekst), nomercy: /No Mercy/.test(tekst), erikJan: /Erik Jan/.test(tekst), texel: /Texel/.test(tekst),
+    mark: /Mark/.test(tekst), weer: /buienradar|waai|vriezen|zon/.test(tekst), stad: /Groningen|Amsterdam/.test(tekst) };
+  const gekozen = new Set();
+  for (let k = 0; k < 400; k++) { const gs = y.kiesGesprek(); if (gs) gekozen.add(gs.als || (gs.eten ? 'eten' : 'altijd')); }
+  uit.gekozen = [...gekozen];
+  return uit;
+});
+ok(wapen.aanTafel && !wapen.mag && wapen.h && wapen.wissel === null && wapen.herlaad && !wapen.richt && wapen.schot && !wapen.zichtbaar,
+  'aan tafel: geen wapen trekken, wisselen, herladen, richten of schieten, en niets in beeld', JSON.stringify(wapen).slice(0, 160));
+ok(wapen.aantal >= 20 && wapen.beide >= 20, 'gesprekken tussen Johan en Erik, allebei aan het woord', `${wapen.aantal} gesprekken, ${wapen.beide} met allebei`);
+ok(Object.values(wapen.onderwerpen).every(Boolean), 'over het werk en De Veteraan, de nieuwe No Mercy, Erik Jan, een dagje weg (Texel, een stad) met Mark, en het weer', JSON.stringify(wapen.onderwerpen));
+// (de proefstand heeft No Mercy 4 gedaan, `__stand`: dat gesprek mag dus wel; No Mercy 5 kan pas na missie 12)
+ok(!wapen.gekozen.some(a => /veteraan|einde|nm5/.test(a)) && wapen.gekozen.includes('nm4') && wapen.gekozen.includes('altijd') && wapen.gekozen.includes('eten'),
+  'bij missie 6 nog niets over De Veteraan, No Mercy 5 of het einde; wel over No Mercy 4, die je gespeeld hebt', wapen.gekozen.join(', '));
+
 kop('4. de tablet');
 const tablet = await page.evaluate(() => {
   const g = window.__game, y = g.yugo;
@@ -298,9 +331,10 @@ const duur = await page.evaluate(() => {
   const r = y.stand.ronde;
   loop(() => y.stand.ronde > r || y.stand.fase === 'klaar');
   rondeT = t - start;
-  return { ronde: r, rondeT: +rondeT.toFixed(0), vijf: +(rondeT * 5 / 60).toFixed(1) };
+  return { ronde: r, rondeT: +rondeT.toFixed(0), vijf: +(rondeT * 5 / 60).toFixed(1), gesprekken: y.stand.gesprekken, erik: window.__regels.filter(x => /^Erik:/.test(x)).length };
 });
 ok(duur.rondeT > 120 && duur.vijf >= 12 && duur.vijf <= 18, 'een ronde met de echte tijden; vijf rondes duren ongeveer een kwartier', `ronde ${duur.ronde}: ${duur.rondeT} s, vijf rondes ${duur.vijf} min`);
+ok(duur.gesprekken >= 6 && duur.erik >= 4, 'onderweg praten ze: Erik en Johan om de beurt', `${duur.gesprekken} gesprekken tot nu, ${duur.erik} regels van Erik`);
 
 kop('8. vijf rondes en het einde');
 const einde = await page.evaluate(() => {
@@ -323,12 +357,12 @@ const einde = await page.evaluate(() => {
   window.__stap(160);            // het zwart ebt weg (6,4 s)
   return { fase: v.yugo.fase, keer: v.yugo.keer, rondes: [...rondes], fases: [...fases], actief: y.stand.actief, borden: y.stand.borden.length, stokjes: y.stokjes.visible,
     johanBinnen: y.johan.groep.visible, zwart, afstJohan: +Math.hypot(P.pos.x - q.x, P.pos.z - q.z).toFixed(1), johanZichtbaar: q.zichtbaar, zit: P.zit,
-    klok: g.sfeer.loopt, klokVoor: window.__klokVoor, klokWas: v.yugo.klokWas, tijdVast: v.tijdVast(), missieBezig: v.missieBezig, uur: +g.sfeer.uur.toFixed(2), binnen: y.binnen(P.pos.x, P.pos.z), regels: window.__regels.filter(r => /rekening|trakteer/.test(r)) };
+    klok: g.sfeer.loopt, klokVoor: window.__klokVoor, aanTafel: P.aanTafel, klokWas: v.yugo.klokWas, tijdVast: v.tijdVast(), missieBezig: v.missieBezig, uur: +g.sfeer.uur.toFixed(2), binnen: y.binnen(P.pos.x, P.pos.z), regels: window.__regels.filter(r => /rekening|trakteer/.test(r)) };
 });
 ok(Math.max(...einde.rondes) === 5 && einde.fases.includes('klaar'), 'door tot ronde vijf (1 en 2 hierboven), en dan klaar', einde.rondes.join(','));
 ok(einde.regels.length >= 1, 'Johan vraagt de rekening en trakteert', einde.regels.join(' | '));
 ok(einde.fase === 'uit' && !einde.actief && einde.borden === 0 && !einde.stokjes && !einde.johanBinnen, 'na het zwart is de zaal opgeruimd', einde.zwart);
-ok(!einde.binnen && einde.afstJohan < 3.5 && einde.johanZichtbaar && !einde.zit, 'je staat weer bij Johan op de oprit', `${einde.afstJohan} m`);
+ok(!einde.binnen && einde.afstJohan < 3.5 && einde.johanZichtbaar && !einde.zit && !einde.aanTafel, 'je staat weer bij Johan op de oprit, en je wapen mag weer', `${einde.afstJohan} m`);
 // (de klok zelf: missie 6 wacht hier al, en een lopende missie houdt hem na 18:00 stil; Yugo moet hem alleen loslaten)
 ok(einde.klokWas === null && !/verhaal houdt de tijd vast/.test(einde.tijdVast || '') && (einde.missieBezig || einde.klok === einde.klokVoor) && einde.uur > 19,
   'Yugo houdt de klok niet meer vast, en het is later op de avond', `${einde.uur} uur, klok ${einde.klok} (voor ${einde.klokVoor}), ${einde.tijdVast || 'tijd vrij'}`);

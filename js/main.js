@@ -2106,7 +2106,10 @@ window.addEventListener('keydown', e => {
 */
 window.addEventListener('keydown', e => {
   if (e.code !== 'KeyH' || e.ctrlKey || e.metaKey) return;
-  if (!player.active || !player.wapenSlot) return;
+  if (!player.active) return;
+  // (stap 204) aan tafel bij Yugo blijft het wapen weg tot je weer buiten staat
+  if (player.aanTafel) { hud.show('Aan tafel bij Yugo blijft je wapen weg', 2.5); return; }
+  if (!player.wapenSlot) return;
   hud.show('Erik houdt zijn wapen weg — eerst met Mark mee', 3);
 });
 

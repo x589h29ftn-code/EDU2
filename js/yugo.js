@@ -59,7 +59,8 @@ export const YUGO = {
   eetMax: 150,                  // daarna eet Johan de rest op
   pauze: [24, 32],              // napraten tussen twee rondes
   johanHap: [2.8, 4.4],         // Johan pakt elke zoveel tellen een stuk
-  praat: [16, 26],              // Johan zegt elke zoveel tellen iets
+  praat: [7, 14],               // zoveel tellen stilte tussen twee gesprekken
+  regelTijd: 4.6,               // zo lang staat een regel van een gesprek in beeld
   leven: 2,                     // per stuk sushi
   slok: 3,                      // per slok cocktail
   slokken: 4,                   // een glas is na zoveel slokken leeg
@@ -103,6 +104,46 @@ export const YUGO_TEKST = {
     'Die muziek, hè. Je waant je in Tokio. Nou ja, in Sneek.',
     'Die crispy ebi, man. Daar zou ik een hele ronde van kunnen eten.',
     'Zie je die lampen? Gewoon emmers. Daar had ik zelf op moeten komen.',
+  ],
+  /*
+   Gesprekken aan tafel tussen Johan (j) en Erik (e), gevraagd: "Johan en Erik praten over werk (De Veteraan, missies),
+   nieuwe No Mercy film die uitkomt, het weer, over Erik Jan hoe het met hem is (dat is het broertje van Johan), over weer eens een
+   stad uitje doen met Mark en Erik Jan erbij, net als de laatste keer naar Texel." `als` zegt wanneer het past (js/verhaal.js geeft
+   de stand mee in `onderwerpen`): veteraanLeeft (na missie 10, vóór de Dúvelsrak), veteraanDood, nm4 en nm5 (de opnames gedaan),
+   einde (na de uitzending). Zonder `als` past het altijd.
+  */
+  gesprekken: [
+    // het werk
+    { als: 'veteraanLeeft', regels: [['j', 'Die Veteraan, Erik. Ik vertrouw die vent voor geen meter. Dat hondje is het enige aan hem dat eerlijk is.'], ['e', 'Zolang hij betaalt, praten we met hem.'], ['j', 'Tot hij een keer niet betaalt. Dan sta ik achter je.']] },
+    { als: 'veteraanLeeft', regels: [['e', 'Die mannen van De Veteraan hangen overal rond de Lemmerweg.'], ['j', 'Ik rij tegenwoordig om. Langs de Molenkrite, met de ramen dicht.'], ['e', 'Slim. Nog even volhouden.']] },
+    { als: 'veteraanDood', regels: [['j', 'Soms denk ik nog aan die avond op de Dúvelsrak.'], ['e', 'Ik ook. Maar hij had het zelf zo gewild.'], ['j', 'Zijn hondje heeft nu een goed huis. Dat heb ik nagevraagd.']] },
+    { als: 'veteraanDood', regels: [['e', 'Sinds De Veteraan weg is, is het stil op straat.'], ['j', 'Zijn mannen zijn allemaal hun eigen weg gegaan. Eentje werkt nu bij de Poiesz, achter de kassa.'], ['e', 'Dan weet ik waar ik mijn bier niet meer haal.']] },
+    { regels: [['j', 'Mark belde vanochtend alweer. Of ik iets wilde ophalen.'], ['e', 'En?'], ['j', 'Ik heb gezegd dat ik vanavond sushi eet. Werk kan wachten.']] },
+    { regels: [['e', 'Hoe is het met je hand? Van dat hek laatst.'], ['j', 'Prima. Een litteken maakt indruk, zegt Mark.'], ['e', 'Mark zegt veel.']] },
+    { regels: [['j', 'Weet je wat ik het mooiste vind aan dit werk? Dat niemand in Tinga het doorheeft.'], ['e', 'Behalve de buurvrouw van Mark.'], ['j', 'Die denkt dat we glazenwassers zijn. Laat haar maar.']] },
+    { als: 'einde', regels: [['j', 'Die uitzending op Radio Tinga. Heel Sneek heeft het gehoord.'], ['e', 'Bouwman ook.'], ['j', 'Vooral Bouwman. Proost daarop.']] },
+    { als: 'einde', regels: [['e', 'Nu het allemaal voorbij is: wat ga jij doen?'], ['j', 'Eerst vijf rondes sushi. Dan zien we wel.'], ['e', 'Goed plan.']] },
+    // No Mercy
+    { regels: [['j', 'Er komt een nieuwe No Mercy uit, wist je dat? Erik Jan heeft me de trailer laten zien.'], ['e', 'Weer zoveel ontploffingen?'], ['j', 'Meer. Hij heeft een nieuwe rookmachine gekocht. De buren hebben al geklaagd.']] },
+    { regels: [['e', 'Wanneer komt die nieuwe No Mercy eigenlijk in de bioscoop?'], ['j', 'Voor de kerst, zegt Erik Jan. In Sneek in de grote zaal.'], ['e', 'Dan reserveren we de achterste rij. Met popcorn.']] },
+    { als: 'nm4', regels: [['j', 'Erik Jan zegt dat de nieuwe No Mercy bijna af is. Met jou erin, bij de Flak in het bos.'], ['e', 'Kom ik echt in de film?'], ['j', 'Drie seconden. Maar wel drie mooie seconden.']] },
+    { als: 'nm5', regels: [['j', 'Die première van De Overtocht in IJlst was mooi, hè. Opgedragen aan De Veteraan.'], ['e', 'Daar had hij wel om gelachen.'], ['j', 'Erik Jan wil al aan deel zes beginnen. Hij zoekt nog een molen.']] },
+    // Erik Jan
+    { regels: [['e', 'Hoe is het eigenlijk met Erik Jan?'], ['j', 'Druk. Hij slaapt bijna op de set. Mijn moeder belt mij om te vragen of hij wel eet.'], ['e', 'En, eet hij?'], ['j', 'Broodjes kroket van de catering. Elke dag.']] },
+    { regels: [['j', 'Mijn broertje heeft een nieuwe camera gekocht. Duurder dan mijn auto.'], ['e', 'Jouw auto is ook niet veel waard.'], ['j', 'Daarom zeg ik het ook niet hardop.']] },
+    { regels: [['e', 'Is Erik Jan nou jonger dan jij?'], ['j', 'Jonger. Maar op de set doet hij alsof hij de baas is.'], ['e', 'Hij ís daar ook de baas.'], ['j', 'Zeg het hem maar niet.']] },
+    { regels: [['j', 'Erik Jan vroeg nog naar je. Of je weer eens wilt figureren.'], ['e', 'Als ik dan niet weer in een feldgrauw pak moet.'], ['j', 'Hij had het over een rol als Amerikaan. Met een helm.']] },
+    // een dagje weg
+    { regels: [['j', 'We moeten weer eens een dagje weg. Met Mark en Erik Jan, net als vorig jaar op Texel.'], ['e', 'Met die gehuurde fietsen?'], ['j', 'Mark had na tien minuten een lekke band. Wij een uur wachten bij de vuurtoren.']] },
+    { regels: [['e', 'Weet je nog die vis op Texel, bij de haven?'], ['j', 'Erik Jan at drie porties kibbeling. Daarna was hij zeeziek op de boot terug.'], ['e', 'Daar had hij een film van moeten maken.']] },
+    { regels: [['j', 'Wat dacht je van Groningen, dit keer? Een stadsdag. Martinitoren op, een terrasje, en Erik Jan filmt alles.'], ['e', 'Als Mark de route maar niet plant.'], ['j', 'Mark plant niks. Mark rijdt mee en zoekt de snackbar.']] },
+    { regels: [['e', 'Of Amsterdam, met z\'n vieren?'], ['j', 'Dan wil Mark weer een rondvaart. Dat noemt hij cultuur.'], ['e', 'En Erik Jan filmt de grachten voor een volgende film.']] },
+    { regels: [['j', 'Zullen we in het voorjaar weer naar Texel? Zelfde huisje, zelfde vuurtoren.'], ['e', 'Alleen als Mark zijn eigen fiets meeneemt.'], ['j', 'Ik zet het in de groepsapp. Erik Jan reageert toch pas over een week.']] },
+    // het weer
+    { regels: [['j', 'Zag je de buienradar vandaag? Elk uur iets anders.'], ['e', 'Gewoon Friesland.'], ['j', 'Vier seizoenen op één dag, en wij zitten droog binnen met sushi.']] },
+    { regels: [['e', 'Het waaide flink op de heenweg.'], ['j', 'Dan liggen de zeilboten op de Geeuw lekker scheef. Mooi om te zien vanaf de brug.'], ['e', 'Zolang ze niet omslaan.']] },
+    { regels: [['j', 'Als het deze winter gaat vriezen, gaan we schaatsen. Op de Geeuw, of verder.'], ['e', 'Jij op schaatsen?'], ['j', 'Ik heb ze nog van mijn opa. Noren, met houten zolen.']] },
+    { regels: [['e', 'Morgen schijnt de zon, zeggen ze.'], ['j', 'Dan gaan we vissen. Om zes uur aan de Geeuw, ik neem koffie mee.'], ['e', 'Om zes uur? Dan neem ik twee bekers.']] },
   ],
   op: ['Op? Mooi, dan kan de volgende ronde erin.', 'Schoon schip. Pak die tablet maar weer.'],
   resteOp: 'Laat maar liggen, ik eet het wel op. Zonde om weg te gooien.',
@@ -859,7 +900,7 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
   // ---------- het etentje ----------
   const st = {
     actief: false, ronde: 0, fase: '', t: 0, tabletT: 0, duwde: false,
-    keuze: {}, borden: [], glazen: [], praatT: 0, praatRecent: [], johanT: 0, gegeten: 0, slokken: 0,
+    keuze: {}, borden: [], glazen: [], praatT: 0, praatRecent: [], gesprekken: 0, johanT: 0, gegeten: 0, slokken: 0,
     stok: null, johanHap: null, besteldJohan: 0, besteldJij: 0, oberI: 0, oberMet: false, cb: null,
   };
   const r = Math.random;
@@ -872,12 +913,29 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     const z = kant === 'jij' ? T.z + 0.18 - rij * 0.11 : T.z - 0.18 + rij * 0.11;
     return { x, z };
   }
+  /*
+   Een gesprek kiezen: twee van de drie keer een gesprek tussen Johan en Erik (als het bij de stand past), anders een losse
+   opmerking van Johan over het eten; nooit een van de laatste acht.
+  */
+  const ALLE_GESPREKKEN = [...YUGO_TEKST.gesprekken, ...YUGO_TEKST.tafelpraat.map(t => ({ eten: true, regels: [['j', t]] }))];
+  function kiesGesprek() {
+    const vlag = (st.cb && st.cb.onderwerpen && st.cb.onderwerpen()) || {};
+    const past = (g) => !g.als || !!vlag[g.als];
+    const eten = r() < 0.34;
+    let kan = ALLE_GESPREKKEN.map((g, i) => i).filter(i => past(ALLE_GESPREKKEN[i]) && !!ALLE_GESPREKKEN[i].eten === eten && !st.praatRecent.includes(i));
+    if (!kan.length) kan = ALLE_GESPREKKEN.map((g, i) => i).filter(i => past(ALLE_GESPREKKEN[i]) && !st.praatRecent.includes(i));
+    if (!kan.length) return null;
+    const i = kan[Math.floor(r() * kan.length)];
+    st.praatRecent.push(i); if (st.praatRecent.length > 8) st.praatRecent.shift();
+    st.laatsteGesprek = i;
+    return ALLE_GESPREKKEN[i];
+  }
   function zeg(regels, opties = {}) { if (st.cb && st.cb.zeg) st.cb.zeg(regels, opties); }
   function johanZegt(tekst, auto = 4.5) { if (tekst) zeg([{ wie: 'Johan', tekst }], { auto }); }
 
   function begin(cb = {}) {
     st.cb = cb;
-    st.actief = true; st.ronde = 0; st.gegeten = 0; st.slokken = 0; st.praatT = tussen(Y.praat);
+    st.actief = true; st.ronde = 0; st.gegeten = 0; st.slokken = 0; st.gesprekken = 0; st.praatT = tussen(Y.praat);
     ruimTafel(true);
     johan.groep.visible = true; ober.groep.visible = false;
     for (const g of gasten) g.groep.visible = true;
@@ -889,6 +947,9 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     player.eye = Y.oog;
     player.yaw = 0; player.pitch = -0.22;
     player.zit = true;
+    // geen wapen tot je weer weg bent: niet trekken, wisselen, herladen, richten of schieten (js/player.js)
+    player.aanTafel = true; player.richtAan = false; player.vuurAan = false;
+    if (player.gun) player.gun.visible = false;
     player.applyCamera();
     stokjes.visible = true;
     st.stok = { fase: 'rust', t: 0, stuk: null, van: new THREE.Vector3() };
@@ -1143,14 +1204,15 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     }
     // Johan praat tussendoor, nooit twee keer hetzelfde vlak na elkaar
     if (st.fase !== 'klaar' && st.fase !== 'bestellen') {
-      st.praatT -= dt;
+      // (de tijd tussen twee gesprekken telt alleen als er niemand praat)
+      if (balkVrij) st.praatT -= dt;
       if (st.praatT <= 0 && balkVrij) {
         st.praatT = tussen(Y.praat);
-        const lijst = YUGO_TEKST.tafelpraat;
-        let i = Math.floor(r() * lijst.length);
-        for (let k = 0; k < lijst.length && st.praatRecent.includes(i); k++) i = (i + 1) % lijst.length;
-        st.praatRecent.push(i); if (st.praatRecent.length > 5) st.praatRecent.shift();
-        johanZegt(lijst[i]);
+        const g = kiesGesprek();
+        if (g) {
+          st.gesprekken++;
+          zeg(g.regels.map(([w, t]) => ({ wie: w === 'e' ? 'Erik' : 'Johan', tekst: t })), { auto: Y.regelTijd });
+        }
       }
     }
     werkTabletBij();
@@ -1163,6 +1225,7 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     johan.groep.visible = false; ober.groep.visible = false;
     for (const g of gasten) g.groep.visible = false;
     if (player.zit) { player.zit = false; player.eye = player.eyeStaand; }
+    player.aanTafel = false;
     if (geluid && geluid.yugoMuziek) geluid.yugoMuziek(0, false);
     werkTabletBij();
   }
@@ -1177,13 +1240,16 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     begin, eind, kies, eet, drink, werkBij: update,
     get actief() { return st.actief; },
     get tabletOpen() { return st.actief && st.fase === 'bestellen'; },
+    // voor de proef: alle gesprekken, en welke het laatst kwam
+    get gesprekken() { return ALLE_GESPREKKEN; },
+    kiesGesprek,
     get keuzes() { return [...SUSHI.map(s => s.naam), DRANK.naam, 'bestellen']; },
     // voor de proef en de foto's
     get stand() {
       return { actief: st.actief, ronde: st.ronde, fase: st.fase, keuze: { ...st.keuze }, gegeten: st.gegeten, slokken: st.slokken,
         borden: st.borden.map(b => ({ kant: b.userData.kant, soort: b.userData.soort, over: b.userData.stukken.filter(s => s.visible).length })),
         glazen: st.glazen.map(g => ({ kant: g.userData.kant, slokken: g.userData.slokken })),
-        jijBesteld: st.besteldJij, johanBesteld: st.besteldJohan, stok: st.stok ? st.stok.fase : null, over: { jij: over('jij'), johan: over('johan') } };
+        jijBesteld: st.besteldJij, johanBesteld: st.besteldJohan, gesprekken: st.gesprekken, laatsteGesprek: st.laatsteGesprek, stok: st.stok ? st.stok.fase : null, over: { jij: over('jij'), johan: over('johan') } };
     },
     get plekken() { return { nul: NUL, tafel: wereld(T.x, T.z), stoel: wereld(jijStoel.x, jijStoel.z), johan: johanPlek, keuken: KEUKEN_W, pad: OBER_PAD }; },
     get maten() { return { ...YUGO, stoelen: stoelen.length, emmers: emmers.length, gasten: gasten.length }; },
