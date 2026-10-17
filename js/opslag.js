@@ -46,6 +46,8 @@ export function opslagen() {
 }
 export function kiesPlek(n) { if (Number.isFinite(n) && n >= 1) { zetActief(n); nieuwSpel = false; } }
 export function startNieuwSpel() { nieuwSpel = true; }
+// (stap 214) 'Opslaan als nieuw spel' dat niet doorging: de volgende F5 schrijft weer naar het spel dat je speelt
+export function stopNieuwSpel() { nieuwSpel = false; }
 export function actievePlek() { return actief; }
 export function wisPlek(n) { try { localStorage.removeItem(plekSleutel(n)); return true; } catch { return false; } }
 // de plek voor de volgende opslag

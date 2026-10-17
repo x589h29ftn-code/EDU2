@@ -33,10 +33,11 @@
 import * as THREE from 'three';
 import { baanAssen, BAAN } from './tennis.js';
 import { Persoon } from './persoon.js';
+import { grondHoogte, resolveCollisions } from './world.js';
 
 export const TENNIS = {
   prijs: 50,
-  plekAfstand: 2.2,      // zo dicht bij de plek aan het hek werkt E
+  plekAfstand: 2.6,      // zo dicht bij de plek aan het hek werkt E (stap 214: de gele ring met het bordje)
   achter: 12.6,          // waar je staat: iets achter de achterlijn (11,885)
   venster: 0.30,         // s: zoveel te vroeg of te laat raak je hem nog
   mooi: 0.10,            // s: binnen dit stuk is het een mooie slag (diep en hard)
@@ -81,6 +82,21 @@ function balDoek() {
     if (x === 0) g.moveTo(x, y); else g.lineTo(x, y);
   }
   g.stroke();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// (stap 214) het bordje bij de ingang: TENNIS, een racket met een bal, en de toets
+function bordDoek() {
+  const c = document.createElement('canvas'); c.width = 320; c.height = 200;
+  const g = c.getContext('2d');
+  g.fillStyle = '#1f5f3a'; g.fillRect(0, 0, 320, 200);
+  g.strokeStyle = '#f4f4ee'; g.lineWidth = 6; g.strokeRect(8, 8, 304, 184);
+  g.fillStyle = '#f4f4ee'; g.font = 'bold 54px sans-serif'; g.textAlign = 'center'; g.fillText('TENNIS', 160, 74);
+  g.fillStyle = '#d8e83a'; g.beginPath(); g.arc(60, 128, 16, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ffd400'; g.font = 'bold 34px sans-serif'; g.fillText('E · potje', 178, 130);
+  g.fillStyle = '#f4f4ee'; g.font = '26px sans-serif'; g.fillText(`winst € ${TENNIS.prijs}`, 178, 172);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
@@ -134,9 +150,49 @@ export function initTennisspel({ scene, KAART, player, hud, geluid, verdien = nu
       // k is de kant van de speler; m zet de assen van de speler om naar die van de baan
       const m = -k;
       const kijk = { x: -k * baan.as[0], z: -k * baan.as[1] };     // van de plek naar de baan
-      plekken.push({ x: p.x, z: p.z, yaw: Math.atan2(-kijk.x, -kijk.z), baan, m });
+      // (stap 214) de plek lag soms tegen de botsdoos van het hek: van de baan af schuiven tot je er vrij staat
+      const kl = Math.hypot(kijk.x, kijk.z) || 1;
+      const vrij = (x, z) => { const [rx, rz] = resolveCollisions(x, z, 0.45); return Math.hypot(rx - x, rz - z) < 0.01 && !inBlok(x, z, 0.3); };
+      let q = null;
+      for (let d = 0; d <= 4 && !q; d += 0.25) {
+        const x = p.x - kijk.x / kl * d, z = p.z - kijk.z / kl * d;
+        if (vrij(x, z)) q = { x, z };
+      }
+      // (achter één baan staat iets: dan in een kring om de plek, buiten de banen)
+      for (let r = 0.5; r <= 6 && !q; r += 0.5) for (let i = 0; i < 16 && !q; i++) {
+        const a = i / 16 * Math.PI * 2, x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r;
+        if (vrij(x, z)) q = { x, z };
+      }
+      if (!q) q = p;
+      plekken.push({ x: q.x, z: q.z, yaw: Math.atan2(-kijk.x, -kijk.z), baan, m, kijk });
       break;
     }
+  }
+
+  /*
+   (stap 214, gevraagd: "geef een betere ingang aan voor tennis, het is nu een willekeurig stuk hekwerk waar je moet staan") Elke
+   plek krijgt een gele ring op de grond en een bordje "TENNIS" op een paaltje ernaast, met de toets en de winst. De ring is weg
+   zolang er gespeeld wordt.
+  */
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd400, transparent: true, opacity: 0.85, depthWrite: false });
+  const bordMat = new THREE.MeshStandardMaterial({ map: bordDoek(), roughness: 0.7 });
+  const paalMat = new THREE.MeshStandardMaterial({ color: 0x6b6f72, roughness: 0.6, metalness: 0.3 });
+  const ringGeo = new THREE.RingGeometry(0.6, 0.9, 32);
+  const ingangen = [];
+  for (const p of plekken) {
+    const y = grondHoogte(p.x, p.z);
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(p.x, y + 0.14, p.z); ring.renderOrder = 1;   // boven het gras in 3D
+    // het bordje 1,3 m opzij, met de voorkant van de baan af (naar wie eraan komt)
+    const L = Math.hypot(p.kijk.x, p.kijk.z) || 1, kx = p.kijk.x / L, kz = p.kijk.z / L;
+    const bord = new THREE.Group();
+    const paal = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.2, 0.07), paalMat); paal.position.y = 1.1;
+    const plaat = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.625), bordMat); plaat.position.set(0, 1.95, 0.04);
+    bord.add(paal, plaat);
+    bord.position.set(p.x - kz * 1.3, y, p.z + kx * 1.3);
+    bord.rotation.y = Math.atan2(-kx, -kz);
+    scene.add(ring, bord);
+    ingangen.push({ ring, bord });
   }
 
   // ---------- de dingen in de scene, verborgen tot er gespeeld wordt ----------
@@ -491,6 +547,7 @@ export function initTennisspel({ scene, KAART, player, hud, geluid, verdien = nu
 
   // ---------- elk beeld ----------
   function update(dt, invoer = null) {
+    for (const i of ingangen) i.ring.visible = !bezig;
     if (!bezig) {
       // een hint als je bij een plek aan het hek staat
       hintT -= dt;
@@ -569,7 +626,7 @@ export function initTennisspel({ scene, KAART, player, hud, geluid, verdien = nu
   }
 
   return {
-    update, toets, slag, afbreken, plekken,
+    update, toets, slag, afbreken, plekken, ingangen,
     get bezig() { return bezig; },
     get stand() {
       return { jij: punten[0], hij: punten[1], tekst: tekstStand(), fase, rally, laatste,

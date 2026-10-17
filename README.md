@@ -59,7 +59,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto of een boot |
 | 1 2 3 | een keuze maken als het spel erom vraagt (een huis, de inleg, wat je doet); op een aanraakscherm zijn het knoppen |
 | 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, EHBO-dozen, wapens) |
-| F5 / F9 | spel opslaan / opgeslagen spel laden (ook: **Opslaan** in het menu onder Esc) |
+| F5 / F9 | spel opslaan / opgeslagen spel laden (ook: **Opslaan** in het menu onder Esc; met **Opslaan als nieuw spel** bewaar je een tweede spel naast het eerste, tot tien, en kies je bij Spel laden welk) |
 | F11 | volledig scherm aan en uit (in de app zonder menubalk). Onder **Instellingen → Spelen in volledig scherm** kies je het voorgoed: dan gaat het spel bij Start en Doorgaan vanzelf schermvullend |
 | **X** | een klusje afbreken |
 | levensbalk | linksonder; leeg = neergegaan, en dan kies je: de missie opnieuw, het laatste checkpoint, of je eigen opslag. Het streepje in het midden is de helft: tot daar komt je leven vanzelf terug (zie [Levens zoals in GTA](#levens-zoals-in-gta)) |
@@ -908,7 +908,7 @@ Buiten de missies is er meer te doen.
 - **Pizza bezorgen.** Bij Pizzeria Sneek (bij de Jumbo in Tinga) en Cappadocia (bij de Jumbo aan de Lemmerweg) geeft
   E een bezorgrit: een adres verderop, een paarse route en een tijd. Neem de scooter voor de deur of je eigen auto, stop
   bij de deur en druk E: € 40 plus een fooi tot € 30. Te laat is de pizza koud en krijg je niets.
-- **Tennis.** Aan het hek van een baan op het tennispark start E een game. Sla met E of de muis op het moment dat de bal
+- **Tennis.** Aan het hek van een baan op het tennispark ligt een gele ring met een bordje "TENNIS" ernaast: ga in de ring staan en druk E voor een game. Sla met E of de muis op het moment dat de bal
   bij je racket is; de meter onderin helpt. Win de game voor € 50.
 - **Martens Vishandel** staat van 9 tot 18 uur op het parkeerterrein van de Jumbo aan de Molenkrite: een portie
   kibbeling kost € 20 en geeft 25 leven.

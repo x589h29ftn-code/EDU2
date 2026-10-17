@@ -9317,6 +9317,37 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Geen motorgeluid na No Mercy, een ingang voor de tennis, meer opgeslagen spellen (stap 214, 17 okt).** Gemeld: "Als ik doorga van
+de auto naar de missie No Mercy blijft het autogeluid hangen", "Geef een betere ingang aan voor tennis, het is nu een willekeurig stuk
+hekwerk waar je moet staan" en "Zorg dat je ook meerdere saved games kunt maken".
+
+- *De motor:* `startNoMercyLos` (shift+punt) zette `player.inCar = null` zonder `geluid.motorUit()`. Zo staan er tientallen plekken
+  in js/verhaal.js, en ook de snelkoppeling voor Yugo van stap 211. In plaats van ze een voor een na te lopen kijkt de hoofdlus nu
+  elk beeld: wie niet in een auto of de Tiger zit en toch een lopende motor heeft (`geluid.motorLoopt`), krijgt `motorUit` en
+  `gier(0)`.
+- *Tennis:* de plek aan het hek per baan (`plekken` in js/tennisspel.js) was onzichtbaar; je moest er toevallig op 2,2 m van staan.
+  Nu ligt er een gele ring op de grond, en staat er een bordje op een paaltje ernaast ("TENNIS", "E · potje", "winst € 50", op
+  canvas, `bordDoek`, 2,2 m hoog) met de voorkant naar wie eraan komt. E werkt binnen 2,6 m. De ring is weg zolang je speelt.
+  De materialen staan er vanaf het opstarten, dus er komt geen programma bij.
+  - Gemeten: de plek lag bij alle tien banen tegen of in de botsdoos van het hek (1,3 m achter de achterlijn, het hek op 1,5 m).
+    Nu schuift hij van de baan af tot je er vrij staat. Bij één baan staat er ook verder naar buiten iets; daar zoekt hij in een
+    kring, buiten de banen.
+  - De ring lag eerst op 4 cm, in het gras in 3D, en was op de foto niet te zien; nu ligt hij op 14 cm en is hij 30 cm breed.
+  - Van elke plek loop je minstens 50 m vrij weg (gevuld over een raster van 1 m), dus geen plek ligt ingesloten. Een looproute
+    naar de dichtstbijzijnde wegas liep in de proef vast; dat zei iets over die proef, niet over de plekken.
+- *Opslaan:* er waren al tien plekken (stap 127), maar een nieuwe plek kreeg je alleen met Start spel. In het pauzemenu staat nu
+  "Opslaan als nieuw spel" (`opOpslaanNieuw` in js/main.js): `startNieuwSpel` en dan opslaan. Je speelt daarna in die nieuwe plek
+  verder, en de oude blijft staan. Lukt het niet (een gesprek, een filmbeeld), dan zet `stopNieuwSpel` het terug, zodat de
+  volgende F5 niet stiekem een nieuwe plek pakt. Bij tien plekken maakt de oudste plaats, en de knop zegt dat. Spel laden toont de
+  lijst.
+- *Cache 2 "bij 15 en 954 begint hij al met een plek":* in de code van stap 213 kan dat niet. Het doel komt pas na negen cijfers
+  (`abc`), en `cachenalooptest` tikt het met de echte toetsen. De Windows-app van stap 211 verwachtte nog zes cijfers en rekende
+  vanaf "151954…" een punt uit. Een nieuwe build lost het op.
+
+*Proef*: `npm run wensen8test` (de motor uit binnen een paar beelden nadat het verhaal je uit de auto haalt, ook bij No Mercy 4
+vanuit de auto; per tennisplek de ring en het bordje gemeten, vrij van het hek, E begint, de ring weg en terug, foto
+`tennis_ingang.png`; opslaan, als nieuw spel, daarna naar het nieuwe, niet tijdens een gesprek, Spel laden met twee spellen).
+
 **Cache 2: de antwoorden intikken (stap 213, 17 okt).** Gemeld: "Maak dit wat duidelijker: ik vul 15 in, 1944 en probeer 879
 maar wil niet." Het raadsel gaf de antwoorden A, B en C en twee sommen (N … (B − 958), E … (C + A + 19)); je moest zelf rekenen en de
 uitkomst als zes cijfers intikken. De speler tikte de antwoorden in, en dat is ook wat je verwacht.

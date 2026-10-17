@@ -119,6 +119,7 @@
     "yugosneltest": "node tools/yugosneltest.mjs 8123",
     "yugorondetest": "node tools/yugorondetest.mjs 8123",
     "nachtregentest": "node tools/nachtregentest.mjs 8123",
+    "wensen8test": "node tools/wensen8test.mjs 8123",
     "yugotest": "node tools/yugotest.mjs 8123",
     "yugoshots": "node tools/yugoshots.mjs 8123",
     "betatest": "node tools/betatest.mjs",

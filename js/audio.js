@@ -1221,6 +1221,8 @@ export const geluid = {
     setTimeout(() => { try { m.o1.stop(); m.o2.stop(); } catch {} }, 500);
     bronnen.motor = null;
   },
+  // (stap 214) loopt de motor nog? (js/main.js zet hem uit als je niet meer in een auto zit)
+  motorLoopt() { return !!bronnen.motor; },
   // (stap 171) wat de motor nu laat horen: de versnelling en de toon (voor proeven)
   motorStand() { const m = bronnen.motor; return m ? { bak: m.bak, toon: m.toon || null } : null; },
 

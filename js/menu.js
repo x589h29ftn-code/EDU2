@@ -249,9 +249,10 @@ function knop(tekst, id, opKlik, hoofd = false) {
  gereedschappen in tools/ op: die zetten hem op display:none om zonder menu een
  foto te maken.
 */
-export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opslaan = null, opslag = null, staat = 'leeg' }) {
+export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opslaan = null, opOpslaanNieuw: opslaanNieuw = null, opslag = null, staat = 'leeg' }) {
   opAfsluiten = afsluiten;
   opOpslaan = opslaan;
+  opOpslaanNieuw = opslaanNieuw;
   const wortel = document.getElementById('overlay');
   wortel.innerHTML = '';
   wortel.className = 'menuscherm';
@@ -289,9 +290,18 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opsla
     b.textContent = r.gelukt ? 'Opgeslagen ✓' : `Nu niet: ${r.reden || 'opslaan lukte niet'}`;
     setTimeout(() => { b.textContent = 'Opslaan'; }, 2500);
   };
+  // (stap 214) een tweede opgeslagen spel naast het eerste
+  const opslaanNieuwKlik = () => {
+    const r = opOpslaanNieuw ? opOpslaanNieuw() : { gelukt: false, reden: 'niet beschikbaar' };
+    const b = el.knoppen.opslaanNieuw;
+    b.textContent = r.gelukt ? (r.vol ? 'Opgeslagen ✓ (de oudste maakte plaats)' : 'Opgeslagen als nieuw spel ✓') : `Nu niet: ${r.reden || 'opslaan lukte niet'}`;
+    if (r.gelukt) el.knoppen.laden.hidden = false;
+    setTimeout(() => { b.textContent = 'Opslaan als nieuw spel'; }, 2500);
+  };
   const knoppen = {
     doorgaan: knop('Doorgaan', 'menuDoorgaan', kies('doorgaan'), true),
     opslaan: knop('Opslaan', 'menuOpslaan', opslaanKlik),
+    opslaanNieuw: knop('Opslaan als nieuw spel', 'menuOpslaanNieuw', opslaanNieuwKlik),
     nieuw: knop('Start spel', 'menuNieuw', nieuwKlik, true),
     // (stap 127: de lijst van opgeslagen spellen; met maar één spel laadt hij die meteen, zoals voorheen)
     laden: knop('Spel laden', 'menuLaden', () => { const l = opslagLijst ? opslagLijst() : []; if (l.length > 1) toonPaneel('laden'); else kies('laden')(); }),
@@ -306,6 +316,7 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opsla
   for (const k of Object.values(knoppen)) lijst.append(k);
   knoppen.doorgaan.hidden = true;
   knoppen.opslaan.hidden = true;
+  knoppen.opslaanNieuw.hidden = true;
   knoppen.herspeel.hidden = true;
   knoppen.statistiek.hidden = true;
   knoppen.laden.hidden = !heeftOpslag;
@@ -345,7 +356,7 @@ export function bouwMenu({ heeftOpslag, opAfsluiten: afsluiten, opOpslaan: opsla
   return el;
 }
 
-let opOpslaan = null;
+let opOpslaan = null, opOpslaanNieuw = null;
 function zetNieuwTerug() {
   if (!el.knoppen) return;
   el.knoppen.nieuw.dataset.zeker = '';
@@ -499,6 +510,7 @@ export function toonMenu({ pauze = false, heeftOpslag = null, opslag = undefined
   el.knoppen.statistiek.hidden = !pauze;
   // opslaan vanuit de pauze (ook op een aanraakscherm, waar geen F5 is)
   el.knoppen.opslaan.hidden = !pauze;
+  el.knoppen.opslaanNieuw.hidden = !pauze;
   zetNieuwTerug();
   // de hoofdknop: Doorgaan in de pauze, Spel laden als er een opslag is, anders Start spel
   const laadHoofd = !pauze && !el.knoppen.laden.hidden;

@@ -46,7 +46,7 @@ import { initVaart } from './vaart.js';
 import { statistiek } from './statistiek.js';
 import { initGeocache } from './geocache.js';
 import { Persoon } from './persoon.js';
-import { bewaarSpel, laadSpel, registreerOpslag, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint, opslagen, kiesPlek, startNieuwSpel } from './opslag.js';
+import { bewaarSpel, laadSpel, registreerOpslag, opslagInfo, opslagStaat, heeftOpslag, heeftCheckpoint, wisCheckpoint, opslagen, kiesPlek, startNieuwSpel, stopNieuwSpel, MAX_PLEKKEN } from './opslag.js';
 import { geluid } from './audio.js';
 import { zetKaart, zetStand, startKaart, KAART, raakLantaarn, werkLantaarnsBij, lantaarnsOm, vlakOp, lichtpoelen, inZuilengang } from './kaartwereld.js';
 import { zetKoplampen, autoMaat } from './carmodel.js';
@@ -471,6 +471,15 @@ menu.bouwMenu({
   heeftOpslag: !!opslagInfo(),
   opAfsluiten: () => afsluiten(),
   opOpslaan: () => bewaar({ uitMenu: true }),     // de knop Opslaan in het pauzemenu (stap 118)
+  // (stap 214, gevraagd: "zorg dat je ook meerdere saved games kunt maken") een nieuwe plek naast die van je spel; daarna speel je
+  // in die nieuwe plek verder (F5 schrijft daarheen), de oude blijft staan. Bij tien plekken maakt de oudste plaats.
+  opOpslaanNieuw: () => {
+    const vol = opslagen().length >= MAX_PLEKKEN;
+    startNieuwSpel();
+    const r = bewaar({ uitMenu: true });
+    if (!r.gelukt) stopNieuwSpel();
+    return { ...r, vol };
+  },
   opslag: opslagInfo(), staat: opslagStaat(),
 });
 menu.laadBeelden();
@@ -3075,6 +3084,12 @@ function loop() {
      stuurinvoer gaat er alleen heen als je er zelf in staat.
     */
     if (boten) boten.update(dt, boten.inBoot ? player.driveInput() : null);
+    /*
+     (stap 214, gemeld: "als ik doorga van de auto naar de missie No Mercy blijft het autogeluid hangen") Het verhaal haalt je op
+     tientallen plekken zelf uit de auto (`player.inCar = null`), en niet overal ging de motor uit. Wie niet in een auto (of de
+     Tiger) zit, heeft geen motor en geen gierende banden.
+    */
+    if (!player.inCar && !player.inTiger && geluid.motorLoopt && geluid.motorLoopt()) { geluid.motorUit(); geluid.gier(0); }
     if (player.inCar) {
       const car = player.inCar;
       vehicles.drive(car, player.driveInput(), dt, aanrijden);
