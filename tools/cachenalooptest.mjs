@@ -57,7 +57,7 @@ const schermen = await page.evaluate(() => {
   const uit = [];
   const stappen = [
     { naam: '1', gevonden: 0, invoer: '' },
-    { naam: '2', gevonden: 1, invoer: '' }, { naam: '2_doel', gevonden: 1, invoer: '123456' },
+    { naam: '2', gevonden: 1, invoer: '' }, { naam: '2_doel', gevonden: 1, invoer: '151944879' },
     { naam: '3', gevonden: 2, invoer: '' }, { naam: '3_doel', gevonden: 2, invoer: '123456' },
     { naam: '3_bordje', gevonden: 2, invoer: '', stap1: true }, { naam: '3_bordje_doel', gevonden: 2, invoer: '654321', stap1: true },
     { naam: '4', gevonden: 3, invoer: '' }, { naam: '4_doel', gevonden: 3, invoer: '111222' },
@@ -81,7 +81,7 @@ for (const s of schermen.uit) {
 }
 ok(schermen.invoerBreed <= 216, 'de uitleg bij het intikken past op het scherm', `${schermen.invoerBreed.toFixed(0)} van 216 px`);
 const R = Object.fromEntries(schermen.uit.map(s => [s.naam, s.raadsel.join(' | ')]));
-ok(/Molenkrite/.test(R['2']) && /3 cijfers/.test(R['2']) && /\(B [−+] \d+\)/.test(R['2']) && /\(C \+ A [−+] \d+\)/.test(R['2']), 'cache 2: de straat van Mark, drie cijfers per regel, en de twee sommen', R['2']);
+ok(/Molenkrite/.test(R['2']) && /A, B en C/.test(R['2']) && /\(B [−+] \d+\)/.test(R['2']) && /\(C \+ A [−+] \d+\)/.test(R['2']), 'cache 2: de straat van Mark, A, B en C intikken, en de twee sommen', R['2']);
 const bord = schermen.bordje.join('  ');
 const bordN = /\.(\d{3})/.exec(schermen.bordje[0])[1], bordE = /\.(\d{3})/.exec(schermen.bordje[1])[1];
 ok(R['3_bordje'].includes(`.${bordN}`) && R['3_bordje'].includes(`.${bordE}`), 'cache 3: na het bordje staat wat erop stond in de GPS', `${bord} → ${R['3_bordje']}`);
@@ -94,7 +94,7 @@ kop('3. invullen met de echte toetsen');
 const toetsen = await page.evaluate(() => {
   const g = window.__game, C = g.geocache, P = g.player, D = g.derde;
   if (D.aan) D.wissel();
-  C.herstel({ gps: true, intro: true, gevonden: 1, invoer: '' });
+  C.herstel({ gps: true, intro: true, gevonden: 2, invoer: '' });
   window.__zet(g.studio.plekken.stoep.x + 30, g.studio.plekken.stoep.z);
   P.wapenUit = false; P.aanTafel = false; P.gpsInHand = false;
   window.__stap(2);
@@ -122,6 +122,19 @@ ok(naTerug === '12345', 'backspace wist het laatste cijfer', naTerug);
 ok(na7 === '1234590' || na7 === '0', 'na zes cijfers begint een nieuw cijfer opnieuw', `${naTerug} + 9, 0 → ${na7}`);
 ok(numpad.endsWith('7'), 'het numerieke toetsenbord doet mee', numpad);
 ok(!uit && zonder === numpad, 'GPS weggestopt: de cijfers raken het doel niet', `${numpad} → ${zonder}`);
+
+kop('3b. cache 2: de antwoorden intikken (stap 213)');
+await page.evaluate(() => { const C = window.__game.geocache; C.herstel({ gps: true, intro: true, gevonden: 1, invoer: '' }); window.__stap(2); });
+await page.keyboard.press('KeyN'); await page.evaluate(() => window.__stap(3));
+for (const ch of '151944879') { await page.keyboard.press(`Digit${ch}`); await page.evaluate(() => window.__stap(1)); }
+const c2 = await page.evaluate(() => {
+  const C = window.__game.geocache, c = C.stand.caches[1], d = C.doel();
+  const pas = C.teken();
+  return { invoer: C.stand.invoer, af: d ? +Math.hypot(d.x - c.punt.x, d.z - c.punt.z).toFixed(3) : null, pas };
+});
+await page.keyboard.press('KeyN'); await page.evaluate(() => window.__stap(3));
+ok(c2.invoer === '151944879' && c2.af !== null && c2.af < 0.01, '15, 1944 en 879 ingetikt: de GPS wijst precies naar het punt uit het raadsel', `${c2.invoer} → ${c2.af} m`);
+ok(c2.pas.getekend === c2.pas.regels, 'en het raadsel past nog op het scherm', `${c2.pas.getekend}/${c2.pas.regels}, ${c2.pas.letter} px`);
 
 kop('4. overal bij kunnen');
 const bij = await page.evaluate(async () => {

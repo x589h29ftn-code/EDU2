@@ -376,10 +376,30 @@ export function initGeocache(o) {
   const huidig = () => (caches && st.intro && st.gevonden < CACHE.totaal ? caches[st.gevonden] : null);
   const spelerPunt = () => (player.inCar ? { x: player.inCar.x, z: player.inCar.z } : { x: player.pos.x, z: player.pos.z });
   // het ingetikte doel: 6 cijfers (N en E, duizendsten); de rest van de coördinaten staat in het raadsel
+  /*
+   (stap 213, gemeld: "ik vul 15 in, 1944 en probeer 879 maar wil niet") Bij cache 2 tik je de antwoorden zelf in, A, B en C achter
+   elkaar (2 + 4 + 3 cijfers), en de GPS rekent het punt uit met de sommen uit het raadsel. Tot hier moest je zelf rekenen en de
+   uitkomst als zes cijfers intikken, en wie de antwoorden intikte kwam nergens.
+  */
+  const invoerLang = (c) => (c && c.nr === 2 ? 9 : 6);
+  const sommen = (c) => ({ kN: 1944 - c.n.dui, kE: 879 + 15 - c.e.dui });
+  function abc(c) {
+    const iv = st.invoer;
+    const A = iv.slice(0, 2), B = iv.slice(2, 6), C = iv.slice(6, 9);
+    if (iv.length < 9) return { A, B, C, klaar: false };
+    const { kN, kE } = sommen(c), rond = (x) => ((x % 1000) + 1000) % 1000;
+    return { A, B, C, klaar: true, nDui: rond(+B - kN), eDui: rond(+C + +A - kE) };
+  }
   function doel() {
     const c = huidig();
     if (!c) return null;
     if (c.nr === 1) return c.punt;                       // de eerste zet Sjors zelf in je GPS
+    if (c.nr === 2) {
+      const a = abc(c);
+      if (!a.klaar) return null;
+      const g = uitDelen({ ...c.n, dui: a.nDui }, { ...c.e, dui: a.eDui });
+      return om.vanGraden(g.lat, g.lon);
+    }
     if (st.invoer.length < 6) return null;
     const vast = (c.nr === 3 && !c.stap1Gezien && c.stap1n) ? { n: c.stap1n, e: c.stap1e } : { n: c.n, e: c.e };
     const n = { ...vast.n, dui: +st.invoer.slice(0, 3) }, e = { ...vast.e, dui: +st.invoer.slice(3, 6) };
@@ -395,12 +415,12 @@ export function initGeocache(o) {
     const vol = (n, e) => `${N(n)}${drie(n.dui)}  ${E(e)}${drie(e.dui)}`;
     if (c.nr === 1) return ['Cache 1 · de oude Geeuwbrug', vol(c.n, c.e), 'Onder het landhoofd, tussen de graffiti.', 'Sjors heeft hem al in je GPS gezet.'];
     if (c.nr === 2) {
-      const kN = 1944 - c.n.dui, kE = 879 + 15 - c.e.dui;
+      const { kN, kE } = sommen(c);
       const fN = kN >= 0 ? `B − ${kN}` : `B + ${-kN}`, fE = kE >= 0 ? `C + A − ${kE}` : `C + A + ${-kE}`;
-      // (stap 211) "het huisnummer van Mark" zonder straat: Mark zit later ook aan de Wieken 29; en een uitkomst onder de honderd
-      // tik je met een nul vooraan (drie cijfers per regel)
-      return ['Cache 2 · een raadsel', 'A = Marks huisnummer aan de Molenkrite', 'B = het jaar op de gedenksteen aan de Sudergoweg', 'C = de frequentie van Radio Tinga × 10',
-        `${N(c.n)}(${fN})`, `${E(c.e)}(${fE})`, 'Bij het water in Duinterpen.', 'Per regel 3 cijfers: 45 = 045.'];
+      // (stap 211) "het huisnummer van Mark" zonder straat: Mark zit later ook aan de Wieken 29
+      // (stap 213) je tikt A, B en C zelf in, de GPS rekent (`abc`)
+      return ['Cache 2 · bij het water in Duinterpen', 'A = Marks huisnummer, Molenkrite', 'B = jaar op de gedenksteen, Sudergoweg', 'C = Radio Tinga × 10 (frequentie)',
+        'Tik A, B en C in, de GPS rekent:', `${N(c.n)}(${fN})`, `${E(c.e)}(${fE})`];
     }
     if (c.nr === 3) {
       if (!c.stap1Gezien) return ['Cache 3 · een multi', `Stap 1: ${vol(c.stap1n, c.stap1e)}`, 'Bij Martens Vishandel staat een bordje.', 'Daarop staat waar de cache ligt.'];
@@ -561,7 +581,13 @@ export function initGeocache(o) {
       const d = doel();
       const iv = st.invoer.padEnd(6, '_');
       const vast = (c.nr === 3 && !c.stap1Gezien && c.stap1n) ? { n: c.stap1n, e: c.stap1e } : { n: c.n, e: c.e };
-      const toon = c.nr === 1 ? [drie(c.n.dui), drie(c.e.dui)] : [iv.slice(0, 3), iv.slice(3, 6)];
+      let toon = c.nr === 1 ? [drie(c.n.dui), drie(c.e.dui)] : [iv.slice(0, 3), iv.slice(3, 6)];
+      if (c.nr === 2) {
+        // (stap 213) eerst wat je intikt, A, B en C; het doel rekent de GPS zelf uit
+        const a = abc(c), vul = (t, n) => t.padEnd(n, '_');
+        g.fillText('ABC', x0, y); g.fillText(`A ${vul(a.A, 2)}  B ${vul(a.B, 4)}  C ${vul(a.C, 3)}`, x0 + 34, y); y += 15;
+        toon = a.klaar ? [drie(a.nDui), drie(a.eDui)] : ['___', '___'];
+      }
       g.fillText('DOEL', x0, y); g.fillText(`N ${vast.n.gr}° ${twee(vast.n.min)}.${toon[0]}`, x0 + 34, y); y += 15;
       g.fillText(`E ${drie(vast.e.gr)}° ${twee(vast.e.min)}.${toon[1]}`, x0 + 34, y); y += 10;
       // de pijl en de afstand
@@ -582,7 +608,7 @@ export function initGeocache(o) {
         if (afstand < CACHE.dichtbij) { g.font = 'bold 12px monospace'; g.fillStyle = '#7a1d12'; g.fillText('DICHTBIJ — ZOEK!', x0 + 100, y + 84); g.fillStyle = '#1b2410'; }
         y += 104;
       } else {
-        g.font = '11px monospace'; g.fillText('tik 6 cijfers: N, dan E', x0, y + 22); g.fillText('← backspace wist', x0, y + 37);
+        g.font = '11px monospace'; g.fillText(c.nr === 2 ? 'tik A, B, C: 2+4+3 cijfers' : 'tik 6 cijfers: N, dan E', x0, y + 22); g.fillText('← backspace wist', x0, y + 37);
         y += 52;
       }
     } else { y += 10; }
@@ -683,7 +709,7 @@ export function initGeocache(o) {
     if (!c) { o.zeg([{ wie: 'Sjors', tekst: 'Alle vijf! Je bent de beste cacher van Sneek. Die gouden M1 heb je verdiend.' }]); return; }
     const hints = [
       'Cache 1 ligt bij de oude Geeuwbrug, aan de kant van het land, tussen de graffiti. Kijk laag.',
-      'A: Mark woont op Molenkrite 15. B: het jaar staat op de bronzen plaat bij de Tiger aan de Sudergoweg. C: Radio Tinga zit op 87.9, dus 879. Reken elke regel uit en tik drie cijfers.',
+      'A: Mark woont op Molenkrite 15. B: het jaar staat op de bronzen plaat bij de Tiger aan de Sudergoweg. C: Radio Tinga zit op 87.9, dus 879. Tik ze achter elkaar in je GPS, de GPS rekent het punt zelf uit.',
       c.stap1Gezien ? 'Het bordje bij de vishandel geeft je de coördinaten van de tweede stap. De cache ligt achter de tennishal.' : 'Ga eerst naar het bordje bij Martens Vishandel, op het parkeerterrein van de Jumbo.',
       'Cache 4 staat op een meerpaal in het water bij de molen De Rat in IJlst. Te voet kom je er niet bij: de sloep ligt aan de steiger in IJlst, vaar ernaast en druk E.',
       'S, L, A, G: de Slag om Sneek, bij de Tiger aan de Sudergoweg. Je logboeken staan in je GPS: cijfer 1, 2 en 3 na de N, cijfer 4 na de E, en de laatste twee staan er al.',
@@ -743,7 +769,7 @@ export function initGeocache(o) {
       if (!c || c.nr === 1) return false;
       hand.druk = 1;
       if (d === 'terug') { st.invoer = st.invoer.slice(0, -1); tekenGps(0); return true; }
-      if (st.invoer.length >= 6) st.invoer = '';
+      if (st.invoer.length >= invoerLang(c)) st.invoer = '';
       st.invoer += String(d);
       st.misGemeld = false;
       tekenGps(0);
@@ -813,7 +839,7 @@ export function initGeocache(o) {
     bewaar() { return { gps: st.gps, intro: st.intro, gevonden: st.gevonden, invoer: st.invoer, mis: st.mis, goud: st.goud, stap1: !!(caches && caches[2] && caches[2].stap1Gezien) }; },
     herstel(d) {
       st.gps = !!(d && d.gps); st.intro = !!(d && d.intro); st.gevonden = Math.max(0, Math.min(CACHE.totaal, (d && d.gevonden) | 0));
-      st.invoer = d && typeof d.invoer === 'string' ? d.invoer.replace(/\D/g, '').slice(0, 6) : '';
+      st.invoer = d && typeof d.invoer === 'string' ? d.invoer.replace(/\D/g, '').slice(0, 9) : '';
       st.mis = (d && d.mis) | 0; st.goud = !!(d && d.goud); st.misGemeld = false;
       zetAan(false); hand.pak = 0; hand.dicht = 0; werkToestelBij(0);
       if (st.gps) bouw();

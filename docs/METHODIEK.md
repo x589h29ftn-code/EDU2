@@ -9317,6 +9317,18 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Cache 2: de antwoorden intikken (stap 213, 17 okt).** Gemeld: "Maak dit wat duidelijker: ik vul 15 in, 1944 en probeer 879
+maar wil niet." Het raadsel gaf de antwoorden A, B en C en twee sommen (N … (B − 958), E … (C + A + 19)); je moest zelf rekenen en de
+uitkomst als zes cijfers intikken. De speler tikte de antwoorden in, en dat is ook wat je verwacht.
+
+Nu tik je bij cache 2 A, B en C achter elkaar in, 2 + 4 + 3 cijfers (`abc`, `invoerLang`). Op het scherm staat "ABC  A 15  B 1944
+C 879", en de GPS rekent het doel zelf uit met dezelfde sommen (`sommen`). Het raadsel zegt het, de uitleg bij het intikken ook
+("tik A, B, C: 2+4+3 cijfers"), en de hint van Sjors ook. Een verkeerd antwoord wijst naar een verkeerd punt, en daar zegt de GPS
+"Hier is niets…".
+
+*Proeven*: `cachenalooptest` (15, 1944 en 879 met de echte toetsen: de GPS wijst precies naar het punt uit het raadsel, en het
+scherm past) en `geocachetest` (eerst 2004 in plaats van 1944: hier is niets; dan goed).
+
 **Yugo met uitleg en sneller door, en de nacht niet meer licht bij regen (stap 212, 17 okt).** Gemeld: "Leg bij Yugo de eerste
 keer kort uit hoe het werkt. Ik klikte door en daardoor kon ik niks meer bestellen. Zorg ook dat je een nieuwe ronde sneller kan
 starten." En met een foto uit de heli van missie 18: "Het is wel 1:00 's nachts maar behoorlijk lichter ineens, kwam door regen denk

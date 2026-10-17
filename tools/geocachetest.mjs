@@ -237,11 +237,12 @@ const vijf = await page.evaluate(() => {
   const A = 15, B = 1944, Cc = 879;
   const nDui = m ? (m[1] === '−' ? B - +m[2] : B + +m[2]) : -1, eDui = m ? (m[3] === '−' ? Cc + A - +m[4] : Cc + A + +m[4]) : -1;
   uit.raad = { regel, nDui, eDui, echtN: c2.n.dui, echtE: c2.e.dui };
-  const fout = String((nDui + 60) % 1000).padStart(3, '0') + String(eDui).padStart(3, '0');
+  // (stap 213) je tikt de antwoorden in, A, B en C; de GPS rekent het punt uit. Eerst een verkeerd jaar (60 te veel: ~110 m ernaast)
+  const fout = '15' + '2004' + '879';
   tik(fout);
   const df = C.doel(); window.__zet(df.x, df.z); window.__stap(4);
   uit.mis = document.getElementById('missie') ? document.getElementById('missie').textContent : '';
-  tik(String(nDui).padStart(3, '0') + String(eDui).padStart(3, '0'));
+  tik('15' + '1944' + '879');
   const d2 = C.doel();
   uit.doel2 = d2 ? +Math.hypot(d2.x - c2.punt.x, d2.z - c2.punt.z).toFixed(2) : null;
   naar(c2.plek); uit.open2 = C.toets(); window.__stap(2);

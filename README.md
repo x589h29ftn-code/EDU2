@@ -985,7 +985,8 @@ zolang je hem vasthoudt is het wapen weg en schiet je niet. Klikken, **R**, een 
 pakt je wapen weer (die klik schiet nog niet). Met de **rechtermuisknop** houd je hem dichterbij om het raadsel te lezen. Binnen, in de
 drone, in de Tiger, op de bank en in een filmbeeld stop je hem vanzelf weg; in de auto en in de boot mag hij mee.
 
-Tik per regel drie cijfers: eerst de drie na de N, dan de drie na de E (komt er 45 uit, dan tik je 045). Wat je onderweg leest,
+Meestal tik je zes cijfers: de drie na de N, dan de drie na de E. Bij het raadsel van cache 2 tik je de antwoorden zelf in, A, B en
+C achter elkaar (bijvoorbeeld 15, 1944 en 879 als 151944879), en de GPS rekent het punt uit. Wat je onderweg leest,
 onthoudt de GPS voor je: wat er op het bordje bij de vishandel stond, en de letter en het cijfer uit elk logboek staan bij de finale
 op het scherm. Kom je er niet uit, druk dan **E** bij Sjors: bij elke cache heeft hij een hint die het raadsel oplost.
 
