@@ -1450,19 +1450,39 @@ player.shootCb = (camOrigin, camDir, { mes = false, bereik = 120, korrels = null
   const stralen = korrels ? korrels.map(k => derde.mikpunt(camOrigin, k).dir) : [dir];
   let gekreten = false;
   const pijn = (p) => { if (gekreten) return; gekreten = true; geluid.raak(); geluid.kreet('pijn', afstandTot(p)); };
+  /*
+   Niet op je eigen auto schieten. Zat je erin, dan begon de kogel bij je hoofd
+   en raakte hij als eerste de binnenkant van je eigen dak of motorkap — je
+   schoot je eigen auto (en de vrachtwagen van de missie) aan gort van binnenuit
+   (melding 20 sep 2026). Het voertuig waar je in zit gaat daarom uit de lijst
+   met doelen; de kogel vliegt er gewoon doorheen naar buiten.
+   (stap 211, "de shotgun lijkt bij schieten lag te veroorzaken": elke straal liep alle ~680 auto's van de kaart af, onderdeel
+   voor onderdeel, en het pompgeweer schiet er negen tegelijk. Nu de lijst één keer per schot, en alleen met de auto's die in de
+   baan van het schot kunnen staan: van boven gezien binnen de wijdste korrel (plus de straal van de auto, `binnen`) en niet
+   verder dan de kogel komt. Bij een schot steil omhoog of omlaag alleen de afstand.)
+  */
+  const eigen = player.inCar && player.inCar.mesh ? player.inCar.mesh : null;
+  const ver = korrels ? bereik : 120, hor = Math.hypot(dir.x, dir.z);
+  let binnen;
+  if (hor > 0.3) {
+    const hx = dir.x / hor, hz = dir.z / hor;
+    let tan = 0;
+    for (const k of stralen) {
+      const kh = Math.hypot(k.x, k.z) || 1, kx = k.x / kh, kz = k.z / kh, cos = hx * kx + hz * kz;
+      tan = Math.max(tan, cos > 0.05 ? Math.abs(hx * kz - hz * kx) / cos : 20);
+    }
+    binnen = (x, z, r) => {
+      const vx = x - origin.x, vz = z - origin.z, langs = vx * hx + vz * hz;
+      if (langs < -r || langs > ver + r) return false;
+      return Math.abs(vx * hz - vz * hx) <= Math.max(0, langs) * tan + r;
+    };
+  } else binnen = (x, z, r) => Math.hypot(x - origin.x, z - origin.z) < ver + r;
+  const autos = vehicles.doelen(binnen);
+  const targets = [...autos, ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
+    ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []), ...(ambulance ? ambulance.doelen() : []),
+    ...(politieboot ? politieboot.doelen() : []), ...omstanders.doelen()].filter(o => !eigen || o !== eigen);
   for (const dir of stralen) {
     raycaster.set(origin, dir); raycaster.far = korrels ? bereik : 120;
-    /*
-     Niet op je eigen auto schieten. Zat je erin, dan begon de kogel bij je hoofd
-     en raakte hij als eerste de binnenkant van je eigen dak of motorkap — je
-     schoot je eigen auto (en de vrachtwagen van de missie) aan gort van binnenuit
-     (melding 20 sep 2026). Het voertuig waar je in zit gaat daarom uit de lijst
-     met doelen; de kogel vliegt er gewoon doorheen naar buiten.
-    */
-    const eigen = player.inCar && player.inCar.mesh ? player.inCar.mesh : null;
-    const targets = [...vehicles.doelen(), ...npcs.targets, ...verhaal.doelen(), ...politie.doelen(),
-      ...(wedstrijd ? wedstrijd.doelen() : []), ...(leven ? leven.doelen() : []), ...(ambulance ? ambulance.doelen() : []),
-      ...(politieboot ? politieboot.doelen() : []), ...omstanders.doelen()].filter(o => !eigen || o !== eigen);
     const hits = raycaster.intersectObjects(targets, true);
     if (hits.length) {
       const h = hits[0];
@@ -2066,6 +2086,14 @@ window.addEventListener('keydown', e => {
     e.preventDefault();
     politie.reset();
     if (verhaal.startNoMercy5 && verhaal.startNoMercy5()) hud.show('Bijmissie — No Mercy 5', 3.5);
+    return;
+  }
+  // (stap 211) shift+Y: sushi eten bij Yugo met Johan, om te testen (js/yugo.js)
+  if (e.code === 'KeyY') {
+    e.preventDefault();
+    politie.reset();
+    if (player.inCar) { player.inCar.speed = 0; player.inCar = null; }
+    if (verhaal.startYugoLos && verhaal.startYugoLos()) hud.show('Yugo — sushi met Johan', 3.5);
     return;
   }
   const cijfer = /^Digit([0-9])$/.exec(e.code) || /^Numpad([0-9])$/.exec(e.code);

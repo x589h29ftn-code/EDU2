@@ -13631,6 +13631,16 @@ export function initVerhaal(ctx) {
     // (stap 204) sushi bij Yugo: de stand voor de proef, los beginnen, en Q is een slok
     get yugo() { return { fase: yugo.fase, gevraagd: yugo.gevraagd, keer: yugo.keer, bezig: yugoBezig(), klokWas: yugo.klokWas }; },
     startYugo: () => { if (!yugoRuimte()) return false; yugo.gevraagd = true; yugo.fase = 'heen'; yugoAanTafelZetten(); return true; },
+    // (stap 211) shift+Y: los naar Yugo om te testen, met het zwart ("Die avond, bij Yugo in Sneek…") zoals in het spel; niet als
+    // je er al zit of al onderweg bent
+    startYugoLos: () => {
+      if (!yugoRuimte() || yugoBezig() || zwart) return false;
+      if (yugo.fase === 'keuze') yugoKeuzeDicht();
+      if (gesprek) { gesprek = null; sluitBalk(); }
+      yugo.gevraagd = true; yugo.fase = 'heen';
+      zwartMet('Die avond, bij Yugo in Sneek…', () => yugoAanTafelZetten());
+      return true;
+    },
     yugoDrink: () => (yugoAanTafel() ? yugoRuimte().drink() : false),
     // (stap 195, voor tools/statistiektest.mjs) de titelrol los openen en sluiten
     __titelrol: (open = true) => { if (open) openTitelrol(); else sluitTitelrol(); },

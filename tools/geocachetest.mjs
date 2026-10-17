@@ -232,7 +232,7 @@ const vijf = await page.evaluate(() => {
   uit.open1 = C.toets(); window.__stap(2);
   // 2: eerst verkeerd (100 m ernaast), dan goed uit het raadsel
   const c2 = st().caches[1];
-  const r2 = C.raadsel(), regel = r2.find(r => /\(B/.test(r)) || '';
+  const r2 = C.raadsel(), regel = r2.join(' ');          // (stap 211: N en E op twee regels)
   const m = /\(B ([−+]) (\d+)\).*\(C \+ A ([−+]) (\d+)\)/.exec(regel);
   const A = 15, B = 1944, Cc = 879;
   const nDui = m ? (m[1] === '−' ? B - +m[2] : B + +m[2]) : -1, eDui = m ? (m[3] === '−' ? Cc + A - +m[4] : Cc + A + +m[4]) : -1;

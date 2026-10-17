@@ -397,17 +397,21 @@ export function initGeocache(o) {
     if (c.nr === 2) {
       const kN = 1944 - c.n.dui, kE = 879 + 15 - c.e.dui;
       const fN = kN >= 0 ? `B − ${kN}` : `B + ${-kN}`, fE = kE >= 0 ? `C + A − ${kE}` : `C + A + ${-kE}`;
-      return ['Cache 2 · een raadsel', 'A = het huisnummer van Mark', 'B = het jaar op de gedenksteen aan de Sudergoweg', 'C = de frequentie van Radio Tinga × 10',
-        `${N(c.n)}(${fN})  ${E(c.e)}(${fE})`, 'Bij het water in Duinterpen.'];
+      // (stap 211) "het huisnummer van Mark" zonder straat: Mark zit later ook aan de Wieken 29; en een uitkomst onder de honderd
+      // tik je met een nul vooraan (drie cijfers per regel)
+      return ['Cache 2 · een raadsel', 'A = Marks huisnummer aan de Molenkrite', 'B = het jaar op de gedenksteen aan de Sudergoweg', 'C = de frequentie van Radio Tinga × 10',
+        `${N(c.n)}(${fN})`, `${E(c.e)}(${fE})`, 'Bij het water in Duinterpen.', 'Per regel 3 cijfers: 45 = 045.'];
     }
     if (c.nr === 3) {
       if (!c.stap1Gezien) return ['Cache 3 · een multi', `Stap 1: ${vol(c.stap1n, c.stap1e)}`, 'Bij Martens Vishandel staat een bordje.', 'Daarop staat waar de cache ligt.'];
-      return ['Cache 3 · stap 2', 'Tik in wat er op het bordje stond.', 'Achter een grote hal aan de Lemmerweg.'];
+      // (stap 211) wat er op het bordje stond blijft in de GPS staan: de melding is na tien tellen weg
+      return ['Cache 3 · stap 2', `Het bordje: ${vol(c.n, c.e)}`, 'Achter de tennishal aan de Lemmerweg.'];
     }
-    if (c.nr === 4) return ['Cache 4 · een opdracht', vol(c.n, c.e), 'Bij de molen De Rat in IJlst,', 'op een meerpaal in het water.', 'Te voet kom je er niet bij: neem een boot.'];
-    const r = CACHE.letters.join(' ');
-    return ['Cache 5 · de finale', `Letters uit je logboeken: ${r}`, 'Waar herdenkt Sneek de ___ om Sneek?', 'De cijfers uit je logboeken, op volgorde:',
-      `${N(c.n)}[1][2][3]  ${E(c.e)}[4]${c.rest}`];
+    if (c.nr === 4) return ['Cache 4 · een opdracht', vol(c.n, c.e), 'Bij de molen De Rat in IJlst, op een meerpaal in het water.', 'Te voet kom je er niet bij: de sloep ligt aan de steiger in IJlst.'];
+    // (stap 211) de logboeken staan in de GPS: de melding met letter en cijfer was na acht tellen weg, soms uren eerder
+    const log = caches.slice(0, 4).map((k, i) => `${i + 1}: ${k.letter} ${k.cijfer}`).join('   ');
+    return ['Cache 5 · de finale', `Logboeken  ${log}`, `De letters: waar herdenkt Sneek de ${CACHE.letters.join('')} om Sneek?`,
+      `${N(c.n)}[1][2][3]`, `${E(c.e)}[4]${c.rest}`, '[n] = het cijfer uit logboek n.'];
   }
 
   function werkZichtBij() {
@@ -529,7 +533,7 @@ export function initGeocache(o) {
     for (const k of toestel.knoppen) k.position.z = 0.0150 - hand.druk * 0.0015;
     toestel.duim.position.z = 0.0155 - hand.druk * 0.002;
   }
-  let schommel = { x: 0, z: 0, t: 0 };
+  let schommel = { x: 0, z: 0, t: 0 }, pas = null;
   function tekenGps(dt) {
     // (stap 197) alleen het scherm, op het lcd-doek van het 3D-toestel; de maten zijn nog die van het oude plaatje van
     // 300 × 470 (het scherm liep daar van (32, 46) tot (268, 364)), twee keer zo scherp
@@ -578,22 +582,33 @@ export function initGeocache(o) {
         if (afstand < CACHE.dichtbij) { g.font = 'bold 12px monospace'; g.fillStyle = '#7a1d12'; g.fillText('DICHTBIJ — ZOEK!', x0 + 100, y + 84); g.fillStyle = '#1b2410'; }
         y += 104;
       } else {
-        g.font = '11px monospace'; g.fillText('tik het doel in: 1–9, 0', x0, y + 22); g.fillText('← backspace wist', x0, y + 37);
+        g.font = '11px monospace'; g.fillText('tik 6 cijfers: N, dan E', x0, y + 22); g.fillText('← backspace wist', x0, y + 37);
         y += 52;
       }
     } else { y += 10; }
     // het raadsel
-    g.font = '11px sans-serif'; g.fillStyle = '#1b2410';
-    const rg = raadsel();
-    for (const r of rg) {
-      const woorden = r.split(' '); let regel = '';
-      for (const wd of woorden) {
-        const proef = regel ? `${regel} ${wd}` : wd;
-        if (g.measureText(proef).width > w) { g.fillText(regel, x0, y); y += 13; regel = wd; } else regel = proef;
+    /*
+     (stap 211) Het raadsel past altijd: tot hier brak hij af na de regel die onder H − 108 kwam, en met de pijl erboven viel bij
+     cache 2 de laatste regel weg. Eerst afbreken in regels; past het niet, dan een kleinere letter (tot 9 px).
+    */
+    g.fillStyle = '#1b2410';
+    const rg = raadsel(), onder = H - 106;
+    let regels = [], hoog = 13;
+    for (const px of [11, 10, 9]) {
+      g.font = `${px}px sans-serif`; hoog = px + 2; regels = [];
+      for (const r of rg) {
+        const woorden = r.split(' '); let regel = '';
+        for (const wd of woorden) {
+          const proef = regel ? `${regel} ${wd}` : wd;
+          if (g.measureText(proef).width > w && regel) { regels.push(regel); regel = wd; } else regel = proef;
+        }
+        if (regel) regels.push(regel);
       }
-      if (regel) { g.fillText(regel, x0, y); y += 13; }
-      if (y > H - 108) break;
+      if (y + (regels.length - 1) * hoog <= onder) break;
     }
+    let getekend = 0;
+    for (const r of regels) { if (y > onder) break; g.fillText(r, x0, y); y += hoog; getekend++; }
+    pas = { regels: regels.length, getekend, letter: hoog - 2, breed: Math.max(0, ...regels.map(r => g.measureText(r).width)) - w };
     lcdTex.needsUpdate = true;
   }
 
@@ -668,10 +683,10 @@ export function initGeocache(o) {
     if (!c) { o.zeg([{ wie: 'Sjors', tekst: 'Alle vijf! Je bent de beste cacher van Sneek. Die gouden M1 heb je verdiend.' }]); return; }
     const hints = [
       'Cache 1 ligt bij de oude Geeuwbrug, aan de kant van het land, tussen de graffiti. Kijk laag.',
-      'Het huisnummer van Mark ken je wel. Het jaar staat op de bronzen plaat bij de Tiger, en de frequentie hoor je op de radio: 87.9.',
+      'A: Mark woont op Molenkrite 15. B: het jaar staat op de bronzen plaat bij de Tiger aan de Sudergoweg. C: Radio Tinga zit op 87.9, dus 879. Reken elke regel uit en tik drie cijfers.',
       c.stap1Gezien ? 'Het bordje bij de vishandel geeft je de coördinaten van de tweede stap. De cache ligt achter de tennishal.' : 'Ga eerst naar het bordje bij Martens Vishandel, op het parkeerterrein van de Jumbo.',
-      'Cache 4 staat op een meerpaal in het water bij de molen in IJlst. Te voet kom je er niet bij: pak een sloep en vaar ernaast.',
-      'S, L, A, G: de Slag om Sneek. De cijfers uit de logboeken op volgorde, en de laatste twee staan al in je GPS.',
+      'Cache 4 staat op een meerpaal in het water bij de molen De Rat in IJlst. Te voet kom je er niet bij: de sloep ligt aan de steiger in IJlst, vaar ernaast en druk E.',
+      'S, L, A, G: de Slag om Sneek, bij de Tiger aan de Sudergoweg. Je logboeken staan in je GPS: cijfer 1, 2 en 3 na de N, cijfer 4 na de E, en de laatste twee staan er al.',
     ];
     o.zeg([{ wie: 'Sjors', tekst: hints[c.nr - 1] }]);
   }
@@ -685,6 +700,9 @@ export function initGeocache(o) {
     get toestel() { return toestel; },
     get inBeeld() { return toestel.groep.visible; },
     get lcd() { return lcd; },
+    // (stap 211, voor proeven) past het raadsel op het scherm: { regels, getekend, letter (px), breed (> 0: te breed) }
+    get pas() { return pas; },
+    teken() { tekenGps(0); return pas; },
     get gps() { return st.gps; },
     get bordje() { return bordje; },
     get posters() { return posters; },

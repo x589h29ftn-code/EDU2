@@ -9317,6 +9317,54 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Een snelkoppeling voor Yugo, het pompgeweer sneller, de Tinga Cache nagelopen (stap 211, 17 okt).** Gevraagd: "Bouw een
+snelkoppeling om Yugo te testen. De shotgun lijkt bij schieten lag te veroorzaken, check dit nog even. Loop tot slot de
+geocache-missies nog eens na of alle hints logisch en duidelijk zijn en je overal bij kan. Of je alles goed kan invullen in de GPS en
+aflezen."
+
+- *Yugo:* **shift+Y** (js/main.js, in het blok met de andere sneltoetsen) haalt de sterren weg, zet je uit de auto en roept
+  `verhaal.startYugoLos` aan: een open keuze of gesprek dicht, `yugo.gevraagd`, en dan hetzelfde zwart als na het voorstel van Johan
+  ("Die avond, bij Yugo in Sneek…", `yugoAanTafelZetten`). Aan tafel of al onderweg doet hij niets. Na X sta je zoals altijd op de
+  oprit van Kruirad 62.
+- *Het pompgeweer, gemeten:* `npm run shotguntijdtest` meet `player.shoot()` en het beeld erna, voor het pistool en het pompgeweer,
+  de lucht in, een straat in en van 6 m op een auto. Eerst: op straat 15,4 ms per schot tegen 2,1 voor het pistool, bij de auto
+  19,8 tegen 2,7 (headless; de render erna was niet trager, en er kwam geen shaderprogramma bij). De oorzaak: elke korrel bouwde de
+  lijst met doelen opnieuw op en liep daarmee alle ~680 auto's van de kaart af, met elk onderdeel van elke auto en elke
+  geparkeerde instantie. Een profiel (CDP) liet `InstancedMesh.raycast` met zijn matrixvermenigvuldigingen per instantie en de
+  driehoeken van de auto vlakbij zien. Nu bouwt `shootCb` de lijst één keer per schot, en `vehicles.doelen(binnen)` geeft alleen
+  de auto's (en de stapels geparkeerde auto's) die in de baan van het schot kunnen staan: van boven gezien binnen de wijdste
+  korrel plus 7 m (4 m voor een geparkeerde auto), en niet verder dan de kogel komt. Bij een schot steil omhoog of omlaag telt
+  alleen de afstand. Daarna 0,7 / 4,0 / 5,6 ms (lucht / straat / auto) tegen 0,7 / 0,9 / 1,2 voor het pistool. Wat overblijft zijn
+  de negen stralen door de auto of de mensen die echt voor je staan. Het pistool wint er ook bij.
+- *De Tinga Cache, nagelopen:* `npm run cachenalooptest` doet wat een speler doet. Wat er niet goed was:
+  - Bij cache 2 viel met een ingetikt doel de laatste regel van het raadsel van het scherm: de GPS brak af na de regel die onder
+    de rand kwam. Nu wordt het raadsel eerst in regels gebroken, en past het niet, dan wordt de letter kleiner (11, 10, 9 px).
+  - De uitleg bij het intikken liep rechts het scherm uit.
+  - "Het huisnummer van Mark" zei niet welk huis (na missie 16 zit Mark aan de Wieken 29). Nu staat er "aan de Molenkrite", en
+    erbij dat je per regel drie cijfers tikt (45 = 045).
+  - Wat er op het bordje bij de vishandel stond, was na tien tellen weg (een melding). Nu blijft het in de GPS staan.
+  - Voor de finale had je de letter en het cijfer uit elk logboek nodig, en die stonden alleen acht tellen in een melding, soms
+    uren eerder. Nu staan de logboeken bij cache 5 in de GPS, met de uitleg "[n] = het cijfer uit logboek n".
+  - Bij cache 4 stond niet waar de sloep ligt: nu wel (aan de steiger in IJlst, 261 m van de paal).
+  - Sjors geeft bij cache 2 en 5 een hint die het raadsel echt oplost: Molenkrite 15, de plaat bij de Tiger, 879; en de logboeken
+    in de GPS.
+
+  De proef meet ook of je overal bij kunt. Cache 1, 2, 3, 5 en het bordje zijn te voet te bereiken vanaf de dichtstbijzijnde straat
+  of het dichtstbijzijnde pad, met de looproute om hekken en gebouwen heen (js/looppad.js). Cache 4 is met de sloep van IJlst over
+  het water te bereiken (breedte eerst, met `sloepPast` zoals de boot zelf vaart), en met het roer naast de paal gaat hij open.
+  Verder test hij het invullen met de echte toetsen: N, 1–6 en het numerieke toetsenbord, backspace, een zevende cijfer dat opnieuw
+  begint, en met de GPS in de hand kiest een cijfer geen wapen. Elke stap staat als foto in `docs/screenshots/cache_gps_<n>.png`.
+- *Mis gegaan in de proef:*
+  - De eerste ronde zei dat cache 4 vanuit de boot niet openging, terwijl de boot tot op 4 m kwam. js/boot.js zet Erik pas in
+    `update` aan het roer, achter in de sloep. De proef riep dat niet aan, dus Erik stond nog bij Radio Tinga. Nu legt hij de boot
+    met het roer naast de paal.
+  - `geocachetest` liep daar langs, omdat Erik daar al naast de paal stond. Ook zocht die proef de som van cache 2 op één regel;
+    nu leest hij het hele raadsel.
+
+*Proeven*: `npm run yugosneltest` (shift+Y vanuit vrij spelen en vanuit een auto midden in missie 3, het zwart, aan tafel zonder
+wapen met de klok stil, een tweede shift+Y doet niets, X naar buiten), `npm run shotguntijdtest`, `npm run cachenalooptest`, en
+`geocachetest` en `shotguntest` opnieuw.
+
 **Missie 18: je eigen Ferrari niet zelf kapotschieten (stap 210, 17 okt).** Gemeld: "In de laatste missie kan ik mijn eigen
 Ferrari kapot schieten." Zat je erin, dan ging de kogel er al doorheen (de auto waar je in zit staat niet bij de doelen, sinds 20
 sep); maar stond je ernaast, zoals in het gevecht bij de loods, dan telde elke kogel tien punten en brandde hij na tien schoten uit.

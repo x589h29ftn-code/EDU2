@@ -540,13 +540,19 @@ export class Vehicles {
   }
 
   // De instanced meshes zelf, om op te schieten (raycast) — zie js/main.js.
-  doelen() {
+  // (stap 211) `binnen(x, z, r)`: alleen wat in de baan van het schot kan liggen — een stapel als één van zijn auto's erin staat,
+  // een losse auto op zijn midden met een straal die ruim om de langste soort heen gaat (js/main.js, het pompgeweer)
+  doelen(binnen = null) {
     const uit = [];
-    for (const k of Object.keys(this.stapels)) uit.push(...this.stapels[k].stapel.alle);
-    for (const c of this.cars) if (c.mesh) uit.push(c.mesh);
+    const wp = (m) => { const e = m.matrixWorld.elements; return [e[12], e[14]]; };
+    for (const k of Object.keys(this.stapels)) {
+      const st = this.stapels[k];
+      if (!binnen || st.autos.some(c => c && binnen(c.x, c.z, 4))) uit.push(...st.stapel.alle);
+    }
+    for (const c of this.cars) if (c.mesh && (!binnen || binnen(...wp(c.mesh), 7))) uit.push(c.mesh);
     // het rijdende verkeer hoort er ook bij: daar zat geen kogel in te krijgen,
     // en juist daar zit een bestuurder die er op kan reageren (zie schrikAf)
-    for (const t of this.traffic) if (t.mesh.visible) uit.push(t.mesh);
+    for (const t of this.traffic) if (t.mesh.visible && (!binnen || binnen(...wp(t.mesh), 7))) uit.push(t.mesh);
     return uit;
   }
 

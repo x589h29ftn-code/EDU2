@@ -107,6 +107,7 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + \\** | Bouwman schaduwen (de toets daar weer rechts van; op een Europees toetsenbord ook **shift + <**) |
 | **shift + .** | de bijmissie No Mercy 4 (meteen bij Erik Jan aan de waterzuivering) |
 | **shift + ,** | de bijmissie No Mercy 5 (meteen bij Erik Jan op de kade in IJlst) |
+| **shift + Y** | sushi bij Yugo met Johan (meteen aan tafel, ook vóór Johan het voorstelt; X om weg te gaan) |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de
@@ -983,6 +984,14 @@ De GPS houd je in je linkerhand, als een echt geel handapparaat met een verlicht
 zolang je hem vasthoudt is het wapen weg en schiet je niet. Klikken, **R**, een ander wapen kiezen of **H** stopt de GPS weg en je
 pakt je wapen weer (die klik schiet nog niet). Met de **rechtermuisknop** houd je hem dichterbij om het raadsel te lezen. Binnen, in de
 drone, in de Tiger, op de bank en in een filmbeeld stop je hem vanzelf weg; in de auto en in de boot mag hij mee.
+
+Tik per regel drie cijfers: eerst de drie na de N, dan de drie na de E (komt er 45 uit, dan tik je 045). Wat je onderweg leest,
+onthoudt de GPS voor je: wat er op het bordje bij de vishandel stond, en de letter en het cijfer uit elk logboek staan bij de finale
+op het scherm. Kom je er niet uit, druk dan **E** bij Sjors: bij elke cache heeft hij een hint die het raadsel oplost.
+
+| Het raadsel van cache 2 | De finale, met de logboeken |
+|---|---|
+| ![Cache 2 in de GPS](docs/screenshots/cache_gps_2_doel.png) | ![Cache 5 in de GPS](docs/screenshots/cache_gps_5.png) |
 
 ![De GPS in je hand](docs/screenshots/cache_gps.png)
 
