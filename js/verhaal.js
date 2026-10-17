@@ -10278,18 +10278,40 @@ export function initVerhaal(ctx) {
       zeg(AVOND_LUIFEL, avondLanden, { auto: 2.8 });
     }
   }
+  /*
+   Waar de heli bij het Autohuis landt: vrij van botsdozen én (17 okt, gemeld: "als je naar beneden gaat met de heli land ik bij
+   de autogarage in het water") op het droge, met een ring van AVOND_LAND_DROOG m droog land eromheen, zodat ook wie uitstapt niet
+   in het water staat. Dichtbij het voorterrein eerst.
+  */
+  const AVOND_LAND_DROOG = 8;
+  function droogRond(x, z, r) {
+    if (pointInWater(x, z)) return false;
+    for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8; if (pointInWater(x + Math.cos(a) * r, z + Math.sin(a) * r)) return false; }
+    return true;
+  }
   function landPlek() {
     const g = garage && garage(), af = g && g.plekken && g.plekken.aflever;
     const m = af ? { x: af[0].x + 12, z: (af[0].z + af[af.length - 1].z) / 2 } : { x: 775, z: 136 };
-    for (let r = 0; r < 60; r += 3) {
-      for (let k = 0; k < 12; k++) {
-        const a = k * Math.PI / 6, x = m.x + Math.cos(a) * r, z = m.z + Math.sin(a) * r;
+    for (let r = 0; r < 120; r += 3) {
+      for (let k = 0; k < 24; k++) {
+        const a = k * Math.PI / 12, x = m.x + Math.cos(a) * r, z = m.z + Math.sin(a) * r;
         const [rx, rz] = resolveCollisions(x, z, 5);
-        if (Math.hypot(rx - x, rz - z) < 0.01) return { x, z };
+        if (Math.hypot(rx - x, rz - z) < 0.01 && droogRond(x, z, AVOND_LAND_DROOG)) return { x, z };
         if (r === 0) break;
       }
     }
     return m;
+  }
+  // een vrije, droge plek bij (x, z): eerst daar, dan in ringen eromheen (uitstappen, Mark en Johan bij de auto)
+  function droogBij(x, z, straal = 0.4) {
+    for (let r = 0; r <= 12; r += 0.75) {
+      for (let k = 0; k < (r ? 16 : 1); k++) {
+        const a = k * Math.PI / 8;
+        const [rx, rz] = resolveCollisions(x + Math.cos(a) * r, z + Math.sin(a) * r, straal);
+        if (!pointInWater(rx, rz)) return [rx, rz];
+      }
+    }
+    return resolveCollisions(x, z, straal);
   }
   function avondLanden() {
     fase = 'landen';
@@ -10319,7 +10341,7 @@ export function initVerhaal(ctx) {
     grondvuur.ruim();                          // (ook na laden of opnieuw: geen tracers van de heli meer in de lucht; stap 138)
     player.zit = false;
     const n = h.deurNormaal();
-    const [px, pz] = resolveCollisions(h.pos.x + n.x * 3, h.pos.z + n.z * 3, 0.4);
+    const [px, pz] = droogBij(h.pos.x + n.x * 3, h.pos.z + n.z * 3);
     player.pos.set(px, grondHoogte(px, pz), pz); player.vy = 0;
     player.pitch = 0;
     // de auto: een zwarte Ferrari bij het Autohuis
@@ -10330,9 +10352,9 @@ export function initVerhaal(ctx) {
     avondAuto.driveable = true; avondAuto.zichtbaar = true;
     player.yaw = kijkHoek(player.pos, avondAuto);
     player.applyCamera();
-    const [mx, mz] = resolveCollisions(ap.x + 2.2, ap.z - 1.5, 0.4);
+    const [mx, mz] = droogBij(ap.x + 2.2, ap.z - 1.5);
     mark.zetNeer(mx, mz, kijkHoek({ x: mx, z: mz }, player.pos)); markZichtbaar(true);
-    const [jx, jz] = resolveCollisions(ap.x + 2.4, ap.z + 1.2, 0.4);
+    const [jx, jz] = droogBij(ap.x + 2.4, ap.z + 1.2);
     invalJohan.zetNeer(jx, jz, kijkHoek({ x: jx, z: jz }, player.pos)); invalJohan.groep.visible = true;
     spanning = true; spanningUit = 0;
     // zonder kogels is het gevecht bij de loods niet te doen: Johan heeft een doos bij zich
@@ -13742,6 +13764,8 @@ export function initVerhaal(ctx) {
         handlangers, vuurwerk, schud: avondBrug ? avondBrug.schud || 0 : 0, rijStijl: AVOND_RIJ,
         tops: { heli: AVOND_HELI_TOP, vlucht: AVOND_VLUCHT_TOP }, leven: AVOND_LEVEN, mg: AVOND_MG, oneindig: AVOND_ONEINDIG,
         muziek: () => muziekVanDeIntro(), heliAfstand: () => heliRondAfstand(),
+        // (17 okt) de landingsplek bij het Autohuis, voor tools/helilandtest.mjs
+        landPlek: () => landPlek(), landDroog: AVOND_LAND_DROOG, naLanden: () => naLanden(),
       };
     },
     // racen voor geld, voor tools/geldracetest.mjs

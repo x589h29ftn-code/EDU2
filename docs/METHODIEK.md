@@ -9317,6 +9317,17 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Missie 18: de heli landt niet meer in het water (stap 208, 17 okt).** Gemeld: "Laatste missie, als je naar beneden gaat met de
+heli, land ik bij de autogarage in het water. Fix dit en check op dit probleem." `landPlek` in js/verhaal.js zocht vanaf het
+voorterrein van het Autohuis de eerste plek zonder botsdozen, en keek niet naar water; Erik stapte 3 m van de deur uit, ook zonder
+die controle. Nu: de landingsplek moet droog zijn met een ring van `AVOND_LAND_DROOG` (8 m) droog land eromheen (`droogRond`),
+en Erik, Mark en Johan komen op de dichtstbijzijnde vrije, droge plek (`droogBij`). Nagelopen in dezelfde missie: de plek van de
+Ferrari, het landen beeld voor beeld, laden in die fase, en de posten van het gevecht bij de loods aan het water.
+
+*Proef*: `npm run helilandtest` (de oude plek nagerekend ter vergelijking; de nieuwe droog met droog land rondom en bij het
+Autohuis; het landen beeld voor beeld nooit laag boven water; Erik, Mark, Johan en de Ferrari op het droge, ook na laden; geen
+post bij de loods in het water).
+
 **Geen GPS in de derde persoon (stap 207, 17 okt).** Gevraagd: "In de derde persoon kan je de GPS van de cache ook gebruiken,
 o.a. als je in de auto de derde persoon doet; dit moet niet." Het toestel hangt aan de camera (stap 197); met de camera achter Erik
 of achter de auto zweefde het in de lucht. `magVasthouden` in js/geocache.js kent nu ook de derde persoon (`derde: () => derde.aan`

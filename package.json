@@ -111,6 +111,7 @@
     "tankradiotest": "node tools/tankradiotest.mjs 8123",
     "politievuurtest": "node tools/politievuurtest.mjs 8123",
     "gpsderdetest": "node tools/gpsderdetest.mjs 8123",
+    "helilandtest": "node tools/helilandtest.mjs 8123",
     "yugotest": "node tools/yugotest.mjs 8123",
     "yugoshots": "node tools/yugoshots.mjs 8123",
     "betatest": "node tools/betatest.mjs",
