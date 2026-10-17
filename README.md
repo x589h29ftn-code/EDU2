@@ -108,6 +108,7 @@ Om missie 7 te bekijken hoefde je eerst zes missies uit te spelen. Dat kan nu in
 | **shift + .** | de bijmissie No Mercy 4 (meteen bij Erik Jan aan de waterzuivering) |
 | **shift + ,** | de bijmissie No Mercy 5 (meteen bij Erik Jan op de kade in IJlst) |
 | **shift + Y** | sushi bij Yugo met Johan (meteen aan tafel, ook vóór Johan het voorstelt; X om weg te gaan) |
+| **shift + G** | de Tinga Cache testen: de eerste keer de GPS met cache 1 (zonder Sjors), daarna naar de plek van de cache waar je bent (bij cache 4 naast de sloep) |
 
 Er komt kort een regel in beeld met de missie die begint. Het verhaal ruimt
 daarbij op wat er van de vorige missie nog stond — een gesprek dat openstond, de

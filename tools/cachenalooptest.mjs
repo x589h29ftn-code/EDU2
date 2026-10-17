@@ -264,6 +264,19 @@ const H = [
 ];
 H.forEach((h, i) => { const wat = h[h.length - 1], res = h.slice(0, -1); ok(res.every(re => re.test(hints[i] || '')), `Sjors bij ${wat}`, hints[i]); });
 
+kop('6. shift+G om te testen (stap 216)');
+await page.evaluate(() => { const C = window.__game.geocache; C.herstel(null); window.__stap(2); });
+await page.keyboard.press('Shift+KeyG'); await page.evaluate(() => window.__stap(2));
+const g1 = await page.evaluate(() => { const C = window.__game.geocache; return { gps: C.stand.gps, intro: C.stand.intro, zicht: C.stand.caches && C.stand.caches[0].zicht }; });
+await page.keyboard.press('Shift+KeyG'); await page.evaluate(() => window.__stap(2));
+const g2 = await page.evaluate(() => { const g = window.__game, c = g.geocache.stand.caches[0], P = g.player; return { af: +Math.hypot(P.pos.x - c.plek.x, P.pos.z - c.plek.z).toFixed(1), nat: window.__W.pointInWater(P.pos.x, P.pos.z) }; });
+await page.evaluate(() => { const C = window.__game.geocache; C.herstel({ gps: true, intro: true, gevonden: 3 }); window.__stap(2); });
+await page.keyboard.press('Shift+KeyG'); await page.evaluate(() => window.__stap(2));
+const g4 = await page.evaluate(() => { const g = window.__game, P = g.player, b = g.boten.ruw(1); return { af: +Math.hypot(P.pos.x - b.x, P.pos.z - b.z).toFixed(1), nat: window.__W.pointInWater(P.pos.x, P.pos.z) }; });
+ok(g1.gps && g1.intro && g1.zicht, 'shift+G: de GPS, Sjors overgeslagen, cache 1 ligt klaar', JSON.stringify(g1));
+ok(g2.af < 4 && !g2.nat, 'nog eens shift+G: naast cache 1', JSON.stringify(g2));
+ok(g4.af < 25 && !g4.nat, 'bij cache 4: op de kant naast de sloep van IJlst', JSON.stringify(g4));
+
 await browser.close();
 console.log(fouten ? `\n${fouten} fout(en)` : '\nalles goed');
 process.exit(fouten ? 1 : 0);

@@ -902,6 +902,16 @@ export function initGeocache(o) {
       if (st.goud && player.wapens && !player.wapens.includes('garand')) geefGoud();
     },
     nieuw() { api.herstel(null); },
+    /*
+     (stap 216, gevraagd: "een snelkoppeling zoals Yugo, voor de geocache om te testen") shift+G: de eerste keer de GPS en het
+     gesprek met Sjors overslaan (cache 1 staat in je GPS); daarna de plek van de cache waar je bent, om erheen te springen.
+    */
+    testStart() {
+      if (!st.gps || !st.intro) { st.gps = true; st.intro = true; bouw(); werkZichtBij(); return { soort: 'start' }; }
+      const c = huidig();
+      if (!c) return { soort: 'klaar' };
+      return { soort: 'naar', nr: c.nr, plek: c.nr === 3 && !c.stap1Gezien && c.stap1 ? c.stap1 : c.plek, water: !!c.plek.paal };
+    },
     // (voor proeven) een cache meteen openen
     __open(nr) { bouw(); const c = caches && caches[nr - 1]; if (c && nr - 1 === st.gevonden) { openCache(c); return true; } return false; },
   };

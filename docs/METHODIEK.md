@@ -9317,6 +9317,17 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Een snelkoppeling voor de geocache, en een eindronde voor het delen (stap 216, 17 okt).** Gevraagd: "Voeg toe dat ik een
+snelkoppeling zoals bij Yugo heb voor de geocache, om te testen", en "ik ga het spel binnenkort met iemand delen: zijn er nog zaken
+die je wilt checken?"
+
+- *shift+G* (`geocache.testStart`): de eerste keer de GPS en het gesprek met Sjors overgeslagen, met cache 1 in de GPS. Daarna
+  springt elke shift+G naar de plek van de cache waar je bent: bij cache 3 eerst naar het bordje, bij cache 4 naar de kade naast
+  de sloep van IJlst (het dichtstbijzijnde droge punt). De scherpte op G luistert niet meer met shift erbij.
+- *De eindronde:* `cachenalooptest`, `overgangtest`, `vloeiendtest`, `opzettest`, `opslagtest` en `yugosneltest`, de proeven die
+  raken aan wat er sinds stap 207 veranderde (de GPS, missies en overgangen, geen nieuwe shaders door de ringen en flyers, het menu
+  met de nieuwe knop, opslaan, Yugo).
+
 **De invoer na cache 2 eenvoudiger, en tennisflyers (stap 215, 17 okt).** Gevraagd: "Gaan de raadsels na cache 2 goed? Maak het
 niet te moeilijk met de invoer" en "Doe ook een paar flyers om te tennissen: 50 euro voor tennissen, durf jij het aan?"
 

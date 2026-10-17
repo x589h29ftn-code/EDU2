@@ -2100,6 +2100,29 @@ window.addEventListener('keydown', e => {
     return;
   }
   // (stap 211) shift+Y: sushi eten bij Yugo met Johan, om te testen (js/yugo.js)
+  // (stap 216) shift+G: de Tinga Cache om te testen — eerst de GPS met cache 1, daarna naar de plek van de huidige cache
+  if (e.code === 'KeyG') {
+    e.preventDefault();
+    if (!geocache || !geocache.testStart) return;
+    politie.reset();
+    const r = geocache.testStart();
+    if (r.soort === 'start') hud.show('Tinga Cache — GPS en cache 1 (N pakt de GPS)', 3.5);
+    else if (r.soort === 'klaar') hud.show('Tinga Cache — alle vijf al gevonden', 3);
+    else {
+      if (player.inCar) { player.inCar.speed = 0; player.inCar = null; }
+      // cache 4 ligt op een paal in het water: naast de sloep van IJlst, die je dan zelf neemt
+      const p = r.water && boten && boten.ruw(1) ? boten.ruw(1) : r.plek;
+      let [x, z] = resolveCollisions(p.x + (r.water ? 0 : 2.5), p.z, 0.4);
+      // niet in het water: het dichtstbijzijnde droge punt (bij de sloep is dat de kade)
+      for (let d = 0.5; d <= 20 && pointInWater(x, z); d += 0.5) for (let i = 0; i < 16; i++) {
+        const a = i / 16 * Math.PI * 2, [qx, qz] = resolveCollisions(p.x + Math.cos(a) * d, p.z + Math.sin(a) * d, 0.4);
+        if (!pointInWater(qx, qz)) { x = qx; z = qz; break; }
+      }
+      player.pos.set(x, grondHoogte(x, z), z); player.applyCamera();
+      hud.show(`Tinga Cache — bij cache ${r.nr}${r.water ? ' (de sloep ligt naast je)' : ''}`, 3);
+    }
+    return;
+  }
   if (e.code === 'KeyY') {
     e.preventDefault();
     politie.reset();
@@ -2203,7 +2226,7 @@ window.addEventListener('keydown', e => {
 
 // Scherpte wisselen (G). Blijft bewaard, zodat je hem maar één keer hoeft te zetten.
 window.addEventListener('keydown', e => {
-  if (e.code !== 'KeyG' || e.ctrlKey || e.metaKey) return;
+  if (e.code !== 'KeyG' || e.ctrlKey || e.metaKey || e.shiftKey) return;      // (shift+G is de geocache, stap 216)
   scherpte = SCHERPTE_RIJ[(SCHERPTE_RIJ.indexOf(scherpte) + 1) % SCHERPTE_RIJ.length];
   localStorage.setItem('tinga.scherpte', scherpte);
   renderer.setPixelRatio(pixelVerhouding(scherpte));
