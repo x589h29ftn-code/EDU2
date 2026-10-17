@@ -31,6 +31,7 @@ import { TIGER } from './tiger.js';
 import { NOMERCY5 } from './nomercy5.js';
 import { WAPEN_LAAG } from './player.js';
 import { rondeDoosGeo } from './wapen.js';
+import { TENNIS } from './tennisspel.js';
 
 export // (16 okt) de meerpaal van cache 4: top boven het water (m), geen land binnen `land` m, wel binnen `zicht` m
 const PAAL = { top: 1.05, land: 3.0, zicht: 9.0 };
@@ -78,6 +79,40 @@ function doek(b, h, teken) {
   teken(c.getContext('2d'), b, h);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
+}
+/*
+ (stap 215, gevraagd: "doe ook een paar flyers om te tennissen: 50 euro voor tennissen, durf jij het aan?") De flyer van het
+ tennispark: hangt naast de posters van de Tinga Cache (de balie van de BP, het prikbord bij Radio Tinga, de eettafel thuis), maar
+ vanaf het begin van het spel, want tennis kan altijd.
+*/
+export function tekenTennisFlyer(g, b, h) {
+  g.fillStyle = '#f7f3e8'; g.fillRect(0, 0, b, h);
+  g.fillStyle = '#c4572f'; g.fillRect(0, 0, b, h * 0.22);                 // gravel
+  g.strokeStyle = '#f7f3e8'; g.lineWidth = b * 0.012; g.strokeRect(b * 0.06, h * 0.03, b * 0.88, h * 0.16);
+  g.fillStyle = '#ffffff'; g.font = `900 ${b * 0.16}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('TENNIS', b / 2, h * 0.11);
+  // een racket en een bal
+  g.save(); g.translate(b * 0.38, h * 0.37); g.rotate(-0.5);
+  g.strokeStyle = '#1f2a44'; g.lineWidth = b * 0.018;
+  g.beginPath(); g.ellipse(0, -b * 0.06, b * 0.09, b * 0.12, 0, 0, Math.PI * 2); g.stroke();
+  g.save(); g.beginPath(); g.ellipse(0, -b * 0.06, b * 0.085, b * 0.115, 0, 0, Math.PI * 2); g.clip();   // de snaren binnen het blad
+  g.lineWidth = b * 0.004; g.strokeStyle = '#8a8f99';
+  for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(i * b * 0.024, -b * 0.17); g.lineTo(i * b * 0.024, b * 0.05); g.stroke(); g.beginPath(); g.moveTo(-b * 0.09, -b * 0.06 + i * b * 0.03); g.lineTo(b * 0.09, -b * 0.06 + i * b * 0.03); g.stroke(); }
+  g.restore();
+  g.fillStyle = '#1f2a44'; g.fillRect(-b * 0.014, b * 0.06, b * 0.028, b * 0.16);
+  g.restore();
+  g.fillStyle = '#d8e83a'; g.beginPath(); g.arc(b * 0.68, h * 0.33, b * 0.055, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#ffffff'; g.lineWidth = b * 0.008; g.beginPath(); g.arc(b * 0.64, h * 0.33, b * 0.05, -1, 1); g.stroke();
+  g.fillStyle = '#c4572f'; g.font = `900 ${b * 0.15}px sans-serif`;
+  g.fillText(`€ ${TENNIS.prijs}`, b / 2, h * 0.56);
+  g.fillStyle = '#1b1b1b'; g.font = `bold ${b * 0.058}px sans-serif`;
+  g.fillText('voor één game tennis', b / 2, h * 0.64);
+  g.font = `italic 900 ${b * 0.075}px sans-serif`;
+  g.fillText('Durf jij het aan?', b / 2, h * 0.73);
+  g.fillStyle = '#c4572f'; g.fillRect(b * 0.08, h * 0.79, b * 0.84, 3);
+  g.fillStyle = '#1b1b1b'; g.font = `${b * 0.046}px sans-serif`;
+  g.fillText('Tennispark Molenkrite', b / 2, h * 0.85);
+  g.fillText('ga in de gele ring bij de baan · E', b / 2, h * 0.92);
 }
 export function tekenPoster(g, b, h) {
   g.fillStyle = '#f4ead2'; g.fillRect(0, 0, b, h);
@@ -277,6 +312,8 @@ export function initGeocache(o) {
   const matDeksel = new THREE.MeshStandardMaterial({ color: 0x3d4829, roughness: 0.7, metalness: 0.2 });
   const matPaal = new THREE.MeshStandardMaterial({ color: 0x6b6f72, roughness: 0.6, metalness: 0.3 });
   const matPoster = new THREE.MeshStandardMaterial({ map: doek(512, 724, tekenPoster), roughness: 0.85 });
+  const matFlyer = new THREE.MeshStandardMaterial({ map: doek(512, 724, tekenTennisFlyer), roughness: 0.85 });
+  const flyers = [];   // (stap 215) altijd te zien
   function bouwKistje(p) {
     const g = new THREE.Group();
     // (16 okt) op een meerpaal staat het kistje boven op de paal, die van de bodem tot PAAL.top boven het water komt
@@ -314,13 +351,13 @@ export function initGeocache(o) {
     return g;
   }
   // een poster: rechtop (met een `naar` waar hij heen kijkt) of plat op een tafel
-  function poster(x, y, z, { naar = null, plat = false, draai = 0, maat = 0.42 } = {}) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(maat, maat * 724 / 512), matPoster);
+  function poster(x, y, z, { naar = null, plat = false, draai = 0, maat = 0.42, flyer = false } = {}) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(maat, maat * 724 / 512), flyer ? matFlyer : matPoster);
     m.position.set(x, y, z);
     if (plat) { m.rotation.x = -Math.PI / 2; m.rotation.z = draai; }
     else if (naar) m.lookAt(naar.x, y, naar.z);
     scene.add(m);
-    posters.push(m);
+    (flyer ? flyers : posters).push(m);
     return m;
   }
   function bouwPosters() {
@@ -328,6 +365,9 @@ export function initGeocache(o) {
     {
       const [x, z] = bpWereld(4.9, 6.0), [nx, nz] = bpWereld(4.9, 3.0);
       poster(x, 1.05 + 0.3 * 724 / 512 / 2 + 0.02, z, { naar: { x: nx, z: nz }, maat: 0.3 });
+      // de tennisflyer ernaast
+      const [fx, fz] = bpWereld(4.45, 6.0), [gx, gz] = bpWereld(4.45, 3.0);
+      poster(fx, 1.05 + 0.26 * 724 / 512 / 2 + 0.02, fz, { naar: { x: gx, z: gz }, maat: 0.26, flyer: true });
     }
     // 2 · een prikbord op een paal bij de stoep van Radio Tinga
     const sp = o.studio && o.studio.plekken;
@@ -340,6 +380,8 @@ export function initGeocache(o) {
       const paal = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.6, 0.08), matPaal); paal.position.set(p.x, y + 0.8, p.z);
       scene.add(paal); posters.push(paal);
       poster(p.x + dx / L * 0.05, y + 1.35, p.z + dz / L * 0.05, { naar: { x: p.x + dx / L * 5, z: p.z + dz / L * 5 }, maat: 0.5 });
+      // de tennisflyer eronder op hetzelfde prikbord
+      poster(p.x + dx / L * 0.05, y + 0.78, p.z + dz / L * 0.05, { naar: { x: p.x + dx / L * 5, z: p.z + dz / L * 5 }, maat: 0.34, flyer: true });
     }
     // 3 · op de eettafel van de drie woningen die Erik kan kopen (Zeskanter 16, Molenkrite 130c, Koningsspil 20)
     for (const w of o.woningen || []) {
@@ -347,6 +389,7 @@ export function initGeocache(o) {
       if (!/Zeskanter16|Molenkrite130c|Koningsspil20/.test(naam) || !w.plekken || !w.plekken.tafel) continue;
       const t = w.plekken.tafel;
       poster(t.x + 0.18, 0.745, t.z - 0.06, { plat: true, draai: 0.35, maat: 0.21 });
+      poster(t.x - 0.22, 0.746, t.z + 0.1, { plat: true, draai: -0.4, maat: 0.21, flyer: true });
     }
   }
 
@@ -381,7 +424,8 @@ export function initGeocache(o) {
    elkaar (2 + 4 + 3 cijfers), en de GPS rekent het punt uit met de sommen uit het raadsel. Tot hier moest je zelf rekenen en de
    uitkomst als zes cijfers intikken, en wie de antwoorden intikte kwam nergens.
   */
-  const invoerLang = (c) => (c && c.nr === 2 ? 9 : 6);
+  // (stap 215) cache 5: alleen de vier cijfers uit de logboeken, de GPS vult de rest aan
+  const invoerLang = (c) => (c && c.nr === 2 ? 9 : c && c.nr === 5 ? 4 : 6);
   const sommen = (c) => ({ kN: 1944 - c.n.dui, kE: 879 + 15 - c.e.dui });
   function abc(c) {
     const iv = st.invoer;
@@ -399,6 +443,11 @@ export function initGeocache(o) {
       if (!a.klaar) return null;
       const g = uitDelen({ ...c.n, dui: a.nDui }, { ...c.e, dui: a.eDui });
       return om.vanGraden(g.lat, g.lon);
+    }
+    if (c.nr === 5) {
+      if (st.invoer.length < 4) return null;
+      const g5 = uitDelen({ ...c.n, dui: +st.invoer.slice(0, 3) }, { ...c.e, dui: +(st.invoer[3] + c.rest) });
+      return om.vanGraden(g5.lat, g5.lon);
     }
     if (st.invoer.length < 6) return null;
     const vast = (c.nr === 3 && !c.stap1Gezien && c.stap1n) ? { n: c.stap1n, e: c.stap1e } : { n: c.n, e: c.e };
@@ -423,15 +472,16 @@ export function initGeocache(o) {
         'Tik A, B en C in, de GPS rekent:', `${N(c.n)}(${fN})`, `${E(c.e)}(${fE})`];
     }
     if (c.nr === 3) {
-      if (!c.stap1Gezien) return ['Cache 3 · een multi', `Stap 1: ${vol(c.stap1n, c.stap1e)}`, 'Bij Martens Vishandel staat een bordje.', 'Daarop staat waar de cache ligt.'];
+      // (stap 215) welke zes cijfers je intikt, staat erbij: de duizendsten na de N en na de E
+      if (!c.stap1Gezien) return ['Cache 3 · een multi', `Stap 1: ${vol(c.stap1n, c.stap1e)}`, `Tik in: ${drie(c.stap1n.dui)} ${drie(c.stap1e.dui)}`, 'Bij Martens Vishandel staat een bordje: daarop staat waar de cache ligt.'];
       // (stap 211) wat er op het bordje stond blijft in de GPS staan: de melding is na tien tellen weg
-      return ['Cache 3 · stap 2', `Het bordje: ${vol(c.n, c.e)}`, 'Achter de tennishal aan de Lemmerweg.'];
+      return ['Cache 3 · stap 2', `Het bordje: ${vol(c.n, c.e)}`, `Tik in: ${drie(c.n.dui)} ${drie(c.e.dui)}`, 'Achter de tennishal aan de Lemmerweg.'];
     }
-    if (c.nr === 4) return ['Cache 4 · een opdracht', vol(c.n, c.e), 'Bij de molen De Rat in IJlst, op een meerpaal in het water.', 'Te voet kom je er niet bij: de sloep ligt aan de steiger in IJlst.'];
+    if (c.nr === 4) return ['Cache 4 · een opdracht', vol(c.n, c.e), `Tik in: ${drie(c.n.dui)} ${drie(c.e.dui)}`, 'Bij de molen De Rat in IJlst, op een meerpaal in het water.', 'Te voet kom je er niet bij: de sloep ligt aan de steiger in IJlst.'];
     // (stap 211) de logboeken staan in de GPS: de melding met letter en cijfer was na acht tellen weg, soms uren eerder
     const log = caches.slice(0, 4).map((k, i) => `${i + 1}: ${k.letter} ${k.cijfer}`).join('   ');
     return ['Cache 5 · de finale', `Logboeken  ${log}`, `De letters: waar herdenkt Sneek de ${CACHE.letters.join('')} om Sneek?`,
-      `${N(c.n)}[1][2][3]`, `${E(c.e)}[4]${c.rest}`, '[n] = het cijfer uit logboek n.'];
+      'Tik de vier cijfers uit je logboeken in, op volgorde (1, 2, 3, 4). De GPS vult de rest aan.'];
   }
 
   function werkZichtBij() {
@@ -588,6 +638,8 @@ export function initGeocache(o) {
         g.fillText('ABC', x0, y); g.fillText(`A ${vul(a.A, 2)}  B ${vul(a.B, 4)}  C ${vul(a.C, 3)}`, x0 + 34, y); y += 15;
         toon = a.klaar ? [drie(a.nDui), drie(a.eDui)] : ['___', '___'];
       }
+      // (stap 215) cache 5: de eerste drie cijfers na de N, het vierde na de E, en de rest staat er al
+      if (c.nr === 5) { const v = st.invoer.padEnd(4, '_'); toon = [v.slice(0, 3), v[3] + c.rest]; }
       g.fillText('DOEL', x0, y); g.fillText(`N ${vast.n.gr}° ${twee(vast.n.min)}.${toon[0]}`, x0 + 34, y); y += 15;
       g.fillText(`E ${drie(vast.e.gr)}° ${twee(vast.e.min)}.${toon[1]}`, x0 + 34, y); y += 10;
       // de pijl en de afstand
@@ -608,7 +660,7 @@ export function initGeocache(o) {
         if (afstand < CACHE.dichtbij) { g.font = 'bold 12px monospace'; g.fillStyle = '#7a1d12'; g.fillText('DICHTBIJ — ZOEK!', x0 + 100, y + 84); g.fillStyle = '#1b2410'; }
         y += 104;
       } else {
-        g.font = '11px monospace'; g.fillText(c.nr === 2 ? 'tik A, B, C: 2+4+3 cijfers' : 'tik 6 cijfers: N, dan E', x0, y + 22); g.fillText('← backspace wist', x0, y + 37);
+        g.font = '11px monospace'; g.fillText(c.nr === 2 ? 'tik A, B, C: 2+4+3 cijfers' : c.nr === 5 ? 'tik 4 cijfers: logboek 1–4' : 'tik 6 cijfers: N, dan E', x0, y + 22); g.fillText('← backspace wist', x0, y + 37);
         y += 52;
       }
     } else { y += 10; }
@@ -712,7 +764,7 @@ export function initGeocache(o) {
       'A: Mark woont op Molenkrite 15. B: het jaar staat op de bronzen plaat bij de Tiger aan de Sudergoweg. C: Radio Tinga zit op 87.9, dus 879. Tik ze achter elkaar in je GPS, de GPS rekent het punt zelf uit.',
       c.stap1Gezien ? 'Het bordje bij de vishandel geeft je de coördinaten van de tweede stap. De cache ligt achter de tennishal.' : 'Ga eerst naar het bordje bij Martens Vishandel, op het parkeerterrein van de Jumbo.',
       'Cache 4 staat op een meerpaal in het water bij de molen De Rat in IJlst. Te voet kom je er niet bij: de sloep ligt aan de steiger in IJlst, vaar ernaast en druk E.',
-      'S, L, A, G: de Slag om Sneek, bij de Tiger aan de Sudergoweg. Je logboeken staan in je GPS: cijfer 1, 2 en 3 na de N, cijfer 4 na de E, en de laatste twee staan er al.',
+      'S, L, A, G: de Slag om Sneek, bij de Tiger aan de Sudergoweg. Je logboeken staan in je GPS: tik de vier cijfers op volgorde in, de GPS vult de rest aan.',
     ];
     o.zeg([{ wie: 'Sjors', tekst: hints[c.nr - 1] }]);
   }
@@ -732,6 +784,7 @@ export function initGeocache(o) {
     get gps() { return st.gps; },
     get bordje() { return bordje; },
     get posters() { return posters; },
+    get flyers() { return flyers; },
     get sjors() { return sjors; },
     om, raadsel, doel, bouw,
     // (16 okt) sta je bij Sjors? Dan wijkt de R van Roan op dezelfde stoep (js/main.js)

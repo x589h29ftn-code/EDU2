@@ -61,7 +61,7 @@ const schermen = await page.evaluate(() => {
     { naam: '3', gevonden: 2, invoer: '' }, { naam: '3_doel', gevonden: 2, invoer: '123456' },
     { naam: '3_bordje', gevonden: 2, invoer: '', stap1: true }, { naam: '3_bordje_doel', gevonden: 2, invoer: '654321', stap1: true },
     { naam: '4', gevonden: 3, invoer: '' }, { naam: '4_doel', gevonden: 3, invoer: '111222' },
-    { naam: '5', gevonden: 4, invoer: '' }, { naam: '5_doel', gevonden: 4, invoer: '123456' },
+    { naam: '5', gevonden: 4, invoer: '' }, { naam: '5_doel', gevonden: 4, invoer: '1234' },
   ];
   for (const s of stappen) {
     C.herstel({ gps: true, intro: true, gevonden: s.gevonden, invoer: s.invoer, stap1: !!s.stap1 });
@@ -88,7 +88,11 @@ ok(R['3_bordje'].includes(`.${bordN}`) && R['3_bordje'].includes(`.${bordE}`), '
 ok(/Stap 1: N \d+° \d+\.\d{3}\s+E/.test(R['3']) && /vishandel/i.test(R['3']), 'cache 3: stap 1 met de coördinaten van het bordje bij de vishandel', R['3']);
 ok(/sloep/.test(R['4']) && /IJlst/.test(R['4']), 'cache 4: waar de sloep ligt', R['4']);
 const log = schermen.caches.slice(0, 4).every(c => R['5'].includes(`${c.nr}: ${c.letter} ${c.cijfer}`));
-ok(log && R['5'].includes(`[4]${schermen.rest}`) && /logboek n/.test(R['5']), 'cache 5: de logboeken in de GPS, [1][2][3] en [4] uitgelegd', R['5']);
+ok(log && /vier cijfers/.test(R['5']), 'cache 5: de logboeken in de GPS, en je tikt alleen hun vier cijfers in', R['5']);
+// (stap 215) bij cache 3 en 4 staat erbij welke zes cijfers je intikt
+const C3 = schermen.caches[2], C4 = schermen.caches[3], d3 = (x) => String(x).padStart(3, '0');
+ok(R['3_bordje'].includes(`Tik in: ${d3(C3.n.dui)} ${d3(C3.e.dui)}`) && R['4'].includes(`Tik in: ${d3(C4.n.dui)} ${d3(C4.e.dui)}`) && /Tik in: \d{3} \d{3}/.test(R['3']),
+  'cache 3 en 4: "Tik in:" met precies de zes cijfers', `${R['3'].match(/Tik in: \d{3} \d{3}/)} · ${R['3_bordje'].match(/Tik in: \d{3} \d{3}/)} · ${R['4'].match(/Tik in: \d{3} \d{3}/)}`);
 
 kop('3. invullen met de echte toetsen');
 const toetsen = await page.evaluate(() => {
@@ -135,6 +139,18 @@ const c2 = await page.evaluate(() => {
 await page.keyboard.press('KeyN'); await page.evaluate(() => window.__stap(3));
 ok(c2.invoer === '151944879' && c2.af !== null && c2.af < 0.01, '15, 1944 en 879 ingetikt: de GPS wijst precies naar het punt uit het raadsel', `${c2.invoer} → ${c2.af} m`);
 ok(c2.pas.getekend === c2.pas.regels, 'en het raadsel past nog op het scherm', `${c2.pas.getekend}/${c2.pas.regels}, ${c2.pas.letter} px`);
+
+kop('3c. cache 5: vier cijfers (stap 215)');
+await page.evaluate(() => { const C = window.__game.geocache; C.herstel({ gps: true, intro: true, gevonden: 4, invoer: '' }); window.__stap(2); });
+await page.keyboard.press('KeyN'); await page.evaluate(() => window.__stap(3));
+const vier = await page.evaluate(() => window.__game.geocache.stand.caches.slice(0, 4).map(c => c.cijfer).join(''));
+for (const ch of vier) { await page.keyboard.press(`Digit${ch}`); await page.evaluate(() => window.__stap(1)); }
+const c5 = await page.evaluate(() => {
+  const C = window.__game.geocache, c = C.stand.caches[4], d = C.doel();
+  return { invoer: C.stand.invoer, af: d ? +Math.hypot(d.x - c.punt.x, d.z - c.punt.z).toFixed(3) : null, pas: C.teken() };
+});
+await page.keyboard.press('KeyN'); await page.evaluate(() => window.__stap(3));
+ok(c5.invoer === vier && c5.af !== null && c5.af < 0.01 && c5.pas.getekend === c5.pas.regels, 'de vier cijfers uit de logboeken: de GPS wijst precies naar de finale', `${c5.invoer} → ${c5.af} m`);
 
 kop('4. overal bij kunnen');
 const bij = await page.evaluate(async () => {
@@ -211,6 +227,16 @@ const bij = await page.evaluate(async () => {
 });
 for (const b of bij.uit) ok(b.pad > 0 && b.rest !== null && b.rest < 1.7, `${b.wat}: te voet te bereiken vanaf de straat of het pad (${b.straat} m verderop)`, `${b.pad} punten, eindigt ${b.rest} m ervan`);
 ok(bij.boot.gevonden && bij.boot.open4, 'cache 4: met de sloep van IJlst over het water tot naast de paal, en dan E', `${bij.boot.afstand} m van de steiger; ${JSON.stringify(bij.boot)}`);
+
+kop('4b. de tennisflyers (stap 215)');
+const fl = await page.evaluate(() => {
+  const C = window.__game.geocache;
+  const f = C.flyers;
+  return { n: f.length, zicht: f.filter(m => m.visible).length, plat: f.filter(m => Math.abs(m.position.y - 0.746) < 0.01).length,
+    beeld: f[0] && f[0].material.map.image.toDataURL('image/png') };
+});
+if (fl.beeld) writeFileSync('docs/screenshots/tennis_flyer.png', Buffer.from(fl.beeld.split(',')[1], 'base64'));
+ok(fl.n >= 5 && fl.zicht === fl.n && fl.plat >= 3, 'tennisflyers bij de BP, op het prikbord van Radio Tinga en op de eettafel thuis, altijd te zien', JSON.stringify({ n: fl.n, zicht: fl.zicht, opTafel: fl.plat }));
 
 kop('5. de hints van Sjors');
 const hints = await page.evaluate(() => {

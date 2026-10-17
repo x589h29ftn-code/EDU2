@@ -9317,6 +9317,22 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De invoer na cache 2 eenvoudiger, en tennisflyers (stap 215, 17 okt).** Gevraagd: "Gaan de raadsels na cache 2 goed? Maak het
+niet te moeilijk met de invoer" en "Doe ook een paar flyers om te tennissen: 50 euro voor tennissen, durf jij het aan?"
+
+- *Nagelopen:* cache 3 (stap 1 en het bordje) en cache 4 gaven de hele coördinaten, maar je moest zelf zien dat alleen de drie
+  cijfers na de punt van N en E erin moesten. Nu staat er een regel "Tik in: 285 842" met precies die zes cijfers.
+- *Cache 5:* je moest de cijfers uit vier logboeken op [1][2][3] en [4] zetten en de laatste twee zelf overnemen. Nu tik je alleen
+  de vier cijfers uit de logboeken in, op volgorde (`invoerLang` 4), en de GPS vult de rest aan. Op het scherm staat
+  `N 53° 00.66_` / `E 005° 38._65`, en bij het intikken "tik 4 cijfers: logboek 1–4". Ook de hint van Sjors zegt het zo.
+- *Flyers:* `tekenTennisFlyer` (canvas: TENNIS op gravel, een racket en een bal, "€ 50 voor één game tennis", "Durf jij het aan?",
+  "ga in de gele ring bij de baan · E"). Ze hangen naast de posters van de Tinga Cache: op de balie van de BP, onder de poster op het
+  prikbord bij Radio Tinga en op de eettafel van de drie woningen. Dat zijn vijf flyers, en ze hangen er altijd (`flyers`, niet
+  gebonden aan missie 5 zoals de posters). Het materiaal bestaat vanaf het opstarten.
+
+*Proeven*: `cachenalooptest` ("Tik in:" met precies de zes cijfers bij cache 3 en 4, de vier logboekcijfers met de echte toetsen
+precies naar de finale, de flyers; foto `tennis_flyer.png`) en `geocachetest` (cache 5 met vier cijfers).
+
 **Geen motorgeluid na No Mercy, een ingang voor de tennis, meer opgeslagen spellen (stap 214, 17 okt).** Gemeld: "Als ik doorga van
 de auto naar de missie No Mercy blijft het autogeluid hangen", "Geef een betere ingang aan voor tennis, het is nu een willekeurig stuk
 hekwerk waar je moet staan" en "Zorg dat je ook meerdere saved games kunt maken".

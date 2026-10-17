@@ -279,7 +279,7 @@ const vijf = await page.evaluate(() => {
   if (Bt.inBoot) Bt.herstel({});
   // 5: de cijfers uit de logboeken
   const c5 = st().caches[4], cs = st().caches.slice(0, 4).map(c => c.cijfer).join('');
-  tik(cs + st().rest);
+  tik(cs);                    // (stap 215) alleen de vier cijfers uit de logboeken; de GPS vult de rest aan
   const d5 = C.doel();
   uit.doel5 = d5 ? +Math.hypot(d5.x - c5.punt.x, d5.z - c5.punt.z).toFixed(2) : null;
   uit.letters = st().caches.slice(0, 4).map(c => c.letter).join('');

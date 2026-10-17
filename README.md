@@ -908,7 +908,7 @@ Buiten de missies is er meer te doen.
 - **Pizza bezorgen.** Bij Pizzeria Sneek (bij de Jumbo in Tinga) en Cappadocia (bij de Jumbo aan de Lemmerweg) geeft
   E een bezorgrit: een adres verderop, een paarse route en een tijd. Neem de scooter voor de deur of je eigen auto, stop
   bij de deur en druk E: € 40 plus een fooi tot € 30. Te laat is de pizza koud en krijg je niets.
-- **Tennis.** Aan het hek van een baan op het tennispark ligt een gele ring met een bordje "TENNIS" ernaast: ga in de ring staan en druk E voor een game. Sla met E of de muis op het moment dat de bal
+- **Tennis.** Aan het hek van een baan op het tennispark ligt een gele ring met een bordje "TENNIS" ernaast: ga in de ring staan en druk E voor een game. Flyers ("€ 50 voor één game tennis — durf jij het aan?") hangen bij de BP, op het prikbord van Radio Tinga en op je eettafel. Sla met E of de muis op het moment dat de bal
   bij je racket is; de meter onderin helpt. Win de game voor € 50.
 - **Martens Vishandel** staat van 9 tot 18 uur op het parkeerterrein van de Jumbo aan de Molenkrite: een portie
   kibbeling kost € 20 en geeft 25 leven.
@@ -986,7 +986,8 @@ pakt je wapen weer (die klik schiet nog niet). Met de **rechtermuisknop** houd j
 drone, in de Tiger, op de bank en in een filmbeeld stop je hem vanzelf weg; in de auto en in de boot mag hij mee.
 
 Meestal tik je zes cijfers: de drie na de N, dan de drie na de E. Bij het raadsel van cache 2 tik je de antwoorden zelf in, A, B en
-C achter elkaar (bijvoorbeeld 15, 1944 en 879 als 151944879), en de GPS rekent het punt uit. Wat je onderweg leest,
+C achter elkaar (bijvoorbeeld 15, 1944 en 879 als 151944879), en de GPS rekent het punt uit. Bij cache 3 en 4 staat in de GPS welke zes cijfers je intikt
+("Tik in: …"), en bij de finale tik je alleen de vier cijfers uit je logboeken in. Wat je onderweg leest,
 onthoudt de GPS voor je: wat er op het bordje bij de vishandel stond, en de letter en het cijfer uit elk logboek staan bij de finale
 op het scherm. Kom je er niet uit, druk dan **E** bij Sjors: bij elke cache heeft hij een hint die het raadsel oplost.
 
