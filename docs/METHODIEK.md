@@ -9317,6 +9317,19 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Alle missies nagelopen op water (stap 209, 17 okt).** Gevraagd: "Check een paar andere missies, zoals met de boot enzovoort."
+`npm run natplektest` haalt uit js/verhaal.js zelf welke fasen elke `hervat…` kent (wat er na het laden gebeurt), plus de eerste
+vijf missies en vrij spelen: 113 fasen. Per fase laadt hij het verhaal en meet meteen en acht tellen later (na een zwart beeld): Erik
+te voet of in een auto niet in het water (in een boot mag het), en Mark en Johan, als ze te zien zijn en niet in een boot staan,
+ook niet. Daarbij de wal van beide ligplaatsen (Geeuw en IJlst). Alles droog; er hoefde niets te veranderen.
+
+- *Mis gegaan in de proef:* de eerste ronde gaf zeven fouten, allemaal op hetzelfde punt (−1187, 910): na de fasen van missie 8
+  haalde de proef Erik uit de sloep, en hij bleef op het water staan; missie 9 en 10 verplaatsen hem bij het laden niet (in het
+  spel zet de opslag hem op zijn bewaarde plek). Nu begint elke fase op het droge beginpunt. En de naam `watertest` was al van de
+  politieboot (stap 127): die is teruggezet, de nieuwe heet `natplektest`.
+- Niet in deze proef: No Mercy 5 (de overtocht) meet `nomercy5test` al sinds stap 174, en uitstappen uit een boot zoekt sinds stap
+  182 een droge plek met marge (`walVrij` in js/boot.js).
+
 **Missie 18: de heli landt niet meer in het water (stap 208, 17 okt).** Gemeld: "Laatste missie, als je naar beneden gaat met de
 heli, land ik bij de autogarage in het water. Fix dit en check op dit probleem." `landPlek` in js/verhaal.js zocht vanaf het
 voorterrein van het Autohuis de eerste plek zonder botsdozen, en keek niet naar water; Erik stapte 3 m van de deur uit, ook zonder
