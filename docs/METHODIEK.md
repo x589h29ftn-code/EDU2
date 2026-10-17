@@ -9317,6 +9317,40 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Yugo met uitleg en sneller door, en de nacht niet meer licht bij regen (stap 212, 17 okt).** Gemeld: "Leg bij Yugo de eerste
+keer kort uit hoe het werkt. Ik klikte door en daardoor kon ik niks meer bestellen. Zorg ook dat je een nieuwe ronde sneller kan
+starten." En met een foto uit de heli van missie 18: "Het is wel 1:00 's nachts maar behoorlijk lichter ineens, kwam door regen denk
+ik. Misschien dat uitzetten tijdens de missie."
+
+- *Doorklikken:*
+  - Aan tafel bestelde E meteen (`kies(6)` in `toets`), ook als Johan nog praatte en ook als je niets had gekozen. Wie Johans
+    zinnen met E wegklikte, bestelde een lege ronde, en de tablet ging dicht.
+  - Nu klikt E met de tablet open eerst Johan door, en bestelt pas als niemand praat.
+  - Bestellen zonder keuze kan niet meer (6 of E geeft dan "Kies eerst iets…").
+  - Eten met E terwijl Johan praat kan nog steeds.
+- *De eerste keer* (`yugo.keer === 1`, als `eersteKeer` naar `begin`) legt Johan het in twee zinnen uit. Er komt een melding
+  "YUGO · ZO WERKT HET" en op de tablet staat in ronde 1 een gele uitleg. De tweede keer niet meer.
+- *Sneller door:* met een leeg bord (Johan mag nog eten) of in de pauze begint E de volgende ronde (`volgendeNu`, hint "E —
+  volgende ronde"). Na de laatste ronde rondt E af. De standaardtijden blijven, dus wie niets doet zit er nog steeds ongeveer een
+  kwartier (`yugotest`).
+- *De nacht bij regen:* de wolken mengden een vaste grijze kleur door de lucht (`0x8d959c` tot `0x5d666e`), ook om 01:00. De mist
+  neemt de kleur van de onderkant van de lucht, en de regenstrepen (licht, zonder mist, op 0,42) hingen rond de camera. Uit de heli
+  gaf dat een lichte waas over de wijk.
+  - Nu is het grijs per laag hoogstens zo helder als de kleur die het vervangt (`helderheid` in js/sfeer.js). Overdag verandert er
+    niets.
+  - 's Nachts zijn de regenstrepen zwakker (`regenMat.opacity` met de daglichtsterkte).
+  - In de nacht van een missie (het verhaal houdt de klok vast, buiten de dag) zet `werkMissieKlokBij` het weer op helder
+    (`ctx.droogWeer`). Buiten een missie mag het 's nachts gewoon regenen.
+- *Mis gegaan in de proef:*
+  - De eerste ronde drukte E na de laatste hap terwijl de stokjes nog terugkwamen (0,28 s). Dan pakt E niets; de proef wacht nu even.
+  - Het eerste beeld 's nachts van een nieuwe plek vertaalde 40 programma's: dat is open punt 30, niet het weer. De proef tekent die
+    plek nu eerst één keer.
+
+*Proeven*: `npm run yugorondetest` (de uitleg de eerste keer en niet de tweede, E klikt Johan door zonder te bestellen, niets
+bestellen zonder keuze, E naar de volgende ronde met een leeg bord en in de pauze, afronden na ronde 5), `npm run nachtregentest`
+(om 01:00 de mist bij regen niet lichter dan helder, overdag nog grijs, een beeld met regen niet lichter, met foto's `nacht_regen.png`
+en `nacht_helder.png`, de nacht van missie 18 droog, vrij spelen niet, geen nieuw programma), en `yugotest` opnieuw.
+
 **Een snelkoppeling voor Yugo, het pompgeweer sneller, de Tinga Cache nagelopen (stap 211, 17 okt).** Gevraagd: "Bouw een
 snelkoppeling om Yugo te testen. De shotgun lijkt bij schieten lag te veroorzaken, check dit nog even. Loop tot slot de
 geocache-missies nog eens na of alle hints logisch en duidelijk zijn en je overal bij kan. Of je alles goed kan invullen in de GPS en

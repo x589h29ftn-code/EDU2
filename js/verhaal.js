@@ -1500,7 +1500,7 @@ export function initVerhaal(ctx) {
     // missie 9: de drie woningen waar je uit kunt kiezen (js/interieur.js)
     stekken = null,
     // missie 10: na het gesprek met De Veteraan wordt het één uur 's nachts
-    zetUur = null, klokLoopt = null, klokVoorkeur = null,
+    zetUur = null, klokLoopt = null, klokVoorkeur = null, droogWeer = null,
     // het checkpoint na elke missie, en de keuze na het neergaan (js/main.js)
     checkpoint = null, naarCheckpoint = null, naarOpslag = null,
     heeftCheckpoint = () => false, heeftOpslag = () => false, vergrendel = null,
@@ -2707,7 +2707,9 @@ export function initVerhaal(ctx) {
   // ---------- E ----------
   function toets() {
     // (stap 204) aan tafel bij Yugo: E eet met de stokjes (ook als Johan iets zegt), of bestelt als de tablet open staat
-    if (yugoAanTafel() && (balk.hidden || (gesprek && gesprek.auto))) { const y = yugoRuimte(); return y.tabletOpen ? y.kies(6) : y.eet(); }
+    // (stap 212) met de tablet open klikt E eerst Johan door; pas als niemand praat bestelt E
+    if (yugoAanTafel() && yugoRuimte().tabletOpen) return balk.hidden ? yugoRuimte().kies(6) : verderInGesprek();
+    if (yugoAanTafel() && (balk.hidden || (gesprek && gesprek.auto))) return yugoRuimte().eet();
     if (yugoBezig()) return balk.hidden ? true : verderInGesprek();
     if (!balk.hidden) return verderInGesprek();
     // in de heli en in het filmbeeld op de brug doet E niets: geen auto 34 m lager instappen (stap 110)
@@ -7418,6 +7420,7 @@ export function initVerhaal(ctx) {
     yugo.fase = 'tafel';
     yugo.keer++;
     y.begin({
+      eersteKeer: yugo.keer === 1,
       zeg: (regels, opties = {}) => zeg(regels.map(r => (r.wie === 'Johan' ? zegtJohan(r.tekst) : r.wie === 'Erik' ? zegtErik(r.tekst) : { wie: r.wie, tekst: r.tekst })), null, opties),
       balkVrij: () => balk.hidden && !gesprek,
       // waar ze het over kunnen hebben: De Veteraan pas na missie 10, en dood na de Dúvelsrak; de films als je erin speelde
@@ -12774,6 +12777,11 @@ export function initVerhaal(ctx) {
     if (klokVastDoorVerhaal()) wil = false;
     else if (bezig) { const u = uurNu ? uurNu() : 12; wil = wil && u >= DAG_VAN && u < MISSIE_AVOND; }
     if (klokLoopt() !== wil) klokLoopt(wil);
+    /*
+     (stap 212, gevraagd: "het is wel 1:00 's nachts maar behoorlijk lichter ineens, kwam door regen denk ik; misschien dat uitzetten
+     tijdens de missie") In de nacht van een missie (het verhaal houdt de klok vast, buiten de dag) regent het niet.
+    */
+    if (droogWeer && bezig && klokVastDoorVerhaal() && uurNu) { const u = uurNu(); if (u < DAG_VAN || u >= MISSIE_AVOND) droogWeer(); }
   }
 
   function update(dt) {

@@ -1025,7 +1025,9 @@ en het verlichte logo achter hem. Op tafel staat een tablet. Daarmee bestel je m
 **3** California roll, **4** Crispy ebi roll (samen hoogstens vier plankjes per ronde), **5** een Pornstar Martini, **0** wist je
 keuze, en **6** of **E** bestelt. Johan bestelt natuurlijk meer dan jij. Even later komt de ober met een dienblad uit de keuken en zet
 alles neer. Met **E** pak je met je stokjes een stuk sushi en eet je het op, met **Q** neem je een slok van je cocktail. Allebei
-geven ze wat leven. Johan eet in zijn eigen tempo mee en praat tussendoor. Na vijf rondes, ongeveer een kwartier, vraagt hij de
+geven ze wat leven. Is je bord leeg (of praten jullie na), dan begin je met **E** meteen de volgende ronde. De eerste keer legt
+Johan dat kort uit, en staat het ook op de tablet. Zolang Johan praat, klik je hem met **E** door; bestellen doet E pas daarna, en
+alleen als je iets hebt gekozen. Johan eet in zijn eigen tempo mee en praat tussendoor. Na vijf rondes, ongeveer een kwartier, vraagt hij de
 rekening en trakteert hij. Je kunt altijd weggaan met **X**: "Johan, sorry, maar ik moet morgen vroeg op. Ik ga die kant op." Je
 staat dan weer bij Johan op de oprit. Er speelt een Japans muziekje.
 

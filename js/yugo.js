@@ -79,6 +79,13 @@ export const DRANK = { id: 'martini', naam: 'Pornstar Martini', uitleg: 'vanille
 // ---------- wat Johan zegt aan tafel ----------
 export const YUGO_TEKST = {
   aanTafel: ['Hier zitten we goed. Pak die tablet maar, jij eerst.', 'En niet zuinig doen, Erik. Het zijn maar vijf rondes.'],
+  // (stap 212) de eerste keer legt Johan uit hoe het werkt, en de uitleg staat ook op de tablet en als melding
+  uitleg: ['Eerste keer hier? Op de tablet kies je met 1 tot 4 een plankje sushi, hoogstens vier per ronde. 5 is een Pornstar Martini.',
+    'Met 6 bestel je. Als de ober het brengt, eet je met E, en met Q neem je een slok. Is je bord leeg, dan begin je met E de volgende ronde.'],
+  uitlegKop: 'YUGO · ZO WERKT HET',
+  uitlegTekst: '1–4 sushi kiezen (hoogstens 4) · 5 Pornstar Martini · 0 wissen · 6 bestellen · daarna E eten, Q een slok · bord leeg: E volgende ronde · X weg',
+  leeg: 'Kies eerst iets: 1–4 een plankje sushi, 5 een Pornstar Martini. Dan 6.',
+  sneller: ['Nu al? Prima, ik eet ondertussen gewoon door.', 'Jij hebt haast. Goed, tablet erbij.'],
   opjagen: ['Kom op, ik heb honger. Bestel eens wat.', 'Je hoeft niet het hele menu uit je hoofd te leren, hoor.'],
   voorJou: 'Ik bestel wel voor je. Je moet ergens beginnen.',
   johanBestelt: [
@@ -887,6 +894,8 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
       #yugoTablet .tegel .aantal[hidden] { display: none; }
       #yugoTablet .bestel { display: flex; flex-direction: column; justify-content: center; align-items: center; background: #0c0c0d; color: #fff; }
       #yugoTablet .bestel b { font-size: 18px; letter-spacing: 1px; }
+      #yugoTablet .eerst { background: #fff6d6; border-radius: 6px; font-size: 12px; padding: 6px 8px; margin-top: 8px; color: #333; }
+      #yugoTablet .eerst[hidden] { display: none; }
       #yugoTablet .voet { display: flex; justify-content: space-between; font-size: 12px; color: #555; margin-top: 8px; }
     `;
     document.head.appendChild(stijl);
@@ -896,7 +905,8 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     logo.style.cssText = 'width:60px;height:60px;display:block';
     el.innerHTML = `<div class="scherm"><div class="kop"><span class="terug">‹ Back</span><span class="logo"></span><span class="ronde"></span></div>
       <div class="titel">Yugo Sushi</div><div class="tegels"></div>
-      <div class="voet"><span class="uitleg">1–5 kiezen · 0 wissen · 6 bestellen</span><span class="teller"></span></div></div>`;
+      <div class="eerst">Zo werkt het: kies met 1–4 een plankje sushi (hoogstens 4), met 5 een Pornstar Martini, en bestel met 6 of E. De ober brengt het; dan eet je met E en drink je met Q.</div>
+      <div class="voet"><span class="uitleg">1–4 sushi · 5 drankje · 0 wissen · 6 of E bestellen</span><span class="teller"></span></div></div>`;
     el.querySelector('.logo').appendChild(logo);
     const tegels = el.querySelector('.tegels');
     [...SUSHI, DRANK].forEach((s, i) => {
@@ -923,6 +933,7 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
       a.hidden = !n; a.textContent = n;
     }
     tabletEl.querySelector('.teller').textContent = `${sushiTeller()} van ${Y.maxSushi} plankjes`;
+    tabletEl.querySelector('.eerst').hidden = !(st.eersteKeer && st.ronde === 1);
   }
 
   // ---------- het etentje ----------
@@ -984,7 +995,10 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     player.applyCamera();
     stokjes.visible = true;
     st.stok = { fase: 'rust', t: 0, stuk: null, van: new THREE.Vector3() };
-    zeg(YUGO_TEKST.aanTafel.map(t => ({ wie: 'Johan', tekst: t })), { auto: 4 });
+    st.eersteKeer = !!cb.eersteKeer;
+    const tekst = st.eersteKeer ? [...YUGO_TEKST.aanTafel.slice(0, 1), ...YUGO_TEKST.uitleg] : YUGO_TEKST.aanTafel;
+    zeg(tekst.map(t => ({ wie: 'Johan', tekst: t })), { auto: st.eersteKeer ? 6 : 4 });
+    if (st.eersteKeer && hud && hud.melding) hud.melding(YUGO_TEKST.uitlegKop, YUGO_TEKST.uitlegTekst, 14);
     volgendeRonde();
   }
   function volgendeRonde() {
@@ -996,7 +1010,11 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
   function kies(n) {
     if (!st.actief || st.fase !== 'bestellen') return false;
     if (n === 0) { st.keuze = {}; werkTabletBij(); return true; }
-    if (n === 6) { bestel(); return true; }
+    // (stap 212) niets gekozen: niet bestellen (wie E drukte om Johan door te klikken, bestelde zo een lege ronde)
+    if (n === 6) {
+      if (!sushiTeller() && !st.keuze.martini) { if (hud) hud.show(YUGO_TEKST.leeg, 3); return true; }
+      bestel(); return true;
+    }
     if (n === 5) { st.keuze.martini = (st.keuze.martini || 0) ? 0 : 1; werkTabletBij(); if (geluid && geluid.tikje) geluid.tikje(); return true; }
     const s = SUSHI[n - 1];
     if (!s) return false;
@@ -1061,8 +1079,21 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
   function eet() {
     if (!st.actief || st.stok.fase !== 'rust') return false;
     const s = volgendStuk('jij');
+    if (!s && volgendeNu()) return true;
     if (!s) { if (hud) hud.show(st.fase === 'eten' ? 'Je bord is leeg' : 'Er staat nog niets op tafel', 1.5); return true; }
     st.stok = { fase: 'heen', t: 0, stuk: s, van: stokjes.position.clone() };
+    return true;
+  }
+  /*
+   (stap 212) Sneller door: met een leeg bord (na het eten of in de pauze) begint E meteen de volgende ronde. Johan eet zijn eigen
+   plankjes gewoon verder leeg. Na de laatste ronde is het dan klaar.
+  */
+  const kanVolgende = () => st.actief && (st.fase === 'pauze' || (st.fase === 'eten' && over('jij') === 0 && st.stok.fase === 'rust'));
+  function volgendeNu() {
+    if (!kanVolgende()) return false;
+    if (st.ronde >= Y.rondes) { st.fase = 'pauze'; st.t = st.pauze = 0; return true; }
+    if (st.fase === 'eten') johanZegt(YUGO_TEKST.sneller[st.ronde % 2], 3);
+    volgendeRonde();
     return true;
   }
   // Q: een slok van je cocktail
@@ -1276,6 +1307,9 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
         }
       }
     }
+    // (stap 212) de hint voor de volgende ronde
+    st.hintT = (st.hintT || 0) - dt;
+    if (kanVolgende() && st.hintT <= 0 && hud) { st.hintT = 1.2; hud.show(st.ronde >= Y.rondes ? 'E — afronden' : 'E — volgende ronde', 1.4); }
     werkTabletBij();
   }
   function eind() {
@@ -1301,6 +1335,7 @@ export function initYugo({ scene, player, camera, hud, geluid, Persoon }) {
     begin, eind, kies, eet, drink, werkBij: update,
     get actief() { return st.actief; },
     get tabletOpen() { return st.actief && st.fase === 'bestellen'; },
+    get kanVolgende() { return kanVolgende(); },
     // voor de proef: alle gesprekken, en welke het laatst kwam
     get gesprekken() { return ALLE_GESPREKKEN; },
     kiesGesprek,

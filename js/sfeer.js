@@ -378,6 +378,7 @@ export function initSfeer(ctx) {
 
   // ---------- toepassen ----------
   const MIST_KLEUR = new THREE.Color(0xdfe3e5);
+  const helderheid = (c) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
   function pasToe() {
     const k = meng(uur);
     const nacht = k.kracht < 0.35;
@@ -401,7 +402,13 @@ export function initSfeer(ctx) {
     if (zwaar > 0) {
       const grijs = new THREE.Color(0x8d959c).lerp(new THREE.Color(0x5d666e), Math.max(0, zwaar - 1));
       const f = W3(0, 0.5, 0.75);
-      top.lerp(grijs, f); mid.lerp(grijs, f * 0.9); bot.lerp(grijs, f * 0.8);
+      /*
+       (stap 212) Het grijs van de wolken is niet lichter dan de lucht zelf: het was één vaste kleur, ook 's nachts, dus bij regen
+       om 01:00 werden de lucht en de mist (die de kleur van de onderkant krijgt) lichtgrijs, en hing er een lichte waas over de
+       wijk. Nu krijgt het grijs per laag hoogstens de helderheid van de kleur die het vervangt.
+      */
+      const naar = (c, g) => { const lc = helderheid(c), lg = helderheid(g); return g.clone().multiplyScalar(lg > lc ? lc / lg : 1); };
+      top.lerp(naar(top, grijs), f); mid.lerp(naar(mid, grijs), f * 0.9); bot.lerp(naar(bot, grijs), f * 0.8);
     }
     // de ochtendmist (stap 124) kleurt ook de onderkant van de lucht: een witte waas aan de horizon
     const mist = ochtendMist(uur, weer);
@@ -496,6 +503,8 @@ export function initSfeer(ctx) {
     }
 
     regen.visible = weer === 'regen';
+    // (stap 212) 's nachts lichten de regenstrepen niet op: ze vangen hetzelfde licht als de rest
+    regenMat.opacity = 0.42 * (0.3 + 0.7 * Math.min(1, k.kracht / 1.1));
     sterkte.value = W3(0.16, 0.22, 0.30);
     ctx.onWeer && ctx.onWeer(weer, nacht);
   }

@@ -756,6 +756,8 @@ const verhaal = initVerhaal({
   stekken: () => woningen.filter(w => w.stek),
   // missie 10: "Enkele uren later" is het één uur 's nachts (de sfeer komt verderop)
   zetUur: (u) => { const sf = sfeerNu(); if (sf) sf.uur = u; },
+  // (stap 212) een nacht van een missie zonder regen: meteen helder, en zo houden zolang het verhaal erom vraagt
+  droogWeer: () => { const sf = sfeerNu(); if (sf && (sf.weer !== 'helder' || sf.weerDoel !== 0)) sf.weer = 'helder'; },
   // loopt de klok (sfeer.loopt)? Met een waarde: aan- of uitzetten
   klokLoopt: (v) => { const sf = sfeerNu(); if (!sf) return false; if (v !== undefined) sf.loopt = !!v; return sf.loopt; },
   // wat de speler in de instellingen koos: loopt de klok mee buiten de missies (stap 125)
