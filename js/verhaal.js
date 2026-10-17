@@ -10108,6 +10108,18 @@ export function initVerhaal(ctx) {
   let avondA = null, avondB = null;           // de lijnen: van de loods naar de BP, en van de BP terug
   let avondRit = null;                        // { st, lijn, auto, top, wachtT }
   let avondAuto = null;                       // de zwarte Ferrari bij het Autohuis
+  /*
+   (17 okt, gemeld: "in de laatste missie kan ik mijn eigen Ferrari kapot schieten") Zolang missie 18 loopt is de auto van de
+   avond (de zwarte Ferrari, of de auto waarmee je de achtervolging rijdt) kogelvrij voor je eigen schoten (`kogelvrij` in
+   js/vehicles.js `hit`): in het gevecht bij de loods schoot je hem anders zelf in brand, en zonder auto kom je niet bij de brug.
+  */
+  let kogelvrijAuto = null;
+  function werkKogelvrijBij() {
+    const wil = missie === 'uitzending' && avondAuto && !avondAuto.wrak ? avondAuto : null;
+    if (kogelvrijAuto && kogelvrijAuto !== wil) kogelvrijAuto.kogelvrij = false;
+    if (wil) wil.kogelvrij = true;
+    kogelvrijAuto = wil;
+  }
   let avondTweede = null;                     // de tweede auto van Bouwman
   let avondMannen = null;                     // de Bewaking bij de loods
   let avondTreffers = 0, avondRaakGezegd = false, avondKwijtT = 0, avondTeVerT = 0, avondHulpT = 0;
@@ -12766,6 +12778,7 @@ export function initVerhaal(ctx) {
 
   function update(dt) {
     werkMissieKlokBij();
+    werkKogelvrijBij();                   // de auto van missie 18 niet zelf kapotschieten (stap 210)
     // Het spannende deuntje loopt precies zolang de achtervolging duurt: het
     // stopt als je hem pakt, als je hem neerschiet en als je neergaat.
     geluid.jacht(missie === 'johan' && fase === 'achtervolging' && doodT <= 0 && misluktT <= 0);
@@ -13766,6 +13779,8 @@ export function initVerhaal(ctx) {
         muziek: () => muziekVanDeIntro(), heliAfstand: () => heliRondAfstand(),
         // (17 okt) de landingsplek bij het Autohuis, voor tools/helilandtest.mjs
         landPlek: () => landPlek(), landDroog: AVOND_LAND_DROOG, naLanden: () => naLanden(),
+        // (stap 210) de auto die nu kogelvrij is
+        get kogelvrij() { return kogelvrijAuto; },
       };
     },
     // racen voor geld, voor tools/geldracetest.mjs

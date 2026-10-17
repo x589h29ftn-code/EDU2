@@ -9317,6 +9317,16 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Missie 18: je eigen Ferrari niet zelf kapotschieten (stap 210, 17 okt).** Gemeld: "In de laatste missie kan ik mijn eigen
+Ferrari kapot schieten." Zat je erin, dan ging de kogel er al doorheen (de auto waar je in zit staat niet bij de doelen, sinds 20
+sep); maar stond je ernaast, zoals in het gevecht bij de loods, dan telde elke kogel tien punten en brandde hij na tien schoten uit.
+Zonder auto kom je niet bij de Dúvelsrak. Nu is de auto van de avond (de zwarte Ferrari, of de auto waarmee je de achtervolging rijdt)
+zolang missie 18 loopt `kogelvrij` (`werkKogelvrijBij` bovenaan `update` in js/verhaal.js): een kogel geeft nog een gat en een klap,
+maar `vehicles.hit` trekt er geen schade meer af. Na de missie gaat de vlag eraf; elke andere auto gaat gewoon kapot.
+
+*Proef*: `npm run kogelvrijtest` (na het landen kogelvrij, dertig echte schoten raak zonder schade, een gewone auto gaat wel
+kapot, met een andere auto in de achtervolging is díe kogelvrij, in vrij spelen niets).
+
 **Alle missies nagelopen op water (stap 209, 17 okt).** Gevraagd: "Check een paar andere missies, zoals met de boot enzovoort."
 `npm run natplektest` haalt uit js/verhaal.js zelf welke fasen elke `hervat…` kent (wat er na het laden gebeurt), plus de eerste
 vijf missies en vrij spelen: 113 fasen. Per fase laadt hij het verhaal en meet meteen en acht tellen later (na een zwart beeld): Erik

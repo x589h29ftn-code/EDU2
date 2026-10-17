@@ -1590,7 +1590,9 @@ export class Vehicles {
       return null;
     }
     for (let p = mesh; p; p = p.parent) {
-      for (const c of this.cars) if (c.mesh === p) { c.hp -= 10; return c; }
+      // (17 okt) `kogelvrij`: de auto van een missie (de zwarte Ferrari van missie 18) krijgt wel een gat en een klap, maar geen
+      // schade van je eigen kogels; anders schoot je hem in het gevecht bij de loods zelf in brand en zat je vast
+      for (const c of this.cars) if (c.mesh === p) { if (!c.kogelvrij) c.hp -= 10; return c; }
       // rijdend verkeer: die auto's zitten niet in `cars` en gaan niet stuk, maar
       // de bestuurder geeft wel gas om weg te komen
       for (const t of this.traffic) if (t.mesh === p) {
