@@ -970,7 +970,7 @@ In Tinga en IJlst liggen **vijf caches** verstopt. Op de balie van de BP-shop, o
 thuis hangt de poster. Koop aan de kassa van de BP een **GPS** (3, € 250): de medewerker stuurt je naar **Sjors van Radio Tinga**,
 die op de stoep voor de studio staat (de oranje S op de kaart). Hij legt het uit en zet de eerste cache in je GPS.
 
-Met **N** pak je de GPS: je eigen coördinaten, het doel, een pijl en de afstand, en het raadsel. De coördinaten van de volgende
+Met **N** pak je de GPS (alleen in de eerste persoon, te voet of in de auto; in de derde persoon blijft hij weg): je eigen coördinaten, het doel, een pijl en de afstand, en het raadsel. De coördinaten van de volgende
 caches moet je zelf vinden en intikken (cijfertoetsen, backspace wist): een raadsel met dingen uit de wereld, een bordje dat je naar
 de tweede stap stuurt, een cache op een meerpaal in het water die je alleen vanuit een boot pakt, en een finale met de letters en cijfers uit de logboeken. De GPS
 brengt je tot op een paar meter; het kistje moet je zelf zoeken (E opent hem). Na elke cache noemt Sjors je op Radio Tinga, en wie

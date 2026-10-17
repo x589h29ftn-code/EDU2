@@ -1059,7 +1059,9 @@ geocache = initGeocache({ scene, player, hud, geluid, KAART, Persoon, studio: st
   // (16 okt) vanaf na missie 5 (de posters hangen er dan pas)
   kan: () => verhaal.na5,
   // (16 okt) in missie 18 zit Sjors in de studio
-  sjorsWeg: () => verhaal.sjorsInStudio });
+  sjorsWeg: () => verhaal.sjorsInStudio,
+  // (17 okt) in de derde persoon (V), te voet en in de auto, geen GPS in de hand
+  derde: () => derde.aan });
 if (geocache) { registreerOpslag('geocache', geocache); statistiek.zetCaches(() => ({ gevonden: geocache.gevonden, totaal: 5 })); }
 // (16 okt) Sjors en de R van Roan staan op dezelfde stoep van Radio Tinga: wie bij Sjors staat, praat met hem
 if (geocache && verhaal.zetRoanWijkt) verhaal.zetRoanWijkt(() => geocache.bijSjorsNu());

@@ -9317,6 +9317,15 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**Geen GPS in de derde persoon (stap 207, 17 okt).** Gevraagd: "In de derde persoon kan je de GPS van de cache ook gebruiken,
+o.a. als je in de auto de derde persoon doet; dit moet niet." Het toestel hangt aan de camera (stap 197); met de camera achter Erik
+of achter de auto zweefde het in de lucht. `magVasthouden` in js/geocache.js kent nu ook de derde persoon (`derde: () => derde.aan`
+uit js/main.js), te voet en in de auto: N weigert met "druk eerst op V", en wie met de GPS in de hand op V drukt, ziet hem in
+hetzelfde beeld verdwijnen (`hand.pak = 0`, niet eerst nog wegzakken). In de auto in de eerste persoon mag hij wel.
+
+*Proef*: `npm run gpsderdetest` (te voet aan, V weg, N in de derde persoon geweigerd met uitleg, in de auto in de derde persoon
+niet en in de eerste wel, V in de auto weg, daarna te voet weer gewoon).
+
 **Yugo vol gasten (stap 206, 16 okt).** Gevraagd: "Laat ook wat andere mensen in Yugo zitten te eten." Er zaten vier gasten
 stil op hun plek; nu achttien: stelletjes aan de tafeltjes langs de bank, vrienden en een gezin met een kind aan de ronde tafels.
 Ieder heeft een plankje sushi voor zich (op het tafelblad, in zijn kijkrichting) en eet met stokjes in zijn rechterhand, een stuk

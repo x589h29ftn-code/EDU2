@@ -502,12 +502,17 @@ export function initGeocache(o) {
   }
   // js/player.js meldt dat de GPS weg is (klikken, herladen, een wapen kiezen, H)
   player.opGpsWeg = () => { if (st.aan) zetAan(false); };
-  // waar je hem niet kunt vasthouden: de drone, de Tiger, binnen, zitten, neergaan, een filmbeeld
+  // waar je hem niet kunt vasthouden: de drone, de Tiger, binnen, zitten, neergaan, een filmbeeld, en (17 okt) de derde persoon,
+  // te voet en in de auto: het toestel hangt aan de camera, dus van achter Erik zweefde het voor je in de lucht
+  const derdeAan = () => !!(o.derde && o.derde());
   function magVasthouden() {
-    return !player.inDrone && !player.inTiger && !player.binnen && !player.zit && !(player.health <= 0) && !document.body.classList.contains('film');
+    return !player.inDrone && !player.inTiger && !player.binnen && !player.zit && !(player.health <= 0) && !document.body.classList.contains('film')
+      && !derdeAan();
   }
   function werkToestelBij(dt) {
     hand.pak = Math.max(0, Math.min(1, hand.pak + (st.aan ? dt : -dt) / GPS3D.pakTijd));
+    // (17 okt) in de derde persoon meteen weg, niet eerst nog wegzakken voor de camera achter Erik
+    if (derdeAan()) hand.pak = 0;
     hand.dicht = Math.max(0, Math.min(1, hand.dicht + ((st.aan && player.gpsDichtbij) ? dt : -dt) / GPS3D.dichtTijd));
     hand.druk = Math.max(0, hand.druk - dt * 8);
     hand.t += dt;
@@ -705,7 +710,10 @@ export function initGeocache(o) {
     // N: aan en uit
     wissel() {
       if (!st.gps) { hud.show(`Je hebt geen GPS: te koop aan de kassa van de BP (€ ${CACHE.prijs}).`, 3); return false; }
-      if (!st.aan && !magVasthouden()) return false;
+      if (!st.aan && !magVasthouden()) {
+        if (derdeAan()) hud.show('De GPS gebruik je in de eerste persoon: druk eerst op V.', 3);
+        return false;
+      }
       bouw();
       zetAan(!st.aan);
       return true;
