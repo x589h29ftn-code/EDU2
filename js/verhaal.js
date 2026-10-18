@@ -1291,11 +1291,13 @@ const UITZENDING_OMHOOG = [zegtErik('En omhoog.')];
  meer (de opname had watermerkgeluidjes): de tekst staat onderin beeld, onder een radiodeuntje. `t`: na zoveel tellen.
 */
 const UITZENDING_ONDERTITELS = [
-  { t: 1.0, duur: 7.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'We onderbreken dit programma voor een mededeling aan heel Sneek.' } },
-  { t: 9.0, duur: 8.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'Vanaf vandaag zijn Erik en Mark de eigenaren van de drugshandel in Tinga.' } },
-  { t: 18.0, duur: 8.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'Wie in Tinga zaken wil doen, weet voortaan bij wie hij moet zijn.' } },
-  { t: 27.0, duur: 7.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'En Erik: van harte gefeliciteerd met je verjaardag!' } },
-  { t: 35.0, duur: 4.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: '♪ En nu weer verder met de muziek.' } },
+  { t: 1.0, duur: 7.0, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'We onderbreken dit programma voor een mededeling aan heel Sneek.' } },
+  { t: 8.5, duur: 6.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'Vanaf vandaag zijn Erik en Mark de eigenaren van de drugshandel in Tinga.' } },
+  { t: 15.5, duur: 6.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'Wie in Tinga zaken wil doen, weet voortaan bij wie hij moet zijn.' } },
+  // (stap 218) de persoonlijke regel van de gebruiker, in twee delen zodat hij goed te lezen is
+  { t: 22.5, duur: 7.0, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'En Erik: van harte gefeliciteerd met je verjaardag! Ik hoop dat je het spel en de missies leuk vond.' } },
+  { t: 30.0, duur: 7.0, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'Het is zo gebouwd dat er nog veel meer te doen is: start het spel hierna gerust nog eens op! Liefs, je Broeder' } },
+  { t: 37.3, duur: 2.6, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: '♪ En nu weer verder met de muziek.' } },
 ];
 const UITZENDING_TERUG = [
   zegtSjors('Wat… wat draait er nou?'),

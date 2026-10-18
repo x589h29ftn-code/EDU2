@@ -297,7 +297,7 @@ const montage = await page.evaluate(() => {
   return { gezien: gezien.size, inMuur: [...inMuur], na, sjors, klaarT, fase: v.fase, film: v.uitzending.film, tekst };
 });
 ok(montage.gezien >= 6, 'alle shots van de montage komen voorbij', `${montage.gezien} shots in ${montage.klaarT.toFixed(1)} s`);
-ok(montage.tekst.length >= 5 && montage.tekst.some(r => /eigenaren van de drugshandel/.test(r)) && montage.tekst.some(r => /gefeliciteerd/.test(r)),
+ok(montage.tekst.length >= 6 && montage.tekst.some(r => /eigenaren van de drugshandel/.test(r)) && montage.tekst.some(r => /gefeliciteerd/.test(r)) && montage.tekst.some(r => /Liefs, je Broeder/.test(r)),
   '(stap 217) de tekst van het fragment onderin beeld, alle regels', montage.tekst.join(' | '));
 ok(montage.inMuur.length === 0, 'geen camera in een muur of een gebouw', montage.inMuur.join(', ') || 'geen');
 ok(montage.na.film === 'terug' && montage.na.dj && montage.sjors === 'Sjors', 'na het fragment: Sjors staat in de deur met zijn koffie', `${montage.na.film}, ${montage.sjors}`);

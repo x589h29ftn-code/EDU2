@@ -9328,6 +9328,11 @@ schone opname heeft, zet die terug in `laadUitzending` en `uitzending`.
 
 *Proef*: `uitzendingtest` (het deuntje van 40 s zonder spraak, de montage even lang, alle regels onderin tijdens het filmbeeld).
 
+*Stap 218:* regel 4 is de persoonlijke regel van de gebruiker geworden, verdeeld over twee regels zodat hij te lezen is: "En Erik:
+van harte gefeliciteerd met je verjaardag! Ik hoop dat je het spel en de missies leuk vond." en "Het is zo gebouwd dat er nog veel
+meer te doen is: start het spel hierna gerust nog eens op! Liefs, je Broeder". Zes regels in 40 s; `uitzendingtest` kijkt of de
+groet erbij staat.
+
 **Een snelkoppeling voor de geocache, en een eindronde voor het delen (stap 216, 17 okt).** Gevraagd: "Voeg toe dat ik een
 snelkoppeling zoals bij Yugo heb voor de geocache, om te testen", en "ik ga het spel binnenkort met iemand delen: zijn er nog zaken
 die je wilt checken?"
