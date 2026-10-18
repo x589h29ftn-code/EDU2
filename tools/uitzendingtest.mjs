@@ -7,7 +7,8 @@
  2. De studio gemeten: het pand aan de Tinga, de ingang aan de straatkant, de mast op het dak, de
     zuil vrij van de deur; binnen het bureau met vijf schermen, twee mengpanelen en twee
     microfoons, de dj op zijn stoel, en een vrije weg van de deur naar de tafel.
- 3. Het fragment: audio/radio/uitzending.mp3 laadt en duurt 40,2 s.
+ 3. Het fragment: sinds stap 217 zonder gesproken tekst (de opname had watermerkgeluidjes): een gemaakt deuntje van 40 s,
+    en de tekst onderin beeld, alle vijf de regels op hun tijd.
  4. Mark belt; de M bij de Wieken 29; binnen het plan met Mark en Johan; naar buiten: "Die nacht…" (de
     avond zelf staat in tools/avondtest.mjs), en daarna zondagochtend.
  5. Bij Radio Tinga: de deur zit dicht tot Johan gebeld heeft; dan een minuut, de dj weg.
@@ -163,7 +164,7 @@ const mp3 = await page.evaluate(async () => {
   await g.geluid.laadUitzending();
   return g.geluid.uitzendingStand();
 });
-ok(mp3.geladen && Math.abs(mp3.duur - 40.2) < 0.4, 'audio/radio/uitzending.mp3 laadt', `${mp3.duur.toFixed(2)} s, ${mp3.kanaal} kanaal`);
+ok(mp3.geladen && Math.abs(mp3.duur - 40) < 0.1 && mp3.spraak === false, '(stap 217) geen gesproken fragment meer: een deuntje van 40 s', `${mp3.duur.toFixed(2)} s`);
 
 // ------------------------------------------------------------------ 4. het telefoontje en het plan
 kop('het telefoontje en het plan');
@@ -265,15 +266,17 @@ ok(lucht.binnen, 'na het telefoontje gaat de deur open');
 ok(/usb-stick/.test(lucht.hint1) && lucht.usb, 'E aan de tafel: de stick in het mengpaneel', lucht.hint1);
 ok(/schuif/.test(lucht.hint2), 'en dan: de rode schuif omhoog', lucht.hint2);
 ok(lucht.fase === 'uitzending' && lucht.film === 'uitzending' && lucht.onAir && lucht.schuif === 1, 'de schuif omhoog, ON AIR brandt, het filmbeeld begint');
-ok(Math.abs(lucht.duur - 40.2) < 0.4 && lucht.shots >= 6, 'de montage duurt zo lang als het fragment', `${lucht.duur.toFixed(1)} s, ${lucht.shots} shots`);
+ok(Math.abs(lucht.duur - 40) < 0.1 && lucht.shots >= 6, 'de montage duurt zo lang als het fragment', `${lucht.duur.toFixed(1)} s, ${lucht.shots} shots`);
 ok((lucht.geluid.speelt || lucht.geluid.wil) && lucht.geluid.gedempt, 'het fragment speelt, en de radio en de muziek zwijgen eronder');
 
 const montage = await page.evaluate(() => {
   const g = window.__game, v = g.verhaal, W = window.__W, st = g.studio, N = st.plekken.nul, M = st.maten;
   const gezien = new Set(), inMuur = new Set(), dt = 0.1;
   let t = 0;
+  const tekst = [];
   while (t < 60 && v.uitzending.film === 'uitzending') {
     window.__stap(1, dt); t += dt;
+    if (!document.getElementById('dialoog').hidden) { const r = document.getElementById('dialoogTekst').textContent; if (!tekst.includes(r)) tekst.push(r); }
     const U = v.uitzending;
     if (U.film !== 'uitzending' || !U.filmCam) continue;
     gezien.add(U.shot);
@@ -291,9 +294,11 @@ const montage = await page.evaluate(() => {
   const sjors = !document.getElementById('dialoog').hidden ? document.getElementById('dialoogNaam').textContent : '';
   const klaarT = t;
   for (let i = 0; i < 200 && v.fase !== 'naarBuiten'; i++) { window.__stap(1, 0.05); if (!document.getElementById('dialoog').hidden) v.toets(); }
-  return { gezien: gezien.size, inMuur: [...inMuur], na, sjors, klaarT, fase: v.fase, film: v.uitzending.film };
+  return { gezien: gezien.size, inMuur: [...inMuur], na, sjors, klaarT, fase: v.fase, film: v.uitzending.film, tekst };
 });
 ok(montage.gezien >= 6, 'alle shots van de montage komen voorbij', `${montage.gezien} shots in ${montage.klaarT.toFixed(1)} s`);
+ok(montage.tekst.length >= 5 && montage.tekst.some(r => /eigenaren van de drugshandel/.test(r)) && montage.tekst.some(r => /gefeliciteerd/.test(r)),
+  '(stap 217) de tekst van het fragment onderin beeld, alle regels', montage.tekst.join(' | '));
 ok(montage.inMuur.length === 0, 'geen camera in een muur of een gebouw', montage.inMuur.join(', ') || 'geen');
 ok(montage.na.film === 'terug' && montage.na.dj && montage.sjors === 'Sjors', 'na het fragment: Sjors staat in de deur met zijn koffie', `${montage.na.film}, ${montage.sjors}`);
 ok(montage.fase === 'naarBuiten' && !montage.film, 'en dan weer zelf: naar buiten', montage.fase);

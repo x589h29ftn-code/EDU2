@@ -306,8 +306,9 @@ kogels aan tot `AVOND_KOGELS`. Dan "Zondagochtend" (07:45, `naarDeStudio`, thuis
 het dak; binnen een losse kamer (`NUL` = gebied + (640, 1250)). Johan wacht bij de ingang; de deur zit
 dicht (`zetSlot`) tot hij belt; dan `UITZENDING_TIJD` (60 s) in `#schaduwbalk`, E aan de tafel
 (`bijTafel`) de stick, E de schuif: het filmbeeld `uitzFilm` met `montageShots` (zeven shots over
-de stad, buiten de botsdozen uit geduwd, elk met een `vast` voor de LOD) zolang `audio/radio/uitzending.mp3`
-duurt (`geluid.uitzending`, 40,2 s; autoradio, huisradio en missiemuziek zwijgen eronder). Te laat:
+de stad, buiten de botsdozen uit geduwd, elk met een `vast` voor de LOD) 40 s lang (`geluid.uitzending`; sinds stap 217
+geen mp3 meer, de opname had watermerkgeluidjes: een gemaakt radiodeuntje `UITZEND_BED` in js/audio.js, en de tekst onderin uit
+`UITZENDING_ONDERTITELS`, vijf regels; autoradio, huisradio en missiemuziek zwijgen eronder; `zetHerhaling` zet alleen nog de vlag). Te laat:
 Sjors komt terug, `mislukt`. Buiten Mark en Johan, € 10.000, "Die avond…" (`startEindFilm`, 20:30, klok
 stil), de titelrol (`#titelrol`, z-index 7 en buiten `#ui`, E slaat over) en `naDeTitelrol`: `missie = 'klaar'`, geen
 volgende missie, `geluid.zetHerhaling(true)` (het fragment in de lijst van Radio Tinga). Opslag:

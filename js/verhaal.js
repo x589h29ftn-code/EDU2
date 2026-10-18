@@ -1205,7 +1205,7 @@ const UITZENDING_OCHTEND = 7.75;        // zondagochtend, kwart voor acht
 const UITZENDING_TIJD = 60;             // zo lang houdt Johan de dj bij de koffie
 const UITZENDING_BELONING = 10000;
 const UITZENDING_AVOND = 22;            // het einde: tien uur 's avonds, donker genoeg voor het vuurwerk (stap 127; was half negen)
-const UITZENDING_DUUR = 40.2;           // het fragment (gemeten aan de mp3-frames); de mp3 zelf wint als hij geladen is
+const UITZENDING_DUUR = 40;             // (stap 217) het deuntje onder de ondertitels (`UITZEND_BED.duur` in js/audio.js)
 const zegtSjors = (tekst) => ({ wie: 'Sjors', kop: { huid: '#e2b896', haar: '#3b2a1c', shirt: '#1d2a44' }, tekst });
 const UITZENDING_TELEFOON = [
   telLijn(zegtMark('Erik. Kom naar de Wieken. Johan heeft iets, en dan zijn we klaar.')),
@@ -1287,13 +1287,15 @@ const UITZENDING_USB = [zegtErik('Erin.')];
 const UITZENDING_OMHOOG = [zegtErik('En omhoog.')];
 /*
  Ondertitels bij het fragment. De gebruiker vertelde wat erin staat ("dat Erik en Mark de eigenaren
- van de drugshandel in Tinga zijn, en Erik gefeliciteerd met je verjaardag"); de woorden zelf zijn niet
- uitgeschreven, dus dit is wat er gezegd wordt, niet woord voor woord. `t`: na zoveel tellen.
+ van de drugshandel in Tinga zijn, en Erik gefeliciteerd met je verjaardag"). Sinds stap 217 is er geen gesproken fragment
+ meer (de opname had watermerkgeluidjes): de tekst staat onderin beeld, onder een radiodeuntje. `t`: na zoveel tellen.
 */
 const UITZENDING_ONDERTITELS = [
-  { t: 1.2, duur: 9, regel: { wie: 'Radio Tinga', tekst: '♪ 87.9 FM · een mededeling voor heel Sneek' } },
-  { t: 12, duur: 13, regel: { wie: 'Radio Tinga', tekst: '…Erik en Mark zijn vanaf vandaag de eigenaren van de drugshandel in Tinga…' } },
-  { t: 27, duur: 12, regel: { wie: 'Radio Tinga', tekst: '…en Erik: van harte gefeliciteerd met je verjaardag!' } },
+  { t: 1.0, duur: 7.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'We onderbreken dit programma voor een mededeling aan heel Sneek.' } },
+  { t: 9.0, duur: 8.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'Vanaf vandaag zijn Erik en Mark de eigenaren van de drugshandel in Tinga.' } },
+  { t: 18.0, duur: 8.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'Wie in Tinga zaken wil doen, weet voortaan bij wie hij moet zijn.' } },
+  { t: 27.0, duur: 7.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: 'En Erik: van harte gefeliciteerd met je verjaardag!' } },
+  { t: 35.0, duur: 4.5, regel: { wie: 'Radio Tinga · 87.9 FM', tekst: '♪ En nu weer verder met de muziek.' } },
 ];
 const UITZENDING_TERUG = [
   zegtSjors('Wat… wat draait er nou?'),

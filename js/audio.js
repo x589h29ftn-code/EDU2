@@ -102,6 +102,14 @@ function knipOpname(buf) {
  de proef of hij speelt. Zolang hij loopt zwijgen de autoradio, de huisradio en de missiemuziek.
 */
 let uitzendBuf = null, uitzendLaden = null, uitzendBron = null, uitzendBegon = 0, uitzendWil = false;
+/*
+ (stap 217, gevraagd: "het Tinga-fragment bevat watermerkgeluidjes: doe het zonder uitgesproken tekst, en zet de tekst onderin")
+ Geen mp3 meer: onder de ondertitels een zacht, gemaakt radiodeuntje (een jingle aan het begin en eind, een rustig akkoordbed
+ ertussen), door hetzelfde radiofilter. `duur` is wat de montage en de ondertitels gebruiken.
+*/
+export const UITZEND_BED = { duur: 40, vol: 0.16, akkoord: 2.5,
+  akkoorden: [[261.6, 329.6, 392.0], [220.0, 261.6, 329.6], [174.6, 220.0, 261.6], [196.0, 246.9, 293.7]],
+  jingle: [523.3, 659.3, 784.0, 1046.5] };
 let uitzendingNu = false;
 // het muziekje van de intro in de heli van missie 18 (stap 119): seconden aanzwellen, seconden uitdoven, volume
 /*
@@ -541,7 +549,9 @@ export const geluid = {
   zetSchotSoort(soort) { schotSoort = soort === 'gemaakt' ? 'gemaakt' : 'opname'; },
 
   // ---------- de uitzending (missie 18) ----------
-  laadUitzending(url = 'audio/radio/uitzending.mp3') {
+  laadUitzending(url = null) {
+    // (stap 217) geen opname meer om te laden: het deuntje wordt gemaakt
+    if (!url) return Promise.resolve(null);
     if (uitzendLaden || !ctx) return uitzendLaden;
     uitzendLaden = (async () => {
       try {
@@ -562,29 +572,44 @@ export const geluid = {
   uitzending(aanzetten) {
     uitzendWil = !!aanzetten;
     if (!aanzetten) {
-      if (uitzendBron) { try { uitzendBron.src.stop(); } catch { /* al gestopt */ } }
-      uitzendBron = null; uitzendingNu = false;
+      if (uitzendBron) for (const o of uitzendBron.bronnen) { try { o.stop(); } catch { /* al gestopt */ } }
+      uitzendBron = null; uitzendingNu = false; uitzendBegon = 0;
       return false;
     }
+    uitzendingNu = true;                     // de radio en de muziek zwijgen eronder, ook zonder geluid
+    if (uitzendBegon === 0 || !uitzendBron) uitzendBegon = ctx ? nu() : 0;
     if (!aan || !ctx) return false;
-    if (!uitzendBuf) { this.laadUitzending(); return false; }
     if (uitzendBron) return true;
-    const src = ctx.createBufferSource(); src.buffer = uitzendBuf;
+    // (stap 217) het deuntje: een jingle, het akkoordbed, en de jingle weer aan het eind
+    const B = UITZEND_BED, t0 = nu() + 0.05, D = B.duur;
     const hi = ctx.createBiquadFilter(); hi.type = 'highpass'; hi.frequency.value = 110;
-    const lo = ctx.createBiquadFilter(); lo.type = 'lowpass'; lo.frequency.value = 7000;
-    const g = ctx.createGain(); g.gain.value = 0.9;
-    src.connect(hi); hi.connect(lo); lo.connect(g); g.connect(hoofd);
-    src.onended = () => { if (uitzendBron && uitzendBron.src === src) { uitzendBron = null; uitzendingNu = false; uitzendWil = false; } };
-    src.start();
-    uitzendBron = { src, gain: g };
-    uitzendBegon = nu(); uitzendingNu = true;
+    const lo = ctx.createBiquadFilter(); lo.type = 'lowpass'; lo.frequency.value = 5000;
+    const g = ctx.createGain(); g.gain.value = 0;
+    hi.connect(lo); lo.connect(g); g.connect(hoofd);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(B.vol, t0 + 1.2);
+    g.gain.setValueAtTime(B.vol, t0 + D - 2); g.gain.linearRampToValueAtTime(0, t0 + D);
+    const bronnen = [];
+    const toon = (f, van, tot, type, vol) => {
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = type; o.frequency.value = f; og.gain.value = 0;
+      og.gain.setValueAtTime(0, van); og.gain.linearRampToValueAtTime(vol, van + Math.min(0.25, (tot - van) / 3));
+      og.gain.setValueAtTime(vol, Math.max(van + 0.05, tot - 0.3)); og.gain.linearRampToValueAtTime(0, tot);
+      o.connect(og); og.connect(hi); o.start(van); o.stop(tot + 0.05); bronnen.push(o);
+    };
+    const jingle = (van) => B.jingle.forEach((f, i) => toon(f, van + i * 0.22, van + i * 0.22 + 0.6, 'sine', 0.35));
+    jingle(t0);
+    for (let a = 1.6, i = 0; a < D - 3; a += B.akkoord, i++) for (const f of B.akkoorden[i % B.akkoorden.length]) toon(f, t0 + a, t0 + Math.min(a + B.akkoord + 0.2, D - 2.5), 'triangle', 0.12);
+    jingle(t0 + D - 2.6);
+    const eind = bronnen[bronnen.length - 1];
+    eind.onended = () => { if (uitzendBron && uitzendBron.bronnen === bronnen) { uitzendBron = null; uitzendingNu = false; uitzendWil = false; } };
+    uitzendBron = { bronnen, gain: g };
+    uitzendBegon = t0;
     return true;
   },
   // (voor het verhaal en tools/uitzendingtest.mjs)
   uitzendingStand() {
-    return { geladen: !!uitzendBuf, duur: uitzendBuf ? uitzendBuf.duration : 0, speelt: !!uitzendBron,
-      tijd: uitzendBron ? nu() - uitzendBegon : 0, wil: uitzendWil, herhaling,
-      gedempt: uitzendingNu, kanaal: uitzendBuf ? uitzendBuf.numberOfChannels : 0 };
+    return { geladen: true, duur: UITZEND_BED.duur, speelt: !!uitzendBron, spraak: false,
+      tijd: uitzendBron ? nu() - uitzendBegon : 0, wil: uitzendWil, herhaling, gedempt: uitzendingNu, kanaal: 0 };
   },
   /*
    Na missie 18 staat het fragment in de afspeellijst van Radio Tinga, tussen de nummers door. Werkt
@@ -595,7 +620,7 @@ export const geluid = {
     const z = zenders.find(q => /tinga/i.test(q.naam || ''));
     if (!z) return herhaling;
     const i = z.nummers.findIndex(n => n.bestand === HERHALING.bestand);
-    if (herhaling && i < 0) z.nummers.push({ ...HERHALING, url: 'audio/radio/' + HERHALING.bestand });
+    // (stap 217) het fragment had watermerkgeluidjes en is weg: niets meer om te herhalen, alleen de vlag blijft
     if (!herhaling && i >= 0) z.nummers.splice(i, 1);
     if (zenders[zenderNu] === z) radioLijst = z.nummers;
     return herhaling;

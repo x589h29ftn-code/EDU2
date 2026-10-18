@@ -9317,6 +9317,17 @@ op. Verder, auto tuning kan je ook bij de balie van de autogarage aanvragen ipv 
 met hekken en rijdend, door de berm en lopend er niet langs, de tuning aan de balie met en zonder auto, de zuil weg);
 `wensen5test` (de tuning, nu aan de balie), `geldracetest` en `bpkassatest` blijven groen.
 
+**De uitzending zonder gesproken tekst (stap 217, 18 okt).** Gemeld: "Het Tinga-fragment dat ik heb geüpload bevat
+watermerkgeluidjes." Gevraagd: "Doe het zonder uitgesproken tekst en zet de tekst onderin." `audio/radio/uitzending.mp3` is uit de
+repo gehaald, dus hij gaat ook niet mee op de dvd. Onder de montage van missie 18 klinkt nu een gemaakt radiodeuntje
+(`UITZEND_BED` in js/audio.js: een jingle aan het begin en aan het eind, en een zacht akkoordbed van C, Am, F en G door hetzelfde
+radiofilter), 40 s lang. De autoradio, de huisradio en de missiemuziek zwijgen eronder (`uitzendingNu`), net als eerst. De
+mededeling staat onderin beeld, in vijf regels op hun tijd (`UITZENDING_ONDERTITELS`). De herhaling op Radio Tinga na het einde
+is er niet meer, want er is geen fragment; `zetHerhaling` zet alleen nog de vlag, zodat de opslag hetzelfde blijft. Wie later een
+schone opname heeft, zet die terug in `laadUitzending` en `uitzending`.
+
+*Proef*: `uitzendingtest` (het deuntje van 40 s zonder spraak, de montage even lang, alle regels onderin tijdens het filmbeeld).
+
 **Een snelkoppeling voor de geocache, en een eindronde voor het delen (stap 216, 17 okt).** Gevraagd: "Voeg toe dat ik een
 snelkoppeling zoals bij Yugo heb voor de geocache, om te testen", en "ik ga het spel binnenkort met iemand delen: zijn er nog zaken
 die je wilt checken?"

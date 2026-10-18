@@ -3250,12 +3250,12 @@ auto parkeer je aan de Molenkrite en loop je het pad op.
   luidsprekers aan het plafond.
 - Ga achter de stoel staan: **E** steekt de stick in het mengpaneel, **E** zet de **rode schuif**
   omhoog. ON AIR gaat branden.
-- Dan **een filmbeeld** van veertig seconden, zo lang als het fragment: het bureau, de mast boven het
+- Dan **een filmbeeld** van veertig seconden: het bureau, de mast boven het
   dak, de BP aan de Lemmerweg, het gat in de Dúvelsrak, het huis van Ronald, Molenkrite 15 met het lint,
-  en hoog over Tinga terug naar de mast. Zolang het fragment speelt zwijgen de autoradio, de radio in
-  huis en de missiemuziek. Onder in beeld lees je mee: *"Erik en Mark zijn vanaf vandaag de eigenaren
-  van de drugshandel in Tinga…"* en aan het eind *"…en Erik: van harte gefeliciteerd met je
-  verjaardag!"* (dat laatste is echt: het spel is een verjaardagscadeau).
+  en hoog over Tinga terug naar de mast. Er klinkt een zacht radiodeuntje (de autoradio, de radio in huis en
+  de missiemuziek zwijgen), en onder in beeld staat de mededeling van Radio Tinga 87.9 FM: *"Vanaf vandaag
+  zijn Erik en Mark de eigenaren van de drugshandel in Tinga"*, en aan het eind *"En Erik: van harte
+  gefeliciteerd met je verjaardag!"* (dat laatste is echt: het spel is een verjaardagscadeau).
 - Sjors staat in de deur met zijn koffie: *"Wat… wat draait er nou?"* Ben je te laat, dan staat hij
   er eerder, en mislukt de missie.
 
@@ -3281,8 +3281,7 @@ schieten Mark en Johan uit het raam op de handlangers, en bij de loods schieten 
 |---|---|
 
 Daarna speel je **vrij** verder: er belt geen missie meer, maar de klusjes, de Ferrari, de winkels en
-de stad blijven. Radio Tinga zendt het fragment voortaan af en toe opnieuw uit, tussen de nummers
-door. **shift+/** (de toets rechts onderin, naast de punt) start de missie los.
+de stad blijven. **shift+/** (de toets rechts onderin, naast de punt) start de missie los.
 
 | ![De studio](docs/screenshots/studio_binnen.png) | ![De tafel](docs/screenshots/studio_tafel.png) |
 |---|---|
