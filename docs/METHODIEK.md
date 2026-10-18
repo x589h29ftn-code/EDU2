@@ -9333,6 +9333,27 @@ van harte gefeliciteerd met je verjaardag! Ik hoop dat je het spel en de missies
 meer te doen is: start het spel hierna gerust nog eens op! Liefs, je Broeder". Zes regels in 40 s; `uitzendingtest` kijkt of de
 groet erbij staat.
 
+**Opgeslagen spellen weg na opnieuw starten in de Windows-app (stap 219, 18 okt).** Gemeld: "de gebruiker heeft een spel
+opgeslagen, maar bij opnieuw starten is het opgeslagen spel weg".
+
+- *De oorzaak:* desktop/main.cjs liet de ingebouwde server op poort 0 luisteren, dus elke start een andere poort. localStorage hoort
+  bij de oorsprong (`http://127.0.0.1:<poort>`), dus elke start zag een lege opslag. In de browser (`npm run server`, vaste 8123)
+  speelde het niet, daarom zagen de proeven het nooit.
+- *Vast adres:* poort 47231 (en drie erna als hij bezet is; pas daarna een willekeurige). Eén venster tegelijk
+  (`requestSingleInstanceLock`), zodat een tweede start niet op een andere poort uitkomt.
+- *Een kopie in een bestand:* desktop/preload.cjs spiegelt elke `tinga.`-sleutel naar `opslag.json` in de map van de app
+  (`userData`), om de 3 s en bij het sluiten, alleen als er iets veranderde; bij het starten zet hij wat in localStorage ontbreekt
+  terug, vóór de scripts van het spel draaien. Zo maakt de poort niet meer uit.
+- *De oude spellen terug:* zonder `opslag.json` zoekt `haalOudeOpslagOp` in de leveldb van localStorage naar de oude adressen,
+  luistert even op elke oude poort, leest de opslag uit met een verborgen venster, en voegt de spellen samen (dubbele eruit, de
+  nieuwste eerst, hoogstens tien plekken), met de instellingen van de nieuwste. Een gebruiker van de vorige versie krijgt zijn
+  spellen dus terug bij de eerste start van de nieuwe.
+- *Wat misging:* het verborgen venster was even het enige venster, en `window-all-closed` sloot dan de hele app
+  (`bezigMetTerughalen`).
+
+*Proef*: `desktopopslagtest` start de echte Electron onder xvfb-run met een eigen gegevensmap (`TINGA_DATA`): opslaan zoals de oude
+versie (`TINGA_POORT=0`, `TINGA_GEEN_SPIEGEL=1`) en terughalen, opslaan en opnieuw starten, en op een andere poort uit het bestand.
+
 **Een snelkoppeling voor de geocache, en een eindronde voor het delen (stap 216, 17 okt).** Gevraagd: "Voeg toe dat ik een
 snelkoppeling zoals bij Yugo heb voor de geocache, om te testen", en "ik ga het spel binnenkort met iemand delen: zijn er nog zaken
 die je wilt checken?"

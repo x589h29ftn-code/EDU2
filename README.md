@@ -59,7 +59,7 @@ bij nul. `tools/server.mjs`, GitHub Pages en de Windows-app kunnen het wel.
 | E | praten (en het gesprek doorklikken) · bij de voordeur van Molenkrite 15, de Wieken 29 en de schuurdeur van Tinga State naar binnen en naar buiten · op de bank zitten en weer opstaan · aan de toonbank in de boerderij munitie kopen · anders in- en uitstappen bij een auto of een boot |
 | 1 2 3 | een keuze maken als het spel erom vraagt (een huis, de inleg, wat je doet); op een aanraakscherm zijn het knoppen |
 | 1 … 4 | aan de toonbank bij Tinga State: kopen wat er in het schap ligt (kogels, EHBO-dozen, wapens) |
-| F5 / F9 | spel opslaan / opgeslagen spel laden (ook: **Opslaan** in het menu onder Esc; met **Opslaan als nieuw spel** bewaar je een tweede spel naast het eerste, tot tien, en kies je bij Spel laden welk) |
+| F5 / F9 | spel opslaan / opgeslagen spel laden (ook: **Opslaan** in het menu onder Esc; met **Opslaan als nieuw spel** bewaar je een tweede spel naast het eerste, tot tien, en kies je bij Spel laden welk; in de Windows-app blijft de opslag ook na opnieuw starten bewaard) |
 | F11 | volledig scherm aan en uit (in de app zonder menubalk). Onder **Instellingen → Spelen in volledig scherm** kies je het voorgoed: dan gaat het spel bij Start en Doorgaan vanzelf schermvullend |
 | **X** | een klusje afbreken |
 | levensbalk | linksonder; leeg = neergegaan, en dan kies je: de missie opnieuw, het laatste checkpoint, of je eigen opslag. Het streepje in het midden is de helft: tot daar komt je leven vanzelf terug (zie [Levens zoals in GTA](#levens-zoals-in-gta)) |
